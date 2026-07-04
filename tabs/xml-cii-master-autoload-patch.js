@@ -90,6 +90,7 @@ function esc(value) { return text(value).replace(/&/g, '&amp;').replace(/</g, '&
 function normalizeKey(value) { return clean(value).toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 function numericText(value) { const match = clean(value).match(/[-+]?\d*\.?\d+/); return match ? match[0] : ''; }
 function rawValue(row, keys) { for (const key of keys || []) { const value = row?.[key] ?? row?._raw?.[key]; if (value != null && clean(value) !== '') return clean(value); } return ''; }
+function isPipingPlaceholderRow(row) { return row?._smartMasterPlaceholder === true || normalizeKey(row?.pipingClass || row?.['Piping Class']) === 'ONDEMAND'; }
 
 function masterPaths(config) {
   const existing = config?.masterPaths && typeof config.masterPaths === 'object' && !Array.isArray(config.masterPaths) ? config.masterPaths : {};
@@ -129,7 +130,7 @@ function configInput() { return document.querySelector(INPUT_SELECTOR); }
 function parseConfig(input = configInput()) { try { const value = JSON.parse(input?.value || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch { return null; } }
 function writeConfig(input, config) { const next = JSON.stringify(config, null, 2); if (!input || input.value === next) return false; input.value = next; input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); return true; }
 function ensureSection(config, section) { const key = section.sectionKey; if (!config[key] || typeof config[key] !== 'object' || Array.isArray(config[key])) config[key] = {}; if (!config[key][section.fieldMapKey] || typeof config[key][section.fieldMapKey] !== 'object' || Array.isArray(config[key][section.fieldMapKey])) config[key][section.fieldMapKey] = {}; return config[key]; }
-function rowCount(section, source) { const rows = source?.[section.rowsKey]; return Array.isArray(rows) ? rows.length : 0; }
+function rowCount(section, source) { const rows = source?.[section.rowsKey]; if (!Array.isArray(rows)) return 0; return section.sectionKey === 'pipingClass' ? rows.filter((row) => !isPipingPlaceholderRow(row)).length : rows.length; }
 
 function parseJsonRows(rawText) {
   const trimmed = clean(rawText).replace(/^export\s+default\s+/i, '').replace(/^window\.[A-Za-z0-9_$]+\s*=\s*/i, '').replace(/;\s*$/g, '');

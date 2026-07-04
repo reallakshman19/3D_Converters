@@ -612,7 +612,14 @@ export function normalizeLineListRow(row, fieldMap, index) {
     t1: readRowValue(row, [fieldMap.t1]),
     t2: readRowValue(row, [fieldMap.t2]),
     t3: readRowValue(row, [fieldMap.t3]),
-    hydroPressure: readRowValue(row, [fieldMap.hydroPressure]),
+    hydroPressure: readRowValue(row, [
+      fieldMap.hydroPressure,
+      'hydroPressure', 'HydroPressure', 'hydro_pressure',
+      'Hydro Test Pressure', 'Hydrotest Pressure', 'Hydro Pressure',
+      'Hydro Pr', 'Hyd Test Pr', 'Hyd. Test Pressure',
+      'Test Pressure', 'TEST_PRESSURE', 'HYDRO_TEST_PRESSURE',
+      'Pressure Test', 'Proof Pressure', 'Hydro/Test Pressure', 'Pressure2'
+    ]),
     insThk: readRowValue(row, [fieldMap.insThk]),
     densityMixed: readRowValue(row, [fieldMap.densityMixed]),
     densityGas: readRowValue(row, [fieldMap.densityGas]),

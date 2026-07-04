@@ -10,7 +10,7 @@ import { resolveLineListDensity } from '../../../../converters/xml-cii2019-core/
 import { resolveXmlCiiWallThicknessFromDtxr } from '../../../../converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js';
 import { applyPreviewOverrideFillDown, applyPreviewProcessFillDown, markPreviewOverrideManual, markPreviewProcessManual, applyPreviewSmartFillByClass, applyPreviewSmartProcessFillByClass } from '../../shared/preview-filldown.js?v=20260626-smart-fill-1';
 
-const PV_CACHE_KEY = 'xml-cii-pv-cache-v2';
+const PV_CACHE_KEY = 'xml-cii-pv-cache-v3';
 const _PV_CACHE_MAX_BYTES = 2_500_000;
 function pvCacheFingerprint(xmlText, cfg) { const xmlSig = `${(xmlText || '').length}:${(xmlText || '').slice(0, 80)}`; const llSig = cfg?.linelist?.masterRows?.length || 0; const pcSig = cfg?.pipingClass?.masterRows?.length || 0; const overrideSig = JSON.stringify(cfg?.overrides || {}).slice(0, 200); return `pv|${xmlSig}|${llSig}:${pcSig}|${overrideSig}`; }
 function readCache(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } }

@@ -246,8 +246,18 @@ export function isXmlCiiRigidNode(node) {
 }
 
 export function isXmlCiiWeightReviewNode(node, dtxr = '') {
-  const searchText = `${xmlText(node, 'ComponentType')} ${xmlText(node, 'NodeName')} ${dtxr}`.toUpperCase();
-  return isXmlCiiRigidNode(node) || /FLAN/.test(searchText) || /VALV|\bVLV\b/.test(searchText) || /\bINST\b|INSTRUMENT/.test(searchText);
+  const compType = xmlText(node, 'ComponentType').toUpperCase();
+  const nodeName = xmlText(node, 'NodeName').toUpperCase();
+  const dtxrUpper = toText(dtxr).toUpperCase();
+  const searchText = `${compType} ${nodeName} ${dtxrUpper}`;
+  return isXmlCiiRigidNode(node) ||
+         compType.startsWith('INST') ||
+         compType.startsWith('FLAN') ||
+         compType.startsWith('VALV') ||
+         compType === 'VLV' ||
+         /FLAN/.test(searchText) ||
+         /VALV|\bVLV\b/.test(searchText) ||
+         /\bINST\b|INSTRUMENT/.test(searchText);
 }
 
 export function isXmlCiiWeightReviewEndpoint(node) {

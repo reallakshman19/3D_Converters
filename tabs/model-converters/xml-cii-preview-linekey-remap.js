@@ -76,6 +76,7 @@ function processDataFromRow(row) {
   const out = {};
   const map = {
     p1: ['p1', 'P1', 'Design Pressure', 'Pressure Max kPa(g)', 'Pressure Max', 'DESIGN PRESSURE'],
+    hydroPressure: ['hydroPressure', 'HydroPressure', 'hydro_pressure', 'Hydro Test Pressure', 'Hydrotest Pressure', 'Hydro Pressure', 'Test Pressure', 'TEST_PRESSURE', 'HYDRO_TEST_PRESSURE', 'Pressure Test', 'Proof Pressure', 'Hydro/Test Pressure', 'Pressure2'],
     t1: ['t1', 'T1', 'Design Temp', 'Temp Max ºC', 'Temp Max C', 'DESIGN TEMP'],
     t2: ['t2', 'T2', 'T2 ºC', 'Temp. ºC', 'Temperature2', 'Temperature 2'],
     t3: ['t3', 'T3', 'T3 ºC', 'Temp Min ºC', 'Temp Min C', 'Temperature3', 'Temperature 3'],
@@ -153,8 +154,10 @@ function openLineKeyModal({ branchName, targetLineKey }) {
     const processData = processDataFromRow(selected.row);
     if (!config.overrides || typeof config.overrides !== 'object' || Array.isArray(config.overrides)) config.overrides = {};
     if (!config.overrides.processData || typeof config.overrides.processData !== 'object' || Array.isArray(config.overrides.processData)) config.overrides.processData = {};
-    const writeKey = targetLineKey || selectedKey;
-    config.overrides.processData[writeKey] = { ...(config.overrides.processData[writeKey] || {}), ...processData };
+    const writeKeys = [...new Set([targetLineKey, selectedKey].map(text).filter(Boolean))];
+    for (const writeKey of writeKeys) {
+      config.overrides.processData[writeKey] = { ...(config.overrides.processData[writeKey] || {}), ...processData };
+    }
     if (!config.linelist || typeof config.linelist !== 'object' || Array.isArray(config.linelist)) config.linelist = {};
     if (!config.linelist.branchLineKeyMap || typeof config.linelist.branchLineKeyMap !== 'object' || Array.isArray(config.linelist.branchLineKeyMap)) config.linelist.branchLineKeyMap = {};
     config.linelist.branchLineKeyMap[branchName] = selectedKey;

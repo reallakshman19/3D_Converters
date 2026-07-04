@@ -3,6 +3,23 @@ function _toText(value) {
   return String(value);
 }
 
+function _normalizeBranchMapKey(value) {
+  return _toText(value).trim().toUpperCase().replace(/\s+/g, '');
+}
+
+function _mappedLineKeyForBranch(branchName, linelist) {
+  const map = linelist?.branchLineKeyMap;
+  if (!map || typeof map !== 'object' || Array.isArray(map)) return '';
+  const exact = _toText(map[_toText(branchName).trim()]).trim();
+  if (exact) return exact;
+  const wanted = _normalizeBranchMapKey(branchName);
+  for (const [key, value] of Object.entries(map)) {
+    const mapped = _toText(value).trim();
+    if (mapped && _normalizeBranchMapKey(key) === wanted) return mapped;
+  }
+  return '';
+}
+
 function _regexGroup(text, pattern, groupIndex = 1) {
   const source = _toText(text).trim();
   const patternText = _toText(pattern).trim();
@@ -90,6 +107,8 @@ export function xmlCiiLineKeyFromBranchTokens(branchName, config) {
 export function deriveLineKeyFromBranchName(branchName, config) {
   const text = _toText(branchName).trim();
   const linelist = config.linelist || {};
+  const mapped = _mappedLineKeyForBranch(text, linelist);
+  if (mapped) return mapped;
 
   // Regex is an explicit user override and must take precedence over token fallback.
   // Otherwise a configured regex cannot fix shifted branch formats such as:

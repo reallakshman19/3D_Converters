@@ -17,6 +17,7 @@ import { deriveLineKeyFromBranchName } from '../../converters/xml-cii2019-core/r
 import { buildPipingClassIndex } from '../../converters/xml-cii2019-core/piping-class-resolver.js';
 import { resolveBranchProcessData } from '../../converters/xml-cii2019-core/branch-process-resolver.js';
 import { buildStagedDtxrIndex, resolveXmlCiiNodeDtxr } from '../../converters/xml-cii2019-core/dtxr-resolver.js';
+import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
 import { xmlCiiDtxrPsForNode, xmlCiiDtxrPosForNode, buildStagedDtxrPositionIndex, xmlCiiCalibrateDtxrPositionIndex } from '../../converters/xml-cii2019-core/dtxr-resolver.js';
 import {
   collectXmlCiiZeroRigidWeightIssues,
@@ -1456,7 +1457,12 @@ async function _xmlCiiReadMasterFile(file) {
 function _xmlCiiMasterRowsFromConfig(config, masterDef) {
   const section = config?.[masterDef.sectionKey];
   const rows = section?.[masterDef.rowsKey];
-  return Array.isArray(rows) ? rows : [];
+  if (!Array.isArray(rows)) return [];
+  if (masterDef.sectionKey !== 'pipingClass') return rows;
+  return rows.filter((row) => {
+    const key = _toText(row?.pipingClass ?? row?.['Piping Class']).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return row?._smartMasterPlaceholder !== true && key !== 'ONDEMAND';
+  });
 }
 
 function _xmlCiiMasterFieldMapFromConfig(config, masterDef) {
@@ -6779,12 +6785,15 @@ export function renderModelConvertersTab(container) {
     const coordsMode = _toText(values.coordsMode || 'first');
     const createEnriched = !!values.createEnrichedXml;
     const kgToNewton = values.kgToNewton !== false;
-    const statusIcon = (n, label) => `
+    const statusIcon = (n, label, isPc = false) => {
+      const ok = isPc ? n > 1 : n > 0;
+      return `
       <div class="model-converters-workflow-run-status-row">
-        <span class="model-converters-workflow-run-status-icon ${n > 0 ? 'ok' : 'warn'}">${n > 0 ? '✓' : '⚠'}</span>
+        <span class="model-converters-workflow-run-status-icon ${ok ? 'ok' : 'warn'}">${ok ? '✓' : '⚠'}</span>
         <span>${_esc(label)}</span>
-        <strong>${n > 0 ? `${n} row(s)` : 'not loaded'}</strong>
+        <strong>${ok ? `${n} row(s)` : 'not loaded'}</strong>
       </div>`;
+    };
     return `
       <div class="model-converters-workflow-detail-title">5 Run</div>
       <div class="model-converters-workflow-detail-text">
@@ -6793,7 +6802,7 @@ export function renderModelConvertersTab(container) {
       <div class="model-converters-workflow-master-card">
         <div class="model-converters-workflow-section-title">Readiness</div>
         ${statusIcon(linelistRows, 'Line List')}
-        ${statusIcon(pcRows, 'Piping Class Master')}
+        ${statusIcon(pcRows, 'Piping Class Master', true)}
         ${statusIcon(matRows, 'Material Map')}
         ${statusIcon(weightRows, 'Valve Weights')}
         <div class="model-converters-workflow-run-status-row" style="margin-top:8px;">
@@ -8164,7 +8173,7 @@ export function renderModelConvertersTab(container) {
       run: {
         counts: {
           linelist: Array.isArray(config.linelist?.masterRows) ? config.linelist.masterRows.length : 0,
-          pipingClass: Array.isArray(config.pipingClass?.masterRows) ? config.pipingClass.masterRows.length : 0,
+          pipingClass: _xmlCiiMasterRowsFromConfig(config, XML_CII_MASTER_DEFS.pipingClass).length,
           material: Array.isArray(config.material?.mapRows) ? config.material.mapRows.length : 0,
           weight: Array.isArray(config.weight?.masterRows) ? config.weight.masterRows.length : 0,
         },
@@ -8297,10 +8306,14 @@ export function renderModelConvertersTab(container) {
   async function xmlCiiComputePopupWeightRows() {
     const xmlFile = xmlCiiCurrentPrimaryFile();
     if (!xmlFile) throw new Error('Load an XML file first.');
+    const values = activeValues();
     const xmlText = await xmlFile.text();
     const config = xmlCiiConfigWithLoadedMasterRows('XML->CII weight match');
     const stagedSource = await xmlCiiCurrentStagedJsonSource(config);
-    return collectXmlCiiWeightMatchRows(xmlText, stagedSource.text, config).slice(0, 500).map((row) => {
+    const enriched = await _enrichXmlForCii2019(xmlText, stagedSource.text, { ...values, supportConfigJson: JSON.stringify(config), dryRun: true });
+    const collectConfig = enriched.config || config;
+    const geometryXml = applyXmlCiiStagedGeometryAuthority(enriched.xmlText || xmlText, stagedSource.text, { config: collectConfig }).xmlText;
+    return collectXmlCiiWeightMatchRows(geometryXml, stagedSource.text, collectConfig).slice(0, 500).map((row) => {
       const best = row.candidates?.[0] || row.weightMatch || null;
       const weight = row.weight || best?.selectedWeight || best?.suggestedWeight || best?.weight || '';
       return {
