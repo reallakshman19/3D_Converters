@@ -1,5 +1,6 @@
 import { parseXmlCiiStagedJsonInputSource, stagedTraceToCsv } from '../../../converters/xml-cii2019-core/custom-input-api.js';
 import { buildXmlTypedJsonTraceRows, normalizeTraceScopeOptions } from '../../../converters/xml-cii2019-core/json-trace-scope.js';
+import { buildJsonTraceTree } from '../../../converters/xml-cii2019-core/json-trace-tree.js';
 import { XML_CII_JSON_TRACE_STORE_KEY, xmlCiiJsonTraceSnapshot } from '../workflow/services/xml-cii-staged-source-service.js';
 
 /**
@@ -26,6 +27,7 @@ let memoryState = {};
 
 function esc(value) { return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function text(value) { return String(value ?? '').trim(); }
+function valueText(value) { return value && typeof value === 'object' ? JSON.stringify(value) : text(value); }
 function read() { const stored = xmlCiiJsonTraceSnapshot() || {}; return { ...stored, ...memoryState }; }
 function save(state) {
   const next = { ...state, storageWarning: '' };
@@ -76,9 +78,26 @@ function jsonTraceRows(traceRows) {
     matchType: row.xmlTraceScope || '', matchedToken: row.matchedToken || row.matchedText || '',
     jsonPath: row.sourcePath || '', objectType: row.sourceObjectType || '', branchName: row.branchName || '',
     nodeNumber: row.nodeNumber || '', field: row.field || '', sourceAttribute: row.sourceAttributeName || '',
-    finalValue: row.finalValue || '', basis: row.matchMethod || row.parserRuleId || '', status: row.status || '',
+    finalValue: valueText(row.finalValue || row.sourceRawValue || row.value), basis: row.matchMethod || row.parserRuleId || '', status: row.status || '',
   }));
   return { rows: mapped.slice(0, TRACE_RENDER_LIMIT), total: mapped.length };
+}
+function treeLeaf(row) {
+  const node = row.nodeNumber ? ` node ${row.nodeNumber}` : '';
+  return `<li><code>#${esc(row.jsonNodeNo)}</code> ${esc(row.objectType)}${esc(node)} — ${esc(row.field)}: ${esc(row.value)}</li>`;
+}
+function treeBucket(bucket) {
+  const more = bucket.truncated ? `<li>… ${bucket.truncated} more row(s)</li>` : '';
+  return `<details open><summary>${esc(bucket.label)} (${bucket.count})</summary><ul>${bucket.rows.map(treeLeaf).join('')}${more}</ul></details>`;
+}
+function treeBranch(branch, index) {
+  return `<details ${index < 4 ? 'open' : ''}><summary>${esc(branch.branchName)} (${branch.count})</summary>${branch.buckets.map(treeBucket).join('')}</details>`;
+}
+function jsonTraceTree(traceRows) {
+  const tree = buildJsonTraceTree(traceRows, { rowLimit: 12 }), branches = tree.branches.slice(0, 80);
+  if (!branches.length) return '';
+  const more = tree.branches.length > branches.length ? `<div class="xml-cii-native-hint">Tree limited to first ${branches.length} of ${tree.branches.length} branches. Use table filter for specific rows.</div>` : '';
+  return `<div data-json-trace-tree class="xml-cii-native-hint" style="margin:8px 0;padding:8px;border:1px solid #2a3f5f;border-radius:6px;max-height:420px;overflow:auto;"><b>Tree form: Branch &gt; DTXR-POS / DTXR-PS</b>${branches.map(treeBranch).join('')}${more}</div>`;
 }
 function scopeSummaryText(current, total) {
   const s = current.traceScopeSummary;
@@ -103,7 +122,7 @@ function traceEvidenceMap(traceRows = []) {
   }
   return map;
 }
-function evidenceValue(row = {}) { return row.finalValue || row.sourceRawValue || row.value || row.sourceAttributeValue || ''; }
+function evidenceValue(row = {}) { return valueText(row.finalValue || row.sourceRawValue || row.value || row.sourceAttributeValue); }
 function crossLinkJsonNodeNo(xmlRows, traceRows) {
   const pathMap = traceEvidenceMap(traceRows);
   for (const row of xmlRows) if (row.jsonPath && pathMap.has(row.jsonPath)) row.jsonNodeNo = String(pathMap.get(row.jsonPath).jsonNodeNo || row.jsonNodeNo || '');
@@ -129,7 +148,7 @@ function jsonNodePanel(current) {
   const displayTrace = activeTraceRows(current), { rows, total } = jsonTraceRows(displayTrace), countLabel = scopeSummaryText(current, total);
   const cols = [{ key: 'jsonNodeNo', label: 'JsonNodeNo' }, { key: 'matchType', label: 'Match Type' }, { key: 'matchedToken', label: 'Matched Token/Text' }, { key: 'jsonPath', label: 'JSON Path' }, { key: 'objectType', label: 'Type' }, { key: 'branchName', label: 'Branch' }, { key: 'nodeNumber', label: 'Node' }, { key: 'field', label: 'Field' }, { key: 'sourceAttribute', label: 'Source Attr' }, { key: 'finalValue', label: 'Value' }, { key: 'basis', label: 'Basis' }, { key: 'status', label: 'Status' }];
   const title = current.traceScopeSummary ? 'XML-scoped JsonNode Trace' : 'JsonNode Trace';
-  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">${title}</div><div class="model-converters-workflow-detail-text">Parsed staged JSON facts filtered by uploaded XML BranchName, DTXR_POS, DTXR_PS, and delimited PS support tags when XML is available.</div>${filterBar('data-json-trace-filter', 'data-json-trace-count')}${compactTable(cols, rows, 'Import and parse staged JSON to show JsonNode trace rows.', 'data-json-trace-table', countLabel)}</section>`;
+  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">${title}</div><div class="model-converters-workflow-detail-text">Parsed staged JSON facts filtered by uploaded XML BranchName, DTXR_POS, DTXR_PS, and delimited PS support tags when XML is available.</div>${jsonTraceTree(displayTrace)}${filterBar('data-json-trace-filter', 'data-json-trace-count')}${compactTable(cols, rows, 'Import and parse staged JSON to show JsonNode trace rows.', 'data-json-trace-table', countLabel)}</section>`;
 }
 function xmlNodePanel(current) {
   const allRows = current.xmlTraceRows || [], displayRows = allRows.slice(0, TRACE_RENDER_LIMIT), countLabel = allRows.length > TRACE_RENDER_LIMIT ? `Showing first ${TRACE_RENDER_LIMIT} of ${allRows.length} rows. Use the filter below to find specific values.` : `${allRows.length} row${allRows.length !== 1 ? 's' : ''}`;
