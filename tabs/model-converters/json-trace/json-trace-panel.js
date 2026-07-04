@@ -86,19 +86,30 @@ function basisForDiagnostic(row) {
   if (/sideload-restraint/.test(type)) return method || 'Restraint side-load basis';
   return method || type;
 }
-function crossLinkJsonNodeNo(xmlRows, traceRows) {
-  const pathMap = new Map();
-  for (let i = 0; i < traceRows.length; i++) {
-    const sp = traceRows[i].sourcePath || '';
-    if (!sp) continue;
-    const attrIdx = sp.indexOf('.attributes'), componentPath = attrIdx >= 0 ? sp.slice(0, attrIdx) : sp;
-    if (!pathMap.has(componentPath)) pathMap.set(componentPath, traceRows[i].jsonNodeNo || i + 1);
+function componentPath(value) { const raw = text(value), i = raw.indexOf('.attributes'); return i >= 0 ? raw.slice(0, i) : raw; }
+function traceEvidenceMap(traceRows = []) {
+  const map = new Map();
+  for (const row of traceRows || []) {
+    const key = componentPath(row.sourcePath || row.jsonPath);
+    if (key && !map.has(key)) map.set(key, row);
   }
-  for (const row of xmlRows) if (row.jsonPath && pathMap.has(row.jsonPath)) row.jsonNodeNo = String(pathMap.get(row.jsonPath));
+  return map;
+}
+function evidenceValue(row = {}) { return row.finalValue || row.sourceRawValue || row.value || row.sourceAttributeValue || ''; }
+function crossLinkJsonNodeNo(xmlRows, traceRows) {
+  const pathMap = traceEvidenceMap(traceRows);
+  for (const row of xmlRows) if (row.jsonPath && pathMap.has(row.jsonPath)) row.jsonNodeNo = String(pathMap.get(row.jsonPath).jsonNodeNo || row.jsonNodeNo || '');
+}
+function enrichXmlTraceRows(xmlRows, current) {
+  const scoped = traceEvidenceMap(current.scopedTrace || []), full = traceEvidenceMap(current.fullTrace || current.trace || []);
+  return xmlRows.map((row) => {
+    const evidence = scoped.get(row.jsonPath) || full.get(row.jsonPath) || {};
+    return { ...row, xmlBranch: row.branchName || evidence.xmlBranchKey || evidence.branchName || '', matchType: evidence.xmlTraceScope || '', matchedToken: evidence.matchedToken || evidence.matchedText || '', stagedBranch: evidence.branchName || evidence.stagedBranchKey || '', stagedEvidence: evidenceValue(evidence) };
+  });
 }
 function xmlTraceRowsFromDiagnostics(rows) {
   const wanted = new Set(['dtxr-pos', 'dtxr-ps', 'support-match', 'dtxr-pos-sif-zero']);
-  return (Array.isArray(rows) ? rows : []).filter((row) => wanted.has(text(row.type)) || /^sideload-restraint/.test(text(row.type))).map((row) => ({ xmlNode: row.nodeNumber || '', componentType: row.componentType || '', jsonNodeNo: row.jsonNodeNo || '', jsonPath: row.sourcePath || '', field: row.type || '', basis: basisForDiagnostic(row), oldValue: row.oldValue || '', finalValue: row.finalValue || row.message || row.kind || '', status: row.status || 'applied', detail: row.message || row.kind || row.tags || '' }));
+  return (Array.isArray(rows) ? rows : []).filter((row) => wanted.has(text(row.type)) || /^sideload-restraint/.test(text(row.type))).map((row) => ({ xmlNode: row.nodeNumber || '', xmlBranch: row.branchName || '', componentType: row.componentType || '', jsonNodeNo: row.jsonNodeNo || '', jsonPath: row.sourcePath || '', field: row.type || '', matchType: '', matchedToken: '', stagedBranch: '', stagedEvidence: '', basis: basisForDiagnostic(row), oldValue: row.oldValue || '', finalValue: row.finalValue || row.message || row.kind || '', status: row.status || 'applied', detail: row.message || row.kind || row.tags || '' }));
 }
 function importPanel(current, services) {
   const preview = previewText(current.stagedJsonText), useSource = services?.useJsonTraceSource === true || current.useAsSource === true, sourceName = current.sourceFileName ? ` from ${current.sourceFileName}` : '';
@@ -114,8 +125,8 @@ function jsonNodePanel(current) {
 }
 function xmlNodePanel(current) {
   const allRows = current.xmlTraceRows || [], displayRows = allRows.slice(0, TRACE_RENDER_LIMIT), countLabel = allRows.length > TRACE_RENDER_LIMIT ? `Showing first ${TRACE_RENDER_LIMIT} of ${allRows.length} rows. Use the filter below to find specific values.` : `${allRows.length} row${allRows.length !== 1 ? 's' : ''}`;
-  const cols = [{ key: 'xmlNode', label: 'XML Node' }, { key: 'componentType', label: 'Type' }, { key: 'jsonNodeNo', label: 'JsonNodeNo' }, { key: 'jsonPath', label: 'JSON Path' }, { key: 'field', label: 'Field' }, { key: 'basis', label: 'Basis' }, { key: 'oldValue', label: 'Old' }, { key: 'finalValue', label: 'Final' }, { key: 'status', label: 'Status' }, { key: 'detail', label: 'Detail' }];
-  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">XML Node Wise Trace</div><div class="model-converters-workflow-detail-text">Run a dry diagnostic pass to show XML node to JSON evidence mapping. Coordinate trace review tolerance is +/-6mm.</div><div class="xml-cii-native-toolbar"><button type="button" class="model-converters-run-btn" data-json-trace-build-xml>Build XML node trace</button><button type="button" class="model-converters-download-btn" data-json-trace-export-xml>Export XML node trace JSON</button><span class="xml-cii-native-status-text">${esc(current.xmlTraceStatus || '')}</span></div>${filterBar('data-xml-trace-filter', 'data-xml-trace-count')}${compactTable(cols, displayRows, 'Build XML node trace after importing JSON and loading XML.', 'data-xml-trace-table', countLabel)}</section>`;
+  const cols = [{ key: 'xmlNode', label: 'XML Node' }, { key: 'xmlBranch', label: 'XML Branch' }, { key: 'componentType', label: 'Type' }, { key: 'jsonNodeNo', label: 'JsonNodeNo' }, { key: 'matchType', label: 'Match Type' }, { key: 'matchedToken', label: 'Matched Token/Text' }, { key: 'stagedBranch', label: 'Staged Branch' }, { key: 'stagedEvidence', label: 'Staged Evidence' }, { key: 'jsonPath', label: 'JSON Path' }, { key: 'field', label: 'Field' }, { key: 'basis', label: 'Basis' }, { key: 'oldValue', label: 'Old' }, { key: 'finalValue', label: 'Final' }, { key: 'status', label: 'Status' }, { key: 'detail', label: 'Detail' }];
+  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">XML Node Wise Trace</div><div class="model-converters-workflow-detail-text">Run a dry diagnostic pass to show XML node to JSON evidence mapping with XML-scoped JsonNode evidence.</div><div class="xml-cii-native-toolbar"><button type="button" class="model-converters-run-btn" data-json-trace-build-xml>Build XML node trace</button><button type="button" class="model-converters-download-btn" data-json-trace-export-xml>Export XML node trace JSON</button><span class="xml-cii-native-status-text">${esc(current.xmlTraceStatus || '')}</span></div>${filterBar('data-xml-trace-filter', 'data-xml-trace-count')}${compactTable(cols, displayRows, 'Build XML node trace after importing JSON and loading XML.', 'data-xml-trace-table', countLabel)}</section>`;
 }
 function activePanel(current, services) { if (current.active === 'json-node-trace') return jsonNodePanel(current); if (current.active === 'xml-node-trace') return xmlNodePanel(current); return importPanel(current, services); }
 export function renderXmlCiiJsonTracePanel(services) {
@@ -168,7 +179,7 @@ export function bindXmlCiiJsonTracePanel(body, services) {
     if (text(current.stagedJsonText)) services?.setUseJsonTraceSource?.(true);
     if (!current.trace?.length && text(current.stagedJsonText)) await parseCurrentState(current, services);
     current.xmlTraceStatus = 'Running diagnostics...'; save(current); rerender(body, text(current.stagedJsonText) ? enabledServices(services, true) : services);
-    try { const rows = await services?.buildXmlNodeTrace?.(), next = state(); next.xmlTraceRows = xmlTraceRowsFromDiagnostics(rows || []); crossLinkJsonNodeNo(next.xmlTraceRows, next.fullTrace || next.trace || []); next.xmlTraceStatus = `Ready: ${next.xmlTraceRows.length} row(s)`; next.active = 'xml-node-trace'; save(next); }
+    try { const rows = await services?.buildXmlNodeTrace?.(), next = state(); let xmlRows = xmlTraceRowsFromDiagnostics(rows || []); crossLinkJsonNodeNo(xmlRows, next.fullTrace || next.trace || []); xmlRows = enrichXmlTraceRows(xmlRows, next); next.xmlTraceRows = xmlRows; next.xmlTraceStatus = `Ready: ${next.xmlTraceRows.length} row(s)`; next.active = 'xml-node-trace'; save(next); }
     catch (error) { const next = state(); next.xmlTraceStatus = `Error: ${error?.message || error}`; save(next); }
     rerender(body, services);
   });
