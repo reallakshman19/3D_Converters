@@ -119,23 +119,33 @@ function basisForDiagnostic(row) {
   return method || type;
 }
 function componentPath(value) { const raw = text(value), i = raw.indexOf('.attributes'); return i >= 0 ? raw.slice(0, i) : raw; }
-function traceEvidenceMap(traceRows = []) {
+function traceEvidenceIndex(traceRows = []) {
   const map = new Map();
   for (const row of traceRows || []) {
     const key = componentPath(row.sourcePath || row.jsonPath);
-    if (key && !map.has(key)) map.set(key, row);
+    if (!key) continue;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(row);
   }
   return map;
 }
+function evidenceScope(row = {}) { return text(row.xmlTraceScope || row.matchType); }
+function evidenceForXmlRow(xmlRow, scopedIndex, fullIndex) {
+  const rows = [...(scopedIndex.get(componentPath(xmlRow.jsonPath)) || []), ...(fullIndex.get(componentPath(xmlRow.jsonPath)) || [])];
+  const field = text(xmlRow.field || xmlRow.type);
+  if (field === 'dtxr-pos' || field === 'dtxr-pos-sif-zero') return rows.find((row) => /^DTXR_POS/.test(evidenceScope(row))) || rows.find((row) => /DTXR|DESC|DESCRIPTION/.test(text(row.field || row.sourceAttributeName)));
+  if (field === 'dtxr-ps' || field === 'support-match') return rows.find((row) => /^DTXR_PS/.test(evidenceScope(row))) || rows.find((row) => /^DTXR_POS/.test(evidenceScope(row)));
+  return rows.find((row) => /^DTXR_/.test(evidenceScope(row))) || rows[0] || {};
+}
 function evidenceValue(row = {}) { return valueText(row.finalValue || row.sourceRawValue || row.value || row.sourceAttributeValue); }
 function crossLinkJsonNodeNo(xmlRows, traceRows) {
-  const pathMap = traceEvidenceMap(traceRows);
-  for (const row of xmlRows) if (row.jsonPath && pathMap.has(row.jsonPath)) row.jsonNodeNo = String(pathMap.get(row.jsonPath).jsonNodeNo || row.jsonNodeNo || '');
+  const index = traceEvidenceIndex(traceRows);
+  for (const row of xmlRows) row.jsonNodeNo = String(evidenceForXmlRow(row, index, new Map())?.jsonNodeNo || row.jsonNodeNo || '');
 }
 function enrichXmlTraceRows(xmlRows, current) {
-  const scoped = traceEvidenceMap(current.scopedTrace || []), full = traceEvidenceMap(current.fullTrace || current.trace || []);
+  const scoped = traceEvidenceIndex(current.scopedTrace || []), full = traceEvidenceIndex(current.fullTrace || current.trace || []);
   return xmlRows.map((row) => {
-    const evidence = scoped.get(row.jsonPath) || full.get(row.jsonPath) || {};
+    const evidence = evidenceForXmlRow(row, scoped, full) || {};
     return { ...row, xmlBranch: row.branchName || evidence.xmlBranchKey || evidence.branchName || '', matchType: evidence.xmlTraceScope || '', matchedToken: evidence.matchedToken || evidence.matchedText || '', stagedBranch: evidence.branchName || evidence.stagedBranchKey || '', stagedEvidence: evidenceValue(evidence) };
   });
 }
