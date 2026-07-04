@@ -9,9 +9,9 @@
  * rendering at import time.
  */
 
-const MODEL_CONVERTERS_SHIM_VERSION = '20260629-model-converters-lazy-render-guard-1';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260629-model-converters-lazy-render-guard-1';
-const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260629-model-converters-lazy-render-guard-1';
+const MODEL_CONVERTERS_SHIM_VERSION = '20260704-model-converters-load-hotfix-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260704-model-converters-load-hotfix-1';
+const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260704-model-converters-load-hotfix-1';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
@@ -23,14 +23,22 @@ function escapeHtml(value) {
   })[ch]);
 }
 
-function renderDiagnostic(container, title, error) {
+function errorText(error) {
+  return String(error?.stack || error?.message || error || 'Unknown error');
+}
+
+function renderDiagnostic(container, title, primaryError, fallbackError) {
   if (!container) return;
-  const message = String(error?.message || error || 'Unknown error');
+  const fallbackBlock = fallbackError
+    ? `<h3>Legacy fallback error</h3><pre>${escapeHtml(errorText(fallbackError))}</pre>`
+    : '';
   container.innerHTML = `
     <section class="model-converters-tab model-converters-tab--error" data-model-converters-shim="${escapeHtml(MODEL_CONVERTERS_SHIM_VERSION)}">
       <h2>${escapeHtml(title)}</h2>
       <p>The Model Converters tab could not load its full workflow module. The app shell stayed alive and caught the module failure.</p>
-      <pre>${escapeHtml(message)}</pre>
+      <h3>Canonical module error</h3>
+      <pre>${escapeHtml(errorText(primaryError))}</pre>
+      ${fallbackBlock}
     </section>`;
 }
 
@@ -44,7 +52,7 @@ function renderLegacyFallback(container, ctx, cause) {
     .then((module) => callRenderer(module.renderLegacyModelConvertersTab, container, ctx))
     .catch((fallbackError) => {
       console.error('[ModelConvertersTab] legacy fallback failed after canonical import failure', { cause, fallbackError });
-      renderDiagnostic(container, 'Could not load Model Converters', fallbackError || cause);
+      renderDiagnostic(container, 'Could not load Model Converters', cause, fallbackError);
       return null;
     });
 }
