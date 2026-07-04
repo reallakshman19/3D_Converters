@@ -1,5 +1,5 @@
 import { parseXmlCiiStagedJsonInputSource, stagedTraceToCsv } from '../../../converters/xml-cii2019-core/custom-input-api.js';
-import { buildXmlTypedJsonTraceRows } from '../../../converters/xml-cii2019-core/json-trace-scope.js';
+import { buildXmlTypedJsonTraceRows, normalizeTraceScopeOptions } from '../../../converters/xml-cii2019-core/json-trace-scope.js';
 import { XML_CII_JSON_TRACE_STORE_KEY, xmlCiiJsonTraceSnapshot } from '../workflow/services/xml-cii-staged-source-service.js';
 
 /**
@@ -15,6 +15,12 @@ const TABS = Object.freeze([
   ['import', 'Import'],
   ['json-node-trace', 'JsonNode Trace'],
   ['xml-node-trace', 'XML Node Wise Trace'],
+]);
+const SCOPE_OPTIONS = Object.freeze([
+  ['includeBranch', 'Branch'],
+  ['includeDtxrPos', 'DTXR_POS'],
+  ['includeDtxrPs', 'DTXR_PS'],
+  ['includeDelimitedPs', 'Delimited PS'],
 ]);
 let memoryState = {};
 
@@ -44,6 +50,7 @@ function state() {
   current.sourceSummary = current.sourceSummary || {};
   current.traceScopeSummary = current.traceScopeSummary || null;
   current.xmlTraceKeySummary = current.xmlTraceKeySummary || null;
+  current.traceScopeOptions = normalizeTraceScopeOptions(current.traceScopeOptions || {});
   current.useAsSource = current.useAsSource === true;
   return current;
 }
@@ -62,6 +69,7 @@ function compactTable(columns, rows, emptyText, tableAttr, countLabel) {
 }
 function filterBar(inputAttr, countAttr) { return `<div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px;"><input type="search" placeholder="Filter rows…" style="padding:4px 8px;font-size:12px;background:#1a2840;color:#d7e6ff;border:1px solid #2a3f5f;border-radius:4px;width:240px;" ${inputAttr}><span style="font-size:12px;color:#8aaccc;" ${countAttr}></span></div>`; }
 function activeTraceRows(current) { return current.traceScopeSummary ? (current.scopedTrace || []) : (current.trace || []); }
+function scopeControls(options = {}) { const opts = normalizeTraceScopeOptions(options); return `<div class="xml-cii-native-hint" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;"><b>Trace Scope:</b>${SCOPE_OPTIONS.map(([key, label]) => `<label class="xml-cii-native-check"><input type="checkbox" data-json-trace-scope-option="${esc(key)}" ${opts[key] ? 'checked' : ''}> ${esc(label)}</label>`).join('')}</div>`; }
 function jsonTraceRows(traceRows) {
   const mapped = traceRows.map((row, index) => ({
     jsonNodeNo: row.jsonNodeNo || row._jsonNodeNo || index + 1,
@@ -115,7 +123,7 @@ function importPanel(current, services) {
   const preview = previewText(current.stagedJsonText), useSource = services?.useJsonTraceSource === true || current.useAsSource === true, sourceName = current.sourceFileName ? ` from ${current.sourceFileName}` : '';
   const hint = preview.truncated ? `Previewing first ${preview.visibleLines} of ${preview.totalLines} lines${sourceName}. Full JSON is retained for trace and conversion.` : `Previewing ${preview.totalLines} line${preview.totalLines === 1 ? '' : 's'}${sourceName}.`;
   const scope = current.traceScopeSummary ? `<div class="xml-cii-native-hint">XML scope active: ${esc(scopeSummaryText(current, current.scopedTrace?.length || 0))}</div>` : '<div class="xml-cii-native-hint">XML scope will be applied when a main XML file is loaded and JsonNode Trace is parsed.</div>';
-  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">Staged JSON Trace Source</div><div class="model-converters-workflow-detail-text">Import staged JSON used to enrich XML nodes, then build XML-scoped trace tables from the uploaded XML.</div><div class="xml-cii-native-toolbar"><label class="model-converters-download-btn" style="display:inline-flex;align-items:center;gap:6px;">${importIcon()}<span>Import staged JSON</span><input type="file" accept=".json,.JSON" data-json-trace-file hidden></label><button type="button" class="model-converters-run-btn" data-json-trace-parse>Parse XML-scoped JsonNode Trace</button><button type="button" class="model-converters-download-btn" data-json-trace-export-csv>Export trace CSV</button><label class="xml-cii-native-check" title="Use this imported JSON Trace source for Preview, Diagnostics, Weight Match, and Run."><input type="checkbox" data-json-trace-use-source ${useSource ? 'checked' : ''}> Use JSON Trace staged source</label></div><textarea data-json-trace-text ${preview.truncated ? 'readonly' : ''} data-json-trace-preview-only="${preview.truncated ? 'true' : 'false'}" spellcheck="false" placeholder="Paste staged JSON here or import a file" style="width:100%;min-height:210px;font-family:monospace;font-size:12px;">${esc(preview.text)}</textarea><div class="xml-cii-native-hint">${esc(hint)}</div>${scope}${current.storageWarning ? `<div class="xml-cii-native-hint" style="color:#fbbf24;">${esc(current.storageWarning)}</div>` : ''}<pre style="white-space:pre-wrap;max-height:150px;overflow:auto">${esc(JSON.stringify(current.sourceSummary || {}, null, 2))}</pre></section>`;
+  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">Staged JSON Trace Source</div><div class="model-converters-workflow-detail-text">Import staged JSON used to enrich XML nodes, then build XML-scoped trace tables from the uploaded XML.</div><div class="xml-cii-native-toolbar"><label class="model-converters-download-btn" style="display:inline-flex;align-items:center;gap:6px;">${importIcon()}<span>Import staged JSON</span><input type="file" accept=".json,.JSON" data-json-trace-file hidden></label><button type="button" class="model-converters-run-btn" data-json-trace-parse>Parse XML-scoped JsonNode Trace</button><button type="button" class="model-converters-download-btn" data-json-trace-export-csv>Export trace CSV</button><label class="xml-cii-native-check" title="Use this imported JSON Trace source for Preview, Diagnostics, Weight Match, and Run."><input type="checkbox" data-json-trace-use-source ${useSource ? 'checked' : ''}> Use JSON Trace staged source</label></div>${scopeControls(current.traceScopeOptions)}<textarea data-json-trace-text ${preview.truncated ? 'readonly' : ''} data-json-trace-preview-only="${preview.truncated ? 'true' : 'false'}" spellcheck="false" placeholder="Paste staged JSON here or import a file" style="width:100%;min-height:210px;font-family:monospace;font-size:12px;">${esc(preview.text)}</textarea><div class="xml-cii-native-hint">${esc(hint)}</div>${scope}${current.storageWarning ? `<div class="xml-cii-native-hint" style="color:#fbbf24;">${esc(current.storageWarning)}</div>` : ''}<pre style="white-space:pre-wrap;max-height:150px;overflow:auto">${esc(JSON.stringify(current.sourceSummary || {}, null, 2))}</pre></section>`;
 }
 function jsonNodePanel(current) {
   const displayTrace = activeTraceRows(current), { rows, total } = jsonTraceRows(displayTrace), countLabel = scopeSummaryText(current, total);
@@ -139,7 +147,7 @@ async function applyXmlScope(current, services) {
   const xmlText = await currentXmlText(services);
   current.scopedTrace = []; current.traceScopeSummary = null; current.xmlTraceKeySummary = null;
   if (!xmlText || !current.fullTrace?.length) return current;
-  const scoped = buildXmlTypedJsonTraceRows({ xmlText, traceRows: current.fullTrace });
+  const scoped = buildXmlTypedJsonTraceRows({ xmlText, traceRows: current.fullTrace, options: current.traceScopeOptions });
   current.scopedTrace = scoped.rows || [];
   current.traceScopeSummary = scoped.summary || null;
   current.xmlTraceKeySummary = { branches: scoped.xmlTraceKeys?.branches?.length || 0, nodes: scoped.xmlTraceKeys?.nodes?.length || 0, supportTags: scoped.xmlTraceKeys?.supportTags?.length || 0 };
@@ -168,6 +176,7 @@ export function bindXmlCiiJsonTracePanel(body, services) {
   body.querySelectorAll('[data-json-trace-tab]').forEach((button) => button.addEventListener('click', () => { const current = collect(body); current.active = button.dataset.jsonTraceTab || 'import'; save(current); rerender(body, services); }));
   body.querySelector('[data-json-trace-file]')?.addEventListener('change', async (event) => { const file = event.target.files?.[0]; if (!file) return; const current = collect(body); current.stagedJsonText = await file.text(); current.sourceFileName = file.name; current.useAsSource = true; await parseCurrentState(current, services); save(current); services?.setUseJsonTraceSource?.(true); rerender(body, enabledServices(services, true)); });
   body.querySelector('[data-json-trace-parse]')?.addEventListener('click', () => parse(body, services));
+  body.querySelectorAll('[data-json-trace-scope-option]').forEach((box) => box.addEventListener('change', async () => { const current = collect(body); current.traceScopeOptions = normalizeTraceScopeOptions({ ...current.traceScopeOptions, [box.dataset.jsonTraceScopeOption]: box.checked }); await applyXmlScope(current, services); save(current); rerender(body, services); }));
   body.querySelector('[data-json-trace-export-csv]')?.addEventListener('click', () => downloadText('xml_cii_json_node_trace.csv', stagedTraceToCsv(activeTraceRows(state())), 'text/csv'));
   body.querySelector('[data-json-trace-export-xml]')?.addEventListener('click', () => downloadText('xml_cii_xml_node_trace.json', JSON.stringify(state().xmlTraceRows || [], null, 2), 'application/json'));
   body.querySelector('[data-json-trace-use-source]')?.addEventListener('change', (event) => { const enabled = !!event.target.checked, current = collect(body); current.useAsSource = enabled; save(current); services?.setUseJsonTraceSource?.(enabled); rerender(body, enabledServices(services, enabled)); });
