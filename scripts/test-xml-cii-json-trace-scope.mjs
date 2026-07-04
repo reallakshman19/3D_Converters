@@ -37,7 +37,7 @@ const branchDtxrRows = [
 ];
 const scopedDtxr = filterStagedTraceRowsForXml(branchDtxrRows, keys);
 assert.deepEqual(scopedDtxr.rows.map((row) => row.xmlTraceScope), ['DTXR_POS_SOURCE_ROW', 'DTXR_POS_SOURCE_ROW', 'DTXR_PS_DELIMITED_TAG']);
-assert.deepEqual(scopedDtxr.rows.map((row) => row.dtxrPriority), [1, 1, '']);
+assert.deepEqual(scopedDtxr.rows.map((row) => row.dtxrPriority), [1, 1, 2]);
 assert.equal(scopedDtxr.rows[2].matchedToken, 'PS-XYZ.1');
 assert.equal(scopedDtxr.summary.branchMatches, 0);
 assert.equal(scopedDtxr.summary.dtxrPosMatches, 2);
