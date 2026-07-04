@@ -1,52 +1,20 @@
-/**
- * model-converters-tab.js — compatibility shim.
- *
- * All tab orchestration now lives in:
- *   viewer/tabs/model-converters/ModelConvertersTab.js
- *
- * This shim intentionally avoids a static re-export so a deep syntax/runtime
- * failure in an optional Model Converters module cannot abort app-shell tab
- * rendering at import time.
- */
-
-const MODEL_CONVERTERS_SHIM_VERSION = '20260704-model-converters-load-hotfix-1';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260704-model-converters-load-hotfix-1';
+const MODEL_CONVERTERS_SHIM_VERSION = '20260704-workflow-button-bridge-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260704-workflow-button-bridge-1';
 const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260704-model-converters-load-hotfix-1';
 
 function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-  })[ch]);
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]);
 }
-
-function errorText(error) {
-  return String(error?.stack || error?.message || error || 'Unknown error');
-}
-
+function errorText(error) { return String(error?.stack || error?.message || error || 'Unknown error'); }
 function renderDiagnostic(container, title, primaryError, fallbackError) {
   if (!container) return;
-  const fallbackBlock = fallbackError
-    ? `<h3>Legacy fallback error</h3><pre>${escapeHtml(errorText(fallbackError))}</pre>`
-    : '';
-  container.innerHTML = `
-    <section class="model-converters-tab model-converters-tab--error" data-model-converters-shim="${escapeHtml(MODEL_CONVERTERS_SHIM_VERSION)}">
-      <h2>${escapeHtml(title)}</h2>
-      <p>The Model Converters tab could not load its full workflow module. The app shell stayed alive and caught the module failure.</p>
-      <h3>Canonical module error</h3>
-      <pre>${escapeHtml(errorText(primaryError))}</pre>
-      ${fallbackBlock}
-    </section>`;
+  const fallbackBlock = fallbackError ? `<h3>Legacy fallback error</h3><pre>${escapeHtml(errorText(fallbackError))}</pre>` : '';
+  container.innerHTML = `<section class="model-converters-tab model-converters-tab--error" data-model-converters-shim="${escapeHtml(MODEL_CONVERTERS_SHIM_VERSION)}"><h2>${escapeHtml(title)}</h2><p>The Model Converters tab could not load its full workflow module. The app shell stayed alive and caught the module issue.</p><h3>Canonical module error</h3><pre>${escapeHtml(errorText(primaryError))}</pre>${fallbackBlock}</section>`;
 }
-
 function callRenderer(renderer, container, ctx) {
   if (typeof renderer !== 'function') throw new Error('Model Converters renderer export is missing.');
   return renderer(container, ctx);
 }
-
 function renderLegacyFallback(container, ctx, cause) {
   return import(LEGACY_MODULE)
     .then((module) => callRenderer(module.renderLegacyModelConvertersTab, container, ctx))
@@ -56,7 +24,6 @@ function renderLegacyFallback(container, ctx, cause) {
       return null;
     });
 }
-
 export function renderModelConvertersTab(container, ctx) {
   if (container?.dataset) container.dataset.modelConvertersShim = MODEL_CONVERTERS_SHIM_VERSION;
   import(CANONICAL_MODULE)
@@ -67,5 +34,4 @@ export function renderModelConvertersTab(container, ctx) {
     });
   return null;
 }
-
 export const __MODEL_CONVERTERS_TAB_SHIM_VERSION__ = MODEL_CONVERTERS_SHIM_VERSION;
