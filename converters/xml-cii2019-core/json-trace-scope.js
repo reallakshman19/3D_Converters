@@ -1,4 +1,4 @@
-export const XML_CII_JSON_TRACE_SCOPE_SCHEMA = 'xml-cii-json-trace-scope/v3';
+export const XML_CII_JSON_TRACE_SCOPE_SCHEMA = 'xml-cii-json-trace-scope/v4';
 
 const clean = (value) => String(value ?? '').trim();
 const upper = (value) => clean(value).toUpperCase();
@@ -7,6 +7,10 @@ const uniq = (items = []) => [...new Set(items.map(clean).filter(Boolean))];
 
 export function normalizeTraceText(value) {
   return stripXml(value).replace(/&quot;/gi, '"').replace(/&apos;/gi, "'").replace(/&amp;/gi, '&').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
+function decodeTraceLiteral(value) {
+  return stripXml(value).replace(/&quot;/gi, '"').replace(/&apos;/gi, "'").replace(/&amp;/gi, '&').replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
 }
 
 export function normalizeBranchTraceKey(value) {
@@ -32,25 +36,22 @@ export function branchContainsMatch(xmlBranchName, stagedBranchName) {
 }
 
 export function splitDelimitedSupportTags(value) {
-  return uniq(normalizeTraceText(value).split(/[=,;|\/\s]+/g).map((part) => part.replace(/^[:.-]+|[:.-]+$/g, ''))).filter((part) => /^PS[-A-Z0-9.]+$/i.test(part));
+  return uniq(decodeTraceLiteral(value).split(/[=,;|\/\s]+/g)).filter((part) => /^PS[-A-Za-z0-9.]+$/.test(part));
 }
 
 export function normalizeSupportTraceTag(value) {
   return normalizeTraceText(value).replace(/[^A-Z0-9.]+/g, '').replace(/\.0+$/g, '');
 }
 
+function supportMatchKeys(value) {
+  const literal = clean(value);
+  const normalized = normalizeSupportTraceTag(literal);
+  return uniq([literal, upper(literal), normalized, normalized.replace(/\.\d+$/g, ''), normalized.replace(/^PS/, 'PS-'), normalized.replace(/^PS-/, 'PS')]);
+}
+
 export function supportTagTraceVariants(value) {
   const tokens = splitDelimitedSupportTags(value);
-  const variants = new Set();
-  for (const token of tokens.length ? tokens : [value]) {
-    const normalized = normalizeSupportTraceTag(token);
-    if (!normalized) continue;
-    variants.add(normalized);
-    variants.add(normalized.replace(/\.\d+$/g, ''));
-    variants.add(normalized.replace(/^PS/, 'PS-'));
-    variants.add(normalized.replace(/^PS-/, 'PS'));
-  }
-  return [...variants].filter(Boolean);
+  return uniq((tokens.length ? tokens : [value]).flatMap(supportMatchKeys));
 }
 
 function tagContent(xmlText, tagName) {
@@ -103,47 +104,49 @@ function firstBranchMatch(row, keys) {
 }
 
 function firstPsMatch(row, keys) {
-  const rowTags = supportTagTraceVariants(`${traceValue(row)} ${row?.sourceAttributeName || ''}`);
   const xmlTags = new Set(keys.supportTags || []);
-  const hit = rowTags.find((tag) => xmlTags.has(tag));
-  return hit ? { matchType: 'DTXR_PS_DELIMITED_TAG', matchedToken: hit } : null;
+  for (const token of splitDelimitedSupportTags(`${traceValue(row)} ${row?.sourceAttributeName || ''}`)) {
+    if (supportMatchKeys(token).some((key) => xmlTags.has(key))) return { matchType: 'DTXR_PS_DELIMITED_TAG', matchedToken: token, priority: 2 };
+  }
+  return null;
 }
 
 function firstDtxrTextMatch(row, keys, fieldName) {
   const value = normalizeTraceText(traceValue(row));
   const hay = fieldName === 'DTXR_PS' ? keys.dtxrPsTexts : keys.dtxrPosTexts;
   const hit = (hay || []).find((item) => item && value && (item.includes(value) || value.includes(item)));
-  return hit ? { matchType: fieldName === 'DTXR_PS' ? 'DTXR_PS_CONTAINS' : 'DTXR_POS_CONTAINS', matchedText: hit } : null;
+  if (!hit) return null;
+  const isPs = fieldName === 'DTXR_PS';
+  return { matchType: isPs ? 'DTXR_PS_CONTAINS' : 'DTXR_POS_CONTAINS', matchedText: hit, priority: isPs ? 2 : 1 };
 }
 
 function dtxrSourceText(row) {
   return upper(`${row?.field || ''} ${row?.sourceAttributeName || ''} ${row?.sourcePath || ''}`);
 }
 
-function fallbackDtxrMatch(row, opts, branch) {
+function fallbackDtxrMatch(row, opts, branch, fieldName) {
   if (!branch || !/DTXR/.test(dtxrSourceText(row))) return null;
-  const type = upper(row?.sourceObjectType || row?.objectType || row?.componentType || '');
   const value = clean(traceValue(row)).slice(0, 120);
-  if ((/DTXR.*PS|DTXR_PS/.test(dtxrSourceText(row)) || type === 'SUPPORT') && opts.includeDtxrPs) return { ...branch, matchType: 'DTXR_PS_SOURCE_ROW', matchedText: value };
-  if (opts.includeDtxrPos) return { ...branch, matchType: 'DTXR_POS_SOURCE_ROW', matchedText: value };
+  if (fieldName === 'DTXR_PS' && opts.includeDtxrPs) return { ...branch, matchType: 'DTXR_PS_SOURCE_ROW', matchedText: value, priority: 2 };
+  if (opts.includeDtxrPos) return { ...branch, matchType: 'DTXR_POS_SOURCE_ROW', matchedText: value, priority: 1 };
   return null;
 }
 
 export function classifyTraceRowAgainstXmlKeys(row = {}, xmlTraceKeys = {}, options = {}) {
   const opts = normalizeTraceScopeOptions(options);
   const branch = opts.includeBranch ? firstBranchMatch(row, xmlTraceKeys) : null;
-  const field = upper(row.field || row.sourceAttributeName || '');
-  const source = `${field} ${traceValue(row)}`;
-  const fallback = fallbackDtxrMatch(row, opts, branch);
-  if (/DTXR.*PS|SUPPORT|CMPSTRESS|CMPSUP/.test(source)) {
+  const source = dtxrSourceText(row);
+  const explicitPs = /DTXR[_\s-]*PS|CMPSTRESS|CMPSUP/.test(source);
+  if (!explicitPs && /DTXR|DESC|DESCRIPTION|POSITION/.test(source)) {
+    const textMatch = opts.includeDtxrPos ? firstDtxrTextMatch(row, xmlTraceKeys, 'DTXR_POS') : null;
+    return textMatch || fallbackDtxrMatch(row, opts, branch, 'DTXR_POS') || branch;
+  }
+  if (explicitPs) {
     const tagMatch = opts.includeDtxrPs && opts.includeDelimitedPs ? firstPsMatch(row, xmlTraceKeys) : null;
     const textMatch = opts.includeDtxrPs ? firstDtxrTextMatch(row, xmlTraceKeys, 'DTXR_PS') : null;
-    return tagMatch || textMatch || fallback || branch;
+    return tagMatch || textMatch || fallbackDtxrMatch(row, opts, branch, 'DTXR_PS') || branch;
   }
-  if (/DTXR|DESC|DESCRIPTION|POSITION/.test(field)) {
-    return (opts.includeDtxrPos ? firstDtxrTextMatch(row, xmlTraceKeys, 'DTXR_POS') : null) || fallback || branch;
-  }
-  return fallback || branch;
+  return branch;
 }
 
 export function filterStagedTraceRowsForXml(traceRows = [], xmlTraceKeys = {}, options = {}) {
@@ -153,7 +156,7 @@ export function filterStagedTraceRowsForXml(traceRows = [], xmlTraceKeys = {}, o
   for (const row of traceRows || []) {
     const match = classifyTraceRowAgainstXmlKeys(row, xmlTraceKeys, opts);
     if (!match && !opts.includeUnmatched) { filteredOutRows += 1; continue; }
-    rows.push(Object.freeze({ ...row, xmlTraceScope: match?.matchType || 'UNMATCHED_FILTERED_OUT', matchedToken: match?.matchedToken || '', matchedText: match?.matchedText || '', xmlBranchKey: match?.xmlBranchKey || '', stagedBranchKey: match?.stagedBranchKey || '' }));
+    rows.push(Object.freeze({ ...row, xmlTraceScope: match?.matchType || 'UNMATCHED_FILTERED_OUT', matchedToken: match?.matchedToken || '', matchedText: match?.matchedText || '', dtxrPriority: match?.priority || '', xmlBranchKey: match?.xmlBranchKey || '', stagedBranchKey: match?.stagedBranchKey || '' }));
   }
   return Object.freeze({ schema: XML_CII_JSON_TRACE_SCOPE_SCHEMA, rows: Object.freeze(rows), summary: Object.freeze({ inputRows: traceRows.length || 0, scopedRows: rows.filter((row) => row.xmlTraceScope !== 'UNMATCHED_FILTERED_OUT').length, unmatchedRows: filteredOutRows + rows.filter((row) => row.xmlTraceScope === 'UNMATCHED_FILTERED_OUT').length, branchMatches: rows.filter((row) => /^BRANCH_/.test(row.xmlTraceScope)).length, dtxrPosMatches: rows.filter((row) => /^DTXR_POS/.test(row.xmlTraceScope)).length, dtxrPsMatches: rows.filter((row) => /^DTXR_PS/.test(row.xmlTraceScope)).length, scopeOptions: opts }) });
 }
