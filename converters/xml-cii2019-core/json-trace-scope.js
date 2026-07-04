@@ -106,7 +106,7 @@ function firstBranchMatch(row, keys) {
 function firstPsMatch(row, keys) {
   const xmlTags = new Set(keys.supportTags || []);
   for (const token of splitDelimitedSupportTags(`${traceValue(row)} ${row?.sourceAttributeName || ''}`)) {
-    if (supportMatchKeys(token).some((key) => xmlTags.has(key))) return { matchType: 'DTXR_PS_DELIMITED_TAG', matchedToken: token };
+    if (supportMatchKeys(token).some((key) => xmlTags.has(key))) return { matchType: 'DTXR_PS_DELIMITED_TAG', matchedToken: token, priority: 2 };
   }
   return null;
 }
@@ -115,7 +115,9 @@ function firstDtxrTextMatch(row, keys, fieldName) {
   const value = normalizeTraceText(traceValue(row));
   const hay = fieldName === 'DTXR_PS' ? keys.dtxrPsTexts : keys.dtxrPosTexts;
   const hit = (hay || []).find((item) => item && value && (item.includes(value) || value.includes(item)));
-  return hit ? { matchType: fieldName === 'DTXR_PS' ? 'DTXR_PS_CONTAINS' : 'DTXR_POS_CONTAINS', matchedText: hit } : null;
+  if (!hit) return null;
+  const isPs = fieldName === 'DTXR_PS';
+  return { matchType: isPs ? 'DTXR_PS_CONTAINS' : 'DTXR_POS_CONTAINS', matchedText: hit, priority: isPs ? 2 : 1 };
 }
 
 function dtxrSourceText(row) {
