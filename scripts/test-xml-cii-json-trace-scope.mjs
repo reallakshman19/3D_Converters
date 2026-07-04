@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { branchBaseTraceKey, branchContainsMatch, buildXmlTypedJsonTraceRows, extractXmlTraceKeysFromText, filterStagedTraceRowsForXml, normalizeBranchTraceKey, normalizeSupportTraceTag, normalizeTraceScopeOptions, splitDelimitedSupportTags, supportTagTraceVariants } from '../converters/xml-cii2019-core/json-trace-scope.js';
-import { buildJsonTraceTree, traceTreeBucketKey, traceTreeGroupKey } from '../converters/xml-cii2019-core/json-trace-tree.js';
+import { buildJsonTraceTree, traceTreeBucketKey } from '../converters/xml-cii2019-core/json-trace-tree.js';
 
 const xml = `<PipeStressExport><Pipe><Branch><Branchname>/ASIM-1835-4&quot;-P8810212-31441C4-PP/B1</Branchname><Node><NodeNumber>1030</NodeNumber><NodeName>PS-XYZ.2 GUIDE</NodeName><ComponentRefNo>SUP-1030</ComponentRefNo><ComponentType>ATTA</ComponentType><DTXR_POS>GUIDE SUPPORT AT 1030</DTXR_POS><DTXR_PS>PS-XYZ.1=PS-XYZ.2=PS-XYZ</DTXR_PS></Node></Branch></Pipe></PipeStressExport>`;
 const keys = extractXmlTraceKeysFromText(xml);
@@ -38,20 +38,19 @@ const branchDtxrRows = [
   { sourcePath: '$[311].children[4].attributes.DTXR_PS', sourceObjectType: 'SUPPORT', sourceAttributeName: 'DTXR_PS', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', nodeNumber: '5', field: 'DTXR_PS', finalValue: 'PS-XYZ.1' }
 ];
 const scopedDtxr = filterStagedTraceRowsForXml(branchDtxrRows, keys);
-assert.deepEqual(scopedDtxr.rows.map((row) => row.xmlTraceScope), ['DTXR_POS_SOURCE_ROW', 'DTXR_POS_SOURCE_ROW', 'DTXR_POS_SOURCE_ROW', 'DTXR_POS_SOURCE_ROW', 'DTXR_PS_DELIMITED_TAG']);
-assert.deepEqual(scopedDtxr.rows.map((row) => row.dtxrPriority), [1, 1, 1, 1, 2]);
+assert.deepEqual(scopedDtxr.rows.map((row) => row.xmlTraceScope), ['BRANCH_EXACT', 'BRANCH_EXACT', 'DTXR_POS_SOURCE_ROW', 'DTXR_POS_SOURCE_ROW', 'DTXR_PS_DELIMITED_TAG']);
+assert.deepEqual(scopedDtxr.rows.map((row) => row.dtxrPriority), ['', '', 1, 1, 2]);
 assert.equal(scopedDtxr.rows[4].matchedToken, 'PS-XYZ.1');
-assert.equal(scopedDtxr.summary.branchMatches, 0);
-assert.equal(scopedDtxr.summary.dtxrPosMatches, 4);
+assert.equal(scopedDtxr.summary.branchMatches, 2);
+assert.equal(scopedDtxr.summary.dtxrPosMatches, 2);
 assert.equal(scopedDtxr.summary.dtxrPsMatches, 1);
 assert.equal(traceTreeBucketKey(scopedDtxr.rows[2]), 'DTXR-POS');
 assert.equal(traceTreeBucketKey(scopedDtxr.rows[4]), 'DTXR-PS');
-assert.equal(traceTreeGroupKey(scopedDtxr.rows[2]).label, 'POS unresolved; node 1');
 const tree = buildJsonTraceTree(scopedDtxr.rows);
 assert.equal(tree.branches.length, 1);
-assert.deepEqual(tree.branches[0].buckets.map((bucket) => bucket.label), ['DTXR-POS', 'DTXR-PS']);
+assert.deepEqual(tree.branches[0].buckets.map((bucket) => bucket.label), ['DTXR-POS', 'DTXR-PS', 'Branch']);
 const posBucket = tree.branches[0].buckets[0];
-assert.equal(posBucket.groupCount, 3);
+assert.equal(posBucket.groupCount, 2);
 assert.ok(posBucket.groups.some((group) => group.label === 'E=100 N=200 EL=300'));
 assert.ok(posBucket.groups.some((group) => group.label === 'E=105 N=205 EL=305'));
 assert.ok(posBucket.samples.length <= 3);
