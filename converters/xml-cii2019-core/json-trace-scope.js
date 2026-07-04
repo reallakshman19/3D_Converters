@@ -1,4 +1,4 @@
-export const XML_CII_JSON_TRACE_SCOPE_SCHEMA = 'xml-cii-json-trace-scope/v2';
+export const XML_CII_JSON_TRACE_SCOPE_SCHEMA = 'xml-cii-json-trace-scope/v3';
 
 const clean = (value) => String(value ?? '').trim();
 const upper = (value) => clean(value).toUpperCase();
@@ -116,20 +116,34 @@ function firstDtxrTextMatch(row, keys, fieldName) {
   return hit ? { matchType: fieldName === 'DTXR_PS' ? 'DTXR_PS_CONTAINS' : 'DTXR_POS_CONTAINS', matchedText: hit } : null;
 }
 
+function dtxrSourceText(row) {
+  return upper(`${row?.field || ''} ${row?.sourceAttributeName || ''} ${row?.sourcePath || ''}`);
+}
+
+function fallbackDtxrMatch(row, opts, branch) {
+  if (!branch || !/DTXR/.test(dtxrSourceText(row))) return null;
+  const type = upper(row?.sourceObjectType || row?.objectType || row?.componentType || '');
+  const value = clean(traceValue(row)).slice(0, 120);
+  if ((/DTXR.*PS|DTXR_PS/.test(dtxrSourceText(row)) || type === 'SUPPORT') && opts.includeDtxrPs) return { ...branch, matchType: 'DTXR_PS_SOURCE_ROW', matchedText: value };
+  if (opts.includeDtxrPos) return { ...branch, matchType: 'DTXR_POS_SOURCE_ROW', matchedText: value };
+  return null;
+}
+
 export function classifyTraceRowAgainstXmlKeys(row = {}, xmlTraceKeys = {}, options = {}) {
   const opts = normalizeTraceScopeOptions(options);
   const branch = opts.includeBranch ? firstBranchMatch(row, xmlTraceKeys) : null;
   const field = upper(row.field || row.sourceAttributeName || '');
   const source = `${field} ${traceValue(row)}`;
+  const fallback = fallbackDtxrMatch(row, opts, branch);
   if (/DTXR.*PS|SUPPORT|CMPSTRESS|CMPSUP/.test(source)) {
     const tagMatch = opts.includeDtxrPs && opts.includeDelimitedPs ? firstPsMatch(row, xmlTraceKeys) : null;
     const textMatch = opts.includeDtxrPs ? firstDtxrTextMatch(row, xmlTraceKeys, 'DTXR_PS') : null;
-    return tagMatch || textMatch || branch;
+    return tagMatch || textMatch || fallback || branch;
   }
   if (/DTXR|DESC|DESCRIPTION|POSITION/.test(field)) {
-    return (opts.includeDtxrPos ? firstDtxrTextMatch(row, xmlTraceKeys, 'DTXR_POS') : null) || branch;
+    return (opts.includeDtxrPos ? firstDtxrTextMatch(row, xmlTraceKeys, 'DTXR_POS') : null) || fallback || branch;
   }
-  return branch;
+  return fallback || branch;
 }
 
 export function filterStagedTraceRowsForXml(traceRows = [], xmlTraceKeys = {}, options = {}) {
@@ -141,7 +155,7 @@ export function filterStagedTraceRowsForXml(traceRows = [], xmlTraceKeys = {}, o
     if (!match && !opts.includeUnmatched) { filteredOutRows += 1; continue; }
     rows.push(Object.freeze({ ...row, xmlTraceScope: match?.matchType || 'UNMATCHED_FILTERED_OUT', matchedToken: match?.matchedToken || '', matchedText: match?.matchedText || '', xmlBranchKey: match?.xmlBranchKey || '', stagedBranchKey: match?.stagedBranchKey || '' }));
   }
-  return Object.freeze({ schema: XML_CII_JSON_TRACE_SCOPE_SCHEMA, rows: Object.freeze(rows), summary: Object.freeze({ inputRows: traceRows.length || 0, scopedRows: rows.filter((row) => row.xmlTraceScope !== 'UNMATCHED_FILTERED_OUT').length, unmatchedRows: filteredOutRows + rows.filter((row) => row.xmlTraceScope === 'UNMATCHED_FILTERED_OUT').length, branchMatches: rows.filter((row) => /^BRANCH_/.test(row.xmlTraceScope)).length, dtxrPosMatches: rows.filter((row) => row.xmlTraceScope === 'DTXR_POS_CONTAINS').length, dtxrPsMatches: rows.filter((row) => /^DTXR_PS/.test(row.xmlTraceScope)).length, scopeOptions: opts }) });
+  return Object.freeze({ schema: XML_CII_JSON_TRACE_SCOPE_SCHEMA, rows: Object.freeze(rows), summary: Object.freeze({ inputRows: traceRows.length || 0, scopedRows: rows.filter((row) => row.xmlTraceScope !== 'UNMATCHED_FILTERED_OUT').length, unmatchedRows: filteredOutRows + rows.filter((row) => row.xmlTraceScope === 'UNMATCHED_FILTERED_OUT').length, branchMatches: rows.filter((row) => /^BRANCH_/.test(row.xmlTraceScope)).length, dtxrPosMatches: rows.filter((row) => /^DTXR_POS/.test(row.xmlTraceScope)).length, dtxrPsMatches: rows.filter((row) => /^DTXR_PS/.test(row.xmlTraceScope)).length, scopeOptions: opts }) });
 }
 
 export function buildXmlTypedJsonTraceRows({ xmlText = '', traceRows = [], options = {} } = {}) {
