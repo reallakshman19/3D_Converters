@@ -84,20 +84,25 @@ function jsonTraceRows(traceRows) {
 }
 function treeLeaf(row) {
   const node = row.nodeNumber ? ` node ${row.nodeNumber}` : '';
-  return `<li><code>#${esc(row.jsonNodeNo)}</code> ${esc(row.objectType)}${esc(node)} — ${esc(row.field)}: ${esc(row.value)}</li>`;
+  const pos = row.positionLabel ? ` <span style="color:#8aaccc;">[${esc(row.positionLabel)}]</span>` : '';
+  return `<li><code>#${esc(row.jsonNodeNo)}</code> ${esc(row.objectType)}${esc(node)}${pos} — ${esc(row.field)}: ${esc(row.value)}</li>`;
+}
+function treeGroup(group) {
+  const more = group.truncated ? `<li>… ${group.truncated} more row(s)</li>` : '';
+  return `<details><summary>${esc(group.label)} (${group.count})</summary><ul>${group.rows.map(treeLeaf).join('')}${more}</ul></details>`;
 }
 function treeBucket(bucket) {
-  const more = bucket.truncated ? `<li>… ${bucket.truncated} more row(s)</li>` : '';
-  return `<details open><summary>${esc(bucket.label)} (${bucket.count})</summary><ul>${bucket.rows.map(treeLeaf).join('')}${more}</ul></details>`;
+  const samples = bucket.samples?.length ? `<div style="margin:4px 0 4px 14px;color:#8aaccc;">Top 3 samples:<ul>${bucket.samples.map((sample) => `<li>${esc(sample)}</li>`).join('')}</ul></div>` : '';
+  return `<details open><summary>${esc(bucket.label)} (${bucket.count}; groups ${bucket.groupCount})</summary>${samples}${bucket.groups.map(treeGroup).join('')}</details>`;
 }
 function treeBranch(branch, index) {
   return `<details ${index < 4 ? 'open' : ''}><summary>${esc(branch.branchName)} (${branch.count})</summary>${branch.buckets.map(treeBucket).join('')}</details>`;
 }
 function jsonTraceTree(traceRows) {
-  const tree = buildJsonTraceTree(traceRows, { rowLimit: 12 }), branches = tree.branches.slice(0, 80);
+  const tree = buildJsonTraceTree(traceRows, { rowLimit: 12, groupLimit: 120 }), branches = tree.branches.slice(0, 80);
   if (!branches.length) return '';
   const more = tree.branches.length > branches.length ? `<div class="xml-cii-native-hint">Tree limited to first ${branches.length} of ${tree.branches.length} branches. Use table filter for specific rows.</div>` : '';
-  return `<div data-json-trace-tree class="xml-cii-native-hint" style="margin:8px 0;padding:8px;border:1px solid #2a3f5f;border-radius:6px;max-height:420px;overflow:auto;"><b>Tree form: Branch &gt; DTXR-POS / DTXR-PS</b>${branches.map(treeBranch).join('')}${more}</div>`;
+  return `<div data-json-trace-tree class="xml-cii-native-hint" style="margin:8px 0;padding:8px;border:1px solid #2a3f5f;border-radius:6px;max-height:420px;overflow:auto;"><b>Tree form: Branch &gt; DTXR-POS / DTXR-PS &gt; POS/PS groups</b>${branches.map(treeBranch).join('')}${more}</div>`;
 }
 function scopeSummaryText(current, total) {
   const s = current.traceScopeSummary;
