@@ -123,8 +123,9 @@ export function renderXmlCiiJsonTracePanel(services) {
   return `<div class="xml-cii-native-phase-head"><div><div class="model-converters-workflow-detail-title">JSON Trace</div><div class="model-converters-workflow-detail-text">Audit how staged JSON enriches DTXR, restraints, gaps, SIF, and node attributes.</div></div></div><section class="xml-cii-native-card"><div class="xml-cii-native-master-tabs">${TABS.map(([id, label]) => `<button type="button" class="xml-cii-native-master-tab ${current.active === id ? 'is-active' : ''}" data-json-trace-tab="${id}"><span>${label}</span></button>`).join('')}</div></section>${activePanel(current, services || {})}`;
 }
 function collect(root) { const current = state(), textarea = root.querySelector('[data-json-trace-text]'); if (textarea && textarea.dataset.jsonTracePreviewOnly !== 'true') current.stagedJsonText = textarea.value; save(current); return current; }
+async function currentXmlText(services) { const supplied = text(await services?.getCurrentXmlText?.()); if (supplied) return supplied; try { const file = document?.querySelector?.('#model-converters-primary-input')?.files?.[0]; return text(await file?.text?.()); } catch { return ''; } }
 async function applyXmlScope(current, services) {
-  const xmlText = text(await services?.getCurrentXmlText?.());
+  const xmlText = await currentXmlText(services);
   current.scopedTrace = []; current.traceScopeSummary = null; current.xmlTraceKeySummary = null;
   if (!xmlText || !current.fullTrace?.length) return current;
   const scoped = buildXmlTypedJsonTraceRows({ xmlText, traceRows: current.fullTrace });
