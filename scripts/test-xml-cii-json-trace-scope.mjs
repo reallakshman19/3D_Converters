@@ -31,22 +31,29 @@ assert.equal(filterStagedTraceRowsForXml(traceRows, keys, { includeDtxrPs: false
 assert.equal(filterStagedTraceRowsForXml(traceRows, keys, { includeBranch: false, includeDtxrPos: false, includeDtxrPs: false }).rows.length, 0);
 
 const branchDtxrRows = [
-  { sourcePath: '$[311].children[0].attributes.DTXR', sourceObjectType: 'ELBO', sourceAttributeName: 'DTXR', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', field: 'DTXR', finalValue: 'ELBOW 90 DEG LR BW Sch 80' },
-  { sourcePath: '$[311].children[4].attributes.DTXR', sourceObjectType: 'SUPPORT', sourceAttributeName: 'DTXR', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', field: 'DTXR', finalValue: 'Pipe Rest XRT01' },
-  { sourcePath: '$[311].children[4].attributes.DTXR_PS', sourceObjectType: 'SUPPORT', sourceAttributeName: 'DTXR_PS', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', field: 'DTXR_PS', finalValue: 'PS-XYZ.1' }
+  { sourcePath: '$[311].children[0].attributes', sourceObjectType: 'ELBO', sourceAttributeName: 'POS/APOS/LPOS', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', field: 'Position', finalValue: { E: 100, N: 200, EL: 300 } },
+  { sourcePath: '$[311].children[4].attributes', sourceObjectType: 'SUPPORT', sourceAttributeName: 'POS/APOS/LPOS', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', field: 'Position', finalValue: { E: 105, N: 205, EL: 305 } },
+  { sourcePath: '$[311].children[0].attributes.DTXR', sourceObjectType: 'ELBO', sourceAttributeName: 'DTXR', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', nodeNumber: '1', field: 'DTXR', finalValue: 'ELBOW 90 DEG LR BW Sch 80' },
+  { sourcePath: '$[311].children[4].attributes.DTXR', sourceObjectType: 'SUPPORT', sourceAttributeName: 'DTXR', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', nodeNumber: '5', field: 'DTXR', finalValue: 'Pipe Rest XRT01' },
+  { sourcePath: '$[311].children[4].attributes.DTXR_PS', sourceObjectType: 'SUPPORT', sourceAttributeName: 'DTXR_PS', branchName: '/ASIM-1835-4-P8810212-31441C4-PP/B1', nodeNumber: '5', field: 'DTXR_PS', finalValue: 'PS-XYZ.1' }
 ];
 const scopedDtxr = filterStagedTraceRowsForXml(branchDtxrRows, keys);
-assert.deepEqual(scopedDtxr.rows.map((row) => row.xmlTraceScope), ['DTXR_POS_SOURCE_ROW', 'DTXR_POS_SOURCE_ROW', 'DTXR_PS_DELIMITED_TAG']);
-assert.deepEqual(scopedDtxr.rows.map((row) => row.dtxrPriority), [1, 1, 2]);
-assert.equal(scopedDtxr.rows[2].matchedToken, 'PS-XYZ.1');
-assert.equal(scopedDtxr.summary.branchMatches, 0);
+assert.deepEqual(scopedDtxr.rows.map((row) => row.xmlTraceScope), ['BRANCH_EXACT', 'BRANCH_EXACT', 'DTXR_POS_SOURCE_ROW', 'DTXR_POS_SOURCE_ROW', 'DTXR_PS_DELIMITED_TAG']);
+assert.deepEqual(scopedDtxr.rows.map((row) => row.dtxrPriority), ['', '', 1, 1, 2]);
+assert.equal(scopedDtxr.rows[4].matchedToken, 'PS-XYZ.1');
+assert.equal(scopedDtxr.summary.branchMatches, 2);
 assert.equal(scopedDtxr.summary.dtxrPosMatches, 2);
 assert.equal(scopedDtxr.summary.dtxrPsMatches, 1);
-assert.equal(traceTreeBucketKey(scopedDtxr.rows[0]), 'DTXR-POS');
-assert.equal(traceTreeBucketKey(scopedDtxr.rows[2]), 'DTXR-PS');
+assert.equal(traceTreeBucketKey(scopedDtxr.rows[2]), 'DTXR-POS');
+assert.equal(traceTreeBucketKey(scopedDtxr.rows[4]), 'DTXR-PS');
 const tree = buildJsonTraceTree(scopedDtxr.rows);
 assert.equal(tree.branches.length, 1);
-assert.deepEqual(tree.branches[0].buckets.map((bucket) => bucket.label), ['DTXR-POS', 'DTXR-PS']);
+assert.deepEqual(tree.branches[0].buckets.map((bucket) => bucket.label), ['DTXR-POS', 'DTXR-PS', 'Branch']);
+const posBucket = tree.branches[0].buckets[0];
+assert.equal(posBucket.groupCount, 2);
+assert.ok(posBucket.groups.some((group) => group.label === 'E=100 N=200 EL=300'));
+assert.ok(posBucket.groups.some((group) => group.label === 'E=105 N=205 EL=305'));
+assert.ok(posBucket.samples.length <= 3);
 
 const built = buildXmlTypedJsonTraceRows({ xmlText: xml, traceRows, options: { includeDelimitedPs: false } });
 assert.equal(built.rows.some((row) => row.xmlTraceScope === 'DTXR_PS_DELIMITED_TAG'), false);
