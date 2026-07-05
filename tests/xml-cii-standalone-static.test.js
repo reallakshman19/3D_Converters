@@ -22,15 +22,20 @@ if (!tab.includes('Output')) fail('Standalone tab must expose output mode contro
 const api = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js');
 if (!api.includes('export async function runXmlCii2019Workflow')) fail('Public workflow API export is missing.');
 if (!api.includes('detectXmlCiiWorkflowSourceKind')) fail('Public API must resolve source kind.');
+if (api.includes('#model-converters-run')) fail('Public workflow API must not query #model-converters-run.');
 
 const detect = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js');
 for (const token of ['PipeStressExport', 'CAESARII', 'PIPINGELEMENT']) if (!detect.includes(token)) fail('Source detector missing token ' + token);
 
 const types = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js');
-for (const token of ['validateSupportConfigJson', 'JSON.parse', 'normalizeWorkflowOptions', 'coordsMode', 'kgToNewton', 'splitCondensedValveFlange', 'useRestraintTypeBasedOnJson', 'outputMode', 'elementSideLoadText', 'inputXmlOutputMode', 'pointPropertiesBasis', 'inputXmlRestraintPolicy', 'fillSentinelFromLineContext', 'normalizePressureCaseNames']) if (!types.includes(token)) fail('Workflow type utility missing token ' + token);
+for (const token of ['validateSupportConfigJson', 'JSON.parse', 'normalizeWorkflowOptions', 'coordsMode', 'kgToNewton', 'splitCondensedValveFlange', 'useRestraintTypeBasedOnJson', 'outputMode', 'elementSideLoadText', 'inputXmlOutputMode', 'pointPropertiesBasis', 'inputXmlRestraintPolicy', 'fillSentinelFromLineContext', 'normalizePressureCaseNames', 'engineDiagnostics', 'branch']) if (!types.includes(token)) fail('Workflow type utility missing token ' + token);
 
 const service = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js');
 if (!service.includes('enrichInputXmlDocument')) fail('InputXML branch must call direct InputXML enrichment.');
+for (const forbiddenImport of ['../model-converters', 'tabs/model-converters', 'converters/py-worker.js', 'converters/invocation-builder.js']) if (service.includes(forbiddenImport)) fail('Standalone service imports production path token ' + forbiddenImport);
+
+const readiness = read('tabs/xml-cii-2019-standalone/xml-cii-production-readiness.js');
+for (const token of ['createXmlCiiProductionReadinessReport', 'xml-cii-2019-production-readiness/v1', 'ready-for-shadow-production-proof', 'productionIsolation']) if (!readiness.includes(token)) fail('Production readiness module missing token ' + token);
 
 const defaults = read('tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js');
 for (const token of ['inputXmlRatingByPipingClass', 'inputXmlPipingClass', 'typeCode: 14', 'typeCode: 9', 'typeCode: 8', 'friction: -1.0101', '91261', '900']) if (!defaults.includes(token)) fail('Default standalone config missing token ' + token);
@@ -43,7 +48,7 @@ if (!engine.includes('standalone-compatibility-engine')) fail('Standalone engine
 if (!engine.includes('xml_to_cii2019_direction.py')) fail('Standalone engine must use the XML to CII direction compatibility route.');
 if (!engine.includes('inputxml_to_cii2019.py')) fail('Standalone engine must expose the InputXML to CII branch.');
 
-const forbidden = ['xmlCiiWorkflowRequestFinalRun', '#model-converters-run', '__xmlCiiWorkflowRunHandoff_v1', '__xmlCiiConversionWorkflowAllowDirectRun'];
+const forbidden = ['xmlCiiWorkflowRequestFinalRun', '#model-converters-run', '__xmlCiiWorkflowRunHandoff_v1', '__xmlCiiConversionWorkflowAllowDirectRun', 'legacy-adapter'];
 for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii-2019-standalone'), ...walk('converters/xml-cii-2019-standalone')]) {
   const text = read(file);
   for (const token of forbidden) if (text.includes(token)) fail(file + ' references forbidden legacy handoff token ' + token);
