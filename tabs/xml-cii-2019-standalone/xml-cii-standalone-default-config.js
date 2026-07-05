@@ -8,6 +8,11 @@ export const DEFAULT_XML_CII_2019_SUPPORT_CONFIG = Object.freeze({
   defaultGap: 0,
   defaultFriction: 0.3,
   defaultTeeSifType: 0,
+  inputXmlDtxrRestraintRules: [
+    { label: 'Y/restraint support', typeCode: 14, patterns: ['PIPE REST', 'SHOE', 'SUPPORT TYPE-103', 'REST'] },
+    { label: 'guide restraint', typeCode: 17, patterns: ['GUIDE', 'PDO-TYPE-603'] },
+    { label: 'line stop / directional anchor', typeCode: 1, patterns: ['DIRECTIONAL ANCHOR', 'ANCHOR', 'LINE STOP'] },
+  ],
 });
 
 export function defaultXmlCii2019SupportConfigJson() {
