@@ -3,17 +3,11 @@ import { createWorkflowDiagnostics } from './xml-cii-workflow-types.js';
 const ENRICH_FIELDS = Object.freeze(['DTXR_POS', 'DTXR_PS', 'ComponentType', 'PipingClass', 'Rating', 'Position']);
 const ATTR_FIELDS = Object.freeze(['FROM_NAME', 'TO_NAME']);
 const CONTEXT_FIELDS = Object.freeze([
-  'DIAMETER', 'WALL_THICK', 'INSUL_THICK', 'CORR_ALLOW',
-  'MATERIAL_NUM', 'FLUID_DENSITY', 'INSUL_DENSITY', 'HYDRO_PRESSURE',
+  'DIAMETER', 'WALL_THICK', 'INSUL_THICK', 'CORR_ALLOW', 'MATERIAL_NUM', 'FLUID_DENSITY', 'INSUL_DENSITY', 'HYDRO_PRESSURE',
   ...Array.from({ length: 9 }, (_, i) => `TEMP_EXP_C${i + 1}`),
   ...Array.from({ length: 9 }, (_, i) => `PRESSURE_C${i + 1}`),
 ]);
-const NUMERIC_ATTRS = Object.freeze([
-  'FROM_NODE', 'TO_NODE', 'DELTA_X', 'DELTA_Y', 'DELTA_Z', 'DIAMETER', 'WALL_THICK', 'INSUL_THICK',
-  'CORR_ALLOW', 'MATERIAL_NUM', 'FLUID_DENSITY', 'INSUL_DENSITY', 'HYDRO_PRESSURE',
-  ...Array.from({ length: 9 }, (_, i) => `TEMP_EXP_C${i + 1}`),
-  ...Array.from({ length: 9 }, (_, i) => `PRESSURE_C${i + 1}`),
-]);
+const NUMERIC_ATTRS = Object.freeze(['FROM_NODE', 'TO_NODE', 'DELTA_X', 'DELTA_Y', 'DELTA_Z', ...CONTEXT_FIELDS]);
 
 function text(value) { return value === undefined || value === null ? '' : String(value); }
 function localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
@@ -22,6 +16,11 @@ function isSentinel(value) { const n = Number(text(value).trim()); return Number
 function isMissing(value) { const v = text(value).trim(); return !v || isSentinel(v); }
 function normalizeNumberText(value) { const raw = text(value).trim(); if (!raw) return raw; const n = Number(raw); if (!Number.isFinite(n)) return raw; if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n)); return raw.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, ''); }
 function normalizeNode(value) { return normalizeNumberText(value); }
+function numberFromConfig(config, key, fallback) { const n = Number(config?.[key]); return Number.isFinite(n) ? normalizeNumberText(n) : String(fallback); }
+function parseConfig(raw) { try { const parsed = JSON.parse(text(raw) || '{}'); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
+function findChildren(root, name) { const out = []; const wanted = name.toUpperCase(); const visit = (node) => { for (const child of Array.from(node.children || [])) { if (localName(child).toUpperCase() === wanted) out.push(child); visit(child); } }; visit(root); return out; }
+function keyForElement(element) { return `${normalizeNode(element.getAttribute('FROM_NODE'))}->${normalizeNode(element.getAttribute('TO_NODE'))}`; }
+
 function normalizeElementKey(raw) {
   const value = text(raw).trim();
   const named = value.match(/FROM_NODE\s*=\s*([^\s]+).*?TO_NODE\s*=\s*([^\s]+)/i);
@@ -30,16 +29,13 @@ function normalizeElementKey(raw) {
   if (arrow) return `${normalizeNode(arrow[1])}->${normalizeNode(arrow[2])}`;
   return '';
 }
-function keyForElement(element) { return `${normalizeNode(element.getAttribute('FROM_NODE'))}->${normalizeNode(element.getAttribute('TO_NODE'))}`; }
-function parseConfig(raw) { try { const parsed = JSON.parse(text(raw) || '{}'); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
-function findChildren(root, name) { const out = []; const wanted = name.toUpperCase(); const visit = (node) => { for (const child of Array.from(node.children || [])) { if (localName(child).toUpperCase() === wanted) out.push(child); visit(child); } }; visit(root); return out; }
 
 function sideLoadSet(map, key, field, value) {
-  const k = normalizeElementKey(key);
-  if (!k || !field) return;
-  const row = map.get(k) || {};
+  const normalizedKey = normalizeElementKey(key);
+  if (!normalizedKey || !field) return;
+  const row = map.get(normalizedKey) || {};
   row[field] = text(value).trim();
-  map.set(k, row);
+  map.set(normalizedKey, row);
 }
 
 export function parseInputXmlElementSideLoad(sideLoadText) {
@@ -64,24 +60,14 @@ export function parseInputXmlElementSideLoad(sideLoadText) {
 function parseInputXml(sourceText) {
   const parser = new DOMParser();
   let source = text(sourceText).trim();
-  const isFragment = !/^\s*<\?xml/i.test(source) && !/^\s*<\s*CAESARII\b/i.test(source);
-  if (isFragment) source = `<CAESARII XML_TYPE="Input" VERSION="2019" SOURCE="XML-&gt;CII enriched InputXML debug export"><PIPINGMODEL JOBNAME="InputXML Fragment" NUMELEMENTS="0" NUMREST="0">${source}</PIPINGMODEL></CAESARII>`;
+  const withoutDecl = source.replace(/^\s*<\?xml[^>]*>\s*/i, '');
+  if (!/^\s*<\s*CAESARII\b/i.test(withoutDecl)) {
+    source = `<CAESARII XML_TYPE="Input" VERSION="2019" SOURCE="XML-&gt;CII enriched InputXML debug export"><PIPINGMODEL JOBNAME="InputXML Fragment" NUMELEMENTS="0" NUMREST="0">${withoutDecl}</PIPINGMODEL></CAESARII>`;
+  }
   const doc = parser.parseFromString(source, 'application/xml');
   const parseError = doc.querySelector('parsererror');
   if (parseError) throw new Error(parseError.textContent || 'InputXML parse failed.');
-  return { doc, isFragment };
-}
-
-function ensureFullDocument(doc) {
-  let root = doc.documentElement;
-  if (localName(root).toUpperCase() === 'CAESARII') return root;
-  const newDoc = document.implementation.createDocument('', 'CAESARII', null);
-  root = newDoc.documentElement;
-  root.setAttribute('XML_TYPE', 'Input'); root.setAttribute('VERSION', '2019'); root.setAttribute('SOURCE', 'XML->CII enriched InputXML debug export');
-  const model = newDoc.createElement('PIPINGMODEL');
-  root.appendChild(model);
-  for (const element of findChildren(doc, 'PIPINGELEMENT')) model.appendChild(newDoc.importNode(element, true));
-  return root;
+  return doc;
 }
 
 function setChildText(doc, element, name, value) {
@@ -91,15 +77,18 @@ function setChildText(doc, element, name, value) {
   if (!existing) element.appendChild(child);
 }
 
+function setPointPropertiesBasis(doc, element, basis) {
+  const value = basis === 'FROM' || basis === 'TO' ? basis : 'TO';
+  setChildText(doc, element, 'Point_properties_basis', value);
+}
+
 function normalizePressureAliases(element) {
-  let count = 0;
   for (let i = 1; i <= 9; i += 1) {
     const alias = `PRESSURE${i}`;
     const canonical = `PRESSURE_C${i}`;
-    if (element.hasAttribute(alias) && !element.hasAttribute(canonical)) { element.setAttribute(canonical, element.getAttribute(alias)); count += 1; }
+    if (element.hasAttribute(alias) && !element.hasAttribute(canonical)) element.setAttribute(canonical, element.getAttribute(alias));
     if (element.hasAttribute(alias)) element.removeAttribute(alias);
   }
-  return count;
 }
 
 function normalizeNumericAttributes(element) {
@@ -144,23 +133,20 @@ function removeRestraints(element) {
 }
 
 function normalizeExistingRestraints(element) {
-  let count = 0;
   for (const restraint of Array.from(element.children || []).filter((child) => localName(child).toUpperCase() === 'RESTRAINT')) {
     for (const attr of ['NUM', 'NODE', 'TYPE', 'STIFFNESS', 'GAP', 'FRIC_COEF', 'CNODE', 'XCOSINE', 'YCOSINE', 'ZCOSINE']) if (restraint.hasAttribute(attr)) restraint.setAttribute(attr, normalizeNumberText(restraint.getAttribute(attr)));
-    count += 1;
   }
-  return count;
 }
 
-function appendDerivedRestraint(doc, element, typeCode) {
+function appendDerivedRestraint(doc, element, typeCode, config) {
   const restraint = doc.createElement('RESTRAINT');
   const existing = Array.from(element.children || []).filter((child) => localName(child).toUpperCase() === 'RESTRAINT').length;
   restraint.setAttribute('NUM', String(existing + 1));
   restraint.setAttribute('NODE', normalizeNode(element.getAttribute('TO_NODE')));
   restraint.setAttribute('TYPE', normalizeNumberText(typeCode));
-  restraint.setAttribute('STIFFNESS', '1751270000000');
-  restraint.setAttribute('GAP', '0');
-  restraint.setAttribute('FRIC_COEF', '0.3');
+  restraint.setAttribute('STIFFNESS', numberFromConfig(config, 'defaultStiffness', 1751270000000));
+  restraint.setAttribute('GAP', numberFromConfig(config, 'defaultGap', 0));
+  restraint.setAttribute('FRIC_COEF', numberFromConfig(config, 'defaultFriction', 0.3));
   restraint.setAttribute('CNODE', '0');
   restraint.setAttribute('XCOSINE', '-1.0101');
   restraint.setAttribute('YCOSINE', '-1.0101');
@@ -178,14 +164,12 @@ function serializeFragment(elements) {
 export function enrichInputXmlDocument(job) {
   const options = job.options || {};
   const config = parseConfig(job.supportConfigJson);
-  const { doc } = parseInputXml(job.sourceText);
-  ensureFullDocument(doc);
+  const doc = parseInputXml(job.sourceText);
   const elements = findChildren(doc, 'PIPINGELEMENT');
   const sideLoad = parseInputXmlElementSideLoad(job.elementSideLoadText || '');
   const matchedKeys = new Set();
   const lineContexts = new Map();
   let enrichedElementCount = 0;
-  let restraintCount = 0;
   let inheritedFieldCount = 0;
   let sentinelFieldCount = 0;
 
@@ -206,17 +190,17 @@ export function enrichInputXmlDocument(job) {
       matchedKeys.add(key);
       for (const field of ENRICH_FIELDS) if (row[field]) setChildText(doc, element, field, row[field]);
       for (const attr of ATTR_FIELDS) if (row[attr]) element.setAttribute(attr, row[attr]);
+      setPointPropertiesBasis(doc, element, options.pointPropertiesBasis);
       enrichedElementCount += 1;
     }
     const policy = options.inputXmlRestraintPolicy || 'preserve-existing-restraints';
     const derived = row ? deriveRestraint(row, config) : null;
     if (policy === 'replace-with-dtxr-derived-restraints') removeRestraints(element);
-    if (policy === 'convert-existing-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints' || policy === 'preserve-existing-restraints') restraintCount += normalizeExistingRestraints(element);
-    if (derived && (policy === 'replace-with-dtxr-derived-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints')) appendDerivedRestraint(doc, element, derived.typeCode);
-    restraintCount += Array.from(element.children || []).filter((child) => localName(child).toUpperCase() === 'RESTRAINT').length;
+    if (policy === 'convert-existing-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints' || policy === 'preserve-existing-restraints') normalizeExistingRestraints(element);
+    if (derived && (policy === 'replace-with-dtxr-derived-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints')) appendDerivedRestraint(doc, element, derived.typeCode, config);
   }
 
-  const root = ensureFullDocument(doc);
+  const root = doc.documentElement;
   const model = findChildren(doc, 'PIPINGMODEL')[0];
   if (model) {
     model.setAttribute('NUMELEMENTS', String(elements.length));
