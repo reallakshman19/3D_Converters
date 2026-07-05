@@ -1,7 +1,8 @@
 import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api.js';
+import { prepareStandaloneImportMasters } from '../xml-cii-master-context.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
-import { clearWorkflowResult, resetWorkflowState, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { applyStandaloneImportMastersContext, clearWorkflowResult, resetWorkflowState, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -35,7 +36,7 @@ export function bindSourceEvents(container, stateRef, render) {
   onChange(container, 'staged-json-file', (_, event) => patchState(stateRef, { stagedJsonFile: event.target.files?.[0] || null, result: null }, render));
   onChange(container, 'source-text', (value) => { stateRef.current = clearWorkflowResult(updateWorkflowState(stateRef.current, { sourceText: value })); });
   onChange(container, 'element-side-load', (value) => { stateRef.current = clearWorkflowResult(updateWorkflowState(stateRef.current, { elementSideLoadText: value })); });
-  onChange(container, 'support-config', (value) => patchState(stateRef, { supportConfigJson: value, result: null }, render));
+  onChange(container, 'support-config', (value) => patchState(stateRef, { supportConfigJson: value, masterContext: null, result: null }, render));
 }
 
 export function bindOptionEvents(container, stateRef, render) {
@@ -52,10 +53,24 @@ export function bindOptionEvents(container, stateRef, render) {
 }
 
 export function bindActionEvents(container, stateRef, render) {
+  onClick(container, 'load-import-masters', () => loadImportMastersFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   onClick(container, 'download-enriched', () => downloadArtifact(stateRef.current.result, 'enriched'));
   onClick(container, 'download-cii', () => downloadArtifact(stateRef.current.result, 'cii'));
   onClick(container, 'clear', () => replaceState(stateRef, resetWorkflowState(), render));
+}
+
+export async function loadImportMastersFromUi(stateRef, render) {
+  if (stateRef.current.importMastersLoading) return;
+  stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: true });
+  render();
+  try {
+    const masterContext = await prepareStandaloneImportMasters({ supportConfigJson: stateRef.current.supportConfigJson });
+    stateRef.current = applyStandaloneImportMastersContext(stateRef.current, masterContext);
+  } catch (error) {
+    stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: false, importMastersWriteBackStatus: error?.message || String(error) });
+  }
+  render();
 }
 
 export async function runWorkflowFromUi(stateRef, render) {
