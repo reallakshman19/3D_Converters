@@ -1,13 +1,14 @@
 import { createWorkflowDiagnostics } from './xml-cii-workflow-types.js';
 
 const ENRICH_FIELDS = Object.freeze(['DTXR_POS', 'DTXR_PS', 'ComponentType', 'PipingClass', 'Rating', 'Position']);
-const ATTR_FIELDS = Object.freeze(['FROM_NAME', 'TO_NAME']);
+const ATTR_FIELDS = Object.freeze(['LINE_ID', 'FROM_NAME', 'TO_NAME']);
 const CONTEXT_FIELDS = Object.freeze([
   'DIAMETER', 'WALL_THICK', 'INSUL_THICK', 'CORR_ALLOW', 'MATERIAL_NUM', 'FLUID_DENSITY', 'INSUL_DENSITY', 'HYDRO_PRESSURE',
   ...Array.from({ length: 9 }, (_, i) => `TEMP_EXP_C${i + 1}`),
   ...Array.from({ length: 9 }, (_, i) => `PRESSURE_C${i + 1}`),
 ]);
 const NUMERIC_ATTRS = Object.freeze(['FROM_NODE', 'TO_NODE', 'DELTA_X', 'DELTA_Y', 'DELTA_Z', ...CONTEXT_FIELDS]);
+const DEFAULT_INPUTXML_RATING_BY_PIPING_CLASS = Object.freeze({ 91261: '900' });
 
 function text(value) { return value === undefined || value === null ? '' : String(value); }
 function localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
@@ -16,7 +17,8 @@ function isSentinel(value) { const n = Number(text(value).trim()); return Number
 function isMissing(value) { const v = text(value).trim(); return !v || isSentinel(v); }
 function normalizeNumberText(value) { const raw = text(value).trim(); if (!raw) return raw; const n = Number(raw); if (!Number.isFinite(n)) return raw; if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n)); return raw.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, ''); }
 function normalizeNode(value) { return normalizeNumberText(value); }
-function numberFromConfig(config, key, fallback) { const n = Number(config?.[key]); return Number.isFinite(n) ? normalizeNumberText(n) : String(fallback); }
+function numberFromConfig(config, key, fallback) { const n = Number(config?.[key]); return Number.isFinite(n) ? normalizeNumberText(n) : normalizeNumberText(fallback); }
+function numberFromValue(value, fallback) { const n = Number(value); return Number.isFinite(n) ? normalizeNumberText(n) : normalizeNumberText(fallback); }
 function parseConfig(raw) { try { const parsed = JSON.parse(text(raw) || '{}'); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
 function findChildren(root, name) { const out = []; const wanted = name.toUpperCase(); const visit = (node) => { for (const child of Array.from(node.children || [])) { if (localName(child).toUpperCase() === wanted) out.push(child); visit(child); } }; visit(root); return out; }
 function keyForElement(element) { return `${normalizeNode(element.getAttribute('FROM_NODE'))}->${normalizeNode(element.getAttribute('TO_NODE'))}`; }
@@ -47,12 +49,14 @@ export function parseInputXmlElementSideLoad(sideLoadText) {
     if (!trimmed) continue;
     const element = trimmed.match(/^ELEMENT\s+(.+)$/i);
     if (element) { currentKey = normalizeElementKey(element[1]); continue; }
-    const bareKey = normalizeElementKey(trimmed);
-    if (bareKey) { currentKey = bareKey; continue; }
+    const namedKey = /^FROM_NODE\s*=.*?TO_NODE\s*=/i.test(trimmed) ? normalizeElementKey(trimmed) : '';
+    if (namedKey) { currentKey = namedKey; continue; }
     const pair = trimmed.match(/^([A-Za-z_][\w.-]*)\s*=\s*(.*)$/);
     if (pair && currentKey) { sideLoadSet(map, currentKey, pair[1], pair[2]); continue; }
     const tag = trimmed.match(/^<([A-Za-z_][\w.-]*)>([\s\S]*)<\/\1>$/);
-    if (tag && currentKey) sideLoadSet(map, currentKey, tag[1], tag[2]);
+    if (tag && currentKey) { sideLoadSet(map, currentKey, tag[1], tag[2]); continue; }
+    const bareKey = normalizeElementKey(trimmed);
+    if (bareKey) { currentKey = bareKey; continue; }
   }
   return map;
 }
@@ -70,8 +74,17 @@ function parseInputXml(sourceText) {
   return doc;
 }
 
+function findChild(element, name) {
+  return Array.from(element.children || []).find((child) => localName(child) === name) || null;
+}
+
+function hasMeaningfulChild(element, name) {
+  const child = findChild(element, name);
+  return !!child && text(child.textContent).trim() !== '';
+}
+
 function setChildText(doc, element, name, value) {
-  const existing = Array.from(element.children || []).find((child) => localName(child) === name);
+  const existing = findChild(element, name);
   const child = existing || doc.createElement(name);
   child.textContent = text(value);
   if (!existing) element.appendChild(child);
@@ -113,19 +126,76 @@ function restraintRules(config) {
   if (Array.isArray(fromConfig) && fromConfig.length) return fromConfig;
   return [
     { label: 'Y/restraint support', typeCode: 14, patterns: ['PIPE REST', 'SHOE', 'SUPPORT TYPE-103', 'REST'] },
-    { label: 'guide restraint', typeCode: 17, patterns: ['GUIDE', 'PDO-TYPE-603'] },
-    { label: 'line stop / directional anchor', typeCode: 1, patterns: ['DIRECTIONAL ANCHOR', 'ANCHOR', 'LINE STOP'] },
+    { label: 'guide restraint', typeCode: 9, friction: -1.0101, patterns: ['GUIDE', 'PDO-TYPE-603'] },
+    { label: 'line stop / directional anchor', typeCode: 8, friction: -1.0101, patterns: ['DIRECTIONAL ANCHOR', 'ANCHOR', 'LINE STOP'] },
   ];
 }
 
-function deriveRestraint(sideLoad, config) {
-  const dtxr = `${text(sideLoad.DTXR_POS)} ${text(sideLoad.DTXR_PS)}`.toUpperCase();
-  if (!dtxr.trim()) return null;
+export function deriveRestraints(sideLoad, config = {}) {
+  const dtxr = `${text(sideLoad?.DTXR_POS)} ${text(sideLoad?.DTXR_PS)}`.toUpperCase();
+  if (!dtxr.trim()) return [];
+  const seen = new Set();
+  const derived = [];
   for (const rule of restraintRules(config)) {
+    const typeCode = Number(rule.typeCode || 14);
+    if (!Number.isFinite(typeCode) || seen.has(typeCode)) continue;
     const patterns = Array.isArray(rule.patterns) ? rule.patterns : [];
-    if (patterns.some((pattern) => dtxr.includes(text(pattern).toUpperCase()))) return { typeCode: Number(rule.typeCode || 14), label: rule.label || 'DTXR-derived' };
+    if (patterns.some((pattern) => dtxr.includes(text(pattern).toUpperCase()))) {
+      seen.add(typeCode);
+      derived.push({ typeCode, label: rule.label || 'DTXR-derived', friction: rule.friction });
+    }
   }
-  return null;
+  return derived;
+}
+
+function extractLeadingDigitsOrRaw(value) {
+  const raw = text(value).trim();
+  const digits = raw.match(/^(\d+)/);
+  return digits ? digits[1] : raw;
+}
+
+export function extractPipingClassFromLineId(lineId, config = {}) {
+  const rawLineId = text(lineId).trim();
+  if (!rawLineId) return '';
+  const cfg = config.inputXmlPipingClass && typeof config.inputXmlPipingClass === 'object' ? config.inputXmlPipingClass : {};
+  if (cfg.regex) {
+    try {
+      const match = rawLineId.match(new RegExp(String(cfg.regex)));
+      const group = Number.isInteger(Number(cfg.group)) ? Number(cfg.group) : 1;
+      if (match && match[group] !== undefined) return extractLeadingDigitsOrRaw(match[group]);
+    } catch {
+      // Fall through to token extraction when an operator-provided regex is invalid.
+    }
+  }
+  const delimiter = cfg.tokenDelimiter == null ? '-' : String(cfg.tokenDelimiter);
+  const tokenPosition = Number.isInteger(Number(cfg.tokenPosition)) ? Number(cfg.tokenPosition) : 5;
+  const normalized = rawLineId.replace(/^\/+/, '').replace(/\/B\d+\s*$/i, '');
+  const tokens = delimiter ? normalized.split(delimiter) : [normalized];
+  const index = tokenPosition <= 0 ? tokenPosition : tokenPosition - 1;
+  return extractLeadingDigitsOrRaw(tokens[index] || '');
+}
+
+function ratingByPipingClass(pipingClass, config = {}) {
+  const map = config.inputXmlRatingByPipingClass && typeof config.inputXmlRatingByPipingClass === 'object'
+    ? config.inputXmlRatingByPipingClass
+    : DEFAULT_INPUTXML_RATING_BY_PIPING_CLASS;
+  const key = text(pipingClass).trim();
+  return text(map[key]).trim();
+}
+
+function applyLineDerivedFields(doc, element, row, config) {
+  const sideLoadedPipingClass = text(row.PipingClass).trim();
+  const sideLoadedRating = text(row.Rating).trim();
+  const lineId = text(row.LINE_ID || element.getAttribute('LINE_ID')).trim();
+  const derivedPipingClass = !sideLoadedPipingClass && lineId && !hasMeaningfulChild(element, 'PipingClass')
+    ? extractPipingClassFromLineId(lineId, config)
+    : '';
+  if (derivedPipingClass) setChildText(doc, element, 'PipingClass', derivedPipingClass);
+  const pipingClassForRating = sideLoadedPipingClass || derivedPipingClass || text(findChild(element, 'PipingClass')?.textContent).trim();
+  const derivedRating = !sideLoadedRating && pipingClassForRating && !hasMeaningfulChild(element, 'Rating')
+    ? ratingByPipingClass(pipingClassForRating, config)
+    : '';
+  if (derivedRating) setChildText(doc, element, 'Rating', derivedRating);
 }
 
 function removeRestraints(element) {
@@ -138,15 +208,21 @@ function normalizeExistingRestraints(element) {
   }
 }
 
-function appendDerivedRestraint(doc, element, typeCode, config) {
+function frictionForDerivedRestraint(derived, config) {
+  if (derived && derived.friction !== undefined && derived.friction !== null && derived.friction !== '') return numberFromValue(derived.friction, -1.0101);
+  if (Number(derived?.typeCode) === 14) return numberFromConfig(config, 'defaultFriction', 0.3);
+  return '-1.0101';
+}
+
+function appendDerivedRestraint(doc, element, derived, config) {
   const restraint = doc.createElement('RESTRAINT');
   const existing = Array.from(element.children || []).filter((child) => localName(child).toUpperCase() === 'RESTRAINT').length;
   restraint.setAttribute('NUM', String(existing + 1));
   restraint.setAttribute('NODE', normalizeNode(element.getAttribute('TO_NODE')));
-  restraint.setAttribute('TYPE', normalizeNumberText(typeCode));
+  restraint.setAttribute('TYPE', normalizeNumberText(derived.typeCode));
   restraint.setAttribute('STIFFNESS', numberFromConfig(config, 'defaultStiffness', 1751270000000));
   restraint.setAttribute('GAP', numberFromConfig(config, 'defaultGap', 0));
-  restraint.setAttribute('FRIC_COEF', numberFromConfig(config, 'defaultFriction', 0.3));
+  restraint.setAttribute('FRIC_COEF', frictionForDerivedRestraint(derived, config));
   restraint.setAttribute('CNODE', '0');
   restraint.setAttribute('XCOSINE', '-1.0101');
   restraint.setAttribute('YCOSINE', '-1.0101');
@@ -190,14 +266,17 @@ export function enrichInputXmlDocument(job) {
       matchedKeys.add(key);
       for (const field of ENRICH_FIELDS) if (row[field]) setChildText(doc, element, field, row[field]);
       for (const attr of ATTR_FIELDS) if (row[attr]) element.setAttribute(attr, row[attr]);
+      applyLineDerivedFields(doc, element, row, config);
       setPointPropertiesBasis(doc, element, options.pointPropertiesBasis);
       enrichedElementCount += 1;
     }
     const policy = options.inputXmlRestraintPolicy || 'preserve-existing-restraints';
-    const derived = row ? deriveRestraint(row, config) : null;
+    const derived = row ? deriveRestraints(row, config) : [];
     if (policy === 'replace-with-dtxr-derived-restraints') removeRestraints(element);
     if (policy === 'convert-existing-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints' || policy === 'preserve-existing-restraints') normalizeExistingRestraints(element);
-    if (derived && (policy === 'replace-with-dtxr-derived-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints')) appendDerivedRestraint(doc, element, derived.typeCode, config);
+    if (policy === 'replace-with-dtxr-derived-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints') {
+      for (const restraint of derived) appendDerivedRestraint(doc, element, restraint, config);
+    }
   }
 
   const root = doc.documentElement;
