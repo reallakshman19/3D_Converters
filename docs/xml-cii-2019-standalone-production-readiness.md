@@ -45,16 +45,6 @@ normalizePressureCaseNames
 
 These controls map into the public `runXmlCii2019Workflow(job, runtime)` job shape.
 
-## Programmatic call pattern
-
-```js
-import { runXmlCii2019Workflow } from './tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js';
-
-const result = await runXmlCii2019Workflow(job, runtime);
-```
-
-`runtime.engineRunner` is optional. Tests can pass an explicit fake engine runner to avoid Pyodide. Browser use can omit it and allow the standalone compatibility engine to load.
-
 ## Diagnostics contract
 
 Every normalized workflow result should expose:
@@ -93,13 +83,19 @@ Mission 04 added automated smoke and a repeatable manual live checklist:
 node tests/xml-cii-standalone-live-smoke.test.js
 ```
 
-Mission 05 attempted evidence capture against the merged state, tied to commit:
+Mission 05 attempted evidence capture against commit:
 
 ```text
 5e2dd766775dd71bc0ee2404a56f2d0c9c56bb39
 ```
 
-Real browser/Pyodide evidence was not captured in the agent environment. The readiness decision therefore remains:
+Mission 06 owner/operator evidence run was recorded against commit:
+
+```text
+def5de9c5d83ff1f4d99269c17c67ccaac66f344
+```
+
+Real browser/Pyodide evidence was not captured by the agent environment. The readiness decision therefore remains:
 
 ```text
 needs-more-proof
@@ -131,6 +127,7 @@ A successful report returns:
 - This phase does not switch the existing Model Converters XML→CII route.
 - Mission 04 automated smoke is not a real browser/Pyodide run.
 - Mission 05 did not capture real browser/Pyodide evidence in the agent environment.
+- Mission 06 owner/operator evidence run is blocked because this agent environment cannot execute an interactive browser/Pyodide session.
 - Optional CII still uses the standalone compatibility Pyodide engine when no explicit `runtime.engineRunner` is supplied.
 - Mission 03 parity is reference-fixture parity, not live production-route invocation.
 - Worker isolation is not complete; the browser runtime still imports the standalone compatibility engine directly.
@@ -146,7 +143,7 @@ A successful report returns:
 
 ## Recommended next phase
 
-Proceed with owner/operator browser evidence capture:
+Proceed with human owner/operator browser evidence capture:
 
 ```text
 open app
