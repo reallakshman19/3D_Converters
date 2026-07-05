@@ -14,6 +14,9 @@ const tab = read('tabs/xml-cii-2019-standalone-tab.js');
 if (!tab.includes('runXmlCii2019Workflow(')) fail('Standalone tab must call the public workflow API.');
 if (!tab.includes('Source type')) fail('Standalone tab must expose source type controls.');
 if (!tab.includes('Element-based InputXML')) fail('Standalone tab must expose InputXML mode.');
+if (!tab.includes('Element side-load text')) fail('Standalone tab must expose element side-load text for InputXML.');
+if (!tab.includes('Restraint policy')) fail('Standalone tab must expose InputXML restraint policy.');
+if (!tab.includes('Fill missing/sentinel')) fail('Standalone tab must expose sentinel fill option.');
 if (!tab.includes('Output')) fail('Standalone tab must expose output mode controls.');
 
 const api = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js');
@@ -24,10 +27,13 @@ const detect = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect
 for (const token of ['PipeStressExport', 'CAESARII', 'PIPINGELEMENT']) if (!detect.includes(token)) fail('Source detector missing token ' + token);
 
 const types = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js');
-for (const token of ['validateSupportConfigJson', 'JSON.parse', 'normalizeWorkflowOptions', 'coordsMode', 'kgToNewton', 'splitCondensedValveFlange', 'useRestraintTypeBasedOnJson', 'outputMode']) if (!types.includes(token)) fail('Workflow type utility missing token ' + token);
+for (const token of ['validateSupportConfigJson', 'JSON.parse', 'normalizeWorkflowOptions', 'coordsMode', 'kgToNewton', 'splitCondensedValveFlange', 'useRestraintTypeBasedOnJson', 'outputMode', 'elementSideLoadText', 'inputXmlOutputMode', 'pointPropertiesBasis', 'inputXmlRestraintPolicy', 'fillSentinelFromLineContext', 'normalizePressureCaseNames']) if (!types.includes(token)) fail('Workflow type utility missing token ' + token);
 
 const service = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js');
-if (!service.includes('inputxml-preserve-family')) fail('InputXML branch must preserve the InputXML source family.');
+if (!service.includes('enrichInputXmlDocument')) fail('InputXML branch must call direct InputXML enrichment.');
+
+const inputxml = read('tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js');
+for (const token of ['parseInputXmlElementSideLoad', 'FROM_NODE', 'TO_NODE', 'DTXR_POS', 'DTXR_PS', 'PRESSURE_C1', 'PRESSURE1', 'isSentinel', 'replace-with-dtxr-derived-restraints', 'merge-existing-and-dtxr-derived-restraints', 'XMLSerializer', 'DOMParser', 'sideLoadMatched', 'sideLoadUnmatched', 'inheritedFieldCount', 'sentinelFieldCount']) if (!inputxml.includes(token)) fail('InputXML enrichment module missing token ' + token);
 
 const engine = read('converters/xml-cii-2019-standalone/engine.js');
 if (!engine.includes('standalone-compatibility-engine')) fail('Standalone engine diagnostics must identify engine mode.');
