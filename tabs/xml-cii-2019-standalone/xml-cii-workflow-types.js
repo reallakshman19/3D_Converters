@@ -44,6 +44,29 @@ function enumValue(value, allowed, fallback) {
   return allowed.includes(text) ? text : fallback;
 }
 
+function arrayValue(value) {
+  return Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+}
+
+function normalizedDiagnostics(input, sourceKind, outputKind) {
+  const raw = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  return createWorkflowDiagnostics({
+    sourceKind,
+    outputKind,
+    branch: raw.branch ?? null,
+    elementCount: Number.isFinite(Number(raw.elementCount)) ? Number(raw.elementCount) : 0,
+    enrichedElementCount: Number.isFinite(Number(raw.enrichedElementCount)) ? Number(raw.enrichedElementCount) : 0,
+    restraintCount: Number.isFinite(Number(raw.restraintCount)) ? Number(raw.restraintCount) : 0,
+    sideLoadMatched: Number.isFinite(Number(raw.sideLoadMatched)) ? Number(raw.sideLoadMatched) : 0,
+    sideLoadUnmatched: Array.isArray(raw.sideLoadUnmatched) ? raw.sideLoadUnmatched.map((entry) => String(entry)) : [],
+    inheritedFieldCount: Number.isFinite(Number(raw.inheritedFieldCount)) ? Number(raw.inheritedFieldCount) : 0,
+    sentinelFieldCount: Number.isFinite(Number(raw.sentinelFieldCount)) ? Number(raw.sentinelFieldCount) : 0,
+    engineDiagnostics: raw.engineDiagnostics ?? null,
+    warnings: arrayValue(raw.warnings),
+    ...raw,
+  });
+}
+
 export function normalizeWorkflowOptions(options = {}) {
   const input = options && typeof options === 'object' ? options : {};
   return {
@@ -95,6 +118,9 @@ export function normalizeWorkflowJob(job = {}) {
 export function createWorkflowDiagnostics(extra = {}) {
   return {
     schema: 'xml-cii-2019-workflow-diagnostics/v1',
+    sourceKind: null,
+    outputKind: null,
+    branch: null,
     elementCount: 0,
     enrichedElementCount: 0,
     restraintCount: 0,
@@ -102,6 +128,7 @@ export function createWorkflowDiagnostics(extra = {}) {
     sideLoadUnmatched: [],
     inheritedFieldCount: 0,
     sentinelFieldCount: 0,
+    engineDiagnostics: null,
     warnings: [],
     ...extra,
   };
@@ -118,7 +145,7 @@ export function normalizeWorkflowResult(partial = {}) {
     enrichedName: String(partial.enrichedName || ''),
     ciiText: partial.ciiText == null ? null : String(partial.ciiText),
     ciiName: partial.ciiName == null ? null : String(partial.ciiName),
-    diagnostics: partial.diagnostics && typeof partial.diagnostics === 'object' ? partial.diagnostics : null,
+    diagnostics: normalizedDiagnostics(partial.diagnostics, sourceKind, outputKind),
     logs: Array.isArray(partial.logs) ? partial.logs.map((line) => String(line)) : [],
     error: partial.error ? String(partial.error) : null,
   };
