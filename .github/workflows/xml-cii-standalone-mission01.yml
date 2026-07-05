@@ -26,11 +26,6 @@ jobs:
         with:
           show-progress: false
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Run standalone static checks
         run: node tests/xml-cii-standalone-static.test.js
 
