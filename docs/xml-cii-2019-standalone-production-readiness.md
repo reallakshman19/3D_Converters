@@ -178,6 +178,23 @@ engineDiagnostics
 warnings
 ```
 
+## Reference parity proof
+
+Mission 03 adds a controlled reference parity harness:
+
+```bash
+node tests/xml-cii-standalone-parity.test.js
+```
+
+The parity harness compares standalone API output against small frozen current-route reference fixtures for:
+
+```text
+psi116-benchmark-validation.xml → enrichedXML
+inputxml-element-benchmark.xml → enrichedInputXML
+```
+
+The harness intentionally does not click the old popup or invoke the production route. Those paths are forbidden in the Mission 03 work pack. See `docs/xml-cii-2019-standalone-parity.md` for the case table and known intentional divergences.
+
 ## Production-readiness report
 
 The readiness report is created by:
@@ -202,7 +219,7 @@ A successful report returns:
 - This phase does not switch the existing Model Converters XML→CII route.
 - The standalone workflow is ready only for shadow production proof until live browser/Pyodide and old-route parity are complete.
 - Optional CII still uses the standalone compatibility Pyodide engine when no explicit `runtime.engineRunner` is supplied.
-- No golden parity against the old production XML→CII route is complete yet.
+- Mission 03 parity is reference-fixture parity, not live production-route invocation.
 - Worker isolation is not complete; the browser runtime still imports the standalone compatibility engine directly.
 - The existing production Pyodide worker and legacy route remain intentionally unchanged.
 - The adapted standalone UI follows 100% of the canonical phase model, but rich legacy interactions must be reintroduced only as adapted standalone panels after review.
@@ -210,7 +227,7 @@ A successful report returns:
 ## Blocked items before production switch
 
 1. Run live browser/Pyodide proof for PSI116 XML and InputXML optional CII output.
-2. Add old-route parity fixtures comparing current production XML→CII output against standalone output for representative jobs.
+2. Add live old-route parity proof if owner approves a safe harness outside the old popup/worker mutation path.
 3. Decide whether the standalone compatibility engine must move behind a dedicated worker boundary.
 4. Define rollback criteria and feature flag / controlled switch policy.
 5. Review larger real plant samples, not only minimal fixtures.
@@ -223,7 +240,7 @@ Proceed with controlled shadow-production proof:
 ```text
 real sample set
 → standalone API run
-→ current production route run
+→ current production route run, only if safe harness approved
 → diagnostics/artifact comparison
 → parity report
 → switch/no-switch recommendation
