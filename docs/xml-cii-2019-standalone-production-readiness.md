@@ -17,6 +17,43 @@ Programmatic caller / standalone tab
 
 The existing Model Converters XML→CII production route remains separate and is not replaced by this workflow.
 
+## UI configuration surface
+
+The standalone workflow has both:
+
+1. an API callable by other apps, and
+2. an adapted/configurable workflow UI for manual setup and proof.
+
+The UI is based on the existing XML→CII 2019 workflow phase model and preserves the full phase sequence:
+
+```text
+1 Regex
+2 Import Masters
+3 JSON Trace
+4 Preview
+5 Diagnostics
+5A Weight Match
+6 Run
+7 Support Types
+8 Config
+Custom Input
+```
+
+This is an adapted standalone implementation, not a direct reuse of the existing Model Converters popup runtime. The old Model Converters workflow popup is unchanged. The standalone workflow can be called by other apps; it does not call other app workflows.
+
+The standalone-only InputXML controls are available under the adapted phase UI, especially `Custom Input`, and cover:
+
+```text
+sourceKind: auto | xml | inputxml
+InputXML file/text
+elementSideLoadText
+inputXmlOutputMode
+pointPropertiesBasis
+inputXmlRestraintPolicy
+fillSentinelFromLineContext
+normalizePressureCaseNames
+```
+
 ## What is production-ready in this phase
 
 The standalone workflow is ready for shadow production proof as a callable module:
@@ -28,6 +65,7 @@ The standalone workflow is ready for shadow production proof as a callable modul
 - The optional CII route is isolated behind `runtime.engineRunner` / standalone compatibility engine boundary.
 - Workflow results now expose normalized diagnostics for XML and InputXML branches.
 - Production isolation is guarded by tests that reject legacy handoff tokens and production worker/invocation imports from the standalone API/service.
+- Manual configuration is available through the adapted standalone phase UI without routing through the old popup.
 
 Readiness status is represented by:
 
@@ -232,6 +270,7 @@ If any check fails, `ok` becomes `false`, `status` becomes `blocked`, and `block
 - No golden parity against the old production XML→CII route is complete yet.
 - Worker isolation is not complete; the browser runtime still imports the standalone compatibility engine directly.
 - The existing production Pyodide worker and legacy route remain intentionally unchanged.
+- The adapted standalone UI follows the same phase contract but does not yet implement every rich interaction from the old popup.
 
 ## Blocked items before production switch
 
@@ -242,6 +281,7 @@ Before switching production traffic, complete these items:
 3. Decide whether the standalone compatibility engine must move behind a dedicated worker boundary.
 4. Define rollback criteria and feature flag / controlled switch policy.
 5. Review larger real plant samples, not only minimal fixtures.
+6. Complete any remaining adapted phase interactions needed for operators after live UI review.
 
 ## Recommended next phase
 
