@@ -4,14 +4,15 @@ export function readTextFile(file) {
 }
 
 export async function buildXmlCiiWorkflowJobFromUiState(state) {
-  const [sourceText, stagedJsonText] = await Promise.all([
+  const [sourceFileText, stagedJsonText] = await Promise.all([
     readTextFile(state.sourceFile),
     readTextFile(state.stagedJsonFile),
   ]);
+  const sourceText = sourceFileText || String(state.sourceText || '');
   return {
     sourceKind: state.sourceKind || 'auto',
-    sourceText: sourceText || '',
-    sourceName: state.sourceFile?.name || '',
+    sourceText,
+    sourceName: state.sourceFile?.name || (state.sourceKind === 'inputxml' ? 'standalone.input.xml' : 'standalone.xml'),
     stagedJsonText,
     elementSideLoadText: state.elementSideLoadText || null,
     supportConfigJson: state.supportConfigJson || '{}',
