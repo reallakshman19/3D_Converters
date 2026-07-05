@@ -26,6 +26,9 @@ export function createXmlCiiAdaptedWorkflowState() {
     stagedJsonFile: null,
     elementSideLoadText: '',
     supportConfigJson: defaultXmlCii2019SupportConfigJson(),
+    masterContext: null,
+    importMastersLoading: false,
+    importMastersWriteBackStatus: '',
     options: createDefaultWorkflowOptions(),
     running: false,
     result: null,
@@ -58,4 +61,20 @@ export function clearWorkflowResult(state) {
 
 export function resetWorkflowState() {
   return createXmlCiiAdaptedWorkflowState();
+}
+
+function totalMasterRows(masterContext) {
+  const counts = masterContext?.rowCounts || {};
+  return Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+export function applyStandaloneImportMastersContext(state, masterContext) {
+  const supportConfigJson = masterContext?.supportConfigJson || state.supportConfigJson;
+  return updateWorkflowState(state, {
+    masterContext,
+    supportConfigJson,
+    importMastersLoading: false,
+    importMastersWriteBackStatus: `Loaded ${totalMasterRows(masterContext)} master rows into standalone config.`,
+    result: null,
+  });
 }
