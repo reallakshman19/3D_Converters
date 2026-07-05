@@ -1,4 +1,5 @@
 import { resolveLineListDensity } from '../../converters/xml-cii2019-core/line-density-resolver.js';
+import { LINE_LIST_PROCESS_VALUE_ALIASES, normalizeLineListRow } from '../../converters/xml-cii2019-core/linelist-mapping.js';
 
 const INSTALLED_FLAG = '__xmlCiiPreviewLineKeyRemap_v1';
 const CONFIG_SELECTOR = '[data-option-key="supportConfigJson"]';
@@ -71,18 +72,20 @@ function rowSummary(row) {
   ].filter(Boolean).join(' · ');
 }
 
-function processDataFromRow(row) {
-  const densityInfo = resolveLineListDensity(row, null);
+function processDataFromRow(row, config) {
+  const rowIndex = Number(row?._rowIndex);
+  const normalized = normalizeLineListRow(row, config?.linelist?.fieldMap || {}, Number.isFinite(rowIndex) ? rowIndex - 1 : undefined);
+  const densityInfo = resolveLineListDensity(normalized, null);
   const out = {};
   const map = {
-    p1: ['p1', 'P1', 'Design Pressure', 'Pressure Max kPa(g)', 'Pressure Max', 'DESIGN PRESSURE'],
-    hydroPressure: ['hydroPressure', 'HydroPressure', 'hydro_pressure', 'Hydro Test Pressure', 'Hydrotest Pressure', 'Hydro Pressure', 'Test Pressure', 'TEST_PRESSURE', 'HYDRO_TEST_PRESSURE', 'Pressure Test', 'Proof Pressure', 'Hydro/Test Pressure', 'Pressure2'],
-    t1: ['t1', 'T1', 'Design Temp', 'Temp Max ºC', 'Temp Max C', 'DESIGN TEMP'],
-    t2: ['t2', 'T2', 'T2 ºC', 'Temp. ºC', 'Temperature2', 'Temperature 2'],
-    t3: ['t3', 'T3', 'T3 ºC', 'Temp Min ºC', 'Temp Min C', 'Temperature3', 'Temperature 3'],
+    p1: LINE_LIST_PROCESS_VALUE_ALIASES.p1,
+    hydroPressure: LINE_LIST_PROCESS_VALUE_ALIASES.hydroPressure,
+    t1: LINE_LIST_PROCESS_VALUE_ALIASES.t1,
+    t2: LINE_LIST_PROCESS_VALUE_ALIASES.t2,
+    t3: LINE_LIST_PROCESS_VALUE_ALIASES.t3,
   };
   for (const [field, keys] of Object.entries(map)) {
-    const value = readRowValue(row, keys);
+    const value = readRowValue(normalized, [field, ...keys]);
     if (value) out[field] = value;
   }
   if (densityInfo.value) out.density = densityInfo.value;
@@ -151,7 +154,7 @@ function openLineKeyModal({ branchName, targetLineKey }) {
     const selected = options.find((item) => String(item.index) === String(select.value));
     if (!selected) return;
     const selectedKey = selected.key;
-    const processData = processDataFromRow(selected.row);
+    const processData = processDataFromRow(selected.row, config);
     if (!config.overrides || typeof config.overrides !== 'object' || Array.isArray(config.overrides)) config.overrides = {};
     if (!config.overrides.processData || typeof config.overrides.processData !== 'object' || Array.isArray(config.overrides.processData)) config.overrides.processData = {};
     const writeKeys = [...new Set([targetLineKey, selectedKey].map(text).filter(Boolean))];

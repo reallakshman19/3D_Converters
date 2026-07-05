@@ -1709,3 +1709,356 @@
 .xml-cii-col-resizer:active {
   background-color: rgba(156, 197, 255, 0.35);
 }
+
+.json-trace-dashboard {
+  color: #d7e6ff;
+  font-family: var(--font-body, Arial, "Helvetica Neue", sans-serif);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.json-trace-page-title,
+.json-trace-section-title {
+  color: #9cc5ff;
+  font-weight: 700;
+}
+
+.json-trace-page-title {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+
+.json-trace-join-bar {
+  display: grid;
+  grid-template-columns: 160px auto 140px 130px minmax(190px, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px;
+  background: #102036;
+  border: 1px solid #274261;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(148, 197, 255, 0.08);
+}
+
+.json-trace-join-title {
+  color: #e6edf5;
+}
+
+.json-trace-switch {
+  display: inline-flex;
+  align-items: center;
+}
+
+.json-trace-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.json-trace-switch span {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background: #687789;
+  border: 1px solid #8290a0;
+}
+
+.json-trace-switch span::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  transition: transform 0.16s ease;
+}
+
+.json-trace-switch input:checked + span {
+  background: #1d6fb8;
+  border-color: #4da3ff;
+}
+
+.json-trace-switch input:checked + span::after {
+  transform: translateX(16px);
+}
+
+.json-trace-switch-label,
+.json-trace-inline-field {
+  white-space: nowrap;
+}
+
+.json-trace-switch-label {
+  color: #dce7f5;
+}
+
+.json-trace-inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8ea6c3;
+}
+
+.json-trace-inline-field input,
+.json-trace-inline-field select,
+.json-trace-source-text {
+  background: #17283f;
+  color: #d7e6ff;
+  border: 1px solid #314a6b;
+  border-radius: 5px;
+}
+
+.json-trace-inline-field input {
+  width: 44px;
+  padding: 4px 7px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+.json-trace-inline-field select {
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+
+.json-trace-inline-field.is-disabled {
+  opacity: 0.45;
+}
+
+.json-trace-join-note,
+.json-trace-muted,
+.json-trace-count {
+  color: #86a0bd;
+}
+
+.json-trace-join-note {
+  margin: 3px 0 9px 166px;
+  font-size: 10px;
+}
+
+.json-trace-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 7px 0 3px;
+}
+
+.json-trace-section-actions,
+.json-trace-source-actions,
+.json-trace-scope-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.json-trace-ghost-btn,
+.json-trace-source-button {
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.json-trace-ghost-btn {
+  display: none;
+  color: #9cc5ff;
+  background: #132945;
+  border: 1px solid #315276;
+  cursor: pointer;
+}
+
+.json-trace-dashboard:hover .json-trace-ghost-btn {
+  display: inline-flex;
+}
+
+.json-trace-source-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.json-trace-tree-card,
+.json-trace-table-wrap,
+.json-trace-source-drawer {
+  background: #0f1d31;
+  border: 1px solid #2e4b6d;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(148, 197, 255, 0.08);
+}
+
+.json-trace-card-title {
+  padding: 4px 8px;
+  color: #e6edf5;
+  font-weight: 700;
+  font-size: 12px;
+  background: #1a2a42;
+  border-bottom: 1px solid #2e4b6d;
+}
+
+.json-trace-tree {
+  max-height: 128px;
+  overflow: auto;
+  padding: 3px 8px 6px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
+.json-trace-tree details {
+  margin-top: 3px;
+}
+
+.json-trace-tree summary {
+  cursor: pointer;
+  color: #dbe8f7;
+  line-height: 1.35;
+}
+
+.json-trace-tree-bucket > summary {
+  color: #b8c7d9;
+}
+
+.json-trace-tree-group {
+  margin-left: 15px;
+}
+
+.json-trace-tree-group ul {
+  margin: 3px 0 4px 22px;
+  padding: 0;
+  color: #9fb4cb;
+}
+
+.json-trace-value {
+  margin-left: 8px;
+  color: #f8fafc;
+}
+
+.json-trace-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.json-trace-tag.is-pos {
+  color: #082f49;
+  background: #4aa3ff;
+}
+
+.json-trace-tag.is-ps {
+  color: #042f2e;
+  background: #26c6b8;
+}
+
+.json-trace-table-wrap {
+  max-height: 112px;
+  overflow: auto;
+}
+
+.json-trace-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10.5px;
+}
+
+.json-trace-table th,
+.json-trace-table td {
+  padding: 4px 6px;
+  border-right: 1px solid #243d5c;
+  border-bottom: 1px solid #203652;
+  text-align: left;
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.json-trace-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: #d8e8ff;
+  background: #1a2a42;
+}
+
+.json-trace-table tbody tr:nth-child(even) {
+  background: #14253b;
+}
+
+.json-trace-status.is-applied {
+  color: #49d17c;
+}
+
+.json-trace-status.is-applied::before {
+  content: "\2713 ";
+}
+
+.json-trace-empty {
+  padding: 16px 10px;
+  color: #8ea6c3;
+}
+
+.json-trace-source-drawer {
+  margin-top: 10px;
+  padding: 8px 10px;
+}
+
+.json-trace-source-drawer:not([open]) {
+  display: none;
+}
+
+.json-trace-source-drawer summary {
+  cursor: pointer;
+  color: #9cc5ff;
+  font-weight: 700;
+}
+
+.json-trace-source-actions,
+.json-trace-scope-controls {
+  margin-top: 8px;
+}
+
+.json-trace-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #d7e6ff;
+}
+
+.json-trace-source-text {
+  width: 100%;
+  min-height: 170px;
+  margin-top: 8px;
+  padding: 8px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
+.json-trace-warning {
+  margin-top: 6px;
+  color: #fbbf24;
+}
+
+@media (max-width: 820px) {
+  .json-trace-join-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .json-trace-join-note {
+    margin-left: 0;
+  }
+
+  .json-trace-section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -15,6 +15,10 @@ function componentPath(value) {
   return idx >= 0 ? raw.slice(0, idx) : raw;
 }
 
+function mapKey(value) {
+  return clean(value).replace(/\s+/g, ' ');
+}
+
 function pickAxis(source, names) {
   const keys = Object.keys(source || {});
   const hit = keys.find((key) => names.includes(upper(key)));
@@ -59,15 +63,52 @@ function isPositionRow(row = {}) {
   return /(^|[^A-Z])(POS|APOS|LPOS|BPOS|HPOS|TPOS|SPOS|EPOS|POSITION)([^A-Z]|$)/.test(text);
 }
 
+function setPositionKey(map, key, pos) {
+  const cleanKey = mapKey(key);
+  if (!cleanKey || !pos) return;
+  const current = map.get(cleanKey);
+  if (!current) {
+    map.set(cleanKey, pos);
+    return;
+  }
+  if (current.key !== pos.key) map.set(cleanKey, null);
+}
+
+function positionLookupKeys(row = {}) {
+  const keys = [];
+  const path = componentPath(row.sourcePath || row.jsonPath);
+  const branch = traceTreeBranchKey(row);
+  const nodeNumber = clean(row.nodeNumber);
+  if (path) keys.push(path);
+  if (branch && nodeNumber) keys.push(`branch-node:${branch}:${nodeNumber}`);
+  if (nodeNumber) keys.push(`node:${nodeNumber}`);
+  return uniq(keys);
+}
+
 function buildPositionIndex(traceRows = []) {
   const map = new Map();
   for (const row of traceRows || []) {
     if (!isPositionRow(row)) continue;
-    const path = componentPath(row.sourcePath || row.jsonPath);
     const pos = positionFromValue(row.finalValue || row.sourceRawValue || row.value);
-    if (path && pos && !map.has(path)) map.set(path, pos);
+    for (const key of positionLookupKeys(row)) setPositionKey(map, key, pos);
   }
   return map;
+}
+
+function positionFromIndex(positionMap, row = {}) {
+  for (const key of positionLookupKeys(row)) {
+    const pos = positionMap.get(mapKey(key));
+    if (pos) return pos;
+  }
+  return null;
+}
+
+function psTokenFromRow(row = {}) {
+  const direct = clean(row.matchedToken || row.matchedText);
+  if (direct) return direct;
+  const text = `${row.nodeName || ''} ${row.sourceAttributeName || ''} ${row.field || ''} ${row.sourcePath || ''} ${row.jsonPath || ''} ${row.finalValue || ''} ${row.sourceRawValue || ''} ${row.value || ''}`;
+  const match = text.match(/PS-\d+(?:\.\d+)?/i);
+  return match ? match[0].toUpperCase() : '';
 }
 
 export function traceTreeBucketKey(row = {}) {
@@ -90,14 +131,20 @@ export function traceTreeBranchKey(row = {}) {
  */
 export function traceTreeGroupKey(row = {}, positionMap = new Map()) {
   const bucket = traceTreeBucketKey(row);
+  const explicitLabel = clean(row.xmlTraceGroupLabel);
+  if ((bucket === 'DTXR-POS' || bucket === 'DTXR-PS') && explicitLabel) {
+    const explicitKey = clean(row.xmlTraceGroupKey || explicitLabel).replace(/\s+/g, '');
+    return Object.freeze({ key: explicitKey, label: explicitLabel, resolved: row.xmlTraceGroupResolved !== false });
+  }
   if (bucket === 'DTXR-POS') {
-    const path = componentPath(row.sourcePath || row.jsonPath);
-    const pos = positionMap.get(path);
+    const explicitPosition = positionFromValue(row.position || row.xmlPosition || row.matchedKey);
+    if (explicitPosition) return Object.freeze({ key: explicitPosition.key, label: explicitPosition.label, resolved: true });
+    const pos = positionFromIndex(positionMap, row);
     if (pos) return Object.freeze({ key: pos.key, label: pos.label, resolved: true });
     return Object.freeze({ key: `NODE-${clean(row.nodeNumber) || 'UNKNOWN'}`, label: `POS unresolved; node ${clean(row.nodeNumber) || '?'}`, resolved: false });
   }
   if (bucket === 'DTXR-PS') {
-    const token = clean(row.matchedToken || row.matchedText);
+    const token = psTokenFromRow(row);
     return Object.freeze({ key: token || `NODE-${clean(row.nodeNumber) || 'UNKNOWN'}`, label: token ? `PS=${token}` : `PS unresolved; node ${clean(row.nodeNumber) || '?'}`, resolved: !!token });
   }
   return Object.freeze({ key: bucket, label: bucket, resolved: false });
@@ -108,7 +155,7 @@ export function traceTreeGroupKey(row = {}, positionMap = new Map()) {
  * `dtxrValue` is the raw text that will be aggregated into the group's concatValue.
  */
 export function createTraceTreeLeaf(row = {}, index = 0, positionMap = new Map()) {
-  const path = componentPath(row.sourcePath || row.jsonPath), pos = positionMap.get(path);
+  const pos = positionFromIndex(positionMap, row);
   return Object.freeze({
     jsonNodeNo: clean(row.jsonNodeNo || row._jsonNodeNo || index + 1),
     matchType: clean(row.xmlTraceScope),
@@ -118,7 +165,7 @@ export function createTraceTreeLeaf(row = {}, index = 0, positionMap = new Map()
     value: jsonValue(row.finalValue || row.sourceRawValue || row.value),
     dtxrValue: clean(row.finalValue || row.sourceRawValue || row.value),
     sourcePath: clean(row.sourcePath || row.jsonPath),
-    positionLabel: pos?.label || '',
+    positionLabel: clean(row.positionLabel || row.xmlTraceGroupLabel) || pos?.label || '',
   });
 }
 

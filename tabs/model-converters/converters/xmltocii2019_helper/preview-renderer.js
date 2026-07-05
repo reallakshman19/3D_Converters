@@ -1,7 +1,7 @@
 import { EditablePreviewTable } from '../../shared/EditablePreviewTable.js';
 import { deriveLineKeyFromBranchName, tokenAtPosition } from '../../../../converters/xml-cii2019-core/regex-line-key.js';
 import { computeLineNoKey, normalizeLineListRow } from '../../../../converters/xml-cii2019-core/linelist-mapping.js';
-import { xmlCiiRigidWeightOverrideKey, isXmlCiiWeightReviewNode, xmlCiiNumberText } from '../../../../converters/xml-cii2019-core/weight-match-model.js';
+import { xmlCiiWeightReviewNodeOverrideKey, isXmlCiiWeightReviewNode, xmlCiiNumberText } from '../../../../converters/xml-cii2019-core/weight-match-model.js';
 import { rankXmlCiiWeightCandidates, formatValveHint } from '../../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import { buildPipingClassIndex } from '../../../../converters/xml-cii2019-core/piping-class-resolver.js';
 import { resolveBranchProcessData } from '../../../../converters/xml-cii2019-core/branch-process-resolver.js';
@@ -10,9 +10,9 @@ import { resolveLineListDensity } from '../../../../converters/xml-cii2019-core/
 import { resolveXmlCiiWallThicknessFromDtxr } from '../../../../converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js';
 import { applyPreviewOverrideFillDown, applyPreviewProcessFillDown, markPreviewOverrideManual, markPreviewProcessManual, applyPreviewSmartFillByClass, applyPreviewSmartProcessFillByClass } from '../../shared/preview-filldown.js?v=20260626-smart-fill-1';
 
-const PV_CACHE_KEY = 'xml-cii-pv-cache-v3';
+const PV_CACHE_KEY = 'xml-cii-pv-cache-v5';
 const _PV_CACHE_MAX_BYTES = 2_500_000;
-function pvCacheFingerprint(xmlText, cfg) { const xmlSig = `${(xmlText || '').length}:${(xmlText || '').slice(0, 80)}`; const llSig = cfg?.linelist?.masterRows?.length || 0; const pcSig = cfg?.pipingClass?.masterRows?.length || 0; const overrideSig = JSON.stringify(cfg?.overrides || {}).slice(0, 200); return `pv|${xmlSig}|${llSig}:${pcSig}|${overrideSig}`; }
+function pvCacheFingerprint(xmlText, cfg) { const xmlSig = `${(xmlText || '').length}:${(xmlText || '').slice(0, 80)}`; const llSig = cfg?.linelist?.masterRows?.length || 0; const pcSig = cfg?.pipingClass?.masterRows?.length || 0; const fieldMapSig = JSON.stringify(cfg?.linelist?.fieldMap || {}).slice(0, 300); const defaultSig = JSON.stringify(cfg?.processDefaults || {}).slice(0, 120); const overrideSig = JSON.stringify(cfg?.overrides || {}).slice(0, 300); return `pv5|${xmlSig}|${llSig}:${pcSig}|${fieldMapSig}|${defaultSig}|${overrideSig}`; }
 function readCache(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } }
 function writeCache(key, fp, data) { try { const payload = JSON.stringify({ fp, data, ts: Date.now() }); if (payload.length <= _PV_CACHE_MAX_BYTES) localStorage.setItem(key, payload); } catch {} }
 function _toText(val) { return val === null || val === undefined ? '' : String(val); }
@@ -68,7 +68,73 @@ function _renderManualPreviewIdle(host, rootEl, xmlText, config, options) { if (
 function _markPreviewSaved(host, message = 'Saved. Click Rebuild Preview when you want to recompute suggestions.') { const existing = host?.querySelector('[data-mc-preview-save-note]'); if (existing) { existing.textContent = message; return; } host?.insertAdjacentHTML('afterbegin', `<div data-mc-preview-save-note class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#2f855a;color:#14532d;background:#f0fff4;">${_esc(message)}</div>`); }
 function _updateEditedPreviewCell(td, newVal) { const val = _toText(newVal).trim() || '—'; const span = td?.querySelector?.('.mc-preview-editable-val'); if (span) span.textContent = val; }
 function _branchDtxrValues(branch, stagedIndex, config) { const values = []; for (const node of _xmlChildrenByName(branch, 'Node')) { for (const key of ['DTXR', 'DTXR_POS', 'TEEDESC_POS', 'DTXR_PS']) { const value = _xmlText(node, key); if (value) values.push(value); } const resolved = resolveXmlCiiNodeDtxr(node, stagedIndex, config); if (resolved?.value) values.push(resolved.value); } return _uniqueKeys(values); }
-function _bindDtxrWallUpdateButton({ host, branchRows, config, ensureOverrides, onSaveConfig, stagedSourceLabel = '' }) { host?.querySelector('[data-mc-dtxr-wall-update]')?.addEventListener('click', () => { const sourceSuffix = stagedSourceLabel ? ` using ${stagedSourceLabel}` : ''; const overrides = ensureOverrides(config); overrides.wallThickness = overrides.wallThickness && typeof overrides.wallThickness === 'object' && !Array.isArray(overrides.wallThickness) ? { ...overrides.wallThickness } : {}; let applied = 0; let available = 0; branchRows.forEach((row, ri) => { const value = Number(row.dtxrWallThickness); if (!Number.isFinite(value) || value <= 0) return; available += 1; const key = row.wallThicknessKey || _classSizeKey(row) || row.lineKey || row.branchName; if (!key) return; const clean = Number(value.toPrecision(6)).toString(); overrides.wallThickness[key] = clean; overrides.__dtxrWallKeys = overrides.__dtxrWallKeys && typeof overrides.__dtxrWallKeys === 'object' ? overrides.__dtxrWallKeys : {}; overrides.__dtxrWallKeys[key] = true; markPreviewOverrideManual({ config, ensureOverrides, field: 'wallThickness', key, value: clean }); const cell = host.querySelector(`[data-mc-edit-type="wallThickness"][data-mc-edit-row="${ri}"]`); _updateEditedPreviewCell(cell, clean); if (cell) { cell.dataset.mcFillState = 'manual'; cell.title = `Wall thickness from DTXR Sch ${row.dtxrWallSchedule || ''}: ${row.dtxrWallDtxr || ''}${sourceSuffix}`; const badge = cell.querySelector('.mc-preview-badge'); if (badge) { badge.textContent = '✓ DTXR Sch'; badge.className = 'mc-preview-badge exact'; } else cell.insertAdjacentHTML('beforeend', ' <span class="mc-preview-badge exact">✓ DTXR Sch</span>'); } applied += 1; }); if (applied > 0) { onSaveConfig(config); _markPreviewSaved(host, `${applied} Wall Thk override${applied === 1 ? '' : 's'} updated from DTXR schedule and branch bore${sourceSuffix}. Click Rebuild Preview to recompute enriched XML.`); } else { _markPreviewSaved(host, available ? `No Wall Thk keys could be updated from DTXR${sourceSuffix}.` : `No DTXR schedule + bore matches found for Wall Thk update${sourceSuffix}.`); } }); }
+function _bindDtxrWallUpdateButtonLegacy({ host, branchRows, config, ensureOverrides, onSaveConfig, stagedSourceLabel = '' }) { host?.querySelector('[data-mc-dtxr-wall-update]')?.addEventListener('click', () => { const sourceSuffix = stagedSourceLabel ? ` using ${stagedSourceLabel}` : ''; const overrides = ensureOverrides(config); overrides.wallThickness = overrides.wallThickness && typeof overrides.wallThickness === 'object' && !Array.isArray(overrides.wallThickness) ? { ...overrides.wallThickness } : {}; let applied = 0; let available = 0; branchRows.forEach((row, ri) => { const value = Number(row.dtxrWallThickness); if (!Number.isFinite(value) || value <= 0) return; available += 1; const key = row.wallThicknessKey || _classSizeKey(row) || row.lineKey || row.branchName; if (!key) return; const clean = Number(value.toPrecision(6)).toString(); overrides.wallThickness[key] = clean; overrides.__dtxrWallKeys = overrides.__dtxrWallKeys && typeof overrides.__dtxrWallKeys === 'object' ? overrides.__dtxrWallKeys : {}; overrides.__dtxrWallKeys[key] = true; markPreviewOverrideManual({ config, ensureOverrides, field: 'wallThickness', key, value: clean }); const cell = host.querySelector(`[data-mc-edit-type="wallThickness"][data-mc-edit-row="${ri}"]`); _updateEditedPreviewCell(cell, clean); if (cell) { cell.dataset.mcFillState = 'manual'; cell.title = `Wall thickness from DTXR Sch ${row.dtxrWallSchedule || ''}: ${row.dtxrWallDtxr || ''}${sourceSuffix}`; const badge = cell.querySelector('.mc-preview-badge'); if (badge) { badge.textContent = '✓ DTXR Sch'; badge.className = 'mc-preview-badge exact'; } else cell.insertAdjacentHTML('beforeend', ' <span class="mc-preview-badge exact">✓ DTXR Sch</span>'); } applied += 1; }); if (applied > 0) { onSaveConfig(config); _markPreviewSaved(host, `${applied} Wall Thk override${applied === 1 ? '' : 's'} updated from DTXR schedule and branch bore${sourceSuffix}. Click Rebuild Preview to recompute enriched XML.`); } else { _markPreviewSaved(host, available ? `No Wall Thk keys could be updated from DTXR${sourceSuffix}.` : `No DTXR schedule + bore matches found for Wall Thk update${sourceSuffix}.`); } }); }
+
+function _dtxrWallCandidateFromRow(row) {
+  const value = Number(row?.dtxrWallThickness);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return {
+    value: Number(value.toPrecision(6)).toString(),
+    schedule: row?.dtxrWallSchedule || '',
+    dtxr: row?.dtxrWallDtxr || '',
+    source: row?.dtxrWallSource || '',
+  };
+}
+function _dtxrWallCandidateKeys(row) { return _uniqueKeys([row?.branchName, row?.lineKey, row?.wallThicknessKey, _classSizeKey(row)]); }
+function _dtxrWallCandidateIndex(branchRows) {
+  const index = new Map();
+  let available = 0;
+  for (const row of branchRows || []) {
+    const candidate = _dtxrWallCandidateFromRow(row);
+    if (!candidate) continue;
+    available += 1;
+    for (const key of _dtxrWallCandidateKeys(row)) if (!index.has(key)) index.set(key, candidate);
+  }
+  return { index, available };
+}
+function _dtxrWallCandidateForRow(row, candidateIndex) {
+  for (const key of _dtxrWallCandidateKeys(row)) {
+    const candidate = candidateIndex.get(key);
+    if (candidate) return candidate;
+  }
+  return null;
+}
+function _bindDtxrWallUpdateButtonBranchScoped({ host, branchRows, config, ensureOverrides, onSaveConfig, stagedSourceLabel = '' }) {
+  host?.querySelector('[data-mc-dtxr-wall-update]')?.addEventListener('click', () => {
+    const sourceSuffix = stagedSourceLabel ? ` using ${stagedSourceLabel}` : '';
+    const overrides = ensureOverrides(config);
+    overrides.wallThickness = overrides.wallThickness && typeof overrides.wallThickness === 'object' && !Array.isArray(overrides.wallThickness) ? { ...overrides.wallThickness } : {};
+    overrides.__dtxrWallKeys = overrides.__dtxrWallKeys && typeof overrides.__dtxrWallKeys === 'object' ? overrides.__dtxrWallKeys : {};
+    const { index, available } = _dtxrWallCandidateIndex(branchRows);
+    let applied = 0;
+    branchRows.forEach((row, ri) => {
+      const candidate = _dtxrWallCandidateForRow(row, index);
+      if (!candidate) return;
+      const key = row.wallThicknessKey || _classSizeKey(row) || row.lineKey || row.branchName;
+      if (!key) return;
+      overrides.wallThickness[key] = candidate.value;
+      overrides.__dtxrWallKeys[key] = true;
+      markPreviewOverrideManual({ config, ensureOverrides, field: 'wallThickness', key, value: candidate.value });
+      const cell = host.querySelector(`[data-mc-edit-type="wallThickness"][data-mc-edit-row="${ri}"]`);
+      _updateEditedPreviewCell(cell, candidate.value);
+      if (cell) {
+        cell.dataset.mcFillState = 'manual';
+        cell.title = `Wall thickness from any DTXR schedule in this branch/class group. Sch ${candidate.schedule || ''}: ${candidate.dtxr || ''}${sourceSuffix}`;
+        const badge = cell.querySelector('.mc-preview-badge');
+        if (badge) { badge.textContent = 'DTXR Sch'; badge.className = 'mc-preview-badge exact'; }
+        else cell.insertAdjacentHTML('beforeend', ' <span class="mc-preview-badge exact">DTXR Sch</span>');
+      }
+      applied += 1;
+    });
+    if (applied > 0) {
+      onSaveConfig?.(config);
+      _markPreviewSaved(host, `${applied} Wall Thk override${applied === 1 ? '' : 's'} updated from ${available} DTXR schedule source row${available === 1 ? '' : 's'}${sourceSuffix}. Click Rebuild Preview to recompute enriched XML.`);
+    } else {
+      _markPreviewSaved(host, available ? `No Wall Thk keys could be updated from DTXR${sourceSuffix}.` : `No DTXR schedule + bore matches found for Wall Thk update${sourceSuffix}.`);
+    }
+  });
+}
+function _bindDtxrWallUpdateButton(args) { return _bindDtxrWallUpdateButtonBranchScoped(args); }
 
 export function xmlCiiRenderPreviewPhase(xmlFile, config) {
   const llRows = Array.isArray(config.linelist?.masterRows) ? config.linelist.masterRows.length : 0;
@@ -108,7 +174,7 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) { if (typeo
   const _t3Res = _resolveTemperatureRangeToMax(_t3Raw); const t3 = _t3Res !== null ? String(_t3Res) : _t3Raw; const t3RangeOrig = _t3Res !== null ? _t3Raw : null;
   const densityInfo = resolveLineListDensity(lineListMatch, pdOverride); const density = densityInfo.value || _processDefaultValue(config, 'density'); const densitySource = densityInfo.value ? densityInfo.source : (_processDefaultValue(config, 'density') ? 'default' : 'none'); const dtxrWall = resolveXmlCiiWallThicknessFromDtxr({ boreMm, dtxrValues: _branchDtxrValues(branch, stagedIndex, config), config }); const wallThickness = resolved.wallThicknessMm != null ? Number(resolved.wallThicknessMm.toPrecision(6)).toString() : ''; const corrosion = resolved.corrosionAllowanceMm != null ? String(resolved.corrosionAllowanceMm) : ''; let matMethod = 'none'; if (resolved.materialSource === 'override' || resolved.materialSource === 'override-material-map') matMethod = 'override'; else if (resolved.materialSource === 'line-list-material-map' || resolved.materialSource === 'piping-class-material-map') matMethod = 'exact'; else if (resolved.materialSource === 'xml-fallback') matMethod = 'xml-fallback';
     branchRows.push({ branchName, lineKey, lineMiss: !lineListMatch, size: boreMm != null ? `${boreMm}mm` : '', sizeMm: boreMm, pipingClass: resolved.pipingClass || '', pipingClassDerived: derivedClassRaw || '', pipingClassMethod: resolved.pipingClassMatchMethod, pipingClassConfidence: resolved.pipingClassConfidence, pipingClassScore: resolved.pipingClassScore, pipingClassRowScore: resolved.pipingClassRowScore, pipingClassRowReasons: resolved.pipingClassRowReasons || [], pipingClassNeedsReview: resolved.pipingClassNeedsReview, pipingClassCandidates: resolved.pipingClassCandidates || [], material: resolved.material || '', materialSource: resolved.materialSource || _overrideSource(config.overrides, 'material', lineKey), materialCode: resolved.materialCode || '', materialCodeMethod: matMethod, materialCodeNeedsReview: !resolved.materialCode, rating: branchRating || '', ratingSource, p1, hydroPressure: hydroPressureFinal, t1, t2, t3, t1RangeOrig, t2RangeOrig, t3RangeOrig, density, p1Source: _xmlCiiProcessSource(pdOverride, lineListMatch, 'p1', ['p1', 'P1', 'Pressure1', 'Design Pressure', 'DesignPressure', 'Pressure Max kPa(g)', 'Pressure Max', 'PressureMax', 'P1 / Design Pressure'], config), hydroPressureSource: hydroPressureSourceFinal, t1Source: _xmlCiiProcessSource(pdOverride, lineListMatch, 't1', ['t1', 'T1', 'Temperature1', 'Design Temp', 'Design Temperature', 'Temp Max ºC', 'Temp Max °C', 'Temp Max', 'T1 (ºC)'], config), t2Source: _xmlCiiProcessSource(pdOverride, lineListMatch, 't2', ['t2', 'T2', 'Temperature2', 'Temp. ºC', 'Temp. °C', 'Operating Temp', 'Operating Temperature', 'T2 (ºC)'], config), t3Source: _xmlCiiProcessSource(pdOverride, lineListMatch, 't3', ['t3', 'T3', 'Temperature3', 'Temp Min ºC', 'Temp Min °C', 'Temp Min', 'Minimum Temp', 'T3 (ºC)'], config), densitySource, wallThickness, wallThicknessSource: (() => { const _wSrc = resolved.wallThicknessSource || _overrideSource(config.overrides, 'wallThickness', lineKey); const _wKey = resolved.wallThicknessKey; if (_wSrc !== 'override') return _wSrc; const _dtxrKeys = config.overrides?.__dtxrWallKeys; return (_dtxrKeys && _dtxrKeys[_wKey]) ? 'dtxr-sch-applied' : _wSrc; })(), wallThicknessKey: resolved.wallThicknessKey || _classSizeKey({ pipingClass: resolved.pipingClass || derivedClassRaw, sizeMm: boreMm }), dtxrWallThickness: dtxrWall?.wallThicknessMm || '', dtxrWallSchedule: dtxrWall?.schedule || '', dtxrWallSource: dtxrWall?.source || '', dtxrWallDtxr: dtxrWall?.dtxr || '', corrosion, corrosionSource: resolved.corrosionSource || _overrideSource(config.overrides, 'corrosion', lineKey), corrosionKey: resolved.corrosionKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw }), materialCodeKey: resolved.materialCodeKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw }) });
-    let previousPosition = null; for (const node of _xmlChildrenByName(branch, 'Node')) { const positionText = _xmlText(node, 'Position'); const computedLengthMm = previousPosition ? _pointDistanceMm(previousPosition, positionText) : null; const explicitLengthMm = xmlCiiNumberText(_xmlText(node, 'ElementLengthMm')); const lengthMm = explicitLengthMm !== null ? explicitLengthMm : computedLengthMm; const nodeNumber = _xmlText(node, 'NodeNumber'); const componentType = _xmlText(node, 'ComponentType'); const nodeNoNum = Number(nodeNumber); const weightEligible = isXmlCiiWeightReviewNode(node); const dtxrRes = weightEligible ? resolveXmlCiiNodeDtxr(node, stagedIndex, config) : { value: '', source: 'not-weight-eligible', matchedKey: '' }; const ranking = (weightEligible && boreMm != null && branchRating && lengthMm != null) ? rankXmlCiiWeightCandidates({ boreMm, rating: branchRating, lengthMm, nodeName: _xmlText(node, 'NodeName'), componentType, componentRefNo: _xmlText(node, 'ComponentRefNo'), dtxr: dtxrRes.value || '' }, config, { includeRejected: true }) : { nodeHint: null, candidates: [], rejectedCandidates: [], best: null }; const candidates = ranking.candidates.slice(0, 5); const weightKey = xmlCiiRigidWeightOverrideKey(branchName, nodeNumber); const overrideWeight = Number(config?.overrides?.rigidWeight?.[weightKey]); const selectedWeight = Number.isFinite(overrideWeight) && overrideWeight > 0 ? overrideWeight : null; const selectedMatch = selectedWeight != null ? { ...(candidates[0] || {}), selectedWeight, suggestedWeight: selectedWeight, weight: selectedWeight, selectedOverride: true } : (ranking.best || null); if (nodeNoNum > 0 && weightEligible && (candidates.length || ranking.rejectedCandidates.length)) nodeRows.push({ key: weightKey, branchName, nodeNumber, componentType, boreMm, rating: branchRating, resolvedPipingClass: resolved.pipingClass, lengthMm, dtxr: dtxrRes.value || '', dtxrSource: dtxrRes.source || 'none', dtxrMatchedKey: dtxrRes.matchedKey || '', valveHint: formatValveHint(ranking.nodeHint), weightMatch: selectedMatch, weightCandidates: candidates, rejectedWeightCandidates: ranking.rejectedCandidates.slice(0, 3) }); previousPosition = positionText || previousPosition; }
+    let previousPosition = null; const branchNodes = _xmlChildrenByName(branch, 'Node'); branchNodes.forEach((node, nodeIdx) => { const positionText = _xmlText(node, 'Position'); const computedLengthMm = previousPosition ? _pointDistanceMm(previousPosition, positionText) : null; const explicitLengthMm = xmlCiiNumberText(_xmlText(node, 'ElementLengthMm')); const lengthMm = explicitLengthMm !== null ? explicitLengthMm : computedLengthMm; const nodeNumber = _xmlText(node, 'NodeNumber'); const componentType = _xmlText(node, 'ComponentType'); const weightEligible = isXmlCiiWeightReviewNode(node); const dtxrRes = weightEligible ? resolveXmlCiiNodeDtxr(node, stagedIndex, config) : { value: '', source: 'not-weight-eligible', matchedKey: '' }; const ranking = (weightEligible && boreMm != null && branchRating && lengthMm != null) ? rankXmlCiiWeightCandidates({ boreMm, rating: branchRating, lengthMm, nodeName: _xmlText(node, 'NodeName'), componentType, componentRefNo: _xmlText(node, 'ComponentRefNo'), dtxr: dtxrRes.value || '' }, config, { includeRejected: true }) : { nodeHint: null, candidates: [], rejectedCandidates: [], best: null }; const candidates = ranking.candidates.slice(0, 5); const weightKey = xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx); const overrideWeight = Number(config?.overrides?.rigidWeight?.[weightKey]); const selectedWeight = Number.isFinite(overrideWeight) && overrideWeight > 0 ? overrideWeight : null; const selectedMatch = selectedWeight != null ? { ...(candidates[0] || {}), selectedWeight, suggestedWeight: selectedWeight, weight: selectedWeight, selectedOverride: true } : (ranking.best || null); if (weightEligible && (candidates.length || ranking.rejectedCandidates.length)) nodeRows.push({ key: weightKey, branchName, nodeNumber, componentType, boreMm, rating: branchRating, resolvedPipingClass: resolved.pipingClass, lengthMm, dtxr: dtxrRes.value || '', dtxrSource: dtxrRes.source || 'none', dtxrMatchedKey: dtxrRes.matchedKey || '', valveHint: formatValveHint(ranking.nodeHint), weightMatch: selectedMatch, weightCandidates: candidates, rejectedWeightCandidates: ranking.rejectedCandidates.slice(0, 3) }); previousPosition = positionText || previousPosition; });
   }
   return { branchRows, nodeRows };
 }

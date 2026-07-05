@@ -583,14 +583,14 @@ const CONVERTER_DEFS = Object.freeze({
       supportConfigJson: JSON.stringify({
         useFrictionSentinelForNonYSupports: true,
         convertDensityKgM3ToKgCm3: true,
-        disableCiiSupportTagPopulation: false,
+        disableCiiSupportTagPopulation: true,
         useJsonTraceStagedSource: false,
         useParsedCustomInputSource: false,
         useParsedCustomInputSourceForPreview: false,
         condenseRigidXsd: false,
         condense_rigid_xsd: false,
-        splitCondensedValveFlange: false,
-        split_condensed_valve_flange: false,
+        splitCondensedValveFlange: true,
+        split_condensed_valve_flange: true,
         duplicateSupportPolicy: 'prefer_datum',
         coordinateTolerance: 1.0,
         xmlAxisToCiiAxis: { Z: 'Y' },
@@ -2835,10 +2835,11 @@ function _xmlCiiFindLineListRow(branchLineKey, config) {
   const lookupKey = _xmlCiiNormalizeLineKey(branchLineKey);
   const columnRegex = config.linelist?.linelistColumnRegex || '';
   const columnGroup = config.linelist?.linelistColumnGroup || 1;
-  for (const row of rows) {
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
     const rawKey = _rowText(row, ['lineNo', 'lineKey', 'LineNo', 'Line No', 'PipelineReference']);
     const cleanKey = _xmlCiiNormalizeLineKey(_xmlCiiLineKeyRegexValue(rawKey, columnRegex, columnGroup));
-    if (cleanKey && cleanKey === lookupKey) return row;
+    if (cleanKey && cleanKey === lookupKey) return _normalizeLineListRow(row, config.linelist?.fieldMap || {}, index);
   }
   return null;
 }
@@ -3512,14 +3513,14 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
     const supportTags = _xmlNodeSupportTags(node);
     const tagMatches = supportTags.flatMap((tag) => stagedSupportIndex.byTag.get(tag) || []);
     const relaxedTagMatches = tagMatches.length ? [] : _relaxedSameDtxrPosSupportMatches(supportTags, coordMatches);
-    // The XML restraint type is not trusted; the staged support is the source of
-    // truth. Match by PS-tag first, then fall back to coordinate proximity.
-    const stagedMatches = tagMatches.length > 0
-      ? _mergeUniqueSupportMatches(tagMatches, coordMatches)
-      : (relaxedTagMatches.length > 0 ? relaxedTagMatches : coordMatches);
-    const supportMatchMethod = tagMatches.length > 0
-      ? (coordMatches.length > 0 ? 'ps-tag+coordinate-cluster' : 'ps-tag')
-      : (relaxedTagMatches.length > 0 ? 'ps-tag-relaxed-same-dtxr-pos' : 'coordinate-multi');
+    // DTXR_POS/coordinate matches are node-scoped; DTXR_PS tags are a support-tag
+    // fallback and must not add extra restraint kinds when POS already matched.
+    const stagedMatches = coordMatches.length > 0
+      ? coordMatches
+      : (tagMatches.length > 0 ? tagMatches : relaxedTagMatches);
+    const supportMatchMethod = coordMatches.length > 0
+      ? 'dtxr-pos-coordinate'
+      : (tagMatches.length > 0 ? 'dtxr-ps-tag-fallback' : (relaxedTagMatches.length > 0 ? 'dtxr-ps-tag-relaxed-fallback' : 'unmatched'));
     const staged = stagedMatches[0] || null;
     const restraints = _xmlChildrenByName(node, 'Restraint');
     const combinedTypes = dedupeXmlCiiRestraintEntries(stagedMatches.flatMap(m => xmlCiiRestraintEntriesFromSupportMatch(m, node, config)));
@@ -3550,7 +3551,7 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
       // Show the revalidation: the original (possibly erroneous) XML restraint
       // types vs the types derived from the staged support kinds.
       const xmlTypes = restraints.map((r) => _xmlText(r, 'Type')).filter(Boolean).join('+');
-      diagnostics.push({ type: 'support-match', nodeNumber: _xmlText(node, 'NodeNumber'), nodeName: _xmlText(node, 'NodeName'), componentType, method: supportMatchMethod, matchedBy: supportMatchMethod, matchedKey: supportTags.join('|') || positionKey, kind: allKinds.join('+'), xmlRestraintTypes: xmlTypes, restraintTypes: combinedTypes.join('+'), finalValue: combinedTypes.join('+'), stagedName: staged.component?.name || staged.attrs?.NAME || '', tags: supportTags, status: 'applied' });
+      diagnostics.push({ type: 'support-match', nodeNumber: _xmlText(node, 'NodeNumber'), nodeName: _xmlText(node, 'NodeName'), componentType, method: supportMatchMethod, matchedBy: supportMatchMethod, matchedKey: coordMatches.length > 0 ? positionKey : supportTags.join('|'), kind: allKinds.join('+'), xmlRestraintTypes: xmlTypes, restraintTypes: combinedTypes.join('+'), finalValue: combinedTypes.join('+'), stagedName: staged.component?.name || staged.attrs?.NAME || '', tags: supportTags, status: 'applied' });
     }
 
     let targetEntries = [];
@@ -7826,7 +7827,7 @@ export function renderModelConvertersTab(container) {
     const fullKb = Math.round((full.length / 1024) * 10) / 10;
     const config = _parseXmlCiiEnrichmentConfig(full);
     if (config.disableCiiSupportTagPopulation == null) {
-      config.disableCiiSupportTagPopulation = false;
+      config.disableCiiSupportTagPopulation = true;
     }
     if (config.condenseRigidXsd == null && config.condense_rigid_xsd != null) config.condenseRigidXsd = config.condense_rigid_xsd === true;
     if (config.condense_rigid_xsd == null) config.condense_rigid_xsd = config.condenseRigidXsd === true;

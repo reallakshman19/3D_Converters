@@ -6,8 +6,8 @@ import { XML_CII_JSON_TRACE_STORE_KEY } from '../workflow/services/xml-cii-stage
 /**
  * Renders the XML->CII JSON Trace phase.
  * Inputs: staged JSON import text plus uploaded XML scope keys.
- * Outputs: XML-scoped JsonNode Trace rows and XML node wise trace rows.
- * Fallback: if no XML is loaded, the full staged JSON trace remains visible.
+ * Outputs: a compact dashboard with XML-scoped JsonNode tree evidence and XML node wise trace rows.
+ * Fallback: if no XML is loaded, the full staged JSON trace remains visible and source import stays available.
  */
 
 const PREVIEW_LINES = 300;
@@ -95,6 +95,11 @@ function delimiterControls(current) {
   const on = current.useDelimiter === true, delim = esc(current.delimiter || '|'), mode = current.joinMode || 'unique', dim = on ? '' : 'opacity:0.45;pointer-events:none;';
   return `<div class="xml-cii-native-hint" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;"><b>DTXR Value Joining:</b><label class="xml-cii-native-check"><input type="checkbox" data-json-trace-use-delimiter ${on ? 'checked' : ''}> Use delimiter joining</label><label style="display:flex;align-items:center;gap:4px;${dim}">Delimiter:<input type="text" data-json-trace-delimiter value="${delim}" maxlength="8" style="width:44px;padding:2px 6px;font-family:monospace;font-size:12px;background:#1a2840;color:#d7e6ff;border:1px solid #2a3f5f;border-radius:4px;" ${on ? '' : 'disabled'}></label><label style="display:flex;align-items:center;gap:4px;${dim}">Join mode:<select data-json-trace-join-mode style="padding:2px 4px;font-size:12px;background:#1a2840;color:#d7e6ff;border:1px solid #2a3f5f;border-radius:4px;" ${on ? '' : 'disabled'}><option value="unique" ${mode === 'unique' ? 'selected' : ''}>All unique values</option><option value="first" ${mode === 'first' ? 'selected' : ''}>First value only</option><option value="all" ${mode === 'all' ? 'selected' : ''}>All values (incl. duplicates)</option></select></label><span style="color:#6b8aad;font-size:11px;">${on ? 'Unique values joined → written into &lt;DTXR_POS&gt; / &lt;DTXR_PS&gt;' : 'OFF — each DTXR row matched individually'}</span></div>`;
 }
+function dashboardScopeControls(options = {}) { const opts = normalizeTraceScopeOptions(options); return `<div class="json-trace-scope-controls"><b>Trace Scope:</b>${SCOPE_OPTIONS.map(([key, label]) => `<label class="json-trace-check"><input type="checkbox" data-json-trace-scope-option="${esc(key)}" ${opts[key] ? 'checked' : ''}> ${esc(label)}</label>`).join('')}</div>`; }
+function dashboardDelimiterControls(current) {
+  const on = current.useDelimiter === true, delim = esc(current.delimiter || '|'), mode = current.joinMode || 'unique';
+  return `<div class="json-trace-join-bar"><div class="json-trace-join-title">DTXR Value Joining</div><label class="json-trace-switch"><input type="checkbox" data-json-trace-use-delimiter ${on ? 'checked' : ''}><span></span></label><span class="json-trace-switch-label">Use delimiter joining</span><label class="json-trace-inline-field ${on ? '' : 'is-disabled'}">Delimiter:<input type="text" data-json-trace-delimiter value="${delim}" maxlength="8" ${on ? '' : 'disabled'}></label><label class="json-trace-inline-field json-trace-join-mode ${on ? '' : 'is-disabled'}">Join mode:<select data-json-trace-join-mode ${on ? '' : 'disabled'}><option value="unique" ${mode === 'unique' ? 'selected' : ''}>All unique values</option><option value="first" ${mode === 'first' ? 'selected' : ''}>First value only</option><option value="all" ${mode === 'all' ? 'selected' : ''}>All values (incl. duplicates)</option></select></label></div><div class="json-trace-join-note">Default OFF - each DTXR_POS/PS row is matched individually. When ON, all unique values for each position group are pipe-joined into one string.</div>`;
+}
 function jsonTraceRows(traceRows) {
   const mapped = traceRows.map((row, index) => ({
     jsonNodeNo: row.jsonNodeNo || row._jsonNodeNo || index + 1,
@@ -170,6 +175,52 @@ function evidenceForXmlRow(xmlRow, scopedIndex, fullIndex) {
   return rows.find((row) => /^DTXR_/.test(evidenceScope(row))) || rows[0] || {};
 }
 function evidenceValue(row = {}) { return valueText(row.finalValue || row.sourceRawValue || row.value || row.sourceAttributeValue); }
+function diagnosticToken(row = {}) {
+  if (Array.isArray(row.tags) && row.tags.length) return row.tags.map(text).filter(Boolean).join('|');
+  return text(row.matchedKey || row.tags || row.matchedToken);
+}
+function xmlTraceNodeKey(row = {}) { return `${text(row.xmlBranch || row.branchName)}|${text(row.xmlNode || row.nodeNumber)}`; }
+function xmlTraceFinalTreeRows(xmlRows = []) {
+  const positionByNode = new Map();
+  for (const row of xmlRows || []) {
+    if (text(row.field) !== 'dtxr-pos') continue;
+    const position = text(row.position || row.matchedKey);
+    if (position) positionByNode.set(xmlTraceNodeKey(row), position);
+  }
+  const out = [], seen = new Set();
+  const pushUnique = (row) => {
+    const key = [row.xmlTraceScope, row.branchName, row.nodeNumber, row.matchedToken, row.position, row.finalValue].map(text).join('\u0001');
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(row);
+  };
+  for (const row of xmlRows || []) {
+    const field = text(row.field), finalValue = text(row.finalValue);
+    if (!finalValue) continue;
+    const common = {
+      branchName: row.xmlBranch || row.branchName || '',
+      nodeNumber: row.xmlNode || row.nodeNumber || '',
+      jsonNodeNo: row.jsonNodeNo || '',
+      sourceObjectType: row.componentType || 'XML',
+      sourcePath: row.jsonPath || '',
+      status: row.status || '',
+      matchMethod: row.basis || '',
+      sourceRawValue: finalValue,
+      finalValue,
+    };
+    if (field === 'dtxr-pos') {
+      pushUnique({ ...common, xmlTraceScope: 'DTXR_POS_FINAL_VALUE', field: 'Final DTXR_POS', position: row.position || row.matchedKey || '', matchedText: row.position || row.matchedKey || '' });
+    }
+    if (field === 'dtxr-ps') {
+      const token = text(row.matchedToken || row.matchedKey) || `node-${common.nodeNumber || 'unknown'}`;
+      pushUnique({ ...common, xmlTraceScope: 'DTXR_PS_FINAL_VALUE', field: 'Final DTXR_PS', matchedToken: token, xmlTraceGroupKey: token, xmlTraceGroupLabel: `PS=${token}`, xmlTraceGroupResolved: true });
+      const position = positionByNode.get(xmlTraceNodeKey(row));
+      if (position) pushUnique({ ...common, xmlTraceScope: 'DTXR_POS_FINAL_VALUE', field: 'Final DTXR_PS via POS', position, matchedText: position });
+    }
+  }
+  return out;
+}
+function traceRowsForTree(current) { return [...activeTraceRows(current), ...xmlTraceFinalTreeRows(current?.xmlTraceRows || [])]; }
 function crossLinkJsonNodeNo(xmlRows, traceRows) {
   const index = traceEvidenceIndex(traceRows);
   for (const row of xmlRows) row.jsonNodeNo = String(evidenceForXmlRow(row, index, new Map())?.jsonNodeNo || row.jsonNodeNo || '');
@@ -178,15 +229,92 @@ function enrichXmlTraceRows(xmlRows, current) {
   const scoped = traceEvidenceIndex(current.scopedTrace || []), full = traceEvidenceIndex(current.fullTrace || current.trace || []);
   return xmlRows.map((row) => {
     const evidence = evidenceForXmlRow(row, scoped, full) || {};
-    const matchType = evidence.xmlTraceScope || '', eVal = evidenceValue(evidence);
-    const dtxrPosValue = /^DTXR_POS/.test(matchType) ? eVal : '';
-    const dtxrPsValue = /^DTXR_PS/.test(matchType) ? eVal : '';
-    return { ...row, dtxrPosValue, dtxrPsValue, xmlBranch: row.branchName || evidence.xmlBranchKey || evidence.branchName || '', matchType, matchedToken: evidence.matchedToken || evidence.matchedText || '', stagedBranch: evidence.branchName || evidence.stagedBranchKey || '', stagedEvidence: eVal };
+    const field = text(row.field || row.type), evidenceMatchType = evidence.xmlTraceScope || '', eVal = evidenceValue(evidence), rowFinal = valueText(row.finalValue);
+    const dtxrPosValue = (field === 'dtxr-pos' ? rowFinal : text(row.dtxrPosValue)) || (/^DTXR_POS/.test(evidenceMatchType) ? eVal : '');
+    const dtxrPsValue = (field === 'dtxr-ps' ? rowFinal : text(row.dtxrPsValue)) || (/^DTXR_PS/.test(evidenceMatchType) ? eVal : '');
+    const matchType = field === 'dtxr-ps' && dtxrPsValue && !/^DTXR_PS/.test(evidenceMatchType)
+      ? (evidenceMatchType ? `DTXR_PS_FINAL_VALUE via ${evidenceMatchType}` : 'DTXR_PS_FINAL_VALUE')
+      : evidenceMatchType;
+    return { ...row, dtxrPosValue, dtxrPsValue, xmlBranch: row.xmlBranch || row.branchName || evidence.xmlBranchKey || evidence.branchName || '', matchType, matchedToken: evidence.matchedToken || evidence.matchedText || row.matchedToken || row.matchedKey || '', stagedBranch: evidence.branchName || evidence.stagedBranchKey || '', stagedEvidence: eVal };
   });
 }
 function xmlTraceRowsFromDiagnostics(rows) {
   const wanted = new Set(['dtxr-pos', 'dtxr-ps', 'support-match', 'dtxr-pos-sif-zero']);
-  return (Array.isArray(rows) ? rows : []).filter((row) => wanted.has(text(row.type)) || /^sideload-restraint/.test(text(row.type))).map((row) => ({ xmlNode: row.nodeNumber || '', xmlBranch: row.branchName || '', componentType: row.componentType || '', jsonNodeNo: row.jsonNodeNo || '', jsonPath: row.sourcePath || '', field: row.type || '', matchType: '', matchedToken: '', stagedBranch: '', stagedEvidence: '', basis: basisForDiagnostic(row), oldValue: row.oldValue || '', finalValue: row.finalValue || row.message || row.kind || '', status: row.status || 'applied', detail: row.message || row.kind || row.tags || '' }));
+  return (Array.isArray(rows) ? rows : []).filter((row) => wanted.has(text(row.type)) || /^sideload-restraint/.test(text(row.type))).map((row) => ({ xmlNode: row.nodeNumber || '', xmlBranch: row.branchName || '', componentType: row.componentType || '', jsonNodeNo: row.jsonNodeNo || '', jsonPath: row.sourcePath || '', field: row.type || '', matchType: '', matchedToken: diagnosticToken(row), matchedKey: row.matchedKey || '', position: row.position || '', stagedBranch: '', stagedEvidence: '', basis: basisForDiagnostic(row), oldValue: row.oldValue || '', finalValue: row.finalValue || row.message || row.kind || '', dtxrPosValue: text(row.type) === 'dtxr-pos' ? row.finalValue || '' : '', dtxrPsValue: text(row.type) === 'dtxr-ps' ? row.finalValue || '' : '', status: row.status || 'applied', detail: row.message || row.kind || row.tags || '' }));
+}
+function compactBranch(value) {
+  const raw = text(value);
+  if (raw.length <= 18) return raw;
+  const tail = raw.match(/\/B\d+$/i)?.[0] || raw.slice(-4);
+  return `${raw.slice(0, 6)}...${tail}`;
+}
+function dashboardSourceDrawer(current, services) {
+  const preview = previewText(current.stagedJsonText), useSource = services?.useJsonTraceSource === true || current.useAsSource === true, sourceName = current.sourceFileName ? ` from ${current.sourceFileName}` : '';
+  const hint = preview.truncated ? `Previewing first ${preview.visibleLines} of ${preview.totalLines} lines${sourceName}. Full JSON is retained for trace and conversion.` : `Previewing ${preview.totalLines} line${preview.totalLines === 1 ? '' : 's'}${sourceName}.`;
+  const open = text(current.stagedJsonText) || current.trace.length || current.fullTrace.length ? '' : ' open';
+  return `<details class="json-trace-source-drawer"${open}><summary>Staged JSON source</summary><div class="json-trace-source-actions"><label class="model-converters-download-btn json-trace-source-button">${importIcon()}<span>Import staged JSON</span><input type="file" accept=".json,.JSON" data-json-trace-file hidden></label><button type="button" class="model-converters-run-btn json-trace-source-button" data-json-trace-parse>Parse XML-scoped JsonNode Trace</button><button type="button" class="model-converters-download-btn json-trace-source-button" data-json-trace-export-csv>Export trace CSV</button><label class="json-trace-check" title="Use this imported JSON Trace source for Preview, Diagnostics, Weight Match, and Run."><input type="checkbox" data-json-trace-use-source ${useSource ? 'checked' : ''}> Use JSON Trace staged source</label></div>${dashboardScopeControls(current.traceScopeOptions)}<textarea class="json-trace-source-text" data-json-trace-text ${preview.truncated ? 'readonly' : ''} data-json-trace-preview-only="${preview.truncated ? 'true' : 'false'}" spellcheck="false" placeholder="Paste staged JSON here or import a file">${esc(preview.text)}</textarea><div class="json-trace-muted">${esc(hint)}</div>${current.storageWarning ? `<div class="json-trace-warning">${esc(current.storageWarning)}</div>` : ''}</details>`;
+}
+function dashboardTreeLeaf(row) {
+  const node = row.nodeNumber ? ` node ${row.nodeNumber}` : '';
+  const pos = row.positionLabel ? ` [${row.positionLabel}]` : '';
+  return `<li><code>#${esc(row.jsonNodeNo)}</code> ${esc(row.objectType)}${esc(node)}${esc(pos)} - ${esc(row.field)}: ${esc(row.value)}</li>`;
+}
+function isPositionLeaf(row) {
+  const fieldText = text(`${row.field || ''} ${row.sourcePath || ''}`).toUpperCase();
+  return /(^|[^A-Z])(POS|APOS|LPOS|BPOS|HPOS|TPOS|SPOS|EPOS|POSITION)([^A-Z]|$)/.test(fieldText);
+}
+function dashboardGroupValue(group, current) {
+  const values = [...new Set(group.rows.filter((row) => !isPositionLeaf(row)).map((row) => text(row.dtxrValue || row.value)).filter(Boolean))];
+  if (!values.length) return group.concatValue || '';
+  if (current?.useDelimiter !== true) return values[0] || '';
+  if (current?.joinMode === 'first') return values[0] || '';
+  return values.join(current?.delimiter || '|');
+}
+function dashboardTreeGroup(group, bucketLabel, current) {
+  const more = group.truncated ? `<li>${group.truncated} more row(s)</li>` : '';
+  const xmlTag = bucketLabel === 'DTXR-POS' ? 'DTXR_POS' : bucketLabel === 'DTXR-PS' ? 'DTXR_PS' : '';
+  const tag = xmlTag ? ` <span class="json-trace-tag ${bucketLabel === 'DTXR-POS' ? 'is-pos' : 'is-ps'}">=&gt; &lt;${xmlTag}&gt;</span>` : '';
+  const value = dashboardGroupValue(group, current);
+  const resolved = group.resolved && value ? ` <span class="json-trace-value">-&gt; "${esc(value)}"</span>${tag}` : '';
+  return `<details class="json-trace-tree-group"><summary>${esc(group.label)} <span class="json-trace-count">[${group.count} row${group.count === 1 ? '' : 's'}]</span>${resolved}</summary><ul>${group.rows.map(dashboardTreeLeaf).join('')}${more}</ul></details>`;
+}
+function dashboardTreeBucket(bucket, current) {
+  return `<details class="json-trace-tree-bucket" open><summary>${esc(bucket.label.replace('-', '_'))} <span class="json-trace-count">(${bucket.groupCount} group${bucket.groupCount === 1 ? '' : 's'})</span></summary>${bucket.groups.map((group) => dashboardTreeGroup(group, bucket.label, current)).join('')}</details>`;
+}
+function dashboardTreeBranch(branch, index, current) {
+  return `<details class="json-trace-tree-branch" ${index < 3 ? 'open' : ''}><summary>${esc(branch.branchName)} <span class="json-trace-count">(${branch.count})</span></summary>${branch.buckets.map((bucket) => dashboardTreeBucket(bucket, current)).join('')}</details>`;
+}
+function dashboardTreePanel(traceRows, current) {
+  const delimiterOpts = { useDelimiter: current?.useDelimiter === true, delimiter: current?.delimiter || '|', joinMode: current?.joinMode || 'unique' };
+  const tree = buildJsonTraceTree(traceRows, { rowLimit: 12, groupLimit: 120, ...delimiterOpts }), branches = tree.branches.slice(0, 80);
+  const title = current.traceScopeSummary ? 'XML-scoped JsonNode Trace' : 'JsonNode Trace';
+  if (!branches.length) return `<div class="json-trace-tree-card"><div class="json-trace-card-title">${title}</div><div class="json-trace-empty">Import and parse staged JSON to show the trace tree.</div></div>`;
+  const more = tree.branches.length > branches.length ? `<div class="json-trace-muted">Tree limited to first ${branches.length} of ${tree.branches.length} branches.</div>` : '';
+  return `<div data-json-trace-tree class="json-trace-tree-card"><div class="json-trace-card-title">${title}</div><div class="json-trace-tree">${branches.map((branch, index) => dashboardTreeBranch(branch, index, current)).join('')}${more}</div></div>`;
+}
+function dashboardXmlTraceTable(current) {
+  const rows = (current.xmlTraceRows || []).slice(0, TRACE_RENDER_LIMIT);
+  if (!rows.length) return `<div class="json-trace-table-wrap"><div class="json-trace-empty">Build XML node trace after importing JSON and loading XML.</div></div>`;
+  const cells = (row) => [
+    esc(row.xmlNode),
+    `<span title="${esc(row.xmlBranch)}">${esc(compactBranch(row.xmlBranch))}</span>`,
+    esc(row.componentType),
+    esc(row.jsonNodeNo),
+    esc(row.matchType),
+    esc(row.dtxrPosValue),
+    esc(row.dtxrPsValue),
+    esc(row.oldValue),
+    esc(row.finalValue),
+    `<span class="json-trace-status ${/applied/i.test(row.status || '') ? 'is-applied' : ''}">${esc(row.status || '')}</span>`,
+  ];
+  const heads = ['XML Node', 'XML Branch', 'Type', 'JsonNodeNo', 'Match Type', 'DTXR_POS Value', 'DTXR_PS Value', 'Old Value', 'Final Value', 'Status'];
+  return `<div class="json-trace-table-wrap"><table class="json-trace-table" data-xml-trace-table><thead><tr>${heads.map((head) => `<th>${esc(head)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${cells(row).map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function dashboardPanel(current, services) {
+  const traceRows = activeTraceRows(current), treeRows = traceRowsForTree(current), sourceDrawer = dashboardSourceDrawer(current, services);
+  const sourceTop = text(current.stagedJsonText) || traceRows.length ? '' : sourceDrawer;
+  const sourceBottom = sourceTop ? '' : sourceDrawer;
+  return `<div class="json-trace-dashboard"><div class="json-trace-page-title">Import tab</div>${dashboardDelimiterControls(current)}${sourceTop}<div class="json-trace-section-head"><div class="json-trace-section-title">JsonNode Trace tree</div><button type="button" class="json-trace-ghost-btn" data-json-trace-export-tree>Export tree JSON</button></div>${dashboardTreePanel(treeRows, current)}<div class="json-trace-section-head"><div class="json-trace-section-title">XML Node Wise Trace table</div><div class="json-trace-section-actions"><button type="button" class="json-trace-ghost-btn" data-json-trace-build-xml>Build XML node trace</button><button type="button" class="json-trace-ghost-btn" data-json-trace-export-xml>Export JSON</button><span class="json-trace-muted">${esc(current.xmlTraceStatus || '')}</span></div></div>${dashboardXmlTraceTable(current)}${sourceBottom}</div>`;
 }
 function importPanel(current, services) {
   const preview = previewText(current.stagedJsonText), useSource = services?.useJsonTraceSource === true || current.useAsSource === true, sourceName = current.sourceFileName ? ` from ${current.sourceFileName}` : '';
@@ -198,7 +326,7 @@ function jsonNodePanel(current) {
   const displayTrace = activeTraceRows(current), { rows, total } = jsonTraceRows(displayTrace), countLabel = scopeSummaryText(current, total);
   const cols = [{ key: 'jsonNodeNo', label: 'JsonNodeNo' }, { key: 'matchType', label: 'Match Type' }, { key: 'matchedToken', label: 'Matched Token/Text' }, { key: 'jsonPath', label: 'JSON Path' }, { key: 'objectType', label: 'Type' }, { key: 'branchName', label: 'Branch' }, { key: 'nodeNumber', label: 'Node' }, { key: 'field', label: 'Field' }, { key: 'sourceAttribute', label: 'Source Attr' }, { key: 'finalValue', label: 'Value' }, { key: 'basis', label: 'Basis' }, { key: 'status', label: 'Status' }];
   const title = current.traceScopeSummary ? 'XML-scoped JsonNode Trace' : 'JsonNode Trace';
-  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">${title}</div><div class="model-converters-workflow-detail-text">Parsed staged JSON facts filtered by uploaded XML BranchName, DTXR_POS, DTXR_PS, and delimited PS support tags when XML is available.</div><div class="xml-cii-native-toolbar" style="margin-bottom:4px;"><button type="button" class="model-converters-download-btn" data-json-trace-export-tree>Export tree JSON</button></div>${jsonTraceTree(displayTrace, current)}${filterBar('data-json-trace-filter', 'data-json-trace-count')}${compactTable(cols, rows, 'Import and parse staged JSON to show JsonNode trace rows.', 'data-json-trace-table', countLabel)}</section>`;
+  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-title">${title}</div><div class="model-converters-workflow-detail-text">Parsed staged JSON facts filtered by uploaded XML BranchName, DTXR_POS, DTXR_PS, and delimited PS support tags when XML is available.</div><div class="xml-cii-native-toolbar" style="margin-bottom:4px;"><button type="button" class="model-converters-download-btn" data-json-trace-export-tree>Export tree JSON</button></div>${jsonTraceTree(traceRowsForTree(current), current)}${filterBar('data-json-trace-filter', 'data-json-trace-count')}${compactTable(cols, rows, 'Import and parse staged JSON to show JsonNode trace rows.', 'data-json-trace-table', countLabel)}</section>`;
 }
 function xmlNodePanel(current) {
   const allRows = current.xmlTraceRows || [], displayRows = allRows.slice(0, TRACE_RENDER_LIMIT), countLabel = allRows.length > TRACE_RENDER_LIMIT ? `Showing first ${TRACE_RENDER_LIMIT} of ${allRows.length} rows. Use the filter below to find specific values.` : `${allRows.length} row${allRows.length !== 1 ? 's' : ''}`;
@@ -208,7 +336,7 @@ function xmlNodePanel(current) {
 function activePanel(current, services) { if (current.active === 'json-node-trace') return jsonNodePanel(current); if (current.active === 'xml-node-trace') return xmlNodePanel(current); return importPanel(current, services); }
 export function renderXmlCiiJsonTracePanel(services) {
   const current = state();
-  return `<div class="xml-cii-native-phase-head"><div><div class="model-converters-workflow-detail-title">JSON Trace</div><div class="model-converters-workflow-detail-text">Audit how staged JSON enriches DTXR, restraints, gaps, SIF, and node attributes.</div></div></div><section class="xml-cii-native-card"><div class="xml-cii-native-master-tabs">${TABS.map(([id, label]) => `<button type="button" class="xml-cii-native-master-tab ${current.active === id ? 'is-active' : ''}" data-json-trace-tab="${id}"><span>${label}</span></button>`).join('')}</div></section>${activePanel(current, services || {})}`;
+  return dashboardPanel(current, services || {});
 }
 function collect(root) { const current = state(), textarea = root.querySelector('[data-json-trace-text]'); if (textarea && textarea.dataset.jsonTracePreviewOnly !== 'true') current.stagedJsonText = textarea.value; save(current); return current; }
 async function currentXmlText(services) { const supplied = text(await services?.getCurrentXmlText?.()); if (supplied) return supplied; try { const doc = typeof document === 'undefined' ? null : document; const file = doc?.querySelector?.('#model-converters-primary-input')?.files?.[0]; return text(await file?.text?.()); } catch { return ''; } }
@@ -247,7 +375,7 @@ export function bindXmlCiiJsonTracePanel(body, services) {
   body.querySelector('[data-json-trace-parse]')?.addEventListener('click', () => parse(body, services));
   body.querySelectorAll('[data-json-trace-scope-option]').forEach((box) => box.addEventListener('change', async () => { const current = collect(body); current.traceScopeOptions = normalizeTraceScopeOptions({ ...current.traceScopeOptions, [box.dataset.jsonTraceScopeOption]: box.checked }); await applyXmlScope(current, services); save(current); rerender(body, services); }));
   body.querySelector('[data-json-trace-export-csv]')?.addEventListener('click', () => downloadText('xml_cii_json_node_trace.csv', stagedTraceToCsv(activeTraceRows(state())), 'text/csv'));
-  body.querySelector('[data-json-trace-export-tree]')?.addEventListener('click', () => { const cur = state(), delimiterOpts = { useDelimiter: cur.useDelimiter === true, delimiter: cur.delimiter || '|', joinMode: cur.joinMode || 'unique' }; const tree = buildJsonTraceTree(activeTraceRows(cur), { rowLimit: 999, groupLimit: 999, ...delimiterOpts }); downloadText('xml_cii_json_trace_tree.json', JSON.stringify(tree, null, 2), 'application/json'); });
+  body.querySelector('[data-json-trace-export-tree]')?.addEventListener('click', () => { const cur = state(), delimiterOpts = { useDelimiter: cur.useDelimiter === true, delimiter: cur.delimiter || '|', joinMode: cur.joinMode || 'unique' }; const tree = buildJsonTraceTree(traceRowsForTree(cur), { rowLimit: 999, groupLimit: 999, ...delimiterOpts }); downloadText('xml_cii_json_trace_tree.json', JSON.stringify(tree, null, 2), 'application/json'); });
   body.querySelector('[data-json-trace-export-xml]')?.addEventListener('click', () => downloadText('xml_cii_xml_node_trace.json', JSON.stringify(state().xmlTraceRows || [], null, 2), 'application/json'));
   body.querySelector('[data-json-trace-use-source]')?.addEventListener('change', (event) => { const enabled = !!event.target.checked, current = collect(body); current.useAsSource = enabled; save(current); services?.setUseJsonTraceSource?.(enabled); /* outer popup RAF re-renders with updated config; no inner rerender() to avoid double-write */ });
   body.querySelector('[data-json-trace-use-delimiter]')?.addEventListener('change', (event) => { const current = collect(body); current.useDelimiter = !!event.target.checked; save(current); rerender(body, services); });

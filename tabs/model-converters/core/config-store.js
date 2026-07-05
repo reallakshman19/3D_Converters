@@ -19,6 +19,12 @@ function _migrateXmlCiiSupportConfigJson(rawJson) {
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return text;
     parsed.supportKindToXmlType = _normalizeXmlCiiSupportKindToTypeConfig(parsed.supportKindToXmlType);
+    if (parsed._xmlCiiDefaultTrueFlagsMigrated20260705 !== true) {
+      parsed.disableCiiSupportTagPopulation = true;
+      parsed.splitCondensedValveFlange = true;
+      parsed.split_condensed_valve_flange = true;
+      parsed._xmlCiiDefaultTrueFlagsMigrated20260705 = true;
+    }
     return JSON.stringify(parsed, null, 2);
   } catch {
     return text;

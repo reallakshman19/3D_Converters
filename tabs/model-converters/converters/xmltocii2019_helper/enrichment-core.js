@@ -7,6 +7,7 @@ import {
   prepareXmlCiiMasterContext,
 } from '../../../../converters/xml-cii2019-core/master-context.js';
 import { deriveLineKeyFromBranchName } from '../../../../converters/xml-cii2019-core/regex-line-key.js';
+import { normalizeLineListRow } from '../../../../converters/xml-cii2019-core/linelist-mapping.js';
 import { buildPipingClassIndex } from '../../../../converters/xml-cii2019-core/piping-class-resolver.js';
 import { resolveBranchProcessData } from '../../../../converters/xml-cii2019-core/branch-process-resolver.js';
 import { buildStagedDtxrIndex, resolveXmlCiiNodeDtxr } from '../../../../converters/xml-cii2019-core/dtxr-resolver.js';
@@ -373,10 +374,11 @@ export function xmlCiiFindLineListRow(branchLineKey, config) {
   const lookupKey = xmlCiiNormalizeLineKey(branchLineKey);
   const columnRegex = config.linelist?.linelistColumnRegex || '';
   const columnGroup = config.linelist?.linelistColumnGroup || 1;
-  for (const row of rows) {
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
     const rawKey = rowText(row, ['lineNo', 'lineKey', 'LineNo', 'Line No', 'PipelineReference']);
     const cleanKey = xmlCiiNormalizeLineKey(xmlCiiLineKeyRegexValue(rawKey, columnRegex, columnGroup));
-    if (cleanKey && cleanKey === lookupKey) return row;
+    if (cleanKey && cleanKey === lookupKey) return normalizeLineListRow(row, config.linelist?.fieldMap || {}, index);
   }
   return null;
 }
@@ -665,12 +667,12 @@ export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = 
     const tagMatches = supportTags.flatMap((tag) => stagedSupportIndex.byTag.get(tag) || []);
     const relaxedTagMatches = tagMatches.length ? [] : relaxedSameDtxrPosSupportMatches(supportTags, coordMatches);
     
-    const stagedMatches = tagMatches.length > 0
-      ? mergeUniqueSupportMatches(tagMatches, coordMatches)
-      : (relaxedTagMatches.length > 0 ? relaxedTagMatches : coordMatches);
-    const supportMatchMethod = tagMatches.length > 0
-      ? (coordMatches.length > 0 ? 'ps-tag+coordinate-cluster' : 'ps-tag')
-      : (relaxedTagMatches.length > 0 ? 'ps-tag-relaxed-same-dtxr-pos' : 'coordinate-multi');
+    const stagedMatches = coordMatches.length > 0
+      ? coordMatches
+      : (tagMatches.length > 0 ? tagMatches : relaxedTagMatches);
+    const supportMatchMethod = coordMatches.length > 0
+      ? 'dtxr-pos-coordinate'
+      : (tagMatches.length > 0 ? 'dtxr-ps-tag-fallback' : (relaxedTagMatches.length > 0 ? 'dtxr-ps-tag-relaxed-fallback' : 'unmatched'));
     const staged = stagedMatches[0] || null;
     const restraints = xmlChildrenByName(node, 'Restraint');
     const combinedTypes = dedupeXmlCiiRestraintEntries(stagedMatches.flatMap(m => xmlCiiRestraintEntriesFromSupportMatch(m, node, config)));
@@ -700,7 +702,7 @@ export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = 
     if (staged) {
       const allKinds = Array.from(new Set(stagedMatches.map(m => m.kind).filter(Boolean)));
       const xmlTypes = restraints.map((r) => xmlText(r, 'Type')).filter(Boolean).join('+');
-      diagnostics.push({ type: 'support-match', nodeNumber: xmlText(node, 'NodeNumber'), nodeName: xmlText(node, 'NodeName'), componentType, method: supportMatchMethod, matchedBy: supportMatchMethod, matchedKey: supportTags.join('|') || positionKey, kind: allKinds.join('+'), xmlRestraintTypes: xmlTypes, restraintTypes: combinedTypes.join('+'), finalValue: combinedTypes.join('+'), stagedName: staged.component?.name || staged.attrs?.NAME || '', tags: supportTags, status: 'applied' });
+      diagnostics.push({ type: 'support-match', nodeNumber: xmlText(node, 'NodeNumber'), nodeName: xmlText(node, 'NodeName'), componentType, method: supportMatchMethod, matchedBy: supportMatchMethod, matchedKey: coordMatches.length > 0 ? positionKey : supportTags.join('|'), kind: allKinds.join('+'), xmlRestraintTypes: xmlTypes, restraintTypes: combinedTypes.join('+'), finalValue: combinedTypes.join('+'), stagedName: staged.component?.name || staged.attrs?.NAME || '', tags: supportTags, status: 'applied' });
     }
 
     let targetEntries = [];

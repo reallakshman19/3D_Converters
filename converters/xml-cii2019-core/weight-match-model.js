@@ -241,6 +241,24 @@ export function xmlCiiRigidWeightOverrideKey(branchName, nodeNumber) {
   return `${toText(branchName).trim()}::${toText(nodeNumber).trim()}`;
 }
 
+function xmlCiiWeightReviewNodeFallbackId(node, nodeIdx) {
+  const parts = [
+    xmlText(node, 'ComponentRefNo'),
+    xmlText(node, 'Endpoint'),
+    xmlText(node, 'Position'),
+    xmlText(node, 'ComponentType'),
+  ].map((part) => toText(part).trim()).filter(Boolean);
+  if (parts.length) return parts.join('|');
+  return Number.isFinite(Number(nodeIdx)) ? `node-index-${Number(nodeIdx) + 1}` : '';
+}
+
+export function xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx) {
+  const nodeNumber = xmlText(node, 'NodeNumber');
+  if (Number(nodeNumber) > 0) return xmlCiiRigidWeightOverrideKey(branchName, nodeNumber);
+  const fallbackId = xmlCiiWeightReviewNodeFallbackId(node, nodeIdx);
+  return fallbackId ? xmlCiiRigidWeightOverrideKey(branchName, fallbackId) : xmlCiiRigidWeightOverrideKey(branchName, nodeNumber);
+}
+
 export function isXmlCiiRigidNode(node) {
   return xmlText(node, 'ComponentType').toUpperCase() === 'RIGID' || Number(xmlText(node, 'Rigid')) === 2;
 }
@@ -288,12 +306,22 @@ function resolveWeightDtxr(node, dtxrContext, config) {
   return resolveDtxrForXmlNode({ xmlNode: node, context: dtxrContext, purpose: 'weight-review', config, trustExistingXmlDtxr: false });
 }
 
-export function xmlCiiRigidWeightOverrideForNode(branchName, node, config) {
+function xmlCiiRigidWeightOverrideKeysForNode(branchName, node, nodeIdx) {
   const nodeNumber = xmlText(node, 'NodeNumber');
+  return [
+    xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx),
+    xmlCiiRigidWeightOverrideKey(branchName, nodeNumber),
+    nodeNumber,
+  ].filter((key, index, keys) => toText(key).trim() && keys.indexOf(key) === index);
+}
+
+export function xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx) {
   const overrides = config?.overrides?.rigidWeight || {};
-  const raw = overrides[xmlCiiRigidWeightOverrideKey(branchName, nodeNumber)] ?? overrides[nodeNumber];
-  const numeric = xmlCiiNumberText(raw);
-  return numeric !== null && numeric > 0 ? numeric : null;
+  for (const key of xmlCiiRigidWeightOverrideKeysForNode(branchName, node, nodeIdx)) {
+    const numeric = xmlCiiNumberText(overrides[key]);
+    if (numeric !== null && numeric > 0) return numeric;
+  }
+  return null;
 }
 
 export function xmlCiiForwardElementLengths(nodes) {
@@ -450,7 +478,6 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
     const forwardLengths = xmlCiiForwardElementLengths(branchNodeList);
     branchNodeList.forEach((node, nodeIdx) => {
       const nodeNumber = xmlText(node, 'NodeNumber');
-      if (Number(nodeNumber) <= 0) return;
       const dtxrResult = resolveWeightDtxr(node, dtxrContext, config);
       const dtxrText = dtxrResult?.suppressed ? '' : toText(dtxrResult?.canonicalText);
       const dtxrSourcePath = dtxrResult?._sourcePath || '';
@@ -461,7 +488,7 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       const explicitLength = xmlText(node, 'ElementLengthMm') ? xmlCiiNumberText(xmlText(node, 'ElementLengthMm')) : null;
       const lengthMm = explicitLength !== null ? explicitLength : forwardLengths[nodeIdx];
       const weight = xmlCiiNumberText(xmlText(node, 'Weight'));
-      const overrideWeight = xmlCiiRigidWeightOverrideForNode(branchName, node, config);
+      const overrideWeight = xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);
       const mappedWeight = overrideWeight ?? weight;
       const isMapped = mappedWeight !== null && mappedWeight > 0;
       const reviewEndpoint = isXmlCiiWeightReviewEndpoint(node);
@@ -476,7 +503,7 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       if (boreMm === null) boreMm = branchContext.boreMm;
       const rating = ratingForRigidWeightIssue(node, branchContext, config);
       const ranking = rankXmlCiiWeightCandidates({ boreMm, rating, lengthMm, nodeName: xmlText(node, 'NodeName'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), dtxr: dtxrText }, config, { includeRejected: true });
-      rows.push({ key: xmlCiiRigidWeightOverrideKey(branchName, nodeNumber), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
+      rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
     });
   }
   return rows;
@@ -497,14 +524,14 @@ export function applyXmlCiiRigidWeightOverrides(xmlTextVal, weightsByKey) {
   const appliedRows = [];
   for (const branch of [...document.getElementsByTagName('Branch')]) {
     const branchName = xmlText(branch, 'Branchname');
-    for (const node of xmlChildrenByName(branch, 'Node')) {
+    xmlChildrenByName(branch, 'Node').forEach((node, nodeIdx) => {
       const nodeNumber = xmlText(node, 'NodeNumber');
-      const key = xmlCiiRigidWeightOverrideKey(branchName, nodeNumber);
-      const numeric = xmlCiiNumberText(weightsByKey?.[key]);
-      if (numeric === null || numeric <= 0) continue;
+      const keys = xmlCiiRigidWeightOverrideKeysForNode(branchName, node, nodeIdx);
+      const numeric = keys.map((key) => xmlCiiNumberText(weightsByKey?.[key])).find((value) => value !== null && value > 0) ?? null;
+      if (numeric === null || numeric <= 0) return;
       xmlSetText(document, node, 'Weight', String(numeric));
       appliedRows.push({ type: 'rigid-weight-manual-override', branchName, nodeNumber, weight: numeric });
-    }
+    });
   }
   return { xmlText: new XMLSerializer().serializeToString(document), appliedCount: appliedRows.length, appliedRows };
 }

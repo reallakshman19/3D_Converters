@@ -124,8 +124,8 @@ export const FIELD_RULES = {
 
   p1: {
     all: [
-      ['pressure', 'pr'],
-      ['max', 'design']
+      ['p1', 'pressure', 'pr'],
+      ['p1', 'max', 'design']
     ],
     reject: [
       /test\s*pressure/i,
@@ -143,8 +143,8 @@ export const FIELD_RULES = {
 
   t1: {
     all: [
-      ['temp', 'temperature'],
-      ['max', 'design']
+      ['t1', 'temp', 'temperature'],
+      ['t1', 'max', 'design']
     ],
     reject: [
       /min/i,
@@ -157,7 +157,7 @@ export const FIELD_RULES = {
 
   t2: {
     all: [
-      ['temp', 'temperature']
+      ['t2', 'temp', 'temperature']
     ],
     optional: [
       ['normal', 'operating']
@@ -174,8 +174,8 @@ export const FIELD_RULES = {
 
   t3: {
     all: [
-      ['temp', 'temperature'],
-      ['min']
+      ['t3', 'temp', 'temperature'],
+      ['t3', 'min']
     ],
     reject: [
       /max/i,
@@ -207,6 +207,21 @@ export const FIELD_RULES = {
     ],
     reject: [
       /insulation\s*type/i
+    ]
+  },
+
+  density: {
+    all: [
+      ['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']
+    ],
+    reject: [
+      /mixed/i,
+      /gas/i,
+      /liquid/i,
+      /\bliq\b/i,
+      /phase/i,
+      /pressure/i,
+      /temp/i
     ]
   },
 
@@ -266,11 +281,25 @@ export const DETECTION_ORDER = [
   't3',
   'hydroPressure',
   'insThk',
+  'density',
   'densityMixed',
   'densityGas',
   'densityLiquid',
   'phase'
 ];
+
+export const LINE_LIST_PROCESS_VALUE_ALIASES = Object.freeze({
+  p1: Object.freeze(['p1', 'P1', 'Pressure1', 'Design Pressure', 'Design Pres', 'DesignPressure', 'Pressure Design', 'Pressure Max kPa(g)', 'Pressure Max', 'PressureMax', 'P1 / Design Pressure', 'P1 / Design Pres', 'P1 Design Pressure', 'P1 Design Pres']),
+  hydroPressure: Object.freeze(['hydroPressure', 'HydroPressure', 'hydro_pressure', 'Hydro Test Pressure', 'Hydrotest Pressure', 'Hydro Pressure', 'Hydro Pr', 'Hyd Test Pr', 'Hyd. Test Pressure', 'Test Pressure', 'TEST_PRESSURE', 'HYDRO_TEST_PRESSURE', 'Pressure Test', 'Proof Pressure', 'Hydro/Test Pressure', 'Pressure2']),
+  t1: Object.freeze(['t1', 'T1', 'Temperature1', 'Design Temp', 'Design Temperature', 'Temp Max C', 'Temp Max', 'T1 (C)', 'T1 C']),
+  t2: Object.freeze(['t2', 'T2', 'Temperature2', 'Temperature 2', 'Operating Temp', 'Operating Temperature', 'Temp. C', 'Temp C', 'T2 (C)', 'T2 C']),
+  t3: Object.freeze(['t3', 'T3', 'Temperature3', 'Temperature 3', 'Temp Min C', 'Temp Min', 'Minimum Temp', 'Min Temp', 'T3 (C)', 'T3 C']),
+  density: Object.freeze(['density', 'Density', 'DENSITY', 'FluidDensity', 'Fluid Density', 'Density kg/m3', 'kg/m3']),
+  densityMixed: Object.freeze(['densityMixed', 'Density Mixed', 'Mixed Density', 'Mixed kg/m3', 'Density (Mixed)', 'Mixed']),
+  densityGas: Object.freeze(['densityGas', 'Density Gas', 'Gas Density', 'Gas kg/m3', 'Density (Gas)', 'Gas']),
+  densityLiquid: Object.freeze(['densityLiquid', 'Density Liquid', 'Liquid Density', 'Liquid kg/m3', 'Density (Liquid)', 'Liquid', 'Liq Density']),
+  phase: Object.freeze(['phase', 'Phase', 'PHASE', 'Fluid Phase', 'Medium Phase', 'Medium', 'State'])
+});
 
 export function canon(value) {
   return String(value ?? '')
@@ -291,8 +320,9 @@ export function clean(value) {
 export function readRowValue(row, keys) {
   if (!row || !keys) return '';
   for (const k of keys) {
-    if (k && row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
-      return String(row[k]).trim();
+    const value = k ? (row[k] ?? row._raw?.[k]) : '';
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return String(value).trim();
     }
   }
   return '';
@@ -345,6 +375,15 @@ export function rejectMatch(probe, rejects) {
   return rejects.some((rx) => rx.test(probe));
 }
 
+function directProcessHeaderMatch(field, probe) {
+  const text = canon(probe);
+  if (field === 'p1') return /\bp\s*1\b/.test(text) && /(pressure|pres|design|pr\b)/i.test(text);
+  if (field === 't1') return /\bt\s*1\b|\btemperature\s*1\b/i.test(text);
+  if (field === 't2') return /\bt\s*2\b|\btemperature\s*2\b/i.test(text);
+  if (field === 't3') return /\bt\s*3\b|\btemperature\s*3\b/i.test(text);
+  return false;
+}
+
 export function splitPipeSegments(value) {
   return String(value ?? '')
     .split(/\s*\|\s*/g)
@@ -367,6 +406,7 @@ export function isValidFieldMatch(field, probe, key) {
   if (!rule) return false;
 
   if (rejectMatch(probe, rule.reject || [])) return false;
+  if (directProcessHeaderMatch(field, probe)) return true;
   if (!groupsMatch(probe, rule.all || [])) return false;
 
   // If the rule requires a header match, the column key itself must satisfy
@@ -400,6 +440,7 @@ export function scoreField(field, key, rows) {
   if (groupsMatch(header, rule.all || []) && !rejectMatch(header, rule.reject || [])) {
     score += 90;
   }
+  if (directProcessHeaderMatch(field, key) || directProcessHeaderMatch(field, probe)) score += 120;
 
   // Small boost for each group hit in header.
   for (const group of rule.all || []) {
@@ -608,23 +649,17 @@ export function normalizeLineListRow(row, fieldMap, index) {
     material: cleanMaterialText(materialText),
     convertedBore: readRowValue(row, [fieldMap.convertedBore]),
 
-    p1: readRowValue(row, [fieldMap.p1]),
-    t1: readRowValue(row, [fieldMap.t1]),
-    t2: readRowValue(row, [fieldMap.t2]),
-    t3: readRowValue(row, [fieldMap.t3]),
-    hydroPressure: readRowValue(row, [
-      fieldMap.hydroPressure,
-      'hydroPressure', 'HydroPressure', 'hydro_pressure',
-      'Hydro Test Pressure', 'Hydrotest Pressure', 'Hydro Pressure',
-      'Hydro Pr', 'Hyd Test Pr', 'Hyd. Test Pressure',
-      'Test Pressure', 'TEST_PRESSURE', 'HYDRO_TEST_PRESSURE',
-      'Pressure Test', 'Proof Pressure', 'Hydro/Test Pressure', 'Pressure2'
-    ]),
+    p1: readRowValue(row, [fieldMap.p1, ...LINE_LIST_PROCESS_VALUE_ALIASES.p1]),
+    t1: readRowValue(row, [fieldMap.t1, ...LINE_LIST_PROCESS_VALUE_ALIASES.t1]),
+    t2: readRowValue(row, [fieldMap.t2, ...LINE_LIST_PROCESS_VALUE_ALIASES.t2]),
+    t3: readRowValue(row, [fieldMap.t3, ...LINE_LIST_PROCESS_VALUE_ALIASES.t3]),
+    hydroPressure: readRowValue(row, [fieldMap.hydroPressure, ...LINE_LIST_PROCESS_VALUE_ALIASES.hydroPressure]),
     insThk: readRowValue(row, [fieldMap.insThk]),
-    densityMixed: readRowValue(row, [fieldMap.densityMixed]),
-    densityGas: readRowValue(row, [fieldMap.densityGas]),
-    densityLiquid: readRowValue(row, [fieldMap.densityLiquid]),
-    phase: readRowValue(row, [fieldMap.phase])
+    density: readRowValue(row, [fieldMap.density, ...LINE_LIST_PROCESS_VALUE_ALIASES.density]),
+    densityMixed: readRowValue(row, [fieldMap.densityMixed, ...LINE_LIST_PROCESS_VALUE_ALIASES.densityMixed]),
+    densityGas: readRowValue(row, [fieldMap.densityGas, ...LINE_LIST_PROCESS_VALUE_ALIASES.densityGas]),
+    densityLiquid: readRowValue(row, [fieldMap.densityLiquid, ...LINE_LIST_PROCESS_VALUE_ALIASES.densityLiquid]),
+    phase: readRowValue(row, [fieldMap.phase, ...LINE_LIST_PROCESS_VALUE_ALIASES.phase])
   };
 
   const densityInfo = resolveLineListDensity(normalized, null);
