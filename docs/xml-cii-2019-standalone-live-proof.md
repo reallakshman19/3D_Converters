@@ -1,6 +1,45 @@
 # XML→CII 2019 Standalone Live Proof Checklist
 
-Mission: Issue #22 — Mission 04 live browser proof and switch-readiness decision.
+Mission: Issue #22 / Issue #24 — live browser proof and switch-readiness evidence capture.
+
+## Mission 05 evidence capture status
+
+Date: 2026-07-05
+
+Commit under test:
+
+```text
+5e2dd766775dd71bc0ee2404a56f2d0c9c56bb39
+```
+
+Evidence status:
+
+```text
+needs-more-proof
+```
+
+Reason: real browser/Pyodide execution evidence was not captured in this agent environment. The agent can update repository files and inspect GitHub state, but it cannot provide a reproducible manual browser run, screenshot, or real Pyodide execution record tied to the app UI. The required evidence must therefore be captured by an owner/operator in a browser session using the checklist below.
+
+This status is conservative and does not approve a controlled switch proposal.
+
+## Attempted evidence fields
+
+```text
+Browser/version: not captured in this agent environment
+App URL/local URL: not captured in this agent environment
+Commit SHA under test: 5e2dd766775dd71bc0ee2404a56f2d0c9c56bb39
+Standalone tab visible: not captured
+Model Converters tab visible: not captured
+Phase rail visible: not captured
+XML benchmark run result: not captured
+XML diagnostics branch: not captured
+XML output/log/diagnostics display evidence: not captured
+InputXML benchmark plus side-load run result: not captured
+InputXML diagnostics branch: not captured
+InputXML semantic enrichment evidence: not captured
+Warnings/errors: no app/browser runtime evidence captured
+Screenshot/evidence links: none
+```
 
 ## Proof method
 
@@ -119,7 +158,7 @@ Screenshot/evidence link:
 
 ## Switch-readiness decision
 
-Current conservative decision until this checklist is completed:
+Current conservative decision:
 
 ```text
 needs-more-proof

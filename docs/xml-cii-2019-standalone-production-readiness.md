@@ -26,26 +26,11 @@ The standalone workflow has both:
 
 The UI adapts the existing XML→CII 2019 workflow phase model. It is not a literal copy of the old popup implementation and does not import or execute the old Model Converters workflow runtime.
 
-The adapted phase sequence is:
-
-```text
-1 Regex
-2 Import Masters
-3 JSON Trace
-4 Preview
-5 Diagnostics
-5A Weight Match
-6 Run
-7 Support Types
-8 Config
-Custom Input
-```
-
 The old Model Converters workflow popup is unchanged. The standalone workflow can be called by other apps; it does not call other app workflows.
 
 ## InputXML UI coverage
 
-The standalone-only InputXML controls are available in the adapted phase UI, especially `Custom Input` and `3 JSON Trace`:
+The standalone-only InputXML controls are available in the adapted phase UI:
 
 ```text
 sourceKind: auto | xml | inputxml
@@ -58,7 +43,7 @@ fillSentinelFromLineContext
 normalizePressureCaseNames
 ```
 
-These controls map into the public `runXmlCii2019Workflow(job, runtime)` job shape through `buildXmlCiiWorkflowJobFromUiState(state)`.
+These controls map into the public `runXmlCii2019Workflow(job, runtime)` job shape.
 
 ## Programmatic call pattern
 
@@ -69,58 +54,6 @@ const result = await runXmlCii2019Workflow(job, runtime);
 ```
 
 `runtime.engineRunner` is optional. Tests can pass an explicit fake engine runner to avoid Pyodide. Browser use can omit it and allow the standalone compatibility engine to load.
-
-## XML example job
-
-```js
-const xmlJob = {
-  sourceKind: 'auto',
-  sourceName: 'psi116-basic-input.xml',
-  sourceText: '<PipeStressExport>...</PipeStressExport>',
-  supportConfigJson: '{}',
-  options: { outputMode: 'enriched-only' }
-};
-```
-
-Expected behavior:
-
-- `sourceKind: 'auto'` resolves to `xml` for `PipeStressExport`.
-- XML branch calls the compatibility engine boundary.
-- result `outputKind` is `enrichedXML`.
-- diagnostics include `branch: 'psi116-xml-compatibility-engine'`.
-
-## InputXML + side-load example job
-
-```js
-const inputXmlJob = {
-  sourceKind: 'inputxml',
-  sourceName: 'inputxml-side-load-input.xml',
-  sourceText: '<PIPINGELEMENT FROM_NODE="20" TO_NODE="30" />...',
-  elementSideLoadText: `ELEMENT 30-40
-LINE_ID=/ASIM-1836-6"-S8810010-91261M7-HC/B1
-DTXR_POS=Pipe Rest XRT01|PIPE SUPPORT TYPE-103|Directional Anchor On Shoe|GUIDE PDO-TYPE-603
-DTXR_PS=Pipe Rest XRT01|PIPE SUPPORT TYPE-103`,
-  supportConfigJson: '{}',
-  options: {
-    outputMode: 'both',
-    inputXmlOutputMode: 'full-document',
-    pointPropertiesBasis: 'TO',
-    inputXmlRestraintPolicy: 'replace-with-dtxr-derived-restraints',
-    fillSentinelFromLineContext: true,
-    normalizePressureCaseNames: true
-  }
-};
-```
-
-Expected behavior:
-
-- direct InputXML enrichment runs first.
-- `LINE_ID` is serialized safely as XML, including `6&quot;`.
-- `PipingClass` derives as `91261`.
-- `Rating` derives as `900`.
-- `Point_properties_basis` is `TO`.
-- existing node-40 `TYPE=17` restraint is replaced by `TYPE=14`, `TYPE=9`, and `TYPE=8`.
-- optional CII engine receives enriched InputXML with `options.outputMode: 'cii-only'`.
 
 ## Diagnostics contract
 
@@ -154,21 +87,25 @@ The harness intentionally does not click the old popup or invoke the production 
 
 ## Live proof and switch-readiness decision
 
-Mission 04 adds an automated smoke and repeatable manual live checklist:
+Mission 04 added automated smoke and a repeatable manual live checklist:
 
 ```bash
 node tests/xml-cii-standalone-live-smoke.test.js
 ```
 
-The smoke proves app-path registration/static wiring plus XML and InputXML standalone API evidence. It deliberately returns `needs-more-proof` until manual browser/Pyodide evidence is captured using `docs/xml-cii-2019-standalone-live-proof.md`.
+Mission 05 attempted evidence capture against the merged state, tied to commit:
 
-The conservative decision is:
+```text
+5e2dd766775dd71bc0ee2404a56f2d0c9c56bb39
+```
+
+Real browser/Pyodide evidence was not captured in the agent environment. The readiness decision therefore remains:
 
 ```text
 needs-more-proof
 ```
 
-This is not a production switch and not a switch approval.
+This is not a production switch, not a switch proposal, and not switch approval. See `docs/xml-cii-2019-standalone-live-proof.md` for the exact missing evidence fields.
 
 ## Production-readiness report
 
@@ -193,6 +130,7 @@ A successful report returns:
 
 - This phase does not switch the existing Model Converters XML→CII route.
 - Mission 04 automated smoke is not a real browser/Pyodide run.
+- Mission 05 did not capture real browser/Pyodide evidence in the agent environment.
 - Optional CII still uses the standalone compatibility Pyodide engine when no explicit `runtime.engineRunner` is supplied.
 - Mission 03 parity is reference-fixture parity, not live production-route invocation.
 - Worker isolation is not complete; the browser runtime still imports the standalone compatibility engine directly.
@@ -208,7 +146,7 @@ A successful report returns:
 
 ## Recommended next phase
 
-Proceed with manual browser/Pyodide evidence capture:
+Proceed with owner/operator browser evidence capture:
 
 ```text
 open app
