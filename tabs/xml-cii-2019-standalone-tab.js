@@ -1,5 +1,11 @@
 import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js';
 
+export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
+  'Source type',
+  'Element-based InputXML',
+  'Element side-load text',
+]);
+
 export function ensureXmlCiiStandaloneStylesheet() {
   if (document.querySelector('link[data-xml-cii-standalone-style="true"]')) return;
   const link = document.createElement('link');
