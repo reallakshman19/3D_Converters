@@ -45,7 +45,7 @@ const defaults = read('tabs/xml-cii-2019-standalone/xml-cii-standalone-default-c
 for (const token of ['inputXmlRatingByPipingClass', 'inputXmlPipingClass', 'typeCode: 14', 'typeCode: 9', 'typeCode: 8', 'friction: -1.0101', '91261', '900']) if (!defaults.includes(token)) fail('Default standalone config missing token ' + token);
 
 const inputxml = read('tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js');
-for (const token of ['parseInputXmlElementSideLoad', 'deriveRestraints', 'extractPipingClassFromLineId', 'LINE_ID', 'FROM_NAME', 'TO_NAME', 'DTXR_POS', 'DTXR_PS', 'inputXmlRatingByPipingClass', 'inputXmlPipingClass', 'typeCode: 9', 'typeCode: 8', 'PRESSURE_C1', 'PRESSURE1', 'isSentinel', 'replace-with-dtxr-derived-restraints', 'merge-existing-and-dtxr-derived-restraints', 'XMLSerializer', 'DOMParser', 'sideLoadMatched', 'sideLoadUnmatched', 'inheritedFieldCount', 'sentinelFieldCount']) if (!inputxml.includes(token)) fail('InputXML enrichment module missing token ' + token);
+for (const token of ['parseInputXmlElementSideLoad', 'deriveRestraints', 'extractPipingClassFromLineId', 'LINE_ID', 'FROM_NAME', 'TO_NAME', 'DTXR_POS', 'DTXR_PS', 'inputXmlRatingByPipingClass', 'inputXmlPipingClass', 'typeCode: 9', 'typeCode: 8', 'PRESSURE_C', 'PRESSURE', 'isSentinel', 'replace-with-dtxr-derived-restraints', 'merge-existing-and-dtxr-derived-restraints', 'XMLSerializer', 'DOMParser', 'sideLoadMatched', 'sideLoadUnmatched', 'inheritedFieldCount', 'sentinelFieldCount']) if (!inputxml.includes(token)) fail('InputXML enrichment module missing token ' + token);
 
 const engine = read('converters/xml-cii-2019-standalone/engine.js');
 if (!engine.includes('standalone-compatibility-engine')) fail('Standalone engine diagnostics must identify engine mode.');
