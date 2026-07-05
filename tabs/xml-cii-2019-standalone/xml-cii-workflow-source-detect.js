@@ -20,8 +20,10 @@ export function detectXmlCiiWorkflowSourceKind(sourceText, fallback = 'xml') {
     if (xmlType === 'input' || /<\s*(?:[A-Za-z_][\w.-]*:)?PIPINGMODEL\b/i.test(text)) return 'inputxml';
   }
 
+  if (rootName === 'pipingelement') return 'inputxml';
   if (/<\s*(?:[A-Za-z_][\w.-]*:)?PipeStressExport\b/i.test(text)) return 'xml';
-  if (/<\s*(?:[A-Za-z_][\w.-]*:)?CAESARII\b/i.test(text) && /<\s*(?:[A-Za-z_][\w.-]*:)?PIPINGELEMENT\b/i.test(text)) return 'inputxml';
+  if (/<\s*(?:[A-Za-z_][\w.-]*:)?PIPINGELEMENT\b/i.test(text)) return 'inputxml';
+  if (/<\s*(?:[A-Za-z_][\w.-]*:)?CAESARII\b/i.test(text) && /<\s*(?:[A-Za-z_][\w.-]*:)?PIPINGMODEL\b/i.test(text)) return 'inputxml';
 
   return fallback === 'inputxml' ? 'inputxml' : 'xml';
 }
