@@ -1,6 +1,49 @@
 # XML→CII 2019 Standalone Live Proof Checklist
 
-Mission: Issue #22 / Issue #24 — live browser proof and switch-readiness evidence capture.
+Mission: Issue #22 / Issue #24 / Issue #26 — live browser proof and switch-readiness evidence capture.
+
+## Mission 06 owner/operator evidence run
+
+Date/time: 2026-07-05 20:22 Asia/Muscat
+
+Commit under test:
+
+```text
+def5de9c5d83ff1f4d99269c17c67ccaac66f344
+```
+
+Evidence status:
+
+```text
+needs-more-proof
+```
+
+Owner/operator evidence run result:
+
+```text
+blocked: real browser/Pyodide execution evidence was not captured by this agent environment
+```
+
+Reason: this agent can inspect GitHub, update allowed documentation, and attempt web access, but it cannot perform a reproducible owner/operator browser session with UI interaction, Pyodide execution, screenshots, or browser console evidence. No readiness upgrade is made.
+
+## Mission 06 evidence fields
+
+```text
+Browser/version: not captured
+App URL/local URL: not captured
+Exact commit SHA under test: def5de9c5d83ff1f4d99269c17c67ccaac66f344
+Standalone XML→CII tab visibility: not captured
+Model Converters tab visibility: not captured
+Phase rail visibility: not captured
+XML benchmark run result: not captured
+XML diagnostics branch: not captured
+XML output/log/diagnostics display evidence: not captured
+InputXML benchmark plus side-load run result: not captured
+InputXML diagnostics branch: not captured
+InputXML semantic enrichment evidence: not captured
+Warnings/errors: evidence run blocked before app execution
+Screenshot/evidence links: none
+```
 
 ## Mission 05 evidence capture status
 
@@ -21,25 +64,6 @@ needs-more-proof
 Reason: real browser/Pyodide execution evidence was not captured in this agent environment. The agent can update repository files and inspect GitHub state, but it cannot provide a reproducible manual browser run, screenshot, or real Pyodide execution record tied to the app UI. The required evidence must therefore be captured by an owner/operator in a browser session using the checklist below.
 
 This status is conservative and does not approve a controlled switch proposal.
-
-## Attempted evidence fields
-
-```text
-Browser/version: not captured in this agent environment
-App URL/local URL: not captured in this agent environment
-Commit SHA under test: 5e2dd766775dd71bc0ee2404a56f2d0c9c56bb39
-Standalone tab visible: not captured
-Model Converters tab visible: not captured
-Phase rail visible: not captured
-XML benchmark run result: not captured
-XML diagnostics branch: not captured
-XML output/log/diagnostics display evidence: not captured
-InputXML benchmark plus side-load run result: not captured
-InputXML diagnostics branch: not captured
-InputXML semantic enrichment evidence: not captured
-Warnings/errors: no app/browser runtime evidence captured
-Screenshot/evidence links: none
-```
 
 ## Proof method
 
@@ -177,5 +201,5 @@ A future decision may become `ready-for-controlled-switch-proposal` only when:
 - No old Model Converters popup rewrite.
 - No Pyodide worker redesign.
 - No CII writer rewrite.
-- No large real plant sample ingestion.
+- No large plant sample ingestion.
 - No hidden mocks.
