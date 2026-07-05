@@ -1,0 +1,20 @@
+.xml-cii-standalone-root { display: flex; flex-direction: column; gap: 16px; min-height: 100%; }
+.xml-cii-standalone-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.xml-cii-standalone-header h1 { margin: 0 0 4px; font-size: 1.35rem; }
+.xml-cii-standalone-header p { margin: 0; opacity: 0.78; }
+.xml-cii-standalone-badge { border: 1px solid rgba(120,180,255,.45); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+.xml-cii-standalone-grid { display: grid; grid-template-columns: repeat(2, minmax(280px, 1fr)); gap: 14px; }
+.xml-cii-standalone-card, .xml-cii-standalone-output > div { border: 1px solid rgba(145,160,180,.22); border-radius: 12px; padding: 14px; background: rgba(15,23,42,.68); }
+.xml-cii-standalone-card h2, .xml-cii-standalone-output h2 { margin: 0 0 10px; font-size: 1rem; }
+.xml-cii-standalone-card label { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.xml-cii-standalone-card input[type="checkbox"] { align-self: flex-start; }
+.xml-cii-standalone-card select, .xml-cii-standalone-card input[type="file"], .xml-cii-standalone-card textarea { width: 100%; box-sizing: border-box; border: 1px solid rgba(145,160,180,.25); border-radius: 8px; padding: 8px; color: inherit; background: rgba(2,6,23,.75); }
+.xml-cii-standalone-card textarea { min-height: 180px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
+.xml-cii-file-summary { opacity: .75; margin-bottom: 10px; }
+.xml-cii-valid { color: #8be28b; }
+.xml-cii-invalid { color: #ff9b9b; }
+.xml-cii-standalone-card button { margin: 6px 6px 0 0; border: 1px solid rgba(145,160,180,.28); border-radius: 8px; padding: 8px 12px; color: inherit; background: rgba(30,64,175,.35); cursor: pointer; }
+.xml-cii-standalone-card button:disabled { opacity: .45; cursor: not-allowed; }
+.xml-cii-standalone-output { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 14px; }
+.xml-cii-standalone-output pre { min-height: 280px; max-height: 460px; overflow: auto; margin: 0; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .82rem; line-height: 1.45; background: rgba(2,6,23,.86); border-radius: 10px; padding: 12px; }
+@media (max-width: 980px) { .xml-cii-standalone-grid, .xml-cii-standalone-output { grid-template-columns: 1fr; } .xml-cii-standalone-header { flex-direction: column; } }
