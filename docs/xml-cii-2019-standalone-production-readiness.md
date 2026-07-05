@@ -60,44 +60,12 @@ normalizePressureCaseNames
 
 These controls map into the public `runXmlCii2019Workflow(job, runtime)` job shape through `buildXmlCiiWorkflowJobFromUiState(state)`.
 
-## Implementation guardrails
-
-The adapted UI implementation is intentionally split into small modules:
-
-```text
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-controls.js
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-panel.js
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
-tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js
-```
-
-The guard test enforces, for the adapted UI surface:
-
-```text
-JS files <= 300 lines
-named exports only
-function declarations <= 40 lines where practical
-no legacy handoff tokens
-no shim/mock tokens
-no global runtime mutation tokens
-```
-
-DOM rendering is still allowed inside render/event modules because this is browser UI code. The prohibited mutation is legacy/global runtime mutation, monkey-patching, and cross-app workflow handoff.
-
 ## Programmatic call pattern
 
 ```js
 import { runXmlCii2019Workflow } from './tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js';
 
 const result = await runXmlCii2019Workflow(job, runtime);
-
-if (!result.ok) {
-  console.error(result.error, result.diagnostics);
-}
 ```
 
 `runtime.engineRunner` is optional. Tests can pass an explicit fake engine runner to avoid Pyodide. Browser use can omit it and allow the standalone compatibility engine to load.
@@ -112,8 +80,6 @@ const xmlJob = {
   supportConfigJson: '{}',
   options: { outputMode: 'enriched-only' }
 };
-
-const result = await runXmlCii2019Workflow(xmlJob, runtime);
 ```
 
 Expected behavior:
@@ -144,8 +110,6 @@ DTXR_PS=Pipe Rest XRT01|PIPE SUPPORT TYPE-103`,
     normalizePressureCaseNames: true
   }
 };
-
-const result = await runXmlCii2019Workflow(inputXmlJob, runtime);
 ```
 
 Expected behavior:
@@ -186,14 +150,25 @@ Mission 03 adds a controlled reference parity harness:
 node tests/xml-cii-standalone-parity.test.js
 ```
 
-The parity harness compares standalone API output against small frozen current-route reference fixtures for:
+The harness intentionally does not click the old popup or invoke the production route. See `docs/xml-cii-2019-standalone-parity.md`.
 
-```text
-psi116-benchmark-validation.xml → enrichedXML
-inputxml-element-benchmark.xml → enrichedInputXML
+## Live proof and switch-readiness decision
+
+Mission 04 adds an automated smoke and repeatable manual live checklist:
+
+```bash
+node tests/xml-cii-standalone-live-smoke.test.js
 ```
 
-The harness intentionally does not click the old popup or invoke the production route. Those paths are forbidden in the Mission 03 work pack. See `docs/xml-cii-2019-standalone-parity.md` for the case table and known intentional divergences.
+The smoke proves app-path registration/static wiring plus XML and InputXML standalone API evidence. It deliberately returns `needs-more-proof` until manual browser/Pyodide evidence is captured using `docs/xml-cii-2019-standalone-live-proof.md`.
+
+The conservative decision is:
+
+```text
+needs-more-proof
+```
+
+This is not a production switch and not a switch approval.
 
 ## Production-readiness report
 
@@ -217,33 +192,31 @@ A successful report returns:
 ## Known limitations
 
 - This phase does not switch the existing Model Converters XML→CII route.
-- The standalone workflow is ready only for shadow production proof until live browser/Pyodide and old-route parity are complete.
+- Mission 04 automated smoke is not a real browser/Pyodide run.
 - Optional CII still uses the standalone compatibility Pyodide engine when no explicit `runtime.engineRunner` is supplied.
 - Mission 03 parity is reference-fixture parity, not live production-route invocation.
 - Worker isolation is not complete; the browser runtime still imports the standalone compatibility engine directly.
 - The existing production Pyodide worker and legacy route remain intentionally unchanged.
-- The adapted standalone UI follows 100% of the canonical phase model, but rich legacy interactions must be reintroduced only as adapted standalone panels after review.
 
 ## Blocked items before production switch
 
-1. Run live browser/Pyodide proof for PSI116 XML and InputXML optional CII output.
-2. Add live old-route parity proof if owner approves a safe harness outside the old popup/worker mutation path.
-3. Decide whether the standalone compatibility engine must move behind a dedicated worker boundary.
-4. Define rollback criteria and feature flag / controlled switch policy.
-5. Review larger real plant samples, not only minimal fixtures.
-6. Complete any remaining adapted phase interactions required by operators after live UI review.
+1. Complete manual browser proof for XML and InputXML fixtures.
+2. Complete real browser/Pyodide compatibility proof.
+3. Add live old-route parity proof if owner approves a safe harness outside the old popup/worker mutation path.
+4. Decide whether the standalone compatibility engine must move behind a dedicated worker boundary.
+5. Define rollback criteria and feature flag / controlled switch policy.
 
 ## Recommended next phase
 
-Proceed with controlled shadow-production proof:
+Proceed with manual browser/Pyodide evidence capture:
 
 ```text
-real sample set
-→ standalone API run
-→ current production route run, only if safe harness approved
-→ diagnostics/artifact comparison
-→ parity report
+open app
+→ run standalone XML fixture
+→ run standalone InputXML fixture + side-load
+→ capture output/log/diagnostics evidence
+→ update decision evidence
 → switch/no-switch recommendation
 ```
 
-Only after parity and live browser/Pyodide proof should a separate runtime switch PR be proposed.
+Only after live proof should a separate runtime switch PR be proposed.

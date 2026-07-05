@@ -12,10 +12,13 @@ on:
       - 'tests/xml-cii-inputxml-enrichment-behavior.test.js'
       - 'tests/fixtures/xml-cii-standalone/**'
       - 'docs/xml-cii-2019-standalone-production-readiness.md'
+      - 'docs/xml-cii-2019-standalone-parity.md'
+      - 'docs/xml-cii-2019-standalone-live-proof.md'
       - '.github/workflows/xml-cii-standalone-mission01.yml'
   push:
     branches:
       - xml-cii-standalone-ui-adapted-guarded
+      - mission-04-live-proof-readiness
 
 jobs:
   mission-01-proof:
@@ -46,3 +49,9 @@ jobs:
 
       - name: Run benchmark validation checks
         run: node tests/xml-cii-standalone-benchmark-validation.test.js
+
+      - name: Run parity checks
+        run: node tests/xml-cii-standalone-parity.test.js
+
+      - name: Run live smoke checks
+        run: node tests/xml-cii-standalone-live-smoke.test.js
