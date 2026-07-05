@@ -1,0 +1,48 @@
+name: XML CII Standalone Mission 01
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'tabs/xml-cii-2019-standalone-tab.js'
+      - 'tabs/xml-cii-2019-standalone-tab.css'
+      - 'tests/xml-cii-standalone-*.test.js'
+      - 'tests/xml-cii-inputxml-enrichment-behavior.test.js'
+      - 'tests/fixtures/xml-cii-standalone/**'
+      - 'docs/xml-cii-2019-standalone-production-readiness.md'
+      - '.github/workflows/xml-cii-standalone-mission01.yml'
+  push:
+    branches:
+      - xml-cii-standalone-ui-adapted-guarded
+
+jobs:
+  mission-01-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Run standalone static checks
+        run: node tests/xml-cii-standalone-static.test.js
+
+      - name: Run InputXML enrichment behavior checks
+        run: node tests/xml-cii-inputxml-enrichment-behavior.test.js
+
+      - name: Run standalone workflow API checks
+        run: node tests/xml-cii-standalone-workflow-api.test.js
+
+      - name: Run production readiness checks
+        run: node tests/xml-cii-standalone-production-readiness.test.js
+
+      - name: Run adapted UI checks
+        run: node tests/xml-cii-standalone-workflow-ui-adapted.test.js
+
+      - name: Run implementation guard checks
+        run: node tests/xml-cii-standalone-implementation-guard.test.js
+
+      - name: Run benchmark validation checks
+        run: node tests/xml-cii-standalone-benchmark-validation.test.js

@@ -5,7 +5,7 @@
 The standalone workflow is a separate callable API and app-level tab path:
 
 ```text
-Programmatic caller / standalone tab
+Programmatic caller / adapted standalone UI
 → runXmlCii2019Workflow(job, runtime)
 → source detection + job normalization
 → workflow service
@@ -17,41 +17,76 @@ Programmatic caller / standalone tab
 
 The existing Model Converters XML→CII production route remains separate and is not replaced by this workflow.
 
-## What is production-ready in this phase
+## Adapted workflow UI
 
-The standalone workflow is ready for shadow production proof as a callable module:
+The standalone workflow has both:
 
-- `runXmlCii2019Workflow(job, runtime)` is the public API boundary.
-- Source detection supports PSI116 XML, CAESARII InputXML, and `PIPINGELEMENT` fragments.
-- Direct InputXML enrichment supports element side-load by `FROM_NODE→TO_NODE`.
-- InputXML side-load can enrich `LINE_ID`, `DTXR_POS`, `DTXR_PS`, `PipingClass`, `Rating`, `Point_properties_basis`, and DTXR-derived restraints.
-- The optional CII route is isolated behind `runtime.engineRunner` / standalone compatibility engine boundary.
-- Workflow results now expose normalized diagnostics for XML and InputXML branches.
-- Production isolation is guarded by tests that reject legacy handoff tokens and production worker/invocation imports from the standalone API/service.
+1. an API callable by other apps, and
+2. an adapted/configurable workflow UI for manual setup and proof.
 
-Readiness status is represented by:
+The UI adapts the existing XML→CII 2019 workflow phase model. It is not a literal copy of the old popup implementation and does not import or execute the old Model Converters workflow runtime.
 
-```js
-createXmlCiiProductionReadinessReport(inputs)
-```
-
-with schema:
+The adapted phase sequence is:
 
 ```text
-xml-cii-2019-production-readiness/v1
+1 Regex
+2 Import Masters
+3 JSON Trace
+4 Preview
+5 Diagnostics
+5A Weight Match
+6 Run
+7 Support Types
+8 Config
+Custom Input
 ```
 
-The expected successful status is:
+The old Model Converters workflow popup is unchanged. The standalone workflow can be called by other apps; it does not call other app workflows.
+
+## InputXML UI coverage
+
+The standalone-only InputXML controls are available in the adapted phase UI, especially `Custom Input` and `3 JSON Trace`:
 
 ```text
-ready-for-shadow-production-proof
+sourceKind: auto | xml | inputxml
+InputXML file/text
+elementSideLoadText
+inputXmlOutputMode
+pointPropertiesBasis
+inputXmlRestraintPolicy
+fillSentinelFromLineContext
+normalizePressureCaseNames
 ```
 
-## What is still shadow-only
+These controls map into the public `runXmlCii2019Workflow(job, runtime)` job shape through `buildXmlCiiWorkflowJobFromUiState(state)`.
 
-This phase does not switch the existing Model Converters XML→CII route. The standalone workflow is ready only for shadow production proof until live browser/Pyodide and old-route parity are complete.
+## Implementation guardrails
 
-The standalone workflow should be used as a parallel API/tab path for proof collection, diagnostics comparison, and controlled fixture validation. It must not receive production traffic by replacing the existing `xml_to_cii` converter route until a later explicit switch approval.
+The adapted UI implementation is intentionally split into small modules:
+
+```text
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-controls.js
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-panel.js
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js
+```
+
+The guard test enforces, for the adapted UI surface:
+
+```text
+JS files <= 300 lines
+named exports only
+function declarations <= 40 lines where practical
+no legacy handoff tokens
+no shim/mock tokens
+no global runtime mutation tokens
+```
+
+DOM rendering is still allowed inside render/event modules because this is browser UI code. The prohibited mutation is legacy/global runtime mutation, monkey-patching, and cross-app workflow handoff.
 
 ## Programmatic call pattern
 
@@ -65,7 +100,7 @@ if (!result.ok) {
 }
 ```
 
-`runtime.engineRunner` is optional. Tests can pass a fake engine runner to avoid Pyodide. Browser use can omit it and allow the standalone compatibility engine to load.
+`runtime.engineRunner` is optional. Tests can pass an explicit fake engine runner to avoid Pyodide. Browser use can omit it and allow the standalone compatibility engine to load.
 
 ## XML example job
 
@@ -75,25 +110,10 @@ const xmlJob = {
   sourceName: 'psi116-basic-input.xml',
   sourceText: '<PipeStressExport>...</PipeStressExport>',
   supportConfigJson: '{}',
-  options: {
-    outputMode: 'enriched-only'
-  }
+  options: { outputMode: 'enriched-only' }
 };
 
-const result = await runXmlCii2019Workflow(xmlJob, {
-  engineRunner: async (job) => ({
-    ok: true,
-    sourceKind: 'xml',
-    outputKind: 'enrichedXML',
-    enrichedText: '<PipeStressExport>...</PipeStressExport>',
-    enrichedName: 'psi116-basic-input_enriched.xml',
-    ciiText: null,
-    ciiName: null,
-    diagnostics: { engine: 'fake-xml', warnings: [] },
-    logs: [],
-    error: null
-  })
-});
+const result = await runXmlCii2019Workflow(xmlJob, runtime);
 ```
 
 Expected behavior:
@@ -114,18 +134,7 @@ const inputXmlJob = {
 LINE_ID=/ASIM-1836-6"-S8810010-91261M7-HC/B1
 DTXR_POS=Pipe Rest XRT01|PIPE SUPPORT TYPE-103|Directional Anchor On Shoe|GUIDE PDO-TYPE-603
 DTXR_PS=Pipe Rest XRT01|PIPE SUPPORT TYPE-103`,
-  supportConfigJson: JSON.stringify({
-    defaultStiffness: 1751270000000,
-    defaultGap: 0,
-    defaultFriction: 0.3,
-    inputXmlPipingClass: { tokenDelimiter: '-', tokenPosition: 5 },
-    inputXmlRatingByPipingClass: { 91261: '900' },
-    inputXmlDtxrRestraintRules: [
-      { label: 'Y/restraint support', typeCode: 14, patterns: ['PIPE REST', 'SHOE', 'SUPPORT TYPE-103', 'REST'] },
-      { label: 'guide restraint', typeCode: 9, friction: -1.0101, patterns: ['GUIDE', 'PDO-TYPE-603'] },
-      { label: 'line stop / directional anchor', typeCode: 8, friction: -1.0101, patterns: ['DIRECTIONAL ANCHOR', 'ANCHOR', 'LINE STOP'] }
-    ]
-  }),
+  supportConfigJson: '{}',
   options: {
     outputMode: 'both',
     inputXmlOutputMode: 'full-document',
@@ -136,23 +145,7 @@ DTXR_PS=Pipe Rest XRT01|PIPE SUPPORT TYPE-103`,
   }
 };
 
-const result = await runXmlCii2019Workflow(inputXmlJob, {
-  engineRunner: async (job) => {
-    // job.sourceText is enriched InputXML, not the raw InputXML fixture.
-    return {
-      ok: true,
-      sourceKind: 'inputxml',
-      outputKind: 'enrichedInputXML',
-      enrichedText: '',
-      enrichedName: '',
-      ciiText: 'CII FROM ENRICHED INPUTXML',
-      ciiName: 'inputxml-side-load-input.cii',
-      diagnostics: { engine: 'fake-inputxml-cii', outputMode: 'cii-only', warnings: [] },
-      logs: [],
-      error: null
-    };
-  }
-});
+const result = await runXmlCii2019Workflow(inputXmlJob, runtime);
 ```
 
 Expected behavior:
@@ -185,24 +178,6 @@ engineDiagnostics
 warnings
 ```
 
-XML branch diagnostics use:
-
-```text
-branch: psi116-xml-compatibility-engine
-```
-
-InputXML enriched-only diagnostics use:
-
-```text
-branch: direct-inputxml-enrichment
-```
-
-InputXML optional CII diagnostics use:
-
-```text
-branch: direct-inputxml-enrichment-plus-cii-compatibility
-```
-
 ## Production-readiness report
 
 The readiness report is created by:
@@ -222,30 +197,28 @@ A successful report returns:
 }
 ```
 
-If any check fails, `ok` becomes `false`, `status` becomes `blocked`, and `blockers` lists the failed readiness checks.
-
 ## Known limitations
 
 - This phase does not switch the existing Model Converters XML→CII route.
 - The standalone workflow is ready only for shadow production proof until live browser/Pyodide and old-route parity are complete.
-- Optional CII still uses the standalone compatibility Pyodide engine when no fake `runtime.engineRunner` is supplied.
+- Optional CII still uses the standalone compatibility Pyodide engine when no explicit `runtime.engineRunner` is supplied.
 - No golden parity against the old production XML→CII route is complete yet.
 - Worker isolation is not complete; the browser runtime still imports the standalone compatibility engine directly.
 - The existing production Pyodide worker and legacy route remain intentionally unchanged.
+- The adapted standalone UI follows 100% of the canonical phase model, but rich legacy interactions must be reintroduced only as adapted standalone panels after review.
 
 ## Blocked items before production switch
-
-Before switching production traffic, complete these items:
 
 1. Run live browser/Pyodide proof for PSI116 XML and InputXML optional CII output.
 2. Add old-route parity fixtures comparing current production XML→CII output against standalone output for representative jobs.
 3. Decide whether the standalone compatibility engine must move behind a dedicated worker boundary.
 4. Define rollback criteria and feature flag / controlled switch policy.
 5. Review larger real plant samples, not only minimal fixtures.
+6. Complete any remaining adapted phase interactions required by operators after live UI review.
 
 ## Recommended next phase
 
-Proceed with a controlled shadow-production proof phase:
+Proceed with controlled shadow-production proof:
 
 ```text
 real sample set
