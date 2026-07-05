@@ -11,13 +11,15 @@ if (!runtime.includes("id: 'model-converters'")) fail('Existing model-converters
 if (!runtime.includes('renderXmlCii2019StandaloneTab')) fail('Standalone tab renderer is not registered.');
 
 const tab = read('tabs/xml-cii-2019-standalone-tab.js');
-if (!tab.includes('runXmlCii2019Workflow(')) fail('Standalone tab must call the public workflow API.');
-if (!tab.includes('Source type')) fail('Standalone tab must expose source type controls.');
-if (!tab.includes('Element-based InputXML')) fail('Standalone tab must expose InputXML mode.');
-if (!tab.includes('Element side-load text')) fail('Standalone tab must expose element side-load text for InputXML.');
-if (!tab.includes('Restraint policy')) fail('Standalone tab must expose InputXML restraint policy.');
-if (!tab.includes('Fill missing/sentinel')) fail('Standalone tab must expose sentinel fill option.');
-if (!tab.includes('Output')) fail('Standalone tab must expose output mode controls.');
+if (!tab.includes('renderXmlCiiAdaptedWorkflowShell')) fail('Standalone tab must render the adapted workflow shell.');
+
+const adaptedShell = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js');
+if (!adaptedShell.includes('runXmlCii2019Workflow(')) fail('Adapted standalone workflow shell must call the public workflow API.');
+for (const token of ['Source type', 'Element-based InputXML', 'elementSideLoadText', 'inputXmlOutputMode', 'pointPropertiesBasis', 'inputXmlRestraintPolicy', 'fillSentinelFromLineContext', 'normalizePressureCaseNames', 'Output']) if (!adaptedShell.includes(token)) fail('Adapted workflow shell missing UI token ' + token);
+
+const adaptedRegistry = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js');
+for (const label of ['1 Regex', '2 Import Masters', '3 JSON Trace', '4 Preview', '5 Diagnostics', '5A Weight Match', '6 Run', '7 Support Types', '8 Config', 'Custom Input']) if (!adaptedRegistry.includes(label)) fail('Adapted phase registry missing label ' + label);
+if (!adaptedRegistry.includes('XML_CII_WORKFLOW_PHASES')) fail('Adapted phase registry must expose XML_CII_WORKFLOW_PHASES.');
 
 const api = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js');
 if (!api.includes('export async function runXmlCii2019Workflow')) fail('Public workflow API export is missing.');
