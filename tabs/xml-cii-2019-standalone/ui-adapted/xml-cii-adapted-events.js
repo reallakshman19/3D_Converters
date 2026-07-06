@@ -2,9 +2,10 @@ import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-wor
 import { prepareStandaloneImportMasters } from '../xml-cii-master-context.js';
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
+import { runStandaloneManualElementSideload } from '../xml-cii-manual-element-sideload.js';
 import { buildXmlCiiWorkflowJobFromUiState, readTextFile } from '../xml-cii-workflow-ui-adapter.js';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
-import { applyStandaloneImportMastersContext, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, clearWorkflowResult, resetWorkflowState, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { applyStandaloneImportMastersContext, applyStandaloneManualElementSideloadResult, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, clearWorkflowResult, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -12,6 +13,7 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindOptionEvents(container, stateRef, render);
   bindRegexEvents(container, stateRef, render);
   bindResolverEvents(container, stateRef, render);
+  bindManualEvents(container, stateRef, render);
   bindActionEvents(container, stateRef, render);
 }
 
@@ -70,11 +72,19 @@ export function bindResolverEvents(container, stateRef, render) {
   });
 }
 
+export function bindManualEvents(container, stateRef, render) {
+  for (const field of ['manual-policy', 'manual-tolerance', 'manual-restraints-text']) {
+    onChange(container, field, (value) => { stateRef.current = updateManualElementSideloadConfig(stateRef.current, field, value); });
+  }
+}
+
 export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'test-regex', () => testRegexFromUi(stateRef, render, false));
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(stateRef, render, false));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(stateRef, render, true));
+  onClick(container, 'run-manual-element-sideload', () => runManualElementSideloadFromUi(stateRef, render, false));
+  onClick(container, 'save-manual-element-sideload', () => runManualElementSideloadFromUi(stateRef, render, true));
   onClick(container, 'load-import-masters', () => loadImportMastersFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   onClick(container, 'download-enriched', () => downloadArtifact(stateRef.current.result, 'enriched'));
@@ -98,6 +108,15 @@ export async function runResolverJsonTraceFromUi(stateRef, render, save) {
   const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
   const result = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
   stateRef.current = save ? applyStandaloneResolverJsonTraceResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { resolverJsonTraceResult: result, resolverJsonTraceRunning: false });
+  render();
+}
+
+export async function runManualElementSideloadFromUi(stateRef, render, save) {
+  stateRef.current = updateWorkflowState(stateRef.current, { manualElementSideloadRunning: true });
+  render();
+  const sourceText = await sourceTextFromState(stateRef.current);
+  const result = runStandaloneManualElementSideload({ ...stateRef.current, sourceText, config: stateRef.current.manualElementSideloadConfig });
+  stateRef.current = save ? applyStandaloneManualElementSideloadResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { manualElementSideloadResult: result, manualElementSideloadRunning: false });
   render();
 }
 
