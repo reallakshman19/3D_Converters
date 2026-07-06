@@ -12,6 +12,7 @@ import { buildXmlCiiWorkflowJobFromUiState } from './xml-cii-workflow-ui-adapter
 
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
+function count(value) { return array(value).length; }
 
 function baseState(input = {}, mode = 'xml') {
   return {
@@ -76,12 +77,16 @@ function artifacts(result = {}) {
   return { enriched: !!result.enrichedText, cii: !!result.ciiText, diagnostics: !!result.diagnostics, outputKind: result.outputKind || '' };
 }
 
+function inputXmlSideLoadMatched(state) {
+  return count(state.manualElementSideloadResult?.matchedSideLoadRows) > 0 || Number(state.result?.diagnostics?.sideLoadMatched || 0) > 0;
+}
+
 function modeGaps(state, readiness) {
   const gaps = [];
   if (!state.result?.ok) gaps.push('final-run-result-not-ok');
   if (readiness.summary.blockingCount > 0) gaps.push('output-run-readiness-has-blockers');
   if (state.sourceKind === 'xml' && !state.regexTesterResult) gaps.push('xml-regex-proof-missing');
-  if (state.sourceKind === 'inputxml' && !state.result?.diagnostics?.sideLoadMatched) gaps.push('inputxml-side-load-match-not-reported');
+  if (state.sourceKind === 'inputxml' && !inputXmlSideLoadMatched(state)) gaps.push('inputxml-side-load-match-not-reported');
   return gaps;
 }
 
