@@ -1,4 +1,5 @@
 import { defaultXmlCii2019SupportConfigJson } from '../xml-cii-standalone-default-config.js';
+import { createDefaultRegexTesterConfig } from '../xml-cii-regex-tester.js';
 import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
 
 export function createDefaultWorkflowOptions() {
@@ -26,6 +27,10 @@ export function createXmlCiiAdaptedWorkflowState() {
     stagedJsonFile: null,
     elementSideLoadText: '',
     supportConfigJson: defaultXmlCii2019SupportConfigJson(),
+    regexTesterConfig: createDefaultRegexTesterConfig(),
+    regexTesterResult: null,
+    regexTesterRunning: false,
+    regexTesterWriteBackStatus: '',
     masterContext: null,
     importMastersLoading: false,
     importMastersWriteBackStatus: '',
@@ -75,6 +80,47 @@ export function applyStandaloneImportMastersContext(state, masterContext) {
     supportConfigJson,
     importMastersLoading: false,
     importMastersWriteBackStatus: `Loaded ${totalMasterRows(masterContext)} master rows into standalone config.`,
+    result: null,
+  });
+}
+
+function nestedRuleKey(field) {
+  return {
+    'regex-line-key-regex': ['lineKey', 'regex'],
+    'regex-line-key-group': ['lineKey', 'group'],
+    'regex-line-key-token': ['lineKey', 'tokenPosition'],
+    'regex-piping-class-regex': ['pipingClass', 'regex'],
+    'regex-piping-class-group': ['pipingClass', 'group'],
+    'regex-piping-class-token': ['pipingClass', 'tokenPosition'],
+    'regex-rating-regex': ['rating', 'regex'],
+    'regex-rating-group': ['rating', 'group'],
+    'regex-rating-token': ['rating', 'tokenPosition'],
+    'regex-bore-regex': ['bore', 'regex'],
+    'regex-bore-group': ['bore', 'group'],
+    'regex-bore-token': ['bore', 'tokenPosition'],
+  }[field] || null;
+}
+
+function numericRuleValue(key, value) {
+  return ['group', 'tokenPosition'].includes(key) ? Number(value || 0) : value;
+}
+
+export function updateRegexTesterConfig(state, field, value) {
+  if (field === 'regex-token-delimiter') return updateWorkflowState(state, { regexTesterConfig: { ...state.regexTesterConfig, tokenDelimiter: value } });
+  const path = nestedRuleKey(field);
+  if (!path) return state;
+  const [ruleName, key] = path;
+  const rule = { ...(state.regexTesterConfig?.[ruleName] || {}) };
+  rule[key] = numericRuleValue(key, value);
+  return updateWorkflowState(state, { regexTesterConfig: { ...state.regexTesterConfig, [ruleName]: rule } });
+}
+
+export function applyStandaloneRegexTesterResult(state, regexTesterResult) {
+  return updateWorkflowState(state, {
+    regexTesterResult,
+    regexTesterRunning: false,
+    regexTesterWriteBackStatus: 'Regex rules saved into standalone config.',
+    supportConfigJson: regexTesterResult?.supportConfigJson || state.supportConfigJson,
     result: null,
   });
 }
