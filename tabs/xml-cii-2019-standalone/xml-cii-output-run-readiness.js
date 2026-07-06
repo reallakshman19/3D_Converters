@@ -3,8 +3,7 @@ import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect
 function text(value) { return String(value ?? '').trim(); }
 function array(value) { return Array.isArray(value) ? value : []; }
 function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
-function bytes(value) { return BufferSize(String(value ?? '')); }
-function BufferSize(value) { return new TextEncoder().encode(value).length; }
+function bytes(value) { return new TextEncoder().encode(String(value ?? '')).length; }
 
 function parseConfig(value) {
   try { return { ok: true, value: JSON.parse(text(value) || '{}') }; }
@@ -65,8 +64,8 @@ export function buildOutputArtifactRows(input = {}, manifest = {}) {
   return [
     artifact('enriched', 'Enriched XML/InputXML', result.enrichedName || 'enriched-output.xml', result.enrichedText, 'application/xml;charset=utf-8'),
     artifact('cii', 'CII', result.ciiName || 'output.cii', result.ciiText, 'text/plain;charset=utf-8'),
-    artifact('diagnostics', 'Diagnostics JSON', 'xml-cii-diagnostics.json', JSON.stringify(result.diagnostics || {}, null, 2), 'application/json;charset=utf-8'),
-    artifact('manifest', 'Run Manifest JSON', 'xml-cii-run-manifest.json', JSON.stringify(manifest, null, 2), 'application/json;charset=utf-8'),
+    artifact('diagnostics', 'Diagnostics JSON', 'xml-cii-diagnostics.json', result.diagnostics ? JSON.stringify(result.diagnostics, null, 2) : '', 'application/json;charset=utf-8'),
+    artifact('manifest', 'Run Manifest JSON', 'xml-cii-run-manifest.json', hasResult(input) ? JSON.stringify(manifest, null, 2) : '', 'application/json;charset=utf-8'),
   ];
 }
 
@@ -88,7 +87,7 @@ export function buildRunManifest(input = {}) {
     previewAudit: { matched: summaryCount(input.previewDiagnosticsAuditReport, 'matchedFacts'), rejected: summaryCount(input.previewDiagnosticsAuditReport, 'rejectedFacts') },
     weightMatch: { issues: countRows(input.weightMatchResult?.issueRows), finalized: countRows(input.weightMatchResult?.finalizedRows) },
     supportMapper: { previewRows: countRows(input.supportTypeMapperResult?.previewRows), diagnostics: countRows(input.supportTypeMapperResult?.diagnostics) },
-    artifacts: { enriched: !!result.enrichedText, cii: !!result.ciiText, diagnostics: !!result.diagnostics, manifest: true },
+    artifacts: { enriched: !!result.enrichedText, cii: !!result.ciiText, diagnostics: !!result.diagnostics, manifest: hasResult(input) },
   };
 }
 
