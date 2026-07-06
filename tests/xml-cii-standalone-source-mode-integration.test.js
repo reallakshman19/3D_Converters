@@ -9,44 +9,25 @@ const root = path.resolve(__dirname, '..');
 const fixtureRoot = path.join(root, 'tests/fixtures/xml-cii-standalone');
 function read(relPath) { return fs.readFileSync(path.join(root, relPath), 'utf8'); }
 function readFixture(name) { return fs.readFileSync(path.join(fixtureRoot, name), 'utf8'); }
-function copyFile(tempRoot, relPath) { const target = path.join(tempRoot, relPath); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.copyFileSync(path.join(root, relPath), target); }
 function gitBlobSha(text) { const buf = Buffer.from(text, 'utf8'); return crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${buf.length}\0`), buf])).digest('hex'); }
 
-function fixtureFiles() {
-  return [
-    'tabs/xml-cii-2019-standalone/xml-cii-source-mode-integration-proof.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-master-context.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-preview-diagnostics-audit.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-weight-match.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'converters/xml-cii2019-core/master-context.js',
-    'converters/xml-cii2019-core/config.js',
-    'converters/xml-cii2019-core/piping-class-resolver.js',
-    'converters/xml-cii2019-core/pipe-component-data-adapter.js',
-    'converters/xml-cii2019-core/support-mapping-config.js',
-    'converters/xml-cii2019-core/line-density-resolver.js',
-    'converters/xml-cii2019-core/linelist-mapping.js',
-    'support/SupportKindResolver.js',
-    'vendor/create-pipe-data-db.js',
-  ];
+function copyRecursive(tempRoot, relPath) {
+  const source = path.join(root, relPath);
+  const target = path.join(tempRoot, relPath);
+  const stat = fs.statSync(source);
+  if (stat.isDirectory()) {
+    fs.mkdirSync(target, { recursive: true });
+    for (const name of fs.readdirSync(source)) copyRecursive(tempRoot, path.join(relPath, name));
+    return;
+  }
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(source, target);
 }
 
 function prepareEsmFixture() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-source-mode-proof-'));
   fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  for (const relPath of fixtureFiles()) copyFile(tempRoot, relPath);
+  for (const relPath of ['tabs/xml-cii-2019-standalone', 'converters/xml-cii2019-core', 'support', 'vendor']) copyRecursive(tempRoot, relPath);
   return tempRoot;
 }
 
