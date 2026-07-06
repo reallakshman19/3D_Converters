@@ -23,6 +23,7 @@ function prepareEsmFixture() {
 function fixtureFiles() {
   return [
     'tabs/xml-cii-2019-standalone/xml-cii-master-context.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
