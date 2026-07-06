@@ -7,6 +7,7 @@ import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 import { renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
 import { renderStandaloneDiagnosticsReportPanel, renderStandaloneMatchedAuditPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit.js';
+import { renderStandaloneWeightMatchPanel } from './xml-cii-adapted-weight-match.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -25,7 +26,7 @@ export function renderPhaseBody(card, phaseId, state) {
   if (phaseId === 'preview') return renderStandalonePreviewReportPanel(card, state);
   if (phaseId === 'diagnostics') return renderStandaloneDiagnosticsReportPanel(card, state);
   if (phaseId === 'matched-audit') return renderStandaloneMatchedAuditPanel(card, state);
-  if (phaseId === 'weight-match') return renderWeightMatchPanel(card);
+  if (phaseId === 'weight-match') return renderStandaloneWeightMatchPanel(card, state);
   if (phaseId === 'run') return renderRunPanel(card, state);
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, state);
   if (phaseId === 'config') return renderConfigPanel(card, state);
@@ -88,10 +89,6 @@ export function renderSplitControl(card, state) {
   const selected = value === true ? 'true' : value === false ? 'false' : 'null';
   split.dataset.field = 'split-condensed';
   split.append(createOption('null', 'config/default', selected === 'null'), createOption('true', 'force true', selected === 'true'), createOption('false', 'force false', selected === 'false'));
-}
-
-export function renderWeightMatchPanel(card) {
-  card.appendChild(createElement('p', 'Weight match remains config-driven in the standalone path. Use 8 Config to provide weight/material/rating maps.', 'xml-cii-phase-help'));
 }
 
 export function renderSupportMapperPanel(card, state) {
