@@ -3,9 +3,10 @@ import { prepareStandaloneImportMasters } from '../xml-cii-master-context.js';
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
 import { runStandaloneManualElementSideload } from '../xml-cii-manual-element-sideload.js';
+import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js';
 import { buildXmlCiiWorkflowJobFromUiState, readTextFile } from '../xml-cii-workflow-ui-adapter.js';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
-import { applyStandaloneImportMastersContext, applyStandaloneManualElementSideloadResult, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, clearWorkflowResult, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { applyPreviewDiagnosticsAuditReport, applyStandaloneImportMastersContext, applyStandaloneManualElementSideloadResult, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, clearWorkflowResult, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -17,18 +18,9 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindActionEvents(container, stateRef, render);
 }
 
-export function replaceState(stateRef, nextState, render) {
-  stateRef.current = nextState;
-  render();
-}
-
-export function patchState(stateRef, patch, render) {
-  replaceState(stateRef, updateWorkflowState(stateRef.current, patch), render);
-}
-
-export function patchOptions(stateRef, optionPatch) {
-  stateRef.current = updateWorkflowOptions(stateRef.current, optionPatch);
-}
+export function replaceState(stateRef, nextState, render) { stateRef.current = nextState; render(); }
+export function patchState(stateRef, patch, render) { replaceState(stateRef, updateWorkflowState(stateRef.current, patch), render); }
+export function patchOptions(stateRef, optionPatch) { stateRef.current = updateWorkflowOptions(stateRef.current, optionPatch); }
 
 export function bindPhaseEvents(container, stateRef, render) {
   container.querySelectorAll('[data-phase]').forEach((button) => {
@@ -59,23 +51,15 @@ export function bindOptionEvents(container, stateRef, render) {
 }
 
 export function bindRegexEvents(container, stateRef, render) {
-  container.querySelectorAll('[data-field^="regex-"]').forEach((input) => {
-    input.addEventListener('change', () => {
-      stateRef.current = updateRegexTesterConfig(stateRef.current, input.dataset.field, input.value);
-    });
-  });
+  container.querySelectorAll('[data-field^="regex-"]').forEach((input) => input.addEventListener('change', () => { stateRef.current = updateRegexTesterConfig(stateRef.current, input.dataset.field, input.value); }));
 }
 
 export function bindResolverEvents(container, stateRef, render) {
-  onChange(container, 'resolver-json-config', (value) => {
-    stateRef.current = updateResolverJsonTraceConfig(stateRef.current, value);
-  });
+  onChange(container, 'resolver-json-config', (value) => { stateRef.current = updateResolverJsonTraceConfig(stateRef.current, value); });
 }
 
 export function bindManualEvents(container, stateRef, render) {
-  for (const field of ['manual-policy', 'manual-tolerance', 'manual-restraints-text']) {
-    onChange(container, field, (value) => { stateRef.current = updateManualElementSideloadConfig(stateRef.current, field, value); });
-  }
+  for (const field of ['manual-policy', 'manual-tolerance', 'manual-restraints-text']) onChange(container, field, (value) => { stateRef.current = updateManualElementSideloadConfig(stateRef.current, field, value); });
 }
 
 export function bindActionEvents(container, stateRef, render) {
@@ -85,6 +69,7 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(stateRef, render, true));
   onClick(container, 'run-manual-element-sideload', () => runManualElementSideloadFromUi(stateRef, render, false));
   onClick(container, 'save-manual-element-sideload', () => runManualElementSideloadFromUi(stateRef, render, true));
+  onClick(container, 'build-preview-audit', () => buildPreviewAuditFromUi(stateRef, render));
   onClick(container, 'load-import-masters', () => loadImportMastersFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   onClick(container, 'download-enriched', () => downloadArtifact(stateRef.current.result, 'enriched'));
@@ -120,13 +105,13 @@ export async function runManualElementSideloadFromUi(stateRef, render, save) {
   render();
 }
 
-export async function sourceTextFromState(state) {
-  return await readTextFile(state.sourceFile) || String(state.sourceText || '');
+export function buildPreviewAuditFromUi(stateRef, render) {
+  stateRef.current = applyPreviewDiagnosticsAuditReport(stateRef.current, buildStandalonePreviewDiagnosticsAudit(stateRef.current));
+  render();
 }
 
-export async function stagedJsonTextFromState(state) {
-  return await readTextFile(state.stagedJsonFile) || String(state.stagedJsonText || '');
-}
+export async function sourceTextFromState(state) { return await readTextFile(state.sourceFile) || String(state.sourceText || ''); }
+export async function stagedJsonTextFromState(state) { return await readTextFile(state.stagedJsonFile) || String(state.stagedJsonText || ''); }
 
 export async function loadImportMastersFromUi(stateRef, render) {
   if (stateRef.current.importMastersLoading) return;
@@ -160,16 +145,6 @@ export function downloadArtifact(result, kind) {
   return null;
 }
 
-export function parseTriState(value) {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return null;
-}
-
-export function onChange(container, field, handler) {
-  container.querySelector(`[data-field="${field}"]`)?.addEventListener('change', (event) => handler(event.target.value, event));
-}
-
-export function onClick(container, action, handler) {
-  container.querySelector(`[data-action="${action}"]`)?.addEventListener('click', handler);
-}
+export function parseTriState(value) { if (value === 'true') return true; if (value === 'false') return false; return null; }
+export function onChange(container, field, handler) { container.querySelector(`[data-field="${field}"]`)?.addEventListener('change', (event) => handler(event.target.value, event)); }
+export function onClick(container, action, handler) { container.querySelector(`[data-action="${action}"]`)?.addEventListener('click', handler); }
