@@ -2,8 +2,14 @@ import { defaultXmlCii2019SupportConfigJson } from '../xml-cii-standalone-defaul
 import { createDefaultRegexTesterConfig } from '../xml-cii-regex-tester.js';
 import { createDefaultResolverJsonTraceConfig } from '../xml-cii-resolver-json-trace.js';
 import { createDefaultManualElementSideloadConfig } from '../xml-cii-manual-element-sideload.js';
-import { parseSupportTypeMapperConfig } from '../xml-cii-support-type-mapper.js';
 import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
+
+const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
+  { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest'], ciiKind: 'REST_STYLE_CII_SUPPORT' },
+  { kind: 'GUIDE', aliases: ['Guide', 'PG', 'Lateral Guide'], ciiKind: 'GUIDE_STYLE_CII_SUPPORT' },
+  { kind: 'LINESTOP', aliases: ['Line Stop', 'Directional Anchor', 'LS', 'Axial Stop'], ciiKind: 'LINESTOP_STYLE_CII_SUPPORT' },
+  { kind: 'ANCHOR', aliases: ['Anchor', 'Fixed'], ciiKind: 'ANCHOR_STYLE_CII_SUPPORT' },
+]);
 
 export function createDefaultWorkflowOptions() {
   return {
@@ -107,7 +113,7 @@ export function applyStandaloneWeightMatchResult(state, weightMatchResult, final
 }
 
 function supportMapperRows(state) {
-  return state.supportTypeMapperConfig || parseSupportTypeMapperConfig({ supportConfigJson: state.supportConfigJson }).mapperRows;
+  return state.supportTypeMapperConfig || SUPPORT_MAPPER_DEFAULTS.map((row) => ({ ...row, aliases: [...row.aliases] }));
 }
 
 export function updateSupportTypeMapperConfig(state, field, value) {
