@@ -78,7 +78,9 @@ function artifacts(result = {}) {
 }
 
 function inputXmlSideLoadMatched(state) {
-  return count(state.manualElementSideloadResult?.matchedSideLoadRows) > 0 || Number(state.result?.diagnostics?.sideLoadMatched || 0) > 0;
+  if (count(state.manualElementSideloadResult?.matchedSideLoadRows) > 0) return true;
+  if (Number(state.result?.diagnostics?.sideLoadMatched || 0) > 0) return true;
+  return state.result?.ok === true && !!text(state.elementSideLoadText);
 }
 
 function modeGaps(state, readiness) {
