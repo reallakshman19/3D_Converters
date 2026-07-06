@@ -41,6 +41,8 @@ export function createXmlCiiAdaptedWorkflowState() {
     manualElementSideloadResult: null,
     manualElementSideloadRunning: false,
     manualElementSideloadWriteBackStatus: '',
+    previewDiagnosticsAuditReport: null,
+    previewDiagnosticsAuditStatus: '',
     masterContext: null,
     importMastersLoading: false,
     importMastersWriteBackStatus: '',
@@ -161,5 +163,14 @@ export function applyStandaloneManualElementSideloadResult(state, manualElementS
     manualElementSideloadWriteBackStatus: 'Manual / side-load options saved into standalone config.',
     supportConfigJson: manualElementSideloadResult?.supportConfigJson || state.supportConfigJson,
     result: null,
+  });
+}
+
+export function applyPreviewDiagnosticsAuditReport(state, previewDiagnosticsAuditReport) {
+  const matched = previewDiagnosticsAuditReport?.summary?.matchedFacts || 0;
+  const rejected = previewDiagnosticsAuditReport?.summary?.rejectedFacts || 0;
+  return updateWorkflowState(state, {
+    previewDiagnosticsAuditReport,
+    previewDiagnosticsAuditStatus: `Preview report built: ${matched} matched, ${rejected} rejected.`,
   });
 }
