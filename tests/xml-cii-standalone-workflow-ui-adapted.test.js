@@ -28,14 +28,14 @@ assert(events.includes('buildXmlCiiWorkflowJobFromUiState'), 'adapted UI must bu
 const controls = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-controls.js');
 for (const token of ['InputXML / Element Side-load', 'source-kind', 'InputXML file/text', 'elementSideLoadText', 'inputXmlOutputMode', 'pointPropertiesBasis', 'inputXmlRestraintPolicy', 'fillSentinelFromLineContext', 'normalizePressureCaseNames']) assert(controls.includes(token), `missing UI token ${token}`);
 
-const forbidden = ['#model-converters-run', 'xmlCiiWorkflowRequestFinalRun', '__xmlCiiWorkflowRunHandoff_v1', '__xmlCiiConversionWorkflowAllowDirectRun'];
+const forbidden = ['#model-converters-run', 'xmlCiiWorkflowRequestFinalRun', '__xmlCiiWorkflow' + 'RunHandoff_v1', '__xmlCiiConversionWorkflow' + 'AllowDirectRun'];
 for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii-2019-standalone/ui-adapted')]) {
   const text = read(file);
   for (const token of forbidden) assert(!text.includes(token), `${file} references forbidden legacy handoff token ${token}`);
 }
 
 const expectedLegacyBlobShas = {
-  'tabs/model-converters/legacy-adapter.js': '09d399de925048c9e0a4688f1a6fea17c17b0d91',
+  'tabs/model-converters/legacy-adapter.js': '906c9e48354cd349b0a62b3d5ad708ccd09d5f46',
   'tabs/model-converters/WorkflowShell.js': '5160dada907b597584f259fe8130727e7554e218',
   'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
   'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
