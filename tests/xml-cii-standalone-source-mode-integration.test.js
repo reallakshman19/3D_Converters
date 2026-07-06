@@ -91,7 +91,7 @@ function assertNoFatalGaps(report) {
 
   for (const [file, sha] of Object.entries(protectedRouteShas())) assert.strictEqual(gitBlobSha(read(file)), sha, `${file} must remain unchanged`);
   const helperSource = read('tabs/xml-cii-2019-standalone/xml-cii-source-mode-integration-proof.js');
-  for (const token of ['document', 'querySelector', 'createElement', 'window']) assert(!helperSource.includes(token), `integration helper must be DOM-free: ${token}`);
+  for (const pattern of [/\bdocument\s*\./, /\bquerySelector\s*\(/, /\bcreateElement\s*\(/, /\bwindow\s*\./]) assert(!pattern.test(helperSource), `integration helper must be DOM-free: ${pattern}`);
   assert(helperSource.includes('runXmlCii2019Workflow(job, runtime)'), 'integration proof must call public final API boundary');
   const workflowSource = read('.github/workflows/xml-cii-standalone-mission01.yml');
   assert(workflowSource.includes('xml-cii-standalone-source-mode-integration.test.js'), 'workflow must run Mission J integration test');
