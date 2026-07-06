@@ -46,8 +46,4 @@ jobs:
       - name: Retry GitHub Pages deploy
         if: steps.deployment.outcome == 'failure'
         id: deployment_retry
-        continue-on-error: true
         uses: actions/deploy-pages@v4
-      - name: Fail if GitHub Pages deploy did not succeed
-        if: steps.deployment.outcome != 'success' && steps.deployment_retry.outcome != 'success'
-        run: exit 1
