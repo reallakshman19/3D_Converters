@@ -2,6 +2,7 @@ import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
 import { createElement, createPre, appendLabeledControl, createOption } from './xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
 import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js';
+import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -29,6 +30,7 @@ export function renderImportPanel(card, state) {
   renderSourceControls(card, state);
   renderSourceTextControl(card, state);
   renderStagedJsonControl(card, state);
+  renderStandaloneImportMastersPanel(card, state);
 }
 
 export function renderJsonTracePanel(card, state) {
@@ -74,6 +76,7 @@ export function renderPreviewPanel(card, state) {
     stagedJsonFile: state.stagedJsonFile?.name || null,
     sourceTextBytes: String(state.sourceText || '').length,
     elementSideLoadBytes: String(state.elementSideLoadText || '').length,
+    masterRowCounts: state.masterContext?.rowCounts || null,
     options: state.options,
   }, null, 2)));
 }

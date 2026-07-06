@@ -38,6 +38,9 @@ jobs:
       - name: Run standalone workflow API checks
         run: node tests/xml-cii-standalone-workflow-api.test.js
 
+      - name: Run standalone Import Masters checks
+        run: node tests/xml-cii-standalone-import-masters.test.js
+
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
 
