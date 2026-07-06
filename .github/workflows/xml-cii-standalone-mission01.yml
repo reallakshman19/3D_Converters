@@ -41,6 +41,9 @@ jobs:
       - name: Run standalone Import Masters checks
         run: node tests/xml-cii-standalone-import-masters.test.js
 
+      - name: Run standalone Regex Tester checks
+        run: node tests/xml-cii-standalone-regex-tester.test.js
+
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
 

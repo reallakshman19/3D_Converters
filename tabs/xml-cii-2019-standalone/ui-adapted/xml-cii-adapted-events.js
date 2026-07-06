@@ -1,13 +1,15 @@
 import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api.js';
 import { prepareStandaloneImportMasters } from '../xml-cii-master-context.js';
-import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
+import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
+import { buildXmlCiiWorkflowJobFromUiState, readTextFile } from '../xml-cii-workflow-ui-adapter.js';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
-import { applyStandaloneImportMastersContext, clearWorkflowResult, resetWorkflowState, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { applyStandaloneImportMastersContext, applyStandaloneRegexTesterResult, clearWorkflowResult, resetWorkflowState, updateRegexTesterConfig, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
   bindSourceEvents(container, stateRef, render);
   bindOptionEvents(container, stateRef, render);
+  bindRegexEvents(container, stateRef, render);
   bindActionEvents(container, stateRef, render);
 }
 
@@ -52,12 +54,35 @@ export function bindOptionEvents(container, stateRef, render) {
   onChange(container, 'output-mode', (value) => patchOptions(stateRef, { outputMode: value }));
 }
 
+export function bindRegexEvents(container, stateRef, render) {
+  container.querySelectorAll('[data-field^="regex-"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      stateRef.current = updateRegexTesterConfig(stateRef.current, input.dataset.field, input.value);
+    });
+  });
+}
+
 export function bindActionEvents(container, stateRef, render) {
+  onClick(container, 'test-regex', () => testRegexFromUi(stateRef, render, false));
+  onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'load-import-masters', () => loadImportMastersFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   onClick(container, 'download-enriched', () => downloadArtifact(stateRef.current.result, 'enriched'));
   onClick(container, 'download-cii', () => downloadArtifact(stateRef.current.result, 'cii'));
   onClick(container, 'clear', () => replaceState(stateRef, resetWorkflowState(), render));
+}
+
+export async function testRegexFromUi(stateRef, render, save) {
+  stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true });
+  render();
+  const sourceText = await sourceTextFromState(stateRef.current);
+  const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig });
+  stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false });
+  render();
+}
+
+export async function sourceTextFromState(state) {
+  return await readTextFile(state.sourceFile) || String(state.sourceText || '');
 }
 
 export async function loadImportMastersFromUi(stateRef, render) {

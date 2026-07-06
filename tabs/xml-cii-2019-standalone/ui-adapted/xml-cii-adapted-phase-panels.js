@@ -3,6 +3,7 @@ import { createElement, createPre, appendLabeledControl, createOption } from './
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
 import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js';
 import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js';
+import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -14,7 +15,7 @@ export function renderActivePhase(root, state) {
 }
 
 export function renderPhaseBody(card, phaseId, state) {
-  if (phaseId === 'regex') return renderXmlOptionsPanel(card, state);
+  if (phaseId === 'regex') return renderRegexPanel(card, state);
   if (phaseId === 'import-masters') return renderImportPanel(card, state);
   if (phaseId === 'json-trace') return renderJsonTracePanel(card, state);
   if (phaseId === 'preview') return renderPreviewPanel(card, state);
@@ -24,6 +25,12 @@ export function renderPhaseBody(card, phaseId, state) {
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, state);
   if (phaseId === 'config') return renderConfigPanel(card, state);
   return renderCustomInputPanel(card, state);
+}
+
+export function renderRegexPanel(card, state) {
+  renderSourceControls(card, state);
+  renderSourceTextControl(card, state);
+  renderStandaloneRegexTesterPanel(card, state);
 }
 
 export function renderImportPanel(card, state) {
@@ -77,6 +84,7 @@ export function renderPreviewPanel(card, state) {
     sourceTextBytes: String(state.sourceText || '').length,
     elementSideLoadBytes: String(state.elementSideLoadText || '').length,
     masterRowCounts: state.masterContext?.rowCounts || null,
+    regexMatches: state.regexTesterResult?.matchedRows?.length || null,
     options: state.options,
   }, null, 2)));
 }
