@@ -54,7 +54,7 @@ class SimpleElement { constructor(name) { this.nodeName = name; this.localName =
 class SimpleDocument { constructor(rootElement) { this.documentElement = rootElement; } createElement(name) { return new SimpleElement(name); } querySelector() { return null; } getElementsByTagName(name) { const out = []; const wanted = String(name).toUpperCase(); const visit = (node) => { if (String(node.localName || node.nodeName).toUpperCase() === wanted) out.push(node); for (const child of node.children || []) visit(child); }; if (this.documentElement) visit(this.documentElement); return out; } }
 function decodeEntities(value) { return String(value).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'); }
 function parseAttrs(attrText, element) { String(attrText || '').replace(/([A-Za-z_][\w:.-]*)\s*=\s*"([^"]*)"/g, (_, key, value) => { element.setAttribute(key, decodeEntities(value)); return ''; }); }
-function parseXml(xmlText) { const stack = []; let rootElement = null; for (const token of String(xmlText).replace(/^\s*<\?xml[^>]*>\s*/i, '').match(/<[^>]+>|[^<]+/g) || []) { if (!token.trim() || token.startsWith('<?') || token.startsWith('<!--')) continue; if (token.startsWith('</')) { stack.pop(); continue; } if (token.startsWith('<')) { const selfClosing = /\/?>\s*$/.test(token) && /\/\s*>$/.test(token); const body = token.slice(1, selfClosing ? -2 : -1).trim(); const name = body.match(/^([^\s/>]+)/)?.[1]; if (!name) continue; const el = new SimpleElement(name); parseAttrs(body.slice(name.length), el); if (!rootElement) rootElement = el; if (stack.length) stack[stack.length - 1].appendChild(el); if (!selfClosing) stack.push(el); } else if (stack.length) stack[stack.length - 1]._textContent += decodeEntities(token); } return new SimpleDocument(rootElement); }
+function parseXml(xmlText) { const stack = []; let rootElement = null; for (const token of String(xmlText).replace(/^\s*<\?xml[^>]*>\s*/i, '').match(/<[^>]+>|[^<]+/g) || []) { if (!token.trim() || token.startsWith('<?') || token.startsWith('<!--')) continue; if (token.startsWith('</')) { stack.pop(); continue; } if (token.startsWith('<')) { const selfClosing = /\/\s*>$/.test(token); const body = token.slice(1, selfClosing ? -2 : -1).trim(); const name = body.match(/^([^\s/>]+)/)?.[1]; if (!name) continue; const el = new SimpleElement(name); parseAttrs(body.slice(name.length), el); if (!rootElement) rootElement = el; if (stack.length) stack[stack.length - 1].appendChild(el); if (!selfClosing) stack.push(el); } else if (stack.length) stack[stack.length - 1]._textContent += decodeEntities(token); } return new SimpleDocument(rootElement); }
 function escapeText(value) { return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function escapeAttr(value) { return escapeText(value).replace(/"/g, '&quot;'); }
 function serializeNode(node) { const attrs = Array.from(node.attributes.entries()).map(([name, value]) => ` ${name}="${escapeAttr(value)}"`).join(''); const body = `${node._textContent ? escapeText(node._textContent) : ''}${node.children.map(serializeNode).join('')}`; return body ? `<${node.nodeName}${attrs}>${body}</${node.nodeName}>` : `<${node.nodeName}${attrs}/>`; }
@@ -67,8 +67,8 @@ function protectedRouteShas() {
     'tabs/model-converters/WorkflowShell.js': '5160dada907b597584f259fe8130727e7554e218',
     'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
     'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
-    'converters/py-worker.js': '70f390ca861d44967c41cc9c19c7f1757a9c6296',
-    'converters/invocation-builder.js': '33e2ec1b9f4fb3f5a39e25bcc9dd0fc33808ba26',
+    'converters/py-worker.js': 'caeeaf2b21c15dd0bef7a108d1ce54018d437ed4',
+    'converters/invocation-builder.js': 'c0df32bcaec0b82120cb53c621015e88c1ba185b',
   };
 }
 
