@@ -11,7 +11,7 @@ export const XML_CII_WORKFLOW_PHASES = Object.freeze([
   { id: 'preview', label: '4 Preview', summary: 'Preview selected source, side-load, options, and config state.' },
   { id: 'diagnostics', label: '5 Diagnostics', summary: 'Review normalized workflow diagnostics and warnings.' },
   { id: 'matched-audit', label: '8 Matched Audit', summary: 'Review matched and rejected standalone facts with latest run state.' },
-  { id: 'weight-match', label: '5A Weight Match', summary: 'Review weight/material/rating readiness through config inputs.' },
+  { id: 'weight-match', label: '5A Weight Match / 9 Weight Match', summary: 'Review zero/missing weights, candidate scores, overrides, and finalized weight matches.' },
   { id: 'run', label: '6 Run', summary: 'Call runXmlCii2019Workflow and collect generated artifacts.' },
   { id: 'support-mapper', label: '7 Support Types', summary: 'Review DTXR-derived support and restraint mapping rules.' },
   { id: 'config', label: '8 Config', summary: 'Edit support/config JSON passed to the standalone API.' },
