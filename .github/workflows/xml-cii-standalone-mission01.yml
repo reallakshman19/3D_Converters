@@ -53,6 +53,9 @@ jobs:
       - name: Run standalone Preview Diagnostics Audit checks
         run: node tests/xml-cii-standalone-preview-diagnostics-audit.test.js
 
+      - name: Run standalone WM checks
+        run: node tests/xml-cii-standalone-weight-match.test.js
+
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
 
