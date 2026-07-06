@@ -30,6 +30,7 @@ export function createXmlCiiAdaptedWorkflowState() {
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
     weightMatchResult: null, weightMatchRunning: false, weightMatchStatus: '', weightMatchOverridesJson: '{}',
     supportTypeMapperConfig: null, supportTypeMapperResult: null, supportTypeMapperRunning: false, supportTypeMapperStatus: '', supportTypeMapperTestInput: '',
+    outputRunReadinessReport: null, outputRunReadinessStatus: '',
     masterContext: null, importMastersLoading: false, importMastersWriteBackStatus: '', options: createDefaultWorkflowOptions(), running: false, result: null,
   };
 }
@@ -39,7 +40,7 @@ export function updateWorkflowState(state, patch = {}) {
 }
 
 export function updateWorkflowOptions(state, optionPatch = {}) { return { ...state, options: { ...state.options, ...optionPatch } }; }
-export function clearWorkflowResult(state) { return updateWorkflowState(state, { result: null }); }
+export function clearWorkflowResult(state) { return updateWorkflowState(state, { result: null, outputRunReadinessReport: null }); }
 export function resetWorkflowState() { return createXmlCiiAdaptedWorkflowState(); }
 
 function totalMasterRows(masterContext) {
@@ -139,4 +140,9 @@ export function applyStandaloneSupportTypeMapperResult(state, supportTypeMapperR
     supportConfigJson: save ? (supportTypeMapperResult?.supportConfigJson || state.supportConfigJson) : state.supportConfigJson,
     supportTypeMapperConfig: supportTypeMapperResult?.mapperRows || state.supportTypeMapperConfig,
   });
+}
+
+export function applyStandaloneOutputRunReadiness(state, outputRunReadinessReport) {
+  const blocks = outputRunReadinessReport?.summary?.blockingCount || 0;
+  return updateWorkflowState(state, { outputRunReadinessReport, outputRunReadinessStatus: `Output / Run checklist built with ${blocks} blocking item(s).` });
 }
