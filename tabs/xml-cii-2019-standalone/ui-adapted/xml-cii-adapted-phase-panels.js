@@ -6,6 +6,7 @@ import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-mas
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 import { renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
+import { renderStandaloneDiagnosticsReportPanel, renderStandaloneMatchedAuditPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -21,8 +22,9 @@ export function renderPhaseBody(card, phaseId, state) {
   if (phaseId === 'import-masters') return renderImportPanel(card, state);
   if (phaseId === 'json-trace') return renderJsonTracePanel(card, state);
   if (phaseId === 'manual-element') return renderManualElementPanel(card, state);
-  if (phaseId === 'preview') return renderPreviewPanel(card, state);
-  if (phaseId === 'diagnostics') return renderDiagnosticsPanel(card, state);
+  if (phaseId === 'preview') return renderStandalonePreviewReportPanel(card, state);
+  if (phaseId === 'diagnostics') return renderStandaloneDiagnosticsReportPanel(card, state);
+  if (phaseId === 'matched-audit') return renderStandaloneMatchedAuditPanel(card, state);
   if (phaseId === 'weight-match') return renderWeightMatchPanel(card);
   if (phaseId === 'run') return renderRunPanel(card, state);
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, state);
@@ -86,27 +88,6 @@ export function renderSplitControl(card, state) {
   const selected = value === true ? 'true' : value === false ? 'false' : 'null';
   split.dataset.field = 'split-condensed';
   split.append(createOption('null', 'config/default', selected === 'null'), createOption('true', 'force true', selected === 'true'), createOption('false', 'force false', selected === 'false'));
-}
-
-export function renderPreviewPanel(card, state) {
-  card.appendChild(createPre(JSON.stringify({
-    sourceKind: state.sourceKind,
-    sourceFile: state.sourceFile?.name || null,
-    stagedJsonFile: state.stagedJsonFile?.name || null,
-    sourceTextBytes: String(state.sourceText || '').length,
-    elementSideLoadBytes: String(state.elementSideLoadText || '').length,
-    masterRowCounts: state.masterContext?.rowCounts || null,
-    regexMatches: state.regexTesterResult?.matchedRows?.length || null,
-    resolverIndexStats: state.resolverJsonTraceResult?.indexStats || null,
-    manualMatched: state.manualElementSideloadResult?.matchedFacts?.length || null,
-    sideLoadMatched: state.manualElementSideloadResult?.matchedSideLoadRows?.length || null,
-    options: state.options,
-  }, null, 2)));
-}
-
-export function renderDiagnosticsPanel(card, state) {
-  const text = state.result?.diagnostics ? JSON.stringify(state.result.diagnostics, null, 2) : 'No diagnostics yet.';
-  card.appendChild(createPre(text));
 }
 
 export function renderWeightMatchPanel(card) {
