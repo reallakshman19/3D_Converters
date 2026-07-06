@@ -175,6 +175,27 @@ class ElementResolved:
     sifs: list[SifAux]
     name_from: str = ""
     name_to: str = ""
+    # REL(N1,98) items 13-18, 19-27, 31-32, 36 per the CAESAR II neutral file
+    # spec (Basic Element Data / #$ ELEMENTS). Each defaults to 0.0, matching
+    # "Non-specified real values are assigned a value of 0.0 by this interface."
+    temperature4: float = 0.0
+    temperature5: float = 0.0
+    temperature6: float = 0.0
+    temperature7: float = 0.0
+    temperature8: float = 0.0
+    temperature9: float = 0.0
+    pressure1: float = 0.0
+    pressure2: float = 0.0
+    pressure3: float = 0.0
+    pressure4: float = 0.0
+    pressure5: float = 0.0
+    pressure6: float = 0.0
+    pressure7: float = 0.0
+    pressure8: float = 0.0
+    pressure9: float = 0.0
+    insulation_density: float = 0.0
+    fluid_density: float = 0.0
+    hydro_pressure: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -446,6 +467,26 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
     carry_temperature2 = defaults.temperature2
     carry_temperature3 = defaults.temperature3
     carry_material: float | None = None
+    # REL items 13-18 (temp cases 4-9), 19-27 (pressure cases 1-9), 31-32
+    # (insulation/fluid density), 36 (hydro pressure) - default 0.0 per spec.
+    carry_temperature4 = 0.0
+    carry_temperature5 = 0.0
+    carry_temperature6 = 0.0
+    carry_temperature7 = 0.0
+    carry_temperature8 = 0.0
+    carry_temperature9 = 0.0
+    carry_pressure1 = 0.0
+    carry_pressure2 = 0.0
+    carry_pressure3 = 0.0
+    carry_pressure4 = 0.0
+    carry_pressure5 = 0.0
+    carry_pressure6 = 0.0
+    carry_pressure7 = 0.0
+    carry_pressure8 = 0.0
+    carry_pressure9 = 0.0
+    carry_insulation_density = 0.0
+    carry_fluid_density = 0.0
+    carry_hydro_pressure = 0.0
 
     parsed_elements: list[ElementResolved] = []
     parsed_hangers: list[HangerAux] = []
@@ -457,6 +498,30 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
         t1_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C1"), "PIPINGELEMENT/TEMP_EXP_C1", SENTINEL_MISSING)
         t2_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C2"), "PIPINGELEMENT/TEMP_EXP_C2", SENTINEL_MISSING)
         t3_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C3"), "PIPINGELEMENT/TEMP_EXP_C3", SENTINEL_MISSING)
+        t4_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C4"), "PIPINGELEMENT/TEMP_EXP_C4", SENTINEL_MISSING)
+        t5_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C5"), "PIPINGELEMENT/TEMP_EXP_C5", SENTINEL_MISSING)
+        t6_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C6"), "PIPINGELEMENT/TEMP_EXP_C6", SENTINEL_MISSING)
+        t7_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C7"), "PIPINGELEMENT/TEMP_EXP_C7", SENTINEL_MISSING)
+        t8_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C8"), "PIPINGELEMENT/TEMP_EXP_C8", SENTINEL_MISSING)
+        t9_raw = _to_float_or_default(element.attrib.get("TEMP_EXP_C9"), "PIPINGELEMENT/TEMP_EXP_C9", SENTINEL_MISSING)
+        p1_raw = _to_float_or_default(element.attrib.get("PRESSURE_C1"), "PIPINGELEMENT/PRESSURE_C1", SENTINEL_MISSING)
+        p2_raw = _to_float_or_default(element.attrib.get("PRESSURE_C2"), "PIPINGELEMENT/PRESSURE_C2", SENTINEL_MISSING)
+        p3_raw = _to_float_or_default(element.attrib.get("PRESSURE_C3"), "PIPINGELEMENT/PRESSURE_C3", SENTINEL_MISSING)
+        p4_raw = _to_float_or_default(element.attrib.get("PRESSURE_C4"), "PIPINGELEMENT/PRESSURE_C4", SENTINEL_MISSING)
+        p5_raw = _to_float_or_default(element.attrib.get("PRESSURE_C5"), "PIPINGELEMENT/PRESSURE_C5", SENTINEL_MISSING)
+        p6_raw = _to_float_or_default(element.attrib.get("PRESSURE_C6"), "PIPINGELEMENT/PRESSURE_C6", SENTINEL_MISSING)
+        p7_raw = _to_float_or_default(element.attrib.get("PRESSURE_C7"), "PIPINGELEMENT/PRESSURE_C7", SENTINEL_MISSING)
+        p8_raw = _to_float_or_default(element.attrib.get("PRESSURE_C8"), "PIPINGELEMENT/PRESSURE_C8", SENTINEL_MISSING)
+        p9_raw = _to_float_or_default(element.attrib.get("PRESSURE_C9"), "PIPINGELEMENT/PRESSURE_C9", SENTINEL_MISSING)
+        insul_density_raw = _to_float_or_default(
+            element.attrib.get("INSUL_DENSITY"), "PIPINGELEMENT/INSUL_DENSITY", SENTINEL_MISSING
+        )
+        fluid_density_raw = _to_float_or_default(
+            element.attrib.get("FLUID_DENSITY"), "PIPINGELEMENT/FLUID_DENSITY", SENTINEL_MISSING
+        )
+        hydro_pressure_raw = _to_float_or_default(
+            element.attrib.get("HYDRO_PRESSURE"), "PIPINGELEMENT/HYDRO_PRESSURE", SENTINEL_MISSING
+        )
         material_raw = _to_float_or_default(
             element.attrib.get("MATERIAL_NUM"),
             "PIPINGELEMENT/MATERIAL_NUM",
@@ -477,6 +542,42 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
             carry_temperature2 = t2_raw
         if not _is_missing(t3_raw):
             carry_temperature3 = t3_raw
+        if not _is_missing(t4_raw):
+            carry_temperature4 = t4_raw
+        if not _is_missing(t5_raw):
+            carry_temperature5 = t5_raw
+        if not _is_missing(t6_raw):
+            carry_temperature6 = t6_raw
+        if not _is_missing(t7_raw):
+            carry_temperature7 = t7_raw
+        if not _is_missing(t8_raw):
+            carry_temperature8 = t8_raw
+        if not _is_missing(t9_raw):
+            carry_temperature9 = t9_raw
+        if not _is_missing(p1_raw):
+            carry_pressure1 = p1_raw
+        if not _is_missing(p2_raw):
+            carry_pressure2 = p2_raw
+        if not _is_missing(p3_raw):
+            carry_pressure3 = p3_raw
+        if not _is_missing(p4_raw):
+            carry_pressure4 = p4_raw
+        if not _is_missing(p5_raw):
+            carry_pressure5 = p5_raw
+        if not _is_missing(p6_raw):
+            carry_pressure6 = p6_raw
+        if not _is_missing(p7_raw):
+            carry_pressure7 = p7_raw
+        if not _is_missing(p8_raw):
+            carry_pressure8 = p8_raw
+        if not _is_missing(p9_raw):
+            carry_pressure9 = p9_raw
+        if not _is_missing(insul_density_raw):
+            carry_insulation_density = insul_density_raw
+        if not _is_missing(fluid_density_raw):
+            carry_fluid_density = fluid_density_raw
+        if not _is_missing(hydro_pressure_raw):
+            carry_hydro_pressure = hydro_pressure_raw
         if not _is_missing(material_raw):
             carry_material = material_raw
         material_value = carry_material if carry_material is not None else None
@@ -512,6 +613,24 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
                 sifs=_parse_sifs(element),
                 name_from=_safe_text(element.attrib.get("FROM_NAME")),
                 name_to=_safe_text(element.attrib.get("TO_NAME")),
+                temperature4=carry_temperature4,
+                temperature5=carry_temperature5,
+                temperature6=carry_temperature6,
+                temperature7=carry_temperature7,
+                temperature8=carry_temperature8,
+                temperature9=carry_temperature9,
+                pressure1=carry_pressure1,
+                pressure2=carry_pressure2,
+                pressure3=carry_pressure3,
+                pressure4=carry_pressure4,
+                pressure5=carry_pressure5,
+                pressure6=carry_pressure6,
+                pressure7=carry_pressure7,
+                pressure8=carry_pressure8,
+                pressure9=carry_pressure9,
+                insulation_density=carry_insulation_density,
+                fluid_density=carry_fluid_density,
+                hydro_pressure=carry_hydro_pressure,
             )
         )
 
@@ -2239,10 +2358,21 @@ def _build_cii_text(
     if not isinstance(elements_cfg, dict):
         raise ValueError("Invalid 2019 layout config: 'elements' must be an object.")
 
-    row3 = _row(list(elements_cfg.get("row3", ["0.000000"] * 6)))
-    row4 = _row(list(elements_cfg.get("row4", ["0.000000"] * 6)))
-    row5 = _row(list(elements_cfg.get("row5", ["0.000000"] * 6)))
-    row6 = _row(list(elements_cfg.get("row6", ["0.000000"] * 6)))
+    # row3/row4 = REL items 13-24 (temp cases 4-9, pressure cases 1-6) - fully
+    # per-element now (see ElementResolved.temperature4-9/pressure1-6). row5/row6
+    # = REL items 25-36; only the positions with an XML source (pressure cases
+    # 7-9, insulation/fluid density, hydro pressure) are per-element - the rest
+    # (Elastic Modulus cold, Poisson's Ratio, Pipe Density, Mill Tolerances,
+    # Seam Weld) keep the existing config-template fallback, since no PIPINGELEMENT
+    # attribute supplies them.
+    def _padded_cfg(key: str, length: int) -> list[str]:
+        values = [str(v) for v in elements_cfg.get(key, [])]
+        if len(values) < length:
+            values = values + ["0.000000"] * (length - len(values))
+        return values
+
+    row5_cfg = _padded_cfg("row5", 6)
+    row6_cfg = _padded_cfg("row6", 6)
     row7 = _row(list(elements_cfg.get("row7", ["0.000000"] * 6)))
     row8 = _row(list(elements_cfg.get("row8", ["0.000000"] * 6)))
     row9 = _row(list(elements_cfg.get("row9", ["0.000000"] * 5)))
@@ -2294,6 +2424,46 @@ def _build_cii_text(
                 _format_sig6(element.temperature1),
                 _format_sig6(element.temperature2),
                 _format_sig6(element.temperature3),
+            ]
+        )
+        row3 = _row(
+            [
+                _format_sig6(element.temperature4),
+                _format_sig6(element.temperature5),
+                _format_sig6(element.temperature6),
+                _format_sig6(element.temperature7),
+                _format_sig6(element.temperature8),
+                _format_sig6(element.temperature9),
+            ]
+        )
+        row4 = _row(
+            [
+                _format_sig6(element.pressure1),
+                _format_sig6(element.pressure2),
+                _format_sig6(element.pressure3),
+                _format_sig6(element.pressure4),
+                _format_sig6(element.pressure5),
+                _format_sig6(element.pressure6),
+            ]
+        )
+        row5 = _row(
+            [
+                _format_sig6(element.pressure7),
+                _format_sig6(element.pressure8),
+                _format_sig6(element.pressure9),
+                row5_cfg[3],
+                row5_cfg[4],
+                row5_cfg[5],
+            ]
+        )
+        row6 = _row(
+            [
+                _format_sig6(element.insulation_density),
+                _format_sig6(element.fluid_density),
+                row6_cfg[2],
+                row6_cfg[3],
+                row6_cfg[4],
+                _format_sig6(element.hydro_pressure),
             ]
         )
         line10 = ""
