@@ -50,6 +50,9 @@ jobs:
       - name: Run standalone Manual Element Side-load checks
         run: node tests/xml-cii-standalone-manual-element-sideload.test.js
 
+      - name: Run standalone Preview Diagnostics Audit checks
+        run: node tests/xml-cii-standalone-preview-diagnostics-audit.test.js
+
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
 
