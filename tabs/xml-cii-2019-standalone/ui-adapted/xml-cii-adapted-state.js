@@ -1,6 +1,7 @@
 import { defaultXmlCii2019SupportConfigJson } from '../xml-cii-standalone-default-config.js';
 import { createDefaultRegexTesterConfig } from '../xml-cii-regex-tester.js';
 import { createDefaultResolverJsonTraceConfig } from '../xml-cii-resolver-json-trace.js';
+import { createDefaultManualElementSideloadConfig } from '../xml-cii-manual-element-sideload.js';
 import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
 
 export function createDefaultWorkflowOptions() {
@@ -36,6 +37,10 @@ export function createXmlCiiAdaptedWorkflowState() {
     resolverJsonTraceResult: null,
     resolverJsonTraceRunning: false,
     resolverJsonTraceWriteBackStatus: '',
+    manualElementSideloadConfig: createDefaultManualElementSideloadConfig(),
+    manualElementSideloadResult: null,
+    manualElementSideloadRunning: false,
+    manualElementSideloadWriteBackStatus: '',
     masterContext: null,
     importMastersLoading: false,
     importMastersWriteBackStatus: '',
@@ -137,6 +142,24 @@ export function applyStandaloneResolverJsonTraceResult(state, resolverJsonTraceR
     resolverJsonTraceRunning: false,
     resolverJsonTraceWriteBackStatus: 'Resolver config saved into standalone config.',
     supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson,
+    result: null,
+  });
+}
+
+export function updateManualElementSideloadConfig(state, field, value) {
+  const cfg = { ...state.manualElementSideloadConfig };
+  if (field === 'manual-policy') cfg.policy = value;
+  if (field === 'manual-tolerance') cfg.tolerance = Number(value || 0);
+  if (field === 'manual-restraints-text') cfg.manualText = value;
+  return updateWorkflowState(state, { manualElementSideloadConfig: cfg });
+}
+
+export function applyStandaloneManualElementSideloadResult(state, manualElementSideloadResult) {
+  return updateWorkflowState(state, {
+    manualElementSideloadResult,
+    manualElementSideloadRunning: false,
+    manualElementSideloadWriteBackStatus: 'Manual / side-load options saved into standalone config.',
+    supportConfigJson: manualElementSideloadResult?.supportConfigJson || state.supportConfigJson,
     result: null,
   });
 }

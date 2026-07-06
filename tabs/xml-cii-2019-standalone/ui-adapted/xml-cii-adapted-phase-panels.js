@@ -5,6 +5,7 @@ import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, 
 import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js';
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
+import { renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -19,6 +20,7 @@ export function renderPhaseBody(card, phaseId, state) {
   if (phaseId === 'regex') return renderRegexPanel(card, state);
   if (phaseId === 'import-masters') return renderImportPanel(card, state);
   if (phaseId === 'json-trace') return renderJsonTracePanel(card, state);
+  if (phaseId === 'manual-element') return renderManualElementPanel(card, state);
   if (phaseId === 'preview') return renderPreviewPanel(card, state);
   if (phaseId === 'diagnostics') return renderDiagnosticsPanel(card, state);
   if (phaseId === 'weight-match') return renderWeightMatchPanel(card);
@@ -47,6 +49,13 @@ export function renderJsonTracePanel(card, state) {
   renderStagedJsonControl(card, state);
   renderInputXmlControls(card, state);
   renderStandaloneResolverJsonTracePanel(card, state);
+}
+
+export function renderManualElementPanel(card, state) {
+  renderSourceControls(card, state);
+  renderSourceTextControl(card, state);
+  renderInputXmlControls(card, state);
+  renderStandaloneManualElementSideloadPanel(card, state);
 }
 
 export function renderCustomInputPanel(card, state) {
@@ -89,6 +98,8 @@ export function renderPreviewPanel(card, state) {
     masterRowCounts: state.masterContext?.rowCounts || null,
     regexMatches: state.regexTesterResult?.matchedRows?.length || null,
     resolverIndexStats: state.resolverJsonTraceResult?.indexStats || null,
+    manualMatched: state.manualElementSideloadResult?.matchedFacts?.length || null,
+    sideLoadMatched: state.manualElementSideloadResult?.matchedSideLoadRows?.length || null,
     options: state.options,
   }, null, 2)));
 }

@@ -47,6 +47,9 @@ jobs:
       - name: Run standalone Resolver JSON Trace checks
         run: node tests/xml-cii-standalone-resolver-json-trace.test.js
 
+      - name: Run standalone Manual Element Side-load checks
+        run: node tests/xml-cii-standalone-manual-element-sideload.test.js
+
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
 
