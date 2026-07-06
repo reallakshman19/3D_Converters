@@ -25,9 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          show-progress: false
+        run: |
+          git init .
+          git remote add origin https://github.com/reallaksh19/3D_Converters.git
+          git fetch --depth=1 origin "${{ github.sha }}"
+          git checkout --force FETCH_HEAD
 
       - name: Run standalone Source Mode Integration checks
         run: node tests/xml-cii-standalone-source-mode-integration.test.js
