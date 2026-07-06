@@ -10,6 +10,7 @@ export const XML_CII_WORKFLOW_PHASES = Object.freeze([
   { id: 'manual-element', label: '5 Manual / Element Side-load', summary: 'Resolve XML manual restraints and InputXML element side-load rows.' },
   { id: 'preview', label: '4 Preview', summary: 'Preview selected source, side-load, options, and config state.' },
   { id: 'diagnostics', label: '5 Diagnostics', summary: 'Review normalized workflow diagnostics and warnings.' },
+  { id: 'matched-audit', label: '8 Matched Audit', summary: 'Review matched and rejected standalone facts with latest run state.' },
   { id: 'weight-match', label: '5A Weight Match', summary: 'Review weight/material/rating readiness through config inputs.' },
   { id: 'run', label: '6 Run', summary: 'Call runXmlCii2019Workflow and collect generated artifacts.' },
   { id: 'support-mapper', label: '7 Support Types', summary: 'Review DTXR-derived support and restraint mapping rules.' },
