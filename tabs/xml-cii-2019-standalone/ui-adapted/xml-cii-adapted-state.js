@@ -1,5 +1,6 @@
 import { defaultXmlCii2019SupportConfigJson } from '../xml-cii-standalone-default-config.js';
 import { createDefaultRegexTesterConfig } from '../xml-cii-regex-tester.js';
+import { createDefaultResolverJsonTraceConfig } from '../xml-cii-resolver-json-trace.js';
 import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
 
 export function createDefaultWorkflowOptions() {
@@ -31,6 +32,10 @@ export function createXmlCiiAdaptedWorkflowState() {
     regexTesterResult: null,
     regexTesterRunning: false,
     regexTesterWriteBackStatus: '',
+    resolverJsonTraceConfig: createDefaultResolverJsonTraceConfig(),
+    resolverJsonTraceResult: null,
+    resolverJsonTraceRunning: false,
+    resolverJsonTraceWriteBackStatus: '',
     masterContext: null,
     importMastersLoading: false,
     importMastersWriteBackStatus: '',
@@ -51,13 +56,7 @@ export function updateWorkflowState(state, patch = {}) {
 }
 
 export function updateWorkflowOptions(state, optionPatch = {}) {
-  return {
-    ...state,
-    options: {
-      ...state.options,
-      ...optionPatch,
-    },
-  };
+  return { ...state, options: { ...state.options, ...optionPatch } };
 }
 
 export function clearWorkflowResult(state) {
@@ -74,10 +73,9 @@ function totalMasterRows(masterContext) {
 }
 
 export function applyStandaloneImportMastersContext(state, masterContext) {
-  const supportConfigJson = masterContext?.supportConfigJson || state.supportConfigJson;
   return updateWorkflowState(state, {
     masterContext,
-    supportConfigJson,
+    supportConfigJson: masterContext?.supportConfigJson || state.supportConfigJson,
     importMastersLoading: false,
     importMastersWriteBackStatus: `Loaded ${totalMasterRows(masterContext)} master rows into standalone config.`,
     result: null,
@@ -121,6 +119,24 @@ export function applyStandaloneRegexTesterResult(state, regexTesterResult) {
     regexTesterRunning: false,
     regexTesterWriteBackStatus: 'Regex rules saved into standalone config.',
     supportConfigJson: regexTesterResult?.supportConfigJson || state.supportConfigJson,
+    result: null,
+  });
+}
+
+export function updateResolverJsonTraceConfig(state, value) {
+  try {
+    return updateWorkflowState(state, { resolverJsonTraceConfig: JSON.parse(String(value || '{}')) });
+  } catch {
+    return updateWorkflowState(state, { resolverJsonTraceWriteBackStatus: 'Resolver config JSON is invalid.' });
+  }
+}
+
+export function applyStandaloneResolverJsonTraceResult(state, resolverJsonTraceResult) {
+  return updateWorkflowState(state, {
+    resolverJsonTraceResult,
+    resolverJsonTraceRunning: false,
+    resolverJsonTraceWriteBackStatus: 'Resolver config saved into standalone config.',
+    supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson,
     result: null,
   });
 }

@@ -4,6 +4,7 @@ import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
 import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js';
 import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js';
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js';
+import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -42,8 +43,10 @@ export function renderImportPanel(card, state) {
 
 export function renderJsonTracePanel(card, state) {
   renderSourceControls(card, state);
+  renderSourceTextControl(card, state);
   renderStagedJsonControl(card, state);
   renderInputXmlControls(card, state);
+  renderStandaloneResolverJsonTracePanel(card, state);
 }
 
 export function renderCustomInputPanel(card, state) {
@@ -85,6 +88,7 @@ export function renderPreviewPanel(card, state) {
     elementSideLoadBytes: String(state.elementSideLoadText || '').length,
     masterRowCounts: state.masterContext?.rowCounts || null,
     regexMatches: state.regexTesterResult?.matchedRows?.length || null,
+    resolverIndexStats: state.resolverJsonTraceResult?.indexStats || null,
     options: state.options,
   }, null, 2)));
 }
