@@ -1,0 +1,122 @@
+const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { pathToFileURL } = require('url');
+
+const root = path.resolve(__dirname, '..');
+
+function copyFile(tempRoot, relPath) {
+  const sourcePath = path.join(root, relPath);
+  const targetPath = path.join(tempRoot, relPath);
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+  fs.copyFileSync(sourcePath, targetPath);
+}
+
+function fixtureFiles() {
+  return [
+    'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-type-mapper.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+  ];
+}
+
+function prepareEsmFixture() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-support-mapper-test-'));
+  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
+  for (const relPath of fixtureFiles()) copyFile(tempRoot, relPath);
+  return tempRoot;
+}
+
+class TestElement {
+  constructor(tag) {
+    this.tagName = tag;
+    this.children = [];
+    this.dataset = {};
+    this.className = '';
+    this.attributes = {};
+    this.value = '';
+    this.type = '';
+    this._text = '';
+  }
+  appendChild(child) { this.children.push(child); return child; }
+  append(...items) { for (const item of items) this.children.push(item); }
+  setAttribute(name, value) { this.attributes[name] = String(value); }
+  get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
+  set textContent(value) { this._text = String(value ?? ''); }
+}
+
+globalThis.document = { createElement: (tag) => new TestElement(tag) };
+
+function hasPreview(result, status, kind) {
+  return result.previewRows.some((row) => row.status === status && (!kind || row.supportKind.includes(kind)));
+}
+
+(async () => {
+  const tempRoot = prepareEsmFixture();
+  const helper = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js')).href);
+  const ui = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-type-mapper.js')).href);
+  const stateApi = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js')).href);
+
+  const xmlResult = helper.runStandaloneSupportTypeMapper({ sourceKind: 'xml', testInput: 'Pipe Rest XRT01\nGuide PG\nUnknown clamp', supportConfigJson: '{}' });
+  assert.strictEqual(xmlResult.mapperRows.length, 4, 'four mapper categories expected');
+  assert(hasPreview(xmlResult, 'matched', 'REST'), 'REST text should match');
+  assert(hasPreview(xmlResult, 'matched', 'GUIDE'), 'GUIDE text should match');
+  assert(hasPreview(xmlResult, 'unmatched'), 'unmatched text should produce diagnostics');
+  assert(xmlResult.diagnostics.some((row) => row.type === 'unmatched-support-text'), 'unmatched diagnostics expected');
+  assert(xmlResult.supportConfigJson.includes('supportTypeMapper'), 'mapper config must write back');
+
+  const inputXmlResult = helper.runStandaloneSupportTypeMapper({
+    sourceKind: 'inputxml',
+    elementSideLoadText: 'ELEMENT 30-40\nDTXR_POS=Directional Anchor On Shoe\nDTXR_PS=Fixed Anchor',
+    supportConfigJson: '{}',
+  });
+  assert(hasPreview(inputXmlResult, 'ambiguous', 'LINESTOP'), 'ambiguous InputXML DTXR text expected');
+  assert(hasPreview(inputXmlResult, 'matched', 'ANCHOR'), 'InputXML fixed anchor text should match ANCHOR');
+  assert(inputXmlResult.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'ambiguous diagnostics expected');
+
+  const rows = helper.createDefaultSupportTypeMapperConfig();
+  rows.find((row) => row.kind === 'REST').aliases.push('Saddle');
+  const edited = helper.runStandaloneSupportTypeMapper({ mapperRows: rows, testInput: 'Saddle support', supportConfigJson: '{}' });
+  assert(hasPreview(edited, 'matched', 'REST'), 'operator alias edit should affect classification');
+  assert(edited.supportConfigJson.includes('Saddle'), 'operator alias edit must serialize to supportConfigJson');
+
+  let state = stateApi.createXmlCiiAdaptedWorkflowState();
+  state = stateApi.updateSupportTypeMapperTestInput(state, 'Line Stop LS');
+  state = stateApi.updateSupportTypeMapperConfig(state, 'support-mapper-aliases-LINESTOP', 'Line Stop\nLS\nHard Stop');
+  const saved = stateApi.applyStandaloneSupportTypeMapperResult(state, helper.runStandaloneSupportTypeMapper({ ...state, mapperRows: state.supportTypeMapperConfig, testInput: state.supportTypeMapperTestInput }), true);
+  assert(saved.supportConfigJson.includes('Hard Stop'), 'state save must write edited mapper rows');
+  assert(saved.supportTypeMapperStatus.includes('saved'), 'state save status expected');
+
+  const card = new TestElement('section');
+  ui.renderStandaloneSupportTypeMapperPanel(card, saved);
+  for (const label of ['REST mapper section', 'GUIDE mapper section', 'LINESTOP mapper section', 'ANCHOR mapper section', 'Test Input / Save to Config', 'CII Support Kind Preview', 'Mapper Diagnostics', 'Raw JSON advanced/debug']) {
+    assert(card.textContent.includes(label), `Support Type Mapper panel missing ${label}`);
+  }
+  assert(card.textContent.includes('Test support mapper'), 'test action expected');
+  assert(card.textContent.includes('Save to Config'), 'save action expected');
+
+  const coreSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js'), 'utf8');
+  for (const token of ['document', 'querySelector', 'createElement', 'window']) assert(!coreSource.includes(token), `core helper must remain DOM-free: ${token}`);
+  const panelsSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'), 'utf8');
+  assert(panelsSource.includes('renderStandaloneSupportTypeMapperPanel'), 'phase panel must render real mapper UI');
+  const eventsSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js'), 'utf8');
+  assert(eventsSource.includes('runStandaloneSupportTypeMapper'), 'events must call mapper helper');
+  assert(eventsSource.includes('save-support-mapper'), 'events must expose save action');
+  const apiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js'), 'utf8');
+  assert(apiSource.includes('export async function runXmlCii2019Workflow'), 'public workflow API boundary must remain exported');
+  const workflowSource = fs.readFileSync(path.join(root, '.github/workflows/xml-cii-standalone-mission01.yml'), 'utf8');
+  assert(workflowSource.includes('xml-cii-standalone-support-type-mapper.test.js'), 'mission workflow must run support mapper checks');
+
+  console.log('XML CII standalone Support Type Mapper checks passed.');
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

@@ -1,5 +1,5 @@
 import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
-import { createElement, createPre, appendLabeledControl, createOption } from './xml-cii-adapted-dom.js';
+import { createElement, appendLabeledControl, createOption } from './xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
 import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js';
 import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js';
@@ -8,6 +8,7 @@ import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolv
 import { renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
 import { renderStandaloneDiagnosticsReportPanel, renderStandaloneMatchedAuditPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit.js';
 import { renderStandaloneWeightMatchPanel } from './xml-cii-adapted-weight-match.js';
+import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -92,8 +93,7 @@ export function renderSplitControl(card, state) {
 }
 
 export function renderSupportMapperPanel(card, state) {
-  const validation = validateSupportConfigJson(state.supportConfigJson);
-  card.appendChild(createPre(validation.ok ? state.supportConfigJson : 'Fix supportConfigJson in 8 Config.'));
+  renderStandaloneSupportTypeMapperPanel(card, state);
 }
 
 export function renderConfigPanel(card, state) {

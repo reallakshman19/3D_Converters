@@ -5,9 +5,10 @@ import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.j
 import { runStandaloneManualElementSideload } from '../xml-cii-manual-element-sideload.js';
 import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js';
 import { runStandaloneWeightMatch } from '../xml-cii-weight-match.js';
+import { runStandaloneSupportTypeMapper } from '../xml-cii-support-type-mapper.js';
 import { buildXmlCiiWorkflowJobFromUiState, readTextFile } from '../xml-cii-workflow-ui-adapter.js';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
-import { applyPreviewDiagnosticsAuditReport, applyStandaloneImportMastersContext, applyStandaloneManualElementSideloadResult, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneWeightMatchResult, clearWorkflowResult, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { applyPreviewDiagnosticsAuditReport, applyStandaloneImportMastersContext, applyStandaloneManualElementSideloadResult, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -17,6 +18,7 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindResolverEvents(container, stateRef, render);
   bindManualEvents(container, stateRef, render);
   bindWeightMatchEvents(container, stateRef, render);
+  bindSupportMapperEvents(container, stateRef, render);
   bindActionEvents(container, stateRef, render);
 }
 
@@ -53,6 +55,13 @@ export function bindResolverEvents(container, stateRef, render) { onChange(conta
 export function bindManualEvents(container, stateRef, render) { for (const field of ['manual-policy', 'manual-tolerance', 'manual-restraints-text']) onChange(container, field, (value) => { stateRef.current = updateManualElementSideloadConfig(stateRef.current, field, value); }); }
 export function bindWeightMatchEvents(container, stateRef, render) { onChange(container, 'weight-match-overrides', (value) => { stateRef.current = updateWeightMatchOverrides(stateRef.current, value); }); }
 
+export function bindSupportMapperEvents(container, stateRef, render) {
+  onChange(container, 'support-mapper-test-input', (value) => { stateRef.current = updateSupportTypeMapperTestInput(stateRef.current, value); });
+  container.querySelectorAll('[data-field^="support-mapper-aliases-"], [data-field^="support-mapper-cii-"]').forEach((input) => {
+    input.addEventListener('change', () => { stateRef.current = updateSupportTypeMapperConfig(stateRef.current, input.dataset.field, input.value); });
+  });
+}
+
 export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'test-regex', () => testRegexFromUi(stateRef, render, false));
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
@@ -63,6 +72,8 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'build-preview-audit', () => buildPreviewAuditFromUi(stateRef, render));
   onClick(container, 'build-weight-match', () => runWeightMatchFromUi(stateRef, render, false));
   onClick(container, 'finalize-weight-match', () => runWeightMatchFromUi(stateRef, render, true));
+  onClick(container, 'build-support-mapper', () => runSupportMapperFromUi(stateRef, render, false));
+  onClick(container, 'save-support-mapper', () => runSupportMapperFromUi(stateRef, render, true));
   onClick(container, 'load-import-masters', () => loadImportMastersFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
   onClick(container, 'download-enriched', () => downloadArtifact(stateRef.current.result, 'enriched'));
@@ -75,6 +86,7 @@ export async function runResolverJsonTraceFromUi(stateRef, render, save) { state
 export async function runManualElementSideloadFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { manualElementSideloadRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneManualElementSideload({ ...stateRef.current, sourceText, config: stateRef.current.manualElementSideloadConfig }); stateRef.current = save ? applyStandaloneManualElementSideloadResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { manualElementSideloadResult: result, manualElementSideloadRunning: false }); render(); }
 export function buildPreviewAuditFromUi(stateRef, render) { stateRef.current = applyPreviewDiagnosticsAuditReport(stateRef.current, buildStandalonePreviewDiagnosticsAudit(stateRef.current)); render(); }
 export function runWeightMatchFromUi(stateRef, render, finalize) { stateRef.current = updateWorkflowState(stateRef.current, { weightMatchRunning: true }); render(); const result = runStandaloneWeightMatch({ ...stateRef.current, weightMatchOverridesJson: stateRef.current.weightMatchOverridesJson }); stateRef.current = applyStandaloneWeightMatchResult(stateRef.current, result, finalize); render(); }
+export function runSupportMapperFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { supportTypeMapperRunning: true }); render(); const result = runStandaloneSupportTypeMapper({ ...stateRef.current, mapperRows: stateRef.current.supportTypeMapperConfig, testInput: stateRef.current.supportTypeMapperTestInput }); stateRef.current = applyStandaloneSupportTypeMapperResult(stateRef.current, result, save); render(); }
 
 export async function sourceTextFromState(state) { return await readTextFile(state.sourceFile) || String(state.sourceText || ''); }
 export async function stagedJsonTextFromState(state) { return await readTextFile(state.stagedJsonFile) || String(state.stagedJsonText || ''); }

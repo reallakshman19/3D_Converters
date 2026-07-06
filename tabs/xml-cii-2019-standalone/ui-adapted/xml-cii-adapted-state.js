@@ -4,6 +4,13 @@ import { createDefaultResolverJsonTraceConfig } from '../xml-cii-resolver-json-t
 import { createDefaultManualElementSideloadConfig } from '../xml-cii-manual-element-sideload.js';
 import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
 
+const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
+  { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest'], ciiKind: 'REST_STYLE_CII_SUPPORT' },
+  { kind: 'GUIDE', aliases: ['Guide', 'PG', 'Lateral Guide'], ciiKind: 'GUIDE_STYLE_CII_SUPPORT' },
+  { kind: 'LINESTOP', aliases: ['Line Stop', 'Directional Anchor', 'LS', 'Axial Stop'], ciiKind: 'LINESTOP_STYLE_CII_SUPPORT' },
+  { kind: 'ANCHOR', aliases: ['Anchor', 'Fixed'], ciiKind: 'ANCHOR_STYLE_CII_SUPPORT' },
+]);
+
 export function createDefaultWorkflowOptions() {
   return {
     coordsMode: 'first', kgToNewton: true, splitCondensedValveFlange: null, useRestraintTypeBasedOnJson: true,
@@ -22,6 +29,7 @@ export function createXmlCiiAdaptedWorkflowState() {
     manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
     weightMatchResult: null, weightMatchRunning: false, weightMatchStatus: '', weightMatchOverridesJson: '{}',
+    supportTypeMapperConfig: null, supportTypeMapperResult: null, supportTypeMapperRunning: false, supportTypeMapperStatus: '', supportTypeMapperTestInput: '',
     masterContext: null, importMastersLoading: false, importMastersWriteBackStatus: '', options: createDefaultWorkflowOptions(), running: false, result: null,
   };
 }
@@ -101,5 +109,34 @@ export function applyStandaloneWeightMatchResult(state, weightMatchResult, final
     weightMatchRunning: false,
     weightMatchStatus: finalized ? 'Weight match finalized into standalone config.' : 'Weight match report built.',
     supportConfigJson: finalized ? (weightMatchResult?.supportConfigJson || state.supportConfigJson) : state.supportConfigJson,
+  });
+}
+
+function supportMapperRows(state) {
+  return state.supportTypeMapperConfig || SUPPORT_MAPPER_DEFAULTS.map((row) => ({ ...row, aliases: [...row.aliases] }));
+}
+
+export function updateSupportTypeMapperConfig(state, field, value) {
+  const match = String(field || '').match(/^support-mapper-(aliases|cii)-(.+)$/);
+  if (!match) return state;
+  const rows = supportMapperRows(state).map((row) => ({ ...row, aliases: [...row.aliases] }));
+  const row = rows.find((item) => item.kind === match[2]);
+  if (!row) return state;
+  if (match[1] === 'aliases') row.aliases = String(value || '').split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean);
+  if (match[1] === 'cii') row.ciiKind = String(value || '').trim();
+  return updateWorkflowState(state, { supportTypeMapperConfig: rows, result: null });
+}
+
+export function updateSupportTypeMapperTestInput(state, value) {
+  return updateWorkflowState(state, { supportTypeMapperTestInput: value, result: null });
+}
+
+export function applyStandaloneSupportTypeMapperResult(state, supportTypeMapperResult, save = false) {
+  return updateWorkflowState(state, {
+    supportTypeMapperResult,
+    supportTypeMapperRunning: false,
+    supportTypeMapperStatus: save ? 'Support Type Mapper saved into standalone config.' : 'Support Type Mapper preview built.',
+    supportConfigJson: save ? (supportTypeMapperResult?.supportConfigJson || state.supportConfigJson) : state.supportConfigJson,
+    supportTypeMapperConfig: supportTypeMapperResult?.mapperRows || state.supportTypeMapperConfig,
   });
 }
