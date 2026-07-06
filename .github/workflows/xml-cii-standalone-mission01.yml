@@ -29,6 +29,9 @@ jobs:
         with:
           show-progress: false
 
+      - name: Run standalone Source Mode Integration checks
+        run: node tests/xml-cii-standalone-source-mode-integration.test.js
+
       - name: Run standalone static checks
         run: node tests/xml-cii-standalone-static.test.js
 
@@ -61,9 +64,6 @@ jobs:
 
       - name: Run standalone Output Run checks
         run: node tests/xml-cii-standalone-output-run.test.js
-
-      - name: Run standalone Source Mode Integration checks
-        run: node tests/xml-cii-standalone-source-mode-integration.test.js
 
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
