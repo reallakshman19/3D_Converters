@@ -25,17 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        run: |
-          git init .
-          git remote add origin https://github.com/reallaksh19/3D_Converters.git
-          git fetch --depth=1 origin "${{ github.sha }}"
-          git checkout --force FETCH_HEAD
-
-      - name: Run standalone Source Mode Integration checks
-        run: node tests/xml-cii-standalone-source-mode-integration.test.js
-
-      - name: Run adapted UI checks
-        run: node tests/xml-cii-standalone-workflow-ui-adapted.test.js
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
 
       - name: Run standalone static checks
         run: node tests/xml-cii-standalone-static.test.js
@@ -70,8 +62,14 @@ jobs:
       - name: Run standalone Output Run checks
         run: node tests/xml-cii-standalone-output-run.test.js
 
+      - name: Run standalone Source Mode Integration checks
+        run: node tests/xml-cii-standalone-source-mode-integration.test.js
+
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
+
+      - name: Run adapted UI checks
+        run: node tests/xml-cii-standalone-workflow-ui-adapted.test.js
 
       - name: Run implementation guard checks
         run: node tests/xml-cii-standalone-implementation-guard.test.js
