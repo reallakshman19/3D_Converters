@@ -6,9 +6,10 @@ import { runStandaloneManualElementSideload } from '../xml-cii-manual-element-si
 import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js';
 import { runStandaloneWeightMatch } from '../xml-cii-weight-match.js';
 import { runStandaloneSupportTypeMapper } from '../xml-cii-support-type-mapper.js';
+import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState, readTextFile } from '../xml-cii-workflow-ui-adapter.js';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
-import { applyPreviewDiagnosticsAuditReport, applyStandaloneImportMastersContext, applyStandaloneManualElementSideloadResult, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
+import { applyPreviewDiagnosticsAuditReport, applyStandaloneImportMastersContext, applyStandaloneManualElementSideloadResult, applyStandaloneOutputRunReadiness, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -74,10 +75,10 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'finalize-weight-match', () => runWeightMatchFromUi(stateRef, render, true));
   onClick(container, 'build-support-mapper', () => runSupportMapperFromUi(stateRef, render, false));
   onClick(container, 'save-support-mapper', () => runSupportMapperFromUi(stateRef, render, true));
+  onClick(container, 'refresh-output-run', () => refreshOutputRunFromUi(stateRef, render));
   onClick(container, 'load-import-masters', () => loadImportMastersFromUi(stateRef, render));
   onClick(container, 'run', () => runWorkflowFromUi(stateRef, render));
-  onClick(container, 'download-enriched', () => downloadArtifact(stateRef.current.result, 'enriched'));
-  onClick(container, 'download-cii', () => downloadArtifact(stateRef.current.result, 'cii'));
+  for (const kind of ['enriched', 'cii', 'diagnostics', 'manifest']) onClick(container, `download-${kind}`, () => downloadArtifact(stateRef.current, kind));
   onClick(container, 'clear', () => replaceState(stateRef, resetWorkflowState(), render));
 }
 
@@ -87,6 +88,7 @@ export async function runManualElementSideloadFromUi(stateRef, render, save) { s
 export function buildPreviewAuditFromUi(stateRef, render) { stateRef.current = applyPreviewDiagnosticsAuditReport(stateRef.current, buildStandalonePreviewDiagnosticsAudit(stateRef.current)); render(); }
 export function runWeightMatchFromUi(stateRef, render, finalize) { stateRef.current = updateWorkflowState(stateRef.current, { weightMatchRunning: true }); render(); const result = runStandaloneWeightMatch({ ...stateRef.current, weightMatchOverridesJson: stateRef.current.weightMatchOverridesJson }); stateRef.current = applyStandaloneWeightMatchResult(stateRef.current, result, finalize); render(); }
 export function runSupportMapperFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { supportTypeMapperRunning: true }); render(); const result = runStandaloneSupportTypeMapper({ ...stateRef.current, mapperRows: stateRef.current.supportTypeMapperConfig, testInput: stateRef.current.supportTypeMapperTestInput }); stateRef.current = applyStandaloneSupportTypeMapperResult(stateRef.current, result, save); render(); }
+export function refreshOutputRunFromUi(stateRef, render) { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); render(); }
 
 export async function sourceTextFromState(state) { return await readTextFile(state.sourceFile) || String(state.sourceText || ''); }
 export async function stagedJsonTextFromState(state) { return await readTextFile(state.stagedJsonFile) || String(state.stagedJsonText || ''); }
@@ -101,12 +103,27 @@ export async function loadImportMastersFromUi(stateRef, render) {
 
 export async function runWorkflowFromUi(stateRef, render) {
   if (stateRef.current.running || !validateSupportConfigJson(stateRef.current.supportConfigJson).ok) return;
+  const readiness = buildStandaloneOutputRunReadiness(stateRef.current);
+  if (readiness.summary.blockingCount > 0) { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, readiness); render(); return; }
   stateRef.current = updateWorkflowState(stateRef.current, { running: true, result: null }); render();
   try { const result = await runXmlCii2019Workflow(await buildXmlCiiWorkflowJobFromUiState(stateRef.current)); stateRef.current = updateWorkflowState(stateRef.current, { result }); }
-  finally { stateRef.current = updateWorkflowState(stateRef.current, { running: false }); render(); }
+  finally { stateRef.current = applyStandaloneOutputRunReadiness(updateWorkflowState(stateRef.current, { running: false }), buildStandaloneOutputRunReadiness(stateRef.current)); render(); }
 }
 
-export function downloadArtifact(result, kind) { if (kind === 'cii' && result?.ciiText) return downloadTextFile(result.ciiName, result.ciiText); if (kind === 'enriched' && result?.enrichedText) return downloadTextFile(result.enrichedName, result.enrichedText, 'application/xml;charset=utf-8'); return null; }
+function artifactText(state, kind) {
+  const report = state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
+  if (kind === 'enriched') return { name: state.result?.enrichedName, text: state.result?.enrichedText, mime: 'application/xml;charset=utf-8' };
+  if (kind === 'cii') return { name: state.result?.ciiName, text: state.result?.ciiText, mime: 'text/plain;charset=utf-8' };
+  if (kind === 'diagnostics') return { name: 'xml-cii-diagnostics.json', text: JSON.stringify(state.result?.diagnostics || {}, null, 2), mime: 'application/json;charset=utf-8' };
+  return { name: 'xml-cii-run-manifest.json', text: JSON.stringify(report.manifest || {}, null, 2), mime: 'application/json;charset=utf-8' };
+}
+
+export function downloadArtifact(state, kind) {
+  const artifact = artifactText(state, kind);
+  if (!artifact.text) return null;
+  return downloadTextFile(artifact.name || `xml-cii-${kind}.txt`, artifact.text, artifact.mime);
+}
+
 export function parseTriState(value) { if (value === 'true') return true; if (value === 'false') return false; return null; }
 export function onChange(container, field, handler) { container.querySelector(`[data-field="${field}"]`)?.addEventListener('change', (event) => handler(event.target.value, event)); }
 export function onClick(container, action, handler) { container.querySelector(`[data-action="${action}"]`)?.addEventListener('click', handler); }

@@ -9,6 +9,7 @@ import { renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-ma
 import { renderStandaloneDiagnosticsReportPanel, renderStandaloneMatchedAuditPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit.js';
 import { renderStandaloneWeightMatchPanel } from './xml-cii-adapted-weight-match.js';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
+import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
 
 export function renderActivePhase(root, state) {
   const phase = getAdaptedWorkflowPhase(state.activePhaseId);
@@ -105,27 +106,5 @@ export function renderConfigPanel(card, state) {
 }
 
 export function renderRunPanel(card, state) {
-  const mode = appendLabeledControl(card, 'Output:', createElement('select'));
-  mode.dataset.field = 'output-mode';
-  mode.append(createOption('enriched-only', 'enriched-only', state.options.outputMode === 'enriched-only'), createOption('cii-only', 'cii-only', state.options.outputMode === 'cii-only'), createOption('both', 'both', state.options.outputMode === 'both'));
-  appendRunButtons(card, state);
-}
-
-export function appendRunButtons(card, state) {
-  const run = createElement('button', state.running ? 'Running…' : 'Run standalone workflow');
-  run.dataset.action = 'run';
-  run.disabled = isRunDisabled(state);
-  const enriched = createElement('button', 'Download enriched');
-  enriched.dataset.action = 'download-enriched';
-  enriched.disabled = !state.result?.enrichedText;
-  const cii = createElement('button', 'Download CII');
-  cii.dataset.action = 'download-cii';
-  cii.disabled = !state.result?.ciiText;
-  card.append(run, enriched, cii, createElement('button', 'Clear/reset'));
-  card.lastChild.dataset.action = 'clear';
-}
-
-export function isRunDisabled(state) {
-  const hasSource = !!state.sourceFile || String(state.sourceText || '').trim().length > 0;
-  return state.running || !hasSource || !validateSupportConfigJson(state.supportConfigJson).ok;
+  renderStandaloneOutputRunPanel(card, state);
 }
