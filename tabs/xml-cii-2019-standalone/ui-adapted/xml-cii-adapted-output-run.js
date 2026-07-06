@@ -42,7 +42,7 @@ function tableBody(headers, data) {
 
 function valueFor(item, header) {
   const key = { ID: 'id', Label: 'label', Status: 'status', Severity: 'severity', Blocking: 'blocking', Message: 'message', Kind: 'kind', Artifact: 'label', Available: 'available', Filename: 'filename', Bytes: 'bytes', Level: 'level', Source: 'source' }[header] || header;
-  return item?.[key];
+  return item?.[key] ?? item?.[header];
 }
 
 function reportFromState(state) {
