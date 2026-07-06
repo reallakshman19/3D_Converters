@@ -59,6 +59,9 @@ jobs:
       - name: Run standalone Support Type Mapper checks
         run: node tests/xml-cii-standalone-support-type-mapper.test.js
 
+      - name: Run standalone Output Run checks
+        run: node tests/xml-cii-standalone-output-run.test.js
+
       - name: Run production readiness checks
         run: node tests/xml-cii-standalone-production-readiness.test.js
 
