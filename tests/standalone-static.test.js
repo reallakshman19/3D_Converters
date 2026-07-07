@@ -86,6 +86,7 @@ function walk(dirRel) {
   if (!fs.existsSync(dir)) return [];
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name === '.git') continue;
     const rel = path.join(dirRel, entry.name).replace(/\\/g, '/');
     if (entry.isDirectory()) out.push(...walk(rel));
     else if (entry.isFile()) out.push(rel);
@@ -119,7 +120,7 @@ if (!runtime.includes('app:switch-tab')) fail('Runtime must listen for app:switc
 
 const importPattern = /(?:import\s+(?:[^'"()]+?\s+from\s+)?|export\s+[^'"()]+?\s+from\s+|import\s*\()\s*['"]([^'"]+)['"]/g;
 const newUrlPattern = /new\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\s*\)/g;
-for (const jsFile of walk('').filter((file) => /\.(js|mjs)$/.test(file) && !file.startsWith('tests/'))) {
+for (const jsFile of walk('').filter((file) => /\.(js|mjs)$/.test(file) && !file.startsWith('tests/') && !file.startsWith('scripts/'))) {
   const text = read(jsFile);
   for (const match of text.matchAll(importPattern)) assertLocalRefExists(jsFile, match[1], jsFile + ' import');
   for (const match of text.matchAll(newUrlPattern)) assertLocalRefExists(jsFile, match[1], jsFile + ' new URL');

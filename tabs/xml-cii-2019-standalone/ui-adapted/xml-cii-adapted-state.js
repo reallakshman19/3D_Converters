@@ -1,0 +1,244 @@
+import { defaultXmlCii2019SupportConfigJson } from '../xml-cii-standalone-default-config.js';
+import { createDefaultRegexTesterConfig } from '../xml-cii-regex-tester.js';
+import { createDefaultResolverJsonTraceConfig } from '../xml-cii-resolver-json-trace.js';
+import { createDefaultManualElementSideloadConfig } from '../xml-cii-manual-element-sideload.js';
+import { normalizeAdaptedWorkflowPhaseId } from './xml-cii-adapted-phase-registry.js';
+
+const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
+  { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest'], ciiKind: 'REST_STYLE_CII_SUPPORT' },
+  { kind: 'GUIDE', aliases: ['Guide', 'PG', 'Lateral Guide'], ciiKind: 'GUIDE_STYLE_CII_SUPPORT' },
+  { kind: 'LINESTOP', aliases: ['Line Stop', 'Directional Anchor', 'LS', 'Axial Stop'], ciiKind: 'LINESTOP_STYLE_CII_SUPPORT' },
+  { kind: 'ANCHOR', aliases: ['Anchor', 'Fixed'], ciiKind: 'ANCHOR_STYLE_CII_SUPPORT' },
+]);
+
+export function createDefaultWorkflowOptions() {
+  return {
+    coordsMode: 'first', kgToNewton: true, splitCondensedValveFlange: null, useRestraintTypeBasedOnJson: true,
+    outputMode: 'enriched-only', inputXmlOutputMode: 'full-document', pointPropertiesBasis: 'auto',
+    inputXmlRestraintPolicy: 'replace-with-dtxr-derived-restraints', fillSentinelFromLineContext: true,
+    normalizePressureCaseNames: true, escapeXmlAttributes: true,
+  };
+}
+
+function getStoredMaster(key) {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const val = localStorage.getItem(`xml-cii-master-${key}`);
+    return val ? JSON.parse(val) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredMaster(key, rows) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (rows) localStorage.setItem(`xml-cii-master-${key}`, JSON.stringify(rows));
+    else localStorage.removeItem(`xml-cii-master-${key}`);
+  } catch {}
+}
+
+function restorePersistentMasters() {
+  const lineRows = getStoredMaster('lineList') || [];
+  const materialMapRows = getStoredMaster('materialMap') || [];
+  const weightMasterRows = getStoredMaster('weight') || [];
+  if (!lineRows.length && !materialMapRows.length && !weightMasterRows.length) return null;
+  const config = JSON.parse(defaultXmlCii2019SupportConfigJson() || '{}');
+  if (lineRows.length) config.linelist = { ...(config.linelist || {}), masterRows: lineRows };
+  if (materialMapRows.length) config.material = { ...(config.material || {}), mapRows: materialMapRows };
+  if (weightMasterRows.length) config.weight = { ...(config.weight || {}), masterRows: weightMasterRows };
+  return {
+    lineRows, pipingClassRows: [], materialMapRows, weightMasterRows, diagnostics: [], config,
+    rowCounts: { lineList: lineRows.length, pipingClass: 0, materialMap: materialMapRows.length, weight: weightMasterRows.length },
+    previewRows: { lineList: lineRows.slice(0, 5), pipingClass: [], materialMap: materialMapRows.slice(0, 5), weight: weightMasterRows.slice(0, 5) },
+    sourceMetadata: {
+      lineList: { key: 'lineList', source: 'LocalStorage', sourceType: 'manual', status: 'loaded', rowCount: lineRows.length },
+      pipingClass: { key: 'pipingClass', source: 'not-loaded', sourceType: 'empty', status: 'empty', rowCount: 0 },
+      materialMap: { key: 'materialMap', source: 'LocalStorage', sourceType: 'manual', status: 'loaded', rowCount: materialMapRows.length },
+      weight: { key: 'weight', source: 'LocalStorage', sourceType: 'manual', status: 'loaded', rowCount: weightMasterRows.length }
+    }
+  };
+}
+
+function getStoredRegexConfig() {
+  if (typeof localStorage === 'undefined') return createDefaultRegexTesterConfig();
+  try {
+    const val = localStorage.getItem('xml-cii-regex-config-v1');
+    return val ? JSON.parse(val) : createDefaultRegexTesterConfig();
+  } catch {
+    return createDefaultRegexTesterConfig();
+  }
+}
+
+function getStoredResolverConfig() {
+  if (typeof localStorage === 'undefined') return createDefaultResolverJsonTraceConfig();
+  try {
+    const val = localStorage.getItem('xml-cii-resolver-config-v1');
+    return val ? JSON.parse(val) : createDefaultResolverJsonTraceConfig();
+  } catch {
+    return createDefaultResolverJsonTraceConfig();
+  }
+}
+
+export function createXmlCiiAdaptedWorkflowState() {
+  const mContext = restorePersistentMasters();
+  const configJson = mContext ? JSON.stringify(mContext.config, null, 2) : defaultXmlCii2019SupportConfigJson();
+  return {
+    activePhaseId: 'source', activeSubTabId: 'loader', jsonTraceActiveSubTabId: 'index', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, stagedJsonText: '', elementSideLoadText: '',
+    supportConfigJson: configJson,
+    regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
+    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '',
+    manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
+    previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
+    weightMatchResult: null, weightMatchRunning: false, weightMatchStatus: '', weightMatchOverridesJson: '{}',
+    supportTypeMapperConfig: null, supportTypeMapperResult: null, supportTypeMapperRunning: false, supportTypeMapperStatus: '', supportTypeMapperTestInput: '',
+    outputRunReadinessReport: null, outputRunReadinessStatus: '',
+    masterContext: mContext, importMastersLoading: false, importMastersWriteBackStatus: mContext ? 'Restored master rows from LocalStorage.' : '', options: createDefaultWorkflowOptions(), running: false, result: null,
+  };
+}
+
+export function updateWorkflowState(state, patch = {}) {
+  return { ...state, ...patch, activePhaseId: patch.activePhaseId ? normalizeAdaptedWorkflowPhaseId(patch.activePhaseId) : state.activePhaseId };
+}
+
+export function updateWorkflowOptions(state, optionPatch = {}) { return { ...state, options: { ...state.options, ...optionPatch } }; }
+export function clearWorkflowResult(state) { return updateWorkflowState(state, { result: null, outputRunReadinessReport: null }); }
+export function resetWorkflowState() {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.removeItem('xml-cii-regex-config-v1');
+      localStorage.removeItem('xml-cii-resolver-config-v1');
+    } catch {}
+  }
+  return createXmlCiiAdaptedWorkflowState();
+}
+
+function totalMasterRows(masterContext) {
+  const counts = masterContext?.rowCounts || {};
+  return Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+export function applyStandaloneImportMastersContext(state, masterContext) {
+  return updateWorkflowState(state, { masterContext, supportConfigJson: masterContext?.supportConfigJson || state.supportConfigJson, importMastersLoading: false, importMastersWriteBackStatus: `Loaded ${totalMasterRows(masterContext)} master rows into standalone config.`, result: null });
+}
+
+function nestedRuleKey(field) {
+  return {
+    'regex-line-key-regex': ['lineKey', 'regex'], 'regex-line-key-group': ['lineKey', 'group'], 'regex-line-key-token': ['lineKey', 'tokenPosition'],
+    'regex-piping-class-regex': ['pipingClass', 'regex'], 'regex-piping-class-group': ['pipingClass', 'group'], 'regex-piping-class-token': ['pipingClass', 'tokenPosition'],
+    'regex-rating-regex': ['rating', 'regex'], 'regex-rating-group': ['rating', 'group'], 'regex-rating-token': ['rating', 'tokenPosition'],
+    'regex-bore-regex': ['bore', 'regex'], 'regex-bore-group': ['bore', 'group'], 'regex-bore-token': ['bore', 'tokenPosition'],
+  }[field] || null;
+}
+
+function numericRuleValue(key, value) { return ['group', 'tokenPosition'].includes(key) ? Number(value || 0) : value; }
+
+function updateAndPersistRegexConfig(state, newConfig) {
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.setItem('xml-cii-regex-config-v1', JSON.stringify(newConfig)); } catch {}
+  }
+  return updateWorkflowState(state, { regexTesterConfig: newConfig });
+}
+
+export function updateRegexTesterConfig(state, field, value) {
+  if (field === 'regex-token-delimiter') return updateAndPersistRegexConfig(state, { ...state.regexTesterConfig, tokenDelimiter: value });
+  if (field === 'regex-line-key-joiner') return updateAndPersistRegexConfig(state, { ...state.regexTesterConfig, lineKeyJoiner: value });
+  const path = nestedRuleKey(field); if (!path) return state;
+  const [ruleName, key] = path; const rule = { ...(state.regexTesterConfig?.[ruleName] || {}) };
+  rule[key] = numericRuleValue(key, value);
+  return updateAndPersistRegexConfig(state, { ...state.regexTesterConfig, [ruleName]: rule });
+}
+
+export function applyStandaloneRegexTesterResult(state, regexTesterResult) {
+  if (typeof localStorage !== 'undefined' && state.regexTesterConfig) {
+    try { localStorage.setItem('xml-cii-regex-config-v1', JSON.stringify(state.regexTesterConfig)); } catch {}
+  }
+  return updateWorkflowState(state, { regexTesterResult, regexTesterRunning: false, regexTesterWriteBackStatus: 'Regex rules saved into standalone config.', supportConfigJson: regexTesterResult?.supportConfigJson || state.supportConfigJson, result: null });
+}
+
+export function updateResolverJsonTraceConfig(state, value) {
+  try {
+    const config = JSON.parse(String(value || '{}'));
+    if (typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
+    }
+    return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+  }
+  catch { return updateWorkflowState(state, { resolverJsonTraceWriteBackStatus: 'Resolver config JSON is invalid.' }); }
+}
+
+export function patchResolverJsonTraceConfig(state, patch = {}) {
+  const config = { ...(state.resolverJsonTraceConfig || {}), ...patch };
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
+  }
+  return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+}
+
+
+export function applyStandaloneResolverJsonTraceResult(state, resolverJsonTraceResult) {
+  return updateWorkflowState(state, { resolverJsonTraceResult, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: 'Resolver config saved into standalone config.', supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson, result: null });
+}
+
+export function updateManualElementSideloadConfig(state, field, value) {
+  const cfg = { ...state.manualElementSideloadConfig };
+  if (field === 'manual-policy') cfg.policy = value;
+  if (field === 'manual-tolerance') cfg.tolerance = Number(value || 0);
+  if (field === 'manual-restraints-text') cfg.manualText = value;
+  return updateWorkflowState(state, { manualElementSideloadConfig: cfg });
+}
+
+export function applyStandaloneManualElementSideloadResult(state, manualElementSideloadResult) {
+  return updateWorkflowState(state, { manualElementSideloadResult, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: 'Manual / side-load options saved into standalone config.', supportConfigJson: manualElementSideloadResult?.supportConfigJson || state.supportConfigJson, result: null });
+}
+
+export function applyPreviewDiagnosticsAuditReport(state, previewDiagnosticsAuditReport) {
+  const matched = previewDiagnosticsAuditReport?.summary?.matchedFacts || 0;
+  const rejected = previewDiagnosticsAuditReport?.summary?.rejectedFacts || 0;
+  return updateWorkflowState(state, { previewDiagnosticsAuditReport, previewDiagnosticsAuditStatus: `Preview report built: ${matched} matched, ${rejected} rejected.` });
+}
+
+export function updateWeightMatchOverrides(state, value) { return updateWorkflowState(state, { weightMatchOverridesJson: value }); }
+
+export function applyStandaloneWeightMatchResult(state, weightMatchResult, finalized = false) {
+  return updateWorkflowState(state, {
+    weightMatchResult,
+    weightMatchRunning: false,
+    weightMatchStatus: finalized ? 'Weight match finalized into standalone config.' : 'Weight match report built.',
+    supportConfigJson: finalized ? (weightMatchResult?.supportConfigJson || state.supportConfigJson) : state.supportConfigJson,
+  });
+}
+
+function supportMapperRows(state) {
+  return state.supportTypeMapperConfig || SUPPORT_MAPPER_DEFAULTS.map((row) => ({ ...row, aliases: [...row.aliases] }));
+}
+
+export function updateSupportTypeMapperConfig(state, field, value) {
+  const match = String(field || '').match(/^support-mapper-(aliases|cii)-(.+)$/);
+  if (!match) return state;
+  const rows = supportMapperRows(state).map((row) => ({ ...row, aliases: [...row.aliases] }));
+  const row = rows.find((item) => item.kind === match[2]);
+  if (!row) return state;
+  if (match[1] === 'aliases') row.aliases = String(value || '').split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean);
+  if (match[1] === 'cii') row.ciiKind = String(value || '').trim();
+  return updateWorkflowState(state, { supportTypeMapperConfig: rows, result: null });
+}
+
+export function updateSupportTypeMapperTestInput(state, value) {
+  return updateWorkflowState(state, { supportTypeMapperTestInput: value, result: null });
+}
+
+export function applyStandaloneSupportTypeMapperResult(state, supportTypeMapperResult, save = false) {
+  return updateWorkflowState(state, {
+    supportTypeMapperResult,
+    supportTypeMapperRunning: false,
+    supportTypeMapperStatus: save ? 'Support Type Mapper saved into standalone config.' : 'Support Type Mapper preview built.',
+    supportConfigJson: save ? (supportTypeMapperResult?.supportConfigJson || state.supportConfigJson) : state.supportConfigJson,
+    supportTypeMapperConfig: supportTypeMapperResult?.mapperRows || state.supportTypeMapperConfig,
+  });
+}
+
+export function applyStandaloneOutputRunReadiness(state, outputRunReadinessReport) {
+  const blocks = outputRunReadinessReport?.summary?.blockingCount || 0;
+  return updateWorkflowState(state, { outputRunReadinessReport, outputRunReadinessStatus: `Output / Run checklist built with ${blocks} blocking item(s).` });
+}
