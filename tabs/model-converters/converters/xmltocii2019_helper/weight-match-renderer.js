@@ -227,8 +227,17 @@ function nodeMetaFromXml(xmlText) {
             const componentRefNo = xmlChildText(node, 'ComponentRefNo');
             const endpoint = xmlChildText(node, 'Endpoint');
             const meta = { branchName, nodeNumber, componentRefNo, endpoint, componentType: xmlChildText(node, 'ComponentType'), componentRefEndpoint: componentRefEndpoint(componentRefNo, endpoint) };
+            // Branch-scoped only: NodeNumber "-1" is shared by many distinct
+            // nodes in the same branch (FLAN/VALV/RIGID/INST nodes whose
+            // fallback high number was suppressed back to -1, plus genuine
+            // unnumbered endpoints), so this key is itself ambiguous and the
+            // last node processed silently wins. A document-wide fallback
+            // keyed by bare nodeNumber alone (removed here) made this worse
+            // by mixing in nodes from unrelated branches too. applyNodeMeta
+            // only consults this map when a row is missing its own data, so
+            // an ambiguous match here is a rare last resort, not the
+            // primary source of truth.
             out.set(`${branchName}::${nodeNumber}`, meta);
-            if (!out.has(nodeNumber)) out.set(nodeNumber, meta);
           }
         }
         return out;
@@ -246,7 +255,6 @@ function nodeMetaFromXml(xmlText) {
       const endpoint = regexXmlValue(nodeBlock, 'Endpoint');
       const meta = { branchName, nodeNumber, componentRefNo, endpoint, componentType: regexXmlValue(nodeBlock, 'ComponentType'), componentRefEndpoint: componentRefEndpoint(componentRefNo, endpoint) };
       out.set(`${branchName}::${nodeNumber}`, meta);
-      if (!out.has(nodeNumber)) out.set(nodeNumber, meta);
     }
   }
   return out;
@@ -255,10 +263,22 @@ function nodeMetaFromXml(xmlText) {
 function applyNodeMeta(rows, xmlText) {
   const meta = nodeMetaFromXml(xmlText);
   return (Array.isArray(rows) ? rows : []).map((row) => {
+    // collectWeightRows already computed componentRefNo/endpoint/componentType
+    // from the exact node this row represents in the same pass — that data
+    // is authoritative and must never be overwritten by a meta lookup keyed
+    // on the ambiguous "-1" NodeNumber sentinel (see nodeMetaFromXml). Only
+    // fall back to the meta map to fill in a field the row is genuinely
+    // missing, never to replace one it already has.
+    if (row?.componentRefNo) {
+      return {
+        ...row,
+        componentRefEndpoint: row?.componentRefEndpoint || componentRefEndpoint(row.componentRefNo, row?.endpoint || ''),
+      };
+    }
     const key = `${clean(row?.branchName)}::${clean(row?.nodeNumber)}`;
-    const nodeMeta = meta.get(key) || meta.get(clean(row?.nodeNumber)) || {};
-    const componentRefNo = nodeMeta.componentRefNo || row?.componentRefNo || '';
-    const endpoint = nodeMeta.endpoint || row?.endpoint || '';
+    const nodeMeta = meta.get(key) || {};
+    const componentRefNo = nodeMeta.componentRefNo || '';
+    const endpoint = row?.endpoint || nodeMeta.endpoint || '';
     return {
       ...row,
       componentRefNo,
