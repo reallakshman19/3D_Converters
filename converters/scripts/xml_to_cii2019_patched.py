@@ -466,6 +466,19 @@ def _parse_cmpsupgap_value(text: str) -> float | None:
     return value if math.isfinite(value) else None
 
 
+def _parse_cmpsupgap_from_dtxr_entry(entry_text: str) -> float | None:
+    """Extract CMPSUPGAP value from an annotated DTXR entry.
+
+    Handles entries of the form:
+      'GUIDE PDO-TYPE-603(NAME=/PS-14340.13,CMPSUPGAP=15mm)'
+    Returns the numeric mm value, or None if not present.
+    """
+    match = re.search(r'CMPSUPGAP\s*=\s*([^,)\s]+)', _safe_text(entry_text), re.IGNORECASE)
+    if not match:
+        return None
+    return _parse_cmpsupgap_value(match.group(1))
+
+
 def _restraint_type_uses_gap(type_text: str) -> bool:
     try:
         return int(round(base._restraint_type_to_code(type_text))) == SUPPORT_KIND_TO_CII_CODE["LINESTOP"]
@@ -535,8 +548,20 @@ def _build_keyword_restraint_specs(xml_path: Path, support_config: dict[str, Any
         if gap is not None:
             node_gaps[node_no] = gap
     for node_no, text in _node_dtxr_texts(xml_path).items():
-        gap_by_kind = {"LINESTOP": node_gaps[node_no], "LIMIT": node_gaps[node_no]} if node_no in node_gaps else None
-        specs = _specs_from_dtxr_text(text, support_config, gap_by_kind)
+        gap_by_kind: dict[str, float] = {}
+        if node_no in node_gaps:
+            gap_by_kind["LINESTOP"] = node_gaps[node_no]
+            gap_by_kind["LIMIT"] = node_gaps[node_no]
+        # Extract per-entry CMPSUPGAP from annotated DTXR_POS entries:
+        # e.g. "GUIDE PDO-TYPE-603(NAME=/PS-14340.13,CMPSUPGAP=15mm) | Directional Anchor...(NAME=...,CMPSUPGAP=0)"
+        for entry in text.split("|"):
+            entry_gap = _parse_cmpsupgap_from_dtxr_entry(entry.strip())
+            if entry_gap is None:
+                continue
+            for kind in _kind_from_dtxr(entry.strip(), support_config):
+                if kind not in gap_by_kind:  # node-level gap takes precedence
+                    gap_by_kind[kind] = entry_gap
+        specs = _specs_from_dtxr_text(text, support_config, gap_by_kind if gap_by_kind else None)
         if specs:
             specs_by_node[node_no] = specs
             kinds = _kind_from_dtxr(text, support_config)
