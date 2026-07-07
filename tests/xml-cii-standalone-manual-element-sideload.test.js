@@ -105,6 +105,7 @@ function inputXmlFixture() {
 
   const card = new TestElement('section');
   ui.renderStandaloneManualElementSideloadPanel(card, { ...withResult, elementSideLoadText: '10|20|PS-10|100,200,300|14|GUIDE' });
+  ui.renderStandaloneInputXmlElementSideloadPanel(card, { ...withResult, elementSideLoadText: '10|20|PS-10|100,200,300|14|GUIDE' });
   for (const label of ['XML Manual Restraints', 'Policy / Tolerance', 'Matched Restraints', 'Rejected Restraints', 'Save to Run Options', 'InputXML Element Side-load', 'FROM_NODE → TO_NODE Match Table', 'Inherited Fields', 'Derived Restraints TYPE 14 / 9 / 8', 'Unmatched Side-load Rows', 'Diagnostics']) {
     assert(card.textContent.includes(label), `Manual / Element Side-load panel missing ${label}`);
   }

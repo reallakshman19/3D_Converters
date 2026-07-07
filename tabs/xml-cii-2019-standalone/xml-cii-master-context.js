@@ -1,6 +1,6 @@
 import { prepareXmlCiiMasterContext } from '../../converters/xml-cii2019-core/master-context.js';
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 150;
 
 export const STANDALONE_IMPORT_MASTER_DEFS = Object.freeze([
   Object.freeze({ key: 'lineList', label: 'Line List', rowsKey: 'lineRows', configKey: 'linelist', rowConfigKey: 'masterRows', diagPrefix: 'linelist' }),

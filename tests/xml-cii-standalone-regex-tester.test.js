@@ -29,6 +29,8 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-results.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-rating.js',
   ];
 }
 
@@ -49,15 +51,52 @@ class TestElement {
     this.type = '';
     this.value = '';
     this._text = '';
+    this.style = {};
+    this.classList = {
+      toggle: (name, cond) => {
+        const classes = new Set(this.className.split(' ').filter(Boolean));
+        if (cond === undefined) {
+          if (classes.has(name)) classes.delete(name);
+          else classes.add(name);
+        } else {
+          if (cond) classes.add(name);
+          else classes.delete(name);
+        }
+        this.className = [...classes].join(' ');
+      }
+    };
   }
   appendChild(child) { this.children.push(child); return child; }
   append(...items) { for (const item of items) this.children.push(item); }
   setAttribute(name, value) { this.attributes[name] = String(value); }
+  addEventListener(event, callback) {
+    if (!this._listeners) this._listeners = {};
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(callback);
+  }
   get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
   set textContent(value) { this._text = String(value ?? ''); }
 }
 
 globalThis.document = { createElement: (tag) => new TestElement(tag) };
+globalThis.DOMParser = class {
+  parseFromString(sourceText) {
+    const rows = [];
+    sourceText.replace(/<Branchname\b[^>]*>([\s\S]*?)<\/Branchname>/gi, (_, val) => {
+      // Decode XML entities (e.g. &quot; -> ")
+      const decoded = val.trim().replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+      rows.push({ localName: 'branchname', textContent: decoded });
+    });
+    sourceText.replace(/<Branch\b([^>]*?)>/gi, (_, attrs) => {
+      const match = attrs.match(/name\s*=\s*["']([^"']+)["']/i);
+      if (match) rows.push({ localName: 'branch', getAttribute: (name) => name.toLowerCase() === 'name' ? match[1] : null, children: [] });
+    });
+    return {
+      querySelector: () => null,
+      querySelectorAll: () => rows
+    };
+  }
+};
 
 function xmlFixture() {
   return `<?xml version="1.0"?>
@@ -110,11 +149,11 @@ function testerConfig() {
 
   const card = new TestElement('section');
   ui.renderStandaloneRegexTesterPanel(card, { ...withResult, sourceKind: 'xml' });
-  for (const label of ['Branch Samples', 'Line Key Extraction', 'Piping Class / Rating / Bore', 'Regex Rules', 'Rejected Samples']) {
+  for (const label of ['Interactive Click-to-Map Token Builder', 'Line key extraction', 'Piping class extraction', 'Rating extraction', 'Bore / size extraction', 'Samples']) {
     assert(card.textContent.includes(label), `Regex Tester panel missing ${label}`);
   }
-  assert(card.textContent.includes('Test extraction'), 'Regex Tester panel must expose test action');
-  assert(card.textContent.includes('Save to config'), 'Regex Tester panel must expose save action');
+  assert(card.textContent.includes('Run Extraction'), 'Regex Tester panel must expose run extraction action');
+  assert(card.textContent.includes('Save Config'), 'Regex Tester panel must expose save action');
 
   const inputXmlCard = new TestElement('section');
   ui.renderStandaloneRegexTesterPanel(inputXmlCard, { ...withResult, sourceKind: 'inputxml' });

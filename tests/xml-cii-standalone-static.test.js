@@ -14,7 +14,7 @@ const tab = read('tabs/xml-cii-2019-standalone-tab.js');
 if (!tab.includes('renderXmlCiiAdaptedWorkflowShell')) fail('Standalone tab must render the adapted workflow shell.');
 
 const adaptedRegistry = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js');
-for (const label of ['1 Regex', '2 Import Masters', '3 JSON Trace', '4 Preview', '5 Diagnostics', '5A Weight Match', '6 Run', '7 Support Types', '8 Config', 'Custom Input']) if (!adaptedRegistry.includes(label)) fail('Adapted phase registry missing label ' + label);
+for (const label of ['1 Source & Masters', '2 Regex Tester', '3 Resolver / JSON Trace', '4 Preview', '5 Diagnostics', '6 Matched Audit', '7 Weight Match', '8 Support Type Mapper', '9 Config', '10 Output / Run']) if (!adaptedRegistry.includes(label)) fail('Adapted phase registry missing label ' + label);
 if (!adaptedRegistry.includes('XML_CII_WORKFLOW_PHASES')) fail('Adapted phase registry must expose XML_CII_WORKFLOW_PHASES.');
 
 const adaptedEvents = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js');

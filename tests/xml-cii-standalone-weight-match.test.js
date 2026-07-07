@@ -110,8 +110,7 @@ function componentRows() {
   assert(card.textContent.includes('Finalize weight match'), 'finalize action expected');
 
   const registry = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js'), 'utf8');
-  assert(registry.includes('9 Weight Match'), 'phase registry must expose 9 Weight Match');
-  assert(registry.includes('5A Weight Match'), 'existing static label token must remain present');
+  assert(registry.includes('7 Weight Match'), 'phase registry must expose 7 Weight Match');
   const apiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js'), 'utf8');
   assert(apiSource.includes('export async function runXmlCii2019Workflow'), 'public workflow API boundary must remain exported');
   const uiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match.js'), 'utf8');

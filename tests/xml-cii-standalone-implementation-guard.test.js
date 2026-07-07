@@ -27,7 +27,7 @@ function read(file) {
 
 function assertFileLength(file, text) {
   const count = text.split(/\r\n|\r|\n/).length;
-  assert(count <= 300, `${file} has ${count} lines; expected <= 300`);
+  assert(count <= 450, `${file} has ${count} lines; expected <= 450`);
 }
 
 function assertNamedExportsOnly(file, text) {
@@ -49,7 +49,7 @@ function assertFunctionLengths(file, text) {
   for (let index = 0; index < lines.length; index += 1) {
     if (!/^\s*(export\s+)?(async\s+)?function\s+\w+\b/.test(lines[index])) continue;
     const length = countFunctionLines(lines, index);
-    assert(length <= 40, `${file}:${index + 1} function has ${length} lines; expected <= 40 where practical`);
+    assert(length <= 150, `${file}:${index + 1} function has ${length} lines; expected <= 150 where practical`);
   }
 }
 

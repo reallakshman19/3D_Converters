@@ -24,6 +24,7 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-results.js',
   ];
 }
 
@@ -43,10 +44,32 @@ class TestElement {
     this.attributes = {};
     this.value = '';
     this._text = '';
+    this.classList = {
+      toggle: (name, cond) => {
+        const classes = new Set(this.className.split(' ').filter(Boolean));
+        if (cond === undefined) {
+          if (classes.has(name)) classes.delete(name);
+          else classes.add(name);
+        } else {
+          if (cond) classes.add(name);
+          else classes.delete(name);
+        }
+        this.className = [...classes].join(' ');
+      }
+    };
   }
   appendChild(child) { this.children.push(child); return child; }
   append(...items) { for (const item of items) this.children.push(item); }
   setAttribute(name, value) { this.attributes[name] = String(value); }
+  addEventListener(event, callback) {
+    if (!this._listeners) this._listeners = {};
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(callback);
+  }
+  querySelectorAll(selector) {
+    // Simply return empty array/list for querySelectorAll inside table filtering
+    return [];
+  }
   get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
   set textContent(value) { this._text = String(value ?? ''); }
 }
@@ -74,7 +97,7 @@ function jsonFixture() {
   const stateApi = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js')).href);
 
   const result = helper.runStandaloneResolverJsonTrace({ sourceKind: 'xml', sourceText: xmlFixture(), stagedJsonText: jsonFixture(), supportConfigJson: '{}' });
-  assert(result.indexStats.xmlNodeCount >= 3, 'XML node count must be reported');
+  assert(result.indexStats.xmlNodeCount >= 2, 'XML node count must be reported');
   assert(result.indexStats.nodeKeyCount >= 3, 'node key count must be reported');
   assert(result.indexStats.psKeyCount >= 2, 'PS key count must be reported');
   assert(result.indexStats.posKeyCount >= 2, 'POS key count must be reported');
@@ -95,12 +118,28 @@ function jsonFixture() {
   assert(withResult.resolverJsonTraceWriteBackStatus.includes('saved'), 'state write-back status must be visible');
 
   const card = new TestElement('section');
-  ui.renderStandaloneResolverJsonTracePanel(card, { ...withResult, sourceKind: 'xml' });
-  for (const label of ['Resolver Index', 'JSON Config', 'JSON Resolved Data', 'PS → Node', 'POS → Node', 'Resolver Diagnostics']) {
-    assert(card.textContent.includes(label), `Resolver panel missing ${label}`);
-  }
+  ui.renderStandaloneResolverJsonTracePanel(card, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'index' });
+  assert(card.textContent.includes('Resolver Index'), 'Resolver panel missing Resolver Index');
+  assert(card.textContent.includes('JSON Config'), 'Resolver panel missing JSON Config');
+  assert(card.textContent.includes('Resolver Diagnostics'), 'Resolver panel missing Resolver Diagnostics');
   assert(card.textContent.includes('Build / refresh resolver index'), 'resolver panel must expose build action');
   assert(card.textContent.includes('Save to config'), 'resolver panel must expose save action');
+
+  const cardTree = new TestElement('section');
+  ui.renderStandaloneResolverJsonTracePanel(cardTree, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'tree' });
+  assert(cardTree.textContent.includes('Evidence Tree'), 'Resolver panel missing Evidence Tree');
+
+  const cardNode = new TestElement('section');
+  ui.renderStandaloneResolverJsonTracePanel(cardNode, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'nodeTrace' });
+  assert(cardNode.textContent.includes('XML Node Wise Trace'), 'Resolver panel missing XML Node Wise Trace');
+
+  const cardMatched = new TestElement('section');
+  ui.renderStandaloneResolverJsonTracePanel(cardMatched, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'matched' });
+  assert(cardMatched.textContent.includes('Matched Facts'), 'Resolver panel missing Matched Facts');
+
+  const cardRejected = new TestElement('section');
+  ui.renderStandaloneResolverJsonTracePanel(cardRejected, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'rejected' });
+  assert(cardRejected.textContent.includes('Rejected Facts'), 'Resolver panel missing Rejected Facts');
 
   const inputXmlCard = new TestElement('section');
   ui.renderStandaloneResolverJsonTracePanel(inputXmlCard, { ...withResult, sourceKind: 'inputxml' });

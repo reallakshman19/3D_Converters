@@ -20,18 +20,80 @@ export function createDefaultWorkflowOptions() {
   };
 }
 
-export function createXmlCiiAdaptedWorkflowState() {
+function getStoredMaster(key) {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const val = localStorage.getItem(`xml-cii-master-${key}`);
+    return val ? JSON.parse(val) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredMaster(key, rows) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (rows) localStorage.setItem(`xml-cii-master-${key}`, JSON.stringify(rows));
+    else localStorage.removeItem(`xml-cii-master-${key}`);
+  } catch {}
+}
+
+function restorePersistentMasters() {
+  const lineRows = getStoredMaster('lineList') || [];
+  const materialMapRows = getStoredMaster('materialMap') || [];
+  const weightMasterRows = getStoredMaster('weight') || [];
+  if (!lineRows.length && !materialMapRows.length && !weightMasterRows.length) return null;
+  const config = JSON.parse(defaultXmlCii2019SupportConfigJson() || '{}');
+  if (lineRows.length) config.linelist = { ...(config.linelist || {}), masterRows: lineRows };
+  if (materialMapRows.length) config.material = { ...(config.material || {}), mapRows: materialMapRows };
+  if (weightMasterRows.length) config.weight = { ...(config.weight || {}), masterRows: weightMasterRows };
   return {
-    activePhaseId: 'regex', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, elementSideLoadText: '',
-    supportConfigJson: defaultXmlCii2019SupportConfigJson(),
-    regexTesterConfig: createDefaultRegexTesterConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
-    resolverJsonTraceConfig: createDefaultResolverJsonTraceConfig(), resolverJsonTraceResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '',
+    lineRows, pipingClassRows: [], materialMapRows, weightMasterRows, diagnostics: [], config,
+    rowCounts: { lineList: lineRows.length, pipingClass: 0, materialMap: materialMapRows.length, weight: weightMasterRows.length },
+    previewRows: { lineList: lineRows.slice(0, 5), pipingClass: [], materialMap: materialMapRows.slice(0, 5), weight: weightMasterRows.slice(0, 5) },
+    sourceMetadata: {
+      lineList: { key: 'lineList', source: 'LocalStorage', sourceType: 'manual', status: 'loaded', rowCount: lineRows.length },
+      pipingClass: { key: 'pipingClass', source: 'not-loaded', sourceType: 'empty', status: 'empty', rowCount: 0 },
+      materialMap: { key: 'materialMap', source: 'LocalStorage', sourceType: 'manual', status: 'loaded', rowCount: materialMapRows.length },
+      weight: { key: 'weight', source: 'LocalStorage', sourceType: 'manual', status: 'loaded', rowCount: weightMasterRows.length }
+    }
+  };
+}
+
+function getStoredRegexConfig() {
+  if (typeof localStorage === 'undefined') return createDefaultRegexTesterConfig();
+  try {
+    const val = localStorage.getItem('xml-cii-regex-config-v1');
+    return val ? JSON.parse(val) : createDefaultRegexTesterConfig();
+  } catch {
+    return createDefaultRegexTesterConfig();
+  }
+}
+
+function getStoredResolverConfig() {
+  if (typeof localStorage === 'undefined') return createDefaultResolverJsonTraceConfig();
+  try {
+    const val = localStorage.getItem('xml-cii-resolver-config-v1');
+    return val ? JSON.parse(val) : createDefaultResolverJsonTraceConfig();
+  } catch {
+    return createDefaultResolverJsonTraceConfig();
+  }
+}
+
+export function createXmlCiiAdaptedWorkflowState() {
+  const mContext = restorePersistentMasters();
+  const configJson = mContext ? JSON.stringify(mContext.config, null, 2) : defaultXmlCii2019SupportConfigJson();
+  return {
+    activePhaseId: 'source', activeSubTabId: 'loader', jsonTraceActiveSubTabId: 'index', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, stagedJsonText: '', elementSideLoadText: '',
+    supportConfigJson: configJson,
+    regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
+    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '',
     manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
     weightMatchResult: null, weightMatchRunning: false, weightMatchStatus: '', weightMatchOverridesJson: '{}',
     supportTypeMapperConfig: null, supportTypeMapperResult: null, supportTypeMapperRunning: false, supportTypeMapperStatus: '', supportTypeMapperTestInput: '',
     outputRunReadinessReport: null, outputRunReadinessStatus: '',
-    masterContext: null, importMastersLoading: false, importMastersWriteBackStatus: '', options: createDefaultWorkflowOptions(), running: false, result: null,
+    masterContext: mContext, importMastersLoading: false, importMastersWriteBackStatus: mContext ? 'Restored master rows from LocalStorage.' : '', options: createDefaultWorkflowOptions(), running: false, result: null,
   };
 }
 
@@ -41,7 +103,15 @@ export function updateWorkflowState(state, patch = {}) {
 
 export function updateWorkflowOptions(state, optionPatch = {}) { return { ...state, options: { ...state.options, ...optionPatch } }; }
 export function clearWorkflowResult(state) { return updateWorkflowState(state, { result: null, outputRunReadinessReport: null }); }
-export function resetWorkflowState() { return createXmlCiiAdaptedWorkflowState(); }
+export function resetWorkflowState() {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.removeItem('xml-cii-regex-config-v1');
+      localStorage.removeItem('xml-cii-resolver-config-v1');
+    } catch {}
+  }
+  return createXmlCiiAdaptedWorkflowState();
+}
 
 function totalMasterRows(masterContext) {
   const counts = masterContext?.rowCounts || {};
@@ -63,22 +133,48 @@ function nestedRuleKey(field) {
 
 function numericRuleValue(key, value) { return ['group', 'tokenPosition'].includes(key) ? Number(value || 0) : value; }
 
+function updateAndPersistRegexConfig(state, newConfig) {
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.setItem('xml-cii-regex-config-v1', JSON.stringify(newConfig)); } catch {}
+  }
+  return updateWorkflowState(state, { regexTesterConfig: newConfig });
+}
+
 export function updateRegexTesterConfig(state, field, value) {
-  if (field === 'regex-token-delimiter') return updateWorkflowState(state, { regexTesterConfig: { ...state.regexTesterConfig, tokenDelimiter: value } });
+  if (field === 'regex-token-delimiter') return updateAndPersistRegexConfig(state, { ...state.regexTesterConfig, tokenDelimiter: value });
+  if (field === 'regex-line-key-joiner') return updateAndPersistRegexConfig(state, { ...state.regexTesterConfig, lineKeyJoiner: value });
   const path = nestedRuleKey(field); if (!path) return state;
   const [ruleName, key] = path; const rule = { ...(state.regexTesterConfig?.[ruleName] || {}) };
   rule[key] = numericRuleValue(key, value);
-  return updateWorkflowState(state, { regexTesterConfig: { ...state.regexTesterConfig, [ruleName]: rule } });
+  return updateAndPersistRegexConfig(state, { ...state.regexTesterConfig, [ruleName]: rule });
 }
 
 export function applyStandaloneRegexTesterResult(state, regexTesterResult) {
+  if (typeof localStorage !== 'undefined' && state.regexTesterConfig) {
+    try { localStorage.setItem('xml-cii-regex-config-v1', JSON.stringify(state.regexTesterConfig)); } catch {}
+  }
   return updateWorkflowState(state, { regexTesterResult, regexTesterRunning: false, regexTesterWriteBackStatus: 'Regex rules saved into standalone config.', supportConfigJson: regexTesterResult?.supportConfigJson || state.supportConfigJson, result: null });
 }
 
 export function updateResolverJsonTraceConfig(state, value) {
-  try { return updateWorkflowState(state, { resolverJsonTraceConfig: JSON.parse(String(value || '{}')) }); }
+  try {
+    const config = JSON.parse(String(value || '{}'));
+    if (typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
+    }
+    return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+  }
   catch { return updateWorkflowState(state, { resolverJsonTraceWriteBackStatus: 'Resolver config JSON is invalid.' }); }
 }
+
+export function patchResolverJsonTraceConfig(state, patch = {}) {
+  const config = { ...(state.resolverJsonTraceConfig || {}), ...patch };
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
+  }
+  return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+}
+
 
 export function applyStandaloneResolverJsonTraceResult(state, resolverJsonTraceResult) {
   return updateWorkflowState(state, { resolverJsonTraceResult, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: 'Resolver config saved into standalone config.', supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson, result: null });

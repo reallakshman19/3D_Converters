@@ -128,7 +128,7 @@ function reportInput(sourceKind = 'xml') {
   for (const label of ['Matched Facts', 'Rejected Facts', 'Filter / Search', 'Load Diagnostics JSON', 'Latest Run State']) assert(auditCard.textContent.includes(label), `Matched Audit panel missing ${label}`);
 
   const registry = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js'), 'utf8');
-  assert(registry.includes('8 Matched Audit'), 'phase registry must include Matched Audit');
+  assert(registry.includes('6 Matched Audit'), 'phase registry must include Matched Audit');
   const apiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js'), 'utf8');
   assert(apiSource.includes('export async function runXmlCii2019Workflow'), 'public workflow API boundary must remain exported');
   const uiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js'), 'utf8');

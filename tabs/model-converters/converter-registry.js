@@ -58,21 +58,15 @@ function _defaultInputxml2019LayoutConfigJson() {
       row13: ['0', '0', '0', '{sif}', '0', '0'],
       row14: ['{reducer}', '0', '{sif}'],
       line_label: {
-        mode: 'auto',
         pointer_start: 0,
         label_index_start: 1,
         label_prefix: 'LINENO',
         label_width: 1,
-        // Must be empty (not '0') for mode:'auto' to actually generate
-        // sequential labels - inputxml_to_cii2019.py's line_label branch
-        // is `elif mode == "auto" and not default_line`, so a truthy
-        // default_line short-circuits auto mode back to a static value.
-        default_line: '',
+        default_line: '0',
         line_labels: [],
       },
     },
     nodename: {
-      mode: 'auto',
       nonam_count: 0,
       from_label: 'PS-XXX',
       to_label: 'PS-XXX',
@@ -86,7 +80,7 @@ function _defaultInputxml2019LayoutConfigJson() {
       line4: ['{equipmnt}'],
     },
     sections: {
-      include_nodename: true,
+      include_nodename: false,
     },
     miscel_1: {
       material_id_default: '0.000',

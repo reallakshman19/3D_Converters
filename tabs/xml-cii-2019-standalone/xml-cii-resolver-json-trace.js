@@ -69,11 +69,77 @@ function addIndex(index, key, row) {
   index[id].push(row);
 }
 
+function findXmlBranchPositions(sourceText) {
+  const matches = [];
+  const re = /<(Branchname|LineNo|LineKey|BranchName)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let match;
+  while ((match = re.exec(sourceText))) {
+    matches.push({ name: match[2].trim(), index: match.index });
+  }
+  return matches;
+}
+
+function findActiveBranch(nodeCharIndex, branchPositions) {
+  let activeBranch = 'Unassigned branch';
+  let maxIdx = -1;
+  for (const b of branchPositions) {
+    if (b.index < nodeCharIndex && b.index > maxIdx) {
+      activeBranch = b.name;
+      maxIdx = b.index;
+    }
+  }
+  if (activeBranch === 'Unassigned branch' && branchPositions.length) {
+    activeBranch = branchPositions[0].name;
+  }
+  return activeBranch;
+}
+
 export function buildStandaloneXmlResolverIndex(sourceText) {
   const nodeIndex = {};
   const psIndex = {};
   const posIndex = {};
-  const nodes = xmlTags(sourceText).map((match, index) => xmlNodeRow(match[0], index));
+  const branchPositions = findXmlBranchPositions(sourceText);
+  
+  // 1. Try matching <Node>...</Node> blocks first (PSI116 XML)
+  const nodeBlockRe = /<Node\b[^>]*>([\s\S]*?)<\/Node>/gi;
+  const nodes = [];
+  let blockMatch;
+  let xmlIndex = 1;
+  
+  while ((blockMatch = nodeBlockRe.exec(sourceText))) {
+    const body = blockMatch[1];
+    const charIndex = blockMatch.index;
+    
+    const getTag = (tag) => {
+      const match = body.match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`, 'i'));
+      return match ? match[1].trim() : '';
+    };
+    
+    const nodeKeysList = [getTag('NodeNumber')].filter(Boolean);
+    const psKey = getTag('DTXR_PS') || getTag('DtxrPs') || getTag('NodeName') || getTag('ComponentRefNo') || '';
+    const posKey = getTag('DTXR_POS') || getTag('DtxrPos') || getTag('Position') || '';
+    
+    nodes.push({
+      xmlIndex: xmlIndex++,
+      tagName: 'Node',
+      nodeKeys: nodeKeysList,
+      psKey,
+      posKey,
+      branchName: findActiveBranch(charIndex, branchPositions)
+    });
+  }
+  
+  // 2. Fallback to attributes (e.g. InputXML) if no Node blocks found
+  if (nodes.length === 0) {
+    xmlTags(sourceText).forEach((match, idx) => {
+      const row = xmlNodeRow(match[0], idx);
+      row.branchName = findActiveBranch(match.index, branchPositions);
+      if (row.nodeKeys.length || row.psKey || row.posKey) {
+        nodes.push(row);
+      }
+    });
+  }
+  
   for (const row of nodes) indexXmlNode(row, nodeIndex, psIndex, posIndex);
   return { nodes, nodeIndex, psIndex, posIndex, indexStats: indexStats(nodes, nodeIndex, psIndex, posIndex) };
 }
@@ -129,17 +195,48 @@ function parseJsonFacts(stagedJsonText) {
   try { return collectFacts(JSON.parse(stagedJsonText)); } catch { return []; }
 }
 
-function collectFacts(value, path = '$', out = []) {
-  if (Array.isArray(value)) value.forEach((item, index) => collectFacts(item, `${path}[${index}]`, out));
-  else if (safeObject(value) === value) {
-    out.push({ path, raw: value });
-    for (const [key, child] of Object.entries(value)) if (typeof child === 'object' && child) collectFacts(child, `${path}.${key}`, out);
+function collectFacts(value, path = '$', out = [], currentBranch = '', currentBore = '') {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectFacts(item, `${path}[${index}]`, out, currentBranch, currentBore));
+  } else if (safeObject(value) === value) {
+    const name = String(value.name || value.attributes?.NAME || '').trim();
+    let nextBranch = currentBranch;
+    let nextBore = currentBore;
+    
+    if (value.type === 'BRANCH' || name.startsWith('/')) {
+      nextBranch = name;
+      const bVal = value.bore || value.attributes?.ABORE || value.attributes?.HBOR || value.attributes?.LBORE || '';
+      if (bVal) nextBore = String(bVal).trim();
+    }
+    
+    out.push({
+      path,
+      raw: value,
+      stagedBranchKey: nextBranch || String(value.attributes?.OWNER || '').trim(),
+      stagedBore: nextBore
+    });
+    
+    for (const [key, child] of Object.entries(value)) {
+      if (typeof child === 'object' && child) {
+        collectFacts(child, `${path}.${key}`, out, nextBranch, nextBore);
+      }
+    }
   }
   return out;
 }
 
 function readAlias(row, aliases) {
-  for (const key of aliases) if (text(row?.[key])) return text(row[key]);
+  for (const key of aliases) {
+    const val = row?.[key];
+    if (val && typeof val === 'object') {
+      const e = val.E ?? val.east ?? val.easting ?? val.X ?? val.x ?? '';
+      const n = val.N ?? val.north ?? val.northing ?? val.Y ?? val.y ?? '';
+      const el = val.EL ?? val.elev ?? val.elevation ?? val.Z ?? val.z ?? '';
+      if (e || n || el) return `E=${e} N=${n} EL=${el}`;
+      return JSON.stringify(val);
+    }
+    if (text(val)) return text(val);
+  }
   return '';
 }
 
@@ -157,8 +254,21 @@ function resolveFact(fact, cfg, indexes) {
   const nodeHits = indexes.nodeIndex[norm(keys.nodeKey)] || [];
   const psHits = indexes.psIndex[norm(keys.psKey)] || [];
   const posHits = indexes.posIndex[norm(keys.posKey)] || [];
+  
+  const allHits = [...nodeHits, ...psHits, ...posHits];
+  const branchName = allHits[0]?.branchName || fact.stagedBranchKey || 'Unassigned branch';
+  
   const matchedBy = [nodeHits.length && 'node', psHits.length && 'ps', posHits.length && 'pos'].filter(Boolean);
-  return { path: fact.path, ...keys, matchedBy, hitCount: nodeHits.length + psHits.length + posHits.length, raw: fact.raw };
+  return {
+    path: fact.path,
+    ...keys,
+    matchedBy,
+    hitCount: nodeHits.length + psHits.length + posHits.length,
+    raw: fact.raw,
+    branchName,
+    stagedBranchKey: fact.stagedBranchKey,
+    stagedBore: fact.stagedBore
+  };
 }
 
 function writeSupportConfig(supportConfigJson, jsonConfig) {
@@ -188,7 +298,7 @@ export function runStandaloneResolverJsonTrace(input = {}) {
   const matchedFacts = resolvedFacts.filter((fact) => fact.hitCount > 0);
   const rejectedFacts = resolvedFacts.filter((fact) => fact.hitCount <= 0);
   const diagnostics = diagnosticsFor(indexes, facts, matchedFacts, rejectedFacts, sourceKind);
-  return { ...indexes, jsonConfig, resolvedFacts: resolvedFacts.slice(0, PREVIEW_LIMIT), matchedFacts, rejectedFacts, diagnostics, supportConfigJson: writeSupportConfig(input.supportConfigJson, jsonConfig) };
+  return { ...indexes, jsonConfig, resolvedFacts, matchedFacts, rejectedFacts, diagnostics, supportConfigJson: writeSupportConfig(input.supportConfigJson, jsonConfig) };
 }
 
 function inputXmlNotRequired(jsonConfig, supportConfigJson) {

@@ -70,17 +70,15 @@ function defaultInputxml2019LayoutConfigJson() {
       row13: ['0', '0', '0', '{sif}', '0', '0'],
       row14: ['{reducer}', '0', '{sif}'],
       line_label: {
-        mode: 'auto',
         pointer_start: 0,
         label_index_start: 1,
         label_prefix: 'LINENO',
         label_width: 1,
-        default_line: '',
+        default_line: '0',
         line_labels: [],
       },
     },
     nodename: {
-      mode: 'auto',
       nonam_count: 0,
       from_label: 'PS-XXX',
       to_label: 'PS-XXX',
@@ -94,7 +92,7 @@ function defaultInputxml2019LayoutConfigJson() {
       line4: ['{equipmnt}'],
     },
     sections: {
-      include_nodename: true,
+      include_nodename: false,
     },
     miscel_1: {
       material_id_default: '0.000',

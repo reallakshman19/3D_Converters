@@ -1,6 +1,11 @@
 export function readTextFile(file) {
   if (!file) return Promise.resolve(null);
-  return file.text();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || '');
+    reader.onerror = () => resolve('');
+    reader.readAsText(file);
+  });
 }
 
 export async function buildXmlCiiWorkflowJobFromUiState(state) {

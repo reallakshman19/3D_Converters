@@ -24,7 +24,11 @@ function table(headers, data, emptyText) {
   for (const header of headers) hr.appendChild(createElement('th', header));
   head.appendChild(hr);
   tableEl.append(head, tableBody(headers, data));
-  return tableEl;
+  
+  const scrollBox = createElement('div');
+  if (scrollBox.style) Object.assign(scrollBox.style, { maxHeight: '250px', overflowY: 'auto', border: '1px solid rgba(148, 163, 184, 0.08)', borderRadius: '4px' });
+  scrollBox.appendChild(tableEl);
+  return scrollBox;
 }
 
 function tableBody(headers, data) {
@@ -75,6 +79,7 @@ function renderXmlManual(parent, state) {
   const input = appendLabeledControl(section, 'Manual rows:', createElement('textarea'));
   input.value = state.manualElementSideloadConfig?.manualText || '';
   input.dataset.field = 'manual-restraints-text';
+  if (input.style) Object.assign(input.style, { minHeight: '120px', maxHeight: '200px', resize: 'vertical', fontFamily: 'monospace', overflowY: 'auto' });
   parent.appendChild(section);
 }
 
@@ -99,6 +104,7 @@ function renderInputSideLoad(parent, state) {
   const input = appendLabeledControl(section, 'Element side-load rows:', createElement('textarea'));
   input.value = state.elementSideLoadText || '';
   input.dataset.field = 'element-side-load';
+  if (input.style) Object.assign(input.style, { minHeight: '120px', maxHeight: '200px', resize: 'vertical', fontFamily: 'monospace', overflowY: 'auto' });
   parent.appendChild(section);
 }
 
@@ -138,12 +144,53 @@ function renderDiagnostics(parent, result) {
 }
 
 export function renderStandaloneManualElementSideloadPanel(card, state) {
-  card.appendChild(createElement('p', 'Resolve XML manual restraints by Node / PS / POS, or match InputXML side-load rows by FROM_NODE → TO_NODE.', 'xml-cii-phase-help'));
+  card.appendChild(createElement('p', 'Resolve XML manual restraints by Node / PS / POS.', 'xml-cii-phase-help'));
   renderActions(card, state);
   renderPolicy(card, state);
   renderXmlManual(card, state);
   renderMatched(card, state.manualElementSideloadResult);
   renderRejected(card, state.manualElementSideloadResult);
+}
+
+export function renderStandaloneInputXmlElementSideloadPanel(card, state) {
+  card.appendChild(createElement('p', 'Match InputXML side-load rows by FROM_NODE → TO_NODE and configure execution options.', 'xml-cii-phase-help'));
+  
+  const optsSection = createElement('section', '', 'xml-cii-manual-panel');
+  optsSection.appendChild(createElement('h3', 'InputXML Parameters'));
+  
+  const output = appendLabeledControl(optsSection, 'inputXmlOutputMode:', createElement('select'));
+  output.dataset.field = 'inputxml-output-mode';
+  output.append(
+    createOption('full-document', 'full-document', state.options.inputXmlOutputMode === 'full-document'),
+    createOption('fragment', 'fragment', state.options.inputXmlOutputMode === 'fragment'),
+  );
+  
+  const basis = appendLabeledControl(optsSection, 'pointPropertiesBasis:', createElement('select'));
+  basis.dataset.field = 'point-properties-basis';
+  basis.append(
+    createOption('auto', 'auto', state.options.pointPropertiesBasis === 'auto'),
+    createOption('TO', 'TO', state.options.pointPropertiesBasis === 'TO'),
+    createOption('FROM', 'FROM', state.options.pointPropertiesBasis === 'FROM')
+  );
+  
+  const policy = appendLabeledControl(optsSection, 'inputXmlRestraintPolicy:', createElement('select'));
+  policy.dataset.field = 'inputxml-restraint-policy';
+  for (const value of ['preserve-existing-restraints', 'convert-existing-restraints', 'replace-with-dtxr-derived-restraints', 'merge-existing-and-dtxr-derived-restraints']) {
+    policy.appendChild(createOption(value, value, state.options.inputXmlRestraintPolicy === value));
+  }
+  
+  const fill = appendLabeledControl(optsSection, 'fillSentinelFromLineContext:', createElement('input'));
+  fill.type = 'checkbox';
+  fill.checked = state.options.fillSentinelFromLineContext;
+  fill.dataset.field = 'fill-sentinel';
+  
+  const aliases = appendLabeledControl(optsSection, 'normalizePressureCaseNames:', createElement('input'));
+  aliases.type = 'checkbox';
+  aliases.checked = state.options.normalizePressureCaseNames;
+  aliases.dataset.field = 'pressure-aliases';
+  
+  card.appendChild(optsSection);
+  
   renderInputSideLoad(card, state);
   renderInputMatches(card, state.manualElementSideloadResult);
   renderInherited(card, state.manualElementSideloadResult);
