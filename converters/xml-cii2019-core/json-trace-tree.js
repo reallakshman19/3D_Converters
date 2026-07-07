@@ -1,4 +1,4 @@
-export const XML_CII_JSON_TRACE_TREE_SCHEMA = 'xml-cii-json-trace-tree/v2';
+export const XML_CII_JSON_TRACE_TREE_SCHEMA = 'xml-cii-json-trace-tree/v3';
 
 const clean = (value) => String(value ?? '').trim();
 const upper = (value) => clean(value).toUpperCase();
@@ -152,10 +152,20 @@ export function traceTreeGroupKey(row = {}, positionMap = new Map()) {
 
 /**
  * Builds one leaf node for the tree.
- * `dtxrValue` is the raw text that will be aggregated into the group's concatValue.
+ * `dtxrValue` is the annotated text (DTXR_desc(NAME=x,CMPSUPGAP=y)) aggregated into the group's concatValue.
  */
+export function traceTreeBoreKey(row = {}) {
+  const bore = clean(row.boreMm || row.bore || '');
+  if (!bore) return '';
+  const num = parseFloat(bore);
+  return Number.isFinite(num) ? `${Math.round(num)} mm` : bore;
+}
 export function createTraceTreeLeaf(row = {}, index = 0, positionMap = new Map()) {
   const pos = positionFromIndex(positionMap, row);
+  const rawDtxr = clean(row.finalValue || row.sourceRawValue || row.value);
+  const name = clean(row.name || '');
+  const cmpSupGap = clean(row.cmpSupGap || '');
+  const annotation = buildDtxrAnnotation(name, cmpSupGap);
   return Object.freeze({
     jsonNodeNo: clean(row.jsonNodeNo || row._jsonNodeNo || index + 1),
     matchType: clean(row.xmlTraceScope),
@@ -163,14 +173,24 @@ export function createTraceTreeLeaf(row = {}, index = 0, positionMap = new Map()
     objectType: clean(row.sourceObjectType || row.objectType),
     field: clean(row.field || row.sourceAttributeName),
     value: jsonValue(row.finalValue || row.sourceRawValue || row.value),
-    dtxrValue: clean(row.finalValue || row.sourceRawValue || row.value),
+    dtxrValue: rawDtxr ? `${rawDtxr}${annotation}` : '',
+    name,
+    cmpSupGap,
     sourcePath: clean(row.sourcePath || row.jsonPath),
     positionLabel: clean(row.positionLabel || row.xmlTraceGroupLabel) || pos?.label || '',
+    boreMm: clean(row.boreMm || ''),
   });
 }
 
+function buildDtxrAnnotation(name, cmpSupGap) {
+  const parts = [];
+  if (name) parts.push(`NAME=${name}`);
+  if (cmpSupGap) parts.push(`CMPSUPGAP=${cmpSupGap}`);
+  return parts.length ? `(${parts.join(',')})` : '';
+}
 function emptyGroup(label, resolved = false) { return { label, resolved, count: 0, rows: [] }; }
 function emptyBucket(label) { return { label, count: 0, groups: new Map() }; }
+function emptyBoreGroup(label) { return { label, count: 0, buckets: new Map() }; }
 
 /**
  * Finalises groups, computing concatValue.
@@ -213,6 +233,13 @@ function orderedGroups(groupMap, rowLimit, groupLimit, delimiterOpts = {}) {
   }));
 }
 
+function orderedBoreGroups(boreMap, rowLimit, groupLimit, delimiterOpts) {
+  return [...boreMap.values()].map((bore) => Object.freeze({
+    boreKey: bore.label,
+    count: bore.count,
+    buckets: Object.freeze(orderedBuckets(bore.buckets, rowLimit, groupLimit, delimiterOpts)),
+  }));
+}
 function orderedBuckets(bucketMap, rowLimit, groupLimit, delimiterOpts) {
   return ['DTXR-POS', 'DTXR-PS', 'Branch', 'Other'].map((label) => {
     const bucket = bucketMap.get(label) || emptyBucket(label);
@@ -233,15 +260,25 @@ export function buildJsonTraceTree(traceRows = [], options = {}) {
   const positionMap = buildPositionIndex(traceRows);
   const branchMap = new Map();
   for (const [index, row] of (traceRows || []).entries()) {
-    const branchName = traceTreeBranchKey(row), bucketKey = traceTreeBucketKey(row), group = traceTreeGroupKey(row, positionMap);
-    if (!branchMap.has(branchName)) branchMap.set(branchName, { branchName, count: 0, buckets: new Map() });
+    const branchName = traceTreeBranchKey(row);
+    const boreKey = traceTreeBoreKey(row) || 'Unknown Bore';
+    const bucketKey = traceTreeBucketKey(row);
+    const group = traceTreeGroupKey(row, positionMap);
+    if (!branchMap.has(branchName)) branchMap.set(branchName, { branchName, count: 0, bores: new Map() });
     const branch = branchMap.get(branchName);
-    if (!branch.buckets.has(bucketKey)) branch.buckets.set(bucketKey, emptyBucket(bucketKey));
-    const bucket = branch.buckets.get(bucketKey);
+    if (!branch.bores.has(boreKey)) branch.bores.set(boreKey, emptyBoreGroup(boreKey));
+    const boreNode = branch.bores.get(boreKey);
+    if (!boreNode.buckets.has(bucketKey)) boreNode.buckets.set(bucketKey, emptyBucket(bucketKey));
+    const bucket = boreNode.buckets.get(bucketKey);
     if (!bucket.groups.has(group.key)) bucket.groups.set(group.key, emptyGroup(group.label, group.resolved));
     const groupNode = bucket.groups.get(group.key);
-    branch.count += 1; bucket.count += 1; groupNode.count += 1; groupNode.rows.push(createTraceTreeLeaf(row, index, positionMap));
+    branch.count += 1; boreNode.count += 1; bucket.count += 1; groupNode.count += 1;
+    groupNode.rows.push(createTraceTreeLeaf(row, index, positionMap));
   }
-  const branches = [...branchMap.values()].map((branch) => Object.freeze({ branchName: branch.branchName, count: branch.count, buckets: Object.freeze(orderedBuckets(branch.buckets, rowLimit, groupLimit, delimiterOpts)) }));
+  const branches = [...branchMap.values()].map((branch) => Object.freeze({
+    branchName: branch.branchName,
+    count: branch.count,
+    bores: Object.freeze(orderedBoreGroups(branch.bores, rowLimit, groupLimit, delimiterOpts)),
+  }));
   return Object.freeze({ schema: XML_CII_JSON_TRACE_TREE_SCHEMA, totalRows: traceRows.length || 0, branches: Object.freeze(branches) });
 }
