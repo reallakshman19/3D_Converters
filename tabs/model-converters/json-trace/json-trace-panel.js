@@ -287,8 +287,14 @@ function dashboardTreeGroup(group, bucketLabel, current) {
 function dashboardTreeBucket(bucket, current) {
   return `<details class="json-trace-tree-bucket" open><summary>${esc(bucket.label.replace('-', '_'))} <span class="json-trace-count">(${bucket.groupCount} group${bucket.groupCount === 1 ? '' : 's'})</span></summary>${bucket.groups.map((group) => dashboardTreeGroup(group, bucket.label, current)).join('')}</details>`;
 }
+function dashboardTreeBore(bore, index, current) {
+  return `<details class="json-trace-tree-bore" ${index < 2 ? 'open' : ''}><summary><b>${esc(bore.boreKey)}</b> <span class="json-trace-count">(${bore.count})</span></summary>${bore.buckets.map((bucket) => dashboardTreeBucket(bucket, current)).join('')}</details>`;
+}
 function dashboardTreeBranch(branch, index, current) {
-  return `<details class="json-trace-tree-branch" ${index < 3 ? 'open' : ''}><summary>${esc(branch.branchName)} <span class="json-trace-count">(${branch.count})</span></summary>${branch.buckets.map((bucket) => dashboardTreeBucket(bucket, current)).join('')}</details>`;
+  const boreContent = Array.isArray(branch.bores) && branch.bores.length
+    ? branch.bores.map((b, i) => dashboardTreeBore(b, i, current)).join('')
+    : (branch.buckets || []).map((bucket) => dashboardTreeBucket(bucket, current)).join('');
+  return `<details class="json-trace-tree-branch" ${index < 3 ? 'open' : ''}><summary>${esc(branch.branchName)} <span class="json-trace-count">(${branch.count})</span></summary>${boreContent}</details>`;
 }
 function dashboardTreePanel(traceRows, current) {
   const delimiterOpts = { useDelimiter: current?.useDelimiter === true, delimiter: current?.delimiter || '|', joinMode: current?.joinMode || 'unique' };
