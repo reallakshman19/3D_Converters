@@ -592,6 +592,16 @@ def _parse_xml_document(path: Path) -> XmlDocument:
     if not branches:
         raise ValueError("Input XML does not contain any positive NodeNumber nodes.")
 
+    # Applied here (rather than in _build_conversion_model) so every
+    # consumer of XmlDocument.branches sees the same already-cleaned list —
+    # including xml_to_cii2019_patched.py's own _build_conversion_model
+    # override and xml_to_cii2019_direction.py's direct uses of
+    # document.branches for explicit restraint specs / temperature maps.
+    # Cleaning at any single downstream call site risked those staying out
+    # of sync with each other (e.g. restraints keyed by a node number that
+    # a not-yet-cleaned edge list had already dropped).
+    branches = _drop_short_element_nodes(branches)
+
     return XmlDocument(metadata=metadata, branches=branches)
 
 
@@ -894,8 +904,10 @@ def _build_conversion_model(
     support_map: dict | None = None,
     support_config: dict[str, Any] | None = None,
 ) -> ConversionModel:
-    cleaned_branches = _drop_short_element_nodes(document.branches)
-    edges = _build_edges(cleaned_branches)
+    # document.branches is already cleaned of short-element node blocks by
+    # _parse_xml_document, so every downstream consumer (edges, restraints,
+    # etc.) sees a consistent list without needing to re-clean here.
+    edges = _build_edges(document.branches)
     degrees = _build_degree_map(edges)
 
     nodename_lines, edge_to_nodename_index = _build_nodename_lines(edges, support_config)
@@ -904,7 +916,7 @@ def _build_conversion_model(
     sif_edges, edge_to_sif_index = _build_sif_indices(edges)
     reducer_edges, edge_to_reducer_index = _build_reducer_indices(edges)
 
-    explicit_specs = _build_explicit_restraint_specs(cleaned_branches)
+    explicit_specs = _build_explicit_restraint_specs(document.branches)
     restraints, edge_to_restraint_index = _build_restraints(
         document.metadata,
         edges,
