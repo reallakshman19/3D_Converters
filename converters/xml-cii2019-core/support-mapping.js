@@ -441,14 +441,14 @@ function supportProfileForKind(kind, config = {}) {
 
 function gapForSupportKind(kind, attrs, fallbackGap) {
   const upperKind = normalizeSupportKind(kind);
-  if (upperKind !== 'LINESTOP' && upperKind !== 'LIMIT') return fallbackGap;
+  if (upperKind !== 'LINESTOP' && upperKind !== 'LIMIT' && upperKind !== 'GUIDE') return fallbackGap;
   return parseGapValue(attrs?.CMPSUPGAP || attrs?.CMPSUPGAP_POS || attrs?.CMPSUPGAP_PS) || fallbackGap;
 }
 
 function restraintTypeUsesSupportGap(type, entry = null) {
   const restraintType = normalizeXmlType(type);
   const supportKind = normalizeSupportKind(entry?.supportKind);
-  return restraintType === 'LIM' || supportKind === 'LINESTOP' || supportKind === 'LIMIT';
+  return restraintType === 'LIM' || restraintType === 'GUI' || supportKind === 'LINESTOP' || supportKind === 'LIMIT' || supportKind === 'GUIDE';
 }
 
 function firstNodeSupportGapText(nodeElement) {
@@ -508,7 +508,7 @@ export function restraintEntriesFromSupportKind(kind, attrs = {}, nodeElement = 
     type,
     stiffness: profile.stiffness && profile.stiffness !== 'default' ? profile.stiffness : config.defaultStiffness,
     gap,
-    cmpSupGap: upperKind === 'LINESTOP' || upperKind === 'LIMIT' ? toText(attrs?.CMPSUPGAP || attrs?.CMPSUPGAP_POS || attrs?.CMPSUPGAP_PS).trim() : '',
+    cmpSupGap: upperKind === 'LINESTOP' || upperKind === 'LIMIT' || upperKind === 'GUIDE' ? toText(attrs?.CMPSUPGAP || attrs?.CMPSUPGAP_POS || attrs?.CMPSUPGAP_PS).trim() : '',
     frictionMode: profile.frictionMode || 'default',
     fixedFriction: profile.fixedFriction || '',
     supportTagMode: profile.supportTagMode || 'kind',
