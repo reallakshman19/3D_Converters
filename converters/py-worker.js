@@ -4,6 +4,7 @@ import {
   validateConverterWorkerRequest,
 } from './worker-contract.js';
 import { buildInvocation } from './invocation-builder.js';
+import { normalizeInputXmlAttributeNames, converterUsesInputXmlDialect } from './inputxml-field-adapter.js';
 
 const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/';
 
@@ -241,10 +242,20 @@ if "/scripts" not in sys.path:
   _scriptsLoaded = true;
 }
 
-function _writeInputFile(pyodide, jobDir, fileSpec) {
+function _writeInputFile(pyodide, jobDir, fileSpec, { normalizeInputXmlDialect = false, adapterLog = null } = {}) {
   const fileName = _sanitizeFileName(fileSpec?.name);
   const path = `${jobDir}/${fileName}`;
-  const bytes = new Uint8Array(fileSpec?.bytes || new ArrayBuffer(0));
+  let bytes = new Uint8Array(fileSpec?.bytes || new ArrayBuffer(0));
+  if (normalizeInputXmlDialect && bytes.length) {
+    const text = new TextDecoder('utf-8').decode(bytes);
+    const { xmlText, renamed } = normalizeInputXmlAttributeNames(text);
+    if (renamed.length) {
+      bytes = new TextEncoder().encode(xmlText);
+      if (adapterLog) {
+        adapterLog.push(`[inputxml-adapter] Normalized ${renamed.length} attribute name(s): ${renamed.join(', ')}`);
+      }
+    }
+  }
   pyodide.FS.writeFile(path, bytes);
   return path;
 }
@@ -412,7 +423,10 @@ async function _runJob(message) {
   const jobDir = `/work/job_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
   pyodide.FS.mkdirTree(jobDir);
 
-  const primaryPath = _writeInputFile(pyodide, jobDir, primary);
+  const primaryPath = _writeInputFile(pyodide, jobDir, primary, {
+    normalizeInputXmlDialect: converterUsesInputXmlDialect(converterId),
+    adapterLog: stdout,
+  });
   const secondaryPath = secondary ? _writeInputFile(pyodide, jobDir, secondary) : null;
   const invocation = buildInvocation(converterId, primaryPath, primary.name, secondaryPath, options, jobDir);
 

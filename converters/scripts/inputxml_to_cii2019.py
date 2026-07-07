@@ -1536,17 +1536,31 @@ def _infer_reducer_indices(
         if abs(current.diameter - following.diameter) <= 1e-6:
             continue
 
-        angle_value = defaults.reducer_angle
-        if infer_angle_from_geometry:
-            run = math.sqrt(
-                current.delta_x * current.delta_x
-                + current.delta_y * current.delta_y
-                + current.delta_z * current.delta_z
+        # Geometry (DELTA_X/Y/Z + the diameters either side of the reducer) is
+        # real data already present in the source InputXML. Previously that
+        # data was only used when the "Infer Reducer Angle From Geometry"
+        # checkbox was explicitly ticked; otherwise every detected reducer
+        # was silently forced to Default Reducer Angle (0 by default),
+        # discarding an angle that could be computed from the file itself.
+        # Now geometry wins whenever it is computable and the user hasn't
+        # explicitly configured a non-zero override; a configured default is
+        # still honored (explicit intent), and the checkbox still forces
+        # geometry to win over a configured default too.
+        run = math.sqrt(
+            current.delta_x * current.delta_x
+            + current.delta_y * current.delta_y
+            + current.delta_z * current.delta_z
+        )
+        geometry_angle = None
+        if run > 1e-9:
+            geometry_angle = math.degrees(
+                math.atan(abs(following.diameter - current.diameter) / (2.0 * run))
             )
-            if run > 1e-9:
-                angle_value = math.degrees(
-                    math.atan(abs(following.diameter - current.diameter) / (2.0 * run))
-                )
+
+        if geometry_angle is not None and (infer_angle_from_geometry or defaults.reducer_angle <= 0.0):
+            angle_value = geometry_angle
+        else:
+            angle_value = defaults.reducer_angle
         reducers.append((following.diameter, angle_value))
         edge_to_reducer_index[index] = len(reducers)
 

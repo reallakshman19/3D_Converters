@@ -57,6 +57,7 @@ import { CONVERTERS, getConverterById } from './converter-registry.js?v=20260617
 import { XML_CII_WORKFLOW_PHASES } from './WorkflowShell.js';
 import { loadStoredState, saveStoredState } from './core/config-store.js';
 import { downloadOutput, arrayBufferToBase64, baseNameWithoutExtension, isRvmFileName, isAttOrTxtFileName, encodeTextUtf8, decodeTextUtf8, toFiniteNumber } from './core/output-utils.js';
+import { MASTER_INPUTXML_TEMPLATE, MASTER_INPUTXML_FILE_NAME } from './master-inputxml-sample.js';
 import { WorkflowModal } from './shared/WorkflowModal.js';
 import { FileInputCard } from './shared/FileInputCard.js';
 import { FieldMappingTable } from './shared/FieldMappingTable.js';
@@ -805,6 +806,10 @@ const CONVERTER_DEFS = Object.freeze({
     secondaryLabel: '',
     secondaryAccept: '',
     description: 'Convert CAESARII Input XML to CII using 2019 benchmark structure profiles.',
+    masterInputXmlSample: {
+      fileName: MASTER_INPUTXML_FILE_NAME,
+      getText: () => MASTER_INPUTXML_TEMPLATE,
+    },
     defaults: {
       inferReducerAngleFromGeometry: false,
       defaultDiameter: 0,
@@ -5351,6 +5356,7 @@ export function renderModelConvertersTab(container) {
 
         <label class="model-converters-file">
           <span id="model-converters-primary-label"></span>
+          <button type="button" id="model-converters-master-sample-btn" class="model-converters-info-btn" title="Download Master InputXML template (with work instructions)" style="display:none;margin-left:6px;cursor:pointer;">&#9432;</button>
           <input type="file" id="model-converters-primary-input">
           <small id="model-converters-primary-name">No file selected.</small>
         </label>
@@ -5407,6 +5413,7 @@ export function renderModelConvertersTab(container) {
 
   const selectEl = container.querySelector('#model-converters-select');
   const primaryLabelEl = container.querySelector('#model-converters-primary-label');
+  const masterSampleBtnEl = container.querySelector('#model-converters-master-sample-btn');
   const primaryInputEl = container.querySelector('#model-converters-primary-input');
   const primaryNameEl = container.querySelector('#model-converters-primary-name');
   const secondaryWrapEl = container.querySelector('#model-converters-secondary-wrap');
@@ -8453,6 +8460,11 @@ export function renderModelConvertersTab(container) {
     primaryInputEl.setAttribute('accept', def.primaryAccept);
     primaryNameEl.textContent = primaryFile ? primaryFile.name : 'No file selected.';
 
+    if (masterSampleBtnEl) {
+      masterSampleBtnEl.style.display = def.masterInputXmlSample ? '' : 'none';
+      masterSampleBtnEl.dataset.converterId = def.id;
+    }
+
     const showSecondary = !!def.secondaryLabel;
     secondaryWrapEl.style.display = showSecondary ? '' : 'none';
     if (showSecondary) {
@@ -8498,6 +8510,17 @@ export function renderModelConvertersTab(container) {
     persist();
     resetOutput();
     renderAll();
+  });
+
+  masterSampleBtnEl?.addEventListener('click', () => {
+    const def = activeDef();
+    const sample = def.masterInputXmlSample;
+    if (!sample) return;
+    downloadOutput({
+      name: sample.fileName,
+      text: sample.getText(),
+      mime: 'application/xml;charset=utf-8',
+    });
   });
 
   primaryInputEl.addEventListener('change', () => {
