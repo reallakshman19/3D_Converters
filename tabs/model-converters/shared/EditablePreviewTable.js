@@ -77,7 +77,7 @@ export class EditablePreviewTable {
       const isDefault = source === 'default' || source === 'config-default' || source === 'default-zero';
       const cls = `mc-preview-editable-val${isDefault ? ' mc-preview-default-val' : ''}`;
       const style = isDefault ? ' style="color:#7f1d1d;font-weight:600;font-style:italic;" title="Config default value"' : '';
-      const badge = source === 'override' ? ' <span class="mc-preview-badge exact">✓ override</span>' : (source === 'dtxr-sch-applied' ? ' <span class="mc-preview-badge exact" title="Wall thickness applied from DTXR schedule. Click cell to override manually.">✓ DTXR Sch</span>' : (isDefault ? ' <span class="mc-preview-badge bad">default</span>' : ''));
+      const badge = source === 'override' ? ' <span class="mc-preview-badge exact">✓ override</span>' : (source === 'dtxr-sch-applied' ? ' <span class="mc-preview-badge exact" title="Wall thickness applied from DTXR schedule. Click cell to override manually.">✓ DTXR Sch</span>' : (source === 'dtxr-sch' ? ' <span class="mc-preview-badge exact" title="Wall thickness auto-derived from DTXR schedule text + bore. Click cell to override manually.">DTXR Sch (auto)</span>' : (isDefault ? ' <span class="mc-preview-badge bad">default</span>' : '')));
       return `<span class="${cls}"${style}>${this._escape(value || '—')}</span>${badge}`;
     };
     const classKey = smartClassKey(row);
