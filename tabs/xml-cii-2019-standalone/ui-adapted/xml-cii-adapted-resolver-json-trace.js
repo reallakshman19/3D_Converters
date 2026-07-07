@@ -50,6 +50,7 @@ function tableBody(headers, data) {
 function fieldFor(header) {
   return {
     Path: 'path', Node: 'nodeKey', PS: 'psKey', POS: 'posKey', Hits: 'hitCount', Type: 'type', Rows: 'rows',
+    Branch: 'branch', Bore: 'bore', DTXR_POS: 'dtxrPos',
   }[header] || header;
 }
 
@@ -100,6 +101,14 @@ function renderPosTester(parent, result) {
   parent.appendChild(section);
 }
 
+function renderDtxrPosTree(parent, result) {
+  const section = createElement('section', '', 'xml-cii-resolver-panel');
+  section.appendChild(createElement('h3', 'JSON Trace Tree (Branch → Bore → DTXR_POS)'));
+  section.appendChild(createElement('p', 'Support/component JSON rows are grouped by OWNER branch, actual bore fields, and POSI/POS; DTXR leaves include NAME and CMPSUPGAP so the same text can be used by preview, node trace, weight review, and restraint gap mapping.', 'xml-cii-phase-help'));
+  section.appendChild(table(['Branch', 'Bore', 'POS', 'DTXR_POS'], rows(result?.traceRows), 'No branch/bore/POS DTXR groups found in staged JSON.'));
+  parent.appendChild(section);
+}
+
 function renderDiagnostics(parent, result) {
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(createElement('h3', 'Resolver Diagnostics'));
@@ -116,6 +125,7 @@ export function renderStandaloneResolverJsonTracePanel(card, state) {
   renderResolverIndex(card, state);
   renderJsonConfig(card, state);
   renderResolvedData(card, state.resolverJsonTraceResult);
+  renderDtxrPosTree(card, state.resolverJsonTraceResult);
   renderPsTester(card, state.resolverJsonTraceResult);
   renderPosTester(card, state.resolverJsonTraceResult);
   renderDiagnostics(card, state.resolverJsonTraceResult);

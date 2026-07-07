@@ -3095,8 +3095,8 @@ function _xmlCiiNumberText(value) {
   return xmlCiiNumberText(value);
 }
 
-function _xmlCiiRigidWeightOverrideForNode(branchName, node, config) {
-  return xmlCiiRigidWeightOverrideForNode(branchName, node, config);
+function _xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx) {
+  return xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);
 }
 
 function _xmlCiiForwardElementLengths(nodes) {
@@ -3520,9 +3520,7 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
         stats.classMasterAnnotations = (stats.classMasterAnnotations || 0) + 1;
       }
 
-      const manualRigidWeight = _isXmlCiiRigidNode(node)
-        ? _xmlCiiRigidWeightOverrideForNode(branchName, node, config)
-        : null;
+      const manualRigidWeight = _xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);
       if (manualRigidWeight !== null) {
         _xmlSetText(document, node, 'Weight', String(manualRigidWeight));
         stats.weightAnnotations += 1;

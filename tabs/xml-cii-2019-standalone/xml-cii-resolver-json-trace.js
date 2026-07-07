@@ -144,12 +144,62 @@ function readAlias(row, aliases) {
 }
 
 function factKeys(fact, cfg) {
-  const row = fact.raw || {};
+  const row = { ...(fact.raw || {}), ...safeObject(fact.raw?.attributes) };
   return {
     nodeKey: readAlias(row, cfg.nodeAliases),
     psKey: readAlias(row, cfg.psAliases),
     posKey: readAlias(row, cfg.posAliases),
   };
+}
+
+function boreFromAttrs(attrs) {
+  const raw = firstAttr(attrs, ['LBORE', 'ABORE', 'BORE', 'Bore', 'COMPBORE']);
+  const match = raw.match(/-?\d+(?:\.\d+)?/);
+  return match ? match[0] : '';
+}
+
+function dtxrPosText(attrs) {
+  const direct = firstAttr(attrs, ['POSI', 'DTXR_POS']);
+  if (direct) return direct;
+  const point = attrs.POS || attrs.pos || attrs.Position || attrs.position;
+  if (point && typeof point === 'object') {
+    const x = Number(point.x ?? point.X);
+    const y = Number(point.y ?? point.Y);
+    const z = Number(point.z ?? point.Z);
+    if ([x, y, z].every(Number.isFinite)) return `E ${x}mm ${y < 0 ? 'S' : 'N'} ${Math.abs(y)}mm ${z < 0 ? 'D' : 'U'} ${Math.abs(z)}mm`;
+  }
+  return '';
+}
+
+function dtxrLeafText(attrs) {
+  const dtxr = firstAttr(attrs, ['DTXR', 'DTXR_POS', 'DESC', 'DESCRIPTION']);
+  if (!dtxr) return '';
+  const name = firstAttr(attrs, ['NAME', 'Name', 'STEX']);
+  const gap = firstAttr(attrs, ['CMPSUPGAP', 'NODEGAP']);
+  const extras = [['NAME', name], ['CMPSUPGAP', gap]].filter(([, value]) => value).map(([key, value]) => `${key}=${value}`).join(',');
+  return extras ? `${dtxr}(${extras})` : dtxr;
+}
+
+function collectJsonTraceRows(facts) {
+  const groups = new Map();
+  for (const fact of facts) {
+    const attrs = { ...(fact.raw || {}), ...safeObject(fact.raw?.attributes) };
+    const branch = firstAttr(attrs, ['OWNER', 'BRANCH', 'BranchName', 'LINE_ID']) || '';
+    const bore = boreFromAttrs(attrs);
+    const pos = dtxrPosText(attrs);
+    const leaf = dtxrLeafText(attrs);
+    if (!branch || !bore || !pos || !leaf) continue;
+    const key = `${branch}||${bore}||${pos}`;
+    const row = groups.get(key) || { branch, bore, pos, leaves: [], paths: [] };
+    if (!row.leaves.includes(leaf)) row.leaves.push(leaf);
+    row.paths.push(fact.path);
+    groups.set(key, row);
+  }
+  return [...groups.values()].map((row) => ({
+    ...row,
+    dtxrPos: row.leaves.join('|'),
+    sideLoadBlock: `DTXR_POS=${row.leaves.join('|')}`,
+  }));
 }
 
 function resolveFact(fact, cfg, indexes) {
@@ -187,8 +237,10 @@ export function runStandaloneResolverJsonTrace(input = {}) {
   const resolvedFacts = facts.map((fact) => resolveFact(fact, jsonConfig, indexes));
   const matchedFacts = resolvedFacts.filter((fact) => fact.hitCount > 0);
   const rejectedFacts = resolvedFacts.filter((fact) => fact.hitCount <= 0);
+  const traceRows = collectJsonTraceRows(facts);
   const diagnostics = diagnosticsFor(indexes, facts, matchedFacts, rejectedFacts, sourceKind);
-  return { ...indexes, jsonConfig, resolvedFacts: resolvedFacts.slice(0, PREVIEW_LIMIT), matchedFacts, rejectedFacts, diagnostics, supportConfigJson: writeSupportConfig(input.supportConfigJson, jsonConfig) };
+  diagnostics.push({ type: 'resolver-json-trace-dtxr-pos-groups', rows: traceRows.length });
+  return { ...indexes, jsonConfig, resolvedFacts: resolvedFacts.slice(0, PREVIEW_LIMIT), matchedFacts, rejectedFacts, traceRows, diagnostics, supportConfigJson: writeSupportConfig(input.supportConfigJson, jsonConfig) };
 }
 
 function inputXmlNotRequired(jsonConfig, supportConfigJson) {
