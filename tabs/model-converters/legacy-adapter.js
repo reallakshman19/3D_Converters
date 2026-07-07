@@ -17,7 +17,7 @@ import { deriveLineKeyFromBranchName } from '../../converters/xml-cii2019-core/r
 import { buildPipingClassIndex } from '../../converters/xml-cii2019-core/piping-class-resolver.js';
 import { resolveBranchProcessData } from '../../converters/xml-cii2019-core/branch-process-resolver.js';
 import { buildStagedDtxrIndex, resolveXmlCiiNodeDtxr } from '../../converters/xml-cii2019-core/dtxr-resolver.js';
-import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
+import { applyXmlCiiStagedGeometryAuthority, buildXmlCiiStagedGeometryIndex, resolveXmlCiiStagedGeometryForNode } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
 import { xmlCiiDtxrPsForNode, xmlCiiDtxrPosForNode, buildStagedDtxrPositionIndex, xmlCiiCalibrateDtxrPositionIndex } from '../../converters/xml-cii2019-core/dtxr-resolver.js';
 import {
   collectXmlCiiZeroRigidWeightIssues,
@@ -3004,6 +3004,22 @@ function _deriveBoreFromBranchName(branchName, config) {
   return _nominalDnFromNps(inches, config);
 }
 
+// Real per-component Bore from the JSON Trace (ABORE/LBORE/PBORE/HBORE/TBORE/
+// BORE/DN/NB, matched via ComponentRefNo) is authoritative when available —
+// unlike a size token parsed out of the branch name string, it reflects the
+// component actually there, so it must win over _deriveBoreFromBranchName
+// rather than the other way around. Returns null (falling through to the
+// branch-name regex) when no staged JSON is loaded or no node in this branch
+// has a matching staged component.
+function _stagedBranchBoreMm(branch, stagedGeometryIndex) {
+  if (!stagedGeometryIndex?.count) return null;
+  for (const node of _xmlChildrenByName(branch, 'Node')) {
+    const geometry = resolveXmlCiiStagedGeometryForNode(node, stagedGeometryIndex);
+    if (geometry?.boreMm) return geometry.boreMm;
+  }
+  return null;
+}
+
 function _pointDistanceMm(a, b) {
   const pa = _normalizePoint(a);
   const pb = _normalizePoint(b);
@@ -3365,6 +3381,7 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
   let stagedDtxrPositionIndex = _buildStagedDtxrPositionIndex(stagedJsonText, config);
   stagedDtxrPositionIndex = _xmlCiiCalibrateDtxrPositionIndex(stagedDtxrPositionIndex, document, config);
   const stagedDtxrRefIndex = buildStagedDtxrIndex(stagedJsonText, config);
+  const stagedGeometryIndex = buildXmlCiiStagedGeometryIndex(stagedJsonText);
   if (stagedDtxrPositionIndex?.inferredOffset) {
     stagedSupportIndex = calibrateStagedSupportIndexCoordinates(stagedSupportIndex, stagedDtxrPositionIndex.inferredOffset, config);
     diagnostics.push({
@@ -3432,7 +3449,8 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
     }
 
     const derivedClassRaw = _derivePipingClassFromBranchName(branchName, config) || _rowText(lineListMatch, ['pipingClass', 'PipingClass']);
-    const branchBore = _deriveBoreFromBranchName(branchName, config) || _rowNumber(lineListMatch, ['convertedBore', 'Bore']);
+    const branchBore = _stagedBranchBoreMm(branch, stagedGeometryIndex)
+      ?? (_deriveBoreFromBranchName(branchName, config) || _rowNumber(lineListMatch, ['convertedBore', 'Bore']));
 
     // Use unified branch-process resolver
     const resolved = resolveBranchProcessData({
@@ -3513,9 +3531,11 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
     });
   }
 
+  const _seenPositionKeysForSupportCoverage = new Set();
   for (const node of [...document.getElementsByTagName('Node')]) {
     const componentType = _xmlText(node, 'ComponentType').toUpperCase();
     const positionKey = _xmlPositionKey(_xmlText(node, 'Position'), tolerance);
+    if (positionKey) _seenPositionKeysForSupportCoverage.add(positionKey);
     const coordMatches = positionKey ? (stagedSupportIndex.byCoord.get(positionKey) || []) : [];
     const supportTags = _xmlNodeSupportTags(node);
     const tagMatches = supportTags.flatMap((tag) => stagedSupportIndex.byTag.get(tag) || []);
@@ -3570,10 +3590,32 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
         .filter((entry) => !!entry.type);
     }
 
-    if (componentType === 'ATTA' && targetEntries.length > 0) {
+    // Support/Restraint revalidation: a coordinate/tag match against the
+    // staged support index (`staged`) means the source data says a support
+    // genuinely exists at this node, independent of ComponentType. The ATTA
+    // gate below intentionally limits *unprompted* restraint creation to
+    // attachment nodes, which previously meant a real, DTXR_POS-confirmed
+    // support on a non-ATTA node with no restraint yet was silently dropped.
+    // Re-populate it here rather than leaving it missing.
+    const isRevalidationFill = !!staged && componentType !== 'ATTA' && restraints.length === 0 && targetEntries.length > 0;
+    if ((componentType === 'ATTA' || isRevalidationFill) && targetEntries.length > 0) {
       _applyXmlRestraints(document, node, targetEntries, config);
       if (staged) stats.stagedSupportsMapped += 1;
       stats.normalizedRestraints += targetEntries.length;
+      if (isRevalidationFill) {
+        stats.supportRevalidationFilled = (stats.supportRevalidationFilled || 0) + 1;
+        diagnostics.push({
+          type: 'support-revalidation-filled',
+          nodeNumber: _xmlText(node, 'NodeNumber'),
+          nodeName: _xmlText(node, 'NodeName'),
+          componentType,
+          matchedBy: supportMatchMethod,
+          matchedKey: coordMatches.length > 0 ? positionKey : supportTags.join('|'),
+          restraintTypes: targetEntries.join('+'),
+          message: 'Populated restraint from staged support/DTXR_POS match on a node with no prior Restraint.',
+          status: 'applied',
+        });
+      }
     } else if (restraints.length) {
       _applyXmlRestraints(document, node, targetEntries, config);
       stats.normalizedRestraints += targetEntries.length;
@@ -3591,6 +3633,37 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
         stats.weightAnnotations += 1;
       }
     }
+  }
+
+  // Support/Restraint revalidation index: every POS-wise support the source
+  // (staged JSON / DTXR) declares, independent of whether any XML <Node> in
+  // this document actually landed on that coordinate. Entries with no
+  // matching XML node are a genuine coverage gap (e.g. the node was dropped,
+  // renumbered, or never emitted) that can't be auto-fixed by mutating a
+  // node that doesn't exist, so they're surfaced as a diagnostic instead.
+  let posIndex = 0;
+  for (const [coordinateKey, matches] of stagedSupportIndex.byCoord.entries()) {
+    posIndex += 1;
+    const available = _seenPositionKeysForSupportCoverage.has(coordinateKey);
+    if (available) continue;
+    const tags = [...new Set(matches.flatMap((m) => m.supportTags || []))];
+    const point = matches[0]?.point;
+    diagnostics.push({
+      type: 'support-coverage-gap',
+      posId: `POS_${posIndex}`,
+      coordinateKey,
+      position: point ? `${point.x} ${point.y} ${point.z}` : '',
+      tags: tags.join('/'),
+      status: 'missing',
+      message: `Support declared in source at ${tags.join('/') || coordinateKey} has no matching XML node; cannot auto-populate a restraint on a node that does not exist.`,
+    });
+  }
+  if (stats.supportRevalidationFilled) {
+    diagnostics.push({
+      type: 'support-revalidation-summary',
+      filled: stats.supportRevalidationFilled,
+      message: `${stats.supportRevalidationFilled} support(s) re-populated from staged/DTXR_POS data on nodes that previously had no Restraint.`,
+    });
   }
 
   const xmlOut = new XMLSerializer().serializeToString(document);
