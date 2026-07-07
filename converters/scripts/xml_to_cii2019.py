@@ -200,14 +200,27 @@ def _child_text(parent: ET.Element, namespace: str, name: str) -> str:
     return _safe_text(element.text)
 
 
+PARSE_WARNINGS: list[str] = []
+
+
+def _record_parse_warning(field_name: str, text: str, fallback: object) -> None:
+    PARSE_WARNINGS.append(
+        f"Ignoring unresolved value in XML field '{field_name}': '{text}' (using {fallback!r})."
+    )
+
+
 def _parse_optional_int(value: str, field_name: str) -> int | None:
     text = _safe_text(value)
     if not text:
         return None
     try:
         return int(text)
-    except ValueError as exc:
-        raise ValueError(f"Invalid integer in XML field '{field_name}': '{text}'") from exc
+    except ValueError:
+        # Some XML exports leave unresolved template tokens (e.g. a Line Regex
+        # key like 'linelist-density-liquid') in place of a real number. Treat
+        # those as missing rather than crashing the whole conversion.
+        _record_parse_warning(field_name, text, None)
+        return None
 
 
 def _parse_optional_float(value: str, field_name: str) -> float | None:
@@ -216,8 +229,9 @@ def _parse_optional_float(value: str, field_name: str) -> float | None:
         return None
     try:
         return float(text)
-    except ValueError as exc:
-        raise ValueError(f"Invalid float in XML field '{field_name}': '{text}'") from exc
+    except ValueError:
+        _record_parse_warning(field_name, text, None)
+        return None
 
 
 def _parse_optional_whole_int(value: str, field_name: str) -> int | None:
@@ -254,11 +268,13 @@ def _parse_position(value: str) -> tuple[float, float, float]:
     text = _safe_text(value)
     parts = text.split()
     if len(parts) != 3:
-        raise ValueError(f"Position must have exactly 3 values, got '{text}'")
+        _record_parse_warning("Position", text, (0.0, 0.0, 0.0))
+        return (0.0, 0.0, 0.0)
     try:
         return float(parts[0]), float(parts[1]), float(parts[2])
-    except ValueError as exc:
-        raise ValueError(f"Invalid numeric value in Position '{text}'") from exc
+    except ValueError:
+        _record_parse_warning("Position", text, (0.0, 0.0, 0.0))
+        return (0.0, 0.0, 0.0)
 
 
 def _parse_yes_no(value: str, field_name: str) -> bool:
@@ -269,7 +285,8 @@ def _parse_yes_no(value: str, field_name: str) -> bool:
         return True
     if text == "NO":
         return False
-    raise ValueError(f"Expected Yes/No in XML field '{field_name}', got '{value}'")
+    _record_parse_warning(field_name, text, False)
+    return False
 
 
 def _restraint_type_to_code(restraint_type: str) -> int:
@@ -301,11 +318,8 @@ def _restraint_type_to_code(restraint_type: str) -> int:
         return 19
     if normalized == "Z":
         return 18
-    raise ValueError(
-        f"Unsupported restraint type '{restraint_type}'. "
-        "Supported values: numeric CII type 1..62, +/-X, +/-Y, +/-Z, "
-        "A/ANCHOR/FIXED, or named CII types such as GUI/LIM/XSNB."
-    )
+    _record_parse_warning("Restraint/Type", restraint_type, 1)
+    return 1
 
 
 def _normalize_direction(values: tuple[float, float, float] | None) -> tuple[float, float, float] | None:
@@ -1621,6 +1635,10 @@ def main() -> None:
         f"{len(model.restraints)} restraints, {len(model.bend_edges)} bends, "
         f"{len(model.sif_edges)} SIF/tee entries, {len(model.reducer_edges)} reducers."
     )
+    if PARSE_WARNINGS:
+        print(f"Warning: {len(PARSE_WARNINGS)} unresolved value(s) fell back to defaults:")
+        for warning in PARSE_WARNINGS:
+            print(f"  - {warning}")
 
 
 if __name__ == "__main__":
