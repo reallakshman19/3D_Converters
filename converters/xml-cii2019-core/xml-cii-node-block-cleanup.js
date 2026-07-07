@@ -7,8 +7,22 @@ function childrenByName(parent, name) { return [...(parent?.childNodes || [])].f
 function firstChild(parent, name) { return childrenByName(parent, name)[0] || null; }
 function childText(parent, name) { return text(firstChild(parent, name)?.textContent); }
 function configFrom(options = {}) { return options?.config && typeof options.config === 'object' && !Array.isArray(options.config) ? options.config : options; }
+
+// The enriched XML download is an audit artifact. It must preserve source node
+// blocks and their Position values; short-node deletion belongs to the later
+// CII conversion model stage, where xml_to_cii2019.py recomputes and drops
+// short elements from parsed positions.
+const ENRICHED_XML_POSITION_PRESERVE_STAGES = new Set([
+  'pre-staged-geometry-authority',
+  'post-staged-geometry-authority',
+]);
+
+function shouldPreserveShortNodeBlocks(stage) {
+  return ENRICHED_XML_POSITION_PRESERVE_STAGES.has(text(stage));
+}
 function shouldDropGasket(config = {}) { return truthy(config.disableGasketNodes) || truthy(config.disableGasketInOutput) || (defaultTrue(config.dropGasketNodes) && defaultTrue(config.dropGasketsInEnrichment)); }
-function shouldDropShort(config = {}) { return defaultTrue(config.dropShortElementLengthNodes); }
+function shouldDropShort(config = {}, stage = '') { if (shouldPreserveShortNodeBlocks(stage)) return false; return defaultTrue(config.dropShortElementLengthNodes); }
+function emptyStats() { return { gasketNodesDropped: 0, shortElementLengthNodesDropped: 0, shortElementLengthNodesDroppedByType: {} }; }
 function diagnosticsForNode(node, stage, reason, thresholdMm = null) {
   const componentType = childText(node, 'ComponentType').toUpperCase();
   const elementLengthMm = numeric(childText(node, 'ElementLengthMm'));
@@ -27,13 +41,13 @@ function diagnosticsForNode(node, stage, reason, thresholdMm = null) {
 }
 function updateTypeCount(stats, componentType) { const key = text(componentType).toUpperCase() || 'UNKNOWN'; stats.shortElementLengthNodesDroppedByType[key] = (stats.shortElementLengthNodesDroppedByType[key] || 0) + 1; }
 function cleanDom(xmlText, config, stage) {
-  const stats = { gasketNodesDropped: 0, shortElementLengthNodesDropped: 0, shortElementLengthNodesDroppedByType: {} };
+  const stats = emptyStats();
   const diagnostics = [];
   const document = new DOMParser().parseFromString(text(xmlText), 'application/xml');
   if (document.getElementsByTagName('parsererror').length) return null;
   const thresholdMm = Math.max(0, Number(config.shortElementLengthDropThresholdMm ?? 6));
   const dropGask = shouldDropGasket(config);
-  const dropShort = shouldDropShort(config) && thresholdMm > 0;
+  const dropShort = shouldDropShort(config, stage) && thresholdMm > 0;
   for (const node of [...document.getElementsByTagName('Node')]) {
     const componentType = childText(node, 'ComponentType').toUpperCase();
     const length = numeric(childText(node, 'ElementLengthMm'));
@@ -49,11 +63,11 @@ function cleanDom(xmlText, config, stage) {
 }
 function tagValue(block, name) { return text(block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'))?.[1]?.replace(/<[^>]+>/g, '')); }
 function cleanRegex(xmlText, config, stage) {
-  const stats = { gasketNodesDropped: 0, shortElementLengthNodesDropped: 0, shortElementLengthNodesDroppedByType: {} };
+  const stats = emptyStats();
   const diagnostics = [];
   const thresholdMm = Math.max(0, Number(config.shortElementLengthDropThresholdMm ?? 6));
   const dropGask = shouldDropGasket(config);
-  const dropShort = shouldDropShort(config) && thresholdMm > 0;
+  const dropShort = shouldDropShort(config, stage) && thresholdMm > 0;
   const out = text(xmlText).replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
     const componentType = tagValue(block, 'ComponentType').toUpperCase();
     const length = numeric(tagValue(block, 'ElementLengthMm'));
@@ -75,7 +89,7 @@ function cleanRegex(xmlText, config, stage) {
 export function cleanXmlCiiNodeBlocks(xmlText, options = {}) {
   const config = configFrom(options);
   const stage = text(options.stage || config.stage || 'xml-cii-node-block-cleanup');
-  if (!shouldDropGasket(config) && !shouldDropShort(config)) return { xmlText, stats: { gasketNodesDropped: 0, shortElementLengthNodesDropped: 0, shortElementLengthNodesDroppedByType: {} }, diagnostics: [] };
+  if (!shouldDropGasket(config) && !shouldDropShort(config, stage)) return { xmlText, stats: emptyStats(), diagnostics: [] };
   if (typeof DOMParser !== 'undefined' && typeof XMLSerializer !== 'undefined') {
     try { const result = cleanDom(xmlText, config, stage); if (result) return result; } catch {}
   }
