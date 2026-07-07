@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import math
 from pathlib import Path
@@ -595,6 +595,53 @@ def _parse_xml_document(path: Path) -> XmlDocument:
     return XmlDocument(metadata=metadata, branches=branches)
 
 
+SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM: Final[float] = 6.0
+DROPPED_SHORT_ELEMENT_NODES: list[str] = []
+
+
+def _drop_short_element_nodes(
+    branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
+) -> list[XmlBranch]:
+    """Drop node blocks whose segment length is <= threshold_mm.
+
+    Mirrors the JS-side xml-cii-node-block-cleanup.js invariant used by the
+    standalone XML->CII(2019) preview/weight-match tooling: a full "Node
+    block" (the arriving node of a too-short segment) is removed outright
+    rather than merged, collapsing that hop so the branch connects straight
+    through to whatever node follows. Length is always recomputed fresh from
+    node positions (this engine never reads a stale ElementLengthMm
+    attribute), so the check is inherently against up-to-date geometry.
+    """
+    new_branches: list[XmlBranch] = []
+    for branch in branches:
+        if len(branch.nodes) < 2:
+            new_branches.append(branch)
+            continue
+        kept: list[XmlNode] = [branch.nodes[0]]
+        for node in branch.nodes[1:]:
+            previous = kept[-1]
+            length = math.sqrt(
+                (node.position[0] - previous.position[0]) ** 2
+                + (node.position[1] - previous.position[1]) ** 2
+                + (node.position[2] - previous.position[2]) ** 2
+            )
+            if length <= threshold_mm:
+                DROPPED_SHORT_ELEMENT_NODES.append(
+                    f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
+                    f"segment length {length:.3f}mm <= {threshold_mm}mm"
+                )
+                continue
+            kept.append(node)
+        if len(kept) < 2:
+            # Dropping every intermediate node would leave no segments at
+            # all in this branch; keep the original nodes rather than
+            # discarding the branch outright.
+            new_branches.append(branch)
+            continue
+        new_branches.append(replace(branch, nodes=kept))
+    return new_branches
+
+
 def _build_edges(branches: list[XmlBranch]) -> list[Edge]:
     edges: list[Edge] = []
     for branch in branches:
@@ -847,7 +894,8 @@ def _build_conversion_model(
     support_map: dict | None = None,
     support_config: dict[str, Any] | None = None,
 ) -> ConversionModel:
-    edges = _build_edges(document.branches)
+    cleaned_branches = _drop_short_element_nodes(document.branches)
+    edges = _build_edges(cleaned_branches)
     degrees = _build_degree_map(edges)
 
     nodename_lines, edge_to_nodename_index = _build_nodename_lines(edges, support_config)
@@ -856,7 +904,7 @@ def _build_conversion_model(
     sif_edges, edge_to_sif_index = _build_sif_indices(edges)
     reducer_edges, edge_to_reducer_index = _build_reducer_indices(edges)
 
-    explicit_specs = _build_explicit_restraint_specs(document.branches)
+    explicit_specs = _build_explicit_restraint_specs(cleaned_branches)
     restraints, edge_to_restraint_index = _build_restraints(
         document.metadata,
         edges,
@@ -1639,6 +1687,13 @@ def main() -> None:
         print(f"Warning: {len(PARSE_WARNINGS)} unresolved value(s) fell back to defaults:")
         for warning in PARSE_WARNINGS:
             print(f"  - {warning}")
+    if DROPPED_SHORT_ELEMENT_NODES:
+        print(
+            f"Dropped {len(DROPPED_SHORT_ELEMENT_NODES)} node block(s) with recalculated "
+            f"element length <= {SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM}mm:"
+        )
+        for entry in DROPPED_SHORT_ELEMENT_NODES:
+            print(f"  - {entry}")
 
 
 if __name__ == "__main__":
