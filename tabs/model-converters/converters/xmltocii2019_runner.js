@@ -4,7 +4,6 @@ import { applyXmlCiiFlangeWeightFallbackToIssues } from '../../../converters/xml
 import { applyXmlCiiStagedGeometryAuthority } from '../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-length-auto-weight-1';
 import { applyXmlCiiOutsideDiameterResolver } from '../../../converters/xml-cii2019-core/outside-diameter-resolver.js?v=20260708-od-resolver-1';
 import { applyXmlCiiSplitRigidWeightPropagation } from '../../../converters/xml-cii2019-core/split-rigid-weight-propagation.js?v=20260708-split-weight-1';
-import { applyXmlCiiShortDropContinuity } from '../../../converters/xml-cii2019-core/short-drop-continuity.js?v=20260708-short-continuity-1';
 import { buildXmlCiiTopologyDisconnectAudit } from '../../../converters/xml-cii2019-core/topology/xml-cii-topology-disconnect-audit.js?v=20260708-topology-1';
 import { buildXmlCiiNodeResolverIndex } from '../../../converters/xml-cii2019-core/sideload-resolver.js';
 import { resolveManualRestraintRows } from '../../../converters/xml-cii2019-core/sideload-restraints.js';
@@ -240,14 +239,6 @@ export async function run(context) {
   }
   rigidReviewLogLines.push(`OutsideDiameter resolver: resolved ${outsideDiameter.appliedCount || 0}; unresolved ${outsideDiameter.unresolvedCount || 0}.`);
   rigidReviewLogLines.push(`Split rigid weight propagation: ${splitWeightPropagation.appliedCount || 0} sibling node(s).`);
-
-  const shortDropContinuity = applyXmlCiiShortDropContinuity(enriched.xmlText, { config: enriched.config });
-  enriched.stats = { ...(enriched.stats || {}), ...(shortDropContinuity.stats || {}) };
-  if (shortDropContinuity.appliedCount > 0) {
-    enriched.xmlText = shortDropContinuity.xmlText;
-    enriched.diagnostics.push(...(shortDropContinuity.diagnostics || []));
-  }
-  rigidReviewLogLines.push(`Short-drop continuity renumbered: ${shortDropContinuity.appliedCount || 0} node(s).`);
 
   ensureEnrichedPreviewLedger(enriched);
   const sideloadLogLines = applyOptionalManualSideload(enriched, runValues).stdout;
