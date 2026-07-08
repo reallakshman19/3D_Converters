@@ -34,7 +34,7 @@ function text(value) { return value === undefined || value === null ? '' : Strin
 function mergeRuntimeOverridesIntoConfig(targetConfig, sourceConfig) {
   const target = targetConfig && typeof targetConfig === 'object' && !Array.isArray(targetConfig) ? targetConfig : {};
   const source = sourceConfig && typeof sourceConfig === 'object' && !Array.isArray(sourceConfig) ? sourceConfig : {};
-  const sourceOverrides = source.overrides && typeof source.overrides === 'object' && !Array.isArray(sourceOverrides) ? source.overrides : {};
+  const sourceOverrides = source.overrides && typeof source.overrides === 'object' && !Array.isArray(source.overrides) ? source.overrides : {};
   if (Object.keys(sourceOverrides).length) {
     target.overrides = target.overrides && typeof target.overrides === 'object' && !Array.isArray(target.overrides) ? { ...target.overrides } : {};
     for (const [bucketName, bucketValue] of Object.entries(sourceOverrides)) {
