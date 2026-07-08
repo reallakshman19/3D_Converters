@@ -5,7 +5,6 @@ import {
 } from './topology/xml-cii-topology-element-length.js';
 
 const LENGTH_COMPONENT_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
-const SPLIT_ENDPOINT_COMPONENT_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function numeric(value) { const match = text(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?(?:[Ee][-+]?\d+)?/); if (!match) return null; const number = Number(match[0]); return Number.isFinite(number) ? number : null; }
 function localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
@@ -37,80 +36,6 @@ function recalcBranchElementLengths(document, branch) {
 }
 function tagValue(block, name) { return text(block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'))?.[1]?.replace(/<[^>]+>/g, '')); }
 function setTag(block, name, value) { const out = `<${name}>${value}</${name}>`; const re = new RegExp(`<${name}[^>]*>[\\s\\S]*?<\\/${name}>`, 'i'); return re.test(block) ? block.replace(re, out) : block.replace(/<\/Node>\s*$/i, `${out}</Node>`); }
-function isSplitEndpointCandidate(type, rigid, connectionType, endpoint) {
-  return SPLIT_ENDPOINT_COMPONENT_TYPES.has(text(type).toUpperCase())
-    && text(rigid) === '2'
-    && !text(connectionType)
-    && text(endpoint) !== '1';
-}
-function splitEndpointDiagnostic(nodeLike, stage, beforeEndpoint) {
-  return {
-    type: 'split-created-endpoint-normalized',
-    stage,
-    nodeNumber: nodeLike.nodeNumber || '',
-    componentType: text(nodeLike.componentType).toUpperCase(),
-    componentRefNo: nodeLike.componentRefNo || '',
-    rigid: nodeLike.rigid || '',
-    originalEndpoint: beforeEndpoint || '',
-    endpoint: '1',
-    elementLengthMm: numeric(nodeLike.elementLengthMm),
-    method: 'post-short-node-cleanup',
-    message: 'Endpoint normalized to 1 for a split-created rigid/valve/flange node after short ElementLengthMm cleanup.',
-  };
-}
-function normalizeSplitEndpointsDom(xmlText, options = {}) {
-  const stage = text(options.stage || 'post-split-element-length-cleanup');
-  const document = new DOMParser().parseFromString(text(xmlText), 'application/xml');
-  if (document.getElementsByTagName('parsererror').length) return null;
-  const diagnostics = [];
-  let changed = 0;
-  for (const node of [...document.getElementsByTagName('Node')]) {
-    const type = componentType(node);
-    const rigid = childText(node, 'Rigid');
-    const connectionType = childText(node, 'ConnectionType');
-    const endpoint = childText(node, 'Endpoint');
-    if (!isSplitEndpointCandidate(type, rigid, connectionType, endpoint)) continue;
-    if (!setChildText(document, node, 'Endpoint', '1')) continue;
-    changed += 1;
-    diagnostics.push(splitEndpointDiagnostic({
-      nodeNumber: childText(node, 'NodeNumber'),
-      componentType: type,
-      componentRefNo: childText(node, 'ComponentRefNo'),
-      rigid,
-      elementLengthMm: childText(node, 'ElementLengthMm'),
-    }, stage, endpoint));
-  }
-  return { xmlText: new XMLSerializer().serializeToString(document), changed, diagnostics };
-}
-function normalizeSplitEndpointsRegex(xmlText, options = {}) {
-  const stage = text(options.stage || 'post-split-element-length-cleanup');
-  const diagnostics = [];
-  let changed = 0;
-  const out = text(xmlText).replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
-    const type = tagValue(block, 'ComponentType').toUpperCase();
-    const rigid = tagValue(block, 'Rigid');
-    const connectionType = tagValue(block, 'ConnectionType');
-    const endpoint = tagValue(block, 'Endpoint');
-    if (!isSplitEndpointCandidate(type, rigid, connectionType, endpoint)) return block;
-    changed += 1;
-    diagnostics.push(splitEndpointDiagnostic({
-      nodeNumber: tagValue(block, 'NodeNumber'),
-      componentType: type,
-      componentRefNo: tagValue(block, 'ComponentRefNo'),
-      rigid,
-      elementLengthMm: tagValue(block, 'ElementLengthMm'),
-    }, stage, endpoint));
-    return setTag(block, 'Endpoint', '1');
-  });
-  return { xmlText: out, changed, diagnostics };
-}
-function normalizeSplitEndpointsAfterCleanup(xmlText, options = {}) {
-  if (!text(xmlText)) return { xmlText, changed: 0, diagnostics: [] };
-  if (typeof DOMParser !== 'undefined' && typeof XMLSerializer !== 'undefined') {
-    try { const result = normalizeSplitEndpointsDom(xmlText, options); if (result) return result; } catch {}
-  }
-  return normalizeSplitEndpointsRegex(xmlText, options);
-}
 function regexRecalculate(xmlText) {
   const nodes = []; let index = 0;
   const blocks = text(xmlText).match(/<Node\b[\s\S]*?<\/Node>/gi) || [];
@@ -134,18 +59,16 @@ function resolveTopologyMode(options = {}) {
 }
 function cleanupSerializedXml(xmlText, options = {}, recalculated = 0, existingDiagnostics = [], extraStats = {}) {
   const cleanup = cleanXmlCiiNodeBlocks(xmlText, { ...(options || {}), stage: options.stage || 'post-split-element-length-cleanup' });
-  const endpointNormalization = normalizeSplitEndpointsAfterCleanup(cleanup.xmlText, { ...(options || {}), stage: options.stage || 'post-split-element-length-cleanup' });
   return {
-    xmlText: endpointNormalization.xmlText,
+    xmlText: cleanup.xmlText,
     stats: {
       ...extraStats,
       postSplitElementLengthsRecalculated: recalculated,
       shortElementLengthNodesDropped: cleanup.stats.shortElementLengthNodesDropped || 0,
       shortElementLengthNodesDroppedByType: cleanup.stats.shortElementLengthNodesDroppedByType || {},
       gasketNodesDropped: cleanup.stats.gasketNodesDropped || 0,
-      splitCreatedEndpointNormalized: endpointNormalization.changed || 0,
     },
-    diagnostics: [...existingDiagnostics, ...(cleanup.diagnostics || []), ...(endpointNormalization.diagnostics || [])],
+    diagnostics: [...existingDiagnostics, ...(cleanup.diagnostics || [])],
   };
 }
 function finish(xmlText, options, recalculated, diagnostics, extraStats = {}) {
