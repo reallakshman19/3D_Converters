@@ -1,6 +1,7 @@
 import { cleanMaterialText, cleanMaterialCode, mapMaterialTextToCiiCode } from './linelist-mapping.js';
 import { findBestPipingClassRow, normalizePipingClass } from './piping-class-resolver.js';
 import { toFiniteNumber } from './config.js';
+import { buildXmlCiiServiceProcessFallback } from './service-process-fallback.js';
 
 function text(value) {
   return String(value ?? '').trim();
@@ -133,6 +134,44 @@ function smartOverrideKeys({ lineKey, branchName, requestedPipingClass, resolved
   ].map(text).filter(Boolean);
 }
 
+const SERVICE_FALLBACK_FIELDS = Object.freeze(['p1', 'hydroPressure', 't1', 't2', 't3', 'density']);
+
+function hasExactLineListEvidence(lineRow) {
+  if (!lineRow || typeof lineRow !== 'object') return false;
+  if (lineRow._raw && typeof lineRow._raw === 'object') return true;
+  return Object.keys(lineRow).some((key) => !['pipingClass', 'Piping Class', 'PIPING_CLASS'].includes(key));
+}
+
+function ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, config, overrides }) {
+  if (hasExactLineListEvidence(lineRow)) return null;
+  if (!config || typeof config !== 'object') return null;
+  const targetKey = text(lineKey) || text(branchName);
+  if (!targetKey) return null;
+  const fallback = buildXmlCiiServiceProcessFallback({ branchName, lineRow, config, fields: SERVICE_FALLBACK_FIELDS });
+  if (!fallback?.stats?.resolvedFields) return fallback;
+  if (!config.overrides || typeof config.overrides !== 'object' || Array.isArray(config.overrides)) config.overrides = overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {};
+  if (!config.overrides.processData || typeof config.overrides.processData !== 'object' || Array.isArray(config.overrides.processData)) config.overrides.processData = {};
+  const row = config.overrides.processData[targetKey] && typeof config.overrides.processData[targetKey] === 'object' && !Array.isArray(config.overrides.processData[targetKey]) ? config.overrides.processData[targetKey] : {};
+  let applied = 0;
+  for (const [field, info] of Object.entries(fallback.fields || {})) {
+    if (text(row[field])) continue;
+    row[field] = info.value;
+    applied += 1;
+  }
+  if (applied > 0) {
+    row.__source = row.__source || {};
+    row.__source.serviceProcessFallback = {
+      source: 'service-match',
+      service: fallback.service,
+      matchedRows: fallback.stats.matchedRows,
+      appliedFields: applied,
+      needsReview: true,
+    };
+    config.overrides.processData[targetKey] = row;
+  }
+  return { ...fallback, appliedFields: applied, targetKey };
+}
+
 export function resolveMaterialCodeFromLineMaterial({ lineRow, materialMap, pipingClassRow, overrides = {}, overrideKeys = [], xmlNode, xmlBranch }) {
   const lineMaterialRaw = firstText(lineRow, ['material', 'Material', 'MATERIAL', 'Material_Name', 'Material Name', 'MOC']);
   const classMaterialRaw = classRowMaterial(pipingClassRow);
@@ -203,6 +242,7 @@ export function resolveBranchProcessData({ branchName, lineKey, lineRow, boreMm,
   const pipingClassRow = classMatch?.row || null;
   const resolvedPipingClass = classMatch?.resolvedPipingClass || classMatch?.classMatch?.pipingClass || requestedPipingClass;
   const overrideKeys = smartOverrideKeys({ lineKey, branchName, requestedPipingClass, resolvedPipingClass, boreMm });
+  const serviceProcessFallback = ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, config, overrides });
   const resolvedRating = overrideValue(overrides, 'rating', overrideKeys) || readClassRowRating(pipingClassRow) || text(rating || firstText(lineRow, ['rating', 'Rating', 'RATING']));
   const resolverLineRow = { ...(lineRow || {}), pipingClass: resolvedPipingClass };
   const material = resolveMaterialCodeFromLineMaterial({ lineRow: resolverLineRow, materialMap, pipingClassRow, overrides, overrideKeys, xmlNode, xmlBranch });
@@ -216,6 +256,7 @@ export function resolveBranchProcessData({ branchName, lineKey, lineRow, boreMm,
     wallThicknessKey: xmlCiiClassSizeKey(resolvedPipingClass || requestedPipingClass, boreMm) || lineKey || branchName,
     corrosionKey: xmlCiiClassKey(resolvedPipingClass || requestedPipingClass) || lineKey || branchName,
     materialCodeKey: xmlCiiClassKey(resolvedPipingClass || requestedPipingClass) || material.material || lineKey || branchName,
+    serviceProcessFallback,
     pipingClassMatchedRow: pipingClassRow,
     pipingClassMatchMethod: classMatch.classMatch?.method || classMatch.method,
     pipingClassConfidence: classMatch.classMatch?.confidence ?? classMatch.confidence,
