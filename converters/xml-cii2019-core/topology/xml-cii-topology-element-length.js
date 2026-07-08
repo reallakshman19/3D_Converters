@@ -1,6 +1,9 @@
 const INLINE_COMPONENT_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST', 'GASK']);
 const BEND_COMPONENT_TYPES = new Set(['ELBO', 'BEND', 'ELBOW']);
 const OLET_COMPONENT_TYPES = new Set(['OLET', 'WELDOLET', 'SOCKOLET']);
+const TEE_COMPONENT_TYPES = new Set(['TEE', 'TEES']);
+const BRANCH_JUNCTION_COMPONENT_TYPES = new Set(['BRAN', ...OLET_COMPONENT_TYPES, ...TEE_COMPONENT_TYPES]);
+const BRANCH_JUNCTION_CONNECTION_TYPES = new Set(['BRAN', 'OLET', 'WELDOLET', 'SOCKOLET', 'TEE', 'TEES']);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -63,6 +66,7 @@ function branchBlocks(xmlText) {
 
 function parseNode(block, index, branchName) {
   const componentType = upper(tagValue(block, 'ComponentType'));
+  const connectionType = upper(tagValue(block, 'ConnectionType'));
   const nodeNumber = text(tagValue(block, 'NodeNumber'));
   const nodeName = text(tagValue(block, 'NodeName'));
   const endpoint = text(tagValue(block, 'Endpoint'));
@@ -70,7 +74,7 @@ function parseNode(block, index, branchName) {
   const point = pointFromPosition(positionText);
   const hasRestraint = /<Restraint\b/i.test(block);
   const ref = normalizeRef(tagValue(block, 'ComponentRefNo'));
-  const role = classifyNode({ componentType, nodeNumber, nodeName, endpoint, point, hasRestraint });
+  const role = classifyNode({ componentType, connectionType, nodeNumber, nodeName, endpoint, point, hasRestraint });
 
   return {
     index,
@@ -80,6 +84,7 @@ function parseNode(block, index, branchName) {
     nodeName,
     endpoint,
     componentType,
+    connectionType,
     componentRefNo: text(tagValue(block, 'ComponentRefNo')),
     ref,
     positionText,
@@ -92,13 +97,15 @@ function parseNode(block, index, branchName) {
 
 function classifyNode(node) {
   const type = upper(node.componentType);
+  const connectionType = upper(node.connectionType);
   const nodeName = upper(node.nodeName);
   const nodeNumber = text(node.nodeNumber);
 
   if (type === 'ATTA' && node.hasRestraint) return 'support-restraint';
   if (type === 'ATTA' && !node.hasRestraint && nodeName.includes('/SREF')) return 'support-reference';
   if (BEND_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'bend-helper-endpoint';
-  if (OLET_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'olet-helper-endpoint';
+  if ((OLET_COMPONENT_TYPES.has(type) || BRANCH_JUNCTION_CONNECTION_TYPES.has(connectionType)) && nodeNumber === '-1') return 'olet-helper-endpoint';
+  if (BRANCH_JUNCTION_COMPONENT_TYPES.has(type) || BRANCH_JUNCTION_CONNECTION_TYPES.has(connectionType)) return 'branch-junction-node';
   if (INLINE_COMPONENT_TYPES.has(type)) return 'inline-component-endpoint';
   if (node.point) return 'real-geometry-node';
   return 'unknown-node';
@@ -170,7 +177,7 @@ function makeSkip(node, reason) {
 }
 
 function shouldUseRouteAnchor(node) {
-  return node?.point && ['support-restraint', 'real-geometry-node', 'inline-component-endpoint'].includes(node.role);
+  return node?.point && ['support-restraint', 'real-geometry-node', 'inline-component-endpoint', 'branch-junction-node'].includes(node.role);
 }
 
 function isExplicitEndpoint(endpoint) {
@@ -219,6 +226,17 @@ function calculateBranchAssignments(branchName, nodes, options = {}) {
     let length = null;
     let fromNode = routeAnchor;
     let method = 'uxml-topology-previous-valid-route-point';
+
+    if (node.role === 'branch-junction-node') {
+      length = distancePoints(routeAnchor?.point, node.point);
+      if (length !== null && length > 0) {
+        assignments.push(makeAssignment({ node, fromNode, lengthMm: length, method: 'uxml-topology-branch-junction-incoming-span' }));
+      } else {
+        skipped.push(makeSkip(node, routeAnchor ? 'branch-junction-shared-anchor-no-element-length' : 'no-previous-valid-route-point'));
+      }
+      routeAnchor = node;
+      continue;
+    }
 
     if (node.role === 'inline-component-endpoint') {
       if (node.endpoint === '1') {
@@ -280,7 +298,7 @@ export function collectXmlCiiTopologyElementLengthAssignments(xmlText, options =
     assignmentCount: assignments.length,
     skippedCount: skipped.length,
     mode: options.mode || 'apply',
-    message: 'Topology-derived ElementLengthMm assignments calculated from previous valid route points, inline endpoint pair spans, and support/reference/helper node roles.',
+    message: 'Topology-derived ElementLengthMm assignments calculated from previous valid route points, inline endpoint pair spans, branch junction anchors, and support/reference/helper node roles.',
   });
 
   return {
