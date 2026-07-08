@@ -881,9 +881,11 @@ const CONVERTER_ORDER = Object.freeze([
   'json_to_xml',
   'stagedjson_to_xml',
   'stagedjson_to_inputxml',
+  'seljson_to_inputxml',
   'stagedjson_to_csv',
   'pdf_to_inputxml',
   'pdf_to_inputxml_cii14',
+  'inputxml_to_xml',
   'xml_to_cii',
   'cii_syntax_check_2019',
   'inputxml_to_cii',
@@ -895,9 +897,23 @@ const CONVERTER_ORDER = Object.freeze([
 
 const ORDERED_CONVERTER_DEFS = Object.freeze(
   CONVERTER_ORDER
-    .map((converterId) => CONVERTER_DEFS[converterId])
+    .map((converterId) => _legacyConverterDef(converterId))
     .filter(Boolean),
 );
+
+function _legacyConverterDef(converterId) {
+  const local = CONVERTER_DEFS[converterId];
+  if (local) return local;
+  const live = getConverterById(converterId);
+  const primary = (live?.inputs || []).find((input) => input.role === 'primary') || {};
+  const secondary = (live?.inputs || []).find((input) => input.role === 'secondary') || {};
+  return live ? {
+    id: live.id, label: live.label, disabled: live.disabled,
+    primaryAccept: primary.accept || '*', primaryLabel: primary.label || 'Primary Input',
+    secondaryAccept: secondary.accept || '', secondaryLabel: secondary.label || '',
+    description: live.description || '', defaults: live.defaults || {}, fields: live.options || [],
+  } : null;
+}
 
 const RMSS_BORE_FIELDS = Object.freeze(['HBOR', 'TBOR', 'ABORE', 'LBORE', 'DTXR']);
 
@@ -5576,7 +5592,7 @@ export function renderModelConvertersTab(container) {
   })();
 
   function activeDef() {
-    return CONVERTER_DEFS[selectedConverter];
+    return _legacyConverterDef(selectedConverter);
   }
 
   function activeValues() {

@@ -609,6 +609,19 @@ SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM: Final[float] = 6.0
 DROPPED_SHORT_ELEMENT_NODES: list[str] = []
 
 
+def _merge_restraint_specs(
+    existing: tuple[RestraintSpec, ...], incoming: tuple[RestraintSpec, ...]
+) -> tuple[RestraintSpec, ...]:
+    """Merge restraint specs from a pruned support node into a retained node."""
+    if not incoming:
+        return existing
+    merged = list(existing)
+    for spec in incoming:
+        if spec not in merged:
+            merged.append(spec)
+    return tuple(merged)
+
+
 def _drop_short_element_nodes(
     branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
 ) -> list[XmlBranch]:
@@ -636,6 +649,19 @@ def _drop_short_element_nodes(
                 + (node.position[2] - previous.position[2]) ** 2
             )
             if length <= threshold_mm:
+                if node.restraint_specs:
+                    kept[-1] = replace(
+                        previous,
+                        restraint_specs=_merge_restraint_specs(
+                            previous.restraint_specs, node.restraint_specs
+                        ),
+                    )
+                    DROPPED_SHORT_ELEMENT_NODES.append(
+                        f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
+                        f"segment length {length:.3f}mm <= {threshold_mm}mm; "
+                        f"restraint transferred to NodeNumber {previous.node_number}"
+                    )
+                    continue
                 DROPPED_SHORT_ELEMENT_NODES.append(
                     f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
                     f"segment length {length:.3f}mm <= {threshold_mm}mm"

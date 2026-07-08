@@ -108,6 +108,7 @@ if (!main.includes("import('./core/app.js")) fail('main entrypoint must dynamica
 if (!main.includes('.catch(reportStartupError)')) fail('main entrypoint must report startup errors');
 
 const runtime = read('core/app-standalone-runtime.js');
+const legacyModelConverters = read('tabs/model-converters/legacy-adapter.js');
 for (const tabId of expectedTabs) {
   if (!runtime.includes("id: '" + tabId + "'")) fail('Missing standalone tab ' + tabId);
 }
@@ -116,6 +117,9 @@ for (const tabId of ['pcfx-converter', 'rvm-json-pcf']) {
 }
 if (!runtime.includes('TAB_CHANGE_REQUESTED')) fail('Runtime must listen for tab-change-requested events');
 if (!runtime.includes('app:switch-tab')) fail('Runtime must listen for app:switch-tab window events');
+for (const id of ['seljson_to_inputxml', 'inputxml_to_xml']) {
+  if (!legacyModelConverters.includes("'" + id + "'")) fail('Legacy converter dropdown is missing ' + id);
+}
 
 const importPattern = /(?:import\s+(?:[^'"()]+?\s+from\s+)?|export\s+[^'"()]+?\s+from\s+|import\s*\()\s*['"]([^'"]+)['"]/g;
 const newUrlPattern = /new\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\s*\)/g;
