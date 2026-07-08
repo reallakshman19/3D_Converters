@@ -104,7 +104,6 @@ function classifyNode(node) {
   if (type === 'ATTA' && node.hasRestraint) return 'support-restraint';
   if (type === 'ATTA' && !node.hasRestraint && nodeName.includes('/SREF')) return 'support-reference';
   if (BEND_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'bend-helper-endpoint';
-  if (TEE_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'tee-helper-endpoint';
   if ((OLET_COMPONENT_TYPES.has(type) || BRANCH_JUNCTION_CONNECTION_TYPES.has(connectionType)) && nodeNumber === '-1') return 'olet-helper-endpoint';
   if (BRANCH_JUNCTION_COMPONENT_TYPES.has(type) || BRANCH_JUNCTION_CONNECTION_TYPES.has(connectionType)) return 'branch-junction-node';
   if (INLINE_COMPONENT_TYPES.has(type)) return 'inline-component-endpoint';
@@ -219,7 +218,7 @@ function calculateBranchAssignments(branchName, nodes, options = {}) {
       continue;
     }
 
-    if (node.role === 'bend-helper-endpoint' || node.role === 'olet-helper-endpoint' || node.role === 'tee-helper-endpoint') {
+    if (node.role === 'bend-helper-endpoint' || node.role === 'olet-helper-endpoint') {
       skipped.push(makeSkip(node, `${node.role}-geometry-only`));
       continue;
     }
