@@ -161,6 +161,23 @@ function applyStagedGeometryAuthorityToEnriched(enriched, stagedJsonText) {
   return enriched;
 }
 
+function applySavedRigidWeightOverridesToEnriched(enriched) {
+  const overrides = enriched?.config?.overrides?.rigidWeight;
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) || !Object.keys(overrides).length) {
+    return { appliedCount: 0, stdout: [] };
+  }
+  const applied = applyXmlCiiRigidWeightOverrides(enriched.xmlText, overrides);
+  if (applied.appliedCount > 0) {
+    enriched.xmlText = applied.xmlText;
+    enriched.stats = { ...(enriched.stats || {}) };
+    enriched.stats.rigidWeightSavedOverrides = (enriched.stats.rigidWeightSavedOverrides || 0) + applied.appliedCount;
+    enriched.stats.weightAnnotations = (enriched.stats.weightAnnotations || 0) + applied.appliedCount;
+    enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
+    enriched.diagnostics.push(...applied.appliedRows.map((row) => ({ ...row, type: 'rigid-weight-saved-override', source: 'config.overrides.rigidWeight', message: `Applied saved rigid weight override ${row.weight} kg before zero-weight review.` })));
+  }
+  return { appliedCount: applied.appliedCount || 0, stdout: [`Saved rigid weight overrides applied before review: ${applied.appliedCount || 0}.`] };
+}
+
 export async function run(context) {
   const primary = context.inputFiles.find(f => f.role === 'primary');
   if (!primary || !primary.bytes) throw new Error('Primary XML input is required for XML->CII(2019).');
@@ -188,6 +205,8 @@ export async function run(context) {
   enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
   enriched.diagnostics.push(...(outsideDiameter.diagnostics || []));
   const rigidReviewLogLines = [];
+  const savedRigidWeights = applySavedRigidWeightOverridesToEnriched(enriched);
+  rigidReviewLogLines.push(...savedRigidWeights.stdout);
   const rigidWeightIssues = applyXmlCiiFlangeWeightFallbackToIssues(collectXmlCiiZeroRigidWeightIssues(enriched.xmlText, stagedJsonText, enriched.config), enriched.config);
 
   if (rigidWeightIssues.length > 0 && typeof runValues.openXmlCiiZeroRigidWeightPopup === 'function') {
