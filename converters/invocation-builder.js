@@ -83,7 +83,7 @@ function converterSpec(converterId) {
   if (converterId === 'stagedjson_to_xml') return { script: 'stagedjson_to_xml.py', extension: '.xml' };
   if (converterId === 'stagedjson_to_inputxml') return { script: 'stagedjson_to_inputxml.py', extension: '.xml' };
   if (converterId === 'rev_to_stp') return { script: 'rev_to_stp.py', extension: '.stp' };
-  if (converterId === 'xml_to_cii') return { script: 'xml_to_cii2019_direction.py', extension: '.cii' };
+  if (converterId === 'xml_to_cii') return { script: 'xml_to_cii2019_contracted_direction.py', extension: '.cii' };
   if (converterId === 'cii_syntax_check_2019') return { script: 'cii_syntax_check_2019.py', extension: '.json' };
   if (converterId === 'inputxml_to_cii') return { script: 'inputxml_to_cii2014.py', extension: '.cii' };
   if (converterId === 'inputxml14_to_cii') return { script: 'inputxml_to_cii2014.py', extension: '.cii' };
@@ -138,102 +138,28 @@ export function buildInvocation(converterId, primaryPath, primaryName, secondary
     pushOptionalNumberArg(argv, '--node-step', options?.nodeStep);
     pushOptionalNumberArg(argv, '--default-diameter', options?.defaultDiameter);
     pushOptionalNumberArg(argv, '--default-wall-thickness', options?.defaultWallThickness);
-    pushOptionalNumberArg(argv, '--default-corrosion-allowance', options?.defaultCorrosionAllowance);
-    pushOptionalNumberArg(argv, '--default-insulation-thickness', options?.defaultInsulationThickness);
-    pushOptionalNumberArg(argv, '--mock-temperature', options?.mockTemperature);
-    pushOptionalNumberArg(argv, '--mock-temperature-other', options?.mockTemperatureOther);
-    pushOptionalNumberArg(argv, '--mock-pressure', options?.mockPressure);
-    pushOptionalNumberArg(argv, '--mock-pressure-other', options?.mockPressureOther);
-    pushOptionalNumberArg(argv, '--mock-material-number', options?.mockMaterialNumber);
-    pushOptionalNumberArg(argv, '--mock-insulation-density', options?.mockInsulationDensity);
-    pushOptionalNumberArg(argv, '--mock-fluid-density', options?.mockFluidDensity);
-  } else if (converterId === 'stagedjson_to_xml') {
-    pushOptionalNumberArg(argv, '--node-start', options?.nodeStart);
-    pushOptionalNumberArg(argv, '--node-step', options?.nodeStep);
-    pushOptionalStringArg(argv, '--source', options?.source);
-    pushOptionalStringArg(argv, '--purpose', options?.purpose);
-    pushOptionalStringArg(argv, '--title-line', options?.titleLine);
-    pushOptionalNumberArg(argv, '--default-diameter', options?.defaultDiameter);
-    pushOptionalNumberArg(argv, '--default-wall-thickness', options?.defaultWallThickness);
-    pushOptionalNumberArg(argv, '--default-corrosion-allowance', options?.defaultCorrosionAllowance);
-    pushOptionalNumberArg(argv, '--default-insulation-thickness', options?.defaultInsulationThickness);
-    pushSupportArgs(argv, options);
-  } else if (converterId === 'stagedjson_to_inputxml') {
-    pushOptionalStringArg(argv, '--bookmark', options?.inputxmlBookmark);
-    pushOptionalNumberArg(argv, '--node-start', options?.nodeStart);
-    pushOptionalNumberArg(argv, '--node-step', options?.nodeStep);
-    pushOptionalNumberArg(argv, '--temperature1', options?.temperature1);
-    pushOptionalNumberArg(argv, '--wall-thickness', options?.wallThickness);
-    pushOptionalNumberArg(argv, '--modulus', options?.modulus);
-    pushOptionalStringArg(argv, '--material-name', options?.materialName);
-    pushOptionalStringArg(argv, '--job-name', options?.jobName);
-    pushOptionalStringArg(argv, '--vertical-axis', options?.verticalAxis);
-    pushOptionalStringArg(argv, '--support-config-json', options?.supportConfigJson);
-    pushOptionalNumberArg(argv, '--datum-e', options?.datumE);
-    pushOptionalNumberArg(argv, '--datum-n', options?.datumN);
-    pushOptionalNumberArg(argv, '--datum-u', options?.datumU);
-    if (options?.disableSupports) argv.push('--no-supports');
-  } else if (converterId === 'rev_to_stp') {
-    argv.push('--coord-factor', String(toFiniteNumber(options?.coordFactor, 1000)));
-    pushOptionalStringArg(argv, '--support-path-contains', options?.supportPathContains);
-    pushOptionalStringArg(argv, '--schema-name', options?.schemaName);
-    if (options?.includeGenericSupportGroups) argv.push('--include-generic-support-groups');
   } else if (converterId === 'xml_to_cii') {
-    const mode = toStringValue(options?.coordsMode).trim().toLowerCase();
-    const supportConfig = parseJsonObject(options?.supportConfigJson);
-    const splitCondensed = boolOrNull(options?.splitCondensedValveFlange)
-      ?? boolOrNull(options?.split_condensed_valve_flange)
-      ?? boolOrNull(supportConfig.splitCondensedValveFlange)
-      ?? boolOrNull(supportConfig.split_condensed_valve_flange);
-    argv.push('--coords-mode', mode === 'all' || mode === 'none' ? mode : 'first');
-    // kg -> N weight conversion (default ON): scale component weights by 10.
-    if (options?.kgToNewton !== false) argv.push('--weight-scale', '10');
-    pushOptionalStringArg(argv, '--support-config-json', options?.supportConfigJson);
-    if (splitCondensed === true) argv.push('--split-condensed-valve-flange');
-    else if (splitCondensed === false) argv.push('--no-split-condensed-valve-flange');
+    argv.push('--coords-mode', 'all');
     if (secondaryPath) argv.push('--staged-json', secondaryPath);
     if (options?.useRestraintTypeBasedOnJson === false) {
       argv.push('--no-use-restraint-type-based-on-json');
     } else {
       argv.push('--use-restraint-type-based-on-json');
     }
-  } else if (
-    converterId === 'inputxml_to_cii'
-    || converterId === 'inputxml14_to_cii'
-    || converterId === 'inputxml_to_cii2019'
-  ) {
-    if (options?.inferReducerAngleFromGeometry) argv.push('--infer-reducer-angle-from-geometry');
-    pushOptionalNumberArg(argv, '--default-diameter', options?.defaultDiameter);
-    pushOptionalNumberArg(argv, '--default-wall-thickness', options?.defaultWallThickness);
-    pushOptionalNumberArg(argv, '--default-insulation-thickness', options?.defaultInsulationThickness);
-    pushOptionalNumberArg(argv, '--default-corrosion-allowance', options?.defaultCorrosionAllowance);
-    pushOptionalNumberArg(argv, '--default-temperature1', options?.defaultTemperature1);
-    pushOptionalNumberArg(argv, '--default-temperature2', options?.defaultTemperature2);
-    pushOptionalNumberArg(argv, '--default-temperature3', options?.defaultTemperature3);
-    pushOptionalNumberArg(argv, '--default-reducer-angle', options?.defaultReducerAngle);
-    pushOptionalNumberArg(argv, '--coord-reconstruction-tolerance', options?.coordReconstructionTolerance);
-    pushOptionalStringArg(argv, '--header-datetime', options?.headerDateTime);
-    pushOptionalStringArg(argv, '--header-source', options?.headerSource);
-    pushOptionalStringArg(argv, '--header-version', options?.headerVersion);
-    pushOptionalStringArg(argv, '--header-user-name', options?.headerUserName);
-    pushOptionalStringArg(argv, '--header-purpose', options?.headerPurpose);
-    pushOptionalStringArg(argv, '--header-project-name', options?.headerProjectName);
-    pushOptionalStringArg(argv, '--header-mdb-name', options?.headerMdbName);
-    if (converterId === 'inputxml_to_cii2019') {
-      pushOptionalStringArg(argv, '--layout-config-json', options?.layoutConfigJson);
-    }
-  } else if (converterId === 'pdf_to_inputxml') {
-    if (secondaryPath) argv.push('--misc-pdf', secondaryPath);
-  } else if (converterId === 'pdf_to_inputxml_cii14') {
-    if (secondaryPath) argv.push('--benchmark-xml', secondaryPath);
-    const outputMode = toStringValue(options?.outputMode).trim().toLowerCase();
-    argv.push('--output-mode', outputMode === 'overlay' ? 'overlay' : 'preserve');
+    const splitCondensed = boolOrNull(options?.splitCondensedValveFlange);
+    if (splitCondensed !== null) argv.push('--split-condensed-valve-flange', splitCondensed ? 'true' : 'false');
+    const supportConfig = parseJsonObject(options?.supportConfigJson);
+    if (options?.kgToNewton !== false) supportConfig.weightScale = 10;
+    const supportJson = JSON.stringify(supportConfig);
+    if (supportJson !== '{}') argv.push('--support-config-json', supportJson);
+    if (options?.kgToNewton !== false) argv.push('--weight-scale', '10');
+  } else if (converterId === 'inputxml_to_cii2019') {
+    if (secondaryPath) argv.push('--staged-json', secondaryPath);
+    if (options?.useRestraintTypeBasedOnJson !== false) argv.push('--use-restraint-type-based-on-json');
+    if (options?.kgToNewton !== false) argv.push('--weight-scale', '10');
+    const supportConfig = toStringValue(options?.supportConfigJson).trim();
+    if (supportConfig) argv.push('--support-config-json', supportConfig);
   }
 
-  return {
-    scriptPath,
-    outputPath,
-    outputName: outputFileName,
-    argv,
-  };
+  return { scriptPath, argv, outputPath, outputName: outputFileName };
 }
