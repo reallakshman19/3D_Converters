@@ -40,7 +40,7 @@ const TAB_ICON_SVGS = Object.freeze({
 
 export const STANDALONE_TABS = Object.freeze([
   { id: 'model-converters', label: '3D Model Converters', icon: 'convert', load: () => import('../tabs/model-converters-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderModelConvertersTab', 'model-converters')) },
-  { id: 'xml-cii-2019-standalone', label: 'XML→CII 2019 Standalone', icon: 'xml', load: () => import('../tabs/xml-cii-2019-standalone-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderXmlCii2019StandaloneTab', 'xml-cii-2019-standalone')) },
+  { id: 'xml-cii-2019-standalone', label: 'XML→CII 2019 Standalone', icon: 'xml', load: () => import('../tabs/xml-cii-2019-standalone-tab.js?v=standalone-3').then((module) => pickRenderer(module, 'renderXmlCii2019StandaloneTab', 'xml-cii-2019-standalone')) },
   { id: 'basic-glb-pcf', label: 'Basic GLB-PCF', icon: 'pipe', load: loadBasicGlbPcfRenderer },
   { id: 'universal-xml', label: 'Universal XML', icon: 'xml', load: () => import('../tabs/universal-xml-converter-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderUniversalXmlConverterTab', 'universal-xml')) },
   { id: 'model-exchange', label: 'Model Exchange', icon: 'exchange', load: () => import('../tabs/model-exchange-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderModelExchangeTab', 'model-exchange')) },

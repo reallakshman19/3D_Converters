@@ -1,6 +1,6 @@
 import { prepareXmlCiiMasterContext } from '../../converters/xml-cii2019-core/master-context.js';
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 150;
 
 export const STANDALONE_IMPORT_MASTER_DEFS = Object.freeze([
   Object.freeze({ key: 'lineList', label: 'Line List', rowsKey: 'lineRows', configKey: 'linelist', rowConfigKey: 'masterRows', diagPrefix: 'linelist' }),
@@ -126,11 +126,15 @@ export async function prepareStandaloneImportMasters(input = {}) {
 
 export function summarizeStandaloneImportMasters(masterContext) {
   const safe = safeObject(masterContext);
-  return STANDALONE_IMPORT_MASTER_DEFS.map((def) => ({
-    ...def,
-    rowCount: Number(safe.rowCounts?.[def.key] || 0),
-    previewRows: asRows(safe.previewRows?.[def.key]),
-    diagnostics: asRows(safe.diagnosticsByMaster?.[def.key]),
-    sourceMetadata: safeObject(safe.sourceMetadata?.[def.key]),
-  }));
+  return STANDALONE_IMPORT_MASTER_DEFS.map((def) => {
+    const rowsKey = { lineList: 'lineRows', pipingClass: 'pipingClassRows', materialMap: 'materialMapRows', weight: 'weightMasterRows' }[def.key];
+    return {
+      ...def,
+      rowCount: Number(safe.rowCounts?.[def.key] || 0),
+      previewRows: asRows(safe.previewRows?.[def.key]),
+      diagnostics: asRows(safe.diagnosticsByMaster?.[def.key]),
+      sourceMetadata: safeObject(safe.sourceMetadata?.[def.key]),
+      rows: asRows(safe[rowsKey])
+    };
+  });
 }

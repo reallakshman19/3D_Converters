@@ -61,9 +61,11 @@ function buildFacts(input = {}) {
   const regex = regexFacts(input);
   const resolver = resolverFacts(input);
   const manual = manualFacts(input);
+  const engineMatched = array(input.result?.diagnostics?.matchedFacts);
+  const engineRejected = array(input.result?.diagnostics?.rejectedFacts);
   return {
-    matchedFacts: [...regex.matched, ...resolver.matched, ...manual.matched],
-    rejectedFacts: [...regex.rejected, ...resolver.rejected, ...manual.rejected],
+    matchedFacts: [...regex.matched, ...resolver.matched, ...manual.matched, ...engineMatched],
+    rejectedFacts: [...regex.rejected, ...resolver.rejected, ...manual.rejected, ...engineRejected],
   };
 }
 

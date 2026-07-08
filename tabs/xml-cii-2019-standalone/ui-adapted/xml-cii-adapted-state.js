@@ -20,19 +20,206 @@ export function createDefaultWorkflowOptions() {
   };
 }
 
-export function createXmlCiiAdaptedWorkflowState() {
+export function getStoredJson(key, defaultVal = null) {
+  if (typeof localStorage === 'undefined') return defaultVal;
+  try {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : defaultVal;
+  } catch {
+    return defaultVal;
+  }
+}
+
+export function setStoredJson(key, value) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (value) localStorage.setItem(key, JSON.stringify(value));
+    else localStorage.removeItem(key);
+  } catch {}
+}
+
+function getStoredMaster(key) {
+  return getStoredJson(`xml-cii-master-${key}`);
+}
+
+export function setStoredMaster(key, rows) {
+  setStoredJson(`xml-cii-master-${key}`, rows);
+}
+
+export function getSavedMappingsForMaster(masterKey) {
+  return getStoredJson(`xml-cii-saved-mappings-${masterKey}`, {});
+}
+
+export function saveMappingForFile(masterKey, fileName, fieldMap) {
+  if (!fileName) return;
+  const mappings = getSavedMappingsForMaster(masterKey);
+  mappings[fileName] = fieldMap;
+  setStoredJson(`xml-cii-saved-mappings-${masterKey}`, mappings);
+}
+
+export function findSmartMatchingMapping(filename, savedKeys) {
+  if (!filename || !savedKeys || !savedKeys.length) return null;
+  const norm = filename.toUpperCase().replace(/\.[a-z0-9]+$/i, '').replace(/[^A-Z0-9]/g, '');
+  if (savedKeys.includes(filename)) return filename;
+  for (const key of savedKeys) {
+    const keyNorm = key.toUpperCase().replace(/\.[a-z0-9]+$/i, '').replace(/[^A-Z0-9]/g, '');
+    if (norm.slice(0, 18) === keyNorm.slice(0, 18)) return key;
+  }
+  return null;
+}
+
+export function saveMasterContextToLocalStorage(context) {
+  if (!context || typeof localStorage === 'undefined') return;
+  try {
+    // Strip all large arrays — they are persisted under their own dedicated keys
+    const strippedConfig = context.config ? (() => {
+      const c = { ...context.config };
+      if (c.linelist) c.linelist = { ...c.linelist, masterRows: null };
+      if (c.pipingClass) c.pipingClass = { ...c.pipingClass, masterRows: null };
+      if (c.material) c.material = { ...c.material, mapRows: null };
+      if (c.weight) c.weight = { ...c.weight, masterRows: null };
+      return c;
+    })() : context.config;
+    const cleaned = {
+      ...context,
+      config: strippedConfig,
+      lineRows: null,
+      pipingClassRows: null,
+      materialMapRows: null,
+      weightMasterRows: null,
+      rawRows: { lineList: null, pipingClass: null, materialMap: null, weight: null },
+      workbookData: { lineList: null, materialMap: null, weight: null },
+      previewRows: null,
+    };
+    localStorage.setItem('xml-cii-import-masters-v1', JSON.stringify(cleaned));
+  } catch (e) {
+    console.error('Failed to save master config overrides:', e);
+  }
+}
+
+function restorePersistentMasters() {
+  const lineRows = getStoredMaster('lineList') || [];
+  const materialMapRows = getStoredMaster('materialMap') || [];
+  const weightMasterRows = getStoredMaster('weight') || [];
+  if (!lineRows.length && !materialMapRows.length && !weightMasterRows.length) return null;
+  
+  let savedContext = null;
+  try {
+    const val = localStorage.getItem('xml-cii-import-masters-v1');
+    if (val) savedContext = JSON.parse(val);
+  } catch {}
+
+  let config;
+  if (savedContext && savedContext.config) {
+    config = savedContext.config;
+  } else {
+    config = JSON.parse(defaultXmlCii2019SupportConfigJson() || '{}');
+  }
+  
+  if (lineRows.length) config.linelist = { ...(config.linelist || {}), masterRows: lineRows };
+  if (materialMapRows.length) config.material = { ...(config.material || {}), mapRows: materialMapRows };
+  if (weightMasterRows.length) config.weight = { ...(config.weight || {}), masterRows: weightMasterRows };
+
   return {
-    activePhaseId: 'regex', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, elementSideLoadText: '',
-    supportConfigJson: defaultXmlCii2019SupportConfigJson(),
-    regexTesterConfig: createDefaultRegexTesterConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
-    resolverJsonTraceConfig: createDefaultResolverJsonTraceConfig(), resolverJsonTraceResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '',
+    lineRows, pipingClassRows: [], materialMapRows, weightMasterRows, diagnostics: [], config,
+    rowCounts: savedContext?.rowCounts || { lineList: lineRows.length, pipingClass: 0, materialMap: materialMapRows.length, weight: weightMasterRows.length },
+    previewRows: savedContext?.previewRows || { lineList: lineRows.slice(0, 150), pipingClass: [], materialMap: materialMapRows.slice(0, 150), weight: weightMasterRows.slice(0, 150) },
+    sourceMetadata: savedContext?.sourceMetadata || {
+      lineList: { key: 'lineList', source: getStoredJson('xml-cii-master-source-lineList', 'LocalStorage'), sourceType: 'manual', status: 'loaded', rowCount: lineRows.length },
+      pipingClass: { key: 'pipingClass', source: 'not-loaded', sourceType: 'empty', status: 'empty', rowCount: 0 },
+      materialMap: { key: 'materialMap', source: getStoredJson('xml-cii-master-source-materialMap', 'LocalStorage'), sourceType: 'manual', status: 'loaded', rowCount: materialMapRows.length },
+      weight: { key: 'weight', source: getStoredJson('xml-cii-master-source-weight', 'LocalStorage'), sourceType: 'manual', status: 'loaded', rowCount: weightMasterRows.length }
+    },
+    rawRows: {
+      lineList: getStoredJson('xml-cii-master-raw-lineList', []),
+      materialMap: getStoredJson('xml-cii-master-raw-materialMap', []),
+      weight: getStoredJson('xml-cii-master-raw-weight', [])
+    },
+    sheetNames: {
+      lineList: getStoredJson('xml-cii-master-sheetnames-lineList', []),
+      materialMap: getStoredJson('xml-cii-master-sheetnames-materialMap', []),
+      weight: getStoredJson('xml-cii-master-sheetnames-weight', [])
+    },
+    activeSheet: {
+      lineList: getStoredJson('xml-cii-master-activesheet-lineList', ''),
+      materialMap: getStoredJson('xml-cii-master-activesheet-materialMap', ''),
+      weight: getStoredJson('xml-cii-master-activesheet-weight', '')
+    },
+    workbookData: {
+      lineList: getStoredJson('xml-cii-master-workbook-lineList', {}),
+      materialMap: getStoredJson('xml-cii-master-workbook-materialMap', {}),
+      weight: getStoredJson('xml-cii-master-workbook-weight', {})
+    }
+  };
+}
+
+function getStoredRegexConfig() {
+  if (typeof localStorage === 'undefined') return createDefaultRegexTesterConfig();
+  try {
+    const val = localStorage.getItem('xml-cii-regex-config-v1');
+    return val ? JSON.parse(val) : createDefaultRegexTesterConfig();
+  } catch {
+    return createDefaultRegexTesterConfig();
+  }
+}
+
+function getStoredResolverConfig() {
+  if (typeof localStorage === 'undefined') return createDefaultResolverJsonTraceConfig();
+  try {
+    const val = localStorage.getItem('xml-cii-resolver-config-v1');
+    return val ? JSON.parse(val) : createDefaultResolverJsonTraceConfig();
+  } catch {
+    return createDefaultResolverJsonTraceConfig();
+  }
+}
+
+function getStoredMasterLastLoadedPaths() {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const val = localStorage.getItem('xml-cii-master-last-loaded-paths');
+    return val ? JSON.parse(val) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function createXmlCiiAdaptedWorkflowState() {
+  const mContext = restorePersistentMasters();
+  const configJson = mContext ? JSON.stringify(mContext.config, null, 2) : defaultXmlCii2019SupportConfigJson();
+  return {
+    activePhaseId: 'source', activeSubTabId: 'loader', jsonTraceActiveSubTabId: 'index', sourceKind: 'auto', sourceFile: null, sourceText: '', stagedJsonFile: null, stagedJsonText: '', elementSideLoadText: '',
+    supportConfigJson: configJson,
+    regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
+    resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '',
     manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
     weightMatchResult: null, weightMatchRunning: false, weightMatchStatus: '', weightMatchOverridesJson: '{}',
     supportTypeMapperConfig: null, supportTypeMapperResult: null, supportTypeMapperRunning: false, supportTypeMapperStatus: '', supportTypeMapperTestInput: '',
     outputRunReadinessReport: null, outputRunReadinessStatus: '',
-    masterContext: null, importMastersLoading: false, importMastersWriteBackStatus: '', options: createDefaultWorkflowOptions(), running: false, result: null,
+    masterContext: mContext, importMastersLoading: false, importMastersWriteBackStatus: mContext ? 'Restored master rows from LocalStorage.' : '', options: createDefaultWorkflowOptions(), running: false, result: null,
+    masterLastLoadedPaths: getStoredMasterLastLoadedPaths(),
   };
+}
+
+export function updateMasterLastLoadedPath(state, masterKey, path) {
+  const current = state.masterLastLoadedPaths?.[masterKey] || '';
+  const currentNorm = current.replace(/\\/g, '/');
+  const pathNorm = path.replace(/\\/g, '/');
+  
+  if (currentNorm.includes('/') && !pathNorm.includes('/')) {
+    const filename = currentNorm.split('/').pop();
+    if (filename.toLowerCase() === pathNorm.toLowerCase()) {
+      return state;
+    }
+  }
+
+  const nextPaths = { ...(state.masterLastLoadedPaths || {}), [masterKey]: path };
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem('xml-cii-master-last-loaded-paths', JSON.stringify(nextPaths));
+    } catch {}
+  }
+  return { ...state, masterLastLoadedPaths: nextPaths };
 }
 
 export function updateWorkflowState(state, patch = {}) {
@@ -41,7 +228,15 @@ export function updateWorkflowState(state, patch = {}) {
 
 export function updateWorkflowOptions(state, optionPatch = {}) { return { ...state, options: { ...state.options, ...optionPatch } }; }
 export function clearWorkflowResult(state) { return updateWorkflowState(state, { result: null, outputRunReadinessReport: null }); }
-export function resetWorkflowState() { return createXmlCiiAdaptedWorkflowState(); }
+export function resetWorkflowState() {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.removeItem('xml-cii-regex-config-v1');
+      localStorage.removeItem('xml-cii-resolver-config-v1');
+    } catch {}
+  }
+  return createXmlCiiAdaptedWorkflowState();
+}
 
 function totalMasterRows(masterContext) {
   const counts = masterContext?.rowCounts || {};
@@ -61,24 +256,81 @@ function nestedRuleKey(field) {
   }[field] || null;
 }
 
-function numericRuleValue(key, value) { return ['group', 'tokenPosition'].includes(key) ? Number(value || 0) : value; }
+function numericRuleValue(key, value) { return key === 'group' ? Number(value || 0) : value; }
+
+function updateAndPersistRegexConfig(state, newConfig) {
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.setItem('xml-cii-regex-config-v1', JSON.stringify(newConfig)); } catch {}
+  }
+  return updateWorkflowState(state, { regexTesterConfig: newConfig });
+}
 
 export function updateRegexTesterConfig(state, field, value) {
-  if (field === 'regex-token-delimiter') return updateWorkflowState(state, { regexTesterConfig: { ...state.regexTesterConfig, tokenDelimiter: value } });
-  const path = nestedRuleKey(field); if (!path) return state;
-  const [ruleName, key] = path; const rule = { ...(state.regexTesterConfig?.[ruleName] || {}) };
+  const currentConfig = { ...(state.regexTesterConfig || {}) };
+  if (!currentConfig.formats) {
+    const defaultFormat = {
+      tokenDelimiter: currentConfig.tokenDelimiter || '-',
+      lineKeyJoiner: currentConfig.lineKeyJoiner || '',
+      lineKey: currentConfig.lineKey || { regex: '', group: 1, tokenPosition: 3 },
+      pipingClass: currentConfig.pipingClass || { regex: '', group: 1, tokenPosition: 4 },
+      rating: currentConfig.rating || { regex: '', group: 1, tokenPosition: 4 },
+      bore: currentConfig.bore || { regex: '', group: 1, tokenPosition: 2 },
+    };
+    currentConfig.formats = [{ ...defaultFormat }, { ...defaultFormat }];
+    currentConfig.activeFormatIndex = 0;
+  }
+  if (field === 'regex-active-format-index') {
+    return updateAndPersistRegexConfig(state, { ...currentConfig, activeFormatIndex: Number(value || 0) });
+  }
+  const formats = currentConfig.formats.map(f => ({ ...f }));
+  const idx = currentConfig.activeFormatIndex ?? 0;
+  const activeF = { ...formats[idx] };
+  if (field === 'regex-token-delimiter') {
+    activeF.tokenDelimiter = value;
+    formats[idx] = activeF;
+    return updateAndPersistRegexConfig(state, { ...currentConfig, formats });
+  }
+  if (field === 'regex-line-key-joiner') {
+    activeF.lineKeyJoiner = value;
+    formats[idx] = activeF;
+    return updateAndPersistRegexConfig(state, { ...currentConfig, formats });
+  }
+  const path = nestedRuleKey(field);
+  if (!path) return state;
+  const [ruleName, key] = path;
+  const rule = { ...(activeF[ruleName] || {}) };
   rule[key] = numericRuleValue(key, value);
-  return updateWorkflowState(state, { regexTesterConfig: { ...state.regexTesterConfig, [ruleName]: rule } });
+  activeF[ruleName] = rule;
+  formats[idx] = activeF;
+  return updateAndPersistRegexConfig(state, { ...currentConfig, formats });
 }
 
 export function applyStandaloneRegexTesterResult(state, regexTesterResult) {
+  if (typeof localStorage !== 'undefined' && state.regexTesterConfig) {
+    try { localStorage.setItem('xml-cii-regex-config-v1', JSON.stringify(state.regexTesterConfig)); } catch {}
+  }
   return updateWorkflowState(state, { regexTesterResult, regexTesterRunning: false, regexTesterWriteBackStatus: 'Regex rules saved into standalone config.', supportConfigJson: regexTesterResult?.supportConfigJson || state.supportConfigJson, result: null });
 }
 
 export function updateResolverJsonTraceConfig(state, value) {
-  try { return updateWorkflowState(state, { resolverJsonTraceConfig: JSON.parse(String(value || '{}')) }); }
+  try {
+    const config = JSON.parse(String(value || '{}'));
+    if (typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
+    }
+    return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+  }
   catch { return updateWorkflowState(state, { resolverJsonTraceWriteBackStatus: 'Resolver config JSON is invalid.' }); }
 }
+
+export function patchResolverJsonTraceConfig(state, patch = {}) {
+  const config = { ...(state.resolverJsonTraceConfig || {}), ...patch };
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
+  }
+  return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+}
+
 
 export function applyStandaloneResolverJsonTraceResult(state, resolverJsonTraceResult) {
   return updateWorkflowState(state, { resolverJsonTraceResult, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: 'Resolver config saved into standalone config.', supportConfigJson: resolverJsonTraceResult?.supportConfigJson || state.supportConfigJson, result: null });
@@ -145,4 +397,34 @@ export function applyStandaloneSupportTypeMapperResult(state, supportTypeMapperR
 export function applyStandaloneOutputRunReadiness(state, outputRunReadinessReport) {
   const blocks = outputRunReadinessReport?.summary?.blockingCount || 0;
   return updateWorkflowState(state, { outputRunReadinessReport, outputRunReadinessStatus: `Output / Run checklist built with ${blocks} blocking item(s).` });
+}
+
+export function xmlCiiEnrichedConfigFromState(state) {
+  const config = JSON.parse(state.supportConfigJson || '{}');
+  const lineRows = state.masterContext?.lineRows || getStoredMaster('lineList') || [];
+  const materialMapRows = state.masterContext?.materialMapRows || getStoredMaster('materialMap') || [];
+  const weightMasterRows = state.masterContext?.weightMasterRows || getStoredMaster('weight') || [];
+  // Piping class rows are stored in config.pipingClass.masterRows (not a separate LS key)
+  // but if masterContext has them in-memory, use those (fresher, not yet persisted)
+  const pipingClassRows = state.masterContext?.pipingClassRows?.length
+    ? state.masterContext.pipingClassRows
+    : (config.pipingClass?.masterRows || []);
+
+  if (lineRows.length) {
+    if (!config.linelist) config.linelist = {};
+    config.linelist.masterRows = lineRows;
+  }
+  if (pipingClassRows.length) {
+    if (!config.pipingClass) config.pipingClass = {};
+    config.pipingClass.masterRows = pipingClassRows;
+  }
+  if (materialMapRows.length) {
+    if (!config.material) config.material = {};
+    config.material.mapRows = materialMapRows;
+  }
+  if (weightMasterRows.length) {
+    if (!config.weight) config.weight = {};
+    config.weight.masterRows = weightMasterRows;
+  }
+  return config;
 }

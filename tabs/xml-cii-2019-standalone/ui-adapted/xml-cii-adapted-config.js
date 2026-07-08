@@ -1,0 +1,264 @@
+import { createElement } from './xml-cii-adapted-dom.js';
+import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
+import { saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+
+function esc(value) {
+  return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function makeCheckbox(parent, labelText, checked, onChange) {
+  const label = createElement('label');
+  label.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:#cbd5e1;cursor:pointer;';
+  const input = createElement('input');
+  input.type = 'checkbox';
+  input.checked = !!checked;
+  input.addEventListener('change', (e) => onChange(e.target.checked));
+  label.append(input, document.createTextNode(labelText));
+  parent.appendChild(label);
+  return input;
+}
+
+function makeNumberInput(parent, labelText, value, step, onChange) {
+  const label = createElement('label');
+  label.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:#cbd5e1;';
+  const input = createElement('input');
+  input.type = 'number';
+  input.step = step;
+  input.value = value ?? '';
+  input.style.cssText = 'background:#182334;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:4px;width:100px;text-align:right;font-size:12px;';
+  input.addEventListener('change', (e) => onChange(Number(e.target.value)));
+  label.append(document.createTextNode(labelText), input);
+  parent.appendChild(label);
+  return input;
+}
+
+function makeTextInput(parent, labelText, value, onChange) {
+  const label = createElement('label');
+  label.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:#cbd5e1;';
+  const input = createElement('input');
+  input.type = 'text';
+  input.value = value ?? '';
+  input.style.cssText = 'background:#182334;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:4px;width:100px;text-align:right;font-size:12px;';
+  input.addEventListener('change', (e) => onChange(e.target.value.trim()));
+  label.append(document.createTextNode(labelText), input);
+  parent.appendChild(label);
+  return input;
+}
+
+function _renderCleanupCard(configObj, syncJsonText, controls) {
+  const card = createElement('div');
+  card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
+  card.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#38bdf8;">🗑️ Cleanup & Drop Rules</h3>';
+  controls.dropGaskNode = makeCheckbox(card, 'Drop Gasket Nodes (GASK)', configObj.dropGasketNodes !== false, (val) => {
+    configObj.dropGasketNodes = val;
+    configObj.dropGasketsInEnrichment = val;
+    syncJsonText();
+  });
+  controls.dropShortNode = makeCheckbox(card, 'Drop Short Element Length Nodes', configObj.dropShortElementLengthNodes !== false, (val) => {
+    configObj.dropShortElementLengthNodes = val;
+    syncJsonText();
+  });
+  controls.shortThresholdInput = makeNumberInput(card, 'Short Element Drop Limit (mm)', configObj.shortElementLengthDropThresholdMm ?? 6, '0.1', (val) => {
+    configObj.shortElementLengthDropThresholdMm = val;
+    syncJsonText();
+  });
+  return card;
+}
+
+function _renderModelingCard(configObj, syncJsonText, controls) {
+  const card = createElement('div');
+  card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
+  card.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#38bdf8;">📏 Restraint & Modeling Defaults</h3>';
+  controls.stiffnessInput = makeNumberInput(card, 'Default Stiffness', configObj.defaultStiffness ?? 1751270000000, '1000000', (val) => {
+    configObj.defaultStiffness = val;
+    syncJsonText();
+  });
+  controls.frictionInput = makeNumberInput(card, 'Default Friction', configObj.defaultFriction ?? 0.3, '0.01', (val) => {
+    configObj.defaultFriction = val;
+    syncJsonText();
+  });
+  controls.gapInput = makeNumberInput(card, 'Default Gap (mm)', configObj.defaultGap ?? 0, '0.1', (val) => {
+    configObj.defaultGap = val;
+    syncJsonText();
+  });
+  controls.SifInput = makeNumberInput(card, 'Default Tee SIF Type', configObj.defaultTeeSifType ?? 0, '1', (val) => {
+    configObj.defaultTeeSifType = val;
+    syncJsonText();
+  });
+  return card;
+}
+
+function _renderFlagsCard(configObj, syncJsonText, controls) {
+  const card = createElement('div');
+  card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
+  card.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#38bdf8;">🎛️ Option Toggles</h3>';
+  controls.frictionSentinelNode = makeCheckbox(card, 'Use Friction Sentinel (non-Y)', configObj.useFrictionSentinelForNonYSupports !== false, (val) => {
+    configObj.useFrictionSentinelForNonYSupports = val;
+    syncJsonText();
+  });
+  controls.splitCondensedNode = makeCheckbox(card, 'Apply resolved split (Valve/Flange)', configObj.splitCondensedValveFlange === true, (val) => {
+    configObj.splitCondensedValveFlange = val;
+    syncJsonText();
+  });
+  controls.disableSupportTagNode = makeCheckbox(card, 'Suppress CII Support tag labels', configObj.disableCiiSupportTagPopulation !== false, (val) => {
+    configObj.disableCiiSupportTagPopulation = val;
+    syncJsonText();
+  });
+  controls.convertDensityNode = makeCheckbox(card, 'Convert density kg/m3 -> kg/cm3', configObj.convertDensityKgM3ToKgCm3 !== false, (val) => {
+    configObj.convertDensityKgM3ToKgCm3 = val;
+    syncJsonText();
+  });
+  return card;
+}
+
+function _renderProcessCard(configObj, syncJsonText, controls) {
+  const card = createElement('div');
+  card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
+  card.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#38bdf8;">🗺️ Process Fallbacks (Line List)</h3>';
+  if (!configObj.processDefaults || typeof configObj.processDefaults !== 'object') {
+    configObj.processDefaults = { p1: '700', t1: '120', t2: '309', t3: '-5', density: '100' };
+  }
+  controls.p1Input = makeTextInput(card, 'Design Pressure (p1)', configObj.processDefaults.p1, (val) => {
+    configObj.processDefaults.p1 = val;
+    syncJsonText();
+  });
+  controls.t1Input = makeTextInput(card, 'Design Temperature (t1)', configObj.processDefaults.t1, (val) => {
+    configObj.processDefaults.t1 = val;
+    syncJsonText();
+  });
+  controls.t2Input = makeTextInput(card, 'Operating Temperature (t2)', configObj.processDefaults.t2, (val) => {
+    configObj.processDefaults.t2 = val;
+    syncJsonText();
+  });
+  controls.t3Input = makeTextInput(card, 'Minimum Temperature (t3)', configObj.processDefaults.t3, (val) => {
+    configObj.processDefaults.t3 = val;
+    syncJsonText();
+  });
+  controls.densityInput = makeTextInput(card, 'Fluid Density', configObj.processDefaults.density, (val) => {
+    configObj.processDefaults.density = val;
+    syncJsonText();
+  });
+  return card;
+}
+
+export function renderAdaptedConfigPanel(card, stateRef, render) {
+  const state = stateRef.current;
+  let configText = state.supportConfigJson || '{}';
+  let configObj = {};
+  try { configObj = JSON.parse(configText); } catch {}
+
+  const statusDiv = createElement('div');
+  statusDiv.style.cssText = 'padding:10px;margin-bottom:14px;border-radius:6px;font-size:12px;font-weight:bold;';
+  
+  function updateValidationStatus(text) {
+    const val = validateSupportConfigJson(text);
+    statusDiv.textContent = val.ok ? '✓ Support Configuration JSON is valid.' : `⚠ Invalid Configuration: ${val.error}`;
+    statusDiv.style.background = val.ok ? '#065f46' : '#991b1b';
+    statusDiv.style.color = '#fff';
+    statusDiv.style.border = `1px solid ${val.ok ? '#059669' : '#dc2626'}`;
+  }
+  updateValidationStatus(configText);
+  card.appendChild(statusDiv);
+
+  const grid = createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:16px;';
+  
+  const ctrlRefs = {};
+  
+  function syncJsonText() {
+    configText = JSON.stringify(configObj, null, 2);
+    textarea.value = configText;
+    updateValidationStatus(configText);
+  }
+
+  const cleanup = _renderCleanupCard(configObj, syncJsonText, ctrlRefs);
+  const modeling = _renderModelingCard(configObj, syncJsonText, ctrlRefs);
+  const flags = _renderFlagsCard(configObj, syncJsonText, ctrlRefs);
+  const process = _renderProcessCard(configObj, syncJsonText, ctrlRefs);
+
+  grid.append(cleanup, modeling, flags, process);
+  card.appendChild(grid);
+
+  const editorSec = createElement('details');
+  editorSec.setAttribute('open', 'true');
+  editorSec.appendChild(createElement('summary', 'Raw Config JSON Editor'));
+  
+  const textarea = createElement('textarea');
+  textarea.value = configText;
+  textarea.spellcheck = false;
+  textarea.style.cssText = 'width:100%;height:320px;font-family:monospace;font-size:12px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;margin-top:6px;';
+  
+  textarea.addEventListener('input', (e) => {
+    configText = e.target.value;
+    updateValidationStatus(configText);
+    try {
+      configObj = JSON.parse(configText);
+      syncControls();
+    } catch {}
+  });
+  editorSec.appendChild(textarea);
+  card.appendChild(editorSec);
+
+  const toolbar = createElement('div');
+  toolbar.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px;';
+  
+  const saveBtn = createElement('button', '💾 Save Config');
+  saveBtn.type = 'button';
+  saveBtn.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:bold;cursor:pointer;';
+  saveBtn.addEventListener('click', () => {
+    const val = validateSupportConfigJson(configText);
+    if (!val.ok) { alert(`Invalid configuration JSON: ${val.error}`); return; }
+    stateRef.current = { ...stateRef.current, supportConfigJson: configText, masterContext: { ...(stateRef.current.masterContext || {}), config: configObj } };
+    saveMasterContextToLocalStorage(stateRef.current.masterContext);
+    render();
+    if (typeof showToast === 'function') showToast('Configuration saved successfully!');
+    else alert('Configuration saved!');
+  });
+  toolbar.appendChild(saveBtn);
+
+  const exportBtn = createElement('button', '📥 Export JSON');
+  exportBtn.type = 'button';
+  exportBtn.style.cssText = 'background:#27272a;color:#fff;border:1px solid #3f3f46;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:bold;cursor:pointer;';
+  exportBtn.addEventListener('click', () => {
+    const blob = new Blob([configText], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `support-config-${Date.now()}.json`; a.click();
+  });
+  toolbar.appendChild(exportBtn);
+
+  const importLabel = createElement('label', '📤 Import JSON');
+  importLabel.style.cssText = 'background:#27272a;color:#fff;border:1px solid #3f3f46;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:bold;cursor:pointer;text-align:center;';
+  const importInput = createElement('input'); importInput.type = 'file'; importInput.accept = '.json'; importInput.hidden = true;
+  importInput.addEventListener('change', (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target.result || '{}';
+      configText = text; textarea.value = text; updateValidationStatus(text);
+      try { configObj = JSON.parse(text); syncControls(); } catch {}
+    };
+    reader.readAsText(file);
+  });
+  importLabel.appendChild(importInput); toolbar.appendChild(importLabel);
+  card.appendChild(toolbar);
+
+  function syncControls() {
+    ctrlRefs.dropGaskNode.checked = configObj.dropGasketNodes !== false;
+    ctrlRefs.dropShortNode.checked = configObj.dropShortElementLengthNodes !== false;
+    ctrlRefs.shortThresholdInput.value = configObj.shortElementLengthDropThresholdMm ?? 6;
+    ctrlRefs.stiffnessInput.value = configObj.defaultStiffness ?? 1751270000000;
+    ctrlRefs.frictionInput.value = configObj.defaultFriction ?? 0.3;
+    ctrlRefs.gapInput.value = configObj.defaultGap ?? 0;
+    ctrlRefs.SifInput.value = configObj.defaultTeeSifType ?? 0;
+    ctrlRefs.frictionSentinelNode.checked = configObj.useFrictionSentinelForNonYSupports !== false;
+    ctrlRefs.splitCondensedNode.checked = configObj.splitCondensedValveFlange === true;
+    ctrlRefs.disableSupportTagNode.checked = configObj.disableCiiSupportTagPopulation !== false;
+    ctrlRefs.convertDensityNode.checked = configObj.convertDensityKgM3ToKgCm3 !== false;
+    if (configObj.processDefaults && typeof configObj.processDefaults === 'object') {
+      ctrlRefs.p1Input.value = configObj.processDefaults.p1 ?? '';
+      ctrlRefs.t1Input.value = configObj.processDefaults.t1 ?? '';
+      ctrlRefs.t2Input.value = configObj.processDefaults.t2 ?? '';
+      ctrlRefs.t3Input.value = configObj.processDefaults.t3 ?? '';
+      ctrlRefs.densityInput.value = configObj.processDefaults.density ?? '';
+    }
+  }
+}

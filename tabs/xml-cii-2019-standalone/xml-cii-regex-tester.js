@@ -1,14 +1,23 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
 
-const SAMPLE_LIMIT = 50;
+const SAMPLE_LIMIT = 2000;
 
 export function createDefaultRegexTesterConfig() {
-  return {
+  const defaultFormat = {
     tokenDelimiter: '-',
+    lineKeyJoiner: '',
     lineKey: { regex: '', group: 1, tokenPosition: 3 },
     pipingClass: { regex: '', group: 1, tokenPosition: 4 },
     rating: { regex: '', group: 1, tokenPosition: 4 },
     bore: { regex: '', group: 1, tokenPosition: 2 },
+  };
+  return {
+    activeFormatIndex: 0,
+    formats: [
+      { ...defaultFormat },
+      { ...defaultFormat }
+    ],
+    ratingSequence: [['200', '20000'], ['150', '15000'], ['100', '10000'], ['25', '2500'], ['15', '1500'], ['5', '5000'], ['1', '150'], ['3', '300'], ['6', '600'], ['9', '900']],
   };
 }
 
@@ -51,70 +60,111 @@ function uniqueSamples(samples) {
   return out.slice(0, SAMPLE_LIMIT);
 }
 
-function samplesFromBranches(xmlText) {
-  const rows = [];
-  const pattern = /<\s*(?:[A-Za-z_][\w.-]*:)?Branch\b[^>]*>[\s\S]*?<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?Branch\s*>/gi;
-  let match;
-  while ((match = pattern.exec(String(xmlText || '')))) {
-    const block = match[0];
-    const branchName = childText(block, 'Branchname') || attrText(block, 'Branchname') || attrText(block, 'Name');
-    rows.push({ source: 'Branch', branchName, lineReference: childText(block, 'LineNo') || branchName });
-  }
-  return rows;
-}
-
-function samplesFromBranchnameTags(xmlText) {
-  const rows = [];
-  const pattern = /<\s*(?:[A-Za-z_][\w.-]*:)?Branchname\b[^>]*>([\s\S]*?)<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?Branchname\s*>/gi;
-  let match;
-  while ((match = pattern.exec(String(xmlText || '')))) {
-    const branchName = decodeXml(match[1]).trim();
-    rows.push({ source: 'Branchname', branchName, lineReference: branchName });
-  }
-  return rows;
-}
-
-function samplesFromLineIds(xmlText) {
-  const rows = [];
-  const pattern = /<\s*(?:[A-Za-z_][\w.-]*:)?PipingElement\b[^>]*>/gi;
-  let match;
-  while ((match = pattern.exec(String(xmlText || '')))) {
-    const lineId = attrText(match[0], 'LINE_ID') || attrText(match[0], 'LineId');
-    rows.push({ source: 'PipingElement', branchName: lineId, lineReference: lineId });
-  }
-  return rows;
-}
-
-function samplesFromPipelineNames(xmlText) {
-  const rows = [];
-  const pattern = /<\s*(?:[A-Za-z_][\w.-]*:)?Pipeline\b[^>]*>/gi;
-  let match;
-  while ((match = pattern.exec(String(xmlText || '')))) {
-    const name = attrText(match[0], 'Name');
-    rows.push({ source: 'Pipeline', branchName: name, lineReference: name });
-  }
-  return rows;
-}
-
 export function parseStandaloneRegexBranchSamples(sourceText) {
-  return uniqueSamples([
-    ...samplesFromBranches(sourceText),
-    ...samplesFromBranchnameTags(sourceText),
-    ...samplesFromLineIds(sourceText),
-    ...samplesFromPipelineNames(sourceText),
-  ]);
+  try {
+    const doc = new DOMParser().parseFromString(sourceText || '', 'application/xml');
+    if (!doc.querySelector('parsererror')) {
+      const rows = [];
+      const seen = new Set();
+      
+      const addRow = (src, name, ref) => {
+         const key = text(name || ref);
+         if (key && !seen.has(key)) {
+           seen.add(key);
+           rows.push({ source: src, branchName: name, lineReference: ref });
+         }
+      };
+
+      const allElements = doc.querySelectorAll('*');
+      for (const el of allElements) {
+        const tag = (el.localName || '').toLowerCase();
+        
+        if (tag === 'branch') {
+          const name = el.getAttribute('NAME') || el.getAttribute('name') || Array.from(el.children).find(c => (c.localName || '').toLowerCase() === 'branchname')?.textContent || '';
+          addRow('Branch', name, name);
+        } else if (tag === 'branchname') {
+          addRow('Branchname', el.textContent, el.textContent);
+        } else if (tag === 'pipingelement') {
+          const lineId = el.getAttribute('LINE_ID') || el.getAttribute('LineId') || '';
+          addRow('PipingElement', lineId, lineId);
+        } else if (tag === 'pipeline') {
+          const name = el.getAttribute('Name') || el.getAttribute('NAME') || '';
+          addRow('Pipeline', name, name);
+        }
+      }
+
+      return rows.map((r, i) => ({ ...r, sampleIndex: i + 1 })).slice(0, SAMPLE_LIMIT);
+    }
+  } catch (err) {
+    console.warn('DOMParser failed in regex extraction', err);
+  }
+  return [];
 }
 
 function mergeConfig(config = {}) {
   const defaults = createDefaultRegexTesterConfig();
   const source = safeObject(config);
+  let formats = source.formats;
+  if (!formats || !Array.isArray(formats)) {
+    const singleFormat = {
+      tokenDelimiter: text(source.tokenDelimiter || defaults.formats[0].tokenDelimiter),
+      lineKeyJoiner: text(source.lineKeyJoiner ?? defaults.formats[0].lineKeyJoiner),
+      lineKey: { ...defaults.formats[0].lineKey, ...safeObject(source.lineKey) },
+      pipingClass: { ...defaults.formats[0].pipingClass, ...safeObject(source.pipingClass) },
+      rating: { ...defaults.formats[0].rating, ...safeObject(source.rating) },
+      bore: { ...defaults.formats[0].bore, ...safeObject(source.bore) },
+    };
+    formats = [
+      { ...singleFormat },
+      { ...defaults.formats[1] }
+    ];
+  } else {
+    formats = formats.map((f, i) => {
+      const defF = defaults.formats[i] || defaults.formats[0];
+      const srcF = safeObject(f);
+      return {
+        tokenDelimiter: text(srcF.tokenDelimiter || defF.tokenDelimiter),
+        lineKeyJoiner: text(srcF.lineKeyJoiner ?? defF.lineKeyJoiner),
+        lineKey: { ...defF.lineKey, ...safeObject(srcF.lineKey) },
+        pipingClass: { ...defF.pipingClass, ...safeObject(srcF.pipingClass) },
+        rating: { ...defF.rating, ...safeObject(srcF.rating) },
+        bore: { ...defF.bore, ...safeObject(srcF.bore) },
+      };
+    });
+  }
   return {
-    tokenDelimiter: text(source.tokenDelimiter || defaults.tokenDelimiter),
-    lineKey: { ...defaults.lineKey, ...safeObject(source.lineKey) },
-    pipingClass: { ...defaults.pipingClass, ...safeObject(source.pipingClass) },
-    rating: { ...defaults.rating, ...safeObject(source.rating) },
-    bore: { ...defaults.bore, ...safeObject(source.bore) },
+    activeFormatIndex: typeof source.activeFormatIndex === 'number' ? source.activeFormatIndex : defaults.activeFormatIndex,
+    formats,
+    ratingSequence: Array.isArray(source.ratingSequence) ? source.ratingSequence : defaults.ratingSequence,
   };
+}
+
+export function analyzeStandaloneRegexFormats(branchSamples, delimiter = '-') {
+  if (!branchSamples || !branchSamples.length) {
+    return { dominantSample: '', alternativeSample: '', hasMultipleFormats: false };
+  }
+  const counts = {};
+  const samplesByCount = {};
+  for (const sample of branchSamples) {
+    const txt = sample.branchName || sample.lineReference || '';
+    const cleaned = txt.replace(/^\/+/, '').replace(/\/B\d+$/i, '');
+    const tokens = cleaned.split(delimiter).filter(Boolean);
+    const tokenCount = tokens.length;
+    counts[tokenCount] = (counts[tokenCount] || 0) + 1;
+    if (!samplesByCount[tokenCount]) samplesByCount[tokenCount] = [];
+    samplesByCount[tokenCount].push(txt);
+  }
+  const sortedLengths = Object.keys(counts).map(Number).sort((a, b) => counts[b] - counts[a]);
+  const dominantLength = sortedLengths[0];
+  const dominantSample = samplesByCount[dominantLength]?.[0] || '';
+  let alternativeSample = '';
+  let hasMultipleFormats = false;
+  if (sortedLengths.length > 1) {
+    hasMultipleFormats = true;
+    const alternativeLength = sortedLengths[1];
+    alternativeSample = samplesByCount[alternativeLength]?.[0] || '';
+  }
+  return { dominantSample, alternativeSample, hasMultipleFormats };
 }
 
 function regexValue(value, rule) {
@@ -128,24 +178,42 @@ function regexValue(value, rule) {
   }
 }
 
-function tokenValue(value, rule, delimiter) {
-  const index = Number(rule.tokenPosition || 0);
-  if (!index) return '';
+function tokenValue(value, rule, delimiter, joiner) {
+  const posText = String(rule.tokenPosition || '').trim();
+  if (!posText) return '';
+  const positions = posText.split(/[,+]/).map((p) => Number(p.trim())).filter((p) => Number.isFinite(p) && p > 0);
+  if (!positions.length) return '';
   const tokens = String(value || '').split(delimiter || '-').map((part) => part.trim());
-  return text(tokens[index - 1]);
+  const parts = positions.map((pos) => tokens[pos - 1] || '').filter(Boolean);
+  return parts.join(joiner || '');
 }
 
-function extractValue(value, rule, delimiter) {
-  return regexValue(value, rule) || tokenValue(value, rule, delimiter);
+function extractValue(value, rule, delimiter, joiner) {
+  return regexValue(value, rule) || tokenValue(value, rule, delimiter, joiner);
 }
 
-function extractionRow(sample, cfg) {
+function deriveRatingFromPc(pipingClass, sequence) {
+  const pcText = String(pipingClass ?? '').trim().toUpperCase();
+  if (!pcText) return '';
+  for (const pair of (sequence || [])) {
+    if (!Array.isArray(pair) || pair.length < 2) continue;
+    const prefix = String(pair[0]).trim().toUpperCase();
+    if (prefix && pcText.startsWith(prefix)) {
+      return String(pair[1]);
+    }
+  }
+  return '';
+}
+
+function extractionRow(sample, cfg, ratingSequence) {
   const source = sample.branchName || sample.lineReference || '';
+  const pcVal = extractValue(source, cfg.pipingClass, cfg.tokenDelimiter);
+  const ratingVal = deriveRatingFromPc(pcVal, ratingSequence) || extractValue(source, cfg.rating, cfg.tokenDelimiter).match(/\d+/)?.[0] || '';
   const row = {
     ...sample,
-    lineKey: extractValue(source, cfg.lineKey, cfg.tokenDelimiter),
-    pipingClass: extractValue(source, cfg.pipingClass, cfg.tokenDelimiter),
-    rating: extractValue(source, cfg.rating, cfg.tokenDelimiter).match(/\d+/)?.[0] || '',
+    lineKey: extractValue(source, cfg.lineKey, cfg.tokenDelimiter, cfg.lineKeyJoiner),
+    pipingClass: pcVal,
+    rating: ratingVal,
     bore: extractValue(source, cfg.bore, cfg.tokenDelimiter).replace(/[^0-9.]/g, ''),
   };
   row.status = row.lineKey && row.pipingClass ? 'MATCHED' : 'REJECTED';
@@ -165,9 +233,13 @@ function writeRegexConfig(supportConfigJson, extractionConfig) {
   const config = JSON.parse(text(supportConfigJson) || '{}');
   const cfg = mergeConfig(extractionConfig);
   config.regexTester = cfg;
-  config.linelist = { ...safeObject(config.linelist), branchNameRegex: cfg.lineKey.regex, lineNoGroup: cfg.lineKey.group, tokenDelimiter: cfg.tokenDelimiter, lineKeyTokenPositions: String(cfg.lineKey.tokenPosition || '') };
-  config.rating = { ...safeObject(config.rating), pipingClassRegex: cfg.pipingClass.regex, pipingClassGroup: cfg.pipingClass.group, ratingRegex: cfg.rating.regex, ratingGroup: cfg.rating.group, tokenDelimiter: cfg.tokenDelimiter, pipingClassTokenIndex: cfg.pipingClass.tokenPosition };
-  config.weight = { ...safeObject(config.weight), boreRegex: cfg.bore.regex, boreGroup: cfg.bore.group, tokenDelimiter: cfg.tokenDelimiter, boreTokenIndex: cfg.bore.tokenPosition };
+  const f0 = cfg.formats[0];
+  config.linelist = { ...safeObject(config.linelist), branchNameRegex: f0.lineKey.regex, lineNoGroup: f0.lineKey.group, tokenDelimiter: f0.tokenDelimiter, lineKeyTokenPositions: String(f0.lineKey.tokenPosition || ''), lineKeyJoiner: f0.lineKeyJoiner };
+  config.rating = { ...safeObject(config.rating), pipingClassRegex: f0.pipingClass.regex, pipingClassGroup: f0.pipingClass.group, ratingRegex: f0.rating.regex, ratingGroup: f0.rating.group, tokenDelimiter: f0.tokenDelimiter, pipingClassTokenIndex: f0.pipingClass.tokenPosition, ratingSequence: cfg.ratingSequence };
+  config.weight = { ...safeObject(config.weight), boreRegex: f0.bore.regex, boreGroup: f0.bore.group, tokenDelimiter: f0.tokenDelimiter, boreTokenIndex: f0.bore.tokenPosition };
+  
+  // also store formats array in config for downstream parser usage if necessary
+  config.formats = cfg.formats;
   return JSON.stringify(config, null, 2);
 }
 
@@ -177,7 +249,20 @@ export function runStandaloneRegexTester(input = {}) {
   const extractionConfig = mergeConfig(input.extractionConfig || input.regexTesterConfig);
   if (sourceKind === 'inputxml') return inputXmlNotRequired(extractionConfig, input.supportConfigJson);
   const branchSamples = parseStandaloneRegexBranchSamples(sourceText);
-  const rows = branchSamples.map((sample) => extractionRow(sample, extractionConfig));
+  const rows = branchSamples.map((sample) => {
+    const row1 = extractionRow(sample, extractionConfig.formats[0], extractionConfig.ratingSequence);
+    if (row1.status === 'MATCHED') {
+      row1.matchedFormatIndex = 0;
+      return row1;
+    }
+    const row2 = extractionRow(sample, extractionConfig.formats[1], extractionConfig.ratingSequence);
+    if (row2.status === 'MATCHED') {
+      row2.matchedFormatIndex = 1;
+      return row2;
+    }
+    row1.matchedFormatIndex = 0;
+    return row1;
+  });
   const matchedRows = rows.filter((row) => row.status === 'MATCHED');
   const rejectedRows = rows.filter((row) => row.status !== 'MATCHED');
   return { branchSamples, matchedRows, rejectedRows, diagnostics: diagnosticsFor(rows, sourceKind), extractionConfig, supportConfigJson: writeRegexConfig(input.supportConfigJson, extractionConfig) };
