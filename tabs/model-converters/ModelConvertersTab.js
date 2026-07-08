@@ -3,7 +3,7 @@
  */
 
 import './xml-cii-rich-worker-cache-bust.js?v=20260623-xml-cii-rich-worker-1';
-import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260704-model-converters-load-hotfix-1';
+import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260708-seljson-inputxml-xml-visible-1';
 import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260617-basic-glb-3';
 import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260627-inputxml-cii2019-live-guard-1';
 import { installBmCiiSupportAnnotationPopup } from './bm-cii-support-annotation-popup.js?v=20260617-bmcii-open-basic-handoff-2';
