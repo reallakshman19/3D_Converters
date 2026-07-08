@@ -1,6 +1,16 @@
 import { collectXmlCiiTopologyElementLengthAssignments } from './xml-cii-topology-element-length.js';
 
 const HELPER_COMPONENT_TYPES = new Set(['GASK']);
+const UXML_TOPOLOGY_DISCONNECTED_REASONS = new Set([
+  'no-previous-valid-route-point',
+  'zero-distance-or-invalid-topology-span',
+  'missing-position',
+]);
+const UXML_TOPOLOGY_ANCHOR_REASONS = new Set([
+  'branch-start-route-anchor',
+  'coincident-route-handoff-anchor-no-element-length',
+  'support-restraint-no-element-length',
+]);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -14,7 +24,7 @@ function numeric(value) {
 }
 
 function tagValue(block, name) {
-  const match = text(block).match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'));
+  const match = text(block).match(new RegExp(`<${name}[^>]*>([\s\S]*?)<\/${name}>`, 'i'));
   return text(match?.[1]?.replace(/<[^>]+>/g, ''));
 }
 
@@ -77,8 +87,23 @@ function isContinuityNode(node) {
 
 function normalizedStatus(row) {
   const reason = text(row?.reason).toLowerCase();
-  if (['no-previous-valid-route-point', 'zero-distance-or-invalid-topology-span', 'missing-position'].includes(reason)) return 'DISCONNECTED';
+  if (UXML_TOPOLOGY_ANCHOR_REASONS.has(reason)) return 'ANCHOR';
+  if (UXML_TOPOLOGY_DISCONNECTED_REASONS.has(reason)) return 'DISCONNECTED';
   return 'SKIPPED';
+}
+
+function normalizedMessage(row) {
+  const reason = text(row?.reason).toLowerCase();
+  if (reason === 'branch-start-route-anchor') {
+    return 'UXML topology accepted this branch-start point as the initial route anchor; no incoming ElementLengthMm is expected.';
+  }
+  if (reason === 'coincident-route-handoff-anchor-no-element-length') {
+    return 'UXML topology accepted this coincident point as a route handoff anchor; no zero-length element is emitted.';
+  }
+  if (reason === 'support-restraint-no-element-length') {
+    return 'Support/restraint point is retained as topology evidence but does not emit ElementLengthMm.';
+  }
+  return row?.message || row?.reason || 'UXML topology skipped this node.';
 }
 
 function rowsFromUxmlTopology(xmlText, options = {}) {
@@ -109,7 +134,7 @@ function rowsFromUxmlTopology(xmlText, options = {}) {
       path: 'Path 1 - UXML topology',
       status: normalizedStatus(skipped),
       branchName: skipped.branchName || '',
-      fromNodeNumber: '',
+      fromNodeNumber: skipped.fromNodeNumber || '',
       toNodeNumber: skipped.nodeNumber || '',
       nodeNumber: skipped.nodeNumber || '',
       nodeName: skipped.nodeName || '',
@@ -117,9 +142,9 @@ function rowsFromUxmlTopology(xmlText, options = {}) {
       componentRefNo: skipped.componentRefNo || '',
       endpoint: skipped.endpoint || '',
       lengthMm: '',
-      method: 'uxml-topology-skip-review',
+      method: skipped.method || 'uxml-topology-skip-review',
       reason: skipped.reason || '',
-      message: skipped.reason || 'UXML topology skipped this node.',
+      message: normalizedMessage(skipped),
     });
   }
 
@@ -259,6 +284,7 @@ export function buildXmlCiiTopologyDisconnectAudit(xmlText, options = {}) {
     topologyAuditPath2Rows: path2.rows.length,
     topologyDisconnectedRows: disconnectedRows.length,
     topologyOrphanRows: rows.filter((row) => row.status === 'ORPHAN').length,
+    topologyAnchorRows: rows.filter((row) => row.status === 'ANCHOR').length,
     ...(path1.topology?.stats || {}),
     ...(path2.stats || {}),
   };
@@ -268,9 +294,10 @@ export function buildXmlCiiTopologyDisconnectAudit(xmlText, options = {}) {
     rows: rows.length,
     disconnectedRows: stats.topologyDisconnectedRows,
     orphanRows: stats.topologyOrphanRows,
+    anchorRows: stats.topologyAnchorRows,
     path1Rows: stats.topologyAuditPath1Rows,
     path2Rows: stats.topologyAuditPath2Rows,
-    message: `Topology audit completed: ${stats.topologyDisconnectedRows} disconnected/orphan row(s) found across UXML topology and final InputXML continuity paths.`,
+    message: `Topology audit completed: ${stats.topologyDisconnectedRows} disconnected/orphan row(s) found across UXML topology and final InputXML continuity paths; ${stats.topologyAnchorRows} UXML topology anchor row(s) retained as non-failing evidence.`,
   }];
 
   return {
