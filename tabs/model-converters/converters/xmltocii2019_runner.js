@@ -2,6 +2,9 @@ import { decodeTextUtf8, encodeTextUtf8, baseNameWithoutExtension } from '../cor
 import { collectXmlCiiZeroRigidWeightIssues, applyXmlCiiRigidWeightOverrides } from '../../../converters/xml-cii2019-core/weight-match-model.js?v=20260626-weight-review-2';
 import { applyXmlCiiFlangeWeightFallbackToIssues } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260620-flange-fallback-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-length-auto-weight-1';
+import { applyXmlCiiOutsideDiameterResolver } from '../../../converters/xml-cii2019-core/outside-diameter-resolver.js?v=20260708-od-resolver-1';
+import { applyXmlCiiSplitRigidWeightPropagation } from '../../../converters/xml-cii2019-core/split-rigid-weight-propagation.js?v=20260708-split-weight-1';
+import { buildXmlCiiTopologyDisconnectAudit } from '../../../converters/xml-cii2019-core/topology/xml-cii-topology-disconnect-audit.js?v=20260708-topology-1';
 import { buildXmlCiiNodeResolverIndex } from '../../../converters/xml-cii2019-core/sideload-resolver.js';
 import { resolveManualRestraintRows } from '../../../converters/xml-cii2019-core/sideload-restraints.js';
 import { mergeXmlCiiMatchedFacts, matchedFactsFromEnrichmentDiagnostics } from '../../../converters/xml-cii2019-core/sideload-ledger.js';
@@ -103,7 +106,7 @@ function xmlNodeRecord(node) {
   return { nodeNumber: xmlChildText(node, 'NodeNumber'), nodeName: xmlChildText(node, 'NodeName'), endpoint: xmlChildText(node, 'Endpoint'), rigid: xmlChildText(node, 'Rigid'), componentType: xmlChildText(node, 'ComponentType'), connectionType: xmlChildText(node, 'ConnectionType'), weight: xmlChildText(node, 'Weight'), componentRefNo: xmlChildText(node, 'ComponentRefNo'), outsideDiameter: xmlChildText(node, 'OutsideDiameter'), wallThickness: xmlChildText(node, 'WallThickness'), corrosionAllowance: xmlChildText(node, 'CorrosionAllowance'), insulationThickness: xmlChildText(node, 'InsulationThickness'), position: xmlChildText(node, 'Position'), bendRadius: xmlChildText(node, 'BendRadius'), sif: xmlChildText(node, 'SIF'), pipingClass: xmlChildText(node, 'PipingClass'), rating: xmlChildText(node, 'Rating'), boreMm: xmlChildText(node, 'BoreMm'), materialName: xmlChildText(node, 'MaterialName'), materialCode: xmlChildText(node, 'MaterialCode'), elementLengthMm: xmlChildText(node, 'ElementLengthMm'), dtxrPs: xmlChildText(node, 'DTXR_PS'), dtxrPos: xmlChildText(node, 'DTXR_POS') };
 }
 function buildEnrichedStageJson(xmlText, meta = {}) {
-  const payload = { schema: 'xml-cii2019-enriched-stage/v1', profile: 'XML_CII_2019_RICH_WORKFLOW', converter: 'XML->CII(2019)', generatedAt: new Date().toISOString(), source: meta.inputName || '', enrichedXml: meta.enrichedName || '', units: { length: 'mm', pressure: 'pascal', temperature: 'degC', density: 'kg/m3' }, stats: meta.stats || {}, diagnosticsName: meta.diagnosticsName || '', branches: [] };
+  const payload = { schema: 'xml-cii2019-enriched-stage/v1', profile: 'XML_CII_2019_RICH_WORKFLOW', converter: 'XML->CII(2019)', generatedAt: new Date().toISOString(), source: meta.inputName || '', enrichedXml: meta.enrichedName || '', units: { length: 'mm', pressure: 'pascal', temperature: 'degC', density: 'kg/m3' }, stats: meta.stats || {}, diagnosticsName: meta.diagnosticsName || '', topologyName: meta.topologyName || '', branches: [] };
   if (typeof DOMParser === 'undefined') return payload;
   let document = null;
   try { document = new DOMParser().parseFromString(text(xmlText), 'application/xml'); if (document.getElementsByTagName('parsererror').length) return payload; } catch { return payload; }
@@ -158,6 +161,23 @@ function applyStagedGeometryAuthorityToEnriched(enriched, stagedJsonText) {
   return enriched;
 }
 
+function applySavedRigidWeightOverridesToEnriched(enriched) {
+  const overrides = enriched?.config?.overrides?.rigidWeight;
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) || !Object.keys(overrides).length) {
+    return { appliedCount: 0, stdout: [] };
+  }
+  const applied = applyXmlCiiRigidWeightOverrides(enriched.xmlText, overrides);
+  if (applied.appliedCount > 0) {
+    enriched.xmlText = applied.xmlText;
+    enriched.stats = { ...(enriched.stats || {}) };
+    enriched.stats.rigidWeightSavedOverrides = (enriched.stats.rigidWeightSavedOverrides || 0) + applied.appliedCount;
+    enriched.stats.weightAnnotations = (enriched.stats.weightAnnotations || 0) + applied.appliedCount;
+    enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
+    enriched.diagnostics.push(...applied.appliedRows.map((row) => ({ ...row, type: 'rigid-weight-saved-override', source: 'config.overrides.rigidWeight', message: `Applied saved rigid weight override ${row.weight} kg before zero-weight review.` })));
+  }
+  return { appliedCount: applied.appliedCount || 0, stdout: [`Saved rigid weight overrides applied before review: ${applied.appliedCount || 0}.`] };
+}
+
 export async function run(context) {
   const primary = context.inputFiles.find(f => f.role === 'primary');
   if (!primary || !primary.bytes) throw new Error('Primary XML input is required for XML->CII(2019).');
@@ -179,7 +199,14 @@ export async function run(context) {
   const enriched = await withTimeout(enrichXmlForCii2019(originalXmlText, stagedJsonText, runValues), 'browser-side XML enrichment');
   enriched.config = mergeRuntimeOverridesIntoConfig(enriched.config, liveSupportConfig);
   applyStagedGeometryAuthorityToEnriched(enriched, stagedJsonText);
+  const outsideDiameter = applyXmlCiiOutsideDiameterResolver(enriched.xmlText, { config: enriched.config });
+  enriched.stats = { ...(enriched.stats || {}), ...(outsideDiameter.stats || {}) };
+  if (outsideDiameter.appliedCount > 0) enriched.xmlText = outsideDiameter.xmlText;
+  enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
+  enriched.diagnostics.push(...(outsideDiameter.diagnostics || []));
   const rigidReviewLogLines = [];
+  const savedRigidWeights = applySavedRigidWeightOverridesToEnriched(enriched);
+  rigidReviewLogLines.push(...savedRigidWeights.stdout);
   const rigidWeightIssues = applyXmlCiiFlangeWeightFallbackToIssues(collectXmlCiiZeroRigidWeightIssues(enriched.xmlText, stagedJsonText, enriched.config), enriched.config);
 
   if (rigidWeightIssues.length > 0 && typeof runValues.openXmlCiiZeroRigidWeightPopup === 'function') {
@@ -203,11 +230,26 @@ export async function run(context) {
     }
   }
 
+  const splitWeightPropagation = applyXmlCiiSplitRigidWeightPropagation(enriched.xmlText, { config: enriched.config });
+  enriched.stats = { ...(enriched.stats || {}), ...(splitWeightPropagation.stats || {}) };
+  if (splitWeightPropagation.appliedCount > 0) {
+    enriched.xmlText = splitWeightPropagation.xmlText;
+    enriched.stats.weightAnnotations = (enriched.stats.weightAnnotations || 0) + splitWeightPropagation.appliedCount;
+    enriched.diagnostics.push(...(splitWeightPropagation.diagnostics || []));
+  }
+  rigidReviewLogLines.push(`OutsideDiameter resolver: resolved ${outsideDiameter.appliedCount || 0}; unresolved ${outsideDiameter.unresolvedCount || 0}.`);
+  rigidReviewLogLines.push(`Split rigid weight propagation: ${splitWeightPropagation.appliedCount || 0} sibling node(s).`);
+
   ensureEnrichedPreviewLedger(enriched);
   const sideloadLogLines = applyOptionalManualSideload(enriched, runValues).stdout;
   enriched.xmlText = sanitizeXmlTemperatureRanges(enriched.xmlText);
+  const topologyAudit = buildXmlCiiTopologyDisconnectAudit(enriched.xmlText, { config: enriched.config });
+  enriched.stats = { ...(enriched.stats || {}), ...(topologyAudit.stats || {}) };
+  enriched.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
+  enriched.diagnostics.push(...(topologyAudit.diagnostics || []));
   const enrichedName = `${stem}_enriched.xml`;
   const enrichedStageName = `${stem}_enriched_staged.json`;
+  const topologyName = `${stem}_topology_audit.json`;
   if (!context.workerRunner) throw new Error('Python worker runtime is not available.');
   const serializableOptions = Object.fromEntries(Object.entries({ ...runValues, createEnrichedXml: false }).filter(([, v]) => typeof v !== 'function'));
   context.setStatus?.('Running CII conversion in Python worker...', 'running');
@@ -215,14 +257,15 @@ export async function run(context) {
   const ciiOutputs = Array.isArray(ciiResponse.outputs) ? ciiResponse.outputs : [];
   const stats = enriched.stats;
   const diagnostics = enriched.diagnostics;
-  const diagnosticPayload = { generatedAt: new Date().toISOString(), source: 'latest-run', inputName: primary.name, enrichedName, enrichedStageName, diagnosticsName: `${stem}_enrichment_diagnostics.json`, stats, diagnostics, matchedFacts: enriched.matchedFacts || [], rejectedFacts: enriched.rejectedFacts || [] };
+  const diagnosticPayload = { generatedAt: new Date().toISOString(), source: 'latest-run', inputName: primary.name, enrichedName, enrichedStageName, topologyName, diagnosticsName: `${stem}_enrichment_diagnostics.json`, stats, diagnostics, matchedFacts: enriched.matchedFacts || [], rejectedFacts: enriched.rejectedFacts || [], topologyAudit };
   const enrichedStageText = JSON.stringify(buildEnrichedStageJson(enriched.xmlText, diagnosticPayload), null, 2);
+  const topologyText = JSON.stringify(topologyAudit, null, 2);
   const diagnosticText = JSON.stringify(diagnosticPayload, null, 2);
   publishMatchedPreviewDiagnostics(diagnosticPayload);
   const diagnosticRows = (Array.isArray(diagnostics) ? diagnostics : []).map((item) => ({ type: item?.type || '', nodeNumber: item?.nodeNumber || item?.keptNode || item?.removedNode || '', branchName: item?.branchName || '', pipingClass: item?.pipingClass || item?.resolvedPipingClass || '', rating: item?.rating || '', boreMm: item?.boreMm == null ? '' : Number(item.boreMm).toFixed ? Number(item.boreMm).toFixed(3) : item.boreMm, lengthMm: item?.lengthMm == null ? '' : Number(item.lengthMm).toFixed ? Number(item.lengthMm).toFixed(3) : item.lengthMm, weight: item?.weight ?? '', method: item?.method || item?.reason || item?.source || item?.status || '', kind: item?.kind || '', message: item?.message || item?.stagedName || item?.url || item?.reason || '' }));
   return {
-    outputs: [{ name: enrichedName, text: enriched.xmlText, mime: 'text/xml;charset=utf-8' }, { name: enrichedStageName, text: enrichedStageText, mime: 'application/json;charset=utf-8' }, { name: `${stem}_enrichment_diagnostics.json`, text: diagnosticText, mime: 'application/json;charset=utf-8' }, ...ciiOutputs],
-    logs: { stdout: ['Created enriched XML before XML->CII(2019).', `Created enriched staged JSON: ${enrichedStageName}.`, `DATUM duplicate support nodes removed: ${stats.removedDuplicateSupports}.`, `XML restraints normalized: ${stats.normalizedRestraints}.`, `Staged JSON support matches applied: ${stats.stagedSupportsMapped}.`, `DTXR_PS annotations: ${stats.dtxrPsAnnotations || 0}.`, `DTXR_POS annotations: ${stats.dtxrPosAnnotations || 0}.`, `Branch line keys annotated from Branchname: ${stats.branchLineKeys}.`, `Preview/run parity branches: ${stats.previewRunParityBranches || 0}; process fields: ${stats.previewRunParityProcessFields || 0}; node facts: ${stats.previewRunParityNodeFacts || 0}.`, `Staged geometry matches: ${stats.stagedGeometryMatches || 0}; lengths: ${stats.stagedLengthAnnotations || 0}; bores: ${stats.stagedBoreAnnotations || 0}.`, `Rating annotations: ${stats.ratingAnnotations}; weight annotations: ${stats.weightAnnotations}.`, `Matched enrichment preview facts: ${stats.previewMatchedFacts || 0}.`, `Rejected enrichment preview facts: ${stats.previewRejectedFacts || 0}.`, ...rigidReviewLogLines, ...sideloadLogLines, `Enrichment diagnostics written: ${stem}_enrichment_diagnostics.json`, ...(ciiResponse.logs?.stdout || [])], stderr: [...(ciiResponse.logs?.stderr || [])] },
+    outputs: [{ name: enrichedName, text: enriched.xmlText, mime: 'text/xml;charset=utf-8' }, { name: enrichedStageName, text: enrichedStageText, mime: 'application/json;charset=utf-8' }, { name: topologyName, text: topologyText, mime: 'application/json;charset=utf-8' }, { name: `${stem}_enrichment_diagnostics.json`, text: diagnosticText, mime: 'application/json;charset=utf-8' }, ...ciiOutputs],
+    logs: { stdout: ['Created enriched XML before XML->CII(2019).', `Created enriched staged JSON: ${enrichedStageName}.`, `Created topology audit JSON: ${topologyName}.`, `DATUM duplicate support nodes removed: ${stats.removedDuplicateSupports}.`, `XML restraints normalized: ${stats.normalizedRestraints}.`, `Staged JSON support matches applied: ${stats.stagedSupportsMapped}.`, `DTXR_PS annotations: ${stats.dtxrPsAnnotations || 0}.`, `DTXR_POS annotations: ${stats.dtxrPosAnnotations || 0}.`, `Branch line keys annotated from Branchname: ${stats.branchLineKeys}.`, `Preview/run parity branches: ${stats.previewRunParityBranches || 0}; process fields: ${stats.previewRunParityProcessFields || 0}; node facts: ${stats.previewRunParityNodeFacts || 0}.`, `Staged geometry matches: ${stats.stagedGeometryMatches || 0}; lengths: ${stats.stagedLengthAnnotations || 0}; bores: ${stats.stagedBoreAnnotations || 0}.`, `OutsideDiameter resolved from neighbor: ${stats.outsideDiameterResolvedFromNeighbor || 0}; unresolved: ${stats.outsideDiameterUnresolvedZeroOrMissing || 0}.`, `Topology audit rows: ${topologyAudit.stats?.topologyAuditRows || 0}; disconnected/orphan: ${topologyAudit.stats?.topologyDisconnectedRows || 0}.`, `Rating annotations: ${stats.ratingAnnotations}; weight annotations: ${stats.weightAnnotations}.`, `Matched enrichment preview facts: ${stats.previewMatchedFacts || 0}.`, `Rejected enrichment preview facts: ${stats.previewRejectedFacts || 0}.`, ...rigidReviewLogLines, ...sideloadLogLines, `Enrichment diagnostics written: ${stem}_enrichment_diagnostics.json`, ...(ciiResponse.logs?.stdout || [])], stderr: [...(ciiResponse.logs?.stderr || [])] },
     diagnosticsRows: diagnosticRows
   };
 }

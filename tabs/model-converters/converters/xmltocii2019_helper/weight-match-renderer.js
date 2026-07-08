@@ -227,8 +227,17 @@ function nodeMetaFromXml(xmlText) {
             const componentRefNo = xmlChildText(node, 'ComponentRefNo');
             const endpoint = xmlChildText(node, 'Endpoint');
             const meta = { branchName, nodeNumber, componentRefNo, endpoint, componentType: xmlChildText(node, 'ComponentType'), componentRefEndpoint: componentRefEndpoint(componentRefNo, endpoint) };
+            // Branch-scoped only: NodeNumber "-1" is shared by many distinct
+            // nodes in the same branch (FLAN/VALV/RIGID/INST nodes whose
+            // fallback high number was suppressed back to -1, plus genuine
+            // unnumbered endpoints), so this key is itself ambiguous and the
+            // last node processed silently wins. A document-wide fallback
+            // keyed by bare nodeNumber alone (removed here) made this worse
+            // by mixing in nodes from unrelated branches too. applyNodeMeta
+            // only consults this map when a row is missing its own data, so
+            // an ambiguous match here is a rare last resort, not the
+            // primary source of truth.
             out.set(`${branchName}::${nodeNumber}`, meta);
-            if (!out.has(nodeNumber)) out.set(nodeNumber, meta);
           }
         }
         return out;
@@ -246,7 +255,6 @@ function nodeMetaFromXml(xmlText) {
       const endpoint = regexXmlValue(nodeBlock, 'Endpoint');
       const meta = { branchName, nodeNumber, componentRefNo, endpoint, componentType: regexXmlValue(nodeBlock, 'ComponentType'), componentRefEndpoint: componentRefEndpoint(componentRefNo, endpoint) };
       out.set(`${branchName}::${nodeNumber}`, meta);
-      if (!out.has(nodeNumber)) out.set(nodeNumber, meta);
     }
   }
   return out;
@@ -255,10 +263,22 @@ function nodeMetaFromXml(xmlText) {
 function applyNodeMeta(rows, xmlText) {
   const meta = nodeMetaFromXml(xmlText);
   return (Array.isArray(rows) ? rows : []).map((row) => {
+    // collectWeightRows already computed componentRefNo/endpoint/componentType
+    // from the exact node this row represents in the same pass — that data
+    // is authoritative and must never be overwritten by a meta lookup keyed
+    // on the ambiguous "-1" NodeNumber sentinel (see nodeMetaFromXml). Only
+    // fall back to the meta map to fill in a field the row is genuinely
+    // missing, never to replace one it already has.
+    if (row?.componentRefNo) {
+      return {
+        ...row,
+        componentRefEndpoint: row?.componentRefEndpoint || componentRefEndpoint(row.componentRefNo, row?.endpoint || ''),
+      };
+    }
     const key = `${clean(row?.branchName)}::${clean(row?.nodeNumber)}`;
-    const nodeMeta = meta.get(key) || meta.get(clean(row?.nodeNumber)) || {};
-    const componentRefNo = nodeMeta.componentRefNo || row?.componentRefNo || '';
-    const endpoint = nodeMeta.endpoint || row?.endpoint || '';
+    const nodeMeta = meta.get(key) || {};
+    const componentRefNo = nodeMeta.componentRefNo || '';
+    const endpoint = row?.endpoint || nodeMeta.endpoint || '';
     return {
       ...row,
       componentRefNo,
@@ -482,7 +502,12 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const chips = accepted || rejected || '<span class="model-converters-muted">No suggestion</span>';
       const statusText = issue.mapped ? `Mapped (${issue.weightSource || 'weight'})` : (methodLabel(best) || 'Unresolved');
       const refEndpoint = issue.componentRefEndpoint || componentRefEndpoint(issue.componentRefNo, issue.endpoint);
-      return `<tr style="${rowStyle}"><td>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td>${esc(issue.rating || '')}</td><td>${esc(issue.nodeNumber)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td><td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" value="${attr(initial)}" placeholder="kg" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
+      // issue.nodeNumber can be the literal "-1" node-suppression sentinel
+      // (see weight-match-model.js collectWeightRows); nodeNumberDisplay
+      // falls back to a ComponentRefNo/Endpoint/Position-derived identifier
+      // for display so the row doesn't look unresolved when it isn't.
+      const nodeDisplay = issue.nodeNumberDisplay || issue.nodeNumber;
+      return `<tr style="${rowStyle}"><td>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td>${esc(issue.rating || '')}</td><td title="${attr(issue.nodeNumber)}">${esc(nodeDisplay)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td><td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" value="${attr(initial)}" placeholder="kg" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
     }).join('');
     const cfg = activeConfig();
     contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Approximate matching source: enriched/split XML nodes. Drag the right edge of a column header to adjust table column width. Valve Hint is applied only to Endpoint 2 nodes. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[

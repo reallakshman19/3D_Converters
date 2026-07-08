@@ -17,7 +17,7 @@ import { deriveLineKeyFromBranchName } from '../../converters/xml-cii2019-core/r
 import { buildPipingClassIndex } from '../../converters/xml-cii2019-core/piping-class-resolver.js';
 import { resolveBranchProcessData } from '../../converters/xml-cii2019-core/branch-process-resolver.js';
 import { buildStagedDtxrIndex, resolveXmlCiiNodeDtxr } from '../../converters/xml-cii2019-core/dtxr-resolver.js';
-import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
+import { applyXmlCiiStagedGeometryAuthority, buildXmlCiiStagedGeometryIndex, resolveXmlCiiStagedGeometryForNode } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
 import { xmlCiiDtxrPsForNode, xmlCiiDtxrPosForNode, buildStagedDtxrPositionIndex, xmlCiiCalibrateDtxrPositionIndex } from '../../converters/xml-cii2019-core/dtxr-resolver.js';
 import {
   collectXmlCiiZeroRigidWeightIssues,
@@ -57,6 +57,7 @@ import { CONVERTERS, getConverterById } from './converter-registry.js?v=20260617
 import { XML_CII_WORKFLOW_PHASES } from './WorkflowShell.js';
 import { loadStoredState, saveStoredState } from './core/config-store.js';
 import { downloadOutput, arrayBufferToBase64, baseNameWithoutExtension, isRvmFileName, isAttOrTxtFileName, encodeTextUtf8, decodeTextUtf8, toFiniteNumber } from './core/output-utils.js';
+import { MASTER_INPUTXML_TEMPLATE, MASTER_INPUTXML_FILE_NAME } from './master-inputxml-sample.js';
 import { WorkflowModal } from './shared/WorkflowModal.js';
 import { FileInputCard } from './shared/FileInputCard.js';
 import { FieldMappingTable } from './shared/FieldMappingTable.js';
@@ -273,15 +274,17 @@ function _defaultInputxml2019LayoutConfigJson() {
       row13: ['0', '0', '0', '{sif}', '0', '0'],
       row14: ['{reducer}', '0', '{sif}'],
       line_label: {
+        mode: 'auto',
         pointer_start: 0,
         label_index_start: 1,
         label_prefix: 'LINENO',
         label_width: 1,
-        default_line: '0',
+        default_line: '',
         line_labels: [],
       },
     },
     nodename: {
+      mode: 'auto',
       nonam_count: 0,
       from_label: 'PS-XXX',
       to_label: 'PS-XXX',
@@ -295,7 +298,7 @@ function _defaultInputxml2019LayoutConfigJson() {
       line4: ['{equipmnt}'],
     },
     sections: {
-      include_nodename: false,
+      include_nodename: true,
     },
     miscel_1: {
       material_id_default: '0.000',
@@ -803,6 +806,10 @@ const CONVERTER_DEFS = Object.freeze({
     secondaryLabel: '',
     secondaryAccept: '',
     description: 'Convert CAESARII Input XML to CII using 2019 benchmark structure profiles.',
+    masterInputXmlSample: {
+      fileName: MASTER_INPUTXML_FILE_NAME,
+      getText: () => MASTER_INPUTXML_TEMPLATE,
+    },
     defaults: {
       inferReducerAngleFromGeometry: false,
       defaultDiameter: 0,
@@ -874,9 +881,11 @@ const CONVERTER_ORDER = Object.freeze([
   'json_to_xml',
   'stagedjson_to_xml',
   'stagedjson_to_inputxml',
+  'seljson_to_inputxml',
   'stagedjson_to_csv',
   'pdf_to_inputxml',
   'pdf_to_inputxml_cii14',
+  'inputxml_to_xml',
   'xml_to_cii',
   'cii_syntax_check_2019',
   'inputxml_to_cii',
@@ -888,9 +897,23 @@ const CONVERTER_ORDER = Object.freeze([
 
 const ORDERED_CONVERTER_DEFS = Object.freeze(
   CONVERTER_ORDER
-    .map((converterId) => CONVERTER_DEFS[converterId])
+    .map((converterId) => _legacyConverterDef(converterId))
     .filter(Boolean),
 );
+
+function _legacyConverterDef(converterId) {
+  const local = CONVERTER_DEFS[converterId];
+  if (local) return local;
+  const live = getConverterById(converterId);
+  const primary = (live?.inputs || []).find((input) => input.role === 'primary') || {};
+  const secondary = (live?.inputs || []).find((input) => input.role === 'secondary') || {};
+  return live ? {
+    id: live.id, label: live.label, disabled: live.disabled,
+    primaryAccept: primary.accept || '*', primaryLabel: primary.label || 'Primary Input',
+    secondaryAccept: secondary.accept || '', secondaryLabel: secondary.label || '',
+    description: live.description || '', defaults: live.defaults || {}, fields: live.options || [],
+  } : null;
+}
 
 const RMSS_BORE_FIELDS = Object.freeze(['HBOR', 'TBOR', 'ABORE', 'LBORE', 'DTXR']);
 
@@ -2997,6 +3020,22 @@ function _deriveBoreFromBranchName(branchName, config) {
   return _nominalDnFromNps(inches, config);
 }
 
+// Real per-component Bore from the JSON Trace (ABORE/LBORE/PBORE/HBORE/TBORE/
+// BORE/DN/NB, matched via ComponentRefNo) is authoritative when available —
+// unlike a size token parsed out of the branch name string, it reflects the
+// component actually there, so it must win over _deriveBoreFromBranchName
+// rather than the other way around. Returns null (falling through to the
+// branch-name regex) when no staged JSON is loaded or no node in this branch
+// has a matching staged component.
+function _stagedBranchBoreMm(branch, stagedGeometryIndex) {
+  if (!stagedGeometryIndex?.count) return null;
+  for (const node of _xmlChildrenByName(branch, 'Node')) {
+    const geometry = resolveXmlCiiStagedGeometryForNode(node, stagedGeometryIndex);
+    if (geometry?.boreMm) return geometry.boreMm;
+  }
+  return null;
+}
+
 function _pointDistanceMm(a, b) {
   const pa = _normalizePoint(a);
   const pb = _normalizePoint(b);
@@ -3072,8 +3111,8 @@ function _xmlCiiNumberText(value) {
   return xmlCiiNumberText(value);
 }
 
-function _xmlCiiRigidWeightOverrideForNode(branchName, node, config) {
-  return xmlCiiRigidWeightOverrideForNode(branchName, node, config);
+function _xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx) {
+  return xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);
 }
 
 function _xmlCiiForwardElementLengths(nodes) {
@@ -3358,6 +3397,7 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
   let stagedDtxrPositionIndex = _buildStagedDtxrPositionIndex(stagedJsonText, config);
   stagedDtxrPositionIndex = _xmlCiiCalibrateDtxrPositionIndex(stagedDtxrPositionIndex, document, config);
   const stagedDtxrRefIndex = buildStagedDtxrIndex(stagedJsonText, config);
+  const stagedGeometryIndex = buildXmlCiiStagedGeometryIndex(stagedJsonText);
   if (stagedDtxrPositionIndex?.inferredOffset) {
     stagedSupportIndex = calibrateStagedSupportIndexCoordinates(stagedSupportIndex, stagedDtxrPositionIndex.inferredOffset, config);
     diagnostics.push({
@@ -3425,7 +3465,8 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
     }
 
     const derivedClassRaw = _derivePipingClassFromBranchName(branchName, config) || _rowText(lineListMatch, ['pipingClass', 'PipingClass']);
-    const branchBore = _deriveBoreFromBranchName(branchName, config) || _rowNumber(lineListMatch, ['convertedBore', 'Bore']);
+    const branchBore = _stagedBranchBoreMm(branch, stagedGeometryIndex)
+      ?? (_deriveBoreFromBranchName(branchName, config) || _rowNumber(lineListMatch, ['convertedBore', 'Bore']));
 
     // Use unified branch-process resolver
     const resolved = resolveBranchProcessData({
@@ -3495,9 +3536,7 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
         stats.classMasterAnnotations = (stats.classMasterAnnotations || 0) + 1;
       }
 
-      const manualRigidWeight = _isXmlCiiRigidNode(node)
-        ? _xmlCiiRigidWeightOverrideForNode(branchName, node, config)
-        : null;
+      const manualRigidWeight = _xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);
       if (manualRigidWeight !== null) {
         _xmlSetText(document, node, 'Weight', String(manualRigidWeight));
         stats.weightAnnotations += 1;
@@ -3506,9 +3545,11 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
     });
   }
 
+  const _seenPositionKeysForSupportCoverage = new Set();
   for (const node of [...document.getElementsByTagName('Node')]) {
     const componentType = _xmlText(node, 'ComponentType').toUpperCase();
     const positionKey = _xmlPositionKey(_xmlText(node, 'Position'), tolerance);
+    if (positionKey) _seenPositionKeysForSupportCoverage.add(positionKey);
     const coordMatches = positionKey ? (stagedSupportIndex.byCoord.get(positionKey) || []) : [];
     const supportTags = _xmlNodeSupportTags(node);
     const tagMatches = supportTags.flatMap((tag) => stagedSupportIndex.byTag.get(tag) || []);
@@ -3563,10 +3604,32 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
         .filter((entry) => !!entry.type);
     }
 
-    if (componentType === 'ATTA' && targetEntries.length > 0) {
+    // Support/Restraint revalidation: a coordinate/tag match against the
+    // staged support index (`staged`) means the source data says a support
+    // genuinely exists at this node, independent of ComponentType. The ATTA
+    // gate below intentionally limits *unprompted* restraint creation to
+    // attachment nodes, which previously meant a real, DTXR_POS-confirmed
+    // support on a non-ATTA node with no restraint yet was silently dropped.
+    // Re-populate it here rather than leaving it missing.
+    const isRevalidationFill = !!staged && componentType !== 'ATTA' && restraints.length === 0 && targetEntries.length > 0;
+    if ((componentType === 'ATTA' || isRevalidationFill) && targetEntries.length > 0) {
       _applyXmlRestraints(document, node, targetEntries, config);
       if (staged) stats.stagedSupportsMapped += 1;
       stats.normalizedRestraints += targetEntries.length;
+      if (isRevalidationFill) {
+        stats.supportRevalidationFilled = (stats.supportRevalidationFilled || 0) + 1;
+        diagnostics.push({
+          type: 'support-revalidation-filled',
+          nodeNumber: _xmlText(node, 'NodeNumber'),
+          nodeName: _xmlText(node, 'NodeName'),
+          componentType,
+          matchedBy: supportMatchMethod,
+          matchedKey: coordMatches.length > 0 ? positionKey : supportTags.join('|'),
+          restraintTypes: targetEntries.join('+'),
+          message: 'Populated restraint from staged support/DTXR_POS match on a node with no prior Restraint.',
+          status: 'applied',
+        });
+      }
     } else if (restraints.length) {
       _applyXmlRestraints(document, node, targetEntries, config);
       stats.normalizedRestraints += targetEntries.length;
@@ -3584,6 +3647,37 @@ async function _enrichXmlForCii2019(xmlText, stagedJsonText, options = {}) {
         stats.weightAnnotations += 1;
       }
     }
+  }
+
+  // Support/Restraint revalidation index: every POS-wise support the source
+  // (staged JSON / DTXR) declares, independent of whether any XML <Node> in
+  // this document actually landed on that coordinate. Entries with no
+  // matching XML node are a genuine coverage gap (e.g. the node was dropped,
+  // renumbered, or never emitted) that can't be auto-fixed by mutating a
+  // node that doesn't exist, so they're surfaced as a diagnostic instead.
+  let posIndex = 0;
+  for (const [coordinateKey, matches] of stagedSupportIndex.byCoord.entries()) {
+    posIndex += 1;
+    const available = _seenPositionKeysForSupportCoverage.has(coordinateKey);
+    if (available) continue;
+    const tags = [...new Set(matches.flatMap((m) => m.supportTags || []))];
+    const point = matches[0]?.point;
+    diagnostics.push({
+      type: 'support-coverage-gap',
+      posId: `POS_${posIndex}`,
+      coordinateKey,
+      position: point ? `${point.x} ${point.y} ${point.z}` : '',
+      tags: tags.join('/'),
+      status: 'missing',
+      message: `Support declared in source at ${tags.join('/') || coordinateKey} has no matching XML node; cannot auto-populate a restraint on a node that does not exist.`,
+    });
+  }
+  if (stats.supportRevalidationFilled) {
+    diagnostics.push({
+      type: 'support-revalidation-summary',
+      filled: stats.supportRevalidationFilled,
+      message: `${stats.supportRevalidationFilled} support(s) re-populated from staged/DTXR_POS data on nodes that previously had no Restraint.`,
+    });
   }
 
   const xmlOut = new XMLSerializer().serializeToString(document);
@@ -5349,6 +5443,7 @@ export function renderModelConvertersTab(container) {
 
         <label class="model-converters-file">
           <span id="model-converters-primary-label"></span>
+          <button type="button" id="model-converters-master-sample-btn" class="model-converters-info-btn" title="Download Master InputXML template (with work instructions)" style="display:none;margin-left:6px;cursor:pointer;">&#9432;</button>
           <input type="file" id="model-converters-primary-input">
           <small id="model-converters-primary-name">No file selected.</small>
         </label>
@@ -5405,6 +5500,7 @@ export function renderModelConvertersTab(container) {
 
   const selectEl = container.querySelector('#model-converters-select');
   const primaryLabelEl = container.querySelector('#model-converters-primary-label');
+  const masterSampleBtnEl = container.querySelector('#model-converters-master-sample-btn');
   const primaryInputEl = container.querySelector('#model-converters-primary-input');
   const primaryNameEl = container.querySelector('#model-converters-primary-name');
   const secondaryWrapEl = container.querySelector('#model-converters-secondary-wrap');
@@ -5496,7 +5592,7 @@ export function renderModelConvertersTab(container) {
   })();
 
   function activeDef() {
-    return CONVERTER_DEFS[selectedConverter];
+    return _legacyConverterDef(selectedConverter);
   }
 
   function activeValues() {
@@ -8451,6 +8547,11 @@ export function renderModelConvertersTab(container) {
     primaryInputEl.setAttribute('accept', def.primaryAccept);
     primaryNameEl.textContent = primaryFile ? primaryFile.name : 'No file selected.';
 
+    if (masterSampleBtnEl) {
+      masterSampleBtnEl.style.display = def.masterInputXmlSample ? '' : 'none';
+      masterSampleBtnEl.dataset.converterId = def.id;
+    }
+
     const showSecondary = !!def.secondaryLabel;
     secondaryWrapEl.style.display = showSecondary ? '' : 'none';
     if (showSecondary) {
@@ -8496,6 +8597,17 @@ export function renderModelConvertersTab(container) {
     persist();
     resetOutput();
     renderAll();
+  });
+
+  masterSampleBtnEl?.addEventListener('click', () => {
+    const def = activeDef();
+    const sample = def.masterInputXmlSample;
+    if (!sample) return;
+    downloadOutput({
+      name: sample.fileName,
+      text: sample.getText(),
+      mime: 'application/xml;charset=utf-8',
+    });
   });
 
   primaryInputEl.addEventListener('change', () => {

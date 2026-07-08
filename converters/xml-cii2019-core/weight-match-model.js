@@ -252,6 +252,28 @@ function xmlCiiWeightReviewNodeFallbackId(node, nodeIdx) {
   return Number.isFinite(Number(nodeIdx)) ? `node-index-${Number(nodeIdx) + 1}` : '';
 }
 
+// VALV/INST nodes are never renumbered by the Python engine (only FLAN/RIGID
+// are, see xml_to_cii2019_patched.py's RENUMBERABLE_NEGATIVE_TYPES), so their
+// NodeNumber stays "-1" permanently — there is no future real number to
+// reveal for them the way there is for a suppressed-but-renumbered FLAN/RIGID.
+// Showing the raw ComponentRefNo|Endpoint|Position|ComponentType descriptor
+// in the NODE column for these is unreadable and duplicates the ComponentRefNo
+// column right next to it. The nearest branch-neighbor that already has a
+// real positive NodeNumber is the practical "where does this attach" answer,
+// so use that (marked with a leading "~" since it's an approximation, not
+// this node's own number) instead of dumping the technical descriptor.
+function xmlCiiNearestNumberedNodeDisplay(branchNodeList, nodeIdx) {
+  for (let i = nodeIdx - 1; i >= 0; i -= 1) {
+    const candidate = xmlText(branchNodeList[i], 'NodeNumber');
+    if (Number(candidate) > 0) return `~${candidate}`;
+  }
+  for (let i = nodeIdx + 1; i < branchNodeList.length; i += 1) {
+    const candidate = xmlText(branchNodeList[i], 'NodeNumber');
+    if (Number(candidate) > 0) return `~${candidate}`;
+  }
+  return '';
+}
+
 export function xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx) {
   const nodeNumber = xmlText(node, 'NodeNumber');
   if (Number(nodeNumber) > 0) return xmlCiiRigidWeightOverrideKey(branchName, nodeNumber);
@@ -503,7 +525,22 @@ function collectWeightRows(xmlTextVal, stagedJsonText, config, mode = 'zero-rigi
       if (boreMm === null) boreMm = branchContext.boreMm;
       const rating = ratingForRigidWeightIssue(node, branchContext, config);
       const ranking = rankXmlCiiWeightCandidates({ boreMm, rating, lengthMm, nodeName: xmlText(node, 'NodeName'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), dtxr: dtxrText }, config, { includeRejected: true });
-      rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
+      // NodeNumber can be the literal "-1" sentinel for FLAN/VALV/RIGID/INST
+      // nodes whose synthetic ≥10000 fallback number was intentionally
+      // suppressed upstream (see staged-geometry-authority.js), and VALV/INST
+      // nodes never get a real number at all (only FLAN/RIGID are eligible
+      // for renumbering). The Weight Match table still needs *something*
+      // node-identifying to show the reviewer: prefer the nearest branch
+      // neighbor that already has a real positive number (an approximate but
+      // readable "attaches near node N"), and only fall back to the raw
+      // ComponentRefNo/Endpoint/Position/ComponentType descriptor (also used
+      // for this row's `key`) when no numbered neighbor exists at all.
+      const nodeNumberDisplay = Number(nodeNumber) > 0
+        ? nodeNumber
+        : (xmlCiiNearestNumberedNodeDisplay(branchNodeList, nodeIdx)
+          || xmlCiiWeightReviewNodeFallbackId(node, nodeIdx)
+          || nodeNumber);
+      rows.push({ key: xmlCiiWeightReviewNodeOverrideKey(branchName, node, nodeIdx), branchName, lineKey: branchContext.lineKey, nodeNumber, nodeNumberDisplay, nodeName: xmlText(node, 'NodeName'), endpoint: xmlText(node, 'Endpoint'), componentType, componentRefNo: xmlText(node, 'ComponentRefNo'), boreMm, rating, requestedPipingClass: branchContext.requestedPipingClass, resolvedPipingClass: branchContext.resolvedPipingClass, pipingClassMatchMethod: branchContext.pipingClassMatchMethod, pipingClassNeedsReview: branchContext.pipingClassNeedsReview, pipingClassCandidates: branchContext.pipingClassCandidates, lengthMm, elementLengthSource: explicitLength !== null ? 'ElementLengthMm' : 'computed-forward', weight: mappedWeight, originalWeight: weight, overrideWeight, weightSource: overrideWeight !== null ? 'override' : (weight !== null && weight > 0 ? 'xml-weight' : 'unresolved'), mapped: isMapped, status: isMapped ? 'mapped' : 'unresolved', dtxr: dtxrText, dtxrSource: dtxrResult?.source || '', dtxrMatchedBy: dtxrResult?.matchedBy || '', dtxrMatchedKey: dtxrResult?.matchedKey || '', dtxrSourcePath, dtxrStagedType: dtxrResult?.stagedType || '', dtxrSuppressed: Boolean(dtxrResult?.suppressed), dtxrSuppressionReason: dtxrResult?.suppressionReason || '', ranking, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) });
     });
   }
   return rows;

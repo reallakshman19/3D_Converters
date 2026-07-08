@@ -58,15 +58,21 @@ function _defaultInputxml2019LayoutConfigJson() {
       row13: ['0', '0', '0', '{sif}', '0', '0'],
       row14: ['{reducer}', '0', '{sif}'],
       line_label: {
+        mode: 'auto',
         pointer_start: 0,
         label_index_start: 1,
         label_prefix: 'LINENO',
         label_width: 1,
-        default_line: '0',
+        // Must be empty (not '0') for mode:'auto' to actually generate
+        // sequential labels - inputxml_to_cii2019.py's line_label branch
+        // is `elif mode == "auto" and not default_line`, so a truthy
+        // default_line short-circuits auto mode back to a static value.
+        default_line: '',
         line_labels: [],
       },
     },
     nodename: {
+      mode: 'auto',
       nonam_count: 0,
       from_label: 'PS-XXX',
       to_label: 'PS-XXX',
@@ -80,7 +86,7 @@ function _defaultInputxml2019LayoutConfigJson() {
       line4: ['{equipmnt}'],
     },
     sections: {
-      include_nodename: false,
+      include_nodename: true,
     },
     miscel_1: {
       material_id_default: '0.000',
@@ -324,6 +330,41 @@ const CONVERTER_DEFS = {
       { key: 'datumU', label: 'World Datum U (mm)', type: 'number', step: '0.001' },
     ],
   },
+  seljson_to_inputxml: {
+    id: 'seljson_to_inputxml',
+    label: 'SelJson -> InputXML',
+    primaryAccept: '.json,.JSON',
+    primaryLabel: '3DV Conv JSON Input',
+    secondaryLabel: '',
+    secondaryAccept: '',
+    description: 'Convert 3DV Conv JSON selections (rvm-converter-stage/v1) to Custom InputXML while preserving Position records.',
+    defaults: {
+      nodeStart: 10,
+      nodeStep: 10,
+      wallThicknessMm: 0,
+      p1: '',
+      t1: '',
+      t2: '',
+      t3: '',
+      fluidDensity: '',
+      fallbackBranchName: '',
+      dropShortElementLengthNodes: false,
+      includeNonRouteGeometry: false,
+    },
+    fields: [
+      { key: 'nodeStart', label: 'Node Start', type: 'number', step: '1' },
+      { key: 'nodeStep', label: 'Node Step', type: 'number', step: '1' },
+      { key: 'fallbackBranchName', label: 'Fallback Branch Name', type: 'text' },
+      { key: 'wallThicknessMm', label: 'Wall Thickness (mm)', type: 'number', step: '0.001' },
+      { key: 'defaultPipingClass', label: 'Default Piping Class', type: 'text' },
+      { key: 'defaultRating', label: 'Default Rating', type: 'text' },
+      { key: 'p1', label: 'Pressure 1', type: 'number', step: '0.1' },
+      { key: 't1', label: 'Temperature 1', type: 'number', step: '0.1' },
+      { key: 'fluidDensity', label: 'Fluid Density', type: 'number', step: '0.1' },
+      { key: 'dropShortElementLengthNodes', label: 'Drop ElementLengthMm <= 6 mm nodes', type: 'checkbox' },
+      { key: 'includeNonRouteGeometry', label: 'Include Box/FacetGroup diagnostic nodes', type: 'checkbox' },
+    ],
+  },
   stagedjson_to_csv: {
     id: 'stagedjson_to_csv',
     label: 'StagedJSON -> CSV',
@@ -365,6 +406,37 @@ const CONVERTER_DEFS = {
     },
     fields: [
       { key: 'outputMode', label: 'Output Mode', type: 'select', options: ['preserve', 'overlay'] },
+    ],
+  },
+  inputxml_to_xml: {
+    id: 'inputxml_to_xml',
+    label: 'InputXML -> XML',
+    primaryAccept: '.xml,.XML',
+    primaryLabel: 'InputXML Input',
+    secondaryLabel: '',
+    secondaryAccept: '',
+    description: 'Convert Custom InputXML or CAESAR InputXML into PSI116-style XML for XML -> CII (2019).',
+    defaults: {
+      source: 'InputXML -> XML',
+      purpose: 'InputXML bridge conversion',
+      titleLine: 'InputXML converted XML',
+      nodeStart: 10,
+      nodeStep: 10,
+      defaultDiameter: 100,
+      defaultWallThickness: 0,
+      defaultInsulationThickness: 0,
+      defaultCorrosionAllowance: 0,
+    },
+    fields: [
+      { key: 'source', label: 'Source', type: 'text' },
+      { key: 'purpose', label: 'Purpose', type: 'text' },
+      { key: 'titleLine', label: 'Title Line', type: 'text' },
+      { key: 'nodeStart', label: 'Node Start', type: 'number', step: '1' },
+      { key: 'nodeStep', label: 'Node Step', type: 'number', step: '1' },
+      { key: 'defaultDiameter', label: 'Default Diameter', type: 'number', step: '0.001' },
+      { key: 'defaultWallThickness', label: 'Default Wall Thickness', type: 'number', step: '0.001' },
+      { key: 'defaultInsulationThickness', label: 'Default Insulation', type: 'number', step: '0.001' },
+      { key: 'defaultCorrosionAllowance', label: 'Default Corrosion', type: 'number', step: '0.001' },
     ],
   },
   xml_to_cii: {
@@ -645,9 +717,11 @@ const CONVERTER_ORDER = [
   'json_to_xml',
   'stagedjson_to_xml',
   'stagedjson_to_inputxml',
+  'seljson_to_inputxml',
   'stagedjson_to_csv',
   'pdf_to_inputxml',
   'pdf_to_inputxml_cii14',
+  'inputxml_to_xml',
   'xml_to_cii',
   'cii_syntax_check_2019',
   'inputxml_to_cii',
@@ -662,7 +736,9 @@ import { run as rvmAttrToXmlRun } from './converters/rvmattr-to-xml.js';
 import { run as pythonWorkerRun } from './converters/python-worker-base.js';
 import { run as stagedJsonToXmlRun } from './converters/stagedjson-to-xml.js';
 import { run as stagedJsonToInputXmlRun } from './converters/stagedjson-to-inputxml.js';
+import { run as selJsonToInputXmlRun } from './converters/seljson-to-inputxml.js';
 import { run as stagedJsonToCsvRun } from './converters/stagedjson-to-csv.js';
+import { run as inputXmlToXmlRun } from './converters/inputxml-to-xml.js';
 import { run as xmlToCiiRun } from './converters/xmltocii2019_runner.js?v=20260620-weight-ready-1';
 import { run as inputXmlToCii2019Run } from './converters/inputxml-to-cii2019.js';
 import { run as inputXmlToRvmRun } from './converters/inputxml-to-rvm.js';
@@ -677,9 +753,11 @@ const RUNNERS = {
   json_to_xml: pythonWorkerRun,
   stagedjson_to_xml: stagedJsonToXmlRun,
   stagedjson_to_inputxml: stagedJsonToInputXmlRun,
+  seljson_to_inputxml: selJsonToInputXmlRun,
   stagedjson_to_csv: stagedJsonToCsvRun,
   pdf_to_inputxml: pythonWorkerRun,
   pdf_to_inputxml_cii14: pythonWorkerRun,
+  inputxml_to_xml: inputXmlToXmlRun,
   xml_to_cii: xmlToCiiRun,
   cii_syntax_check_2019: pythonWorkerRun,
   inputxml_to_cii: pythonWorkerRun,

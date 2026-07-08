@@ -131,15 +131,21 @@ function treeBucket(bucket) {
   const samples = bucket.samples?.length ? `<div style="margin:4px 0 4px 14px;color:#8aaccc;">Top 3 samples:<ul>${bucket.samples.map((sample) => `<li>${esc(sample)}</li>`).join('')}</ul></div>` : '';
   return `<details open><summary>${esc(bucket.label)} (${bucket.count}; groups ${bucket.groupCount})</summary>${samples}${bucket.groups.map((g) => treeGroup(g, bucket.label)).join('')}</details>`;
 }
+function treeBore(bore, index) {
+  return `<details ${index < 3 ? 'open' : ''}><summary><b>${esc(bore.boreKey)}</b> (${bore.count})</summary>${bore.buckets.map(treeBucket).join('')}</details>`;
+}
 function treeBranch(branch, index) {
-  return `<details ${index < 4 ? 'open' : ''}><summary>${esc(branch.branchName)} (${branch.count})</summary>${branch.buckets.map(treeBucket).join('')}</details>`;
+  const boreContent = Array.isArray(branch.bores) && branch.bores.length
+    ? branch.bores.map((b, i) => treeBore(b, i)).join('')
+    : (branch.buckets || []).map(treeBucket).join('');
+  return `<details ${index < 4 ? 'open' : ''}><summary>${esc(branch.branchName)} (${branch.count})</summary>${boreContent}</details>`;
 }
 function jsonTraceTree(traceRows, current) {
   const delimiterOpts = { useDelimiter: current?.useDelimiter === true, delimiter: current?.delimiter || '|', joinMode: current?.joinMode || 'unique' };
   const tree = buildJsonTraceTree(traceRows, { rowLimit: 12, groupLimit: 120, ...delimiterOpts }), branches = tree.branches.slice(0, 80);
   if (!branches.length) return '';
   const more = tree.branches.length > branches.length ? `<div class="xml-cii-native-hint">Tree limited to first ${branches.length} of ${tree.branches.length} branches. Use table filter for specific rows.</div>` : '';
-  return `<div data-json-trace-tree class="xml-cii-native-hint" style="margin:8px 0;padding:8px;border:1px solid #2a3f5f;border-radius:6px;max-height:420px;overflow:auto;"><b>Tree form: Branch &gt; DTXR_POS / DTXR_PS &gt; POS/PS groups</b>${branches.map(treeBranch).join('')}${more}</div>`;
+  return `<div data-json-trace-tree class="xml-cii-native-hint" style="margin:8px 0;padding:8px;border:1px solid #2a3f5f;border-radius:6px;max-height:420px;overflow:auto;"><b>Tree form: Branch &gt; Bore &gt; DTXR_POS / DTXR_PS &gt; POS/PS groups</b>${branches.map(treeBranch).join('')}${more}</div>`;
 }
 function scopeSummaryText(current, total) {
   const s = current.traceScopeSummary;
@@ -281,8 +287,14 @@ function dashboardTreeGroup(group, bucketLabel, current) {
 function dashboardTreeBucket(bucket, current) {
   return `<details class="json-trace-tree-bucket" open><summary>${esc(bucket.label.replace('-', '_'))} <span class="json-trace-count">(${bucket.groupCount} group${bucket.groupCount === 1 ? '' : 's'})</span></summary>${bucket.groups.map((group) => dashboardTreeGroup(group, bucket.label, current)).join('')}</details>`;
 }
+function dashboardTreeBore(bore, index, current) {
+  return `<details class="json-trace-tree-bore" ${index < 2 ? 'open' : ''}><summary><b>${esc(bore.boreKey)}</b> <span class="json-trace-count">(${bore.count})</span></summary>${bore.buckets.map((bucket) => dashboardTreeBucket(bucket, current)).join('')}</details>`;
+}
 function dashboardTreeBranch(branch, index, current) {
-  return `<details class="json-trace-tree-branch" ${index < 3 ? 'open' : ''}><summary>${esc(branch.branchName)} <span class="json-trace-count">(${branch.count})</span></summary>${branch.buckets.map((bucket) => dashboardTreeBucket(bucket, current)).join('')}</details>`;
+  const boreContent = Array.isArray(branch.bores) && branch.bores.length
+    ? branch.bores.map((b, i) => dashboardTreeBore(b, i, current)).join('')
+    : (branch.buckets || []).map((bucket) => dashboardTreeBucket(bucket, current)).join('');
+  return `<details class="json-trace-tree-branch" ${index < 3 ? 'open' : ''}><summary>${esc(branch.branchName)} <span class="json-trace-count">(${branch.count})</span></summary>${boreContent}</details>`;
 }
 function dashboardTreePanel(traceRows, current) {
   const delimiterOpts = { useDelimiter: current?.useDelimiter === true, delimiter: current?.delimiter || '|', joinMode: current?.joinMode || 'unique' };

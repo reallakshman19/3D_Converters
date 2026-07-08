@@ -648,9 +648,7 @@ export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = 
       if (pcMaster) {
         stats.classMasterAnnotations = (stats.classMasterAnnotations || 0) + 1;
       }
-      const manualRigidWeight = isXmlCiiRigidNode(node)
-        ? xmlCiiRigidWeightOverrideForNode(branchName, node, config)
-        : null;
+      const manualRigidWeight = xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);
       if (manualRigidWeight !== null) {
         xmlSetText(document, node, 'Weight', String(manualRigidWeight));
         stats.weightAnnotations += 1;

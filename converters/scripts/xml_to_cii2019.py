@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import math
 from pathlib import Path
@@ -200,14 +200,27 @@ def _child_text(parent: ET.Element, namespace: str, name: str) -> str:
     return _safe_text(element.text)
 
 
+PARSE_WARNINGS: list[str] = []
+
+
+def _record_parse_warning(field_name: str, text: str, fallback: object) -> None:
+    PARSE_WARNINGS.append(
+        f"Ignoring unresolved value in XML field '{field_name}': '{text}' (using {fallback!r})."
+    )
+
+
 def _parse_optional_int(value: str, field_name: str) -> int | None:
     text = _safe_text(value)
     if not text:
         return None
     try:
         return int(text)
-    except ValueError as exc:
-        raise ValueError(f"Invalid integer in XML field '{field_name}': '{text}'") from exc
+    except ValueError:
+        # Some XML exports leave unresolved template tokens (e.g. a Line Regex
+        # key like 'linelist-density-liquid') in place of a real number. Treat
+        # those as missing rather than crashing the whole conversion.
+        _record_parse_warning(field_name, text, None)
+        return None
 
 
 def _parse_optional_float(value: str, field_name: str) -> float | None:
@@ -216,8 +229,9 @@ def _parse_optional_float(value: str, field_name: str) -> float | None:
         return None
     try:
         return float(text)
-    except ValueError as exc:
-        raise ValueError(f"Invalid float in XML field '{field_name}': '{text}'") from exc
+    except ValueError:
+        _record_parse_warning(field_name, text, None)
+        return None
 
 
 def _parse_optional_whole_int(value: str, field_name: str) -> int | None:
@@ -254,11 +268,13 @@ def _parse_position(value: str) -> tuple[float, float, float]:
     text = _safe_text(value)
     parts = text.split()
     if len(parts) != 3:
-        raise ValueError(f"Position must have exactly 3 values, got '{text}'")
+        _record_parse_warning("Position", text, (0.0, 0.0, 0.0))
+        return (0.0, 0.0, 0.0)
     try:
         return float(parts[0]), float(parts[1]), float(parts[2])
-    except ValueError as exc:
-        raise ValueError(f"Invalid numeric value in Position '{text}'") from exc
+    except ValueError:
+        _record_parse_warning("Position", text, (0.0, 0.0, 0.0))
+        return (0.0, 0.0, 0.0)
 
 
 def _parse_yes_no(value: str, field_name: str) -> bool:
@@ -269,7 +285,8 @@ def _parse_yes_no(value: str, field_name: str) -> bool:
         return True
     if text == "NO":
         return False
-    raise ValueError(f"Expected Yes/No in XML field '{field_name}', got '{value}'")
+    _record_parse_warning(field_name, text, False)
+    return False
 
 
 def _restraint_type_to_code(restraint_type: str) -> int:
@@ -301,11 +318,8 @@ def _restraint_type_to_code(restraint_type: str) -> int:
         return 19
     if normalized == "Z":
         return 18
-    raise ValueError(
-        f"Unsupported restraint type '{restraint_type}'. "
-        "Supported values: numeric CII type 1..62, +/-X, +/-Y, +/-Z, "
-        "A/ANCHOR/FIXED, or named CII types such as GUI/LIM/XSNB."
-    )
+    _record_parse_warning("Restraint/Type", restraint_type, 1)
+    return 1
 
 
 def _normalize_direction(values: tuple[float, float, float] | None) -> tuple[float, float, float] | None:
@@ -578,7 +592,90 @@ def _parse_xml_document(path: Path) -> XmlDocument:
     if not branches:
         raise ValueError("Input XML does not contain any positive NodeNumber nodes.")
 
+    # Applied here (rather than in _build_conversion_model) so every
+    # consumer of XmlDocument.branches sees the same already-cleaned list —
+    # including xml_to_cii2019_patched.py's own _build_conversion_model
+    # override and xml_to_cii2019_direction.py's direct uses of
+    # document.branches for explicit restraint specs / temperature maps.
+    # Cleaning at any single downstream call site risked those staying out
+    # of sync with each other (e.g. restraints keyed by a node number that
+    # a not-yet-cleaned edge list had already dropped).
+    branches = _drop_short_element_nodes(branches)
+
     return XmlDocument(metadata=metadata, branches=branches)
+
+
+SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM: Final[float] = 6.0
+DROPPED_SHORT_ELEMENT_NODES: list[str] = []
+
+
+def _merge_restraint_specs(
+    existing: tuple[RestraintSpec, ...], incoming: tuple[RestraintSpec, ...]
+) -> tuple[RestraintSpec, ...]:
+    """Merge restraint specs from a pruned support node into a retained node."""
+    if not incoming:
+        return existing
+    merged = list(existing)
+    for spec in incoming:
+        if spec not in merged:
+            merged.append(spec)
+    return tuple(merged)
+
+
+def _drop_short_element_nodes(
+    branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
+) -> list[XmlBranch]:
+    """Drop node blocks whose segment length is <= threshold_mm.
+
+    Mirrors the JS-side xml-cii-node-block-cleanup.js invariant used by the
+    standalone XML->CII(2019) preview/weight-match tooling: a full "Node
+    block" (the arriving node of a too-short segment) is removed outright
+    rather than merged, collapsing that hop so the branch connects straight
+    through to whatever node follows. Length is always recomputed fresh from
+    node positions (this engine never reads a stale ElementLengthMm
+    attribute), so the check is inherently against up-to-date geometry.
+    """
+    new_branches: list[XmlBranch] = []
+    for branch in branches:
+        if len(branch.nodes) < 2:
+            new_branches.append(branch)
+            continue
+        kept: list[XmlNode] = [branch.nodes[0]]
+        for node in branch.nodes[1:]:
+            previous = kept[-1]
+            length = math.sqrt(
+                (node.position[0] - previous.position[0]) ** 2
+                + (node.position[1] - previous.position[1]) ** 2
+                + (node.position[2] - previous.position[2]) ** 2
+            )
+            if length <= threshold_mm:
+                if node.restraint_specs:
+                    kept[-1] = replace(
+                        previous,
+                        restraint_specs=_merge_restraint_specs(
+                            previous.restraint_specs, node.restraint_specs
+                        ),
+                    )
+                    DROPPED_SHORT_ELEMENT_NODES.append(
+                        f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
+                        f"segment length {length:.3f}mm <= {threshold_mm}mm; "
+                        f"restraint transferred to NodeNumber {previous.node_number}"
+                    )
+                    continue
+                DROPPED_SHORT_ELEMENT_NODES.append(
+                    f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
+                    f"segment length {length:.3f}mm <= {threshold_mm}mm"
+                )
+                continue
+            kept.append(node)
+        if len(kept) < 2:
+            # Dropping every intermediate node would leave no segments at
+            # all in this branch; keep the original nodes rather than
+            # discarding the branch outright.
+            new_branches.append(branch)
+            continue
+        new_branches.append(replace(branch, nodes=kept))
+    return new_branches
 
 
 def _build_edges(branches: list[XmlBranch]) -> list[Edge]:
@@ -833,6 +930,9 @@ def _build_conversion_model(
     support_map: dict | None = None,
     support_config: dict[str, Any] | None = None,
 ) -> ConversionModel:
+    # document.branches is already cleaned of short-element node blocks by
+    # _parse_xml_document, so every downstream consumer (edges, restraints,
+    # etc.) sees a consistent list without needing to re-clean here.
     edges = _build_edges(document.branches)
     degrees = _build_degree_map(edges)
 
@@ -1621,6 +1721,17 @@ def main() -> None:
         f"{len(model.restraints)} restraints, {len(model.bend_edges)} bends, "
         f"{len(model.sif_edges)} SIF/tee entries, {len(model.reducer_edges)} reducers."
     )
+    if PARSE_WARNINGS:
+        print(f"Warning: {len(PARSE_WARNINGS)} unresolved value(s) fell back to defaults:")
+        for warning in PARSE_WARNINGS:
+            print(f"  - {warning}")
+    if DROPPED_SHORT_ELEMENT_NODES:
+        print(
+            f"Dropped {len(DROPPED_SHORT_ELEMENT_NODES)} node block(s) with recalculated "
+            f"element length <= {SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM}mm:"
+        )
+        for entry in DROPPED_SHORT_ELEMENT_NODES:
+            print(f"  - {entry}")
 
 
 if __name__ == "__main__":

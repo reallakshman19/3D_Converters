@@ -671,12 +671,13 @@ export function buildStagedDtxrPositionIndex(stagedJsonText, config) {
     const dtxrPs = stagedComponentDtxrPs(entry);
     const dtxr = dtxrPos || dtxrPs;
     const cmpSupGap = stagedAttr(entry, ['CMPSUPGAP']);
+    const name = toText(attrs.NAME || attrs.name || entry.component?.name || '').trim();
     const rawPoint = normalizePoint(attrs.POSI);
     const point = xmlCiiApplyDtxrPositionOffset(rawPoint, config);
     const supportTags = supportTagsFromAttrs(attrs, entry.component?.name || '');
     if (!dtxr && !cmpSupGap) continue;
     if (!point) continue;
-    const indexed = { ...entry, dtxr, dtxrPos, dtxrPs, cmpSupGap, point, rawPoint, supportTags, _path: entry._path || '' };
+    const indexed = { ...entry, dtxr, dtxrPos, dtxrPs, cmpSupGap, name, point, rawPoint, supportTags, _path: entry._path || '' };
     entries.push(indexed);
     for (const tag of supportTags) {
       if (!byTag.has(tag)) byTag.set(tag, []);
@@ -769,18 +770,28 @@ export function xmlCiiDtxrPosForNode(node, dtxrPositionIndex, config) {
   const target = normalizePoint(xmlText(node, 'Position'));
   if (!target) return { text: '', values: [] };
   const tolerance = xmlCiiDtxrPositionOffset(config).tolerance;
-  const values = [];
+  const seenDtxr = new Set();
+  const rawValues = [];
+  const labeledValues = [];
   const gapValues = [];
   let matchedPath = '';
   for (const entry of dtxrPositionIndex.entries) {
     if (!xmlCiiPositionsMatch(entry.point, target, tolerance)) continue;
     if (!matchedPath && entry._path) matchedPath = entry._path;
-    if (entry.dtxr && !values.includes(entry.dtxr)) values.push(entry.dtxr);
+    if (entry.dtxr && !seenDtxr.has(entry.dtxr)) {
+      seenDtxr.add(entry.dtxr);
+      rawValues.push(entry.dtxr);
+      const annotParts = [];
+      if (entry.name) annotParts.push(`NAME=${entry.name}`);
+      if (entry.cmpSupGap) annotParts.push(`CMPSUPGAP=${entry.cmpSupGap}`);
+      const annotation = annotParts.length ? `(${annotParts.join(',')})` : '';
+      labeledValues.push(annotation ? `${entry.dtxr}${annotation}` : entry.dtxr);
+    }
     if (entry.cmpSupGap && !gapValues.includes(entry.cmpSupGap)) gapValues.push(entry.cmpSupGap);
   }
-  if (values[0]) annotateComponentDtxr(node, 'POS', values[0]);
+  if (rawValues[0]) annotateComponentDtxr(node, 'POS', rawValues[0]);
   if (gapValues[0]) annotateCmpSupGap(node, 'POS', gapValues[0]);
-  return { text: values.join('|'), values, cmpSupGap: gapValues[0] || '', matchedPath };
+  return { text: labeledValues.join('|'), values: rawValues, cmpSupGap: gapValues[0] || '', matchedPath };
 }
 
 export function annotateXmlCiiNodeFromStagedDtxr(node, stagedIndex) {

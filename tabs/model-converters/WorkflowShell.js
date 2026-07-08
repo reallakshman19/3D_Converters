@@ -10,6 +10,7 @@ export const XML_CII_WORKFLOW_PHASES = Object.freeze([
   { id: 'preview', label: '4 Preview', summary: 'Dry-run enrichment preview per branch — inspect and override approximate matches.', state: 'Current' },
   { id: 'diagnostics', label: '5 Diagnostics', summary: 'Run Dry Run to inspect enrichment data before committing to the full run.', state: 'Current' },
   { id: 'weight-match', label: '5A Weight Match', summary: 'Review approximate component weights matched by bore, rating, and length, then Finalize and Run.', state: 'Current' },
+  { id: 'topology', label: '5B Topology', summary: 'Audit enriched XML node continuity with UXML topology and final InputXML From→To orphan checks.', state: 'Current' },
   { id: 'run', label: '6 Run', summary: 'Run the conversion — generates enriched XML and final CII output.', state: 'Current' },
   { id: 'support-mapper', label: '7 Support Types', summary: 'Map ATT/RVM fields to CII support kinds for enrichment and 3D symbol rendering.', state: 'Current' },
   { id: 'config', label: '8 Config', summary: 'Edit all enrichment configuration fields and export/import the JSON config.', state: 'Current' },

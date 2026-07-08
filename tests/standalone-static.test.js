@@ -108,6 +108,9 @@ if (!main.includes("import('./core/app.js")) fail('main entrypoint must dynamica
 if (!main.includes('.catch(reportStartupError)')) fail('main entrypoint must report startup errors');
 
 const runtime = read('core/app-standalone-runtime.js');
+const legacyModelConverters = read('tabs/model-converters/legacy-adapter.js');
+const modelConvertersTab = read('tabs/model-converters/ModelConvertersTab.js');
+const xmlCiiWorkflowBridge = read('tabs/model-converters/xml-cii-workflow-bridge.js');
 for (const tabId of expectedTabs) {
   if (!runtime.includes("id: '" + tabId + "'")) fail('Missing standalone tab ' + tabId);
 }
@@ -116,6 +119,25 @@ for (const tabId of ['pcfx-converter', 'rvm-json-pcf']) {
 }
 if (!runtime.includes('TAB_CHANGE_REQUESTED')) fail('Runtime must listen for tab-change-requested events');
 if (!runtime.includes('app:switch-tab')) fail('Runtime must listen for app:switch-tab window events');
+for (const id of ['seljson_to_inputxml', 'inputxml_to_xml']) {
+  if (!legacyModelConverters.includes("'" + id + "'")) fail('Legacy converter dropdown is missing ' + id);
+}
+
+function firstImportSpecifier(text, fragment) {
+  const pattern = /import\s+(?:[^'"()]+?\s+from\s+)?['"]([^'"]+)['"]/g;
+  for (const match of text.matchAll(pattern)) {
+    if (match[1].includes(fragment)) return match[1];
+  }
+  return '';
+}
+
+const tabLegacyAdapterImport = firstImportSpecifier(modelConvertersTab, 'legacy-adapter.js?v=');
+const bridgeLegacyAdapterImport = firstImportSpecifier(xmlCiiWorkflowBridge, 'legacy-adapter.js?v=');
+if (!tabLegacyAdapterImport) fail('ModelConvertersTab must import legacy-adapter.js with an explicit cache key.');
+if (!bridgeLegacyAdapterImport) fail('XML CII workflow bridge must import legacy-adapter.js with an explicit cache key.');
+if (tabLegacyAdapterImport !== bridgeLegacyAdapterImport) {
+  fail('XML CII workflow bridge legacy-adapter import must match ModelConvertersTab: ' + bridgeLegacyAdapterImport + ' !== ' + tabLegacyAdapterImport);
+}
 
 const importPattern = /(?:import\s+(?:[^'"()]+?\s+from\s+)?|export\s+[^'"()]+?\s+from\s+|import\s*\()\s*['"]([^'"]+)['"]/g;
 const newUrlPattern = /new\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\s*\)/g;
