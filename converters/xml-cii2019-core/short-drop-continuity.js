@@ -83,10 +83,13 @@ function samePosition(left, right, toleranceMm) {
   return value !== null && value <= toleranceMm;
 }
 
+const SHORT_DROP_CONTINUITY_COMPONENT_TYPES = new Set(['BRAN', 'RIGID', 'TEE', 'TEES', 'OLET', 'WELDOLET', 'SOCKOLET']);
+const SHORT_DROP_CONTINUITY_CONNECTION_TYPES = new Set(['BRAN', 'TEE', 'TEES', 'OLET', 'WELDOLET', 'SOCKOLET']);
+
 function isConnectorLike(node) {
   const connectionType = childText(node, 'ConnectionType').toUpperCase();
   const componentType = childText(node, 'ComponentType').toUpperCase();
-  return connectionType === 'BRAN' || connectionType === 'OLET' || componentType === 'BRAN' || componentType === 'RIGID';
+  return SHORT_DROP_CONTINUITY_CONNECTION_TYPES.has(connectionType) || SHORT_DROP_CONTINUITY_COMPONENT_TYPES.has(componentType);
 }
 
 function hasSameNumberElsewhere(index, node, nodeNumber, position, toleranceMm) {
