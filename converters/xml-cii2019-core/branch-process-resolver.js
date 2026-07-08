@@ -1,7 +1,7 @@
 import { cleanMaterialText, cleanMaterialCode, mapMaterialTextToCiiCode } from './linelist-mapping.js';
 import { findBestPipingClassRow, normalizePipingClass } from './piping-class-resolver.js';
 import { toFiniteNumber } from './config.js';
-import { buildXmlCiiServiceProcessFallback } from './service-process-fallback.js';
+import { buildXmlCiiServiceProcessFallback, deriveXmlCiiServiceFromBranchName } from './service-process-fallback.js';
 
 function text(value) {
   return String(value ?? '').trim();
@@ -135,42 +135,62 @@ function smartOverrideKeys({ lineKey, branchName, requestedPipingClass, resolved
 }
 
 const SERVICE_FALLBACK_FIELDS = Object.freeze(['p1', 'hydroPressure', 't1', 't2', 't3', 'density']);
+const SERVICE_KEYS = Object.freeze(['service', 'Service', 'SERVICE', 'fluid', 'Fluid', 'FLUID', 'lineKey1', 'Key 1', 'ColumnX1', 'Medium', 'medium']);
 
-function hasExactLineListEvidence(lineRow) {
+function serviceKey(value) {
+  return text(value).toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9/_-]/g, '');
+}
+
+function lineRowService(lineRow) {
+  return readAny(lineRow, SERVICE_KEYS);
+}
+
+function hasServiceConflict(branchName, lineRow, config) {
+  const branchService = deriveXmlCiiServiceFromBranchName(branchName, config);
+  const rowService = lineRowService(lineRow);
+  return !!(branchService && rowService && serviceKey(branchService) !== serviceKey(rowService));
+}
+
+function hasExactLineListEvidence(lineRow, branchName, config) {
   if (!lineRow || typeof lineRow !== 'object') return false;
+  if (hasServiceConflict(branchName, lineRow, config)) return false;
   if (lineRow._raw && typeof lineRow._raw === 'object') return true;
   const meaningfulKeys = Object.keys(lineRow).filter((key) => !['pipingClass', 'Piping Class', 'PIPING_CLASS'].includes(key) && text(lineRow[key]));
   return meaningfulKeys.length > 0;
 }
 
 function ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, config, overrides }) {
-  if (hasExactLineListEvidence(lineRow)) return null;
+  const serviceConflict = hasServiceConflict(branchName, lineRow, config);
+  if (!serviceConflict && hasExactLineListEvidence(lineRow, branchName, config)) return null;
   if (!config || typeof config !== 'object') return null;
   const targetKey = text(lineKey) || text(branchName);
   if (!targetKey) return null;
-  const fallback = buildXmlCiiServiceProcessFallback({ branchName, lineRow, config, fields: SERVICE_FALLBACK_FIELDS });
+  const fallbackLineRow = serviceConflict ? null : lineRow;
+  const fallback = buildXmlCiiServiceProcessFallback({ branchName, lineRow: fallbackLineRow, config, fields: SERVICE_FALLBACK_FIELDS });
   if (!fallback?.stats?.resolvedFields) return fallback;
   if (!config.overrides || typeof config.overrides !== 'object' || Array.isArray(config.overrides)) config.overrides = overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {};
   if (!config.overrides.processData || typeof config.overrides.processData !== 'object' || Array.isArray(config.overrides.processData)) config.overrides.processData = {};
-  const row = config.overrides.processData[targetKey] && typeof config.overrides.processData[targetKey] === 'object' && !Array.isArray(config.overrides.processData[targetKey]) ? config.overrides.processData[targetKey] : {};
+  const keys = [targetKey, branchName, serviceConflict ? `${deriveXmlCiiServiceFromBranchName(branchName, config)}${targetKey}` : ''].map(text).filter(Boolean);
   let applied = 0;
-  for (const [field, info] of Object.entries(fallback.fields || {})) {
-    if (text(row[field])) continue;
-    row[field] = info.value;
-    applied += 1;
-  }
-  if (applied > 0) {
+  for (const key of [...new Set(keys)]) {
+    const row = config.overrides.processData[key] && typeof config.overrides.processData[key] === 'object' && !Array.isArray(config.overrides.processData[key]) ? config.overrides.processData[key] : {};
+    for (const [field, info] of Object.entries(fallback.fields || {})) {
+      if (text(row[field])) continue;
+      row[field] = info.value;
+      applied += 1;
+    }
     row.__source = row.__source || {};
     row.__source.serviceProcessFallback = {
       source: 'service-match',
       service: fallback.service,
       matchedRows: fallback.stats.matchedRows,
-      appliedFields: applied,
+      appliedFields: Object.keys(fallback.fields || {}).length,
       needsReview: true,
+      serviceConflict,
     };
-    config.overrides.processData[targetKey] = row;
+    config.overrides.processData[key] = row;
   }
-  return { ...fallback, appliedFields: applied, targetKey };
+  return { ...fallback, appliedFields: applied, targetKey, serviceConflict };
 }
 
 export function resolveMaterialCodeFromLineMaterial({ lineRow, materialMap, pipingClassRow, overrides = {}, overrideKeys = [], xmlNode, xmlBranch }) {
@@ -224,9 +244,6 @@ export function resolveCorrosionFromPipingClass({ lineRow, boreMm, componentType
 export function resolveWallThicknessFromPipingClass({ pipingClassRow, overrides = {}, overrideKeys = [], xmlNode, xmlBranch, config = {} }) {
   const fromClass = classWallValue(pipingClassRow);
   const overrideWall = numericOverrideValue(overrides, 'wallThickness', overrideKeys);
-  // Overrides written by the DTXR button are tagged in __dtxrWallKeys.
-  // Piping class is primary: DTXR-button overrides yield to piping class when it has data.
-  // Manual cell overrides (not in __dtxrWallKeys) still take priority over piping class.
   const overrideIsDtxrApplied = overrideWall != null && overrideKeys.some((k) => overrides.__dtxrWallKeys?.[k]);
   if (!overrideIsDtxrApplied && shouldUseNumericOverride(overrideWall, fromClass, config)) return { valueMm: overrideWall, source: 'override' };
   if (fromClass != null) return { valueMm: fromClass, source: 'piping-class-master' };
