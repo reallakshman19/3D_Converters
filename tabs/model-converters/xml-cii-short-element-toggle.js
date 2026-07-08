@@ -1,4 +1,4 @@
-import { xmlCiiWorkflowSetConfigValue, xmlCiiWorkflowInvalidateSnapshot } from './xml-cii-workflow-bridge.js?v=20260624-workflow1-workflow2-1';
+import { xmlCiiWorkflowSetConfigValue, xmlCiiWorkflowInvalidateSnapshot } from './xml-cii-workflow-bridge.js?v=20260708-workflow-bridge-align-1';
 
 const FLAG = '__xmlCiiShortElementToggle_v1';
 

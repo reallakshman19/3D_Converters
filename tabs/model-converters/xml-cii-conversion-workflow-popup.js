@@ -6,4 +6,4 @@
  * third-party imports and does not own workflow behavior.
  */
 
-export { installXmlCiiWorkflowPopup as installXmlCiiConversionWorkflowPopup } from './xml-cii-workflow-popup.js?v=20260624-workflow1-workflow2-1';
+export { installXmlCiiWorkflowPopup as installXmlCiiConversionWorkflowPopup } from './xml-cii-workflow-popup.js?v=20260708-workflow-bridge-align-1';

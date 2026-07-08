@@ -1,5 +1,5 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-2';
-import { xmlCiiWorkflowGetBridge } from './xml-cii-workflow-bridge.js?v=20260624-workflow1-workflow2-1';
+import { xmlCiiWorkflowGetBridge } from './xml-cii-workflow-bridge.js?v=20260708-workflow-bridge-align-1';
 import { run as originalXmlCiiRun } from './converters/xmltocii2019_runner.js?v=20260620-weight-ready-1';
 import { decodeTextUtf8, encodeTextUtf8 } from './core/output-utils.js';
 import { applyXmlCiiEnrichedXmlFix } from './converters/xml-cii-rich-enrichment-fix.js?v=20260624-rich-parity-ui-1';
