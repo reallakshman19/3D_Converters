@@ -148,6 +148,106 @@ function _inferTextMime(fileName) {
 function _patchConverterScriptText(fileName, text) {
   let patched = String(text || '');
 
+  if (fileName === 'xml_to_cii2019.py') {
+    const guardedShortDropFn = `def _short_prune_shared_node_numbers(branches: list[XmlBranch]) -> set[int]:
+    counts: Counter[int] = Counter()
+    for branch in branches:
+        for node in branch.nodes:
+            counts[node.node_number] += 1
+    return {node_number for node_number, count in counts.items() if count > 1}
+
+
+def _short_prune_node_is_connectivity_anchor(
+    node: XmlNode,
+    branch: XmlBranch,
+    shared_node_numbers: set[int],
+    is_last_node: bool,
+) -> bool:
+    component = _safe_text(node.component_type).upper()
+    if node.node_number in shared_node_numbers:
+        return True
+    if node.restraint_specs:
+        return True
+    if component in {"TEE", "OLET"} and node.endpoint == 0:
+        return True
+    if component in {"TEE", "OLET", "BRAN"}:
+        return True
+    if is_last_node and (component in {"BRAN", "RIGID"} or node.rigid == 2):
+        return True
+    return False
+
+
+def _drop_short_element_nodes(
+    branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
+) -> list[XmlBranch]:
+    """Drop only disposable short node blocks; preserve topology/SIF anchors.
+
+    CII edges are built later from positive node order. Blindly dropping every
+    positive node whose incoming span is <= threshold_mm can remove shared branch
+    junctions, TEE/OLET SIF owner nodes, and branch boundary connectors. Those
+    nodes are therefore kept even when their incoming geometry is short.
+    """
+    new_branches: list[XmlBranch] = []
+    shared_node_numbers = _short_prune_shared_node_numbers(branches)
+    for branch in branches:
+        if len(branch.nodes) < 2:
+            new_branches.append(branch)
+            continue
+        kept: list[XmlNode] = [branch.nodes[0]]
+        for index, node in enumerate(branch.nodes[1:], start=1):
+            previous = kept[-1]
+            length = math.sqrt(
+                (node.position[0] - previous.position[0]) ** 2
+                + (node.position[1] - previous.position[1]) ** 2
+                + (node.position[2] - previous.position[2]) ** 2
+            )
+            if length <= threshold_mm:
+                if _short_prune_node_is_connectivity_anchor(
+                    node,
+                    branch,
+                    shared_node_numbers,
+                    index == len(branch.nodes) - 1,
+                ):
+                    kept.append(node)
+                    DROPPED_SHORT_ELEMENT_NODES.append(
+                        f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
+                        f"segment length {length:.3f}mm <= {threshold_mm}mm; "
+                        f"preserved as topology/SIF anchor"
+                    )
+                    continue
+                if node.restraint_specs:
+                    kept[-1] = replace(
+                        previous,
+                        restraint_specs=_merge_restraint_specs(
+                            previous.restraint_specs, node.restraint_specs
+                        ),
+                    )
+                    DROPPED_SHORT_ELEMENT_NODES.append(
+                        f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
+                        f"segment length {length:.3f}mm <= {threshold_mm}mm; "
+                        f"restraint transferred to NodeNumber {previous.node_number}"
+                    )
+                    continue
+                DROPPED_SHORT_ELEMENT_NODES.append(
+                    f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
+                    f"segment length {length:.3f}mm <= {threshold_mm}mm"
+                )
+                continue
+            kept.append(node)
+        if len(kept) < 2:
+            new_branches.append(branch)
+            continue
+        new_branches.append(replace(branch, nodes=kept))
+    return new_branches
+
+`;
+    patched = patched.replace(
+      /def _drop_short_element_nodes\(\n[\s\S]*?\n\n(?=def _build_edges)/,
+      guardedShortDropFn,
+    );
+    return patched;
+  }
+
   if (fileName !== 'xml_to_cii2019_patched.py') return patched;
   const lineKeyFn = `def _line_key_from_row(row: dict[str, Any], config: dict[str, Any]) -> str:
     field_map = config.get("linelist", {}).get("fieldMap", {}) if isinstance(config.get("linelist"), dict) else {}
