@@ -23,6 +23,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019.py',
   'xml_to_cii2019_patched.py',
   'xml_to_cii2019_direction.py',
+  'xml_to_cii2019_contracted_direction.py',
   'xml_to_inputxml_debug.py',
   'xml_to_cii2019_master_addon.py',
   'master_customization.py',
