@@ -1,4 +1,4 @@
-import { xmlCiiWorkflowSetConfigValue, xmlCiiWorkflowInvalidateSnapshot } from './xml-cii-workflow-bridge.js?v=20260624-workflow1-workflow2-1';
+import { xmlCiiWorkflowSetConfigValue, xmlCiiWorkflowInvalidateSnapshot } from './xml-cii-workflow-bridge.js?v=20260708-workflow-bridge-align-1';
 
 const FLAG = '__xmlCiiBranchSampleSync_v2';
 const BRANCH_SAMPLE_KEY = 'xmlCii2019.regex.branchNameSampleFromXml.v1';

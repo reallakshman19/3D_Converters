@@ -6,7 +6,7 @@
  * button cannot see the phase bridge populated by renderModelConvertersTab().
  */
 
-import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260704-model-converters-load-hotfix-1';
+import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260708-workflow-bridge-align-1';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };

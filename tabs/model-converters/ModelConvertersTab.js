@@ -3,17 +3,17 @@
  */
 
 import './xml-cii-rich-worker-cache-bust.js?v=20260623-xml-cii-rich-worker-1';
-import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260708-seljson-inputxml-xml-visible-1';
+import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260708-workflow-bridge-align-1';
 import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260617-basic-glb-3';
 import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260627-inputxml-cii2019-live-guard-1';
 import { installBmCiiSupportAnnotationPopup } from './bm-cii-support-annotation-popup.js?v=20260617-bmcii-open-basic-handoff-2';
 import { installInputXmlPropertyTransferUi } from './inputxml-property-transfer-popup-ui-v4.js?v=20260615-inputxml-property-transfer-popup-host-hide-1';
 import { installRvmAttrUxmlAddon } from './rvmattr-uxml-addon.js?v=20260618-port-bore-contract-1';
 import { installXmlCiiWorkflowButtonScope } from './xml-cii-workflow-button-scope.js?v=20260624-unified-wf2-1';
-import { installXmlCiiWorkflowLauncherHotfix } from './xml-cii-workflow-launcher-hotfix.js?v=20260704-workflow-button-bridge-1';
+import { installXmlCiiWorkflowLauncherHotfix } from './xml-cii-workflow-launcher-hotfix.js?v=20260708-workflow-bridge-align-1';
 import { installXmlCiiSimpleWorkflowController } from './xml-cii-simple-workflow-controller.js?v=20260624-workflow-consolidation-1';
 import { installXmlCiiWorkflowOpenRegex } from './xml-cii-workflow-open-regex.js?v=20260625-open-regex-1';
-import { installXmlCiiWorkflowPopup } from './xml-cii-workflow-popup.js?v=20260704-model-converters-load-hotfix-1';
+import { installXmlCiiWorkflowPopup } from './xml-cii-workflow-popup.js?v=20260708-workflow-bridge-align-1';
 import { installXmlCiiCustomInputWorkflowTab } from './custom-input/xml-cii-custom-input-workflow-tab.js?v=20260625-custom-input-2';
 import { installXmlCiiBranchSampleSync } from './xml-cii-branch-sample-sync.js?v=20260624-workflow-consolidation-1';
 import { installXmlCiiFinaliseRunButton } from './xml-cii-finalise-run-button.js?v=20260625-model-converters-finalise-run-owner-1';
