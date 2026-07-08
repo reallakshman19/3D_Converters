@@ -1,7 +1,6 @@
 const INLINE_COMPONENT_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST', 'GASK']);
 const BEND_COMPONENT_TYPES = new Set(['ELBO', 'BEND', 'ELBOW']);
 const OLET_COMPONENT_TYPES = new Set(['OLET', 'WELDOLET', 'SOCKOLET']);
-const BRANCH_JUNCTION_COMPONENT_TYPES = new Set(['BRAN', 'TEE', 'TEES', 'OLET', 'WELDOLET', 'SOCKOLET']);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -23,13 +22,13 @@ function normalizeRef(value) {
 }
 
 function tagValue(block, name) {
-  const match = text(block).match(new RegExp(`<${name}[^>]*>([\s\S]*?)<\/${name}>`, 'i'));
+  const match = text(block).match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'));
   return text(match?.[1]?.replace(/<[^>]+>/g, ''));
 }
 
 function setTag(block, name, value) {
   const out = `<${name}>${value}</${name}>`;
-  const re = new RegExp(`<${name}[^>]*>[\s\S]*?<\/${name}>`, 'i');
+  const re = new RegExp(`<${name}[^>]*>[\\s\\S]*?<\\/${name}>`, 'i');
   return re.test(block) ? block.replace(re, out) : block.replace(/<\/Node>\s*$/i, `${out}</Node>`);
 }
 
@@ -100,8 +99,6 @@ function classifyNode(node) {
   if (type === 'ATTA' && !node.hasRestraint && nodeName.includes('/SREF')) return 'support-reference';
   if (BEND_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'bend-helper-endpoint';
   if (OLET_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'olet-helper-endpoint';
-  if ((type === 'TEE' || type === 'TEES') && nodeNumber === '-1') return 'tee-helper-endpoint';
-  if (BRANCH_JUNCTION_COMPONENT_TYPES.has(type)) return 'branch-junction-node';
   if (INLINE_COMPONENT_TYPES.has(type)) return 'inline-component-endpoint';
   if (node.point) return 'real-geometry-node';
   return 'unknown-node';
@@ -157,7 +154,7 @@ function makeAssignment({ node, fromNode, lengthMm, method, sourceAuthority = 'n
   };
 }
 
-function makeSkip(node, reason, extra = {}) {
+function makeSkip(node, reason) {
   return {
     key: assignmentKey(node),
     branchName: node.branchName,
@@ -169,12 +166,11 @@ function makeSkip(node, reason, extra = {}) {
     nodeRole: node.role,
     action: 'skip',
     reason,
-    ...extra,
   };
 }
 
 function shouldUseRouteAnchor(node) {
-  return node?.point && ['support-restraint', 'real-geometry-node', 'inline-component-endpoint', 'branch-junction-node'].includes(node.role);
+  return node?.point && ['support-restraint', 'real-geometry-node', 'inline-component-endpoint'].includes(node.role);
 }
 
 function isExplicitEndpoint(endpoint) {
@@ -215,21 +211,8 @@ function calculateBranchAssignments(branchName, nodes, options = {}) {
       continue;
     }
 
-    if (node.role === 'bend-helper-endpoint' || node.role === 'olet-helper-endpoint' || node.role === 'tee-helper-endpoint') {
+    if (node.role === 'bend-helper-endpoint' || node.role === 'olet-helper-endpoint') {
       skipped.push(makeSkip(node, `${node.role}-geometry-only`));
-      continue;
-    }
-
-    if (!routeAnchor) {
-      if (shouldUseRouteAnchor(node)) {
-        skipped.push(makeSkip(node, 'branch-start-route-anchor', {
-          method: 'uxml-topology-branch-start-anchor',
-          message: 'First valid UXML topology point in this branch; used as a route anchor, not a disconnected node.',
-        }));
-        routeAnchor = node;
-        continue;
-      }
-      skipped.push(makeSkip(node, 'no-previous-valid-route-point'));
       continue;
     }
 
@@ -259,17 +242,6 @@ function calculateBranchAssignments(branchName, nodes, options = {}) {
 
     if (length !== null && length > 0) {
       assignments.push(makeAssignment({ node, fromNode, lengthMm: length, method }));
-      routeAnchor = node;
-      continue;
-    }
-
-    if (shouldUseRouteAnchor(node) && almostSamePoint(routeAnchor?.point, node.point, pointToleranceMm)) {
-      skipped.push(makeSkip(node, 'coincident-route-handoff-anchor-no-element-length', {
-        fromNodeNumber: routeAnchor?.nodeNumber || '',
-        fromComponentType: routeAnchor?.componentType || '',
-        method: 'uxml-topology-coincident-route-handoff-anchor',
-        message: 'UXML topology point is coincident with the current route anchor; no ElementLengthMm is emitted, but route handoff continues through this node.',
-      }));
       routeAnchor = node;
       continue;
     }
@@ -308,7 +280,7 @@ export function collectXmlCiiTopologyElementLengthAssignments(xmlText, options =
     assignmentCount: assignments.length,
     skippedCount: skipped.length,
     mode: options.mode || 'apply',
-    message: 'Topology-derived ElementLengthMm assignments calculated from previous valid route points, inline endpoint pair spans, branch-start anchors, coincident handoff anchors, and support/reference/helper node roles.',
+    message: 'Topology-derived ElementLengthMm assignments calculated from previous valid route points, inline endpoint pair spans, and support/reference/helper node roles.',
   });
 
   return {
@@ -327,29 +299,53 @@ export function collectXmlCiiTopologyElementLengthAssignments(xmlText, options =
 }
 
 export function applyXmlCiiTopologyElementLengths(xmlText, options = {}) {
-  const topology = collectXmlCiiTopologyElementLengthAssignments(xmlText, options);
-  const byKey = new Map(topology.assignments.map((assignment) => [assignment.key, assignment]));
-  let applied = 0;
+  const result = collectXmlCiiTopologyElementLengthAssignments(xmlText, options);
+  const byBlockKey = new Map();
 
-  const output = text(xmlText).replace(/<Branch\b[\s\S]*?<\/Branch>/gi, (branchBlock) => {
+  for (const assignment of result.assignments) {
+    byBlockKey.set(assignment.key, assignment);
+  }
+
+  let changed = 0;
+  let preserved = 0;
+  let out = text(xmlText).replace(/<Branch\b[\s\S]*?<\/Branch>/gi, (branchBlock) => {
     const branchName = tagValue(branchBlock, 'Branchname') || options.branchName || '';
-    return branchBlock.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block, offset) => {
-      const node = parseNode(block, offset, branchName);
-      const assignment = byKey.get(assignmentKey(node));
+    let index = 0;
+    return branchBlock.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
+      const node = parseNode(block, index++, branchName);
+      const assignment = byBlockKey.get(assignmentKey(node));
       if (!assignment) return block;
-      applied += 1;
-      return setTag(block, 'ElementLengthMm', assignment.lengthMm);
+      if (shouldPreserveExistingUnsplitInlineLength(node, options)) {
+        preserved += 1;
+        return block;
+      }
+      changed += 1;
+      return setTag(block, 'ElementLengthMm', assignment.lengthMm.toFixed(3));
     });
   });
 
+  if (out === text(xmlText)) {
+    let index = 0;
+    out = text(xmlText).replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
+      const node = parseNode(block, index++, options.branchName || '');
+      const assignment = byBlockKey.get(assignmentKey(node));
+      if (!assignment) return block;
+      if (shouldPreserveExistingUnsplitInlineLength(node, options)) {
+        preserved += 1;
+        return block;
+      }
+      changed += 1;
+      return setTag(block, 'ElementLengthMm', assignment.lengthMm.toFixed(3));
+    });
+  }
+
   return {
-    xmlText: output,
-    assignments: topology.assignments,
-    skipped: topology.skipped,
-    diagnostics: topology.diagnostics,
-    stats: {
-      ...(topology.stats || {}),
-      topologyElementLengthApplied: applied,
-    },
+    ...result,
+    xmlText: out,
+    changed,
+    preservedExistingUnsplitInlineLengths: preserved,
+    assignmentCount: result.assignments.length,
   };
 }
+
+export const XML_CII_TOPOLOGY_ELEMENT_LENGTH_SCHEMA = 'xml-cii-topology-element-length-assignments/v1';
