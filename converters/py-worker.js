@@ -149,7 +149,7 @@ function _patchConverterScriptText(fileName, text) {
   let patched = String(text || '');
 
   if (fileName === 'xml_to_cii2019.py') {
-    const guardedShortDropFn = `def _short_prune_shared_node_numbers(branches: list[XmlBranch]) -> set[int]:
+    const contractedShortDropFn = `def _short_contract_shared_node_numbers(branches: list[XmlBranch]) -> set[int]:
     counts: Counter[int] = Counter()
     for branch in branches:
         for node in branch.nodes:
@@ -157,43 +157,57 @@ function _patchConverterScriptText(fileName, text) {
     return {node_number for node_number, count in counts.items() if count > 1}
 
 
-def _short_prune_node_is_connectivity_anchor(
+def _short_contract_priority(
     node: XmlNode,
-    branch: XmlBranch,
     shared_node_numbers: set[int],
+    is_first_node: bool,
     is_last_node: bool,
-) -> bool:
+) -> int:
     component = _safe_text(node.component_type).upper()
+    score = 0
     if node.node_number in shared_node_numbers:
-        return True
-    if node.restraint_specs:
-        return True
+        score = max(score, 1000)
     if component in {"TEE", "OLET"} and node.endpoint == 0:
-        return True
+        score = max(score, 900)
     if component in {"TEE", "OLET", "BRAN"}:
-        return True
-    if is_last_node and (component in {"BRAN", "RIGID"} or node.rigid == 2):
-        return True
-    return False
+        score = max(score, 800)
+    if node.restraint_specs:
+        score = max(score, 700)
+    if _safe_text(node.node_name):
+        score = max(score, 600)
+    if is_first_node or is_last_node:
+        score = max(score, 500)
+    if component == "RIGID" or node.rigid == 2:
+        score = max(score, 400)
+    return score
+
+
+def _merge_short_contracted_nodes(representative: XmlNode, absorbed: XmlNode) -> XmlNode:
+    merged_specs = _merge_restraint_specs(representative.restraint_specs, absorbed.restraint_specs)
+    node_name = representative.node_name or absorbed.node_name
+    return replace(representative, node_name=node_name, restraint_specs=merged_specs)
 
 
 def _drop_short_element_nodes(
     branches: list[XmlBranch], threshold_mm: float = SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM
 ) -> list[XmlBranch]:
-    """Drop only disposable short node blocks; preserve topology/SIF anchors.
+    """Contract short positive-node spans instead of deleting node blocks.
 
-    CII edges are built later from positive node order. Blindly dropping every
-    positive node whose incoming span is <= threshold_mm can remove shared branch
-    junctions, TEE/OLET SIF owner nodes, and branch boundary connectors. Those
-    nodes are therefore kept even when their incoming geometry is short.
+    Final CII elements are generated from the positive node sequence. For spans
+    shorter than threshold_mm, this routine contracts the two nodes into the
+    better topology representative rather than blindly dropping the arriving
+    node. This preserves shared branch junction numbers, TEE/OLET SIF owner
+    nodes, restraints, named supports, and branch connectors while still
+    removing the artificial short segment from the element chain.
     """
     new_branches: list[XmlBranch] = []
-    shared_node_numbers = _short_prune_shared_node_numbers(branches)
+    shared_node_numbers = _short_contract_shared_node_numbers(branches)
     for branch in branches:
         if len(branch.nodes) < 2:
             new_branches.append(branch)
             continue
         kept: list[XmlNode] = [branch.nodes[0]]
+        kept_original_indices: list[int] = [0]
         for index, node in enumerate(branch.nodes[1:], start=1):
             previous = kept[-1]
             length = math.sqrt(
@@ -202,38 +216,41 @@ def _drop_short_element_nodes(
                 + (node.position[2] - previous.position[2]) ** 2
             )
             if length <= threshold_mm:
-                if _short_prune_node_is_connectivity_anchor(
-                    node,
-                    branch,
+                previous_index = kept_original_indices[-1]
+                previous_priority = _short_contract_priority(
+                    previous,
                     shared_node_numbers,
+                    previous_index == 0,
+                    previous_index == len(branch.nodes) - 1,
+                )
+                node_priority = _short_contract_priority(
+                    node,
+                    shared_node_numbers,
+                    index == 0,
                     index == len(branch.nodes) - 1,
-                ):
-                    kept.append(node)
-                    DROPPED_SHORT_ELEMENT_NODES.append(
-                        f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
-                        f"segment length {length:.3f}mm <= {threshold_mm}mm; "
-                        f"preserved as topology/SIF anchor"
-                    )
-                    continue
-                if node.restraint_specs:
-                    kept[-1] = replace(
-                        previous,
-                        restraint_specs=_merge_restraint_specs(
-                            previous.restraint_specs, node.restraint_specs
-                        ),
-                    )
-                    DROPPED_SHORT_ELEMENT_NODES.append(
-                        f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
-                        f"segment length {length:.3f}mm <= {threshold_mm}mm; "
-                        f"restraint transferred to NodeNumber {previous.node_number}"
-                    )
-                    continue
+                )
+                if node_priority > previous_priority:
+                    kept[-1] = _merge_short_contracted_nodes(node, previous)
+                    kept_original_indices[-1] = index
+                    representative = node
+                    absorbed = previous
+                else:
+                    kept[-1] = _merge_short_contracted_nodes(previous, node)
+                    representative = previous
+                    absorbed = node
                 DROPPED_SHORT_ELEMENT_NODES.append(
-                    f"Branch '{branch.branch_name}' NodeNumber {node.node_number}: "
-                    f"segment length {length:.3f}mm <= {threshold_mm}mm"
+                    f"Branch '{branch.branch_name}' short span {previous.node_number}->{node.node_number}: "
+                    f"length {length:.3f}mm <= {threshold_mm}mm; contracted into "
+                    f"NodeNumber {representative.node_number} ({representative.component_type}); "
+                    f"absorbed NodeNumber {absorbed.node_number} ({absorbed.component_type})"
                 )
                 continue
+            if kept[-1].node_number == node.node_number:
+                kept[-1] = _merge_short_contracted_nodes(kept[-1], node)
+                kept_original_indices[-1] = index
+                continue
             kept.append(node)
+            kept_original_indices.append(index)
         if len(kept) < 2:
             new_branches.append(branch)
             continue
@@ -243,7 +260,7 @@ def _drop_short_element_nodes(
 `;
     patched = patched.replace(
       /def _drop_short_element_nodes\(\n[\s\S]*?\n\n(?=def _build_edges)/,
-      guardedShortDropFn,
+      contractedShortDropFn,
     );
     return patched;
   }
