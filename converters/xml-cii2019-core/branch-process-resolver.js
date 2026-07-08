@@ -139,7 +139,8 @@ const SERVICE_FALLBACK_FIELDS = Object.freeze(['p1', 'hydroPressure', 't1', 't2'
 function hasExactLineListEvidence(lineRow) {
   if (!lineRow || typeof lineRow !== 'object') return false;
   if (lineRow._raw && typeof lineRow._raw === 'object') return true;
-  return Object.keys(lineRow).some((key) => !['pipingClass', 'Piping Class', 'PIPING_CLASS'].includes(key));
+  const meaningfulKeys = Object.keys(lineRow).filter((key) => !['pipingClass', 'Piping Class', 'PIPING_CLASS'].includes(key) && text(lineRow[key]));
+  return meaningfulKeys.length > 0;
 }
 
 function ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, config, overrides }) {
