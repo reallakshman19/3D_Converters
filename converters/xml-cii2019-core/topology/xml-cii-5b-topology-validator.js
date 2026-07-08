@@ -67,11 +67,6 @@ function pointDistanceToSegment(point, start, end) {
   const t = Math.max(0, Math.min(1, (wx * vx + wy * vy + wz * vz) / len2));
   return dist(point, { x: start.x + t * vx, y: start.y + t * vy, z: start.z + t * vz });
 }
-function positionKey(point, toleranceMm) {
-  if (!isPoint(point)) return '';
-  const tolerance = Number.isFinite(Number(toleranceMm)) && Number(toleranceMm) > 0 ? Number(toleranceMm) : DEFAULT_CONTINUITY_TOLERANCE_MM;
-  return [point.x, point.y, point.z].map((value) => Math.round(Number(value) / tolerance)).join('|');
-}
 
 function parseXmlToModel(xmlText, options = {}) {
   const model = { schema: 'xml-cii-5b-source-model/v1', sourceName: text(options.sourceName || 'enriched.xml'), branches: [] };
@@ -131,7 +126,7 @@ function buildComponents(model = {}) {
       const helper = HELPER_TYPES.has(normalizedType) || HELPER_TYPES.has(upper(rawType));
       const start = points[0] || null;
       const end = points.length > 1 ? points[points.length - 1] : null;
-      const component = {
+      components.push({
         id: `cmp:${safeId(branchName)}:${String(components.length + 1).padStart(5, '0')}`,
         refNo: group.ref,
         name: text(first.nodeName || group.ref),
@@ -148,8 +143,7 @@ function buildComponents(model = {}) {
         helper,
         support,
         raw: { sourceRows: group.rows },
-      };
-      components.push(component);
+      });
     }
   }
   return components;
@@ -174,31 +168,54 @@ function closestEndpointPair(left, right) {
   return best;
 }
 
+function find(parent, index) {
+  let current = parent[index];
+  while (current !== parent[current]) {
+    parent[current] = parent[parent[current]];
+    current = parent[current];
+  }
+  return current;
+}
+function union(parent, a, b) {
+  const rootA = find(parent, a);
+  const rootB = find(parent, b);
+  if (rootA !== rootB) parent[rootB] = rootA;
+}
 function buildGraph(routeComponents, toleranceMm) {
   const ports = routeComponents.flatMap(endpointsFor);
-  const adjacency = new Map(routeComponents.map((component) => [component.id, new Set()]));
-  const nodesByKey = new Map();
-  const edges = [];
-  for (const port of ports) {
-    const key = positionKey(port.point, toleranceMm);
-    if (!nodesByKey.has(key)) nodesByKey.set(key, { id: `node:${key}`, key, point: clonePoint(port.point), ports: [], componentIds: new Set() });
-    const node = nodesByKey.get(key);
-    node.ports.push(port);
-    node.componentIds.add(port.componentId);
+  const parent = ports.map((_, index) => index);
+  for (let i = 0; i < ports.length; i += 1) {
+    for (let j = i + 1; j < ports.length; j += 1) {
+      if (ports[i].componentId === ports[j].componentId) continue;
+      const distanceMm = dist(ports[i].point, ports[j].point);
+      if (distanceMm !== null && distanceMm <= toleranceMm) union(parent, i, j);
+    }
   }
-  for (const node of nodesByKey.values()) {
-    const unique = [...node.componentIds];
-    for (let i = 0; i < unique.length; i += 1) {
-      for (let j = i + 1; j < unique.length; j += 1) {
-        const a = unique[i];
-        const b = unique[j];
+  const grouped = new Map();
+  ports.forEach((port, index) => {
+    const root = find(parent, index);
+    if (!grouped.has(root)) grouped.set(root, []);
+    grouped.get(root).push(port);
+  });
+  const adjacency = new Map(routeComponents.map((component) => [component.id, new Set()]));
+  const edges = [];
+  const nodes = [];
+  for (const [index, groupPorts] of [...grouped.values()].entries()) {
+    const componentIds = [...new Set(groupPorts.map((port) => port.componentId))];
+    const point = groupPorts[0]?.point || null;
+    const node = { id: `node:${String(index + 1).padStart(5, '0')}`, point: clonePoint(point), ports: groupPorts, componentIds };
+    nodes.push(node);
+    for (let i = 0; i < componentIds.length; i += 1) {
+      for (let j = i + 1; j < componentIds.length; j += 1) {
+        const a = componentIds[i];
+        const b = componentIds[j];
         adjacency.get(a)?.add(b);
         adjacency.get(b)?.add(a);
-        edges.push({ sourceComponentId: a, targetComponentId: b, nodeId: node.id, point: clonePoint(node.point) });
+        edges.push({ sourceComponentId: a, targetComponentId: b, nodeId: node.id, point: clonePoint(point) });
       }
     }
   }
-  return { ports, nodes: [...nodesByKey.values()].map((node) => ({ ...node, componentIds: [...node.componentIds] })), edges, adjacency };
+  return { ports, nodes, edges, adjacency };
 }
 
 function buildSequenceRows(routeComponents, toleranceMm) {
