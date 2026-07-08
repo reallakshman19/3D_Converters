@@ -32,7 +32,7 @@ ${baseNode({ number: 120, endpoint: '2', type: 'PIPE', position: '100 0 0', ref:
   assert.equal(result.assignments.some((row) => row.fromNodeNumber === '110' && row.nodeNumber === '120'), true);
 });
 
-test('zero-span TEE branch junction is an anchor, not a disconnected topology skip', () => {
+test('zero-span positive TEE center is an anchor, not a disconnected topology skip', () => {
   const { collectXmlCiiTopologyElementLengthAssignments } = loadTopologyFunctions();
   const xml = `<PipeStressExport><Pipe><Branch><Branchname>/TEST/TEE</Branchname>
 ${baseNode({ number: 200, endpoint: '1', type: 'PIPE', position: '0 0 0', ref: '=PIPE/200' })}
@@ -45,5 +45,25 @@ ${baseNode({ number: 220, endpoint: '2', type: 'PIPE', position: '0 100 0', ref:
   assert.equal(junctionSkip?.reason, 'branch-junction-shared-anchor-no-element-length');
   assert.equal(junctionSkip?.nodeRole, 'branch-junction-node');
   assert.equal(result.skipped.some((row) => row.nodeNumber === '210' && row.reason === 'zero-distance-or-invalid-topology-span'), false);
+  assert.equal(result.assignments.some((row) => row.fromNodeNumber === '210' && row.nodeNumber === '220'), true);
+});
+
+test('negative TEE endpoint helpers stay geometry-only and do not become route anchors', () => {
+  const { collectXmlCiiTopologyElementLengthAssignments } = loadTopologyFunctions();
+  const xml = `<PipeStressExport><Pipe><Branch><Branchname>/TEST/TEE-HELPERS</Branchname>
+${baseNode({ number: 200, endpoint: '1', type: 'PIPE', position: '0 0 0', ref: '=PIPE/200' })}
+${baseNode({ number: -1, endpoint: '1', type: 'TEE', position: '10 0 0', ref: '=TEE/210' })}
+${baseNode({ number: -1, endpoint: '3', type: 'TEE', position: '20 10 0', ref: '=TEE/210' })}
+${baseNode({ number: 210, endpoint: '0', type: 'TEE', position: '20 0 0', ref: '=TEE/210' })}
+${baseNode({ number: -1, endpoint: '2', type: 'TEE', position: '30 0 0', ref: '=TEE/210' })}
+${baseNode({ number: 220, endpoint: '2', type: 'PIPE', position: '100 0 0', ref: '=PIPE/220' })}
+</Branch></Pipe></PipeStressExport>`;
+
+  const result = collectXmlCiiTopologyElementLengthAssignments(xml);
+  const teeHelpers = result.skipped.filter((row) => row.nodeNumber === '-1' && row.componentType === 'TEE');
+  assert.equal(teeHelpers.length, 3);
+  assert.equal(teeHelpers.every((row) => row.nodeRole === 'tee-helper-endpoint'), true);
+  assert.equal(teeHelpers.every((row) => row.reason === 'tee-helper-endpoint-geometry-only'), true);
+  assert.equal(result.assignments.some((row) => row.fromNodeNumber === '-1'), false);
   assert.equal(result.assignments.some((row) => row.fromNodeNumber === '210' && row.nodeNumber === '220'), true);
 });
