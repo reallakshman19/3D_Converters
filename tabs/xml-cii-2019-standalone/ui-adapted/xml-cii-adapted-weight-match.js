@@ -283,7 +283,41 @@ export function renderAdaptedWeightMatchPanel(card, stateOrRef, render) {
     </div>
   `;
 
-  bindAdaptedWeightMatchPanel(card, stateRef, render);
+  bindParentWeightMatchPhase(card, stateRef, render);
+}
+
+function persistWeightMatchConfig(stateRef, config) {
+  const nextJson = JSON.stringify(config, null, 2);
+  const context = stateRef.current.masterContext || {};
+  context.config = config;
+  stateRef.current = { ...stateRef.current, supportConfigJson: nextJson, masterContext: { ...context, config } };
+  saveMasterContextToLocalStorage(stateRef.current.masterContext);
+}
+
+// The Weight Match phase reuses the parent XML→CII(2019) implementation
+// (weight-match-renderer + enrichment core) so lengths, DTXR resolution,
+// split node numbers, and candidate ranking are identical to the parent tab.
+// Falls back to the standalone matcher only if the parent modules fail to load.
+async function bindParentWeightMatchPhase(card, stateRef, render) {
+  const state = stateRef.current;
+  try {
+    const { loadParentWeightMatchModules } = await import('../xml-cii-standalone-run-parity.js');
+    const { bindXmlCiiWeightMatchPhase, enrichXmlForCii2019 } = await loadParentWeightMatchModules();
+    const config = await ensureWeightMasterRows(xmlCiiEnrichedConfigFromState(state), state.masterContext);
+    const xmlFile = state.sourceFile || (state.sourceText ? new File([state.sourceText], 'source.xml', { type: 'application/xml' }) : null);
+    bindXmlCiiWeightMatchPhase(card, {
+      xmlFile,
+      stagedJsonText: state.stagedJsonText || '',
+      config,
+      enrichXmlForCii2019,
+      onSaveConfig: (cfg) => persistWeightMatchConfig(stateRef, cfg),
+      ensureOverrides: (cfg) => { if (!cfg.overrides) cfg.overrides = {}; return cfg.overrides; },
+      resolveStagedJsonText: async () => ({ text: stateRef.current.stagedJsonText || '', label: stateRef.current.stagedJsonFile?.name || '' }),
+    });
+  } catch (error) {
+    console.warn('Parent weight-match phase unavailable; using standalone matcher:', error);
+    bindAdaptedWeightMatchPanel(card, stateRef, render);
+  }
 }
 
 // Parity with the parent workflow: when the resolved valve/flange split is

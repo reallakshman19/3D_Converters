@@ -74,7 +74,10 @@ export class XmlCiiAdaptedEditablePreviewTable {
     const tdApprox = (needs, attrs = '') => needs ? `class="mc-preview-td mc-preview-approx" ${attrs}` : `class="mc-preview-td" ${attrs}`;
     const fillDownBtn = (field, fromRow) => `<button type="button" class="mc-preview-filldown-btn" data-mc-fill-field="${this._escape(field)}" data-mc-fill-from="${fromRow}" title="Smart fill by field key: wall thickness by piping class + size; corrosion/material code by piping class; process data by line key.">↓</button>`;
     const renderProcessField = (fieldKey, val, src, pcKey = '') => this.processInputHtmlRenderer ? this.processInputHtmlRenderer(fieldKey, row.lineKey, val, src, ri, pcKey) : `<input type="text" value="${this._escape(val)}" data-mc-pd-field="${this._escape(fieldKey)}" data-mc-pd-linekey="${this._escape(row.lineKey)}" data-mc-pd-row="${ri}">`;
-    const editAttrs = (type, key, extra = '') => `data-mc-edit-type="${this._escapeAttr(type)}" data-mc-edit-key="${this._escapeAttr(key || row.lineKey || row.branchName || '')}" data-mc-edit-row="${ri}" data-mc-pc-key="${this._escapeAttr(type === 'wallThickness' ? classSizeKey : classKey)}" ${extra}`;
+    // Fill scopes: wall thickness + material code fill by piping class AND
+    // size; hydro/corrosion (and other class fields) by piping class only;
+    // process fields (p1/t1/t2/t3/density) fill by line key.
+    const editAttrs = (type, key, extra = '') => `data-mc-edit-type="${this._escapeAttr(type)}" data-mc-edit-key="${this._escapeAttr(key || row.lineKey || row.branchName || '')}" data-mc-edit-row="${ri}" data-mc-pc-key="${this._escapeAttr(type === 'wallThickness' || type === 'materialCode' ? classSizeKey : classKey)}" ${extra}`;
     const editablePlain = (type, value, key, source = '') => {
       const isDefault = source === 'default' || source === 'config-default' || source === 'default-zero';
       const cls = `mc-preview-editable-val${isDefault ? ' mc-preview-default-val' : ''}`;
@@ -88,8 +91,10 @@ export class XmlCiiAdaptedEditablePreviewTable {
     const wallKey = row.wallThicknessKey || classSizeKey || row.lineKey;
     const corrosionKey = row.corrosionKey || classKey || row.lineKey;
 
-    const ratingDerivedBadge = row.ratingDerived 
-      ? ` <span class="mc-preview-badge" style="background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.15);" title="Derived from Piping Class: ${this._escapeAttr(row.ratingDerived)}">derived: ${this._escape(row.ratingDerived)}</span>` 
+    // Only badge the derived rating when it differs from the displayed value —
+    // "600 derived: 600" carries no information.
+    const ratingDerivedBadge = row.ratingDerived && String(row.ratingDerived).trim() !== String(row.rating || '').trim()
+      ? ` <span class="mc-preview-badge" style="background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.15);" title="Derived from Piping Class: ${this._escapeAttr(row.ratingDerived)}">derived: ${this._escape(row.ratingDerived)}</span>`
       : '';
 
     return `

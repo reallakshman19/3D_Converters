@@ -52,11 +52,26 @@ function numeric(value) {
 // including rows resolved via the Similar-Linekey fuzzy fallback, which the
 // parent's own resolver does not know about. This guarantees the enriched XML
 // carries exactly the values the standalone Preview tab showed.
+const WEIGHT_BEARING_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
+
+function mappedNodeWeights(nodeRows, config) {
+  const weights = new Map();
+  for (const nr of nodeRows || []) {
+    if (!WEIGHT_BEARING_TYPES.has(text(nr.componentType).toUpperCase())) continue;
+    const override = Number(config?.overrides?.rigidWeight?.[nr.key]);
+    const auto = nr.weightMatch && !nr.weightMatch.zeroFallback ? Number(nr.weightMatch.weight) : NaN;
+    const weight = Number.isFinite(override) && override > 0 ? override : (Number.isFinite(auto) && auto > 0 ? auto : null);
+    if (weight !== null) weights.set(`${text(nr.branchName)}|${text(nr.nodeNumber)}`, weight);
+  }
+  return weights;
+}
+
 async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return xmlText;
   const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js');
-  const { branchRows } = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
+  const { branchRows, nodeRows } = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
   if (!branchRows.length) return xmlText;
+  const nodeWeights = mappedNodeWeights(nodeRows, config);
   const byBranch = new Map(branchRows.map((row) => [text(row.branchName), row]));
   const document = new DOMParser().parseFromString(xmlText, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) return xmlText;
@@ -72,10 +87,43 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
     if (numeric(row.t2) !== null && setChildText(document, temperature, 'Temperature2', row.t2)) applied += 1;
     if (numeric(row.t3) !== null && setChildText(document, temperature, 'Temperature3', row.t3)) applied += 1;
     if (numeric(row.density) !== null && setChildText(document, branch, 'FluidDensity', row.density)) applied += 1;
+    // Node facts (material / material code / corrosion / wall / rating) —
+    // mirrors the parent's setBranchNodeFacts so the resolved values reach
+    // the enriched XML and then the CII material/allowable fields.
+    if (setChildText(document, branch, 'MaterialNumber', row.materialCode)) applied += 1;
+    for (const node of childrenByName(branch, 'Node')) {
+      if (setChildText(document, node, 'PipingClass', row.pipingClass)) applied += 1;
+      if (setChildText(document, node, 'Rating', row.rating)) applied += 1;
+      if (setChildText(document, node, 'MaterialName', row.material)) applied += 1;
+      if (setChildText(document, node, 'MaterialCode', row.materialCode)) applied += 1;
+      if (numeric(row.wallThickness) !== null && setChildText(document, node, 'WallThickness', row.wallThickness)) applied += 1;
+      if (numeric(row.corrosion) !== null && setChildText(document, node, 'CorrosionAllowance', row.corrosion)) applied += 1;
+      // Mapped weight-match weights (auto match or saved override) — written
+      // only when the node has no real weight yet.
+      const mapped = nodeWeights.get(`${childText(branch, 'Branchname')}|${childText(node, 'NodeNumber')}`);
+      const existingWeight = numeric(childText(node, 'Weight'));
+      if (mapped !== undefined && (existingWeight === null || existingWeight === 0) && setChildText(document, node, 'Weight', mapped)) applied += 1;
+    }
   }
   if (!applied) return xmlText;
   diagnostics.push({ type: 'standalone-process-parity-applied', fields: applied, message: 'Branch process blocks were synchronised from the standalone preview resolver (including Similar-Linekey fuzzy matches).' });
   return new XMLSerializer().serializeToString(document);
+}
+
+const WEIGHT_MATCH_MODULE_URL = new URL(
+  '../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
+  import.meta.url,
+);
+
+// Loads the parent XML→CII(2019) weight-match phase + enrichment pair so the
+// standalone Weight Match tab can reuse them (identical lengths, DTXR
+// resolution, split node numbers, and candidate ranking).
+export async function loadParentWeightMatchModules() {
+  const [renderer, parity] = await Promise.all([
+    import(WEIGHT_MATCH_MODULE_URL.href),
+    import(PARITY_MODULE_URL.href),
+  ]);
+  return { bindXmlCiiWeightMatchPhase: renderer.bindXmlCiiWeightMatchPhase, enrichXmlForCii2019: parity.enrichXmlForCii2019 };
 }
 
 export function standaloneParityOptions(supportConfigJson, options = {}) {

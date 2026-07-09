@@ -1549,27 +1549,65 @@ def _build_units_payload() -> list[str]:
     ]
 
 
+def _coords_component_map(model: ConversionModel) -> tuple[dict[int, int], dict[int, tuple[float, float, float]]]:
+    parent: dict[int, int] = {}
+
+    def find(node_number: int) -> int:
+        while parent.setdefault(node_number, node_number) != node_number:
+            parent[node_number] = parent[parent[node_number]]
+            node_number = parent[node_number]
+        return node_number
+
+    node_positions: dict[int, tuple[float, float, float]] = {}
+    for edge in model.edges:
+        root_a = find(edge.from_node.node_number)
+        root_b = find(edge.to_node.node_number)
+        if root_a != root_b:
+            parent[root_a] = root_b
+        node_positions.setdefault(edge.from_node.node_number, edge.from_node.position)
+        node_positions.setdefault(edge.to_node.node_number, edge.to_node.position)
+    return {number: find(number) for number in node_positions}, node_positions
+
+
 def _build_coords_payload(model: ConversionModel, coords_mode: str) -> list[str]:
+    if coords_mode == "none":
+        return [_row(["0"])]
+
+    # Dropping short/gasket elements can split the element graph into several
+    # disconnected islands. CAESAR anchors only the nodes listed in COORDS and
+    # places every unanchored island at the origin, so at least one coordinate
+    # record must be written per connected component.
+    component_of, node_positions = _coords_component_map(model)
     open_end_restraints = [
         restraint for restraint in model.restraints
         if any(spec.is_open_end for spec in restraint.specs)
     ]
-    if coords_mode == "none" or not open_end_restraints:
+
+    anchor_by_component: dict[int, tuple[int, tuple[float, float, float]]] = {}
+    for restraint in open_end_restraints:
+        component = component_of.get(restraint.node_number)
+        if component is not None:
+            anchor_by_component.setdefault(component, (restraint.node_number, restraint.position))
+    for node_number, position in node_positions.items():
+        anchor_by_component.setdefault(component_of[node_number], (node_number, position))
+
+    if coords_mode == "all":
+        selected = [(restraint.node_number, restraint.position) for restraint in open_end_restraints]
+        listed = {node_number for node_number, _ in selected}
+        selected.extend(anchor for anchor in anchor_by_component.values() if anchor[0] not in listed)
+    else:
+        selected = sorted(anchor_by_component.values())
+
+    if not selected:
         return [_row(["0"])]
 
-    selected: list[AssignedRestraint]
-    if coords_mode == "first":
-        selected = [open_end_restraints[0]]
-    else:
-        selected = list(open_end_restraints)
-
     payload = [_row([str(len(selected))])]
-    for restraint in selected:
-        mapped = _map_position_to_cii(restraint.position)
+    for node_number, position in selected:
+        mapped = _map_position_to_cii(position)
         payload.append(
             _row(
                 [
-                    str(restraint.node_number),
+                    str(node_number),
                     _format_fixed_float(mapped[0], 4),
                     _format_fixed_float(mapped[1], 4),
                     _format_fixed_float(mapped[2], 4),
