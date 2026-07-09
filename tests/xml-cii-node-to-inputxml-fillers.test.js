@@ -92,18 +92,23 @@ function nodeXml(nodeNumber, x, y, z, od = 100) {
     <Branch><Branchname>/DEAD-HIT</Branchname>${nodeXml(100, 500, 200, 0)}${nodeXml(110, 500, 50, 0)}</Branch>
     <Branch><Branchname>/DEAD-FAR</Branchname>${nodeXml(200, 1500, 800, 0)}${nodeXml(210, 1500, 700, 0)}</Branch>
     <Branch><Branchname>/PARALLEL</Branchname>${nodeXml(300, 300, 100, 0)}${nodeXml(310, 800, 100, 0)}</Branch>
+    <Branch><Branchname>/SHORT</Branchname>${nodeXml(400, 2500, 0, 0)}${nodeXml(410, 2539, 0, 0)}</Branch>
   </Pipe></PipeStressExport>`;
   const result = api.buildInputXmlFromNodeXml(xml, { applyEnrichment: false, fillerNodeBase: 900000 });
   assert.strictEqual(result.ok, true, '5C generator should succeed');
-  assert.strictEqual(result.diagnostics.summary.routeElementCount, 5, 'first pass should build the base route before filler pass');
-  assert.strictEqual(result.diagnostics.summary.shortFillerCount, 1, 'only the dead end with perpendicular hit within 5D should become a filler');
-  assert.strictEqual(result.diagnostics.fillers[0].sourceDeadEndNode, 110, 'filler should originate at the true dead end');
-  assert.strictEqual(Math.round(result.diagnostics.fillers[0].lengthMm), 50, 'filler length should be the ray distance to perpendicular line hit');
-  assert.strictEqual(result.diagnostics.fillers[0].hitElement, '10->20', 'filler should hit the perpendicular main line segment');
+  assert.strictEqual(result.diagnostics.summary.routeElementCount, 6, 'first pass should build the complete base route before ray filler pass');
+  assert.strictEqual(result.diagnostics.summary.shortFillerCount, 1, 'first-pass route segment below 50mm should remain a short filler');
+  assert.strictEqual(result.diagnostics.summary.rayFillerCount, 1, 'only the dead end with perpendicular hit within 5D should become a ray filler');
+  assert(result.diagnostics.shortFillers.some((row) => row.from === 400 && row.to === 410 && row.fillerType === 'short'), 'short filler should be retained as first-pass filler');
+  const ray = result.diagnostics.rayFillers[0];
+  assert.strictEqual(ray.sourceDeadEndNode, 110, 'ray filler should originate at the true dead end');
+  assert.strictEqual(Math.round(ray.lengthMm), 50, 'ray filler length should be the ray distance to perpendicular line hit');
+  assert.strictEqual(ray.hitElement, '10->20', 'ray filler should hit the perpendicular main line segment');
   assert(result.diagnostics.fillerRejected.some((row) => row.node === 210 && row.reason === 'NO_PERPENDICULAR_HIT_WITHIN_5D'), 'far dead end should be rejected by 5D rule');
-  assert(result.coreInputXmlText.includes('FROM_NODE="110.000000" TO_NODE="900000.000000"'), 'filler should be emitted after second-pass detection with a synthetic target node');
-  assert(result.coreInputXmlText.includes('DELTA_Z="50.000000"'), 'filler delta should match the ray length using CAESAR axis mapping');
-  console.log('XML CII 5C second-pass filler checks passed.');
+  assert(result.coreInputXmlText.includes('FROM_NODE="110.000000" TO_NODE="900000.000000"'), 'ray filler should be emitted after second-pass detection with a synthetic target node');
+  assert(result.coreInputXmlText.includes('FROM_NODE="400.000000" TO_NODE="410.000000"'), 'short filler should remain as the original generated route element');
+  assert(result.coreInputXmlText.includes('DELTA_Z="50.000000"'), 'ray filler delta should match the ray length using CAESAR axis mapping');
+  console.log('XML CII 5C short and ray filler checks passed.');
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
