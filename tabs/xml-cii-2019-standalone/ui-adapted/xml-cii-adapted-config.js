@@ -120,7 +120,7 @@ function _renderModelingCard(configObj, syncJsonText, controls) {
     configObj.defaultGap = val;
     syncJsonText();
   });
-  controls.SifInput = makeNumberInput(card, 'Default Tee SIF Type', configObj.defaultTeeSifType ?? 0, '1', (val) => {
+  controls.SifInput = makeNumberInput(card, 'Default Tee SIF Type', configObj.defaultTeeSifType ?? 5, '1', (val) => {
     configObj.defaultTeeSifType = val;
     syncJsonText();
   });
@@ -155,7 +155,7 @@ function _renderProcessCard(configObj, syncJsonText, controls) {
   card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
   card.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#38bdf8;">🗺️ Process Fallbacks (Line List)</h3>';
   if (!configObj.processDefaults || typeof configObj.processDefaults !== 'object') {
-    configObj.processDefaults = { p1: '700', t1: '120', t2: '309', t3: '-5', density: '100' };
+    configObj.processDefaults = { p1: '700', t1: '120', t2: '60', t3: '-5', density: '100' };
   }
   controls.p1Input = makeTextInput(card, 'Design Pressure (p1)', configObj.processDefaults.p1, (val) => {
     configObj.processDefaults.p1 = val;
@@ -296,7 +296,7 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
     ctrlRefs.stiffnessInput.value = configObj.defaultStiffness ?? 1751270000000;
     ctrlRefs.frictionInput.value = configObj.defaultFriction ?? 0.3;
     ctrlRefs.gapInput.value = configObj.defaultGap ?? 0;
-    ctrlRefs.SifInput.value = configObj.defaultTeeSifType ?? 0;
+    ctrlRefs.SifInput.value = configObj.defaultTeeSifType ?? 5;
     ctrlRefs.frictionSentinelNode.checked = configObj.useFrictionSentinelForNonYSupports !== false;
     ctrlRefs.splitCondensedNode.checked = configObj.splitCondensedValveFlange !== false;
     ctrlRefs.disableSupportTagNode.checked = configObj.disableCiiSupportTagPopulation !== false;
