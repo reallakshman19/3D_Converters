@@ -253,6 +253,27 @@ export function _nominalDnFromOd(od) {
   for (const [x, y] of OD_TO_DN) { const e = Math.abs(od - x); if (!best || e < best.err) best = { od: x, dn: y, err: e }; }
   return best && best.err <= Math.max(1.5, Math.abs(best.od) * 0.006) ? best.dn : od;
 }
+// XML-level fallback facts consumed by the branch process resolver when the
+// piping class / line list masters have no matching row: the first node's
+// MaterialName (mapped through the material map), CorrosionAllowance and
+// WallThickness of the branch itself.
+export function _branchXmlFallbackFacts(branch) {
+  const facts = { material: '', corrosionAllowance: undefined, wallThickness: undefined };
+  for (const node of _xmlChildrenByName(branch, 'Node')) {
+    if (!facts.material) facts.material = _xmlText(node, 'MaterialName');
+    if (facts.corrosionAllowance === undefined) {
+      const corrosion = Number(_xmlText(node, 'CorrosionAllowance'));
+      if (Number.isFinite(corrosion) && corrosion > 0) facts.corrosionAllowance = corrosion;
+    }
+    if (facts.wallThickness === undefined) {
+      const wall = Number(_xmlText(node, 'WallThickness'));
+      if (Number.isFinite(wall) && wall > 0) facts.wallThickness = wall;
+    }
+    if (facts.material && facts.corrosionAllowance !== undefined && facts.wallThickness !== undefined) break;
+  }
+  return facts;
+}
+
 export function _branchBoreFromFirstUsefulNode(branch) {
   for (const n of _xmlChildrenByName(branch, 'Node')) {
     const b = Number(_xmlText(n, 'BoreMm') || _xmlText(n, 'Bore'));
@@ -413,7 +434,8 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
     const rowRating = _rowText(lineListMatch, ['rating', 'Rating', 'RATING']);
     const inputRating = manualRating || rowRating || _deriveRatingFromPipingClass(derivedClassRaw, config);
     const resolverLineRow = { ...(lineListMatch || {}), pipingClass: derivedClassRaw };
-    const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: inputRating, materialMap, pipingClassIndex, overrides: config.overrides || {}, xmlNode: null, xmlBranch: branch, config });
+    const branchXmlFacts = _branchXmlFallbackFacts(branch);
+    const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: inputRating, materialMap, pipingClassIndex, overrides: config.overrides || {}, xmlNode: branchXmlFacts, xmlBranch: branchXmlFacts, config });
     const branchRating = manualRating || resolved.rating || _deriveRatingFromPipingClass(resolved.pipingClass, config) || rowRating;
     const ratingSource = manualRating ? 'override' : _overrideSource(config.overrides, 'rating', lineKey);
     const pdOverride = (lineKey && config?.overrides?.processData?.[lineKey]) || {};
@@ -450,7 +472,7 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
 
     let matMethod = 'none';
     if (resolved.materialSource === 'override' || resolved.materialSource === 'override-material-map') matMethod = 'override';
-    else if (resolved.materialSource === 'line-list-material-map' || resolved.materialSource === 'piping-class-material-map') matMethod = 'exact';
+    else if (resolved.materialSource === 'line-list-material-map' || resolved.materialSource === 'piping-class-material-map' || resolved.materialSource === 'xml-material-map') matMethod = 'exact';
     else if (resolved.materialSource === 'xml-fallback') matMethod = 'xml-fallback';
 
     branchRows.push({

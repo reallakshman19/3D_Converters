@@ -18,7 +18,24 @@ function readCache(key) {
   try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
 }
 
-function previewBranchRows(state) {
+// "Run Audit" computes tab values FRESH from the current source + config via
+// the same dry-run resolver the Preview tab uses — stale caches are only a
+// fallback when the dry-run cannot run (no source loaded).
+async function freshDryRun(state) {
+  try {
+    if (!t(state.sourceText) || typeof DOMParser === 'undefined') return null;
+    const [{ xmlCiiDryRunPreview }, { xmlCiiEnrichedConfigFromState }] = await Promise.all([
+      import('./xml-cii-adapted-preview-dryrun.js'),
+      import('./xml-cii-adapted-state.js'),
+    ]);
+    const config = xmlCiiEnrichedConfigFromState(state);
+    const result = xmlCiiDryRunPreview(state.sourceText, config, state.stagedJsonText || '');
+    return Array.isArray(result?.branchRows) && result.branchRows.length ? result : null;
+  } catch { return null; }
+}
+
+function previewBranchRows(state, fresh) {
+  if (Array.isArray(fresh?.branchRows) && fresh.branchRows.length) return fresh.branchRows;
   const report = state.previewDiagnosticsAuditReport;
   if (Array.isArray(report?.branchRows) && report.branchRows.length) return report.branchRows;
   for (const key of ['xml-cii-pv-cache-v6', 'xml-cii-pv-cache-v5']) {
@@ -89,12 +106,21 @@ function ciiNodeNumbers(ciiText) {
   return set;
 }
 
-function ciiHasValue(ciiText, value) {
-  const n = num(value);
-  if (n === null || !t(ciiText)) return false;
-  const exp = n.toExponential(6).toUpperCase().replace(/E([+-])(\d)$/, 'E$10$2');
-  const patterns = [String(n), n.toFixed(1), n.toFixed(2), n.toFixed(3), n.toFixed(5), exp];
-  return patterns.some((p) => p && ciiText.includes(p));
+// Unit conversions the converter applies before writing the CII: densities
+// kg/m³ → kg/cm³ (×1e-6, convertDensityKgM3ToKgCm3) and component weights
+// kg → N (×~10, kgToNewton / weight scale).
+const CII_FIELD_SCALES = { density: [1, 1e-6], weight: [1, 10, 9.80665] };
+
+function ciiHasValue(ciiText, value, fieldId = '') {
+  const base = num(value);
+  if (base === null || !t(ciiText)) return false;
+  for (const scale of CII_FIELD_SCALES[fieldId] || [1]) {
+    const n = base * scale;
+    const exp = n.toExponential(6).toUpperCase().replace(/E([+-])(\d)$/, 'E$10$2');
+    const patterns = [String(n), n.toFixed(1), n.toFixed(2), n.toFixed(3), n.toFixed(5), exp];
+    if (patterns.some((p) => p && ciiText.includes(p))) return true;
+  }
+  return false;
 }
 
 const SENTINEL_TEMPERATURE = -100000;
@@ -115,8 +141,9 @@ function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailab
   return 'propagated';
 }
 
-export function buildXmlCiiPropagationAudit(state) {
-  const branchRows = previewBranchRows(state);
+export async function buildXmlCiiPropagationAudit(state) {
+  const fresh = await freshDryRun(state);
+  const branchRows = previewBranchRows(state, fresh);
   const wmRows = weightMatchRows(state);
   const enriched = parseEnrichedXml(state.result?.enrichedText || '');
   const ciiText = state.result?.ciiText || '';
@@ -134,7 +161,7 @@ export function buildXmlCiiPropagationAudit(state) {
       ['density', 'Fluid Density', row.density, enrichedBranch?.density],
     ];
     for (const [fieldId, fieldLabel, tabValue, enrichedValue] of fields) {
-      const inCii = ciiAvailable && ciiHasValue(ciiText, enrichedValue ?? tabValue);
+      const inCii = ciiAvailable && ciiHasValue(ciiText, enrichedValue ?? tabValue, fieldId);
       rows.push({
         scope: 'branch',
         key: row.branchName,
@@ -153,8 +180,11 @@ export function buildXmlCiiPropagationAudit(state) {
     const weight = row.weight ?? row.candidates?.[0]?.selectedWeight ?? row.candidates?.[0]?.weight;
     const nodeKey = `${row.branchName}|${row.nodeNumber}`;
     const enrichedNode = enriched.nodes.get(nodeKey) || null;
-    const nodeInCii = ciiAvailable && row.nodeNumber != null && ciiNodes.has(String(row.nodeNumber));
-    const inCii = ciiAvailable && ciiHasValue(ciiText, enrichedNode?.weight ?? weight);
+    // -1 nodes are unnumbered inline components: their weight rides on the
+    // surrounding element in the CII, so node presence cannot be checked.
+    const inlineNode = String(row.nodeNumber ?? '') === '-1' || row.nodeNumber == null;
+    const nodeInCii = ciiAvailable && !inlineNode && ciiNodes.has(String(row.nodeNumber));
+    const inCii = ciiAvailable && ciiHasValue(ciiText, enrichedNode?.weight ?? weight, 'weight');
     rows.push({
       scope: 'node',
       key: row.branchName,
@@ -162,9 +192,9 @@ export function buildXmlCiiPropagationAudit(state) {
       field: `Weight (${t(row.componentType) || 'node'})`,
       fieldId: 'weight',
       stageTab: t(weight) || '—',
-      stageEnriched: enriched.available ? (t(enrichedNode?.weight) || (enrichedNode ? '—' : 'node missing')) : 'n/a',
-      stageCii: ciiAvailable ? `${nodeInCii ? 'node found' : 'node missing'} / weight ${inCii ? 'found' : 'not found'}` : 'n/a',
-      status: statusFor(weight, enrichedNode?.weight, inCii && nodeInCii, enriched.available && !!enrichedNode, ciiAvailable),
+      stageEnriched: enriched.available ? (t(enrichedNode?.weight) || (enrichedNode ? '—' : (inlineNode ? 'inline (-1)' : 'node missing'))) : 'n/a',
+      stageCii: ciiAvailable ? `${inlineNode ? 'inline (-1)' : (nodeInCii ? 'node found' : 'node missing')} / weight ${inCii ? 'found' : 'not found'}` : 'n/a',
+      status: statusFor(weight, enrichedNode?.weight, inCii && (inlineNode || nodeInCii), enriched.available && !!enrichedNode, ciiAvailable),
     });
   }
 
@@ -212,8 +242,8 @@ function summaryTile(label, value, color) {
   return `<div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;min-width:120px;"><div style="font-size:11px;color:#94a3b8;">${esc(label)}</div><div style="font-size:20px;font-weight:700;color:${color};">${esc(value)}</div></div>`;
 }
 
-export function renderStandalonePropagationAuditPanel(card, state, render) {
-  const audit = buildXmlCiiPropagationAudit(state);
+export async function renderStandalonePropagationAuditPanel(card, state, render) {
+  const audit = await buildXmlCiiPropagationAudit(state);
 
   const runBar = createElement('div');
   runBar.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:10px;';

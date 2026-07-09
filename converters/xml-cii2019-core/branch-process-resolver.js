@@ -194,6 +194,11 @@ export function resolveMaterialCodeFromLineMaterial({ lineRow, materialMap, pipi
   const fromLineCode = materialMapRowCode(fromLineMaterial);
   if (fromLineCode) return { material: cleanMaterialText(materialText || lineMaterialRaw), materialCode: fromLineCode, source: materialOverride ? 'override-material-map' : 'line-list-material-map', matchedRow: fromLineMaterial };
   const xmlMaterial = cleanMaterialText(xmlNode?.material || xmlBranch?.material || '');
+  // Final fallback: the XML's own MaterialName (e.g. "CS") mapped through the
+  // material map — covers piping classes that are absent from the masters.
+  const fromXmlMaterial = mapMaterialTextToCiiCodeRobust(xmlMaterial, materialMap);
+  const fromXmlCode = materialMapRowCode(fromXmlMaterial);
+  if (fromXmlCode) return { material: materialText || xmlMaterial, materialCode: fromXmlCode, source: 'xml-material-map', matchedRow: fromXmlMaterial };
   return { material: materialText || cleanMaterialText(lineMaterialRaw) || cleanMaterialText(classMaterialRaw) || xmlMaterial, materialCode: '', source: xmlMaterial ? 'xml-fallback' : 'blank', matchedRow: null };
 }
 
