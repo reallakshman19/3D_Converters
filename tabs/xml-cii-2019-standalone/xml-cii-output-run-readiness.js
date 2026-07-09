@@ -67,7 +67,13 @@ function weightMatchDone(input) {
 function supportMapperDone(input) {
   if (input.supportTypeMapperResult || array(input.supportTypeMapperConfig).length) return true;
   const parsed = parseConfig(input.supportConfigJson);
-  return parsed.ok && array(parsed.value?.supportMapperRules).length > 0;
+  if (!parsed.ok) return false;
+  if (array(parsed.value?.supportMapperRules).length > 0) return true;
+  // The mapper ships with built-in kind→CII rules (supportKindToXmlType /
+  // keywordRules in the default config); those defaults count as available.
+  const kindMap = parsed.value?.supportKindToXmlType;
+  if (kindMap && typeof kindMap === 'object' && Object.keys(kindMap).length > 0) return true;
+  return array(parsed.value?.keywordRules).length > 0;
 }
 
 function commonRows(input) {
