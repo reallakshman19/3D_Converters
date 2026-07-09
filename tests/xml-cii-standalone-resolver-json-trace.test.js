@@ -22,6 +22,7 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
+    'converters/xml-cii2019-core/default-weight-master-rows.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-results.js',

@@ -135,7 +135,7 @@ function _renderFlagsCard(configObj, syncJsonText, controls) {
     configObj.useFrictionSentinelForNonYSupports = val;
     syncJsonText();
   });
-  controls.splitCondensedNode = makeCheckbox(card, 'Apply resolved split (Valve/Flange)', configObj.splitCondensedValveFlange === true, (val) => {
+  controls.splitCondensedNode = makeCheckbox(card, 'Apply resolved split (Valve/Flange)', configObj.splitCondensedValveFlange !== false, (val) => {
     configObj.splitCondensedValveFlange = val;
     syncJsonText();
   });
@@ -298,7 +298,7 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
     ctrlRefs.gapInput.value = configObj.defaultGap ?? 0;
     ctrlRefs.SifInput.value = configObj.defaultTeeSifType ?? 0;
     ctrlRefs.frictionSentinelNode.checked = configObj.useFrictionSentinelForNonYSupports !== false;
-    ctrlRefs.splitCondensedNode.checked = configObj.splitCondensedValveFlange === true;
+    ctrlRefs.splitCondensedNode.checked = configObj.splitCondensedValveFlange !== false;
     ctrlRefs.disableSupportTagNode.checked = configObj.disableCiiSupportTagPopulation !== false;
     ctrlRefs.convertDensityNode.checked = configObj.convertDensityKgM3ToKgCm3 !== false;
     if (configObj.processDefaults && typeof configObj.processDefaults === 'object') {

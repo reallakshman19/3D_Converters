@@ -321,6 +321,16 @@ function renderMasterCard(master, state) {
   fileInput.accept = master.key === 'materialMap' ? '.csv,.xlsx,.xls,.txt,.map' : '.csv,.xlsx,.xls';
   fileInput.dataset.masterFile = master.key;
   fileLabel.appendChild(fileInput);
+  // Native file inputs keep showing "No file chosen" after a restore/load.
+  // When rows are already loaded, hide that native text and show the actual
+  // source next to the picker instead.
+  const alreadyLoaded = Number(master.rowCount || 0) > 0;
+  if (alreadyLoaded) {
+    if (fileInput.style) Object.assign(fileInput.style, { color: 'transparent', maxWidth: '120px' });
+    const loadedSpan = createElement('span', ` ✅ Loaded: ${text(master.sourceMetadata?.source, 'stored rows')} (${master.rowCount} rows)`);
+    if (loadedSpan.style) Object.assign(loadedSpan.style, { color: '#8be28b', fontSize: '0.85rem', marginLeft: '8px' });
+    fileLabel.appendChild(loadedSpan);
+  }
   card.appendChild(fileLabel);
 
   const context = state.masterContext || {};

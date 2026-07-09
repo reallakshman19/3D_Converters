@@ -27,10 +27,13 @@ function optionRows(input, kind) {
 }
 
 function xmlRows(input) {
+  const regex = !!input.regexTesterResult;
+  const resolver = !!input.resolverJsonTraceResult;
+  const manual = !!input.manualElementSideloadResult;
   return [
-    row('regex', 'Regex status for XML mode', !!input.regexTesterResult, 'Regex tester result is available.'),
-    row('resolver-json', 'Resolver / JSON Trace status for XML mode', !!input.resolverJsonTraceResult, 'Resolver / JSON Trace result is available.'),
-    row('manual-restraints', 'Manual restraints status for XML mode', !!input.manualElementSideloadResult, 'Manual restraint review result is available.'),
+    row('regex', 'Regex status for XML mode', regex, regex ? 'Regex tester result is available.' : 'Regex tester has not been run yet.'),
+    row('resolver-json', 'Resolver / JSON Trace status for XML mode', resolver, resolver ? 'Resolver / JSON Trace result is available.' : 'Resolver / JSON Trace has not been built yet.'),
+    row('manual-restraints', 'Manual restraints status for XML mode', manual, manual ? 'Manual restraint review result is available.' : 'Manual restraint review has not been run yet.'),
   ];
 }
 
@@ -39,12 +42,43 @@ function inputXmlRows(input) {
   return [row('inputxml-side-load', 'InputXML side-load status', matched > 0 || !!text(input.elementSideLoadText), `InputXML side-load evidence rows: ${matched || 'not built yet'}.`)];
 }
 
+// The Preview and Weight Match tabs persist their built data in LocalStorage
+// caches rather than on the workflow state, so readiness must consult both.
+function cachedRows(storageKey, picker) {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return picker(parsed?.data ?? parsed);
+  } catch { return false; }
+}
+
+function previewDone(input) {
+  if (input.previewDiagnosticsAuditReport) return true;
+  return ['xml-cii-pv-cache-v6', 'xml-cii-pv-cache-v5'].some((key) => cachedRows(key, (data) => array(data?.branchRows).length > 0 || array(data?.nodeRows).length > 0));
+}
+
+function weightMatchDone(input) {
+  if (input.weightMatchResult) return true;
+  return cachedRows('xml-cii-wm-cache-v1', (data) => array(data).length > 0);
+}
+
+function supportMapperDone(input) {
+  if (input.supportTypeMapperResult || array(input.supportTypeMapperConfig).length) return true;
+  const parsed = parseConfig(input.supportConfigJson);
+  return parsed.ok && array(parsed.value?.supportMapperRules).length > 0;
+}
+
 function commonRows(input) {
+  const preview = previewDone(input);
+  const weight = weightMatchDone(input);
+  const mapper = supportMapperDone(input);
   return [
     row('import-masters', 'Import Masters status', !!input.masterContext, 'Master context is available.'),
-    row('preview-audit', 'Preview / Diagnostics / Matched Audit status', !!input.previewDiagnosticsAuditReport, 'Preview diagnostics audit report is available.'),
-    row('weight-match', 'Weight Match status', !!input.weightMatchResult, input.weightMatchStatus || 'Weight Match result is not available.'),
-    row('support-mapper', 'Support Type Mapper status', !!input.supportTypeMapperResult, input.supportTypeMapperStatus || 'Support mapper result is not available.'),
+    row('preview-audit', 'Preview / Diagnostics / Matched Audit status', preview, preview ? 'Preview / dry-run data is available.' : 'Preview has not been built yet.'),
+    row('weight-match', 'Weight Match status', weight, weight ? (input.weightMatchStatus || 'Weight Match data is available.') : 'Weight Match result is not available.'),
+    row('support-mapper', 'Support Type Mapper status', mapper, mapper ? (input.supportTypeMapperStatus || 'Support mapper rules are available.') : 'Support mapper result is not available.'),
     row('run-result', 'Run result available after run', hasResult(input), hasResult(input) ? 'Run result is available.' : 'No run result yet.', { status: 'pending' }),
   ];
 }
@@ -91,8 +125,15 @@ export function buildRunManifest(input = {}) {
   };
 }
 
+function runLogLevel(message) {
+  if (/traceback|error|exception|^stderr:/i.test(message)) return 'error';
+  if (/warning/i.test(message)) return 'warning';
+  return 'info';
+}
+
 function logRows(input, checklistRows) {
-  const fromResult = array(input.result?.logs).map((message) => ({ level: 'info', source: 'run', message: text(message) }));
+  const fromResult = array(input.result?.logs).map((message) => ({ level: runLogLevel(text(message)), source: 'run', message: text(message) }));
+  if (input.result?.error) fromResult.push({ level: 'error', source: 'run', message: text(input.result.error) });
   const fromChecklist = checklistRows.filter((item) => item.status !== 'ready').map((item) => ({ level: item.severity, source: 'readiness', message: `${item.label}: ${item.message}` }));
   return [...fromChecklist, ...fromResult];
 }

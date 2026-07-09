@@ -80,7 +80,8 @@ function createModeBadge(state) {
   const actualKind = state.sourceKind === 'auto' ? detectedKind : state.sourceKind;
   const modeText = actualKind === 'inputxml' ? 'InputXML' : 'XML';
   const autoText = state.sourceKind === 'auto' ? ' (Auto)' : '';
-  return createBadge(`Source Mode: ${modeText}${autoText}`, null, 'rgba(120,180,255,.45)');
+  const loaded = !!(state.sourceText || state.sourceFile);
+  return createBadge(`Source Mode: ${modeText}${autoText}`, loaded ? '#8be28b' : null, loaded ? '#2f855a' : 'rgba(120,180,255,.45)');
 }
 
 function createSourceBadge(state) {
@@ -99,7 +100,8 @@ function createMastersBadge(state) {
     }
   }
   const border = loadedCount === 4 ? '#2f855a' : (loadedCount > 0 ? '#fbbf24' : '#7f1d1d');
-  return createBadge(`Masters: ${loadedCount}/4 loaded`, null, border);
+  const color = loadedCount === 4 ? '#8be28b' : (loadedCount > 0 ? '#fde047' : '#ff9b9b');
+  return createBadge(`Masters: ${loadedCount}/4 loaded`, color, border);
 }
 
 function createReadinessBadge(state) {
@@ -111,14 +113,31 @@ function createReadinessBadge(state) {
 }
 
 function createDiagnosticsBadges(state) {
-  const report = state.previewDiagnosticsAuditReport;
-  const diagnostics = Array.isArray(report?.diagnostics) ? report.diagnostics : [];
+  // Count across every diagnostics source the shell knows about, not just the
+  // preview audit: run failures and readiness warnings must show here too.
   let errors = 0;
   let warnings = 0;
-  for (const item of diagnostics) {
-    const lvl = String(item.level || '').toLowerCase();
-    if (lvl.includes('err')) errors++;
-    else if (lvl.includes('warn')) warnings++;
+  let anySource = false;
+  const tally = (items) => {
+    if (!Array.isArray(items)) return;
+    anySource = true;
+    for (const item of items) {
+      const lvl = String(item?.level || '').toLowerCase();
+      if (lvl.includes('err')) errors++;
+      else if (lvl.includes('warn')) warnings++;
+    }
+  };
+  tally(state.previewDiagnosticsAuditReport?.diagnostics);
+  tally(state.outputRunReadinessReport?.diagnostics);
+  if (state.result) {
+    anySource = true;
+    if (state.result.ok === false || state.result.error) errors++;
+    const runWarnings = state.result.diagnostics?.warnings;
+    if (Array.isArray(runWarnings)) warnings += runWarnings.length;
+  }
+  if (!anySource) {
+    // No report built yet — do not claim a clean "0 Errors / 0 Warnings".
+    return [createBadge('Diagnostics: not built', '#94a3b8', 'rgba(148,163,184,.45)')];
   }
   const errBadge = createBadge(`${errors} Errors`, errors ? '#fca5a5' : '#8be28b', errors ? '#ef4444' : '#2f855a');
   const warnBadge = createBadge(`${warnings} Warnings`, warnings ? '#fde047' : '#8be28b', warnings ? '#fbbf24' : '#2f855a');

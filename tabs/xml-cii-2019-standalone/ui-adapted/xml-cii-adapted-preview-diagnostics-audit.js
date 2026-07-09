@@ -161,6 +161,17 @@ export function _xmlCiiOpenPreviewOverridePopup({ editType, derivedKey, currentV
 export async function renderStandalonePreviewReportPanel(card, stateRef, render) {
   const state = stateRef && (stateRef.current !== undefined) ? stateRef.current : stateRef;
   const config = xmlCiiEnrichedConfigFromState(state);
+  // Default "Use JSON Trace staged source" ON when JSON trace data is present
+  // (node-wise trace / evidence tree built) and the user has not explicitly
+  // turned it off.
+  const traceResult = state.resolverJsonTraceResult;
+  const traceDataPresent = (Array.isArray(traceResult?.resolvedFacts) && traceResult.resolvedFacts.length > 0)
+    || (Array.isArray(traceResult?.matchedFacts) && traceResult.matchedFacts.length > 0);
+  if (traceDataPresent && config.useJsonTraceStagedSource == null && config.useParsedCustomInputSource == null && config.useParsedCustomInputSourceForPreview == null) {
+    config.useJsonTraceStagedSource = true;
+    config.useParsedCustomInputSource = true;
+    config.useParsedCustomInputSourceForPreview = true;
+  }
   const xmlText = state.sourceText || '';
   const xmlFile = state.sourceFile || (xmlText ? new File([xmlText], 'source.xml', { type: 'application/xml' }) : null);
 

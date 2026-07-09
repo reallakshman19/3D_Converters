@@ -3,6 +3,8 @@ import { adaptedRenderColGroup, adaptedAttachColumnResizers, adaptedLoadColumnWi
 export const BRANCH_COLUMNS = [
   { id: 'branchName', label: 'Branch Name', width: 220, minWidth: 120 },
   { id: 'lineKey', label: 'Line Key', width: 120, minWidth: 80 },
+  { id: 'lineFrom', label: 'From', width: 110, minWidth: 70 },
+  { id: 'lineTo', label: 'To', width: 110, minWidth: 70 },
   { id: 'size', label: 'Size', width: 90, minWidth: 60 },
   { id: 'pipingClass', label: 'Piping Class', hint: 'Edit', width: 130, minWidth: 90 },
   { id: 'material', label: 'Material', hint: 'Edit', width: 120, minWidth: 80 },
@@ -93,7 +95,9 @@ export class XmlCiiAdaptedEditablePreviewTable {
     return `
       <tr class="mc-preview-row${row.lineMiss ? ' mc-preview-line-miss' : ''}">
         <td class="mc-preview-td mc-preview-branch" title="${this._escapeAttr(row.branchName)}">${this._escape(row.branchName.length > 36 ? '…' + row.branchName.slice(-32) : row.branchName)}</td>
-        <td class="mc-preview-td${row.lineMiss ? ' mc-preview-warn' : ''}">${this._escape(row.lineKey || '—')}</td>
+        <td class="mc-preview-td${row.lineMiss ? ' mc-preview-warn' : ''}">${this._renderLineKeyCell(row)}</td>
+        <td class="mc-preview-td" title="Process master From (line list)">${this._escape(row.lineFrom || '—')}</td>
+        <td class="mc-preview-td" title="Process master To (line list)">${this._escape(row.lineTo || '—')}</td>
         <td class="mc-preview-td">${this._escape(row.size || '—')}</td>
         <td ${tdApprox(row.pipingClassNeedsReview, editAttrs('pipingClass', row.pipingClassDerived, `data-mc-edit-derived="${this._escapeAttr(row.pipingClassDerived || '')}" title="${this._escapeAttr(pipingClassTitle)}"`))}>${pcBadge}${row.pipingClassNeedsReview ? fillDownBtn('pipingClass', ri) : ''}</td>
         <td ${tdApprox(false, editAttrs('material', row.lineKey))}>${editablePlain('material', row.material, row.lineKey, row.materialSource)}</td>
@@ -117,6 +121,17 @@ export class XmlCiiAdaptedEditablePreviewTable {
     hostEl.querySelectorAll('.mc-preview-filldown-btn[data-mc-fill-field]:not(.mc-pd-filldown)').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const field = btn.getAttribute('data-mc-fill-field') || ''; const fromRow = Number(btn.getAttribute('data-mc-fill-from') || 0); const sourceTd = btn.closest('[data-mc-edit-type]'); const currentVal = sourceTd?.querySelector('.mc-preview-editable-val')?.textContent?.trim() || ''; if (typeof this.onFillDownClick === 'function') this.onFillDownClick({ field, fromRow, currentVal, sourceTd, btn }); }));
     hostEl.querySelectorAll('[data-mc-pd-field]').forEach(input => input.addEventListener('change', () => { const fieldKey = input.dataset.mcPdField; const lineKey = input.dataset.mcPdLinekey; const rowIndex = Number(input.dataset.mcPdRow || 0); const value = input.value; if (typeof this.onProcessInputChange === 'function') this.onProcessInputChange({ fieldKey, lineKey, value, rowIndex, input }); }));
     hostEl.querySelectorAll('.mc-pd-filldown[data-mc-fill-field]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const fieldKey = btn.getAttribute('data-mc-fill-field') || ''; const fromRow = Number(btn.getAttribute('data-mc-fill-from') || 0); const cell = btn.closest('.mc-preview-pd-cell'); const input = cell?.querySelector('.mc-preview-pd-input'); const value = input ? input.value : ''; const pipingClassKey = input?.dataset?.mcPdPckey || ''; if (typeof this.onProcessFillDownClick === 'function') this.onProcessFillDownClick({ fieldKey, fromRow, value, btn, pipingClassKey }); }));
+  }
+
+  _renderLineKeyCell(row) {
+    const key = this._escape(row.lineKey || row.lineKeyProposed || '—');
+    const method = String(row.lineKeyMethod || '');
+    if (method.startsWith('similar')) {
+      const pct = Number.isFinite(Number(row.lineKeyConfidence)) ? `${Math.round(Number(row.lineKeyConfidence) * 100)}%` : '';
+      const title = `Similar line key proposed from the line list master (${method}). Proposed: ${row.lineKeyProposed || ''} ${pct}`;
+      return `${key} <span class="mc-preview-badge" style="background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);" title="${this._escapeAttr(title)}">≈ ${this._escape(row.lineKeyProposed || 'similar')} ${pct}</span>`;
+    }
+    return key;
   }
 
   _escape(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }

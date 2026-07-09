@@ -12,7 +12,8 @@ import {
   xmlCiiDryRunPreview
 } from './xml-cii-adapted-preview-dryrun.js';
 
-const PV_CACHE_KEY = 'xml-cii-pv-cache-v5';
+// v6: branch rows now carry lineFrom/lineTo + similar-linekey fields.
+const PV_CACHE_KEY = 'xml-cii-pv-cache-v6';
 const _PV_CACHE_MAX_BYTES = 2500000;
 
 function pvCacheFingerprint(xmlText, cfg) {

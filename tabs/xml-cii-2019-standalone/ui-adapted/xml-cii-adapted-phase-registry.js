@@ -9,10 +9,10 @@ export const XML_CII_WORKFLOW_PHASES = Object.freeze([
   { id: 'json-trace', label: '3 Resolver / JSON Trace', summary: 'Inspect staged JSON and resolve PS/POS traces.' },
   { id: 'preview', label: '4 Preview', summary: 'Preview selected source, side-load, options, and config state.' },
   { id: 'diagnostics', label: '5 Diagnostics', summary: 'Review normalized workflow diagnostics and warnings.' },
-  { id: 'matched-audit', label: '6 Matched Audit', summary: 'Review matched and rejected standalone facts with latest run state.' },
-  { id: 'weight-match', label: '7 Weight Match', summary: 'Review zero/missing weights, candidate scores, overrides, and finalized weight matches.' },
-  { id: 'support-mapper', label: '8 Support Type Mapper', summary: 'Review DTXR-derived support and restraint mapping rules.' },
-  { id: 'config', label: '9 Config', summary: 'Edit support/config JSON passed to the standalone API.' },
+  { id: 'weight-match', label: '6 Weight Match', summary: 'Review zero/missing weights, candidate scores, overrides, and finalized weight matches.' },
+  { id: 'support-mapper', label: '7 Support Type Mapper', summary: 'Review DTXR-derived support and restraint mapping rules.' },
+  { id: 'config', label: '8 Config', summary: 'Edit support/config JSON passed to the standalone API.' },
+  { id: 'matched-audit', label: '9 Propagation Audit', summary: 'Trace values node-wise across tabs → enriched XML → CII and flag lost propagation.' },
   { id: 'run', label: '10 Output / Run', summary: 'Call runXmlCii2019Workflow and collect generated artifacts.' },
 ]);
 

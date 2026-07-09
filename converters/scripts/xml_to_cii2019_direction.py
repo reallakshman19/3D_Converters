@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 import re
+import sys
 import xml.etree.ElementTree as ET
 
 import xml_to_cii2019 as base
@@ -527,7 +528,13 @@ def _tolerant_build_restraints(
                     matched = True
                     break
         if not matched:
-            raise ValueError(f"Unable to assign restraint for NodeNumber {node_number}.")
+            # Tolerant policy: a spec that no edge references (dropped or
+            # renamed node) is skipped with a warning instead of aborting the
+            # whole CII generation.
+            print(
+                f"WARNING: Unable to assign restraint for NodeNumber {node_number}; restraint skipped.",
+                file=sys.stderr,
+            )
 
     return restraints, edge_to_index
 

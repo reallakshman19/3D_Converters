@@ -181,7 +181,13 @@ function renderResolverIndex(parent, state) {
   section.appendChild(createElement('h3', 'Resolver Index'));
   
   const actions = createElement('div', '', 'xml-cii-resolver-actions');
-  actions.append(actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index'));
+  const buildBtn = actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index');
+  // Red until the resolver index has actually been built for this visit.
+  if (buildBtn.style && !state.resolverJsonTraceRunning && !state.resolverJsonTraceResult) {
+    Object.assign(buildBtn.style, { background: '#7f1d1d', border: '1px solid #ef4444', color: '#fecaca', fontWeight: '700' });
+    buildBtn.title = 'Resolver index has not been built yet — click to build.';
+  }
+  actions.append(buildBtn);
   actions.append(actionButton('save-resolver-json-config', 'Save to config'));
   actions.append(createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
   section.appendChild(actions);
@@ -412,11 +418,22 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
     { id: 'rejected', label: '❌ Rejected Facts' }
   ];
   
+  const subTabHasData = {
+    tree: rows(result?.matchedFacts).length > 0,
+    nodeTrace: rows(result?.nodes).length > 0 && rows(result?.resolvedFacts).length > 0,
+    matched: rows(result?.matchedFacts).length > 0,
+    rejected: rows(result?.rejectedFacts).length > 0,
+  };
+
   for (const sub of subTabs) {
     const btn = createElement('button', sub.label, 'xml-cii-sub-phase-pill');
     btn.type = 'button';
     btn.dataset.jsonTraceSubTab = sub.id;
     btn.classList.toggle('is-active', subTabId === sub.id);
+    if (subTabHasData[sub.id] && btn.style) {
+      Object.assign(btn.style, { color: '#8be28b', border: '1px solid #2f855a' });
+      btn.title = 'Data is available in this sub-tab.';
+    }
     rail.appendChild(btn);
   }
   
