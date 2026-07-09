@@ -10,13 +10,15 @@ import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260708-workflow-br
 import { xmlCiiWorkflowRequestFinalRun } from './xml-cii-workflow-runner.js?v=20260624-workflow1-workflow2-1';
 import { renderXmlCiiTopology5BPanel } from './xml-cii-topology-5b-panel.js?v=20260709-native-5b-2';
 import { renderXmlCiiTopology5CPanel } from './xml-cii-topology-5c-panel.js?v=20260709-5c-ui-2';
-import './xml-cii-5c-download-inputxml-patch.js?v=20260709-5c-download-1';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };
 const SNAPSHOT_TTL_MS = 5000;
+const XML_CII_5C_STATE_KEY = '__xmlCiiTopology5CState';
 let jsonTraceBuildPatchInstalled = false;
 let jsonTraceAutoBuildSignature = '';
+let inputXml5CDownloadPatchInstalled = false;
+let inputXml5CDownloadPatchQueued = false;
 
 function nowMs() { return Date.now ? Date.now() : 0; }
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
@@ -162,8 +164,7 @@ function writeConfig(base, config) { base?.importPopupConfigText?.(JSON.stringif
 function looksLikeNodeXml(value) {
   const raw = text(value);
   return raw.length > 200 && /<Branch\b/i.test(raw) && /<Node\b/i.test(raw);
-}
-function extractNodeXmlCandidate(value, seen = new Set()) {
+}\nfunction extractNodeXmlCandidate(value, seen = new Set()) {
   if (!value) return '';
   if (typeof value === 'string') return looksLikeNodeXml(value) ? value : '';
   if (typeof value !== 'object' || seen.has(value)) return '';
@@ -235,6 +236,79 @@ function wrapSync(base, methodName) {
   return (...args) => { const result = original(...args); clearSnapshotCache(); return result; };
 }
 
+function find5CState(node) {
+  let current = node;
+  while (current) {
+    if (current[XML_CII_5C_STATE_KEY]) return current[XML_CII_5C_STATE_KEY];
+    current = current.parentElement;
+  }
+  return null;
+}
+function current5CInputXml(state) {
+  return text(state?.result?.finalInputXmlText) || text(state?.result?.coreInputXmlText);
+}
+function download5CText(filename, value) {
+  const blob = new Blob([String(value || '')], { type: 'application/xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+function ensure5CDownloadButton(buildButton) {
+  if (!buildButton) return;
+  buildButton.textContent = 'Build InputXML';
+  const toolbar = buildButton.parentElement || buildButton.closest?.('.xml-cii-native-toolbar');
+  if (!toolbar) return;
+  let button = toolbar.querySelector('[data-xml-cii-5c-download-inputxml]');
+  if (!button) {
+    button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'model-converters-download-btn';
+    button.dataset.xmlCii5cDownloadInputxml = 'true';
+    button.textContent = 'Download InputXML';
+    buildButton.insertAdjacentElement('afterend', button);
+  }
+  const state = find5CState(button);
+  button.disabled = !current5CInputXml(state);
+  button.title = button.disabled ? 'Build InputXML first.' : 'Download final enriched InputXML; falls back to core InputXML.';
+}
+function scan5CDownloadButtons() {
+  inputXml5CDownloadPatchQueued = false;
+  document.querySelectorAll?.('[data-xml-cii-5c-build]').forEach(ensure5CDownloadButton);
+}
+function queue5CDownloadScan() {
+  if (inputXml5CDownloadPatchQueued) return;
+  inputXml5CDownloadPatchQueued = true;
+  const schedule = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
+  schedule(scan5CDownloadButtons);
+}
+function on5CDownloadClick(event) {
+  const button = event.target?.closest?.('[data-xml-cii-5c-download-inputxml]');
+  if (!button) return;
+  event.preventDefault?.();
+  const state = find5CState(button);
+  const value = current5CInputXml(state);
+  if (!value) {
+    if (state) state.status = 'No InputXML available yet. Build InputXML first.';
+    button.disabled = true;
+    button.title = 'Build InputXML first.';
+    return;
+  }
+  download5CText('5c-inputxml.xml', value);
+}
+function install5CDownloadInputXmlPatch() {
+  if (inputXml5CDownloadPatchInstalled || typeof document === 'undefined') return;
+  inputXml5CDownloadPatchInstalled = true;
+  document.addEventListener('click', on5CDownloadClick, true);
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(queue5CDownloadScan);
+    observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+  }
+  queue5CDownloadScan();
+}
+
 function workflowBridge() {
   const base = getXmlCiiPhaseBridge?.() || null;
   if (!base) return null;
@@ -272,10 +346,11 @@ function workflowBridge() {
 }
 
 installJsonTraceBuildPatch();
+install5CDownloadInputXmlPatch();
 
 export function xmlCiiWorkflowGetBridge() { return workflowBridge(); }
 export function xmlCiiWorkflowGetSnapshot(root) { return xmlCiiWorkflowGetBridge()?.getPopupSnapshot?.(root) || null; }
 export function xmlCiiWorkflowSetConfigValue(path, value, valueType = 'text') { return xmlCiiWorkflowGetBridge()?.setPopupConfigValue?.(path, value, valueType); }
-export function xmlCiiWorkflowSetMasterField(masterKey, fieldKey, value) { return xmlCiiWorkflowGetBridge()?.setPopupMasterField?.(masterKey)?.(masterKey, fieldKey, value) || xmlCiiWorkflowGetBridge()?.setPopupMasterField?.(masterKey, fieldKey, value); }
+export function xmlCiiWorkflowSetMasterField(masterKey, fieldKey, value) { return xmlCiiWorkflowGetBridge()?.setPopupMasterField?.(masterKey, fieldKey, value); }
 export function xmlCiiWorkflowInvalidateSnapshot() { clearSnapshotCache(); }
 export function xmlCiiWorkflowClosePopup() { return xmlCiiWorkflowGetBridge()?.closePopup?.(); }
