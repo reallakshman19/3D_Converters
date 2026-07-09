@@ -1,4 +1,5 @@
 import { buildInputXmlFromNodeXml } from './xml-cii-node-to-inputxml-core.js?v=20260709-5c-core-1';
+import { build5CDiagnosticsViewModel } from './xml-cii-node-to-inputxml-diagnostics.js?v=20260709-5c-diagnostics-1';
 
 const PANEL_STATE_KEY = '__xmlCiiTopology5CState';
 const XML_SCAN_LIMIT = 200;
@@ -6,7 +7,6 @@ const XML_SCAN_LIMIT = 200;
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]); }
 function parseJson(value) { try { const parsed = JSON.parse(String(value || '{}')); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
-function fmt(value, places = 2) { const n = Number(value); return Number.isFinite(n) ? n.toFixed(places) : ''; }
 function ensureState(target) {
   const state = target[PANEL_STATE_KEY] || {};
   target[PANEL_STATE_KEY] = state;
@@ -72,40 +72,31 @@ function summaryCards(result) {
   ];
   return `<div class="xml-cii-native-status-list">${cards.map(([label, value]) => `<div class="xml-cii-native-status-row ${Number(value || 0) ? 'is-ok' : 'is-warn'}"><span class="xml-cii-native-status-icon">${Number(value || 0) ? 'OK' : 'INFO'}</span><span>${esc(label)}</span><strong>${esc(value ?? 0)}</strong></div>`).join('')}</div>`;
 }
-function elementRows(result) {
-  return Array.isArray(result?.elements) ? result.elements : [];
-}
 function table(columns, rows, emptyText) {
   if (!rows.length) return `<div class="model-converters-workflow-detail-note">${esc(emptyText || 'No rows.')}</div>`;
   return `<div class="xml-cii-native-table-wrap"><table class="xml-cii-native-table"><thead><tr>${columns.map(([, label]) => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map(([key]) => `<td>${esc(typeof key === 'function' ? key(row) : row?.[key])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-function generatedElementsTable(result) {
-  const rows = elementRows(result).slice(0, 500);
-  const columns = [
-    [(row) => row.from, 'From'],
-    [(row) => row.to, 'To'],
-    [(row) => fmt(row.lengthMm), 'Length mm'],
-    [(row) => fmt(row.delta?.dx), 'ΔX'],
-    [(row) => fmt(row.delta?.dy), 'ΔY'],
-    [(row) => fmt(row.delta?.dz), 'ΔZ'],
-    [(row) => row.branch?.branchName, 'Branch'],
-    [(row) => row.toRow?.componentType, 'TO Type'],
-    [(row) => row.topologyReason, 'Reason'],
-    [(row) => row.toRow?.rigid || row.toRow?.componentType === 'RIGID' ? 'YES' : '', 'Rigid'],
-    [(row) => row.toRow?.restraints?.length || '', 'Rest'],
-  ];
-  return table(columns, rows, 'No generated elements yet.');
+function diagnosticsSection(title, columns, rows, emptyText, open = false) {
+  return `<details class="xml-cii-native-card" ${open ? 'open' : ''}><summary><strong>${esc(title)}</strong> <span style="color:#9aa8ba;">${Number(rows.length || 0).toLocaleString()} row(s)</span></summary>${table(columns, rows.slice(0, 1000), emptyText)}</details>`;
 }
-function diagnosticsTables(result) {
-  const diagnostics = result?.diagnostics || {};
-  const fillerColumns = [['from', 'From'], ['to', 'To'], [(row) => fmt(row.lengthMm), 'Length mm'], ['branchName', 'Branch'], ['reason', 'Reason']];
-  const childColumns = [['from', 'From'], ['to', 'To'], ['sourceNode', 'Source node'], ['componentType', 'Component'], ['connectionType', 'Connection'], ['weight', 'Weight'], ['count', 'Count']];
+function diagnosticsPanel(result) {
+  const vm = build5CDiagnosticsViewModel(result);
+  const routeCols = [['branchName', 'Branch'], ['routeIndex', '#'], ['nodeNumber', 'XML node'], ['nodeName', 'NodeName'], ['componentType', 'Component'], ['componentRefNo', 'RefNo'], ['position', 'POS'], ['rigid', 'Rigid'], ['sif', 'SIF'], ['bend', 'Bend'], ['restraintCount', 'Rest']];
+  const elemCols = [['index', '#'], ['from', 'From'], ['to', 'To'], ['lengthMm', 'Length mm'], ['deltaX', 'ΔX'], ['deltaY', 'ΔY'], ['deltaZ', 'ΔZ'], ['sourceDx', 'Source ΔX'], ['sourceDy', 'Source ΔY'], ['sourceDz', 'Source ΔZ'], ['branchName', 'Branch'], ['fromComponent', 'FROM comp'], ['toComponent', 'TO comp'], ['reason', 'Reason'], ['rigid', 'Rigid'], ['sif', 'SIF'], ['bend', 'Bend'], ['restraintCount', 'Rest']];
+  const childCols = [['childType', 'Child'], ['from', 'From'], ['to', 'To'], ['sourceNode', 'Source node'], ['branchName', 'Branch'], ['componentType', 'Component'], ['detail', 'Detail']];
+  const enrichCols = [['metric', 'Metric'], ['value', 'Value'], ['note', 'Note']];
+  const warningCols = [['severity', 'Severity'], ['area', 'Area'], ['message', 'Message']];
   return `
-    <details class="xml-cii-native-card" open><summary><strong>TOPO fillers / short elements</strong></summary>${table(fillerColumns, (diagnostics.fillers || []).slice(0, 300), 'No short filler elements reported.')}</details>
-    <details class="xml-cii-native-card"><summary><strong>Rigid audit</strong></summary>${table(childColumns, (diagnostics.rigid || []).slice(0, 300), 'No rigid evidence reported.')}</details>
-    <details class="xml-cii-native-card"><summary><strong>SIF audit</strong></summary>${table(childColumns, (diagnostics.sif || []).slice(0, 300), 'No SIF evidence reported.')}</details>
-    <details class="xml-cii-native-card"><summary><strong>Bend audit</strong></summary>${table(childColumns, (diagnostics.bend || []).slice(0, 300), 'No bend evidence reported.')}</details>
-    <details class="xml-cii-native-card"><summary><strong>Restraint audit</strong></summary>${table(childColumns, (diagnostics.restraints || []).slice(0, 300), 'No node-level restraint evidence reported.')}</details>`;
+    ${diagnosticsSection('Route selection audit — first available positive XML nodes', routeCols, vm.routeRows, 'No route rows selected.', true)}
+    ${diagnosticsSection('Generated PIPINGELEMENT mapping audit', elemCols, vm.elementRows, 'No generated element rows.', true)}
+    ${diagnosticsSection('Rigid / SIF / Bend / Restraint child generation audit', childCols, vm.childRows, 'No child rows generated.', false)}
+    ${diagnosticsSection('Existing InputXML enrichment audit', enrichCols, vm.enrichmentRows, 'No enrichment counters returned.', false)}
+    ${diagnosticsSection('Warnings / TOPO filler notices', warningCols, vm.warningRows, 'No warnings or filler notices.', vm.warningRows.length > 0)}`;
+}
+function outputValue(result, key) {
+  if (key === 'diagnostics') return JSON.stringify(result?.diagnostics || {}, null, 2);
+  if (key === 'diagnosticsViewModel') return JSON.stringify(build5CDiagnosticsViewModel(result), null, 2);
+  return result?.[key] || '';
 }
 function outputBlock(label, dataKey, value, filename) {
   return `<details class="xml-cii-native-card"><summary><strong>${esc(label)}</strong> <span style="color:#9aa8ba;">${Number(String(value || '').length).toLocaleString()} chars</span></summary><div class="xml-cii-native-toolbar" style="margin:8px 0;gap:8px;"><button type="button" class="model-converters-download-btn" data-xml-cii-5c-copy="${esc(dataKey)}">Copy</button><button type="button" class="model-converters-download-btn" data-xml-cii-5c-download="${esc(dataKey)}" data-xml-cii-5c-filename="${esc(filename)}">Download</button></div><textarea readonly spellcheck="false" style="width:100%;min-height:260px;background:#07101f;color:#e6edf5;border:1px solid rgba(148,163,184,.35);border-radius:8px;padding:8px;font:11px ui-monospace,Consolas,monospace;">${esc(value || '')}</textarea></details>`;
@@ -136,16 +127,17 @@ function actionsCard(state) {
 }
 function resultHtml(result) {
   if (!result) return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-note">No 5C result yet. Click <strong>Generate InputXML</strong>.</div></section>`;
+  const diagnosticsViewModelText = JSON.stringify(build5CDiagnosticsViewModel(result), null, 2);
   const outputs = [
     outputBlock('Core InputXML', 'coreInputXmlText', result.coreInputXmlText, '5c-core.input.xml'),
     outputBlock('Final enriched InputXML', 'finalInputXmlText', result.finalInputXmlText, '5c-final-enriched.input.xml'),
     outputBlock('Element side-load text', 'elementSideLoadText', result.elementSideLoadText, '5c-element-sideload.txt'),
-    outputBlock('Diagnostics JSON', 'diagnostics', JSON.stringify(result.diagnostics || {}, null, 2), '5c-diagnostics.json'),
+    outputBlock('Diagnostics view model JSON', 'diagnosticsViewModel', diagnosticsViewModelText, '5c-diagnostics-view.json'),
+    outputBlock('Raw diagnostics JSON', 'diagnostics', JSON.stringify(result.diagnostics || {}, null, 2), '5c-diagnostics-raw.json'),
   ].join('');
   return `
     <section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">5C Summary</div>${summaryCards(result)}</section>
-    <section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">Generated PIPINGELEMENT rows</div>${generatedElementsTable(result)}</section>
-    ${diagnosticsTables(result)}
+    ${diagnosticsPanel(result)}
     ${outputs}`;
 }
 function bindControls(target, root, state, options) {
@@ -191,16 +183,14 @@ function bindControls(target, root, state, options) {
   target.querySelector('[data-xml-cii-5c-clear]')?.addEventListener('click', () => { state.result = null; state.status = 'Result cleared.'; rerender(); });
   target.querySelectorAll('[data-xml-cii-5c-copy]').forEach((button) => button.addEventListener('click', async () => {
     const key = button.dataset.xmlCii5cCopy;
-    const value = key === 'diagnostics' ? JSON.stringify(state.result?.diagnostics || {}, null, 2) : state.result?.[key];
-    await copyText(value || '');
+    await copyText(outputValue(state.result, key));
     state.status = `Copied ${key}.`;
     rerender();
   }));
   target.querySelectorAll('[data-xml-cii-5c-download]').forEach((button) => button.addEventListener('click', () => {
     const key = button.dataset.xmlCii5cDownload;
     const filename = button.dataset.xmlCii5cFilename || `${key}.txt`;
-    const value = key === 'diagnostics' ? JSON.stringify(state.result?.diagnostics || {}, null, 2) : state.result?.[key];
-    downloadText(filename, value || '');
+    downloadText(filename, outputValue(state.result, key));
   }));
 }
 export function renderXmlCiiTopology5CPanel(target, options = {}) {
