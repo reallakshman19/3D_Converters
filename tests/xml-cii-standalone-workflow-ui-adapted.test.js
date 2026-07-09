@@ -39,7 +39,9 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  'tabs/model-converters/legacy-adapter.js': '108d5482ad515479bb842646e2cea1998186ca25',
+  // Updated 2026-07-09: splitCondensedValveFlange now defaults ON when absent
+  // from the config (resolved valve/flange split with -1 node renumbering).
+  'tabs/model-converters/legacy-adapter.js': '660f84975dcd2e2e5d7f6c917b08aaea650fa73b',
   'tabs/model-converters/WorkflowShell.js': '336388438127626b5735cc2be7ba4b386738f46f',
   'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
   'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',

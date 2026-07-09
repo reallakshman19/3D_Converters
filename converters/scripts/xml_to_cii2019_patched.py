@@ -36,7 +36,7 @@ DEFAULT_SUPPORT_CONFIG: dict[str, Any] = {
     "defaultGap": "0",
     "defaultFriction": "0.3",
     "insulationDensityDefault": 210,
-    "splitCondensedValveFlange": False,
+    "splitCondensedValveFlange": True,
     "keywordRules": [
         {"kind": "GUIDE", "patterns": [r"\bGUIDE\b", r"\bGUI\b", r"\bPDO-TYPE-603\b"]},
         {"kind": "LINESTOP", "patterns": [r"\bLINE\s*STOP\b", r"\bLINESTOP\b", r"\bLIMIT\s*STOP\b", r"\bAXIAL\s*STOP\b", r"\bDIRECTIONAL\s+ANCHOR\b"]},

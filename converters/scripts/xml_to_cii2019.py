@@ -34,6 +34,7 @@ import json
 import math
 from pathlib import Path
 import re
+import sys
 from typing import Any, Final
 import xml.etree.ElementTree as ET
 
@@ -920,7 +921,13 @@ def _build_restraints(
                     matched = True
                     break
         if not matched:
-            raise ValueError(f"Unable to assign restraint for NodeNumber {node_number}.")
+            # A restraint spec can reference a node number that no generated
+            # element touches (e.g. dropped duplicate nodes or renamed split
+            # nodes). Skipping it must not abort the whole conversion.
+            print(
+                f"WARNING: Unable to assign restraint for NodeNumber {node_number}; restraint skipped.",
+                file=sys.stderr,
+            )
 
     return restraints, edge_to_index
 

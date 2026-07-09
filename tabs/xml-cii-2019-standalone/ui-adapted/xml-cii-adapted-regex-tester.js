@@ -2,7 +2,7 @@ import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
 import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeStandaloneRegexFormats } from '../xml-cii-regex-tester.js';
 import { renderBranchSamples, renderMatched, renderRejected, renderDiagnostics } from './xml-cii-adapted-regex-results.js';
 import { renderRatingSequenceEditor } from './xml-cii-adapted-regex-rating.js';
-import { updateRegexTesterConfig } from './xml-cii-adapted-state.js';
+import { updateRegexTesterConfig, applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js';
 
 function text(value, fallback = '') {
   const out = String(value ?? '').trim();
@@ -301,19 +301,23 @@ function renderVisualTokenBuilder(parent, state, result, stateRef, render) {
     const field = `regex-${key === 'lineKey' ? 'line-key' : key === 'pipingClass' ? 'piping-class' : key}-token`;
     if (stateRef && stateRef.current) {
       stateRef.current = updateRegexTesterConfig(stateRef.current, field, val);
-      stateRef.current.regexTesterResult = runStandaloneRegexTester({
+      const nextResult = runStandaloneRegexTester({
         ...stateRef.current,
         sourceText: stateRef.current.sourceText,
         extractionConfig: stateRef.current.regexTesterConfig
       });
+      // Auto-save: token builder changes are written straight into the
+      // standalone config instead of waiting for a manual "Save to config".
+      stateRef.current = applyStandaloneRegexTesterResult(stateRef.current, nextResult);
     } else {
       const statePatch = updateRegexTesterConfig(state, field, val);
       Object.assign(state, statePatch);
-      state.regexTesterResult = runStandaloneRegexTester({
+      const nextResult = runStandaloneRegexTester({
         ...state,
         sourceText: state.sourceText,
         extractionConfig: state.regexTesterConfig
       });
+      Object.assign(state, applyStandaloneRegexTesterResult(state, nextResult));
     }
     if (render) render();
   };

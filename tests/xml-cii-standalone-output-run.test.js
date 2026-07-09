@@ -27,6 +27,7 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-cii-preview-canvas.js',
     'converters/xml-cii2019-core/regex-line-key.js',
+    'converters/xml-cii2019-core/default-weight-master-rows.js',
   ];
 }
 

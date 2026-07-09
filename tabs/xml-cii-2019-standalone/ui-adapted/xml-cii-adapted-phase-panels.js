@@ -8,7 +8,8 @@ import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-mas
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260708-v8';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
-import { renderStandaloneDiagnosticsReportPanel, renderStandaloneMatchedAuditPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20260708-v8';
+import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20260708-v8';
+import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20260708-v8';
 import { renderAdaptedWeightMatchPanel } from './xml-cii-adapted-weight-match.js';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
@@ -116,7 +117,7 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   if (phaseId === 'json-trace') return renderJsonTracePanel(card, stateRef, render);
   if (phaseId === 'preview') return renderStandalonePreviewReportPanel(card, stateRef, render);
   if (phaseId === 'diagnostics') return renderStandaloneDiagnosticsReportPanel(card, state);
-  if (phaseId === 'matched-audit') return renderStandaloneMatchedAuditPanel(card, state);
+  if (phaseId === 'matched-audit') return renderStandalonePropagationAuditPanel(card, state);
   if (phaseId === 'weight-match') return renderAdaptedWeightMatchPanel(card, stateRef, render);
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, stateRef, render);
   if (phaseId === 'config') return renderAdaptedConfigPanel(card, stateRef, render);

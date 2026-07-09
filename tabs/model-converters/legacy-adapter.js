@@ -7928,6 +7928,9 @@ export function renderModelConvertersTab(container) {
     if (config.condenseRigidXsd == null && config.condense_rigid_xsd != null) config.condenseRigidXsd = config.condense_rigid_xsd === true;
     if (config.condense_rigid_xsd == null) config.condense_rigid_xsd = config.condenseRigidXsd === true;
     if (config.splitCondensedValveFlange == null && config.split_condensed_valve_flange != null) config.splitCondensedValveFlange = config.split_condensed_valve_flange === true;
+    // Default ON: when neither flag is present in the config, the resolved
+    // valve/flange split (with -1 node renumbering) must apply by default.
+    if (config.splitCondensedValveFlange == null && config.split_condensed_valve_flange == null) config.splitCondensedValveFlange = true;
     if (config.split_condensed_valve_flange == null) config.split_condensed_valve_flange = config.splitCondensedValveFlange === true;
     const useFrictionSentinel = config.useFrictionSentinelForNonYSupports !== false;
     const convertDensity = config.convertDensityKgM3ToKgCm3 !== false;

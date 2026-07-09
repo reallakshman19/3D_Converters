@@ -57,7 +57,7 @@ function outputKindFor(sourceKind) { return sourceKind === 'inputxml' ? 'enriche
 function enrichedNameFor(job) { const stem = outputStem(job.sourceName); return job.sourceKind === 'inputxml' ? `${stem}_enriched.input.xml` : `${stem}_enriched.xml`; }
 function splitValue(job) { const v = job?.options?.splitCondensedValveFlange; return v === true || v === false ? v : null; }
 function diagnostics(job, extra = {}) { return { schema: 'xml-cii-2019-workflow-diagnostics/v1', engine: 'standalone-compatibility-engine', sourceKind: job.sourceKind === 'inputxml' ? 'inputxml' : 'xml', outputMode: job.options?.outputMode || 'enriched-only', warnings: [], ...extra }; }
-function errorResult(job, error, logLines = []) { const sourceKind = job?.sourceKind === 'inputxml' ? 'inputxml' : 'xml'; return { ok: false, sourceKind, outputKind: outputKindFor(sourceKind), enrichedText: '', enrichedName: '', ciiText: null, ciiName: null, diagnostics: null, logs: logLines, error: text(error?.message || error || 'Standalone engine failed.') }; }
+function errorResult(job, error, logLines = [], partial = {}) { const sourceKind = job?.sourceKind === 'inputxml' ? 'inputxml' : 'xml'; return { ok: false, sourceKind, outputKind: outputKindFor(sourceKind), enrichedText: text(partial.enrichedText), enrichedName: text(partial.enrichedName), ciiText: null, ciiName: null, diagnostics: null, logs: logLines, error: text(error?.message || error || 'Standalone engine failed.') }; }
 
 async function getPyodide() {
   if (!pyodidePromise) pyodidePromise = loadPyodide({ indexURL: PYODIDE_INDEX_URL });
@@ -118,6 +118,9 @@ export async function runXmlCii2019StandaloneEngine(job) {
   const normalizedJob = { ...job, sourceKind, options: { ...(job.options || {}), outputMode } };
   const stdout = [];
   const stderr = [];
+  // Keeps the enriched artifact reachable when a later step (e.g. CII
+  // conversion) fails, so the UI can still offer the enriched download.
+  const partial = { enrichedText: '', enrichedName: '' };
   try {
     const pyodide = await getPyodide();
     await ensureScripts(pyodide);
@@ -142,12 +145,16 @@ export async function runXmlCii2019StandaloneEngine(job) {
         const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
         enrichedText = sif.text;
         enrichedName = enriched.enrichedName;
+        partial.enrichedText = enrichedText;
+        partial.enrichedName = enrichedName;
         postprocess.push({ branch: 'psi116-enriched-xml', outputName: enrichedName, sifDiagnostics: sif.diagnostics });
       } else {
         // sourceText already reflects enrichInputXmlDocument() output when called through the
         // standalone workflow service — this branch just carries that enriched text through.
         enrichedText = normalizedJob.sourceText;
         enrichedName = enrichedNameFor(normalizedJob);
+        partial.enrichedText = enrichedText;
+        partial.enrichedName = enrichedName;
         stdout.push(`Wrote ${enrichedName} from the enriched InputXML source.`);
         postprocess.push({ branch: 'inputxml-enriched-passthrough', outputName: enrichedName });
       }
@@ -161,6 +168,6 @@ export async function runXmlCii2019StandaloneEngine(job) {
     const warnings = [];
     return { ok: true, sourceKind, outputKind: outputKindFor(sourceKind), enrichedText, enrichedName, ciiText, ciiName, diagnostics: diagnostics(normalizedJob, { postprocess, warnings }), logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)], error: null };
   } catch (error) {
-    return errorResult(normalizedJob, error, [...logs(stdout), ...logs(stderr)]);
+    return errorResult(normalizedJob, error, [...logs(stdout), ...logs(stderr)], partial);
   }
 }

@@ -19,7 +19,9 @@ export const MASTER_FIELDS = {
       { name: 'densityMixed', label: 'Density Mixed', aliases: ['Mixed kg/m3', 'Density Mixed', 'Mixed Density', 'Density (Mixed)'] },
       { name: 'densityGas', label: 'Density Gas', aliases: ['Gas kg/m3', 'Density Gas', 'Gas Density', 'Density (Gas)'] },
       { name: 'densityLiquid', label: 'Density Liquid', aliases: ['Liquid kg/m3', 'Density Liquid', 'Liquid Density', 'Density (Liquid)'] },
-      { name: 'phase', label: 'Phase', aliases: ['Phase', 'Fluid Phase', 'Medium Phase'] }
+      { name: 'phase', label: 'Phase', aliases: ['Phase', 'Fluid Phase', 'Medium Phase'] },
+      { name: 'from', label: 'From', aliases: ['From', 'FROM', 'From (Origin)', 'Origin', 'FROM_EQUIP', 'From Equipment'] },
+      { name: 'to', label: 'To', aliases: ['To', 'TO', 'To (Destination)', 'Destination', 'TO_EQUIP', 'To Equipment'] }
     ]
   },
   pipingClass: {

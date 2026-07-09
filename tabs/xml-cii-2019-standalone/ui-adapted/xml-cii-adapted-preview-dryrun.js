@@ -89,6 +89,104 @@ export function _xmlCiiFindLineListRow(branchLineKey, config) {
   return null;
 }
 
+// --- Similar Linekey (fuzzy) fallback ---------------------------------------
+// When the exact/alias line-key lookup misses (line key not derivable from the
+// branch name, format drift, etc.) propose the closest line-list row instead:
+//   1) locate the line sequence number inside the branch name and match it
+//      against line-list candidates (From/To from the process master are
+//      carried along for review);
+//   2) fall back to isolating a line-key-looking token independently of the
+//      Regex tab and fuzzy-matching it against row keys and From/To text.
+
+export function _xmlCiiRowFromTo(row, config) {
+  const fieldMap = config?.linelist?.fieldMap || {};
+  const from = _rowText(row, [fieldMap.from, 'from', 'From', 'FROM', 'From (Origin)', 'Origin', 'FROM_EQUIP', 'From Equipment'].filter(Boolean));
+  const to = _rowText(row, [fieldMap.to, 'to', 'To', 'TO', 'To (Destination)', 'Destination', 'TO_EQUIP', 'To Equipment'].filter(Boolean));
+  return { from, to };
+}
+
+function _digitRuns(value, minLen = 4) {
+  return (_toText(value).match(new RegExp(`\\d{${minLen},}`, 'g')) || []);
+}
+
+function _bigrams(value) {
+  const s = _xmlCiiNormalizeLineKey(value);
+  const out = [];
+  for (let i = 0; i < s.length - 1; i += 1) out.push(s.slice(i, i + 2));
+  return out;
+}
+
+export function _xmlCiiDiceSimilarity(a, b) {
+  const ba = _bigrams(a);
+  const bb = _bigrams(b);
+  if (!ba.length || !bb.length) return 0;
+  const counts = new Map();
+  for (const g of ba) counts.set(g, (counts.get(g) || 0) + 1);
+  let hits = 0;
+  for (const g of bb) {
+    const c = counts.get(g) || 0;
+    if (c > 0) { hits += 1; counts.set(g, c - 1); }
+  }
+  return (2 * hits) / (ba.length + bb.length);
+}
+
+function _lineSeqScore(branchDigits, rowDigits) {
+  let best = 0;
+  for (const bd of branchDigits) {
+    for (const rd of rowDigits) {
+      if (bd === rd) best = Math.max(best, 1);
+      else if (bd.includes(rd) || rd.includes(bd)) best = Math.max(best, 0.85);
+      else if (bd.length >= 6 && rd.length >= 6 && bd.slice(-6) === rd.slice(-6)) best = Math.max(best, 0.7);
+    }
+  }
+  return best;
+}
+
+function _isolateLineKeyToken(branchName, config) {
+  const delimiter = config?.rating?.tokenDelimiter || config?.linelist?.tokenDelimiter || '-';
+  const cleaned = _toText(branchName).replace(/^\/+/, '').replace(/\/B\d+$/i, '');
+  const tokens = cleaned.split(delimiter).map((t) => t.trim()).filter(Boolean);
+  // Prefer alphanumeric tokens that carry a long digit run and are not pure
+  // size/material tokens — those are the usual line-key shapes.
+  const candidates = tokens.filter((t) => !_looksLikeNpsToken(t) && !_isLikelyMaterialToken(t) && /\d{4,}/.test(t));
+  candidates.sort((a, b) => b.length - a.length);
+  return candidates[0] || '';
+}
+
+export function _xmlCiiFindSimilarLineListRow(branchName, lineKey, config) {
+  const rows = Array.isArray(config?.linelist?.masterRows) ? config.linelist.masterRows : [];
+  if (!rows.length) return null;
+  const branchDigits = _digitRuns(branchName);
+  const isolatedKey = _isolateLineKeyToken(branchName, config);
+  const lookupKeys = _uniqueKeys([lineKey, isolatedKey]).filter(Boolean);
+
+  let best = null;
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    const rowKey = _lineListRowKey(row, config);
+    const rowSeq = _rowText(row, [config?.linelist?.fieldMap?.lineSeqNo, 'lineSeqNo', 'Line number', 'Line Number', 'Line No'].filter(Boolean));
+    const { from, to } = _xmlCiiRowFromTo(row, config);
+
+    // Pass 1: line sequence number similarity.
+    const seqScore = _lineSeqScore(branchDigits, _digitRuns(`${rowSeq} ${rowKey}`));
+    // Pass 2: fuzzy line-key similarity (independent of the Regex tab).
+    let keyScore = 0;
+    for (const key of lookupKeys) keyScore = Math.max(keyScore, _xmlCiiDiceSimilarity(key, rowKey), _xmlCiiDiceSimilarity(key, rowSeq));
+    const confidence = Math.max(seqScore, keyScore * 0.95);
+    if (confidence <= (best?.confidence || 0.55)) continue;
+    best = {
+      row,
+      index,
+      confidence,
+      method: seqScore >= keyScore * 0.95 ? 'similar-lineseq' : 'similar-linekey',
+      proposedKey: _toText(rowKey).trim(),
+      from,
+      to,
+    };
+  }
+  return best;
+}
+
 export function _normaliseLineListMatch(match, config) {
   if (!match?.row) return null;
   return { ...normalizeLineListRow(match.row, config.linelist?.fieldMap || {}, match.index), _raw: match.row };
@@ -291,8 +389,21 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
   for (const branch of [...document.getElementsByTagName('Branch')]) {
     const branchName = _xmlText(branch, 'Branchname');
     const lineKey = deriveLineKeyFromBranchName(branchName, config);
-    const lineListRawMatch = lineKey ? _xmlCiiFindLineListRow(lineKey, config) : null;
+    let lineListRawMatch = lineKey ? _xmlCiiFindLineListRow(lineKey, config) : null;
+    let lineKeyMethod = lineListRawMatch ? 'exact' : 'none';
+    let lineKeyConfidence = lineListRawMatch ? 1 : 0;
+    let lineKeyProposed = '';
+    if (!lineListRawMatch) {
+      const similar = _xmlCiiFindSimilarLineListRow(branchName, lineKey, config);
+      if (similar) {
+        lineListRawMatch = { row: similar.row, index: similar.index };
+        lineKeyMethod = similar.method;
+        lineKeyConfidence = similar.confidence;
+        lineKeyProposed = similar.proposedKey;
+      }
+    }
     const lineListMatch = _normaliseLineListMatch(lineListRawMatch, config);
+    const lineFromTo = _xmlCiiRowFromTo(lineListMatch, config);
     const lineListClass = _rowText(lineListMatch, ['pipingClass', 'Piping Class', 'PIPING_CLASS']);
     const branchClass = _derivePipingClassFromBranchName(branchName, config);
     const derivedClassRaw = lineListClass || branchClass;
@@ -345,6 +456,11 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
     branchRows.push({
       branchName,
       lineKey,
+      lineKeyMethod,
+      lineKeyConfidence,
+      lineKeyProposed,
+      lineFrom: lineFromTo.from,
+      lineTo: lineFromTo.to,
       lineMiss: !lineListMatch,
       size: boreMm != null ? `${boreMm}mm` : '',
       sizeMm: boreMm,
