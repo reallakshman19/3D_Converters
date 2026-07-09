@@ -80,8 +80,8 @@ function sourceForState(root, state, options = {}) {
   if (text(state.manualXml)) return { source: state.manualSourceName || 'manual paste/upload', xmlText: state.manualXml };
   return candidateWorkflowXml(root, options);
 }
-function downloadText(filename, value) {
-  const blob = new Blob([String(value || '')], { type: 'text/plain;charset=utf-8' });
+function downloadText(filename, value, mimeType = 'text/plain;charset=utf-8') {
+  const blob = new Blob([String(value || '')], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -140,6 +140,7 @@ function outputValue(result, key) {
   if (key === 'diagnosticsViewModel') return JSON.stringify(build5CDiagnosticsViewModel(result), null, 2);
   return result?.[key] || '';
 }
+function inputXmlOutputText(result) { return text(result?.finalInputXmlText) || text(result?.coreInputXmlText); }
 function outputBlock(label, dataKey, value, filename) {
   return `<details class="xml-cii-native-card"><summary><strong>${esc(label)}</strong> <span style="color:#9aa8ba;">${Number(String(value || '').length).toLocaleString()} chars</span></summary><div class="xml-cii-native-toolbar" style="margin:8px 0;gap:8px;"><button type="button" class="model-converters-download-btn" data-xml-cii-5c-copy="${esc(dataKey)}">Copy</button><button type="button" class="model-converters-download-btn" data-xml-cii-5c-download="${esc(dataKey)}" data-xml-cii-5c-filename="${esc(filename)}">Download</button></div><textarea readonly spellcheck="false" style="width:100%;min-height:260px;background:#07101f;color:#e6edf5;border:1px solid rgba(148,163,184,.35);border-radius:8px;padding:8px;font:11px ui-monospace,Consolas,monospace;">${esc(value || '')}</textarea></details>`;
 }
@@ -258,7 +259,7 @@ function draw5CCanvas(canvas, result, state = {}) {
   if (!project || !model.elements.length) {
     ctx.fillStyle = '#94a3b8';
     ctx.font = '12px system-ui';
-    ctx.fillText('No drawable 5C element coordinates. Generate InputXML first.', 24, 42);
+    ctx.fillText('No drawable 5C element coordinates. Build InputXML first.', 24, 42);
     return;
   }
   if (state.showGrid) drawGrid(ctx, width, height);
@@ -401,14 +402,15 @@ function actionsCard(state) {
     <div class="xml-cii-native-toolbar" style="gap:10px;flex-wrap:wrap;align-items:center;">
       <label class="model-converters-workflow-detail-note"><input data-xml-cii-5c-apply-enrichment type="checkbox" ${state.applyEnrichment ? 'checked' : ''}> apply existing InputXML enrichment</label>
       <label class="model-converters-workflow-detail-note">Point basis <select data-xml-cii-5c-point-basis style="background:#07101f;color:#e6edf5;border:1px solid rgba(148,163,184,.35);border-radius:6px;padding:4px 6px;"><option value="TO" ${state.pointPropertiesBasis === 'TO' ? 'selected' : ''}>TO</option><option value="FROM" ${state.pointPropertiesBasis === 'FROM' ? 'selected' : ''}>FROM</option></select></label>
-      <button type="button" class="model-converters-run-btn" data-xml-cii-5c-build>Generate InputXML</button>
+      <button type="button" class="model-converters-run-btn" data-xml-cii-5c-build>Build InputXML</button>
+      <button type="button" class="model-converters-download-btn" data-xml-cii-5c-download-inputxml ${inputXmlOutputText(state.result) ? '' : 'disabled'}>Download InputXML</button>
       <button type="button" class="model-converters-download-btn" data-xml-cii-5c-clear>Clear result</button>
     </div>
     <div class="xml-cii-native-hint">5C uses first available positive XML route nodes for FROM/TO. Short fillers are first-pass &lt;50mm route segments; ray fillers are second-pass dead-end hits within 5D against perpendicular route segments.</div>
   </section>`;
 }
 function resultHtml(result, state) {
-  if (!result) return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-note">No 5C result yet. Click <strong>Generate InputXML</strong>.</div></section>`;
+  if (!result) return `<section class="xml-cii-native-card"><div class="model-converters-workflow-detail-note">No 5C result yet. Click <strong>Build InputXML</strong>.</div></section>`;
   const diagnosticsViewModelText = JSON.stringify(build5CDiagnosticsViewModel(result), null, 2);
   const outputs = [
     outputBlock('Core InputXML', 'coreInputXmlText', result.coreInputXmlText, '5c-core.input.xml'),
@@ -478,12 +480,17 @@ function bindControls(target, root, state, options) {
         defaultTeeSifType: config.defaultTeeSifType ?? 5,
       });
       const count = state.result?.diagnostics?.summary?.elementCount ?? 0;
-      state.status = `Generated ${count} InputXML element(s).`;
+      state.status = `Built ${count} InputXML element(s).`;
     } catch (error) {
       state.result = null;
       state.status = `5C build failed: ${error?.message || String(error)}`;
     }
     rerender();
+  });
+  target.querySelector('[data-xml-cii-5c-download-inputxml]')?.addEventListener('click', () => {
+    const value = inputXmlOutputText(state.result);
+    if (!value) { state.status = 'No InputXML available yet. Build InputXML first.'; rerender(); return; }
+    downloadText('5c-inputxml.xml', value, 'application/xml;charset=utf-8');
   });
   target.querySelector('[data-xml-cii-5c-clear]')?.addEventListener('click', () => { state.result = null; state.status = 'Result cleared.'; rerender(); });
   target.querySelectorAll('[data-xml-cii-5c-copy]').forEach((button) => button.addEventListener('click', async () => {
