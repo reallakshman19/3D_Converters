@@ -5,6 +5,7 @@ const CONTEXT_FIELDS = Object.freeze(['DIAMETER', 'WALL_THICK', 'INSUL_THICK', '
 const NUMERIC_ATTRS = Object.freeze(['FROM_NODE', 'TO_NODE', 'DELTA_X', 'DELTA_Y', 'DELTA_Z', ...CONTEXT_FIELDS]);
 const RESTRAINT_NUMERIC_ATTRS = Object.freeze(['NUM', 'NODE', 'TYPE', 'STIFFNESS', 'GAP', 'FRIC_COEF', 'CNODE', 'XCOSINE', 'YCOSINE', 'ZCOSINE']);
 const DEFAULT_INPUTXML_RATING_BY_PIPING_CLASS = Object.freeze({ 91261: '900' });
+const MAX_RESTRAINT_SLOTS_PER_ELEMENT = 6;
 function text(value) { return value === undefined || value === null ? '' : String(value); }
 function own(object, key) { return Object.prototype.hasOwnProperty.call(object || {}, key); }
 function localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
@@ -191,10 +192,35 @@ function applyLineDerivedFields(doc, element, row, config) {
 function removeRestraints(element) {
   for (const child of Array.from(element.children || [])) if (localName(child).toUpperCase() === 'RESTRAINT') child.remove();
 }
+function nextFreeRestraintSlot(used) {
+  for (let slot = 1; slot <= MAX_RESTRAINT_SLOTS_PER_ELEMENT; slot += 1) if (!used.has(slot)) return slot;
+  return null;
+}
+function normalizeRestraintSlot(value) {
+  const n = Number(text(value).trim());
+  if (!Number.isFinite(n)) return null;
+  const slot = Math.round(n);
+  return Math.abs(n - slot) < 1e-9 ? slot : null;
+}
 function normalizeExistingRestraints(element) {
   const restraints = Array.from(element.children || []).filter((child) => localName(child).toUpperCase() === 'RESTRAINT');
-  for (const restraint of restraints) for (const attr of RESTRAINT_NUMERIC_ATTRS) {
-    if (restraint.hasAttribute(attr)) restraint.setAttribute(attr, normalizeNumberText(restraint.getAttribute(attr)));
+  const used = new Set();
+  for (const restraint of restraints) {
+    for (const attr of RESTRAINT_NUMERIC_ATTRS) {
+      if (restraint.hasAttribute(attr)) restraint.setAttribute(attr, normalizeNumberText(restraint.getAttribute(attr)));
+    }
+    const currentSlot = normalizeRestraintSlot(restraint.getAttribute('NUM'));
+    if (currentSlot && currentSlot >= 1 && currentSlot <= MAX_RESTRAINT_SLOTS_PER_ELEMENT && !used.has(currentSlot)) {
+      used.add(currentSlot);
+      continue;
+    }
+    const nextSlot = nextFreeRestraintSlot(used);
+    if (!nextSlot) {
+      restraint.remove();
+      continue;
+    }
+    restraint.setAttribute('NUM', String(nextSlot));
+    used.add(nextSlot);
   }
 }
 function frictionForDerivedRestraint(derived, config) {
@@ -202,10 +228,12 @@ function frictionForDerivedRestraint(derived, config) {
   return Number(derived?.typeCode) === 14 ? numberFromConfig(config, 'defaultFriction', 0.3) : '-1.0101';
 }
 function appendDerivedRestraint(doc, element, derived, config) {
-  const restraint = doc.createElement('RESTRAINT');
   const existing = Array.from(element.children || []).filter((child) => localName(child).toUpperCase() === 'RESTRAINT').length;
+  if (existing >= MAX_RESTRAINT_SLOTS_PER_ELEMENT) return false;
+  const restraint = doc.createElement('RESTRAINT');
   for (const [name, value] of Object.entries(createDerivedRestraintAttrs(element, derived, config, existing))) restraint.setAttribute(name, value);
   element.appendChild(restraint);
+  return true;
 }
 function createDerivedRestraintAttrs(element, derived, config, existing) {
   return { NUM: String(existing + 1), NODE: normalizeNode(element.getAttribute('TO_NODE')), TYPE: normalizeNumberText(derived.typeCode), STIFFNESS: numberFromConfig(config, 'defaultStiffness', 1751270000000), GAP: numberFromConfig(config, 'defaultGap', 0), FRIC_COEF: frictionForDerivedRestraint(derived, config), CNODE: '0', XCOSINE: '-1.0101', YCOSINE: '-1.0101', ZCOSINE: '-1.0101', TAG: 'ANCI/DTXR-derived', GUID: '' };
