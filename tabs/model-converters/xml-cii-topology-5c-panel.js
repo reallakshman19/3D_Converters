@@ -7,13 +7,14 @@ const XML_SCAN_LIMIT = 200;
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]); }
 function parseJson(value) { try { const parsed = JSON.parse(String(value || '{}')); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
-function fmt(value, places = 2) { const n = Number(value); return Number.isFinite(n) ? n.toFixed(places) : ''; }
+function clamp(value, min, max) { const n = Number(value); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : min; }
 function ensureState(target) {
   const state = target[PANEL_STATE_KEY] || {};
   target[PANEL_STATE_KEY] = state;
   if (state.applyEnrichment == null) state.applyEnrichment = true;
   if (state.pointPropertiesBasis == null) state.pointPropertiesBasis = 'TO';
   if (state.status == null) state.status = '';
+  if (!state.canvasView) state.canvasView = { scale: 1, offsetX: 0, offsetY: 0 };
   return state;
 }
 function candidateWorkflowXml(root) {
@@ -112,11 +113,27 @@ function chooseAxes(points) {
   const spans = axes.map((axis) => ({ axis, span: Math.max(...points.map((p) => p[axis])) - Math.min(...points.map((p) => p[axis])) })).sort((a, b) => b.span - a.span);
   return [spans[0]?.axis || 'x', spans[1]?.axis || 'y'];
 }
+function resetCanvasView(state) { state.canvasView = { scale: 1, offsetX: 0, offsetY: 0 }; }
+function zoomCanvasView(state, factor, anchorX = null, anchorY = null, canvas = null) {
+  const view = state.canvasView || { scale: 1, offsetX: 0, offsetY: 0 };
+  const oldScale = clamp(view.scale || 1, 0.05, 80);
+  const newScale = clamp(oldScale * factor, 0.05, 80);
+  if (anchorX !== null && anchorY !== null && canvas) {
+    const rect = canvas.getBoundingClientRect?.() || { width: 1, height: 1 };
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const ratio = newScale / oldScale;
+    view.offsetX = anchorX - cx - (anchorX - cx - Number(view.offsetX || 0)) * ratio;
+    view.offsetY = anchorY - cy - (anchorY - cy - Number(view.offsetY || 0)) * ratio;
+  }
+  view.scale = newScale;
+  state.canvasView = view;
+}
 function canvasBlock(result) {
   const count = graphElements(result).length;
-  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">5C Generated Element Graph</div><div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Connected view of generated 5C elements. Solid = route, orange = first-pass short filler &lt;50mm, magenta dashed = second-pass ray filler.</div><canvas data-xml-cii-5c-canvas width="1100" height="360" style="width:100%;height:360px;background:#06111f;border:1px solid rgba(148,163,184,.35);border-radius:10px;"></canvas><div class="xml-cii-native-hint">${count.toLocaleString()} drawable element(s). Uses source XML coordinates and auto-selects the two largest coordinate spans for projection.</div></section>`;
+  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">5C Generated Element Graph</div><div class="xml-cii-native-toolbar" style="gap:8px;flex-wrap:wrap;margin:8px 0;"><button type="button" class="model-converters-download-btn" data-xml-cii-5c-canvas-fit>Fit</button><button type="button" class="model-converters-download-btn" data-xml-cii-5c-canvas-zoom-in>Zoom +</button><button type="button" class="model-converters-download-btn" data-xml-cii-5c-canvas-zoom-out>Zoom -</button><button type="button" class="model-converters-download-btn" data-xml-cii-5c-canvas-reset>Reset view</button><span class="model-converters-workflow-detail-note">Wheel = zoom · drag = pan</span></div><div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Connected view of generated 5C elements. Solid = route, orange = first-pass short filler &lt;50mm, magenta dashed = second-pass ray filler.</div><canvas data-xml-cii-5c-canvas width="1100" height="360" style="width:100%;height:360px;background:#06111f;border:1px solid rgba(148,163,184,.35);border-radius:10px;cursor:grab;"></canvas><div class="xml-cii-native-hint">${count.toLocaleString()} drawable element(s). Uses source XML coordinates and auto-selects the two largest coordinate spans for projection.</div></section>`;
 }
-function draw5CCanvas(canvas, result) {
+function draw5CCanvas(canvas, result, state = {}) {
   if (!canvas) return;
   const ctx = canvas.getContext?.('2d');
   if (!ctx) return;
@@ -145,15 +162,26 @@ function draw5CCanvas(canvas, result) {
   const pad = 34 * dpr;
   const sx = (w - 2 * pad) / Math.max(1, maxX - minX);
   const sy = (h - 2 * pad) / Math.max(1, maxY - minY);
-  const s = Math.min(sx, sy);
-  const project = (p) => ({ x: pad + (p[ax] - minX) * s, y: h - pad - (p[ay] - minY) * s });
+  const baseScale = Math.min(sx, sy);
+  const centerX = w / 2;
+  const centerY = h / 2;
+  const view = state.canvasView || { scale: 1, offsetX: 0, offsetY: 0 };
+  const viewScale = clamp(view.scale || 1, 0.05, 80);
+  const offsetX = Number(view.offsetX || 0) * dpr;
+  const offsetY = Number(view.offsetY || 0) * dpr;
+  const baseProject = (p) => ({ x: pad + (p[ax] - minX) * baseScale, y: h - pad - (p[ay] - minY) * baseScale });
+  const project = (p) => {
+    const base = baseProject(p);
+    return { x: centerX + (base.x - centerX) * viewScale + offsetX, y: centerY + (base.y - centerY) * viewScale + offsetY };
+  };
   ctx.strokeStyle = 'rgba(148,163,184,.18)';
   ctx.lineWidth = 1 * dpr;
-  for (let i = 0; i < 8; i += 1) {
-    const x = pad + ((w - 2 * pad) * i) / 7;
-    const y = pad + ((h - 2 * pad) * i) / 7;
-    ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+  const gridStep = 90 * dpr * viewScale;
+  if (gridStep > 12) {
+    const startX = ((offsetX % gridStep) + gridStep) % gridStep;
+    const startY = ((offsetY % gridStep) + gridStep) % gridStep;
+    for (let x = startX; x < w; x += gridStep) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (let y = startY; y < h; y += gridStep) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
   }
   for (const element of elements) {
     const a = project(pointOf(element.fromRow));
@@ -174,13 +202,54 @@ function draw5CCanvas(canvas, result) {
   ctx.font = `${10 * dpr}px ui-monospace, Consolas, monospace`;
   for (const item of nodes.values()) {
     const p = project(item.point);
+    if (p.x < -40 || p.x > w + 40 || p.y < -40 || p.y > h + 40) continue;
     ctx.fillStyle = item.fillerType === 'ray' ? '#e879f9' : '#e6edf5';
     ctx.beginPath(); ctx.arc(p.x, p.y, 3.4 * dpr, 0, Math.PI * 2); ctx.fill();
     ctx.fillText(String(item.node), p.x + 5 * dpr, p.y - 5 * dpr);
   }
   ctx.fillStyle = '#94a3b8';
   ctx.font = `${11 * dpr}px ui-monospace, Consolas, monospace`;
-  ctx.fillText(`Projection: ${ax.toUpperCase()} / ${ay.toUpperCase()} · route=${result?.diagnostics?.summary?.routeElementCount ?? elements.length} · short=${result?.diagnostics?.summary?.shortFillerCount ?? 0} · ray=${result?.diagnostics?.summary?.rayFillerCount ?? 0}`, pad, 20 * dpr);
+  ctx.fillText(`Projection: ${ax.toUpperCase()} / ${ay.toUpperCase()} · zoom=${viewScale.toFixed(2)}x · pan=${Math.round(Number(view.offsetX || 0))},${Math.round(Number(view.offsetY || 0))} · route=${result?.diagnostics?.summary?.routeElementCount ?? elements.length} · short=${result?.diagnostics?.summary?.shortFillerCount ?? 0} · ray=${result?.diagnostics?.summary?.rayFillerCount ?? 0}`, pad, 20 * dpr);
+}
+function bindCanvasNavigation(target, state) {
+  const canvas = target.querySelector('[data-xml-cii-5c-canvas]');
+  if (!canvas) return;
+  const redraw = () => draw5CCanvas(canvas, state.result, state);
+  if (state.canvasMouseMove) window.removeEventListener('mousemove', state.canvasMouseMove);
+  if (state.canvasMouseUp) window.removeEventListener('mouseup', state.canvasMouseUp);
+  canvas.onwheel = (event) => {
+    event.preventDefault?.();
+    const rect = canvas.getBoundingClientRect();
+    const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+    zoomCanvasView(state, factor, event.clientX - rect.left, event.clientY - rect.top, canvas);
+    redraw();
+  };
+  canvas.onmousedown = (event) => {
+    event.preventDefault?.();
+    state.canvasDrag = { active: true, lastX: event.clientX, lastY: event.clientY };
+    canvas.style.cursor = 'grabbing';
+  };
+  state.canvasMouseMove = (event) => {
+    const drag = state.canvasDrag;
+    if (!drag?.active) return;
+    const view = state.canvasView || { scale: 1, offsetX: 0, offsetY: 0 };
+    view.offsetX = Number(view.offsetX || 0) + event.clientX - drag.lastX;
+    view.offsetY = Number(view.offsetY || 0) + event.clientY - drag.lastY;
+    state.canvasView = view;
+    drag.lastX = event.clientX;
+    drag.lastY = event.clientY;
+    redraw();
+  };
+  state.canvasMouseUp = () => {
+    if (state.canvasDrag) state.canvasDrag.active = false;
+    canvas.style.cursor = 'grab';
+  };
+  window.addEventListener('mousemove', state.canvasMouseMove);
+  window.addEventListener('mouseup', state.canvasMouseUp);
+  target.querySelector('[data-xml-cii-5c-canvas-fit]')?.addEventListener('click', () => { resetCanvasView(state); redraw(); });
+  target.querySelector('[data-xml-cii-5c-canvas-reset]')?.addEventListener('click', () => { resetCanvasView(state); redraw(); });
+  target.querySelector('[data-xml-cii-5c-canvas-zoom-in]')?.addEventListener('click', () => { zoomCanvasView(state, 1.25); redraw(); });
+  target.querySelector('[data-xml-cii-5c-canvas-zoom-out]')?.addEventListener('click', () => { zoomCanvasView(state, 1 / 1.25); redraw(); });
 }
 function sourceCard(state, source) {
   return `<section class="xml-cii-native-card">
@@ -247,6 +316,7 @@ function bindControls(target, root, state, options) {
     if (!source) { state.status = 'No XML source found.'; rerender(); return; }
     const config = parseJson(options.supportConfigJson || '{}');
     try {
+      resetCanvasView(state);
       state.result = buildInputXmlFromNodeXml(source.xmlText, {
         sourceName: source.source,
         supportConfigJson: options.supportConfigJson || '{}',
@@ -274,6 +344,7 @@ function bindControls(target, root, state, options) {
     const filename = button.dataset.xmlCii5cFilename || `${key}.txt`;
     downloadText(filename, outputValue(state.result, key));
   }));
+  bindCanvasNavigation(target, state);
 }
 export function renderXmlCiiTopology5CPanel(target, options = {}) {
   if (!target) return null;
@@ -286,6 +357,6 @@ export function renderXmlCiiTopology5CPanel(target, options = {}) {
     ${actionsCard(state)}
     ${resultHtml(state.result)}`;
   bindControls(target, root, state, options);
-  draw5CCanvas(target.querySelector('[data-xml-cii-5c-canvas]'), state.result);
+  draw5CCanvas(target.querySelector('[data-xml-cii-5c-canvas]'), state.result, state);
   return state.result || null;
 }
