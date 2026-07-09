@@ -9,6 +9,7 @@
 import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260708-workflow-bridge-align-1';
 import { xmlCiiWorkflowRequestFinalRun } from './xml-cii-workflow-runner.js?v=20260624-workflow1-workflow2-1';
 import { renderXmlCiiTopology5BPanel } from './xml-cii-topology-5b-panel.js?v=20260709-native-5b-2';
+import { renderXmlCiiTopology5CPanel } from './xml-cii-topology-5c-panel.js?v=20260709-5c-ui-1';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };
@@ -57,7 +58,7 @@ function jsonTraceSignature(current) {
 function injectJsonTraceBuildButton(scope = document) {
   if (typeof document === 'undefined') return null;
   let injected = null;
-  scope.querySelectorAll?.('.json-trace-section-head')?.forEach((head) => {
+  scope.querySelectorAll?.('.json-trace-section-head').forEach((head) => {
     if (!/JsonNode\s+Trace\s+tree/i.test(head.textContent || '')) return;
     if (head.querySelector('[data-json-trace-build-tree]')) { injected = head.querySelector('[data-json-trace-build-tree]'); return; }
     const button = document.createElement('button');
@@ -158,6 +159,12 @@ function renderTopologyPhaseInto(target) {
 function readConfig(base) { return parseJson(base?.exportPopupConfigText?.() || '{}'); }
 function writeConfig(base, config) { base?.importPopupConfigText?.(JSON.stringify(config || {}, null, 2)); clearSnapshotCache(); }
 
+function renderXmlToInputXmlPhaseInto(target, base) {
+  const root = target.closest?.('[data-xml-cii-workflow-root]') || target.closest?.('.model-converters-root') || document;
+  const supportConfigJson = base?.exportPopupConfigText?.() || '{}';
+  renderXmlCiiTopology5CPanel(target, { root, supportConfigJson });
+}
+
 function mergeConfigText(editedText, bools = {}) {
   const cfg = parseJson(editedText);
   Object.assign(cfg, bools || {});
@@ -205,6 +212,7 @@ function workflowBridge() {
   safe.getPopupSnapshot = (root) => cachedSnapshot(base, root);
   safe.renderPhaseInto = (target, phaseId) => {
     if (phaseId === 'topology') { renderTopologyPhaseInto(target); return true; }
+    if (phaseId === 'xml-to-inputxml') { renderXmlToInputXmlPhaseInto(target, base); return true; }
     return base.renderPhaseInto?.(target, phaseId);
   };
   safe.setPopupConfigValue = wrapSync(base, 'setPopupConfigValue');
