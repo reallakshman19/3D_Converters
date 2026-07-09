@@ -2,6 +2,7 @@ import { enrichInputXmlDocument } from '../xml-cii-2019-standalone/xml-cii-input
 
 const SENTINEL = -1.0101;
 const POS_TOL_MM = 0.5;
+const SHORT_FILLER_MM = 50;
 const RESTRAINT_TYPE_MAP = Object.freeze({ '+Y': 17, Y: 17, LIM: 12, GUI: 9, ANC: 0, ANCHOR: 0 });
 const DEFAULT_FILLER_SEARCH_FACTOR = 5;
 const DEFAULT_FILLER_NODE_BASE = 900000;
@@ -250,14 +251,14 @@ function elementToXml(element, options) {
   const includeFullContext = element.isFirstInBranch || options?.repeatContextOnEveryElement === true;
   const attrs = createElementAttributes(element, includeFullContext);
   const lines = [`<PIPINGELEMENT${attrsToText(attrs)}>`];
-  if (!element.isFiller && hasBendEvidence(element.toRow)) {
+  if (!element.isRayFiller && hasBendEvidence(element.toRow)) {
     const radius = Number(element.toRow.bendRadius) > 0 ? Number(element.toRow.bendRadius) : SENTINEL;
     const midNode = Number(element.to) - 1;
     lines.push(`<BEND RADIUS="${f(radius)}" TYPE="${f(SENTINEL)}" ANGLE1="-2.020200" NODE1="${f(midNode)}" ANGLE2="${f(SENTINEL)}" NODE2="${f(SENTINEL)}" ANGLE3="${f(SENTINEL)}" NODE3="${f(SENTINEL)}" NUM_MITER="${f(SENTINEL)}" FITTINGTHICKNESS="${f(SENTINEL)}" KFACTOR="${f(SENTINEL)}"/>`);
   }
-  if (!element.isFiller && hasRigidEvidence(element.toRow)) lines.push(`<RIGID WEIGHT="${f(rigidWeight(element.toRow))}" TYPE="Unspecified"/>`);
-  if (!element.isFiller && hasSifEvidence(element.toRow)) lines.push(...emitSifSlots(element.to, Number(options?.defaultTeeSifType ?? 5)));
-  if (!element.isFiller) lines.push(...emitRestraintSlots(element.to, element.toRow.restraints));
+  if (!element.isRayFiller && hasRigidEvidence(element.toRow)) lines.push(`<RIGID WEIGHT="${f(rigidWeight(element.toRow))}" TYPE="Unspecified"/>`);
+  if (!element.isRayFiller && hasSifEvidence(element.toRow)) lines.push(...emitSifSlots(element.to, Number(options?.defaultTeeSifType ?? 5)));
+  if (!element.isRayFiller) lines.push(...emitRestraintSlots(element.to, element.toRow.restraints));
   lines.push('</PIPINGELEMENT>');
   return lines.join('\n');
 }
@@ -274,6 +275,7 @@ function elementSideLoadBlock(element) {
     Rating: row.rating,
     Position: row.position ? `${row.position.x} ${row.position.y} ${row.position.z}` : '',
     TopologyReason: element.topologyReason,
+    FillerType: element.fillerType || '',
   };
   const lines = [`ELEMENT ${element.from}->${element.to}`];
   for (const [key, value] of Object.entries(fields)) if (text(value)) lines.push(`${key}=${value}`);
@@ -320,14 +322,14 @@ function closestRaySegmentHit(origin, rayDir, a, b, options) {
   if (miss > (options.rayHitToleranceMm ?? DEFAULT_RAY_HIT_TOL_MM)) return null;
   return { point: segPoint, lengthMm: tRay, perpendicularDot: perpDot, missDistanceMm: miss };
 }
-function createSyntheticFillerRow(sourceRow, point, syntheticNodeNumber) {
+function createSyntheticRayFillerRow(sourceRow, point, syntheticNodeNumber) {
   return {
     ...sourceRow,
     nodeNumberRaw: String(syntheticNodeNumber),
     nodeNumber: syntheticNodeNumber,
-    nodeName: `TOPO_FILLER_${sourceRow.nodeNumber}_${syntheticNodeNumber}`,
+    nodeName: `TOPO_RAY_FILLER_${sourceRow.nodeNumber}_${syntheticNodeNumber}`,
     endpoint: '',
-    componentType: 'TOPO_FILLER',
+    componentType: 'TOPO_RAY_FILLER',
     connectionType: '',
     componentRefNo: '',
     position: point,
@@ -348,7 +350,7 @@ function buildNodeRefs(elements) {
     refs.get(key).push({ node, row, otherRow, element, isFrom });
   };
   for (const element of elements) {
-    if (element.isFiller) continue;
+    if (element.isRayFiller) continue;
     push(element.from, element.fromRow, element.toRow, element, true);
     push(element.to, element.toRow, element.fromRow, element, false);
   }
@@ -361,16 +363,20 @@ function nextSyntheticNode(elements, options) {
   while (used.has(nodeKey(candidate))) candidate += 1;
   return candidate;
 }
-function applySecondPassFillers(elements, diagnostics, options = {}) {
+function pushFillerDiagnostic(diagnostics, row) {
+  diagnostics.fillers.push(row);
+  if (row.fillerType === 'short') diagnostics.shortFillers.push(row);
+  if (row.fillerType === 'ray') diagnostics.rayFillers.push(row);
+}
+function applySecondPassRayFillers(elements, diagnostics, options = {}) {
   diagnostics.fillerRule = {
-    pass: 2,
-    source: 'dead-end ray shoot after full topology route build',
-    maxSearchFactorDiameter: Number(options.fillerSearchFactor ?? DEFAULT_FILLER_SEARCH_FACTOR),
+    shortFillerPass: 'first-pass route segment length < 50mm',
+    rayFillerPass: 'second-pass dead-end ray shoot after full topology route build',
+    rayMaxSearchFactorDiameter: Number(options.fillerSearchFactor ?? DEFAULT_FILLER_SEARCH_FACTOR),
     perpendicularDotTolerance: Number(options.perpendicularDotTolerance ?? DEFAULT_PERP_DOT_TOL),
     rayHitToleranceMm: Number(options.rayHitToleranceMm ?? DEFAULT_RAY_HIT_TOL_MM),
   };
-  diagnostics.fillerRejected = [];
-  if (options.enableSecondPassFillers === false) return;
+  if (options.enableSecondPassFillers === false || options.enableRayFillers === false) return;
   const nodeRefs = buildNodeRefs(elements);
   let syntheticNodeNumber = nextSyntheticNode(elements, options);
   for (const refs of nodeRefs.values()) {
@@ -379,7 +385,7 @@ function applySecondPassFillers(elements, diagnostics, options = {}) {
     if (!dead.row?.position || !dead.otherRow?.position) continue;
     const diameter = endpointDiameter(dead.row, dead.otherRow);
     if (!diameter) {
-      diagnostics.fillerRejected.push({ node: dead.node, reason: 'NO_DIAMETER_FOR_5D_LIMIT' });
+      diagnostics.fillerRejected.push({ node: dead.node, fillerType: 'ray', reason: 'NO_DIAMETER_FOR_5D_LIMIT' });
       continue;
     }
     const rayDir = vecNorm(vecSub(dead.row.position, dead.otherRow.position));
@@ -387,7 +393,7 @@ function applySecondPassFillers(elements, diagnostics, options = {}) {
     const maxSearchMm = Number(options.fillerSearchFactor ?? DEFAULT_FILLER_SEARCH_FACTOR) * diameter;
     let best = null;
     for (const candidate of elements) {
-      if (candidate.isFiller || candidate === dead.element) continue;
+      if (candidate.isRayFiller || candidate === dead.element) continue;
       if (!candidate.fromRow?.position || !candidate.toRow?.position) continue;
       const hit = closestRaySegmentHit(dead.row.position, rayDir, candidate.fromRow.position, candidate.toRow.position, options);
       if (!hit) continue;
@@ -395,11 +401,11 @@ function applySecondPassFillers(elements, diagnostics, options = {}) {
       if (!best || hit.lengthMm < best.hit.lengthMm) best = { candidate, hit };
     }
     if (!best) {
-      diagnostics.fillerRejected.push({ node: dead.node, reason: 'NO_PERPENDICULAR_HIT_WITHIN_5D', maxSearchMm });
+      diagnostics.fillerRejected.push({ node: dead.node, fillerType: 'ray', reason: 'NO_PERPENDICULAR_HIT_WITHIN_5D', maxSearchMm });
       continue;
     }
-    const fillerToRow = createSyntheticFillerRow(dead.row, best.hit.point, syntheticNodeNumber);
-    const filler = {
+    const fillerToRow = createSyntheticRayFillerRow(dead.row, best.hit.point, syntheticNodeNumber);
+    const rayFiller = {
       branch: dead.element.branch,
       from: Number(dead.node),
       to: syntheticNodeNumber,
@@ -408,8 +414,10 @@ function applySecondPassFillers(elements, diagnostics, options = {}) {
       lengthMm: best.hit.lengthMm,
       delta: deltaToCaesar(dead.row.position, best.hit.point),
       isFirstInBranch: false,
-      isFiller: true,
-      topologyReason: 'TOPO_FILLER_DEAD_END_RAY_PERPENDICULAR_HIT',
+      isRayFiller: true,
+      isShortFiller: false,
+      fillerType: 'ray',
+      topologyReason: 'TOPO_RAY_FILLER_DEAD_END_PERPENDICULAR_HIT',
       filler: {
         sourceDeadEndNode: Number(dead.node),
         hitElement: `${best.candidate.from}->${best.candidate.to}`,
@@ -419,15 +427,16 @@ function applySecondPassFillers(elements, diagnostics, options = {}) {
         missDistanceMm: best.hit.missDistanceMm,
       },
     };
-    elements.push(filler);
-    diagnostics.fillers.push({
-      from: filler.from,
-      to: filler.to,
-      lengthMm: filler.lengthMm,
-      branchName: filler.branch.branchName,
-      reason: filler.topologyReason,
+    elements.push(rayFiller);
+    pushFillerDiagnostic(diagnostics, {
+      from: rayFiller.from,
+      to: rayFiller.to,
+      lengthMm: rayFiller.lengthMm,
+      branchName: rayFiller.branch.branchName,
+      reason: rayFiller.topologyReason,
+      fillerType: 'ray',
       sourceDeadEndNode: Number(dead.node),
-      hitElement: filler.filler.hitElement,
+      hitElement: rayFiller.filler.hitElement,
       maxSearchMm,
       diameterMm: diameter,
       perpendicularDot: best.hit.perpendicularDot,
@@ -438,7 +447,7 @@ function applySecondPassFillers(elements, diagnostics, options = {}) {
 }
 function buildElements(branches, options = {}) {
   const elements = [];
-  const diagnostics = { branches: [], fillers: [], fillerRejected: [], rigid: [], sif: [], bend: [], restraints: [] };
+  const diagnostics = { branches: [], fillers: [], shortFillers: [], rayFillers: [], fillerRejected: [], rigid: [], sif: [], bend: [], restraints: [] };
   for (const branch of branches) {
     const routeRows = branch.nodes.filter(isRouteNode);
     diagnostics.branches.push({ branchName: branch.branchName, nodeRows: branch.nodes.length, routeRows: routeRows.length });
@@ -448,6 +457,7 @@ function buildElements(branches, options = {}) {
       if (fromRow.nodeNumber === toRow.nodeNumber) continue;
       const lengthMm = dist(fromRow.position, toRow.position);
       if (lengthMm <= POS_TOL_MM) continue;
+      const isShortFiller = lengthMm < SHORT_FILLER_MM;
       const element = {
         branch,
         from: Number(fromRow.nodeNumber),
@@ -457,24 +467,29 @@ function buildElements(branches, options = {}) {
         lengthMm,
         delta: deltaToCaesar(fromRow.position, toRow.position),
         isFirstInBranch: i === 0,
-        isFiller: false,
-        topologyReason: 'SEQUENTIAL_POS_ROUTE',
+        isRayFiller: false,
+        isShortFiller,
+        fillerType: isShortFiller ? 'short' : '',
+        topologyReason: isShortFiller ? 'TOPO_FILLER_SHORT_FIRST_PASS' : 'SEQUENTIAL_POS_ROUTE',
       };
       elements.push(element);
+      if (isShortFiller) {
+        pushFillerDiagnostic(diagnostics, { from: element.from, to: element.to, lengthMm, branchName: branch.branchName, reason: element.topologyReason, fillerType: 'short' });
+      }
       if (hasRigidEvidence(toRow)) diagnostics.rigid.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, componentType: toRow.componentType, weight: toRow.weight });
       if (hasSifEvidence(toRow)) diagnostics.sif.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, componentType: toRow.componentType, connectionType: toRow.connectionType });
       if (hasBendEvidence(toRow)) diagnostics.bend.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, bendRadius: toRow.bendRadius, componentType: toRow.componentType });
       if (toRow.restraints.length) diagnostics.restraints.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, count: toRow.restraints.length });
     }
   }
-  applySecondPassFillers(elements, diagnostics, options);
+  applySecondPassRayFillers(elements, diagnostics, options);
   return { elements, diagnostics };
 }
 function createCoreInputXml(elements, options = {}) {
-  const numBend = elements.filter((e) => !e.isFiller && hasBendEvidence(e.toRow)).length;
-  const numRigid = elements.filter((e) => !e.isFiller && hasRigidEvidence(e.toRow)).length;
-  const numRest = elements.filter((e) => !e.isFiller && e.toRow.restraints.length).length;
-  const numSif = elements.filter((e) => !e.isFiller && hasSifEvidence(e.toRow)).length;
+  const numBend = elements.filter((e) => !e.isRayFiller && hasBendEvidence(e.toRow)).length;
+  const numRigid = elements.filter((e) => !e.isRayFiller && hasRigidEvidence(e.toRow)).length;
+  const numRest = elements.filter((e) => !e.isRayFiller && e.toRow.restraints.length).length;
+  const numSif = elements.filter((e) => !e.isRayFiller && hasSifEvidence(e.toRow)).length;
   const jobName = escAttr(options.jobName || 'XML_NODE_TO_INPUTXML_CORE');
   const header = `<CAESARII xmlns="COADE" VERSION="11.00" XML_TYPE="Input">\n<PIPINGMODEL xmlns="" JOBNAME="${jobName}" TIME="" ISSUE_NO="" NUMELT="${elements.length}" NUMNOZ="0" NOHGRS="0" NUMBEND="${numBend}" NUMRIGID="${numRigid}" NUMEXPJNT="0" NUMREST="${numRest}" NUMFORCMNT="0" NUMUNFLOAD="0" NUMWIND="0" NUMELEOFF="0" NUMALLOW="0" NUMISECT="${numSif}" NORTH_Z="-1" NORTH_Y="0" NORTH_X="0">`;
   const body = elements.map((element) => elementToXml(element, options)).join('\n');
@@ -483,12 +498,14 @@ function createCoreInputXml(elements, options = {}) {
 function createSummary(elements, diagnostics) {
   return {
     elementCount: elements.length,
-    routeElementCount: elements.filter((element) => !element.isFiller).length,
+    routeElementCount: elements.filter((element) => !element.isRayFiller).length,
     rigidCount: diagnostics.rigid.length,
     sifCount: diagnostics.sif.length,
     bendCount: diagnostics.bend.length,
     restraintNodeCount: diagnostics.restraints.length,
-    shortFillerCount: diagnostics.fillers.length,
+    fillerCount: diagnostics.fillers.length,
+    shortFillerCount: diagnostics.shortFillers.length,
+    rayFillerCount: diagnostics.rayFillers.length,
     fillerRejectedCount: diagnostics.fillerRejected?.length || 0,
   };
 }
@@ -536,4 +553,4 @@ export function buildInputXmlFromNodeXml(xmlText, options = {}) {
   };
 }
 
-export const __xmlCiiNodeToInputXmlCoreInternals = Object.freeze({ parseNodeXml, buildElements, createCoreInputXml, deltaToCaesar, closestRaySegmentHit, applySecondPassFillers });
+export const __xmlCiiNodeToInputXmlCoreInternals = Object.freeze({ parseNodeXml, buildElements, createCoreInputXml, deltaToCaesar, closestRaySegmentHit, applySecondPassRayFillers });
