@@ -11,6 +11,13 @@
  * the file ever reaches Python. The engines stay untouched and keep reading
  * a single hardcoded name per field.
  *
+ * It also normalizes CAESAR restraint slot numbering at the InputXML boundary:
+ * one PIPINGELEMENT can carry only six RESTRAINT slots in the downstream CII
+ * RESTRANT auxiliary block. Real/enriched InputXML may contain duplicate,
+ * missing, or overflow NUM values (for example NUM="7"). Those are reassigned
+ * into free slots 1..6 where possible; excess restraints are removed from that
+ * single element rather than allowing the converter to abort.
+ *
  * How to add a new alias: add the variant spelling to the array for its
  * canonical attribute name in INPUTXML_ATTRIBUTE_ALIASES below. No other
  * code changes are required.
@@ -60,6 +67,8 @@ const INPUTXML_DIALECT_CONVERTER_IDS = Object.freeze(
   new Set(['inputxml_to_cii2019', 'inputxml_to_cii', 'inputxml14_to_cii']),
 );
 
+const RESTRAINT_SLOTS_PER_ELEMENT = 6;
+
 export function converterUsesInputXmlDialect(converterId) {
   return INPUTXML_DIALECT_CONVERTER_IDS.has(String(converterId || ''));
 }
@@ -83,6 +92,66 @@ function buildVariantPatterns() {
 
 const VARIANT_PATTERNS = buildVariantPatterns();
 
+function parseSlot(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return null;
+  const slot = Math.round(numeric);
+  return Math.abs(numeric - slot) < 1e-9 ? slot : null;
+}
+
+function nextFreeSlot(usedSlots) {
+  for (let slot = 1; slot <= RESTRAINT_SLOTS_PER_ELEMENT; slot += 1) {
+    if (!usedSlots.has(slot)) return slot;
+  }
+  return null;
+}
+
+function setRestraintSlot(restraintXml, slot) {
+  if (/\bNUM\s*=\s*"[^"]*"/i.test(restraintXml)) {
+    return restraintXml.replace(/\bNUM\s*=\s*"[^"]*"/i, `NUM="${slot}"`);
+  }
+  if (/\bNUM\s*=\s*'[^']*'/i.test(restraintXml)) {
+    return restraintXml.replace(/\bNUM\s*=\s*'[^']*'/i, `NUM="${slot}"`);
+  }
+  const startEnd = restraintXml.indexOf('>');
+  if (startEnd < 0) return restraintXml;
+  const startTag = restraintXml.slice(0, startEnd);
+  const rest = restraintXml.slice(startEnd);
+  const insertAt = startTag.endsWith('/') ? startTag.length - 1 : startTag.length;
+  return `${startTag.slice(0, insertAt)} NUM="${slot}"${startTag.slice(insertAt)}${rest}`;
+}
+
+function normalizeRestraintsInsideElement(elementXml, changes) {
+  const usedSlots = new Set();
+  let restraintCount = 0;
+  return elementXml.replace(/<RESTRAINT\b[^>]*(?:\/>|>[\s\S]*?<\/RESTRAINT>)/gi, (restraintXml) => {
+    restraintCount += 1;
+    const numMatch = restraintXml.match(/\bNUM\s*=\s*(["'])(.*?)\1/i);
+    const currentSlot = parseSlot(numMatch?.[2]);
+    if (currentSlot !== null && currentSlot >= 1 && currentSlot <= RESTRAINT_SLOTS_PER_ELEMENT && !usedSlots.has(currentSlot)) {
+      usedSlots.add(currentSlot);
+      return restraintXml;
+    }
+    const replacementSlot = nextFreeSlot(usedSlots);
+    if (replacementSlot === null) {
+      changes.push(`dropped overflow RESTRAINT ${restraintCount}`);
+      return '';
+    }
+    usedSlots.add(replacementSlot);
+    changes.push(`RESTRAINT NUM ${numMatch?.[2] || '(missing)'} -> ${replacementSlot}`);
+    return setRestraintSlot(restraintXml, replacementSlot);
+  });
+}
+
+function normalizeInputXmlRestraintSlots(xmlText) {
+  const changes = [];
+  const xml = String(xmlText || '');
+  const normalized = xml.replace(/<PIPINGELEMENT\b[^>]*>[\s\S]*?<\/PIPINGELEMENT>/gi, (elementXml) => normalizeRestraintsInsideElement(elementXml, changes));
+  return { xmlText: normalized, changes };
+}
+
 /**
  * Rewrites known variant attribute names to their canonical spelling in raw
  * InputXML text. Deliberately text-based (not DOM-based) so it works the
@@ -97,7 +166,7 @@ const VARIANT_PATTERNS = buildVariantPatterns();
  */
 export function normalizeInputXmlAttributeNames(xmlText) {
   const text = String(xmlText || '');
-  if (!text.trim()) return { xmlText: text, renamed: [] };
+  if (!text.trim()) return { xmlText: text, renamed: [], changes: [] };
 
   let output = text;
   const renamed = [];
@@ -110,5 +179,9 @@ export function normalizeInputXmlAttributeNames(xmlText) {
     renamed.push(`${variant} -> ${canonical}`);
   }
 
-  return { xmlText: output, renamed };
+  const restraintResult = normalizeInputXmlRestraintSlots(output);
+  output = restraintResult.xmlText;
+  const changes = [...renamed, ...restraintResult.changes];
+
+  return { xmlText: output, renamed: changes, changes };
 }
