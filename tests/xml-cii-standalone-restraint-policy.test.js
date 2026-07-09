@@ -101,6 +101,7 @@ globalThis.DOMParser = class { parseFromString(text) { return parseXml(text); } 
 globalThis.XMLSerializer = class { serializeToString(node) { return node instanceof SimpleDocument ? serializeNode(node.documentElement) : serializeNode(node); } };
 
 const SOURCE_XML = `<?xml version="1.0"?><CAESARII XML_TYPE="Input" VERSION="2019"><PIPINGMODEL JOBNAME="J" NUMELEMENTS="1" NUMREST="1"><PIPINGELEMENT FROM_NODE="10" TO_NODE="20" DELTA_X="1000" DELTA_Y="0" DELTA_Z="0"><RESTRAINT NUM="1" NODE="20" TYPE="17" STIFFNESS="1e12" GAP="0" FRIC_COEF="0" CNODE="0" XCOSINE="-1.0101" YCOSINE="-1.0101" ZCOSINE="-1.0101" /></PIPINGELEMENT></PIPINGMODEL></CAESARII>`;
+const FULL_RESTRAINT_SOURCE_XML = `<?xml version="1.0"?><CAESARII XML_TYPE="Input" VERSION="2019"><PIPINGMODEL JOBNAME="J" NUMELEMENTS="1" NUMREST="7"><PIPINGELEMENT FROM_NODE="10" TO_NODE="20" DELTA_X="1000" DELTA_Y="0" DELTA_Z="0"><RESTRAINT NUM="1" NODE="20" TYPE="1"/><RESTRAINT NUM="2" NODE="20" TYPE="2"/><RESTRAINT NUM="3" NODE="20" TYPE="3"/><RESTRAINT NUM="4" NODE="20" TYPE="4"/><RESTRAINT NUM="5" NODE="20" TYPE="5"/><RESTRAINT NUM="6" NODE="20" TYPE="6"/><RESTRAINT NUM="7" NODE="20" TYPE="7"/></PIPINGELEMENT></PIPINGMODEL></CAESARII>`;
 const SIDE_LOAD_TEXT = `ELEMENT FROM_NODE=10 TO_NODE=20\nDTXR_POS = GUIDE\n`;
 
 function countRestraints(xmlText) {
@@ -111,13 +112,17 @@ function typeCodesOf(xmlText) {
   return Array.from(xmlText.matchAll(/<RESTRAINT\b[^>]*\bTYPE="(-?\d+)"/g)).map((m) => Number(m[1])).sort((a, b) => a - b);
 }
 
+function numsOf(xmlText) {
+  return Array.from(xmlText.matchAll(/<RESTRAINT\b[^>]*\bNUM="(\d+)"/g)).map((m) => Number(m[1])).sort((a, b) => a - b);
+}
+
 (async () => {
   const { enrichInputXmlDocument } = await import(pathToFileURL(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js')).href);
 
-  const runPolicy = (policy) => enrichInputXmlDocument({
+  const runPolicy = (policy, sourceText = SOURCE_XML) => enrichInputXmlDocument({
     sourceKind: 'inputxml',
     sourceName: 'restraint-policy.input.xml',
-    sourceText: SOURCE_XML,
+    sourceText,
     elementSideLoadText: SIDE_LOAD_TEXT,
     supportConfigJson: '{}',
     options: { inputXmlOutputMode: 'full-document', pointPropertiesBasis: 'TO', inputXmlRestraintPolicy: policy, fillSentinelFromLineContext: true, normalizePressureCaseNames: true },
@@ -142,6 +147,11 @@ function typeCodesOf(xmlText) {
   assert.strictEqual(merge.ok, true, 'merge policy must succeed');
   assert.strictEqual(countRestraints(merge.enrichedText), 2, 'merge-existing-and-dtxr-derived-restraints must keep the existing restraint and append the derived one');
   assert.deepStrictEqual(typeCodesOf(merge.enrichedText), [9, 17], 'merge-existing-and-dtxr-derived-restraints must contain both the existing (17) and DTXR-derived (9) type codes');
+
+  const capped = runPolicy('merge-existing-and-dtxr-derived-restraints', FULL_RESTRAINT_SOURCE_XML);
+  assert.strictEqual(capped.ok, true, 'full-slot merge policy must succeed');
+  assert.strictEqual(countRestraints(capped.enrichedText), 6, 'InputXML enrichment must cap one PIPINGELEMENT to six restraint slots');
+  assert.deepStrictEqual(numsOf(capped.enrichedText), [1, 2, 3, 4, 5, 6], 'InputXML enrichment must not output RESTRAINT NUM above 6');
 
   console.log('XML CII standalone InputXML restraint policy checks passed.');
 })().catch((error) => {
