@@ -6,6 +6,45 @@ function esc(value) {
   return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Master reference tables (weight/material/piping-class/line-list rows) can run to thousands of
+// rows once loaded from the app defaults or an import. Editing/displaying that inline as raw JSON
+// text makes the textarea multi-hundred-KB, which is slow enough to read as a hang. This editor
+// summarizes those specific fields with a placeholder and edits everything else directly; the
+// omitted rows are always preserved from the authoritative in-memory config on save/export.
+const LARGE_ROW_FIELDS = Object.freeze([
+  { section: 'weight', field: 'masterRows' },
+  { section: 'material', field: 'mapRows' },
+  { section: 'pipingClass', field: 'masterRows' },
+  { section: 'linelist', field: 'masterRows' },
+]);
+const LARGE_ROW_THRESHOLD = 50;
+const OMITTED_MARKER_KEY = '__rowsOmittedFromEditor';
+
+function buildDisplayConfig(fullConfig) {
+  const display = { ...fullConfig };
+  for (const { section, field } of LARGE_ROW_FIELDS) {
+    const rows = fullConfig?.[section]?.[field];
+    if (!Array.isArray(rows) || rows.length <= LARGE_ROW_THRESHOLD) continue;
+    display[section] = { ...display[section], [field]: { [OMITTED_MARKER_KEY]: rows.length, note: `${rows.length} row(s) omitted from this editor — manage via the Import Masters tab (Source & Masters). Saving/exporting keeps the full data.` } };
+  }
+  return display;
+}
+
+// Merges a user-edited config back onto the authoritative full config: any large-row field left
+// as the omitted-placeholder (or missing entirely) keeps its real rows; anything the user actually
+// replaced with a real array is accepted as-is.
+function mergeEditedConfig(editedConfig, fullConfig) {
+  const merged = { ...editedConfig };
+  for (const { section, field } of LARGE_ROW_FIELDS) {
+    const editedValue = merged?.[section]?.[field];
+    const isPlaceholder = editedValue && typeof editedValue === 'object' && !Array.isArray(editedValue) && OMITTED_MARKER_KEY in editedValue;
+    if (Array.isArray(editedValue) && !isPlaceholder) continue;
+    const originalRows = fullConfig?.[section]?.[field];
+    if (Array.isArray(originalRows)) merged[section] = { ...merged[section], [field]: originalRows };
+  }
+  return merged;
+}
+
 function makeCheckbox(parent, labelText, checked, onChange) {
   const label = createElement('label');
   label.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:#cbd5e1;cursor:pointer;';
@@ -143,13 +182,16 @@ function _renderProcessCard(configObj, syncJsonText, controls) {
 
 export function renderAdaptedConfigPanel(card, stateRef, render) {
   const state = stateRef.current;
-  let configText = state.supportConfigJson || '{}';
+  // configObj is always the full, authoritative config (including any large master row arrays).
+  // configText is only ever the *display* text shown in the raw-JSON textarea, which summarizes
+  // large row arrays via buildDisplayConfig() so the textarea stays small and fast to render.
   let configObj = {};
-  try { configObj = JSON.parse(configText); } catch {}
+  try { configObj = JSON.parse(state.supportConfigJson || '{}'); } catch {}
+  let configText = JSON.stringify(buildDisplayConfig(configObj), null, 2);
 
   const statusDiv = createElement('div');
   statusDiv.style.cssText = 'padding:10px;margin-bottom:14px;border-radius:6px;font-size:12px;font-weight:bold;';
-  
+
   function updateValidationStatus(text) {
     const val = validateSupportConfigJson(text);
     statusDiv.textContent = val.ok ? '✓ Support Configuration JSON is valid.' : `⚠ Invalid Configuration: ${val.error}`;
@@ -162,11 +204,11 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
 
   const grid = createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:16px;';
-  
+
   const ctrlRefs = {};
-  
+
   function syncJsonText() {
-    configText = JSON.stringify(configObj, null, 2);
+    configText = JSON.stringify(buildDisplayConfig(configObj), null, 2);
     textarea.value = configText;
     updateValidationStatus(configText);
   }
@@ -182,17 +224,18 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
   const editorSec = createElement('details');
   editorSec.setAttribute('open', 'true');
   editorSec.appendChild(createElement('summary', 'Raw Config JSON Editor'));
-  
+  editorSec.appendChild(createElement('div', 'Large master row lists (weight/material/piping-class/line-list) are summarized here — manage them via the Import Masters tab. Save/Export always keep the full data.', 'xml-cii-phase-help'));
+
   const textarea = createElement('textarea');
   textarea.value = configText;
   textarea.spellcheck = false;
   textarea.style.cssText = 'width:100%;height:320px;font-family:monospace;font-size:12px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;margin-top:6px;';
-  
+
   textarea.addEventListener('input', (e) => {
     configText = e.target.value;
     updateValidationStatus(configText);
     try {
-      configObj = JSON.parse(configText);
+      configObj = mergeEditedConfig(JSON.parse(configText), configObj);
       syncControls();
     } catch {}
   });
@@ -201,14 +244,15 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
 
   const toolbar = createElement('div');
   toolbar.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px;';
-  
+
   const saveBtn = createElement('button', '💾 Save Config');
   saveBtn.type = 'button';
   saveBtn.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:bold;cursor:pointer;';
   saveBtn.addEventListener('click', () => {
     const val = validateSupportConfigJson(configText);
     if (!val.ok) { alert(`Invalid configuration JSON: ${val.error}`); return; }
-    stateRef.current = { ...stateRef.current, supportConfigJson: configText, masterContext: { ...(stateRef.current.masterContext || {}), config: configObj } };
+    const fullConfigJson = JSON.stringify(configObj, null, 2);
+    stateRef.current = { ...stateRef.current, supportConfigJson: fullConfigJson, masterContext: { ...(stateRef.current.masterContext || {}), config: configObj } };
     saveMasterContextToLocalStorage(stateRef.current.masterContext);
     render();
     if (typeof showToast === 'function') showToast('Configuration saved successfully!');
@@ -220,7 +264,7 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
   exportBtn.type = 'button';
   exportBtn.style.cssText = 'background:#27272a;color:#fff;border:1px solid #3f3f46;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:bold;cursor:pointer;';
   exportBtn.addEventListener('click', () => {
-    const blob = new Blob([configText], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(configObj, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `support-config-${Date.now()}.json`; a.click();
   });
   toolbar.appendChild(exportBtn);
@@ -232,9 +276,13 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const text = evt.target.result || '{}';
+      const raw = evt.target.result || '{}';
+      let importedObj;
+      try { importedObj = JSON.parse(raw); } catch { updateValidationStatus(raw); return; }
+      configObj = mergeEditedConfig(importedObj, configObj);
+      const text = JSON.stringify(buildDisplayConfig(configObj), null, 2);
       configText = text; textarea.value = text; updateValidationStatus(text);
-      try { configObj = JSON.parse(text); syncControls(); } catch {}
+      syncControls();
     };
     reader.readAsText(file);
   });

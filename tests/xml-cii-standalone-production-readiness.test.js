@@ -85,6 +85,7 @@ function prepareEsmFixture() {
     'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
     'tabs/xml-cii-2019-standalone/xml-cii-production-readiness.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
   ];
   for (const relPath of files) { const target = path.join(tempRoot, relPath); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.copyFileSync(path.join(root, relPath), target); }
   return tempRoot;

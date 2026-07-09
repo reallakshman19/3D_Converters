@@ -32,7 +32,7 @@ function prepareEsmFixture() {
 }
 
 class SimpleElement { constructor(name) { this.nodeName = name; this.localName = name; this.attributes = new Map(); this.children = []; this.parentNode = null; this._textContent = ''; } getAttribute(name) { return this.attributes.has(name) ? this.attributes.get(name) : null; } setAttribute(name, value) { this.attributes.set(name, String(value)); } hasAttribute(name) { return this.attributes.has(name); } removeAttribute(name) { this.attributes.delete(name); } appendChild(child) { child.parentNode = this; this.children.push(child); return child; } remove() { if (!this.parentNode) return; const i = this.parentNode.children.indexOf(this); if (i >= 0) this.parentNode.children.splice(i, 1); } get textContent() { return this.children.length ? this.children.map((child) => child.textContent).join('') : this._textContent; } set textContent(value) { this.children = []; this._textContent = String(value ?? ''); } }
-class SimpleDocument { constructor(rootElement) { this.documentElement = rootElement; } get children() { return this.documentElement ? [this.documentElement] : []; } createElement(name) { return new SimpleElement(name); } querySelector() { return null; } getElementsByTagName(name) { const out = []; const wanted = String(name).toUpperCase(); const visit = (node) => { if (String(node.localName || node.nodeName).toUpperCase() === wanted) out.push(node); for (const child of node.children || []) visit(child); }; if (this.documentElement) visit(this.documentElement); return out; } }
+class SimpleDocument { constructor(rootElement) { this.documentElement = rootElement; } get children() { return this.documentElement ? [this.documentElement] : []; } createElement(name) { return new SimpleElement(name); } querySelector() { return null; } querySelectorAll(selector) { const out = []; const visit = (node) => { out.push(node); for (const child of node.children || []) visit(child); }; if (selector === '*' && this.documentElement) visit(this.documentElement); return out; } getElementsByTagName(name) { const out = []; const wanted = String(name).toUpperCase(); const visit = (node) => { if (String(node.localName || node.nodeName).toUpperCase() === wanted) out.push(node); for (const child of node.children || []) visit(child); }; if (this.documentElement) visit(this.documentElement); return out; } }
 function decodeEntities(value) { return String(value).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'); }
 function parseAttrs(attrText, element) { String(attrText || '').replace(/([A-Za-z_][\w:.-]*)\s*=\s*"([^"]*)"/g, (_, key, value) => { element.setAttribute(key, decodeEntities(value)); return ''; }); }
 function parseXml(xmlText) { const stack = []; let rootElement = null; for (const token of String(xmlText).replace(/^\s*<\?xml[^>]*>\s*/i, '').match(/<[^>]+>|[^<]+/g) || []) { if (!token.trim() || token.startsWith('<?') || token.startsWith('<!--')) continue; if (token.startsWith('</')) { stack.pop(); continue; } if (token.startsWith('<')) { const selfClosing = /\/\s*>$/.test(token); const body = token.slice(1, selfClosing ? -2 : -1).trim(); const name = body.match(/^([^\s/>]+)/)?.[1]; if (!name) continue; const el = new SimpleElement(name); parseAttrs(body.slice(name.length), el); if (!rootElement) rootElement = el; if (stack.length) stack[stack.length - 1].appendChild(el); if (!selfClosing) stack.push(el); } else if (stack.length) stack[stack.length - 1]._textContent += decodeEntities(token); } return new SimpleDocument(rootElement); }
@@ -45,11 +45,11 @@ globalThis.XMLSerializer = class { serializeToString(node) { return node instanc
 
 function protectedRouteShas() {
   return {
-    'tabs/model-converters/WorkflowShell.js': '5160dada907b597584f259fe8130727e7554e218',
+    'tabs/model-converters/WorkflowShell.js': '336388438127626b5735cc2be7ba4b386738f46f',
     'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
     'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
-    'converters/py-worker.js': 'caeeaf2b21c15dd0bef7a108d1ce54018d437ed4',
-    'converters/invocation-builder.js': 'c0df32bcaec0b82120cb53c621015e88c1ba185b',
+    'converters/py-worker.js': '13dfeed628ebc2ac361ee0c016e23bd5d18d597c',
+    'converters/invocation-builder.js': '20894bd7fa4399046ab110581beb2badeefcab68',
   };
 }
 

@@ -1,6 +1,31 @@
 import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
 import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js';
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
+import { applyStandaloneSifFacts } from './xml-cii-standalone-sif-apply.js';
+
+function parseSupportConfig(raw) {
+  try {
+    const value = JSON.parse(String(raw ?? '') || '{}');
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+// Bridges the effective run-state facts (weight overrides, preview/manual matched facts, support
+// mapper rules) into the support config the engine actually consumes, so a run reflects the same
+// data the preview tabs showed rather than only the raw config JSON.
+function applyEffectiveFactsToJob(job) {
+  const config = parseSupportConfig(job.supportConfigJson);
+  const weightOverrides = job.weightOverrides && typeof job.weightOverrides === 'object' ? job.weightOverrides : {};
+  if (Object.keys(weightOverrides).length) {
+    config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...weightOverrides } };
+  }
+  if (Array.isArray(job.previewFacts) && job.previewFacts.length) config.previewFacts = job.previewFacts;
+  if (Array.isArray(job.manualFacts) && job.manualFacts.length) config.manualFacts = job.manualFacts;
+  if (Array.isArray(job.supportMapperRules) && job.supportMapperRules.length) config.supportMapperRules = job.supportMapperRules;
+  return { ...job, supportConfigJson: JSON.stringify(config, null, 2) };
+}
 
 function mergeInputXmlEngineResult(enrichedResult, engineResult, outputMode) {
   const logs = [...(enrichedResult.logs || []), ...(Array.isArray(engineResult.logs) ? engineResult.logs : [])];
@@ -48,13 +73,16 @@ function normalizeXmlEngineResult(engineResult) {
 }
 
 export async function runXmlCii2019WorkflowService(job, runtime = {}) {
-  if (job.sourceKind === 'inputxml') {
-    const enrichedResult = enrichInputXmlDocument(job);
-    if (job.options.outputMode === 'enriched-only') return normalizeWorkflowResult(enrichedResult);
-    const engineJob = { ...job, sourceText: enrichedResult.enrichedText, sourceName: enrichedResult.enrichedName, options: { ...job.options, outputMode: 'cii-only' } };
+  const factedJob = applyEffectiveFactsToJob(job);
+  if (factedJob.sourceKind === 'inputxml') {
+    const enrichedResult = enrichInputXmlDocument(factedJob);
+    const sif = applyStandaloneSifFacts(enrichedResult.enrichedText, 'inputxml', factedJob.sifFacts);
+    const finalEnrichedResult = { ...enrichedResult, enrichedText: sif.text };
+    if (factedJob.options.outputMode === 'enriched-only') return normalizeWorkflowResult(finalEnrichedResult);
+    const engineJob = { ...factedJob, sourceText: sif.text, sourceName: enrichedResult.enrichedName, options: { ...factedJob.options, outputMode: 'cii-only' } };
     const engineResult = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
-    return mergeInputXmlEngineResult(enrichedResult, engineResult, job.options.outputMode);
+    return mergeInputXmlEngineResult(finalEnrichedResult, engineResult, factedJob.options.outputMode);
   }
-  const result = await runXmlCii2019StandaloneEngineJob(job, runtime);
+  const result = await runXmlCii2019StandaloneEngineJob(factedJob, runtime);
   return normalizeXmlEngineResult(result);
 }

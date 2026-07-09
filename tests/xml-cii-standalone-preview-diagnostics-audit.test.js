@@ -25,6 +25,25 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-editable-preview-table.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-filldown.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resizable-table.js',
+    'converters/xml-cii2019-core/branch-process-resolver.js',
+    'converters/xml-cii2019-core/config.js',
+    'converters/xml-cii2019-core/dtxr-resolver.js',
+    'converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js',
+    'converters/xml-cii2019-core/line-density-resolver.js',
+    'converters/xml-cii2019-core/linelist-mapping.js',
+    'converters/xml-cii2019-core/piping-class-resolver.js',
+    'converters/xml-cii2019-core/regex-line-key.js',
+    'converters/xml-cii2019-core/service-process-fallback.js',
+    'converters/xml-cii2019-core/support-mapping-config.js',
+    'converters/xml-cii2019-core/weight-match-model.js',
+    'converters/xml-cii2019-core/weight-valve-hints.js',
+    'support/SupportKindResolver.js',
+    'vendor/create-pipe-data-db.js',
   ];
 }
 
@@ -35,25 +54,8 @@ function prepareEsmFixture() {
   return tempRoot;
 }
 
-class TestElement {
-  constructor(tag) {
-    this.tagName = tag;
-    this.children = [];
-    this.dataset = {};
-    this.className = '';
-    this.attributes = {};
-    this.placeholder = '';
-    this.type = '';
-    this._text = '';
-  }
-  appendChild(child) { this.children.push(child); return child; }
-  append(...items) { for (const item of items) this.children.push(item); }
-  setAttribute(name, value) { this.attributes[name] = String(value); }
-  get textContent() { return `${this._text}${this.placeholder}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
-  set textContent(value) { this._text = String(value ?? ''); }
-}
-
-globalThis.document = { createElement: (tag) => new TestElement(tag) };
+const { installMiniDom, MiniElement: TestElement } = require('./helpers/mini-dom.js');
+installMiniDom();
 
 function reportInput(sourceKind = 'xml') {
   return {
@@ -115,20 +117,28 @@ function reportInput(sourceKind = 'xml') {
   const withReport = stateApi.applyPreviewDiagnosticsAuditReport(stateApi.createXmlCiiAdaptedWorkflowState(), report);
   assert(withReport.previewDiagnosticsAuditStatus.includes('matched'), 'report status should mention matched count');
 
+  // 'preview' phase now renders the live dry-run enrichment preview table (xmlCiiRenderPreviewPhase /
+  // xmlCiiBuildAndRenderPreview) instead of the static audit summary; the audit data itself is still
+  // rendered by the 'diagnostics' and 'matched-audit' phases exercised below.
   const previewCard = new TestElement('section');
-  ui.renderStandalonePreviewReportPanel(previewCard, { ...withReport, result: reportInput().result });
-  for (const label of ['Enrichment Preview', 'Changed Fields', 'Matched Facts', 'Rejected Facts', 'Output Preview', 'Raw JSON']) assert(previewCard.textContent.includes(label), `Preview panel missing ${label}`);
+  await ui.renderStandalonePreviewReportPanel(previewCard, { ...withReport, sourceText: reportInput().sourceText, result: reportInput().result });
+  for (const label of ['4 Preview', 'Line List', 'Piping Class']) assert(previewCard.textContent.includes(label), `Preview panel missing ${label}`);
 
   const diagnosticsCard = new TestElement('section');
   ui.renderStandaloneDiagnosticsReportPanel(diagnosticsCard, withReport);
-  for (const label of ['Run Diagnostics', 'Master Diagnostics', 'Regex Diagnostics', 'Resolver Diagnostics', 'Side-load Diagnostics', 'Warnings / Errors', 'Raw JSON']) assert(diagnosticsCard.textContent.includes(label), `Diagnostics panel missing ${label}`);
+  for (const label of ['Diagnostic Audit Context', 'Errors & Warnings', 'Rules', 'Resolver', 'Export Audit Log', 'run warning']) {
+    assert(diagnosticsCard.textContent.includes(label), `Diagnostics panel missing ${label}`);
+  }
 
   const auditCard = new TestElement('section');
   ui.renderStandaloneMatchedAuditPanel(auditCard, withReport);
-  for (const label of ['Matched Facts', 'Rejected Facts', 'Filter / Search', 'Load Diagnostics JSON', 'Latest Run State']) assert(auditCard.textContent.includes(label), `Matched Audit panel missing ${label}`);
+  for (const label of ['Matched Audit', 'Report Controls', 'Matched rows:', 'Rejected hidden:', 'Diagnostics rows:']) {
+    assert(auditCard.textContent.includes(label), `Matched Audit panel missing ${label}`);
+  }
+  assert(auditCard.querySelector('[data-field="audit-search"]'), 'matched audit panel must expose a filter input');
 
   const registry = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js'), 'utf8');
-  assert(registry.includes('8 Matched Audit'), 'phase registry must include Matched Audit');
+  assert(registry.includes(`id: 'matched-audit'`), 'phase registry must include Matched Audit');
   const apiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js'), 'utf8');
   assert(apiSource.includes('export async function runXmlCii2019Workflow'), 'public workflow API boundary must remain exported');
   const uiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js'), 'utf8');

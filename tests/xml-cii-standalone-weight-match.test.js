@@ -25,6 +25,23 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js',
+    'converters/xml-cii2019-core/branch-process-resolver.js',
+    'converters/xml-cii2019-core/config.js',
+    'converters/xml-cii2019-core/dtxr-resolver.js',
+    'converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js',
+    'converters/xml-cii2019-core/flange-weight-fallback.js',
+    'converters/xml-cii2019-core/line-density-resolver.js',
+    'converters/xml-cii2019-core/linelist-mapping.js',
+    'converters/xml-cii2019-core/piping-class-resolver.js',
+    'converters/xml-cii2019-core/regex-line-key.js',
+    'converters/xml-cii2019-core/service-process-fallback.js',
+    'converters/xml-cii2019-core/support-mapping-config.js',
+    'converters/xml-cii2019-core/weight-match-model.js',
+    'converters/xml-cii2019-core/weight-valve-hints.js',
+    'converters/xml-cii2019-core/default-weight-master-rows.js',
+    'support/SupportKindResolver.js',
+    'vendor/create-pipe-data-db.js',
   ];
 }
 
@@ -35,25 +52,8 @@ function prepareEsmFixture() {
   return tempRoot;
 }
 
-class TestElement {
-  constructor(tag) {
-    this.tagName = tag;
-    this.children = [];
-    this.dataset = {};
-    this.className = '';
-    this.attributes = {};
-    this.value = '';
-    this.type = '';
-    this._text = '';
-  }
-  appendChild(child) { this.children.push(child); return child; }
-  append(...items) { for (const item of items) this.children.push(item); }
-  setAttribute(name, value) { this.attributes[name] = String(value); }
-  get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
-  set textContent(value) { this._text = String(value ?? ''); }
-}
-
-globalThis.document = { createElement: (tag) => new TestElement(tag) };
+const { installMiniDom, MiniElement: TestElement } = require('./helpers/mini-dom.js');
+installMiniDom();
 
 function masterContext() {
   return {
@@ -101,17 +101,20 @@ function componentRows() {
   assert(withResult.supportConfigJson.includes('finalizedMatches'), 'state finalize must write support config');
   assert(withResult.weightMatchStatus.includes('finalized'), 'finalize status expected');
 
+  // The Weight Match phase panel now computes rigid-weight issues live from state.sourceText
+  // (via a Build Weight Data click) rather than rendering the state-managed weightMatchResult
+  // directly, so this checks the always-present static shell rather than a pre-populated report.
   const card = new TestElement('section');
-  ui.renderStandaloneWeightMatchPanel(card, { ...withResult, weightMatchOverridesJson: '{}' });
-  for (const label of ['Zero / Missing Weight Issues', 'Candidate Matches', 'Bore / Rating / Length Scoring', 'Overrides', 'Finalize Weight Match', 'Weight Diagnostics', 'Raw JSON']) {
+  ui.renderAdaptedWeightMatchPanel(card, { ...withResult, weightMatchOverridesJson: '{}' });
+  for (const label of ['Weight Match', 'Build Weight Data', 'Use all', 'preferred', 'Ready to build']) {
     assert(card.textContent.includes(label), `Weight Match panel missing ${label}`);
   }
-  assert(card.textContent.includes('Build / refresh weight match report'), 'build action expected');
-  assert(card.textContent.includes('Finalize weight match'), 'finalize action expected');
+  assert(card.querySelector('#mc-wm-content'), 'weight match panel must expose a content host');
+  assert(card.querySelector('#mc-wm-refresh'), 'build action expected');
+  assert(card.querySelector('#mc-wm-fill-best'), 'use-preferred action expected');
 
   const registry = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js'), 'utf8');
-  assert(registry.includes('9 Weight Match'), 'phase registry must expose 9 Weight Match');
-  assert(registry.includes('5A Weight Match'), 'existing static label token must remain present');
+  assert(registry.includes(`id: 'weight-match'`), 'phase registry must expose the weight-match phase');
   const apiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js'), 'utf8');
   assert(apiSource.includes('export async function runXmlCii2019Workflow'), 'public workflow API boundary must remain exported');
   const uiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match.js'), 'utf8');

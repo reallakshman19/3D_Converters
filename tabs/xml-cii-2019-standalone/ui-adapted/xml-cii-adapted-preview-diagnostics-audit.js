@@ -47,20 +47,6 @@ function renderActions(parent, state) {
   parent.appendChild(panel);
 }
 
-function renderSummary(p, r) { const sec = createElement('section', '', 'xml-cii-audit-panel'); sec.append(createElement('h3', 'Latest Run State'), table(['Section', 'Name', 'Value'], Object.entries(r?.summary || {}).map(([name, value]) => ({ section: 'summary', name, value: typeof value === 'object' ? JSON.stringify(value) : value })), 'No summary yet.')); p.appendChild(sec); }
-
-function renderPreview(p, r) { const sec = createElement('section', '', 'xml-cii-audit-panel'); sec.append(createElement('h3', 'Enrichment Preview'), table(['Section', 'Name', 'Value'], rows(r?.previewRows), 'No preview rows yet.')); p.appendChild(sec); }
-
-function renderChanged(p, r) { const sec = createElement('section', '', 'xml-cii-audit-panel'); sec.append(createElement('h3', 'Changed Fields'), table(['Source', 'Field', 'Before', 'After', 'Message'], rows(r?.changedFields), 'No changed fields available.')); p.appendChild(sec); }
-
-function renderMatched(p, r) { const sec = createElement('section', '', 'xml-cii-audit-panel'); sec.append(createElement('h3', 'Matched Facts'), table(['Source', 'Key', 'Detail'], rows(r?.matchedFacts), 'No matched facts yet.')); p.appendChild(sec); }
-
-function renderRejected(p, r) { const sec = createElement('section', '', 'xml-cii-audit-panel'); sec.append(createElement('h3', 'Rejected Facts'), table(['Source', 'Key', 'Detail'], rows(r?.rejectedFacts), 'No rejected facts yet.')); p.appendChild(sec); }
-
-function renderDiagnostics(p, r, t = 'Run Diagnostics') { const sec = createElement('section', '', 'xml-cii-audit-panel'); sec.append(createElement('h3', t), table(['Level', 'Source', 'Type', 'Message', 'Rows'], rows(r?.diagnostics), 'No diagnostics yet.')); p.appendChild(sec); }
-
-function renderOutput(p, s) { const sec = createElement('section', '', 'xml-cii-audit-panel'); sec.append(createElement('h3', 'Output Preview'), createElement('pre', (s.result?.enrichedText || s.result?.ciiText || 'No workflow output yet.').slice(0, 4000))); p.appendChild(sec); }
-
 function safeJsonStringify(obj, space = 2) {
   const seen = new WeakSet();
   return JSON.stringify(obj, (key, value) => {

@@ -2,11 +2,15 @@ import { prepareXmlCiiMasterContext } from '../../converters/xml-cii2019-core/ma
 
 const PREVIEW_LIMIT = 150;
 
+// diagType is the exact diagnostic `type` string pushed by converters/xml-cii2019-core/master-context.js
+// for this master kind. It does not follow one uniform naming convention across kinds (weight and
+// piping-class use "{kind}-master-source", material map uses "{kind}-source", line list pushes none),
+// so it must be looked up explicitly rather than derived from a shared suffix pattern.
 export const STANDALONE_IMPORT_MASTER_DEFS = Object.freeze([
-  Object.freeze({ key: 'lineList', label: 'Line List', rowsKey: 'lineRows', configKey: 'linelist', rowConfigKey: 'masterRows', diagPrefix: 'linelist' }),
-  Object.freeze({ key: 'pipingClass', label: 'Piping Class', rowsKey: 'pipingClassRows', configKey: 'pipingClass', rowConfigKey: 'masterRows', diagPrefix: 'piping-class' }),
-  Object.freeze({ key: 'materialMap', label: 'Material Map', rowsKey: 'materialMapRows', configKey: 'material', rowConfigKey: 'mapRows', diagPrefix: 'material-map' }),
-  Object.freeze({ key: 'weight', label: 'Weights / Valve CA8', rowsKey: 'weightMasterRows', configKey: 'weight', rowConfigKey: 'masterRows', diagPrefix: 'weight' }),
+  Object.freeze({ key: 'lineList', label: 'Line List', rowsKey: 'lineRows', configKey: 'linelist', rowConfigKey: 'masterRows', diagPrefix: 'linelist', diagType: 'linelist-master-source' }),
+  Object.freeze({ key: 'pipingClass', label: 'Piping Class', rowsKey: 'pipingClassRows', configKey: 'pipingClass', rowConfigKey: 'masterRows', diagPrefix: 'piping-class', diagType: 'piping-class-master-source' }),
+  Object.freeze({ key: 'materialMap', label: 'Material Map', rowsKey: 'materialMapRows', configKey: 'material', rowConfigKey: 'mapRows', diagPrefix: 'material-map', diagType: 'material-map-source' }),
+  Object.freeze({ key: 'weight', label: 'Weights / Valve CA8', rowsKey: 'weightMasterRows', configKey: 'weight', rowConfigKey: 'masterRows', diagPrefix: 'weight', diagType: 'weight-master-source' }),
 ]);
 
 function safeObject(value) {
@@ -35,8 +39,8 @@ function previewRows(rows, limit = PREVIEW_LIMIT) {
   return cloneRows(rows).slice(0, limit).map(sanitizeRow);
 }
 
-function findDiagnostic(diagnostics, prefix) {
-  return diagnostics.find((item) => String(item?.type || '').startsWith(`${prefix}-master-source`)) || null;
+function findDiagnostic(diagnostics, diagType) {
+  return diagnostics.find((item) => item?.type === diagType) || null;
 }
 
 function fallbackSource(config, def) {
@@ -47,12 +51,13 @@ function fallbackSource(config, def) {
 function sourceKindFrom(source, rows) {
   if (source === 'inline-config') return rows.length ? 'inline' : 'empty';
   if (source === 'fetch-unavailable') return 'autoload-unavailable';
+  if (source === 'app-default') return rows.length ? 'app-default' : 'empty';
   if (/^https?:\/\//i.test(source) || source.includes('/')) return 'autoload';
   return rows.length ? 'manual' : 'empty';
 }
 
 function metadataFor(def, config, diagnostics, rows) {
-  const diagnostic = findDiagnostic(diagnostics, def.diagPrefix);
+  const diagnostic = findDiagnostic(diagnostics, def.diagType);
   const source = compactText(diagnostic?.source, fallbackSource(config, def));
   return {
     key: def.key,

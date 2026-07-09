@@ -14,12 +14,12 @@ export const XML_CII_INPUTXML_RESTRAINT_POLICIES = Object.freeze([
 export const DEFAULT_XML_CII_WORKFLOW_OPTIONS = Object.freeze({
   coordsMode: 'first',
   kgToNewton: true,
-  splitCondensedValveFlange: null,
+  splitCondensedValveFlange: true,
   useRestraintTypeBasedOnJson: true,
-  outputMode: 'enriched-only',
+  outputMode: 'both',
   inputXmlOutputMode: 'full-document',
   pointPropertiesBasis: 'auto',
-  inputXmlRestraintPolicy: 'preserve-existing-restraints',
+  inputXmlRestraintPolicy: 'merge-existing-and-dtxr-derived-restraints',
   fillSentinelFromLineContext: true,
   normalizePressureCaseNames: true,
   escapeXmlAttributes: true,
@@ -35,10 +35,6 @@ function bool(value, fallback) {
   return fallback;
 }
 
-function boolOrNull(value) {
-  return value === undefined || value === '' ? null : bool(value, null);
-}
-
 function enumValue(value, allowed, fallback) {
   const text = String(value || '').trim();
   return allowed.includes(text) ? text : fallback;
@@ -46,6 +42,10 @@ function enumValue(value, allowed, fallback) {
 
 function arrayValue(value) {
   return Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+}
+
+function objectArrayValue(value) {
+  return Array.isArray(value) ? value.filter((entry) => entry != null) : [];
 }
 
 function normalizedDiagnostics(input, sourceKind, outputKind) {
@@ -72,12 +72,12 @@ export function normalizeWorkflowOptions(options = {}) {
   return {
     coordsMode: enumValue(String(input.coordsMode || '').toLowerCase(), XML_CII_WORKFLOW_COORDS_MODES, 'first'),
     kgToNewton: bool(input.kgToNewton, true),
-    splitCondensedValveFlange: boolOrNull(input.splitCondensedValveFlange),
+    splitCondensedValveFlange: bool(input.splitCondensedValveFlange, true),
     useRestraintTypeBasedOnJson: bool(input.useRestraintTypeBasedOnJson, true),
-    outputMode: enumValue(String(input.outputMode || '').toLowerCase(), XML_CII_WORKFLOW_OUTPUT_MODES, 'enriched-only'),
+    outputMode: enumValue(String(input.outputMode || '').toLowerCase(), XML_CII_WORKFLOW_OUTPUT_MODES, 'both'),
     inputXmlOutputMode: enumValue(String(input.inputXmlOutputMode || '').toLowerCase(), XML_CII_INPUTXML_OUTPUT_MODES, 'full-document'),
     pointPropertiesBasis: enumValue(String(input.pointPropertiesBasis || '').toUpperCase(), XML_CII_POINT_PROPERTY_BASIS, 'auto'),
-    inputXmlRestraintPolicy: enumValue(String(input.inputXmlRestraintPolicy || ''), XML_CII_INPUTXML_RESTRAINT_POLICIES, 'preserve-existing-restraints'),
+    inputXmlRestraintPolicy: enumValue(String(input.inputXmlRestraintPolicy || ''), XML_CII_INPUTXML_RESTRAINT_POLICIES, 'merge-existing-and-dtxr-derived-restraints'),
     fillSentinelFromLineContext: bool(input.fillSentinelFromLineContext, true),
     normalizePressureCaseNames: bool(input.normalizePressureCaseNames, true),
     escapeXmlAttributes: bool(input.escapeXmlAttributes, true),
@@ -112,6 +112,11 @@ export function normalizeWorkflowJob(job = {}) {
     elementSideLoadText: job.elementSideLoadText == null ? null : String(job.elementSideLoadText),
     supportConfigJson: supportValidation.normalizedText,
     options: normalizeWorkflowOptions(job.options),
+    previewFacts: objectArrayValue(job.previewFacts),
+    manualFacts: objectArrayValue(job.manualFacts),
+    weightOverrides: job.weightOverrides && typeof job.weightOverrides === 'object' && !Array.isArray(job.weightOverrides) ? job.weightOverrides : {},
+    supportMapperRules: objectArrayValue(job.supportMapperRules),
+    sifFacts: objectArrayValue(job.sifFacts),
   } };
 }
 

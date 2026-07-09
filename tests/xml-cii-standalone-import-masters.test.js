@@ -37,7 +37,12 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-masters.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-fields-config.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-import-preview-search.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
     'converters/xml-cii2019-core/master-context.js',
+    'converters/xml-cii2019-core/default-weight-master-rows.js',
+    'converters/xml-cii2019-core/default-material-map-rows.js',
     'converters/xml-cii2019-core/config.js',
     'converters/xml-cii2019-core/piping-class-resolver.js',
     'converters/xml-cii2019-core/pipe-component-data-adapter.js',
@@ -61,6 +66,8 @@ class TestElement {
   appendChild(child) { this.children.push(child); return child; }
   append(...items) { for (const item of items) this.appendChild(item); }
   setAttribute(name, value) { this.attributes[name] = String(value); }
+  addEventListener() {}
+  removeEventListener() {}
   get textContent() { return `${this._text}${this.children.map((c) => c.textContent || '').join('')}`; }
   set textContent(value) { this._text = String(value ?? ''); }
 }

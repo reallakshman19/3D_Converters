@@ -12,6 +12,7 @@ import {
   rankXmlCiiWeightCandidates
 } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import { saveMasterContextToLocalStorage, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
+import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 
 const WM_CACHE_KEY = 'xml-cii-wm-cache-v1';
 
@@ -27,61 +28,17 @@ function hasWeightMasterRows(config) {
   return Array.isArray(config?.weight?.masterRows) && config.weight.masterRows.length > 0;
 }
 
-let defaultWeightMasterRowsPromise = null;
-let defaultWeightMasterRowsError = '';
-let defaultWeightMasterRowsSource = '';
-
-function defaultWeightMasterCandidateUrls() {
-  const urls = [];
-  try { urls.push(new URL('./docs/Masters/wtValveweights.json', window.location.href).href); } catch {}
-  try { urls.push('/docs/Masters/wtValveweights.json'); } catch {}
-  try { urls.push('docs/Masters/wtValveweights.json'); } catch {}
-  return [...new Set(urls.filter(Boolean))];
-}
-
-async function loadDefaultWeightMasterRows() {
-  if (defaultWeightMasterRowsPromise) return defaultWeightMasterRowsPromise;
-  defaultWeightMasterRowsPromise = (async () => {
-    if (typeof fetch !== 'function') {
-      defaultWeightMasterRowsError = 'fetch() is not available in this browser context';
-      return [];
-    }
-    const errors = [];
-    for (const url of defaultWeightMasterCandidateUrls()) {
-      try {
-        const response = await fetch(url, { cache: 'no-cache' });
-        if (!response.ok) { errors.push(`${url} -> HTTP ${response.status}`); continue; }
-        const rows = await response.json();
-        if (Array.isArray(rows) && rows.length) {
-          defaultWeightMasterRowsSource = url;
-          defaultWeightMasterRowsError = '';
-          return rows;
-        }
-        errors.push(`${url} -> JSON did not contain rows`);
-      } catch (error) {
-        errors.push(`${url} -> ${error?.message || error}`);
-      }
-    }
-    defaultWeightMasterRowsError = errors.join(' | ') || 'No default weight master URL candidates were generated';
-    console.warn('XML->CII standalone default weight master hydration failed', defaultWeightMasterRowsError);
-    return [];
-  })();
-  return defaultWeightMasterRowsPromise;
-}
-
+// Weight master rows come from (in priority order): explicit config.weight.masterRows (uploaded/
+// edited via the Valve Weights import UI), the restored master context, then the app's embedded
+// default (converters/xml-cii2019-core/default-weight-master-rows.js) — no network fetch needed.
 async function ensureWeightMasterRows(config, masterContext) {
   const out = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
   if (hasWeightMasterRows(out)) return out;
-  if (Array.isArray(masterContext?.weightMasterRows) && masterContext.weightMasterRows.length > 0) {
-    out.weight = out.weight && typeof out.weight === 'object' ? { ...out.weight } : {};
-    out.weight.masterRows = masterContext.weightMasterRows;
-    return out;
-  }
-  const rows = await loadDefaultWeightMasterRows();
-  if (rows.length) {
-    out.weight = out.weight && typeof out.weight === 'object' ? { ...out.weight } : {};
-    out.weight.masterRows = rows;
-  }
+  const rows = Array.isArray(masterContext?.weightMasterRows) && masterContext.weightMasterRows.length > 0
+    ? masterContext.weightMasterRows
+    : DEFAULT_WEIGHT_MASTER_ROWS;
+  out.weight = out.weight && typeof out.weight === 'object' ? { ...out.weight } : {};
+  out.weight.masterRows = rows.map((row) => ({ ...row }));
   return out;
 }
 
@@ -151,10 +108,7 @@ function enhancedHintPanel(config) {
 }
 
 function renderWeightMasterBlocked(contentEl) {
-  const attempted = defaultWeightMasterRowsSource
-    ? `Default master source: ${defaultWeightMasterRowsSource}`
-    : `Default master hydration failed: ${defaultWeightMasterRowsError || 'No weight.masterRows and no default rows loaded.'}`;
-  contentEl.innerHTML = `<div style="padding:10px;border:1px solid #7c5a18;border-radius:8px;background:#2a210b;color:#ffe7a3;">Weight master is not ready, so 4A is blocked to prevent false <strong>0 / No match</strong> rows.<br><small style="display:block;margin-top:6px;color:#ffd98a;word-break:break-word;">${esc(attempted)}</small></div>`;
+  contentEl.innerHTML = `<div style="padding:10px;border:1px solid #7c5a18;border-radius:8px;background:#2a210b;color:#ffe7a3;">Weight master is not ready, so 4A is blocked to prevent false <strong>0 / No match</strong> rows.<br><small style="display:block;margin-top:6px;color:#ffd98a;word-break:break-word;">No weight.masterRows and the app's built-in default rows were empty.</small></div>`;
 }
 
 function methodLabel(candidate) {

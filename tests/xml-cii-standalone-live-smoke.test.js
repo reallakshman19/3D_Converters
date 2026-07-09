@@ -75,7 +75,7 @@ globalThis.DOMParser = class { parseFromString(text) { return parseXml(text); } 
 globalThis.XMLSerializer = class { serializeToString(node) { return node instanceof SimpleDocument ? serializeNode(node.documentElement) : serializeNode(node); } };
 
 function copyEsmFiles(tempRoot) {
-  const files = ['xml-cii-workflow-api.js', 'xml-cii-workflow-types.js', 'xml-cii-workflow-source-detect.js', 'xml-cii-workflow-service.js', 'xml-cii-workflow-engine-client.js', 'xml-cii-inputxml-enrichment.js', 'xml-cii-standalone-default-config.js', 'xml-cii-live-proof-readiness.js'];
+  const files = ['xml-cii-workflow-api.js', 'xml-cii-workflow-types.js', 'xml-cii-workflow-source-detect.js', 'xml-cii-workflow-service.js', 'xml-cii-workflow-engine-client.js', 'xml-cii-inputxml-enrichment.js', 'xml-cii-standalone-default-config.js', 'xml-cii-live-proof-readiness.js', 'xml-cii-standalone-sif-apply.js'];
   for (const file of files) {
     const relPath = `tabs/xml-cii-2019-standalone/${file}`;
     const target = path.join(tempRoot, relPath);

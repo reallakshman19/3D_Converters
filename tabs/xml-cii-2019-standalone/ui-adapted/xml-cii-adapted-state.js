@@ -13,9 +13,9 @@ const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
 
 export function createDefaultWorkflowOptions() {
   return {
-    coordsMode: 'first', kgToNewton: true, splitCondensedValveFlange: null, useRestraintTypeBasedOnJson: true,
-    outputMode: 'enriched-only', inputXmlOutputMode: 'full-document', pointPropertiesBasis: 'auto',
-    inputXmlRestraintPolicy: 'replace-with-dtxr-derived-restraints', fillSentinelFromLineContext: true,
+    coordsMode: 'first', kgToNewton: true, splitCondensedValveFlange: true, useRestraintTypeBasedOnJson: true,
+    outputMode: 'both', inputXmlOutputMode: 'full-document', pointPropertiesBasis: 'auto',
+    inputXmlRestraintPolicy: 'merge-existing-and-dtxr-derived-restraints', fillSentinelFromLineContext: true,
     normalizePressureCaseNames: true, escapeXmlAttributes: true,
   };
 }
@@ -90,6 +90,9 @@ export function saveMasterContextToLocalStorage(context) {
       rawRows: { lineList: null, pipingClass: null, materialMap: null, weight: null },
       workbookData: { lineList: null, materialMap: null, weight: null },
       previewRows: null,
+      // pipingClassIndex holds a self-referential Map (see piping-class-resolver.js's `map.byClass
+      // = map`) and is rebuilt on load anyway — it must not be JSON.stringify'd.
+      pipingClassIndex: null,
     };
     localStorage.setItem('xml-cii-import-masters-v1', JSON.stringify(cleaned));
   } catch (e) {

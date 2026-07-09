@@ -4,16 +4,8 @@ import {
 } from './config.js';
 import { buildPipingClassIndex } from './piping-class-resolver.js';
 import { buildPipeDataWeightRows } from './pipe-component-data-adapter.js';
-
-export const DEFAULT_WEIGHT_MASTER_URLS = Object.freeze([
-  '../docs/Masters/wtValveweights.json',
-  'docs/Masters/wtValveweights.json',
-]);
-
-export const DEFAULT_MATERIAL_MAP_URLS = Object.freeze([
-  '../docs/Masters/PCF_MAT_MAP.TXT',
-  'docs/Masters/PCF_MAT_MAP.TXT',
-]);
+import { DEFAULT_WEIGHT_MASTER_ROWS } from './default-weight-master-rows.js';
+import { DEFAULT_MATERIAL_MAP_ROWS } from './default-material-map-rows.js';
 
 export const DEFAULT_PIPING_CLASS_MASTER_URLS = Object.freeze([
   '../docs/Masters/SpecwisePipingClass/index.json',
@@ -83,33 +75,24 @@ async function _loadXmlCiiWeightMasterRowsBase(config, diagnostics = []) {
     return weight.masterRows;
   }
 
-  if (typeof fetch !== 'function') {
-    diagnostics.push({ type: 'weight-master-source', source: 'fetch-unavailable', rows: 0 });
-    weight.masterRows = _asRows(weight.masterRows);
-    return weight.masterRows;
-  }
-
-  const urls = _uniqueNonBlank([weight.masterUrl, ...DEFAULT_WEIGHT_MASTER_URLS]);
-  for (const url of urls) {
+  const masterUrl = toText(weight.masterUrl).trim();
+  if (masterUrl && typeof fetch === 'function') {
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        diagnostics.push({ type: 'weight-master-fetch-skip', url, status: response.status });
-        continue;
-      }
-      const data = await response.json();
+      const response = await fetch(masterUrl);
+      const data = response.ok ? await response.json() : null;
       if (Array.isArray(data)) {
         weight.masterRows = data;
-        diagnostics.push({ type: 'weight-master-source', source: url, rows: data.length });
+        diagnostics.push({ type: 'weight-master-source', source: masterUrl, rows: data.length });
         return weight.masterRows;
       }
-      diagnostics.push({ type: 'weight-master-fetch-skip', url, reason: 'not-array' });
+      diagnostics.push({ type: 'weight-master-fetch-skip', url: masterUrl, reason: response.ok ? 'not-array' : `status-${response.status}` });
     } catch (error) {
-      diagnostics.push({ type: 'weight-master-fetch-skip', url, reason: toText(error?.message || error) });
+      diagnostics.push({ type: 'weight-master-fetch-skip', url: masterUrl, reason: toText(error?.message || error) });
     }
   }
 
-  weight.masterRows = _asRows(weight.masterRows);
+  weight.masterRows = DEFAULT_WEIGHT_MASTER_ROWS.map((row) => ({ ...row }));
+  diagnostics.push({ type: 'weight-master-source', source: 'app-default', rows: weight.masterRows.length });
   return weight.masterRows;
 }
 
@@ -160,28 +143,24 @@ export async function loadXmlCiiMaterialMap(config, diagnostics = []) {
     return material.mapRows;
   }
 
-  if (typeof fetch !== 'function') {
-    diagnostics.push({ type: 'material-map-source', source: 'fetch-unavailable', rows: 0 });
-    material.mapRows = _asRows(material.mapRows);
-    return material.mapRows;
-  }
-
-  const urls = _uniqueNonBlank([material.masterUrl, ...DEFAULT_MATERIAL_MAP_URLS]);
-  for (const url of urls) {
+  const masterUrl = toText(material.masterUrl).trim();
+  if (masterUrl && typeof fetch === 'function') {
     try {
-      const response = await fetch(url);
-      if (!response.ok) continue;
-      const text = await response.text();
-      const rows = _parseMaterialMapText(text);
-      material.mapRows = rows;
-      diagnostics.push({ type: 'material-map-source', source: url, rows: rows.length });
-      return material.mapRows;
+      const response = await fetch(masterUrl);
+      if (response.ok) {
+        const rows = _parseMaterialMapText(await response.text());
+        material.mapRows = rows;
+        diagnostics.push({ type: 'material-map-source', source: masterUrl, rows: rows.length });
+        return material.mapRows;
+      }
+      diagnostics.push({ type: 'material-map-fetch-skip', url: masterUrl, reason: `status-${response.status}` });
     } catch (error) {
-      diagnostics.push({ type: 'material-map-fetch-skip', url, reason: toText(error?.message || error) });
+      diagnostics.push({ type: 'material-map-fetch-skip', url: masterUrl, reason: toText(error?.message || error) });
     }
   }
 
-  material.mapRows = _asRows(material.mapRows);
+  material.mapRows = DEFAULT_MATERIAL_MAP_ROWS.map((row) => ({ ...row }));
+  diagnostics.push({ type: 'material-map-source', source: 'app-default', rows: material.mapRows.length });
   return material.mapRows;
 }
 
