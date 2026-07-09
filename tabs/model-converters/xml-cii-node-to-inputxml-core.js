@@ -4,6 +4,10 @@ const SENTINEL = -1.0101;
 const POS_TOL_MM = 0.5;
 const SHORT_FILLER_MM = 50;
 const RESTRAINT_TYPE_MAP = Object.freeze({ '+Y': 17, Y: 17, LIM: 12, GUI: 9, ANC: 0, ANCHOR: 0 });
+const DEFAULT_FILLER_SEARCH_FACTOR = 5;
+const DEFAULT_FILLER_NODE_BASE = 900000;
+const DEFAULT_PERP_DOT_TOL = 0.05;
+const DEFAULT_RAY_HIT_TOL_MM = 1;
 const CONTEXT_DEFAULTS = Object.freeze({
   MODULUS: 203401168,
   HOT_MOD1: 199396464,
@@ -28,6 +32,12 @@ function escAttr(value) { return text(value).replace(/&/g, '&amp;').replace(/"/g
 function f(value) { const n = Number(value); return Number.isFinite(n) ? n.toFixed(6) : SENTINEL.toFixed(6); }
 function sentinelIfZero(value) { return Math.abs(value) >= POS_TOL_MM ? value : SENTINEL; }
 function dist(a, b) { return Math.hypot((b?.x || 0) - (a?.x || 0), (b?.y || 0) - (a?.y || 0), (b?.z || 0) - (a?.z || 0)); }
+function vecSub(a, b) { return { x: (a?.x || 0) - (b?.x || 0), y: (a?.y || 0) - (b?.y || 0), z: (a?.z || 0) - (b?.z || 0) }; }
+function vecAdd(a, b) { return { x: (a?.x || 0) + (b?.x || 0), y: (a?.y || 0) + (b?.y || 0), z: (a?.z || 0) + (b?.z || 0) }; }
+function vecScale(a, s) { return { x: (a?.x || 0) * s, y: (a?.y || 0) * s, z: (a?.z || 0) * s }; }
+function vecDot(a, b) { return (a?.x || 0) * (b?.x || 0) + (a?.y || 0) * (b?.y || 0) + (a?.z || 0) * (b?.z || 0); }
+function vecLen(a) { return Math.hypot(a?.x || 0, a?.y || 0, a?.z || 0); }
+function vecNorm(a) { const len = vecLen(a); return len > POS_TOL_MM ? vecScale(a, 1 / len) : null; }
 function parsePos(value) {
   const parts = text(value).split(/\s+/).map(Number);
   return parts.length >= 3 && parts.every(Number.isFinite) ? { x: parts[0], y: parts[1], z: parts[2] } : null;
@@ -241,14 +251,14 @@ function elementToXml(element, options) {
   const includeFullContext = element.isFirstInBranch || options?.repeatContextOnEveryElement === true;
   const attrs = createElementAttributes(element, includeFullContext);
   const lines = [`<PIPINGELEMENT${attrsToText(attrs)}>`];
-  if (hasBendEvidence(element.toRow)) {
+  if (!element.isRayFiller && hasBendEvidence(element.toRow)) {
     const radius = Number(element.toRow.bendRadius) > 0 ? Number(element.toRow.bendRadius) : SENTINEL;
     const midNode = Number(element.to) - 1;
     lines.push(`<BEND RADIUS="${f(radius)}" TYPE="${f(SENTINEL)}" ANGLE1="-2.020200" NODE1="${f(midNode)}" ANGLE2="${f(SENTINEL)}" NODE2="${f(SENTINEL)}" ANGLE3="${f(SENTINEL)}" NODE3="${f(SENTINEL)}" NUM_MITER="${f(SENTINEL)}" FITTINGTHICKNESS="${f(SENTINEL)}" KFACTOR="${f(SENTINEL)}"/>`);
   }
-  if (hasRigidEvidence(element.toRow)) lines.push(`<RIGID WEIGHT="${f(rigidWeight(element.toRow))}" TYPE="Unspecified"/>`);
-  if (hasSifEvidence(element.toRow)) lines.push(...emitSifSlots(element.to, Number(options?.defaultTeeSifType ?? 5)));
-  lines.push(...emitRestraintSlots(element.to, element.toRow.restraints));
+  if (!element.isRayFiller && hasRigidEvidence(element.toRow)) lines.push(`<RIGID WEIGHT="${f(rigidWeight(element.toRow))}" TYPE="Unspecified"/>`);
+  if (!element.isRayFiller && hasSifEvidence(element.toRow)) lines.push(...emitSifSlots(element.to, Number(options?.defaultTeeSifType ?? 5)));
+  if (!element.isRayFiller) lines.push(...emitRestraintSlots(element.to, element.toRow.restraints));
   lines.push('</PIPINGELEMENT>');
   return lines.join('\n');
 }
@@ -264,6 +274,8 @@ function elementSideLoadBlock(element) {
     PipingClass: row.pipingClass,
     Rating: row.rating,
     Position: row.position ? `${row.position.x} ${row.position.y} ${row.position.z}` : '',
+    TopologyReason: element.topologyReason,
+    FillerType: element.fillerType || '',
   };
   const lines = [`ELEMENT ${element.from}->${element.to}`];
   for (const [key, value] of Object.entries(fields)) if (text(value)) lines.push(`${key}=${value}`);
@@ -281,9 +293,161 @@ function parseNodeXml(xmlText) {
   });
   return { doc, branches };
 }
-function buildElements(branches) {
+function nodeKey(node) { return String(Number(node)); }
+function endpointDiameter(row, oppositeRow) {
+  const direct = Number(row?.od);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  const opposite = Number(oppositeRow?.od);
+  return Number.isFinite(opposite) && opposite > 0 ? opposite : null;
+}
+function closestRaySegmentHit(origin, rayDir, a, b, options) {
+  const seg = vecSub(b, a);
+  const segLen = vecLen(seg);
+  if (segLen <= POS_TOL_MM) return null;
+  const segDir = vecScale(seg, 1 / segLen);
+  const perpDot = Math.abs(vecDot(rayDir, segDir));
+  if (perpDot > (options.perpendicularDotTolerance ?? DEFAULT_PERP_DOT_TOL)) return null;
+  const w = vecSub(origin, a);
+  const bDot = vecDot(rayDir, segDir);
+  const dDot = vecDot(rayDir, w);
+  const eDot = vecDot(segDir, w);
+  const denom = 1 - bDot * bDot;
+  if (Math.abs(denom) < 1e-9) return null;
+  const tRay = (bDot * eDot - dDot) / denom;
+  const uSeg = (eDot - bDot * dDot) / denom;
+  if (tRay <= POS_TOL_MM || uSeg < -POS_TOL_MM || uSeg > segLen + POS_TOL_MM) return null;
+  const rayPoint = vecAdd(origin, vecScale(rayDir, tRay));
+  const segPoint = vecAdd(a, vecScale(segDir, Math.max(0, Math.min(segLen, uSeg))));
+  const miss = dist(rayPoint, segPoint);
+  if (miss > (options.rayHitToleranceMm ?? DEFAULT_RAY_HIT_TOL_MM)) return null;
+  return { point: segPoint, lengthMm: tRay, perpendicularDot: perpDot, missDistanceMm: miss };
+}
+function createSyntheticRayFillerRow(sourceRow, point, syntheticNodeNumber) {
+  return {
+    ...sourceRow,
+    nodeNumberRaw: String(syntheticNodeNumber),
+    nodeNumber: syntheticNodeNumber,
+    nodeName: `TOPO_RAY_FILLER_${sourceRow.nodeNumber}_${syntheticNodeNumber}`,
+    endpoint: '',
+    componentType: 'TOPO_RAY_FILLER',
+    connectionType: '',
+    componentRefNo: '',
+    position: point,
+    rigid: '',
+    weight: null,
+    bendRadius: null,
+    sif: null,
+    dtxrPos: '',
+    dtxrPs: '',
+    restraints: [],
+  };
+}
+function buildNodeRefs(elements) {
+  const refs = new Map();
+  const push = (node, row, otherRow, element, isFrom) => {
+    const key = nodeKey(node);
+    if (!refs.has(key)) refs.set(key, []);
+    refs.get(key).push({ node, row, otherRow, element, isFrom });
+  };
+  for (const element of elements) {
+    if (element.isRayFiller) continue;
+    push(element.from, element.fromRow, element.toRow, element, true);
+    push(element.to, element.toRow, element.fromRow, element, false);
+  }
+  return refs;
+}
+function nextSyntheticNode(elements, options) {
+  const base = Number(options.fillerNodeBase ?? DEFAULT_FILLER_NODE_BASE);
+  const used = new Set(elements.flatMap((element) => [nodeKey(element.from), nodeKey(element.to)]));
+  let candidate = Number.isFinite(base) ? base : DEFAULT_FILLER_NODE_BASE;
+  while (used.has(nodeKey(candidate))) candidate += 1;
+  return candidate;
+}
+function pushFillerDiagnostic(diagnostics, row) {
+  diagnostics.fillers.push(row);
+  if (row.fillerType === 'short') diagnostics.shortFillers.push(row);
+  if (row.fillerType === 'ray') diagnostics.rayFillers.push(row);
+}
+function applySecondPassRayFillers(elements, diagnostics, options = {}) {
+  diagnostics.fillerRule = {
+    shortFillerPass: 'first-pass route segment length < 50mm',
+    rayFillerPass: 'second-pass dead-end ray shoot after full topology route build',
+    rayMaxSearchFactorDiameter: Number(options.fillerSearchFactor ?? DEFAULT_FILLER_SEARCH_FACTOR),
+    perpendicularDotTolerance: Number(options.perpendicularDotTolerance ?? DEFAULT_PERP_DOT_TOL),
+    rayHitToleranceMm: Number(options.rayHitToleranceMm ?? DEFAULT_RAY_HIT_TOL_MM),
+  };
+  if (options.enableSecondPassFillers === false || options.enableRayFillers === false) return;
+  const nodeRefs = buildNodeRefs(elements);
+  let syntheticNodeNumber = nextSyntheticNode(elements, options);
+  for (const refs of nodeRefs.values()) {
+    if (refs.length !== 1) continue;
+    const dead = refs[0];
+    if (!dead.row?.position || !dead.otherRow?.position) continue;
+    const diameter = endpointDiameter(dead.row, dead.otherRow);
+    if (!diameter) {
+      diagnostics.fillerRejected.push({ node: dead.node, fillerType: 'ray', reason: 'NO_DIAMETER_FOR_5D_LIMIT' });
+      continue;
+    }
+    const rayDir = vecNorm(vecSub(dead.row.position, dead.otherRow.position));
+    if (!rayDir) continue;
+    const maxSearchMm = Number(options.fillerSearchFactor ?? DEFAULT_FILLER_SEARCH_FACTOR) * diameter;
+    let best = null;
+    for (const candidate of elements) {
+      if (candidate.isRayFiller || candidate === dead.element) continue;
+      if (!candidate.fromRow?.position || !candidate.toRow?.position) continue;
+      const hit = closestRaySegmentHit(dead.row.position, rayDir, candidate.fromRow.position, candidate.toRow.position, options);
+      if (!hit) continue;
+      if (hit.lengthMm > maxSearchMm + POS_TOL_MM) continue;
+      if (!best || hit.lengthMm < best.hit.lengthMm) best = { candidate, hit };
+    }
+    if (!best) {
+      diagnostics.fillerRejected.push({ node: dead.node, fillerType: 'ray', reason: 'NO_PERPENDICULAR_HIT_WITHIN_5D', maxSearchMm });
+      continue;
+    }
+    const fillerToRow = createSyntheticRayFillerRow(dead.row, best.hit.point, syntheticNodeNumber);
+    const rayFiller = {
+      branch: dead.element.branch,
+      from: Number(dead.node),
+      to: syntheticNodeNumber,
+      fromRow: dead.row,
+      toRow: fillerToRow,
+      lengthMm: best.hit.lengthMm,
+      delta: deltaToCaesar(dead.row.position, best.hit.point),
+      isFirstInBranch: false,
+      isRayFiller: true,
+      isShortFiller: false,
+      fillerType: 'ray',
+      topologyReason: 'TOPO_RAY_FILLER_DEAD_END_PERPENDICULAR_HIT',
+      filler: {
+        sourceDeadEndNode: Number(dead.node),
+        hitElement: `${best.candidate.from}->${best.candidate.to}`,
+        maxSearchMm,
+        diameterMm: diameter,
+        perpendicularDot: best.hit.perpendicularDot,
+        missDistanceMm: best.hit.missDistanceMm,
+      },
+    };
+    elements.push(rayFiller);
+    pushFillerDiagnostic(diagnostics, {
+      from: rayFiller.from,
+      to: rayFiller.to,
+      lengthMm: rayFiller.lengthMm,
+      branchName: rayFiller.branch.branchName,
+      reason: rayFiller.topologyReason,
+      fillerType: 'ray',
+      sourceDeadEndNode: Number(dead.node),
+      hitElement: rayFiller.filler.hitElement,
+      maxSearchMm,
+      diameterMm: diameter,
+      perpendicularDot: best.hit.perpendicularDot,
+      missDistanceMm: best.hit.missDistanceMm,
+    });
+    syntheticNodeNumber += 1;
+  }
+}
+function buildElements(branches, options = {}) {
   const elements = [];
-  const diagnostics = { branches: [], fillers: [], rigid: [], sif: [], bend: [], restraints: [] };
+  const diagnostics = { branches: [], fillers: [], shortFillers: [], rayFillers: [], fillerRejected: [], rigid: [], sif: [], bend: [], restraints: [] };
   for (const branch of branches) {
     const routeRows = branch.nodes.filter(isRouteNode);
     diagnostics.branches.push({ branchName: branch.branchName, nodeRows: branch.nodes.length, routeRows: routeRows.length });
@@ -293,6 +457,7 @@ function buildElements(branches) {
       if (fromRow.nodeNumber === toRow.nodeNumber) continue;
       const lengthMm = dist(fromRow.position, toRow.position);
       if (lengthMm <= POS_TOL_MM) continue;
+      const isShortFiller = lengthMm < SHORT_FILLER_MM;
       const element = {
         branch,
         from: Number(fromRow.nodeNumber),
@@ -302,23 +467,29 @@ function buildElements(branches) {
         lengthMm,
         delta: deltaToCaesar(fromRow.position, toRow.position),
         isFirstInBranch: i === 0,
-        topologyReason: lengthMm < SHORT_FILLER_MM ? 'TOPO_FILLER_SHORT' : 'SEQUENTIAL_POS_ROUTE',
+        isRayFiller: false,
+        isShortFiller,
+        fillerType: isShortFiller ? 'short' : '',
+        topologyReason: isShortFiller ? 'TOPO_FILLER_SHORT_FIRST_PASS' : 'SEQUENTIAL_POS_ROUTE',
       };
       elements.push(element);
-      if (lengthMm < SHORT_FILLER_MM) diagnostics.fillers.push({ from: element.from, to: element.to, lengthMm, branchName: branch.branchName, reason: element.topologyReason });
+      if (isShortFiller) {
+        pushFillerDiagnostic(diagnostics, { from: element.from, to: element.to, lengthMm, branchName: branch.branchName, reason: element.topologyReason, fillerType: 'short' });
+      }
       if (hasRigidEvidence(toRow)) diagnostics.rigid.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, componentType: toRow.componentType, weight: toRow.weight });
       if (hasSifEvidence(toRow)) diagnostics.sif.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, componentType: toRow.componentType, connectionType: toRow.connectionType });
       if (hasBendEvidence(toRow)) diagnostics.bend.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, bendRadius: toRow.bendRadius, componentType: toRow.componentType });
       if (toRow.restraints.length) diagnostics.restraints.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, count: toRow.restraints.length });
     }
   }
+  applySecondPassRayFillers(elements, diagnostics, options);
   return { elements, diagnostics };
 }
 function createCoreInputXml(elements, options = {}) {
-  const numBend = elements.filter((e) => hasBendEvidence(e.toRow)).length;
-  const numRigid = elements.filter((e) => hasRigidEvidence(e.toRow)).length;
-  const numRest = elements.filter((e) => e.toRow.restraints.length).length;
-  const numSif = elements.filter((e) => hasSifEvidence(e.toRow)).length;
+  const numBend = elements.filter((e) => !e.isRayFiller && hasBendEvidence(e.toRow)).length;
+  const numRigid = elements.filter((e) => !e.isRayFiller && hasRigidEvidence(e.toRow)).length;
+  const numRest = elements.filter((e) => !e.isRayFiller && e.toRow.restraints.length).length;
+  const numSif = elements.filter((e) => !e.isRayFiller && hasSifEvidence(e.toRow)).length;
   const jobName = escAttr(options.jobName || 'XML_NODE_TO_INPUTXML_CORE');
   const header = `<CAESARII xmlns="COADE" VERSION="11.00" XML_TYPE="Input">\n<PIPINGMODEL xmlns="" JOBNAME="${jobName}" TIME="" ISSUE_NO="" NUMELT="${elements.length}" NUMNOZ="0" NOHGRS="0" NUMBEND="${numBend}" NUMRIGID="${numRigid}" NUMEXPJNT="0" NUMREST="${numRest}" NUMFORCMNT="0" NUMUNFLOAD="0" NUMWIND="0" NUMELEOFF="0" NUMALLOW="0" NUMISECT="${numSif}" NORTH_Z="-1" NORTH_Y="0" NORTH_X="0">`;
   const body = elements.map((element) => elementToXml(element, options)).join('\n');
@@ -327,16 +498,20 @@ function createCoreInputXml(elements, options = {}) {
 function createSummary(elements, diagnostics) {
   return {
     elementCount: elements.length,
+    routeElementCount: elements.filter((element) => !element.isRayFiller).length,
     rigidCount: diagnostics.rigid.length,
     sifCount: diagnostics.sif.length,
     bendCount: diagnostics.bend.length,
     restraintNodeCount: diagnostics.restraints.length,
-    shortFillerCount: diagnostics.fillers.length,
+    fillerCount: diagnostics.fillers.length,
+    shortFillerCount: diagnostics.shortFillers.length,
+    rayFillerCount: diagnostics.rayFillers.length,
+    fillerRejectedCount: diagnostics.fillerRejected?.length || 0,
   };
 }
 export function buildInputXmlFromNodeXml(xmlText, options = {}) {
   const parsed = parseNodeXml(xmlText);
-  const { elements, diagnostics } = buildElements(parsed.branches);
+  const { elements, diagnostics } = buildElements(parsed.branches, options);
   const coreInputXmlText = createCoreInputXml(elements, options);
   const elementSideLoadText = elements.map(elementSideLoadBlock).join('\n\n');
   const summary = createSummary(elements, diagnostics);
@@ -378,4 +553,4 @@ export function buildInputXmlFromNodeXml(xmlText, options = {}) {
   };
 }
 
-export const __xmlCiiNodeToInputXmlCoreInternals = Object.freeze({ parseNodeXml, buildElements, createCoreInputXml, deltaToCaesar });
+export const __xmlCiiNodeToInputXmlCoreInternals = Object.freeze({ parseNodeXml, buildElements, createCoreInputXml, deltaToCaesar, closestRaySegmentHit, applySecondPassRayFillers });

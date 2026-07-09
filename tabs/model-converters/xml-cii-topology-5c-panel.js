@@ -1,4 +1,4 @@
-import { buildInputXmlFromNodeXml } from './xml-cii-node-to-inputxml-core.js?v=20260709-5c-core-1';
+import { buildInputXmlFromNodeXml } from './xml-cii-node-to-inputxml-core.js?v=20260709-5c-core-2';
 import { build5CDiagnosticsViewModel } from './xml-cii-node-to-inputxml-diagnostics.js?v=20260709-5c-diagnostics-1';
 
 const PANEL_STATE_KEY = '__xmlCiiTopology5CState';
@@ -7,6 +7,7 @@ const XML_SCAN_LIMIT = 200;
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]); }
 function parseJson(value) { try { const parsed = JSON.parse(String(value || '{}')); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
+function fmt(value, places = 2) { const n = Number(value); return Number.isFinite(n) ? n.toFixed(places) : ''; }
 function ensureState(target) {
   const state = target[PANEL_STATE_KEY] || {};
   target[PANEL_STATE_KEY] = state;
@@ -64,11 +65,14 @@ function summaryCards(result) {
   const summary = result?.diagnostics?.summary || {};
   const cards = [
     ['Elements', summary.elementCount],
+    ['Route elements', summary.routeElementCount],
     ['Rigid', summary.rigidCount],
     ['SIF', summary.sifCount],
     ['Bends', summary.bendCount],
     ['Restraint nodes', summary.restraintNodeCount],
     ['Short fillers <50mm', summary.shortFillerCount],
+    ['Ray fillers', summary.rayFillerCount],
+    ['Ray rejects', summary.fillerRejectedCount],
   ];
   return `<div class="xml-cii-native-status-list">${cards.map(([label, value]) => `<div class="xml-cii-native-status-row ${Number(value || 0) ? 'is-ok' : 'is-warn'}"><span class="xml-cii-native-status-icon">${Number(value || 0) ? 'OK' : 'INFO'}</span><span>${esc(label)}</span><strong>${esc(value ?? 0)}</strong></div>`).join('')}</div>`;
 }
@@ -101,6 +105,83 @@ function outputValue(result, key) {
 function outputBlock(label, dataKey, value, filename) {
   return `<details class="xml-cii-native-card"><summary><strong>${esc(label)}</strong> <span style="color:#9aa8ba;">${Number(String(value || '').length).toLocaleString()} chars</span></summary><div class="xml-cii-native-toolbar" style="margin:8px 0;gap:8px;"><button type="button" class="model-converters-download-btn" data-xml-cii-5c-copy="${esc(dataKey)}">Copy</button><button type="button" class="model-converters-download-btn" data-xml-cii-5c-download="${esc(dataKey)}" data-xml-cii-5c-filename="${esc(filename)}">Download</button></div><textarea readonly spellcheck="false" style="width:100%;min-height:260px;background:#07101f;color:#e6edf5;border:1px solid rgba(148,163,184,.35);border-radius:8px;padding:8px;font:11px ui-monospace,Consolas,monospace;">${esc(value || '')}</textarea></details>`;
 }
+function pointOf(row) { return row?.position && Number.isFinite(Number(row.position.x)) && Number.isFinite(Number(row.position.y)) && Number.isFinite(Number(row.position.z)) ? row.position : null; }
+function graphElements(result) { return Array.isArray(result?.elements) ? result.elements.filter((element) => pointOf(element.fromRow) && pointOf(element.toRow)) : []; }
+function chooseAxes(points) {
+  const axes = ['x', 'y', 'z'];
+  const spans = axes.map((axis) => ({ axis, span: Math.max(...points.map((p) => p[axis])) - Math.min(...points.map((p) => p[axis])) })).sort((a, b) => b.span - a.span);
+  return [spans[0]?.axis || 'x', spans[1]?.axis || 'y'];
+}
+function canvasBlock(result) {
+  const count = graphElements(result).length;
+  return `<section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">5C Generated Element Graph</div><div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Connected view of generated 5C elements. Solid = route, orange = first-pass short filler &lt;50mm, magenta dashed = second-pass ray filler.</div><canvas data-xml-cii-5c-canvas width="1100" height="360" style="width:100%;height:360px;background:#06111f;border:1px solid rgba(148,163,184,.35);border-radius:10px;"></canvas><div class="xml-cii-native-hint">${count.toLocaleString()} drawable element(s). Uses source XML coordinates and auto-selects the two largest coordinate spans for projection.</div></section>`;
+}
+function draw5CCanvas(canvas, result) {
+  if (!canvas) return;
+  const ctx = canvas.getContext?.('2d');
+  if (!ctx) return;
+  const rect = canvas.getBoundingClientRect?.() || { width: 1100, height: 360 };
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(600, Math.floor((rect.width || 1100) * dpr));
+  const h = Math.max(260, Math.floor((rect.height || 360) * dpr));
+  canvas.width = w;
+  canvas.height = h;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#06111f';
+  ctx.fillRect(0, 0, w, h);
+  const elements = graphElements(result);
+  const points = elements.flatMap((element) => [pointOf(element.fromRow), pointOf(element.toRow)]).filter(Boolean);
+  if (!points.length) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = `${12 * dpr}px ui-monospace, Consolas, monospace`;
+    ctx.fillText('No drawable 5C element coordinates.', 24 * dpr, 42 * dpr);
+    return;
+  }
+  const [ax, ay] = chooseAxes(points);
+  const minX = Math.min(...points.map((p) => p[ax]));
+  const maxX = Math.max(...points.map((p) => p[ax]));
+  const minY = Math.min(...points.map((p) => p[ay]));
+  const maxY = Math.max(...points.map((p) => p[ay]));
+  const pad = 34 * dpr;
+  const sx = (w - 2 * pad) / Math.max(1, maxX - minX);
+  const sy = (h - 2 * pad) / Math.max(1, maxY - minY);
+  const s = Math.min(sx, sy);
+  const project = (p) => ({ x: pad + (p[ax] - minX) * s, y: h - pad - (p[ay] - minY) * s });
+  ctx.strokeStyle = 'rgba(148,163,184,.18)';
+  ctx.lineWidth = 1 * dpr;
+  for (let i = 0; i < 8; i += 1) {
+    const x = pad + ((w - 2 * pad) * i) / 7;
+    const y = pad + ((h - 2 * pad) * i) / 7;
+    ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+  }
+  for (const element of elements) {
+    const a = project(pointOf(element.fromRow));
+    const b = project(pointOf(element.toRow));
+    const isRay = element.fillerType === 'ray' || element.isRayFiller;
+    const isShort = element.fillerType === 'short' || element.isShortFiller;
+    ctx.setLineDash(isRay ? [8 * dpr, 6 * dpr] : []);
+    ctx.lineWidth = (isRay || isShort ? 2.5 : 1.6) * dpr;
+    ctx.strokeStyle = isRay ? '#e879f9' : isShort ? '#f59e0b' : '#38bdf8';
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  const nodes = new Map();
+  for (const element of elements) {
+    nodes.set(String(element.from), { node: element.from, point: pointOf(element.fromRow) });
+    nodes.set(String(element.to), { node: element.to, point: pointOf(element.toRow), fillerType: element.fillerType });
+  }
+  ctx.font = `${10 * dpr}px ui-monospace, Consolas, monospace`;
+  for (const item of nodes.values()) {
+    const p = project(item.point);
+    ctx.fillStyle = item.fillerType === 'ray' ? '#e879f9' : '#e6edf5';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3.4 * dpr, 0, Math.PI * 2); ctx.fill();
+    ctx.fillText(String(item.node), p.x + 5 * dpr, p.y - 5 * dpr);
+  }
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = `${11 * dpr}px ui-monospace, Consolas, monospace`;
+  ctx.fillText(`Projection: ${ax.toUpperCase()} / ${ay.toUpperCase()} · route=${result?.diagnostics?.summary?.routeElementCount ?? elements.length} · short=${result?.diagnostics?.summary?.shortFillerCount ?? 0} · ray=${result?.diagnostics?.summary?.rayFillerCount ?? 0}`, pad, 20 * dpr);
+}
 function sourceCard(state, source) {
   return `<section class="xml-cii-native-card">
     <div class="model-converters-workflow-section-title">5C XML → InputXML Source</div>
@@ -122,7 +203,7 @@ function actionsCard(state) {
       <button type="button" class="model-converters-run-btn" data-xml-cii-5c-build>Generate InputXML</button>
       <button type="button" class="model-converters-download-btn" data-xml-cii-5c-clear>Clear result</button>
     </div>
-    <div class="xml-cii-native-hint">5C uses first available positive XML route nodes for FROM/TO, then calls the existing enriched InputXML module. Filler refinement remains audit-only in this phase.</div>
+    <div class="xml-cii-native-hint">5C uses first available positive XML route nodes for FROM/TO. Short fillers are first-pass &lt;50mm route segments; ray fillers are second-pass dead-end hits within 5D against perpendicular route segments.</div>
   </section>`;
 }
 function resultHtml(result) {
@@ -137,6 +218,7 @@ function resultHtml(result) {
   ].join('');
   return `
     <section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">5C Summary</div>${summaryCards(result)}</section>
+    ${canvasBlock(result)}
     ${diagnosticsPanel(result)}
     ${outputs}`;
 }
@@ -204,5 +286,6 @@ export function renderXmlCiiTopology5CPanel(target, options = {}) {
     ${actionsCard(state)}
     ${resultHtml(state.result)}`;
   bindControls(target, root, state, options);
+  draw5CCanvas(target.querySelector('[data-xml-cii-5c-canvas]'), state.result);
   return state.result || null;
 }
