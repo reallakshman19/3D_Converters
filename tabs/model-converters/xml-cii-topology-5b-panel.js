@@ -4,6 +4,7 @@ const RAY_TUBE_MM = 50;
 const MAX_RAY_MM = 20000;
 const EPS = 1e-9;
 const PANEL_STATE_KEY = '__xmlCiiTopology5BNativeState';
+const ROUTE_EXCLUDED_TYPES = new Set(['GASK']);
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]); }
@@ -79,6 +80,15 @@ function rayHit(origin, direction, target) {
     srssMm: mag(v),
   };
 }
+function isSupportReferenceRow(row) {
+  return row?.componentType === 'ATTA' && /\/SREF/i.test(row?.nodeName || '');
+}
+function isRouteRow(row) {
+  return !!row?.transformedPos
+    && Number(row.nodeNumber) > 0
+    && !ROUTE_EXCLUDED_TYPES.has(row.componentType)
+    && !isSupportReferenceRow(row);
+}
 function parseBranches(xmlText) {
   const doc = new DOMParser().parseFromString(text(xmlText), 'application/xml');
   if (doc.getElementsByTagName('parsererror').length) throw new Error('Workflow XML parse failed.');
@@ -105,7 +115,7 @@ function parseBranches(xmlText) {
         transformedPos: null,
       };
     });
-    return { branchIndex, branchName, nodes, components: [], edges: [], openPorts: [] };
+    return { branchIndex, branchName, nodes, routeRows: [], routePoints: [], components: [], edges: [], openPorts: [] };
   });
 }
 function chooseAnchor(branches, requested) {
@@ -257,6 +267,8 @@ function buildModel(xmlText, anchorNode) {
   if (!anchor) throw new Error('No anchor node with POS found in workflow XML.');
   for (const branch of branches) {
     for (const row of branch.nodes) row.transformedPos = row.originalPos ? sub(row.originalPos, anchor.originalPos) : null;
+    branch.routeRows = branch.nodes.filter(isRouteRow);
+    branch.routePoints = uniquePositions(branch.routeRows.map((row) => row.transformedPos));
     branch.components = splitComponentRuns(branch);
   }
   return { branches, anchor, topology: buildTopology(branches) };
@@ -295,6 +307,7 @@ function ensureState(target, options = {}) {
   if (state.showNodeLabels == null) state.showNodeLabels = true;
   if (state.showComponentLabels == null) state.showComponentLabels = false;
   if (state.showEdges == null) state.showEdges = true;
+  if (state.fitMode == null) state.fitMode = 'route';
   return state;
 }
 function sourceForState(root, state) {
@@ -309,17 +322,27 @@ function edgeText(edge) {
 }
 function renderInputBranch(branch, showHelpers) {
   const rows = branch.nodes.filter((row) => showHelpers || Number(row.nodeNumber) > 0);
-  return `<details class="xml-cii-native-card" ${branch.branchIndex < 2 ? 'open' : ''}><summary><strong>${esc(branch.branchName)}</strong> <span style="color:#9aa8ba;">${rows.length}/${branch.nodes.length} node rows</span></summary><div class="xml-cii-native-table-wrap"><table class="xml-cii-native-table"><thead><tr><th>Node</th><th>NodeName</th><th>Component type</th><th>Bore / OD mm</th><th>Transformed X</th><th>Transformed Y</th><th>Transformed Z</th><th>Original POS</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${esc(row.nodeNumberRaw)}</td><td>${esc(row.nodeName)}</td><td>${esc(row.componentType)}${row.connectionType ? ` / ${esc(row.connectionType)}` : ''}</td><td>${fmt(row.od, 1)}</td><td>${fmt(row.transformedPos?.x)}</td><td>${fmt(row.transformedPos?.y)}</td><td>${fmt(row.transformedPos?.z)}</td><td><code>${esc(posLabel(row.originalPos))}</code></td></tr>`).join('')}</tbody></table></div></details>`;
+  return `<details class="xml-cii-native-card" ${branch.branchIndex < 2 ? 'open' : ''}><summary><strong>${esc(branch.branchName)}</strong> <span style="color:#9aa8ba;">${rows.length}/${branch.nodes.length} node rows · ${branch.routePoints.length} route points</span></summary><div class="xml-cii-native-table-wrap"><table class="xml-cii-native-table"><thead><tr><th>Node</th><th>NodeName</th><th>Route</th><th>Component type</th><th>Bore / OD mm</th><th>Transformed X</th><th>Transformed Y</th><th>Transformed Z</th><th>Original POS</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${esc(row.nodeNumberRaw)}</td><td>${esc(row.nodeName)}</td><td>${isRouteRow(row) ? 'YES' : ''}</td><td>${esc(row.componentType)}${row.connectionType ? ` / ${esc(row.connectionType)}` : ''}</td><td>${fmt(row.od, 1)}</td><td>${fmt(row.transformedPos?.x)}</td><td>${fmt(row.transformedPos?.y)}</td><td>${fmt(row.transformedPos?.z)}</td><td><code>${esc(posLabel(row.originalPos))}</code></td></tr>`).join('')}</tbody></table></div></details>`;
 }
 function renderCalcBranch(branch) {
-  return `<details class="xml-cii-native-card" ${branch.branchIndex < 2 ? 'open' : ''}><summary><strong>${esc(branch.branchName)}</strong> <span style="color:#9aa8ba;">${branch.components.length} components · ${branch.edges.length} edges · ${branch.openPorts.length} open ports</span></summary><div class="xml-cii-native-table-wrap"><table class="xml-cii-native-table"><thead><tr><th>Component instance</th><th>RefNo</th><th>Type</th><th>Positive node label</th><th>Entry XYZ</th><th>Exit XYZ</th><th>Internal direction</th><th>Topology edges</th><th>Open ports</th></tr></thead><tbody>${branch.components.map((run) => {
+  return `<details class="xml-cii-native-card" ${branch.branchIndex < 2 ? 'open' : ''}><summary><strong>${esc(branch.branchName)}</strong> <span style="color:#9aa8ba;">${branch.components.length} components · ${branch.routePoints.length} route points · ${branch.edges.length} edges · ${branch.openPorts.length} open ports</span></summary><div class="xml-cii-native-table-wrap"><table class="xml-cii-native-table"><thead><tr><th>Component instance</th><th>RefNo</th><th>Type</th><th>Positive node label</th><th>Entry XYZ</th><th>Exit XYZ</th><th>Internal direction</th><th>Topology edges</th><th>Open ports</th></tr></thead><tbody>${branch.components.map((run) => {
     const edges = branch.edges.filter((edge) => edge.a.run === run || edge.b.run === run).map(edgeText).join('<br>');
     const open = branch.openPorts.filter((item) => item.source.run === run).map((item) => `${esc(item.source.kind)}: ${esc(item.reason)}`).join('<br>');
     return `<tr class="${run.branchCapable ? 'xml-cii-5b-branch-capable' : ''}"><td>${esc(run.id)}</td><td><code>${esc(run.refNo)}</code></td><td>${esc(run.type)}</td><td>${esc(run.positiveLabels.join(', ') || '-')}</td><td><code>${esc(posLabel(run.entry))}</code></td><td><code>${esc(posLabel(run.exit))}</code></td><td><code>${run.direction ? `${fmt(run.direction.x, 3)}, ${fmt(run.direction.y, 3)}, ${fmt(run.direction.z, 3)}` : '-'}</code></td><td>${edges || '-'}</td><td>${open || '-'}</td></tr>`;
   }).join('')}</tbody></table></div></details>`;
 }
-function modelBounds(model) {
-  const points = model.branches.flatMap((branch) => branch.nodes.map((row) => row.transformedPos).filter(Boolean));
+function boundPoints(model, fitMode) {
+  if (fitMode === 'all') {
+    const all = model.branches.flatMap((branch) => branch.nodes.map((row) => row.transformedPos).filter(Boolean));
+    if (all.length) return all;
+  }
+  const route = model.branches.flatMap((branch) => branch.routePoints);
+  if (route.length) return route;
+  const positive = model.branches.flatMap((branch) => branch.nodes.filter((row) => Number(row.nodeNumber) > 0).map((row) => row.transformedPos).filter(Boolean));
+  return positive.length ? positive : model.branches.flatMap((branch) => branch.nodes.map((row) => row.transformedPos).filter(Boolean));
+}
+function modelBounds(model, fitMode = 'route') {
+  const points = boundPoints(model, fitMode);
   if (!points.length) return null;
   const min = { x: Math.min(...points.map((p) => p.x)), y: Math.min(...points.map((p) => p.y)), z: Math.min(...points.map((p) => p.z)) };
   const max = { x: Math.max(...points.map((p) => p.x)), y: Math.max(...points.map((p) => p.y)), z: Math.max(...points.map((p) => p.z)) };
@@ -327,17 +350,17 @@ function modelBounds(model) {
   const span = Math.max(max.x - min.x, max.y - min.y, max.z - min.z, 1);
   return { min, max, center, span };
 }
-function makeProjector(canvas, model, view) {
+function makeProjector(canvas, model, state) {
   const rect = canvas.getBoundingClientRect();
-  const bounds = modelBounds(model);
+  const bounds = modelBounds(model, state.fitMode || 'route');
   if (!bounds) return null;
   const width = Math.max(400, rect.width || 400);
   const height = Math.max(300, rect.height || 300);
   const baseScale = Math.min(width, height) * 0.78 / bounds.span;
-  const cy = Math.cos(view.yaw);
-  const sy = Math.sin(view.yaw);
-  const cp = Math.cos(view.pitch);
-  const sp = Math.sin(view.pitch);
+  const cy = Math.cos(state.view.yaw);
+  const sy = Math.sin(state.view.yaw);
+  const cp = Math.cos(state.view.pitch);
+  const sp = Math.sin(state.view.pitch);
   return (point) => {
     const dx = point.x - bounds.center.x;
     const dy = point.y - bounds.center.y;
@@ -347,10 +370,20 @@ function makeProjector(canvas, model, view) {
     const rz = dz;
     const py = ry * cp - rz * sp;
     return {
-      x: width / 2 + view.panX + rx * baseScale * view.zoom,
-      y: height / 2 + view.panY - py * baseScale * view.zoom,
+      x: width / 2 + state.view.panX + rx * baseScale * state.view.zoom,
+      y: height / 2 + state.view.panY - py * baseScale * state.view.zoom,
     };
   };
+}
+function drawPolyline(ctx, points, project) {
+  if (!points || points.length < 2) return;
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const p = project(point);
+    if (index) ctx.lineTo(p.x, p.y);
+    else ctx.moveTo(p.x, p.y);
+  });
+  ctx.stroke();
 }
 function drawGraph(canvas, model, state) {
   const ctx = canvas.getContext('2d');
@@ -363,9 +396,25 @@ function drawGraph(canvas, model, state) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#07101f';
   ctx.fillRect(0, 0, width, height);
-  const project = makeProjector(canvas, model, state.view);
+  const project = makeProjector(canvas, model, state);
   if (!project) return;
   const colors = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf', '#c084fc'];
+
+  model.branches.forEach((branch) => {
+    const color = colors[branch.branchIndex % colors.length];
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.8;
+    ctx.setLineDash([]);
+    drawPolyline(ctx, branch.routePoints, project);
+  });
+
+  if (state.showComponentLabels) {
+    model.branches.forEach((branch) => {
+      ctx.strokeStyle = 'rgba(226,232,240,.28)';
+      ctx.lineWidth = 1;
+      for (const run of branch.components) drawPolyline(ctx, run.points, project);
+    });
+  }
 
   if (state.showEdges) {
     ctx.lineWidth = 1.5;
@@ -385,52 +434,49 @@ function drawGraph(canvas, model, state) {
 
   model.branches.forEach((branch) => {
     const color = colors[branch.branchIndex % colors.length];
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 2;
-    for (const run of branch.components) {
-      if (run.points.length < 2) continue;
-      ctx.beginPath();
-      run.points.forEach((point, index) => {
-        const p = project(point);
-        if (index) ctx.lineTo(p.x, p.y);
-        else ctx.moveTo(p.x, p.y);
-      });
-      ctx.stroke();
-      if (state.showComponentLabels && run.entry) {
-        const p = project(run.entry);
-        ctx.font = '10px system-ui';
-        ctx.fillText(`${run.id} ${run.type}`, p.x + 6, p.y + 13);
-      }
-    }
-    const labelPoint = branch.nodes.find((row) => row.transformedPos)?.transformedPos;
+    const labelPoint = branch.routePoints[0] || branch.nodes.find((row) => row.transformedPos)?.transformedPos;
     if (state.showBranchLabels && labelPoint) {
       const p = project(labelPoint);
       ctx.font = '11px system-ui';
+      ctx.fillStyle = color;
       ctx.fillText(branch.branchName, p.x + 7, p.y + 12);
     }
     for (const row of branch.nodes) {
       if (!row.transformedPos) continue;
+      const route = isRouteRow(row);
       const positive = Number(row.nodeNumber) > 0;
-      if (!positive && !state.showHelpers) continue;
+      if (!route && !state.showHelpers) continue;
       const p = project(row.transformedPos);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, positive ? 3.2 : 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = positive ? color : 'rgba(148, 163, 184, .75)';
+      ctx.arc(p.x, p.y, route ? 3.4 : 2.1, 0, Math.PI * 2);
+      ctx.fillStyle = route ? color : 'rgba(148, 163, 184, .62)';
       ctx.fill();
-      if (state.showNodeLabels && positive) {
+      if (state.showNodeLabels && route && positive) {
         ctx.font = '10px system-ui';
         ctx.fillStyle = color;
         ctx.fillText(`${row.nodeNumberRaw} | ${row.componentType}`, p.x + 5, p.y - 5);
       }
     }
+    if (state.showComponentLabels) {
+      for (const run of branch.components) {
+        if (!run.entry) continue;
+        const p = project(run.entry);
+        ctx.font = '10px system-ui';
+        ctx.fillStyle = 'rgba(226,232,240,.82)';
+        ctx.fillText(`${run.id} ${run.type}`, p.x + 6, p.y + 13);
+      }
+    }
   });
 
   ctx.fillStyle = 'rgba(2,6,23,.76)';
-  ctx.fillRect(12, height - 32, 450, 22);
+  ctx.fillRect(12, height - 32, 560, 22);
   ctx.fillStyle = '#cbd5e1';
   ctx.font = '11px system-ui';
-  ctx.fillText('Wheel = zoom · drag = pan · Shift-drag / middle-drag = orbit/rotate', 20, height - 17);
+  ctx.fillText(`Wheel = zoom · drag = pan · Shift-drag / middle-drag = orbit/rotate · fit=${state.fitMode || 'route'}`, 20, height - 17);
+}
+function resetView(state, fitMode = 'route') {
+  state.fitMode = fitMode;
+  state.view = { zoom: 1, panX: 0, panY: 0, yaw: -0.18, pitch: 0.08, dragging: false, mode: 'pan', x: 0, y: 0 };
 }
 function bindCanvas(canvas, model, state) {
   if (state.resizeObserver) {
@@ -526,14 +572,16 @@ function bindPanelControls(target, model, state) {
   target.querySelector('[data-xml-cii-5b-show-nodes]')?.addEventListener('change', (event) => { state.showNodeLabels = !!event.target.checked; redraw(); });
   target.querySelector('[data-xml-cii-5b-show-components]')?.addEventListener('change', (event) => { state.showComponentLabels = !!event.target.checked; redraw(); });
   target.querySelector('[data-xml-cii-5b-show-edges]')?.addEventListener('change', (event) => { state.showEdges = !!event.target.checked; redraw(); });
-  target.querySelector('[data-xml-cii-5b-fit]')?.addEventListener('click', () => {
-    state.view.zoom = 1;
-    state.view.panX = 0;
-    state.view.panY = 0;
+  target.querySelector('[data-xml-cii-5b-fit-route]')?.addEventListener('click', () => {
+    resetView(state, 'route');
+    redraw();
+  });
+  target.querySelector('[data-xml-cii-5b-fit-all]')?.addEventListener('click', () => {
+    resetView(state, 'all');
     redraw();
   });
   target.querySelector('[data-xml-cii-5b-reset-view]')?.addEventListener('click', () => {
-    state.view = { zoom: 1, panX: 0, panY: 0, yaw: -0.18, pitch: 0.08, dragging: false, mode: 'pan', x: 0, y: 0 };
+    resetView(state, 'route');
     redraw();
   });
   if (canvas) bindCanvas(canvas, model, state);
@@ -561,17 +609,18 @@ export function renderXmlCiiTopology5BPanel(target, options = {}) {
   const branchCount = model.branches.length;
   const compCount = model.topology.components.length;
   const nodeCount = model.branches.reduce((sum, branch) => sum + branch.nodes.length, 0);
+  const routeCount = model.branches.reduce((sum, branch) => sum + branch.routePoints.length, 0);
   const edgeCount = model.topology.edges.length;
   const openCount = model.topology.openPorts.length;
   target.innerHTML = `
     ${sourcePickerHtml(state, source)}
     <section class="xml-cii-native-card">
-      <div class="model-converters-workflow-detail-note">Anchor node chosen := ${esc(model.anchor.nodeNumberRaw)} | Branches: ${branchCount} | Nodes: ${nodeCount} | Components: ${compCount} | Edges: ${edgeCount} | Open Tee/Olet ports: ${openCount}</div>
+      <div class="model-converters-workflow-detail-note">Anchor node chosen := ${esc(model.anchor.nodeNumberRaw)} | Branches: ${branchCount} | Nodes: ${nodeCount} | Route points: ${routeCount} | Components: ${compCount} | Edges: ${edgeCount} | Open Tee/Olet ports: ${openCount}</div>
     </section>
     <section class="xml-cii-native-card" style="display:grid;grid-template-columns:minmax(420px,50%) minmax(420px,50%);gap:10px;align-items:start;">
       <div>
         <div class="model-converters-workflow-section-title">Input panel — branch-wise XML rows</div>
-        <label class="model-converters-workflow-detail-note" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;"><input data-xml-cii-5b-show-helpers type="checkbox" ${state.showHelpers ? 'checked' : ''}>show helper -1 rows</label>
+        <label class="model-converters-workflow-detail-note" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;"><input data-xml-cii-5b-show-helpers type="checkbox" ${state.showHelpers ? 'checked' : ''}>show helper / non-route rows</label>
         ${model.branches.map((branch) => renderInputBranch(branch, state.showHelpers)).join('')}
       </div>
       <div>
@@ -587,7 +636,8 @@ export function renderXmlCiiTopology5BPanel(target, options = {}) {
           <label class="model-converters-workflow-detail-note"><input data-xml-cii-5b-show-nodes type="checkbox" ${state.showNodeLabels ? 'checked' : ''}> node label</label>
           <label class="model-converters-workflow-detail-note"><input data-xml-cii-5b-show-components type="checkbox" ${state.showComponentLabels ? 'checked' : ''}> component helper labels</label>
           <label class="model-converters-workflow-detail-note"><input data-xml-cii-5b-show-edges type="checkbox" ${state.showEdges ? 'checked' : ''}> topology edges</label>
-          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-fit>Fit</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-fit-route>Fit route</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-fit-all>Fit all</button>
           <button type="button" class="model-converters-download-btn" data-xml-cii-5b-reset-view>Reset view</button>
         </div>
       </div>
