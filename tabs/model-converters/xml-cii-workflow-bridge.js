@@ -8,8 +8,7 @@
 
 import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260708-workflow-bridge-align-1';
 import { xmlCiiWorkflowRequestFinalRun } from './xml-cii-workflow-runner.js?v=20260624-workflow1-workflow2-1';
-
-const TOPOLOGY_5B_WORKBENCH_URL = new URL('../../topology-5b/index.html', import.meta.url).href;
+import { renderXmlCiiTopology5BPanel } from './xml-cii-topology-5b-panel.js?v=20260709-native-5b-1';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };
@@ -43,27 +42,6 @@ function compactTopologyTable(rows, emptyText) {
   ];
   if (!rows.length) return `<div class="model-converters-workflow-detail-note">${esc(emptyText || 'No topology rows available.')}</div>`;
   return `<div class="xml-cii-native-table-wrap"><table class="xml-cii-native-table"><thead><tr>${columns.map(([, label]) => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map(([key]) => `<td>${esc(row?.[key] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-}
-
-function topology5BWorkbenchCard() {
-  return `
-    <section class="xml-cii-native-card" data-xml-cii-topology5b-card>
-      <div class="model-converters-workflow-section-title">5B POS Topology Workbench</div>
-      <div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">
-        This is the revised POS-only 5B workbench: branch-wise XML rows, component instances, global Tee/Olet port graph, and canvas. It does not run the old Finalise/Run audit path.
-      </div>
-      <div class="xml-cii-native-toolbar" style="margin-bottom:8px;">
-        <button type="button" class="model-converters-run-btn" data-xml-cii-open-5b-workbench>Open 5B full page</button>
-        <button type="button" class="model-converters-download-btn" data-xml-cii-reload-5b-workbench>Reload 5B frame</button>
-        <span class="xml-cii-native-status-text">If this frame is blank, use Open 5B full page.</span>
-      </div>
-      <iframe
-        data-xml-cii-5b-workbench-frame
-        title="5B POS Topology Workbench"
-        src="${esc(TOPOLOGY_5B_WORKBENCH_URL)}"
-        style="width:100%;height:720px;border:1px solid rgba(148,163,184,.28);border-radius:10px;background:#07101f;"
-      ></iframe>
-    </section>`;
 }
 
 function jsonTraceSnapshot() {
@@ -151,8 +129,8 @@ function renderTopologyPhaseInto(target) {
   const stats = audit.stats || {};
   const disconnectedCount = Number(stats.topologyDisconnectedRows || disconnectedRows.length || 0);
   target.innerHTML = `
-    <div class="xml-cii-native-phase-head"><div><div class="model-converters-workflow-detail-title">5B Topology</div><div class="model-converters-workflow-detail-text">POS-only topology workbench plus legacy enriched XML/InputXML continuity audit.</div></div></div>
-    ${topology5BWorkbenchCard()}
+    <div class="xml-cii-native-phase-head"><div><div class="model-converters-workflow-detail-title">5B Topology</div><div class="model-converters-workflow-detail-text">Native POS-only 5B workbench driven by current workflow XML, plus legacy enriched XML/InputXML continuity audit.</div></div></div>
+    <div data-xml-cii-topology5b-native></div>
     <section class="xml-cii-native-card">
       <div class="model-converters-workflow-section-title">Legacy topology audit</div>
       <div class="xml-cii-native-toolbar" style="margin-bottom:8px;"><button type="button" class="model-converters-run-btn" data-xml-cii-build-topology>Build Topology Audit</button><button type="button" class="model-converters-download-btn" data-xml-cii-refresh-topology>Refresh latest audit</button><span class="xml-cii-native-status-text" data-xml-cii-topology-status>${rows.length ? 'Latest audit loaded.' : 'No audit loaded yet.'}</span></div>
@@ -166,12 +144,9 @@ function renderTopologyPhaseInto(target) {
     </section>
     <section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">Disconnected / Orphan Nodes</div>${compactTopologyTable(disconnectedRows.slice(0, 500), 'No disconnected/orphan nodes found in the latest topology audit.')}</section>
     <section class="xml-cii-native-card"><div class="model-converters-workflow-section-title">All Topology Rows</div>${compactTopologyTable(rows.slice(0, 500), 'No topology rows loaded. Run XML→CII to generate topology diagnostics.')}</section>`;
+  const nativePanel = target.querySelector('[data-xml-cii-topology5b-native]');
+  if (nativePanel) renderXmlCiiTopology5BPanel(nativePanel, { root: target.closest?.('[data-xml-cii-workflow-root]') || target.closest?.('.model-converters-root') || document, anchorNode: '210' });
   target.querySelector('[data-xml-cii-refresh-topology]')?.addEventListener('click', () => renderTopologyPhaseInto(target));
-  target.querySelector('[data-xml-cii-open-5b-workbench]')?.addEventListener('click', () => window.open(TOPOLOGY_5B_WORKBENCH_URL, '_blank', 'noopener,noreferrer'));
-  target.querySelector('[data-xml-cii-reload-5b-workbench]')?.addEventListener('click', () => {
-    const frame = target.querySelector('[data-xml-cii-5b-workbench-frame]');
-    if (frame) frame.src = TOPOLOGY_5B_WORKBENCH_URL;
-  });
   target.querySelector('[data-xml-cii-build-topology]')?.addEventListener('click', () => {
     const status = target.querySelector('[data-xml-cii-topology-status]');
     if (status) status.textContent = 'Starting Finalise/Run to build topology audit...';
