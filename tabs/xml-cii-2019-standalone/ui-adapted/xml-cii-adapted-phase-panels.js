@@ -117,7 +117,7 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   if (phaseId === 'json-trace') return renderJsonTracePanel(card, stateRef, render);
   if (phaseId === 'preview') return renderStandalonePreviewReportPanel(card, stateRef, render);
   if (phaseId === 'diagnostics') return renderStandaloneDiagnosticsReportPanel(card, state);
-  if (phaseId === 'matched-audit') return renderStandalonePropagationAuditPanel(card, state);
+  if (phaseId === 'matched-audit') return renderStandalonePropagationAuditPanel(card, state, render);
   if (phaseId === 'weight-match') return renderAdaptedWeightMatchPanel(card, stateRef, render);
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, stateRef, render);
   if (phaseId === 'config') return renderAdaptedConfigPanel(card, stateRef, render);

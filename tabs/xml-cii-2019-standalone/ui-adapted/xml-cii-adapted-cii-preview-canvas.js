@@ -63,6 +63,60 @@ export function drawAdaptedCiiPreviewCanvas(canvas, ciiText) {
   });
 }
 
+function _localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
+function _childText(parent, name) {
+  for (const child of parent?.childNodes || []) {
+    if (child.nodeType === 1 && _localName(child) === name) return text(child.textContent).trim();
+  }
+  return '';
+}
+function _point(raw) {
+  const parts = (text(raw).match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  return parts.length >= 3 && parts.slice(0, 3).every(Number.isFinite) ? { x: parts[0], y: parts[1], z: parts[2] } : null;
+}
+
+// Builds a renderer project (nodes / segments / supports) from the enriched
+// or source XML so the standalone canvas can show geometry like the parent
+// tab's "3DModelConv Geometry Preview".
+export function buildAdaptedGeometryProject(xmlText) {
+  if (!text(xmlText).trim() || typeof DOMParser === 'undefined') return null;
+  let doc;
+  try { doc = new DOMParser().parseFromString(xmlText, 'application/xml'); } catch { return null; }
+  if (doc.getElementsByTagName('parsererror').length) return null;
+  const nodes = [];
+  const segments = [];
+  const supports = [];
+  for (const branch of [...doc.getElementsByTagName('*')].filter((el) => _localName(el) === 'Branch')) {
+    let previous = null;
+    for (const node of [...branch.childNodes].filter((child) => child.nodeType === 1 && _localName(child) === 'Node')) {
+      const position = _point(_childText(node, 'Position'));
+      if (!position) continue;
+      nodes.push({ id: `${nodes.length}`, position });
+      const hasRestraint = [...node.childNodes].some((child) => child.nodeType === 1 && _localName(child) === 'Restraint');
+      if (hasRestraint) supports.push({ normalized: { supportCoord: position } });
+      if (previous) segments.push({ normalized: { ep1: previous, ep2: position } });
+      previous = position;
+    }
+  }
+  return segments.length || nodes.length ? { nodes, segments, supports } : null;
+}
+
+async function renderAdaptedGeometryPreview(host, meta, xmlText) {
+  const project = buildAdaptedGeometryProject(xmlText);
+  if (!project) {
+    meta.textContent = 'Geometry preview unavailable: no node positions parsed yet (load a source XML or run conversion).';
+    return;
+  }
+  try {
+    const { ModelConverters_3DModelConv_PreviewRenderer } = await import('../../../converters/view/model-conv-preview-renderer.js');
+    const renderer = new ModelConverters_3DModelConv_PreviewRenderer(host);
+    renderer._3DModelConv_renderProject(project);
+    meta.textContent = `Geometry preview: ${project.segments.length} segment(s), ${project.nodes.length} node(s), ${project.supports.length} support(s). Drag to orbit, scroll to zoom.`;
+  } catch (error) {
+    meta.textContent = `Geometry preview unavailable: ${text(error?.message || error)}`;
+  }
+}
+
 export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
   const ciiText = text(state?.result?.ciiText);
   const ciiRow = (Array.isArray(report?.artifactRows) ? report.artifactRows : []).find((row) => row.kind === 'cii');
@@ -78,6 +132,12 @@ export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
   download.disabled = !available;
   head.appendChild(download);
 
+  // Geometry preview (parity with the parent 3DModelConv Geometry Preview),
+  // built from the enriched XML when available, else the loaded source XML.
+  const geometryHost = createElement('div', '', 'xml-cii-adapted-geometry-host model-converters-preview-host');
+  if (geometryHost.style) Object.assign(geometryHost.style, { minHeight: '280px', height: '320px', marginBottom: '8px' });
+  const geometryMeta = createElement('div', 'Building geometry preview…', 'model-converters-preview-meta');
+
   const host = createElement('div', '', 'xml-cii-adapted-cii-preview-host model-converters-preview-host');
   const canvas = createElement('canvas');
   canvas.setAttribute('aria-label', 'CII output preview canvas');
@@ -86,7 +146,9 @@ export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
   const metaText = available
     ? `${ciiRow?.filename || state?.result?.ciiName || 'output.cii'} | ${stats.lines} lines | ${stats.bytes} bytes`
     : 'Run conversion to enable the .cii preview and download.';
-  card.append(head, host, createElement('div', metaText, 'xml-cii-adapted-cii-preview-meta model-converters-preview-meta'));
+  card.append(head, geometryHost, geometryMeta, host, createElement('div', metaText, 'xml-cii-adapted-cii-preview-meta model-converters-preview-meta'));
   parent.appendChild(card);
   drawAdaptedCiiPreviewCanvas(canvas, ciiText);
+  const geometryXml = text(state?.result?.enrichedText) || text(state?.sourceText);
+  renderAdaptedGeometryPreview(geometryHost, geometryMeta, geometryXml);
 }

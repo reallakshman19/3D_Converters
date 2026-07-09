@@ -158,8 +158,8 @@ function invalidateXmlCiiWeightCache() {
   try { localStorage.removeItem(WM_CACHE_KEY); } catch {}
 }
 
-function wmCacheFingerprint(fileSize, jsonLen, masterLen, overrides) {
-  return `${fileSize || 0}|j${jsonLen}|m${masterLen}|o${JSON.stringify(overrides?.rigidWeight || {})}`;
+function wmCacheFingerprint(fileSize, jsonLen, masterLen, overrides, splitOn) {
+  return `${fileSize || 0}|j${jsonLen}|m${masterLen}|s${splitOn ? 1 : 0}|o${JSON.stringify(overrides?.rigidWeight || {})}`;
 }
 
 function overrideValue(config, bucketName, keys) {
@@ -284,6 +284,24 @@ export function renderAdaptedWeightMatchPanel(card, stateOrRef, render) {
   `;
 
   bindAdaptedWeightMatchPanel(card, stateRef, render);
+}
+
+// Parity with the parent workflow: when the resolved valve/flange split is
+// ON, weight-match against the enriched (split-renumbered, DTXR/length-
+// annotated) XML so node numbers match what the run will emit.
+async function weightMatchSourceXml(xmlText, stagedJsonText, liveConfig, splitOn) {
+  if (!splitOn) return xmlText;
+  try {
+    const { enrichStandaloneXmlForRun } = await import('../xml-cii-standalone-run-parity.js');
+    const parity = await enrichStandaloneXmlForRun(
+      { sourceText: xmlText, stagedJsonText, supportConfigJson: JSON.stringify(liveConfig), options: { splitCondensedValveFlange: true } },
+      { dryRun: true, skipAutoWeightMatch: true }
+    );
+    if (parity.applied && parity.xmlText) return parity.xmlText;
+  } catch (parityError) {
+    console.warn('Weight match split parity skipped:', parityError);
+  }
+  return xmlText;
 }
 
 function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
@@ -428,7 +446,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
     const stagedJsonText = stateRef.current.stagedJsonText || '';
     const file = stateRef.current.sourceFile;
     if (!opts.force) {
-      const _fp = wmCacheFingerprint(file?.size || xmlText.length, stagedJsonText.length, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides);
+      const _fp = wmCacheFingerprint(file?.size || xmlText.length, stagedJsonText.length, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides, liveConfig?.splitCondensedValveFlange !== false);
       const _cached = readCache(WM_CACHE_KEY);
       if (_cached?.fp === _fp && Array.isArray(_cached?.data) && _cached.data.length) {
         localIssues = _cached.data.map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, liveConfig), liveConfig));
@@ -443,7 +461,9 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
 
     status('Computing weight matches...');
     try {
-      const { nodeRows } = xmlCiiDryRunPreview(xmlText, liveConfig, stagedJsonText);
+      const splitOn = liveConfig?.splitCondensedValveFlange !== false;
+      const matchXmlText = await weightMatchSourceXml(xmlText, stagedJsonText, liveConfig, splitOn);
+      const { nodeRows } = xmlCiiDryRunPreview(matchXmlText, liveConfig, stagedJsonText);
 
       localIssues = nodeRows.map((nr) => {
         const key = nr.key;
@@ -489,7 +509,7 @@ function bindAdaptedWeightMatchPanel(detailEl, stateRef, render) {
       drawRows(localIssues);
 
       const _cacheable = localIssues.map((row) => { const { ranking: _r, ...rest } = row; return rest; });
-      const _fpWrite = wmCacheFingerprint(file?.size || xmlText.length, stagedJsonText.length, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides);
+      const _fpWrite = wmCacheFingerprint(file?.size || xmlText.length, stagedJsonText.length, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides, splitOn);
       writeCache(WM_CACHE_KEY, _fpWrite, _cacheable);
     } catch (error) {
       localIssues = [];

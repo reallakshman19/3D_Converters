@@ -2,6 +2,7 @@ import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
 import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js';
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
 import { applyStandaloneSifFacts } from './xml-cii-standalone-sif-apply.js';
+import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js';
 
 function parseSupportConfig(raw) {
   try {
@@ -83,6 +84,14 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     const engineResult = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
     return mergeInputXmlEngineResult(finalEnrichedResult, engineResult, factedJob.options.outputMode);
   }
-  const result = await runXmlCii2019StandaloneEngineJob(factedJob, runtime);
-  return normalizeXmlEngineResult(result);
+  // Browser-side run parity (same enrichment the parent workflow performs):
+  // bakes preview process data, weight master matches, CMPSUPGAP restraint
+  // gaps, and split renumbering into the XML before the Python engine runs.
+  const parity = await enrichStandaloneXmlForRun(factedJob);
+  const engineJob = parity.applied ? { ...factedJob, sourceText: parity.xmlText } : factedJob;
+  const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
+  if (parity.applied && Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
+  const normalized = normalizeXmlEngineResult(result);
+  if (parity.applied && normalized.diagnostics) normalized.diagnostics.runParityStats = parity.stats;
+  return normalized;
 }

@@ -97,9 +97,14 @@ function ciiHasValue(ciiText, value) {
   return patterns.some((p) => p && ciiText.includes(p));
 }
 
+const SENTINEL_TEMPERATURE = -100000;
+
 function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailable) {
   const tabN = num(tabValue);
-  const enrN = num(enrichedValue);
+  let enrN = num(enrichedValue);
+  // -100000 is the converter's "no value" temperature sentinel — treat it as
+  // a missing value, not a real number.
+  if (enrN !== null && Math.abs(enrN - SENTINEL_TEMPERATURE) < 1e-6) enrN = null;
   if (tabN === null) return 'no-tab-value';
   if (enrichedAvailable) {
     if (enrN === null) return 'missing-in-enriched';
@@ -207,8 +212,20 @@ function summaryTile(label, value, color) {
   return `<div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;min-width:120px;"><div style="font-size:11px;color:#94a3b8;">${esc(label)}</div><div style="font-size:20px;font-weight:700;color:${color};">${esc(value)}</div></div>`;
 }
 
-export function renderStandalonePropagationAuditPanel(card, state) {
+export function renderStandalonePropagationAuditPanel(card, state, render) {
   const audit = buildXmlCiiPropagationAudit(state);
+
+  const runBar = createElement('div');
+  runBar.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:10px;';
+  const runBtn = createElement('button', '▶ Run Audit');
+  runBtn.type = 'button';
+  runBtn.style.cssText = 'background:#1e4ed8;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;';
+  runBtn.addEventListener('click', () => {
+    if (typeof render === 'function') render();
+    else { card.innerHTML = ''; renderStandalonePropagationAuditPanel(card, state, render); }
+  });
+  runBar.append(runBtn, createElement('span', `Audit generated ${audit.generatedAt}`, 'xml-cii-phase-help'));
+  card.appendChild(runBar);
 
   const intro = createElement('div', '', 'xml-cii-phase-help');
   intro.textContent = 'Data Propagation Auditor — traces every preview/weight value node-wise across tabs → enriched XML → CII and flags values that stopped propagating (e.g. valve weight or temperature lost between stages). Build the Preview and Weight Match tabs, run the conversion, then refresh this audit.';
