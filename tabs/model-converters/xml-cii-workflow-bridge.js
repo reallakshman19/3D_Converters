@@ -9,7 +9,7 @@
 import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260708-workflow-bridge-align-1';
 import { xmlCiiWorkflowRequestFinalRun } from './xml-cii-workflow-runner.js?v=20260624-workflow1-workflow2-1';
 import { renderXmlCiiTopology5BPanel } from './xml-cii-topology-5b-panel.js?v=20260709-native-5b-2';
-import { renderXmlCiiTopology5CPanel } from './xml-cii-topology-5c-panel.js?v=20260709-5c-ui-1';
+import { renderXmlCiiTopology5CPanel } from './xml-cii-topology-5c-panel.js?v=20260709-5c-ui-2';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };
@@ -158,11 +158,43 @@ function renderTopologyPhaseInto(target) {
 
 function readConfig(base) { return parseJson(base?.exportPopupConfigText?.() || '{}'); }
 function writeConfig(base, config) { base?.importPopupConfigText?.(JSON.stringify(config || {}, null, 2)); clearSnapshotCache(); }
+function looksLikeNodeXml(value) {
+  const raw = text(value);
+  return raw.length > 200 && /<Branch\b/i.test(raw) && /<Node\b/i.test(raw);
+}
+function extractNodeXmlCandidate(value, seen = new Set()) {
+  if (!value) return '';
+  if (typeof value === 'string') return looksLikeNodeXml(value) ? value : '';
+  if (typeof value !== 'object' || seen.has(value)) return '';
+  seen.add(value);
+  const preferredKeys = ['xmlText', 'sourceXml', 'sourceXML', 'sourceText', 'sourceFileText', 'inputXml', 'enrichedXmlText', 'enrichedXml'];
+  for (const key of preferredKeys) {
+    const found = extractNodeXmlCandidate(value[key], seen);
+    if (found) return found;
+  }
+  for (const item of Array.isArray(value) ? value : Object.values(value)) {
+    const found = extractNodeXmlCandidate(item, seen);
+    if (found) return found;
+  }
+  return '';
+}
+function sync5CSourceXml(base, root) {
+  try {
+    const snapshot = cachedSnapshot(base, root);
+    const xmlText = extractNodeXmlCandidate(snapshot);
+    if (xmlText) {
+      window.localStorage?.setItem('xmlCii2019.5c.sourceXml.v1', xmlText);
+      return xmlText;
+    }
+  } catch {}
+  return '';
+}
 
 function renderXmlToInputXmlPhaseInto(target, base) {
   const root = target.closest?.('[data-xml-cii-workflow-root]') || target.closest?.('.model-converters-root') || document;
   const supportConfigJson = base?.exportPopupConfigText?.() || '{}';
-  renderXmlCiiTopology5CPanel(target, { root, supportConfigJson });
+  const workflowXmlText = sync5CSourceXml(base, root);
+  renderXmlCiiTopology5CPanel(target, { root, supportConfigJson, workflowXmlText });
 }
 
 function mergeConfigText(editedText, bools = {}) {
