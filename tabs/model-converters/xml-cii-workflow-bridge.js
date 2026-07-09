@@ -10,6 +10,7 @@ import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260708-workflow-br
 import { xmlCiiWorkflowRequestFinalRun } from './xml-cii-workflow-runner.js?v=20260624-workflow1-workflow2-1';
 import { renderXmlCiiTopology5BPanel } from './xml-cii-topology-5b-panel.js?v=20260709-native-5b-2';
 import { renderXmlCiiTopology5CPanel } from './xml-cii-topology-5c-panel.js?v=20260709-5c-ui-2';
+import './xml-cii-5c-download-inputxml-patch.js?v=20260709-5c-download-1';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };
@@ -275,6 +276,6 @@ installJsonTraceBuildPatch();
 export function xmlCiiWorkflowGetBridge() { return workflowBridge(); }
 export function xmlCiiWorkflowGetSnapshot(root) { return xmlCiiWorkflowGetBridge()?.getPopupSnapshot?.(root) || null; }
 export function xmlCiiWorkflowSetConfigValue(path, value, valueType = 'text') { return xmlCiiWorkflowGetBridge()?.setPopupConfigValue?.(path, value, valueType); }
-export function xmlCiiWorkflowSetMasterField(masterKey, fieldKey, value) { return xmlCiiWorkflowGetBridge()?.setPopupMasterField?.(masterKey, fieldKey, value); }
+export function xmlCiiWorkflowSetMasterField(masterKey, fieldKey, value) { return xmlCiiWorkflowGetBridge()?.setPopupMasterField?.(masterKey)?.(masterKey, fieldKey, value) || xmlCiiWorkflowGetBridge()?.setPopupMasterField?.(masterKey, fieldKey, value); }
 export function xmlCiiWorkflowInvalidateSnapshot() { clearSnapshotCache(); }
 export function xmlCiiWorkflowClosePopup() { return xmlCiiWorkflowGetBridge()?.closePopup?.(); }
