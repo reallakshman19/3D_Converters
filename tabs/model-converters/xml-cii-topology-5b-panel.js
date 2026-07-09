@@ -308,6 +308,7 @@ function ensureState(target, options = {}) {
   if (state.showComponentLabels == null) state.showComponentLabels = false;
   if (state.showEdges == null) state.showEdges = true;
   if (state.fitMode == null) state.fitMode = 'route';
+  if (state.navMode == null) state.navMode = 'pan';
   return state;
 }
 function sourceForState(root, state) {
@@ -469,34 +470,48 @@ function drawGraph(canvas, model, state) {
   });
 
   ctx.fillStyle = 'rgba(2,6,23,.76)';
-  ctx.fillRect(12, height - 32, 560, 22);
+  ctx.fillRect(12, height - 32, 610, 22);
   ctx.fillStyle = '#cbd5e1';
   ctx.font = '11px system-ui';
-  ctx.fillText(`Wheel = zoom · drag = pan · Shift-drag / middle-drag = orbit/rotate · fit=${state.fitMode || 'route'}`, 20, height - 17);
+  ctx.fillText(`Wheel = zoom · drag = ${state.navMode || 'pan'} · Shift/middle-drag = orbit · fit=${state.fitMode || 'route'}`, 20, height - 17);
 }
 function resetView(state, fitMode = 'route') {
   state.fitMode = fitMode;
   state.view = { zoom: 1, panX: 0, panY: 0, yaw: -0.18, pitch: 0.08, dragging: false, mode: 'pan', x: 0, y: 0 };
 }
+function setViewPreset(state, preset) {
+  const presets = {
+    iso: { yaw: -0.65, pitch: 0.55 },
+    top: { yaw: 0, pitch: 1.2 },
+    front: { yaw: 0, pitch: 0 },
+    right: { yaw: Math.PI / 2, pitch: 0 },
+  };
+  const view = presets[preset] || presets.iso;
+  state.view = { ...state.view, ...view, panX: 0, panY: 0, dragging: false };
+}
+function zoomView(state, factor) {
+  state.view.zoom = Math.max(0.05, Math.min(80, state.view.zoom * factor));
+}
 function bindCanvas(canvas, model, state) {
   if (state.resizeObserver) {
     try { state.resizeObserver.disconnect(); } catch {}
   }
+  if (state.canvasMouseMove) window.removeEventListener('mousemove', state.canvasMouseMove);
+  if (state.canvasMouseUp) window.removeEventListener('mouseup', state.canvasMouseUp);
   const redraw = () => drawGraph(canvas, model, state);
-  canvas.addEventListener('wheel', (event) => {
+  canvas.onwheel = (event) => {
     event.preventDefault();
-    const factor = event.deltaY < 0 ? 1.12 : 0.89;
-    state.view.zoom = Math.max(0.05, Math.min(80, state.view.zoom * factor));
+    zoomView(state, event.deltaY < 0 ? 1.12 : 0.89);
     redraw();
-  }, { passive: false });
-  canvas.addEventListener('mousedown', (event) => {
+  };
+  canvas.onmousedown = (event) => {
     state.view.dragging = true;
-    state.view.mode = event.shiftKey || event.button === 1 ? 'orbit' : 'pan';
+    state.view.mode = event.shiftKey || event.button === 1 ? 'orbit' : state.navMode || 'pan';
     state.view.x = event.clientX;
     state.view.y = event.clientY;
     canvas.style.cursor = state.view.mode === 'orbit' ? 'crosshair' : 'grabbing';
-  });
-  window.addEventListener('mousemove', (event) => {
+  };
+  state.canvasMouseMove = (event) => {
     if (!state.view.dragging) return;
     const dx = event.clientX - state.view.x;
     const dy = event.clientY - state.view.y;
@@ -510,15 +525,18 @@ function bindCanvas(canvas, model, state) {
       state.view.panY += dy;
     }
     redraw();
-  });
-  window.addEventListener('mouseup', () => {
+  };
+  state.canvasMouseUp = () => {
     state.view.dragging = false;
-    canvas.style.cursor = 'grab';
-  });
+    canvas.style.cursor = state.navMode === 'orbit' ? 'crosshair' : 'grab';
+  };
+  window.addEventListener('mousemove', state.canvasMouseMove);
+  window.addEventListener('mouseup', state.canvasMouseUp);
   if (typeof ResizeObserver !== 'undefined') {
     state.resizeObserver = new ResizeObserver(redraw);
     state.resizeObserver.observe(canvas);
   }
+  canvas.style.cursor = state.navMode === 'orbit' ? 'crosshair' : 'grab';
   redraw();
 }
 function sourcePickerHtml(state, source, message = '') {
@@ -572,6 +590,14 @@ function bindPanelControls(target, model, state) {
   target.querySelector('[data-xml-cii-5b-show-nodes]')?.addEventListener('change', (event) => { state.showNodeLabels = !!event.target.checked; redraw(); });
   target.querySelector('[data-xml-cii-5b-show-components]')?.addEventListener('change', (event) => { state.showComponentLabels = !!event.target.checked; redraw(); });
   target.querySelector('[data-xml-cii-5b-show-edges]')?.addEventListener('change', (event) => { state.showEdges = !!event.target.checked; redraw(); });
+  target.querySelector('[data-xml-cii-5b-nav-pan]')?.addEventListener('click', () => { state.navMode = 'pan'; if (canvas) canvas.style.cursor = 'grab'; redraw(); });
+  target.querySelector('[data-xml-cii-5b-nav-orbit]')?.addEventListener('click', () => { state.navMode = 'orbit'; if (canvas) canvas.style.cursor = 'crosshair'; redraw(); });
+  target.querySelector('[data-xml-cii-5b-zoom-in]')?.addEventListener('click', () => { zoomView(state, 1.2); redraw(); });
+  target.querySelector('[data-xml-cii-5b-zoom-out]')?.addEventListener('click', () => { zoomView(state, 1 / 1.2); redraw(); });
+  target.querySelector('[data-xml-cii-5b-view-iso]')?.addEventListener('click', () => { setViewPreset(state, 'iso'); redraw(); });
+  target.querySelector('[data-xml-cii-5b-view-top]')?.addEventListener('click', () => { setViewPreset(state, 'top'); redraw(); });
+  target.querySelector('[data-xml-cii-5b-view-front]')?.addEventListener('click', () => { setViewPreset(state, 'front'); redraw(); });
+  target.querySelector('[data-xml-cii-5b-view-right]')?.addEventListener('click', () => { setViewPreset(state, 'right'); redraw(); });
   target.querySelector('[data-xml-cii-5b-fit-route]')?.addEventListener('click', () => {
     resetView(state, 'route');
     redraw();
@@ -636,6 +662,14 @@ export function renderXmlCiiTopology5BPanel(target, options = {}) {
           <label class="model-converters-workflow-detail-note"><input data-xml-cii-5b-show-nodes type="checkbox" ${state.showNodeLabels ? 'checked' : ''}> node label</label>
           <label class="model-converters-workflow-detail-note"><input data-xml-cii-5b-show-components type="checkbox" ${state.showComponentLabels ? 'checked' : ''}> component helper labels</label>
           <label class="model-converters-workflow-detail-note"><input data-xml-cii-5b-show-edges type="checkbox" ${state.showEdges ? 'checked' : ''}> topology edges</label>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-nav-pan>Pan</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-nav-orbit>Orbit</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-zoom-in>Zoom +</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-zoom-out>Zoom -</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-view-iso>Iso</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-view-top>Top</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-view-front>Front</button>
+          <button type="button" class="model-converters-download-btn" data-xml-cii-5b-view-right>Right</button>
           <button type="button" class="model-converters-download-btn" data-xml-cii-5b-fit-route>Fit route</button>
           <button type="button" class="model-converters-download-btn" data-xml-cii-5b-fit-all>Fit all</button>
           <button type="button" class="model-converters-download-btn" data-xml-cii-5b-reset-view>Reset view</button>
