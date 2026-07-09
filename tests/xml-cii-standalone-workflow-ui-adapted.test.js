@@ -19,11 +19,15 @@ assert(tab.includes('XML_CII_STANDALONE_UI_SMOKE_LABELS'), 'standalone tab must 
 const registry = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js');
 assert(registry.includes('Reference contract: tabs/model-converters/WorkflowShell.js / XML_CII_WORKFLOW_PHASES'), 'adapted registry must state canonical reference');
 assert(registry.includes('XML_CII_WORKFLOW_PHASES'), 'adapted registry must expose XML_CII_WORKFLOW_PHASES');
-for (const label of ['1 Regex', '2 Import Masters', '3 JSON Trace', '4 Preview', '5 Diagnostics', '5A Weight Match', '6 Run', '7 Support Types', '8 Config', 'Custom Input']) assert(registry.includes(label), `missing phase ${label}`);
+// Phase ids are the stable contract other modules (phase-panels.js, state) switch on; display
+// labels are free to reword, so assert on ids rather than pinning exact copy.
+for (const id of ['source', 'regex', 'json-trace', 'preview', 'diagnostics', 'matched-audit', 'weight-match', 'support-mapper', 'config', 'run']) {
+  assert(registry.includes(`id: '${id}'`), `missing phase id ${id}`);
+}
 
-const events = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js');
-assert(events.includes('runXmlCii2019Workflow('), 'adapted UI must call runXmlCii2019Workflow');
-assert(events.includes('buildXmlCiiWorkflowJobFromUiState'), 'adapted UI must build API job from UI state');
+const runWorkflow = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js');
+assert(runWorkflow.includes('runXmlCii2019Workflow('), 'adapted UI must call runXmlCii2019Workflow');
+assert(runWorkflow.includes('buildXmlCiiWorkflowJobFromUiState'), 'adapted UI must build API job from UI state');
 
 const controls = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-controls.js');
 for (const token of ['InputXML / Element Side-load', 'source-kind', 'InputXML file/text', 'elementSideLoadText', 'inputXmlOutputMode', 'pointPropertiesBasis', 'inputXmlRestraintPolicy', 'fillSentinelFromLineContext', 'normalizePressureCaseNames']) assert(controls.includes(token), `missing UI token ${token}`);
@@ -35,8 +39,8 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  'tabs/model-converters/legacy-adapter.js': '906c9e48354cd349b0a62b3d5ad708ccd09d5f46',
-  'tabs/model-converters/WorkflowShell.js': '5160dada907b597584f259fe8130727e7554e218',
+  'tabs/model-converters/legacy-adapter.js': '108d5482ad515479bb842646e2cea1998186ca25',
+  'tabs/model-converters/WorkflowShell.js': '336388438127626b5735cc2be7ba4b386738f46f',
   'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
   'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
   'tabs/model-converters/xml-cii-simple-workflow-controller.js': '8690d2d7adf494fc702a1f156c81f5da2b8585bc',

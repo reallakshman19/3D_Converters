@@ -25,6 +25,8 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-cii-preview-canvas.js',
+    'converters/xml-cii2019-core/regex-line-key.js',
   ];
 }
 
@@ -44,11 +46,14 @@ class TestElement {
     this.attributes = {};
     this.value = '';
     this.disabled = false;
+    this.style = {};
     this._text = '';
   }
   appendChild(child) { this.children.push(child); return child; }
   append(...items) { for (const item of items) this.children.push(item); }
   setAttribute(name, value) { this.attributes[name] = String(value); }
+  addEventListener() {}
+  removeEventListener() {}
   get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
   set textContent(value) { this._text = String(value ?? ''); }
 }
@@ -107,14 +112,15 @@ function readyXmlState() {
     assert(card.textContent.includes(label), `Output / Run panel missing ${label}`);
   }
   assert(card.textContent.includes('Refresh readiness / checklist'), 'refresh action expected');
-  assert(card.textContent.includes('Run standalone workflow'), 'run action expected');
+  assert(card.textContent.includes('Finalise and Run Conversion'), 'run action expected');
   assert(card.textContent.includes('Download Enriched XML/InputXML'), 'download buttons expected');
 
   const coreSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js'), 'utf8');
   for (const token of ['document', 'querySelector', 'createElement', 'window']) assert(!coreSource.includes(token), `output readiness helper must remain DOM-free: ${token}`);
   const eventsSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js'), 'utf8');
-  assert(eventsSource.includes('runXmlCii2019Workflow(await buildXmlCiiWorkflowJobFromUiState'), 'final run must use public workflow API boundary');
   assert(eventsSource.includes('buildStandaloneOutputRunReadiness'), 'events must call readiness helper');
+  const runWorkflowSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js'), 'utf8');
+  assert(runWorkflowSource.includes('runXmlCii2019Workflow(await buildXmlCiiWorkflowJobFromUiState'), 'final run must use public workflow API boundary');
   const workflowSource = fs.readFileSync(path.join(root, '.github/workflows/xml-cii-standalone-mission01.yml'), 'utf8');
   assert(workflowSource.includes('xml-cii-standalone-output-run.test.js'), 'mission workflow must run output run checks');
 

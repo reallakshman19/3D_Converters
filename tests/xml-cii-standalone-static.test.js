@@ -14,11 +14,15 @@ const tab = read('tabs/xml-cii-2019-standalone-tab.js');
 if (!tab.includes('renderXmlCiiAdaptedWorkflowShell')) fail('Standalone tab must render the adapted workflow shell.');
 
 const adaptedRegistry = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js');
-for (const label of ['1 Regex', '2 Import Masters', '3 JSON Trace', '4 Preview', '5 Diagnostics', '5A Weight Match', '6 Run', '7 Support Types', '8 Config', 'Custom Input']) if (!adaptedRegistry.includes(label)) fail('Adapted phase registry missing label ' + label);
+// Phase ids are the stable contract other modules (phase-panels.js, state) switch on; display
+// labels are free to reword, so assert on ids rather than pinning exact copy.
+for (const id of ['source', 'regex', 'json-trace', 'preview', 'diagnostics', 'matched-audit', 'weight-match', 'support-mapper', 'config', 'run']) {
+  if (!adaptedRegistry.includes(`id: '${id}'`)) fail('Adapted phase registry missing phase id ' + id);
+}
 if (!adaptedRegistry.includes('XML_CII_WORKFLOW_PHASES')) fail('Adapted phase registry must expose XML_CII_WORKFLOW_PHASES.');
 
-const adaptedEvents = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js');
-if (!adaptedEvents.includes('runXmlCii2019Workflow(')) fail('Adapted standalone workflow events must call the public workflow API.');
+const adaptedRunWorkflow = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js');
+if (!adaptedRunWorkflow.includes('runXmlCii2019Workflow(')) fail('Adapted standalone workflow run must call the public workflow API.');
 
 const adaptedControls = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-controls.js');
 for (const token of ['Source type', 'Element-based InputXML', 'elementSideLoadText', 'inputXmlOutputMode', 'pointPropertiesBasis', 'inputXmlRestraintPolicy', 'fillSentinelFromLineContext', 'normalizePressureCaseNames']) if (!adaptedControls.includes(token)) fail('Adapted workflow controls missing token ' + token);

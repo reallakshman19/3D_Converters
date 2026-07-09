@@ -25,6 +25,9 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+    'converters/xml-cii2019-core/support-mapping-config.js',
+    'support/SupportKindResolver.js',
+    'tabs/model-converters/converters/xmltocii2019_helper/support-mapping-table.js',
   ];
 }
 
@@ -35,25 +38,8 @@ function prepareEsmFixture() {
   return tempRoot;
 }
 
-class TestElement {
-  constructor(tag) {
-    this.tagName = tag;
-    this.children = [];
-    this.dataset = {};
-    this.className = '';
-    this.attributes = {};
-    this.value = '';
-    this.type = '';
-    this._text = '';
-  }
-  appendChild(child) { this.children.push(child); return child; }
-  append(...items) { for (const item of items) this.children.push(item); }
-  setAttribute(name, value) { this.attributes[name] = String(value); }
-  get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
-  set textContent(value) { this._text = String(value ?? ''); }
-}
-
-globalThis.document = { createElement: (tag) => new TestElement(tag) };
+const { installMiniDom, MiniElement: TestElement } = require('./helpers/mini-dom.js');
+installMiniDom();
 
 function hasPreview(result, status, kind) {
   return result.previewRows.some((row) => row.status === status && (!kind || row.supportKind.includes(kind)));
@@ -102,6 +88,10 @@ function hasPreview(result, status, kind) {
   }
   assert(card.textContent.includes('Test support mapper'), 'test action expected');
   assert(card.textContent.includes('Save to Config'), 'save action expected');
+  assert(card.querySelector('[data-field="support-mapper-aliases-REST"]'), 'REST alias field must be wired for events.js data-field selectors');
+  assert(card.querySelector('[data-field="support-mapper-test-input"]'), 'test input field must be wired for events.js data-field selectors');
+  assert(card.querySelector('[data-action="build-support-mapper"]'), 'build action must be wired for events.js data-action selectors');
+  assert(card.querySelector('[data-action="save-support-mapper"]'), 'save action must be wired for events.js data-action selectors');
 
   const coreSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js'), 'utf8');
   for (const token of ['document', 'querySelector', 'createElement', 'window']) assert(!coreSource.includes(token), `core helper must remain DOM-free: ${token}`);

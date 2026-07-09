@@ -25,7 +25,10 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
     'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-rating.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-results.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
@@ -48,16 +51,77 @@ class TestElement {
     this.attributes = {};
     this.type = '';
     this.value = '';
+    this.style = {};
+    this._classSet = new Set();
+    this.classList = {
+      toggle: (name, force) => {
+        const has = this._classSet.has(name);
+        const next = force === undefined ? !has : !!force;
+        if (next) this._classSet.add(name); else this._classSet.delete(name);
+        this.className = Array.from(this._classSet).join(' ');
+        return next;
+      },
+      add: (...names) => { for (const name of names) this._classSet.add(name); this.className = Array.from(this._classSet).join(' '); },
+      remove: (...names) => { for (const name of names) this._classSet.delete(name); this.className = Array.from(this._classSet).join(' '); },
+      contains: (name) => this._classSet.has(name),
+    };
     this._text = '';
   }
   appendChild(child) { this.children.push(child); return child; }
   append(...items) { for (const item of items) this.children.push(item); }
   setAttribute(name, value) { this.attributes[name] = String(value); }
+  addEventListener() {}
+  removeEventListener() {}
   get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
   set textContent(value) { this._text = String(value ?? ''); }
 }
 
 globalThis.document = { createElement: (tag) => new TestElement(tag) };
+
+class SimpleXmlElement {
+  constructor(name) { this.nodeName = name; this.localName = name; this.attributes = new Map(); this.children = []; this.parentNode = null; this._textContent = ''; }
+  getAttribute(name) { return this.attributes.has(name) ? this.attributes.get(name) : null; }
+  setAttribute(name, value) { this.attributes.set(name, String(value)); }
+  hasAttribute(name) { return this.attributes.has(name); }
+  appendChild(child) { child.parentNode = this; this.children.push(child); return child; }
+  get textContent() { return this.children.length ? this.children.map((child) => child.textContent).join('') : this._textContent; }
+  set textContent(value) { this.children = []; this._textContent = String(value ?? ''); }
+}
+class SimpleXmlDocument {
+  constructor(rootElement) { this.documentElement = rootElement; }
+  querySelector() { return null; }
+  querySelectorAll(selector) {
+    const out = [];
+    const visit = (node) => { out.push(node); for (const child of node.children || []) visit(child); };
+    if (selector === '*' && this.documentElement) visit(this.documentElement);
+    return out;
+  }
+}
+function decodeXmlEntities(value) { return String(value).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'); }
+function parseXmlAttrs(attrText, element) { String(attrText || '').replace(/([A-Za-z_][\w:.-]*)\s*=\s*"([^"]*)"/g, (_, key, value) => { element.setAttribute(key, decodeXmlEntities(value)); return ''; }); }
+function parseXmlText(xmlText) {
+  const stack = [];
+  let rootElement = null;
+  for (const token of String(xmlText).replace(/^\s*<\?xml[^>]*>\s*/i, '').match(/<[^>]+>|[^<]+/g) || []) {
+    if (!token.trim() || token.startsWith('<?') || token.startsWith('<!--')) continue;
+    if (token.startsWith('</')) { stack.pop(); continue; }
+    if (token.startsWith('<')) {
+      const selfClosing = /\/\s*>$/.test(token);
+      const body = token.slice(1, selfClosing ? -2 : -1).trim();
+      const name = body.match(/^([^\s/>]+)/)?.[1];
+      if (!name) continue;
+      const el = new SimpleXmlElement(name);
+      parseXmlAttrs(body.slice(name.length), el);
+      if (!rootElement) rootElement = el;
+      if (stack.length) stack[stack.length - 1].appendChild(el);
+      if (!selfClosing) stack.push(el);
+    } else if (stack.length) {
+      stack[stack.length - 1]._textContent += decodeXmlEntities(token);
+    }
+  }
+  return new SimpleXmlDocument(rootElement);
+}
+globalThis.DOMParser = class { parseFromString(text) { return parseXmlText(text); } };
 
 function xmlFixture() {
   return `<?xml version="1.0"?>
@@ -109,12 +173,16 @@ function testerConfig() {
   assert(withResult.regexTesterWriteBackStatus.includes('saved'), 'state write-back status must be visible');
 
   const card = new TestElement('section');
-  ui.renderStandaloneRegexTesterPanel(card, { ...withResult, sourceKind: 'xml' });
-  for (const label of ['Branch Samples', 'Line Key Extraction', 'Piping Class / Rating / Bore', 'Regex Rules', 'Rejected Samples']) {
+  ui.renderStandaloneRegexTesterPanel(card, { ...withResult, sourceKind: 'xml', regexActiveTabId: 'samples' });
+  for (const label of ['Workbench Actions', 'Line key extraction', 'Piping class extraction', 'Rating extraction', 'Bore / size extraction', 'Samples (', 'Matched (', 'Rejected (', 'Diagnostics']) {
     assert(card.textContent.includes(label), `Regex Tester panel missing ${label}`);
   }
-  assert(card.textContent.includes('Test extraction'), 'Regex Tester panel must expose test action');
-  assert(card.textContent.includes('Save to config'), 'Regex Tester panel must expose save action');
+  assert(card.textContent.includes('Run Extraction'), 'Regex Tester panel must expose test action');
+  assert(card.textContent.includes('Save Config'), 'Regex Tester panel must expose save action');
+
+  const rejectedCard = new TestElement('section');
+  ui.renderStandaloneRegexTesterPanel(rejectedCard, { ...withResult, sourceKind: 'xml', regexActiveTabId: 'rejected' });
+  assert(rejectedCard.textContent.includes('Branchname'), 'rejected sub-tab must render the rejected-rows table');
 
   const inputXmlCard = new TestElement('section');
   ui.renderStandaloneRegexTesterPanel(inputXmlCard, { ...withResult, sourceKind: 'inputxml' });

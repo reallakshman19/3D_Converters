@@ -103,10 +103,19 @@ function inputXmlFixture() {
   assert(withResult.supportConfigJson.includes('manualElementSideload'), 'state write-back must include side-load config');
   assert(withResult.manualElementSideloadWriteBackStatus.includes('saved'), 'write-back status must be visible');
 
-  const card = new TestElement('section');
-  ui.renderStandaloneManualElementSideloadPanel(card, { ...withResult, elementSideLoadText: '10|20|PS-10|100,200,300|14|GUIDE' });
-  for (const label of ['XML Manual Restraints', 'Policy / Tolerance', 'Matched Restraints', 'Rejected Restraints', 'Save to Run Options', 'InputXML Element Side-load', 'FROM_NODE → TO_NODE Match Table', 'Inherited Fields', 'Derived Restraints TYPE 14 / 9 / 8', 'Unmatched Side-load Rows', 'Diagnostics']) {
-    assert(card.textContent.includes(label), `Manual / Element Side-load panel missing ${label}`);
+  // XML manual restraints and InputXML element side-load are separate sub-tab panels (wired to
+  // the 'manualOverrides' / 'elementSideload' sub-tabs in xml-cii-adapted-phase-panels.js), so
+  // exercise both renderers rather than expecting one call to produce both sets of sections.
+  const manualCard = new TestElement('section');
+  ui.renderStandaloneManualElementSideloadPanel(manualCard, { ...withResult, elementSideLoadText: '10|20|PS-10|100,200,300|14|GUIDE' });
+  for (const label of ['XML Manual Restraints', 'Policy / Tolerance', 'Matched Restraints', 'Rejected Restraints', 'Save to Run Options']) {
+    assert(manualCard.textContent.includes(label), `Manual Element Side-load (XML) panel missing ${label}`);
+  }
+
+  const sideloadCard = new TestElement('section');
+  ui.renderStandaloneInputXmlElementSideloadPanel(sideloadCard, { ...withResult, elementSideLoadText: '10|20|PS-10|100,200,300|14|GUIDE' });
+  for (const label of ['InputXML Element Side-load', 'FROM_NODE → TO_NODE Match Table', 'Inherited Fields', 'Derived Restraints TYPE 14 / 9 / 8', 'Unmatched Side-load Rows', 'Diagnostics']) {
+    assert(sideloadCard.textContent.includes(label), `Manual Element Side-load (InputXML) panel missing ${label}`);
   }
 
   const apiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js'), 'utf8');

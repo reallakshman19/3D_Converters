@@ -55,6 +55,15 @@ function enrichSupportConfigJson(state) {
   return JSON.stringify(config, null, 2);
 }
 
+function parseJsonOrDefault(text, fallback) {
+  try {
+    const value = JSON.parse(String(text ?? ''));
+    return value && typeof value === 'object' ? value : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function buildXmlCiiWorkflowJobFromUiState(state) {
   const [sourceFileText, stagedJsonText] = await Promise.all([
     readTextFile(state.sourceFile),
@@ -69,6 +78,13 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
     elementSideLoadText: state.elementSideLoadText || null,
     supportConfigJson: enrichSupportConfigJson(state),
     options: workflowOptionsFromState(state),
+    // Serialize the effective run state as first-class job inputs so the final run consumes
+    // the same facts the preview tabs showed, instead of only raw config/text.
+    previewFacts: state.previewDiagnosticsAuditReport?.matchedFacts || [],
+    manualFacts: state.manualElementSideloadResult?.matchedFacts || [],
+    weightOverrides: parseJsonOrDefault(state.weightMatchOverridesJson, {}),
+    supportMapperRules: state.supportTypeMapperResult?.finalRules || state.supportTypeMapperConfig || [],
+    sifFacts: state.previewDiagnosticsAuditReport?.sifFacts || state.resolverJsonTraceResult?.sifFacts || [],
   };
 }
 
@@ -81,12 +97,12 @@ export function workflowOptionsFromState(state) {
   return {
     coordsMode: state.options?.coordsMode || 'first',
     kgToNewton: state.options?.kgToNewton !== false,
-    splitCondensedValveFlange: state.options?.splitCondensedValveFlange ?? null,
+    splitCondensedValveFlange: state.options?.splitCondensedValveFlange !== false,
     useRestraintTypeBasedOnJson: state.options?.useRestraintTypeBasedOnJson !== false,
-    outputMode: state.options?.outputMode || 'enriched-only',
+    outputMode: state.options?.outputMode || 'both',
     inputXmlOutputMode: state.options?.inputXmlOutputMode || 'full-document',
     pointPropertiesBasis: state.options?.pointPropertiesBasis || 'auto',
-    inputXmlRestraintPolicy: state.options?.inputXmlRestraintPolicy || 'preserve-existing-restraints',
+    inputXmlRestraintPolicy: state.options?.inputXmlRestraintPolicy || 'merge-existing-and-dtxr-derived-restraints',
     fillSentinelFromLineContext: state.options?.fillSentinelFromLineContext !== false,
     normalizePressureCaseNames: state.options?.normalizePressureCaseNames !== false,
     escapeXmlAttributes: state.options?.escapeXmlAttributes !== false,

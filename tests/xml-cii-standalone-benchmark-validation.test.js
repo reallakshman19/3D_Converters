@@ -37,6 +37,7 @@ function requiredEsmFiles() {
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
     'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
   ];
 }
 

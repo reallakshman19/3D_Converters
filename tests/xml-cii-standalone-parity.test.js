@@ -94,6 +94,7 @@ function copyEsmFiles(tempRoot) {
     'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
     'tabs/xml-cii-2019-standalone/xml-cii-parity-report.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
   ];
   for (const relPath of files) {
     const target = path.join(tempRoot, relPath);

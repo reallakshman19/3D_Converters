@@ -275,7 +275,7 @@ export function enrichInputXmlDocument(job) {
     counters.inherited += fill.inherited;
     counters.sentinel += fill.sentinel;
     if (row) { counters.matched.add(key); counters.enriched += 1; }
-    applyRestraintPolicy(doc, element, row, config, options.inputXmlRestraintPolicy || 'preserve-existing-restraints');
+    applyRestraintPolicy(doc, element, row, config, options.inputXmlRestraintPolicy || 'merge-existing-and-dtxr-derived-restraints');
   }
   const unmatched = Array.from(sideLoad.keys()).filter((key) => !counters.matched.has(key));
   return createResult({ ...job, options }, doc, elements, counters, unmatched);

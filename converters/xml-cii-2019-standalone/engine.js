@@ -1,5 +1,6 @@
 import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.mjs';
 import { buildStandaloneCiiInvocation, outputStem } from './invocation-builder.js';
+import { applyStandaloneSifFacts } from '../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
 
 const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/';
 const SCRIPT_FILE_NAMES = Object.freeze([
@@ -135,14 +136,20 @@ export async function runXmlCii2019StandaloneEngine(job) {
     if (outputMode !== 'cii-only') {
       if (sourceKind === 'xml') {
         const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
-        enrichedText = enriched.enrichedText;
+        // Note: sifFacts are applied to the enriched *output* text only. CII generation for the
+        // xml source kind re-derives its own enrichment inside xml_to_cii2019_direction.py from
+        // the raw input file, so this does not yet feed the CII conversion step for this branch.
+        const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
+        enrichedText = sif.text;
         enrichedName = enriched.enrichedName;
-        postprocess.push({ branch: 'psi116-enriched-xml', outputName: enrichedName });
+        postprocess.push({ branch: 'psi116-enriched-xml', outputName: enrichedName, sifDiagnostics: sif.diagnostics });
       } else {
+        // sourceText already reflects enrichInputXmlDocument() output when called through the
+        // standalone workflow service — this branch just carries that enriched text through.
         enrichedText = normalizedJob.sourceText;
         enrichedName = enrichedNameFor(normalizedJob);
-        stdout.push(`Preserved InputXML as ${enrichedName}; Phase 1 full InputXML enrichment is not yet applied.`);
-        postprocess.push({ branch: 'inputxml-preserve-family', outputName: enrichedName });
+        stdout.push(`Wrote ${enrichedName} from the enriched InputXML source.`);
+        postprocess.push({ branch: 'inputxml-enriched-passthrough', outputName: enrichedName });
       }
     }
     if (outputMode === 'cii-only' || outputMode === 'both') {
@@ -151,7 +158,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
       ciiName = cii.ciiName;
       postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv });
     }
-    const warnings = sourceKind === 'inputxml' ? ['InputXML branch preserves the InputXML document family. Full InputXML enrichment is deferred to the later parity phase.'] : [];
+    const warnings = [];
     return { ok: true, sourceKind, outputKind: outputKindFor(sourceKind), enrichedText, enrichedName, ciiText, ciiName, diagnostics: diagnostics(normalizedJob, { postprocess, warnings }), logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)], error: null };
   } catch (error) {
     return errorResult(normalizedJob, error, [...logs(stdout), ...logs(stderr)]);
