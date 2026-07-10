@@ -1,6 +1,7 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
 import { buildAdaptedJsonTraceTree } from './xml-cii-adapted-regex-results.js';
+import { renderStandaloneTraceTableImportPanel } from './xml-cii-adapted-table-trace-panel.js';
 
 function text(value, fallback = '') {
   const out = String(value ?? '').trim();
@@ -403,6 +404,7 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
       supportConfigJson: state.supportConfigJson
     });
     stateRef.current.resolverJsonTraceResult = result;
+    stateRef.current.resolverJsonTraceJsonResult = result;
   }
   
   const container = createElement('div', '', 'xml-cii-sub-tabs-layout');
@@ -412,6 +414,7 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   
   const subTabs = [
     { id: 'index', label: '⚙️ Config & Index' },
+    { id: 'tableImport', label: 'CSV/XLS Trace' },
     { id: 'tree', label: '🌿 Evidence Tree' },
     { id: 'nodeTrace', label: '📋 XML Node Wise Trace' },
     { id: 'matched', label: '✅ Matched Facts' },
@@ -419,6 +422,7 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   ];
   
   const subTabHasData = {
+    tableImport: rows(state.jsonTraceTableRows).length > 0 || !!state.resolverJsonTraceTableResult,
     tree: rows(result?.matchedFacts).length > 0,
     nodeTrace: rows(result?.nodes).length > 0 && rows(result?.resolvedFacts).length > 0,
     matched: rows(result?.matchedFacts).length > 0,
@@ -444,6 +448,8 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   if (subTabId === 'index') {
     renderResolverIndex(workspace, state);
     renderJsonConfig(workspace, state);
+  } else if (subTabId === 'tableImport') {
+    renderStandaloneTraceTableImportPanel(workspace, state);
   } else if (subTabId === 'tree') {
     renderTraceTreeHtml(workspace, state);
   } else if (subTabId === 'nodeTrace') {

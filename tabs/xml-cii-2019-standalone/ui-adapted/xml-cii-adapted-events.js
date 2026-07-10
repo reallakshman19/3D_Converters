@@ -11,6 +11,8 @@ import { applyPreviewDiagnosticsAuditReport, applyStandaloneManualElementSideloa
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js';
 import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFromUi } from './xml-cii-adapted-master-events.js?v=20260708-v8';
 import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js';
+import { bindTraceTableEvents } from './xml-cii-adapted-table-trace-events.js';
+import { compareTraceResultsByComponentRef } from '../xml-cii-table-trace-source.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -19,6 +21,7 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindRegexEvents(container, stateRef, render);
   bindImportMastersEvents(container, stateRef, render);
   bindResolverEvents(container, stateRef, render);
+  bindTraceTableEvents(container, stateRef, render);
   bindManualEvents(container, stateRef, render);
   bindWeightMatchEvents(container, stateRef, render);
   bindSupportMapperEvents(container, stateRef, render);
@@ -198,10 +201,15 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
   const sourceText = await sourceTextFromState(stateRef.current);
   const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
   const result = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
+  const benchmark = stateRef.current.resolverJsonTraceTableResult
+    ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
+    : stateRef.current.jsonTraceTableBenchmark;
   stateRef.current = save ?
-    applyStandaloneResolverJsonTraceResult(stateRef.current, result) :
+    updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), { jsonTraceTableBenchmark: benchmark }) :
     updateWorkflowState(stateRef.current, {
       resolverJsonTraceResult: result,
+      resolverJsonTraceJsonResult: result,
+      jsonTraceTableBenchmark: benchmark,
       resolverJsonTraceRunning: false,
       resolverJsonTraceWriteBackStatus: `Resolver index built: ${result.resolvedFacts.length} facts processed.`
     });
