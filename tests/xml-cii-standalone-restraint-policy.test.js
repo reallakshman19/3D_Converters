@@ -136,7 +136,8 @@ function numsOf(xmlText) {
   const convert = runPolicy('convert-existing-restraints');
   assert.strictEqual(convert.ok, true, 'convert policy must succeed');
   assert.strictEqual(countRestraints(convert.enrichedText), 1, 'convert-existing-restraints must keep the single existing restraint');
-  assert.deepStrictEqual(typeCodesOf(convert.enrichedText), [17], 'convert-existing-restraints must not drop or duplicate the existing restraint');
+  assert.deepStrictEqual(typeCodesOf(convert.enrichedText), [14], 'convert-existing-restraints must mutate existing TYPE=17 to the configured TYPE=14');
+  assert.strictEqual(convert.diagnostics.restraintTypeMutationCount, 1, 'convert-existing-restraints must report the TYPE mutation count');
 
   const replace = runPolicy('replace-with-dtxr-derived-restraints');
   assert.strictEqual(replace.ok, true, 'replace policy must succeed');
@@ -146,7 +147,7 @@ function numsOf(xmlText) {
   const merge = runPolicy('merge-existing-and-dtxr-derived-restraints');
   assert.strictEqual(merge.ok, true, 'merge policy must succeed');
   assert.strictEqual(countRestraints(merge.enrichedText), 2, 'merge-existing-and-dtxr-derived-restraints must keep the existing restraint and append the derived one');
-  assert.deepStrictEqual(typeCodesOf(merge.enrichedText), [9, 17], 'merge-existing-and-dtxr-derived-restraints must contain both the existing (17) and DTXR-derived (9) type codes');
+  assert.deepStrictEqual(typeCodesOf(merge.enrichedText), [9, 14], 'merge-existing-and-dtxr-derived-restraints must contain the mutated existing (14) and DTXR-derived (9) type codes');
 
   const capped = runPolicy('merge-existing-and-dtxr-derived-restraints', FULL_RESTRAINT_SOURCE_XML);
   assert.strictEqual(capped.ok, true, 'full-slot merge policy must succeed');

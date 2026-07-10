@@ -1,9 +1,14 @@
 // Embedded default Valve/Component Weight master rows (source: docs/Masters/wtValveweights.json).
-// This is the app's built-in default — no network fetch required. It is only used when no
+// This is the app's built-in default - no network fetch required. It is only used when no
 // inline/uploaded/localStorage-restored weight master rows are already present in the support
 // config; uploading a file via the Valve Weights import UI overrides these defaults.
 export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 6,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 1,
     "Type": "SB",
     "NSfraction": "2",
     "DN": 50,
@@ -18,6 +23,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 6,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 1,
     "Type": "SB",
     "NSfraction": "3",
     "DN": 80,
@@ -32,6 +42,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 10,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 3,
     "Type": "SB",
     "NSfraction": "4",
     "DN": 100,
@@ -46,6 +61,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 13,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 5,
     "Type": "SB",
     "NSfraction": "6",
     "DN": 150,
@@ -60,6 +80,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 13,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 8,
     "Type": "SB",
     "NSfraction": "8",
     "DN": 200,
@@ -74,6 +99,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 16,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 15,
     "Type": "SB",
     "NSfraction": "10",
     "DN": 250,
@@ -88,6 +118,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 19,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 26,
     "Type": "SB",
     "NSfraction": "12",
     "DN": 300,
@@ -102,6 +137,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 19,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 32,
     "Type": "SB",
     "NSfraction": "14",
     "DN": 350,
@@ -116,6 +156,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 22,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 48,
     "Type": "SB",
     "NSfraction": "16",
     "DN": 400,
@@ -130,6 +175,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 25,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 59,
     "Type": "SB",
     "NSfraction": "18",
     "DN": 450,
@@ -144,6 +194,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 28,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 80,
     "Type": "SB",
     "NSfraction": "20",
     "DN": 500,
@@ -158,6 +213,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 32,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 125,
     "Type": "SB",
     "NSfraction": "24",
     "DN": 600,
@@ -172,6 +232,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 10,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 1,
     "Type": "SB",
     "NSfraction": "2",
     "DN": 50,
@@ -186,6 +251,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 10,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 2,
     "Type": "SB",
     "NSfraction": "3",
     "DN": 80,
@@ -200,6 +270,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 13,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 4,
     "Type": "SB",
     "NSfraction": "4",
     "DN": 100,
@@ -214,6 +289,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 16,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 9,
     "Type": "SB",
     "NSfraction": "6",
     "DN": 150,
@@ -228,6 +308,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 22,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 18,
     "Type": "SB",
     "NSfraction": "8",
     "DN": 200,
@@ -242,6 +327,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 25,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 28,
     "Type": "SB",
     "NSfraction": "10",
     "DN": 250,
@@ -256,6 +346,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 28,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 42,
     "Type": "SB",
     "NSfraction": "12",
     "DN": 300,
@@ -270,6 +365,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 32,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 66,
     "Type": "SB",
     "NSfraction": "14",
     "DN": 350,
@@ -284,6 +384,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 38,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 95,
     "Type": "SB",
     "NSfraction": "16",
     "DN": 400,
@@ -298,6 +403,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 41,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 123,
     "Type": "SB",
     "NSfraction": "18",
     "DN": 450,
@@ -312,6 +422,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 44,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 157,
     "Type": "SB",
     "NSfraction": "20",
     "DN": 500,
@@ -326,6 +441,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 51,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 253,
     "Type": "SB",
     "NSfraction": "24",
     "DN": 600,
@@ -340,6 +460,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 10,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 1,
     "Type": "SB",
     "NSfraction": "2",
     "DN": 50,
@@ -354,6 +479,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 13,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 3,
     "Type": "SB",
     "NSfraction": "3",
     "DN": 80,
@@ -368,6 +498,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 16,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 6,
     "Type": "SB",
     "NSfraction": "4",
     "DN": 100,
@@ -382,6 +517,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 22,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 15,
     "Type": "SB",
     "NSfraction": "6",
     "DN": 150,
@@ -396,6 +536,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 28,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 27,
     "Type": "SB",
     "NSfraction": "8",
     "DN": 200,
@@ -410,6 +555,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 35,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 52,
     "Type": "SB",
     "NSfraction": "10",
     "DN": 250,
@@ -424,6 +574,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 41,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 78,
     "Type": "SB",
     "NSfraction": "12",
     "DN": 300,
@@ -438,6 +593,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 44,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 96,
     "Type": "SB",
     "NSfraction": "14",
     "DN": 350,
@@ -452,6 +612,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 51,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 146,
     "Type": "SB",
     "NSfraction": "16",
     "DN": 400,
@@ -466,6 +631,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 54,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 178,
     "Type": "SB",
     "NSfraction": "18",
     "DN": 450,
@@ -480,6 +650,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 64,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 262,
     "Type": "SB",
     "NSfraction": "20",
     "DN": 500,
@@ -494,6 +669,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 73,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 390,
     "Type": "SB",
     "NSfraction": "24",
     "DN": 600,
@@ -508,6 +688,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 32,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 5,
     "Type": "SB",
     "NSfraction": "2",
     "DN": 50,
@@ -522,6 +707,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 35,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 9,
     "Type": "SB",
     "NSfraction": "3",
     "DN": 80,
@@ -536,6 +726,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 41,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 13,
     "Type": "SB",
     "NSfraction": "4",
     "DN": 100,
@@ -550,6 +745,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 48,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 26,
     "Type": "SB",
     "NSfraction": "6",
     "DN": 150,
@@ -564,6 +764,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 57,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 49,
     "Type": "SB",
     "NSfraction": "8",
     "DN": 200,
@@ -578,6 +783,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 64,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 73,
     "Type": "SB",
     "NSfraction": "10",
     "DN": 250,
@@ -592,6 +802,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 73,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 109,
     "Type": "SB",
     "NSfraction": "12",
     "DN": 300,
@@ -606,6 +821,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 83,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 155,
     "Type": "SB",
     "NSfraction": "14",
     "DN": 350,
@@ -620,6 +840,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 92,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 214,
     "Type": "SB",
     "NSfraction": "16",
     "DN": 400,
@@ -634,6 +859,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 102,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 307,
     "Type": "SB",
     "NSfraction": "18",
     "DN": 450,
@@ -648,6 +878,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 111,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 391,
     "Type": "SB",
     "NSfraction": "20",
     "DN": 500,
@@ -662,6 +897,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 133,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 660,
     "Type": "SB",
     "NSfraction": "24",
     "DN": 600,
@@ -676,6 +916,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 35,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 6,
     "Type": "SB",
     "NSfraction": "2",
     "DN": 50,
@@ -690,6 +935,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 44,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 13,
     "Type": "SB",
     "NSfraction": "3",
     "DN": 80,
@@ -704,6 +954,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 48,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 18,
     "Type": "SB",
     "NSfraction": "4",
     "DN": 100,
@@ -718,6 +973,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 60,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 34,
     "Type": "SB",
     "NSfraction": "6",
     "DN": 150,
@@ -732,6 +992,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 73,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 68,
     "Type": "SB",
     "NSfraction": "8",
     "DN": 200,
@@ -746,6 +1011,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 83,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 101,
     "Type": "SB",
     "NSfraction": "10",
     "DN": 250,
@@ -760,6 +1030,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 102,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 172,
     "Type": "SB",
     "NSfraction": "12",
     "DN": 300,
@@ -774,6 +1049,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 111,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 236,
     "Type": "SB",
     "NSfraction": "14",
     "DN": 350,
@@ -788,6 +1068,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 124,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 324,
     "Type": "SB",
     "NSfraction": "16",
     "DN": 400,
@@ -802,6 +1087,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 133,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 437,
     "Type": "SB",
     "NSfraction": "18",
     "DN": 450,
@@ -816,6 +1106,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 800,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3784,
     "Type": "VLV5",
     "NSfraction": "32",
     "DN": 800,
@@ -830,6 +1125,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 850,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4088,
     "Type": "VLV5",
     "NSfraction": "34",
     "DN": 850,
@@ -844,6 +1144,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 2083,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4569,
     "Type": "VLV5",
     "NSfraction": "36",
     "DN": 900,
@@ -858,6 +1163,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": 165,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 6,
     "Type": "VLV5",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -872,6 +1182,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 190,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 11,
     "Type": "VLV5",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -886,6 +1201,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": 216,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 16,
     "Type": "VLV5",
     "NSfraction": "1",
     "DN": 25,
@@ -900,6 +1220,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": 229,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 27,
     "Type": "VLV5",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -914,6 +1239,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 241,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 40,
     "Type": "VLV5",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -928,6 +1258,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 292,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 54,
     "Type": "VLV5",
     "NSfraction": "2",
     "DN": 50,
@@ -942,6 +1277,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 65,
+    "rating": 600,
+    "length": 330,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 66,
     "Type": "VLV5",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -956,6 +1296,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 356,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 78,
     "Type": "VLV5",
     "NSfraction": "3",
     "DN": 80,
@@ -970,6 +1315,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 432,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 128,
     "Type": "VLV5",
     "NSfraction": "4",
     "DN": 100,
@@ -984,6 +1334,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 600,
+    "length": 508,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 178,
     "Type": "VLV5",
     "NSfraction": "5",
     "DN": 125,
@@ -998,6 +1353,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 559,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 240,
     "Type": "VLV5",
     "NSfraction": "6",
     "DN": 150,
@@ -1012,6 +1372,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 660,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 363,
     "Type": "VLV5",
     "NSfraction": "8",
     "DN": 200,
@@ -1026,6 +1391,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 787,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 659,
     "Type": "VLV5",
     "NSfraction": "10",
     "DN": 250,
@@ -1040,6 +1410,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 838,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 836,
     "Type": "VLV5",
     "NSfraction": "12",
     "DN": 300,
@@ -1054,6 +1429,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 889,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 944,
     "Type": "VLV5",
     "NSfraction": "14",
     "DN": 350,
@@ -1068,6 +1448,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 991,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1268,
     "Type": "VLV5",
     "NSfraction": "16",
     "DN": 400,
@@ -1082,6 +1467,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 1092,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1686,
     "Type": "VLV5",
     "NSfraction": "18",
     "DN": 450,
@@ -1096,6 +1486,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 1194,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2526,
     "Type": "VLV5",
     "NSfraction": "20",
     "DN": 500,
@@ -1110,6 +1505,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 550,
+    "rating": 600,
+    "length": 1295,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3000,
     "Type": "VLV5",
     "NSfraction": "22",
     "DN": 550,
@@ -1124,6 +1524,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 1397,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3311,
     "Type": "VLV5",
     "NSfraction": "24",
     "DN": 600,
@@ -1138,6 +1543,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 650,
+    "rating": 600,
+    "length": 1448,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3704,
     "Type": "VLV5",
     "NSfraction": "26",
     "DN": 650,
@@ -1152,6 +1562,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5,
     "Type": "VLV5",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -1166,6 +1581,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5,
     "Type": "VLV5",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -1180,6 +1600,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": 108,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5,
     "Type": "VLV5",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -1194,6 +1619,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 117,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 7,
     "Type": "VLV5",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -1208,6 +1638,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 10,
     "Type": "VLV5",
     "NSfraction": "1",
     "DN": 25,
@@ -1222,6 +1657,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 16,
     "Type": "VLV5",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -1236,6 +1676,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 19,
     "Type": "VLV5",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -1250,6 +1695,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 203,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 20,
     "Type": "VLV5",
     "NSfraction": "2",
     "DN": 50,
@@ -1264,6 +1714,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": 216,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 27,
     "Type": "VLV5",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -1278,6 +1733,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 241,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 30,
     "Type": "VLV5",
     "NSfraction": "3",
     "DN": 80,
@@ -1292,6 +1752,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 292,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 50,
     "Type": "VLV5",
     "NSfraction": "4",
     "DN": 100,
@@ -1306,6 +1771,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": 330,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 72,
     "Type": "VLV5",
     "NSfraction": "5",
     "DN": 125,
@@ -1320,6 +1790,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 356,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 80,
     "Type": "VLV5",
     "NSfraction": "6",
     "DN": 150,
@@ -1334,6 +1809,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 495,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 136,
     "Type": "VLV5",
     "NSfraction": "8",
     "DN": 200,
@@ -1348,6 +1828,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 622,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 273,
     "Type": "VLV5",
     "NSfraction": "10",
     "DN": 250,
@@ -1362,6 +1847,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 698,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 355,
     "Type": "VLV5",
     "NSfraction": "12",
     "DN": 300,
@@ -1376,6 +1866,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 787,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 462,
     "Type": "VLV5",
     "NSfraction": "14",
     "DN": 350,
@@ -1390,6 +1885,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 864,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 571,
     "Type": "VLV5",
     "NSfraction": "16",
     "DN": 400,
@@ -1404,6 +1904,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 60,
+    "valveType": "Flanged wafer Valve",
+    "weight": 3,
     "Type": "VLV6",
     "NSfraction": "2",
     "DN": 50,
@@ -1418,6 +1923,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 73,
+    "valveType": "Flanged wafer Valve",
+    "weight": 7,
     "Type": "VLV6",
     "NSfraction": "3",
     "DN": 80,
@@ -1432,6 +1942,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 73,
+    "valveType": "Flanged wafer Valve",
+    "weight": 8,
     "Type": "VLV6",
     "NSfraction": "4",
     "DN": 100,
@@ -1446,6 +1961,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 98,
+    "valveType": "Flanged wafer Valve",
+    "weight": 18,
     "Type": "VLV6",
     "NSfraction": "6",
     "DN": 150,
@@ -1460,6 +1980,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Flanged wafer Valve",
+    "weight": 32,
     "Type": "VLV6",
     "NSfraction": "8",
     "DN": 200,
@@ -1474,6 +1999,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 146,
+    "valveType": "Flanged wafer Valve",
+    "weight": 53,
     "Type": "VLV6",
     "NSfraction": "10",
     "DN": 250,
@@ -1488,6 +2018,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 181,
+    "valveType": "Flanged wafer Valve",
+    "weight": 98,
     "Type": "VLV6",
     "NSfraction": "12",
     "DN": 300,
@@ -1502,6 +2037,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 184,
+    "valveType": "Flanged wafer Valve",
+    "weight": 100,
     "Type": "VLV6",
     "NSfraction": "14",
     "DN": 350,
@@ -1516,6 +2056,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 190,
+    "valveType": "Flanged wafer Valve",
+    "weight": 134,
     "Type": "VLV6",
     "NSfraction": "16",
     "DN": 400,
@@ -1530,6 +2075,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 203,
+    "valveType": "Flanged wafer Valve",
+    "weight": 144,
     "Type": "VLV6",
     "NSfraction": "18",
     "DN": 450,
@@ -1544,6 +2094,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 219,
+    "valveType": "Flanged wafer Valve",
+    "weight": 198,
     "Type": "VLV6",
     "NSfraction": "20",
     "DN": 500,
@@ -1558,6 +2113,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 222,
+    "valveType": "Flanged wafer Valve",
+    "weight": 307,
     "Type": "VLV6",
     "NSfraction": "24",
     "DN": 600,
@@ -1572,6 +2132,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 305,
+    "valveType": "Flanged wafer Valve",
+    "weight": 472,
     "Type": "VLV6",
     "NSfraction": "30",
     "DN": 750,
@@ -1586,6 +2151,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 368,
+    "valveType": "Flanged wafer Valve",
+    "weight": 683,
     "Type": "VLV6",
     "NSfraction": "36",
     "DN": 900,
@@ -1600,6 +2170,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 254,
+    "valveType": "Flanged wafer Valve",
+    "weight": 225,
     "Type": "VLV6",
     "NSfraction": "10",
     "DN": 250,
@@ -1614,6 +2189,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 305,
+    "valveType": "Flanged wafer Valve",
+    "weight": 408,
     "Type": "VLV6",
     "NSfraction": "12",
     "DN": 300,
@@ -1628,6 +2208,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 44,
+    "valveType": "Wafer type Valve",
+    "weight": 3,
     "Type": "Vlv7",
     "NSfraction": "2",
     "DN": 50,
@@ -1642,6 +2227,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 48,
+    "valveType": "Wafer type Valve",
+    "weight": 5,
     "Type": "Vlv7",
     "NSfraction": "3",
     "DN": 80,
@@ -1656,6 +2246,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 54,
+    "valveType": "Wafer type Valve",
+    "weight": 9,
     "Type": "Vlv7",
     "NSfraction": "4",
     "DN": 100,
@@ -1670,6 +2265,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": "",
+    "valveType": "Wafer type Valve",
+    "weight": 13,
     "Type": "Vlv7",
     "NSfraction": "5",
     "DN": 125,
@@ -1684,6 +2284,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 57,
+    "valveType": "Wafer type Valve",
+    "weight": 13,
     "Type": "Vlv7",
     "NSfraction": "6",
     "DN": 150,
@@ -1698,6 +2303,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 64,
+    "valveType": "Wafer type Valve",
+    "weight": 21,
     "Type": "Vlv7",
     "NSfraction": "8",
     "DN": 200,
@@ -1712,6 +2322,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 71,
+    "valveType": "Wafer type Valve",
+    "weight": 34,
     "Type": "Vlv7",
     "NSfraction": "10",
     "DN": 250,
@@ -1726,6 +2341,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 81,
+    "valveType": "Wafer type Valve",
+    "weight": 49,
     "Type": "Vlv7",
     "NSfraction": "12",
     "DN": 300,
@@ -1740,6 +2360,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 92,
+    "valveType": "Wafer type Valve",
+    "weight": 68,
     "Type": "Vlv7",
     "NSfraction": "14",
     "DN": 350,
@@ -1754,6 +2379,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Wafer type Valve",
+    "weight": 91,
     "Type": "Vlv7",
     "NSfraction": "16",
     "DN": 400,
@@ -1768,6 +2398,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 114,
+    "valveType": "Wafer type Valve",
+    "weight": 122,
     "Type": "Vlv7",
     "NSfraction": "18",
     "DN": 450,
@@ -1782,6 +2417,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Wafer type Valve",
+    "weight": 198,
     "Type": "Vlv7",
     "NSfraction": "20",
     "DN": 500,
@@ -1796,6 +2436,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 154,
+    "valveType": "Wafer type Valve",
+    "weight": 295,
     "Type": "Vlv7",
     "NSfraction": "24",
     "DN": 600,
@@ -1810,6 +2455,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 48,
+    "valveType": "Wafer type Valve",
+    "weight": 7,
     "Type": "Vlv7",
     "NSfraction": "3",
     "DN": 80,
@@ -1824,6 +2474,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 54,
+    "valveType": "Wafer type Valve",
+    "weight": 11,
     "Type": "Vlv7",
     "NSfraction": "4",
     "DN": 100,
@@ -1838,6 +2493,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 59,
+    "valveType": "Wafer type Valve",
+    "weight": 16,
     "Type": "Vlv7",
     "NSfraction": "6",
     "DN": 150,
@@ -1852,6 +2512,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 73,
+    "valveType": "Wafer type Valve",
+    "weight": 27,
     "Type": "Vlv7",
     "NSfraction": "8",
     "DN": 200,
@@ -1866,6 +2531,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 83,
+    "valveType": "Wafer type Valve",
+    "weight": 49,
     "Type": "Vlv7",
     "NSfraction": "10",
     "DN": 250,
@@ -1880,6 +2550,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 92,
+    "valveType": "Wafer type Valve",
+    "weight": 72,
     "Type": "Vlv7",
     "NSfraction": "12",
     "DN": 300,
@@ -1894,6 +2569,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 117,
+    "valveType": "Wafer type Valve",
+    "weight": 105,
     "Type": "Vlv7",
     "NSfraction": "14",
     "DN": 350,
@@ -1908,6 +2588,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 133,
+    "valveType": "Wafer type Valve",
+    "weight": 195,
     "Type": "Vlv7",
     "NSfraction": "16",
     "DN": 400,
@@ -1922,6 +2607,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 149,
+    "valveType": "Wafer type Valve",
+    "weight": 247,
     "Type": "Vlv7",
     "NSfraction": "18",
     "DN": 450,
@@ -1936,6 +2626,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 159,
+    "valveType": "Wafer type Valve",
+    "weight": 293,
     "Type": "Vlv7",
     "NSfraction": "20",
     "DN": 500,
@@ -1950,6 +2645,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 181,
+    "valveType": "Wafer type Valve",
+    "weight": 457,
     "Type": "Vlv7",
     "NSfraction": "24",
     "DN": 600,
@@ -1964,6 +2664,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 54,
+    "valveType": "Wafer type Valve",
+    "weight": 12,
     "Type": "Vlv7",
     "NSfraction": "3",
     "DN": 80,
@@ -1978,6 +2683,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 64,
+    "valveType": "Wafer type Valve",
+    "weight": 18,
     "Type": "Vlv7",
     "NSfraction": "4",
     "DN": 100,
@@ -1992,6 +2702,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 78,
+    "valveType": "Wafer type Valve",
+    "weight": 31,
     "Type": "Vlv7",
     "NSfraction": "6",
     "DN": 150,
@@ -2006,6 +2721,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 102,
+    "valveType": "Wafer type Valve",
+    "weight": 58,
     "Type": "Vlv7",
     "NSfraction": "8",
     "DN": 200,
@@ -2020,6 +2740,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 117,
+    "valveType": "Wafer type Valve",
+    "weight": 113,
     "Type": "Vlv7",
     "NSfraction": "10",
     "DN": 250,
@@ -2034,6 +2759,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 140,
+    "valveType": "Wafer type Valve",
+    "weight": 153,
     "Type": "Vlv7",
     "NSfraction": "12",
     "DN": 300,
@@ -2048,6 +2778,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 155,
+    "valveType": "Wafer type Valve",
+    "weight": 230,
     "Type": "Vlv7",
     "NSfraction": "14",
     "DN": 350,
@@ -2062,6 +2797,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 178,
+    "valveType": "Wafer type Valve",
+    "weight": 306,
     "Type": "Vlv7",
     "NSfraction": "16",
     "DN": 400,
@@ -2076,6 +2816,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 200,
+    "valveType": "Wafer type Valve",
+    "weight": 382,
     "Type": "Vlv7",
     "NSfraction": "18",
     "DN": 450,
@@ -2090,6 +2835,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 216,
+    "valveType": "Wafer type Valve",
+    "weight": 459,
     "Type": "Vlv7",
     "NSfraction": "20",
     "DN": 500,
@@ -2104,6 +2854,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 232,
+    "valveType": "Wafer type Valve",
+    "weight": 535,
     "Type": "Vlv7",
     "NSfraction": "24",
     "DN": 600,
@@ -2118,6 +2873,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 44,
+    "valveType": "Lug type Valve",
+    "weight": 6,
     "Type": "Vlv8",
     "NSfraction": "2",
     "DN": 50,
@@ -2132,6 +2892,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 48,
+    "valveType": "Lug type Valve",
+    "weight": 7,
     "Type": "Vlv8",
     "NSfraction": "3",
     "DN": 80,
@@ -2146,6 +2911,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 54,
+    "valveType": "Lug type Valve",
+    "weight": 13,
     "Type": "Vlv8",
     "NSfraction": "4",
     "DN": 100,
@@ -2160,6 +2930,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": "",
+    "valveType": "Lug type Valve",
+    "weight": 19,
     "Type": "Vlv8",
     "NSfraction": "5",
     "DN": 125,
@@ -2174,6 +2949,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 57,
+    "valveType": "Lug type Valve",
+    "weight": 19,
     "Type": "Vlv8",
     "NSfraction": "6",
     "DN": 150,
@@ -2188,6 +2968,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 64,
+    "valveType": "Lug type Valve",
+    "weight": 35,
     "Type": "Vlv8",
     "NSfraction": "8",
     "DN": 200,
@@ -2202,6 +2987,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 71,
+    "valveType": "Lug type Valve",
+    "weight": 55,
     "Type": "Vlv8",
     "NSfraction": "10",
     "DN": 250,
@@ -2216,6 +3006,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 81,
+    "valveType": "Lug type Valve",
+    "weight": 82,
     "Type": "Vlv8",
     "NSfraction": "12",
     "DN": 300,
@@ -2230,6 +3025,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 92,
+    "valveType": "Lug type Valve",
+    "weight": 129,
     "Type": "Vlv8",
     "NSfraction": "14",
     "DN": 350,
@@ -2244,6 +3044,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Lug type Valve",
+    "weight": 185,
     "Type": "Vlv8",
     "NSfraction": "16",
     "DN": 400,
@@ -2258,6 +3063,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 114,
+    "valveType": "Lug type Valve",
+    "weight": 241,
     "Type": "Vlv8",
     "NSfraction": "18",
     "DN": 450,
@@ -2272,6 +3082,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Lug type Valve",
+    "weight": 310,
     "Type": "Vlv8",
     "NSfraction": "20",
     "DN": 500,
@@ -2286,6 +3101,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 154,
+    "valveType": "Lug type Valve",
+    "weight": 473,
     "Type": "Vlv8",
     "NSfraction": "24",
     "DN": 600,
@@ -2300,6 +3120,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 150,
+    "length": 114,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 30,
     "Type": "VLVX",
     "NSfraction": "3",
     "DN": "",
@@ -2314,6 +3139,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 37,
     "Type": "VLVX",
     "NSfraction": "4",
     "DN": "",
@@ -2328,6 +3158,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 50,
     "Type": "VLVX",
     "NSfraction": "6",
     "DN": "",
@@ -2342,6 +3177,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": 152,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 89,
     "Type": "VLVX",
     "NSfraction": "8",
     "DN": "",
@@ -2356,6 +3196,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 120,
     "Type": "VLVX",
     "NSfraction": "10",
     "DN": "",
@@ -2370,6 +3215,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 150,
+    "length": 178,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 176,
     "Type": "VLVX",
     "NSfraction": "12",
     "DN": "",
@@ -2384,6 +3234,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 150,
+    "length": 190,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 226,
     "Type": "VLVX",
     "NSfraction": "14",
     "DN": "",
@@ -2398,6 +3253,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 150,
+    "length": 216,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 289,
     "Type": "VLVX",
     "NSfraction": "16",
     "DN": "",
@@ -2412,6 +3272,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 150,
+    "length": 222,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 331,
     "Type": "VLVX",
     "NSfraction": "18",
     "DN": "",
@@ -2426,6 +3291,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 229,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 432,
     "Type": "VLVX",
     "NSfraction": "20",
     "DN": "",
@@ -2440,6 +3310,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 24,
+    "rating": 150,
+    "length": 267,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 609,
     "Type": "VLVX",
     "NSfraction": "24",
     "DN": "",
@@ -2454,6 +3329,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 28,
+    "rating": 150,
+    "length": 292,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1162,
     "Type": "VLVX",
     "NSfraction": "28",
     "DN": "",
@@ -2468,6 +3348,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 30,
+    "rating": 150,
+    "length": 318,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1432,
     "Type": "VLVX",
     "NSfraction": "30",
     "DN": "",
@@ -2482,6 +3367,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 318,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1680,
     "Type": "VLVX",
     "NSfraction": "32",
     "DN": "",
@@ -2496,6 +3386,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 36,
+    "rating": 150,
+    "length": 330,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 2227,
     "Type": "VLVX",
     "NSfraction": "36",
     "DN": "",
@@ -2510,6 +3405,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 410,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 2889,
     "Type": "VLVX",
     "NSfraction": "40",
     "DN": "",
@@ -2524,6 +3424,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 42,
+    "rating": 150,
+    "length": 410,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 3038,
     "Type": "VLVX",
     "NSfraction": "42",
     "DN": "",
@@ -2538,6 +3443,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 48,
+    "rating": 150,
+    "length": 470,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 4599,
     "Type": "VLVX",
     "NSfraction": "48",
     "DN": "",
@@ -2552,6 +3462,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 54,
+    "rating": 150,
+    "length": 530,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 5934,
     "Type": "VLVX",
     "NSfraction": "54",
     "DN": "",
@@ -2566,6 +3481,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 60,
+    "rating": 150,
+    "length": 600,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 8170,
     "Type": "VLVX",
     "NSfraction": "60",
     "DN": "",
@@ -2580,6 +3500,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 300,
+    "length": 114,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 32,
     "Type": "VLVX",
     "NSfraction": "3",
     "DN": "",
@@ -2594,6 +3519,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 300,
+    "length": 127,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 43,
     "Type": "VLVX",
     "NSfraction": "4",
     "DN": "",
@@ -2608,6 +3538,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 300,
+    "length": 140,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 77,
     "Type": "VLVX",
     "NSfraction": "6",
     "DN": "",
@@ -2622,6 +3557,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 300,
+    "length": 152,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 127,
     "Type": "VLVX",
     "NSfraction": "8",
     "DN": "",
@@ -2636,6 +3576,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 300,
+    "length": 165,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 152,
     "Type": "VLVX",
     "NSfraction": "10",
     "DN": "",
@@ -2650,6 +3595,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 300,
+    "length": 178,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 268,
     "Type": "VLVX",
     "NSfraction": "12",
     "DN": "",
@@ -2664,6 +3614,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 300,
+    "length": 190,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 405,
     "Type": "VLVX",
     "NSfraction": "14",
     "DN": "",
@@ -2678,6 +3633,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 300,
+    "length": 216,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 499,
     "Type": "VLVX",
     "NSfraction": "16",
     "DN": "",
@@ -2692,6 +3652,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 300,
+    "length": 222,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 712,
     "Type": "VLVX",
     "NSfraction": "18",
     "DN": "",
@@ -2706,6 +3671,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 229,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 765,
     "Type": "VLVX",
     "NSfraction": "20",
     "DN": "",
@@ -2720,6 +3690,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 24,
+    "rating": 300,
+    "length": 267,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1161,
     "Type": "VLVX",
     "NSfraction": "24",
     "DN": "",
@@ -2734,6 +3709,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 600,
+    "length": 180,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 42,
     "Type": "VLVX",
     "NSfraction": "3",
     "DN": "",
@@ -2748,6 +3728,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 600,
+    "length": 190,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 83,
     "Type": "VLVX",
     "NSfraction": "4",
     "DN": "",
@@ -2762,6 +3747,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 600,
+    "length": 210,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 147,
     "Type": "VLVX",
     "NSfraction": "6",
     "DN": "",
@@ -2776,6 +3766,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 600,
+    "length": 230,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 291,
     "Type": "VLVX",
     "NSfraction": "8",
     "DN": "",
@@ -2790,6 +3785,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 600,
+    "length": 250,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 444,
     "Type": "VLVX",
     "NSfraction": "10",
     "DN": "",
@@ -2804,6 +3804,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 600,
+    "length": 270,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 578,
     "Type": "VLVX",
     "NSfraction": "12",
     "DN": "",
@@ -2818,6 +3823,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 600,
+    "length": 290,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 670,
     "Type": "VLVX",
     "NSfraction": "14",
     "DN": "",
@@ -2832,6 +3842,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 600,
+    "length": 310,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1058,
     "Type": "VLVX",
     "NSfraction": "16",
     "DN": "",
@@ -2846,6 +3861,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 600,
+    "length": 330,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1172,
     "Type": "VLVX",
     "NSfraction": "18",
     "DN": "",
@@ -2860,6 +3880,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 350,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1624,
     "Type": "VLVX",
     "NSfraction": "20",
     "DN": "",
@@ -2874,6 +3899,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 24,
+    "rating": 600,
+    "length": 390,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 2219,
     "Type": "VLVX",
     "NSfraction": "24",
     "DN": "",
@@ -2888,6 +3918,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 900,
+    "length": 225,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 197,
     "Type": "VLVX",
     "NSfraction": "6",
     "DN": "",
@@ -2902,6 +3937,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 900,
+    "length": 275,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 437,
     "Type": "VLVX",
     "NSfraction": "8",
     "DN": "",
@@ -2916,6 +3956,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 56,
+    "valveType": "Weldneck Flange",
+    "weight": 1,
     "Type": "Flg",
     "NSfraction": "1",
     "DN": 25,
@@ -2930,6 +3975,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 58,
+    "valveType": "Weldneck Flange",
+    "weight": 2,
     "Type": "Flg",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -2944,6 +3994,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 62,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -2958,6 +4013,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 64,
+    "valveType": "Weldneck Flange",
+    "weight": 4,
     "Type": "Flg",
     "NSfraction": "2",
     "DN": 50,
@@ -2972,6 +4032,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": 70,
+    "valveType": "Weldneck Flange",
+    "weight": 5,
     "Type": "Flg",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -2986,6 +4051,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 70,
+    "valveType": "Weldneck Flange",
+    "weight": 6,
     "Type": "Flg",
     "NSfraction": "3",
     "DN": 80,
@@ -3000,6 +4070,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 90,
+    "rating": 150,
+    "length": 72,
+    "valveType": "Weldneck Flange",
+    "weight": 7,
     "Type": "Flg",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -3014,6 +4089,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 77,
+    "valveType": "Weldneck Flange",
+    "weight": 8,
     "Type": "Flg",
     "NSfraction": "4",
     "DN": 100,
@@ -3028,6 +4108,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": 89,
+    "valveType": "Weldneck Flange",
+    "weight": 11,
     "Type": "Flg",
     "NSfraction": "5",
     "DN": 125,
@@ -3042,6 +4127,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 89,
+    "valveType": "Weldneck Flange",
+    "weight": 13,
     "Type": "Flg",
     "NSfraction": "6",
     "DN": 150,
@@ -3056,6 +4146,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Weldneck Flange",
+    "weight": 20,
     "Type": "Flg",
     "NSfraction": "8",
     "DN": 200,
@@ -3070,6 +4165,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Weldneck Flange",
+    "weight": 28,
     "Type": "Flg",
     "NSfraction": "10",
     "DN": 250,
@@ -3084,6 +4184,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 115,
+    "valveType": "Weldneck Flange",
+    "weight": 41,
     "Type": "Flg",
     "NSfraction": "12",
     "DN": 300,
@@ -3098,6 +4203,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Weldneck Flange",
+    "weight": 56,
     "Type": "Flg",
     "NSfraction": "14",
     "DN": 350,
@@ -3112,6 +4222,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Weldneck Flange",
+    "weight": 72,
     "Type": "Flg",
     "NSfraction": "16",
     "DN": 400,
@@ -3126,6 +4241,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Weldneck Flange",
+    "weight": 78,
     "Type": "Flg",
     "NSfraction": "18",
     "DN": 450,
@@ -3140,6 +4260,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 145,
+    "valveType": "Weldneck Flange",
+    "weight": 95,
     "Type": "Flg",
     "NSfraction": "20",
     "DN": 500,
@@ -3154,6 +4279,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 153,
+    "valveType": "Weldneck Flange",
+    "weight": 135,
     "Type": "Flg",
     "NSfraction": "24",
     "DN": 600,
@@ -3168,6 +4298,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": 53,
+    "valveType": "Weldneck Flange",
+    "weight": 1,
     "Type": "Flg",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -3182,6 +4317,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 58,
+    "valveType": "Weldneck Flange",
+    "weight": 2,
     "Type": "Flg",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -3196,6 +4336,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 62,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "1",
     "DN": 25,
@@ -3210,6 +4355,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": 66,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -3224,6 +4374,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 69,
+    "valveType": "Weldneck Flange",
+    "weight": 4,
     "Type": "Flg",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -3238,6 +4393,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 70,
+    "valveType": "Weldneck Flange",
+    "weight": 5,
     "Type": "Flg",
     "NSfraction": "2",
     "DN": 50,
@@ -3252,6 +4412,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": 77,
+    "valveType": "Weldneck Flange",
+    "weight": 8,
     "Type": "Flg",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -3266,6 +4431,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 9,
     "Type": "Flg",
     "NSfraction": "3",
     "DN": 80,
@@ -3280,6 +4450,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 90,
+    "rating": 300,
+    "length": 81,
+    "valveType": "Weldneck Flange",
+    "weight": 10,
     "Type": "Flg",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -3294,6 +4469,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 86,
+    "valveType": "Weldneck Flange",
+    "weight": 13,
     "Type": "Flg",
     "NSfraction": "4",
     "DN": 100,
@@ -3308,6 +4488,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 125,
+    "rating": 300,
+    "length": 99,
+    "valveType": "Weldneck Flange",
+    "weight": 17,
     "Type": "Flg",
     "NSfraction": "5",
     "DN": 125,
@@ -3322,6 +4507,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 99,
+    "valveType": "Weldneck Flange",
+    "weight": 22,
     "Type": "Flg",
     "NSfraction": "6",
     "DN": 150,
@@ -3336,6 +4526,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 112,
+    "valveType": "Weldneck Flange",
+    "weight": 35,
     "Type": "Flg",
     "NSfraction": "8",
     "DN": 200,
@@ -3350,6 +4545,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 118,
+    "valveType": "Weldneck Flange",
+    "weight": 50,
     "Type": "Flg",
     "NSfraction": "10",
     "DN": 250,
@@ -3364,6 +4564,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 131,
+    "valveType": "Weldneck Flange",
+    "weight": 75,
     "Type": "Flg",
     "NSfraction": "12",
     "DN": 300,
@@ -3378,6 +4583,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 143,
+    "valveType": "Weldneck Flange",
+    "weight": 96,
     "Type": "Flg",
     "NSfraction": "14",
     "DN": 350,
@@ -3392,6 +4602,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 146,
+    "valveType": "Weldneck Flange",
+    "weight": 131,
     "Type": "Flg",
     "NSfraction": "16",
     "DN": 400,
@@ -3406,6 +4621,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 159,
+    "valveType": "Weldneck Flange",
+    "weight": 167,
     "Type": "Flg",
     "NSfraction": "18",
     "DN": 450,
@@ -3420,6 +4640,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 162,
+    "valveType": "Weldneck Flange",
+    "weight": 205,
     "Type": "Flg",
     "NSfraction": "20",
     "DN": 500,
@@ -3434,6 +4659,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 169,
+    "valveType": "Weldneck Flange",
+    "weight": 302,
     "Type": "Flg",
     "NSfraction": "24",
     "DN": 600,
@@ -3448,6 +4678,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 15,
+    "rating": 900,
+    "length": 67,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -3462,6 +4697,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": 77,
+    "valveType": "Weldneck Flange",
+    "weight": 4,
     "Type": "Flg",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -3476,6 +4716,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 6,
     "Type": "Flg",
     "NSfraction": "1",
     "DN": 25,
@@ -3490,6 +4735,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 7,
     "Type": "Flg",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -3504,6 +4754,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": 90,
+    "valveType": "Weldneck Flange",
+    "weight": 8,
     "Type": "Flg",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -3518,6 +4773,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 109,
+    "valveType": "Weldneck Flange",
+    "weight": 15,
     "Type": "Flg",
     "NSfraction": "2",
     "DN": 50,
@@ -3532,6 +4792,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 65,
+    "rating": 900,
+    "length": 112,
+    "valveType": "Weldneck Flange",
+    "weight": 20,
     "Type": "Flg",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -3546,6 +4811,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 109,
+    "valveType": "Weldneck Flange",
+    "weight": 17,
     "Type": "Flg",
     "NSfraction": "3",
     "DN": 80,
@@ -3560,6 +4830,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 121,
+    "valveType": "Weldneck Flange",
+    "weight": 29,
     "Type": "Flg",
     "NSfraction": "4",
     "DN": 100,
@@ -3574,6 +4849,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 125,
+    "rating": 900,
+    "length": 134,
+    "valveType": "Weldneck Flange",
+    "weight": 47,
     "Type": "Flg",
     "NSfraction": "5",
     "DN": 125,
@@ -3588,6 +4868,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 147,
+    "valveType": "Weldneck Flange",
+    "weight": 59,
     "Type": "Flg",
     "NSfraction": "6",
     "DN": 150,
@@ -3602,6 +4887,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 169,
+    "valveType": "Weldneck Flange",
+    "weight": 95,
     "Type": "Flg",
     "NSfraction": "8",
     "DN": 200,
@@ -3616,6 +4906,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 191,
+    "valveType": "Weldneck Flange",
+    "weight": 139,
     "Type": "Flg",
     "NSfraction": "10",
     "DN": 250,
@@ -3630,6 +4925,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 207,
+    "valveType": "Weldneck Flange",
+    "weight": 176,
     "Type": "Flg",
     "NSfraction": "12",
     "DN": 300,
@@ -3644,6 +4944,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 220,
+    "valveType": "Weldneck Flange",
+    "weight": 211,
     "Type": "Flg",
     "NSfraction": "14",
     "DN": 350,
@@ -3658,6 +4963,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 223,
+    "valveType": "Weldneck Flange",
+    "weight": 262,
     "Type": "Flg",
     "NSfraction": "16",
     "DN": 400,
@@ -3672,6 +4982,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 236,
+    "valveType": "Weldneck Flange",
+    "weight": 367,
     "Type": "Flg",
     "NSfraction": "18",
     "DN": 450,
@@ -3686,6 +5001,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 255,
+    "valveType": "Weldneck Flange",
+    "weight": 457,
     "Type": "Flg",
     "NSfraction": "20",
     "DN": 500,
@@ -3700,6 +5020,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 299,
+    "valveType": "Weldneck Flange",
+    "weight": 853,
     "Type": "Flg",
     "NSfraction": "24",
     "DN": 600,
@@ -3714,6 +5039,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": 67,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -3728,6 +5058,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": 77,
+    "valveType": "Weldneck Flange",
+    "weight": 4,
     "Type": "Flg",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -3742,6 +5077,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": 59,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -3756,6 +5096,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 64,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -3770,6 +5115,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": 69,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "1",
     "DN": 25,
@@ -3784,6 +5134,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": 74,
+    "valveType": "Weldneck Flange",
+    "weight": 4,
     "Type": "Flg",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -3798,6 +5153,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 77,
+    "valveType": "Weldneck Flange",
+    "weight": 5,
     "Type": "Flg",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -3812,6 +5172,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 7,
     "Type": "Flg",
     "NSfraction": "2",
     "DN": 50,
@@ -3826,6 +5191,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 65,
+    "rating": 600,
+    "length": 86,
+    "valveType": "Weldneck Flange",
+    "weight": 10,
     "Type": "Flg",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -3840,6 +5210,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 90,
+    "valveType": "Weldneck Flange",
+    "weight": 12,
     "Type": "Flg",
     "NSfraction": "3",
     "DN": 80,
@@ -3854,6 +5229,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 90,
+    "rating": 600,
+    "length": 93,
+    "valveType": "Weldneck Flange",
+    "weight": 15,
     "Type": "Flg",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -3868,6 +5248,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 109,
+    "valveType": "Weldneck Flange",
+    "weight": 22,
     "Type": "Flg",
     "NSfraction": "4",
     "DN": 100,
@@ -3882,6 +5267,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 125,
+    "rating": 600,
+    "length": 121,
+    "valveType": "Weldneck Flange",
+    "weight": 35,
     "Type": "Flg",
     "NSfraction": "5",
     "DN": 125,
@@ -3896,6 +5286,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 124,
+    "valveType": "Weldneck Flange",
+    "weight": 43,
     "Type": "Flg",
     "NSfraction": "6",
     "DN": 150,
@@ -3910,6 +5305,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 140,
+    "valveType": "Weldneck Flange",
+    "weight": 64,
     "Type": "Flg",
     "NSfraction": "8",
     "DN": 200,
@@ -3924,6 +5324,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 159,
+    "valveType": "Weldneck Flange",
+    "weight": 102,
     "Type": "Flg",
     "NSfraction": "10",
     "DN": 250,
@@ -3938,6 +5343,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 163,
+    "valveType": "Weldneck Flange",
+    "weight": 122,
     "Type": "Flg",
     "NSfraction": "12",
     "DN": 300,
@@ -3952,6 +5362,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 172,
+    "valveType": "Weldneck Flange",
+    "weight": 153,
     "Type": "Flg",
     "NSfraction": "14",
     "DN": 350,
@@ -3966,6 +5381,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 451,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 119,
     "Type": "VLV3-1",
     "NSfraction": "2",
     "DN": 50,
@@ -3980,6 +5400,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 178,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 35,
     "Type": "VLV3-1",
     "NSfraction": "2",
     "DN": 50,
@@ -3994,6 +5419,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 216,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 36,
     "Type": "VLV3-1",
     "NSfraction": "2",
     "DN": 50,
@@ -4008,6 +5438,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": 419,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -4022,6 +5457,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 2500,
+    "length": 508,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -4036,6 +5476,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": 190,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -4050,6 +5495,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": 241,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -4064,6 +5514,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 600,
+    "length": 330,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -4078,6 +5533,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 900,
+    "length": 419,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -4092,6 +5552,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 381,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 107,
     "Type": "VLV3-1",
     "NSfraction": "3",
     "DN": 80,
@@ -4106,6 +5571,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 356,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 67,
     "Type": "VLV3-1",
     "NSfraction": "3",
     "DN": 80,
@@ -4120,6 +5590,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 470,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 129,
     "Type": "VLV3-1",
     "NSfraction": "3",
     "DN": 80,
@@ -4134,6 +5609,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 203,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 42,
     "Type": "VLV3-1",
     "NSfraction": "3",
     "DN": 80,
@@ -4148,6 +5628,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 578,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 270,
     "Type": "VLV3-1",
     "NSfraction": "3",
     "DN": 80,
@@ -4162,6 +5647,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 282,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 59,
     "Type": "VLV3-1",
     "NSfraction": "3",
     "DN": 80,
@@ -4176,6 +5666,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 432,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 143,
     "Type": "VLV3-1",
     "NSfraction": "4",
     "DN": 100,
@@ -4190,6 +5685,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 457,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 203,
     "Type": "VLV3-1",
     "NSfraction": "4",
     "DN": 100,
@@ -4204,6 +5704,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 305,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 99,
     "Type": "VLV3-1",
     "NSfraction": "4",
     "DN": 100,
@@ -4218,6 +5723,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 229,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 82,
     "Type": "VLV3-1",
     "NSfraction": "4",
     "DN": 100,
@@ -4232,6 +5742,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 673,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 514,
     "Type": "VLV3-1",
     "NSfraction": "4",
     "DN": 100,
@@ -4246,6 +5761,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 546,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 253,
     "Type": "VLV3-1",
     "NSfraction": "4",
     "DN": 100,
@@ -4260,6 +5780,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "5",
     "DN": 125,
@@ -4274,6 +5799,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "5",
     "DN": 125,
@@ -4288,6 +5818,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "5",
     "DN": 125,
@@ -4302,6 +5837,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "5",
     "DN": 125,
@@ -4316,6 +5856,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "5",
     "DN": 125,
@@ -4330,6 +5875,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": "",
     "Type": "VLV3-1",
     "NSfraction": "5",
     "DN": 125,
@@ -4344,6 +5894,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 705,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 616,
     "Type": "VLV3-1",
     "NSfraction": "6",
     "DN": 150,
@@ -4358,6 +5913,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 914,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1318,
     "Type": "VLV3-1",
     "NSfraction": "6",
     "DN": 150,
@@ -4372,6 +5932,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 610,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 365,
     "Type": "VLV3-1",
     "NSfraction": "6",
     "DN": 150,
@@ -4386,6 +5951,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 394,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 199,
     "Type": "VLV3-1",
     "NSfraction": "6",
     "DN": 150,
@@ -4400,6 +5970,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 403,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 227,
     "Type": "VLV3-1",
     "NSfraction": "6",
     "DN": 150,
@@ -4414,6 +5989,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 559,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 342,
     "Type": "VLV3-1",
     "NSfraction": "6",
     "DN": 150,
@@ -4428,6 +6008,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 1022,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2112,
     "Type": "VLV3-1",
     "NSfraction": "8",
     "DN": 200,
@@ -4442,6 +6027,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 457,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 303,
     "Type": "VLV3-1",
     "NSfraction": "8",
     "DN": 200,
@@ -4456,6 +6046,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 832,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1045,
     "Type": "VLV3-1",
     "NSfraction": "8",
     "DN": 200,
@@ -4470,6 +6065,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 502,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 352,
     "Type": "VLV3-1",
     "NSfraction": "8",
     "DN": 200,
@@ -4484,6 +6084,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 737,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 714,
     "Type": "VLV3-1",
     "NSfraction": "8",
     "DN": 200,
@@ -4498,6 +6103,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 660,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 601,
     "Type": "VLV3-1",
     "NSfraction": "8",
     "DN": 200,
@@ -4512,6 +6122,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 143,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 561,
     "Type": "SB",
     "NSfraction": "20",
     "DN": 500,
@@ -4526,6 +6141,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 168,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 904,
     "Type": "SB",
     "NSfraction": "24",
     "DN": 600,
@@ -4540,6 +6160,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 41,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 8,
     "Type": "SB",
     "NSfraction": "2",
     "DN": 50,
@@ -4554,6 +6179,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 51,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 15,
     "Type": "SB",
     "NSfraction": "3",
     "DN": 80,
@@ -4568,6 +6198,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 64,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 27,
     "Type": "SB",
     "NSfraction": "4",
     "DN": 100,
@@ -4582,6 +6217,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 83,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 64,
     "Type": "SB",
     "NSfraction": "6",
     "DN": 150,
@@ -4596,6 +6236,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 99,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 110,
     "Type": "SB",
     "NSfraction": "8",
     "DN": 200,
@@ -4610,6 +6255,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 117,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 203,
     "Type": "SB",
     "NSfraction": "10",
     "DN": 250,
@@ -4624,6 +6274,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 133,
+    "valveType": "SPECTACLE BLIND",
+    "weight": 310,
     "Type": "SB",
     "NSfraction": "12",
     "DN": 300,
@@ -4638,6 +6293,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 20,
+    "valveType": "Blind Flange",
+    "weight": 3,
     "Type": "VBF",
     "NSfraction": "2",
     "DN": 50,
@@ -4652,6 +6312,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 24,
+    "valveType": "Blind Flange",
+    "weight": 5,
     "Type": "VBF",
     "NSfraction": "3",
     "DN": 80,
@@ -4666,6 +6331,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 24,
+    "valveType": "Blind Flange",
+    "weight": 9,
     "Type": "VBF",
     "NSfraction": "4",
     "DN": 100,
@@ -4680,6 +6350,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 26,
+    "valveType": "Blind Flange",
+    "weight": 14,
     "Type": "VBF",
     "NSfraction": "6",
     "DN": 150,
@@ -4694,6 +6369,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 29,
+    "valveType": "Blind Flange",
+    "weight": 22,
     "Type": "VBF",
     "NSfraction": "8",
     "DN": 200,
@@ -4708,6 +6388,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 30,
+    "valveType": "Blind Flange",
+    "weight": 35,
     "Type": "VBF",
     "NSfraction": "10",
     "DN": 250,
@@ -4722,6 +6407,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 32,
+    "valveType": "Blind Flange",
+    "weight": 53,
     "Type": "VBF",
     "NSfraction": "12",
     "DN": 300,
@@ -4736,6 +6426,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 35,
+    "valveType": "Blind Flange",
+    "weight": 68,
     "Type": "VBF",
     "NSfraction": "14",
     "DN": 350,
@@ -4750,6 +6445,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 37,
+    "valveType": "Blind Flange",
+    "weight": 89,
     "Type": "VBF",
     "NSfraction": "16",
     "DN": 400,
@@ -4764,6 +6464,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 40,
+    "valveType": "Blind Flange",
+    "weight": 108,
     "Type": "VBF",
     "NSfraction": "18",
     "DN": 450,
@@ -4778,6 +6483,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 43,
+    "valveType": "Blind Flange",
+    "weight": 140,
     "Type": "VBF",
     "NSfraction": "20",
     "DN": 500,
@@ -4792,6 +6502,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 48,
+    "valveType": "Blind Flange",
+    "weight": 208,
     "Type": "VBF",
     "NSfraction": "24",
     "DN": 600,
@@ -4806,6 +6521,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 43,
+    "valveType": "Blind Flange",
+    "weight": 258,
     "Type": "VBF",
     "NSfraction": "26",
     "DN": 650,
@@ -4820,6 +6540,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 46,
+    "valveType": "Blind Flange",
+    "weight": 304,
     "Type": "VBF",
     "NSfraction": "28",
     "DN": 700,
@@ -4834,6 +6559,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 46,
+    "valveType": "Blind Flange",
+    "weight": 349,
     "Type": "VBF",
     "NSfraction": "30",
     "DN": 750,
@@ -4848,6 +6578,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": 48,
+    "valveType": "Blind Flange",
+    "weight": 435,
     "Type": "VBF",
     "NSfraction": "32",
     "DN": 800,
@@ -4862,6 +6597,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": 51,
+    "valveType": "Blind Flange",
+    "weight": 496,
     "Type": "VBF",
     "NSfraction": "34",
     "DN": 850,
@@ -4876,6 +6616,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 54,
+    "valveType": "Blind Flange",
+    "weight": 558,
     "Type": "VBF",
     "NSfraction": "36",
     "DN": 900,
@@ -4890,6 +6635,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 950,
+    "rating": 150,
+    "length": 0,
+    "valveType": "Blind Flange",
+    "weight": 57,
     "Type": "VBF",
     "NSfraction": "38",
     "DN": 950,
@@ -4904,6 +6654,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1050,
+    "rating": 150,
+    "length": 60,
+    "valveType": "Blind Flange",
+    "weight": 790,
     "Type": "VBF",
     "NSfraction": "42",
     "DN": 1050,
@@ -4918,6 +6673,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 22,
+    "valveType": "Blind Flange",
+    "weight": 5,
     "Type": "VBF",
     "NSfraction": "2",
     "DN": 50,
@@ -4932,6 +6692,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 29,
+    "valveType": "Blind Flange",
+    "weight": 9,
     "Type": "VBF",
     "NSfraction": "3",
     "DN": 80,
@@ -4946,6 +6711,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 32,
+    "valveType": "Blind Flange",
+    "weight": 14,
     "Type": "VBF",
     "NSfraction": "4",
     "DN": 100,
@@ -4960,6 +6730,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 37,
+    "valveType": "Blind Flange",
+    "weight": 25,
     "Type": "VBF",
     "NSfraction": "6",
     "DN": 150,
@@ -4974,6 +6749,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 42,
+    "valveType": "Blind Flange",
+    "weight": 40,
     "Type": "VBF",
     "NSfraction": "8",
     "DN": 200,
@@ -4988,6 +6768,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 48,
+    "valveType": "Blind Flange",
+    "weight": 64,
     "Type": "VBF",
     "NSfraction": "10",
     "DN": 250,
@@ -5002,6 +6787,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 51,
+    "valveType": "Blind Flange",
+    "weight": 93,
     "Type": "VBF",
     "NSfraction": "12",
     "DN": 300,
@@ -5016,6 +6806,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 54,
+    "valveType": "Blind Flange",
+    "weight": 126,
     "Type": "VBF",
     "NSfraction": "14",
     "DN": 350,
@@ -5030,6 +6825,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 58,
+    "valveType": "Blind Flange",
+    "weight": 149,
     "Type": "VBF",
     "NSfraction": "16",
     "DN": 400,
@@ -5044,6 +6844,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 60,
+    "valveType": "Blind Flange",
+    "weight": 199,
     "Type": "VBF",
     "NSfraction": "18",
     "DN": 450,
@@ -5058,6 +6863,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 64,
+    "valveType": "Blind Flange",
+    "weight": 249,
     "Type": "VBF",
     "NSfraction": "20",
     "DN": 500,
@@ -5072,6 +6882,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 70,
+    "valveType": "Blind Flange",
+    "weight": 390,
     "Type": "VBF",
     "NSfraction": "24",
     "DN": 600,
@@ -5086,6 +6901,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 650,
+    "rating": 300,
+    "length": 89,
+    "valveType": "Blind Flange",
+    "weight": 523,
     "Type": "VBF",
     "NSfraction": "26",
     "DN": 650,
@@ -5100,6 +6920,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 700,
+    "rating": 300,
+    "length": 89,
+    "valveType": "Blind Flange",
+    "weight": 631,
     "Type": "VBF",
     "NSfraction": "28",
     "DN": 700,
@@ -5114,6 +6939,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 94,
+    "valveType": "Blind Flange",
+    "weight": 745,
     "Type": "VBF",
     "NSfraction": "30",
     "DN": 750,
@@ -5128,6 +6958,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 800,
+    "rating": 300,
+    "length": 103,
+    "valveType": "Blind Flange",
+    "weight": 882,
     "Type": "VBF",
     "NSfraction": "32",
     "DN": 800,
@@ -5142,6 +6977,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 850,
+    "rating": 300,
+    "length": 103,
+    "valveType": "Blind Flange",
+    "weight": 995,
     "Type": "VBF",
     "NSfraction": "34",
     "DN": 850,
@@ -5156,6 +6996,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 103,
+    "valveType": "Blind Flange",
+    "weight": 1152,
     "Type": "VBF",
     "NSfraction": "36",
     "DN": 900,
@@ -5170,6 +7015,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 26,
+    "valveType": "Blind Flange",
+    "weight": 5,
     "Type": "VBF",
     "NSfraction": "2",
     "DN": 50,
@@ -5184,6 +7034,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 32,
+    "valveType": "Blind Flange",
+    "weight": 11,
     "Type": "VBF",
     "NSfraction": "3",
     "DN": 80,
@@ -5198,6 +7053,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 39,
+    "valveType": "Blind Flange",
+    "weight": 21,
     "Type": "VBF",
     "NSfraction": "4",
     "DN": 100,
@@ -5212,6 +7072,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 48,
+    "valveType": "Blind Flange",
+    "weight": 45,
     "Type": "VBF",
     "NSfraction": "6",
     "DN": 150,
@@ -5226,6 +7091,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 56,
+    "valveType": "Blind Flange",
+    "weight": 71,
     "Type": "VBF",
     "NSfraction": "8",
     "DN": 200,
@@ -5240,6 +7110,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 64,
+    "valveType": "Blind Flange",
+    "weight": 118,
     "Type": "VBF",
     "NSfraction": "10",
     "DN": 250,
@@ -5254,6 +7129,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 67,
+    "valveType": "Blind Flange",
+    "weight": 151,
     "Type": "VBF",
     "NSfraction": "12",
     "DN": 300,
@@ -5268,6 +7148,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 70,
+    "valveType": "Blind Flange",
+    "weight": 184,
     "Type": "VBF",
     "NSfraction": "14",
     "DN": 350,
@@ -5282,6 +7167,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 77,
+    "valveType": "Blind Flange",
+    "weight": 254,
     "Type": "VBF",
     "NSfraction": "16",
     "DN": 400,
@@ -5296,6 +7186,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 83,
+    "valveType": "Blind Flange",
+    "weight": 323,
     "Type": "VBF",
     "NSfraction": "18",
     "DN": 450,
@@ -5310,6 +7205,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 89,
+    "valveType": "Blind Flange",
+    "weight": 413,
     "Type": "VBF",
     "NSfraction": "20",
     "DN": 500,
@@ -5324,6 +7224,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 102,
+    "valveType": "Blind Flange",
+    "weight": 637,
     "Type": "VBF",
     "NSfraction": "24",
     "DN": 600,
@@ -5338,6 +7243,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 650,
+    "rating": 600,
+    "length": 114,
+    "valveType": "Blind Flange",
+    "weight": 780,
     "Type": "VBF",
     "NSfraction": "26",
     "DN": 650,
@@ -5352,6 +7262,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 700,
+    "rating": 600,
+    "length": 117,
+    "valveType": "Blind Flange",
+    "weight": 908,
     "Type": "VBF",
     "NSfraction": "28",
     "DN": 700,
@@ -5366,6 +7281,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 121,
+    "valveType": "Blind Flange",
+    "weight": 1025,
     "Type": "VBF",
     "NSfraction": "30",
     "DN": 750,
@@ -5380,6 +7300,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 800,
+    "rating": 600,
+    "length": 124,
+    "valveType": "Blind Flange",
+    "weight": 1183,
     "Type": "VBF",
     "NSfraction": "32",
     "DN": 800,
@@ -5394,6 +7319,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 850,
+    "rating": 600,
+    "length": 127,
+    "valveType": "Blind Flange",
+    "weight": 1310,
     "Type": "VBF",
     "NSfraction": "34",
     "DN": 850,
@@ -5408,6 +7338,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 130,
+    "valveType": "Blind Flange",
+    "weight": 1536,
     "Type": "VBF",
     "NSfraction": "36",
     "DN": 900,
@@ -5422,6 +7357,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 46,
+    "valveType": "Blind Flange",
+    "weight": 14,
     "Type": "VBF",
     "NSfraction": "2",
     "DN": 50,
@@ -5436,6 +7376,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 46,
+    "valveType": "Blind Flange",
+    "weight": 19,
     "Type": "VBF",
     "NSfraction": "3",
     "DN": 80,
@@ -5450,6 +7395,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 52,
+    "valveType": "Blind Flange",
+    "weight": 30,
     "Type": "VBF",
     "NSfraction": "4",
     "DN": 100,
@@ -5464,6 +7414,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 63,
+    "valveType": "Blind Flange",
+    "weight": 60,
     "Type": "VBF",
     "NSfraction": "6",
     "DN": 150,
@@ -5478,6 +7433,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 70,
+    "valveType": "Blind Flange",
+    "weight": 104,
     "Type": "VBF",
     "NSfraction": "8",
     "DN": 200,
@@ -5492,6 +7452,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 77,
+    "valveType": "Blind Flange",
+    "weight": 150,
     "Type": "VBF",
     "NSfraction": "10",
     "DN": 250,
@@ -5506,6 +7471,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 86,
+    "valveType": "Blind Flange",
+    "weight": 212,
     "Type": "VBF",
     "NSfraction": "12",
     "DN": 300,
@@ -5520,6 +7490,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 93,
+    "valveType": "Blind Flange",
+    "weight": 261,
     "Type": "VBF",
     "NSfraction": "14",
     "DN": 350,
@@ -5534,6 +7509,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 96,
+    "valveType": "Blind Flange",
+    "weight": 304,
     "Type": "VBF",
     "NSfraction": "16",
     "DN": 400,
@@ -5548,6 +7528,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 109,
+    "valveType": "Blind Flange",
+    "weight": 445,
     "Type": "VBF",
     "NSfraction": "18",
     "DN": 450,
@@ -5562,6 +7547,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 115,
+    "valveType": "Blind Flange",
+    "weight": 563,
     "Type": "VBF",
     "NSfraction": "20",
     "DN": 500,
@@ -5576,6 +7566,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 147,
+    "valveType": "Blind Flange",
+    "weight": 1074,
     "Type": "VBF",
     "NSfraction": "24",
     "DN": 600,
@@ -5590,6 +7585,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 900,
+    "length": 163,
+    "valveType": "Blind Flange",
+    "weight": 1613,
     "Type": "VBF",
     "NSfraction": "30",
     "DN": 750,
@@ -5604,6 +7604,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 46,
+    "valveType": "Blind Flange",
+    "weight": 14,
     "Type": "VBF",
     "NSfraction": "2",
     "DN": 50,
@@ -5618,6 +7623,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 55,
+    "valveType": "Blind Flange",
+    "weight": 27,
     "Type": "VBF",
     "NSfraction": "3",
     "DN": 80,
@@ -5632,6 +7642,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 61,
+    "valveType": "Blind Flange",
+    "weight": 40,
     "Type": "VBF",
     "NSfraction": "4",
     "DN": 100,
@@ -5646,6 +7661,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 90,
+    "valveType": "Blind Flange",
+    "weight": 88,
     "Type": "VBF",
     "NSfraction": "6",
     "DN": 150,
@@ -5660,6 +7680,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 99,
+    "valveType": "Blind Flange",
+    "weight": 160,
     "Type": "VBF",
     "NSfraction": "8",
     "DN": 200,
@@ -5674,6 +7699,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 115,
+    "valveType": "Blind Flange",
+    "weight": 268,
     "Type": "VBF",
     "NSfraction": "10",
     "DN": 250,
@@ -5688,6 +7718,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 131,
+    "valveType": "Blind Flange",
+    "weight": 377,
     "Type": "VBF",
     "NSfraction": "12",
     "DN": 300,
@@ -5702,6 +7737,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 140,
+    "valveType": "Blind Flange",
+    "weight": 519,
     "Type": "VBF",
     "NSfraction": "14",
     "DN": 350,
@@ -5716,6 +7756,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 154,
+    "valveType": "Blind Flange",
+    "weight": 701,
     "Type": "VBF",
     "NSfraction": "16",
     "DN": 400,
@@ -5730,6 +7775,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 169,
+    "valveType": "Blind Flange",
+    "weight": 948,
     "Type": "VBF",
     "NSfraction": "18",
     "DN": 450,
@@ -5744,6 +7794,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 185,
+    "valveType": "Blind Flange",
+    "weight": 1195,
     "Type": "VBF",
     "NSfraction": "20",
     "DN": 500,
@@ -5758,6 +7813,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 210,
+    "valveType": "Blind Flange",
+    "weight": 1937,
     "Type": "VBF",
     "NSfraction": "24",
     "DN": 600,
@@ -5772,6 +7832,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 58,
+    "valveType": "Blind Flange",
+    "weight": 22,
     "Type": "VBF",
     "NSfraction": "2",
     "DN": 50,
@@ -5786,6 +7851,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 74,
+    "valveType": "Blind Flange",
+    "weight": 46,
     "Type": "VBF",
     "NSfraction": "3",
     "DN": 80,
@@ -5800,6 +7870,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 84,
+    "valveType": "Blind Flange",
+    "weight": 74,
     "Type": "VBF",
     "NSfraction": "4",
     "DN": 100,
@@ -5814,6 +7889,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 115,
+    "valveType": "Blind Flange",
+    "weight": 186,
     "Type": "VBF",
     "NSfraction": "6",
     "DN": 150,
@@ -5828,6 +7908,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 134,
+    "valveType": "Blind Flange",
+    "weight": 288,
     "Type": "VBF",
     "NSfraction": "8",
     "DN": 200,
@@ -5842,6 +7927,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 172,
+    "valveType": "Blind Flange",
+    "weight": 554,
     "Type": "VBF",
     "NSfraction": "10",
     "DN": 250,
@@ -5856,6 +7946,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 192,
+    "valveType": "Blind Flange",
+    "weight": 714,
     "Type": "VBF",
     "NSfraction": "12",
     "DN": 300,
@@ -5870,6 +7965,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 900,
+    "length": 325,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 588,
     "Type": "VLVX",
     "NSfraction": "10",
     "DN": "",
@@ -5884,6 +7984,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 900,
+    "length": 375,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 947,
     "Type": "VLVX",
     "NSfraction": "12",
     "DN": "",
@@ -5898,6 +8003,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 900,
+    "length": 425,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1198,
     "Type": "VLVX",
     "NSfraction": "14",
     "DN": "",
@@ -5912,6 +8022,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 900,
+    "length": 475,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 1733,
     "Type": "VLVX",
     "NSfraction": "16",
     "DN": "",
@@ -5926,6 +8041,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 900,
+    "length": 500,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 2181,
     "Type": "VLVX",
     "NSfraction": "18",
     "DN": "",
@@ -5940,6 +8060,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": 575,
+    "valveType": "Triple Offset Flanged Butterfly valve",
+    "weight": 2799,
     "Type": "VLVX",
     "NSfraction": "20",
     "DN": "",
@@ -5954,6 +8079,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1050,
+    "rating": 150,
+    "length": 432,
+    "valveType": "Flanged wafer Valve",
+    "weight": 1271,
     "Type": "VLV6",
     "NSfraction": "42",
     "DN": 1050,
@@ -5968,6 +8098,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1200,
+    "rating": 150,
+    "length": 524,
+    "valveType": "Flanged wafer Valve",
+    "weight": 1996,
     "Type": "VLV6",
     "NSfraction": "48",
     "DN": 1200,
@@ -5982,6 +8117,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -5996,6 +8136,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -6010,6 +8155,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -6024,6 +8174,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -6038,6 +8193,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1",
     "DN": 25,
@@ -6052,6 +8212,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -6066,6 +8231,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 51,
+    "valveType": "Flanged wafer Valve",
+    "weight": 2,
     "Type": "VLV6",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -6080,6 +8250,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 60,
+    "valveType": "Flanged wafer Valve",
+    "weight": 3,
     "Type": "VLV6",
     "NSfraction": "2",
     "DN": 50,
@@ -6094,6 +8269,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 73,
+    "valveType": "Flanged wafer Valve",
+    "weight": 7,
     "Type": "VLV6",
     "NSfraction": "3",
     "DN": 80,
@@ -6108,6 +8288,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 73,
+    "valveType": "Flanged wafer Valve",
+    "weight": 9,
     "Type": "VLV6",
     "NSfraction": "4",
     "DN": 100,
@@ -6122,6 +8307,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 98,
+    "valveType": "Flanged wafer Valve",
+    "weight": 25,
     "Type": "VLV6",
     "NSfraction": "6",
     "DN": 150,
@@ -6136,6 +8326,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 127,
+    "valveType": "Flanged wafer Valve",
+    "weight": 37,
     "Type": "VLV6",
     "NSfraction": "8",
     "DN": 200,
@@ -6150,6 +8345,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 146,
+    "valveType": "Flanged wafer Valve",
+    "weight": 65,
     "Type": "VLV6",
     "NSfraction": "10",
     "DN": 250,
@@ -6164,6 +8364,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 181,
+    "valveType": "Flanged wafer Valve",
+    "weight": 99,
     "Type": "VLV6",
     "NSfraction": "12",
     "DN": 300,
@@ -6178,6 +8383,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 222,
+    "valveType": "Flanged wafer Valve",
+    "weight": 181,
     "Type": "VLV6",
     "NSfraction": "14",
     "DN": 350,
@@ -6192,6 +8402,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 232,
+    "valveType": "Flanged wafer Valve",
+    "weight": 210,
     "Type": "VLV6",
     "NSfraction": "16",
     "DN": 400,
@@ -6206,6 +8421,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 264,
+    "valveType": "Flanged wafer Valve",
+    "weight": 295,
     "Type": "VLV6",
     "NSfraction": "18",
     "DN": 450,
@@ -6220,6 +8440,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 292,
+    "valveType": "Flanged wafer Valve",
+    "weight": 368,
     "Type": "VLV6",
     "NSfraction": "20",
     "DN": 500,
@@ -6234,6 +8459,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 318,
+    "valveType": "Flanged wafer Valve",
+    "weight": 525,
     "Type": "VLV6",
     "NSfraction": "24",
     "DN": 600,
@@ -6248,6 +8478,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 368,
+    "valveType": "Flanged wafer Valve",
+    "weight": 953,
     "Type": "VLV6",
     "NSfraction": "30",
     "DN": 750,
@@ -6262,6 +8497,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 483,
+    "valveType": "Flanged wafer Valve",
+    "weight": 1724,
     "Type": "VLV6",
     "NSfraction": "36",
     "DN": 900,
@@ -6276,6 +8516,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1050,
+    "rating": 300,
+    "length": 568,
+    "valveType": "Flanged wafer Valve",
+    "weight": 2632,
     "Type": "VLV6",
     "NSfraction": "42",
     "DN": 1050,
@@ -6290,6 +8535,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1200,
+    "rating": 300,
+    "length": 629,
+    "valveType": "Flanged wafer Valve",
+    "weight": 2976,
     "Type": "VLV6",
     "NSfraction": "48",
     "DN": 1200,
@@ -6304,6 +8554,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -6318,6 +8573,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -6332,6 +8592,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -6346,6 +8611,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -6360,6 +8630,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1",
     "DN": 25,
@@ -6374,6 +8649,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -6388,6 +8668,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 51,
+    "valveType": "Flanged wafer Valve",
+    "weight": 2,
     "Type": "VLV6",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -6402,6 +8687,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 60,
+    "valveType": "Flanged wafer Valve",
+    "weight": 3,
     "Type": "VLV6",
     "NSfraction": "2",
     "DN": 50,
@@ -6416,6 +8706,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 73,
+    "valveType": "Flanged wafer Valve",
+    "weight": 7,
     "Type": "VLV6",
     "NSfraction": "3",
     "DN": 80,
@@ -6430,6 +8725,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 79,
+    "valveType": "Flanged wafer Valve",
+    "weight": 13,
     "Type": "VLV6",
     "NSfraction": "4",
     "DN": 100,
@@ -6444,6 +8744,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 137,
+    "valveType": "Flanged wafer Valve",
+    "weight": 33,
     "Type": "VLV6",
     "NSfraction": "6",
     "DN": 150,
@@ -6458,6 +8763,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 165,
+    "valveType": "Flanged wafer Valve",
+    "weight": 68,
     "Type": "VLV6",
     "NSfraction": "8",
     "DN": 200,
@@ -6472,6 +8782,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 213,
+    "valveType": "Flanged wafer Valve",
+    "weight": 117,
     "Type": "VLV6",
     "NSfraction": "10",
     "DN": 250,
@@ -6486,6 +8801,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 229,
+    "valveType": "Flanged wafer Valve",
+    "weight": 145,
     "Type": "VLV6",
     "NSfraction": "12",
     "DN": 300,
@@ -6500,6 +8820,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 273,
+    "valveType": "Flanged wafer Valve",
+    "weight": 195,
     "Type": "VLV6",
     "NSfraction": "14",
     "DN": 350,
@@ -6514,6 +8839,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 305,
+    "valveType": "Flanged wafer Valve",
+    "weight": 286,
     "Type": "VLV6",
     "NSfraction": "16",
     "DN": 400,
@@ -6528,6 +8858,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 362,
+    "valveType": "Flanged wafer Valve",
+    "weight": 409,
     "Type": "VLV6",
     "NSfraction": "18",
     "DN": 450,
@@ -6542,6 +8877,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 368,
+    "valveType": "Flanged wafer Valve",
+    "weight": 663,
     "Type": "VLV6",
     "NSfraction": "20",
     "DN": 500,
@@ -6556,6 +8896,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 438,
+    "valveType": "Flanged wafer Valve",
+    "weight": 953,
     "Type": "VLV6",
     "NSfraction": "24",
     "DN": 600,
@@ -6570,6 +8915,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 505,
+    "valveType": "Flanged wafer Valve",
+    "weight": 1498,
     "Type": "VLV6",
     "NSfraction": "30",
     "DN": 750,
@@ -6584,6 +8934,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 635,
+    "valveType": "Flanged wafer Valve",
+    "weight": 2904,
     "Type": "VLV6",
     "NSfraction": "36",
     "DN": 900,
@@ -6598,6 +8953,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -6612,6 +8972,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -6626,6 +8991,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -6640,6 +9010,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -6654,6 +9029,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1",
     "DN": 25,
@@ -6668,6 +9048,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -6682,6 +9067,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -6696,6 +9086,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 70,
+    "valveType": "Flanged wafer Valve",
+    "weight": 8,
     "Type": "VLV6",
     "NSfraction": "2",
     "DN": 50,
@@ -6710,6 +9105,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 83,
+    "valveType": "Flanged wafer Valve",
+    "weight": 13,
     "Type": "VLV6",
     "NSfraction": "3",
     "DN": 80,
@@ -6724,6 +9124,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 102,
+    "valveType": "Flanged wafer Valve",
+    "weight": 21,
     "Type": "VLV6",
     "NSfraction": "4",
     "DN": 100,
@@ -6738,6 +9143,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 159,
+    "valveType": "Flanged wafer Valve",
+    "weight": 56,
     "Type": "VLV6",
     "NSfraction": "6",
     "DN": 150,
@@ -6752,6 +9162,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 206,
+    "valveType": "Flanged wafer Valve",
+    "weight": 127,
     "Type": "VLV6",
     "NSfraction": "8",
     "DN": 200,
@@ -6766,6 +9181,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 241,
+    "valveType": "Flanged wafer Valve",
+    "weight": 204,
     "Type": "VLV6",
     "NSfraction": "10",
     "DN": 250,
@@ -6780,6 +9200,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 292,
+    "valveType": "Flanged wafer Valve",
+    "weight": 338,
     "Type": "VLV6",
     "NSfraction": "12",
     "DN": 300,
@@ -6794,6 +9219,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 356,
+    "valveType": "Flanged wafer Valve",
+    "weight": 453,
     "Type": "VLV6",
     "NSfraction": "14",
     "DN": 350,
@@ -6808,6 +9238,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 384,
+    "valveType": "Flanged wafer Valve",
+    "weight": 550,
     "Type": "VLV6",
     "NSfraction": "16",
     "DN": 400,
@@ -6822,6 +9257,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 451,
+    "valveType": "Flanged wafer Valve",
+    "weight": 681,
     "Type": "VLV6",
     "NSfraction": "18",
     "DN": 450,
@@ -6836,6 +9276,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 451,
+    "valveType": "Flanged wafer Valve",
+    "weight": 658,
     "Type": "VLV6",
     "NSfraction": "20",
     "DN": 500,
@@ -6850,6 +9295,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 495,
+    "valveType": "Flanged wafer Valve",
+    "weight": 1271,
     "Type": "VLV6",
     "NSfraction": "24",
     "DN": 600,
@@ -6864,6 +9314,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -6878,6 +9333,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -6892,6 +9352,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -6906,6 +9371,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -6920,6 +9390,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1",
     "DN": 25,
@@ -6934,6 +9409,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -6948,6 +9428,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -6962,6 +9447,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 70,
+    "valveType": "Flanged wafer Valve",
+    "weight": 8,
     "Type": "VLV6",
     "NSfraction": "2",
     "DN": 50,
@@ -6976,6 +9466,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 83,
+    "valveType": "Flanged wafer Valve",
+    "weight": 14,
     "Type": "VLV6",
     "NSfraction": "3",
     "DN": 80,
@@ -6990,6 +9485,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 102,
+    "valveType": "Flanged wafer Valve",
+    "weight": 28,
     "Type": "VLV6",
     "NSfraction": "4",
     "DN": 100,
@@ -7004,6 +9504,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 159,
+    "valveType": "Flanged wafer Valve",
+    "weight": 56,
     "Type": "VLV6",
     "NSfraction": "6",
     "DN": 150,
@@ -7018,6 +9523,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 206,
+    "valveType": "Flanged wafer Valve",
+    "weight": 121,
     "Type": "VLV6",
     "NSfraction": "8",
     "DN": 200,
@@ -7032,6 +9542,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 248,
+    "valveType": "Flanged wafer Valve",
+    "weight": 211,
     "Type": "VLV6",
     "NSfraction": "10",
     "DN": 250,
@@ -7046,6 +9561,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 305,
+    "valveType": "Flanged wafer Valve",
+    "weight": 386,
     "Type": "VLV6",
     "NSfraction": "12",
     "DN": 300,
@@ -7060,6 +9580,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 356,
+    "valveType": "Flanged wafer Valve",
+    "weight": 501,
     "Type": "VLV6",
     "NSfraction": "14",
     "DN": 350,
@@ -7074,6 +9599,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 384,
+    "valveType": "Flanged wafer Valve",
+    "weight": 607,
     "Type": "VLV6",
     "NSfraction": "16",
     "DN": 400,
@@ -7088,6 +9618,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 468,
+    "valveType": "Flanged wafer Valve",
+    "weight": 817,
     "Type": "VLV6",
     "NSfraction": "18",
     "DN": 450,
@@ -7102,6 +9637,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 533,
+    "valveType": "Flanged wafer Valve",
+    "weight": 1316,
     "Type": "VLV6",
     "NSfraction": "20",
     "DN": 500,
@@ -7116,6 +9656,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 559,
+    "valveType": "Flanged wafer Valve",
+    "weight": 2010,
     "Type": "VLV6",
     "NSfraction": "24",
     "DN": 600,
@@ -7130,6 +9675,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.25,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/4",
     "DN": "",
@@ -7144,6 +9694,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.375,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/8",
     "DN": "",
@@ -7158,6 +9713,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -7172,6 +9732,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -7186,6 +9751,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1",
     "DN": 25,
@@ -7200,6 +9770,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -7214,6 +9789,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -7228,6 +9808,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 70,
+    "valveType": "Flanged wafer Valve",
+    "weight": 14,
     "Type": "VLV6",
     "NSfraction": "2",
     "DN": 50,
@@ -7242,6 +9827,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 86,
+    "valveType": "Flanged wafer Valve",
+    "weight": 21,
     "Type": "VLV6",
     "NSfraction": "3",
     "DN": 80,
@@ -7256,6 +9846,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 105,
+    "valveType": "Flanged wafer Valve",
+    "weight": 44,
     "Type": "VLV6",
     "NSfraction": "4",
     "DN": 100,
@@ -7270,6 +9865,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 159,
+    "valveType": "Flanged wafer Valve",
+    "weight": 87,
     "Type": "VLV6",
     "NSfraction": "6",
     "DN": 150,
@@ -7284,6 +9884,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 206,
+    "valveType": "Flanged wafer Valve",
+    "weight": 138,
     "Type": "VLV6",
     "NSfraction": "8",
     "DN": 200,
@@ -7298,6 +9903,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 48,
+    "valveType": "Lug type Valve",
+    "weight": 14,
     "Type": "Vlv8",
     "NSfraction": "3",
     "DN": 80,
@@ -7312,6 +9922,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 54,
+    "valveType": "Lug type Valve",
+    "weight": 21,
     "Type": "Vlv8",
     "NSfraction": "4",
     "DN": 100,
@@ -7326,6 +9941,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 59,
+    "valveType": "Lug type Valve",
+    "weight": 33,
     "Type": "Vlv8",
     "NSfraction": "6",
     "DN": 150,
@@ -7340,6 +9960,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 73,
+    "valveType": "Lug type Valve",
+    "weight": 58,
     "Type": "Vlv8",
     "NSfraction": "8",
     "DN": 200,
@@ -7354,6 +9979,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 83,
+    "valveType": "Lug type Valve",
+    "weight": 110,
     "Type": "Vlv8",
     "NSfraction": "10",
     "DN": 250,
@@ -7368,6 +9998,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 92,
+    "valveType": "Lug type Valve",
+    "weight": 179,
     "Type": "Vlv8",
     "NSfraction": "12",
     "DN": 300,
@@ -7382,6 +10017,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 117,
+    "valveType": "Lug type Valve",
+    "weight": 269,
     "Type": "Vlv8",
     "NSfraction": "14",
     "DN": 350,
@@ -7396,6 +10036,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 133,
+    "valveType": "Lug type Valve",
+    "weight": 376,
     "Type": "Vlv8",
     "NSfraction": "16",
     "DN": 400,
@@ -7410,6 +10055,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 149,
+    "valveType": "Lug type Valve",
+    "weight": 465,
     "Type": "Vlv8",
     "NSfraction": "18",
     "DN": 450,
@@ -7424,6 +10074,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 159,
+    "valveType": "Lug type Valve",
+    "weight": 488,
     "Type": "Vlv8",
     "NSfraction": "20",
     "DN": 500,
@@ -7438,6 +10093,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 181,
+    "valveType": "Lug type Valve",
+    "weight": 934,
     "Type": "Vlv8",
     "NSfraction": "24",
     "DN": 600,
@@ -7452,6 +10112,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 54,
+    "valveType": "Lug type Valve",
+    "weight": 21,
     "Type": "Vlv8",
     "NSfraction": "3",
     "DN": 80,
@@ -7466,6 +10131,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 64,
+    "valveType": "Lug type Valve",
+    "weight": 32,
     "Type": "Vlv8",
     "NSfraction": "4",
     "DN": 100,
@@ -7480,6 +10150,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 78,
+    "valveType": "Lug type Valve",
+    "weight": 68,
     "Type": "Vlv8",
     "NSfraction": "6",
     "DN": 150,
@@ -7494,6 +10169,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 102,
+    "valveType": "Lug type Valve",
+    "weight": 137,
     "Type": "Vlv8",
     "NSfraction": "8",
     "DN": 200,
@@ -7508,6 +10188,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 117,
+    "valveType": "Lug type Valve",
+    "weight": 248,
     "Type": "Vlv8",
     "NSfraction": "10",
     "DN": 250,
@@ -7522,6 +10207,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 140,
+    "valveType": "Lug type Valve",
+    "weight": 357,
     "Type": "Vlv8",
     "NSfraction": "12",
     "DN": 300,
@@ -7536,6 +10226,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 155,
+    "valveType": "Lug type Valve",
+    "weight": 521,
     "Type": "Vlv8",
     "NSfraction": "14",
     "DN": 350,
@@ -7550,6 +10245,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 178,
+    "valveType": "Lug type Valve",
+    "weight": 654,
     "Type": "Vlv8",
     "NSfraction": "16",
     "DN": 400,
@@ -7564,6 +10264,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 200,
+    "valveType": "Lug type Valve",
+    "weight": 798,
     "Type": "Vlv8",
     "NSfraction": "18",
     "DN": 450,
@@ -7578,6 +10283,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 216,
+    "valveType": "Lug type Valve",
+    "weight": 944,
     "Type": "Vlv8",
     "NSfraction": "20",
     "DN": 500,
@@ -7592,6 +10302,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 232,
+    "valveType": "Lug type Valve",
+    "weight": 1125,
     "Type": "Vlv8",
     "NSfraction": "24",
     "DN": 600,
@@ -7606,6 +10321,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 300,
+    "length": 400,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 87,
     "Type": "VLV5",
     "NSfraction": "5",
     "DN": 125,
@@ -7620,6 +10340,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 444,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 136,
     "Type": "VLV5",
     "NSfraction": "6",
     "DN": 150,
@@ -7634,6 +10359,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 533,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 221,
     "Type": "VLV5",
     "NSfraction": "8",
     "DN": 200,
@@ -7648,6 +10378,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 622,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 400,
     "Type": "VLV5",
     "NSfraction": "10",
     "DN": 250,
@@ -7662,6 +10397,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 711,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 471,
     "Type": "VLV5",
     "NSfraction": "12",
     "DN": 300,
@@ -7676,6 +10416,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 838,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 708,
     "Type": "VLV5",
     "NSfraction": "14",
     "DN": 350,
@@ -7690,6 +10435,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 864,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 876,
     "Type": "VLV5",
     "NSfraction": "16",
     "DN": 400,
@@ -7704,6 +10454,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 978,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1069,
     "Type": "VLV5",
     "NSfraction": "18",
     "DN": 450,
@@ -7718,6 +10473,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 1016,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1366,
     "Type": "VLV5",
     "NSfraction": "20",
     "DN": 500,
@@ -7732,6 +10492,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 550,
+    "rating": 300,
+    "length": 1118,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1600,
     "Type": "VLV5",
     "NSfraction": "22",
     "DN": 550,
@@ -7746,6 +10511,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 1346,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2036,
     "Type": "VLV5",
     "NSfraction": "24",
     "DN": 600,
@@ -7760,6 +10530,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 650,
+    "rating": 300,
+    "length": 1346,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2462,
     "Type": "VLV5",
     "NSfraction": "26",
     "DN": 650,
@@ -7774,6 +10549,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 700,
+    "rating": 300,
+    "length": 1499,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2925,
     "Type": "VLV5",
     "NSfraction": "28",
     "DN": 700,
@@ -7788,6 +10568,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 1594,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3423,
     "Type": "VLV5",
     "NSfraction": "30",
     "DN": 750,
@@ -7802,6 +10587,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 978,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 804,
     "Type": "VLV5",
     "NSfraction": "18",
     "DN": 450,
@@ -7816,6 +10606,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 978,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 861,
     "Type": "VLV5",
     "NSfraction": "20",
     "DN": 500,
@@ -7830,6 +10625,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 550,
+    "rating": 150,
+    "length": 1067,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1580,
     "Type": "VLV5",
     "NSfraction": "22",
     "DN": 550,
@@ -7844,6 +10644,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 1295,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1614,
     "Type": "VLV5",
     "NSfraction": "24",
     "DN": 600,
@@ -7858,6 +10663,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 1295,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1847,
     "Type": "VLV5",
     "NSfraction": "26",
     "DN": 650,
@@ -7872,6 +10682,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 1448,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1956,
     "Type": "VLV5",
     "NSfraction": "28",
     "DN": 700,
@@ -7886,6 +10701,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 1524,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2178,
     "Type": "VLV5",
     "NSfraction": "30",
     "DN": 750,
@@ -7900,6 +10720,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2596,
     "Type": "VLV5",
     "NSfraction": "32",
     "DN": 800,
@@ -7914,6 +10739,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3011,
     "Type": "VLV5",
     "NSfraction": "34",
     "DN": 850,
@@ -7928,6 +10758,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 1956,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3459,
     "Type": "VLV5",
     "NSfraction": "36",
     "DN": 900,
@@ -7942,6 +10777,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 6,
     "Type": "VLV5",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -7956,6 +10796,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 8,
     "Type": "VLV5",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -7970,6 +10815,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 216,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 11,
     "Type": "VLV5",
     "NSfraction": "1",
     "DN": 25,
@@ -7984,6 +10834,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": 229,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 15,
     "Type": "VLV5",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -7998,6 +10853,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 241,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 18,
     "Type": "VLV5",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -8012,6 +10872,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 267,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 23,
     "Type": "VLV5",
     "NSfraction": "2",
     "DN": 50,
@@ -8026,6 +10891,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": 292,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 35,
     "Type": "VLV5",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -8040,6 +10910,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 318,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 46,
     "Type": "VLV5",
     "NSfraction": "3",
     "DN": 80,
@@ -8054,6 +10929,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 356,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 64,
     "Type": "VLV5",
     "NSfraction": "4",
     "DN": 100,
@@ -8068,6 +10948,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 700,
+    "rating": 600,
+    "length": 1600,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4059,
     "Type": "VLV5",
     "NSfraction": "28",
     "DN": 700,
@@ -8082,6 +10967,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 1651,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4470,
     "Type": "VLV5",
     "NSfraction": "30",
     "DN": 750,
@@ -8096,6 +10986,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 800,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4819,
     "Type": "VLV5",
     "NSfraction": "32",
     "DN": 800,
@@ -8110,6 +11005,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 850,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5377,
     "Type": "VLV5",
     "NSfraction": "34",
     "DN": 850,
@@ -8124,6 +11024,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 2083,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5948,
     "Type": "VLV5",
     "NSfraction": "36",
     "DN": 900,
@@ -8138,6 +11043,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": 229,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 22,
     "Type": "VLV5",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -8152,6 +11062,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": 254,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 41,
     "Type": "VLV5",
     "NSfraction": "1",
     "DN": 25,
@@ -8166,6 +11081,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": 279,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 52,
     "Type": "VLV5",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -8180,6 +11100,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": 305,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 65,
     "Type": "VLV5",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -8194,6 +11119,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 368,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 75,
     "Type": "VLV5",
     "NSfraction": "2",
     "DN": 50,
@@ -8208,6 +11138,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 65,
+    "rating": 900,
+    "length": 419,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 101,
     "Type": "VLV5",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -8222,6 +11157,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 381,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 91,
     "Type": "VLV5",
     "NSfraction": "3",
     "DN": 80,
@@ -8236,6 +11176,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 457,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 156,
     "Type": "VLV5",
     "NSfraction": "4",
     "DN": 100,
@@ -8250,6 +11195,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 900,
+    "length": 559,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 234,
     "Type": "VLV5",
     "NSfraction": "5",
     "DN": 125,
@@ -8264,6 +11214,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 610,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 327,
     "Type": "VLV5",
     "NSfraction": "6",
     "DN": 150,
@@ -8278,6 +11233,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 737,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 530,
     "Type": "VLV5",
     "NSfraction": "8",
     "DN": 200,
@@ -8292,6 +11252,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 838,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 814,
     "Type": "VLV5",
     "NSfraction": "10",
     "DN": 250,
@@ -8306,6 +11271,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 965,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1135,
     "Type": "VLV5",
     "NSfraction": "12",
     "DN": 300,
@@ -8320,6 +11290,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 1029,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1558,
     "Type": "VLV5",
     "NSfraction": "14",
     "DN": 350,
@@ -8334,6 +11309,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 1130,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2203,
     "Type": "VLV5",
     "NSfraction": "16",
     "DN": 400,
@@ -8348,6 +11328,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 1219,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2733,
     "Type": "VLV5",
     "NSfraction": "18",
     "DN": 450,
@@ -8362,6 +11347,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 1321,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3567,
     "Type": "VLV5",
     "NSfraction": "20",
     "DN": 500,
@@ -8376,6 +11366,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 550,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4495,
     "Type": "VLV5",
     "NSfraction": "22",
     "DN": 550,
@@ -8390,6 +11385,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 1549,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4495,
     "Type": "VLV5",
     "NSfraction": "24",
     "DN": 600,
@@ -8404,6 +11404,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": 216,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 23,
     "Type": "VLV5",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -8418,6 +11423,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": 229,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 32,
     "Type": "VLV5",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -8432,6 +11442,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": 254,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 41,
     "Type": "VLV5",
     "NSfraction": "1",
     "DN": 25,
@@ -8446,6 +11461,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": 279,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 52,
     "Type": "VLV5",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -8460,6 +11480,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": 305,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 65,
     "Type": "VLV5",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -8474,6 +11499,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 368,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 75,
     "Type": "VLV5",
     "NSfraction": "2",
     "DN": 50,
@@ -8488,6 +11518,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": 419,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 101,
     "Type": "VLV5",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -8502,6 +11537,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 470,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 151,
     "Type": "VLV5",
     "NSfraction": "3",
     "DN": 80,
@@ -8516,6 +11556,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 546,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 247,
     "Type": "VLV5",
     "NSfraction": "4",
     "DN": 100,
@@ -8530,6 +11575,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 1500,
+    "length": 673,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 0,
     "Type": "VLV5",
     "NSfraction": "5",
     "DN": 125,
@@ -8544,6 +11594,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 705,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 524,
     "Type": "VLV5",
     "NSfraction": "6",
     "DN": 150,
@@ -8558,6 +11613,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 832,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1043,
     "Type": "VLV5",
     "NSfraction": "8",
     "DN": 200,
@@ -8572,6 +11632,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 991,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1571,
     "Type": "VLV5",
     "NSfraction": "10",
     "DN": 250,
@@ -8586,6 +11651,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 1130,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2109,
     "Type": "VLV5",
     "NSfraction": "12",
     "DN": 300,
@@ -8600,6 +11670,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 1257,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2620,
     "Type": "VLV5",
     "NSfraction": "14",
     "DN": 350,
@@ -8614,6 +11689,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 1384,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3448,
     "Type": "VLV5",
     "NSfraction": "16",
     "DN": 400,
@@ -8628,6 +11708,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 1537,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 4238,
     "Type": "VLV5",
     "NSfraction": "18",
     "DN": 450,
@@ -8642,6 +11727,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 1664,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5009,
     "Type": "VLV5",
     "NSfraction": "20",
     "DN": 500,
@@ -8656,6 +11746,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 550,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5947,
     "Type": "VLV5",
     "NSfraction": "22",
     "DN": 550,
@@ -8670,6 +11765,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 1943,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 5947,
     "Type": "VLV5",
     "NSfraction": "24",
     "DN": 600,
@@ -8684,6 +11784,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": 264,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 32,
     "Type": "VLV5",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -8698,6 +11803,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": 273,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 42,
     "Type": "VLV5",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -8712,6 +11822,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": 308,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 63,
     "Type": "VLV5",
     "NSfraction": "1",
     "DN": 25,
@@ -8726,6 +11841,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": 349,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 79,
     "Type": "VLV5",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -8740,6 +11860,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": 384,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 95,
     "Type": "VLV5",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -8754,6 +11879,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 451,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 126,
     "Type": "VLV5",
     "NSfraction": "2",
     "DN": 50,
@@ -8768,6 +11898,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 65,
+    "rating": 2500,
+    "length": 508,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 229,
     "Type": "VLV5",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -8782,6 +11917,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 578,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 311,
     "Type": "VLV5",
     "NSfraction": "3",
     "DN": 80,
@@ -8796,6 +11936,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 673,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 587,
     "Type": "VLV5",
     "NSfraction": "4",
     "DN": 100,
@@ -8810,6 +11955,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 125,
+    "rating": 2500,
+    "length": 794,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 696,
     "Type": "VLV5",
     "NSfraction": "5",
     "DN": 125,
@@ -8824,6 +11974,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 914,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 836,
     "Type": "VLV5",
     "NSfraction": "6",
     "DN": 150,
@@ -8838,6 +11993,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 1022,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 1345,
     "Type": "VLV5",
     "NSfraction": "8",
     "DN": 200,
@@ -8852,6 +12012,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 1270,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 2417,
     "Type": "VLV5",
     "NSfraction": "10",
     "DN": 250,
@@ -8866,6 +12031,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 1422,
+    "valveType": "Flanged Swing check Valve",
+    "weight": 3580,
     "Type": "VLV5",
     "NSfraction": "12",
     "DN": 300,
@@ -8880,6 +12050,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -8894,6 +12069,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -8908,6 +12088,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -8922,6 +12107,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -8936,6 +12126,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1",
     "DN": 25,
@@ -8950,6 +12145,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged wafer Valve",
+    "weight": "",
     "Type": "VLV6",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -8964,6 +12164,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 51,
+    "valveType": "Flanged wafer Valve",
+    "weight": 2,
     "Type": "VLV6",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -8978,6 +12183,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 185,
+    "valveType": "Weldneck Flange",
+    "weight": 211,
     "Type": "Flg",
     "NSfraction": "16",
     "DN": 400,
@@ -8992,6 +12202,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 191,
+    "valveType": "Weldneck Flange",
+    "weight": 259,
     "Type": "Flg",
     "NSfraction": "18",
     "DN": 450,
@@ -9006,6 +12221,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 197,
+    "valveType": "Weldneck Flange",
+    "weight": 321,
     "Type": "Flg",
     "NSfraction": "20",
     "DN": 500,
@@ -9020,6 +12240,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 210,
+    "valveType": "Weldneck Flange",
+    "weight": 458,
     "Type": "Flg",
     "NSfraction": "24",
     "DN": 600,
@@ -9034,6 +12259,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 220,
+    "valveType": "Weldneck Flange",
+    "weight": 152,
     "Type": "Flg",
     "NSfraction": "8",
     "DN": 200,
@@ -9048,6 +12278,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 261,
+    "valveType": "Weldneck Flange",
+    "weight": 248,
     "Type": "Flg",
     "NSfraction": "10",
     "DN": 250,
@@ -9062,6 +12297,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 290,
+    "valveType": "Weldneck Flange",
+    "weight": 384,
     "Type": "Flg",
     "NSfraction": "12",
     "DN": 300,
@@ -9076,6 +12316,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 305,
+    "valveType": "Weldneck Flange",
+    "weight": 512,
     "Type": "Flg",
     "NSfraction": "14",
     "DN": 350,
@@ -9090,6 +12335,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 318,
+    "valveType": "Weldneck Flange",
+    "weight": 690,
     "Type": "Flg",
     "NSfraction": "16",
     "DN": 400,
@@ -9104,6 +12354,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 334,
+    "valveType": "Weldneck Flange",
+    "weight": 907,
     "Type": "Flg",
     "NSfraction": "18",
     "DN": 450,
@@ -9118,6 +12373,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 363,
+    "valveType": "Weldneck Flange",
+    "weight": 1137,
     "Type": "Flg",
     "NSfraction": "20",
     "DN": 500,
@@ -9132,6 +12392,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 413,
+    "valveType": "Weldneck Flange",
+    "weight": 1835,
     "Type": "Flg",
     "NSfraction": "24",
     "DN": 600,
@@ -9146,6 +12411,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 4,
     "Type": "Flg",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -9160,6 +12430,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 6,
     "Type": "Flg",
     "NSfraction": "1",
     "DN": 25,
@@ -9174,6 +12449,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 7,
     "Type": "Flg",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -9188,6 +12468,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": 90,
+    "valveType": "Weldneck Flange",
+    "weight": 8,
     "Type": "Flg",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -9202,6 +12487,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 109,
+    "valveType": "Weldneck Flange",
+    "weight": 14,
     "Type": "Flg",
     "NSfraction": "2",
     "DN": 50,
@@ -9216,6 +12506,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": 112,
+    "valveType": "Weldneck Flange",
+    "weight": 20,
     "Type": "Flg",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -9230,6 +12525,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 124,
+    "valveType": "Weldneck Flange",
+    "weight": 28,
     "Type": "Flg",
     "NSfraction": "3",
     "DN": 80,
@@ -9244,6 +12544,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 131,
+    "valveType": "Weldneck Flange",
+    "weight": 41,
     "Type": "Flg",
     "NSfraction": "4",
     "DN": 100,
@@ -9258,6 +12563,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 125,
+    "rating": 1500,
+    "length": 163,
+    "valveType": "Weldneck Flange",
+    "weight": 73,
     "Type": "Flg",
     "NSfraction": "5",
     "DN": 125,
@@ -9272,6 +12582,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 178,
+    "valveType": "Weldneck Flange",
+    "weight": 92,
     "Type": "Flg",
     "NSfraction": "6",
     "DN": 150,
@@ -9286,6 +12601,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 220,
+    "valveType": "Weldneck Flange",
+    "weight": 152,
     "Type": "Flg",
     "NSfraction": "8",
     "DN": 200,
@@ -9300,6 +12620,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 261,
+    "valveType": "Weldneck Flange",
+    "weight": 248,
     "Type": "Flg",
     "NSfraction": "10",
     "DN": 250,
@@ -9314,6 +12639,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 290,
+    "valveType": "Weldneck Flange",
+    "weight": 384,
     "Type": "Flg",
     "NSfraction": "12",
     "DN": 300,
@@ -9328,6 +12658,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 305,
+    "valveType": "Weldneck Flange",
+    "weight": 512,
     "Type": "Flg",
     "NSfraction": "14",
     "DN": 350,
@@ -9342,6 +12677,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 318,
+    "valveType": "Weldneck Flange",
+    "weight": 690,
     "Type": "Flg",
     "NSfraction": "16",
     "DN": 400,
@@ -9356,6 +12696,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 334,
+    "valveType": "Weldneck Flange",
+    "weight": 907,
     "Type": "Flg",
     "NSfraction": "18",
     "DN": 450,
@@ -9370,6 +12715,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 363,
+    "valveType": "Weldneck Flange",
+    "weight": 1137,
     "Type": "Flg",
     "NSfraction": "20",
     "DN": 500,
@@ -9384,6 +12734,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 413,
+    "valveType": "Weldneck Flange",
+    "weight": 1835,
     "Type": "Flg",
     "NSfraction": "24",
     "DN": 600,
@@ -9398,6 +12753,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": 86,
+    "valveType": "Weldneck Flange",
+    "weight": 5,
     "Type": "Flg",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -9412,6 +12772,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": 96,
+    "valveType": "Weldneck Flange",
+    "weight": 8,
     "Type": "Flg",
     "NSfraction": "1",
     "DN": 25,
@@ -9426,6 +12791,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": 102,
+    "valveType": "Weldneck Flange",
+    "weight": 10,
     "Type": "Flg",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -9440,6 +12810,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": 118,
+    "valveType": "Weldneck Flange",
+    "weight": 15,
     "Type": "Flg",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -9454,6 +12829,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 134,
+    "valveType": "Weldneck Flange",
+    "weight": 24,
     "Type": "Flg",
     "NSfraction": "2",
     "DN": 50,
@@ -9468,6 +12848,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 65,
+    "rating": 2500,
+    "length": 150,
+    "valveType": "Weldneck Flange",
+    "weight": 30,
     "Type": "Flg",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -9482,6 +12867,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 175,
+    "valveType": "Weldneck Flange",
+    "weight": 51,
     "Type": "Flg",
     "NSfraction": "3",
     "DN": 80,
@@ -9496,6 +12886,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 197,
+    "valveType": "Weldneck Flange",
+    "weight": 80,
     "Type": "Flg",
     "NSfraction": "4",
     "DN": 100,
@@ -9510,6 +12905,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 125,
+    "rating": 2500,
+    "length": 236,
+    "valveType": "Weldneck Flange",
+    "weight": 129,
     "Type": "Flg",
     "NSfraction": "5",
     "DN": 125,
@@ -9524,6 +12924,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 280,
+    "valveType": "Weldneck Flange",
+    "weight": 206,
     "Type": "Flg",
     "NSfraction": "6",
     "DN": 150,
@@ -9538,6 +12943,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 325,
+    "valveType": "Weldneck Flange",
+    "weight": 317,
     "Type": "Flg",
     "NSfraction": "8",
     "DN": 200,
@@ -9552,6 +12962,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 426,
+    "valveType": "Weldneck Flange",
+    "weight": 588,
     "Type": "Flg",
     "NSfraction": "10",
     "DN": 250,
@@ -9566,6 +12981,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 471,
+    "valveType": "Weldneck Flange",
+    "weight": 830,
     "Type": "Flg",
     "NSfraction": "12",
     "DN": 300,
@@ -9580,6 +13000,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": 67,
+    "valveType": "Weldneck Flange",
+    "weight": 3,
     "Type": "Flg",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -9594,6 +13019,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": 77,
+    "valveType": "Weldneck Flange",
+    "weight": 4,
     "Type": "Flg",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -9608,6 +13038,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 6,
     "Type": "Flg",
     "NSfraction": "1",
     "DN": 25,
@@ -9622,6 +13057,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": 80,
+    "valveType": "Weldneck Flange",
+    "weight": 7,
     "Type": "Flg",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -9636,6 +13076,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": 90,
+    "valveType": "Weldneck Flange",
+    "weight": 8,
     "Type": "Flg",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -9650,6 +13095,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 109,
+    "valveType": "Weldneck Flange",
+    "weight": 14,
     "Type": "Flg",
     "NSfraction": "2",
     "DN": 50,
@@ -9664,6 +13114,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": 112,
+    "valveType": "Weldneck Flange",
+    "weight": 20,
     "Type": "Flg",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -9678,6 +13133,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 124,
+    "valveType": "Weldneck Flange",
+    "weight": 28,
     "Type": "Flg",
     "NSfraction": "3",
     "DN": 80,
@@ -9692,6 +13152,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 131,
+    "valveType": "Weldneck Flange",
+    "weight": 41,
     "Type": "Flg",
     "NSfraction": "4",
     "DN": 100,
@@ -9706,6 +13171,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 125,
+    "rating": 1500,
+    "length": 163,
+    "valveType": "Weldneck Flange",
+    "weight": 73,
     "Type": "Flg",
     "NSfraction": "5",
     "DN": 125,
@@ -9720,6 +13190,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 178,
+    "valveType": "Weldneck Flange",
+    "weight": 92,
     "Type": "Flg",
     "NSfraction": "6",
     "DN": 150,
@@ -9734,6 +13209,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 119,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 167,
     "Type": "FLA",
     "NSfraction": "26",
     "DN": 650,
@@ -9748,6 +13228,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 124,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 213,
     "Type": "FLA",
     "NSfraction": "28",
     "DN": 700,
@@ -9762,6 +13247,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 135,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 228,
     "Type": "FLA",
     "NSfraction": "30",
     "DN": 750,
@@ -9776,6 +13266,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": 143,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 303,
     "Type": "FLA",
     "NSfraction": "32",
     "DN": 800,
@@ -9790,6 +13285,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": 148,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 331,
     "Type": "FLA",
     "NSfraction": "34",
     "DN": 850,
@@ -9804,6 +13304,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 156,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 425,
     "Type": "FLA",
     "NSfraction": "36",
     "DN": 900,
@@ -9818,6 +13323,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 950,
+    "rating": 150,
+    "length": 156,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 438,
     "Type": "FLA",
     "NSfraction": "38",
     "DN": 950,
@@ -9832,6 +13342,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1000,
+    "rating": 150,
+    "length": 162,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 458,
     "Type": "FLA",
     "NSfraction": "40",
     "DN": 1000,
@@ -9846,6 +13361,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1050,
+    "rating": 150,
+    "length": 170,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 522,
     "Type": "FLA",
     "NSfraction": "42",
     "DN": 1050,
@@ -9860,6 +13380,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1100,
+    "rating": 150,
+    "length": 176,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 578,
     "Type": "FLA",
     "NSfraction": "44",
     "DN": 1100,
@@ -9874,6 +13399,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1150,
+    "rating": 150,
+    "length": 184,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 605,
     "Type": "FLA",
     "NSfraction": "46",
     "DN": 1150,
@@ -9888,6 +13418,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1200,
+    "rating": 150,
+    "length": 191,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 695,
     "Type": "FLA",
     "NSfraction": "48",
     "DN": 1200,
@@ -9902,6 +13437,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1250,
+    "rating": 150,
+    "length": 202,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 702,
     "Type": "FLA",
     "NSfraction": "50",
     "DN": 1250,
@@ -9916,6 +13456,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1300,
+    "rating": 150,
+    "length": 208,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 871,
     "Type": "FLA",
     "NSfraction": "52",
     "DN": 1300,
@@ -9930,6 +13475,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1350,
+    "rating": 150,
+    "length": 214,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 852,
     "Type": "FLA",
     "NSfraction": "54",
     "DN": 1350,
@@ -9944,6 +13494,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1400,
+    "rating": 150,
+    "length": 227,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1045,
     "Type": "FLA",
     "NSfraction": "56",
     "DN": 1400,
@@ -9958,6 +13513,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1450,
+    "rating": 150,
+    "length": 233,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1018,
     "Type": "FLA",
     "NSfraction": "58",
     "DN": 1450,
@@ -9972,6 +13532,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1500,
+    "rating": 150,
+    "length": 238,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1211,
     "Type": "FLA",
     "NSfraction": "60",
     "DN": 1500,
@@ -9986,6 +13551,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 650,
+    "rating": 300,
+    "length": 183,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 344,
     "Type": "FLA",
     "NSfraction": "26",
     "DN": 650,
@@ -10000,6 +13570,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 700,
+    "rating": 300,
+    "length": 195,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 403,
     "Type": "FLA",
     "NSfraction": "28",
     "DN": 700,
@@ -10014,6 +13589,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 208,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 483,
     "Type": "FLA",
     "NSfraction": "30",
     "DN": 750,
@@ -10028,6 +13608,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 800,
+    "rating": 300,
+    "length": 221,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 560,
     "Type": "FLA",
     "NSfraction": "32",
     "DN": 800,
@@ -10042,6 +13627,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 850,
+    "rating": 300,
+    "length": 230,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 618,
     "Type": "FLA",
     "NSfraction": "34",
     "DN": 850,
@@ -10056,6 +13646,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 240,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 741,
     "Type": "FLA",
     "NSfraction": "36",
     "DN": 900,
@@ -10070,6 +13665,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 950,
+    "rating": 300,
+    "length": 179,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 395,
     "Type": "FLA",
     "NSfraction": "38",
     "DN": 950,
@@ -10084,6 +13684,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1000,
+    "rating": 300,
+    "length": 192,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 478,
     "Type": "FLA",
     "NSfraction": "40",
     "DN": 1000,
@@ -10098,6 +13703,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1050,
+    "rating": 300,
+    "length": 198,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 524,
     "Type": "FLA",
     "NSfraction": "42",
     "DN": 1050,
@@ -10112,6 +13722,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1100,
+    "rating": 300,
+    "length": 205,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 605,
     "Type": "FLA",
     "NSfraction": "44",
     "DN": 1100,
@@ -10126,6 +13741,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1150,
+    "rating": 300,
+    "length": 214,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 684,
     "Type": "FLA",
     "NSfraction": "46",
     "DN": 1150,
@@ -10140,6 +13760,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1200,
+    "rating": 300,
+    "length": 222,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 740,
     "Type": "FLA",
     "NSfraction": "48",
     "DN": 1200,
@@ -10154,6 +13779,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1250,
+    "rating": 300,
+    "length": 230,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 842,
     "Type": "FLA",
     "NSfraction": "50",
     "DN": 1250,
@@ -10168,6 +13798,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1300,
+    "rating": 300,
+    "length": 237,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 924,
     "Type": "FLA",
     "NSfraction": "52",
     "DN": 1300,
@@ -10182,6 +13817,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1350,
+    "rating": 300,
+    "length": 251,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1090,
     "Type": "FLA",
     "NSfraction": "54",
     "DN": 1350,
@@ -10196,6 +13836,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1400,
+    "rating": 300,
+    "length": 259,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1146,
     "Type": "FLA",
     "NSfraction": "56",
     "DN": 1400,
@@ -10210,6 +13855,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1450,
+    "rating": 300,
+    "length": 265,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1215,
     "Type": "FLA",
     "NSfraction": "58",
     "DN": 1450,
@@ -10224,6 +13874,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1500,
+    "rating": 300,
+    "length": 271,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1308,
     "Type": "FLA",
     "NSfraction": "60",
     "DN": 1500,
@@ -10238,6 +13893,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 650,
+    "rating": 400,
+    "length": 194,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 565,
     "Type": "FLA",
     "NSfraction": "26",
     "DN": 650,
@@ -10252,6 +13912,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 700,
+    "rating": 400,
+    "length": 206,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 715,
     "Type": "FLA",
     "NSfraction": "28",
     "DN": 700,
@@ -10266,6 +13931,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 750,
+    "rating": 400,
+    "length": 219,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 830,
     "Type": "FLA",
     "NSfraction": "30",
     "DN": 750,
@@ -10280,6 +13950,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 800,
+    "rating": 400,
+    "length": 232,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 955,
     "Type": "FLA",
     "NSfraction": "32",
     "DN": 800,
@@ -10294,6 +13969,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 850,
+    "rating": 400,
+    "length": 241,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1120,
     "Type": "FLA",
     "NSfraction": "34",
     "DN": 850,
@@ -10308,6 +13988,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 900,
+    "rating": 400,
+    "length": 251,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1290,
     "Type": "FLA",
     "NSfraction": "36",
     "DN": 900,
@@ -10322,6 +14007,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 950,
+    "rating": 400,
+    "length": 206,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1165,
     "Type": "FLA",
     "NSfraction": "38",
     "DN": 950,
@@ -10336,6 +14026,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1000,
+    "rating": 400,
+    "length": 216,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1350,
     "Type": "FLA",
     "NSfraction": "40",
     "DN": 1000,
@@ -10350,6 +14045,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1050,
+    "rating": 400,
+    "length": 224,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1503,
     "Type": "FLA",
     "NSfraction": "42",
     "DN": 1050,
@@ -10364,6 +14064,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1100,
+    "rating": 400,
+    "length": 233,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1723,
     "Type": "FLA",
     "NSfraction": "44",
     "DN": 1100,
@@ -10378,6 +14083,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1150,
+    "rating": 400,
+    "length": 244,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1942,
     "Type": "FLA",
     "NSfraction": "46",
     "DN": 1150,
@@ -10392,6 +14102,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1200,
+    "rating": 400,
+    "length": 257,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2234,
     "Type": "FLA",
     "NSfraction": "48",
     "DN": 1200,
@@ -10406,6 +14121,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1250,
+    "rating": 400,
+    "length": 268,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2499,
     "Type": "FLA",
     "NSfraction": "50",
     "DN": 1250,
@@ -10420,6 +14140,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1300,
+    "rating": 400,
+    "length": 276,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2733,
     "Type": "FLA",
     "NSfraction": "52",
     "DN": 1300,
@@ -10434,6 +14159,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1350,
+    "rating": 400,
+    "length": 289,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 3152,
     "Type": "FLA",
     "NSfraction": "54",
     "DN": 1350,
@@ -10448,6 +14178,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1400,
+    "rating": 400,
+    "length": 298,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 3460,
     "Type": "FLA",
     "NSfraction": "56",
     "DN": 1400,
@@ -10462,6 +14197,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1450,
+    "rating": 400,
+    "length": 306,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 3740,
     "Type": "FLA",
     "NSfraction": "58",
     "DN": 1450,
@@ -10476,6 +14216,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1500,
+    "rating": 400,
+    "length": 319,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 4274,
     "Type": "FLA",
     "NSfraction": "60",
     "DN": 1500,
@@ -10490,6 +14235,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 650,
+    "rating": 600,
+    "length": 222,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 581,
     "Type": "FLA",
     "NSfraction": "26",
     "DN": 650,
@@ -10504,6 +14254,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 700,
+    "rating": 600,
+    "length": 235,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 668,
     "Type": "FLA",
     "NSfraction": "28",
     "DN": 700,
@@ -10518,6 +14273,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 248,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 741,
     "Type": "FLA",
     "NSfraction": "30",
     "DN": 750,
@@ -10532,6 +14292,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 800,
+    "rating": 600,
+    "length": 260,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 849,
     "Type": "FLA",
     "NSfraction": "32",
     "DN": 800,
@@ -10546,6 +14311,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 850,
+    "rating": 600,
+    "length": 270,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 920,
     "Type": "FLA",
     "NSfraction": "34",
     "DN": 850,
@@ -10560,6 +14330,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 283,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 999,
     "Type": "FLA",
     "NSfraction": "36",
     "DN": 900,
@@ -10574,6 +14349,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 950,
+    "rating": 600,
+    "length": 254,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1032,
     "Type": "FLA",
     "NSfraction": "38",
     "DN": 950,
@@ -10588,6 +14368,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1000,
+    "rating": 600,
+    "length": 264,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1003,
     "Type": "FLA",
     "NSfraction": "40",
     "DN": 1000,
@@ -10602,6 +14387,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1050,
+    "rating": 600,
+    "length": 279,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1231,
     "Type": "FLA",
     "NSfraction": "42",
     "DN": 1050,
@@ -10616,6 +14406,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1100,
+    "rating": 600,
+    "length": 289,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1341,
     "Type": "FLA",
     "NSfraction": "44",
     "DN": 1100,
@@ -10630,6 +14425,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1150,
+    "rating": 600,
+    "length": 300,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1459,
     "Type": "FLA",
     "NSfraction": "46",
     "DN": 1150,
@@ -10644,6 +14444,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1200,
+    "rating": 600,
+    "length": 316,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1798,
     "Type": "FLA",
     "NSfraction": "48",
     "DN": 1200,
@@ -10658,6 +14463,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1250,
+    "rating": 600,
+    "length": 329,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1900,
     "Type": "FLA",
     "NSfraction": "50",
     "DN": 1250,
@@ -10672,6 +14482,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1300,
+    "rating": 600,
+    "length": 337,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2197,
     "Type": "FLA",
     "NSfraction": "52",
     "DN": 1300,
@@ -10686,6 +14501,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1400,
+    "rating": 600,
+    "length": 349,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2242,
     "Type": "FLA",
     "NSfraction": "54",
     "DN": 1400,
@@ -10700,6 +14520,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1450,
+    "rating": 600,
+    "length": 362,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2829,
     "Type": "FLA",
     "NSfraction": "56",
     "DN": 1450,
@@ -10714,6 +14539,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1500,
+    "rating": 600,
+    "length": 370,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2632,
     "Type": "FLA",
     "NSfraction": "58",
     "DN": 1500,
@@ -10728,6 +14558,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1550,
+    "rating": 600,
+    "length": 389,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 3386,
     "Type": "FLA",
     "NSfraction": "60",
     "DN": 1550,
@@ -10742,6 +14577,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 650,
+    "rating": 900,
+    "length": 286,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1014,
     "Type": "FLA",
     "NSfraction": "26",
     "DN": 650,
@@ -10756,6 +14596,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 700,
+    "rating": 900,
+    "length": 298,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1216,
     "Type": "FLA",
     "NSfraction": "28",
     "DN": 700,
@@ -10770,6 +14615,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 750,
+    "rating": 900,
+    "length": 311,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1365,
     "Type": "FLA",
     "NSfraction": "30",
     "DN": 750,
@@ -10784,6 +14634,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 800,
+    "rating": 900,
+    "length": 330,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1628,
     "Type": "FLA",
     "NSfraction": "32",
     "DN": 800,
@@ -10798,6 +14653,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 850,
+    "rating": 900,
+    "length": 349,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 1993,
     "Type": "FLA",
     "NSfraction": "34",
     "DN": 850,
@@ -10812,6 +14672,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 900,
+    "rating": 900,
+    "length": 362,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2196,
     "Type": "FLA",
     "NSfraction": "36",
     "DN": 900,
@@ -10826,6 +14691,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 950,
+    "rating": 900,
+    "length": 352,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2115,
     "Type": "FLA",
     "NSfraction": "38",
     "DN": 950,
@@ -10840,6 +14710,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1000,
+    "rating": 900,
+    "length": 364,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2351,
     "Type": "FLA",
     "NSfraction": "40",
     "DN": 1000,
@@ -10854,6 +14729,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1050,
+    "rating": 900,
+    "length": 371,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2511,
     "Type": "FLA",
     "NSfraction": "42",
     "DN": 1050,
@@ -10868,6 +14748,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1100,
+    "rating": 900,
+    "length": 391,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 2939,
     "Type": "FLA",
     "NSfraction": "44",
     "DN": 1100,
@@ -10882,6 +14767,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1150,
+    "rating": 900,
+    "length": 411,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 3464,
     "Type": "FLA",
     "NSfraction": "46",
     "DN": 1150,
@@ -10896,6 +14786,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1200,
+    "rating": 900,
+    "length": 419,
+    "valveType": "Weldneck Flange Series A",
+    "weight": 3661,
     "Type": "FLA",
     "NSfraction": "48",
     "DN": 1200,
@@ -10910,6 +14805,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 87,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 63,
     "Type": "WNB",
     "NSfraction": "26",
     "DN": 650,
@@ -10924,6 +14824,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 94,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 74,
     "Type": "WNB",
     "NSfraction": "28",
     "DN": 700,
@@ -10938,6 +14843,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 98,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 80,
     "Type": "WNB",
     "NSfraction": "30",
     "DN": 750,
@@ -10952,6 +14862,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": 106,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 92,
     "Type": "WNB",
     "NSfraction": "32",
     "DN": 800,
@@ -10966,6 +14881,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": 109,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 113,
     "Type": "WNB",
     "NSfraction": "34",
     "DN": 850,
@@ -10980,6 +14900,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 116,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 129,
     "Type": "WNB",
     "NSfraction": "36",
     "DN": 900,
@@ -10994,6 +14919,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 950,
+    "rating": 150,
+    "length": 122,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 149,
     "Type": "WNB",
     "NSfraction": "38",
     "DN": 950,
@@ -11008,6 +14938,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1000,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 176,
     "Type": "WNB",
     "NSfraction": "40",
     "DN": 1000,
@@ -11022,6 +14957,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1050,
+    "rating": 150,
+    "length": 132,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 184,
     "Type": "WNB",
     "NSfraction": "42",
     "DN": 1050,
@@ -11036,6 +14976,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1100,
+    "rating": 150,
+    "length": 135,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 200,
     "Type": "WNB",
     "NSfraction": "44",
     "DN": 1100,
@@ -11050,6 +14995,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1150,
+    "rating": 150,
+    "length": 143,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 216,
     "Type": "WNB",
     "NSfraction": "46",
     "DN": 1150,
@@ -11064,6 +15014,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1200,
+    "rating": 150,
+    "length": 148,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 231,
     "Type": "WNB",
     "NSfraction": "48",
     "DN": 1200,
@@ -11078,6 +15033,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1250,
+    "rating": 150,
+    "length": 152,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 250,
     "Type": "WNB",
     "NSfraction": "50",
     "DN": 1250,
@@ -11092,6 +15052,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1300,
+    "rating": 150,
+    "length": 156,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 269,
     "Type": "WNB",
     "NSfraction": "52",
     "DN": 1300,
@@ -11106,6 +15071,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1350,
+    "rating": 150,
+    "length": 160,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 287,
     "Type": "WNB",
     "NSfraction": "54",
     "DN": 1350,
@@ -11120,6 +15090,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1400,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 321,
     "Type": "WNB",
     "NSfraction": "56",
     "DN": 1400,
@@ -11134,6 +15109,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1450,
+    "rating": 150,
+    "length": 173,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 355,
     "Type": "WNB",
     "NSfraction": "58",
     "DN": 1450,
@@ -11148,6 +15128,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 1500,
+    "rating": 150,
+    "length": 178,
+    "valveType": "Weldneck Flange Series B",
+    "weight": 388,
     "Type": "WNB",
     "NSfraction": "60",
     "DN": 1500,
@@ -11162,6 +15147,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": 48,
+    "valveType": "Weldneck Flange",
+    "weight": 1,
     "Type": "Flg",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -11176,6 +15166,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 53,
+    "valveType": "Weldneck Flange",
+    "weight": 1,
     "Type": "Flg",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -11190,6 +15185,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 1
   },
   {
+    "bore": 550,
+    "rating": 150,
+    "length": 1092,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2831,
     "Type": "VLV3-1",
     "NSfraction": "22",
     "DN": 550,
@@ -11204,6 +15204,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 550,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 3346,
     "Type": "VLV3-1",
     "NSfraction": "22",
     "DN": 550,
@@ -11218,6 +15223,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 1067,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 3750,
     "Type": "VLV3-1",
     "NSfraction": "24",
     "DN": 600,
@@ -11232,6 +15242,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 1549,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10245,
     "Type": "VLV3-1",
     "NSfraction": "24",
     "DN": 600,
@@ -11246,6 +15261,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 1143,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 4600,
     "Type": "VLV3-1",
     "NSfraction": "24",
     "DN": 600,
@@ -11260,6 +15280,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 1397,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 6385,
     "Type": "VLV3-1",
     "NSfraction": "24",
     "DN": 600,
@@ -11274,6 +15299,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 650,
+    "rating": 600,
+    "length": 1448,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 6984,
     "Type": "VLV3-1",
     "NSfraction": "26",
     "DN": 650,
@@ -11288,6 +15318,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 650,
+    "rating": 300,
+    "length": 1245,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 5716,
     "Type": "VLV3-1",
     "NSfraction": "26",
     "DN": 650,
@@ -11302,6 +15337,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 1245,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 4711,
     "Type": "VLV3-1",
     "NSfraction": "26",
     "DN": 650,
@@ -11316,6 +15356,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 700,
+    "rating": 300,
+    "length": 1346,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 7565,
     "Type": "VLV3-1",
     "NSfraction": "28",
     "DN": 700,
@@ -11330,6 +15375,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 1346,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 5444,
     "Type": "VLV3-1",
     "NSfraction": "28",
     "DN": 700,
@@ -11344,6 +15394,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 700,
+    "rating": 600,
+    "length": 1549,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 8371,
     "Type": "VLV3-1",
     "NSfraction": "28",
     "DN": 700,
@@ -11358,6 +15413,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 1397,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 8073,
     "Type": "VLV3-1",
     "NSfraction": "30",
     "DN": 750,
@@ -11372,6 +15432,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 1397,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 6334,
     "Type": "VLV3-1",
     "NSfraction": "30",
     "DN": 750,
@@ -11386,6 +15451,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 1651,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 11965,
     "Type": "VLV3-1",
     "NSfraction": "30",
     "DN": 750,
@@ -11400,6 +15470,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 800,
+    "rating": 300,
+    "length": 1524,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 9702,
     "Type": "VLV3-1",
     "NSfraction": "32",
     "DN": 800,
@@ -11414,6 +15489,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 800,
+    "rating": 600,
+    "length": 1778,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 12005,
     "Type": "VLV3-1",
     "NSfraction": "32",
     "DN": 800,
@@ -11428,6 +15508,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": 1524,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 8280,
     "Type": "VLV3-1",
     "NSfraction": "32",
     "DN": 800,
@@ -11442,6 +15527,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 850,
+    "rating": 300,
+    "length": 1626,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 11036,
     "Type": "VLV3-1",
     "NSfraction": "34",
     "DN": 850,
@@ -11456,6 +15546,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 850,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 13930,
     "Type": "VLV3-1",
     "NSfraction": "34",
     "DN": 850,
@@ -11470,6 +15565,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": 1626,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 9976,
     "Type": "VLV3-1",
     "NSfraction": "34",
     "DN": 850,
@@ -11484,6 +15584,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 2083,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 17273,
     "Type": "VLV3-1",
     "NSfraction": "36",
     "DN": 900,
@@ -11498,6 +15603,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 1727,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 12283,
     "Type": "VLV3-1",
     "NSfraction": "36",
     "DN": 900,
@@ -11512,6 +15622,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 1727,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 13625,
     "Type": "VLV3-1",
     "NSfraction": "36",
     "DN": 900,
@@ -11526,6 +15641,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -11540,6 +15660,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -11554,6 +15679,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 43,
     "Type": "VLV3-1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -11568,6 +15698,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": 165,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -11582,6 +15717,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": 140,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -11596,6 +15736,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 30,
     "Type": "VLV3-1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -11610,6 +15755,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": 108,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -11624,6 +15774,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 29,
     "Type": "VLV3-1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -11638,6 +15793,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 152,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -11652,6 +15812,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 56,
     "Type": "VLV3-1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -11666,6 +15831,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 117,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -11680,6 +15850,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 190,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 15,
     "Type": "VLV3-1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -11694,6 +15869,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 43,
     "Type": "VLV3-1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -11708,6 +15888,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 10,
     "Type": "VLV3-1",
     "NSfraction": "1",
     "DN": 25,
@@ -11722,6 +15907,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 55,
     "Type": "VLV3-1",
     "NSfraction": "1",
     "DN": 25,
@@ -11736,6 +15926,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": 254,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 55,
     "Type": "VLV3-1",
     "NSfraction": "1",
     "DN": 25,
@@ -11750,6 +15945,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 165,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 15,
     "Type": "VLV3-1",
     "NSfraction": "1",
     "DN": 25,
@@ -11764,6 +15964,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 84,
     "Type": "VLV3-1",
     "NSfraction": "1",
     "DN": 25,
@@ -11778,6 +15983,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": 216,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 21,
     "Type": "VLV3-1",
     "NSfraction": "1",
     "DN": 25,
@@ -11792,6 +16002,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 69,
     "Type": "VLV3-1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -11806,6 +16021,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 92,
     "Type": "VLV3-1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -11820,6 +16040,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": 279,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 63,
     "Type": "VLV3-1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -11834,6 +16059,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": 229,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 36,
     "Type": "VLV3-1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -11848,6 +16078,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 21,
     "Type": "VLV3-1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -11862,6 +16097,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": 178,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 17,
     "Type": "VLV3-1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -11876,6 +16116,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 74,
     "Type": "VLV3-1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -11890,6 +16135,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": 305,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 66,
     "Type": "VLV3-1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -11904,6 +16154,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 21,
     "Type": "VLV3-1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -11918,6 +16173,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 241,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 39,
     "Type": "VLV3-1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -11932,6 +16192,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 190,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 20,
     "Type": "VLV3-1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -11946,6 +16211,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 100,
     "Type": "VLV3-1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -11960,6 +16230,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 292,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 35,
     "Type": "VLV3-1",
     "NSfraction": "2",
     "DN": 50,
@@ -11974,6 +16249,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 368,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 56,
     "Type": "VLV3-1",
     "NSfraction": "2",
     "DN": 50,
@@ -11988,6 +16268,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 368,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 56,
     "Type": "VLV3-1",
     "NSfraction": "2",
     "DN": 50,
@@ -12002,6 +16287,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 533,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 469,
     "Type": "VLV3-1",
     "NSfraction": "10",
     "DN": 250,
@@ -12016,6 +16306,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 568,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 624,
     "Type": "VLV3-1",
     "NSfraction": "10",
     "DN": 250,
@@ -12030,6 +16325,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 787,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 901,
     "Type": "VLV3-1",
     "NSfraction": "10",
     "DN": 250,
@@ -12044,6 +16344,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 991,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1889,
     "Type": "VLV3-1",
     "NSfraction": "10",
     "DN": 250,
@@ -12058,6 +16363,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 1270,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2759,
     "Type": "VLV3-1",
     "NSfraction": "10",
     "DN": 250,
@@ -12072,6 +16382,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 838,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1274,
     "Type": "VLV3-1",
     "NSfraction": "10",
     "DN": 250,
@@ -12086,6 +16401,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 1422,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 4122,
     "Type": "VLV3-1",
     "NSfraction": "12",
     "DN": 300,
@@ -12100,6 +16420,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 965,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1663,
     "Type": "VLV3-1",
     "NSfraction": "12",
     "DN": 300,
@@ -12114,6 +16439,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 838,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1198,
     "Type": "VLV3-1",
     "NSfraction": "12",
     "DN": 300,
@@ -12128,6 +16458,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 610,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 805,
     "Type": "VLV3-1",
     "NSfraction": "12",
     "DN": 300,
@@ -12142,6 +16477,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 648,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 866,
     "Type": "VLV3-1",
     "NSfraction": "12",
     "DN": 300,
@@ -12156,6 +16496,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 1130,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2865,
     "Type": "VLV3-1",
     "NSfraction": "12",
     "DN": 300,
@@ -12170,6 +16515,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 1257,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 3590,
     "Type": "VLV3-1",
     "NSfraction": "14",
     "DN": 350,
@@ -12184,6 +16534,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 762,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1288,
     "Type": "VLV3-1",
     "NSfraction": "14",
     "DN": 350,
@@ -12198,6 +16553,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 686,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1049,
     "Type": "VLV3-1",
     "NSfraction": "14",
     "DN": 350,
@@ -12212,6 +16572,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 889,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1630,
     "Type": "VLV3-1",
     "NSfraction": "14",
     "DN": 350,
@@ -12226,6 +16591,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 1029,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2338,
     "Type": "VLV3-1",
     "NSfraction": "14",
     "DN": 350,
@@ -12240,6 +16610,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 1384,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 5187,
     "Type": "VLV3-1",
     "NSfraction": "16",
     "DN": 400,
@@ -12254,6 +16629,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 838,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1750,
     "Type": "VLV3-1",
     "NSfraction": "16",
     "DN": 400,
@@ -12268,6 +16648,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 991,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2162,
     "Type": "VLV3-1",
     "NSfraction": "16",
     "DN": 400,
@@ -12282,6 +16667,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 1130,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2953,
     "Type": "VLV3-1",
     "NSfraction": "16",
     "DN": 400,
@@ -12296,6 +16686,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 762,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1539,
     "Type": "VLV3-1",
     "NSfraction": "16",
     "DN": 400,
@@ -12310,6 +16705,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 914,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 1966,
     "Type": "VLV3-1",
     "NSfraction": "18",
     "DN": 450,
@@ -12324,6 +16724,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 864,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2026,
     "Type": "VLV3-1",
     "NSfraction": "18",
     "DN": 450,
@@ -12338,6 +16743,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 1092,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2602,
     "Type": "VLV3-1",
     "NSfraction": "18",
     "DN": 450,
@@ -12352,6 +16762,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 1219,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 3589,
     "Type": "VLV3-1",
     "NSfraction": "18",
     "DN": 450,
@@ -12366,6 +16781,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 991,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2694,
     "Type": "VLV3-1",
     "NSfraction": "20",
     "DN": 500,
@@ -12380,6 +16800,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 1321,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 5471,
     "Type": "VLV3-1",
     "NSfraction": "20",
     "DN": 500,
@@ -12394,6 +16819,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 1194,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 3996,
     "Type": "VLV3-1",
     "NSfraction": "20",
     "DN": 500,
@@ -12408,6 +16838,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 914,
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 2184,
     "Type": "VLV3-1",
     "NSfraction": "20",
     "DN": 500,
@@ -12422,6 +16857,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 550,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 7656,
     "Type": "VLV3-1",
     "NSfraction": "22",
     "DN": 550,
@@ -12436,6 +16876,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 550,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Ball Valve -Full Bore",
+    "weight": 5004,
     "Type": "VLV3-1",
     "NSfraction": "22",
     "DN": 550,
@@ -12450,6 +16895,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 152,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 8,
     "Type": "VLV3",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -12464,6 +16914,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 165,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 11,
     "Type": "VLV3",
     "NSfraction": "1",
     "DN": 25,
@@ -12478,6 +16933,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": 178,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 13,
     "Type": "VLV3",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -12492,6 +16952,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 190,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 15,
     "Type": "VLV3",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -12506,6 +16971,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 216,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 27,
     "Type": "VLV3",
     "NSfraction": "2",
     "DN": 50,
@@ -12520,6 +16990,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": 241,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 30,
     "Type": "VLV3",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -12534,6 +17009,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 282,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 35,
     "Type": "VLV3",
     "NSfraction": "3",
     "DN": 80,
@@ -12548,6 +17028,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 305,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 77,
     "Type": "VLV3",
     "NSfraction": "4",
     "DN": 100,
@@ -12562,6 +17047,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": "",
     "Type": "VLV3",
     "NSfraction": "5",
     "DN": 125,
@@ -12576,6 +17066,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 403,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 143,
     "Type": "VLV3",
     "NSfraction": "6",
     "DN": 150,
@@ -12590,6 +17085,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 502,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 271,
     "Type": "VLV3",
     "NSfraction": "8",
     "DN": 200,
@@ -12604,6 +17104,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 568,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 366,
     "Type": "VLV3",
     "NSfraction": "10",
     "DN": 250,
@@ -12618,6 +17123,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 648,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 735,
     "Type": "VLV3",
     "NSfraction": "12",
     "DN": 300,
@@ -12632,6 +17142,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 762,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1007,
     "Type": "VLV3",
     "NSfraction": "14",
     "DN": 350,
@@ -12646,6 +17161,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 838,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1386,
     "Type": "VLV3",
     "NSfraction": "16",
     "DN": 400,
@@ -12660,6 +17180,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 914,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1956,
     "Type": "VLV3",
     "NSfraction": "18",
     "DN": 450,
@@ -12674,6 +17199,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 991,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2196,
     "Type": "VLV3",
     "NSfraction": "20",
     "DN": 500,
@@ -12688,6 +17218,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 550,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1963,
     "Type": "VLV3",
     "NSfraction": "22",
     "DN": 550,
@@ -12702,6 +17237,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 1143,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 3269,
     "Type": "VLV3",
     "NSfraction": "24",
     "DN": 600,
@@ -12716,6 +17256,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 650,
+    "rating": 300,
+    "length": 1245,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 3249,
     "Type": "VLV3",
     "NSfraction": "26",
     "DN": 650,
@@ -12730,6 +17275,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 700,
+    "rating": 300,
+    "length": 1346,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 4085,
     "Type": "VLV3",
     "NSfraction": "28",
     "DN": 700,
@@ -12744,6 +17294,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 1397,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 5534,
     "Type": "VLV3",
     "NSfraction": "30",
     "DN": 750,
@@ -12758,6 +17313,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 800,
+    "rating": 300,
+    "length": 1524,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 5721,
     "Type": "VLV3",
     "NSfraction": "32",
     "DN": 800,
@@ -12772,6 +17332,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 850,
+    "rating": 300,
+    "length": 1626,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 7028,
     "Type": "VLV3",
     "NSfraction": "34",
     "DN": 850,
@@ -12786,6 +17351,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 1727,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 10089,
     "Type": "VLV3",
     "NSfraction": "36",
     "DN": 900,
@@ -12800,6 +17370,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 5,
     "Type": "VLV3",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -12814,6 +17389,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 5,
     "Type": "VLV3",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -12828,6 +17408,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": 108,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 5,
     "Type": "VLV3",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -12842,6 +17427,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 117,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 7,
     "Type": "VLV3",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -12856,6 +17446,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 10,
     "Type": "VLV3",
     "NSfraction": "1",
     "DN": 25,
@@ -12870,6 +17465,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 16,
     "Type": "VLV3",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -12884,6 +17484,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 16,
     "Type": "VLV3",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -12898,6 +17503,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 178,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 26,
     "Type": "VLV3",
     "NSfraction": "2",
     "DN": 50,
@@ -12912,6 +17522,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": 190,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 20,
     "Type": "VLV3",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -12926,6 +17541,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 203,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 31,
     "Type": "VLV3",
     "NSfraction": "3",
     "DN": 80,
@@ -12940,6 +17560,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 229,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 62,
     "Type": "VLV3",
     "NSfraction": "4",
     "DN": 100,
@@ -12954,6 +17579,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": "",
     "Type": "VLV3",
     "NSfraction": "5",
     "DN": 125,
@@ -12968,6 +17598,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 394,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 123,
     "Type": "VLV3",
     "NSfraction": "6",
     "DN": 150,
@@ -12982,6 +17617,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 457,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 225,
     "Type": "VLV3",
     "NSfraction": "8",
     "DN": 200,
@@ -12996,6 +17636,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 533,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 356,
     "Type": "VLV3",
     "NSfraction": "10",
     "DN": 250,
@@ -13010,6 +17655,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 610,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 562,
     "Type": "VLV3",
     "NSfraction": "12",
     "DN": 300,
@@ -13024,6 +17674,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": 140,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 6,
     "Type": "VLV3",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -13038,6 +17693,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 686,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 743,
     "Type": "VLV3",
     "NSfraction": "14",
     "DN": 350,
@@ -13052,6 +17712,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 762,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 999,
     "Type": "VLV3",
     "NSfraction": "16",
     "DN": 400,
@@ -13066,6 +17731,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 864,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1292,
     "Type": "VLV3",
     "NSfraction": "18",
     "DN": 450,
@@ -13080,6 +17750,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 914,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1454,
     "Type": "VLV3",
     "NSfraction": "20",
     "DN": 500,
@@ -13094,6 +17769,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 550,
+    "rating": 150,
+    "length": 1092,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1882,
     "Type": "VLV3",
     "NSfraction": "22",
     "DN": 550,
@@ -13108,6 +17788,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 1067,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2398,
     "Type": "VLV3",
     "NSfraction": "24",
     "DN": 600,
@@ -13122,6 +17807,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 1245,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2993,
     "Type": "VLV3",
     "NSfraction": "26",
     "DN": 650,
@@ -13136,6 +17826,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 1346,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 3896,
     "Type": "VLV3",
     "NSfraction": "28",
     "DN": 700,
@@ -13150,6 +17845,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 1397,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 3958,
     "Type": "VLV3",
     "NSfraction": "30",
     "DN": 750,
@@ -13164,6 +17864,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": 1524,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 5333,
     "Type": "VLV3",
     "NSfraction": "32",
     "DN": 800,
@@ -13178,6 +17883,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": 1626,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 7692,
     "Type": "VLV3",
     "NSfraction": "34",
     "DN": 850,
@@ -13192,6 +17902,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 1727,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 7692,
     "Type": "VLV3",
     "NSfraction": "36",
     "DN": 900,
@@ -13206,6 +17921,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": 165,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 6,
     "Type": "VLV3",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -13220,6 +17940,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 190,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 11,
     "Type": "VLV3",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -13234,6 +17959,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": 216,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 16,
     "Type": "VLV3",
     "NSfraction": "1",
     "DN": 25,
@@ -13248,6 +17978,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": 229,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 27,
     "Type": "VLV3",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -13262,6 +17997,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 241,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 29,
     "Type": "VLV3",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -13276,6 +18016,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 292,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 33,
     "Type": "VLV3",
     "NSfraction": "2",
     "DN": 50,
@@ -13290,6 +18035,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 600,
+    "length": 330,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 39,
     "Type": "VLV3",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -13304,6 +18054,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 356,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 42,
     "Type": "VLV3",
     "NSfraction": "3",
     "DN": 80,
@@ -13318,6 +18073,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 432,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 100,
     "Type": "VLV3",
     "NSfraction": "4",
     "DN": 100,
@@ -13332,6 +18092,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": "",
     "Type": "VLV3",
     "NSfraction": "5",
     "DN": 125,
@@ -13346,6 +18111,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 559,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 193,
     "Type": "VLV3",
     "NSfraction": "6",
     "DN": 150,
@@ -13360,6 +18130,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 660,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 367,
     "Type": "VLV3",
     "NSfraction": "8",
     "DN": 200,
@@ -13374,6 +18149,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 787,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 691,
     "Type": "VLV3",
     "NSfraction": "10",
     "DN": 250,
@@ -13388,6 +18168,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 838,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1013,
     "Type": "VLV3",
     "NSfraction": "12",
     "DN": 300,
@@ -13402,6 +18187,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 889,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1426,
     "Type": "VLV3",
     "NSfraction": "14",
     "DN": 350,
@@ -13416,6 +18206,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 991,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1686,
     "Type": "VLV3",
     "NSfraction": "16",
     "DN": 400,
@@ -13430,6 +18225,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 1092,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2102,
     "Type": "VLV3",
     "NSfraction": "18",
     "DN": 450,
@@ -13444,6 +18244,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 1194,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2956,
     "Type": "VLV3",
     "NSfraction": "20",
     "DN": 500,
@@ -13458,6 +18263,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 550,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2428,
     "Type": "VLV3",
     "NSfraction": "22",
     "DN": 550,
@@ -13472,6 +18282,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 1397,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 4059,
     "Type": "VLV3",
     "NSfraction": "24",
     "DN": 600,
@@ -13486,6 +18301,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 650,
+    "rating": 600,
+    "length": 1448,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 4022,
     "Type": "VLV3",
     "NSfraction": "26",
     "DN": 650,
@@ -13500,6 +18320,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 700,
+    "rating": 600,
+    "length": 1549,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 4950,
     "Type": "VLV3",
     "NSfraction": "28",
     "DN": 700,
@@ -13514,6 +18339,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 1651,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 7192,
     "Type": "VLV3",
     "NSfraction": "30",
     "DN": 750,
@@ -13528,6 +18358,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 800,
+    "rating": 600,
+    "length": 1778,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 7301,
     "Type": "VLV3",
     "NSfraction": "32",
     "DN": 800,
@@ -13542,6 +18377,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 850,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 12899,
     "Type": "VLV3",
     "NSfraction": "34",
     "DN": 850,
@@ -13556,6 +18396,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 2083,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 12899,
     "Type": "VLV3",
     "NSfraction": "36",
     "DN": 900,
@@ -13570,6 +18415,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 22,
     "Type": "VLV3",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -13584,6 +18434,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": 254,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 41,
     "Type": "VLV3",
     "NSfraction": "1",
     "DN": 25,
@@ -13598,6 +18453,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": 279,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 47,
     "Type": "VLV3",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -13612,6 +18472,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": 305,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 50,
     "Type": "VLV3",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -13626,6 +18491,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 368,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 47,
     "Type": "VLV3",
     "NSfraction": "2",
     "DN": 50,
@@ -13640,6 +18510,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 900,
+    "length": 419,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 68,
     "Type": "VLV3",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -13654,6 +18529,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 381,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 68,
     "Type": "VLV3",
     "NSfraction": "3",
     "DN": 80,
@@ -13668,6 +18548,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 457,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 125,
     "Type": "VLV3",
     "NSfraction": "4",
     "DN": 100,
@@ -13682,6 +18567,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": "",
     "Type": "VLV3",
     "NSfraction": "5",
     "DN": 125,
@@ -13696,6 +18586,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 610,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 263,
     "Type": "VLV3",
     "NSfraction": "6",
     "DN": 150,
@@ -13710,6 +18605,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 737,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 558,
     "Type": "VLV3",
     "NSfraction": "8",
     "DN": 200,
@@ -13724,6 +18624,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 838,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 870,
     "Type": "VLV3",
     "NSfraction": "10",
     "DN": 250,
@@ -13738,6 +18643,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 965,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1441,
     "Type": "VLV3",
     "NSfraction": "12",
     "DN": 300,
@@ -13752,6 +18662,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 1029,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2020,
     "Type": "VLV3",
     "NSfraction": "14",
     "DN": 350,
@@ -13766,6 +18681,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 1130,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2149,
     "Type": "VLV3",
     "NSfraction": "16",
     "DN": 400,
@@ -13780,6 +18700,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 1219,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 3061,
     "Type": "VLV3",
     "NSfraction": "18",
     "DN": 450,
@@ -13794,6 +18719,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 1321,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 4067,
     "Type": "VLV3",
     "NSfraction": "20",
     "DN": 500,
@@ -13808,6 +18738,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 550,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 6825,
     "Type": "VLV3",
     "NSfraction": "22",
     "DN": 550,
@@ -13822,6 +18757,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 1549,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 6825,
     "Type": "VLV3",
     "NSfraction": "24",
     "DN": 600,
@@ -13836,6 +18776,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 23,
     "Type": "VLV3",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -13850,6 +18795,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 32,
     "Type": "VLV3",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -13864,6 +18814,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 41,
     "Type": "VLV3",
     "NSfraction": "1",
     "DN": 25,
@@ -13878,6 +18833,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 52,
     "Type": "VLV3",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -13892,6 +18852,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 56,
     "Type": "VLV3",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -13906,6 +18871,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 368,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 47,
     "Type": "VLV3",
     "NSfraction": "2",
     "DN": 50,
@@ -13920,6 +18890,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": 419,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 76,
     "Type": "VLV3",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -13934,6 +18909,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 470,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 93,
     "Type": "VLV3",
     "NSfraction": "3",
     "DN": 80,
@@ -13948,6 +18928,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 546,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 161,
     "Type": "VLV3",
     "NSfraction": "4",
     "DN": 100,
@@ -13962,6 +18947,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": "",
     "Type": "VLV3",
     "NSfraction": "5",
     "DN": 125,
@@ -13976,6 +18966,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 705,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 376,
     "Type": "VLV3",
     "NSfraction": "6",
     "DN": 150,
@@ -13990,6 +18985,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 832,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 732,
     "Type": "VLV3",
     "NSfraction": "8",
     "DN": 200,
@@ -14004,6 +19004,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 991,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1307,
     "Type": "VLV3",
     "NSfraction": "10",
     "DN": 250,
@@ -14018,6 +19023,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 1130,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2251,
     "Type": "VLV3",
     "NSfraction": "12",
     "DN": 300,
@@ -14032,6 +19042,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 1257,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 3170,
     "Type": "VLV3",
     "NSfraction": "14",
     "DN": 350,
@@ -14046,6 +19061,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 1384,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 4137,
     "Type": "VLV3",
     "NSfraction": "16",
     "DN": 400,
@@ -14060,6 +19080,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 32,
     "Type": "VLV3",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -14074,6 +19099,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 42,
     "Type": "VLV3",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -14088,6 +19118,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 63,
     "Type": "VLV3",
     "NSfraction": "1",
     "DN": 25,
@@ -14102,6 +19137,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 69,
     "Type": "VLV3",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -14116,6 +19156,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 75,
     "Type": "VLV3",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -14130,6 +19175,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 451,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 74,
     "Type": "VLV3",
     "NSfraction": "2",
     "DN": 50,
@@ -14144,6 +19194,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 2500,
+    "length": 508,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 83,
     "Type": "VLV3",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -14158,6 +19213,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 578,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 202,
     "Type": "VLV3",
     "NSfraction": "3",
     "DN": 80,
@@ -14172,6 +19232,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 673,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 344,
     "Type": "VLV3",
     "NSfraction": "4",
     "DN": 100,
@@ -14186,6 +19251,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 125,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": "",
     "Type": "VLV3",
     "NSfraction": "5",
     "DN": 125,
@@ -14200,6 +19270,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 914,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 678,
     "Type": "VLV3",
     "NSfraction": "6",
     "DN": 150,
@@ -14214,6 +19289,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 1022,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 1414,
     "Type": "VLV3",
     "NSfraction": "8",
     "DN": 200,
@@ -14228,6 +19308,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 1270,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 2191,
     "Type": "VLV3",
     "NSfraction": "10",
     "DN": 250,
@@ -14242,6 +19327,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 1422,
+    "valveType": "Flanged Ball Valve-Reduced Bore",
+    "weight": 3336,
     "Type": "VLV3",
     "NSfraction": "12",
     "DN": 300,
@@ -14256,6 +19346,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": 140,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 6,
     "Type": "VLV3-2",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -14270,6 +19365,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": 108,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 5,
     "Type": "VLV3-2",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -14284,6 +19384,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 152,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 7,
     "Type": "VLV3-2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -14298,6 +19403,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 117,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 7,
     "Type": "VLV3-2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -14312,6 +19422,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 165,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 10,
     "Type": "VLV3-2",
     "NSfraction": "1",
     "DN": 25,
@@ -14326,6 +19441,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 10,
     "Type": "VLV3-2",
     "NSfraction": "1",
     "DN": 25,
@@ -14340,6 +19460,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": 178,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 12,
     "Type": "VLV3-2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -14354,6 +19479,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 6,
     "Type": "VLV3-2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -14368,6 +19498,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 190,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 14,
     "Type": "VLV3-2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -14382,6 +19517,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 10,
     "Type": "VLV3-2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -14396,6 +19536,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 178,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 12,
     "Type": "VLV3-2",
     "NSfraction": "2",
     "DN": 50,
@@ -14410,6 +19555,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 216,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 18,
     "Type": "VLV3-2",
     "NSfraction": "2",
     "DN": 50,
@@ -14424,6 +19574,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": 190,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 14,
     "Type": "VLV3-2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -14438,6 +19593,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": 241,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 27,
     "Type": "VLV3-2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -14452,6 +19612,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 203,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 25,
     "Type": "VLV3-2",
     "NSfraction": "3",
     "DN": 80,
@@ -14466,6 +19631,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 282,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 29,
     "Type": "VLV3-2",
     "NSfraction": "3",
     "DN": 80,
@@ -14480,6 +19650,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 229,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 45,
     "Type": "VLV3-2",
     "NSfraction": "4",
     "DN": 100,
@@ -14494,6 +19669,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 305,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 43,
     "Type": "VLV3-2",
     "NSfraction": "4",
     "DN": 100,
@@ -14508,6 +19688,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 403,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 82,
     "Type": "VLV3-2",
     "NSfraction": "6",
     "DN": 150,
@@ -14522,6 +19707,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 267,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 63,
     "Type": "VLV3-2",
     "NSfraction": "6",
     "DN": 150,
@@ -14536,6 +19726,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 419,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 166,
     "Type": "VLV3-2",
     "NSfraction": "8",
     "DN": 200,
@@ -14550,6 +19745,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 292,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 120,
     "Type": "VLV3-2",
     "NSfraction": "8",
     "DN": 200,
@@ -14564,6 +19764,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 457,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 285,
     "Type": "VLV3-2",
     "NSfraction": "10",
     "DN": 250,
@@ -14578,6 +19783,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 330,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 210,
     "Type": "VLV3-2",
     "NSfraction": "10",
     "DN": 250,
@@ -14592,6 +19802,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 356,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 303,
     "Type": "VLV3-2",
     "NSfraction": "12",
     "DN": 300,
@@ -14606,6 +19821,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 502,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 443,
     "Type": "VLV3-2",
     "NSfraction": "12",
     "DN": 300,
@@ -14620,6 +19840,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 572,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 526,
     "Type": "VLV3-2",
     "NSfraction": "14",
     "DN": 350,
@@ -14634,6 +19859,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 381,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 388,
     "Type": "VLV3-2",
     "NSfraction": "14",
     "DN": 350,
@@ -14648,6 +19878,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 406,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 421,
     "Type": "VLV3-2",
     "NSfraction": "16",
     "DN": 400,
@@ -14662,6 +19897,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 610,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 659,
     "Type": "VLV3-2",
     "NSfraction": "16",
     "DN": 400,
@@ -14676,6 +19916,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 660,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 784,
     "Type": "VLV3-2",
     "NSfraction": "18",
     "DN": 450,
@@ -14690,6 +19935,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 711,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 1213,
     "Type": "VLV3-2",
     "NSfraction": "20",
     "DN": 500,
@@ -14704,6 +19954,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 813,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 1745,
     "Type": "VLV3-2",
     "NSfraction": "24",
     "DN": 600,
@@ -14718,6 +19973,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 650,
+    "rating": 300,
+    "length": 1245,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 2614,
     "Type": "VLV3-2",
     "NSfraction": "26",
     "DN": 650,
@@ -14732,6 +19992,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 700,
+    "rating": 300,
+    "length": 1346,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 3300,
     "Type": "VLV3-2",
     "NSfraction": "28",
     "DN": 700,
@@ -14746,6 +20011,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 1397,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 4136,
     "Type": "VLV3-2",
     "NSfraction": "30",
     "DN": 750,
@@ -14760,6 +20030,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 800,
+    "rating": 300,
+    "length": 1524,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 4614,
     "Type": "VLV3-2",
     "NSfraction": "32",
     "DN": 800,
@@ -14774,6 +20049,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 850,
+    "rating": 300,
+    "length": 1626,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 5700,
     "Type": "VLV3-2",
     "NSfraction": "34",
     "DN": 850,
@@ -14788,6 +20068,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 1727,
+    "valveType": "Flanged Ball Valve -Short Pattern",
+    "weight": 6977,
     "Type": "VLV3-2",
     "NSfraction": "36",
     "DN": 900,
@@ -14802,6 +20087,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 2
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5,
     "Type": "VLV1",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -14816,6 +20106,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5,
     "Type": "VLV1",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -14830,6 +20125,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": 108,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5,
     "Type": "VLV1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -14844,6 +20144,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 117,
+    "valveType": "Flanged Gate Valve",
+    "weight": 7,
     "Type": "VLV1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -14858,6 +20163,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Flanged Gate Valve",
+    "weight": 10,
     "Type": "VLV1",
     "NSfraction": "1",
     "DN": 25,
@@ -14872,6 +20182,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Flanged Gate Valve",
+    "weight": 15,
     "Type": "VLV1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -14886,6 +20201,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Flanged Gate Valve",
+    "weight": 18,
     "Type": "VLV1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -14900,6 +20220,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 178,
+    "valveType": "Flanged Gate Valve",
+    "weight": 18,
     "Type": "VLV1",
     "NSfraction": "2",
     "DN": 50,
@@ -14914,6 +20239,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": 190,
+    "valveType": "Flanged Gate Valve",
+    "weight": 28,
     "Type": "VLV1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -14928,6 +20258,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 203,
+    "valveType": "Flanged Gate Valve",
+    "weight": 34,
     "Type": "VLV1",
     "NSfraction": "3",
     "DN": 80,
@@ -14942,6 +20277,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 229,
+    "valveType": "Flanged Gate Valve",
+    "weight": 52,
     "Type": "VLV1",
     "NSfraction": "4",
     "DN": 100,
@@ -14956,6 +20296,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": 254,
+    "valveType": "Flanged Gate Valve",
+    "weight": 71,
     "Type": "VLV1",
     "NSfraction": "5",
     "DN": 125,
@@ -14970,6 +20315,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 267,
+    "valveType": "Flanged Gate Valve",
+    "weight": 88,
     "Type": "VLV1",
     "NSfraction": "6",
     "DN": 150,
@@ -14984,6 +20334,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 292,
+    "valveType": "Flanged Gate Valve",
+    "weight": 144,
     "Type": "VLV1",
     "NSfraction": "8",
     "DN": 200,
@@ -14998,6 +20353,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 330,
+    "valveType": "Flanged Gate Valve",
+    "weight": 197,
     "Type": "VLV1",
     "NSfraction": "10",
     "DN": 250,
@@ -15012,6 +20372,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 356,
+    "valveType": "Flanged Gate Valve",
+    "weight": 298,
     "Type": "VLV1",
     "NSfraction": "12",
     "DN": 300,
@@ -15026,6 +20391,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 381,
+    "valveType": "Flanged Gate Valve",
+    "weight": 406,
     "Type": "VLV1",
     "NSfraction": "14",
     "DN": 350,
@@ -15040,6 +20410,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 406,
+    "valveType": "Flanged Gate Valve",
+    "weight": 524,
     "Type": "VLV1",
     "NSfraction": "16",
     "DN": 400,
@@ -15054,6 +20429,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 432,
+    "valveType": "Flanged Gate Valve",
+    "weight": 720,
     "Type": "VLV1",
     "NSfraction": "18",
     "DN": 450,
@@ -15068,6 +20448,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 457,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1117,
     "Type": "VLV1",
     "NSfraction": "20",
     "DN": 500,
@@ -15082,6 +20467,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 550,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": "",
     "Type": "VLV1",
     "NSfraction": "22",
     "DN": 550,
@@ -15096,6 +20486,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 508,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1466,
     "Type": "VLV1",
     "NSfraction": "24",
     "DN": 600,
@@ -15110,6 +20505,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 559,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1699,
     "Type": "VLV1",
     "NSfraction": "26",
     "DN": 650,
@@ -15124,6 +20524,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 610,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1931,
     "Type": "VLV1",
     "NSfraction": "28",
     "DN": 700,
@@ -15138,6 +20543,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 610,
+    "valveType": "Flanged Gate Valve",
+    "weight": 2380,
     "Type": "VLV1",
     "NSfraction": "30",
     "DN": 750,
@@ -15152,6 +20562,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": 2490,
     "Type": "VLV1",
     "NSfraction": "32",
     "DN": 800,
@@ -15166,6 +20581,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": "",
     "Type": "VLV1",
     "NSfraction": "34",
     "DN": 850,
@@ -15180,6 +20600,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 711,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3600,
     "Type": "VLV1",
     "NSfraction": "36",
     "DN": 900,
@@ -15194,6 +20619,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": 140,
+    "valveType": "Flanged Gate Valve",
+    "weight": 6,
     "Type": "VLV1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -15208,6 +20638,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 152,
+    "valveType": "Flanged Gate Valve",
+    "weight": 7,
     "Type": "VLV1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -15222,6 +20657,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 165,
+    "valveType": "Flanged Gate Valve",
+    "weight": 10,
     "Type": "VLV1",
     "NSfraction": "1",
     "DN": 25,
@@ -15236,6 +20676,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": 178,
+    "valveType": "Flanged Gate Valve",
+    "weight": 23,
     "Type": "VLV1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -15250,6 +20695,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 190,
+    "valveType": "Flanged Gate Valve",
+    "weight": 26,
     "Type": "VLV1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -15264,6 +20714,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 216,
+    "valveType": "Flanged Gate Valve",
+    "weight": 24,
     "Type": "VLV1",
     "NSfraction": "2",
     "DN": 50,
@@ -15278,6 +20733,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": 241,
+    "valveType": "Flanged Gate Valve",
+    "weight": 44,
     "Type": "VLV1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -15292,6 +20752,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 282,
+    "valveType": "Flanged Gate Valve",
+    "weight": 52,
     "Type": "VLV1",
     "NSfraction": "3",
     "DN": 80,
@@ -15306,6 +20771,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 305,
+    "valveType": "Flanged Gate Valve",
+    "weight": 76,
     "Type": "VLV1",
     "NSfraction": "4",
     "DN": 100,
@@ -15320,6 +20790,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 125,
+    "rating": 300,
+    "length": 381,
+    "valveType": "Flanged Gate Valve",
+    "weight": 94,
     "Type": "VLV1",
     "NSfraction": "5",
     "DN": 125,
@@ -15334,6 +20809,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 403,
+    "valveType": "Flanged Gate Valve",
+    "weight": 146,
     "Type": "VLV1",
     "NSfraction": "6",
     "DN": 150,
@@ -15348,6 +20828,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 419,
+    "valveType": "Flanged Gate Valve",
+    "weight": 218,
     "Type": "VLV1",
     "NSfraction": "8",
     "DN": 200,
@@ -15362,6 +20847,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 457,
+    "valveType": "Flanged Gate Valve",
+    "weight": 352,
     "Type": "VLV1",
     "NSfraction": "10",
     "DN": 250,
@@ -15376,6 +20866,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 502,
+    "valveType": "Flanged Gate Valve",
+    "weight": 472,
     "Type": "VLV1",
     "NSfraction": "12",
     "DN": 300,
@@ -15390,6 +20885,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 350,
+    "rating": 300,
+    "length": 762,
+    "valveType": "Flanged Gate Valve",
+    "weight": 694,
     "Type": "VLV1",
     "NSfraction": "14",
     "DN": 350,
@@ -15404,6 +20904,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 400,
+    "rating": 300,
+    "length": 838,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1080,
     "Type": "VLV1",
     "NSfraction": "16",
     "DN": 400,
@@ -15418,6 +20923,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 450,
+    "rating": 300,
+    "length": 914,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1235,
     "Type": "VLV1",
     "NSfraction": "18",
     "DN": 450,
@@ -15432,6 +20942,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 500,
+    "rating": 300,
+    "length": 991,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1655,
     "Type": "VLV1",
     "NSfraction": "20",
     "DN": 500,
@@ -15446,6 +20961,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 550,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": "",
     "Type": "VLV1",
     "NSfraction": "22",
     "DN": 550,
@@ -15460,6 +20980,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 600,
+    "rating": 300,
+    "length": 1143,
+    "valveType": "Flanged Gate Valve",
+    "weight": 2320,
     "Type": "VLV1",
     "NSfraction": "24",
     "DN": 600,
@@ -15474,6 +20999,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 650,
+    "rating": 300,
+    "length": 1245,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3100,
     "Type": "VLV1",
     "NSfraction": "26",
     "DN": 650,
@@ -15488,6 +21018,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 700,
+    "rating": 300,
+    "length": 1346,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3893,
     "Type": "VLV1",
     "NSfraction": "28",
     "DN": 700,
@@ -15502,6 +21037,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 750,
+    "rating": 300,
+    "length": 1397,
+    "valveType": "Flanged Gate Valve",
+    "weight": 4930,
     "Type": "VLV1",
     "NSfraction": "30",
     "DN": 750,
@@ -15516,6 +21056,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 800,
+    "rating": 300,
+    "length": 1524,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5230,
     "Type": "VLV1",
     "NSfraction": "32",
     "DN": 800,
@@ -15530,6 +21075,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 850,
+    "rating": 300,
+    "length": 1626,
+    "valveType": "Flanged Gate Valve",
+    "weight": 6000,
     "Type": "VLV1",
     "NSfraction": "34",
     "DN": 850,
@@ -15544,6 +21094,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 900,
+    "rating": 300,
+    "length": 1727,
+    "valveType": "Flanged Gate Valve",
+    "weight": 6885,
     "Type": "VLV1",
     "NSfraction": "36",
     "DN": 900,
@@ -15558,6 +21113,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": 165,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5,
     "Type": "VLV1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -15572,6 +21132,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 190,
+    "valveType": "Flanged Gate Valve",
+    "weight": 10,
     "Type": "VLV1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -15586,6 +21151,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": 216,
+    "valveType": "Flanged Gate Valve",
+    "weight": 15,
     "Type": "VLV1",
     "NSfraction": "1",
     "DN": 25,
@@ -15600,6 +21170,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": 229,
+    "valveType": "Flanged Gate Valve",
+    "weight": 26,
     "Type": "VLV1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -15614,6 +21189,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 241,
+    "valveType": "Flanged Gate Valve",
+    "weight": 27,
     "Type": "VLV1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -15628,6 +21208,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 292,
+    "valveType": "Flanged Gate Valve",
+    "weight": 46,
     "Type": "VLV1",
     "NSfraction": "2",
     "DN": 50,
@@ -15642,6 +21227,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 65,
+    "rating": 600,
+    "length": 330,
+    "valveType": "Flanged Gate Valve",
+    "weight": 55,
     "Type": "VLV1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -15656,6 +21246,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 356,
+    "valveType": "Flanged Gate Valve",
+    "weight": 72,
     "Type": "VLV1",
     "NSfraction": "3",
     "DN": 80,
@@ -15670,6 +21265,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 432,
+    "valveType": "Flanged Gate Valve",
+    "weight": 120,
     "Type": "VLV1",
     "NSfraction": "4",
     "DN": 100,
@@ -15684,6 +21284,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 125,
+    "rating": 600,
+    "length": 508,
+    "valveType": "Flanged Gate Valve",
+    "weight": 190,
     "Type": "VLV1",
     "NSfraction": "5",
     "DN": 125,
@@ -15698,6 +21303,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 559,
+    "valveType": "Flanged Gate Valve",
+    "weight": 253,
     "Type": "VLV1",
     "NSfraction": "6",
     "DN": 150,
@@ -15712,6 +21322,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 660,
+    "valveType": "Flanged Gate Valve",
+    "weight": 413,
     "Type": "VLV1",
     "NSfraction": "8",
     "DN": 200,
@@ -15726,6 +21341,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 787,
+    "valveType": "Flanged Gate Valve",
+    "weight": 623,
     "Type": "VLV1",
     "NSfraction": "10",
     "DN": 250,
@@ -15740,6 +21360,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 838,
+    "valveType": "Flanged Gate Valve",
+    "weight": 981,
     "Type": "VLV1",
     "NSfraction": "12",
     "DN": 300,
@@ -15754,6 +21379,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 889,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1316,
     "Type": "VLV1",
     "NSfraction": "14",
     "DN": 350,
@@ -15768,6 +21398,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 991,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1672,
     "Type": "VLV1",
     "NSfraction": "16",
     "DN": 400,
@@ -15782,6 +21417,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 1092,
+    "valveType": "Flanged Gate Valve",
+    "weight": 2070,
     "Type": "VLV1",
     "NSfraction": "18",
     "DN": 450,
@@ -15796,6 +21436,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 1194,
+    "valveType": "Flanged Gate Valve",
+    "weight": 2405,
     "Type": "VLV1",
     "NSfraction": "20",
     "DN": 500,
@@ -15810,6 +21455,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 550,
+    "rating": 600,
+    "length": 1295,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3000,
     "Type": "VLV1",
     "NSfraction": "22",
     "DN": 550,
@@ -15824,6 +21474,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 1397,
+    "valveType": "Flanged Gate Valve",
+    "weight": 4550,
     "Type": "VLV1",
     "NSfraction": "24",
     "DN": 600,
@@ -15838,6 +21493,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 650,
+    "rating": 600,
+    "length": 1448,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5260,
     "Type": "VLV1",
     "NSfraction": "26",
     "DN": 650,
@@ -15852,6 +21512,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 700,
+    "rating": 600,
+    "length": 1549,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5960,
     "Type": "VLV1",
     "NSfraction": "28",
     "DN": 700,
@@ -15866,6 +21531,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 1651,
+    "valveType": "Flanged Gate Valve",
+    "weight": 6700,
     "Type": "VLV1",
     "NSfraction": "30",
     "DN": 750,
@@ -15880,6 +21550,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 800,
+    "rating": 600,
+    "length": 1778,
+    "valveType": "Flanged Gate Valve",
+    "weight": 8312,
     "Type": "VLV1",
     "NSfraction": "32",
     "DN": 800,
@@ -15894,6 +21569,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 850,
+    "rating": 600,
+    "length": 1930,
+    "valveType": "Flanged Gate Valve",
+    "weight": 9000,
     "Type": "VLV1",
     "NSfraction": "34",
     "DN": 850,
@@ -15908,6 +21588,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 2083,
+    "valveType": "Flanged Gate Valve",
+    "weight": 10125,
     "Type": "VLV1",
     "NSfraction": "36",
     "DN": 900,
@@ -15922,6 +21607,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": 20,
     "Type": "VLV1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -15936,6 +21626,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": 254,
+    "valveType": "Flanged Gate Valve",
+    "weight": 38,
     "Type": "VLV1",
     "NSfraction": "1",
     "DN": 25,
@@ -15950,6 +21645,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": 279,
+    "valveType": "Flanged Gate Valve",
+    "weight": 49,
     "Type": "VLV1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -15964,6 +21664,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": 305,
+    "valveType": "Flanged Gate Valve",
+    "weight": 61,
     "Type": "VLV1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -15978,6 +21683,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 368,
+    "valveType": "Flanged Gate Valve",
+    "weight": 95,
     "Type": "VLV1",
     "NSfraction": "2",
     "DN": 50,
@@ -15992,6 +21702,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 65,
+    "rating": 900,
+    "length": 419,
+    "valveType": "Flanged Gate Valve",
+    "weight": 108,
     "Type": "VLV1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -16006,6 +21721,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 381,
+    "valveType": "Flanged Gate Valve",
+    "weight": 125,
     "Type": "VLV1",
     "NSfraction": "3",
     "DN": 80,
@@ -16020,6 +21740,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 457,
+    "valveType": "Flanged Gate Valve",
+    "weight": 192,
     "Type": "VLV1",
     "NSfraction": "4",
     "DN": 100,
@@ -16034,6 +21759,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 125,
+    "rating": 900,
+    "length": 559,
+    "valveType": "Flanged Gate Valve",
+    "weight": 280,
     "Type": "VLV1",
     "NSfraction": "5",
     "DN": 125,
@@ -16048,6 +21778,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 610,
+    "valveType": "Flanged Gate Valve",
+    "weight": 378,
     "Type": "VLV1",
     "NSfraction": "6",
     "DN": 150,
@@ -16062,6 +21797,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 737,
+    "valveType": "Flanged Gate Valve",
+    "weight": 635,
     "Type": "VLV1",
     "NSfraction": "8",
     "DN": 200,
@@ -16076,6 +21816,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 838,
+    "valveType": "Flanged Gate Valve",
+    "weight": 900,
     "Type": "VLV1",
     "NSfraction": "10",
     "DN": 250,
@@ -16090,6 +21835,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 965,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1550,
     "Type": "VLV1",
     "NSfraction": "12",
     "DN": 300,
@@ -16104,6 +21854,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 1029,
+    "valveType": "Flanged Gate Valve",
+    "weight": 2170,
     "Type": "VLV1",
     "NSfraction": "14",
     "DN": 350,
@@ -16118,6 +21873,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 1130,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3070,
     "Type": "VLV1",
     "NSfraction": "16",
     "DN": 400,
@@ -16132,6 +21892,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 1219,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3930,
     "Type": "VLV1",
     "NSfraction": "18",
     "DN": 450,
@@ -16146,6 +21911,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 1321,
+    "valveType": "Flanged Gate Valve",
+    "weight": 5120,
     "Type": "VLV1",
     "NSfraction": "20",
     "DN": 500,
@@ -16160,6 +21930,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 550,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": "",
     "Type": "VLV1",
     "NSfraction": "22",
     "DN": 550,
@@ -16174,6 +21949,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 1549,
+    "valveType": "Flanged Gate Valve",
+    "weight": 7800,
     "Type": "VLV1",
     "NSfraction": "24",
     "DN": 600,
@@ -16188,6 +21968,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": "",
     "Type": "VLV1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -16202,6 +21987,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": "",
     "Type": "VLV1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -16216,6 +22006,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": 254,
+    "valveType": "Flanged Gate Valve",
+    "weight": 38,
     "Type": "VLV1",
     "NSfraction": "1",
     "DN": 25,
@@ -16230,6 +22025,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": 279,
+    "valveType": "Flanged Gate Valve",
+    "weight": 49,
     "Type": "VLV1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -16244,6 +22044,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": 305,
+    "valveType": "Flanged Gate Valve",
+    "weight": 61,
     "Type": "VLV1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -16258,6 +22063,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 368,
+    "valveType": "Flanged Gate Valve",
+    "weight": 82,
     "Type": "VLV1",
     "NSfraction": "2",
     "DN": 50,
@@ -16272,6 +22082,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": 419,
+    "valveType": "Flanged Gate Valve",
+    "weight": 127,
     "Type": "VLV1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -16286,6 +22101,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 470,
+    "valveType": "Flanged Gate Valve",
+    "weight": 168,
     "Type": "VLV1",
     "NSfraction": "3",
     "DN": 80,
@@ -16300,6 +22120,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 546,
+    "valveType": "Flanged Gate Valve",
+    "weight": 277,
     "Type": "VLV1",
     "NSfraction": "4",
     "DN": 100,
@@ -16314,6 +22139,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 125,
+    "rating": 1500,
+    "length": 673,
+    "valveType": "Flanged Gate Valve",
+    "weight": 300,
     "Type": "VLV1",
     "NSfraction": "5",
     "DN": 125,
@@ -16328,6 +22158,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 705,
+    "valveType": "Flanged Gate Valve",
+    "weight": 640,
     "Type": "VLV1",
     "NSfraction": "6",
     "DN": 150,
@@ -16342,6 +22177,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 832,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1180,
     "Type": "VLV1",
     "NSfraction": "8",
     "DN": 200,
@@ -16356,6 +22196,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 991,
+    "valveType": "Flanged Gate Valve",
+    "weight": 2118,
     "Type": "VLV1",
     "NSfraction": "10",
     "DN": 250,
@@ -16370,6 +22215,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 1130,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3244,
     "Type": "VLV1",
     "NSfraction": "12",
     "DN": 300,
@@ -16384,6 +22234,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 1257,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3693,
     "Type": "VLV1",
     "NSfraction": "14",
     "DN": 350,
@@ -16398,6 +22253,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 1384,
+    "valveType": "Flanged Gate Valve",
+    "weight": 4890,
     "Type": "VLV1",
     "NSfraction": "16",
     "DN": 400,
@@ -16412,6 +22272,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 1537,
+    "valveType": "Flanged Gate Valve",
+    "weight": 7000,
     "Type": "VLV1",
     "NSfraction": "18",
     "DN": 450,
@@ -16426,6 +22291,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 1664,
+    "valveType": "Flanged Gate Valve",
+    "weight": 7555,
     "Type": "VLV1",
     "NSfraction": "20",
     "DN": 500,
@@ -16440,6 +22310,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 550,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Gate Valve",
+    "weight": "",
     "Type": "VLV1",
     "NSfraction": "22",
     "DN": 550,
@@ -16454,6 +22329,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 1943,
+    "valveType": "Flanged Gate Valve",
+    "weight": 9096,
     "Type": "VLV1",
     "NSfraction": "24",
     "DN": 600,
@@ -16468,6 +22348,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": 264,
+    "valveType": "Flanged Gate Valve",
+    "weight": 30,
     "Type": "VLV1",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -16482,6 +22367,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": 273,
+    "valveType": "Flanged Gate Valve",
+    "weight": 40,
     "Type": "VLV1",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -16496,6 +22386,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": 308,
+    "valveType": "Flanged Gate Valve",
+    "weight": 60,
     "Type": "VLV1",
     "NSfraction": "1",
     "DN": 25,
@@ -16510,6 +22405,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": 349,
+    "valveType": "Flanged Gate Valve",
+    "weight": 75,
     "Type": "VLV1",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -16524,6 +22424,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": 384,
+    "valveType": "Flanged Gate Valve",
+    "weight": 90,
     "Type": "VLV1",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -16538,6 +22443,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 451,
+    "valveType": "Flanged Gate Valve",
+    "weight": 135,
     "Type": "VLV1",
     "NSfraction": "2",
     "DN": 50,
@@ -16552,6 +22462,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 65,
+    "rating": 2500,
+    "length": 508,
+    "valveType": "Flanged Gate Valve",
+    "weight": 210,
     "Type": "VLV1",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -16566,6 +22481,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 578,
+    "valveType": "Flanged Gate Valve",
+    "weight": 271,
     "Type": "VLV1",
     "NSfraction": "3",
     "DN": 80,
@@ -16580,6 +22500,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 673,
+    "valveType": "Flanged Gate Valve",
+    "weight": 506,
     "Type": "VLV1",
     "NSfraction": "4",
     "DN": 100,
@@ -16594,6 +22519,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 125,
+    "rating": 2500,
+    "length": 794,
+    "valveType": "Flanged Gate Valve",
+    "weight": 550,
     "Type": "VLV1",
     "NSfraction": "5",
     "DN": 125,
@@ -16608,6 +22538,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 914,
+    "valveType": "Flanged Gate Valve",
+    "weight": 615,
     "Type": "VLV1",
     "NSfraction": "6",
     "DN": 150,
@@ -16622,6 +22557,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 1022,
+    "valveType": "Flanged Gate Valve",
+    "weight": 1090,
     "Type": "VLV1",
     "NSfraction": "8",
     "DN": 200,
@@ -16636,6 +22576,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 1270,
+    "valveType": "Flanged Gate Valve",
+    "weight": 2520,
     "Type": "VLV1",
     "NSfraction": "10",
     "DN": 250,
@@ -16650,6 +22595,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 1422,
+    "valveType": "Flanged Gate Valve",
+    "weight": 3310,
     "Type": "VLV1",
     "NSfraction": "12",
     "DN": 300,
@@ -16664,6 +22614,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 3
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Flanged Globe Valve",
+    "weight": 5,
     "Type": "VLV2",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -16678,6 +22633,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": 102,
+    "valveType": "Flanged Globe Valve",
+    "weight": 5,
     "Type": "VLV2",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -16692,6 +22652,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": 108,
+    "valveType": "Flanged Globe Valve",
+    "weight": 5,
     "Type": "VLV2",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -16706,6 +22671,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": 117,
+    "valveType": "Flanged Globe Valve",
+    "weight": 7,
     "Type": "VLV2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -16720,6 +22690,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 127,
+    "valveType": "Flanged Globe Valve",
+    "weight": 10,
     "Type": "VLV2",
     "NSfraction": "1",
     "DN": 25,
@@ -16734,6 +22709,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 140,
+    "valveType": "Flanged Globe Valve",
+    "weight": 16,
     "Type": "VLV2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -16748,6 +22728,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 165,
+    "valveType": "Flanged Globe Valve",
+    "weight": 19,
     "Type": "VLV2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -16762,6 +22747,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 203,
+    "valveType": "Flanged Globe Valve",
+    "weight": 23,
     "Type": "VLV2",
     "NSfraction": "2",
     "DN": 50,
@@ -16776,6 +22766,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": 216,
+    "valveType": "Flanged Globe Valve",
+    "weight": 31,
     "Type": "VLV2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -16790,6 +22785,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 241,
+    "valveType": "Flanged Globe Valve",
+    "weight": 43,
     "Type": "VLV2",
     "NSfraction": "3",
     "DN": 80,
@@ -16804,6 +22804,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 292,
+    "valveType": "Flanged Globe Valve",
+    "weight": 62,
     "Type": "VLV2",
     "NSfraction": "4",
     "DN": 100,
@@ -16818,6 +22823,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 125,
+    "rating": 150,
+    "length": 356,
+    "valveType": "Flanged Globe Valve",
+    "weight": 80,
     "Type": "VLV2",
     "NSfraction": "5",
     "DN": 125,
@@ -16832,6 +22842,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 406,
+    "valveType": "Flanged Globe Valve",
+    "weight": 104,
     "Type": "VLV2",
     "NSfraction": "6",
     "DN": 150,
@@ -16846,6 +22861,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 495,
+    "valveType": "Flanged Globe Valve",
+    "weight": 164,
     "Type": "VLV2",
     "NSfraction": "8",
     "DN": 200,
@@ -16860,6 +22880,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 622,
+    "valveType": "Flanged Globe Valve",
+    "weight": 377,
     "Type": "VLV2",
     "NSfraction": "10",
     "DN": 250,
@@ -16874,6 +22899,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 698,
+    "valveType": "Flanged Globe Valve",
+    "weight": 500,
     "Type": "VLV2",
     "NSfraction": "12",
     "DN": 300,
@@ -16888,6 +22918,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 350,
+    "rating": 150,
+    "length": 787,
+    "valveType": "Flanged Globe Valve",
+    "weight": 743,
     "Type": "VLV2",
     "NSfraction": "14",
     "DN": 350,
@@ -16902,6 +22937,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 400,
+    "rating": 150,
+    "length": 914,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1071,
     "Type": "VLV2",
     "NSfraction": "16",
     "DN": 400,
@@ -16916,6 +22956,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 450,
+    "rating": 150,
+    "length": 978,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1400,
     "Type": "VLV2",
     "NSfraction": "18",
     "DN": 450,
@@ -16930,6 +22975,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 500,
+    "rating": 150,
+    "length": 978,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2006,
     "Type": "VLV2",
     "NSfraction": "20",
     "DN": 500,
@@ -16944,6 +22994,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 550,
+    "rating": 150,
+    "length": 1067,
+    "valveType": "Flanged Globe Valve",
+    "weight": 228,
     "Type": "VLV2",
     "NSfraction": "22",
     "DN": 550,
@@ -16958,6 +23013,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 600,
+    "rating": 150,
+    "length": 1295,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2674,
     "Type": "VLV2",
     "NSfraction": "24",
     "DN": 600,
@@ -16972,6 +23032,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 650,
+    "rating": 150,
+    "length": 1295,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2927,
     "Type": "VLV2",
     "NSfraction": "26",
     "DN": 650,
@@ -16986,6 +23051,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 700,
+    "rating": 150,
+    "length": 1448,
+    "valveType": "Flanged Globe Valve",
+    "weight": 3416,
     "Type": "VLV2",
     "NSfraction": "28",
     "DN": 700,
@@ -17000,6 +23070,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 750,
+    "rating": 150,
+    "length": 1524,
+    "valveType": "Flanged Globe Valve",
+    "weight": 3778,
     "Type": "VLV2",
     "NSfraction": "30",
     "DN": 750,
@@ -17014,6 +23089,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 800,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Globe Valve",
+    "weight": 5035,
     "Type": "VLV2",
     "NSfraction": "32",
     "DN": 800,
@@ -17028,6 +23108,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 850,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Globe Valve",
+    "weight": 5035,
     "Type": "VLV2",
     "NSfraction": "34",
     "DN": 850,
@@ -17042,6 +23127,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 900,
+    "rating": 150,
+    "length": 1956,
+    "valveType": "Flanged Globe Valve",
+    "weight": 5035,
     "Type": "VLV2",
     "NSfraction": "36",
     "DN": 900,
@@ -17056,6 +23146,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": 152,
+    "valveType": "Flanged Globe Valve",
+    "weight": 6,
     "Type": "VLV2",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -17070,6 +23165,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 178,
+    "valveType": "Flanged Globe Valve",
+    "weight": 8,
     "Type": "VLV2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -17084,6 +23184,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 203,
+    "valveType": "Flanged Globe Valve",
+    "weight": 11,
     "Type": "VLV2",
     "NSfraction": "1",
     "DN": 25,
@@ -17098,6 +23203,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": 216,
+    "valveType": "Flanged Globe Valve",
+    "weight": 24,
     "Type": "VLV2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -17112,6 +23222,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 229,
+    "valveType": "Flanged Globe Valve",
+    "weight": 27,
     "Type": "VLV2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -17126,6 +23241,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 267,
+    "valveType": "Flanged Globe Valve",
+    "weight": 33,
     "Type": "VLV2",
     "NSfraction": "2",
     "DN": 50,
@@ -17140,6 +23260,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": 292,
+    "valveType": "Flanged Globe Valve",
+    "weight": 51,
     "Type": "VLV2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -17154,6 +23279,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 318,
+    "valveType": "Flanged Globe Valve",
+    "weight": 61,
     "Type": "VLV2",
     "NSfraction": "3",
     "DN": 80,
@@ -17168,6 +23298,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 356,
+    "valveType": "Flanged Globe Valve",
+    "weight": 89,
     "Type": "VLV2",
     "NSfraction": "4",
     "DN": 100,
@@ -17182,6 +23317,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 125,
+    "rating": 300,
+    "length": 400,
+    "valveType": "Flanged Globe Valve",
+    "weight": 133,
     "Type": "VLV2",
     "NSfraction": "5",
     "DN": 125,
@@ -17196,6 +23336,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 444,
+    "valveType": "Flanged Globe Valve",
+    "weight": 155,
     "Type": "VLV2",
     "NSfraction": "6",
     "DN": 150,
@@ -17210,6 +23355,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 559,
+    "valveType": "Flanged Globe Valve",
+    "weight": 484,
     "Type": "VLV2",
     "NSfraction": "8",
     "DN": 200,
@@ -17224,6 +23374,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 622,
+    "valveType": "Flanged Globe Valve",
+    "weight": 648,
     "Type": "VLV2",
     "NSfraction": "10",
     "DN": 250,
@@ -17238,6 +23393,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 711,
+    "valveType": "Flanged Globe Valve",
+    "weight": 752,
     "Type": "VLV2",
     "NSfraction": "12",
     "DN": 300,
@@ -17252,6 +23412,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": 165,
+    "valveType": "Flanged Globe Valve",
+    "weight": 6,
     "Type": "VLV2",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -17266,6 +23431,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 190,
+    "valveType": "Flanged Globe Valve",
+    "weight": 11,
     "Type": "VLV2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -17280,6 +23450,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": 216,
+    "valveType": "Flanged Globe Valve",
+    "weight": 16,
     "Type": "VLV2",
     "NSfraction": "1",
     "DN": 25,
@@ -17294,6 +23469,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": 229,
+    "valveType": "Flanged Globe Valve",
+    "weight": 27,
     "Type": "VLV2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -17308,6 +23488,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 241,
+    "valveType": "Flanged Globe Valve",
+    "weight": 29,
     "Type": "VLV2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -17322,6 +23507,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 292,
+    "valveType": "Flanged Globe Valve",
+    "weight": 59,
     "Type": "VLV2",
     "NSfraction": "2",
     "DN": 50,
@@ -17336,6 +23526,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 65,
+    "rating": 600,
+    "length": 330,
+    "valveType": "Flanged Globe Valve",
+    "weight": 76,
     "Type": "VLV2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -17350,6 +23545,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 356,
+    "valveType": "Flanged Globe Valve",
+    "weight": 92,
     "Type": "VLV2",
     "NSfraction": "3",
     "DN": 80,
@@ -17364,6 +23564,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 432,
+    "valveType": "Flanged Globe Valve",
+    "weight": 155,
     "Type": "VLV2",
     "NSfraction": "4",
     "DN": 100,
@@ -17378,6 +23583,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 125,
+    "rating": 600,
+    "length": 508,
+    "valveType": "Flanged Globe Valve",
+    "weight": 278,
     "Type": "VLV2",
     "NSfraction": "5",
     "DN": 125,
@@ -17392,6 +23602,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 559,
+    "valveType": "Flanged Globe Valve",
+    "weight": 513,
     "Type": "VLV2",
     "NSfraction": "6",
     "DN": 150,
@@ -17406,6 +23621,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 660,
+    "valveType": "Flanged Globe Valve",
+    "weight": 667,
     "Type": "VLV2",
     "NSfraction": "8",
     "DN": 200,
@@ -17420,6 +23640,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 787,
+    "valveType": "Flanged Globe Valve",
+    "weight": 871,
     "Type": "VLV2",
     "NSfraction": "10",
     "DN": 250,
@@ -17434,6 +23659,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 300,
+    "rating": 600,
+    "length": 838,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1120,
     "Type": "VLV2",
     "NSfraction": "12",
     "DN": 300,
@@ -17448,6 +23678,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 350,
+    "rating": 600,
+    "length": 889,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1631,
     "Type": "VLV2",
     "NSfraction": "14",
     "DN": 350,
@@ -17462,6 +23697,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 400,
+    "rating": 600,
+    "length": 991,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2074,
     "Type": "VLV2",
     "NSfraction": "16",
     "DN": 400,
@@ -17476,6 +23716,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 450,
+    "rating": 600,
+    "length": 1092,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2570,
     "Type": "VLV2",
     "NSfraction": "18",
     "DN": 450,
@@ -17490,6 +23735,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 500,
+    "rating": 600,
+    "length": 1194,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2992,
     "Type": "VLV2",
     "NSfraction": "20",
     "DN": 500,
@@ -17504,6 +23754,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 550,
+    "rating": 600,
+    "length": 1295,
+    "valveType": "Flanged Globe Valve",
+    "weight": 4020,
     "Type": "VLV2",
     "NSfraction": "22",
     "DN": 550,
@@ -17518,6 +23773,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 600,
+    "rating": 600,
+    "length": 1397,
+    "valveType": "Flanged Globe Valve",
+    "weight": 5621,
     "Type": "VLV2",
     "NSfraction": "24",
     "DN": 600,
@@ -17532,6 +23792,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 650,
+    "rating": 600,
+    "length": 1448,
+    "valveType": "Flanged Globe Valve",
+    "weight": 6516,
     "Type": "VLV2",
     "NSfraction": "26",
     "DN": 650,
@@ -17546,6 +23811,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 700,
+    "rating": 600,
+    "length": 1600,
+    "valveType": "Flanged Globe Valve",
+    "weight": 7411,
     "Type": "VLV2",
     "NSfraction": "28",
     "DN": 700,
@@ -17560,6 +23830,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 750,
+    "rating": 600,
+    "length": 1651,
+    "valveType": "Flanged Globe Valve",
+    "weight": 8310,
     "Type": "VLV2",
     "NSfraction": "30",
     "DN": 750,
@@ -17574,6 +23849,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 800,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Globe Valve",
+    "weight": 12598,
     "Type": "VLV2",
     "NSfraction": "32",
     "DN": 800,
@@ -17588,6 +23868,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 850,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Globe Valve",
+    "weight": 12598,
     "Type": "VLV2",
     "NSfraction": "34",
     "DN": 850,
@@ -17602,6 +23887,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 900,
+    "rating": 600,
+    "length": 2083,
+    "valveType": "Flanged Globe Valve",
+    "weight": 12598,
     "Type": "VLV2",
     "NSfraction": "36",
     "DN": 900,
@@ -17616,6 +23906,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": 229,
+    "valveType": "Flanged Globe Valve",
+    "weight": 22,
     "Type": "VLV2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -17630,6 +23925,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": 254,
+    "valveType": "Flanged Globe Valve",
+    "weight": 41,
     "Type": "VLV2",
     "NSfraction": "1",
     "DN": 25,
@@ -17644,6 +23944,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": 279,
+    "valveType": "Flanged Globe Valve",
+    "weight": 52,
     "Type": "VLV2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -17658,6 +23963,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": 305,
+    "valveType": "Flanged Globe Valve",
+    "weight": 65,
     "Type": "VLV2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -17672,6 +23982,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": 368,
+    "valveType": "Flanged Globe Valve",
+    "weight": 93,
     "Type": "VLV2",
     "NSfraction": "2",
     "DN": 50,
@@ -17686,6 +24001,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 65,
+    "rating": 900,
+    "length": 419,
+    "valveType": "Flanged Globe Valve",
+    "weight": 138,
     "Type": "VLV2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -17700,6 +24020,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 381,
+    "valveType": "Flanged Globe Valve",
+    "weight": 128,
     "Type": "VLV2",
     "NSfraction": "3",
     "DN": 80,
@@ -17714,6 +24039,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 457,
+    "valveType": "Flanged Globe Valve",
+    "weight": 229,
     "Type": "VLV2",
     "NSfraction": "4",
     "DN": 100,
@@ -17728,6 +24058,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 125,
+    "rating": 900,
+    "length": 559,
+    "valveType": "Flanged Globe Valve",
+    "weight": 386,
     "Type": "VLV2",
     "NSfraction": "5",
     "DN": 125,
@@ -17742,6 +24077,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 610,
+    "valveType": "Flanged Globe Valve",
+    "weight": 538,
     "Type": "VLV2",
     "NSfraction": "6",
     "DN": 150,
@@ -17756,6 +24096,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 200,
+    "rating": 900,
+    "length": 737,
+    "valveType": "Flanged Globe Valve",
+    "weight": 906,
     "Type": "VLV2",
     "NSfraction": "8",
     "DN": 200,
@@ -17770,6 +24115,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 250,
+    "rating": 900,
+    "length": 838,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1519,
     "Type": "VLV2",
     "NSfraction": "10",
     "DN": 250,
@@ -17784,6 +24134,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 300,
+    "rating": 900,
+    "length": 965,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1937,
     "Type": "VLV2",
     "NSfraction": "12",
     "DN": 300,
@@ -17798,6 +24153,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 350,
+    "rating": 900,
+    "length": 1029,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2662,
     "Type": "VLV2",
     "NSfraction": "14",
     "DN": 350,
@@ -17812,6 +24172,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 400,
+    "rating": 900,
+    "length": 1130,
+    "valveType": "Flanged Globe Valve",
+    "weight": 3757,
     "Type": "VLV2",
     "NSfraction": "16",
     "DN": 400,
@@ -17826,6 +24191,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 450,
+    "rating": 900,
+    "length": 1219,
+    "valveType": "Flanged Globe Valve",
+    "weight": 4849,
     "Type": "VLV2",
     "NSfraction": "18",
     "DN": 450,
@@ -17840,6 +24210,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 500,
+    "rating": 900,
+    "length": 1321,
+    "valveType": "Flanged Globe Valve",
+    "weight": 6311,
     "Type": "VLV2",
     "NSfraction": "20",
     "DN": 500,
@@ -17854,6 +24229,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 550,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Globe Valve",
+    "weight": 9345,
     "Type": "VLV2",
     "NSfraction": "22",
     "DN": 550,
@@ -17868,6 +24248,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 600,
+    "rating": 900,
+    "length": 1549,
+    "valveType": "Flanged Globe Valve",
+    "weight": 9345,
     "Type": "VLV2",
     "NSfraction": "24",
     "DN": 600,
@@ -17882,6 +24267,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": 216,
+    "valveType": "Flanged Globe Valve",
+    "weight": 23,
     "Type": "VLV2",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -17896,6 +24286,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": 229,
+    "valveType": "Flanged Globe Valve",
+    "weight": 32,
     "Type": "VLV2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -17910,6 +24305,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": 254,
+    "valveType": "Flanged Globe Valve",
+    "weight": 41,
     "Type": "VLV2",
     "NSfraction": "1",
     "DN": 25,
@@ -17924,6 +24324,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": 279,
+    "valveType": "Flanged Globe Valve",
+    "weight": 52,
     "Type": "VLV2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -17938,6 +24343,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": 305,
+    "valveType": "Flanged Globe Valve",
+    "weight": 65,
     "Type": "VLV2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -17952,6 +24362,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": 368,
+    "valveType": "Flanged Globe Valve",
+    "weight": 93,
     "Type": "VLV2",
     "NSfraction": "2",
     "DN": 50,
@@ -17966,6 +24381,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": 419,
+    "valveType": "Flanged Globe Valve",
+    "weight": 176,
     "Type": "VLV2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -17980,6 +24400,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 470,
+    "valveType": "Flanged Globe Valve",
+    "weight": 311,
     "Type": "VLV2",
     "NSfraction": "3",
     "DN": 80,
@@ -17994,6 +24419,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 546,
+    "valveType": "Flanged Globe Valve",
+    "weight": 537,
     "Type": "VLV2",
     "NSfraction": "4",
     "DN": 100,
@@ -18008,6 +24438,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 125,
+    "rating": 1500,
+    "length": 673,
+    "valveType": "Flanged Globe Valve",
+    "weight": 603,
     "Type": "VLV2",
     "NSfraction": "5",
     "DN": 125,
@@ -18022,6 +24457,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 705,
+    "valveType": "Flanged Globe Valve",
+    "weight": 682,
     "Type": "VLV2",
     "NSfraction": "6",
     "DN": 150,
@@ -18036,6 +24476,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 200,
+    "rating": 1500,
+    "length": 832,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1217,
     "Type": "VLV2",
     "NSfraction": "8",
     "DN": 200,
@@ -18050,6 +24495,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 250,
+    "rating": 1500,
+    "length": 991,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1905,
     "Type": "VLV2",
     "NSfraction": "10",
     "DN": 250,
@@ -18064,6 +24514,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 300,
+    "rating": 1500,
+    "length": 1130,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2491,
     "Type": "VLV2",
     "NSfraction": "12",
     "DN": 300,
@@ -18078,6 +24533,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 350,
+    "rating": 1500,
+    "length": 1257,
+    "valveType": "Flanged Globe Valve",
+    "weight": 3402,
     "Type": "VLV2",
     "NSfraction": "14",
     "DN": 350,
@@ -18092,6 +24552,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 400,
+    "rating": 1500,
+    "length": 1384,
+    "valveType": "Flanged Globe Valve",
+    "weight": 4911,
     "Type": "VLV2",
     "NSfraction": "16",
     "DN": 400,
@@ -18106,6 +24571,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 450,
+    "rating": 1500,
+    "length": 1537,
+    "valveType": "Flanged Globe Valve",
+    "weight": 6338,
     "Type": "VLV2",
     "NSfraction": "18",
     "DN": 450,
@@ -18120,6 +24590,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 500,
+    "rating": 1500,
+    "length": 1664,
+    "valveType": "Flanged Globe Valve",
+    "weight": 8155,
     "Type": "VLV2",
     "NSfraction": "20",
     "DN": 500,
@@ -18134,6 +24609,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 550,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Globe Valve",
+    "weight": 10362,
     "Type": "VLV2",
     "NSfraction": "22",
     "DN": 550,
@@ -18148,6 +24628,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 600,
+    "rating": 1500,
+    "length": 1943,
+    "valveType": "Flanged Globe Valve",
+    "weight": 10362,
     "Type": "VLV2",
     "NSfraction": "24",
     "DN": 600,
@@ -18162,6 +24647,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": 264,
+    "valveType": "Flanged Globe Valve",
+    "weight": 32,
     "Type": "VLV2",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -18176,6 +24666,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": 273,
+    "valveType": "Flanged Globe Valve",
+    "weight": 42,
     "Type": "VLV2",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -18190,6 +24685,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": 308,
+    "valveType": "Flanged Globe Valve",
+    "weight": 63,
     "Type": "VLV2",
     "NSfraction": "1",
     "DN": 25,
@@ -18204,6 +24704,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": 349,
+    "valveType": "Flanged Globe Valve",
+    "weight": 79,
     "Type": "VLV2",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -18218,6 +24723,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": 384,
+    "valveType": "Flanged Globe Valve",
+    "weight": 95,
     "Type": "VLV2",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -18232,6 +24742,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": 451,
+    "valveType": "Flanged Globe Valve",
+    "weight": 126,
     "Type": "VLV2",
     "NSfraction": "2",
     "DN": 50,
@@ -18246,6 +24761,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 65,
+    "rating": 2500,
+    "length": 508,
+    "valveType": "Flanged Globe Valve",
+    "weight": 229,
     "Type": "VLV2",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -18260,6 +24780,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 578,
+    "valveType": "Flanged Globe Valve",
+    "weight": 370,
     "Type": "VLV2",
     "NSfraction": "3",
     "DN": 80,
@@ -18274,6 +24799,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 673,
+    "valveType": "Flanged Globe Valve",
+    "weight": 699,
     "Type": "VLV2",
     "NSfraction": "4",
     "DN": 100,
@@ -18288,6 +24818,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 125,
+    "rating": 2500,
+    "length": 794,
+    "valveType": "Flanged Globe Valve",
+    "weight": 756,
     "Type": "VLV2",
     "NSfraction": "5",
     "DN": 125,
@@ -18302,6 +24837,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 914,
+    "valveType": "Flanged Globe Valve",
+    "weight": 990,
     "Type": "VLV2",
     "NSfraction": "6",
     "DN": 150,
@@ -18316,6 +24856,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 200,
+    "rating": 2500,
+    "length": 1022,
+    "valveType": "Flanged Globe Valve",
+    "weight": 1593,
     "Type": "VLV2",
     "NSfraction": "8",
     "DN": 200,
@@ -18330,6 +24875,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 250,
+    "rating": 2500,
+    "length": 1270,
+    "valveType": "Flanged Globe Valve",
+    "weight": 2861,
     "Type": "VLV2",
     "NSfraction": "10",
     "DN": 250,
@@ -18344,6 +24894,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 300,
+    "rating": 2500,
+    "length": 1422,
+    "valveType": "Flanged Globe Valve",
+    "weight": 4242,
     "Type": "VLV2",
     "NSfraction": "12",
     "DN": 300,
@@ -18358,6 +24913,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 4
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -18372,6 +24932,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -18386,6 +24951,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 15,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 5,
     "Type": "VLV4",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -18400,6 +24970,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 8,
     "Type": "VLV4",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -18414,6 +24989,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 25,
+    "rating": 150,
+    "length": 184,
+    "valveType": "Flanged Control Valve",
+    "weight": 10,
     "Type": "VLV4",
     "NSfraction": "1",
     "DN": 25,
@@ -18428,6 +25008,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": 200,
+    "valveType": "Flanged Control Valve",
+    "weight": 14,
     "Type": "VLV4",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -18442,6 +25027,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 40,
+    "rating": 150,
+    "length": 222,
+    "valveType": "Flanged Control Valve",
+    "weight": 18,
     "Type": "VLV4",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -18456,6 +25046,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 50,
+    "rating": 150,
+    "length": 254,
+    "valveType": "Flanged Control Valve",
+    "weight": 24,
     "Type": "VLV4",
     "NSfraction": "2",
     "DN": 50,
@@ -18470,6 +25065,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 65,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 43,
     "Type": "VLV4",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -18484,6 +25084,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 80,
+    "rating": 150,
+    "length": 298,
+    "valveType": "Flanged Control Valve",
+    "weight": 43,
     "Type": "VLV4",
     "NSfraction": "3",
     "DN": 80,
@@ -18498,6 +25103,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 90,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -18512,6 +25122,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 100,
+    "rating": 150,
+    "length": 352,
+    "valveType": "Flanged Control Valve",
+    "weight": 61,
     "Type": "VLV4",
     "NSfraction": "4",
     "DN": 100,
@@ -18526,6 +25141,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 130,
+    "rating": 150,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "5",
     "DN": 130,
@@ -18540,6 +25160,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 150,
+    "rating": 150,
+    "length": 451,
+    "valveType": "Flanged Control Valve",
+    "weight": 109,
     "Type": "VLV4",
     "NSfraction": "6",
     "DN": 150,
@@ -18554,6 +25179,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 200,
+    "rating": 150,
+    "length": 543,
+    "valveType": "Flanged Control Valve",
+    "weight": 170,
     "Type": "VLV4",
     "NSfraction": "8",
     "DN": 200,
@@ -18568,6 +25198,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 250,
+    "rating": 150,
+    "length": 673,
+    "valveType": "Flanged Control Valve",
+    "weight": 277,
     "Type": "VLV4",
     "NSfraction": "10",
     "DN": 250,
@@ -18582,6 +25217,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 300,
+    "rating": 150,
+    "length": 737,
+    "valveType": "Flanged Control Valve",
+    "weight": 386,
     "Type": "VLV4",
     "NSfraction": "12",
     "DN": 300,
@@ -18596,6 +25236,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 8,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -18610,6 +25255,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 10,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -18624,6 +25274,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 15,
+    "rating": 300,
+    "length": 190,
+    "valveType": "Flanged Control Valve",
+    "weight": 6,
     "Type": "VLV4",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -18638,6 +25293,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": 194,
+    "valveType": "Flanged Control Valve",
+    "weight": 8,
     "Type": "VLV4",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -18652,6 +25312,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 25,
+    "rating": 300,
+    "length": 194,
+    "valveType": "Flanged Control Valve",
+    "weight": 11,
     "Type": "VLV4",
     "NSfraction": "1",
     "DN": 25,
@@ -18666,6 +25331,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -18680,6 +25350,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 40,
+    "rating": 300,
+    "length": 235,
+    "valveType": "Flanged Control Valve",
+    "weight": 27,
     "Type": "VLV4",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -18694,6 +25369,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 50,
+    "rating": 300,
+    "length": 267,
+    "valveType": "Flanged Control Valve",
+    "weight": 31,
     "Type": "VLV4",
     "NSfraction": "2",
     "DN": 50,
@@ -18708,6 +25388,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 65,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -18722,6 +25407,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 80,
+    "rating": 300,
+    "length": 318,
+    "valveType": "Flanged Control Valve",
+    "weight": 64,
     "Type": "VLV4",
     "NSfraction": "3",
     "DN": 80,
@@ -18736,6 +25426,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 90,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -18750,6 +25445,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 100,
+    "rating": 300,
+    "length": 368,
+    "valveType": "Flanged Control Valve",
+    "weight": 95,
     "Type": "VLV4",
     "NSfraction": "4",
     "DN": 100,
@@ -18764,6 +25464,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 130,
+    "rating": 300,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "5",
     "DN": 130,
@@ -18778,6 +25483,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 150,
+    "rating": 300,
+    "length": 473,
+    "valveType": "Flanged Control Valve",
+    "weight": 195,
     "Type": "VLV4",
     "NSfraction": "6",
     "DN": 150,
@@ -18792,6 +25502,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 200,
+    "rating": 300,
+    "length": 568,
+    "valveType": "Flanged Control Valve",
+    "weight": 286,
     "Type": "VLV4",
     "NSfraction": "8",
     "DN": 200,
@@ -18806,6 +25521,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 250,
+    "rating": 300,
+    "length": 708,
+    "valveType": "Flanged Control Valve",
+    "weight": 454,
     "Type": "VLV4",
     "NSfraction": "10",
     "DN": 250,
@@ -18820,6 +25540,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 300,
+    "rating": 300,
+    "length": 806,
+    "valveType": "Flanged Control Valve",
+    "weight": 697,
     "Type": "VLV4",
     "NSfraction": "12",
     "DN": 300,
@@ -18834,6 +25559,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 8,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -18848,6 +25578,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 10,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -18862,6 +25597,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 15,
+    "rating": 600,
+    "length": 203,
+    "valveType": "Flanged Control Valve",
+    "weight": 5,
     "Type": "VLV4",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -18876,6 +25616,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": 206,
+    "valveType": "Flanged Control Valve",
+    "weight": 10,
     "Type": "VLV4",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -18890,6 +25635,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 25,
+    "rating": 600,
+    "length": 210,
+    "valveType": "Flanged Control Valve",
+    "weight": 15,
     "Type": "VLV4",
     "NSfraction": "1",
     "DN": 25,
@@ -18904,6 +25654,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": 251,
+    "valveType": "Flanged Control Valve",
+    "weight": 20,
     "Type": "VLV4",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -18918,6 +25673,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 40,
+    "rating": 600,
+    "length": 251,
+    "valveType": "Flanged Control Valve",
+    "weight": 27,
     "Type": "VLV4",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -18932,6 +25692,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 50,
+    "rating": 600,
+    "length": 286,
+    "valveType": "Flanged Control Valve",
+    "weight": 43,
     "Type": "VLV4",
     "NSfraction": "2",
     "DN": 50,
@@ -18946,6 +25711,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 65,
+    "rating": 600,
+    "length": 311,
+    "valveType": "Flanged Control Valve",
+    "weight": 62,
     "Type": "VLV4",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -18960,6 +25730,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 80,
+    "rating": 600,
+    "length": 337,
+    "valveType": "Flanged Control Valve",
+    "weight": 81,
     "Type": "VLV4",
     "NSfraction": "3",
     "DN": 80,
@@ -18974,6 +25749,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 90,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -18988,6 +25768,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 100,
+    "rating": 600,
+    "length": 394,
+    "valveType": "Flanged Control Valve",
+    "weight": 152,
     "Type": "VLV4",
     "NSfraction": "4",
     "DN": 100,
@@ -19002,6 +25787,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 130,
+    "rating": 600,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "5",
     "DN": 130,
@@ -19016,6 +25806,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 150,
+    "rating": 600,
+    "length": 508,
+    "valveType": "Flanged Control Valve",
+    "weight": 328,
     "Type": "VLV4",
     "NSfraction": "6",
     "DN": 150,
@@ -19030,6 +25825,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 200,
+    "rating": 600,
+    "length": 610,
+    "valveType": "Flanged Control Valve",
+    "weight": 566,
     "Type": "VLV4",
     "NSfraction": "8",
     "DN": 200,
@@ -19044,6 +25844,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 250,
+    "rating": 600,
+    "length": 851,
+    "valveType": "Flanged Control Valve",
+    "weight": 852,
     "Type": "VLV4",
     "NSfraction": "10",
     "DN": 250,
@@ -19058,6 +25863,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 8,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -19072,6 +25882,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 10,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -19086,6 +25901,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 15,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -19100,6 +25920,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -19114,6 +25939,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 25,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 38,
     "Type": "VLV4",
     "NSfraction": "1",
     "DN": 25,
@@ -19128,6 +25958,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 32,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 49,
     "Type": "VLV4",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -19142,6 +25977,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 40,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 61,
     "Type": "VLV4",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -19156,6 +25996,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 50,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 84,
     "Type": "VLV4",
     "NSfraction": "2",
     "DN": 50,
@@ -19170,6 +26015,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 65,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 99,
     "Type": "VLV4",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -19184,6 +26034,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 80,
+    "rating": 900,
+    "length": 441,
+    "valveType": "Flanged Control Valve",
+    "weight": 116,
     "Type": "VLV4",
     "NSfraction": "3",
     "DN": 80,
@@ -19198,6 +26053,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 90,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -19212,6 +26072,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 100,
+    "rating": 900,
+    "length": 511,
+    "valveType": "Flanged Control Valve",
+    "weight": 200,
     "Type": "VLV4",
     "NSfraction": "4",
     "DN": 100,
@@ -19226,6 +26091,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 130,
+    "rating": 900,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "5",
     "DN": 130,
@@ -19240,6 +26110,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 150,
+    "rating": 900,
+    "length": 714,
+    "valveType": "Flanged Control Valve",
+    "weight": 408,
     "Type": "VLV4",
     "NSfraction": "6",
     "DN": 150,
@@ -19254,6 +26129,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 8,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+1/4",
     "DN": 8,
@@ -19268,6 +26148,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 10,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+3/8",
     "DN": 10,
@@ -19282,6 +26167,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 15,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -19296,6 +26186,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 20,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -19310,6 +26205,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 25,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 38,
     "Type": "VLV4",
     "NSfraction": "1",
     "DN": 25,
@@ -19324,6 +26224,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 32,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 49,
     "Type": "VLV4",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -19338,6 +26243,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 40,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 61,
     "Type": "VLV4",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -19352,6 +26262,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 50,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 83,
     "Type": "VLV4",
     "NSfraction": "2",
     "DN": 50,
@@ -19366,6 +26281,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 65,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 125,
     "Type": "VLV4",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -19380,6 +26300,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 80,
+    "rating": 1500,
+    "length": 460,
+    "valveType": "Flanged Control Valve",
+    "weight": 167,
     "Type": "VLV4",
     "NSfraction": "3",
     "DN": 80,
@@ -19394,6 +26319,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 90,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -19408,6 +26338,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 100,
+    "rating": 1500,
+    "length": 530,
+    "valveType": "Flanged Control Valve",
+    "weight": 299,
     "Type": "VLV4",
     "NSfraction": "4",
     "DN": 100,
@@ -19422,6 +26357,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 130,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "5",
     "DN": 130,
@@ -19436,6 +26376,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 150,
+    "rating": 1500,
+    "length": 768,
+    "valveType": "Flanged Control Valve",
+    "weight": 639,
     "Type": "VLV4",
     "NSfraction": "6",
     "DN": 150,
@@ -19450,6 +26395,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 15,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 30,
     "Type": "VLV4",
     "NSfraction": "0+1/2",
     "DN": 15,
@@ -19464,6 +26414,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 20,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 40,
     "Type": "VLV4",
     "NSfraction": "0+3/4",
     "DN": 20,
@@ -19478,6 +26433,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 25,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 60,
     "Type": "VLV4",
     "NSfraction": "1",
     "DN": 25,
@@ -19492,6 +26452,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 32,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 75,
     "Type": "VLV4",
     "NSfraction": "1+1/4",
     "DN": 32,
@@ -19506,6 +26471,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 40,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 90,
     "Type": "VLV4",
     "NSfraction": "1+1/2",
     "DN": 40,
@@ -19520,6 +26490,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 50,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 120,
     "Type": "VLV4",
     "NSfraction": "2",
     "DN": 50,
@@ -19534,6 +26509,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 65,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": 150,
     "Type": "VLV4",
     "NSfraction": "2+1/2",
     "DN": 65,
@@ -19548,6 +26528,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 80,
+    "rating": 2500,
+    "length": 498,
+    "valveType": "Flanged Control Valve",
+    "weight": 140,
     "Type": "VLV4",
     "NSfraction": "3",
     "DN": 80,
@@ -19562,6 +26547,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 90,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "3+1/2",
     "DN": 90,
@@ -19576,6 +26566,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 100,
+    "rating": 2500,
+    "length": 575,
+    "valveType": "Flanged Control Valve",
+    "weight": 225,
     "Type": "VLV4",
     "NSfraction": "4",
     "DN": 100,
@@ -19590,6 +26585,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 130,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Flanged Control Valve",
+    "weight": "",
     "Type": "VLV4",
     "NSfraction": "5",
     "DN": 130,
@@ -19604,6 +26604,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 150,
+    "rating": 2500,
+    "length": 819,
+    "valveType": "Flanged Control Valve",
+    "weight": 770,
     "Type": "VLV4",
     "NSfraction": "6",
     "DN": 150,
@@ -19618,6 +26623,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": 5
   },
   {
+    "bore": 0.25,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 24,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19632,6 +26642,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.375,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 24,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19646,6 +26661,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19660,6 +26680,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 24,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19674,6 +26699,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19688,6 +26718,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 28,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19702,6 +26737,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 22,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19716,6 +26756,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 30,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19730,6 +26775,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 63,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19744,6 +26794,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 87,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19758,6 +26813,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 299,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19772,6 +26832,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 455,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19786,6 +26851,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 704,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19800,6 +26870,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1208,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19814,6 +26889,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1574,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19828,6 +26908,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 2309,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19842,6 +26927,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 3039,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19856,6 +26946,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 3276,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19870,6 +26965,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 22,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 4247,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19884,6 +26984,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 24,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 5625,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19898,6 +27003,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 26,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 7067,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19912,6 +27022,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 28,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 8166,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19926,6 +27041,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 30,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 9501,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19940,6 +27060,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 12420,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19954,6 +27079,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 34,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 14964,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19968,6 +27098,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 36,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 18425,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19982,6 +27117,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -19996,6 +27136,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20010,6 +27155,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20024,6 +27174,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 40,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20038,6 +27193,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 24,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20052,6 +27212,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 47,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20066,6 +27231,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 89,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20080,6 +27250,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 149,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20094,6 +27269,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 341,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20108,6 +27288,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 528,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20122,6 +27307,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 936,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20136,6 +27326,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1299,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20150,6 +27345,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1932,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20164,6 +27364,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 2625,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20178,6 +27383,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 2949,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20192,6 +27402,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 4041,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20206,6 +27421,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 22,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 5019,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20220,6 +27440,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 24,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 6900,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20234,6 +27459,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 26,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 8574,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20248,6 +27478,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 28,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 11348,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20262,6 +27497,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 30,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 12110,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20276,6 +27516,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 14553,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20290,6 +27535,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 34,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 16554,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20304,6 +27554,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 36,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 20438,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20318,6 +27573,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20332,6 +27592,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20346,6 +27611,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 23,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20360,6 +27630,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 41,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20374,6 +27649,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 30,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20388,6 +27668,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 65,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20402,6 +27687,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 101,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20416,6 +27706,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 215,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20430,6 +27725,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 513,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20444,6 +27744,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 902,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20458,6 +27763,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1352,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20472,6 +27782,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1797,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20486,6 +27801,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 2445,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20500,6 +27820,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 3243,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20514,6 +27839,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 3903,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20528,6 +27858,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 5994,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20542,6 +27877,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 22,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 7506,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20556,6 +27896,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 24,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 9578,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20570,6 +27915,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 26,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 10476,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20584,6 +27934,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 28,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 12557,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20598,6 +27953,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 30,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 17948,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20612,6 +27972,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 32,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 18008,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20626,6 +27991,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 34,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 20895,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20640,6 +28010,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 36,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 25910,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20654,6 +28029,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 24,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20668,6 +28048,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 59,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20682,6 +28067,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 92,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20696,6 +28086,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 74,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20710,6 +28105,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 128,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20724,6 +28124,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 161,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20738,6 +28143,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 305,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20752,6 +28162,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 548,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20766,6 +28181,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1071,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20780,6 +28200,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1911,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20794,6 +28219,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 2495,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20808,6 +28238,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 3507,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20822,6 +28257,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 4430,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20836,6 +28276,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 18,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 5384,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20850,6 +28295,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 20,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 8207,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20864,6 +28314,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 22,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 11484,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20878,6 +28333,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 24,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 15368,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20892,6 +28352,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 72,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20906,6 +28371,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 72,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20920,6 +28390,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 59,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20934,6 +28409,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 92,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20948,6 +28428,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 74,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20962,6 +28447,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 127,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20976,6 +28466,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 253,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -20990,6 +28485,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 380,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21004,6 +28504,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 924,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21018,6 +28523,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1568,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21032,6 +28542,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 2834,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21046,6 +28561,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 4298,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21060,6 +28580,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 14,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 5385,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21074,6 +28599,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 16,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 7781,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21088,6 +28618,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 45,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21102,6 +28637,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 60,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21116,6 +28656,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 90,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21130,6 +28675,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 136,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21144,6 +28694,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 113,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21158,6 +28713,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 179,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21172,6 +28732,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 405,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21186,6 +28751,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 771,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21200,6 +28770,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 1977,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21214,6 +28789,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 3168,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21228,6 +28808,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 4139,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21242,6 +28827,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-ESDV/UZV",
+    "weight": 6183,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21256,6 +28846,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.25,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21270,6 +28865,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.375,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21284,6 +28884,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 6,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21298,6 +28903,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21312,6 +28922,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 12,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21326,6 +28941,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 23,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21340,6 +28960,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 18,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21354,6 +28979,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 30,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21368,6 +28998,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2.5,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 53,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21382,6 +29017,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 53,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21396,6 +29036,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 75,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21410,6 +29055,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 134,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21424,6 +29074,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 207,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21438,6 +29093,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 339,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21452,6 +29112,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 150,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 471,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21466,6 +29131,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.25,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21480,6 +29150,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.375,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21494,6 +29169,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 7,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21508,6 +29188,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 11,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21522,6 +29207,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 14,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21536,6 +29226,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 33,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21550,6 +29245,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21564,6 +29264,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 39,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21578,6 +29283,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 80,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21592,6 +29302,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 117,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21606,6 +29321,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 239,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21620,6 +29340,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 351,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21634,6 +29359,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 561,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21648,6 +29378,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 12,
+    "rating": 300,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 858,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21662,6 +29397,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.25,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21676,6 +29416,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.375,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21690,6 +29435,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 7,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21704,6 +29454,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 13,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21718,6 +29473,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 19,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21732,6 +29492,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 34,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21746,6 +29511,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 25,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21760,6 +29530,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 54,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21774,6 +29549,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2.5,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 77,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21788,6 +29568,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 100,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21802,6 +29587,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 188,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21816,6 +29606,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 407,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21830,6 +29625,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 8,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 696,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21844,6 +29644,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 10,
+    "rating": 600,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 1053,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21858,6 +29663,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.25,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21872,6 +29682,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.375,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21886,6 +29701,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21900,6 +29720,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 20,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21914,6 +29739,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 49,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21928,6 +29758,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 77,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21942,6 +29777,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 62,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21956,6 +29796,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 107,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21970,6 +29815,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2.5,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 127,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21984,6 +29834,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 145,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -21998,6 +29853,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 251,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22012,6 +29872,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 900,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 507,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22026,6 +29891,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.25,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 60,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22040,6 +29910,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.375,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 60,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22054,6 +29929,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 60,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22068,6 +29948,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 60,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22082,6 +29967,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 49,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22096,6 +29986,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 77,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22110,6 +30005,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 62,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22124,6 +30024,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 106,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22138,6 +30043,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2.5,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 158,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22152,6 +30062,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 211,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22166,6 +30081,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 374,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22180,6 +30100,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 1500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 801,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22194,6 +30119,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.5,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 38,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22208,6 +30138,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 0.75,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 50,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22222,6 +30157,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 75,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22236,6 +30176,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.25,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 113,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22250,6 +30195,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 1.5,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 94,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22264,6 +30214,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 153,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22278,6 +30233,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 2.5,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 192,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22292,6 +30252,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 3,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 184,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22306,6 +30271,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 4,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 297,
     "Type": "",
     "NSfraction": "",
     "DN": "",
@@ -22320,6 +30290,11 @@ export const DEFAULT_WEIGHT_MASTER_ROWS = Object.freeze([
     "TypeNum": ""
   },
   {
+    "bore": 6,
+    "rating": 2500,
+    "length": "",
+    "valveType": "Instrument-XCV",
+    "weight": 990,
     "Type": "",
     "NSfraction": "",
     "DN": "",

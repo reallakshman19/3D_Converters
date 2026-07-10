@@ -1,6 +1,8 @@
 import { createElement } from './xml-cii-adapted-dom.js';
 import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
 import { saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS, RESTRAINT_TYPE_MUTATION_INFO, normalizeRestraintTypeMutationRows } from '../../../converters/xml-cii2019-core/restraint-type-mutation.js';
+import { isXmlMaskEnabled, setXmlMaskEnabled } from '../xml-cii-workflow-source-detect.js';
 
 function esc(value) {
   return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -84,6 +86,13 @@ function makeTextInput(parent, labelText, value, onChange) {
   return input;
 }
 
+function ensureRestraintTypeMutationConfig(configObj) {
+  const current = configObj.inputXmlRestraintTypeMutation || configObj.restraintTypeMutation || {};
+  const rows = normalizeRestraintTypeMutationRows(Array.isArray(current.rows) ? current.rows : DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS);
+  configObj.inputXmlRestraintTypeMutation = { enabled: current.enabled !== false, rows };
+  return configObj.inputXmlRestraintTypeMutation;
+}
+
 function _renderCleanupCard(configObj, syncJsonText, controls) {
   const card = createElement('div');
   card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
@@ -127,10 +136,81 @@ function _renderModelingCard(configObj, syncJsonText, controls) {
   return card;
 }
 
+function _renderRestraintTypeMutationCard(configObj, syncJsonText, controls) {
+  const cfg = ensureRestraintTypeMutationConfig(configObj);
+  const card = createElement('div');
+  card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
+  const title = createElement('h3');
+  title.style.cssText = 'margin:0 0 10px;font-size:14px;color:#38bdf8;';
+  title.append(document.createTextNode('Restraint Type Mutation '));
+  const info = createElement('span', 'i');
+  info.title = RESTRAINT_TYPE_MUTATION_INFO;
+  info.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1px solid #60a5fa;border-radius:50%;font-size:11px;color:#bfdbfe;cursor:help;';
+  title.appendChild(info);
+  card.appendChild(title);
+  controls.restraintTypeMutationEnabled = makeCheckbox(card, 'Enable InputXML restraint TYPE mutation', cfg.enabled !== false, (val) => {
+    cfg.enabled = val;
+    syncJsonText();
+  });
+  const table = createElement('table');
+  table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;';
+  table.innerHTML = '<thead><tr><th style="text-align:left;padding:4px;color:#bfdbfe;">Label</th><th style="text-align:left;padding:4px;color:#bfdbfe;">From TYPE</th><th style="text-align:left;padding:4px;color:#bfdbfe;">To TYPE</th><th></th></tr></thead>';
+  const body = createElement('tbody');
+  table.appendChild(body);
+  card.appendChild(table);
+  const renderRows = () => {
+    body.innerHTML = '';
+    cfg.rows.forEach((row, index) => {
+      const tr = createElement('tr');
+      for (const col of ['label', 'from', 'to']) {
+        const td = createElement('td');
+        td.style.cssText = 'padding:4px;';
+        const input = createElement('input');
+        input.type = 'text';
+        input.value = row[col] ?? '';
+        input.style.cssText = 'width:100%;box-sizing:border-box;background:#182334;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:4px;font-size:12px;';
+        input.addEventListener('change', (event) => {
+          cfg.rows[index][col] = event.target.value.trim();
+          syncJsonText();
+        });
+        td.appendChild(input);
+        tr.appendChild(td);
+      }
+      const action = createElement('td');
+      action.style.cssText = 'padding:4px;width:1%;';
+      const del = createElement('button', 'Delete');
+      del.type = 'button';
+      del.style.cssText = 'background:#27272a;color:#fff;border:1px solid #3f3f46;border-radius:5px;padding:4px 7px;font-size:11px;cursor:pointer;';
+      del.addEventListener('click', () => {
+        cfg.rows.splice(index, 1);
+        renderRows();
+        syncJsonText();
+      });
+      action.appendChild(del);
+      tr.appendChild(action);
+      body.appendChild(tr);
+    });
+  };
+  renderRows();
+  const add = createElement('button', 'Add row');
+  add.type = 'button';
+  add.style.cssText = 'margin-top:8px;background:#27272a;color:#fff;border:1px solid #3f3f46;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;';
+  add.addEventListener('click', () => {
+    cfg.rows.push({ label: '', from: '', to: '' });
+    renderRows();
+    syncJsonText();
+  });
+  card.appendChild(add);
+  return card;
+}
+
 function _renderFlagsCard(configObj, syncJsonText, controls) {
   const card = createElement('div');
   card.style.cssText = 'background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;';
   card.innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:#38bdf8;">🎛️ Option Toggles</h3>';
+  controls.xmlMaskedNode = makeCheckbox(card, 'XML_Masked: download XML/InputXML as .txt', isXmlMaskEnabled(), (val) => {
+    setXmlMaskEnabled(val);
+  });
   controls.frictionSentinelNode = makeCheckbox(card, 'Use Friction Sentinel (non-Y)', configObj.useFrictionSentinelForNonYSupports !== false, (val) => {
     configObj.useFrictionSentinelForNonYSupports = val;
     syncJsonText();
@@ -187,6 +267,7 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
   // large row arrays via buildDisplayConfig() so the textarea stays small and fast to render.
   let configObj = {};
   try { configObj = JSON.parse(state.supportConfigJson || '{}'); } catch {}
+  ensureRestraintTypeMutationConfig(configObj);
   let configText = JSON.stringify(buildDisplayConfig(configObj), null, 2);
 
   const statusDiv = createElement('div');
@@ -215,10 +296,11 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
 
   const cleanup = _renderCleanupCard(configObj, syncJsonText, ctrlRefs);
   const modeling = _renderModelingCard(configObj, syncJsonText, ctrlRefs);
+  const restraintMutation = _renderRestraintTypeMutationCard(configObj, syncJsonText, ctrlRefs);
   const flags = _renderFlagsCard(configObj, syncJsonText, ctrlRefs);
   const process = _renderProcessCard(configObj, syncJsonText, ctrlRefs);
 
-  grid.append(cleanup, modeling, flags, process);
+  grid.append(cleanup, modeling, restraintMutation, flags, process);
   card.appendChild(grid);
 
   const editorSec = createElement('details');
@@ -236,6 +318,7 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
     updateValidationStatus(configText);
     try {
       configObj = mergeEditedConfig(JSON.parse(configText), configObj);
+      ensureRestraintTypeMutationConfig(configObj);
       syncControls();
     } catch {}
   });
@@ -301,6 +384,10 @@ export function renderAdaptedConfigPanel(card, stateRef, render) {
     ctrlRefs.splitCondensedNode.checked = configObj.splitCondensedValveFlange !== false;
     ctrlRefs.disableSupportTagNode.checked = configObj.disableCiiSupportTagPopulation !== false;
     ctrlRefs.convertDensityNode.checked = configObj.convertDensityKgM3ToKgCm3 !== false;
+    if (ctrlRefs.xmlMaskedNode) ctrlRefs.xmlMaskedNode.checked = isXmlMaskEnabled();
+    if (ctrlRefs.restraintTypeMutationEnabled) {
+      ctrlRefs.restraintTypeMutationEnabled.checked = ensureRestraintTypeMutationConfig(configObj).enabled !== false;
+    }
     if (configObj.processDefaults && typeof configObj.processDefaults === 'object') {
       ctrlRefs.p1Input.value = configObj.processDefaults.p1 ?? '';
       ctrlRefs.t1Input.value = configObj.processDefaults.t1 ?? '';

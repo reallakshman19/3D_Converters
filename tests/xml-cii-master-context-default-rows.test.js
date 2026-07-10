@@ -31,6 +31,9 @@ const root = path.resolve(__dirname, '..');
 
     assert.strictEqual(fetchCallCount, 0, 'no fetch() call should be made when no master rows/masterUrl are configured');
     assert(context.weightMasterRows.length > 0, 'weight master rows must be populated from the app default without fetching');
+    for (const key of ['bore', 'rating', 'length', 'valveType', 'weight']) {
+      assert.notStrictEqual(context.weightMasterRows[0][key], undefined, `default weight rows must expose normalized ${key} alias`);
+    }
     assert(context.materialMapRows.length > 0, 'material map rows must be populated from the app default without fetching');
     assert(diagnostics.some((d) => d.type === 'weight-master-source' && d.source === 'app-default'), 'weight master diagnostics must report app-default source');
     assert(diagnostics.some((d) => d.type === 'material-map-source' && d.source === 'app-default'), 'material map diagnostics must report app-default source');

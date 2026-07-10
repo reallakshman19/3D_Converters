@@ -1,4 +1,5 @@
 import { createWorkflowDiagnostics } from './xml-cii-workflow-types.js';
+import { mutateRestraintType, normalizeRestraintTypeValue } from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
 const ENRICH_FIELDS = Object.freeze(['DTXR_POS', 'DTXR_PS', 'ComponentType', 'PipingClass', 'Rating', 'Position']);
 const ATTR_FIELDS = Object.freeze(['LINE_ID', 'FROM_NAME', 'TO_NAME']);
 const CONTEXT_FIELDS = Object.freeze(['DIAMETER', 'WALL_THICK', 'INSUL_THICK', 'CORR_ALLOW', 'MATERIAL_NUM', 'FLUID_DENSITY', 'INSUL_DENSITY', 'HYDRO_PRESSURE', ...Array.from({ length: 9 }, (_, i) => `TEMP_EXP_C${i + 1}`), ...Array.from({ length: 9 }, (_, i) => `PRESSURE_C${i + 1}`)]);
@@ -202,12 +203,25 @@ function normalizeRestraintSlot(value) {
   const slot = Math.round(n);
   return Math.abs(n - slot) < 1e-9 ? slot : null;
 }
-function normalizeExistingRestraints(element) {
+function restraintTypeMutationConfig(config) {
+  return config.inputXmlRestraintTypeMutation || config.restraintTypeMutation || {};
+}
+function normalizeExistingRestraints(element, config, options = {}) {
   const restraints = Array.from(element.children || []).filter((child) => localName(child).toUpperCase() === 'RESTRAINT');
   const used = new Set();
+  let mutatedTypes = 0;
   for (const restraint of restraints) {
     for (const attr of RESTRAINT_NUMERIC_ATTRS) {
+      if (attr === 'TYPE') continue;
       if (restraint.hasAttribute(attr)) restraint.setAttribute(attr, normalizeNumberText(restraint.getAttribute(attr)));
+    }
+    if (restraint.hasAttribute('TYPE')) {
+      const originalType = restraint.getAttribute('TYPE');
+      const normalizedType = options.mutateTypes
+        ? mutateRestraintType(originalType, restraintTypeMutationConfig(config))
+        : normalizeNumberText(originalType);
+      if (options.mutateTypes && normalizedType !== normalizeRestraintTypeValue(originalType)) mutatedTypes += 1;
+      restraint.setAttribute('TYPE', normalizedType);
     }
     const currentSlot = normalizeRestraintSlot(restraint.getAttribute('NUM'));
     if (currentSlot && currentSlot >= 1 && currentSlot <= MAX_RESTRAINT_SLOTS_PER_ELEMENT && !used.has(currentSlot)) {
@@ -222,6 +236,7 @@ function normalizeExistingRestraints(element) {
     restraint.setAttribute('NUM', String(nextSlot));
     used.add(nextSlot);
   }
+  return { mutatedTypes };
 }
 function frictionForDerivedRestraint(derived, config) {
   if (derived?.friction !== undefined && derived?.friction !== null && derived?.friction !== '') return numberFromValue(derived.friction, -1.0101);
@@ -248,9 +263,12 @@ function sideLoadLineKey(element, row) {
 function applyRestraintPolicy(doc, element, row, config, policy) {
   const derived = row ? deriveRestraints(row, config) : [];
   if (policy === 'replace-with-dtxr-derived-restraints') removeRestraints(element);
-  if (policy === 'convert-existing-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints' || policy === 'preserve-existing-restraints') normalizeExistingRestraints(element);
-  if (policy !== 'replace-with-dtxr-derived-restraints' && policy !== 'merge-existing-and-dtxr-derived-restraints') return;
+  let restraintStats = { mutatedTypes: 0 };
+  if (policy === 'preserve-existing-restraints') restraintStats = normalizeExistingRestraints(element, config, { mutateTypes: false });
+  if (policy === 'convert-existing-restraints' || policy === 'merge-existing-and-dtxr-derived-restraints') restraintStats = normalizeExistingRestraints(element, config, { mutateTypes: true });
+  if (policy !== 'replace-with-dtxr-derived-restraints' && policy !== 'merge-existing-and-dtxr-derived-restraints') return restraintStats;
   for (const restraint of derived) appendDerivedRestraint(doc, element, restraint, config);
+  return restraintStats;
 }
 function enrichElement(doc, element, row, config, options, lineContexts) {
   if (row) applySideLoadAttributes(element, row);
@@ -284,7 +302,7 @@ function createResult(job, doc, elements, counters, unmatched) {
 }
 function createInputXmlWorkflowResult(job, doc, elements, enrichedText, counters, unmatched) {
   const restraintCount = Array.from(doc.getElementsByTagName('RESTRAINT')).length;
-  const diagnostics = createWorkflowDiagnostics({ sourceKind: 'inputxml', outputKind: 'enrichedInputXML', branch: 'direct-inputxml-enrichment', elementCount: elements.length, enrichedElementCount: counters.enriched, restraintCount, sideLoadMatched: counters.matched.size, sideLoadUnmatched: unmatched, inheritedFieldCount: counters.inherited, sentinelFieldCount: counters.sentinel, warnings: unmatched.length ? [`${unmatched.length} side-load element key(s) did not match InputXML elements.`] : [] });
+  const diagnostics = createWorkflowDiagnostics({ sourceKind: 'inputxml', outputKind: 'enrichedInputXML', branch: 'direct-inputxml-enrichment', elementCount: elements.length, enrichedElementCount: counters.enriched, restraintCount, sideLoadMatched: counters.matched.size, sideLoadUnmatched: unmatched, inheritedFieldCount: counters.inherited, sentinelFieldCount: counters.sentinel, restraintTypeMutationCount: counters.restraintTypeMutations, warnings: unmatched.length ? [`${unmatched.length} side-load element key(s) did not match InputXML elements.`] : [] });
   return { ok: true, sourceKind: 'inputxml', outputKind: 'enrichedInputXML', enrichedText, enrichedName: `${safeStem(job.sourceName)}_enriched.input.xml`, ciiText: null, ciiName: null, diagnostics, logs: [`InputXML enrichment completed for ${elements.length} PIPINGELEMENT record(s).`, `Side-load matched ${counters.matched.size} element(s).`], error: null };
 }
 export function enrichInputXmlDocument(job) {
@@ -293,7 +311,7 @@ export function enrichInputXmlDocument(job) {
   const doc = parseInputXml(job.sourceText);
   const elements = findChildren(doc, 'PIPINGELEMENT');
   const sideLoad = parseInputXmlElementSideLoad(job.elementSideLoadText || '');
-  const counters = { enriched: 0, inherited: 0, sentinel: 0, matched: new Set() };
+  const counters = { enriched: 0, inherited: 0, sentinel: 0, restraintTypeMutations: 0, matched: new Set() };
   const lineContexts = new Map();
   for (const element of elements) {
     const key = `${normalizeNode(element.getAttribute('FROM_NODE'))}->${normalizeNode(element.getAttribute('TO_NODE'))}`;
@@ -303,7 +321,8 @@ export function enrichInputXmlDocument(job) {
     counters.inherited += fill.inherited;
     counters.sentinel += fill.sentinel;
     if (row) { counters.matched.add(key); counters.enriched += 1; }
-    applyRestraintPolicy(doc, element, row, config, options.inputXmlRestraintPolicy || 'merge-existing-and-dtxr-derived-restraints');
+    const restraintStats = applyRestraintPolicy(doc, element, row, config, options.inputXmlRestraintPolicy || 'merge-existing-and-dtxr-derived-restraints') || {};
+    counters.restraintTypeMutations += Number(restraintStats.mutatedTypes || 0);
   }
   const unmatched = Array.from(sideLoad.keys()).filter((key) => !counters.matched.has(key));
   return createResult({ ...job, options }, doc, elements, counters, unmatched);

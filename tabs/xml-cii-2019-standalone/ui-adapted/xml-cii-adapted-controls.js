@@ -1,5 +1,6 @@
 import { appendLabeledControl, createElement, createOption } from './xml-cii-adapted-dom.js';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js';
+import { XML_OR_TXT_ACCEPT } from '../xml-cii-workflow-source-detect.js';
 
 export function renderSourceControls(card, state) {
   const sourceKind = appendLabeledControl(card, 'Source type:', createElement('select'));
@@ -11,7 +12,7 @@ export function renderSourceControls(card, state) {
   );
   const file = appendLabeledControl(card, 'XML / InputXML file:', createElement('input'));
   file.type = 'file';
-  file.accept = '.xml,.XML,.inputxml';
+  file.accept = XML_OR_TXT_ACCEPT;
   file.dataset.field = 'source-file';
   card.appendChild(createElement('div', summarizeWorkflowFile(state.sourceFile), 'xml-cii-file-summary'));
 }

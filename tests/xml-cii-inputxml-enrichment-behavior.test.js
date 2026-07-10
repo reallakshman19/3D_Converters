@@ -1,6 +1,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 class SimpleElement {
   constructor(name) {
@@ -105,9 +106,7 @@ function readFixture(name) {
 function loadEnrichmentModule() {
   const root = path.resolve(__dirname, '..');
   const file = path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js');
-  const source = fs.readFileSync(file, 'utf8')
-    .replace("import { createWorkflowDiagnostics } from './xml-cii-workflow-types.js';", "function createWorkflowDiagnostics(extra = {}) { return { schema: 'xml-cii-2019-workflow-diagnostics/v1', elementCount: 0, enrichedElementCount: 0, restraintCount: 0, sideLoadMatched: 0, sideLoadUnmatched: [], inheritedFieldCount: 0, sentinelFieldCount: 0, warnings: [], ...extra }; }");
-  return import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+  return import(pathToFileURL(file).href);
 }
 
 function supportConfig() {

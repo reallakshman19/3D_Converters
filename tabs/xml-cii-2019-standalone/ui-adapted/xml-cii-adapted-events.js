@@ -8,7 +8,7 @@ import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readine
 import { readTextFile } from '../xml-cii-workflow-ui-adapter.js';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
 import { applyPreviewDiagnosticsAuditReport, applyStandaloneManualElementSideloadResult, applyStandaloneOutputRunReadiness, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, patchResolverJsonTraceConfig, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
-import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js';
+import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFromUi } from './xml-cii-adapted-master-events.js?v=20260708-v8';
 import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js';
 import { bindTraceTableEvents } from './xml-cii-adapted-table-trace-events.js';
@@ -260,7 +260,7 @@ function artifactText(state, kind) {
 export function downloadArtifact(state, kind) {
   const artifact = artifactText(state, kind);
   if (!artifact.text) return null;
-  return downloadTextFile(artifact.name || `xml-cii-${kind}.txt`, artifact.text, artifact.mime);
+  return downloadTextFile(maskedFileName(artifact.name || `xml-cii-${kind}.txt`), artifact.text, artifact.mime);
 }
 
 export function parseTriState(value) { if (value === 'true') return true; if (value === 'false') return false; return null; }
