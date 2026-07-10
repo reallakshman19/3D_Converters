@@ -54,6 +54,8 @@ import {
   normalizeLineListRow as _normalizeLineListRow
 } from '../../converters/xml-cii2019-core/linelist-mapping.js';
 import { buildStagedSupportIndex, calibrateStagedSupportIndexCoordinates, xmlCiiTypeEntriesFromSupportKind, xmlCiiRestraintEntriesFromSupportMatch, xmlCiiTypeEntryFromExistingRestraint, dedupeXmlCiiRestraintEntries, applyXmlRestraints, enrichHierarchyWithMapperKinds } from '../../converters/xml-cii2019-core/support-mapping.js';
+import { renderUnifiedSupportMappingTable, bindUnifiedSupportMappingTable } from './converters/xmltocii2019_helper/support-mapping-table.js?v=20260710-inputxml2019-popup-revamp-1';
+import { parseInputXmlForBranchPreview } from './converters/inputxml2019_helper/inputxml-branch-preview.js?v=20260710-inputxml2019-popup-revamp-1';
 import { CONVERTERS, getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
 import { XML_CII_WORKFLOW_PHASES } from './WorkflowShell.js';
 import { loadStoredState, saveStoredState } from './core/config-store.js';
@@ -1670,6 +1672,20 @@ const INPUTXML2019_POPUP_HEADER_KEYS = Object.freeze([
   'headerMdbName',
 ]);
 
+// True CII header-only subset of the list above, used to split the InputXML->CII(2019)
+// popup's fields into a "CII Header" group vs. a "Global Defaults" group. The broader
+// INPUTXML2019_POPUP_HEADER_KEYS list (defaults + header combined) is left untouched
+// since it's also used by the legacy "Open Popup" advanced-options button.
+const INPUTXML2019_CII_HEADER_ONLY_KEYS = Object.freeze([
+  'headerDateTime',
+  'headerSource',
+  'headerVersion',
+  'headerUserName',
+  'headerPurpose',
+  'headerProjectName',
+  'headerMdbName',
+]);
+
 function _popupFieldValueToTyped(field, input) {
   if (field.type === 'checkbox') return !!input.checked;
   if (field.type === 'number') {
@@ -1740,6 +1756,47 @@ function _setValueAtPath(obj, pathStr, value) {
   }
 }
 
+function _branchPreviewHtml(branchPreview) {
+  if (!branchPreview || !branchPreview.ok || !branchPreview.branches?.length) {
+    return '<div style="color:#9aa8ba;">No PIPINGELEMENT rows were found in the loaded InputXML.</div>';
+  }
+  const fieldCell = (field) => {
+    const value = Number.isFinite(field.appliedValue) ? field.appliedValue : '';
+    const style = field.usedDefault ? 'color:#ffcf7a;' : 'color:#d7e6ff;';
+    const title = field.usedDefault ? `title="Missing from source; using global default (${_esc(field.label)})"` : '';
+    return `<td style="padding:4px 6px;border-bottom:1px solid #24354a;${style}" ${title}>${_esc(value)}</td>`;
+  };
+  const branchesHtml = branchPreview.branches.map((branch) => `
+    <details style="margin-bottom:8px;border:1px solid #26384f;border-radius:6px;">
+      <summary style="cursor:pointer;padding:6px 8px;color:#9cc5ff;font-size:12px;">
+        Branch ${branch.branchIndex + 1}: node ${_esc(branch.fromNode)} &rarr; ${_esc(branch.toNode)}
+        (${branch.elements.length} element${branch.elements.length === 1 ? '' : 's'}, ${branch.usedDefaultCount} field(s) defaulted)
+      </summary>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">From</th>
+          <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">To</th>
+          ${branch.elements[0]?.fields.map((field) => `<th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">${_esc(field.label)}</th>`).join('') || ''}
+        </tr></thead>
+        <tbody>${branch.elements.map((element) => `
+          <tr>
+            <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${_esc(element.fromNode)}</td>
+            <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${_esc(element.toNode)}</td>
+            ${element.fields.map(fieldCell).join('')}
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    </details>
+  `).join('');
+  return `
+    <div style="color:#9aa8ba;font-size:12px;margin-bottom:8px;">
+      ${branchPreview.stats.branchCount} branch(es), ${branchPreview.stats.elementCount} element(s), ${branchPreview.stats.restraintCount} restraint(s) found in the loaded InputXML.
+      Values in <span style="color:#ffcf7a;">orange</span> are missing from the source file and fall back to the Global Defaults tab.
+    </div>
+    ${branchesHtml}
+  `;
+}
+
 function _openJsonPopup({
   title,
   value,
@@ -1749,9 +1806,15 @@ function _openJsonPopup({
   requirementLines,
   supportRules,
   enrichmentTools = false,
+  branchPreview = null,
+  unifiedSupportMapping = false,
+  onSaveConfigOnly,
+  defaultFields,
 }) {
-  const popupHeaderFields = Array.isArray(headerFields) ? headerFields : [];
-  const headerFieldsHtml = popupHeaderFields.map((field) => {
+  const popupDefaultFields = Array.isArray(defaultFields) ? defaultFields : [];
+  const popupOwnHeaderFields = Array.isArray(headerFields) ? headerFields : [];
+  const popupHeaderFields = [...popupOwnHeaderFields, ...popupDefaultFields];
+  const renderPopupFieldGroup = (fields) => fields.map((field) => {
     if (field.type === 'checkbox') {
       return `
         <label style="display:flex;align-items:center;gap:8px;color:#d7e6ff;font-size:13px;">
@@ -1771,6 +1834,18 @@ function _openJsonPopup({
       </label>
     `;
   }).join('');
+  const defaultFieldsHtml = popupDefaultFields.length
+    ? `
+      <div style="color:#9cc5ff;font-weight:700;font-size:13px;margin:4px 0 8px;">Global Defaults</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:14px;">
+        ${renderPopupFieldGroup(popupDefaultFields)}
+      </div>
+      ${popupOwnHeaderFields.length ? '<div style="color:#9cc5ff;font-weight:700;font-size:13px;margin:4px 0 8px;">CII Header</div>' : ''}
+    `
+    : '';
+  const headerFieldsHtml = defaultFieldsHtml
+    ? `${defaultFieldsHtml}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">${renderPopupFieldGroup(popupOwnHeaderFields)}</div>`
+    : renderPopupFieldGroup(popupHeaderFields);
   const requirementText = Array.isArray(requirementLines) && requirementLines.length
     ? requirementLines.map((line) => `<div style="color:#9aa8ba;font-size:12px;">${_esc(line)}</div>`).join('')
     : '';
@@ -1787,6 +1862,12 @@ function _openJsonPopup({
     : '<tr><td colspan="4" style="padding:8px;color:#9aa8ba;">No support mapper rules configured.</td></tr>';
   const supportMapperTabButton = supportRuleList.length
     ? '<button type="button" data-popup-tab="support" class="model-converters-download-btn">Support Type Mapper</button>'
+    : '';
+  const branchPreviewTabButton = branchPreview
+    ? '<button type="button" data-popup-tab="branches" class="model-converters-download-btn">Branch Data</button>'
+    : '';
+  const unifiedSupportMappingTabButton = unifiedSupportMapping
+    ? '<button type="button" data-popup-tab="unified-support" class="model-converters-download-btn">Support Mapping</button>'
     : '';
   const enrichmentToolsEnabled = !!enrichmentTools || (() => {
     try {
@@ -1817,15 +1898,17 @@ function _openJsonPopup({
     <div style="width:min(1000px,96vw);height:min(780px,94vh);display:flex;flex-direction:column;background:#0f1724;border:1px solid #2c3a4f;border-radius:10px;overflow:hidden;">
       <div style="padding:10px 12px;border-bottom:1px solid #2c3a4f;color:#9cc5ff;font-weight:700;">${_esc(title)}</div>
       <div style="display:flex;gap:6px;padding:10px 12px 0 12px;">
-        <button type="button" data-popup-tab="header" class="model-converters-download-btn">Header</button>
+        <button type="button" data-popup-tab="header" class="model-converters-download-btn">${popupDefaultFields.length ? 'Global Defaults' : 'Header'}</button>
         <button type="button" data-popup-tab="config" class="model-converters-run-btn">Config</button>
         <button type="button" data-popup-tab="json" class="model-converters-download-btn">JSON</button>
         ${regexTabButton}
         ${mastersTabButton}
         ${logTabButton}
         ${supportMapperTabButton}
+        ${branchPreviewTabButton}
+        ${unifiedSupportMappingTabButton}
       </div>
-      <div style="padding:10px 12px;color:#9aa8ba;font-size:12px;">Use Config for all fields, Regex Tester for branch-name extraction, Masters for material/class overrides, Diagnostics Log for run output fields, and Support Type Mapper for ATT/RVM rules.</div>
+      <div style="padding:10px 12px;color:#9aa8ba;font-size:12px;">Use Config for all fields, Regex Tester for branch-name extraction, Masters for material/class overrides, Diagnostics Log for run output fields, Support Type Mapper for ATT/RVM rules${branchPreview ? ', Branch Data for a per-branch coverage/defaults preview of the loaded file' : ''}${unifiedSupportMapping ? ', and Support Mapping for restraint type rules and their CAESAR II numeric codes' : ''}.</div>
       <div style="padding:0 12px 10px 12px;">${requirementText}</div>
       <div data-popup-panel="header" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">
@@ -1872,7 +1955,15 @@ function _openJsonPopup({
         <div style="color:#9aa8ba;font-size:12px;margin-bottom:8px;">Point-and-click editors for the Material Map and manual overrides (Material name &rarr; code; Piping class &rarr; class). Saved into the same config JSON; overrides take highest precedence.</div>
         <div data-popup-masters></div>
       </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;padding:10px 12px;border-top:1px solid #2c3a4f;background:#111c2c;">
+      <div data-popup-panel="branches" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
+        <div data-popup-branches>${_branchPreviewHtml(branchPreview)}</div>
+      </div>
+      <div data-popup-panel="unified-support" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
+        <div data-popup-unified-support></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 12px;border-top:1px solid #2c3a4f;background:#111c2c;">
+        <span data-popup-save-config-status style="font-size:12px;color:#8b9eb7;"></span>
+        ${onSaveConfigOnly ? '<button type="button" data-popup-action="save-config" class="model-converters-download-btn">Save config</button>' : ''}
         <button type="button" data-popup-action="cancel" class="model-converters-download-btn">Cancel</button>
         <button type="button" data-popup-action="save" class="model-converters-run-btn">Save</button>
       </div>
@@ -1917,7 +2008,13 @@ function _openJsonPopup({
       return;
     }
     const inputStyle = 'background:#182334;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:3px 6px;font-size:12px;width:100%;box-sizing:border-box;';
+    let lastSection = null;
     configRowsEl.innerHTML = rows.map((row) => {
+      const section = _toText(row.path).split(/[.[]/)[0] || '(root)';
+      const sectionHeaderHtml = section !== lastSection
+        ? `<tr><td colspan="3" style="padding:8px 6px 4px;border-bottom:1px solid #31455f;color:#9cc5ff;font-weight:700;font-size:12px;">${_esc(section)}</td></tr>`
+        : '';
+      lastSection = section;
       let cellHtml;
       if (row.type === 'boolean') {
         cellHtml = `<input type="checkbox" data-config-path="${_esc(row.path)}" data-config-type="boolean" ${row.value === 'true' ? 'checked' : ''}>`;
@@ -1929,6 +2026,7 @@ function _openJsonPopup({
         cellHtml = `<code style="color:#9aa8ba;">${_esc(row.value)}</code>`;
       }
       return `
+        ${sectionHeaderHtml}
         <tr>
           <td style="padding:6px;border-bottom:1px solid #24354a;vertical-align:middle;color:#e6edf5;"><code>${_esc(row.path || '(root)')}</code></td>
           <td style="padding:6px;border-bottom:1px solid #24354a;vertical-align:middle;color:#9cc5ff;white-space:nowrap;">${_esc(row.type)}</td>
@@ -2109,6 +2207,75 @@ function _openJsonPopup({
       sync(); renderMastersTab();
     }));
   };
+  const unifiedSupportMappingEl = overlay.querySelector('[data-popup-unified-support]');
+  const distinctRestraintTypes = (() => {
+    const counts = new Map();
+    for (const restraint of branchPreview?.restraints || []) {
+      const type = _toText(restraint.type);
+      if (!type) continue;
+      counts.set(type, (counts.get(type) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
+  })();
+  const renderRestraintOverridesHtml = (parsed) => {
+    if (!distinctRestraintTypes.length) return '';
+    const explicitMap = (parsed.restraint && typeof parsed.restraint === 'object' && parsed.restraint.explicit_type_map) || {};
+    return `
+      <div class="model-converters-workflow-detail-title" style="margin-top:14px;">Restraint type overrides found in this file</div>
+      <div class="model-converters-workflow-detail-text" style="margin-bottom:8px;">
+        Every distinct RESTRAINT/TYPE number actually present in the loaded InputXML. By default the numeric type is
+        passed straight through unchanged (identity); set an override below to remap a source type to a different
+        CAESAR II numeric code without editing Python. This writes directly into
+        <code>layoutConfigJson.restraint.explicit_type_map</code>.
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;max-width:480px;">
+        <thead><tr>
+          <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">Source Type #</th>
+          <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">Occurrences</th>
+          <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">Override To</th>
+        </tr></thead>
+        <tbody>${distinctRestraintTypes.map(([type, count]) => `
+          <tr>
+            <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${_esc(type)}</td>
+            <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${count}</td>
+            <td style="padding:4px 6px;border-bottom:1px solid #24354a;">
+              <input data-restraint-override-type="${_esc(type)}" value="${_esc(explicitMap[type] ?? '')}" placeholder="${_esc(type)} (unchanged)"
+                style="width:110px;background:#101827;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:4px 6px;">
+            </td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    `;
+  };
+  const renderUnifiedSupportMappingTab = () => {
+    if (!unifiedSupportMappingEl || !unifiedSupportMapping) return;
+    let parsed;
+    try { parsed = JSON.parse(String(textarea?.value ?? '') || '{}'); }
+    catch { unifiedSupportMappingEl.innerHTML = '<div style="color:#ffb4b4;">Fix the JSON tab before editing support mapping.</div>'; return; }
+    renderUnifiedSupportMappingTable(unifiedSupportMappingEl, parsed);
+    bindUnifiedSupportMappingTable(unifiedSupportMappingEl, parsed, {
+      onSaveConfig: (nextConfig) => { if (textarea) textarea.value = JSON.stringify(nextConfig, null, 2); },
+    });
+    const overridesHost = document.createElement('div');
+    overridesHost.innerHTML = renderRestraintOverridesHtml(parsed);
+    unifiedSupportMappingEl.appendChild(overridesHost);
+    overridesHost.querySelectorAll('[data-restraint-override-type]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const sourceType = input.getAttribute('data-restraint-override-type');
+        const overrideValue = _toText(input.value);
+        parsed.restraint = parsed.restraint && typeof parsed.restraint === 'object' ? parsed.restraint : {};
+        parsed.restraint.explicit_type_map = parsed.restraint.explicit_type_map && typeof parsed.restraint.explicit_type_map === 'object' ? parsed.restraint.explicit_type_map : {};
+        if (overrideValue) {
+          parsed.restraint.explicit_type_map[sourceType] = overrideValue;
+          parsed.restraint.mapping_policy = 'explicit_map';
+        } else {
+          delete parsed.restraint.explicit_type_map[sourceType];
+          if (!Object.keys(parsed.restraint.explicit_type_map).length) parsed.restraint.mapping_policy = 'identity';
+        }
+        if (textarea) textarea.value = JSON.stringify(parsed, null, 2);
+      });
+    });
+  };
   for (const button of tabButtons) {
     button.addEventListener('click', () => {
       const tabName = button.getAttribute('data-popup-tab') || 'json';
@@ -2116,6 +2283,7 @@ function _openJsonPopup({
       if (tabName === 'regex') renderRegexTab();
       if (tabName === 'masters') renderMastersTab();
       if (tabName === 'logs') renderLogsTab();
+      if (tabName === 'unified-support') renderUnifiedSupportMappingTab();
       activateTab(tabName);
     });
   }
@@ -2124,22 +2292,33 @@ function _openJsonPopup({
     if (active?.getAttribute('data-popup-tab') === 'config') renderConfigTable();
     if (active?.getAttribute('data-popup-tab') === 'regex') renderRegexTab();
   });
-  activateTab('config');
+  activateTab(branchPreview ? 'branches' : 'config');
   renderConfigTable();
   const close = () => overlay.remove();
   overlay.querySelector('[data-popup-action="cancel"]')?.addEventListener('click', () => {
     onCancel?.();
     close();
   });
-  overlay.querySelector('[data-popup-action="save"]')?.addEventListener('click', () => {
+  const collectHeaderValues = () => {
     const headerValues = {};
     for (const field of popupHeaderFields) {
       const input = overlay.querySelector(`[data-popup-header-key="${field.key}"]`);
       if (!input) continue;
       headerValues[field.key] = _popupFieldValueToTyped(field, input);
     }
-    onSave?.({ jsonText: textarea?.value ?? '', headerValues });
+    return headerValues;
+  };
+  overlay.querySelector('[data-popup-action="save"]')?.addEventListener('click', () => {
+    onSave?.({ jsonText: textarea?.value ?? '', headerValues: collectHeaderValues() });
     close();
+  });
+  overlay.querySelector('[data-popup-action="save-config"]')?.addEventListener('click', () => {
+    onSaveConfigOnly?.({ jsonText: textarea?.value ?? '', headerValues: collectHeaderValues() });
+    const statusEl = overlay.querySelector('[data-popup-save-config-status]');
+    if (statusEl) {
+      statusEl.textContent = 'Config saved';
+      setTimeout(() => { if (statusEl.textContent === 'Config saved') statusEl.textContent = ''; }, 1600);
+    }
   });
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) {
@@ -2347,31 +2526,45 @@ function _prepareInputxml2019ConfigForRequirements(layoutConfigJsonText, require
   };
 }
 
-async function _openInputxml2019PreRunPopup(def, values, primaryFileName, primaryBytes) {
+async function _openInputxml2019PreRunPopup(def, values, primaryFileName, primaryBytes, persist) {
   const xmlText = _decodeTextUtf8(primaryBytes);
   const requirements = _parseInputxml2019Requirements(xmlText);
   const prepared = _prepareInputxml2019ConfigForRequirements(values.layoutConfigJson, requirements);
+  const branchPreview = parseInputXmlForBranchPreview(xmlText, values);
 
   const popupHeaderFields = (def.fields || def.options || [])
-    .filter((entry) => INPUTXML2019_POPUP_HEADER_KEYS.includes(entry.key))
+    .filter((entry) => INPUTXML2019_CII_HEADER_ONLY_KEYS.includes(entry.key))
+    .map((entry) => ({
+      ...entry,
+      value: values[entry.key],
+    }));
+  const popupDefaultFields = (def.fields || def.options || [])
+    .filter((entry) => !INPUTXML2019_CII_HEADER_ONLY_KEYS.includes(entry.key) && entry.key !== 'layoutConfigJson')
     .map((entry) => ({
       ...entry,
       value: values[entry.key],
     }));
 
+  const applyPopupPayload = (payload) => {
+    values.layoutConfigJson = _prepareInputxml2019ConfigForRequirements(payload.jsonText, requirements).jsonText;
+    for (const [headerKey, headerValue] of Object.entries(payload.headerValues || {})) {
+      values[headerKey] = headerValue;
+    }
+  };
+
   const popupResult = await _openJsonPopupAsync({
     title: `${def.label}: File-based Config Review (${_toText(primaryFileName)})`,
     value: prepared.jsonText,
     headerFields: popupHeaderFields,
+    defaultFields: popupDefaultFields,
     requirementLines: prepared.requirementLines,
+    branchPreview,
+    unifiedSupportMapping: true,
+    onSaveConfigOnly: typeof persist === 'function' ? (payload) => { applyPopupPayload(payload); persist(); } : undefined,
   });
 
   if (!popupResult.saved || !popupResult.payload) return false;
-  const { jsonText, headerValues } = popupResult.payload;
-  values.layoutConfigJson = _prepareInputxml2019ConfigForRequirements(jsonText, requirements).jsonText;
-  for (const [headerKey, headerValue] of Object.entries(headerValues || {})) {
-    values[headerKey] = headerValue;
-  }
+  applyPopupPayload(popupResult.payload);
   return true;
 }
 
@@ -8747,7 +8940,7 @@ export function renderModelConvertersTab(container) {
         xmlCiiSaveConfig(cfg);
       };
       runValues.openInputxml2019PreRunPopup = async (ctx, values, name, bytes) => {
-        return await _openInputxml2019PreRunPopup(converter, values, name, bytes);
+        return await _openInputxml2019PreRunPopup(converter, values, name, bytes, persist);
       };
       runValues.openJsonPopupAsync = async (args) => {
         return await _openJsonPopupAsync(args);

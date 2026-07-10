@@ -38,13 +38,27 @@ function distancePoints(a, b) {
   return Number.isFinite(length) ? length : null;
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function restraintTagTest(options = {}) {
+  const names = Array.isArray(options.restraintTagNames) && options.restraintTagNames.length ? options.restraintTagNames : ['Restraint'];
+  return new RegExp(`<(?:${names.map(escapeRegExp).join('|')})\\b`, 'i');
+}
+
+function supportComponentTypeSet(options = {}) {
+  const types = Array.isArray(options.supportComponentTypes) && options.supportComponentTypes.length ? options.supportComponentTypes : ['ATTA'];
+  return new Set(types.map((type) => String(type).toUpperCase()));
+}
+
 function positionKey(point, tolerance = 0.001) {
   if (!point) return '';
   const tol = Number.isFinite(Number(tolerance)) && Number(tolerance) > 0 ? Number(tolerance) : 0.001;
   return [point.x, point.y, point.z].map((value) => Math.round(Number(value) / tol)).join('|');
 }
 
-function parseNode(block, index, branchName) {
+function parseNode(block, index, branchName, options = {}) {
   const position = tagValue(block, 'Position');
   const componentType = tagValue(block, 'ComponentType').toUpperCase();
   return {
@@ -60,18 +74,18 @@ function parseNode(block, index, branchName) {
     position,
     point: pointFromPosition(position),
     elementLengthMm: numeric(tagValue(block, 'ElementLengthMm')),
-    hasRestraint: /<Restraint\b/i.test(block),
+    hasRestraint: restraintTagTest(options).test(block),
   };
 }
 
-function isSupportReference(node) {
-  return node.componentType === 'ATTA' && !node.hasRestraint && /\/SREF/i.test(node.nodeName || '');
+function isSupportReference(node, options = {}) {
+  return supportComponentTypeSet(options).has(node.componentType) && !node.hasRestraint && /\/SREF/i.test(node.nodeName || '');
 }
 
-function isContinuityNode(node) {
+function isContinuityNode(node, options = {}) {
   if (!node?.point) return false;
   if (HELPER_COMPONENT_TYPES.has(node.componentType)) return false;
-  if (isSupportReference(node)) return false;
+  if (isSupportReference(node, options)) return false;
   return true;
 }
 
@@ -135,7 +149,7 @@ function rowsFromInputXmlContinuity(xmlText, options = {}) {
 
   for (const branchBlock of branchBlocks(xmlText)) {
     const branchName = tagValue(branchBlock, 'Branchname') || options.branchName || '';
-    const nodes = nodeBlocks(branchBlock).map((block, index) => parseNode(block, index, branchName));
+    const nodes = nodeBlocks(branchBlock).map((block, index) => parseNode(block, index, branchName, options));
     if (!nodes.length) continue;
     branchCount += 1;
     nodeCount += nodes.length;
@@ -168,7 +182,7 @@ function rowsFromInputXmlContinuity(xmlText, options = {}) {
         continue;
       }
 
-      if (!isContinuityNode(node)) continue;
+      if (!isContinuityNode(node, options)) continue;
       routeNodes.push(node);
 
       if (!previous) {

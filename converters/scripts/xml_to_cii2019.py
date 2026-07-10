@@ -49,6 +49,10 @@ ELEMENT_BLOCK_LONG_ZERO_LINE: Final[str] = "           0" + (" " * 501)
 ELEMENT_BLOCK_NODE_REF_LINE: Final[str] = "             -1           -1"
 RESTRAINT_LONG_ZERO_LINE: Final[str] = "           0" + (" " * 101)
 RESTRAINT_SLOTS_PER_AUX: Final[int] = 6
+# Mirrored for UI display/edit purposes in
+# converters/xml-cii2019-core/restraint-type-codes.js (NATIVE_RESTRAINT_TYPE_CODES /
+# restraintTypeToCaesarCode). This Python table remains the source of truth for
+# the numeric codes actually written into CII output; keep both in sync.
 NATIVE_RESTRAINT_TYPE_CODES: Final[dict[str, int]] = {
     "ANC": 1, "GUI": 8, "GUIDE": 8, "LIM": 9, "LIMIT": 9, "XSNB": 10, "YSNB": 11, "ZSNB": 12,
     "+X": 13, "+Y": 14, "+Z": 15, "-X": 16, "-Y": 17, "-Z": 18,
@@ -291,6 +295,9 @@ def _parse_yes_no(value: str, field_name: str) -> bool:
 
 
 def _restraint_type_to_code(restraint_type: str) -> int:
+    # Logic mirrored in converters/xml-cii2019-core/restraint-type-codes.js
+    # (restraintTypeToCaesarCode) so the mapping table UI can display the
+    # resulting CAESAR II numeric code. Keep both in sync.
     normalized = _safe_text(restraint_type).upper()
     try:
         numeric = float(normalized)

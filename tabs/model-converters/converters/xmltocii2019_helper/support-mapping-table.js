@@ -7,11 +7,14 @@ import {
   addSupportMappingRule,
   applySupportMappingRowPatch,
   migrateSupportMappingConfig,
+  normalizeXmlTypes,
   removeSupportMappingRule,
   supportKindToXmlTypeFromMapping,
   supportMappingRowsForTable,
   DEFAULT_STOP_KEYWORD_HELP,
 } from '../../../../converters/xml-cii2019-core/support-mapping-config.js';
+
+import { restraintTypeToCaesarCode } from '../../../../converters/xml-cii2019-core/restraint-type-codes.js';
 
 function text(value) {
   return String(value ?? '');
@@ -35,6 +38,15 @@ function checked(value) {
 
 function infoIcon(textValue) {
   return `<span title="${esc(textValue)}" style="cursor:help;color:#8bb7ff;border:1px solid #406089;border-radius:50%;padding:0 5px;font-size:11px;line-height:1.3;">i</span>`;
+}
+
+function caesarTypeCodesForXmlTypes(xmlTypesValue) {
+  // Reuses normalizeXmlTypes' composite-token splitter so a leading sign (e.g. "+Y")
+  // is not mistaken for the "+" used to join multiple types (e.g. "GUI+LIM").
+  const tokens = normalizeXmlTypes(xmlTypesValue);
+  const codes = tokens.map((token) => restraintTypeToCaesarCode(token));
+  if (!codes.length || codes.some((code) => code === null)) return '';
+  return codes.join('/');
 }
 
 function inputCell(row, field, value, width = '96px') {
@@ -61,6 +73,7 @@ function rowHtml(row) {
       <td>${inputCell(row, 'pattern', row.pattern || '', '190px')}</td>
       <td>${selectCell(row, 'kind', row.kind, SUPPORT_KINDS, '105px')}</td>
       <td>${inputCell(row, 'xmlTypes', row.xmlTypes || '', '100px')}</td>
+      <td style="text-align:center;color:#9aa8ba;" title="CAESAR II numeric restraint type code(s) resolved from XML/CII Type(s), matching converters/scripts/xml_to_cii2019.py's NATIVE_RESTRAINT_TYPE_CODES mapping.">${esc(caesarTypeCodesForXmlTypes(row.xmlTypes) || '—')}</td>
       <td>${selectCell(row, 'directionMode', row.directionMode || 'none', ['none', 'fixed', 'pipe-axis', 'pipe-normal', 'from-staged', 'from-xml'], '125px')}</td>
       <td>${inputCell(row, 'dirX', row.dirX, '58px')}</td>
       <td>${inputCell(row, 'dirY', row.dirY, '58px')}</td>
@@ -104,7 +117,7 @@ export function renderUnifiedSupportMappingTable(container, config) {
     </div>
 
     <div style="overflow:auto;max-height:58vh;border:1px solid #26384f;border-radius:8px;">
-      <table class="xml-cii-support-mapping-table" style="border-collapse:collapse;min-width:1900px;width:100%;font-size:12px;">
+      <table class="xml-cii-support-mapping-table" style="border-collapse:collapse;min-width:2000px;width:100%;font-size:12px;">
         <thead style="color:#fff;background:#111827;">
           <tr>
             <th style="color:#fff;">On</th>
@@ -115,6 +128,7 @@ export function renderUnifiedSupportMappingTable(container, config) {
             <th style="color:#fff;">Pattern / Keywords</th>
             <th style="color:#fff;">Kind</th>
             <th style="color:#fff;">XML/CII Type(s)</th>
+            <th style="color:#fff;" title="CAESAR II numeric restraint type code(s), for reference only">CAESAR Type #</th>
             <th style="color:#fff;">Direction Mode</th>
             <th style="color:#fff;">Dir X</th>
             <th style="color:#fff;">Dir Y</th>

@@ -21,6 +21,20 @@ function normalizeRef(value) {
   return text(value).replace(/^=/, '').replace(/\s+/g, '').toUpperCase();
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function restraintTagTest(options = {}) {
+  const names = Array.isArray(options.restraintTagNames) && options.restraintTagNames.length ? options.restraintTagNames : ['Restraint'];
+  return new RegExp(`<(?:${names.map(escapeRegExp).join('|')})\\b`, 'i');
+}
+
+function supportComponentTypeSet(options = {}) {
+  const types = Array.isArray(options.supportComponentTypes) && options.supportComponentTypes.length ? options.supportComponentTypes : ['ATTA'];
+  return new Set(types.map((type) => String(type).toUpperCase()));
+}
+
 function tagValue(block, name) {
   const match = text(block).match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'));
   return text(match?.[1]?.replace(/<[^>]+>/g, ''));
@@ -61,16 +75,16 @@ function branchBlocks(xmlText) {
   return blocks.length ? blocks : [text(xmlText)];
 }
 
-function parseNode(block, index, branchName) {
+function parseNode(block, index, branchName, options = {}) {
   const componentType = upper(tagValue(block, 'ComponentType'));
   const nodeNumber = text(tagValue(block, 'NodeNumber'));
   const nodeName = text(tagValue(block, 'NodeName'));
   const endpoint = text(tagValue(block, 'Endpoint'));
   const positionText = tagValue(block, 'Position');
   const point = pointFromPosition(positionText);
-  const hasRestraint = /<Restraint\b/i.test(block);
+  const hasRestraint = restraintTagTest(options).test(block);
   const ref = normalizeRef(tagValue(block, 'ComponentRefNo'));
-  const role = classifyNode({ componentType, nodeNumber, nodeName, endpoint, point, hasRestraint });
+  const role = classifyNode({ componentType, nodeNumber, nodeName, endpoint, point, hasRestraint }, options);
 
   return {
     index,
@@ -90,13 +104,14 @@ function parseNode(block, index, branchName) {
   };
 }
 
-function classifyNode(node) {
+function classifyNode(node, options = {}) {
   const type = upper(node.componentType);
   const nodeName = upper(node.nodeName);
   const nodeNumber = text(node.nodeNumber);
+  const supportTypes = supportComponentTypeSet(options);
 
-  if (type === 'ATTA' && node.hasRestraint) return 'support-restraint';
-  if (type === 'ATTA' && !node.hasRestraint && nodeName.includes('/SREF')) return 'support-reference';
+  if (supportTypes.has(type) && node.hasRestraint) return 'support-restraint';
+  if (supportTypes.has(type) && !node.hasRestraint && nodeName.includes('/SREF')) return 'support-reference';
   if (BEND_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'bend-helper-endpoint';
   if (OLET_COMPONENT_TYPES.has(type) && nodeNumber === '-1') return 'olet-helper-endpoint';
   if (INLINE_COMPONENT_TYPES.has(type)) return 'inline-component-endpoint';
@@ -265,7 +280,7 @@ export function collectXmlCiiTopologyElementLengthAssignments(xmlText, options =
     const blocks = nodeBlocks(branchBlock);
     if (!blocks.length) continue;
     branchCount += 1;
-    const nodes = blocks.map((block, index) => parseNode(block, index, branchName));
+    const nodes = blocks.map((block, index) => parseNode(block, index, branchName, options));
     nodeCount += nodes.length;
     const result = calculateBranchAssignments(branchName, nodes, options);
     assignments.push(...result.assignments);
@@ -312,7 +327,7 @@ export function applyXmlCiiTopologyElementLengths(xmlText, options = {}) {
     const branchName = tagValue(branchBlock, 'Branchname') || options.branchName || '';
     let index = 0;
     return branchBlock.replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
-      const node = parseNode(block, index++, branchName);
+      const node = parseNode(block, index++, branchName, options);
       const assignment = byBlockKey.get(assignmentKey(node));
       if (!assignment) return block;
       if (shouldPreserveExistingUnsplitInlineLength(node, options)) {
@@ -327,7 +342,7 @@ export function applyXmlCiiTopologyElementLengths(xmlText, options = {}) {
   if (out === text(xmlText)) {
     let index = 0;
     out = text(xmlText).replace(/<Node\b[\s\S]*?<\/Node>/gi, (block) => {
-      const node = parseNode(block, index++, options.branchName || '');
+      const node = parseNode(block, index++, options.branchName || '', options);
       const assignment = byBlockKey.get(assignmentKey(node));
       if (!assignment) return block;
       if (shouldPreserveExistingUnsplitInlineLength(node, options)) {
