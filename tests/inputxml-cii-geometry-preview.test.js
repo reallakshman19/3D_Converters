@@ -140,6 +140,19 @@ function prepareEsmFixture() {
   assert.deepStrictEqual(inputProject.segments[0].normalized.ep2, { x: 100, y: 0, z: 0 });
   assert.deepStrictEqual(inputProject.segments[1].normalized.ep2, { x: 100, y: 50, z: 0 });
 
+  const customInputXml = `
+    <Root>
+      <Branch>
+        <Branchname>/SELJSON/B1</Branchname>
+        <Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType><Position>0 0 0</Position></Node>
+        <Node><NodeNumber>20</NodeNumber><ComponentType>SUPPORT</ComponentType><Position>100 0 0</Position><CustomRestraint><Type>GUIDE</Type></CustomRestraint></Node>
+      </Branch>
+    </Root>`;
+  const customProject = buildInputXmlCiiGeometryPreviewProject(customInputXml, 'seljson-custom-input.xml');
+  assert(customProject, 'Custom InputXML preview project should be built.');
+  assert.strictEqual(customProject.supports.length, 1);
+  assert.strictEqual(customProject.supports[0].attributes.componentType, 'SUPPORT');
+
   const launcherTopo = read('Benchmarks/LAUNCHERTOPO.XML');
   const topologyProject = buildInputXmlCiiGeometryPreviewProject(launcherTopo, 'LAUNCHERTOPO.XML');
   assert(topologyProject, 'Launcher topology preview project should be built from real benchmark XML.');

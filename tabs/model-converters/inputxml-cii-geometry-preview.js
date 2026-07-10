@@ -107,6 +107,10 @@ function hasDirectChild(parent, name) {
   return directChildrenByLocalName(parent, name).length > 0;
 }
 
+function hasAnyDirectChild(parent, names) {
+  return names.some((name) => hasDirectChild(parent, name));
+}
+
 function parseXmlDocument(xmlText) {
   if (typeof DOMParser === 'undefined') return null;
   try {
@@ -252,7 +256,7 @@ function buildFromTopologyBranchNodes(xmlText, sourceName) {
         },
       });
 
-      if (hasDirectChild(nodeElement, 'Restraint')) {
+      if (hasAnyDirectChild(nodeElement, ['Restraint', 'CustomRestraint'])) {
         supports.push({
           id: `topology-support-${String(supports.length + 1).padStart(4, '0')}`,
           nodeId,

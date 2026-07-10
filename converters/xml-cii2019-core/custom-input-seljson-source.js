@@ -1,6 +1,7 @@
 /**
  * Converts 3DV "Conv JSON" selection payloads into the Custom Input model rows
- * consumed by XML->CII. Parameters: rvm-converter-stage/v1 JSON text/object and
+ * consumed by XML->CII. Parameters: rvm-converter-stage/v1 JSON text/object,
+ * or the 3DV viewer selection wrapper with top-level source/selected rows, and
  * explicit converter options. Outputs: branch/coordinate/weight/restraint/DTXR
  * rows plus trace diagnostics. Fallback: non-route geometry is skipped with an
  * audit row unless includeNonRouteGeometry is enabled.
@@ -96,6 +97,65 @@ function sourceKind(payload) {
 function nativeKind(item) {
   return t(item?.native?.kind || item?.nativeKind || item?.renderKind || item?.nativeParams?.role || 'unknown');
 }
+function objectValue(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+function itemAttrs(item) {
+  return { ...objectValue(item?.sourceAttributes), ...objectValue(item?.attributes) };
+}
+function attrValue(attrs, ...keys) {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(attrs, key) && t(attrs[key])) return attrs[key];
+  }
+  const lookup = new Map(Object.entries(attrs).map(([key, value]) => [String(key).toUpperCase(), value]));
+  for (const key of keys) {
+    const value = lookup.get(String(key).toUpperCase());
+    if (t(value)) return value;
+  }
+  return '';
+}
+function supportKindForItem(item) {
+  const attrs = itemAttrs(item);
+  return supportKindFromText(
+    attrValue(attrs, 'SUPPORT_KIND', 'SUPPORTKIND'),
+    attrValue(attrs, 'SUPPORT_TYPE', 'SUPPORTTYPE'),
+    attrValue(attrs, 'CMPSUPTYPE', 'CMP_SUP_TYPE'),
+    attrValue(attrs, 'MDSSUPPTYPE', 'MDS_SUPP_TYPE'),
+    attrValue(attrs, 'DTXR'),
+    attrValue(attrs, 'SPRE', 'LSTU', 'ISONOTE')
+  );
+}
+function supportComponent(item) {
+  return { type: 'SUPPORT', rigid: '0', route: true, restraint: supportKindForItem(item) || 'REST' };
+}
+function supportRestraintArgs(item, restraintType) {
+  const attrs = itemAttrs(item);
+  return {
+    nodeName: t(attrValue(attrs, 'SUPPORT_TAG', 'PSNO', 'PS_NO', 'NAME')),
+    gap: t(attrValue(attrs, 'NODEGAP', 'CMPSUPGAP', 'GAP')),
+    stiffness: t(attrValue(attrs, 'NODESTIFF', 'STIFFNESS')),
+    friction: t(attrValue(attrs, 'NODEFRICTION', 'FRICTION')),
+    direction: t(attrValue(attrs, 'SUPPORT_DIRECTION', 'RESTRAINT_DIRECTION', 'DIRECTION', 'DIR')) || directionForSupportKind(restraintType),
+  };
+}
+function supportComponentRef(item, fallbackRef) {
+  const attrs = itemAttrs(item);
+  return t(attrValue(attrs, 'SUPPORT_TAG', 'PSNO', 'PS_NO')) || fallbackRef;
+}
+function componentDtxrForItem(item, component, ref, kind) {
+  if (component.type === 'PIPE') return '';
+  const attrs = itemAttrs(item);
+  const base = t(attrValue(attrs, 'DTXR', 'DESCRIPTION', 'SPRE')) || `${component.type} ${kind} ${ref}`.trim();
+  if (component.type !== 'SUPPORT') return base;
+  const meta = [
+    ['SUPPORT_TAG', attrValue(attrs, 'SUPPORT_TAG', 'PSNO', 'PS_NO')],
+    ['CMPSUPTYPE', attrValue(attrs, 'CMPSUPTYPE', 'CMP_SUP_TYPE')],
+    ['SUPPORT_KIND', attrValue(attrs, 'SUPPORT_KIND', 'SUPPORTKIND')],
+    ['SUPPORT_TYPE', attrValue(attrs, 'SUPPORT_TYPE', 'SUPPORTTYPE')],
+    ['NODEGAP', attrValue(attrs, 'NODEGAP', 'CMPSUPGAP', 'GAP')],
+  ].filter((entry) => t(entry[1])).map((entry) => `${entry[0]}=${t(entry[1])}`);
+  return meta.length ? `${base} (${meta.join(',')})` : base;
+}
 function itemPath(item) {
   return t(item?.source?.parentPath || item?.semantic?.parentPath || item?.semantic?.linePath);
 }
@@ -109,6 +169,14 @@ function branchBase(path) {
   const loose = parts.findIndex((part) => /^B\d+/i.test(part));
   return loose >= 0 ? `/${parts.slice(0, loose + 1).join('/')}` : '';
 }
+function branchPathFromAttrs(item) {
+  const attrs = itemAttrs(item);
+  const explicit = t(attrValue(attrs, 'BRANCH_PATH', 'OWNER_BRANCH', 'LINE_PATH', 'PARENT_PATH'));
+  if (explicit) return branchBase(explicit) || cleanPath(explicit);
+  const owner = t(attrValue(attrs, 'OWNER'));
+  if (owner) return branchBase(owner) || cleanPath(owner);
+  return '';
+}
 function attachmentOwnerPath(path) {
   const marker = cleanPath(path).toUpperCase().indexOf('/ATTACHMENT ');
   return marker >= 0 ? cleanPath(path).slice(0, marker) : '';
@@ -118,13 +186,13 @@ function isAttachmentItem(item) {
 }
 function classifyComponent(item, options) {
   const kind = nativeKind(item).toLowerCase();
-  if (isAttachmentItem(item)) return { type: 'SUPPORT', rigid: '0', route: true, restraint: 'REST' };
+  if (isAttachmentItem(item)) return supportComponent(item);
   if (kind.includes('segment') || kind === 'cylinder') return { type: 'PIPE', rigid: '0', route: true };
   if (kind.includes('reducer') || kind === 'snout') return { type: 'REDU', rigid: '0', route: true };
   if (kind.includes('gasket')) return { type: 'GASK', rigid: '2', route: true };
   if (kind.includes('flange') || kind.includes('weldneck') || kind.includes('raisedface')) return { type: 'FLAN', rigid: '2', route: true };
   if (kind.includes('valve') || kind.includes('seat')) return { type: 'VALV', rigid: '2', route: true };
-  if (kind.includes('supportshoe') || kind.includes('support')) return { type: 'SUPPORT', rigid: '0', route: true, restraint: 'REST' };
+  if (kind.includes('supportshoe') || kind.includes('support')) return supportComponent(item);
   if (options?.includeNonRouteGeometry === true && (kind === 'box' || kind === 'facetgroup')) return { type: 'OTHER', rigid: '2', route: true };
   return { type: '', rigid: '0', route: false };
 }
@@ -161,6 +229,8 @@ function branchForItem(payload, item, options) {
     if (/^(CYLINDER|BOX|FACET|SNOUT|CIRCULAR|RECTANGULAR|TORUS|DISH|CONE|SPHERE)\b/i.test(last)) parts.pop();
     return `/${parts.map(safePathToken).filter(Boolean).join('/')}` || '/SELJSON/RVM';
   }
+  const attrBranch = branchPathFromAttrs(item);
+  if (attrBranch) return attrBranch;
   return t(options?.fallbackBranchName) || `/SELJSON/${safePathToken(basename(payload?.source?.fileName || payload?.source?.stageSource?.fileName))}/SELECTION`;
 }
 function lineKey(branchName) {
@@ -242,8 +312,31 @@ function normalizeOptions(options) {
 function parsePayload(raw) {
   const payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
   if (!payload || typeof payload !== 'object') throw new Error('SelJson input is empty or not a JSON object.');
+  if (isViewerSelectionPayload(payload)) return normalizeViewerSelectionPayload(payload);
   if (payload.schema !== SCHEMA) throw new Error(`SelJson schema must be ${SCHEMA}; received ${t(payload.schema) || 'missing'}.`);
   return payload;
+}
+
+function isViewerSelectionPayload(payload) {
+  return payload?.schema == null && Array.isArray(payload?.selected);
+}
+
+function viewerSelectionSource(source) {
+  if (source && typeof source === 'object') return source;
+  const fileName = t(source) || 'viewer-selection.json';
+  return { fileName, kind: 'viewer-selection', stageSource: { kind: 'viewer-selection', fileName } };
+}
+
+function normalizeViewerSelectionPayload(payload) {
+  return {
+    ...payload,
+    schema: SCHEMA,
+    source: viewerSelectionSource(payload.source),
+    selection: {
+      ...(payload.selection || {}),
+      items: payload.selected,
+    },
+  };
 }
 
 export function parseSelJsonToInputSource(raw, options) {
@@ -279,12 +372,15 @@ export function parseSelJsonToInputSource(raw, options) {
     const branchName = branchForItem(payload, item, options || {});
     const boreMm = diameterMm(item, scale);
     const length = extracted.points.length > 1 ? cleanNumber(dist(extracted.points[0], extracted.points[1])) : cleanNumber(bboxExtent(item?.transform?.bboxWorld || item?.geometry?.worldBbox || item?.nativeGeometry?.bboxWorld || item?.bboxWorld) * scale);
-    const dtxr = component.type === 'PIPE' ? '' : `${component.type} ${kind} ${ref}`.trim();
+    const dtxr = componentDtxrForItem(item, component, ref, kind);
     const points = extracted.points.length > 1 ? extracted.points : [extracted.points[0]];
+    const supportArgs = component.type === 'SUPPORT' ? supportRestraintArgs(item, component.restraint || 'REST') : {};
     branchNames.add(branchName);
     out.summary.emittedItems += 1;
+    const fallbackRef = `${component.type}-${out.summary.emittedItems}`;
+    const componentRefNo = component.type === 'SUPPORT' ? supportComponentRef(item, ref || fallbackRef) : ref || fallbackRef;
     for (let index = 0; index < points.length; index += 1) {
-      addNode(out, payload, state, { branchName, point: points[index], componentType: component.type, rigid: component.rigid, endpoint: String(index + 1), componentRefNo: ref || `${component.type}-${out.summary.emittedItems}`, elementLengthMm: length, boreMm, dtxr, restraintType: component.restraint || '', nativeKind: kind, method: extracted.method });
+      addNode(out, payload, state, { branchName, point: points[index], componentType: component.type, rigid: component.rigid, endpoint: String(index + 1), componentRefNo, elementLengthMm: length, boreMm, dtxr, restraintType: component.restraint || '', nativeKind: kind, method: extracted.method, ...supportArgs });
       out.summary.emittedNodes += 1;
     }
     if (extracted.points.length === 1 && component.type === 'SUPPORT') {

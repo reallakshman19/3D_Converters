@@ -885,6 +885,7 @@ const CONVERTER_ORDER = Object.freeze([
   'stagedjson_to_xml',
   'stagedjson_to_inputxml',
   'seljson_to_inputxml',
+  'seljson_to_xml',
   'stagedjson_to_csv',
   'pdf_to_inputxml',
   'pdf_to_inputxml_cii14',

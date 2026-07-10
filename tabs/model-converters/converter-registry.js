@@ -365,6 +365,33 @@ const CONVERTER_DEFS = {
       { key: 'includeNonRouteGeometry', label: 'Include Box/FacetGroup diagnostic nodes', type: 'checkbox' },
     ],
   },
+  seljson_to_xml: {
+    id: 'seljson_to_xml',
+    label: 'SelJson -> XML',
+    primaryAccept: '.json,.JSON',
+    primaryLabel: '3DV SelJson Input',
+    secondaryLabel: '',
+    secondaryAccept: '',
+    description: 'Convert 3DV selection JSON directly to PipeStressExport XML through Custom InputXML, without topology audit/build.',
+    defaults: {
+      nodeStart: 10,
+      nodeStep: 10,
+      wallThicknessMm: 0,
+      fallbackBranchName: '',
+      dropShortElementLengthNodes: false,
+      includeNonRouteGeometry: false,
+    },
+    fields: [
+      { key: 'nodeStart', label: 'Node Start', type: 'number', step: '1' },
+      { key: 'nodeStep', label: 'Node Step', type: 'number', step: '1' },
+      { key: 'fallbackBranchName', label: 'Fallback Branch Name', type: 'text' },
+      { key: 'wallThicknessMm', label: 'Wall Thickness (mm)', type: 'number', step: '0.001' },
+      { key: 'defaultPipingClass', label: 'Default Piping Class', type: 'text' },
+      { key: 'defaultRating', label: 'Default Rating', type: 'text' },
+      { key: 'dropShortElementLengthNodes', label: 'Drop ElementLengthMm <= 6 mm nodes', type: 'checkbox' },
+      { key: 'includeNonRouteGeometry', label: 'Include Box/FacetGroup diagnostic nodes', type: 'checkbox' },
+    ],
+  },
   stagedjson_to_csv: {
     id: 'stagedjson_to_csv',
     label: 'StagedJSON -> CSV',
@@ -718,6 +745,7 @@ const CONVERTER_ORDER = [
   'stagedjson_to_xml',
   'stagedjson_to_inputxml',
   'seljson_to_inputxml',
+  'seljson_to_xml',
   'stagedjson_to_csv',
   'pdf_to_inputxml',
   'pdf_to_inputxml_cii14',
@@ -737,6 +765,7 @@ import { run as pythonWorkerRun } from './converters/python-worker-base.js';
 import { run as stagedJsonToXmlRun } from './converters/stagedjson-to-xml.js';
 import { run as stagedJsonToInputXmlRun } from './converters/stagedjson-to-inputxml.js';
 import { run as selJsonToInputXmlRun } from './converters/seljson-to-inputxml.js';
+import { run as selJsonToXmlRun } from './converters/seljson-to-xml.js';
 import { run as stagedJsonToCsvRun } from './converters/stagedjson-to-csv.js';
 import { run as inputXmlToXmlRun } from './converters/inputxml-to-xml.js';
 import { run as xmlToCiiRun } from './converters/xmltocii2019_runner.js?v=20260620-weight-ready-1';
@@ -754,6 +783,7 @@ const RUNNERS = {
   stagedjson_to_xml: stagedJsonToXmlRun,
   stagedjson_to_inputxml: stagedJsonToInputXmlRun,
   seljson_to_inputxml: selJsonToInputXmlRun,
+  seljson_to_xml: selJsonToXmlRun,
   stagedjson_to_csv: stagedJsonToCsvRun,
   pdf_to_inputxml: pythonWorkerRun,
   pdf_to_inputxml_cii14: pythonWorkerRun,

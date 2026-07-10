@@ -31,7 +31,7 @@ function writerOptions(options) {
 
 function resolveTopologyMode(options = {}) {
   const config = options.config || {};
-  const raw = String(options.topologyElementLengthMode ?? config.topologyElementLengthMode ?? 'shadow').trim().toLowerCase();
+  const raw = String(options.topologyElementLengthMode ?? config.topologyElementLengthMode ?? 'off').trim().toLowerCase();
   if (['off', 'false', '0', 'legacy'].includes(raw)) return 'off';
   if (['apply', 'on', 'true', '1'].includes(raw)) return 'apply';
   return 'shadow';
