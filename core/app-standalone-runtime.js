@@ -17,6 +17,7 @@ const ACTIVE_TAB_STORAGE_KEY = 'format-converters.activeTabId';
 const TAB_ID_ALIASES = new Map([
   ['model-converters', 'model-converters'],
   ['xml-cii-2019-standalone', 'xml-cii-2019-standalone'],
+  ['xml-builder', 'xml-builder'],
   ['basic-glb-pcf', 'basic-glb-pcf'],
   ['universal-xml', 'universal-xml'],
   ['model-exchange', 'model-exchange'],
@@ -41,6 +42,7 @@ const TAB_ICON_SVGS = Object.freeze({
 export const STANDALONE_TABS = Object.freeze([
   { id: 'model-converters', label: '3D Model Converters', icon: 'convert', load: () => import('../tabs/model-converters-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderModelConvertersTab', 'model-converters')) },
   { id: 'xml-cii-2019-standalone', label: 'XML→CII 2019 Standalone', icon: 'xml', load: () => import('../tabs/xml-cii-2019-standalone-tab.js?v=standalone-3').then((module) => pickRenderer(module, 'renderXmlCii2019StandaloneTab', 'xml-cii-2019-standalone')) },
+  { id: 'xml-builder', label: 'XML Builder', icon: 'tool', load: () => import('../tabs/xml-builder-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderXmlBuilderTab', 'xml-builder')) },
   { id: 'basic-glb-pcf', label: 'Basic GLB-PCF', icon: 'pipe', load: loadBasicGlbPcfRenderer },
   { id: 'universal-xml', label: 'Universal XML', icon: 'xml', load: () => import('../tabs/universal-xml-converter-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderUniversalXmlConverterTab', 'universal-xml')) },
   { id: 'model-exchange', label: 'Model Exchange', icon: 'exchange', load: () => import('../tabs/model-exchange-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderModelExchangeTab', 'model-exchange')) },
@@ -52,6 +54,7 @@ const TAB_GROUPS = Object.freeze([
   { label: 'Converters', ids: [
   "model-converters",
   "xml-cii-2019-standalone",
+  "xml-builder",
   "basic-glb-pcf",
   "universal-xml"
 ] },

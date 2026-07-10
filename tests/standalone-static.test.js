@@ -4,6 +4,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const expectedTabs = [
   "model-converters",
+  "xml-builder",
   "basic-glb-pcf",
   "universal-xml",
   "model-exchange",

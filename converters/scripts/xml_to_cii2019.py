@@ -4,6 +4,8 @@ Convert PSI116-style XML (`PipeStressExport`) into CII text.
 
 Functionality:
 - Parses XML shaped by `Doc/PSI116.xsd` (`Pipe > Branch > Node`).
+- Accepts converter-side `CleanXML` as a compatible wrapper for direct
+  `Branch > Node` route content.
 - Builds CII element connectivity from positive `NodeNumber` values in
   branch order.
 - Emits CII sections used by the sample output
@@ -464,23 +466,21 @@ def _parse_branch_pressures(branch_element: ET.Element, namespace: str) -> tuple
     return tuple(values)
 
 
-def _parse_xml_document(path: Path) -> XmlDocument:
-    root = ET.parse(path).getroot()
-    if _local_name(root.tag) != "PipeStressExport":
-        raise ValueError(
-            f"Unexpected root element '{_local_name(root.tag)}'; expected 'PipeStressExport'."
-        )
-
-    namespace = _namespace(root.tag)
-    metadata = XmlMetadata(
+def _metadata_from_root(root: ET.Element, namespace: str, root_name: str) -> XmlMetadata:
+    cleanxml_source = _safe_text(root.attrib.get("sourceName")) if root_name == "CleanXML" else ""
+    cleanxml_schema = _safe_text(root.attrib.get("schema")) if root_name == "CleanXML" else ""
+    title_lines = [_safe_text(element.text) for element in root.findall(_q(namespace, "TitleLine"))]
+    if not title_lines and cleanxml_source:
+        title_lines = [cleanxml_source]
+    return XmlMetadata(
         date_time=_child_text(root, namespace, "DateTime"),
-        source=_child_text(root, namespace, "Source"),
-        version=_child_text(root, namespace, "Version"),
+        source=_child_text(root, namespace, "Source") or ("CleanXML" if root_name == "CleanXML" else ""),
+        version=_child_text(root, namespace, "Version") or cleanxml_schema,
         user_name=_child_text(root, namespace, "UserName"),
-        purpose=_child_text(root, namespace, "Purpose"),
-        project_name=_child_text(root, namespace, "ProjectName"),
-        mdb_name=_child_text(root, namespace, "MDBName"),
-        title_lines=[_safe_text(element.text) for element in root.findall(_q(namespace, "TitleLine"))],
+        purpose=_child_text(root, namespace, "Purpose") or ("CleanXML compatibility input" if root_name == "CleanXML" else ""),
+        project_name=_child_text(root, namespace, "ProjectName") or cleanxml_source,
+        mdb_name=_child_text(root, namespace, "MDBName") or (f"/{cleanxml_source}" if cleanxml_source else ""),
+        title_lines=title_lines,
         restrain_open_ends=_parse_yes_no(_child_text(root, namespace, "RestrainOpenEnds"), "RestrainOpenEnds"),
         ambient_temperature=(
             _parse_optional_float(_child_text(root, namespace, "AmbientTemperature"), "AmbientTemperature")
@@ -488,114 +488,130 @@ def _parse_xml_document(path: Path) -> XmlDocument:
         ),
     )
 
+
+def _branch_elements_from_root(root: ET.Element, namespace: str, root_name: str) -> list[ET.Element]:
     pipes = root.findall(_q(namespace, "Pipe"))
-    if not pipes:
-        raise ValueError("Input XML does not contain any Pipe elements.")
+    if pipes:
+        return [branch for pipe in pipes for branch in pipe.findall(_q(namespace, "Branch"))]
+    if root_name == "CleanXML":
+        return root.findall(_q(namespace, "Branch"))
+    raise ValueError("Input XML does not contain any Pipe elements.")
+
+
+def _parse_xml_document(path: Path) -> XmlDocument:
+    root = ET.parse(path).getroot()
+    root_name = _local_name(root.tag)
+    if root_name not in {"PipeStressExport", "CleanXML"}:
+        raise ValueError(
+            f"Unexpected root element '{root_name}'; expected 'PipeStressExport' or 'CleanXML'."
+        )
+
+    namespace = _namespace(root.tag)
+    metadata = _metadata_from_root(root, namespace, root_name)
 
     branches: list[XmlBranch] = []
-    for pipe in pipes:
-        for branch_element in pipe.findall(_q(namespace, "Branch")):
-            branch_name = _child_text(branch_element, namespace, "Branchname")
-            branch_temperature = _parse_branch_temperature(branch_element, namespace)
-            branch_pressure = _parse_branch_pressure(branch_element, namespace)
-            branch_fluid_density = _parse_branch_fluid_density(branch_element, namespace)
-            branch_material_number = _parse_material_id(
-                _child_text(branch_element, namespace, "MaterialNumber"), "Branch/MaterialNumber"
+    for branch_element in _branch_elements_from_root(root, namespace, root_name):
+        branch_name = _child_text(branch_element, namespace, "Branchname")
+        branch_temperature = _parse_branch_temperature(branch_element, namespace)
+        branch_pressure = _parse_branch_pressure(branch_element, namespace)
+        branch_fluid_density = _parse_branch_fluid_density(branch_element, namespace)
+        branch_material_number = _parse_material_id(
+            _child_text(branch_element, namespace, "MaterialNumber"), "Branch/MaterialNumber"
+        )
+        branch_temperatures = _parse_branch_temperatures(branch_element, namespace)
+        branch_pressures = _parse_branch_pressures(branch_element, namespace)
+        parsed_nodes: list[XmlNode] = []
+        for node_element in branch_element.findall(_q(namespace, "Node")):
+            node_number = _parse_optional_int(
+                _child_text(node_element, namespace, "NodeNumber"), "Node/NodeNumber"
             )
-            branch_temperatures = _parse_branch_temperatures(branch_element, namespace)
-            branch_pressures = _parse_branch_pressures(branch_element, namespace)
-            parsed_nodes: list[XmlNode] = []
-            for node_element in branch_element.findall(_q(namespace, "Node")):
-                node_number = _parse_optional_int(
-                    _child_text(node_element, namespace, "NodeNumber"), "Node/NodeNumber"
-                )
-                if node_number is None or node_number <= 0:
-                    continue
+            if node_number is None or node_number <= 0:
+                continue
 
-                position_text = _child_text(node_element, namespace, "Position")
-                if not position_text:
-                    raise ValueError(f"Node {node_number} is missing Position.")
+            position_text = _child_text(node_element, namespace, "Position")
+            if not position_text:
+                raise ValueError(f"Node {node_number} is missing Position.")
 
-                endpoint = _parse_optional_int(_child_text(node_element, namespace, "Endpoint"), "Node/Endpoint")
-                rigid = _parse_optional_int(_child_text(node_element, namespace, "Rigid"), "Node/Rigid")
-                alpha_angle = _parse_optional_float(
-                    _child_text(node_element, namespace, "AlphaAngle"), "Node/AlphaAngle"
-                )
-                wall_thickness_value = _parse_optional_float(
-                    _child_text(node_element, namespace, "WallThickness"),
-                    "Node/WallThickness",
-                )
-                if wall_thickness_value is None:
-                    wall_thickness_value = 0.0
-                corrosion_allowance_value = _parse_optional_float(
-                    _child_text(node_element, namespace, "CorrosionAllowance"),
-                    "Node/CorrosionAllowance",
-                )
-                if corrosion_allowance_value is None:
-                    corrosion_allowance_value = 0.0
-                insulation_thickness_value = _parse_optional_float(
-                    _child_text(node_element, namespace, "InsulationThickness"),
-                    "Node/InsulationThickness",
-                )
-                if insulation_thickness_value is None:
-                    insulation_thickness_value = 0.0
-                bend_radius_value = _parse_optional_float(
-                    _child_text(node_element, namespace, "BendRadius"),
-                    "Node/BendRadius",
-                )
-                if bend_radius_value is None:
-                    bend_radius_value = 0.0
-                bend_type_value = _parse_optional_int(
-                    _child_text(node_element, namespace, "BendType"),
-                    "Node/BendType",
-                )
-                outside_diameter_value = _parse_optional_float(
-                    _child_text(node_element, namespace, "OutsideDiameter"),
-                    "Node/OutsideDiameter",
-                )
-                if outside_diameter_value is None:
-                    outside_diameter_value = 0.0
-                weight_value = _parse_optional_float(
-                    _child_text(node_element, namespace, "Weight"),
-                    "Node/Weight",
-                )
-                if weight_value is None:
-                    weight_value = 0.0
+            endpoint = _parse_optional_int(_child_text(node_element, namespace, "Endpoint"), "Node/Endpoint")
+            rigid = _parse_optional_int(_child_text(node_element, namespace, "Rigid"), "Node/Rigid")
+            alpha_angle = _parse_optional_float(
+                _child_text(node_element, namespace, "AlphaAngle"), "Node/AlphaAngle"
+            )
+            wall_thickness_value = _parse_optional_float(
+                _child_text(node_element, namespace, "WallThickness"),
+                "Node/WallThickness",
+            )
+            if wall_thickness_value is None:
+                wall_thickness_value = 0.0
+            corrosion_allowance_value = _parse_optional_float(
+                _child_text(node_element, namespace, "CorrosionAllowance"),
+                "Node/CorrosionAllowance",
+            )
+            if corrosion_allowance_value is None:
+                corrosion_allowance_value = 0.0
+            insulation_thickness_value = _parse_optional_float(
+                _child_text(node_element, namespace, "InsulationThickness"),
+                "Node/InsulationThickness",
+            )
+            if insulation_thickness_value is None:
+                insulation_thickness_value = 0.0
+            bend_radius_value = _parse_optional_float(
+                _child_text(node_element, namespace, "BendRadius"),
+                "Node/BendRadius",
+            )
+            if bend_radius_value is None:
+                bend_radius_value = 0.0
+            bend_type_value = _parse_optional_int(
+                _child_text(node_element, namespace, "BendType"),
+                "Node/BendType",
+            )
+            outside_diameter_value = _parse_optional_float(
+                _child_text(node_element, namespace, "OutsideDiameter"),
+                "Node/OutsideDiameter",
+            )
+            if outside_diameter_value is None:
+                outside_diameter_value = 0.0
+            weight_value = _parse_optional_float(
+                _child_text(node_element, namespace, "Weight"),
+                "Node/Weight",
+            )
+            if weight_value is None:
+                weight_value = 0.0
 
-                parsed_nodes.append(
-                    XmlNode(
-                        node_number=node_number,
-                        node_name=_child_text(node_element, namespace, "NodeName"),
-                        endpoint=endpoint,
-                        component_type=_child_text(node_element, namespace, "ComponentType").upper(),
-                        rigid=rigid,
-                        weight=weight_value,
-                        material_code=_parse_node_material_code(node_element, namespace),
-                        outside_diameter=outside_diameter_value,
-                        alpha_angle=alpha_angle,
-                        wall_thickness=wall_thickness_value,
-                        corrosion_allowance=corrosion_allowance_value,
-                        insulation_thickness=insulation_thickness_value,
-                        bend_radius=bend_radius_value,
-                        bend_type=bend_type_value,
-                        position=_parse_position(position_text),
-                        restraint_specs=_parse_restraints(node_element, namespace),
-                    )
+            parsed_nodes.append(
+                XmlNode(
+                    node_number=node_number,
+                    node_name=_child_text(node_element, namespace, "NodeName"),
+                    endpoint=endpoint,
+                    component_type=_child_text(node_element, namespace, "ComponentType").upper(),
+                    rigid=rigid,
+                    weight=weight_value,
+                    material_code=_parse_node_material_code(node_element, namespace),
+                    outside_diameter=outside_diameter_value,
+                    alpha_angle=alpha_angle,
+                    wall_thickness=wall_thickness_value,
+                    corrosion_allowance=corrosion_allowance_value,
+                    insulation_thickness=insulation_thickness_value,
+                    bend_radius=bend_radius_value,
+                    bend_type=bend_type_value,
+                    position=_parse_position(position_text),
+                    restraint_specs=_parse_restraints(node_element, namespace),
                 )
+            )
 
-            if parsed_nodes:
-                branches.append(
-                    XmlBranch(
-                        branch_name=branch_name,
-                        branch_temperature=branch_temperature,
-                        branch_pressure=branch_pressure,
-                        branch_fluid_density=branch_fluid_density,
-                        material_number=branch_material_number,
-                        temperatures=branch_temperatures,
-                        pressures=branch_pressures,
-                        nodes=parsed_nodes,
-                    )
+        if parsed_nodes:
+            branches.append(
+                XmlBranch(
+                    branch_name=branch_name,
+                    branch_temperature=branch_temperature,
+                    branch_pressure=branch_pressure,
+                    branch_fluid_density=branch_fluid_density,
+                    material_number=branch_material_number,
+                    temperatures=branch_temperatures,
+                    pressures=branch_pressures,
+                    nodes=parsed_nodes,
                 )
+            )
 
     if not branches:
         raise ValueError("Input XML does not contain any positive NodeNumber nodes.")

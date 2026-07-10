@@ -45,6 +45,10 @@ function save(state) {
   publishStateApi();
 }
 
+export function saveXmlCiiCustomInputState(state) {
+  save(state);
+}
+
 function getState() {
   const state = read();
   const allowed = new Set(TABLE_TABS.map(([id]) => id));
@@ -56,6 +60,10 @@ function getState() {
     ...(state.options || {}),
   };
   return state;
+}
+
+export function getXmlCiiCustomInputState() {
+  return getState();
 }
 
 function publishStateApi() {
