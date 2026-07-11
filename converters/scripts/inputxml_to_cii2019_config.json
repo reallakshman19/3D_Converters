@@ -246,6 +246,10 @@
       "            0"
     ]
   },
+  "nodename": {
+    "mode": "auto",
+    "auto_prefix": ""
+  },
   "sections": {
     "include_nodename": true,
     "include_flanges": true,
