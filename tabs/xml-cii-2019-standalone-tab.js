@@ -1,4 +1,5 @@
 import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js?v=20260708-shell-v8';
+import { renderStagedJsonEnrichmentPanel } from './xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-ui.js?v=20260711-v1';
 
 export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
   'Source type',
@@ -24,5 +25,14 @@ export function ensureXmlCiiStandaloneStylesheet() {
 
 export function renderXmlCii2019StandaloneTab(container) {
   ensureXmlCiiStandaloneStylesheet();
-  return renderXmlCiiAdaptedWorkflowShell(container);
+  const coreHost = document.createElement('div');
+  const stagedJsonHost = document.createElement('div');
+  container.replaceChildren(coreHost, stagedJsonHost);
+  const disposeCore = renderXmlCiiAdaptedWorkflowShell(coreHost);
+  const disposeStagedJson = renderStagedJsonEnrichmentPanel(stagedJsonHost);
+  return () => {
+    disposeCore?.();
+    disposeStagedJson?.();
+    container.replaceChildren();
+  };
 }

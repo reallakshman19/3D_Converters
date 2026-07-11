@@ -176,6 +176,7 @@ class ElementResolved:
     sifs: list[SifAux]
     name_from: str = ""
     name_to: str = ""
+    line: str = ""
     from_coordinate_seed: NodeCoordinate | None = None
     to_coordinate_seed: NodeCoordinate | None = None
     # REL(N1,98) items 13-18, 19-27, 31-32, 36 per the CAESAR II neutral file
@@ -631,6 +632,7 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
                 sifs=_parse_sifs(element),
                 name_from=_safe_text(element.attrib.get("FROM_NAME")),
                 name_to=_safe_text(element.attrib.get("TO_NAME")),
+                line=_safe_text(element.attrib.get("LINE")),
                 from_coordinate_seed=_parse_node_coordinate_seed(element.attrib, "FROM"),
                 to_coordinate_seed=_parse_node_coordinate_seed(element.attrib, "TO"),
                 temperature4=carry_temperature4,
@@ -2576,7 +2578,9 @@ def _build_cii_text(
             ]
         )
         line10 = ""
-        if edge_index < len(configured_line_labels):
+        if element.line:
+            line10 = f"{pointer_start + edge_index:12d} {element.line}"
+        elif edge_index < len(configured_line_labels):
             line10 = _render_element_label_payload(configured_line_labels[edge_index])
         else:
             if line_label_mode == "to_node":
