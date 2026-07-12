@@ -632,7 +632,7 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
                 sifs=_parse_sifs(element),
                 name_from=_safe_text(element.attrib.get("FROM_NAME")),
                 name_to=_safe_text(element.attrib.get("TO_NAME")),
-                line=_safe_text(element.attrib.get("LINE")),
+                line=_safe_text(element.attrib.get("LINE") or element.attrib.get("LINE_ID")),
                 from_coordinate_seed=_parse_node_coordinate_seed(element.attrib, "FROM"),
                 to_coordinate_seed=_parse_node_coordinate_seed(element.attrib, "TO"),
                 temperature4=carry_temperature4,

@@ -58,6 +58,16 @@ export const INPUTXML_ATTRIBUTE_ALIASES = Object.freeze({
   FLUID_DENSITY: ['FLUIDDENSITY'],
   HYDRO_PRESSURE: ['HYDROTEST_PRESSURE', 'HYDROPRESSURE'],
   MATERIAL_NUM: ['MATERIAL_NUMBER', 'MATERIALNUM'],
+
+  // LINE_ID is the line/branch identifier attribute name used consistently
+  // across this app's own producers (XML Builder, the XML->CII(2019)
+  // enriched InputXML debug export, xml-compare sideload enrichment) and is
+  // a deliberate, separately-tested convention there - it is NOT a typo to
+  // fix at the source. inputxml_to_cii2019.py reads LINE. The engine itself
+  // now also accepts LINE_ID directly as a fallback (see _parse_model), so
+  // this alias is defense-in-depth for the browser-side normalization path
+  // rather than the only fix.
+  LINE: ['LINE_ID'],
 });
 
 // Converter IDs whose primary input is the CAESAR II "Input XML" dialect
