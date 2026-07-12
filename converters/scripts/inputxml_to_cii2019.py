@@ -2680,7 +2680,7 @@ def _build_cii_text(
     nodename_cfg = layout_config.get("nodename", {})
     if not isinstance(nodename_cfg, dict):
         raise ValueError("Invalid 2019 layout config: 'nodename' must be an object.")
-    nodename_mode = str(nodename_cfg.get("mode", "disabled")).strip().lower()
+    nodename_mode = str(nodename_cfg.get("mode", "auto")).strip().lower()
     if nodename_mode not in ("disabled", "manual", "to_node_map", "auto"):
         raise ValueError("Invalid 2019 layout config: 'nodename.mode' must be disabled, manual, to_node_map, or auto.")
     from_labels = nodename_cfg.get("from_labels", [])
