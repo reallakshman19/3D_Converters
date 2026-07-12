@@ -143,12 +143,12 @@ function hasExactLineListEvidence(lineRow) {
   return meaningfulKeys.length > 0;
 }
 
-function ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, config, overrides }) {
+function ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, requestedPipingClass, href, tref, config, overrides }) {
   if (hasExactLineListEvidence(lineRow)) return null;
   if (!config || typeof config !== 'object') return null;
   const targetKey = text(lineKey) || text(branchName);
   if (!targetKey) return null;
-  const fallback = buildXmlCiiServiceProcessFallback({ branchName, lineRow, config, fields: SERVICE_FALLBACK_FIELDS });
+  const fallback = buildXmlCiiServiceProcessFallback({ branchName, lineRow, requestedPipingClass, href, tref, config, fields: SERVICE_FALLBACK_FIELDS });
   if (!fallback?.stats?.resolvedFields) return fallback;
   if (!config.overrides || typeof config.overrides !== 'object' || Array.isArray(config.overrides)) config.overrides = overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {};
   if (!config.overrides.processData || typeof config.overrides.processData !== 'object' || Array.isArray(config.overrides.processData)) config.overrides.processData = {};
@@ -242,13 +242,13 @@ export function resolveWallThicknessFromPipingClass({ pipingClassRow, overrides 
   return { valueMm: fromConfig ?? 0, source: fromConfig != null ? 'config-default' : 'default-zero' };
 }
 
-export function resolveBranchProcessData({ branchName, lineKey, lineRow, boreMm, componentType, rating, schedule, materialMap, pipingClassIndex, overrides = {}, xmlNode, xmlBranch, config = {} }) {
+export function resolveBranchProcessData({ branchName, lineKey, lineRow, boreMm, componentType, rating, schedule, href, tref, materialMap, pipingClassIndex, overrides = {}, xmlNode, xmlBranch, config = {} }) {
   const requestedPipingClass = firstText(lineRow, ['pipingClass', 'Piping Class', 'PIPING_CLASS']) || '';
   const classMatch = findBestPipingClassRow({ pipingClass: requestedPipingClass, boreMm, componentType, rating: rating || firstText(lineRow, ['rating', 'Rating', 'RATING']), schedule, pipingClassIndex, overrides, config });
   const pipingClassRow = classMatch?.row || null;
   const resolvedPipingClass = classMatch?.resolvedPipingClass || classMatch?.classMatch?.pipingClass || requestedPipingClass;
   const overrideKeys = smartOverrideKeys({ lineKey, branchName, requestedPipingClass, resolvedPipingClass, boreMm });
-  const serviceProcessFallback = ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, config, overrides });
+  const serviceProcessFallback = ensureServiceProcessFallbackOverrides({ branchName, lineKey, lineRow, requestedPipingClass, href, tref, config, overrides });
   const resolvedRating = overrideValue(overrides, 'rating', overrideKeys) || readClassRowRating(pipingClassRow) || text(rating || firstText(lineRow, ['rating', 'Rating', 'RATING']));
   const resolverLineRow = { ...(lineRow || {}), pipingClass: resolvedPipingClass };
   const material = resolveMaterialCodeFromLineMaterial({ lineRow: resolverLineRow, materialMap, pipingClassRow, overrides, overrideKeys, xmlNode, xmlBranch });

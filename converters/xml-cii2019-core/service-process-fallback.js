@@ -113,17 +113,43 @@ function majorityValue(rows, field, options = {}) {
   };
 }
 
-export function buildXmlCiiServiceProcessFallback({ branchName = '', lineRow = null, config = {}, fields = DEFAULT_FIELDS, options = {} } = {}) {
+export function buildXmlCiiServiceProcessFallback({ branchName = '', lineRow = null, requestedPipingClass = '', href = '', tref = '', config = {}, fields = DEFAULT_FIELDS, options = {} } = {}) {
   const service = serviceFromRow(lineRow) || deriveXmlCiiServiceFromBranchName(branchName, config);
   const serviceKey = cleanComparable(service);
+  const classKey = cleanComparable(requestedPipingClass);
   const rows = Array.isArray(config?.linelist?.masterRows) ? config.linelist.masterRows : [];
   const minRows = Number(options.minRows ?? config?.serviceProcessFallback?.minRows ?? 2);
   const threshold = Number(options.threshold ?? config?.serviceProcessFallback?.threshold ?? 0.7);
   if (!serviceKey || !rows.length) return { service, serviceKey, rows: [], fields: {}, stats: { matchedRows: 0, resolvedFields: 0 }, reason: serviceKey ? 'no-line-list-rows' : 'no-service' };
-  const matchedRows = rows
+  
+  let matchedRows = rows
     .map((row, index) => ({ ...row, _raw: row, _sourceRowIndex: row?._sourceRowIndex || row?._rowIndex || index + 1 }))
     .filter((row) => cleanComparable(serviceFromRow(row)) === serviceKey);
-  if (matchedRows.length < minRows) return { service, serviceKey, rows: matchedRows, fields: {}, stats: { matchedRows: matchedRows.length, resolvedFields: 0 }, reason: 'not-enough-service-rows' };
+    
+  if (classKey) {
+     const classMatched = matchedRows.filter(row => cleanComparable(rowValue(row, ['pipingClass', 'Piping Class', 'PIPING_CLASS'])) === classKey);
+     if (classMatched.length > 0) {
+       matchedRows = classMatched;
+       
+       if (href || tref) {
+         const hrefKey = cleanComparable(href);
+         const trefKey = cleanComparable(tref);
+         const connectedMatches = matchedRows.filter(row => {
+           const rowKey = cleanComparable(rowValue(row, ['lineNoKey', 'lineNo', 'lineKey', 'Line Number']));
+           if (!rowKey) return false;
+           return (hrefKey && hrefKey.includes(rowKey)) || (trefKey && trefKey.includes(rowKey));
+         });
+         
+         if (connectedMatches.length > 0) {
+            matchedRows = connectedMatches;
+         }
+       }
+     }
+  }
+
+  // Soften minRows if we matched a specifically connected line
+  const requiredMinRows = matchedRows.length === 1 && (href || tref) ? 1 : minRows;
+  if (matchedRows.length < requiredMinRows) return { service, serviceKey, rows: matchedRows, fields: {}, stats: { matchedRows: matchedRows.length, resolvedFields: 0 }, reason: 'not-enough-service-rows' };
   const resolved = {};
   for (const field of fields || DEFAULT_FIELDS) {
     const value = majorityValue(matchedRows, field, { threshold });

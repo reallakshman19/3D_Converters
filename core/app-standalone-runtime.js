@@ -23,7 +23,8 @@ const TAB_ID_ALIASES = new Map([
   ['model-exchange', 'model-exchange'],
   ['interchange-config', 'interchange-config'],
   ['support-mapping-config', 'support-mapping-config'],
-  ['adapter-mapping', 'adapter-mapping']
+  ['adapter-mapping', 'adapter-mapping'],
+  ['stagedjson-properties', 'stagedjson-properties']
 ]);
 const TAB_ICON_SVGS = Object.freeze({
   cube: '\u003cpath d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/>\u003cpath d="M4 7.5 12 12l8-4.5M12 12v9"/>',
@@ -41,14 +42,15 @@ const TAB_ICON_SVGS = Object.freeze({
 
 export const STANDALONE_TABS = Object.freeze([
   { id: 'model-converters', label: '3D Model Converters', icon: 'convert', load: () => import('../tabs/model-converters-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderModelConvertersTab', 'model-converters')) },
-  { id: 'xml-cii-2019-standalone', label: 'XML→CII 2019 Standalone', icon: 'xml', load: () => import('../tabs/xml-cii-2019-standalone-tab.js?v=standalone-3').then((module) => pickRenderer(module, 'renderXmlCii2019StandaloneTab', 'xml-cii-2019-standalone')) },
+  { id: 'xml-cii-2019-standalone', label: 'XML→CII 2019 Standalone', icon: 'xml', load: () => import('../tabs/xml-cii-2019-standalone-tab.js?v=standalone-5').then((module) => pickRenderer(module, 'renderXmlCii2019StandaloneTab', 'xml-cii-2019-standalone')) },
   { id: 'xml-builder', label: 'XML Builder', icon: 'tool', load: () => import('../tabs/xml-builder-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderXmlBuilderTab', 'xml-builder')) },
   { id: 'basic-glb-pcf', label: 'Basic GLB-PCF', icon: 'pipe', load: loadBasicGlbPcfRenderer },
-  { id: 'universal-xml', label: 'Universal XML', icon: 'xml', load: () => import('../tabs/universal-xml-converter-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderUniversalXmlConverterTab', 'universal-xml')) },
-  { id: 'model-exchange', label: 'Model Exchange', icon: 'exchange', load: () => import('../tabs/model-exchange-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderModelExchangeTab', 'model-exchange')) },
-  { id: 'interchange-config', label: 'Interchange Config', icon: 'gear', load: () => import('../tabs/interchange-config-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderInterchangeConfigTab', 'interchange-config')) },
-  { id: 'support-mapping-config', label: 'Support Mapping', icon: 'support', load: () => import('../tabs/support-mapping-config-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderSupportMappingConfigTab', 'support-mapping-config')) },
-  { id: 'adapter-mapping', label: 'Adapter Mapping', icon: 'map', load: () => import('../tabs/adapter-mapping-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderAdapterMappingTab', 'adapter-mapping')) }
+  { id: 'universal-xml', label: 'Universal XML', icon: 'xml', load: () => import('../tabs/universal-xml-converter-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderUniversalXmlConverterTab', 'universal-xml')) },
+  { id: 'model-exchange', label: 'Model Exchange', icon: 'exchange', load: () => import('../tabs/model-exchange-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderModelExchangeTab', 'model-exchange')) },
+  { id: 'interchange-config', label: 'Interchange Config', icon: 'gear', load: () => import('../tabs/interchange-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderInterchangeConfigTab', 'interchange-config')) },
+  { id: 'support-mapping-config', label: 'Support Mapping', icon: 'support', load: () => import('../tabs/support-mapping-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderSupportMappingConfigTab', 'support-mapping-config')) },
+  { id: 'adapter-mapping', label: 'Adapter Mapping', icon: 'map', load: () => import('../tabs/adapter-mapping-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderAdapterMappingTab', 'adapter-mapping')) },
+  { id: 'stagedjson-properties', label: 'stagedJson Properties', icon: 'json', load: () => import('../tabs/stagedjson-properties-tab.js?v=standalone-3').then((module) => pickRenderer(module, 'renderStagedJsonPropertiesTab', 'stagedjson-properties')) }
 ]);
 const TAB_GROUPS = Object.freeze([
   { label: 'Converters', ids: [
@@ -56,7 +58,8 @@ const TAB_GROUPS = Object.freeze([
   "xml-cii-2019-standalone",
   "xml-builder",
   "basic-glb-pcf",
-  "universal-xml"
+  "universal-xml",
+  "stagedjson-properties"
 ] },
   { label: 'Exchange', ids: [
   "model-exchange",

@@ -1,8 +1,8 @@
-import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.mjs';
+import { loadPyodide } from '../../vendor/pyodide/pyodide.mjs';
 import { buildStandaloneCiiInvocation, outputStem } from './invocation-builder.js';
 import { applyStandaloneSifFacts } from '../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
 
-const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/';
+const PYODIDE_INDEX_URL = new URL('../../vendor/pyodide/', import.meta.url).href;
 const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019.py',
   'xml_to_cii2019_patched.py',

@@ -29,13 +29,22 @@ export function parseDelimitedRows(text) {
 }
 
 async function spreadsheetRows(file) {
-  const module = await import('xlsx');
-  const xlsx = module?.read ? module : module?.default;
-  if (!xlsx?.read || !xlsx?.utils?.sheet_to_json) throw new Error('XLSX parser is unavailable.');
+  const xlsx = await getXlsxModule();
   const workbook = xlsx.read(new Uint8Array(await file.arrayBuffer()), { type: 'array', cellDates: false, raw: false });
   const firstSheet = workbook.SheetNames?.[0];
   if (!firstSheet) throw new TypeError(`${file.name} contains no worksheets.`);
   return xlsx.utils.sheet_to_json(workbook.Sheets[firstSheet], { defval: '', raw: false });
+}
+
+async function getXlsxModule() {
+  try {
+    const module = await import('xlsx');
+    const xlsx = module?.read ? module : module?.default;
+    if (xlsx?.read && xlsx?.utils?.sheet_to_json) return xlsx;
+  } catch (error) {
+    throw new Error(`Local XLSX parser failed to load from import map: ${error?.message || String(error)}`);
+  }
+  throw new Error('Local XLSX parser did not expose read/utils. Run npm install and refresh the page.');
 }
 
 function jsonRows(value, masterKind) {

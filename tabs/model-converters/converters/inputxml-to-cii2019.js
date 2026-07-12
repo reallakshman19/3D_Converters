@@ -55,6 +55,17 @@ const INPUTXML2019_POPUP_HEADER_KEYS = Object.freeze([
   'headerMdbName',
 ]);
 
+const INPUTXML2019_SOURCE_FIELDS = Object.freeze([
+  { key: 'diameter', label: 'DIAMETER', attrs: ['DIAMETER'] },
+  { key: 'wall', label: 'WALL_THICK', attrs: ['WALL_THICK', 'WALL_THICKNESS', 'WALLTHICK'] },
+  { key: 'insulation', label: 'INSUL_THICK', attrs: ['INSUL_THICK', 'INSULATION_THICK', 'INSULATION_THICKNESS'] },
+  { key: 'corrosion', label: 'CORR_ALLOW', attrs: ['CORR_ALLOW', 'CORROSION_ALLOW', 'CORROSION_ALLOWANCE'] },
+  { key: 'material', label: 'MATERIAL_NUM', attrs: ['MATERIAL_NUM', 'MATERIAL_NUMBER', 'MATERIALNUM'] },
+  { key: 'line', label: 'LINE', attrs: ['LINE', 'LINE_NO', 'LINE_NUMBER'] },
+  { key: 'fromName', label: 'FROM_NAME', attrs: ['FROM_NAME'] },
+  { key: 'toName', label: 'TO_NAME', attrs: ['TO_NAME'] },
+]);
+
 function defaultInputxml2019LayoutConfigJson() {
   return JSON.stringify({
     elements: {
@@ -107,6 +118,42 @@ function defaultInputxml2019LayoutConfigJson() {
   }, null, 2);
 }
 
+function isMissingInputXmlValue(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return true;
+  const numeric = Number(text);
+  return Number.isFinite(numeric) && Math.abs(numeric + 1.0101) < 1e-6;
+}
+
+function firstElementAttribute(element, names) {
+  for (const name of names) {
+    const value = element.getAttribute(name);
+    if (!isMissingInputXmlValue(value)) return value;
+  }
+  return null;
+}
+
+function buildSourceFieldCoverage(elements) {
+  return INPUTXML2019_SOURCE_FIELDS.map((field) => {
+    const present = elements.filter((element) => firstElementAttribute(element, field.attrs) !== null).length;
+    return {
+      key: field.key,
+      label: field.label,
+      present,
+      missing: elements.length - present,
+      total: elements.length,
+    };
+  });
+}
+
+function sourceCoverageLines(coverage) {
+  return (coverage || []).map((field) => {
+    const base = `${field.label}: ${field.present}/${field.total} element(s) supplied`;
+    if (!field.missing) return base;
+    return `${base}; ${field.missing} will use converter/config fallback if not corrected.`;
+  });
+}
+
 function parseInputxml2019Requirements(xmlText) {
   if (typeof DOMParser === 'undefined') {
     throw new Error('XML requirements parsing requires browser DOMParser support.');
@@ -148,6 +195,7 @@ function parseInputxml2019Requirements(xmlText) {
     restraintCount,
     sifCount,
     nodeCount: nodeIds.size,
+    sourceCoverage: buildSourceFieldCoverage(elements),
   };
 }
 
@@ -203,6 +251,23 @@ function sameTextArray(a, b) {
   if (!Array.isArray(a) || !Array.isArray(b)) return false;
   if (a.length !== b.length) return false;
   return a.every((v, i) => String(v).trim() === String(b[i]).trim());
+}
+
+function applyInputxml2019NamePreservation(config, notes) {
+  if (!config.sections || typeof config.sections !== 'object' || Array.isArray(config.sections)) {
+    config.sections = {};
+  }
+  if (config.sections.include_nodename !== true) {
+    config.sections.include_nodename = true;
+    notes.push('Enabled sections.include_nodename so FROM_NAME/TO_NAME from InputXML can reach CII NODENAME.');
+  }
+  if (!config.nodename || typeof config.nodename !== 'object' || Array.isArray(config.nodename)) {
+    config.nodename = {};
+  }
+  if (!config.nodename.mode || config.nodename.mode === 'disabled') {
+    config.nodename.mode = 'auto';
+    notes.push('Set nodename.mode to auto so source node names are preserved.');
+  }
 }
 
 export function prepareInputxml2019ConfigForRequirements(layoutConfigJsonText, requirements) {
@@ -266,9 +331,7 @@ export function prepareInputxml2019ConfigForRequirements(layoutConfigJsonText, r
     }
   }
 
-  if (!config.sections || typeof config.sections !== 'object' || Array.isArray(config.sections)) {
-    config.sections = {};
-  }
+  applyInputxml2019NamePreservation(config, notes);
   if (config.sections.raw_payload_overrides && typeof config.sections.raw_payload_overrides === 'object' && !Array.isArray(config.sections.raw_payload_overrides)) {
     const rawElements = config.sections.raw_payload_overrides.ELEMENTS;
     if (Array.isArray(rawElements)) {
@@ -292,6 +355,7 @@ export function prepareInputxml2019ConfigForRequirements(layoutConfigJsonText, r
 
   const requirementLines = [
     `Detected from selected XML: ${requirements.elementCount} elements, ${requirements.bendCount} bends, ${requirements.rigidCount} rigids, ${requirements.restraintCount} restraints, ${requirements.sifCount} SIF blocks, ${requirements.nodeCount} nodes.`,
+    ...sourceCoverageLines(requirements.sourceCoverage),
     `Element-wise configurable lengths: elements.line_label.line_labels=${requirements.elementCount}, miscel_1.material_ids=${requirements.elementCount}.`,
     `Current config lengths: line_labels=${lineLabelsCount}, material_ids=${materialIdsCount}.`,
   ];

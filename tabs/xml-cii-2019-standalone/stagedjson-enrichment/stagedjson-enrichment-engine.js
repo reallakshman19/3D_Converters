@@ -63,10 +63,21 @@ function previewRow(row) {
     nodeId: row.context.nodeId,
     path: row.context.hierarchyPath,
     type: row.context.type,
+    branchName: row.context.branchName,
+    boreMm: row.context.nominalBoreMm,
     lineNo: row.enrichedAttributes.lineNo,
     pipingClass: row.enrichedAttributes.pipingClass,
     status: row.enrichedAttributes.status,
     missing: [...row.enrichedAttributes.missing],
+    pipeOdMm: row.enrichedAttributes.pipeOdMm,
+    wallThicknessMm: row.enrichedAttributes.wallThicknessMm,
+    material: row.enrichedAttributes.material,
+    pipeWeightKgPerM: row.enrichedAttributes.pipeWeightKgPerM,
+    fluidDensityOpeKgM3: row.enrichedAttributes.fluidDensityOpeKgM3,
+    fluidDensityHydKgM3: row.enrichedAttributes.fluidDensityHydKgM3,
+    insulationThicknessMm: row.enrichedAttributes.insulationThicknessMm,
+    lineBasis: `${row.enrichedAttributes.trace?.lineKeyResolver?.method || 'none'} (${row.enrichedAttributes.trace?.lineKeyResolver?.candidateCount || 0})`,
+    classBasis: `${row.enrichedAttributes.trace?.pipingClassResolver?.method || 'none'}`,
   };
 }
 

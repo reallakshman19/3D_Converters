@@ -14,6 +14,22 @@ const SUPPORT_TYPES = new Set(['SUPPORT', 'ATTA', 'REST', 'GUIDE', 'LINESTOP', '
 const PURE_PIPE_TYPES = new Set(['PIPE']);
 const DISTRIBUTED_TYPES = new Set(['PIPE', 'BEND', 'ELBOW', 'ELBO', 'REDUCER', 'REDU']);
 
+const ASME_BORE_TO_OD_MM = Object.freeze({
+  15: 21.3, 20: 26.7, 25: 33.4, 40: 48.3, 50: 60.3,
+  80: 88.9, 100: 114.3, 150: 168.3, 200: 219.1, 250: 273.0,
+  300: 323.8, 350: 355.6, 400: 406.4, 450: 457.2, 500: 508.0,
+  600: 609.6, 700: 711.2, 750: 762.0, 800: 812.8, 900: 914.4,
+  1000: 1016.0, 1200: 1219.2
+});
+
+const ASME_BORE_TO_STD_WALL_MM = Object.freeze({
+  15: 2.77, 20: 2.87, 25: 3.38, 40: 3.68, 50: 3.91,
+  80: 5.49, 100: 6.02, 150: 7.11, 200: 8.18, 250: 9.27,
+  300: 9.53, 350: 9.53, 400: 9.53, 450: 9.53, 500: 9.53,
+  600: 9.53, 700: 9.53, 750: 9.53, 800: 9.53, 900: 9.53,
+  1000: 9.53, 1200: 9.53
+});
+
 export function resolveStagedJsonContext(context, masters, config) {
   const lineResolution = resolveLineRow(context, masters?.lineRows || [], config);
   const lineRow = lineResolution.row;
@@ -27,12 +43,15 @@ export function resolveStagedJsonContext(context, masters, config) {
     schedule: context.schedule,
     materialMap: masters?.materialMapRows || [],
     pipingClassIndex: masters?.pipingClassIndex,
-    overrides: {},
+    overrides: config?.overrides || {},
     config: { pipingClassMatch: config?.pipingClassMatch || {} },
   });
   const flat = buildResolvedFields(context, lineResolution, process, masters, config);
   const missing = requiredMissing(context, flat);
   const diagnostics = missing.map((field) => missingDiagnostic(context, field));
+  if (flat.fluidDensityHydKgM3 === null && context.nominalBoreMm >= 450 && flat.testMedium === null) {
+    diagnostics.push(createStagedJsonDiagnostic({ nodeId: context.nodeId, severity: 'ENGINEERING_REVIEW_REQUIRED', category: 'MISSING_TEST_MEDIUM', field: 'testMedium', message: `Test Medium is required for hydro density default on large bore (>16") pipe.`, requiredFor: ['HydroWeight'] }));
+  }
   const conflicts = lineResolution.conflict ? ['lineKey'] : [];
   if (lineResolution.conflict) diagnostics.push(conflictDiagnostic(context, lineResolution));
   const status = conflicts.length ? 'conflict' : missing.length ? (flat.lineNo ? 'partial' : 'missing') : 'resolved';
@@ -49,17 +68,51 @@ export function resolveStagedJsonContext(context, masters, config) {
 function buildResolvedFields(context, lineResolution, process, masters, config) {
   const classRow = process.pipingClassMatchedRow || {};
   const materialRow = materialRowFor(process, masters?.materialMapRows || []);
-  const wall = safeResolverNumber(process.wallThicknessMm, process.wallThicknessSource);
+  const rawWall = safeResolverNumber(process.wallThicknessMm, process.wallThicknessSource);
+  const wall = (rawWall === null || rawWall <= 0) ? (ASME_BORE_TO_STD_WALL_MM[context.nominalBoreMm] ?? null) : rawWall;
   const corrosion = safeResolverNumber(process.corrosionAllowanceMm, process.corrosionSource);
-  const od = numberAny(classRow, ['pipeOdMm', 'OD_MM', 'Outside Diameter', 'OD', 'outsideDiameter']);
-  const materialDensity = firstNumber(numberAny(materialRow, densityAliases()), numberAny(classRow, densityAliases()), numberAny(lineResolution.row, densityAliases()));
+  
+  const classOd = numberAny(classRow, ['pipeOdMm', 'OD_MM', 'Outside Diameter', 'OD', 'outsideDiameter']);
+  const od = classOd ?? ASME_BORE_TO_OD_MM[context.nominalBoreMm] ?? null;
+  
+  let materialDensity = firstNumber(numberAny(materialRow, densityAliases()), numberAny(classRow, densityAliases()), numberAny(lineResolution.row, densityAliases()));
+  if (materialDensity === null) {
+     const mat = (process.material || '').toUpperCase();
+     if (mat.includes('SS') || mat.includes('DSS') || mat.includes('SDSS')) materialDensity = 8050;
+     else materialDensity = 7850;
+  }
+  
   const directPipeWeight = firstNumber(numberAny(classRow, pipeWeightAliases()), numberAny(lineResolution.row, pipeWeightAliases()));
   const pipeWeight = directPipeWeight ?? calculatedPipeWeight(od, wall, materialDensity);
   const component = componentWeight(context, masters?.weightMasterRows || [], config);
-  const insulationThickness = firstNumber(numberAny(lineResolution.row, ['insThk', 'INSULATION_THICKNESS_MM', 'Insulation Thickness']), numberAny(context.attributes, ['INSULATION_THICKNESS_MM']));
-  const insulationDensity = firstNumber(numberAny(lineResolution.row, ['INSULATION_DENSITY_KG_M3', 'Insulation Density']), numberAny(context.attributes, ['INSULATION_DENSITY_KG_M3']));
-  const opeDensity = firstNumber(numberAny(lineResolution.row, ['density', 'fluidDensityOpeKgM3', 'FLUID_DENSITY_OPE_KG_M3', 'DENSITY']), numberAny(context.attributes, ['FLUID_DENSITY_OPE_KG_M3']));
-  const hydDensity = firstNumber(numberAny(lineResolution.row, ['fluidDensityHydKgM3', 'HYD_DENSITY_KG_M3', 'Hydro Density']), numberAny(context.attributes, ['FLUID_DENSITY_HYD_KG_M3']));
+  const processData = (config?.overrides?.processData || {})[lineResolution.lineKey || context.branchName] || {};
+  
+  const fluidPhase = textAny(processData, ['phase', 'PHASE']) || textAny(lineResolution.row, ['phase', 'PHASE']) || null;
+  let opeDensity = firstNumber(numberAny(processData, ['density', 'fluidDensityOpeKgM3', 'FLUID_DENSITY_OPE_KG_M3', 'DENSITY']), numberAny(lineResolution.row, ['density', 'fluidDensityOpeKgM3', 'FLUID_DENSITY_OPE_KG_M3', 'DENSITY']), numberAny(context.attributes, ['FLUID_DENSITY_OPE_KG_M3']));
+  if (opeDensity === null && fluidPhase) {
+    opeDensity = fluidPhase.toUpperCase() === 'L' ? 1000 : 300;
+  }
+  
+  const testMedium = textAny(processData, ['testMedium', 'TEST_MEDIUM']) || textAny(lineResolution.row, ['testMedium', 'TEST_MEDIUM']) || null;
+  let hydDensity = firstNumber(numberAny(processData, ['fluidDensityHydKgM3', 'HYD_DENSITY_KG_M3', 'Hydro Density']), numberAny(lineResolution.row, ['fluidDensityHydKgM3', 'HYD_DENSITY_KG_M3', 'Hydro Density']), numberAny(context.attributes, ['FLUID_DENSITY_HYD_KG_M3']));
+  if (hydDensity === null && context.nominalBoreMm != null) {
+    if (context.nominalBoreMm <= 400) {
+      hydDensity = 1000;
+    } else if (testMedium) {
+      const tm = testMedium.toUpperCase();
+      if (tm === 'WATER' || tm === 'W' || tm === 'HYDRO') hydDensity = 1000;
+      else hydDensity = opeDensity;
+    }
+  }
+
+  let insulationThickness = firstNumber(numberAny(processData, ['insThk', 'INSULATION_THICKNESS_MM', 'Insulation Thickness']), numberAny(lineResolution.row, ['insThk', 'INSULATION_THICKNESS_MM', 'Insulation Thickness']), numberAny(context.attributes, ['INSULATION_THICKNESS_MM']));
+  let insulationDensity = firstNumber(numberAny(processData, ['INSULATION_DENSITY_KG_M3', 'Insulation Density']), numberAny(lineResolution.row, ['INSULATION_DENSITY_KG_M3', 'Insulation Density']), numberAny(context.attributes, ['INSULATION_DENSITY_KG_M3']));
+  
+  if (insulationThickness === null) insulationThickness = 0;
+  if (insulationDensity === null) {
+      if (insulationThickness > 0) insulationDensity = 250;
+      else insulationDensity = 0;
+  }
   const id = od !== null && wall !== null && od > 2 * wall ? od - 2 * wall : null;
   return {
     schema: STAGEDJSON_ENRICHMENT_SCHEMA,
@@ -79,14 +132,15 @@ function buildResolvedFields(context, lineResolution, process, masters, config) 
     material: process.material || null,
     materialCode: process.materialCode || null,
     materialDensityKgM3: materialDensity,
-    designPressure: valueAny(lineResolution.row, ['p1', 'P1', 'DESIGN_PRESSURE']) ?? null,
-    designPressureMpa: numberAny(lineResolution.row, ['p1', 'P1', 'DESIGN_PRESSURE']),
-    designTemperatureC: numberAny(lineResolution.row, ['t1', 'T1', 'DESIGN_TEMPERATURE']),
-    operatingTemperatureC: numberAny(lineResolution.row, ['t2', 'T2', 'OPERATING_TEMPERATURE']),
-    minimumTemperatureC: numberAny(lineResolution.row, ['t3', 'T3', 'MINIMUM_TEMPERATURE']),
-    hydroPressure: valueAny(lineResolution.row, ['hydroPressure', 'HYDRO_PRESSURE']) ?? null,
-    fluidService: textAny(lineResolution.row, ['service', 'Service', 'FLUID_SERVICE']) || null,
-    fluidPhase: textAny(lineResolution.row, ['phase', 'PHASE']) || null,
+    designPressure: valueAny(processData, ['p1', 'P1', 'DESIGN_PRESSURE']) ?? valueAny(lineResolution.row, ['p1', 'P1', 'DESIGN_PRESSURE']) ?? null,
+    designPressureMpa: firstNumber(numberAny(processData, ['p1', 'P1', 'DESIGN_PRESSURE']), numberAny(lineResolution.row, ['p1', 'P1', 'DESIGN_PRESSURE'])),
+    designTemperatureC: firstNumber(numberAny(processData, ['t1', 'T1', 'DESIGN_TEMPERATURE']), numberAny(lineResolution.row, ['t1', 'T1', 'DESIGN_TEMPERATURE'])),
+    operatingTemperatureC: firstNumber(numberAny(processData, ['t2', 'T2', 'OPERATING_TEMPERATURE']), numberAny(lineResolution.row, ['t2', 'T2', 'OPERATING_TEMPERATURE'])),
+    minimumTemperatureC: firstNumber(numberAny(processData, ['t3', 'T3', 'MINIMUM_TEMPERATURE']), numberAny(lineResolution.row, ['t3', 'T3', 'MINIMUM_TEMPERATURE'])),
+    hydroPressure: valueAny(processData, ['hydroPressure', 'HYDRO_PRESSURE']) ?? valueAny(lineResolution.row, ['hydroPressure', 'HYDRO_PRESSURE']) ?? null,
+    fluidService: textAny(processData, ['service', 'Service', 'FLUID_SERVICE']) || textAny(lineResolution.row, ['service', 'Service', 'FLUID_SERVICE']) || null,
+    fluidPhase,
+    testMedium,
     fluidDensityOpeKgM3: opeDensity,
     fluidDensityHydKgM3: hydDensity,
     insulationThicknessMm: insulationThickness,
@@ -106,8 +160,21 @@ function resolveLineRow(context, rows, config) {
   if (exact.length === 1) return resolution(exact[0], 'exact-hint', false, context);
   if (exact.length > 1) return resolution(null, 'ambiguous-exact-hint', true, context, exact);
   if (config?.allowContainedLineKey !== true) return resolution(null, 'no-match', false, context);
+  
   const contained = rows.filter((row) => candidates.some((hint) => hint.includes(normalizeKey(row.lineNoKey || row.lineNo || row.lineKey))));
   if (contained.length === 1) return resolution(contained[0], 'contained-line-key', false, context);
+  if (contained.length > 1) {
+    const scored = contained.map(row => {
+      const rowKey = normalizeKey(row.lineNoKey || row.lineNo || row.lineKey);
+      return { row, length: rowKey.length };
+    }).sort((a, b) => b.length - a.length);
+    
+    // If the longest match is strictly longer than the second longest, it's unambiguous
+    if (scored[0].length > scored[1].length) {
+      return resolution(scored[0].row, 'longest-contained-line-key', false, context);
+    }
+  }
+  
   return resolution(null, contained.length ? 'ambiguous-contained-line-key' : 'no-match', contained.length > 1, context, contained);
 }
 

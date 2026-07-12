@@ -55,6 +55,8 @@ const engine = read('converters/xml-cii-2019-standalone/engine.js');
 if (!engine.includes('standalone-compatibility-engine')) fail('Standalone engine diagnostics must identify engine mode.');
 if (!engine.includes('xml_to_cii2019_direction.py')) fail('Standalone engine must use the XML to CII direction compatibility route.');
 if (!engine.includes('inputxml_to_cii2019.py')) fail('Standalone engine must expose the InputXML to CII branch.');
+if (!engine.includes('../../vendor/pyodide/pyodide.mjs')) fail('Standalone engine must load Pyodide from the local vendor bundle.');
+if (engine.includes('cdn.jsdelivr.net/pyodide')) fail('Standalone engine must not load Pyodide from jsDelivr.');
 
 const forbidden = ['xmlCiiWorkflowRequestFinalRun', '#model-converters-run', '__xmlCiiWorkflowRunHandoff_v1', '__xmlCiiConversionWorkflowAllowDirectRun', 'legacy-adapter'];
 for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii-2019-standalone'), ...walk('converters/xml-cii-2019-standalone')]) {

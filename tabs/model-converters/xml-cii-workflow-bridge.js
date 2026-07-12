@@ -6,7 +6,7 @@
  * button cannot see the phase bridge populated by renderModelConvertersTab().
  */
 
-import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260710-inputxml-cii-geometry-preview-3';
+import { getXmlCiiPhaseBridge } from './legacy-adapter.js?v=20260711-local-pyodide-worker-1';
 
 let snapshotGeneration = 0;
 let snapshotCache = { key: '', value: null, createdAt: 0 };

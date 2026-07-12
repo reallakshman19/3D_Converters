@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=standalone-2');
+  const module = await import('./core/app.js?v=standalone-3');
   await module.init(startupMount());
 }
 

@@ -204,21 +204,18 @@ function parseDelimited(text) {
 }
 
 async function getXlsxModule() {
-  if (window.XLSX) return window.XLSX;
+  if (window.XLSX?.read && window.XLSX?.utils?.sheet_to_json) return window.XLSX;
 
   try {
-    return await import('xlsx');
-  } catch {
-    // Bare import may fail in static mode if no import map exists.
-  }
-
-  try {
-    return await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
+    const module = await import('xlsx');
+    const xlsx = module?.read ? module : module?.default;
+    if (xlsx?.read && xlsx?.utils?.sheet_to_json) return xlsx;
   } catch (err) {
     throw new Error(
-      'XLSX parser is not available. Add an import map for "xlsx" or allow CDN import from jsDelivr.'
+      `Local XLSX parser failed to load from import map: ${err?.message || String(err)}`
     );
   }
+  throw new Error('Local XLSX parser did not expose read/utils. Run npm install and refresh the page.');
 }
 
 function workbookToSheetRows(XLSX, workbook) {

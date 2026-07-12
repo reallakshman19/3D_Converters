@@ -6,15 +6,17 @@ import { applyStandaloneImportMastersContext, setStoredMaster, updateWorkflowSta
 import { fuzzyAutoMapFields } from './xml-cii-adapted-fuzzy-mapper.js';
 
 async function getXlsxModule() {
-  // Import map resolves 'xlsx' → /vendor/xlsx.mjs (local, verified ESM build).
-  // xlsx.mjs exports read, write, utils, etc. as named exports directly on the module namespace.
+  // Import map resolves xlsx to the project-managed local ESM dependency.
+  // The module namespace exposes read, write, utils, and the other SheetJS exports.
   if (typeof XLSX !== 'undefined' && typeof XLSX.read === 'function') return XLSX;
-  const mod = await import('xlsx');
-  // Named exports are on mod directly (mod.read, mod.utils, etc.)
-  if (mod && typeof mod.read === 'function') return mod;
-  // Fallback: some bundlers wrap in .default
-  if (mod && mod.default && typeof mod.default.read === 'function') return mod.default;
-  throw new Error('xlsx module could not be loaded — refresh the page and try again.');
+  try {
+    const mod = await import('xlsx');
+    if (mod && typeof mod.read === 'function') return mod;
+    if (mod && mod.default && typeof mod.default.read === 'function') return mod.default;
+  } catch (error) {
+    throw new Error(`Local xlsx module could not be loaded: ${error?.message || String(error)}`);
+  }
+  throw new Error('Local xlsx module did not expose read/utils. Run npm install and refresh the page.');
 }
 
 async function parseMasterFileData(buffer, fileName, masterKey) {
@@ -71,8 +73,8 @@ function translateError(err, filename) {
   if (m.includes("reading 'length'") || m.includes("Cannot read properties")) {
     return `Workbook structure is invalid or empty. If the file is open in Excel, close it and try again.${stack}`;
   }
-  if (m.includes('CFB') || m.includes('xlsx module has no .read') || m.includes('Could not load XLSX')) {
-    return `XLSX parser failed to load. Try refreshing the page (Ctrl+F5) then re-uploading.${stack}`;
+  if (m.includes('CFB') || m.includes('xlsx module has no .read') || m.includes('Local xlsx module')) {
+    return `XLSX parser failed to load. Run npm install in the converter project, refresh the page (Ctrl+F5), then re-upload.${stack}`;
   }
   if (m.includes('Fetch failed') || m.includes('500') || m.includes('403') || m.includes('Failed to fetch')) {
     return `Could not read file. If it is open in Excel, close it and retry.${stack}`;

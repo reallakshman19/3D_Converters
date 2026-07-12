@@ -1,6 +1,12 @@
+/**
+ * Functionality: redirects stale model-converter worker URLs to the current local Pyodide worker cache key.
+ * Parameters: Worker constructor specifiers are inspected when the browser creates a converter worker.
+ * Outputs: an equivalent Worker using the current py-worker.js query token.
+ * Fallback: none; only known stale worker tokens are rewritten.
+ */
 const FLAG = '__xmlCiiRichWorkerCacheBust_v1';
 const STALE_WORKER_TOKEN = 'py-worker.js?v=20260515-cii-compat-check2';
-const FRESH_WORKER_TOKEN = 'py-worker.js?v=20260623-xml-cii-rich-worker-1';
+const FRESH_WORKER_TOKEN = 'py-worker.js?v=20260711-local-pyodide-worker-1';
 
 function canPatchWorker() {
   return typeof window !== 'undefined' && typeof window.Worker === 'function';

@@ -1,12 +1,14 @@
-import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.mjs';
+import { loadPyodide } from '../vendor/pyodide/pyodide.mjs';
 import {
   buildConverterWorkerResponse,
   validateConverterWorkerRequest,
 } from './worker-contract.js';
+import { decodeLogBatches } from './log-decoder.js';
 import { buildInvocation } from './invocation-builder.js';
 import { normalizeInputXmlAttributeNames, converterUsesInputXmlDialect } from './inputxml-field-adapter.js';
+import { getConverterPackageWheelUrls } from './pyodide-local-packages.js';
 
-const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/';
+const PYODIDE_INDEX_URL = new URL('../vendor/pyodide/', import.meta.url).href;
 
 const SCRIPT_FILE_NAMES = Object.freeze([
   'rvm_to_rev.py',
@@ -110,13 +112,6 @@ function _sanitizeFileName(name) {
   return normalized.replace(/[\/:*?"<>|]/g, '_');
 }
 
-function _decodeLogBatches(values) {
-  return values
-    .map((line) => _toString(line))
-    .map((line) => line.trimEnd())
-    .filter((line) => line.length > 0);
-}
-
 function _extractFailureDetail(stderrLines) {
   if (!stderrLines.length) return '';
   const priorityPatterns = [/^usage:/i, /^error:/i, /^RuntimeError:/i, /^ValueError:/i, /^Exception:/i, /contract check failed/i];
@@ -216,14 +211,14 @@ async function _getPyodide() {
   return _pyodidePromise;
 }
 
+async function _installLocalPythonPackages(pyodide) {
+  await pyodide.loadPackage(getConverterPackageWheelUrls(PYODIDE_INDEX_URL));
+}
+
 async function _ensureScripts(pyodide) {
   if (_scriptsLoaded) return;
-  // Install pypdf via micropip (needed by pdf_to_inputxml.py).
-  await pyodide.loadPackage('micropip');
-  await pyodide.runPythonAsync(`
-import micropip
-await micropip.install('pypdf')
-`);
+  // Install local Python wheels needed by converter scripts. No CDN or PyPI fallback is used.
+  await _installLocalPythonPackages(pyodide);
   pyodide.FS.mkdirTree('/scripts');
   pyodide.FS.mkdirTree('/work');
   for (const fileName of SCRIPT_FILE_NAMES) {
@@ -266,8 +261,8 @@ async function _runPythonScript(pyodide, scriptPath, argv, stdout, stderr) {
   pyodide.globals.set('job_argv', argv);
   const exitCode = await pyodide.runPythonAsync(RUN_SNIPPET);
   if (Number(exitCode) !== 0) {
-    const stdoutLines = _decodeLogBatches(stdout);
-    const stderrLines = _decodeLogBatches(stderr);
+    const stdoutLines = decodeLogBatches(stdout);
+    const stderrLines = decodeLogBatches(stderr);
     const detail = _extractFailureDetail(stderrLines);
     throw new Error(detail ? `Converter exited with code ${exitCode}: ${detail}` : `Converter exited with code ${exitCode}. Logs: ${stdoutLines.slice(-5).join(' | ')}`);
   }
@@ -485,8 +480,8 @@ async function _runJob(message) {
     stderr,
   );
 
-  const stdoutLines = _decodeLogBatches(stdout);
-  const stderrLines = _decodeLogBatches(stderr);
+  const stdoutLines = decodeLogBatches(stdout);
+  const stderrLines = decodeLogBatches(stderr);
   const outputText = pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' });
   const outputs = [
     { name: invocation.outputName, text: outputText, mime: _inferTextMime(invocation.outputName) },

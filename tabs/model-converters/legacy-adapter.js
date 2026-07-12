@@ -1450,11 +1450,15 @@ function _xmlCiiParseJsonRows(text) {
 }
 
 async function _xmlCiiGetXlsxModule() {
-  if (window.XLSX) return window.XLSX;
+  if (window.XLSX?.read && window.XLSX?.utils?.sheet_to_json) return window.XLSX;
   try {
-    return await import('xlsx');
-  } catch {}
-  return import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
+    const module = await import('xlsx');
+    const xlsx = module?.read ? module : module?.default;
+    if (xlsx?.read && xlsx?.utils?.sheet_to_json) return xlsx;
+  } catch (error) {
+    throw new Error(`Local XLSX parser failed to load from import map: ${error?.message || String(error)}`);
+  }
+  throw new Error('Local XLSX parser did not expose read/utils. Run npm install and refresh the page.');
 }
 
 async function _xmlCiiReadWorkbookFile(file) {
@@ -1509,7 +1513,7 @@ function _xmlCiiSaveMasterToConfig(values, masterDef, rows, fieldMap) {
 }
 
 function _createWorkerRuntime() {
-  const worker = new Worker(new URL('../converters/py-worker.js?v=20260515-cii-compat-check2', import.meta.url), { type: 'module' });
+  const worker = new Worker(new URL('../converters/py-worker.js?v=20260711-local-pyodide-worker-1', import.meta.url), { type: 'module' });
   const pending = new Map();
   let nextJobId = 1;
 
@@ -8946,6 +8950,20 @@ export function renderModelConvertersTab(container) {
       runValues.openJsonPopupAsync = async (args) => {
         return await _openJsonPopupAsync(args);
       };
+
+      if (runValues.layoutConfigJson) {
+        try {
+          const parsed = JSON.parse(runValues.layoutConfigJson);
+          if (parsed?.restraint?.explicit_type_map) {
+            for (const [k, v] of Object.entries(parsed.restraint.explicit_type_map)) {
+              if (!v) delete parsed.restraint.explicit_type_map[k];
+            }
+          }
+          runValues.layoutConfigJson = JSON.stringify(parsed);
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
 
       const context = {
         converterId: selectedConverter,

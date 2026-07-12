@@ -50,11 +50,12 @@ export function normalizeVisibleStagedJsonConfig(value) {
     schema: text(source.schema) || DEFAULT_VISIBLE_STAGEDJSON_CONFIG.schema,
     lineKeyAttributeNames: array(source.lineKeyAttributeNames).length ? array(source.lineKeyAttributeNames) : [...DEFAULT_VISIBLE_STAGEDJSON_CONFIG.lineKeyAttributeNames],
     branchAttributeNames: array(source.branchAttributeNames).length ? array(source.branchAttributeNames) : [...DEFAULT_VISIBLE_STAGEDJSON_CONFIG.branchAttributeNames],
-    allowContainedLineKey: source.allowContainedLineKey === true,
+    allowContainedLineKey: source.allowContainedLineKey !== false,
     weightMinimumScore: minimum,
     weightAmbiguityDelta: delta,
     lineListFieldMap: plain(source.lineListFieldMap),
     pipingClassMatch: plain(source.pipingClassMatch),
+    linelist: plain(source.linelist),
   };
 }
 

@@ -5,6 +5,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { DEFAULT_VISIBLE_STAGEDJSON_CONFIG } from '../tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-contract.js';
@@ -36,6 +37,23 @@ test('unknown line remains null with explicit missing diagnostics', () => {
   assert.ok(pipe.missing.includes('lineNo'));
   assert.ok(pipe.diagnostics.every((row) => row.fallbackUsed === false));
   assert.equal(pipe.fluidDensityOpeKgM3, null);
+});
+
+test('Standalone exposes a visible stagedJson Properties launcher', () => {
+  const tabSource = readFileSync(new URL('../tabs/xml-cii-2019-standalone-tab.js', import.meta.url), 'utf8');
+  assert.match(tabSource, /stagedJson Properties/);
+  assert.match(tabSource, /openStagedJsonPropertiesPanel/);
+  assert.match(tabSource, /panel\.open = true/);
+});
+
+test('stagedJson resolver map is invokable above the config editor', () => {
+  const uiSource = readFileSync(new URL('../tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-ui.js', import.meta.url), 'utf8');
+  assert.match(uiSource, /flowRow\(state, render\)/);
+  assert.match(uiSource, /3 Resolve Map/);
+  assert.match(uiSource, /Resolve map preview/);
+  assert.match(uiSource, /previewResolverMap/);
+  assert.doesNotMatch(uiSource, /Resolve map preview', !canResolve/);
+  assert.ok(uiSource.indexOf('actionRow(state, render)') < uiSource.indexOf('cards(state, render)'));
 });
 
 function fixtureStage(lineName) {
