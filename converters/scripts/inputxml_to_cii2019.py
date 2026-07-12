@@ -1326,7 +1326,21 @@ def _merge_coordinate_seed(
 def _build_absolute_coordinates(
     elements: list[ElementResolved],
     tolerance: float,
+    required_nodes: set[float] | None = None,
 ) -> dict[float, NodeCoordinate]:
+    # required_nodes narrows which nodes' reconstructed coordinates actually
+    # need to agree across redundant paths. It does not change which nodes
+    # get reconstructed (the BFS below still walks the whole graph, since a
+    # required node may only be reachable through others) - it only changes
+    # what happens when two paths to the SAME node disagree beyond
+    # tolerance. When required_nodes is None (the "all_nodes" COORDS mode),
+    # behavior is unchanged: any disagreement anywhere raises. When a node
+    # set is given (a narrow COORDS mode that only emits a handful of
+    # nodes), a disagreement on a node that will never be emitted is kept
+    # at its first-seen value instead of aborting the whole conversion -
+    # the emitted COORDS payload never has ambiguous data because only
+    # required_nodes' own coordinates (which still raise on disagreement)
+    # ever get selected for output.
     adjacency: dict[float, list[tuple[float, float, float, float]]] = {}
     for element in elements:
         from_node = element.from_node
@@ -1376,6 +1390,8 @@ def _build_absolute_coordinates(
 
             existing = coordinates[neighbor]
             if _coordinate_mismatch(existing, candidate, tolerance):
+                if required_nodes is not None and neighbor not in required_nodes:
+                    continue
                 raise ValueError(
                     "Inconsistent coordinate reconstruction for node "
                     f"{_format_node_id(neighbor)} via edge "
@@ -1411,6 +1427,8 @@ def _build_absolute_coordinates(
                     or abs(existing.y - candidate.y) > tolerance
                     or abs(existing.z - candidate.z) > tolerance
                 ):
+                    if required_nodes is not None and neighbor not in required_nodes:
+                        continue
                     raise ValueError(
                         "Inconsistent coordinate reconstruction for node "
                         f"{_format_node_id(neighbor)} via edge "
@@ -2396,7 +2414,37 @@ def _build_coords_payload_with_layout(
         raise ValueError("Invalid 2019 layout config: 'coords' must be an object.")
     mode = str(coords_cfg.get("mode", "all_nodes")).strip().lower()
     decimals = int(coords_cfg.get("decimals", 4))
-    coordinates = _build_absolute_coordinates(elements, tolerance=tolerance)
+
+    configured_node_ids: list[float] = []
+    if mode != "all_nodes":
+        configured_node_ids_raw = coords_cfg.get("node_ids", [])
+        if configured_node_ids_raw is None:
+            configured_node_ids_raw = []
+        if not isinstance(configured_node_ids_raw, list):
+            raise ValueError("Invalid 2019 layout config: 'coords.node_ids' must be an array.")
+        configured_node_ids = [float(node_id) for node_id in configured_node_ids_raw]
+
+    # Real CII 2019 COORDS sections emitted by CAESAR II itself are sparse -
+    # typically a handful of reference/anchor nodes, not one row per node in
+    # the model. When mode isn't "all_nodes", figure out up front which
+    # node(s) will actually be emitted, so the reconstruction below only has
+    # to guarantee those are unambiguous. A redundant-path disagreement
+    # anywhere else in a large model (which never reaches this payload
+    # either way) no longer aborts the whole conversion.
+    if mode == "all_nodes":
+        required_nodes = None
+    elif configured_node_ids:
+        required_nodes = set(configured_node_ids)
+    elif candidate_nodes:
+        required_nodes = {candidate_nodes[0]}
+    else:
+        # No configured node and no candidate: which single node gets
+        # emitted depends on the full reconstructed set (lowest node id),
+        # so this rare, fully-unconfigured case keeps the original strict,
+        # whole-graph behavior.
+        required_nodes = None
+
+    coordinates = _build_absolute_coordinates(elements, tolerance=tolerance, required_nodes=required_nodes)
 
     origin_offset_values = coords_cfg.get("origin_offset", ["0.0", "0.0", "0.0"])
     if not isinstance(origin_offset_values, list) or len(origin_offset_values) != 3:
@@ -2405,18 +2453,12 @@ def _build_coords_payload_with_layout(
 
     if mode == "all_nodes":
         nodes = sorted(coordinates.keys())
+    elif configured_node_ids:
+        nodes = configured_node_ids
+    elif candidate_nodes:
+        nodes = [candidate_nodes[0]]
     else:
-        configured_node_ids = coords_cfg.get("node_ids", [])
-        if configured_node_ids is None:
-            configured_node_ids = []
-        if not isinstance(configured_node_ids, list):
-            raise ValueError("Invalid 2019 layout config: 'coords.node_ids' must be an array.")
-        nodes = [float(node_id) for node_id in configured_node_ids]
-        if not nodes:
-            if candidate_nodes:
-                nodes = [candidate_nodes[0]]
-            else:
-                nodes = [sorted(coordinates.keys())[0]]
+        nodes = [sorted(coordinates.keys())[0]]
 
     payload: list[str] = [_row([str(len(nodes))])]
     for node in nodes:
@@ -2770,6 +2812,22 @@ def _build_cii_text(
         raise ValueError("Invalid 2019 layout config: 'restraint' must be an object.")
     restraint_block_size = RESTRAINT_LINES_PER_AUX_BLOCK
 
+    # A raw_payload_overrides entry for COORDS (set below, but checked here
+    # too) replaces whatever this computes wholesale - most commonly when a
+    # layout config is derived from an existing reference CII, which passes
+    # every one of its own sections through verbatim. Reconstructing (and
+    # strictly cross-validating) absolute coordinates for the whole model
+    # is real work whose result would just be discarded in that case, so
+    # skip it rather than let a benign, irrelevant inconsistency somewhere
+    # in a large model abort a conversion whose COORDS section was never
+    # going to use the computed result anyway.
+    _sections_cfg_probe = layout_config.get("sections", {})
+    _coords_override_present = (
+        isinstance(_sections_cfg_probe, dict)
+        and isinstance(_sections_cfg_probe.get("raw_payload_overrides"), dict)
+        and "COORDS" in _sections_cfg_probe["raw_payload_overrides"]
+    )
+
     if reference_overrides is not None:
         version_payload = reference_overrides.version_payload
         nonam_count = reference_overrides.nonam_count
@@ -2777,6 +2835,8 @@ def _build_cii_text(
         bend_payload = reference_overrides.bend_payload
         reducer_payload = reference_overrides.reducers_payload
         coords_payload = reference_overrides.coords_payload
+    elif _coords_override_present:
+        coords_payload = []
     else:
         coords_payload = _build_coords_payload_with_layout(
             elements=elements,
@@ -2966,7 +3026,7 @@ def _build_cii_text(
         "restraints": restraint_count,
         "sifs": len(sif_payload) // 10,
         "reducers": len(reducer_payload),
-        "coords": len(coords_payload) - 1,
+        "coords": max(len(coords_payload) - 1, 0),
     }
     return cii_text, stats
 
