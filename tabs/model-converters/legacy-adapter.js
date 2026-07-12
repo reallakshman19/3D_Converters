@@ -1865,7 +1865,11 @@ function _branchFieldCellHtml(element, field, editedValue) {
 function _branchOtherFieldsCellHtml(element) {
   if (!element.otherFields?.length) return '<td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#5c7291;">&mdash;</td>';
   const text = element.otherFields.map((field) => `${field.attr}=${field.value}`).join(', ');
-  return `<td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#9aa8ba;font-size:11px;" title="Present in the source XML but not one of the editable fields above; shown for reference only.">${_esc(text)}</td>`;
+  return `<td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#9aa8ba;font-size:11px;" title="Present in the source XML but not one of the editable fields above; shown for reference only.">
+    <div style="max-height:80px;overflow-y:auto;white-space:normal;word-break:break-all;max-width:300px;">
+      ${_esc(text)}
+    </div>
+  </td>`;
 }
 
 function _branchElementRowHtml(element, editsByElement, hasOtherFields) {
@@ -2034,7 +2038,7 @@ function _openJsonPopup({
   overlay.style.alignItems = 'center';
   overlay.style.justifyContent = 'center';
   overlay.innerHTML = `
-    <div style="width:min(1000px,96vw);height:min(780px,94vh);display:flex;flex-direction:column;background:#0f1724;border:1px solid #2c3a4f;border-radius:10px;overflow:hidden;">
+    <div style="width:min(1400px,96vw);height:min(780px,94vh);display:flex;flex-direction:column;background:#0f1724;border:1px solid #2c3a4f;border-radius:10px;overflow:hidden;">
       <div style="padding:10px 12px;border-bottom:1px solid #2c3a4f;color:#9cc5ff;font-weight:700;">${_esc(title)}</div>
       <div style="display:flex;gap:6px;padding:10px 12px 0 12px;">
         <button type="button" data-popup-tab="header" class="model-converters-download-btn">${popupDefaultFields.length ? 'Global Defaults' : 'Header'}</button>
