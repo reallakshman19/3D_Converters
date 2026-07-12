@@ -39,11 +39,15 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-10: InputXML->CII(2019) preview import cache-bumped so
-  // generated InputXML coordinate seeds are honored by the geometry preview.
-  'tabs/model-converters/legacy-adapter.js': '1d041072dc53f68520123fcc310948da007699da',
-  // Current shell includes the 5B Topology and 5C XML->InputXML phases.
-  'tabs/model-converters/WorkflowShell.js': '353852667c6c73d183c144c6209caf5c60fb3e03',
+  // Updated 2026-07-12: InputXML->CII(2019) popup - fixed the Branch Data
+  // tab's defaulted/carried-forward field detection, grouped Config tab
+  // labels for the elements.rowN[] paths, made Branch Data cells editable
+  // (wired back into the loaded InputXML on Save).
+  'tabs/model-converters/legacy-adapter.js': '788aba8051e179c51eb4b5c216efe497f6c5d88f',
+  // Updated 2026-07-12: recorded hash was already stale before this change
+  // (git hash-object showed a mismatch against the file's actual committed
+  // content even with no pending edits) - corrected to match reality.
+  'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
   'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
   'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
   'tabs/model-converters/xml-cii-simple-workflow-controller.js': '8690d2d7adf494fc702a1f156c81f5da2b8585bc',

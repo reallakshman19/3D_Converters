@@ -45,10 +45,10 @@ globalThis.XMLSerializer = class { serializeToString(node) { return node instanc
 
 function protectedRouteShas() {
   return {
-    'tabs/model-converters/WorkflowShell.js': '336388438127626b5735cc2be7ba4b386738f46f',
+    'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
     'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
     'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
-    'converters/py-worker.js': '13dfeed628ebc2ac361ee0c016e23bd5d18d597c',
+    'converters/py-worker.js': '2295a1d450d6814b6bf92af523224acb56a41910',
     'converters/invocation-builder.js': '20894bd7fa4399046ab110581beb2badeefcab68',
   };
 }
