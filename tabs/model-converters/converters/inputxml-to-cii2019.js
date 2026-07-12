@@ -417,6 +417,15 @@ export async function run(context) {
     if (!proceed) {
       throw new Error('Cancelled: conversion aborted in file-based config popup.');
     }
+    // Branch Data tab edits made in the popup (see legacy-adapter.js's
+    // getEditedInputXmlText / applyPopupPayload): an edited copy of the
+    // loaded InputXML text, written back onto the same `primary` object
+    // referenced by context.inputFiles, so the worker converts the edited
+    // data instead of the originally-loaded file.
+    if (typeof runValues.__editedInputXmlText === 'string' && runValues.__editedInputXmlText) {
+      primary.bytes = new TextEncoder().encode(runValues.__editedInputXmlText).buffer;
+      delete runValues.__editedInputXmlText;
+    }
   }
 
   const workerOptions = Object.fromEntries(

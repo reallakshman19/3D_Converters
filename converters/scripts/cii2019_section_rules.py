@@ -236,6 +236,21 @@ def nonblank_rows(rows: Iterable[str]) -> list[str]:
     return [str(row) for row in rows if str(row).strip()]
 
 
+def aux_block_rows(rows: Iterable[str]) -> list[str]:
+    """Row list for aux-block count/chunking arithmetic.
+
+    Unlike nonblank_rows, this does NOT drop blank lines: at least the
+    FLANGES block layout has a genuinely blank row at a fixed position
+    within every real 12-line record (confirmed against real CAESAR II
+    CII 2019 exports), so stripping blanks before dividing by
+    LINES_PER_AUX_BLOCK[section] corrupts the block count for any file
+    with real flange data - a correctly-formatted section gets rejected
+    as malformed. Blank lines within a fixed-width block are content,
+    not padding to be discarded.
+    """
+    return [str(row) for row in rows]
+
+
 def ceil_div(value: int, divisor: int) -> int:
     if value < 0:
         raise ValueError(f"Cannot ceil-divide negative value {value}.")
@@ -488,7 +503,7 @@ def validate_aux_block_rows(
     }
 
     for section, lines_per_block in LINES_PER_AUX_BLOCK.items():
-        rows = nonblank_rows(sections.get(section, []))
+        rows = aux_block_rows(sections.get(section, []))
         blocks = expected_blocks.get(section, 0)
         expected_rows = blocks * lines_per_block
 
@@ -711,7 +726,7 @@ def build_control_from_sections(
     """
 
     def _block_count(section_name: str) -> int:
-        rows = nonblank_rows(sections.get(section_name, []))
+        rows = aux_block_rows(sections.get(section_name, []))
         lines_per_block = LINES_PER_AUX_BLOCK[section_name]
 
         if len(rows) % lines_per_block != 0:

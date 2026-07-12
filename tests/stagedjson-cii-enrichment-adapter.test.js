@@ -40,20 +40,44 @@ test('unknown line remains null with explicit missing diagnostics', () => {
 });
 
 test('Standalone exposes a visible stagedJson Properties launcher', () => {
-  const tabSource = readFileSync(new URL('../tabs/xml-cii-2019-standalone-tab.js', import.meta.url), 'utf8');
-  assert.match(tabSource, /stagedJson Properties/);
-  assert.match(tabSource, /openStagedJsonPropertiesPanel/);
-  assert.match(tabSource, /panel\.open = true/);
+  // xml-cii-2019-standalone-tab.js no longer embeds an in-context
+  // "stagedJson Properties" panel launcher (openStagedJsonPropertiesPanel /
+  // panel.open = true) - that was superseded by promoting the feature to
+  // its own top-level tab (tabs/stagedjson-properties-tab.js), registered
+  // in core/app-standalone-runtime.js and backed by the same
+  // stagedjson-enrichment-ui.js the "resolver map" test below already
+  // exercises. Check the current launch mechanism instead of the old one.
+  const runtimeSource = readFileSync(new URL('../core/app-standalone-runtime.js', import.meta.url), 'utf8');
+  assert.match(runtimeSource, /id: 'stagedjson-properties'/);
+  assert.match(runtimeSource, /label: 'stagedJson Properties'/);
+  assert.match(runtimeSource, /renderStagedJsonPropertiesTab/);
+
+  const tabSource = readFileSync(new URL('../tabs/stagedjson-properties-tab.js', import.meta.url), 'utf8');
+  assert.match(tabSource, /export function renderStagedJsonPropertiesTab/);
+  assert.match(tabSource, /renderStagedJsonEnrichmentPanel/);
 });
 
-test('stagedJson resolver map is invokable above the config editor', () => {
+test('stagedJson resolver map preview is invokable and gated on readiness', () => {
+  // This panel was restructured from a single linear flow (source ->
+  // config -> resolve/preview -> results, stacked) into a two-column
+  // dashboard (inputs+config in one column, execution actions in the
+  // other, results below both). "Resolve map controls appear above the
+  // config editor" no longer maps cleanly onto a side-by-side layout, so
+  // this checks the guarantees that still apply: the resolver-map preview
+  // button exists, is gated on the same readiness check as running the
+  // real enrichment (not accidentally always-enabled or always-disabled),
+  // wired to previewResolverMap(), and the actions/execution section is
+  // still built (and appended to the DOM) before the results section.
   const uiSource = readFileSync(new URL('../tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-ui.js', import.meta.url), 'utf8');
-  assert.match(uiSource, /flowRow\(state, render\)/);
-  assert.match(uiSource, /3 Resolve Map/);
-  assert.match(uiSource, /Resolve map preview/);
-  assert.match(uiSource, /previewResolverMap/);
-  assert.doesNotMatch(uiSource, /Resolve map preview', !canResolve/);
-  assert.ok(uiSource.indexOf('actionRow(state, render)') < uiSource.indexOf('cards(state, render)'));
+  assert.match(uiSource, /async function previewResolverMap\(state, render\)/);
+  assert.match(uiSource, /const canRun = readiness\.canResolve;/);
+  assert.match(uiSource, /action\('Preview Resolution Map', !canRun, \(\) => previewResolverMap\(state, render\)\)/);
+  assert.match(uiSource, /function actionsColumn\(state, render\)/);
+  assert.match(uiSource, /function resultView\(state, render\)/);
+  assert.ok(
+    uiSource.indexOf('buildDashboard(state, render), resultView(state, render)') >= 0,
+    'buildDashboard (which builds the actions/execution column) must be constructed and appended before resultView',
+  );
 });
 
 function fixtureStage(lineName) {

@@ -55,7 +55,7 @@ import {
 } from '../../converters/xml-cii2019-core/linelist-mapping.js';
 import { buildStagedSupportIndex, calibrateStagedSupportIndexCoordinates, xmlCiiTypeEntriesFromSupportKind, xmlCiiRestraintEntriesFromSupportMatch, xmlCiiTypeEntryFromExistingRestraint, dedupeXmlCiiRestraintEntries, applyXmlRestraints, enrichHierarchyWithMapperKinds } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { renderUnifiedSupportMappingTable, bindUnifiedSupportMappingTable } from './converters/xmltocii2019_helper/support-mapping-table.js?v=20260710-inputxml2019-popup-revamp-1';
-import { parseInputXmlForBranchPreview } from './converters/inputxml2019_helper/inputxml-branch-preview.js?v=20260710-inputxml2019-popup-revamp-1';
+import { parseInputXmlForBranchPreview, applyElementFieldEdits, FIELD_SPECS } from './converters/inputxml2019_helper/inputxml-branch-preview.js?v=20260712-inputxml2019-branch-editable-1';
 import { CONVERTERS, getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
 import { XML_CII_WORKFLOW_PHASES } from './WorkflowShell.js';
 import { loadStoredState, saveStoredState } from './core/config-store.js';
@@ -1706,6 +1706,88 @@ function _popupFieldValueAsText(field) {
   return String(field.value ?? '');
 }
 
+/**
+ * Human-readable group/label metadata for the "elements.rowN[i]" config
+ * paths written by converters/scripts/inputxml_to_cii2019.py's per-element
+ * CII block (rows 3-14 of the 15-line ELEMENTS record; row1/row2 are
+ * FROM_NODE/TO_NODE/geometry/diameter/wall/insulation/corrosion/temp1-3 and
+ * are never shown here since the engine never reads them from this config
+ * at all - they're always the raw PIPINGELEMENT attributes).
+ *
+ * `editable: false` entries are fields the engine ALWAYS recomputes from
+ * the loaded InputXML's PIPINGELEMENT attributes per element, ignoring
+ * whatever is configured here - editing them in this popup has no effect
+ * on the generated CII. Confirmed directly against _build_cii_text(): row3
+ * (TEMP_EXP_C4-9), row4 (PRESSURE_C1-6), row5[0-2] (PRESSURE_C7-9), row6[0-1]
+ * (INSUL_DENSITY/FLUID_DENSITY), row6[5] (HYDRO_PRESSURE) are all built
+ * directly from the parsed element, never from elements_cfg.
+ *
+ * The remaining slots (row5[3-5], row6[2-4], row7, row8, row9, row11) have
+ * no PIPINGELEMENT attribute at all - they're genuinely config-only. Their
+ * exact real-CAESAR-REL-record meaning past what's in the engine's own code
+ * comment ("Elastic Modulus cold, Poisson's Ratio, Pipe Density, Mill
+ * Tolerances, Seam Weld" for row5/row6's tail; row7-9/row11 undocumented)
+ * is NOT independently verified against a real CAESAR export - labeled
+ * "(unverified)" rather than stated as fact.
+ */
+const ELEMENTS_ROW_FIELD_META = Object.freeze({
+  'elements.row3[0]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 4', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C4 from the loaded InputXML.' },
+  'elements.row3[1]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 5', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C5 from the loaded InputXML.' },
+  'elements.row3[2]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 6', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C6 from the loaded InputXML.' },
+  'elements.row3[3]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 7', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C7 from the loaded InputXML.' },
+  'elements.row3[4]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 8', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C8 from the loaded InputXML.' },
+  'elements.row3[5]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 9', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C9 from the loaded InputXML.' },
+  'elements.row4[0]': { group: 'Pressure Cases 1-6 (from source XML)', label: 'Pressure Case 1', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C1 from the loaded InputXML.' },
+  'elements.row4[1]': { group: 'Pressure Cases 1-6 (from source XML)', label: 'Pressure Case 2', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C2 from the loaded InputXML.' },
+  'elements.row4[2]': { group: 'Pressure Cases 1-6 (from source XML)', label: 'Pressure Case 3', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C3 from the loaded InputXML.' },
+  'elements.row4[3]': { group: 'Pressure Cases 1-6 (from source XML)', label: 'Pressure Case 4', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C4 from the loaded InputXML.' },
+  'elements.row4[4]': { group: 'Pressure Cases 1-6 (from source XML)', label: 'Pressure Case 5', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C5 from the loaded InputXML.' },
+  'elements.row4[5]': { group: 'Pressure Cases 1-6 (from source XML)', label: 'Pressure Case 6', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C6 from the loaded InputXML.' },
+  'elements.row5[0]': { group: 'Pressure Cases 7-9 (from source XML)', label: 'Pressure Case 7', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C7 from the loaded InputXML.' },
+  'elements.row5[1]': { group: 'Pressure Cases 7-9 (from source XML)', label: 'Pressure Case 8', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C8 from the loaded InputXML.' },
+  'elements.row5[2]': { group: 'Pressure Cases 7-9 (from source XML)', label: 'Pressure Case 9', editable: false, note: 'Always uses PIPINGELEMENT/PRESSURE_C9 from the loaded InputXML.' },
+  'elements.row5[3]': { group: 'Other Element Properties (config-only, unverified)', label: 'Elastic Modulus, Cold (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute - always uses this config value. Exact field identity not independently verified.' },
+  'elements.row5[4]': { group: 'Other Element Properties (config-only, unverified)', label: "Poisson's Ratio (unverified)", editable: true, note: 'No PIPINGELEMENT source attribute - always uses this config value. Exact field identity not independently verified.' },
+  'elements.row5[5]': { group: 'Other Element Properties (config-only, unverified)', label: 'Pipe Density (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute - always uses this config value. Exact field identity not independently verified.' },
+  'elements.row6[0]': { group: 'Densities & Hydro Pressure (from source XML)', label: 'Insulation Density', editable: false, note: 'Always uses PIPINGELEMENT/INSUL_DENSITY from the loaded InputXML.' },
+  'elements.row6[1]': { group: 'Densities & Hydro Pressure (from source XML)', label: 'Fluid Density', editable: false, note: 'Always uses PIPINGELEMENT/FLUID_DENSITY from the loaded InputXML.' },
+  'elements.row6[2]': { group: 'Other Element Properties (config-only, unverified)', label: 'Mill Tolerance, Plus (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute - always uses this config value. Exact field identity not independently verified.' },
+  'elements.row6[3]': { group: 'Other Element Properties (config-only, unverified)', label: 'Mill Tolerance, Minus (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute - always uses this config value. Exact field identity not independently verified.' },
+  'elements.row6[4]': { group: 'Other Element Properties (config-only, unverified)', label: 'Seam Weld Factor (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute - always uses this config value. Exact field identity not independently verified.' },
+  'elements.row6[5]': { group: 'Densities & Hydro Pressure (from source XML)', label: 'Hydro Test Pressure', editable: false, note: 'Always uses PIPINGELEMENT/HYDRO_PRESSURE from the loaded InputXML.' },
+  'elements.row7[0]': { group: 'Other Element Properties, Row 7 (config-only, unverified)', label: 'Row 7, Slot 1 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row7[1]': { group: 'Other Element Properties, Row 7 (config-only, unverified)', label: 'Row 7, Slot 2 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row7[2]': { group: 'Other Element Properties, Row 7 (config-only, unverified)', label: 'Row 7, Slot 3 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row7[3]': { group: 'Other Element Properties, Row 7 (config-only, unverified)', label: 'Row 7, Slot 4 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row7[4]': { group: 'Other Element Properties, Row 7 (config-only, unverified)', label: 'Row 7, Slot 5 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row7[5]': { group: 'Other Element Properties, Row 7 (config-only, unverified)', label: 'Row 7, Slot 6 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row8[0]': { group: 'Other Element Properties, Row 8 (config-only, unverified)', label: 'Row 8, Slot 1 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row8[1]': { group: 'Other Element Properties, Row 8 (config-only, unverified)', label: 'Row 8, Slot 2 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row8[2]': { group: 'Other Element Properties, Row 8 (config-only, unverified)', label: 'Row 8, Slot 3 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row8[3]': { group: 'Other Element Properties, Row 8 (config-only, unverified)', label: 'Row 8, Slot 4 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row8[4]': { group: 'Other Element Properties, Row 8 (config-only, unverified)', label: 'Allowable Limit, Max (unverified, default 9999.99 = "no limit")', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row8[5]': { group: 'Other Element Properties, Row 8 (config-only, unverified)', label: 'Allowable Limit, Min (unverified, default 9999.99 = "no limit")', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row9[0]': { group: 'Other Element Properties, Row 9 (config-only, unverified)', label: 'Row 9, Slot 1 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row9[1]': { group: 'Other Element Properties, Row 9 (config-only, unverified)', label: 'Row 9, Slot 2 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row9[2]': { group: 'Other Element Properties, Row 9 (config-only, unverified)', label: 'Row 9, Slot 3 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row9[3]': { group: 'Other Element Properties, Row 9 (config-only, unverified)', label: 'Row 9, Slot 4 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row9[4]': { group: 'Other Element Properties, Row 9 (config-only, unverified)', label: 'Row 9, Slot 5 (unverified)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row11[0]': { group: 'Control Flags, Row 11 (config-only, unverified)', label: 'Row 11, Flag 1 (unverified, default -1)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+  'elements.row11[1]': { group: 'Control Flags, Row 11 (config-only, unverified)', label: 'Row 11, Flag 2 (unverified, default -1)', editable: true, note: 'No PIPINGELEMENT source attribute; real CAESAR field identity not documented in this codebase.' },
+});
+
+function _elementsRowFieldMeta(path) {
+  const direct = ELEMENTS_ROW_FIELD_META[path];
+  if (direct) return direct;
+  if (/^elements\.row10\b/.test(path)) {
+    return { group: 'Line Number Placeholder (usually unused)', label: 'Row 10 filler', editable: true, note: 'The real Line Number comes from the source XML LINE/LINE_ID attribute (or elements.line_label below), not this value - it is a positional filler in the CII record.' };
+  }
+  if (/^elements\.row1[234]\b/.test(path)) {
+    return { group: 'Auxiliary Block Index Template (structural)', label: null, editable: true, note: 'Placeholders like {bend}/{rigid}/{restraint}/{sif}/{reducer} are substituted with real per-element index values - only edit the literal "0" slots, and only if you understand the CII 2019 aux-block index layout.' };
+  }
+  return null;
+}
+
 function _flattenConfigRows(value, path, rows) {
   if (Array.isArray(value)) {
     if (!value.length) {
@@ -1761,42 +1843,93 @@ function _setValueAtPath(obj, pathStr, value) {
   }
 }
 
-function _branchPreviewHtml(branchPreview) {
+function _branchElementIsAllNonSource(element) {
+  return element.fields.every((field) => field.usedDefault || field.usedCarryForward);
+}
+
+function _branchFieldCellHtml(element, field, editedValue) {
+  const hasEdit = editedValue !== undefined;
+  const displayValue = hasEdit ? editedValue : (Number.isFinite(field.appliedValue) ? field.appliedValue : '');
+  let borderColor = '#31455f';
+  let title = 'From source file.';
+  if (field.usedCarryForward) { borderColor = '#7aa6ff'; title = `Missing/sentinel in source; carried forward from a previous element (${_esc(field.label)}).`; }
+  if (field.usedDefault) { borderColor = '#c9a24a'; title = `Missing from source; using the Global Defaults tab value (${_esc(field.label)}).`; }
+  if (hasEdit) { borderColor = '#5ad1a0'; title = `Edited in this popup - will be written into the InputXML attribute ${_esc(field.attr)} on Save.`; }
+  return `<td style="padding:2px 4px;border-bottom:1px solid #24354a;">
+    <input type="text" inputmode="decimal" value="${_esc(displayValue)}" title="${title}"
+      data-branch-field-input="${_esc(field.attr)}" data-element-index="${element.index}"
+      style="width:82px;background:#182334;color:#e6edf5;border:1px solid ${borderColor};border-radius:4px;padding:3px 5px;font-size:12px;box-sizing:border-box;">
+  </td>`;
+}
+
+function _branchOtherFieldsCellHtml(element) {
+  if (!element.otherFields?.length) return '<td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#5c7291;">&mdash;</td>';
+  const text = element.otherFields.map((field) => `${field.attr}=${field.value}`).join(', ');
+  return `<td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#9aa8ba;font-size:11px;" title="Present in the source XML but not one of the editable fields above; shown for reference only.">${_esc(text)}</td>`;
+}
+
+function _branchElementRowHtml(element, editsByElement, hasOtherFields) {
+  const edits = editsByElement.get(element.index);
+  return `
+    <tr>
+      <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${_esc(element.fromNode)}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${_esc(element.toNode)}</td>
+      ${element.fields.map((field) => _branchFieldCellHtml(element, field, edits?.get(field.attr))).join('')}
+      ${hasOtherFields ? _branchOtherFieldsCellHtml(element) : ''}
+    </tr>
+  `;
+}
+
+function _branchPreviewHtml(branchPreview, editsByElement, expandedBranches) {
   if (!branchPreview || !branchPreview.ok || !branchPreview.branches?.length) {
     return '<div style="color:#9aa8ba;">No PIPINGELEMENT rows were found in the loaded InputXML.</div>';
   }
-  const fieldCell = (field) => {
-    const value = Number.isFinite(field.appliedValue) ? field.appliedValue : '';
-    const style = field.usedDefault ? 'color:#ffcf7a;' : 'color:#d7e6ff;';
-    const title = field.usedDefault ? `title="Missing from source; using global default (${_esc(field.label)})"` : '';
-    return `<td style="padding:4px 6px;border-bottom:1px solid #24354a;${style}" ${title}>${_esc(value)}</td>`;
-  };
-  const branchesHtml = branchPreview.branches.map((branch) => `
-    <details style="margin-bottom:8px;border:1px solid #26384f;border-radius:6px;">
-      <summary style="cursor:pointer;padding:6px 8px;color:#9cc5ff;font-size:12px;">
-        Branch ${branch.branchIndex + 1}: node ${_esc(branch.fromNode)} &rarr; ${_esc(branch.toNode)}
-        (${branch.elements.length} element${branch.elements.length === 1 ? '' : 's'}, ${branch.usedDefaultCount} field(s) defaulted)
-      </summary>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead><tr>
-          <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">From</th>
-          <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">To</th>
-          ${branch.elements[0]?.fields.map((field) => `<th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">${_esc(field.label)}</th>`).join('') || ''}
-        </tr></thead>
-        <tbody>${branch.elements.map((element) => `
-          <tr>
-            <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${_esc(element.fromNode)}</td>
-            <td style="padding:4px 6px;border-bottom:1px solid #24354a;color:#d7e6ff;">${_esc(element.toNode)}</td>
-            ${element.fields.map(fieldCell).join('')}
-          </tr>
-        `).join('')}</tbody>
-      </table>
-    </details>
-  `).join('');
+  const hasOtherFields = branchPreview.otherFieldNames.length > 0;
+  const columnCount = 2 + FIELD_SPECS.length + (hasOtherFields ? 1 : 0);
+  const headerHtml = `
+    <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">From</th>
+    <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">To</th>
+    ${FIELD_SPECS.map((field) => `<th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">${_esc(field.label)}</th>`).join('')}
+    ${hasOtherFields ? '<th style="text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;">Other line data (read-only)</th>' : ''}
+  `;
+  const branchesHtml = branchPreview.branches.map((branch) => {
+    const isExpanded = expandedBranches.has(branch.branchIndex);
+    const visible = [];
+    const hidden = [];
+    for (const element of branch.elements) {
+      if (!isExpanded && _branchElementIsAllNonSource(element)) hidden.push(element);
+      else visible.push(element);
+    }
+    const rowsHtml = visible.map((element) => _branchElementRowHtml(element, editsByElement, hasOtherFields)).join('');
+    const hiddenToggleHtml = hidden.length
+      ? `<tr><td colspan="${columnCount}" style="padding:5px 6px;">
+           <button type="button" data-branch-show-hidden="${branch.branchIndex}" style="background:none;border:1px solid #31455f;color:#9cc5ff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;">
+             Show ${hidden.length} element${hidden.length === 1 ? '' : 's'} with only carried-forward/defaulted values
+           </button>
+         </td></tr>`
+      : '';
+    return `
+      <details style="margin-bottom:8px;border:1px solid #26384f;border-radius:6px;">
+        <summary style="cursor:pointer;padding:6px 8px;color:#9cc5ff;font-size:12px;">
+          Branch ${branch.branchIndex + 1}: node ${_esc(branch.fromNode)} &rarr; ${_esc(branch.toNode)}
+          (${branch.elements.length} element${branch.elements.length === 1 ? '' : 's'}, ${branch.usedDefaultCount} defaulted, ${branch.usedCarryForwardCount} carried forward)
+          ${branch.allSourced ? '<span style="color:#5ad1a0;">&check; all from source</span>' : ''}
+        </summary>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr>${headerHtml}</tr></thead>
+          <tbody>${rowsHtml}${hiddenToggleHtml}</tbody>
+        </table>
+      </details>
+    `;
+  }).join('');
   return `
     <div style="color:#9aa8ba;font-size:12px;margin-bottom:8px;">
       ${branchPreview.stats.branchCount} branch(es), ${branchPreview.stats.elementCount} element(s), ${branchPreview.stats.restraintCount} restraint(s) found in the loaded InputXML.
-      Values in <span style="color:#ffcf7a;">orange</span> are missing from the source file and fall back to the Global Defaults tab.
+      Legend: <span style="color:#d7e6ff;">white border</span> = from source,
+      <span style="color:#7aa6ff;">blue border</span> = carried forward from a previous element (source used CAESAR's -1.0101 "inherit previous" sentinel or omitted the attribute),
+      <span style="color:#c9a24a;">amber border</span> = missing from source and no prior value to carry forward, using the Global Defaults tab,
+      <span style="color:#5ad1a0;">green border</span> = edited here. Fields are editable; edits are written into the InputXML on Save.
+      Elements where every field is carried-forward/defaulted are hidden by default within each branch - use "Show" to reveal them.
     </div>
     ${branchesHtml}
   `;
@@ -1812,6 +1945,7 @@ function _openJsonPopup({
   supportRules,
   enrichmentTools = false,
   branchPreview = null,
+  xmlText = '',
   unifiedSupportMapping = false,
   onSaveConfigOnly,
   defaultFields,
@@ -1961,7 +2095,7 @@ function _openJsonPopup({
         <div data-popup-masters></div>
       </div>
       <div data-popup-panel="branches" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
-        <div data-popup-branches>${_branchPreviewHtml(branchPreview)}</div>
+        <div data-popup-branches></div>
       </div>
       <div data-popup-panel="unified-support" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
         <div data-popup-unified-support></div>
@@ -2013,27 +2147,37 @@ function _openJsonPopup({
       return;
     }
     const inputStyle = 'background:#182334;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:3px 6px;font-size:12px;width:100%;box-sizing:border-box;';
+    const disabledInputStyle = 'background:#141d2b;color:#6d7d92;border:1px solid #26364a;border-radius:4px;padding:3px 6px;font-size:12px;width:100%;box-sizing:border-box;cursor:not-allowed;';
     let lastSection = null;
     configRowsEl.innerHTML = rows.map((row) => {
-      const section = _toText(row.path).split(/[.[]/)[0] || '(root)';
+      const meta = _elementsRowFieldMeta(row.path);
+      const section = meta?.group || (_toText(row.path).split(/[.[]/)[0] || '(root)');
       const sectionHeaderHtml = section !== lastSection
         ? `<tr><td colspan="3" style="padding:8px 6px 4px;border-bottom:1px solid #31455f;color:#9cc5ff;font-weight:700;font-size:12px;">${_esc(section)}</td></tr>`
         : '';
       lastSection = section;
+      const isDisabled = meta && meta.editable === false;
+      const activeInputStyle = isDisabled ? disabledInputStyle : inputStyle;
       let cellHtml;
       if (row.type === 'boolean') {
-        cellHtml = `<input type="checkbox" data-config-path="${_esc(row.path)}" data-config-type="boolean" ${row.value === 'true' ? 'checked' : ''}>`;
+        cellHtml = `<input type="checkbox" data-config-path="${_esc(row.path)}" data-config-type="boolean" ${row.value === 'true' ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>`;
       } else if (row.type === 'number') {
-        cellHtml = `<input type="number" data-config-path="${_esc(row.path)}" data-config-type="number" value="${_esc(row.value)}" style="${inputStyle}">`;
+        cellHtml = `<input type="number" data-config-path="${_esc(row.path)}" data-config-type="number" value="${_esc(row.value)}" style="${activeInputStyle}" ${isDisabled ? 'disabled' : ''}>`;
       } else if (row.type === 'string') {
-        cellHtml = `<input type="text" data-config-path="${_esc(row.path)}" data-config-type="string" value="${_esc(row.value)}" style="${inputStyle}">`;
+        cellHtml = `<input type="text" data-config-path="${_esc(row.path)}" data-config-type="string" value="${_esc(row.value)}" style="${activeInputStyle}" ${isDisabled ? 'disabled' : ''}>`;
       } else {
         cellHtml = `<code style="color:#9aa8ba;">${_esc(row.value)}</code>`;
       }
+      const displayLabel = meta?.label
+        ? `${_esc(meta.label)} <code style="color:#5c7291;font-size:11px;">(${_esc(row.path)})</code>`
+        : `<code>${_esc(row.path || '(root)')}</code>`;
+      const noteHtml = meta?.note
+        ? `<div style="color:${isDisabled ? '#8b9eb7' : '#c9a24a'};font-size:11px;margin-top:2px;">${isDisabled ? '&#128274; ' : '&#9888; '}${_esc(meta.note)}</div>`
+        : '';
       return `
         ${sectionHeaderHtml}
         <tr>
-          <td style="padding:6px;border-bottom:1px solid #24354a;vertical-align:middle;color:#e6edf5;"><code>${_esc(row.path || '(root)')}</code></td>
+          <td style="padding:6px;border-bottom:1px solid #24354a;vertical-align:middle;color:#e6edf5;">${displayLabel}${noteHtml}</td>
           <td style="padding:6px;border-bottom:1px solid #24354a;vertical-align:middle;color:#9cc5ff;white-space:nowrap;">${_esc(row.type)}</td>
           <td style="padding:6px;border-bottom:1px solid #24354a;vertical-align:middle;color:#d7e6ff;">${cellHtml}</td>
         </tr>
@@ -2052,6 +2196,45 @@ function _openJsonPopup({
         if (textarea) textarea.value = JSON.stringify(parsed, null, 2);
       });
     });
+  };
+
+  // Branch Data tab: elementIndex -> Map(attr -> edited text value). Persists
+  // across re-renders (e.g. clicking "Show N hidden elements") for the
+  // lifetime of this popup. Read by getEditedInputXmlText() on Save.
+  const branchFieldEdits = new Map();
+  const branchExpandedGroups = new Set();
+  const branchesEl = overlay.querySelector('[data-popup-branches]');
+  const renderBranchesTab = () => {
+    if (!branchesEl) return;
+    branchesEl.innerHTML = _branchPreviewHtml(branchPreview, branchFieldEdits, branchExpandedGroups);
+    branchesEl.querySelectorAll('[data-branch-field-input]').forEach((input) => {
+      input.addEventListener('input', () => {
+        const elementIndex = Number(input.getAttribute('data-element-index'));
+        const attr = input.getAttribute('data-branch-field-input');
+        const edits = branchFieldEdits.get(elementIndex) || new Map();
+        edits.set(attr, input.value);
+        branchFieldEdits.set(elementIndex, edits);
+        // Mark edited without a full re-render (would lose focus/cursor position).
+        input.style.borderColor = '#5ad1a0';
+        input.title = `Edited in this popup - will be written into the InputXML attribute ${attr} on Save.`;
+      });
+    });
+    branchesEl.querySelectorAll('[data-branch-show-hidden]').forEach((button) => {
+      button.addEventListener('click', () => {
+        branchExpandedGroups.add(Number(button.getAttribute('data-branch-show-hidden')));
+        renderBranchesTab();
+      });
+    });
+  };
+  /** Applies tracked Branch Data edits onto the original loaded XML text, if any were made. Returns null when there is nothing to apply, so callers can leave the original file untouched. */
+  const getEditedInputXmlText = () => {
+    if (!branchFieldEdits.size) return null;
+    const edits = [];
+    for (const [elementIndex, fields] of branchFieldEdits.entries()) {
+      for (const [attr, value] of fields.entries()) edits.push({ elementIndex, attr, value });
+    }
+    if (!edits.length) return null;
+    return applyElementFieldEdits(xmlText, edits);
   };
 
   const regexEl = overlay.querySelector('[data-popup-regex]');
@@ -2289,6 +2472,7 @@ function _openJsonPopup({
       if (tabName === 'masters') renderMastersTab();
       if (tabName === 'logs') renderLogsTab();
       if (tabName === 'unified-support') renderUnifiedSupportMappingTab();
+      if (tabName === 'branches') renderBranchesTab();
       activateTab(tabName);
     });
   }
@@ -2299,6 +2483,7 @@ function _openJsonPopup({
   });
   activateTab(branchPreview ? 'branches' : 'config');
   renderConfigTable();
+  renderBranchesTab();
   const close = () => overlay.remove();
   overlay.querySelector('[data-popup-action="cancel"]')?.addEventListener('click', () => {
     onCancel?.();
@@ -2314,7 +2499,11 @@ function _openJsonPopup({
     return headerValues;
   };
   overlay.querySelector('[data-popup-action="save"]')?.addEventListener('click', () => {
-    onSave?.({ jsonText: textarea?.value ?? '', headerValues: collectHeaderValues() });
+    onSave?.({
+      jsonText: textarea?.value ?? '',
+      headerValues: collectHeaderValues(),
+      editedInputXmlText: getEditedInputXmlText(),
+    });
     close();
   });
   overlay.querySelector('[data-popup-action="save-config"]')?.addEventListener('click', () => {
@@ -2555,6 +2744,14 @@ async function _openInputxml2019PreRunPopup(def, values, primaryFileName, primar
     for (const [headerKey, headerValue] of Object.entries(payload.headerValues || {})) {
       values[headerKey] = headerValue;
     }
+    // Branch Data tab edits (see _openJsonPopup's getEditedInputXmlText):
+    // an edited copy of the loaded InputXML text, or null if nothing was
+    // edited. run() in converters/inputxml-to-cii2019.js reads this same
+    // key off the shared values/runValues object to replace the primary
+    // file's bytes before invoking the Python worker.
+    if (payload.editedInputXmlText) {
+      values.__editedInputXmlText = payload.editedInputXmlText;
+    }
   };
 
   const popupResult = await _openJsonPopupAsync({
@@ -2564,6 +2761,7 @@ async function _openInputxml2019PreRunPopup(def, values, primaryFileName, primar
     defaultFields: popupDefaultFields,
     requirementLines: prepared.requirementLines,
     branchPreview,
+    xmlText,
     unifiedSupportMapping: true,
     onSaveConfigOnly: typeof persist === 'function' ? (payload) => { applyPopupPayload(payload); persist(); } : undefined,
   });
