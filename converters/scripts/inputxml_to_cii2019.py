@@ -72,6 +72,35 @@ RESTRAINT_LINES_PER_SLOT: Final[int] = 4
 RESTRAINT_LINES_PER_AUX_BLOCK: Final[int] = RESTRAINT_SLOTS_PER_AUX * RESTRAINT_LINES_PER_SLOT
 UNIVERSAL_VERSION_PAYLOAD_CACHE: list[str] | None = None
 
+# Diagnostics collected during a single conversion run. Reset at the start
+# of _parse_model() (the entry point every conversion goes through) so
+# repeated in-process calls - e.g. from the test suite - don't leak state
+# between runs. Module-level rather than threaded as an explicit parameter
+# deliberately: this script converts exactly one file per process/call, so
+# there is no concurrency or reentrancy to guard against, and threading a
+# diagnostics list through every parsing/formatting function on the call
+# path would be a much larger, riskier change for the same effect.
+_DIAGNOSTICS: list[dict[str, object]] = []
+_STRICT_DIAGNOSTICS: bool = False
+
+
+def _reset_diagnostics() -> None:
+    _DIAGNOSTICS.clear()
+
+
+def _warn(code: str, message: str, **context: object) -> None:
+    """Record a recoverable data-quality issue and apply a documented fallback.
+
+    In --strict mode this raises instead, so CI/validation callers that
+    want the old fail-fast behavior for these specific situations can opt
+    into it explicitly.
+    """
+    if _STRICT_DIAGNOSTICS:
+        raise ValueError(f"[--strict] {message}")
+    entry: dict[str, object] = {"severity": "warning", "code": code, "message": message}
+    entry.update(context)
+    _DIAGNOSTICS.append(entry)
+
 
 @dataclass(frozen=True)
 class ConverterDefaults:
@@ -316,7 +345,19 @@ def _parse_node_coordinate_seed(attributes: dict[str, str], prefix: str) -> Node
         return None
     if any(not _safe_text(value) for value in raw_values):
         missing = ", ".join(name for name, value in zip(names, raw_values) if not _safe_text(value))
-        raise ValueError(f"Incomplete PIPINGELEMENT {prefix} coordinate seed; missing {missing}.")
+        # A partial seed (some but not all of X/Y/Z given) can't anchor this
+        # node on its own. Treating it as "no seed" is safe: that's already
+        # the normal, default, exercised code path used by every element
+        # that supplies no seed at all - absolute coordinates for this node
+        # get reconstructed from element deltas instead.
+        _warn(
+            "PARTIAL_COORDINATE_SEED_IGNORED",
+            f"Incomplete PIPINGELEMENT {prefix} coordinate seed (missing {missing}); "
+            "falling back to delta-reconstructed coordinates for this node.",
+            attribute_prefix=prefix,
+            missing_fields=missing,
+        )
+        return None
     return NodeCoordinate(
         x=_to_float(raw_values[0], f"PIPINGELEMENT/{names[0]}"),
         y=_to_float(raw_values[1], f"PIPINGELEMENT/{names[1]}"),
@@ -385,10 +426,26 @@ def _parse_restraints(element: ET.Element) -> list[RestraintAux]:
         node = _to_float_or_default(restraint.attrib.get("NODE"), "RESTRAINT/NODE", SENTINEL_MISSING)
         if _is_missing(node):
             continue
+        try:
+            slot = _parse_restraint_slot(restraint.attrib.get("NUM"), len(restraints) + 1)
+        except ValueError as exc:
+            # A malformed slot number on one RESTRAINT record shouldn't take
+            # down the whole element's other restraints, let alone the rest
+            # of the file - drop just this one record. This mirrors the
+            # existing, already-shipped precedent in
+            # inputxml-field-adapter.js, which does the same thing (drops
+            # overflow/unparseable RESTRAINT slots with a logged reason)
+            # at the InputXML-normalization boundary.
+            _warn(
+                "INVALID_RESTRAINT_SLOT_DROPPED",
+                f"Dropping RESTRAINT on node {_format_node_id(node)}: {exc}",
+                node=node,
+            )
+            continue
         friction_raw = restraint.attrib.get("FRIC_COEF") or restraint.attrib.get("MU")
         restraints.append(
             RestraintAux(
-                slot=_parse_restraint_slot(restraint.attrib.get("NUM"), len(restraints) + 1),
+                slot=slot,
                 node=node,
                 type_code=_to_float_or_default(restraint.attrib.get("TYPE"), "RESTRAINT/TYPE", SENTINEL_MISSING),
                 stiffness=_to_float_or_default(restraint.attrib.get("STIFFNESS"), "RESTRAINT/STIFFNESS", SENTINEL_MISSING),
@@ -466,6 +523,7 @@ def _parse_nozzles(root: ET.Element) -> list[NozzleAux]:
 
 
 def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
+    _reset_diagnostics()
     root = ET.parse(path).getroot()
     if _local_name(root.tag) != "CAESARII":
         raise ValueError("Input root must be CAESARII.")
@@ -3150,6 +3208,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "<HANGER/> records."
         ),
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help=(
+            "Fail immediately on data-quality issues that would otherwise be logged as a "
+            "warning and handled with a documented fallback (partial coordinate seeds, "
+            "unparseable RESTRAINT slot numbers). Does not affect structural validation "
+            "(malformed input XML, invalid --layout-config-json), which always fails "
+            "immediately regardless of this flag."
+        ),
+    )
     return parser
 
 
@@ -3211,8 +3280,11 @@ def _assert_cii2019_compatible(cii_text: str, output_path: Path) -> None:
 
 
 def main() -> int:
+    global _STRICT_DIAGNOSTICS
+
     parser = _build_parser()
     args = parser.parse_args()
+    _STRICT_DIAGNOSTICS = bool(args.strict)
 
     defaults = ConverterDefaults(
         diameter=args.default_diameter,
@@ -3257,12 +3329,20 @@ def main() -> int:
 
     args.output.write_text(cii_text, encoding="utf-8")
 
-    print(
+    summary = (
         f"Wrote {args.output} from {args.input} with "
         f"{stats['elements']} elements, {stats['bends']} bends, {stats['rigids']} rigids, "
         f"{stats['restraints']} restraints, {stats['sifs']} SIF blocks, "
         f"{stats['reducers']} reducers, {stats['coords']} coordinates."
     )
+    if _DIAGNOSTICS:
+        warnings_path = args.output.with_name(args.output.name + ".warnings.json")
+        warnings_path.write_text(
+            json.dumps({"input": str(args.input), "output": str(args.output), "warnings": _DIAGNOSTICS}, indent=2),
+            encoding="utf-8",
+        )
+        summary += f" {len(_DIAGNOSTICS)} warning(s) - see {warnings_path}."
+    print(summary)
     return 0
 
 
