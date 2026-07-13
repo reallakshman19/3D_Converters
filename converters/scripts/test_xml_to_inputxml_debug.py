@@ -24,7 +24,7 @@ def _config():
     }
 
 
-def test_checked_in_xml_to_cii_sidecar_is_schema_shaped_and_bounded(tmp_path):
+def test_xml_to_cii_enriched_inputxml_debug_export_contains_explicit_fields(tmp_path):
     assert ACTUAL_XML.exists(), f"Missing checked-in benchmark: {ACTUAL_XML}"
     records = []
     tree = mod._inputxml_from_final_xml(
