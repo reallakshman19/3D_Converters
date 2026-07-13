@@ -171,14 +171,16 @@ class TestStagedJsonInputXmlWorkPack(unittest.TestCase):
             self.assertIn("STAGED_OD_INFERRED_COMPAT", {row["code"] for row in compat_diag["records"]})
 
     def test_closest_support_segment_and_restraint_truncation_are_reported(self):
-        supports = [{
-            "type": "SUPPORT",
-            "attributes": {
-                "CMPSUPTYPE": "GUIDE",
-                "CMPSTRESSN": f"PS-{index}",
-                "POS": {"x": 500, "y": 0, "z": 18},
-            },
-        } for index in range(6)]
+        supports = []
+        for index in range(6):
+            supports.append({
+                "type": "SUPPORT",
+                "attributes": {
+                    "CMPSUPTYPE": "GUIDE",
+                    "CMPSTRESSN": f"PS-{index}",
+                    "POS": {"x": 500, "y": 0, "z": 18 if index == 0 else 20},
+                },
+            })
         staged = [{
             "name": "/SUPPORT/B1",
             "type": "BRANCH",
