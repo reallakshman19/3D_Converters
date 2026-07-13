@@ -8,10 +8,12 @@ NEW_JS = (
     Path("converters/xml-cii-inputxml-sidecar-worker.js"),
     Path("tabs/model-converters/xml-cii-inputxml-sidecar-diagnostics-panel.js"),
     Path("tests/xml-cii-inputxml-sidecar-workpack.test.js"),
+    Path("scripts/xml-cii-inputxml-sidecar-baseline-gate.mjs"),
 )
 NEW_PYTHON = (
     Path("converters/scripts/xml_to_cii_inputxml_sidecar_diagnostics.py"),
     Path("converters/scripts/test_xml_to_cii_inputxml_sidecar_workpack.py"),
+    Path("scripts/xml-cii-inputxml-sidecar-structure-check.py"),
 )
 TEMPORARY_PATHS = (
     Path("scripts/xml-cii-inputxml-sidecar-workpack-patch.py"),
