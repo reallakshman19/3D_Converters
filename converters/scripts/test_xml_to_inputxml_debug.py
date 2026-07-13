@@ -4,7 +4,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parent
-REPO = ROOT.parents[2]
+REPO = ROOT.parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
