@@ -39,15 +39,15 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-13: added a "Restraint Type Mutation" card (checkbox +
-  // editable Label/From TYPE/To TYPE rows, default-templated from
-  // xml-compare's proven restraintTypeConvert rows) to the InputXML->CII
-  // popup's Support Mapping tab, wired into the already-supported
-  // layoutConfigJson.restraint.mapping_policy / explicit_type_map - fixes
-  // RESTRAINT/TYPE codes from CAESAR-exported XML that don't match what
-  // CII expects. Also carries the 2026-07-13 NODENAME dead-code fix
-  // (_applyInputxml2019NamePreservation) from the prior commit.
-  'tabs/model-converters/legacy-adapter.js': '4f7202d46d382ecb98321fc6f93b220977ab5064',
+  // Updated 2026-07-13: added a collapsible "InputXML->CII(2019)
+  // Diagnostics" panel to the Logs card, rendering the Python engine's
+  // _warn()-based warnings (severity/code/message/context) as a table -
+  // these were previously computed and written to a "<output>.warnings.json"
+  // sidecar on the Pyodide virtual FS but never read back by py-worker.js,
+  // so they never reached the browser UI at all. Also carries the
+  // elements.row12/row13/row14 IEL pointer-order fix, the "Restraint Type
+  // Mutation" card, and the NODENAME dead-code fix from prior commits.
+  'tabs/model-converters/legacy-adapter.js': '0d65e3dc371f3804f496c0f4e2a047dc0119d570',
   // Updated 2026-07-12: recorded hash was already stale before this change
   // (git hash-object showed a mismatch against the file's actual committed
   // content even with no pending edits) - corrected to match reality.

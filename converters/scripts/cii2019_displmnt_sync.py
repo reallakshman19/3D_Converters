@@ -164,14 +164,19 @@ def parse_spec(element: ET.Element) -> Spec | None:
     return Spec(to_int(element.attrib.get("DISP_NUM"), 1), node, vectors)
 
 
-def parse_blocks(path: Path) -> list[Block]:
+def parse_blocks(path: Path) -> tuple[list[Block], dict[int, int]]:
     root = ET.parse(path).getroot()
     blocks: list[Block] = []
+    # 0-based PIPINGELEMENT index (matching ELEMENTS section element order) ->
+    # 1-based DISPLMNT block index, for elements that got a displacement
+    # block. Needed to patch each such element's IEL row12 pointer (item 5)
+    # - without it, CAESAR never associates this section's real data with
+    # any element (same failure mode the NODENAME pointer had).
+    edge_to_displmnt_index: dict[int, int] = {}
 
-    for element in root.iter():
-        if local_name(element.tag).upper() != "PIPINGELEMENT":
-            continue
-
+    for edge_index, element in enumerate(
+        el for el in root.iter() if local_name(el.tag).upper() == "PIPINGELEMENT"
+    ):
         specs: dict[int, Spec] = {}
         ordinal = 1
 
@@ -189,9 +194,10 @@ def parse_blocks(path: Path) -> list[Block]:
             ordinal += 1
 
         if specs:
+            edge_to_displmnt_index[edge_index] = len(blocks) + 1
             blocks.append(Block(specs.get(1), specs.get(2)))
 
-    return blocks
+    return blocks, edge_to_displmnt_index
 
 
 def dof_value(value: float) -> float:
@@ -265,15 +271,53 @@ def render(sections: list[Section]) -> str:
     return "\r\n".join(lines).rstrip() + "\r\n"
 
 
+# Per-element ELEMENTS block layout used by inputxml_to_cii2019.py: 15 lines
+# per element (line1, line2, row3-row9, row10, line10, row11, line12, line13,
+# line14). line12 (0-based index 12) is the IEL row whose 5th of 6 values
+# (0-based slot 4) is the "Pointer to Displacement Auxiliary field" (item 5
+# per the CAESAR II Neutral File spec, Section 14, External Interfaces).
+ELEMENTS_LINES_PER_BLOCK = 15
+ELEMENTS_ROW12_LINE_INDEX = 12
+DISPLMNT_POINTER_SLOT = 4
+
+
+def patch_elements_displmnt_pointers(sections: list[Section], edge_to_displmnt_index: dict[int, int]) -> int:
+    if not edge_to_displmnt_index:
+        return 0
+
+    index = section_index(sections, "ELEMENTS")
+    if index < 0:
+        raise ValueError("ELEMENTS section missing")
+
+    rows = sections[index].rows
+    patched = 0
+
+    for edge_index, displmnt_index in edge_to_displmnt_index.items():
+        line_index = edge_index * ELEMENTS_LINES_PER_BLOCK + ELEMENTS_ROW12_LINE_INDEX
+        if line_index >= len(rows):
+            continue
+
+        tokens = [int(token) for token in rows[line_index].split()]
+        if len(tokens) != 6:
+            continue
+
+        tokens[DISPLMNT_POINTER_SLOT] = displmnt_index
+        rows[line_index] = format_ints(tokens)
+        patched += 1
+
+    return patched
+
+
 def sync_displmnt(cii_text: str, input_xml: Path) -> tuple[str, list[str]]:
     sections = parse_sections(cii_text)
     if not sections:
         raise ValueError("No CII sections found")
 
-    blocks = parse_blocks(input_xml)
+    blocks, edge_to_displmnt_index = parse_blocks(input_xml)
     rows = build_payload(blocks)
 
     sections[ensure_displmnt_section(sections)].rows = rows
+    patched_pointers = patch_elements_displmnt_pointers(sections, edge_to_displmnt_index)
 
     control = parse_control(sections)
 
@@ -285,6 +329,7 @@ def sync_displmnt(cii_text: str, input_xml: Path) -> tuple[str, list[str]]:
     return render(sections), [
         f"xml_displmnt_blocks={len(blocks)}",
         f"displmnt_rows={len(rows)}",
+        f"elements_pointers_patched={patched_pointers}",
         "control_displmnt_synced",
         "equipmnt_not_fabricated",
     ]

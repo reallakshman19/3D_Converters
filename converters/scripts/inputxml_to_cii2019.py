@@ -420,6 +420,42 @@ def _parse_rigid_weight(element: ET.Element) -> float | None:
     return _to_float_or_default(rigid.attrib.get("WEIGHT"), "RIGID/WEIGHT", 0.0)
 
 
+def _allowbls_value_is_meaningful(value: str | None) -> bool:
+    text = _safe_text(value)
+    if not text:
+        return False
+    try:
+        parsed = float(text)
+    except ValueError:
+        return True
+    # -1.0101 is the standard InputXML sentinel; a bare -1 is this dialect's
+    # separate "unset" convention for boolean/flag-like ALLOWABLESTRESS
+    # fields (e.g. SUPP_RQR, BURST_OPE); 0.0 is a placeholder, not a real
+    # override; NaN/inf (seen as a literal "-nan" in at least one real
+    # sample) is not usable data either.
+    if not math.isfinite(parsed):
+        return False
+    if _is_missing(parsed) or abs(parsed + 1.0) < 1e-9 or abs(parsed) < 1e-9:
+        return False
+    return True
+
+
+def _has_meaningful_allowablestress(element: ET.Element) -> bool:
+    for child in list(element):
+        if _local_name(child.tag) != "ALLOWABLESTRESS":
+            continue
+        if any(_allowbls_value_is_meaningful(value) for key, value in child.attrib.items()):
+            return True
+        for case in list(child):
+            if any(
+                _allowbls_value_is_meaningful(value)
+                for key, value in case.attrib.items()
+                if key != "NUM"
+            ):
+                return True
+    return False
+
+
 def _parse_restraints(element: ET.Element) -> list[RestraintAux]:
     restraints: list[RestraintAux] = []
     for restraint in element.findall("RESTRAINT"):
@@ -567,6 +603,7 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
 
     parsed_elements: list[ElementResolved] = []
     parsed_hangers: list[HangerAux] = []
+    allowablestress_elements_dropped = 0
     for element in piping_model.findall("PIPINGELEMENT"):
         diameter_raw = _to_float_or_default(element.attrib.get("DIAMETER"), "PIPINGELEMENT/DIAMETER", SENTINEL_MISSING)
         wall_raw = _to_float_or_default(element.attrib.get("WALL_THICK"), "PIPINGELEMENT/WALL_THICK", SENTINEL_MISSING)
@@ -659,6 +696,9 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
             carry_material = material_raw
         material_value = carry_material if carry_material is not None else None
 
+        if _has_meaningful_allowablestress(element):
+            allowablestress_elements_dropped += 1
+
         parsed_hangers.extend(_parse_hangers(element))
         parsed_elements.append(
             ElementResolved(
@@ -717,6 +757,25 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
     if not parsed_elements:
         raise ValueError("Input XML does not contain PIPINGELEMENT rows.")
 
+    if allowablestress_elements_dropped:
+        # ALLOWABLESTRESS/CASE data (item 10, "Pointer to Allowable Stress
+        # Auxiliary field" per the CAESAR II Neutral File spec) is real,
+        # per-element source data this engine does not currently parse or
+        # emit into #$ ALLOWBLS - unlike DISPLMNT/FLANGES, many of its 153
+        # documented values have different meanings depending on the active
+        # piping code, which this engine has no way to determine safely.
+        # Rather than guess and silently produce wrong allowable-stress
+        # data, this is surfaced as a warning so real overrides aren't lost
+        # without a trace.
+        _warn(
+            "ALLOWABLESTRESS_DATA_NOT_EMITTED",
+            f"{allowablestress_elements_dropped} element(s) have real (non-placeholder) "
+            "ALLOWABLESTRESS/CASE override data in the source InputXML that this converter "
+            "does not currently parse or emit into #$ ALLOWBLS - CAESAR will use its own "
+            "code-computed allowable stress instead of these overrides.",
+            affected_element_count=allowablestress_elements_dropped,
+        )
+
     return ParsedModel(
         job_name=_safe_text(piping_model.attrib.get("JOBNAME")),
         time_text=_parse_time_text(_safe_text(piping_model.attrib.get("TIME"))),
@@ -770,25 +829,16 @@ def _format_sig6(value: float) -> str:
     if absolute < 1.0:
         return f"{value:.6f}"
     integer_digits = len(str(int(absolute)))
-    decimals = max(0, 6 - integer_digits)
+    # CAESAR II requires at least one decimal digit to recognize a fixed
+    # ELEMENTS-block numeric field as being in the file's working unit
+    # (mm); a bare integer with no decimal point is silently reinterpreted
+    # at a different magnitude (assumed as m). Below 6 integer digits this
+    # was already guaranteed by the 6-significant-figure budget; at 6+
+    # integer digits decimals hit exactly 0 and a bare integer (e.g.
+    # "210164") slipped out - min 1 closes that gap without changing
+    # anything below that threshold.
+    decimals = max(1, 6 - integer_digits)
     return f"{value:.{decimals}f}"
-
-
-def _format_delta_sig6(value: float) -> str:
-    # Real CAESAR II rejects a whole-number DELTA_X/Y/Z written with a
-    # spurious single trailing ".0" (e.g. "78581.0", produced by
-    # _format_sig6 once the integer part reaches 5 digits) but accepts the
-    # identical value written as a bare integer ("78581") - confirmed by an
-    # isolated single-field A/B byte comparison against real CAESAR II
-    # import behavior. Only strips the decimal when the value is a true
-    # whole number; genuinely fractional deltas keep their decimals.
-    formatted = _format_sig6(value)
-    if abs(value) < 1.0 or "." not in formatted or "E" in formatted or "e" in formatted:
-        return formatted
-    integer_part, _, fractional_part = formatted.partition(".")
-    if fractional_part and set(fractional_part) == {"0"}:
-        return integer_part
-    return formatted
 
 
 def _section_header(name: str, suffixes: dict[str, str]) -> str:
@@ -811,9 +861,9 @@ def _default_2019_layout_config() -> dict[str, object]:
             "row9": ["0.000000", "0.000000", "0.000000", "0.000000", "0.000000"],
             "row10": ["0"],
             "row11": ["-1", "-1"],
-            "row12": ["{bend}", "{rigid}", "0", "{restraint}", "{sif}", "0"],
-            "row13": ["0", "0", "0", "{sif}", "0", "0"],
-            "row14": ["{reducer}", "0", "{sif}"],
+            "row12": ["{bend}", "{rigid}", "0", "{restraint}", "0", "0"],
+            "row13": ["0", "0", "0", "0", "{sif}", "{nodename}"],
+            "row14": ["{reducer}", "0", "0"],
             "line_label": {
                 "mode": "zero",
                 "pointer_start": 0,
@@ -2610,190 +2660,24 @@ def _build_cii_text(
     else:
         row10 = _render_element_label_payload(row10_cfg)
     row11 = _row(list(elements_cfg.get("row11", ["-1", "-1"])))
+    # IEL auxiliary-pointer array item order per the CAESAR II neutral file
+    # spec: row12=[1 bend, 2 rigid, 3 expjt, 4 restraint, 5 displmnt,
+    # 6 forcmnt], row13=[7 uniform, 8 wind, 9 offset, 10 allowbl,
+    # 11 intersection/SIF&TEES, 12 nodename], row14=[13 reducer, 14 flange,
+    # 15 equipmnt/nozzle check]. Only bend/rigid/restraint/sif/reducer/
+    # nodename are built with real per-element tracking today; the rest
+    # (expjt/displmnt/forcmnt/uniform/wind/offset/allowbl/flange/equipmnt)
+    # have no per-element association in this engine yet, so their slots
+    # stay literal "0" ("no auxiliary data of this type for this element"
+    # is simply always true for them right now).
     row12_tpl = list(elements_cfg.get("row12", ["{bend}", "{rigid}", "0", "{restraint}", "0", "0"]))
-    row13_tpl = list(elements_cfg.get("row13", ["0", "0", "0", "{sif}", "0", "0"]))
+    row13_tpl = list(elements_cfg.get("row13", ["0", "0", "0", "0", "{sif}", "{nodename}"]))
     row14_tpl = list(elements_cfg.get("row14", ["{reducer}", "0", "0"]))
 
-    line_label_cfg = elements_cfg.get("line_label", {})
-    if not isinstance(line_label_cfg, dict):
-        raise ValueError("Invalid 2019 layout config: 'elements.line_label' must be an object.")
-    line_label_mode = str(line_label_cfg.get("mode", "zero")).strip().lower()
-    if line_label_mode not in ("zero", "auto", "to_node"):
-        raise ValueError("Invalid 2019 layout config: 'elements.line_label.mode' must be zero, auto, or to_node.")
-    pointer_start = int(line_label_cfg.get("pointer_start", 0))
-    label_index_start = int(line_label_cfg.get("label_index_start", 0))
-    label_prefix = str(line_label_cfg.get("label_prefix", "LINENO"))
-    label_width = int(line_label_cfg.get("label_width", 2))
-    default_line_label = str(line_label_cfg.get("default_line", "0"))
-    to_node_template = str(line_label_cfg.get("to_node_template", "{to_node}"))
-    configured_line_labels = line_label_cfg.get("line_labels", [])
-    if configured_line_labels is None:
-        configured_line_labels = []
-    if not isinstance(configured_line_labels, list):
-        raise ValueError("Invalid 2019 layout config: 'elements.line_label.line_labels' must be an array.")
-
-    elements_payload: list[str] = []
-    for edge_index, element in enumerate(elements):
-        line1 = _row(
-            [
-                _format_sig6(element.from_node),
-                _format_sig6(element.to_node),
-                _format_delta_sig6(element.delta_x),
-                _format_delta_sig6(element.delta_y),
-                _format_delta_sig6(element.delta_z),
-                _format_fixed_float(element.diameter, 5),
-            ]
-        )
-        line2 = _row(
-            [
-                _format_sig6(element.wall_thickness),
-                _format_sig6(element.insulation_thickness),
-                _format_sig6(element.corrosion_allowance),
-                _format_sig6(element.temperature1),
-                _format_sig6(element.temperature2),
-                _format_sig6(element.temperature3),
-            ]
-        )
-        row3 = _row(
-            [
-                _format_sig6(element.temperature4),
-                _format_sig6(element.temperature5),
-                _format_sig6(element.temperature6),
-                _format_sig6(element.temperature7),
-                _format_sig6(element.temperature8),
-                _format_sig6(element.temperature9),
-            ]
-        )
-        row4 = _row(
-            [
-                _format_sig6(element.pressure1),
-                _format_sig6(element.pressure2),
-                _format_sig6(element.pressure3),
-                _format_sig6(element.pressure4),
-                _format_sig6(element.pressure5),
-                _format_sig6(element.pressure6),
-            ]
-        )
-        row5 = _row(
-            [
-                _format_sig6(element.pressure7),
-                _format_sig6(element.pressure8),
-                _format_sig6(element.pressure9),
-                row5_cfg[3],
-                row5_cfg[4],
-                row5_cfg[5],
-            ]
-        )
-        row6 = _row(
-            [
-                _format_sig6(element.insulation_density),
-                _format_sig6(element.fluid_density),
-                row6_cfg[2],
-                row6_cfg[3],
-                row6_cfg[4],
-                _format_sig6(element.hydro_pressure),
-            ]
-        )
-        line10 = ""
-        if element.line:
-            line10 = f"{pointer_start + edge_index:12d} {element.line}"
-        elif edge_index < len(configured_line_labels):
-            line10 = _render_element_label_payload(configured_line_labels[edge_index])
-        else:
-            if line_label_mode == "to_node":
-                line10 = _render_element_label_payload(to_node_template.replace("{to_node}", _format_node_id(element.to_node)))
-            elif line_label_mode == "auto" and not default_line_label:
-                line10 = _render_label_line(
-                    pointer=pointer_start + edge_index,
-                    label_index=label_index_start + edge_index,
-                    label_prefix=label_prefix,
-                    label_width=label_width,
-                )
-            elif default_line_label:
-                line10 = _render_element_label_payload(default_line_label)
-            else:
-                line10 = _render_element_label_payload("0")
-        token_values = {
-            "bend": edge_to_bend_index.get(edge_index, 0),
-            "rigid": edge_to_rigid_index.get(edge_index, 0),
-            "restraint": edge_to_restraint_index.get(edge_index, 0),
-            "sif": edge_to_sif_index.get(edge_index, 0),
-            "reducer": edge_to_reducer_index.get(edge_index, 0),
-        }
-        line12 = _render_tokens_row(row12_tpl, token_values)
-        line13 = _render_tokens_row(row13_tpl, token_values)
-        line14 = _render_tokens_row(row14_tpl, token_values)
-        elements_payload.extend(
-            [
-                line1,
-                line2,
-                row3,
-                row4,
-                row5,
-                row6,
-                row7,
-                row8,
-                row9,
-                row10,
-                line10,
-                row11,
-                line12,
-                line13,
-                line14,
-            ]
-        )
-
-    raw_block_overrides = elements_cfg.get("raw_block_overrides", [])
-    if raw_block_overrides is None:
-        raw_block_overrides = []
-    if not isinstance(raw_block_overrides, list):
-        raise ValueError("Invalid 2019 layout config: 'elements.raw_block_overrides' must be an array.")
-    if raw_block_overrides:
-        _validate_raw_overrides_allowed(
-            compatibility,
-            "elements.raw_block_overrides",
-            has_override=True,
-        )
-        if len(raw_block_overrides) != len(elements):
-            raise ValueError(
-                "Invalid 2019 layout config: 'elements.raw_block_overrides' length must match element count."
-            )
-        overridden_elements_payload: list[str] = []
-        for block_index, block in enumerate(raw_block_overrides):
-            if not isinstance(block, list):
-                raise ValueError(
-                    "Invalid 2019 layout config: each 'elements.raw_block_overrides' entry must be an array."
-                )
-            if len(block) != 15:
-                raise ValueError(
-                    f"Invalid 2019 layout config: elements.raw_block_overrides[{block_index}] must contain 15 lines."
-                )
-            overridden_elements_payload.extend(_as_string_list(block, f"elements.raw_block_overrides[{block_index}]"))
-        elements_payload = overridden_elements_payload
-
-    reducer_payload = [
-        _row(
-            [
-                _format_auto_float(second_diameter),
-                _format_fixed_float(0.0, 6),
-                _format_fixed_float(angle_value, 4),
-                _format_fixed_float(0.0, 6),
-                _format_fixed_float(0.0, 6),
-            ]
-        )
-        for second_diameter, angle_value in reducers
-    ]
-
-    miscel_cfg = layout_config.get("miscel_1", {})
-    if not isinstance(miscel_cfg, dict):
-        raise ValueError("Invalid 2019 layout config: 'miscel_1' must be an object.")
-    miscel_payload = _build_miscel_payload(model, miscel_cfg)
-
-    units_cfg = layout_config.get("units", {})
-    if not isinstance(units_cfg, dict):
-        raise ValueError("Invalid 2019 layout config: 'units' must be an object.")
-    units_payload = list(units_cfg.get("numeric_lines", [])) + list(units_cfg.get("text_lines", []))
-
+    # NODENAME payload/pointer-count must be known before the per-element
+    # ELEMENTS loop below (it needs edge_to_nodename_index for row13's
+    # "{nodename}" token), so this is computed here rather than after the
+    # loop like the other section payloads.
     nodename_cfg = layout_config.get("nodename", {})
     if not isinstance(nodename_cfg, dict):
         raise ValueError("Invalid 2019 layout config: 'nodename' must be an object.")
@@ -2874,6 +2758,225 @@ def _build_cii_text(
             to_name = _auto_label(element.name_to, element.to_node)
             nodename_payload.append("  " + from_name.ljust(25) + to_name.ljust(25))
         nonam_count = len(elements)
+
+    # NODENAME payload is built one entry per element, in element order, in
+    # every active mode above (auto always; manual/to_node_map up to
+    # nonam_count, matching the same element order) - so the 1-based pointer
+    # for edge_index is simply its position, as long as that element got an
+    # entry at all.
+    edge_to_nodename_index: dict[int, int] = {
+        edge_index: edge_index + 1 for edge_index in range(min(nonam_count, len(elements)))
+    }
+
+    line_label_cfg = elements_cfg.get("line_label", {})
+    if not isinstance(line_label_cfg, dict):
+        raise ValueError("Invalid 2019 layout config: 'elements.line_label' must be an object.")
+    line_label_mode = str(line_label_cfg.get("mode", "zero")).strip().lower()
+    if line_label_mode not in ("zero", "auto", "to_node"):
+        raise ValueError("Invalid 2019 layout config: 'elements.line_label.mode' must be zero, auto, or to_node.")
+    pointer_start = int(line_label_cfg.get("pointer_start", 0))
+    label_index_start = int(line_label_cfg.get("label_index_start", 0))
+    label_prefix = str(line_label_cfg.get("label_prefix", "LINENO"))
+    label_width = int(line_label_cfg.get("label_width", 2))
+    default_line_label = str(line_label_cfg.get("default_line", "0"))
+    to_node_template = str(line_label_cfg.get("to_node_template", "{to_node}"))
+    configured_line_labels = line_label_cfg.get("line_labels", [])
+    if configured_line_labels is None:
+        configured_line_labels = []
+    if not isinstance(configured_line_labels, list):
+        raise ValueError("Invalid 2019 layout config: 'elements.line_label.line_labels' must be an array.")
+
+    elements_payload: list[str] = []
+    for edge_index, element in enumerate(elements):
+        line1 = _row(
+            [
+                _format_sig6(element.from_node),
+                _format_sig6(element.to_node),
+                _format_sig6(element.delta_x),
+                _format_sig6(element.delta_y),
+                _format_sig6(element.delta_z),
+                _format_fixed_float(element.diameter, 5),
+            ]
+        )
+        line2 = _row(
+            [
+                _format_sig6(element.wall_thickness),
+                _format_sig6(element.insulation_thickness),
+                _format_sig6(element.corrosion_allowance),
+                _format_sig6(element.temperature1),
+                _format_sig6(element.temperature2),
+                _format_sig6(element.temperature3),
+            ]
+        )
+        row3 = _row(
+            [
+                _format_sig6(element.temperature4),
+                _format_sig6(element.temperature5),
+                _format_sig6(element.temperature6),
+                _format_sig6(element.temperature7),
+                _format_sig6(element.temperature8),
+                _format_sig6(element.temperature9),
+            ]
+        )
+        row4 = _row(
+            [
+                _format_sig6(element.pressure1),
+                _format_sig6(element.pressure2),
+                _format_sig6(element.pressure3),
+                _format_sig6(element.pressure4),
+                _format_sig6(element.pressure5),
+                _format_sig6(element.pressure6),
+            ]
+        )
+        row5 = _row(
+            [
+                _format_sig6(element.pressure7),
+                _format_sig6(element.pressure8),
+                _format_sig6(element.pressure9),
+                row5_cfg[3],
+                row5_cfg[4],
+                row5_cfg[5],
+            ]
+        )
+        row6 = _row(
+            [
+                _format_sig6(element.insulation_density),
+                _format_sig6(element.fluid_density),
+                row6_cfg[2],
+                row6_cfg[3],
+                row6_cfg[4],
+                _format_sig6(element.hydro_pressure),
+            ]
+        )
+        line10 = ""
+        if element.line:
+            line10 = f"{pointer_start + edge_index:12d} {element.line}"
+        elif edge_index < len(configured_line_labels):
+            line10 = _render_element_label_payload(configured_line_labels[edge_index])
+        else:
+            if line_label_mode == "to_node":
+                line10 = _render_element_label_payload(to_node_template.replace("{to_node}", _format_node_id(element.to_node)))
+            elif line_label_mode == "auto" and not default_line_label:
+                line10 = _render_label_line(
+                    pointer=pointer_start + edge_index,
+                    label_index=label_index_start + edge_index,
+                    label_prefix=label_prefix,
+                    label_width=label_width,
+                )
+            elif default_line_label:
+                line10 = _render_element_label_payload(default_line_label)
+            else:
+                line10 = _render_element_label_payload("0")
+        token_values = {
+            "bend": edge_to_bend_index.get(edge_index, 0),
+            "rigid": edge_to_rigid_index.get(edge_index, 0),
+            "restraint": edge_to_restraint_index.get(edge_index, 0),
+            "sif": edge_to_sif_index.get(edge_index, 0),
+            "reducer": edge_to_reducer_index.get(edge_index, 0),
+            "nodename": edge_to_nodename_index.get(edge_index, 0),
+        }
+        line12 = _render_tokens_row(row12_tpl, token_values)
+        line13 = _render_tokens_row(row13_tpl, token_values)
+        line14 = _render_tokens_row(row14_tpl, token_values)
+        elements_payload.extend(
+            [
+                line1,
+                line2,
+                row3,
+                row4,
+                row5,
+                row6,
+                row7,
+                row8,
+                row9,
+                row10,
+                line10,
+                row11,
+                line12,
+                line13,
+                line14,
+            ]
+        )
+
+    # Validate that every aux-block type with real per-element data (bend,
+    # rigid, restraint, sif, reducer, nodename) actually has its pointer
+    # token somewhere in row12/row13/row14 - if a custom config's template
+    # omits or overwrites a token, CAESAR gets a permanent 0 pointer for
+    # every element of that type and silently drops the association (this
+    # is exactly how the NODENAME pointer was broken before this token
+    # existed at all: real name data was written to #$ NODENAME, but every
+    # element's IEL pointer to it stayed 0, so CAESAR never showed the name).
+    _tracked_pointer_types = {
+        "bend": edge_to_bend_index,
+        "rigid": edge_to_rigid_index,
+        "restraint": edge_to_restraint_index,
+        "sif": edge_to_sif_index,
+        "reducer": edge_to_reducer_index,
+        "nodename": edge_to_nodename_index,
+    }
+    _all_pointer_templates = row12_tpl + row13_tpl + row14_tpl
+    for _pointer_name, _index_map in _tracked_pointer_types.items():
+        if _index_map and f"{{{_pointer_name}}}" not in _all_pointer_templates:
+            _warn(
+                "AUX_POINTER_MISSING_FROM_TEMPLATE",
+                f"{len(_index_map)} element(s) have {_pointer_name} auxiliary data, but "
+                f"elements.row12/row13/row14 config does not reference the '{{{_pointer_name}}}' "
+                "token anywhere - CAESAR will not associate this data with any element "
+                "(the IEL pointer for this type stays 0 for all elements).",
+                pointer_type=_pointer_name,
+                affected_element_count=len(_index_map),
+            )
+
+    raw_block_overrides = elements_cfg.get("raw_block_overrides", [])
+    if raw_block_overrides is None:
+        raw_block_overrides = []
+    if not isinstance(raw_block_overrides, list):
+        raise ValueError("Invalid 2019 layout config: 'elements.raw_block_overrides' must be an array.")
+    if raw_block_overrides:
+        _validate_raw_overrides_allowed(
+            compatibility,
+            "elements.raw_block_overrides",
+            has_override=True,
+        )
+        if len(raw_block_overrides) != len(elements):
+            raise ValueError(
+                "Invalid 2019 layout config: 'elements.raw_block_overrides' length must match element count."
+            )
+        overridden_elements_payload: list[str] = []
+        for block_index, block in enumerate(raw_block_overrides):
+            if not isinstance(block, list):
+                raise ValueError(
+                    "Invalid 2019 layout config: each 'elements.raw_block_overrides' entry must be an array."
+                )
+            if len(block) != 15:
+                raise ValueError(
+                    f"Invalid 2019 layout config: elements.raw_block_overrides[{block_index}] must contain 15 lines."
+                )
+            overridden_elements_payload.extend(_as_string_list(block, f"elements.raw_block_overrides[{block_index}]"))
+        elements_payload = overridden_elements_payload
+
+    reducer_payload = [
+        _row(
+            [
+                _format_auto_float(second_diameter),
+                _format_fixed_float(0.0, 6),
+                _format_fixed_float(angle_value, 4),
+                _format_fixed_float(0.0, 6),
+                _format_fixed_float(0.0, 6),
+            ]
+        )
+        for second_diameter, angle_value in reducers
+    ]
+
+    miscel_cfg = layout_config.get("miscel_1", {})
+    if not isinstance(miscel_cfg, dict):
+        raise ValueError("Invalid 2019 layout config: 'miscel_1' must be an object.")
+    miscel_payload = _build_miscel_payload(model, miscel_cfg)
+
+    units_cfg = layout_config.get("units", {})
+    if not isinstance(units_cfg, dict):
+        raise ValueError("Invalid 2019 layout config: 'units' must be an object.")
+    units_payload = list(units_cfg.get("numeric_lines", [])) + list(units_cfg.get("text_lines", []))
 
     equipmnt_payload, equipmnt_nodes = _build_equipmnt_payload(layout_config)
     displmnt_payload, displmnt_nodes = _build_displmnt_payload(layout_config, equipmnt_nodes)

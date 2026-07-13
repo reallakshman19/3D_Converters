@@ -71,21 +71,21 @@
       "{rigid}",
       "0",
       "{restraint}",
-      "{sif}",
+      "0",
       "0"
     ],
     "row13": [
       "0",
       "0",
       "0",
-      "{sif}",
       "0",
-      "0"
+      "{sif}",
+      "{nodename}"
     ],
     "row14": [
       "{reducer}",
       "0",
-      "{sif}"
+      "0"
     ],
     "line_label": {
       "mode": "zero",
