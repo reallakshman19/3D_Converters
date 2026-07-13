@@ -37,14 +37,22 @@ async function spreadsheetRows(file) {
 }
 
 async function getXlsxModule() {
-  try {
-    const module = await import('xlsx');
-    const xlsx = module?.read ? module : module?.default;
-    if (xlsx?.read && xlsx?.utils?.sheet_to_json) return xlsx;
-  } catch (error) {
-    throw new Error(`Local XLSX parser failed to load from import map: ${error?.message || String(error)}`);
+  const candidates = [
+    () => import('xlsx'),
+    () => import('https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs'),
+  ];
+  const errors = [];
+  for (const load of candidates) {
+    try {
+      const module = await load();
+      const xlsx = module?.read ? module : module?.default;
+      if (xlsx?.read && xlsx?.utils?.sheet_to_json) return xlsx;
+      errors.push('module did not expose read/utils');
+    } catch (error) {
+      errors.push(error?.message || String(error));
+    }
   }
-  throw new Error('Local XLSX parser did not expose read/utils. Run npm install and refresh the page.');
+  throw new Error(`XLSX parser failed to load. ${errors.join(' | ')}`);
 }
 
 function jsonRows(value, masterKind) {
