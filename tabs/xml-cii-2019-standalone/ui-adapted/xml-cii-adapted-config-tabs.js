@@ -103,7 +103,16 @@ function ensureAutoMap(configObj) {
 
 function ensurePipingClassActiveSet(configObj) {
   const current = configObj.pipingClassActiveSet && typeof configObj.pipingClassActiveSet === 'object' ? configObj.pipingClassActiveSet : {};
-  configObj.pipingClassActiveSet = { enabled: current.enabled !== false, mode: 'bore-only', source: current.source || 'loaded-xml', fallbackToFullMasterWhenNoBoreDetected: current.fallbackToFullMasterWhenNoBoreDetected !== false, previewLimit: Number(current.previewLimit || 150), normalizedBoreFieldCandidates: toList(current.normalizedBoreFieldCandidates || 'convertedBore, bore, nps, dn, size, outsideDiameter, DIAMETER') };
+  const requestedMode = current.mode || (current.enabled === false ? 'full-master' : 'bore-only');
+  const mode = requestedMode === 'full-master' ? 'full-master' : 'bore-only';
+  configObj.pipingClassActiveSet = {
+    enabled: mode === 'bore-only' && current.enabled !== false,
+    mode,
+    source: current.source || 'loaded-xml',
+    fallbackToFullMasterWhenNoBoreDetected: current.fallbackToFullMasterWhenNoBoreDetected !== false,
+    previewLimit: Number(current.previewLimit || 150),
+    normalizedBoreFieldCandidates: toList(current.normalizedBoreFieldCandidates || 'convertedBore, bore, nps, dn, size, outsideDiameter, DIAMETER')
+  };
   return configObj.pipingClassActiveSet;
 }
 
@@ -173,13 +182,19 @@ function metric(parent, label, value) {
 
 function renderPipingClassActiveSetTab(card, stateRef, render) {
   const configObj = configFromState(stateRef); const cfg = ensurePipingClassActiveSet(configObj); const detected = detectBoreTokensFromSource(stateRef.current.sourceText);
-  const panel = cardShell('🪈 Piping Class Active Set — Bore only', 'The full piping-class master remains a passive catalogue. The active set uses only rows whose normalized master bore matches bore evidence detected from the loaded XML/InputXML.');
+  const modeLabel = cfg.mode === 'full-master' || cfg.enabled === false ? 'Full master' : 'Bore only';
+  const panel = cardShell('🪈 Piping Class Master Loading', 'Choose whether the active Piping Class data set is reduced by detected XML bore or the full loaded master is used. Bore-only mode improves performance on large masters; Full master remains available for diagnostic/review use.');
   const metrics = createElement('div'); metrics.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px;';
-  metric(metrics, 'Full master rows indexed', Number(stateRef.current.masterContext?.rowCounts?.pipingClass || 0)); metric(metrics, 'Detected XML bore tokens', detected.length); metric(metrics, 'Filter mode', 'Bore only'); metric(metrics, 'Fallback', cfg.fallbackToFullMasterWhenNoBoreDetected ? 'Full master if no bore' : 'No fallback'); panel.appendChild(metrics);
-  const controls = createElement('div'); controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;'; checkbox(controls, 'Enable piping-class active set', cfg.enabled, (v) => { cfg.enabled = v; }); checkbox(controls, 'Fallback to full master when no bore is detected', cfg.fallbackToFullMasterWhenNoBoreDetected, (v) => { cfg.fallbackToFullMasterWhenNoBoreDetected = v; }); panel.appendChild(controls);
+  metric(metrics, 'Full master rows indexed', Number(stateRef.current.masterContext?.rowCounts?.pipingClass || 0)); metric(metrics, 'Detected XML bore tokens', detected.length); metric(metrics, 'Load mode', modeLabel); metric(metrics, 'Fallback', cfg.fallbackToFullMasterWhenNoBoreDetected ? 'Full master if no bore' : 'No fallback'); panel.appendChild(metrics);
+  const controls = createElement('div'); controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;';
+  const modeRow = createElement('label'); modeRow.style.cssText = 'display:flex;gap:10px;align-items:center;font-size:12px;color:#cbd5e1;margin-right:14px;';
+  modeRow.append(document.createTextNode('Piping Class load mode:'), selectBox(cfg.mode, [['bore-only', 'Bore-wise active set'], ['full-master', 'Full master load']], (v) => { cfg.mode = v; cfg.enabled = v !== 'full-master'; }));
+  controls.appendChild(modeRow);
+  checkbox(controls, 'Fallback to full master when no bore is detected', cfg.fallbackToFullMasterWhenNoBoreDetected, (v) => { cfg.fallbackToFullMasterWhenNoBoreDetected = v; }); panel.appendChild(controls);
+  const modeHelp = cardShell('Mode behavior', cfg.mode === 'full-master' ? 'Full master mode keeps all Piping Class rows active. Use this for diagnostics or when bore extraction is unreliable.' : 'Bore-wise mode keeps the full master indexed but activates only rows whose normalized bore matches detected XML/InputXML bore tokens.'); modeHelp.style.marginBottom = '12px'; panel.appendChild(modeHelp);
   const box = cardShell('Bore field candidates', 'Comma-separated raw/normalized fields that may hold bore in XML or master rows.'); box.appendChild(textInput(fromList(cfg.normalizedBoreFieldCandidates), (v) => { cfg.normalizedBoreFieldCandidates = toList(v); })); panel.appendChild(box);
   const pre = createElement('pre', detected.length ? detected.join('\n') : 'No bore tokens detected.'); pre.style.cssText = 'max-height:180px;overflow:auto;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:12px;'; const boreList = cardShell('Detected bore tokens from current source', detected.length ? 'Raw detected tokens are shown for review.' : 'Load XML/InputXML first or keep fallback enabled.'); boreList.appendChild(pre); panel.appendChild(boreList);
-  const save = createElement('button', '💾 Save Piping Class Active Set'); save.type = 'button'; save.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; save.addEventListener('click', () => saveConfig(stateRef, configObj, render)); panel.appendChild(save); card.appendChild(panel);
+  const save = createElement('button', '💾 Save Piping Class Loading Mode'); save.type = 'button'; save.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; save.addEventListener('click', () => saveConfig(stateRef, configObj, render)); panel.appendChild(save); card.appendChild(panel);
 }
 
 function renderSmartRegexTab(card, stateRef, render) {
