@@ -1476,7 +1476,6 @@ def convert(input_path: Path, output_path: Path, defaults: InputXmlDefaults,
     print(f'  NUMELT={len(all_elements)} NUMBEND={bend_count} NUMRIGID={rigid_count} NUMREST={restraint_count} NUMISECT={sif_count}')
 
 # ---------------------------------------------------------------------------
-# CLI# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 

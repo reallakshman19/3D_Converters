@@ -456,7 +456,35 @@ async function _runJob(message) {
   const secondaryPath = secondary ? _writeInputFile(pyodide, jobDir, secondary) : null;
   const invocation = buildInvocation(converterId, primaryPath, primary.name, secondaryPath, options, jobDir);
 
-  await _runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr);
+  let stagedConversionError = null;
+  try {
+    await _runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr);
+  } catch (error) {
+    if (converterId !== 'stagedjson_to_inputxml') throw error;
+    stagedConversionError = error;
+  }
+
+  if (stagedConversionError) {
+    const diagnosticsName = invocation.outputName.replace(/\.xml$/i, '_stagedjson_to_inputxml_diagnostics.json');
+    const diagnosticsPath = invocation.outputPath.replace(/\.xml$/i, '_stagedjson_to_inputxml_diagnostics.json');
+    try {
+      const diagnosticsText = pyodide.FS.readFile(diagnosticsPath, { encoding: 'utf8' });
+      const diagnostics = JSON.parse(diagnosticsText);
+      return {
+        output: [{ name: diagnosticsName, text: diagnosticsText, mime: 'application/json;charset=utf-8' }],
+        logs: {
+          stdout: decodeLogBatches(stdout),
+          stderr: decodeLogBatches(stderr),
+          argv: invocation.argv.slice(1),
+          diagnostics,
+          failed: true,
+          failureMessage: _errorToString(stagedConversionError),
+        },
+      };
+    } catch {
+      throw stagedConversionError;
+    }
+  }
 
   const sourcePathForHardener =
     invocation.argv[invocation.argv.indexOf('--input') + 1] || primaryPath;
