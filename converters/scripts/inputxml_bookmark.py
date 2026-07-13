@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Configurable defaults for CAESAR II InputXML generation.
 
-Defaults are derived from the B7410250 benchmark (SYS-30-B7410250 [CII BENCHMARK].cii
-and SYS-30-B7410250 [INPUTXML BENCHMARK]_INPUT.XML).  All values are overridable via
-a bookmark JSON file or individual CLI arguments.
+The built-in values retain the historical B7410250 compatibility profile. They
+are defaults only, not source authority. Callers can override them through a CII
+or JSON bookmark file, inline JSON, or explicit CLI arguments. Resolution
+provenance is returned so downstream diagnostics can distinguish source values
+from compatibility defaults.
 """
 from __future__ import annotations
 
@@ -11,80 +13,68 @@ import json
 import re
 from dataclasses import dataclass, fields
 from pathlib import Path
-
+from typing import Any
 
 SENTINEL = -1.0101
 
 
 @dataclass
 class InputXmlDefaults:
-    # Temperature — only first element of main run is emitted; rest use sentinel
-    temperature1: float = 50.0       # °C  (from B7410250 benchmark)
+    temperature1: float = 50.0
     temperature2: float = 0.0
     temperature3: float = 0.0
-
-    # Pipe properties — only emitted where they change; otherwise sentinel
-    wall_thickness: float = 0.01     # mm  (benchmark first-element value)
-
-    # Material — always emitted (never sentinel)
-    modulus: float = 203_395_424.0   # kPa (~203 GPa for carbon steel at ambient)
-    hot_mod1: float = 201_464_896.0  # kPa at temperature1 (~201 GPa at 50 °C)
+    wall_thickness: float = 0.01
+    modulus: float = 203_395_424.0
+    hot_mod1: float = 201_464_896.0
     poissons: float = 0.292
-    pipe_density: float = 0.007833   # g/cc
-    material_num: float = 1.0        # CAESAR II code for LOW CARBON steel
+    pipe_density: float = 0.007833
+    material_num: float = 1.0
     material_name: str = 'LOW CARBON'
-
-    # Restraint stiffness for anchor type
-    anchor_stiffness: float = 9.41952e+19  # N/mm (effectively rigid)
-
-    # Bend defaults
-    bend_type: float = 0.0           # 0 = long-radius elbow
-    default_bend_angle: float = 90.0  # degrees; overridden by vector geometry
-
-    # InputXML header
+    anchor_stiffness: float = 9.41952e+19
+    bend_type: float = 0.0
+    default_bend_angle: float = 90.0
     version: str = '11.00'
     north_z: str = '0'
     north_y: str = '1'
     north_x: str = '0'
-
-    # Coordinate frame (G2/G3). PDMS uses E=X, N=Y, U=Z. CAESAR II / AVEVA
-    # psi2cii place the vertical (Up) on Y. 'vertical_axis' selects which CAESAR
-    # axis receives PDMS Up:
-    #   'Y' -> map (E,N,U)->(X=E, Y=U, Z=N)  [AVEVA convention, default]
-    #   'Z' -> identity (E,N,U)->(X,Y,Z)     [legacy / no remap]
-    # The NORTH_* header is derived from this unless explicitly overridden.
     vertical_axis: str = 'Y'
-    # Optional world datum (mm) added in the PDMS (E,N,U) frame before the axis
-    # map. 0 = leave coordinates as authored (continuity uses relative deltas,
-    # which are datum-invariant). Set these to the SITE/ZONE datum to emit
-    # absolute world coordinates.
     datum_e: float = 0.0
     datum_n: float = 0.0
     datum_u: float = 0.0
-    # When False, NORTH_* are taken from the explicit fields above; when True
-    # they are derived from vertical_axis.
     derive_north_from_axis: bool = True
+    infer_od_from_nominal_bore: bool = False
+    auto_anchors: bool = True
 
 
-def parse_bookmark_json(path: Path) -> dict:
-    """Read a JSON bookmark file and return only recognised default keys."""
-    known = {f.name for f in fields(InputXmlDefaults)}
-    raw = json.loads(path.read_text(encoding='utf-8'))
-    return {k: v for k, v in raw.items() if k in known}
+def _object_payload(value: Any, label: str) -> dict[str, Any]:
+    if value is None or value == '':
+        return {}
+    if isinstance(value, dict):
+        return dict(value)
+    try:
+        parsed = json.loads(str(value))
+    except json.JSONDecodeError as error:
+        raise ValueError(f'{label} is not valid JSON: {error.msg}') from error
+    if not isinstance(parsed, dict):
+        raise ValueError(f'{label} must be a JSON object.')
+    return parsed
 
 
-def parse_bookmark_cii(path: Path) -> dict:
-    """Extract defaults from the #$ ELEMENTS section of a CII file.
+def parse_bookmark_json(path: Path) -> dict[str, Any]:
+    return _object_payload(path.read_text(encoding='utf-8'), f'Bookmark {path.name}')
 
-    Reads wall thickness and temperature from the first data element's second
-    line (format: wall insul corr temp1 temp2 temp3 ...).
-    """
+
+def parse_bookmark_json_text(value: str | dict[str, Any] | None) -> dict[str, Any]:
+    return _object_payload(value, 'Inline bookmark JSON')
+
+
+def parse_bookmark_cii(path: Path) -> dict[str, Any]:
+    """Extract wall thickness and T1..T3 from the first CII ELEMENTS row."""
     text = path.read_text(encoding='utf-8', errors='replace')
     in_elements = False
     first_line1 = None
     first_line2 = None
     number_rx = re.compile(r'[-+]?\d+(?:\.\d+)?(?:[Ee][-+]?\d+)?')
-
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if line.startswith('#$'):
@@ -92,16 +82,15 @@ def parse_bookmark_cii(path: Path) -> dict:
             continue
         if not in_elements or not line:
             continue
-        nums = [float(x) for x in number_rx.findall(line)]
+        nums = [float(token) for token in number_rx.findall(line)]
         if not nums:
             continue
         if first_line1 is None:
-            first_line1 = nums  # FROM TO DX DY DZ DIAM
+            first_line1 = nums
         elif first_line2 is None:
-            first_line2 = nums  # WALL INSUL CORR TEMP1 TEMP2 TEMP3 ...
+            first_line2 = nums
             break
-
-    out: dict = {}
+    out: dict[str, Any] = {}
     if first_line2 and len(first_line2) >= 4:
         out['wall_thickness'] = first_line2[0]
         out['temperature1'] = first_line2[3]
@@ -112,39 +101,82 @@ def parse_bookmark_cii(path: Path) -> dict:
     return out
 
 
-def load_defaults(bookmark_path: Path | None, cli_overrides: dict | None = None) -> InputXmlDefaults:
-    """Build InputXmlDefaults by merging bookmark file + CLI overrides.
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    token = str(value).strip().lower()
+    if token in {'1', 'true', 'yes', 'on'}:
+        return True
+    if token in {'0', 'false', 'no', 'off'}:
+        return False
+    raise ValueError(f'Expected boolean, got {value!r}.')
 
-    Priority (highest wins): CLI override > bookmark file > dataclass defaults.
+
+def _coerce(field_type: Any, value: Any) -> Any:
+    if field_type in ('float', float):
+        return float(value)
+    if field_type in ('str', str):
+        return str(value)
+    if field_type in ('bool', bool):
+        return _coerce_bool(value)
+    return value
+
+
+def resolve_defaults(
+    bookmark_path: Path | None = None,
+    inline_json: str | dict[str, Any] | None = None,
+    cli_overrides: dict[str, Any] | None = None,
+) -> tuple[InputXmlDefaults, dict[str, str], list[dict[str, Any]]]:
+    """Resolve defaults and return `(values, origins, issues)`.
+
+    Precedence: CLI > inline JSON > bookmark file > compatibility defaults.
+    Unknown or invalid fields are reported in `issues`; they are never silently
+    converted into source values.
     """
-    merged: dict = {}
+    definitions = {field.name: field for field in fields(InputXmlDefaults)}
+    merged: dict[str, Any] = {}
+    origins = {name: 'compatibility-default' for name in definitions}
+    issues: list[dict[str, Any]] = []
+
+    def apply(payload: dict[str, Any], origin: str) -> None:
+        for key, value in payload.items():
+            if key not in definitions:
+                issues.append({'code': 'STAGED_BOOKMARK_FIELD_IGNORED', 'field': key, 'origin': origin, 'value': value})
+                continue
+            try:
+                merged[key] = _coerce(definitions[key].type, value)
+                origins[key] = origin
+            except (TypeError, ValueError) as error:
+                issues.append({
+                    'code': 'STAGED_BOOKMARK_VALUE_INVALID',
+                    'field': key,
+                    'origin': origin,
+                    'value': value,
+                    'message': str(error),
+                })
 
     if bookmark_path is not None:
         suffix = bookmark_path.suffix.lower()
         if suffix == '.cii':
-            merged.update(parse_bookmark_cii(bookmark_path))
+            apply(parse_bookmark_cii(bookmark_path), 'bookmark-file-cii')
         elif suffix in ('.json', ''):
-            merged.update(parse_bookmark_json(bookmark_path))
+            apply(parse_bookmark_json(bookmark_path), 'bookmark-file-json')
+        else:
+            issues.append({
+                'code': 'STAGED_BOOKMARK_TYPE_UNSUPPORTED',
+                'field': '',
+                'origin': 'bookmark-file',
+                'value': str(bookmark_path),
+            })
 
-    if cli_overrides:
-        for k, v in cli_overrides.items():
-            if v is not None:
-                merged[k] = v
+    apply(parse_bookmark_json_text(inline_json), 'bookmark-inline-json')
+    apply({key: value for key, value in (cli_overrides or {}).items() if value is not None}, 'cli')
+    return InputXmlDefaults(**merged), origins, issues
 
-    known = {f.name: f for f in fields(InputXmlDefaults)}
-    kwargs = {}
-    for k, v in merged.items():
-        if k in known:
-            # coerce to the field's type
-            field_type = known[k].type
-            try:
-                if field_type in ('float', float):
-                    kwargs[k] = float(v)
-                elif field_type in ('str', str):
-                    kwargs[k] = str(v)
-                else:
-                    kwargs[k] = v
-            except (TypeError, ValueError):
-                pass  # keep dataclass default
 
-    return InputXmlDefaults(**kwargs)
+def load_defaults(bookmark_path: Path | None, cli_overrides: dict | None = None) -> InputXmlDefaults:
+    """Compatibility wrapper retained for existing callers."""
+    defaults, _, _ = resolve_defaults(bookmark_path, None, cli_overrides)
+    return defaults
