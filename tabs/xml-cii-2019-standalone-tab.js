@@ -1,4 +1,4 @@
-import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js?v=20260708-shell-v8';
+import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js?v=20260713-master-autoload-v10';
 
 
 export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
@@ -33,5 +33,3 @@ export function renderXmlCii2019StandaloneTab(container) {
     container.replaceChildren();
   };
 }
-
-
