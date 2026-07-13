@@ -47,15 +47,26 @@ function rule(state, key) {
   return activeF[key] || {};
 }
 
-function appendInput(parent, label, field, value, type = 'text') {
+function appendInput(parent, label, field, value, type, stateRef, render) {
   const input = appendLabeledControl(parent, label, createElement('input'));
   input.type = type;
   input.value = value ?? '';
   input.dataset.field = field;
+  if (stateRef && render) {
+    input.addEventListener('change', () => {
+      stateRef.current = updateRegexTesterConfig(stateRef.current, field, input.value);
+      stateRef.current.regexTesterResult = runStandaloneRegexTester({
+        ...stateRef.current,
+        sourceText: stateRef.current.sourceText,
+        extractionConfig: stateRef.current.regexTesterConfig
+      });
+      render();
+    });
+  }
   return input;
 }
 
-function appendRuleInputs(parent, title, key, cfg) {
+function appendRuleInputs(parent, title, key, cfg, stateRef, render) {
   const section = createElement('section', '', 'xml-cii-regex-rule-card');
   section.appendChild(createElement('h4', title));
   
@@ -98,12 +109,30 @@ function appendRuleInputs(parent, title, key, cfg) {
   Object.assign(tokInput.style, { padding: '4px 6px', background: 'rgba(15,23,42,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: '3px', color: '#fff', fontSize: '0.75rem', width: '100%', boxSizing: 'box' });
   tokLabel.appendChild(tokInput);
   
+  const attachListener = (inputNode) => {
+    if (stateRef && render) {
+      inputNode.addEventListener('change', () => {
+        stateRef.current = updateRegexTesterConfig(stateRef.current, inputNode.dataset.field, inputNode.value);
+        stateRef.current.regexTesterResult = runStandaloneRegexTester({
+          ...stateRef.current,
+          sourceText: stateRef.current.sourceText,
+          extractionConfig: stateRef.current.regexTesterConfig
+        });
+        render();
+      });
+    }
+  };
+
+  attachListener(regInput);
+  attachListener(grpInput);
+  attachListener(tokInput);
+  
   row.append(regLabel, grpLabel, tokLabel);
   section.appendChild(row);
   parent.appendChild(section);
 }
 
-function renderRegexRules(parent, state) {
+function renderRegexRules(parent, state, stateRef, render) {
   const section = createElement('section', '', 'xml-cii-regex-rule-card');
   section.appendChild(createElement('h4', 'Workbench Actions'));
   const cfg = state.regexTesterConfig || {};
@@ -111,8 +140,8 @@ function renderRegexRules(parent, state) {
   const idx = cfg.activeFormatIndex || 0;
   const activeF = formats[idx] || cfg;
 
-  appendInput(section, 'Token delimiter fallback:', 'regex-token-delimiter', activeF.tokenDelimiter || '-');
-  appendInput(section, 'Line key joiner:', 'regex-line-key-joiner', activeF.lineKeyJoiner || '');
+  appendInput(section, 'Token delimiter fallback:', 'regex-token-delimiter', activeF.tokenDelimiter || '-', 'text', stateRef, render);
+  appendInput(section, 'Line key joiner:', 'regex-line-key-joiner', activeF.lineKeyJoiner || '', 'text', stateRef, render);
   
   const actions = createElement('div', '', 'xml-cii-regex-actions');
   actions.append(actionButton('test-regex', state.regexTesterRunning ? 'Testing…' : 'Run Extraction'));
@@ -393,12 +422,12 @@ export function renderStandaloneRegexTesterPanel(card, state, stateRef, render) 
   }
   sidebar.appendChild(formatSelectorRail);
 
-  renderRegexRules(sidebar, state);
-  appendRuleInputs(sidebar, 'Line key extraction', 'line-key', rule(state, 'lineKey'));
-  appendRuleInputs(sidebar, 'Piping class extraction', 'piping-class', rule(state, 'pipingClass'));
-  appendRuleInputs(sidebar, 'Rating extraction', 'rating', rule(state, 'rating'));
+  renderRegexRules(sidebar, state, stateRef, render);
+  appendRuleInputs(sidebar, 'Line key extraction', 'line-key', rule(state, 'lineKey'), stateRef, render);
+  appendRuleInputs(sidebar, 'Piping class extraction', 'piping-class', rule(state, 'pipingClass'), stateRef, render);
+  appendRuleInputs(sidebar, 'Rating extraction', 'rating', rule(state, 'rating'), stateRef, render);
   renderRatingSequenceEditor(sidebar, state, stateRef, render);
-  appendRuleInputs(sidebar, 'Bore / size extraction', 'bore', rule(state, 'bore'));
+  appendRuleInputs(sidebar, 'Bore / size extraction', 'bore', rule(state, 'bore'), stateRef, render);
   
   layout.appendChild(sidebar);
   
