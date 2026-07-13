@@ -25,15 +25,6 @@ function _xmlCiiHeaderScore(header, aliases) {
   return bestScore;
 }
 
-const _XML_CII_STANDALONE_FORCE_BLANK_FIELDS = Object.freeze(new Set([
-  'lineSeqNo',
-  'density',
-]));
-
-function _xmlCiiShouldLeaveUnmapped(fieldName) {
-  return _XML_CII_STANDALONE_FORCE_BLANK_FIELDS.has(String(fieldName || '').trim());
-}
-
 const _XML_CII_LABEL_ROW_KEYWORDS = Object.freeze({
   lineSeqNo:    ['line number', 'line no', 'line no.', 'seq', 'sequence', 'lineno'],
   lineKey1:     ['service', 'line key', 'key 1', 'key1', 'area'],
@@ -51,26 +42,8 @@ const _XML_CII_LABEL_ROW_KEYWORDS = Object.freeze({
   densityGas:   ['gas kg', 'density gas', 'gas density', 'gas kg/m3', 'gas kg/m³'],
   densityLiquid:['liquid kg', 'density liquid', 'density liquid', 'liquid kg/m3', 'liquid kg/m³'],
   phase:        ['phase', 'fluid phase', 'medium phase'],
-  from:         ['from', 'from equipment', 'from equip', 'origin'],
-  to:           ['to', 'to equipment', 'to equip', 'destination'],
   hydroPressure:['hydropressure', 'hydro test pressure', 'hydrotest pressure', 'hydro pressure', 'test pressure', 'hydro/test pressure'],
 });
-
-function _xmlCiiKeywordMatchesLabelCell(fieldName, cellText, keyword) {
-  const safeField = _toText(fieldName);
-  const safeCell = _toText(cellText).toLowerCase().trim();
-  const safeKeyword = _toText(keyword).toLowerCase().trim();
-  if (!safeCell || !safeKeyword) return false;
-
-  // Very short directional labels are useful for From/To columns, but they are
-  // unsafe as broad substring matches because many process descriptions contain
-  // "to". Accept them only when the label cell itself is exactly the keyword.
-  if ((safeField === 'from' || safeField === 'to') && safeKeyword.length <= 4) {
-    return safeCell === safeKeyword;
-  }
-
-  return safeCell === safeKeyword || safeCell.includes(safeKeyword) || safeKeyword.includes(safeCell);
-}
 
 function _xmlCiiLabelRowHint(header, rawRows) {
   if (!_toText(header).startsWith('__EMPTY')) return {};
@@ -80,9 +53,8 @@ function _xmlCiiLabelRowHint(header, rawRows) {
     const cellText = _toText(rawRows[ri]?.[header]).toLowerCase().trim();
     if (!cellText || cellText.length > 60) continue;
     for (const [fieldName, keywords] of Object.entries(_XML_CII_LABEL_ROW_KEYWORDS)) {
-      if (_xmlCiiShouldLeaveUnmapped(fieldName)) continue;
       for (const kw of keywords) {
-        if (_xmlCiiKeywordMatchesLabelCell(fieldName, cellText, kw)) {
+        if (cellText === kw || cellText.includes(kw) || kw.includes(cellText)) {
           let score = ri === 0 ? 110 : (ri === 1 ? 90 : 75);
           if (cellText === kw) {
             score += 30; // Exact keyword match bonus
@@ -100,7 +72,6 @@ function _xmlCiiLabelRowHint(header, rawRows) {
 }
 
 function _xmlCiiDataValueScore(header, fieldName, rawRows) {
-  if (_xmlCiiShouldLeaveUnmapped(fieldName)) return 0;
   if (!_toText(header).startsWith('__EMPTY')) return 0;
   const SAMPLE = 8;
   const values = [];
@@ -185,10 +156,6 @@ export function fuzzyAutoMapFields(headers, fields, rawRows) {
   };
 
   for (const field of fields) {
-    if (_xmlCiiShouldLeaveUnmapped(field.name)) {
-      mapped[field.name] = '';
-      continue;
-    }
     let bestHeader = '';
     let bestScore = 0;
     for (const header of headers) {
@@ -216,7 +183,6 @@ export function fuzzyAutoMapFields(headers, fields, rawRows) {
     }
 
     for (const field of fields) {
-      if (_xmlCiiShouldLeaveUnmapped(field.name)) continue;
       if (mapped[field.name]) continue;
       let bestHeader = '';
       let bestScore = 0;
@@ -236,7 +202,6 @@ export function fuzzyAutoMapFields(headers, fields, rawRows) {
     }
 
     for (const field of fields) {
-      if (_xmlCiiShouldLeaveUnmapped(field.name)) continue;
       if (mapped[field.name]) continue;
       let bestHeader = '';
       let bestScore = 0;
