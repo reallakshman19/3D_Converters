@@ -30,8 +30,8 @@ replaceOnce(
 );
 replaceOnce(
   "    'converters/xml-cii2019-core/custom-input-diagnostics.js',\n    'converters/xml-cii2019-core/custom-input-model.js',",
-  "    'converters/xml-cii2019-core/custom-input-diagnostics.js',\n    'converters/xml-cii2019-core/restraint-type-mutation.js',\n    'converters/xml-cii2019-core/custom-input-model.js',",
-  'test fixture dependency',
+  "    'converters/xml-cii2019-core/custom-input-diagnostics.js',\n    'converters/xml-cii2019-core/restraint-type-mutation.js',\n    'converters/xml-cii2019-core/restraint-type-codes.js',\n    'converters/xml-cii2019-core/custom-input-model.js',",
+  'test fixture dependencies',
 );
 fs.writeFileSync(path, source);
 console.log('Temporary patch quoting, anchors, and fixture dependencies repaired.');
