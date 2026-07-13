@@ -28,5 +28,10 @@ replaceOnce(
   "    1,\n    'line id mapping');\n  source = replaceOnce(source,\n    '    LINE_ID: element.branch.branchName,',\n    '    LINE_ID: firstValue(element.branch.context.lineId, element.branch.branchName),',\n    'side-load line id mapping');",
   'line id anchor split',
 );
+replaceOnce(
+  "    'converters/xml-cii2019-core/custom-input-diagnostics.js',\n    'converters/xml-cii2019-core/custom-input-model.js',",
+  "    'converters/xml-cii2019-core/custom-input-diagnostics.js',\n    'converters/xml-cii2019-core/restraint-type-mutation.js',\n    'converters/xml-cii2019-core/custom-input-model.js',",
+  'test fixture dependency',
+);
 fs.writeFileSync(path, source);
-console.log('Temporary patch quoting and anchors repaired.');
+console.log('Temporary patch quoting, anchors, and fixture dependencies repaired.');
