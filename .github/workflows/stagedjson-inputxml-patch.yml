@@ -32,9 +32,27 @@ jobs:
       - name: Install runtime dependencies
         run: npm ci --omit=dev
       - name: Validate and apply exact patch
+        id: exact_patch
+        shell: bash
         run: |
-          python -m py_compile scripts/stagedjson-inputxml-workpack-patch.py
-          python scripts/stagedjson-inputxml-workpack-patch.py
+          set +e
+          {
+            python -m py_compile scripts/stagedjson-inputxml-workpack-patch.py
+            python scripts/stagedjson-inputxml-workpack-patch.py
+          } > stagedjson-inputxml-patch.log 2>&1
+          status=$?
+          cat stagedjson-inputxml-patch.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload exact-patch log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stagedjson-inputxml-patch-log
+          path: stagedjson-inputxml-patch.log
+      - name: Enforce exact-patch success
+        if: steps.exact_patch.outputs.status != '0'
+        run: exit 1
       - name: Syntax checks
         run: |
           python -m py_compile \
@@ -49,11 +67,29 @@ jobs:
           node --check tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js
           node --check tests/stagedjson-inputxml-workpack.test.js
       - name: Focused authority and integration tests
+        id: focused_tests
+        shell: bash
         run: |
-          python -m pytest -q converters/scripts/test_stagedjson_inputxml_workpack.py
-          python converters/scripts/test_coord_transform.py
-          python converters/scripts/test_chain_g4_g5.py
-          node tests/stagedjson-inputxml-workpack.test.js
+          set +e
+          {
+            python -m pytest -q converters/scripts/test_stagedjson_inputxml_workpack.py
+            python converters/scripts/test_coord_transform.py
+            python converters/scripts/test_chain_g4_g5.py
+            node tests/stagedjson-inputxml-workpack.test.js
+          } > stagedjson-inputxml-focused-tests.log 2>&1
+          status=$?
+          cat stagedjson-inputxml-focused-tests.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload focused-test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stagedjson-inputxml-focused-test-log
+          path: stagedjson-inputxml-focused-tests.log
+      - name: Enforce focused-test success
+        if: steps.focused_tests.outputs.status != '0'
+        run: exit 1
       - name: Commit audited capability and remove scaffolding
         run: |
           git config user.name github-actions[bot]
