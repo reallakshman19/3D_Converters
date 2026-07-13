@@ -69,10 +69,14 @@ function prepareEsmFixture() {
   fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
   const files = [
     'tabs/model-converters/xml-cii-node-to-inputxml-core.js',
+    'tabs/model-converters/xml-cii-node-to-inputxml-audit.js',
     'tabs/model-converters/xml-cii-node-to-inputxml-topology-normalizer.js',
     'tabs/model-converters/xml-cii-node-to-inputxml-benchmark.js',
     'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
+    'converters/xml-cii2019-core/custom-input-diagnostics.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
   ];
   for (const relPath of files) {
     const sourcePath = path.join(root, relPath);
