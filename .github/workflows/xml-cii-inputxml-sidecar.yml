@@ -13,6 +13,7 @@ on:
       - 'tabs/model-converters/ModelConvertersTab.js'
       - 'tabs/model-converters/xml-cii-inputxml-sidecar-diagnostics-panel.js'
       - 'tests/xml-cii-inputxml-sidecar-workpack.test.js'
+      - 'tests/xml-cii-standalone-source-mode-integration.test.js'
       - 'scripts/xml-cii-inputxml-sidecar-baseline-gate.mjs'
       - 'scripts/xml-cii-inputxml-sidecar-structure-check.py'
       - 'docs/inputxml-upstream-audit/xml-to-cii-inputxml-sidecar*'
@@ -94,10 +95,12 @@ jobs:
         run: |
           npm ci --omit=dev
           python -m pip install pytest
-          git worktree add .baseline-main origin/main
-          ln -s "$GITHUB_WORKSPACE/node_modules" .baseline-main/node_modules
+          BASE_WORKTREE="$GITHUB_WORKSPACE/../3D_Converters-base"
+          git worktree add "$BASE_WORKTREE" origin/main
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$BASE_WORKTREE/node_modules"
+          echo "BASE_WORKTREE=$BASE_WORKTREE" >> "$GITHUB_ENV"
       - name: Compare named tests
-        run: node scripts/xml-cii-inputxml-sidecar-baseline-gate.mjs . .baseline-main xml-cii-sidecar-baseline.json
+        run: node scripts/xml-cii-inputxml-sidecar-baseline-gate.mjs . "$BASE_WORKTREE" xml-cii-sidecar-baseline.json
       - name: Upload baseline ledger
         if: always()
         uses: actions/upload-artifact@v4
