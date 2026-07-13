@@ -2,6 +2,12 @@ export const XML_BUILDER_INPUTXML_DIAGNOSTICS_SCHEMA = 'xml-builder-inputxml-dia
 
 const SEVERITIES = new Set(['ERROR', 'WARNING', 'INFO', 'OK']);
 const clean = (value) => String(value ?? '').trim();
+const optionalNumber = (value) => {
+  const raw = clean(value);
+  if (!raw) return null;
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : null;
+};
 
 export function createXmlBuilderDiagnostic(input = {}) {
   const severity = SEVERITIES.has(String(input.severity || '').toUpperCase())
@@ -16,10 +22,10 @@ export function createXmlBuilderDiagnostic(input = {}) {
     action: clean(input.action),
     sourceField: clean(input.sourceField),
     outputField: clean(input.outputField),
-    sourceRow: Number.isFinite(Number(input.sourceRow)) ? Number(input.sourceRow) : null,
+    sourceRow: optionalNumber(input.sourceRow),
     branch: clean(input.branch),
     node: clean(input.node),
-    count: Number.isFinite(Number(input.count)) ? Number(input.count) : null,
+    count: optionalNumber(input.count),
     context: input.context && typeof input.context === 'object' ? Object.freeze({ ...input.context }) : null,
   });
 }
