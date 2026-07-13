@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 
@@ -111,7 +112,13 @@ function prepareEsmFixture() {
   fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
   const files = [
     'tabs/model-converters/xml-cii-node-to-inputxml-core.js',
+    'tabs/model-converters/xml-cii-node-to-inputxml-audit.js',
     'tabs/model-converters/xml-cii-node-to-inputxml-topology-normalizer.js',
+    'converters/xml-cii2019-core/custom-input-diagnostics.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
+    'converters/xml-cii2019-core/custom-input-model.js',
+    'converters/xml-cii2019-core/custom-input-xml-builder.js',
     'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
   ];
@@ -130,7 +137,7 @@ function assertLauncherSemantics(result) {
   assert(result.coreInputXmlText.includes('FROM_NODE="10.000000" TO_NODE="20.000000"'), 'first launcher element should use first available positive route nodes 10 -> 20');
   assert(result.coreInputXmlText.includes('DELTA_Z="181.900000"'), 'first launcher element should map AVEVA northing delta into CAESAR Z with project north convention');
   assert(result.coreInputXmlText.includes('<RIGID WEIGHT="430.000000" TYPE="Unspecified"/>'), 'node 20 RIGID evidence should generate a RIGID child with converted weight');
-  assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="30.000000" TYPE="17.000000"'), 'node-level +Y support should generate a CAESAR restraint at node 30');
+  assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="30.000000" TYPE="14.000000"'), 'node-level +Y support should use the Python-synchronized signed-axis code at node 30');
   assert(result.elementSideLoadText.includes('ELEMENT 20->30'), 'side-load should include generated element keys');
   assert(result.elementSideLoadText.includes('DTXR_PS=Pipe Rest XRT01'), 'side-load should carry node DTXR_PS evidence');
   assert(result.diagnostics.summary.elementCount > 20, 'launcher benchmark should generate many elements from positive topology route nodes');
@@ -146,6 +153,53 @@ function assertSifSemantics(api) {
   assert(result.coreInputXmlText.includes('FROM_X="1.000000" FROM_Y="3.000000" FROM_Z="-2.000000"'), 'FROM coordinate seed should be emitted in CAESAR delta basis');
   assert(result.coreInputXmlText.includes('TO_X="11.000000" TO_Y="13.000000" TO_Z="-7.000000"'), 'TO coordinate seed should be emitted in CAESAR delta basis');
   assert.strictEqual(result.diagnostics.summary.sifCount, 1, 'diagnostics should count generated SIF node evidence');
+}
+
+function assertXmlBuilderPipelineSemantics(modelApi, builderApi, coreApi) {
+  const branchName = '/CUSTOM-TEST/B1';
+  const restraintRows = Array.from({ length: 7 }, (_, index) => ({
+    branchName, nodeNumber: '20', nodeName: 'PS-20', restraintType: index === 0 ? 'REST' : 'GUI',
+    direction: index === 0 ? '+Y' : '', gap: '0', stiffness: '1.751270E+12', friction: '0.3',
+  }));
+  const model = modelApi.buildCustomInputModel({
+    branchRows: [{ branchName, lineKey: 'L-100', nodeNumber: '10', boreMm: '100', outsideDiameter: '114.3', wallThickness: '6.02', p1: '4140', p9: '900', t1: '260', t9: '9', fluidDensity: '983', insulationDensity: '0.00012', materialCode: '106' }],
+    coordinateRows: [{ branchName, nodeNumber: '10', x: '0', y: '0', z: '0' }, { branchName, nodeNumber: '20', x: '1000', y: '0', z: '0' }, { branchName, nodeNumber: '30', x: '', y: '', z: '' }],
+    weightRows: [{ branchName, nodeNumber: '10', componentType: 'PIPE', rigid: '0', endpoint: '1', weight: '0' }, { branchName, nodeNumber: '20', componentType: 'RIGID', rigid: '2', endpoint: '2', weight: '43' }, { branchName, nodeNumber: '30', componentType: 'PIPE', rigid: '0', endpoint: '1', weight: '0' }],
+    restraintRows,
+  });
+  const built = builderApi.buildCustomInputXmlResult(model, { dropShortElementLengthNodes: false });
+  assert(built.xmlText.includes('<LineNo>L-100</LineNo>'), 'explicit LineNo should survive node XML generation');
+  assert(built.xmlText.includes('<OutsideDiameter>114.3</OutsideDiameter>'), 'explicit OutsideDiameter should survive node XML generation');
+  assert(built.xmlText.includes('<InsulationDensity>0.00012</InsulationDensity>'), 'explicit insulation density should survive node XML generation');
+  assert(built.xmlText.includes('<Pressure9>900</Pressure9>'), 'Pressure9 should survive node XML generation');
+  assert(built.xmlText.includes('<Temperature9>9</Temperature9>'), 'Temperature9 should survive node XML generation');
+  assert(built.xmlText.includes('<Restraint><Type>+Y</Type>'), 'recognized direction should resolve generic REST type');
+  assert(!built.xmlText.includes('<CustomRestraint>'), 'new node XML should emit schema-shaped Restraint records');
+  const node30 = built.xmlText.match(/<Node><NodeNumber>30<\/NodeNumber>[\s\S]*?<\/Node>/)?.[0] || '';
+  assert(node30 && !node30.includes('<Position>'), 'missing position must be omitted rather than fabricated');
+  assert(built.diagnostics.records.some((row) => row.code === 'XML_BUILDER_POSITION_OMITTED'), 'missing position should be diagnosed');
+
+  const result = coreApi.buildInputXmlFromNodeXml(built.xmlText, { applyEnrichment: false, buildProfile: 'xml-builder' });
+  assert(result.coreInputXmlText.includes('LINE_ID="L-100"'), 'explicit LineNo should become InputXML LINE_ID');
+  assert(result.coreInputXmlText.includes('DIAMETER="114.300000"'), 'explicit OutsideDiameter should become InputXML DIAMETER');
+  assert(result.coreInputXmlText.includes('INSUL_DENSITY="0.000120"'), 'explicit insulation density should become InputXML INSUL_DENSITY');
+  assert(result.coreInputXmlText.includes('PRESSURE9="900.000000"'), 'Pressure9 should become InputXML context');
+  assert(result.coreInputXmlText.includes('TEMP_EXP_C9="9.000000"'), 'Temperature9 should become InputXML context');
+  assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="20.000000" TYPE="14.000000"'), 'generic REST with +Y direction should emit the authoritative mapped restraint type 14');
+  assert.strictEqual((result.coreInputXmlText.match(/<RESTRAINT NUM=/g) || []).length, 6, 'InputXML should retain the fixed six restraint slots');
+  assert.strictEqual((result.coreInputXmlText.match(/<RIGID /g) || []).length, 1, 'Rigid=0 must not create a RIGID child while explicit Rigid=2 does');
+  assert(result.diagnostics.records.some((row) => row.code === 'XML_BUILDER_RESTRAINT_SLOT_TRUNCATED'), 'restraint overflow should be diagnosed');
+  assert(result.diagnostics.records.some((row) => row.code === 'XML_BUILDER_NODE_DROPPED_MISSING_POSITION'), 'missing-position route drop should be diagnosed');
+  assert.strictEqual(result.diagnostics.summary.elementCount, 1, 'only the two positioned nodes should form one route element');
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-builder-python-smoke-'));
+  const inputPath = path.join(tempDir, 'xml-builder.input.xml');
+  const outputPath = path.join(tempDir, 'xml-builder.cii');
+  fs.writeFileSync(inputPath, result.coreInputXmlText, 'utf8');
+  const converted = spawnSync(process.env.PYTHON || 'python3', [path.join(root, 'converters/scripts/inputxml_to_cii2019.py'), '--input', inputPath, '--output', outputPath], { encoding: 'utf8' });
+  assert.strictEqual(converted.status, 0, 'Python downstream conversion should succeed: ' + (converted.stderr || converted.stdout));
+  const ciiText = fs.readFileSync(outputPath, 'utf8');
+  assert(ciiText.includes('ELEMENTS') && ciiText.length > 100, 'downstream CII output should contain an ELEMENTS section');
 }
 
 function assertInputXmlTopoSemantics(api, launcherXml) {
@@ -174,12 +228,15 @@ function assertInputXmlTopoSemantics(api, launcherXml) {
 (async () => {
   const tempRoot = prepareEsmFixture();
   const api = await import(pathToFileURL(path.join(tempRoot, 'tabs/model-converters/xml-cii-node-to-inputxml-core.js')).href);
+  const modelApi = await import(pathToFileURL(path.join(tempRoot, 'converters/xml-cii2019-core/custom-input-model.js')).href);
+  const builderApi = await import(pathToFileURL(path.join(tempRoot, 'converters/xml-cii2019-core/custom-input-xml-builder.js')).href);
   const launcherXml = read('Benchmarks/LAUNCHERTOPO.XML');
   const result = api.buildInputXmlFromNodeXml(launcherXml, {
     sourceName: 'LAUNCHERTOPO.XML',
     supportConfigJson: JSON.stringify({ defaultTeeSifType: 5, defaultFriction: 0.3, defaultStiffness: 1751270000000, defaultGap: 0 }),
   });
   assertLauncherSemantics(result);
+  assertXmlBuilderPipelineSemantics(modelApi, builderApi, api);
   assertInputXmlTopoSemantics(api, launcherXml);
   assertSifSemantics(api);
   console.log('XML CII 5C node-to-InputXML core checks passed.');

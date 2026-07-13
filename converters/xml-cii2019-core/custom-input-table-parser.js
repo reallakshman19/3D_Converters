@@ -1,8 +1,9 @@
 const ALIAS = {
-  branchName: ['branchname','branch','line','branch name'], nodeNumber: ['node','nodenumber','node no','node number'],
-  boreMm: ['bore','boremm','dn','nb','size'], wallThickness: ['wall','wallthk','wall thickness','wallthickness','wt'],
-  p1: ['p1','pressure1','design pressure'], hydroPressure: ['hydro','hydropressure','hydro/test pressure','test pressure'],
-  t1: ['t1','temperature1','design temp'], t2: ['t2','temperature2'], t3: ['t3','temperature3'], fluidDensity: ['density','fluiddensity','fluid density'],
+  branchName: ['branchname','branch','line','branch name'], lineKey: ['linekey','line key','lineno','line no','lineid','line id'],
+  boreMm: ['bore','boremm','dn','nb','size'], outsideDiameter: ['outsidediameter','outside diameter','od','pipe od'],
+  wallThickness: ['wall','wallthk','wall thickness','wallthickness','wt'],
+  hydroPressure: ['hydro','hydropressure','hydro/test pressure','test pressure'],
+  fluidDensity: ['density','fluiddensity','fluid density'], insulationDensity: ['insulationdensity','insulation density','insul density'],
   insulationThickness: ['insulation','insulationthickness','insul'], corrosionAllowance: ['corrosion','corrosionallowance','ca'],
   pipingClass: ['pipingclass','piping class','spec'], rating: ['rating','class'], materialName: ['material','materialname'], materialCode: ['materialcode','matcode'],
   x: ['x','east','e'], y: ['y','north','s'], z: ['z','elev','u'], pos: ['pos','position'],
@@ -10,6 +11,7 @@ const ALIAS = {
   nodeName: ['nodename','node name','ps','support'], restraintType: ['restrainttype','restraint','supporttype','type'], gap: ['gap'], stiffness: ['stiffness'], friction: ['friction'], direction: ['direction','dir'],
   dtxr: ['dtxr','dtxr_pos','dtxr_ps','description']
 };
+for(let i=1;i<=9;i+=1){ALIAS[`p${i}`]=[`p${i}`,`pressure${i}`,`pressure ${i}`]; ALIAS[`t${i}`]=[`t${i}`,`temperature${i}`,`temperature ${i}`];}
 function key(v){return String(v??'').trim().toLowerCase().replace(/[_\-.]+/g,' ').replace(/\s+/g,' ')}
 function split(line){
   if(line.includes('\t')) return line.split('\t');
@@ -26,14 +28,15 @@ export function parseCustomInputTable(text,{defaultHeaders=[]}={}){
   const lines=String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   if(!lines.length) return [];
   const first=split(lines[0]).map(s=>s.trim());
-  const hasHeader=first.some(c=>Object.values(ALIAS).flat().map(key).includes(key(c)));
+  const knownAliases=Object.values(ALIAS).flat().map(key);
+  const hasHeader=first.some(c=>knownAliases.includes(key(c)));
   const headers=(hasHeader?first:defaultHeaders).map(canonical);
   const data=hasHeader?lines.slice(1):lines;
   return data.map((line, rowIndex)=>{
     const cells=split(line); const row={_rowIndex:rowIndex};
     headers.forEach((h,i)=>{ row[h]=String(cells[i]??'').trim(); });
     return row;
-  }).filter(row=>Object.values(row).some(v=>String(v).trim() && !String(v).startsWith('_')));
+  }).filter(row=>Object.entries(row).some(([name,v])=>name!=='_rowIndex'&&String(v).trim()));
 }
 export function parseCustomInputTables(payload={}){
   return Object.fromEntries(Object.entries(payload).map(([k,v])=>[k,Array.isArray(v)?v:parseCustomInputTable(v||'')]));
