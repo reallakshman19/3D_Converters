@@ -1,6 +1,6 @@
 # XML→CII(2019) generated InputXML sidecar audit
 
-Date: 2026-07-13  
+Date: 2026-07-13
 Repository baseline: `704705dec8a52832d58b95b87ca5171e9a5cb2b4`
 
 ## Classification verdict
