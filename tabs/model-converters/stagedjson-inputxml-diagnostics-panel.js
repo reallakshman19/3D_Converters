@@ -2,7 +2,7 @@ import { CONVERTERS } from './converter-registry.js?v=20260713-stagedjson-inputx
 
 const CONVERTER_ID = 'stagedjson_to_inputxml';
 const EVENT_NAME = 'model-converters:stagedjson-inputxml-diagnostics';
-const WRAP_VERSION = 'stagedjson-inputxml-diagnostics/v1';
+const WRAP_VERSION = 'stagedjson-inputxml-diagnostics/v2';
 
 function text(value) { return String(value ?? '').trim(); }
 function esc(value) { return text(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
@@ -12,13 +12,24 @@ function ensurePanel(root) {
   let panel = root.querySelector('[data-stagedjson-inputxml-diagnostics-panel]');
   if (panel) return panel;
   panel = document.createElement('details');
-  panel.dataset.stagedjsonInputxmlDiagnosticsPanel = 'v1';
+  panel.dataset.stagedjsonInputxmlDiagnosticsPanel = 'v2';
   panel.className = 'model-converters-advanced';
   panel.hidden = true;
   const output = root.querySelector('#model-converters-output');
   if (output?.parentNode) output.insertAdjacentElement('afterend', panel);
   else root.appendChild(panel);
   return panel;
+}
+
+function downloadDiagnostics(diagnostics) {
+  const sourceStem = text(diagnostics?.sourceName).replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9._-]+/g, '_') || 'stagedjson';
+  const name = `${sourceStem}_stagedjson_to_inputxml_diagnostics.json`;
+  const url = URL.createObjectURL(new Blob([`${JSON.stringify(diagnostics || {}, null, 2)}\n`], { type: 'application/json;charset=utf-8' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 function renderPanel(panel, diagnostics) {
@@ -31,7 +42,10 @@ function renderPanel(panel, diagnostics) {
   panel.innerHTML = `
     <summary>StagedJSON → InputXML diagnostics — ${Number(summary.total || records.length)} events, ${errorCount} errors, ${warningCount} warnings</summary>
     <div style="padding:8px 0;display:grid;gap:8px;">
-      <div class="model-converters-muted">Schema: ${esc(diagnostics?.schema || '')} · Output ready: ${diagnostics?.outputReady === true ? 'yes' : 'no'}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div class="model-converters-muted">Schema: ${esc(diagnostics?.schema || '')} · Output ready: ${diagnostics?.outputReady === true ? 'yes' : 'no'}</div>
+        <button type="button" class="model-converters-download-btn" data-stagedjson-inputxml-download-diagnostics>Download diagnostics JSON</button>
+      </div>
       <div style="overflow:auto;max-height:360px;">
         <table class="model-converters-table" style="width:100%;font-size:12px;">
           <thead><tr><th>Severity</th><th>Code</th><th>Stage</th><th>Source</th><th>Action</th><th>Message</th></tr></thead>
@@ -48,6 +62,7 @@ function renderPanel(panel, diagnostics) {
       </div>
       ${records.length > 500 ? `<div class="model-converters-muted">Showing first 500 of ${records.length} records. Download the diagnostics JSON output for the complete ledger.</div>` : ''}
     </div>`;
+  panel.querySelector('[data-stagedjson-inputxml-download-diagnostics]')?.addEventListener('click', () => downloadDiagnostics(diagnostics));
 }
 
 function wrapConverter(root) {
@@ -58,6 +73,9 @@ function wrapConverter(root) {
   converter.run = async (context) => {
     const response = await run(context);
     root.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: response?.logs?.diagnostics || null }));
+    if (response?.logs?.failed) {
+      throw new Error(response.logs.failureMessage || 'StagedJSON to InputXML conversion failed.');
+    }
     return response;
   };
   converter.stagedJsonDiagnosticsWrapVersion = WRAP_VERSION;
