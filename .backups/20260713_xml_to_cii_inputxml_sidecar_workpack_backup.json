@@ -23,6 +23,11 @@
       "path": "converters/scripts/test_xml_to_inputxml_debug.py",
       "blobSha": "2346767a8cade8571297cbc9eb020a23728211cf",
       "reason": "existing real-sample sidecar regression"
+    },
+    {
+      "path": "tests/xml-cii-standalone-source-mode-integration.test.js",
+      "blobSha": "90e1b2818a085e681a2438e5e6555aea96967615",
+      "reason": "protected-route hash guard updated only for audited xml_to_cii sidecar worker output"
     }
   ],
   "restore": "Fetch each blob by SHA and restore only the corresponding path. Do not restore unrelated repository files."
