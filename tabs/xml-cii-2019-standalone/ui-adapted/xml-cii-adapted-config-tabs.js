@@ -5,30 +5,35 @@ import { renderAdaptedConfigPanel as renderGeneralConfigPanel } from './xml-cii-
 const CONFIG_TABS = Object.freeze([
   { id: 'general', label: 'General' },
   { id: 'autoMapFields', label: 'Auto Map Fields' },
+  { id: 'pipingClassActiveSet', label: 'Piping Class Active Set' },
 ]);
 
-const AUTO_MAP_FIELD_DEFAULTS = Object.freeze([
-  { name: 'lineSeqNo', label: 'Line Seq No.', enabled: true, priority: 90, exact: ['Line Seq No.', 'Sequence', 'Seq'], aliases: ['Line Sequence', 'Line Serial', 'Serial', 'Index'], stacked: ['Seq', 'Sequence'], valueFallback: ['simple running sequence', 'serial-like values'], reject: ['Line Number', 'Line No', 'Key 2'], policy: 'Prefer blank unless a clear sequence column exists.' },
-  { name: 'lineKey1', label: 'Key 1', enabled: true, priority: 80, exact: ['Key 1', 'Line Key', 'Service'], aliases: ['Area', 'Unit', 'Service Code', 'Line Prefix', 'Pipeline Ref'], stacked: ['Service', 'Key 1'], valueFallback: ['short alphabetic service token'], reject: ['Pressure', 'Temp', 'Density', 'Rating', 'Bore', 'Material'], policy: 'Map when service / prefix evidence exists.' },
-  { name: 'lineKey2', label: 'Key 2', enabled: true, priority: 85, exact: ['Key 2', 'Line Number', 'Line No', 'Line No.'], aliases: ['LineNumber', 'Line ID', 'Line Suffix', 'Pipeline Number'], stacked: ['Line Number', 'Line No'], valueFallback: ['5-10 digit line number'], reject: ['Piping Class', 'Construction Class', 'Rating', 'Pressure', 'Density'], policy: 'Prefer Key 2 over Line Seq No. when label says Line Number.' },
-  { name: 'pipingClass', label: 'Piping Class', enabled: true, priority: 75, exact: ['Piping Class', 'Pipe Class'], aliases: ['Piping Spec', 'Pipe Spec', 'Spec', 'SPEC', 'Class'], stacked: ['Piping Class', 'Pipe Class', 'Spec'], valueFallback: ['short spec token only with safe context'], reject: ['Construction Class', 'Insulation Class', 'Stress Class', 'Criticality Class', 'Material', 'Rating'], policy: 'Leave blank if only weak token such as CS exists.' },
-  { name: 'rating', label: 'Rating', enabled: true, priority: 70, exact: ['Rating', 'Pressure Class'], aliases: ['Class Rating', 'Pressure Rating', 'Press Rating', 'CL', 'PN'], stacked: ['Rating', 'Pressure Class'], valueFallback: ['150', '300', '600', '900', '1500', '2500', 'CL150', 'PN16'], reject: ['Design Pressure', 'Hydro Pressure', 'Line Number', 'Piping Class'], policy: 'Do not infer rating from large line numbers such as 1885.' },
-  { name: 'material', label: 'Material', enabled: true, priority: 65, exact: ['Material', 'Material Name'], aliases: ['MOC', 'Pipe Material', 'Material_Name', 'MATL'], stacked: ['Material', 'MOC'], valueFallback: ['CS', 'SS', 'A106 B', 'LTCS'], reject: ['Piping Class', 'Rating', 'Phase', 'Service'], policy: 'CS is a material candidate before it is a piping-class candidate.' },
-  { name: 'convertedBore', label: 'Bore', enabled: true, priority: 95, exact: ['Bore', 'Converted Bore'], aliases: ['Size', 'NPS', 'DN', 'NB', 'Nominal Bore', 'Pipe Size'], stacked: ['Bore', 'Size', 'DN', 'NPS', 'NB'], valueFallback: ['10"', '4IN', 'NPS10', 'DN250', 'OD-to-NPS lookup'], reject: ['Rating', 'Pressure', 'Temperature', 'Density'], policy: 'Strong bore mapping; also feeds piping-class active set filtering.' },
-  { name: 'p1', label: 'P1 / Design Pressure', enabled: true, priority: 60, exact: ['P1', 'Design Pressure'], aliases: ['Operating Pressure', 'Pressure Max', 'Max Pressure', 'Design Pr', 'Op. Pr'], stacked: ['P1', 'Design Pressure'], valueFallback: ['numeric pressure-like values'], reject: ['Hydro', 'Test Pressure', 'Temperature', 'Density', 'Line Number'], policy: 'P1 must not consume a hydro/test-pressure column.' },
-  { name: 'hydroPressure', label: 'Hydro Test Pressure', enabled: true, priority: 62, exact: ['Hydro Test Pressure', 'Hydro Pressure'], aliases: ['Hydrostatic Pressure', 'Hydro Pr', 'Test Pressure', 'Proof Pressure', 'Pressure Test'], stacked: ['Hydro', 'Test Pressure'], valueFallback: ['numeric pressure-like values with hydro/test label'], reject: ['Design Pressure', 'Temperature', 'Density'], policy: 'Hydro/Test label wins over generic pressure.' },
-  { name: 't1', label: 'T1', enabled: true, priority: 55, exact: ['T1', 'Design Temp'], aliases: ['Design Temperature', 'Operating Temp', 'Temp Max', 'Max Temp', 'T1 (C)'], stacked: ['T1', 'Design Temp', 'Max Temp'], valueFallback: ['temperature range -200 to 800'], reject: ['Min', 'T3', 'Pressure', 'Hydro', 'Density'], policy: 'T1 is design / maximum temperature.' },
-  { name: 't2', label: 'T2', enabled: true, priority: 50, exact: ['T2', 'Temperature'], aliases: ['Temp', 'Operating Temperature', 'Normal Temp', 'Temp C', 'T2 (C)'], stacked: ['T2', 'Temperature'], valueFallback: ['temperature range -200 to 800'], reject: ['Max', 'Min', 'T1', 'T3', 'Pressure', 'Density'], policy: 'T2 is operating / normal temperature.' },
-  { name: 't3', label: 'T3', enabled: true, priority: 55, exact: ['T3', 'Minimum Temp'], aliases: ['Min Temp', 'Temp Min', 'Temperature Min', 'T3 (C)'], stacked: ['T3', 'Minimum Temp', 'Min Temp'], valueFallback: ['temperature range -200 to 800'], reject: ['Max', 'T1', 'Pressure', 'Hydro', 'Density'], policy: 'T3 is minimum temperature.' },
-  { name: 'insThk', label: 'InsThk', enabled: true, priority: 45, exact: ['InsThk', 'Insulation Thickness'], aliases: ['Ins Thk', 'Insulation', 'Insulation Thk'], stacked: ['Ins + Thk', 'Insulation + Thickness'], valueFallback: ['numeric insulation thickness'], reject: ['Insulation Material', 'Insulation Type', 'Insulation Class'], policy: 'Require thickness context when only Insulation appears.' },
-  { name: 'density', label: 'Density', enabled: true, priority: 35, exact: ['Density', 'Fluid Density'], aliases: ['Density kg/m3', 'Density kg/m³'], stacked: ['Generic Density'], valueFallback: ['numeric density-like values'], reject: ['Density Mixed', 'Density Gas', 'Density Liquid'], policy: 'Prefer blank when Mixed/Gas/Liquid density fields are mapped.' },
-  { name: 'densityMixed', label: 'Density Mixed', enabled: true, priority: 68, exact: ['Density Mixed', 'Mixed Density'], aliases: ['Mixed kg/m3', 'Mixed kg/m³', 'Density (Mixed)'], stacked: ['Mixed + kg/m³'], valueFallback: ['numeric density values'], reject: ['Gas', 'Liquid'], policy: 'Map before generic Density.' },
-  { name: 'densityGas', label: 'Density Gas', enabled: true, priority: 68, exact: ['Density Gas', 'Gas Density'], aliases: ['Gas kg/m3', 'Gas kg/m³', 'Density (Gas)'], stacked: ['Density + Gas + kg/m³'], valueFallback: ['numeric density values'], reject: ['Mixed', 'Liquid'], policy: 'Map before generic Density.' },
-  { name: 'densityLiquid', label: 'Density Liquid', enabled: true, priority: 68, exact: ['Density Liquid', 'Liquid Density'], aliases: ['Liquid kg/m3', 'Liquid kg/m³', 'Density (Liquid)'], stacked: ['Liquid + kg/m³'], valueFallback: ['numeric density values'], reject: ['Mixed', 'Gas'], policy: 'Map before generic Density.' },
-  { name: 'phase', label: 'Phase', enabled: true, priority: 66, exact: ['Phase'], aliases: ['Fluid Phase', 'Medium Phase', 'Process Phase'], stacked: ['Phase + G/L/M'], valueFallback: ['G', 'L', 'M', 'Gas', 'Liquid', 'Mixed', 'Vapour', 'Vapor'], reject: ['Density', 'Service', 'Material'], policy: 'Phase supports density resolution.' },
-  { name: 'from', label: 'From', enabled: true, priority: 70, exact: ['From'], aliases: ['From Equipment', 'Origin', 'Source'], stacked: ['exact stacked label cell = From'], valueFallback: [], reject: ['substring from inside description text'], policy: 'Safe exact-label top-up only.' },
-  { name: 'to', label: 'To', enabled: true, priority: 70, exact: ['To'], aliases: ['To Equipment', 'Destination', 'Target'], stacked: ['exact stacked label cell = To'], valueFallback: [], reject: ['substring to inside description text'], policy: 'Safe exact-label top-up only.' },
+const FIELD_ROWS = Object.freeze([
+  ['lineSeqNo', 'Line Seq No.', 90, ['Line Seq No.', 'Sequence', 'Seq'], ['Line Sequence', 'Line Serial', 'Serial', 'Index'], ['Seq', 'Sequence'], ['simple running sequence', 'serial-like values'], ['Line Number', 'Line No', 'Key 2'], 'Prefer blank unless a clear sequence column exists.'],
+  ['lineKey1', 'Key 1', 80, ['Key 1', 'Line Key', 'Service'], ['Area', 'Unit', 'Service Code', 'Line Prefix', 'Pipeline Ref'], ['Service', 'Key 1'], ['short alphabetic service token'], ['Pressure', 'Temp', 'Density', 'Rating', 'Bore', 'Material'], 'Map when service / prefix evidence exists.'],
+  ['lineKey2', 'Key 2', 85, ['Key 2', 'Line Number', 'Line No', 'Line No.'], ['LineNumber', 'Line ID', 'Line Suffix', 'Pipeline Number'], ['Line Number', 'Line No'], ['5-10 digit line number'], ['Piping Class', 'Construction Class', 'Rating', 'Pressure', 'Density'], 'Prefer Key 2 over Line Seq No. when label says Line Number.'],
+  ['pipingClass', 'Piping Class', 75, ['Piping Class', 'Pipe Class'], ['Piping Spec', 'Pipe Spec', 'Spec', 'SPEC', 'Class'], ['Piping Class', 'Pipe Class', 'Spec'], ['short spec token only with safe context'], ['Construction Class', 'Insulation Class', 'Stress Class', 'Criticality Class', 'Material', 'Rating'], 'Leave blank if only weak token such as CS exists.'],
+  ['rating', 'Rating', 70, ['Rating', 'Pressure Class'], ['Class Rating', 'Pressure Rating', 'Press Rating', 'CL', 'PN'], ['Rating', 'Pressure Class'], ['150', '300', '600', '900', '1500', '2500', 'CL150', 'PN16'], ['Design Pressure', 'Hydro Pressure', 'Line Number', 'Piping Class'], 'Do not infer rating from large line numbers such as 1885.'],
+  ['material', 'Material', 65, ['Material', 'Material Name'], ['MOC', 'Pipe Material', 'Material_Name', 'MATL'], ['Material', 'MOC'], ['CS', 'SS', 'A106 B', 'LTCS'], ['Piping Class', 'Rating', 'Phase', 'Service'], 'CS is a material candidate before it is a piping-class candidate.'],
+  ['convertedBore', 'Bore', 95, ['Bore', 'Converted Bore'], ['Size', 'NPS', 'DN', 'NB', 'Nominal Bore', 'Pipe Size'], ['Bore', 'Size', 'DN', 'NPS', 'NB'], ['10"', '4IN', 'NPS10', 'DN250', 'OD-to-NPS lookup'], ['Rating', 'Pressure', 'Temperature', 'Density'], 'Strong bore mapping; also feeds piping-class active set filtering.'],
+  ['p1', 'P1 / Design Pressure', 60, ['P1', 'Design Pressure'], ['Operating Pressure', 'Pressure Max', 'Max Pressure', 'Design Pr', 'Op. Pr'], ['P1', 'Design Pressure'], ['numeric pressure-like values'], ['Hydro', 'Test Pressure', 'Temperature', 'Density', 'Line Number'], 'P1 must not consume a hydro/test-pressure column.'],
+  ['hydroPressure', 'Hydro Test Pressure', 62, ['Hydro Test Pressure', 'Hydro Pressure'], ['Hydrostatic Pressure', 'Hydro Pr', 'Test Pressure', 'Proof Pressure', 'Pressure Test'], ['Hydro', 'Test Pressure'], ['numeric pressure-like values with hydro/test label'], ['Design Pressure', 'Temperature', 'Density'], 'Hydro/Test label wins over generic pressure.'],
+  ['t1', 'T1', 55, ['T1', 'Design Temp'], ['Design Temperature', 'Operating Temp', 'Temp Max', 'Max Temp', 'T1 (C)'], ['T1', 'Design Temp', 'Max Temp'], ['temperature range -200 to 800'], ['Min', 'T3', 'Pressure', 'Hydro', 'Density'], 'T1 is design / maximum temperature.'],
+  ['t2', 'T2', 50, ['T2', 'Temperature'], ['Temp', 'Operating Temperature', 'Normal Temp', 'Temp C', 'T2 (C)'], ['T2', 'Temperature'], ['temperature range -200 to 800'], ['Max', 'Min', 'T1', 'T3', 'Pressure', 'Density'], 'T2 is operating / normal temperature.'],
+  ['t3', 'T3', 55, ['T3', 'Minimum Temp'], ['Min Temp', 'Temp Min', 'Temperature Min', 'T3 (C)'], ['T3', 'Minimum Temp', 'Min Temp'], ['temperature range -200 to 800'], ['Max', 'T1', 'Pressure', 'Hydro', 'Density'], 'T3 is minimum temperature.'],
+  ['insThk', 'InsThk', 45, ['InsThk', 'Insulation Thickness'], ['Ins Thk', 'Insulation', 'Insulation Thk'], ['Ins + Thk', 'Insulation + Thickness'], ['numeric insulation thickness'], ['Insulation Material', 'Insulation Type', 'Insulation Class'], 'Require thickness context when only Insulation appears.'],
+  ['density', 'Density', 35, ['Density', 'Fluid Density'], ['Density kg/m3', 'Density kg/m³'], ['Generic Density'], ['numeric density-like values'], ['Density Mixed', 'Density Gas', 'Density Liquid'], 'Prefer blank when Mixed/Gas/Liquid density fields are mapped.'],
+  ['densityMixed', 'Density Mixed', 68, ['Density Mixed', 'Mixed Density'], ['Mixed kg/m3', 'Mixed kg/m³', 'Density (Mixed)'], ['Mixed + kg/m³'], ['numeric density values'], ['Gas', 'Liquid'], 'Map before generic Density.'],
+  ['densityGas', 'Density Gas', 68, ['Density Gas', 'Gas Density'], ['Gas kg/m3', 'Gas kg/m³', 'Density (Gas)'], ['Density + Gas + kg/m³'], ['numeric density values'], ['Mixed', 'Liquid'], 'Map before generic Density.'],
+  ['densityLiquid', 'Density Liquid', 68, ['Density Liquid', 'Liquid Density'], ['Liquid kg/m3', 'Liquid kg/m³', 'Density (Liquid)'], ['Liquid + kg/m³'], ['numeric density values'], ['Mixed', 'Gas'], 'Map before generic Density.'],
+  ['phase', 'Phase', 66, ['Phase'], ['Fluid Phase', 'Medium Phase', 'Process Phase'], ['Phase + G/L/M'], ['G', 'L', 'M', 'Gas', 'Liquid', 'Mixed', 'Vapour', 'Vapor'], ['Density', 'Service', 'Material'], 'Phase supports density resolution.'],
+  ['from', 'From', 70, ['From'], ['From Equipment', 'Origin', 'Source'], ['exact stacked label cell = From'], [], ['substring from inside description text'], 'Safe exact-label top-up only.'],
+  ['to', 'To', 70, ['To'], ['To Equipment', 'Destination', 'Target'], ['exact stacked label cell = To'], [], ['substring to inside description text'], 'Safe exact-label top-up only.'],
 ]);
+
+const AUTO_MAP_FIELD_DEFAULTS = Object.freeze(FIELD_ROWS.map(([name, label, priority, exact, aliases, stacked, valueFallback, reject, policy]) => ({
+  name, label, enabled: true, priority, exact, aliases, stacked, valueFallback, reject, policy,
+})));
 
 function safeArray(value) { return Array.isArray(value) ? value.map((item) => String(item ?? '').trim()).filter(Boolean) : []; }
 function parseCsvList(text) { return String(text ?? '').split(',').map((item) => item.trim()).filter(Boolean); }
@@ -49,6 +54,23 @@ function ensureStandaloneAutoMapConfig(configObj) {
   };
   return configObj.standaloneAutoMap;
 }
+
+function ensurePipingClassActiveSetConfig(configObj) {
+  const existing = configObj.pipingClassActiveSet && typeof configObj.pipingClassActiveSet === 'object' ? configObj.pipingClassActiveSet : {};
+  configObj.pipingClassActiveSet = {
+    enabled: existing.enabled !== false,
+    mode: 'bore-only',
+    source: existing.source || 'loaded-xml',
+    fallbackToFullMasterWhenNoBoreDetected: existing.fallbackToFullMasterWhenNoBoreDetected !== false,
+    previewLimit: Number(existing.previewLimit || 150),
+    normalizedBoreFieldCandidates: safeArray(existing.normalizedBoreFieldCandidates).length
+      ? safeArray(existing.normalizedBoreFieldCandidates)
+      : ['convertedBore', 'bore', 'nps', 'dn', 'size', 'outsideDiameter', 'DIAMETER'],
+  };
+  return configObj.pipingClassActiveSet;
+}
+
+function configFromState(stateRef) { try { return JSON.parse(stateRef.current.supportConfigJson || '{}') || {}; } catch { return {}; } }
 
 function cardShell(title, helpText = '') {
   const card = createElement('section');
@@ -202,8 +224,29 @@ function renderApprovalPreview(card) {
   card.appendChild(preview);
 }
 
+function detectBoreTokensFromSource(sourceText) {
+  const source = String(sourceText || '');
+  if (!source.trim()) return [];
+  const found = new Set();
+  const patterns = [
+    /\b(?:BORE|NPS|DN|SIZE)\s*=\s*"([^"]+)"/gi,
+    /\bDIAMETER\s*=\s*"([^"]+)"/gi,
+    /<\s*(?:BORE|NPS|DN|SIZE|DIAMETER)\s*>\s*([^<]+?)\s*<\s*\//gi,
+    /\b(?:NPS|DN)\s*([0-9]+(?:\.[0-9]+)?)/gi,
+    /\b([0-9]+(?:\.[0-9]+)?)\s*"/g,
+  ];
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(source)) && found.size < 80) {
+      const value = String(match[1] || '').trim();
+      if (value) found.add(value);
+    }
+  }
+  return Array.from(found).slice(0, 40);
+}
+
 function renderAutoMapFieldsTab(card, stateRef, render) {
-  const configObj = (() => { try { return JSON.parse(stateRef.current.supportConfigJson || '{}') || {}; } catch { return {}; } })();
+  const configObj = configFromState(stateRef);
   const cfg = ensureStandaloneAutoMapConfig(configObj);
   const top = cardShell('🧠 Auto Map Fields Policy', 'Configurable field-wise keyword matrix. This is a top-up policy layer: existing XML→CII detector and dynamic fuzzy mapper remain the baseline.');
   const status = createElement('span', '', 'xml-cii-phase-help');
@@ -226,10 +269,68 @@ function renderAutoMapFieldsTab(card, stateRef, render) {
   renderApprovalPreview(card);
 }
 
+function renderPipingClassActiveSetTab(card, stateRef, render) {
+  const configObj = configFromState(stateRef);
+  const cfg = ensurePipingClassActiveSetConfig(configObj);
+  const masterRows = Number(stateRef.current.masterContext?.rowCounts?.pipingClass || 0);
+  const detectedBores = detectBoreTokensFromSource(stateRef.current.sourceText);
+  const panel = cardShell('🪈 Piping Class Active Set — Bore only', 'The full piping-class master remains a passive catalogue. The active set uses only rows whose normalized master bore matches bore evidence detected from the loaded XML/InputXML.');
+  const metrics = createElement('div');
+  metrics.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px;';
+  const metric = (label, value) => {
+    const item = createElement('div');
+    item.style.cssText = 'background:#0f172a;border:1px solid rgba(148,163,184,.18);border-radius:6px;padding:8px;';
+    item.append(createElement('span', label), createElement('strong', String(value ?? '0')));
+    item.firstChild.style.cssText = 'display:block;color:#94a3b8;font-size:11px;';
+    item.lastChild.style.cssText = 'display:block;color:#e2e8f0;font-size:15px;margin-top:4px;';
+    metrics.appendChild(item);
+  };
+  metric('Full master rows indexed', masterRows);
+  metric('Detected XML bore tokens', detectedBores.length);
+  metric('Filter mode', 'Bore only');
+  metric('Fallback', cfg.fallbackToFullMasterWhenNoBoreDetected ? 'Full master if no bore' : 'No fallback');
+  panel.appendChild(metrics);
+
+  const controls = createElement('div');
+  controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;';
+  makeCheckbox(controls, 'Enable piping-class active set', cfg.enabled !== false, (val) => { cfg.enabled = val; });
+  makeCheckbox(controls, 'Fallback to full master when no bore is detected', cfg.fallbackToFullMasterWhenNoBoreDetected !== false, (val) => { cfg.fallbackToFullMasterWhenNoBoreDetected = val; });
+  panel.appendChild(controls);
+
+  const modeRow = createElement('div');
+  modeRow.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:12px;';
+  const modeBox = cardShell('Strategy', 'Class/spec/component filters are intentionally disabled for now.');
+  modeBox.style.marginBottom = '0';
+  modeBox.appendChild(createElement('div', 'Mode: Bore only', 'xml-cii-phase-help'));
+  modeBox.appendChild(createElement('div', 'Active rows = master rows where normalized master bore ∈ normalized XML bores.', 'xml-cii-phase-help'));
+  const boreBox = cardShell('Bore field candidates', 'Comma-separated raw/normalized fields that may hold bore in XML or master rows.');
+  boreBox.style.marginBottom = '0';
+  boreBox.appendChild(fieldCellInput(stringifyList(cfg.normalizedBoreFieldCandidates), (value) => { cfg.normalizedBoreFieldCandidates = parseCsvList(value); }));
+  modeRow.append(modeBox, boreBox);
+  panel.appendChild(modeRow);
+
+  const detected = cardShell('Detected bore tokens from current source', detectedBores.length ? 'Raw detected tokens are shown for review; normalization to canonical bore/NPS is performed by the active-set builder.' : 'No source bore tokens detected yet. Load XML/InputXML first or keep fallback enabled.');
+  const pre = createElement('pre', detectedBores.length ? detectedBores.join('\n') : 'No bore tokens detected.');
+  pre.style.cssText = 'max-height:180px;overflow:auto;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:12px;';
+  detected.appendChild(pre);
+  panel.appendChild(detected);
+
+  const save = createElement('button', '💾 Save Piping Class Active Set');
+  save.type = 'button';
+  save.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
+  save.addEventListener('click', () => saveConfig(stateRef, configObj, render));
+  panel.appendChild(save);
+  card.appendChild(panel);
+}
+
 export function renderAdaptedConfigPanel(card, stateRef, render) {
   const active = renderTabRail(card, stateRef, render);
   if (active === 'autoMapFields') {
     renderAutoMapFieldsTab(card, stateRef, render);
+    return;
+  }
+  if (active === 'pipingClassActiveSet') {
+    renderPipingClassActiveSetTab(card, stateRef, render);
     return;
   }
   renderGeneralConfigPanel(card, stateRef, render);
