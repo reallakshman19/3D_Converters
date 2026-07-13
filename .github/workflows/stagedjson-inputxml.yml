@@ -15,9 +15,11 @@ on:
       - 'tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js'
       - 'converters/scripts/test_stagedjson_inputxml_workpack.py'
       - 'tests/stagedjson-inputxml-workpack.test.js'
+      - 'tests/xml-cii-standalone-source-mode-integration.test.js'
       - 'docs/inputxml-upstream-audit/stagedjson-to-inputxml_audit.md'
+      - 'docs/inputxml-upstream-audit/stagedjson-inputxml_browser_failure_addendum.md'
       - 'docs/inputxml-upstream-audit/stagedjson-inputxml_workpack_checks.md'
-      - '.backups/20260713_stagedjson_inputxml_workpack_backup.json'
+      - '.backups/20260713_stagedjson_*'
       - '.github/workflows/stagedjson-inputxml.yml'
   push:
     branches: [main]
@@ -33,9 +35,11 @@ on:
       - 'tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js'
       - 'converters/scripts/test_stagedjson_inputxml_workpack.py'
       - 'tests/stagedjson-inputxml-workpack.test.js'
+      - 'tests/xml-cii-standalone-source-mode-integration.test.js'
       - 'docs/inputxml-upstream-audit/stagedjson-to-inputxml_audit.md'
+      - 'docs/inputxml-upstream-audit/stagedjson-inputxml_browser_failure_addendum.md'
       - 'docs/inputxml-upstream-audit/stagedjson-inputxml_workpack_checks.md'
-      - '.backups/20260713_stagedjson_inputxml_workpack_backup.json'
+      - '.backups/20260713_stagedjson_*'
       - '.github/workflows/stagedjson-inputxml.yml'
 
 permissions:
@@ -67,6 +71,8 @@ jobs:
           test ! -e scripts/stagedjson-inputxml-workpack-patch.py
           test ! -e scripts/repair-stagedjson-inputxml-patch.py
           test ! -e .github/workflows/stagedjson-inputxml-patch.yml
+          test ! -e scripts/stagedjson-failed-diagnostics-patch.py
+          test ! -e .github/workflows/stagedjson-failed-diagnostics-patch.yml
           test "$(wc -l < converters/scripts/stagedjson_inputxml_diagnostics.py)" -le 300
           test "$(wc -l < tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js)" -le 300
       - name: Syntax checks
@@ -82,6 +88,7 @@ jobs:
           node --check tabs/model-converters/ModelConvertersTab.js
           node --check tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js
           node --check tests/stagedjson-inputxml-workpack.test.js
+          node --check tests/xml-cii-standalone-source-mode-integration.test.js
       - name: Focused authority and integration tests
         id: focused_tests
         shell: bash
@@ -91,7 +98,8 @@ jobs:
             python -m pytest -q converters/scripts/test_stagedjson_inputxml_workpack.py &&
             python converters/scripts/test_coord_transform.py &&
             python converters/scripts/test_chain_g4_g5.py &&
-            node tests/stagedjson-inputxml-workpack.test.js
+            node tests/stagedjson-inputxml-workpack.test.js &&
+            node tests/xml-cii-standalone-source-mode-integration.test.js
           } > stagedjson-inputxml-focused-tests.log 2>&1
           status=$?
           cat stagedjson-inputxml-focused-tests.log
