@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - scripts/xml-builder-inputxml-workpack-patch.mjs
+      - scripts/repair-xml-builder-inputxml-patch.mjs
       - .github/workflows/xml-builder-inputxml-patch.yml
 
 permissions:
@@ -30,6 +31,10 @@ jobs:
           python-version: '3.11'
       - name: Install runtime dependencies
         run: npm ci --omit=dev
+      - name: Repair and validate temporary patch runner
+        run: |
+          node scripts/repair-xml-builder-inputxml-patch.mjs
+          node --check scripts/xml-builder-inputxml-workpack-patch.mjs
       - name: Apply exact patch
         id: guarded_patch
         shell: bash
@@ -85,7 +90,7 @@ jobs:
             tabs/xml-builder-tab.js \
             tests/xml-cii-node-to-inputxml-core.test.js \
             tests/xml-builder-inputxml-ui.test.js
-          git rm scripts/xml-builder-inputxml-workpack-patch.mjs .github/workflows/xml-builder-inputxml-patch.yml
+          git rm scripts/xml-builder-inputxml-workpack-patch.mjs scripts/repair-xml-builder-inputxml-patch.mjs .github/workflows/xml-builder-inputxml-patch.yml
           git diff --cached --check
           git commit -m "fix: harden XML Builder InputXML generation"
           git push origin HEAD:agent/xml-builder-inputxml-audit-fix
