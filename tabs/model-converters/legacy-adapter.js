@@ -2622,6 +2622,23 @@ function _applyInputxml2019SafeUnits(config, notes) {
   }
 }
 
+function _applyInputxml2019NamePreservation(config, notes) {
+  if (!config.sections || typeof config.sections !== 'object' || Array.isArray(config.sections)) {
+    config.sections = {};
+  }
+  if (config.sections.include_nodename !== true) {
+    config.sections.include_nodename = true;
+    notes.push('Enabled sections.include_nodename so FROM_NAME/TO_NAME from InputXML can reach CII NODENAME.');
+  }
+  if (!config.nodename || typeof config.nodename !== 'object' || Array.isArray(config.nodename)) {
+    config.nodename = {};
+  }
+  if (!config.nodename.mode || config.nodename.mode === 'disabled') {
+    config.nodename.mode = 'auto';
+    notes.push('Set nodename.mode to auto so source node names are preserved.');
+  }
+}
+
 function _prepareInputxml2019ConfigForRequirements(layoutConfigJsonText, requirements) {
   const { config, parseIssue } = _parseInputxml2019ConfigOrDefault(layoutConfigJsonText);
   const notes = [];
@@ -2683,9 +2700,7 @@ function _prepareInputxml2019ConfigForRequirements(layoutConfigJsonText, require
     }
   }
 
-  if (!config.sections || typeof config.sections !== 'object' || Array.isArray(config.sections)) {
-    config.sections = {};
-  }
+  _applyInputxml2019NamePreservation(config, notes);
   if (config.sections.raw_payload_overrides && typeof config.sections.raw_payload_overrides === 'object' && !Array.isArray(config.sections.raw_payload_overrides)) {
     const rawElements = config.sections.raw_payload_overrides.ELEMENTS;
     if (Array.isArray(rawElements)) {
