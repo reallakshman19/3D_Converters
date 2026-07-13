@@ -1,0 +1,98 @@
+name: StagedJSON Failed Diagnostics Guarded Patch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/stagedjson-failed-diagnostics-patch.py'
+      - '.github/workflows/stagedjson-failed-diagnostics-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Work Pack branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/stagedjson-inputxml-audit-fix
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          npm ci --omit=dev
+          python -m pip install --disable-pip-version-check pytest
+      - name: Apply exact staged-only failure patch
+        id: exact_patch
+        shell: bash
+        run: |
+          set +e
+          {
+            python -m py_compile scripts/stagedjson-failed-diagnostics-patch.py &&
+            python scripts/stagedjson-failed-diagnostics-patch.py
+          } > stagedjson-failed-diagnostics-patch.log 2>&1
+          status=$?
+          cat stagedjson-failed-diagnostics-patch.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload patch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stagedjson-failed-diagnostics-patch-log
+          path: stagedjson-failed-diagnostics-patch.log
+      - name: Enforce exact patch success
+        if: steps.exact_patch.outputs.status != '0'
+        run: exit 1
+      - name: Syntax and focused validation
+        id: focused_tests
+        shell: bash
+        run: |
+          set +e
+          {
+            python -m py_compile \
+              converters/scripts/stagedjson_to_inputxml.py \
+              converters/scripts/stagedjson_inputxml_diagnostics.py \
+              converters/scripts/inputxml_bookmark.py \
+              converters/scripts/test_stagedjson_inputxml_workpack.py &&
+            node --check converters/py-worker.js &&
+            node --check tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js &&
+            node --check tests/stagedjson-inputxml-workpack.test.js &&
+            python -m pytest -q converters/scripts/test_stagedjson_inputxml_workpack.py &&
+            python converters/scripts/test_coord_transform.py &&
+            python converters/scripts/test_chain_g4_g5.py &&
+            node tests/stagedjson-inputxml-workpack.test.js
+          } > stagedjson-failed-diagnostics-focused.log 2>&1
+          status=$?
+          cat stagedjson-failed-diagnostics-focused.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stagedjson-failed-diagnostics-focused-log
+          path: stagedjson-failed-diagnostics-focused.log
+      - name: Enforce focused validation
+        if: steps.focused_tests.outputs.status != '0'
+        run: exit 1
+      - name: Commit failed-run handoff and remove scaffolding
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add converters/py-worker.js converters/scripts/stagedjson_to_inputxml.py
+          git rm -f scripts/stagedjson-failed-diagnostics-patch.py .github/workflows/stagedjson-failed-diagnostics-patch.yml
+          git diff --cached --check
+          git commit -m "fix: preserve failed StagedJSON diagnostics"
+          git push origin HEAD:agent/stagedjson-inputxml-audit-fix
