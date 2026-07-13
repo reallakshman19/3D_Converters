@@ -1,3 +1,4 @@
+import { DEFAULT_MATERIAL_MAP_ROWS } from '../../../converters/xml-cii2019-core/default-material-map-rows.js';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
 import { renderAdaptedConfigPanel as renderGeneralConfigPanel } from './xml-cii-adapted-config.js';
@@ -33,24 +34,26 @@ const FIELD_ROWS = Object.freeze([
   ['to', 'To', 70, 'To', 'To Equipment, Destination, Target', 'exact stacked label cell = To', '', 'substring to inside description text', 'Safe exact-label top-up only.'],
 ]);
 
+const CAPS_DEFAULT_URL = new URL('../../../docs/CAPS', import.meta.url).href;
 const DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS = Object.freeze([
-  { pipingClass: '11261', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS', rating: '150', corrosion: '1', note: 'Carbon steel base class' },
-  { pipingClass: '11441', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS Sour', rating: '150', corrosion: '3', note: 'Carbon steel sour' },
-  { pipingClass: '31441', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS Sour', rating: '300', corrosion: '3', note: 'Carbon steel sour' },
-  { pipingClass: '61261', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS', rating: '600', corrosion: '1', note: 'Carbon steel rating family' },
-  { pipingClass: '91261', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS', rating: '900', corrosion: '1', note: 'Carbon steel rating family' },
-  { pipingClass: '11472', materialCode: '177', materialName: 'ASTM A333-6', materialCategory: 'LT CS', rating: '150', corrosion: '', note: 'Low-temperature carbon steel' },
-  { pipingClass: '11503', materialCode: '177', materialName: 'ASTM A333-6', materialCategory: 'LT CS Sour', rating: '150', corrosion: '', note: 'Low-temperature sour carbon steel' },
-  { pipingClass: '12021', materialCode: '181', materialName: 'ASTM A335-P11', materialCategory: '1.25Cr-0.5Mo', rating: '150', corrosion: '', note: 'Alloy steel' },
-  { pipingClass: '12040', materialCode: '186', materialName: 'ASTM A335-P5', materialCategory: '5Cr-0.5Mo', rating: '150', corrosion: '', note: 'Alloy steel' },
-  { pipingClass: '12090', materialCode: '190', materialName: 'ASTM A335-P9', materialCategory: '9Cr-1Mo', rating: '150', corrosion: '', note: 'Alloy steel' },
-  { pipingClass: '13021', materialCode: '163', materialName: 'ASTM A312-TP316', materialCategory: 'SS 316', rating: '150', corrosion: '', note: 'Stainless steel 316' },
-  { pipingClass: '13081', materialCode: '155', materialName: 'ASTM A312-TP304', materialCategory: 'SS 304', rating: '150', corrosion: '', note: 'Stainless steel 304' },
+  { pipingClass: '11261', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS', rating: '150', corrosion: '1', note: 'Seed: carbon steel base class' },
+  { pipingClass: '11441', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS Sour', rating: '150', corrosion: '3', note: 'Seed: carbon steel sour' },
+  { pipingClass: '31441', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS Sour', rating: '300', corrosion: '3', note: 'Seed: carbon steel sour' },
+  { pipingClass: '61261', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS', rating: '600', corrosion: '1', note: 'Seed: carbon steel rating family' },
+  { pipingClass: '91261', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS', rating: '900', corrosion: '1', note: 'Seed: carbon steel rating family' },
+  { pipingClass: '11472', materialCode: '177', materialName: 'ASTM A333-6', materialCategory: 'LT CS', rating: '150', corrosion: '', note: 'Seed: low-temperature carbon steel' },
+  { pipingClass: '11503', materialCode: '177', materialName: 'ASTM A333-6', materialCategory: 'LT CS Sour', rating: '150', corrosion: '', note: 'Seed: low-temperature sour carbon steel' },
+  { pipingClass: '12021', materialCode: '181', materialName: 'ASTM A335-P11', materialCategory: '1.25Cr-0.5Mo', rating: '150', corrosion: '', note: 'Seed: alloy steel' },
+  { pipingClass: '12040', materialCode: '186', materialName: 'ASTM A335-P5', materialCategory: '5Cr-0.5Mo', rating: '150', corrosion: '', note: 'Seed: alloy steel' },
+  { pipingClass: '12090', materialCode: '190', materialName: 'ASTM A335-P9', materialCategory: '9Cr-1Mo', rating: '150', corrosion: '', note: 'Seed: alloy steel' },
+  { pipingClass: '13021', materialCode: '163', materialName: 'ASTM A312-TP316', materialCategory: 'SS 316', rating: '150', corrosion: '', note: 'Seed: stainless steel 316' },
+  { pipingClass: '13081', materialCode: '155', materialName: 'ASTM A312-TP304', materialCategory: 'SS 304', rating: '150', corrosion: '', note: 'Seed: stainless steel 304' },
 ]);
 
 const toList = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
 const fromList = (v) => Array.isArray(v) ? v.join(', ') : String(v || '');
 const configFromState = (stateRef) => { try { return JSON.parse(stateRef.current.supportConfigJson || '{}') || {}; } catch { return {}; } };
+const clean = (value) => String(value ?? '').trim();
 
 function saveConfig(stateRef, configObj, render) {
   const fullConfigJson = JSON.stringify(configObj, null, 2);
@@ -89,7 +92,7 @@ function textInput(value, onChange, width = '100%') {
 
 function numberInput(value, onChange) {
   const input = textInput(String(value ?? 0), (val) => onChange(Number(val) || 0), '90px');
-  input.type = 'number'; input.min = '0'; input.max = '100'; input.step = '1';
+  input.type = 'number'; input.min = '0'; input.max = '10000'; input.step = '1';
   return input;
 }
 
@@ -105,6 +108,49 @@ function selectBox(value, options, onChange) {
   return select;
 }
 
+function normalizeMaterialKey(value) {
+  return clean(value).toUpperCase()
+    .replace(/[‐‑–—]/g, '-')
+    .replace(/^ASTM\s+/, '')
+    .replace(/^API\s+/, 'API-')
+    .replace(/^API-?5L[-\s]?/, 'API-5L-')
+    .replace(/\((?:SML|ERW|SAW|SEAMLESS|WELDED)\)/g, '')
+    .replace(/\b(?:CL|CLASS)\.?\s*\d+\b/g, '')
+    .replace(/\bSTAB\s+HT\b/g, '')
+    .replace(/\s+/g, '')
+    .replace(/_/g, '-');
+}
+
+function materialKeyVariants(value) {
+  const base = normalizeMaterialKey(value);
+  const variants = new Set([base]);
+  variants.add(base.replace(/\./g, ''));
+  variants.add(base.replace(/-/g, ''));
+  variants.add(base.replace(/(\d)\.(\d)/g, '$1$2'));
+  variants.add(base.replace(/TP/g, ''));
+  variants.add(base.replace(/WP/g, ''));
+  return Array.from(variants).filter(Boolean);
+}
+
+const MATERIAL_MAP_INDEX = (() => {
+  const index = new Map();
+  for (const row of DEFAULT_MATERIAL_MAP_ROWS || []) {
+    const material = clean(row.material || row.Material || row['Material Name']);
+    const code = clean(row.code || row.materialCode || row['Material Code']);
+    if (!material || !code) continue;
+    for (const key of materialKeyVariants(material)) if (!index.has(key)) index.set(key, { code, material });
+  }
+  return index;
+})();
+
+function resolveMaterialCodeFromMap(materialName) {
+  for (const key of materialKeyVariants(materialName)) {
+    const hit = MATERIAL_MAP_INDEX.get(key);
+    if (hit) return { code: hit.code, matchedMaterial: hit.material, matchKey: key };
+  }
+  return { code: '', matchedMaterial: '', matchKey: '' };
+}
+
 function defaultPipingClassMaterialCodeRows() {
   return DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS.map((row) => ({ ...row }));
 }
@@ -112,14 +158,68 @@ function defaultPipingClassMaterialCodeRows() {
 function normalizeMaterialCodeRow(row) {
   const value = row && typeof row === 'object' ? row : {};
   return {
-    pipingClass: String(value.pipingClass || value.classNumber || value['Piping Class'] || '').trim(),
-    materialCode: String(value.materialCode || value.code || value['Material Code'] || '').trim(),
-    materialName: String(value.materialName || value.material || value.Material_Name || value['Material Name'] || '').trim(),
-    materialCategory: String(value.materialCategory || value.PMSMat_Cat || value.PMSMat_Categories || value['Material Category'] || '').trim(),
-    rating: String(value.rating || value.Rating || '').trim(),
-    corrosion: String(value.corrosion || value.Corrosion || '').trim(),
-    note: String(value.note || value.source || '').trim(),
+    pipingClass: clean(value.pipingClass || value.classNumber || value['Piping Class']),
+    materialCode: clean(value.materialCode || value.code || value['Material Code']),
+    materialName: clean(value.materialName || value.material || value.Material_Name || value['Material Name']),
+    materialCategory: clean(value.materialCategory || value.PMSMat_Cat || value.PMSMat_Categories || value['Material Category']),
+    rating: clean(value.rating || value.Rating),
+    corrosion: clean(value.corrosion || value.Corrosion),
+    note: clean(value.note || value.source),
   };
+}
+
+function ratingFromPipingClass(classNumber) {
+  const first = clean(classNumber).charAt(0);
+  return ({ 1: '150', 3: '300', 6: '600', 9: '900' })[first] || '';
+}
+
+function parseCapsTextToMaterialCodeRows(text) {
+  const rows = [];
+  const seen = new Set();
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || /^Class number\b/i.test(trimmed)) continue;
+    const [classNumberRaw, materialCategoryRaw, materialNameRaw] = trimmed.split('\t');
+    const pipingClass = clean(classNumberRaw);
+    const materialCategory = clean(materialCategoryRaw);
+    const materialName = clean(materialNameRaw);
+    if (!pipingClass || !materialName) continue;
+    const resolved = resolveMaterialCodeFromMap(materialName);
+    const key = `${pipingClass}::${resolved.code || 'UNMAPPED'}::${materialName}::${materialCategory}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push(normalizeMaterialCodeRow({
+      pipingClass,
+      materialCode: resolved.code,
+      materialName,
+      materialCategory,
+      rating: ratingFromPipingClass(pipingClass),
+      corrosion: '',
+      note: resolved.code ? `CAPS → Mat_MAP ${resolved.matchedMaterial}` : 'CAPS material not found in Mat_MAP; review',
+    }));
+  }
+  return rows.sort((a, b) => (a.pipingClass.localeCompare(b.pipingClass, undefined, { numeric: true }) || a.materialName.localeCompare(b.materialName)));
+}
+
+async function loadCapsRowsIntoConfig(configObj, cfg, stateRef, render, statusEl = null) {
+  if (typeof fetch !== 'function') throw new Error('Browser fetch API is not available.');
+  const source = cfg.capsSourcePath || CAPS_DEFAULT_URL;
+  if (statusEl) statusEl.textContent = `Loading CAPS material map from ${source}…`;
+  const response = await fetch(source, { cache: 'no-cache' });
+  if (!response.ok) throw new Error(`Could not load CAPS (${response.status} ${response.statusText})`);
+  const text = await response.text();
+  const rows = parseCapsTextToMaterialCodeRows(text);
+  if (!rows.length) throw new Error('CAPS file parsed zero class/material rows.');
+  cfg.rows = rows;
+  cfg.loadedFromCaps = true;
+  cfg.rowsSource = 'docs/CAPS';
+  cfg.capsSourcePath = source;
+  cfg.capsRowCount = rows.length;
+  cfg.unmatchedMaterialCount = rows.filter((row) => !row.materialCode).length;
+  cfg.lastLoadedAt = new Date().toISOString();
+  cfg.capsLoadError = '';
+  configObj.pipingClassMaterialCodeMap = cfg;
+  saveConfig(stateRef, configObj, render);
 }
 
 function ensureAutoMap(configObj) {
@@ -158,6 +258,16 @@ function ensurePipingClassMaterialCodeMap(configObj) {
     exactPipingClassFirst: current.exactPipingClassFirst !== false,
     normalizeClassSuffix: current.normalizeClassSuffix !== false,
     materialNameToMatMapFallback: current.materialNameToMatMapFallback !== false,
+    autoLoadCaps: current.autoLoadCaps !== false,
+    capsSourcePath: current.capsSourcePath || CAPS_DEFAULT_URL,
+    loadedFromCaps: current.loadedFromCaps === true,
+    rowsSource: current.rowsSource || 'seed',
+    capsRowCount: Number(current.capsRowCount || rows.length),
+    unmatchedMaterialCount: Number(current.unmatchedMaterialCount || rows.filter((row) => !row.materialCode).length),
+    renderLimit: Number(current.renderLimit || 500),
+    filterText: clean(current.filterText),
+    lastLoadedAt: clean(current.lastLoadedAt),
+    capsLoadError: clean(current.capsLoadError),
     rows,
   };
   return configObj.pipingClassMaterialCodeMap;
@@ -247,6 +357,15 @@ function renderPipingClassActiveSetTab(card, stateRef, render) {
 function renderPipingClassMaterialCodeMapTab(card, stateRef, render) {
   const configObj = configFromState(stateRef);
   const cfg = ensurePipingClassMaterialCodeMap(configObj);
+  if (cfg.autoLoadCaps && !cfg.loadedFromCaps && !stateRef.current.__capsMaterialLoadInProgress && cfg.rows.length <= DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS.length) {
+    stateRef.current.__capsMaterialLoadInProgress = true;
+    loadCapsRowsIntoConfig(configObj, cfg, stateRef, render).catch((error) => {
+      const latest = ensurePipingClassMaterialCodeMap(configFromState(stateRef));
+      latest.capsLoadError = error?.message || String(error);
+      stateRef.current.__capsMaterialLoadInProgress = false;
+      render();
+    });
+  }
   const panel = cardShell('🧩 Piping Class ↔ Material Code Map', 'Editable static lookup used to bridge Piping Class number to CAESAR material code. Resolver priority should be: manual override → exact Piping Class/Bore master row → this static table → Material_Name → Mat_MAP fallback → review.');
   const toggles = createElement('div'); toggles.style.cssText = 'display:flex;flex-wrap:wrap;margin-bottom:10px;';
   checkbox(toggles, 'Enable static Piping Class ↔ Material Code map', cfg.enabled, (v) => { cfg.enabled = v; });
@@ -254,14 +373,38 @@ function renderPipingClassMaterialCodeMapTab(card, stateRef, render) {
   checkbox(toggles, 'Exact piping-class match first', cfg.exactPipingClassFirst, (v) => { cfg.exactPipingClassFirst = v; });
   checkbox(toggles, 'Normalize class suffix such as 91261M7 → 91261', cfg.normalizeClassSuffix, (v) => { cfg.normalizeClassSuffix = v; });
   checkbox(toggles, 'Allow Material_Name → Mat_MAP fallback', cfg.materialNameToMatMapFallback, (v) => { cfg.materialNameToMatMapFallback = v; });
+  checkbox(toggles, 'Auto-load all rows from docs/CAPS', cfg.autoLoadCaps, (v) => { cfg.autoLoadCaps = v; });
   panel.appendChild(toggles);
+
+  const sourceBox = cardShell('CAPS source', 'The table can be populated from the repository static docs/CAPS file and mapped against the built-in Mat_MAP rows. Unmatched materials stay editable with blank Material Code.');
+  sourceBox.appendChild(textInput(cfg.capsSourcePath, (v) => { cfg.capsSourcePath = v || CAPS_DEFAULT_URL; }, '100%'));
+  panel.appendChild(sourceBox);
 
   const summary = createElement('div');
   summary.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px;';
   metric(summary, 'Configured rows', cfg.rows.length);
-  metric(summary, 'Enabled', cfg.enabled ? 'Yes' : 'No');
-  metric(summary, 'Suffix normalization', cfg.normalizeClassSuffix ? 'On' : 'Off');
+  metric(summary, 'Source', cfg.rowsSource || 'seed');
+  metric(summary, 'Unmatched material codes', cfg.rows.filter((row) => !row.materialCode).length);
+  metric(summary, 'Last loaded', cfg.lastLoadedAt ? cfg.lastLoadedAt.slice(0, 19).replace('T', ' ') : '—');
   panel.appendChild(summary);
+
+  const controls = createElement('div');
+  controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;';
+  const filterLabel = createElement('label');
+  filterLabel.style.cssText = 'display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px;';
+  filterLabel.append(document.createTextNode('Filter:'), textInput(cfg.filterText, (v) => { cfg.filterText = v; }, '220px'));
+  const limitLabel = createElement('label');
+  limitLabel.style.cssText = 'display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px;';
+  limitLabel.append(document.createTextNode('Render limit:'), numberInput(cfg.renderLimit, (v) => { cfg.renderLimit = Math.max(50, v || 500); }));
+  controls.append(filterLabel, limitLabel);
+  panel.appendChild(controls);
+
+  const filter = clean(cfg.filterText).toUpperCase();
+  const matchedRows = filter ? cfg.rows.filter((row) => Object.values(row).some((value) => clean(value).toUpperCase().includes(filter))) : cfg.rows;
+  const shownRows = matchedRows.slice(0, Math.max(50, Number(cfg.renderLimit || 500)));
+  const displayNote = createElement('div', `Showing ${shownRows.length} of ${matchedRows.length} matching row(s), total ${cfg.rows.length}.` + (cfg.capsLoadError ? ` CAPS load warning: ${cfg.capsLoadError}` : ''), 'xml-cii-phase-help');
+  displayNote.style.cssText = `margin:0 0 8px 0;color:${cfg.capsLoadError ? '#fca5a5' : '#94a3b8'};`;
+  panel.appendChild(displayNote);
 
   const wrap = createElement('div');
   wrap.style.cssText = 'max-height:520px;overflow:auto;border:1px solid rgba(148,163,184,.18);border-radius:8px;';
@@ -273,7 +416,8 @@ function renderPipingClassMaterialCodeMapTab(card, stateRef, render) {
   }
   const thead = createElement('thead'); thead.appendChild(header); table.appendChild(thead);
   const tbody = createElement('tbody');
-  cfg.rows.forEach((row, index) => {
+  shownRows.forEach((row) => {
+    const index = cfg.rows.indexOf(row);
     const tr = createElement('tr');
     const add = (node, width = '') => {
       const td = createElement('td');
@@ -291,32 +435,34 @@ function renderPipingClassMaterialCodeMapTab(card, stateRef, render) {
     const remove = createElement('button', 'Remove');
     remove.type = 'button';
     remove.style.cssText = 'background:#7f1d1d;color:#fee2e2;border:1px solid #b91c1c;border-radius:5px;padding:4px 8px;font-size:11px;cursor:pointer;';
-    remove.addEventListener('click', () => { cfg.rows.splice(index, 1); saveConfig(stateRef, configObj, render); });
+    remove.addEventListener('click', () => { if (index >= 0) cfg.rows.splice(index, 1); saveConfig(stateRef, configObj, render); });
     add(remove, '90px');
     tbody.appendChild(tr);
   });
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-  panel.appendChild(wrap);
+  table.appendChild(tbody); wrap.appendChild(table); panel.appendChild(wrap);
 
   const actions = createElement('div');
   actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;';
   const addBtn = createElement('button', '＋ Add row');
   addBtn.type = 'button';
   addBtn.style.cssText = 'background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
-  addBtn.addEventListener('click', () => { cfg.rows.push(normalizeMaterialCodeRow({ pipingClass: '', materialCode: '', materialName: '', materialCategory: '', rating: '', corrosion: '', note: 'manual' })); saveConfig(stateRef, configObj, render); });
+  addBtn.addEventListener('click', () => { cfg.rows.unshift(normalizeMaterialCodeRow({ pipingClass: '', materialCode: '', materialName: '', materialCategory: '', rating: '', corrosion: '', note: 'manual' })); saveConfig(stateRef, configObj, render); });
+  const capsBtn = createElement('button', '↻ Load all from docs/CAPS');
+  capsBtn.type = 'button';
+  capsBtn.style.cssText = 'background:#0f766e;color:#ccfbf1;border:1px solid #14b8a6;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
+  capsBtn.addEventListener('click', async () => { try { await loadCapsRowsIntoConfig(configObj, cfg, stateRef, render, displayNote); } catch (error) { cfg.capsLoadError = error?.message || String(error); saveConfig(stateRef, configObj, render); } });
   const defaultsBtn = createElement('button', '↺ Restore seed rows');
   defaultsBtn.type = 'button';
   defaultsBtn.style.cssText = 'background:#3f2f09;color:#fde68a;border:1px solid #a16207;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
-  defaultsBtn.addEventListener('click', () => { cfg.rows = defaultPipingClassMaterialCodeRows(); saveConfig(stateRef, configObj, render); });
+  defaultsBtn.addEventListener('click', () => { cfg.rows = defaultPipingClassMaterialCodeRows(); cfg.loadedFromCaps = false; cfg.rowsSource = 'seed'; cfg.capsLoadError = ''; saveConfig(stateRef, configObj, render); });
   const save = createElement('button', '💾 Save Piping Class ↔ Material Code Map');
   save.type = 'button';
   save.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
   save.addEventListener('click', () => saveConfig(stateRef, configObj, render));
-  actions.append(addBtn, defaultsBtn, save);
+  actions.append(addBtn, capsBtn, defaultsBtn, save);
   panel.appendChild(actions);
 
-  const help = cardShell('Resolver note', 'Piping Class number is not itself a material code. Example: 91261 → Material_Name ASTM A106-B → Mat_MAP code 106. This static table is an editable fallback / approval layer, not a replacement for the uploaded masters.');
+  const help = cardShell('Resolver note', 'Piping Class number is not itself a material code. Example: 91261 → Material_Name ASTM A106-B → Mat_MAP code 106. CAPS may contain several material rows per piping class; this editable table keeps them as separate approved candidates.');
   help.style.marginTop = '12px';
   panel.appendChild(help);
   card.appendChild(panel);
