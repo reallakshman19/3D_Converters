@@ -26,22 +26,30 @@ def _fail(message: str) -> None:
     raise SystemExit(message)
 
 
+def _js_function_span(lines: list[str], start_index: int) -> int:
+    depth = 0
+    opened = False
+    for index in range(start_index, len(lines)):
+        depth += lines[index].count("{") - lines[index].count("}")
+        opened = opened or "{" in lines[index]
+        if opened and depth <= 0:
+            return index - start_index + 1
+    return len(lines) - start_index
+
+
 def _check_js(path: Path) -> None:
     lines = path.read_text(encoding="utf-8").splitlines()
     if len(lines) >= 300:
         _fail(f"{path}: {len(lines)} lines; new JavaScript modules must remain below 300")
     if any(re.search(r"\bexport\s+default\b", line) for line in lines):
         _fail(f"{path}: default export is forbidden")
-    starts = []
-    for index, line in enumerate(lines, start=1):
+    for index, line in enumerate(lines):
         match = JS_FUNCTION.match(line.strip())
-        if match:
-            starts.append((match.group(1), index))
-    for position, (name, start) in enumerate(starts):
-        next_start = starts[position + 1][1] if position + 1 < len(starts) else len(lines) + 1
-        span = next_start - start
+        if not match:
+            continue
+        span = _js_function_span(lines, index)
         if span > 40:
-            _fail(f"{path}:{start} function {name} spans {span} lines")
+            _fail(f"{path}:{index + 1} function {match.group(1)} spans {span} lines")
 
 
 def _check_python(path: Path) -> None:
