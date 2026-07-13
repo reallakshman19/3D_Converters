@@ -57,18 +57,36 @@ jobs:
         if: steps.exact_patch.outputs.status != '0'
         run: exit 1
       - name: Syntax checks
+        id: syntax_checks
+        shell: bash
         run: |
-          python -m py_compile \
-            converters/scripts/inputxml_bookmark.py \
-            converters/scripts/stagedjson_inputxml_diagnostics.py \
-            converters/scripts/stagedjson_to_inputxml.py \
-            converters/scripts/test_stagedjson_inputxml_workpack.py
-          node --check converters/invocation-builder.js
-          node --check converters/py-worker.js
-          node --check tabs/model-converters/converter-registry.js
-          node --check tabs/model-converters/ModelConvertersTab.js
-          node --check tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js
-          node --check tests/stagedjson-inputxml-workpack.test.js
+          set +e
+          {
+            python -m py_compile \
+              converters/scripts/inputxml_bookmark.py \
+              converters/scripts/stagedjson_inputxml_diagnostics.py \
+              converters/scripts/stagedjson_to_inputxml.py \
+              converters/scripts/test_stagedjson_inputxml_workpack.py
+            node --check converters/invocation-builder.js
+            node --check converters/py-worker.js
+            node --check tabs/model-converters/converter-registry.js
+            node --check tabs/model-converters/ModelConvertersTab.js
+            node --check tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js
+            node --check tests/stagedjson-inputxml-workpack.test.js
+          } > stagedjson-inputxml-syntax.log 2>&1
+          status=$?
+          cat stagedjson-inputxml-syntax.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload syntax log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stagedjson-inputxml-syntax-log
+          path: stagedjson-inputxml-syntax.log
+      - name: Enforce syntax success
+        if: steps.syntax_checks.outputs.status != '0'
+        run: exit 1
       - name: Focused authority and integration tests
         id: focused_tests
         shell: bash
