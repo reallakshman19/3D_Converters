@@ -6026,6 +6026,13 @@ export function renderModelConvertersTab(container) {
           <div class="model-converters-card-title">Logs</div>
           <pre id="model-converters-logs" class="model-converters-logs">(no logs)</pre>
           <div id="model-converters-diagnostics-table" class="model-converters-logs" style="display:none;max-height:280px;overflow:auto;margin-top:8px;white-space:normal;"></div>
+          <div id="model-converters-cii-warnings" style="display:none;margin-top:8px;border:1px solid #31455f;border-radius:6px;overflow:hidden;">
+            <button type="button" id="model-converters-cii-warnings-toggle" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#182334;color:#9cc5ff;border:none;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer;">
+              <span id="model-converters-cii-warnings-title">InputXML→CII(2019) Diagnostics</span>
+              <span id="model-converters-cii-warnings-caret">&#9656;</span>
+            </button>
+            <div id="model-converters-cii-warnings-body" style="display:none;max-height:280px;overflow:auto;padding:8px;background:#101a29;"></div>
+          </div>
         </div>
       </section>
     </div>
@@ -6057,6 +6064,11 @@ export function renderModelConvertersTab(container) {
   const outputEl = container.querySelector('#model-converters-output');
   const logsEl = container.querySelector('#model-converters-logs');
   const diagnosticsTableEl = container.querySelector('#model-converters-diagnostics-table');
+  const ciiWarningsWrapEl = container.querySelector('#model-converters-cii-warnings');
+  const ciiWarningsToggleEl = container.querySelector('#model-converters-cii-warnings-toggle');
+  const ciiWarningsTitleEl = container.querySelector('#model-converters-cii-warnings-title');
+  const ciiWarningsCaretEl = container.querySelector('#model-converters-cii-warnings-caret');
+  const ciiWarningsBodyEl = container.querySelector('#model-converters-cii-warnings-body');
   const previewHostEl = container.querySelector('#model-converters-preview-host');
   const previewMetaEl = container.querySelector('#model-converters-preview-meta');
 
@@ -6177,6 +6189,47 @@ export function renderModelConvertersTab(container) {
       </table>
       ${normalized.length > 240 ? `<div style="color:#9aa8ba;padding-top:4px;">Showing first 240 of ${normalized.length} diagnostic rows. Download diagnostics JSON for full details.</div>` : ''}
     `;
+  }
+
+  // InputXML->CII(2019)'s _warn()-based diagnostics (severity/code/message
+  // plus free-form context fields, e.g. AUX_POINTER_MISSING_FROM_TEMPLATE) -
+  // a different shape than the enrichment diagnostics table above, so this
+  // gets its own collapsible panel rather than overloading that table's
+  // fixed column set. Collapsed by default; expands on click, and
+  // auto-opens the first time a run actually produces warnings.
+  let _ciiWarningsUserToggled = false;
+  function _setCiiWarningsExpanded(expanded) {
+    if (!ciiWarningsBodyEl || !ciiWarningsCaretEl) return;
+    ciiWarningsBodyEl.style.display = expanded ? 'block' : 'none';
+    ciiWarningsCaretEl.innerHTML = expanded ? '&#9662;' : '&#9656;';
+  }
+  ciiWarningsToggleEl?.addEventListener('click', () => {
+    _ciiWarningsUserToggled = true;
+    const expanded = ciiWarningsBodyEl?.style.display === 'block';
+    _setCiiWarningsExpanded(!expanded);
+  });
+  function setCiiWarningRows(rows) {
+    const normalized = Array.isArray(rows) ? rows : [];
+    if (!ciiWarningsWrapEl || !ciiWarningsBodyEl || !ciiWarningsTitleEl) return;
+    if (!normalized.length) {
+      ciiWarningsWrapEl.style.display = 'none';
+      ciiWarningsBodyEl.innerHTML = '';
+      return;
+    }
+    ciiWarningsWrapEl.style.display = 'block';
+    ciiWarningsTitleEl.textContent = `InputXML→CII(2019) Diagnostics (${normalized.length})`;
+    const knownColumns = ['severity', 'code', 'message'];
+    const extraColumns = [...new Set(
+      normalized.flatMap((row) => Object.keys(row || {}).filter((key) => !knownColumns.includes(key))),
+    )];
+    const columns = [...knownColumns, ...extraColumns];
+    ciiWarningsBodyEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <thead><tr>${columns.map((col) => `<th style="text-align:left;padding:4px;border-bottom:1px solid #31455f;color:#9cc5ff;">${_esc(col)}</th>`).join('')}</tr></thead>
+        <tbody>${normalized.map((row) => `<tr>${columns.map((col) => `<td style="padding:4px;border-bottom:1px solid #26364a;color:${col === 'severity' && row?.severity === 'warning' ? '#e0b34d' : '#d7e6ff'};vertical-align:top;">${_esc(row?.[col] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    `;
+    if (!_ciiWarningsUserToggled) _setCiiWarningsExpanded(true);
   }
 
   function _3DModelConv_setPreviewMeta(text) {
@@ -9105,6 +9158,7 @@ export function renderModelConvertersTab(container) {
     outputEl.innerHTML = '<span class="model-converters-muted">No output generated yet.</span>';
     setLogs([]);
     setDiagnosticRows([]);
+    setCiiWarningRows([]);
     _3DModelConv_resetPreview('Preview not available yet.');
   }
 
@@ -9325,6 +9379,7 @@ export function renderModelConvertersTab(container) {
         .concat(response.logs?.stdout || [])
         .concat(response.logs?.stderr || []);
       setDiagnosticRows(response.diagnosticsRows || []);
+      setCiiWarningRows(response.logs?.warnings || []);
       setLogs(logLines);
 
       if (selectedConverter !== 'pcf_continuity_check') {

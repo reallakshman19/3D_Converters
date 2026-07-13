@@ -39,16 +39,15 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-13: corrected the default elements.row12/row13/row14
-  // IEL aux-pointer templates to match the documented item order (bend,
-  // rigid, expjt, restraint, displmnt, forcmnt | uniform, wind, offset,
-  // allowbl, sif, nodename | reducer, flange, equipmnt) - the NODENAME
-  // pointer (item 12) had no token at all before (permanently 0, so real
-  // #$ NODENAME data was never associated with any element), and SIF's
-  // pointer was being duplicated into three wrong slots. Also carries the
-  // "Restraint Type Mutation" card and NODENAME dead-code fix from prior
-  // commits.
-  'tabs/model-converters/legacy-adapter.js': '32e6a9e1e0d9dcb754b85fd07b04f8f68eaaadf0',
+  // Updated 2026-07-13: added a collapsible "InputXML->CII(2019)
+  // Diagnostics" panel to the Logs card, rendering the Python engine's
+  // _warn()-based warnings (severity/code/message/context) as a table -
+  // these were previously computed and written to a "<output>.warnings.json"
+  // sidecar on the Pyodide virtual FS but never read back by py-worker.js,
+  // so they never reached the browser UI at all. Also carries the
+  // elements.row12/row13/row14 IEL pointer-order fix, the "Restraint Type
+  // Mutation" card, and the NODENAME dead-code fix from prior commits.
+  'tabs/model-converters/legacy-adapter.js': '0d65e3dc371f3804f496c0f4e2a047dc0119d570',
   // Updated 2026-07-12: recorded hash was already stale before this change
   // (git hash-object showed a mismatch against the file's actual committed
   // content even with no pending edits) - corrected to match reality.

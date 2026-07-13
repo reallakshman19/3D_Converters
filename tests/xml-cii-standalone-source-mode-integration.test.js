@@ -48,7 +48,14 @@ function protectedRouteShas() {
     'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
     'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
     'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
-    'converters/py-worker.js': '2295a1d450d6814b6bf92af523224acb56a41910',
+    // Updated 2026-07-13: py-worker.js now reads back the
+    // "<output>.warnings.json" sidecar inputxml_to_cii2019.py writes onto
+    // the Pyodide virtual FS (previously never read at all - written but
+    // silently discarded), adding it to the returned outputs and as
+    // structured logs.warnings. Purely additive (wrapped in try/catch,
+    // no-op when the sidecar is absent) - does not change any existing
+    // output or behavior for this Mission J integration path.
+    'converters/py-worker.js': 'f7bd12e950ecb26f7836798c9e28026239b8c4c7',
     'converters/invocation-builder.js': '20894bd7fa4399046ab110581beb2badeefcab68',
   };
 }
