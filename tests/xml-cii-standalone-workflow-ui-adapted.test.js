@@ -39,16 +39,15 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-13: InputXML->CII(2019) live popup path
-  // (_prepareInputxml2019ConfigForRequirements) was a stale duplicate of
-  // converters/inputxml-to-cii2019.js's config-preparation logic and never
-  // received the NODENAME force-correction fix - it silently emitted CII
-  // files with no #$ NODENAME section whenever a carried-over/older
-  // layoutConfigJson lacked sections.include_nodename or set
-  // nodename.mode to something other than auto. Added the matching
-  // _applyInputxml2019NamePreservation() call so the live UI path forces
-  // the same correction the (dead-code) exported helper already applied.
-  'tabs/model-converters/legacy-adapter.js': 'e29c611fafd84572dbc216ae3a46e72d1e675e59',
+  // Updated 2026-07-13: added a "Restraint Type Mutation" card (checkbox +
+  // editable Label/From TYPE/To TYPE rows, default-templated from
+  // xml-compare's proven restraintTypeConvert rows) to the InputXML->CII
+  // popup's Support Mapping tab, wired into the already-supported
+  // layoutConfigJson.restraint.mapping_policy / explicit_type_map - fixes
+  // RESTRAINT/TYPE codes from CAESAR-exported XML that don't match what
+  // CII expects. Also carries the 2026-07-13 NODENAME dead-code fix
+  // (_applyInputxml2019NamePreservation) from the prior commit.
+  'tabs/model-converters/legacy-adapter.js': '4f7202d46d382ecb98321fc6f93b220977ab5064',
   // Updated 2026-07-12: recorded hash was already stale before this change
   // (git hash-object showed a mismatch against the file's actual committed
   // content even with no pending edits) - corrected to match reality.
