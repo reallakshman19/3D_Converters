@@ -17,6 +17,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'json_to_xml.py',
   'stagedjson_to_xml.py',
   'stagedjson_to_inputxml.py',
+  'stagedjson_inputxml_diagnostics.py',
   'support_restraint.py',
   'psi116_upstream_common.py',
   'psi116_contract_check.py',
@@ -524,6 +525,18 @@ async function _runJob(message) {
   const outputs = [
     { name: invocation.outputName, text: outputText, mime: _inferTextMime(invocation.outputName) },
   ];
+  let stagedInputXmlDiagnostics = null;
+  if (converterId === 'stagedjson_to_inputxml') {
+    const diagnosticsName = invocation.outputName.replace(/\.xml$/i, '_stagedjson_to_inputxml_diagnostics.json');
+    const diagnosticsPath = invocation.outputPath.replace(/\.xml$/i, '_stagedjson_to_inputxml_diagnostics.json');
+    try {
+      const diagnosticsText = pyodide.FS.readFile(diagnosticsPath, { encoding: 'utf8' });
+      stagedInputXmlDiagnostics = JSON.parse(diagnosticsText);
+      outputs.push({ name: diagnosticsName, text: diagnosticsText, mime: 'application/json;charset=utf-8' });
+    } catch (error) {
+      stderrLines.push(`StagedJSON InputXML diagnostics sidecar unavailable: ${_errorToString(error)}`);
+    }
+  }
   if (contractReportText) {
     outputs.push({
       name: invocation.outputName.replace(/\.[^.]+$/, '_psi116_contract_report.json'),
@@ -566,6 +579,7 @@ async function _runJob(message) {
       argv: invocation.argv.slice(1),
       postprocess: [hardenerResult, displmntSyncResult, flangesSyncResult, syntaxCheckResult, enrichedInputXmlResult].filter(Boolean),
       warnings: ciiWarnings,
+      diagnostics: stagedInputXmlDiagnostics,
     },
   };
 }

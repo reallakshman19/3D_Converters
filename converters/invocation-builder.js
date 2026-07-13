@@ -159,12 +159,18 @@ export function buildInvocation(converterId, primaryPath, primaryName, secondary
     pushOptionalNumberArg(argv, '--default-insulation-thickness', options?.defaultInsulationThickness);
     pushSupportArgs(argv, options);
   } else if (converterId === 'stagedjson_to_inputxml') {
-    pushOptionalStringArg(argv, '--bookmark', options?.inputxmlBookmark);
+    const legacyBookmark = toStringValue(options?.inputxmlBookmark).trim();
+    const inlineBookmark = toStringValue(options?.inputxmlBookmarkJson).trim()
+      || (legacyBookmark.startsWith('{') ? legacyBookmark : '');
+    const bookmarkPath = legacyBookmark && !legacyBookmark.startsWith('{') ? legacyBookmark : '';
+    pushOptionalStringArg(argv, '--bookmark', bookmarkPath);
+    pushOptionalStringArg(argv, '--bookmark-json', inlineBookmark);
     pushOptionalNumberArg(argv, '--node-start', options?.nodeStart);
     pushOptionalNumberArg(argv, '--node-step', options?.nodeStep);
     pushOptionalNumberArg(argv, '--temperature1', options?.temperature1);
     pushOptionalNumberArg(argv, '--wall-thickness', options?.wallThickness);
     pushOptionalNumberArg(argv, '--modulus', options?.modulus);
+    pushOptionalNumberArg(argv, '--material-num', options?.materialNum);
     pushOptionalStringArg(argv, '--material-name', options?.materialName);
     pushOptionalStringArg(argv, '--job-name', options?.jobName);
     pushOptionalStringArg(argv, '--vertical-axis', options?.verticalAxis);
@@ -172,6 +178,8 @@ export function buildInvocation(converterId, primaryPath, primaryName, secondary
     pushOptionalNumberArg(argv, '--datum-e', options?.datumE);
     pushOptionalNumberArg(argv, '--datum-n', options?.datumN);
     pushOptionalNumberArg(argv, '--datum-u', options?.datumU);
+    if (options?.inferOdFromNominalBore) argv.push('--infer-od-from-nominal-bore');
+    if (options?.autoAnchors === false) argv.push('--no-auto-anchors');
     if (options?.disableSupports) argv.push('--no-supports');
   } else if (converterId === 'rev_to_stp') {
     argv.push('--coord-factor', String(toFiniteNumber(options?.coordFactor, 1000)));
