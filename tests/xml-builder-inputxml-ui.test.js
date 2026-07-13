@@ -29,5 +29,7 @@ assert(builder.includes('buildCustomInputXmlResult'), 'Custom node XML builder s
 assert(builder.includes('<Restraint>'), 'New custom supports should serialize as Restraint records.');
 assert(!builder.includes("tag('Position',node.position||'0 0 0')"), 'Unknown positions must not be fabricated as origin coordinates.');
 assert(core.includes('buildNodeToInputXmlDiagnosticRecords'), 'Shared InputXML core should expose row-level audit records.');
+assert(core.includes('restraintTypeToCaesarCode'), 'Shared InputXML core should use the Python-synchronized restraint type mapper.');
+assert(!core.includes('RESTRAINT_TYPE_MAP'), 'Shared InputXML core must not maintain a conflicting private restraint map.');
 
 console.log('XML Builder InputXML UI and contract guards passed.');
