@@ -50,10 +50,10 @@ function protectedRouteShas() {
     'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
     // Updated 2026-07-13 for the StagedJSON -> InputXML Work Pack. The shared
     // files changed only inside converterId === 'stagedjson_to_inputxml': inline
-    // bookmark/OD/anchor invocation arguments plus diagnostics sidecar read-back.
-    // Mission J XML/InputXML source-mode routing and public API boundaries are
-    // still exercised below and must remain behaviorally unchanged.
-    'converters/py-worker.js': '25f8d3985aa4860417d644a6b24b9b02310156d6',
+    // bookmark/OD/anchor arguments, successful diagnostics read-back, and a
+    // staged-only failed-run sidecar recovery. Mission J XML/InputXML source-mode
+    // routing and public API boundaries are still exercised below.
+    'converters/py-worker.js': 'a3cc7cea5be2c17963816a31cc8291d43fc4a864',
     'converters/invocation-builder.js': 'aae681ec8e134d3ec92754e5bc6cb97bd21b6018',
   };
 }
