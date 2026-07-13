@@ -14,7 +14,14 @@ async function getXlsxModule() {
     if (mod && typeof mod.read === 'function') return mod;
     if (mod && mod.default && typeof mod.default.read === 'function') return mod.default;
   } catch (error) {
-    throw new Error(`Local xlsx module could not be loaded: ${error?.message || String(error)}`);
+    console.warn(`Local xlsx module failed, falling back to CDN: ${error?.message || String(error)}`);
+    try {
+      const cdnMod = await import('https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs');
+      if (cdnMod && typeof cdnMod.read === 'function') return cdnMod;
+      if (cdnMod && cdnMod.default && typeof cdnMod.default.read === 'function') return cdnMod.default;
+    } catch (cdnError) {
+      throw new Error(`Local and CDN xlsx modules could not be loaded: ${cdnError?.message || String(cdnError)}`);
+    }
   }
   throw new Error('Local xlsx module did not expose read/utils. Run npm install and refresh the page.');
 }
