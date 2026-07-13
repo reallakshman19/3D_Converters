@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/stagedjson-inputxml-workpack-patch.py'
+      - 'scripts/repair-stagedjson-inputxml-patch.py'
       - '.github/workflows/stagedjson-inputxml-patch.yml'
 
 permissions:
@@ -37,6 +38,8 @@ jobs:
         run: |
           set +e
           {
+            python -m py_compile scripts/repair-stagedjson-inputxml-patch.py scripts/stagedjson-inputxml-workpack-patch.py
+            python scripts/repair-stagedjson-inputxml-patch.py
             python -m py_compile scripts/stagedjson-inputxml-workpack-patch.py
             python scripts/stagedjson-inputxml-workpack-patch.py
           } > stagedjson-inputxml-patch.log 2>&1
@@ -104,7 +107,7 @@ jobs:
             tabs/model-converters/ModelConvertersTab.js \
             tabs/model-converters/stagedjson-inputxml-diagnostics-panel.js \
             tests/stagedjson-inputxml-workpack.test.js
-          git rm -f scripts/stagedjson-inputxml-workpack-patch.py .github/workflows/stagedjson-inputxml-patch.yml
+          git rm -f scripts/stagedjson-inputxml-workpack-patch.py scripts/repair-stagedjson-inputxml-patch.py .github/workflows/stagedjson-inputxml-patch.yml
           git diff --cached --check
           git commit -m "fix: harden StagedJSON InputXML generation"
           git push origin HEAD:agent/stagedjson-inputxml-audit-fix
