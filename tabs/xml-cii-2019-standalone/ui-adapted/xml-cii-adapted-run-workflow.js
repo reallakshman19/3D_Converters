@@ -7,7 +7,7 @@ const esc = (val) => String(val ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt
 const attr = (val) => esc(val).replace(/'/g, '&#39;');
 
 function ratingFromConfig(row, config) {
-  const keys = [row?.lineKey, row?.branchName, row?.requestedPipingClass, row?.resolvedPipingClass, row?.nodeNumber];
+  const keys = [row?.key, row?.lineKey, row?.branchName, row?.requestedPipingClass, row?.resolvedPipingClass, row?.nodeNumber];
   const bucket = config?.overrides?.rating;
   let val = '';
   if (bucket && typeof bucket === 'object') {
@@ -40,7 +40,7 @@ function rigidReviewRow(issue, index) {
   return `<tr>
     <td class="mc-rigid-review-branch" title="${attr(issue.branchName)}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.branchName)}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td>
-    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.rating || '')}</td>
+    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="text" class="mc-rigid-review-rating-input" data-rigid-review-key="${attr(issue.key)}" value="${attr(issue.rating || '')}" placeholder="Rating" style="width:64px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;font-size:11px;"></td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.nodeNumber)}</td>
     <td class="mc-rigid-review-dtxr" title="${attr(issue.dtxrSourcePath || '')}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
@@ -50,7 +50,7 @@ function rigidReviewRow(issue, index) {
 }
 
 function rigidReviewMarkup(rows) {
-  return `<div class="mc-rigid-review-dialog" role="dialog" aria-modal="true" aria-label="Rigid zero weight review" style="max-height:86vh;overflow:auto;background:#0f172a;border:1px solid #253a55;border-radius:8px;padding:20px;max-width:960px;width:90%;">
+  return `<div class="mc-rigid-review-dialog" role="dialog" aria-modal="true" aria-label="Rigid zero weight review" style="color:#e2e8f0;max-height:86vh;overflow:auto;background:#0f172a;border:1px solid #253a55;border-radius:8px;padding:20px;max-width:960px;width:90%;">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #253a55;padding-bottom:12px;margin-bottom:16px;">
       <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Rigid Weights Need Review</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} rigid node(s) have zero weight and length greater than 6 mm.</div></div>
       <button type="button" data-rigid-review-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;font-size:12px;">Cancel</button>
@@ -58,11 +58,18 @@ function rigidReviewMarkup(rows) {
     <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Enter missing weights before conversion. Suggestions are ranked from the weight master using bore, rating, and length. DTXR is matched from staged JSON by PS tag first, then coordinates.</div>
     <div style="overflow:auto;max-height:45vh;border:1px solid rgba(148,163,184,0.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,0.3);color:#fff;border-bottom:1px solid rgba(148,163,184,0.15);"><th style="padding:8px;">Branch</th><th style="padding:8px;">Bore</th><th style="padding:8px;">Rating</th><th style="padding:8px;">Node</th><th style="padding:8px;">DTXR</th><th style="padding:8px;">Length</th><th style="padding:8px;">Manual Weight</th><th style="padding:8px;">Nearest Suggestions</th></tr></thead><tbody>${rows.map(rigidReviewRow).join('')}</tbody></table></div>
     <div data-rigid-review-status style="font-size:12px;margin-top:8px;"></div>
-    <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:20px;border-top:1px solid #253a55;padding-top:16px;"><button type="button" data-rigid-review-fill-best style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Use All Suggestions</button><button type="button" data-rigid-review-skip style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Skip Review</button><button type="button" data-rigid-review-apply style="cursor:pointer;background:#1e4ed8;border:none;color:#fff;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;">Apply Weights and Continue</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-top:1px solid #253a55;padding-top:16px;">
+      <button type="button" data-rigid-review-refresh style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Refresh Suggestions</button>
+      <div style="display:flex;gap:12px;">
+        <button type="button" data-rigid-review-fill-best style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Use All Suggestions</button>
+        <button type="button" data-rigid-review-skip style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Skip Review</button>
+        <button type="button" data-rigid-review-apply style="cursor:pointer;background:#1e4ed8;border:none;color:#fff;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;">Apply Weights and Continue</button>
+      </div>
+    </div>
   </div>`;
 }
 
-function openStandaloneRigidWeightReviewPopup(issues) {
+function openStandaloneRigidWeightReviewPopup(issues, stateRef, config) {
   const rows = Array.isArray(issues) ? issues : [];
   if (!rows.length) return Promise.resolve({ cancelled: false, skipped: false, weightsByKey: {} });
   return new Promise((resolve) => {
@@ -70,18 +77,68 @@ function openStandaloneRigidWeightReviewPopup(issues) {
     overlay.className = 'model-converters-workflow-popup-overlay mc-rigid-review-overlay';
     overlay.innerHTML = rigidReviewMarkup(rows);
     document.body.appendChild(overlay);
-    bindRigidReviewPopup(overlay, rows, resolve);
+    bindRigidReviewPopup(overlay, rows, resolve, stateRef, config);
   });
 }
 
-function bindRigidReviewPopup(overlay, rows, resolve) {
+function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
   const finish = (result) => { overlay.remove(); resolve(result); };
   const statusVal = overlay.querySelector('[data-rigid-review-status]');
   const setStatus = (message, bad) => { if (statusVal) { statusVal.textContent = message; statusVal.style.color = bad ? '#ef4444' : '#10b981'; } };
-  overlay.querySelectorAll('[data-rigid-review-candidate]').forEach((btn) => btn.addEventListener('click', () => {
-    const input = overlay.querySelectorAll('.mc-rigid-review-input')[Number(btn.getAttribute('data-rigid-review-candidate'))];
-    if (input) input.value = btn.getAttribute('data-rigid-review-weight') || '';
-  }));
+  
+  const bindCandidates = () => {
+    overlay.querySelectorAll('[data-rigid-review-candidate]').forEach((btn) => btn.addEventListener('click', () => {
+      const input = overlay.querySelectorAll('.mc-rigid-review-input')[Number(btn.getAttribute('data-rigid-review-candidate'))];
+      if (input) input.value = btn.getAttribute('data-rigid-review-weight') || '';
+    }));
+  };
+  bindCandidates();
+
+  overlay.querySelector('[data-rigid-review-refresh]')?.addEventListener('click', async () => {
+    setStatus('Refreshing suggestions...', false);
+    const refreshBtn = overlay.querySelector('[data-rigid-review-refresh]');
+    if (refreshBtn) refreshBtn.disabled = true;
+
+    const newRatings = {};
+    overlay.querySelectorAll('.mc-rigid-review-rating-input').forEach((input) => {
+      const val = input.value.trim();
+      const key = input.getAttribute('data-rigid-review-key') || '';
+      if (val && key) newRatings[key] = val;
+    });
+
+    if (Object.keys(newRatings).length > 0) {
+      config.overrides = { ...(config.overrides || {}) };
+      config.overrides.rating = { ...(config.overrides.rating || {}), ...newRatings };
+      if (stateRef?.current) {
+        stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
+      }
+    }
+
+    const currentWeights = {};
+    overlay.querySelectorAll('.mc-rigid-review-input').forEach((input) => {
+      const numeric = Number(input.value);
+      if (Number.isFinite(numeric) && numeric > 0) currentWeights[input.getAttribute('data-rigid-review-key') || ''] = numeric;
+    });
+
+    if (stateRef?.current) {
+      const newIssues = await unresolvedRigidIssues(stateRef.current, config);
+      const tbody = overlay.querySelector('tbody');
+      if (tbody) {
+        tbody.innerHTML = newIssues.map(rigidReviewRow).join('');
+        overlay.querySelectorAll('.mc-rigid-review-input').forEach((input) => {
+          const key = input.getAttribute('data-rigid-review-key') || '';
+          if (currentWeights[key]) input.value = currentWeights[key];
+        });
+        bindCandidates();
+      }
+      rows.length = 0;
+      rows.push(...newIssues);
+    }
+    
+    setStatus('Suggestions refreshed based on updated ratings.', false);
+    if (refreshBtn) refreshBtn.disabled = false;
+  });
+
   overlay.querySelector('[data-rigid-review-fill-best]')?.addEventListener('click', () => {
     rows.forEach((issue, index) => { const input = overlay.querySelectorAll('.mc-rigid-review-input')[index]; const best = issue.candidates?.[0] || null; if (input && best) input.value = String(best.suggestedWeight ?? best.weight ?? ''); });
     setStatus('Filled available best suggestions. Review values before applying.', false);
@@ -117,7 +174,7 @@ async function unresolvedRigidIssues(state, config) {
 
 async function reviewRigidWeights(stateRef, config) {
   try {
-    const popupRes = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config));
+    const popupRes = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config), stateRef, config);
     if (popupRes.cancelled) return false;
     if (popupRes.weightsByKey && Object.keys(popupRes.weightsByKey).length > 0) {
       config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...popupRes.weightsByKey } };
