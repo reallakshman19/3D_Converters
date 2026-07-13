@@ -49,10 +49,25 @@ jobs:
           test "$(wc -l < converters/scripts/xml_to_cii_inputxml_sidecar_diagnostics.py)" -lt 300
       - name: Focused sidecar contracts
         run: |
-          node tests/xml-cii-inputxml-sidecar-workpack.test.js
-          python -m pytest -q \
-            converters/scripts/test_xml_to_cii_inputxml_sidecar_workpack.py \
-            converters/scripts/test_xml_to_inputxml_debug.py
+          set +e
+          {
+            node tests/xml-cii-inputxml-sidecar-workpack.test.js
+            python -m pytest -q \
+              converters/scripts/test_xml_to_cii_inputxml_sidecar_workpack.py \
+              converters/scripts/test_xml_to_inputxml_debug.py
+          } > sidecar-focused.log 2>&1
+          status=$?
+          cat sidecar-focused.log
+          echo "$status" > sidecar-focused.status
+          exit "$status"
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml-cii-sidecar-focused
+          path: |
+            sidecar-focused.log
+            sidecar-focused.status
       - name: Commit audited implementation and remove scaffolding
         run: |
           git config user.name github-actions[bot]
