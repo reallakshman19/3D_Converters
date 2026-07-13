@@ -7,6 +7,7 @@ import { decodeLogBatches } from './log-decoder.js';
 import { buildInvocation } from './invocation-builder.js';
 import { normalizeInputXmlAttributeNames, converterUsesInputXmlDialect } from './inputxml-field-adapter.js';
 import { getConverterPackageWheelUrls } from './pyodide-local-packages.js';
+import { buildXmlCiiSidecarExportSpec, readXmlCiiSidecarArtifacts } from './xml-cii-inputxml-sidecar-worker.js';
 
 const PYODIDE_INDEX_URL = new URL('../vendor/pyodide/', import.meta.url).href;
 
@@ -28,6 +29,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019_direction.py',
   'xml_to_cii2019_contracted_direction.py',
   'xml_to_inputxml_debug.py',
+  'xml_to_cii_inputxml_sidecar_diagnostics.py',
   'xml_to_cii2019_master_addon.py',
   'master_customization.py',
   'cii2019_section_rules.py',
@@ -399,34 +401,17 @@ async function _runInputXml2019SyntaxCheck(pyodide, converterId, outputPath, job
   };
 }
 
-function _primaryStem(primaryName) {
-  const safe = _sanitizeFileName(primaryName || 'input.xml');
-  const idx = safe.lastIndexOf('.');
-  return idx > 0 ? safe.slice(0, idx) : safe;
-}
-
-async function _runXmlCiiEnrichedInputXmlExport(pyodide, converterId, primaryPath, primaryName, secondaryPath, options, jobDir, stdout, stderr) {
-  if (converterId !== 'xml_to_cii') return null;
-  const outputName = `${_primaryStem(primaryName)}_xml_to_cii2019_enriched.input.xml`;
-  const outputPath = `${jobDir}/${outputName}`;
-  const argv = [
+async function _runXmlCiiEnrichedInputXmlExport(pyodide, input, stdout, stderr) {
+  const spec = buildXmlCiiSidecarExportSpec(input);
+  if (!spec) return null;
+  await _runPythonScript(
+    pyodide,
     '/scripts/xml_to_inputxml_debug.py',
-    '--input',
-    primaryPath,
-    '--output',
-    outputPath,
-  ];
-  const supportConfig = _toString(options?.supportConfigJson).trim();
-  if (supportConfig) argv.push('--support-config-json', supportConfig);
-  if (secondaryPath) argv.push('--staged-json', secondaryPath);
-  if (options?.useRestraintTypeBasedOnJson === false) {
-    argv.push('--no-use-restraint-type-based-on-json');
-  } else {
-    argv.push('--use-restraint-type-based-on-json');
-  }
-  if (options?.kgToNewton !== false) argv.push('--weight-scale', '10');
-  await _runPythonScript(pyodide, '/scripts/xml_to_inputxml_debug.py', argv, stdout, stderr);
-  return { script: 'xml_to_inputxml_debug.py', outputPath, outputName };
+    spec.argv,
+    stdout,
+    stderr,
+  );
+  return { script: 'xml_to_inputxml_debug.py', ...spec };
 }
 
 async function _runJob(message) {
@@ -537,12 +522,15 @@ async function _runJob(message) {
 
   const enrichedInputXmlResult = await _runXmlCiiEnrichedInputXmlExport(
     pyodide,
-    converterId,
-    primaryPath,
-    primary.name,
-    secondaryPath,
-    options,
-    jobDir,
+    {
+      converterId,
+      primaryPath,
+      primaryName: primary.name,
+      secondaryPath,
+      options,
+      jobDir,
+      ciiOutputPath: invocation.outputPath,
+    },
     stdout,
     stderr,
   );
@@ -572,12 +560,15 @@ async function _runJob(message) {
       mime: 'application/json;charset=utf-8',
     });
   }
+  let sidecarDiagnostics = null;
   if (enrichedInputXmlResult) {
-    outputs.push({
-      name: enrichedInputXmlResult.outputName,
-      text: pyodide.FS.readFile(enrichedInputXmlResult.outputPath, { encoding: 'utf8' }),
-      mime: _inferTextMime(enrichedInputXmlResult.outputName),
-    });
+    try {
+      const artifacts = readXmlCiiSidecarArtifacts(pyodide, enrichedInputXmlResult);
+      outputs.push(artifacts.inputXml, artifacts.diagnostics);
+      sidecarDiagnostics = artifacts.diagnostics.document;
+    } catch (error) {
+      stderrLines.push(`XML→CII InputXML sidecar artifacts unavailable: ${_errorToString(error)}`);
+    }
   }
   // inputxml_to_cii2019.py writes a "<output>.warnings.json" sidecar onto
   // the Pyodide virtual FS whenever it emits non-fatal diagnostics (via
@@ -608,6 +599,7 @@ async function _runJob(message) {
       postprocess: [hardenerResult, displmntSyncResult, flangesSyncResult, syntaxCheckResult, enrichedInputXmlResult].filter(Boolean),
       warnings: ciiWarnings,
       diagnostics: stagedInputXmlDiagnostics,
+      sidecarDiagnostics,
     },
   };
 }
