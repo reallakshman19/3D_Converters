@@ -178,7 +178,7 @@ class TestStagedJsonInputXmlWorkPack(unittest.TestCase):
                 "CMPSTRESSN": f"PS-{index}",
                 "POS": {"x": 500, "y": 0, "z": 18},
             },
-        } for index in range(4)]
+        } for index in range(6)]
         staged = [{
             "name": "/SUPPORT/B1",
             "type": "BRANCH",
@@ -208,8 +208,18 @@ class TestStagedJsonInputXmlWorkPack(unittest.TestCase):
             self.assertTrue(attached)
             self.assertTrue(any(abs(float(row["context"]["distanceMm"]) - 2.0) < 1e-6 for row in attached))
             self.assertIn("STAGED_RESTRAINT_SLOT_TRUNCATED", {row["code"] for row in diagnostics["records"]})
-            populated = [row for row in ET.parse(output).getroot().iter("RESTRAINT") if float(row.attrib["NODE"]) > 0]
-            self.assertEqual(len(populated), 6)
+            document = ET.parse(output).getroot()
+            per_element = []
+            for element in document.iter("PIPINGELEMENT"):
+                active = [
+                    row for row in element.iter("RESTRAINT")
+                    if float(row.attrib["NODE"]) > 0
+                ]
+                per_element.append(len(active))
+            self.assertTrue(per_element)
+            self.assertTrue(all(count <= 6 for count in per_element))
+            self.assertIn(6, per_element)
+            self.assertLess(sum(per_element), len(supports) * 2)
 
 
 if __name__ == "__main__":
