@@ -1,7 +1,7 @@
 import { adaptedRenderColGroup, adaptedAttachColumnResizers, adaptedLoadColumnWidths } from './xml-cii-adapted-resizable-table.js';
 
 export const BRANCH_COLUMNS = [
-  { id: 'branchName', label: 'Branch Name', width: 220, minWidth: 120 },
+  { id: 'branchName', label: 'Branch Name', hint: 'Edit', width: 220, minWidth: 120 },
   { id: 'lineKey', label: 'Line Key', width: 120, minWidth: 80 },
   { id: 'lineFrom', label: 'From', width: 110, minWidth: 70 },
   { id: 'lineTo', label: 'To', width: 110, minWidth: 70 },
@@ -53,6 +53,7 @@ export class XmlCiiAdaptedEditablePreviewTable {
     this.onProcessFillDownClick = onProcessFillDownClick;
     this.processInputHtmlRenderer = processInputHtmlRenderer;
     this.matchBadgeHtmlRenderer = matchBadgeHtmlRenderer;
+    this.onWeightCandidateSelect = onWeightCandidateSelect;
   }
 
   renderHTML() {
@@ -74,9 +75,6 @@ export class XmlCiiAdaptedEditablePreviewTable {
     const tdApprox = (needs, attrs = '') => needs ? `class="mc-preview-td mc-preview-approx" ${attrs}` : `class="mc-preview-td" ${attrs}`;
     const fillDownBtn = (field, fromRow) => `<button type="button" class="mc-preview-filldown-btn" data-mc-fill-field="${this._escape(field)}" data-mc-fill-from="${fromRow}" title="Smart fill by field key: wall thickness by piping class + size; corrosion/material code by piping class; process data by line key.">↓</button>`;
     const renderProcessField = (fieldKey, val, src, pcKey = '') => this.processInputHtmlRenderer ? this.processInputHtmlRenderer(fieldKey, row.lineKey, val, src, ri, pcKey) : `<input type="text" value="${this._escape(val)}" data-mc-pd-field="${this._escape(fieldKey)}" data-mc-pd-linekey="${this._escape(row.lineKey)}" data-mc-pd-row="${ri}">`;
-    // Fill scopes: wall thickness + material code fill by piping class AND
-    // size; hydro/corrosion (and other class fields) by piping class only;
-    // process fields (p1/t1/t2/t3/density) fill by line key.
     const editAttrs = (type, key, extra = '') => `data-mc-edit-type="${this._escapeAttr(type)}" data-mc-edit-key="${this._escapeAttr(key || row.lineKey || row.branchName || '')}" data-mc-edit-row="${ri}" data-mc-pc-key="${this._escapeAttr(type === 'wallThickness' || type === 'materialCode' ? classSizeKey : classKey)}" ${extra}`;
     const editablePlain = (type, value, key, source = '') => {
       const isDefault = source === 'default' || source === 'config-default' || source === 'default-zero';
@@ -90,16 +88,15 @@ export class XmlCiiAdaptedEditablePreviewTable {
     const materialCodeKey = row.materialCodeKey || classKey || row.material || row.lineKey;
     const wallKey = row.wallThicknessKey || classSizeKey || row.lineKey;
     const corrosionKey = row.corrosionKey || classKey || row.lineKey;
-
-    // Only badge the derived rating when it differs from the displayed value —
-    // "600 derived: 600" carries no information.
+    const branchText = row.branchName?.length > 36 ? `…${row.branchName.slice(-32)}` : row.branchName;
+    const branchTitle = `Branch: ${row.branchName || ''}\nClick to override the Branch → Line List key mapping.`;
     const ratingDerivedBadge = row.ratingDerived && String(row.ratingDerived).trim() !== String(row.rating || '').trim()
       ? ` <span class="mc-preview-badge" style="background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.15);" title="Derived from Piping Class: ${this._escapeAttr(row.ratingDerived)}">derived: ${this._escape(row.ratingDerived)}</span>`
       : '';
 
     return `
       <tr class="mc-preview-row${row.lineMiss ? ' mc-preview-line-miss' : ''}">
-        <td class="mc-preview-td mc-preview-branch" title="${this._escapeAttr(row.branchName)}">${this._escape(row.branchName.length > 36 ? '…' + row.branchName.slice(-32) : row.branchName)}</td>
+        <td ${tdApprox(false, editAttrs('branchLineKey', row.branchName, `data-mc-current-val="${this._escapeAttr(row.lineKey || '')}" title="${this._escapeAttr(branchTitle)}"`))}><span class="mc-preview-branch-name">${this._escape(branchText || '—')}</span><span class="mc-preview-editable-val" style="display:none;">${this._escape(row.lineKey || '')}</span></td>
         <td class="mc-preview-td${row.lineMiss ? ' mc-preview-warn' : ''}">${this._renderLineKeyCell(row)}</td>
         <td class="mc-preview-td" title="Process master From (line list)">${this._escape(row.lineFrom || '—')}</td>
         <td class="mc-preview-td" title="Process master To (line list)">${this._escape(row.lineTo || '—')}</td>
@@ -122,9 +119,9 @@ export class XmlCiiAdaptedEditablePreviewTable {
   bind(hostEl) {
     const branchTable = hostEl.querySelector('[data-resizable-table="branch-preview"]');
     if (branchTable) adaptedAttachColumnResizers(branchTable, BRANCH_COLUMNS, { storageKey: 'xmlCii.preview.branch.columnWidths.v1' });
-    hostEl.querySelectorAll('[data-mc-edit-type]').forEach(td => { td.style.cursor = 'pointer'; td.addEventListener('click', (e) => { if (e.target.closest('.mc-preview-filldown-btn')) return; const editType = td.getAttribute('data-mc-edit-type'); const derivedKey = td.getAttribute('data-mc-edit-derived') || td.getAttribute('data-mc-edit-key') || td.getAttribute('data-mc-edit-mat') || ''; let currentVal = td.querySelector('.mc-preview-editable-val')?.textContent?.trim() || ''; if (currentVal === '—') currentVal = ''; const rowIndex = Number(td.getAttribute('data-mc-edit-row') || 0); if (typeof this.onCellEditClick === 'function') this.onCellEditClick({ editType, derivedKey, currentVal, rowIndex, td }); }); });
+    hostEl.querySelectorAll('[data-mc-edit-type]').forEach(td => { td.style.cursor = 'pointer'; td.addEventListener('click', (e) => { if (e.target.closest('.mc-preview-filldown-btn')) return; const editType = td.getAttribute('data-mc-edit-type'); const derivedKey = td.getAttribute('data-mc-edit-derived') || td.getAttribute('data-mc-edit-key') || td.getAttribute('data-mc-edit-mat') || ''; let currentVal = td.getAttribute('data-mc-current-val') || td.querySelector('.mc-preview-editable-val')?.textContent?.trim() || ''; if (currentVal === '—') currentVal = ''; const rowIndex = Number(td.getAttribute('data-mc-edit-row') || 0); if (typeof this.onCellEditClick === 'function') this.onCellEditClick({ editType, derivedKey, currentVal, rowIndex, td }); }); });
     hostEl.querySelectorAll('.mc-preview-filldown-btn[data-mc-fill-field]:not(.mc-pd-filldown)').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const field = btn.getAttribute('data-mc-fill-field') || ''; const fromRow = Number(btn.getAttribute('data-mc-fill-from') || 0); const sourceTd = btn.closest('[data-mc-edit-type]'); const currentVal = sourceTd?.querySelector('.mc-preview-editable-val')?.textContent?.trim() || ''; if (typeof this.onFillDownClick === 'function') this.onFillDownClick({ field, fromRow, currentVal, sourceTd, btn }); }));
-    hostEl.querySelectorAll('[data-mc-pd-field]').forEach(input => input.addEventListener('change', () => { const fieldKey = input.dataset.mcPdField; const lineKey = input.dataset.mcPdLinekey; const rowIndex = Number(input.dataset.mcPdRow || 0); const value = input.value; if (typeof this.onProcessInputChange === 'function') this.onProcessInputChange({ fieldKey, lineKey, value, rowIndex, input }); }));
+    hostEl.querySelectorAll('[data-mc-pd-field]').forEach(input => input.addEventListener('change', () => { const fieldKey = input.dataset.mcPdField; const lineKey = input.dataset.mcPdLinekey; const rowIndex = Number(input.dataset.mcPdRow || input.dataset.mcRow || 0); const value = input.value; if (typeof this.onProcessInputChange === 'function') this.onProcessInputChange({ fieldKey, lineKey, value, rowIndex, input }); }));
     hostEl.querySelectorAll('.mc-pd-filldown[data-mc-fill-field]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const fieldKey = btn.getAttribute('data-mc-fill-field') || ''; const fromRow = Number(btn.getAttribute('data-mc-fill-from') || 0); const cell = btn.closest('.mc-preview-pd-cell'); const input = cell?.querySelector('.mc-preview-pd-input'); const value = input ? input.value : ''; const pipingClassKey = input?.dataset?.mcPdPckey || ''; if (typeof this.onProcessFillDownClick === 'function') this.onProcessFillDownClick({ fieldKey, fromRow, value, btn, pipingClassKey }); }));
   }
 
@@ -140,7 +137,7 @@ export class XmlCiiAdaptedEditablePreviewTable {
   }
 
   _escape(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  _scorePercentFromConfidenceOrScore(confidence, rawScore, rawMax = 1000) { const confidenceValue = Number(confidence); if (Number.isFinite(confidenceValue)) return `${Math.round(confidenceValue * 100)}%`; const scoreValue = Number(rawScore); const maxValue = Number(rawMax); if (Number.isFinite(scoreValue) && Number.isFinite(maxValue) && maxValue > 0) return `${Math.max(0, Math.min(100, Math.round((scoreValue / maxValue) * 100)))}%`; return ''; }
+  _scorePercentFromConfidenceOrScore(confidence, rawScore, rawMax = 1000) { const confidenceValue = Number(confidence); if (Number.isFinite(confidenceValue)) return `${Math.round(confidenceValue * 100)}%`; const scoreValue = Number(rawScore); const maxValue = Number(rawMax); if (Number.isFinite(scoreValue) && Number.isFinite(maxValue) && maxValue > 0) return `${Math.max(0, Math.min(100, Math.round((scoreValue / rawMax) * 100)))}%`; return ''; }
   _rawScoreSuffix(rawScore) { return rawScore === null || rawScore === undefined || rawScore === '' ? '' : ` (raw ${rawScore})`; }
   _pipingClassTitle(row) { const classPercent = this._scorePercentFromConfidenceOrScore(row.pipingClassConfidence, row.pipingClassScore, 1000); const rowPercent = this._scorePercentFromConfidenceOrScore(row.pipingClassRowConfidence, row.pipingClassRowScore, 1620); const candidates = Array.isArray(row.pipingClassCandidates) ? row.pipingClassCandidates.slice(0, 8).map((candidate) => { const reasons = Array.isArray(candidate.reasons) ? candidate.reasons.join(', ') : ''; const percent = this._scorePercentFromConfidenceOrScore(candidate.confidence, candidate.score, 1000); return `${candidate.candidate || ''} | ${percent || '—'}${this._rawScoreSuffix(candidate.score)} | ${candidate.method || ''}${reasons ? ` | ${reasons}` : ''}`; }).join('\n') : ''; const rowReasons = Array.isArray(row.pipingClassRowReasons) ? row.pipingClassRowReasons.join(', ') : ''; return [`Requested class: ${row.pipingClassDerived || ''}`, `Resolved class: ${row.pipingClass || ''}`, `Method: ${row.pipingClassMethod || ''}`, `Class score: ${classPercent || '—'}${this._rawScoreSuffix(row.pipingClassScore)}`, `Row score: ${rowPercent || '—'}${this._rawScoreSuffix(row.pipingClassRowScore)}`, rowReasons ? `Row reasons: ${rowReasons}` : '', candidates ? `Candidates:\n${candidates}` : ''].filter(Boolean).join('\n'); }
   _escapeAttr(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
