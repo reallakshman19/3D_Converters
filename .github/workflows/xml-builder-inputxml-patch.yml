@@ -93,22 +93,40 @@ jobs:
         if: steps.focused_tests.outputs.status != '0'
         run: exit 1
       - name: Commit patched capability and remove scaffolding
+        id: commit_workpack
+        shell: bash
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add converters/xml-cii2019-core/custom-input-table-parser.js \
-            converters/xml-cii2019-core/custom-input-model.js \
-            converters/xml-cii2019-core/custom-input-xml-builder.js \
-            converters/xml-cii2019-core/custom-input-api.js \
-            converters/xml-cii2019-core/custom-input-diagnostics.js \
-            tabs/model-converters/xml-cii-node-to-inputxml-audit.js \
-            tabs/model-converters/xml-cii-node-to-inputxml-core.js \
-            tabs/model-converters/custom-input/custom-input-panel.js \
-            tabs/xml-builder-diagnostics-view.js \
-            tabs/xml-builder-tab.js \
-            tests/xml-cii-node-to-inputxml-core.test.js \
-            tests/xml-builder-inputxml-ui.test.js
-          git rm scripts/xml-builder-inputxml-workpack-patch.mjs scripts/repair-xml-builder-inputxml-patch.mjs .github/workflows/xml-builder-inputxml-patch.yml
-          git diff --cached --check
-          git commit -m "fix: harden XML Builder InputXML generation"
-          git push origin HEAD:agent/xml-builder-inputxml-audit-fix
+          set +e
+          {
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add converters/xml-cii2019-core/custom-input-table-parser.js \
+              converters/xml-cii2019-core/custom-input-model.js \
+              converters/xml-cii2019-core/custom-input-xml-builder.js \
+              converters/xml-cii2019-core/custom-input-api.js \
+              converters/xml-cii2019-core/custom-input-diagnostics.js \
+              tabs/model-converters/xml-cii-node-to-inputxml-audit.js \
+              tabs/model-converters/xml-cii-node-to-inputxml-core.js \
+              tabs/model-converters/custom-input/custom-input-panel.js \
+              tabs/xml-builder-diagnostics-view.js \
+              tabs/xml-builder-tab.js \
+              tests/xml-cii-node-to-inputxml-core.test.js \
+              tests/xml-builder-inputxml-ui.test.js
+            git rm scripts/xml-builder-inputxml-workpack-patch.mjs scripts/repair-xml-builder-inputxml-patch.mjs .github/workflows/xml-builder-inputxml-patch.yml
+            git diff --cached --check
+            git commit -m "fix: harden XML Builder InputXML generation"
+            git push origin HEAD:agent/xml-builder-inputxml-audit-fix
+          } > xml-builder-commit.log 2>&1
+          status=$?
+          cat xml-builder-commit.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload commit transaction log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml-builder-commit-log
+          path: xml-builder-commit.log
+      - name: Enforce commit transaction success
+        if: steps.commit_workpack.outputs.status != '0'
+        run: exit 1
