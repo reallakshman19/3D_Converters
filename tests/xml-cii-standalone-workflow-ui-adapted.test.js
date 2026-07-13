@@ -39,11 +39,16 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-12: InputXML->CII(2019) popup - fixed the Branch Data
-  // tab's defaulted/carried-forward field detection, grouped Config tab
-  // labels for the elements.rowN[] paths, made Branch Data cells editable
-  // (wired back into the loaded InputXML on Save).
-  'tabs/model-converters/legacy-adapter.js': '788aba8051e179c51eb4b5c216efe497f6c5d88f',
+  // Updated 2026-07-13: InputXML->CII(2019) live popup path
+  // (_prepareInputxml2019ConfigForRequirements) was a stale duplicate of
+  // converters/inputxml-to-cii2019.js's config-preparation logic and never
+  // received the NODENAME force-correction fix - it silently emitted CII
+  // files with no #$ NODENAME section whenever a carried-over/older
+  // layoutConfigJson lacked sections.include_nodename or set
+  // nodename.mode to something other than auto. Added the matching
+  // _applyInputxml2019NamePreservation() call so the live UI path forces
+  // the same correction the (dead-code) exported helper already applied.
+  'tabs/model-converters/legacy-adapter.js': 'e29c611fafd84572dbc216ae3a46e72d1e675e59',
   // Updated 2026-07-12: recorded hash was already stale before this change
   // (git hash-object showed a mismatch against the file's actual committed
   // content even with no pending edits) - corrected to match reality.
