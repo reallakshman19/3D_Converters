@@ -770,25 +770,16 @@ def _format_sig6(value: float) -> str:
     if absolute < 1.0:
         return f"{value:.6f}"
     integer_digits = len(str(int(absolute)))
-    decimals = max(0, 6 - integer_digits)
+    # CAESAR II requires at least one decimal digit to recognize a fixed
+    # ELEMENTS-block numeric field as being in the file's working unit
+    # (mm); a bare integer with no decimal point is silently reinterpreted
+    # at a different magnitude (assumed as m). Below 6 integer digits this
+    # was already guaranteed by the 6-significant-figure budget; at 6+
+    # integer digits decimals hit exactly 0 and a bare integer (e.g.
+    # "210164") slipped out - min 1 closes that gap without changing
+    # anything below that threshold.
+    decimals = max(1, 6 - integer_digits)
     return f"{value:.{decimals}f}"
-
-
-def _format_delta_sig6(value: float) -> str:
-    # Real CAESAR II rejects a whole-number DELTA_X/Y/Z written with a
-    # spurious single trailing ".0" (e.g. "78581.0", produced by
-    # _format_sig6 once the integer part reaches 5 digits) but accepts the
-    # identical value written as a bare integer ("78581") - confirmed by an
-    # isolated single-field A/B byte comparison against real CAESAR II
-    # import behavior. Only strips the decimal when the value is a true
-    # whole number; genuinely fractional deltas keep their decimals.
-    formatted = _format_sig6(value)
-    if abs(value) < 1.0 or "." not in formatted or "E" in formatted or "e" in formatted:
-        return formatted
-    integer_part, _, fractional_part = formatted.partition(".")
-    if fractional_part and set(fractional_part) == {"0"}:
-        return integer_part
-    return formatted
 
 
 def _section_header(name: str, suffixes: dict[str, str]) -> str:
@@ -2638,9 +2629,9 @@ def _build_cii_text(
             [
                 _format_sig6(element.from_node),
                 _format_sig6(element.to_node),
-                _format_delta_sig6(element.delta_x),
-                _format_delta_sig6(element.delta_y),
-                _format_delta_sig6(element.delta_z),
+                _format_sig6(element.delta_x),
+                _format_sig6(element.delta_y),
+                _format_sig6(element.delta_z),
                 _format_fixed_float(element.diameter, 5),
             ]
         )
