@@ -35,6 +35,7 @@ const FIELD_ROWS = Object.freeze([
 ]);
 
 const CAPS_DEFAULT_URL = new URL('../../../docs/CAPS', import.meta.url).href;
+
 const DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS = Object.freeze([
   { pipingClass: '11261', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS', rating: '150', corrosion: '1', note: 'Seed: carbon steel base class' },
   { pipingClass: '11441', materialCode: '106', materialName: 'ASTM A106-B', materialCategory: 'CS Sour', rating: '150', corrosion: '3', note: 'Seed: carbon steel sour' },
@@ -76,7 +77,8 @@ function checkbox(parent, label, checked, onChange) {
   const wrap = createElement('label');
   wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin:0 14px 8px 0;font-size:12px;color:#cbd5e1;cursor:pointer;';
   const input = createElement('input');
-  input.type = 'checkbox'; input.checked = !!checked;
+  input.type = 'checkbox';
+  input.checked = !!checked;
   input.addEventListener('change', (event) => onChange(!!event.target.checked));
   wrap.append(input, document.createTextNode(label));
   parent.appendChild(wrap);
@@ -84,7 +86,8 @@ function checkbox(parent, label, checked, onChange) {
 
 function textInput(value, onChange, width = '100%') {
   const input = createElement('input');
-  input.type = 'text'; input.value = value || '';
+  input.type = 'text';
+  input.value = value || '';
   input.style.cssText = `width:${width};box-sizing:border-box;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:4px;font-size:11px;`;
   input.addEventListener('change', (event) => onChange(event.target.value));
   return input;
@@ -92,7 +95,10 @@ function textInput(value, onChange, width = '100%') {
 
 function numberInput(value, onChange) {
   const input = textInput(String(value ?? 0), (val) => onChange(Number(val) || 0), '90px');
-  input.type = 'number'; input.min = '0'; input.max = '10000'; input.step = '1';
+  input.type = 'number';
+  input.min = '0';
+  input.max = '10000';
+  input.step = '1';
   return input;
 }
 
@@ -101,7 +107,8 @@ function selectBox(value, options, onChange) {
   select.style.cssText = 'background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px;font-size:12px;min-width:220px;';
   for (const [val, label] of options) {
     const opt = createElement('option', label);
-    opt.value = val; opt.selected = val === value;
+    opt.value = val;
+    opt.selected = val === value;
     select.appendChild(opt);
   }
   select.addEventListener('change', (event) => onChange(event.target.value));
@@ -152,7 +159,7 @@ function resolveMaterialCodeFromMap(materialName) {
 }
 
 function defaultPipingClassMaterialCodeRows() {
-  return DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS.map((row) => ({ ...row }));
+  return DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS.map((row) => ({ ...row, capsMaterialCount: Number(row.capsMaterialCount || 1) }));
 }
 
 function normalizeMaterialCodeRow(row) {
@@ -165,6 +172,7 @@ function normalizeMaterialCodeRow(row) {
     rating: clean(value.rating || value.Rating),
     corrosion: clean(value.corrosion || value.Corrosion),
     note: clean(value.note || value.source),
+    capsMaterialCount: Number(value.capsMaterialCount || 1),
   };
 }
 
@@ -174,8 +182,7 @@ function ratingFromPipingClass(classNumber) {
 }
 
 function parseCapsTextToMaterialCodeRows(text) {
-  const rows = [];
-  const seen = new Set();
+  const grouped = new Map();
   for (const line of String(text || '').split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || /^Class number\b/i.test(trimmed)) continue;
@@ -185,20 +192,35 @@ function parseCapsTextToMaterialCodeRows(text) {
     const materialName = clean(materialNameRaw);
     if (!pipingClass || !materialName) continue;
     const resolved = resolveMaterialCodeFromMap(materialName);
-    const key = `${pipingClass}::${resolved.code || 'UNMAPPED'}::${materialName}::${materialCategory}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    rows.push(normalizeMaterialCodeRow({
+    const codeKey = resolved.code || `UNMAPPED:${normalizeMaterialKey(materialName)}`;
+    const key = `${pipingClass}::${materialCategory}::${codeKey}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      if (!existing.materialName.split(';').map((x) => x.trim()).includes(materialName)) {
+        existing.materialName = `${existing.materialName}; ${materialName}`;
+        existing.capsMaterialCount += 1;
+      }
+      existing.note = existing.materialCode
+        ? `CAPS → Mat_MAP ${resolved.matchedMaterial || existing.materialCode}; ${existing.capsMaterialCount} internal CAPS material description(s)`
+        : `CAPS material not found in Mat_MAP; ${existing.capsMaterialCount} internal CAPS material description(s); review`;
+      continue;
+    }
+    grouped.set(key, normalizeMaterialCodeRow({
       pipingClass,
       materialCode: resolved.code,
       materialName,
       materialCategory,
       rating: ratingFromPipingClass(pipingClass),
       corrosion: '',
-      note: resolved.code ? `CAPS → Mat_MAP ${resolved.matchedMaterial}` : 'CAPS material not found in Mat_MAP; review',
+      capsMaterialCount: 1,
+      note: resolved.code ? `CAPS → Mat_MAP ${resolved.matchedMaterial}; 1 internal CAPS material description` : 'CAPS material not found in Mat_MAP; review',
     }));
   }
-  return rows.sort((a, b) => (a.pipingClass.localeCompare(b.pipingClass, undefined, { numeric: true }) || a.materialName.localeCompare(b.materialName)));
+  return Array.from(grouped.values()).sort((a, b) => (
+    a.pipingClass.localeCompare(b.pipingClass, undefined, { numeric: true })
+    || a.materialCode.localeCompare(b.materialCode, undefined, { numeric: true })
+    || a.materialCategory.localeCompare(b.materialCategory)
+  ));
 }
 
 async function loadCapsRowsIntoConfig(configObj, cfg, stateRef, render, statusEl = null) {
@@ -238,38 +260,14 @@ function ensurePipingClassActiveSet(configObj) {
   const current = configObj.pipingClassActiveSet && typeof configObj.pipingClassActiveSet === 'object' ? configObj.pipingClassActiveSet : {};
   const requestedMode = current.mode || (current.enabled === false ? 'full-master' : 'bore-only');
   const mode = requestedMode === 'full-master' ? 'full-master' : 'bore-only';
-  configObj.pipingClassActiveSet = {
-    enabled: mode === 'bore-only' && current.enabled !== false,
-    mode,
-    source: current.source || 'loaded-xml',
-    fallbackToFullMasterWhenNoBoreDetected: current.fallbackToFullMasterWhenNoBoreDetected !== false,
-    previewLimit: Number(current.previewLimit || 150),
-    normalizedBoreFieldCandidates: toList(current.normalizedBoreFieldCandidates || 'convertedBore, bore, nps, dn, size, outsideDiameter, DIAMETER')
-  };
+  configObj.pipingClassActiveSet = { enabled: mode === 'bore-only' && current.enabled !== false, mode, source: current.source || 'loaded-xml', fallbackToFullMasterWhenNoBoreDetected: current.fallbackToFullMasterWhenNoBoreDetected !== false, previewLimit: Number(current.previewLimit || 150), normalizedBoreFieldCandidates: toList(current.normalizedBoreFieldCandidates || 'convertedBore, bore, nps, dn, size, outsideDiameter, DIAMETER') };
   return configObj.pipingClassActiveSet;
 }
 
 function ensurePipingClassMaterialCodeMap(configObj) {
   const current = configObj.pipingClassMaterialCodeMap && typeof configObj.pipingClassMaterialCodeMap === 'object' ? configObj.pipingClassMaterialCodeMap : {};
   const rows = Array.isArray(current.rows) && current.rows.length ? current.rows.map(normalizeMaterialCodeRow) : defaultPipingClassMaterialCodeRows();
-  configObj.pipingClassMaterialCodeMap = {
-    enabled: current.enabled !== false,
-    manualOverrideWins: current.manualOverrideWins !== false,
-    exactPipingClassFirst: current.exactPipingClassFirst !== false,
-    normalizeClassSuffix: current.normalizeClassSuffix !== false,
-    materialNameToMatMapFallback: current.materialNameToMatMapFallback !== false,
-    autoLoadCaps: current.autoLoadCaps !== false,
-    capsSourcePath: current.capsSourcePath || CAPS_DEFAULT_URL,
-    loadedFromCaps: current.loadedFromCaps === true,
-    rowsSource: current.rowsSource || 'seed',
-    capsRowCount: Number(current.capsRowCount || rows.length),
-    unmatchedMaterialCount: Number(current.unmatchedMaterialCount || rows.filter((row) => !row.materialCode).length),
-    renderLimit: Number(current.renderLimit || 500),
-    filterText: clean(current.filterText),
-    lastLoadedAt: clean(current.lastLoadedAt),
-    capsLoadError: clean(current.capsLoadError),
-    rows,
-  };
+  configObj.pipingClassMaterialCodeMap = { enabled: current.enabled !== false, manualOverrideWins: current.manualOverrideWins !== false, exactPipingClassFirst: current.exactPipingClassFirst !== false, normalizeClassSuffix: current.normalizeClassSuffix !== false, materialNameToMatMapFallback: current.materialNameToMatMapFallback !== false, autoLoadCaps: current.autoLoadCaps !== false, capsSourcePath: current.capsSourcePath || CAPS_DEFAULT_URL, loadedFromCaps: current.loadedFromCaps === true, rowsSource: current.rowsSource || 'seed', capsRowCount: Number(current.capsRowCount || rows.length), unmatchedMaterialCount: Number(current.unmatchedMaterialCount || rows.filter((row) => !row.materialCode).length), renderLimit: Number(current.renderLimit || 500), filterText: clean(current.filterText), lastLoadedAt: clean(current.lastLoadedAt), capsLoadError: clean(current.capsLoadError), rows };
   return configObj.pipingClassMaterialCodeMap;
 }
 
@@ -285,7 +283,8 @@ function renderTabRail(card, stateRef, render) {
   rail.style.marginBottom = '12px';
   for (const tab of CONFIG_TABS) {
     const button = createElement('button', tab.label, 'xml-cii-sub-phase-pill');
-    button.type = 'button'; button.classList.toggle('is-active', active === tab.id);
+    button.type = 'button';
+    button.classList.toggle('is-active', active === tab.id);
     button.addEventListener('click', () => { stateRef.current = { ...stateRef.current, configActiveSubTabId: tab.id }; render(); });
     rail.appendChild(button);
   }
@@ -294,8 +293,7 @@ function renderTabRail(card, stateRef, render) {
 }
 
 function renderAutoMapFieldsTab(card, stateRef, render) {
-  const configObj = configFromState(stateRef);
-  const cfg = ensureAutoMap(configObj);
+  const configObj = configFromState(stateRef); const cfg = ensureAutoMap(configObj);
   const panel = cardShell('🧠 Auto Map Fields Policy', 'Configurable field-wise keyword matrix. This is a top-up policy layer: existing XML→CII detector and dynamic fuzzy mapper remain the baseline.');
   const toggles = createElement('div'); toggles.style.cssText = 'display:flex;flex-wrap:wrap;margin-bottom:10px;';
   checkbox(toggles, 'Enable standalone Auto Map top-up policy', cfg.enabled, (v) => { cfg.enabled = v; });
@@ -316,12 +314,10 @@ function renderAutoMapFieldsTab(card, stateRef, render) {
     const cb = createElement('input'); cb.type = 'checkbox'; cb.checked = row.enabled !== false; cb.addEventListener('change', (e) => { row.enabled = e.target.checked; }); add(cb);
     add(numberInput(row.priority, (v) => { row.priority = v; }));
     for (const key of ['exact', 'aliases', 'stacked', 'valueFallback', 'reject']) add(textInput(fromList(row[key]), (val) => { row[key] = toList(val); }));
-    add(textInput(row.policy, (val) => { row.policy = val; }));
-    tbody.appendChild(tr);
+    add(textInput(row.policy, (val) => { row.policy = val; })); tbody.appendChild(tr);
   }
   table.appendChild(tbody); wrap.appendChild(table); panel.appendChild(wrap);
-  const save = createElement('button', '💾 Save Auto Map Policy'); save.type = 'button'; save.style.cssText = 'margin-top:12px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; save.addEventListener('click', () => saveConfig(stateRef, configObj, render)); panel.appendChild(save);
-  card.appendChild(panel);
+  const save = createElement('button', '💾 Save Auto Map Policy'); save.type = 'button'; save.style.cssText = 'margin-top:12px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; save.addEventListener('click', () => saveConfig(stateRef, configObj, render)); panel.appendChild(save); card.appendChild(panel);
 }
 
 function detectBoreTokensFromSource(sourceText) {
@@ -338,16 +334,11 @@ function metric(parent, label, value) {
 }
 
 function renderPipingClassActiveSetTab(card, stateRef, render) {
-  const configObj = configFromState(stateRef); const cfg = ensurePipingClassActiveSet(configObj); const detected = detectBoreTokensFromSource(stateRef.current.sourceText);
-  const modeLabel = cfg.mode === 'full-master' || cfg.enabled === false ? 'Full master' : 'Bore only';
+  const configObj = configFromState(stateRef); const cfg = ensurePipingClassActiveSet(configObj); const detected = detectBoreTokensFromSource(stateRef.current.sourceText); const modeLabel = cfg.mode === 'full-master' || cfg.enabled === false ? 'Full master' : 'Bore only';
   const panel = cardShell('🪈 Piping Class Master Loading', 'Choose whether the active Piping Class data set is reduced by detected XML bore or the full loaded master is used. Bore-only mode improves performance on large masters; Full master remains available for diagnostic/review use.');
   const metrics = createElement('div'); metrics.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px;';
   metric(metrics, 'Full master rows indexed', Number(stateRef.current.masterContext?.rowCounts?.pipingClass || 0)); metric(metrics, 'Detected XML bore tokens', detected.length); metric(metrics, 'Load mode', modeLabel); metric(metrics, 'Fallback', cfg.fallbackToFullMasterWhenNoBoreDetected ? 'Full master if no bore' : 'No fallback'); panel.appendChild(metrics);
-  const controls = createElement('div'); controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;';
-  const modeRow = createElement('label'); modeRow.style.cssText = 'display:flex;gap:10px;align-items:center;font-size:12px;color:#cbd5e1;margin-right:14px;';
-  modeRow.append(document.createTextNode('Piping Class load mode:'), selectBox(cfg.mode, [['bore-only', 'Bore-wise active set'], ['full-master', 'Full master load']], (v) => { cfg.mode = v; cfg.enabled = v !== 'full-master'; }));
-  controls.appendChild(modeRow);
-  checkbox(controls, 'Fallback to full master when no bore is detected', cfg.fallbackToFullMasterWhenNoBoreDetected, (v) => { cfg.fallbackToFullMasterWhenNoBoreDetected = v; }); panel.appendChild(controls);
+  const controls = createElement('div'); controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;'; const modeRow = createElement('label'); modeRow.style.cssText = 'display:flex;gap:10px;align-items:center;font-size:12px;color:#cbd5e1;margin-right:14px;'; modeRow.append(document.createTextNode('Piping Class load mode:'), selectBox(cfg.mode, [['bore-only', 'Bore-wise active set'], ['full-master', 'Full master load']], (v) => { cfg.mode = v; cfg.enabled = v !== 'full-master'; })); controls.appendChild(modeRow); checkbox(controls, 'Fallback to full master when no bore is detected', cfg.fallbackToFullMasterWhenNoBoreDetected, (v) => { cfg.fallbackToFullMasterWhenNoBoreDetected = v; }); panel.appendChild(controls);
   const modeHelp = cardShell('Mode behavior', cfg.mode === 'full-master' ? 'Full master mode keeps all Piping Class rows active. Use this for diagnostics or when bore extraction is unreliable.' : 'Bore-wise mode keeps the full master indexed but activates only rows whose normalized bore matches detected XML/InputXML bore tokens.'); modeHelp.style.marginBottom = '12px'; panel.appendChild(modeHelp);
   const box = cardShell('Bore field candidates', 'Comma-separated raw/normalized fields that may hold bore in XML or master rows.'); box.appendChild(textInput(fromList(cfg.normalizedBoreFieldCandidates), (v) => { cfg.normalizedBoreFieldCandidates = toList(v); })); panel.appendChild(box);
   const pre = createElement('pre', detected.length ? detected.join('\n') : 'No bore tokens detected.'); pre.style.cssText = 'max-height:180px;overflow:auto;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:12px;'; const boreList = cardShell('Detected bore tokens from current source', detected.length ? 'Raw detected tokens are shown for review.' : 'Load XML/InputXML first or keep fallback enabled.'); boreList.appendChild(pre); panel.appendChild(boreList);
@@ -355,137 +346,32 @@ function renderPipingClassActiveSetTab(card, stateRef, render) {
 }
 
 function renderPipingClassMaterialCodeMapTab(card, stateRef, render) {
-  const configObj = configFromState(stateRef);
-  const cfg = ensurePipingClassMaterialCodeMap(configObj);
+  const configObj = configFromState(stateRef); const cfg = ensurePipingClassMaterialCodeMap(configObj);
   if (cfg.autoLoadCaps && !cfg.loadedFromCaps && !stateRef.current.__capsMaterialLoadInProgress && cfg.rows.length <= DEFAULT_PIPING_CLASS_MATERIAL_CODE_ROWS.length) {
     stateRef.current.__capsMaterialLoadInProgress = true;
-    loadCapsRowsIntoConfig(configObj, cfg, stateRef, render).catch((error) => {
-      const latest = ensurePipingClassMaterialCodeMap(configFromState(stateRef));
-      latest.capsLoadError = error?.message || String(error);
-      stateRef.current.__capsMaterialLoadInProgress = false;
-      render();
-    });
+    loadCapsRowsIntoConfig(configObj, cfg, stateRef, render).catch((error) => { const latest = ensurePipingClassMaterialCodeMap(configFromState(stateRef)); latest.capsLoadError = error?.message || String(error); stateRef.current.__capsMaterialLoadInProgress = false; render(); });
   }
-  const panel = cardShell('🧩 Piping Class ↔ Material Code Map', 'Editable static lookup used to bridge Piping Class number to CAESAR material code. Resolver priority should be: manual override → exact Piping Class/Bore master row → this static table → Material_Name → Mat_MAP fallback → review.');
+  const panel = cardShell('🧩 Piping Class ↔ Material Code Map', 'Editable static lookup used to bridge Piping Class number to CAESAR material code. CAPS Material Description is not shown in this table; it is used internally to resolve Material Code through Mat_MAP.');
   const toggles = createElement('div'); toggles.style.cssText = 'display:flex;flex-wrap:wrap;margin-bottom:10px;';
-  checkbox(toggles, 'Enable static Piping Class ↔ Material Code map', cfg.enabled, (v) => { cfg.enabled = v; });
-  checkbox(toggles, 'Manual material-code override wins', cfg.manualOverrideWins, (v) => { cfg.manualOverrideWins = v; });
-  checkbox(toggles, 'Exact piping-class match first', cfg.exactPipingClassFirst, (v) => { cfg.exactPipingClassFirst = v; });
-  checkbox(toggles, 'Normalize class suffix such as 91261M7 → 91261', cfg.normalizeClassSuffix, (v) => { cfg.normalizeClassSuffix = v; });
-  checkbox(toggles, 'Allow Material_Name → Mat_MAP fallback', cfg.materialNameToMatMapFallback, (v) => { cfg.materialNameToMatMapFallback = v; });
-  checkbox(toggles, 'Auto-load all rows from docs/CAPS', cfg.autoLoadCaps, (v) => { cfg.autoLoadCaps = v; });
-  panel.appendChild(toggles);
-
-  const sourceBox = cardShell('CAPS source', 'The table can be populated from the repository static docs/CAPS file and mapped against the built-in Mat_MAP rows. Unmatched materials stay editable with blank Material Code.');
-  sourceBox.appendChild(textInput(cfg.capsSourcePath, (v) => { cfg.capsSourcePath = v || CAPS_DEFAULT_URL; }, '100%'));
-  panel.appendChild(sourceBox);
-
-  const summary = createElement('div');
-  summary.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px;';
-  metric(summary, 'Configured rows', cfg.rows.length);
-  metric(summary, 'Source', cfg.rowsSource || 'seed');
-  metric(summary, 'Unmatched material codes', cfg.rows.filter((row) => !row.materialCode).length);
-  metric(summary, 'Last loaded', cfg.lastLoadedAt ? cfg.lastLoadedAt.slice(0, 19).replace('T', ' ') : '—');
-  panel.appendChild(summary);
-
-  const controls = createElement('div');
-  controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;';
-  const filterLabel = createElement('label');
-  filterLabel.style.cssText = 'display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px;';
-  filterLabel.append(document.createTextNode('Filter:'), textInput(cfg.filterText, (v) => { cfg.filterText = v; }, '220px'));
-  const limitLabel = createElement('label');
-  limitLabel.style.cssText = 'display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px;';
-  limitLabel.append(document.createTextNode('Render limit:'), numberInput(cfg.renderLimit, (v) => { cfg.renderLimit = Math.max(50, v || 500); }));
-  controls.append(filterLabel, limitLabel);
-  panel.appendChild(controls);
-
-  const filter = clean(cfg.filterText).toUpperCase();
-  const matchedRows = filter ? cfg.rows.filter((row) => Object.values(row).some((value) => clean(value).toUpperCase().includes(filter))) : cfg.rows;
-  const shownRows = matchedRows.slice(0, Math.max(50, Number(cfg.renderLimit || 500)));
-  const displayNote = createElement('div', `Showing ${shownRows.length} of ${matchedRows.length} matching row(s), total ${cfg.rows.length}.` + (cfg.capsLoadError ? ` CAPS load warning: ${cfg.capsLoadError}` : ''), 'xml-cii-phase-help');
-  displayNote.style.cssText = `margin:0 0 8px 0;color:${cfg.capsLoadError ? '#fca5a5' : '#94a3b8'};`;
-  panel.appendChild(displayNote);
-
-  const wrap = createElement('div');
-  wrap.style.cssText = 'max-height:520px;overflow:auto;border:1px solid rgba(148,163,184,.18);border-radius:8px;';
-  const table = createElement('table');
-  table.style.cssText = 'width:100%;border-collapse:collapse;font-size:11px;min-width:1180px;';
-  const header = createElement('tr');
-  for (const label of ['Piping Class', 'Material Code', 'Material Name', 'Material Category', 'Rating', 'Corrosion', 'Note / Source', '']) {
-    header.appendChild(Object.assign(createElement('th', label), { style: 'position:sticky;top:0;background:#0f172a;color:#bfdbfe;text-align:left;padding:6px;border-bottom:1px solid #334155;z-index:1;' }));
-  }
-  const thead = createElement('thead'); thead.appendChild(header); table.appendChild(thead);
-  const tbody = createElement('tbody');
-  shownRows.forEach((row) => {
-    const index = cfg.rows.indexOf(row);
-    const tr = createElement('tr');
-    const add = (node, width = '') => {
-      const td = createElement('td');
-      td.style.cssText = `padding:5px;border-bottom:1px solid rgba(148,163,184,.12);${width ? `min-width:${width};` : ''}`;
-      td.appendChild(node);
-      tr.appendChild(td);
-    };
-    add(textInput(row.pipingClass, (v) => { row.pipingClass = v; }, '120px'), '120px');
-    add(textInput(row.materialCode, (v) => { row.materialCode = v; }, '110px'), '110px');
-    add(textInput(row.materialName, (v) => { row.materialName = v; }, '210px'), '210px');
-    add(textInput(row.materialCategory, (v) => { row.materialCategory = v; }, '150px'), '150px');
-    add(textInput(row.rating, (v) => { row.rating = v; }, '90px'), '90px');
-    add(textInput(row.corrosion, (v) => { row.corrosion = v; }, '90px'), '90px');
-    add(textInput(row.note, (v) => { row.note = v; }, '260px'), '260px');
-    const remove = createElement('button', 'Remove');
-    remove.type = 'button';
-    remove.style.cssText = 'background:#7f1d1d;color:#fee2e2;border:1px solid #b91c1c;border-radius:5px;padding:4px 8px;font-size:11px;cursor:pointer;';
-    remove.addEventListener('click', () => { if (index >= 0) cfg.rows.splice(index, 1); saveConfig(stateRef, configObj, render); });
-    add(remove, '90px');
-    tbody.appendChild(tr);
-  });
+  checkbox(toggles, 'Enable static Piping Class ↔ Material Code map', cfg.enabled, (v) => { cfg.enabled = v; }); checkbox(toggles, 'Manual material-code override wins', cfg.manualOverrideWins, (v) => { cfg.manualOverrideWins = v; }); checkbox(toggles, 'Exact piping-class match first', cfg.exactPipingClassFirst, (v) => { cfg.exactPipingClassFirst = v; }); checkbox(toggles, 'Normalize class suffix such as 91261M7 → 91261', cfg.normalizeClassSuffix, (v) => { cfg.normalizeClassSuffix = v; }); checkbox(toggles, 'Allow Material_Name → Mat_MAP fallback', cfg.materialNameToMatMapFallback, (v) => { cfg.materialNameToMatMapFallback = v; }); checkbox(toggles, 'Auto-load all rows from docs/CAPS', cfg.autoLoadCaps, (v) => { cfg.autoLoadCaps = v; }); panel.appendChild(toggles);
+  const sourceBox = cardShell('CAPS source', 'The table is populated from the repository static docs/CAPS file and mapped against built-in Mat_MAP rows. CAPS Material Description remains hidden/internal; the visible list is class/category/code focused.'); sourceBox.appendChild(textInput(cfg.capsSourcePath, (v) => { cfg.capsSourcePath = v || CAPS_DEFAULT_URL; }, '100%')); panel.appendChild(sourceBox);
+  const summary = createElement('div'); summary.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:12px;'; metric(summary, 'Configured rows', cfg.rows.length); metric(summary, 'Source', cfg.rowsSource || 'seed'); metric(summary, 'Unmatched material codes', cfg.rows.filter((row) => !row.materialCode).length); metric(summary, 'Hidden CAPS material evidence', cfg.rows.reduce((sum, row) => sum + Number(row.capsMaterialCount || 1), 0)); metric(summary, 'Last loaded', cfg.lastLoadedAt ? cfg.lastLoadedAt.slice(0, 19).replace('T', ' ') : '—'); panel.appendChild(summary);
+  const controls = createElement('div'); controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;'; const filterLabel = createElement('label'); filterLabel.style.cssText = 'display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px;'; filterLabel.append(document.createTextNode('Filter:'), textInput(cfg.filterText, (v) => { cfg.filterText = v; }, '220px')); const limitLabel = createElement('label'); limitLabel.style.cssText = 'display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px;'; limitLabel.append(document.createTextNode('Render limit:'), numberInput(cfg.renderLimit, (v) => { cfg.renderLimit = Math.max(50, v || 500); })); controls.append(filterLabel, limitLabel); panel.appendChild(controls);
+  const filter = clean(cfg.filterText).toUpperCase(); const matchedRows = filter ? cfg.rows.filter((row) => Object.values(row).some((value) => clean(value).toUpperCase().includes(filter))) : cfg.rows; const shownRows = matchedRows.slice(0, Math.max(50, Number(cfg.renderLimit || 500))); const displayNote = createElement('div', `Showing ${shownRows.length} of ${matchedRows.length} matching row(s), total ${cfg.rows.length}. CAPS Material Description is hidden and used internally for Mat_MAP resolution.` + (cfg.capsLoadError ? ` CAPS load warning: ${cfg.capsLoadError}` : ''), 'xml-cii-phase-help'); displayNote.style.cssText = `margin:0 0 8px 0;color:${cfg.capsLoadError ? '#fca5a5' : '#94a3b8'};`; panel.appendChild(displayNote);
+  const wrap = createElement('div'); wrap.style.cssText = 'max-height:520px;overflow:auto;border:1px solid rgba(148,163,184,.18);border-radius:8px;'; const table = createElement('table'); table.style.cssText = 'width:100%;border-collapse:collapse;font-size:11px;min-width:980px;'; const header = createElement('tr'); for (const label of ['Piping Class', 'Material Code', 'Mat Description', 'Rating', 'Corrosion', 'Note / Source', '']) header.appendChild(Object.assign(createElement('th', label), { style: 'position:sticky;top:0;background:#0f172a;color:#bfdbfe;text-align:left;padding:6px;border-bottom:1px solid #334155;z-index:1;' })); const thead = createElement('thead'); thead.appendChild(header); table.appendChild(thead); const tbody = createElement('tbody');
+  shownRows.forEach((row) => { const index = cfg.rows.indexOf(row); const tr = createElement('tr'); const add = (node, width = '') => { const td = createElement('td'); td.style.cssText = `padding:5px;border-bottom:1px solid rgba(148,163,184,.12);${width ? `min-width:${width};` : ''}`; td.appendChild(node); tr.appendChild(td); }; add(textInput(row.pipingClass, (v) => { row.pipingClass = v; }, '120px'), '120px'); add(textInput(row.materialCode, (v) => { row.materialCode = v; }, '110px'), '110px'); add(textInput(row.materialCategory, (v) => { row.materialCategory = v; }, '190px'), '190px'); add(textInput(row.rating, (v) => { row.rating = v; }, '90px'), '90px'); add(textInput(row.corrosion, (v) => { row.corrosion = v; }, '90px'), '90px'); add(textInput(row.note, (v) => { row.note = v; }, '320px'), '320px'); const remove = createElement('button', 'Remove'); remove.type = 'button'; remove.style.cssText = 'background:#7f1d1d;color:#fee2e2;border:1px solid #b91c1c;border-radius:5px;padding:4px 8px;font-size:11px;cursor:pointer;'; remove.addEventListener('click', () => { if (index >= 0) cfg.rows.splice(index, 1); saveConfig(stateRef, configObj, render); }); add(remove, '90px'); tbody.appendChild(tr); });
   table.appendChild(tbody); wrap.appendChild(table); panel.appendChild(wrap);
-
-  const actions = createElement('div');
-  actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;';
-  const addBtn = createElement('button', '＋ Add row');
-  addBtn.type = 'button';
-  addBtn.style.cssText = 'background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
-  addBtn.addEventListener('click', () => { cfg.rows.unshift(normalizeMaterialCodeRow({ pipingClass: '', materialCode: '', materialName: '', materialCategory: '', rating: '', corrosion: '', note: 'manual' })); saveConfig(stateRef, configObj, render); });
-  const capsBtn = createElement('button', '↻ Load all from docs/CAPS');
-  capsBtn.type = 'button';
-  capsBtn.style.cssText = 'background:#0f766e;color:#ccfbf1;border:1px solid #14b8a6;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
-  capsBtn.addEventListener('click', async () => { try { await loadCapsRowsIntoConfig(configObj, cfg, stateRef, render, displayNote); } catch (error) { cfg.capsLoadError = error?.message || String(error); saveConfig(stateRef, configObj, render); } });
-  const defaultsBtn = createElement('button', '↺ Restore seed rows');
-  defaultsBtn.type = 'button';
-  defaultsBtn.style.cssText = 'background:#3f2f09;color:#fde68a;border:1px solid #a16207;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
-  defaultsBtn.addEventListener('click', () => { cfg.rows = defaultPipingClassMaterialCodeRows(); cfg.loadedFromCaps = false; cfg.rowsSource = 'seed'; cfg.capsLoadError = ''; saveConfig(stateRef, configObj, render); });
-  const save = createElement('button', '💾 Save Piping Class ↔ Material Code Map');
-  save.type = 'button';
-  save.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;';
-  save.addEventListener('click', () => saveConfig(stateRef, configObj, render));
-  actions.append(addBtn, capsBtn, defaultsBtn, save);
-  panel.appendChild(actions);
-
-  const help = cardShell('Resolver note', 'Piping Class number is not itself a material code. Example: 91261 → Material_Name ASTM A106-B → Mat_MAP code 106. CAPS may contain several material rows per piping class; this editable table keeps them as separate approved candidates.');
-  help.style.marginTop = '12px';
-  panel.appendChild(help);
-  card.appendChild(panel);
+  const actions = createElement('div'); actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;'; const addBtn = createElement('button', '＋ Add row'); addBtn.type = 'button'; addBtn.style.cssText = 'background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; addBtn.addEventListener('click', () => { cfg.rows.unshift(normalizeMaterialCodeRow({ pipingClass: '', materialCode: '', materialName: '', materialCategory: '', rating: '', corrosion: '', note: 'manual', capsMaterialCount: 0 })); saveConfig(stateRef, configObj, render); }); const capsBtn = createElement('button', '↻ Generate full internal list from docs/CAPS'); capsBtn.type = 'button'; capsBtn.style.cssText = 'background:#0f766e;color:#ccfbf1;border:1px solid #14b8a6;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; capsBtn.addEventListener('click', async () => { try { await loadCapsRowsIntoConfig(configObj, cfg, stateRef, render, displayNote); } catch (error) { cfg.capsLoadError = error?.message || String(error); saveConfig(stateRef, configObj, render); } }); const defaultsBtn = createElement('button', '↺ Restore seed rows'); defaultsBtn.type = 'button'; defaultsBtn.style.cssText = 'background:#3f2f09;color:#fde68a;border:1px solid #a16207;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; defaultsBtn.addEventListener('click', () => { cfg.rows = defaultPipingClassMaterialCodeRows(); cfg.loadedFromCaps = false; cfg.rowsSource = 'seed'; cfg.capsLoadError = ''; saveConfig(stateRef, configObj, render); }); const save = createElement('button', '💾 Save Piping Class ↔ Material Code Map'); save.type = 'button'; save.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; save.addEventListener('click', () => saveConfig(stateRef, configObj, render)); actions.append(addBtn, capsBtn, defaultsBtn, save); panel.appendChild(actions);
+  const help = cardShell('Resolver note', 'Piping Class number is not itself a material code. CAPS Material Description is parsed internally to derive Material Code, but the visible approval table excludes that raw column.'); help.style.marginTop = '12px'; panel.appendChild(help); card.appendChild(panel);
 }
 
 function renderSmartRegexTab(card, stateRef, render) {
   const configObj = configFromState(stateRef); const cfg = ensureSmartRegex(configObj);
   const panel = cardShell('🧠 Smart Regex', 'Configures the Smart Mode layer for Auto Regex. Existing Manual Token Builder and existing Auto Regex remain the baseline; Smart Mode suggests, validates, and only applies high-confidence mappings when enabled.');
   const grid = createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px;';
-  const mode = cardShell('Mode', 'Suggested flow: Smart Regex + Master Validation, high-confidence only.'); mode.style.marginBottom = '0';
-  checkbox(mode, 'Enable Smart Regex mode', cfg.enabled, (v) => { cfg.enabled = v; });
-  const modeRow = createElement('label'); modeRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#cbd5e1;margin-bottom:8px;'; modeRow.append(document.createTextNode('Smart mode:'), selectBox(cfg.mode, [['suggest-only', 'Suggest only'], ['suggest-and-validate', 'Suggest + validate'], ['validate-and-apply-high-confidence', 'Validate + apply high confidence']], (v) => { cfg.mode = v; })); mode.appendChild(modeRow);
-  checkbox(mode, 'Apply high-confidence only', cfg.applyHighConfidenceOnly, (v) => { cfg.applyHighConfidenceOnly = v; });
-  const conf = createElement('label'); conf.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#cbd5e1;'; conf.append(document.createTextNode('Minimum confidence:'), numberInput(cfg.minimumConfidence, (v) => { cfg.minimumConfidence = v; })); mode.appendChild(conf);
-  const validation = cardShell('Validation', 'Controls which evidence Smart Mode must check before applying or reporting confidence.'); validation.style.marginBottom = '0';
-  checkbox(validation, 'Validate line key against Line List', cfg.validateLineKey, (v) => { cfg.validateLineKey = v; }); checkbox(validation, 'Validate bore pattern / bore token', cfg.validateBore, (v) => { cfg.validateBore = v; }); checkbox(validation, 'Validate piping class token', cfg.validatePipingClass, (v) => { cfg.validatePipingClass = v; }); checkbox(validation, 'Ignore branch suffix such as /B3', cfg.ignoreBranchSuffix, (v) => { cfg.ignoreBranchSuffix = v; }); checkbox(validation, 'Produce approval report', cfg.approvalReport, (v) => { cfg.approvalReport = v; });
-  grid.append(mode, validation); panel.appendChild(grid);
-  const preview = cardShell('Smart token decision preview', 'Example for /ASIM-1885-PL-10"-CS-S8810105-01/B3. The Regex Tester phase consumes this config.');
-  const table = createElement('table'); table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;'; const body = createElement('tbody');
-  for (const row of [['#4 10"', 'Bore', 'Very high', 'Quoted inch bore token'], ['#6 S8810105', 'Line number candidate', 'High', 'Alpha-numeric line number shape'], ['#7 01', 'Line suffix candidate', 'Medium', 'Sequence/suffix token'], ['#5 CS', 'Material / class candidate', 'Review', 'Do not auto-apply as piping class unless validated'], ['/B3', 'Branch suffix / ignore', 'High', 'Ignored when branch suffix setting is enabled'], ['Rating', 'blank', 'High', 'No safe rating token such as 150/300/600/CL150/PN16']]) {
-    const tr = createElement('tr'); for (const value of row) tr.appendChild(Object.assign(createElement('td', value), { style: 'padding:5px;border-bottom:1px solid rgba(148,163,184,.12);color:#cbd5e1;' })); body.appendChild(tr);
-  }
-  table.appendChild(body); preview.appendChild(table); panel.appendChild(preview);
+  const mode = cardShell('Mode', 'Suggested flow: Smart Regex + Master Validation, high-confidence only.'); mode.style.marginBottom = '0'; checkbox(mode, 'Enable Smart Regex mode', cfg.enabled, (v) => { cfg.enabled = v; }); const modeRow = createElement('label'); modeRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#cbd5e1;margin-bottom:8px;'; modeRow.append(document.createTextNode('Smart mode:'), selectBox(cfg.mode, [['suggest-only', 'Suggest only'], ['suggest-and-validate', 'Suggest + validate'], ['validate-and-apply-high-confidence', 'Validate + apply high confidence']], (v) => { cfg.mode = v; })); mode.appendChild(modeRow); checkbox(mode, 'Apply high-confidence only', cfg.applyHighConfidenceOnly, (v) => { cfg.applyHighConfidenceOnly = v; }); const conf = createElement('label'); conf.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#cbd5e1;'; conf.append(document.createTextNode('Minimum confidence:'), numberInput(cfg.minimumConfidence, (v) => { cfg.minimumConfidence = v; })); mode.appendChild(conf);
+  const validation = cardShell('Validation', 'Controls which evidence Smart Mode must check before applying or reporting confidence.'); validation.style.marginBottom = '0'; checkbox(validation, 'Validate line key against Line List', cfg.validateLineKey, (v) => { cfg.validateLineKey = v; }); checkbox(validation, 'Validate bore pattern / bore token', cfg.validateBore, (v) => { cfg.validateBore = v; }); checkbox(validation, 'Validate piping class token', cfg.validatePipingClass, (v) => { cfg.validatePipingClass = v; }); checkbox(validation, 'Ignore branch suffix such as /B3', cfg.ignoreBranchSuffix, (v) => { cfg.ignoreBranchSuffix = v; }); checkbox(validation, 'Produce approval report', cfg.approvalReport, (v) => { cfg.approvalReport = v; }); grid.append(mode, validation); panel.appendChild(grid);
+  const preview = cardShell('Smart token decision preview', 'Example for /ASIM-1885-PL-10"-CS-S8810105-01/B3. The Regex Tester phase consumes this config.'); const table = createElement('table'); table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;'; const body = createElement('tbody'); for (const row of [['#4 10"', 'Bore', 'Very high', 'Quoted inch bore token'], ['#6 S8810105', 'Line number candidate', 'High', 'Alpha-numeric line number shape'], ['#7 01', 'Line suffix candidate', 'Medium', 'Sequence/suffix token'], ['#5 CS', 'Material / class candidate', 'Review', 'Do not auto-apply as piping class unless validated'], ['/B3', 'Branch suffix / ignore', 'High', 'Ignored when branch suffix setting is enabled'], ['Rating', 'blank', 'High', 'No safe rating token such as 150/300/600/CL150/PN16']]) { const tr = createElement('tr'); for (const value of row) tr.appendChild(Object.assign(createElement('td', value), { style: 'padding:5px;border-bottom:1px solid rgba(148,163,184,.12);color:#cbd5e1;' })); body.appendChild(tr); } table.appendChild(body); preview.appendChild(table); panel.appendChild(preview);
   const save = createElement('button', '💾 Save Smart Regex Config'); save.type = 'button'; save.style.cssText = 'background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;'; save.addEventListener('click', () => saveConfig(stateRef, configObj, render)); panel.appendChild(save); card.appendChild(panel);
 }
 
