@@ -48,12 +48,11 @@ function protectedRouteShas() {
     'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
     'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
     'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
-    // Updated 2026-07-13 for the StagedJSON -> InputXML Work Pack. The shared
-    // files changed only inside converterId === 'stagedjson_to_inputxml': inline
-    // bookmark/OD/anchor arguments, successful diagnostics read-back, and a
-    // staged-only failed-run sidecar recovery. Mission J XML/InputXML source-mode
-    // routing and public API boundaries are still exercised below.
-    'converters/py-worker.js': 'a3cc7cea5be2c17963816a31cc8291d43fc4a864',
+    // Updated 2026-07-13 for the XML→CII InputXML sidecar Work Pack. The shared
+    // worker changed only in the xml_to_cii post-process: it forwards the
+    // authoritative CII path/options, returns the reconstruction and parity JSON,
+    // and exposes sidecar diagnostics. Mission J source-mode routing remains below.
+    'converters/py-worker.js': '16649a6d5e0b9087d2368b0dd871a8d91d2b890c',
     'converters/invocation-builder.js': 'aae681ec8e134d3ec92754e5bc6cb97bd21b6018',
   };
 }
