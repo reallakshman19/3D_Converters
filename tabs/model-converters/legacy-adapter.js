@@ -55,6 +55,7 @@ import {
 } from '../../converters/xml-cii2019-core/linelist-mapping.js';
 import { buildStagedSupportIndex, calibrateStagedSupportIndexCoordinates, xmlCiiTypeEntriesFromSupportKind, xmlCiiRestraintEntriesFromSupportMatch, xmlCiiTypeEntryFromExistingRestraint, dedupeXmlCiiRestraintEntries, applyXmlRestraints, enrichHierarchyWithMapperKinds } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { renderUnifiedSupportMappingTable, bindUnifiedSupportMappingTable } from './converters/xmltocii2019_helper/support-mapping-table.js?v=20260710-inputxml2019-popup-revamp-1';
+import { DEFAULT_ENRICHMENT_CONFIG as _XML_COMPARE_ENRICHMENT_DEFAULTS } from '../../xml-compare/XmlCompareEnrichmentConfig.js';
 import { parseInputXmlForBranchPreview, applyElementFieldEdits, FIELD_SPECS } from './converters/inputxml2019_helper/inputxml-branch-preview.js?v=20260712-inputxml2019-branch-editable-1';
 import { CONVERTERS, getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
 import { XML_CII_WORKFLOW_PHASES } from './WorkflowShell.js';
@@ -1730,6 +1731,13 @@ function _popupFieldValueAsText(field) {
  * is NOT independently verified against a real CAESAR export - labeled
  * "(unverified)" rather than stated as fact.
  */
+// Default RESTRAINT/TYPE remap template for InputXML sourced from a CAESAR
+// EXPORTED XML whose numeric TYPE codes don't match what CII expects (e.g.
+// AutoPIPE/PSI-side codes vs CAESAR II's own). Shares the exact template
+// already proven out in xml-compare's "Restraint Type Conversion" enrichment
+// section, applied here to layoutConfigJson.restraint.explicit_type_map.
+const DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS = _XML_COMPARE_ENRICHMENT_DEFAULTS.restraintTypeConvert.rows;
+
 const ELEMENTS_ROW_FIELD_META = Object.freeze({
   'elements.row3[0]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 4', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C4 from the loaded InputXML.' },
   'elements.row3[1]': { group: 'Temperature Cases 4-9 (from source XML)', label: 'Temperature Case 5', editable: false, note: 'Always uses PIPINGELEMENT/TEMP_EXP_C5 from the loaded InputXML.' },
@@ -2439,6 +2447,98 @@ function _openJsonPopup({
       </table>
     `;
   };
+  const restraintTypeMutationRows = (parsed) => {
+    const cfg = parsed.restraint && typeof parsed.restraint === 'object' ? parsed.restraint : {};
+    if (Array.isArray(cfg.type_mutation_rows) && cfg.type_mutation_rows.length) return cfg.type_mutation_rows;
+    return DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS.map((row) => ({ ...row }));
+  };
+  const renderRestraintTypeMutationHtml = (parsed) => {
+    const cfg = parsed.restraint && typeof parsed.restraint === 'object' ? parsed.restraint : {};
+    const enabled = cfg.mapping_policy === 'explicit_map';
+    const rows = restraintTypeMutationRows(parsed);
+    const inp = 'background:#101827;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:4px 6px;font-size:12px;width:80px;box-sizing:border-box;';
+    const th = 'text-align:left;padding:4px 6px;border-bottom:1px solid #31455f;color:#9cc5ff;';
+    const td = 'padding:4px 6px;border-bottom:1px solid #24354a;';
+    const rowsHtml = rows.map((row, i) => `
+      <tr>
+        <td style="${td}"><input style="${inp}" data-rtm-row="${i}" data-rtm-col="label" value="${_esc(row.label || '')}" placeholder="label"></td>
+        <td style="${td}"><input style="${inp}" data-rtm-row="${i}" data-rtm-col="from" type="number" step="1" value="${_esc(row.from ?? '')}" placeholder="e.g. 17"></td>
+        <td style="${td};text-align:center;color:#9aa8ba;">&rarr;</td>
+        <td style="${td}"><input style="${inp}" data-rtm-row="${i}" data-rtm-col="to" type="number" step="1" value="${_esc(row.to ?? '')}" placeholder="e.g. 14"></td>
+        <td style="${td}"><button type="button" data-rtm-del="${i}" class="model-converters-download-btn" style="padding:2px 7px;">Delete</button></td>
+      </tr>
+    `).join('');
+    return `
+      <div style="margin-top:16px;border:1px solid #31455f;border-radius:8px;padding:12px;background:#101a29;">
+        <label style="display:flex;align-items:center;gap:8px;color:#9cc5ff;font-weight:700;font-size:13px;">
+          <input type="checkbox" data-rtm-enabled ${enabled ? 'checked' : ''}>
+          <span>Restraint Type Mutation</span>
+        </label>
+        <div style="color:#9aa8ba;font-size:11px;margin:6px 0 10px;">
+          Enable InputXML restraint TYPE mutation. Some CAESAR-exported XML carries RESTRAINT/TYPE numeric codes
+          that don't match what CII expects; remap them here before conversion. Writes into
+          <code>layoutConfigJson.restraint.mapping_policy</code> / <code>explicit_type_map</code>.
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;max-width:440px;">
+          <thead><tr>
+            <th style="${th}">Label</th><th style="${th}">From TYPE</th><th></th><th style="${th}">To TYPE</th><th></th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <button type="button" data-rtm-add class="model-converters-download-btn" style="margin-top:8px;">Add row</button>
+      </div>
+    `;
+  };
+  const bindRestraintTypeMutation = (host, parsed) => {
+    const rows = restraintTypeMutationRows(parsed);
+    // The "Restraint type overrides found in this file" table below also
+    // writes into this same explicit_type_map, keyed per distinct source
+    // type actually present in the loaded file. Track which "from" keys
+    // this table currently owns so a commit() here only adds/removes those
+    // keys - it must not clobber entries the other table set independently.
+    let ownedKeys = new Set(rows.map((row) => _toText(row.from).trim()).filter(Boolean));
+    const commit = () => {
+      parsed.restraint = parsed.restraint && typeof parsed.restraint === 'object' ? parsed.restraint : {};
+      parsed.restraint.type_mutation_rows = rows;
+      const map = { ...(parsed.restraint.explicit_type_map && typeof parsed.restraint.explicit_type_map === 'object' ? parsed.restraint.explicit_type_map : {}) };
+      for (const key of ownedKeys) delete map[key];
+      const nextOwnedKeys = new Set();
+      for (const row of rows) {
+        const from = _toText(row.from).trim();
+        const to = _toText(row.to).trim();
+        if (from && to) { map[from] = to; nextOwnedKeys.add(from); }
+      }
+      ownedKeys = nextOwnedKeys;
+      parsed.restraint.explicit_type_map = map;
+      if (textarea) textarea.value = JSON.stringify(parsed, null, 2);
+    };
+    host.querySelector('[data-rtm-enabled]')?.addEventListener('change', (event) => {
+      parsed.restraint = parsed.restraint && typeof parsed.restraint === 'object' ? parsed.restraint : {};
+      parsed.restraint.mapping_policy = event.target.checked ? 'explicit_map' : 'identity';
+      if (textarea) textarea.value = JSON.stringify(parsed, null, 2);
+    });
+    host.querySelectorAll('[data-rtm-row]').forEach((input) => {
+      input.addEventListener('input', () => {
+        const i = Number(input.getAttribute('data-rtm-row'));
+        const col = input.getAttribute('data-rtm-col');
+        rows[i] = rows[i] || {};
+        rows[i][col] = input.value;
+        commit();
+      });
+    });
+    host.querySelectorAll('[data-rtm-del]').forEach((button) => {
+      button.addEventListener('click', () => {
+        rows.splice(Number(button.getAttribute('data-rtm-del')), 1);
+        commit();
+        renderUnifiedSupportMappingTab();
+      });
+    });
+    host.querySelector('[data-rtm-add]')?.addEventListener('click', () => {
+      rows.push({ label: '', from: '', to: '' });
+      commit();
+      renderUnifiedSupportMappingTab();
+    });
+  };
   const renderUnifiedSupportMappingTab = () => {
     if (!unifiedSupportMappingEl || !unifiedSupportMapping) return;
     let parsed;
@@ -2448,6 +2548,10 @@ function _openJsonPopup({
     bindUnifiedSupportMappingTable(unifiedSupportMappingEl, parsed, {
       onSaveConfig: (nextConfig) => { if (textarea) textarea.value = JSON.stringify(nextConfig, null, 2); },
     });
+    const mutationHost = document.createElement('div');
+    mutationHost.innerHTML = renderRestraintTypeMutationHtml(parsed);
+    unifiedSupportMappingEl.appendChild(mutationHost);
+    bindRestraintTypeMutation(mutationHost, parsed);
     const overridesHost = document.createElement('div');
     overridesHost.innerHTML = renderRestraintOverridesHtml(parsed);
     unifiedSupportMappingEl.appendChild(overridesHost);
