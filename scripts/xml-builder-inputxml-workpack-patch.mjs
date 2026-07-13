@@ -76,6 +76,14 @@ function parseRestraints(nodeEl) {
 }`,
     'restraint compatibility parser');
   source = replaceOnce(source,
+`function hasRigidEvidence(row) {
+  return row?.componentType === 'RIGID' || text(row?.rigid) !== '' || (row?.componentType === 'FBLI' && Number(row?.weight) > 0);
+}`,
+`function hasRigidEvidence(row) {
+  return row?.componentType === 'RIGID' || Number(row?.rigid) > 0 || (row?.componentType === 'FBLI' && Number(row?.weight) > 0);
+}`,
+    'rigid evidence semantics');
+  source = replaceOnce(source,
     '    INSUL_DENSITY: SENTINEL,',
     '    INSUL_DENSITY: includeFullContext ? (maybeNum(branch.context.insulationDensity) ?? SENTINEL) : SENTINEL,',
     'insulation density propagation');
@@ -168,12 +176,12 @@ patch('tabs/xml-builder-tab.js', (input) => {
     '<button type="button" class="model-converters-download-btn" data-xml-builder-download="inputxml" ${outputs.inputXmlReady === true ? \'\' : \'disabled\'}>Download InputXML</button>',
     'inputxml readiness button');
   source = replaceOnce(source,
-`      <div><div class="model-converters-workflow-section-title">InputXML</div><pre class="xml-cii-native-hint">${esc(outputs.inputXmlSummary || 'No InputXML built yet.')}</pre><textarea class="xml-builder-output" readonly>${esc(outputs.inputXmlText || '')}</textarea></div>
+`      <div><div class="model-converters-workflow-section-title">InputXML</div><pre class="xml-cii-native-hint">\${esc(outputs.inputXmlSummary || 'No InputXML built yet.')}</pre><textarea class="xml-builder-output" readonly>\${esc(outputs.inputXmlText || '')}</textarea></div>
     </div>
   </section>`;`,
-`      <div><div class="model-converters-workflow-section-title">InputXML</div><pre class="xml-cii-native-hint">${esc(outputs.inputXmlSummary || 'No InputXML built yet.')}</pre><textarea class="xml-builder-output" readonly>${esc(outputs.inputXmlText || '')}</textarea></div>
+`      <div><div class="model-converters-workflow-section-title">InputXML</div><pre class="xml-cii-native-hint">\${esc(outputs.inputXmlSummary || 'No InputXML built yet.')}</pre><textarea class="xml-builder-output" readonly>\${esc(outputs.inputXmlText || '')}</textarea></div>
     </div>
-    ${renderXmlBuilderDiagnosticsHtml(outputs.diagnostics || {})}
+    \${renderXmlBuilderDiagnosticsHtml(outputs.diagnostics || {})}
   </section>`;`,
     'diagnostics view');
   source = replaceOnce(source,
@@ -248,7 +256,7 @@ patch('tests/xml-cii-node-to-inputxml-core.test.js', (input) => {
   }));
   const model = modelApi.buildCustomInputModel({
     branchRows: [{ branchName, lineKey: 'L-100', nodeNumber: '10', boreMm: '100', outsideDiameter: '114.3', wallThickness: '6.02', p1: '4140', p9: '900', t1: '260', t9: '9', fluidDensity: '983', insulationDensity: '0.00012', materialCode: '106' }],
-    coordinateRows: [{ branchName, nodeNumber: '10', x: '0', y: '0', z: '0' }, { branchName, nodeNumber: '20', x: '1000', y: '0', z: '0' }],
+    coordinateRows: [{ branchName, nodeNumber: '10', x: '0', y: '0', z: '0' }, { branchName, nodeNumber: '20', x: '1000', y: '0', z: '0' }, { branchName, nodeNumber: '30', x: '', y: '', z: '' }],
     weightRows: [{ branchName, nodeNumber: '10', componentType: 'PIPE', rigid: '0', endpoint: '1', weight: '0' }, { branchName, nodeNumber: '20', componentType: 'RIGID', rigid: '2', endpoint: '2', weight: '43' }, { branchName, nodeNumber: '30', componentType: 'PIPE', rigid: '0', endpoint: '1', weight: '0' }],
     restraintRows,
   });
@@ -272,6 +280,7 @@ patch('tests/xml-cii-node-to-inputxml-core.test.js', (input) => {
   assert(result.coreInputXmlText.includes('TEMP_EXP_C9="9.000000"'), 'Temperature9 should become InputXML context');
   assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="20.000000" TYPE="17.000000"'), 'generic REST with +Y direction should emit mapped restraint type 17');
   assert.strictEqual((result.coreInputXmlText.match(/<RESTRAINT NUM=/g) || []).length, 6, 'InputXML should retain the fixed six restraint slots');
+  assert.strictEqual((result.coreInputXmlText.match(/<RIGID /g) || []).length, 1, 'Rigid=0 must not create a RIGID child while explicit Rigid=2 does');
   assert(result.diagnostics.records.some((row) => row.code === 'XML_BUILDER_RESTRAINT_SLOT_TRUNCATED'), 'restraint overflow should be diagnosed');
   assert(result.diagnostics.records.some((row) => row.code === 'XML_BUILDER_NODE_DROPPED_MISSING_POSITION'), 'missing-position route drop should be diagnosed');
   assert.strictEqual(result.diagnostics.summary.elementCount, 1, 'only the two positioned nodes should form one route element');
@@ -281,7 +290,7 @@ patch('tests/xml-cii-node-to-inputxml-core.test.js', (input) => {
   const outputPath = path.join(tempDir, 'xml-builder.cii');
   fs.writeFileSync(inputPath, result.coreInputXmlText, 'utf8');
   const converted = spawnSync(process.env.PYTHON || 'python3', [path.join(root, 'converters/scripts/inputxml_to_cii2019.py'), '--input', inputPath, '--output', outputPath], { encoding: 'utf8' });
-  assert.strictEqual(converted.status, 0, `Python downstream conversion should succeed: ${converted.stderr || converted.stdout}`);
+  assert.strictEqual(converted.status, 0, `Python downstream conversion should succeed: \${converted.stderr || converted.stdout}`);
   const ciiText = fs.readFileSync(outputPath, 'utf8');
   assert(ciiText.includes('ELEMENTS') && ciiText.length > 100, 'downstream CII output should contain an ELEMENTS section');
 }
