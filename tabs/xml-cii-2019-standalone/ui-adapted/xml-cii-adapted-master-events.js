@@ -5,25 +5,31 @@ import { prepareStandaloneImportMasters } from '../xml-cii-master-context.js';
 import { applyStandaloneImportMastersContext, setStoredMaster, updateWorkflowState, updateMasterLastLoadedPath, getSavedMappingsForMaster, saveMappingForFile, findSmartMatchingMapping, setStoredJson, getStoredJson } from './xml-cii-adapted-state.js';
 import { fuzzyAutoMapFields } from './xml-cii-adapted-fuzzy-mapper.js';
 
+const MASTER_DEF_MAP = Object.freeze({
+  lineList: Object.freeze({ k: 'linelist', r: 'masterRows', rowsKey: 'lineRows' }),
+  pipingClass: Object.freeze({ k: 'pipingClass', r: 'masterRows', rowsKey: 'pipingClassRows' }),
+  materialMap: Object.freeze({ k: 'material', r: 'mapRows', rowsKey: 'materialMapRows' }),
+  weight: Object.freeze({ k: 'weight', r: 'masterRows', rowsKey: 'weightMasterRows' }),
+});
+
 async function getXlsxModule() {
-  // Import map resolves xlsx to the project-managed local ESM dependency.
-  // The module namespace exposes read, write, utils, and the other SheetJS exports.
   if (typeof XLSX !== 'undefined' && typeof XLSX.read === 'function') return XLSX;
-  try {
-    const mod = await import('xlsx');
-    if (mod && typeof mod.read === 'function') return mod;
-    if (mod && mod.default && typeof mod.default.read === 'function') return mod.default;
-  } catch (error) {
-    console.warn(`Local xlsx module failed, falling back to CDN: ${error?.message || String(error)}`);
+  const attempts = [
+    () => import('xlsx'),
+    () => import('https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs'),
+  ];
+  const errors = [];
+  for (const load of attempts) {
     try {
-      const cdnMod = await import('https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs');
-      if (cdnMod && typeof cdnMod.read === 'function') return cdnMod;
-      if (cdnMod && cdnMod.default && typeof cdnMod.default.read === 'function') return cdnMod.default;
-    } catch (cdnError) {
-      throw new Error(`Local and CDN xlsx modules could not be loaded: ${cdnError?.message || String(cdnError)}`);
+      const mod = await load();
+      if (mod && typeof mod.read === 'function') return mod;
+      if (mod && mod.default && typeof mod.default.read === 'function') return mod.default;
+      errors.push('module did not expose read/utils');
+    } catch (error) {
+      errors.push(error?.message || String(error));
     }
   }
-  throw new Error('Local xlsx module did not expose read/utils. Run npm install and refresh the page.');
+  throw new Error(`XLSX parser failed to load. ${errors.join(' | ')}`);
 }
 
 async function parseMasterFileData(buffer, fileName, masterKey) {
@@ -50,9 +56,8 @@ async function parseMasterFileData(buffer, fileName, masterKey) {
     const activeSheet = sheetNames[0];
     return { rawRows: workbookData[activeSheet] || [], sheetNames, activeSheet, workbookData };
   }
-  let rawRows = [];
   const text = new TextDecoder('utf-8').decode(buffer);
-  rawRows = masterKey === 'materialMap' && /\.(txt|map)$/i.test(fileName) ? parseMaterialMapText(text) : parseCsv(text);
+  const rawRows = masterKey === 'materialMap' && /\.(txt|map)$/i.test(fileName) ? parseMaterialMapText(text) : parseCsv(text);
   return { rawRows, sheetNames: [], activeSheet: '', workbookData: null };
 }
 
@@ -74,14 +79,15 @@ function resolvePathToUrl(pathStr) {
   if (viewerIdx !== -1) return new URL('../'.repeat(pathSegs.length) + normalized.substring(viewerIdx).replace(/^\/+/, ''), location.href).href;
   return new URL(normalized, location.href).href;
 }
+
 function translateError(err, filename) {
   const m = err.message || '';
   const stack = err.stack ? '\nStack:\n' + err.stack.split('\n').slice(0, 6).join('\n') : '';
-  if (m.includes("reading 'length'") || m.includes("Cannot read properties")) {
+  if (m.includes("reading 'length'") || m.includes('Cannot read properties')) {
     return `Workbook structure is invalid or empty. If the file is open in Excel, close it and try again.${stack}`;
   }
-  if (m.includes('CFB') || m.includes('xlsx module has no .read') || m.includes('Local xlsx module')) {
-    return `XLSX parser failed to load. Run npm install in the converter project, refresh the page (Ctrl+F5), then re-upload.${stack}`;
+  if (m.includes('CFB') || m.includes('xlsx module has no .read') || m.includes('XLSX parser failed')) {
+    return `XLSX parser failed to load. Refresh the page (Ctrl+F5), then re-upload. If CDN access is blocked, use CSV export.${stack}`;
   }
   if (m.includes('Fetch failed') || m.includes('500') || m.includes('403') || m.includes('Failed to fetch')) {
     return `Could not read file. If it is open in Excel, close it and retry.${stack}`;
@@ -89,7 +95,92 @@ function translateError(err, filename) {
   return m + stack;
 }
 
+function readConfig(stateRef) {
+  try { return JSON.parse(stateRef.current.supportConfigJson || '{}') || {}; } catch { return {}; }
+}
 
+function headersFromRows(rows) {
+  const headers = [];
+  for (const row of Array.isArray(rows) ? rows : []) {
+    for (const key of Object.keys(row || {})) {
+      if (key !== '_rowIndex' && !headers.includes(key)) headers.push(key);
+    }
+    if (headers.length) break;
+  }
+  return headers;
+}
+
+export function autoMapStandaloneMasterFields(masterKey, rawRows, currentMap = {}, config = {}) {
+  const fields = MASTER_FIELDS[masterKey]?.fields || [];
+  const headers = headersFromRows(rawRows);
+  const fuzzyMap = fuzzyAutoMapFields(headers, fields, rawRows);
+  if (masterKey !== 'lineList') return fuzzyMap;
+
+  const lineListMap = detectLineListFieldMap(rawRows, currentMap || {}, config?.linelist || config || null);
+  const mergedMap = { ...fuzzyMap, ...lineListMap };
+
+  // Keep dynamic standalone-only fields that the core XML->CII line-list detector
+  // intentionally does not own yet, such as From/To equipment columns.
+  for (const field of fields) {
+    if (!(field.name in mergedMap)) mergedMap[field.name] = fuzzyMap[field.name] || '';
+  }
+  return mergedMap;
+}
+
+function mapRowsForMaster(rawRows, fieldMap, masterKey) {
+  return mapRowsWithFieldMap(rawRows, fieldMap, masterKey);
+}
+
+function applyFieldMapToContext(stateRef, key, fieldMap, rawRows, statusMessage) {
+  const context = stateRef.current.masterContext || {};
+  if (!context.lineRows) context.lineRows = [];
+  if (!context.pipingClassRows) context.pipingClassRows = [];
+  if (!context.materialMapRows) context.materialMapRows = [];
+  if (!context.weightMasterRows) context.weightMasterRows = [];
+  if (!context.diagnostics) context.diagnostics = [];
+  if (!context.rawRows) context.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
+  context.rawRows[key] = Array.isArray(rawRows) ? rawRows : [];
+
+  const config = context.config || readConfig(stateRef);
+  const def = MASTER_DEF_MAP[key];
+  if (def) {
+    const sec = { ...(config[def.k] || {}) };
+    sec.fieldMap = fieldMap || {};
+    config[def.k] = sec;
+  }
+
+  const normalized = mapRowsForMaster(rawRows, fieldMap, key);
+  if (def?.rowsKey) context[def.rowsKey] = normalized;
+  if (def) config[def.k][def.r] = normalized;
+
+  const updatedContext = {
+    ...context,
+    config,
+    rowCounts: {
+      lineList: (context.lineRows || []).length,
+      pipingClass: (context.pipingClassRows || []).length,
+      materialMap: (context.materialMapRows || []).length,
+      weight: (context.weightMasterRows || []).length,
+    },
+    previewRows: {
+      lineList: (context.lineRows || []).slice(0, 150),
+      pipingClass: (context.pipingClassRows || []).slice(0, 150),
+      materialMap: (context.materialMapRows || []).slice(0, 150),
+      weight: (context.weightMasterRows || []).slice(0, 150),
+    },
+  };
+
+  if (key !== 'pipingClass') {
+    setStoredMaster(key, normalized);
+    setStoredJson(`xml-cii-master-raw-${key}`, rawRows);
+  }
+
+  stateRef.current = updateWorkflowState(stateRef.current, {
+    masterContext: updatedContext,
+    supportConfigJson: JSON.stringify(config, null, 2),
+    importMastersWriteBackStatus: statusMessage,
+  });
+}
 
 export function bindImportMastersEvents(container, stateRef, render) {
   container.querySelectorAll('[data-master-file]').forEach((input) => {
@@ -150,7 +241,7 @@ export function bindImportMastersEvents(container, stateRef, render) {
         console.error('Failed to fetch/parse file:', err);
         stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: false, importMastersWriteBackStatus: `Fetch error: ${err.message}` });
         render();
-        let tips = /^[a-zA-Z]:/.test(pathValue) 
+        let tips = /^[a-zA-Z]:/.test(pathValue)
           ? "\n\nNote: Local drive letters require browser file permissions. Use 'Choose File' instead or copy file to project workspace."
           : "\n\nTroubleshooting tips:\n1. If file is open in Excel, close it.\n2. Ensure web server is running and file path is relative/correct.";
         alert(`Failed to fetch file: ${translateError(err, fileName)}${tips}`);
@@ -164,12 +255,9 @@ export function bindImportMastersEvents(container, stateRef, render) {
       const selectedSheet = select.value;
       const context = stateRef.current.masterContext;
       if (!context || !context.workbookData || !context.workbookData[masterKey]) return;
-      
       const rawRows = context.workbookData[masterKey][selectedSheet] || [];
       const filename = context.sourceMetadata?.[masterKey]?.source || 'unknown';
-      
       context.activeSheet = { ...context.activeSheet, [masterKey]: selectedSheet };
-      
       importMasterRows(stateRef, masterKey, rawRows, filename, render);
     });
   });
@@ -183,8 +271,29 @@ export function bindImportMastersEvents(container, stateRef, render) {
     });
   });
 
+  bindAutoMapEvents(container, stateRef, render);
   bindSaveMappingEvents(container, stateRef, render);
   bindApplyMappingEvents(container, stateRef, render);
+}
+
+function bindAutoMapEvents(container, stateRef, render) {
+  container.querySelectorAll('[data-action="auto-map-master-fields"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const masterKey = btn.dataset.masterKey;
+      const context = stateRef.current.masterContext || {};
+      const rawRows = context.rawRows?.[masterKey] || getStoredJson(`xml-cii-master-raw-${masterKey}`, []);
+      if (!rawRows || !rawRows.length) {
+        alert('Please import rows/file before auto-mapping fields.');
+        return;
+      }
+      const config = context.config || readConfig(stateRef);
+      const def = MASTER_DEF_MAP[masterKey];
+      const currentMap = def ? (config[def.k]?.fieldMap || {}) : {};
+      const fieldMap = autoMapStandaloneMasterFields(masterKey, rawRows, currentMap, config);
+      applyFieldMapToContext(stateRef, masterKey, fieldMap, rawRows, `Auto-mapped ${masterKey} fields using ${masterKey === 'lineList' ? 'XML->CII line-list detector plus dynamic field fallback' : 'dynamic fuzzy field detection'}.`);
+      render();
+    });
+  });
 }
 
 function bindSaveMappingEvents(container, stateRef, render) {
@@ -198,8 +307,8 @@ function bindSaveMappingEvents(container, stateRef, render) {
         return;
       }
       const config = context?.config || {};
-      const def = { lineList: 'linelist', pipingClass: 'pipingClass', materialMap: 'material', weight: 'weight' }[masterKey];
-      const fieldMap = config[def]?.fieldMap;
+      const def = MASTER_DEF_MAP[masterKey];
+      const fieldMap = def ? config[def.k]?.fieldMap : null;
       if (!fieldMap || !Object.keys(fieldMap).length) {
         alert('No mappings configured to save.');
         return;
@@ -219,9 +328,7 @@ function bindApplyMappingEvents(container, stateRef, render) {
       if (!selectedFilename) return;
       const context = stateRef.current.masterContext;
       if (!context) return;
-      if (!context.rawRows) {
-        context.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
-      }
+      if (!context.rawRows) context.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
       if (!context.rawRows[masterKey] || !context.rawRows[masterKey].length) {
         context.rawRows[masterKey] = getStoredJson(`xml-cii-master-raw-${masterKey}`, []);
       }
@@ -234,29 +341,7 @@ function bindApplyMappingEvents(container, stateRef, render) {
       const savedMappings = getSavedMappingsForMaster(masterKey);
       const fieldMap = savedMappings[selectedFilename];
       if (!fieldMap) return;
-      const config = context.config || {};
-      const def = { lineList: { k: 'linelist', r: 'masterRows' }, pipingClass: { k: 'pipingClass', r: 'masterRows' }, materialMap: { k: 'material', r: 'mapRows' }, weight: { k: 'weight', r: 'masterRows' } }[masterKey];
-      if (def) {
-        const sec = { ...(config[def.k] || {}) };
-        sec.fieldMap = fieldMap;
-        config[def.k] = sec;
-      }
-      const normalized = mapRowsWithFieldMap(rawRows, fieldMap, masterKey);
-      const rowsKey = { lineList: 'lineRows', pipingClass: 'pipingClassRows', materialMap: 'materialMapRows', weight: 'weightMasterRows' }[masterKey];
-      if (rowsKey) context[rowsKey] = normalized;
-      if (def) {
-        config[def.k][def.r] = normalized;
-      }
-      const updatedContext = {
-        ...context, config,
-        rowCounts: { lineList: context.lineRows.length, pipingClass: context.pipingClassRows.length, materialMap: context.materialMapRows.length, weight: context.weightMasterRows.length },
-        previewRows: { lineList: context.lineRows.slice(0, 150), pipingClass: context.pipingClassRows.slice(0, 150), materialMap: context.materialMapRows.slice(0, 150), weight: context.weightMasterRows.slice(0, 150) },
-      };
-      if (masterKey !== 'pipingClass') setStoredMaster(masterKey, normalized);
-      stateRef.current = updateWorkflowState(stateRef.current, {
-        masterContext: updatedContext, supportConfigJson: JSON.stringify(config, null, 2),
-        importMastersWriteBackStatus: `Applied saved column mapping from ${selectedFilename}.`
-      });
+      applyFieldMapToContext(stateRef, masterKey, fieldMap, rawRows, `Applied saved column mapping from ${selectedFilename}.`);
       render();
     });
   });
@@ -264,14 +349,20 @@ function bindApplyMappingEvents(container, stateRef, render) {
 
 export async function loadImportMastersFromUi(stateRef, render) {
   if (stateRef.current.importMastersLoading) return;
-  stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: true }); render();
-  try { const masterContext = await prepareStandaloneImportMasters({ supportConfigJson: stateRef.current.supportConfigJson }); stateRef.current = applyStandaloneImportMastersContext(stateRef.current, masterContext); }
-  catch (error) { stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: false, importMastersWriteBackStatus: error?.message || String(error) }); }
+  stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: true });
+  render();
+  try {
+    const masterContext = await prepareStandaloneImportMasters({ supportConfigJson: stateRef.current.supportConfigJson });
+    stateRef.current = applyStandaloneImportMastersContext(stateRef.current, masterContext);
+  } catch (error) {
+    stateRef.current = updateWorkflowState(stateRef.current, { importMastersLoading: false, importMastersWriteBackStatus: error?.message || String(error) });
+  }
   render();
 }
 
 function parseCsv(txt) {
-  const lines = txt.split(/\r?\n/).filter(l => l.trim()); if (!lines.length) return [];
+  const lines = txt.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
   const hdrs = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
   return lines.slice(1).map(line => {
     const vals = line.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
@@ -304,114 +395,67 @@ export function importMasterRows(stateRef, key, rawRows, filename, render) {
   if (!context.materialMapRows) context.materialMapRows = [];
   if (!context.weightMasterRows) context.weightMasterRows = [];
   if (!context.diagnostics) context.diagnostics = [];
-  if (!context.config) context.config = JSON.parse(stateRef.current.supportConfigJson || '{}');
-  const config = context.config || {};
-  
+  if (!context.config) context.config = readConfig(stateRef);
+  if (!context.rawRows) context.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
+
   const rows = Array.isArray(rawRows) ? rawRows : [];
-  if (!context.rawRows) {
-    context.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
-  }
   context.rawRows[key] = rows;
-  
-  const headers = [];
-  if (rows.length > 0) {
-    for (const k of Object.keys(rows[0] || {})) {
-      if (k !== '_rowIndex' && !headers.includes(k)) headers.push(k);
-    }
-  }
-  
-  const def = { lineList: { k: 'linelist', r: 'masterRows' }, pipingClass: { k: 'pipingClass', r: 'masterRows' }, materialMap: { k: 'material', r: 'mapRows' }, weight: { k: 'weight', r: 'masterRows' } }[key];
+  const config = context.config || {};
+  const def = MASTER_DEF_MAP[key];
+
   let fieldMap = {};
-  
   const savedMappings = getSavedMappingsForMaster(key);
   const matchedKey = findSmartMatchingMapping(filename, Object.keys(savedMappings));
   if (matchedKey) {
     fieldMap = savedMappings[matchedKey];
   } else {
-    const fields = MASTER_FIELDS[key].fields;
-    fieldMap = fuzzyAutoMapFields(headers, fields, rows);
+    const currentMap = def ? (config[def.k]?.fieldMap || {}) : {};
+    fieldMap = autoMapStandaloneMasterFields(key, rows, currentMap, config);
   }
-  
-  if (def) {
-    const sec = { ...(config[def.k] || {}) };
-    sec.fieldMap = fieldMap;
-    config[def.k] = sec;
-  }
-  
-  const normalized = mapRowsWithFieldMap(rows, fieldMap, key);
-  const rowsKey = { lineList: 'lineRows', pipingClass: 'pipingClassRows', materialMap: 'materialMapRows', weight: 'weightMasterRows' }[key];
-  if (rowsKey) context[rowsKey] = normalized;
-  
-  if (def) {
-    config[def.k][def.r] = normalized;
-  }
-  
-  const updatedContext = {
-    ...context, config,
-    rowCounts: { lineList: context.lineRows.length, pipingClass: context.pipingClassRows.length, materialMap: context.materialMapRows.length, weight: context.weightMasterRows.length },
-    previewRows: { lineList: context.lineRows.slice(0, 150), pipingClass: context.pipingClassRows.slice(0, 150), materialMap: context.materialMapRows.slice(0, 150), weight: context.weightMasterRows.slice(0, 150) },
-    sourceMetadata: { ...context.sourceMetadata, [key]: { key, source: filename, sourceType: 'manual', status: normalized.length ? 'loaded' : 'empty', rowCount: normalized.length } }
+
+  applyFieldMapToContext(
+    stateRef,
+    key,
+    fieldMap,
+    rows,
+    matchedKey
+      ? `Imported ${filename} (${rows.length} rows) using saved mapping from ${matchedKey}.`
+      : `Imported and auto-mapped ${filename} (${rows.length} rows) into ${key}.`
+  );
+
+  const nextContext = stateRef.current.masterContext || {};
+  nextContext.sourceMetadata = {
+    ...(nextContext.sourceMetadata || {}),
+    [key]: { key, source: filename, sourceType: 'manual', status: rows.length ? 'loaded' : 'empty', rowCount: rows.length },
   };
-  
   if (key !== 'pipingClass') {
-    setStoredMaster(key, normalized);
-    setStoredJson(`xml-cii-master-raw-${key}`, rows);
     setStoredJson(`xml-cii-master-source-${key}`, filename);
-    setStoredJson(`xml-cii-master-sheetnames-${key}`, context.sheetNames?.[key] || []);
-    setStoredJson(`xml-cii-master-activesheet-${key}`, context.activeSheet?.[key] || '');
-    setStoredJson(`xml-cii-master-workbook-${key}`, context.workbookData?.[key] || {});
+    setStoredJson(`xml-cii-master-sheetnames-${key}`, nextContext.sheetNames?.[key] || []);
+    setStoredJson(`xml-cii-master-activesheet-${key}`, nextContext.activeSheet?.[key] || '');
+    setStoredJson(`xml-cii-master-workbook-${key}`, nextContext.workbookData?.[key] || {});
   }
-  stateRef.current = updateWorkflowState(stateRef.current, {
-    masterContext: updatedContext, supportConfigJson: JSON.stringify(config, null, 2),
-    importMastersWriteBackStatus: matchedKey 
-      ? `Imported ${filename} (${normalized.length} rows) using saved mapping from ${matchedKey}.`
-      : `Imported and auto-mapped ${filename} (${normalized.length} rows) into ${key}.`
-  });
+  stateRef.current = updateWorkflowState(stateRef.current, { masterContext: nextContext });
   render();
 }
 
 export function updateMasterFieldMap(stateRef, key, fieldName, selectedValue, render) {
   const context = stateRef.current.masterContext;
   if (!context) return;
-  
-  if (!context.rawRows) {
-    context.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
-  }
-  if (!context.rawRows[key] || !context.rawRows[key].length) {
-    context.rawRows[key] = getStoredJson(`xml-cii-master-raw-${key}`, []);
-  }
-  
+  if (!context.rawRows) context.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
+  if (!context.rawRows[key] || !context.rawRows[key].length) context.rawRows[key] = getStoredJson(`xml-cii-master-raw-${key}`, []);
+
   const rawRows = context.rawRows[key];
   if (!rawRows || !rawRows.length) return;
-  
-  const config = context.config || {};
-  const def = { lineList: { k: 'linelist', r: 'masterRows' }, pipingClass: { k: 'pipingClass', r: 'masterRows' }, materialMap: { k: 'material', r: 'mapRows' }, weight: { k: 'weight', r: 'masterRows' } }[key];
-  
-  if (def) {
-    const sec = { ...(config[def.k] || {}) };
-    const fieldMap = { ...(sec.fieldMap || {}) };
-    fieldMap[fieldName] = selectedValue;
-    sec.fieldMap = fieldMap;
-    config[def.k] = sec;
-    
-    const normalized = mapRowsWithFieldMap(rawRows, fieldMap, key);
-    const rowsKey = { lineList: 'lineRows', pipingClass: 'pipingClassRows', materialMap: 'materialMapRows', weight: 'weightMasterRows' }[key];
-    if (rowsKey) context[rowsKey] = normalized;
-    config[def.k][def.r] = normalized;
-    
-    const updatedContext = {
-      ...context, config,
-      rowCounts: { lineList: context.lineRows.length, pipingClass: context.pipingClassRows.length, materialMap: context.materialMapRows.length, weight: context.weightMasterRows.length },
-      previewRows: { lineList: context.lineRows.slice(0, 150), pipingClass: context.pipingClassRows.slice(0, 150), materialMap: context.materialMapRows.slice(0, 150), weight: context.weightMasterRows.slice(0, 150) },
-    };
-    
-    if (key !== 'pipingClass') setStoredMaster(key, normalized);
-    stateRef.current = updateWorkflowState(stateRef.current, {
-      masterContext: updatedContext, supportConfigJson: JSON.stringify(config, null, 2),
-      importMastersWriteBackStatus: `Updated column mapping for ${key}.${fieldName} -> ${selectedValue || '(none)'}.`
-    });
-    render();
-  }
+
+  const config = context.config || readConfig(stateRef);
+  const def = MASTER_DEF_MAP[key];
+  if (!def) return;
+
+  const sec = { ...(config[def.k] || {}) };
+  const fieldMap = { ...(sec.fieldMap || {}) };
+  fieldMap[fieldName] = selectedValue;
+  applyFieldMapToContext(stateRef, key, fieldMap, rawRows, `Updated column mapping for ${key}.${fieldName} -> ${selectedValue || '(none)'}.`);
+  render();
 }
 
 export function clearMasterContextFromUi(stateRef, render) {
@@ -429,19 +473,23 @@ export function clearMasterContextFromUi(stateRef, render) {
   if (config.pipingClass) delete config.pipingClass.masterRows;
   if (config.material) delete config.material.mapRows;
   if (config.weight) delete config.weight.masterRows;
-  
+
   if (stateRef.current.masterContext) {
     stateRef.current.masterContext.rawRows = { lineList: [], pipingClass: [], materialMap: [], weight: [] };
   }
-  
+
   stateRef.current = updateWorkflowState(stateRef.current, {
-    masterContext: null, supportConfigJson: JSON.stringify(config, null, 2),
-    importMastersWriteBackStatus: 'Master context cleared.'
+    masterContext: null,
+    supportConfigJson: JSON.stringify(config, null, 2),
+    importMastersWriteBackStatus: 'Master context cleared.',
   });
   render();
 }
 
 function showToast(msg) {
-  const el = document.createElement('div'); el.textContent = msg; Object.assign(el.style, { position: 'fixed', bottom: '24px', right: '24px', background: '#10b981', color: '#fff', padding: '12px 24px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: '9999', transition: 'all 0.3s', fontSize: '0.88rem', fontFamily: 'sans-serif' });
-  document.body.appendChild(el); setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+  const el = document.createElement('div');
+  el.textContent = msg;
+  Object.assign(el.style, { position: 'fixed', bottom: '24px', right: '24px', background: '#10b981', color: '#fff', padding: '12px 24px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: '9999', transition: 'all 0.3s', fontSize: '0.88rem', fontFamily: 'sans-serif' });
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
 }
