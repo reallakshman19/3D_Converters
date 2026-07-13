@@ -1,5 +1,5 @@
 function t(v){return String(v??'').trim()}
-function n(v,d=null){const m=t(v).replace(/,/g,'').match(/-?\d+(?:\.\d+)?/); const x=m?Number(m[0]):Number(v); return Number.isFinite(x)?x:d}
+function n(v,d=null){const raw=t(v); if(!raw)return d; const m=raw.replace(/,/g,'').match(/-?\d+(?:\.\d+)?/); const x=m?Number(m[0]):Number(raw); return Number.isFinite(x)?x:d}
 function ensureBranch(map,name){const key=t(name)||'/CUSTOM-UNNAMED/B1'; if(!map.has(key)) map.set(key,{branchName:key,nodes:[],_nodeMap:new Map()}); return map.get(key)}
 function ensureNode(branch,row){const no=t(row.nodeNumber||row.node); if(!no) return null; if(!branch._nodeMap.has(no)){const node={nodeNumber:no,branchName:branch.branchName,endpoint:t(row.endpoint)||'1',rigid:t(row.rigid)||'0',componentType:t(row.componentType)||'PIPE'}; branch._nodeMap.set(no,node); branch.nodes.push(node);} return branch._nodeMap.get(no)}
 function setDefined(obj,src,fields){for(const f of fields){const v=src[f]; if(t(v)) obj[f]=t(v)}}
