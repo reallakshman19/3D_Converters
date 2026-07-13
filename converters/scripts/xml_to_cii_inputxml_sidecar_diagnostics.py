@@ -193,47 +193,51 @@ def _parity_records(
     return records, {"cii": metrics, "sidecar": side_metrics}
 
 
-def build_diagnostics(
-    *,
-    source_name: str,
-    sidecar_name: str,
-    tree: ET.ElementTree,
-    cii_path: Path | None,
-    generation_records: list[dict[str, Any]] | None = None,
-    options: dict[str, Any] | None = None,
-    tolerance: float = 0.001,
-) -> dict[str, Any]:
-    records = list(generation_records or [])
-    records.insert(0, make_record(
+def _classification_record() -> dict[str, Any]:
+    return make_record(
         "WARNING",
         "SIDECAR_DIAGNOSTIC_RECONSTRUCTION",
         "This InputXML is a post-run diagnostic reconstruction, not the model used to write the CII.",
         stage="classification",
         action="declared",
-    ))
-    metrics: dict[str, Any] = {"sidecar": _count_metrics(_sidecar_elements(tree))}
-    parity_checked = False
-    if cii_path and cii_path.exists():
-        try:
-            parity_records, metrics = _parity_records(cii_path, tree, tolerance)
-            records.extend(parity_records)
-            parity_checked = True
-        except Exception as exc:
-            records.append(make_record(
-                "WARNING",
-                "SIDECAR_PARITY_UNAVAILABLE",
-                f"CII parity could not be evaluated: {exc}",
-                stage="parity",
-                action="reported",
-            ))
-    else:
-        records.append(make_record(
-            "WARNING",
-            "SIDECAR_PARITY_UNAVAILABLE",
-            "CII output was not supplied; artifact parity was not evaluated.",
-            stage="parity",
-            action="reported",
-        ))
+    )
+
+
+def _unavailable_record(message: str) -> dict[str, Any]:
+    return make_record(
+        "WARNING",
+        "SIDECAR_PARITY_UNAVAILABLE",
+        message,
+        stage="parity",
+        action="reported",
+    )
+
+
+def _resolve_parity(
+    cii_path: Path | None,
+    tree: ET.ElementTree,
+    tolerance: float,
+) -> tuple[list[dict[str, Any]], dict[str, Any], bool]:
+    side_metrics = {"sidecar": _count_metrics(_sidecar_elements(tree))}
+    if not cii_path or not cii_path.exists():
+        return [_unavailable_record("CII output was not supplied; artifact parity was not evaluated.")], side_metrics, False
+    try:
+        records, metrics = _parity_records(cii_path, tree, tolerance)
+        return records, metrics, True
+    except Exception as exc:
+        message = f"CII parity could not be evaluated: {exc}"
+        return [_unavailable_record(message)], side_metrics, False
+
+
+def _build_document(
+    source_name: str,
+    sidecar_name: str,
+    tree: ET.ElementTree,
+    records: list[dict[str, Any]],
+    metrics: dict[str, Any],
+    parity_checked: bool,
+    options: dict[str, Any] | None,
+) -> dict[str, Any]:
     summary = _summary(records)
     status = "ERROR" if summary["error"] else ("WARNING" if summary["warning"] else "PASS")
     return {
@@ -249,6 +253,29 @@ def build_diagnostics(
         "options": options or {},
         "records": records,
     }
+
+
+def build_diagnostics(
+    *,
+    source_name: str,
+    sidecar_name: str,
+    tree: ET.ElementTree,
+    cii_path: Path | None,
+    generation_records: list[dict[str, Any]] | None = None,
+    options: dict[str, Any] | None = None,
+    tolerance: float = 0.001,
+) -> dict[str, Any]:
+    parity_records, metrics, parity_checked = _resolve_parity(cii_path, tree, tolerance)
+    records = [_classification_record(), *list(generation_records or []), *parity_records]
+    return _build_document(
+        source_name,
+        sidecar_name,
+        tree,
+        records,
+        metrics,
+        parity_checked,
+        options,
+    )
 
 
 def write_diagnostics(path: Path, document: dict[str, Any]) -> None:
