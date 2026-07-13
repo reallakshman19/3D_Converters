@@ -4,7 +4,8 @@ Final evidence date: 2026-07-13
 
 ## Baseline and scope
 
-- Base `main`: `8cfcc3717bdad85c545509937b70615ea49f135b`
+- Original audit baseline: `8cfcc3717bdad85c545509937b70615ea49f135b`
+- Synchronized `main` validation base: `78d9bd4f29e0297c33f53230e3cd8729a727d00d`
 - Work Pack branch: `agent/stagedjson-inputxml-audit-fix`
 - Pull request: `#133`
 - Primary engine: `converters/scripts/stagedjson_to_inputxml.py`
@@ -44,11 +45,13 @@ The Pyodide worker adds successful sidecars to the normal output list. For stage
 
 Permanent workflow: `StagedJSON InputXML`
 
-Final green run before this evidence commit: `29264610351`, head `c495b2e1eaab0f803b8eb42d5b95f582f301a4e5`.
+Final green pre-sync run: `29264740066`, head `14e5f381b25f0c97c987275faac9d317ce93561b`.
+
+Guarded synchronization run: `29264901328`. It merged exact `main` head `78d9bd4f29e0297c33f53230e3cd8729a727d00d`, passed focused verification, recalculated the named ledger against that base and removed its temporary workflow before push.
 
 Passed checks:
 
-- temporary patch scripts and workflows absent;
+- temporary patch and synchronization scripts/workflows absent;
 - Python syntax for bookmark, diagnostics, converter and authority tests;
 - JavaScript syntax for invocation, worker, registry, tab, panel and browser-contract tests;
 - incomplete coordinate rejection with `STAGED_COORDINATE_INCOMPLETE` and `STAGED_ZERO_ELEMENTS`;
@@ -60,11 +63,12 @@ Passed checks:
 - existing `test_coord_transform.py`;
 - existing `test_chain_g4_g5.py`;
 - browser registry/invocation/worker/panel contract guard;
+- successful-run and failed-run diagnostics handoff;
 - protected Mission J source-mode integration test.
 
 ## Named base-versus-head ledger
 
-Artifact: `stagedjson-inputxml-baseline`, final pre-evidence artifact ID `8284852468`.
+Artifact: `stagedjson-inputxml-baseline`, final pre-sync artifact ID `8284852468`. The synchronization job independently repeated the same named comparison against `78d9bd4f29e0297c33f53230e3cd8729a727d00d` and passed.
 
 ### JavaScript
 
