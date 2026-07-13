@@ -97,4 +97,6 @@ class Diagnostics:
 
 
 def diagnostics_path_for(output_path: Path) -> Path:
-    return output_path.with_name(f"{output_path.stem}_diagnostics.json")
+    return output_path.with_name(
+        f"{output_path.stem}_stagedjson_to_inputxml_diagnostics.json"
+    )
