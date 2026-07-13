@@ -13,7 +13,7 @@ import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propaga
 import { renderAdaptedWeightMatchPanel } from './xml-cii-adapted-weight-match.js';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
-import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p6';
+import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p7';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js';
 
 export function renderActivePhase(root, stateRef, render) {
@@ -31,10 +31,8 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   if (phaseId === 'source') {
     const subTabId = state.activeSubTabId || 'loader';
     const container = createElement('div', '', 'xml-cii-sub-tabs-layout');
-    
     const rail = createElement('nav', '', 'xml-cii-sub-nav-rail');
     rail.setAttribute('aria-label', 'Source & Masters sub-phases');
-    
     const subPhases = [
       { id: 'loader', label: '📂 Source' },
       { id: 'linelist', label: '📊 Line List' },
@@ -44,71 +42,44 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
       { id: 'manualOverrides', label: '✏️ Manual Overrides' },
       { id: 'elementSideload', label: '🎛️ InputXML / Element Side-load' }
     ];
-    
     for (const sub of subPhases) {
       const btn = createElement('button', sub.label, 'xml-cii-sub-phase-pill');
       btn.type = 'button';
       btn.dataset.subTab = sub.id;
       btn.classList.toggle('is-active', subTabId === sub.id);
-      
-      // Determine if data is loaded for green styling indicator
       let isLoaded = false;
       const counts = state.masterContext?.rowCounts || {};
-      if (sub.id === 'loader') {
-        isLoaded = !!state.sourceText;
-      } else if (sub.id === 'linelist') {
-        isLoaded = (counts.lineList || 0) > 0;
-      } else if (sub.id === 'pipingClass') {
-        isLoaded = (counts.pipingClass || 0) > 0;
-      } else if (sub.id === 'materialMap') {
-        isLoaded = (counts.materialMap || 0) > 0;
-      } else if (sub.id === 'weight') {
-        isLoaded = (counts.weight || 0) > 0;
-      } else if (sub.id === 'manualOverrides') {
+      if (sub.id === 'loader') isLoaded = !!state.sourceText;
+      else if (sub.id === 'linelist') isLoaded = (counts.lineList || 0) > 0;
+      else if (sub.id === 'pipingClass') isLoaded = (counts.pipingClass || 0) > 0;
+      else if (sub.id === 'materialMap') isLoaded = (counts.materialMap || 0) > 0;
+      else if (sub.id === 'weight') isLoaded = (counts.weight || 0) > 0;
+      else if (sub.id === 'manualOverrides') {
         let overridesCount = 0;
         try {
           const cfg = JSON.parse(state.supportConfigJson || '{}');
           if (cfg.overrides) {
-            overridesCount = Object.keys(cfg.overrides.pipingClass || {}).length +
-                             Object.keys(cfg.overrides.material || {}).length +
-                             Object.keys(cfg.overrides.rating || {}).length +
-                             Object.keys(cfg.overrides.materialCode || {}).length +
-                             Object.keys(cfg.overrides.wallThickness || {}).length +
-                             Object.keys(cfg.overrides.corrosion || {}).length;
+            overridesCount = Object.keys(cfg.overrides.pipingClass || {}).length + Object.keys(cfg.overrides.material || {}).length + Object.keys(cfg.overrides.rating || {}).length + Object.keys(cfg.overrides.materialCode || {}).length + Object.keys(cfg.overrides.wallThickness || {}).length + Object.keys(cfg.overrides.corrosion || {}).length;
           }
         } catch {}
         isLoaded = overridesCount > 0;
-      } else if (sub.id === 'elementSideload') {
-        isLoaded = !!state.elementSideLoadText;
-      }
+      } else if (sub.id === 'elementSideload') isLoaded = !!state.elementSideLoadText;
       btn.classList.toggle('is-loaded', isLoaded);
-
       rail.appendChild(btn);
     }
-    
     container.appendChild(rail);
-    
     const subWorkspace = createElement('div', '', 'xml-cii-sub-workspace');
-    
     if (subTabId === 'loader') {
       renderSourceControls(subWorkspace, state);
       renderDetectionSummary(subWorkspace, state);
       renderValidityDiagnostics(subWorkspace, state);
       renderStandaloneSourcePreviewPanel(subWorkspace, state);
-    } else if (subTabId === 'linelist') {
-      renderStandaloneImportMastersPanel(subWorkspace, state, 'lineList');
-    } else if (subTabId === 'pipingClass') {
-      renderStandaloneImportMastersPanel(subWorkspace, state, 'pipingClass');
-    } else if (subTabId === 'materialMap') {
-      renderStandaloneImportMastersPanel(subWorkspace, state, 'materialMap');
-    } else if (subTabId === 'weight') {
-      renderStandaloneImportMastersPanel(subWorkspace, state, 'weight');
-    } else if (subTabId === 'manualOverrides') {
-      renderStandaloneManualElementSideloadPanel(subWorkspace, state);
-    } else if (subTabId === 'elementSideload') {
-      renderStandaloneInputXmlElementSideloadPanel(subWorkspace, state);
-    }
-    
+    } else if (subTabId === 'linelist') renderStandaloneImportMastersPanel(subWorkspace, state, 'lineList');
+    else if (subTabId === 'pipingClass') renderStandaloneImportMastersPanel(subWorkspace, state, 'pipingClass');
+    else if (subTabId === 'materialMap') renderStandaloneImportMastersPanel(subWorkspace, state, 'materialMap');
+    else if (subTabId === 'weight') renderStandaloneImportMastersPanel(subWorkspace, state, 'weight');
+    else if (subTabId === 'manualOverrides') renderStandaloneManualElementSideloadPanel(subWorkspace, state);
+    else if (subTabId === 'elementSideload') renderStandaloneInputXmlElementSideloadPanel(subWorkspace, state);
     container.appendChild(subWorkspace);
     card.appendChild(container);
     return;
@@ -122,7 +93,6 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, stateRef, render);
   if (phaseId === 'config') return renderAdaptedConfigPanel(card, stateRef, render);
   if (phaseId === 'run') return renderRunPanel(card, stateRef, render);
-  
   renderStandaloneSourceModePanel(card, state);
 }
 
@@ -137,12 +107,8 @@ export function renderImportPanel(card, state) {
 
 export function renderJsonTracePanel(card, stateRef, render) {
   const state = stateRef.current;
-
-  // File loaders row — rendered ONCE above all sub-tabs so event binding works correctly
   const fileRow = createElement('div');
   if (fileRow.style) Object.assign(fileRow.style, { display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '14px', alignItems: 'flex-start' });
-
-  // XML source file picker
   const srcGroup = createElement('label');
   if (srcGroup.style) Object.assign(srcGroup.style, { display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: '#94a3b8' });
   srcGroup.appendChild(createElement('span', '📄 Source XML / PSI116 file:'));
@@ -155,8 +121,6 @@ export function renderJsonTracePanel(card, stateRef, render) {
   if (srcBadge.style) srcBadge.style.color = state.sourceText ? '#8be28b' : '#fbbf24';
   srcGroup.appendChild(srcBadge);
   fileRow.appendChild(srcGroup);
-
-  // Staged JSON file picker
   const jsonGroup = createElement('label');
   if (jsonGroup.style) Object.assign(jsonGroup.style, { display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: '#94a3b8' });
   jsonGroup.appendChild(createElement('span', '📦 Staged JSON (ATTRIBUTE-AML_…):'));
@@ -170,7 +134,6 @@ export function renderJsonTracePanel(card, stateRef, render) {
   if (jsonBadge.style) jsonBadge.style.color = state.stagedJsonText ? '#8be28b' : '#fbbf24';
   jsonGroup.appendChild(jsonBadge);
   fileRow.appendChild(jsonGroup);
-
   card.appendChild(fileRow);
   renderStandaloneResolverJsonTracePanel(card, stateRef.current, stateRef, render);
 }
