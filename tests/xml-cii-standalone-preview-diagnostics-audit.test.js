@@ -21,14 +21,17 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-table-trace-config.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     'converters/xml-cii2019-core/default-weight-master-rows.js',
+    'converters/xml-cii2019-core/default-piping-class-material-code-rows.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-editable-preview-table.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-filldown.js',
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-provenance.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resizable-table.js',
     'converters/xml-cii2019-core/branch-process-resolver.js',
@@ -37,8 +40,11 @@ function fixtureFiles() {
     'converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js',
     'converters/xml-cii2019-core/line-density-resolver.js',
     'converters/xml-cii2019-core/linelist-mapping.js',
+    'converters/xml-cii2019-core/piping-class-material-code-resolver.js',
     'converters/xml-cii2019-core/piping-class-resolver.js',
     'converters/xml-cii2019-core/regex-line-key.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
     'converters/xml-cii2019-core/service-process-fallback.js',
     'converters/xml-cii2019-core/support-mapping-config.js',
     'converters/xml-cii2019-core/weight-match-model.js',
@@ -97,6 +103,74 @@ function reportInput(sourceKind = 'xml') {
   const helper = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/xml-cii-preview-diagnostics-audit.js')).href);
   const ui = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit.js')).href);
   const stateApi = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js')).href);
+  const branchResolver = await import(pathToFileURL(path.join(tempRoot, 'converters/xml-cii2019-core/branch-process-resolver.js')).href);
+  const classResolver = await import(pathToFileURL(path.join(tempRoot, 'converters/xml-cii2019-core/piping-class-resolver.js')).href);
+  const provenance = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-provenance.js')).href);
+
+  // Representative rows use piping classes and material codes already shipped
+  // in the app-default engineering map rather than invented class families.
+  const pipingClassRows = [
+    { pipingClass: '91261M7', convertedBore: 150, componentType: 'PIPE', rating: 900, wallThickness: 10.97, corrosion: 1, materialName: 'ASTM A106-B' },
+    { pipingClass: '11472', convertedBore: 150, componentType: 'PIPE', rating: 150, wallThickness: 7.11, corrosion: 2, materialName: 'ASTM A333-6' },
+  ];
+  const resolutionConfig = {
+    pipingClassMaterialCodeMap: {
+      enabled: true,
+      manualOverrideWins: true,
+      exactPipingClassFirst: true,
+      normalizeClassSuffix: true,
+      confidenceThreshold: 80,
+      rows: [{ pipingClass: '11472', materialCode: '177', materialName: 'ASTM A333-6', confidence: 95 }],
+    },
+  };
+  const baseOverrides = { pipingClass: { '91261M7': '11472' } };
+  const resolveProcess = (overrides, config) => branchResolver.resolveBranchProcessData({
+    branchName: '/ASIM-1885-10"-S8810101-91261M7-HC/B1',
+    lineKey: 'S8810101',
+    lineRow: { pipingClass: '91261M7' },
+    boreMm: 150,
+    componentType: 'PIPE',
+    rating: '900',
+    schedule: '',
+    href: '',
+    tref: '',
+    materialMap: [],
+    pipingClassIndex: classResolver.buildPipingClassIndex(pipingClassRows),
+    overrides,
+    xmlNode: {},
+    xmlBranch: {},
+    config,
+  });
+  const resolvedFromClassOverride = resolveProcess(baseOverrides, resolutionConfig);
+  assert.strictEqual(resolvedFromClassOverride.pipingClass, '11472', 'piping-class override must become the effective class');
+  assert.strictEqual(resolvedFromClassOverride.materialCode, '177', 'effective class must resolve through the Config material-code map');
+  assert.strictEqual(resolvedFromClassOverride.materialSource, 'piping-class-config-map', 'material-code source must identify the Config map');
+  assert.strictEqual(resolvedFromClassOverride.rating, '150', 'rating must come from the overridden piping-class row');
+  assert.strictEqual(resolvedFromClassOverride.material, 'ASTM A333-6', 'material name must come from the overridden piping-class row');
+  assert.strictEqual(resolvedFromClassOverride.wallThicknessMm, 7.11, 'wall thickness must come from the overridden piping-class row');
+  assert.strictEqual(resolvedFromClassOverride.corrosionAllowanceMm, 2, 'corrosion must come from the overridden piping-class row');
+
+  const manualMaterialCode = resolveProcess({ ...baseOverrides, materialCode: { 'PC:11472': '777' } }, resolutionConfig);
+  assert.strictEqual(manualMaterialCode.materialCode, '777', 'manual material-code override must retain precedence over the Config map');
+  assert.strictEqual(manualMaterialCode.materialSource, 'override', 'manual material-code override provenance must be preserved');
+
+  const defaultStandaloneConfig = JSON.parse(stateApi.createXmlCiiAdaptedWorkflowState().supportConfigJson);
+  const appDefaultMaterialCode = resolveProcess({}, defaultStandaloneConfig);
+  assert.strictEqual(appDefaultMaterialCode.materialCode, '106', 'app-default material-code rows must resolve without opening the Config tab first');
+  assert.strictEqual(appDefaultMaterialCode.materialSource, 'piping-class-config-map');
+  assert.strictEqual(resolveProcess({}, {}).materialCode, '', 'shared resolver callers without the standalone opt-in must keep existing behavior');
+
+  const provenanceOverrides = {
+    __previewFillDown: {
+      wallThickness: { 'PC:11472|DN:150': { fillState: 'manual' } },
+      corrosion: { 'PC:11472': { fillState: 'auto' } },
+    },
+  };
+  assert.strictEqual(provenance.previewOverrideProvenance(provenanceOverrides, 'wallThickness', 'PC:11472|DN:150', 'override'), 'manual-override');
+  assert.strictEqual(provenance.previewOverrideProvenance(provenanceOverrides, 'corrosion', 'PC:11472', 'override'), 'auto-fill');
+  assert.strictEqual(provenance.previewOverrideProvenance({}, 'corrosion', 'PC:11472', 'piping-class-master'), 'piping-class-master');
+  assert.strictEqual(provenance.previewProvenanceBadge('wallThickness', 'piping-class-master').label, 'derived');
+  assert(provenance.previewProvenanceBadge('corrosion', 'auto-fill').title.includes('not a manual cell override'), 'auto-fill tooltip must not claim a manual override');
 
   const report = helper.buildStandalonePreviewDiagnosticsAudit(reportInput('xml'));
   assert.strictEqual(report.summary.sourceMode, 'xml', 'XML summary mode expected');

@@ -1,3 +1,6 @@
+/** Builds read-only Preview rows from source XML, standalone config, and staged
+ * JSON. Returns rows with provenance; invalid XML returns empty rows. */
+
 import { deriveLineKeyFromBranchName, tokenAtPosition } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { computeLineNoKey, normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js';
 import { xmlCiiWeightReviewNodeOverrideKey, isXmlCiiWeightReviewNode, xmlCiiNumberText } from '../../../converters/xml-cii2019-core/weight-match-model.js';
@@ -7,6 +10,7 @@ import { resolveBranchProcessData } from '../../../converters/xml-cii2019-core/b
 import { buildStagedDtxrIndex, resolveXmlCiiNodeDtxr } from '../../../converters/xml-cii2019-core/dtxr-resolver.js';
 import { resolveLineListDensity } from '../../../converters/xml-cii2019-core/line-density-resolver.js';
 import { resolveXmlCiiWallThicknessFromDtxr } from '../../../converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js';
+import { previewOverrideProvenance } from './xml-cii-adapted-preview-provenance.js';
 
 export function _toText(val) { return val === null || val === undefined ? '' : String(val); }
 export function _toFiniteNumber(value, fallback) { const numeric = Number(value); return Number.isFinite(numeric) ? numeric : fallback; }
@@ -472,7 +476,7 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
 
     let matMethod = 'none';
     if (resolved.materialSource === 'override' || resolved.materialSource === 'override-material-map') matMethod = 'override';
-    else if (resolved.materialSource === 'line-list-material-map' || resolved.materialSource === 'piping-class-material-map' || resolved.materialSource === 'xml-material-map') matMethod = 'exact';
+    else if (resolved.materialSource === 'line-list-material-map' || resolved.materialSource === 'piping-class-material-map' || resolved.materialSource === 'piping-class-config-map' || resolved.materialSource === 'xml-material-map') matMethod = 'exact';
     else if (resolved.materialSource === 'xml-fallback') matMethod = 'xml-fallback';
 
     branchRows.push({
@@ -524,7 +528,8 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
         const _wKey = resolved.wallThicknessKey;
         if (_wSrc !== 'override') return _wSrc;
         const _dtxrKeys = config.overrides?.__dtxrWallKeys;
-        return (_dtxrKeys && _dtxrKeys[_wKey]) ? 'dtxr-sch-applied' : _wSrc;
+        if (_dtxrKeys && _dtxrKeys[_wKey]) return 'dtxr-sch-applied';
+        return previewOverrideProvenance(config.overrides, 'wallThickness', _wKey, _wSrc);
       })(),
       wallThicknessKey: resolved.wallThicknessKey || _classSizeKey({ pipingClass: resolved.pipingClass || derivedClassRaw, sizeMm: boreMm }),
       dtxrWallThickness: dtxrWall?.wallThicknessMm || '',
@@ -532,7 +537,7 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
       dtxrWallSource: dtxrWall?.source || '',
       dtxrWallDtxr: dtxrWall?.dtxr || '',
       corrosion,
-      corrosionSource: resolved.corrosionSource || _overrideSource(config.overrides, 'corrosion', lineKey),
+      corrosionSource: previewOverrideProvenance(config.overrides, 'corrosion', resolved.corrosionKey, resolved.corrosionSource || _overrideSource(config.overrides, 'corrosion', lineKey)),
       corrosionKey: resolved.corrosionKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw }),
       materialCodeKey: resolved.materialCodeKey || _classKey({ pipingClass: resolved.pipingClass || derivedClassRaw })
     });

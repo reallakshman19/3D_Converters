@@ -56,6 +56,8 @@ export function normalizeVisibleStagedJsonConfig(value) {
     lineListFieldMap: plain(source.lineListFieldMap),
     pipingClassMatch: plain(source.pipingClassMatch),
     linelist: plain(source.linelist),
+    pipingClassMaterialCodeMap: plain(source.pipingClassMaterialCodeMap),
+    overrides: plain(source.overrides),
   };
 }
 

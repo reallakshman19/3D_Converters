@@ -39,6 +39,41 @@ test('unknown line remains null with explicit missing diagnostics', () => {
   assert.equal(pipe.fluidDensityOpeKgM3, null);
 });
 
+test('effective piping-class override propagates through stagedJson material and dimensions', () => {
+  const masters = fixtureMasters();
+  masters.pipingClass.push({
+    'Piping Class': '11472',
+    boreMm: 150,
+    componentType: 'PIPE',
+    rating: '150',
+    schedule: '40',
+    'Wall Thickness': 6.5,
+    'Corrosion Allowance': 2,
+    pipeOdMm: 168.3,
+    material: 'ASTM A333-6',
+    materialDensityKgM3: 7850,
+  });
+  const config = {
+    ...DEFAULT_VISIBLE_STAGEDJSON_CONFIG,
+    overrides: { pipingClass: { 'PC-150': '11472' } },
+    pipingClassMaterialCodeMap: {
+      enabled: true,
+      manualOverrideWins: true,
+      exactPipingClassFirst: true,
+      normalizeClassSuffix: true,
+      confidenceThreshold: 80,
+      rows: [{ pipingClass: '11472', materialCode: '177', materialName: 'ASTM A333-6', confidence: 95 }],
+    },
+  };
+  const result = enrichStagedJson({ stagedJson: fixtureStage('LINE-100'), masters, config, sourceFileName: 'class-override.json', evaluatedAt: '2026-07-11T00:00:00.000Z' });
+  const pipe = result.enrichedStagedJson[0].children[0].enrichedAttributes;
+  assert.equal(pipe.pipingClass, '11472');
+  assert.equal(pipe.materialCode, '177');
+  assert.equal(pipe.sources.material, 'piping-class-config-map');
+  assert.equal(pipe.wallThicknessMm, 6.5);
+  assert.equal(pipe.corrosionAllowanceMm, 2);
+});
+
 test('Standalone exposes a visible stagedJson Properties launcher', () => {
   // xml-cii-2019-standalone-tab.js no longer embeds an in-context
   // "stagedJson Properties" panel launcher (openStagedJsonPropertiesPanel /
