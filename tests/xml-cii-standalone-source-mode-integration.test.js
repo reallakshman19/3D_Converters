@@ -48,14 +48,13 @@ function protectedRouteShas() {
     'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
     'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
     'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
-    // Updated 2026-07-13: added _runInputXml2019FlangesSync (mirrors the
-    // existing _runInputXml2019DisplmntSync post-process step) which runs
-    // cii2019_flanges_sync.py to parse real FLANGES data from InputXML and
-    // wire its ELEMENTS row14 pointer - only active for converterId ===
-    // 'inputxml_to_cii2019', so this Mission J (XML mode) integration path
-    // is unaffected. Also carries the prior warnings.json read-back fix.
-    'converters/py-worker.js': '0063e0194fc3e86757cfb412f8a330304a4e3a83',
-    'converters/invocation-builder.js': '20894bd7fa4399046ab110581beb2badeefcab68',
+    // Updated 2026-07-13 for the StagedJSON -> InputXML Work Pack. The shared
+    // files changed only inside converterId === 'stagedjson_to_inputxml': inline
+    // bookmark/OD/anchor invocation arguments plus diagnostics sidecar read-back.
+    // Mission J XML/InputXML source-mode routing and public API boundaries are
+    // still exercised below and must remain behaviorally unchanged.
+    'converters/py-worker.js': '25f8d3985aa4860417d644a6b24b9b02310156d6',
+    'converters/invocation-builder.js': 'aae681ec8e134d3ec92754e5bc6cb97bd21b6018',
   };
 }
 
