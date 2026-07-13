@@ -6,6 +6,18 @@ import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedC
 const esc = (val) => String(val ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (val) => esc(val).replace(/'/g, '&#39;');
 
+function normalizeRatingText(value) {
+  return String(value ?? '').toUpperCase().replace(/CLASS|CL|#/g, '').replace(/[^0-9A-Z]/g, '').trim();
+}
+
+function ratingFromDtxrText(value) {
+  const text = String(value ?? '').toUpperCase();
+  const hashMatch = text.match(/\b(?:CL|CLASS)?\s*(150|300|600|900|1500|2500)\s*#/i);
+  if (hashMatch) return hashMatch[1];
+  const clMatch = text.match(/\b(?:CL|CLASS)\s*(150|300|600|900|1500|2500)\b/i);
+  return clMatch ? clMatch[1] : '';
+}
+
 function ratingFromConfig(row, config) {
   const keys = [row?.key, row?.lineKey, row?.branchName, row?.requestedPipingClass, row?.resolvedPipingClass, row?.nodeNumber];
   const bucket = config?.overrides?.rating;
@@ -21,7 +33,22 @@ function ratingFromConfig(row, config) {
       if (pb[key]?.rating) { val = String(pb[key].rating).trim(); break; }
     }
   }
-  return val || String(row?.rating || '').trim() || String(config?.rating?.defaultRating || config?.defaultRating || '').trim();
+  return val || String(row?.rating || '').trim() || String(row?.dtxrRating || '').trim() || ratingFromDtxrText(row?.dtxr) || String(config?.rating?.defaultRating || config?.defaultRating || '').trim();
+}
+
+function ratingInfo(issue) {
+  const dtxrRating = issue.dtxrRating || ratingFromDtxrText(issue.dtxr);
+  const shownRating = String(issue.rating || dtxrRating || '').trim();
+  const derivedRating = String(issue.branchRating || issue.derivedRating || '').trim();
+  const conflict = Boolean(shownRating && dtxrRating && normalizeRatingText(shownRating) !== normalizeRatingText(dtxrRating));
+  const fromDtxr = Boolean(!issue.branchRating && dtxrRating && normalizeRatingText(shownRating) === normalizeRatingText(dtxrRating));
+  const title = conflict
+    ? `DTXR rating ${dtxrRating}# differs from resolved/override rating ${shownRating}. DTXR: ${issue.dtxr || ''}`
+    : (fromDtxr ? `Rating populated from DTXR text: ${issue.dtxr || ''}` : (derivedRating ? `Resolved rating from piping class/override: ${derivedRating}` : 'Rating used for weight suggestions'));
+  const style = conflict
+    ? 'width:64px;background:#3a1010;color:#ffd6d6;border:1px solid #ef4444;border-radius:4px;padding:4px;font-size:11px;'
+    : (fromDtxr ? 'width:64px;background:#062d22;color:#bbf7d0;border:1px solid #10b981;border-radius:4px;padding:4px;font-size:11px;' : 'width:64px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;font-size:11px;');
+  return { shownRating, dtxrRating, conflict, fromDtxr, title, style };
 }
 
 function rigidCandidateButtons(issue, index) {
@@ -30,19 +57,21 @@ function rigidCandidateButtons(issue, index) {
     const scoreVal = Math.round((candidate.totalScore || candidate.score || 0) * 100);
     return `<button type="button" class="mc-rigid-review-candidate${candidate.preferred ? ' best' : ''}"
       data-rigid-review-candidate="${index}" data-rigid-review-weight="${esc(value)}"
-      title="Bore ${candidate.boreMm || candidate.rowBore || '-'} | Rating ${candidate.rating || candidate.rowRating || '-'} | Master length ${(candidate.lengthMm || candidate.rowLength || 0).toFixed(1)} | Score ${scoreVal}%"
+      title="Bore ${candidate.boreMm || candidate.rowBore || '-'} | Rating ${candidate.rating || candidate.rowRating || issue.rating || '-'} | Master length ${(candidate.lengthMm || candidate.rowLength || 0).toFixed(1)} | Score ${scoreVal}%"
       style="font-size:11px;padding:3px 6px;margin:2px;cursor:pointer;">${candidate.preferred ? '* ' : ''}${esc(value)} kg - ${scoreVal}%</button>`;
   }).join('');
 }
 
 function rigidReviewRow(issue, index) {
   const best = issue.candidates?.[0] || null;
+  const rInfo = ratingInfo(issue);
+  const ratingBadge = rInfo.conflict ? ' <span title="Rating conflict with DTXR" style="color:#fca5a5;font-weight:700;">!</span>' : (rInfo.fromDtxr ? ' <span title="Rating from DTXR" style="color:#86efac;font-weight:700;">DTXR</span>' : '');
   return `<tr>
     <td class="mc-rigid-review-branch" title="${attr(issue.branchName)}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.branchName)}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td>
-    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="text" class="mc-rigid-review-rating-input" data-rigid-review-key="${attr(issue.key)}" value="${attr(issue.rating || '')}" placeholder="Rating" style="width:64px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;font-size:11px;"></td>
-    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.nodeNumber)}</td>
-    <td class="mc-rigid-review-dtxr" title="${attr(issue.dtxrSourcePath || '')}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
+    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="text" class="mc-rigid-review-rating-input" data-rigid-review-key="${attr(issue.key)}" value="${attr(rInfo.shownRating)}" placeholder="Rating" title="${attr(rInfo.title)}" style="${rInfo.style}">${ratingBadge}</td>
+    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
+    <td class="mc-rigid-review-dtxr" title="${attr([issue.dtxrSourcePath, rInfo.dtxrRating ? `DTXR rating ${rInfo.dtxrRating}#` : ''].filter(Boolean).join(' · '))}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-rigid-review-key="${attr(issue.key)}" value="${esc(best ? (best.suggestedWeight ?? best.weight) : '')}" placeholder="kg" style="width:72px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"></td>
     <td class="mc-rigid-review-candidates" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${rigidCandidateButtons(issue, index) || '<span style="color:#64748b;">No suggestion</span>'}</td>
@@ -55,7 +84,7 @@ function rigidReviewMarkup(rows) {
       <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Rigid Weights Need Review</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} rigid node(s) have zero weight and length greater than 6 mm.</div></div>
       <button type="button" data-rigid-review-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;font-size:12px;">Cancel</button>
     </div>
-    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Enter missing weights before conversion. Suggestions are ranked from the weight master using bore, rating, and length. DTXR is matched from staged JSON by PS tag first, then coordinates.</div>
+    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Enter missing weights before conversion. Suggestions are ranked from the weight master using bore, rating, and length. DTXR is matched from staged JSON by PS tag first, then coordinates. Rating is validated against DTXR text such as 150#/300#.</div>
     <div style="overflow:auto;max-height:45vh;border:1px solid rgba(148,163,184,0.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,0.3);color:#fff;border-bottom:1px solid rgba(148,163,184,0.15);"><th style="padding:8px;">Branch</th><th style="padding:8px;">Bore</th><th style="padding:8px;">Rating</th><th style="padding:8px;">Node</th><th style="padding:8px;">DTXR</th><th style="padding:8px;">Length</th><th style="padding:8px;">Manual Weight</th><th style="padding:8px;">Nearest Suggestions</th></tr></thead><tbody>${rows.map(rigidReviewRow).join('')}</tbody></table></div>
     <div data-rigid-review-status style="font-size:12px;margin-top:8px;"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-top:1px solid #253a55;padding-top:16px;">
@@ -111,6 +140,10 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
       config.overrides.rating = { ...(config.overrides.rating || {}), ...newRatings };
       if (stateRef?.current) {
         stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
+        if (stateRef.current.masterContext) {
+          stateRef.current.masterContext.config = config;
+          saveMasterContextToLocalStorage(stateRef.current.masterContext);
+        }
       }
     }
 
@@ -135,7 +168,7 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
       rows.push(...newIssues);
     }
     
-    setStatus('Suggestions refreshed based on updated ratings.', false);
+    setStatus('Suggestions refreshed based on updated ratings; rows remain visible until a weight is applied or review is skipped.', false);
     if (refreshBtn) refreshBtn.disabled = false;
   });
 
@@ -166,10 +199,12 @@ async function unresolvedRigidIssues(state, config) {
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
   return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', config).map((issue) => {
-    const rating = ratingFromConfig(issue, config);
+    const dtxrRating = ratingFromDtxrText(issue.dtxr);
+    const rating = ratingFromConfig({ ...issue, dtxrRating }, config);
+    const conflict = Boolean(rating && dtxrRating && normalizeRatingText(rating) !== normalizeRatingText(dtxrRating));
     const ranking = rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, config, { includeRejected: true });
-    return applyXmlCiiFlangeWeightFallbackToIssue({ ...issue, rating, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) }, config);
-  }).filter((issue) => !issue.mapped && (!issue.candidates?.[0] || issue.candidates[0].zeroFallback));
+    return applyXmlCiiFlangeWeightFallbackToIssue({ ...issue, rating, dtxrRating, ratingConflict: conflict, branchRating: issue.rating, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) }, config);
+  }).filter((issue) => !issue.mapped);
 }
 
 async function reviewRigidWeights(stateRef, config) {
