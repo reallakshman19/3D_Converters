@@ -420,6 +420,42 @@ def _parse_rigid_weight(element: ET.Element) -> float | None:
     return _to_float_or_default(rigid.attrib.get("WEIGHT"), "RIGID/WEIGHT", 0.0)
 
 
+def _allowbls_value_is_meaningful(value: str | None) -> bool:
+    text = _safe_text(value)
+    if not text:
+        return False
+    try:
+        parsed = float(text)
+    except ValueError:
+        return True
+    # -1.0101 is the standard InputXML sentinel; a bare -1 is this dialect's
+    # separate "unset" convention for boolean/flag-like ALLOWABLESTRESS
+    # fields (e.g. SUPP_RQR, BURST_OPE); 0.0 is a placeholder, not a real
+    # override; NaN/inf (seen as a literal "-nan" in at least one real
+    # sample) is not usable data either.
+    if not math.isfinite(parsed):
+        return False
+    if _is_missing(parsed) or abs(parsed + 1.0) < 1e-9 or abs(parsed) < 1e-9:
+        return False
+    return True
+
+
+def _has_meaningful_allowablestress(element: ET.Element) -> bool:
+    for child in list(element):
+        if _local_name(child.tag) != "ALLOWABLESTRESS":
+            continue
+        if any(_allowbls_value_is_meaningful(value) for key, value in child.attrib.items()):
+            return True
+        for case in list(child):
+            if any(
+                _allowbls_value_is_meaningful(value)
+                for key, value in case.attrib.items()
+                if key != "NUM"
+            ):
+                return True
+    return False
+
+
 def _parse_restraints(element: ET.Element) -> list[RestraintAux]:
     restraints: list[RestraintAux] = []
     for restraint in element.findall("RESTRAINT"):
@@ -567,6 +603,7 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
 
     parsed_elements: list[ElementResolved] = []
     parsed_hangers: list[HangerAux] = []
+    allowablestress_elements_dropped = 0
     for element in piping_model.findall("PIPINGELEMENT"):
         diameter_raw = _to_float_or_default(element.attrib.get("DIAMETER"), "PIPINGELEMENT/DIAMETER", SENTINEL_MISSING)
         wall_raw = _to_float_or_default(element.attrib.get("WALL_THICK"), "PIPINGELEMENT/WALL_THICK", SENTINEL_MISSING)
@@ -659,6 +696,9 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
             carry_material = material_raw
         material_value = carry_material if carry_material is not None else None
 
+        if _has_meaningful_allowablestress(element):
+            allowablestress_elements_dropped += 1
+
         parsed_hangers.extend(_parse_hangers(element))
         parsed_elements.append(
             ElementResolved(
@@ -716,6 +756,25 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
 
     if not parsed_elements:
         raise ValueError("Input XML does not contain PIPINGELEMENT rows.")
+
+    if allowablestress_elements_dropped:
+        # ALLOWABLESTRESS/CASE data (item 10, "Pointer to Allowable Stress
+        # Auxiliary field" per the CAESAR II Neutral File spec) is real,
+        # per-element source data this engine does not currently parse or
+        # emit into #$ ALLOWBLS - unlike DISPLMNT/FLANGES, many of its 153
+        # documented values have different meanings depending on the active
+        # piping code, which this engine has no way to determine safely.
+        # Rather than guess and silently produce wrong allowable-stress
+        # data, this is surfaced as a warning so real overrides aren't lost
+        # without a trace.
+        _warn(
+            "ALLOWABLESTRESS_DATA_NOT_EMITTED",
+            f"{allowablestress_elements_dropped} element(s) have real (non-placeholder) "
+            "ALLOWABLESTRESS/CASE override data in the source InputXML that this converter "
+            "does not currently parse or emit into #$ ALLOWBLS - CAESAR will use its own "
+            "code-computed allowable stress instead of these overrides.",
+            affected_element_count=allowablestress_elements_dropped,
+        )
 
     return ParsedModel(
         job_name=_safe_text(piping_model.attrib.get("JOBNAME")),
