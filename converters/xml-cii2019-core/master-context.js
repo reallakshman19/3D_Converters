@@ -12,6 +12,11 @@ export const DEFAULT_PIPING_CLASS_MASTER_URLS = Object.freeze([
   'docs/Masters/SpecwisePipingClass/index.json',
 ]);
 
+export const DEFAULT_MATERIAL_MAP_URLS = Object.freeze([
+  '../docs/Masters/PCF_MAT_MAP.TXT',
+  'docs/Masters/PCF_MAT_MAP.TXT',
+]);
+
 function _ensureSection(config, key) {
   if (!config[key] || typeof config[key] !== 'object' || Array.isArray(config[key])) {
     config[key] = {};
@@ -143,19 +148,21 @@ export async function loadXmlCiiMaterialMap(config, diagnostics = []) {
     return material.mapRows;
   }
 
-  const masterUrl = toText(material.masterUrl).trim();
-  if (masterUrl && typeof fetch === 'function') {
-    try {
-      const response = await fetch(masterUrl);
-      if (response.ok) {
-        const rows = _parseMaterialMapText(await response.text());
-        material.mapRows = rows;
-        diagnostics.push({ type: 'material-map-source', source: masterUrl, rows: rows.length });
-        return material.mapRows;
+  if (typeof fetch === 'function') {
+    const urls = _uniqueNonBlank([material.masterUrl, ...DEFAULT_MATERIAL_MAP_URLS]);
+    for (const url of urls) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const rows = _parseMaterialMapText(await response.text());
+          material.mapRows = rows;
+          diagnostics.push({ type: 'material-map-source', source: url, rows: rows.length });
+          return material.mapRows;
+        }
+        diagnostics.push({ type: 'material-map-fetch-skip', url, reason: `status-${response.status}` });
+      } catch (error) {
+        diagnostics.push({ type: 'material-map-fetch-skip', url, reason: toText(error?.message || error) });
       }
-      diagnostics.push({ type: 'material-map-fetch-skip', url: masterUrl, reason: `status-${response.status}` });
-    } catch (error) {
-      diagnostics.push({ type: 'material-map-fetch-skip', url: masterUrl, reason: toText(error?.message || error) });
     }
   }
 
