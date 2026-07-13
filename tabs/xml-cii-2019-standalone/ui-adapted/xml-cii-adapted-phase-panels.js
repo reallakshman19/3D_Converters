@@ -13,7 +13,7 @@ import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propaga
 import { renderAdaptedWeightMatchPanel } from './xml-cii-adapted-weight-match.js';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
-import { renderAdaptedConfigPanel } from './xml-cii-adapted-config.js';
+import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p1';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js';
 
 export function renderActivePhase(root, stateRef, render) {
