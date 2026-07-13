@@ -802,9 +802,9 @@ def _default_2019_layout_config() -> dict[str, object]:
             "row9": ["0.000000", "0.000000", "0.000000", "0.000000", "0.000000"],
             "row10": ["0"],
             "row11": ["-1", "-1"],
-            "row12": ["{bend}", "{rigid}", "0", "{restraint}", "{sif}", "0"],
-            "row13": ["0", "0", "0", "{sif}", "0", "0"],
-            "row14": ["{reducer}", "0", "{sif}"],
+            "row12": ["{bend}", "{rigid}", "0", "{restraint}", "0", "0"],
+            "row13": ["0", "0", "0", "0", "{sif}", "{nodename}"],
+            "row14": ["{reducer}", "0", "0"],
             "line_label": {
                 "mode": "zero",
                 "pointer_start": 0,
@@ -2601,9 +2601,113 @@ def _build_cii_text(
     else:
         row10 = _render_element_label_payload(row10_cfg)
     row11 = _row(list(elements_cfg.get("row11", ["-1", "-1"])))
+    # IEL auxiliary-pointer array item order per the CAESAR II neutral file
+    # spec: row12=[1 bend, 2 rigid, 3 expjt, 4 restraint, 5 displmnt,
+    # 6 forcmnt], row13=[7 uniform, 8 wind, 9 offset, 10 allowbl,
+    # 11 intersection/SIF&TEES, 12 nodename], row14=[13 reducer, 14 flange,
+    # 15 equipmnt/nozzle check]. Only bend/rigid/restraint/sif/reducer/
+    # nodename are built with real per-element tracking today; the rest
+    # (expjt/displmnt/forcmnt/uniform/wind/offset/allowbl/flange/equipmnt)
+    # have no per-element association in this engine yet, so their slots
+    # stay literal "0" ("no auxiliary data of this type for this element"
+    # is simply always true for them right now).
     row12_tpl = list(elements_cfg.get("row12", ["{bend}", "{rigid}", "0", "{restraint}", "0", "0"]))
-    row13_tpl = list(elements_cfg.get("row13", ["0", "0", "0", "{sif}", "0", "0"]))
+    row13_tpl = list(elements_cfg.get("row13", ["0", "0", "0", "0", "{sif}", "{nodename}"]))
     row14_tpl = list(elements_cfg.get("row14", ["{reducer}", "0", "0"]))
+
+    # NODENAME payload/pointer-count must be known before the per-element
+    # ELEMENTS loop below (it needs edge_to_nodename_index for row13's
+    # "{nodename}" token), so this is computed here rather than after the
+    # loop like the other section payloads.
+    nodename_cfg = layout_config.get("nodename", {})
+    if not isinstance(nodename_cfg, dict):
+        raise ValueError("Invalid 2019 layout config: 'nodename' must be an object.")
+    nodename_mode = str(nodename_cfg.get("mode", "auto")).strip().lower()
+    if nodename_mode not in ("disabled", "manual", "to_node_map", "auto"):
+        raise ValueError("Invalid 2019 layout config: 'nodename.mode' must be disabled, manual, to_node_map, or auto.")
+    from_labels = nodename_cfg.get("from_labels", [])
+    to_labels = nodename_cfg.get("to_labels", [])
+    if from_labels is None:
+        from_labels = []
+    if to_labels is None:
+        to_labels = []
+    if not isinstance(from_labels, list) or not isinstance(to_labels, list):
+        raise ValueError("Invalid 2019 layout config: 'nodename.from_labels' and 'nodename.to_labels' must be arrays.")
+    configured_pairs = min(len(from_labels), len(to_labels))
+    default_from_label = str(nodename_cfg.get("from_label", "PS-XXX"))
+    default_to_label = str(nodename_cfg.get("to_label", "PS-XXX"))
+    nodename_payload: list[str] = []
+    nonam_count = 0
+    if nodename_mode == "manual":
+        nonam_count = int(nodename_cfg.get("nonam_count", configured_pairs))
+        if nonam_count < 0:
+            raise ValueError("Invalid 2019 layout config: 'nodename.nonam_count' must be non-negative.")
+        for pair_index in range(nonam_count):
+            if pair_index < configured_pairs:
+                nodename_payload.append(str(from_labels[pair_index]))
+                nodename_payload.append(str(to_labels[pair_index]))
+            else:
+                nodename_payload.append(default_from_label)
+                nodename_payload.append(default_to_label)
+    elif nodename_mode == "to_node_map":
+        to_node_labels_raw = nodename_cfg.get("to_node_labels", {})
+        if not isinstance(to_node_labels_raw, dict):
+            raise ValueError("Invalid 2019 layout config: 'nodename.to_node_labels' must be an object.")
+        mapped_pairs: list[tuple[str, str]] = []
+        for element in elements:
+            to_node_text = _format_node_id(element.to_node)
+            candidates = (to_node_text, f"{element.to_node:.6f}", str(int(round(element.to_node))))
+            to_label_value = ""
+            for candidate in candidates:
+                mapped = to_node_labels_raw.get(candidate)
+                if mapped is not None and _safe_text(str(mapped)):
+                    to_label_value = str(mapped)
+                    break
+            if not to_label_value:
+                continue
+            mapped_pairs.append((default_from_label, to_label_value))
+
+        default_nonam = len(mapped_pairs)
+        nonam_count = int(nodename_cfg.get("nonam_count", default_nonam))
+        if nonam_count <= 0 and default_nonam > 0:
+            nonam_count = default_nonam
+        if nonam_count < 0:
+            raise ValueError("Invalid 2019 layout config: 'nodename.nonam_count' must be non-negative.")
+        for pair_index in range(nonam_count):
+            if pair_index < len(mapped_pairs):
+                nodename_payload.append(mapped_pairs[pair_index][0])
+                nodename_payload.append(mapped_pairs[pair_index][1])
+            else:
+                nodename_payload.append(default_from_label)
+                nodename_payload.append(default_to_label)
+    elif nodename_mode == "auto":
+        # One NODENAME row per element edge: a two-column (from, to) line. Real
+        # names emitted by the upstream (FROM_NAME/TO_NAME) are used verbatim;
+        # nodes without a source name receive a deterministic label
+        # "{prefix}{node}" (configurable). Restores node traceability without
+        # inventing data.
+        auto_prefix = str(nodename_cfg.get("auto_prefix", "N"))
+
+        def _auto_label(name: str, node: float) -> str:
+            text = _safe_text(name)
+            if text:
+                return text
+            return f"{auto_prefix}{int(round(node))}"
+
+        for element in elements:
+            from_name = _auto_label(element.name_from, element.from_node)
+            to_name = _auto_label(element.name_to, element.to_node)
+            nodename_payload.append("  " + from_name.ljust(25) + to_name.ljust(25))
+        nonam_count = len(elements)
+
+    # NODENAME payload is built one entry per element, in element order, in
+    # every active mode above (auto always; manual/to_node_map up to
+    # nonam_count, matching the same element order) - so the 1-based pointer
+    # for edge_index is simply its position, as long as that element got an
+    # entry at all.
+    edge_to_nodename_index: dict[int, int] = {
+        edge_index: edge_index + 1 for edge_index in range(min(nonam_count, len(elements)))
+    }
 
     line_label_cfg = elements_cfg.get("line_label", {})
     if not isinstance(line_label_cfg, dict):
@@ -2710,6 +2814,7 @@ def _build_cii_text(
             "restraint": edge_to_restraint_index.get(edge_index, 0),
             "sif": edge_to_sif_index.get(edge_index, 0),
             "reducer": edge_to_reducer_index.get(edge_index, 0),
+            "nodename": edge_to_nodename_index.get(edge_index, 0),
         }
         line12 = _render_tokens_row(row12_tpl, token_values)
         line13 = _render_tokens_row(row13_tpl, token_values)
@@ -2733,6 +2838,35 @@ def _build_cii_text(
                 line14,
             ]
         )
+
+    # Validate that every aux-block type with real per-element data (bend,
+    # rigid, restraint, sif, reducer, nodename) actually has its pointer
+    # token somewhere in row12/row13/row14 - if a custom config's template
+    # omits or overwrites a token, CAESAR gets a permanent 0 pointer for
+    # every element of that type and silently drops the association (this
+    # is exactly how the NODENAME pointer was broken before this token
+    # existed at all: real name data was written to #$ NODENAME, but every
+    # element's IEL pointer to it stayed 0, so CAESAR never showed the name).
+    _tracked_pointer_types = {
+        "bend": edge_to_bend_index,
+        "rigid": edge_to_rigid_index,
+        "restraint": edge_to_restraint_index,
+        "sif": edge_to_sif_index,
+        "reducer": edge_to_reducer_index,
+        "nodename": edge_to_nodename_index,
+    }
+    _all_pointer_templates = row12_tpl + row13_tpl + row14_tpl
+    for _pointer_name, _index_map in _tracked_pointer_types.items():
+        if _index_map and f"{{{_pointer_name}}}" not in _all_pointer_templates:
+            _warn(
+                "AUX_POINTER_MISSING_FROM_TEMPLATE",
+                f"{len(_index_map)} element(s) have {_pointer_name} auxiliary data, but "
+                f"elements.row12/row13/row14 config does not reference the '{{{_pointer_name}}}' "
+                "token anywhere - CAESAR will not associate this data with any element "
+                "(the IEL pointer for this type stays 0 for all elements).",
+                pointer_type=_pointer_name,
+                affected_element_count=len(_index_map),
+            )
 
     raw_block_overrides = elements_cfg.get("raw_block_overrides", [])
     if raw_block_overrides is None:
@@ -2784,87 +2918,6 @@ def _build_cii_text(
     if not isinstance(units_cfg, dict):
         raise ValueError("Invalid 2019 layout config: 'units' must be an object.")
     units_payload = list(units_cfg.get("numeric_lines", [])) + list(units_cfg.get("text_lines", []))
-
-    nodename_cfg = layout_config.get("nodename", {})
-    if not isinstance(nodename_cfg, dict):
-        raise ValueError("Invalid 2019 layout config: 'nodename' must be an object.")
-    nodename_mode = str(nodename_cfg.get("mode", "auto")).strip().lower()
-    if nodename_mode not in ("disabled", "manual", "to_node_map", "auto"):
-        raise ValueError("Invalid 2019 layout config: 'nodename.mode' must be disabled, manual, to_node_map, or auto.")
-    from_labels = nodename_cfg.get("from_labels", [])
-    to_labels = nodename_cfg.get("to_labels", [])
-    if from_labels is None:
-        from_labels = []
-    if to_labels is None:
-        to_labels = []
-    if not isinstance(from_labels, list) or not isinstance(to_labels, list):
-        raise ValueError("Invalid 2019 layout config: 'nodename.from_labels' and 'nodename.to_labels' must be arrays.")
-    configured_pairs = min(len(from_labels), len(to_labels))
-    default_from_label = str(nodename_cfg.get("from_label", "PS-XXX"))
-    default_to_label = str(nodename_cfg.get("to_label", "PS-XXX"))
-    nodename_payload: list[str] = []
-    nonam_count = 0
-    if nodename_mode == "manual":
-        nonam_count = int(nodename_cfg.get("nonam_count", configured_pairs))
-        if nonam_count < 0:
-            raise ValueError("Invalid 2019 layout config: 'nodename.nonam_count' must be non-negative.")
-        for pair_index in range(nonam_count):
-            if pair_index < configured_pairs:
-                nodename_payload.append(str(from_labels[pair_index]))
-                nodename_payload.append(str(to_labels[pair_index]))
-            else:
-                nodename_payload.append(default_from_label)
-                nodename_payload.append(default_to_label)
-    elif nodename_mode == "to_node_map":
-        to_node_labels_raw = nodename_cfg.get("to_node_labels", {})
-        if not isinstance(to_node_labels_raw, dict):
-            raise ValueError("Invalid 2019 layout config: 'nodename.to_node_labels' must be an object.")
-        mapped_pairs: list[tuple[str, str]] = []
-        for element in elements:
-            to_node_text = _format_node_id(element.to_node)
-            candidates = (to_node_text, f"{element.to_node:.6f}", str(int(round(element.to_node))))
-            to_label_value = ""
-            for candidate in candidates:
-                mapped = to_node_labels_raw.get(candidate)
-                if mapped is not None and _safe_text(str(mapped)):
-                    to_label_value = str(mapped)
-                    break
-            if not to_label_value:
-                continue
-            mapped_pairs.append((default_from_label, to_label_value))
-
-        default_nonam = len(mapped_pairs)
-        nonam_count = int(nodename_cfg.get("nonam_count", default_nonam))
-        if nonam_count <= 0 and default_nonam > 0:
-            nonam_count = default_nonam
-        if nonam_count < 0:
-            raise ValueError("Invalid 2019 layout config: 'nodename.nonam_count' must be non-negative.")
-        for pair_index in range(nonam_count):
-            if pair_index < len(mapped_pairs):
-                nodename_payload.append(mapped_pairs[pair_index][0])
-                nodename_payload.append(mapped_pairs[pair_index][1])
-            else:
-                nodename_payload.append(default_from_label)
-                nodename_payload.append(default_to_label)
-    elif nodename_mode == "auto":
-        # One NODENAME row per element edge: a two-column (from, to) line. Real
-        # names emitted by the upstream (FROM_NAME/TO_NAME) are used verbatim;
-        # nodes without a source name receive a deterministic label
-        # "{prefix}{node}" (configurable). Restores node traceability without
-        # inventing data.
-        auto_prefix = str(nodename_cfg.get("auto_prefix", "N"))
-
-        def _auto_label(name: str, node: float) -> str:
-            text = _safe_text(name)
-            if text:
-                return text
-            return f"{auto_prefix}{int(round(node))}"
-
-        for element in elements:
-            from_name = _auto_label(element.name_from, element.from_node)
-            to_name = _auto_label(element.name_to, element.to_node)
-            nodename_payload.append("  " + from_name.ljust(25) + to_name.ljust(25))
-        nonam_count = len(elements)
 
     equipmnt_payload, equipmnt_nodes = _build_equipmnt_payload(layout_config)
     displmnt_payload, displmnt_nodes = _build_displmnt_payload(layout_config, equipmnt_nodes)

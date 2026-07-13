@@ -54,9 +54,9 @@ function _defaultInputxml2019LayoutConfigJson() {
       row8: ['0.000000', '0.000000', '0.000000', '0.000000', '9999.99', '9999.99'],
       row9: ['0.000000', '0.000000', '0.000000', '0.000000', '0.000000'],
       row10: ['0'],
-      row12: ['{bend}', '{rigid}', '0', '{restraint}', '{sif}', '0'],
-      row13: ['0', '0', '0', '{sif}', '0', '0'],
-      row14: ['{reducer}', '0', '{sif}'],
+      row12: ['{bend}', '{rigid}', '0', '{restraint}', '0', '0'],
+      row13: ['0', '0', '0', '0', '{sif}', '{nodename}'],
+      row14: ['{reducer}', '0', '0'],
       line_label: {
         mode: 'auto',
         pointer_start: 0,
