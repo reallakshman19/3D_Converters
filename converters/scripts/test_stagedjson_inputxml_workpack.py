@@ -22,7 +22,9 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _diagnostics_path(output: Path) -> Path:
-    return output.with_name(f"{output.stem}_diagnostics.json")
+    return output.with_name(
+        f"{output.stem}_stagedjson_to_inputxml_diagnostics.json"
+    )
 
 
 def _read_first_element(output: Path) -> ET.Element:
