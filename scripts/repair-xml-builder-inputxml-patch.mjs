@@ -23,5 +23,10 @@ replaceOnce(
   "  assert.strictEqual(converted.status, 0, 'Python downstream conversion should succeed: ' + (converted.stderr || converted.stdout));",
   'downstream assertion template',
 );
+replaceOnce(
+  "    2,\n    'line id mapping');",
+  "    1,\n    'line id mapping');\n  source = replaceOnce(source,\n    '    LINE_ID: element.branch.branchName,',\n    '    LINE_ID: firstValue(element.branch.context.lineId, element.branch.branchName),',\n    'side-load line id mapping');",
+  'line id anchor split',
+);
 fs.writeFileSync(path, source);
-console.log('Temporary patch quoting repaired.');
+console.log('Temporary patch quoting and anchors repaired.');
