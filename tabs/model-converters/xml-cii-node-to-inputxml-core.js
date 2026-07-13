@@ -1,11 +1,11 @@
 import { enrichInputXmlDocument } from '../xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js';
 import { normalizeBranchesForTopology } from './xml-cii-node-to-inputxml-topology-normalizer.js?v=20260709-cross-branch-1';
 import { buildNodeToInputXmlDiagnosticRecords } from './xml-cii-node-to-inputxml-audit.js?v=20260713-xml-builder-audit-1';
+import { restraintTypeToCaesarCode } from '../../converters/xml-cii2019-core/restraint-type-codes.js';
 
 const SENTINEL = -1.0101;
 const POS_TOL_MM = 0.5;
 const SHORT_FILLER_MM = 50;
-const RESTRAINT_TYPE_MAP = Object.freeze({ '+Y': 17, Y: 17, LIM: 12, GUI: 9, ANC: 0, ANCHOR: 0 });
 const DEFAULT_FILLER_SEARCH_FACTOR = 5;
 const DEFAULT_TEE_OLET_RAY_SEARCH_FACTOR = 10;
 const DEFAULT_FILLER_NODE_BASE = 900000;
@@ -77,11 +77,9 @@ function branchContext(branchEl) {
   };
 }
 function resolvedRestraintType(typeText, directionText) {
-  const typeKey = text(typeText).toUpperCase();
-  const directionKey = text(directionText).toUpperCase();
-  const direct = RESTRAINT_TYPE_MAP[typeKey] ?? maybeNum(typeKey);
+  const direct = restraintTypeToCaesarCode(typeText);
   if (direct !== null && direct !== undefined) return { typeCode: direct, resolution: 'type' };
-  const directional = RESTRAINT_TYPE_MAP[directionKey] ?? maybeNum(directionKey);
+  const directional = restraintTypeToCaesarCode(directionText);
   if (directional !== null && directional !== undefined) return { typeCode: directional, resolution: 'direction' };
   return { typeCode: SENTINEL, resolution: 'unresolved' };
 }

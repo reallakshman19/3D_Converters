@@ -137,7 +137,7 @@ function assertLauncherSemantics(result) {
   assert(result.coreInputXmlText.includes('FROM_NODE="10.000000" TO_NODE="20.000000"'), 'first launcher element should use first available positive route nodes 10 -> 20');
   assert(result.coreInputXmlText.includes('DELTA_Z="181.900000"'), 'first launcher element should map AVEVA northing delta into CAESAR Z with project north convention');
   assert(result.coreInputXmlText.includes('<RIGID WEIGHT="430.000000" TYPE="Unspecified"/>'), 'node 20 RIGID evidence should generate a RIGID child with converted weight');
-  assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="30.000000" TYPE="17.000000"'), 'node-level +Y support should generate a CAESAR restraint at node 30');
+  assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="30.000000" TYPE="14.000000"'), 'node-level +Y support should use the Python-synchronized signed-axis code at node 30');
   assert(result.elementSideLoadText.includes('ELEMENT 20->30'), 'side-load should include generated element keys');
   assert(result.elementSideLoadText.includes('DTXR_PS=Pipe Rest XRT01'), 'side-load should carry node DTXR_PS evidence');
   assert(result.diagnostics.summary.elementCount > 20, 'launcher benchmark should generate many elements from positive topology route nodes');
@@ -185,7 +185,7 @@ function assertXmlBuilderPipelineSemantics(modelApi, builderApi, coreApi) {
   assert(result.coreInputXmlText.includes('INSUL_DENSITY="0.000120"'), 'explicit insulation density should become InputXML INSUL_DENSITY');
   assert(result.coreInputXmlText.includes('PRESSURE9="900.000000"'), 'Pressure9 should become InputXML context');
   assert(result.coreInputXmlText.includes('TEMP_EXP_C9="9.000000"'), 'Temperature9 should become InputXML context');
-  assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="20.000000" TYPE="17.000000"'), 'generic REST with +Y direction should emit mapped restraint type 17');
+  assert(result.coreInputXmlText.includes('<RESTRAINT NUM="1" NODE="20.000000" TYPE="14.000000"'), 'generic REST with +Y direction should emit the authoritative mapped restraint type 14');
   assert.strictEqual((result.coreInputXmlText.match(/<RESTRAINT NUM=/g) || []).length, 6, 'InputXML should retain the fixed six restraint slots');
   assert.strictEqual((result.coreInputXmlText.match(/<RIGID /g) || []).length, 1, 'Rigid=0 must not create a RIGID child while explicit Rigid=2 does');
   assert(result.diagnostics.records.some((row) => row.code === 'XML_BUILDER_RESTRAINT_SLOT_TRUNCATED'), 'restraint overflow should be diagnosed');
