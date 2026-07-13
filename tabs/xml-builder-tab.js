@@ -7,6 +7,8 @@ import {
 } from './model-converters/custom-input/custom-input-panel.js?v=20260710-xml-builder-1';
 import { buildInputXmlFromNodeXml } from './model-converters/xml-cii-node-to-inputxml-core.js?v=20260710-xml-builder-1';
 import { renderXmlCiiTopology5BPanel } from './model-converters/xml-cii-topology-5b-panel.js?v=20260710-xml-builder-1';
+import { createXmlBuilderDiagnostic, createXmlBuilderDiagnostics, mergeXmlBuilderDiagnosticRecords, serializeXmlBuilderDiagnostics } from '../converters/xml-cii2019-core/custom-input-diagnostics.js';
+import { renderXmlBuilderDiagnosticsHtml } from './xml-builder-diagnostics-view.js';
 
 /**
  * Standalone XML Builder tab.
@@ -82,12 +84,21 @@ function buildAll(container, outputs) {
     jobName: 'XML_BUILDER',
     sourceName: 'xml-builder-generated.xml',
   });
+  const elementCount = Number(inputResult.diagnostics?.summary?.elementCount || 0);
+  const inputXmlReady = elementCount > 0;
+  const records = mergeXmlBuilderDiagnosticRecords(xmlResult.diagnostics, inputResult.diagnostics?.records);
+  const diagnostics = createXmlBuilderDiagnostics(records, {
+    sourceName: 'xml-builder-generated.xml', buildProfile: 'xml-builder', outputReady: inputXmlReady,
+  });
   Object.assign(outputs, {
     xmlText: xmlResult.xmlText,
     inputXmlText: inputResult.finalInputXmlText || inputResult.coreInputXmlText || '',
-    xmlSummary: JSON.stringify(xmlResult.summary, null, 2),
-    inputXmlSummary: JSON.stringify(inputResult.diagnostics?.summary || {}, null, 2),
-    error: '',
+    inputXmlReady,
+    diagnostics,
+    diagnosticsText: serializeXmlBuilderDiagnostics(diagnostics),
+    xmlSummary: JSON.stringify({ ...xmlResult.summary, diagnosticEvents: xmlResult.diagnostics?.records?.length || 0 }, null, 2),
+    inputXmlSummary: JSON.stringify({ ...(inputResult.diagnostics?.summary || {}), diagnostics: diagnostics.summary }, null, 2),
+    error: inputXmlReady ? '' : 'No PIPINGELEMENT route was generated. Review XML Builder diagnostics.',
   });
   saveOutputs(outputs);
 }
@@ -98,13 +109,14 @@ function renderOutputPanel(outputs) {
     <div class="xml-cii-native-toolbar">
       <button type="button" class="model-converters-run-btn" data-xml-builder-build>Build XML + InputXML + Geometry</button>
       <button type="button" class="model-converters-download-btn" data-xml-builder-download="xml" ${outputs.xmlText ? '' : 'disabled'}>Download XML</button>
-      <button type="button" class="model-converters-download-btn" data-xml-builder-download="inputxml" ${outputs.inputXmlText ? '' : 'disabled'}>Download InputXML</button>
+      <button type="button" class="model-converters-download-btn" data-xml-builder-download="inputxml" ${outputs.inputXmlReady === true ? '' : 'disabled'}>Download InputXML</button>
     </div>
     <div class="${outputs.error ? 'xml-cii-native-status-row is-warn' : 'xml-cii-native-status-row is-ok'}"><span class="xml-cii-native-status-icon"></span><span>${esc(outputs.error || 'Ready')}</span></div>
     <div class="xml-builder-grid">
       <div><div class="model-converters-workflow-section-title">Generated XML</div><pre class="xml-cii-native-hint">${esc(outputs.xmlSummary || 'No XML built yet.')}</pre><textarea class="xml-builder-output" readonly>${esc(outputs.xmlText || '')}</textarea></div>
       <div><div class="model-converters-workflow-section-title">InputXML</div><pre class="xml-cii-native-hint">${esc(outputs.inputXmlSummary || 'No InputXML built yet.')}</pre><textarea class="xml-builder-output" readonly>${esc(outputs.inputXmlText || '')}</textarea></div>
     </div>
+    ${renderXmlBuilderDiagnosticsHtml(outputs.diagnostics || {})}
   </section>`;
 }
 
@@ -139,14 +151,22 @@ function render(container, outputs) {
 
 function bindOutputActions(container, outputs) {
   container.querySelector('[data-xml-builder-build]')?.addEventListener('click', () => {
-    try { buildAll(container, outputs); } catch (error) { outputs.error = error?.message || String(error); saveOutputs(outputs); }
+    try { buildAll(container, outputs); } catch (error) {
+      const message = error?.message || String(error);
+      const diagnostics = createXmlBuilderDiagnostics([createXmlBuilderDiagnostic({ severity: 'ERROR', code: 'XML_BUILDER_BUILD_FAILED', stage: 'build', action: 'clear-stale-output', message })], { sourceName: 'xml-builder-generated.xml', outputReady: false });
+      Object.assign(outputs, { xmlText: '', inputXmlText: '', inputXmlReady: false, xmlSummary: '', inputXmlSummary: '', diagnostics, diagnosticsText: serializeXmlBuilderDiagnostics(diagnostics), error: message });
+      saveOutputs(outputs);
+    }
     render(container, outputs);
   });
   container.querySelectorAll('[data-xml-builder-download]').forEach((button) => button.addEventListener('click', () => {
     const kind = button.dataset.xmlBuilderDownload;
     if (kind === 'xml') downloadText('xml-builder-generated.xml', outputs.xmlText || '', 'application/xml');
-    if (kind === 'inputxml') downloadText('xml-builder-inputxml.xml', outputs.inputXmlText || '', 'application/xml');
+    if (kind === 'inputxml' && outputs.inputXmlReady === true) downloadText('xml-builder-inputxml.xml', outputs.inputXmlText || '', 'application/xml');
   }));
+  container.querySelector('[data-xml-builder-download-diagnostics]')?.addEventListener('click', () => {
+    downloadText('xml_builder_diagnostics.json', outputs.diagnosticsText || serializeXmlBuilderDiagnostics(outputs.diagnostics || {}), 'application/json');
+  });
 }
 
 export function renderXmlBuilderTab(container) {

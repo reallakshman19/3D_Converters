@@ -1,5 +1,6 @@
 import { enrichInputXmlDocument } from '../xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js';
 import { normalizeBranchesForTopology } from './xml-cii-node-to-inputxml-topology-normalizer.js?v=20260709-cross-branch-1';
+import { buildNodeToInputXmlDiagnosticRecords } from './xml-cii-node-to-inputxml-audit.js?v=20260713-xml-builder-audit-1';
 
 const SENTINEL = -1.0101;
 const POS_TOL_MM = 0.5;
@@ -66,6 +67,7 @@ function branchContext(branchEl) {
   const pressure = children(branchEl, 'Pressure')[0];
   return {
     branchName: childText(branchEl, 'Branchname'),
+    lineId: firstValue(childText(branchEl, 'LineNo'), childText(branchEl, 'LINE_ID')),
     temperatures: temperature ? parseNumberedChildren(temperature, 'Temperature', 9) : [],
     pressures: pressure ? parseNumberedChildren(pressure, 'Pressure', 9) : [],
     hydroPressure: pressure ? childText(pressure, 'HydroPressure') : '',
@@ -74,13 +76,27 @@ function branchContext(branchEl) {
     fluidDensity: childText(branchEl, 'FluidDensity'),
   };
 }
+function resolvedRestraintType(typeText, directionText) {
+  const typeKey = text(typeText).toUpperCase();
+  const directionKey = text(directionText).toUpperCase();
+  const direct = RESTRAINT_TYPE_MAP[typeKey] ?? maybeNum(typeKey);
+  if (direct !== null && direct !== undefined) return { typeCode: direct, resolution: 'type' };
+  const directional = RESTRAINT_TYPE_MAP[directionKey] ?? maybeNum(directionKey);
+  if (directional !== null && directional !== undefined) return { typeCode: directional, resolution: 'direction' };
+  return { typeCode: SENTINEL, resolution: 'unresolved' };
+}
 function parseRestraints(nodeEl) {
-  return children(nodeEl, 'Restraint').map((restraintEl) => {
-    const typeText = childText(restraintEl, 'Type').toUpperCase();
-    const typeCode = RESTRAINT_TYPE_MAP[typeText] ?? maybeNum(typeText) ?? SENTINEL;
+  const restraintEls = [...children(nodeEl, 'Restraint'), ...children(nodeEl, 'CustomRestraint')];
+  return restraintEls.map((restraintEl) => {
+    const sourceType = childText(restraintEl, 'Type').toUpperCase();
+    const sourceDirection = childText(restraintEl, 'Direction').toUpperCase();
+    const resolved = resolvedRestraintType(sourceType, sourceDirection);
     return {
-      sourceType: typeText,
-      typeCode,
+      sourceElementName: localName(restraintEl),
+      sourceType,
+      sourceDirection,
+      typeResolution: resolved.resolution,
+      typeCode: resolved.typeCode,
       stiffness: maybeNum(childText(restraintEl, 'Stiffness')) ?? SENTINEL,
       gap: maybeNum(childText(restraintEl, 'Gap')) ?? SENTINEL,
       friction: maybeNum(childText(restraintEl, 'Friction')) ?? SENTINEL,
@@ -127,7 +143,7 @@ function isRouteNode(row) {
   return row.position && Number(row.nodeNumber) > 0 && row.componentType !== 'GASK';
 }
 function hasRigidEvidence(row) {
-  return row?.componentType === 'RIGID' || text(row?.rigid) !== '' || (row?.componentType === 'FBLI' && Number(row?.weight) > 0);
+  return row?.componentType === 'RIGID' || Number(row?.rigid) > 0 || (row?.componentType === 'FBLI' && Number(row?.weight) > 0);
 }
 function hasBendEvidence(row) {
   return Number(row?.bendRadius) > 0 || ['ELBO', 'BEND'].includes(row?.componentType);
@@ -226,7 +242,7 @@ function createElementAttributes(element, includeFullContext) {
     HOT_MOD9: CONTEXT_DEFAULTS.HOT_MOD9,
     POISSONS: CONTEXT_DEFAULTS.POISSONS,
     PIPE_DENSITY: CONTEXT_DEFAULTS.PIPE_DENSITY,
-    INSUL_DENSITY: SENTINEL,
+    INSUL_DENSITY: includeFullContext ? (maybeNum(branch.context.insulationDensity) ?? SENTINEL) : SENTINEL,
     FLUID_DENSITY: includeFullContext ? fluidDensityForInputXml(branch.context.fluidDensity) : SENTINEL,
     REFRACTORY_DENSITY: SENTINEL,
     REFRACTORY_THK: SENTINEL,
@@ -239,7 +255,7 @@ function createElementAttributes(element, includeFullContext) {
     MILL_TOL_MINUS: SENTINEL,
     SEAM_WELD: SENTINEL,
     NAME: firstValue(toRow.nodeName, ''),
-    LINE_ID: branch.branchName,
+    LINE_ID: firstValue(branch.context.lineId, branch.branchName),
     FROM_NAME: firstValue(fromRow.nodeName, ''),
     TO_NAME: firstValue(toRow.nodeName, ''),
   });
@@ -292,7 +308,7 @@ function elementToXml(element, options) {
 function elementSideLoadBlock(element) {
   const row = element.toRow;
   const fields = {
-    LINE_ID: element.branch.branchName,
+    LINE_ID: firstValue(element.branch.context.lineId, element.branch.branchName),
     FROM_NAME: element.fromRow.nodeName,
     TO_NAME: row.nodeName,
     DTXR_POS: row.dtxrPos,
@@ -666,7 +682,7 @@ function buildElements(branches, options = {}) {
       if (isShortFiller) {
         pushFillerDiagnostic(diagnostics, { from: element.from, to: element.to, lengthMm, branchName: branch.branchName, reason: element.topologyReason, fillerType: 'short' });
       }
-      if (hasRigidEvidence(toRow)) diagnostics.rigid.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, componentType: toRow.componentType, weight: toRow.weight, mergedDuplicateNodes: toRow.mergedDuplicateNodes || [] });
+      if (hasRigidEvidence(toRow)) diagnostics.rigid.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, branchName: branch.branchName, componentType: toRow.componentType, weight: toRow.weight, mergedDuplicateNodes: toRow.mergedDuplicateNodes || [] });
       if (hasSifEvidence(toRow)) diagnostics.sif.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, componentType: toRow.componentType, connectionType: toRow.connectionType, mergedDuplicateNodes: toRow.mergedDuplicateNodes || [] });
       if (hasBendEvidence(toRow)) diagnostics.bend.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, bendRadius: toRow.bendRadius, componentType: toRow.componentType, mergedDuplicateNodes: toRow.mergedDuplicateNodes || [] });
       if (toRow.restraints.length) diagnostics.restraints.push({ from: element.from, to: element.to, sourceNode: toRow.nodeNumber, count: toRow.restraints.length, mergedDuplicateNodes: toRow.mergedDuplicateNodes || [] });
@@ -715,6 +731,12 @@ export function buildInputXmlFromNodeXml(xmlText, options = {}) {
   const elementSideLoadText = elements.map(elementSideLoadBlock).join('\n\n');
   const summary = createSummary(elements, diagnostics);
   const buildProfile = text(options.buildProfile) || 'inputxml';
+  const diagnosticRecords = buildNodeToInputXmlDiagnosticRecords({
+    branches: parsed.branches,
+    elements,
+    topologyDiagnostics: diagnostics,
+    options,
+  });
   let finalInputXmlText = coreInputXmlText;
   let enrichment = null;
   const warnings = [];
@@ -747,7 +769,7 @@ export function buildInputXmlFromNodeXml(xmlText, options = {}) {
     finalInputXmlText,
     elementSideLoadText,
     elements,
-    diagnostics: { ...diagnostics, summary, buildProfile, enrichment: enrichment?.diagnostics || null, warnings },
+    diagnostics: { ...diagnostics, summary, buildProfile, enrichment: enrichment?.diagnostics || null, records: diagnosticRecords, warnings },
     warnings,
     error: null,
   };

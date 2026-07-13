@@ -19,7 +19,7 @@ const TABLE_TABS = Object.freeze([
 ]);
 
 const SAMPLE = Object.freeze({
-  branchRows: 'BranchName\tNodeNumber\tBoreMm\tWallThickness\tP1\tT1\tT2\tT3\tFluidDensity\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t100\t100\t6.02\t4140\t260\t151\t5\t983',
+  branchRows: 'BranchName\tLineNo\tNodeNumber\tBoreMm\tOutsideDiameter\tWallThickness\tP1\tP9\tT1\tT2\tT3\tT9\tFluidDensity\tInsulationDensity\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t4-P8810212-31441C4-PP\t100\t100\t114.3\t6.02\t4140\t900\t260\t151\t5\t9\t983\t0.00012',
   coordinateRows: 'BranchName\tNodeNumber\tX\tY\tZ\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t100\t200000\t-1098000\t101000\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t110\t200500\t-1098000\t101000',
   weightRows: 'BranchName\tNodeNumber\tComponentType\tRigid\tEndpoint\tWeight\tComponentRefNo\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t100\tPIPE\t0\t1\t0\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t110\tRIGID\t2\t2\t0',
   restraintRows: 'BranchName\tNodeNumber\tNodeName\tRestraintType\tGap\tStiffness\tFriction\tDirection\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t100\tPS-1001\tREST\t0\t1.751270E+12\t0.3\t+Y',
@@ -115,7 +115,7 @@ function build(root) {
   const output = root.querySelector('[data-custom-input-xml]');
   if (output) output.value = state.xmlText;
   const summary = root.querySelector('[data-custom-input-summary]');
-  if (summary) summary.textContent = JSON.stringify(result.summary, null, 2);
+  if (summary) summary.textContent = JSON.stringify({ ...result.summary, diagnosticEvents: result.diagnostics?.records?.length || 0 }, null, 2);
   return result.xmlText;
 }
 
