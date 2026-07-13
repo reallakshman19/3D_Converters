@@ -54,8 +54,23 @@ jobs:
           python -m pip install pytest
       - name: Work Pack structure
         run: |
-          python scripts/xml-cii-inputxml-sidecar-structure-check.py
-          git diff --check origin/main...HEAD
+          set +e
+          {
+            python scripts/xml-cii-inputxml-sidecar-structure-check.py
+            git diff --check origin/main...HEAD
+          } > xml-cii-sidecar-structure.log 2>&1
+          status=$?
+          cat xml-cii-sidecar-structure.log
+          echo "$status" > xml-cii-sidecar-structure.status
+          exit "$status"
+      - name: Upload structure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml-cii-inputxml-sidecar-structure
+          path: |
+            xml-cii-sidecar-structure.log
+            xml-cii-sidecar-structure.status
       - name: Syntax checks
         run: |
           node --check converters/xml-cii-inputxml-sidecar-worker.js
