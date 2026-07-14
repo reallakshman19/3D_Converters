@@ -1,0 +1,28 @@
+.uew-shell { padding: 24px; color: var(--text-primary, #172033); }
+.uew-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.uew-header h1 { margin: 2px 0 0; font-size: 1.55rem; }
+.uew-kicker { margin: 0; font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; opacity: .65; }
+.uew-schema { padding: 6px 10px; border: 1px solid #aeb8ca; border-radius: 999px; font-family: ui-monospace, monospace; font-size: .78rem; }
+.uew-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr); gap: 18px; }
+.uew-card { padding: 18px; border: 1px solid #d5dbe7; border-radius: 12px; background: var(--surface, #fff); box-shadow: 0 6px 22px rgba(24, 36, 60, .07); }
+.uew-card h2 { margin: 0 0 14px; font-size: 1.05rem; }
+.uew-controls { display: grid; grid-template-columns: 1fr 220px; gap: 12px; }
+.uew-controls label, .uew-editor-label { display: grid; gap: 6px; font-size: .82rem; font-weight: 650; }
+.uew-controls input, .uew-controls select, #uew-source-text { border: 1px solid #b9c2d2; border-radius: 8px; background: inherit; color: inherit; }
+.uew-controls input, .uew-controls select { min-height: 38px; padding: 7px 9px; }
+.uew-editor-label { margin-top: 14px; }
+#uew-source-text { min-height: 360px; padding: 12px; resize: vertical; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.uew-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.uew-actions button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: #3157d5; color: #fff; font-weight: 700; cursor: pointer; }
+.uew-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.uew-actions .uew-secondary { background: #e8ebf2; color: #202a3c; }
+.uew-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.uew-summary div { min-width: 0; padding: 9px; border-radius: 8px; background: #f3f5f9; }
+.uew-summary .uew-wide { grid-column: 1 / -1; }
+.uew-summary dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; opacity: .62; }
+.uew-summary dd { margin: 4px 0 0; overflow-wrap: anywhere; font: 12px/1.45 ui-monospace, monospace; }
+.uew-findings { margin-top: 16px; }
+.uew-findings h3 { margin: 10px 0 4px; font-size: .82rem; }
+.uew-findings ul { margin: 0; padding-left: 20px; font-size: .82rem; }
+@media (max-width: 980px) { .uew-grid { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .uew-shell { padding: 14px; } .uew-controls { grid-template-columns: 1fr; } }
