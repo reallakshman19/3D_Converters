@@ -21,8 +21,17 @@ jobs:
     name: UEW and XML CII protected regression
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout latest PR head
+      - name: Checkout exact PR head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Verify checked-out head SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -69,7 +78,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin main --depth=1
+          git fetch --no-tags origin main
           changed="$(git diff --name-only origin/main...HEAD)"
           printf '%s\n' "$changed"
           if printf '%s\n' "$changed" | grep -E '^(tabs/xml-cii-2019-standalone-tab\.js|tabs/xml-cii-2019-standalone/|converters/xml-cii-2019-standalone/|converters/scripts/inputxml_to_cii2019\.py|tabs/model-converters/.*xml-cii|tabs/model-converters/converters/xmltocii2019|converters/scripts/xml_to_cii2019\.py)'; then
