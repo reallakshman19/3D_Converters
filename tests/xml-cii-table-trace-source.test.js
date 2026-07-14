@@ -23,6 +23,11 @@ function prepareEsmFixture() {
   return tempRoot;
 }
 
+function csvCell(value) {
+  const source = String(value ?? '');
+  return /[",\r\n]/.test(source) ? `"${source.replace(/"/g, '""')}"` : source;
+}
+
 (async () => {
   const tempRoot = prepareEsmFixture();
   const mod = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/xml-cii-table-trace-source.js')).href);
@@ -44,9 +49,9 @@ function prepareEsmFixture() {
   assert.strictEqual(result.matchedFacts[0].status, 'RESOLVED_KEY_PS');
   assert.strictEqual(result.matchedFacts[0].dtxrPsValue, 'Pipe Rest XRT01');
 
-  const comparison = mod.compareTraceResultsByComponentRef({ matchedFacts: [{ xmlIndex: 1, dtxrPosValue: 'Pipe Rest XRT01' }] }, result);
+  const comparison = mod.compareTraceResultsByComponentRef({ matchedFacts: [{ xmlIndex: 1, dtxrPosValue: 'Pipe Rest XRT01(NAME=PS-14416.2)' }] }, result);
   assert.strictEqual(comparison.compared, 1);
-  assert.strictEqual(comparison.percent, 100, 'benchmark must ignore table-only NAME decoration');
+  assert.strictEqual(comparison.percent, 100);
 
   const wrongRefResult = mod.buildTraceTableResolverResult({
     sourceText: '<PipeStressExport><Node><NodeNumber>11</NodeNumber><NodeName>PS-14416.2</NodeName><ComponentType>ATTA</ComponentType><ComponentRefNo>=1006649732/999999</ComponentRefNo><Position>1 2 3</Position></Node></PipeStressExport>',
@@ -85,13 +90,14 @@ function prepareEsmFixture() {
   assert.strictEqual(fcsgResult.matchedFacts[0].branchRelationship, 'same-root');
 
   const baseBranch = '/ASIM-1885-PL-4"-CS-M8810041-01';
-  const groupedText = [
-    'PIPE,DTXR_POS,NAME,Position,TYPE,REF,DTXR_PS',
-    `${baseBranch},REST,/PS02213.1,555136.11 -1125469.20 99707.60,ANCI,1006666139/639,`,
-    `${baseBranch},GUIDE PDO-TYPE-604A/B,=1006649755/5218,563136.11 -1125469.20 99707.60,ANCI,1006649755/5218,`,
-    `${baseBranch},REST,/PS02214.1,563139.11 -1125469.20 99707.60,ANCI,1006666139/642,REST`,
-    '/UNRELATED-LINE/B1,WRONG BRANCH REST,/PS02214.1,563136.11 -1125469.20 99707.60,ANCI,999/1,WRONG',
-  ].join('\n');
+  const groupedRows = [
+    ['PIPE', 'DTXR_POS', 'NAME', 'Position', 'TYPE', 'REF', 'DTXR_PS'],
+    [baseBranch, 'REST', '/PS02213.1', '555136.11 -1125469.20 99707.60', 'ANCI', '1006666139/639', ''],
+    [baseBranch, 'GUIDE PDO-TYPE-604A/B', '=1006649755/5218', '563136.11 -1125469.20 99707.60', 'ANCI', '1006649755/5218', ''],
+    [baseBranch, 'REST', '/PS02214.1', '563139.11 -1125469.20 99707.60', 'ANCI', '1006666139/642', 'REST'],
+    ['/UNRELATED-LINE/B1', 'WRONG BRANCH REST', '/PS02214.1', '563136.11 -1125469.20 99707.60', 'ANCI', '999/1', 'WRONG'],
+  ];
+  const groupedText = groupedRows.map((row) => row.map(csvCell).join(',')).join('\n');
   const groupedXml = `<PipeStressExport><Branchname>${baseBranch}/B3</Branchname><Node><NodeNumber>1020</NodeNumber><NodeName>PS02213.1</NodeName><ComponentType>ANCI</ComponentType><ComponentRefNo>=1006666139/639</ComponentRefNo><Position>555136.11 -1125469.20 99707.60</Position></Node><Node><NodeNumber>1030</NodeNumber><NodeName>PS02214.1</NodeName><ComponentType>ANCI</ComponentType><ComponentRefNo>=1006666139/642</ComponentRefNo><Position>563136.11 -1125469.20 99707.60</Position></Node></PipeStressExport>`;
   const groupedResult = mod.buildTraceTableResolverResult({
     sourceText: groupedXml,
