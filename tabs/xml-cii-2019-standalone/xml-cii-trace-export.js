@@ -113,29 +113,58 @@ export function buildXmlNodeWiseTraceRows(result) {
   }));
 }
 
-export function buildEvidenceTreeRows(result) {
+function matchedEvidenceMembers(result) {
+  const records = recordsFromResult(result).filter((record) => text(record.status).startsWith('RESOLVED_'));
+  const directMembers = records.flatMap((record) => rows(record.positionMembers));
+  if (directMembers.length) return directMembers;
+
+  const groupIds = new Set(records.map((record) => text(record.groupId)).filter(Boolean));
+  const nodeNumbers = new Set(records.flatMap((record) => [
+    ...rows(record.dtxrPosNodeNumbers),
+    ...rows(record.dtxrPsNodeNumbers),
+  ]).map(text).filter(Boolean));
   const groups = rows(result?.traceResolutionLedger?.groups || result?.positionIndex?.groups);
   const output = [];
-  const seen = new Set();
   for (const group of groups) {
+    const groupMatched = groupIds.has(text(group?.id));
     for (const entry of rows(group?.entries)) {
-      const row = {
-        branch: text(entry.branchName || group?.branch?.original || group?.branch?.full),
-        bore: text(entry.bore),
-        sourceNodeNo: text(entry.jsonNodeNo),
-        position: pointLabel(entry.point || group?.anchor),
-        objectType: text(entry.type),
-        dtxrPos: text(entry.labeled || entry.description),
-        name: text(entry.name),
-        cmpSupGap: text(entry.cmpSupGap),
-        componentRefNo: text(entry.componentRef),
-        sourcePath: text(entry.path),
-      };
-      const key = [row.sourcePath, row.sourceNodeNo, row.position, row.objectType, row.dtxrPos].join('\u001f');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      output.push(row);
+      if (groupMatched || nodeNumbers.has(text(entry?.jsonNodeNo))) output.push({
+        jsonNodeNo: entry.jsonNodeNo,
+        sourcePath: entry.path,
+        branchName: entry.branchName || group?.branch?.original || group?.branch?.full,
+        bore: entry.bore,
+        point: entry.point || group?.anchor,
+        type: entry.type,
+        name: entry.name,
+        dtxrPosValue: entry.labeled || entry.description,
+        cmpSupGap: entry.cmpSupGap,
+        componentRefNo: entry.componentRef,
+      });
     }
+  }
+  return output;
+}
+
+export function buildEvidenceTreeRows(result) {
+  const output = [];
+  const seen = new Set();
+  for (const member of matchedEvidenceMembers(result)) {
+    const row = {
+      branch: text(member.branchName),
+      bore: text(member.bore),
+      sourceNodeNo: text(member.jsonNodeNo),
+      position: pointLabel(member.point),
+      objectType: text(member.type),
+      dtxrPos: text(member.dtxrPosValue || member.labeled || member.description),
+      name: text(member.name),
+      cmpSupGap: text(member.cmpSupGap),
+      componentRefNo: text(member.componentRefNo || member.componentRef),
+      sourcePath: text(member.sourcePath || member.path),
+    };
+    const key = [row.sourcePath, row.sourceNodeNo, row.position, row.objectType, row.dtxrPos].join('\u001f');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(row);
   }
   return output;
 }
