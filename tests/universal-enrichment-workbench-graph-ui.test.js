@@ -55,6 +55,7 @@ test('builds from displayed envelope, explores hierarchy, filters table and down
   assert.strictEqual(tree.children.length, 1, 'initial tree rendering must contain roots only');
   await tree.dispatch('click', tree.children[0].children[0]);
   assert.strictEqual(tree.children.length, 3);
+  assert.strictEqual(tree.children[1].style.paddingLeft, '14px');
   const filter = container.querySelector('#uew-graph-filter');
   filter.value = 'Child[2]';
   await filter.dispatch('input');
@@ -114,7 +115,7 @@ test('a stale asynchronous graph build cannot replace a newer source revision', 
   cleanup();
 });
 
-test('large hierarchy rendering is bounded and file bytes are not reread for graph build', async () => {
+test('large hierarchy rendering is bounded, pageable and does not reread file bytes', async () => {
   let reads = 0;
   const { container, cleanup } = await renderHarness();
   const file = container.querySelector('#uew-file');
@@ -125,9 +126,17 @@ test('large hierarchy rendering is bounded and file bytes are not reread for gra
   await container.querySelector('#uew-graph-build').dispatch('click');
   assert.strictEqual(reads, 1);
   const tree = container.querySelector('#uew-graph-tree');
+  const more = container.querySelector('#uew-graph-tree-more');
   assert.strictEqual(tree.children.length, 1);
   await tree.dispatch('click', tree.children[0].children[0]);
-  assert(tree.children.length <= 200, `tree rendered ${tree.children.length} rows`);
+  assert.strictEqual(tree.children.length, 200);
+  assert.strictEqual(more.hidden, false);
+  await more.dispatch('click');
+  assert.strictEqual(tree.children.length, 400);
+  assert.strictEqual(more.hidden, false);
+  await more.dispatch('click');
+  assert.strictEqual(tree.children.length, 501);
+  assert.strictEqual(more.hidden, true);
   assert.strictEqual(container.querySelector('#uew-graph-entity-count').textContent, '501');
   cleanup();
 });
