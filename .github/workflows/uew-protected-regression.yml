@@ -11,6 +11,8 @@ on:
       - 'tests/universal-enrichment-workbench-*.test.js'
       - 'tests/universal-enrichment-workbench-test-helpers.js'
       - 'tests/xml-cii-standalone-workflow-ui-adapted.test.js'
+      - 'tests/xml-cii-standalone-workflow-api.test.js'
+      - 'tests/standalone-static.test.js'
       - '.github/workflows/uew-protected-regression.yml'
 
 permissions:
@@ -42,12 +44,26 @@ jobs:
         run: node --test tests/universal-enrichment-workbench-*.test.js
 
       - name: Run standalone application static validation
-        run: node tests/standalone-static.test.js
-
-      - name: Run protected XML CII Standalone regression suite
+        id: standalone_static
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
+          mkdir -p test-logs
+          set +e
+          node tests/standalone-static.test.js > test-logs/standalone-static.log 2>&1
+          status=$?
+          echo "$status" > test-logs/standalone-static.status
+          cat test-logs/standalone-static.log
+          exit "$status"
+
+      - name: Run protected XML CII Standalone regression suite
+        id: xml_cii_regression
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p test-logs
+          set +e
+          failed=0
           tests=(
             tests/xml-cii-standalone-static.test.js
             tests/xml-cii-inputxml-enrichment-behavior.test.js
@@ -69,19 +85,48 @@ jobs:
             tests/xml-cii-standalone-live-smoke.test.js
           )
           for test_file in "${tests[@]}"; do
-            echo "::group::${test_file}"
-            node "${test_file}"
-            echo "::endgroup::"
+            log_name="$(basename "$test_file" .js).log"
+            node "$test_file" > "test-logs/$log_name" 2>&1
+            status=$?
+            echo "$status" > "test-logs/${log_name%.log}.status"
+            if [ "$status" -ne 0 ]; then
+              failed=1
+              echo "::error title=Regression failed::${test_file}"
+              cat "test-logs/$log_name"
+            else
+              echo "PASS ${test_file}"
+            fi
           done
+          exit "$failed"
 
       - name: Verify protected production paths are untouched
+        id: protected_paths
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
           changed="$(git diff --name-only origin/main...HEAD)"
-          printf '%s\n' "$changed"
+          printf '%s\n' "$changed" | tee test-logs/changed-files.log
           if printf '%s\n' "$changed" | grep -E '^(tabs/xml-cii-2019-standalone-tab\.js|tabs/xml-cii-2019-standalone/|converters/xml-cii-2019-standalone/|converters/scripts/inputxml_to_cii2019\.py|tabs/model-converters/.*xml-cii|tabs/model-converters/converters/xmltocii2019|converters/scripts/xml_to_cii2019\.py)'; then
             echo 'Protected XML CII production path changed.' >&2
             exit 1
           fi
+
+      - name: Upload certification logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uew-protected-regression-logs
+          path: test-logs
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce certification result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test '${{ steps.standalone_static.outcome }}' = 'success'
+          test '${{ steps.xml_cii_regression.outcome }}' = 'success'
+          test '${{ steps.protected_paths.outcome }}' = 'success'
