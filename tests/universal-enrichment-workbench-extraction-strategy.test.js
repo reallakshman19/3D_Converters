@@ -15,11 +15,14 @@ test('regex supports numeric and named capture groups and deterministic flags', 
   assert.strictEqual(executeExtractionStrategy(regex('^.$', 'u', 0), '𐀀').outcome, 'matched');
 });
 
-test('regex rejects invalid patterns, flags, missing groups and length overflow', async () => {
+test('regex validation rejects invalid patterns, flags and undefined capture groups', async () => {
   const { executeExtractionStrategy, validateRegexStrategy } = await strategy();
   assert.ok(validateRegexStrategy(regex('(', '', 0)).length);
   assert.ok(validateRegexStrategy(regex('(a)', 'gg', 1)).some((item) => item.includes('unsupported') || item.includes('duplicated')));
   assert.ok(validateRegexStrategy(regex('a'.repeat(501), '', 0)).some((item) => item.includes('500')));
+  assert.ok(validateRegexStrategy(regex('(a)', '', 2)).some((item) => item.includes('not defined')));
+  assert.ok(validateRegexStrategy(regex('(?<actual>a)', '', 'missing')).some((item) => item.includes('not defined')));
+  assert.deepStrictEqual(validateRegexStrategy(regex('\\((a)\\)(?:b)(?<key>c)', '', 'key')), []);
   assert.strictEqual(executeExtractionStrategy(regex('(a)', '', 2), 'a').outcome, 'rejected');
   assert.strictEqual(executeExtractionStrategy(regex('z', '', 0), 'a').reason, 'Regex did not match.');
 });
@@ -58,4 +61,20 @@ test('structural selectors and value sources use source evidence only', async ()
   assert.strictEqual(resolveExtractionInput({ kind: 'attribute', attributeName: 'CODE' }, entity).input, 'X-2');
   assert.strictEqual(resolveExtractionInput({ kind: 'attribute', attributeName: 'MISSING' }, entity).ok, false);
   assert.strictEqual(resolveExtractionInput({ kind: 'entity-value' }, { ...entity, value: [] }).ok, false);
+});
+
+test('oversized extraction input is rejected with bounded source evidence', async () => {
+  const { testExtractionRule } = await strategy();
+  const rule = {
+    ruleId: 'rule-1', fieldKey: 'field', enabled: true,
+    sourceSelector: { entityKinds: ['xml-element'], nameEquals: 'Item', sourcePathPrefix: '' },
+    valueSource: { kind: 'entity-value', attributeName: '' },
+    strategies: [regex('(.+)', '', 1)],
+  };
+  const entity = { entityId: 'entity-1', entityKind: 'xml-element', name: 'Item', sourcePath: '/Item[1]', value: 'abcdefghijkl', attributes: {} };
+  const result = testExtractionRule(rule, entity, 10);
+  assert.strictEqual(result.status, 'rejected');
+  assert.strictEqual(result.input, 'abcdefghij');
+  assert.strictEqual(result.attempts[0].input, 'abcdefghij');
+  assert.match(result.attempts[0].reason, /12.*10/);
 });
