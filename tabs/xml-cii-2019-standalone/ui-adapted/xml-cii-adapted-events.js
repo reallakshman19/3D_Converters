@@ -13,6 +13,14 @@ import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFro
 import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js';
 import { bindTraceTableEvents } from './xml-cii-adapted-table-trace-events.js';
 import { compareTraceResultsByComponentRef } from '../xml-cii-table-trace-source.js';
+import {
+  buildEvidenceTreeCsv,
+  buildEvidenceTreeRows,
+  buildMatchedFactsRows,
+  buildMatchedFactsTsv,
+  buildXmlNodeWiseTraceCsv,
+  buildXmlNodeWiseTraceRows,
+} from '../xml-cii-trace-export.js';
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   bindPhaseEvents(container, stateRef, render);
@@ -177,6 +185,9 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(container, stateRef, render, false));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(container, stateRef, render, true));
+  onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree'));
+  onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace'));
+  onClick(container, 'copy-matched-facts', () => copyMatchedFactsFromUi(stateRef, render));
   onClick(container, 'run-manual-element-sideload', () => runManualElementSideloadFromUi(container, stateRef, render, false));
   onClick(container, 'save-manual-element-sideload', () => runManualElementSideloadFromUi(container, stateRef, render, true));
   onClick(container, 'build-preview-audit', () => buildPreviewAuditFromUi(stateRef, render));
@@ -194,7 +205,7 @@ export function bindActionEvents(container, stateRef, render) {
 
 export async function testRegexFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { regexTesterRunning: true }); render(); const sourceText = await sourceTextFromState(stateRef.current); const result = runStandaloneRegexTester({ ...stateRef.current, sourceText, extractionConfig: stateRef.current.regexTesterConfig }); stateRef.current = save ? applyStandaloneRegexTesterResult(stateRef.current, result) : updateWorkflowState(stateRef.current, { regexTesterResult: result, regexTesterRunning: false }); render(); }
 export async function runResolverJsonTraceFromUi(container, stateRef, render, save) {
-  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true });
+  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceRunning: true, resolverJsonTraceExportStatus: '' });
   render();
   const tx = container.querySelector('[data-field="resolver-json-config"]');
   if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
@@ -205,12 +216,13 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
     ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
     : stateRef.current.jsonTraceTableBenchmark;
   stateRef.current = save ?
-    updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), { jsonTraceTableBenchmark: benchmark }) :
+    updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), { jsonTraceTableBenchmark: benchmark, resolverJsonTraceExportStatus: '' }) :
     updateWorkflowState(stateRef.current, {
       resolverJsonTraceResult: result,
       resolverJsonTraceJsonResult: result,
       jsonTraceTableBenchmark: benchmark,
       resolverJsonTraceRunning: false,
+      resolverJsonTraceExportStatus: '',
       resolverJsonTraceWriteBackStatus: `Resolver index built: ${result.resolvedFacts.length} facts processed.`
     });
   render();
@@ -233,6 +245,65 @@ export function buildPreviewAuditFromUi(stateRef, render) { stateRef.current = a
 export function runWeightMatchFromUi(stateRef, render, finalize) { stateRef.current = updateWorkflowState(stateRef.current, { weightMatchRunning: true }); render(); const result = runStandaloneWeightMatch({ ...stateRef.current, weightMatchOverridesJson: stateRef.current.weightMatchOverridesJson }); stateRef.current = applyStandaloneWeightMatchResult(stateRef.current, result, finalize); render(); }
 export function runSupportMapperFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { supportTypeMapperRunning: true }); render(); const result = runStandaloneSupportTypeMapper({ ...stateRef.current, mapperRows: stateRef.current.supportTypeMapperConfig, testInput: stateRef.current.supportTypeMapperTestInput }); stateRef.current = applyStandaloneSupportTypeMapperResult(stateRef.current, result, save); render(); }
 export function refreshOutputRunFromUi(stateRef, render) { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); render(); }
+
+function traceResult(state) {
+  return state?.resolverJsonTraceResult || state?.resolverJsonTraceJsonResult || null;
+}
+
+export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
+  const result = traceResult(stateRef.current);
+  const isEvidence = kind === 'evidence-tree';
+  const rowCount = isEvidence ? buildEvidenceTreeRows(result).length : buildXmlNodeWiseTraceRows(result).length;
+  if (!rowCount) {
+    stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceExportStatus: 'No trace rows are available for export.' });
+    render();
+    return null;
+  }
+  const content = isEvidence ? buildEvidenceTreeCsv(result) : buildXmlNodeWiseTraceCsv(result);
+  const fileName = isEvidence ? 'xml-cii-evidence-tree.csv' : 'xml-cii-node-wise-trace.csv';
+  downloadTextFile(fileName, content, 'text/csv;charset=utf-8');
+  stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceExportStatus: `Downloaded ${rowCount} ${isEvidence ? 'evidence' : 'node-trace'} row(s) as CSV.` });
+  render();
+  return { fileName, rowCount, content };
+}
+
+async function writeClipboardText(value) {
+  if (globalThis.navigator?.clipboard?.writeText) {
+    await globalThis.navigator.clipboard.writeText(value);
+    return true;
+  }
+  if (typeof document === 'undefined' || !document.body) throw new Error('Clipboard API is unavailable.');
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  if (textarea.style) Object.assign(textarea.style, { position: 'fixed', left: '-9999px', top: '0' });
+  document.body.appendChild(textarea);
+  textarea.select?.();
+  const copied = document.execCommand?.('copy') === true;
+  textarea.remove?.();
+  if (!copied) throw new Error('Clipboard copy was rejected by the browser.');
+  return true;
+}
+
+export async function copyMatchedFactsFromUi(stateRef, render) {
+  const result = traceResult(stateRef.current);
+  const matchedRows = buildMatchedFactsRows(result);
+  if (!matchedRows.length) {
+    stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceExportStatus: 'No matched facts are available to copy.' });
+    render();
+    return false;
+  }
+  try {
+    await writeClipboardText(buildMatchedFactsTsv(result));
+    stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceExportStatus: `Copied ${matchedRows.length} matched fact row(s) with headers.` });
+    render();
+    return true;
+  } catch (error) {
+    stateRef.current = updateWorkflowState(stateRef.current, { resolverJsonTraceExportStatus: `Copy failed: ${error?.message || 'Clipboard unavailable.'}` });
+    render();
+    return false;
+  }
+}
 
 export async function sourceTextFromState(state) {
   if (state.sourceText) return state.sourceText;
