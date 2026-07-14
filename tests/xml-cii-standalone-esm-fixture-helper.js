@@ -2,7 +2,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const STATIC_MODULE_RE = /\b(?:import|export)\s+(?:[\s\S]*?\s+from\s*)?(['"])([^'"]+)\1/g;
+const STATIC_IMPORT_RE = /(?:^|\n)\s*import\s+(?:[\s\S]*?\s+from\s+)?(['"])([^'"]+)\1\s*;?/g;
+const STATIC_EXPORT_RE = /(?:^|\n)\s*export\s+(?:\*|\{[\s\S]*?\})\s+from\s+(['"])([^'"]+)\1\s*;?/g;
 
 function normalizeRelativePath(value) {
   return String(value || '').replace(/\\/g, '/');
@@ -31,12 +32,18 @@ function resolveStaticModule(repoRoot, importerPath, specifier) {
   throw new Error(`Static ESM dependency not found: ${specifier} from ${importerPath}`);
 }
 
-function staticModuleSpecifiers(sourceText) {
-  const specifiers = [];
+function collectSpecifiers(pattern, sourceText, output) {
+  pattern.lastIndex = 0;
   let match;
-  STATIC_MODULE_RE.lastIndex = 0;
-  while ((match = STATIC_MODULE_RE.exec(String(sourceText || '')))) specifiers.push(match[2]);
-  return specifiers;
+  while ((match = pattern.exec(sourceText))) output.push(match[2]);
+}
+
+function staticModuleSpecifiers(sourceText) {
+  const source = String(sourceText || '');
+  const specifiers = [];
+  collectSpecifiers(STATIC_IMPORT_RE, source, specifiers);
+  collectSpecifiers(STATIC_EXPORT_RE, source, specifiers);
+  return [...new Set(specifiers)];
 }
 
 function collectStaticEsmDependencyClosure(repoRoot, entryFiles) {
