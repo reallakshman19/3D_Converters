@@ -18,6 +18,7 @@ function prepareEsmFixture() {
   for (const required of [
     'tabs/xml-cii-2019-standalone/xml-cii-table-trace-source.js',
     'tabs/xml-cii-2019-standalone/xml-cii-table-trace-match.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-trace-export.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-table-trace-panel.js',
   ]) assert(fixture.files.includes(required), `ESM fixture dependency closure missing ${required}`);
   return fixture.tempRoot;
@@ -32,6 +33,7 @@ class TestElement {
     this.attributes = {};
     this.value = '';
     this.style = {};
+    this.disabled = false;
     this._classSet = new Set();
     this.classList = {
       toggle: (name, force) => {
@@ -87,6 +89,8 @@ function jsonFixture() {
   assert(result.nodeIndex['10'], 'node index must include NODE=10');
   assert(result.psIndex['PS-10'], 'PS index must include PS-10');
   assert(result.posIndex['E=100N=200EL=300'], 'POS index must include normalized coordinate text');
+  assert.strictEqual(result.resolutionLedger.length, 3, 'authoritative ledger must contain one record per XML node');
+  assert.strictEqual(result.resolvedFacts.length, 3, 'UI facts must remain one row per XML node');
   assert.strictEqual(result.matchedFacts.length, 1, 'one XML node should match a staged JSON entry');
   assert.strictEqual(result.rejectedFacts.length, 2, 'the two unmatched XML nodes should be reported as rejected');
   assert(result.diagnostics.some((item) => item.type === 'resolver-json-trace-index-stats'), 'index diagnostics expected');
@@ -111,10 +115,19 @@ function jsonFixture() {
   const treeCard = new TestElement('section');
   ui.renderStandaloneResolverJsonTracePanel(treeCard, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'tree' });
   assert(treeCard.textContent.includes('Evidence Trace Tree'), 'tree sub-tab must render the evidence trace tree');
+  assert(treeCard.textContent.includes('CSV (1)'), 'evidence tree must expose a CSV download with source-row count');
+
+  const nodeTraceCard = new TestElement('section');
+  ui.renderStandaloneResolverJsonTracePanel(nodeTraceCard, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'nodeTrace' });
+  for (const label of ['JsonNodeNo(DTXR_PS)', 'JsonNodeNo(DTXR_POS)', 'Distance (mm)', 'Tolerance (mm)', 'DTXR_PS/NAME', 'Effective Source', 'Derived Restraints', 'RESOLVED_POS']) {
+    assert(nodeTraceCard.textContent.includes(label), `Node Wise Trace missing ${label}`);
+  }
+  assert(nodeTraceCard.textContent.includes('CSV (3)'), 'node trace must export all XML-node ledger rows');
 
   const matchedCard = new TestElement('section');
   ui.renderStandaloneResolverJsonTracePanel(matchedCard, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'matched' });
   assert(matchedCard.textContent.includes('Hits'), 'matched sub-tab must render the matched-facts table');
+  assert(matchedCard.textContent.includes('Copy'), 'matched sub-tab must expose the copy action');
 
   const rejectedCard = new TestElement('section');
   ui.renderStandaloneResolverJsonTracePanel(rejectedCard, { ...withResult, sourceKind: 'xml', jsonTraceActiveSubTabId: 'rejected' });

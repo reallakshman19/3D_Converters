@@ -2,6 +2,12 @@ import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
 import { buildAdaptedJsonTraceTree } from './xml-cii-adapted-regex-results.js';
 import { renderStandaloneTraceTableImportPanel } from './xml-cii-adapted-table-trace-panel.js';
+import {
+  XML_NODE_TRACE_HEADERS,
+  buildEvidenceTreeRows,
+  buildMatchedFactsRows,
+  buildXmlNodeWiseTraceRows,
+} from '../xml-cii-trace-export.js';
 
 function text(value, fallback = '') {
   const out = String(value ?? '').trim();
@@ -16,10 +22,12 @@ function stat(result, key) {
   return Number(result?.indexStats?.[key] || 0);
 }
 
-function actionButton(action, label) {
+function actionButton(action, label, disabled = false) {
   const button = createElement('button', label);
   button.type = 'button';
   button.dataset.action = action;
+  button.disabled = !!disabled;
+  if (disabled && button.style) Object.assign(button.style, { opacity: '0.45', cursor: 'not-allowed' });
   return button;
 }
 
@@ -27,6 +35,19 @@ function metric(label, value) {
   const item = createElement('div', '', 'xml-cii-resolver-metric');
   item.append(createElement('span', label), createElement('strong', String(value ?? 0)));
   return item;
+}
+
+function sectionTitleBar(title, actions = []) {
+  const bar = createElement('div', '', 'xml-cii-resolver-title-bar');
+  if (bar.style) Object.assign(bar.style, { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '10px' });
+  bar.appendChild(createElement('h3', title));
+  if (actions.length) {
+    const actionBar = createElement('div', '', 'xml-cii-resolver-actions');
+    if (actionBar.style) Object.assign(actionBar.style, { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' });
+    actionBar.append(...actions);
+    bar.appendChild(actionBar);
+  }
+  return bar;
 }
 
 function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
@@ -38,15 +59,23 @@ function table(headers, data, emptyText, idClass = 'xml-cii-resolver-table') {
   if (hr.style) Object.assign(hr.style, { background: '#1e293b', borderBottom: '2px solid rgba(148, 163, 184, 0.12)' });
   for (const header of headers) {
     const th = createElement('th', header);
-    if (th.style) Object.assign(th.style, { padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#94a3b8', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' });
+    if (th.style) Object.assign(th.style, { padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#94a3b8', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' });
     hr.appendChild(th);
   }
   head.appendChild(hr);
   tableEl.append(head, tableBody(headers, data));
   const wrapper = createElement('div');
-  if (wrapper.style) Object.assign(wrapper.style, { maxHeight: '400px', overflowY: 'auto', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' });
+  if (wrapper.style) Object.assign(wrapper.style, { maxHeight: '420px', overflow: 'auto', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' });
   wrapper.appendChild(tableEl);
   return wrapper;
+}
+
+function statusStyle(value) {
+  const resolved = value.startsWith('RESOLVED_');
+  const review = value.includes('AMBIGUOUS') || value.includes('REVIEW');
+  if (resolved) return { color: '#34d399', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)' };
+  if (review) return { color: '#fbbf24', backgroundColor: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)' };
+  return { color: '#f87171', backgroundColor: 'rgba(248, 113, 113, 0.1)', border: '1px solid rgba(248, 113, 113, 0.2)' };
 }
 
 function tableBody(headers, data) {
@@ -62,26 +91,25 @@ function tableBody(headers, data) {
     }
     isEven = !isEven;
     for (const header of headers) {
-      const val = text(item[fieldFor(header)]);
+      const value = text(item[fieldFor(header)]);
       const td = createElement('td');
       if (td.style) Object.assign(td.style, { padding: '10px 12px', verticalAlign: 'middle', color: '#cbd5e1' });
-      if (header === 'DTXR_POS Value' || header === 'DTXR_PS Value') {
-        const valDiv = createElement('div', val, 'xml-cii-table-scroll-cell');
-        if (valDiv.style) Object.assign(valDiv.style, { maxHeight: '68px', overflowY: 'auto', whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '11px', fontFamily: 'monospace', paddingRight: '6px', lineHeight: '1.4', color: val && val !== '(none)' ? '#fbbf24' : '#64748b' });
+      if (['DTXR_POS Value', 'DTXR_PS Value', 'Derived Restraints', 'Path'].includes(header)) {
+        const valDiv = createElement('div', value, 'xml-cii-table-scroll-cell');
+        if (valDiv.style) Object.assign(valDiv.style, { maxHeight: '76px', overflowY: 'auto', whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '11px', fontFamily: 'monospace', paddingRight: '6px', lineHeight: '1.4', color: value ? '#fbbf24' : '#64748b', minWidth: header === 'Path' ? '220px' : '150px' });
         td.appendChild(valDiv);
       } else if (header === 'Status') {
-        const isResolved = val === 'RESOLVED';
-        const badge = createElement('span', val, isResolved ? 'xml-cii-badge-resolved' : 'xml-cii-badge-unresolved');
-        if (badge.style) Object.assign(badge.style, { display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', color: isResolved ? '#34d399' : '#f87171', backgroundColor: isResolved ? 'rgba(52, 211, 153, 0.1)' : 'rgba(248, 113, 113, 0.1)', border: isResolved ? '1px solid rgba(52, 211, 153, 0.2)' : '1px solid rgba(248, 113, 113, 0.2)' });
+        const badge = createElement('span', value || 'UNRESOLVED', 'xml-cii-trace-status');
+        if (badge.style) Object.assign(badge.style, { display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', ...statusStyle(value || 'UNRESOLVED') });
         td.appendChild(badge);
-      } else if (header === 'POS Basis') {
-        if (td.style) Object.assign(td.style, { fontSize: '11px', fontFamily: 'monospace', color: '#38bdf8' });
-        td.textContent = val;
-      } else if (header === 'XML Node' || header === 'JsonNodeNo') {
-        if (td.style) Object.assign(td.style, { fontFamily: 'monospace', fontSize: '11px' });
-        td.textContent = val;
+      } else if (['POS Basis', 'Distance (mm)', 'Tolerance (mm)'].includes(header)) {
+        if (td.style) Object.assign(td.style, { fontSize: '11px', fontFamily: 'monospace', color: '#38bdf8', whiteSpace: 'nowrap' });
+        td.textContent = value;
+      } else if (['XML Node', 'JsonNodeNo(DTXR_PS)', 'JsonNodeNo(DTXR_POS)', 'Node', 'PS', 'POS'].includes(header)) {
+        if (td.style) Object.assign(td.style, { fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'nowrap' });
+        td.textContent = value;
       } else {
-        td.textContent = val;
+        td.textContent = value;
       }
       tr.appendChild(td);
     }
@@ -92,16 +120,28 @@ function tableBody(headers, data) {
 
 function fieldFor(header) {
   return {
-    Path: 'path', Node: 'nodeKey', PS: 'psKey', POS: 'posKey', Hits: 'hitCount', Type: 'type', Rows: 'rows',
-    'XML Node': 'xmlNode', 'XML Branch': 'xmlBranch', 'Type': 'componentType', 'JsonNodeNo': 'jsonNodeNo',
-    'Match Type': 'matchType', 'POS Basis': 'posBasis', 'DTXR_POS Value': 'dtxrPosValue', 'DTXR_PS Value': 'dtxrPsValue', 'Status': 'status'
+    Path: 'path',
+    Node: 'nodeKey',
+    PS: 'psKey',
+    POS: 'posKey',
+    Hits: 'hitCount',
+    Type: 'componentType',
+    Rows: 'rows',
+    'XML Node': 'xmlNode',
+    'XML Branch': 'xmlBranch',
+    'JsonNodeNo(DTXR_PS)': 'jsonNodeNoDtxrPs',
+    'JsonNodeNo(DTXR_POS)': 'jsonNodeNoDtxrPos',
+    'Match Type': 'matchType',
+    'POS Basis': 'posBasis',
+    'Distance (mm)': 'distanceMm',
+    'Tolerance (mm)': 'toleranceMm',
+    'DTXR_POS Value': 'dtxrPosValue',
+    'DTXR_PS/NAME': 'dtxrPsName',
+    'DTXR_PS Value': 'dtxrPsValue',
+    'Effective Source': 'effectiveSource',
+    'Derived Restraints': 'derivedRestraints',
+    Status: 'status',
   }[header] || header;
-}
-
-function fileStatusBadge(label, loaded) {
-  const badge = createElement('span', loaded ? `✅ ${label}: Loaded` : `⚠️ ${label}: Not loaded`, 'xml-cii-phase-help');
-  if (badge.style) badge.style.color = loaded ? '#8be28b' : '#fbbf24';
-  return badge;
 }
 
 function renderDelimiterControls(parent, state) {
@@ -109,7 +149,6 @@ function renderDelimiterControls(parent, state) {
   const on = cfg.useDelimiter === true;
   const delim = cfg.delimiter || '|';
   const mode = cfg.joinMode || 'unique';
-
   const bar = createElement('div');
   if (bar.style) Object.assign(bar.style, { display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', marginBottom: '10px', padding: '8px 12px', background: 'rgba(15,23,42,0.5)', borderRadius: '6px', border: '1px solid rgba(148,163,184,0.1)' });
   bar.appendChild(createElement('strong', 'DTXR Value Joining:'));
@@ -119,7 +158,6 @@ function renderDelimiterControls(parent, state) {
   const toggleInput = createElement('input');
   toggleInput.type = 'checkbox';
   toggleInput.dataset.field = 'resolver-use-delimiter';
-  if (on) toggleInput.setAttribute('checked', '');
   toggleInput.checked = on;
   toggleLabel.append(toggleInput, createElement('span', ' Use delimiter joining'));
   bar.appendChild(toggleLabel);
@@ -132,7 +170,7 @@ function renderDelimiterControls(parent, state) {
   delimInput.dataset.field = 'resolver-delimiter';
   delimInput.value = delim;
   delimInput.maxLength = 8;
-  if (!on) delimInput.disabled = true;
+  delimInput.disabled = !on;
   if (delimInput.style) Object.assign(delimInput.style, { width: '42px', padding: '2px 6px', fontFamily: 'monospace', fontSize: '12px', background: '#1a2840', color: '#d7e6ff', border: '1px solid #2a3f5f', borderRadius: '4px' });
   delimLabel.appendChild(delimInput);
   bar.appendChild(delimLabel);
@@ -140,21 +178,20 @@ function renderDelimiterControls(parent, state) {
   const modeLabel = createElement('label');
   if (modeLabel.style) Object.assign(modeLabel.style, { display: 'flex', alignItems: 'center', gap: '4px', opacity: on ? '1' : '0.4' });
   modeLabel.appendChild(createElement('span', 'Join mode:'));
-
   const modeSelect = createElement('select');
   modeSelect.dataset.field = 'resolver-join-mode';
-  if (!on) modeSelect.disabled = true;
+  modeSelect.disabled = !on;
   if (modeSelect.style) Object.assign(modeSelect.style, { padding: '2px 4px', fontSize: '12px', background: '#1a2840', color: '#d7e6ff', border: '1px solid #2a3f5f', borderRadius: '4px' });
-  for (const [val, lbl] of [['unique', 'All unique values'], ['first', 'First value only'], ['all', 'All values (incl. duplicates)']]) {
-    const opt = createElement('option', lbl);
-    opt.value = val;
-    if (mode === val) opt.selected = true;
-    modeSelect.appendChild(opt);
+  for (const [value, label] of [['unique', 'All unique values'], ['first', 'First value only'], ['all', 'All values (incl. duplicates)']]) {
+    const option = createElement('option', label);
+    option.value = value;
+    option.selected = mode === value;
+    modeSelect.appendChild(option);
   }
   modeLabel.appendChild(modeSelect);
   bar.appendChild(modeLabel);
 
-  const note = createElement('span', on ? 'Unique values joined → written into DTXR_POS / DTXR_PS' : 'OFF — each DTXR row matched individually', 'xml-cii-phase-help');
+  const note = createElement('span', on ? 'Unique values joined → written into DTXR_POS / DTXR_PS' : 'Ledger aggregation remains authoritative; this control only affects legacy display compatibility.', 'xml-cii-phase-help');
   if (note.style) note.style.fontSize = '11px';
   bar.appendChild(note);
 
@@ -168,11 +205,10 @@ function renderDelimiterControls(parent, state) {
   tolInput.max = '50';
   tolInput.step = '0.5';
   tolInput.value = String(cfg.coordinateTolerance ?? 6.0);
-  tolInput.title = 'Maximum Euclidean distance (mm) between XML <Position> and staged JSON POSI to count as a coordinate match. Default: 6mm.';
+  tolInput.title = 'Maximum Euclidean distance for JSON-to-JSON grouping and XML-to-position-group matching. Default: 6 mm.';
   if (tolInput.style) Object.assign(tolInput.style, { width: '58px', padding: '2px 6px', fontFamily: 'monospace', fontSize: '12px', background: '#1a2840', color: '#d7e6ff', border: '1px solid #2a3f5f', borderRadius: '4px' });
   tolLabel.appendChild(tolInput);
   bar.appendChild(tolLabel);
-
   parent.appendChild(bar);
 }
 
@@ -180,46 +216,31 @@ function renderResolverIndex(parent, state) {
   const result = state.resolverJsonTraceResult;
   const section = createElement('section', '', 'xml-cii-resolver-panel');
   section.appendChild(createElement('h3', 'Resolver Index'));
-  
   const actions = createElement('div', '', 'xml-cii-resolver-actions');
   const buildBtn = actionButton('build-resolver-index', state.resolverJsonTraceRunning ? 'Building…' : 'Build / refresh resolver index');
-  // Red until the resolver index has actually been built for this visit.
   if (buildBtn.style && !state.resolverJsonTraceRunning && !state.resolverJsonTraceResult) {
     Object.assign(buildBtn.style, { background: '#7f1d1d', border: '1px solid #ef4444', color: '#fecaca', fontWeight: '700' });
     buildBtn.title = 'Resolver index has not been built yet — click to build.';
   }
-  actions.append(buildBtn);
-  actions.append(actionButton('save-resolver-json-config', 'Save to config'));
-  actions.append(createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
+  actions.append(buildBtn, actionButton('save-resolver-json-config', 'Save to config'), createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
   section.appendChild(actions);
-
   renderDelimiterControls(section, state);
-  
+
   const metrics = createElement('div', '', 'xml-cii-resolver-metrics');
-  metrics.append(
-    metric('XML nodes', stat(result, 'xmlNodeCount')),
-    metric('Node keys', stat(result, 'nodeKeyCount')),
-    metric('PS keys', stat(result, 'psKeyCount')),
-    metric('POS keys', stat(result, 'posKeyCount'))
-  );
+  metrics.append(metric('XML nodes', stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')), metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
   section.appendChild(metrics);
-  
+
   const diagnostics = result?.diagnostics || [];
   if (diagnostics.length) {
     const diagSection = createElement('div', '', 'xml-cii-resolver-diagnostics-container');
     if (diagSection.style) Object.assign(diagSection.style, { marginTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.08)', paddingTop: '16px' });
     diagSection.appendChild(createElement('h4', 'Resolver Diagnostics', 'xml-cii-section-subtitle'));
-    const diagData = diagnostics.map(d => ({
-      type: d.type,
-      rows: d.rows !== undefined ? d.rows : (d.sourceKind !== undefined ? d.sourceKind : (d.xmlNodeCount !== undefined ? d.xmlNodeCount : ''))
-    }));
+    const diagData = diagnostics.map((item) => ({ type: item.type, rows: item.rows !== undefined ? item.rows : (item.sourceKind !== undefined ? item.sourceKind : (item.xmlNodeCount !== undefined ? item.xmlNodeCount : '')) }));
     diagSection.appendChild(table(['Type', 'Rows'], diagData, 'No diagnostics available.'));
     section.appendChild(diagSection);
   }
-  
   parent.appendChild(section);
 }
-
 
 function renderJsonConfig(parent, state) {
   const section = createElement('section', '', 'xml-cii-resolver-panel');
@@ -235,8 +256,11 @@ function renderTraceTreeHtml(parent, state) {
   const traceRows = result?.matchedFacts || [];
   const delimiter = state.regexTesterConfig?.tokenDelimiter || '-';
   const treeData = buildAdaptedJsonTraceTree(traceRows, delimiter);
+  const evidenceRows = buildEvidenceTreeRows(result);
   const section = createElement('section', '', 'xml-cii-resolver-panel');
-  section.appendChild(createElement('h3', 'Evidence Trace Tree (Collapsible)'));
+  section.appendChild(sectionTitleBar('Evidence Trace Tree (Collapsible)', [
+    actionButton('download-evidence-tree-csv', `⬇ CSV (${evidenceRows.length})`, evidenceRows.length === 0),
+  ]));
   if (!treeData.length) {
     section.appendChild(createElement('div', 'No JSON evidence matched to branch names. Build resolver index or upload staged JSON.', 'xml-cii-phase-help'));
     parent.appendChild(section);
@@ -244,146 +268,63 @@ function renderTraceTreeHtml(parent, state) {
   }
   const container = createElement('div', '', 'xml-cii-tree-container');
   if (container.style) Object.assign(container.style, { maxHeight: '400px', overflowY: 'auto', backgroundColor: '#0b1329', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '8px', padding: '12px' });
-  const renderPosition = (p) => `
+  const renderPosition = (position) => `
     <details style="margin-left: 12px; margin-top: 4px;">
-      <summary style="font-size: 0.78rem; color: #fbbf24; cursor: pointer; list-style-type: '📍 ';">${p.label} (${p.count} items)</summary>
-      <div style="margin-left: 18px; font-size: 0.74rem; color: #94a3b8; font-family: monospace; border-left: 2px solid rgba(148,163,184,0.15); padding-left: 6px; margin-top: 2px; white-space: pre-wrap; word-break: break-all;">
-        ${p.concatenated}
-      </div>
-    </details>
-  `;
-  const renderBore = (s) => `
+      <summary style="font-size: 0.78rem; color: #fbbf24; cursor: pointer;">📍 ${position.label} (${position.count} items)</summary>
+      <div style="margin-left: 18px; font-size: 0.74rem; color: #94a3b8; font-family: monospace; border-left: 2px solid rgba(148,163,184,0.15); padding-left: 6px; margin-top: 2px; white-space: pre-wrap; word-break: break-all;">${position.concatenated}</div>
+    </details>`;
+  const renderBore = (bore) => `
     <details style="margin-left: 12px; margin-top: 4px;">
-      <summary style="font-size: 0.84rem; color: #e2e8f0; font-weight: bold; cursor: pointer; list-style-type: '🪈 ';">Bore: ${s.bore} (${s.count} items)</summary>
-      ${s.positions.map(renderPosition).join('')}
-    </details>
-  `;
-  const renderBranch = (b) => `
+      <summary style="font-size: 0.84rem; color: #e2e8f0; font-weight: bold; cursor: pointer;">🪈 Bore: ${bore.bore} (${bore.count} items)</summary>
+      ${bore.positions.map(renderPosition).join('')}
+    </details>`;
+  const renderBranch = (branch) => `
     <details style="margin-top: 6px; border-bottom: 1px solid rgba(148,163,184,0.06); padding-bottom: 6px;">
-      <summary style="font-size: 0.88rem; color: #38bdf8; font-weight: bold; cursor: pointer; list-style-type: '🌿 ';">Branch: ${b.branchName} (${b.count} rows)</summary>
-      ${b.bores.map(renderBore).join('')}
-    </details>
-  `;
+      <summary style="font-size: 0.88rem; color: #38bdf8; font-weight: bold; cursor: pointer;">🌿 Branch: ${branch.branchName} (${branch.count} rows)</summary>
+      ${branch.bores.map(renderBore).join('')}
+    </details>`;
   container.innerHTML = treeData.map(renderBranch).join('');
   section.appendChild(container);
   parent.appendChild(section);
 }
 
-function joinValues(values, cfg) {
-  const unique = [...new Set(values.map(v => String(v ?? '').trim()).filter(Boolean))];
-  if (!unique.length) return '(none)';
-  if (!cfg || cfg.useDelimiter !== true) return unique[0];
-  if (cfg.joinMode === 'all') return values.map(v => String(v ?? '').trim()).filter(Boolean).join(cfg.delimiter || '|');
-  return unique.join(cfg.delimiter || '|');
-}
-
-function formatFactForTab(f) {
-  const raw = f.raw || {};
-  const attrs = raw.attributes || raw || {};
-  const dtxr = String(attrs.DTXR || attrs.ISONOTE || attrs.DESCRIPTION || raw.type || '').trim();
-  const name = String(attrs.NAME || '').trim();
-  const gap = String(attrs.CMPSUPGAP || '').trim();
-  
-  let suffix = '';
-  const parts = [];
-  if (name) parts.push(`NAME=${name}`);
-  if (gap) parts.push(`CMPSUPGAP=${gap}`);
-  if (parts.length) {
-    suffix = `(${parts.join(',')})`;
-  }
-  return dtxr + suffix;
+function addFilter(section, tableEl, placeholder) {
+  const filterInput = createElement('input');
+  filterInput.type = 'text';
+  filterInput.placeholder = placeholder;
+  if (filterInput.style) Object.assign(filterInput.style, { width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
+  filterInput.addEventListener('input', () => {
+    const query = filterInput.value.toLowerCase().trim();
+    tableEl.querySelectorAll?.('tbody tr').forEach((tr) => { tr.style.display = !query || tr.textContent.toLowerCase().includes(query) ? '' : 'none'; });
+  });
+  section.append(filterInput, tableEl);
 }
 
 function renderXmlNodeWiseTraceTable(parent, state) {
   const result = state.resolverJsonTraceResult;
-  const nodes = result?.nodes || [];
-  const resolvedFacts = result?.resolvedFacts || [];
-  const cfg = state.resolverJsonTraceConfig || {};
-  
+  const nodeWiseRows = buildXmlNodeWiseTraceRows(result);
   const section = createElement('section', '', 'xml-cii-resolver-panel');
-  section.appendChild(createElement('h3', 'XML Node Wise Trace builder'));
-  
-  if (!nodes.length) {
-    section.appendChild(createElement('div', 'No XML nodes parsed. Make sure you load the source XML and rebuild index.', 'xml-cii-phase-help'));
+  section.appendChild(sectionTitleBar('XML Node Wise Trace', [
+    actionButton('download-node-wise-trace-csv', `⬇ CSV (${nodeWiseRows.length})`, nodeWiseRows.length === 0),
+  ]));
+  if (!nodeWiseRows.length) {
+    section.appendChild(createElement('div', 'No XML trace rows. Load source XML and staged JSON, then rebuild the resolver index.', 'xml-cii-phase-help'));
     parent.appendChild(section);
     return;
   }
-  
-  const posToNodeKey = new Map();
-  for (const fact of resolvedFacts) {
-    const nk = fact.nodeKeys?.[0] || '';
-    if (nk && nk !== '-1' && fact.posKey && fact.posKey !== '(none)') {
-      posToNodeKey.set(fact.posKey, nk);
-    }
-  }
-  
-  const nodeWiseRows = resolvedFacts.map(fact => {
-    let xmlNodeVal = fact.nodeKeys?.[0] || '';
-    if ((!xmlNodeVal || xmlNodeVal === '-1') && fact.posKey && posToNodeKey.has(fact.posKey)) {
-      xmlNodeVal = posToNodeKey.get(fact.posKey);
-    }
-    return {
-      xmlNode: xmlNodeVal || `Node ${fact.xmlIndex}`,
-      xmlBranch: fact.branchName || '',
-      componentType: fact.tagName || 'Node',
-      posBasis: fact.posKey || '(none)',
-      dtxrPosValue: fact.dtxrPosValue || '(none)',
-      dtxrPsValue: fact.dtxrPsValue || '(none)',
-      jsonNodeNo: String(fact.xmlIndex || ''),
-      matchType: fact.matchedBy?.join('+') || 'none',
-      status: fact.hitCount > 0 ? 'RESOLVED' : 'UNRESOLVED'
-    };
-  });
-
-  
-  const filterInput = createElement('input');
-  filterInput.type = 'text';
-  filterInput.placeholder = '🔍 Filter node trace...';
-  if (filterInput.style) Object.assign(filterInput.style, { width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
-  
-  section.appendChild(filterInput);
-  
-  const tableEl = table(
-    ['XML Node', 'XML Branch', 'Type', 'JsonNodeNo', 'Match Type', 'POS Basis', 'DTXR_POS Value', 'DTXR_PS Value', 'Status'],
-    nodeWiseRows,
-    'No trace rows matched.',
-    'xml-cii-node-wise-table'
-  );
-  
-  filterInput.addEventListener('input', () => {
-    const q = filterInput.value.toLowerCase().trim();
-    const trs = tableEl.querySelectorAll('tbody tr');
-    trs.forEach((tr) => {
-      tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
-  });
-  
-  section.appendChild(tableEl);
+  section.appendChild(createElement('p', 'One authoritative row per XML node. DTXR_POS is primary; DTXR_PS is shown as the NAME-specific fallback evidence.', 'xml-cii-phase-help'));
+  addFilter(section, table(XML_NODE_TRACE_HEADERS, nodeWiseRows, 'No trace rows matched.', 'xml-cii-node-wise-table'), '🔍 Filter node trace...');
   parent.appendChild(section);
 }
 
-function renderDtxrPosTree(parent, result) {
+function renderMatchedFacts(parent, state, result) {
+  const matchedRows = buildMatchedFactsRows(result);
   const section = createElement('section', '', 'xml-cii-resolver-panel');
-  section.appendChild(createElement('h3', 'JSON Trace Tree (Branch → Bore → DTXR_POS)'));
-  section.appendChild(createElement('p', 'Support/component JSON rows are grouped by OWNER branch, actual bore fields, and POSI/POS; DTXR leaves include NAME and CMPSUPGAP so the same text can be used by preview, node trace, weight review, and restraint gap mapping.', 'xml-cii-phase-help'));
-  
-  const filterInput = createElement('input');
-  filterInput.type = 'text';
-  filterInput.placeholder = '🔍 Filter trace tree...';
-  if (filterInput.style) Object.assign(filterInput.style, { width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.3)', color: '#fff', fontSize: '0.88rem' });
-  section.appendChild(filterInput);
-
-  const tableEl = table(['Branch', 'Bore', 'POS', 'DTXR_POS'], rows(result?.traceRows), 'No branch/bore/POS DTXR groups found in staged JSON.', 'xml-cii-json-trace-table');
-  
-  filterInput.addEventListener('input', () => {
-    const q = filterInput.value.toLowerCase().trim();
-    const trs = tableEl.querySelectorAll('tbody tr');
-    trs.forEach((tr) => {
-      tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
-  });
-  
-  section.appendChild(tableEl);
+  section.appendChild(sectionTitleBar('Matched Facts', [
+    actionButton('copy-matched-facts', '⧉ Copy', matchedRows.length === 0),
+  ]));
+  if (state.resolverJsonTraceExportStatus) section.appendChild(createElement('p', state.resolverJsonTraceExportStatus, 'xml-cii-phase-help'));
+  section.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], matchedRows, 'No matched JSON facts yet.'));
   parent.appendChild(section);
 }
 
@@ -392,59 +333,49 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
     card.appendChild(createElement('p', 'InputXML mode does not require XML resolver index or staged JSON trace workflow. This phase is optional and intentionally not applied.', 'xml-cii-phase-help'));
     return;
   }
-  
+
   const subTabId = state.jsonTraceActiveSubTabId || 'index';
-  
   let result = state.resolverJsonTraceResult;
   if (!result && state.sourceText && state.stagedJsonText) {
-    result = runStandaloneResolverJsonTrace({
-      sourceText: state.sourceText,
-      stagedJsonText: state.stagedJsonText,
-      jsonConfig: state.resolverJsonTraceConfig,
-      supportConfigJson: state.supportConfigJson
-    });
-    stateRef.current.resolverJsonTraceResult = result;
-    stateRef.current.resolverJsonTraceJsonResult = result;
+    result = runStandaloneResolverJsonTrace({ sourceText: state.sourceText, stagedJsonText: state.stagedJsonText, jsonConfig: state.resolverJsonTraceConfig, supportConfigJson: state.supportConfigJson });
+    if (stateRef?.current) {
+      stateRef.current.resolverJsonTraceResult = result;
+      stateRef.current.resolverJsonTraceJsonResult = result;
+    }
   }
-  
+
   const container = createElement('div', '', 'xml-cii-sub-tabs-layout');
-  
   const rail = createElement('nav', '', 'xml-cii-sub-nav-rail');
   rail.setAttribute('aria-label', 'Resolver sub-tabs');
-  
   const subTabs = [
     { id: 'index', label: '⚙️ Config & Index' },
     { id: 'tableImport', label: 'CSV/XLS Trace' },
     { id: 'tree', label: '🌿 Evidence Tree' },
     { id: 'nodeTrace', label: '📋 XML Node Wise Trace' },
     { id: 'matched', label: '✅ Matched Facts' },
-    { id: 'rejected', label: '❌ Rejected Facts' }
+    { id: 'rejected', label: '❌ Rejected Facts' },
   ];
-  
   const subTabHasData = {
     tableImport: rows(state.jsonTraceTableRows).length > 0 || !!state.resolverJsonTraceTableResult,
-    tree: rows(result?.matchedFacts).length > 0,
-    nodeTrace: rows(result?.nodes).length > 0 && rows(result?.resolvedFacts).length > 0,
-    matched: rows(result?.matchedFacts).length > 0,
+    tree: buildEvidenceTreeRows(result).length > 0,
+    nodeTrace: buildXmlNodeWiseTraceRows(result).length > 0,
+    matched: buildMatchedFactsRows(result).length > 0,
     rejected: rows(result?.rejectedFacts).length > 0,
   };
-
   for (const sub of subTabs) {
-    const btn = createElement('button', sub.label, 'xml-cii-sub-phase-pill');
-    btn.type = 'button';
-    btn.dataset.jsonTraceSubTab = sub.id;
-    btn.classList.toggle('is-active', subTabId === sub.id);
-    if (subTabHasData[sub.id] && btn.style) {
-      Object.assign(btn.style, { color: '#8be28b', border: '1px solid #2f855a' });
-      btn.title = 'Data is available in this sub-tab.';
+    const button = createElement('button', sub.label, 'xml-cii-sub-phase-pill');
+    button.type = 'button';
+    button.dataset.jsonTraceSubTab = sub.id;
+    button.classList.toggle('is-active', subTabId === sub.id);
+    if (subTabHasData[sub.id] && button.style) {
+      Object.assign(button.style, { color: '#8be28b', border: '1px solid #2f855a' });
+      button.title = 'Data is available in this sub-tab.';
     }
-    rail.appendChild(btn);
+    rail.appendChild(button);
   }
-  
   container.appendChild(rail);
-  
+
   const workspace = createElement('div', '', 'xml-cii-sub-workspace');
-  
   if (subTabId === 'index') {
     renderResolverIndex(workspace, state);
     renderJsonConfig(workspace, state);
@@ -455,13 +386,10 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
   } else if (subTabId === 'nodeTrace') {
     renderXmlNodeWiseTraceTable(workspace, state);
   } else if (subTabId === 'matched') {
-    const matchedList = result?.matchedFacts || [];
-    workspace.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], matchedList, 'No matched JSON facts yet.'));
+    renderMatchedFacts(workspace, state, result);
   } else if (subTabId === 'rejected') {
-    const rejectedList = result?.rejectedFacts || [];
-    workspace.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], rejectedList, 'No rejected JSON facts.'));
+    workspace.appendChild(table(['Path', 'Node', 'PS', 'POS', 'Hits'], buildMatchedFactsRows({ matchedFacts: result?.rejectedFacts || [] }), 'No rejected JSON facts.'));
   }
-  
   container.appendChild(workspace);
   card.appendChild(container);
 }
