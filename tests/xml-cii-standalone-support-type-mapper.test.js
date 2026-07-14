@@ -1,42 +1,26 @@
 const assert = require('assert');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 
-function copyFile(tempRoot, relPath) {
-  const sourcePath = path.join(root, relPath);
-  const targetPath = path.join(tempRoot, relPath);
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.copyFileSync(sourcePath, targetPath);
-}
-
-function fixtureFiles() {
-  return [
-    'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-type-mapper.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
-    'converters/xml-cii2019-core/default-weight-master-rows.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
+function prepareEsmFixture() {
+  const fixture = createStaticEsmFixture(root, {
+    prefix: 'xml-cii-support-mapper-test-',
+    entryFiles: [
+      'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js',
+      'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-type-mapper.js',
+      'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
+    ],
+  });
+  for (const required of [
     'converters/xml-cii2019-core/support-mapping-config.js',
     'support/SupportKindResolver.js',
     'tabs/model-converters/converters/xmltocii2019_helper/support-mapping-table.js',
-  ];
-}
-
-function prepareEsmFixture() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-support-mapper-test-'));
-  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  for (const relPath of fixtureFiles()) copyFile(tempRoot, relPath);
-  return tempRoot;
+  ]) assert(fixture.files.includes(required), `ESM fixture dependency closure missing ${required}`);
+  return fixture.tempRoot;
 }
 
 const { installMiniDom, MiniElement: TestElement } = require('./helpers/mini-dom.js');
