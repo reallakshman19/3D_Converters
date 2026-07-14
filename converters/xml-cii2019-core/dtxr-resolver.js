@@ -371,26 +371,42 @@ function relaxedPsTagCandidates(stagedIndex, xmlNode, tag, config = {}) {
     .filter((candidate) => sameDtxrPositionEvidence(xmlNode, candidate, config));
 }
 
+export function selectEffectiveDtxrEvidence(dtxrPosValue, dtxrPsValue) {
+  const dtxrPos = cleanDtxr(dtxrPosValue);
+  const dtxrPs = cleanDtxr(dtxrPsValue);
+  if (dtxrPos) {
+    return { dtxrPos, dtxrPs, effectiveDtxr: dtxrPos, effectiveSource: 'DTXR_POS', fallbackUsed: false };
+  }
+  if (dtxrPs) {
+    return { dtxrPos, dtxrPs, effectiveDtxr: dtxrPs, effectiveSource: 'DTXR_PS_FALLBACK', fallbackUsed: true };
+  }
+  return { dtxrPos: '', dtxrPs: '', effectiveDtxr: '', effectiveSource: 'NONE', fallbackUsed: false };
+}
+
 function emptyDtxrResult(reason = 'not-found') {
-  return { canonicalText: '', value: '', dtxrPos: '', dtxrPs: '', teeDesc: '', cmpSupGap: '', supportTags: [], source: reason, matchedBy: '', matchedKey: '', stagedType: '', componentRefNo: '', confidence: 0, suppressed: false, suppressionReason: '', candidates: [] };
+  return { canonicalText: '', value: '', dtxrPos: '', dtxrPs: '', effectiveDtxr: '', effectiveSource: 'NONE', fallbackUsed: false, teeDesc: '', cmpSupGap: '', supportTags: [], source: reason, matchedBy: '', matchedKey: '', stagedType: '', componentRefNo: '', confidence: 0, suppressed: false, suppressionReason: '', candidates: [] };
 }
 
 function resultFromStagedItem(indexed, { source, matchedBy, matchedKey, purpose, confidence = 1 } = {}) {
-  const dtxrPos = cleanDtxr(indexed?.dtxr || stagedComponentDtxr(indexed?.raw || indexed) || '');
-  const dtxrPs = cleanDtxr(indexed?.dtxrPs || stagedComponentDtxrPs(indexed?.raw || indexed) || '');
+  const evidence = selectEffectiveDtxrEvidence(
+    indexed?.dtxr || stagedComponentDtxr(indexed?.raw || indexed) || '',
+    indexed?.dtxrPs || stagedComponentDtxrPs(indexed?.raw || indexed) || '',
+  );
   const cmpSupGap = toText(indexed?.cmpSupGap || stagedAttr(indexed?.raw || indexed, ['CMPSUPGAP']) || '').trim();
   const stagedType = stagedTypeOf(indexed);
-  const canonicalText = purpose === 'support-restraint' ? (dtxrPs || dtxrPos) : (dtxrPos || dtxrPs);
-  return { ...emptyDtxrResult(source || 'staged'), canonicalText, value: canonicalText, dtxrPos, dtxrPs, teeDesc: purpose === 'tee-description' ? dtxrPos : '', cmpSupGap, supportTags: [], source: source || 'staged', matchedBy: matchedBy || '', matchedKey: String(matchedKey || ''), stagedType, componentRefNo: toText(indexed?.attrs?.ComponentRefNo || indexed?.attrs?.COMPONENTREFNO || '').trim(), confidence, _sourcePath: indexed?._path || '' };
+  const canonicalText = evidence.effectiveDtxr;
+  return { ...emptyDtxrResult(source || 'staged'), ...evidence, canonicalText, value: canonicalText, teeDesc: purpose === 'tee-description' ? evidence.dtxrPos : '', cmpSupGap, supportTags: [], source: source || 'staged', matchedBy: matchedBy || '', matchedKey: String(matchedKey || ''), stagedType, componentRefNo: toText(indexed?.attrs?.ComponentRefNo || indexed?.attrs?.COMPONENTREFNO || '').trim(), confidence, _sourcePath: indexed?._path || '' };
 }
 
-function resultFromExistingXml(xmlNode, { purpose, source, matchedBy, confidence = 0.75 } = {}) {
+function resultFromExistingXml(xmlNode, { source, matchedBy, confidence = 0.75 } = {}) {
   const nodeNumber = getXmlNodeProperty(xmlNode, 'NodeNumber');
-  const dtxrPos = cleanDtxr(getXmlNodeProperty(xmlNode, 'DTXR_POS') || getXmlNodeProperty(xmlNode, 'DtxrPos'));
-  const dtxrPs = cleanDtxr(getXmlNodeProperty(xmlNode, 'DTXR_PS') || getXmlNodeProperty(xmlNode, 'DtxrPs'));
-  const canonicalText = purpose === 'support-restraint' ? (dtxrPs || dtxrPos) : (dtxrPos || dtxrPs);
-  if (!canonicalText) return null;
-  return { ...emptyDtxrResult(source || 'xml-existing'), canonicalText, value: canonicalText, dtxrPos, dtxrPs, source: source || (dtxrPs ? 'xml-dtxr-ps' : 'xml-dtxr-pos'), matchedBy: matchedBy || (dtxrPs ? 'xml-dtxr-ps' : 'xml-dtxr-pos'), matchedKey: `NodeNumber:${nodeNumber}`, confidence };
+  const evidence = selectEffectiveDtxrEvidence(
+    getXmlNodeProperty(xmlNode, 'DTXR_POS') || getXmlNodeProperty(xmlNode, 'DtxrPos'),
+    getXmlNodeProperty(xmlNode, 'DTXR_PS') || getXmlNodeProperty(xmlNode, 'DtxrPs'),
+  );
+  if (!evidence.effectiveDtxr) return null;
+  const sourceName = evidence.effectiveSource === 'DTXR_POS' ? 'xml-dtxr-pos' : 'xml-dtxr-ps-fallback';
+  return { ...emptyDtxrResult(source || 'xml-existing'), ...evidence, canonicalText: evidence.effectiveDtxr, value: evidence.effectiveDtxr, source: source || sourceName, matchedBy: matchedBy || sourceName, matchedKey: `NodeNumber:${nodeNumber}`, confidence };
 }
 
 export const DTXR_PURPOSE_RULES = Object.freeze({
@@ -417,7 +433,7 @@ function suppressIfUnsafe(result, { xmlNode, purpose, rules }) {
   const badStagedType = !!stagedType && allowed.length > 0 && !allowed.includes(stagedType) && result.matchedBy !== 'component-refno';
   const unsafeStagedForWeight = purpose === 'weight-review' && ['RIGID', 'FLAN', 'VALV', 'VALVE', 'VLV'].some((prefix) => xmlType === prefix || xmlType.startsWith(prefix)) && ['TEE', 'ELBO', 'ELBOW', 'BEND', 'SUPPORT', 'ATTA', 'PIPE', 'GASK'].includes(stagedType) && result.matchedBy !== 'component-refno';
   const unsafeText = Array.isArray(rules?.suppressTextPatterns) && rules.suppressTextPatterns.some((re) => re.test(text));
-  if (badStagedType || unsafeStagedForWeight || unsafeText) return { ...result, canonicalText: '', value: '', suppressed: true, suppressionReason: badStagedType ? `unsafe staged type ${stagedType} for ${purpose}` : (unsafeStagedForWeight ? `unsafe staged type ${stagedType} for ${purpose}` : `text suppressed for ${purpose}`) };
+  if (badStagedType || unsafeStagedForWeight || unsafeText) return { ...result, canonicalText: '', value: '', effectiveDtxr: '', effectiveSource: 'NONE', fallbackUsed: false, suppressed: true, suppressionReason: badStagedType ? `unsafe staged type ${stagedType} for ${purpose}` : (unsafeStagedForWeight ? `unsafe staged type ${stagedType} for ${purpose}` : `text suppressed for ${purpose}`) };
   return result;
 }
 
@@ -502,8 +518,18 @@ export function resolveDtxrForXmlNode({ xmlNode, context, purpose = 'component-d
     return null;
   };
 
-  const psHit = resolveByPsTags();
-  if (psHit) return psHit;
+  if (purpose === 'support-restraint' && trustExistingXmlDtxr && rules.allowExistingXmlDtxr !== false) {
+    const existing = resultFromExistingXml(xmlNode, { purpose });
+    if (existing?.dtxrPos) {
+      const hit = accept(existing);
+      if (hit) return { ...hit, supportTags: xmlNodeSupportTags(xmlNode), candidates: attempts };
+    }
+  }
+
+  if (purpose !== 'support-restraint') {
+    const psHit = resolveByPsTags();
+    if (psHit) return psHit;
+  }
 
   if (rules.allowComponentRef && stagedIndex) {
     const componentRefNo = getXmlNodeProperty(xmlNode, 'ComponentRefNo');
@@ -531,6 +557,11 @@ export function resolveDtxrForXmlNode({ xmlNode, context, purpose = 'component-d
         }
       }
     }
+  }
+
+  if (purpose === 'support-restraint') {
+    const psHit = resolveByPsTags();
+    if (psHit) return psHit;
   }
 
   if (trustExistingXmlDtxr && rules.allowExistingXmlDtxr !== false) {
@@ -573,8 +604,15 @@ export function applyDtxrAnnotations(document, node, resolved, purpose = 'compon
     return count;
   }
   if (purpose === 'support-restraint') {
-    const text = resolved.dtxrPs || resolved.canonicalText;
-    if (text) { xmlSetText(document, node, 'DTXR_PS', text); xmlSetText(document, node, 'DTXR_SOURCE', resolved.source); count += 1; }
+    let wroteEvidence = false;
+    if (resolved.dtxrPos) { xmlSetText(document, node, 'DTXR_POS', resolved.dtxrPos); wroteEvidence = true; }
+    if (resolved.dtxrPs) { xmlSetText(document, node, 'DTXR_PS', resolved.dtxrPs); wroteEvidence = true; }
+    if (!wroteEvidence && resolved.canonicalText) {
+      const field = resolved.effectiveSource === 'DTXR_PS_FALLBACK' ? 'DTXR_PS' : 'DTXR_POS';
+      xmlSetText(document, node, field, resolved.canonicalText);
+      wroteEvidence = true;
+    }
+    if (wroteEvidence) { xmlSetText(document, node, 'DTXR_SOURCE', resolved.source); count += 1; }
     if (resolved.cmpSupGap) { xmlSetText(document, node, 'CMPSUPGAP_PS', resolved.cmpSupGap); if (!xmlText(node, 'CMPSUPGAP')) xmlSetText(document, node, 'CMPSUPGAP', resolved.cmpSupGap); count += 1; }
     return count;
   }
@@ -585,7 +623,7 @@ export function applyDtxrAnnotations(document, node, resolved, purpose = 'compon
 
 export function resolveXmlCiiNodeDtxr(xmlNode, stagedIndex, config = {}) {
   const result = resolveDtxrForXmlNode({ xmlNode, context: stagedIndex, purpose: 'component-description', config, trustExistingXmlDtxr: config.trustExistingXmlDtxr !== false });
-  return { value: result.canonicalText || result.value || '', source: result.source, confidence: result.confidence, matchedKey: result.matchedKey, matchedBy: result.matchedBy, stagedType: result.stagedType, suppressed: result.suppressed, suppressionReason: result.suppressionReason, sourcePath: result._sourcePath || '' };
+  return { value: result.canonicalText || result.value || '', dtxrPos: result.dtxrPos || '', dtxrPs: result.dtxrPs || '', effectiveDtxr: result.effectiveDtxr || '', effectiveSource: result.effectiveSource || 'NONE', fallbackUsed: result.fallbackUsed === true, source: result.source, confidence: result.confidence, matchedKey: result.matchedKey, matchedBy: result.matchedBy, stagedType: result.stagedType, suppressed: result.suppressed, suppressionReason: result.suppressionReason, sourcePath: result._sourcePath || '' };
 }
 
 function componentDescPrefix(node) {

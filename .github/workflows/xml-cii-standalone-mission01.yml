@@ -8,6 +8,7 @@ on:
       - 'tabs/xml-cii-2019-standalone/**'
       - 'tabs/xml-cii-2019-standalone-tab.js'
       - 'tabs/xml-cii-2019-standalone-tab.css'
+      - 'converters/xml-cii2019-core/dtxr-resolver.js'
       - 'tests/xml-cii-standalone-*.test.js'
       - 'tests/xml-cii-inputxml-enrichment-behavior.test.js'
       - 'tests/fixtures/xml-cii-standalone/**'
@@ -43,7 +44,7 @@ jobs:
           head='${{ github.event.pull_request.head.sha }}'
           changed="$(git diff --name-only "$base...$head")"
           printf '%s\n' "$changed"
-          relevant="$(printf '%s\n' "$changed" | grep -E '^(tabs/xml-cii-2019-standalone/|tabs/xml-cii-2019-standalone-tab\.(js|css)$|tests/xml-cii-standalone-.*\.test\.js$|tests/xml-cii-inputxml-enrichment-behavior\.test\.js$|tests/fixtures/xml-cii-standalone/|docs/xml-cii-2019-standalone-(production-readiness|parity|live-proof)\.md$)' || true)"
+          relevant="$(printf '%s\n' "$changed" | grep -E '^(tabs/xml-cii-2019-standalone/|tabs/xml-cii-2019-standalone-tab\.(js|css)$|converters/xml-cii2019-core/dtxr-resolver\.js$|tests/xml-cii-standalone-.*\.test\.js$|tests/xml-cii-inputxml-enrichment-behavior\.test\.js$|tests/fixtures/xml-cii-standalone/|docs/xml-cii-2019-standalone-(production-readiness|parity|live-proof)\.md$)' || true)"
           if [ -n "$relevant" ]; then
             echo 'run_suite=true' >> "$GITHUB_OUTPUT"
           else
@@ -77,6 +78,10 @@ jobs:
       - name: Run standalone Resolver JSON Trace checks
         if: steps.scope.outputs.run_suite == 'true'
         run: node tests/xml-cii-standalone-resolver-json-trace.test.js
+
+      - name: Run DTXR_POS precedence checks
+        if: steps.scope.outputs.run_suite == 'true'
+        run: node tests/xml-cii-standalone-dtxr-pos-precedence.test.js
 
       - name: Run standalone Manual Element Side-load checks
         if: steps.scope.outputs.run_suite == 'true'
