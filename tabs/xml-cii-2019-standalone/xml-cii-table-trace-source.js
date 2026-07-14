@@ -1,8 +1,7 @@
 /**
  * Resolver result builder for CSV/XLS alternatives to staged JSON trace data.
- * Inputs: XML text plus mapped table rows. Outputs: the same matched/rejected
- * fact shape used by the JSON resolver; fallback is diagnostics-only when the
- * user has not mapped the required trace keys.
+ * Table rows are grouped by branch-compatible coordinates before XML matching,
+ * then adapted into the same one-record-per-XML-node ledger contract.
  */
 import {
   REQUIRED_TRACE_TABLE_FIELD_NAMES,
@@ -13,9 +12,11 @@ import {
 } from './xml-cii-table-trace-table.js';
 import {
   buildTraceTableRowIndex,
+  findTraceTablePsRow,
   matchTraceTableNode,
   traceTableMatchSummary,
 } from './xml-cii-table-trace-match.js';
+import { parseStandaloneDtxrXmlNodes } from './xml-cii-trace-resolution-ledger.js';
 
 export {
   TRACE_TABLE_FIELDS,
@@ -25,72 +26,84 @@ export {
   rowsToTraceTableText,
 } from './xml-cii-table-trace-table.js';
 
+const TABLE_LEDGER_SCHEMA = 'xml-cii-table-trace-resolution-ledger/v1';
+
 function text(value) { return String(value ?? '').trim(); }
 function normText(value) { return text(value).replace(/\s+/g, ' ').toUpperCase(); }
 
-function childText(block, tag) {
-  const match = String(block || '').match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
-  return match ? text(match[1].replace(/<[^>]+>/g, '')) : '';
-}
-
-function branchPositions(sourceText) {
-  const out = [];
-  const pattern = /<(Branchname|LineNo|LineKey|BranchName)\b[^>]*>([\s\S]*?)<\/\1>/gi;
-  let match;
-  while ((match = pattern.exec(sourceText))) out.push({ name: text(match[2]), index: match.index });
-  return out;
-}
-
-function activeBranch(charIndex, branches) {
-  let current = '';
-  let best = -1;
-  for (const branch of branches) {
-    if (branch.index <= charIndex && branch.index > best) {
-      current = branch.name;
-      best = branch.index;
-    }
+function uniqueValues(values) {
+  const seen = new Set();
+  const output = [];
+  for (const value of values.map(text).filter(Boolean)) {
+    const key = normText(value);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(value);
   }
-  return current || branches[0]?.name || '';
+  return output;
 }
 
-function parsePoint(value) {
-  const numbers = text(value).match(/-?\d+(?:\.\d+)?(?:[Ee][+-]?\d+)?/g)?.map(Number).filter(Number.isFinite) || [];
-  return numbers.length >= 3 ? { x: numbers[0], y: numbers[1], z: numbers[2] } : null;
+function normalizeSupportTag(value) {
+  const match = text(value).toUpperCase().match(/\/?PS-?\d+(?:\.\d+)?/);
+  return match ? match[0].replace(/^\/+/, '').replace(/^PS-/i, 'PS') : '';
 }
 
-function pointLabel(point, raw) {
+function pointLabel(point, raw = '') {
   if (!point) return text(raw);
-  const fmt = (value) => String(Math.round(value * 100) / 100);
-  return `E=${fmt(point.x)} N=${fmt(point.y)} EL=${fmt(point.z)}`;
+  const format = (value) => String(Math.round(Number(value) * 1000) / 1000);
+  return `E=${format(point.x)} N=${format(point.y)} EL=${format(point.z)}`;
 }
 
 function extractXmlTraceNodes(sourceText) {
-  const branches = branchPositions(sourceText);
-  const nodes = [];
-  const pattern = /<Node\b[\s\S]*?<\/Node>/gi;
-  let match;
-  while ((match = pattern.exec(sourceText))) {
-    const block = match[0];
-    const position = childText(block, 'Position');
-    const posPoint = parsePoint(position);
-    const nodeNumber = childText(block, 'NodeNumber');
-    const nodeName = childText(block, 'NodeName');
-    const componentRefNo = childText(block, 'ComponentRefNo');
-    nodes.push({
-      xmlIndex: nodes.length + 1,
-      tagName: childText(block, 'ComponentType') || 'Node',
-      componentType: childText(block, 'ComponentType'),
-      nodeNumber,
-      nodeName,
-      componentRefNo,
-      nodeKeys: [nodeNumber || '-1'],
-      psKey: nodeName || componentRefNo,
-      posKey: pointLabel(posPoint, position),
-      posPoint,
-      branchName: activeBranch(match.index, branches),
-    });
-  }
-  return nodes;
+  return parseStandaloneDtxrXmlNodes(sourceText).map((node) => ({
+    ...node,
+    nodeNumber: node.xmlNodeNumber || node.nodeKeys?.[0] || '',
+    nodeName: node.xmlNodeName || node.psKey || '',
+    nodeKeys: node.nodeKeys?.length ? node.nodeKeys : [node.xmlNodeNumber || '-1'],
+    psKey: node.psKey || node.xmlNodeName || node.componentRefNo || '',
+    posPoint: node.posPoint || node.xmlPoint || null,
+    posKey: node.posKey || pointLabel(node.xmlPoint, node.xmlPosition),
+    branchName: node.xmlBranch || node.branchName || '',
+  }));
+}
+
+function labeledDtxrPos(row) {
+  const value = text(row.dtxrPos);
+  if (!value) return '';
+  const name = text(row.nodeName);
+  if (!name || /\bNAME\s*=/i.test(value)) return value;
+  return `${value}(NAME=${name})`;
+}
+
+function supportKinds(value) {
+  const source = text(value).toUpperCase();
+  const kinds = [];
+  if (/\b(PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT)\b/.test(source)) kinds.push('LINESTOP');
+  if (/\bGUIDE\b/.test(source)) kinds.push('GUIDE');
+  if (/\b(ANCHOR|FIXED)\b/.test(source)) kinds.push('ANCHOR');
+  if (/\b(REST|PIPE\s*REST|WEAR\s*PLATE|SHOE)\b/.test(source)) kinds.push('REST');
+  return uniqueValues(kinds);
+}
+
+function rowMember(row) {
+  return {
+    jsonNodeNo: text(row.sourceRowNo || row._rowIndex),
+    sourceRowNo: text(row.sourceRowNo || row._rowIndex),
+    sourcePath: row.sourcePath || `table[${row._rowIndex}]`,
+    branchName: row.branchName,
+    bore: row.bore,
+    point: row.positionPoint || null,
+    type: row.componentType,
+    name: row.nodeName,
+    dtxrPosValue: labeledDtxrPos(row),
+    dtxrPsValue: text(row.dtxrPs),
+    cmpSupGap: row.cmpSupGap,
+    componentRefNo: row.componentRefNo,
+    supportReference: row.supportReference,
+    componentSpec: row.componentSpec,
+    site: row.site,
+    raw: row.raw,
+  };
 }
 
 function candidatePreview(candidates) {
@@ -100,51 +113,135 @@ function candidatePreview(candidates) {
     nodeName: row.nodeName,
     position: row.position,
     componentType: row.componentType,
+    branchName: row.branchName,
     dtxrPos: row.dtxrPos,
   }));
 }
 
-function resolvedFact(node, row, decision) {
-  const rows = decision.rows || [];
+function controlledOutcome(decision, dtxrPosValue, dtxrPsValue) {
+  if (decision.status === 'ambiguous' || decision.status === 'review') {
+    return { matchType: 'POS_AMBIGUOUS', status: 'AMBIGUOUS_REVIEW' };
+  }
+  if (!dtxrPosValue && dtxrPsValue) return { matchType: 'PS_FALLBACK', status: 'RESOLVED_PS_FALLBACK' };
+  if (!dtxrPosValue) return { matchType: 'NONE', status: 'UNRESOLVED' };
+  const coordinate = decision.method.startsWith('coordinate-group');
+  if (coordinate && dtxrPsValue) return { matchType: 'POS_PS', status: 'RESOLVED_POS_PS' };
+  if (coordinate) return { matchType: 'POS', status: 'RESOLVED_POS' };
+  if (dtxrPsValue) return { matchType: 'KEY_PS', status: 'RESOLVED_KEY_PS' };
+  return { matchType: 'KEY', status: 'RESOLVED_KEY' };
+}
+
+function recordForNode(node, decision, rowIndex, traceConfig) {
+  const acceptedRows = decision.status === 'accepted' ? decision.rows || [] : [];
+  const psMatch = findTraceTablePsRow(node, rowIndex, acceptedRows);
+  const psRow = psMatch?.row || null;
+  const dtxrPosValues = uniqueValues(acceptedRows.map(labeledDtxrPos));
+  const dtxrPosValue = dtxrPosValues.join(' | ');
+  const dtxrPsValue = psRow ? text(psRow.dtxrPs || psRow.supportReference || psRow.dtxrPos) : '';
+  const outcome = controlledOutcome(decision, dtxrPosValue, dtxrPsValue);
+  const effectiveDtxr = dtxrPosValue || dtxrPsValue;
+  const members = acceptedRows.length ? acceptedRows : (psRow ? [psRow] : []);
+  const relationship = decision.relationship || psMatch?.relationship || null;
+  const selectedGroup = decision.group || null;
+  const sourceRows = uniqueValues(members.map((row) => row.sourceRowNo || row._rowIndex));
+  const psSourceRows = psRow ? [text(psRow.sourceRowNo || psRow._rowIndex)] : [];
   return {
-    ...node,
-    matchedBy: [decision.method],
-    matchStatus: decision.status,
-    candidateCount: decision.candidates?.length || rows.length,
-    hitCount: rows.length,
-    xmlHits: [node.xmlIndex],
-    path: `table[${row._rowIndex}]`,
-    stagedBranchKey: row.branchName,
-    stagedBore: row.bore,
-    dtxrPosValue: row.dtxrPos,
-    dtxrPsValue: row.dtxrPs || row.supportReference || row.nodeName,
-    cmpSupGap: row.cmpSupGap,
-    sourcePosition: row.position,
-    sourceComponentType: row.componentType,
-    componentSpec: row.componentSpec,
-    site: row.site,
-    raw: row.raw,
+    schema: TABLE_LEDGER_SCHEMA,
+    xmlIndex: node.xmlIndex,
+    xmlNodeNumber: node.nodeNumber,
+    nodeNumber: node.nodeNumber,
+    xmlNodeName: node.nodeName,
+    nodeName: node.nodeName,
+    componentType: node.componentType,
+    componentRefNo: node.componentRefNo,
+    xmlBranch: node.branchName,
+    branchName: node.branchName,
+    xmlPosition: node.xmlPosition || node.posKey,
+    xmlPoint: node.posPoint,
+    sourceKind: 'table',
+    sourceBranch: selectedGroup?.branch?.original || acceptedRows[0]?.branchName || psRow?.branchName || '',
+    stagedBranch: selectedGroup?.branch?.original || acceptedRows[0]?.branchName || psRow?.branchName || '',
+    branchRelationship: relationship?.method || '',
+    coordinateToleranceMm: Number(traceConfig.coordinateTolerance) || 0,
+    toleranceMm: Number(traceConfig.coordinateTolerance) || 0,
+    matchedPosition: selectedGroup?.anchor || acceptedRows[0]?.positionPoint || psRow?.positionPoint || null,
+    positionDistanceMm: Number.isFinite(Number(decision.distance)) ? Number(decision.distance) : null,
+    distanceMm: Number.isFinite(Number(decision.distance)) ? Number(decision.distance) : null,
+    maxInternalDistanceMm: selectedGroup?.maxInternalDistanceMm ?? null,
+    dtxrPosNodeNumbers: acceptedRows.length ? sourceRows : [],
+    dtxrPsNodeNumbers: psSourceRows,
+    sourceRowNumbers: sourceRows,
+    positionMembers: members.map(rowMember),
+    sourcePaths: members.map((row) => row.sourcePath || `table[${row._rowIndex}]`),
+    dtxrPosValue,
+    dtxrPos: dtxrPosValue,
+    dtxrPosValues,
+    dtxrPsName: normalizeSupportTag(node.nodeName || node.psKey || node.componentRefNo),
+    dtxrPsValue,
+    dtxrPs: dtxrPsValue,
+    effectiveDtxr,
+    effectiveSource: dtxrPosValue ? 'DTXR_POS' : (dtxrPsValue ? 'DTXR_PS_FALLBACK' : 'NONE'),
+    fallbackUsed: !dtxrPosValue && !!dtxrPsValue,
+    derivedSupportTypes: supportKinds(effectiveDtxr),
+    matchMethod: decision.method,
+    matchType: outcome.matchType,
+    status: outcome.status,
+    candidateCount: decision.groupCandidates?.length || decision.candidates?.length || acceptedRows.length,
+    groupId: selectedGroup?.id || '',
+    rejectedCandidates: outcome.status === 'AMBIGUOUS_REVIEW' ? candidatePreview(decision.candidates) : [],
   };
 }
 
-function rejectedFact(node, decision) {
+function factFromRecord(record, node) {
+  const members = record.positionMembers || [];
+  const first = members[0] || {};
+  const matched = record.status.startsWith('RESOLVED_');
   return {
     ...node,
-    matchedBy: [],
-    matchStatus: decision?.status || 'no-match',
-    rejectedMatchMethod: decision?.method || 'none',
-    candidateCount: decision?.candidates?.length || 0,
-    rejectedCandidates: candidatePreview(decision?.candidates),
-    hitCount: 0,
-    xmlHits: [],
-    dtxrPosValue: '',
-    dtxrPsValue: '',
-    cmpSupGap: '',
+    matchedBy: matched ? [record.matchMethod] : [],
+    matchStatus: record.status,
+    candidateCount: record.candidateCount,
+    hitCount: matched ? Math.max(1, members.length) : 0,
+    xmlHits: matched ? [record.xmlIndex] : [],
+    path: record.sourcePaths.join(' | '),
+    stagedBranchKey: record.sourceBranch,
+    stagedBore: first.bore || '',
+    dtxrPosValue: record.dtxrPosValue,
+    dtxrPsValue: record.dtxrPsValue,
+    dtxrPsName: record.dtxrPsName,
+    cmpSupGap: members.find((member) => text(member.cmpSupGap))?.cmpSupGap || '',
+    sourcePosition: pointLabel(record.matchedPosition, ''),
+    sourceComponentType: first.type || '',
+    componentSpec: first.componentSpec || '',
+    site: first.site || '',
+    jsonNodeNosDtxrPos: record.dtxrPosNodeNumbers,
+    jsonNodeNosDtxrPs: record.dtxrPsNodeNumbers,
+    jsonNodeNoDtxrPos: record.dtxrPosNodeNumbers.join('|'),
+    jsonNodeNoDtxrPs: record.dtxrPsNodeNumbers.join('|'),
+    effectiveDtxr: record.effectiveDtxr,
+    effectiveSource: record.effectiveSource,
+    fallbackUsed: record.fallbackUsed,
+    derivedSupportTypes: record.derivedSupportTypes,
+    matchType: record.matchType,
+    status: record.status,
+    positionDistanceMm: record.positionDistanceMm,
+    coordinateToleranceMm: record.coordinateToleranceMm,
+    branchRelationship: record.branchRelationship,
+    groupId: record.groupId,
+    sourcePaths: record.sourcePaths,
+    positionMembers: record.positionMembers,
+    ledgerRecord: record,
+    rejectedCandidates: record.rejectedCandidates,
+    raw: first.raw || null,
   };
 }
 
 function missingRequired(fieldMap) {
   return REQUIRED_TRACE_TABLE_FIELD_NAMES.filter((fieldName) => !text(fieldMap?.[fieldName]));
+}
+
+function missingMatchBasis(fieldMap) {
+  return ['componentRefNo', 'nodeName', 'position'].every((fieldName) => !text(fieldMap?.[fieldName]));
 }
 
 export function buildTraceTableResolverResult(input) {
@@ -153,33 +250,32 @@ export function buildTraceTableResolverResult(input) {
   const rawRows = Array.isArray(safeInput.rawRows) ? safeInput.rawRows : parseTraceTableText(safeInput.tableText);
   const headers = headersFromTraceRows(rawRows);
   const fieldMap = safeInput.fieldMap && Object.keys(safeInput.fieldMap).length ? safeInput.fieldMap : autoMapTraceTableFields(headers, rawRows, traceConfig);
-  const mappedRows = mapTraceTableRows(rawRows, fieldMap).filter((row) => row.componentRefKey || row.nodeNameKey || row.position || row.componentType);
+  const mappedRows = mapTraceTableRows(rawRows, fieldMap).filter((row) => row.componentRefKey || row.nodeNameKey || row.position || row.componentType || row.dtxrPos);
   const nodes = extractXmlTraceNodes(safeInput.sourceText || '');
-  const rowIndex = buildTraceTableRowIndex(mappedRows);
+  const rowIndex = buildTraceTableRowIndex(mappedRows, traceConfig);
   const matchSummary = traceTableMatchSummary(headers, rowIndex, traceConfig);
-  const resolvedFacts = [];
-  for (const node of nodes) {
-    const decision = matchTraceTableNode(node, rowIndex, traceConfig);
-    if (!decision.rows.length) resolvedFacts.push(rejectedFact(node, decision));
-    else decision.rows.forEach((row) => resolvedFacts.push(resolvedFact(node, row, decision)));
-  }
+  const records = nodes.map((node) => recordForNode(node, matchTraceTableNode(node, rowIndex, traceConfig), rowIndex, matchSummary));
+  const nodeByIndex = new Map(nodes.map((node) => [node.xmlIndex, node]));
+  const resolvedFacts = records.map((record) => factFromRecord(record, nodeByIndex.get(record.xmlIndex)));
   const matchedFacts = resolvedFacts.filter((fact) => fact.hitCount > 0);
   const rejectedFacts = resolvedFacts.filter((fact) => fact.hitCount <= 0);
   const missing = missingRequired(fieldMap);
   const diagnostics = [
     { type: 'resolver-table-trace-source-kind', sourceKind: 'table' },
     { type: 'resolver-table-trace-profile', ...matchSummary },
+    { type: 'resolver-table-trace-coordinate-groups', groups: rowIndex.coordinateGroups.length, rows: matchSummary.coordinateRowCount, toleranceMm: matchSummary.coordinateTolerance },
     { type: 'resolver-table-trace-rows', rows: rawRows.length, mappedRows: mappedRows.length },
     { type: 'resolver-table-trace-matched-facts', rows: matchedFacts.length },
     { type: 'resolver-table-trace-rejected-facts', rows: rejectedFacts.length },
   ];
   if (missing.length) diagnostics.unshift({ type: 'resolver-table-trace-required-map-missing', fields: missing, level: 'warning' });
+  if (missingMatchBasis(fieldMap)) diagnostics.unshift({ type: 'resolver-table-trace-match-basis-missing', fields: ['componentRefNo', 'nodeName', 'position'], level: 'warning' });
   return {
     sourceKind: 'table',
     nodes,
     rawRows,
     fieldMap,
-    mappedRows,
+    mappedRows: rowIndex.rows,
     traceConfig: matchSummary,
     indexStats: {
       xmlNodeCount: nodes.length,
@@ -187,16 +283,34 @@ export function buildTraceTableResolverResult(input) {
       psKeyCount: nodes.filter((node) => node.psKey).length,
       posKeyCount: nodes.filter((node) => node.posKey).length,
     },
+    positionIndex: { groups: rowIndex.coordinateGroups, entries: rowIndex.rows, count: rowIndex.rows.length },
+    resolutionLedger: records,
+    traceResolutionLedger: {
+      schema: TABLE_LEDGER_SCHEMA,
+      records,
+      ledger: records,
+      groups: rowIndex.coordinateGroups,
+      diagnostics,
+    },
     resolvedFacts,
     matchedFacts,
     rejectedFacts,
     diagnostics,
-    traceRows: matchedFacts.map((fact) => ({ Branch: fact.stagedBranchKey || fact.branchName, Bore: fact.stagedBore, POS: fact.posKey, DTXR_POS: fact.dtxrPosValue })),
+    traceRows: matchedFacts.flatMap((fact) => fact.positionMembers.map((member) => ({
+      Branch: member.branchName || fact.stagedBranchKey || fact.branchName,
+      Bore: member.bore,
+      POS: pointLabel(member.point, fact.posKey),
+      DTXR_POS: member.dtxrPosValue,
+    }))),
   };
 }
 
 function factValues(fact) {
   return [fact?.dtxrPosValue, fact?.dtxrPsValue].map(normText).filter(Boolean);
+}
+
+function evidenceTokens(value) {
+  return uniqueValues(text(value).split(/\s*\|\s*/).map(normText).filter(Boolean));
 }
 
 export function compareTraceResultsByComponentRef(jsonResult, tableResult) {
@@ -207,11 +321,19 @@ export function compareTraceResultsByComponentRef(jsonResult, tableResult) {
   }
   const compared = [];
   for (const tableFact of tableResult?.matchedFacts || []) {
-    const expected = normText(tableFact.dtxrPosValue);
-    if (!expected) continue;
+    const expectedTokens = evidenceTokens(tableFact.dtxrPosValue);
+    if (!expectedTokens.length) continue;
     const jsonValues = (jsonByIndex.get(tableFact.xmlIndex) || []).flatMap(factValues);
-    const matched = jsonValues.some((value) => value === expected || value.includes(expected) || expected.includes(value));
-    compared.push({ xmlIndex: tableFact.xmlIndex, nodeNumber: tableFact.nodeNumber, componentRefNo: tableFact.componentRefNo, expected: tableFact.dtxrPosValue, matched, jsonValues });
+    const matched = expectedTokens.every((expected) => jsonValues.some((value) => value === expected || value.includes(expected) || expected.includes(value)));
+    compared.push({
+      xmlIndex: tableFact.xmlIndex,
+      nodeNumber: tableFact.nodeNumber,
+      componentRefNo: tableFact.componentRefNo,
+      expected: tableFact.dtxrPosValue,
+      expectedTokens,
+      matched,
+      jsonValues,
+    });
   }
   const matched = compared.filter((row) => row.matched).length;
   const percent = compared.length ? (matched / compared.length) * 100 : 0;
