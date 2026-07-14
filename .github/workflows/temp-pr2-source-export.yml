@@ -1,0 +1,23 @@
+name: Temporary PR2 Source Export
+
+on:
+  push:
+    branches:
+      - fix/xml-cii-dtxr-pos-precedence-20260714
+
+permissions:
+  contents: read
+
+jobs:
+  export-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr2-source-export
+          path: |
+            converters/xml-cii2019-core/dtxr-resolver.js
+            tests
+            .github/workflows/xml-cii-standalone-mission01.yml
+          retention-days: 1
