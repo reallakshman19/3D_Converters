@@ -8,7 +8,7 @@ const IDS = [
 function elements() { const doc = new FakeDocument(); const result = Object.fromEntries(IDS.map((id) => [id, new FakeElement('div', doc)])); result['extract-scope'].value='selected'; result['extract-result-view'].value='matched'; return result; }
 function graph() { return { schema:'UniversalSourceGraph.v1',sourceFileId:'source-a',sourceRevision:1,contentHash:'a'.repeat(64),validation:{ok:true,errors:[],warnings:[]},entities:[{entityId:'entity-1',entityKind:'xml-element',sourceOrder:0,name:'Item',sourcePath:'/Item[1]',value:'A-1',attributes:{},evidence:{}}]}; }
 
-test('controller builds config, blocks run without graph, then runs selected scope', async () => {
+test('controller requires graph, config and selected entity before running selected scope', async () => {
   const { createExtractionTesterController } = await loadEsm('tabs/universal-enrichment-workbench/extraction-controller.js');
   const e = elements(); const url = createUrlHarness(); const downloads=[];
   const controller = createExtractionTesterController(e,{BlobCtor:Blob,urlApi:url.api,triggerDownload:(u,n)=>downloads.push([u,n])});
@@ -16,6 +16,7 @@ test('controller builds config, blocks run without graph, then runs selected sco
   await e['extract-config-build'].click();
   assert.ok(controller.getState().config?.validation.ok);
   controller.syncGraph(graph());
+  assert.strictEqual(e['extract-run'].disabled, true);
   await e['extract-entity-list'].dispatch('click',{dataset:{extractAction:'select-entity',entityId:'entity-1'}});
   assert.strictEqual(e['extract-run'].disabled, false);
   await e['extract-run'].click();
@@ -42,15 +43,41 @@ test('rule edits invalidate config and run while graph invalidation retains conf
   controller.cleanup();
 });
 
+test('scope evidence changes invalidate completed and pending runs', async () => {
+  const { createExtractionTesterController } = await loadEsm('tabs/universal-enrichment-workbench/extraction-controller.js');
+  const e=elements(); const controller=createExtractionTesterController(e,{BlobCtor:Blob,urlApi:createUrlHarness().api,triggerDownload(){}});
+  await e['extract-config-build'].click(); controller.syncGraph(graph());
+  await e['extract-entity-list'].dispatch('click',{dataset:{extractAction:'select-entity',entityId:'entity-1'}}); await e['extract-run'].click();
+  assert.ok(controller.getState().run);
+  e['extract-scope'].value='filtered'; await e['extract-scope'].dispatch('change');
+  assert.strictEqual(controller.getState().run,null);
+  await e['extract-run'].click(); assert.ok(controller.getState().run);
+  e['extract-entity-search'].value='missing'; await e['extract-entity-search'].dispatch('input');
+  assert.strictEqual(controller.getState().run,null);
+  controller.cleanup();
+});
+
+test('strategy boundary moves keep the selected strategy index valid', async () => {
+  const { createExtractionTesterController } = await loadEsm('tabs/universal-enrichment-workbench/extraction-controller.js');
+  const e=elements(); const controller=createExtractionTesterController(e,{BlobCtor:Blob,urlApi:createUrlHarness().api,triggerDownload(){}});
+  await e['extract-strategy-add-token'].click();
+  assert.strictEqual(controller.getState().selectedStrategyIndex,1);
+  await e['extract-strategy-down'].click();
+  assert.strictEqual(controller.getState().selectedStrategyIndex,1);
+  await e['extract-strategy-up'].click();
+  assert.strictEqual(controller.getState().selectedStrategyIndex,0);
+  controller.cleanup();
+});
+
 test('stale asynchronous config and run results cannot replace newer state', async () => {
   const { createExtractionTesterController } = await loadEsm('tabs/universal-enrichment-workbench/extraction-controller.js');
   const e=elements(); let resolveConfig; let resolveRun;
-  const validConfig={validation:{ok:true},configId:'valid',rules:[],summary:{ruleCount:0,enabledRuleCount:0}};
+  const validConfig={schema:'ExtractionConfig.v1',validation:{ok:true},configId:'valid',rules:[],summary:{ruleCount:0,enabledRuleCount:0}};
   let configMode='deferred';
   const controller=createExtractionTesterController(e,{BlobCtor:Blob,urlApi:createUrlHarness().api,triggerDownload(){},
     createExtractionConfig:()=>configMode==='deferred'?new Promise((r)=>{resolveConfig=r;}):Promise.resolve(validConfig),
     createExtractionTestRun:()=>new Promise((r)=>{resolveRun=r;})});
-  const pending=e['extract-config-build'].click(); e['extract-field-key'].value='newer'; await e['extract-field-key'].dispatch('input'); resolveConfig({validation:{ok:true},configId:'stale',rules:[],summary:{}}); await pending;
+  const pending=e['extract-config-build'].click(); e['extract-field-key'].value='newer'; await e['extract-field-key'].dispatch('input'); resolveConfig({schema:'ExtractionConfig.v1',validation:{ok:true},configId:'stale',rules:[],summary:{}}); await pending;
   assert.notStrictEqual(controller.getState().config?.configId,'stale');
   configMode='immediate'; await e['extract-config-build'].click(); controller.syncGraph(graph());
   await e['extract-entity-list'].dispatch('click',{dataset:{extractAction:'select-entity',entityId:'entity-1'}});
