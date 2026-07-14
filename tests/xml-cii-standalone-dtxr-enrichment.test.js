@@ -174,10 +174,14 @@ const STAGED_JSON = JSON.stringify([
   assert.strictEqual(childValue(nodes[1], 'DTXR_SOURCE'), 'staged-json-position-group');
 
   const ledger1030 = result.ledger.find((row) => row.nodeNumber === '1030');
+  assert.strictEqual(ledger1030.schema, 'xml-cii-trace-resolution-ledger/v1');
   assert.strictEqual(ledger1030.branchRelationship, 'same-root');
-  assert.strictEqual(ledger1030.status, 'RESOLVED_POS');
+  assert.strictEqual(ledger1030.status, 'RESOLVED_POS_PS');
+  assert.strictEqual(ledger1030.matchType, 'POS_PS');
   assert.strictEqual(ledger1030.effectiveSource, 'DTXR_POS');
   assert(ledger1030.maxInternalDistanceMm <= 6);
+  assert(ledger1030.dtxrPosNodeNumbers.length >= 1);
+  assert(ledger1030.dtxrPsNodeNumbers.length >= 1);
 
   console.log('XML CII standalone DTXR enrichment checks passed.');
 })().catch((error) => {
