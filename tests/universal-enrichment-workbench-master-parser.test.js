@@ -17,6 +17,13 @@ test('CSV parser preserves quotes, delimiters, multiline fields and trailing cel
   assert.deepStrictEqual(parsed.rows, [['A,1', 'Line1\nLine2', ''], ['Quote', 'He said "Hi"', '']]);
 });
 
+test('CSV parser preserves unquoted inch marks used by piping masters', async () => {
+  const { parseDelimitedMasterText } = await modules();
+  const parsed = parseDelimitedMasterText('NPS,Description\n2,2"\n4,4" SCH 40', ',');
+  assert.deepStrictEqual(parsed.errors, []);
+  assert.deepStrictEqual(parsed.rows, [['2', '2"'], ['4', '4" SCH 40']]);
+});
+
 test('TSV parser preserves empty cells and internal blank rows', async () => {
   const { parseDelimitedMasterText } = await modules();
   const parsed = parseDelimitedMasterText('A\tB\tC\n1\t\t3\n\t\t\n4\t5\t', '\t');
