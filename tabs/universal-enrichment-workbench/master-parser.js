@@ -18,10 +18,16 @@ function scanDelimited(text, delimiter) {
   let quoted = false;
   for (let index = 0; index < text.length; index += 1) {
     const char = text[index];
-    if (quoted && char === '"' && text[index + 1] === '"') { field += '"'; index += 1; continue; }
-    if (char === '"') { quoted = !quoted; continue; }
-    if (!quoted && char === delimiter) { field = commitField(record, field); continue; }
-    if (!quoted && char === '\n') {
+    if (quoted) {
+      if (char === '"' && text[index + 1] === '"') { field += '"'; index += 1; continue; }
+      if (char === '"') { quoted = false; continue; }
+      field += char;
+      continue;
+    }
+    if (char === '"' && field.length === 0) { quoted = true; continue; }
+    if (char === '"') { field += char; continue; }
+    if (char === delimiter) { field = commitField(record, field); continue; }
+    if (char === '\n') {
       const next = commitRecord(records, record, field);
       record = next.record; field = next.field; continue;
     }
