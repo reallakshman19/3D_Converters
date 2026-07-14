@@ -23,6 +23,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          show-progress: false
 
       - name: Verify checked-out head SHA
         shell: bash
@@ -48,4 +49,18 @@ jobs:
         run: node tests/xml-cii-standalone-implementation-guard.test.js
 
       - name: Run parity checks
-        run: node tests/xml-cii-standalone-parity.test.js
+        shell: bash
+        run: |
+          set +e
+          node tests/xml-cii-standalone-parity.test.js > parity-output.log 2>&1
+          status=$?
+          cat parity-output.log
+          exit "$status"
+
+      - name: Upload parity output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml-cii-dtxr-parity-output
+          path: parity-output.log
+          if-no-files-found: ignore
