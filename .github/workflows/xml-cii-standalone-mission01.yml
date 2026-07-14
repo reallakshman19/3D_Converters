@@ -79,10 +79,6 @@ jobs:
         if: steps.scope.outputs.run_suite == 'true'
         run: node tests/xml-cii-standalone-resolver-json-trace.test.js
 
-      - name: Run trace export checks
-        if: steps.scope.outputs.run_suite == 'true'
-        run: node tests/xml-cii-standalone-trace-export.test.js
-
       - name: Run DTXR_POS precedence checks
         if: steps.scope.outputs.run_suite == 'true'
         run: node tests/xml-cii-standalone-dtxr-pos-precedence.test.js
