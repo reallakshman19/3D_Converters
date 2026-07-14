@@ -48,6 +48,14 @@ function graphIdentity(graph) {
   return graph ? [graph.sourceFileId, graph.sourceRevision, graph.contentHash, graph.schema].join('|') : '';
 }
 
+function validGraph(graph) {
+  return graph?.schema === 'UniversalSourceGraph.v1' && graph?.validation?.ok && Array.isArray(graph.entities);
+}
+
+function validConfig(config) {
+  return config?.schema === 'ExtractionConfig.v1' && config?.validation?.ok && Array.isArray(config.rules);
+}
+
 function addListener(context, element, type, handler) {
   if (!element) return;
   element.addEventListener(type, handler);
@@ -57,6 +65,10 @@ function addListener(context, element, type, handler) {
 function revokeUrls(context) {
   context.objectUrls.forEach((url) => context.dependencies.urlApi.revokeObjectURL(url));
   context.objectUrls.clear();
+}
+
+function runScopeReady(state) {
+  return state.scopeKind !== 'selected' || Boolean(state.selectedEntityId);
 }
 
 function render(context) {
@@ -69,14 +81,20 @@ function render(context) {
   renderExtractionEntitySearch(elements, state);
   renderExtractionRunPanel(elements, state);
   elements['extract-config-build'].disabled = state.configStatus === 'Building';
-  elements['extract-run'].disabled = !state.graph?.validation?.ok || !state.config?.validation?.ok || state.runStatus === 'Running';
+  elements['extract-run'].disabled = !validGraph(state.graph) || !validConfig(state.config)
+    || !runScopeReady(state) || state.runStatus === 'Running';
+}
+
+function invalidateRun(context, status = 'Not run') {
+  context.runRequestId += 1;
+  revokeUrls(context);
+  context.state = { ...context.state, run: null, runStatus: status, selectedResultIndex: -1, resultPage: 0 };
 }
 
 function invalidateDraft(context) {
   context.configRequestId += 1;
-  context.runRequestId += 1;
-  revokeUrls(context);
-  context.state = { ...context.state, config: null, configStatus: 'Draft changed', run: null, runStatus: 'Not run', selectedResultIndex: -1 };
+  invalidateRun(context);
+  context.state = { ...context.state, config: null, configStatus: 'Draft changed' };
   render(context);
 }
 
@@ -109,10 +127,12 @@ function handleStrategyAction(context, action, kind = '') {
   let rules = ruleDrafts;
   let selected = selectedStrategyIndex;
   if (action === 'add') { rules = addStrategyDraft(rules, selectedRuleIndex, kind); selected = rules[selectedRuleIndex].strategies.length - 1; }
-  if (action === 'remove') { rules = removeStrategyDraft(rules, selectedRuleIndex, selectedStrategyIndex); selected = Math.max(0, selected - 1); }
+  if (action === 'remove') { rules = removeStrategyDraft(rules, selectedRuleIndex, selectedStrategyIndex); selected -= 1; }
   if (action === 'up') { rules = moveStrategyDraft(rules, selectedRuleIndex, selectedStrategyIndex, -1); selected -= 1; }
   if (action === 'down') { rules = moveStrategyDraft(rules, selectedRuleIndex, selectedStrategyIndex, 1); selected += 1; }
-  context.state = { ...context.state, ruleDrafts: rules, selectedStrategyIndex: Math.max(0, selected) };
+  const strategyCount = rules[selectedRuleIndex]?.strategies.length || 0;
+  selected = Math.max(0, Math.min(selected, Math.max(0, strategyCount - 1)));
+  context.state = { ...context.state, ruleDrafts: rules, selectedStrategyIndex: selected };
   invalidateDraft(context);
 }
 
@@ -150,7 +170,7 @@ function currentScope(context) {
 
 async function handleRun(context) {
   const { graph, config } = context.state;
-  if (!graph?.validation?.ok || !config?.validation?.ok) return;
+  if (!validGraph(graph) || !validConfig(config) || !runScopeReady(context.state)) return;
   const scope = currentScope(context);
   const identity = `${graphIdentity(graph)}|${config.configId}|${JSON.stringify(scope)}`;
   const requestId = ++context.runRequestId;
@@ -182,7 +202,12 @@ function handleDelegatedAction(context, event) {
   const action = event.target?.dataset?.extractAction;
   if (action === 'select-rule') { context.state = { ...context.state, selectedRuleIndex: Number(event.target.dataset.ruleIndex), selectedStrategyIndex: 0 }; render(context); }
   if (action === 'select-strategy') { context.state = { ...context.state, selectedStrategyIndex: Number(event.target.dataset.strategyIndex) }; render(context); }
-  if (action === 'select-entity') { context.state = { ...context.state, selectedEntityId: event.target.dataset.entityId }; render(context); }
+  if (action === 'select-entity') {
+    const selectedEntityId = event.target.dataset.entityId;
+    context.state = { ...context.state, selectedEntityId };
+    if (context.state.scopeKind === 'selected') invalidateRun(context, 'Scope changed');
+    render(context);
+  }
   if (action === 'select-result') { context.state = { ...context.state, selectedResultIndex: Number(event.target.dataset.resultIndex) }; renderExtractionResultDetails(context.elements, context.state); }
 }
 
@@ -220,8 +245,16 @@ function bindRunControls(context) {
   addListener(context, e['extract-config-build'], 'click', () => handleBuildConfig(context));
   addListener(context, e['extract-config-download'], 'click', () => downloadArtifact(context, context.state.config, serializeExtractionConfig, 'extraction-config.json'));
   addListener(context, e['extract-entity-list'], 'click', (event) => handleDelegatedAction(context, event));
-  addListener(context, e['extract-entity-search'], 'input', () => { context.state = { ...context.state, entitySearch: e['extract-entity-search'].value }; renderExtractionEntitySearch(e, context.state); });
-  addListener(context, e['extract-scope'], 'change', () => { context.state = { ...context.state, scopeKind: e['extract-scope'].value, run: null, runStatus: 'Not run' }; render(context); });
+  addListener(context, e['extract-entity-search'], 'input', () => {
+    context.state = { ...context.state, entitySearch: e['extract-entity-search'].value };
+    if (context.state.scopeKind === 'filtered') invalidateRun(context, 'Scope changed');
+    render(context);
+  });
+  addListener(context, e['extract-scope'], 'change', () => {
+    context.state = { ...context.state, scopeKind: e['extract-scope'].value };
+    invalidateRun(context, 'Scope changed');
+    render(context);
+  });
   addListener(context, e['extract-run'], 'click', () => handleRun(context));
   addListener(context, e['extract-run-download'], 'click', () => downloadArtifact(context, context.state.run, serializeExtractionTestRun, 'extraction-test-run.json'));
   addListener(context, e['extract-result-list'], 'click', (event) => handleDelegatedAction(context, event));
@@ -238,8 +271,8 @@ export function createExtractionTesterController(elements, dependencies = {}, ge
     getState: () => context.state,
     syncGraph(graph) {
       if (graphIdentity(graph) === graphIdentity(context.state.graph)) return;
-      context.runRequestId += 1; revokeUrls(context);
-      context.state = { ...context.state, graph, run: null, runStatus: 'Not run', selectedResultIndex: -1,
+      invalidateRun(context);
+      context.state = { ...context.state, graph,
         selectedEntityId: (graph?.entities || []).some((entity) => entity.entityId === context.state.selectedEntityId) ? context.state.selectedEntityId : '' };
       render(context);
     },
