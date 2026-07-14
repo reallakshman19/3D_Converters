@@ -1,38 +1,20 @@
 const assert = require('assert');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 
-function copyFile(tempRoot, relPath) {
-  const sourcePath = path.join(root, relPath);
-  const targetPath = path.join(tempRoot, relPath);
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.copyFileSync(sourcePath, targetPath);
-}
-
-function fixtureFiles() {
-  return [
-    'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-manual-element-sideload.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
-    'converters/xml-cii2019-core/default-weight-master-rows.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
-  ];
-}
-
 function prepareEsmFixture() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-manual-test-'));
-  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  for (const relPath of fixtureFiles()) copyFile(tempRoot, relPath);
-  return tempRoot;
+  return createStaticEsmFixture(root, {
+    prefix: 'xml-cii-manual-test-',
+    entryFiles: [
+      'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
+      'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-manual-element-sideload.js',
+      'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
+    ],
+  }).tempRoot;
 }
 
 class TestElement {
@@ -44,12 +26,28 @@ class TestElement {
     this.attributes = {};
     this.value = '';
     this.type = '';
+    this.style = {};
+    this._classSet = new Set();
+    this.classList = {
+      toggle: (name, force) => {
+        const has = this._classSet.has(name);
+        const next = force === undefined ? !has : !!force;
+        if (next) this._classSet.add(name); else this._classSet.delete(name);
+        this.className = Array.from(this._classSet).join(' ');
+        return next;
+      },
+      add: (...names) => { for (const name of names) this._classSet.add(name); this.className = Array.from(this._classSet).join(' '); },
+      remove: (...names) => { for (const name of names) this._classSet.delete(name); this.className = Array.from(this._classSet).join(' '); },
+      contains: (name) => this._classSet.has(name),
+    };
     this._text = '';
   }
   appendChild(child) { this.children.push(child); return child; }
   append(...items) { for (const item of items) this.children.push(item); }
   setAttribute(name, value) { this.attributes[name] = String(value); }
-  get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
+  addEventListener() {}
+  removeEventListener() {}
+  get textContent() { return `${this._text}${this.children.map((child) => typeof child === 'string' ? child : child.textContent || '').join('')}`; }
   set textContent(value) { this._text = String(value ?? ''); }
 }
 
@@ -104,9 +102,6 @@ function inputXmlFixture() {
   assert(withResult.supportConfigJson.includes('manualElementSideload'), 'state write-back must include side-load config');
   assert(withResult.manualElementSideloadWriteBackStatus.includes('saved'), 'write-back status must be visible');
 
-  // XML manual restraints and InputXML element side-load are separate sub-tab panels (wired to
-  // the 'manualOverrides' / 'elementSideload' sub-tabs in xml-cii-adapted-phase-panels.js), so
-  // exercise both renderers rather than expecting one call to produce both sets of sections.
   const manualCard = new TestElement('section');
   ui.renderStandaloneManualElementSideloadPanel(manualCard, { ...withResult, elementSideLoadText: '10|20|PS-10|100,200,300|14|GUIDE' });
   for (const label of ['XML Manual Restraints', 'Policy / Tolerance', 'Matched Restraints', 'Rejected Restraints', 'Save to Run Options']) {

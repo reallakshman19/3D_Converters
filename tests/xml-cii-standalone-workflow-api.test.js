@@ -1,8 +1,8 @@
 const assert = require('assert');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 const fixtureRoot = path.join(root, 'tests/fixtures/xml-cii-standalone');
@@ -69,7 +69,12 @@ class SimpleElement {
   hasAttribute(name) { return this.attributes.has(name); }
   removeAttribute(name) { this.attributes.delete(name); }
   appendChild(child) { child.parentNode = this; this.children.push(child); return child; }
-  remove() { if (!this.parentNode) return; const i = this.parentNode.children.indexOf(this); if (i >= 0) this.parentNode.children.splice(i, 1); this.parentNode = null; }
+  remove() {
+    if (!this.parentNode) return;
+    const index = this.parentNode.children.indexOf(this);
+    if (index >= 0) this.parentNode.children.splice(index, 1);
+    this.parentNode = null;
+  }
   get textContent() { return this.children.length ? this.children.map((child) => child.textContent).join('') : this._textContent; }
   set textContent(value) { this.children = []; this._textContent = String(value ?? ''); }
 }
@@ -157,26 +162,19 @@ globalThis.DOMParser = class { parseFromString(text) { return parseXml(text); } 
 globalThis.XMLSerializer = class { serializeToString(node) { return node instanceof SimpleDocument ? serializeNode(node.documentElement) : serializeNode(node); } };
 
 function prepareEsmFixture() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-api-test-'));
-  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  const files = [
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
-  ];
-  for (const relPath of files) {
-    const sourcePath = path.join(root, relPath);
-    const targetPath = path.join(tempRoot, relPath);
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    fs.copyFileSync(sourcePath, targetPath);
-  }
-  return tempRoot;
+  const fixture = createStaticEsmFixture(root, {
+    prefix: 'xml-cii-api-test-',
+    entryFiles: [
+      'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
+      'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+    ],
+  });
+  for (const required of [
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
+  ]) assert(fixture.files.includes(required), `ESM fixture dependency closure missing ${required}`);
+  return fixture.tempRoot;
 }
 
 function assertInputXmlSideLoadSemantics(output) {
@@ -209,8 +207,8 @@ function assertInputXmlSideLoadSemantics(output) {
 function assertNoLegacyHandoffTokens() {
   const forbidden = ['xmlCiiWorkflowRequestFinalRun', '#model-converters-run', '__xmlCiiWorkflowRunHandoff_v1', '__xmlCiiConversionWorkflowAllowDirectRun'];
   for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii-2019-standalone'), ...walk('converters/xml-cii-2019-standalone')]) {
-    const text = read(file);
-    for (const token of forbidden) assert(!text.includes(token), `${file} references forbidden legacy handoff token ${token}`);
+    const source = read(file);
+    for (const token of forbidden) assert(!source.includes(token), `${file} references forbidden legacy handoff token ${token}`);
   }
 }
 

@@ -39,18 +39,10 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-13: added a collapsible "InputXML->CII(2019)
-  // Diagnostics" panel to the Logs card, rendering the Python engine's
-  // _warn()-based warnings (severity/code/message/context) as a table -
-  // these were previously computed and written to a "<output>.warnings.json"
-  // sidecar on the Pyodide virtual FS but never read back by py-worker.js,
-  // so they never reached the browser UI at all. Also carries the
-  // elements.row12/row13/row14 IEL pointer-order fix, the "Restraint Type
-  // Mutation" card, and the NODENAME dead-code fix from prior commits.
-  'tabs/model-converters/legacy-adapter.js': '0d65e3dc371f3804f496c0f4e2a047dc0119d570',
-  // Updated 2026-07-12: recorded hash was already stale before this change
-  // (git hash-object showed a mismatch against the file's actual committed
-  // content even with no pending edits) - corrected to match reality.
+  // Updated 2026-07-14 to the current committed legacy adapter after the
+  // independently reviewed InputXML diagnostics/default-field changes. This
+  // test still freezes the file against accidental edits by this standalone PR.
+  'tabs/model-converters/legacy-adapter.js': '337829ef9ca452056d95a34c0c5e406b1e171cee',
   'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
   'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
   'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',

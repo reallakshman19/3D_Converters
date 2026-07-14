@@ -1,8 +1,8 @@
 const assert = require('assert');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 const fixtureRoot = path.join(root, 'tests/fixtures/xml-cii-standalone');
@@ -74,22 +74,20 @@ globalThis.DOMParser = class { parseFromString(text) { return parseXml(text); } 
 globalThis.XMLSerializer = class { serializeToString(node) { return node instanceof SimpleDocument ? serializeNode(node.documentElement) : serializeNode(node); } };
 
 function prepareEsmFixture() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-readiness-test-'));
-  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  const files = [
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-production-readiness.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
-  ];
-  for (const relPath of files) { const target = path.join(tempRoot, relPath); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.copyFileSync(path.join(root, relPath), target); }
-  return tempRoot;
+  const fixture = createStaticEsmFixture(root, {
+    prefix: 'xml-cii-readiness-test-',
+    entryFiles: [
+      'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
+      'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+      'tabs/xml-cii-2019-standalone/xml-cii-production-readiness.js',
+    ],
+  });
+  for (const required of [
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
+  ]) assert(fixture.files.includes(required), `ESM fixture dependency closure missing ${required}`);
+  return fixture.tempRoot;
 }
 
 function requiredDiagnostics(result, branch) {
@@ -117,8 +115,8 @@ function productionIsolationOk() {
   if (productionImports.some((token) => api.includes(token) || service.includes(token))) return false;
   const forbidden = ['xmlCiiWorkflowRequestFinalRun', '#model-converters-run', '__xmlCiiWorkflowRunHandoff_v1', '__xmlCiiConversionWorkflowAllowDirectRun', 'legacy-adapter'];
   for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii-2019-standalone'), ...walk('converters/xml-cii-2019-standalone')]) {
-    const text = read(file);
-    if (forbidden.some((token) => text.includes(token))) return false;
+    const source = read(file);
+    if (forbidden.some((token) => source.includes(token))) return false;
   }
   return true;
 }
