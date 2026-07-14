@@ -1,5 +1,5 @@
 function graphIdentity(graph) {
-  if (!graph?.validation?.ok) return null;
+  if (!graph?.validation?.ok || graph.schema !== 'UniversalSourceGraph.v1') return null;
   return {
     sourceFileId: graph.sourceFileId,
     sourceRevision: graph.sourceRevision,
@@ -10,6 +10,13 @@ function graphIdentity(graph) {
 
 function registryMap(registry) {
   return new Map((registry?.datasets || []).map((dataset) => [dataset.datasetId, dataset]));
+}
+
+function deepFreeze(value, seen = new Set()) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return value;
+  seen.add(value);
+  Object.values(value).forEach((item) => deepFreeze(item, seen));
+  return Object.freeze(value);
 }
 
 function jsonSafetyError(value) {
@@ -64,8 +71,8 @@ export function createMasterAttachmentSet(graph, attachments = [], registry = { 
     attachmentOrder,
   }));
   const base = { schema: 'MasterAttachmentSet.v1', ...identity, attachments: normalized };
-  const validation = Object.freeze(validateMasterAttachmentSet(base, graph, registry));
-  return Object.freeze({ ...base, attachments: Object.freeze(normalized.map(Object.freeze)), validation });
+  const validation = validateMasterAttachmentSet(base, graph, registry);
+  return deepFreeze({ ...base, validation });
 }
 
 export function attachMasterDataset(attachmentSet, graph, registry, dataset) {
