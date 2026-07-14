@@ -28,7 +28,7 @@ async function fixture() {
   return { ...api, dataset, registry, graph: validGraph('a') };
 }
 
-test('attachment set contains references only and is immutable', async () => {
+test('attachment set contains references only and is deeply immutable', async () => {
   const { dataset, registry, graph, createMasterAttachmentSet, attachMasterDataset, serializeMasterAttachmentSet } = await fixture();
   const attached = attachMasterDataset(createMasterAttachmentSet(graph, [], registry), graph, registry, dataset);
   assert.strictEqual(attached.validation.ok, true);
@@ -36,7 +36,9 @@ test('attachment set contains references only and is immutable', async () => {
     datasetId: dataset.datasetId, datasetRole: dataset.datasetRole, attachmentOrder: 0,
   }]);
   assert.strictEqual('rows' in attached.attachments[0], false);
-  assert(Object.isFrozen(attached));
+  for (const value of [attached, attached.attachments, attached.attachments[0], attached.validation, attached.validation.errors, attached.validation.warnings]) {
+    assert(Object.isFrozen(value));
+  }
   assert.deepStrictEqual(JSON.parse(serializeMasterAttachmentSet(attached)), attached);
 });
 
@@ -69,6 +71,14 @@ test('attachment validation detects metadata, unknown, duplicate, role and order
   assert.match(text, /order/i);
 });
 
+test('attachment validation rejects a graph with the wrong schema even when marked valid', async () => {
+  const { registry, graph, createMasterAttachmentSet } = await fixture();
+  const wrongGraph = { ...graph, schema: 'OtherGraph.v1' };
+  const attachmentSet = createMasterAttachmentSet(wrongGraph, [], registry);
+  assert.strictEqual(attachmentSet.validation.ok, false);
+  assert.match(attachmentSet.validation.errors.join(' '), /UniversalSourceGraph\.v1/i);
+});
+
 test('attachment validation rejects function and cyclic values', async () => {
   const { registry, graph, createMasterAttachmentSet, validateMasterAttachmentSet } = await fixture();
   const base = createMasterAttachmentSet(graph, [], registry);
@@ -76,7 +86,6 @@ test('attachment validation rejects function and cyclic values', async () => {
   const cyclic = { ...base }; cyclic.self = cyclic;
   assert.match(validateMasterAttachmentSet(cyclic, graph, registry).errors.join(' '), /cycle/i);
 });
-
 
 test('attachment validation rejects malformed attachment collections without throwing', async () => {
   const { createMasterDataset } = await modules();
