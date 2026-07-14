@@ -91,11 +91,14 @@ function copyEsmFiles(tempRoot) {
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
     'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
     'tabs/xml-cii-2019-standalone/xml-cii-parity-report.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
   ];
   for (const relPath of files) {
     const target = path.join(tempRoot, relPath);

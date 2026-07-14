@@ -9,6 +9,8 @@
 // XML or the CII. This module reuses the parent's enrichment core so the
 // standalone run carries the same facts the preview tabs showed.
 
+import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
+
 const PARITY_MODULE_URL = new URL(
   '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
   import.meta.url,
@@ -139,9 +141,11 @@ export function standaloneParityOptions(supportConfigJson, options = {}) {
   };
 }
 
-// Enrich the raw XML source with the parent enrichment core plus the
-// standalone process parity pass. Falls back to the untouched source when
-// enrichment is impossible (no DOM, parse failure) so the run never breaks.
+// Enrich the raw XML source with the parent enrichment core, the standalone
+// authoritative DTXR position-group ledger, and finally the standalone process
+// parity pass. The DTXR ledger is deliberately applied after the parent core so
+// the exact XML sent to Python contains the same DTXR_POS/DTXR_PS evidence that
+// the Resolver / JSON Trace screen reports.
 export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
   const sourceText = text(job?.sourceText);
   const out = { xmlText: sourceText, applied: false, diagnostics: [], stats: {}, logs: [], error: null };
@@ -150,12 +154,19 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     const parity = await import(PARITY_MODULE_URL.href);
     const options = { ...standaloneParityOptions(job.supportConfigJson, job.options || {}), ...extraOptions };
     const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
-    out.diagnostics = Array.isArray(enriched.diagnostics) ? enriched.diagnostics : [];
-    out.stats = enriched.stats && typeof enriched.stats === 'object' ? enriched.stats : {};
     const config = parseConfig(options.supportConfigJson);
-    out.xmlText = await applyStandaloneProcessParity(enriched.xmlText || sourceText, config, text(job.stagedJsonText), out.diagnostics);
+    const dtxr = enrichStandaloneDtxrAnnotations(enriched.xmlText || sourceText, text(job.stagedJsonText), config);
+    out.diagnostics = [
+      ...(Array.isArray(enriched.diagnostics) ? enriched.diagnostics : []),
+      ...(Array.isArray(dtxr.diagnostics) ? dtxr.diagnostics : []),
+    ];
+    out.stats = {
+      ...(enriched.stats && typeof enriched.stats === 'object' ? enriched.stats : {}),
+      ...(dtxr.stats && typeof dtxr.stats === 'object' ? dtxr.stats : {}),
+    };
+    out.xmlText = await applyStandaloneProcessParity(dtxr.text || enriched.xmlText || sourceText, config, text(job.stagedJsonText), out.diagnostics);
     out.applied = true;
-    out.logs.push(`Standalone run parity applied: ${out.stats.weightAnnotations || 0} weight annotation(s), ${out.stats.processAnnotations || 0} process annotation(s), ${out.stats.stagedSupportsMapped || 0} staged support(s), ${out.stats.splitCondensedRigidNodes || 0} renumbered node(s).`);
+    out.logs.push(`Standalone run parity applied: ${out.stats.weightAnnotations || 0} weight annotation(s), ${out.stats.processAnnotations || 0} process annotation(s), ${out.stats.stagedSupportsMapped || 0} staged support(s), ${out.stats.dtxrPosAnnotations || 0} DTXR_POS annotation(s), ${out.stats.dtxrPsAnnotations || 0} DTXR_PS annotation(s), ${out.stats.splitCondensedRigidNodes || 0} renumbered node(s).`);
   } catch (error) {
     out.error = text(error?.message || error);
     out.logs.push(`Standalone run parity skipped: ${out.error}`);
