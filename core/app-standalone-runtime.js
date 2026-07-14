@@ -20,6 +20,7 @@ const TAB_ID_ALIASES = new Map([
   ['xml-builder', 'xml-builder'],
   ['basic-glb-pcf', 'basic-glb-pcf'],
   ['universal-xml', 'universal-xml'],
+  ['universal-enrichment-workbench', 'universal-enrichment-workbench'],
   ['model-exchange', 'model-exchange'],
   ['interchange-config', 'interchange-config'],
   ['support-mapping-config', 'support-mapping-config'],
@@ -46,6 +47,7 @@ export const STANDALONE_TABS = Object.freeze([
   { id: 'xml-builder', label: 'XML Builder', icon: 'tool', load: () => import('../tabs/xml-builder-tab.js?v=standalone-1').then((module) => pickRenderer(module, 'renderXmlBuilderTab', 'xml-builder')) },
   { id: 'basic-glb-pcf', label: 'Basic GLB-PCF', icon: 'pipe', load: loadBasicGlbPcfRenderer },
   { id: 'universal-xml', label: 'Universal XML', icon: 'xml', load: () => import('../tabs/universal-xml-converter-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderUniversalXmlConverterTab', 'universal-xml')) },
+  { id: 'universal-enrichment-workbench', label: 'Universal Enrichment Workbench', icon: 'xml', load: () => import('../tabs/universal-enrichment-workbench-tab.js?v=uew-001').then((module) => pickRenderer(module, 'renderUniversalEnrichmentWorkbenchTab', 'universal-enrichment-workbench')) },
   { id: 'model-exchange', label: 'Model Exchange', icon: 'exchange', load: () => import('../tabs/model-exchange-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderModelExchangeTab', 'model-exchange')) },
   { id: 'interchange-config', label: 'Interchange Config', icon: 'gear', load: () => import('../tabs/interchange-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderInterchangeConfigTab', 'interchange-config')) },
   { id: 'support-mapping-config', label: 'Support Mapping', icon: 'support', load: () => import('../tabs/support-mapping-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderSupportMappingConfigTab', 'support-mapping-config')) },
@@ -59,6 +61,7 @@ const TAB_GROUPS = Object.freeze([
   "xml-builder",
   "basic-glb-pcf",
   "universal-xml",
+  "universal-enrichment-workbench",
   "stagedjson-properties"
 ] },
   { label: 'Exchange', ids: [
