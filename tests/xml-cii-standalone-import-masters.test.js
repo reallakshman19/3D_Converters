@@ -31,6 +31,7 @@ class TestElement {
     this.dataset = {};
     this.className = '';
     this.attributes = {};
+    this.style = {};
     this._text = '';
   }
   appendChild(child) { this.children.push(child); return child; }
