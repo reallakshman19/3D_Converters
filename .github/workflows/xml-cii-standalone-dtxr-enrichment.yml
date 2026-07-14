@@ -35,12 +35,17 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Run DTXR and protected regression checks
-        shell: bash
-        run: |
-          set -euo pipefail
-          node tests/xml-cii-standalone-static.test.js
-          node tests/xml-cii-inputxml-enrichment-behavior.test.js
-          node tests/xml-cii-standalone-dtxr-enrichment.test.js
-          node tests/xml-cii-standalone-implementation-guard.test.js
-          node tests/xml-cii-standalone-parity.test.js
+      - name: Run standalone static checks
+        run: node tests/xml-cii-standalone-static.test.js
+
+      - name: Run InputXML enrichment behavior checks
+        run: node tests/xml-cii-inputxml-enrichment-behavior.test.js
+
+      - name: Run focused DTXR enrichment checks
+        run: node tests/xml-cii-standalone-dtxr-enrichment.test.js
+
+      - name: Run implementation guard checks
+        run: node tests/xml-cii-standalone-implementation-guard.test.js
+
+      - name: Run parity checks
+        run: node tests/xml-cii-standalone-parity.test.js
