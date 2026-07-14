@@ -1,47 +1,27 @@
 const assert = require('assert');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 
-function copyFile(tempRoot, relPath) {
-  const sourcePath = path.join(root, relPath);
-  const targetPath = path.join(tempRoot, relPath);
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.copyFileSync(sourcePath, targetPath);
-}
-
-function fixtureFiles() {
-  return [
-    'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-rating.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-results.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
-    'converters/xml-cii2019-core/default-weight-master-rows.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js',
-    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-registry.js',
-  ];
-}
-
 function prepareEsmFixture() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-regex-test-'));
-  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  for (const relPath of fixtureFiles()) copyFile(tempRoot, relPath);
-  return tempRoot;
+  const fixture = createStaticEsmFixture(root, {
+    prefix: 'xml-cii-regex-test-',
+    entryFiles: [
+      'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
+      'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-regex-tester.js',
+      'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
+      'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
+    ],
+  });
+  for (const required of [
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
+  ]) assert(fixture.files.includes(required), `ESM fixture dependency closure missing ${required}`);
+  return fixture.tempRoot;
 }
 
 class TestElement {
@@ -74,7 +54,7 @@ class TestElement {
   setAttribute(name, value) { this.attributes[name] = String(value); }
   addEventListener() {}
   removeEventListener() {}
-  get textContent() { return `${this._text}${this.children.map((c) => typeof c === 'string' ? c : c.textContent || '').join('')}`; }
+  get textContent() { return `${this._text}${this.children.map((child) => typeof child === 'string' ? child : child.textContent || '').join('')}`; }
   set textContent(value) { this._text = String(value ?? ''); }
 }
 
@@ -112,11 +92,11 @@ function parseXmlText(xmlText) {
       const body = token.slice(1, selfClosing ? -2 : -1).trim();
       const name = body.match(/^([^\s/>]+)/)?.[1];
       if (!name) continue;
-      const el = new SimpleXmlElement(name);
-      parseXmlAttrs(body.slice(name.length), el);
-      if (!rootElement) rootElement = el;
-      if (stack.length) stack[stack.length - 1].appendChild(el);
-      if (!selfClosing) stack.push(el);
+      const element = new SimpleXmlElement(name);
+      parseXmlAttrs(body.slice(name.length), element);
+      if (!rootElement) rootElement = element;
+      if (stack.length) stack[stack.length - 1].appendChild(element);
+      if (!selfClosing) stack.push(element);
     } else if (stack.length) {
       stack[stack.length - 1]._textContent += decodeXmlEntities(token);
     }
