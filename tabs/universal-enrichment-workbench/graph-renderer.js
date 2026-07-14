@@ -1,4 +1,5 @@
 export const TREE_RENDER_LIMIT = 200;
+export const TREE_RENDER_STEP = 200;
 export const TABLE_RENDER_LIMIT = 200;
 
 function setText(element, value) {
@@ -44,7 +45,7 @@ export function visibleTreeEntities(graph, expandedIds, limit = TREE_RENDER_LIMI
 function treeRow(documentRef, entity, expandedIds) {
   const row = documentRef.createElement('div');
   row.className = 'uew-tree-row';
-  row.style = { paddingLeft: `${entity.depth * 14}px` };
+  row.style.paddingLeft = `${entity.depth * 14}px`;
   const toggle = documentRef.createElement('button');
   toggle.type = 'button';
   toggle.dataset.graphAction = 'toggle';
@@ -60,12 +61,20 @@ function treeRow(documentRef, entity, expandedIds) {
   return row;
 }
 
-export function renderHierarchyTree(elements, graph, expandedIds) {
+export function renderHierarchyTree(elements, graph, expandedIds, limit = TREE_RENDER_LIMIT) {
   const tree = elements['graph-tree'];
   if (!tree) return;
-  const rows = visibleTreeEntities(graph, expandedIds).map((entity) => treeRow(tree.ownerDocument, entity, expandedIds));
+  const visible = visibleTreeEntities(graph, expandedIds, limit + 1);
+  const hasMore = visible.length > limit;
+  const entities = visible.slice(0, limit);
+  const rows = entities.map((entity) => treeRow(tree.ownerDocument, entity, expandedIds));
   tree.replaceChildren(...rows);
-  setText(elements['graph-tree-count'], `${rows.length} rendered`);
+  setText(elements['graph-tree-count'], `${rows.length}${hasMore ? '+' : ''} rendered`);
+  const more = elements['graph-tree-more'];
+  if (more) {
+    more.hidden = !hasMore;
+    more.disabled = !hasMore;
+  }
 }
 
 export function filterGraphEntities(graph, query, limit = TABLE_RENDER_LIMIT) {
@@ -129,7 +138,7 @@ export function renderGraphPanel(elements, state) {
   setText(elements['graph-kind-counts'], kindCountText(graph?.summary?.kindCounts));
   renderFindings(elements['graph-errors'], graph ? validation.errors : []);
   renderFindings(elements['graph-warnings'], graph ? validation.warnings : []);
-  renderHierarchyTree(elements, graph, state.expandedIds);
+  renderHierarchyTree(elements, graph, state.expandedIds, state.treeLimit);
   renderEntityTable(elements, graph, state.filter);
   renderEntityDetails(elements, graph, state.selectedEntityId);
 }
