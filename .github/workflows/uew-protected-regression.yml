@@ -1,0 +1,78 @@
+name: UEW Protected Regression
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'core/app-standalone-runtime.js'
+      - 'tabs/universal-enrichment-workbench-tab.js'
+      - 'tabs/universal-enrichment-workbench/**'
+      - 'tests/universal-enrichment-workbench-*.test.js'
+      - 'tests/universal-enrichment-workbench-test-helpers.js'
+      - 'tests/xml-cii-standalone-workflow-ui-adapted.test.js'
+      - '.github/workflows/uew-protected-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  protected-regression:
+    name: UEW and XML CII protected regression
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest PR head
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run UEW source-intake tests
+        run: node --test tests/universal-enrichment-workbench-*.test.js
+
+      - name: Run standalone application static validation
+        run: node tests/standalone-static.test.js
+
+      - name: Run protected XML CII Standalone regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          tests=(
+            tests/xml-cii-standalone-static.test.js
+            tests/xml-cii-inputxml-enrichment-behavior.test.js
+            tests/xml-cii-standalone-workflow-api.test.js
+            tests/xml-cii-standalone-import-masters.test.js
+            tests/xml-cii-standalone-regex-tester.test.js
+            tests/xml-cii-standalone-resolver-json-trace.test.js
+            tests/xml-cii-standalone-manual-element-sideload.test.js
+            tests/xml-cii-standalone-preview-diagnostics-audit.test.js
+            tests/xml-cii-standalone-weight-match.test.js
+            tests/xml-cii-standalone-support-type-mapper.test.js
+            tests/xml-cii-standalone-output-run.test.js
+            tests/xml-cii-standalone-source-mode-integration.test.js
+            tests/xml-cii-standalone-production-readiness.test.js
+            tests/xml-cii-standalone-workflow-ui-adapted.test.js
+            tests/xml-cii-standalone-implementation-guard.test.js
+            tests/xml-cii-standalone-benchmark-validation.test.js
+            tests/xml-cii-standalone-parity.test.js
+            tests/xml-cii-standalone-live-smoke.test.js
+          )
+          for test_file in "${tests[@]}"; do
+            echo "::group::${test_file}"
+            node "${test_file}"
+            echo "::endgroup::"
+          done
+
+      - name: Verify protected production paths are untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main --depth=1
+          changed="$(git diff --name-only origin/main...HEAD)"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -E '^(tabs/xml-cii-2019-standalone-tab\.js|tabs/xml-cii-2019-standalone/|converters/xml-cii-2019-standalone/|converters/scripts/inputxml_to_cii2019\.py|tabs/model-converters/.*xml-cii|tabs/model-converters/converters/xmltocii2019|converters/scripts/xml_to_cii2019\.py)'; then
+            echo 'Protected XML CII production path changed.' >&2
+            exit 1
+          fi
