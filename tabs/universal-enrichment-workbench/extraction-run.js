@@ -4,6 +4,8 @@ import { testExtractionRule } from './extraction-strategy.js';
 
 export const EXTRACTION_ENTITY_LIMIT = 5000;
 export const EXTRACTION_INPUT_LIMIT = 10000;
+const GRAPH_SCHEMA = 'UniversalSourceGraph.v1';
+const CONFIG_SCHEMA = 'ExtractionConfig.v1';
 
 function graphIdentity(graph) {
   return [graph?.sourceFileId, graph?.sourceRevision, graph?.contentHash, graph?.schema].join('|');
@@ -11,6 +13,14 @@ function graphIdentity(graph) {
 
 function orderedGraphEntities(graph) {
   return [...(graph?.entities || [])].sort((a, b) => a.sourceOrder - b.sourceOrder || a.entityId.localeCompare(b.entityId));
+}
+
+function validGraph(graph) {
+  return graph?.schema === GRAPH_SCHEMA && graph?.validation?.ok && Array.isArray(graph.entities);
+}
+
+function validConfig(config) {
+  return config?.schema === CONFIG_SCHEMA && config?.validation?.ok && Array.isArray(config.rules);
 }
 
 export function normalizeExtractionScope(graph, scope = {}) {
@@ -48,11 +58,15 @@ function runWarnings(truncated) {
   return truncated ? [`Entity scope exceeded ${EXTRACTION_ENTITY_LIMIT}; the run was truncated.`] : [];
 }
 
+function authoritativeInputScope(inputScope = {}) {
+  return inputScope.kind === 'all' ? { kind: 'all', entityIds: [] } : inputScope;
+}
+
 export async function createExtractionTestRun(graph, config, inputScope, dependencies = {}) {
-  if (!graph?.validation?.ok) throw new Error('A valid UniversalSourceGraph.v1 is required.');
-  if (!config?.validation?.ok) throw new Error('A valid ExtractionConfig.v1 is required.');
+  if (!validGraph(graph)) throw new Error(`A valid ${GRAPH_SCHEMA} is required.`);
+  if (!validConfig(config)) throw new Error(`A valid ${CONFIG_SCHEMA} is required.`);
   const hashText = dependencies.hashText || sha256Hex;
-  const scope = normalizeExtractionScope(graph, inputScope);
+  const scope = normalizeExtractionScope(graph, authoritativeInputScope(inputScope));
   const requestedEntityCount = scope.entityIds.length;
   const truncated = requestedEntityCount > EXTRACTION_ENTITY_LIMIT;
   const entityIds = scope.entityIds.slice(0, EXTRACTION_ENTITY_LIMIT);
@@ -83,6 +97,9 @@ export async function createExtractionTestRun(graph, config, inputScope, depende
 function metadataErrors(run, graph, config) {
   const errors = [];
   if (run?.schema !== 'ExtractionTestRun.v1') errors.push('Test run schema must be ExtractionTestRun.v1.');
+  if (graph?.schema !== GRAPH_SCHEMA) errors.push(`Current graph schema must be ${GRAPH_SCHEMA}.`);
+  if (config?.schema !== CONFIG_SCHEMA) errors.push(`Current configuration schema must be ${CONFIG_SCHEMA}.`);
+  if (run?.sourceGraphSchema !== GRAPH_SCHEMA) errors.push(`Test run sourceGraphSchema must be ${GRAPH_SCHEMA}.`);
   if (run?.sourceFileId !== graph?.sourceFileId || run?.sourceRevision !== graph?.sourceRevision || run?.sourceContentHash !== graph?.contentHash || run?.sourceGraphSchema !== graph?.schema) {
     errors.push('Test run graph metadata does not match the current graph.');
   }
@@ -93,12 +110,14 @@ function metadataErrors(run, graph, config) {
 function resultErrors(run, graph, config) {
   const errors = [];
   const entityIds = new Set((graph?.entities || []).map((entity) => entity.entityId));
+  const scopeIds = new Set(run?.scope?.entityIds || []);
   const ruleIds = new Set((config?.rules || []).map((rule) => rule.ruleId));
   const pairs = new Set();
   (run?.results || []).forEach((result) => {
     const pair = `${result.ruleId}\0${result.entityId}`;
     if (!ruleIds.has(result.ruleId)) errors.push(`Unknown rule ID ${result.ruleId}.`);
     if (!entityIds.has(result.entityId)) errors.push(`Unknown entity ID ${result.entityId}.`);
+    if (!scopeIds.has(result.entityId)) errors.push(`Result entity ${result.entityId} is outside the frozen scope.`);
     if (pairs.has(pair)) errors.push(`Duplicate result pair ${result.ruleId}/${result.entityId}.`);
     if (!['matched', 'rejected'].includes(result.status)) errors.push('Result status is invalid.');
     if (result.status === 'matched' && !Number.isInteger(result.winningStrategyIndex)) errors.push('Matched result requires a winning strategy.');
@@ -129,7 +148,7 @@ export async function validateExtractionTestRun(run, graph, config, dependencies
   errors.push(...findJsonSafetyErrors(run, 'Test run'));
   try {
     const scope = normalizeExtractionScope(graph, run.scope);
-    const expectedId = await createRunId(graph, config.configId, scope, dependencies.hashText || sha256Hex);
+    const expectedId = await createRunId(graph, config?.configId, scope, dependencies.hashText || sha256Hex);
     if (run.runId !== expectedId) errors.push('Test run ID does not match graph, config and scope identity.');
   } catch (error) { errors.push(error.message); }
   return { ok: errors.length === 0, errors: [...new Set(errors)], warnings: [...(run?.validation?.warnings || [])] };
