@@ -36,8 +36,11 @@ function functionLengths(source) {
 const moduleRoot = path.join(root, 'tabs', 'universal-enrichment-workbench');
 const moduleFiles = [...walk(moduleRoot).filter((file) => file.endsWith('.js')), path.join(root, 'tabs', 'universal-enrichment-workbench-tab.js')];
 
-test('new module has no forbidden imports, references or persistence keys', () => {
-  const forbidden = ['xml-cii', 'runXmlCii2019Workflow', 'xmlCiiDryRunPreview', 'InputXmlCii2019', 'inputxml_to_cii2019', 'Pyodide', 'Uxml', 'uxml/'];
+test('UEW module has no forbidden imports, runtime references or persistence keys', () => {
+  const forbidden = [
+    'xml-cii', 'runXmlCii2019Workflow', 'xmlCiiDryRunPreview', 'InputXmlCii2019',
+    'inputxml_to_cii2019', 'Pyodide', 'Uxml', 'uxml/', 'model-converters/',
+  ];
   for (const file of moduleFiles) {
     const source = read(file);
     for (const token of forbidden) assert(!source.includes(token), `${relative(file)} contains forbidden token ${token}`);
@@ -45,7 +48,7 @@ test('new module has no forbidden imports, references or persistence keys', () =
   }
 });
 
-test('tab registration is isolated and lazy-loaded in the Converters group', () => {
+test('UEW-001 tab registration remains isolated and lazy-loaded', () => {
   const runtime = read(path.join(root, 'core', 'app-standalone-runtime.js'));
   assert(runtime.includes("['universal-enrichment-workbench', 'universal-enrichment-workbench']"));
   assert(runtime.includes("id: 'universal-enrichment-workbench', label: 'Universal Enrichment Workbench'"));
@@ -53,7 +56,7 @@ test('tab registration is isolated and lazy-loaded in the Converters group', () 
   assert(runtime.includes("pickRenderer(module, 'renderUniversalEnrichmentWorkbenchTab', 'universal-enrichment-workbench')"));
 });
 
-test('new JavaScript files satisfy line, function, syntax and import constraints', () => {
+test('UEW JavaScript satisfies line, function, syntax and import constraints', () => {
   for (const file of moduleFiles) {
     const source = read(file);
     assert(source.split('\n').length < 300, `${relative(file)} exceeds 300 lines`);
@@ -66,10 +69,13 @@ test('new JavaScript files satisfy line, function, syntax and import constraints
   }
 });
 
-test('working changes remain inside UEW allowed paths', () => {
+test('working changes remain inside UEW-002 allowed paths', () => {
   const tracked = execFileSync('git', ['diff', '--name-only', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean);
   const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean);
   const changed = [...new Set([...tracked, ...untracked])].filter((file) => !file.startsWith('.backups/'));
-  const allowed = changed.every((file) => file === 'core/app-standalone-runtime.js' || file === 'tabs/universal-enrichment-workbench-tab.js' || file.startsWith('tabs/universal-enrichment-workbench/') || /^tests\/universal-enrichment-workbench-.*\.test\.js$/.test(file) || file === 'tests/universal-enrichment-workbench-test-helpers.js');
+  const allowed = changed.every((file) => file.startsWith('tabs/universal-enrichment-workbench/')
+    || /^tests\/universal-enrichment-workbench-.*\.test\.js$/.test(file)
+    || file === 'tests/universal-enrichment-workbench-test-helpers.js'
+    || file === '.github/workflows/uew-protected-regression.yml');
   assert(allowed, `Out-of-scope files changed: ${changed.join(', ')}`);
 });
