@@ -18,6 +18,7 @@ function fixtureFiles() {
     'tabs/xml-cii-2019-standalone/xml-cii-weight-match.js',
     'tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js',
     'tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js',
+    'tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js',
     'tabs/xml-cii-2019-standalone/xml-cii-manual-element-sideload.js',
     'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
