@@ -1,8 +1,8 @@
 const assert = require('assert');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 const fixtureRoot = path.join(root, 'tests/fixtures/xml-cii-standalone');
@@ -22,31 +22,19 @@ function normalizeXmlish(value) {
 }
 
 function prepareEsmFixture() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-benchmark-test-'));
-  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  for (const relPath of requiredEsmFiles()) copyFixtureFile(tempRoot, relPath);
-  return tempRoot;
-}
-
-function requiredEsmFiles() {
-  return [
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
-  ];
-}
-
-function copyFixtureFile(tempRoot, relPath) {
-  const source = path.join(root, relPath);
-  const target = path.join(tempRoot, relPath);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(source, target);
+  const fixture = createStaticEsmFixture(root, {
+    prefix: 'xml-cii-benchmark-test-',
+    entryFiles: [
+      'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
+      'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+    ],
+  });
+  for (const required of [
+    'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js',
+    'converters/xml-cii2019-core/restraint-type-mutation.js',
+    'converters/xml-cii2019-core/restraint-type-codes.js',
+  ]) assert(fixture.files.includes(required), `ESM fixture dependency closure missing ${required}`);
+  return fixture.tempRoot;
 }
 
 function assertBenchmarkInput(xml) {
