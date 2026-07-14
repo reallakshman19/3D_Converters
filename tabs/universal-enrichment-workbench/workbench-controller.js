@@ -1,6 +1,7 @@
 import { analyzeSourceText } from './source-structure.js';
 import { createSourceEnvelope, serializeSourceEnvelope, summarizeSourceEnvelope } from './source-envelope.js';
 import { acceptAuthoritativeText, clearWorkbenchState, createWorkbenchState, readSourceFile, selectSourceKind } from './source-authority.js';
+import { collectSourceGraphElements, createSourceGraphController } from './graph-controller.js';
 import { renderWorkbenchMarkup } from './workbench-template.js';
 
 const IDS = ['file', 'kind', 'source-text', 'generate', 'download', 'clear', 'effective-kind', 'detected-kind', 'source-name', 'origin', 'revision', 'byte-length', 'root-shape', 'status', 'content-hash', 'source-file-id', 'errors', 'warnings'];
@@ -44,6 +45,7 @@ function renderSummary(context) {
   renderFindings(elements.errors, validation.errors || []);
   renderFindings(elements.warnings, validation.warnings || []);
   elements.download.disabled = !state.envelope?.validation?.ok;
+  context.graph?.syncAvailability();
 }
 
 function addListener(context, element, type, handler) {
@@ -68,6 +70,7 @@ function revokeUrls(context) {
 async function handleFileChange(context) {
   const file = context.elements.file.files?.[0];
   if (!file) return;
+  context.graph.invalidate();
   const requestId = ++context.fileRequestId;
   const loaded = await readSourceFile(file, context.dependencies.readFile);
   if (context.disposed || requestId !== context.fileRequestId) return;
@@ -77,6 +80,7 @@ async function handleFileChange(context) {
 }
 
 function handleSourceInput(context) {
+  context.graph.invalidate();
   const origin = context.state.pendingPaste ? 'paste' : 'editor';
   context.state = acceptAuthoritativeText(context.state, {
     sourceText: context.elements['source-text'].value, origin,
@@ -85,6 +89,7 @@ function handleSourceInput(context) {
 }
 
 function handleKindChange(context) {
+  context.graph.invalidate();
   context.state = selectSourceKind(context.state, context.elements.kind.value);
   renderSummary(context);
 }
@@ -113,11 +118,25 @@ function handleDownload(context) {
 
 function handleClear(context) {
   revokeUrls(context);
+  context.graph.invalidate();
   context.state = clearWorkbenchState();
   context.elements.file.value = '';
   context.elements.kind.value = 'auto';
   context.elements['source-text'].value = '';
   renderSummary(context);
+}
+
+function createGraphBridge(context, dependencies) {
+  if (dependencies.graphElements?.['graph-build']) {
+    return createSourceGraphController(dependencies.graphElements, dependencies, () => context.state.envelope);
+  }
+  const empty = { graph: null, status: 'Not built', expandedIds: new Set(), selectedEntityId: '', filter: '' };
+  return {
+    getState: () => empty,
+    syncAvailability() {},
+    invalidate() {},
+    cleanup() {},
+  };
 }
 
 function bindListeners(context) {
@@ -135,12 +154,14 @@ export function createWorkbenchController(elements, dependencies = {}) {
   const context = {
     elements, dependencies, ParserCtor: dependencies.ParserCtor || globalThis.DOMParser,
     state: createWorkbenchState(), listeners: [], objectUrls: new Set(),
-    disposed: false, fileRequestId: 0, generationRequestId: 0,
+    disposed: false, fileRequestId: 0, generationRequestId: 0, graph: null,
   };
+  context.graph = createGraphBridge(context, dependencies);
   bindListeners(context);
   renderSummary(context);
   return {
     getState: () => context.state,
+    getGraphState: () => context.graph.getState(),
     clear: () => handleClear(context),
     cleanup() {
       if (context.disposed) return;
@@ -149,6 +170,7 @@ export function createWorkbenchController(elements, dependencies = {}) {
       context.generationRequestId += 1;
       removeListeners(context);
       revokeUrls(context);
+      context.graph.cleanup();
     },
   };
 }
@@ -169,9 +191,12 @@ function browserDependencies(options = {}) {
 export function renderUniversalEnrichmentWorkbench(container, options = {}) {
   const dependencies = browserDependencies(options);
   container.innerHTML = renderWorkbenchMarkup();
+  dependencies.graphElements = collectSourceGraphElements(container);
   const controller = createWorkbenchController(collectElements(container), dependencies);
-  return () => {
+  const cleanup = () => {
     controller.cleanup();
     container.replaceChildren();
   };
+  cleanup.controller = controller;
+  return cleanup;
 }

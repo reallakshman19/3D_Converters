@@ -33,6 +33,12 @@ class FakeElement {
     this.disabled = false;
     this.textContent = '';
     this.parentNode = null;
+    this.className = '';
+    this.style = {};
+    this.hidden = false;
+    this.type = '';
+    this.id = '';
+
   }
 
   addEventListener(type, handler) {
@@ -45,9 +51,10 @@ class FakeElement {
     this.listeners.get(type)?.delete(handler);
   }
 
-  async dispatch(type) {
+  async dispatch(type, target = this) {
     const handlers = [...(this.listeners.get(type) || [])];
-    for (const handler of handlers) await handler({ type, target: this });
+    const event = { type, target, preventDefault() {}, stopPropagation() {} };
+    for (const handler of handlers) await handler(event);
   }
 
   click() { return this.dispatch('click'); }
