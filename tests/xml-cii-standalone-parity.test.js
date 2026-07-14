@@ -1,8 +1,8 @@
 const assert = require('assert');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { createStaticEsmFixture } = require('./xml-cii-standalone-esm-fixture-helper');
 
 const root = path.resolve(__dirname, '..');
 const fixtureRoot = path.join(root, 'tests/fixtures/xml-cii-standalone');
@@ -84,32 +84,20 @@ function serializeNode(node) {
 globalThis.DOMParser = class { parseFromString(text) { return parseXml(text); } };
 globalThis.XMLSerializer = class { serializeToString(node) { return node instanceof SimpleDocument ? serializeNode(node.documentElement) : serializeNode(node); } };
 
-function copyEsmFiles(tempRoot) {
-  const files = [
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js',
+async function loadModules() {
+  const { tempRoot, files } = createStaticEsmFixture(root, {
+    prefix: 'xml-cii-parity-',
+    entryFiles: [
+      'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js',
+      'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
+      'tabs/xml-cii-2019-standalone/xml-cii-parity-report.js',
+    ],
+  });
+  for (const required of [
     'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-default-config.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-parity-report.js',
-    'tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js',
     'converters/xml-cii2019-core/restraint-type-mutation.js',
     'converters/xml-cii2019-core/restraint-type-codes.js',
-  ];
-  for (const relPath of files) {
-    const target = path.join(tempRoot, relPath);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.copyFileSync(path.join(root, relPath), target);
-  }
-}
-async function loadModules() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xml-cii-parity-'));
-  fs.writeFileSync(path.join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
-  copyEsmFiles(tempRoot);
+  ]) assert(files.includes(required), `ESM fixture dependency closure missing ${required}`);
   const base = pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone')).href;
   return {
     api: await import(`${base}/xml-cii-workflow-api.js`),
