@@ -63,3 +63,19 @@
 @media (max-width: 980px) { .uew-grid { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .uew-graph-heading { align-items: stretch; flex-direction: column; } .uew-graph-summary { grid-template-columns: 1fr 1fr; } .uew-graph-layout, .uew-master-layout { grid-template-columns: 1fr; } .uew-graph-pane:last-child, .uew-master-pane:last-child { grid-column: auto; } }
 @media (max-width: 620px) { .uew-shell { padding: 14px; } .uew-controls { grid-template-columns: 1fr; } }
+.uew-extract-card { margin-top: 18px; }
+.uew-extract-layout { display: grid; grid-template-columns: repeat(2, minmax(360px, 1fr)); gap: 14px; margin-top: 16px; }
+.uew-extract-pane { min-width: 0; border: 1px solid #d5dbe7; border-radius: 10px; background: #f8f9fc; overflow: hidden; }
+.uew-extract-list { display: grid; gap: 5px; min-height: 80px; max-height: 300px; padding: 10px; overflow: auto; white-space: pre-wrap; }
+.uew-extract-item { width: 100%; min-height: 34px; padding: 7px 9px; border: 0; border-radius: 6px; background: #e8ecf5; color: inherit; text-align: left; cursor: pointer; font: 11px/1.4 ui-monospace, monospace; }
+.uew-extract-item.is-selected { outline: 2px solid #3157d5; background: #dfe6ff; }
+.uew-extract-actions { padding: 0 10px 10px; }
+.uew-extract-form { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 12px; }
+.uew-extract-form label { display: grid; gap: 5px; font-size: .75rem; font-weight: 650; }
+.uew-extract-form input, .uew-extract-form select { min-height: 34px; padding: 6px 8px; border: 1px solid #b9c2d2; border-radius: 7px; background: #fff; color: inherit; }
+.uew-extract-form .uew-check { display: flex; align-items: center; gap: 7px; }
+.uew-extract-form .uew-check input { min-height: auto; }
+.uew-extract-results { grid-column: 1 / -1; }
+.uew-extract-result-list { min-height: 180px; max-height: 420px; }
+@media (max-width: 980px) { .uew-extract-layout { grid-template-columns: 1fr; } .uew-extract-results { grid-column: auto; } }
+@media (max-width: 620px) { .uew-extract-form { grid-template-columns: 1fr; } }

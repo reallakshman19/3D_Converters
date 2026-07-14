@@ -92,6 +92,67 @@ function masterRegistrySectionMarkup() {
   return `<section class="uew-card uew-master-card" aria-labelledby="uew-master-heading"><div class="uew-graph-heading"><div><p class="uew-kicker">Reference data</p><h2 id="uew-master-heading">Master Registry</h2></div><span class="uew-schema">MasterDataset.v1 · MasterAttachmentSet.v1</span></div><div class="uew-master-layout">${masterImportMarkup()}${masterRegistryMarkup()}${masterDetailsMarkup()}</div></section>`;
 }
 
+
+function extractionRuleMarkup() {
+  return `
+    <section class="uew-extract-pane" aria-labelledby="uew-extract-rules-heading">
+      <div class="uew-pane-title"><h3 id="uew-extract-rules-heading">Rules</h3><span id="uew-extract-rule-position">1 of 1</span></div>
+      <div id="uew-extract-rule-list" class="uew-extract-list"></div>
+      <div class="uew-actions uew-extract-actions"><button id="uew-extract-rule-add" type="button">Add</button><button id="uew-extract-rule-duplicate" type="button">Duplicate</button><button id="uew-extract-rule-remove" type="button" class="uew-secondary">Remove</button><button id="uew-extract-rule-up" type="button" class="uew-secondary">Move up</button><button id="uew-extract-rule-down" type="button" class="uew-secondary">Move down</button></div>
+      <div class="uew-extract-form">
+        <label>Field key<input id="uew-extract-field-key" type="text"></label><label class="uew-check"><input id="uew-extract-enabled" type="checkbox" checked>Enabled</label>
+        <label>Entity kind<select id="uew-extract-entity-kind"><option value="">Any</option><option value="xml-element">XML element</option><option value="json-object">JSON object</option><option value="json-array">JSON array</option><option value="json-value">JSON value</option></select></label>
+        <label>Exact name<input id="uew-extract-name-equals" type="text"></label><label>Path prefix<input id="uew-extract-path-prefix" type="text"></label>
+        <label>Value source<select id="uew-extract-value-source"><option value="entity-name">Entity name</option><option value="entity-value">Entity value</option><option value="source-path">Source path</option><option value="attribute">Attribute</option></select></label>
+        <label>Attribute name<input id="uew-extract-attribute-name" type="text"></label>
+      </div>
+    </section>`;
+}
+
+function extractionStrategyMarkup() {
+  return `
+    <section class="uew-extract-pane" aria-labelledby="uew-extract-strategies-heading">
+      <div class="uew-pane-title"><h3 id="uew-extract-strategies-heading">Ordered strategies</h3></div>
+      <div id="uew-extract-strategy-list" class="uew-extract-list"></div>
+      <div class="uew-actions uew-extract-actions"><button id="uew-extract-strategy-add-regex" type="button">Add regex</button><button id="uew-extract-strategy-add-token" type="button">Add token</button><button id="uew-extract-strategy-remove" type="button" class="uew-secondary">Remove</button><button id="uew-extract-strategy-up" type="button" class="uew-secondary">Move up</button><button id="uew-extract-strategy-down" type="button" class="uew-secondary">Move down</button></div>
+      <div class="uew-extract-form">
+        <label>Kind<select id="uew-extract-strategy-kind"><option value="regex">Regex</option><option value="token">Token</option></select></label><label class="uew-check"><input id="uew-extract-strategy-trim" type="checkbox" checked>Trim</label>
+        <label>Regex pattern<input id="uew-extract-regex-pattern" type="text"></label><label>Flags<input id="uew-extract-regex-flags" type="text" placeholder="imsu"></label><label>Capture group<input id="uew-extract-capture-group" type="text"></label>
+        <label>Token mode<select id="uew-extract-token-mode"><option value="literal">Literal</option><option value="whitespace">Whitespace</option></select></label><label>Delimiter<input id="uew-extract-token-delimiter" type="text"></label><label>Token index<input id="uew-extract-token-index" type="number" min="0" step="1"></label>
+      </div>
+    </section>`;
+}
+
+function extractionConfigMarkup() {
+  return `
+    <section class="uew-extract-pane" aria-labelledby="uew-extract-config-heading">
+      <div class="uew-pane-title"><h3 id="uew-extract-config-heading">Configuration</h3><span id="uew-extract-config-status">Not built</span></div>
+      <dl class="uew-summary"><div><dt>Rules</dt><dd id="uew-extract-config-count">1</dd></div><div class="uew-wide"><dt>Config ID</dt><dd id="uew-extract-config-id">—</dd></div></dl>
+      <div class="uew-actions"><button id="uew-extract-config-build" type="button">Build Extraction Config</button><button id="uew-extract-config-download" type="button" disabled>Download Config JSON</button></div>
+      <div class="uew-findings"><h3>Config errors</h3><ul id="uew-extract-config-errors"><li>None</li></ul><h3>Config warnings</h3><ul id="uew-extract-config-warnings"><li>None</li></ul></div>
+      <label class="uew-filter-label">Graph entity search<input id="uew-extract-entity-search" type="search" placeholder="ID, kind, name or path"></label><div class="uew-pane-title"><h3>Test entities</h3><span id="uew-extract-entity-count">0 shown</span></div><div id="uew-extract-entity-list" class="uew-extract-list"></div>
+      <dl class="uew-summary"><div class="uew-wide"><dt>Selected entity</dt><dd id="uew-extract-selected-entity">None</dd></div></dl>
+      <label class="uew-editor-label">Scope<select id="uew-extract-scope"><option value="selected">Selected</option><option value="filtered">Filtered</option><option value="all">All</option></select></label>
+      <div class="uew-actions"><button id="uew-extract-run" type="button" disabled>Run Extraction Test</button><button id="uew-extract-run-download" type="button" disabled>Download Test Run JSON</button></div>
+    </section>`;
+}
+
+function extractionResultsMarkup() {
+  return `
+    <section class="uew-extract-pane uew-extract-results" aria-labelledby="uew-extract-results-heading">
+      <div class="uew-pane-title"><h3 id="uew-extract-results-heading">Test evidence</h3><span id="uew-extract-run-status">Not run</span></div>
+      <dl class="uew-summary"><div class="uew-wide"><dt>Run ID</dt><dd id="uew-extract-run-id">—</dd></div><div class="uew-wide"><dt>Summary</dt><dd id="uew-extract-run-summary">—</dd></div></dl>
+      <div class="uew-controls"><label>View<select id="uew-extract-result-view"><option value="matched">Matched</option><option value="rejected">Rejected</option><option value="diagnostics">Diagnostics</option></select></label><label>Search<input id="uew-extract-result-search" type="search"></label></div>
+      <div class="uew-pane-title"><h3>Results</h3><span id="uew-extract-result-count">0 of 0</span></div><div id="uew-extract-result-list" class="uew-extract-list uew-extract-result-list"></div>
+      <div class="uew-actions"><button id="uew-extract-result-prev" type="button" class="uew-secondary" disabled>Previous 200</button><button id="uew-extract-result-next" type="button" class="uew-secondary" disabled>Next 200</button></div>
+      <pre id="uew-extract-result-details" class="uew-graph-details">Select a result to inspect strategy attempts.</pre>
+    </section>`;
+}
+
+function extractionTesterSectionMarkup() {
+  return `<section class="uew-card uew-extract-card" aria-labelledby="uew-extract-heading"><div class="uew-graph-heading"><div><p class="uew-kicker">Source-neutral parsing evidence</p><h2 id="uew-extract-heading">Extraction Tester</h2></div><span class="uew-schema">ExtractionConfig.v1 · ExtractionTestRun.v1</span></div><div class="uew-extract-layout">${extractionRuleMarkup()}${extractionStrategyMarkup()}${extractionConfigMarkup()}${extractionResultsMarkup()}</div></section>`;
+}
+
 export function renderWorkbenchMarkup() {
   return `
 <section class="uew-shell" aria-labelledby="uew-title">
@@ -102,5 +163,6 @@ export function renderWorkbenchMarkup() {
   ${sourceIntakeMarkup()}
   ${sourceGraphMarkup()}
   ${masterRegistrySectionMarkup()}
+  ${extractionTesterSectionMarkup()}
 </section>`;
 }

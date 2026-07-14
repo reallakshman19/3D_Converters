@@ -3,6 +3,7 @@ import { createSourceEnvelope, serializeSourceEnvelope, summarizeSourceEnvelope 
 import { acceptAuthoritativeText, clearWorkbenchState, createWorkbenchState, readSourceFile, selectSourceKind } from './source-authority.js';
 import { collectSourceGraphElements, createSourceGraphController } from './graph-controller.js';
 import { collectMasterRegistryElements, createMasterRegistryController } from './master-controller.js';
+import { collectExtractionTesterElements, createExtractionTesterController } from './extraction-controller.js';
 import { renderWorkbenchMarkup } from './workbench-template.js';
 
 const IDS = ['file', 'kind', 'source-text', 'generate', 'download', 'clear', 'effective-kind', 'detected-kind', 'source-name', 'origin', 'revision', 'byte-length', 'root-shape', 'status', 'content-hash', 'source-file-id', 'errors', 'warnings'];
@@ -135,11 +136,27 @@ function createMasterBridge(context, dependencies) {
   return { getState: () => empty, syncGraph() {}, cleanup() {} };
 }
 
+
+function createExtractionBridge(context, dependencies) {
+  if (dependencies.extractionElements?.['extract-config-build']) {
+    return createExtractionTesterController(
+      dependencies.extractionElements,
+      dependencies,
+      () => context.graph?.getState() || null,
+    );
+  }
+  const empty = { config: null, run: null, ruleDrafts: [] };
+  return { getState: () => empty, syncGraph() {}, cleanup() {} };
+}
+
 function createGraphBridge(context, dependencies) {
   if (dependencies.graphElements?.['graph-build']) {
     const graphDependencies = {
       ...dependencies,
-      onGraphChange: (graph) => context.master?.syncGraph(graph),
+      onGraphChange: (graph) => {
+        context.master?.syncGraph(graph);
+        context.extraction?.syncGraph(graph);
+      },
     };
     return createSourceGraphController(dependencies.graphElements, graphDependencies, () => context.state.envelope);
   }
@@ -147,7 +164,10 @@ function createGraphBridge(context, dependencies) {
   return {
     getState: () => empty,
     syncAvailability() {},
-    invalidate() { context.master?.syncGraph(null); },
+    invalidate() {
+      context.master?.syncGraph(null);
+      context.extraction?.syncGraph(null);
+    },
     cleanup() {},
   };
 }
@@ -167,17 +187,21 @@ export function createWorkbenchController(elements, dependencies = {}) {
   const context = {
     elements, dependencies, ParserCtor: dependencies.ParserCtor || globalThis.DOMParser,
     state: createWorkbenchState(), listeners: [], objectUrls: new Set(),
-    disposed: false, fileRequestId: 0, generationRequestId: 0, graph: null, master: null,
+    disposed: false, fileRequestId: 0, generationRequestId: 0, graph: null, master: null, extraction: null,
   };
   context.master = createMasterBridge(context, dependencies);
+  context.extraction = createExtractionBridge(context, dependencies);
   context.graph = createGraphBridge(context, dependencies);
-  context.master.syncGraph(context.graph.getState().graph);
+  const initialGraph = context.graph.getState().graph;
+  context.master.syncGraph(initialGraph);
+  context.extraction.syncGraph(initialGraph);
   bindListeners(context);
   renderSummary(context);
   return {
     getState: () => context.state,
     getGraphState: () => context.graph.getState(),
     getMasterState: () => context.master.getState(),
+    getExtractionState: () => context.extraction.getState(),
     clear: () => handleClear(context),
     cleanup() {
       if (context.disposed) return;
@@ -188,6 +212,7 @@ export function createWorkbenchController(elements, dependencies = {}) {
       revokeUrls(context);
       context.graph.cleanup();
       context.master.cleanup();
+      context.extraction.cleanup();
     },
   };
 }
@@ -210,6 +235,7 @@ export function renderUniversalEnrichmentWorkbench(container, options = {}) {
   container.innerHTML = renderWorkbenchMarkup();
   dependencies.graphElements = collectSourceGraphElements(container);
   dependencies.masterElements = collectMasterRegistryElements(container);
+  dependencies.extractionElements = collectExtractionTesterElements(container);
   const controller = createWorkbenchController(collectElements(container), dependencies);
   const cleanup = () => {
     controller.cleanup();
