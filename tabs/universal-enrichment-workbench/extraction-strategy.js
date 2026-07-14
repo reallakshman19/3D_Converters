@@ -9,22 +9,54 @@ function matched(kind, input, candidate) {
   return { kind, input, outcome: 'matched', candidate, reason: '' };
 }
 
+function captureDefinitions(pattern) {
+  const names = new Set();
+  let count = 0;
+  let escaped = false;
+  let inClass = false;
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (escaped) { escaped = false; continue; }
+    if (char === '\\') { escaped = true; continue; }
+    if (char === '[' && !inClass) { inClass = true; continue; }
+    if (char === ']' && inClass) { inClass = false; continue; }
+    if (inClass || char !== '(') continue;
+    if (pattern[index + 1] !== '?') { count += 1; continue; }
+    if (pattern[index + 2] !== '<' || ['=', '!'].includes(pattern[index + 3])) continue;
+    const end = pattern.indexOf('>', index + 3);
+    if (end < 0) continue;
+    count += 1;
+    names.add(pattern.slice(index + 3, end));
+  }
+  return { count, names };
+}
+
+function captureGroupErrors(pattern, group) {
+  const numeric = Number.isInteger(group) && group >= 0;
+  const named = typeof group === 'string' && Boolean(group.trim());
+  if (!numeric && !named) return ['Regex captureGroup must be a non-negative integer or named group.'];
+  const definitions = captureDefinitions(pattern);
+  if (numeric && group > definitions.count) return [`Regex capture group ${group} is not defined by the pattern.`];
+  if (named && !definitions.names.has(group.trim())) return [`Regex named capture group ${group.trim()} is not defined by the pattern.`];
+  return [];
+}
+
 export function validateRegexStrategy(strategy = {}) {
   const errors = [];
+  const pattern = String(strategy.pattern ?? '');
   const flags = String(strategy.flags ?? '');
-  if (String(strategy.pattern ?? '').length > 500) errors.push('Regex pattern exceeds 500 characters.');
+  if (pattern.length > 500) errors.push('Regex pattern exceeds 500 characters.');
   const seen = new Set();
   for (const flag of flags) {
     if (!ALLOWED_FLAGS.has(flag)) errors.push(`Regex flag ${flag} is unsupported.`);
     if (seen.has(flag)) errors.push(`Regex flag ${flag} is duplicated.`);
     seen.add(flag);
   }
-  const group = strategy.captureGroup;
-  if (!(Number.isInteger(group) && group >= 0) && !(typeof group === 'string' && group.trim())) {
-    errors.push('Regex captureGroup must be a non-negative integer or named group.');
-  }
-  try { new RegExp(String(strategy.pattern ?? ''), flags); }
-  catch (error) { errors.push(`Regex pattern is invalid: ${error.message}`); }
+  let patternValid = true;
+  try { new RegExp(pattern, flags); }
+  catch (error) { patternValid = false; errors.push(`Regex pattern is invalid: ${error.message}`); }
+  const groupErrors = captureGroupErrors(pattern, strategy.captureGroup);
+  if (patternValid || groupErrors[0]?.includes('must be')) errors.push(...groupErrors);
   return errors;
 }
 
@@ -106,7 +138,10 @@ export function testExtractionRule(rule, entity, inputLimit = 10000) {
   if (!matchesSourceSelector(rule.sourceSelector, entity)) return null;
   const resolved = resolveExtractionInput(rule.valueSource, entity);
   if (!resolved.ok) return createRejectedRuleResult(rule, entity, '', resolved.reason);
-  if (resolved.input.length > inputLimit) return createRejectedRuleResult(rule, entity, '', `Input exceeds ${inputLimit} characters.`);
+  if (resolved.input.length > inputLimit) {
+    const evidence = resolved.input.slice(0, inputLimit);
+    return createRejectedRuleResult(rule, entity, evidence, `Input length ${resolved.input.length} exceeds ${inputLimit} characters.`);
+  }
   const attempts = [];
   for (let index = 0; index < rule.strategies.length; index += 1) {
     const outcome = executeExtractionStrategy(rule.strategies[index], resolved.input);
