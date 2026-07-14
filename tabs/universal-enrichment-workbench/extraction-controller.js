@@ -71,6 +71,17 @@ function runScopeReady(state) {
   return state.scopeKind !== 'selected' || Boolean(state.selectedEntityId);
 }
 
+function extractionEvidenceIdentity(state) {
+  return [graphIdentity(state.graph), state.config?.configId || '', state.run?.runId || ''].join('|');
+}
+
+function notifyExtractionChange(context) {
+  const identity = extractionEvidenceIdentity(context.state);
+  if (identity === context.notifiedEvidenceIdentity) return;
+  context.notifiedEvidenceIdentity = identity;
+  context.dependencies.onExtractionChange?.({ graph: context.state.graph, config: context.state.config, run: context.state.run });
+}
+
 function render(context) {
   const { elements, state } = context;
   renderExtractionRuleList(elements, state);
@@ -83,6 +94,7 @@ function render(context) {
   elements['extract-config-build'].disabled = state.configStatus === 'Building';
   elements['extract-run'].disabled = !validGraph(state.graph) || !validConfig(state.config)
     || !runScopeReady(state) || state.runStatus === 'Running';
+  notifyExtractionChange(context);
 }
 
 function invalidateRun(context, status = 'Not run') {
@@ -265,7 +277,7 @@ function bindRunControls(context) {
 }
 
 export function createExtractionTesterController(elements, dependencies = {}, getGraphState = () => null) {
-  const context = { elements, dependencies, getGraphState, listeners: [], objectUrls: new Set(), disposed: false, configRequestId: 0, runRequestId: 0, state: initialState() };
+  const context = { elements, dependencies, getGraphState, listeners: [], objectUrls: new Set(), disposed: false, configRequestId: 0, runRequestId: 0, notifiedEvidenceIdentity: '', state: initialState() };
   bindRuleControls(context); bindStrategyControls(context); bindRunControls(context); render(context);
   return {
     getState: () => context.state,
