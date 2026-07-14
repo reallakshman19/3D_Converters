@@ -268,8 +268,8 @@ export function downloadResolverTraceCsvFromUi(stateRef, render, kind) {
 }
 
 async function writeClipboardText(value) {
-  if (globalThis.navigator?.clipboard?.writeText) {
-    await globalThis.navigator.clipboard.writeText(value);
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
     return true;
   }
   if (typeof document === 'undefined' || !document.body) throw new Error('Clipboard API is unavailable.');
