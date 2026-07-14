@@ -1,0 +1,46 @@
+name: XML CII Standalone DTXR Enrichment
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js'
+      - 'tests/xml-cii-standalone-dtxr-enrichment.test.js'
+      - 'tests/xml-cii-standalone-parity.test.js'
+      - '.github/workflows/xml-cii-standalone-dtxr-enrichment.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  dtxr-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Verify checked-out head SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run DTXR and protected regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/xml-cii-standalone-static.test.js
+          node tests/xml-cii-inputxml-enrichment-behavior.test.js
+          node tests/xml-cii-standalone-dtxr-enrichment.test.js
+          node tests/xml-cii-standalone-implementation-guard.test.js
+          node tests/xml-cii-standalone-parity.test.js
