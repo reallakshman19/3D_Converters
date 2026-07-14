@@ -40,7 +40,7 @@ function graphSummaryMarkup() {
 function graphExplorerMarkup() {
   return `
     <div class="uew-graph-layout">
-      <section class="uew-graph-pane" aria-labelledby="uew-tree-heading"><div class="uew-pane-title"><h3 id="uew-tree-heading">Hierarchy</h3><span id="uew-graph-tree-count">0 rendered</span></div><div id="uew-graph-tree" class="uew-tree" role="tree"></div></section>
+      <section class="uew-graph-pane" aria-labelledby="uew-tree-heading"><div class="uew-pane-title"><h3 id="uew-tree-heading">Hierarchy</h3><span id="uew-graph-tree-count">0 rendered</span></div><div id="uew-graph-tree" class="uew-tree" role="tree"></div><button id="uew-graph-tree-more" type="button" class="uew-secondary" hidden>Show 200 more hierarchy rows</button></section>
       <section class="uew-graph-pane" aria-labelledby="uew-table-heading"><div class="uew-pane-title"><h3 id="uew-table-heading">Flat entities</h3><span id="uew-graph-table-count">0 of 0</span></div><label class="uew-filter-label">Search<input id="uew-graph-filter" type="search" placeholder="ID, kind, name or source path"></label><div id="uew-graph-table-body" class="uew-graph-table" role="rowgroup"></div></section>
       <section class="uew-graph-pane" aria-labelledby="uew-details-heading"><div class="uew-pane-title"><h3 id="uew-details-heading">Selected entity</h3></div><pre id="uew-graph-details" class="uew-graph-details">Select an entity to inspect its source evidence.</pre></section>
     </div>`;
