@@ -11,6 +11,7 @@ export const DEFAULT_XML_CII_2019_SUPPORT_CONFIG = Object.freeze({
   defaultGap: 0,
   defaultFriction: 0.3,
   defaultTeeSifType: 0,
+  useDefaultPipingClassMaterialCodeMap: true,
   inputXmlPipingClass: {
     tokenDelimiter: '-',
     tokenPosition: 5,

@@ -1,3 +1,6 @@
+/** Owns isolated XML→CII Standalone state, persistence, and effective config.
+ * Parameters are explicit state/config values; outputs are copied state data. */
+
 import { defaultXmlCii2019SupportConfigJson } from '../xml-cii-standalone-default-config.js';
 import { createDefaultRegexTesterConfig } from '../xml-cii-regex-tester.js';
 import { createDefaultResolverJsonTraceConfig } from '../xml-cii-resolver-json-trace.js';
@@ -12,6 +15,11 @@ const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
   { kind: 'LINESTOP', aliases: ['Line Stop', 'Directional Anchor', 'LS', 'Axial Stop'], ciiKind: 'LINESTOP_STYLE_CII_SUPPORT' },
   { kind: 'ANCHOR', aliases: ['Anchor', 'Fixed'], ciiKind: 'ANCHOR_STYLE_CII_SUPPORT' },
 ]);
+
+function withStandaloneMaterialCodeDefaults(config) {
+  const source = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
+  return { ...source, useDefaultPipingClassMaterialCodeMap: source.useDefaultPipingClassMaterialCodeMap !== false };
+}
 
 export function createDefaultWorkflowOptions() {
   return {
@@ -119,9 +127,9 @@ function restorePersistentMasters() {
 
   let config;
   if (savedContext && savedContext.config) {
-    config = savedContext.config;
+    config = withStandaloneMaterialCodeDefaults(savedContext.config);
   } else {
-    config = JSON.parse(defaultXmlCii2019SupportConfigJson() || '{}');
+    config = withStandaloneMaterialCodeDefaults(JSON.parse(defaultXmlCii2019SupportConfigJson() || '{}'));
   }
 
   if (lineRows.length) config.linelist = { ...(config.linelist || {}), masterRows: lineRows };
@@ -414,7 +422,7 @@ export function applyStandaloneOutputRunReadiness(state, outputRunReadinessRepor
 }
 
 export function xmlCiiEnrichedConfigFromState(state) {
-  const config = JSON.parse(state.supportConfigJson || '{}');
+  const config = withStandaloneMaterialCodeDefaults(JSON.parse(state.supportConfigJson || '{}'));
   const lineRows = state.masterContext?.lineRows || getStoredMaster('lineList') || [];
   const materialMapRows = state.masterContext?.materialMapRows || getStoredMaster('materialMap') || [];
   const weightMasterRows = (state.masterContext?.weightMasterRows?.length ? state.masterContext.weightMasterRows : null)

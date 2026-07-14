@@ -44,7 +44,7 @@ export function resolveStagedJsonContext(context, masters, config) {
     materialMap: masters?.materialMapRows || [],
     pipingClassIndex: masters?.pipingClassIndex,
     overrides: config?.overrides || {},
-    config: { pipingClassMatch: config?.pipingClassMatch || {} },
+    config: config || {},
   });
   const flat = buildResolvedFields(context, lineResolution, process, masters, config);
   const missing = requiredMissing(context, flat);

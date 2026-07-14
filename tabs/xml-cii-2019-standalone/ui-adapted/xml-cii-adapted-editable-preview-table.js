@@ -1,4 +1,12 @@
+/**
+ * Functionality: renders the editable standalone Preview table and binds its
+ * existing edit/fill actions.
+ * Parameters: branch/node rows plus callbacks supplied by the Preview owner.
+ * Output: table HTML and UI event bindings; value provenance is display-only.
+ */
+
 import { adaptedRenderColGroup, adaptedAttachColumnResizers, adaptedLoadColumnWidths } from './xml-cii-adapted-resizable-table.js';
+import { previewProvenanceBadge } from './xml-cii-adapted-preview-provenance.js';
 
 export const BRANCH_COLUMNS = [
   { id: 'branchName', label: 'Branch Name', hint: 'Edit', width: 220, minWidth: 120 },
@@ -80,7 +88,8 @@ export class XmlCiiAdaptedEditablePreviewTable {
       const isDefault = source === 'default' || source === 'config-default' || source === 'default-zero';
       const cls = `mc-preview-editable-val${isDefault ? ' mc-preview-default-val' : ''}`;
       const style = isDefault ? ' style="color:#7f1d1d;font-weight:600;font-style:italic;" title="Config default value"' : '';
-      const badge = source === 'override' ? ' <span class="mc-preview-badge exact">✓ override</span>' : (source === 'dtxr-sch-applied' ? ' <span class="mc-preview-badge exact" title="Wall thickness applied from DTXR schedule. Click cell to override manually.">✓ DTXR Sch</span>' : (isDefault ? ' <span class="mc-preview-badge bad">default</span>' : ''));
+      const provenance = previewProvenanceBadge(type, source);
+      const badge = provenance ? ` <span class="mc-preview-badge ${this._escapeAttr(provenance.className)}" title="${this._escapeAttr(provenance.title)}">${this._escape(provenance.label)}</span>` : '';
       return `<span class="${cls}"${style}>${this._escape(value || '—')}</span>${badge}`;
     };
     const classKey = smartClassKey(row);
