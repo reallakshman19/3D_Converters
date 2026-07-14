@@ -12,13 +12,14 @@ import {
   parseTraceTableText,
   rowsToTraceTableText,
 } from '../xml-cii-table-trace-source.js';
+import { REQUIRED_TRACE_TABLE_FIELD_NAMES } from '../xml-cii-table-trace-table.js';
 import {
   activeProfileFor,
   normalizeTraceTableConfig,
 } from '../xml-cii-table-trace-config.js';
 import { updateWorkflowState } from './xml-cii-adapted-state.js';
 
-const REQUIRED_TABLE_FIELD_NAMES = Object.freeze(['componentRefNo', 'dtxrPos']);
+const REQUIRED_TABLE_FIELD_NAMES = REQUIRED_TRACE_TABLE_FIELD_NAMES;
 
 async function getXlsxModule() {
   if (typeof XLSX !== 'undefined' && typeof XLSX.read === 'function') return XLSX;
@@ -34,7 +35,9 @@ function isWorkbookName(fileName) {
 
 function sheetRows(workbook, xlsx, sheetName) {
   const sheet = workbook.Sheets[sheetName];
-  return sheet ? xlsx.utils.sheet_to_json(sheet, { defval: '', raw: false }) : [];
+  if (!sheet) return [];
+  return xlsx.utils.sheet_to_json(sheet, { defval: '', raw: false })
+    .map((row, index) => ({ _rowIndex: index + 2, ...row }));
 }
 
 async function parseTraceFile(file) {
@@ -97,6 +100,7 @@ function buildTableTraceState(state) {
   const benchmark = benchmarkFor(state, tableResult);
   const matched = tableResult.matchedFacts.length;
   const rejected = tableResult.rejectedFacts.length;
+  const groups = tableResult.traceConfig.coordinateGroupCount || 0;
   const suffix = benchmark ? ` Benchmark ${benchmark.matched}/${benchmark.compared} (${benchmark.percent.toFixed(2)}%).` : '';
   return updateWorkflowState(state, {
     jsonTraceTableRows: rawRows,
@@ -105,7 +109,7 @@ function buildTableTraceState(state) {
     resolverJsonTraceTableResult: tableResult,
     resolverJsonTraceResult: tableResult,
     jsonTraceTableBenchmark: benchmark,
-    jsonTraceTableStatus: `Table trace built: ${matched} matched, ${rejected} rejected.${suffix}`,
+    jsonTraceTableStatus: `Table trace built: ${matched} matched XML nodes, ${rejected} rejected, ${groups} coordinate groups.${suffix}`,
     result: null,
   });
 }
