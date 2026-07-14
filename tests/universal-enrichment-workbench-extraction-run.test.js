@@ -52,19 +52,19 @@ test('regex success prevents later token execution and run identity is determini
   assert.ok(Object.isFrozen(first.results[0].attempts));
 });
 
-test('selected, filtered and all scopes preserve explicit deterministic order', async () => {
+test('selected, filtered and all scopes preserve authoritative deterministic order', async () => {
   const { createExtractionConfig, createExtractionTestRun } = await modules();
   const config = await createExtractionConfig(rules());
   const selected = await createExtractionTestRun(graph(), config, { kind: 'selected', entityIds: ['entity-2'] });
   const filtered = await createExtractionTestRun(graph(), config, { kind: 'filtered', entityIds: ['entity-2', 'entity-0'] });
-  const all = await createExtractionTestRun(graph(), config, { kind: 'all', entityIds: [] });
+  const all = await createExtractionTestRun(graph(), config, { kind: 'all', entityIds: ['entity-2'] });
   assert.deepStrictEqual(selected.scope.entityIds, ['entity-2']);
   assert.deepStrictEqual(filtered.scope.entityIds, ['entity-2', 'entity-0']);
   assert.deepStrictEqual(all.scope.entityIds, ['entity-0', 'entity-1', 'entity-2']);
   assert.notStrictEqual(selected.runId, filtered.runId);
 });
 
-test('5000 entity cap and 10000 character input guard produce evidence', async () => {
+test('5000 entity cap and 10000 character input guard produce bounded evidence', async () => {
   const { createExtractionConfig, createExtractionTestRun } = await modules();
   const config = await createExtractionConfig(rules());
   const large = graph(5002);
@@ -74,10 +74,26 @@ test('5000 entity cap and 10000 character input guard produce evidence', async (
   assert.strictEqual(run.summary.truncated, true);
   assert.ok(run.validation.warnings.some((item) => item.includes('truncated')));
   assert.strictEqual(run.results[0].status, 'rejected');
+  assert.strictEqual(run.results[0].input.length, 10000);
+  assert.strictEqual(run.results[0].attempts[0].input.length, 10000);
   assert.ok(run.results[0].attempts[0].reason.includes('10000'));
 });
 
-test('validation recomputes summary, metadata, IDs and winning strategy consistency', async () => {
+test('run construction rejects wrong graph and configuration schemas', async () => {
+  const { createExtractionConfig, createExtractionTestRun } = await modules();
+  const sourceGraph = graph();
+  const config = await createExtractionConfig(rules());
+  await assert.rejects(
+    createExtractionTestRun({ ...sourceGraph, schema: 'WrongGraph.v1' }, config, { kind: 'all', entityIds: [] }),
+    /UniversalSourceGraph\.v1/,
+  );
+  await assert.rejects(
+    createExtractionTestRun(sourceGraph, { ...config, schema: 'WrongConfig.v1' }, { kind: 'all', entityIds: [] }),
+    /ExtractionConfig\.v1/,
+  );
+});
+
+test('validation recomputes summary, metadata, IDs, scope and winning strategy consistency', async () => {
   const { createExtractionConfig, createExtractionTestRun, validateExtractionTestRun } = await modules();
   const sourceGraph = graph();
   const config = await createExtractionConfig(rules());
@@ -87,11 +103,13 @@ test('validation recomputes summary, metadata, IDs and winning strategy consiste
   corrupt.sourceRevision = 9;
   corrupt.runId = 'extract-run-bad';
   corrupt.results[0].winningStrategyIndex = 0;
+  corrupt.results[0].entityId = 'entity-1';
   const validation = await validateExtractionTestRun(corrupt, sourceGraph, config);
   assert.strictEqual(validation.ok, false);
   assert.ok(validation.errors.some((item) => item.includes('metadata')));
   assert.ok(validation.errors.some((item) => item.includes('summary')));
   assert.ok(validation.errors.some((item) => item.includes('Winning strategy')));
+  assert.ok(validation.errors.some((item) => item.includes('outside the frozen scope')));
   assert.ok(validation.errors.some((item) => item.includes('run ID') || item.includes('Test run ID')));
 });
 
