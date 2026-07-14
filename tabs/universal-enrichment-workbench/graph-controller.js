@@ -1,11 +1,7 @@
 import { createUniversalSourceGraph, serializeUniversalSourceGraph } from './graph-projection.js';
 import {
-  renderEntityDetails,
-  renderEntityTable,
-  renderGraphPanel,
-  renderHierarchyTree,
-  TREE_RENDER_LIMIT,
-  TREE_RENDER_STEP,
+  renderEntityDetails, renderEntityTable, renderGraphPanel, renderHierarchyTree,
+  TREE_RENDER_LIMIT, TREE_RENDER_STEP,
 } from './graph-renderer.js';
 
 const GRAPH_IDS = [
@@ -43,15 +39,23 @@ function envelopeIdentity(envelope) {
   return [envelope.sourceFileId, envelope.sourceKind, envelope.revision, envelope.contentHash].join('|');
 }
 
+function graphIdentity(graph) {
+  if (!graph) return '';
+  return [graph.sourceFileId, graph.sourceRevision, graph.contentHash, graph.schema].join('|');
+}
+
 function initialGraphState() {
   return {
-    graph: null,
-    status: 'Not built',
-    expandedIds: new Set(),
-    selectedEntityId: '',
-    filter: '',
-    treeLimit: TREE_RENDER_LIMIT,
+    graph: null, status: 'Not built', expandedIds: new Set(), selectedEntityId: '',
+    filter: '', treeLimit: TREE_RENDER_LIMIT,
   };
+}
+
+function notifyGraphChange(context) {
+  const identity = graphIdentity(context.state.graph);
+  if (identity === context.notifiedIdentity) return;
+  context.notifiedIdentity = identity;
+  context.dependencies.onGraphChange?.(context.state.graph);
 }
 
 function render(context) {
@@ -59,6 +63,7 @@ function render(context) {
   const envelope = context.getEnvelope();
   context.elements['graph-build'].disabled = !envelope?.validation?.ok || context.state.status === 'Building';
   context.elements['graph-download'].disabled = !context.state.graph?.validation?.ok;
+  notifyGraphChange(context);
 }
 
 export function invalidateSourceGraph(context) {
@@ -117,12 +122,7 @@ function handleTreeAction(context, event) {
 
 function handleTreeMore(context) {
   context.state = { ...context.state, treeLimit: context.state.treeLimit + TREE_RENDER_STEP };
-  renderHierarchyTree(
-    context.elements,
-    context.state.graph,
-    context.state.expandedIds,
-    context.state.treeLimit,
-  );
+  renderHierarchyTree(context.elements, context.state.graph, context.state.expandedIds, context.state.treeLimit);
 }
 
 function handleTableAction(context, event) {
@@ -149,7 +149,7 @@ function bindListeners(context) {
 export function createSourceGraphController(elements, dependencies, getEnvelope) {
   const context = {
     elements, dependencies, getEnvelope, listeners: [], objectUrls: new Set(),
-    disposed: false, requestId: 0, state: initialGraphState(),
+    disposed: false, requestId: 0, state: initialGraphState(), notifiedIdentity: null,
   };
   bindListeners(context);
   render(context);

@@ -50,14 +50,57 @@ function sourceGraphMarkup() {
   return `<section class="uew-card uew-graph-card" aria-labelledby="uew-graph-heading">${graphSummaryMarkup()}${graphExplorerMarkup()}</section>`;
 }
 
+function masterImportMarkup() {
+  return `
+    <section class="uew-master-pane" aria-labelledby="uew-master-import-heading">
+      <div class="uew-pane-title"><h3 id="uew-master-import-heading">Import master</h3><span id="uew-master-import-status">Not imported</span></div>
+      <div class="uew-master-import-body">
+        <div class="uew-controls"><label>Master file<input id="uew-master-file" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json,text/plain"></label>
+        <label>Format<select id="uew-master-format"><option value="csv">CSV</option><option value="tsv">TSV</option><option value="json">JSON</option></select></label></div>
+        <label class="uew-editor-label">Role<select id="uew-master-role"><option value="line-list">Line list</option><option value="piping-class">Piping class</option><option value="material-map">Material map</option><option value="weight-master">Weight master</option><option value="custom" selected>Custom</option></select></label>
+        <label class="uew-editor-label" for="uew-master-text">Paste or edit master text</label>
+        <textarea id="uew-master-text" spellcheck="false" placeholder="Paste CSV, TSV or JSON row data"></textarea>
+        <div class="uew-actions"><button id="uew-master-import" type="button">Import Master Dataset</button><button id="uew-master-registry-clear" type="button" class="uew-secondary" disabled>Clear Registry</button></div>
+        <div class="uew-findings"><h3>Import errors</h3><ul id="uew-master-errors"><li>None</li></ul><h3>Import warnings</h3><ul id="uew-master-warnings"><li>None</li></ul></div>
+      </div>
+    </section>`;
+}
+
+function masterRegistryMarkup() {
+  return `
+    <section class="uew-master-pane" aria-labelledby="uew-master-list-heading">
+      <div class="uew-pane-title"><h3 id="uew-master-list-heading">Registered datasets</h3></div>
+      <div id="uew-master-dataset-list" class="uew-master-dataset-list">No datasets registered.</div>
+      <div class="uew-actions uew-master-actions"><button id="uew-master-download" type="button" disabled>Download Dataset JSON</button><button id="uew-master-remove" type="button" class="uew-secondary" disabled>Remove Dataset</button><button id="uew-master-attach" type="button" disabled>Attach to Graph</button></div>
+      <label class="uew-filter-label">Search rows<input id="uew-master-search" type="search" placeholder="Search visible dataset values"></label>
+      <div class="uew-pane-title"><h3>Row preview</h3><span id="uew-master-preview-count">0 of 0</span></div>
+      <div id="uew-master-preview-head" class="uew-master-preview-head"></div><div id="uew-master-preview-body" class="uew-master-preview-body"></div>
+      <div class="uew-actions"><button id="uew-master-prev" type="button" class="uew-secondary" disabled>Previous 200</button><button id="uew-master-next" type="button" class="uew-secondary" disabled>Next 200</button></div>
+    </section>`;
+}
+
+function masterDetailsMarkup() {
+  return `
+    <section class="uew-master-pane" aria-labelledby="uew-master-details-heading"><div class="uew-pane-title"><h3 id="uew-master-details-heading">Dataset details</h3></div><pre id="uew-master-details" class="uew-graph-details">Select a dataset to inspect.</pre>
+      <div class="uew-pane-title"><h3>Graph attachments</h3><span id="uew-master-attachment-status">Not created</span></div><div id="uew-master-attachment-list" class="uew-master-attachment-list">Build a valid source graph to attach datasets.</div>
+      <div class="uew-findings"><h3>Attachment errors</h3><ul id="uew-master-attachment-errors"><li>None</li></ul><h3>Attachment warnings</h3><ul id="uew-master-attachment-warnings"><li>None</li></ul></div>
+      <div class="uew-actions"><button id="uew-master-attachment-download" type="button" disabled>Download Attachment Set JSON</button></div>
+    </section>`;
+}
+
+function masterRegistrySectionMarkup() {
+  return `<section class="uew-card uew-master-card" aria-labelledby="uew-master-heading"><div class="uew-graph-heading"><div><p class="uew-kicker">Reference data</p><h2 id="uew-master-heading">Master Registry</h2></div><span class="uew-schema">MasterDataset.v1 · MasterAttachmentSet.v1</span></div><div class="uew-master-layout">${masterImportMarkup()}${masterRegistryMarkup()}${masterDetailsMarkup()}</div></section>`;
+}
+
 export function renderWorkbenchMarkup() {
   return `
 <section class="uew-shell" aria-labelledby="uew-title">
   <header class="uew-header">
-    <div><p class="uew-kicker">Source intake and projection</p><h1 id="uew-title">Universal Enrichment Workbench</h1></div>
+    <div><p class="uew-kicker">Source intake, projection and reference registry</p><h1 id="uew-title">Universal Enrichment Workbench</h1></div>
     <span class="uew-schema">SourceEnvelope.v1 → UniversalSourceGraph.v1</span>
   </header>
   ${sourceIntakeMarkup()}
   ${sourceGraphMarkup()}
+  ${masterRegistrySectionMarkup()}
 </section>`;
 }
