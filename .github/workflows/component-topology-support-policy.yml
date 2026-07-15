@@ -26,6 +26,14 @@ jobs:
       - name: Validate focused support policy
         run: node tests/component-topology-support-policy.test.mjs
       - name: Validate real 1885_NC support policy
-        run: node tests/component-topology-artifacts-1885-nc.test.mjs
+        run: |
+          set -o pipefail
+          node tests/component-topology-artifacts-1885-nc.test.mjs 2>&1 | tee component-topology-1885.log
+      - name: Upload real-fixture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: component-topology-1885-support-policy
+          path: component-topology-1885.log
       - name: Validate ASIM-1835 compatibility
         run: node tests/component-topology-artifacts-asim-1835.test.mjs
