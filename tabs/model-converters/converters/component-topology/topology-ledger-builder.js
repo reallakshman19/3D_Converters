@@ -29,7 +29,10 @@ function objectsForSource(canonical, sourceEntityId) {
 /** @param {Record<string, unknown>} source @param {Record<string, unknown>} objects @returns {string} */
 function dispositionFor(source, objects) {
   const category = componentCategory(source.sourceType);
-  if (category === 'SUPPORT') return objects.supports.length ? 'EMIT_SUPPORT_ATTACHMENT' : 'BLOCK_AMBIGUOUS';
+  if (category === 'SUPPORT') {
+    if (cleanText(source.supportProjection?.disposition) === 'DEFER_SUPPORT') return 'DEFER_SUPPORT';
+    return objects.supports.length ? 'EMIT_SUPPORT_ATTACHMENT' : 'BLOCK_AMBIGUOUS';
+  }
   if (category === 'TEE') return 'EMIT_TEE_JUNCTION';
   if (category === 'OLET') return 'EMIT_OLET_JUNCTION';
   if (source.sourceType === 'BRANCH') {
@@ -50,6 +53,7 @@ function dispositionFor(source, objects) {
 function deferredProperties(source, disposition) {
   const category = componentCategory(source.sourceType);
   if (disposition === 'EMIT_SUPPORT_ATTACHMENT') return [];
+  if (disposition === 'DEFER_SUPPORT') return ['SUPPORT_ATTACHMENT', 'RESTRAINT'];
   if (category === 'TEE' || category === 'OLET') return ['SIF_VALUES'];
   if (category === 'VALVE' || category === 'FLANGE') return [...DEFERRED_ENGINEERING, 'RIGID', 'WEIGHT'];
   if (category === 'GASK') return [...DEFERRED_ENGINEERING, 'RIGID_MERGE_POLICY'];
@@ -63,6 +67,7 @@ function deferredProperties(source, disposition) {
 function lossClassification(disposition, isMerge) {
   if (isMerge) return 'EXPLICIT_CANONICAL_OVERLAP';
   if (disposition === 'EMIT_SUPPORT_ATTACHMENT') return 'LOSSLESS_SUPPORT_ATTACHMENT';
+  if (disposition === 'DEFER_SUPPORT') return 'DEFERRED_NON_RESTRAINT_ATTACHMENT';
   if (disposition === 'EMIT_POINT_FEATURE') return 'POINT_FEATURE_ONLY';
   if (disposition === 'EMIT_TEE_JUNCTION' || disposition === 'EMIT_OLET_JUNCTION') return 'JUNCTION_CONNECTIVITY';
   if (disposition === 'EXTERNAL_BOUNDARY') return 'EXTERNAL_BOUNDARY';
@@ -91,6 +96,7 @@ function operationFor(disposition) {
 /** @param {number} edgeCount @param {string} disposition @param {boolean} isMerge @returns {string} */
 function projectionCardinality(edgeCount, disposition, isMerge) {
   if (disposition === 'BLOCK_AMBIGUOUS') return 'BLOCKED';
+  if (disposition === 'DEFER_SUPPORT') return 'DEFERRED';
   if ((disposition === 'EMIT_POINT_FEATURE' || disposition === 'EXTERNAL_BOUNDARY') && edgeCount === 0) return 'POINT_ONLY';
   if (edgeCount === 1 && isMerge) return 'MANY_TO_ONE';
   if (edgeCount > 1) return 'ONE_TO_MANY';
@@ -175,6 +181,8 @@ function ledgerRecord(source, canonical, index) {
       sourceCref: cleanText(source.attributes.CREF),
       sourceHref: cleanText(source.attributes.HREF),
       sourceTref: cleanText(source.attributes.TREF),
+      supportProjectionAuthority: cleanText(source.supportProjection?.authority),
+      supportProjectionReason: cleanText(source.supportProjection?.reason),
       cardinalityReason: effectiveEdges.length > 1 ? 'EXPLICIT_COMPONENT_SEGMENTATION_OR_JUNCTION' : 'DIRECT_PROJECTION',
       mergeAuthority: mergeEdge?.projectionMergeAuthority ?? '',
       reclassification: isMerge && projectedCategory !== sourceCategory
@@ -206,6 +214,7 @@ export function buildTopologyTraceLedger(model, canonical) {
       branchRecords: model.branches.length,
       routeRecords: routeRecords.length,
       supportRecords: model.components.filter((component) => componentCategory(component.sourceType) === 'SUPPORT').length,
+      deferredSupportRecords: records.filter((row) => row.primaryDisposition === 'DEFER_SUPPORT').length,
       blockedRecords: records.filter((row) => row.primaryDisposition === 'BLOCK_AMBIGUOUS').length,
     }),
   });
