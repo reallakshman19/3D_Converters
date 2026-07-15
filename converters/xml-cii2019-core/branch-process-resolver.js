@@ -96,14 +96,27 @@ function mapMaterialTextToCiiCodeRobust(materialText, materialMap) {
   const key = materialComparable(materialText);
   if (!key) return null;
   const rows = Array.isArray(materialMap) ? materialMap : [];
-  return rows.find((row) => {
+  const suffix = rows.find((row) => {
     if (!materialMapRowCode(row)) return false;
     return materialMapRowNames(row).some((candidate) => {
       const cand = materialComparable(candidate);
       if (!cand) return false;
       return cand === key || (cand.length >= 4 && key.endsWith(cand)) || (key.length >= 4 && cand.endsWith(key));
     });
-  }) || null;
+  });
+  if (suffix) return suffix;
+  const compositeMatches = rows.flatMap((row, rowIndex) => materialMapRowNames(row).flatMap((candidate) => {
+    const comparable = materialComparable(candidate), position = key.indexOf(comparable);
+    return materialMapRowCode(row) && comparable.length >= 4 && position >= 0
+      ? [{ row, rowIndex, position, length: comparable.length }] : [];
+  }));
+  compositeMatches.sort((left, right) => left.position - right.position
+    || right.length - left.length || left.rowIndex - right.rowIndex);
+  if (compositeMatches.length) return compositeMatches[0].row;
+  const designations = key.match(/[A-Z]\d{5}/g) ?? [];
+  return designations.flatMap((designation) => rows.filter((row) => (
+    materialMapRowCode(row) && materialMapRowNames(row).some((candidate) => materialComparable(candidate).includes(designation))
+  )))[0] ?? null;
 }
 
 function shouldUseNumericOverride(value, classValue, config) {

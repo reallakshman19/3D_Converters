@@ -41,9 +41,9 @@ function portDescriptors(owner, sourcePath, definitions, orderStart) {
   });
 }
 
-/** @param {Record<string, unknown>} child @param {number} branchIndex @param {number} sourceIndex @param {number} order @param {number} toleranceMm @returns {Record<string, unknown>} */
-function componentDescriptor(child, branchIndex, sourceIndex, order, toleranceMm) {
-  const sourcePath = `$[${branchIndex}].children[${sourceIndex}]`;
+/** @param {Record<string, unknown>} child @param {number} branchIndex @param {number} sourceIndex @param {number} order @param {number} toleranceMm @param {string} branchSourcePath @returns {Record<string, unknown>} */
+function componentDescriptor(child, branchIndex, sourceIndex, order, toleranceMm, branchSourcePath) {
+  const sourcePath = `${branchSourcePath}.children[${sourceIndex}]`;
   const attributes = record(child.attributes);
   const sourceType = cleanText(child.type ?? attributes.TYPE).toUpperCase();
   const positions = {
@@ -57,6 +57,7 @@ function componentDescriptor(child, branchIndex, sourceIndex, order, toleranceMm
     name: cleanText(child.name ?? attributes.NAME),
     sourceRef: cleanText(attributes.REF),
     attributes,
+    enrichedAttributes: record(child.enrichedAttributes),
     positions,
     geometryClassification: geometryClass(sourceType, positions, toleranceMm),
     finiteSpan: Number.isFinite(spanLengthMm) && spanLengthMm > toleranceMm,
@@ -66,9 +67,9 @@ function componentDescriptor(child, branchIndex, sourceIndex, order, toleranceMm
   };
 }
 
-/** @param {Record<string, unknown>} branch @param {number} branchIndex @param {number} order @param {number} toleranceMm @returns {Record<string, unknown>} */
-function branchDescriptor(branch, branchIndex, order, toleranceMm) {
-  const sourcePath = `$[${branchIndex}]`;
+/** @param {Record<string, unknown>} branch @param {number} branchIndex @param {number} order @param {number} toleranceMm @param {string} rootPath @returns {Record<string, unknown>} */
+function branchDescriptor(branch, branchIndex, order, toleranceMm, rootPath) {
+  const sourcePath = `${rootPath}[${branchIndex}]`;
   const attributes = record(branch.attributes);
   const children = Array.isArray(branch.children) ? branch.children : [];
   return {
@@ -78,7 +79,7 @@ function branchDescriptor(branch, branchIndex, order, toleranceMm) {
     attributes,
     ports: portDescriptors(branch, sourcePath, BRANCH_PORTS, order * 10),
     components: children.map((child, sourceIndex) => componentDescriptor(
-      record(child), branchIndex, sourceIndex, order + sourceIndex + 1, toleranceMm,
+      record(child), branchIndex, sourceIndex, order + sourceIndex + 1, toleranceMm, sourcePath,
     )),
   };
 }
@@ -126,10 +127,17 @@ export async function buildTopologySourceModel(sourceText, options) {
   });
   if (!envelope.validation.ok) throw new TypeError(`Invalid managed-stage source: ${envelope.validation.errors.join('; ')}`);
   const parsed = JSON.parse(envelope.sourceText);
-  if (!Array.isArray(parsed) || !parsed.length) throw new TypeError('Managed-stage source must be a non-empty branch array.');
+  const parsedRecord = record(parsed);
+  const rawBranches = Array.isArray(parsed) ? parsed : (
+    Array.isArray(parsedRecord.objects) ? parsedRecord.objects
+      : Array.isArray(parsedRecord.hierarchy) ? parsedRecord.hierarchy : parsedRecord.branches
+  );
+  if (!Array.isArray(rawBranches) || !rawBranches.length) throw new TypeError('Managed-stage source must contain a non-empty branch array.');
+  const rootPath = Array.isArray(parsed) ? '$' : Array.isArray(parsedRecord.objects) ? '$.objects'
+    : Array.isArray(parsedRecord.hierarchy) ? '$.hierarchy' : '$.branches';
   let order = 0;
-  const bareBranches = parsed.map((branch, branchIndex) => {
-    const descriptor = branchDescriptor(record(branch), branchIndex, order, options.toleranceMm);
+  const bareBranches = rawBranches.map((branch, branchIndex) => {
+    const descriptor = branchDescriptor(record(branch), branchIndex, order, options.toleranceMm, rootPath);
     order += descriptor.components.length + 1;
     return descriptor;
   });
