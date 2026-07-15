@@ -1,4 +1,22 @@
 import { decodeTextUtf8, baseNameWithoutExtension } from '../core/output-utils.js';
+import {
+  buildComponentTopologyArtifacts,
+  topologyArtifactOutputs,
+} from './component-topology/topology-artifact-exporter.js';
+import { TOPOLOGY_TOLERANCE_MM } from './component-topology/topology-values.js';
+
+async function buildTopologyOutputs(sourceText, sourceName, stem) {
+  const artifacts = await buildComponentTopologyArtifacts(sourceText, {
+    sourceName,
+    jobName: stem,
+    toleranceMm: TOPOLOGY_TOLERANCE_MM,
+  });
+  const blocking = artifacts.buildIssues.filter((issue) => issue.blocking !== false);
+  if (blocking.length) {
+    throw new Error(`Component topology export has ${blocking.length} blocking finding(s).`);
+  }
+  return topologyArtifactOutputs(artifacts, { stem });
+}
 
 export async function run(context) {
   if (!context.workerRunner) {
@@ -17,6 +35,7 @@ export async function run(context) {
 
   const stagedJsonPreviewText = decodeTextUtf8(primary.bytes);
   const stem = baseNameWithoutExtension(primary.name);
+  const topologyOutputs = await buildTopologyOutputs(stagedJsonPreviewText, primary.name, stem);
 
   const outputs = Array.isArray(response.outputs) ? response.outputs : [];
   const previewOutputs = [
@@ -25,6 +44,7 @@ export async function run(context) {
       text: stagedJsonPreviewText,
       mime: 'application/json;charset=utf-8',
     },
+    ...topologyOutputs,
     ...outputs,
   ];
 

@@ -177,6 +177,22 @@ function ownerBranchSimilarity(left, right) {
   return common / Math.max(aTokens.length, bTokens.size);
 }
 
+export function canonicalRoot(branchName) {
+  if (!branchName) return '';
+  let norm = normalizeOwnerBranchName(branchName);
+  norm = norm.replace(/\/B\d+$/i, ''); // Strip trailing /B1, /B2, etc.
+  norm = norm.replace(/\/+$/, ''); // Strip any leftover trailing slashes
+  return norm;
+}
+
+export function euclideanDistance(a, b) {
+  if (!a || !b) return Infinity;
+  const dx = (a.x || 0) - (b.x || 0);
+  const dy = (a.y || 0) - (b.y || 0);
+  const dz = (a.z || 0) - (b.z || 0);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 function walkStagedComponents(value, branchName = '', out = [], _path = '$') {
   if (Array.isArray(value)) {
     value.forEach((item, idx) => walkStagedComponents(item, branchName, out, `${_path}[${idx}]`));
@@ -487,6 +503,129 @@ export function resolveDtxrForXmlNode({ xmlNode, context, purpose = 'component-d
   const rules = DTXR_PURPOSE_RULES[purpose] || DTXR_PURPOSE_RULES['component-description'];
   const stagedIndex = context?.stagedIndex || context;
   if (!xmlNode) return emptyDtxrResult('not-found');
+
+  if (purpose === 'support-restraint') {
+    const xmlNodeNumber = getXmlNodeProperty(xmlNode, 'NodeNumber');
+    const xmlNodeName = getXmlNodeProperty(xmlNode, 'NodeName');
+    const xmlBranch = xmlAncestorBranchName(xmlNode);
+    const xmlPosition = normalizePoint(getXmlNodeProperty(xmlNode, 'Position'));
+    const tolerance = toFiniteNumber(config.coordinateToleranceMm, 6.0);
+    const xmlRoot = canonicalRoot(xmlBranch);
+
+    let group = [];
+    let minXmlDist = Infinity;
+    let matchedPosition = null;
+
+    if (stagedIndex && xmlRoot && xmlPosition) {
+      for (const item of stagedIndex.items) {
+        const itemRoot = canonicalRoot(item.owner);
+        if (itemRoot !== xmlRoot) continue;
+
+        let itemCoord = item.coord;
+        if (!itemCoord) {
+          const attrs = item.attrs || {};
+          for (const key of ['SUPPORTCOORD', 'POS', 'POSI', 'BPOS', 'APOS', 'LPOS', 'CPOS', 'HPOS', 'TPOS']) {
+            itemCoord = normalizePoint(attrs[key]);
+            if (itemCoord) break;
+          }
+        }
+        if (!itemCoord) continue;
+
+        const dist = euclideanDistance(xmlPosition, itemCoord);
+        if (dist <= tolerance) {
+          group.push({ item, dist, coord: itemCoord });
+          if (dist < minXmlDist) {
+            minXmlDist = dist;
+            matchedPosition = itemCoord;
+          }
+        }
+      }
+    }
+
+    const formatCoord = (c) => c ? `${c.x.toFixed(2)} ${c.y.toFixed(2)} ${c.z.toFixed(2)}` : '';
+    let record = {
+      xmlNodeNumber, xmlNodeName, xmlBranch, xmlPosition: formatCoord(xmlPosition),
+      sourceBranch: '', branchRelationship: '', coordinateToleranceMm: tolerance,
+      matchedPosition: '', positionDistanceMm: null, maxInternalDistanceMm: null,
+      dtxrPosNodeNumbers: '', dtxrPsNodeNumbers: '', dtxrPosValue: '', dtxrPsName: '', dtxrPsValue: '',
+      effectiveSource: 'NONE', derivedSupportTypes: '', matchType: 'UNRESOLVED', status: 'UNRESOLVED', sourcePaths: '',
+      
+      // Legacy compatibility
+      canonicalText: '', dtxrPos: '', dtxrPs: '', effectiveDtxr: '', fallbackUsed: false,
+      supportTags: xmlNodeSupportTags(xmlNode), matchedBy: '', matchedKey: ''
+    };
+
+    if (group.length > 0) {
+      let maxInternalDist = 0;
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const d = euclideanDistance(group[i].coord, group[j].coord);
+          if (d > maxInternalDist) maxInternalDist = d;
+        }
+      }
+
+      const dtxrPosVals = new Set();
+      const posItems = [];
+      const psItems = [];
+      let derivedDtxrPs = '';
+      let derivedDtxrPsName = '';
+
+      for (const g of group) {
+        const pos = cleanDtxr(g.item.dtxr || stagedComponentDtxr(g.item));
+        if (pos) {
+          dtxrPosVals.add(pos);
+          posItems.push(g.item);
+        }
+      }
+      
+      const dtxrPosValue = [...dtxrPosVals].join('+');
+
+      if (xmlNodeName) {
+        for (const g of group) {
+          const itemTags = supportTagsFromAttrs(g.item.attrs, g.item.component?.name || '');
+          const itemName = cleanDtxr(g.item.attrs.NAME || g.item.component?.name || '');
+          const normXmlName = xmlNodeName.toUpperCase();
+          if (itemName.includes(normXmlName) || itemTags.includes(normalizeSupportTag(xmlNodeName))) {
+            derivedDtxrPsName = xmlNodeName;
+            derivedDtxrPs = cleanDtxr(g.item.dtxrPs || stagedComponentDtxrPs(g.item)) || cleanDtxr(g.item.dtxr || stagedComponentDtxr(g.item));
+            psItems.push(g.item);
+            break; 
+          }
+        }
+      }
+
+      const hasPos = !!dtxrPosValue;
+      const hasPs = !!derivedDtxrPs;
+      const status = hasPos && hasPs ? 'RESOLVED_POS_PS' : (hasPos ? 'RESOLVED_POS' : (hasPs ? 'RESOLVED_PS_FALLBACK' : 'UNRESOLVED'));
+
+      record.sourceBranch = group[0].item.owner || '';
+      record.branchRelationship = 'same-root';
+      record.matchedPosition = formatCoord(matchedPosition);
+      record.positionDistanceMm = minXmlDist;
+      record.maxInternalDistanceMm = maxInternalDist;
+      record.dtxrPosNodeNumbers = posItems.map(i => i.attrs?.NodeNumber || i._jsonSeq || '').join(',');
+      record.dtxrPsNodeNumbers = psItems.map(i => i.attrs?.NodeNumber || i._jsonSeq || '').join(',');
+      record.dtxrPosValue = dtxrPosValue;
+      record.dtxrPsName = derivedDtxrPsName;
+      record.dtxrPsValue = derivedDtxrPs;
+      record.effectiveSource = hasPos ? 'DTXR_POS' : (hasPs ? 'DTXR_PS' : 'NONE');
+      record.matchType = 'COORDINATE_GROUP';
+      record.status = status;
+      record.sourcePaths = group.map(g => g.item._path).join('|');
+      
+      record.canonicalText = hasPos ? dtxrPosValue : derivedDtxrPs;
+      record.dtxrPos = dtxrPosValue;
+      record.dtxrPs = derivedDtxrPs;
+      record.effectiveDtxr = hasPos ? dtxrPosValue : derivedDtxrPs;
+      record.fallbackUsed = !hasPos && hasPs;
+      record.matchedBy = 'coordinate-group';
+      record.matchedKey = `${group.length} items within ${tolerance}mm`;
+    }
+
+    const checked = suppressIfUnsafe(record, { xmlNode, purpose, rules });
+    return checked.suppressed ? { ...record, status: 'UNRESOLVED', effectiveDtxr: '', canonicalText: '' } : checked;
+  }
+
   const attempts = [];
   const accept = (result) => {
     if (!result) return null;

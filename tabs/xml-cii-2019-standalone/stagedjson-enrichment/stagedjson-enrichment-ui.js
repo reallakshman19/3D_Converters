@@ -17,9 +17,10 @@ const MASTER_DEFS = Object.freeze([
   { key: 'weight', label: 'Component weight master' },
 ]);
 
-export function renderStagedJsonEnrichmentPanel(host) {
+export function renderStagedJsonEnrichmentPanel(host, options = {}) {
   ensureStylesheet();
   const state = createState();
+  state.options = options;
   const container = element('div', 'sjp-container');
   host.appendChild(container);
   const render = () => renderBody(container, state, render);
@@ -365,6 +366,20 @@ function actionsColumn(state, render) {
   
   const exportGroup = element('div', 'sjp-action-group sjp-vertical');
   exportGroup.append(exportStageBtn, exportAuditBtn, exportCsvBtn);
+  
+  if (state.options?.onApplyToWorkspace) {
+    const applyBtn = action('Apply to Workspace 🚀', !canExport, () => {
+      let payload = state.result.enrichedStagedJson;
+      if (Array.isArray(payload)) {
+        payload = { schema: 'inputxml-managed-stage/v1', objects: payload };
+      }
+      state.options.onApplyToWorkspace(payload);
+    });
+    applyBtn.className = 'sjp-btn sjp-btn-primary';
+    applyBtn.style.marginTop = '10px';
+    exportGroup.append(applyBtn);
+  }
+  
   exportCard.append(exportGroup);
 
   col.append(runCard, exportCard);

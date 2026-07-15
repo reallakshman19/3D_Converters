@@ -25,7 +25,8 @@ const TAB_ID_ALIASES = new Map([
   ['interchange-config', 'interchange-config'],
   ['support-mapping-config', 'support-mapping-config'],
   ['adapter-mapping', 'adapter-mapping'],
-  ['stagedjson-properties', 'stagedjson-properties']
+  ['stagedjson-properties', 'stagedjson-properties'],
+  ['stagedjson-to-enrichxml', 'stagedjson-to-enrichxml']
 ]);
 const TAB_ICON_SVGS = Object.freeze({
   cube: '\u003cpath d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"/>\u003cpath d="M4 7.5 12 12l8-4.5M12 12v9"/>',
@@ -52,7 +53,8 @@ export const STANDALONE_TABS = Object.freeze([
   { id: 'interchange-config', label: 'Interchange Config', icon: 'gear', load: () => import('../tabs/interchange-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderInterchangeConfigTab', 'interchange-config')) },
   { id: 'support-mapping-config', label: 'Support Mapping', icon: 'support', load: () => import('../tabs/support-mapping-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderSupportMappingConfigTab', 'support-mapping-config')) },
   { id: 'adapter-mapping', label: 'Adapter Mapping', icon: 'map', load: () => import('../tabs/adapter-mapping-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderAdapterMappingTab', 'adapter-mapping')) },
-  { id: 'stagedjson-properties', label: 'stagedJson Properties', icon: 'json', load: () => import('../tabs/stagedjson-properties-tab.js?v=standalone-3').then((module) => pickRenderer(module, 'renderStagedJsonPropertiesTab', 'stagedjson-properties')) }
+  { id: 'stagedjson-properties', label: 'stagedJson Properties', icon: 'json', load: () => import('../tabs/stagedjson-properties-tab.js?v=standalone-3').then((module) => pickRenderer(module, 'renderStagedJsonPropertiesTab', 'stagedjson-properties')) },
+  { id: 'stagedjson-to-enrichxml', label: 'StagedJSON→Enriched XML', icon: 'json', load: () => import('../tabs/stagedjson-to-enrichxml-tab.js').then((module) => pickRenderer(module, 'renderStagedJsonToEnrichXmlTab', 'stagedjson-to-enrichxml')) }
 ]);
 const TAB_GROUPS = Object.freeze([
   { label: 'Converters', ids: [
@@ -62,7 +64,8 @@ const TAB_GROUPS = Object.freeze([
   "basic-glb-pcf",
   "universal-xml",
   "universal-enrichment-workbench",
-  "stagedjson-properties"
+  "stagedjson-properties",
+  "stagedjson-to-enrichxml"
 ] },
   { label: 'Exchange', ids: [
   "model-exchange",
