@@ -38,7 +38,23 @@ jobs:
             tests/xml_to_cii_psi116_component_topology_regression.py
 
       - name: Component occurrence and 1885 regression
-        run: python tests/xml_to_cii_psi116_component_topology_regression.py
+        id: topology_regression
+        shell: bash
+        run: |
+          set +e
+          python tests/xml_to_cii_psi116_component_topology_regression.py > /tmp/psi116-component-topology-test.log 2>&1
+          status=$?
+          cat /tmp/psi116-component-topology-test.log
+          echo "exit_status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload component topology test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psi116-component-topology-test-log
+          path: /tmp/psi116-component-topology-test.log
+          if-no-files-found: error
 
       - name: Existing short-span regression
         run: python tests/xml_to_cii_short_span_contraction_regression.py
