@@ -1,7 +1,8 @@
 /**
  * Focused support projection policy regression.
  * Non-restraint opening/penetration attachments remain traceable but do not
- * fabricate CAESAR restraints. Explicit stress supports retain the 50 mm gate.
+ * fabricate CAESAR restraints. Explicit stress supports retain the 50 mm gate
+ * unless a producer-owned component reference identifies the carrier edge.
  */
 
 import assert from 'node:assert/strict';
@@ -24,9 +25,10 @@ function sourceFixture(supportAttributes) {
     },
     children: [
       {
-        name: 'PIPE TEST-1', type: 'PIPE',
+        name: 'PIPE =PIPE/1', type: 'PIPE',
         attributes: {
-          TYPE: 'PIPE', OWNER: '/TEST-100/B1', APOS: point(0, 0, 0), LPOS: point(1000, 0, 0),
+          TYPE: 'PIPE', NAME: '=PIPE/1', REF: '=PIPE/1', OWNER: '/TEST-100/B1',
+          APOS: point(0, 0, 0), LPOS: point(1000, 0, 0),
           ABORE: '100mm', LBORE: '100mm', DTXR: 'PIPE',
         },
       },
@@ -107,8 +109,36 @@ const projected = await buildComponentTopologyArtifacts(JSON.stringify(nearRoute
 });
 const projectedRecord = projected.traceLedger.records.find((row) => row.sourceRef === '=TEST/1');
 assert.equal(projectedRecord.primaryDisposition, 'EMIT_SUPPORT_ATTACHMENT');
-assert.equal(projectedRecord.projectionCardinality, 'ONE_TO_ONE');
+assert.equal(projectedRecord.projectionCardinality, 'ONE_TO_MANY');
 assert.equal(projected.metrics.canonical.supports, 1);
 assert.equal(projected.metrics.inputXml.restraints, 1);
+
+const referencedSource = JSON.parse(sourceFixture({
+  DTXR: 'REST SUPPORT',
+  CMPSUPTYPE: 'REST',
+  ATTACHED_COMPONENT_REF: '=PIPE/1',
+  COMPRE: '=PIPE/1',
+}));
+referencedSource[0].children[1].attributes.POS = point(500, 0, 200);
+referencedSource[0].children[1].attributes.APOS = point(500, 0, 200);
+referencedSource[0].children[1].attributes.LPOS = point(500, 0, 200);
+const referenced = await buildComponentTopologyArtifacts(JSON.stringify(referencedSource), {
+  sourceName: 'support-referenced.json',
+  jobName: 'Support Referenced',
+  toleranceMm: TOPOLOGY_TOLERANCE_MM,
+  supportProjectionToleranceMm: SUPPORT_PROJECTION_TOLERANCE_MM,
+  enrichmentConfig: {},
+});
+const referencedSupport = referenced.canonicalTopology.supports[0];
+const referencedRecord = referenced.traceLedger.records.find((row) => row.sourceRef === '=TEST/1');
+assert.equal(referencedRecord.primaryDisposition, 'EMIT_SUPPORT_ATTACHMENT');
+assert.equal(referencedRecord.projectionCardinality, 'ONE_TO_MANY');
+assert.equal(referencedSupport.sourcePosition.z, 200);
+assert.equal(referencedSupport.position.z, 0);
+assert.equal(referencedSupport.attachmentPosition.z, 0);
+assert.equal(referencedSupport.connectionResidual, 200);
+assert.match(referencedSupport.attachmentAuthority, /ATTACHED_COMPONENT_REF\/COMPRE:=PIPE\/1/);
+assert.equal(referenced.metrics.canonical.supports, 1);
+assert.equal(referenced.metrics.inputXml.restraints, 1);
 
 console.log('component topology support policy passed.');
