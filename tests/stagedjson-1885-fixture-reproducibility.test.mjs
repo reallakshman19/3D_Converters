@@ -3,22 +3,14 @@ import test from 'node:test';
 
 import { check1885Fixtures } from '../tools/generate-1885-stagedjson-fixtures.mjs';
 
-function findByRef(nodes, ref) {
-  const stack = Array.isArray(nodes) ? [...nodes] : [nodes];
-  while (stack.length) {
-    const node = stack.shift();
-    if (!node || typeof node !== 'object') continue;
-    if (node.attributes?.REF === ref || node.attributes?.NAME === ref || node.name?.includes(ref)) return node;
-    if (Array.isArray(node.children)) stack.push(...node.children);
-  }
-  return null;
-}
+const REFS = Object.freeze({
+  elbow: '=1006649732/51428',
+  tee: '=1006649732/51494',
+  reducer: '=1006649732/51499',
+});
 
-function oneXmlNodeForRef(xml, ref) {
-  const nodes = (xml.match(/<Node>[\s\S]*?<\/Node>/g) || [])
-    .filter((node) => node.includes(`<ComponentRefNo>${ref}</ComponentRefNo>`));
-  assert.equal(nodes.length, 1, `expected one XML node for ${ref}`);
-  return nodes[0];
+function snapshot(generated) {
+  return JSON.parse(generated.contractSnapshot);
 }
 
 test('1885 committed enrichment fixtures reproduce exactly', () => {
@@ -27,69 +19,111 @@ test('1885 committed enrichment fixtures reproduce exactly', () => {
   assert.equal(generated.enrichment.audit.summary.coordinateChanged, false);
 
   const manifest = JSON.parse(generated.manifest);
-  assert.equal(manifest.summary.sourceNodes, manifest.summary.enrichedNodes);
-  assert.ok(manifest.summary.stage2Records > 0);
-  assert.equal(manifest.summary.stage2Branches, 2);
+  assert.equal(manifest.summary.sourceNodes, 279);
+  assert.equal(manifest.summary.enrichedNodes, 279);
+  assert.equal(manifest.summary.stage2Records, 163);
+  assert.equal(manifest.summary.stage2Branches, 5);
+  assert.equal(manifest.summary.audit.totalConflicts, 0);
+  assert.equal(manifest.summary.audit.totalMissing, 83);
+  assert.equal(manifest.scope.unresolvedOutsideTargetScope, true);
 });
 
-test('1885 module-1 enrichment resolves accepted line and class authority', () => {
-  const generated = check1885Fixtures();
-  const enriched = generated.enrichment.enrichedStagedJson;
+test('1885 module-1 enrichment resolves the three accepted target contracts', () => {
+  const targets = snapshot(check1885Fixtures()).targets;
 
-  const elbow = findByRef(enriched, '=1006649732/51428');
-  assert.ok(elbow, 'benchmark elbow was not found');
-  assert.equal(elbow.enrichedAttributes.lineNo, 'S8810103');
-  assert.equal(elbow.enrichedAttributes.pipingClass, '91261');
-  assert.equal(elbow.enrichedAttributes.pressureRating, 900);
-  assert.equal(elbow.enrichedAttributes.pipeOdMm, 219.1);
-  assert.equal(elbow.enrichedAttributes.wallThicknessMm, 12.7);
-  assert.equal(elbow.enrichedAttributes.corrosionAllowanceMm, 1);
-  assert.equal(elbow.enrichedAttributes.insulationThicknessMm, 100);
+  assert.deepEqual(targets[REFS.elbow].enrichment, {
+    schema: 'stagedjson-cii2019-enriched-attributes/v1',
+    lineNo: 'S8810103',
+    pipingClass: '91261',
+    pressureRating: 900,
+    nominalBoreMm: 200,
+    pipeOdMm: 219.1,
+    schedule: '80',
+    wallThicknessMm: 12.7,
+    corrosionAllowanceMm: 1,
+    insulationThicknessMm: 100,
+    status: 'resolved',
+    needsReview: false,
+    missing: [],
+  });
 
-  for (const ref of ['=1006649732/51494', '=1006649732/51499']) {
-    const component = findByRef(enriched, ref);
-    assert.ok(component, `${ref} was not found`);
-    assert.equal(component.enrichedAttributes.lineNo, 'S8810101');
-    assert.equal(component.enrichedAttributes.pipingClass, '91261');
-    assert.equal(component.enrichedAttributes.pressureRating, 900);
-    assert.equal(component.enrichedAttributes.pipeOdMm, 273);
-    assert.equal(component.enrichedAttributes.wallThicknessMm, 15.09);
-    assert.equal(component.enrichedAttributes.corrosionAllowanceMm, 1);
-    assert.equal(component.enrichedAttributes.insulationThicknessMm, 120);
+  for (const ref of [REFS.tee, REFS.reducer]) {
+    assert.deepEqual(targets[ref].enrichment, {
+      schema: 'stagedjson-cii2019-enriched-attributes/v1',
+      lineNo: 'S8810101',
+      pipingClass: '91261',
+      pressureRating: 900,
+      nominalBoreMm: 250,
+      pipeOdMm: 273,
+      schedule: '80',
+      wallThicknessMm: 15.09,
+      corrosionAllowanceMm: 1,
+      insulationThicknessMm: 120,
+      status: 'resolved',
+      needsReview: false,
+      missing: [],
+    });
   }
 });
 
-test('1885 condensed XML is generated from EnrichedSjson, not raw Sjson fallbacks', () => {
-  const generated = check1885Fixtures();
-  const xml = generated.enrichedXml;
+test('1885 condensed XML consumes module-1 values and preserves fitting topology', () => {
+  const contract = snapshot(check1885Fixtures());
+  assert.deepEqual(contract.branchNames, [
+    '/ASIM-1885-6&quot;-S8811951-91261M7-HC-01',
+    '/ASIM-1885-8&quot;-S8810103-91261M7-HC',
+    '/ASIM-1885-8&quot;-S8810103-91261M7-HC-01',
+    '/ASIM-1885-10&quot;-S8810101-91261M7-HC-01',
+    '/ASIM-1885-6&quot;-S8810111-91261M7-HC-01',
+  ]);
 
-  assert.match(xml, /<DateTime>15\/07\/2026, 12:30:00<\/DateTime>/);
+  assert.deepEqual(contract.targets[REFS.elbow].xml, {
+    nodeNumber: '1570',
+    nodeName: '',
+    endpoint: '0',
+    componentType: 'ELBO',
+    connectionType: '',
+    outsideDiameter: '219.1',
+    wallThickness: '12.7',
+    corrosionAllowance: '1',
+    insulationThickness: '100',
+    bendRadius: '305',
+    bendType: '0',
+    alphaAngle: null,
+  });
 
-  const elbow = oneXmlNodeForRef(xml, '=1006649732/51428');
-  assert.match(elbow, /<NodeNumber>1570<\/NodeNumber>/);
-  assert.match(elbow, /<Endpoint>0<\/Endpoint>/);
-  assert.match(elbow, /<ComponentType>ELBO<\/ComponentType>/);
-  assert.match(elbow, /<OutsideDiameter>219\.1<\/OutsideDiameter>/);
-  assert.match(elbow, /<WallThickness>12\.7<\/WallThickness>/);
-  assert.match(elbow, /<CorrosionAllowance>1<\/CorrosionAllowance>/);
-  assert.match(elbow, /<InsulationThickness>100<\/InsulationThickness>/);
+  assert.deepEqual(contract.targets[REFS.tee].xml, {
+    nodeNumber: '2280',
+    nodeName: '',
+    endpoint: '1',
+    componentType: 'BRAN',
+    connectionType: 'TEE',
+    outsideDiameter: '273',
+    wallThickness: '15.09',
+    corrosionAllowance: '1',
+    insulationThickness: '120',
+    bendRadius: '0',
+    bendType: null,
+    alphaAngle: null,
+  });
 
-  const tee = oneXmlNodeForRef(xml, '=1006649732/51494');
-  assert.match(tee, /<NodeNumber>2280<\/NodeNumber>/);
-  assert.match(tee, /<ComponentType>BRAN<\/ComponentType>/);
-  assert.match(tee, /<ConnectionType>TEE<\/ConnectionType>/);
-  assert.match(tee, /<OutsideDiameter>273<\/OutsideDiameter>/);
-  assert.match(tee, /<WallThickness>15\.09<\/WallThickness>/);
-  assert.match(tee, /<InsulationThickness>120<\/InsulationThickness>/);
+  const reducer = contract.targets[REFS.reducer].xml;
+  assert.deepEqual({ ...reducer, alphaAngle: '<derived>' }, {
+    nodeNumber: '2370',
+    nodeName: '',
+    endpoint: '2',
+    componentType: 'REDU',
+    connectionType: '',
+    outsideDiameter: '273',
+    wallThickness: '15.09',
+    corrosionAllowance: '1',
+    insulationThickness: '120',
+    bendRadius: '0',
+    bendType: null,
+    alphaAngle: '<derived>',
+  });
+  assert.ok(Number(reducer.alphaAngle) > 0, 'reducer AlphaAngle must be geometry-derived');
 
-  const reducer = oneXmlNodeForRef(xml, '=1006649732/51499');
-  assert.match(reducer, /<NodeNumber>2370<\/NodeNumber>/);
-  assert.match(reducer, /<ComponentType>REDU<\/ComponentType>/);
-  assert.match(reducer, /<OutsideDiameter>273<\/OutsideDiameter>/);
-  assert.match(reducer, /<WallThickness>15\.09<\/WallThickness>/);
-  assert.match(reducer, /<AlphaAngle>[^<]+<\/AlphaAngle>/);
-
-  const root = '/ASIM-1885-10&quot;-S8810101-91261M7-HC-01';
-  assert.equal((xml.match(new RegExp(`<Branchname>${root}<\\/Branchname>`, 'g')) || []).length, 1);
-  assert.doesNotMatch(xml, new RegExp(`${root}\\/B0*\\d+<\\/Branchname>`, 'i'));
+  const targetRoot = '/ASIM-1885-10&quot;-S8810101-91261M7-HC-01';
+  assert.equal(contract.branchNames.filter((name) => name === targetRoot).length, 1);
+  assert.ok(contract.branchNames.every((name) => !/\/B0*\d+$/i.test(name)));
 });
