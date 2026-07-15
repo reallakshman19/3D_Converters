@@ -13,6 +13,7 @@ on:
       - 'tests/test_inputxml_seljson_adapter.py'
       - 'tests/test_inputxml_managed_stage_adapter.py'
       - 'tests/test_inputxml_pdf_input_echo_adapter.py'
+      - 'tests/test_inputxml_uxml_rvm_adapter.py'
       - 'tests/xml-cii-node-to-inputxml-core.test.js'
       - 'tests/component-topology-*.test.*'
       - 'tabs/model-converters/xml-cii-node-to-inputxml-*.js'
@@ -24,6 +25,8 @@ on:
       - 'converters/xml-cii2019-core/restraint-type-*.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js'
+      - 'uxml/**'
+      - 'rvm-pcf-extract/**'
       - '.github/workflows/inputxml-canonical-compiler.yml'
   workflow_dispatch:
 
@@ -50,13 +53,14 @@ jobs:
           node --check scripts/inputxml_compiler/node_managed_stage_bridge.mjs
           node tests/component-topology-static.test.js
           node tests/component-topology-support-policy.test.mjs
-      - name: Validate PDF parser syntax
+      - name: Validate PDF and UXML adapter syntax
         run: |
-          python -m py_compile converters/scripts/pdf_to_inputxml.py scripts/inputxml_compiler/pdf_input_echo.py scripts/inputxml_compiler/pdf_input_echo_bindings.py
+          python -m py_compile converters/scripts/pdf_to_inputxml.py scripts/inputxml_compiler/pdf_input_echo.py scripts/inputxml_compiler/pdf_input_echo_bindings.py scripts/inputxml_compiler/uxml_rvm.py
+          node --check scripts/inputxml_compiler/node_uxml_rvm_bridge.mjs
       - name: Run canonical compiler unit and integration tests
         run: |
           set +e
-          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py tests/test_inputxml_seljson_adapter.py tests/test_inputxml_managed_stage_adapter.py tests/test_inputxml_pdf_input_echo_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
+          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py tests/test_inputxml_seljson_adapter.py tests/test_inputxml_managed_stage_adapter.py tests/test_inputxml_pdf_input_echo_adapter.py tests/test_inputxml_uxml_rvm_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
           status=${PIPESTATUS[0]}
           exit $status
       - name: Upload compiler test diagnostics
