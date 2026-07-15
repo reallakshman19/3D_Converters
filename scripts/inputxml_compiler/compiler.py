@@ -13,6 +13,22 @@ from .seljson import *
 from .managed_stage import *
 from .pdf_input_echo import *
 from .pdf_input_echo_bindings import *
+from .uxml_rvm import *
+
+def _json_dialect(source: bytes, dialect_override: str | None) -> str:
+    if dialect_override:
+        return dialect_override
+    try:
+        payload = json.loads(source.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CompileBlocked(f"JSON intake could not be parsed: {exc}") from exc
+    candidate = payload.get("uxml") if isinstance(payload, dict) and isinstance(payload.get("uxml"), dict) else payload
+    if isinstance(candidate, dict) and candidate.get("schemaVersion") == "uxml-topology-v1":
+        return "uxml-rvm-intake"
+    if isinstance(payload, dict) and any(key in payload for key in ("rvmRows", "rows", "inputKind")):
+        return "uxml-rvm-intake"
+    return "managed-stage-json"
+
 
 def compile_document(
     source: bytes,
@@ -33,7 +49,7 @@ def compile_document(
     registry = _load_json(registry_path)
     dialects = _registered_dialects(registry)
     stripped = source.lstrip()
-    json_source = dialect_override == "managed-stage-json" or stripped[:1] in {b"{", b"["}
+    json_source = dialect_override in {"managed-stage-json", "uxml-rvm-intake"} or stripped[:1] in {b"{", b"["}
     pdf_source = dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
     root: ET._Element | None
     if pdf_source:
@@ -41,7 +57,7 @@ def compile_document(
         dialect = dialect_override or "pdf-input-echo"
     elif json_source:
         root = None
-        dialect = dialect_override or "managed-stage-json"
+        dialect = _json_dialect(source, dialect_override)
     else:
         root = _parse_xml(source, source_name)
         dialect = dialect_override or detect_dialect(root, registry)
@@ -60,7 +76,10 @@ def compile_document(
 
     try:
         aliases = _resolve_aliases(_load_json(alias_registry_path))
-        if dialect == "pdf-input-echo":
+        if dialect == "uxml-rvm-intake":
+            wrapped = _compile_uxml_rvm_source(source, source_name=source_name, source_path=source_path, ledger=ledger, context=context)
+            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
+        elif dialect == "pdf-input-echo":
             wrapped = _compile_pdf_input_echo_source(source, source_name=source_name, ledger=ledger, context=context)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         elif dialect == "managed-stage-json":
