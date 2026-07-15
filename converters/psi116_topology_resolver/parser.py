@@ -215,6 +215,15 @@ def _occurrence_route_nodes(occurrence: ComponentOccurrence) -> list[NodeRecord]
     return distinct
 
 
+def _same_canonical_node(left: NodeRecord, right: NodeRecord) -> bool:
+    return (
+        left.node_number is not None
+        and right.node_number is not None
+        and left.node_number > 0
+        and left.node_number == right.node_number
+    )
+
+
 def _build_spans(
     branches: Sequence[BranchRecord],
     occurrences: Sequence[ComponentOccurrence],
@@ -234,7 +243,7 @@ def _build_spans(
             entry, exit_node = anchors[0], anchors[-1]
             if previous_exit is not None:
                 previous_node, previous_occurrence_id = previous_exit
-                if previous_node.key != entry.key:
+                if previous_node.key != entry.key and not _same_canonical_node(previous_node, entry):
                     sequence += 1
                     branch_order += 1
                     spans.append(RouteSpan(
@@ -248,7 +257,7 @@ def _build_spans(
                         to_node=entry,
                         length_mm=previous_node.position.distance_to(entry.position),
                     ))
-            if len(anchors) >= 2 and entry.key != exit_node.key:
+            if len(anchors) >= 2 and entry.key != exit_node.key and not _same_canonical_node(entry, exit_node):
                 sequence += 1
                 branch_order += 1
                 spans.append(RouteSpan(

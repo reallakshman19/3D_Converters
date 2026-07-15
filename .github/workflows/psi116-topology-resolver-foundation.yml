@@ -79,10 +79,16 @@ jobs:
           assert sum(row["code"] == "SUPPORT_ON_PIPE_CARRIER" for row in findings["findings"]) == 36
           assert sum(row["code"] == "JUNCTION_ON_PIPE_CARRIER" for row in findings["findings"]) == 13
 
-          aliases = [row for row in plan["actions"] if row["disposition"] == "ALIAS_COINCIDENT_NODE"]
-          alias_1610 = [row for row in aliases if row["owner_node_number"] == 1610 and 1600 in row["absorbed_node_numbers"]]
-          assert len(alias_1610) == 1
-          assert len(alias_1610[0]["finding_ids"]) == 2
+          contractions = [row for row in plan["actions"] if row["disposition"] == "SAFE_DROP_PIPE_GEOMETRY"]
+          contraction_1610 = [row for row in contractions if row["owner_node_number"] == 1610 and 1600 in row["absorbed_node_numbers"]]
+          assert len(contraction_1610) == 1
+          assert len(contraction_1610[0]["finding_ids"]) == 2
+          assert any(
+              row["disposition"] == "ALIAS_COINCIDENT_NODE"
+              and row["owner_node_number"] == 1570
+              and 2260 in row["absorbed_node_numbers"]
+              for row in plan["actions"]
+          )
           assert plan["summary"]["blockedActionCount"] == 0
           PY
 
