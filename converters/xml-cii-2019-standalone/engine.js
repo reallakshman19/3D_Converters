@@ -1,6 +1,7 @@
 import { loadPyodide } from '../../vendor/pyodide/pyodide.mjs';
 import { buildStandaloneCiiInvocation, outputStem } from './invocation-builder.js';
 import { applyStandaloneSifFacts } from '../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
+import { runPsi116TopologyStage, topologyRequested } from './topology-integration.js';
 
 const PYODIDE_INDEX_URL = new URL('../../vendor/pyodide/', import.meta.url).href;
 const SCRIPT_FILE_NAMES = Object.freeze([
@@ -57,7 +58,33 @@ function outputKindFor(sourceKind) { return sourceKind === 'inputxml' ? 'enriche
 function enrichedNameFor(job) { const stem = outputStem(job.sourceName); return job.sourceKind === 'inputxml' ? `${stem}_enriched.input.xml` : `${stem}_enriched.xml`; }
 function splitValue(job) { const v = job?.options?.splitCondensedValveFlange; return v === true || v === false ? v : null; }
 function diagnostics(job, extra = {}) { return { schema: 'xml-cii-2019-workflow-diagnostics/v1', engine: 'standalone-compatibility-engine', sourceKind: job.sourceKind === 'inputxml' ? 'inputxml' : 'xml', outputMode: job.options?.outputMode || 'enriched-only', warnings: [], ...extra }; }
-function errorResult(job, error, logLines = [], partial = {}) { const sourceKind = job?.sourceKind === 'inputxml' ? 'inputxml' : 'xml'; return { ok: false, sourceKind, outputKind: outputKindFor(sourceKind), enrichedText: text(partial.enrichedText), enrichedName: text(partial.enrichedName), ciiText: null, ciiName: null, diagnostics: null, logs: logLines, error: text(error?.message || error || 'Standalone engine failed.') }; }
+
+function emptyTopologyResult() {
+  return {
+    topologyFindingsText: '', topologyFindingsName: '', topologyFixPlanText: '', topologyFixPlanName: '',
+    topoFixXmlText: '', topoFixXmlName: '', topoFixTransactionText: '', topoFixTransactionName: '',
+    topoFixValidationText: '', topoFixValidationName: '', topoFixCommitted: false,
+    ciiInputSource: 'original', topologySummary: null,
+  };
+}
+
+function errorResult(job, error, logLines = [], partial = {}) {
+  const sourceKind = job?.sourceKind === 'inputxml' ? 'inputxml' : 'xml';
+  return {
+    ok: false,
+    sourceKind,
+    outputKind: outputKindFor(sourceKind),
+    enrichedText: text(partial.enrichedText),
+    enrichedName: text(partial.enrichedName),
+    ciiText: null,
+    ciiName: null,
+    ...emptyTopologyResult(),
+    ...partial,
+    diagnostics: null,
+    logs: logLines,
+    error: text(error?.message || error || 'Standalone engine failed.'),
+  };
+}
 
 async function getPyodide() {
   if (!pyodidePromise) pyodidePromise = loadPyodide({ indexURL: PYODIDE_INDEX_URL });
@@ -118,9 +145,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
   const normalizedJob = { ...job, sourceKind, options: { ...(job.options || {}), outputMode } };
   const stdout = [];
   const stderr = [];
-  // Keeps the enriched artifact reachable when a later step (e.g. CII
-  // conversion) fails, so the UI can still offer the enriched download.
-  const partial = { enrichedText: '', enrichedName: '' };
+  const partial = { enrichedText: '', enrichedName: '', ...emptyTopologyResult() };
   try {
     const pyodide = await getPyodide();
     await ensureScripts(pyodide);
@@ -136,12 +161,17 @@ export async function runXmlCii2019StandaloneEngine(job) {
     let ciiText = null;
     let ciiName = null;
     const postprocess = [];
+
+    let topology = emptyTopologyResult();
+    if (topologyRequested(normalizedJob)) {
+      topology = await runPsi116TopologyStage(pyodide, normalizedJob, inputPath, jobDir, stdout);
+      Object.assign(partial, topology);
+      postprocess.push({ branch: 'psi116-topology-sidecars', ...topology.topologySummary, findingsName: topology.topologyFindingsName, planName: topology.topologyFixPlanName });
+    }
+
     if (outputMode !== 'cii-only') {
       if (sourceKind === 'xml') {
         const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
-        // Note: sifFacts are applied to the enriched *output* text only. CII generation for the
-        // xml source kind re-derives its own enrichment inside xml_to_cii2019_direction.py from
-        // the raw input file, so this does not yet feed the CII conversion step for this branch.
         const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
         enrichedText = sif.text;
         enrichedName = enriched.enrichedName;
@@ -149,8 +179,6 @@ export async function runXmlCii2019StandaloneEngine(job) {
         partial.enrichedName = enrichedName;
         postprocess.push({ branch: 'psi116-enriched-xml', outputName: enrichedName, sifDiagnostics: sif.diagnostics });
       } else {
-        // sourceText already reflects enrichInputXmlDocument() output when called through the
-        // standalone workflow service — this branch just carries that enriched text through.
         enrichedText = normalizedJob.sourceText;
         enrichedName = enrichedNameFor(normalizedJob);
         partial.enrichedText = enrichedText;
@@ -160,13 +188,26 @@ export async function runXmlCii2019StandaloneEngine(job) {
       }
     }
     if (outputMode === 'cii-only' || outputMode === 'both') {
-      const cii = await runCii(pyodide, normalizedJob, paths, jobDir, stdout, stderr);
+      const ciiPaths = { ...paths, inputPath: topology.ciiInputPath || paths.inputPath };
+      const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
-      postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv });
+      postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv, inputSource: topology.ciiInputSource || 'original' });
     }
     const warnings = [];
-    return { ok: true, sourceKind, outputKind: outputKindFor(sourceKind), enrichedText, enrichedName, ciiText, ciiName, diagnostics: diagnostics(normalizedJob, { postprocess, warnings }), logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)], error: null };
+    return {
+      ok: true,
+      sourceKind,
+      outputKind: outputKindFor(sourceKind),
+      enrichedText,
+      enrichedName,
+      ciiText,
+      ciiName,
+      ...topology,
+      diagnostics: diagnostics(normalizedJob, { postprocess, warnings, topology: topology.topologySummary }),
+      logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)],
+      error: null,
+    };
   } catch (error) {
     return errorResult(normalizedJob, error, [...logs(stdout), ...logs(stderr)], partial);
   }

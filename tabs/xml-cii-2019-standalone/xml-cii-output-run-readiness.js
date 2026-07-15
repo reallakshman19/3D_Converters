@@ -12,10 +12,16 @@ function parseConfig(value) {
 
 function sourceText(input) { return text(input.sourceText || input.sourceFileText); }
 function resolvedKind(input) { return input.sourceKind === 'auto' ? detectXmlCiiWorkflowSourceKind(sourceText(input)) : (input.sourceKind || 'xml'); }
-function hasResult(input) { return !!input.result?.enrichedText || !!input.result?.ciiText || input.result?.ok === true; }
+function hasResult(input) { return !!input.result?.enrichedText || !!input.result?.ciiText || !!input.result?.topologyFindingsText || input.result?.ok === true; }
 
 function row(id, label, ok, message, opts = {}) {
   return { id, label, status: ok ? 'ready' : (opts.status || 'missing'), severity: ok ? 'ok' : (opts.severity || 'warning'), blocking: !!opts.blocking && !ok, message, detail: opts.detail || '' };
+}
+
+function topologyActionIds(input) {
+  const value = input.options?.topologyActionIds;
+  const rows = Array.isArray(value) ? value : String(value ?? '').split(/[\s,;]+/);
+  return [...new Set(rows.map((entry) => String(entry).trim()).filter(Boolean))];
 }
 
 function optionRows(input, kind) {
@@ -24,6 +30,20 @@ function optionRows(input, kind) {
   rows.push(row('support-config-valid', 'Support config valid', parseConfig(input.supportConfigJson).ok, 'Support/config JSON is parseable.', { blocking: true, severity: 'error' }));
   rows.push(row('output-mode', 'Output mode selected', !!input.options?.outputMode, `Output mode: ${input.options?.outputMode || 'not selected'}.`, { blocking: true, severity: 'error' }));
   return rows;
+}
+
+function topologyRows(input, kind) {
+  const options = input.options || {};
+  const requested = options.analyzeTopology === true || options.generateTopoFix === true || options.useTopoFixForCii === true;
+  if (!requested) return [];
+  const ids = topologyActionIds(input);
+  return [
+    row('topology-source-mode', 'PSI116 topology source mode', kind === 'xml', kind === 'xml' ? 'Topology analysis will run against the effective PSI116 XML.' : 'Topology analysis is not available for InputXML source mode.', { blocking: true, severity: 'error' }),
+    row('topology-analysis-enabled', 'Analyze PSI116 topology', options.analyzeTopology === true, 'Analyze topology must be enabled before correction.', { blocking: options.generateTopoFix === true || options.useTopoFixForCii === true, severity: 'error' }),
+    row('topofix-action-ids', 'Reviewed TopoFix action IDs', options.generateTopoFix !== true || ids.length > 0, options.generateTopoFix === true ? `${ids.length} reviewed action ID(s) selected.` : 'No correction requested; action IDs are optional.', { blocking: options.generateTopoFix === true, severity: 'error' }),
+    row('topofix-use-dependency', 'Use committed TopoFix for CII dependency', options.useTopoFixForCii !== true || options.generateTopoFix === true, options.useTopoFixForCii === true ? 'CII will use the fixed XML only after the transaction commits.' : 'CII will use the original effective XML.', { blocking: options.useTopoFixForCii === true, severity: 'error' }),
+    row('topofix-output-mode', 'TopoFix CII output mode', options.useTopoFixForCii !== true || ['cii-only', 'both'].includes(options.outputMode), options.useTopoFixForCii === true ? `Output mode ${options.outputMode || 'not selected'} must include CII.` : 'TopoFix is not selected as CII input.', { blocking: options.useTopoFixForCii === true, severity: 'error' }),
+  ];
 }
 
 function xmlRows(input) {
@@ -42,8 +62,6 @@ function inputXmlRows(input) {
   return [row('inputxml-side-load', 'InputXML side-load status', matched > 0 || !!text(input.elementSideLoadText), `InputXML side-load evidence rows: ${matched || 'not built yet'}.`)];
 }
 
-// The Preview and Weight Match tabs persist their built data in LocalStorage
-// caches rather than on the workflow state, so readiness must consult both.
 function cachedRows(storageKey, picker) {
   if (typeof localStorage === 'undefined') return false;
   try {
@@ -69,8 +87,6 @@ function supportMapperDone(input) {
   const parsed = parseConfig(input.supportConfigJson);
   if (!parsed.ok) return false;
   if (array(parsed.value?.supportMapperRules).length > 0) return true;
-  // The mapper ships with built-in kind→CII rules (supportKindToXmlType /
-  // keywordRules in the default config); those defaults count as available.
   const kindMap = parsed.value?.supportKindToXmlType;
   if (kindMap && typeof kindMap === 'object' && Object.keys(kindMap).length > 0) return true;
   return array(parsed.value?.keywordRules).length > 0;
@@ -91,7 +107,7 @@ function commonRows(input) {
 
 export function buildOutputRunChecklist(input = {}) {
   const kind = resolvedKind(input);
-  return [...optionRows(input, kind), ...commonRows(input), ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
+  return [...optionRows(input, kind), ...topologyRows(input, kind), ...commonRows(input), ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
 }
 
 function artifact(kind, label, name, value, mime) {
@@ -127,7 +143,15 @@ export function buildRunManifest(input = {}) {
     previewAudit: { matched: summaryCount(input.previewDiagnosticsAuditReport, 'matchedFacts'), rejected: summaryCount(input.previewDiagnosticsAuditReport, 'rejectedFacts') },
     weightMatch: { issues: countRows(input.weightMatchResult?.issueRows), finalized: countRows(input.weightMatchResult?.finalizedRows) },
     supportMapper: { previewRows: countRows(input.supportTypeMapperResult?.previewRows), diagnostics: countRows(input.supportTypeMapperResult?.diagnostics) },
-    artifacts: { enriched: !!result.enrichedText, cii: !!result.ciiText, diagnostics: !!result.diagnostics, manifest: hasResult(input) },
+    topology: {
+      analyze: input.options?.analyzeTopology === true,
+      generateTopoFix: input.options?.generateTopoFix === true,
+      useTopoFixForCii: input.options?.useTopoFixForCii === true,
+      selectedActionIds: topologyActionIds(input),
+      committed: result.topoFixCommitted === true,
+      ciiInputSource: result.ciiInputSource || 'original',
+    },
+    artifacts: { enriched: !!result.enrichedText, cii: !!result.ciiText, topologyFindings: !!result.topologyFindingsText, topologyPlan: !!result.topologyFixPlanText, topoFixXml: !!result.topoFixXmlText, diagnostics: !!result.diagnostics, manifest: hasResult(input) },
   };
 }
 

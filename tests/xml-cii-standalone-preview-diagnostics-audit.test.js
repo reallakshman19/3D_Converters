@@ -38,6 +38,7 @@ function fixtureFiles() {
     'converters/xml-cii2019-core/branch-process-resolver.js',
     'converters/xml-cii2019-core/config.js',
     'converters/xml-cii2019-core/dtxr-resolver.js',
+    'converters/xml-cii2019-core/dtxr-resolver-core.js',
     'converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js',
     'converters/xml-cii2019-core/line-density-resolver.js',
     'converters/xml-cii2019-core/linelist-mapping.js',
@@ -108,8 +109,6 @@ function reportInput(sourceKind = 'xml') {
   const classResolver = await import(pathToFileURL(path.join(tempRoot, 'converters/xml-cii2019-core/piping-class-resolver.js')).href);
   const provenance = await import(pathToFileURL(path.join(tempRoot, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-provenance.js')).href);
 
-  // Representative rows use piping classes and material codes already shipped
-  // in the app-default engineering map rather than invented class families.
   const pipingClassRows = [
     { pipingClass: '91261M7', convertedBore: 150, componentType: 'PIPE', rating: 900, wallThickness: 10.97, corrosion: 1, materialName: 'ASTM A106-B' },
     { pipingClass: '11472', convertedBore: 150, componentType: 'PIPE', rating: 150, wallThickness: 7.11, corrosion: 2, materialName: 'ASTM A333-6' },
@@ -193,9 +192,6 @@ function reportInput(sourceKind = 'xml') {
   const withReport = stateApi.applyPreviewDiagnosticsAuditReport(stateApi.createXmlCiiAdaptedWorkflowState(), report);
   assert(withReport.previewDiagnosticsAuditStatus.includes('matched'), 'report status should mention matched count');
 
-  // 'preview' phase now renders the live dry-run enrichment preview table (xmlCiiRenderPreviewPhase /
-  // xmlCiiBuildAndRenderPreview) instead of the static audit summary; the audit data itself is still
-  // rendered by the 'diagnostics' and 'matched-audit' phases exercised below.
   const previewCard = new TestElement('section');
   await ui.renderStandalonePreviewReportPanel(previewCard, { ...withReport, sourceText: reportInput().sourceText, result: reportInput().result });
   for (const label of ['4 Preview', 'Line List', 'Piping Class']) assert(previewCard.textContent.includes(label), `Preview panel missing ${label}`);
