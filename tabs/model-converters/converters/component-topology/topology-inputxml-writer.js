@@ -1,9 +1,8 @@
 /**
- * Native CAESAR II 11 InputXML writer for component topology.
- * Inputs: canonical topology, resolved engineering projection, and job name.
- * Output: globally numbered PIPINGELEMENT records with physical attributes,
- * global coordinates, rigids, restraints, support names, and source lineage.
- * Missing source engineering values remain the native -1.010100 sentinel.
+ * Native CAESAR II 11 topology InputXML writer.
+ * CanonicalTopology.v1 is the sole topology authority. Engineering values are
+ * resolved from the existing enrichment projection, while all topology trace
+ * metadata is delegated to topology-inputxml-trace-attributes.js.
  */
 
 import { RESTRAINT_CODE_MAP } from '../../../stagedjson-to-enrichxml/sj-restraint-resolver.js';
@@ -11,6 +10,11 @@ import { isSupportType } from '../../../stagedjson-to-enrichxml/sj-type-mapper.j
 import { resolveMaterialCodeFromLineMaterial } from '../../../../converters/xml-cii2019-core/branch-process-resolver.js';
 import { DEFAULT_MATERIAL_MAP_ROWS } from '../../../../converters/xml-cii2019-core/default-material-map-rows.js';
 import { cleanText, xmlAttribute } from './topology-values.js';
+import {
+  topologyElementTraceAttributes,
+  topologyRestraintTraceAttributes,
+  topologyRigidTraceAttributes,
+} from './topology-inputxml-trace-attributes.js';
 
 const SENTINEL = '-1.010100';
 
@@ -114,32 +118,31 @@ function nativeAttributes(edge, from, to, values, fromName, toName) {
     ['FROM_NAME', fromName], ['TO_NAME', toName],
     ['FROM_GLOBAL_X', globalFixed(from.position.x)], ['FROM_GLOBAL_Y', globalFixed(from.position.y)], ['FROM_GLOBAL_Z', globalFixed(from.position.z)],
     ['TO_GLOBAL_X', globalFixed(to.position.x)], ['TO_GLOBAL_Y', globalFixed(to.position.y)], ['TO_GLOBAL_Z', globalFixed(to.position.z)],
-    ['GLOBAL_COORD_BASIS_NODE', from.inputXmlNodeIds[0]],
-    ['SOURCE_TYPE', edge.sourceTypes[0]], ['SOURCE_ENTITY_IDS', edge.sourceEntityIds.join(',')],
-    ['CANONICAL_EDGE_ID', edge.id], ['TOPOLOGY_OPERATION', edge.segmentRole],
+    ['GLOBAL_COORD_BASIS_NODE', from.inputXmlNodeIds[0]], ['SOURCE_TYPE', edge.sourceTypes[0]],
+    ...topologyElementTraceAttributes(edge, from, to),
   );
   return attributes;
-}
-
-/** @param {Record<string,unknown>} restraint @param {string} nodeId @param {number} index @param {string} supportId @param {string} tag @returns {string} */
-function restraintXml(restraint, nodeId, index, supportId, tag) {
-  const type = cleanText(restraint.type || restraint.kind).toUpperCase();
-  const code = RESTRAINT_CODE_MAP[type];
-  if (!Number.isFinite(code)) throw new Error(`Unsupported CAESAR restraint type ${type || '(blank)'}.`);
-  const cosine = type === '+X' ? [1, 0, 0] : type === '+Y' ? [0, 1, 0] : type === '+Z' ? [0, 0, 1] : [0, 0, 0];
-  const attributes = [
-    ['NUM', fixed(index + 1)], ['NODE', fixed(nodeId)], ['TYPE', fixed(code)],
-    ['STIFFNESS', fixed(restraint.stiffness)], ['GAP', fixed(restraint.gap)], ['FRIC_COEF', fixed(restraint.friction)],
-    ['CNODE', SENTINEL], ['XCOSINE', fixed(cosine[0])], ['YCOSINE', fixed(cosine[1])], ['ZCOSINE', fixed(cosine[2])],
-    ['TAG', tag], ['GUID', ''],
-  ];
-  attributes.unshift(['ID', `RESTRAINT:${supportId}:${index + 1}`]);
-  return `      <RESTRAINT ${serialize(attributes)}/>`;
 }
 
 /** @param {Array<[string,unknown]>} attributes @returns {string} */
 function serialize(attributes) {
   return attributes.map(([name, value]) => `${name}="${xmlAttribute(value)}"`).join(' ');
+}
+
+/** @param {Record<string,unknown>} restraint @param {Record<string,unknown>} support @param {number} index @returns {string} */
+function restraintXml(restraint, support, index) {
+  const type = cleanText(restraint.type || restraint.kind).toUpperCase();
+  const code = RESTRAINT_CODE_MAP[type];
+  if (!Number.isFinite(code)) throw new Error(`Unsupported CAESAR restraint type ${type || '(blank)'}.`);
+  const cosine = type === '+X' ? [1, 0, 0] : type === '+Y' ? [0, 1, 0] : type === '+Z' ? [0, 0, 1] : [0, 0, 0];
+  const attributes = [
+    ['ID', `RESTRAINT:${support.id}:${index + 1}`], ['NUM', fixed(index + 1)], ['NODE', fixed(support.inputXmlNodeId)], ['TYPE', fixed(code)],
+    ['STIFFNESS', fixed(restraint.stiffness)], ['GAP', fixed(restraint.gap)], ['FRIC_COEF', fixed(restraint.friction)],
+    ['CNODE', SENTINEL], ['XCOSINE', fixed(cosine[0])], ['YCOSINE', fixed(cosine[1])], ['ZCOSINE', fixed(cosine[2])],
+    ['TAG', support.tag], ['GUID', ''],
+    ...topologyRestraintTraceAttributes(support),
+  ];
+  return `      <RESTRAINT ${serialize(attributes)}/>`;
 }
 
 /** @param {Record<string,unknown>} canonical @returns {{supportsByEdge:Map<string,Record<string,unknown>[]>,namesByNode:Map<string,string>}} */
@@ -167,17 +170,18 @@ function elementXml(edge, nodes, record, supports, rigids, names) {
   if (rigids.length) {
     const weight = rigids.reduce((sum, rigid) => sum + Number(rigid.weightKg || 0), 0);
     const types = [...new Set(rigids.map((rigid) => cleanText(rigid.componentType)).filter(Boolean))];
-    const sourceIds = rigids.map((rigid) => rigid.sourceEntityId).join(',');
-    children.push(`      <RIGID ID="RIGID:${xmlAttribute(edge.id)}" WEIGHT="${fixed(weight)}" TYPE="${xmlAttribute(types.join('+'))}" SOURCE_BODY_COUNT="${rigids.length}" SOURCE_ENTITY_IDS="${xmlAttribute(sourceIds)}"/>`);
+    children.push(`      <RIGID ${serialize([
+      ['ID', `RIGID:${edge.id}`], ['WEIGHT', fixed(weight)], ['TYPE', types.join('+')], ['SOURCE_BODY_COUNT', rigids.length],
+      ...topologyRigidTraceAttributes(edge, rigids),
+    ])}/>`);
   }
-  for (const support of supports) for (const [index, restraint] of support.restraints.entries()) {
-    children.push(restraintXml(restraint, support.inputXmlNodeId, index, support.id, support.tag));
-  }
+  for (const support of supports) for (const [index, restraint] of support.restraints.entries()) children.push(restraintXml(restraint, support, index));
   return `    <PIPINGELEMENT ${serialize(attributes)}>\n${children.join('\n')}${children.length ? '\n' : ''}    </PIPINGELEMENT>`;
 }
 
-/** @param {Record<string, unknown>} canonical @param {Record<string,unknown>} engineering @param {{jobName:string}} options @returns {string} */
+/** @param {Record<string, unknown>} canonical @param {Record<string,unknown>} engineering @param {{jobName:string,topologyTraceLedgerHash?:string}} options @returns {string} */
 export function buildTopologyInputXml(canonical, engineering, options) {
+  if (!cleanText(canonical.canonicalTopologyHash)) throw new Error('Topology InputXML requires a hashed CanonicalTopology.v1 snapshot.');
   const nodes = nodeMap(canonical), supportData = supportIndex(canonical);
   const rigidByEdge = new Map();
   for (const rigid of canonical.rigids) rigidByEdge.set(rigid.edgeId, [...(rigidByEdge.get(rigid.edgeId) ?? []), rigid]);
@@ -187,13 +191,21 @@ export function buildTopologyInputXml(canonical, engineering, options) {
   )).join('\n');
   const restraintCount = canonical.supports.reduce((sum, support) => sum + support.restraints.length, 0);
   const bendCount = canonical.edges.filter((edge) => edge.segmentRole.includes('ELBO/BEND_RUN_IN')).length;
+  const modelAttributes = [
+    ['JOBNAME', options.jobName], ['NUMELT', canonical.edges.length], ['NUMNOZ', 0], ['NOHGRS', 0], ['NUMBEND', bendCount],
+    ['NUMRIGID', rigidByEdge.size], ['NUMEXPJNT', 0], ['NUMREST', restraintCount], ['NUMFORCMNT', 0], ['NUMUNFLOAD', 0],
+    ['NUMWIND', 0], ['NUMELEOFF', 0], ['NUMALLOW', 0], ['NUMISECT', 0], ['NORTH_X', 0], ['NORTH_Y', 1], ['NORTH_Z', 0],
+    ['CANONICAL_TOPOLOGY_HASH', canonical.canonicalTopologyHash], ['TOPOLOGY_TRACE_LEDGER_HASH', cleanText(options.topologyTraceLedgerHash)],
+  ];
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<CAESARII xmlns="COADE" VERSION="11.00" XML_TYPE="Input">',
-    `  <PIPINGMODEL xmlns="" JOBNAME="${xmlAttribute(options.jobName)}" NUMELT="${canonical.edges.length}" NUMNOZ="0" NOHGRS="0" NUMBEND="${bendCount}" NUMRIGID="${rigidByEdge.size}" NUMEXPJNT="0" NUMREST="${restraintCount}" NUMFORCMNT="0" NUMUNFLOAD="0" NUMWIND="0" NUMELEOFF="0" NUMALLOW="0" NUMISECT="0" NORTH_X="0" NORTH_Y="1" NORTH_Z="0">`,
+    `  <PIPINGMODEL xmlns="" ${serialize(modelAttributes)}>`,
     elements,
     '  </PIPINGMODEL>',
     '</CAESARII>',
     '',
   ].join('\n');
 }
+
+export const _test = Object.freeze({ finiteNumber, fixed, globalFixed, physicalWall, nodeMap, engineeringRecord, engineeringValues, nativeAttributes, serialize, supportIndex, elementXml });
