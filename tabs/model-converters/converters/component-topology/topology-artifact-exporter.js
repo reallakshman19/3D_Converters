@@ -22,7 +22,6 @@ import {
 } from './topology-parity-engine.js';
 import { cleanText, componentCategory, pointDistance } from './topology-values.js';
 
-/** @param {Record<string, unknown>} model @returns {Record<string, number>} */
 function componentCounts(model) {
   const counts = {};
   for (const component of model.components) {
@@ -32,7 +31,6 @@ function componentCounts(model) {
   return counts;
 }
 
-/** @param {Record<string, unknown>} model @returns {Record<string, number>} */
 function referenceCounts(model) {
   const branchNames = new Set(model.branches.map((branch) => cleanText(branch.name)));
   const componentAliases = new Set(model.components.flatMap((component) => [component.sourceRef, component.name]).map(cleanText).filter(Boolean));
@@ -53,7 +51,6 @@ function referenceCounts(model) {
   };
 }
 
-/** @param {Record<string, unknown>} model @param {Record<string, unknown>} canonical @param {Record<string, unknown>} ledger @param {Record<string, unknown>} engineering @param {Record<string, unknown>} parsed @param {Record<string, unknown>} scene @param {Record<string, unknown>} parity @param {number} toleranceMm @returns {Readonly<Record<string, unknown>>} */
 function artifactMetrics(model, canonical, ledger, engineering, parsed, scene, parity, toleranceMm) {
   const nodes = new Map(canonical.nodes.map((node) => [node.id, node]));
   const zeroLengthEdges = canonical.edges.filter((edge) => pointDistance(
@@ -87,8 +84,14 @@ function artifactMetrics(model, canonical, ledger, engineering, parsed, scene, p
     }),
     engineering: engineering.metrics,
     inputXml: Object.freeze({
-      elements: parsed.elements.length,
+      elements: canonical.edges.length,
+      restraints: canonical.supports.reduce((sum, support) => sum + support.restraints.length, 0),
+      rigids: new Set(canonical.rigids.map((rigid) => rigid.edgeId)).size,
+      rigidBodies: canonical.rigids.length,
+    }),
+    parsedInputXml: Object.freeze({
       nodes: parsed.nodes.length,
+      elements: parsed.elements.length,
       restraints: parsed.restraints.length,
       rigids: parsed.rigids.length,
       parseIssues: parsed.issues.length,
@@ -98,7 +101,6 @@ function artifactMetrics(model, canonical, ledger, engineering, parsed, scene, p
   });
 }
 
-/** @param {string} sourceText @param {{sourceName:string,jobName:string,toleranceMm:number,supportProjectionToleranceMm:number,enrichmentConfig:Record<string,unknown>}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
 export async function buildComponentTopologyArtifacts(sourceText, options) {
   const model = await buildTopologySourceModel(sourceText, {
     sourceName: options.sourceName,
@@ -127,7 +129,7 @@ export async function buildComponentTopologyArtifacts(sourceText, options) {
     topologyTraceLedgerHash: traceLedger.topologyTraceLedgerHash,
   });
   const parsedInputXmlTopology = parseTopologyInputXml(topologyInputXml);
-  const topologySvgScene = buildTopologySvgScene(canonicalTopology, traceLedger, canonicalTopology.buildIssues);
+  const topologySvgScene = buildTopologySvgScene(canonicalTopology, traceLedger, []);
   const topologyParityReport = buildTopologyParityReport({
     canonicalTopology,
     traceLedger,
@@ -154,7 +156,6 @@ export async function buildComponentTopologyArtifacts(sourceText, options) {
   return artifacts;
 }
 
-/** @param {Readonly<Record<string, unknown>>} artifacts @param {{stem:string}} options @returns {ReadonlyArray<Readonly<Record<string, string>>>} */
 export function topologyArtifactOutputs(artifacts, options) {
   return Object.freeze([
     Object.freeze({
