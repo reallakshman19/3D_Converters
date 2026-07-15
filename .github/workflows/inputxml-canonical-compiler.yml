@@ -1,0 +1,42 @@
+name: InputXML Canonical Compiler
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/inputxml/v1/**'
+      - 'scripts/inputxml_canonical_compiler.py'
+      - 'scripts/inputxml_compiler/**'
+      - 'scripts/validate-inputxml-contract-catalogs.py'
+      - 'scripts/validate-inputxml-schema-suite.py'
+      - 'tests/test_inputxml_canonical_compiler*.py'
+      - '.github/workflows/inputxml-canonical-compiler.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-compiler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install XML validation runtime
+        run: python -m pip install --disable-pip-version-check lxml==5.4.0
+      - name: Validate merged field and component catalogs
+        run: python scripts/validate-inputxml-contract-catalogs.py
+      - name: Validate merged XSD, Schematron, registry, and golden corpus
+        run: python scripts/validate-inputxml-schema-suite.py
+      - name: Run canonical compiler unit and integration tests
+        run: python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py
+      - name: Run direct canonical CLI smoke
+        run: |
+          rm -rf /tmp/inputxml-canonical-compiler
+          python scripts/inputxml_canonical_compiler.py \
+            --input contracts/inputxml/v1/golden/positive/minimal.canonical.input.xml \
+            --output-dir /tmp/inputxml-canonical-compiler \
+            --dialect canonical-inputxml-v1 \
+            --source-repository reallaksh19/3D_Converters \
+            --source-path contracts/inputxml/v1/golden/positive/minimal.canonical.input.xml
+          test -s /tmp/inputxml-canonical-compiler/minimal.canonical.input.canonical.input.xml
+          test -s /tmp/inputxml-canonical-compiler/minimal.canonical.input.canonicalization-ledger.json
+          test -s /tmp/inputxml-canonical-compiler/minimal.canonical.input.canonical-validation.json
