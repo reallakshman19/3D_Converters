@@ -114,7 +114,7 @@ class CompilerTests(unittest.TestCase):
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
 
     def test_registered_unimplemented_dialect_blocks(self):
-        root,ledger,validation=self.compile('<Root><Branch/></Root>')
+        root,ledger,validation=self.compile('<Root/>', dialect='managed-stage-json')
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
         self.assertEqual('UNSUPPORTED_BLOCKING',ledger['records'][0]['disposition'])
 

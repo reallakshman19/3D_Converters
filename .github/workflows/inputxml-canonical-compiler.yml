@@ -9,6 +9,13 @@ on:
       - 'scripts/validate-inputxml-contract-catalogs.py'
       - 'scripts/validate-inputxml-schema-suite.py'
       - 'tests/test_inputxml_canonical_compiler*.py'
+      - 'tests/test_inputxml_xml_builder_adapter.py'
+      - 'tests/xml-cii-node-to-inputxml-core.test.js'
+      - 'tabs/model-converters/xml-cii-node-to-inputxml-*.js'
+      - 'converters/xml-cii2019-core/custom-input-*.js'
+      - 'converters/xml-cii2019-core/restraint-type-*.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js'
       - '.github/workflows/inputxml-canonical-compiler.yml'
   workflow_dispatch:
 
@@ -26,8 +33,23 @@ jobs:
         run: python scripts/validate-inputxml-contract-catalogs.py
       - name: Validate merged XSD, Schematron, registry, and golden corpus
         run: python scripts/validate-inputxml-schema-suite.py
+      - name: Validate authoritative XML Builder topology engine
+        run: |
+          node --check scripts/inputxml_compiler/node_xml_builder_bridge.cjs
+          node tests/xml-cii-node-to-inputxml-core.test.js
       - name: Run canonical compiler unit and integration tests
-        run: python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py
+        run: |
+          set +e
+          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload compiler test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inputxml-compiler-test-log
+          path: /tmp/inputxml-compiler-tests.log
+          if-no-files-found: warn
       - name: Run direct canonical CLI smoke
         run: |
           rm -rf /tmp/inputxml-canonical-compiler
