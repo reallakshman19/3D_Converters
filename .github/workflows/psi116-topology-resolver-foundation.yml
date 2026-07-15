@@ -37,6 +37,8 @@ jobs:
             "Benchmarks/1885Sjson/FirstpassXML" \
             --output-dir "$RUNNER_TEMP/psi116-topology" \
             --stem FirstpassXML
+          cp "Benchmarks/1885Sjson/FirstpassXML" \
+            "$RUNNER_TEMP/psi116-topology/FirstpassXML.source.txt"
 
       - name: Verify sidecar contract
         run: |
