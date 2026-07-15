@@ -15,7 +15,6 @@ import { buildSupportAttachmentIndex, resolveSupportAttachment } from './topolog
 import { splitEdgeSpecsAtSupports } from './topology-support-edge-splitter.js';
 import { cleanText, pointDistance, uniqueText } from './topology-values.js';
 
-/** @param {unknown[]} path @returns {string} */
 function componentKey(path) {
   const branchIndex = Number(path[0]);
   const childrenIndex = path.indexOf('children');
@@ -26,19 +25,16 @@ function componentKey(path) {
   return `${branchIndex}:${sourceIndex}`;
 }
 
-/** @param {Record<string, unknown>} component @returns {Record<string, unknown>|null} */
 function supportPortOrNull(component) {
   return portForRole(component, 'P') ?? portForRole(component, 'A') ?? portForRole(component, 'L') ?? null;
 }
 
-/** @param {Record<string, unknown>} component @returns {Record<string, unknown>} */
 function supportPort(component) {
   const port = supportPortOrNull(component);
   if (!port) throw new Error(`Support ${component.sourcePath} has no usable source position port.`);
   return port;
 }
 
-/** @param {Record<string, unknown>} model @param {Record<string, unknown>[]} records @returns {Record<string, unknown>} */
 function componentRecordIndex(model, records) {
   const byPath = new Map(model.components.map((component) => [`${component.branchIndex}:${component.sourceIndex}`, component]));
   const entries = records.map((record) => {
@@ -53,13 +49,11 @@ function componentRecordIndex(model, records) {
   };
 }
 
-/** @param {Record<string, unknown>} component @returns {boolean} */
 function isProjectedSupport(component) {
   return isSupportType(component.sourceType)
     && cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT';
 }
 
-/** @param {Record<string, unknown>} anchor @param {Readonly<Record<string, unknown>>} attachment @returns {void} */
 function mergeAttachment(anchor, attachment) {
   anchor.attachmentReferences.push(...attachment.references);
   anchor.attachedComponentEntityIds.push(...attachment.sourceEntityIds);
@@ -68,7 +62,22 @@ function mergeAttachment(anchor, attachment) {
   if (attachment.authority) anchor.attachmentAuthorities.push(attachment.authority);
 }
 
-/** @param {Record<string, unknown>} model @param {Record<string, unknown>[]} supportEntries @param {Readonly<Record<string, unknown>>} attachmentIndex @returns {Record<string, unknown>[]} */
+function supportNameIndex(model) {
+  const index = new Map();
+  for (const component of model.components) {
+    const name = cleanText(component.attributes.NAME || component.name);
+    if (!name) continue;
+    index.set(name, [...(index.get(name) ?? []), component]);
+  }
+  return index;
+}
+
+function referenceTarget(current, reference, byName) {
+  const candidates = byName.get(reference) ?? [];
+  return candidates.find((row) => row.sourceBranchEntityId === current.sourceBranchEntityId)
+    ?? (candidates.length === 1 ? candidates[0] : null);
+}
+
 function buildSupportAnchors(model, supportEntries, attachmentIndex) {
   const anchors = supportEntries.map(({ component, record }, order) => {
     const port = supportPort(component);
@@ -95,9 +104,7 @@ function buildSupportAnchors(model, supportEntries, attachmentIndex) {
   });
   const byPosition = new Map(anchors.map((anchor) => [formatPosition(anchor.position), anchor]));
   const supportComponents = model.components.filter(isProjectedSupport);
-  const byName = new Map(model.components.map((component) => [
-    `${component.sourceBranchEntityId}|${cleanText(component.attributes.NAME || component.name)}`, component,
-  ]));
+  const byName = supportNameIndex(model);
   for (const component of supportComponents) {
     const anchor = findSupportAnchor(component, byPosition, byName);
     if (!anchor) throw new Error(`Support ${component.sourcePath} was not retained by the engineering grouping contract.`);
@@ -121,7 +128,6 @@ function buildSupportAnchors(model, supportEntries, attachmentIndex) {
   }));
 }
 
-/** @param {Record<string, unknown>} component @param {Map<string,Record<string,unknown>>} byPosition @param {Map<string,Record<string,unknown>>} byName @returns {Record<string,unknown>|null} */
 function findSupportAnchor(component, byPosition, byName) {
   let current = component;
   const visited = new Set();
@@ -133,14 +139,12 @@ function findSupportAnchor(component, byPosition, byName) {
     const currentName = cleanText(current.attributes.NAME || current.name);
     const reference = ['MDSSREF', 'MDSGUIDEREF', 'PREV-NAME']
       .map((field) => cleanText(current.attributes[field]))
-      .find((value) => value && value !== currentName
-        && byName.has(`${current.sourceBranchEntityId}|${value}`));
-    current = reference ? byName.get(`${current.sourceBranchEntityId}|${reference}`) : null;
+      .find((value) => value && value !== currentName && referenceTarget(current, value, byName));
+    current = reference ? referenceTarget(current, reference, byName) : null;
   }
   return null;
 }
 
-/** @param {Record<string, unknown>[]} edges @param {Record<string, unknown>[]} nodes @param {Record<string, unknown>[]} rigids @param {number} toleranceMm @returns {Record<string, unknown>[]} */
 export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   return rigids.map((rigid) => {
@@ -179,7 +183,6 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
   });
 }
 
-/** @param {string} sourceText @param {Record<string, unknown>} model @param {{enrichmentConfig:Record<string,unknown>}} options @returns {Readonly<Record<string, unknown>>} */
 export function buildTopologyEngineeringProjection(sourceText, model, options) {
   const enrichment = runEnrichment({ stagedJsonText: sourceText, config: options.enrichmentConfig });
   const index = componentRecordIndex(model, enrichment.records);
