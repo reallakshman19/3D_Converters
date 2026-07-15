@@ -32,6 +32,7 @@ function fixtureFiles() {
     'converters/xml-cii2019-core/branch-process-resolver.js',
     'converters/xml-cii2019-core/config.js',
     'converters/xml-cii2019-core/dtxr-resolver.js',
+    'converters/xml-cii2019-core/dtxr-resolver-core.js',
     'converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js',
     'converters/xml-cii2019-core/flange-weight-fallback.js',
     'converters/xml-cii2019-core/line-density-resolver.js',
@@ -108,9 +109,6 @@ function componentRows() {
   assert(withResult.supportConfigJson.includes('finalizedMatches'), 'state finalize must write support config');
   assert(withResult.weightMatchStatus.includes('finalized'), 'finalize status expected');
 
-  // The Weight Match phase panel now computes rigid-weight issues live from state.sourceText
-  // (via a Build Weight Data click) rather than rendering the state-managed weightMatchResult
-  // directly, so this checks the always-present static shell rather than a pre-populated report.
   const card = new TestElement('section');
   ui.renderAdaptedWeightMatchPanel(card, { ...withResult, weightMatchOverridesJson: '{}' });
   for (const label of ['Weight Match', 'Build Weight Data', 'Use all', 'preferred', 'Ready to build']) {

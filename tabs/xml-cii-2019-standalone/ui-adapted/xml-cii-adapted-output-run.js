@@ -1,5 +1,6 @@
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import { createElement, createOption } from './xml-cii-adapted-dom.js';
+import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
+import { createElement, createOption, downloadTextFile } from './xml-cii-adapted-dom.js';
 import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js';
@@ -68,7 +69,6 @@ function renderChecklist(parent, report) {
 function renderArtifacts(parent, state, report) {
   const panel = section(parent, 'Output Artifacts / Downloads');
   panel.appendChild(table(['Kind', 'Artifact', 'Available', 'Filename', 'Bytes'], rows(report.artifactRows), 'No artifact rows yet.'));
-  
   const buttonsDiv = createElement('div');
   buttonsDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;';
   for (const row of rows(report.artifactRows)) {
@@ -79,6 +79,40 @@ function renderArtifacts(parent, state, report) {
   }
   panel.appendChild(buttonsDiv);
   renderAdaptedCiiPreviewCanvas(panel, state, report);
+}
+
+function topologyArtifactRows(result) {
+  return [
+    { kind: 'topology-findings', label: 'Topology Findings JSON', filename: result?.topologyFindingsName, value: result?.topologyFindingsText, mime: 'application/json;charset=utf-8' },
+    { kind: 'topology-plan', label: 'Topology Fix Plan JSON', filename: result?.topologyFixPlanName, value: result?.topologyFixPlanText, mime: 'application/json;charset=utf-8' },
+    { kind: 'topofix-xml', label: 'Committed TopoFix XML', filename: result?.topoFixXmlName, value: result?.topoFixXmlText, mime: 'application/xml;charset=utf-8' },
+    { kind: 'topofix-transaction', label: 'TopoFix Transaction JSON', filename: result?.topoFixTransactionName, value: result?.topoFixTransactionText, mime: 'application/json;charset=utf-8' },
+    { kind: 'topofix-validation', label: 'TopoFix Validation JSON', filename: result?.topoFixValidationName, value: result?.topoFixValidationText, mime: 'application/json;charset=utf-8' },
+  ].map((row) => ({ ...row, available: text(row.value).length > 0, bytes: new TextEncoder().encode(text(row.value)).length }));
+}
+
+function renderTopologyArtifacts(parent, state) {
+  const requested = state.options?.analyzeTopology === true || state.options?.generateTopoFix === true || !!state.result?.topologyFindingsText;
+  if (!requested) return;
+  const panel = section(parent, 'Topology Sidecars / Downloads');
+  const data = topologyArtifactRows(state.result);
+  panel.appendChild(table(['Kind', 'Artifact', 'Available', 'Filename', 'Bytes'], data.map((row) => ({ ...row, Artifact: row.label, Kind: row.kind, Available: row.available, Filename: row.filename || '', Bytes: row.bytes })), 'Run topology analysis to build sidecars.'));
+  const actions = createElement('div');
+  actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;';
+  for (const row of data) {
+    const control = button(`download-${row.kind}`, `Download ${row.label}`, !row.available);
+    control.style.cssText = 'cursor:pointer;padding:6px 12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;';
+    control.addEventListener('click', () => {
+      if (!row.available) return;
+      downloadTextFile(maskedFileName(row.filename || `${row.kind}.txt`), row.value, row.mime);
+    });
+    actions.appendChild(control);
+  }
+  panel.appendChild(actions);
+  if (state.result?.topologyFindingsText) {
+    const status = state.result?.topoFixCommitted === true ? 'Committed TopoFix available.' : (state.options?.generateTopoFix ? 'TopoFix was not committed; inspect transaction/validation reports.' : 'Analysis-only sidecars available.');
+    panel.appendChild(createElement('div', `${status} CII input: ${state.result?.ciiInputSource || 'original'}.`, 'model-converters-workflow-detail-note'));
+  }
 }
 
 function renderLogs(parent, report) {
@@ -137,6 +171,23 @@ function renderReadinessCard(parent, config) {
   parent.appendChild(readyCard);
 }
 
+function actualSourceKind(state) {
+  return state.sourceKind === 'auto' ? detectXmlCiiWorkflowSourceKind(state.sourceText || '', 'xml') : (state.sourceKind || 'xml');
+}
+
+function parseActionIds(value) {
+  return [...new Set(String(value ?? '').split(/[\s,;]+/).map((entry) => entry.trim()).filter(Boolean))];
+}
+
+function topologyOptionsPatch(options, key, checked) {
+  const next = { [key]: checked };
+  if (key === 'analyzeTopology' && !checked) Object.assign(next, { generateTopoFix: false, useTopoFixForCii: false });
+  if (key === 'generateTopoFix' && checked) next.analyzeTopology = true;
+  if (key === 'generateTopoFix' && !checked) next.useTopoFixForCii = false;
+  if (key === 'useTopoFixForCii' && checked) Object.assign(next, { analyzeTopology: true, generateTopoFix: true });
+  return next;
+}
+
 function renderRunOptions(parent, stateRef, state, render) {
   const optCard = createElement('div', '', 'model-converters-workflow-master-card');
   optCard.appendChild(createElement('div', 'Run Options', 'model-converters-workflow-section-title'));
@@ -149,16 +200,47 @@ function renderRunOptions(parent, stateRef, state, render) {
   coordsLabel.appendChild(coordsSelect);
   optGrid.append(coordsLabel, optionCheckbox('createEnrichedXml', 'Create enriched XML before CII', !!state.options?.createEnrichedXml, stateRef, render), optionCheckbox('kgToNewton', 'kg -> N weight conversion (x10)', state.options?.kgToNewton !== false, stateRef, render));
   optCard.appendChild(optGrid);
-  parent.appendChild(optCard);
+
+  const topologyCard = createElement('div', '', 'model-converters-workflow-master-card');
+  topologyCard.appendChild(createElement('div', 'PSI116 Topology Sidecar', 'model-converters-workflow-section-title'));
+  const xmlMode = actualSourceKind(state) === 'xml';
+  const topologyGrid = createElement('div', '', 'model-converters-workflow-regex-grid');
+  topologyGrid.append(
+    optionCheckbox('analyzeTopology', 'Analyze PSI116 topology', state.options?.analyzeTopology === true, stateRef, render, !xmlMode, topologyOptionsPatch),
+    optionCheckbox('generateTopoFix', 'Generate reviewed TopoFix XML', state.options?.generateTopoFix === true, stateRef, render, !xmlMode, topologyOptionsPatch),
+    optionCheckbox('useTopoFixForCii', 'Use committed TopoFix XML for CII', state.options?.useTopoFixForCii === true, stateRef, render, !xmlMode, topologyOptionsPatch),
+  );
+  const actionField = createElement('label', '', 'model-converters-workflow-regex-field');
+  actionField.appendChild(createElement('span', 'Reviewed TopoFix action IDs'));
+  const actionInput = createElement('textarea');
+  actionInput.dataset.field = 'topology-action-ids';
+  actionInput.rows = 3;
+  actionInput.placeholder = 'ACT-000184, ACT-000185';
+  actionInput.value = rows(state.options?.topologyActionIds).join('\n');
+  actionInput.disabled = !xmlMode || state.options?.generateTopoFix !== true;
+  actionInput.addEventListener('change', (event) => {
+    stateRef.current = updateWorkflowOptions(stateRef.current, { topologyActionIds: parseActionIds(event.target.value) });
+    if (typeof render === 'function') render();
+  });
+  actionField.appendChild(actionInput);
+  topologyCard.append(topologyGrid, actionField, createElement('div', xmlMode
+    ? 'Analysis is non-mutating. TopoFix requires explicit reviewed action IDs and is used for CII only after the atomic transaction commits.'
+    : 'Topology controls are available only for PSI116 XML source mode.', 'model-converters-workflow-detail-note'));
+  parent.append(optCard, topologyCard);
 }
 
-function optionCheckbox(optionKey, labelText, checked, stateRef, render) {
+function optionCheckbox(optionKey, labelText, checked, stateRef, render, disabled = false, patcher = null) {
   const label = createElement('label', '', 'model-converters-workflow-map-field');
   if (label.style) Object.assign(label.style, { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' });
   const input = createElement('input');
   input.type = 'checkbox';
   input.checked = checked;
-  input.addEventListener('change', (e) => { stateRef.current = updateWorkflowOptions(stateRef.current, { [optionKey]: e.target.checked }); if (typeof render === 'function') render(); });
+  input.disabled = disabled;
+  input.addEventListener('change', (e) => {
+    const patch = typeof patcher === 'function' ? patcher(stateRef.current.options || {}, optionKey, e.target.checked) : { [optionKey]: e.target.checked };
+    stateRef.current = updateWorkflowOptions(stateRef.current, patch);
+    if (typeof render === 'function') render();
+  });
   label.append(input, createElement('span', labelText));
   return label;
 }
@@ -189,22 +271,17 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const state = stateRef.current;
   const report = reportFromState(state);
   const config = xmlCiiEnrichedConfigFromState(state);
-  
   card.innerHTML = '';
-  
   const title = createElement('div', '5 Run', 'model-converters-workflow-detail-title');
-  const desc = createElement('div', 'Run the conversion â€” generates enriched XML and final CII output.', 'model-converters-workflow-detail-text');
+  const desc = createElement('div', 'Run the conversion — optionally analyze PSI116 topology, generate a reviewed TopoFix sidecar, and use only a committed fix for CII.', 'model-converters-workflow-detail-text');
   card.append(title, desc);
-
   renderSummary(card, report);
   renderChecklist(card, report);
-
   renderReadinessCard(card, config);
   renderRunOptions(card, stateRef, state, render);
   renderRunControls(card, stateRef, state, report, render);
-
-  // 4. Output Artifacts / Logs / Manifest (always render sections to pass unit test assertions)
   renderArtifacts(card, state, report);
+  renderTopologyArtifacts(card, state);
   renderLogs(card, report);
   renderManifest(card, report);
   renderRaw(card, report);

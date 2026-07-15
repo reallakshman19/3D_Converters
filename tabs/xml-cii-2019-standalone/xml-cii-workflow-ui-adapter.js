@@ -27,11 +27,10 @@ function enrichSupportConfigJson(state) {
   try {
     config = JSON.parse(state.supportConfigJson || '{}');
   } catch {}
-  
+
   const lineRows = state.masterContext?.lineRows || getStoredMaster('lineList') || [];
   const materialMapRows = state.masterContext?.materialMapRows || getStoredMaster('materialMap') || [];
   const weightMasterRows = state.masterContext?.weightMasterRows || getStoredMaster('weight') || [];
-  // Piping class rows live in config.pipingClass.masterRows; prefer in-memory masterContext if available
   const pipingClassRows = state.masterContext?.pipingClassRows?.length
     ? state.masterContext.pipingClassRows
     : (config.pipingClass?.masterRows || []);
@@ -64,6 +63,11 @@ function parseJsonOrDefault(text, fallback) {
   }
 }
 
+function parseTopologyActionIds(value) {
+  const rows = Array.isArray(value) ? value : String(value ?? '').split(/[\s,;]+/);
+  return [...new Set(rows.map((entry) => String(entry).trim()).filter(Boolean))];
+}
+
 export async function buildXmlCiiWorkflowJobFromUiState(state) {
   const [sourceFileText, stagedJsonText] = await Promise.all([
     readTextFile(state.sourceFile),
@@ -78,8 +82,6 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
     elementSideLoadText: state.elementSideLoadText || null,
     supportConfigJson: enrichSupportConfigJson(state),
     options: workflowOptionsFromState(state),
-    // Serialize the effective run state as first-class job inputs so the final run consumes
-    // the same facts the preview tabs showed, instead of only raw config/text.
     previewFacts: state.previewDiagnosticsAuditReport?.matchedFacts || [],
     manualFacts: state.manualElementSideloadResult?.matchedFacts || [],
     weightOverrides: parseJsonOrDefault(state.weightMatchOverridesJson, {}),
@@ -106,6 +108,10 @@ export function workflowOptionsFromState(state) {
     fillSentinelFromLineContext: state.options?.fillSentinelFromLineContext !== false,
     normalizePressureCaseNames: state.options?.normalizePressureCaseNames !== false,
     escapeXmlAttributes: state.options?.escapeXmlAttributes !== false,
+    analyzeTopology: state.options?.analyzeTopology === true,
+    generateTopoFix: state.options?.generateTopoFix === true,
+    useTopoFixForCii: state.options?.useTopoFixForCii === true,
+    topologyActionIds: parseTopologyActionIds(state.options?.topologyActionIds),
   };
 }
 

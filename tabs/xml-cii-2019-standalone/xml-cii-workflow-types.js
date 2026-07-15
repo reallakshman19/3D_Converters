@@ -23,6 +23,10 @@ export const DEFAULT_XML_CII_WORKFLOW_OPTIONS = Object.freeze({
   fillSentinelFromLineContext: true,
   normalizePressureCaseNames: true,
   escapeXmlAttributes: true,
+  analyzeTopology: false,
+  generateTopoFix: false,
+  useTopoFixForCii: false,
+  topologyActionIds: Object.freeze([]),
 });
 
 function bool(value, fallback) {
@@ -46,6 +50,13 @@ function arrayValue(value) {
 
 function objectArrayValue(value) {
   return Array.isArray(value) ? value.filter((entry) => entry != null) : [];
+}
+
+function actionIdArray(value) {
+  const rows = Array.isArray(value)
+    ? value
+    : String(value ?? '').split(/[\s,;]+/);
+  return [...new Set(rows.map((entry) => String(entry).trim()).filter(Boolean))];
 }
 
 function normalizedDiagnostics(input, sourceKind, outputKind) {
@@ -81,6 +92,10 @@ export function normalizeWorkflowOptions(options = {}) {
     fillSentinelFromLineContext: bool(input.fillSentinelFromLineContext, true),
     normalizePressureCaseNames: bool(input.normalizePressureCaseNames, true),
     escapeXmlAttributes: bool(input.escapeXmlAttributes, true),
+    analyzeTopology: bool(input.analyzeTopology, false),
+    generateTopoFix: bool(input.generateTopoFix, false),
+    useTopoFixForCii: bool(input.useTopoFixForCii, false),
+    topologyActionIds: actionIdArray(input.topologyActionIds),
   };
 }
 
@@ -96,6 +111,15 @@ export function validateSupportConfigJson(text) {
   }
 }
 
+function validateTopologyOptions(sourceKind, options) {
+  if (options.generateTopoFix && !options.analyzeTopology) return 'Generate TopoFix XML requires Analyze PSI116 topology.';
+  if (options.useTopoFixForCii && !options.generateTopoFix) return 'Use committed TopoFix XML for CII requires Generate TopoFix XML.';
+  if (options.generateTopoFix && !options.topologyActionIds.length) return 'Generate TopoFix XML requires one or more reviewed topology action IDs.';
+  if (options.useTopoFixForCii && options.outputMode === 'enriched-only') return 'Using TopoFix for CII requires output mode cii-only or both.';
+  if (sourceKind === 'inputxml' && (options.analyzeTopology || options.generateTopoFix || options.useTopoFixForCii)) return 'PSI116 topology options are available only for XML source mode.';
+  return '';
+}
+
 export function normalizeWorkflowJob(job = {}) {
   if (!job || typeof job !== 'object') return { ok: false, error: 'Workflow job must be an object.' };
   const sourceText = String(job.sourceText ?? '');
@@ -104,6 +128,9 @@ export function normalizeWorkflowJob(job = {}) {
   if (!XML_CII_WORKFLOW_SOURCE_KINDS.includes(sourceKind)) return { ok: false, error: 'sourceKind must be xml, inputxml, or auto.' };
   const supportValidation = validateSupportConfigJson(job.supportConfigJson ?? '{}');
   if (!supportValidation.ok) return supportValidation;
+  const options = normalizeWorkflowOptions(job.options);
+  const topologyError = validateTopologyOptions(sourceKind, options);
+  if (topologyError) return { ok: false, error: topologyError };
   return { ok: true, job: {
     sourceKind,
     sourceText,
@@ -111,7 +138,7 @@ export function normalizeWorkflowJob(job = {}) {
     stagedJsonText: job.stagedJsonText == null ? null : String(job.stagedJsonText),
     elementSideLoadText: job.elementSideLoadText == null ? null : String(job.elementSideLoadText),
     supportConfigJson: supportValidation.normalizedText,
-    options: normalizeWorkflowOptions(job.options),
+    options,
     previewFacts: objectArrayValue(job.previewFacts),
     manualFacts: objectArrayValue(job.manualFacts),
     weightOverrides: job.weightOverrides && typeof job.weightOverrides === 'object' && !Array.isArray(job.weightOverrides) ? job.weightOverrides : {},
@@ -150,6 +177,18 @@ export function normalizeWorkflowResult(partial = {}) {
     enrichedName: String(partial.enrichedName || ''),
     ciiText: partial.ciiText == null ? null : String(partial.ciiText),
     ciiName: partial.ciiName == null ? null : String(partial.ciiName),
+    topologyFindingsText: String(partial.topologyFindingsText || ''),
+    topologyFindingsName: String(partial.topologyFindingsName || ''),
+    topologyFixPlanText: String(partial.topologyFixPlanText || ''),
+    topologyFixPlanName: String(partial.topologyFixPlanName || ''),
+    topoFixXmlText: String(partial.topoFixXmlText || ''),
+    topoFixXmlName: String(partial.topoFixXmlName || ''),
+    topoFixTransactionText: String(partial.topoFixTransactionText || ''),
+    topoFixTransactionName: String(partial.topoFixTransactionName || ''),
+    topoFixValidationText: String(partial.topoFixValidationText || ''),
+    topoFixValidationName: String(partial.topoFixValidationName || ''),
+    topoFixCommitted: partial.topoFixCommitted === true,
+    ciiInputSource: partial.ciiInputSource === 'topofix' ? 'topofix' : 'original',
     diagnostics: normalizedDiagnostics(partial.diagnostics, sourceKind, outputKind),
     logs: Array.isArray(partial.logs) ? partial.logs.map((line) => String(line)) : [],
     error: partial.error ? String(partial.error) : null,

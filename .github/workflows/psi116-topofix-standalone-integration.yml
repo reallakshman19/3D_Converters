@@ -1,0 +1,78 @@
+name: PSI116 TopoFix Standalone Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'converters/xml-cii-2019-standalone/**'
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'tests/xml-cii-standalone-output-run.test.js'
+      - 'tests/xml-cii-standalone-dtxr-pos-precedence.test.js'
+      - 'tests/xml-cii-standalone-preview-diagnostics-audit.test.js'
+      - '.github/workflows/psi116-topofix-standalone-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax check integration modules
+        run: |
+          node --check converters/xml-cii-2019-standalone/engine.js
+          node --check converters/xml-cii-2019-standalone/topology-integration.js
+          node --check tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js
+          node --check tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js
+          node --check tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js
+
+      - name: Run DTXR precedence proof
+        shell: bash
+        run: |
+          set +e
+          node tests/xml-cii-standalone-dtxr-pos-precedence.test.js > "$RUNNER_TEMP/dtxr.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/dtxr.log"
+          exit "$status"
+
+      - name: Run Preview Diagnostics proof
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          node tests/xml-cii-standalone-preview-diagnostics-audit.test.js > "$RUNNER_TEMP/preview-diagnostics.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/preview-diagnostics.log"
+          exit "$status"
+
+      - name: Run TopoFix Output Run proof
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          node tests/xml-cii-standalone-output-run.test.js > "$RUNNER_TEMP/topofix-output-run.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/topofix-output-run.log"
+          exit "$status"
+
+      - name: Upload focused logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psi116-topofix-standalone-integration
+          path: |
+            ${{ runner.temp }}/dtxr.log
+            ${{ runner.temp }}/preview-diagnostics.log
+            ${{ runner.temp }}/topofix-output-run.log
+          if-no-files-found: error
