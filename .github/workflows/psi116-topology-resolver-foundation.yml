@@ -1,0 +1,75 @@
+name: PSI116 Topology Resolver Foundation
+
+on:
+  pull_request:
+    paths:
+      - "converters/psi116_topology_resolver/**"
+      - "tests/psi116_topology_resolver_foundation.py"
+      - "Benchmarks/1885Sjson/FirstpassXML"
+      - ".github/workflows/psi116-topology-resolver-foundation.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Syntax check
+        run: |
+          python -m py_compile \
+            converters/psi116_topology_resolver/__init__.py \
+            converters/psi116_topology_resolver/__main__.py \
+            converters/psi116_topology_resolver/resolver.py \
+            tests/psi116_topology_resolver_foundation.py
+
+      - name: Resolver regression tests
+        run: python tests/psi116_topology_resolver_foundation.py
+
+      - name: Generate real 1885 sidecars
+        run: |
+          mkdir -p "$RUNNER_TEMP/psi116-topology"
+          python -m converters.psi116_topology_resolver \
+            "Benchmarks/1885Sjson/FirstpassXML" \
+            --output-dir "$RUNNER_TEMP/psi116-topology" \
+            --stem FirstpassXML
+
+      - name: Verify sidecar contract
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "psi116-topology"
+          findings = json.loads((root / "FirstpassXML.topology-findings.json").read_text())
+          plan = json.loads((root / "FirstpassXML.topology-fix-plan.json").read_text())
+          assert findings["schema"] == "psi116-topology-findings/v1"
+          assert plan["schema"] == "psi116-topology-fix-plan/v1"
+          assert plan["mutationPolicy"] == "DRY_RUN_ONLY"
+          assert plan["sourceXmlMutated"] is False
+          assert not list(root.glob("*.xml"))
+          assert any(
+              row["code"] == "ZERO_LENGTH_ROUTE_SPAN"
+              and {1600, 1610}.issubset(set(row["node_numbers"]))
+              for row in findings["findings"]
+          )
+          assert any(
+              row["code"] == "COINCIDENT_NODE_ALIAS_CANDIDATE"
+              and {1570, 2260}.issubset(set(row["node_numbers"]))
+              and row["details"].get("ownerNodeNumber") == 1570
+              for row in findings["findings"]
+          )
+          PY
+
+      - name: Upload topology evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psi116-topology-resolver-foundation
+          path: ${{ runner.temp }}/psi116-topology
+          if-no-files-found: error
