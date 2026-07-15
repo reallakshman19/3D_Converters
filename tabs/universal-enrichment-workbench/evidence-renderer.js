@@ -76,7 +76,8 @@ function visibleTraceNodes(trace, expandedIds, limit) {
 
 export function renderEvidenceTrace(elements, state) {
   const tree = elements['evidence-trace-tree']; if (!tree) return;
-  const rows = visibleTraceNodes(state.trace, state.expandedTraceIds, state.traceLimit);
+  const probe = visibleTraceNodes(state.trace, state.expandedTraceIds, state.traceLimit + 1);
+  const rows = probe.slice(0, state.traceLimit);
   const documentRef = tree.ownerDocument;
   tree.replaceChildren(...rows.map(({ node, depth }) => {
     const row = documentRef.createElement('div'); row.className = 'uew-evidence-trace-row'; row.style.paddingLeft = `${depth * 16}px`;
@@ -88,8 +89,7 @@ export function renderEvidenceTrace(elements, state) {
     select.textContent = node.label; row.append(toggle, select); return row;
   }));
   setText(elements['evidence-trace-count'], `${rows.length} visible`);
-  const totalReachable = state.trace?.nodes?.length || 0;
-  elements['evidence-trace-more'].hidden = rows.length >= totalReachable;
+  elements['evidence-trace-more'].hidden = probe.length <= state.traceLimit;
 }
 
 export function renderEvidenceDetails(elements, state) {
