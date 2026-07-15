@@ -10,6 +10,7 @@ on:
       - 'tests/xml_to_cii_psi116_component_topology_regression.py'
       - 'tests/xml_to_cii_short_span_contraction_regression.py'
       - 'Benchmarks/1885Sjson/FirstpassXML'
+      - 'Benchmarks/1885Sjson/Firstpass CII'
       - '.github/workflows/psi116-component-topology.yml'
   workflow_dispatch:
 
@@ -68,3 +69,22 @@ jobs:
             --diagnostics-out /tmp/firstpass-component-topology.log
           test -s /tmp/firstpass-component-topology.cii
           grep -q 'PSI116 COMPONENT TOPOLOGY' /tmp/firstpass-component-topology.log
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('/tmp/firstpass-component-topology.cii').read_text(encoding='utf-8')
+          bend_body = text.split('#$ BEND', 1)[1].split('#$', 1)[0]
+          rows = [line for line in bend_body.splitlines() if line.strip()]
+          assert len(rows) % 3 == 0, len(rows)
+          radii = [float(rows[index].split()[0]) for index in range(0, len(rows), 3)]
+          assert radii.count(305.0) >= 2, radii
+          print(f'BEND radii: {radii}')
+          PY
+
+      - name: Upload generated Firstpass CII proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: firstpass-component-topology-proof
+          path: |
+            /tmp/firstpass-component-topology.cii
+            /tmp/firstpass-component-topology.log
+          if-no-files-found: error
