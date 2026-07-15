@@ -17,14 +17,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Syntax and focused tests
+      - name: Run validation and capture evidence
         run: |
-          for file in tabs/model-converters/converters/component-topology/*.js; do node --check "$file"; done
-          node tests/component-topology-static.test.js
-          node tests/component-topology-support-policy.test.mjs
-      - name: Build real 1885_NC artifacts
-        run: |
-          node --input-type=module <<'NODE'
+          set +e
+          status=0
+          : > support-policy-validation.log
+          for file in tabs/model-converters/converters/component-topology/*.js; do
+            node --check "$file" >> support-policy-validation.log 2>&1 || status=1
+          done
+          node tests/component-topology-static.test.js >> support-policy-validation.log 2>&1 || status=1
+          node tests/component-topology-support-policy.test.mjs >> support-policy-validation.log 2>&1 || status=1
+          node --input-type=module >> support-policy-validation.log 2>&1 <<'NODE' || status=1
           import { readFileSync, writeFileSync } from 'node:fs';
           import { buildComponentTopologyArtifacts } from './tabs/model-converters/converters/component-topology/topology-artifact-exporter.js';
           import { SUPPORT_PROJECTION_TOLERANCE_MM, TOPOLOGY_TOLERANCE_MM } from './tabs/model-converters/converters/component-topology/topology-values.js';
@@ -44,7 +47,17 @@ jobs:
           writeFileSync('1885-support-policy-result.json', JSON.stringify(result, null, 2));
           console.log(JSON.stringify(result.metrics));
           NODE
+          echo "$status" > support-policy-status.txt
+          exit 0
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: 1885-support-policy-result
-          path: 1885-support-policy-result.json
+          name: support-policy-validation-evidence
+          path: |
+            support-policy-validation.log
+            support-policy-status.txt
+            1885-support-policy-result.json
+          if-no-files-found: warn
+      - name: Enforce validation result
+        run: |
+          test "$(cat support-policy-status.txt)" = "0"
