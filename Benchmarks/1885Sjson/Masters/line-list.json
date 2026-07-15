@@ -8,8 +8,8 @@
     "T3": 5,
     "Hydro Pressure": 22.035,
     "Insulation Thickness": 100,
-    "Fluid Phase": "GAS",
-    "Test Medium": "WATER"
+    "Phase": "GAS",
+    "testMedium": "WATER"
   },
   {
     "Line Number": "S8810101",
@@ -20,7 +20,7 @@
     "T3": 5,
     "Hydro Pressure": 22.035,
     "Insulation Thickness": 120,
-    "Fluid Phase": "GAS",
-    "Test Medium": "WATER"
+    "Phase": "GAS",
+    "testMedium": "WATER"
   }
 ]
