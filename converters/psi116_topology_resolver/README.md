@@ -1,6 +1,10 @@
-# PSI116 Topology Resolver Foundation
+# PSI116 Topology Resolver
 
-This package performs a non-mutating topology analysis of PSI116 XML and emits two deterministic JSON sidecars:
+This package provides two explicit stages.
+
+## Stage 1 — non-mutating analysis
+
+The resolver analyzes PSI116 XML and emits deterministic dry-run sidecars:
 
 ```text
 <stem>.topology-findings.json
@@ -9,9 +13,7 @@ This package performs a non-mutating topology analysis of PSI116 XML and emits t
 
 It does not rewrite PSI116 XML and does not alter the XML→CII engine.
 
-## Topology model
-
-PSI116 is treated as a component-port record stream, not as a flat list of positive nodes. Analysis proceeds in this order:
+PSI116 is treated as a component-port record stream, not as a flat list of positive nodes:
 
 ```text
 lossless Branch/Node inventory
@@ -23,24 +25,13 @@ lossless Branch/Node inventory
 → dry-run action planning
 ```
 
-This prevents support, olet, elbow and inline-component rows located inside a finite pipe envelope from being misread as backtracking pipe elements.
+This prevents support, olet, elbow and inline-component rows inside a finite pipe envelope from being misread as backtracking pipe elements.
 
-## Current findings
+### Findings and dispositions
 
-The resolver reports:
+The resolver reports coincidence, zero/short spans, rigid conflicts, incomplete fitting-port evidence, carrier relationships and finite-span overlap evidence.
 
-- coincident connection identities and their deterministic owner;
-- zero-length and sub-6 mm route connections;
-- short finite gasket/inline spans that must be retained;
-- non-rigid component classes marked `Rigid=2`;
-- instruments whose rigid status needs explicit evidence;
-- missing elbow helper endpoint evidence;
-- tee/olet junction owners inferred from their positive port sets;
-- supports and junctions projected to finite pipe carriers;
-- auto-generated pipe carriers overlapping inline components with explicit `MANY_TO_ONE` evidence;
-- duplicate and partially overlapping finite component spans.
-
-Each finding receives one dry-run disposition:
+Dry-run dispositions are:
 
 ```text
 ALIAS_COINCIDENT_NODE
@@ -52,11 +43,11 @@ KEEP
 BLOCK_AMBIGUOUS
 ```
 
-Duplicate exact-coincidence findings are coalesced into one action. For example, an alias finding and its zero-length route-span finding produce one `ALIAS_COINCIDENT_NODE` action rather than two competing mutations.
+A length below 6 mm never authorizes deletion by itself. Finite gasket and inline-component spans are retained. Collinear overlap remains blocking until ownership is proven.
 
-No proposed action is applied in this phase.
+When a zero-length route span and coincidence finding identify the same plain PIPE and special-component owner, they are coalesced into one `SAFE_DROP_PIPE_GEOMETRY` proposal. The transactional stage must still prove that the absorbed record has no restraint, rigid, weight, name, geometry or dimensional evidence that prevents removal.
 
-## Usage
+### Analysis usage
 
 ```bash
 python -m converters.psi116_topology_resolver \
@@ -66,15 +57,58 @@ python -m converters.psi116_topology_resolver \
 
 Use `--fail-on-blocking` only in gates that intentionally treat unresolved findings as a failing exit status.
 
-## Safety boundaries
+## Stage 2 — explicit atomic TopoFix transaction
 
-- The input text and SHA-256 are preserved in the analysis model.
-- The sidecar explicitly declares `mutationPolicy: DRY_RUN_ONLY` and `sourceXmlMutated: false`.
-- A length below 6 mm is never sufficient by itself to delete a node or element.
-- Finite gasket and inline-component spans are retained regardless of the generic threshold.
-- Special fitting ownership is preferred over plain-pipe geometry during a proposed contraction.
-- Source component identities remain separate when a later CII projection may be `MANY_TO_ONE`.
-- Collinear overlap is blocking until ownership is proven.
-- Missing PSI116 helper ports are reported; the resolver does not fabricate them.
+The transaction applies only explicitly selected action IDs, or actions selected through the explicit `--apply-all-safe` option, to an in-memory XML clone.
 
-A later transactional phase may apply reviewed plans to an in-memory XML clone and must rebuild and independently validate topology before writing a `*.topofix.xml` sidecar.
+```text
+original PSI116 XML
+→ selected reviewed actions
+→ confidence/conflict preflight
+→ clone-only mutation
+→ topology rebuild
+→ before/after engineering gates
+→ commit or reject atomically
+```
+
+Committed outputs are:
+
+```text
+<stem>.topofix.xml
+<stem>.topofix-transaction.json
+<stem>.topofix-validation.json
+```
+
+When any blocking gate fails, the transaction and validation reports are written but `*.topofix.xml` is not emitted.
+
+### Transaction usage
+
+```bash
+python -m converters.psi116_topology_resolver.apply_topofix \
+  Benchmarks/1885Sjson/FirstpassXML \
+  --output-dir out/psi116-topofix \
+  --action-id ACT-000184 \
+  --action-id ACT-000185
+```
+
+### Applied operations
+
+- Cross-branch coincidence with a retained component owner rewrites the absorbed record's `NodeNumber` to the canonical node identity.
+- A coalesced plain-PIPE/special-owner zero-length span removes only the disposable PIPE record after all safety checks pass.
+- False rigid classification changes only the selected `Rigid` value to `0`.
+- `KEEP` and `MERGE_CARRIER_WITH_COMPONENT` remain evidence-only operations.
+
+### Atomic gates
+
+The transaction requires:
+
+- branch count preservation;
+- preservation of every non-pipe component occurrence reference;
+- restraint and total-weight preservation;
+- explicit accounting for every removed record;
+- no new blocking topology findings;
+- no increase in blocking-finding count;
+- resolution of every selected finding;
+- no new duplicate span, collinear overlap or ambiguous coincidence.
+
+The source text and SHA-256 remain unchanged. A committed TopoFix XML must also pass the unchanged XML→CII converter and downstream parity gates before production use.

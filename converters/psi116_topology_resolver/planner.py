@@ -173,13 +173,13 @@ def _coalesce_fix_actions(actions: Sequence[FixAction]) -> tuple[FixAction, ...]
             merged[index] = FixAction(
                 action_id=alias.action_id,
                 finding_ids=tuple(sorted(set(alias.finding_ids + action.finding_ids))),
-                disposition=alias.disposition,
+                disposition="SAFE_DROP_PIPE_GEOMETRY",
                 status=alias.status,
                 confidence=min(alias.confidence, action.confidence),
-                authority="COINCIDENT_ALIAS_WITH_SPECIAL_OWNER",
+                authority="COINCIDENT_SPECIAL_OWNER_PLAIN_PIPE_CONTRACTION",
                 message=(
-                    f"Canonicalize coincident node identities to Node {alias.owner_node_number}; "
-                    "the same operation resolves the zero-length route span while retaining all source lineage."
+                    f"Remove the disposable plain-pipe record at coincident Node identity while retaining "
+                    f"special-component owner Node {alias.owner_node_number} and all engineering evidence."
                 ),
                 branch_name=alias.branch_name or action.branch_name,
                 node_numbers=tuple(sorted(set(alias.node_numbers + action.node_numbers))),
@@ -187,7 +187,7 @@ def _coalesce_fix_actions(actions: Sequence[FixAction]) -> tuple[FixAction, ...]
                 span_ids=tuple(sorted(set(alias.span_ids + action.span_ids))),
                 owner_node_number=alias.owner_node_number,
                 absorbed_node_numbers=tuple(sorted(set(alias.absorbed_node_numbers + action.absorbed_node_numbers))),
-                proposed_changes=alias.proposed_changes,
+                proposed_changes=action.proposed_changes,
                 blockers=(),
             )
             continue

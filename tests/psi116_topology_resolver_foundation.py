@@ -97,15 +97,15 @@ class Psi116TopologyResolverFoundationTests(unittest.TestCase):
             for finding in result.findings
         ))
 
-        alias_1610 = [
+        contraction_1610 = [
             action for action in result.fix_actions
-            if action.disposition == "ALIAS_COINCIDENT_NODE"
+            if action.disposition == "SAFE_DROP_PIPE_GEOMETRY"
             and action.owner_node_number == 1610
             and 1600 in action.absorbed_node_numbers
         ]
-        self.assertEqual(len(alias_1610), 1)
-        self.assertEqual(len(alias_1610[0].finding_ids), 2)
-        self.assertIn("SPAN-000135", alias_1610[0].span_ids)
+        self.assertEqual(len(contraction_1610), 1)
+        self.assertEqual(len(contraction_1610[0].finding_ids), 2)
+        self.assertIn("SPAN-000135", contraction_1610[0].span_ids)
 
         self.assertTrue(any(
             action.disposition == "ALIAS_COINCIDENT_NODE"
