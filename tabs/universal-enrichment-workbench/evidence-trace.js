@@ -5,6 +5,23 @@ import {
   tracePathForAttempt, tracePathForResult, tracePathForRule,
 } from './evidence-identity.js';
 
+function referenceErrors(graph, config, run) {
+  const errors = [];
+  if (!Array.isArray(graph?.entities) || !Array.isArray(config?.rules) || !Array.isArray(run?.results)) {
+    errors.push('Graph entities, configuration rules and run results must be arrays.');
+    return errors;
+  }
+  const entities = new Set(graph.entities.map((entity) => entity.entityId));
+  const rules = new Map(config.rules.map((rule) => [rule.ruleId, rule]));
+  run.results.forEach((result, index) => {
+    const rule = rules.get(result.ruleId);
+    if (!entities.has(result.entityId)) errors.push(`Run result ${index} references unknown entity ${result.entityId}.`);
+    if (!rule) errors.push(`Run result ${index} references unknown rule ${result.ruleId}.`);
+    else if (!rule.enabled) errors.push(`Run result ${index} references disabled rule ${result.ruleId}.`);
+  });
+  return errors;
+}
+
 function authorityErrors(graph, config, run) {
   const errors = [];
   if (graph?.schema !== 'UniversalSourceGraph.v1' || !graph?.validation?.ok) errors.push('A valid UniversalSourceGraph.v1 is required.');
@@ -12,6 +29,7 @@ function authorityErrors(graph, config, run) {
   if (run?.schema !== 'ExtractionTestRun.v1' || !run?.validation?.ok) errors.push('A valid ExtractionTestRun.v1 is required.');
   if (run?.sourceFileId !== graph?.sourceFileId || run?.sourceRevision !== graph?.sourceRevision || run?.sourceContentHash !== graph?.contentHash || run?.sourceGraphSchema !== graph?.schema) errors.push('Run graph metadata does not match the current graph.');
   if (run?.configId !== config?.configId) errors.push('Run configId does not match the current configuration.');
+  errors.push(...referenceErrors(graph, config, run));
   return errors;
 }
 
@@ -133,38 +151,74 @@ function reachabilityErrors(nodes, byId, root) {
   return errors;
 }
 
-async function coverageErrors(trace, graph, config, run, hashText) {
-  const errors = []; const nodes = trace?.nodes || [];
-  const ruleMap = new Map(config.rules.map((rule) => [rule.ruleId, rule]));
+function resultEvidence(result) {
+  return { fieldKey: result.fieldKey, sourcePath: result.sourcePath, input: result.input, value: result.value,
+    winningStrategyIndex: result.winningStrategyIndex, attemptCount: (result.attempts || []).length };
+}
+
+async function ruleCoverageErrors(nodes, config, run, root, hashText) {
+  const errors = []; const ruleNodes = nodes.filter((node) => node.traceNodeKind === 'rule');
+  const enabledRules = config.rules.filter((rule) => rule.enabled).sort((a, b) => a.sourceOrder - b.sourceOrder);
+  const enabledIds = new Set(enabledRules.map((rule) => rule.ruleId));
+  if (ruleNodes.length !== enabledRules.length) errors.push('Trace rule-node count must equal enabled rule count.');
+  ruleNodes.forEach((node) => { if (!enabledIds.has(node.ruleId)) errors.push(`Trace contains unknown or disabled rule node ${node.ruleId}.`); });
+  const expectedRootChildren = [];
+  for (const rule of enabledRules) {
+    const matches = ruleNodes.filter((node) => node.ruleId === rule.ruleId);
+    if (matches.length !== 1) { errors.push(`Enabled rule ${rule.ruleId} must have exactly one trace node.`); continue; }
+    const node = matches[0]; const expectedId = await createExtractionTraceNodeId(run.runId, tracePathForRule(rule.sourceOrder), 'rule', hashText);
+    expectedRootChildren.push(expectedId);
+    if (node.traceNodeId !== expectedId) errors.push(`Rule trace ${rule.ruleId} identity mismatch.`);
+    if (node.parentTraceNodeId !== root?.traceNodeId) errors.push(`Rule trace ${rule.ruleId} has incorrect parent.`);
+    const expectedEvidence = { fieldKey: rule.fieldKey, sourceOrder: rule.sourceOrder, enabled: rule.enabled };
+    if (node.status !== 'enabled' || JSON.stringify(node.evidence) !== JSON.stringify(expectedEvidence)) errors.push(`Rule trace ${rule.ruleId} evidence mismatch.`);
+  }
+  if (JSON.stringify(root?.childTraceNodeIds || []) !== JSON.stringify(expectedRootChildren)) errors.push('Root rule-child order mismatch.');
+  return errors;
+}
+
+async function resultCoverageErrors(nodes, graph, config, run, hashText) {
+  const errors = []; const ruleMap = new Map(config.rules.map((rule) => [rule.ruleId, rule]));
   const entityIds = new Set(graph.entities.map((entity) => entity.entityId));
   const resultNodes = nodes.filter((node) => node.traceNodeKind === 'result');
   const attemptNodes = nodes.filter((node) => node.traceNodeKind === 'attempt');
-  const enabledRules = config.rules.filter((rule) => rule.enabled);
-  for (const rule of enabledRules) {
-    const matches = nodes.filter((node) => node.traceNodeKind === 'rule' && node.ruleId === rule.ruleId);
-    if (matches.length !== 1) errors.push(`Enabled rule ${rule.ruleId} must have exactly one trace node.`);
-  }
   for (let resultIndex = 0; resultIndex < run.results.length; resultIndex += 1) {
     const result = run.results[resultIndex]; const rule = ruleMap.get(result.ruleId);
     const matches = resultNodes.filter((node) => node.resultIndex === resultIndex);
     if (matches.length !== 1) { errors.push(`Run result ${resultIndex} must have exactly one trace node.`); continue; }
-    const node = matches[0];
+    const node = matches[0]; const ruleNodeValue = nodes.find((item) => item.traceNodeKind === 'rule' && item.ruleId === result.ruleId);
     if (!rule) errors.push(`Unknown rule ID ${node.ruleId}.`); if (!entityIds.has(node.entityId)) errors.push(`Unknown entity ID ${node.entityId}.`);
-    if (node.ruleId !== result.ruleId || node.entityId !== result.entityId || node.status !== result.status) errors.push(`Trace result ${resultIndex} evidence mismatch.`);
+    if (node.ruleId !== result.ruleId || node.entityId !== result.entityId || node.status !== result.status || JSON.stringify(node.evidence) !== JSON.stringify(resultEvidence(result))) errors.push(`Trace result ${resultIndex} evidence mismatch.`);
+    if (node.parentTraceNodeId !== ruleNodeValue?.traceNodeId) errors.push(`Trace result ${resultIndex} has incorrect rule parent.`);
     const expectedId = rule ? await createExtractionTraceNodeId(run.runId, tracePathForResult(rule.sourceOrder, resultIndex), 'result', hashText) : '';
     if (node.traceNodeId !== expectedId) errors.push(`Trace result ${resultIndex} identity mismatch.`);
-    const attempts = attemptNodes.filter((item) => item.resultIndex === resultIndex);
-    if (attempts.length !== (result.attempts || []).length) errors.push(`Trace result ${resultIndex} attempt coverage mismatch.`);
-    for (let attemptIndex = 0; attemptIndex < (result.attempts || []).length; attemptIndex += 1) {
-      const attempt = result.attempts[attemptIndex]; const attemptNodeValue = attempts.find((item) => item.attemptIndex === attemptIndex);
-      if (!attemptNodeValue) { errors.push(`Stored attempt ${resultIndex}/${attemptIndex} is missing.`); continue; }
-      if (attemptNodeValue.sourceOrder <= node.sourceOrder || JSON.stringify(attemptNodeValue.evidence) !== JSON.stringify(attempt)) errors.push(`Stored attempt ${resultIndex}/${attemptIndex} evidence mismatch.`);
+    const storedAttempts = [...(result.attempts || [])].sort((a, b) => a.strategyIndex - b.strategyIndex);
+    const expectedChildren = [];
+    for (const attempt of storedAttempts) {
+      const attemptMatches = attemptNodes.filter((item) => item.resultIndex === resultIndex && item.attemptIndex === attempt.strategyIndex);
+      if (attemptMatches.length !== 1) { errors.push(`Stored attempt ${resultIndex}/${attempt.strategyIndex} must have exactly one trace node.`); continue; }
+      const attemptNodeValue = attemptMatches[0];
+      const expectedAttemptId = rule ? await createExtractionTraceNodeId(run.runId, tracePathForAttempt(rule.sourceOrder, resultIndex, attempt.strategyIndex), 'attempt', hashText) : '';
+      expectedChildren.push(expectedAttemptId);
+      if (attemptNodeValue.traceNodeId !== expectedAttemptId) errors.push(`Stored attempt ${resultIndex}/${attempt.strategyIndex} identity mismatch.`);
+      if (attemptNodeValue.parentTraceNodeId !== node.traceNodeId) errors.push(`Stored attempt ${resultIndex}/${attempt.strategyIndex} has incorrect result parent.`);
+      if (attemptNodeValue.ruleId !== result.ruleId || attemptNodeValue.entityId !== result.entityId || attemptNodeValue.status !== attempt.outcome || JSON.stringify(attemptNodeValue.evidence) !== JSON.stringify(attempt)) errors.push(`Stored attempt ${resultIndex}/${attempt.strategyIndex} evidence mismatch.`);
+      if ((attemptNodeValue.childTraceNodeIds || []).length) errors.push(`Stored attempt ${resultIndex}/${attempt.strategyIndex} cannot have children.`);
     }
+    if (JSON.stringify(node.childTraceNodeIds || []) !== JSON.stringify(expectedChildren)) errors.push(`Trace result ${resultIndex} attempt-child order mismatch.`);
   }
   if (resultNodes.length !== run.results.length) errors.push('Trace result-node count must equal run result count.');
   const totalAttempts = run.results.reduce((sum, result) => sum + (result.attempts || []).length, 0);
   if (attemptNodes.length !== totalAttempts) errors.push('Trace attempt-node count must equal stored attempt count.');
   return errors;
+}
+
+async function coverageErrors(trace, graph, config, run, hashText) {
+  const nodes = trace?.nodes || []; const root = nodes.find((node) => node.traceNodeKind === 'root');
+  return [
+    ...await ruleCoverageErrors(nodes, config, run, root, hashText),
+    ...await resultCoverageErrors(nodes, graph, config, run, hashText),
+  ];
 }
 
 export async function validateExtractionEvidenceTrace(trace, graph, config, run, dependencies = {}) {
