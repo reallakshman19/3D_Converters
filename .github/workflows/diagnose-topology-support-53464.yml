@@ -20,7 +20,7 @@ jobs:
       - name: Inspect support and route proximity
         run: |
           node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs';
+          import { readFileSync, writeFileSync } from 'node:fs';
           import { runEnrichment } from './tabs/stagedjson-to-enrichxml/sj-enrichment-engine.js';
           import { buildTopologySourceModel } from './tabs/model-converters/converters/component-topology/topology-source-model.js';
           import { portForRole } from './tabs/model-converters/converters/component-topology/topology-connectivity.js';
@@ -40,17 +40,14 @@ jobs:
               if (hay.includes(target)) found.push({ bi, ci, branch: branch.name || attrs.OWNER, child });
             }
           }
-          console.log('FOUND_COUNT', found.length);
-          for (const row of found) console.log('RAW_TARGET', JSON.stringify(row, null, 2));
 
           const model = await buildTopologySourceModel(sourceText, { sourceName: '1885_NC.json', toleranceMm: 0.5 });
           const enrichment = runEnrichment({ stagedJsonText: sourceText, config: {} });
           const targetComponents = model.components.filter((component) => [component.name, component.sourceRef, component.attributes?.NAME, component.attributes?.REF].map(String).join(' ').includes(target));
-          for (const component of targetComponents) {
+          const modeled = targetComponents.map((component) => {
             const childOffset = component.sourcePath.match(/\.children\[(\d+)\]$/)?.[1];
             const record = enrichment.records.find((item) => Number(item.path?.[0]) === component.branchIndex && Number(item.path?.[item.path.indexOf('children') + 1]) === Number(childOffset));
-            const ports = Object.fromEntries(['P','A','L'].map((role) => [role, portForRole(component, role)?.position || null]));
-            console.log('MODEL_TARGET', JSON.stringify({
+            return {
               sourcePath: component.sourcePath,
               sourceBranchName: component.sourceBranchName,
               sourceBranchEntityId: component.sourceBranchEntityId,
@@ -58,9 +55,15 @@ jobs:
               name: component.name,
               sourceRef: component.sourceRef,
               positions: component.positions,
-              ports,
+              ports: Object.fromEntries(['P','A','L'].map((role) => [role, portForRole(component, role)?.position || null])),
               bestPosition: bestPosition(record?.attrs || {}),
               attrs: Object.fromEntries(['OWNER','NAME','REF','POS','APOS','LPOS','MDSSREF','MDSGUIDEREF','PREV-NAME','CMPSTRESSN','CMPSUPREFN'].map((key) => [key, component.attributes?.[key] ?? null])),
-            }, null, 2));
-          }
+            };
+          });
+          writeFileSync('support-53464-diagnostic.json', JSON.stringify({ found, modeled }, null, 2));
+          console.log(`diagnostic records: raw=${found.length}, modeled=${modeled.length}`);
           NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: support-53464-diagnostic
+          path: support-53464-diagnostic.json
