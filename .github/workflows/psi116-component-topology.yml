@@ -15,16 +15,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   component-topology:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -71,6 +69,7 @@ jobs:
             --diagnostics-out /tmp/firstpass-component-topology.log
           test -s /tmp/firstpass-component-topology.cii
           grep -q 'PSI116 COMPONENT TOPOLOGY' /tmp/firstpass-component-topology.log
+          cmp --silent /tmp/firstpass-component-topology.cii 'Benchmarks/1885Sjson/Firstpass CII'
           python - <<'PY'
           from pathlib import Path
           text = Path('/tmp/firstpass-component-topology.cii').read_text(encoding='utf-8')
@@ -93,21 +92,6 @@ jobs:
           assert radii.count(305.0) >= 2, radii
           print(f'Connected node pairs verified; BEND radii: {radii}')
           PY
-
-      - name: Refresh Firstpass CII benchmark
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        shell: bash
-        run: |
-          cp /tmp/firstpass-component-topology.cii 'Benchmarks/1885Sjson/Firstpass CII'
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add 'Benchmarks/1885Sjson/Firstpass CII'
-          if git diff --cached --quiet; then
-            echo 'Firstpass CII benchmark is already current.'
-          else
-            git commit -m 'test: refresh Firstpass CII topology benchmark'
-            git push origin "HEAD:${GITHUB_HEAD_REF}"
-          fi
 
       - name: Upload generated Firstpass CII proof
         uses: actions/upload-artifact@v4
