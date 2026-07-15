@@ -3,8 +3,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from converters.psi116_topology_resolver import ResolverConfig, resolve_psi116, write_sidecars
 
@@ -65,7 +70,7 @@ class Psi116TopologyResolverFoundationTests(unittest.TestCase):
             self.assertEqual(findings["source"]["sha256"], plan["source"]["sha256"])
 
     def test_real_1885_detects_known_topology_defects_without_mutation(self) -> None:
-        fixture = Path(__file__).resolve().parents[1] / "Benchmarks" / "1885Sjson" / "FirstpassXML"
+        fixture = REPO_ROOT / "Benchmarks" / "1885Sjson" / "FirstpassXML"
         self.assertTrue(fixture.is_file(), fixture)
         source_before = fixture.read_text(encoding="utf-8")
         result = resolve_psi116(fixture)
