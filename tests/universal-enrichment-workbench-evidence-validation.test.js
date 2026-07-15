@@ -55,7 +55,7 @@ test('trace validation detects duplicate nodes, relationship disagreement and co
   const validation = await validateExtractionEvidenceTrace(trace, graph, config, run);
   assert.ok(validation.errors.some((error) => error.includes('Duplicate trace node')));
   assert.ok(validation.errors.some((error) => error.includes('missing parent')));
-  assert.ok(validation.errors.some((error) => error.includes('attempt coverage') || error.includes('attempt-node count')));
+  assert.ok(validation.errors.some((error) => error.includes('attempt coverage') || error.includes('attempt-node count') || error.includes('exactly one trace node')));
 });
 
 test('trace validation detects cycles, unreachable nodes, summary and identity mismatch', async () => {
@@ -102,5 +102,35 @@ test('trace validation detects duplicate children and attempt index mismatch', a
   attempt.attemptIndex = 99;
   const validation = await validateExtractionEvidenceTrace(trace, graph, config, run);
   assert.ok(validation.errors.some((error) => error.includes('duplicate child')));
-  assert.ok(validation.errors.some((error) => error.includes('Stored attempt') && error.includes('missing')));
+  assert.ok(validation.errors.some((error) => error.includes('Stored attempt') && error.includes('trace node')));
+});
+
+test('trace validation rejects semantic parent drift, attempt ID drift and extra rule nodes', async () => {
+  const { graph, config, run } = evidenceFixtures();
+  const trace = mutable(await createExtractionEvidenceTrace(graph, config, run));
+  const root = trace.nodes.find((node) => node.traceNodeKind === 'root');
+  const ruleNodes = trace.nodes.filter((node) => node.traceNodeKind === 'rule');
+  const result = trace.nodes.find((node) => node.traceNodeKind === 'result' && node.resultIndex === 0);
+  const correctRule = ruleNodes.find((node) => node.ruleId === result.ruleId);
+  const wrongRule = ruleNodes.find((node) => node.ruleId !== result.ruleId);
+  correctRule.childTraceNodeIds = correctRule.childTraceNodeIds.filter((id) => id !== result.traceNodeId);
+  wrongRule.childTraceNodeIds.push(result.traceNodeId);
+  result.parentTraceNodeId = wrongRule.traceNodeId;
+  const attempt = trace.nodes.find((node) => node.traceNodeKind === 'attempt' && node.resultIndex === 0);
+  result.childTraceNodeIds = result.childTraceNodeIds.map((id) => id === attempt.traceNodeId ? 'trace-node-wrong-attempt' : id);
+  attempt.traceNodeId = 'trace-node-wrong-attempt';
+  const extraRule = { ...structuredClone(ruleNodes[0]), traceNodeId: 'trace-node-extra-rule', ruleId: 'unknown-rule', childTraceNodeIds: [], sourceOrder: trace.nodes.length };
+  trace.nodes.push(extraRule); root.childTraceNodeIds.push(extraRule.traceNodeId);
+  const validation = await validateExtractionEvidenceTrace(trace, graph, config, run);
+  assert.ok(validation.errors.some((error) => error.includes('incorrect rule parent')));
+  assert.ok(validation.errors.some((error) => error.includes('attempt') && error.includes('identity mismatch')));
+  assert.ok(validation.errors.some((error) => error.includes('unknown or disabled rule node')));
+});
+
+test('evidence builders reject stale run references before projection', async () => {
+  const { graph, config, run } = evidenceFixtures();
+  const staleRun = mutable(run);
+  staleRun.results[0].entityId = 'missing-entity';
+  await assert.rejects(createFieldCandidateLedger(graph, config, staleRun), /unknown entity/);
+  await assert.rejects(createExtractionEvidenceTrace(graph, config, staleRun), /unknown entity/);
 });
