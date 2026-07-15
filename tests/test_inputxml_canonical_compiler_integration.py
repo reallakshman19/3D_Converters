@@ -59,7 +59,11 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual('L-001', element.get('LINE'))
         records = element.xpath("ext:Extension/ext:Record", namespaces={'ext': compiler.EXT_NS})
         self.assertTrue(any(record.get('name') == 'OriginalElement' for record in records))
-        self.assertTrue(any(row['sourceType'] == 'CATEGORIZED_RECONCILIATION' for row in ledger['records']))
+        self.assertTrue(any(
+            row['sourceType'] == 'CATEGORIZED_NORMALIZED_FIELD'
+            and 'normalized block reconciled with OriginalElement' in row.get('evidence', [])
+            for row in ledger['records']
+        ))
 
     def test_diagnostic_sidecar_is_never_pass(self):
         source = (CONTRACTS / 'golden' / 'positive' / 'minimal.canonical.input.xml').read_bytes()
