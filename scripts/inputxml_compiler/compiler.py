@@ -14,6 +14,8 @@ from .managed_stage import *
 from .pdf_input_echo import *
 from .pdf_input_echo_bindings import *
 from .uxml_rvm import *
+from .ledger_reconciliation import *
+
 
 def _json_dialect(source: bytes, dialect_override: str | None) -> str:
     if dialect_override:
@@ -128,6 +130,7 @@ def compile_document(
                 ledger.blocked = True
                 ledger.diagnostic("BLOCKING", "DIAGNOSTIC_RECONCILIATION_REQUIRED", "Diagnostic InputXML sidecar requires independent source reconciliation.")
 
+        reconcile_decision_ledger(canonical, ledger)
         xsd_errors = _validate_xsd(canonical, canonical_xsd_path)
         semantic_errors = [] if xsd_errors else _validate_schematron(canonical, semantic_rules_path)
         validation["xsdErrors"] = xsd_errors
