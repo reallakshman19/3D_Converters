@@ -30,6 +30,7 @@ The compiler implements direct canonical validation and adapters for:
 - CII14 InputXML intake;
 - XML Builder `Root/Branch/Node` through the existing authoritative node-to-InputXML topology engine;
 - SelectionJSON custom `Root/Branch/Node` through the same authoritative topology engine with a distinct dialect and evidence identity;
+- managed-stage JSON through `ComponentTopologySourceModel.v1`, `CanonicalTopology.v1`, and `TopologyTraceLedger.v1`;
 - diagnostic InputXML sidecars as `DEFER_EXPLICITLY` and always blocked.
 
 Complex source dialects remain registered and recognized but return a precise `DEFERRED_BLOCKING` result until their existing specialized geometry/topology engines are connected through a reviewed adapter. The compiler never substitutes a simplified nearest-geometry implementation.
@@ -49,6 +50,33 @@ The adapter removes only fixed-slot records whose engineering payload is entirel
 The complete source XML and generated element side-load evidence are retained in the extension namespace. Any real node drop, restraint truncation, unresolved restraint type, fabricated/defaulted engineering identity, bridge warning, or unsupported SIF/restraint semantics blocks production validation.
 
 Both source dialects have the same XML root shape. Generic `Root` auto-detection selects `xml-builder-root-branch-node`; callers compiling output from `converters/seljson-to-inputxml.js` must explicitly select `seljson-custom-root`. The compiler then retains SelectionJSON-specific extension names and ledger identity.
+
+## Managed-stage component-topology bridge
+
+Managed-stage JSON is accepted directly at the compiler boundary. The adapter invokes the existing component-topology producer and imports:
+
+- the producer-owned `SourceEnvelope.v1` identity;
+- every branch and component with its complete source attributes and enriched attributes;
+- every source port identity;
+- every `TopologyTraceLedger.v1` record;
+- `CanonicalTopology.v1` node and edge identities;
+- component-topology metrics and build findings;
+- the component-aware topology InputXML.
+
+The trace ledger, not the compatibility InputXML alone, is the source-accounting authority. Producer lineage attributes are moved to the extension namespace. Global-coordinate aliases are renamed deterministically, CONTROL counts are recomputed from sanitized children, and a restraint `CNODE` compatibility sentinel is normalized to explicit zero only because the component-topology support model exposes no connecting-node relationship.
+
+A managed-stage conversion may pass for component families with an approved canonical projection, such as explicit PIPE route edges and supported restraint attachments. It blocks on:
+
+- ambiguous topology or a producer blocking issue;
+- deferred non-restraint attachments;
+- point-only components that disappear from InputXML;
+- TEE/OLET junctions without verified SIF/tee records;
+- ELBO/BEND topology without `BEND` children;
+- VALVE, FLANGE, GASKET, INSTRUMENT, REDUCER, or other component families whose PR-B contract remains `UNSUPPORTED_BLOCKING`;
+- unresolved first-line engineering context;
+- restraint capacity, type, or field failures.
+
+The model extension stores source identity, topology and trace-ledger digests, and metrics. Full source fields remain in the canonicalization ledger sidecar, one record per source entity and source port.
 
 ## Fail-closed rules
 
@@ -86,8 +114,7 @@ A blocked conversion still writes the ledger and validation report. A canonical 
 
 The following adapters are intentionally not claimed as complete:
 
-- managed-stage JSON;
 - PDF Input Echo;
 - UXML/RVM intake.
 
-They require their authoritative topology/parser implementations and source ledgers to be bridged, not reimplemented with simplified heuristics.
+They require their authoritative parser and engineering-identity implementations to be bridged, not reimplemented with simplified heuristics.
