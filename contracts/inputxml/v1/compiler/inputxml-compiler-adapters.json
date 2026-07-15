@@ -3,7 +3,7 @@
   "generatedAt": "2026-07-15",
   "authority": {
     "repository": "reallaksh19/3D_Converters",
-    "baseline": "a77b3944fdf585e7e522ca072cd9bdf3fb01b98d",
+    "baseline": "0d27dfa4ee0a15d5878aad7c68e5eed5b606ebb0",
     "compiler": "scripts/inputxml_canonical_compiler.py"
   },
   "rule": "Every dialect in inputxml-dialect-registry.json is recognized. Only IMPLEMENTED adapters may emit a PASS result. Deferred, diagnostic, and excluded profiles fail closed with an explicit ledger disposition.",
@@ -16,7 +16,7 @@
     {"dialectId":"categorized-inputxml-v3","adapterId":"categorized-reconciliation-compiler","status":"IMPLEMENTED","resultPolicy":"NORMALIZED_AND_ORIGINAL_EVIDENCE_MUST_RECONCILE"},
     {"dialectId":"cii14-inputxml","adapterId":"cii14-to-canonical-v1","status":"IMPLEMENTED","resultPolicy":"VERSIONED_INPUTXML_NORMALIZATION"},
     {"dialectId":"xml-to-cii-diagnostic-sidecar","adapterId":"diagnostic-sidecar-reconciliation","status":"IMPLEMENTED_BLOCKING","resultPolicy":"DEFER_EXPLICITLY_UNTIL_INDEPENDENT_SOURCE_RECONCILIATION"},
-    {"dialectId":"xml-builder-root-branch-node","adapterId":"xml-cii-node-to-canonical","status":"DEFERRED_BLOCKING","resultPolicy":"REQUIRES_AUTHORITATIVE_TOPOLOGY_ADAPTER"},
+    {"dialectId":"xml-builder-root-branch-node","adapterId":"xml-cii-node-to-canonical","status":"IMPLEMENTED","resultPolicy":"AUTHORITATIVE_TOPOLOGY_ENGINE_NO_SYNTHETIC_FILLERS_AND_BLOCK_ON_LOSS"},
     {"dialectId":"seljson-custom-root","adapterId":"seljson-custom-model-to-canonical","status":"DEFERRED_BLOCKING","resultPolicy":"REQUIRES_AUTHORITATIVE_TOPOLOGY_ADAPTER"},
     {"dialectId":"managed-stage-json","adapterId":"managed-stage-to-canonical","status":"DEFERRED_BLOCKING","resultPolicy":"REQUIRES_COMPONENT_TOPOLOGY_AND_LEDGER_BRIDGE"},
     {"dialectId":"pdf-input-echo","adapterId":"pdf-input-echo-to-canonical","status":"DEFERRED_BLOCKING","resultPolicy":"REQUIRES_TEMPLATE_PROVENANCE_AND_PDF_EVIDENCE_BRIDGE"},
