@@ -57,7 +57,7 @@ def _categorized_document(root: ET._Element, context: dict[str, Any], ledger: De
             canonical_path = f"/CAESARII/PIPINGMODEL[1]/PIPINGELEMENT[{output_ordinal}]"
             ledger.add(
                 source_entity_id=f"CategorizedInputXML/Line[{line_index}]/Element[{element_index}]",
-                source_type="CATEGORIZED_ELEMENT",
+                source_type="CATEGORIZED_RECONCILIATION",
                 source_fields={"elementKey": entity_id, "fromNode": element.get("fromNode"), "toNode": element.get("toNode")},
                 canonical_element_ids=[canonical_id],
                 inputxml_element_ids=[canonical_id],
