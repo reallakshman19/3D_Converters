@@ -30,6 +30,13 @@ FIELD_CATALOG_PATH = (
     / "inputxml-field-catalog.json"
 )
 
+# Node names are optional CAESAR metadata. Their absence must not block base
+# geometry/material projection; when present, PR-F still proves NODENAME indexes.
+core.STRICT_REQUIRED_ELEMENT_FIELDS = tuple(
+    field for field in core.STRICT_REQUIRED_ELEMENT_FIELDS
+    if field not in {"FROM_NAME", "TO_NAME"}
+)
+
 # These canonical attributes are contract metadata rather than CII engineering
 # payload. They predate the PR-B field catalog and are intentionally retained as
 # evidence only. Every other uncatalogued canonical attribute fails closed.
@@ -54,7 +61,7 @@ validate_projection_ledger = core.validate_projection_ledger
 
 
 def _path_parent_and_attr(source_entity_id: str) -> tuple[str | None, str | None]:
-    if "@" not in source_entity_id:
+    if not source_entity_id.startswith("/CAESARII") or "@" not in source_entity_id:
         return None, None
     path, attr = source_entity_id.rsplit("@", 1)
     tail = path.rsplit("/", 1)[-1]
