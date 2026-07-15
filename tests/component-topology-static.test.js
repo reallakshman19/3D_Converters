@@ -17,9 +17,8 @@ assert(connectivity.includes('AUTO_GENERATED_PIPE_COMPONENT_SPAN'), 'managed PIP
 assert(connectivity.includes('planCrefConnections') && connectivity.includes('reciprocalRole'), 'CREF/HREF/TREF connection evidence must be retained');
 assert(writer.includes('SOURCE_ENTITY_IDS'), 'InputXML elements must retain source ancestry');
 assert(writer.includes('CANONICAL_EDGE_ID'), 'InputXML elements must retain canonical ancestry');
-assert(writer.includes('<RESTRAINT'), 'native topology InputXML must emit resolved restraints');
-assert(writer.includes('<RIGID'), 'native topology InputXML must emit resolved rigid properties');
-assert(writer.includes('DIAMETER') && writer.includes('WALL_THICK'), 'native topology InputXML must emit engineering attributes');
+assert(!writer.includes('<RESTRAINT'), 'topology InputXML must not emit restraints');
+assert(!writer.includes('<RIGID'), 'topology InputXML must not guess rigid properties');
 
 for (const relative of fs.readdirSync(path.join(root, 'tabs/model-converters/converters/component-topology'))) {
   if (!relative.endsWith('.js')) continue;

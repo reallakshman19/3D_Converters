@@ -3,18 +3,13 @@ import {
   buildComponentTopologyArtifacts,
   topologyArtifactOutputs,
 } from './component-topology/topology-artifact-exporter.js';
-import {
-  SUPPORT_PROJECTION_TOLERANCE_MM,
-  TOPOLOGY_TOLERANCE_MM,
-} from './component-topology/topology-values.js';
+import { TOPOLOGY_TOLERANCE_MM } from './component-topology/topology-values.js';
 
 async function buildTopologyOutputs(sourceText, sourceName, stem) {
   const artifacts = await buildComponentTopologyArtifacts(sourceText, {
     sourceName,
     jobName: stem,
     toleranceMm: TOPOLOGY_TOLERANCE_MM,
-    supportProjectionToleranceMm: SUPPORT_PROJECTION_TOLERANCE_MM,
-    enrichmentConfig: {},
   });
   const blocking = artifacts.buildIssues.filter((issue) => issue.blocking !== false);
   if (blocking.length) {

@@ -10,7 +10,6 @@ import { buildExplicitConnectivity } from './topology-connectivity.js';
 import { buildCanonicalTopology } from './topology-canonical-builder.js';
 import { buildTopologyTraceLedger } from './topology-ledger-builder.js';
 import { buildTopologyInputXml } from './topology-inputxml-writer.js';
-import { buildTopologyEngineeringProjection } from './topology-engineering-projection.js';
 import {
   cleanText,
   componentCategory,
@@ -49,7 +48,7 @@ function referenceCounts(model) {
 }
 
 /** @param {Record<string, unknown>} model @param {Record<string, unknown>} canonical @param {Record<string, unknown>} ledger @param {number} toleranceMm @returns {Readonly<Record<string, unknown>>} */
-function artifactMetrics(model, canonical, ledger, engineering, toleranceMm) {
+function artifactMetrics(model, canonical, ledger, toleranceMm) {
   const nodes = new Map(canonical.nodes.map((node) => [node.id, node]));
   const zeroLengthEdges = canonical.edges.filter((edge) => pointDistance(
     nodes.get(edge.fromNodeId)?.position ?? null,
@@ -70,8 +69,6 @@ function artifactMetrics(model, canonical, ledger, engineering, toleranceMm) {
       pointFeatures: canonical.pointFeatures.length,
       junctions: canonical.junctions.length,
       boundaries: canonical.boundaries.length,
-      supports: canonical.supports.length,
-      rigids: canonical.rigids.length,
       zeroLengthEdges,
     }),
     ledger: Object.freeze({
@@ -80,32 +77,21 @@ function artifactMetrics(model, canonical, ledger, engineering, toleranceMm) {
       blockedRecords: ledger.summary.blockedRecords,
       deferredSupports: ledger.records.filter((row) => row.primaryDisposition === 'DEFER_SUPPORT').length,
     }),
-    engineering: engineering.metrics,
-    inputXml: Object.freeze({
-      elements: canonical.edges.length,
-      restraints: canonical.supports.reduce((sum, support) => sum + support.restraints.length, 0),
-      rigids: new Set(canonical.rigids.map((rigid) => rigid.edgeId)).size,
-      rigidBodies: canonical.rigids.length,
-    }),
+    inputXml: Object.freeze({ elements: canonical.edges.length }),
   });
 }
 
-/** @param {string} sourceText @param {{sourceName:string,jobName:string,toleranceMm:number,supportProjectionToleranceMm:number,enrichmentConfig:Record<string,unknown>}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
+/** @param {string} sourceText @param {{sourceName:string,jobName:string,toleranceMm:number}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
 export async function buildComponentTopologyArtifacts(sourceText, options) {
   const model = await buildTopologySourceModel(sourceText, {
     sourceName: options.sourceName,
     toleranceMm: options.toleranceMm,
   });
-  const engineering = buildTopologyEngineeringProjection(sourceText, model, {
-    enrichmentConfig: options.enrichmentConfig,
-  });
   const connectivity = buildExplicitConnectivity(model, options.toleranceMm);
-  const canonicalTopology = buildCanonicalTopology(
-    model, connectivity, engineering, options.toleranceMm, options.supportProjectionToleranceMm,
-  );
+  const canonicalTopology = buildCanonicalTopology(model, connectivity, options.toleranceMm);
   const traceLedger = buildTopologyTraceLedger(model, canonicalTopology);
-  const topologyInputXml = buildTopologyInputXml(canonicalTopology, engineering, { jobName: options.jobName });
-  const metrics = artifactMetrics(model, canonicalTopology, traceLedger, engineering, options.toleranceMm);
+  const topologyInputXml = buildTopologyInputXml(canonicalTopology, { jobName: options.jobName });
+  const metrics = artifactMetrics(model, canonicalTopology, traceLedger, options.toleranceMm);
   return Object.freeze({
     sourceIdentity: model.sourceIdentity,
     canonicalTopology,

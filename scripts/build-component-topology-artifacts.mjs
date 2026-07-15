@@ -12,10 +12,7 @@ import {
   buildComponentTopologyArtifacts,
   topologyArtifactOutputs,
 } from '../tabs/model-converters/converters/component-topology/topology-artifact-exporter.js';
-import {
-  SUPPORT_PROJECTION_TOLERANCE_MM,
-  TOPOLOGY_TOLERANCE_MM,
-} from '../tabs/model-converters/converters/component-topology/topology-values.js';
+import { TOPOLOGY_TOLERANCE_MM } from '../tabs/model-converters/converters/component-topology/topology-values.js';
 
 /** @param {string[]} argv @returns {{input:string,outputDir:string}} */
 function parseArguments(argv) {
@@ -43,8 +40,6 @@ async function run(args) {
     sourceName: path.basename(args.input),
     jobName: stem,
     toleranceMm: TOPOLOGY_TOLERANCE_MM,
-    supportProjectionToleranceMm: SUPPORT_PROJECTION_TOLERANCE_MM,
-    enrichmentConfig: {},
   });
   const blocking = artifacts.buildIssues.filter((issue) => issue.blocking !== false);
   if (blocking.length) throw new Error(`Topology build has ${blocking.length} blocking finding(s): ${JSON.stringify(blocking.slice(0, 10))}`);
