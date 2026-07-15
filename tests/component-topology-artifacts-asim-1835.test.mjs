@@ -1,7 +1,7 @@
 /**
  * Real ASIM-1835 native CAESAR InputXML benchmark.
  * Input: the supplied managed-stage JSON. Output: exact topology, support,
- * restraint, rigid-body, attribute, and globally unique node assertions.
+ * restraint, rigid-body, attribute, globally unique node, and parity assertions.
  */
 
 import assert from 'node:assert/strict';
@@ -35,13 +35,21 @@ if (!existsSync(fixturePath)) {
   assert.equal(artifacts.metrics.canonical.zeroLengthEdges, 0);
   assert.equal(artifacts.metrics.ledger.deferredSupports, 0);
   assert.equal(artifacts.buildIssues.filter((issue) => issue.blocking !== false).length, 0);
+  assert.equal(artifacts.topologyParityReport.ok, true);
+  for (const field of [
+    'topologyMismatchCount', 'missingInInputXml', 'missingInSvg', 'extraInInputXml', 'extraInSvg',
+    'incidenceMismatch', 'coordinateMismatch', 'supportMismatch', 'rigidMismatch', 'junctionMismatch',
+  ]) assert.equal(artifacts.topologyParityReport.summary[field], 0, field);
+  assert.equal(artifacts.parsedInputXmlTopology.issues.length, 0);
   const rows = attributeRows(artifacts.topologyInputXml);
   assert.equal(rows.length, 4437);
   for (const field of ['DIAMETER', 'WALL_THICK', 'INSUL_THICK', 'CORR_ALLOW', 'TEMP_EXP_C1', 'PRESSURE1', 'MATERIAL_NAME', 'LINE_ID']) {
     assert(rows.every((row) => Object.hasOwn(row, field)), `${field} must be present on every PIPINGELEMENT.`);
   }
-  const materialByLine = new Map();
-  const wallByLine = new Map();
+  for (const field of ['CANONICAL_EDGE_ID', 'FROM_CANONICAL_NODE_ID', 'TO_CANONICAL_NODE_ID', 'SOURCE_ENTITY_IDS', 'SOURCE_PORT_IDS', 'BRANCH_IDS', 'TOPOLOGY_OPERATION', 'PROJECTION_CARDINALITY']) {
+    assert(rows.every((row) => Object.hasOwn(row, field) && row[field]), `${field} must be present on every topology PIPINGELEMENT.`);
+  }
+  const materialByLine = new Map(), wallByLine = new Map();
   for (const row of rows) {
     const diameter = Number(row.DIAMETER), wall = Number(row.WALL_THICK);
     assert(diameter > 0, `Invalid native diameter on ${row.ID}.`);

@@ -1,8 +1,8 @@
 /**
  * Component-topology artifact orchestrator.
- * Input: original managed JSON text plus explicit source/job/tolerance options.
- * Output: canonical topology, trace ledger, topology InputXML, and metrics.
- * Failures are explicit; the source object and all produced artifacts are separate.
+ * CanonicalTopology.v1 is built once, stamped, and used unchanged by the
+ * topology InputXML writer and TopologySvgScene.v1 builder. Generated InputXML
+ * is parsed back and exact three-way topology parity is a fail-closed gate.
  */
 
 import { buildTopologySourceModel } from './topology-source-model.js';
@@ -11,13 +11,17 @@ import { buildCanonicalTopology } from './topology-canonical-builder.js';
 import { buildTopologyTraceLedger } from './topology-ledger-builder.js';
 import { buildTopologyInputXml } from './topology-inputxml-writer.js';
 import { buildTopologyEngineeringProjection } from './topology-engineering-projection.js';
+import { enrichCanonicalTopologyIdentity, enrichTopologyTraceLedgerIdentity } from './topology-artifact-identity.js';
+import { stampArtifactHash } from './topology-deterministic-hash.js';
+import { buildTopologySvgScene } from './topology-svg-scene-builder.js';
+import { parseTopologyInputXml } from './topology-inputxml-topology-parser.js';
 import {
-  cleanText,
-  componentCategory,
-  pointDistance,
-} from './topology-values.js';
+  buildTopologyParityReport,
+  topologyParityMismatchesCsv,
+  TopologyParityError,
+} from './topology-parity-engine.js';
+import { cleanText, componentCategory, pointDistance } from './topology-values.js';
 
-/** @param {Record<string, unknown>} model @returns {Record<string, number>} */
 function componentCounts(model) {
   const counts = {};
   for (const component of model.components) {
@@ -27,7 +31,6 @@ function componentCounts(model) {
   return counts;
 }
 
-/** @param {Record<string, unknown>} model @returns {Record<string, number>} */
 function referenceCounts(model) {
   const branchNames = new Set(model.branches.map((branch) => cleanText(branch.name)));
   const componentAliases = new Set(model.components.flatMap((component) => [component.sourceRef, component.name]).map(cleanText).filter(Boolean));
@@ -48,8 +51,7 @@ function referenceCounts(model) {
   };
 }
 
-/** @param {Record<string, unknown>} model @param {Record<string, unknown>} canonical @param {Record<string, unknown>} ledger @param {number} toleranceMm @returns {Readonly<Record<string, unknown>>} */
-function artifactMetrics(model, canonical, ledger, engineering, toleranceMm) {
+function artifactMetrics(model, canonical, ledger, engineering, parsed, scene, parity, toleranceMm) {
   const nodes = new Map(canonical.nodes.map((node) => [node.id, node]));
   const zeroLengthEdges = canonical.edges.filter((edge) => pointDistance(
     nodes.get(edge.fromNodeId)?.position ?? null,
@@ -87,10 +89,18 @@ function artifactMetrics(model, canonical, ledger, engineering, toleranceMm) {
       rigids: new Set(canonical.rigids.map((rigid) => rigid.edgeId)).size,
       rigidBodies: canonical.rigids.length,
     }),
+    parsedInputXml: Object.freeze({
+      nodes: parsed.nodes.length,
+      elements: parsed.elements.length,
+      restraints: parsed.restraints.length,
+      rigids: parsed.rigids.length,
+      parseIssues: parsed.issues.length,
+    }),
+    svgScene: scene.summary,
+    parity: parity.summary,
   });
 }
 
-/** @param {string} sourceText @param {{sourceName:string,jobName:string,toleranceMm:number,supportProjectionToleranceMm:number,enrichmentConfig:Record<string,unknown>}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
 export async function buildComponentTopologyArtifacts(sourceText, options) {
   const model = await buildTopologySourceModel(sourceText, {
     sourceName: options.sourceName,
@@ -100,23 +110,52 @@ export async function buildComponentTopologyArtifacts(sourceText, options) {
     enrichmentConfig: options.enrichmentConfig,
   });
   const connectivity = buildExplicitConnectivity(model, options.toleranceMm);
-  const canonicalTopology = buildCanonicalTopology(
+  const builtCanonical = buildCanonicalTopology(
     model, connectivity, engineering, options.toleranceMm, options.supportProjectionToleranceMm,
   );
-  const traceLedger = buildTopologyTraceLedger(model, canonicalTopology);
-  const topologyInputXml = buildTopologyInputXml(canonicalTopology, engineering, { jobName: options.jobName });
-  const metrics = artifactMetrics(model, canonicalTopology, traceLedger, engineering, options.toleranceMm);
-  return Object.freeze({
+  const canonicalTopology = stampArtifactHash(
+    enrichCanonicalTopologyIdentity(builtCanonical, model), 'canonicalTopologyHash',
+  );
+  const builtLedger = buildTopologyTraceLedger(model, canonicalTopology);
+  const traceLedger = stampArtifactHash(enrichTopologyTraceLedgerIdentity(
+    builtLedger, canonicalTopology, model, engineering, {
+      sourceName: options.sourceName,
+      topologyToleranceMm: options.toleranceMm,
+      supportProjectionToleranceMm: options.supportProjectionToleranceMm,
+    },
+  ), 'topologyTraceLedgerHash');
+  const topologyInputXml = buildTopologyInputXml(canonicalTopology, engineering, {
+    jobName: options.jobName,
+    topologyTraceLedgerHash: traceLedger.topologyTraceLedgerHash,
+  });
+  const parsedInputXmlTopology = parseTopologyInputXml(topologyInputXml);
+  const topologySvgScene = buildTopologySvgScene(canonicalTopology, traceLedger, []);
+  const topologyParityReport = buildTopologyParityReport({
+    canonicalTopology,
+    traceLedger,
+    parsedInputXmlTopology,
+    topologySvgScene,
+  });
+  const metrics = artifactMetrics(
+    model, canonicalTopology, traceLedger, engineering,
+    parsedInputXmlTopology, topologySvgScene, topologyParityReport, options.toleranceMm,
+  );
+  const artifacts = Object.freeze({
     sourceIdentity: model.sourceIdentity,
     canonicalTopology,
     traceLedger,
     topologyInputXml,
+    parsedInputXmlTopology,
+    topologySvgScene,
+    topologyParityReport,
+    topologyParityMismatchesCsv: topologyParityMismatchesCsv(topologyParityReport),
     metrics,
     buildIssues: canonicalTopology.buildIssues,
   });
+  if (!topologyParityReport.ok) throw new TopologyParityError(topologyParityReport);
+  return artifacts;
 }
 
-/** @param {Readonly<Record<string, unknown>>} artifacts @param {{stem:string}} options @returns {ReadonlyArray<Readonly<Record<string, string>>>} */
 export function topologyArtifactOutputs(artifacts, options) {
   return Object.freeze([
     Object.freeze({
@@ -134,5 +173,27 @@ export function topologyArtifactOutputs(artifacts, options) {
       text: artifacts.topologyInputXml,
       mime: 'application/xml;charset=utf-8',
     }),
+    Object.freeze({
+      name: `${options.stem}.topology-svg-scene.json`,
+      text: `${JSON.stringify(artifacts.topologySvgScene, null, 2)}\n`,
+      mime: 'application/json;charset=utf-8',
+    }),
+    Object.freeze({
+      name: `${options.stem}.parsed-inputxml-topology.json`,
+      text: `${JSON.stringify(artifacts.parsedInputXmlTopology, null, 2)}\n`,
+      mime: 'application/json;charset=utf-8',
+    }),
+    Object.freeze({
+      name: `${options.stem}.topology-parity-report.json`,
+      text: `${JSON.stringify(artifacts.topologyParityReport, null, 2)}\n`,
+      mime: 'application/json;charset=utf-8',
+    }),
+    Object.freeze({
+      name: `${options.stem}.topology-parity-mismatches.csv`,
+      text: artifacts.topologyParityMismatchesCsv,
+      mime: 'text/csv;charset=utf-8',
+    }),
   ]);
 }
+
+export const _test = Object.freeze({ componentCounts, referenceCounts, artifactMetrics });
