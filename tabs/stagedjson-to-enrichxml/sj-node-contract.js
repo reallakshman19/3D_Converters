@@ -7,6 +7,7 @@
 import { arrivePosition, leavePosition, bestPosition } from './sj-point-resolver.js';
 import { rigidValue } from './sj-type-mapper.js';
 import { authoritativeNumber } from './sj-enrichment-authority.js';
+import { DN_TO_OD_MM } from './sj-weight-db.js';
 
 const XML_BOUNDARY_TYPES = new Set(['PIPE', 'ELBO', 'BEND', 'TEE', 'OLET', 'REDU', 'REDUCER']);
 
@@ -80,7 +81,7 @@ export function projectBoundaryNodeContract(record, startNodeNumber) {
       connectionType: '',
       position: leavePosition(record.attrs) ?? bestPosition(record.attrs),
       bendRadius: 0,
-      alphaAngle: finiteNumber(record.anglDeg),
+      alphaAngle: resolveReducerAlphaAngle(record),
       dtxrSource: '',
     }];
   } else {
@@ -153,6 +154,41 @@ function resolveBendRadius(record) {
   const description = upper(record?.dtxr);
   const factor = /\bSR\b|SHORT\s*RADIUS/.test(description) ? 1 : 1.5;
   return Math.round(nps * 25.4 * factor);
+}
+
+function resolveReducerAlphaAngle(record) {
+  const explicit = firstPositive(record?.anglDeg, record?.attrs?.ANGL);
+  if (explicit !== null) return explicit;
+
+  const start = arrivePosition(record?.attrs);
+  const end = leavePosition(record?.attrs);
+  if (!start || !end) return null;
+  const axialLength = Math.max(
+    Math.abs(end.x - start.x),
+    Math.abs(end.y - start.y),
+    Math.abs(end.z - start.z),
+  );
+  if (!(axialLength > 0)) return null;
+
+  const largeDn = firstPositive(
+    record?.enrichedAttributes?.nominalBoreMm,
+    record?.boreMm,
+    record?.attrs?.ABORE,
+    record?.attrs?.HBORE,
+    record?.attrs?.HBOR,
+  );
+  const smallDn = firstPositive(
+    record?.attrs?.LBORE,
+    record?.attrs?.TBORE,
+    record?.attrs?.TBOR,
+  );
+  const largeOd = resolveXmlEngineeringValues(record).odMm
+    ?? DN_TO_OD_MM[Math.round(largeDn ?? NaN)];
+  const smallOd = DN_TO_OD_MM[Math.round(smallDn ?? NaN)];
+  if (!(largeOd > 0) || !(smallOd > 0) || largeOd === smallOd) return null;
+
+  const radialChange = Math.abs(largeOd - smallOd) / 2;
+  return Math.round((Math.atan2(radialChange, axialLength) * 180 / Math.PI) * 1000) / 1000;
 }
 
 function normalizedType(value) {
