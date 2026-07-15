@@ -23,7 +23,7 @@ function componentKey(path) {
   return `${branchIndex}:${sourceIndex}`;
 }
 
-/** @param {{x:number,y:number,z:number}} point @param {{x:number,y:number,z:number}} start @param {{x:number,y:number,z:number}} end @returns {{distanceMm:number,parameter:number}} */
+/** @param {{x:number,y:number,z:number}} point @param {{x:number,y:number,z:number}} start @param {{x:number,y:number,z:number}} end @returns {{distanceMm:number,parameter:number,projected:{x:number,y:number,z:number}}} */
 function pointSegmentDistance(point, start, end) {
   const vector = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
   const offset = { x: point.x - start.x, y: point.y - start.y, z: point.z - start.z };
@@ -36,12 +36,17 @@ function pointSegmentDistance(point, start, end) {
     y: start.y + parameter * vector.y,
     z: start.z + parameter * vector.z,
   };
-  return { distanceMm: pointDistance(point, projected), parameter };
+  return { distanceMm: pointDistance(point, projected), parameter, projected };
+}
+
+/** @param {Record<string, unknown>} component @returns {Record<string, unknown>|null} */
+function supportPortOrNull(component) {
+  return portForRole(component, 'P') ?? portForRole(component, 'A') ?? portForRole(component, 'L') ?? null;
 }
 
 /** @param {Record<string, unknown>} component @returns {Record<string, unknown>} */
 function supportPort(component) {
-  const port = portForRole(component, 'P') ?? portForRole(component, 'A') ?? portForRole(component, 'L');
+  const port = supportPortOrNull(component);
   if (!port) throw new Error(`Support ${component.sourcePath} has no usable source position port.`);
   return port;
 }
@@ -61,20 +66,30 @@ function componentRecordIndex(model, records) {
   };
 }
 
+/** @param {Record<string, unknown>} component @returns {boolean} */
+function isProjectedSupport(component) {
+  return isSupportType(component.sourceType)
+    && cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT';
+}
+
 /** @param {Record<string, unknown>} model @param {Record<string, unknown>[]} supportEntries @returns {Record<string, unknown>[]} */
 function buildSupportAnchors(model, supportEntries) {
   const anchors = supportEntries.map(({ component, record }, order) => {
-    const position = bestPosition(record.attrs);
-    if (!position) throw new Error(`Grouped support ${component.sourcePath} has no valid position.`);
+    const port = supportPort(component);
+    const enrichmentPosition = bestPosition(record.attrs);
     return {
       id: `SA-${String(order + 1).padStart(6, '0')}`,
       order,
       component,
       record,
-      port: supportPort(component),
-      position,
+      port,
+      position: port.position,
+      positionAuthority: `SOURCE_PORT:${port.role}`,
+      positionAuthorityResidualMm: enrichmentPosition
+        ? pointDistance(enrichmentPosition, port.position) : null,
       sourceEntityIds: [component.sourceEntityId],
       sourceBranchEntityIds: [component.sourceBranchEntityId],
+      sourceBranchNames: [component.sourceBranchName],
       sourcePaths: [component.sourcePath],
       tag: cleanText(record.supportTag || record.cmpSupRefN || record.name),
       restraints: Array.isArray(record.resolved?.restraint)
@@ -82,7 +97,7 @@ function buildSupportAnchors(model, supportEntries) {
     };
   });
   const byPosition = new Map(anchors.map((anchor) => [formatPosition(anchor.position), anchor]));
-  const supportComponents = model.components.filter((component) => cleanText(component.sourceType).toUpperCase() === 'SUPPORT');
+  const supportComponents = model.components.filter(isProjectedSupport);
   const byName = new Map(model.components.map((component) => [
     cleanText(component.attributes.NAME || component.name), component,
   ]));
@@ -91,12 +106,14 @@ function buildSupportAnchors(model, supportEntries) {
     if (!anchor) throw new Error(`Support ${component.sourcePath} was not retained by the engineering grouping contract.`);
     anchor.sourceEntityIds.push(component.sourceEntityId);
     anchor.sourceBranchEntityIds.push(component.sourceBranchEntityId);
+    anchor.sourceBranchNames.push(component.sourceBranchName);
     anchor.sourcePaths.push(component.sourcePath);
   }
   return anchors.map((anchor) => ({
     ...anchor,
     sourceEntityIds: uniqueText(anchor.sourceEntityIds),
     sourceBranchEntityIds: uniqueText(anchor.sourceBranchEntityIds),
+    sourceBranchNames: uniqueText(anchor.sourceBranchNames),
     sourcePaths: uniqueText(anchor.sourcePaths),
   }));
 }
@@ -107,7 +124,7 @@ function findSupportAnchor(component, byPosition, byName) {
   const visited = new Set();
   while (current && !visited.has(current.sourceEntityId)) {
     visited.add(current.sourceEntityId);
-    const position = bestPosition(current.attributes);
+    const position = supportPortOrNull(current)?.position ?? null;
     const direct = position ? byPosition.get(formatPosition(position)) : null;
     if (direct) return direct;
     const currentName = cleanText(current.attributes.NAME || current.name);
@@ -119,18 +136,51 @@ function findSupportAnchor(component, byPosition, byName) {
   return null;
 }
 
+/** @param {{x:number,y:number,z:number}|null} point @returns {string} */
+function pointText(point) {
+  if (!point) return '(none)';
+  return `${point.x.toFixed(3)},${point.y.toFixed(3)},${point.z.toFixed(3)}`;
+}
+
+/** @param {number|undefined} value @returns {string} */
+function distanceText(value) {
+  return Number.isFinite(value) ? Number(value).toFixed(3) : 'unbounded';
+}
+
+/** @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>} support @param {boolean} owningOnly @returns {Record<string, unknown>[]} */
+function rankedSupportCandidates(edgeSpecs, support, owningOnly) {
+  return edgeSpecs.flatMap((edge, index) => {
+    const owns = support.sourceBranchEntityIds.some((id) => edge.sourceEntityIds.includes(id));
+    if (owningOnly && !owns) return [];
+    const proximity = pointSegmentDistance(support.position, edge.fromPort.position, edge.toPort.position);
+    return [{ edge, index, owns, ...proximity }];
+  }).sort((left, right) => left.distanceMm - right.distanceMm || left.index - right.index);
+}
+
+/** @param {Record<string, unknown>} support @param {Record<string, unknown>|undefined} owning @param {Record<string, unknown>|undefined} global @param {number} toleranceMm @returns {Error} */
+function supportProjectionError(support, owning, global, toleranceMm) {
+  const classification = global && global.distanceMm <= toleranceMm
+    ? 'POSSIBLE_WRONG_BRANCH_OWNERSHIP' : 'SOURCE_SUPPORT_POSITION_OR_ROUTE_INVALID';
+  const owningText = owning
+    ? `${owning.edge.sourcePath}/${owning.edge.segmentRole}@${pointText(owning.projected)}` : '(none)';
+  const globalText = global
+    ? `${global.edge.sourcePath}/${global.edge.segmentRole}@${pointText(global.projected)}:${distanceText(global.distanceMm)}mm` : '(none)';
+  return new Error(
+    `Support ${support.tag || support.id} is ${distanceText(owning?.distanceMm)} mm from its owning branch; limit is ${distanceText(toleranceMm)} mm. `
+    + `[${classification}] sourcePath=${support.sourcePaths.join('|')}; branches=${support.sourceBranchNames.join('|')}; `
+    + `positionAuthority=${support.positionAuthority}; position=${pointText(support.position)}; nearestOwning=${owningText}; nearestAny=${globalText}.`,
+  );
+}
+
 /** @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>[]} supports @param {number} toleranceMm @returns {Map<number,Record<string, unknown>[]>} */
 function matchSupportsToEdges(edgeSpecs, supports, toleranceMm) {
   const matches = new Map();
   for (const support of supports) {
-    const candidates = edgeSpecs.flatMap((edge, index) => {
-      if (!support.sourceBranchEntityIds.some((id) => edge.sourceEntityIds.includes(id))) return [];
-      const distance = pointSegmentDistance(support.position, edge.fromPort.position, edge.toPort.position);
-      return [{ edge, index, ...distance }];
-    }).sort((left, right) => left.distanceMm - right.distanceMm || left.index - right.index);
-    const match = candidates[0];
+    const owningCandidates = rankedSupportCandidates(edgeSpecs, support, true);
+    const allCandidates = rankedSupportCandidates(edgeSpecs, support, false);
+    const match = owningCandidates[0];
     if (!match || match.distanceMm > toleranceMm) {
-      throw new Error(`Support ${support.tag || support.id} is ${match?.distanceMm ?? 'unbounded'} mm from its owning branch; limit is ${toleranceMm} mm.`);
+      throw supportProjectionError(support, match, allCandidates[0], toleranceMm);
     }
     support.connectionResidual = match.distanceMm;
     support.edgeParameter = match.parameter;
@@ -229,8 +279,14 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
 export function buildTopologyEngineeringProjection(sourceText, model, options) {
   const enrichment = runEnrichment({ stagedJsonText: sourceText, config: options.enrichmentConfig });
   const index = componentRecordIndex(model, enrichment.records);
-  const supportEntries = index.entries.filter(({ record }) => isSupportType(record.componentType));
+  const supportEntries = index.entries.filter(({ component, record }) => (
+    isSupportType(record.componentType) && isProjectedSupport(component)
+  ));
   const supports = buildSupportAnchors(model, supportEntries);
+  const deferredSupports = model.components.filter((component) => (
+    isSupportType(component.sourceType)
+    && cleanText(component.supportProjection?.disposition) === 'DEFER_SUPPORT'
+  ));
   const rigids = index.entries.filter(({ record }) => isRigidType(record.componentType)).map(({ component, record }) => ({
     component,
     record,
@@ -240,7 +296,20 @@ export function buildTopologyEngineeringProjection(sourceText, model, options) {
   return Object.freeze({
     recordBySourceEntityId: index.recordBySourceEntityId,
     supports: Object.freeze(supports),
+    deferredSupports: Object.freeze(deferredSupports.map((component) => Object.freeze({
+      sourceEntityId: component.sourceEntityId,
+      sourcePath: component.sourcePath,
+      sourceBranchEntityId: component.sourceBranchEntityId,
+      sourceBranchName: component.sourceBranchName,
+      sourceRef: component.sourceRef,
+      policy: component.supportProjection,
+    }))),
     rigids: Object.freeze(rigids),
-    metrics: Object.freeze({ supports: supports.length, restraints: supports.reduce((sum, row) => sum + row.restraints.length, 0), rigids: rigids.length }),
+    metrics: Object.freeze({
+      supports: supports.length,
+      deferredSupports: deferredSupports.length,
+      restraints: supports.reduce((sum, row) => sum + row.restraints.length, 0),
+      rigids: rigids.length,
+    }),
   });
 }
