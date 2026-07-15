@@ -1,7 +1,7 @@
 /** Builds and serializes TopologyParityReport.v1. */
 import { cleanText } from './topology-values.js';
 import { deterministicHash, stampArtifactHash, TOPOLOGY_HASH_ALGORITHM } from './topology-deterministic-hash.js';
-import { compareCanonicalToInputXml, compareCanonicalToSvgScene, compareInputXmlToSvgScene } from './topology-parity-engine.js';
+import { compareCanonicalToInputXml, compareCanonicalToSvgScene, compareInputXmlToSvgScene } from './topology-parity-comparisons.js';
 import { canonicalRigidGroups, deferredRecords, GLOBAL_DECIMALS, DELTA_DECIMALS, mismatch } from './topology-parity-values.js';
 
 export function buildTopologyParityReport(input) {
