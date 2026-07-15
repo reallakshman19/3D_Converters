@@ -5,110 +5,128 @@ from .counts import *
 from .children import *
 from .elements import *
 from .family import *
-from .model import *
+def _categorized_original_element(text: str) -> ET._Element:
+    if not text.strip():
+        raise CompileBlocked("CategorizedInputXML Element lacks OriginalElement evidence.")
+    return _parse_xml(text.encode("utf-8"), "CategorizedInputXML/OriginalElement")
+
+
+def _block_values(element: ET._Element, block_name: str) -> dict[str, str]:
+    block = element.find(block_name)
+    if block is None:
+        return {}
+    return {_local(child.tag): (child.text or "").strip() for child in block}
+
+
 def _categorized_document(root: ET._Element, context: dict[str, Any], ledger: DecisionLedger) -> ET._Element:
+    if root.get("schema") != "categorized-inputxml/v3":
+        raise CompileBlocked("CategorizedInputXML schema must be categorized-inputxml/v3.")
     version = str(context.get("version") or "").strip()
     north = context.get("north")
     if not version or not isinstance(north, list) or len(north) != 3:
-        raise CompileBlocked("CategorizedInputXML compilation requires explicit context: version and north[3].")
-    source_name = root.get("sourceName") or "categorized-inputxml"
+        raise CompileBlocked("CategorizedInputXML compilation requires explicit context version and north[3].")
     wrapper, model = _new_root(version)
-    model.set("JOBNAME", str(context.get("jobName") or source_name))
+    model.set("JOBNAME", str(context.get("jobName") or root.get("sourceName") or "CATEGORIZED_CANONICAL"))
     if context.get("time"):
         model.set("TIME", str(context["time"]))
     model.set("ISSUE_NO", str(context.get("issueNo") or ""))
     for field, value in zip(("NORTH_X", "NORTH_Y", "NORTH_Z"), north):
-        model.set(field, str(value))
-    for field in COUNT_FIELDS:
-        model.set(field, "0")
-
-    element_index = 0
+        model.set(field, _decimal_text(value, f"context {field}"))
+    output_ordinal = 0
     for line_index, line in enumerate(root.findall("Line"), 1):
         line_id = (line.get("id") or "").strip()
-        ledger.add(source_entity_id=f"CategorizedInputXML/Line[{line_index}]", source_type="CATEGORIZED_LINE", source_fields=dict(line.attrib), disposition="EMIT_1_TO_MANY", projection_cardinality="1_TO_MANY")
-        line_no = (line.findtext("LineBlock/LineNo") or "").strip()
-        if line_id and line_no and line_id != line_no:
-            raise CompileBlocked(f"Categorized line id {line_id!r} conflicts with LineNo {line_no!r}.")
-        canonical_line = line_no or line_id
-        if not canonical_line:
-            raise CompileBlocked("Categorized Line requires id or LineBlock/LineNo.")
-        for element in line.findall("Element"):
-            element_index += 1
-            ledger.add(source_entity_id=f"CategorizedInputXML/Line[{line_index}]/Element[{element_index}]", source_type="CATEGORIZED_ELEMENT", source_fields=dict(element.attrib), disposition="EMIT_1_TO_1")
-            entity_id = element.get("elementKey") or f"categorized-element-{element_index}"
-            original_text = element.findtext("OriginalElement") or ""
-            original = _parse_xml(original_text.encode("utf-8"), f"{entity_id}/OriginalElement")
-            if _local(original.tag) != "PIPINGELEMENT" or _namespace(original.tag) != "":
-                raise CompileBlocked(f"{entity_id} OriginalElement must contain one unqualified PIPINGELEMENT.")
-            merged = copy.deepcopy(original)
-
-            overlays: dict[str, str] = {
-                "FROM_NODE": element.get("fromNode") or "",
-                "TO_NODE": element.get("toNode") or "",
-                "LINE": canonical_line,
+        line_values = _block_values(line, "LineBlock")
+        line_number = line_values.get("LineNo") or line_values.get("Branchname") or line_id
+        if not line_number:
+            raise CompileBlocked(f"CategorizedInputXML Line[{line_index}] has no line identity.")
+        ledger.add(
+            source_entity_id=f"CategorizedInputXML/Line[{line_index}]",
+            source_type="CATEGORIZED_LINE",
+            source_fields=line_values,
+            projection_cardinality="1_TO_0",
+            disposition="PRESERVE_EXTENSION",
+            evidence=["source line grouping retained as categorized evidence; child elements own CII projection"],
+        )
+        for element_index, element in enumerate(line.findall("Element"), 1):
+            output_ordinal += 1
+            original_node = element.find("OriginalElement")
+            original = _categorized_original_element(original_node.text if original_node is not None else "")
+            entity_id = element.get("elementKey") or f"line-{line_index}-element-{element_index}"
+            canonical_id = _safe_ncname(original.get("ID") or entity_id or f"E{output_ordinal:06d}", "E")
+            canonical_path = f"/CAESARII/PIPINGMODEL[1]/PIPINGELEMENT[{output_ordinal}]"
+            ledger.add(
+                source_entity_id=f"CategorizedInputXML/Line[{line_index}]/Element[{element_index}]",
+                source_type="CATEGORIZED_ELEMENT",
+                source_fields={"elementKey": entity_id, "fromNode": element.get("fromNode"), "toNode": element.get("toNode")},
+                canonical_element_ids=[canonical_id],
+                inputxml_element_ids=[canonical_id],
+                cii_section="ELEMENTS",
+                projection_cardinality="1_TO_1",
+                disposition="EMIT_1_TO_1",
+            )
+            overlays = {
+                **_block_values(element, "RouteGeometryBlock"),
+                **_block_values(element, "SectionDimensionBlock"),
+                **_block_values(element, "ProcessStateBlock"),
+                **_block_values(element, "MaterialBlock"),
             }
-            for xpath, field in (
-                ("NameBlock/FROM_NAME", "FROM_NAME"),
-                ("NameBlock/TO_NAME", "TO_NAME"),
-                ("NameBlock/LINE_ID", "LINE"),
-                ("RouteGeometryBlock/DELTA_X", "DELTA_X"),
-                ("RouteGeometryBlock/DELTA_Y", "DELTA_Y"),
-                ("RouteGeometryBlock/DELTA_Z", "DELTA_Z"),
-                ("SectionDimensionBlock/DIAMETER", "DIAMETER"),
-                ("SectionDimensionBlock/WALL_THICK", "WALL_THICK"),
-                ("SectionDimensionBlock/INSUL_THICK", "INSUL_THICK"),
-            ):
-                value = element.findtext(xpath)
-                if value is not None and value.strip() != "":
-                    if field in overlays and overlays[field] and overlays[field] != value.strip():
-                        raise CompileBlocked(f"{entity_id} normalized fields conflict for {field}.")
-                    overlays[field] = value.strip()
+            overlays["FROM_NODE"] = element.get("fromNode") or original.get("FROM_NODE") or ""
+            overlays["TO_NODE"] = element.get("toNode") or original.get("TO_NODE") or ""
+            overlays["LINE"] = line_number
             for field, value in overlays.items():
-                if not value:
+                if value == "":
                     continue
-                source_candidates = [field]
-                if field == "LINE":
-                    source_candidates.append("LINE_ID")
-                existing_values = [(name, merged.get(name)) for name in source_candidates if merged.get(name) is not None]
-                for name, existing in existing_values:
-                    equal = _same_numeric(existing or "", value) if field not in {"LINE", "FROM_NAME", "TO_NAME"} else (existing or "").strip() == value
-                    if not equal and not _is_sentinel(existing):
-                        raise CompileBlocked(f"{entity_id} normalized {field}={value!r} conflicts with OriginalElement {name}={existing!r}.")
-                merged.set(field, value)
-                if field == "LINE":
-                    merged.attrib.pop("LINE_ID", None)
+                original_value = original.get(field)
+                if original_value is not None:
+                    same = _same_numeric(original_value, value) if field not in {"LINE", "FROM_NAME", "TO_NAME"} else original_value.strip() == value.strip()
+                    if not same:
+                        ledger.add(
+                            source_entity_id=f"{canonical_path}@{field}",
+                            source_type="CATEGORIZED_CONFLICT",
+                            source_fields={"sourceEntityId": entity_id, "normalized": value, "original": original_value},
+                            canonical_element_ids=[canonical_id],
+                            inputxml_element_ids=[canonical_id],
+                            disposition="REJECT_INVALID",
+                            diagnostics=["Categorized normalized value conflicts with OriginalElement"],
+                        )
+                        raise CompileBlocked(f"Categorized conflict at {entity_id}/{field}: normalized={value!r}, original={original_value!r}.")
+                original.set(field, value)
                 ledger.add(
-                    source_entity_id=f"{entity_id}/{field}",
-                    source_type="CATEGORIZED_RECONCILIATION",
-                    source_fields={"normalized": value, "original": existing_values},
+                    source_entity_id=f"{canonical_path}@{field}",
+                    source_type="CATEGORIZED_NORMALIZED_FIELD",
+                    source_fields={"sourceEntityId": entity_id, field: value},
+                    canonical_element_ids=[canonical_id],
+                    inputxml_element_ids=[canonical_id],
+                    projection_cardinality="1_TO_1",
                     disposition="EMIT_1_TO_1",
-                    evidence=["normalized block reconciled with OriginalElement evidence"],
-                    confidence={"identity":1.0,"topology":1.0,"geometry":1.0,"dimensions":1.0,"attributes":1.0,"ciiProjection":1.0},
+                    evidence=["normalized block reconciled with OriginalElement"],
                 )
-            merged.set("ID", _safe_ncname(element.get("elementKey") or f"E{element_index:06d}", "E"))
-
-            nodes = [node.get("nodeNumber") for node in element.findall("NodesBlock/Node")]
-            if nodes and (overlays["FROM_NODE"] not in nodes or overlays["TO_NODE"] not in nodes):
-                raise CompileBlocked(f"{entity_id} NodesBlock does not contain both element endpoints.")
-            _extension_record(merged, producer=ledger.producer, dialect=ledger.dialect, name="OriginalElement", source_path=ledger.source_path, source_entity_id=entity_id, source_field="OriginalElement", value=original_text, disposition="PRESERVE_EXTENSION", criticality="HIGH", confidence=1.0)
-            ledger.add(source_entity_id=f"{entity_id}/OriginalElement", source_type="SOURCE_EVIDENCE", source_fields={"xml": original_text}, disposition="PRESERVE_EXTENSION", evidence=["reconciled source evidence preserved in canonical extension"])
-            _ensure_extension_last(merged)
-            model.append(merged)
-            for review_path in ("LineBlock/PipingClass", "LineBlock/Rating"):
-                review = line.find(review_path)
-                if review is not None and (review.text or "").strip():
-                    _preserve_attr(merged, ledger.source_path, entity_id, _local(review.tag), (review.text or "").strip(), ledger, blocking=False)
-            for review_name in ("DerivedBlock", "BendBlock", "RigidBlock", "FlangeBlock", "MiscBlock"):
-                review = element.find(review_name)
-                if review is not None and (len(review) or (review.text or "").strip()):
-                    _preserve_child(merged, review, ledger.source_path, entity_id, ledger, blocking=review_name in {"BendBlock", "RigidBlock", "FlangeBlock"})
-
-    if element_index == 0:
+            piping_class = (element.findtext("PipingClass") or "").strip()
+            rating = (element.findtext("Rating") or "").strip()
+            if piping_class:
+                ET.SubElement(original, "PipingClass").text = piping_class
+            if rating:
+                ET.SubElement(original, "Rating").text = rating
+            _extension_record(
+                original,
+                producer=ledger.producer,
+                dialect=ledger.dialect,
+                name="CategorizedOriginalElement",
+                source_path=ledger.source_path,
+                source_entity_id=entity_id,
+                source_field="OriginalElement",
+                value=original_node.text if original_node is not None else "",
+                disposition="PRESERVE_EXTENSION",
+                criticality="HIGH",
+                confidence=1.0,
+            )
+            _ensure_extension_last(original)
+            model.append(original)
+    if not model.findall("PIPINGELEMENT"):
         raise CompileBlocked("CategorizedInputXML contains no Element records.")
     _set_model_count_assertions(model)
-    original_document = root.findtext("OriginalDocument")
-    if original_document:
-        _extension_record(wrapper, producer=ledger.producer, dialect=ledger.dialect, name="OriginalDocument", source_path=ledger.source_path, source_entity_id="CategorizedInputXML", source_field="OriginalDocument", value=original_document, disposition="PRESERVE_EXTENSION", criticality="MEDIUM", confidence=1.0)
     return wrapper
+
+
 
 __all__ = [name for name in globals() if not name.startswith("__")]
