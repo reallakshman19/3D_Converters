@@ -1,31 +1,28 @@
 /**
  * Functionality: builds PSI-116 compliant XML output from enriched
- * component records. Emits the exact schema consumed by xml_to_cii2019.py:
- * PipeStressExport > Pipe > Branch > Node, with all mandatory child tags.
- * Parameters: explicit. Outputs: XML string. No side effects.
+ * component records. Emits the schema consumed by xml_to_cii2019.py:
+ * PipeStressExport > Pipe > Branch > Node.
+ * Component cardinality and endpoint semantics are delegated to explicit
+ * node contracts; the writer only serializes normalized node specifications.
  */
 
 import { formatRestraintXml } from './sj-restraint-resolver.js';
-import { formatPosition, arrivePosition, leavePosition, bestPosition } from './sj-point-resolver.js';
-import { isRigidType, isBoundaryType, isSupportType, rigidValue } from './sj-type-mapper.js';
-
-// ─── Schema constants ────────────────────────────────────────────
+import { formatPosition, bestPosition } from './sj-point-resolver.js';
+import { isSupportType, rigidValue } from './sj-type-mapper.js';
+import {
+  isXmlBoundaryComponent,
+  projectBoundaryNodeContract,
+  resolveXmlEngineeringValues,
+} from './sj-node-contract.js';
 
 const XML_NS = 'http://aveva.com/pipeStress116.xsd';
 const NULL_TEMP = '-100000';
 
-/**
- * Build complete enriched XML from a map of branch name → enriched records.
- * @param {Map<string, EnrichedRecord[]>} branchMap
- * @param {Object} config
- * @returns {string}
- */
 export function buildEnrichedXml(branchMap, config = {}) {
   const lines = [];
   lines.push(`<?xml version="1.0" encoding="utf-8"?>`);
   lines.push(`<PipeStressExport xmlns="${XML_NS}">`);
 
-  // Root metadata expected by Python parser
   const now = new Date();
   lines.push(`<DateTime>${now.toLocaleString('en-GB')}</DateTime>`);
   lines.push(`<Source>StagedJSON→EnrichXML</Source>`);
@@ -47,15 +44,14 @@ export function buildEnrichedXml(branchMap, config = {}) {
   lines.push(`<RestrainOpenEnds>Yes</RestrainOpenEnds>`);
   lines.push(`<AmbientTemperature>21</AmbientTemperature>`);
 
-  // Wrap ALL branches in a single <Pipe> element (PSI-116 requirement)
   lines.push(`<Pipe>`);
   lines.push(`<FullName>${esc(config.pipeName || '/STAGEDJSON-EXPORT')}</FullName>`);
 
-  let nodeCounter = 10; // PSI-116 convention: start at 10, increment by 10
+  let nodeCounter = 10;
   for (const [branchName, records] of branchMap) {
     const branchBlock = buildBranchBlock(branchName, records, config, nodeCounter);
     lines.push(...branchBlock.lines);
-    nodeCounter += branchBlock.nodeCount * 10;
+    nodeCounter += branchBlock.numberingSpan * 10;
   }
 
   lines.push(`</Pipe>`);
@@ -63,84 +59,97 @@ export function buildEnrichedXml(branchMap, config = {}) {
   return lines.join('\n');
 }
 
-// ─── Branch block ────────────────────────────────────────────────
-
 function buildBranchBlock(branchName, records, config, startNum) {
   const lines = [`<Branch>`];
   lines.push(`<Branchname>${esc(branchName)}</Branchname>`);
 
-  // Extract temperature and pressure from first record that has it
   let t1 = NULL_TEMP, t2 = NULL_TEMP, t3 = NULL_TEMP;
   let p1 = '0', p2 = '0', p3 = '0';
-  
+
   for (const rec of records) {
     const ea = rec.enrichedAttributes || {};
-    const a = rec.attrs || {};
-    if (t1 === NULL_TEMP && (ea.designTemperatureC !== undefined || a.T1 !== undefined)) t1 = ea.designTemperatureC ?? a.T1 ?? a.T ?? NULL_TEMP;
-    if (t2 === NULL_TEMP && (ea.operatingTemperatureC !== undefined || a.T2 !== undefined)) t2 = ea.operatingTemperatureC ?? a.T2 ?? NULL_TEMP;
-    if (t3 === NULL_TEMP && (ea.minimumTemperatureC !== undefined || a.T3 !== undefined)) t3 = ea.minimumTemperatureC ?? a.T3 ?? NULL_TEMP;
-    
-    if (p1 === '0') {
-       if (ea.designPressureMpa !== undefined && ea.designPressureMpa !== null) p1 = ea.designPressureMpa * 1000000;
-       else if (a.P1 !== undefined) p1 = a.P1;
-       else if (a.P !== undefined) p1 = a.P;
+    const attrs = rec.attrs || {};
+    if (t1 === NULL_TEMP && (ea.designTemperatureC !== undefined || attrs.T1 !== undefined)) {
+      t1 = ea.designTemperatureC ?? attrs.T1 ?? attrs.T ?? NULL_TEMP;
     }
-    if (p2 === '0') p2 = a.P2 ?? '0';
-    if (p3 === '0') p3 = a.P3 ?? '0';
+    if (t2 === NULL_TEMP && (ea.operatingTemperatureC !== undefined || attrs.T2 !== undefined)) {
+      t2 = ea.operatingTemperatureC ?? attrs.T2 ?? NULL_TEMP;
+    }
+    if (t3 === NULL_TEMP && (ea.minimumTemperatureC !== undefined || attrs.T3 !== undefined)) {
+      t3 = ea.minimumTemperatureC ?? attrs.T3 ?? NULL_TEMP;
+    }
+
+    if (p1 === '0') {
+      if (ea.designPressureMpa !== undefined && ea.designPressureMpa !== null) p1 = ea.designPressureMpa * 1000000;
+      else if (attrs.P1 !== undefined) p1 = attrs.P1;
+      else if (attrs.P !== undefined) p1 = attrs.P;
+    }
+    if (p2 === '0') p2 = attrs.P2 ?? '0';
+    if (p3 === '0') p3 = attrs.P3 ?? '0';
   }
 
-  // Temperature block: 9 slots, -100000 = not set (PSI-116 convention)
   lines.push(`<Temperature>`);
   lines.push(`  <Temperature1>${t1}</Temperature1>`);
   lines.push(`  <Temperature2>${t2}</Temperature2>`);
   lines.push(`  <Temperature3>${t3}</Temperature3>`);
-  for (let i = 4; i <= 9; i++) lines.push(`  <Temperature${i}>${NULL_TEMP}</Temperature${i}>`);
+  for (let i = 4; i <= 9; i += 1) lines.push(`  <Temperature${i}>${NULL_TEMP}</Temperature${i}>`);
   lines.push(`</Temperature>`);
 
-  // Pressure block: 9 slots, 0 = not set
   lines.push(`<Pressure>`);
   lines.push(`  <Pressure1>${p1}</Pressure1>`);
   lines.push(`  <Pressure2>${p2}</Pressure2>`);
   lines.push(`  <Pressure3>${p3}</Pressure3>`);
-  for (let i = 4; i <= 9; i++) lines.push(`  <Pressure${i}>0</Pressure${i}>`);
+  for (let i = 4; i <= 9; i += 1) lines.push(`  <Pressure${i}>0</Pressure${i}>`);
   lines.push(`</Pressure>`);
 
   lines.push(`<MaterialNumber>0</MaterialNumber>`);
   lines.push(`<InsulationDensity>0</InsulationDensity>`);
   lines.push(`<FluidDensity>0</FluidDensity>`);
 
-  let nodeCount = 0;
+  let numberingSpan = 0;
   for (const rec of records) {
-    rec.xmlNodeNum = startNum + nodeCount * 10;
-    const nodeXml = buildNodeBlocks(rec, rec.xmlNodeNum, config);
+    const allocationStart = startNum + numberingSpan * 10;
+    const nodeXml = buildNodeBlocks(rec, allocationStart, config);
+    rec.xmlNodeNum = nodeXml.primaryNodeNumber ?? allocationStart;
     lines.push(...nodeXml.lines);
-    nodeCount += nodeXml.count;
+    numberingSpan += nodeXml.numberingSpan;
   }
 
   lines.push(`</Branch>`);
-  return { lines, nodeCount };
+  return { lines, numberingSpan };
 }
-
-// ─── Node block dispatcher ───────────────────────────────────────
 
 function buildNodeBlocks(rec, nodeNum, config) {
   const type = rec.componentType;
 
   if (isSupportType(type)) {
-    return { lines: buildSupportNode(rec, nodeNum, config), count: 1 };
+    return {
+      lines: buildSupportNode(rec, nodeNum, config),
+      numberingSpan: 1,
+      primaryNodeNumber: nodeNum,
+    };
   }
-  if (isBoundaryType(type)) {
-    return { lines: buildBoundaryNodePair(rec, nodeNum, config), count: 2 };
+
+  if (isXmlBoundaryComponent(type)) {
+    const projection = projectBoundaryNodeContract(rec, nodeNum);
+    return {
+      lines: projection.nodes.flatMap(buildProjectedNode),
+      numberingSpan: projection.numberingSpan,
+      primaryNodeNumber: projection.primaryNodeNumber,
+    };
   }
-  return { lines: buildRigidNode(rec, nodeNum, config), count: 1 };
+
+  return {
+    lines: buildRigidNode(rec, nodeNum, config),
+    numberingSpan: 1,
+    primaryNodeNumber: nodeNum,
+  };
 }
 
-// ─── Node builders ───────────────────────────────────────────────
-
 function buildSupportNode(rec, nodeNum, config) {
-  const res = rec.resolved || {};
-  const r = res.restraint || {};
-  const pos = bestPosition(rec.attrs);
+  const resolved = rec.resolved || {};
+  const position = bestPosition(rec.attrs);
+  const dimensions = resolveXmlEngineeringValues(rec);
 
   const lines = [`<Node>`];
   lines.push(`  <NodeNumber>${nodeNum}</NodeNumber>`);
@@ -150,24 +159,21 @@ function buildSupportNode(rec, nodeNum, config) {
   lines.push(`  <ComponentType>ATTA</ComponentType>`);
   lines.push(`  <Weight>0</Weight>`);
   lines.push(`  <ComponentRefNo>${esc(rec.ref || rec.name)}</ComponentRefNo>`);
-  lines.push(`  <ConnectionType>${esc(res.connectionType || 'SUPPORT')}</ConnectionType>`);
-  lines.push(`  <OutsideDiameter>${res.odMm || 0}</OutsideDiameter>`);
-  lines.push(`  <WallThickness>${res.wallMm || 0}</WallThickness>`);
-  lines.push(`  <CorrosionAllowance>${res.corrMm ?? 0}</CorrosionAllowance>`);
-  lines.push(`  <InsulationThickness>${rec.insuMm ?? 0}</InsulationThickness>`);
-  if (pos) lines.push(`  <Position>${formatPosition(pos)}</Position>`);
+  lines.push(`  <ConnectionType>${esc(resolved.connectionType || 'SUPPORT')}</ConnectionType>`);
+  lines.push(...buildMandatoryDims(dimensions));
+  if (position) lines.push(`  <Position>${formatPosition(position)}</Position>`);
   lines.push(`  <BendRadius>0</BendRadius>`);
   lines.push(`  <SIF>0</SIF>`);
 
-  // <Restraint> block — core fix for ATTA support nodes
-  const restraints = Array.isArray(res.restraint) ? res.restraint : (res.restraint ? [res.restraint] : []);
-  for (const rest of restraints) {
-    if (rest && (rest.type || rest.kind)) {
-      lines.push(`  ${formatRestraintXml(rest).split('\n').join('\n  ')}`);
+  const restraints = Array.isArray(resolved.restraint)
+    ? resolved.restraint
+    : (resolved.restraint ? [resolved.restraint] : []);
+  for (const restraint of restraints) {
+    if (restraint && (restraint.type || restraint.kind)) {
+      lines.push(`  ${formatRestraintXml(restraint).split('\n').join('\n  ')}`);
     }
   }
 
-  // DTXR_PS for downstream enrichment pass
   const dtxrPs = rec.cmpStressN || rec.supportTag || rec.dtxr;
   if (dtxrPs) lines.push(`  <DTXR_PS>${esc(dtxrPs)}</DTXR_PS>`);
   if (dtxrPs) lines.push(`  <DTXR_SOURCE>staged-json-ps-fallback</DTXR_SOURCE>`);
@@ -176,58 +182,36 @@ function buildSupportNode(rec, nodeNum, config) {
   return lines;
 }
 
-function buildBoundaryNodePair(rec, nodeNum, config) {
-  const res = rec.resolved || {};
-  const attrs = rec.attrs;
-  const posA = arrivePosition(attrs);
-  const posL = leavePosition(attrs);
-  const rigid = rigidValue(rec.componentType);
-
-  const lines = [];
-
-  // Start node (Endpoint 1)
-  lines.push(`<Node>`);
-  lines.push(`  <NodeNumber>${nodeNum}</NodeNumber>`);
-  lines.push(`  <NodeName>${esc(rec.name)}</NodeName>`);
-  lines.push(`  <Endpoint>1</Endpoint>`);
-  lines.push(`  <Rigid>${rigid}</Rigid>`);
-  lines.push(`  <ComponentType>${esc(rec.componentType)}</ComponentType>`);
-  lines.push(`  <Weight>0</Weight>`);
-  lines.push(`  <ComponentRefNo>${esc(rec.ref || rec.name)}</ComponentRefNo>`);
-  lines.push(`  <ConnectionType>${esc(rec.connectionType || '')}</ConnectionType>`);
-  lines.push(...buildMandatoryDims(rec, res));
-  if (posA) lines.push(`  <Position>${formatPosition(posA)}</Position>`);
-  lines.push(`  <BendRadius>0</BendRadius>`);
-  if (rec.anglDeg) lines.push(`  <AlphaAngle>${rec.anglDeg}</AlphaAngle>`);
-  lines.push(`  <SIF>0</SIF>`);
-  if (rec.dtxr) lines.push(`  <DTXR_POS>${esc(rec.dtxr)}</DTXR_POS>`);
-  if (rec.dtxr) lines.push(`  <DTXR_SOURCE>staged-json-position-group</DTXR_SOURCE>`);
+function buildProjectedNode(spec) {
+  const lines = [`<Node>`];
+  lines.push(`  <NodeNumber>${spec.nodeNumber}</NodeNumber>`);
+  lines.push(`  <NodeName>${esc(spec.nodeName || '')}</NodeName>`);
+  lines.push(`  <Endpoint>${spec.endpoint}</Endpoint>`);
+  if (spec.includeRigid !== false) lines.push(`  <Rigid>${spec.rigid ?? 0}</Rigid>`);
+  lines.push(`  <ComponentType>${esc(spec.componentType)}</ComponentType>`);
+  lines.push(`  <Weight>${spec.weight ?? 0}</Weight>`);
+  lines.push(`  <ComponentRefNo>${esc(spec.componentRefNo)}</ComponentRefNo>`);
+  lines.push(`  <ConnectionType>${esc(spec.connectionType || '')}</ConnectionType>`);
+  lines.push(...buildMandatoryDims(spec.dimensions));
+  if (spec.position) lines.push(`  <Position>${formatPosition(spec.position)}</Position>`);
+  lines.push(`  <BendRadius>${spec.bendRadius ?? 0}</BendRadius>`);
+  if (spec.bendType !== undefined && spec.bendType !== null) {
+    lines.push(`  <BendType>${spec.bendType}</BendType>`);
+  }
+  if (spec.alphaAngle !== undefined && spec.alphaAngle !== null) {
+    lines.push(`  <AlphaAngle>${spec.alphaAngle}</AlphaAngle>`);
+  }
+  lines.push(`  <SIF>${spec.sif ?? 0}</SIF>`);
+  if (spec.dtxrPos) lines.push(`  <DTXR_POS>${esc(spec.dtxrPos)}</DTXR_POS>`);
+  if (spec.dtxrSource) lines.push(`  <DTXR_SOURCE>${esc(spec.dtxrSource)}</DTXR_SOURCE>`);
   lines.push(`</Node>`);
-
-  // End node (Endpoint 2)
-  lines.push(`<Node>`);
-  lines.push(`  <NodeNumber>${nodeNum + 10}</NodeNumber>`);
-  lines.push(`  <NodeName></NodeName>`);
-  lines.push(`  <Endpoint>2</Endpoint>`);
-  lines.push(`  <Rigid>${rigid}</Rigid>`);
-  lines.push(`  <ComponentType>${esc(rec.componentType)}</ComponentType>`);
-  lines.push(`  <Weight>0</Weight>`);
-  lines.push(`  <ComponentRefNo>${esc(rec.ref || rec.name)}</ComponentRefNo>`);
-  lines.push(`  <ConnectionType></ConnectionType>`);
-  lines.push(...buildMandatoryDims(rec, res));
-  if (posL) lines.push(`  <Position>${formatPosition(posL)}</Position>`);
-  lines.push(`  <BendRadius>0</BendRadius>`);
-  lines.push(`  <SIF>0</SIF>`);
-  if (rec.dtxr) lines.push(`  <DTXR_POS>${esc(rec.dtxr)}</DTXR_POS>`);
-  lines.push(`</Node>`);
-
   return lines;
 }
 
 function buildRigidNode(rec, nodeNum, config) {
-  const res = rec.resolved || {};
-  const pos = bestPosition(rec.attrs);
-  const w = res.weightKg ?? rec.sourceWeightKg ?? 0;
+  const position = bestPosition(rec.attrs);
+  const engineering = resolveXmlEngineeringValues(rec);
+  const weight = engineering.weightKg ?? rec.sourceWeightKg ?? 0;
 
   const lines = [`<Node>`];
   lines.push(`  <NodeNumber>${nodeNum}</NodeNumber>`);
@@ -235,11 +219,11 @@ function buildRigidNode(rec, nodeNum, config) {
   lines.push(`  <Endpoint>1</Endpoint>`);
   lines.push(`  <Rigid>${rigidValue(rec.componentType)}</Rigid>`);
   lines.push(`  <ComponentType>${esc(rec.componentType)}</ComponentType>`);
-  lines.push(`  <Weight>${Number(w).toFixed(2)}</Weight>`);
+  lines.push(`  <Weight>${Number(weight).toFixed(2)}</Weight>`);
   lines.push(`  <ComponentRefNo>${esc(rec.ref || rec.name)}</ComponentRefNo>`);
   lines.push(`  <ConnectionType></ConnectionType>`);
-  lines.push(...buildMandatoryDims(rec, res));
-  if (pos) lines.push(`  <Position>${formatPosition(pos)}</Position>`);
+  lines.push(...buildMandatoryDims(engineering));
+  if (position) lines.push(`  <Position>${formatPosition(position)}</Position>`);
   lines.push(`  <BendRadius>0</BendRadius>`);
   lines.push(`  <SIF>0</SIF>`);
   if (rec.dtxr) lines.push(`  <DTXR_POS>${esc(rec.dtxr)}</DTXR_POS>`);
@@ -248,20 +232,17 @@ function buildRigidNode(rec, nodeNum, config) {
   return lines;
 }
 
-// ─── Shared helpers ──────────────────────────────────────────────
-
-/** Emit mandatory dimension tags (always present, 0 if unknown). */
-function buildMandatoryDims(rec, res) {
+function buildMandatoryDims(values = {}) {
   return [
-    `  <OutsideDiameter>${res.odMm || 0}</OutsideDiameter>`,
-    `  <WallThickness>${res.wallMm || 0}</WallThickness>`,
-    `  <CorrosionAllowance>${res.corrMm ?? 0}</CorrosionAllowance>`,
-    `  <InsulationThickness>${rec.insuMm ?? 0}</InsulationThickness>`,
+    `  <OutsideDiameter>${values.odMm ?? 0}</OutsideDiameter>`,
+    `  <WallThickness>${values.wallMm ?? 0}</WallThickness>`,
+    `  <CorrosionAllowance>${values.corrMm ?? 0}</CorrosionAllowance>`,
+    `  <InsulationThickness>${values.insulationMm ?? 0}</InsulationThickness>`,
   ];
 }
 
-function esc(v) {
-  return String(v ?? '')
+function esc(value) {
+  return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

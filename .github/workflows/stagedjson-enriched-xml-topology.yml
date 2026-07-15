@@ -1,0 +1,34 @@
+name: StagedJSON Enriched XML Topology
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/stagedjson-to-enrichxml/**'
+      - 'tests/stagedjson-enriched-xml-topology.test.mjs'
+      - 'tests/stagedjson-enriched-xml-1885-benchmark.test.mjs'
+      - '.github/workflows/stagedjson-enriched-xml-topology.yml'
+  workflow_dispatch:
+
+jobs:
+  topology-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run focused topology regressions
+        run: >-
+          node --test
+          tests/stagedjson-enriched-xml-topology.test.mjs
+          tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
+      - name: Syntax check changed modules
+        run: |
+          node --check tabs/stagedjson-to-enrichxml/sj-branch-identity.js
+          node --check tabs/stagedjson-to-enrichxml/sj-enrichment-authority.js
+          node --check tabs/stagedjson-to-enrichxml/sj-enrichment-engine.js
+          node --check tabs/stagedjson-to-enrichxml/sj-node-contract.js
+          node --check tabs/stagedjson-to-enrichxml/sj-parser.js
+          node --check tabs/stagedjson-to-enrichxml/sj-xml-writer.js
+          node --check tests/stagedjson-enriched-xml-topology.test.mjs
+          node --check tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
