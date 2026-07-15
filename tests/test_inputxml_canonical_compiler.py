@@ -104,12 +104,12 @@ class CompilerTests(unittest.TestCase):
         self.assertEqual('PASS',validation['status']); self.assertEqual('1',root.find('PIPINGMODEL').get('NUMELT'))
 
     def test_categorized_reconciliation(self):
-        xml='''<CategorizedInputXML schema="categorized-inputxml/v3" sourceName="x.xml"><Line id="L1"><LineBlock><Branchname>L1</Branchname><LineNo>L1</LineNo></LineBlock><Element fromNode="10" toNode="20" elementKey="10-20"><RouteGeometryBlock><DELTA_X>1</DELTA_X><DELTA_Y>0</DELTA_Y><DELTA_Z>0</RouteGeometryBlock><SectionDimensionBlock><DIAMETER>100</DIAMETER><WALL_THICK>5</WALL_THICK></SectionDimensionBlock><OriginalElement>&lt;PIPINGELEMENT FROM_NODE="10" TO_NODE="20"/&gt;</OriginalElement></Element></Line></CategorizedInputXML>'''
+        xml='''<CategorizedInputXML schema="categorized-inputxml/v3" sourceName="x.xml"><Line id="L1"><LineBlock><Branchname>L1</Branchname><LineNo>L1</LineNo></LineBlock><Element fromNode="10" toNode="20" elementKey="10-20"><RouteGeometryBlock><DELTA_X>1</DELTA_X><DELTA_Y>0</DELTA_Y><DELTA_Z>0</DELTA_Z></RouteGeometryBlock><SectionDimensionBlock><DIAMETER>100</DIAMETER><WALL_THICK>5</WALL_THICK></SectionDimensionBlock><OriginalElement>&lt;PIPINGELEMENT FROM_NODE="10" TO_NODE="20"/&gt;</OriginalElement></Element></Line></CategorizedInputXML>'''
         root,_,validation=self.compile(xml,context={'version':'11.00','north':[0,1,0]})
         self.assertEqual('PASS',validation['status']); self.assertEqual('L1',root.find('PIPINGMODEL/PIPINGELEMENT').get('LINE'))
 
     def test_categorized_conflict_blocks(self):
-        xml='''<CategorizedInputXML schema="categorized-inputxml/v3" sourceName="x.xml"><Line id="L1"><LineBlock><Branchname>L1</Branchname><LineNo>L1</LineNo></LineBlock><Element fromNode="10" toNode="20" elementKey="10-20"><RouteGeometryBlock><DELTA_X>2</DELTA_X><DELTA_Y>0</DELTA_Y><DELTA_Z>0</RouteGeometryBlock><SectionDimensionBlock><DIAMETER>100</DIAMETER><WALL_THICK>5</WALL_THICK></SectionDimensionBlock><OriginalElement>&lt;PIPINGELEMENT FROM_NODE="10" TO_NODE="20" DELTA_X="1"/&gt;</OriginalElement></Element></Line></CategorizedInputXML>'''
+        xml='''<CategorizedInputXML schema="categorized-inputxml/v3" sourceName="x.xml"><Line id="L1"><LineBlock><Branchname>L1</Branchname><LineNo>L1</LineNo></LineBlock><Element fromNode="10" toNode="20" elementKey="10-20"><RouteGeometryBlock><DELTA_X>2</DELTA_X><DELTA_Y>0</DELTA_Y><DELTA_Z>0</DELTA_Z></RouteGeometryBlock><SectionDimensionBlock><DIAMETER>100</DIAMETER><WALL_THICK>5</WALL_THICK></SectionDimensionBlock><OriginalElement>&lt;PIPINGELEMENT FROM_NODE="10" TO_NODE="20" DELTA_X="1"/&gt;</OriginalElement></Element></Line></CategorizedInputXML>'''
         root,_,validation=self.compile(xml,context={'version':'11.00','north':[0,1,0]})
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
 
