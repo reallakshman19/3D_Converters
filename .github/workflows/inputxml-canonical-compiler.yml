@@ -11,8 +11,12 @@ on:
       - 'tests/test_inputxml_canonical_compiler*.py'
       - 'tests/test_inputxml_xml_builder_adapter.py'
       - 'tests/test_inputxml_seljson_adapter.py'
+      - 'tests/test_inputxml_managed_stage_adapter.py'
       - 'tests/xml-cii-node-to-inputxml-core.test.js'
+      - 'tests/component-topology-*.test.*'
       - 'tabs/model-converters/xml-cii-node-to-inputxml-*.js'
+      - 'tabs/model-converters/converters/component-topology/**'
+      - 'tabs/stagedjson-to-enrichxml/**'
       - 'converters/xml-cii2019-core/custom-input-*.js'
       - 'converters/xml-cii2019-core/restraint-type-*.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-inputxml-enrichment.js'
@@ -38,10 +42,15 @@ jobs:
         run: |
           node --check scripts/inputxml_compiler/node_xml_builder_bridge.cjs
           node tests/xml-cii-node-to-inputxml-core.test.js
+      - name: Validate authoritative managed-stage component topology engine
+        run: |
+          node --check scripts/inputxml_compiler/node_managed_stage_bridge.mjs
+          node tests/component-topology-static.test.js
+          node tests/component-topology-support-policy.test.mjs
       - name: Run canonical compiler unit and integration tests
         run: |
           set +e
-          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py tests/test_inputxml_seljson_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
+          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py tests/test_inputxml_seljson_adapter.py tests/test_inputxml_managed_stage_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
           status=${PIPESTATUS[0]}
           exit $status
       - name: Upload compiler test diagnostics
