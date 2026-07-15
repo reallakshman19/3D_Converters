@@ -63,11 +63,17 @@ test('ledger filters, paging and trace continuation are bounded and projection-o
   renderEvidencePanel(elements, state);
   assert.equal(elements['evidence-ledger-list'].children.length, 200);
   assert.equal(elements['evidence-trace-tree'].children.length, 200);
+  assert.equal(elements['evidence-trace-more'].hidden, false);
   const identity = JSON.stringify(artifacts.ledger);
   state.page = 2; state.fieldFilter = 'odd'; state.traceLimit = 400;
   renderEvidencePanel(elements, state);
   assert.ok(elements['evidence-ledger-list'].children.length <= 200);
   assert.equal(elements['evidence-trace-tree'].children.length, 400);
+  assert.equal(elements['evidence-trace-more'].hidden, false);
+  state.traceLimit = 600;
+  renderEvidencePanel(elements, state);
+  assert.equal(elements['evidence-trace-tree'].children.length, 451);
+  assert.equal(elements['evidence-trace-more'].hidden, true);
   assert.equal(JSON.stringify(artifacts.ledger), identity);
 });
 
