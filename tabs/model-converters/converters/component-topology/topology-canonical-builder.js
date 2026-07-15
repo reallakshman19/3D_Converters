@@ -7,6 +7,10 @@
 
 import { portForRole } from './topology-connectivity.js';
 import {
+  assignRigidEdges,
+  splitEdgeSpecsAtSupports,
+} from './topology-engineering-projection.js';
+import {
   TOPOLOGY_TOLERANCE_MM,
   cleanText,
   componentCategory,
@@ -175,7 +179,7 @@ function nodeDegrees(edges) {
 }
 
 /** @param {Record<string, unknown>} model @param {Record<string, unknown>} connectivity @param {number} toleranceMm @returns {Readonly<Record<string, unknown>>} */
-export function buildCanonicalTopology(model, connectivity, toleranceMm) {
+export function buildCanonicalTopology(model, connectivity, engineering, toleranceMm, supportProjectionToleranceMm) {
   const issues = [...connectivity.issues];
   const overlapBySource = new Map(connectivity.overlapGroups.flatMap((group) => [
     [group.primary.sourceEntityId, group], [group.secondary.sourceEntityId, group],
@@ -183,7 +187,10 @@ export function buildCanonicalTopology(model, connectivity, toleranceMm) {
   const componentEdges = model.components.flatMap((component) => componentEdgeSpecs(
     component, overlapBySource.get(component.sourceEntityId) ?? null,
   ));
-  const edgeSpecs = [...componentEdges, ...crefEdgeSpecs(connectivity.crefConnections)];
+  const rawEdgeSpecs = [...componentEdges, ...crefEdgeSpecs(connectivity.crefConnections)];
+  const edgeSpecs = splitEdgeSpecsAtSupports(
+    rawEdgeSpecs, engineering.supports, connectivity, toleranceMm, supportProjectionToleranceMm,
+  );
   const pointSpecs = pointFeatureSpecs(model), rawJunctions = junctionSpecs(model), rawBoundaries = boundarySpecs(model);
   const { nodes, rootToNode } = buildNodes(model, connectivity, edgeSpecs, rawJunctions, rawBoundaries);
   const edges = buildEdges(edgeSpecs, connectivity, rootToNode, issues);
@@ -213,6 +220,22 @@ export function buildCanonicalTopology(model, connectivity, toleranceMm) {
       sourceEntityIds: spec.sourceEntityIds, relationship: spec.relationship, sourceRelationship: spec.relationship,
     };
   });
+  const supports = engineering.supports.map((support) => {
+    const node = rootToNode.get(connectivity.set.find(support.port.key));
+    if (!node) throw new Error(`Support ${support.id} has no canonical attachment node.`);
+    return {
+      id: support.id,
+      nodeId: node.id,
+      inputXmlNodeId: node.inputXmlNodeIds[0],
+      position: { ...node.position },
+      tag: support.tag,
+      sourceEntityIds: support.sourceEntityIds,
+      sourcePaths: support.sourcePaths,
+      restraints: support.restraints,
+      connectionResidual: support.connectionResidual,
+    };
+  });
+  const rigids = assignRigidEdges(edges, nodes, engineering.rigids, supportProjectionToleranceMm);
   return Object.freeze({
     schema: 'CanonicalTopology.v1',
     sourceIdentity: model.sourceIdentity,
@@ -220,6 +243,7 @@ export function buildCanonicalTopology(model, connectivity, toleranceMm) {
     toleranceMm: toleranceMm ?? TOPOLOGY_TOLERANCE_MM,
     nodes: Object.freeze(nodes), edges: Object.freeze(edges),
     pointFeatures: Object.freeze(pointFeatures), junctions: Object.freeze(junctions), boundaries: Object.freeze(boundaries),
+    supports: Object.freeze(supports), rigids: Object.freeze(rigids),
     buildIssues: Object.freeze(issues),
   });
 }
