@@ -13,12 +13,18 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BENCHMARK_ROOT = join(REPO_ROOT, 'Benchmarks', '1885Sjson');
 const FIXED_EVALUATED_AT = '2026-07-15T08:30:00.000Z';
 const FIXED_XML_DATETIME = '15/07/2026, 12:30:00';
+const TARGET_REFS = Object.freeze([
+  '=1006649732/51428',
+  '=1006649732/51494',
+  '=1006649732/51499',
+]);
 
 const OUTPUT_PATHS = Object.freeze({
   enrichedStagedJson: join(BENCHMARK_ROOT, 'EnrichedSjson'),
   audit: join(BENCHMARK_ROOT, 'EnrichedSjson.audit.json'),
   unresolvedCsv: join(BENCHMARK_ROOT, 'EnrichedSjson.unresolved.csv'),
   enrichedXml: join(BENCHMARK_ROOT, 'ExpectedCondensedEnrichedXML'),
+  contractSnapshot: join(BENCHMARK_ROOT, 'fixture-contract-snapshot.json'),
   manifest: join(BENCHMARK_ROOT, 'fixture-manifest.json'),
 });
 
@@ -54,11 +60,14 @@ export function generate1885Fixtures() {
     },
   });
 
+  const enrichedXml = normalizeXmlDate(stage2.xmlText);
+  const contractSnapshot = buildContractSnapshot(enrichment.enrichedStagedJson, enrichedXml);
   const artifactText = {
     enrichedStagedJson: jsonText(enrichment.enrichedStagedJson),
     audit: jsonText(enrichment.audit),
     unresolvedCsv: normalizeText(enrichment.unresolvedCsv),
-    enrichedXml: normalizeXmlDate(stage2.xmlText),
+    enrichedXml,
+    contractSnapshot: jsonText(contractSnapshot),
   };
 
   const manifest = {
@@ -73,12 +82,18 @@ export function generate1885Fixtures() {
       materialMap: 'converters/xml-cii2019-core/default-material-map-rows.js',
       weight: 'converters/xml-cii2019-core/default-weight-master-rows.js',
     },
+    scope: {
+      explicitlyMasteredLineKeys: ['S8810103', 'S8810101'],
+      targetRefs: TARGET_REFS,
+      unresolvedOutsideTargetScope: true,
+    },
     summary: {
       sourceNodes: countNodes(stagedJson),
       enrichedNodes: countNodes(enrichment.enrichedStagedJson),
       audit: enrichment.audit?.summary || null,
       stage2Records: stage2.records?.length || 0,
       stage2Branches: stage2.audit?.totalBranches || 0,
+      branchNames: contractSnapshot.branchNames,
     },
     artifacts: Object.fromEntries(
       Object.entries(artifactText).map(([key, text]) => [key, {
@@ -121,6 +136,94 @@ export function check1885Fixtures() {
     throw new Error(`1885 stagedJson fixtures are not reproducible:\n- ${mismatches.join('\n- ')}\nRun the generator with --write.`);
   }
   return generated;
+}
+
+function buildContractSnapshot(enrichedStagedJson, xml) {
+  const targets = Object.fromEntries(TARGET_REFS.map((ref) => {
+    const sourceNode = findNodeByRef(enrichedStagedJson, ref);
+    const xmlNode = findXmlNodeByRef(xml, ref);
+    return [ref, {
+      source: sourceNode ? {
+        name: sourceNode.name || null,
+        type: sourceNode.type || null,
+        owner: sourceNode.attributes?.OWNER || null,
+      } : null,
+      enrichment: pick(sourceNode?.enrichedAttributes, [
+        'schema',
+        'lineNo',
+        'pipingClass',
+        'pressureRating',
+        'nominalBoreMm',
+        'pipeOdMm',
+        'schedule',
+        'wallThicknessMm',
+        'corrosionAllowanceMm',
+        'insulationThicknessMm',
+        'status',
+        'needsReview',
+        'missing',
+      ]),
+      xml: xmlNode ? Object.fromEntries([
+        'NodeNumber',
+        'NodeName',
+        'Endpoint',
+        'ComponentType',
+        'ConnectionType',
+        'OutsideDiameter',
+        'WallThickness',
+        'CorrosionAllowance',
+        'InsulationThickness',
+        'BendRadius',
+        'BendType',
+        'AlphaAngle',
+      ].map((tag) => [lowerFirst(tag), xmlTag(xmlNode, tag)])) : null,
+    }];
+  }));
+
+  return {
+    schema: 'stagedjson-1885-contract-snapshot/v1',
+    targetRefs: TARGET_REFS,
+    branchNames: [...xml.matchAll(/<Branchname>([^<]*)<\/Branchname>/g)].map((match) => match[1]),
+    targets,
+  };
+}
+
+function findNodeByRef(value, ref) {
+  const stack = Array.isArray(value) ? [...value] : [value];
+  while (stack.length) {
+    const node = stack.shift();
+    if (!node || typeof node !== 'object') continue;
+    if (node.attributes?.REF === ref || node.attributes?.NAME === ref || String(node.name || '').includes(ref)) return node;
+    if (Array.isArray(node.children)) stack.push(...node.children);
+  }
+  return null;
+}
+
+function findXmlNodeByRef(xml, ref) {
+  return (xml.match(/<Node>[\s\S]*?<\/Node>/g) || [])
+    .find((node) => node.includes(`<ComponentRefNo>${ref}</ComponentRefNo>`)) || null;
+}
+
+function xmlTag(xml, tag) {
+  const match = xml.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
+  return match ? decodeXml(match[1]) : null;
+}
+
+function decodeXml(value) {
+  return String(value ?? '')
+    .replace(/&quot;/g, '"')
+    .replace(/&gt;/g, '>')
+    .replace(/&lt;/g, '<')
+    .replace(/&amp;/g, '&');
+}
+
+function pick(value, keys) {
+  if (!value || typeof value !== 'object') return null;
+  return Object.fromEntries(keys.map((key) => [key, value[key] ?? null]));
+}
+
+function lowerFirst(value) {
+  return value.charAt(0).toLowerCase() + value.slice(1);
 }
 
 function readJson(path) {
