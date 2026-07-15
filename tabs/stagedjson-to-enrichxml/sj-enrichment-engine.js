@@ -5,256 +5,207 @@
  * No side effects beyond calling pure resolver functions.
  */
 
-import { parseStagedJson, groupByBranch } from './sj-parser.js?v=3';
+import { parseStagedJson, groupByBranch } from './sj-parser.js?v=4';
 import { resolveRating } from './sj-rating-resolver.js';
 import { resolveWall } from './sj-wall-resolver.js';
-import { resolveCorrosion, buildCorrosionTable } from './sj-corrosion-resolver.js';
+import { resolveCorrosion } from './sj-corrosion-resolver.js';
 import { resolveRestraint } from './sj-restraint-resolver.js';
 import { resolveRigidWeight } from './sj-weight-resolver.js';
-import { buildEnrichedXml } from './sj-xml-writer.js?v=3';
+import { buildEnrichedXml } from './sj-xml-writer.js?v=4';
 import { buildAudit } from './sj-audit.js';
 import { attaConnectionType, isRigidType, isSupportType } from './sj-type-mapper.js';
 import { DN_TO_OD_MM } from './sj-weight-db.js';
 import { bestPosition, formatPosition } from './sj-point-resolver.js';
+import { applyAuthoritativeEnrichment } from './sj-enrichment-authority.js';
 
-/**
- * Run the full enrichment pipeline.
- * @param {{stagedJsonText:string, config:SjConfig}} input
- * @returns {{xmlText:string, audit:Object, records:EnrichedRecord[]}}
- */
 export function runEnrichment(input) {
   const { stagedJsonText, config = {} } = input;
   const parsed = typeof stagedJsonText === 'string'
     ? JSON.parse(stagedJsonText)
     : stagedJsonText;
 
-  // 1. Parse hierarchy
   const records = parseStagedJson(parsed, config);
-
-  // 2. Resolve each record
   const ratingSeq = config.ratingSequence;
   const vertAxis = config.verticalAxis || 'Y';
+  const enriched = records.map((record) => enrichRecord(record, { config, ratingSeq, vertAxis }));
 
-  const enriched = records.map(rec => enrichRecord(rec, { config, ratingSeq, vertAxis }));
-
-  // 2b. Group supports by PDMS hierarchy (MDSSREF, MDSGUIDEREF)
   let grouped = groupSupportsHierarchy(enriched);
-
-  // 2c. Group remaining disconnected supports by identical physical POS
   grouped = groupSupportsByPos(grouped);
 
-  // 3. Group by branch
   const branchMap = groupByBranch(grouped);
-
-  // 4. Build XML
   const xmlText = buildEnrichedXml(branchMap, config);
-
-  // 5. Build audit
   const audit = buildAudit(grouped, branchMap);
 
   return { xmlText, audit, records: grouped };
 }
 
-// ─── Hierarchy Grouping ──────────────────────────────────────────
-
 function groupSupportsHierarchy(records) {
   const byName = new Map();
-  records.forEach(r => byName.set(r.attrs?.NAME || r.name, r));
+  records.forEach((record) => byName.set(record.attrs?.NAME || record.name, record));
 
   const toRemove = new Set();
 
-  const getRoot = (r) => {
-    let curr = r;
+  const getRoot = (record) => {
+    let current = record;
     const visited = new Set();
-    while (curr && !visited.has(curr)) {
-      visited.add(curr);
-      const parentRef = [curr.attrs?.MDSSREF, curr.attrs?.MDSGUIDEREF, curr.attrs?.['PREV-NAME']].find(ref => ref && byName.has(ref));
-      if (parentRef && parentRef !== (curr.attrs?.NAME || curr.name)) {
-        curr = byName.get(parentRef);
-      } else {
-        break;
-      }
+    while (current && !visited.has(current)) {
+      visited.add(current);
+      const parentRef = [
+        current.attrs?.MDSSREF,
+        current.attrs?.MDSGUIDEREF,
+        current.attrs?.['PREV-NAME'],
+      ].find((reference) => reference && byName.has(reference));
+      if (parentRef && parentRef !== (current.attrs?.NAME || current.name)) current = byName.get(parentRef);
+      else break;
     }
-    return curr;
+    return current;
   };
 
-  records.forEach(r => {
-    if (r.componentType !== 'ATTA' && r.componentType !== 'SUPPORT') return;
-    
-    const root = getRoot(r);
-    if (root && root !== r) {
-      // Initialize array if needed
+  records.forEach((record) => {
+    if (record.componentType !== 'ATTA' && record.componentType !== 'SUPPORT') return;
+
+    const root = getRoot(record);
+    if (root && root !== record) {
       if (!root.resolved) root.resolved = {};
-      if (!root.resolved.restraint) {
-        root.resolved.restraint = [];
-      } else if (!Array.isArray(root.resolved.restraint)) {
-        root.resolved.restraint = [root.resolved.restraint];
+      if (!root.resolved.restraint) root.resolved.restraint = [];
+      else if (!Array.isArray(root.resolved.restraint)) root.resolved.restraint = [root.resolved.restraint];
+
+      if (record.resolved?.restraint) {
+        if (Array.isArray(record.resolved.restraint)) root.resolved.restraint.push(...record.resolved.restraint);
+        else root.resolved.restraint.push(record.resolved.restraint);
       }
 
-      // Append child's restraint
-      if (r.resolved?.restraint) {
-        if (Array.isArray(r.resolved.restraint)) {
-          root.resolved.restraint.push(...r.resolved.restraint);
-        } else {
-          root.resolved.restraint.push(r.resolved.restraint);
-        }
-      }
-
-      // Merge trace info
-      if (r.dtxr) {
-        root.dtxr = (root.dtxr ? root.dtxr + ' + ' : '') + r.dtxr;
-      }
-      
-      toRemove.add(r);
+      if (record.dtxr) root.dtxr = (root.dtxr ? `${root.dtxr} + ` : '') + record.dtxr;
+      toRemove.add(record);
     }
   });
 
-  // Ensure root restraints are arrays for consistency, and deduplicate them
-  records.forEach(r => {
-    if (!toRemove.has(r) && r.resolved?.restraint) {
-      if (!Array.isArray(r.resolved.restraint)) {
-        r.resolved.restraint = [r.resolved.restraint];
-      }
-      const seen = new Set();
-      r.resolved.restraint = r.resolved.restraint.filter(rest => {
-        const key = typeof rest === 'object' && rest !== null ? (rest.type || rest.kind) : rest;
-        if (!key) return false;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    }
-  });
-
-  return records.filter(r => !toRemove.has(r));
+  deduplicateRootRestraints(records, toRemove);
+  return records.filter((record) => !toRemove.has(record));
 }
 
 function groupSupportsByPos(records) {
   const byPos = new Map();
   const toRemove = new Set();
 
-  records.forEach(r => {
-    if (r.componentType !== 'ATTA' && r.componentType !== 'SUPPORT') return;
-    const pt = bestPosition(r.attrs);
-    if (!pt) return;
-    const posKey = formatPosition(pt);
-    
+  records.forEach((record) => {
+    if (record.componentType !== 'ATTA' && record.componentType !== 'SUPPORT') return;
+    const point = bestPosition(record.attrs);
+    if (!point) return;
+    const posKey = formatPosition(point);
+
     if (byPos.has(posKey)) {
       const root = byPos.get(posKey);
-      
-      // Append child's restraint
-      if (r.resolved?.restraint) {
+      if (record.resolved?.restraint) {
         if (!root.resolved) root.resolved = {};
         if (!root.resolved.restraint) root.resolved.restraint = [];
         else if (!Array.isArray(root.resolved.restraint)) root.resolved.restraint = [root.resolved.restraint];
 
-        if (Array.isArray(r.resolved.restraint)) {
-          root.resolved.restraint.push(...r.resolved.restraint);
-        } else {
-          root.resolved.restraint.push(r.resolved.restraint);
-        }
+        if (Array.isArray(record.resolved.restraint)) root.resolved.restraint.push(...record.resolved.restraint);
+        else root.resolved.restraint.push(record.resolved.restraint);
       }
 
-      // Merge trace info without duplicates
-      if (r.dtxr) {
-        if (!root.dtxr || !root.dtxr.includes(r.dtxr)) {
-          root.dtxr = (root.dtxr ? root.dtxr + ' + ' : '') + r.dtxr;
-        }
-      }
-      
-      // Promote ATTA to SUPPORT if one is a true SUPPORT
-      if (r.componentType === 'SUPPORT' && root.componentType === 'ATTA') {
-         root.componentType = 'SUPPORT';
-         root.isSupport = true;
-      }
-      // Pick a better name if available (avoiding temporary /SREF suffix names)
-      if (r.name && !r.name.includes('/SREF') && root.name && root.name.includes('/SREF')) {
-         root.name = r.name;
+      if (record.dtxr && (!root.dtxr || !root.dtxr.includes(record.dtxr))) {
+        root.dtxr = (root.dtxr ? `${root.dtxr} + ` : '') + record.dtxr;
       }
 
-      toRemove.add(r);
+      if (record.componentType === 'SUPPORT' && root.componentType === 'ATTA') {
+        root.componentType = 'SUPPORT';
+        root.isSupport = true;
+      }
+      if (record.name && !record.name.includes('/SREF') && root.name && root.name.includes('/SREF')) {
+        root.name = record.name;
+      }
+      toRemove.add(record);
     } else {
-      byPos.set(posKey, r);
+      byPos.set(posKey, record);
     }
   });
 
-  // Deduplicate restraints after coordinate merges
-  records.forEach(r => {
-    if (!toRemove.has(r) && r.resolved?.restraint) {
-      if (!Array.isArray(r.resolved.restraint)) {
-        r.resolved.restraint = [r.resolved.restraint];
-      }
-      const seen = new Set();
-      r.resolved.restraint = r.resolved.restraint.filter(rest => {
-        const key = typeof rest === 'object' && rest !== null ? (rest.type || rest.kind) : rest;
-        if (!key) return false;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    }
-  });
-
-  return records.filter(r => !toRemove.has(r));
+  deduplicateRootRestraints(records, toRemove);
+  return records.filter((record) => !toRemove.has(record));
 }
 
-// ─── Single-record enrichment ────────────────────────────────────
+function deduplicateRootRestraints(records, toRemove) {
+  records.forEach((record) => {
+    if (toRemove.has(record) || !record.resolved?.restraint) return;
+    if (!Array.isArray(record.resolved.restraint)) record.resolved.restraint = [record.resolved.restraint];
+    const seen = new Set();
+    record.resolved.restraint = record.resolved.restraint.filter((restraint) => {
+      const key = typeof restraint === 'object' && restraint !== null
+        ? (restraint.type || restraint.kind)
+        : restraint;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  });
+}
 
-function enrichRecord(rec, ctx) {
-  const { config, ratingSeq, vertAxis } = ctx;
-  const attrs = rec.attrs;
-  const boreMm = rec.boreMm || 100;
-  const dtxrValues = [rec.dtxr, attrs?.DTXR, attrs?.RAW_TYPE].filter(Boolean);
+function enrichRecord(record, context) {
+  const { config, ratingSeq, vertAxis } = context;
+  const attrs = record.attrs;
+  const boreMm = record.boreMm || 100;
+  const dtxrValues = [record.dtxr, attrs?.DTXR, attrs?.RAW_TYPE].filter(Boolean);
 
-  // Rating
-  const ratingResult = resolveRating(attrs, ratingSeq, config);
-
-  // Wall thickness
-  const wallResult = resolveWall({ boreMm, dtxrValues, spre: rec.spre }, config);
-
-  // Corrosion
-  const corrResult = resolveCorrosion(rec.spre || '', boreMm, config);
-
-  // OD from bore
+  let ratingResult = resolveRating(attrs, ratingSeq, config);
+  let wallResult = resolveWall({ boreMm, dtxrValues, spre: record.spre }, config);
+  let corrResult = resolveCorrosion(record.spre || '', boreMm, config);
   const odMm = lookupOd(boreMm);
 
-  // Restraint (for supports)
   let restraintResult = null;
   let connectionType = null;
-  if (isSupportType(rec.componentType)) {
+  if (isSupportType(record.componentType)) {
     restraintResult = resolveRestraint(attrs, vertAxis);
-    connectionType = attaConnectionType(rec.supportKind);
+    connectionType = attaConnectionType(record.supportKind);
   }
 
-  // Weight (for rigids)
   let weightResult = null;
-  if (isRigidType(rec.componentType)) {
+  if (isRigidType(record.componentType)) {
     weightResult = resolveRigidWeight({
-      componentType: rec.componentType,
+      componentType: record.componentType,
       boreMm,
       rating: ratingResult.rating,
-      dtxr: rec.dtxr,
+      dtxr: record.dtxr,
     });
   }
 
-  // Node-level and branch-level inline overrides
-  const nOverrides = config.nodeOverrides?.[rec.name] || {};
-  const bOverrides = config.branchOverrides?.[rec.branchName] || {};
-  
-  if (nOverrides.rating || bOverrides.rating) {
-    ratingResult = { rating: Number(nOverrides.rating || bOverrides.rating), source: 'manual-override', confidence: 'HIGH' };
+  const nodeOverrides = config.nodeOverrides?.[record.name] || {};
+  const branchOverrides = config.branchOverrides?.[record.branchName]
+    || config.branchOverrides?.[record.sourceBranchName]
+    || {};
+
+  if (nodeOverrides.rating || branchOverrides.rating) {
+    ratingResult = {
+      rating: Number(nodeOverrides.rating || branchOverrides.rating),
+      source: 'manual-override',
+      confidence: 'HIGH',
+    };
   }
-  if (nOverrides.wall || bOverrides.wall) {
-    wallResult = { wallMm: nOverrides.wall || bOverrides.wall, source: 'manual-override', confidence: 'HIGH' };
+  if (nodeOverrides.wall || branchOverrides.wall) {
+    wallResult = {
+      wallMm: nodeOverrides.wall || branchOverrides.wall,
+      source: 'manual-override',
+      confidence: 'HIGH',
+    };
   }
-  if (nOverrides.corr || bOverrides.corr) {
-    corrResult = { corrMm: Number(nOverrides.corr || bOverrides.corr), source: 'manual-override', confidence: 'HIGH' };
+  if (nodeOverrides.corr || branchOverrides.corr) {
+    corrResult = {
+      corrMm: Number(nodeOverrides.corr || branchOverrides.corr),
+      source: 'manual-override',
+      confidence: 'HIGH',
+    };
   }
-  if (nOverrides.weight || bOverrides.weight) {
-    weightResult = { weightKg: Number(nOverrides.weight || bOverrides.weight), valveType: 'manual-override', source: 'manual-override', confidence: 'HIGH' };
+  if (nodeOverrides.weight || branchOverrides.weight) {
+    weightResult = {
+      weightKg: Number(nodeOverrides.weight || branchOverrides.weight),
+      valveType: 'manual-override',
+      source: 'manual-override',
+      confidence: 'HIGH',
+    };
   }
-  if (nOverrides.restraint || bOverrides.restraint) {
-    restraintResult = nOverrides.restraint || bOverrides.restraint;
+  if (nodeOverrides.restraint || branchOverrides.restraint) {
+    restraintResult = nodeOverrides.restraint || branchOverrides.restraint;
   }
 
   const resolved = {
@@ -277,16 +228,18 @@ function enrichRecord(rec, ctx) {
     weightConfidence: weightResult?.confidence ?? 'NONE',
   };
 
-  return { ...rec, resolved };
+  return {
+    ...record,
+    resolved: applyAuthoritativeEnrichment(record, resolved),
+  };
 }
 
 function lookupOd(boreMm) {
   const bore = Math.round(Number(boreMm));
   if (DN_TO_OD_MM[bore]) return DN_TO_OD_MM[bore];
-  // Find nearest
   const keys = Object.keys(DN_TO_OD_MM).map(Number).sort((a, b) => a - b);
-  const nearest = keys.reduce((best, k) =>
-    Math.abs(k - bore) < Math.abs(best - bore) ? k : best
-  );
+  const nearest = keys.reduce((best, key) => (
+    Math.abs(key - bore) < Math.abs(best - bore) ? key : best
+  ));
   return DN_TO_OD_MM[nearest] ?? null;
 }
