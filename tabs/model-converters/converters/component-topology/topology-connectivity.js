@@ -6,6 +6,7 @@
  */
 
 import {
+  REFERENCE_CONNECTION_TOLERANCE_MM,
   SOURCE_CONNECTION_TOLERANCE_MM,
   cleanText,
   componentCategory,
@@ -88,21 +89,21 @@ function findManagedOverlapGroups(branches, toleranceMm) {
   });
 }
 
-/** @param {Record<string, unknown>} left @param {Record<string, unknown>} right @param {number} toleranceMm @param {Readonly<Record<string, unknown>>} set @param {Record<string, unknown>[]} issues @param {Record<string, unknown>} evidence @returns {void} */
-function uniteVerified(left, right, toleranceMm, set, issues, evidence) {
+/** @param {Record<string, unknown>} left @param {Record<string, unknown>} right @param {number} toleranceMm @param {number} acceptedSourcePrecisionMm @param {Readonly<Record<string, unknown>>} set @param {Record<string, unknown>[]} issues @param {Record<string, unknown>} evidence @returns {void} */
+function uniteVerified(left, right, toleranceMm, acceptedSourcePrecisionMm, set, issues, evidence) {
   const residual = pointDistance(left.position, right.position);
   if (residual <= toleranceMm) {
     set.unite(left.key, right.key);
     return;
   }
-  if (residual <= SOURCE_CONNECTION_TOLERANCE_MM) {
+  if (residual <= acceptedSourcePrecisionMm) {
     set.unite(left.key, right.key);
     issues.push({
       code: 'SOURCE_CONNECTION_PRECISION_RESIDUAL',
       blocking: false,
       residualMm: residual,
       toleranceMm,
-      acceptedSourcePrecisionMm: SOURCE_CONNECTION_TOLERANCE_MM,
+      acceptedSourcePrecisionMm,
       leftPortId: left.sourcePortId,
       rightPortId: right.sourcePortId,
       ...evidence,
@@ -124,7 +125,7 @@ function uniteVerified(left, right, toleranceMm, set, issues, evidence) {
 function connectBranchRoute(branch, toleranceMm, set, issues, secondaryIds) {
   const anchors = branch.components.filter((component) => !secondaryIds.has(component.sourceEntityId)).map(routeAnchors).filter(Boolean);
   for (let index = 1; index < anchors.length; index += 1) {
-    uniteVerified(anchors[index - 1].exit, anchors[index].entry, toleranceMm, set, issues, {
+    uniteVerified(anchors[index - 1].exit, anchors[index].entry, toleranceMm, SOURCE_CONNECTION_TOLERANCE_MM, set, issues, {
       authority: 'BRANCH_CHILD_ORDER',
       sourcePath: branch.sourcePath,
     });
@@ -132,10 +133,10 @@ function connectBranchRoute(branch, toleranceMm, set, issues, secondaryIds) {
   const head = portForRole(branch, 'H'), tail = portForRole(branch, 'T');
   const headTarget = head && anchors.length ? nearestPort(head, [anchors[0].entry, anchors[0].exit]) : null;
   const tailTarget = tail && anchors.length ? nearestPort(tail, [anchors.at(-1).entry, anchors.at(-1).exit]) : null;
-  if (head && headTarget) uniteVerified(head, headTarget, toleranceMm, set, issues, {
+  if (head && headTarget) uniteVerified(head, headTarget, toleranceMm, SOURCE_CONNECTION_TOLERANCE_MM, set, issues, {
     authority: 'BRANCH_HEAD_ORDER', sourcePath: branch.sourcePath,
   });
-  if (tail && tailTarget) uniteVerified(tailTarget, tail, toleranceMm, set, issues, {
+  if (tail && tailTarget) uniteVerified(tailTarget, tail, toleranceMm, SOURCE_CONNECTION_TOLERANCE_MM, set, issues, {
     authority: 'BRANCH_TAIL_ORDER', sourcePath: branch.sourcePath,
   });
 }
@@ -155,7 +156,7 @@ function connectBranchReferences(branches, toleranceMm, set, issues) {
     const target = byName.get(reference), sourcePort = portForRole(branch, role);
     if (!reference || !target || !sourcePort) continue;
     const targetPort = nearestPort(sourcePort, [portForRole(target, 'H'), portForRole(target, 'T')].filter(Boolean));
-    if (targetPort) uniteVerified(sourcePort, targetPort, toleranceMm, set, issues, {
+    if (targetPort) uniteVerified(sourcePort, targetPort, toleranceMm, REFERENCE_CONNECTION_TOLERANCE_MM, set, issues, {
       authority: field, sourcePath: branch.sourcePath, reference,
     });
   }
