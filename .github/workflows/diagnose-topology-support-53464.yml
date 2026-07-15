@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/topology-support-position-authority-20260715
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -44,7 +47,8 @@ jobs:
           const enrichment = runEnrichment({ stagedJsonText: sourceText, config: {} });
           const targetComponents = model.components.filter((component) => [component.name, component.sourceRef, component.attributes?.NAME, component.attributes?.REF].map(String).join(' ').includes(target));
           for (const component of targetComponents) {
-            const record = enrichment.records.find((item) => Number(item.path?.[0]) === component.branchIndex && Number(item.path?.[item.path.indexOf('children') + 1]) === component.sourceIndex);
+            const childOffset = component.sourcePath.match(/\.children\[(\d+)\]$/)?.[1];
+            const record = enrichment.records.find((item) => Number(item.path?.[0]) === component.branchIndex && Number(item.path?.[item.path.indexOf('children') + 1]) === Number(childOffset));
             const ports = Object.fromEntries(['P','A','L'].map((role) => [role, portForRole(component, role)?.position || null]));
             console.log('MODEL_TARGET', JSON.stringify({
               sourcePath: component.sourcePath,
