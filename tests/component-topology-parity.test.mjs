@@ -45,7 +45,7 @@ function fixture() {
       attachmentAuthority: 'ATTACHED_COMPONENT_REF/COMPRE:=CARRIER-1', attachmentReferences: ['=CARRIER-1'],
       attachedComponentEntityIds: ['SRC-PIPE'], attachmentEdgeSourcePath: '$[0].children[0]',
       tag: 'PS-1', sourceEntityIds: ['SRC-SUPPORT'], sourcePaths: ['$[0].children[1]'], branchIds: ['BRANCH-1'],
-      restraints: [{ type: 'REST', stiffness: 0, gap: 0, friction: 0 }], connectionResidual: 200,
+      restraints: [{ type: '+Y', stiffness: 0, gap: 0, friction: 0 }], connectionResidual: 200,
     }],
     rigids: [{ edgeId: 'CE-000001', sourceEntityId: 'SRC-RIGID', sourceEntityIds: ['SRC-RIGID'], sourcePath: '$[0].children[2]', sourcePaths: ['$[0].children[2]'], branchIds: ['BRANCH-1'], componentType: 'VALV', weightKg: 10, connectionResidual: 0, assignmentAuthority: 'SOURCE_COMPONENT_EDGE' }],
     buildIssues: [],
