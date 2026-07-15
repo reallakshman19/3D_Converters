@@ -10,6 +10,7 @@ from .categorized import *
 from .validation import *
 from .xml_builder import *
 from .seljson import *
+from .managed_stage import *
 
 def compile_document(
     source: bytes,
@@ -29,8 +30,15 @@ def compile_document(
     context = context or {}
     registry = _load_json(registry_path)
     dialects = _registered_dialects(registry)
-    root = _parse_xml(source, source_name)
-    dialect = dialect_override or detect_dialect(root, registry)
+    stripped = source.lstrip()
+    json_source = dialect_override == "managed-stage-json" or stripped[:1] in {b"{", b"["}
+    root: ET._Element | None
+    if json_source:
+        root = None
+        dialect = dialect_override or "managed-stage-json"
+    else:
+        root = _parse_xml(source, source_name)
+        dialect = dialect_override or detect_dialect(root, registry)
     if dialect not in dialects:
         raise CompileBlocked(f"Dialect {dialect!r} is not registered.")
     ledger = DecisionLedger(source_repository, source_path, producer, dialect)
@@ -46,7 +54,12 @@ def compile_document(
 
     try:
         aliases = _resolve_aliases(_load_json(alias_registry_path))
-        if dialect == "canonical-inputxml-v1":
+        if dialect == "managed-stage-json":
+            wrapped = _compile_managed_stage_source(source, source_name=source_name, ledger=ledger, context=context)
+            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
+        elif dialect == "canonical-inputxml-v1":
+            if root is None:
+                raise CompileBlocked("Canonical InputXML requires XML input.")
             canonical = copy.deepcopy(root)
             xsd_errors = _validate_xsd(canonical, canonical_xsd_path)
             semantic_errors = [] if xsd_errors else _validate_schematron(canonical, semantic_rules_path)
@@ -54,21 +67,31 @@ def compile_document(
                 raise CompileBlocked("Direct canonical input failed canonical validation.")
             _ledger_direct_canonical(canonical, ledger)
         elif dialect == "inputxml-fragment":
+            if root is None:
+                raise CompileBlocked("InputXML fragment adapter requires XML input.")
             wrapped = _fragment_document(root, context)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         elif dialect == "categorized-inputxml-v3":
+            if root is None:
+                raise CompileBlocked("CategorizedInputXML adapter requires XML input.")
             categorized_errors = _validate_xsd(root, categorized_xsd_path)
             if categorized_errors:
                 raise CompileBlocked("CategorizedInputXML failed categorized-inputxml-v3.xsd: " + "; ".join(categorized_errors))
             wrapped = _categorized_document(root, context, ledger)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         elif dialect == "xml-builder-root-branch-node":
+            if root is None:
+                raise CompileBlocked("XML Builder adapter requires XML input.")
             wrapped = _compile_xml_builder_source(source, source_root=root, ledger=ledger, context=context)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         elif dialect == "seljson-custom-root":
+            if root is None:
+                raise CompileBlocked("SelectionJSON custom-root adapter requires XML input.")
             wrapped = _compile_seljson_custom_root(source, source_root=root, ledger=ledger, context=context)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         else:
+            if root is None:
+                raise CompileBlocked(f"Dialect {dialect} requires XML input.")
             canonical = _compile_inputxml_family(root, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
             if dialect == "xml-to-cii-diagnostic-sidecar":
                 _extension_record(canonical, producer=ledger.producer, dialect=ledger.dialect, name="DiagnosticSidecarReconciliation", source_path=ledger.source_path, source_entity_id="document", source_field="dialect", value="Diagnostic reconstruction requires independent source reconciliation before production use.", disposition="DEFER_EXPLICITLY", criticality="HIGH", confidence=0.80)
