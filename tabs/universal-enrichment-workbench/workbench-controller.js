@@ -4,7 +4,9 @@ import { acceptAuthoritativeText, clearWorkbenchState, createWorkbenchState, rea
 import { collectSourceGraphElements, createSourceGraphController } from './graph-controller.js';
 import { collectMasterRegistryElements, createMasterRegistryController } from './master-controller.js';
 import { collectExtractionTesterElements, createExtractionTesterController } from './extraction-controller.js';
+import { collectEvidenceLedgerElements, createEvidenceLedgerController } from './evidence-controller.js';
 import { renderWorkbenchMarkup } from './workbench-template.js';
+import { renderEvidenceLedgerMarkup } from './evidence-template.js';
 
 const IDS = ['file', 'kind', 'source-text', 'generate', 'download', 'clear', 'effective-kind', 'detected-kind', 'source-name', 'origin', 'revision', 'byte-length', 'root-shape', 'status', 'content-hash', 'source-file-id', 'errors', 'warnings'];
 
@@ -136,12 +138,31 @@ function createMasterBridge(context, dependencies) {
   return { getState: () => empty, syncGraph() {}, cleanup() {} };
 }
 
+function currentEvidenceUpstream(context) {
+  const extraction = context.extraction?.getState() || {};
+  return { graph: context.graph?.getState().graph || null, config: extraction.config || null, run: extraction.run || null };
+}
+
+function createEvidenceBridge(context, dependencies) {
+  if (dependencies.evidenceElements?.['evidence-build']) {
+    return createEvidenceLedgerController(dependencies.evidenceElements, dependencies, () => currentEvidenceUpstream(context));
+  }
+  const empty = { ledger: null, trace: null, status: 'Not built' };
+  return { getState: () => empty, syncUpstream() {}, cleanup() {} };
+}
 
 function createExtractionBridge(context, dependencies) {
   if (dependencies.extractionElements?.['extract-config-build']) {
+    const extractionDependencies = {
+      ...dependencies,
+      onExtractionChange: (state) => {
+        dependencies.onExtractionChange?.(state);
+        context.evidence?.syncUpstream();
+      },
+    };
     return createExtractionTesterController(
       dependencies.extractionElements,
-      dependencies,
+      extractionDependencies,
       () => context.graph?.getState() || null,
     );
   }
@@ -156,6 +177,7 @@ function createGraphBridge(context, dependencies) {
       onGraphChange: (graph) => {
         context.master?.syncGraph(graph);
         context.extraction?.syncGraph(graph);
+        context.evidence?.syncUpstream();
       },
     };
     return createSourceGraphController(dependencies.graphElements, graphDependencies, () => context.state.envelope);
@@ -167,6 +189,7 @@ function createGraphBridge(context, dependencies) {
     invalidate() {
       context.master?.syncGraph(null);
       context.extraction?.syncGraph(null);
+      context.evidence?.syncUpstream();
     },
     cleanup() {},
   };
@@ -187,14 +210,17 @@ export function createWorkbenchController(elements, dependencies = {}) {
   const context = {
     elements, dependencies, ParserCtor: dependencies.ParserCtor || globalThis.DOMParser,
     state: createWorkbenchState(), listeners: [], objectUrls: new Set(),
-    disposed: false, fileRequestId: 0, generationRequestId: 0, graph: null, master: null, extraction: null,
+    disposed: false, fileRequestId: 0, generationRequestId: 0,
+    graph: null, master: null, extraction: null, evidence: null,
   };
   context.master = createMasterBridge(context, dependencies);
+  context.evidence = createEvidenceBridge(context, dependencies);
   context.extraction = createExtractionBridge(context, dependencies);
   context.graph = createGraphBridge(context, dependencies);
   const initialGraph = context.graph.getState().graph;
   context.master.syncGraph(initialGraph);
   context.extraction.syncGraph(initialGraph);
+  context.evidence.syncUpstream();
   bindListeners(context);
   renderSummary(context);
   return {
@@ -202,6 +228,7 @@ export function createWorkbenchController(elements, dependencies = {}) {
     getGraphState: () => context.graph.getState(),
     getMasterState: () => context.master.getState(),
     getExtractionState: () => context.extraction.getState(),
+    getEvidenceState: () => context.evidence.getState(),
     clear: () => handleClear(context),
     cleanup() {
       if (context.disposed) return;
@@ -213,6 +240,7 @@ export function createWorkbenchController(elements, dependencies = {}) {
       context.graph.cleanup();
       context.master.cleanup();
       context.extraction.cleanup();
+      context.evidence.cleanup();
     },
   };
 }
@@ -232,10 +260,11 @@ function browserDependencies(options = {}) {
 
 export function renderUniversalEnrichmentWorkbench(container, options = {}) {
   const dependencies = browserDependencies(options);
-  container.innerHTML = renderWorkbenchMarkup();
+  container.innerHTML = `${renderWorkbenchMarkup()}${renderEvidenceLedgerMarkup()}`;
   dependencies.graphElements = collectSourceGraphElements(container);
   dependencies.masterElements = collectMasterRegistryElements(container);
   dependencies.extractionElements = collectExtractionTesterElements(container);
+  dependencies.evidenceElements = collectEvidenceLedgerElements(container);
   const controller = createWorkbenchController(collectElements(container), dependencies);
   const cleanup = () => {
     controller.cleanup();
