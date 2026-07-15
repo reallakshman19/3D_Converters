@@ -12,6 +12,7 @@ from .xml_builder import *
 from .seljson import *
 from .managed_stage import *
 from .pdf_input_echo import *
+from .pdf_input_echo_bindings import *
 
 def compile_document(
     source: bytes,
