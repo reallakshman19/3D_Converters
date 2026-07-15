@@ -94,7 +94,11 @@ class Cii2019ReparseProofTests(unittest.TestCase):
 
     def test_hash_mismatch_blocks(self):
         cii_text, ledger = self.generated()
-        proof = reparse.build_reparse_proof(cii_text=cii_text + "\n", projection_ledger=ledger)
+        lines = cii_text.splitlines()
+        version_header = next(index for index, line in enumerate(lines) if line.strip() == "#$ VERSION")
+        lines[version_header + 1] = lines[version_header + 1] + "X"
+        mutated = "\n".join(lines) + ("\n" if cii_text.endswith("\n") else "")
+        proof = reparse.build_reparse_proof(cii_text=mutated, projection_ledger=ledger)
         self.assertEqual("BLOCKED", proof["status"])
         self.assertTrue(any(row["code"] == "CII_HASH_MISMATCH" for row in proof["diagnostics"]))
 
