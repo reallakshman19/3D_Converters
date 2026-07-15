@@ -130,7 +130,7 @@ def compile_document(
                 ledger.blocked = True
                 ledger.diagnostic("BLOCKING", "DIAGNOSTIC_RECONCILIATION_REQUIRED", "Diagnostic InputXML sidecar requires independent source reconciliation.")
 
-        reconcile_decision_ledger(canonical, ledger)
+        reconcile_decision_ledger(canonical, ledger, context=context)
         xsd_errors = _validate_xsd(canonical, canonical_xsd_path)
         semantic_errors = [] if xsd_errors else _validate_schematron(canonical, semantic_rules_path)
         validation["xsdErrors"] = xsd_errors
