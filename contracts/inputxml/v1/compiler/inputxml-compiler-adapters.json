@@ -3,7 +3,7 @@
   "generatedAt": "2026-07-15",
   "authority": {
     "repository": "reallaksh19/3D_Converters",
-    "baseline": "e3f035e2bba8ab759c0d46cb4c8e110c27345cc2",
+    "baseline": "94399cd137a621a4ad8a617bf65b193ced4925b9",
     "compiler": "scripts/inputxml_canonical_compiler.py"
   },
   "rule": "Every dialect in inputxml-dialect-registry.json is recognized. Only IMPLEMENTED adapters may emit a PASS result. Deferred, diagnostic, and excluded profiles fail closed with an explicit ledger disposition.",
@@ -19,7 +19,7 @@
     {"dialectId":"xml-builder-root-branch-node","adapterId":"xml-cii-node-to-canonical","status":"IMPLEMENTED","resultPolicy":"AUTHORITATIVE_TOPOLOGY_ENGINE_NO_SYNTHETIC_FILLERS_AND_BLOCK_ON_LOSS"},
     {"dialectId":"seljson-custom-root","adapterId":"seljson-custom-model-to-canonical","status":"IMPLEMENTED","resultPolicy":"EXPLICIT_DIALECT_SHARED_AUTHORITATIVE_TOPOLOGY_AND_BLOCK_ON_LOSS"},
     {"dialectId":"managed-stage-json","adapterId":"managed-stage-to-canonical","status":"IMPLEMENTED","resultPolicy":"COMPONENT_TOPOLOGY_SOURCE_MODEL_TRACE_LEDGER_AND_FAIL_CLOSED_CII_PROJECTION"},
-    {"dialectId":"pdf-input-echo","adapterId":"pdf-input-echo-to-canonical","status":"DEFERRED_BLOCKING","resultPolicy":"REQUIRES_TEMPLATE_PROVENANCE_AND_PDF_EVIDENCE_BRIDGE"},
+    {"dialectId":"pdf-input-echo","adapterId":"pdf-input-echo-to-canonical","status":"IMPLEMENTED","resultPolicy":"TEXT_LAYER_PROVENANCE_EXPLICIT_CONTEXT_NO_PROFILE_OR_DEFAULT_FALLBACK"},
     {"dialectId":"uxml-rvm-intake","adapterId":"uxml-rvm-to-canonical","status":"DEFERRED_BLOCKING","resultPolicy":"REQUIRES_ENGINEERING_IDENTITY_AND_TOPOLOGY_BRIDGE"},
     {"dialectId":"nodeset-v1","adapterId":"none","status":"EXCLUDED","resultPolicy":"REJECT_INVALID_COMPARISON_ONLY_ARTIFACT"}
   ]

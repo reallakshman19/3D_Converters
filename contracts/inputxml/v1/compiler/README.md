@@ -31,6 +31,7 @@ The compiler implements direct canonical validation and adapters for:
 - XML Builder `Root/Branch/Node` through the existing authoritative node-to-InputXML topology engine;
 - SelectionJSON custom `Root/Branch/Node` through the same authoritative topology engine with a distinct dialect and evidence identity;
 - managed-stage JSON through `ComponentTopologySourceModel.v1`, `CanonicalTopology.v1`, and `TopologyTraceLedger.v1`;
+- CAESAR Input Echo text-layer PDF or explicitly declared extracted text through the existing report grammar parser;
 - diagnostic InputXML sidecars as `DEFER_EXPLICITLY` and always blocked.
 
 Complex source dialects remain registered and recognized but return a precise `DEFERRED_BLOCKING` result until their existing specialized geometry/topology engines are connected through a reviewed adapter. The compiler never substitutes a simplified nearest-geometry implementation.
@@ -78,6 +79,39 @@ A managed-stage conversion may pass for component families with an approved cano
 
 The model extension stores source identity, topology and trace-ledger digests, and metrics. Full source fields remain in the canonicalization ledger sidecar, one record per source entity and source port.
 
+## PDF Input Echo bridge
+
+The PDF adapter accepts either:
+
+- raw `%PDF` bytes with an extractable text layer; or
+- strict UTF-8 Input Echo text only when the caller declares `sourceKind="extracted-text"`.
+
+It reuses the report grammar in `converters/scripts/pdf_to_inputxml.py` for the `PIPE DATA` element blocks. It deliberately does not use that converter's internal profile/template substitution or generated fallback path.
+
+The caller must supply explicit compiler context for:
+
+- CAESAR version;
+- north vector;
+- piping line identity.
+
+The report must contain an explicit Job Name and Date/Time. Current-clock substitution is forbidden. Pressure and hydro values parsed in bar are converted to canonical kPa. Omitted delta axes are ledgered as deterministic report-level zero components. Pipe-state carry-forward is ledgered per element and never crosses the explicit line scope.
+
+The complete extracted report and extraction provenance are preserved in the extension namespace. Mechanical fields outside the current canonical projection are also preserved with units in their evidence names.
+
+The PDF adapter blocks on:
+
+- scanned/image-only or malformed PDF with no valid Input Echo text layer;
+- missing report timestamp, explicit version, north vector, or line identity;
+- block/accounting mismatch;
+- zero-length element;
+- unsupported report sections such as hangers, displacements, force/moment, uniform, wind, offsets, or allowable stress;
+- restraints because the current report grammar does not recover stiffness, gap, friction, and connecting-node semantics;
+- SIF/tee records until their full canonical field contract is verified;
+- valve, flange, gasket, blind-flange, instrument, or reducer identities represented only as generic rigid records;
+- more than six restraints or any other unresolved auxiliary capacity/ownership condition.
+
+Bends with a positive radius and complete angle/node pairing can project. A generic rigid with explicit weight can project while its source type is preserved.
+
 ## Fail-closed rules
 
 - exactly one direct unqualified `PIPINGMODEL` under `{COADE}CAESARII`;
@@ -112,9 +146,8 @@ A blocked conversion still writes the ledger and validation report. A canonical 
 
 ## Remaining PR-D completion work
 
-The following adapters are intentionally not claimed as complete:
+The only registered source adapter intentionally not claimed as complete is:
 
-- PDF Input Echo;
 - UXML/RVM intake.
 
-They require their authoritative parser and engineering-identity implementations to be bridged, not reimplemented with simplified heuristics.
+It requires its authoritative engineering-identity and topology implementation to be bridged, not reimplemented with simplified heuristics.

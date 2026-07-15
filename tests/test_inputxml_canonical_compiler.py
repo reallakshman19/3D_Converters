@@ -19,7 +19,7 @@ REGISTRY = {
         {'dialectId':d} for d in [
             'canonical-inputxml-v1','caesar-inputxml-pressure1','caesar-inputxml-pressure-c',
             'enriched-inputxml-app','inputxml-fragment','categorized-inputxml-v3','cii14-inputxml',
-            'managed-stage-json','xml-builder-root-branch-node','pdf-input-echo','nodeset-v1'
+            'managed-stage-json','xml-builder-root-branch-node','pdf-input-echo','uxml-rvm-intake','nodeset-v1'
         ]
     ]
 }
@@ -114,7 +114,7 @@ class CompilerTests(unittest.TestCase):
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
 
     def test_registered_unimplemented_dialect_blocks(self):
-        root,ledger,validation=self.compile('<Root/>', dialect='pdf-input-echo')
+        root,ledger,validation=self.compile('<Root/>', dialect='uxml-rvm-intake')
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
         self.assertEqual('UNSUPPORTED_BLOCKING',ledger['records'][0]['disposition'])
 

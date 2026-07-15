@@ -11,6 +11,8 @@ from .validation import *
 from .xml_builder import *
 from .seljson import *
 from .managed_stage import *
+from .pdf_input_echo import *
+from .pdf_input_echo_bindings import *
 
 def compile_document(
     source: bytes,
@@ -32,8 +34,12 @@ def compile_document(
     dialects = _registered_dialects(registry)
     stripped = source.lstrip()
     json_source = dialect_override == "managed-stage-json" or stripped[:1] in {b"{", b"["}
+    pdf_source = dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
     root: ET._Element | None
-    if json_source:
+    if pdf_source:
+        root = None
+        dialect = dialect_override or "pdf-input-echo"
+    elif json_source:
         root = None
         dialect = dialect_override or "managed-stage-json"
     else:
@@ -54,7 +60,10 @@ def compile_document(
 
     try:
         aliases = _resolve_aliases(_load_json(alias_registry_path))
-        if dialect == "managed-stage-json":
+        if dialect == "pdf-input-echo":
+            wrapped = _compile_pdf_input_echo_source(source, source_name=source_name, ledger=ledger, context=context)
+            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
+        elif dialect == "managed-stage-json":
             wrapped = _compile_managed_stage_source(source, source_name=source_name, ledger=ledger, context=context)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         elif dialect == "canonical-inputxml-v1":
