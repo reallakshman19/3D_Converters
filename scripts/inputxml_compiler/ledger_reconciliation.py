@@ -100,16 +100,14 @@ def reconcile_decision_ledger(
 ) -> None:
     """Finalize producer ledger semantics after canonical normalization.
 
-    This never infers engineering values. It performs three explicit corrections:
-
-    - parser/topology-only decisions become evidence-only;
-    - authoritative bridge document rows receive the actual post-normalization
-      InputXML element IDs and nodes emitted by the canonical compiler;
-    - missing endpoint names/coordinates may be completed only from explicit
-      caller-supplied ``assuredNodeEvidence`` and are ledgered field by field.
+    No engineering value is inferred. Source-only decisions become evidence,
+    exact canonical IDs gain InputXML ownership, bridge documents are rebound to
+    emitted IDs, and optional node evidence is accepted only when explicit.
     """
     elements = _canonical_elements(canonical)
     element_ids = [str(element.get("ID") or "") for element in elements]
+    known_element_ids = set(element_ids)
+    element_order = {value: index for index, value in enumerate(element_ids)}
     node_ids = sorted({
         str(int(Decimal(element.get(field))))
         for element in elements for field in ("FROM_NODE", "TO_NODE")
@@ -131,6 +129,18 @@ def reconcile_decision_ledger(
             diagnostics = list(record.get("diagnostics") or [])
             diagnostics.append("retained as evidence only; no direct CII index is claimed")
             record["diagnostics"] = diagnostics
+            continue
+
+        exact_ids = [
+            str(value) for value in record.get("canonicalElementIds") or []
+            if str(value) in known_element_ids
+        ]
+        if exact_ids:
+            bound = sorted(set(exact_ids), key=element_order.get)
+            record["InputXMLElementIds"] = bound
+            evidence = list(record.get("evidence") or [])
+            evidence.append("InputXML ownership bound only after exact canonical element-ID membership verification")
+            record["evidence"] = evidence
 
         if str(record.get("sourceType") or "") in _BRIDGE_DOCUMENT_TYPES:
             record["canonicalElementIds"] = element_ids
