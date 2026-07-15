@@ -1,35 +1,30 @@
 /**
- * Adds topology trace identity that is derived only from producer-owned source,
+ * Adds topology trace identity derived only from producer-owned source,
  * canonical, ledger, and engineering records. No geometry or connectivity is
  * reconstructed here.
  */
 
 import { cleanText, strictPoint, uniqueText } from './topology-values.js';
 
-/** @param {Record<string, unknown>} model @returns {Record<string, Map<string,string>>} */
 function sourceIndexes(model) {
-  const branchByEntity = new Map();
-  const pathByEntity = new Map();
-  const refByEntity = new Map();
+  const branchByEntity = new Map(), pathByEntity = new Map(), refByEntity = new Map();
   for (const branch of model.branches ?? []) {
     branchByEntity.set(branch.sourceEntityId, branch.sourceEntityId);
     pathByEntity.set(branch.sourceEntityId, branch.sourcePath);
     refByEntity.set(branch.sourceEntityId, branch.sourceRef || branch.name || '');
-    for (const component of branch.components ?? []) {
-      branchByEntity.set(component.sourceEntityId, branch.sourceEntityId);
-      pathByEntity.set(component.sourceEntityId, component.sourcePath);
-      refByEntity.set(component.sourceEntityId, component.sourceRef || component.name || '');
-    }
+  }
+  for (const component of model.components ?? []) {
+    branchByEntity.set(component.sourceEntityId, component.sourceBranchEntityId);
+    pathByEntity.set(component.sourceEntityId, component.sourcePath);
+    refByEntity.set(component.sourceEntityId, component.sourceRef || component.name || '');
   }
   return { branchByEntity, pathByEntity, refByEntity };
 }
 
-/** @param {unknown[]} sourceIds @param {Map<string,string>} index @returns {string[]} */
 function indexedValues(sourceIds, index) {
   return uniqueText(sourceIds.flatMap((id) => index.has(cleanText(id)) ? [index.get(cleanText(id))] : []));
 }
 
-/** @param {Record<string, unknown>} row @param {Record<string, Map<string,string>>} indexes @returns {Record<string, unknown>} */
 function traceRow(row, indexes) {
   const sourceEntityIds = uniqueText(row.sourceEntityIds ?? []);
   return {
@@ -40,7 +35,6 @@ function traceRow(row, indexes) {
   };
 }
 
-/** @param {Record<string, unknown>} canonical @param {Record<string, unknown>} model @returns {Readonly<Record<string, unknown>>} */
 export function enrichCanonicalTopologyIdentity(canonical, model) {
   const indexes = sourceIndexes(model);
   const edges = (canonical.edges ?? []).map((edge) => ({
@@ -50,16 +44,17 @@ export function enrichCanonicalTopologyIdentity(canonical, model) {
   const edgeById = new Map(edges.map((edge) => [edge.id, edge]));
   const nodes = (canonical.nodes ?? []).map((node) => traceRow(node, indexes));
   const pointFeatures = (canonical.pointFeatures ?? []).map((row) => traceRow(row, indexes));
-  const junctions = (canonical.junctions ?? []).map((row) => {
-    const traced = traceRow(row, indexes);
-    return {
-      ...traced,
-      participatingEdgeIds: uniqueText(edges.filter((edge) => edge.fromNodeId === row.nodeId || edge.toNodeId === row.nodeId).map((edge) => edge.id)),
-    };
-  });
+  const junctions = (canonical.junctions ?? []).map((row) => ({
+    ...traceRow(row, indexes),
+    participatingEdgeIds: uniqueText(edges.filter((edge) => (
+      edge.fromNodeId === row.nodeId || edge.toNodeId === row.nodeId
+    )).map((edge) => edge.id)),
+  }));
   const boundaries = (canonical.boundaries ?? []).map((row) => ({
     ...traceRow(row, indexes),
-    participatingEdgeIds: uniqueText(edges.filter((edge) => edge.fromNodeId === row.nodeId || edge.toNodeId === row.nodeId).map((edge) => edge.id)),
+    participatingEdgeIds: uniqueText(edges.filter((edge) => (
+      edge.fromNodeId === row.nodeId || edge.toNodeId === row.nodeId
+    )).map((edge) => edge.id)),
   }));
   const supports = (canonical.supports ?? []).map((row) => traceRow(row, indexes));
   const rigids = (canonical.rigids ?? []).map((row) => {
@@ -90,16 +85,15 @@ export function enrichCanonicalTopologyIdentity(canonical, model) {
   });
 }
 
-/** @param {Record<string, unknown>} source @returns {{x:number,y:number,z:number}|null} */
 function sourcePosition(source) {
   const positions = source.positions ?? {};
   return strictPoint(positions.POS) ?? strictPoint(positions.APOS) ?? strictPoint(positions.LPOS);
 }
 
-/** @param {Record<string, unknown>} ledger @param {Record<string, unknown>} canonical @param {Record<string, unknown>} model @param {Record<string, unknown>} engineering @param {Record<string, unknown>} configuration @returns {Readonly<Record<string, unknown>>} */
 export function enrichTopologyTraceLedgerIdentity(ledger, canonical, model, engineering, configuration) {
   const indexes = sourceIndexes(model);
-  const sourceById = new Map((model.entities ?? []).map((row) => [row.sourceEntityId, row]));
+  const sourceEntities = [...(model.branches ?? []), ...(model.components ?? [])];
+  const sourceById = new Map(sourceEntities.map((row) => [row.sourceEntityId, row]));
   const supportBySource = new Map();
   for (const support of canonical.supports ?? []) {
     for (const sourceEntityId of support.sourceEntityIds ?? []) supportBySource.set(sourceEntityId, support);
