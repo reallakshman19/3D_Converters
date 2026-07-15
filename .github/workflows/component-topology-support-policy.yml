@@ -21,9 +21,11 @@ jobs:
       - name: Validate production module syntax
         run: |
           for file in tabs/model-converters/converters/component-topology/*.js; do node --check "$file"; done
-      - name: Run focused topology support tests
-        run: |
-          node tests/component-topology-static.test.js
-          node tests/component-topology-support-policy.test.mjs
-          node tests/component-topology-artifacts-1885-nc.test.mjs
-          node tests/component-topology-artifacts-asim-1835.test.mjs
+      - name: Validate static contracts
+        run: node tests/component-topology-static.test.js
+      - name: Validate focused support policy
+        run: node tests/component-topology-support-policy.test.mjs
+      - name: Validate real 1885_NC support policy
+        run: node tests/component-topology-artifacts-1885-nc.test.mjs
+      - name: Validate ASIM-1835 compatibility
+        run: node tests/component-topology-artifacts-asim-1835.test.mjs
