@@ -37,8 +37,9 @@ def _explicit_node_evidence(
         "y": ("Y", "COORDS"),
         "z": ("Z", "COORDS"),
     }
-    for element in elements:
+    for ordinal, element in enumerate(elements, 1):
         element_id = str(element.get("ID") or "")
+        canonical_path = f"/CAESARII/PIPINGMODEL[1]/PIPINGELEMENT[{ordinal}]"
         for endpoint, node_attr in (("FROM", "FROM_NODE"), ("TO", "TO_NODE")):
             node = str(int(Decimal(element.get(node_attr)))) if element.get(node_attr) else ""
             node_evidence = evidence_map.get(node)
@@ -61,16 +62,25 @@ def _explicit_node_evidence(
                     canonical_value = _decimal_text(value, f"assuredNodeEvidence[{node}]/{source_field}")
                 element.set(canonical_field, canonical_value)
                 ledger.add(
-                    source_entity_id=f"compiler-context/assuredNodeEvidence/{node}@{source_field}",
+                    source_entity_id=f"{canonical_path}@{canonical_field}",
                     source_type="EXPLICIT_ASSURED_NODE_EVIDENCE",
-                    source_fields={"node": node, source_field: value},
+                    source_fields={
+                        canonical_field: canonical_value,
+                        "node": node,
+                        "evidenceField": source_field,
+                        "evidenceValue": value,
+                    },
                     canonical_element_ids=[element_id],
                     canonical_node_ids=[node],
                     inputxml_element_ids=[element_id],
                     cii_section=section,
                     projection_cardinality="1_TO_1",
                     disposition="EMIT_1_TO_1",
-                    evidence=["explicit caller-supplied assuredNodeEvidence; no node name or coordinate inference"],
+                    evidence=[
+                        "explicit caller-supplied assuredNodeEvidence",
+                        "canonical element path and owner identity resolved after normalization",
+                        "no node name or coordinate inference",
+                    ],
                     confidence={
                         "identity": 1.0,
                         "topology": 1.0,
