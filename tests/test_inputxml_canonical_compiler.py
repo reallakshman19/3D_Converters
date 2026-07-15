@@ -13,14 +13,19 @@ spec.loader.exec_module(compiler)
 compiler._compiler._validate_xsd = lambda root, path: []
 compiler._compiler._validate_schematron = lambda root, path: []
 
+_DIALECT_IDS = [
+    'canonical-inputxml-v1','caesar-inputxml-pressure1','caesar-inputxml-pressure-c',
+    'enriched-inputxml-app','inputxml-fragment','categorized-inputxml-v3','cii14-inputxml',
+    'managed-stage-json','xml-builder-root-branch-node','pdf-input-echo','uxml-rvm-intake','nodeset-v1'
+]
 REGISTRY = {
     'schema':'InputXmlDialectRegistry.v1',
     'dialects':[
-        {'dialectId':d} for d in [
-            'canonical-inputxml-v1','caesar-inputxml-pressure1','caesar-inputxml-pressure-c',
-            'enriched-inputxml-app','inputxml-fragment','categorized-inputxml-v3','cii14-inputxml',
-            'managed-stage-json','xml-builder-root-branch-node','pdf-input-echo','uxml-rvm-intake','nodeset-v1'
-        ]
+        {
+            'dialectId': dialect_id,
+            **({'canonicalAcceptance':'EXCLUDED'} if dialect_id == 'nodeset-v1' else {}),
+        }
+        for dialect_id in _DIALECT_IDS
     ]
 }
 ALIASES = {
