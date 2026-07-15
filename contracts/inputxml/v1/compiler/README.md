@@ -19,7 +19,7 @@ It does not call or modify the production CII writer.
 
 ## Implemented adapters
 
-The compiler implements direct canonical validation and the InputXML-family adapters for:
+The compiler implements direct canonical validation and adapters for:
 
 - canonical InputXML v1;
 - CAESAR InputXML using `PRESSURE1..9` and `LINE_ID`;
@@ -28,9 +28,24 @@ The compiler implements direct canonical validation and the InputXML-family adap
 - InputXML fragments with explicit context;
 - reconciled `CategorizedInputXML` v3;
 - CII14 InputXML intake;
+- XML Builder `Root/Branch/Node` through the existing authoritative node-to-InputXML topology engine;
 - diagnostic InputXML sidecars as `DEFER_EXPLICITLY` and always blocked.
 
-Complex topology-producing source dialects remain registered and recognized but return a precise `DEFERRED_BLOCKING` result until their existing specialized geometry/topology engines are connected through a reviewed adapter. The compiler never substitutes a sequential-node or nearest-geometry heuristic for those engines.
+Complex source dialects remain registered and recognized but return a precise `DEFERRED_BLOCKING` result until their existing specialized geometry/topology engines are connected through a reviewed adapter. The compiler never substitutes a simplified nearest-geometry implementation.
+
+## XML Builder topology bridge
+
+The XML Builder adapter invokes `tabs/model-converters/xml-cii-node-to-inputxml-core.js` through a controlled Node bridge. It uses the existing `inputxml-topo` profile with:
+
+- duplicate-coordinate coalescing disabled;
+- short-filler generation disabled;
+- ray-filler and second-pass filler generation disabled;
+- application enrichment disabled;
+- the existing project coordinate transformation retained and ledgered.
+
+The adapter removes only fixed-slot records whose engineering payload is entirely blank or the InputXML missing sentinel. Compatibility values injected by the legacy writer but absent from source evidence are removed before canonicalization and recorded as `FILTER_COMPATIBILITY_DEFAULT`.
+
+The complete source XML and generated element side-load evidence are retained in the extension namespace. Any real node drop, restraint truncation, unresolved restraint type, fabricated/defaulted engineering identity, bridge warning, or unsupported SIF/restraint semantics blocks production validation.
 
 ## Fail-closed rules
 
@@ -66,9 +81,8 @@ A blocked conversion still writes the ledger and validation report. A canonical 
 
 ## Remaining PR-D completion work
 
-The following adapters are intentionally not claimed as complete in this foundation:
+The following adapters are intentionally not claimed as complete:
 
-- XML Builder `Root/Branch/Node`;
 - SelectionJSON custom `Root/Branch/Node`;
 - managed-stage JSON;
 - PDF Input Echo;
