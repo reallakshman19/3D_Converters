@@ -7,14 +7,14 @@ import { activeProfileFor, profileFieldMap } from './xml-cii-table-trace-config.
  * Fallback: unknown headers remain unmapped for user correction.
  */
 export const TRACE_TABLE_FIELDS = Object.freeze([
-  { name: 'componentRefNo', label: 'ComponentRefNo / element reference', required: true, aliases: ['Reference of the element', 'ComponentRefNo', 'Component Ref No', 'REF', 'Element Reference', 'reference'] },
+  { name: 'componentRefNo', label: 'ComponentRefNo / element reference', required: false, aliases: ['Reference of the element', 'ComponentRefNo', 'Component Ref No', 'REF', 'Element Reference', 'reference'] },
   { name: 'dtxrPos', label: 'DTXR_POS / detailing text', required: true, aliases: ['RTEXT of detailing text', 'DTXR_POS', 'DTXR', 'Detailing Text', 'Description', 'RTEXT', 'SPRE'] },
-  { name: 'nodeName', label: 'NodeName / support name', required: false, aliases: ['Name of the element', 'NodeName', 'Support Tag', 'Support Name', 'PS', 'PS tag'] },
+  { name: 'nodeName', label: 'NodeName / support name', required: false, aliases: ['Name of the element', 'NodeName', 'Support Tag', 'Support Name', 'PS', 'PS tag', 'NAME'] },
   { name: 'position', label: 'Position / coordinates', required: false, aliases: ['POS WRT /*', 'Position', 'POSI', 'POS', 'Coordinates', 'Coord'] },
   { name: 'componentType', label: 'Component type', required: false, aliases: ['TYPE', 'ComponentType', 'Component Type'] },
   { name: 'dtxrPs', label: 'DTXR_PS / isometric note', required: false, aliases: ['ISOMETRIC NOTES', 'DTXR_PS', 'Isometric Note', 'Iso Note'] },
   { name: 'cmpSupGap', label: 'CMPSUPGAP / support gap', required: false, aliases: ['SUPPORT GAP', 'CMPSUPGAP', 'CMP SUP GAP', 'Gap'] },
-  { name: 'branchName', label: 'Branch / pipe', required: false, aliases: ['PIPE', 'Branch', 'BranchName', 'Line ID', 'LineId'] },
+  { name: 'branchName', label: 'Branch / pipe', required: false, aliases: ['PIPE', 'Branch', 'BranchName', 'Line ID', 'LineId', 'PIPE OF COMPREF'] },
   { name: 'supportReference', label: 'Ancillary support reference', required: false, aliases: ['ANCILIARY SUPPORT REFERENCE', 'Support Reference', 'Ancillary Reference'] },
   { name: 'componentSpec', label: 'Component spec', required: false, aliases: ['Component spec reference', 'Spec Reference', 'Component Spec', 'Specification', 'SPRE'] },
   { name: 'bore', label: 'Bore', required: false, aliases: ['BORE', 'ABORE', 'LBORE', 'Nominal Bore', 'Size'] },
@@ -132,9 +132,9 @@ function dataScore(fieldName, values) {
   if (!values.length) return 0;
   const rate = (fn) => values.filter(fn).length / values.length;
   if (fieldName === 'componentRefNo') return Math.round(rate((v) => /^=?\d+\/\d+$/i.test(v)) * 92);
-  if (fieldName === 'nodeName') return Math.round(rate((v) => /PS-\d+/i.test(v)) * 82);
-  if (fieldName === 'dtxrPos') return Math.round(rate((v) => /REST|GUIDE|SHOE|ANCHOR|PLATE|SUPPORT|STOP/i.test(v) && v.length > 6) * 78);
-  if (fieldName === 'position') return Math.round(rate((v) => /\b[ENSUWD]\s*-?\d+(?:\.\d+)?mm/i.test(v)) * 88);
+  if (fieldName === 'nodeName') return Math.round(rate((v) => /\/?PS-?\d+(?:\.\d+)?/i.test(v)) * 82);
+  if (fieldName === 'dtxrPos') return Math.round(rate((v) => /REST|GUIDE|SHOE|ANCHOR|PLATE|SUPPORT|STOP/i.test(v) && v.length > 3) * 78);
+  if (fieldName === 'position') return Math.round(rate((v) => /\b[ENSUWD]\s*-?\d+(?:\.\d+)?mm/i.test(v) || (v.match(/-?\d+(?:\.\d+)?/g) || []).length >= 3) * 88);
   if (fieldName === 'componentType') return Math.round(rate((v) => /^[A-Z]{3,6}$/i.test(v)) * 70);
   if (fieldName === 'cmpSupGap') return Math.round(rate((v) => v === '' || /^-?\d+(\.\d+)?$/.test(v)) * 58);
   if (fieldName === 'branchName') return Math.round(rate((v) => /ASIM|\/B\d+|PIPE/i.test(v)) * 70);
@@ -184,7 +184,7 @@ export function rowsToTraceTableText(rows) {
 
 export function mapTraceTableRows(rawRows, fieldMap) {
   return (Array.isArray(rawRows) ? rawRows : []).map((row, index) => {
-    const mapped = { _rowIndex: row?._rowIndex || index + 1, raw: row || {} };
+    const mapped = { _rowIndex: row?._rowIndex || index + 2, raw: row || {} };
     for (const field of TRACE_TABLE_FIELDS) mapped[field.name] = text(row?.[fieldMap?.[field.name]]);
     mapped.componentRefKey = normRef(mapped.componentRefNo);
     mapped.nodeNameKey = compact(mapped.nodeName);

@@ -116,16 +116,18 @@ function renderAdvancedConfig(parent, state) {
   ambiguityLabel.appendChild(ambiguitySelect);
   grid.appendChild(ambiguityLabel);
 
-  const toleranceLabel = createElement('label', 'Coordinate tolerance:');
+  const toleranceLabel = createElement('label', 'Coordinate tolerance (mm):');
   const tolerance = createElement('input');
   tolerance.type = 'number';
   tolerance.min = '0';
   tolerance.step = '0.1';
   tolerance.value = String(config.coordinateTolerance);
   tolerance.dataset.jsonTraceTableTolerance = 'true';
+  tolerance.title = 'Groups table rows within this 3D distance and matches the XML Position to the nearest branch-compatible group.';
   toleranceLabel.appendChild(tolerance);
   grid.appendChild(toleranceLabel);
   section.appendChild(grid);
+  section.appendChild(createElement('div', 'Coordinate grouping is primary when Position is mapped. Branch /B suffixes are matched by canonical line root, so /LINE/B3 is compatible with /LINE but not with an unrelated line.', 'xml-cii-phase-help'));
 
   const ruleGrid = createElement('div', '', 'xml-cii-mapping-grid');
   for (const rule of config.matchRules) {
@@ -141,8 +143,8 @@ function renderAdvancedConfig(parent, state) {
   section.appendChild(ruleGrid);
 
   const duplicateText = resultConfig
-    ? `Last build duplicates: ref ${resultConfig.duplicateRefCount}, name ${resultConfig.duplicateNameCount}.`
-    : 'Duplicate counts appear after Build table trace.';
+    ? `Last build: ${resultConfig.coordinateGroupCount || 0} coordinate groups from ${resultConfig.coordinateRowCount || 0} positioned rows; duplicate ref ${resultConfig.duplicateRefCount}, name ${resultConfig.duplicateNameCount}.`
+    : 'Coordinate-group and duplicate counts appear after Build table trace.';
   section.appendChild(createElement('div', `Active profile: ${activeProfile.label} (${activeProfile.confidence}%). ${duplicateText}`, 'xml-cii-phase-help'));
   parent.appendChild(section);
 }
@@ -200,8 +202,8 @@ function renderRowsPreview(parent, state) {
     return;
   }
   const summary = result
-    ? `Rows ${rawRows.length}; matched XML nodes ${rows(result.matchedFacts).length}; rejected XML nodes ${rows(result.rejectedFacts).length}.`
-    : `Rows ${rawRows.length}; build table trace to derive XML node matches.`;
+    ? `Rows ${rawRows.length}; coordinate groups ${result.traceConfig.coordinateGroupCount || 0}; matched XML nodes ${rows(result.matchedFacts).length}; rejected XML nodes ${rows(result.rejectedFacts).length}.`
+    : `Rows ${rawRows.length}; build table trace to derive coordinate groups and XML node matches.`;
   section.appendChild(createElement('div', summary, 'xml-cii-phase-help'));
   parent.appendChild(section);
 }
