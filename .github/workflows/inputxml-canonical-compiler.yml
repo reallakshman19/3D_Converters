@@ -10,6 +10,7 @@ on:
       - 'scripts/validate-inputxml-schema-suite.py'
       - 'tests/test_inputxml_canonical_compiler*.py'
       - 'tests/test_inputxml_xml_builder_adapter.py'
+      - 'tests/test_inputxml_seljson_adapter.py'
       - 'tests/xml-cii-node-to-inputxml-core.test.js'
       - 'tabs/model-converters/xml-cii-node-to-inputxml-*.js'
       - 'converters/xml-cii2019-core/custom-input-*.js'
@@ -33,14 +34,14 @@ jobs:
         run: python scripts/validate-inputxml-contract-catalogs.py
       - name: Validate merged XSD, Schematron, registry, and golden corpus
         run: python scripts/validate-inputxml-schema-suite.py
-      - name: Validate authoritative XML Builder topology engine
+      - name: Validate authoritative Root Branch Node topology engine
         run: |
           node --check scripts/inputxml_compiler/node_xml_builder_bridge.cjs
           node tests/xml-cii-node-to-inputxml-core.test.js
       - name: Run canonical compiler unit and integration tests
         run: |
           set +e
-          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
+          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py tests/test_inputxml_seljson_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
           status=${PIPESTATUS[0]}
           exit $status
       - name: Upload compiler test diagnostics
