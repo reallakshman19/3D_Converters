@@ -11,6 +11,7 @@ import { bestPosition, formatPosition } from '../../../stagedjson-to-enrichxml/s
 import { isRigidType, isSupportType } from '../../../stagedjson-to-enrichxml/sj-type-mapper.js';
 import { portForRole } from './topology-connectivity.js';
 import { pointSegmentDistance } from './topology-geometry-distance.js';
+import { buildSupportAttachmentIndex, resolveSupportAttachment } from './topology-support-reference.js';
 import { splitEdgeSpecsAtSupports } from './topology-support-edge-splitter.js';
 import { cleanText, pointDistance, uniqueText } from './topology-values.js';
 
@@ -58,21 +59,27 @@ function isProjectedSupport(component) {
     && cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT';
 }
 
-/** @param {Record<string, unknown>} model @param {Record<string, unknown>[]} supportEntries @returns {Record<string, unknown>[]} */
-function buildSupportAnchors(model, supportEntries) {
+/** @param {Record<string, unknown>} anchor @param {Readonly<Record<string, unknown>>} attachment @returns {void} */
+function mergeAttachment(anchor, attachment) {
+  anchor.attachmentReferences.push(...attachment.references);
+  anchor.attachedComponentEntityIds.push(...attachment.sourceEntityIds);
+  anchor.attachedComponentSourcePaths.push(...attachment.sourcePaths);
+  anchor.unresolvedAttachmentReferences.push(...attachment.unresolvedReferences);
+  if (attachment.authority) anchor.attachmentAuthorities.push(attachment.authority);
+}
+
+/** @param {Record<string, unknown>} model @param {Record<string, unknown>[]} supportEntries @param {Readonly<Record<string, unknown>>} attachmentIndex @returns {Record<string, unknown>[]} */
+function buildSupportAnchors(model, supportEntries, attachmentIndex) {
   const anchors = supportEntries.map(({ component, record }, order) => {
     const port = supportPort(component);
     const enrichmentPosition = bestPosition(record.attrs);
-    return {
+    const anchor = {
       id: `SA-${String(order + 1).padStart(6, '0')}`,
-      order,
-      component,
-      record,
-      port,
+      order, component, record, port,
       position: port.position,
+      sourcePosition: port.position,
       positionAuthority: `SOURCE_PORT:${port.role}`,
-      positionAuthorityResidualMm: enrichmentPosition
-        ? pointDistance(enrichmentPosition, port.position) : null,
+      positionAuthorityResidualMm: enrichmentPosition ? pointDistance(enrichmentPosition, port.position) : null,
       sourceEntityIds: [component.sourceEntityId],
       sourceBranchEntityIds: [component.sourceBranchEntityId],
       sourceBranchNames: [component.sourceBranchName],
@@ -80,12 +87,16 @@ function buildSupportAnchors(model, supportEntries) {
       tag: cleanText(record.supportTag || record.cmpSupRefN || record.name),
       restraints: Array.isArray(record.resolved?.restraint)
         ? record.resolved.restraint : [record.resolved?.restraint].filter(Boolean),
+      attachmentReferences: [], attachedComponentEntityIds: [], attachedComponentSourcePaths: [],
+      unresolvedAttachmentReferences: [], attachmentAuthorities: [],
     };
+    mergeAttachment(anchor, resolveSupportAttachment(component, attachmentIndex));
+    return anchor;
   });
   const byPosition = new Map(anchors.map((anchor) => [formatPosition(anchor.position), anchor]));
   const supportComponents = model.components.filter(isProjectedSupport);
   const byName = new Map(model.components.map((component) => [
-    cleanText(component.attributes.NAME || component.name), component,
+    `${component.sourceBranchEntityId}|${cleanText(component.attributes.NAME || component.name)}`, component,
   ]));
   for (const component of supportComponents) {
     const anchor = findSupportAnchor(component, byPosition, byName);
@@ -94,6 +105,7 @@ function buildSupportAnchors(model, supportEntries) {
     anchor.sourceBranchEntityIds.push(component.sourceBranchEntityId);
     anchor.sourceBranchNames.push(component.sourceBranchName);
     anchor.sourcePaths.push(component.sourcePath);
+    mergeAttachment(anchor, resolveSupportAttachment(component, attachmentIndex));
   }
   return anchors.map((anchor) => ({
     ...anchor,
@@ -101,6 +113,11 @@ function buildSupportAnchors(model, supportEntries) {
     sourceBranchEntityIds: uniqueText(anchor.sourceBranchEntityIds),
     sourceBranchNames: uniqueText(anchor.sourceBranchNames),
     sourcePaths: uniqueText(anchor.sourcePaths),
+    attachmentReferences: uniqueText(anchor.attachmentReferences),
+    attachedComponentEntityIds: uniqueText(anchor.attachedComponentEntityIds),
+    attachedComponentSourcePaths: uniqueText(anchor.attachedComponentSourcePaths),
+    unresolvedAttachmentReferences: uniqueText(anchor.unresolvedAttachmentReferences),
+    attachmentAuthorities: uniqueText(anchor.attachmentAuthorities),
   }));
 }
 
@@ -116,8 +133,9 @@ function findSupportAnchor(component, byPosition, byName) {
     const currentName = cleanText(current.attributes.NAME || current.name);
     const reference = ['MDSSREF', 'MDSGUIDEREF', 'PREV-NAME']
       .map((field) => cleanText(current.attributes[field]))
-      .find((value) => value && value !== currentName && byName.has(value));
-    current = reference ? byName.get(reference) : null;
+      .find((value) => value && value !== currentName
+        && byName.has(`${current.sourceBranchEntityId}|${value}`));
+    current = reference ? byName.get(`${current.sourceBranchEntityId}|${reference}`) : null;
   }
   return null;
 }
@@ -139,9 +157,7 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
       edge,
       authorityRank: naturalIds.has(edge.id) ? 0 : branchIds.has(edge.id) ? 1 : 2,
       distanceMm: pointSegmentDistance(
-        rigid.position,
-        nodeById.get(edge.fromNodeId).position,
-        nodeById.get(edge.toNodeId).position,
+        rigid.position, nodeById.get(edge.fromNodeId).position, nodeById.get(edge.toNodeId).position,
       ).distanceMm,
     })).sort((left, right) => left.authorityRank - right.authorityRank
       || left.distanceMm - right.distanceMm || left.edge.id.localeCompare(right.edge.id));
@@ -167,18 +183,17 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
 export function buildTopologyEngineeringProjection(sourceText, model, options) {
   const enrichment = runEnrichment({ stagedJsonText: sourceText, config: options.enrichmentConfig });
   const index = componentRecordIndex(model, enrichment.records);
+  const attachmentIndex = buildSupportAttachmentIndex(model);
   const supportEntries = index.entries.filter(({ component, record }) => (
     isSupportType(record.componentType) && isProjectedSupport(component)
   ));
-  const supports = buildSupportAnchors(model, supportEntries);
+  const supports = buildSupportAnchors(model, supportEntries, attachmentIndex);
   const deferredSupports = model.components.filter((component) => (
     isSupportType(component.sourceType)
     && cleanText(component.supportProjection?.disposition) === 'DEFER_SUPPORT'
   ));
   const rigids = index.entries.filter(({ record }) => isRigidType(record.componentType)).map(({ component, record }) => ({
-    component,
-    record,
-    position: bestPosition(record.attrs),
+    component, record, position: bestPosition(record.attrs),
   }));
   if (rigids.some((rigid) => !rigid.position)) throw new Error('At least one rigid source component has no valid position.');
   return Object.freeze({
