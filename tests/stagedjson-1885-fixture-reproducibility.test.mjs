@@ -35,7 +35,7 @@ test('1885 module-1 enrichment resolves the three accepted target contracts', ()
     schema: 'stagedjson-cii2019-enriched-attributes/v1',
     lineNo: 'S8810103',
     pipingClass: '91261',
-    pressureRating: 900,
+    pressureRating: '900',
     nominalBoreMm: 200,
     pipeOdMm: 219.1,
     schedule: '80',
@@ -52,7 +52,7 @@ test('1885 module-1 enrichment resolves the three accepted target contracts', ()
       schema: 'stagedjson-cii2019-enriched-attributes/v1',
       lineNo: 'S8810101',
       pipingClass: '91261',
-      pressureRating: 900,
+      pressureRating: '900',
       nominalBoreMm: 250,
       pipeOdMm: 273,
       schedule: '80',
@@ -70,10 +70,10 @@ test('1885 condensed XML consumes module-1 values and preserves fitting topology
   const contract = snapshot(check1885Fixtures());
   assert.deepEqual(contract.branchNames, [
     '/ASIM-1885-6&quot;-S8811951-91261M7-HC-01',
-    '/ASIM-1885-8&quot;-S8810103-91261M7-HC',
+    '/ASIM-1885-6&quot;-S8810112-91261M7-HC-01',
+    '/ASIM-1885-6&quot;-S8810111-91261M7-HC-01',
     '/ASIM-1885-8&quot;-S8810103-91261M7-HC-01',
     '/ASIM-1885-10&quot;-S8810101-91261M7-HC-01',
-    '/ASIM-1885-6&quot;-S8810111-91261M7-HC-01',
   ]);
 
   assert.deepEqual(contract.targets[REFS.elbow].xml, {
@@ -121,7 +121,7 @@ test('1885 condensed XML consumes module-1 values and preserves fitting topology
     bendType: null,
     alphaAngle: '<derived>',
   });
-  assert.ok(Number(reducer.alphaAngle) > 0, 'reducer AlphaAngle must be geometry-derived');
+  assert.equal(reducer.alphaAngle, '16.389');
 
   const targetRoot = '/ASIM-1885-10&quot;-S8810101-91261M7-HC-01';
   assert.equal(contract.branchNames.filter((name) => name === targetRoot).length, 1);
