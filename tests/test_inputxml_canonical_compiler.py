@@ -113,10 +113,10 @@ class CompilerTests(unittest.TestCase):
         root,_,validation=self.compile(xml,context={'version':'11.00','north':[0,1,0]})
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
 
-    def test_registered_unimplemented_dialect_blocks(self):
-        root,ledger,validation=self.compile('<Root/>', dialect='uxml-rvm-intake')
+    def test_excluded_nodeset_dialect_is_rejected(self):
+        root,ledger,validation=self.compile('<NodeSet/>', dialect='nodeset-v1')
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
-        self.assertEqual('UNSUPPORTED_BLOCKING',ledger['records'][0]['disposition'])
+        self.assertEqual('REJECT_INVALID',ledger['records'][0]['disposition'])
 
     def test_wrong_xml_type_blocks_before_normalization(self):
         xml=(BASE_HEAD.format(numelt=0)+BASE_TAIL).replace('XML_TYPE="Input"','XML_TYPE="Output"')
