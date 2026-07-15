@@ -26,6 +26,16 @@ function upstreamIdentity(upstream) {
   return [graph?.sourceFileId, graph?.sourceRevision, graph?.contentHash, graph?.schema, config?.configId, run?.runId].join('|');
 }
 
+function referencesReady(graph, config, run) {
+  if (!Array.isArray(graph?.entities) || !Array.isArray(config?.rules) || !Array.isArray(run?.results)) return false;
+  const entities = new Map(graph.entities.map((entity) => [entity.entityId, entity]));
+  const rules = new Map(config.rules.map((rule) => [rule.ruleId, rule]));
+  return run.results.every((result) => {
+    const entity = entities.get(result.entityId); const rule = rules.get(result.ruleId);
+    return Boolean(entity && rule?.enabled && result.sourcePath === entity.sourcePath && result.fieldKey === rule.fieldKey);
+  });
+}
+
 function authorityReady(upstream) {
   const { graph, config, run } = upstream || {};
   return graph?.schema === 'UniversalSourceGraph.v1' && graph?.validation?.ok
@@ -33,7 +43,7 @@ function authorityReady(upstream) {
     && run?.schema === 'ExtractionTestRun.v1' && run?.validation?.ok
     && run.sourceFileId === graph.sourceFileId && run.sourceRevision === graph.sourceRevision
     && run.sourceContentHash === graph.contentHash && run.sourceGraphSchema === graph.schema
-    && run.configId === config.configId;
+    && run.configId === config.configId && referencesReady(graph, config, run);
 }
 
 function addListener(context, element, type, handler) {
