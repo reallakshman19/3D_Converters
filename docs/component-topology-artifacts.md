@@ -23,9 +23,10 @@ Connectivity authority is explicit source evidence:
 - branch HPOS/TPOS for endpoint association;
 - CREF with reciprocal HREF/TREF for TEE/OLET branch connections;
 - HREF/TREF for branch-to-branch connections;
-- external HREF/TREF or missing TEE CREF for boundaries.
+- external HREF/TREF or missing TEE CREF for boundaries;
+- `ATTACHED_COMPONENT_REF` or `COMPRE` for a support's carrier component.
 
-Coordinates verify those declared relationships. The normal tolerance is 0.5 mm, ordinary source-order precision is 1 mm, referenced branch endpoints allow the explicit 75 mm source contract, and support projection is limited to 50 mm. Accepted residuals remain visible as `SOURCE_CONNECTION_PRECISION_RESIDUAL`; larger residuals raise instead of fabricating topology.
+Coordinates verify those declared relationships. The normal tolerance is 0.5 mm, ordinary source-order precision is 1 mm, and referenced branch endpoints allow the explicit 75 mm source contract. Unreferenced support projection is limited to 50 mm from the owning route. An explicitly referenced stress support is projected to the identified carrier edge; its original support position, projected attachment position, authority, and residual remain in canonical evidence. No reference permits global nearest-pipe snapping.
 
 ## Component policy
 
@@ -36,7 +37,10 @@ Coordinates verify those declared relationships. The normal tolerance is 0.5 mm,
 - OLET records create header-tap junctions. The managed source already segments both header sides at every OLET position; ledger `affectedEdgeIds` identify those two edges.
 - CREF branch offsets become explicit branch-connection edges. Coincident connections share the junction node without producing a zero-length element.
 - Zero-length FLAN and INST records remain point features and their resolved weights are assigned to the nearest connected native element.
-- SUPPORT hierarchy and identical-position records are grouped by the staged-JSON resolver. Their physical positions split owning route edges, all source support records retain lineage, and the ledger uses `EMIT_SUPPORT_ATTACHMENT`.
+- SUPPORT hierarchy and identical-position records are grouped by the staged-JSON resolver.
+- Stress-support evidence such as `SUPPORT_KIND`, `SUPPORT_TYPE`, `CMPSUPTYPE`, `MDSSUPPTYPE`, positive `NODETYPE`, or positive `NODESTIFF` permits `EMIT_SUPPORT_ATTACHMENT`.
+- Opening, penetration, sleeve, fence, floor, wall, roof, or slab attachments without restraint evidence use `DEFER_SUPPORT`; they retain one accepted ledger record and emit no canonical route node, element, or RESTRAINT.
+- Referenced stress supports use `ATTACHED_COMPONENT_REF`/`COMPRE` to identify the carrier edge. The support datum may be offset from the pipe centerline; the canonical support node is placed on the referenced edge while the source datum and residual are preserved.
 
 The benchmark contains 44 finite INST records with an exactly coincident `AUTO_GENERATED_PIPE` carrier. Each pair shares one canonical component edge and one InputXML element with both source IDs. Both ledger records declare `MANY_TO_ONE`, `AUTO_GENERATED_PIPE_COMPONENT_SPAN`, and explicit reclassification evidence.
 
@@ -79,12 +83,31 @@ The browser StagedJSON -> InputXML action also includes these three files in its
 | Zero-length edges/elements | 0 |
 | Blocked records | 0 |
 
-Reference reconciliation is CREF 216/216, HREF/TREF 392/420 internal, and 28 external. All 1,331 raw support records map to the 663 physical support nodes; no support remains deferred. The 1885_NC fixture now serves as a rejection gate because it contains a support 4,582.734 mm away from its owning route.
+Reference reconciliation is CREF 216/216, HREF/TREF 392/420 internal, and 28 external. All 1,331 raw support records map to the 663 physical support nodes; no support remains deferred.
+
+## Real 1885_NC result
+
+| Metric | Result |
+| --- | ---: |
+| Source branches | 278 |
+| Child records | 4,320 |
+| Route components | 2,939 |
+| Raw support records | 1,381 |
+| Projected support nodes | 580 |
+| Deferred non-restraint support records | 92 |
+| Native restraints | 758 |
+| Canonical nodes | 3,926 |
+| Canonical edges / InputXML elements | 3,946 |
+| Zero-length edges/elements | 0 |
+| Blocked records | 0 |
+
+Support `=1006649732/53464` is retained as `DEFER_SUPPORT` because its evidence is `ATTA FOR FLOOR OPENING | FENCE PENETRATION` without stress-restraint attributes. Support `PS02705.1` retains its 200 mm source-datum offset and projects to carrier component `=1006649732/54494` through `ATTACHED_COMPONENT_REF`/`COMPRE`.
 
 ## Tests
 
 ```powershell
 node tests/component-topology-static.test.js
+node tests/component-topology-support-policy.test.mjs
 node tests/component-topology-artifacts-1885-nc.test.mjs
 node tests/component-topology-artifacts-asim-1835.test.mjs
 node tests/stagedjson-inputxml-workpack.test.js

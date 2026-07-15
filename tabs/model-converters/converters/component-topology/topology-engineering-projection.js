@@ -10,9 +10,11 @@ import { runEnrichment } from '../../../stagedjson-to-enrichxml/sj-enrichment-en
 import { bestPosition, formatPosition } from '../../../stagedjson-to-enrichxml/sj-point-resolver.js';
 import { isRigidType, isSupportType } from '../../../stagedjson-to-enrichxml/sj-type-mapper.js';
 import { portForRole } from './topology-connectivity.js';
+import { pointSegmentDistance } from './topology-geometry-distance.js';
+import { buildSupportAttachmentIndex, resolveSupportAttachment } from './topology-support-reference.js';
+import { splitEdgeSpecsAtSupports } from './topology-support-edge-splitter.js';
 import { cleanText, pointDistance, uniqueText } from './topology-values.js';
 
-/** @param {unknown[]} path @returns {string} */
 function componentKey(path) {
   const branchIndex = Number(path[0]);
   const childrenIndex = path.indexOf('children');
@@ -23,30 +25,16 @@ function componentKey(path) {
   return `${branchIndex}:${sourceIndex}`;
 }
 
-/** @param {{x:number,y:number,z:number}} point @param {{x:number,y:number,z:number}} start @param {{x:number,y:number,z:number}} end @returns {{distanceMm:number,parameter:number}} */
-function pointSegmentDistance(point, start, end) {
-  const vector = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
-  const offset = { x: point.x - start.x, y: point.y - start.y, z: point.z - start.z };
-  const lengthSquared = vector.x ** 2 + vector.y ** 2 + vector.z ** 2;
-  const raw = lengthSquared
-    ? (offset.x * vector.x + offset.y * vector.y + offset.z * vector.z) / lengthSquared : 0;
-  const parameter = Math.max(0, Math.min(1, raw));
-  const projected = {
-    x: start.x + parameter * vector.x,
-    y: start.y + parameter * vector.y,
-    z: start.z + parameter * vector.z,
-  };
-  return { distanceMm: pointDistance(point, projected), parameter };
+function supportPortOrNull(component) {
+  return portForRole(component, 'P') ?? portForRole(component, 'A') ?? portForRole(component, 'L') ?? null;
 }
 
-/** @param {Record<string, unknown>} component @returns {Record<string, unknown>} */
 function supportPort(component) {
-  const port = portForRole(component, 'P') ?? portForRole(component, 'A') ?? portForRole(component, 'L');
+  const port = supportPortOrNull(component);
   if (!port) throw new Error(`Support ${component.sourcePath} has no usable source position port.`);
   return port;
 }
 
-/** @param {Record<string, unknown>} model @param {Record<string, unknown>[]} records @returns {Record<string, unknown>} */
 function componentRecordIndex(model, records) {
   const byPath = new Map(model.components.map((component) => [`${component.branchIndex}:${component.sourceIndex}`, component]));
   const entries = records.map((record) => {
@@ -61,130 +49,102 @@ function componentRecordIndex(model, records) {
   };
 }
 
-/** @param {Record<string, unknown>} model @param {Record<string, unknown>[]} supportEntries @returns {Record<string, unknown>[]} */
-function buildSupportAnchors(model, supportEntries) {
+function isProjectedSupport(component) {
+  return isSupportType(component.sourceType)
+    && cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT';
+}
+
+function mergeAttachment(anchor, attachment) {
+  anchor.attachmentReferences.push(...attachment.references);
+  anchor.attachedComponentEntityIds.push(...attachment.sourceEntityIds);
+  anchor.attachedComponentSourcePaths.push(...attachment.sourcePaths);
+  anchor.unresolvedAttachmentReferences.push(...attachment.unresolvedReferences);
+  if (attachment.authority) anchor.attachmentAuthorities.push(attachment.authority);
+}
+
+function supportNameIndex(model) {
+  const index = new Map();
+  for (const component of model.components) {
+    const name = cleanText(component.attributes.NAME || component.name);
+    if (!name) continue;
+    index.set(name, [...(index.get(name) ?? []), component]);
+  }
+  return index;
+}
+
+function referenceTarget(current, reference, byName) {
+  const candidates = byName.get(reference) ?? [];
+  return candidates.find((row) => row.sourceBranchEntityId === current.sourceBranchEntityId)
+    ?? (candidates.length === 1 ? candidates[0] : null);
+}
+
+function buildSupportAnchors(model, supportEntries, attachmentIndex) {
   const anchors = supportEntries.map(({ component, record }, order) => {
-    const position = bestPosition(record.attrs);
-    if (!position) throw new Error(`Grouped support ${component.sourcePath} has no valid position.`);
-    return {
+    const port = supportPort(component);
+    const enrichmentPosition = bestPosition(record.attrs);
+    const anchor = {
       id: `SA-${String(order + 1).padStart(6, '0')}`,
-      order,
-      component,
-      record,
-      port: supportPort(component),
-      position,
+      order, component, record, port,
+      position: port.position,
+      sourcePosition: port.position,
+      positionAuthority: `SOURCE_PORT:${port.role}`,
+      positionAuthorityResidualMm: enrichmentPosition ? pointDistance(enrichmentPosition, port.position) : null,
       sourceEntityIds: [component.sourceEntityId],
       sourceBranchEntityIds: [component.sourceBranchEntityId],
+      sourceBranchNames: [component.sourceBranchName],
       sourcePaths: [component.sourcePath],
       tag: cleanText(record.supportTag || record.cmpSupRefN || record.name),
       restraints: Array.isArray(record.resolved?.restraint)
         ? record.resolved.restraint : [record.resolved?.restraint].filter(Boolean),
+      attachmentReferences: [], attachedComponentEntityIds: [], attachedComponentSourcePaths: [],
+      unresolvedAttachmentReferences: [], attachmentAuthorities: [],
     };
+    mergeAttachment(anchor, resolveSupportAttachment(component, attachmentIndex));
+    return anchor;
   });
   const byPosition = new Map(anchors.map((anchor) => [formatPosition(anchor.position), anchor]));
-  const supportComponents = model.components.filter((component) => cleanText(component.sourceType).toUpperCase() === 'SUPPORT');
-  const byName = new Map(model.components.map((component) => [
-    cleanText(component.attributes.NAME || component.name), component,
-  ]));
+  const supportComponents = model.components.filter(isProjectedSupport);
+  const byName = supportNameIndex(model);
   for (const component of supportComponents) {
     const anchor = findSupportAnchor(component, byPosition, byName);
     if (!anchor) throw new Error(`Support ${component.sourcePath} was not retained by the engineering grouping contract.`);
     anchor.sourceEntityIds.push(component.sourceEntityId);
     anchor.sourceBranchEntityIds.push(component.sourceBranchEntityId);
+    anchor.sourceBranchNames.push(component.sourceBranchName);
     anchor.sourcePaths.push(component.sourcePath);
+    mergeAttachment(anchor, resolveSupportAttachment(component, attachmentIndex));
   }
   return anchors.map((anchor) => ({
     ...anchor,
     sourceEntityIds: uniqueText(anchor.sourceEntityIds),
     sourceBranchEntityIds: uniqueText(anchor.sourceBranchEntityIds),
+    sourceBranchNames: uniqueText(anchor.sourceBranchNames),
     sourcePaths: uniqueText(anchor.sourcePaths),
+    attachmentReferences: uniqueText(anchor.attachmentReferences),
+    attachedComponentEntityIds: uniqueText(anchor.attachedComponentEntityIds),
+    attachedComponentSourcePaths: uniqueText(anchor.attachedComponentSourcePaths),
+    unresolvedAttachmentReferences: uniqueText(anchor.unresolvedAttachmentReferences),
+    attachmentAuthorities: uniqueText(anchor.attachmentAuthorities),
   }));
 }
 
-/** @param {Record<string, unknown>} component @param {Map<string,Record<string,unknown>>} byPosition @param {Map<string,Record<string,unknown>>} byName @returns {Record<string,unknown>|null} */
 function findSupportAnchor(component, byPosition, byName) {
   let current = component;
   const visited = new Set();
   while (current && !visited.has(current.sourceEntityId)) {
     visited.add(current.sourceEntityId);
-    const position = bestPosition(current.attributes);
+    const position = supportPortOrNull(current)?.position ?? null;
     const direct = position ? byPosition.get(formatPosition(position)) : null;
     if (direct) return direct;
     const currentName = cleanText(current.attributes.NAME || current.name);
     const reference = ['MDSSREF', 'MDSGUIDEREF', 'PREV-NAME']
       .map((field) => cleanText(current.attributes[field]))
-      .find((value) => value && value !== currentName && byName.has(value));
-    current = reference ? byName.get(reference) : null;
+      .find((value) => value && value !== currentName && referenceTarget(current, value, byName));
+    current = reference ? referenceTarget(current, reference, byName) : null;
   }
   return null;
 }
 
-/** @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>[]} supports @param {number} toleranceMm @returns {Map<number,Record<string, unknown>[]>} */
-function matchSupportsToEdges(edgeSpecs, supports, toleranceMm) {
-  const matches = new Map();
-  for (const support of supports) {
-    const candidates = edgeSpecs.flatMap((edge, index) => {
-      if (!support.sourceBranchEntityIds.some((id) => edge.sourceEntityIds.includes(id))) return [];
-      const distance = pointSegmentDistance(support.position, edge.fromPort.position, edge.toPort.position);
-      return [{ edge, index, ...distance }];
-    }).sort((left, right) => left.distanceMm - right.distanceMm || left.index - right.index);
-    const match = candidates[0];
-    if (!match || match.distanceMm > toleranceMm) {
-      throw new Error(`Support ${support.tag || support.id} is ${match?.distanceMm ?? 'unbounded'} mm from its owning branch; limit is ${toleranceMm} mm.`);
-    }
-    support.connectionResidual = match.distanceMm;
-    support.edgeParameter = match.parameter;
-    matches.set(match.index, [...(matches.get(match.index) ?? []), support]);
-  }
-  return matches;
-}
-
-/** @param {Record<string, unknown>} spec @param {Record<string, unknown>[]} supports @param {Readonly<Record<string, unknown>>} set @param {number} topologyToleranceMm @returns {Record<string, unknown>[]} */
-function splitOneEdge(spec, supports, set, topologyToleranceMm) {
-  const ordered = [...supports].sort((left, right) => left.edgeParameter - right.edgeParameter || left.order - right.order);
-  const interior = [];
-  const atStart = [], atEnd = [];
-  for (const support of ordered) {
-    if (pointDistance(support.position, spec.fromPort.position) <= topologyToleranceMm) {
-      set.unite(support.port.key, spec.fromPort.key);
-      atStart.push(support);
-    } else if (pointDistance(support.position, spec.toPort.position) <= topologyToleranceMm) {
-      set.unite(support.port.key, spec.toPort.key);
-      atEnd.push(support);
-    } else interior.push(support);
-  }
-  const interiorPoints = [];
-  for (const support of interior) {
-    const previous = interiorPoints.at(-1);
-    if (previous && pointDistance(previous.port.position, support.position) <= topologyToleranceMm) {
-      set.unite(previous.port.key, support.port.key);
-      previous.supports.push(support);
-    } else interiorPoints.push({ port: support.port, supports: [support] });
-  }
-  const points = [{ port: spec.fromPort, supports: atStart }, ...interiorPoints, { port: spec.toPort, supports: atEnd }];
-  return points.slice(1).map((point, index) => {
-    const attachments = uniqueText([...points[index].supports, ...point.supports].flatMap((row) => row.sourceEntityIds));
-    return {
-      ...spec,
-      fromPort: points[index].port,
-      toPort: point.port,
-      sourceEntityIds: uniqueText([...spec.sourceEntityIds, ...attachments]),
-      sourceTypes: attachments.length ? uniqueText([...spec.sourceTypes, 'SUPPORT']) : spec.sourceTypes,
-      segmentRole: interior.length ? `${spec.segmentRole}_SUPPORT_SPLIT` : spec.segmentRole,
-    };
-  });
-}
-
-/** @param {Record<string, unknown>[]} specs @param {Record<string, unknown>[]} supports @param {Record<string, unknown>} connectivity @param {number} topologyToleranceMm @param {number} projectionToleranceMm @returns {Record<string, unknown>[]} */
-export function splitEdgeSpecsAtSupports(specs, supports, connectivity, topologyToleranceMm, projectionToleranceMm) {
-  const matches = matchSupportsToEdges(specs, supports, projectionToleranceMm);
-  return specs.flatMap((spec, index) => {
-    const assigned = matches.get(index) ?? [];
-    return assigned.length ? splitOneEdge(spec, assigned, connectivity.set, topologyToleranceMm) : [spec];
-  });
-}
-
-/** @param {Record<string, unknown>[]} edges @param {Record<string, unknown>[]} nodes @param {Record<string, unknown>[]} rigids @param {number} toleranceMm @returns {Record<string, unknown>[]} */
 export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   return rigids.map((rigid) => {
@@ -201,9 +161,7 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
       edge,
       authorityRank: naturalIds.has(edge.id) ? 0 : branchIds.has(edge.id) ? 1 : 2,
       distanceMm: pointSegmentDistance(
-        rigid.position,
-        nodeById.get(edge.fromNodeId).position,
-        nodeById.get(edge.toNodeId).position,
+        rigid.position, nodeById.get(edge.fromNodeId).position, nodeById.get(edge.toNodeId).position,
       ).distanceMm,
     })).sort((left, right) => left.authorityRank - right.authorityRank
       || left.distanceMm - right.distanceMm || left.edge.id.localeCompare(right.edge.id));
@@ -225,22 +183,41 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
   });
 }
 
-/** @param {string} sourceText @param {Record<string, unknown>} model @param {{enrichmentConfig:Record<string,unknown>}} options @returns {Readonly<Record<string, unknown>>} */
 export function buildTopologyEngineeringProjection(sourceText, model, options) {
   const enrichment = runEnrichment({ stagedJsonText: sourceText, config: options.enrichmentConfig });
   const index = componentRecordIndex(model, enrichment.records);
-  const supportEntries = index.entries.filter(({ record }) => isSupportType(record.componentType));
-  const supports = buildSupportAnchors(model, supportEntries);
+  const attachmentIndex = buildSupportAttachmentIndex(model);
+  const supportEntries = index.entries.filter(({ component, record }) => (
+    isSupportType(record.componentType) && isProjectedSupport(component)
+  ));
+  const supports = buildSupportAnchors(model, supportEntries, attachmentIndex);
+  const deferredSupports = model.components.filter((component) => (
+    isSupportType(component.sourceType)
+    && cleanText(component.supportProjection?.disposition) === 'DEFER_SUPPORT'
+  ));
   const rigids = index.entries.filter(({ record }) => isRigidType(record.componentType)).map(({ component, record }) => ({
-    component,
-    record,
-    position: bestPosition(record.attrs),
+    component, record, position: bestPosition(record.attrs),
   }));
   if (rigids.some((rigid) => !rigid.position)) throw new Error('At least one rigid source component has no valid position.');
   return Object.freeze({
     recordBySourceEntityId: index.recordBySourceEntityId,
     supports: Object.freeze(supports),
+    deferredSupports: Object.freeze(deferredSupports.map((component) => Object.freeze({
+      sourceEntityId: component.sourceEntityId,
+      sourcePath: component.sourcePath,
+      sourceBranchEntityId: component.sourceBranchEntityId,
+      sourceBranchName: component.sourceBranchName,
+      sourceRef: component.sourceRef,
+      policy: component.supportProjection,
+    }))),
     rigids: Object.freeze(rigids),
-    metrics: Object.freeze({ supports: supports.length, restraints: supports.reduce((sum, row) => sum + row.restraints.length, 0), rigids: rigids.length }),
+    metrics: Object.freeze({
+      supports: supports.length,
+      deferredSupports: deferredSupports.length,
+      restraints: supports.reduce((sum, row) => sum + row.restraints.length, 0),
+      rigids: rigids.length,
+    }),
   });
 }
+
+export { splitEdgeSpecsAtSupports };

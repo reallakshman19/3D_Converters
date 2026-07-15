@@ -7,9 +7,11 @@
 
 import { createSourceEnvelope } from '../../../universal-enrichment-workbench/source-envelope.js';
 import { createSourceEntityId } from '../../../universal-enrichment-workbench/graph-identity.js';
+import { classifySupportProjection } from './topology-support-policy.js';
 import {
   ROUTE_TYPES,
   cleanText,
+  componentCategory,
   geometryClass,
   pointDistance,
   strictPoint,
@@ -52,6 +54,8 @@ function componentDescriptor(child, branchIndex, sourceIndex, order, toleranceMm
     LPOS: strictPoint(attributes.LPOS),
   };
   const spanLengthMm = pointDistance(positions.APOS, positions.LPOS);
+  const supportProjection = componentCategory(sourceType) === 'SUPPORT'
+    ? classifySupportProjection(attributes) : null;
   return {
     sourcePath, sourceType, branchIndex, sourceIndex, order,
     name: cleanText(child.name ?? attributes.NAME),
@@ -59,6 +63,7 @@ function componentDescriptor(child, branchIndex, sourceIndex, order, toleranceMm
     attributes,
     enrichedAttributes: record(child.enrichedAttributes),
     positions,
+    supportProjection,
     geometryClassification: geometryClass(sourceType, positions, toleranceMm),
     finiteSpan: Number.isFinite(spanLengthMm) && spanLengthMm > toleranceMm,
     spanLengthMm,
