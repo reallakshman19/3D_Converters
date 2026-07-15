@@ -43,10 +43,26 @@ def _compile_seljson_custom_root(
         context=context,
     )
     _rename_shared_bridge_evidence(bridged)
+    model = next(
+        child for child in bridged
+        if _namespace(child.tag) == "" and _local(child.tag) == "PIPINGMODEL"
+    )
+    elements = [
+        child for child in model
+        if _namespace(child.tag) == "" and _local(child.tag) == "PIPINGELEMENT"
+    ]
+    element_ids = [str(element.get("ID") or f"selectionjson-element-{index}") for index, element in enumerate(elements, 1)]
     ledger.add(
-        source_entity_id="document",
+        source_entity_id="selectionjson-document",
         source_type="SELECTIONJSON_CUSTOM_ROOT",
         source_fields={"dialect": "seljson-custom-root"},
+        canonical_element_ids=element_ids,
+        canonical_node_ids=sorted({
+            str(int(Decimal(element.get(field))))
+            for element in elements for field in ("FROM_NODE", "TO_NODE")
+        }),
+        inputxml_element_ids=element_ids,
+        cii_section="ELEMENTS",
         projection_cardinality="1_TO_MANY",
         disposition="PROJECT_WITH_AUTHORITATIVE_TOPOLOGY_ENGINE",
         evidence=[
