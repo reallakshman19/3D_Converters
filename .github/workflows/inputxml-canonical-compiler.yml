@@ -38,7 +38,18 @@ jobs:
           node --check scripts/inputxml_compiler/node_xml_builder_bridge.cjs
           node tests/xml-cii-node-to-inputxml-core.test.js
       - name: Run canonical compiler unit and integration tests
-        run: python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py
+        run: |
+          set +e
+          python -m unittest -v tests/test_inputxml_canonical_compiler.py tests/test_inputxml_canonical_compiler_integration.py tests/test_inputxml_xml_builder_adapter.py 2>&1 | tee /tmp/inputxml-compiler-tests.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload compiler test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inputxml-compiler-test-log
+          path: /tmp/inputxml-compiler-tests.log
+          if-no-files-found: warn
       - name: Run direct canonical CLI smoke
         run: |
           rm -rf /tmp/inputxml-canonical-compiler
