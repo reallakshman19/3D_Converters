@@ -43,6 +43,7 @@ jobs:
             Benchmarks/1885Sjson/EnrichedSjson.audit.json \
             Benchmarks/1885Sjson/EnrichedSjson.unresolved.csv \
             Benchmarks/1885Sjson/ExpectedCondensedEnrichedXML \
+            Benchmarks/1885Sjson/fixture-contract-snapshot.json \
             Benchmarks/1885Sjson/fixture-manifest.json
           if git diff --cached --quiet; then
             echo 'Benchmark artifacts are current.'
