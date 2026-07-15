@@ -13,14 +13,19 @@ spec.loader.exec_module(compiler)
 compiler._compiler._validate_xsd = lambda root, path: []
 compiler._compiler._validate_schematron = lambda root, path: []
 
+_DIALECT_IDS = [
+    'canonical-inputxml-v1','caesar-inputxml-pressure1','caesar-inputxml-pressure-c',
+    'enriched-inputxml-app','inputxml-fragment','categorized-inputxml-v3','cii14-inputxml',
+    'managed-stage-json','xml-builder-root-branch-node','pdf-input-echo','uxml-rvm-intake','nodeset-v1'
+]
 REGISTRY = {
     'schema':'InputXmlDialectRegistry.v1',
     'dialects':[
-        {'dialectId':d} for d in [
-            'canonical-inputxml-v1','caesar-inputxml-pressure1','caesar-inputxml-pressure-c',
-            'enriched-inputxml-app','inputxml-fragment','categorized-inputxml-v3','cii14-inputxml',
-            'managed-stage-json','xml-builder-root-branch-node','pdf-input-echo','uxml-rvm-intake','nodeset-v1'
-        ]
+        {
+            'dialectId': dialect_id,
+            **({'canonicalAcceptance':'EXCLUDED'} if dialect_id == 'nodeset-v1' else {}),
+        }
+        for dialect_id in _DIALECT_IDS
     ]
 }
 ALIASES = {
@@ -113,10 +118,10 @@ class CompilerTests(unittest.TestCase):
         root,_,validation=self.compile(xml,context={'version':'11.00','north':[0,1,0]})
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
 
-    def test_registered_unimplemented_dialect_blocks(self):
-        root,ledger,validation=self.compile('<Root/>', dialect='uxml-rvm-intake')
+    def test_excluded_nodeset_dialect_is_rejected(self):
+        root,ledger,validation=self.compile('<NodeSet/>', dialect='nodeset-v1')
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
-        self.assertEqual('UNSUPPORTED_BLOCKING',ledger['records'][0]['disposition'])
+        self.assertEqual('REJECT_INVALID',ledger['records'][0]['disposition'])
 
     def test_wrong_xml_type_blocks_before_normalization(self):
         xml=(BASE_HEAD.format(numelt=0)+BASE_TAIL).replace('XML_TYPE="Input"','XML_TYPE="Output"')

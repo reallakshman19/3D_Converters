@@ -8,6 +8,7 @@ The compiler is a fail-closed intake boundary between registered source dialects
 source dialect
 → dialect detection / explicit selection
 → structural intake checks
+→ authoritative parser or topology engine
 → alias and value normalization
 → source-evidence reconciliation
 → canonical InputXML
@@ -32,9 +33,10 @@ The compiler implements direct canonical validation and adapters for:
 - SelectionJSON custom `Root/Branch/Node` through the same authoritative topology engine with a distinct dialect and evidence identity;
 - managed-stage JSON through `ComponentTopologySourceModel.v1`, `CanonicalTopology.v1`, and `TopologyTraceLedger.v1`;
 - CAESAR Input Echo text-layer PDF or explicitly declared extracted text through the existing report grammar parser;
+- serialized `uxml-topology-v1` documents and RVM-extract rows through the UXML validation, universal/ray topology, comparison, and decision gates;
 - diagnostic InputXML sidecars as `DEFER_EXPLICITLY` and always blocked.
 
-Complex source dialects remain registered and recognized but return a precise `DEFERRED_BLOCKING` result until their existing specialized geometry/topology engines are connected through a reviewed adapter. The compiler never substitutes a simplified nearest-geometry implementation.
+Every registered source dialect now has an implemented fail-closed compiler boundary. `nodeset-v1` remains intentionally excluded because it is a comparison-only artifact, and diagnostic sidecars remain intentionally non-PASS until independently reconciled.
 
 ## Root/Branch/Node topology bridge
 
@@ -88,29 +90,49 @@ The PDF adapter accepts either:
 
 It reuses the report grammar in `converters/scripts/pdf_to_inputxml.py` for the `PIPE DATA` element blocks. It deliberately does not use that converter's internal profile/template substitution or generated fallback path.
 
-The caller must supply explicit compiler context for:
-
-- CAESAR version;
-- north vector;
-- piping line identity.
-
-The report must contain an explicit Job Name and Date/Time. Current-clock substitution is forbidden. Pressure and hydro values parsed in bar are converted to canonical kPa. Omitted delta axes are ledgered as deterministic report-level zero components. Pipe-state carry-forward is ledgered per element and never crosses the explicit line scope.
+The caller must supply explicit compiler context for CAESAR version, north vector, and piping line identity. The report must contain an explicit Job Name and Date/Time. Current-clock substitution is forbidden. Pressure and hydro values parsed in bar are converted to canonical kPa. Omitted delta axes are ledgered as deterministic report-level zero components. Pipe-state carry-forward is ledgered per element and never crosses the explicit line scope.
 
 The complete extracted report and extraction provenance are preserved in the extension namespace. Mechanical fields outside the current canonical projection are also preserved with units in their evidence names.
 
-The PDF adapter blocks on:
+The PDF adapter blocks on scanned/image-only or malformed PDFs, missing explicit context, block-accounting mismatch, zero-length elements, unsupported report sections, incomplete restraint/SIF semantics, special component identities hidden in generic rigid records, and unresolved auxiliary capacity or ownership.
 
-- scanned/image-only or malformed PDF with no valid Input Echo text layer;
-- missing report timestamp, explicit version, north vector, or line identity;
-- block/accounting mismatch;
-- zero-length element;
-- unsupported report sections such as hangers, displacements, force/moment, uniform, wind, offsets, or allowable stress;
-- restraints because the current report grammar does not recover stiffness, gap, friction, and connecting-node semantics;
-- SIF/tee records until their full canonical field contract is verified;
-- valve, flange, gasket, blind-flange, instrument, or reducer identities represented only as generic rigid records;
-- more than six restraints or any other unresolved auxiliary capacity/ownership condition.
+## UXML/RVM topology bridge
 
-Bends with a positive radius and complete angle/node pairing can project. A generic rigid with explicit weight can project while its source type is preserved.
+The final adapter accepts:
+
+- a serialized `uxml-topology-v1` document, detected from `schemaVersion`; or
+- RVM extraction rows supplied as `rows`/`rvmRows` or an explicitly selected JSON array.
+
+RVM rows are first converted by `RvmRowsToUxmlAdapter.js`. Both intake forms then run through:
+
+```text
+UxmlValidationGate
+→ UxmlFaceModelBuilder
+→ UxmlUniversalTopoGraphBuilder
+→ UxmlRayTopoGraphBuilder
+→ UxmlTopoGraphComparator
+→ UxmlTopologyDecisionGate
+```
+
+The decision gate is configured with no partial export, no ray promotion, and no face-proximity promotion. Canonical shared nodes are accepted only from `EXACT_CONNECTION` universal edges with distance at most 0.001 mm. Tolerance-only, ray, and proximity connections remain evidence and block because the existing UXML gates do not mutate source coordinates.
+
+The caller must supply explicit CAESAR version, north vector, and either:
+
+- `coordinateBasis="CAESAR"` for identity millimetre coordinates; or
+- an explicit 3×3 coordinate-transform matrix and three-value offset.
+
+The adapter supports coordinate and length units `MM`. It assigns deterministic positive node numbers from UniversalTopoGraph node identities. Every component, anchor, port, segment, support, mapping, topology hint, ray-evidence record, loss-contract item, graph node, accepted connection, and RVM source row is represented in the canonicalization ledger.
+
+Only explicit PIPE components have an approved PR-D5 projection. A PIPE must have:
+
+- `PIPE_END_1` and `PIPE_END_2` ports resolved to exact universal nodes;
+- nonzero transformed span;
+- explicit line identity;
+- explicit outside diameter and nonnegative wall thickness.
+
+Nominal bore is never treated as outside diameter. OD/wall evidence can come from component source fields or `context.componentEngineering[componentId]`. Optional canonical temperature, pressure, hydro, density, corrosion, insulation, and material fields are emitted only from explicit unit-bearing values.
+
+The adapter blocks on validation/export denial, any unresolved loss contract, partial/ray/tolerance topology, duplicate or collapsed spans, absent coordinate frame, missing OD/wall/line identity, and every non-PIPE component family. Unsupported valves, bends, tees, olets, flanges, gaskets, reducers, caps, blind flanges, instruments, and supports remain preserved with `UNSUPPORTED_BLOCKING` disposition rather than becoming generic pipes.
 
 ## Fail-closed rules
 
@@ -124,7 +146,7 @@ Bends with a positive radius and complete angle/node pairing can project. A gene
 - unknown engineering data becomes `UNSUPPORTED_BLOCKING` extension evidence;
 - known nonprojected evidence is preserved explicitly;
 - unsupported auxiliaries are preserved and block;
-- no restraint, SIF, hanger, or nozzle compatibility default is silently inserted;
+- no restraint, SIF, hanger, nozzle, component identity, coordinate frame, or topology connection is silently defaulted;
 - `CategorizedInputXML` normalized blocks are reconciled against `OriginalElement`; both evidence forms are preserved;
 - every output must pass canonical XSD and Schematron before `PASS`.
 
@@ -144,10 +166,12 @@ A blocked conversion still writes the ledger and validation report. A canonical 
 
 `InputXmlCanonicalizationDecisionLedger.v1` records source identity, source fields, canonical nodes/elements, projection cardinality, disposition, evidence, confidence dimensions, and diagnostics. Generic `DROP` and `SKIP` dispositions are forbidden.
 
-## Remaining PR-D completion work
+## PR-D completion
 
-The only registered source adapter intentionally not claimed as complete is:
+All fourteen registered dialect profiles now have an explicit compiler outcome:
 
-- UXML/RVM intake.
+- twelve implemented source/canonical adapters;
+- one intentionally blocking diagnostic reconciliation profile;
+- one intentionally excluded comparison-only profile.
 
-It requires its authoritative engineering-identity and topology implementation to be bridged, not reimplemented with simplified heuristics.
+This completes the PR-D dialect-to-canonical compiler sequence. It does not approve production CII writer changes; writer integration remains subject to the later projection/parity gates.

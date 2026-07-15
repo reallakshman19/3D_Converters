@@ -3,10 +3,10 @@
   "generatedAt": "2026-07-15",
   "authority": {
     "repository": "reallaksh19/3D_Converters",
-    "baseline": "94399cd137a621a4ad8a617bf65b193ced4925b9",
+    "baseline": "44e5f0c0a5b2bd242a43bc58db6467dd7260d576",
     "compiler": "scripts/inputxml_canonical_compiler.py"
   },
-  "rule": "Every dialect in inputxml-dialect-registry.json is recognized. Only IMPLEMENTED adapters may emit a PASS result. Deferred, diagnostic, and excluded profiles fail closed with an explicit ledger disposition.",
+  "rule": "Every dialect in inputxml-dialect-registry.json is recognized. Implemented adapters may emit PASS only after their authoritative intake/topology gates and canonical XSD/Schematron pass. Diagnostic and excluded profiles remain intentionally non-PASS.",
   "adapters": [
     {"dialectId":"canonical-inputxml-v1","adapterId":"direct-canonical-validation","status":"IMPLEMENTED","resultPolicy":"PASS_ONLY_AFTER_XSD_AND_SCHEMATRON"},
     {"dialectId":"caesar-inputxml-pressure1","adapterId":"pressure1-lineid-to-canonical","status":"IMPLEMENTED","resultPolicy":"NORMALIZE_ALIASES_INHERITANCE_AND_SENTINELS"},
@@ -20,7 +20,7 @@
     {"dialectId":"seljson-custom-root","adapterId":"seljson-custom-model-to-canonical","status":"IMPLEMENTED","resultPolicy":"EXPLICIT_DIALECT_SHARED_AUTHORITATIVE_TOPOLOGY_AND_BLOCK_ON_LOSS"},
     {"dialectId":"managed-stage-json","adapterId":"managed-stage-to-canonical","status":"IMPLEMENTED","resultPolicy":"COMPONENT_TOPOLOGY_SOURCE_MODEL_TRACE_LEDGER_AND_FAIL_CLOSED_CII_PROJECTION"},
     {"dialectId":"pdf-input-echo","adapterId":"pdf-input-echo-to-canonical","status":"IMPLEMENTED","resultPolicy":"TEXT_LAYER_PROVENANCE_EXPLICIT_CONTEXT_NO_PROFILE_OR_DEFAULT_FALLBACK"},
-    {"dialectId":"uxml-rvm-intake","adapterId":"uxml-rvm-to-canonical","status":"DEFERRED_BLOCKING","resultPolicy":"REQUIRES_ENGINEERING_IDENTITY_AND_TOPOLOGY_BRIDGE"},
+    {"dialectId":"uxml-rvm-intake","adapterId":"uxml-rvm-to-canonical","status":"IMPLEMENTED","resultPolicy":"VALIDATED_UXML_EXACT_TOPOLOGY_EXPLICIT_ENGINEERING_AND_COORDINATE_FRAME"},
     {"dialectId":"nodeset-v1","adapterId":"none","status":"EXCLUDED","resultPolicy":"REJECT_INVALID_COMPARISON_ONLY_ARTIFACT"}
   ]
 }
