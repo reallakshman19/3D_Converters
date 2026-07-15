@@ -206,11 +206,45 @@ def reconcile_assurance_with_field_catalog(
     return reconciled, metadata, diagnostics
 
 
+def _bind_exact_canonical_element_ids(
+    assurance: dict[str, Any],
+    canonical_xml: bytes,
+) -> dict[str, list[str]]:
+    """Bind writer ownership only for ledger IDs that equal real InputXML IDs.
+
+    Some producer ledgers predate the dedicated InputXMLElementIds column but do
+    carry canonicalElementIds. Those values are accepted here only when they are
+    exact members of the canonical InputXML element-ID set; topology edge IDs or
+    other source identities are ignored.
+    """
+    _, _, elements = core._parse_canonical(canonical_xml)
+    order = {element.element_id: element.ordinal for element in elements}
+    known = set(order)
+    notes: dict[str, list[str]] = {}
+    for record in assurance.get("records") or []:
+        canonical = record.setdefault("canonical", {})
+        existing = [str(value) for value in canonical.get("inputXmlElementIds") or [] if str(value) in known]
+        if existing:
+            canonical["inputXmlElementIds"] = sorted(set(existing), key=order.get)
+            continue
+        candidates = [str(value) for value in canonical.get("elementIds") or [] if str(value) in known]
+        if not candidates:
+            continue
+        bound = sorted(set(candidates), key=order.get)
+        canonical["inputXmlElementIds"] = bound
+        record_id = str(record.get("assuranceRecordId") or "")
+        notes[record_id] = [
+            "Writer ownership bound from canonical.elementIds after exact membership verification against canonical InputXML IDs."
+        ]
+    return notes
+
+
 def _enrich_projection_ledger(
     ledger: dict[str, Any],
     metadata: dict[str, dict[str, Any]],
     field_catalog: dict[str, Any],
     catalog_diagnostics: list[dict[str, Any]],
+    ownership_notes: dict[str, list[str]],
 ) -> dict[str, Any]:
     ledger = deepcopy(ledger)
     ledger["chain"]["fieldCatalogHashSha256"] = core._json_hash(field_catalog)
@@ -222,7 +256,11 @@ def _enrich_projection_ledger(
         row["plannedSections"] = row_metadata["plannedSections"]
         row["catalogProjectionStatus"] = row_metadata["catalogProjectionStatus"]
         row["effectiveSections"] = row_metadata["effectiveSections"]
-        row["diagnostics"] = list(row.get("diagnostics") or []) + list(row_metadata["notes"])
+        row["diagnostics"] = (
+            list(row.get("diagnostics") or [])
+            + list(row_metadata["notes"])
+            + list(ownership_notes.get(record_id) or [])
+        )
     if catalog_diagnostics:
         ledger["diagnostics"] = list(ledger.get("diagnostics") or []) + catalog_diagnostics
         ledger["status"] = "BLOCKED"
@@ -255,6 +293,7 @@ def build_assured_projection(
         assurance,
         field_catalog,
     )
+    ownership_notes = _bind_exact_canonical_element_ids(reconciled, canonical_xml)
     cii_text, ledger = core.build_assured_projection(
         canonical_xml=canonical_xml,
         assurance=reconciled,
@@ -266,6 +305,7 @@ def build_assured_projection(
         metadata,
         field_catalog,
         catalog_diagnostics,
+        ownership_notes,
     )
     if ledger["status"] != "PASS":
         cii_text = None
