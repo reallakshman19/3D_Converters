@@ -9,6 +9,7 @@ from .model import *
 from .categorized import *
 from .validation import *
 from .xml_builder import *
+from .seljson import *
 
 def compile_document(
     source: bytes,
@@ -63,6 +64,9 @@ def compile_document(
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         elif dialect == "xml-builder-root-branch-node":
             wrapped = _compile_xml_builder_source(source, source_root=root, ledger=ledger, context=context)
+            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
+        elif dialect == "seljson-custom-root":
+            wrapped = _compile_seljson_custom_root(source, source_root=root, ledger=ledger, context=context)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         else:
             canonical = _compile_inputxml_family(root, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
