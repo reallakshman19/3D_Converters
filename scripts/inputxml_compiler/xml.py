@@ -142,7 +142,16 @@ def _resolve_aliases(alias_registry: dict[str, Any]) -> dict[str, dict[str, str]
     return result
 
 
-def _source_field(element: ET._Element, canonical: str, aliases: dict[str, str], ledger: DecisionLedger, entity_id: str) -> tuple[str | None, str | None]:
+def _source_field(
+    element: ET._Element,
+    canonical: str,
+    aliases: dict[str, str],
+    ledger: DecisionLedger,
+    entity_id: str,
+    *,
+    canonical_element_id: str | None = None,
+    canonical_path: str | None = None,
+) -> tuple[str | None, str | None]:
     candidates = [canonical] + [alias for alias, target in aliases.items() if target == canonical]
     present = [(name, element.get(name)) for name in candidates if element.get(name) is not None]
     if not present:
@@ -163,10 +172,18 @@ def _source_field(element: ET._Element, canonical: str, aliases: dict[str, str],
             )
             raise CompileBlocked(f"Alias collision for {canonical}: {chosen_name}={chosen_value!r}, {name}={value!r}.")
     if chosen_name != canonical:
+        canonical_identity = f"{canonical_path}@{canonical}" if canonical_path else f"{entity_id}@{canonical}"
         ledger.add(
-            source_entity_id=f"{entity_id}@{chosen_name}",
+            source_entity_id=canonical_identity,
             source_type="ATTRIBUTE_ALIAS",
-            source_fields={chosen_name: chosen_value},
+            source_fields={
+                "sourceEntityId": entity_id,
+                "sourceAlias": chosen_name,
+                "canonicalField": canonical,
+                "value": chosen_value,
+            },
+            canonical_element_ids=[canonical_element_id] if canonical_element_id else [],
+            inputxml_element_ids=[canonical_element_id] if canonical_element_id else [],
             disposition="EMIT_1_TO_1",
             evidence=[f"renamed {chosen_name} to {canonical}"],
             confidence={"identity":1.0,"topology":1.0,"geometry":1.0,"dimensions":1.0,"attributes":1.0,"ciiProjection":1.0},
