@@ -45,10 +45,8 @@ class Psi116TopologyResolverFoundationTests(unittest.TestCase):
         self.assertIn("ELBO_HELPER_PORTS_MISSING", codes)
 
         dispositions = {action.disposition for action in result.fix_actions}
-        self.assertIn("CONTRACT_PRESERVE_OWNER", dispositions)
-        self.assertIn("SAFE_DROP_PIPE_GEOMETRY", dispositions)
-        self.assertIn("REMOVE_FALSE_RIGID", dispositions)
         self.assertIn("ALIAS_COINCIDENT_NODE", dispositions)
+        self.assertIn("REMOVE_FALSE_RIGID", dispositions)
 
         plan = result.fix_plan_payload(ResolverConfig())
         self.assertEqual(plan["mutationPolicy"], "DRY_RUN_ONLY")
@@ -62,49 +60,64 @@ class Psi116TopologyResolverFoundationTests(unittest.TestCase):
             first = write_sidecars(result, tmp, config, stem="case")
             first_bytes = [path.read_bytes() for path in first]
             second = write_sidecars(result, tmp, config, stem="case")
-            second_bytes = [path.read_bytes() for path in second]
-            self.assertEqual(first_bytes, second_bytes)
+            self.assertEqual(first_bytes, [path.read_bytes() for path in second])
             self.assertFalse(any(Path(tmp).glob("*.xml")))
             findings = json.loads(first[0].read_text(encoding="utf-8"))
             plan = json.loads(first[1].read_text(encoding="utf-8"))
             self.assertEqual(findings["source"]["sha256"], plan["source"]["sha256"])
 
-    def test_real_1885_detects_known_topology_defects_without_mutation(self) -> None:
+    def test_real_1885_uses_component_occurrences_not_positive_node_backtracking(self) -> None:
         fixture = REPO_ROOT / "Benchmarks" / "1885Sjson" / "FirstpassXML"
         self.assertTrue(fixture.is_file(), fixture)
         source_before = fixture.read_text(encoding="utf-8")
         result = resolve_psi116(fixture)
-        source_after = fixture.read_text(encoding="utf-8")
-        self.assertEqual(source_before, source_after)
+        self.assertEqual(source_before, fixture.read_text(encoding="utf-8"))
         self.assertEqual(result.document.source_text, source_before)
 
-        zero_1600_1610 = [
-            finding for finding in result.findings
-            if finding.code == "ZERO_LENGTH_ROUTE_SPAN" and {1600, 1610}.issubset(set(finding.node_numbers))
-        ]
-        self.assertEqual(len(zero_1600_1610), 1)
+        summary = result.findings_payload(ResolverConfig())["summary"]
+        self.assertEqual(summary["branchCount"], 5)
+        self.assertEqual(summary["sourceNodeRecordCount"], 216)
+        self.assertEqual(summary["componentOccurrenceCount"], 163)
+        self.assertEqual(summary["blockingFindingCount"], 0)
 
-        alias_1570_2260 = [
-            finding for finding in result.findings
-            if finding.code == "COINCIDENT_NODE_ALIAS_CANDIDATE"
+        codes = {finding.code for finding in result.findings}
+        self.assertNotIn("COLLINEAR_ROUTE_OVERLAP", codes)
+        self.assertNotIn("DUPLICATE_ROUTE_SPAN", codes)
+        self.assertNotIn("COINCIDENT_NODE_IDENTITY_AMBIGUOUS", codes)
+
+        self.assertTrue(any(
+            finding.code == "ZERO_LENGTH_ROUTE_SPAN"
+            and {1600, 1610}.issubset(set(finding.node_numbers))
+            for finding in result.findings
+        ))
+        self.assertTrue(any(
+            finding.code == "COINCIDENT_NODE_ALIAS_CANDIDATE"
             and {1570, 2260}.issubset(set(finding.node_numbers))
             and finding.details.get("ownerNodeNumber") == 1570
-        ]
-        self.assertEqual(len(alias_1570_2260), 1)
+            for finding in result.findings
+        ))
 
-        contract_1610 = [
-            action for action in result.fix_actions
-            if action.disposition == "CONTRACT_PRESERVE_OWNER" and action.owner_node_number == 1610
-        ]
-        self.assertEqual(len(contract_1610), 1)
-
-        alias_1570 = [
+        alias_1610 = [
             action for action in result.fix_actions
             if action.disposition == "ALIAS_COINCIDENT_NODE"
+            and action.owner_node_number == 1610
+            and 1600 in action.absorbed_node_numbers
+        ]
+        self.assertEqual(len(alias_1610), 1)
+        self.assertEqual(len(alias_1610[0].finding_ids), 2)
+        self.assertIn("SPAN-000135", alias_1610[0].span_ids)
+
+        self.assertTrue(any(
+            action.disposition == "ALIAS_COINCIDENT_NODE"
             and action.owner_node_number == 1570
             and 2260 in action.absorbed_node_numbers
-        ]
-        self.assertEqual(len(alias_1570), 1)
+            for action in result.fix_actions
+        ))
+
+        self.assertEqual(sum(finding.code == "AUTO_PIPE_INLINE_COMPONENT_CARRIER" for finding in result.findings), 18)
+        self.assertEqual(sum(finding.code == "SUPPORT_ON_PIPE_CARRIER" for finding in result.findings), 36)
+        self.assertEqual(sum(finding.code == "JUNCTION_ON_PIPE_CARRIER" for finding in result.findings), 13)
+        self.assertTrue(all(action.disposition != "BLOCK_AMBIGUOUS" for action in result.fix_actions))
 
 
 if __name__ == "__main__":
