@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import sys
 import tempfile
 import unittest
@@ -14,8 +15,14 @@ spec.loader.exec_module(matrix)
 
 class InputXmlEndToEndRegressionMatrixTests(unittest.TestCase):
     def test_all_registered_dialects_have_expected_full_chain_or_blocked_outcome(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            result = matrix.run_matrix(Path(tmp))
+        configured = os.environ.get("INPUTXML_PRG_OUTPUT_DIR")
+        if configured:
+            output_dir = Path(configured)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            result = matrix.run_matrix(output_dir)
+        else:
+            with tempfile.TemporaryDirectory() as tmp:
+                result = matrix.run_matrix(Path(tmp))
         self.assertEqual("PASS", result["status"], result["diagnostics"])
         self.assertEqual(14, result["summary"]["registeredDialectCount"])
         self.assertEqual(14, result["summary"]["caseCount"])
