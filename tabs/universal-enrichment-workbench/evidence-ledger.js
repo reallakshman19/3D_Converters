@@ -5,6 +5,25 @@ import {
   createFieldCandidateLedgerId, tracePathForResult,
 } from './evidence-identity.js';
 
+function referenceErrors(graph, config, run) {
+  const errors = [];
+  if (!Array.isArray(graph?.entities) || !Array.isArray(config?.rules) || !Array.isArray(run?.results)) {
+    errors.push('Graph entities, configuration rules and run results must be arrays.');
+    return errors;
+  }
+  const entities = new Map(graph.entities.map((entity) => [entity.entityId, entity]));
+  const rules = new Map(config.rules.map((rule) => [rule.ruleId, rule]));
+  run.results.forEach((result, index) => {
+    const entity = entities.get(result.entityId); const rule = rules.get(result.ruleId);
+    if (!entity) errors.push(`Run result ${index} references unknown entity ${result.entityId}.`);
+    if (!rule) errors.push(`Run result ${index} references unknown rule ${result.ruleId}.`);
+    else if (!rule.enabled) errors.push(`Run result ${index} references disabled rule ${result.ruleId}.`);
+    if (entity && result.sourcePath !== entity.sourcePath) errors.push(`Run result ${index} source path does not match entity evidence.`);
+    if (rule && result.fieldKey !== rule.fieldKey) errors.push(`Run result ${index} field key does not match rule evidence.`);
+  });
+  return errors;
+}
+
 function authorityErrors(graph, config, run) {
   const errors = [];
   if (graph?.schema !== 'UniversalSourceGraph.v1' || !graph?.validation?.ok) errors.push('A valid UniversalSourceGraph.v1 is required.');
@@ -12,6 +31,7 @@ function authorityErrors(graph, config, run) {
   if (run?.schema !== 'ExtractionTestRun.v1' || !run?.validation?.ok) errors.push('A valid ExtractionTestRun.v1 is required.');
   if (run?.sourceFileId !== graph?.sourceFileId || run?.sourceRevision !== graph?.sourceRevision || run?.sourceContentHash !== graph?.contentHash || run?.sourceGraphSchema !== graph?.schema) errors.push('Run graph metadata does not match the current graph.');
   if (run?.configId !== config?.configId) errors.push('Run configId does not match the current configuration.');
+  errors.push(...referenceErrors(graph, config, run));
   return errors;
 }
 
