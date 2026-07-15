@@ -22,9 +22,7 @@ jobs:
       - name: Syntax check
         run: |
           python -m py_compile \
-            converters/psi116_topology_resolver/__init__.py \
-            converters/psi116_topology_resolver/__main__.py \
-            converters/psi116_topology_resolver/resolver.py \
+            converters/psi116_topology_resolver/*.py \
             tests/psi116_topology_resolver_foundation.py
 
       - name: Resolver regression tests
@@ -40,7 +38,7 @@ jobs:
           cp "Benchmarks/1885Sjson/FirstpassXML" \
             "$RUNNER_TEMP/psi116-topology/FirstpassXML.source.txt"
 
-      - name: Verify sidecar contract
+      - name: Verify sidecar contract and real topology evidence
         run: |
           python - <<'PY'
           import json
@@ -55,6 +53,17 @@ jobs:
           assert plan["mutationPolicy"] == "DRY_RUN_ONLY"
           assert plan["sourceXmlMutated"] is False
           assert not list(root.glob("*.xml"))
+
+          summary = findings["summary"]
+          assert summary["branchCount"] == 5
+          assert summary["sourceNodeRecordCount"] == 216
+          assert summary["componentOccurrenceCount"] == 163
+          assert summary["blockingFindingCount"] == 0
+          codes = {row["code"] for row in findings["findings"]}
+          assert "COLLINEAR_ROUTE_OVERLAP" not in codes
+          assert "DUPLICATE_ROUTE_SPAN" not in codes
+          assert "COINCIDENT_NODE_IDENTITY_AMBIGUOUS" not in codes
+
           assert any(
               row["code"] == "ZERO_LENGTH_ROUTE_SPAN"
               and {1600, 1610}.issubset(set(row["node_numbers"]))
@@ -66,6 +75,15 @@ jobs:
               and row["details"].get("ownerNodeNumber") == 1570
               for row in findings["findings"]
           )
+          assert sum(row["code"] == "AUTO_PIPE_INLINE_COMPONENT_CARRIER" for row in findings["findings"]) == 18
+          assert sum(row["code"] == "SUPPORT_ON_PIPE_CARRIER" for row in findings["findings"]) == 36
+          assert sum(row["code"] == "JUNCTION_ON_PIPE_CARRIER" for row in findings["findings"]) == 13
+
+          aliases = [row for row in plan["actions"] if row["disposition"] == "ALIAS_COINCIDENT_NODE"]
+          alias_1610 = [row for row in aliases if row["owner_node_number"] == 1610 and 1600 in row["absorbed_node_numbers"]]
+          assert len(alias_1610) == 1
+          assert len(alias_1610[0]["finding_ids"]) == 2
+          assert plan["summary"]["blockedActionCount"] == 0
           PY
 
       - name: Upload topology evidence
