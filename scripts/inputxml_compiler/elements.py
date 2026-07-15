@@ -14,11 +14,23 @@ def _normalize_element(
 ) -> ET._Element:
     source_id = source.get("ID") or f"source-element-{index}"
     generated_id = _safe_ncname(source.get("ID") or f"E{index:06d}", "E")
+    canonical_path = f"/CAESARII/PIPINGMODEL[1]/PIPINGELEMENT[{index}]"
     target = ET.Element("PIPINGELEMENT", ID=generated_id)
     element_aliases = aliases.get("PIPINGELEMENT", {})
 
+    def source_field(field: str) -> tuple[str | None, str | None]:
+        return _source_field(
+            source,
+            field,
+            element_aliases,
+            ledger,
+            source_id,
+            canonical_element_id=generated_id,
+            canonical_path=canonical_path,
+        )
+
     for field in ("FROM_NODE", "TO_NODE"):
-        raw, _ = _source_field(source, field, element_aliases, ledger, source_id)
+        raw, _ = source_field(field)
         if raw is None:
             raise CompileBlocked(f"{source_id} missing required {field}.")
         target.set(field, _integer_text(raw, f"PIPINGELEMENT@{field}", positive=True))
@@ -26,15 +38,15 @@ def _normalize_element(
         raise CompileBlocked(f"{source_id} has identical FROM_NODE and TO_NODE.")
 
     for field in ("DELTA_X", "DELTA_Y", "DELTA_Z"):
-        raw, _ = _source_field(source, field, element_aliases, ledger, source_id)
+        raw, _ = source_field(field)
         if raw is None:
             raise CompileBlocked(f"{source_id} missing required {field}.")
         if _is_sentinel(raw):
             target.set(field, "0")
             ledger.add(
-                source_entity_id=f"{source_id}@{field}",
+                source_entity_id=f"{canonical_path}@{field}",
                 source_type="GEOMETRY_SENTINEL",
-                source_fields={field: raw},
+                source_fields={"sourceEntityId": source_id, field: raw},
                 canonical_element_ids=[generated_id],
                 canonical_node_ids=[target.get("FROM_NODE"), target.get("TO_NODE")],
                 inputxml_element_ids=[generated_id],
@@ -48,15 +60,16 @@ def _normalize_element(
     if all(Decimal(target.get(field)) == 0 for field in ("DELTA_X", "DELTA_Y", "DELTA_Z")):
         raise CompileBlocked(f"{source_id} resolves to zero-length geometry.")
 
-    line_raw, line_source = _source_field(source, "LINE", element_aliases, ledger, source_id)
+    line_raw, line_source = source_field("LINE")
     if line_raw is None:
         line_raw = context.get("defaultLine")
         if line_raw:
             ledger.add(
-                source_entity_id=f"{source_id}@LINE",
+                source_entity_id=f"{canonical_path}@LINE",
                 source_type="CONTEXT_FIELD",
-                source_fields={"defaultLine": line_raw},
+                source_fields={"sourceEntityId": source_id, "defaultLine": line_raw},
                 canonical_element_ids=[generated_id],
+                inputxml_element_ids=[generated_id],
                 disposition="EMIT_1_TO_1",
                 evidence=["explicit compiler context"],
             )
@@ -67,7 +80,7 @@ def _normalize_element(
     state = line_state.setdefault(line, {})
 
     for field in INHERITED_DECIMAL_FIELDS:
-        raw, raw_name = _source_field(source, field, element_aliases, ledger, source_id)
+        raw, raw_name = source_field(field)
         if raw is not None and not _is_sentinel(raw):
             value = _decimal_text(raw, f"PIPINGELEMENT@{field}")
             if field == "DIAMETER" and Decimal(value) <= 0:
@@ -80,9 +93,9 @@ def _normalize_element(
         if field in state:
             target.set(field, state[field])
             ledger.add(
-                source_entity_id=f"{source_id}@{field}",
+                source_entity_id=f"{canonical_path}@{field}",
                 source_type="INHERITED_FIELD",
-                source_fields={raw_name or field: raw},
+                source_fields={"sourceEntityId": source_id, raw_name or field: raw},
                 canonical_element_ids=[generated_id],
                 inputxml_element_ids=[generated_id],
                 cii_section="ELEMENTS",
@@ -94,7 +107,7 @@ def _normalize_element(
             raise CompileBlocked(f"First element of LINE {line!r} lacks explicit {field}.")
 
     for field in INHERITED_INTEGER_FIELDS:
-        raw, raw_name = _source_field(source, field, element_aliases, ledger, source_id)
+        raw, raw_name = source_field(field)
         if raw is not None and not _is_sentinel(raw):
             value = _integer_text(raw, f"PIPINGELEMENT@{field}", nonnegative=True)
             state[field] = value
@@ -102,23 +115,24 @@ def _normalize_element(
         elif field in state:
             target.set(field, state[field])
             ledger.add(
-                source_entity_id=f"{source_id}@{field}",
+                source_entity_id=f"{canonical_path}@{field}",
                 source_type="INHERITED_FIELD",
-                source_fields={raw_name or field: raw},
+                source_fields={"sourceEntityId": source_id, raw_name or field: raw},
                 canonical_element_ids=[generated_id],
+                inputxml_element_ids=[generated_id],
                 disposition="EMIT_1_TO_1",
                 evidence=[f"inherited within explicit LINE scope {line}"],
                 confidence={"identity":1.0,"topology":1.0,"geometry":1.0,"dimensions":1.0,"attributes":0.95,"ciiProjection":1.0},
             )
 
     for field in ("FROM_NAME", "TO_NAME"):
-        raw, _ = _source_field(source, field, element_aliases, ledger, source_id)
+        raw, _ = source_field(field)
         if raw is not None:
             target.set(field, raw.strip())
 
     coord_values: dict[str, str] = {}
     for field in ("FROM_X", "FROM_Y", "FROM_Z", "TO_X", "TO_Y", "TO_Z"):
-        raw, _ = _source_field(source, field, element_aliases, ledger, source_id)
+        raw, _ = source_field(field)
         if raw is not None and not _is_sentinel(raw):
             coord_values[field] = _decimal_text(raw, f"PIPINGELEMENT@{field}")
     if coord_values and len(coord_values) != 6:

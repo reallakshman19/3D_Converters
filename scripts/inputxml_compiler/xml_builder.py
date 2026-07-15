@@ -235,12 +235,15 @@ def _compile_xml_builder_source(
         )
     _ensure_extension_last(model)
     elements = [child for child in model if _local(child.tag) == "PIPINGELEMENT" and _namespace(child.tag) == ""]
+    element_ids = [str(element.get("ID") or f"bridge-element-{index}") for index, element in enumerate(elements, 1)]
     ledger.add(
         source_entity_id="document",
         source_type="ROOT_BRANCH_NODE",
         source_fields={"bridgeProfile": "inputxml-topo", "generatedElementCount": len(elements)},
-        canonical_element_ids=[],
+        canonical_element_ids=element_ids,
         canonical_node_ids=sorted({str(int(Decimal(element.get(field)))) for element in elements for field in ("FROM_NODE", "TO_NODE")}),
+        inputxml_element_ids=element_ids,
+        cii_section="ELEMENTS",
         projection_cardinality="1_TO_MANY",
         disposition="PROJECT_WITH_AUTHORITATIVE_TOPOLOGY_ENGINE",
         evidence=[
