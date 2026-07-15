@@ -21,15 +21,13 @@ function objectsForSource(canonical, sourceEntityId) {
     points: canonical.pointFeatures.filter(contains),
     junctions: canonical.junctions.filter(contains),
     boundaries: canonical.boundaries.filter(contains),
-    supports: canonical.supports.filter(contains),
-    rigids: canonical.rigids.filter((row) => row.sourceEntityId === sourceEntityId),
   };
 }
 
 /** @param {Record<string, unknown>} source @param {Record<string, unknown>} objects @returns {string} */
 function dispositionFor(source, objects) {
   const category = componentCategory(source.sourceType);
-  if (category === 'SUPPORT') return objects.supports.length ? 'EMIT_SUPPORT_ATTACHMENT' : 'BLOCK_AMBIGUOUS';
+  if (category === 'SUPPORT') return 'DEFER_SUPPORT';
   if (category === 'TEE') return 'EMIT_TEE_JUNCTION';
   if (category === 'OLET') return 'EMIT_OLET_JUNCTION';
   if (source.sourceType === 'BRANCH') {
@@ -49,7 +47,7 @@ function dispositionFor(source, objects) {
 /** @param {Record<string, unknown>} source @param {string} disposition @returns {string[]} */
 function deferredProperties(source, disposition) {
   const category = componentCategory(source.sourceType);
-  if (disposition === 'EMIT_SUPPORT_ATTACHMENT') return [];
+  if (disposition === 'DEFER_SUPPORT') return ['RESTRAINT_GENERATION', 'SUPPORT_ATTACHMENT'];
   if (category === 'TEE' || category === 'OLET') return ['SIF_VALUES'];
   if (category === 'VALVE' || category === 'FLANGE') return [...DEFERRED_ENGINEERING, 'RIGID', 'WEIGHT'];
   if (category === 'GASK') return [...DEFERRED_ENGINEERING, 'RIGID_MERGE_POLICY'];
@@ -62,7 +60,7 @@ function deferredProperties(source, disposition) {
 /** @param {string} disposition @param {boolean} isMerge @returns {string} */
 function lossClassification(disposition, isMerge) {
   if (isMerge) return 'EXPLICIT_CANONICAL_OVERLAP';
-  if (disposition === 'EMIT_SUPPORT_ATTACHMENT') return 'LOSSLESS_SUPPORT_ATTACHMENT';
+  if (disposition === 'DEFER_SUPPORT') return 'DEFERRED_TO_SUPPORT_PHASE';
   if (disposition === 'EMIT_POINT_FEATURE') return 'POINT_FEATURE_ONLY';
   if (disposition === 'EMIT_TEE_JUNCTION' || disposition === 'EMIT_OLET_JUNCTION') return 'JUNCTION_CONNECTIVITY';
   if (disposition === 'EXTERNAL_BOUNDARY') return 'EXTERNAL_BOUNDARY';
@@ -80,7 +78,6 @@ function operationFor(disposition) {
     EMIT_POINT_FEATURE: 'emit-point-feature',
     EMIT_TEE_JUNCTION: 'emit-tee-junction',
     EMIT_OLET_JUNCTION: 'emit-olet-junction',
-    EMIT_SUPPORT_ATTACHMENT: 'emit-support-restraint',
     DEFER_SUPPORT: 'defer-support',
     EXTERNAL_BOUNDARY: 'emit-external-boundary',
     BLOCK_AMBIGUOUS: 'block-ambiguous',
@@ -90,6 +87,7 @@ function operationFor(disposition) {
 
 /** @param {number} edgeCount @param {string} disposition @param {boolean} isMerge @returns {string} */
 function projectionCardinality(edgeCount, disposition, isMerge) {
+  if (disposition === 'DEFER_SUPPORT') return 'DEFERRED';
   if (disposition === 'BLOCK_AMBIGUOUS') return 'BLOCKED';
   if ((disposition === 'EMIT_POINT_FEATURE' || disposition === 'EXTERNAL_BOUNDARY') && edgeCount === 0) return 'POINT_ONLY';
   if (edgeCount === 1 && isMerge) return 'MANY_TO_ONE';
@@ -120,27 +118,23 @@ function ledgerRecord(source, canonical, index) {
   const disposition = dispositionFor(source, objects);
   const headerEdges = affectedHeaderEdges(source, canonical, objects);
   const referenceEdges = objects.edges.filter((edge) => edge.segmentRole === 'CREF_BRANCH_CONNECTION');
-  const rigidEdges = canonical.edges.filter((edge) => objects.rigids.some((rigid) => rigid.edgeId === edge.id));
-  const effectiveEdgeRows = [...objects.edges, ...headerEdges, ...rigidEdges];
-  const effectiveEdges = uniqueText(effectiveEdgeRows.map((edge) => edge.id));
+  const effectiveEdges = uniqueText([...objects.edges, ...headerEdges].map((edge) => edge.id));
   const nodeIds = uniqueText([
     ...edgeNodeIds(objects.edges),
     ...objects.junctions.map((junction) => junction.nodeId),
     ...objects.boundaries.map((boundary) => boundary.nodeId),
-    ...objects.supports.map((support) => support.nodeId),
   ]);
   const affectedSourceEntityIds = uniqueText([
     ...objects.edges.flatMap((edge) => edge.sourceEntityIds),
     ...objects.junctions.flatMap((junction) => junction.sourceEntityIds),
     ...objects.boundaries.flatMap((boundary) => boundary.sourceEntityIds),
   ]).filter((id) => id !== source.sourceEntityId);
-  const inputXmlElementIds = uniqueText(effectiveEdgeRows.flatMap((edge) => edge.inputXmlElementIds));
-  const singleEdge = effectiveEdgeRows.length === 1 ? effectiveEdgeRows[0] : null;
-  const mergeEdge = objects.edges.find((edge) => (
+  const inputXmlElementIds = uniqueText(objects.edges.flatMap((edge) => edge.inputXmlElementIds));
+  const singleEdge = objects.edges.length === 1 ? objects.edges[0] : null;
+  const isMerge = objects.edges.some((edge) => (
     edge.projectionCardinality === 'MANY_TO_ONE'
     && edge.mergeSourceEntityIds.includes(source.sourceEntityId)
   ));
-  const isMerge = Boolean(mergeEdge);
   const projectedCategory = singleEdge ? componentCategory(singleEdge.sourceTypes[0]) : '';
   const sourceCategory = componentCategory(source.sourceType);
   return {
@@ -159,10 +153,7 @@ function ledgerRecord(source, canonical, index) {
     branchEdgeIds: uniqueText(referenceEdges.map((edge) => edge.id)),
     affectedSourceEntityIds,
     inputXmlElementIds,
-    inputXmlChildIds: uniqueText([
-      ...objects.supports.flatMap((support) => support.restraints.map((_, restraintIndex) => `RESTRAINT:${support.id}:${restraintIndex + 1}`)),
-      ...objects.rigids.map((rigid) => `RIGID:${rigid.edgeId}`),
-    ]),
+    inputXmlChildIds: [],
     inputXmlFromNode: singleEdge ? canonical.nodes.find((node) => node.id === singleEdge.fromNodeId)?.inputXmlNodeIds[0] ?? '' : '',
     inputXmlToNode: singleEdge ? canonical.nodes.find((node) => node.id === singleEdge.toNodeId)?.inputXmlNodeIds[0] ?? '' : '',
     projectionCardinality: projectionCardinality(effectiveEdges.length, disposition, isMerge),
@@ -176,12 +167,12 @@ function ledgerRecord(source, canonical, index) {
       sourceHref: cleanText(source.attributes.HREF),
       sourceTref: cleanText(source.attributes.TREF),
       cardinalityReason: effectiveEdges.length > 1 ? 'EXPLICIT_COMPONENT_SEGMENTATION_OR_JUNCTION' : 'DIRECT_PROJECTION',
-      mergeAuthority: mergeEdge?.projectionMergeAuthority ?? '',
+      mergeAuthority: isMerge ? singleEdge.projectionMergeAuthority : '',
       reclassification: isMerge && projectedCategory !== sourceCategory
         ? `${sourceCategory}_TO_${projectedCategory}_SHARED_COMPONENT_SPAN` : '',
       headerSegmentationAuthority: componentCategory(source.sourceType) === 'OLET' ? 'MANAGED_SOURCE_COMPONENT_BOUNDARY' : '',
     },
-    status: disposition === 'BLOCK_AMBIGUOUS' ? 'ERROR' : 'ACCEPTED',
+    status: disposition === 'DEFER_SUPPORT' ? 'DEFERRED' : disposition === 'BLOCK_AMBIGUOUS' ? 'ERROR' : 'ACCEPTED',
   };
 }
 
