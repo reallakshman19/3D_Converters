@@ -104,23 +104,27 @@ function boundarySpecs(model) {
   return [...branchBoundaries, ...teeBoundaries];
 }
 
-/** @param {Record<string, unknown>[]} ports @returns {number} */
-function maximumResidual(ports) {
+/** @param {Record<string, unknown>[]} ports @param {{x:number,y:number,z:number}} origin @returns {number} */
+function maximumResidual(ports, origin) {
   if (ports.length < 2) return 0;
-  const origin = ports[0].position;
-  return Math.max(...ports.slice(1).map((port) => pointDistance(origin, port.position)));
+  return Math.max(...ports.map((port) => pointDistance(origin, port.position)));
+}
+
+/** @param {Record<string, unknown>[]} ports @returns {Record<string, unknown>} */
+function canonicalPort(ports) {
+  return ports.find((port) => port.canonicalPositionAuthority === true) ?? ports[0];
 }
 
 /** @param {Record<string, unknown>} model @param {Record<string, unknown>} connectivity @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>[]} junctions @param {Record<string, unknown>[]} boundaries @returns {Record<string, unknown>} */
 function buildNodes(model, connectivity, edgeSpecs, junctions, boundaries) {
-  const usedKeys = new Set([
-    ...edgeSpecs.flatMap((edge) => [edge.fromPort.key, edge.toPort.key]),
-    ...junctions.map((junction) => junction.port.key),
-    ...boundaries.map((boundary) => boundary.port.key),
-  ]);
+  const projectedPorts = edgeSpecs.flatMap((edge) => [edge.fromPort, edge.toPort]);
+  const terminalPorts = [...junctions.map((row) => row.port), ...boundaries.map((row) => row.port)];
+  const portByKey = new Map(model.sourcePorts.map((port) => [port.key, port]));
+  for (const port of [...projectedPorts, ...terminalPorts]) portByKey.set(port.key, port);
+  const usedKeys = new Set([...projectedPorts, ...terminalPorts].map((port) => port.key));
   const usedRoots = new Set([...usedKeys].map(connectivity.set.find));
   const groups = new Map();
-  for (const port of model.sourcePorts) {
+  for (const port of portByKey.values()) {
     const root = connectivity.set.find(port.key);
     if (!usedRoots.has(root)) continue;
     groups.set(root, [...(groups.get(root) ?? []), port]);
@@ -129,15 +133,19 @@ function buildNodes(model, connectivity, edgeSpecs, junctions, boundaries) {
     root,
     ports: ports.sort((left, right) => left.order - right.order),
   })).sort((left, right) => left.ports[0].order - right.ports[0].order);
-  const nodes = ordered.map((group, index) => ({
-    id: `CN-${sequenceId(index + 1)}`,
-    position: { ...group.ports[0].position },
-    sourcePortIds: uniqueText(group.ports.map((port) => port.sourcePortId)),
-    sourceEntityIds: uniqueText(group.ports.map((port) => port.sourceEntityId)),
-    inputXmlNodeIds: [String((index + 1) * 10)],
-    connectionAuthority: uniqueText(group.ports.map((port) => port.sourcePath)),
-    connectionResidual: maximumResidual(group.ports),
-  }));
+  const nodes = ordered.map((group, index) => {
+    const authority = canonicalPort(group.ports);
+    return {
+      id: `CN-${sequenceId(index + 1)}`,
+      position: { ...authority.position },
+      sourcePortIds: uniqueText(group.ports.map((port) => port.sourcePortId)),
+      sourceEntityIds: uniqueText(group.ports.map((port) => port.sourceEntityId)),
+      inputXmlNodeIds: [String((index + 1) * 10)],
+      positionAuthority: authority.attachmentAuthority || authority.sourcePath,
+      connectionAuthority: uniqueText(group.ports.map((port) => port.sourcePath)),
+      connectionResidual: maximumResidual(group.ports, authority.position),
+    };
+  });
   return {
     nodes,
     rootToNode: new Map(ordered.map((group, index) => [group.root, nodes[index]])),
@@ -221,13 +229,20 @@ export function buildCanonicalTopology(model, connectivity, engineering, toleran
     };
   });
   const supports = engineering.supports.map((support) => {
-    const node = rootToNode.get(connectivity.set.find(support.port.key));
+    const port = support.attachmentPort ?? support.port;
+    const node = rootToNode.get(connectivity.set.find(port.key));
     if (!node) throw new Error(`Support ${support.id} has no canonical attachment node.`);
     return {
       id: support.id,
       nodeId: node.id,
       inputXmlNodeId: node.inputXmlNodeIds[0],
       position: { ...node.position },
+      sourcePosition: { ...support.sourcePosition },
+      attachmentPosition: { ...support.attachmentPosition },
+      attachmentAuthority: support.attachmentAuthority,
+      attachmentReferences: support.attachmentReferences,
+      attachedComponentEntityIds: support.attachedComponentEntityIds,
+      attachmentEdgeSourcePath: support.attachmentEdgeSourcePath,
       tag: support.tag,
       sourceEntityIds: support.sourceEntityIds,
       sourcePaths: support.sourcePaths,
