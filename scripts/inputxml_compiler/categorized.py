@@ -5,6 +5,7 @@ from .counts import *
 from .children import *
 from .elements import *
 from .family import *
+from .model import *
 def _categorized_original_element(text: str) -> ET._Element:
     if not text.strip():
         raise CompileBlocked("CategorizedInputXML Element lacks OriginalElement evidence.")
@@ -126,7 +127,6 @@ def _categorized_document(root: ET._Element, context: dict[str, Any], ledger: De
         raise CompileBlocked("CategorizedInputXML contains no Element records.")
     _set_model_count_assertions(model)
     return wrapper
-
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
