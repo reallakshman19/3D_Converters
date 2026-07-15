@@ -15,14 +15,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   component-topology:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout PR head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -60,7 +62,7 @@ jobs:
       - name: Existing short-span regression
         run: python tests/xml_to_cii_short_span_contraction_regression.py
 
-      - name: Generate real Firstpass CII
+      - name: Generate and validate real Firstpass CII
         run: |
           python converters/scripts/xml_to_cii2019_contracted_direction.py \
             --input Benchmarks/1885Sjson/FirstpassXML \
@@ -72,13 +74,40 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           text = Path('/tmp/firstpass-component-topology.cii').read_text(encoding='utf-8')
+          element_body = text.split('#$ ELEMENTS', 1)[1].split('#$', 1)[0]
+          element_rows = [line for line in element_body.splitlines() if line.strip()]
+          assert len(element_rows) % 15 == 0, len(element_rows)
+          pairs = []
+          for index in range(0, len(element_rows), 15):
+              values = element_rows[index].split()
+              pairs.append((int(float(values[0])), int(float(values[1]))))
+          assert (2240, 1570) in pairs, pairs
+          assert (1570, 2280) in pairs, pairs
+          assert (1570, 1590) in pairs, pairs
+          assert not any(2260 in pair for pair in pairs), pairs
+
           bend_body = text.split('#$ BEND', 1)[1].split('#$', 1)[0]
-          rows = [line for line in bend_body.splitlines() if line.strip()]
-          assert len(rows) % 3 == 0, len(rows)
-          radii = [float(rows[index].split()[0]) for index in range(0, len(rows), 3)]
+          bend_rows = [line for line in bend_body.splitlines() if line.strip()]
+          assert len(bend_rows) % 3 == 0, len(bend_rows)
+          radii = [float(bend_rows[index].split()[0]) for index in range(0, len(bend_rows), 3)]
           assert radii.count(305.0) >= 2, radii
-          print(f'BEND radii: {radii}')
+          print(f'Connected node pairs verified; BEND radii: {radii}')
           PY
+
+      - name: Refresh Firstpass CII benchmark
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          cp /tmp/firstpass-component-topology.cii 'Benchmarks/1885Sjson/Firstpass CII'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'Benchmarks/1885Sjson/Firstpass CII'
+          if git diff --cached --quiet; then
+            echo 'Firstpass CII benchmark is already current.'
+          else
+            git commit -m 'test: refresh Firstpass CII topology benchmark'
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
 
       - name: Upload generated Firstpass CII proof
         uses: actions/upload-artifact@v4
