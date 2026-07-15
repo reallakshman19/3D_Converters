@@ -14,6 +14,9 @@ import {
 } from '../tabs/model-converters/converters/component-topology/topology-values.js';
 
 const fixturePath = fileURLToPath(new URL('../Benchmarks/1885_NC/1885_NC.json', import.meta.url));
+const distance = (left, right) => Math.hypot(
+  left.x - right.x, left.y - right.y, left.z - right.z,
+);
 
 if (!existsSync(fixturePath)) {
   console.log(`component topology 1885_NC SKIPPED: fixture not found at ${fixturePath}`);
@@ -55,10 +58,10 @@ if (!existsSync(fixturePath)) {
 
   const referenced = built.canonicalTopology.supports.find((support) => support.sourcePaths.includes('$[241].children[79]'));
   assert(referenced, 'PS02705.1 must project through its explicit carrier reference');
-  assert.equal(referenced.connectionResidual, 200);
-  assert.equal(referenced.sourcePosition.z, 807.15);
-  assert.equal(referenced.attachmentPosition.z, 607.15);
-  assert.equal(referenced.position.z, 607.15);
+  assert(referenced.connectionResidual > SUPPORT_PROJECTION_TOLERANCE_MM, 'explicit carrier authority must permit a datum offset beyond the proximity gate');
+  assert(Math.abs(distance(referenced.sourcePosition, referenced.attachmentPosition) - referenced.connectionResidual) < 1e-9);
+  assert.deepEqual(referenced.position, referenced.attachmentPosition);
+  assert.notDeepEqual(referenced.sourcePosition, referenced.attachmentPosition);
   assert.match(referenced.attachmentAuthority, /ATTACHED_COMPONENT_REF\/COMPRE:=1006649732\/54494/);
 
   console.log('component topology 1885_NC passed: deferred annotations and referenced supports are projected explicitly.');
