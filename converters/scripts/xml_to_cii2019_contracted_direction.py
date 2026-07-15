@@ -238,47 +238,61 @@ def _position_key(position: tuple[float, float, float]) -> tuple[int, int, int]:
 
 
 def _bind_document_topology(document: base.XmlDocument) -> None:
-    clusters: dict[tuple[int, int, int], dict[str, list[tuple[str, base.XmlNode]]]] = defaultdict(
-        lambda: {"head": [], "tail": []}
-    )
+    all_nodes: dict[tuple[int, int, int], list[tuple[str, base.XmlNode]]] = defaultdict(list)
+    endpoint_nodes: list[tuple[str, str, base.XmlNode]] = []
     for branch in document.branches:
         if not branch.nodes:
             continue
-        clusters[_position_key(branch.nodes[0].position)]["head"].append((branch.branch_name, branch.nodes[0]))
-        clusters[_position_key(branch.nodes[-1].position)]["tail"].append((branch.branch_name, branch.nodes[-1]))
+        for node in branch.nodes:
+            all_nodes[_position_key(node.position)].append((branch.branch_name, node))
+        endpoint_nodes.append(("head", branch.branch_name, branch.nodes[0]))
+        endpoint_nodes.append(("tail", branch.branch_name, branch.nodes[-1]))
 
-    for cluster in clusters.values():
-        for head_branch, head in cluster["head"]:
-            candidates = [
-                (tail_branch, tail)
-                for tail_branch, tail in cluster["tail"]
-                if tail_branch != head_branch and tail.node_number != head.node_number
-            ]
-            if len(candidates) != 1:
-                if len(candidates) > 1 and _is_special_node(head, head_branch):
-                    _ACTIVE_TOPOLOGY.record_once(
-                        ("ambiguous-link", head_branch, head.node_number),
-                        "PSI116_BRANCH_LINK_AMBIGUOUS",
-                        "A special branch head has multiple coincident branch-tail candidates; no virtual link was applied.",
-                        headBranch=head_branch,
-                        headNode=head.node_number,
-                        candidateTailNodes=[tail.node_number for _, tail in candidates],
-                    )
-                continue
-            tail_branch, tail = candidates[0]
-            if not (_is_special_node(head, head_branch) or _is_special_node(tail, tail_branch)):
-                continue
-            link = (tail.node_number, head.node_number)
-            _ACTIVE_TOPOLOGY.virtual_links.add(link)
-            _ACTIVE_TOPOLOGY.record_once(
-                ("virtual-link", *link),
-                "PSI116_BRANCH_ENDPOINT_LINK",
-                "Coincident branch tail/head topology was retained as virtual degree evidence without emitting a zero-length CII element.",
-                fromBranch=tail_branch,
-                fromNode=tail.node_number,
-                toBranch=head_branch,
-                toNode=head.node_number,
-            )
+    for role, endpoint_branch, endpoint in endpoint_nodes:
+        candidates = [
+            (candidate_branch, candidate)
+            for candidate_branch, candidate in all_nodes[_position_key(endpoint.position)]
+            if candidate_branch != endpoint_branch and candidate.node_number != endpoint.node_number
+        ]
+        unique_candidates: dict[tuple[str, int], tuple[str, base.XmlNode]] = {
+            (candidate_branch, candidate.node_number): (candidate_branch, candidate)
+            for candidate_branch, candidate in candidates
+        }
+        candidates = list(unique_candidates.values())
+        if len(candidates) != 1:
+            if len(candidates) > 1 and _is_special_node(endpoint, endpoint_branch):
+                _ACTIVE_TOPOLOGY.record_once(
+                    ("ambiguous-link", role, endpoint_branch, endpoint.node_number),
+                    "PSI116_BRANCH_LINK_AMBIGUOUS",
+                    "A special branch endpoint has multiple coincident nodes in other branches; no virtual link was applied.",
+                    endpointRole=role,
+                    endpointBranch=endpoint_branch,
+                    endpointNode=endpoint.node_number,
+                    candidateNodes=[candidate.node_number for _, candidate in candidates],
+                )
+            continue
+        candidate_branch, candidate = candidates[0]
+        if not (
+            _is_special_node(endpoint, endpoint_branch)
+            or _is_special_node(candidate, candidate_branch)
+        ):
+            continue
+        link = (
+            (candidate.node_number, endpoint.node_number)
+            if role == "head"
+            else (endpoint.node_number, candidate.node_number)
+        )
+        _ACTIVE_TOPOLOGY.virtual_links.add(link)
+        _ACTIVE_TOPOLOGY.record_once(
+            ("virtual-link", *link),
+            "PSI116_BRANCH_ENDPOINT_LINK",
+            "A unique coincident branch endpoint/node connection was retained as virtual degree evidence without emitting a zero-length CII element.",
+            endpointRole=role,
+            fromBranch=candidate_branch if role == "head" else endpoint_branch,
+            fromNode=link[0],
+            toBranch=endpoint_branch if role == "head" else candidate_branch,
+            toNode=link[1],
+        )
 
 
 def _parse_xml_document_with_component_topology(path: Path) -> base.XmlDocument:
