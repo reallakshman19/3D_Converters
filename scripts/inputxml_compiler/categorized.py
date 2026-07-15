@@ -112,7 +112,7 @@ def _categorized_document(root: ET._Element, context: dict[str, Any], ledger: De
                 original,
                 producer=ledger.producer,
                 dialect=ledger.dialect,
-                name="CategorizedOriginalElement",
+                name="OriginalElement",
                 source_path=ledger.source_path,
                 source_entity_id=entity_id,
                 source_field="OriginalElement",
