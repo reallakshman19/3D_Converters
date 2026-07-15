@@ -26,6 +26,26 @@ jobs:
           import { portForRole } from './tabs/model-converters/converters/component-topology/topology-connectivity.js';
           import { bestPosition } from './tabs/stagedjson-to-enrichxml/sj-point-resolver.js';
 
+          function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z); }
+          function pointSegmentDistance(point, start, end) {
+            const vector = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
+            const offset = { x: point.x - start.x, y: point.y - start.y, z: point.z - start.z };
+            const lengthSquared = vector.x ** 2 + vector.y ** 2 + vector.z ** 2;
+            const raw = lengthSquared ? (offset.x * vector.x + offset.y * vector.y + offset.z * vector.z) / lengthSquared : 0;
+            const parameter = Math.max(0, Math.min(1, raw));
+            const projected = { x: start.x + parameter * vector.x, y: start.y + parameter * vector.y, z: start.z + parameter * vector.z };
+            return { distanceMm: distance(point, projected), parameter, projected };
+          }
+          function segmentsFor(component) {
+            const a = portForRole(component, 'A')?.position;
+            const p = portForRole(component, 'P')?.position;
+            const l = portForRole(component, 'L')?.position;
+            const type = String(component.sourceType || '').toUpperCase();
+            if (['SUPPORT', 'ATTA', 'OLET'].includes(type)) return [];
+            if (['ELBO', 'BEND', 'TEE'].includes(type) && a && p && l) return [[a, p, 'RUN_IN'], [p, l, 'RUN_OUT']];
+            return a && l && distance(a, l) > 0.5 ? [[a, l, type]] : [];
+          }
+
           const sourceText = readFileSync('Benchmarks/1885_NC/1885_NC.json', 'utf8');
           const parsed = JSON.parse(sourceText);
           const branches = Array.isArray(parsed) ? parsed : (parsed.objects || parsed.hierarchy || parsed.branches || []);
@@ -43,10 +63,22 @@ jobs:
 
           const model = await buildTopologySourceModel(sourceText, { sourceName: '1885_NC.json', toleranceMm: 0.5 });
           const enrichment = runEnrichment({ stagedJsonText: sourceText, config: {} });
+          const routeSegments = model.components.flatMap((component) => segmentsFor(component).map(([start, end, role]) => ({
+            sourcePath: component.sourcePath,
+            sourceType: component.sourceType,
+            branchId: component.sourceBranchEntityId,
+            branchName: component.sourceBranchName,
+            start, end, role,
+          })));
           const targetComponents = model.components.filter((component) => [component.name, component.sourceRef, component.attributes?.NAME, component.attributes?.REF].map(String).join(' ').includes(target));
           const modeled = targetComponents.map((component) => {
             const childOffset = component.sourcePath.match(/\.children\[(\d+)\]$/)?.[1];
             const record = enrichment.records.find((item) => Number(item.path?.[0]) === component.branchIndex && Number(item.path?.[item.path.indexOf('children') + 1]) === Number(childOffset));
+            const port = portForRole(component, 'P') ?? portForRole(component, 'A') ?? portForRole(component, 'L');
+            const rank = (segment) => ({ ...segment, ...pointSegmentDistance(port.position, segment.start, segment.end) });
+            const owning = routeSegments.filter((segment) => segment.branchId === component.sourceBranchEntityId).map(rank).sort((a, b) => a.distanceMm - b.distanceMm);
+            const global = routeSegments.map(rank).sort((a, b) => a.distanceMm - b.distanceMm);
+            const sourceBranch = branches[component.branchIndex];
             return {
               sourcePath: component.sourcePath,
               sourceBranchName: component.sourceBranchName,
@@ -57,7 +89,19 @@ jobs:
               positions: component.positions,
               ports: Object.fromEntries(['P','A','L'].map((role) => [role, portForRole(component, role)?.position || null])),
               bestPosition: bestPosition(record?.attrs || {}),
-              attrs: Object.fromEntries(['OWNER','NAME','REF','POS','APOS','LPOS','MDSSREF','MDSGUIDEREF','PREV-NAME','CMPSTRESSN','CMPSUPREFN'].map((key) => [key, component.attributes?.[key] ?? null])),
+              resolved: record?.resolved || null,
+              supportEvidence: Object.fromEntries(['SUPPORT_KIND','SUPPORT_MAPPER_KIND','SUPPORT_TYPE','CMPSUPTYPE','NODETYPE','MDSSUPPTYPE','DTXR','ISONOTE','CMPSTRESSN','CMPSUPREFN','NODEGAP','NODESTIFF','NODEFRICTION'].map((key) => [key, component.attributes?.[key] ?? null])),
+              nearestOwning: owning[0] || null,
+              nearestGlobal: global[0] || null,
+              branchChildren: (sourceBranch.children || []).map((child, index) => ({
+                index,
+                name: child.name,
+                type: child.type,
+                ref: child.attributes?.REF || '',
+                apos: child.attributes?.APOS || null,
+                pos: child.attributes?.POS || null,
+                lpos: child.attributes?.LPOS || null,
+              })),
             };
           });
           writeFileSync('support-53464-diagnostic.json', JSON.stringify({ found, modeled }, null, 2));
