@@ -6,8 +6,8 @@ order. PSI116 is richer: one physical component may be represented by several
 Node records sharing ComponentRefNo, including negative helper ports. This
 wrapper inventories those full records before the base parser filters them,
 then uses component occurrences to own BEND/SIF/REDUCERS auxiliaries, preserve
-special fittings during short-span contraction, and restore model-wide branch
-endpoint degree evidence without emitting zero-length CII elements.
+special fittings during short-span contraction, and canonicalize unique
+coincident cross-branch node identities before CII elements are created.
 """
 
 from __future__ import annotations
@@ -68,7 +68,8 @@ class ComponentTopologyContext:
     records: list[SourceNodeRecord] = field(default_factory=list)
     occurrences: list[ComponentOccurrence] = field(default_factory=list)
     occurrences_by_node: dict[int, list[ComponentOccurrence]] = field(default_factory=lambda: defaultdict(list))
-    virtual_links: set[tuple[int, int]] = field(default_factory=set)
+    topology_links: set[tuple[int, int]] = field(default_factory=set)
+    node_aliases: dict[int, int] = field(default_factory=dict)
     diagnostics: list[dict[str, object]] = field(default_factory=list)
     diagnostic_keys: set[tuple[object, ...]] = field(default_factory=set)
 
@@ -81,7 +82,7 @@ class ComponentTopologyContext:
 
 _ACTIVE_TOPOLOGY = ComponentTopologyContext()
 _ORIGINAL_PARSE_XML_DOCUMENT = base._parse_xml_document
-_ORIGINAL_BUILD_DEGREE_MAP = base._build_degree_map
+_ORIGINAL_BUILD_RESTRAINTS = base._build_restraints
 _ORIGINAL_DIAGNOSTICS_REPORT = base._build_diagnostics_report
 
 
@@ -213,8 +214,33 @@ def _activate_component_topology(path: Path) -> None:
     _ACTIVE_TOPOLOGY = context
 
 
+def _canonical_node_number(node_number: int) -> int:
+    current = node_number
+    seen: set[int] = set()
+    while current in _ACTIVE_TOPOLOGY.node_aliases and current not in seen:
+        seen.add(current)
+        current = _ACTIVE_TOPOLOGY.node_aliases[current]
+    return current
+
+
+def _source_numbers_for_canonical(node_number: int) -> set[int]:
+    canonical = _canonical_node_number(node_number)
+    sources = {canonical}
+    for source in _ACTIVE_TOPOLOGY.occurrences_by_node:
+        if _canonical_node_number(source) == canonical:
+            sources.add(source)
+    return sources
+
+
 def _occurrence_for_node(node_number: int, branch_name: str = "") -> ComponentOccurrence | None:
-    candidates = _ACTIVE_TOPOLOGY.occurrences_by_node.get(node_number, [])
+    candidates: list[ComponentOccurrence] = []
+    seen: set[str] = set()
+    for source_number in _source_numbers_for_canonical(node_number):
+        for occurrence in _ACTIVE_TOPOLOGY.occurrences_by_node.get(source_number, []):
+            if occurrence.occurrence_id in seen:
+                continue
+            seen.add(occurrence.occurrence_id)
+            candidates.append(occurrence)
     if branch_name:
         exact = [item for item in candidates if item.branch_name == branch_name]
         if len(exact) == 1:
@@ -237,7 +263,57 @@ def _position_key(position: tuple[float, float, float]) -> tuple[int, int, int]:
     return tuple(int(round(value / BRANCH_LINK_TOLERANCE_MM)) for value in position)
 
 
-def _bind_document_topology(document: base.XmlDocument) -> None:
+def _connection_priority(node: base.XmlNode, branch_name: str, role: str) -> tuple[int, int]:
+    semantic = _semantic_type_for_node(node, branch_name)
+    priority = {
+        "ELBO": 950,
+        "TEE": 900,
+        "OLET": 900,
+        "REDU": 850,
+        "BRAN": 800,
+    }.get(semantic, 100)
+    if role in {"head", "tail"}:
+        priority += 25
+    return (priority, -node.node_number)
+
+
+def _register_topology_alias(
+    role: str,
+    endpoint_branch: str,
+    endpoint: base.XmlNode,
+    candidate_branch: str,
+    candidate: base.XmlNode,
+) -> None:
+    endpoint_priority = _connection_priority(endpoint, endpoint_branch, role)
+    candidate_priority = _connection_priority(candidate, candidate_branch, "internal")
+    canonical = endpoint if endpoint_priority >= candidate_priority else candidate
+    absorbed = candidate if canonical is endpoint else endpoint
+    canonical_number = _canonical_node_number(canonical.node_number)
+    absorbed_number = _canonical_node_number(absorbed.node_number)
+    if absorbed_number == canonical_number:
+        return
+    _ACTIVE_TOPOLOGY.node_aliases[absorbed_number] = canonical_number
+    link = (
+        (candidate.node_number, endpoint.node_number)
+        if role == "head"
+        else (endpoint.node_number, candidate.node_number)
+    )
+    _ACTIVE_TOPOLOGY.topology_links.add(link)
+    _ACTIVE_TOPOLOGY.record_once(
+        ("canonical-link", *link),
+        "PSI116_BRANCH_NODE_CANONICALIZED",
+        "A unique coincident cross-branch connection was canonicalized to one CII node identity.",
+        endpointRole=role,
+        fromBranch=candidate_branch if role == "head" else endpoint_branch,
+        fromNode=link[0],
+        toBranch=endpoint_branch if role == "head" else candidate_branch,
+        toNode=link[1],
+        canonicalNode=canonical_number,
+        absorbedNode=absorbed_number,
+    )
+
+
+def _discover_document_topology(document: base.XmlDocument) -> None:
     all_nodes: dict[tuple[int, int, int], list[tuple[str, base.XmlNode]]] = defaultdict(list)
     endpoint_nodes: list[tuple[str, str, base.XmlNode]] = []
     for branch in document.branches:
@@ -264,7 +340,7 @@ def _bind_document_topology(document: base.XmlDocument) -> None:
                 _ACTIVE_TOPOLOGY.record_once(
                     ("ambiguous-link", role, endpoint_branch, endpoint.node_number),
                     "PSI116_BRANCH_LINK_AMBIGUOUS",
-                    "A special branch endpoint has multiple coincident nodes in other branches; no virtual link was applied.",
+                    "A special branch endpoint has multiple coincident nodes in other branches; no canonical alias was applied.",
                     endpointRole=role,
                     endpointBranch=endpoint_branch,
                     endpointNode=endpoint.node_number,
@@ -277,29 +353,33 @@ def _bind_document_topology(document: base.XmlDocument) -> None:
             or _is_special_node(candidate, candidate_branch)
         ):
             continue
-        link = (
-            (candidate.node_number, endpoint.node_number)
-            if role == "head"
-            else (endpoint.node_number, candidate.node_number)
-        )
-        _ACTIVE_TOPOLOGY.virtual_links.add(link)
-        _ACTIVE_TOPOLOGY.record_once(
-            ("virtual-link", *link),
-            "PSI116_BRANCH_ENDPOINT_LINK",
-            "A unique coincident branch endpoint/node connection was retained as virtual degree evidence without emitting a zero-length CII element.",
-            endpointRole=role,
-            fromBranch=candidate_branch if role == "head" else endpoint_branch,
-            fromNode=link[0],
-            toBranch=endpoint_branch if role == "head" else candidate_branch,
-            toNode=link[1],
-        )
+        _register_topology_alias(role, endpoint_branch, endpoint, candidate_branch, candidate)
+
+
+def _apply_node_aliases(document: base.XmlDocument) -> base.XmlDocument:
+    if not _ACTIVE_TOPOLOGY.node_aliases:
+        return document
+    branches: list[base.XmlBranch] = []
+    for branch in document.branches:
+        nodes = [
+            base.replace(node, node_number=_canonical_node_number(node.node_number))
+            for node in branch.nodes
+        ]
+        for left, right in zip(nodes, nodes[1:]):
+            if left.node_number == right.node_number:
+                raise ValueError(
+                    f"PSI116 canonical node alias created a zero-node span in branch '{branch.branch_name}' "
+                    f"at NodeNumber {left.node_number}."
+                )
+        branches.append(base.replace(branch, nodes=nodes))
+    return base.replace(document, branches=branches)
 
 
 def _parse_xml_document_with_component_topology(path: Path) -> base.XmlDocument:
     _activate_component_topology(path)
     document = _ORIGINAL_PARSE_XML_DOCUMENT(path)
-    _bind_document_topology(document)
-    return document
+    _discover_document_topology(document)
+    return _apply_node_aliases(document)
 
 
 def _shared_node_numbers(branches: list[base.XmlBranch]) -> set[int]:
@@ -356,7 +436,6 @@ def _contract_short_element_nodes(
     """Contract short positive-node spans while preserving component owners."""
     new_branches: list[base.XmlBranch] = []
     shared = _shared_node_numbers(branches)
-
     for branch in branches:
         if len(branch.nodes) < 2:
             new_branches.append(branch)
@@ -406,12 +485,37 @@ def _contract_short_element_nodes(
     return new_branches
 
 
-def _build_degree_map(edges: list[base.Edge]) -> Counter[int]:
-    degrees = _ORIGINAL_BUILD_DEGREE_MAP(edges)
-    for left, right in _ACTIVE_TOPOLOGY.virtual_links:
-        degrees[left] += 1
-        degrees[right] += 1
-    return degrees
+def _merge_spec_map(
+    target: dict[int, tuple[base.RestraintSpec, ...]],
+    node_number: int,
+    specs: tuple[base.RestraintSpec, ...],
+) -> None:
+    canonical = _canonical_node_number(node_number)
+    target[canonical] = base._merge_restraint_specs(target.get(canonical, tuple()), specs)
+
+
+def _build_explicit_restraint_specs(
+    branches: list[base.XmlBranch],
+) -> dict[int, tuple[base.RestraintSpec, ...]]:
+    specs: dict[int, tuple[base.RestraintSpec, ...]] = {}
+    for branch in branches:
+        for node in branch.nodes:
+            if node.restraint_specs:
+                _merge_spec_map(specs, node.node_number, node.restraint_specs)
+    return specs
+
+
+def _build_restraints(
+    metadata: base.XmlMetadata,
+    edges: list[base.Edge],
+    degrees: Counter[int],
+    explicit_specs: dict[int, tuple[base.RestraintSpec, ...]],
+    support_map: dict | None = None,
+):
+    remapped: dict[int, tuple[base.RestraintSpec, ...]] = {}
+    for node_number, specs in explicit_specs.items():
+        _merge_spec_map(remapped, node_number, specs)
+    return _ORIGINAL_BUILD_RESTRAINTS(metadata, edges, degrees, remapped, support_map)
 
 
 def _component_owner_node(edge: base.Edge, semantic_types: set[str]) -> base.XmlNode | None:
@@ -475,8 +579,9 @@ def _bend_reference_node(owner: base.XmlNode, edge: base.Edge) -> int:
         for endpoint in (1, 2):
             for record in occurrence.records:
                 if record.endpoint == endpoint and record.node_number is not None and record.node_number > 0:
-                    if record.node_number != owner.node_number:
-                        return record.node_number
+                    candidate = _canonical_node_number(record.node_number)
+                    if candidate != owner.node_number:
+                        return candidate
     fallback = owner.node_number - 1
     _ACTIVE_TOPOLOGY.record_once(
         ("bend-reference-fallback", edge.branch_name, owner.node_number),
@@ -511,6 +616,19 @@ def _build_bend_payload(model: base.ConversionModel) -> list[str]:
     return lines
 
 
+def _description_for_owner(owner: base.XmlNode, edge: base.Edge, descriptions: dict[int, str]) -> str:
+    direct = descriptions.get(owner.node_number, "")
+    if direct:
+        return direct
+    occurrence = _occurrence_for_node(owner.node_number, edge.branch_name)
+    if occurrence is None:
+        return ""
+    for source_number in occurrence.positive_node_numbers:
+        if descriptions.get(source_number):
+            return descriptions[source_number]
+    return ""
+
+
 def _sif_payload_factory(tee_desc_by_node: dict[int, str], support_config: dict):
     def _build_sif_payload(model: base.ConversionModel) -> list[str]:
         lines: list[str] = []
@@ -519,7 +637,7 @@ def _sif_payload_factory(tee_desc_by_node: dict[int, str], support_config: dict)
             owner = _sif_owner_node(edge)
             if owner is None:
                 raise ValueError("SIF&TEES auxiliary edge has no PSI116 tee/olet component owner.")
-            desc = tee_desc_by_node.get(owner.node_number, "")
+            desc = _description_for_owner(owner, edge, tee_desc_by_node)
             tee_type = direction._tee_sif_type_from_description(desc, support_config)
             lines.append(base._row([
                 base._format_auto_float(float(owner.node_number)),
@@ -560,10 +678,14 @@ def _audit_summary() -> dict[str, object]:
         "sourceNodeRecords": len(_ACTIVE_TOPOLOGY.records),
         "componentOccurrences": len(_ACTIVE_TOPOLOGY.occurrences),
         "componentTypes": dict(sorted(type_counts.items())),
-        "virtualBranchLinks": [
+        "topologyLinks": [
             {"fromNode": left, "toNode": right}
-            for left, right in sorted(_ACTIVE_TOPOLOGY.virtual_links)
+            for left, right in sorted(_ACTIVE_TOPOLOGY.topology_links)
         ],
+        "nodeAliases": {
+            str(source): _canonical_node_number(source)
+            for source in sorted(_ACTIVE_TOPOLOGY.node_aliases)
+        },
         "diagnostics": list(_ACTIVE_TOPOLOGY.diagnostics),
     }
 
@@ -578,7 +700,8 @@ def install_component_topology_patch() -> None:
         return
     base._parse_xml_document = _parse_xml_document_with_component_topology  # type: ignore[assignment]
     base._drop_short_element_nodes = _contract_short_element_nodes  # type: ignore[assignment]
-    base._build_degree_map = _build_degree_map  # type: ignore[assignment]
+    base._build_explicit_restraint_specs = _build_explicit_restraint_specs  # type: ignore[assignment]
+    base._build_restraints = _build_restraints  # type: ignore[assignment]
     base._build_bend_indices = _build_bend_indices  # type: ignore[assignment]
     base._build_sif_indices = _build_sif_indices  # type: ignore[assignment]
     base._build_reducer_indices = _build_reducer_indices  # type: ignore[assignment]
