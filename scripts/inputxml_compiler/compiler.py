@@ -8,6 +8,8 @@ from .family import *
 from .model import *
 from .categorized import *
 from .validation import *
+from .xml_builder import *
+
 def compile_document(
     source: bytes,
     *,
@@ -59,6 +61,9 @@ def compile_document(
                 raise CompileBlocked("CategorizedInputXML failed categorized-inputxml-v3.xsd: " + "; ".join(categorized_errors))
             wrapped = _categorized_document(root, context, ledger)
             canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
+        elif dialect == "xml-builder-root-branch-node":
+            wrapped = _compile_xml_builder_source(source, source_root=root, ledger=ledger, context=context)
+            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
         else:
             canonical = _compile_inputxml_family(root, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
             if dialect == "xml-to-cii-diagnostic-sidecar":
@@ -85,7 +90,6 @@ def compile_document(
         ledger.diagnostic("BLOCKING", "CANONICALIZATION_BLOCKED", str(exc))
         validation.update(status="BLOCKED", diagnostics=ledger.diagnostics)
         return None, ledger.as_dict(source_hash, None), validation
-
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
