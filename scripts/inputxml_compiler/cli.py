@@ -26,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-repository", default="unknown")
     parser.add_argument("--source-path")
     parser.add_argument("--producer", default="inputxml-canonical-compiler")
-    parser.add_argument("--contracts-dir", type=Path, default=Path(__file__).resolve().parents[1] / "contracts" / "inputxml" / "v1")
+    parser.add_argument("--contracts-dir", type=Path, default=Path(__file__).resolve().parents[2] / "contracts" / "inputxml" / "v1")
     args = parser.parse_args(argv)
     context = _load_json(args.context) if args.context else {}
     source = args.input.read_bytes()
