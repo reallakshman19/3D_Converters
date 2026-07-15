@@ -1,35 +1,17 @@
-/** Public topology parity comparison facade. */
-import { compareCanonicalEdgeNodeToInputXml, compareCanonicalEdgeNodeToSvgScene, compareInputXmlEdgeNodeToSvgScene } from './topology-parity-edge-node.js';
-import { compareDeferredToInput, compareDeferredToScene, compareRigidsToInput, compareRigidsToScene, compareSupportsToInput, compareSupportsToScene } from './topology-parity-support-rigid.js';
-import { compareBoundariesToInput, compareBoundariesToScene, compareJunctionsToInput, compareJunctionsToScene, comparePointFeaturesToScene } from './topology-parity-junction-boundary.js';
-
-export function compareCanonicalToInputXml(canonical, parsed, ledger = { records: [] }) {
-  return [
-    ...compareCanonicalEdgeNodeToInputXml(canonical, parsed, ledger),
-    ...compareSupportsToInput(canonical, parsed, ledger),
-    ...compareRigidsToInput(canonical, parsed, ledger),
-    ...compareJunctionsToInput(canonical, parsed, ledger),
-    ...compareBoundariesToInput(canonical, parsed, ledger),
-    ...compareDeferredToInput(canonical, parsed, ledger),
-  ];
-}
-
-export function compareCanonicalToSvgScene(canonical, scene, ledger = { records: [] }) {
-  return [
-    ...compareCanonicalEdgeNodeToSvgScene(canonical, scene, ledger),
-    ...compareSupportsToScene(canonical, scene, ledger),
-    ...compareRigidsToScene(canonical, scene, ledger),
-    ...compareJunctionsToScene(canonical, scene, ledger),
-    ...compareBoundariesToScene(canonical, scene, ledger),
-    ...comparePointFeaturesToScene(canonical, scene, ledger),
-    ...compareDeferredToScene(canonical, scene, ledger),
-  ];
-}
-
-export function compareInputXmlToSvgScene(parsed, scene) {
-  return compareInputXmlEdgeNodeToSvgScene(parsed, scene);
-}
-
-export { buildTopologyParityReport, topologyParityMismatchesCsv, TopologyParityError } from './topology-parity-report.js';
+/** Public topology parity facade. */
+export {
+  compareCanonicalToInputXml,
+  compareCanonicalToSvgScene,
+  compareInputXmlToSvgScene,
+} from './topology-parity-comparisons.js';
+export {
+  buildTopologyParityReport,
+  topologyParityMismatchesCsv,
+  TopologyParityError,
+} from './topology-parity-report.js';
 export { GLOBAL_DECIMALS, DELTA_DECIMALS } from './topology-parity-values.js';
-export const TOPOLOGY_PARITY_NORMALIZATION = Object.freeze({ globalCoordinateDecimals: 3, deltaDecimals: 6, toleranceMm: 0 });
+export const TOPOLOGY_PARITY_NORMALIZATION = Object.freeze({
+  globalCoordinateDecimals: 3,
+  deltaDecimals: 6,
+  toleranceMm: 0,
+});
