@@ -13,6 +13,16 @@ Authority baseline: `reallaksh19/3D_Converters@9125e8b54ae96fa6a44c6db2cf5408a39
 - `inputxml-cii-projection-contract.json`
 - `inputxml-component-contract-catalog.json`
 
+## Validated coverage
+
+- 43 grouped field records covering 166 expanded fields and blocks
+- 53 explicit or indexed intake-alias instances
+- 19 component and auxiliary contracts
+- 15 CII projection groups
+- all 22 ordered CII sections represented in the projection contract
+
+Validation is enforced by `scripts/validate-inputxml-contract-catalogs.py` and `.github/workflows/inputxml-contract-catalogs.yml`.
+
 ## Decisions
 
 1. Canonical pressure attributes are `PRESSURE_C1` through `PRESSURE_C9`; `PRESSURE1` through `PRESSURE9` are intake aliases only.
