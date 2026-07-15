@@ -1,0 +1,62 @@
+name: Diagnose topology support 53464
+
+on:
+  push:
+    branches:
+      - fix/topology-support-position-authority-20260715
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Inspect support and route proximity
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { runEnrichment } from './tabs/stagedjson-to-enrichxml/sj-enrichment-engine.js';
+          import { buildTopologySourceModel } from './tabs/model-converters/converters/component-topology/topology-source-model.js';
+          import { portForRole } from './tabs/model-converters/converters/component-topology/topology-connectivity.js';
+          import { bestPosition } from './tabs/stagedjson-to-enrichxml/sj-point-resolver.js';
+
+          const sourceText = readFileSync('Benchmarks/1885_NC/1885_NC.json', 'utf8');
+          const parsed = JSON.parse(sourceText);
+          const branches = Array.isArray(parsed) ? parsed : (parsed.objects || parsed.hierarchy || parsed.branches || []);
+          const target = '1006649732/53464';
+          const found = [];
+          for (let bi = 0; bi < branches.length; bi += 1) {
+            const branch = branches[bi];
+            for (let ci = 0; ci < (branch.children || []).length; ci += 1) {
+              const child = branch.children[ci];
+              const attrs = child.attributes || {};
+              const hay = [child.name, attrs.NAME, attrs.REF, attrs.CMPSTRESSN, attrs.CMPSUPREFN].map(String).join(' ');
+              if (hay.includes(target)) found.push({ bi, ci, branch: branch.name || attrs.OWNER, child });
+            }
+          }
+          console.log('FOUND_COUNT', found.length);
+          for (const row of found) console.log('RAW_TARGET', JSON.stringify(row, null, 2));
+
+          const model = await buildTopologySourceModel(sourceText, { sourceName: '1885_NC.json', toleranceMm: 0.5 });
+          const enrichment = runEnrichment({ stagedJsonText: sourceText, config: {} });
+          const targetComponents = model.components.filter((component) => [component.name, component.sourceRef, component.attributes?.NAME, component.attributes?.REF].map(String).join(' ').includes(target));
+          for (const component of targetComponents) {
+            const record = enrichment.records.find((item) => Number(item.path?.[0]) === component.branchIndex && Number(item.path?.[item.path.indexOf('children') + 1]) === component.sourceIndex);
+            const ports = Object.fromEntries(['P','A','L'].map((role) => [role, portForRole(component, role)?.position || null]));
+            console.log('MODEL_TARGET', JSON.stringify({
+              sourcePath: component.sourcePath,
+              sourceBranchName: component.sourceBranchName,
+              sourceBranchEntityId: component.sourceBranchEntityId,
+              sourceType: component.sourceType,
+              name: component.name,
+              sourceRef: component.sourceRef,
+              positions: component.positions,
+              ports,
+              bestPosition: bestPosition(record?.attrs || {}),
+              attrs: Object.fromEntries(['OWNER','NAME','REF','POS','APOS','LPOS','MDSSREF','MDSGUIDEREF','PREV-NAME','CMPSTRESSN','CMPSUPREFN'].map((key) => [key, component.attributes?.[key] ?? null])),
+            }, null, 2));
+          }
+          NODE
