@@ -3,8 +3,8 @@
 
 The matrix covers every registered compiler outcome. Implemented adapters must
 produce canonical InputXML, PR-E assurance, actual production-writer CII, and an
-independent CII reparse proof. Diagnostic/excluded profiles must block exactly
-at canonical intake.
+independent CII reparse proof. Diagnostic/excluded profiles must block with their
+registered evidence semantics.
 """
 from __future__ import annotations
 
@@ -187,7 +187,14 @@ def matrix_cases() -> list[MatrixCase]:
         MatrixCase("managed-stage", "managed-stage-json", "managed-stage.json", _managed_stage(), common_context, "FULL_CHAIN_PASS"),
         MatrixCase(
             "pdf-input-echo", "pdf-input-echo", "input-echo.txt", _pdf_echo(),
-            {**common_context, "lineId": "PRG-L-100", "sourceKind": "extracted-text", "extractor": "pr-g-matrix"},
+            {
+                **common_context,
+                "lineId": "PRG-L-100",
+                "sourceKind": "extracted-text",
+                "extractor": "pr-g-matrix",
+                "coordinateAnchors": {"10": [0, 0, 0]},
+                "nodeNames": {"10": "N10", "20": "N20"},
+            },
             "FULL_CHAIN_PASS",
         ),
         MatrixCase(
@@ -262,8 +269,16 @@ def run_matrix(output_dir: Path | None = None) -> dict[str, Any]:
             "diagnostics": [],
         }
         if case.expected == "CANONICAL_BLOCKED":
-            if validation.get("status") != "BLOCKED" or canonical_root is not None:
-                row["diagnostics"].append("Expected canonical intake to block without canonical output.")
+            if validation.get("status") != "BLOCKED":
+                row["diagnostics"].append("Expected canonical intake to block.")
+            if case.dialect == "nodeset-v1" and canonical_root is not None:
+                row["diagnostics"].append("Excluded NodeSet must not emit canonical evidence.")
+            if case.dialect == "xml-to-cii-diagnostic-sidecar" and canonical_root is None:
+                row["diagnostics"].append("Diagnostic sidecar must preserve a canonical evidence document while blocking production use.")
+            (case_dir / "canonicalization-ledger.json").write_text(json.dumps(canonicalization, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            (case_dir / "canonical-validation.json").write_text(json.dumps(validation, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            if canonical_root is not None:
+                (case_dir / "canonical-evidence.input.xml").write_bytes(compiler._compiler._xml_bytes(canonical_root))
             row["status"] = "PASS" if not row["diagnostics"] else "FAIL"
             rows.append(row)
             continue
