@@ -112,7 +112,7 @@ def test_full_component_occurrence_keeps_negative_elbow_ports() -> None:
     assert _bend_owner_numbers(model) == [20]
 
 
-def test_branch_head_and_coincident_elbows_survive_and_own_bends() -> None:
+def test_branch_head_alias_and_coincident_elbows_preserve_topology() -> None:
     model = _model_for(
         f"""
 <Branch>
@@ -132,16 +132,20 @@ def test_branch_head_and_coincident_elbows_survive_and_own_bends() -> None:
         restrain_open_ends="Yes",
     )
     edge_pairs = [(edge.from_node.node_number, edge.to_node.node_number) for edge in model.edges]
+    assert (2250, 1570) in edge_pairs
     assert (1570, 1590) in edge_pairs
     assert (1590, 1610) in edge_pairs
+    assert not any(2260 in pair for pair in edge_pairs)
     assert (1600, 1610) not in edge_pairs
     assert _bend_owner_numbers(model) == [1570, 1610]
-    assert model.degrees[2260] == 2
     assert model.degrees[1570] == 2
     assert 1570 not in [item.node_number for item in model.restraints]
     radii = [float(line.split()[0]) for line in base._build_bend_payload(model)[::3]]
     assert radii == [305.0, 305.0]
     assert any("contracted into NodeNumber 1610" in row for row in base.DROPPED_SHORT_ELEMENT_NODES)
+    audit = topology._audit_summary()
+    assert audit["nodeAliases"]["2260"] == 1570
+    assert {"fromNode": 2260, "toNode": 1570} in audit["topologyLinks"]
 
 
 def test_bran_connection_type_tee_is_a_sif_owner() -> None:
@@ -160,7 +164,7 @@ def test_bran_connection_type_tee_is_a_sif_owner() -> None:
     assert owner is not None and owner.node_number == 2280
 
 
-def test_real_1885_firstpass_restores_305mm_elbows() -> None:
+def test_real_1885_firstpass_restores_elbows_and_connected_node_identity() -> None:
     xml_path = REPO_ROOT / "Benchmarks" / "1885Sjson" / "FirstpassXML"
     assert xml_path.exists(), xml_path
     base.DROPPED_SHORT_ELEMENT_NODES.clear()
@@ -171,18 +175,24 @@ def test_real_1885_firstpass_restores_305mm_elbows() -> None:
     assert 1610 in owners, owners
     radii = [float(line.split()[0]) for line in base._build_bend_payload(model)[::3]]
     assert radii.count(305.0) >= 2, radii
-    assert model.degrees[1570] > 1
+    edge_pairs = [(edge.from_node.node_number, edge.to_node.node_number) for edge in model.edges]
+    assert (2240, 1570) in edge_pairs, edge_pairs
+    assert (1570, 2280) in edge_pairs, edge_pairs
+    assert (1570, 1590) in edge_pairs, edge_pairs
+    assert not any(2260 in pair for pair in edge_pairs), edge_pairs
+    assert model.degrees[1570] >= 3
     assert not any(
         item.node_number == 1570 and any(spec.is_open_end for spec in item.specs)
         for item in model.restraints
     )
     audit = topology._audit_summary()
-    assert {"fromNode": 2260, "toNode": 1570} in audit["virtualBranchLinks"]
+    assert audit["nodeAliases"]["2260"] == 1570
+    assert {"fromNode": 2260, "toNode": 1570} in audit["topologyLinks"]
 
 
 if __name__ == "__main__":
     test_full_component_occurrence_keeps_negative_elbow_ports()
-    test_branch_head_and_coincident_elbows_survive_and_own_bends()
+    test_branch_head_alias_and_coincident_elbows_preserve_topology()
     test_bran_connection_type_tee_is_a_sif_owner()
-    test_real_1885_firstpass_restores_305mm_elbows()
+    test_real_1885_firstpass_restores_elbows_and_connected_node_identity()
     print("xml_to_cii_psi116_component_topology_regression: PASS")
