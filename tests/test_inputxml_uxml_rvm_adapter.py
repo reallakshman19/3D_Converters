@@ -194,9 +194,8 @@ class UxmlRvmAdapterTests(unittest.TestCase):
 
     def test_missing_outside_diameter_blocks_without_bore_guess(self):
         root, ledger, validation = self.compile({'inputKind': 'RVM_ROWS', 'rows': rvm_rows(include_od=False)})
-        self.assertIsNotNone(root)
+        self.assertIsNone(root)
         self.assertEqual('BLOCKED', validation['status'])
-        self.assertEqual(0, len(root.findall('PIPINGMODEL/PIPINGELEMENT')))
         self.assertTrue(any('bore is not treated as OD' in ' '.join(row['diagnostics']) for row in ledger['records']))
 
 
