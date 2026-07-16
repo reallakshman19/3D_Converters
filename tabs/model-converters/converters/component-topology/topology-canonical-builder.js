@@ -117,6 +117,17 @@ function canonicalPort(ports) {
 
 /** @param {Record<string, unknown>} model @param {Record<string, unknown>} connectivity @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>[]} junctions @param {Record<string, unknown>[]} boundaries @returns {Record<string, unknown>} */
 function buildNodes(model, connectivity, edgeSpecs, junctions, boundaries) {
+  const branchIndexByComponentId = new Map();
+  if (model.branches) {
+    model.branches.forEach((branch, bIdx) => {
+      if (branch.components) {
+        branch.components.forEach(comp => {
+          branchIndexByComponentId.set(comp.sourceEntityId, bIdx);
+        });
+      }
+    });
+  }
+
   const projectedPorts = edgeSpecs.flatMap((edge) => [edge.fromPort, edge.toPort]);
   const terminalPorts = [...junctions.map((row) => row.port), ...boundaries.map((row) => row.port)];
   const portByKey = new Map(model.sourcePorts.map((port) => [port.key, port]));
@@ -133,14 +144,24 @@ function buildNodes(model, connectivity, edgeSpecs, junctions, boundaries) {
     root,
     ports: ports.sort((left, right) => left.order - right.order),
   })).sort((left, right) => left.ports[0].order - right.ports[0].order);
+
+  const branchCounters = new Map();
+
   const nodes = ordered.map((group, index) => {
     const authority = canonicalPort(group.ports);
+    let bIdx = branchIndexByComponentId.get(authority.sourceEntityId);
+    if (bIdx === undefined) bIdx = 0;
+
+    const count = (branchCounters.get(bIdx) ?? 0) + 1;
+    branchCounters.set(bIdx, count);
+    const caesarNodeNumber = (bIdx + 1) * 10000 + (count * 10);
+
     return {
       id: `CN-${sequenceId(index + 1)}`,
       position: { ...authority.position },
       sourcePortIds: uniqueText(group.ports.map((port) => port.sourcePortId)),
       sourceEntityIds: uniqueText(group.ports.map((port) => port.sourceEntityId)),
-      inputXmlNodeIds: [String((index + 1) * 10)],
+      inputXmlNodeIds: [String(caesarNodeNumber)],
       positionAuthority: authority.attachmentAuthority || authority.sourcePath,
       connectionAuthority: uniqueText(group.ports.map((port) => port.sourcePath)),
       connectionResidual: maximumResidual(group.ports, authority.position),

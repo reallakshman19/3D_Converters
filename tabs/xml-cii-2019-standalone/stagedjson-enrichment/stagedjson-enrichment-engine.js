@@ -10,15 +10,16 @@ import { buildStagedJsonEnrichmentAudit, stagedJsonUnresolvedCsv } from './stage
 import { normalizeVisibleStagedJsonConfig } from './stagedjson-enrichment-contract.js';
 import { buildStagedJsonMasterContext, summarizeStagedJsonMasters } from './stagedjson-master-adapter.js';
 import { resolveStagedJsonContext } from './stagedjson-resolver-adapter.js';
+import { normalizeStagedJson } from '../../../contracts/stagedjson-contract.js';
 
 export function enrichStagedJson(input) {
-  const stagedJson = parseStagedJson(input?.stagedJson);
+  const { branches, envelope } = parseStagedJson(input?.stagedJson);
   const config = normalizeVisibleStagedJsonConfig(input?.config);
   const masters = buildStagedJsonMasterContext(input?.masters || {}, config);
-  const contexts = collectStagedJsonBranchContexts(stagedJson, config);
+  const contexts = collectStagedJsonBranchContexts(branches, config);
   const rows = contexts.map((context) => ({ context, enrichedAttributes: resolveStagedJsonContext(context, masters, config) }));
-  const enrichedStagedJson = writeEnrichment(stagedJson, rows);
-  const geometryChanged = JSON.stringify(stagedJsonGeometrySnapshot(stagedJson)) !== JSON.stringify(stagedJsonGeometrySnapshot(enrichedStagedJson));
+  const enrichedStagedJson = writeEnrichment(branches, rows);
+  const geometryChanged = JSON.stringify(stagedJsonGeometrySnapshot(branches)) !== JSON.stringify(stagedJsonGeometrySnapshot(enrichedStagedJson));
   if (geometryChanged) throw new Error('stagedJson enrichment changed geometry coordinates; export blocked.');
   const audit = buildStagedJsonEnrichmentAudit({ rows, masterSummary: summarizeStagedJsonMasters(masters), geometryChanged, sourceFileName: input?.sourceFileName, evaluatedAt: input?.evaluatedAt });
   return {
@@ -27,13 +28,14 @@ export function enrichStagedJson(input) {
     unresolvedCsv: stagedJsonUnresolvedCsv(audit),
     previewRows: rows.map(previewRow),
     config,
+    ...(envelope ? { sourceEnvelope: envelope } : {}),
   };
 }
 
 export function parseStagedJson(value) {
-  const parsed = typeof value === 'string' ? JSON.parse(value) : clone(value);
-  if (!parsed || (typeof parsed !== 'object')) throw new TypeError('stagedJson input must be a JSON object or array.');
-  return parsed;
+  const raw = typeof value === 'string' ? JSON.parse(value) : value;
+  const { branches, envelope } = normalizeStagedJson(raw);
+  return { branches: clone(branches), envelope: envelope ? clone(envelope) : null };
 }
 
 function writeEnrichment(stagedJson, rows) {

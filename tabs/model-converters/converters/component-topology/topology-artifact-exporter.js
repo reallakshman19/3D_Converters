@@ -11,6 +11,7 @@ import { buildCanonicalTopology } from './topology-canonical-builder.js';
 import { buildTopologyTraceLedger } from './topology-ledger-builder.js';
 import { buildTopologyInputXml } from './topology-inputxml-writer.js';
 import { buildTopologyEngineeringProjection } from './topology-engineering-projection.js';
+import { materializeTopologyEditDraft } from './topology-edit-engine.js';
 import { enrichCanonicalTopologyIdentity, enrichTopologyTraceLedgerIdentity } from './topology-artifact-identity.js';
 import { stampArtifactHash } from './topology-deterministic-hash.js';
 import { buildTopologySvgScene } from './topology-svg-scene-builder.js';
@@ -101,7 +102,16 @@ function artifactMetrics(model, canonical, ledger, engineering, parsed, scene, p
   });
 }
 
-export async function buildComponentTopologyArtifacts(sourceText, options) {
+/**
+ * Builds the immutable producer state shared by normal and edited exports.
+ * Source parsing, engineering projection, connectivity, and base canonical
+ * identity are performed exactly once per regeneration.
+ *
+ * @param {string} sourceText
+ * @param {Record<string, unknown>} options
+ * @returns {Promise<Readonly<Record<string, unknown>>>}
+ */
+async function buildProducerState(sourceText, options) {
   const model = await buildTopologySourceModel(sourceText, {
     sourceName: options.sourceName,
     toleranceMm: options.toleranceMm,
@@ -116,6 +126,21 @@ export async function buildComponentTopologyArtifacts(sourceText, options) {
   const canonicalTopology = stampArtifactHash(
     enrichCanonicalTopologyIdentity(builtCanonical, model), 'canonicalTopologyHash',
   );
+  return Object.freeze({ model, engineering, canonicalTopology });
+}
+
+/**
+ * Projects one canonical authority to every regenerated artifact and executes
+ * the independent InputXML/SVG parity gate.
+ *
+ * @param {Record<string, unknown>} state
+ * @param {Record<string, unknown>} options
+ * @param {Record<string, unknown>|null} editMetadata
+ * @param {boolean} failOnParity
+ * @returns {Readonly<Record<string, unknown>>}
+ */
+function buildArtifactsFromState(state, options, editMetadata, failOnParity) {
+  const { model, engineering, canonicalTopology } = state;
   const builtLedger = buildTopologyTraceLedger(model, canonicalTopology);
   const traceLedger = stampArtifactHash(enrichTopologyTraceLedgerIdentity(
     builtLedger, canonicalTopology, model, engineering, {
@@ -127,6 +152,8 @@ export async function buildComponentTopologyArtifacts(sourceText, options) {
   const topologyInputXml = buildTopologyInputXml(canonicalTopology, engineering, {
     jobName: options.jobName,
     topologyTraceLedgerHash: traceLedger.topologyTraceLedgerHash,
+    topologyEditDraftHash: editMetadata?.editDraft?.topologyEditDraftHash,
+    topologyEditLedgerHash: editMetadata?.editLedger?.topologyEditLedgerHash,
   });
   const parsedInputXmlTopology = parseTopologyInputXml(topologyInputXml);
   const topologySvgScene = buildTopologySvgScene(canonicalTopology, traceLedger, []);
@@ -151,13 +178,68 @@ export async function buildComponentTopologyArtifacts(sourceText, options) {
     topologyParityMismatchesCsv: topologyParityMismatchesCsv(topologyParityReport),
     metrics,
     buildIssues: canonicalTopology.buildIssues,
+    ...(editMetadata ?? {}),
   });
-  if (!topologyParityReport.ok) throw new TopologyParityError(topologyParityReport);
+  if (failOnParity && !topologyParityReport.ok) throw new TopologyParityError(topologyParityReport);
   return artifacts;
 }
 
+/**
+ * Builds the immutable baseline topology artifacts.
+ *
+ * @param {string} sourceText
+ * @param {Record<string, unknown>} options
+ * @returns {Promise<Readonly<Record<string, unknown>>>}
+ */
+export async function buildComponentTopologyArtifacts(sourceText, options) {
+  const state = await buildProducerState(sourceText, options);
+  return buildArtifactsFromState(state, options, null, true);
+}
+
+/**
+ * Regenerates every topology artifact from source plus a reversible edit draft.
+ * Blocking edit validation and parity evidence are returned to the editor so
+ * export can be gated without mutating or overwriting any uploaded artifact.
+ *
+ * @param {string} sourceText
+ * @param {Record<string, unknown>} draft
+ * @param {Record<string, unknown>} options
+ * @returns {Promise<Readonly<Record<string, unknown>>>}
+ */
+export async function buildEditedComponentTopologyArtifacts(sourceText, draft, options) {
+  const baseState = await buildProducerState(sourceText, options);
+  const materialized = materializeTopologyEditDraft(baseState.canonicalTopology, draft);
+  const editValidation = materialized.validation;
+  const state = Object.freeze({
+    ...baseState,
+    canonicalTopology: materialized.canonicalTopology,
+  });
+  const artifacts = buildArtifactsFromState(state, options, {
+    editDraft: draft,
+    editLedger: materialized.editLedger,
+    editValidation,
+  }, false);
+  const parityBlocking = artifacts.topologyParityReport.ok ? [] : [Object.freeze({
+    code: 'TOPOLOGY_PARITY_BLOCKING',
+    blocking: true,
+    message: `${artifacts.topologyParityReport.summary.topologyMismatchCount} independent topology parity mismatches remain.`,
+    objectIds: Object.freeze([]),
+  })];
+  const combinedFindings = Object.freeze([...editValidation.findings, ...parityBlocking]);
+  const blockingCount = combinedFindings.filter((finding) => finding.blocking).length;
+  return Object.freeze({
+    ...artifacts,
+    editValidation: Object.freeze({
+      ...editValidation,
+      ok: blockingCount === 0,
+      findings: combinedFindings,
+      summary: Object.freeze({ findingCount: combinedFindings.length, blockingCount }),
+    }),
+  });
+}
+
 export function topologyArtifactOutputs(artifacts, options) {
-  return Object.freeze([
+  const outputs = [
     Object.freeze({
       name: `${options.stem}.canonical-topology.json`,
       text: `${JSON.stringify(artifacts.canonicalTopology, null, 2)}\n`,
@@ -193,7 +275,24 @@ export function topologyArtifactOutputs(artifacts, options) {
       text: artifacts.topologyParityMismatchesCsv,
       mime: 'text/csv;charset=utf-8',
     }),
-  ]);
+  ];
+  if (artifacts.editDraft) outputs.unshift(Object.freeze({
+    name: `${options.stem}.topology-edit-draft.json`,
+    text: `${JSON.stringify(artifacts.editDraft, null, 2)}\n`,
+    mime: 'application/json;charset=utf-8',
+  }));
+  if (artifacts.editLedger) outputs.push(Object.freeze({
+    name: `${options.stem}.topology-edit-ledger.json`,
+    text: `${JSON.stringify(artifacts.editLedger, null, 2)}\n`,
+    mime: 'application/json;charset=utf-8',
+  }));
+  return Object.freeze(outputs);
 }
 
-export const _test = Object.freeze({ componentCounts, referenceCounts, artifactMetrics });
+export const _test = Object.freeze({
+  componentCounts,
+  referenceCounts,
+  artifactMetrics,
+  buildProducerState,
+  buildArtifactsFromState,
+});
