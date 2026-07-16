@@ -12,7 +12,7 @@ import { textIds } from './topology-edit-contract.js';
 const GEOMETRY_DIAGNOSTIC_OPTIONS = Object.freeze({
   shortElementMm: 6,
   toleranceMm: 0.1,
-  snapToleranceMm: 6,
+  snapToleranceMm: 25,
   angleToleranceDeg: 5,
   originToleranceMm: 0.1,
 });
@@ -73,6 +73,13 @@ function dependencyFindings(canonical, nodeIndex, degree) {
   for (const rigid of canonical.rigids) if (!edgeIndex.has(rigid.edgeId)) {
     findings.push(finding('ORPHAN_RIGID', true, `Rigid ${rigid.sourceEntityId} references missing edge ${rigid.edgeId}.`, [rigid.sourceEntityId]));
   }
+  for (const bend of canonical.bends ?? []) {
+    const missingEdges = (bend.edgeIds ?? []).filter((edgeId) => !edgeIndex.has(edgeId));
+    if (!nodeIndex.has(bend.nodeId) || missingEdges.length) findings.push(finding(
+      'ORPHAN_BEND_DEFINITION', true,
+      `Bend ${bend.id} references missing node or arm geometry.`, [bend.id, bend.nodeId, ...missingEdges],
+    ));
+  }
   return findings;
 }
 
@@ -120,7 +127,7 @@ export function mergeGeometryDiagnostics(structural, current, base) {
   }));
   const baselineKeys = new Set(baseReport.findings.map(geometryFindingKey));
   const geometryFindings = currentReport.findings.map((row) => Object.freeze({
-    ...row, blocking: false, severity: 'WARNING', baseline: baselineKeys.has(geometryFindingKey(row)),
+    ...row, baseline: baselineKeys.has(geometryFindingKey(row)),
   }));
   const findings = Object.freeze([...structural.findings, ...geometryFindings]);
   const blockingCount = findings.filter((row) => row.blocking).length;

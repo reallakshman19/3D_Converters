@@ -9,6 +9,7 @@ import { deterministicHash, stampArtifactHash } from './topology-deterministic-h
 import {
   TOPOLOGY_EDIT_COMMAND_TYPES,
   appendTopologyEditCommand,
+  appendTopologyEditTransaction,
   assertCanonical,
   assertDraft,
   createTopologyEditDraft,
@@ -31,6 +32,7 @@ const EDIT_LEDGER_HASH_KEYS = Object.freeze(['topologyEditLedgerHash']);
 export {
   TOPOLOGY_EDIT_COMMAND_TYPES,
   appendTopologyEditCommand,
+  appendTopologyEditTransaction,
   createTopologyEditDraft,
   redoTopologyEditCommand,
   undoTopologyEditCommand,
@@ -53,6 +55,7 @@ function finalizeCanonical(state, draft) {
     boundaries: Object.freeze(state.boundaries),
     supports: Object.freeze(state.supports),
     rigids: Object.freeze(state.rigids),
+    bends: Object.freeze(state.bends ?? []),
     buildIssues: Object.freeze(state.buildIssues ?? []),
   };
   return stampArtifactHash(prepared, 'canonicalTopologyHash');

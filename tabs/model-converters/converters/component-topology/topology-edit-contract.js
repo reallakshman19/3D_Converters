@@ -16,6 +16,10 @@ export const TOPOLOGY_EDIT_COMMAND_TYPES = Object.freeze([
   'SPLIT_EDGE',
   'DISCONNECT_ENDPOINT',
   'DELETE_EDGE',
+  'ADD_BEND_DEFINITION',
+  'ADD_JUNCTION_DEFINITION',
+  'TRIM_EDGE',
+  'TRANSACTION',
 ]);
 
 const EDIT_DRAFT_HASH_KEYS = Object.freeze(['topologyEditDraftHash']);
@@ -126,6 +130,38 @@ export function appendTopologyEditCommand(draft, type, payload) {
     commands: [...draft.commands, command],
     redoCommands: [],
     nextCommandSequence: sequence + 1,
+  });
+}
+
+/**
+ * Appends several deterministic edit operations as one reversible command.
+ * Undo therefore restores the exact topology hash that preceded the fix run.
+ *
+ * @param {Record<string, unknown>} draft
+ * @param {Record<string, unknown>[]} operations
+ * @param {Record<string, unknown>} metadata
+ * @returns {Readonly<Record<string, unknown>>}
+ */
+export function appendTopologyEditTransaction(draft, operations, metadata) {
+  if (!Array.isArray(operations) || !operations.length) {
+    throw editError('EMPTY_TRANSACTION', 'A topology edit transaction requires at least one operation.');
+  }
+  const normalized = operations.map((operation, index) => {
+    if (!operation || typeof operation !== 'object') {
+      throw editError('INVALID_TRANSACTION_OPERATION', `Transaction operation ${index + 1} must be an object.`);
+    }
+    const type = requiredText(operation.type, `Transaction operation ${index + 1} type`).toUpperCase();
+    if (type === 'TRANSACTION' || !TOPOLOGY_EDIT_COMMAND_TYPES.includes(type)) {
+      throw editError('INVALID_TRANSACTION_OPERATION', `Transaction operation ${index + 1} has unsupported type ${type}.`);
+    }
+    if (!operation.payload || typeof operation.payload !== 'object') {
+      throw editError('INVALID_TRANSACTION_OPERATION', `Transaction operation ${index + 1} requires a payload object.`);
+    }
+    return Object.freeze({ type, payload: structuredClone(operation.payload) });
+  });
+  return appendTopologyEditCommand(draft, 'TRANSACTION', {
+    operations: normalized,
+    metadata: structuredClone(metadata ?? {}),
   });
 }
 

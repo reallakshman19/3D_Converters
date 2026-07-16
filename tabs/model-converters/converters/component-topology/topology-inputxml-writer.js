@@ -88,6 +88,21 @@ function restraintXml(restraint, support, index) {
   return `      <RESTRAINT ${serialize(attributes)}/>`;
 }
 
+/** @param {Record<string,unknown>} bend @param {Map<string,Record<string,unknown>>} nodes @returns {string} */
+function bendXml(bend, nodes) {
+  const node = nodes.get(bend.nodeId);
+  if (!node) throw new Error(`Bend ${bend.id} references missing canonical node ${bend.nodeId}.`);
+  const halfAngle = finiteNumber(bend.angleDeg) === null ? null : Number(bend.angleDeg) / 2;
+  const attributes = [
+    ['ID', bend.id], ['RADIUS', fixed(bend.radiusMm)], ['TYPE', SENTINEL],
+    ['ANGLE1', fixed(halfAngle)], ['NODE1', fixed(node.inputXmlNodeIds[0])],
+    ['ANGLE2', SENTINEL], ['NODE2', SENTINEL], ['ANGLE3', SENTINEL], ['NODE3', SENTINEL],
+    ['NUM_MITER', SENTINEL], ['FITTINGTHICKNESS', SENTINEL], ['KFACTOR', SENTINEL],
+    ['RADIUS_AUTHORITY', cleanText(bend.radiusAuthority)],
+  ];
+  return `      <BEND ${serialize(attributes)}/>`;
+}
+
 /** @param {Record<string,unknown>} canonical @returns {{supportsByEdge:Map<string,Record<string,unknown>[]>,namesByNode:Map<string,string>}} */
 function supportIndex(canonical) {
   const supportsByEdge = new Map(), namesByNode = new Map();
@@ -105,7 +120,7 @@ function supportIndex(canonical) {
 }
 
 /** @param {Record<string, unknown>} edge @param {Map<string,Record<string,unknown>>} nodes @param {Record<string,unknown>} values @param {Record<string,unknown>[]} supports @param {Record<string,unknown>[]} rigids @param {Map<string,string>} names @returns {string} */
-function elementXml(edge, nodes, values, supports, rigids, names) {
+function elementXml(edge, nodes, values, supports, rigids, bends, names) {
   const from = nodes.get(edge.fromNodeId), to = nodes.get(edge.toNodeId);
   if (!from || !to) throw new Error(`InputXML edge ${edge.id} references a missing canonical node.`);
   const attributes = nativeAttributes(edge, from, to, values, names.get(from.id) ?? '', names.get(to.id) ?? '');
@@ -118,6 +133,7 @@ function elementXml(edge, nodes, values, supports, rigids, names) {
       ...topologyRigidTraceAttributes(edge, rigids),
     ])}/>`);
   }
+  for (const bend of bends) children.push(bendXml(bend, nodes));
   for (const support of supports) for (const [index, restraint] of support.restraints.entries()) children.push(restraintXml(restraint, support, index));
   return `    <PIPINGELEMENT ${serialize(attributes)}>\n${children.join('\n')}${children.length ? '\n' : ''}    </PIPINGELEMENT>`;
 }
@@ -138,12 +154,20 @@ export function buildTopologyInputXml(canonical, engineering, options) {
   const engineeringByEdge = buildEdgeEngineeringValues(canonical.edges, engineering.recordBySourceEntityId);
   const rigidByEdge = new Map();
   for (const rigid of canonical.rigids) rigidByEdge.set(rigid.edgeId, [...(rigidByEdge.get(rigid.edgeId) ?? []), rigid]);
+  const bendByEdge = new Map();
+  for (const bend of canonical.bends ?? []) {
+    const edgeId = bend.edgeIds?.[0];
+    if (!edgeId) throw new Error(`Bend ${bend.id} has no owning InputXML edge.`);
+    bendByEdge.set(edgeId, [...(bendByEdge.get(edgeId) ?? []), bend]);
+  }
   const elements = canonical.edges.map((edge) => elementXml(
     edge, nodes, engineeringByEdge.get(edge.id),
-    supportData.supportsByEdge.get(edge.id) ?? [], rigidByEdge.get(edge.id) ?? [], supportData.namesByNode,
+    supportData.supportsByEdge.get(edge.id) ?? [], rigidByEdge.get(edge.id) ?? [],
+    bendByEdge.get(edge.id) ?? [], supportData.namesByNode,
   )).join('\n');
   const restraintCount = canonical.supports.reduce((sum, support) => sum + support.restraints.length, 0);
-  const bendCount = canonical.edges.filter((edge) => edge.segmentRole.includes('ELBO/BEND_RUN_IN')).length;
+  const derivedBendCount = canonical.edges.filter((edge) => edge.segmentRole.includes('ELBO/BEND_RUN_IN')).length;
+  const bendCount = derivedBendCount + (canonical.bends ?? []).length;
   const modelAttributes = [
     ['JOBNAME', options.jobName], ['NUMELT', canonical.edges.length], ['NUMNOZ', 0], ['NOHGRS', 0], ['NUMBEND', bendCount],
     ['NUMRIGID', rigidByEdge.size], ['NUMEXPJNT', 0], ['NUMREST', restraintCount], ['NUMFORCMNT', 0], ['NUMUNFLOAD', 0],
@@ -163,4 +187,4 @@ export function buildTopologyInputXml(canonical, engineering, options) {
   ].join('\n');
 }
 
-export const _test = Object.freeze({ finiteNumber, fixed, globalFixed, physicalWall, nodeMap, engineeringRecord, engineeringValues, nativeAttributes, serialize, supportIndex, elementXml });
+export const _test = Object.freeze({ finiteNumber, fixed, globalFixed, physicalWall, nodeMap, engineeringRecord, engineeringValues, nativeAttributes, serialize, supportIndex, bendXml, elementXml });

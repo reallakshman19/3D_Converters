@@ -8,6 +8,9 @@
 import { pointDistance } from './topology-values.js';
 import { editError, finiteNumber, point, requiredText, safeIdPart, textIds } from './topology-edit-contract.js';
 import {
+  addBendDefinition, addJunctionDefinition, trimEdge,
+} from './topology-edit-engineering-operations.js';
+import {
   edgeById, incidentEdges, inheritedEdge, nextInputXmlNodeId, nodeById, synchronizeNodeDependents,
 } from './topology-edit-state.js';
 
@@ -194,6 +197,27 @@ function deleteEdge(state, payload) {
   return { targets: [edgeId], changed: [], created: [], removed: [edgeId], removedSourceEntityIds: textIds(edge.sourceEntityIds ?? []), before: structuredClone(edge), after: null };
 }
 
+/** @param {Record<string,unknown>} state @param {Record<string,unknown>} command @returns {Record<string,unknown>} */
+function applyTransaction(state, command) {
+  const operations = command.payload?.operations;
+  if (!Array.isArray(operations) || !operations.length) throw editError('EMPTY_TRANSACTION', 'TRANSACTION requires operations.');
+  const results = operations.map((operation, index) => {
+    if (operation.type === 'TRANSACTION') throw editError('NESTED_TRANSACTION', 'Nested topology transactions are not supported.');
+    return applyTopologyEditCommand(state, {
+      schema: 'TopologyEditCommand.v1', id: `${command.id}-${String(index + 1).padStart(3, '0')}`,
+      type: operation.type, payload: operation.payload,
+    });
+  });
+  return {
+    targets: textIds(results.flatMap((row) => row.targets ?? [])),
+    created: textIds(results.flatMap((row) => row.created ?? [])),
+    changed: textIds(results.flatMap((row) => row.changed ?? [])),
+    removed: textIds(results.flatMap((row) => row.removed ?? [])),
+    removedSourceEntityIds: textIds(results.flatMap((row) => row.removedSourceEntityIds ?? [])),
+    before: results.map((row) => row.before), after: results.map((row) => row.after),
+  };
+}
+
 /** @param {Record<string, unknown>} state @param {Record<string, unknown>} command @returns {Record<string, unknown>} */
 export function applyTopologyEditCommand(state, command) {
   if (command?.schema !== 'TopologyEditCommand.v1') throw editError('INVALID_COMMAND_SCHEMA', 'Expected TopologyEditCommand.v1.');
@@ -205,5 +229,9 @@ export function applyTopologyEditCommand(state, command) {
   if (command.type === 'SPLIT_EDGE') return splitEdge(state, command);
   if (command.type === 'DISCONNECT_ENDPOINT') return disconnectEndpoint(state, command);
   if (command.type === 'DELETE_EDGE') return deleteEdge(state, payload);
+  if (command.type === 'ADD_BEND_DEFINITION') return addBendDefinition(state, command);
+  if (command.type === 'ADD_JUNCTION_DEFINITION') return addJunctionDefinition(state, command);
+  if (command.type === 'TRIM_EDGE') return trimEdge(state, command);
+  if (command.type === 'TRANSACTION') return applyTransaction(state, command);
   throw editError('UNSUPPORTED_COMMAND', `Unsupported topology edit command ${command.type}.`);
 }

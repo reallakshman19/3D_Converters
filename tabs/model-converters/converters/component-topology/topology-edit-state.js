@@ -14,6 +14,11 @@ export function mutableCanonical(canonical) {
   delete clone.topologyEditDraftHash;
   delete clone.baseCanonicalTopologyHash;
   delete clone.editCommandCount;
+  clone.bends = clone.bends ?? [];
+  clone.junctions = clone.junctions ?? [];
+  clone.boundaries = clone.boundaries ?? [];
+  clone.supports = clone.supports ?? [];
+  clone.rigids = clone.rigids ?? [];
   return clone;
 }
 
@@ -109,5 +114,10 @@ export function refreshDerivedTopology(state) {
     support.position = { ...node.position };
     support.attachmentPosition = { ...node.position };
     support.inputXmlNodeId = node.inputXmlNodeIds[0];
+  }
+  for (const bend of state.bends ?? []) {
+    const node = nodeIndex.get(bend.nodeId);
+    if (node) bend.position = { ...node.position };
+    bend.edgeIds = incidentEdges(state, bend.nodeId).map((edge) => edge.id);
   }
 }

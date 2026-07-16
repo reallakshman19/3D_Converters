@@ -13,6 +13,7 @@ export {
 export {
   TOPOLOGY_EDIT_COMMAND_TYPES,
   appendTopologyEditCommand,
+  appendTopologyEditTransaction,
   createTopologyEditDraft,
   materializeTopologyEditDraft,
   redoTopologyEditCommand,
@@ -22,8 +23,22 @@ export {
 
 export {
   TOPOLOGY_GEOMETRY_ISSUE_STYLES,
+  runTopologyChecks,
   validateTopologyGeometry,
 } from './topology-geometry-diagnostics.js';
+
+export {
+  applyApprovedTopologyFixes,
+  applyTopologyFixSuggestion,
+  buildTopologyFixSuggestions,
+} from './topology-checker-suggestions.js';
+
+export {
+  TOPOLOGY_REVIEW_STATUSES,
+  createTopologyReviewState,
+  setTopologyIssueStatus,
+  topologyReviewSummary,
+} from './topology-checker-review.js';
 
 export const TOPOLOGY_BROWSER_CORE_CONTRACT = Object.freeze({
   schema: 'TopologyBrowserCore.v1',
@@ -32,4 +47,8 @@ export const TOPOLOGY_BROWSER_CORE_CONTRACT = Object.freeze({
   commandSchema: 'TopologyEditCommand.v1',
   editLedgerSchema: 'TopologyEditLedger.v1',
   geometryDiagnosticsSchema: 'TopologyGeometryDiagnostics.v1',
+  topologyCheckReportSchema: 'TopologyCheckReport.v1',
+  topologyIssueSchema: 'TopologyIssue.v1',
+  topologyFixSuggestionSchema: 'TopologyFixSuggestion.v1',
+  topologyReviewStateSchema: 'TopologyReviewState.v1',
 });

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { stampArtifactHash } from '../tabs/model-converters/converters/component-topology/topology-deterministic-hash.js';
 import {
   appendTopologyEditCommand,
+  appendTopologyEditTransaction,
   createTopologyEditDraft,
   materializeTopologyEditDraft,
   redoTopologyEditCommand,
@@ -178,4 +179,31 @@ const base = fixture();
   assert.throws(() => materializeTopologyEditDraft(base, draft), (error) => error.code === 'EDGE_HAS_RIGIDS');
 }
 
-console.log('component topology edit engine passed: all Phase 1 commands, dependencies, stable IDs, and exact undo/redo hashes verified.');
+{
+  const empty = createTopologyEditDraft(base, settings);
+  const draft = appendTopologyEditTransaction(empty, [
+    { type: 'ADD_BEND_DEFINITION', payload: { nodeId: 'CN-4', edgeIds: ['CE-3', 'CE-4'], radiusMm: 75, angleDeg: 90, radiusAuthority: 'CATALOG' } },
+    { type: 'TRIM_EDGE', payload: { edgeId: 'CE-5', endpoint: 'TO', position: position(250, 0, 0) } },
+  ], { source: 'TEST_APPROVED_FIXES' });
+  const result = materializeTopologyEditDraft(base, draft);
+  assert.equal(result.editLedger.summary.commandCount, 1);
+  assert.equal(result.canonicalTopology.bends.length, 1);
+  assert.deepEqual(result.canonicalTopology.nodes.find((row) => row.id === 'CN-6').position, position(250, 0, 0));
+  const undone = materializeTopologyEditDraft(base, undoTopologyEditCommand(draft));
+  assert.equal(undone.canonicalTopology.canonicalTopologyHash, base.canonicalTopologyHash);
+}
+
+{
+  const withoutJunction = structuredClone(base);
+  delete withoutJunction.canonicalTopologyHash;
+  withoutJunction.junctions = [];
+  const authority = stampArtifactHash(withoutJunction, 'canonicalTopologyHash');
+  const draft = appendTopologyEditCommand(createTopologyEditDraft(authority, settings), 'ADD_JUNCTION_DEFINITION', {
+    nodeId: 'CN-2', edgeIds: ['CE-1', 'CE-2', 'CE-3'], kind: 'TEE', inferenceAuthority: 'AUTHORITATIVE_DIAMETER',
+  });
+  const result = materializeTopologyEditDraft(authority, draft);
+  assert.equal(result.canonicalTopology.junctions[0].kind, 'TEE');
+  assert.equal(result.canonicalTopology.junctions[0].expectedDegree, 3);
+}
+
+console.log('component topology edit engine passed: topology surgery, engineering definitions, transactions, and exact undo/redo hashes verified.');

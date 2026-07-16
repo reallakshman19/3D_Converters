@@ -6,7 +6,9 @@
 
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { performance } from 'node:perf_hooks';
 import { buildComponentTopologyArtifacts } from '../tabs/model-converters/converters/component-topology/topology-artifact-exporter.js';
+import { runTopologyChecks } from '../tabs/model-converters/converters/component-topology/topology-geometry-diagnostics.js';
 
 const fixturePath = process.env.ASIM_1835_SOURCE
   || 'C:/Users/reall/Downloads/ATTRIBUTE-AML_ASIM-1835_managed_stage_enriched_stage.json';
@@ -41,6 +43,19 @@ if (!existsSync(fixturePath)) {
     'incidenceMismatch', 'coordinateMismatch', 'supportMismatch', 'rigidMismatch', 'junctionMismatch',
   ]) assert.equal(artifacts.topologyParityReport.summary[field], 0, field);
   assert.equal(artifacts.parsedInputXmlTopology.issues.length, 0);
+  const checkStarted = performance.now();
+  const checker = runTopologyChecks(artifacts.canonicalTopology, {
+    shortElementMm: 6, toleranceMm: 0.1, snapToleranceMm: 25,
+    angleToleranceDeg: 5, originToleranceMm: 0.1, clearanceMm: 0,
+  });
+  const checkElapsedMs = performance.now() - checkStarted;
+  assert.equal(checker.summary.countsByCode.EXPECTED_SHORT_INLINE_COMPONENT, 675);
+  assert.equal(checker.summary.countsByCode.SHORT_ELEMENT, 7);
+  assert.equal(checker.summary.countsByCode.SNAP_GAP ?? 0, 0);
+  assert.equal(checker.summary.countsByCode.BEND_AT_JUNCTION ?? 0, 0);
+  assert.equal(checker.summary.countsByCode.PIPE_BACKTRACK, 2);
+  assert.equal(checker.summary.countsByCode.OVERLAPPING_ELEMENTS, 5);
+  assert(checkElapsedMs < 1000, `Topology checker exceeded 1 second: ${checkElapsedMs.toFixed(1)} ms.`);
   const rows = attributeRows(artifacts.topologyInputXml);
   assert.equal(rows.length, 4434);
   for (const field of ['DIAMETER', 'WALL_THICK', 'INSUL_THICK', 'CORR_ALLOW', 'TEMP_EXP_C1', 'PRESSURE1', 'MATERIAL_NAME', 'LINE_ID']) {
@@ -76,5 +91,5 @@ if (!existsSync(fixturePath)) {
     && row.inputXmlElementIds.length > 0
     && row.inputXmlChildIds.some((id) => id.startsWith('RESTRAINT:'))
   )));
-  console.log(`component topology ASIM-1835 passed\n${JSON.stringify(artifacts.metrics, null, 2)}`);
+  console.log(`component topology ASIM-1835 passed (${checkElapsedMs.toFixed(1)} ms checker)\n${JSON.stringify(artifacts.metrics, null, 2)}`);
 }
