@@ -19,10 +19,12 @@ export class ComparisonReviewBuildError extends Error {
 function fail(code, message) { throw new ComparisonReviewBuildError(code, message); }
 
 export function createComparisonReviewSubjects(run) {
-  const results = (run?.results || []).map((result) => ({
+  const runResults = Array.isArray(run?.results) ? run.results : [];
+  const runUnbound = Array.isArray(run?.unbound) ? run.unbound : [];
+  const results = runResults.map((result) => ({
     subjectKind: 'comparison-result', ...result,
   }));
-  const unbound = (run?.unbound || []).map((item) => ({
+  const unbound = runUnbound.map((item) => ({
     subjectKind: 'unbound-candidate', comparisonResultId: '', bindingId: '', datasetId: '',
     columnId: '', comparisonStatus: 'unbound', matches: [], ...item,
   }));
