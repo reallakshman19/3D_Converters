@@ -153,7 +153,13 @@ function createExtractionBridge(context, dependencies) {
 
 function createEvidenceBridge(context, dependencies) {
   if (dependencies.evidenceElements?.['evidence-build']) {
-    return createEvidenceLedgerController(dependencies.evidenceElements, dependencies, () => evidenceUpstream(context));
+    const scoped = {
+      ...dependencies,
+      onEvidenceChange: (state) => {
+        dependencies.onEvidenceChange?.(state); context.comparison?.syncUpstream();
+      },
+    };
+    return createEvidenceLedgerController(dependencies.evidenceElements, scoped, () => evidenceUpstream(context));
   }
   const empty = { ledger: null, trace: null, status: 'Not built' };
   return { getState: () => empty, syncUpstream() {}, cleanup() {} };
