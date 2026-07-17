@@ -109,6 +109,22 @@ function crossArtifactErrors(graph, ledger, config, run) {
   return errors;
 }
 
+function comparisonResultShapeErrors(run) {
+  const errors = [];
+  list(run?.results).forEach((result, index) => {
+    if (!Array.isArray(result?.matches)) {
+      errors.push(`Comparison result ${index} matches must be an array.`);
+      return;
+    }
+    const expectedStatus = result.matches.length === 0
+      ? 'unmatched' : result.matches.length === 1 ? 'unique-match' : 'multiple-match';
+    if (result.status !== expectedStatus) {
+      errors.push(`Comparison result ${index} status/match-count mismatch.`);
+    }
+  });
+  return errors;
+}
+
 function appendValidation(target, validation, label) {
   const errors = validation?.errors || [];
   const warnings = validation?.warnings || [];
@@ -170,6 +186,7 @@ export async function validateComparisonReviewAuthority(upstream = {}, dependenc
     ...registryErrors(registry),
     ...attachmentShapeErrors(attachmentSet, graph, registry),
     ...crossArtifactErrors(graph, ledger, config, run),
+    ...comparisonResultShapeErrors(run),
   ];
   const warnings = [];
   let attachmentSetIdentity = '';
