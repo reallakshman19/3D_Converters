@@ -57,15 +57,22 @@ function authorityErrors(graph, ledger, attachmentSet, registry) {
     || ledger?.sourceContentHash !== graph?.contentHash || ledger?.sourceGraphSchema !== graph?.schema) errors.push('Ledger graph identity mismatch.');
   if (attachmentSet?.sourceFileId !== graph?.sourceFileId || attachmentSet?.sourceRevision !== graph?.sourceRevision
     || attachmentSet?.sourceContentHash !== graph?.contentHash || attachmentSet?.sourceGraphSchema !== graph?.schema) errors.push('Attachment graph identity mismatch.');
-  const datasets = registryMap(registry);
-  for (const item of attachmentSet?.attachments || []) if (!datasets.get(item.datasetId)?.validation?.ok) errors.push(`Attached dataset ${item.datasetId} is absent or invalid.`);
+  const datasets = registryMap(registry); const seen = new Set();
+  if (!Array.isArray(attachmentSet?.attachments)) errors.push('Attachment references must be an array.');
+  for (let index = 0; index < (attachmentSet?.attachments || []).length; index += 1) {
+    const item = attachmentSet.attachments[index]; const dataset = datasets.get(item.datasetId);
+    if (item.attachmentOrder !== index) errors.push(`Attachment ${index} order mismatch.`);
+    if (seen.has(item.datasetId)) errors.push(`Duplicate attached dataset ${item.datasetId}.`); seen.add(item.datasetId);
+    if (!dataset?.validation?.ok) errors.push(`Attached dataset ${item.datasetId} is absent or invalid.`);
+    else if (dataset.datasetRole !== item.datasetRole) errors.push(`Attached dataset ${item.datasetId} role mismatch.`);
+  }
   return errors;
 }
 
 async function bindingErrors(config, ledger, attachmentSet, registry, hashText) {
   const errors = []; const warnings = []; const bindings = Array.isArray(config?.bindings) ? config.bindings : [];
   const fields = new Set((ledger?.entries || []).filter((entry) => entry.status === 'candidate').map((entry) => entry.fieldKey));
-  const datasets = registryMap(registry); const attached = attachmentMap(attachmentSet); const triples = new Set();
+  const datasets = registryMap(registry); const attached = attachmentMap(attachmentSet); const triples = new Set(); const ids = new Set();
   if (!bindings.length) errors.push('At least one master-field binding is required.');
   for (let index = 0; index < bindings.length; index += 1) {
     const binding = bindings[index]; const dataset = datasets.get(binding.datasetId); const attachment = attached.get(binding.datasetId);
@@ -77,6 +84,7 @@ async function bindingErrors(config, ledger, attachmentSet, registry, hashText) 
     if (dataset && !dataset.columns.some((column) => column.columnId === binding.columnId)) errors.push(`Binding ${index} references an unknown column.`);
     const expectedId = await createMasterFieldBindingId(binding, hashText);
     if (binding.bindingId !== expectedId) errors.push(`Binding ${index} identity mismatch.`);
+    if (ids.has(binding.bindingId)) errors.push(`Duplicate binding ID ${binding.bindingId}.`); ids.add(binding.bindingId);
     const triple = `${binding.fieldKey}\0${binding.datasetId}\0${binding.columnId}`;
     if (binding.enabled && triples.has(triple)) errors.push(`Duplicate enabled binding for ${binding.fieldKey}.`);
     if (binding.enabled) triples.add(triple);
@@ -98,6 +106,8 @@ export async function validateMasterFieldBindingConfig(config, graph, ledger, at
   const hashText = dependencies.hashText || sha256Hex;
   const errors = [...authorityErrors(graph, ledger, attachmentSet, registry), ...findJsonSafetyErrors(config, 'Binding config')];
   if (config?.schema !== 'MasterFieldBindingConfig.v1') errors.push('Binding config schema must be MasterFieldBindingConfig.v1.');
+  const graphIdentity = graphComparisonIdentity(graph);
+  for (const [key, value] of Object.entries(graphIdentity)) if (config?.[key] !== value) errors.push(`Binding config graph metadata mismatch: ${key}.`);
   const expectedAttachmentId = await createMasterAttachmentSetIdentity(graph, attachmentSet, hashText);
   if (config?.ledgerId !== ledger?.ledgerId) errors.push('Binding config ledger identity mismatch.');
   if (config?.attachmentSetIdentity !== expectedAttachmentId) errors.push('Binding config attachment identity mismatch.');
@@ -105,8 +115,7 @@ export async function validateMasterFieldBindingConfig(config, graph, ledger, at
   const expectedSummary = summarizeBindings(config?.bindings || []);
   if (JSON.stringify(config?.summary) !== JSON.stringify(expectedSummary)) errors.push('Binding config summary mismatch.');
   const expectedId = await createComparisonIdentity('master-binding-config', {
-    graph: graphComparisonIdentity(graph), ledgerId: ledger?.ledgerId,
-    attachmentSetIdentity: expectedAttachmentId, bindings: config?.bindings || [],
+    graph: graphIdentity, ledgerId: ledger?.ledgerId, attachmentSetIdentity: expectedAttachmentId, bindings: config?.bindings || [],
   }, hashText);
   if (config?.bindingConfigId !== expectedId) errors.push('Binding config identity mismatch.');
   return { ok: errors.length === 0, errors: [...new Set(errors)], warnings: [...new Set(checked.warnings)] };
