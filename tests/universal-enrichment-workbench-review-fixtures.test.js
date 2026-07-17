@@ -1,9 +1,15 @@
 import { createHash } from 'node:crypto';
+import {
+  summarizeCandidateComparisonRun,
+  validateCandidateComparisonRun,
+} from '../tabs/universal-enrichment-workbench/comparison-run.js';
+
 const hashText = async (value) => createHash('sha256').update(String(value ?? '')).digest('hex');
 const dependencies = {
   hashText,
   validateMasterFieldBindingConfig: async () => ({ ok: true, errors: [], warnings: [] }),
-  validateCandidateComparisonRun: async () => ({ ok: true, errors: [], warnings: [] }),
+  validateMasterDataset: async () => ({ ok: true, errors: [], warnings: [] }),
+  validateCandidateComparisonRun,
 };
 
 function makeUpstream() {
@@ -61,7 +67,7 @@ function makeUpstream() {
     sourceRevision: 1, sourceContentHash: 'graph-hash', sourceGraphSchema: 'UniversalSourceGraph.v1',
     ledgerId: 'ledger-a', bindingConfigId: 'config-a', attachmentSetIdentity: 'attachment-set-fixed',
     results, unbound: [{ sourceOrder: 0, entryId: 'e3', candidateId: 'c3', entityId: 'node-1', fieldKey: 'other-key', reason: 'No enabled binding exists for this field key.' }],
-    validation: { ok: true, errors: [], warnings: [] },
+    summary: null, validation: { ok: true, errors: [], warnings: [] },
   };
   return { graph, ledger, config, run, attachmentSet, registry };
 }
@@ -87,6 +93,7 @@ async function normalizedUpstream() {
     }
   }
   upstream.run.bindingConfigId = upstream.config.bindingConfigId;
+  upstream.run.summary = summarizeCandidateComparisonRun(upstream.run);
   upstream.run.comparisonRunId = await createComparisonIdentity('candidate-comparison-run', {
     graph: graphComparisonIdentity(upstream.graph), ledgerId: upstream.ledger.ledgerId, bindingConfigId: upstream.config.bindingConfigId, attachmentSetIdentity: attachmentId, results: upstream.run.results, unbound: upstream.run.unbound,
   }, hashText);
@@ -103,4 +110,5 @@ function drafts(rows, upstream = null) {
     return [resolvedKey, { subjectKey: resolvedKey, disposition, selectedMatchId: resolvedMatch, note }];
   }));
 }
+
 export { makeUpstream, normalizedUpstream, dependencies, drafts, hashText };
