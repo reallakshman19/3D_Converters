@@ -36,6 +36,10 @@ const UPSTREAM_WATCH_IDS = [
   'uew-master-remove','uew-master-attach','uew-master-registry-clear','uew-evidence-build',
 ];
 
+function notify(context) {
+  context.dependencies.onComparisonChange?.(context.state);
+}
+
 function syncContext(context) {
   const identity = upstreamIdentity(context.getUpstream());
   if (identity === context.lastIdentity) { render(context); return; }
@@ -83,7 +87,7 @@ function render(context) {
 function invalidate(context, status = 'Upstream changed') {
   context.requestId += 1; revokeUrls(context);
   context.state = { ...context.state, config: null, run: null, status, page: 0, selectedResultId: '' };
-  render(context);
+  notify(context); render(context);
 }
 
 function defaultDraft(upstream) {
@@ -136,31 +140,31 @@ function handleBindingAction(context, event) {
 async function handleConfigBuild(context) {
   const upstream = context.getUpstream(); if (!authorityReady(upstream)) return;
   const identity = upstreamIdentity(upstream); const requestId = ++context.requestId;
-  context.state = { ...context.state, config: null, run: null, status: 'Building configuration' }; render(context);
+  context.state = { ...context.state, config: null, run: null, status: 'Building configuration' }; notify(context); render(context);
   try {
     const build = context.dependencies.createMasterFieldBindingConfig || createMasterFieldBindingConfig;
     const config = await build(upstream.graph, upstream.ledger, upstream.attachmentSet, upstream.registry, context.state.bindingDrafts, context.dependencies);
     if (context.disposed || requestId !== context.requestId || identity !== upstreamIdentity(context.getUpstream())) return;
-    context.state = { ...context.state, config, status: config.validation.ok ? 'Configuration valid' : 'Configuration invalid' }; render(context);
+    context.state = { ...context.state, config, status: config.validation.ok ? 'Configuration valid' : 'Configuration invalid' }; notify(context); render(context);
   } catch (error) {
     if (context.disposed || requestId !== context.requestId) return;
-    context.state = { ...context.state, status: `Configuration failed: ${error.message}` }; render(context);
+    context.state = { ...context.state, status: `Configuration failed: ${error.message}` }; notify(context); render(context);
   }
 }
 
 async function handleRun(context) {
   const upstream = context.getUpstream(); if (!context.state.config?.validation?.ok || !authorityReady(upstream)) return;
   const identity = upstreamIdentity(upstream); const configId = context.state.config.bindingConfigId; const requestId = ++context.requestId;
-  context.state = { ...context.state, run: null, status: 'Running comparison' }; render(context);
+  context.state = { ...context.state, run: null, status: 'Running comparison' }; notify(context); render(context);
   try {
     const build = context.dependencies.createCandidateComparisonRun || createCandidateComparisonRun;
     const run = await build(upstream.graph, upstream.ledger, context.state.config, upstream.attachmentSet, upstream.registry, context.dependencies);
     if (context.disposed || requestId !== context.requestId || identity !== upstreamIdentity(context.getUpstream())
       || configId !== context.state.config?.bindingConfigId) return;
-    context.state = { ...context.state, run, status: run.validation.ok ? 'Comparison valid' : 'Comparison invalid', page: 0 }; render(context);
+    context.state = { ...context.state, run, status: run.validation.ok ? 'Comparison valid' : 'Comparison invalid', page: 0 }; notify(context); render(context);
   } catch (error) {
     if (context.disposed || requestId !== context.requestId) return;
-    context.state = { ...context.state, status: `Comparison failed [${error.code || 'ERROR'}]: ${error.message}` }; render(context);
+    context.state = { ...context.state, status: `Comparison failed [${error.code || 'ERROR'}]: ${error.message}` }; notify(context); render(context);
   }
 }
 
