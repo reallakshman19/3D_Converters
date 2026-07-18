@@ -2787,6 +2787,31 @@ function _prepareInputxml2019ConfigForRequirements(layoutConfigJsonText, require
   if (!config.elements || typeof config.elements !== 'object' || Array.isArray(config.elements)) {
     config.elements = {};
   }
+  // Auto-migrate the pre-fix IEL aux-pointer row12/row13/row14 templates
+  // (SIF pointer written into 3 wrong slots, no {nodename} token at all) to
+  // the current correct field order. A config saved to localStorage before
+  // this fix shipped otherwise silently overrides every future code fix
+  // forever, since loadStoredState() always prefers saved values over fresh
+  // defaults - same class of problem control.lineN/line_labels below
+  // already auto-heal for.
+  const legacyRow12 = ['{bend}', '{rigid}', '0', '{restraint}', '{sif}', '0'];
+  const legacyRow13 = ['0', '0', '0', '{sif}', '0', '0'];
+  const legacyRow14 = ['{reducer}', '0', '{sif}'];
+  const currentRow12 = ['{bend}', '{rigid}', '0', '{restraint}', '0', '0'];
+  const currentRow13 = ['0', '0', '0', '0', '{sif}', '{nodename}'];
+  const currentRow14 = ['{reducer}', '0', '0'];
+  if (_sameTextArray(config.elements.row12, legacyRow12)) {
+    config.elements.row12 = [...currentRow12];
+    notes.push('Fixed elements.row12: moved {sif} out of the DISPLMNT pointer slot (it belongs in row13).');
+  }
+  if (_sameTextArray(config.elements.row13, legacyRow13)) {
+    config.elements.row13 = [...currentRow13];
+    notes.push('Fixed elements.row13: moved {sif} to the correct Intersection(SIF) slot and added the missing {nodename} pointer.');
+  }
+  if (_sameTextArray(config.elements.row14, legacyRow14)) {
+    config.elements.row14 = [...currentRow14];
+    notes.push('Fixed elements.row14: removed the stray {sif} token from the Nozzle/Equipment slot.');
+  }
   if (!config.elements.line_label || typeof config.elements.line_label !== 'object' || Array.isArray(config.elements.line_label)) {
     config.elements.line_label = {};
   }
