@@ -13,12 +13,29 @@ function ensureStylesheet(documentRef) {
   return { element: link, created: true };
 }
 
+function prependDraftStatus(container, documentRef) {
+  const banner = documentRef.createElement('section');
+  banner.className = 'uew-card uew-draft-banner';
+  banner.setAttribute('role', 'status');
+  banner.setAttribute('aria-label', 'Draft status');
+  const kicker = documentRef.createElement('p');
+  kicker.className = 'uew-kicker';
+  kicker.textContent = 'Draft';
+  const message = documentRef.createElement('p');
+  message.textContent = 'Universal Enrichment Workbench is a draft capability and is not approved for production write-back or final engineering output.';
+  banner.append(kicker, message);
+  container.prepend(banner);
+}
+
 export function renderUniversalEnrichmentWorkbenchTab(container, options = {}) {
   const documentRef = options.document || globalThis.document;
   const stylesheet = ensureStylesheet(documentRef);
   const cleanupWorkbench = renderUniversalEnrichmentWorkbench(container, options);
+  container.dataset.releaseStatus = 'draft';
+  prependDraftStatus(container, documentRef);
   return () => {
     cleanupWorkbench();
+    delete container.dataset.releaseStatus;
     if (stylesheet.created) stylesheet.element.remove();
   };
 }
