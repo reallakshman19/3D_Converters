@@ -1,7 +1,9 @@
 /**
  * Functionality: pipeline orchestrator. Parses StagedJSON, runs all
- * resolvers, builds enriched record map, generates XML and audit.
- * Parameters: {stagedJsonText, config}. Outputs: {xmlText, audit, records}.
+ * resolvers, builds enriched record map, generates XML, audit, and read-only
+ * sequential branch evidence.
+ * Parameters: {stagedJsonText, config}.
+ * Outputs: {xmlText, audit, records, sequencePlan}.
  * No side effects beyond calling pure resolver functions.
  */
 
@@ -17,6 +19,7 @@ import { attaConnectionType, isRigidType, isSupportType } from './sj-type-mapper
 import { DN_TO_OD_MM } from './sj-weight-db.js';
 import { bestPosition, formatPosition } from './sj-point-resolver.js';
 import { applyAuthoritativeEnrichment } from './sj-enrichment-authority.js';
+import { buildPsiSequencePlan } from './sj-psi-sequence-planner.js?v=1';
 
 export function runEnrichment(input) {
   const { stagedJsonText, config = {} } = input;
@@ -32,11 +35,15 @@ export function runEnrichment(input) {
   let grouped = groupSupportsHierarchy(enriched);
   grouped = groupSupportsByPos(grouped);
 
+  // This is intentionally shadow evidence in this slice. The existing canonical
+  // branch map remains the sole input to the production XML writer until branch
+  // block parity and numbering contracts are independently proven.
+  const sequencePlan = buildPsiSequencePlan(parsed, grouped);
   const branchMap = groupByBranch(grouped);
   const xmlText = buildEnrichedXml(branchMap, config);
   const audit = buildAudit(grouped, branchMap);
 
-  return { xmlText, audit, records: grouped };
+  return { xmlText, audit, records: grouped, sequencePlan };
 }
 
 function groupSupportsHierarchy(records) {
