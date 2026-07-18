@@ -7,10 +7,12 @@ import { collectExtractionTesterElements, createExtractionTesterController } fro
 import { collectEvidenceLedgerElements, createEvidenceLedgerController } from './evidence-controller.js';
 import { collectMasterCandidateComparisonElements, createMasterCandidateComparisonController } from './comparison-controller.js';
 import { collectComparisonReviewElements, createComparisonReviewController } from './review-controller.js';
+import { collectEnrichmentProposalElements, createEnrichmentProposalController } from './proposal-controller.js';
 import { renderWorkbenchMarkup } from './workbench-template.js';
 import { renderEvidenceLedgerMarkup } from './evidence-template.js';
 import { renderMasterCandidateComparisonMarkup } from './comparison-template.js';
 import { renderComparisonReviewMarkup } from './review-template.js';
+import { renderEnrichmentProposalMarkup } from './proposal-template.js';
 
 const IDS = [
   'file','kind','source-text','generate','download','clear','effective-kind','detected-kind',
@@ -135,7 +137,10 @@ function reviewUpstream(context) {
   const comparison = context.comparison?.getState() || {}; const upstream = comparisonUpstream(context);
   return { ...upstream, config: comparison.config || null, run: comparison.run || null };
 }
-
+function proposalUpstream(context) {
+  const review = context.review?.getState() || {};
+  return { ...reviewUpstream(context), reviewLedger: review.ledger || null };
+}
 function createMasterBridge(context, dependencies) {
   if (dependencies.masterElements?.['master-import']) {
     return createMasterRegistryController(dependencies.masterElements, dependencies, () => context.graph?.getState().graph || null);
@@ -213,11 +218,19 @@ function createComparisonBridge(context, dependencies) {
 
 function createReviewBridge(context, dependencies) {
   if (dependencies.reviewElements?.['review-build']) {
-    return createComparisonReviewController(
-      dependencies.reviewElements, dependencies, () => reviewUpstream(context),
-    );
+    const scoped = { ...dependencies, onReviewChange: (state) => {
+      dependencies.onReviewChange?.(state); void context.proposal?.syncUpstream();
+    } };
+    return createComparisonReviewController(dependencies.reviewElements, scoped, () => reviewUpstream(context));
   }
   const empty = { ledger: null, drafts: new Map(), status: 'Not ready' };
+  return { getState: () => empty, syncUpstream() {}, cleanup() {} };
+}
+function createProposalBridge(context, dependencies) {
+  if (dependencies.proposalElements?.['proposal-build']) return createEnrichmentProposalController(
+    dependencies.proposalElements, dependencies, () => proposalUpstream(context),
+  );
+  const empty = { proposalSet: null, status: 'Not ready' };
   return { getState: () => empty, syncUpstream() {}, cleanup() {} };
 }
 
@@ -237,29 +250,30 @@ export function createWorkbenchController(elements, dependencies = {}) {
     elements, dependencies, ParserCtor: dependencies.ParserCtor || globalThis.DOMParser,
     state: createWorkbenchState(), listeners: [], objectUrls: new Set(), disposed: false,
     fileRequestId: 0, generationRequestId: 0, graph: null, master: null,
-    extraction: null, evidence: null, comparison: null, review: null,
+    extraction: null, evidence: null, comparison: null, review: null, proposal: null,
   };
   context.master = createMasterBridge(context, dependencies); context.evidence = createEvidenceBridge(context, dependencies);
   context.extraction = createExtractionBridge(context, dependencies); context.graph = createGraphBridge(context, dependencies);
   context.comparison = createComparisonBridge(context, dependencies); context.review = createReviewBridge(context, dependencies);
+  context.proposal = createProposalBridge(context, dependencies);
   const graph = context.graph.getState().graph;
   context.master.syncGraph(graph); context.extraction.syncGraph(graph); context.evidence.syncUpstream();
-  context.comparison.syncUpstream(); void context.review.syncUpstream(); bindListeners(context); renderSummary(context);
+  context.comparison.syncUpstream(); void context.review.syncUpstream(); void context.proposal.syncUpstream(); bindListeners(context); renderSummary(context);
   return {
     getState: () => context.state, getGraphState: () => context.graph.getState(),
     getMasterState: () => context.master.getState(), getExtractionState: () => context.extraction.getState(),
     getEvidenceState: () => context.evidence.getState(), getComparisonState: () => context.comparison.getState(),
-    getReviewState: () => context.review.getState(), clear: () => handleClear(context),
+    getReviewState: () => context.review.getState(), getProposalState: () => context.proposal.getState(),
+    clear: () => handleClear(context),
     cleanup() {
       if (context.disposed) return; context.disposed = true;
       context.fileRequestId += 1; context.generationRequestId += 1;
       context.listeners.splice(0).forEach(([element, type, handler]) => element.removeEventListener(type, handler));
       revokeUrls(context); context.graph.cleanup(); context.master.cleanup(); context.extraction.cleanup();
-      context.evidence.cleanup(); context.comparison.cleanup(); context.review.cleanup();
+      context.evidence.cleanup(); context.comparison.cleanup(); context.review.cleanup(); context.proposal.cleanup();
     },
   };
 }
-
 function browserDependencies(options = {}) {
   const documentRef = options.document || globalThis.document;
   return {
@@ -273,10 +287,11 @@ function browserDependencies(options = {}) {
 
 export function renderUniversalEnrichmentWorkbench(container, options = {}) {
   const dependencies = browserDependencies(options);
-  container.innerHTML = `${renderWorkbenchMarkup()}${renderEvidenceLedgerMarkup()}${renderMasterCandidateComparisonMarkup()}${renderComparisonReviewMarkup()}`;
+  container.innerHTML = `${renderWorkbenchMarkup()}${renderEvidenceLedgerMarkup()}${renderMasterCandidateComparisonMarkup()}${renderComparisonReviewMarkup()}${renderEnrichmentProposalMarkup()}`;
   dependencies.graphElements = collectSourceGraphElements(container); dependencies.masterElements = collectMasterRegistryElements(container);
   dependencies.extractionElements = collectExtractionTesterElements(container); dependencies.evidenceElements = collectEvidenceLedgerElements(container);
   dependencies.comparisonElements = collectMasterCandidateComparisonElements(container); dependencies.reviewElements = collectComparisonReviewElements(container);
+  dependencies.proposalElements = collectEnrichmentProposalElements(container);
   const controller = createWorkbenchController(collectElements(container), dependencies);
   const cleanup = () => { controller.cleanup(); container.replaceChildren(); };
   cleanup.controller = controller; return cleanup;
