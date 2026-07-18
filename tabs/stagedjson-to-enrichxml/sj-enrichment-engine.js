@@ -20,8 +20,10 @@ import { DN_TO_OD_MM } from './sj-weight-db.js';
 import { bestPosition, formatPosition } from './sj-point-resolver.js';
 import { applyAuthoritativeEnrichment } from './sj-enrichment-authority.js';
 import { buildPsiSequencePlan } from './sj-psi-sequence-planner.js?v=1';
-import { buildSequentialWriterShadow } from './sj-sequential-writer-shadow.js?v=1';
-import { selectPsiWriterOutput } from './sj-xml-writer-selector.js?v=1';
+import {
+  buildSequentialWriterShadow,
+  selectPsiWriterOutput,
+} from './sj-sequential-writer-shadow.js?v=2';
 
 export function runEnrichment(input) {
   const { stagedJsonText, config = {} } = input;
