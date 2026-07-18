@@ -17,6 +17,7 @@ for (const file of [
   'sj-node-contract.js',
   'sj-parser.js',
   'sj-point-resolver.js',
+  'sj-psi-sequence-planner.js',
   'sj-rating-resolver.js',
   'sj-wall-resolver.js',
   'sj-corrosion-resolver.js',
@@ -302,4 +303,16 @@ test('full enrichment pipeline consolidates owner branches and emits the fitting
   assert.equal((result.xmlText.match(/=1006649732\/51494<\/ComponentRefNo>/g) || []).length, 1);
   assert.equal((result.xmlText.match(/=1006649732\/51499<\/ComponentRefNo>/g) || []).length, 1);
   assert.ok(result.records.every((record) => record.branchName === rootBranch));
+
+  assert.equal(result.sequencePlan.validation.ok, true);
+  assert.equal(result.sequencePlan.summary.sourceBranchCount, 3);
+  assert.equal(result.sequencePlan.summary.canonicalBranchCount, 1);
+  assert.deepEqual(
+    result.sequencePlan.branches.map((item) => item.sourceBranchName),
+    [`${rootBranch}/B1`, `${rootBranch}/B2`, `${rootBranch}/B3`],
+  );
+  assert.deepEqual(
+    result.sequencePlan.branches.map((item) => item.components.map((component) => component.ref)),
+    [['=1006649732/51428'], ['=1006649732/51494'], ['=1006649732/51499']],
+  );
 });
