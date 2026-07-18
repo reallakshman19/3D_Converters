@@ -1,0 +1,22 @@
+name: stagedJson Object-Root Enrichment
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/stagedjson-enrichment/**'
+      - 'tests/stagedjson-cii-enrichment-adapter.test.js'
+      - '.github/workflows/stagedjson-object-root-enrichment.yml'
+  workflow_dispatch:
+
+jobs:
+  object-root-enrichment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check enrichment module syntax
+        run: node --check tabs/xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-engine.js
+      - name: Run stagedJson enrichment adapter regression
+        run: node --test tests/stagedjson-cii-enrichment-adapter.test.js
