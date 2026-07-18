@@ -194,7 +194,16 @@ function normalizedBlock(value, tagName) {
 
 function tagValue(value, tagName) {
   const match = String(value ?? '').match(new RegExp(`<${tagName}>([\\s\\S]*?)<\\/${tagName}>`));
-  return text(match?.[1]);
+  return decodeXml(text(match?.[1]));
+}
+
+function decodeXml(value) {
+  return String(value ?? '')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
 }
 
 function normalizeXml(value) {
