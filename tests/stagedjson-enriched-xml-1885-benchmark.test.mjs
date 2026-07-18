@@ -19,6 +19,7 @@ for (const file of [
   'sj-node-contract.js',
   'sj-parser.js',
   'sj-point-resolver.js',
+  'sj-psi-sequence-planner.js',
   'sj-rating-resolver.js',
   'sj-restraint-resolver.js',
   'sj-type-mapper.js',
@@ -40,7 +41,27 @@ function oneNodeForRef(xml, ref) {
 
 test('1885 benchmark matches the requested ELBO, TEE, REDU and branch contracts', () => {
   const stagedJson = JSON.parse(readFileSync(join(repoRoot, 'Benchmarks', '1885Sjson', 'Sjson'), 'utf8'));
-  const { xmlText } = runEnrichment({ stagedJsonText: stagedJson, config: {} });
+  const { xmlText, records, sequencePlan } = runEnrichment({ stagedJsonText: stagedJson, config: {} });
+
+  assert.equal(sequencePlan.schema, 'stagedjson-psi-sequence-plan/v1');
+  assert.equal(sequencePlan.validation.ok, true, sequencePlan.validation.errors.join('\n'));
+  assert.equal(sequencePlan.summary.componentCount, records.length);
+  assert.ok(sequencePlan.summary.sourceBranchCount > sequencePlan.summary.canonicalBranchCount);
+  assert.equal((xmlText.match(/<Branchname>/g) || []).length, sequencePlan.summary.canonicalBranchCount);
+
+  const plannedRecords = sequencePlan.branches.flatMap((branch, branchIndex) => {
+    assert.equal(branch.sequence, branchIndex);
+    const expected = records.filter((record) => record.sourceBranchName === branch.sourceBranchName);
+    assert.equal(branch.components.length, expected.length);
+    branch.components.forEach((component, componentIndex) => {
+      assert.equal(component.sequence, componentIndex);
+      assert.strictEqual(component.record, expected[componentIndex]);
+      assert.equal(component.record.sourceBranchName, branch.sourceBranchName);
+    });
+    return branch.components.map((component) => component.record);
+  });
+  assert.equal(plannedRecords.length, records.length);
+  assert.equal(new Set(plannedRecords).size, records.length);
 
   const elbow = oneNodeForRef(xmlText, '=1006649732/51428');
   assert.match(elbow, /<NodeNumber>1570<\/NodeNumber>/);
