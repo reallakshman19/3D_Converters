@@ -22,10 +22,12 @@ for (const file of [
   'sj-psi-sequence-planner.js',
   'sj-rating-resolver.js',
   'sj-restraint-resolver.js',
+  'sj-sequential-writer-shadow.js',
   'sj-type-mapper.js',
   'sj-wall-resolver.js',
   'sj-weight-db.js',
   'sj-weight-resolver.js',
+  'sj-xml-writer-parity.js',
   'sj-xml-writer.js',
 ]) copyFileSync(join(sourceRoot, file), join(tempRoot, file));
 
@@ -39,9 +41,12 @@ function oneNodeForRef(xml, ref) {
   return nodes[0];
 }
 
-test('1885 benchmark matches the requested ELBO, TEE, REDU and branch contracts', () => {
+test('1885 benchmark matches fitting contracts and generates source-sequential shadow XML', () => {
   const stagedJson = JSON.parse(readFileSync(join(repoRoot, 'Benchmarks', '1885Sjson', 'Sjson'), 'utf8'));
-  const { xmlText, records, sequencePlan } = runEnrichment({ stagedJsonText: stagedJson, config: {} });
+  const { xmlText, records, sequencePlan, writerShadow } = runEnrichment({
+    stagedJsonText: stagedJson,
+    config: {},
+  });
 
   assert.equal(sequencePlan.schema, 'stagedjson-psi-sequence-plan/v1');
   assert.equal(sequencePlan.validation.ok, true, sequencePlan.validation.errors.join('\n'));
@@ -62,6 +67,19 @@ test('1885 benchmark matches the requested ELBO, TEE, REDU and branch contracts'
   });
   assert.equal(plannedRecords.length, records.length);
   assert.equal(new Set(plannedRecords).size, records.length);
+
+  assert.equal(writerShadow.generated, true, writerShadow.validation.errors.join('\n'));
+  assert.equal(writerShadow.parity.validation.ok, true, writerShadow.parity.validation.errors.join('\n'));
+  assert.equal(writerShadow.parity.summary.canonicalBranchCount, sequencePlan.summary.canonicalBranchCount);
+  assert.equal(writerShadow.parity.summary.sequentialBranchCount, sequencePlan.summary.sourceBranchCount);
+  assert.equal(writerShadow.parity.summary.nodeCardinalityEquivalent, true);
+  assert.equal(writerShadow.parity.summary.engineeringEquivalent, true);
+  assert.equal(writerShadow.parity.summary.sourceBoundaryEquivalent, true);
+  assert.equal(writerShadow.parity.switchGate.allowed, false);
+  assert.equal(
+    (writerShadow.xmlText.match(/<Branchname>/g) || []).length,
+    sequencePlan.summary.sourceBranchCount,
+  );
 
   const elbow = oneNodeForRef(xmlText, '=1006649732/51428');
   assert.match(elbow, /<NodeNumber>1570<\/NodeNumber>/);
