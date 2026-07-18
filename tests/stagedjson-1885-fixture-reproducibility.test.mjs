@@ -9,6 +9,8 @@ const REFS = Object.freeze({
   reducer: '=1006649732/51499',
 });
 
+const SOURCE_PATH = 'Benchmarks/1885Sjson/Sjson.json';
+
 function snapshot(generated) {
   return JSON.parse(generated.contractSnapshot);
 }
@@ -17,8 +19,10 @@ test('1885 committed enrichment fixtures reproduce exactly', () => {
   const generated = check1885Fixtures();
   assert.equal(generated.enrichment.audit.summary.geometryChanged, false);
   assert.equal(generated.enrichment.audit.summary.coordinateChanged, false);
+  assert.equal(generated.enrichment.audit.sourceFileName, SOURCE_PATH);
 
   const manifest = JSON.parse(generated.manifest);
+  assert.equal(manifest.source, SOURCE_PATH);
   assert.equal(manifest.summary.sourceNodes, 279);
   assert.equal(manifest.summary.enrichedNodes, 279);
   assert.equal(manifest.summary.stage2Records, 163);

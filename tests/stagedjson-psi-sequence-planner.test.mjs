@@ -95,7 +95,7 @@ test('sequence plan preserves exact branch blocks and topology references', () =
 
 test('1885 fixture exposes source branch order before canonical XML grouping', () => {
   const stagedJson = JSON.parse(readFileSync(
-    join(repoRoot, 'Benchmarks', '1885Sjson', 'Sjson'),
+    join(repoRoot, 'Benchmarks', '1885Sjson', 'Sjson.json'),
     'utf8',
   ));
   const records = parseStagedJson(stagedJson);

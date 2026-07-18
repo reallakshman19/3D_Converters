@@ -11,6 +11,8 @@ import { runEnrichment } from '../tabs/stagedjson-to-enrichxml/sj-enrichment-eng
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BENCHMARK_ROOT = join(REPO_ROOT, 'Benchmarks', '1885Sjson');
+const SOURCE_FILE = 'Sjson.json';
+const SOURCE_PATH = `Benchmarks/1885Sjson/${SOURCE_FILE}`;
 const FIXED_EVALUATED_AT = '2026-07-15T08:30:00.000Z';
 const FIXED_XML_DATETIME = '15/07/2026, 12:30:00';
 const TARGET_REFS = Object.freeze([
@@ -29,7 +31,7 @@ const OUTPUT_PATHS = Object.freeze({
 });
 
 export function generate1885Fixtures() {
-  const stagedJson = readJson(join(BENCHMARK_ROOT, 'Sjson'));
+  const stagedJson = readJson(join(BENCHMARK_ROOT, SOURCE_FILE));
   const lineList = readJson(join(BENCHMARK_ROOT, 'Masters', 'line-list.json'));
   const pipingClass = readJson(join(BENCHMARK_ROOT, 'Masters', 'piping-class.json'));
 
@@ -48,7 +50,7 @@ export function generate1885Fixtures() {
       },
     },
     config: DEFAULT_VISIBLE_STAGEDJSON_CONFIG,
-    sourceFileName: 'Benchmarks/1885Sjson/Sjson',
+    sourceFileName: SOURCE_PATH,
     evaluatedAt: FIXED_EVALUATED_AT,
   });
 
@@ -72,7 +74,7 @@ export function generate1885Fixtures() {
 
   const manifest = {
     schema: 'stagedjson-1885-fixture-manifest/v1',
-    source: 'Benchmarks/1885Sjson/Sjson',
+    source: SOURCE_PATH,
     generatedBy: 'tools/generate-1885-stagedjson-fixtures.mjs',
     evaluatedAt: FIXED_EVALUATED_AT,
     xmlDateTime: FIXED_XML_DATETIME,
