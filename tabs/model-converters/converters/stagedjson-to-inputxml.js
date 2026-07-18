@@ -8,6 +8,12 @@ import {
   TOPOLOGY_TOLERANCE_MM,
 } from './component-topology/topology-values.js';
 
+/** Keep host callbacks on the main thread; worker options are data only. */
+function serializableWorkerOptions(options) {
+  const record = options && typeof options === 'object' ? options : {};
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => typeof value !== 'function'));
+}
+
 async function buildTopologyOutputs(sourceText, sourceName, stem) {
   const artifacts = await buildComponentTopologyArtifacts(sourceText, {
     sourceName,
@@ -35,7 +41,7 @@ export async function run(context) {
   const response = await context.workerRunner.runJob({
     converterId: context.converterId,
     inputFiles: context.inputFiles,
-    options: context.options,
+    options: serializableWorkerOptions(context.options),
   });
 
   const stagedJsonPreviewText = decodeTextUtf8(primary.bytes);

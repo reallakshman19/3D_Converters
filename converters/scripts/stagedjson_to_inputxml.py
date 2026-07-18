@@ -1406,6 +1406,29 @@ def apply_support_restraints(all_elements: list[Element], na: NodeAllocator,
     return stats
 
 
+def normalize_stagedjson_root(value: object) -> list[object]:
+    """Return branch rows from bare arrays or known managed-stage envelopes.
+
+    Parameters: parsed JSON. Output: the branch list used by the converter.
+    Fallback: a single branch object is wrapped; unknown objects raise.
+    """
+    if isinstance(value, list):
+        return value
+    if not isinstance(value, dict):
+        raise TypeError('StagedJSON input must be a JSON object or array.')
+    for field_name in ('hierarchy', 'objects'):
+        candidate = value.get(field_name)
+        if isinstance(candidate, list):
+            return candidate
+    if value.get('type') and isinstance(value.get('children'), list):
+        return [value]
+    schema = str(value.get('schema') or 'missing')
+    raise TypeError(
+        f'StagedJSON object does not match a supported envelope (schema: {schema!r}); '
+        'expected a bare array, hierarchy/objects array, or single branch node.'
+    )
+
+
 def convert(input_path: Path, output_path: Path, defaults: InputXmlDefaults,
             job_name: str | None = None, node_start: int = 10, node_step: int = 10,
             support_config: dict | None = None, diagnostics: Diagnostics | None = None,
@@ -1416,9 +1439,8 @@ def convert(input_path: Path, output_path: Path, defaults: InputXmlDefaults,
     _DIAGNOSTIC_KEYS = set()
     sidecar_path = diagnostics_path_for(output_path)
 
-    data = json.loads(input_path.read_text(encoding='utf-8-sig'))
-    if not isinstance(data, list):
-        data = [data]
+    parsed = json.loads(input_path.read_text(encoding='utf-8-sig'))
+    data = normalize_stagedjson_root(parsed)
     _ACTIVE_DIAGNOSTICS.metadata.update({
         'nodeStart': node_start,
         'nodeStep': node_step,

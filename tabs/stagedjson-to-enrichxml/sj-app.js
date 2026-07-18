@@ -12,8 +12,8 @@ import { openOverrideMatrix } from './sj-override-ui.js';
 import { downloadXml, downloadAudit, downloadTraceCsv, safeStem } from './sj-export.js';
 import { parseStagedJson, tallyByType } from './sj-parser.js?v=2';
 import { buildAuditTablePanel } from './sj-audit-table.js';
-import { build3dViewerPanel } from './sj-3d-viewer.js';
-import { renderStagedJsonEnrichmentPanel } from '../xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-ui.js?v=2';
+import { build3dViewerPanel } from './sj-3d-viewer.js?v=20260718-explicit-geometry-v2';
+import { renderStagedJsonEnrichmentPanel } from '../xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-ui.js?v=20260718-envelope-v1';
 
 // ─── App State ───────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@
  */
 
 import {
+  CREF_CONNECTION_SPAN_LIMIT_MM,
   REFERENCE_CONNECTION_TOLERANCE_MM,
   SOURCE_CONNECTION_TOLERANCE_MM,
   cleanText,
@@ -185,6 +186,18 @@ function planCrefConnections(model, toleranceMm, set, issues) {
       return [];
     }
     const residualMm = pointDistance(junctionPort.position, targetPort.position);
+    if (residualMm > CREF_CONNECTION_SPAN_LIMIT_MM) {
+      issues.push({
+        code: 'CREF_CONNECTION_SPAN_REJECTED',
+        blocking: false,
+        residualMm,
+        maximumSpanMm: CREF_CONNECTION_SPAN_LIMIT_MM,
+        sourcePath: component.sourcePath,
+        targetPath: target.sourcePath,
+        reference,
+      });
+      return [];
+    }
     const merged = residualMm <= toleranceMm;
     if (merged) set.unite(junctionPort.key, targetPort.key);
     return [{ component, targetBranch: target, junctionPort, targetPort, targetRole: role, residualMm, merged }];

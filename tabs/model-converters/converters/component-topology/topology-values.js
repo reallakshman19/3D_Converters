@@ -8,6 +8,7 @@
 export const TOPOLOGY_TOLERANCE_MM = 0.5;
 export const SOURCE_CONNECTION_TOLERANCE_MM = 1;
 export const REFERENCE_CONNECTION_TOLERANCE_MM = 75;
+export const CREF_CONNECTION_SPAN_LIMIT_MM = 10000;
 export const SUPPORT_PROJECTION_TOLERANCE_MM = 50;
 
 export const ROUTE_TYPES = Object.freeze([

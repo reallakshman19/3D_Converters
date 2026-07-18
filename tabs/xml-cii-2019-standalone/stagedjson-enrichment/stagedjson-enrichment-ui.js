@@ -5,7 +5,7 @@
 
 import { downloadTextFile } from '../ui-adapted/xml-cii-adapted-dom.js';
 import { DEFAULT_VISIBLE_STAGEDJSON_CONFIG, parseVisibleStagedJsonConfig } from './stagedjson-enrichment-contract.js';
-import { enrichStagedJson } from './stagedjson-enrichment-engine.js';
+import { enrichStagedJson } from './stagedjson-enrichment-engine.js?v=20260718-envelope-v1';
 import { readStagedJsonFile, readStagedJsonMasterFile } from './stagedjson-file-parser.js';
 import { DEFAULT_MATERIAL_MAP_ROWS } from '../../../converters/xml-cii2019-core/default-material-map-rows.js';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';

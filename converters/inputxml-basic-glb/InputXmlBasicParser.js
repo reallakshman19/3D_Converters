@@ -35,13 +35,18 @@ function deltaValue(raw) {
   return isCaesarUnsetNumber(raw) ? 0 : num(raw, 0);
 }
 
-function pointFromAttrs(el, prefix) {
+function pointFromCoordinateAttrs(el, prefix) {
   const rawX = attr(el, `${prefix}_X`, '');
   const rawY = attr(el, `${prefix}_Y`, '');
   const rawZ = attr(el, `${prefix}_Z`, '');
   if (!text(rawX) && !text(rawY) && !text(rawZ)) return null;
   const point = { x: num(rawX, NaN), y: num(rawY, NaN), z: num(rawZ, NaN) };
   return Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z) ? point : null;
+}
+
+function pointFromAttrs(el, prefix) {
+  return pointFromCoordinateAttrs(el, prefix)
+    || pointFromCoordinateAttrs(el, `${prefix}_GLOBAL`);
 }
 
 function resolvedNumber(field, fallback = 100) {

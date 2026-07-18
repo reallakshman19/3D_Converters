@@ -86,7 +86,7 @@ export function drawCompass(ctx, theta, phi, cx, cy) {
 /**
  * Draws the 3D scene (grid, lines, nodes) using depth-sorting.
  */
-export function draw3dScene(ctx, canvas, nodes, config) {
+export function draw3dScene(ctx, canvas, nodes, segments, config) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // 1. Draw spatial floor grid at Z = minZ
@@ -126,24 +126,15 @@ export function draw3dScene(ctx, canvas, nodes, config) {
   // 3. Assemble render items (painter's algorithm)
   const renderables = [];
 
-  // Group nodes by branch for connecting segments
-  const branches = new Map();
-  nodes.forEach(n => {
-    if (!branches.has(n.branch)) branches.set(n.branch, []);
-    branches.get(n.branch).push(n);
-  });
-
-  for (const [, bNodes] of branches.entries()) {
-    for (let i = 0; i < bNodes.length - 1; i++) {
-      const n1 = bNodes[i];
-      const n2 = bNodes[i + 1];
-      renderables.push({
-        type: 'segment',
-        depth: (n1.depth + n2.depth) / 2,
-        n1,
-        n2
-      });
-    }
+  for (const segment of segments) {
+    const n1 = projectPoint(segment.start.x, segment.start.y, segment.start.z, config);
+    const n2 = projectPoint(segment.end.x, segment.end.y, segment.end.z, config);
+    renderables.push({
+      type: 'segment',
+      depth: (n1.depth + n2.depth) / 2,
+      n1: { screenX: n1.x, screenY: n1.y },
+      n2: { screenX: n2.x, screenY: n2.y },
+    });
   }
 
   nodes.forEach(n => {

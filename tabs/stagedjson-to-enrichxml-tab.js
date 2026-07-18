@@ -1,4 +1,4 @@
-import { mountApp } from './stagedjson-to-enrichxml/sj-app.js';
+import { mountApp } from './stagedjson-to-enrichxml/sj-app.js?v=20260718-geometry-v1';
 
 export function renderStagedJsonToEnrichXmlTab(container) {
   // Mount the app CSS

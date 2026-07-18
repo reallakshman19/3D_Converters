@@ -53,8 +53,8 @@ export const STANDALONE_TABS = Object.freeze([
   { id: 'interchange-config', label: 'Interchange Config', icon: 'gear', load: () => import('../tabs/interchange-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderInterchangeConfigTab', 'interchange-config')) },
   { id: 'support-mapping-config', label: 'Support Mapping', icon: 'support', load: () => import('../tabs/support-mapping-config-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderSupportMappingConfigTab', 'support-mapping-config')) },
   { id: 'adapter-mapping', label: 'Adapter Mapping', icon: 'map', load: () => import('../tabs/adapter-mapping-tab.js?v=standalone-2').then((module) => pickRenderer(module, 'renderAdapterMappingTab', 'adapter-mapping')) },
-  { id: 'stagedjson-properties', label: 'stagedJson Properties', icon: 'json', load: () => import('../tabs/stagedjson-properties-tab.js?v=standalone-3').then((module) => pickRenderer(module, 'renderStagedJsonPropertiesTab', 'stagedjson-properties')) },
-  { id: 'stagedjson-to-enrichxml', label: 'StagedJSON→Enriched XML', icon: 'json', load: () => import('../tabs/stagedjson-to-enrichxml-tab.js').then((module) => pickRenderer(module, 'renderStagedJsonToEnrichXmlTab', 'stagedjson-to-enrichxml')) }
+  { id: 'stagedjson-properties', label: 'stagedJson Properties', icon: 'json', load: () => import('../tabs/stagedjson-properties-tab.js?v=standalone-4').then((module) => pickRenderer(module, 'renderStagedJsonPropertiesTab', 'stagedjson-properties')) },
+  { id: 'stagedjson-to-enrichxml', label: 'StagedJSON→Enriched XML', icon: 'json', load: () => import('../tabs/stagedjson-to-enrichxml-tab.js?v=standalone-4').then((module) => pickRenderer(module, 'renderStagedJsonToEnrichXmlTab', 'stagedjson-to-enrichxml')) }
 ]);
 const TAB_GROUPS = Object.freeze([
   { label: 'Converters', ids: [
