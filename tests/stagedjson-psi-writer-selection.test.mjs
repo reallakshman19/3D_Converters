@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -133,4 +133,23 @@ test('sequential request falls back to canonical when branch conditions drift', 
   assert.equal(result.xmlText, result.canonicalXmlText);
   assert.deepEqual(branchNames(result.xmlText), ['/LINE-C']);
   assert.equal(result.audit.totalBranches, 1);
+});
+
+test('real 1885 benchmark is eligible for sequential production selection', () => {
+  const stagedJson = JSON.parse(readFileSync(
+    join(repoRoot, 'Benchmarks', '1885Sjson', 'Sjson.json'),
+    'utf8',
+  ));
+  const result = runEnrichment({
+    stagedJsonText: stagedJson,
+    config: { psiWriterMode: 'sequential' },
+  });
+
+  assert.equal(result.writerShadow.parity.selectionGate.allowed, true);
+  assert.equal(result.writerSelection.effectiveMode, 'sequential');
+  assert.equal(result.writerSelection.fallbackApplied, false);
+  assert.equal(result.audit.totalBranches, result.sequencePlan.summary.sourceBranchCount);
+  assert.equal(branchNames(result.xmlText).length, result.sequencePlan.summary.sourceBranchCount);
+  assert.equal(result.records.length, result.canonicalRecords.length);
+  assert.ok(result.records.every((record) => record.branchName === record.sourceBranchName));
 });
