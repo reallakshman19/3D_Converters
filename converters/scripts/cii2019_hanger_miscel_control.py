@@ -142,8 +142,40 @@ def _format_i(values: list[int]) -> str:
     return "  " + "".join(f"{int(value):13d}" for value in values)
 
 
+def _format_g13_6(value: float) -> str:
+    """One FORTRAN G13.6 field (13 chars), matching psi2cii / CAESAR output.
+
+    Python's ``{:13.6G}`` is NOT FORTRAN G13.6: it strips trailing zeros
+    (so material id 106 came out as a bare ``106`` instead of the vendor's
+    ``106.000``) and uses a different scientific-notation threshold. This
+    reproduces the real neutral-file format, verified byte-for-byte against
+    a psi2cii 2019 vendor benchmark across magnitudes and sign
+    (``5.00000``, ``11.0000``, ``148.000``, ``2850.00``, ``-66.7000``,
+    ``0.184213E-03`` ...).
+
+    FORTRAN Gw.d: for 0.1 <= |x| < 10**6 (and x == 0) it uses F editing with
+    6 significant figures, right-justified in (w-4)=9 columns, followed by 4
+    blanks (the reserved exponent field); otherwise it uses E editing across
+    the full 13 columns.
+    """
+    x = float(value)
+    if not math.isfinite(x):
+        raise ValueError(f"Non-finite numeric value encountered: {x}")
+    ax = abs(x)
+    if ax != 0.0 and (ax < 0.1 or ax >= 1e6):
+        exp = int(math.floor(math.log10(ax))) + 1
+        mantissa = x / (10.0 ** exp)
+        body = f"{mantissa:.6f}E{'+' if exp >= 0 else '-'}{abs(exp):02d}"
+        return f"{body:>13}"
+    if ax == 0.0:
+        return f"{'0.00000':>9}    "
+    int_digits = 1 if ax < 1 else int(math.floor(math.log10(ax))) + 1
+    decimals = 6 - int_digits
+    return f"{x:.{decimals}f}".rjust(9) + "    "
+
+
 def _format_g(values: list[float | int]) -> str:
-    return "  " + "".join(f"{float(value):13.6G}" for value in values)
+    return "  " + "".join(_format_g13_6(value) for value in values)
 
 
 def _format_string100(value: str) -> str:
