@@ -1379,29 +1379,87 @@ def _render_control_line(template: list[str], metrics: dict[str, int]) -> str:
     return _row(rendered)
 
 
-def _render_label_line(pointer: int, label_index: int, label_prefix: str, label_width: int) -> str:
+def _render_length_prefixed_label(label: str) -> str:
+    """Render an ELEMENTS Element-Name / Line-Number row per the neutral file spec.
+
+    Spec (CAESAR II User's Guide, External Interfaces, ELEMENTS section):
+    format (7X, I5, 1X, A500) where "The value before the string indicates
+    the LENGTH of the string" - it is NOT a pointer or element index.
+    Verified against every vendor benchmark with non-blank labels
+    (e.g. "           5 Valve", "          18 16\"-W7810049-13421",
+    "           7 LINENO1"): the integer always equals len(label).
+    Writing anything else makes CAESAR read the wrong number of characters
+    (an element index of 0 reads an empty line number; 1 reads "P" of
+    "PL-XX"; etc.), which presented as "Line No not propagated / not
+    consistent" in real CAESAR imports.
+    """
+    text = str(label or "").strip()
+    if not text:
+        return f"{0:12d} "
+    return f"{len(text):12d} {text}"
+
+
+def _render_label_line(label_index: int, label_prefix: str, label_width: int) -> str:
     label_value = f"{label_prefix}{label_index:0{label_width}d}"
-    return f"{pointer:12d} {label_value}"
+    return _render_length_prefixed_label(label_value)
 
 
 def _render_element_label_payload(value: object) -> str:
-    """Render the two ELEMENTS string/pointer rows with CAESAR 2019-compatible width.
+    """Render an ELEMENTS Element-Name / Line-Number row from a configured payload.
 
-    The downstream parser treats these rows as a 12-character integer pointer field
-    followed by one separator character and an optional label. Numeric zero is
-    therefore emitted as a 13-character row, matching benchmark files.
+    Config payloads historically stored these rows as "<number> <label>" under
+    the (incorrect) belief that the number was a pointer. Per the neutral file
+    spec the number is the label's string length, so the prefix is now always
+    re-derived from the label text and never trusted from the config: legacy
+    payloads whose prefix already equals the label length (all
+    benchmark-derived ones, e.g. "10 unassigned", "7 LINENO1") are
+    byte-stable, while payloads carrying a stale pointer-style prefix are
+    silently corrected instead of making CAESAR read a wrong-length string.
     """
     text = str(value).strip()
     if not text:
         return f"{0:12d} "
     parts = text.split(maxsplit=1)
     try:
-        pointer = int(parts[0])
+        int(parts[0])
     except ValueError:
-        return text
+        # No numeric prefix: the whole payload is the label itself.
+        return _render_length_prefixed_label(text)
     if len(parts) == 1:
-        return f"{pointer:12d} "
-    return f"{pointer:12d} {parts[1]}"
+        # Bare number with no label: a blank-label row (length 0).
+        return f"{0:12d} "
+    return _render_length_prefixed_label(parts[1])
+
+
+# NODENAME record layout per the neutral file spec: FORTRAN (2X, A10, 16X,
+# A10) - FROM name at columns 3-12, TO name at columns 29-38. Every vendor
+# benchmark with node names confirms the column positions (FROM at col 3, TO
+# at col 29) and shows the writer padding each line to 53 characters, with
+# names longer than 10 characters allowed to overflow the A10 field into the
+# following gap (e.g. "PS-171001.1", "17-VBL-20012"). The FROM field
+# therefore has 26 usable columns (3-28) and the TO field 25 (29-53).
+_NODENAME_FROM_FIELD_WIDTH: Final[int] = 26
+_NODENAME_TO_FIELD_WIDTH: Final[int] = 25
+
+
+def _format_nodename_pair(from_label: str, to_label: str) -> str:
+    from_text = _safe_text(from_label)
+    to_text = _safe_text(to_label)
+    if len(from_text) > _NODENAME_FROM_FIELD_WIDTH:
+        _warn(
+            "NODENAME_LABEL_TRUNCATED",
+            f"FROM node name {from_text!r} exceeds the {_NODENAME_FROM_FIELD_WIDTH}-column NODENAME field and was truncated.",
+            label=from_text,
+        )
+        from_text = from_text[:_NODENAME_FROM_FIELD_WIDTH]
+    if len(to_text) > _NODENAME_TO_FIELD_WIDTH:
+        _warn(
+            "NODENAME_LABEL_TRUNCATED",
+            f"TO node name {to_text!r} exceeds the {_NODENAME_TO_FIELD_WIDTH}-column NODENAME field and was truncated.",
+            label=to_text,
+        )
+        to_text = to_text[:_NODENAME_TO_FIELD_WIDTH]
+    return "  " + from_text.ljust(_NODENAME_FROM_FIELD_WIDTH) + to_text.ljust(_NODENAME_TO_FIELD_WIDTH)
 
 
 def _render_tokens_row(template: list[str], values: dict[str, int]) -> str:
@@ -2813,12 +2871,14 @@ def _build_cii_text(
         if nonam_count < 0:
             raise ValueError("Invalid 2019 layout config: 'nodename.nonam_count' must be non-negative.")
         for pair_index in range(nonam_count):
+            # One line per (from, to) pair in the spec's (2X, A10, 16X, A10)
+            # column layout - previously each label was emitted on its own
+            # line, which doubled the payload line count vs the declared
+            # NONAM pair count and broke the reader's column positions.
             if pair_index < configured_pairs:
-                nodename_payload.append(str(from_labels[pair_index]))
-                nodename_payload.append(str(to_labels[pair_index]))
+                nodename_payload.append(_format_nodename_pair(str(from_labels[pair_index]), str(to_labels[pair_index])))
             else:
-                nodename_payload.append(default_from_label)
-                nodename_payload.append(default_to_label)
+                nodename_payload.append(_format_nodename_pair(default_from_label, default_to_label))
     elif nodename_mode == "to_node_map":
         to_node_labels_raw = nodename_cfg.get("to_node_labels", {})
         if not isinstance(to_node_labels_raw, dict):
@@ -2845,11 +2905,9 @@ def _build_cii_text(
             raise ValueError("Invalid 2019 layout config: 'nodename.nonam_count' must be non-negative.")
         for pair_index in range(nonam_count):
             if pair_index < len(mapped_pairs):
-                nodename_payload.append(mapped_pairs[pair_index][0])
-                nodename_payload.append(mapped_pairs[pair_index][1])
+                nodename_payload.append(_format_nodename_pair(mapped_pairs[pair_index][0], mapped_pairs[pair_index][1]))
             else:
-                nodename_payload.append(default_from_label)
-                nodename_payload.append(default_to_label)
+                nodename_payload.append(_format_nodename_pair(default_from_label, default_to_label))
     elif nodename_mode == "auto":
         # One NODENAME row per element edge: a two-column (from, to) line. Real
         # names emitted by the upstream (FROM_NAME/TO_NAME) are used verbatim;
@@ -2867,7 +2925,7 @@ def _build_cii_text(
         for element in elements:
             from_name = _auto_label(element.name_from, element.from_node)
             to_name = _auto_label(element.name_to, element.to_node)
-            nodename_payload.append("  " + from_name.ljust(25) + to_name.ljust(25))
+            nodename_payload.append(_format_nodename_pair(from_name, to_name))
         nonam_count = len(elements)
 
     # NODENAME payload is built one entry per element, in element order, in
@@ -2885,7 +2943,11 @@ def _build_cii_text(
     line_label_mode = str(line_label_cfg.get("mode", "zero")).strip().lower()
     if line_label_mode not in ("zero", "auto", "to_node"):
         raise ValueError("Invalid 2019 layout config: 'elements.line_label.mode' must be zero, auto, or to_node.")
-    pointer_start = int(line_label_cfg.get("pointer_start", 0))
+    # NOTE: the legacy 'pointer_start' config key is intentionally ignored now.
+    # The integer that precedes an Element-Name / Line-Number string is the
+    # string's LENGTH per the neutral file spec (7X, I5, 1X, A500), not a
+    # running pointer/index - so it is always derived from the label text
+    # (see _render_length_prefixed_label), never from a configured start.
     label_index_start = int(line_label_cfg.get("label_index_start", 0))
     label_prefix = str(line_label_cfg.get("label_prefix", "LINENO"))
     label_width = int(line_label_cfg.get("label_width", 2))
@@ -2961,7 +3023,10 @@ def _build_cii_text(
         )
         line10 = ""
         if element.line:
-            line10 = f"{pointer_start + edge_index:12d} {element.line}"
+            # Line Number row: length-prefixed string per spec (see
+            # _render_length_prefixed_label). Same label => same prefix on
+            # every element, e.g. "           5 PL-XX" for all of them.
+            line10 = _render_length_prefixed_label(element.line)
         elif edge_index < len(configured_line_labels):
             line10 = _render_element_label_payload(configured_line_labels[edge_index])
         else:
@@ -2969,7 +3034,6 @@ def _build_cii_text(
                 line10 = _render_element_label_payload(to_node_template.replace("{to_node}", _format_node_id(element.to_node)))
             elif line_label_mode == "auto" and not default_line_label:
                 line10 = _render_label_line(
-                    pointer=pointer_start + edge_index,
                     label_index=label_index_start + edge_index,
                     label_prefix=label_prefix,
                     label_width=label_width,
