@@ -37,7 +37,7 @@ export function comparePsiWriterOutputs({ canonicalXmlText, sequentialXmlText, s
   if (allocationMismatches.length) warnings.push('Canonical and sequential node allocations differ.');
   if (!branchConditionsEquivalent) warnings.push('Source and canonical branch condition blocks differ.');
 
-  const switchBlockers = buildSwitchBlockers({
+  const selectionBlockers = buildSelectionBlockers({
     sourceBoundaryEquivalent,
     nodeCardinalityEquivalent,
     engineeringEquivalent,
@@ -66,15 +66,16 @@ export function comparePsiWriterOutputs({ canonicalXmlText, sequentialXmlText, s
       branchConditionMismatches: conditionMismatches.slice(0, 100),
     },
     validation: { ok: errors.length === 0, errors: unique(errors), warnings: unique(warnings) },
-    switchGate: {
-      allowed: switchBlockers.length === 0,
-      reason: switchBlockers.length === 0 ? 'PARITY_PROVEN' : 'PARITY_BLOCKED',
-      blockers: switchBlockers,
+    switchGate: { allowed: false, reason: 'SHADOW_ONLY' },
+    selectionGate: {
+      allowed: selectionBlockers.length === 0,
+      reason: selectionBlockers.length === 0 ? 'PARITY_PROVEN' : 'PARITY_BLOCKED',
+      blockers: selectionBlockers,
     },
   });
 }
 
-function buildSwitchBlockers(summary) {
+function buildSelectionBlockers(summary) {
   const blockers = [];
   if (!summary.sourceBoundaryEquivalent) blockers.push('SOURCE_BOUNDARY_MISMATCH');
   if (!summary.nodeCardinalityEquivalent) blockers.push('NODE_CARDINALITY_MISMATCH');
