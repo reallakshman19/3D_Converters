@@ -32,6 +32,8 @@ jobs:
           node --check tabs/stagedjson-to-enrichxml/sj-node-contract.js
           node --check tabs/stagedjson-to-enrichxml/sj-parser.js
           node --check tabs/stagedjson-to-enrichxml/sj-psi-sequence-planner.js
+          node --check tabs/stagedjson-to-enrichxml/sj-sequential-writer-shadow.js
+          node --check tabs/stagedjson-to-enrichxml/sj-xml-writer-parity.js
           node --check tabs/stagedjson-to-enrichxml/sj-xml-writer.js
           node --check tests/stagedjson-enriched-xml-topology.test.mjs
           node --check tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
