@@ -308,6 +308,54 @@ def _local_name(tag: str) -> str:
     return tag
 
 
+# Canonical namespace for InputXML per contracts/inputxml/v1/inputxml-canonical-v1.xsd
+# and inputxml-dialect-registry.json. This function is a lightweight,
+# diagnostic-only mirror of that registry's "signals" - it never blocks or
+# alters parsing (this engine has always tolerated non-canonical dialects via
+# _local_name()'s namespace-stripping), it only decides what to warn about.
+# Keep in sync with contracts/inputxml/v1/inputxml-dialect-registry.json if
+# dialects are added, renamed, or their signals change there.
+_CANONICAL_NAMESPACE: Final[str] = "COADE"
+
+
+def _classify_inputxml_dialect(root: ET.Element, piping_model: ET.Element) -> tuple[str, list[str]]:
+    deviations: list[str] = []
+    root_ns = root.tag.split("}", 1)[0][1:] if root.tag.startswith("{") else ""
+    xml_type = root.attrib.get("XML_TYPE")
+    numelt = piping_model.attrib.get("NUMELT")
+    numelements = piping_model.attrib.get("NUMELEMENTS")
+
+    if root_ns != _CANONICAL_NAMESPACE:
+        deviations.append(f"root namespace is {root_ns or '(none)'}, expected {_CANONICAL_NAMESPACE!r}")
+    if xml_type != "Input":
+        deviations.append(f"CAESARII/@XML_TYPE is {xml_type!r}, expected 'Input'")
+    if numelt is None and numelements is not None:
+        deviations.append("PIPINGMODEL uses NUMELEMENTS instead of the canonical NUMELT attribute")
+    elif numelt is None:
+        deviations.append("PIPINGMODEL is missing NUMELT")
+
+    if not deviations:
+        return "canonical-inputxml-v1", deviations
+
+    # Best-effort guess at the closest registered vendor/application dialect
+    # (see inputxml-dialect-registry.json), for diagnostic context only.
+    sample_attribs: set[str] = set()
+    for elem in piping_model.findall("PIPINGELEMENT"):
+        sample_attribs.update(elem.attrib.keys())
+        break
+    child_names = {_local_name(child.tag) for child in piping_model.iter()}
+
+    if "PRESSURE1" in sample_attribs:
+        dialect_id = "caesar-inputxml-pressure1"
+    elif "PRESSURE_C1" in sample_attribs:
+        dialect_id = "caesar-inputxml-pressure-c"
+    elif {"DTXR_POS", "PipingClass", "Point_properties_basis"} & child_names:
+        dialect_id = "enriched-inputxml-app"
+    else:
+        dialect_id = "unregistered"
+    return dialect_id, deviations
+
+
 def _to_float(value: str | None, field_name: str) -> float:
     text = _safe_text(value)
     if not text:
@@ -571,6 +619,18 @@ def _parse_model(path: Path, defaults: ConverterDefaults) -> ParsedModel:
             break
     if piping_model is None:
         raise ValueError("Input XML does not contain PIPINGMODEL.")
+
+    _dialect_id, _dialect_deviations = _classify_inputxml_dialect(root, piping_model)
+    if _dialect_deviations:
+        _warn(
+            "INPUTXML_DIALECT_NOT_CANONICAL",
+            "Input XML does not match the canonical InputXML contract "
+            f"(contracts/inputxml/v1/inputxml-canonical-v1.xsd); closest known dialect: {_dialect_id}. "
+            "Converting tolerantly, but field coverage/behavior for this dialect is not guaranteed: "
+            + "; ".join(_dialect_deviations),
+            dialect_id=_dialect_id,
+            deviations=_dialect_deviations,
+        )
 
     carry_diameter = defaults.diameter
     carry_wall = defaults.wall_thickness
