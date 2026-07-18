@@ -39,10 +39,14 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-14 to the current committed legacy adapter after the
-  // independently reviewed InputXML diagnostics/default-field changes. This
-  // test still freezes the file against accidental edits by this standalone PR.
-  'tabs/model-converters/legacy-adapter.js': '337829ef9ca452056d95a34c0c5e406b1e171cee',
+  // Updated 2026-07-18: _prepareInputxml2019ConfigForRequirements() now
+  // auto-migrates the pre-fix IEL row12/row13/row14 aux-pointer templates
+  // (stale {sif}-in-wrong-slot / missing {nodename} pattern saved to
+  // localStorage before this session's pointer fixes shipped) to the
+  // current correct field order, the same way it already did for
+  // control.lineN/line_labels. This test still freezes the file against
+  // accidental edits by this standalone PR.
+  'tabs/model-converters/legacy-adapter.js': '75cece6ad212038991b777e239b93e18a6c7e5d1',
   'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
   'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
   'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',
