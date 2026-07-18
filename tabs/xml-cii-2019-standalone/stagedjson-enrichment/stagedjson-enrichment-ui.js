@@ -5,7 +5,7 @@
 
 import { downloadTextFile } from '../ui-adapted/xml-cii-adapted-dom.js';
 import { DEFAULT_VISIBLE_STAGEDJSON_CONFIG, parseVisibleStagedJsonConfig } from './stagedjson-enrichment-contract.js';
-import { enrichStagedJson } from './stagedjson-enrichment-engine.js';
+import { enrichStagedJson } from './stagedjson-enrichment-engine.js?v=20260718-envelope-v1';
 import { readStagedJsonFile, readStagedJsonMasterFile } from './stagedjson-file-parser.js';
 import { DEFAULT_MATERIAL_MAP_ROWS } from '../../../converters/xml-cii2019-core/default-material-map-rows.js';
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
@@ -370,9 +370,6 @@ function actionsColumn(state, render) {
   if (state.options?.onApplyToWorkspace) {
     const applyBtn = action('Apply to Workspace 🚀', !canExport, () => {
       let payload = state.result.enrichedStagedJson;
-      if (Array.isArray(payload)) {
-        payload = { schema: 'inputxml-managed-stage/v1', objects: payload };
-      }
       state.options.onApplyToWorkspace(payload);
     });
     applyBtn.className = 'sjp-btn sjp-btn-primary';
@@ -588,9 +585,6 @@ function exportArtifact(kind, state) {
   const stem = safeStem(state.sourceFileName || 'stagedjson');
   if (kind === 'stage') {
     let payload = state.result.enrichedStagedJson;
-    if (Array.isArray(payload)) {
-      payload = { schema: 'inputxml-managed-stage/v1', objects: payload };
-    }
     downloadTextFile(`${stem}_enriched_stage.json`, JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
   }
   if (kind === 'audit') downloadTextFile(`${stem}_enrichment_audit.json`, JSON.stringify(state.result.audit, null, 2), 'application/json;charset=utf-8');

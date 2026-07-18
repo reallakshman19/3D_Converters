@@ -5,30 +5,13 @@
  */
 
 import { draw3dScene } from './sj-3d-renderer.js';
+import { buildStagedSceneGeometry } from './sj-3d-scene-geometry.js';
 
 export function build3dViewerPanel(records = []) {
   const container = document.createElement('div');
   container.className = 'sj-3d-container';
 
-  // Check if there is 3D data
-  const nodes = [];
-  records.forEach(rec => {
-    const rawPos = rec.attrs?.POS || rec.attrs?.APOS || rec.attrs?.LPOS;
-    if (rawPos && typeof rawPos === 'object' && Number.isFinite(rawPos.x) && Number.isFinite(rawPos.y) && Number.isFinite(rawPos.z)) {
-      nodes.push({
-        id: rec.name || Math.random().toString(),
-        name: rec.name || 'UNNAMED',
-        type: rec.componentType || 'PIPE',
-        branch: rec.branchName || '/UNMAPPED',
-        bore: rec.boreMm,
-        rating: rec.resolved?.rating || '',
-        x: Number(rawPos.x),
-        y: Number(rawPos.y),
-        z: Number(rawPos.z),
-        record: rec
-      });
-    }
-  });
+  const { nodes, segments } = buildStagedSceneGeometry(records);
 
   if (nodes.length === 0) {
     const empty = document.createElement('div');
@@ -42,9 +25,13 @@ export function build3dViewerPanel(records = []) {
   }
 
   // Bounding box calculations
-  const xs = nodes.map(n => n.x);
-  const ys = nodes.map(n => n.y);
-  const zs = nodes.map(n => n.z);
+  const geometryPoints = [
+    ...nodes,
+    ...segments.flatMap((segment) => [segment.start, segment.end]),
+  ];
+  const xs = geometryPoints.map(n => n.x);
+  const ys = geometryPoints.map(n => n.y);
+  const zs = geometryPoints.map(n => n.z);
   
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const minY = Math.min(...ys), maxY = Math.max(...ys);
@@ -99,7 +86,7 @@ export function build3dViewerPanel(records = []) {
       hoveredNode,
       minX, maxX, minY, maxY, minZ, maxZ
     };
-    draw3dScene(ctx, canvas, nodes, config);
+    draw3dScene(ctx, canvas, nodes, segments, config);
   };
 
   // Fit view function

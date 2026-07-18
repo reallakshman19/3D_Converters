@@ -1,4 +1,4 @@
-import { renderStagedJsonEnrichmentPanel } from './xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-ui.js?v=20260711-stagedjson-2';
+import { renderStagedJsonEnrichmentPanel } from './xml-cii-2019-standalone/stagedjson-enrichment/stagedjson-enrichment-ui.js?v=20260718-envelope-v1';
 
 export function renderStagedJsonPropertiesTab(container) {
   const host = document.createElement('div');

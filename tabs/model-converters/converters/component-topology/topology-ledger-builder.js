@@ -30,8 +30,9 @@ function objectsForSource(canonical, sourceEntityId) {
 function dispositionFor(source, objects) {
   const category = componentCategory(source.sourceType);
   if (category === 'SUPPORT') {
+    if (objects.supports.length) return 'EMIT_SUPPORT_ATTACHMENT';
     if (cleanText(source.supportProjection?.disposition) === 'DEFER_SUPPORT') return 'DEFER_SUPPORT';
-    return objects.supports.length ? 'EMIT_SUPPORT_ATTACHMENT' : 'BLOCK_AMBIGUOUS';
+    return 'BLOCK_AMBIGUOUS';
   }
   if (category === 'TEE') return 'EMIT_TEE_JUNCTION';
   if (category === 'OLET') return 'EMIT_OLET_JUNCTION';

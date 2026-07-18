@@ -39,6 +39,9 @@ export function enrichCanonicalTopologyIdentity(canonical, model) {
   const indexes = sourceIndexes(model);
   const edges = (canonical.edges ?? []).map((edge) => ({
     ...traceRow(edge, indexes),
+    ownerBranchId: indexedValues([edge.sourceEntityIds?.[0]], indexes.branchByEntity)[0]
+      ?? indexedValues(edge.sourceEntityIds ?? [], indexes.branchByEntity)[0]
+      ?? '',
     topologyOperation: cleanText(edge.topologyOperation ?? edge.segmentRole),
   }));
   const edgeById = new Map(edges.map((edge) => [edge.id, edge]));

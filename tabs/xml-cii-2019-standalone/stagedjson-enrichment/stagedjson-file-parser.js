@@ -4,12 +4,15 @@
  * JSON hierarchy or tabular rows. Fallback: invalid/empty files throw.
  */
 
+import { normalizeStagedJson } from '../../../contracts/stagedjson-contract.js';
+
 export async function readStagedJsonFile(file) {
   requireFile(file);
   const text = await file.text();
   const parsed = JSON.parse(text);
   if (!parsed || typeof parsed !== 'object') throw new TypeError(`${file.name} is not a stagedJson object or array.`);
-  return { parsed, text, fileName: file.name };
+  const { branches, envelope } = normalizeStagedJson(parsed);
+  return { parsed, branches, envelope, text, fileName: file.name };
 }
 
 export async function readStagedJsonMasterFile(file, masterKind) {

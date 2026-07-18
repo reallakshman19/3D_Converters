@@ -6,10 +6,14 @@
  */
 
 import { RESTRAINT_CODE_MAP } from '../../../stagedjson-to-enrichxml/sj-restraint-resolver.js';
-import { isSupportType } from '../../../stagedjson-to-enrichxml/sj-type-mapper.js';
-import { resolveMaterialCodeFromLineMaterial } from '../../../../converters/xml-cii2019-core/branch-process-resolver.js';
-import { DEFAULT_MATERIAL_MAP_ROWS } from '../../../../converters/xml-cii2019-core/default-material-map-rows.js';
 import { cleanText, xmlAttribute } from './topology-values.js';
+import {
+  buildEdgeEngineeringValues,
+  engineeringRecord,
+  engineeringValues,
+  finiteNumber,
+  physicalWall,
+} from './topology-inputxml-engineering-context.js';
 import {
   topologyElementTraceAttributes,
   topologyRestraintTraceAttributes,
@@ -17,13 +21,6 @@ import {
 } from './topology-inputxml-trace-attributes.js';
 
 const SENTINEL = '-1.010100';
-
-/** @param {unknown} value @returns {number|null} */
-function finiteNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const number = Number(String(value).replace(/[^0-9.+-]/g, ''));
-  return Number.isFinite(number) ? number : null;
-}
 
 /** @param {unknown} value @returns {string} */
 function fixed(value) {
@@ -38,63 +35,9 @@ function globalFixed(value) {
   return number.toFixed(3);
 }
 
-/** @param {number|null} diameter @param {unknown[]} candidates @returns {number|null} */
-function physicalWall(diameter, candidates) {
-  return candidates.map(finiteNumber).find((wall) => (
-    wall !== null && wall > 0 && diameter !== null && wall * 2 < diameter
-  )) ?? null;
-}
-
 /** @param {Record<string, unknown>} canonical @returns {Map<string,Record<string,unknown>>} */
 function nodeMap(canonical) {
   return new Map(canonical.nodes.map((node) => [node.id, node]));
-}
-
-/** @param {Record<string, unknown>} edge @param {Map<string,Record<string,unknown>>} records @returns {Record<string,unknown>|null} */
-function engineeringRecord(edge, records) {
-  return edge.sourceEntityIds.map((id) => records.get(id)).find((record) => (
-    record && !isSupportType(record.componentType)
-  )) ?? null;
-}
-
-/** @param {Record<string, unknown>|null} record @returns {Record<string,unknown>} */
-function engineeringValues(record) {
-  const resolved = record?.resolved ?? {};
-  const enriched = record?.enrichedAttributes ?? {};
-  const attrs = record?.attrs ?? {};
-  const diameter = finiteNumber(enriched.pipeOdMm ?? resolved.odMm);
-  const pressure = enriched.designPressureMpa ?? enriched.designPressure ?? attrs.ITEMPRES1 ?? attrs.PRES1;
-  const hydro = enriched.hydroPressure ?? attrs.HPRES;
-  const materialDensity = finiteNumber(enriched.materialDensityKgM3 ?? attrs.MDEN);
-  const insulationDensity = finiteNumber(enriched.insulationDensityKgM3 ?? attrs.IDEN);
-  const fluidDensity = finiteNumber(enriched.fluidDensityOpeKgM3 ?? attrs.FDENSITY ?? attrs.FLDEN);
-  const directMaterialCode = enriched.materialCode ?? attrs.MESC;
-  const mappedMaterial = directMaterialCode ? null : [enriched.material, attrs.MTXX].map((material) => (
-    resolveMaterialCodeFromLineMaterial({
-      lineRow: { material }, materialMap: DEFAULT_MATERIAL_MAP_ROWS, pipingClassRow: null,
-      pipingClass: enriched.pipingClass ?? attrs.SPRE,
-      overrides: {}, overrideKeys: [], xmlNode: null, xmlBranch: null,
-      config: { useDefaultPipingClassMaterialCodeMap: true },
-    })
-  )).find((result) => result.materialCode) ?? null;
-  return {
-    diameter,
-    wall: physicalWall(diameter, [resolved.wallMm, enriched.wallThicknessMm, attrs.WTHK, attrs.WTXX]),
-    insulation: finiteNumber(enriched.insulationThicknessMm ?? record?.insuMm) ?? 0,
-    corrosion: finiteNumber(enriched.corrosionAllowanceMm ?? resolved.corrMm) ?? 0,
-    temperature: enriched.designTemperatureC ?? attrs.ITEMTEMP1 ?? attrs.TEMP1,
-    pressure,
-    hydro,
-    modulus: enriched.modulusMpa ?? attrs.YMOD ?? attrs.EMOD,
-    poisson: enriched.poissonsRatio ?? attrs.PRAT,
-    pipeDensity: materialDensity === null ? null : materialDensity / 1_000_000,
-    insulationDensity: insulationDensity === null ? null : insulationDensity / 1_000_000,
-    fluidDensity: fluidDensity === null ? null : fluidDensity / 1_000_000,
-    materialNumber: directMaterialCode ?? mappedMaterial?.materialCode,
-    materialName: mappedMaterial?.material ?? enriched.material ?? attrs.MTXX ?? attrs.MESC,
-    lineId: enriched.lineNo ?? record?.branchName,
-    name: record?.name,
-  };
 }
 
 /** @param {Record<string, unknown>} edge @param {Record<string, unknown>} from @param {Record<string, unknown>} to @param {Record<string,unknown>} values @param {string} fromName @param {string} toName @returns {Array<[string,unknown]>} */
@@ -145,6 +88,21 @@ function restraintXml(restraint, support, index) {
   return `      <RESTRAINT ${serialize(attributes)}/>`;
 }
 
+/** @param {Record<string,unknown>} bend @param {Map<string,Record<string,unknown>>} nodes @returns {string} */
+function bendXml(bend, nodes) {
+  const node = nodes.get(bend.nodeId);
+  if (!node) throw new Error(`Bend ${bend.id} references missing canonical node ${bend.nodeId}.`);
+  const halfAngle = finiteNumber(bend.angleDeg) === null ? null : Number(bend.angleDeg) / 2;
+  const attributes = [
+    ['ID', bend.id], ['RADIUS', fixed(bend.radiusMm)], ['TYPE', SENTINEL],
+    ['ANGLE1', fixed(halfAngle)], ['NODE1', fixed(node.inputXmlNodeIds[0])],
+    ['ANGLE2', SENTINEL], ['NODE2', SENTINEL], ['ANGLE3', SENTINEL], ['NODE3', SENTINEL],
+    ['NUM_MITER', SENTINEL], ['FITTINGTHICKNESS', SENTINEL], ['KFACTOR', SENTINEL],
+    ['RADIUS_AUTHORITY', cleanText(bend.radiusAuthority)],
+  ];
+  return `      <BEND ${serialize(attributes)}/>`;
+}
+
 /** @param {Record<string,unknown>} canonical @returns {{supportsByEdge:Map<string,Record<string,unknown>[]>,namesByNode:Map<string,string>}} */
 function supportIndex(canonical) {
   const supportsByEdge = new Map(), namesByNode = new Map();
@@ -161,11 +119,11 @@ function supportIndex(canonical) {
   return { supportsByEdge, namesByNode };
 }
 
-/** @param {Record<string, unknown>} edge @param {Map<string,Record<string,unknown>>} nodes @param {Record<string,unknown>|null} record @param {Record<string,unknown>[]} supports @param {Record<string,unknown>[]} rigids @param {Map<string,string>} names @returns {string} */
-function elementXml(edge, nodes, record, supports, rigids, names) {
+/** @param {Record<string, unknown>} edge @param {Map<string,Record<string,unknown>>} nodes @param {Record<string,unknown>} values @param {Record<string,unknown>[]} supports @param {Record<string,unknown>[]} rigids @param {Map<string,string>} names @returns {string} */
+function elementXml(edge, nodes, values, supports, rigids, bends, names) {
   const from = nodes.get(edge.fromNodeId), to = nodes.get(edge.toNodeId);
   if (!from || !to) throw new Error(`InputXML edge ${edge.id} references a missing canonical node.`);
-  const attributes = nativeAttributes(edge, from, to, engineeringValues(record), names.get(from.id) ?? '', names.get(to.id) ?? '');
+  const attributes = nativeAttributes(edge, from, to, values, names.get(from.id) ?? '', names.get(to.id) ?? '');
   const children = [];
   if (rigids.length) {
     const weight = rigids.reduce((sum, rigid) => sum + Number(rigid.weightKg || 0), 0);
@@ -175,28 +133,49 @@ function elementXml(edge, nodes, record, supports, rigids, names) {
       ...topologyRigidTraceAttributes(edge, rigids),
     ])}/>`);
   }
+  for (const bend of bends) children.push(bendXml(bend, nodes));
   for (const support of supports) for (const [index, restraint] of support.restraints.entries()) children.push(restraintXml(restraint, support, index));
   return `    <PIPINGELEMENT ${serialize(attributes)}>\n${children.join('\n')}${children.length ? '\n' : ''}    </PIPINGELEMENT>`;
 }
 
-/** @param {Record<string, unknown>} canonical @param {Record<string,unknown>} engineering @param {{jobName:string,topologyTraceLedgerHash?:string}} options @returns {string} */
+/**
+ * Serializes canonical topology and its resolved engineering projection to
+ * native CAESAR II InputXML. Optional edit hashes bind an exported InputXML
+ * snapshot to the exact draft and edit-ledger authority that produced it.
+ *
+ * @param {Record<string, unknown>} canonical
+ * @param {Record<string,unknown>} engineering
+ * @param {{jobName:string,topologyTraceLedgerHash?:string,topologyEditDraftHash?:string,topologyEditLedgerHash?:string}} options
+ * @returns {string}
+ */
 export function buildTopologyInputXml(canonical, engineering, options) {
   if (!cleanText(canonical.canonicalTopologyHash)) throw new Error('Topology InputXML requires a hashed CanonicalTopology.v1 snapshot.');
   const nodes = nodeMap(canonical), supportData = supportIndex(canonical);
+  const engineeringByEdge = buildEdgeEngineeringValues(canonical.edges, engineering.recordBySourceEntityId);
   const rigidByEdge = new Map();
   for (const rigid of canonical.rigids) rigidByEdge.set(rigid.edgeId, [...(rigidByEdge.get(rigid.edgeId) ?? []), rigid]);
+  const bendByEdge = new Map();
+  for (const bend of canonical.bends ?? []) {
+    const edgeId = bend.edgeIds?.[0];
+    if (!edgeId) throw new Error(`Bend ${bend.id} has no owning InputXML edge.`);
+    bendByEdge.set(edgeId, [...(bendByEdge.get(edgeId) ?? []), bend]);
+  }
   const elements = canonical.edges.map((edge) => elementXml(
-    edge, nodes, engineeringRecord(edge, engineering.recordBySourceEntityId),
-    supportData.supportsByEdge.get(edge.id) ?? [], rigidByEdge.get(edge.id) ?? [], supportData.namesByNode,
+    edge, nodes, engineeringByEdge.get(edge.id),
+    supportData.supportsByEdge.get(edge.id) ?? [], rigidByEdge.get(edge.id) ?? [],
+    bendByEdge.get(edge.id) ?? [], supportData.namesByNode,
   )).join('\n');
   const restraintCount = canonical.supports.reduce((sum, support) => sum + support.restraints.length, 0);
-  const bendCount = canonical.edges.filter((edge) => edge.segmentRole.includes('ELBO/BEND_RUN_IN')).length;
+  const derivedBendCount = canonical.edges.filter((edge) => edge.segmentRole.includes('ELBO/BEND_RUN_IN')).length;
+  const bendCount = derivedBendCount + (canonical.bends ?? []).length;
   const modelAttributes = [
     ['JOBNAME', options.jobName], ['NUMELT', canonical.edges.length], ['NUMNOZ', 0], ['NOHGRS', 0], ['NUMBEND', bendCount],
     ['NUMRIGID', rigidByEdge.size], ['NUMEXPJNT', 0], ['NUMREST', restraintCount], ['NUMFORCMNT', 0], ['NUMUNFLOAD', 0],
     ['NUMWIND', 0], ['NUMELEOFF', 0], ['NUMALLOW', 0], ['NUMISECT', 0], ['NORTH_X', 0], ['NORTH_Y', 1], ['NORTH_Z', 0],
     ['CANONICAL_TOPOLOGY_HASH', canonical.canonicalTopologyHash], ['TOPOLOGY_TRACE_LEDGER_HASH', cleanText(options.topologyTraceLedgerHash)],
   ];
+  if (cleanText(options.topologyEditDraftHash)) modelAttributes.push(['TOPOLOGY_EDIT_DRAFT_HASH', cleanText(options.topologyEditDraftHash)]);
+  if (cleanText(options.topologyEditLedgerHash)) modelAttributes.push(['TOPOLOGY_EDIT_LEDGER_HASH', cleanText(options.topologyEditLedgerHash)]);
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<CAESARII xmlns="COADE" VERSION="11.00" XML_TYPE="Input">',
@@ -208,4 +187,4 @@ export function buildTopologyInputXml(canonical, engineering, options) {
   ].join('\n');
 }
 
-export const _test = Object.freeze({ finiteNumber, fixed, globalFixed, physicalWall, nodeMap, engineeringRecord, engineeringValues, nativeAttributes, serialize, supportIndex, elementXml });
+export const _test = Object.freeze({ finiteNumber, fixed, globalFixed, physicalWall, nodeMap, engineeringRecord, engineeringValues, nativeAttributes, serialize, supportIndex, bendXml, elementXml });

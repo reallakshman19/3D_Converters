@@ -49,9 +49,20 @@ function componentRecordIndex(model, records) {
   };
 }
 
+/** @param {Record<string, unknown>} component @returns {boolean} */
+function hasManagedStageEngineeringAuthority(component) {
+  const enriched = component.enrichedAttributes ?? {};
+  return cleanText(enriched.schema) === 'stagedjson-cii2019-enriched-attributes/v1'
+    && cleanText(enriched.componentType).toUpperCase() === 'SUPPORT'
+    && cleanText(enriched.status).toLowerCase() === 'resolved'
+    && enriched.needsReview === false;
+}
+
+/** @param {Record<string, unknown>} component @returns {boolean} */
 function isProjectedSupport(component) {
   return isSupportType(component.sourceType)
-    && cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT';
+    && (cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT'
+      || hasManagedStageEngineeringAuthority(component));
 }
 
 function mergeAttachment(anchor, attachment) {
@@ -193,7 +204,7 @@ export function buildTopologyEngineeringProjection(sourceText, model, options) {
   const supports = buildSupportAnchors(model, supportEntries, attachmentIndex);
   const deferredSupports = model.components.filter((component) => (
     isSupportType(component.sourceType)
-    && cleanText(component.supportProjection?.disposition) === 'DEFER_SUPPORT'
+    && !isProjectedSupport(component)
   ));
   const rigids = index.entries.filter(({ record }) => isRigidType(record.componentType)).map(({ component, record }) => ({
     component, record, position: bestPosition(record.attrs),
@@ -213,7 +224,6 @@ export function buildTopologyEngineeringProjection(sourceText, model, options) {
     rigids: Object.freeze(rigids),
     metrics: Object.freeze({
       supports: supports.length,
-      deferredSupports: deferredSupports.length,
       restraints: supports.reduce((sum, row) => sum + row.restraints.length, 0),
       rigids: rigids.length,
     }),
