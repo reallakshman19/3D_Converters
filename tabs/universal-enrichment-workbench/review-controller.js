@@ -70,6 +70,7 @@ function render(context) {
   const valid = context.state.ledger?.validation?.ok;
   context.elements['review-json-download'].disabled = !valid;
   context.elements['review-csv-download'].disabled = !valid;
+  context.dependencies.onReviewChange?.(context.state);
 }
 
 function invalidateLedger(context, status) {
