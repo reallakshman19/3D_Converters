@@ -1,6 +1,6 @@
 {
   "schema": "stagedjson-1885-fixture-manifest/v1",
-  "source": "Benchmarks/1885Sjson/Sjson",
+  "source": "Benchmarks/1885Sjson/Sjson.json",
   "generatedBy": "tools/generate-1885-stagedjson-fixtures.mjs",
   "evaluatedAt": "2026-07-15T08:30:00.000Z",
   "xmlDateTime": "15/07/2026, 12:30:00",
@@ -52,8 +52,8 @@
     },
     "audit": {
       "path": "Benchmarks/1885Sjson/EnrichedSjson.audit.json",
-      "bytes": 380418,
-      "sha256": "40bd1115be350839c3c779e62313ceaf0f3c9f31b31d41657a6ecefbbb2d68f5"
+      "bytes": 380423,
+      "sha256": "e8a6ccda307272bce8882e6226a25d32572e79b2aa5c480afb13a62c8b914b9a"
     },
     "unresolvedCsv": {
       "path": "Benchmarks/1885Sjson/EnrichedSjson.unresolved.csv",

@@ -19,6 +19,7 @@ for (const file of [
   'sj-point-resolver.js',
   'sj-psi-sequence-planner.js',
   'sj-rating-resolver.js',
+  'sj-sequential-writer-shadow.js',
   'sj-wall-resolver.js',
   'sj-corrosion-resolver.js',
   'sj-weight-resolver.js',
@@ -26,6 +27,7 @@ for (const file of [
   'sj-audit.js',
   'sj-restraint-resolver.js',
   'sj-type-mapper.js',
+  'sj-xml-writer-parity.js',
   'sj-xml-writer.js',
 ]) {
   copyFileSync(join(sourceRoot, file), join(tempRoot, file));
@@ -77,6 +79,17 @@ function blockForRef(xml, ref) {
   const matches = blocks.filter((block) => block.includes(`<ComponentRefNo>${ref}</ComponentRefNo>`));
   assert.equal(matches.length, 1, `expected one node for ${ref}`);
   return matches[0];
+}
+
+function branchNames(xml) {
+  return [...xml.matchAll(/<Branchname>([\s\S]*?)<\/Branchname>/g)].map((match) => (
+    match[1]
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+  ));
 }
 
 test('canonical branch grouping consolidates B1/B2/B03 under OWNER root', () => {
@@ -259,7 +272,7 @@ test('writer emits one fitting node each, keeps virtual numbering, and uses enri
   assert.doesNotMatch(reducerBlock, /<Rigid>/);
 });
 
-test('full enrichment pipeline consolidates owner branches and emits the fitting contracts', () => {
+test('full enrichment pipeline keeps production XML canonical and shadow XML source-sequential', () => {
   const branch = (suffix, child) => ({
     name: `${rootBranch}/${suffix}`,
     type: 'BRANCH',
@@ -315,4 +328,57 @@ test('full enrichment pipeline consolidates owner branches and emits the fitting
     result.sequencePlan.branches.map((item) => item.components.map((component) => component.ref)),
     [['=1006649732/51428'], ['=1006649732/51494'], ['=1006649732/51499']],
   );
+
+  assert.equal(result.writerShadow.generated, true);
+  assert.equal(result.writerShadow.parity.validation.ok, true);
+  assert.equal(result.writerShadow.parity.summary.engineeringEquivalent, true);
+  assert.equal(result.writerShadow.parity.summary.sourceBoundaryEquivalent, true);
+  assert.equal(result.writerShadow.parity.switchGate.allowed, false);
+  assert.deepEqual(branchNames(result.writerShadow.xmlText), [
+    `${rootBranch}/B1`, `${rootBranch}/B2`, `${rootBranch}/B3`,
+  ]);
+});
+
+test('interleaved owner branches expose sequence and allocation drift without mutating canonical trace', () => {
+  const pipeBranch = (sourceName, owner, ref, start) => ({
+    name: sourceName,
+    type: 'BRANCH',
+    attributes: { OWNER: owner },
+    children: [{
+      name: ref,
+      type: 'PIPE',
+      enrichedAttributes: {
+        nominalBoreMm: 100,
+        pipeOdMm: 114.3,
+        wallThicknessMm: 6.02,
+        corrosionAllowanceMm: 1.5,
+        insulationThicknessMm: 50,
+      },
+      attributes: {
+        REF: ref,
+        ABORE: '100mm',
+        APOS: { x: start, y: 0, z: 0 },
+        LPOS: { x: start + 10, y: 0, z: 0 },
+      },
+    }],
+  });
+  const input = [
+    pipeBranch('/LINE-A/B1', '/LINE-A', 'A1', 0),
+    pipeBranch('/LINE-B/B1', '/LINE-B', 'B1', 100),
+    pipeBranch('/LINE-A/B2', '/LINE-A', 'A2', 20),
+  ];
+
+  const result = engine.runEnrichment({ stagedJsonText: input, config: {} });
+  assert.deepEqual(branchNames(result.xmlText), ['/LINE-A', '/LINE-B']);
+  assert.deepEqual(branchNames(result.writerShadow.xmlText), ['/LINE-A/B1', '/LINE-B/B1', '/LINE-A/B2']);
+  assert.equal(result.writerShadow.parity.validation.ok, true);
+  assert.equal(result.writerShadow.parity.summary.nodeCardinalityEquivalent, true);
+  assert.equal(result.writerShadow.parity.summary.engineeringEquivalent, true);
+  assert.equal(result.writerShadow.parity.summary.sourceBoundaryEquivalent, true);
+  assert.equal(result.writerShadow.parity.summary.sequenceEquivalent, false);
+  assert.equal(result.writerShadow.parity.summary.numberingEquivalent, false);
+  assert.equal(result.writerShadow.parity.switchGate.allowed, false);
+
+  const nodes = Object.fromEntries(result.records.map((record) => [record.ref, record.xmlNodeNum]));
+  assert.deepEqual(nodes, { A1: 10, B1: 50, A2: 30 });
 });
