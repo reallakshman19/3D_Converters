@@ -20,6 +20,7 @@ export function defaultConfig() {
     ratingSequence: DEFAULT_RATING_SEQUENCE.map(([p, v]) => [String(p), v]),
     corrosionOverrides: {},       // { "SS": 0, "E90B": 1.5 }
     typeOverrides: { ...DEFAULT_TYPE_OVERRIDES },
+    psiWriterMode: 'canonical',
     verticalAxis: 'Y',
     defaultFriction: 0.3,
     defaultBoreMm: 100,
@@ -61,10 +62,32 @@ export function saveConfig(config) {
  */
 export function renderConfigForm(container, config, onChanged) {
   container.innerHTML = '';
+  container.appendChild(buildWriterSection(config, onChanged));
   container.appendChild(buildRatingSection(config, onChanged));
   container.appendChild(buildCorrosionSection(config, onChanged));
   container.appendChild(buildTypeSection(config, onChanged));
   container.appendChild(buildAxisSection(config, onChanged));
+}
+
+function buildWriterSection(config, onChanged) {
+  const sec = el('div', 'sj-config-section');
+  sec.appendChild(label('PSI XML Writer'));
+  const hint = el('div', 'sj-config-hint');
+  hint.textContent = 'Sequential preserves exact source /B# blocks and falls back to canonical unless parity is proven.';
+  sec.appendChild(hint);
+  const sel = document.createElement('select');
+  sel.className = 'sj-select';
+  [['canonical', 'Canonical owner-grouped (default)'], ['sequential', 'Sequential source-branch (parity gated)']]
+    .forEach(([value, text]) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = text;
+      if ((config.psiWriterMode || 'canonical') === value) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  sel.onchange = () => onChanged({ ...config, psiWriterMode: sel.value });
+  sec.appendChild(sel);
+  return sec;
 }
 
 // ─── Config sections ─────────────────────────────────────────────

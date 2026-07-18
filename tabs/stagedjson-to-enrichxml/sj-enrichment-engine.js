@@ -1,9 +1,9 @@
 /**
  * Functionality: pipeline orchestrator. Parses StagedJSON, runs all
- * resolvers, builds enriched record map, generates production XML, audit,
- * sequential branch evidence, and a read-only sequential writer shadow.
+ * resolvers, generates canonical and sequential XML, then atomically selects
+ * the production XML, trace records, and audit through a fail-closed policy.
  * Parameters: {stagedJsonText, config}.
- * Outputs: {xmlText, audit, records, sequencePlan, writerShadow}.
+ * Outputs: selected output plus canonical, sequence, shadow, and selection evidence.
  * No side effects beyond calling pure resolver functions.
  */
 
@@ -20,7 +20,10 @@ import { DN_TO_OD_MM } from './sj-weight-db.js';
 import { bestPosition, formatPosition } from './sj-point-resolver.js';
 import { applyAuthoritativeEnrichment } from './sj-enrichment-authority.js';
 import { buildPsiSequencePlan } from './sj-psi-sequence-planner.js?v=1';
-import { buildSequentialWriterShadow } from './sj-sequential-writer-shadow.js?v=1';
+import {
+  buildSequentialWriterShadow,
+  selectPsiWriterOutput,
+} from './sj-sequential-writer-shadow.js?v=2';
 
 export function runEnrichment(input) {
   const { stagedJsonText, config = {} } = input;
@@ -37,16 +40,32 @@ export function runEnrichment(input) {
   grouped = groupSupportsByPos(grouped);
 
   const sequencePlan = buildPsiSequencePlan(parsed, grouped);
-  const branchMap = groupByBranch(grouped);
-  const xmlText = buildEnrichedXml(branchMap, config);
+  const canonicalBranchMap = groupByBranch(grouped);
+  const canonicalXmlText = buildEnrichedXml(canonicalBranchMap, config);
   const writerShadow = buildSequentialWriterShadow({
     sequencePlan,
-    canonicalXmlText: xmlText,
+    canonicalXmlText,
     config,
   });
-  const audit = buildAudit(grouped, branchMap);
+  const writerSelection = selectPsiWriterOutput({
+    canonicalXmlText,
+    canonicalRecords: grouped,
+    writerShadow,
+    config,
+  });
+  const selectedRecords = writerSelection.records;
+  const audit = buildAudit(selectedRecords, groupByBranch(selectedRecords));
 
-  return { xmlText, audit, records: grouped, sequencePlan, writerShadow };
+  return {
+    xmlText: writerSelection.xmlText,
+    audit,
+    records: selectedRecords,
+    canonicalXmlText,
+    canonicalRecords: grouped,
+    sequencePlan,
+    writerShadow,
+    writerSelection,
+  };
 }
 
 function groupSupportsHierarchy(records) {

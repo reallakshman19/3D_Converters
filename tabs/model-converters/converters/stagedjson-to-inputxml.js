@@ -24,7 +24,17 @@ async function buildTopologyOutputs(sourceText, sourceName, stem) {
   });
   const blocking = artifacts.buildIssues.filter((issue) => issue.blocking !== false);
   if (blocking.length) {
-    throw new Error(`Component topology export has ${blocking.length} blocking finding(s).`);
+    return [{
+      name: `${stem}.topology-build-issues.json`,
+      text: JSON.stringify({
+        schema: 'ComponentTopologyBuildIssues.v1',
+        outputReady: false,
+        sourceName,
+        reason: 'Canonical topology artifacts were omitted because topology validation reported blocking findings.',
+        buildIssues: artifacts.buildIssues,
+      }, null, 2),
+      mime: 'application/json;charset=utf-8',
+    }];
   }
   return topologyArtifactOutputs(artifacts, { stem });
 }
@@ -38,13 +48,15 @@ export async function run(context) {
     throw new Error('Primary staged JSON input is required for StagedJSON -> InputXML conversion.');
   }
 
+  // Retain the source text before postMessage transfers ownership of the
+  // ArrayBuffer to the worker and detaches it from this main-thread view.
+  const stagedJsonPreviewText = decodeTextUtf8(primary.bytes);
   const response = await context.workerRunner.runJob({
     converterId: context.converterId,
     inputFiles: context.inputFiles,
     options: serializableWorkerOptions(context.options),
   });
 
-  const stagedJsonPreviewText = decodeTextUtf8(primary.bytes);
   const stem = baseNameWithoutExtension(primary.name);
   const topologyOutputs = await buildTopologyOutputs(stagedJsonPreviewText, primary.name, stem);
 

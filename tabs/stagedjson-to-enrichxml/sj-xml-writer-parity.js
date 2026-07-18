@@ -26,6 +26,7 @@ export function comparePsiWriterOutputs({ canonicalXmlText, sequentialXmlText, s
   const engineeringEquivalent = sameMultiset(canonicalSignatures, sequentialSignatures);
   const sequenceEquivalent = sameArray(canonicalSignatures, sequentialSignatures);
   const sourceBoundaryEquivalent = sameArray(actualNames, expectedNames) && membershipIssues.length === 0;
+  const branchConditionsEquivalent = conditionMismatches.length === 0;
   const errors = [];
   const warnings = [];
 
@@ -34,7 +35,14 @@ export function comparePsiWriterOutputs({ canonicalXmlText, sequentialXmlText, s
   if (!engineeringEquivalent) errors.push('Canonical and sequential XML differ in engineering node content.');
   if (!sequenceEquivalent) warnings.push('Canonical and sequential node order differs.');
   if (allocationMismatches.length) warnings.push('Canonical and sequential node allocations differ.');
-  if (conditionMismatches.length) warnings.push('Source and canonical branch condition blocks differ.');
+  if (!branchConditionsEquivalent) warnings.push('Source and canonical branch condition blocks differ.');
+
+  const selectionBlockers = buildSelectionBlockers({
+    sourceBoundaryEquivalent,
+    nodeCardinalityEquivalent,
+    engineeringEquivalent,
+    branchConditionsEquivalent,
+  });
 
   return deepFreeze({
     schema: PSI_XML_WRITER_PARITY_SCHEMA,
@@ -48,7 +56,7 @@ export function comparePsiWriterOutputs({ canonicalXmlText, sequentialXmlText, s
       sequenceEquivalent,
       numberingEquivalent: allocationMismatches.length === 0,
       sourceBoundaryEquivalent,
-      branchConditionsEquivalent: conditionMismatches.length === 0,
+      branchConditionsEquivalent,
     },
     differences: {
       canonicalBranchNames: canonical.branches.map((branch) => branch.name),
@@ -59,7 +67,21 @@ export function comparePsiWriterOutputs({ canonicalXmlText, sequentialXmlText, s
     },
     validation: { ok: errors.length === 0, errors: unique(errors), warnings: unique(warnings) },
     switchGate: { allowed: false, reason: 'SHADOW_ONLY' },
+    selectionGate: {
+      allowed: selectionBlockers.length === 0,
+      reason: selectionBlockers.length === 0 ? 'PARITY_PROVEN' : 'PARITY_BLOCKED',
+      blockers: selectionBlockers,
+    },
   });
+}
+
+function buildSelectionBlockers(summary) {
+  const blockers = [];
+  if (!summary.sourceBoundaryEquivalent) blockers.push('SOURCE_BOUNDARY_MISMATCH');
+  if (!summary.nodeCardinalityEquivalent) blockers.push('NODE_CARDINALITY_MISMATCH');
+  if (!summary.engineeringEquivalent) blockers.push('ENGINEERING_CONTENT_MISMATCH');
+  if (!summary.branchConditionsEquivalent) blockers.push('BRANCH_CONDITION_MISMATCH');
+  return blockers;
 }
 
 function parseWriterXml(xmlText) {

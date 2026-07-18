@@ -118,6 +118,7 @@ async function buildProducerState(sourceText, options) {
   });
   const engineering = buildTopologyEngineeringProjection(sourceText, model, {
     enrichmentConfig: options.enrichmentConfig,
+    supportProjectionToleranceMm: options.supportProjectionToleranceMm,
   });
   const connectivity = buildExplicitConnectivity(model, options.toleranceMm);
   const builtCanonical = buildCanonicalTopology(

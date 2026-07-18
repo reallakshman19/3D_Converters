@@ -14,6 +14,8 @@ import {
 } from '../tabs/model-converters/converters/component-topology/topology-values.js';
 
 const fixturePath = fileURLToPath(new URL('../Benchmarks/1885_NC/1885_NC.json', import.meta.url));
+const enrichedFixturePath = process.env.TOPOLOGY_1885_ENRICHED_SOURCE
+  || 'C:/Users/reall/Downloads/1885_NC_enriched_stage.json';
 const distance = (left, right) => Math.hypot(
   left.x - right.x, left.y - right.y, left.z - right.z,
 );
@@ -97,6 +99,25 @@ if (!existsSync(fixturePath)) {
   assert(parsedRestraints.every((row) => row.tag === referenced.tag));
   assert(parsedRestraints.every((row) => row.attachmentAuthority === referenced.attachmentAuthority));
   assert(parsedRestraints.every((row) => row.connectionResidual === Number(referenced.connectionResidual.toFixed(6))));
+
+  if (existsSync(enrichedFixturePath)) {
+    const enriched = await buildComponentTopologyArtifacts(readFileSync(enrichedFixturePath, 'utf8'), {
+      sourceName: '1885_NC_enriched_stage.json', jobName: '1885_NC enriched envelope',
+      toleranceMm: TOPOLOGY_TOLERANCE_MM,
+      supportProjectionToleranceMm: SUPPORT_PROJECTION_TOLERANCE_MM,
+      enrichmentConfig: {},
+    });
+    const deferredRefs = enriched.traceLedger.records
+      .filter((row) => row.primaryDisposition === 'DEFER_SUPPORT')
+      .map((row) => row.sourceRef);
+    assert.deepEqual(deferredRefs, ['=1006649732/53464', '=1006649732/53497', '=1006649732/54870']);
+    assert.equal(enriched.metrics.ledger.deferredSupports, 3);
+    assert.equal(enriched.metrics.canonical.supports, 668);
+    assert(enriched.traceLedger.records.filter((row) => deferredRefs.includes(row.sourceRef)).every((row) => (
+      row.evidence.supportProjectionAuthority === 'NON_RESTRAINT_ATTACHMENT_DESCRIPTION'
+    )));
+    assert.equal(enriched.topologyParityReport.ok, true);
+  }
 
   console.log(`component topology 1885_NC passed: ${parity.summary.canonicalEdges} edges, three-way mismatch count ${parity.summary.topologyMismatchCount}.`);
 }

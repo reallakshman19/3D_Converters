@@ -58,11 +58,25 @@ function hasManagedStageEngineeringAuthority(component) {
     && enriched.needsReview === false;
 }
 
-/** @param {Record<string, unknown>} component @returns {boolean} */
-function isProjectedSupport(component) {
-  return isSupportType(component.sourceType)
-    && (cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT'
-      || hasManagedStageEngineeringAuthority(component));
+function isOnOwningRoute(component, model, toleranceMm) {
+  const position = supportPortOrNull(component)?.position ?? null;
+  if (!position) return false;
+  return model.components.some((candidate) => (
+    candidate.sourceBranchEntityId === component.sourceBranchEntityId
+    && candidate.isRouteComponent === true
+    && candidate.positions.APOS
+    && candidate.positions.LPOS
+    && pointSegmentDistance(position, candidate.positions.APOS, candidate.positions.LPOS).distanceMm <= toleranceMm
+  ));
+}
+
+/** Generic enrichment needs explicit carrier or owning-route geometry evidence. */
+function isProjectedSupport(component, model, attachmentIndex, toleranceMm) {
+  if (!isSupportType(component.sourceType)) return false;
+  if (cleanText(component.supportProjection?.disposition) !== 'DEFER_SUPPORT') return true;
+  if (!hasManagedStageEngineeringAuthority(component)) return false;
+  const attachment = resolveSupportAttachment(component, attachmentIndex);
+  return attachment.sourceEntityIds.length > 0 || isOnOwningRoute(component, model, toleranceMm);
 }
 
 function mergeAttachment(anchor, attachment) {
@@ -89,7 +103,7 @@ function referenceTarget(current, reference, byName) {
     ?? (candidates.length === 1 ? candidates[0] : null);
 }
 
-function buildSupportAnchors(model, supportEntries, attachmentIndex) {
+function buildSupportAnchors(model, supportEntries, attachmentIndex, projectedSupport) {
   const anchors = supportEntries.map(({ component, record }, order) => {
     const port = supportPort(component);
     const enrichmentPosition = bestPosition(record.attrs);
@@ -114,7 +128,7 @@ function buildSupportAnchors(model, supportEntries, attachmentIndex) {
     return anchor;
   });
   const byPosition = new Map(anchors.map((anchor) => [formatPosition(anchor.position), anchor]));
-  const supportComponents = model.components.filter(isProjectedSupport);
+  const supportComponents = model.components.filter(projectedSupport);
   const byName = supportNameIndex(model);
   for (const component of supportComponents) {
     const anchor = findSupportAnchor(component, byPosition, byName);
@@ -198,13 +212,16 @@ export function buildTopologyEngineeringProjection(sourceText, model, options) {
   const enrichment = runEnrichment({ stagedJsonText: sourceText, config: options.enrichmentConfig });
   const index = componentRecordIndex(model, enrichment.records);
   const attachmentIndex = buildSupportAttachmentIndex(model);
+  const projectedSupport = (component) => isProjectedSupport(
+    component, model, attachmentIndex, options.supportProjectionToleranceMm,
+  );
   const supportEntries = index.entries.filter(({ component, record }) => (
-    isSupportType(record.componentType) && isProjectedSupport(component)
+    isSupportType(record.componentType) && projectedSupport(component)
   ));
-  const supports = buildSupportAnchors(model, supportEntries, attachmentIndex);
+  const supports = buildSupportAnchors(model, supportEntries, attachmentIndex, projectedSupport);
   const deferredSupports = model.components.filter((component) => (
     isSupportType(component.sourceType)
-    && !isProjectedSupport(component)
+    && !projectedSupport(component)
   ));
   const rigids = index.entries.filter(({ record }) => isRigidType(record.componentType)).map(({ component, record }) => ({
     component, record, position: bestPosition(record.attrs),

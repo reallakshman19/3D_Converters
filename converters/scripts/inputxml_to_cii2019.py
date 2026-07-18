@@ -387,7 +387,14 @@ def _value_or_default(value: float, fallback: float) -> float:
 
 
 def _parse_node_coordinate_seed(attributes: dict[str, str], prefix: str) -> NodeCoordinate | None:
-    names = (f"{prefix}_X", f"{prefix}_Y", f"{prefix}_Z")
+    """Read canonical global coordinates, with legacy short names for compatibility."""
+    global_names = (
+        f"{prefix}_GLOBAL_X",
+        f"{prefix}_GLOBAL_Y",
+        f"{prefix}_GLOBAL_Z",
+    )
+    legacy_names = (f"{prefix}_X", f"{prefix}_Y", f"{prefix}_Z")
+    names = global_names if any(_safe_text(attributes.get(name)) for name in global_names) else legacy_names
     raw_values = [attributes.get(name) for name in names]
     if all(not _safe_text(value) for value in raw_values):
         return None
@@ -1143,7 +1150,7 @@ def _default_2019_layout_config() -> dict[str, object]:
             ],
         },
         "coords": {
-            "mode": "all_nodes",
+            "mode": "discontinuous_starts",
             "node_ids": [],
             "origin_offset": ["0.0", "0.0", "0.0"],
             "decimals": 4,
@@ -2588,6 +2595,40 @@ def _build_miscel_payload(model: ParsedModel, miscel_cfg: dict[str, object]) -> 
     return material_lines + vflex_lines + hanger_lines + execution_lines
 
 
+def _discontinuous_segment_start_nodes(elements: list[ElementResolved]) -> list[float]:
+    """Return the first source-order node in every disconnected element component."""
+    parent: dict[float, float] = {}
+    node_order: list[float] = []
+
+    def add(node: float) -> None:
+        if node not in parent:
+            parent[node] = node
+            node_order.append(node)
+
+    def find(node: float) -> float:
+        root = node
+        while parent[root] != root:
+            root = parent[root]
+        while parent[node] != node:
+            next_node = parent[node]
+            parent[node] = root
+            node = next_node
+        return root
+
+    for element in elements:
+        add(element.from_node)
+        add(element.to_node)
+        from_root = find(element.from_node)
+        to_root = find(element.to_node)
+        if from_root != to_root:
+            parent[to_root] = from_root
+
+    start_by_component: dict[float, float] = {}
+    for node in node_order:
+        start_by_component.setdefault(find(node), node)
+    return list(start_by_component.values())
+
+
 def _build_coords_payload_with_layout(
     elements: list[ElementResolved],
     tolerance: float,
@@ -2609,6 +2650,12 @@ def _build_coords_payload_with_layout(
             raise ValueError("Invalid 2019 layout config: 'coords.node_ids' must be an array.")
         configured_node_ids = [float(node_id) for node_id in configured_node_ids_raw]
 
+    segment_start_nodes = (
+        _discontinuous_segment_start_nodes(elements)
+        if mode == "discontinuous_starts" and not configured_node_ids
+        else []
+    )
+
     # Real CII 2019 COORDS sections emitted by CAESAR II itself are sparse -
     # typically a handful of reference/anchor nodes, not one row per node in
     # the model. When mode isn't "all_nodes", figure out up front which
@@ -2620,6 +2667,8 @@ def _build_coords_payload_with_layout(
         required_nodes = None
     elif configured_node_ids:
         required_nodes = set(configured_node_ids)
+    elif segment_start_nodes:
+        required_nodes = set(segment_start_nodes)
     elif candidate_nodes:
         required_nodes = {candidate_nodes[0]}
     else:
@@ -2640,6 +2689,8 @@ def _build_coords_payload_with_layout(
         nodes = sorted(coordinates.keys())
     elif configured_node_ids:
         nodes = configured_node_ids
+    elif segment_start_nodes:
+        nodes = segment_start_nodes
     elif candidate_nodes:
         nodes = [candidate_nodes[0]]
     else:

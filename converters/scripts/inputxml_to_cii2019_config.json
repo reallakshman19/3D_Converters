@@ -393,7 +393,7 @@
     ]
   },
   "coords": {
-    "mode": "all_nodes",
+    "mode": "discontinuous_starts",
     "node_ids": [],
     "origin_offset": [
       "0.0",
