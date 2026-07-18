@@ -48,9 +48,17 @@ function writeEnrichment(stagedJson, rows) {
 }
 
 function nodeAt(root, path) {
+  // Context collection normalizes a single object root to a synthetic one-item
+  // array and therefore prefixes every object-root path with index 0. The writer
+  // operates on a clone of the original shape, so remove only that synthetic
+  // prefix while retaining ordinary index 0 traversal for real array roots.
+  const parts = !Array.isArray(root) && path[0] === 0 ? path.slice(1) : path;
   let cursor = root;
-  for (const part of path) cursor = cursor?.[part];
-  return cursor || null;
+  for (const part of parts) {
+    if (cursor === null || cursor === undefined) return null;
+    cursor = cursor[part];
+  }
+  return cursor ?? null;
 }
 
 function mergeDiagnostics(existing, enrichment) {
