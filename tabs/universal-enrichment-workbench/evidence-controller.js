@@ -61,12 +61,12 @@ function render(context) {
   const valid = context.state.ledger?.validation?.ok && context.state.trace?.validation?.ok;
   ['evidence-ledger-download','evidence-trace-download','evidence-candidate-csv','evidence-rejected-csv']
     .forEach((id) => { context.elements[id].disabled = !valid; });
+  context.dependencies.onEvidenceChange?.(context.state);
 }
 
 function invalidate(context, status = 'Not built') {
   context.requestId += 1; revokeUrls(context);
-  context.state = { ...initialState(), view: context.state.view, status };
-  render(context);
+  context.state = { ...initialState(), view: context.state.view, status }; render(context);
 }
 
 async function handleBuild(context) {
@@ -79,11 +79,10 @@ async function handleBuild(context) {
     const trace = await makeTrace(upstream.graph, upstream.config, upstream.run, context.dependencies);
     const ledger = await makeLedger(upstream.graph, upstream.config, upstream.run, context.dependencies);
     if (context.disposed || requestId !== context.requestId || identity !== upstreamIdentity(context.getUpstream())) return;
-    revokeUrls(context);
-    const expandedTraceIds = new Set(trace.rootTraceNodeIds);
+    revokeUrls(context); const expandedTraceIds = new Set(trace.rootTraceNodeIds);
     trace.nodes.filter((node) => node.traceNodeKind === 'rule').forEach((node) => expandedTraceIds.add(node.traceNodeId));
-    context.state = { ...context.state, ledger, trace, status: ledger.validation.ok && trace.validation.ok ? 'Valid' : 'Invalid', expandedTraceIds, page: 0, traceLimit: TRACE_RENDER_LIMIT };
-    render(context);
+    context.state = { ...context.state, ledger, trace, status: ledger.validation.ok && trace.validation.ok ? 'Valid' : 'Invalid',
+      expandedTraceIds, page: 0, traceLimit: TRACE_RENDER_LIMIT }; render(context);
   } catch (error) {
     if (context.disposed || requestId !== context.requestId) return;
     context.state = { ...context.state, status: `Build failed: ${error.message}` }; render(context);
@@ -127,12 +126,14 @@ function bindDownloads(context) {
 }
 
 export function createEvidenceLedgerController(elements, dependencies = {}, getUpstream = () => ({})) {
-  const context = { elements, dependencies, getUpstream, listeners: [], objectUrls: new Set(), disposed: false, requestId: 0, state: initialState(), lastUpstreamIdentity: '' };
+  const context = { elements, dependencies, getUpstream, listeners: [], objectUrls: new Set(), disposed: false, requestId: 0,
+    state: initialState(), lastUpstreamIdentity: '' };
   addListener(context, elements['evidence-build'], 'click', () => handleBuild(context));
   addListener(context, elements['evidence-ledger-list'], 'click', (event) => handleAction(context, event));
   addListener(context, elements['evidence-trace-tree'], 'click', (event) => handleAction(context, event));
   bindFilters(context); bindDownloads(context); render(context);
-  return { getState: () => context.state,
+  return {
+    getState: () => context.state,
     syncUpstream() {
       const identity = upstreamIdentity(getUpstream());
       if (identity === context.lastUpstreamIdentity) return;
@@ -141,5 +142,6 @@ export function createEvidenceLedgerController(elements, dependencies = {}, getU
     cleanup() {
       if (context.disposed) return; context.disposed = true; context.requestId += 1;
       context.listeners.splice(0).forEach(([element, type, handler]) => element.removeEventListener(type, handler)); revokeUrls(context);
-    } };
+    },
+  };
 }
