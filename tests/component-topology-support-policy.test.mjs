@@ -34,6 +34,10 @@ function sourceFixture(supportAttributes) {
       },
       {
         name: 'SUPPORT =TEST/1', type: 'SUPPORT',
+        enrichedAttributes: {
+          schema: 'stagedjson-cii2019-enriched-attributes/v1',
+          componentType: 'SUPPORT', status: 'resolved', needsReview: false,
+        },
         attributes: {
           TYPE: 'ATTA', OWNER: '/TEST-100/B1', NAME: '=TEST/1', REF: '=TEST/1',
           SUPPORT_TAG: '=TEST/1', POS: point(5000, 0, 0), APOS: point(5000, 0, 0), LPOS: point(5000, 0, 0),
@@ -114,8 +118,8 @@ assert.equal(projected.metrics.canonical.supports, 1);
 assert.equal(projected.metrics.inputXml.restraints, 1);
 
 const referencedSource = JSON.parse(sourceFixture({
-  DTXR: 'REST SUPPORT',
-  CMPSUPTYPE: 'REST',
+  DTXR: 'ATTA FOR FLOOR OPENING',
+  ISONOTE: 'FENCE PENETRATION',
   ATTACHED_COMPONENT_REF: '=PIPE/1',
   COMPRE: '=PIPE/1',
 }));
