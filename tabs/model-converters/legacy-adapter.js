@@ -2020,6 +2020,9 @@ function _openJsonPopup({
   const unifiedSupportMappingTabButton = unifiedSupportMapping
     ? '<button type="button" data-popup-tab="unified-support" class="model-converters-download-btn">Support Mapping</button>'
     : '';
+  const restraintTabButton = unifiedSupportMapping
+    ? '<button type="button" data-popup-tab="restraint" class="model-converters-download-btn">Restraint</button>'
+    : '';
   const enrichmentToolsEnabled = !!enrichmentTools || (() => {
     try {
       const p = JSON.parse(String(value || ''));
@@ -2057,6 +2060,7 @@ function _openJsonPopup({
         ${logTabButton}
         ${supportMapperTabButton}
         ${branchPreviewTabButton}
+        ${restraintTabButton}
         ${unifiedSupportMappingTabButton}
       </div>
       <div style="padding:10px 12px;color:#9aa8ba;font-size:12px;">Use Config for all fields, Regex Tester for branch-name extraction, Masters for material/class overrides, Diagnostics Log for run output fields, Support Type Mapper for ATT/RVM rules${branchPreview ? ', Branch Data for a per-branch coverage/defaults preview of the loaded file' : ''}${unifiedSupportMapping ? ', and Support Mapping for restraint type rules and their CAESAR II numeric codes' : ''}.</div>
@@ -2108,6 +2112,9 @@ function _openJsonPopup({
       </div>
       <div data-popup-panel="branches" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
         <div data-popup-branches></div>
+      </div>
+      <div data-popup-panel="restraint" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
+        <div data-popup-restraint></div>
       </div>
       <div data-popup-panel="unified-support" style="display:none;flex:1;padding:0 12px 12px 12px;overflow:auto;">
         <div data-popup-unified-support></div>
@@ -2408,6 +2415,7 @@ function _openJsonPopup({
     }));
   };
   const unifiedSupportMappingEl = overlay.querySelector('[data-popup-unified-support]');
+  const restraintEl = overlay.querySelector('[data-popup-restraint]');
   const distinctRestraintTypes = (() => {
     const counts = new Map();
     for (const restraint of branchPreview?.restraints || []) {
@@ -2530,32 +2538,105 @@ function _openJsonPopup({
       button.addEventListener('click', () => {
         rows.splice(Number(button.getAttribute('data-rtm-del')), 1);
         commit();
-        renderUnifiedSupportMappingTab();
+        renderRestraintTab();
       });
     });
     host.querySelector('[data-rtm-add]')?.addEventListener('click', () => {
       rows.push({ label: '', from: '', to: '' });
       commit();
-      renderUnifiedSupportMappingTab();
+      renderRestraintTab();
     });
   };
-  const renderUnifiedSupportMappingTab = () => {
-    if (!unifiedSupportMappingEl || !unifiedSupportMapping) return;
-    let parsed;
-    try { parsed = JSON.parse(String(textarea?.value ?? '') || '{}'); }
-    catch { unifiedSupportMappingEl.innerHTML = '<div style="color:#ffb4b4;">Fix the JSON tab before editing support mapping.</div>'; return; }
-    renderUnifiedSupportMappingTable(unifiedSupportMappingEl, parsed);
-    bindUnifiedSupportMappingTable(unifiedSupportMappingEl, parsed, {
-      onSaveConfig: (nextConfig) => { if (textarea) textarea.value = JSON.stringify(nextConfig, null, 2); },
+  // Default restraint stiffness card. Applied by the engine to any restraint
+  // whose source RESTRAINT/STIFFNESS is missing; a 0 must never reach CII
+  // (CAESAR reads a 0-stiffness restraint as no restraint at all), so the
+  // field defaults to the CAESAR rigid stiffness and blocks 0 by reverting.
+  const DEFAULT_STIFFNESS_TOKEN = '0.175120E+13';
+  const caesarStiffnessToken = (numberLike) => {
+    const value = Number(numberLike);
+    if (!Number.isFinite(value) || value <= 0) return DEFAULT_STIFFNESS_TOKEN;
+    const exp = Math.floor(Math.log10(Math.abs(value))) + 1;
+    const mantissa = value / Math.pow(10, exp);
+    return `${mantissa.toFixed(6)}E${exp >= 0 ? '+' : '-'}${String(Math.abs(exp)).padStart(2, '0')}`;
+  };
+  const renderRestraintStiffnessHtml = (parsed) => {
+    const cfg = parsed.restraint && typeof parsed.restraint === 'object' ? parsed.restraint : {};
+    const token = _toText(cfg.stiffness_default_token).trim() || DEFAULT_STIFFNESS_TOKEN;
+    const numeric = Number(token);
+    const displayValue = Number.isFinite(numeric) && numeric > 0 ? token : DEFAULT_STIFFNESS_TOKEN;
+    const inp = 'background:#101827;color:#e6edf5;border:1px solid #31455f;border-radius:4px;padding:8px 10px;font-family:Consolas,monospace;font-size:13px;';
+    return `
+      <div style="margin-top:16px;border:1px solid #31455f;border-radius:8px;padding:12px;background:#101a29;">
+        <div style="color:#9cc5ff;font-weight:700;font-size:13px;">Default Restraint Stiffness</div>
+        <div style="color:#9aa8ba;font-size:11px;margin:6px 0 12px;max-width:640px;">
+          Applied to any restraint whose source <code>RESTRAINT/STIFFNESS</code> is missing or a CAESAR sentinel.
+          Writes <code>layoutConfigJson.restraint.stiffness_default_token</code>. A rigid restraint is <em>stiff</em>,
+          not free &mdash; a stiffness of <code>0</code> makes CAESAR treat the restraint as absent, so this field
+          defaults to the CAESAR rigid stiffness and refuses 0.
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">
+          <div>
+            <div style="color:#9cc5ff;font-size:12px;margin-bottom:6px;">Default stiffness (N/mm)</div>
+            <input data-restraint-stiffness value="${_esc(displayValue)}" spellcheck="false" style="${inp}width:220px;">
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+              <button type="button" data-stiff-preset="1.75127e12" class="model-converters-download-btn" style="font-family:Consolas,monospace;">Rigid 1.75127E+12</button>
+              <button type="button" data-stiff-preset="1e12" class="model-converters-download-btn" style="font-family:Consolas,monospace;">1E+12</button>
+              <button type="button" data-stiff-preset="1e11" class="model-converters-download-btn" style="font-family:Consolas,monospace;">1E+11</button>
+            </div>
+          </div>
+          <div>
+            <div style="color:#9cc5ff;font-size:12px;margin-bottom:6px;">CII neutral-file token (written)</div>
+            <input data-restraint-stiffness-token value="${_esc(caesarStiffnessToken(displayValue))}" readonly style="${inp}width:170px;color:#9cc5ff;">
+          </div>
+        </div>
+        <div data-restraint-stiffness-guard style="display:none;margin-top:11px;padding:9px 11px;border:1px solid #5a2b2b;background:#1e0d0d;border-radius:7px;color:#f3b0b0;font-size:11.5px;max-width:560px;"></div>
+      </div>
+    `;
+  };
+  const bindRestraintStiffness = (host, parsed) => {
+    const input = host.querySelector('[data-restraint-stiffness]');
+    const tokenEl = host.querySelector('[data-restraint-stiffness-token]');
+    const guardEl = host.querySelector('[data-restraint-stiffness-guard]');
+    if (!input) return;
+    const commit = (rawValue) => {
+      parsed.restraint = parsed.restraint && typeof parsed.restraint === 'object' ? parsed.restraint : {};
+      const value = Number(rawValue);
+      const bad = !Number.isFinite(value) || value <= 0;
+      if (bad) {
+        // Never-zero guard: reject 0/blank/negative and revert to the rigid default.
+        if (guardEl) {
+          guardEl.style.display = 'block';
+          guardEl.innerHTML = `<strong>Rejected.</strong> &ldquo;${_esc(_toText(rawValue) || '(empty)')}&rdquo; is not a usable stiffness &mdash; a rigid restraint needs a large positive value. Reverting to the CAESAR rigid default <code>${DEFAULT_STIFFNESS_TOKEN}</code>.`;
+        }
+        input.value = DEFAULT_STIFFNESS_TOKEN;
+        parsed.restraint.stiffness_default_token = DEFAULT_STIFFNESS_TOKEN;
+        if (tokenEl) tokenEl.value = DEFAULT_STIFFNESS_TOKEN;
+      } else {
+        if (guardEl) guardEl.style.display = 'none';
+        const token = caesarStiffnessToken(value);
+        parsed.restraint.stiffness_default_token = token;
+        if (tokenEl) tokenEl.value = token;
+      }
+      if (textarea) textarea.value = JSON.stringify(parsed, null, 2);
+    };
+    input.addEventListener('change', () => commit(input.value));
+    input.addEventListener('input', () => {
+      // Live token preview without committing a reject-revert mid-typing.
+      const value = Number(input.value);
+      if (Number.isFinite(value) && value > 0) {
+        if (guardEl) guardEl.style.display = 'none';
+        if (tokenEl) tokenEl.value = caesarStiffnessToken(value);
+      }
     });
-    const mutationHost = document.createElement('div');
-    mutationHost.innerHTML = renderRestraintTypeMutationHtml(parsed);
-    unifiedSupportMappingEl.appendChild(mutationHost);
-    bindRestraintTypeMutation(mutationHost, parsed);
-    const overridesHost = document.createElement('div');
-    overridesHost.innerHTML = renderRestraintOverridesHtml(parsed);
-    unifiedSupportMappingEl.appendChild(overridesHost);
-    overridesHost.querySelectorAll('[data-restraint-override-type]').forEach((input) => {
+    host.querySelectorAll('[data-stiff-preset]').forEach((button) => {
+      button.addEventListener('click', () => {
+        input.value = button.getAttribute('data-stiff-preset');
+        commit(input.value);
+      });
+    });
+  };
+  const bindRestraintOverrides = (host, parsed) => {
+    host.querySelectorAll('[data-restraint-override-type]').forEach((input) => {
       input.addEventListener('change', () => {
         const sourceType = input.getAttribute('data-restraint-override-type');
         const overrideValue = _toText(input.value);
@@ -2572,6 +2653,42 @@ function _openJsonPopup({
       });
     });
   };
+  // Dedicated "Restraint" tab: default TYPE mutation, default stiffness, and
+  // the per-file distinct-type overrides. Moved here out of Support Mapping so
+  // all restraint-type settings live in one place.
+  const renderRestraintTab = () => {
+    if (!restraintEl || !unifiedSupportMapping) return;
+    let parsed;
+    try { parsed = JSON.parse(String(textarea?.value ?? '') || '{}'); }
+    catch { restraintEl.innerHTML = '<div style="color:#ffb4b4;">Fix the JSON tab before editing restraint settings.</div>'; return; }
+    restraintEl.innerHTML = '';
+    const mutationHost = document.createElement('div');
+    mutationHost.innerHTML = renderRestraintTypeMutationHtml(parsed);
+    restraintEl.appendChild(mutationHost);
+    bindRestraintTypeMutation(mutationHost, parsed);
+    const stiffnessHost = document.createElement('div');
+    stiffnessHost.innerHTML = renderRestraintStiffnessHtml(parsed);
+    restraintEl.appendChild(stiffnessHost);
+    bindRestraintStiffness(stiffnessHost, parsed);
+    const overridesHost = document.createElement('div');
+    overridesHost.innerHTML = renderRestraintOverridesHtml(parsed);
+    restraintEl.appendChild(overridesHost);
+    bindRestraintOverrides(overridesHost, parsed);
+  };
+  const renderUnifiedSupportMappingTab = () => {
+    if (!unifiedSupportMappingEl || !unifiedSupportMapping) return;
+    let parsed;
+    try { parsed = JSON.parse(String(textarea?.value ?? '') || '{}'); }
+    catch { unifiedSupportMappingEl.innerHTML = '<div style="color:#ffb4b4;">Fix the JSON tab before editing support mapping.</div>'; return; }
+    renderUnifiedSupportMappingTable(unifiedSupportMappingEl, parsed);
+    bindUnifiedSupportMappingTable(unifiedSupportMappingEl, parsed, {
+      onSaveConfig: (nextConfig) => { if (textarea) textarea.value = JSON.stringify(nextConfig, null, 2); },
+    });
+    const restraintHint = document.createElement('div');
+    restraintHint.style.cssText = 'margin-top:14px;color:#9aa8ba;font-size:12px;';
+    restraintHint.innerHTML = 'Restraint TYPE mutation and default stiffness now live in the dedicated <strong style="color:#9cc5ff;">Restraint</strong> tab.';
+    unifiedSupportMappingEl.appendChild(restraintHint);
+  };
   for (const button of tabButtons) {
     button.addEventListener('click', () => {
       const tabName = button.getAttribute('data-popup-tab') || 'json';
@@ -2580,6 +2697,7 @@ function _openJsonPopup({
       if (tabName === 'masters') renderMastersTab();
       if (tabName === 'logs') renderLogsTab();
       if (tabName === 'unified-support') renderUnifiedSupportMappingTab();
+      if (tabName === 'restraint') renderRestraintTab();
       if (tabName === 'branches') renderBranchesTab();
       activateTab(tabName);
     });
