@@ -1,7 +1,7 @@
 {
   "schema": "stagedjson-cii2019-enrichment-audit/v1",
   "evaluatedAt": "2026-07-15T08:30:00.000Z",
-  "sourceFileName": "Benchmarks/1885Sjson/Sjson",
+  "sourceFileName": "Benchmarks/1885Sjson/Sjson.json",
   "summary": {
     "totalNodesComponentsScanned": 279,
     "totalEnriched": 196,
