@@ -18,12 +18,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run focused topology regressions
-        run: >-
-          node --test
-          tests/stagedjson-enriched-xml-topology.test.mjs
-          tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
-          tests/stagedjson-psi-sequence-planner.test.mjs
+      - name: Validate enriched XML topology contracts
+        run: node --test tests/stagedjson-enriched-xml-topology.test.mjs
+      - name: Validate real 1885 writer benchmark
+        run: node --test tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
+      - name: Validate PSI sequence planner
+        run: node --test tests/stagedjson-psi-sequence-planner.test.mjs
       - name: Syntax check changed modules
         run: |
           node --check tabs/stagedjson-to-enrichxml/sj-branch-identity.js
