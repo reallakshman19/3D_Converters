@@ -6,6 +6,7 @@ on:
       - 'tabs/stagedjson-to-enrichxml/**'
       - 'tests/stagedjson-enriched-xml-topology.test.mjs'
       - 'tests/stagedjson-enriched-xml-1885-benchmark.test.mjs'
+      - 'tests/stagedjson-psi-sequence-planner.test.mjs'
       - '.github/workflows/stagedjson-enriched-xml-topology.yml'
   workflow_dispatch:
 
@@ -22,6 +23,7 @@ jobs:
           node --test
           tests/stagedjson-enriched-xml-topology.test.mjs
           tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
+          tests/stagedjson-psi-sequence-planner.test.mjs
       - name: Syntax check changed modules
         run: |
           node --check tabs/stagedjson-to-enrichxml/sj-branch-identity.js
@@ -29,6 +31,8 @@ jobs:
           node --check tabs/stagedjson-to-enrichxml/sj-enrichment-engine.js
           node --check tabs/stagedjson-to-enrichxml/sj-node-contract.js
           node --check tabs/stagedjson-to-enrichxml/sj-parser.js
+          node --check tabs/stagedjson-to-enrichxml/sj-psi-sequence-planner.js
           node --check tabs/stagedjson-to-enrichxml/sj-xml-writer.js
           node --check tests/stagedjson-enriched-xml-topology.test.mjs
           node --check tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
+          node --check tests/stagedjson-psi-sequence-planner.test.mjs
