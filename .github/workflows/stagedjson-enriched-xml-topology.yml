@@ -7,6 +7,7 @@ on:
       - 'tests/stagedjson-enriched-xml-topology.test.mjs'
       - 'tests/stagedjson-enriched-xml-1885-benchmark.test.mjs'
       - 'tests/stagedjson-psi-sequence-planner.test.mjs'
+      - 'tests/stagedjson-psi-writer-selection.test.mjs'
       - '.github/workflows/stagedjson-enriched-xml-topology.yml'
   workflow_dispatch:
 
@@ -24,9 +25,12 @@ jobs:
         run: node --test tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
       - name: Validate PSI sequence planner
         run: node --test tests/stagedjson-psi-sequence-planner.test.mjs
+      - name: Validate guarded writer selection
+        run: node --test tests/stagedjson-psi-writer-selection.test.mjs
       - name: Syntax check changed modules
         run: |
           node --check tabs/stagedjson-to-enrichxml/sj-branch-identity.js
+          node --check tabs/stagedjson-to-enrichxml/sj-config.js
           node --check tabs/stagedjson-to-enrichxml/sj-enrichment-authority.js
           node --check tabs/stagedjson-to-enrichxml/sj-enrichment-engine.js
           node --check tabs/stagedjson-to-enrichxml/sj-node-contract.js
@@ -38,3 +42,4 @@ jobs:
           node --check tests/stagedjson-enriched-xml-topology.test.mjs
           node --check tests/stagedjson-enriched-xml-1885-benchmark.test.mjs
           node --check tests/stagedjson-psi-sequence-planner.test.mjs
+          node --check tests/stagedjson-psi-writer-selection.test.mjs
