@@ -42,7 +42,7 @@ function oneNodeForRef(xml, ref) {
 }
 
 test('1885 benchmark matches fitting contracts and generates source-sequential shadow XML', () => {
-  const stagedJson = JSON.parse(readFileSync(join(repoRoot, 'Benchmarks', '1885Sjson', 'Sjson'), 'utf8'));
+  const stagedJson = JSON.parse(readFileSync(join(repoRoot, 'Benchmarks', '1885Sjson', 'Sjson.json'), 'utf8'));
   const { xmlText, records, sequencePlan, writerShadow } = runEnrichment({
     stagedJsonText: stagedJson,
     config: {},
