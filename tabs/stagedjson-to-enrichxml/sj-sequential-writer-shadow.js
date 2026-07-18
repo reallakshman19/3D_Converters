@@ -15,11 +15,16 @@ export function buildSequentialWriterShadow({ sequencePlan, canonicalXmlText, co
 
   try {
     const branchMap = new Map();
+    const records = [];
     for (const branch of sequencePlan.branches) {
-      branchMap.set(
-        branch.sourceBranchName,
-        branch.components.map((component) => ({ ...component.record })),
-      );
+      const branchRecords = branch.components.map((component) => ({
+        ...component.record,
+        canonicalBranchName: component.record?.branchName || branch.canonicalBranchName,
+        branchName: branch.sourceBranchName,
+        sourceBranchName: branch.sourceBranchName,
+      }));
+      branchMap.set(branch.sourceBranchName, branchRecords);
+      records.push(...branchRecords);
     }
 
     const xmlText = buildEnrichedXml(branchMap, config);
@@ -28,6 +33,7 @@ export function buildSequentialWriterShadow({ sequencePlan, canonicalXmlText, co
       schema: PSI_SEQUENTIAL_WRITER_SHADOW_SCHEMA,
       generated: true,
       xmlText,
+      records: Object.freeze(records),
       parity,
       validation: Object.freeze({ ok: parity.validation.ok, errors: parity.validation.errors }),
     });
@@ -41,6 +47,7 @@ function failedShadow(errors) {
     schema: PSI_SEQUENTIAL_WRITER_SHADOW_SCHEMA,
     generated: false,
     xmlText: '',
+    records: Object.freeze([]),
     parity: null,
     validation: Object.freeze({ ok: false, errors: Object.freeze([...new Set(errors)]) }),
   });
