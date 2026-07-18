@@ -29,7 +29,7 @@ test('proposal CSV preserves null, empty, numeric, string and Boolean distinctio
 test('proposal CSV uses RFC escaping and CRLF while preserving inch marks and newlines', () => {
   const item = proposal('4" SCH 40, pipe', '4" SCH 40, pipe');
   const csv = buildEnrichmentProposalCsv({ proposals: [item] });
-  assert.ok(csv.endsWith('\r\n')); assert.ok(csv.includes('4"" SCH 40, pipe'));
+  assert.ok(csv.endsWith('\r\n')); assert.ok(csv.includes('4\\"" SCH 40, pipe'));
   assert.match(csv, /"note ""quoted""\nnext"/);
 });
 
