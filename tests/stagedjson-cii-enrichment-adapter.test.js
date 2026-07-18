@@ -29,6 +29,20 @@ test('adapter enriches elements, preserves geometry, and exports audit artifacts
   assert.equal(JSON.stringify(stagedJson), beforeGeometry, 'input stagedJson must not be mutated');
 });
 
+test('adapter enriches a single object root without treating synthetic index zero as a property', () => {
+  const [stagedJson] = fixtureStage('LINE-100');
+  const before = JSON.stringify(stagedJson);
+  const result = enrichStagedJson({ stagedJson, masters: fixtureMasters(), config: DEFAULT_VISIBLE_STAGEDJSON_CONFIG, sourceFileName: 'object-root.json', evaluatedAt: '2026-07-11T00:00:00.000Z' });
+
+  assert.equal(Array.isArray(result.enrichedStagedJson), false, 'the original object-root shape must be preserved');
+  assert.equal(result.enrichedStagedJson.enrichedAttributes.lineNo, 'LINE-100');
+  assert.equal(result.enrichedStagedJson.children[0].enrichedAttributes.lineNo, 'LINE-100');
+  assert.equal(result.enrichedStagedJson.children[1].enrichedAttributes.componentWeightKg, 125);
+  assert.deepEqual(result.enrichedStagedJson.children[0].attributes, stagedJson.children[0].attributes);
+  assert.equal(result.audit.summary.geometryChanged, false);
+  assert.equal(JSON.stringify(stagedJson), before, 'object-root input must not be mutated');
+});
+
 test('unknown line remains null with explicit missing diagnostics', () => {
   const result = enrichStagedJson({ stagedJson: fixtureStage('UNKNOWN-LINE'), masters: fixtureMasters(), config: DEFAULT_VISIBLE_STAGEDJSON_CONFIG, sourceFileName: 'unknown.json', evaluatedAt: '2026-07-11T00:00:00.000Z' });
   const pipe = result.enrichedStagedJson[0].children[0].enrichedAttributes;
