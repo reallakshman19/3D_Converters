@@ -39,14 +39,13 @@ for (const file of ['tabs/xml-cii-2019-standalone-tab.js', ...walk('tabs/xml-cii
 }
 
 const expectedLegacyBlobShas = {
-  // Updated 2026-07-18: _prepareInputxml2019ConfigForRequirements() now
-  // auto-migrates the pre-fix IEL row12/row13/row14 aux-pointer templates
-  // (stale {sif}-in-wrong-slot / missing {nodename} pattern saved to
-  // localStorage before this session's pointer fixes shipped) to the
-  // current correct field order, the same way it already did for
-  // control.lineN/line_labels. This test still freezes the file against
-  // accidental edits by this standalone PR.
-  'tabs/model-converters/legacy-adapter.js': '75cece6ad212038991b777e239b93e18a6c7e5d1',
+  // Updated 2026-07-18 (2): added a dedicated "Restraint" tab to the
+  // InputXML->CII(2019) config popup - the restraint TYPE mutation card and
+  // the per-file type overrides moved out of "Support Mapping" into it, plus
+  // a new default-restraint-stiffness setting with a never-zero (auto-revert
+  // to the CAESAR rigid default) guard. This test still freezes the file
+  // against accidental edits by this standalone PR.
+  'tabs/model-converters/legacy-adapter.js': '92530b9b4b696e58f9707bda221a167b06091fa4',
   'tabs/model-converters/WorkflowShell.js': '282c3bbcb8374ac9b759652bb1d36f31e3d270f9',
   'tabs/model-converters/xml-cii-workflow-runner.js': '407b990f9442ffe83abdec60f30ffe1c2e032f9b',
   'tabs/model-converters/xml-cii-finalise-run-button.js': '9075e3d0f8962b326d3c0a710213075f9ad300bc',

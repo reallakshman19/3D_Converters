@@ -57,6 +57,11 @@ except ImportError:
 SENTINEL_MISSING: Final[float] = -1.0101
 VERSION_PAYLOAD_LINES: Final[int] = 61
 DEFAULT_LINEAR_STIFFNESS: Final[float] = 1.75127e12
+# CAESAR neutral-file token for the rigid/linear default stiffness. Used for any
+# restraint whose source RESTRAINT/STIFFNESS is missing. A 0 (or non-positive)
+# stiffness must never reach CII - CAESAR reads a 0-stiffness restraint as no
+# restraint at all - so this is the fallback the never-zero guard coerces to.
+DEFAULT_STIFFNESS_TOKEN: Final[str] = "0.175120E+13"
 DEFAULT_VERSION_HEADER: Final[str] = "CAESARII Input XML to CII converter"
 DEFAULT_2019_CONFIG_FILE: Final[str] = "inputxml_to_cii2019_config.json"
 UNIVERSAL_VERSION_PREFIX_FALLBACK: Final[tuple[str, ...]] = (
@@ -2021,7 +2026,22 @@ def _build_restraint_payload(
     type_direction_cfg = restraint_cfg.get("type_direction_cosines", {})
     if not isinstance(type_direction_cfg, dict):
         raise ValueError("Invalid 2019 layout config: 'restraint.type_direction_cosines' must be an object.")
-    stiffness_default_token = str(restraint_cfg.get("stiffness_default_token", "0.175120E+13"))
+    stiffness_default_token = str(restraint_cfg.get("stiffness_default_token", DEFAULT_STIFFNESS_TOKEN))
+    # Never-zero guard: a 0 / non-positive / unparseable default stiffness would
+    # make CAESAR treat the restraint as absent. Coerce to the rigid default and
+    # record a diagnostic instead of silently emitting a broken model.
+    try:
+        _stiffness_default_value = float(stiffness_default_token)
+    except (TypeError, ValueError):
+        _stiffness_default_value = None
+    if _stiffness_default_value is None or not math.isfinite(_stiffness_default_value) or _stiffness_default_value <= 0.0:
+        _warn(
+            "RESTRAINT_STIFFNESS_ZERO_COERCED",
+            f"restraint.stiffness_default_token {stiffness_default_token!r} is not a usable stiffness "
+            f"(must be a positive number); using the CAESAR rigid default {DEFAULT_STIFFNESS_TOKEN} instead.",
+            supplied=stiffness_default_token,
+        )
+        stiffness_default_token = DEFAULT_STIFFNESS_TOKEN
     payload: list[str] = []
     edge_to_restraint_index: dict[int, int] = {}
 
