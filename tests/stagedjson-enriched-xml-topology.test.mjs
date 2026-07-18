@@ -82,7 +82,14 @@ function blockForRef(xml, ref) {
 }
 
 function branchNames(xml) {
-  return [...xml.matchAll(/<Branchname>([\s\S]*?)<\/Branchname>/g)].map((match) => match[1]);
+  return [...xml.matchAll(/<Branchname>([\s\S]*?)<\/Branchname>/g)].map((match) => (
+    match[1]
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+  ));
 }
 
 test('canonical branch grouping consolidates B1/B2/B03 under OWNER root', () => {
