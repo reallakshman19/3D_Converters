@@ -1,21 +1,6 @@
 from .base import *
 from .compiler import *
-def _write_outputs(input_path: Path, output_dir: Path, canonical: ET._Element | None, ledger: dict[str, Any], validation: dict[str, Any]) -> dict[str, str]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    stem = input_path.stem
-    outputs: dict[str, str] = {}
-    if canonical is not None:
-        canonical_path = output_dir / f"{stem}.canonical.input.xml"
-        canonical_path.write_bytes(_xml_bytes(canonical))
-        outputs["canonical"] = str(canonical_path)
-    ledger_path = output_dir / f"{stem}.canonicalization-ledger.json"
-    ledger_path.write_text(json.dumps(ledger, indent=2, sort_keys=True), encoding="utf-8")
-    validation_path = output_dir / f"{stem}.canonical-validation.json"
-    validation_path.write_text(json.dumps(validation, indent=2, sort_keys=True), encoding="utf-8")
-    outputs["ledger"] = str(ledger_path)
-    outputs["validation"] = str(validation_path)
-    return outputs
-
+from .publication import CompilationView, publish_result_bundle
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -28,9 +13,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--producer", default="inputxml-canonical-compiler")
     parser.add_argument("--contracts-dir", type=Path, default=Path(__file__).resolve().parents[2] / "contracts" / "inputxml" / "v1")
     args = parser.parse_args(argv)
+    
     context = _load_json(args.context) if args.context else {}
     source = args.input.read_bytes()
     contracts = args.contracts_dir
+    
     try:
         canonical, ledger, validation = compile_document(
             source,
@@ -47,12 +34,35 @@ def main(argv: list[str] | None = None) -> int:
             dialect_override=args.dialect,
             context=context,
         )
-    except CompileBlocked as exc:
-        print(f"BLOCKED: {exc}", file=sys.stderr)
-        return 2
-    outputs = _write_outputs(args.input, args.output_dir, canonical, ledger, validation)
-    print(json.dumps({"status": validation["status"], "outputs": outputs}, indent=2))
-    return 0 if validation["status"] == "PASS" else 2
+        
+        view = CompilationView(
+            source_identity=args.input.stem,
+            source_hash=_sha256(source),
+            dialect=validation.get("dialect", "unresolved"),
+            terminal_status=validation.get("status", "FAILED"),
+            orchestration=validation.get("orchestration", {}),
+            canonical_candidate=canonical,
+            ledger=ledger,
+            validation=validation,
+        )
+        
+        publish_result_bundle(view, args.output_dir)
+        
+        # Best effort print for legacy workflows (though no longer the authority)
+        stem = args.input.stem
+        outputs = {
+            "ledger": str(args.output_dir / f"{stem}.canonicalization-ledger.json"),
+            "validation": str(args.output_dir / f"{stem}.canonical-validation.json"),
+        }
+        if canonical is not None:
+            outputs["canonical"] = str(args.output_dir / f"{stem}.canonical.input.xml")
+            
+        print(json.dumps({"status": validation["status"], "outputs": outputs}, indent=2))
+        return 0 if validation["status"] == "PASS" else 2
+        
+    except Exception as exc:
+        print(f"INTERNAL ERROR: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
