@@ -4,6 +4,8 @@
 
 Accepted for the PR-2 compiler state-machine increment.
 
+Where the stage order in section 6 of the governing concept differs, this ADR is the binding implementation clarification.
+
 ## Context
 
 The governing concept originally listed `DIALECT_RESOLVED` before `SOURCE_PARSED`. That order cannot truthfully describe every supported medium:
