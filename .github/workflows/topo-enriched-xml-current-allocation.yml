@@ -1,0 +1,37 @@
+name: TopoEnrichedXML Current Allocation Characterization
+
+on:
+  pull_request:
+    paths:
+      - 'tests/topo-enriched-xml-current-allocation.test.mjs'
+      - 'tests/fixtures/topo-enriched-xml/current-allocation/**'
+      - 'tools/capture-current-psi-occurrences.mjs'
+      - 'docs/architecture/topo-enriched-xml/current-allocation-characterization.md'
+      - '.github/workflows/topo-enriched-xml-current-allocation.yml'
+  workflow_dispatch:
+
+jobs:
+  characterize-current-allocation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Capture TE-001 evidence
+        run: node tools/capture-current-psi-occurrences.mjs > te001-current-allocation.json
+      - name: Upload TE-001 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: te001-current-allocation
+          path: te001-current-allocation.json
+      - name: Run TE-001 characterization suite
+        run: node --test tests/topo-enriched-xml-current-allocation.test.mjs
+      - name: Run existing PSI writer selection regression
+        run: node --test tests/stagedjson-psi-writer-selection.test.mjs
+      - name: Run existing enriched XML topology regression
+        run: node --test tests/stagedjson-enriched-xml-topology.test.mjs
+      - name: Syntax check TE-001 files
+        run: |
+          node --check tools/capture-current-psi-occurrences.mjs
+          node --check tests/topo-enriched-xml-current-allocation.test.mjs
