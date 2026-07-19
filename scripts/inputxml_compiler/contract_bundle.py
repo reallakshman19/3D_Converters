@@ -12,6 +12,7 @@ from .base import CompileBlocked, SUPPORTED_COMPILER_DIALECTS
 DIALECT_REGISTRY_SCHEMA = "InputXmlDialectRegistry.v1"
 ADAPTER_REGISTRY_SCHEMA = "InputXmlCanonicalCompilerAdapterRegistry.v1"
 CONTRACT_BUNDLE_SCHEMA = "InputXmlRuntimeContractBundle.v1"
+EXPECTED_DIALECT_COUNT = 14
 
 
 class ContractBundleError(CompileBlocked):
@@ -170,6 +171,11 @@ def verify_contract_bundle(
         identity_field="dialectId",
     )
 
+    if len(dialects) != EXPECTED_DIALECT_COUNT or len(adapters) != EXPECTED_DIALECT_COUNT:
+        raise ContractBundleError(
+            f"Runtime contract bundle requires exactly {EXPECTED_DIALECT_COUNT} profiles: "
+            f"dialects={len(dialects)}, adapters={len(adapters)}."
+        )
     if set(dialects) != set(adapters):
         missing_adapters = sorted(set(dialects) - set(adapters))
         unknown_adapters = sorted(set(adapters) - set(dialects))
@@ -177,6 +183,14 @@ def verify_contract_bundle(
             "Dialect/adapter registry closure failed: "
             f"missingAdapters={missing_adapters}, unknownAdapters={unknown_adapters}."
         )
+
+    executable_adapter_ids = [
+        row.get("adapterId")
+        for row in adapters.values()
+        if row.get("adapterId") != "none"
+    ]
+    if len(executable_adapter_ids) != len(set(executable_adapter_ids)):
+        raise ContractBundleError("Executable adapterId values must be unique.")
 
     for dialect_id in sorted(dialects):
         _verify_profile_contract(dialect_id, dialects[dialect_id], adapters[dialect_id])
