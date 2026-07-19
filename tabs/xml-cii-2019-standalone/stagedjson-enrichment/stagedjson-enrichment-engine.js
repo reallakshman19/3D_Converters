@@ -2,7 +2,8 @@
  * Functionality: orchestrates the parallel stagedJson enrichment workflow.
  * Parameters: stagedJson, explicit master rows, visible config, source name,
  * and evaluation time. Outputs: enriched stagedJson plus JSON/CSV audit while
- * preserving original attributes and coordinates. Fallback: none.
+ * preserving original attributes, coordinates, and supported source root shape.
+ * Fallback: none.
  */
 
 import { collectStagedJsonBranchContexts, stagedJsonGeometrySnapshot } from './stagedjson-branch-context.js';
@@ -13,17 +14,17 @@ import { resolveStagedJsonContext } from './stagedjson-resolver-adapter.js';
 import { normalizeStagedJson } from '../../../contracts/stagedjson-contract.js';
 
 export function enrichStagedJson(input) {
-  const { branches, envelope } = parseStagedJson(input?.stagedJson);
+  const { branches, envelope, sourceShape } = parseStagedJson(input?.stagedJson);
   const config = normalizeVisibleStagedJsonConfig(input?.config);
   const masters = buildStagedJsonMasterContext(input?.masters || {}, config);
   const contexts = collectStagedJsonBranchContexts(branches, config);
   const rows = contexts.map((context) => ({ context, enrichedAttributes: resolveStagedJsonContext(context, masters, config) }));
-  const enrichedStagedJson = writeEnrichment(branches, rows);
-  const geometryChanged = JSON.stringify(stagedJsonGeometrySnapshot(branches)) !== JSON.stringify(stagedJsonGeometrySnapshot(enrichedStagedJson));
+  const enrichedBranches = writeEnrichment(branches, rows);
+  const geometryChanged = JSON.stringify(stagedJsonGeometrySnapshot(branches)) !== JSON.stringify(stagedJsonGeometrySnapshot(enrichedBranches));
   if (geometryChanged) throw new Error('stagedJson enrichment changed geometry coordinates; export blocked.');
   const audit = buildStagedJsonEnrichmentAudit({ rows, masterSummary: summarizeStagedJsonMasters(masters), geometryChanged, sourceFileName: input?.sourceFileName, evaluatedAt: input?.evaluatedAt });
   return {
-    enrichedStagedJson,
+    enrichedStagedJson: restoreStagedJsonShape(enrichedBranches, sourceShape),
     audit,
     unresolvedCsv: stagedJsonUnresolvedCsv(audit),
     previewRows: rows.map(previewRow),
@@ -35,7 +36,21 @@ export function enrichStagedJson(input) {
 export function parseStagedJson(value) {
   const raw = typeof value === 'string' ? JSON.parse(value) : value;
   const { branches, envelope } = normalizeStagedJson(raw);
-  return { branches: clone(branches), envelope: envelope ? clone(envelope) : null };
+  return {
+    branches: clone(branches),
+    envelope: envelope ? clone(envelope) : null,
+    sourceShape: isSingleBranchObject(raw) ? 'single-branch-object' : 'branch-array',
+  };
+}
+
+function isSingleBranchObject(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value) && value.type && Array.isArray(value.children));
+}
+
+function restoreStagedJsonShape(branches, sourceShape) {
+  if (sourceShape !== 'single-branch-object') return branches;
+  if (branches.length !== 1) throw new Error(`Single-object stagedJson normalized to ${branches.length} root branches; export blocked.`);
+  return branches[0];
 }
 
 function writeEnrichment(stagedJson, rows) {
