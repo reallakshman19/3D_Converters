@@ -12,6 +12,7 @@ from converters.scripts import pdf_to_inputxml as pdf_parser
 from .base import *
 from .xml import *
 from .extension import *
+from .counts import _new_root
 
 SUPPORTED_COMPILER_DIALECTS.add("pdf-input-echo")
 

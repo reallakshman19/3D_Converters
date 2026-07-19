@@ -16,6 +16,9 @@ from .pdf_input_echo_bindings import *
 from .uxml_rvm import *
 from .ledger_reconciliation import *
 from .contract_bundle import *
+from .state_machine import CompilerState, CompilerStage
+from .dispatcher import resolve_registered_profile
+from .resolver_contract import OutcomeKind
 
 
 def _json_dialect(source: bytes, dialect_override: str | None) -> str:
@@ -57,6 +60,8 @@ def compile_document(
         producer,
         dialect_override or "unresolved",
     )
+    state = CompilerState()
+    
     validation: dict[str, Any] = {
         "schema": "InputXmlCanonicalValidation.v1",
         "dialect": dialect_override or "unresolved",
@@ -67,50 +72,60 @@ def compile_document(
         "xsdErrors": [],
         "semanticErrors": [],
         "diagnostics": [],
+        "orchestration": state.as_orchestration_dict(),
     }
 
-    try:
-        bundle = verify_contract_bundle(
-            registry_path,
-            adapter_registry_path,
-            runtime_supported_dialects=SUPPORTED_COMPILER_DIALECTS,
-        )
-    except ContractBundleError as exc:
-        ledger.add(
-            source_entity_id="contract-bundle",
-            source_type="CONTRACT_BUNDLE",
-            source_fields={
-                "dialectRegistry": str(registry_path),
-                "adapterRegistry": str(
-                    adapter_registry_path
-                    or registry_path.parent / "compiler" / "inputxml-compiler-adapters.json"
-                ),
-            },
-            disposition="REJECT_INVALID",
-            diagnostics=[str(exc)],
-        )
-        ledger.diagnostic(
-            "BLOCKING",
-            "CONTRACT_BUNDLE_INVALID",
-            str(exc),
-        )
-        validation.update(
-            status="BLOCKED",
-            blockedAt="CONTRACT_BUNDLE_GATE",
-            contractBundle={"status": "BLOCKED", "error": str(exc)},
-            diagnostics=ledger.diagnostics,
-        )
-        return None, ledger.as_dict(source_hash, None), validation
-
-    ledger.contract_bundle = bundle.metadata
-    validation["contractBundle"] = bundle.metadata
-    validation["completedStages"].append("CONTRACT_BUNDLE_VERIFIED")
+    def _update_validation() -> None:
+        validation["completedStages"] = state.completed_stages
+        validation["blockedAt"] = state.blocked_at
+        validation["status"] = state.terminal_status or "FAILED"
+        validation["orchestration"] = state.as_orchestration_dict()
+        validation["diagnostics"] = ledger.diagnostics
 
     try:
+        try:
+            bundle = verify_contract_bundle(
+                registry_path,
+                adapter_registry_path,
+                runtime_supported_dialects=SUPPORTED_COMPILER_DIALECTS,
+            )
+        except ContractBundleError as exc:
+            ledger.add(
+                source_entity_id="contract-bundle",
+                source_type="CONTRACT_BUNDLE",
+                source_fields={
+                    "dialectRegistry": str(registry_path),
+                    "adapterRegistry": str(
+                        adapter_registry_path
+                        or registry_path.parent / "compiler" / "inputxml-compiler-adapters.json"
+                    ),
+                },
+                disposition="REJECT_INVALID",
+                diagnostics=[str(exc)],
+            )
+            ledger.diagnostic(
+                "BLOCKING",
+                "CONTRACT_BUNDLE_INVALID",
+                str(exc),
+            )
+            state.block("CONTRACT_BUNDLE_GATE")
+            validation["contractBundle"] = {"status": "BLOCKED", "error": str(exc)}
+            _update_validation()
+            return None, ledger.as_dict(source_hash, None), validation
+
+        state.transition(CompilerStage.CONTRACT_BUNDLE_VERIFIED)
+        ledger.contract_bundle = bundle.metadata
+        validation["contractBundle"] = bundle.metadata
+        
+        state.transition(CompilerStage.SOURCE_ENVELOPE_CREATED)
+
         dialects = bundle.dialects
         stripped = source.lstrip()
         json_source = dialect_override in {"managed-stage-json", "uxml-rvm-intake"} or stripped[:1] in {b"{", b"["}
         pdf_source = dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
+        
+        state.transition(CompilerStage.MEDIA_INSPECTED)
+        
         root: ET._Element | None
         if pdf_source:
             root = None
@@ -121,8 +136,11 @@ def compile_document(
         else:
             root = _parse_xml(source, source_name)
             dialect = dialect_override or detect_dialect(root, bundle.registry)
+        
         if dialect not in dialects:
             raise CompileBlocked(f"Dialect {dialect!r} is not registered.")
+            
+        state.transition(CompilerStage.DIALECT_RESOLVED)
 
         ledger.dialect = dialect
         validation["dialect"] = dialect
@@ -132,79 +150,88 @@ def compile_document(
             disposition = "REJECT_INVALID" if acceptance == "EXCLUDED" else ("DEFER_EXPLICITLY" if acceptance == "DIAGNOSTIC_ONLY" else "UNSUPPORTED_BLOCKING")
             ledger.add(source_entity_id="document", source_type="DIALECT", source_fields={"dialect":dialect,"canonicalAcceptance":acceptance}, disposition=disposition, diagnostics=["registered dialect has no PR-D adapter implementation"])
             ledger.blocked = True
-            validation.update(status="BLOCKED", diagnostics=ledger.diagnostics + [{"code":"DIALECT_ADAPTER_NOT_IMPLEMENTED","dialect":dialect,"disposition":disposition}])
+            ledger.diagnostic("BLOCKING", "DIALECT_ADAPTER_NOT_IMPLEMENTED", "registered dialect has no PR-D adapter implementation")
+            state.block("PROFILE_INTAKE_GATE")
+            _update_validation()
             return None, ledger.as_dict(source_hash, None), validation
+            
+        state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
 
         aliases = _resolve_aliases(_load_json(alias_registry_path))
-        if dialect == "uxml-rvm-intake":
-            wrapped = _compile_uxml_rvm_source(source, source_name=source_name, source_path=source_path, ledger=ledger, context=context)
-            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-        elif dialect == "pdf-input-echo":
-            wrapped = _compile_pdf_input_echo_source(source, source_name=source_name, ledger=ledger, context=context)
-            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-        elif dialect == "managed-stage-json":
-            wrapped = _compile_managed_stage_source(source, source_name=source_name, ledger=ledger, context=context)
-            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-        elif dialect == "canonical-inputxml-v1":
-            if root is None:
-                raise CompileBlocked("Canonical InputXML requires XML input.")
-            canonical = copy.deepcopy(root)
-            xsd_errors = _validate_xsd(canonical, canonical_xsd_path)
-            semantic_errors = [] if xsd_errors else _validate_schematron(canonical, semantic_rules_path)
-            if xsd_errors or semantic_errors:
-                raise CompileBlocked("Direct canonical input failed canonical validation.")
-            _ledger_direct_canonical(canonical, ledger)
-        elif dialect == "inputxml-fragment":
-            if root is None:
-                raise CompileBlocked("InputXML fragment adapter requires XML input.")
-            wrapped = _fragment_document(root, context)
-            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-        elif dialect == "categorized-inputxml-v3":
-            if root is None:
-                raise CompileBlocked("CategorizedInputXML adapter requires XML input.")
-            categorized_errors = _validate_xsd(root, categorized_xsd_path)
-            if categorized_errors:
-                raise CompileBlocked("CategorizedInputXML failed categorized-inputxml-v3.xsd: " + "; ".join(categorized_errors))
-            wrapped = _categorized_document(root, context, ledger)
-            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-        elif dialect == "xml-builder-root-branch-node":
-            if root is None:
-                raise CompileBlocked("XML Builder adapter requires XML input.")
-            wrapped = _compile_xml_builder_source(source, source_root=root, ledger=ledger, context=context)
-            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-        elif dialect == "seljson-custom-root":
-            if root is None:
-                raise CompileBlocked("SelectionJSON custom-root adapter requires XML input.")
-            wrapped = _compile_seljson_custom_root(source, source_root=root, ledger=ledger, context=context)
-            canonical = _compile_inputxml_family(wrapped, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-        else:
-            if root is None:
-                raise CompileBlocked(f"Dialect {dialect} requires XML input.")
-            canonical = _compile_inputxml_family(root, dialect=dialect, ledger=ledger, aliases=aliases, context=context)
-            if dialect == "xml-to-cii-diagnostic-sidecar":
-                _extension_record(canonical, producer=ledger.producer, dialect=ledger.dialect, name="DiagnosticSidecarReconciliation", source_path=ledger.source_path, source_entity_id="document", source_field="dialect", value="Diagnostic reconstruction requires independent source reconciliation before production use.", disposition="DEFER_EXPLICITLY", criticality="HIGH", confidence=0.80)
-                _ensure_extension_last(canonical)
-                ledger.add(source_entity_id="document", source_type="DIAGNOSTIC_RECONSTRUCTION", source_fields={"dialect":dialect}, disposition="DEFER_EXPLICITLY", evidence=["diagnostic sidecar is not assumed to be the exact writer-consumed model"], confidence={"identity":0.80,"topology":0.80,"geometry":0.80,"dimensions":0.80,"attributes":0.80,"ciiProjection":0.80})
-                ledger.blocked = True
-                ledger.diagnostic("BLOCKING", "DIAGNOSTIC_RECONCILIATION_REQUIRED", "Diagnostic InputXML sidecar requires independent source reconciliation.")
+        
+        outcome = resolve_registered_profile(
+            dialect=dialect,
+            source=source,
+            root=root,
+            ledger=ledger,
+            aliases=aliases,
+            context=context,
+            source_name=source_name,
+            source_path=source_path,
+            categorized_xsd_path=categorized_xsd_path,
+        )
+        
+        state.transition(CompilerStage.PROFILE_RESOLVED)
+        
+        if outcome.outcome_kind == OutcomeKind.BLOCKED_NO_CANDIDATE or ledger.blocked:
+            state.block("PROFILE_RESOLVER_GATE")
+            _update_validation()
+            if outcome.canonical_candidate is not None:
+                output = _xml_bytes(outcome.canonical_candidate)
+                return outcome.canonical_candidate, ledger.as_dict(source_hash, _sha256(output)), validation
+            return outcome.canonical_candidate, ledger.as_dict(source_hash, None), validation
+            
+        state.transition(CompilerStage.SOURCE_ACCOUNTED)
+        
+        canonical = outcome.canonical_candidate
+        
+        state.transition(CompilerStage.CANONICAL_CANDIDATE_BUILT)
 
         reconcile_decision_ledger(canonical, ledger, context=context)
+
         xsd_errors = _validate_xsd(canonical, canonical_xsd_path)
-        semantic_errors = [] if xsd_errors else _validate_schematron(canonical, semantic_rules_path)
         validation["xsdErrors"] = xsd_errors
-        validation["semanticErrors"] = semantic_errors
         if xsd_errors:
             ledger.diagnostic("ERROR", "CANONICAL_XSD_FAILED", "Canonical output failed XSD.", errors=xsd_errors)
+            state.block("XSD_VALIDATION_GATE")
+            _update_validation()
+            output = _xml_bytes(canonical)
+            return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
+            
+        state.transition(CompilerStage.XSD_VALIDATED)
+
+        semantic_errors = _validate_schematron(canonical, semantic_rules_path)
+        validation["semanticErrors"] = semantic_errors
         if semantic_errors:
             ledger.diagnostic("BLOCKING", "CANONICAL_SEMANTIC_FAILED", "Canonical output failed Schematron.", errors=semantic_errors)
-        status = "BLOCKED" if ledger.blocked or xsd_errors or semantic_errors else "PASS"
-        validation["status"] = status
-        validation["diagnostics"] = ledger.diagnostics
+            state.block("SCHEMATRON_VALIDATION_GATE")
+            _update_validation()
+            output = _xml_bytes(canonical)
+            return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
+            
+        state.transition(CompilerStage.SCHEMATRON_VALIDATED)
+        
+        if ledger.blocked:
+            state.block("LEDGER_VALIDATION_GATE")
+            _update_validation()
+            output = _xml_bytes(canonical)
+            return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
+            
+        state.transition(CompilerStage.LEDGER_VALIDATED)
+        
+        state.transition(CompilerStage.PRODUCTION_ACCEPTED)
+        state.accept()
+        _update_validation()
+        
         output = _xml_bytes(canonical)
         return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
+        
     except CompileBlocked as exc:
         ledger.diagnostic("BLOCKING", "CANONICALIZATION_BLOCKED", str(exc))
-        validation.update(status="BLOCKED", diagnostics=ledger.diagnostics)
+        block_gate = f"{state.current_stage.value}_FAILED_GATE"
+        state.block(block_gate)
+        _update_validation()
+        # If we failed mid-compile, we don't return the candidate because it wasn't returned explicitly
         return None, ledger.as_dict(source_hash, None), validation
 
 
