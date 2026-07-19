@@ -87,10 +87,14 @@ class ContractBundleGateTests(unittest.TestCase):
         self.assertEqual("BLOCKED", ledger["status"])
 
     def test_runtime_resolver_drift_blocks_before_source_parse(self):
-        incomplete_runtime = set(compiler.SUPPORTED_COMPILER_DIALECTS)
+        incomplete_runtime = set(compiler._compiler.SUPPORTED_COMPILER_DIALECTS)
         incomplete_runtime.remove("pdf-input-echo")
 
-        with mock.patch.object(compiler, "SUPPORTED_COMPILER_DIALECTS", incomplete_runtime):
+        with mock.patch.object(
+            compiler._compiler,
+            "SUPPORTED_COMPILER_DIALECTS",
+            incomplete_runtime,
+        ):
             root, ledger, validation = self.compile(b"<not-valid-xml")
 
         self.assertIsNone(root)
