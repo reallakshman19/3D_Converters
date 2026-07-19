@@ -39,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
             source_path=args.source_path or str(args.input),
             producer=args.producer,
             registry_path=contracts / "inputxml-dialect-registry.json",
+            adapter_registry_path=contracts / "compiler" / "inputxml-compiler-adapters.json",
             alias_registry_path=contracts / "catalogs" / "inputxml-alias-registry.json",
             canonical_xsd_path=contracts / "inputxml-canonical-v1.xsd",
             categorized_xsd_path=contracts / "categorized-inputxml-v3.xsd",

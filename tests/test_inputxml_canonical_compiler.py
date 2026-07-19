@@ -1,11 +1,11 @@
 import importlib.util
-import json
 import tempfile
 import unittest
 import sys
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / 'scripts' / 'inputxml_canonical_compiler.py'
+ROOT = Path(__file__).resolve().parents[1]
+MODULE_PATH = ROOT / 'scripts' / 'inputxml_canonical_compiler.py'
 spec = importlib.util.spec_from_file_location('compiler', MODULE_PATH)
 compiler = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = compiler
@@ -13,51 +13,30 @@ spec.loader.exec_module(compiler)
 compiler._compiler._validate_xsd = lambda root, path: []
 compiler._compiler._validate_schematron = lambda root, path: []
 
-_DIALECT_IDS = [
-    'canonical-inputxml-v1','caesar-inputxml-pressure1','caesar-inputxml-pressure-c',
-    'enriched-inputxml-app','inputxml-fragment','categorized-inputxml-v3','cii14-inputxml',
-    'managed-stage-json','xml-builder-root-branch-node','pdf-input-echo','uxml-rvm-intake','nodeset-v1'
-]
-REGISTRY = {
-    'schema':'InputXmlDialectRegistry.v1',
-    'dialects':[
-        {
-            'dialectId': dialect_id,
-            **({'canonicalAcceptance':'EXCLUDED'} if dialect_id == 'nodeset-v1' else {}),
-        }
-        for dialect_id in _DIALECT_IDS
-    ]
-}
-ALIASES = {
-    'aliases':[
-        {'parentElement':'PIPINGELEMENT','alias':'LINE_ID','canonicalName':'LINE','aliasKind':'FIELD_NAME'},
-        {'parentElement':'RESTRAINT','alias':'MU','canonicalName':'FRIC_COEF','aliasKind':'FIELD_NAME'},
-    ],
-    'patternAliases':[
-        {'parentElement':'PIPINGELEMENT','aliasPattern':'PRESSURE{n}','canonicalPattern':'PRESSURE_C{n}','indexes':list(range(1,10)),'aliasKind':'FIELD_NAME'},
-    ]
-}
+CONTRACTS = ROOT / 'contracts' / 'inputxml' / 'v1'
 
 BASE_HEAD = '<CAESARII xmlns="COADE" VERSION="11.00" XML_TYPE="Input"><PIPINGMODEL xmlns="" JOBNAME="T" NUMELT="{numelt}" NUMNOZ="0" NOHGRS="0" NUMBEND="0" NUMRIGID="0" NUMEXPJNT="0" NUMREST="0" NUMFORCMNT="0" NUMUNFLOAD="0" NUMWIND="0" NUMELEOFF="0" NUMALLOW="0" NUMISECT="0" NORTH_X="0" NORTH_Y="1" NORTH_Z="0">'
 BASE_TAIL = '</PIPINGMODEL></CAESARII>'
 
+
 def element(attrs='', children=''):
     return f'<PIPINGELEMENT {attrs}>{children}</PIPINGELEMENT>'
+
 
 class CompilerTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        root = Path(self.tmp.name)
-        self.registry = root/'registry.json'; self.registry.write_text(json.dumps(REGISTRY))
-        self.aliases = root/'aliases.json'; self.aliases.write_text(json.dumps(ALIASES))
-        self.dummy = root/'dummy'
+        self.dummy = Path(self.tmp.name) / 'dummy'
 
-    def tearDown(self): self.tmp.cleanup()
+    def tearDown(self):
+        self.tmp.cleanup()
 
     def compile(self, xml, dialect=None, context=None):
         return compiler.compile_document(
             xml.encode(), source_name='x.xml', source_repository='r', source_path='x.xml',
-            producer='test', registry_path=self.registry, alias_registry_path=self.aliases,
+            producer='test', registry_path=CONTRACTS / 'inputxml-dialect-registry.json',
+            adapter_registry_path=CONTRACTS / 'compiler' / 'inputxml-compiler-adapters.json',
+            alias_registry_path=CONTRACTS / 'catalogs' / 'inputxml-alias-registry.json',
             canonical_xsd_path=self.dummy, categorized_xsd_path=self.dummy,
             semantic_rules_path=self.dummy, dialect_override=dialect, context=context or {})
 
@@ -121,11 +100,14 @@ class CompilerTests(unittest.TestCase):
     def test_excluded_nodeset_dialect_is_rejected(self):
         root,ledger,validation=self.compile('<NodeSet/>', dialect='nodeset-v1')
         self.assertIsNone(root); self.assertEqual('BLOCKED',validation['status'])
-        self.assertEqual('REJECT_INVALID',ledger['records'][0]['disposition'])
+        self.assertTrue(any(row['disposition'] == 'REJECT_INVALID' for row in ledger['records']))
 
     def test_wrong_xml_type_blocks_before_normalization(self):
         xml=(BASE_HEAD.format(numelt=0)+BASE_TAIL).replace('XML_TYPE="Input"','XML_TYPE="Output"')
-        with self.assertRaises(compiler.CompileBlocked):
-            self.compile(xml)
+        root, ledger, validation = self.compile(xml)
+        self.assertIsNone(root)
+        self.assertEqual('BLOCKED', validation['status'])
+        self.assertTrue(any(item['code'] == 'CANONICALIZATION_BLOCKED' for item in ledger['diagnostics']))
+
 
 if __name__=='__main__': unittest.main()
