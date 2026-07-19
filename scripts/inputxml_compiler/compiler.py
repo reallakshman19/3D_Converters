@@ -15,6 +15,7 @@ from .pdf_input_echo import *
 from .pdf_input_echo_bindings import *
 from .uxml_rvm import *
 from .ledger_reconciliation import *
+from .contract_bundle import *
 
 
 def _json_dialect(source: bytes, dialect_override: str | None) -> str:
@@ -44,39 +45,109 @@ def compile_document(
     canonical_xsd_path: Path,
     categorized_xsd_path: Path,
     semantic_rules_path: Path,
+    adapter_registry_path: Path | None = None,
     dialect_override: str | None = None,
     context: dict[str, Any] | None = None,
 ) -> tuple[ET._Element | None, dict[str, Any], dict[str, Any]]:
     context = context or {}
-    registry = _load_json(registry_path)
-    dialects = _registered_dialects(registry)
-    stripped = source.lstrip()
-    json_source = dialect_override in {"managed-stage-json", "uxml-rvm-intake"} or stripped[:1] in {b"{", b"["}
-    pdf_source = dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
-    root: ET._Element | None
-    if pdf_source:
-        root = None
-        dialect = dialect_override or "pdf-input-echo"
-    elif json_source:
-        root = None
-        dialect = _json_dialect(source, dialect_override)
-    else:
-        root = _parse_xml(source, source_name)
-        dialect = dialect_override or detect_dialect(root, registry)
-    if dialect not in dialects:
-        raise CompileBlocked(f"Dialect {dialect!r} is not registered.")
-    ledger = DecisionLedger(source_repository, source_path, producer, dialect)
     source_hash = _sha256(source)
-    validation: dict[str, Any] = {"schema":"InputXmlCanonicalValidation.v1","dialect":dialect,"status":"FAILED","xsdErrors":[],"semanticErrors":[],"diagnostics":[]}
-    if dialect not in SUPPORTED_COMPILER_DIALECTS:
-        acceptance = dialects[dialect].get("canonicalAcceptance")
-        disposition = "REJECT_INVALID" if acceptance == "EXCLUDED" else ("DEFER_EXPLICITLY" if acceptance == "DIAGNOSTIC_ONLY" else "UNSUPPORTED_BLOCKING")
-        ledger.add(source_entity_id="document", source_type="DIALECT", source_fields={"dialect":dialect,"canonicalAcceptance":acceptance}, disposition=disposition, diagnostics=["registered dialect has no PR-D adapter implementation"])
-        ledger.blocked = True
-        validation.update(status="BLOCKED", diagnostics=ledger.diagnostics + [{"code":"DIALECT_ADAPTER_NOT_IMPLEMENTED","dialect":dialect,"disposition":disposition}])
-        return None, ledger.as_dict(source_hash, None), validation
+    ledger = DecisionLedger(
+        source_repository,
+        source_path,
+        producer,
+        dialect_override or "unresolved",
+    )
+    validation: dict[str, Any] = {
+        "schema": "InputXmlCanonicalValidation.v1",
+        "dialect": dialect_override or "unresolved",
+        "status": "FAILED",
+        "blockedAt": None,
+        "completedStages": [],
+        "contractBundle": None,
+        "xsdErrors": [],
+        "semanticErrors": [],
+        "diagnostics": [],
+    }
 
     try:
+        bundle = verify_contract_bundle(
+            registry_path,
+            adapter_registry_path,
+            runtime_supported_dialects=SUPPORTED_COMPILER_DIALECTS,
+        )
+    except ContractBundleError as exc:
+        ledger.add(
+            source_entity_id="contract-bundle",
+            source_type="CONTRACT_BUNDLE",
+            source_fields={
+                "dialectRegistry": str(registry_path),
+                "adapterRegistry": str(
+                    adapter_registry_path
+                    or registry_path.parent / "compiler" / "inputxml-compiler-adapters.json"
+                ),
+            },
+            disposition="REJECT_INVALID",
+            diagnostics=[str(exc)],
+        )
+        ledger.diagnostic(
+            "BLOCKING",
+            "CONTRACT_BUNDLE_INVALID",
+            str(exc),
+        )
+        validation.update(
+            status="BLOCKED",
+            blockedAt="CONTRACT_BUNDLE_GATE",
+            contractBundle={"status": "BLOCKED", "error": str(exc)},
+            diagnostics=ledger.diagnostics,
+        )
+        return None, ledger.as_dict(source_hash, None), validation
+
+    ledger.contract_bundle = bundle.metadata
+    validation["contractBundle"] = bundle.metadata
+    validation["completedStages"].append("CONTRACT_BUNDLE_VERIFIED")
+
+    try:
+        dialects = bundle.dialects
+        stripped = source.lstrip()
+        json_source = dialect_override in {"managed-stage-json", "uxml-rvm-intake"} or stripped[:1] in {b"{", b"["}
+        pdf_source = dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
+        root: ET._Element | None
+        if pdf_source:
+            root = None
+            dialect = dialect_override or "pdf-input-echo"
+        elif json_source:
+            root = None
+            dialect = _json_dialect(source, dialect_override)
+        else:
+            root = _parse_xml(source, source_name)
+            dialect = dialect_override or detect_dialect(root, bundle.registry)
+        if dialect not in dialects:
+            raise CompileBlocked(f"Dialect {dialect!r} is not registered.")
+
+        ledger.dialect = dialect
+        validation["dialect"] = dialect
+        ledger.add(
+            source_entity_id="contract-bundle",
+            source_type="CONTRACT_BUNDLE",
+            source_fields={
+                "digestSha256": bundle.metadata["digestSha256"],
+                "dialectCount": bundle.metadata["dialectCount"],
+                "implementedDialectCount": bundle.metadata["implementedDialectCount"],
+            },
+            disposition="VALIDATE_ONLY",
+            evidence=[
+                "dialect registry, adapter registry, and runtime resolver sets are closed"
+            ],
+        )
+
+        if dialect not in SUPPORTED_COMPILER_DIALECTS:
+            acceptance = dialects[dialect].get("canonicalAcceptance")
+            disposition = "REJECT_INVALID" if acceptance == "EXCLUDED" else ("DEFER_EXPLICITLY" if acceptance == "DIAGNOSTIC_ONLY" else "UNSUPPORTED_BLOCKING")
+            ledger.add(source_entity_id="document", source_type="DIALECT", source_fields={"dialect":dialect,"canonicalAcceptance":acceptance}, disposition=disposition, diagnostics=["registered dialect has no PR-D adapter implementation"])
+            ledger.blocked = True
+            validation.update(status="BLOCKED", diagnostics=ledger.diagnostics + [{"code":"DIALECT_ADAPTER_NOT_IMPLEMENTED","dialect":dialect,"disposition":disposition}])
+            return None, ledger.as_dict(source_hash, None), validation
+
         aliases = _resolve_aliases(_load_json(alias_registry_path))
         if dialect == "uxml-rvm-intake":
             wrapped = _compile_uxml_rvm_source(source, source_name=source_name, source_path=source_path, ledger=ledger, context=context)
