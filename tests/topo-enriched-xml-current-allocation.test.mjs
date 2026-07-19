@@ -75,27 +75,27 @@ test('TE-001 captures current occurrence and reserved-slot behavior without corr
     emittedComponentTypes: ['REDU'], coordinateRoles: ['LEAVE'],
   });
   assert.deepEqual(summary(rows.R2), {
-    rawType: 'REDUCER', componentType: 'REDUCER', emittedOccurrenceCount: 1, reservedSlotCount: 0,
-    numberingSpan: 1, primaryNodeNumber: 130, emittedNodeNumbers: [130], endpoints: [1],
-    emittedComponentTypes: ['REDUCER'], coordinateRoles: ['ARRIVE'],
+    rawType: 'REDUCER', componentType: 'REDUCER', emittedOccurrenceCount: 1, reservedSlotCount: 1,
+    numberingSpan: 2, primaryNodeNumber: 140, emittedNodeNumbers: [140], endpoints: [2],
+    emittedComponentTypes: ['REDU'], coordinateRoles: ['LEAVE'],
   });
   assert.deepEqual(summary(rows.V1), {
     rawType: 'VALV', componentType: 'VALV', emittedOccurrenceCount: 1, reservedSlotCount: 0,
-    numberingSpan: 1, primaryNodeNumber: 140, emittedNodeNumbers: [140], endpoints: [1],
+    numberingSpan: 1, primaryNodeNumber: 150, emittedNodeNumbers: [150], endpoints: [1],
     emittedComponentTypes: ['VALV'], coordinateRoles: ['ARRIVE'],
   });
   assert.deepEqual(summary(rows.F1), {
     rawType: 'FLAN', componentType: 'FLAN', emittedOccurrenceCount: 1, reservedSlotCount: 0,
-    numberingSpan: 1, primaryNodeNumber: 150, emittedNodeNumbers: [150], endpoints: [1],
+    numberingSpan: 1, primaryNodeNumber: 160, emittedNodeNumbers: [160], endpoints: [1],
     emittedComponentTypes: ['FLAN'], coordinateRoles: ['ARRIVE'],
   });
   assert.deepEqual(summary(rows.S1), {
     rawType: 'ATTA', componentType: 'ATTA', emittedOccurrenceCount: 1, reservedSlotCount: 0,
-    numberingSpan: 1, primaryNodeNumber: 160, emittedNodeNumbers: [160], endpoints: [1],
+    numberingSpan: 1, primaryNodeNumber: 170, emittedNodeNumbers: [170], endpoints: [1],
     emittedComponentTypes: ['ATTA'], coordinateRoles: ['ARRIVE_AND_LEAVE'],
   });
-  assert.deepEqual(rows.P2.emittedNodeNumbers, [170, 180]);
-  assert.deepEqual(rows.Q1.emittedNodeNumbers, [190, 200]);
+  assert.deepEqual(rows.P2.emittedNodeNumbers, [180, 190]);
+  assert.deepEqual(rows.Q1.emittedNodeNumbers, [200, 210]);
 });
 
 test('TE-001 records writer mutation, canonical/sequential drift and wall-clock isolation', async () => {
@@ -110,10 +110,10 @@ test('TE-001 records writer mutation, canonical/sequential drift and wall-clock 
   assert.equal(snapshot.writerSelection.numberingEquivalent, false);
 
   assert.deepEqual(snapshot.canonicalSequentialDifferences, [
-    { semanticOccurrence: 'P2|PIPE|1#1', canonicalNodeNumber: 170, sequentialNodeNumber: 190 },
-    { semanticOccurrence: 'P2|PIPE|2#1', canonicalNodeNumber: 180, sequentialNodeNumber: 200 },
-    { semanticOccurrence: 'Q1|PIPE|1#1', canonicalNodeNumber: 190, sequentialNodeNumber: 170 },
-    { semanticOccurrence: 'Q1|PIPE|2#1', canonicalNodeNumber: 200, sequentialNodeNumber: 180 },
+    { semanticOccurrence: 'P2|PIPE|1#1', canonicalNodeNumber: 180, sequentialNodeNumber: 200 },
+    { semanticOccurrence: 'P2|PIPE|2#1', canonicalNodeNumber: 190, sequentialNodeNumber: 210 },
+    { semanticOccurrence: 'Q1|PIPE|1#1', canonicalNodeNumber: 200, sequentialNodeNumber: 180 },
+    { semanticOccurrence: 'Q1|PIPE|2#1', canonicalNodeNumber: 210, sequentialNodeNumber: 190 },
   ]);
 
   assert.deepEqual(snapshot.nondeterminism, [{
