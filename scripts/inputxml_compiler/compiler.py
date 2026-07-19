@@ -126,19 +126,6 @@ def compile_document(
 
         ledger.dialect = dialect
         validation["dialect"] = dialect
-        ledger.add(
-            source_entity_id="contract-bundle",
-            source_type="CONTRACT_BUNDLE",
-            source_fields={
-                "digestSha256": bundle.metadata["digestSha256"],
-                "dialectCount": bundle.metadata["dialectCount"],
-                "implementedDialectCount": bundle.metadata["implementedDialectCount"],
-            },
-            disposition="VALIDATE_ONLY",
-            evidence=[
-                "dialect registry, adapter registry, and runtime resolver sets are closed"
-            ],
-        )
 
         if dialect not in SUPPORTED_COMPILER_DIALECTS:
             acceptance = dialects[dialect].get("canonicalAcceptance")
