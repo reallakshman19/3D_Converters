@@ -23,6 +23,7 @@
       "type": "object",
       "required": ["occurrenceId", "sourceEntityId", "sourceBranch", "canonicalMainLine", "componentProjectionId", "projectionRole", "endpoint", "psiComponentType", "coordinateRole", "disposition"],
       "properties": {
+        "schema": {"const": "PsiWriterOccurrence.v1"},
         "occurrenceId": {"type": "string", "minLength": 1},
         "logicalNodeId": {"type": "string", "minLength": 1},
         "sourceEntityId": {"type": "string", "minLength": 1},
