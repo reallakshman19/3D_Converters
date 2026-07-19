@@ -93,6 +93,7 @@ class DecisionLedger:
     records: list[dict[str, Any]] = field(default_factory=list)
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
     blocked: bool = False
+    contract_bundle: dict[str, Any] | None = None
 
     def add(
         self,
@@ -149,7 +150,7 @@ class DecisionLedger:
             self.blocked = True
 
     def as_dict(self, source_hash: str, output_hash: str | None) -> dict[str, Any]:
-        return {
+        result = {
             "schema": "InputXmlCanonicalizationDecisionLedger.v1",
             "sourceHashSha256": source_hash,
             "canonicalHashSha256": output_hash,
@@ -162,7 +163,9 @@ class DecisionLedger:
             "records": self.records,
             "diagnostics": self.diagnostics,
         }
-
+        if self.contract_bundle is not None:
+            result["contractBundle"] = self.contract_bundle
+        return result
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
