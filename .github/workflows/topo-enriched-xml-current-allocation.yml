@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Capture TE-001 evidence
+        run: node tools/capture-current-psi-occurrences.mjs
       - name: Run TE-001 characterization suite
         run: node --test tests/topo-enriched-xml-current-allocation.test.mjs
       - name: Run existing PSI writer selection regression
