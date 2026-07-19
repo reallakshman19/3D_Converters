@@ -16,6 +16,7 @@ function ensureStylesheet(documentRef) {
 function prependDraftStatus(container, documentRef) {
   const banner = documentRef.createElement('section');
   banner.className = 'uew-card uew-draft-banner';
+  banner.style.color = '#d00000';
   banner.setAttribute('role', 'status');
   banner.setAttribute('aria-label', 'Draft status');
   const kicker = documentRef.createElement('p');
