@@ -1,6 +1,6 @@
 from .base import *
 from .compiler import *
-from .publication import CompilationView, publish_result_bundle
+from .publication import CompilationView, publish_result_bundle, verify_committed_bundle
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -47,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         
         publish_result_bundle(view, args.output_dir)
+        verify_committed_bundle(args.output_dir, args.input.stem)
         
         # Best effort print for legacy workflows (though no longer the authority)
         stem = args.input.stem

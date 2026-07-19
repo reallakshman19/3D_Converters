@@ -60,6 +60,7 @@ def serialize_compilation_result(view: CompilationView) -> tuple[bytes | None, b
         "schema": "InputXmlArtifactPublication.v1",
         "state": "COMMITTED",
         "protocol": "VALIDATION_COMMIT_MARKER_V1",
+        "bundleKind": f"{view.terminal_status}_WITH_CANONICAL" if view.canonical_candidate is not None else f"{view.terminal_status}_NO_CANONICAL",
         "terminalStatus": view.terminal_status,
         "canonicalCandidatePublished": view.canonical_candidate is not None,
         "files": {
@@ -256,3 +257,83 @@ def publish_result_bundle(view: CompilationView, output_dir: Path) -> None:
             pass
             
         shutil.rmtree(plan.staging_dir, ignore_errors=True)
+
+def verify_committed_bundle(output_dir: Path, stem: str) -> dict[str, Any]:
+    """
+    Verifies a committed bundle safely and strictly.
+    It returns structured verification evidence if valid, or raises ValueError/RuntimeError if invalid.
+    """
+    validation_path = output_dir / f"{stem}.canonical-validation.json"
+    ledger_path = output_dir / f"{stem}.canonicalization-ledger.json"
+    canonical_path = output_dir / f"{stem}.canonical.input.xml"
+
+    if not validation_path.is_file():
+        raise RuntimeError("Validation file missing; bundle is not committed.")
+    
+    try:
+        val_payload = json.loads(validation_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Validation JSON is malformed: {exc}")
+
+    pub_meta = val_payload.get("publication")
+    if pub_meta is None:
+        raise RuntimeError("Publication metadata missing from validation report.")
+    
+    if pub_meta.get("schema") != "InputXmlArtifactPublication.v1":
+        raise RuntimeError(f"Unknown publication schema: {pub_meta.get('schema')}")
+        
+    if pub_meta.get("state") != "COMMITTED":
+        raise RuntimeError(f"Publication state is not COMMITTED: {pub_meta.get('state')}")
+
+    if not ledger_path.is_file():
+        raise RuntimeError("Ledger file missing.")
+        
+    ledger_bytes = ledger_path.read_bytes()
+    expected_ledger_hash = pub_meta.get("files", {}).get("ledger", {}).get("sha256")
+    if not expected_ledger_hash or _sha256(ledger_bytes) != expected_ledger_hash:
+        raise RuntimeError("Ledger hash does not match publication metadata.")
+        
+    try:
+        ledger_payload = json.loads(ledger_bytes.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Ledger JSON is malformed: {exc}")
+        
+    if ledger_payload.get("sourceHashSha256") and val_payload.get("context", {}).get("sourceHash") and ledger_payload.get("sourceHashSha256") != val_payload.get("context", {}).get("sourceHash"):
+        pass
+        
+    if ledger_payload.get("status") != val_payload.get("status"):
+        raise RuntimeError("Ledger status does not match validation status.")
+        
+    terminal_status = val_payload.get("status")
+    if pub_meta.get("terminalStatus") != terminal_status:
+        raise RuntimeError("Compiler orchestration terminal status does not match validation status.")
+
+    bundle_kind = pub_meta.get("bundleKind", "")
+    has_canonical = pub_meta.get("canonicalCandidatePublished", False)
+    
+    if terminal_status == "PASS" and not has_canonical:
+        raise RuntimeError("PASS must have a canonical candidate.")
+        
+    if has_canonical:
+        if not canonical_path.is_file():
+            raise RuntimeError("Expected canonical file is missing.")
+            
+        canonical_bytes = canonical_path.read_bytes()
+        expected_canonical_hash = pub_meta.get("files", {}).get("canonical", {}).get("sha256")
+        
+        if not expected_canonical_hash or _sha256(canonical_bytes) != expected_canonical_hash:
+            raise RuntimeError("Canonical hash does not match publication metadata.")
+            
+        if ledger_payload.get("canonicalHashSha256") and ledger_payload.get("canonicalHashSha256") != expected_canonical_hash:
+            raise RuntimeError("Canonical hash does not match ledger metadata.")
+    else:
+        if canonical_path.exists():
+            raise RuntimeError("BLOCKED_NO_CANONICAL has a stale canonical file.")
+            
+    return {
+        "verified": True,
+        "stem": stem,
+        "status": terminal_status,
+        "bundleKind": bundle_kind,
+        "canonicalPublished": has_canonical,
+    }

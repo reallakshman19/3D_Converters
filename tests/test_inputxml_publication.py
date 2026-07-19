@@ -13,6 +13,7 @@ from scripts.inputxml_compiler.publication import (
     PublicationPlan,
     build_publication_plan,
     publish_result_bundle,
+    verify_committed_bundle,
 )
 
 class TestInputXMLPublication(unittest.TestCase):
@@ -22,7 +23,7 @@ class TestInputXMLPublication(unittest.TestCase):
         self.stem = "test-doc"
         
         self.canonical_root = ET.Element("root")
-        self.ledger = {"mock": "ledger"}
+        self.ledger = {"mock": "ledger", "status": "PASS"}
         self.validation = {"mock": "validation", "status": "PASS"}
         
         self.view_pass = CompilationView(
@@ -43,7 +44,7 @@ class TestInputXMLPublication(unittest.TestCase):
             terminal_status="BLOCKED",
             orchestration={},
             canonical_candidate=self.canonical_root,
-            ledger=self.ledger,
+            ledger=dict(self.ledger, status="BLOCKED"),
             validation=dict(self.validation, status="BLOCKED"),
         )
         
@@ -54,7 +55,7 @@ class TestInputXMLPublication(unittest.TestCase):
             terminal_status="BLOCKED",
             orchestration={},
             canonical_candidate=None,
-            ledger=self.ledger,
+            ledger=dict(self.ledger, status="BLOCKED"),
             validation=dict(self.validation, status="BLOCKED"),
         )
 
@@ -159,6 +160,23 @@ class TestInputXMLPublication(unittest.TestCase):
         
         self.assertEqual(val_payload["publication"]["files"]["canonical"]["sha256"], _sha256(canonical_bytes))
         self.assertEqual(val_payload["publication"]["files"]["ledger"]["sha256"], _sha256(ledger_bytes))
+
+    def test_verify_committed_bundle(self):
+        publish_result_bundle(self.view_pass, self.output_dir)
+        evidence = verify_committed_bundle(self.output_dir, self.stem)
+        self.assertTrue(evidence["verified"])
+        self.assertEqual(evidence["status"], "PASS")
+        self.assertTrue(evidence["canonicalPublished"])
+        
+        # Test failure if validation is tampered
+        val_path = self.output_dir / f"{self.stem}.canonical-validation.json"
+        import json
+        payload = json.loads(val_path.read_text())
+        payload["publication"]["state"] = "UNCOMMITTED"
+        val_path.write_text(json.dumps(payload))
+        
+        with self.assertRaisesRegex(RuntimeError, "Publication state is not COMMITTED"):
+            verify_committed_bundle(self.output_dir, self.stem)
 
 if __name__ == "__main__":
     unittest.main()
