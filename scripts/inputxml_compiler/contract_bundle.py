@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from .base import CompileBlocked, SUPPORTED_COMPILER_DIALECTS, _sha256
+from .base import CompileBlocked, SUPPORTED_COMPILER_DIALECTS
 
 
 DIALECT_REGISTRY_SCHEMA = "InputXmlDialectRegistry.v1"
@@ -23,6 +24,10 @@ class VerifiedContractBundle:
     dialects: dict[str, dict[str, Any]]
     adapters: dict[str, dict[str, Any]]
     metadata: dict[str, Any]
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
 
 
 def _load_json_strict(path: Path) -> tuple[dict[str, Any], bytes]:
@@ -193,8 +198,8 @@ def verify_contract_bundle(
             f"missingRuntime={missing_runtime}, unregisteredRuntime={unregistered_runtime}."
         )
 
-    registry_hash = _sha256(registry_raw)
-    adapter_hash = _sha256(adapter_raw)
+    registry_hash = _sha256_bytes(registry_raw)
+    adapter_hash = _sha256_bytes(adapter_raw)
     digest_payload = json.dumps(
         {
             "adapterRegistry": {
@@ -212,7 +217,7 @@ def verify_contract_bundle(
     metadata = {
         "schema": CONTRACT_BUNDLE_SCHEMA,
         "status": "VERIFIED",
-        "digestSha256": _sha256(digest_payload),
+        "digestSha256": _sha256_bytes(digest_payload),
         "dialectCount": len(dialects),
         "implementedDialectCount": len(registry_implemented),
         "dialectRegistry": {
