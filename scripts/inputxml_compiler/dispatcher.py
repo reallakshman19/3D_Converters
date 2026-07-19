@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""Central dispatcher for InputXML registered profiles."""
+from __future__ import annotations
+
+import copy
+from pathlib import Path
+from typing import Any
+
+from lxml import etree as ET
+
+from .base import CompileBlocked, DecisionLedger
+from .categorized import _categorized_document
+from .extension import _ensure_extension_last, _extension_record
+from .family import _compile_inputxml_family
+from .managed_stage import _compile_managed_stage_source
+from .model import _fragment_document, _ledger_direct_canonical
+from .pdf_input_echo import _compile_pdf_input_echo_source
+from .resolver_contract import OutcomeKind, ResolverOutcome
+from .seljson import _compile_seljson_custom_root
+from .uxml_rvm import _compile_uxml_rvm_source
+from .validation import _validate_xsd
+from .xml_builder import _compile_xml_builder_source
+
+_NON_XML_DIALECTS = {
+    "managed-stage-json",
+    "pdf-input-echo",
+    "uxml-rvm-intake",
+}
+_GENERIC_INPUTXML_DIALECTS = {
+    "caesar-inputxml-pressure1",
+    "caesar-inputxml-pressure-c",
+    "cii14-inputxml",
+    "enriched-inputxml-app",
+    "xml-to-cii-diagnostic-sidecar",
+}
+
+
+def _require_xml(dialect: str, root: ET._Element | None) -> ET._Element:
+    if root is None:
+        raise CompileBlocked(f"Dialect {dialect} requires XML input.")
+    return root
+
+
+def _mark_diagnostic_sidecar(
+    canonical: ET._Element,
+    ledger: DecisionLedger,
+) -> None:
+    _extension_record(
+        canonical,
+        producer=ledger.producer,
+        dialect=ledger.dialect,
+        name="DiagnosticSidecarReconciliation",
+        source_path=ledger.source_path,
+        source_entity_id="document",
+        source_field="dialect",
+        value=(
+            "Diagnostic reconstruction requires independent source "
+            "reconciliation before production use."
+        ),
+        disposition="DEFER_EXPLICITLY",
+        criticality="HIGH",
+        confidence=0.80,
+    )
+    _ensure_extension_last(canonical)
+    ledger.add(
+        source_entity_id="document",
+        source_type="DIAGNOSTIC_RECONSTRUCTION",
+        source_fields={"dialect": ledger.dialect},
+        disposition="DEFER_EXPLICITLY",
+        evidence=[
+            "diagnostic sidecar is not assumed to be the exact "
+            "writer-consumed model"
+        ],
+        confidence={
+            "identity": 0.80,
+            "topology": 0.80,
+            "geometry": 0.80,
+            "dimensions": 0.80,
+            "attributes": 0.80,
+            "ciiProjection": 0.80,
+        },
+    )
+    ledger.diagnostic(
+        "BLOCKING",
+        "DIAGNOSTIC_RECONCILIATION_REQUIRED",
+        "Diagnostic InputXML sidecar requires independent source reconciliation.",
+    )
+
+
+def _compile_profile_candidate(
+    *,
+    dialect: str,
+    source: bytes,
+    root: ET._Element | None,
+    ledger: DecisionLedger,
+    aliases: dict[str, str],
+    context: dict[str, Any],
+    source_name: str,
+    source_path: str,
+    categorized_xsd_path: Path,
+) -> ET._Element:
+    if dialect == "uxml-rvm-intake":
+        wrapped = _compile_uxml_rvm_source(
+            source,
+            source_name=source_name,
+            source_path=source_path,
+            ledger=ledger,
+            context=context,
+        )
+    elif dialect == "pdf-input-echo":
+        wrapped = _compile_pdf_input_echo_source(
+            source,
+            source_name=source_name,
+            ledger=ledger,
+            context=context,
+        )
+    elif dialect == "managed-stage-json":
+        wrapped = _compile_managed_stage_source(
+            source,
+            source_name=source_name,
+            ledger=ledger,
+            context=context,
+        )
+    else:
+        return _compile_xml_profile(
+            dialect=dialect,
+            source=source,
+            root=_require_xml(dialect, root),
+            ledger=ledger,
+            aliases=aliases,
+            context=context,
+            categorized_xsd_path=categorized_xsd_path,
+        )
+    return _compile_inputxml_family(
+        wrapped,
+        dialect=dialect,
+        ledger=ledger,
+        aliases=aliases,
+        context=context,
+    )
+
+
+def _compile_xml_profile(
+    *,
+    dialect: str,
+    source: bytes,
+    root: ET._Element,
+    ledger: DecisionLedger,
+    aliases: dict[str, str],
+    context: dict[str, Any],
+    categorized_xsd_path: Path,
+) -> ET._Element:
+    if dialect == "canonical-inputxml-v1":
+        canonical = copy.deepcopy(root)
+        _ledger_direct_canonical(canonical, ledger)
+        return canonical
+    if dialect == "inputxml-fragment":
+        source_root = _fragment_document(root, context)
+    elif dialect == "categorized-inputxml-v3":
+        errors = _validate_xsd(root, categorized_xsd_path)
+        if errors:
+            raise CompileBlocked(
+                "CategorizedInputXML failed categorized-inputxml-v3.xsd: "
+                + "; ".join(errors)
+            )
+        source_root = _categorized_document(root, context, ledger)
+    elif dialect == "xml-builder-root-branch-node":
+        source_root = _compile_xml_builder_source(
+            source,
+            source_root=root,
+            ledger=ledger,
+            context=context,
+        )
+    elif dialect == "seljson-custom-root":
+        source_root = _compile_seljson_custom_root(
+            source,
+            source_root=root,
+            ledger=ledger,
+            context=context,
+        )
+    elif dialect in _GENERIC_INPUTXML_DIALECTS:
+        source_root = root
+    else:
+        raise CompileBlocked(f"No registered runtime resolver for {dialect!r}.")
+    canonical = _compile_inputxml_family(
+        source_root,
+        dialect=dialect,
+        ledger=ledger,
+        aliases=aliases,
+        context=context,
+    )
+    if dialect == "xml-to-cii-diagnostic-sidecar":
+        _mark_diagnostic_sidecar(canonical, ledger)
+    return canonical
+
+
+def resolve_registered_profile(
+    *,
+    dialect: str,
+    adapter_id: str,
+    source: bytes,
+    root: ET._Element | None,
+    ledger: DecisionLedger,
+    aliases: dict[str, str],
+    context: dict[str, Any],
+    source_name: str,
+    source_path: str,
+    categorized_xsd_path: Path,
+) -> ResolverOutcome:
+    """Invoke one closed registered resolver and standardize its outcome."""
+    if dialect not in _NON_XML_DIALECTS and root is None:
+        raise CompileBlocked(f"Dialect {dialect} requires XML input.")
+    canonical = _compile_profile_candidate(
+        dialect=dialect,
+        source=source,
+        root=root,
+        ledger=ledger,
+        aliases=aliases,
+        context=context,
+        source_name=source_name,
+        source_path=source_path,
+        categorized_xsd_path=categorized_xsd_path,
+    )
+    outcome_kind = (
+        OutcomeKind.BLOCKED_WITH_CANDIDATE
+        if ledger.blocked
+        else OutcomeKind.CANONICAL_CANDIDATE
+    )
+    return ResolverOutcome(
+        profile_id=dialect,
+        adapter_id=adapter_id,
+        outcome_kind=outcome_kind,
+        canonical_candidate=canonical,
+        source_accounting_status="COMPLETE",
+    )
+
+
+__all__ = ["resolve_registered_profile"]

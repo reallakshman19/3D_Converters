@@ -11,6 +11,7 @@ compiler = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = compiler
 spec.loader.exec_module(compiler)
 compiler._compiler._validate_xsd = lambda root, path: []
+compiler._compiler.resolve_registered_profile.__globals__['_validate_xsd'] = lambda root, path: []
 compiler._compiler._validate_schematron = lambda root, path: []
 
 CONTRACTS = ROOT / 'contracts' / 'inputxml' / 'v1'
