@@ -36,12 +36,12 @@ TE-001 intentionally preserves all of this behaviour.
 | `TEE` | `TEE` input / `BRAN` output | 1 | 1 | 2 | emitted at the second reserved slot, leave position, endpoint 1 |
 | `OLET` | `OLET` | 2 | 0 | 2 | generic arrive/leave boundary pair |
 | `REDU` | `REDU` | 1 | 1 | 2 | emitted at the second reserved slot, leave position, endpoint 2 |
-| `REDUCER` | `REDUCER` | 1 | 0 | 1 | currently bypasses boundary dispatch and is written as one generic node |
+| `REDUCER` | `REDUCER` input / `REDU` output | 1 | 1 | 2 | normalized boundary occurrence emitted at the second reserved slot, leave position, endpoint 2 |
 | `VALV` | `VALV` | 1 | 0 | 1 | generic rigid node at best/arrive position |
 | `FLAN` | `FLAN` | 1 | 0 | 1 | generic rigid node at best/arrive position |
 | `ATTA` | `ATTA` | 1 | 0 | 1 | support occurrence with restraint-capable node content |
 
-The `REDUCER` row is an observed current-path distinction, not a proposed semantic correction. `projectBoundaryNodeContract()` can normalize `REDUCER` internally, but the writer's earlier `isXmlBoundaryComponent()` dispatch does not currently classify `REDUCER` as a boundary type.
+The `REDUCER` row confirms that raw source type and emitted PSI component type are distinct evidence fields: the parsed component remains `REDUCER`, while the boundary projection emits `REDU` with one reserved predecessor slot.
 
 ## Fixture allocation baseline
 
@@ -54,17 +54,17 @@ B1   BEND       50          (60 reserved)
 T1   TEE        80          (70 reserved)
 O1   OLET       90, 100
 R1   REDU       120         (110 reserved)
-R2   REDUCER    130
-V1   VALV       140
-F1   FLAN       150
-S1   ATTA       160
-P2   PIPE       170, 180
+R2   REDUCER    140         (130 reserved; emits REDU)
+V1   VALV       150
+F1   FLAN       160
+S1   ATTA       170
+P2   PIPE       180, 190
 ```
 
 The second canonical line `/LINE-B` receives:
 
 ```text
-Q1   PIPE       190, 200
+Q1   PIPE       200, 210
 ```
 
 ## Canonical versus source-sequential drift
@@ -88,10 +88,10 @@ Therefore:
 
 | Occurrence | Canonical | Sequential |
 |---|---:|---:|
-| `P2 PIPE endpoint 1` | 170 | 190 |
-| `P2 PIPE endpoint 2` | 180 | 200 |
-| `Q1 PIPE endpoint 1` | 190 | 170 |
-| `Q1 PIPE endpoint 2` | 200 | 180 |
+| `P2 PIPE endpoint 1` | 180 | 200 |
+| `P2 PIPE endpoint 2` | 190 | 210 |
+| `Q1 PIPE endpoint 1` | 200 | 180 |
+| `Q1 PIPE endpoint 2` | 210 | 190 |
 
 Current selection logic still permits the sequential output even though numbering equivalence is false. This is recorded as legacy behaviour for TE-002 and later strict parity work; TE-001 does not alter the gate.
 
@@ -108,6 +108,7 @@ For single-emission components that reserve two slots, the stored primary value 
 ```text
 TEE: allocation start 70, xmlNodeNum 80
 REDU: allocation start 110, xmlNodeNum 120
+REDUCER: allocation start 130, xmlNodeNum 140
 ```
 
 ## Nondeterministic metadata
@@ -123,7 +124,7 @@ No production timestamp behaviour is changed. The normalization exists only so r
 ## Contract questions for TE-002
 
 1. Should `BEND` remain a source alias of `ELBO` in writer-occurrence identity, or should raw and normalized types both be retained?
-2. Should `REDUCER` be contractually equivalent to `REDU`, correcting the current dispatch asymmetry only after an ADR decision?
+2. Should `REDUCER` retain raw source identity while its emitted PSI occurrence is explicitly typed `REDU`?
 3. How are reserved but non-emitted PSI slots represented without relative-number arithmetic?
 4. Does a TEE's emitted branch occurrence own the logical junction node or only a PSI serialization occurrence?
 5. Is a support attachment a route logical node, a separate attachment occurrence, or both through distinct identities?
