@@ -21,6 +21,22 @@ from .dispatcher import resolve_registered_profile
 from .resolver_contract import OutcomeKind
 
 
+_BLOCK_GATE_BY_STAGE = {
+    CompilerStage.INITIALIZED: "CONTRACT_BUNDLE_GATE",
+    CompilerStage.CONTRACT_BUNDLE_VERIFIED: "SOURCE_ENVELOPE_GATE",
+    CompilerStage.SOURCE_ENVELOPE_CREATED: "MEDIA_INSPECTION_GATE",
+    CompilerStage.MEDIA_INSPECTED: "DIALECT_GATE",
+    CompilerStage.DIALECT_RESOLVED: "PROFILE_INTAKE_GATE",
+    CompilerStage.PROFILE_INTAKE_VALIDATED: "PROFILE_RESOLVER_GATE",
+    CompilerStage.PROFILE_RESOLVED: "SOURCE_ACCOUNTING_GATE",
+    CompilerStage.SOURCE_ACCOUNTED: "LEDGER_GATE",
+    CompilerStage.CANONICAL_CANDIDATE_BUILT: "XSD_GATE",
+    CompilerStage.XSD_VALIDATED: "SCHEMATRON_GATE",
+    CompilerStage.SCHEMATRON_VALIDATED: "LEDGER_GATE",
+    CompilerStage.LEDGER_VALIDATED: "PRODUCTION_ACCEPTANCE_GATE",
+}
+
+
 def _json_dialect(source: bytes, dialect_override: str | None) -> str:
     if dialect_override:
         return dialect_override
@@ -28,12 +44,39 @@ def _json_dialect(source: bytes, dialect_override: str | None) -> str:
         payload = json.loads(source.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise CompileBlocked(f"JSON intake could not be parsed: {exc}") from exc
-    candidate = payload.get("uxml") if isinstance(payload, dict) and isinstance(payload.get("uxml"), dict) else payload
+    candidate = (
+        payload.get("uxml")
+        if isinstance(payload, dict) and isinstance(payload.get("uxml"), dict)
+        else payload
+    )
     if isinstance(candidate, dict) and candidate.get("schemaVersion") == "uxml-topology-v1":
         return "uxml-rvm-intake"
-    if isinstance(payload, dict) and any(key in payload for key in ("rvmRows", "rows", "inputKind")):
+    if isinstance(payload, dict) and any(
+        key in payload for key in ("rvmRows", "rows", "inputKind")
+    ):
         return "uxml-rvm-intake"
     return "managed-stage-json"
+
+
+def _blocked_return_candidate(
+    dialect: str,
+    canonical: ET._Element,
+) -> ET._Element | None:
+    if dialect == "canonical-inputxml-v1":
+        return None
+    return canonical
+
+
+def _result(
+    candidate: ET._Element | None,
+    ledger: DecisionLedger,
+    source_hash: str,
+    validation: dict[str, Any],
+) -> tuple[ET._Element | None, dict[str, Any], dict[str, Any]]:
+    if candidate is None:
+        return None, ledger.as_dict(source_hash, None), validation
+    output = _xml_bytes(candidate)
+    return candidate, ledger.as_dict(source_hash, _sha256(output)), validation
 
 
 def compile_document(
@@ -61,7 +104,6 @@ def compile_document(
         dialect_override or "unresolved",
     )
     state = CompilerState()
-    
     validation: dict[str, Any] = {
         "schema": "InputXmlCanonicalValidation.v1",
         "dialect": dialect_override or "unresolved",
@@ -69,13 +111,14 @@ def compile_document(
         "blockedAt": None,
         "completedStages": [],
         "contractBundle": None,
+        "resolverOutcome": None,
         "xsdErrors": [],
         "semanticErrors": [],
         "diagnostics": [],
         "orchestration": state.as_orchestration_dict(),
     }
 
-    def _update_validation() -> None:
+    def update_validation() -> None:
         validation["completedStages"] = state.completed_stages
         validation["blockedAt"] = state.blocked_at
         validation["status"] = state.terminal_status or "FAILED"
@@ -97,7 +140,9 @@ def compile_document(
                     "dialectRegistry": str(registry_path),
                     "adapterRegistry": str(
                         adapter_registry_path
-                        or registry_path.parent / "compiler" / "inputxml-compiler-adapters.json"
+                        or registry_path.parent
+                        / "compiler"
+                        / "inputxml-compiler-adapters.json"
                     ),
                 },
                 disposition="REJECT_INVALID",
@@ -109,23 +154,29 @@ def compile_document(
                 str(exc),
             )
             state.block("CONTRACT_BUNDLE_GATE")
-            validation["contractBundle"] = {"status": "BLOCKED", "error": str(exc)}
-            _update_validation()
-            return None, ledger.as_dict(source_hash, None), validation
+            validation["contractBundle"] = {
+                "status": "BLOCKED",
+                "error": str(exc),
+            }
+            update_validation()
+            return _result(None, ledger, source_hash, validation)
 
         state.transition(CompilerStage.CONTRACT_BUNDLE_VERIFIED)
         ledger.contract_bundle = bundle.metadata
         validation["contractBundle"] = bundle.metadata
-        
         state.transition(CompilerStage.SOURCE_ENVELOPE_CREATED)
 
         dialects = bundle.dialects
         stripped = source.lstrip()
-        json_source = dialect_override in {"managed-stage-json", "uxml-rvm-intake"} or stripped[:1] in {b"{", b"["}
-        pdf_source = dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
-        
+        json_source = (
+            dialect_override in {"managed-stage-json", "uxml-rvm-intake"}
+            or stripped[:1] in {b"{", b"["}
+        )
+        pdf_source = (
+            dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
+        )
         state.transition(CompilerStage.MEDIA_INSPECTED)
-        
+
         root: ET._Element | None
         if pdf_source:
             root = None
@@ -136,31 +187,50 @@ def compile_document(
         else:
             root = _parse_xml(source, source_name)
             dialect = dialect_override or detect_dialect(root, bundle.registry)
-        
         if dialect not in dialects:
             raise CompileBlocked(f"Dialect {dialect!r} is not registered.")
-            
         state.transition(CompilerStage.DIALECT_RESOLVED)
 
         ledger.dialect = dialect
         validation["dialect"] = dialect
-
         if dialect not in SUPPORTED_COMPILER_DIALECTS:
             acceptance = dialects[dialect].get("canonicalAcceptance")
-            disposition = "REJECT_INVALID" if acceptance == "EXCLUDED" else ("DEFER_EXPLICITLY" if acceptance == "DIAGNOSTIC_ONLY" else "UNSUPPORTED_BLOCKING")
-            ledger.add(source_entity_id="document", source_type="DIALECT", source_fields={"dialect":dialect,"canonicalAcceptance":acceptance}, disposition=disposition, diagnostics=["registered dialect has no PR-D adapter implementation"])
-            ledger.blocked = True
-            ledger.diagnostic("BLOCKING", "DIALECT_ADAPTER_NOT_IMPLEMENTED", "registered dialect has no PR-D adapter implementation")
+            disposition = (
+                "REJECT_INVALID"
+                if acceptance == "EXCLUDED"
+                else (
+                    "DEFER_EXPLICITLY"
+                    if acceptance == "DIAGNOSTIC_ONLY"
+                    else "UNSUPPORTED_BLOCKING"
+                )
+            )
+            ledger.add(
+                source_entity_id="document",
+                source_type="DIALECT",
+                source_fields={
+                    "dialect": dialect,
+                    "canonicalAcceptance": acceptance,
+                },
+                disposition=disposition,
+                diagnostics=[
+                    "registered dialect has no runtime adapter implementation"
+                ],
+            )
+            ledger.diagnostic(
+                "BLOCKING",
+                "DIALECT_ADAPTER_NOT_IMPLEMENTED",
+                "Registered dialect has no runtime adapter implementation.",
+            )
             state.block("PROFILE_INTAKE_GATE")
-            _update_validation()
-            return None, ledger.as_dict(source_hash, None), validation
-            
-        state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
+            update_validation()
+            return _result(None, ledger, source_hash, validation)
 
+        state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
         aliases = _resolve_aliases(_load_json(alias_registry_path))
-        
+        registered_adapter_id = bundle.adapters[dialect]["adapterId"]
         outcome = resolve_registered_profile(
             dialect=dialect,
+            adapter_id=registered_adapter_id,
             source=source,
             root=root,
             ledger=ledger,
@@ -170,69 +240,88 @@ def compile_document(
             source_path=source_path,
             categorized_xsd_path=categorized_xsd_path,
         )
-        
+        if outcome.profile_id != dialect:
+            raise RuntimeError("Resolver returned a mismatched profile identity.")
+        if outcome.adapter_id != registered_adapter_id:
+            raise RuntimeError("Resolver returned a mismatched adapter identity.")
+        validation["resolverOutcome"] = {
+            "profileId": outcome.profile_id,
+            "adapterId": outcome.adapter_id,
+            "outcomeKind": outcome.outcome_kind.value,
+            "sourceAccountingStatus": outcome.source_accounting_status,
+        }
         state.transition(CompilerStage.PROFILE_RESOLVED)
-        
-        if outcome.outcome_kind == OutcomeKind.BLOCKED_NO_CANDIDATE or ledger.blocked:
-            state.block("PROFILE_RESOLVER_GATE")
-            _update_validation()
-            if outcome.canonical_candidate is not None:
-                output = _xml_bytes(outcome.canonical_candidate)
-                return outcome.canonical_candidate, ledger.as_dict(source_hash, _sha256(output)), validation
-            return outcome.canonical_candidate, ledger.as_dict(source_hash, None), validation
-            
-        state.transition(CompilerStage.SOURCE_ACCOUNTED)
-        
-        canonical = outcome.canonical_candidate
-        
-        state.transition(CompilerStage.CANONICAL_CANDIDATE_BUILT)
 
-        reconcile_decision_ledger(canonical, ledger, context=context)
+        canonical = outcome.canonical_candidate
+        if canonical is None:
+            state.block("PROFILE_RESOLVER_GATE")
+            update_validation()
+            return _result(None, ledger, source_hash, validation)
+
+        state.transition(CompilerStage.SOURCE_ACCOUNTED)
+        try:
+            reconcile_decision_ledger(canonical, ledger, context=context)
+        except CompileBlocked as exc:
+            ledger.diagnostic(
+                "BLOCKING",
+                "CANONICALIZATION_BLOCKED",
+                str(exc),
+            )
+            state.block("LEDGER_GATE")
+            update_validation()
+            return _result(None, ledger, source_hash, validation)
+        state.transition(CompilerStage.CANONICAL_CANDIDATE_BUILT)
 
         xsd_errors = _validate_xsd(canonical, canonical_xsd_path)
         validation["xsdErrors"] = xsd_errors
         if xsd_errors:
-            ledger.diagnostic("ERROR", "CANONICAL_XSD_FAILED", "Canonical output failed XSD.", errors=xsd_errors)
-            state.block("XSD_VALIDATION_GATE")
-            _update_validation()
-            output = _xml_bytes(canonical)
-            return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
-            
+            ledger.diagnostic(
+                "ERROR",
+                "CANONICAL_XSD_FAILED",
+                "Canonical output failed XSD.",
+                errors=xsd_errors,
+            )
+            state.block("XSD_GATE")
+            update_validation()
+            blocked_candidate = _blocked_return_candidate(dialect, canonical)
+            return _result(blocked_candidate, ledger, source_hash, validation)
         state.transition(CompilerStage.XSD_VALIDATED)
 
         semantic_errors = _validate_schematron(canonical, semantic_rules_path)
         validation["semanticErrors"] = semantic_errors
         if semantic_errors:
-            ledger.diagnostic("BLOCKING", "CANONICAL_SEMANTIC_FAILED", "Canonical output failed Schematron.", errors=semantic_errors)
-            state.block("SCHEMATRON_VALIDATION_GATE")
-            _update_validation()
-            output = _xml_bytes(canonical)
-            return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
-            
+            ledger.diagnostic(
+                "BLOCKING",
+                "CANONICAL_SEMANTIC_FAILED",
+                "Canonical output failed Schematron.",
+                errors=semantic_errors,
+            )
+            state.block("SCHEMATRON_GATE")
+            update_validation()
+            blocked_candidate = _blocked_return_candidate(dialect, canonical)
+            return _result(blocked_candidate, ledger, source_hash, validation)
         state.transition(CompilerStage.SCHEMATRON_VALIDATED)
-        
-        if ledger.blocked:
-            state.block("LEDGER_VALIDATION_GATE")
-            _update_validation()
-            output = _xml_bytes(canonical)
-            return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
-            
+
+        if outcome.outcome_kind != OutcomeKind.CANONICAL_CANDIDATE or ledger.blocked:
+            state.block("LEDGER_GATE")
+            update_validation()
+            return _result(canonical, ledger, source_hash, validation)
         state.transition(CompilerStage.LEDGER_VALIDATED)
-        
+
         state.transition(CompilerStage.PRODUCTION_ACCEPTED)
         state.accept()
-        _update_validation()
-        
-        output = _xml_bytes(canonical)
-        return canonical, ledger.as_dict(source_hash, _sha256(output)), validation
-        
+        update_validation()
+        return _result(canonical, ledger, source_hash, validation)
+
     except CompileBlocked as exc:
-        ledger.diagnostic("BLOCKING", "CANONICALIZATION_BLOCKED", str(exc))
-        block_gate = f"{state.current_stage.value}_FAILED_GATE"
-        state.block(block_gate)
-        _update_validation()
-        # If we failed mid-compile, we don't return the candidate because it wasn't returned explicitly
-        return None, ledger.as_dict(source_hash, None), validation
+        ledger.diagnostic(
+            "BLOCKING",
+            "CANONICALIZATION_BLOCKED",
+            str(exc),
+        )
+        state.block(_BLOCK_GATE_BY_STAGE[state.current_stage])
+        update_validation()
+        return _result(None, ledger, source_hash, validation)
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
