@@ -1,6 +1,20 @@
+import importlib.util
+import sys
 import unittest
+from pathlib import Path
 
 from scripts.inputxml_compiler.state_machine import CompilerStage, CompilerState
+
+ROOT = Path(__file__).resolve().parents[1]
+CONTRACTS = ROOT / "contracts" / "inputxml" / "v1"
+MODULE_PATH = ROOT / "scripts" / "inputxml_canonical_compiler.py"
+spec = importlib.util.spec_from_file_location(
+    "inputxml_state_machine_integration",
+    MODULE_PATH,
+)
+compiler = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = compiler
+spec.loader.exec_module(compiler)
 
 
 class TestInputXMLCompilerStateMachine(unittest.TestCase):
@@ -87,6 +101,82 @@ class TestInputXMLCompilerStateMachine(unittest.TestCase):
             first.as_orchestration_dict(),
             second.as_orchestration_dict(),
         )
+
+
+class TestCompilerOrchestrationIntegration(unittest.TestCase):
+    def compile(self, source, *, name="source.xml", dialect=None, context=None):
+        return compiler.compile_document(
+            source,
+            source_name=name,
+            source_repository="reallaksh19/3D_Converters",
+            source_path=f"test://{name}",
+            producer="state-machine-test",
+            registry_path=CONTRACTS / "inputxml-dialect-registry.json",
+            adapter_registry_path=(
+                CONTRACTS / "compiler" / "inputxml-compiler-adapters.json"
+            ),
+            alias_registry_path=(
+                CONTRACTS / "catalogs" / "inputxml-alias-registry.json"
+            ),
+            canonical_xsd_path=CONTRACTS / "inputxml-canonical-v1.xsd",
+            categorized_xsd_path=CONTRACTS / "categorized-inputxml-v3.xsd",
+            semantic_rules_path=CONTRACTS / "inputxml-semantic-rules-v1.sch",
+            dialect_override=dialect,
+            context=context or {},
+        )
+
+    def test_malformed_xml_blocks_at_dialect_gate(self):
+        root, _, validation = self.compile(b"<not-valid-xml")
+        self.assertIsNone(root)
+        self.assertEqual("BLOCKED", validation["status"])
+        self.assertEqual("DIALECT_GATE", validation["blockedAt"])
+        self.assertEqual(
+            [
+                "INITIALIZED",
+                "CONTRACT_BUNDLE_VERIFIED",
+                "SOURCE_ENVELOPE_CREATED",
+                "MEDIA_INSPECTED",
+            ],
+            validation["completedStages"],
+        )
+
+    def test_malformed_json_blocks_at_dialect_gate(self):
+        root, _, validation = self.compile(b"{not-json", name="source.json")
+        self.assertIsNone(root)
+        self.assertEqual("BLOCKED", validation["status"])
+        self.assertEqual("DIALECT_GATE", validation["blockedAt"])
+        self.assertNotIn("DIALECT_RESOLVED", validation["completedStages"])
+
+    def test_diagnostic_candidate_reaches_common_validation(self):
+        source = (
+            CONTRACTS / "golden" / "positive" / "minimal.canonical.input.xml"
+        ).read_bytes()
+        root, ledger, validation = self.compile(
+            source,
+            dialect="xml-to-cii-diagnostic-sidecar",
+        )
+        self.assertIsNotNone(root)
+        self.assertEqual("BLOCKED", validation["status"])
+        self.assertEqual("LEDGER_GATE", validation["blockedAt"])
+        self.assertIn("XSD_VALIDATED", validation["completedStages"])
+        self.assertIn("SCHEMATRON_VALIDATED", validation["completedStages"])
+        self.assertNotIn("LEDGER_VALIDATED", validation["completedStages"])
+        self.assertEqual(
+            "diagnostic-sidecar-reconciliation",
+            validation["resolverOutcome"]["adapterId"],
+        )
+        self.assertEqual(
+            "BLOCKED_WITH_CANDIDATE",
+            validation["resolverOutcome"]["outcomeKind"],
+        )
+        self.assertEqual("BLOCKED", ledger["status"])
+
+    def test_repeated_blocked_compilation_is_deterministic(self):
+        source = b"{not-json"
+        first = self.compile(source, name="source.json")
+        second = self.compile(source, name="source.json")
+        self.assertEqual(first[1], second[1])
+        self.assertEqual(first[2], second[2])
 
 
 if __name__ == "__main__":
