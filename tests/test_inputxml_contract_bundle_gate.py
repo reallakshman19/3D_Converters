@@ -48,8 +48,10 @@ class ContractBundleGateTests(unittest.TestCase):
             validation["contractBundle"]["digestSha256"],
             ledger["contractBundle"]["digestSha256"],
         )
-        self.assertEqual("CONTRACT_BUNDLE", ledger["records"][0]["sourceType"])
-        self.assertEqual("VALIDATE_ONLY", ledger["records"][0]["disposition"])
+        self.assertFalse(any(
+            row["sourceType"] == "CONTRACT_BUNDLE"
+            for row in ledger["records"]
+        ))
 
     def test_registry_set_mismatch_blocks_before_source_parse(self):
         payload = json.loads(ADAPTER_REGISTRY.read_text(encoding="utf-8"))
