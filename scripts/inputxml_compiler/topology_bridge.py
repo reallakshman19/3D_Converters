@@ -16,7 +16,7 @@ from .topology_bridge_relations import verify_bridge_relations
 from .topology_diagnostics import block, diagnose, diagnostic_policy
 
 _ENGINE_IDENTITY = "strict-root-topology-engine"
-_ENGINE_VERSION = "1.1.0"
+_ENGINE_VERSION = "1.0.0"
 _RESULT_SCHEMA = "InputXmlTopologyBridgeResult.v1"
 _MAX_DIAGNOSTICS = 1000
 _RESULT_FIELDS = {
