@@ -166,6 +166,13 @@ def _record_bridge_proof(
     result: dict[str, Any],
     ledger: DecisionLedger,
 ) -> None:
+    verified_proof = dict(result["topologyProof"])
+    verified_proof.update(
+        {
+            "componentMappingCount": len(result["components"]),
+            "auxiliaryMappingCount": len(result["auxiliaries"]),
+        }
+    )
     ledger.add(
         source_entity_id="topology-bridge-proof",
         source_type="STRICT_TOPOLOGY_BRIDGE_PROOF",
@@ -173,7 +180,7 @@ def _record_bridge_proof(
             "engineIdentity": result["engineIdentity"],
             "engineVersion": result["engineVersion"],
             "sourceHashSha256": result["sourceHashSha256"],
-            "topologyProof": result["topologyProof"],
+            "topologyProof": verified_proof,
             "metrics": result["metrics"],
         },
         projection_cardinality="1_TO_0",
