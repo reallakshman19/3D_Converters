@@ -14,15 +14,27 @@ _SOURCE_ONLY_TYPES = {
     "SOURCE_ACCOUNTING_PROOF",
     "CONTEXT_FIELD",
     "COORDINATE_DELTA_RECONCILIATION",
+    "LINE_SCOPE_BOUNDARY",
     "CATEGORIZED_LINE",
     "CATEGORIZED_ENRICHMENT_EVIDENCE",
     "CATEGORIZED_IDENTITY_EVIDENCE",
     "CATEGORIZED_NORMALIZED_FIELD",
     "CATEGORIZED_ORIGINAL_ELEMENT",
+    "CATEGORIZED_TRANSFER_ELEMENT",
+    "CATEGORIZED_TRANSFER_BLOCK",
 }
 _EVIDENCE_IDENTITY_TYPES = {"CATEGORIZED_NORMALIZED_FIELD"}
 _BRIDGE_DOCUMENT_TYPES = {"ROOT_BRANCH_NODE", "SELECTIONJSON_CUSTOM_ROOT"}
-_DIRECT_VALIDATION_PROFILES = {"canonical-inputxml-v1"}
+_PR5_SOURCE_AUTHORITATIVE_PROFILES = {
+    "canonical-inputxml-v1",
+    "caesar-inputxml-pressure1",
+    "caesar-inputxml-pressure-c",
+    "enriched-inputxml-app",
+    "inputxml-fragment",
+    "categorized-inputxml-v3",
+    "cii14-inputxml",
+    "xml-to-cii-diagnostic-sidecar",
+}
 
 
 def _canonical_elements(canonical: ET._Element) -> list[ET._Element]:
@@ -72,7 +84,10 @@ def _explicit_node_evidence(
                     if not canonical_value:
                         continue
                 else:
-                    canonical_value = _decimal_text(value, f"assuredNodeEvidence[{node}]/{source_field}")
+                    canonical_value = _decimal_text(
+                        value,
+                        f"assuredNodeEvidence[{node}]/{source_field}",
+                    )
                 element.set(canonical_field, canonical_value)
                 ledger.add(
                     source_entity_id=f"{canonical_path}@{canonical_field}",
@@ -145,7 +160,8 @@ def reconcile_decision_ledger(
 
     No engineering value is inferred. Source-only decisions become evidence,
     exact canonical IDs gain InputXML ownership, bridge documents are rebound to
-    emitted IDs, and optional node evidence is accepted only when explicit.
+    emitted IDs, and optional node evidence is accepted only by profiles whose
+    contracts explicitly predate PR-5 and permit that context.
     """
     elements = _canonical_elements(canonical)
     element_ids = [str(element.get("ID") or "") for element in elements]
@@ -183,7 +199,9 @@ def reconcile_decision_ledger(
             bound = sorted(set(exact_ids), key=element_order.get)
             record["InputXMLElementIds"] = bound
             evidence = list(record.get("evidence") or [])
-            evidence.append("InputXML ownership bound only after exact canonical element-ID membership verification")
+            evidence.append(
+                "InputXML ownership bound only after exact canonical element-ID membership verification"
+            )
             record["evidence"] = evidence
 
         if source_type in _BRIDGE_DOCUMENT_TYPES:
@@ -192,10 +210,12 @@ def reconcile_decision_ledger(
             record["InputXMLElementIds"] = element_ids
             record["CIISection"] = "ELEMENTS"
             evidence = list(record.get("evidence") or [])
-            evidence.append("post-normalization canonical IDs resolved by ledger reconciliation")
+            evidence.append(
+                "post-normalization canonical IDs resolved by ledger reconciliation"
+            )
             record["evidence"] = evidence
 
-    if ledger.dialect not in _DIRECT_VALIDATION_PROFILES:
+    if ledger.dialect not in _PR5_SOURCE_AUTHORITATIVE_PROFILES:
         _explicit_node_evidence(elements, ledger, context or {})
 
 
