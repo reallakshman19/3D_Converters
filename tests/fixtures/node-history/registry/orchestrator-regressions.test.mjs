@@ -115,7 +115,6 @@ test('requires complete lifecycle evidence and exact operation-to-record agreeme
   const invalid = structuredClone(base);
   const target = historyNode(invalid, 'HN-A-110');
   target.retirementEvidence = {};
-  target.lineHistoryHash = undefined;
   invalid.lineHistories[0].lineHistoryHash = await computeLineHistoryHash(invalid.lineHistories[0]);
   invalid.zoneRegistry.lineHistoryRefs[0].lineHistoryHash = invalid.lineHistories[0].lineHistoryHash;
   invalid.zoneRegistry.zoneRegistryHash = await computeZoneRegistryHash(invalid.zoneRegistry);
@@ -156,9 +155,12 @@ test('requires alias changes to have one exact UPDATE_ALIAS operation', async ()
     sourceAliases: ['SRC-A-100', 'REVIEWED-ALIAS'],
   }]);
   assert.equal(accepted.validation.status, 'PASS');
+  assert.deepEqual(accepted.affectedMainLines, ['/LINE-A']);
+  assert.equal(accepted.poolUpdates.length, 1);
+  assert.equal(accepted.lineHistoryUpdates[0].mainLineKey, '/LINE-A');
 });
 
-test('requires lease diffs to have exact operations and rejects phantom operations', async () => {
+test('requires lease diffs to have exact operations and full affected-line coverage', async () => {
   const base = await materialize();
   const proposed = await proposedFrom(base, (data) => {
     data.zoneRegistry.leases[0].lastObservedRevision = 'REV-003';
@@ -167,12 +169,19 @@ test('requires lease diffs to have exact operations and rejects phantom operatio
   const missing = await patch(base, proposed, []);
   assert.ok(codes(missing).includes('REGISTRY_CHANGE_OPERATION_MISSING'));
 
-  const accepted = await patch(base, proposed, [{
+  const operation = {
     operationId: 'LEASE-LINE-A-UPDATE', type: 'UPDATE_LEASE', leaseId: 'LEASE-LINE-A',
-  }]);
+  };
+  const accepted = await patch(base, proposed, [operation]);
   assert.equal(accepted.validation.status, 'PASS');
+  assert.deepEqual(accepted.affectedMainLines, ['/LINE-A']);
   assert.equal(accepted.poolUpdates[0].baseZoneRegistryHash, base.zoneRegistry.zoneRegistryHash);
   assert.equal(accepted.poolUpdates[0].proposedZoneRegistryHash, proposed.zoneRegistry.zoneRegistryHash);
+
+  const wrongCoverage = await patch(base, proposed, [operation], {
+    coverage: { scope: 'FULL_LINE', authoritativeForRetirement: false, mainLineKeys: ['/LINE-B'] },
+  });
+  assert.ok(codes(wrongCoverage).includes('AFFECTED_LINE_OUTSIDE_COVERAGE'));
 
   const phantom = await patch(base, base, [{
     operationId: 'LEASE-LINE-A-PHANTOM', type: 'UPDATE_LEASE', leaseId: 'LEASE-LINE-A',
