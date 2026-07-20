@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Registry-driven, fail-closed InputXML dialect compiler.
-
-The compiler normalizes supported InputXML-family dialects into canonical
-InputXML v1 and writes a transformation-decision ledger. Unsupported or
-ambiguous engineering evidence is never dropped: it is preserved in the
-extension namespace and blocks production validation when required.
-"""
+"""Shared contracts and ledger primitives for the InputXML compiler."""
 from __future__ import annotations
 
 import argparse
@@ -38,14 +32,16 @@ SUPPORTED_COMPILER_DIALECTS = {
     "cii14-inputxml",
     "xml-to-cii-diagnostic-sidecar",
 }
-
 COUNT_FIELDS = (
     "NUMELT", "NUMNOZ", "NOHGRS", "NUMBEND", "NUMRIGID", "NUMEXPJNT",
     "NUMREST", "NUMFORCMNT", "NUMUNFLOAD", "NUMWIND", "NUMELEOFF",
     "NUMALLOW", "NUMISECT",
 )
 ROOT_ATTRS = {"VERSION", "XML_TYPE"}
-MODEL_ATTRS = {"JOBNAME", "TIME", "ISSUE_NO", *COUNT_FIELDS, "NORTH_X", "NORTH_Y", "NORTH_Z"}
+MODEL_ATTRS = {
+    "JOBNAME", "TIME", "ISSUE_NO", *COUNT_FIELDS,
+    "NORTH_X", "NORTH_Y", "NORTH_Z",
+}
 ELEMENT_CORE_ATTRS = {
     "ID", "FROM_NODE", "TO_NODE", "DELTA_X", "DELTA_Y", "DELTA_Z",
     "DIAMETER", "WALL_THICK", "INSUL_THICK", "CORR_ALLOW",
@@ -58,8 +54,9 @@ ELEMENT_CORE_ATTRS = {
 PRESERVE_ELEMENT_ATTRS = {
     "MATERIAL_NAME", "MODULUS", "POISSONS", "PIPE_DENSITY",
     *{f"HOT_MOD{i}" for i in range(1, 10)},
-    "REFRACTORY_DENSITY", "REFRACTORY_THK", "CLADDING_DEN", "CLADDING_THK",
-    "INSUL_CLAD_UNIT_WEIGHT", "MILL_TOL_PLUS", "MILL_TOL_MINUS", "SEAM_WELD", "NAME",
+    "REFRACTORY_DENSITY", "REFRACTORY_THK", "CLADDING_DEN",
+    "CLADDING_THK", "INSUL_CLAD_UNIT_WEIGHT", "MILL_TOL_PLUS",
+    "MILL_TOL_MINUS", "SEAM_WELD", "NAME",
 }
 INHERITED_DECIMAL_FIELDS = (
     "DIAMETER", "WALL_THICK", "INSUL_THICK", "CORR_ALLOW",
@@ -68,20 +65,55 @@ INHERITED_DECIMAL_FIELDS = (
     "HYDRO_PRESSURE", "INSUL_DENSITY", "FLUID_DENSITY",
 )
 INHERITED_INTEGER_FIELDS = ("MATERIAL_NUM",)
-ELEMENT_CHILD_ORDER = {"BEND": 0, "RIGID": 1, "SIF": 2, "RESTRAINT": 3, "HANGER": 4}
+ELEMENT_CHILD_ORDER = {
+    "BEND": 0,
+    "RIGID": 1,
+    "SIF": 2,
+    "RESTRAINT": 3,
+    "HANGER": 4,
+}
 KNOWN_ENRICHMENT_CHILDREN = {
-    "DTXR_POS", "PipingClass", "Point_properties_basis", "PipingClassBasis",
-    "SelectionJsonSourceIds", "ComponentRefNo", "SourceIdentity", "TopologyEvidence",
+    "DTXR_POS", "PipingClass", "Point_properties_basis",
+    "PipingClassBasis", "SelectionJsonSourceIds", "ComponentRefNo",
+    "SourceIdentity", "TopologyEvidence",
 }
 UNSUPPORTED_ENGINEERING_CHILDREN = {
-    "ALLOWABLESTRESS", "DISPLACEMENTS", "FORCESMOMENTS", "UNIFORM", "WIND",
-    "OFFSETS", "EXPANSION_JOINT", "EXPANSIONJOINT", "REDUCER", "FLANGES",
+    "ALLOWABLESTRESS", "DISPLACEMENTS", "FORCESMOMENTS", "UNIFORM",
+    "WIND", "OFFSETS", "EXPANSION_JOINT", "EXPANSIONJOINT",
+    "REDUCER", "FLANGES",
 }
-NOZZLE_NAMES = {"WRC_297_NOZZLE", "API650_NOZZLE", "PD5500_NOZZLE", "CUSTOM_NOZZLE"}
+NOZZLE_NAMES = {
+    "WRC_297_NOZZLE",
+    "API650_NOZZLE",
+    "PD5500_NOZZLE",
+    "CUSTOM_NOZZLE",
+}
+_SEVERITY_RANK = {
+    "BLOCKING": 0,
+    "ERROR": 1,
+    "WARNING": 2,
+    "INFO": 3,
+}
 
 
 class CompileBlocked(RuntimeError):
     pass
+
+
+def _diagnostic_key(item: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        item.get("stageSequence", 0),
+        _SEVERITY_RANK.get(item.get("severity", "INFO"), 4),
+        item.get("code", ""),
+        item.get("sourceEntityId", ""),
+        json.dumps(
+            item.get("context", {}),
+            sort_keys=True,
+            ensure_ascii=False,
+            allow_nan=False,
+        ),
+        item.get("message", ""),
+    )
 
 
 @dataclass
@@ -94,6 +126,7 @@ class DecisionLedger:
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
     blocked: bool = False
     contract_bundle: dict[str, Any] | None = None
+    current_stage_sequence: int = 0
 
     def add(
         self,
@@ -141,15 +174,38 @@ class DecisionLedger:
             },
             "diagnostics": diagnostics or [],
         })
-        if disposition in {"DEFER_EXPLICITLY", "UNSUPPORTED_BLOCKING", "REJECT_INVALID"}:
+        if disposition in {
+            "DEFER_EXPLICITLY",
+            "UNSUPPORTED_BLOCKING",
+            "REJECT_INVALID",
+        }:
             self.blocked = True
 
-    def diagnostic(self, severity: str, code: str, message: str, **context: Any) -> None:
-        self.diagnostics.append({"severity": severity, "code": code, "message": message, "context": context})
+    def diagnostic(
+        self,
+        severity: str,
+        code: str,
+        message: str,
+        source_entity_id: str = "",
+        **context: Any,
+    ) -> None:
+        self.diagnostics.append({
+            "stageSequence": self.current_stage_sequence,
+            "severity": severity,
+            "code": code,
+            "sourceEntityId": source_entity_id,
+            "message": message,
+            "context": context,
+        })
+        self.diagnostics.sort(key=_diagnostic_key)
         if severity in {"ERROR", "BLOCKING"}:
             self.blocked = True
 
-    def as_dict(self, source_hash: str, output_hash: str | None) -> dict[str, Any]:
+    def as_dict(
+        self,
+        source_hash: str,
+        output_hash: str | None,
+    ) -> dict[str, Any]:
         result = {
             "schema": "InputXmlCanonicalizationDecisionLedger.v1",
             "sourceHashSha256": source_hash,
@@ -161,7 +217,7 @@ class DecisionLedger:
             "status": "BLOCKED" if self.blocked else "PASS",
             "recordCount": len(self.records),
             "records": self.records,
-            "diagnostics": self.diagnostics,
+            "diagnostics": list(self.diagnostics),
         }
         if self.contract_bundle is not None:
             result["contractBundle"] = self.contract_bundle
