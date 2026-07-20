@@ -7,11 +7,16 @@ import {
 import { computeRegistrySnapshotHash } from '../registry/registry-hash.js';
 import { validateRegistrySnapshot } from '../registry/registry-validator.js';
 import { issue } from '../registry/registry-contracts.js';
+import { validateBootstrapLifecycle } from './bootstrap-lifecycle-reconciliation.js';
 
 const COVERAGE_SCOPES = new Set(['PARTIAL_LINE', 'FULL_LINE', 'FULL_ZONE']);
+const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const ACCEPTED_BUCKETS = Object.freeze([
-  ['matches', 'MATCH'], ['newNodes', 'NEW'], ['reactivated', 'REACTIVATE'],
+  { bucket: 'matches', kind: 'MATCH', outcomes: new Set(['EXACT_MATCHED', 'REGISTERED_GLOBAL_MATCHED']) },
+  { bucket: 'newNodes', kind: 'NEW', outcomes: new Set(['NO_EXACT_MATCH', 'NO_REGISTERED_MATCH']) },
+  { bucket: 'reactivated', kind: 'REACTIVATE', outcomes: new Set(['REACTIVATION_CANDIDATE']) },
 ]);
+const ALLOCATION_KINDS = Object.freeze({ MATCH: 'HISTORICAL_PRESERVE', NEW: 'NEW', REACTIVATE: 'REACTIVATION' });
 
 export async function validateBootstrapInput(input) {
   const blockers = [];
@@ -27,9 +32,18 @@ export async function validateBootstrapInput(input) {
   validateCoverage(input?.coverage, input?.seedZoneRegistry, input?.historyMatchResult, blockers);
   validateRevision(input?.revision, blockers);
   validateEvaluatedAt(input?.evaluatedAt, blockers);
+  const lifecycle = validateBootstrapLifecycle({
+    seedLineHistories: input?.seedLineHistories,
+    acceptedMatches: matches,
+    historyMatchResult: input?.historyMatchResult,
+    allocationResult: input?.allocationResult,
+    revision: input?.revision,
+    approval: input?.approval,
+  });
+  blockers.push(...lifecycle.blockers);
   return {
     root, seedHash, matchHash, allocationHash, sourceInventoryHash,
-    current, matches, allocations, blockers: sortIssues(blockers),
+    current, matches, allocations, lifecycle, blockers: sortIssues(blockers),
   };
 }
 
@@ -87,9 +101,12 @@ async function validateAllocation(result, root, seedHash, matchHash, blockers) {
 
 async function validateSourceInventory(inventory, root, blockers) {
   const errors = TOPOSOURCEINVENTORY_V1.validate(inventory);
-  if (errors.length || inventory?.validation?.status !== 'PASS') blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
-    sourceInventoryErrors: errors, status: text(inventory?.validation?.status),
-  }));
+  const sourceHash = text(inventory?.sourceIdentity?.sourceHash);
+  if (errors.length || inventory?.validation?.status !== 'PASS' || !HASH_PATTERN.test(sourceHash)) {
+    blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
+      sourceInventoryErrors: errors, status: text(inventory?.validation?.status), sourceHash,
+    }));
+  }
   validateRoot(inventory, root, 'BOOTSTRAP_HASH_CHAIN_MISMATCH', blockers);
   return computeSemanticHash(inventory || {}, 'sourceInventoryHash');
 }
@@ -110,16 +127,19 @@ function indexCurrentNodes(rows, root, blockers) {
 
 function indexAcceptedMatches(result, blockers) {
   const index = new Map();
-  for (const [bucket, kind] of ACCEPTED_BUCKETS) for (const row of result?.[bucket] || []) {
+  for (const spec of ACCEPTED_BUCKETS) for (const row of result?.[spec.bucket] || []) {
     const logicalNodeId = text(row?.logicalNodeId);
     const historyNodeId = text(row?.historyNodeId);
-    if (!logicalNodeId || (kind !== 'NEW' && !historyNodeId)) blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
-      bucket, logicalNodeId, historyNodeId,
-    }));
+    const outcome = text(row?.outcome);
+    if (!logicalNodeId || (spec.kind !== 'NEW' && !historyNodeId) || !spec.outcomes.has(outcome)) {
+      blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
+        bucket: spec.bucket, logicalNodeId, historyNodeId, outcome,
+      }));
+    }
     if (index.has(logicalNodeId)) blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
       reason: 'DUPLICATE_MATCH_DISPOSITION', logicalNodeId,
     }));
-    index.set(logicalNodeId, { kind, logicalNodeId, historyNodeId, row: structuredClone(row) });
+    index.set(logicalNodeId, { kind: spec.kind, logicalNodeId, historyNodeId, row: structuredClone(row) });
   }
   return index;
 }
@@ -141,19 +161,24 @@ function validateReconciliation(current, matches, allocations, blockers) {
   if (!sameSet(sets[0], sets[1]) || !sameSet(sets[0], sets[2])) blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
     current: [...sets[0]].sort(), matches: [...sets[1]].sort(), allocations: [...sets[2]].sort(),
   }));
-  for (const logicalNodeId of sets[0]) {
-    const node = current.get(logicalNodeId), match = matches.get(logicalNodeId), allocation = allocations.get(logicalNodeId);
-    if (!node || !match || !allocation) continue;
-    if (text(allocation.mainLineKey) !== node.mainLineKey) blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
-      logicalNodeId, field: 'mainLineKey', current: node.mainLineKey, allocation: text(allocation.mainLineKey),
-    }));
-    if (match.kind === 'NEW' && text(allocation.historyNodeId)) blockers.push(issue('BOOTSTRAP_IDENTITY_CONFLICT', {
-      logicalNodeId, reason: 'NEW_ALLOCATION_ALREADY_HAS_HISTORY_ID', historyNodeId: text(allocation.historyNodeId),
-    }));
-    if (match.kind !== 'NEW' && text(allocation.historyNodeId) !== match.historyNodeId) blockers.push(issue('BOOTSTRAP_HASH_CHAIN_MISMATCH', {
-      logicalNodeId, expectedHistoryNodeId: match.historyNodeId, allocationHistoryNodeId: text(allocation.historyNodeId),
-    }));
-  }
+  for (const logicalNodeId of sets[0]) validateReconciledRow(logicalNodeId, current, matches, allocations, blockers);
+}
+
+function validateReconciledRow(logicalNodeId, current, matches, allocations, blockers) {
+  const node = current.get(logicalNodeId), match = matches.get(logicalNodeId), allocation = allocations.get(logicalNodeId);
+  if (!node || !match || !allocation) return;
+  if (text(allocation.mainLineKey) !== node.mainLineKey) blockers.push(issue('BOOTSTRAP_RECONCILIATION_INCOMPLETE', {
+    logicalNodeId, field: 'mainLineKey', current: node.mainLineKey, allocation: text(allocation.mainLineKey),
+  }));
+  if (text(allocation.allocationKind) !== ALLOCATION_KINDS[match.kind]) blockers.push(issue('BOOTSTRAP_HASH_CHAIN_MISMATCH', {
+    logicalNodeId, field: 'allocationKind', expected: ALLOCATION_KINDS[match.kind], actual: text(allocation.allocationKind),
+  }));
+  if (match.kind === 'NEW' && text(allocation.historyNodeId)) blockers.push(issue('BOOTSTRAP_IDENTITY_CONFLICT', {
+    logicalNodeId, reason: 'NEW_ALLOCATION_ALREADY_HAS_HISTORY_ID', historyNodeId: text(allocation.historyNodeId),
+  }));
+  if (match.kind !== 'NEW' && text(allocation.historyNodeId) !== match.historyNodeId) blockers.push(issue('BOOTSTRAP_HASH_CHAIN_MISMATCH', {
+    logicalNodeId, expectedHistoryNodeId: match.historyNodeId, allocationHistoryNodeId: text(allocation.historyNodeId),
+  }));
 }
 
 function validateCoverage(coverage, registry, result, blockers) {
@@ -201,9 +226,7 @@ function validateRoot(value, root, code, blockers, evidence = {}) {
   }));
 }
 
-function registryRoot(registry) {
-  return { projectId: text(registry?.projectId), zoneId: text(registry?.zoneId) };
-}
+function registryRoot(registry) { return { projectId: text(registry?.projectId), zoneId: text(registry?.zoneId) }; }
 function upstreamSeedNotPass(input) {
   return input?.seedZoneRegistry?.validation?.status !== 'PASS'
     || input?.seedManifest?.validation?.status !== 'PASS'
