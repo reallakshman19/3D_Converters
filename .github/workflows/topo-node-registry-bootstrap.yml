@@ -1,0 +1,90 @@
+name: Topo Node Registry Bootstrap
+
+on:
+  pull_request:
+    paths:
+      - 'node-history/bootstrap/**'
+      - 'tests/node-history-registry-bootstrap.test.mjs'
+      - 'tests/fixtures/node-history/bootstrap/**'
+      - 'node-history/registry/**'
+      - 'node-history/allocation/**'
+      - 'node-history/matching/**'
+      - 'contracts/topo-enriched-xml/**'
+      - 'schemas/topo-enriched-xml/**'
+      - '.github/workflows/topo-node-registry-bootstrap.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-registry-bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate TE-012 file and function bounds
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          files = list(Path('node-history/bootstrap').glob('*.js'))
+          for path in files:
+              lines = path.read_text().splitlines()
+              assert len(lines) <= 300, f'{path}: {len(lines)} lines'
+              for start, line in enumerate(lines):
+                  match = re.match(r'(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(', line)
+                  if not match:
+                      continue
+                  depth = line.count('{') - line.count('}')
+                  end = start
+                  while depth > 0 and end + 1 < len(lines):
+                      end += 1
+                      depth += lines[end].count('{') - lines[end].count('}')
+                  assert end - start + 1 <= 40, f'{path}:{start + 1} {match.group(1)} exceeds 40 lines'
+          PY
+      - name: Syntax check TE-012 slice
+        run: |
+          node --check node-history/bootstrap/bootstrap-input-validator.js
+          node --check node-history/bootstrap/bootstrap-identity-assignments.js
+          node --check node-history/bootstrap/bootstrap-line-history-builder.js
+          node --check node-history/bootstrap/bootstrap-registry-builder.js
+          node --check node-history/bootstrap/bootstrap-result.js
+          node --check tests/fixtures/node-history/bootstrap/bootstrap-fixture.mjs
+          node --check tests/node-history-registry-bootstrap.test.mjs
+      - name: Validate committed approved JSON
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          root = Path('node-history/bootstrap/approved/PROJECT-TE012/ZONE-01')
+          expected = {
+              'bootstrap-input.json', 'bootstrap-result.json', 'zone-registry.json',
+              'manifest.json', 'registry-patch.json', 'lines/LINE-A.json', 'lines/LINE-B.json',
+          }
+          actual = {str(path.relative_to(root)) for path in root.rglob('*.json')}
+          assert actual == expected, (actual, expected)
+          for path in root.rglob('*.json'):
+              json.loads(path.read_text(encoding='utf-8'))
+          PY
+      - name: Enforce TE-012 non-goals
+        run: |
+          ! grep -Ein 'matchExactHistoricalNodes\(|matchRegisteredHistoricalNodes\(|allocateZoneEngineeringNodes\(|writeFile\(|appendFile\(|createWriteStream\(|Math\.random\(|Date\.now\(' node-history/bootstrap/*.js
+      - name: Run TE-012 registry bootstrap tests
+        run: node --test tests/node-history-registry-bootstrap.test.mjs
+      - name: Protect TE-002 frozen contracts
+        run: node --test tests/topo-enriched-xml-contracts.test.mjs
+      - name: Protect TE-005 registry foundation
+        run: |
+          node --test tests/node-history-registry-foundation.test.mjs
+          node --test tests/fixtures/node-history/registry/draft-schema-validation.test.mjs
+          node --test tests/fixtures/node-history/registry/orchestrator-regressions.test.mjs
+      - name: Protect TE-006 deterministic allocator
+        run: node --test tests/node-history-zone-allocator.test.mjs
+      - name: Protect TE-007 exact matcher
+        run: node --test tests/node-history-exact-matcher.test.mjs
+      - name: Protect TE-008 registered/global matcher
+        run: node --test tests/node-history-registered-global-matcher.test.mjs
+      - name: Protect TE-010 topology index and trace
+        run: node --test tests/topo-topology-index.test.mjs
+      - name: Protect TE-011 parity and selection
+        run: node --test tests/psi-writer-parity-v2.test.mjs
