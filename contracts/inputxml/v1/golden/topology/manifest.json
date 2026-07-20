@@ -13,6 +13,14 @@
           "differenceClassification": "INTENDED_TOPOLOGY_CORRECTION"
         },
         {
+          "caseId": "xml-builder-producer-shaped-repeated-line",
+          "category": "positive",
+          "source": "xml-builder/positive/producer-shaped-repeated-line.xml",
+          "dialectOverride": null,
+          "expectedStatus": "PASS",
+          "differenceClassification": "INTENDED_TOPOLOGY_CORRECTION"
+        },
+        {
           "caseId": "xml-builder-malformed",
           "category": "negative",
           "source": "xml-builder/negative/malformed.xml",
@@ -43,6 +51,14 @@
           "dialectOverride": null,
           "expectedBlockedAt": "PROFILE_RESOLVER_GATE",
           "differenceClassification": "ENGINEERING_CHANGE_WITH_AUTHORITY"
+        },
+        {
+          "caseId": "xml-builder-line-id-conflict",
+          "category": "adversarial",
+          "source": "xml-builder/adversarial/line-id-conflict.xml",
+          "dialectOverride": null,
+          "expectedBlockedAt": "PROFILE_RESOLVER_GATE",
+          "differenceClassification": "INTENDED_TOPOLOGY_CORRECTION"
         }
       ]
     },
@@ -74,9 +90,9 @@
           "differenceClassification": "INTENDED_ACCOUNTING_CORRECTION"
         },
         {
-          "caseId": "selectionjson-contradictory-profile",
+          "caseId": "selectionjson-contradictory-producer",
           "category": "blocked-without-candidate",
-          "source": "selectionjson/blocked-without-candidate/contradictory-profile.xml",
+          "source": "selectionjson/blocked-without-candidate/contradictory-producer.xml",
           "dialectOverride": "seljson-custom-root",
           "expectedBlockedAt": "PROFILE_INTAKE_GATE",
           "differenceClassification": "INTENDED_TOPOLOGY_CORRECTION"
