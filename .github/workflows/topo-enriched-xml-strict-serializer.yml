@@ -1,0 +1,41 @@
+name: TopoEnrichedXML Strict Serializer
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/stagedjson-to-enrichxml/psi-serialization-plan.js'
+      - 'tabs/stagedjson-to-enrichxml/psi-strict-node-projector.js'
+      - 'tabs/stagedjson-to-enrichxml/topo-enriched-xml-writer.js'
+      - 'tests/topo-enriched-xml-strict-serializer.test.mjs'
+      - 'tests/fixtures/topo-enriched-xml/strict-serializer/**'
+      - 'contracts/topo-enriched-xml/**'
+      - 'schemas/topo-enriched-xml/**'
+      - '.github/workflows/topo-enriched-xml-strict-serializer.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-strict-serializer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax check strict serializer slice
+        run: |
+          node --check tabs/stagedjson-to-enrichxml/psi-serialization-plan.js
+          node --check tabs/stagedjson-to-enrichxml/psi-strict-node-projector.js
+          node --check tabs/stagedjson-to-enrichxml/topo-enriched-xml-writer.js
+          node --check tests/topo-enriched-xml-strict-serializer.test.mjs
+      - name: Run TE-004 strict serializer tests
+        run: node --test tests/topo-enriched-xml-strict-serializer.test.mjs
+      - name: Protect TE-003 occurrence planning
+        run: node --test tests/psi-writer-occurrence-planner.test.mjs
+      - name: Protect TE-002 contract freeze
+        run: node --test tests/topo-enriched-xml-contracts.test.mjs
+      - name: Protect TE-001 characterization
+        run: node --test tests/topo-enriched-xml-current-allocation.test.mjs
+      - name: Protect current PSI writer selection
+        run: node --test tests/stagedjson-psi-writer-selection.test.mjs
+      - name: Protect current enriched XML topology
+        run: node --test tests/stagedjson-enriched-xml-topology.test.mjs
