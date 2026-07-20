@@ -1,9 +1,13 @@
 name: TE-005 Orchestrator Review
 
 on:
-  push:
-    branches:
-      - agent/te-005-registry-foundation
+  pull_request:
+    paths:
+      - 'node-history/registry/**'
+      - 'node-history/schemas/**'
+      - 'tests/node-history-registry-foundation.test.mjs'
+      - 'tests/fixtures/node-history/registry/**'
+      - '.github/workflows/te005-orchestrator-review.yml'
   workflow_dispatch:
 
 jobs:
