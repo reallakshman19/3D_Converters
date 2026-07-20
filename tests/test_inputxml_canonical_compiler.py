@@ -96,6 +96,25 @@ class CompilerTests(unittest.TestCase):
         self.assertIsNone(root)
         self.assertEqual('BLOCKED',validation['status'])
 
+    def test_multiple_active_sifs_block_unproven_writer_projection(self):
+        children = '<SIF NODE="10"/><SIF NODE="20"/>'
+        e = element(
+            'FROM_NODE="10" TO_NODE="20" DELTA_X="1" DELTA_Y="0" '
+            'DELTA_Z="0" DIAMETER="100" WALL_THICK="5" LINE_ID="L1" '
+            'PRESSURE1="1"',
+            children,
+        )
+        xml = BASE_HEAD.format(numelt=1).replace('NUMISECT="0"', 'NUMISECT="1"') + e + BASE_TAIL
+        root, ledger, validation = self.compile(xml)
+        self.assertIsNone(root)
+        self.assertEqual('PROFILE_RESOLVER_GATE', validation['blockedAt'])
+        self.assertTrue(
+            any(
+                item['code'] == 'COUNT_AUTHORITY_UNRESOLVED'
+                for item in ledger['diagnostics']
+            )
+        )
+
     def test_fragment_requires_and_uses_context(self):
         frag='<PIPINGELEMENT FROM_NODE="10" TO_NODE="20" DELTA_X="1" DELTA_Y="0" DELTA_Z="0" DIAMETER="100" WALL_THICK="5" LINE="L1"/>'
         root,_,validation=self.compile(frag,context={'version':'11.00','jobName':'F','north':[0,1,0]})
