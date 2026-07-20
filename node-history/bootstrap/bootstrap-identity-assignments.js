@@ -14,17 +14,31 @@ export async function validateApprovedIdentityAssignments({
 }) {
   const blockers = [];
   const normalized = normalizeAssignments(assignments, blockers);
-  const byLogical = new Map(), byHistory = new Map();
-  const existingHistory = new Set(flattenHistoryNodes(seedLineHistories).map((row) => text(row.historyNodeId)));
+  const byLogical = new Map(), byHistory = new Map(), assignedAliases = new Map();
+  const seedNodes = flattenHistoryNodes(seedLineHistories);
+  const existingHistory = new Set(seedNodes.map((row) => text(row.historyNodeId)));
+  const existingAliases = indexExistingAliases(seedNodes, blockers);
   for (const assignment of normalized) {
     registerUnique(byLogical, assignment.logicalNodeId, assignment, 'BOOTSTRAP_IDENTITY_ASSIGNMENT_DUPLICATE', blockers);
     registerUnique(byHistory, assignment.historyNodeId, assignment, 'BOOTSTRAP_IDENTITY_ASSIGNMENT_DUPLICATE', blockers);
     validateAssignmentEvidence(assignment, approval, blockers);
+    validateAliasOwnership(assignment, existingAliases, assignedAliases, blockers);
     if (existingHistory.has(assignment.historyNodeId)) blockers.push(issue('BOOTSTRAP_IDENTITY_CONFLICT', {
       logicalNodeId: assignment.logicalNodeId, historyNodeId: assignment.historyNodeId,
       reason: 'NEW_ASSIGNMENT_REUSES_EXISTING_HISTORY_ID',
     }));
   }
+  validateAssignmentCoverage(byLogical, acceptedMatches, blockers);
+  const assignmentHash = await sha256Canonical({ assignments: normalized });
+  return deepFreeze({
+    assignments: normalized,
+    byLogical: Object.fromEntries([...byLogical].map(([key, value]) => [key, value])),
+    assignmentHash,
+    blockers: sortIssues(blockers),
+  });
+}
+
+function validateAssignmentCoverage(byLogical, acceptedMatches, blockers) {
   for (const [logicalNodeId, match] of acceptedMatches) {
     const assignment = byLogical.get(logicalNodeId);
     if (match.kind === 'NEW' && !assignment) blockers.push(issue('BOOTSTRAP_IDENTITY_ASSIGNMENT_MISSING', { logicalNodeId }));
@@ -36,13 +50,6 @@ export async function validateApprovedIdentityAssignments({
   for (const logicalNodeId of byLogical.keys()) if (!acceptedMatches.has(logicalNodeId)) blockers.push(issue('BOOTSTRAP_IDENTITY_CONFLICT', {
     logicalNodeId, reason: 'ASSIGNMENT_HAS_NO_ACCEPTED_MATCH_DISPOSITION',
   }));
-  const assignmentHash = await sha256Canonical({ assignments: normalized });
-  return deepFreeze({
-    assignments: normalized,
-    byLogical: Object.fromEntries([...byLogical].map(([key, value]) => [key, value])),
-    assignmentHash,
-    blockers: sortIssues(blockers),
-  });
 }
 
 export function normalizeAssignments(assignments, blockers = []) {
@@ -78,9 +85,11 @@ function normalizeAliases(values, logicalNodeId, blockers) {
     blockers.push(issue('BOOTSTRAP_UNAPPROVED_ALIAS', { logicalNodeId, reason: 'SOURCE_ALIAS_REQUIRED' }));
     return [];
   }
-  const aliases = values.map(text).filter(Boolean).sort();
-  if (aliases.length !== values.length || new Set(aliases).size !== aliases.length) blockers.push(issue('BOOTSTRAP_UNAPPROVED_ALIAS', {
-    logicalNodeId, reason: 'SOURCE_ALIAS_INVALID_OR_DUPLICATE',
+  const aliases = values.map((value) => text(value).normalize('NFC')).filter(Boolean).sort();
+  const canonical = values.every((value) => typeof value === 'string'
+    && value === value.trim().normalize('NFC'));
+  if (!canonical || aliases.length !== values.length || new Set(aliases).size !== aliases.length) blockers.push(issue('BOOTSTRAP_UNAPPROVED_ALIAS', {
+    logicalNodeId, reason: 'SOURCE_ALIAS_INVALID_NONCANONICAL_OR_DUPLICATE',
   }));
   return aliases;
 }
@@ -119,6 +128,34 @@ function validateAssignmentEvidence(assignment, approval, blockers) {
       || evidence.authority !== assignment.identityAuthority) blockers.push(issue('BOOTSTRAP_IDENTITY_CONFLICT', {
       logicalNodeId: assignment.logicalNodeId, reason: 'IDENTITY_EVIDENCE_AUTHORITY_MISMATCH', evidence,
     }));
+  }
+}
+
+function indexExistingAliases(nodes, blockers) {
+  const result = new Map();
+  for (const node of nodes) for (const alias of node?.sourceAliases || []) {
+    const normalized = text(alias).normalize('NFC');
+    const owner = text(node?.historyNodeId);
+    if (!normalized) continue;
+    if (result.has(normalized) && result.get(normalized) !== owner) blockers.push(issue('BOOTSTRAP_IDENTITY_CONFLICT', {
+      alias: normalized, reason: 'SEED_ALIAS_HAS_MULTIPLE_HISTORY_OWNERS',
+    }));
+    else result.set(normalized, owner);
+  }
+  return result;
+}
+
+function validateAliasOwnership(assignment, existing, assigned, blockers) {
+  for (const alias of assignment.sourceAliases) {
+    const existingOwner = existing.get(alias), assignedOwner = assigned.get(alias);
+    if (existingOwner && existingOwner !== assignment.historyNodeId) blockers.push(issue('BOOTSTRAP_IDENTITY_CONFLICT', {
+      alias, existingHistoryNodeId: existingOwner, proposedHistoryNodeId: assignment.historyNodeId,
+      reason: 'NEW_ASSIGNMENT_REUSES_EXISTING_ALIAS',
+    }));
+    if (assignedOwner && assignedOwner !== assignment.historyNodeId) blockers.push(issue('BOOTSTRAP_IDENTITY_ASSIGNMENT_DUPLICATE', {
+      alias, historyNodeIds: [assignedOwner, assignment.historyNodeId].sort(),
+    }));
+    else assigned.set(alias, assignment.historyNodeId);
   }
 }
 
