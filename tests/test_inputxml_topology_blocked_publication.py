@@ -48,6 +48,9 @@ assured_projection = load_module(
 class TopologyBlockedPublicationTests(unittest.TestCase):
     def setUp(self):
         self.temp = Path(tempfile.mkdtemp())
+        self.policy = load_serialization_policy(
+            CONTRACTS / "compiler" / "inputxml-deterministic-serialization.json"
+        )
 
     def tearDown(self):
         shutil.rmtree(self.temp, ignore_errors=True)
@@ -98,15 +101,13 @@ class TopologyBlockedPublicationTests(unittest.TestCase):
             canonical=candidate,
             ledger=ledger,
             validation=validation,
+            policy=self.policy,
         )
         publish_result_bundle(view, self.temp)
         committed = verify_committed_bundle(self.temp, "blocked-gasket")
         self.assertEqual("BLOCKED_WITH_CANONICAL", committed["bundleKind"])
 
-        policy = load_serialization_policy(
-            CONTRACTS / "compiler" / "inputxml-deterministic-serialization.json"
-        )
-        canonical_bytes = serialize_canonical_xml(candidate, policy)
+        canonical_bytes = serialize_canonical_xml(candidate, self.policy)
         assurance = assurance_builder.build_assurance_ledger(
             canonical_xml=canonical_bytes,
             canonicalization_ledger=ledger,
