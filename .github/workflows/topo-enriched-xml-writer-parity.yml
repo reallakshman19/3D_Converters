@@ -1,0 +1,63 @@
+name: TopoEnrichedXML Writer Parity
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/stagedjson-to-enrichxml/psi-writer-parity-*.js'
+      - 'tabs/stagedjson-to-enrichxml/psi-writer-selection-v2.js'
+      - 'tests/psi-writer-parity-v2.test.mjs'
+      - 'tests/fixtures/topo-enriched-xml/parity/**'
+      - 'contracts/topo-enriched-xml/**'
+      - 'schemas/topo-enriched-xml/**'
+      - '.github/workflows/topo-enriched-xml-writer-parity.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-writer-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate TE-011 file size
+        run: |
+          for file in \
+            tabs/stagedjson-to-enrichxml/psi-writer-parity-bundle.js \
+            tabs/stagedjson-to-enrichxml/psi-writer-parity-plans.js \
+            tabs/stagedjson-to-enrichxml/psi-writer-parity-report.js \
+            tabs/stagedjson-to-enrichxml/psi-writer-parity-v2.js \
+            tabs/stagedjson-to-enrichxml/psi-writer-selection-v2.js \
+            tests/psi-writer-parity-v2.test.mjs; do
+            lines=$(wc -l < "$file")
+            echo "$file: $lines"
+            test "$lines" -le 300
+          done
+      - name: Syntax check TE-011 slice
+        run: |
+          node --check tabs/stagedjson-to-enrichxml/psi-writer-parity-bundle.js
+          node --check tabs/stagedjson-to-enrichxml/psi-writer-parity-plans.js
+          node --check tabs/stagedjson-to-enrichxml/psi-writer-parity-report.js
+          node --check tabs/stagedjson-to-enrichxml/psi-writer-parity-v2.js
+          node --check tabs/stagedjson-to-enrichxml/psi-writer-selection-v2.js
+          node --check tests/fixtures/topo-enriched-xml/parity/parity-fixture.mjs
+          node --check tests/psi-writer-parity-v2.test.mjs
+      - name: Run TE-011 exact parity and selection tests
+        run: node --test tests/psi-writer-parity-v2.test.mjs
+      - name: Protect TE-010 topology evidence
+        run: node --test tests/topo-topology-index.test.mjs
+      - name: Protect TE-007 exact matcher
+        run: node --test tests/node-history-exact-matcher.test.mjs
+      - name: Protect TE-005 registry foundation
+        run: |
+          node --test tests/node-history-registry-foundation.test.mjs
+          node --test tests/fixtures/node-history/registry/draft-schema-validation.test.mjs
+          node --test tests/fixtures/node-history/registry/orchestrator-regressions.test.mjs
+      - name: Protect TE-004 strict bundles
+        run: node --test tests/topo-enriched-xml-strict-serializer.test.mjs
+      - name: Protect TE-003 occurrence identity
+        run: node --test tests/psi-writer-occurrence-planner.test.mjs
+      - name: Protect TE-002 contract freeze
+        run: node --test tests/topo-enriched-xml-contracts.test.mjs
+      - name: Protect isolated legacy diagnostics
+        run: node --test tests/stagedjson-psi-writer-selection.test.mjs
