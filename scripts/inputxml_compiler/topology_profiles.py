@@ -9,7 +9,20 @@ from typing import Any
 from lxml import etree as ET
 
 from .base import CompileBlocked, DecisionLedger
+from .topology_diagnostics import block
 from .xml import _local, _namespace
+
+_MAX_BRANCHES = 2000
+_MAX_NODES = 100000
+_MAX_AUXILIARIES = 100000
+_ROOT_METADATA = {
+    "Producer",
+    "Profile",
+    "SourceIdentity",
+    "SelectionJsonSourceIds",
+}
+_ROOT_CHILDREN = {"Branch", *_ROOT_METADATA}
+_AUXILIARY_NAMES = {"Restraint", "CustomRestraint"}
 
 
 @dataclass(frozen=True)
@@ -55,14 +68,6 @@ TOPOLOGY_PROFILE_CONTRACTS = {
 }
 
 
-_KNOWN_ROOT_METADATA = {
-    "Producer",
-    "Profile",
-    "SourceIdentity",
-    "SelectionJsonSourceIds",
-}
-
-
 def get_topology_profile(profile_id: str) -> TopologyProfileContract:
     try:
         return TOPOLOGY_PROFILE_CONTRACTS[profile_id]
@@ -80,21 +85,21 @@ def validate_topology_profile_intake(
 ) -> None:
     profile = get_topology_profile(profile_id)
     if root is None or _namespace(root.tag) != "" or _local(root.tag) != "Root":
-        _block(
+        block(
             ledger,
             "ROOT_PROFILE_MISMATCH",
             f"{profile_id} requires one unqualified Root document.",
             "/Root[1]",
         )
     if profile.explicit_selection_required and not explicit_override:
-        _block(
+        block(
             ledger,
             "SELECTIONJSON_IDENTITY_REQUIRED",
             "SelectionJSON custom Root requires explicit registered profile selection.",
             "/Root[1]",
         )
     _validate_context(profile, context, ledger)
-    _validate_root_structure(root, profile, ledger)
+    _validate_root_shape(root, ledger)
     _validate_profile_metadata(root, profile, ledger)
     ledger.add(
         source_entity_id="/Root[1]",
@@ -120,7 +125,7 @@ def _validate_context(
     }
     undeclared = sorted(key for key in context if key not in allowed)
     if undeclared:
-        _block(
+        block(
             ledger,
             "HIDDEN_DEFAULT_PROHIBITED",
             f"Undeclared Root topology context keys are prohibited: {undeclared}.",
@@ -128,16 +133,16 @@ def _validate_context(
         )
     for key in profile.required_context:
         if key not in context or context[key] in (None, "", []):
-            _block(
+            block(
                 ledger,
                 "HIDDEN_DEFAULT_PROHIBITED",
                 f"{profile.profile_id} requires explicit context authority for {key}.",
                 f"compiler-context@{key}",
             )
-    version = str(context.get("version") or "").strip()
-    job_name = str(context.get("jobName") or "").strip()
-    if not version or not job_name:
-        _block(
+    if not str(context.get("version") or "").strip() or not str(
+        context.get("jobName") or ""
+    ).strip():
+        block(
             ledger,
             "HIDDEN_DEFAULT_PROHIBITED",
             "Version and jobName must be nonblank lexical values.",
@@ -145,7 +150,7 @@ def _validate_context(
         )
     north = context.get("north")
     if not isinstance(north, (list, tuple)) or len(north) != 3:
-        _block(
+        block(
             ledger,
             "COORDINATE_FRAME_UNRESOLVED",
             "north must be an explicit three-value vector.",
@@ -153,10 +158,15 @@ def _validate_context(
         )
     try:
         values = [Decimal(str(value)) for value in north]
-    except (InvalidOperation, ValueError) as exc:
-        raise CompileBlocked("north contains a non-decimal value.") from exc
+    except (InvalidOperation, ValueError):
+        block(
+            ledger,
+            "COORDINATE_FRAME_UNRESOLVED",
+            "north contains a non-decimal value.",
+            "compiler-context@north",
+        )
     if not all(value.is_finite() for value in values):
-        _block(
+        block(
             ledger,
             "COORDINATE_FRAME_UNRESOLVED",
             "north contains a non-finite value.",
@@ -164,7 +174,7 @@ def _validate_context(
         )
     magnitude = sum(value * value for value in values)
     if not Decimal("0.9") < magnitude < Decimal("1.1"):
-        _block(
+        block(
             ledger,
             "COORDINATE_FRAME_UNRESOLVED",
             f"north vector magnitude squared must be approximately one, got {magnitude}.",
@@ -175,10 +185,15 @@ def _validate_context(
             continue
         try:
             value = Decimal(str(context[key]))
-        except InvalidOperation as exc:
-            raise CompileBlocked(f"{key} must be a finite decimal.") from exc
+        except InvalidOperation:
+            block(
+                ledger,
+                "HIDDEN_DEFAULT_PROHIBITED",
+                f"{key} must be a finite positive decimal.",
+                f"compiler-context@{key}",
+            )
         if not value.is_finite() or value <= 0:
-            _block(
+            block(
                 ledger,
                 "HIDDEN_DEFAULT_PROHIBITED",
                 f"{key} must be a finite positive decimal.",
@@ -186,55 +201,111 @@ def _validate_context(
             )
 
 
-def _validate_root_structure(
-    root: ET._Element,
-    profile: TopologyProfileContract,
-    ledger: DecisionLedger,
-) -> None:
-    direct_branches = [
-        child
-        for child in root
-        if _namespace(child.tag) == "" and _local(child.tag) == "Branch"
-    ]
-    if not direct_branches:
-        _block(
+def _validate_root_shape(root: ET._Element, ledger: DecisionLedger) -> None:
+    if root.attrib:
+        block(
             ledger,
             "ROOT_STRUCTURE_INVALID",
-            "Root requires one or more direct unqualified Branch occurrences.",
+            "Root attributes are not declared by the strict topology profile.",
+            "/Root[1]",
+            attributes=sorted(root.attrib),
+        )
+    counts: dict[str, int] = {}
+    branches: list[ET._Element] = []
+    for child in root:
+        name = _local(child.tag)
+        counts[name] = counts.get(name, 0) + 1
+        if _namespace(child.tag) != "" or name not in _ROOT_CHILDREN:
+            block(
+                ledger,
+                "ROOT_STRUCTURE_INVALID",
+                f"Undeclared direct Root child {name!r} is prohibited.",
+                f"/Root[1]/{name}[{counts[name]}]",
+            )
+        if name in _ROOT_METADATA and counts[name] > 1:
+            block(
+                ledger,
+                "ROOT_STRUCTURE_INVALID",
+                f"Duplicate Root metadata field {name!r} is prohibited.",
+                f"/Root[1]/{name}[{counts[name]}]",
+            )
+        if name == "Branch":
+            branches.append(child)
+    if not branches or len(branches) > _MAX_BRANCHES:
+        block(
+            ledger,
+            "ROOT_STRUCTURE_INVALID",
+            f"Root branch count must be 1..{_MAX_BRANCHES}.",
             "/Root[1]",
         )
-    for element in root.iterdescendants():
-        if _namespace(element.tag) != "":
-            _block(
+    node_count = 0
+    auxiliary_count = 0
+    for branch_index, branch in enumerate(branches, 1):
+        branch_path = f"/Root[1]/Branch[{branch_index}]"
+        if branch.attrib:
+            block(
                 ledger,
                 "ROOT_STRUCTURE_INVALID",
-                "Namespace-qualified Root topology evidence is not accepted.",
-                "/Root[1]",
+                "Branch attributes are not declared by the strict topology profile.",
+                branch_path,
+                attributes=sorted(branch.attrib),
             )
-        if _local(element.tag) == "Branch" and element.getparent() is not root:
-            _block(
-                ledger,
-                "ROOT_STRUCTURE_INVALID",
-                "Branch occurrences must be direct children of Root.",
-                "/Root[1]",
-            )
-    for index, branch in enumerate(direct_branches, 1):
-        nodes = [child for child in branch if _local(child.tag) == "Node"]
+        nodes = [
+            child
+            for child in branch
+            if _namespace(child.tag) == "" and _local(child.tag) == "Node"
+        ]
         if not nodes:
-            _block(
+            block(
                 ledger,
                 "ROOT_STRUCTURE_INVALID",
-                f"Branch occurrence {index} contains no direct Node occurrences.",
-                f"/Root[1]/Branch[{index}]",
+                "Branch contains no direct Node occurrences.",
+                branch_path,
             )
-        for node in branch.iterdescendants("Node"):
-            if node.getparent() is not branch:
-                _block(
+        node_count += len(nodes)
+        for descendant in branch.iterdescendants():
+            name = _local(descendant.tag)
+            if _namespace(descendant.tag) != "":
+                block(
+                    ledger,
+                    "ROOT_STRUCTURE_INVALID",
+                    "Namespace-qualified topology evidence is prohibited.",
+                    branch_path,
+                )
+            if name == "Branch":
+                block(
+                    ledger,
+                    "ROOT_STRUCTURE_INVALID",
+                    "Branch occurrences must be direct children of Root.",
+                    branch_path,
+                )
+            if name == "Node" and descendant.getparent() is not branch:
+                block(
                     ledger,
                     "ROOT_STRUCTURE_INVALID",
                     "Node occurrences must be direct children of their Branch.",
-                    f"/Root[1]/Branch[{index}]",
+                    branch_path,
                 )
+            if name in _AUXILIARY_NAMES:
+                auxiliary_count += 1
+        for node_index, node in enumerate(nodes, 1):
+            if node.attrib:
+                block(
+                    ledger,
+                    "ROOT_STRUCTURE_INVALID",
+                    "Node attributes are not declared by the strict topology profile.",
+                    f"{branch_path}/Node[{node_index}]",
+                    attributes=sorted(node.attrib),
+                )
+    if node_count > _MAX_NODES or auxiliary_count > _MAX_AUXILIARIES:
+        block(
+            ledger,
+            "ROOT_STRUCTURE_INVALID",
+            "Root topology occurrence limits are exceeded.",
+            "/Root[1]",
+            nodeCount=node_count,
+            auxiliaryCount=auxiliary_count,
+        )
 
 
 def _validate_profile_metadata(
@@ -245,11 +316,11 @@ def _validate_profile_metadata(
     values = {
         _local(child.tag): (child.text or "").strip()
         for child in root
-        if _local(child.tag) in _KNOWN_ROOT_METADATA
+        if _local(child.tag) in _ROOT_METADATA
     }
     profile_value = values.get("Profile", "")
     if profile_value and profile_value != profile.profile_id:
-        _block(
+        block(
             ledger,
             "ROOT_PROFILE_MISMATCH",
             f"Root Profile={profile_value!r} contradicts selected {profile.profile_id!r}.",
@@ -258,22 +329,12 @@ def _validate_profile_metadata(
     if profile.profile_id == "xml-builder-root-branch-node" and values.get(
         "SelectionJsonSourceIds"
     ):
-        _block(
+        block(
             ledger,
             "ROOT_PROFILE_MISMATCH",
             "SelectionJSON producer metadata contradicts XML Builder profile selection.",
             "/Root[1]/SelectionJsonSourceIds[1]",
         )
-
-
-def _block(
-    ledger: DecisionLedger,
-    code: str,
-    message: str,
-    source_entity_id: str,
-) -> None:
-    ledger.diagnostic("BLOCKING", code, message, source_entity_id)
-    raise CompileBlocked(message)
 
 
 __all__ = [
