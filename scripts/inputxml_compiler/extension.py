@@ -1,5 +1,18 @@
 from .base import *
 from .xml import *
+
+_PR5_FAMILY_DIALECTS = {
+    "canonical-inputxml-v1",
+    "caesar-inputxml-pressure1",
+    "caesar-inputxml-pressure-c",
+    "enriched-inputxml-app",
+    "inputxml-fragment",
+    "categorized-inputxml-v3",
+    "cii14-inputxml",
+    "xml-to-cii-diagnostic-sidecar",
+}
+
+
 def _extension(scope: ET._Element, producer: str, dialect: str) -> ET._Element:
     existing = scope.find(f"{{{EXT_NS}}}Extension")
     if existing is not None:
@@ -99,6 +112,13 @@ def _preserve_attr(
         disposition=disposition,
         evidence=["preserved in explicit extension namespace"],
     )
+    _diagnose_family_blocking_evidence(
+        ledger,
+        blocking=blocking,
+        source_entity_id=f"{entity_id}@{name}",
+        evidence_kind="attribute",
+        evidence_name=name,
+    )
 
 
 def _preserve_child(target_scope: ET._Element, child: ET._Element, source_path: str, entity_id: str, ledger: DecisionLedger, *, blocking: bool) -> None:
@@ -125,7 +145,33 @@ def _preserve_child(target_scope: ET._Element, child: ET._Element, source_path: 
         disposition=disposition,
         evidence=["preserved in explicit extension namespace"],
     )
+    _diagnose_family_blocking_evidence(
+        ledger,
+        blocking=blocking,
+        source_entity_id=f"{entity_id}/{name}",
+        evidence_kind="child",
+        evidence_name=name,
+    )
 
+
+def _diagnose_family_blocking_evidence(
+    ledger: DecisionLedger,
+    *,
+    blocking: bool,
+    source_entity_id: str,
+    evidence_kind: str,
+    evidence_name: str,
+) -> None:
+    if not blocking or ledger.dialect not in _PR5_FAMILY_DIALECTS:
+        return
+    ledger.diagnostic(
+        "BLOCKING",
+        "UNSUPPORTED_ENGINEERING_FIELD",
+        f"Unmapped {evidence_kind} {evidence_name!r} is retained and blocks production.",
+        source_entity_id,
+        evidenceKind=evidence_kind,
+        evidenceName=evidence_name,
+    )
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
