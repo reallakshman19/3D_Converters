@@ -52,6 +52,7 @@ class NodeOccurrence:
 class BranchOccurrence:
     path: str
     sequence: int
+    branch_name: str
     line_identity: str
     fields: dict[str, str]
     field_paths: dict[str, str]
@@ -61,6 +62,7 @@ class BranchOccurrence:
         return {
             "sourcePath": self.path,
             "sequence": self.sequence,
+            "branchName": self.branch_name,
             "lineIdentity": self.line_identity,
             "fields": self.fields,
             "fieldPaths": self.field_paths,
