@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import Any, Callable
 
 from lxml import etree as ET
 
 from .base import (
     ELEMENT_CHILD_ORDER,
     ELEMENT_CORE_ATTRS,
+    EXT_NS,
     INHERITED_DECIMAL_FIELDS,
     INHERITED_INTEGER_FIELDS,
     KNOWN_ENRICHMENT_CHILDREN,
@@ -32,7 +33,6 @@ from .family_resolution import (
     reconcile_coordinate_delta,
 )
 from .xml import (
-    _decimal,
     _decimal_text,
     _integer_text,
     _is_sentinel,
@@ -46,6 +46,7 @@ _REQUIRED_SCOPE_SEEDS = {"DIAMETER", "WALL_THICK"}
 _COORDINATE_FIELDS = (
     "FROM_X", "FROM_Y", "FROM_Z", "TO_X", "TO_Y", "TO_Z"
 )
+FieldResolver = Callable[[str], tuple[str | None, str | None]]
 
 
 def normalize_family_element(
@@ -61,9 +62,8 @@ def normalize_family_element(
     line_scope: LineScopeState,
     identities: IdentityRegistry,
 ) -> ET._Element:
-    source_lexical_id = source.get("ID")
     canonical_id = identities.resolve(
-        source_id=source_lexical_id,
+        source_id=source.get("ID"),
         fallback_id=f"E{index:06d}",
         ledger=ledger,
         source_entity_id=source_entity_id,
@@ -86,14 +86,23 @@ def normalize_family_element(
     _resolve_nodes(source_entity_id, target, field, ledger)
     deltas = _resolve_deltas(source_entity_id, target, field, ledger)
     line = _resolve_line(
-        source_entity_id,
-        target,
-        field,
-        profile,
-        context,
-        ledger,
+        source_entity_id, target, field, profile, context, ledger
     )
-    new_scope = line_scope.enter(line, canonical_id)
+    previous = _scope_snapshot(line_scope)
+    new_scope = line_scope.enter(
+        line,
+        canonical_id,
+        target.get("FROM_NODE") or "",
+        target.get("TO_NODE") or "",
+    )
+    if new_scope:
+        _ledger_scope_boundary(
+            source_entity_id=source_entity_id,
+            canonical_id=canonical_id,
+            current=line_scope,
+            previous=previous,
+            ledger=ledger,
+        )
     _resolve_inherited_fields(
         source_entity_id=source_entity_id,
         target=target,
@@ -137,6 +146,9 @@ def normalize_family_element(
             "childCount": len(source),
             "lineScopeId": line_scope.scope_id,
             "lineScopeSeedElementId": line_scope.seed_element_id,
+            "lineScopeFromNode": line_scope.last_from_node,
+            "lineScopeToNode": line_scope.last_to_node,
+            "lineScopeTransitionReason": line_scope.transition_reason,
         },
         canonical_element_ids=[canonical_id],
         canonical_node_ids=[target.get("FROM_NODE"), target.get("TO_NODE")],
@@ -147,22 +159,86 @@ def normalize_family_element(
     return target
 
 
-def _resolve_nodes(source_entity_id, target, field, ledger) -> None:
+def _scope_snapshot(scope: LineScopeState) -> dict[str, str]:
+    return {
+        "scopeId": scope.scope_id,
+        "lineIdentity": scope.line_identity,
+        "lastElementId": scope.last_element_id,
+        "lastToNode": scope.last_to_node,
+    }
+
+
+def _ledger_scope_boundary(
+    *,
+    source_entity_id: str,
+    canonical_id: str,
+    current: LineScopeState,
+    previous: dict[str, str],
+    ledger: DecisionLedger,
+) -> None:
+    ledger.add(
+        source_entity_id=f"{source_entity_id}/line-scope",
+        source_type="LINE_SCOPE_BOUNDARY",
+        source_fields={
+            "previous": previous,
+            "scopeId": current.scope_id,
+            "lineIdentity": current.line_identity,
+            "seedElementId": current.seed_element_id,
+            "fromNode": current.last_from_node,
+            "toNode": current.last_to_node,
+            "transitionReason": current.transition_reason,
+        },
+        canonical_element_ids=[canonical_id],
+        inputxml_element_ids=[canonical_id],
+        projection_cardinality="1_TO_0",
+        disposition="PRESERVE_EXTENSION",
+        evidence=[
+            "inheritance scope begins only when line identity and endpoint continuity are explicitly established"
+        ],
+    )
+
+
+def _resolve_nodes(
+    source_entity_id: str,
+    target: ET._Element,
+    field: FieldResolver,
+    ledger: DecisionLedger,
+) -> None:
     for name in ("FROM_NODE", "TO_NODE"):
         raw, _ = field(name)
         if raw is None:
-            _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} missing required {name}.", source_entity_id)
+            _block(
+                ledger,
+                "UNSUPPORTED_ENGINEERING_FIELD",
+                f"{source_entity_id} missing required {name}.",
+                source_entity_id,
+            )
         target.set(name, _integer_text(raw, f"PIPINGELEMENT@{name}", positive=True))
     if target.get("FROM_NODE") == target.get("TO_NODE"):
-        _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} has identical FROM_NODE and TO_NODE.", source_entity_id)
+        _block(
+            ledger,
+            "UNSUPPORTED_ENGINEERING_FIELD",
+            f"{source_entity_id} has identical FROM_NODE and TO_NODE.",
+            source_entity_id,
+        )
 
 
-def _resolve_deltas(source_entity_id, target, field, ledger) -> dict[str, str]:
+def _resolve_deltas(
+    source_entity_id: str,
+    target: ET._Element,
+    field: FieldResolver,
+    ledger: DecisionLedger,
+) -> dict[str, str]:
     deltas: dict[str, str] = {}
     for name in ("DELTA_X", "DELTA_Y", "DELTA_Z"):
         raw, _ = field(name)
         if raw is None:
-            _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} missing required {name}.", source_entity_id)
+            _block(
+                ledger,
+                "UNSUPPORTED_ENGINEERING_FIELD",
+                f"{source_entity_id} missing required {name}.",
+                source_entity_id,
+            )
         if _is_sentinel(raw):
             _block(
                 ledger,
@@ -174,17 +250,22 @@ def _resolve_deltas(source_entity_id, target, field, ledger) -> dict[str, str]:
         target.set(name, value)
         deltas[name] = value
     if all(Decimal(deltas[name]) == 0 for name in deltas):
-        _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} resolves to zero-length geometry.", source_entity_id)
+        _block(
+            ledger,
+            "UNSUPPORTED_ENGINEERING_FIELD",
+            f"{source_entity_id} resolves to zero-length geometry.",
+            source_entity_id,
+        )
     return deltas
 
 
 def _resolve_line(
-    source_entity_id,
-    target,
-    field,
-    profile,
-    context,
-    ledger,
+    source_entity_id: str,
+    target: ET._Element,
+    field: FieldResolver,
+    profile: FamilyProfileContract,
+    context: dict[str, Any],
+    ledger: DecisionLedger,
 ) -> str:
     raw, _ = field("LINE")
     if raw is None and "defaultLine" in profile.permitted_context:
@@ -198,7 +279,12 @@ def _resolve_line(
             )
     line = str(raw or "").strip()
     if not line:
-        _block(ledger, "CONTEXT_AUTHORITY_MISSING", f"{source_entity_id} has no authoritative line identity.", source_entity_id)
+        _block(
+            ledger,
+            "CONTEXT_AUTHORITY_MISSING",
+            f"{source_entity_id} has no authoritative line identity.",
+            source_entity_id,
+        )
     target.set("LINE", line)
     return line
 
@@ -207,7 +293,7 @@ def _resolve_inherited_fields(
     *,
     source_entity_id: str,
     target: ET._Element,
-    field,
+    field: FieldResolver,
     line_scope: LineScopeState,
     new_scope: bool,
     ledger: DecisionLedger,
@@ -242,15 +328,15 @@ def _resolve_inherited_fields(
 
 def _resolve_inherited_value(
     *,
-    source_entity_id,
-    target,
-    name,
-    raw,
-    raw_name,
-    integer,
-    line_scope,
-    new_scope,
-    ledger,
+    source_entity_id: str,
+    target: ET._Element,
+    name: str,
+    raw: str | None,
+    raw_name: str | None,
+    integer: bool,
+    line_scope: LineScopeState,
+    new_scope: bool,
+    ledger: DecisionLedger,
 ) -> None:
     explicit = raw is not None and not _is_sentinel(raw)
     if explicit:
@@ -261,7 +347,7 @@ def _resolve_inherited_value(
         )
         _validate_inherited_value(source_entity_id, name, value, ledger)
         target.set(name, value)
-        line_scope.define(name, value, target.get("ID"))
+        line_scope.define(name, value, target.get("ID") or "")
         return
     inherited = line_scope.inherit(name)
     if inherited is not None:
@@ -275,12 +361,15 @@ def _resolve_inherited_value(
                 "scopeId": line_scope.scope_id,
                 "lineIdentity": line_scope.line_identity,
                 "seedElementId": line_scope.seed_element_id,
+                "previousElementId": line_scope.previous_scope_id,
             },
             canonical_element_ids=[target.get("ID")],
             inputxml_element_ids=[target.get("ID")],
             cii_section="ELEMENTS",
             disposition="EMIT_1_TO_1",
-            evidence=["inherited only within the current contiguous line scope"],
+            evidence=[
+                "inherited only within the current line scope whose previous TO_NODE equals this FROM_NODE"
+            ],
         )
         return
     if name in _REQUIRED_SCOPE_SEEDS:
@@ -293,22 +382,42 @@ def _resolve_inherited_value(
         )
 
 
-def _validate_inherited_value(source_entity_id, name, value, ledger) -> None:
+def _validate_inherited_value(
+    source_entity_id: str,
+    name: str,
+    value: str,
+    ledger: DecisionLedger,
+) -> None:
     number = Decimal(value)
     if name == "DIAMETER" and number <= 0:
-        _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} DIAMETER must be positive.", source_entity_id)
+        _block(
+            ledger,
+            "UNSUPPORTED_ENGINEERING_FIELD",
+            f"{source_entity_id} DIAMETER must be positive.",
+            source_entity_id,
+        )
     if name in {"WALL_THICK", "INSUL_THICK", "CORR_ALLOW"} and number < 0:
-        _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} {name} cannot be negative.", source_entity_id)
+        _block(
+            ledger,
+            "UNSUPPORTED_ENGINEERING_FIELD",
+            f"{source_entity_id} {name} cannot be negative.",
+            source_entity_id,
+        )
 
 
-def _resolve_names(target, field) -> None:
+def _resolve_names(target: ET._Element, field: FieldResolver) -> None:
     for name in ("FROM_NAME", "TO_NAME"):
         raw, _ = field(name)
         if raw is not None:
             target.set(name, raw.strip())
 
 
-def _resolve_coordinates(source_entity_id, target, field, ledger) -> dict[str, str]:
+def _resolve_coordinates(
+    source_entity_id: str,
+    target: ET._Element,
+    field: FieldResolver,
+    ledger: DecisionLedger,
+) -> dict[str, str]:
     values: dict[str, str] = {}
     present: list[str] = []
     for name in _COORDINATE_FIELDS:
@@ -317,10 +426,20 @@ def _resolve_coordinates(source_entity_id, target, field, ledger) -> dict[str, s
             continue
         present.append(name)
         if _is_sentinel(raw):
-            _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} coordinate {name} cannot use the missing sentinel.", f"{source_entity_id}@{name}")
+            _block(
+                ledger,
+                "UNSUPPORTED_ENGINEERING_FIELD",
+                f"{source_entity_id} coordinate {name} cannot use the missing sentinel.",
+                f"{source_entity_id}@{name}",
+            )
         values[name] = _decimal_text(raw, f"PIPINGELEMENT@{name}")
     if present and len(present) != 6:
-        _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} has a partial endpoint coordinate sextet.", source_entity_id)
+        _block(
+            ledger,
+            "UNSUPPORTED_ENGINEERING_FIELD",
+            f"{source_entity_id} has a partial endpoint coordinate sextet.",
+            source_entity_id,
+        )
     for name, value in values.items():
         target.set(name, value)
     return values
@@ -328,18 +447,26 @@ def _resolve_coordinates(source_entity_id, target, field, ledger) -> dict[str, s
 
 def _preserve_element_attributes(
     *,
-    source,
-    target,
-    source_entity_id,
-    canonical_id,
-    aliases,
-    ledger,
+    source: ET._Element,
+    target: ET._Element,
+    source_entity_id: str,
+    canonical_id: str,
+    aliases: dict[str, str],
+    ledger: DecisionLedger,
 ) -> None:
     alias_names = set(aliases)
     for attr, value in source.attrib.items():
         if attr == "ID":
             if value != canonical_id:
-                _preserve_attr(target, ledger.source_path, source_entity_id, "SOURCE_ID", value, ledger, blocking=False)
+                _preserve_attr(
+                    target,
+                    ledger.source_path,
+                    source_entity_id,
+                    "SOURCE_ID",
+                    value,
+                    ledger,
+                    blocking=False,
+                )
             continue
         if attr in ELEMENT_CORE_ATTRS or attr in alias_names:
             continue
@@ -356,27 +483,31 @@ def _preserve_element_attributes(
 
 def _resolve_children(
     *,
-    source,
-    target,
-    source_entity_id,
-    canonical_id,
-    profile,
-    ledger,
+    source: ET._Element,
+    target: ET._Element,
+    source_entity_id: str,
+    canonical_id: str,
+    profile: FamilyProfileContract,
+    ledger: DecisionLedger,
 ) -> None:
-    grouped: dict[str, list[tuple[int, ET._Element]]] = {
+    grouped: dict[str, list[ET._Element]] = {
         name: [] for name in ELEMENT_CHILD_ORDER
     }
-    for ordinal, child in enumerate(source, 1):
+    for child in source:
         name = _local(child.tag)
-        ns = _namespace(child.tag)
-        if ns == "" and name in grouped:
-            grouped[name].append((ordinal, child))
+        if _namespace(child.tag) == "" and name in grouped:
+            grouped[name].append(child)
     limits = {"BEND": 1, "RIGID": 1, "SIF": 2, "RESTRAINT": 6}
     for name, limit in limits.items():
         if len(grouped[name]) > limit:
-            _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} contains {len(grouped[name])} {name} records; limit is {limit}.", source_entity_id)
+            _block(
+                ledger,
+                "UNSUPPORTED_ENGINEERING_FIELD",
+                f"{source_entity_id} contains {len(grouped[name])} {name} records; limit is {limit}.",
+                source_entity_id,
+            )
     for name in sorted(ELEMENT_CHILD_ORDER, key=ELEMENT_CHILD_ORDER.get):
-        for occurrence, (ordinal, child) in enumerate(grouped[name], 1):
+        for occurrence, child in enumerate(grouped[name], 1):
             normalize_family_auxiliary(
                 child,
                 target=target,
@@ -385,68 +516,118 @@ def _resolve_children(
                 ledger=ledger,
             )
     extension_seen = False
+    unknown_counts: dict[tuple[str, str], int] = {}
     for child in source:
         name = _local(child.tag)
-        ns = _namespace(child.tag)
-        if ns and name == "Extension":
+        namespace = _namespace(child.tag)
+        if namespace == EXT_NS and name == "Extension":
             if not extension_seen:
                 _copy_existing_extension(source, target, ledger, source_entity_id)
                 extension_seen = True
             continue
-        if ns == "" and name in ELEMENT_CHILD_ORDER:
+        if namespace == "" and name in ELEMENT_CHILD_ORDER:
             continue
-        if ns == "" and name in KNOWN_ENRICHMENT_CHILDREN and profile.allow_enrichment_evidence:
-            _preserve_child(target, child, ledger.source_path, source_entity_id, ledger, blocking=False)
+        key = (namespace, name)
+        unknown_counts[key] = unknown_counts.get(key, 0) + 1
+        evidence_owner = (
+            f"{source_entity_id}/{name}[{unknown_counts[key]}]"
+        )
+        if (
+            namespace == ""
+            and name in KNOWN_ENRICHMENT_CHILDREN
+            and profile.allow_enrichment_evidence
+        ):
+            _preserve_child(
+                target,
+                child,
+                ledger.source_path,
+                evidence_owner,
+                ledger,
+                blocking=False,
+            )
         else:
-            _preserve_child(target, child, ledger.source_path, source_entity_id, ledger, blocking=True)
+            _preserve_child(
+                target,
+                child,
+                ledger.source_path,
+                evidence_owner,
+                ledger,
+                blocking=True,
+            )
             ledger.diagnostic(
                 "BLOCKING",
                 "UNSUPPORTED_ENGINEERING_FIELD",
                 f"Unknown or unsupported child {name!r} is retained and blocks production.",
-                f"{source_entity_id}/{name}",
+                evidence_owner,
             )
 
 
-def _validate_auxiliary_ownership(target, canonical_id, ledger) -> None:
+def _validate_auxiliary_ownership(
+    target: ET._Element,
+    canonical_id: str,
+    ledger: DecisionLedger,
+) -> None:
     owned = {target.get("FROM_NODE"), target.get("TO_NODE")}
     for child in target:
         if _namespace(child.tag) != "":
             continue
         name = _local(child.tag)
         if name in {"RESTRAINT", "SIF", "HANGER"} and child.get("NODE") not in owned:
-            _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{canonical_id}/{name} NODE {child.get('NODE')} is not owned by element endpoints {sorted(owned)}.", canonical_id)
+            _block(
+                ledger,
+                "UNSUPPORTED_ENGINEERING_FIELD",
+                f"{canonical_id}/{name} NODE {child.get('NODE')} is not owned by element endpoints {sorted(owned)}.",
+                canonical_id,
+            )
     slots = [child.get("NUM") for child in target.findall("RESTRAINT")]
     if len(slots) != len(set(slots)):
-        _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{canonical_id} has duplicate RESTRAINT NUM slots.", canonical_id)
+        _block(
+            ledger,
+            "UNSUPPORTED_ENGINEERING_FIELD",
+            f"{canonical_id} has duplicate RESTRAINT NUM slots.",
+            canonical_id,
+        )
 
 
-def _assert_no_canonical_sentinel(target, source_entity_id, ledger) -> None:
-    for attr, value in target.attrib.items():
-        if _is_sentinel(value):
-            _block(ledger, "GEOMETRY_SENTINEL_PROHIBITED", f"Canonical field {attr} retains the missing sentinel.", f"{source_entity_id}@{attr}")
+def _assert_no_canonical_sentinel(
+    target: ET._Element,
+    source_entity_id: str,
+    ledger: DecisionLedger,
+) -> None:
+    for element in target.iter():
+        if _namespace(element.tag) == EXT_NS:
+            continue
+        for attr, value in element.attrib.items():
+            if _is_sentinel(value):
+                _block(
+                    ledger,
+                    "GEOMETRY_SENTINEL_PROHIBITED",
+                    f"Canonical field {_local(element.tag)}@{attr} retains the missing sentinel.",
+                    f"{source_entity_id}/{_local(element.tag)}@{attr}",
+                )
 
 
 def _resolve_source_field(
-    source,
+    source: ET._Element,
     *,
-    canonical,
-    aliases,
-    ledger,
-    source_entity_id,
-    canonical_id,
-    canonical_path,
-):
-    candidate_names = [canonical] + [
+    canonical: str,
+    aliases: dict[str, str],
+    ledger: DecisionLedger,
+    source_entity_id: str,
+    canonical_id: str,
+    canonical_path: str,
+) -> tuple[str | None, str | None]:
+    names = [canonical] + [
         alias for alias, target in aliases.items() if target == canonical
     ]
-    present = [(name, source.get(name)) for name in candidate_names if source.get(name) is not None]
+    present = [(name, source.get(name)) for name in names if source.get(name) is not None]
     if not present:
         return None, None
     chosen_name, chosen_value = next(
         ((name, value) for name, value in present if name == canonical),
         present[0],
     )
-    for name, value in present:
+    for _, value in present:
         equivalent = (
             str(chosen_value or "").strip() == str(value or "").strip()
             if canonical in _TEXT_FIELDS
@@ -460,7 +641,12 @@ def _resolve_source_field(
                 disposition="REJECT_INVALID",
                 diagnostics=[f"Alias collision for {canonical}"],
             )
-            _block(ledger, "ALIAS_VALUE_CONFLICT", f"Alias values conflict for {source_entity_id}/{canonical}.", f"{source_entity_id}@{canonical}")
+            _block(
+                ledger,
+                "ALIAS_VALUE_CONFLICT",
+                f"Alias values conflict for {source_entity_id}/{canonical}.",
+                f"{source_entity_id}@{canonical}",
+            )
     if len(present) > 1:
         ledger.add(
             source_entity_id=f"{source_entity_id}@{canonical}:equivalence",
@@ -469,7 +655,9 @@ def _resolve_source_field(
             canonical_element_ids=[canonical_id],
             inputxml_element_ids=[canonical_id],
             disposition="EMIT_1_TO_1",
-            evidence=["all registered source spellings are type-equivalent; one canonical field emitted"],
+            evidence=[
+                "all registered source spellings are type-equivalent; one canonical field emitted"
+            ],
         )
     if chosen_name != canonical:
         ledger.add(
@@ -489,7 +677,12 @@ def _resolve_source_field(
     return chosen_value, chosen_name
 
 
-def _block(ledger, code, message, source_entity_id) -> None:
+def _block(
+    ledger: DecisionLedger,
+    code: str,
+    message: str,
+    source_entity_id: str,
+) -> None:
     ledger.diagnostic("BLOCKING", code, message, source_entity_id)
     raise CompileBlocked(message)
 
