@@ -1,415 +1,327 @@
 # PR-6 Root/SelectionJSON Implementation Evidence
 
-## C-01 — Generic Root profile
+Every material claim uses the required eight-field schema. The PR #225 review corrections are included as amended claims.
 
-Claim: A valid generic unqualified `Root/Branch/Node` document resolves only as `xml-builder-root-branch-node` unless SelectionJSON is explicitly selected.
+## C-01 — Generic Root selection
 
-Classification: REPOSITORY-CONTRACT.
-
-Authority: Dialect registry, compiler adapter registry and ADR-005.
-
-Version: InputXML contract bundle v1 / PR-6.
-
-Location: `xml.py`, `topology_profiles.py`.
-
-Applicability: Generic Root intake.
-
-Confidence: HIGH.
-
-Action: Block incompatible override or contradictory producer metadata.
-
-## C-02 — SelectionJSON identity
-
-Claim: SelectionJSON custom Root identity is explicit and cannot be inferred from filename, path, prefixes or component references.
-
-Classification: GOVERNING-POLICY.
-
-Authority: PR-6 Work Pack and ADR-005.
-
-Version: PR-6.
-
-Location: `topology_profiles.py`, SelectionJSON profile tests and corpus.
-
-Applicability: `seljson-custom-root`.
-
-Confidence: HIGH.
-
-Action: Require explicit registered dialect selection; default the same bytes to XML Builder.
-
-## C-03 — XML parser boundary
-
-Claim: The Node bridge receives no raw XML and performs no XML parsing.
-
-Classification: SECURITY-CONTRACT.
-
-Authority: ADR-001 media boundary and PR-6 parser requirements.
-
-Version: `InputXmlTopologyBridgeRequest.v1`.
-
-Location: `compiler.py`, `xml.py`, `node_xml_builder_bridge.cjs`.
-
-Applicability: Both PR-6 profiles.
-
-Confidence: HIGH.
-
-Action: Reject malformed XML, DTDs and entity declarations before bridge invocation.
-
-## C-04 — Branch occurrence identity
-
-Claim: Exact source path identifies a branch occurrence; line text is a separate engineering attribute.
+Claim: A valid unqualified Root resolves only as XML Builder unless SelectionJSON is explicitly selected.
 
 Classification: REPOSITORY-CONTRACT.
 
-Authority: Root producer shape and source occurrence model.
-
-Version: `TopologySourceDocument` v1.
-
-Location: `topology_source.py`.
-
-Applicability: Both PR-6 profiles.
-
-Confidence: HIGH.
-
-Action: Block nested Branch evidence, line conflicts and ungrounded repeated line identity.
-
-## C-05 — Node occurrence identity
-
-Claim: Exact source path identifies a node occurrence and a positive integer-like `NodeNumber` supplies canonical node identity.
-
-Classification: REPOSITORY-CONTRACT.
-
-Authority: Root producer model and canonical XSD.
-
-Version: PR-6 source model v1.
-
-Location: `topology_source.py`.
-
-Applicability: Every source Node.
-
-Confidence: HIGH.
-
-Action: Block missing, invalid, duplicate or silently overwritten node numbers.
-
-## C-06 — Duplicate node-number scope
-
-Claim: The accepted Root source does not authorize a deterministic document-global disambiguator for repeated branch-local node numbers.
-
-Classification: UNRESOLVED-AUTHORITY.
-
-Authority: Producer nesting contrasted with canonical global numeric node namespace.
+Authority: dialect registry, adapter registry, ADR-005.
 
 Version: PR-6.
 
-Location: `topology_source.py`, `strict_root_topology.cjs`.
+Location: `topology_profiles.py; xml.py`.
 
-Applicability: Cross-branch duplicate NodeNumber evidence.
-
-Confidence: HIGH that invented offsets are unsafe.
-
-Action: Fail closed with `DUPLICATE_NODE_NUMBER`.
-
-## C-07 — Ordered adjacency
-
-Claim: Consecutive direct Node children establish route adjacency only under the registered Root producer sequence contract.
-
-Classification: REPOSITORY-CONTRACT.
-
-Authority: XML Builder serialization and focused route fixtures.
-
-Version: `DIRECT_NODE_CHILD_ORDER_REGISTERED_PRODUCER_V1`.
-
-Location: bridge request and `strict_root_topology.cjs`.
-
-Applicability: Within one accepted Branch occurrence.
-
-Confidence: MEDIUM-HIGH.
-
-Action: Cite exact adjacent source paths; block invalid intermediates rather than connecting around them.
-
-## C-08 — Coordinates do not connect
-
-Claim: Equal or near coordinates do not create or merge logical nodes, edges, branches or junctions.
-
-Classification: GOVERNING-POLICY.
-
-Authority: PR-6 Work Pack and ADR-005.
-
-Version: PR-6.
-
-Location: strict engine design and prohibited-operation tests.
-
-Applicability: All source positions.
+Applicability: both profiles.
 
 Confidence: HIGH.
 
-Action: Use positions only for exact geometry and mismatch evidence.
+Action: Reject incompatible override and never infer from filename.
 
-## C-09 — Cross-branch junctions
+## C-02 — SelectionJSON producer identity
 
-Claim: Generic Root component classification does not prove Tee/Olet run and branch ports.
-
-Classification: UNRESOLVED-AUTHORITY.
-
-Authority: Component catalog and absence of source-port relationships.
-
-Version: PR-6.
-
-Location: `topology_components.py`.
-
-Applicability: TEE, OLET and BRAN occurrences.
-
-Confidence: HIGH that synthesis is unsafe.
-
-Action: Preserve full source and block with structured junction/SIF diagnostics.
-
-## C-10 — Coordinate transform
-
-Claim: Source positions are millimetres transformed by `(x,y,z) → (x,z,-y)` into the CAESAR frame.
-
-Classification: PROJECT-ENGINEERING-CONTRACT.
-
-Authority: Existing producer/browser transform and repository fixtures.
-
-Version: `ROOT_XYZ_MM` to `CAESAR_X_Z_NEGATIVE_Y_MM`, matrix v1.
-
-Location: `topology_engineering.py` and ADR-005.
-
-Applicability: Both PR-6 profiles.
-
-Confidence: MEDIUM-HIGH.
-
-Action: Retain raw source values, emit exact transformed endpoints/deltas and block unsupported units.
-
-## C-11 — Geometry sentinel prohibition
-
-Claim: A true zero is `0`; missing or unresolved geometry is never represented internally or canonically by `-1.0101`.
-
-Classification: CANONICAL-CONTRACT.
-
-Authority: Field catalog, ADR-004 and PR-6 Work Pack.
-
-Version: Canonical InputXML v1.
-
-Location: `topology_engineering.py`.
-
-Applicability: Every emitted edge.
-
-Confidence: HIGH.
-
-Action: Block missing/nonfinite positions and preserve all nonzero decimal components exactly.
-
-## C-12 — Filler and coalescing prohibition
-
-Claim: The strict engine contains no duplicate-coordinate coalescing, filler, ray, midspan split, synthetic-node or invalid-node-drop implementation.
-
-Classification: IMPLEMENTATION-INVARIANT.
-
-Authority: PR-6 Work Pack and strict engine source.
-
-Version: `strict-root-topology-engine` 1.0.0.
-
-Location: `strict_root_topology.cjs`, `topology_bridge.py`.
-
-Applicability: Both profiles.
-
-Confidence: HIGH.
-
-Action: Require all prohibited-operation metrics to equal zero and test attempts to enable them.
-
-## C-13 — Hidden context defaults
-
-Claim: Version, jobName and north require explicit profile context; output-affecting unit scales require explicit finite positive context.
+Claim: When Producer exists for SelectionJSON it must equal selectionjson-transfer-v1; producer and Profile contradictions are independent.
 
 Classification: PROFILE-CONTRACT.
 
-Authority: ADR-005 and PR-6 Work Pack.
+Authority: SelectionJSON producer fixture and PR #225 review.
 
-Version: PR-6 profile descriptors.
+Version: PR-6 amended.
 
-Location: `topology_profiles.py`, `topology_engineering.py`, `topology_components.py`.
+Location: `topology_profiles.py; SelectionJSON tests/corpus`.
 
-Applicability: Both profiles.
-
-Confidence: HIGH.
-
-Action: Block missing or undeclared context; ledger every accepted context-derived value.
-
-## C-14 — Branch state
-
-Claim: Diameter, wall thickness and material require seeds and may carry only inside the exact branch occurrence.
-
-Classification: CONSERVATIVE-PROFILE-POLICY.
-
-Authority: Root producer fields and canonical required engineering fields.
-
-Version: PR-6.
-
-Location: `topology_engineering.py`.
-
-Applicability: Every accepted branch.
-
-Confidence: MEDIUM-HIGH.
-
-Action: Block missing seeds and prohibit state carry keyed only by textual line identity.
-
-## C-15 — Rigid and bend evidence
-
-Claim: RIGID requires explicit weight plus explicit scale; BEND/ELBO requires an explicit positive radius.
-
-Classification: COMPONENT-CONTRACT.
-
-Authority: Component catalog, canonical XSD and unchanged writer behavior.
-
-Version: Canonical InputXML v1 / PR-6 strict profile.
-
-Location: `topology_components.py`.
-
-Applicability: RIGID, ELBO and BEND source evidence.
+Applicability: seljson-custom-root.
 
 Confidence: HIGH.
 
-Action: Block missing unit/radius authority; never emit compatibility sentinel/default values.
+Action: Block contradictory producer at PROFILE_INTAKE_GATE.
 
-## C-16 — Unsupported components
+## C-03 — Parser boundary
 
-Claim: Valve, flange, reducer and gasket classification can be preserved on a meaningful route candidate but does not authorize a canonical engineering component projection.
-
-Classification: KNOWN-UNSUPPORTED-ENGINEERING.
-
-Authority: Component catalog and incomplete canonical component representation.
-
-Version: PR-6.
-
-Location: `topology_components.py`, `topology_candidate_policy.py`.
-
-Applicability: VALV/VALVE/FLAN/FLANGE/REDU/REDUCER/GASK/GASKET.
-
-Confidence: HIGH.
-
-Action: Retain evidence with `DEFER_EXPLICITLY`, keep the candidate blocked and terminate at `LEDGER_GATE`.
-
-## C-17 — Restraint ownership
-
-Claim: Each restraint belongs to its containing source node and that node's bridge-verified incident canonical element.
-
-Classification: REPOSITORY-CONTRACT.
-
-Authority: Root nesting, canonical restraint node contract and producer behavior.
-
-Version: PR-6.
-
-Location: bridge auxiliary mappings and `topology_components.py`.
-
-Applicability: Restraint and CustomRestraint occurrences.
-
-Confidence: HIGH.
-
-Action: Require explicit type/cosines, block unresolved ownership, and block above six before emission.
-
-## C-18 — No auxiliary padding
-
-Claim: The strict path emits only active source auxiliaries and no inactive SIF or restraint padding slots.
-
-Classification: IMPLEMENTATION-INVARIANT.
-
-Authority: PR-6 Work Pack and canonical cardinality contracts.
-
-Version: PR-6.
-
-Location: `topology_components.py` and tests.
-
-Applicability: SIF and restraint projection.
-
-Confidence: HIGH.
-
-Action: Emit one record per accepted source occurrence; block unsupported SIF authority and overflow.
-
-## C-19 — Bridge integrity
-
-Claim: Bridge output is untrusted until Python verifies strict JSON, exact identity/hash, complete mappings, zero prohibited metrics and topology hash.
+Claim: Node receives versioned JSON only; malformed XML, DTDs, entities and non-UTF-8 Root block before topology resolution.
 
 Classification: SECURITY-CONTRACT.
 
-Authority: PR-6 Work Pack.
+Authority: ADR-001 and secure lxml parser configuration.
 
-Version: request/result v1.
+Version: InputXmlTopologyBridgeRequest.v1.
 
-Location: `topology_bridge.py` and bridge tamper tests.
+Location: `xml.py; topology_bridge_io.py`.
 
-Applicability: Every bridge invocation.
+Applicability: both profiles.
 
 Confidence: HIGH.
 
-Action: Block duplicate keys, trailing output, tampering, missing/duplicate mappings and contradictory result status.
+Action: No handwritten XML parser or recovery.
 
-## C-20 — Source-accounting proof
+## C-04 — Branch occurrence identity
 
-Claim: `sourceAccountingStatus=COMPLETE` is valid only when source occurrence, topology mapping and canonical mapping invariants all equal zero.
+Claim: A branch occurrence is identified by its exact source path; Branchname is separate display/path evidence.
+
+Classification: REPOSITORY-CONTRACT.
+
+Authority: real-shaped XML Builder producer fixture.
+
+Version: PR-6 amended.
+
+Location: `topology_source.py; topology_source_model.py`.
+
+Applicability: both profiles.
+
+Confidence: HIGH.
+
+Action: Preserve Branchname without using it as line identity.
+
+## C-05 — Line identity multiplicity
+
+Claim: LineNo or compatible LINE_ID is line identity; repeated line identity across branch occurrences is legal and does not merge state.
+
+Classification: REPOSITORY-CONTRACT.
+
+Authority: producer-shaped repeated-line fixture and review finding.
+
+Version: PR-6 amended.
+
+Location: `topology_source.py; topology_engineering.py`.
+
+Applicability: both profiles.
+
+Confidence: HIGH.
+
+Action: Block only missing or conflicting LineNo/LINE_ID.
+
+## C-06 — Node identity
+
+Claim: Source path identifies occurrence; positive integer NodeNumber identifies canonical node and duplicate numbers block.
+
+Classification: CANONICAL-CONTRACT.
+
+Authority: canonical XSD and writer global numeric namespace.
+
+Version: PR-6.
+
+Location: `topology_source.py; strict_root_topology.cjs`.
+
+Applicability: both profiles.
+
+Confidence: HIGH.
+
+Action: Never overwrite or coordinate-merge nodes.
+
+## C-07 — Adjacency authority
+
+Claim: Consecutive direct Node children define adjacency only under the registered producer order contract.
+
+Classification: REPOSITORY-CONTRACT.
+
+Authority: producer serialization and route fixtures.
+
+Version: DIRECT_NODE_CHILD_ORDER_REGISTERED_PRODUCER_V1.
+
+Location: `strict_root_topology.cjs; topology_bridge_relations.py`.
+
+Applicability: accepted branches.
+
+Confidence: MEDIUM-HIGH.
+
+Action: Block invalid intermediate evidence; never connect around it.
+
+## C-08 — Bridge relational completeness
+
+Claim: Python reconstructs nodes, edges and owner edges from the request and requires exact relational equality for all bridge arrays.
+
+Classification: SECURITY-CONTRACT.
+
+Authority: PR #225 review correction gate.
+
+Version: InputXmlTopologyBridgeResult.v1.
+
+Location: `topology_bridge_relations.py`.
+
+Applicability: every bridge result.
+
+Confidence: HIGH.
+
+Action: Block omissions, duplicates, owner changes and edge/mapping mismatch.
+
+## C-09 — Bridge evidence completeness
+
+Claim: Metrics must equal both source counts and returned arrays; proof counts and independent topology hash must match.
+
+Classification: SECURITY-CONTRACT.
+
+Authority: PR #225 review correction gate.
+
+Version: InputXmlStrictTopologyProof.v1.
+
+Location: `topology_bridge_evidence.py`.
+
+Applicability: every bridge result.
+
+Confidence: HIGH.
+
+Action: A self-consistent recomputed bridge hash cannot legalize omitted evidence.
+
+## C-10 — Component coverage
+
+Claim: Every source node requires exactly one component mapping to the independently reconstructed incident edge.
 
 Classification: EVIDENCE-CONTRACT.
 
-Authority: PR-5 accounting principle and PR-6 Work Pack.
+Authority: source node component fields and ownership convention.
 
-Version: `InputXmlTopologySourceAccountingProof.v1`.
+Version: PR-6 amended.
 
-Location: `topology_accounting.py`.
+Location: `topology_bridge_relations.py; topology_components.py`.
 
-Applicability: Both profiles.
-
-Confidence: HIGH.
-
-Action: Freeze prior decisions before indexes, use `PRIOR_TRANSFORMATION_DECISION_REQUIRED`, and block incomplete proof at `SOURCE_ACCOUNTING_GATE`.
-
-## C-21 — Diagnostic policy
-
-Claim: Blocking stage and candidate behavior are selected by exact registered diagnostic code, never by substring matching.
-
-Classification: COMPILER-ORCHESTRATION-CONTRACT.
-
-Authority: ADR-001 and PR-6 Work Pack.
-
-Version: `InputXmlTopologyDiagnosticPolicy.v1`.
-
-Location: `topology_diagnostics.py`.
-
-Applicability: All PR-6 diagnostics.
+Applicability: all source nodes.
 
 Confidence: HIGH.
 
-Action: Reject unregistered bridge diagnostics and preserve existing compiler gate taxonomy.
+Action: Block missing, duplicate or wrong-owner component mappings.
 
-## C-22 — Determinism and publication
+## C-11 — Auxiliary coverage
 
-Claim: Topology resolution changes producer evidence only; deterministic serialization and crash-consistent publication authorities remain unchanged.
+Claim: Every source Restraint or CustomRestraint requires exactly one mapping to its containing node and verified owner edge.
 
-Classification: ARCHITECTURE-INVARIANT.
+Classification: EVIDENCE-CONTRACT.
 
-Authority: ADR-002 and ADR-003.
+Authority: source nesting and canonical restraint owner contract.
 
-Version: Existing publication contracts and `inputxml-deterministic-serialization-v1`.
+Version: PR-6 amended.
 
-Location: unchanged publication/serialization modules plus topology determinism tests.
+Location: `topology_bridge_relations.py; topology_restraints.py`.
 
-Applicability: Accepted and blocked PR-6 bundles.
+Applicability: all source auxiliaries.
 
 Confidence: HIGH.
 
-Action: Compare repeated processes/hash seeds on Ubuntu and Windows; do not version the serializer to hide producer nondeterminism.
+Action: Block omitted, duplicate or wrong-owner mappings.
 
-## C-23 — Writer boundary
+## C-12 — Inventory is not authority
 
-Claim: No blocked PR-6 candidate may reach the production CII writer.
+Claim: Building source inventory creates no ledger decision and cannot satisfy accounting coverage.
+
+Classification: EVIDENCE-CONTRACT.
+
+Authority: PR #225 review correction gate and PR-5 accounting principle.
+
+Version: PR-6 amended.
+
+Location: `topology_inventory.py`.
+
+Applicability: all source occurrences.
+
+Confidence: HIGH.
+
+Action: Treat inventory only as the set to reconcile.
+
+## C-13 — Semantic accounting authority
+
+Claim: Exactly one TOPOLOGY_SOURCE_DECISION per inventory identity is the sole accounting authority.
+
+Classification: EVIDENCE-CONTRACT.
+
+Authority: PRIOR_TRANSFORMATION_DECISION_REQUIRED.
+
+Version: InputXmlTopologySourceAccountingProof.v1.
+
+Location: `topology_source_decisions.py; topology_accounting.py`.
+
+Applicability: both profiles.
+
+Confidence: HIGH.
+
+Action: Block missing, duplicate or unexpected semantic decisions.
+
+## C-14 — Blanket certification exclusion
+
+Claim: Generic inventory, document projection, full-source extension and accounting-index records cannot certify source coverage.
+
+Classification: EVIDENCE-CONTRACT.
+
+Authority: PR #225 review correction gate.
+
+Version: PR-6 amended.
+
+Location: `topology_accounting.py; tamper tests`.
+
+Applicability: all source occurrences.
+
+Confidence: HIGH.
+
+Action: A deliberate exact-ID blanket record remains unaccounted.
+
+## C-15 — Coordinate authority
+
+Claim: Coordinates are geometry evidence only and transform exactly from (x,y,z) to (x,z,-y) millimetres.
+
+Classification: PROJECT-ENGINEERING-CONTRACT.
+
+Authority: producer/browser transform and fixtures.
+
+Version: ROOT_XYZ_MM v1.
+
+Location: `topology_engineering.py`.
+
+Applicability: both profiles.
+
+Confidence: MEDIUM-HIGH.
+
+Action: No tolerance, sentinel, coalescing or proximity connection.
+
+## C-16 — Synthetic topology prohibition
+
+Claim: The strict path contains no coalescing, filler, ray, midspan split, synthetic node or invalid-node repair operation.
+
+Classification: IMPLEMENTATION-INVARIANT.
+
+Authority: strict engine and prohibited metric policy.
+
+Version: strict-root-topology-engine 1.0.0.
+
+Location: `strict_root_topology.cjs; topology_bridge_evidence.py`.
+
+Applicability: both profiles.
+
+Confidence: HIGH.
+
+Action: Require every prohibited-operation metric to be zero.
+
+## C-17 — Candidate and writer gate
+
+Claim: Retained unsupported components may yield BLOCKED_WITH_CANDIDATE, but no blocked result loads the production writer.
 
 Classification: PRODUCTION-GATE-INVARIANT.
 
-Authority: ADR-001, projection wrapper and PR-6 Work Pack.
+Authority: compiler state machine and assured projection wrapper.
 
-Version: Existing compiler production gate.
+Version: existing gate contract.
 
-Location: compiler orchestration and end-to-end matrix.
+Location: `topology_candidate_policy.py; blocked publication test`.
 
-Applicability: Every blocked fixture.
+Applicability: blocked fixtures.
 
 Confidence: HIGH.
 
-Action: Require blocked evidence bundles with projection/reparse not run; keep writer unchanged.
+Action: Publish blocked evidence; keep writer uninvoked.
+
+## C-18 — Unchanged boundaries
+
+Claim: Browser topology, production writer, serialization, publication, out-of-scope profiles, migration and PR-7 remain unchanged.
+
+Classification: ARCHITECTURE-INVARIANT.
+
+Authority: Work Pack scope.
+
+Version: PR-6.
+
+Location: `PR diff and required workflows`.
+
+Applicability: repository.
+
+Confidence: HIGH.
+
+Action: Disclose no production activation; do not begin PR-7.
