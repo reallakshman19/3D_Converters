@@ -24,6 +24,10 @@ _SOURCE_ONLY_TYPES = {
     "CATEGORIZED_TRANSFER_ELEMENT",
     "CATEGORIZED_TRANSFER_BLOCK",
 }
+_EVIDENCE_IDENTITY_TYPES = {
+    "SOURCE_ACCOUNTING_INDEX",
+    "CATEGORIZED_NORMALIZED_FIELD",
+}
 _BRIDGE_DOCUMENT_TYPES = {"ROOT_BRANCH_NODE", "SELECTIONJSON_CUSTOM_ROOT"}
 _PR5_SOURCE_AUTHORITATIVE_PROFILES = {
     "canonical-inputxml-v1",
@@ -136,7 +140,6 @@ def _evidence_only_identity(record: dict[str, Any]) -> None:
 
 
 def _mark_source_only(record: dict[str, Any], reason: str) -> None:
-    _evidence_only_identity(record)
     record["projectionCardinality"] = "1_TO_0"
     record["disposition"] = "PRESERVE_EXTENSION"
     record["canonicalElementIds"] = []
@@ -184,6 +187,8 @@ def reconcile_decision_ledger(
             )
             continue
         if source_type in _SOURCE_ONLY_TYPES:
+            if source_type in _EVIDENCE_IDENTITY_TYPES:
+                _evidence_only_identity(record)
             _mark_source_only(
                 record,
                 "PR-5 source accounting/reconciliation evidence; canonical root, model, and element records own projection",
