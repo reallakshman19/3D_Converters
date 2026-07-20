@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'contracts/inputxml/v1/**'
+      - 'docs/inputxml/**'
       - 'scripts/inputxml_canonical_compiler.py'
       - 'scripts/inputxml_compiler/**'
       - 'scripts/validate-inputxml-contract-catalogs.py'
       - 'scripts/validate-inputxml-schema-suite.py'
       - 'tests/test_inputxml_canonical_compiler*.py'
+      - 'tests/test_inputxml_family_profiles.py'
       - 'tests/test_inputxml_contract_bundle_gate.py'
       - 'tests/test_inputxml_compiler_state_machine.py'
       - 'tests/test_inputxml_resolver_contract.py'
@@ -63,6 +65,14 @@ jobs:
         run: |
           python -m py_compile \
             converters/scripts/pdf_to_inputxml.py \
+            scripts/inputxml_compiler/family_profiles.py \
+            scripts/inputxml_compiler/family_resolution.py \
+            scripts/inputxml_compiler/family_accounting.py \
+            scripts/inputxml_compiler/family_counts.py \
+            scripts/inputxml_compiler/family_auxiliary.py \
+            scripts/inputxml_compiler/family_element.py \
+            scripts/inputxml_compiler/family_categorized.py \
+            scripts/inputxml_compiler/family_resolver.py \
             scripts/inputxml_compiler/pdf_input_echo.py \
             scripts/inputxml_compiler/pdf_input_echo_bindings.py \
             scripts/inputxml_compiler/uxml_rvm.py \
@@ -78,13 +88,15 @@ jobs:
             scripts/inputxml_compiler/publication.py \
             scripts/inputxml_compiler/publication_io.py \
             scripts/inputxml_compiler/publication_verify.py \
-            scripts/inputxml_compiler/cli.py
+            scripts/inputxml_compiler/cli.py \
+            tests/test_inputxml_family_profiles.py
           node --check scripts/inputxml_compiler/node_uxml_rvm_bridge.mjs
       - name: Run canonical compiler unit and integration tests
         run: |
           set +e
           python -m unittest -v \
             tests/test_inputxml_canonical_compiler.py \
+            tests/test_inputxml_family_profiles.py \
             tests/test_inputxml_canonical_compiler_integration.py \
             tests/test_inputxml_contract_bundle_gate.py \
             tests/test_inputxml_compiler_state_machine.py \
