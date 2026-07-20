@@ -54,8 +54,8 @@ export async function verifyPsiSerializationPlan({ occurrencePlan, nodePlan, ser
     if (actualHash !== text(serializationPlan.serializationPlanHash)) {
       blockers.push(issue('SERIALIZATION_PLAN_HASH_MISMATCH', { expected: actualHash, actual: text(serializationPlan.serializationPlanHash) }));
     }
-    if (canonicalSemanticJson(serializationSemantic(serializationPlan)) !== canonicalSemanticJson(serializationSemantic(expected))) {
-      blockers.push(issue('SERIALIZATION_PLAN_CONTRACT_INVALID', { reason: 'UPSTREAM_PLAN_AGREEMENT_MISMATCH' }));
+    if (canonicalSemanticJson(serializationPlan) !== canonicalSemanticJson(expected)) {
+      blockers.push(issue('SERIALIZATION_PLAN_CONTRACT_INVALID', { reason: 'SUPPLIED_PLAN_AGREEMENT_MISMATCH' }));
     }
   }
   return deepFreeze({ expected, blockers: dedupe(blockers) });
