@@ -6,7 +6,7 @@ from lxml import etree as ET
 
 from .base import DecisionLedger
 from .topology_diagnostics import block, retain_blocker
-from .topology_inventory import build_source_inventory, record_inventory_decisions
+from .topology_inventory import build_source_inventory
 from .topology_profiles import TopologyProfileContract
 from .topology_source_model import (
     BranchOccurrence,
@@ -61,7 +61,19 @@ _RESTRAINT_FIELDS = {
     "Tag",
     "GUID",
 }
-_ROOT_METADATA = {"Producer", "Profile", "SourceIdentity", "SelectionJsonSourceIds"}
+_ROOT_METADATA = {
+    "Producer",
+    "Profile",
+    "SourceIdentity",
+    "SelectionJsonSourceIds",
+}
+_STRUCTURAL_CHILDREN = {
+    "Node",
+    "Pressure",
+    "Temperature",
+    "Restraint",
+    "CustomRestraint",
+}
 
 
 def build_topology_source_document(
@@ -72,14 +84,12 @@ def build_topology_source_document(
     ledger: DecisionLedger,
 ) -> TopologySourceDocument:
     inventory = build_source_inventory(root)
-    record_inventory_decisions(inventory, ledger=ledger)
     metadata = _metadata(root)
     branches = tuple(
         _parse_branch(branch, index, ledger)
         for index, branch in enumerate(_direct(root, "Branch"), 1)
     )
-    _validate_document_identities(branches, ledger)
-    _record_unknown_root_content(root, ledger)
+    _validate_document_node_identities(branches, ledger)
     return TopologySourceDocument(
         profile_id=profile.profile_id,
         adapter_id=profile.adapter_id,
@@ -96,7 +106,13 @@ def _parse_branch(
     ledger: DecisionLedger,
 ) -> BranchOccurrence:
     path = f"/Root[1]/Branch[{index}]"
-    fields, field_paths = _field_map(branch, path, _BRANCH_FIELDS, ledger)
+    fields, field_paths = _field_map(
+        branch,
+        path,
+        _BRANCH_FIELDS,
+        ledger,
+    )
+    branch_name = fields.get("Branchname", "").strip()
     line_identity = _line_identity(fields, field_paths, path, ledger)
     _parse_case_container(
         branch,
@@ -130,12 +146,27 @@ def _parse_branch(
     ledger.add(
         source_entity_id=path,
         source_type="SOURCE_BRANCH_OCCURRENCE",
-        source_fields={"lineIdentity": line_identity, "nodeCount": len(nodes)},
+        source_fields={
+            "branchName": branch_name,
+            "lineIdentity": line_identity,
+            "nodeCount": len(nodes),
+        },
         projection_cardinality="1_TO_MANY",
         disposition="PRESERVE_EXTENSION",
-        evidence=["branch occurrence identity is source-path based"],
+        evidence=[
+            "branch occurrence identity is its exact source path",
+            "Branchname is display/path evidence and is not line identity",
+        ],
     )
-    return BranchOccurrence(path, index, line_identity, fields, field_paths, nodes)
+    return BranchOccurrence(
+        path,
+        index,
+        branch_name,
+        line_identity,
+        fields,
+        field_paths,
+        nodes,
+    )
 
 
 def _parse_node(
@@ -145,10 +176,21 @@ def _parse_node(
     ledger: DecisionLedger,
 ) -> NodeOccurrence:
     path = f"{branch_path}/Node[{index}]"
-    fields, field_paths = _field_map(node, path, _NODE_FIELDS, ledger)
+    fields, field_paths = _field_map(
+        node,
+        path,
+        _NODE_FIELDS,
+        ledger,
+    )
     raw_number = fields.get("NodeNumber", "")
     try:
-        number = int(_integer_text(raw_number, f"{path}/NodeNumber", positive=True))
+        number = int(
+            _integer_text(
+                raw_number,
+                f"{path}/NodeNumber",
+                positive=True,
+            )
+        )
     except Exception as exc:
         block(
             ledger,
@@ -156,34 +198,7 @@ def _parse_node(
             f"{path} requires an integer-like positive NodeNumber: {exc}",
             field_paths.get("NodeNumber", path),
         )
-    raw_position = fields.get("Position", "")
-    if not raw_position:
-        block(
-            ledger,
-            "NODE_POSITION_MISSING",
-            f"{path} requires an explicit Position.",
-            path,
-        )
-    parts = raw_position.split()
-    if len(parts) != 3:
-        block(
-            ledger,
-            "NODE_POSITION_INVALID",
-            f"{path} Position must contain exactly three finite decimals.",
-            field_paths.get("Position", path),
-        )
-    try:
-        position = tuple(
-            _decimal_text(value, f"{path}/Position")
-            for value in parts
-        )
-    except Exception as exc:
-        block(
-            ledger,
-            "NODE_POSITION_INVALID",
-            f"{path} Position is invalid: {exc}",
-            field_paths.get("Position", path),
-        )
+    position = _position(fields, field_paths, path, ledger)
     component_type = fields.get("ComponentType", "").strip()
     if not component_type:
         block(
@@ -198,7 +213,10 @@ def _parse_node(
             [
                 child
                 for child in node
-                if _local(child.tag) in {"Restraint", "CustomRestraint"}
+                if _local(child.tag) in {
+                    "Restraint",
+                    "CustomRestraint",
+                }
             ],
             1,
         )
@@ -230,6 +248,44 @@ def _parse_node(
     )
 
 
+def _position(
+    fields: dict[str, str],
+    field_paths: dict[str, str],
+    path: str,
+    ledger: DecisionLedger,
+) -> tuple[str, str, str]:
+    raw = fields.get("Position", "")
+    source_path = field_paths.get("Position", path)
+    if not raw:
+        block(
+            ledger,
+            "NODE_POSITION_MISSING",
+            f"{path} requires an explicit Position.",
+            source_path,
+        )
+    parts = raw.split()
+    if len(parts) != 3:
+        block(
+            ledger,
+            "NODE_POSITION_INVALID",
+            f"{path} Position must contain exactly three finite decimals.",
+            source_path,
+        )
+    try:
+        return tuple(
+            _decimal_text(value, source_path)
+            for value in parts
+        )
+    except Exception as exc:
+        block(
+            ledger,
+            "NODE_POSITION_INVALID",
+            f"{path} Position is invalid: {exc}",
+            source_path,
+        )
+    raise RuntimeError("unreachable")
+
+
 def _parse_restraint(
     element: ET._Element,
     node_path: str,
@@ -254,7 +310,9 @@ def _parse_restraint(
         source_fields={"sourceName": name, "fields": fields},
         projection_cardinality="ATTACH_AUXILIARY",
         disposition="PRESERVE_EXTENSION",
-        evidence=["source auxiliary retained before type and owner resolution"],
+        evidence=[
+            "source auxiliary retained before type and owner resolution"
+        ],
     )
     return RestraintOccurrence(path, name, fields, field_paths)
 
@@ -272,13 +330,7 @@ def _field_map(
         name = _local(child.tag)
         counts[name] = counts.get(name, 0) + 1
         child_path = f"{parent_path}/{name}[{counts[name]}]"
-        if name in {
-            "Node",
-            "Pressure",
-            "Temperature",
-            "Restraint",
-            "CustomRestraint",
-        }:
+        if name in _STRUCTURAL_CHILDREN:
             continue
         if name not in allowed:
             _unknown(child_path, name, child, ledger)
@@ -334,58 +386,42 @@ def _line_identity(
     branch_path: str,
     ledger: DecisionLedger,
 ) -> str:
-    authoritative = [
-        fields.get(name, "").strip()
-        for name in ("LineNo", "LINE_ID")
-    ]
-    authoritative = [value for value in authoritative if value]
-    if not authoritative:
+    line_no = fields.get("LineNo", "").strip()
+    line_id = fields.get("LINE_ID", "").strip()
+    if not line_no and not line_id:
         block(
             ledger,
             "BRANCH_LINE_IDENTITY_MISSING",
             f"{branch_path} requires explicit LineNo or LINE_ID.",
             branch_path,
         )
-    values = [
-        fields.get(name, "").strip()
-        for name in ("Branchname", "LineNo", "LINE_ID")
-    ]
-    populated = [value for value in values if value]
-    if any(value != authoritative[0] for value in populated):
+    if line_no and line_id and line_no != line_id:
         block(
             ledger,
             "BRANCH_IDENTITY_CONFLICT",
-            f"{branch_path} Branchname, LineNo and LINE_ID evidence conflicts.",
-            paths.get("LineNo") or paths.get("LINE_ID") or branch_path,
-            values=values,
+            f"{branch_path} LineNo and LINE_ID evidence conflicts.",
+            paths.get("LINE_ID") or paths.get("LineNo") or branch_path,
+            lineNo=line_no,
+            lineId=line_id,
         )
-    return authoritative[0]
+    return line_no or line_id
 
 
-def _validate_document_identities(
+def _validate_document_node_identities(
     branches: tuple[BranchOccurrence, ...],
     ledger: DecisionLedger,
 ) -> None:
-    line_owners: dict[str, str] = {}
     node_owners: dict[int, str] = {}
     for branch in branches:
-        if branch.line_identity in line_owners:
-            block(
-                ledger,
-                "BRANCH_IDENTITY_CONFLICT",
-                f"Line identity {branch.line_identity!r} is repeated by distinct branch occurrences.",
-                branch.path,
-                firstOwner=line_owners[branch.line_identity],
-            )
-        line_owners[branch.line_identity] = branch.path
         for node in branch.nodes:
-            if node.node_number in node_owners:
+            first = node_owners.get(node.node_number)
+            if first is not None:
                 block(
                     ledger,
                     "DUPLICATE_NODE_NUMBER",
                     f"NodeNumber {node.node_number} occurs in multiple source occurrences.",
                     node.path,
-                    firstOwner=node_owners[node.node_number],
+                    firstOwner=first,
                 )
             node_owners[node.node_number] = node.path
 
@@ -394,26 +430,9 @@ def _metadata(root: ET._Element) -> dict[str, str]:
     return {
         _local(child.tag): (child.text or "").strip()
         for child in root
-        if _local(child.tag) in _ROOT_METADATA
+        if _namespace(child.tag) == ""
+        and _local(child.tag) in _ROOT_METADATA
     }
-
-
-def _record_unknown_root_content(
-    root: ET._Element,
-    ledger: DecisionLedger,
-) -> None:
-    allowed = {"Branch", *_ROOT_METADATA}
-    counts: dict[str, int] = {}
-    for child in root:
-        name = _local(child.tag)
-        counts[name] = counts.get(name, 0) + 1
-        if name not in allowed:
-            _unknown(
-                f"/Root[1]/{name}[{counts[name]}]",
-                name,
-                child,
-                ledger,
-            )
 
 
 def _unknown(
@@ -422,11 +441,13 @@ def _unknown(
     child: ET._Element,
     ledger: DecisionLedger,
 ) -> None:
-    value = ET.tostring(child, encoding="unicode")
     ledger.add(
         source_entity_id=path,
         source_type="UNKNOWN_ROOT_TOPOLOGY_FIELD",
-        source_fields={"name": name, "xml": value},
+        source_fields={
+            "name": name,
+            "xml": ET.tostring(child, encoding="unicode"),
+        },
         projection_cardinality="1_TO_0",
         disposition="UNSUPPORTED_BLOCKING",
         evidence=[
