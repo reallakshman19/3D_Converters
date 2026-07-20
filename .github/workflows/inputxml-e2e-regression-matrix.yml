@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'contracts/inputxml/v1/**'
+      - 'docs/inputxml/ADR-006-managed-stage-source-accounting-reconciliation.md'
+      - 'docs/inputxml/PR-7-managed-stage-implementation-evidence.md'
       - 'scripts/inputxml_canonical_compiler.py'
       - 'scripts/inputxml_compiler/**'
       - 'scripts/inputxml_assurance_ledger.py'
@@ -19,6 +21,7 @@ on:
       - 'tabs/stagedjson-to-enrichxml/**'
       - 'uxml/**'
       - 'rvm-pcf-extract/**'
+      - '.github/workflows/inputxml-canonical-compiler.yml'
       - '.github/workflows/inputxml-e2e-regression-matrix.yml'
   workflow_dispatch:
 

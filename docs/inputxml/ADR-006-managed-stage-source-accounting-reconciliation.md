@@ -2,17 +2,17 @@
 
 ## Status
 
-Proposed for Agent IXCC-07 / PR-7 implementation. The characterization table below was committed before production changes.
+Accepted for PR-7 implementation review. Production activation and migration are not authorized.
 
 ## Scope
 
 This decision governs only:
 
-- `managed-stage-json`;
-- `managed-stage-to-canonical`;
+- profile `managed-stage-json`;
+- adapter `managed-stage-to-canonical`;
 - result policy `COMPONENT_TOPOLOGY_SOURCE_MODEL_TRACE_LEDGER_AND_FAIL_CLOSED_CII_PROJECTION`.
 
-All other InputXML profiles, PR-8, PR-9, PR-10, migration, production activation, browser redesign, serialization policy, publication protocol, and the production CII writer are outside scope.
+PDF, UXML/RVM, other InputXML-family profiles, browser redesign, resource characterization, migration, production activation, serialization policy, publication protocol, and the production CII writer are outside scope.
 
 ## Binding statements
 
@@ -28,9 +28,9 @@ All other InputXML profiles, PR-8, PR-9, PR-10, migration, production activation
 
 > Managed-stage source, canonical topology, and trace evidence are authorities that must reconcile; none may silently compensate for another.
 
-## Governing precedence
+## Authority precedence
 
-1. Raw managed-stage source bytes and strict JSON occurrence identity.
+1. Raw managed-stage bytes and strict JSON occurrence identity.
 2. `SourceEnvelope.v1`.
 3. `ComponentTopologySourceModel.v1`.
 4. Producer-owned source-port identities.
@@ -44,73 +44,155 @@ All other InputXML profiles, PR-8, PR-9, PR-10, migration, production activation
 12. Unchanged production-writer projection behavior.
 13. Compatibility topology InputXML.
 
-## Pre-change behavior characterization
+## Pre-change characterization
 
 | Claim | Classification | Authority | Version | Location | Applicability | Confidence | Action |
 |---|---|---|---|---|---|---|---|
-| JSON media is decoded with ordinary `json.loads`; duplicate keys overwrite and non-finite constants are accepted by Python defaults. | VERIFIED_REPOSITORY_FACT | Current compiler source | `17d4b94f` | `compiler.py::_json_dialect` | managed-stage and JSON detection | HIGH | Replace with bounded strict UTF-8 and duplicate-key/trailing/non-finite rejection before Node execution. |
-| Any JSON not positively recognized as UXML/RVM defaults to managed-stage. | VERIFIED_REPOSITORY_FACT | Current compiler source | `17d4b94f` | `compiler.py::_json_dialect` | managed-stage selection | HIGH | Require a positive managed-stage root predicate; unrelated JSON must block. |
-| Top-level array, `objects`, `hierarchy`, and `branches` collections are accepted by first-match precedence. | VERIFIED_REPOSITORY_FACT | Producer source model | `ComponentTopologySourceModel.v1` | `topology-source-model.js:136-144` | managed-stage root forms | HIGH | Register explicit forms and reject objects containing more than one competing collection. |
-| Source context is carried in `INPUTXML_COMPILER_MANAGED_STAGE_CONTEXT`. | VERIFIED_REPOSITORY_FACT | Current bridge | pre-PR-7 | `managed_stage.py`; `node_managed_stage_bridge.mjs` | bridge execution | HIGH | Move all context into `InputXmlManagedStageBridgeRequest.v1`; reduce child environment. |
-| Job name falls back to source-name stem and then `MANAGED_STAGE_CANONICAL`. | VERIFIED_REPOSITORY_FACT | Current compiler/bridge | pre-PR-7 | both managed-stage bridge modules | canonical wrapper | HIGH | Require explicit nonblank `jobName` before bridge execution. |
-| Writer hardcodes CAESAR version `11.00` and north `(0,1,0)`. | VERIFIED_REPOSITORY_FACT | Producer topology writer | current | `topology-inputxml-writer.js` | managed-stage topology InputXML | HIGH | Parameterize through explicit request context and independently verify emitted values. |
-| Bridge stdin is raw source; result has no explicit schema, engine identity, or closed field set. | VERIFIED_REPOSITORY_FACT | Current bridge | pre-PR-7 | `node_managed_stage_bridge.mjs` | bridge contract | HIGH | Introduce versioned request/result contracts and exact field closure. |
-| Bridge subprocess duration and streams are unbounded and inherits the full process environment. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `managed_stage.py::_run_managed_stage_bridge` | containment | HIGH | Add source/request/stdout/stderr/diagnostic/object limits, timeout, `shell=False`, reduced environment, and fixed script path. |
-| Expected producer failures return `ok=false`, a stack trace, and nonzero exit. | VERIFIED_REPOSITORY_FACT | Current bridge | pre-PR-7 | `node_managed_stage_bridge.mjs` | failure semantics | HIGH | Expected source/topology failures return structured `BLOCKED` with zero exit; nonzero exit is internal only; no stack evidence. |
-| Trace records are indexed by overwrite-capable dictionary construction before duplicate detection. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `managed_stage.py::_import_topology_ledger` | trace reconciliation | HIGH | Detect duplicates before indexing and require exact one-record-per-source-entity closure. |
-| Source ports receive only generic `PRESERVE_EXTENSION` records. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `managed_stage.py::_import_topology_ledger` | port accounting | HIGH | Require one explicit port disposition tied to canonical/trace ownership or intentional nonprojection. |
-| Managed-stage source accounting is returned as `COMPLETE` without a profile proof. | VERIFIED_REPOSITORY_FACT | Dispatcher | pre-PR-7 | `dispatcher.py:212-228` | resolver outcome | HIGH | Implement `InputXmlManagedStageSourceAccountingProof.v1`; return COMPLETE only when every invariant is zero. |
-| Python recomputes local JSON digests but does not verify producer FNV hashes. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `managed_stage.py::_sanitize_topology_inputxml` | artifact closure | HIGH | Reimplement `fnv1a64-canonical-json-v1` exactly and reject stale/missing producer hashes. |
-| Source identity equality is not proved across source model, canonical topology, trace ledger, parsed InputXML, parity report, bridge result, and compiler ledger. | VERIFIED_REPOSITORY_FACT | Current bridge/compiler | pre-PR-7 | managed-stage path | HIGH | Require exact identity closure for source hash, source file ID, kind, revision, name, profile, adapter, and identity schema. |
-| Parsed InputXML topology, SVG scene, parity report, and engineering projection are built but omitted from the bridge result. | VERIFIED_REPOSITORY_FACT | Producer exporter versus bridge | current | `topology-artifact-exporter.js`; bridge | HIGH | Return all artifacts and verify before consuming topology InputXML. |
-| Producer metrics are trusted rather than independently recomputed. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `managed_stage.py` | evidence metrics | HIGH | Recompute every required metric from arrays and mappings; mismatch blocks despite valid hashes. |
-| Topology trace attributes are removed by JavaScript regular-expression replacement before Python sees them. | VERIFIED_REPOSITORY_FACT | Current bridge | pre-PR-7 | `stripTopologyTraceAttributes` | topology InputXML | HIGH | Return complete XML; parse securely; reconcile and remove each approved attribute individually. |
-| Coordinate aliases are renamed in Python, but lineage attributes are accepted through a small whitelist without relational proof. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `_sanitize_topology_inputxml` | canonical candidate | HIGH | Verify every trace attribute against canonical, trace, parsed, and parity artifacts before removal. |
-| Producer `NUM*` assertions are silently rewritten to computed values. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `_sanitize_topology_inputxml` | control counts | HIGH | Treat source values as assertions; mismatch is classified and blocks unless exact authority says representation-only. |
-| Compatibility sentinels enter the generic family normalizer, which can inherit or normalize values. | VERIFIED_REPOSITORY_FACT | Dispatcher and family path | pre-PR-7 | `dispatcher.py:119-141` | managed-stage canonicalization | HIGH | Bypass generic family assumptions; profile-specific sanitization must prove every absence/sentinel disposition. |
-| Component acceptance uses a small type whitelist and prefix tests. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `_ALLOWED_SOURCE_TYPES`; `_source_type_blocking` | component disposition | HIGH | Register explicit component policy for branch, route, bend, junction, inline, support, rigid, point, and unknown families. |
-| `DEFER_SUPPORT` is treated as blocking without separating proven non-restraint attachment from unresolved support ownership. | VERIFIED_REPOSITORY_FACT | Current compiler | pre-PR-7 | `_BLOCKING_PRIMARY_DISPOSITIONS` | support policy | HIGH | Accept only explicit `DEFERRED_NON_RESTRAINT_ATTACHMENT` with no stress evidence; unresolved support remains blocking. |
-| Canonical rigid assignment can report `GLOBAL_PROXIMITY_FALLBACK`. | VERIFIED_REPOSITORY_FACT | Producer identity enrichment | current | `topology-artifact-identity.js` | rigid ownership | HIGH | Block proximity-only rigid assignment; require source/component or source/branch ownership. |
-| Producer artifact hashes use sorted-key, array-order-preserving canonical JSON with self-hash omission and FNV-1a 64. | VERIFIED_REPOSITORY_FACT | Hash module | `fnv1a64-canonical-json-v1` | `topology-deterministic-hash.js` | canonical, trace, parsed, SVG, parity | HIGH | Recompute byte-equivalent canonical JSON and FNV hash in Python before artifact use. |
-| Source content hash is SHA-256 of normalized text; source file ID is first 32 hex characters of SHA-256 over `stagedjson + NUL + normalizedText`. | VERIFIED_REPOSITORY_FACT | Source-envelope module | `SourceEnvelope.v1` | `source-envelope.js`; `source-text.js` | source identity | HIGH | Recompute exactly, document normalization, and bind both raw-byte SHA-256 and normalized source identity. |
-| Source entity/port ID is first 32 hex characters of SHA-256 over source file ID, kind, exact source path, and `json-object`, separated by NUL. | VERIFIED_REPOSITORY_FACT | Universal graph identity | `UniversalSourceGraph.v1` | `graph-identity.js`; `topology-source-model.js` | entity and port identity | HIGH | Independently recompute every ID and block duplicates/collisions. |
-| Branch child order, reciprocal references, and producer-owned ports are existing connectivity authorities; coordinates only verify them. | VERIFIED_PROJECT_CONTRACT | Component topology docs and source | current | `docs/component-topology-artifacts.md`; connectivity modules | managed-stage topology | HIGH | Verify declared authority; do not rebuild connectivity in Python. |
-| Canonical topology and trace ledger already contain source-port ancestry, merge cardinality, support/rigid/junction/boundary objects, and deterministic IDs. | VERIFIED_REPOSITORY_FACT | Producer artifacts | v1 | component-topology modules | artifact closure | HIGH | Verify schemas, identities, uniqueness, references, hashes, and actual cardinality independently. |
-| Topology parity is fail-closed in the producer exporter but is not independently verified by the compiler. | VERIFIED_REPOSITORY_FACT | Producer exporter | `TopologyParityReport.v1` | artifact exporter/parity modules | compiler acceptance | HIGH | Require present PASS report, independently verify hashes/populations/incidence/metrics, and reject forged success. |
-| Canonical InputXML serialization and CII writer gates are already independent authorities. | ARCHITECTURE_INVARIANT | ADR-002, ADR-003, compiler state machine | current | publication/serialization/assured projection | repository | HIGH | Do not modify these boundaries; blocked managed-stage results never invoke the writer. |
+| Python used permissive JSON decoding and could overwrite duplicate keys or accept non-finite values. | VERIFIED_REPOSITORY_FACT | compiler source | PR-6 base | `compiler.py` | managed-stage intake | HIGH | Replace with strict bounded intake before Node execution. |
+| Unrecognized JSON could fall through to managed-stage. | VERIFIED_REPOSITORY_FACT | compiler source | PR-6 base | dialect selection | profile selection | HIGH | Require a positive managed-stage predicate. |
+| Root collections were selected by first-match precedence. | VERIFIED_REPOSITORY_FACT | producer source model | v1 | `topology-source-model.js` | source shape | HIGH | Register accepted forms and reject competing collections. |
+| Bridge context was supplied through an environment variable and job name had hidden fallbacks. | VERIFIED_REPOSITORY_FACT | bridge/compiler | pre-PR-7 | managed-stage bridge | context authority | HIGH | Put validated context in a versioned request. |
+| Bridge execution, streams, and diagnostics were unbounded. | VERIFIED_REPOSITORY_FACT | compiler | pre-PR-7 | subprocess path | containment | HIGH | Add explicit limits, timeout, fixed script, and reduced environment. |
+| Bridge output omitted complete producer artifacts and had no closed result schema. | VERIFIED_REPOSITORY_FACT | bridge/exporter | pre-PR-7 | bridge result | artifact closure | HIGH | Return a closed versioned result with every artifact. |
+| Trace records could be indexed before duplicate detection. | VERIFIED_REPOSITORY_FACT | compiler | pre-PR-7 | trace import | trace closure | HIGH | Detect duplicates before indexing and require exact cardinality. |
+| Source ports had generic preservation records without complete topology proof. | VERIFIED_REPOSITORY_FACT | compiler | pre-PR-7 | source ledger | port accounting | HIGH | Reconcile every port and bind mapped ports to verified incidence. |
+| Source accounting could report COMPLETE without an evidence-backed profile proof. | VERIFIED_REPOSITORY_FACT | dispatcher | pre-PR-7 | resolver outcome | accounting | HIGH | Add `InputXmlManagedStageSourceAccountingProof.v1`. |
+| Producer semantic hashes, parity, and metrics were trusted. | VERIFIED_REPOSITORY_FACT | compiler | pre-PR-7 | managed-stage path | artifact acceptance | HIGH | Independently recompute and compare each authority. |
+| Trace attributes were stripped by regular-expression replacement. | VERIFIED_REPOSITORY_FACT | bridge | pre-PR-7 | topology InputXML | XML semantics | HIGH | Securely parse, reconcile, preserve, and remove individually. |
+| Producer counts were silently rewritten and sentinels could enter generic family normalization. | VERIFIED_REPOSITORY_FACT | compiler | pre-PR-7 | candidate sanitization | counts and values | HIGH | Treat counts as assertions and use profile-specific absence rules. |
+| Component acceptance and support deferral were governed by incomplete type heuristics. | VERIFIED_REPOSITORY_FACT | compiler | pre-PR-7 | managed-stage policy | engineering eligibility | HIGH | Register explicit component/support/rigid/merge policies. |
+| Serialization, publication, assurance, and CII projection were already independent gates. | ARCHITECTURE_INVARIANT | ADR-002/003 and workflows | current | compiler pipeline | repository | HIGH | Preserve these boundaries unchanged. |
 
 ## Accepted root forms
 
-PR-7 registers these compatibility forms only:
-
-| Form | Predicate | Root identity | Branch collection identity | Source-path root | Compatibility status |
+| Form | Predicate | Root identity | Branch collection | Source path | Status |
 |---|---|---|---|---|---|
-| top-level array | root is a non-empty array | `$` | `$` | `$[n]` | ACCEPTED_LEGACY_EQUIVALENT |
-| objects wrapper | root object has exactly one branch collection, `objects`, containing a non-empty array | `$` | `$.objects` | `$.objects[n]` | ACCEPTED_PRIMARY |
-| hierarchy wrapper | root object has exactly one branch collection, `hierarchy`, containing a non-empty array | `$` | `$.hierarchy` | `$.hierarchy[n]` | ACCEPTED_COMPATIBILITY |
-| branches wrapper | root object has exactly one branch collection, `branches`, containing a non-empty array | `$` | `$.branches` | `$.branches[n]` | ACCEPTED_COMPATIBILITY |
+| top-level array | non-empty array of branch objects | `$` | `$` | `$[n]` | accepted legacy equivalent |
+| `objects` wrapper | exactly one non-empty `objects` array | `$` | `$.objects` | `$.objects[n]` | accepted primary |
+| `hierarchy` wrapper | exactly one non-empty `hierarchy` array | `$` | `$.hierarchy` | `$.hierarchy[n]` | accepted compatibility |
+| `branches` wrapper | exactly one non-empty `branches` array | `$` | `$.branches` | `$.branches[n]` | accepted compatibility |
 
-An object containing more than one of `objects`, `hierarchy`, and `branches` is ambiguous and blocks. Empty collections, unrelated objects, scalar roots, and nested wrapper inference block.
+Multiple competing branch collections, empty collections, unrelated objects, scalar roots, nested inference, malformed JSON, duplicate keys, non-finite values, trailing data, invalid UTF-8, incompatible overrides, and misleading filenames do not legalize managed-stage input.
 
-## Target architecture
+## Strict intake
 
-```text
-strict Python managed-stage intake
-  → InputXmlManagedStageBridgeRequest.v1
-  → authoritative component-topology producer
-  → InputXmlManagedStageBridgeResult.v1
-  → independent Python artifact-closure verification
-  → source/entity/port/accounting reconciliation
-  → managed-stage canonical candidate
-  → XSD → Schematron → ledger → production acceptance
-```
+Python owns media and profile intake. It enforces a source-byte limit, strict UTF-8, duplicate-key rejection at every object depth, non-finite rejection, one complete JSON value, positive root classification, deterministic occurrence paths, and raw SHA-256 before transformation. The strict inventory is immutable data; it is not accounting authority.
 
-Python verifies the producer; it does not construct managed-stage topology.
+## Bridge contracts and containment
 
-## Deferred authority
+`InputXmlManagedStageBridgeRequest.v1` carries schema, profile, adapter, raw source hash, source text, source name, validated context, producer policy, and requested artifacts.
 
+`InputXmlManagedStageBridgeResult.v1` carries resolution status, engine identity/version, echoed profile/adapter/hash, source identity/model/entities/ports, canonical topology, engineering projection, trace ledger, complete topology InputXML, parsed topology, SVG scene, parity report, metrics, build issues, and stable diagnostics.
+
+Unknown or missing fields block. Expected source/topology failures return a structured blocked result; nonzero exit is reserved for internal bridge failure. Execution uses `shell=False`, a resolved Node executable, a fixed script, reduced environment, timeout, bounded request/stdout/stderr, bounded diagnostics, and bounded artifact populations. Host paths, PIDs, random IDs, temporary paths, clocks, and stack traces are excluded from evidence.
+
+## Source identity and deterministic hashes
+
+The compiler independently verifies:
+
+- raw-byte SHA-256;
+- normalized SourceEnvelope content hash;
+- source file ID, kind, name, and explicit revision;
+- entity identity schema;
+- exact profile and adapter echoes;
+- source identity equality across all returned artifacts.
+
+Producer semantic hashes use `fnv1a64-canonical-json-v1`: sorted object keys, preserved array order, finite JSON numbers, self-hash omission, UTF-8 canonical JSON, and FNV-1a 64. Python recomputes the same bytes and rejects missing, stale, or altered hashes.
+
+## Source entities and ports
+
+Every branch and child component has one exact source path and independently derived source entity ID. IDs, paths, order, names, types, references, owner branches, source attributes, and enriched attributes must match the strict source. Duplicate IDs, duplicate paths, collisions, missing entities, extra entities, and unknown unsafe component types block.
+
+Source ports reconcile across `sourceModel.sourcePorts`, entity-owned ports, bridge port arrays, the trace-ledger manifest, canonical ancestry, and compiler decisions. Each port verifies ID, owner, path, field, role, type, finite position, units, and frame.
+
+Each port receives one disposition:
+
+- `MAP_TO_CANONICAL_NODE`;
+- `MAP_TO_EDGE_ENDPOINT`;
+- `MAP_TO_JUNCTION`;
+- `MAP_TO_BOUNDARY`;
+- `MAP_TO_SUPPORT_ATTACHMENT`;
+- `MAP_TO_POINT_FEATURE`;
+- `INTENTIONALLY_UNUSED_WITH_AUTHORITY`;
+- `DEFER_EXPLICITLY`;
+- `REJECT_INVALID`.
+
+Mapped node ports are bound to the exact incident `PE-*` InputXML elements derived from verified canonical incidence. Point-feature and intentional-nonprojection ports remain explicit evidence-only records. Generic preservation alone cannot certify coverage.
+
+## Canonical topology and trace ledger
+
+Python verifies schema, source identity, coordinate frame/unit/tolerance, semantic hash, unique canonical/InputXML IDs, endpoint existence, finite coordinates, nonzero route length, source-port and source-entity ancestry, merge authority, junctions, boundaries, point features, supports, rigids, and blocking build issues.
+
+Every canonical node has source-port ancestry. Every canonical edge has valid source-entity ancestry, two valid endpoints, source-port groups, and exact InputXML element identity. Supports and rigids retain exact owner nodes/edges and source identities.
+
+`TopologyTraceLedger.v1` must contain exactly one primary record per source entity. Duplicate, missing, or extra records block before indexing. Paths, types, references, target IDs, child IDs, cardinality, merge authority, operation, loss classification, deferred properties, status, and source-port manifest must agree with verified artifacts.
+
+## Engineering projection and component policy
+
+Engineering records reconcile by exact source entity and path; no geometry- or line-text-based state transfer is permitted. Conflicting source/enriched values block unless a registered authority resolves them. Required dimensions, material, process cases, density, line identity, weight, support/restraint state, and review status must be complete for accepted projection. Missing values do not become sentinels.
+
+Registered component families include BRANCH, PIPE, ELBO/BEND, TEE, OLET, VALVE, FLANGE, GASK, INSTRUMENT, REDUCER, RIGID, SUPPORT/ATTA, point features, and unknown. PIPE requires exact edge and engineering ancestry. Managed many-to-one overlaps require explicit producer authority and separate accounting of every source entity. Bend topology without an authorized BEND child, Tee/Olet topology without SIF authority, and meaningful unsupported inline components retain candidates but block production.
+
+## Supports and rigids
+
+Stress supports require an explicit policy, source attachment references, exact carrier, canonical support/node/edge, retained source and projected datum, bounded residual, supported restraint types/cardinality, matching InputXML RESTRAINT ownership, and complete accounting.
+
+Safe non-restraint deferral is accepted only for an explicitly classified floor, fence, sleeve, penetration, wall, roof, or slab-opening attachment with no stress/restraint evidence, no expected canonical object, no CII record, complete retained evidence, and intentional nonprojection accounting. Contradictory or unresolved support ownership blocks.
+
+Rigids require exact source and engineering records, explicit positive weight and units, canonical rigid and owner edge, trace child ID, InputXML RIGID child, declared body/merge policy, bounded residual, and explicit owner authority. Global proximity fallback or missing-weight zero blocks.
+
+## Topology InputXML, counts, and sentinels
+
+The compiler receives complete trace-bearing topology InputXML and parses it securely. Every producer trace attribute is checked against canonical, trace, parsed, parity, support, and rigid evidence. Approved attributes are copied into registered extension records and removed individually. Missing, contradictory, or unknown trace attributes block.
+
+Producer `NUM*` values are assertions. Canonical values are independently calculated under PR-5 count authority, including owner-element semantics for restraints and rigids. Mismatch blocks and is ledgered; values are never silently repaired.
+
+Missing is absent, unresolved is structured blocking evidence, and actual zero is `0`. Required geometry or engineering sentinels block. Optional compatibility sentinels may be removed only with explicit absence evidence. `CNODE=0` represents absence only when the verified contract proves no connecting-node relation. Generic InputXML-family inheritance is bypassed for managed-stage.
+
+## Parity and metrics
+
+`ParsedInputXmlTopology.v1`, `TopologySvgScene.v1`, and `TopologyParityReport.v1` are mandatory. Python verifies schemas, identities, hashes, populations, incidence, coordinates under writer precision, source/merge ancestry, child ownership, support/restraint/rigid/junction/boundary evidence, and mismatch arrays. Failed, missing, stale, or forged-success parity blocks.
+
+Metrics are recomputed from source and artifact arrays, including branch/component/reference populations, canonical objects, trace records, engineering supports/restraints/rigids, InputXML and parsed populations, zero-length edges, deferred supports, and parity mismatches. Metrics are evidence, not authority.
+
+## Source-accounting proof
+
+`InputXmlManagedStageSourceAccountingProof.v1` reconciles raw occurrences, branches, components, fields, ports, references, engineering records, topology objects, trace records, InputXML elements/children, extension evidence, and blockers.
+
+Only `MANAGED_STAGE_SOURCE_DECISION` records created after artifact verification certify coverage. Inventory, full-source extensions, artifact digests, document-level projections, and accounting indexes cannot certify themselves. COMPLETE requires every registered invariant to be zero, including missing/duplicate/unexpected decisions, entity/port duplication, trace gaps, orphan topology, unmapped ports/elements/children, identity/hash/metric/parity mismatches, and self-certification.
+
+## Diagnostics, stages, and candidates
+
+Managed-stage diagnostics are registered with stage, severity, disposition, candidate policy, and production effect. Substring-based blocking is forbidden.
+
+- invalid UTF-8/JSON → `MEDIA_INSPECTION_GATE`;
+- root/profile/context ambiguity → `PROFILE_INTAKE_GATE`;
+- bridge/schema/hash/identity/topology/trace/parity/metric failure → `PROFILE_RESOLVER_GATE`;
+- accounting incompleteness → `SOURCE_ACCOUNTING_GATE`;
+- canonical structure → `XSD_GATE` and `SCHEMATRON_GATE`;
+- retained unsupported engineering → `LEDGER_GATE`;
+- production eligibility → `PRODUCTION_ACCEPTANCE_GATE`.
+
+Invalid intake, bridge-contract failure, identity/hash disagreement, missing topology/trace, failed parity, and nonconstructible accounting return no candidate. Complete topology with retained unsupported engineering may return a blocked candidate. Acceptance requires complete intake, closure, accounting, engineering, validation, and production gates.
+
+## Determinism and compatibility impact
+
+Ordering is source-array order followed by declared producer order for topology, trace, engineering, candidate, decisions, diagnostics, and extension evidence. Tests compare exact canonical, ledger, validation, bridge, hash, proof, diagnostic, and blocked-stage bytes across repeated Python and Node processes, multiple `PYTHONHASHSEED` values, Ubuntu, and Windows.
+
+Compatibility topology InputXML is now lower authority and cannot repair source/topology/trace disagreement. Other profile semantics are unchanged. Shared producer changes are limited to artifact exposure and explicit source revision propagation and remain protected by static, parity, support, ASIM-1835, 1885_NC, and PSI116 tests.
+
+## Unchanged boundaries
+
+- Production CII writer: unchanged.
+- Deterministic serialization policy: unchanged.
+- Crash-consistent publication protocol: unchanged.
+- Browser UI/runtime: unchanged.
+- Migration: not authorized.
+- PR-8: not started.
+
+## Deferred findings
+
+- New bend engineering, Tee/Olet SIF projection, and unsupported inline component engineering require separate authority.
 - Full resource/RSS characterization remains PR-10.
-- Full fourteen-profile corpus remains later work.
-- New bend, Tee/Olet SIF, valve/flange/gasket/reducer engineering projection is not authorized.
-- Browser redesign and migration are not authorized.
-- Production writer changes are not authorized.
+- Full-corpus expansion and legacy migration are not authorized by PR-7.
+- Production activation requires explicit owner approval after all stacked PR-7 checks pass.
