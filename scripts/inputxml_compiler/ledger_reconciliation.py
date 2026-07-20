@@ -21,6 +21,7 @@ _SOURCE_ONLY_TYPES = {
     "CATEGORIZED_ORIGINAL_ELEMENT",
 }
 _BRIDGE_DOCUMENT_TYPES = {"ROOT_BRANCH_NODE", "SELECTIONJSON_CUSTOM_ROOT"}
+_DIRECT_VALIDATION_PROFILES = {"canonical-inputxml-v1"}
 
 
 def _canonical_elements(canonical: ET._Element) -> list[ET._Element]:
@@ -103,7 +104,23 @@ def _explicit_node_evidence(
                 )
 
 
+def _evidence_only_identity(record: dict[str, Any]) -> None:
+    source_entity_id = str(record.get("sourceEntityId") or "")
+    if "@" not in source_entity_id:
+        return
+    owner, field = source_entity_id.rsplit("@", 1)
+    source_fields = record.get("sourceFields")
+    if isinstance(source_fields, dict):
+        retained_fields = dict(source_fields)
+    else:
+        retained_fields = {"source": source_fields}
+    retained_fields.setdefault("sourceEntityId", source_entity_id)
+    record["sourceFields"] = retained_fields
+    record["sourceEntityId"] = f"{owner}/evidence::{field}"
+
+
 def _mark_source_only(record: dict[str, Any], reason: str) -> None:
+    _evidence_only_identity(record)
     record["projectionCardinality"] = "1_TO_0"
     record["disposition"] = "PRESERVE_EXTENSION"
     record["canonicalElementIds"] = []
@@ -176,7 +193,8 @@ def reconcile_decision_ledger(
             evidence.append("post-normalization canonical IDs resolved by ledger reconciliation")
             record["evidence"] = evidence
 
-    _explicit_node_evidence(elements, ledger, context or {})
+    if ledger.dialect not in _DIRECT_VALIDATION_PROFILES:
+        _explicit_node_evidence(elements, ledger, context or {})
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
