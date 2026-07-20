@@ -63,6 +63,9 @@ function signature(row) {
 }
 function codes(plan) { return plan.validation.blockers.map((row) => row.code); }
 function occurrenceIds(plan) { return plan.occurrences.map((row) => row.occurrenceId); }
+function occurrence(plan, sourceEntityId, projectionRole) {
+  return plan.occurrences.find((row) => row.sourceEntityId === sourceEntityId && row.projectionRole === projectionRole);
+}
 function reverseKeys(value) {
   if (Array.isArray(value)) return value.map(reverseKeys);
   if (!value || typeof value !== 'object') return value;
@@ -93,8 +96,8 @@ test('implements the exact component matrix with stable IDs and exact ownership'
   assert.ok(first.componentProjection.every((row) => /^(CP)-[a-f0-9]{24}$/.test(row.componentProjectionId)));
   const owned = first.componentProjection.flatMap((row) => row.occurrenceIds);
   assert.equal(new Set(owned).size, first.occurrences.length);
-  assert.equal(first.occurrences.find((row) => row.sourceEntityId === 'SE-PIPE' && row.projectionRole === 'ARRIVE').logicalNodeId, 'LN-1');
-  assert.equal(first.occurrences.find((row) => row.sourceEntityId === 'SE-ATTA').logicalNodeId, 'LN-2');
+  assert.equal(occurrence(first, 'SE-PIPE', 'ARRIVE').logicalNodeId, 'LN-1');
+  assert.equal(occurrence(first, 'SE-ATTA', 'PRIMARY').logicalNodeId, 'LN-2');
 });
 
 test('reproduces accepted TE-001 number-free emitted and reserved cardinality', async () => {
@@ -133,6 +136,30 @@ test('keeps IDs stable while coordinate evidence changes the semantic plan hash'
   }));
   assert.deepEqual(occurrenceIds(base), occurrenceIds(changed));
   assert.notEqual(base.occurrencePlanHash, changed.occurrencePlanHash);
+});
+
+test('uses the approved arrive and leave resolver fallback precedence', async () => {
+  const arrive = await buildPsiWriterOccurrencePlan(await makeInput((data) => {
+    const attrs = data.records.find((row) => row.sourceEntityId === 'SE-PIPE').attrs;
+    delete attrs.APOS;
+    attrs.HPOS = { x: 101, y: 0, z: 0 };
+    attrs.POS = { x: 102, y: 0, z: 0 };
+  }));
+  const arriveOccurrence = occurrence(arrive, 'SE-PIPE', 'ARRIVE');
+  assert.equal(arriveOccurrence.coordinateRole, 'BEST');
+  assert.equal(arriveOccurrence.coordinateEvidence.sourceField, 'attrs.HPOS');
+  assert.deepEqual(arriveOccurrence.coordinateEvidence.point, { x: 101, y: 0, z: 0 });
+
+  const leave = await buildPsiWriterOccurrencePlan(await makeInput((data) => {
+    const attrs = data.records.find((row) => row.sourceEntityId === 'SE-PIPE').attrs;
+    delete attrs.LPOS;
+    attrs.TPOS = { x: 201, y: 0, z: 0 };
+    attrs.POS = { x: 202, y: 0, z: 0 };
+  }));
+  const leaveOccurrence = occurrence(leave, 'SE-PIPE', 'LEAVE');
+  assert.equal(leaveOccurrence.coordinateRole, 'BEST');
+  assert.equal(leaveOccurrence.coordinateEvidence.sourceField, 'attrs.TPOS');
+  assert.deepEqual(leaveOccurrence.coordinateEvidence.point, { x: 201, y: 0, z: 0 });
 });
 
 test('does not mutate inputs and returns a deeply immutable valid contract', async () => {
