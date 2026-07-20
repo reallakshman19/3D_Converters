@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PR-G matrix wrapper with explicit assured-node evidence and blocked-evidence semantics."""
+"""PR-G matrix wrapper with explicit evidence and blocked semantics."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,6 @@ _sha256 = _legacy._sha256
 _json_hash = _legacy._json_hash
 _load_json = _legacy._load_json
 _registered_outcomes = _legacy._registered_outcomes
-
 _BASE_MATRIX_CASES = _legacy.matrix_cases
 
 
@@ -28,12 +27,29 @@ def _assured_node_evidence() -> dict[str, dict[str, Any]]:
 
 
 def matrix_cases() -> list[MatrixCase]:
-    """Return the registry-closed matrix with explicit endpoint evidence."""
+    """Return the registry-closed matrix with explicit profile evidence."""
     evidence = _assured_node_evidence()
     result: list[MatrixCase] = []
     for case in _BASE_MATRIX_CASES():
         if case.case_id in {"managed-stage", "pdf-input-echo", "uxml-rvm"}:
-            result.append(replace(case, context={**case.context, "assuredNodeEvidence": evidence}))
+            result.append(
+                replace(
+                    case,
+                    context={**case.context, "assuredNodeEvidence": evidence},
+                )
+            )
+        elif case.case_id in {"xml-builder", "seljson"}:
+            result.append(
+                replace(
+                    case,
+                    context={
+                        **case.context,
+                        "version": case.context.get("version", "11.00"),
+                        "north": case.context.get("north", [0, 1, 0]),
+                        "fluidDensityScale": "0.000001",
+                    },
+                )
+            )
         else:
             result.append(case)
     return result
@@ -49,11 +65,15 @@ def _accept_evidence_bearing_canonical_block(row: dict[str, Any]) -> bool:
         and row.get("assuranceStatus") == "NOT_RUN"
         and row.get("projectionStatus") == "NOT_RUN"
         and row.get("reparseStatus") == "NOT_RUN"
-        and row.get("diagnostics") == ["Expected canonical intake to block without canonical output."]
+        and row.get("diagnostics")
+        == ["Expected canonical intake to block without canonical output."]
     )
 
 
-def _rebuild_matrix_result(result: dict[str, Any], output_dir: Path | None) -> dict[str, Any]:
+def _rebuild_matrix_result(
+    result: dict[str, Any],
+    output_dir: Path | None,
+) -> dict[str, Any]:
     for row in result.get("cases") or []:
         if _accept_evidence_bearing_canonical_block(row):
             row["diagnostics"] = []
@@ -63,7 +83,9 @@ def _rebuild_matrix_result(result: dict[str, Any], output_dir: Path | None) -> d
     rows = result.get("cases") or []
     failed = [row for row in rows if row.get("status") != "PASS"]
     result["status"] = "PASS" if not failed else "BLOCKED"
-    result["summary"]["fullChainPassCount"] = sum(1 for row in rows if row.get("reparseStatus") == "PASS")
+    result["summary"]["fullChainPassCount"] = sum(
+        1 for row in rows if row.get("reparseStatus") == "PASS"
+    )
     result["summary"]["passCount"] = len(rows) - len(failed)
     result["summary"]["failCount"] = len(failed)
     result["diagnostics"] = [
@@ -71,7 +93,10 @@ def _rebuild_matrix_result(result: dict[str, Any], output_dir: Path | None) -> d
             "severity": "BLOCKING",
             "code": "MATRIX_CASE_FAILED",
             "message": f"PR-G matrix case {row['caseId']} failed.",
-            "context": {"dialect": row["dialect"], "diagnostics": row.get("diagnostics") or []},
+            "context": {
+                "dialect": row["dialect"],
+                "diagnostics": row.get("diagnostics") or [],
+            },
         }
         for row in failed
     ]
@@ -95,11 +120,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
     result = run_matrix(args.output_dir)
-    print(json.dumps({
-        "status": result["status"],
-        "summary": result["summary"],
-        "matrixHashSha256": result["matrixHashSha256"],
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "status": result["status"],
+                "summary": result["summary"],
+                "matrixHashSha256": result["matrixHashSha256"],
+            },
+            indent=2,
+        )
+    )
     return 0 if result["status"] == "PASS" else 2
 
 
