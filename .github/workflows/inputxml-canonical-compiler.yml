@@ -84,7 +84,10 @@ jobs:
             scripts/inputxml_compiler/topology_inventory.py \
             scripts/inputxml_compiler/topology_source_model.py \
             scripts/inputxml_compiler/topology_source.py \
+            scripts/inputxml_compiler/topology_source_decisions.py \
             scripts/inputxml_compiler/topology_bridge_io.py \
+            scripts/inputxml_compiler/topology_bridge_relations.py \
+            scripts/inputxml_compiler/topology_bridge_evidence.py \
             scripts/inputxml_compiler/topology_bridge.py \
             scripts/inputxml_compiler/topology_engineering.py \
             scripts/inputxml_compiler/topology_components.py \
