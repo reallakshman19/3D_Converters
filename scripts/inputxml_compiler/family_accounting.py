@@ -62,6 +62,10 @@ def account_profile_source(
     duplicate_inventory = len(inventory) - len(
         {item.source_entity_id for item in inventory}
     )
+    covered_count = sum(entry.covered for entry in coverage)
+    unique_covered = len({
+        entry.item.source_entity_id for entry in coverage if entry.covered
+    })
     for entry in coverage:
         _ledger_coverage(entry, profile_id=profile_id, ledger=ledger)
     status = "COMPLETE" if not missing and duplicate_inventory == 0 else "BLOCKED"
@@ -70,10 +74,12 @@ def account_profile_source(
         "profileId": profile_id,
         "inventoryCount": len(inventory),
         "uniqueInventoryCount": len({item.source_entity_id for item in inventory}),
-        "coveredCount": sum(entry.covered for entry in coverage),
-        "uniqueCoveredCount": len(
-            {entry.item.source_entity_id for entry in coverage if entry.covered}
-        ),
+        "coveredCount": covered_count,
+        "uniqueCoveredCount": unique_covered,
+        # Retained aliases preserve the v1 consumer surface while tightening
+        # their meaning from index-row count to prior-decision coverage count.
+        "accountedCount": covered_count,
+        "uniqueAccountedCount": unique_covered,
         "missingSourceEntityIds": sorted(missing),
         "duplicateInventoryIdentityCount": duplicate_inventory,
         "coverageRule": "PRIOR_TRANSFORMATION_DECISION_REQUIRED",
