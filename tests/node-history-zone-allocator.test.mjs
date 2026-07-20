@@ -71,11 +71,17 @@ test('overlapping leases and review matcher input block',async()=>{
  assert.ok(codes(r).includes('LEASE_OVERLAP'));assert.ok(codes(r).includes('HISTORY_MATCH_RESULT_NOT_PASS'));assert.deepEqual(r.allocations,[]);
 });
 
+test('detects every nested overlap and rejects malformed reserved-number policy',async()=>{
+ const nested=await allocateZoneEngineeringNodes(await makeInput((d)=>{d.zoneRegistry.leases[0].ranges=[{start:100,end:300,step:10}];d.zoneRegistry.leases[1].ranges=[{start:150,end:160,step:10},{start:170,end:180,step:10}];}));
+ assert.equal(nested.validation.blockers.filter(x=>x.code==='LEASE_OVERLAP').length,2);
+ const policy=await allocateZoneEngineeringNodes(await makeInput((d,c)=>{c.policy.reservedNumbers=[120,'130',999999];}));
+ assert.ok(codes(policy).includes('ALLOCATION_POLICY_MISMATCH'));assert.deepEqual(policy.allocations,[]);
+});
+
 test('partial coverage cannot emit retirement intent',async()=>{
  const r=await allocateZoneEngineeringNodes(await makeInput((d,c)=>{c.coverage={scope:'PARTIAL_LINE',authoritativeForRetirement:false,coveredMainLines:['/LINE-A']};c.matchResult.retirementCandidates=[{historyNodeId:'HN-A-300',mainLineKey:'/LINE-A',reason:'NOT_OBSERVED'}];}));
  assert.ok(codes(r).includes('PARTIAL_COVERAGE_RETIREMENT_PROHIBITED'));assert.deepEqual(r.retirements,[]);
 });
-
 
 test('reactivation ownership, retired preservation and step alignment fail closed',async()=>{
  const a=await allocateZoneEngineeringNodes(await makeInput((d,c)=>{c.requests.find(x=>x.logicalNodeId==='LN-A-REACT').historyNodeId='HN-A-300';}));
