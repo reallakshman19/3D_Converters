@@ -23,6 +23,7 @@ _ROOT_METADATA = {
 }
 _ROOT_CHILDREN = {"Branch", *_ROOT_METADATA}
 _AUXILIARY_NAMES = {"Restraint", "CustomRestraint"}
+_SELECTIONJSON_PRODUCERS = ("selectionjson-transfer-v1",)
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,7 @@ class TopologyProfileContract:
     explicit_selection_required: bool
     required_context: tuple[str, ...]
     optional_context: tuple[str, ...]
+    allowed_producers: tuple[str, ...] = ()
 
 
 TOPOLOGY_PROFILE_CONTRACTS = {
@@ -64,6 +66,7 @@ TOPOLOGY_PROFILE_CONTRACTS = {
             "rigidWeightScale",
             "fluidDensityScale",
         ),
+        allowed_producers=_SELECTIONJSON_PRODUCERS,
     ),
 }
 
@@ -72,7 +75,9 @@ def get_topology_profile(profile_id: str) -> TopologyProfileContract:
     try:
         return TOPOLOGY_PROFILE_CONTRACTS[profile_id]
     except KeyError as exc:
-        raise CompileBlocked(f"Unknown Root topology profile {profile_id!r}.") from exc
+        raise CompileBlocked(
+            f"Unknown Root topology profile {profile_id!r}."
+        ) from exc
 
 
 def validate_topology_profile_intake(
@@ -100,7 +105,7 @@ def validate_topology_profile_intake(
         )
     _validate_context(profile, context, ledger)
     _validate_root_shape(root, ledger)
-    _validate_profile_metadata(root, profile, ledger)
+    metadata = _validate_profile_metadata(root, profile, ledger)
     ledger.add(
         source_entity_id="/Root[1]",
         source_type="TOPOLOGY_PROFILE_INTAKE",
@@ -108,10 +113,14 @@ def validate_topology_profile_intake(
             "profileId": profile.profile_id,
             "adapterId": profile.adapter_id,
             "explicitOverride": explicit_override,
+            "producer": metadata.get("Producer", ""),
+            "producerPolicy": list(profile.allowed_producers),
         },
         projection_cardinality="1_TO_0",
         disposition="PRESERVE_EXTENSION",
-        evidence=["profile predicate validated before strict topology resolution"],
+        evidence=[
+            "profile predicate and producer metadata were validated before topology resolution"
+        ],
     )
 
 
@@ -312,7 +321,7 @@ def _validate_profile_metadata(
     root: ET._Element,
     profile: TopologyProfileContract,
     ledger: DecisionLedger,
-) -> None:
+) -> dict[str, str]:
     values = {
         _local(child.tag): (child.text or "").strip()
         for child in root
@@ -326,15 +335,33 @@ def _validate_profile_metadata(
             f"Root Profile={profile_value!r} contradicts selected {profile.profile_id!r}.",
             "/Root[1]/Profile[1]",
         )
-    if profile.profile_id == "xml-builder-root-branch-node" and values.get(
-        "SelectionJsonSourceIds"
+    producer = values.get("Producer", "")
+    if profile.allowed_producers and producer not in (
+        "",
+        *profile.allowed_producers,
     ):
         block(
             ledger,
             "ROOT_PROFILE_MISMATCH",
-            "SelectionJSON producer metadata contradicts XML Builder profile selection.",
-            "/Root[1]/SelectionJsonSourceIds[1]",
+            f"Root Producer={producer!r} is not registered for {profile.profile_id!r}.",
+            "/Root[1]/Producer[1]",
+            allowedProducers=list(profile.allowed_producers),
         )
+    selectionjson_evidence = bool(values.get("SelectionJsonSourceIds")) or (
+        producer in _SELECTIONJSON_PRODUCERS
+    )
+    if profile.profile_id == "xml-builder-root-branch-node" and selectionjson_evidence:
+        block(
+            ledger,
+            "ROOT_PROFILE_MISMATCH",
+            "SelectionJSON producer metadata contradicts XML Builder profile selection.",
+            (
+                "/Root[1]/Producer[1]"
+                if producer in _SELECTIONJSON_PRODUCERS
+                else "/Root[1]/SelectionJsonSourceIds[1]"
+            ),
+        )
+    return values
 
 
 __all__ = [
