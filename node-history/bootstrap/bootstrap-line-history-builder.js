@@ -7,7 +7,7 @@ export function buildProposedLineHistories(input) {
   const context = prepareHistoryContext(input);
   materializeCurrentNodes(context, input);
   applyRetirements({
-    allocationResult: input.allocationResult,
+    retirementRows: context.retirementRows,
     historyById: context.historyById,
     retirementEvidence: context.retirementEvidence,
     revision: input.revision,
@@ -31,9 +31,10 @@ function prepareHistoryContext(input) {
     lineByKey: new Map(proposed.map((row) => [text(row?.mainLineKey), row])),
     historyById: indexHistoryNodes(proposed, blockers),
     assignmentByLogical: new Map(input.identityAssignments.assignments.map((row) => [row.logicalNodeId, row])),
-    reactivationEvidence: indexLifecycleEvidence(input.revision?.reactivations, 'REACTIVATION', blockers),
-    retirementEvidence: indexLifecycleEvidence(input.revision?.retirements, 'RETIREMENT', blockers),
-    allocatorReactivations: new Map((input.allocationResult?.reactivations || []).map((row) => [text(row?.logicalNodeId), row])),
+    reactivationEvidence: input.lifecycle?.reactivationEvidence || new Map(),
+    retirementEvidence: input.lifecycle?.retirementEvidence || new Map(),
+    allocatorReactivations: input.lifecycle?.reactivationRows || new Map(),
+    retirementRows: input.lifecycle?.retirementRows || new Map(),
   };
 }
 
@@ -120,7 +121,7 @@ function reactivateHistoryNode(values) {
   if (!evidence || !allocatorRow || text(allocatorRow.historyNodeId) !== match.historyNodeId) return blockers.push(issue(
     'BOOTSTRAP_LIFECYCLE_CONFLICT', { logicalNodeId: node.logicalNodeId, historyNodeId: match.historyNodeId, reason: 'REACTIVATION_EVIDENCE_MISSING' },
   ));
-  if (record.mainLineKey !== node.mainLineKey || record.node.engineeringNodeNumber !== allocation.engineeringNodeNumber) return blockers.push(issue(
+  if (!sameReactivationOwner(record, node, allocation, allocatorRow)) return blockers.push(issue(
     'BOOTSTRAP_LIFECYCLE_CONFLICT', { logicalNodeId: node.logicalNodeId, historyNodeId: match.historyNodeId, reason: 'REACTIVATION_OWNER_MISMATCH' },
   ));
   record.node.lifecycleStatus = 'REACTIVATED';
@@ -132,37 +133,48 @@ function reactivateHistoryNode(values) {
   });
 }
 
+function sameReactivationOwner(record, node, allocation, allocatorRow) {
+  return record.mainLineKey === node.mainLineKey
+    && text(allocation.mainLineKey) === record.mainLineKey
+    && text(allocatorRow.mainLineKey) === record.mainLineKey
+    && record.node.engineeringNodeNumber === allocation.engineeringNodeNumber
+    && record.node.engineeringNodeNumber === allocatorRow.engineeringNodeNumber;
+}
+
 function applyRetirements(values) {
-  const { allocationResult, historyById, retirementEvidence, revision, coverage, operations, blockers } = values;
-  const rows = allocationResult?.retirements || [];
+  const { retirementRows, historyById, retirementEvidence, revision, coverage, operations, blockers } = values;
+  const rows = [...retirementRows.values()];
   if (rows.length && !permitsRetirement(coverage)) {
     blockers.push(issue('PARTIAL_COVERAGE_RETIREMENT_PROHIBITED', { count: rows.length, scope: coverage?.scope }));
     return;
   }
   const covered = new Set(coveredLines(coverage));
-  for (const row of rows) {
-    const historyNodeId = text(row?.historyNodeId), record = historyById.get(historyNodeId);
-    const evidence = retirementEvidence.get(historyNodeId);
-    if (!record || !evidence || !OBSERVED_STATES.has(text(record.node.lifecycleStatus))) {
-      blockers.push(issue('BOOTSTRAP_LIFECYCLE_CONFLICT', { historyNodeId, reason: 'RETIREMENT_AUTHORITY_INVALID' }));
-      continue;
-    }
-    if (coverage.scope === 'FULL_LINE' && !covered.has(record.mainLineKey)) {
-      blockers.push(issue('PARTIAL_COVERAGE_RETIREMENT_PROHIBITED', { historyNodeId, mainLineKey: record.mainLineKey }));
-      continue;
-    }
-    if (record.node.engineeringNodeNumber !== row.engineeringNodeNumber) {
-      blockers.push(issue('BOOTSTRAP_LIFECYCLE_CONFLICT', { historyNodeId, reason: 'RETIREMENT_NUMBER_MISMATCH' }));
-      continue;
-    }
-    record.node.lifecycleStatus = 'RETIRED';
-    record.node.lastObservedRevision = text(revision?.revisionId);
-    record.node.retirementEvidence = evidence;
-    operations.push({
-      operationId: operationId('RETIRE_NODE', historyNodeId), type: 'RETIRE_NODE',
-      historyNodeId, mainLineKey: record.mainLineKey, evidence,
-    });
+  for (const row of rows) applyRetirementRow({ row, historyById, retirementEvidence, revision, coverage, covered, operations, blockers });
+}
+
+function applyRetirementRow(values) {
+  const { row, historyById, retirementEvidence, revision, coverage, covered, operations, blockers } = values;
+  const historyNodeId = text(row?.historyNodeId), record = historyById.get(historyNodeId);
+  const evidence = retirementEvidence.get(historyNodeId);
+  if (!record || !evidence || !OBSERVED_STATES.has(text(record.node.lifecycleStatus))) {
+    blockers.push(issue('BOOTSTRAP_LIFECYCLE_CONFLICT', { historyNodeId, reason: 'RETIREMENT_AUTHORITY_INVALID' }));
+    return;
   }
+  if (coverage.scope === 'FULL_LINE' && !covered.has(record.mainLineKey)) {
+    blockers.push(issue('PARTIAL_COVERAGE_RETIREMENT_PROHIBITED', { historyNodeId, mainLineKey: record.mainLineKey }));
+    return;
+  }
+  if (record.node.engineeringNodeNumber !== row.engineeringNodeNumber || record.mainLineKey !== text(row.mainLineKey)) {
+    blockers.push(issue('BOOTSTRAP_LIFECYCLE_CONFLICT', { historyNodeId, reason: 'RETIREMENT_OWNER_MISMATCH' }));
+    return;
+  }
+  record.node.lifecycleStatus = 'RETIRED';
+  record.node.lastObservedRevision = text(revision?.revisionId);
+  record.node.retirementEvidence = evidence;
+  operations.push({
+    operationId: operationId('RETIRE_NODE', historyNodeId), type: 'RETIRE_NODE',
+    historyNodeId, mainLineKey: record.mainLineKey, evidence,
+  });
 }
 
 function newHistoryNode(assignment, allocation, revision) {
@@ -200,23 +212,6 @@ function indexHistoryNodes(histories, blockers) {
   return result;
 }
 
-function indexLifecycleEvidence(rows, kind, blockers) {
-  const result = new Map();
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const historyNodeId = text(row?.historyNodeId);
-    const evidence = normalizeLifecycleEvidence(row);
-    if (!historyNodeId || result.has(historyNodeId) || !validLifecycleEvidence(evidence)) blockers.push(issue(
-      'BOOTSTRAP_LIFECYCLE_CONFLICT', { kind, historyNodeId, reason: 'LIFECYCLE_EVIDENCE_INVALID_OR_DUPLICATE' },
-    ));
-    else result.set(historyNodeId, evidence);
-  }
-  return result;
-}
-
-function normalizeLifecycleEvidence(row) {
-  return { authority: text(row?.authority), revisionId: text(row?.revisionId), reason: text(row?.reason) };
-}
-function validLifecycleEvidence(row) { return Object.values(row).every(Boolean); }
 function finalizeHistory(history, evaluatedAt) {
   history.historyNodes = [...(history.historyNodes || [])].map(sortHistoryEvidence).sort(compareHistoryNode);
   history.validation = { status: 'PASS', blockers: [], reviewItems: [], warnings: [] };
