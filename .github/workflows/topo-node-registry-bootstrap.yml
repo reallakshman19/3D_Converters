@@ -73,8 +73,23 @@ jobs:
           ! grep -Ein 'matchExactHistoricalNodes\(|matchRegisteredHistoricalNodes\(|allocateZoneEngineeringNodes\(|writeFile\(|appendFile\(|createWriteStream\(|Math\.random\(|Date\.now\(' node-history/bootstrap/*.js
       - name: Run TE-012 registry bootstrap tests
         run: |
-          node --test tests/node-history-registry-bootstrap.test.mjs
-          node --test tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs
+          set +e
+          node --test tests/node-history-registry-bootstrap.test.mjs > /tmp/te012-main.log 2>&1
+          main_status=$?
+          node --test tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs > /tmp/te012-orchestrator.log 2>&1
+          orchestrator_status=$?
+          set -e
+          if [ "$main_status" -ne 0 ]; then
+            echo '--- TE-012 primary failures ---'
+            tail -n 120 /tmp/te012-main.log
+          fi
+          if [ "$orchestrator_status" -ne 0 ]; then
+            echo '--- TE-012 orchestrator failures ---'
+            tail -n 120 /tmp/te012-orchestrator.log
+          fi
+          [ "$main_status" -eq 0 ] && [ "$orchestrator_status" -eq 0 ]
+          cat /tmp/te012-main.log
+          cat /tmp/te012-orchestrator.log
       - name: Protect TE-002 frozen contracts
         run: node --test tests/topo-enriched-xml-contracts.test.mjs
       - name: Protect TE-005 registry foundation
