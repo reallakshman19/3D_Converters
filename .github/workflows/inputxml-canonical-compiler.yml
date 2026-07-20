@@ -11,6 +11,7 @@ on:
       - 'scripts/validate-inputxml-schema-suite.py'
       - 'tests/test_inputxml_canonical_compiler*.py'
       - 'tests/test_inputxml_family_profiles.py'
+      - 'tests/test_inputxml_family_review_regressions.py'
       - 'tests/test_inputxml_contract_bundle_gate.py'
       - 'tests/test_inputxml_compiler_state_machine.py'
       - 'tests/test_inputxml_resolver_contract.py'
@@ -90,6 +91,7 @@ jobs:
             scripts/inputxml_compiler/publication_verify.py \
             scripts/inputxml_compiler/cli.py \
             tests/test_inputxml_family_profiles.py \
+            tests/test_inputxml_family_review_regressions.py \
             tests/test_inputxml_canonical_compiler_family_corpus.py
           node --check scripts/inputxml_compiler/node_uxml_rvm_bridge.mjs
       - name: Run canonical compiler unit and integration tests
@@ -99,6 +101,7 @@ jobs:
             tests/test_inputxml_canonical_compiler.py \
             tests/test_inputxml_canonical_compiler_family_corpus.py \
             tests/test_inputxml_family_profiles.py \
+            tests/test_inputxml_family_review_regressions.py \
             tests/test_inputxml_canonical_compiler_integration.py \
             tests/test_inputxml_contract_bundle_gate.py \
             tests/test_inputxml_compiler_state_machine.py \
