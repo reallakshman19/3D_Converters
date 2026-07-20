@@ -1,11 +1,15 @@
 import { canonicalSemanticJson, computeSemanticHash } from '../../contracts/topo-enriched-xml/contract-core.js';
 import { PSIWRITEROCCURRENCEPLAN_V1, TOPOSEQUENCEPLAN_V1 } from '../../contracts/topo-enriched-xml/contracts.js';
 import { isSupportType, mapComponentType } from './sj-type-mapper.js';
-import { bestPosition, parsePoint } from './sj-point-resolver.js';
+import { arrivePosition, bestPosition, leavePosition, parsePoint } from './sj-point-resolver.js';
 
 const PLAN_SCHEMA = 'PsiWriterOccurrencePlan.v1';
 const ROOT_FIELDS = ['projectId', 'zoneId', 'sourceInventoryHash', 'logicalTopologyHash', 'sequencePlanHash'];
-const BEST_FIELDS = ['APOS', 'POS', 'LPOS', 'HPOS', 'TPOS', 'BPOS'];
+const POSITION_POLICIES = Object.freeze({
+  ARRIVE: Object.freeze({ select: arrivePosition, fields: ['APOS', 'HPOS', 'POS'], directRole: 'APOS' }),
+  LEAVE: Object.freeze({ select: leavePosition, fields: ['LPOS', 'TPOS', 'POS'], directRole: 'LPOS' }),
+  BEST: Object.freeze({ select: bestPosition, fields: ['APOS', 'POS', 'LPOS', 'HPOS', 'TPOS', 'BPOS'], directRole: null }),
+});
 
 export async function buildPsiWriterOccurrencePlan(input) {
   const root = requiredRoot(input);
@@ -214,18 +218,17 @@ function coordinateEvidence(record, request) {
   if (request === 'NONE') return { selectedRole: 'NONE', sourceField: null, available: false };
   const attrs = record?.attrs || record?.attributes || {};
   const owner = record?.attrs ? 'attrs' : 'attributes';
-  const key = request === 'ARRIVE' ? 'APOS' : (request === 'LEAVE' ? 'LPOS' : null);
-  const direct = key ? parsePoint(attrs[key]) : null;
-  if (direct) return evidence(key, `${owner}.${key}`, direct);
-  const fallback = bestPosition(attrs);
-  if (fallback) return evidence('BEST', `${owner}.${bestField(attrs)}`, fallback);
-  return { selectedRole: key || 'BEST', sourceField: null, available: false };
+  const policy = POSITION_POLICIES[request] || POSITION_POLICIES.BEST;
+  const point = policy.select(attrs);
+  if (!point) return { selectedRole: policy.directRole || 'BEST', sourceField: null, available: false };
+  const sourceKey = policy.fields.find((key) => parsePoint(attrs?.[key])) || null;
+  const selectedRole = sourceKey === policy.directRole ? policy.directRole : 'BEST';
+  return evidence(selectedRole || 'BEST', sourceKey ? `${owner}.${sourceKey}` : null, point);
 }
 
 function evidence(selectedRole, sourceField, point) {
   return { selectedRole, sourceField: sourceField || null, available: true, point };
 }
-function bestField(attrs) { return BEST_FIELDS.find((key) => parsePoint(attrs?.[key])) || null; }
 
 function acceptOccurrences(occurrences, state) {
   const accepted = [];
