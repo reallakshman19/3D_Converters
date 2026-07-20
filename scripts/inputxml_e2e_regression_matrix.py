@@ -31,7 +31,19 @@ def matrix_cases() -> list[MatrixCase]:
     evidence = _assured_node_evidence()
     result: list[MatrixCase] = []
     for case in _BASE_MATRIX_CASES():
-        if case.case_id in {"managed-stage", "pdf-input-echo", "uxml-rvm"}:
+        if case.case_id == "managed-stage":
+            result.append(
+                replace(
+                    case,
+                    context={
+                        **case.context,
+                        "version": case.context.get("version", "11.00"),
+                        "north": case.context.get("north", [0, 1, 0]),
+                        "sourceRevision": case.context.get("sourceRevision", 1),
+                    },
+                )
+            )
+        elif case.case_id in {"pdf-input-echo", "uxml-rvm"}:
             result.append(
                 replace(
                     case,
