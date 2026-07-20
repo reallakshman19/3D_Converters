@@ -27,8 +27,11 @@ jobs:
           node --check tabs/stagedjson-to-enrichxml/psi-strict-node-projector.js
           node --check tabs/stagedjson-to-enrichxml/topo-enriched-xml-writer.js
           node --check tests/topo-enriched-xml-strict-serializer.test.mjs
+          node --check tests/fixtures/topo-enriched-xml/strict-serializer/orchestrator-regressions.test.mjs
       - name: Run TE-004 strict serializer tests
         run: node --test tests/topo-enriched-xml-strict-serializer.test.mjs
+      - name: Run orchestrator semantic regressions
+        run: node --test tests/fixtures/topo-enriched-xml/strict-serializer/orchestrator-regressions.test.mjs
       - name: Protect TE-003 occurrence planning
         run: node --test tests/psi-writer-occurrence-planner.test.mjs
       - name: Protect TE-002 contract freeze
