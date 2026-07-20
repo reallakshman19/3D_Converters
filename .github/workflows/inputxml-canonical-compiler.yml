@@ -20,6 +20,9 @@ on:
       - 'tests/test_inputxml_deterministic_hash_golden.py'
       - 'tests/test_inputxml_xml_builder_adapter.py'
       - 'tests/test_inputxml_seljson_adapter.py'
+      - 'tests/test_inputxml_root_topology_strict.py'
+      - 'tests/test_inputxml_topology_*.py'
+      - 'tests/strict-root-topology.test.cjs'
       - 'tests/test_inputxml_managed_stage_adapter.py'
       - 'tests/test_inputxml_pdf_input_echo_adapter.py'
       - 'tests/test_inputxml_uxml_rvm_adapter.py'
@@ -53,9 +56,11 @@ jobs:
         run: python scripts/validate-inputxml-contract-catalogs.py
       - name: Validate merged XSD, Schematron, registry, and golden corpus
         run: python scripts/validate-inputxml-schema-suite.py
-      - name: Validate authoritative Root Branch Node topology engine
+      - name: Validate strict Root topology engine
         run: |
           node --check scripts/inputxml_compiler/node_xml_builder_bridge.cjs
+          node --check scripts/inputxml_compiler/strict_root_topology.cjs
+          node tests/strict-root-topology.test.cjs
           node tests/xml-cii-node-to-inputxml-core.test.js
       - name: Validate authoritative managed-stage component topology engine
         run: |
@@ -74,6 +79,17 @@ jobs:
             scripts/inputxml_compiler/family_element.py \
             scripts/inputxml_compiler/family_categorized.py \
             scripts/inputxml_compiler/family_resolver.py \
+            scripts/inputxml_compiler/topology_profiles.py \
+            scripts/inputxml_compiler/topology_diagnostics.py \
+            scripts/inputxml_compiler/topology_inventory.py \
+            scripts/inputxml_compiler/topology_source.py \
+            scripts/inputxml_compiler/topology_bridge.py \
+            scripts/inputxml_compiler/topology_engineering.py \
+            scripts/inputxml_compiler/topology_components.py \
+            scripts/inputxml_compiler/topology_candidate.py \
+            scripts/inputxml_compiler/topology_candidate_policy.py \
+            scripts/inputxml_compiler/topology_accounting.py \
+            scripts/inputxml_compiler/topology_resolver.py \
             scripts/inputxml_compiler/pdf_input_echo.py \
             scripts/inputxml_compiler/pdf_input_echo_bindings.py \
             scripts/inputxml_compiler/uxml_rvm.py \
@@ -92,7 +108,10 @@ jobs:
             scripts/inputxml_compiler/cli.py \
             tests/test_inputxml_family_profiles.py \
             tests/test_inputxml_family_review_regressions.py \
-            tests/test_inputxml_canonical_compiler_family_corpus.py
+            tests/test_inputxml_canonical_compiler_family_corpus.py \
+            tests/test_inputxml_root_topology_strict.py \
+            tests/test_inputxml_topology_bridge_contract.py \
+            tests/test_inputxml_topology_determinism.py
           node --check scripts/inputxml_compiler/node_uxml_rvm_bridge.mjs
       - name: Run canonical compiler unit and integration tests
         run: |
@@ -111,6 +130,9 @@ jobs:
             tests/test_inputxml_deterministic_hash_golden.py \
             tests/test_inputxml_xml_builder_adapter.py \
             tests/test_inputxml_seljson_adapter.py \
+            tests/test_inputxml_root_topology_strict.py \
+            tests/test_inputxml_topology_bridge_contract.py \
+            tests/test_inputxml_topology_determinism.py \
             tests/test_inputxml_managed_stage_adapter.py \
             tests/test_inputxml_pdf_input_echo_adapter.py \
             tests/test_inputxml_uxml_rvm_adapter.py \
@@ -159,5 +181,9 @@ jobs:
           python-version: '3.11'
       - name: Install deterministic serializer runtime
         run: python -m pip install --disable-pip-version-check lxml==5.4.0 pypdf==5.4.0
-      - name: Run deterministic serializer and hash-seed proof
-        run: python -m unittest -v tests/test_inputxml_deterministic_serialization.py tests/test_inputxml_deterministic_hash_golden.py
+      - name: Run deterministic serializer, hash-seed, and topology proof
+        run: >-
+          python -m unittest -v
+          tests/test_inputxml_deterministic_serialization.py
+          tests/test_inputxml_deterministic_hash_golden.py
+          tests/test_inputxml_topology_determinism.py
