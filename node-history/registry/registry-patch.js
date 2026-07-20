@@ -14,6 +14,7 @@ import {
   normalizePatchOperation,
 } from './registry-hash.js';
 import {
+  changedPoolMainLines,
   describeLineHistoryUpdates,
   describePoolUpdates,
   validatePatchDiffCoverage,
@@ -66,7 +67,10 @@ export async function buildTopoNodeRegistryPatch({
     baseZoneRegistry, proposedZoneRegistry, baseLineHistories, proposedLineHistories, operations, blockers,
   });
   const lineHistoryUpdates = describeLineHistoryUpdates(baseLineHistories, proposedLineHistories);
-  const affectedMainLines = lineHistoryUpdates.map((row) => row.mainLineKey);
+  const affectedMainLines = [...new Set([
+    ...lineHistoryUpdates.map((row) => row.mainLineKey),
+    ...changedPoolMainLines(baseZoneRegistry, proposedZoneRegistry),
+  ])].sort();
   validateAffectedCoverage(affectedMainLines, coverage, blockers);
   const normalizedOperations = [...operations].map(normalizePatchOperation).sort(operationSort);
   const semanticPatch = {
