@@ -9,6 +9,17 @@ _SOURCE_ONLY_DISPOSITIONS = {
     ("PDF_INPUT_ECHO", "PARSE_AUTHORITATIVE_INPUT_ECHO_GRAMMAR"),
     ("UXML_ACCEPTED_CONNECTION", "ACCEPT_TOPOLOGY_CONNECTION"),
 }
+_SOURCE_ONLY_TYPES = {
+    "SOURCE_ACCOUNTING_INDEX",
+    "SOURCE_ACCOUNTING_PROOF",
+    "CONTEXT_FIELD",
+    "COORDINATE_DELTA_RECONCILIATION",
+    "CATEGORIZED_LINE",
+    "CATEGORIZED_ENRICHMENT_EVIDENCE",
+    "CATEGORIZED_IDENTITY_EVIDENCE",
+    "CATEGORIZED_NORMALIZED_FIELD",
+    "CATEGORIZED_ORIGINAL_ELEMENT",
+}
 _BRIDGE_DOCUMENT_TYPES = {"ROOT_BRANCH_NODE", "SELECTIONJSON_CUSTOM_ROOT"}
 
 
@@ -92,6 +103,21 @@ def _explicit_node_evidence(
                 )
 
 
+def _mark_source_only(record: dict[str, Any], reason: str) -> None:
+    record["projectionCardinality"] = "1_TO_0"
+    record["disposition"] = "PRESERVE_EXTENSION"
+    record["canonicalElementIds"] = []
+    record["canonicalNodeIds"] = []
+    record["InputXMLElementIds"] = []
+    record["CIISection"] = None
+    evidence = list(record.get("evidence") or [])
+    evidence.append(reason)
+    record["evidence"] = evidence
+    diagnostics = list(record.get("diagnostics") or [])
+    diagnostics.append("retained as evidence only; no direct CII index is claimed")
+    record["diagnostics"] = diagnostics
+
+
 def reconcile_decision_ledger(
     canonical: ET._Element,
     ledger: DecisionLedger,
@@ -115,20 +141,19 @@ def reconcile_decision_ledger(
     })
 
     for record in ledger.records:
-        key = (str(record.get("sourceType") or ""), str(record.get("disposition") or ""))
+        source_type = str(record.get("sourceType") or "")
+        key = (source_type, str(record.get("disposition") or ""))
         if key in _SOURCE_ONLY_DISPOSITIONS:
-            record["projectionCardinality"] = "1_TO_0"
-            record["disposition"] = "PRESERVE_EXTENSION"
-            record["canonicalElementIds"] = []
-            record["canonicalNodeIds"] = []
-            record["InputXMLElementIds"] = []
-            record["CIISection"] = None
-            evidence = list(record.get("evidence") or [])
-            evidence.append("source-only parser/topology decision; emitted element records own InputXML/CII projection")
-            record["evidence"] = evidence
-            diagnostics = list(record.get("diagnostics") or [])
-            diagnostics.append("retained as evidence only; no direct CII index is claimed")
-            record["diagnostics"] = diagnostics
+            _mark_source_only(
+                record,
+                "source-only parser/topology decision; emitted element records own InputXML/CII projection",
+            )
+            continue
+        if source_type in _SOURCE_ONLY_TYPES:
+            _mark_source_only(
+                record,
+                "PR-5 source accounting/reconciliation evidence; canonical root, model, and element records own projection",
+            )
             continue
 
         exact_ids = [
@@ -142,7 +167,7 @@ def reconcile_decision_ledger(
             evidence.append("InputXML ownership bound only after exact canonical element-ID membership verification")
             record["evidence"] = evidence
 
-        if str(record.get("sourceType") or "") in _BRIDGE_DOCUMENT_TYPES:
+        if source_type in _BRIDGE_DOCUMENT_TYPES:
             record["canonicalElementIds"] = element_ids
             record["canonicalNodeIds"] = node_ids
             record["InputXMLElementIds"] = element_ids
