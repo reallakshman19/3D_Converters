@@ -6,11 +6,12 @@ import { buildProposedLineHistories } from './bootstrap-line-history-builder.js'
 import { buildProposedRegistryArtifacts } from './bootstrap-registry-builder.js';
 
 const RESULT_SCHEMA = 'TopoNodeRegistryBootstrapResult.v1';
+const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
 const APPROVAL_FIELDS = Object.freeze([
   'approvalRecordId', 'authority', 'approvedRevision', 'approvedProjectId', 'approvedZoneId',
   'approvedBaseRegistrySnapshotHash', 'approvedHistoryMatchResultHash',
   'approvedAllocationResultHash', 'approvedIdentityAssignmentHash',
-  'baseRegistryCommit', 'decision',
+  'baseRegistryCommit', 'currentRegistrySnapshotHash', 'decision',
 ]);
 
 export async function buildApprovedRegistryBootstrap(input) {
@@ -37,6 +38,7 @@ async function prepareBootstrapArtifacts(input, validated, assignments, blockers
     current: validated.current,
     acceptedMatches: validated.matches,
     allocations: validated.allocations,
+    lifecycle: validated.lifecycle,
     identityAssignments: assignments,
     allocationResult: input.allocationResult,
     revision: input.revision,
@@ -99,11 +101,15 @@ function validateApproval(approval, revision, validated, assignmentHash, blocker
   if (normalized.decision !== 'APPROVED') blockers.push(issue('BOOTSTRAP_APPROVAL_MISSING', {
     field: 'decision', actual: normalized.decision,
   }));
+  if (!COMMIT_PATTERN.test(normalized.baseRegistryCommit)) blockers.push(issue('BOOTSTRAP_APPROVAL_SCOPE_MISMATCH', {
+    field: 'baseRegistryCommit', actual: normalized.baseRegistryCommit,
+  }));
   const expected = {
     approvedRevision: text(revision?.revisionId),
     approvedProjectId: validated.root.projectId,
     approvedZoneId: validated.root.zoneId,
     approvedBaseRegistrySnapshotHash: validated.seedHash,
+    currentRegistrySnapshotHash: validated.seedHash,
     approvedHistoryMatchResultHash: validated.matchHash,
     approvedAllocationResultHash: validated.allocationHash,
     approvedIdentityAssignmentHash: assignmentHash,
@@ -137,6 +143,7 @@ function normalizeRevision(revision = {}) {
     reactivations: sortEvidence(revision.reactivations), retirements: sortEvidence(revision.retirements),
   };
 }
+
 function normalizeCoverage(coverage = {}) {
   const lines = coverage.mainLineKeys || coverage.coveredMainLines || [];
   return {
@@ -145,6 +152,7 @@ function normalizeCoverage(coverage = {}) {
     coveredMainLines: [...new Set((Array.isArray(lines) ? lines : []).map(text).filter(Boolean))].sort(),
   };
 }
+
 function sortEvidence(rows) {
   return structuredClone(Array.isArray(rows) ? rows : []).sort((a, b) => text(a.historyNodeId).localeCompare(text(b.historyNodeId)));
 }
