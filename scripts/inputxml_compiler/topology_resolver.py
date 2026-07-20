@@ -13,6 +13,7 @@ from .topology_candidate_policy import apply_topology_candidate_policy
 from .topology_diagnostics import policy_rows
 from .topology_profiles import get_topology_profile
 from .topology_source import build_topology_source_document
+from .topology_source_decisions import record_topology_source_decisions
 
 
 def compile_strict_topology_candidate(
@@ -58,6 +59,11 @@ def compile_strict_topology_candidate(
         ledger=ledger,
     )
     apply_topology_candidate_policy(candidate, ledger)
+    record_topology_source_decisions(
+        source_document,
+        bridge_result,
+        ledger,
+    )
     return candidate
 
 
