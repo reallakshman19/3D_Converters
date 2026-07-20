@@ -1,7 +1,6 @@
 import {
   canonicalSemanticJson,
   computeSemanticHash,
-  deepFreeze,
   isRecord,
   text,
 } from '../../contracts/topo-enriched-xml/contract-core.js';
@@ -44,17 +43,30 @@ export async function buildRegistrySnapshotManifest({
       expected: text(zoneRegistry?.zoneRegistryHash), actual: zoneRegistryHash,
     }));
   }
+  const referencesByLine = groupBy(zoneRegistry?.lineHistoryRefs, (row) => text(row?.mainLineKey));
+  const historiesByLine = groupBy(histories, (row) => text(row?.mainLineKey));
+  validateManifestInputCoverage(referencesByLine, historiesByLine, blockers);
   const lineReferences = [];
   for (const history of histories) {
+    const mainLineKey = text(history?.mainLineKey);
     const actual = await computeLineHistoryHash(history || {});
     if (text(history?.lineHistoryHash) !== actual) {
       blockers.push(issue('LINE_HISTORY_HASH_MISMATCH', {
-        mainLineKey: text(history?.mainLineKey), expected: text(history?.lineHistoryHash), actual,
+        mainLineKey, expected: text(history?.lineHistoryHash), actual,
       }));
     }
+    const registryReference = (referencesByLine.get(mainLineKey) || [])[0];
+    const configuredPath = text(pathsByMainLine?.[mainLineKey]);
+    const registryPath = text(registryReference?.path);
+    if (configuredPath && registryPath && configuredPath !== registryPath) blockers.push(issue('SNAPSHOT_LINE_PATH_MISMATCH', {
+      mainLineKey, expected: registryPath, actual: configuredPath,
+    }));
+    if (registryReference && text(registryReference.lineHistoryHash) !== actual) blockers.push(issue('LINE_HISTORY_REFERENCE_HASH_MISMATCH', {
+      mainLineKey, expected: actual, actual: text(registryReference.lineHistoryHash),
+    }));
     lineReferences.push({
-      mainLineKey: text(history?.mainLineKey),
-      path: text(pathsByMainLine?.[history?.mainLineKey]) || defaultHistoryPath(history?.mainLineKey),
+      mainLineKey,
+      path: registryPath || configuredPath || defaultHistoryPath(mainLineKey),
       lineHistoryHash: actual,
     });
   }
@@ -137,6 +149,19 @@ async function sha256Canonical(value) {
   return `sha256:${hex}`;
 }
 
+function validateManifestInputCoverage(references, histories, blockers) {
+  for (const [mainLineKey, rows] of histories) {
+    if (rows.length > 1) blockers.push(issue('DUPLICATE_LINE_HISTORY', { mainLineKey }));
+    const refs = references.get(mainLineKey) || [];
+    if (!refs.length) blockers.push(issue('LINE_HISTORY_REFERENCE_MISSING', { mainLineKey }));
+    if (refs.length > 1) blockers.push(issue('DUPLICATE_LINE_HISTORY_REFERENCE', { mainLineKey }));
+  }
+  for (const [mainLineKey, refs] of references) {
+    if (!histories.has(mainLineKey)) blockers.push(issue('LINE_HISTORY_REFERENCE_UNPLANNED', { mainLineKey }));
+    if (refs.length > 1) blockers.push(issue('DUPLICATE_LINE_HISTORY_REFERENCE', { mainLineKey }));
+  }
+}
+
 function normalizePool(pool) {
   if (!isRecord(pool)) return {};
   const normalized = normalizeZoneRegistrySemantic(pool);
@@ -202,6 +227,17 @@ function normalizeOptionalRecord(value) {
 
 function sortRows(rows, key) {
   return [...rows].sort((a, b) => key(a).localeCompare(key(b)));
+}
+
+function groupBy(rows, keyFn) {
+  const result = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const key = keyFn(row);
+    const group = result.get(key) || [];
+    group.push(row);
+    result.set(key, group);
+  }
+  return result;
 }
 
 function leaseKey(row) { return `${text(row.mainLineKey)}|${text(row.leaseId)}`; }
