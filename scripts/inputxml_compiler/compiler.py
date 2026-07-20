@@ -19,6 +19,12 @@ from .contract_bundle import *
 from .state_machine import CompilerState, CompilerStage
 from .dispatcher import resolve_registered_profile
 from .family_profiles import PROFILE_CONTRACTS, validate_profile_intake
+from .managed_stage_intake import (
+    ManagedStageIntake,
+    managed_stage_root_predicate,
+    strict_json_loads,
+    validate_managed_stage_intake,
+)
 from .resolver_contract import OutcomeKind
 from .topology_profiles import (
     TOPOLOGY_PROFILE_CONTRACTS,
@@ -42,13 +48,12 @@ _BLOCK_GATE_BY_STAGE = {
 }
 
 
-def _json_dialect(source: bytes, dialect_override: str | None) -> str:
+def _json_dialect_from_payload(
+    payload: Any,
+    dialect_override: str | None,
+) -> str:
     if dialect_override:
         return dialect_override
-    try:
-        payload = json.loads(source.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise CompileBlocked(f"JSON intake could not be parsed: {exc}") from exc
     candidate = (
         payload.get("uxml")
         if isinstance(payload, dict) and isinstance(payload.get("uxml"), dict)
@@ -60,7 +65,9 @@ def _json_dialect(source: bytes, dialect_override: str | None) -> str:
         key in payload for key in ("rvmRows", "rows", "inputKind")
     ):
         return "uxml-rvm-intake"
-    return "managed-stage-json"
+    if managed_stage_root_predicate(payload):
+        return "managed-stage-json"
+    raise CompileBlocked("No registered JSON dialect matches the strict root predicate.")
 
 
 def _blocked_return_candidate(
@@ -165,16 +172,9 @@ def compile_document(
                 disposition="REJECT_INVALID",
                 diagnostics=[str(exc)],
             )
-            ledger.diagnostic(
-                "BLOCKING",
-                "CONTRACT_BUNDLE_INVALID",
-                str(exc),
-            )
+            ledger.diagnostic("BLOCKING", "CONTRACT_BUNDLE_INVALID", str(exc))
             state.block("CONTRACT_BUNDLE_GATE")
-            validation["contractBundle"] = {
-                "status": "BLOCKED",
-                "error": str(exc),
-            }
+            validation["contractBundle"] = {"status": "BLOCKED", "error": str(exc)}
             update_validation()
             return _result(None, ledger, source_hash, validation)
 
@@ -191,19 +191,33 @@ def compile_document(
             dialect_override in {"managed-stage-json", "uxml-rvm-intake"}
             or stripped[:1] in {b"{", b"["}
         )
-        pdf_source = (
-            dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
-        )
+        pdf_source = dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
         state.transition(CompilerStage.MEDIA_INSPECTED)
         ledger.current_stage_sequence = len(state.completed_stages)
 
         root: ET._Element | None
+        json_text: str | None = None
+        json_payload: Any = None
+        managed_stage_intake: ManagedStageIntake | None = None
         if pdf_source:
             root = None
             dialect = dialect_override or "pdf-input-echo"
         elif json_source:
             root = None
-            dialect = _json_dialect(source, dialect_override)
+            try:
+                json_text, json_payload = strict_json_loads(source)
+            except CompileBlocked as exc:
+                ledger.diagnostic(
+                    "BLOCKING",
+                    "MANAGED_STAGE_JSON_INVALID",
+                    str(exc),
+                    "$",
+                    diagnosticStage="MEDIA_INSPECTION_GATE",
+                )
+                state.block("MEDIA_INSPECTION_GATE")
+                update_validation()
+                return _result(None, ledger, source_hash, validation, policy)
+            dialect = _json_dialect_from_payload(json_payload, dialect_override)
         else:
             try:
                 root = _parse_xml(source, source_name)
@@ -230,23 +244,14 @@ def compile_document(
             disposition = (
                 "REJECT_INVALID"
                 if acceptance == "EXCLUDED"
-                else (
-                    "DEFER_EXPLICITLY"
-                    if acceptance == "DIAGNOSTIC_ONLY"
-                    else "UNSUPPORTED_BLOCKING"
-                )
+                else "DEFER_EXPLICITLY" if acceptance == "DIAGNOSTIC_ONLY" else "UNSUPPORTED_BLOCKING"
             )
             ledger.add(
                 source_entity_id="document",
                 source_type="DIALECT",
-                source_fields={
-                    "dialect": dialect,
-                    "canonicalAcceptance": acceptance,
-                },
+                source_fields={"dialect": dialect, "canonicalAcceptance": acceptance},
                 disposition=disposition,
-                diagnostics=[
-                    "registered dialect has no runtime adapter implementation"
-                ],
+                diagnostics=["registered dialect has no runtime adapter implementation"],
             )
             ledger.diagnostic(
                 "BLOCKING",
@@ -274,6 +279,18 @@ def compile_document(
                 explicit_override=dialect_override is not None,
                 ledger=ledger,
             )
+        elif dialect == "managed-stage-json":
+            if json_text is None:
+                raise CompileBlocked("Managed-stage strict JSON media evidence is missing.")
+            managed_stage_intake = validate_managed_stage_intake(
+                source,
+                parsed=json_payload,
+                source_text=json_text,
+                source_name=source_name,
+                context=context,
+                explicit_override=dialect_override is not None,
+                ledger=ledger,
+            )
         state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
         ledger.current_stage_sequence = len(state.completed_stages)
         aliases = _resolve_aliases(_load_json(alias_registry_path))
@@ -289,6 +306,7 @@ def compile_document(
             source_name=source_name,
             source_path=source_path,
             categorized_xsd_path=categorized_xsd_path,
+            managed_stage_intake=managed_stage_intake,
         )
         if outcome.profile_id != dialect:
             raise RuntimeError("Resolver returned a mismatched profile identity.")
@@ -310,13 +328,12 @@ def compile_document(
             update_validation()
             return _result(None, ledger, source_hash, validation, policy)
         if outcome.source_accounting_status != "COMPLETE":
-            if not any(
-                item.get("code") in {
-                    "SOURCE_ACCOUNTING_INCOMPLETE",
-                    "TOPOLOGY_SOURCE_ACCOUNTING_INCOMPLETE",
-                }
-                for item in ledger.diagnostics
-            ):
+            known_codes = {
+                "SOURCE_ACCOUNTING_INCOMPLETE",
+                "TOPOLOGY_SOURCE_ACCOUNTING_INCOMPLETE",
+                "MANAGED_STAGE_SOURCE_ACCOUNTING_INCOMPLETE",
+            }
+            if not any(item.get("code") in known_codes for item in ledger.diagnostics):
                 ledger.diagnostic(
                     "BLOCKING",
                     "SOURCE_ACCOUNTING_INCOMPLETE",
@@ -332,11 +349,7 @@ def compile_document(
         try:
             reconcile_decision_ledger(canonical, ledger, context=context)
         except CompileBlocked as exc:
-            ledger.diagnostic(
-                "BLOCKING",
-                "CANONICALIZATION_BLOCKED",
-                str(exc),
-            )
+            ledger.diagnostic("BLOCKING", "CANONICALIZATION_BLOCKED", str(exc))
             state.block("LEDGER_GATE")
             update_validation()
             return _result(None, ledger, source_hash, validation, policy)
@@ -354,8 +367,7 @@ def compile_document(
             )
             state.block("XSD_GATE")
             update_validation()
-            blocked_candidate = _blocked_return_candidate(dialect, canonical)
-            return _result(blocked_candidate, ledger, source_hash, validation, policy)
+            return _result(_blocked_return_candidate(dialect, canonical), ledger, source_hash, validation, policy)
         state.transition(CompilerStage.XSD_VALIDATED)
         ledger.current_stage_sequence = len(state.completed_stages)
 
@@ -370,8 +382,7 @@ def compile_document(
             )
             state.block("SCHEMATRON_GATE")
             update_validation()
-            blocked_candidate = _blocked_return_candidate(dialect, canonical)
-            return _result(blocked_candidate, ledger, source_hash, validation, policy)
+            return _result(_blocked_return_candidate(dialect, canonical), ledger, source_hash, validation, policy)
         state.transition(CompilerStage.SCHEMATRON_VALIDATED)
         ledger.current_stage_sequence = len(state.completed_stages)
 
@@ -389,15 +400,8 @@ def compile_document(
         return _result(canonical, ledger, source_hash, validation, policy)
 
     except CompileBlocked as exc:
-        if not any(
-            item.get("severity") in {"ERROR", "BLOCKING"}
-            for item in ledger.diagnostics
-        ):
-            ledger.diagnostic(
-                "BLOCKING",
-                "CANONICALIZATION_BLOCKED",
-                str(exc),
-            )
+        if not any(item.get("severity") in {"ERROR", "BLOCKING"} for item in ledger.diagnostics):
+            ledger.diagnostic("BLOCKING", "CANONICALIZATION_BLOCKED", str(exc))
         state.block(_BLOCK_GATE_BY_STAGE[state.current_stage])
         update_validation()
         return _result(
