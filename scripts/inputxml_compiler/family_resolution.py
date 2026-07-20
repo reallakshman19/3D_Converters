@@ -18,19 +18,49 @@ class LineScopeState:
     line_identity: str = ""
     seed_element_id: str = ""
     last_element_id: str = ""
+    last_from_node: str = ""
+    last_to_node: str = ""
+    previous_scope_id: str = ""
+    previous_line_identity: str = ""
+    previous_to_node: str = ""
+    transition_reason: str = "INITIAL"
     inherited_values: dict[str, str] = field(default_factory=dict)
     seed_fields: dict[str, str] = field(default_factory=dict)
 
-    def enter(self, line_identity: str, element_id: str) -> bool:
-        contiguous = bool(self.scope_id and self.line_identity == line_identity)
-        if contiguous:
+    def enter(
+        self,
+        line_identity: str,
+        element_id: str,
+        from_node: str,
+        to_node: str,
+    ) -> bool:
+        same_line = bool(self.scope_id and self.line_identity == line_identity)
+        connected = bool(same_line and self.last_to_node == from_node)
+        if connected:
+            self.transition_reason = "CONTIGUOUS_NODE_CHAIN"
             self.last_element_id = element_id
+            self.last_from_node = from_node
+            self.last_to_node = to_node
             return False
+        self.previous_scope_id = self.scope_id
+        self.previous_line_identity = self.line_identity
+        self.previous_to_node = self.last_to_node
         self.sequence += 1
         self.scope_id = f"LINE-SCOPE-{self.sequence:06d}"
         self.line_identity = line_identity
         self.seed_element_id = element_id
         self.last_element_id = element_id
+        self.last_from_node = from_node
+        self.last_to_node = to_node
+        self.transition_reason = (
+            "LINE_IDENTITY_CHANGED"
+            if self.previous_scope_id and self.previous_line_identity != line_identity
+            else (
+                "NODE_CONTINUITY_NOT_PROVEN"
+                if self.previous_scope_id
+                else "INITIAL_SCOPE"
+            )
+        )
         self.inherited_values = {}
         self.seed_fields = {}
         return True
