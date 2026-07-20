@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+"""Fail-closed runtime closure for InputXML dialect, adapter, and byte policy."""
 from __future__ import annotations
 
 import hashlib
@@ -7,7 +9,11 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .base import CompileBlocked, SUPPORTED_COMPILER_DIALECTS
-
+from .serialization_policy import (
+    SerializationPolicyError,
+    load_serialization_policy,
+    serialization_policy_metadata,
+)
 
 DIALECT_REGISTRY_SCHEMA = "InputXmlDialectRegistry.v1"
 ADAPTER_REGISTRY_SCHEMA = "InputXmlCanonicalCompilerAdapterRegistry.v1"
@@ -16,7 +22,7 @@ EXPECTED_DIALECT_COUNT = 14
 
 
 class ContractBundleError(CompileBlocked):
-    """Raised when the runtime dialect and adapter registries are not closed."""
+    """Raised when the executable compiler contract is not closed."""
 
 
 @dataclass(frozen=True)
@@ -26,7 +32,7 @@ class VerifiedContractBundle:
     dialects: dict[str, dict[str, Any]]
     adapters: dict[str, dict[str, Any]]
     metadata: dict[str, Any]
-    serialization_policy: dict[str, Any] | None = None
+    serialization_policy: dict[str, Any]
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -37,11 +43,12 @@ def _load_json_strict(path: Path) -> tuple[dict[str, Any], bytes]:
     try:
         raw = path.read_bytes()
     except OSError as exc:
-        raise ContractBundleError(f"Contract registry could not be read: {path}: {exc}") from exc
-
+        raise ContractBundleError(
+            f"Contract registry could not be read: {path}: {exc}"
+        ) from exc
     duplicates: list[str] = []
 
-    def object_pairs_hook(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
+    def pairs_hook(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
         value: dict[str, Any] = {}
         for key, item in pairs:
             if key in value:
@@ -50,15 +57,20 @@ def _load_json_strict(path: Path) -> tuple[dict[str, Any], bytes]:
         return value
 
     try:
-        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=object_pairs_hook)
+        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs_hook)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ContractBundleError(f"Contract registry is not strict UTF-8 JSON: {path}: {exc}") from exc
-
+        raise ContractBundleError(
+            f"Contract registry is not strict UTF-8 JSON: {path}: {exc}"
+        ) from exc
     if duplicates:
         names = ", ".join(sorted(set(duplicates)))
-        raise ContractBundleError(f"Contract registry contains duplicate JSON keys: {path}: {names}")
+        raise ContractBundleError(
+            f"Contract registry contains duplicate JSON keys: {path}: {names}"
+        )
     if not isinstance(payload, dict):
-        raise ContractBundleError(f"Contract registry root must be an object: {path}")
+        raise ContractBundleError(
+            f"Contract registry root must be an object: {path}"
+        )
     return payload, raw
 
 
@@ -70,19 +82,22 @@ def _index_unique_rows(
 ) -> dict[str, dict[str, Any]]:
     if not isinstance(rows, list):
         raise ContractBundleError(f"{collection_name} must be an array.")
-
     indexed: dict[str, dict[str, Any]] = {}
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
-            raise ContractBundleError(f"{collection_name}[{index}] must be an object.")
+            raise ContractBundleError(
+                f"{collection_name}[{index}] must be an object."
+            )
         identity = row.get(identity_field)
         if not isinstance(identity, str) or not identity.strip():
             raise ContractBundleError(
-                f"{collection_name}[{index}] requires non-empty {identity_field}."
+                f"{collection_name}[{index}] requires non-empty "
+                f"{identity_field}."
             )
         if identity in indexed:
             raise ContractBundleError(
-                f"{collection_name} contains duplicate {identity_field} {identity!r}."
+                f"{collection_name} contains duplicate "
+                f"{identity_field} {identity!r}."
             )
         indexed[identity] = row
     return indexed
@@ -98,61 +113,48 @@ def _verify_profile_contract(
     adapter_id = adapter.get("adapterId")
     status = adapter.get("status")
     result_policy = adapter.get("resultPolicy")
-
-    allowed_statuses = {
+    allowed = {
         "DIRECT": {"IMPLEMENTED"},
         "ADAPTER_REQUIRED": {"IMPLEMENTED"},
         "RECONCILIATION_REQUIRED": {"IMPLEMENTED"},
         "DIAGNOSTIC_ONLY": {"IMPLEMENTED_BLOCKING"},
         "EXCLUDED": {"EXCLUDED"},
     }
-    if acceptance not in allowed_statuses:
+    if acceptance not in allowed or status not in allowed[acceptance]:
         raise ContractBundleError(
-            f"Dialect {dialect_id!r} has unsupported canonicalAcceptance {acceptance!r}."
-        )
-    if status not in allowed_statuses[acceptance]:
-        raise ContractBundleError(
-            f"Dialect {dialect_id!r} acceptance {acceptance!r} is incompatible with "
-            f"adapter status {status!r}."
+            f"Dialect {dialect_id!r} has incompatible "
+            f"acceptance/status {acceptance!r}/{status!r}."
         )
     if not isinstance(result_policy, str) or not result_policy:
-        raise ContractBundleError(f"Dialect {dialect_id!r} requires a resultPolicy.")
+        raise ContractBundleError(
+            f"Dialect {dialect_id!r} requires a resultPolicy."
+        )
     if result_policy in {"DROP", "SKIP"}:
         raise ContractBundleError(
-            f"Dialect {dialect_id!r} uses forbidden resultPolicy {result_policy!r}."
+            f"Dialect {dialect_id!r} uses forbidden "
+            f"resultPolicy {result_policy!r}."
         )
-
     if acceptance == "DIRECT":
-        if registry_adapter != "none" or adapter_id != "direct-canonical-validation":
-            raise ContractBundleError(
-                f"Direct dialect {dialect_id!r} must use registry adapter 'none' and "
-                "runtime adapter 'direct-canonical-validation'."
-            )
+        valid = (
+            registry_adapter == "none"
+            and adapter_id == "direct-canonical-validation"
+        )
     elif acceptance == "EXCLUDED":
-        if registry_adapter != "none" or adapter_id != "none":
-            raise ContractBundleError(
-                f"Excluded dialect {dialect_id!r} must not declare an executable adapter."
-            )
-    elif registry_adapter != adapter_id:
+        valid = registry_adapter == "none" and adapter_id == "none"
+    else:
+        valid = registry_adapter == adapter_id
+    if not valid:
         raise ContractBundleError(
-            f"Dialect {dialect_id!r} adapter mismatch: registry={registry_adapter!r}, "
-            f"runtime={adapter_id!r}."
+            f"Dialect {dialect_id!r} adapter mismatch: "
+            f"registry={registry_adapter!r}, runtime={adapter_id!r}."
         )
 
 
-def verify_contract_bundle(
-    registry_path: Path,
-    adapter_registry_path: Path | None = None,
-    serialization_policy_path: Path | None = None,
-    *,
-    runtime_supported_dialects: set[str] | None = None,
-) -> VerifiedContractBundle:
-    adapter_registry_path = adapter_registry_path or (
-        registry_path.parent / "compiler" / "inputxml-compiler-adapters.json"
-    )
-    registry, registry_raw = _load_json_strict(registry_path)
-    adapter_registry, adapter_raw = _load_json_strict(adapter_registry_path)
-
+def _verify_registry_closure(
+    registry: dict[str, Any],
+    adapter_registry: dict[str, Any],
+    runtime_supported: set[str],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     if registry.get("schema") != DIALECT_REGISTRY_SCHEMA:
         raise ContractBundleError(
             f"Dialect registry schema must be {DIALECT_REGISTRY_SCHEMA!r}."
@@ -161,7 +163,6 @@ def verify_contract_bundle(
         raise ContractBundleError(
             f"Adapter registry schema must be {ADAPTER_REGISTRY_SCHEMA!r}."
         )
-
     dialects = _index_unique_rows(
         registry.get("dialects"),
         collection_name="dialects",
@@ -172,104 +173,122 @@ def verify_contract_bundle(
         collection_name="adapters",
         identity_field="dialectId",
     )
-
-    if len(dialects) != EXPECTED_DIALECT_COUNT or len(adapters) != EXPECTED_DIALECT_COUNT:
+    if (
+        len(dialects) != EXPECTED_DIALECT_COUNT
+        or len(adapters) != EXPECTED_DIALECT_COUNT
+    ):
         raise ContractBundleError(
-            f"Runtime contract bundle requires exactly {EXPECTED_DIALECT_COUNT} profiles: "
+            f"Runtime contract bundle requires exactly "
+            f"{EXPECTED_DIALECT_COUNT} profiles: "
             f"dialects={len(dialects)}, adapters={len(adapters)}."
         )
     if set(dialects) != set(adapters):
-        missing_adapters = sorted(set(dialects) - set(adapters))
-        unknown_adapters = sorted(set(adapters) - set(dialects))
         raise ContractBundleError(
             "Dialect/adapter registry closure failed: "
-            f"missingAdapters={missing_adapters}, unknownAdapters={unknown_adapters}."
+            f"missingAdapters={sorted(set(dialects) - set(adapters))}, "
+            f"unknownAdapters={sorted(set(adapters) - set(dialects))}."
         )
-
-    executable_adapter_ids = [
+    executable_ids = [
         row.get("adapterId")
         for row in adapters.values()
         if row.get("adapterId") != "none"
     ]
-    if len(executable_adapter_ids) != len(set(executable_adapter_ids)):
+    if len(executable_ids) != len(set(executable_ids)):
         raise ContractBundleError("Executable adapterId values must be unique.")
-
     for dialect_id in sorted(dialects):
-        _verify_profile_contract(dialect_id, dialects[dialect_id], adapters[dialect_id])
+        _verify_profile_contract(
+            dialect_id, dialects[dialect_id], adapters[dialect_id]
+        )
+    implemented = {
+        dialect_id
+        for dialect_id, adapter in adapters.items()
+        if adapter.get("status") in {"IMPLEMENTED", "IMPLEMENTED_BLOCKING"}
+    }
+    if runtime_supported != implemented:
+        raise ContractBundleError(
+            "Runtime resolver closure failed: "
+            f"missingRuntime={sorted(implemented - runtime_supported)}, "
+            f"unregisteredRuntime={sorted(runtime_supported - implemented)}."
+        )
+    return dialects, adapters
 
+
+def _bundle_metadata(
+    registry_raw: bytes,
+    adapter_raw: bytes,
+    policy_meta: dict[str, str],
+    implemented_count: int,
+) -> dict[str, Any]:
+    digest_contract = {
+        "adapterRegistry": {
+            "schema": ADAPTER_REGISTRY_SCHEMA,
+            "sha256": _sha256_bytes(adapter_raw),
+        },
+        "dialectRegistry": {
+            "schema": DIALECT_REGISTRY_SCHEMA,
+            "sha256": _sha256_bytes(registry_raw),
+        },
+        "serializationPolicy": policy_meta,
+    }
+    digest = json.dumps(
+        digest_contract,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return {
+        "schema": CONTRACT_BUNDLE_SCHEMA,
+        "status": "VERIFIED",
+        "digestSha256": _sha256_bytes(digest),
+        "dialectCount": EXPECTED_DIALECT_COUNT,
+        "implementedDialectCount": implemented_count,
+        "dialectRegistry": digest_contract["dialectRegistry"],
+        "adapterRegistry": digest_contract["adapterRegistry"],
+        "serializationPolicy": policy_meta,
+    }
+
+
+def verify_contract_bundle(
+    registry_path: Path,
+    adapter_registry_path: Path | None = None,
+    serialization_policy_path: Path | None = None,
+    *,
+    runtime_supported_dialects: set[str] | None = None,
+) -> VerifiedContractBundle:
+    adapter_path = adapter_registry_path or (
+        registry_path.parent / "compiler" / "inputxml-compiler-adapters.json"
+    )
+    policy_path = serialization_policy_path or (
+        registry_path.parent
+        / "compiler"
+        / "inputxml-deterministic-serialization.json"
+    )
+    registry, registry_raw = _load_json_strict(registry_path)
+    adapter_registry, adapter_raw = _load_json_strict(adapter_path)
     runtime_supported = set(
         SUPPORTED_COMPILER_DIALECTS
         if runtime_supported_dialects is None
         else runtime_supported_dialects
     )
-    registry_implemented = {
-        dialect_id
-        for dialect_id, adapter in adapters.items()
-        if adapter.get("status") in {"IMPLEMENTED", "IMPLEMENTED_BLOCKING"}
-    }
-    if runtime_supported != registry_implemented:
-        missing_runtime = sorted(registry_implemented - runtime_supported)
-        unregistered_runtime = sorted(runtime_supported - registry_implemented)
+    dialects, adapters = _verify_registry_closure(
+        registry, adapter_registry, runtime_supported
+    )
+    try:
+        policy = load_serialization_policy(policy_path)
+    except SerializationPolicyError as exc:
         raise ContractBundleError(
-            "Runtime resolver closure failed: "
-            f"missingRuntime={missing_runtime}, unregisteredRuntime={unregistered_runtime}."
-        )
-
-    registry_hash = _sha256_bytes(registry_raw)
-    adapter_hash = _sha256_bytes(adapter_raw)
-    
-    policy_hash = None
-    policy = None
-    if serialization_policy_path:
-        policy, policy_raw = _load_json_strict(serialization_policy_path)
-        if policy.get("schema") != "InputXmlDeterministicSerializationPolicy.v1":
-            raise ContractBundleError("Serialization policy schema must be 'InputXmlDeterministicSerializationPolicy.v1'.")
-        policy_hash = _sha256_bytes(policy_raw)
-
-    digest_dict: dict[str, Any] = {
-        "adapterRegistry": {
-            "schema": ADAPTER_REGISTRY_SCHEMA,
-            "sha256": adapter_hash,
-        },
-        "dialectRegistry": {
-            "schema": DIALECT_REGISTRY_SCHEMA,
-            "sha256": registry_hash,
-        },
-    }
-    if policy_hash:
-        digest_dict["serializationPolicy"] = {
-            "schema": "InputXmlDeterministicSerializationPolicy.v1",
-            "sha256": policy_hash,
-            "policyId": policy.get("policyId", "unknown"),
-        }
-
-    digest_payload = json.dumps(
-        digest_dict,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    metadata = {
-        "schema": CONTRACT_BUNDLE_SCHEMA,
-        "status": "VERIFIED",
-        "digestSha256": _sha256_bytes(digest_payload),
-        "dialectCount": len(dialects),
-        "implementedDialectCount": len(registry_implemented),
-        "dialectRegistry": {
-            "schema": DIALECT_REGISTRY_SCHEMA,
-            "sha256": registry_hash,
-        },
-        "adapterRegistry": {
-            "schema": ADAPTER_REGISTRY_SCHEMA,
-            "sha256": adapter_hash,
-        },
-    }
-    if policy_hash:
-        metadata["serializationPolicy"] = {
-            "schema": "InputXmlDeterministicSerializationPolicy.v1",
-            "sha256": policy_hash,
-            "policyId": policy.get("policyId", "unknown"),
-        }
-        
+            f"Serialization policy closure failed: {exc}"
+        ) from exc
+    policy_meta = serialization_policy_metadata(policy)
+    implemented_count = sum(
+        adapter.get("status") in {"IMPLEMENTED", "IMPLEMENTED_BLOCKING"}
+        for adapter in adapters.values()
+    )
+    metadata = _bundle_metadata(
+        registry_raw,
+        adapter_raw,
+        policy_meta,
+        implemented_count,
+    )
     return VerifiedContractBundle(
         registry=registry,
         adapter_registry=adapter_registry,
@@ -280,4 +299,12 @@ def verify_contract_bundle(
     )
 
 
-__all__ = [name for name in globals() if not name.startswith("__")]
+__all__ = [
+    "ADAPTER_REGISTRY_SCHEMA",
+    "CONTRACT_BUNDLE_SCHEMA",
+    "ContractBundleError",
+    "DIALECT_REGISTRY_SCHEMA",
+    "EXPECTED_DIALECT_COUNT",
+    "VerifiedContractBundle",
+    "verify_contract_bundle",
+]
