@@ -9,27 +9,18 @@ import {
   validateSnapshotManifestShape,
   validateZoneRegistryShape,
 } from './registry-contracts.js';
-import {
-  computeLineHistoryHash,
-  computeZoneRegistryHash,
-} from './registry-hash.js';
+import { computeLineHistoryHash, computeZoneRegistryHash } from './registry-hash.js';
 import {
   validateLineReferenceConsistency,
   validateManifestConsistency,
 } from './registry-consistency.js';
+import {
+  ACTIVE_LIFECYCLE_STATES,
+  validLifecycleEvidence,
+  validateLifecycleChanges,
+} from './registry-lifecycle.js';
 
-const ACTIVE_STATES = new Set(['ACTIVE', 'REACTIVATED', 'REVIEW_REQUIRED']);
-const LIFECYCLE_OPERATION_TYPES = new Set([
-  'ADD_NODE', 'RETIRE_NODE', 'REACTIVATE_NODE', 'SUPERSEDE_NODE',
-  'MARK_REVIEW_REQUIRED', 'ACTIVATE_NODE',
-]);
-const ALLOWED_TRANSITIONS = Object.freeze({
-  ACTIVE: new Set(['RETIRED', 'SUPERSEDED', 'REVIEW_REQUIRED']),
-  RETIRED: new Set(['REACTIVATED', 'REVIEW_REQUIRED']),
-  REACTIVATED: new Set(['ACTIVE', 'RETIRED', 'SUPERSEDED', 'REVIEW_REQUIRED']),
-  SUPERSEDED: new Set(['REVIEW_REQUIRED']),
-  REVIEW_REQUIRED: new Set(['ACTIVE', 'RETIRED', 'REACTIVATED', 'SUPERSEDED']),
-});
+export { validateLifecycleChanges };
 
 export async function validateRegistrySnapshot({ zoneRegistry, lineHistories, manifest = null }) {
   const blockers = [];
@@ -48,32 +39,6 @@ export async function validateRegistrySnapshot({ zoneRegistry, lineHistories, ma
     addShapeErrors(blockers, validateSnapshotManifestShape(manifest), 'REGISTRY_SNAPSHOT_MANIFEST_INVALID');
     await validateManifestConsistency(zoneRegistry, histories, manifest, blockers);
   }
-  return deepFreeze(buildValidation(blockers));
-}
-
-export function validateLifecycleChanges({ baseLineHistories, proposedLineHistories, operations = [] }) {
-  const blockers = [];
-  const base = indexNodes(baseLineHistories, blockers, 'BASE');
-  const proposed = indexNodes(proposedLineHistories, blockers, 'PROPOSED');
-  const operationByNode = indexLifecycleOperations(operations, blockers);
-  for (const [historyNodeId, before] of base.entries()) {
-    const after = proposed.get(historyNodeId);
-    if (!after) {
-      blockers.push(issue('HISTORY_NODE_DELETION_PROHIBITED', { historyNodeId }));
-      continue;
-    }
-    validateImmutableFacts(before, after, blockers);
-    validateTransition(before, after, operationByNode.get(historyNodeId), blockers);
-  }
-  for (const [historyNodeId, after] of proposed.entries()) {
-    if (base.has(historyNodeId)) continue;
-    const operation = operationByNode.get(historyNodeId);
-    if (text(operation?.type) !== 'ADD_NODE') blockers.push(issue('NEW_HISTORY_NODE_OPERATION_MISSING', { historyNodeId }));
-    if (!ACTIVE_STATES.has(text(after.lifecycleStatus))) blockers.push(issue('NEW_HISTORY_NODE_STATE_INVALID', {
-      historyNodeId, lifecycleStatus: after.lifecycleStatus,
-    }));
-  }
-  validateRetiredNumberOwnership(base, proposed, blockers);
   return deepFreeze(buildValidation(blockers));
 }
 
@@ -140,7 +105,7 @@ function validateHistorySet(registry, histories, blockers) {
       }));
       else historyIds.set(historyNodeId, mainLineKey);
       addNumberClaim(numberClaims, node, mainLineKey);
-      if (ACTIVE_STATES.has(text(node?.lifecycleStatus)) && !numberInLease(number, leasesByLine.get(mainLineKey))) {
+      if (ACTIVE_LIFECYCLE_STATES.has(text(node?.lifecycleStatus)) && !numberInLease(number, leasesByLine.get(mainLineKey))) {
         blockers.push(issue('ACTIVE_NODE_OUTSIDE_OWNER_LEASE', { historyNodeId, mainLineKey, engineeringNodeNumber: number }));
       }
     }
@@ -157,6 +122,16 @@ function validateHistoryNode(node, mainLineKey, blockers) {
   }
   if (!LIFECYCLE_STATES.includes(status)) blockers.push(issue('LIFECYCLE_STATUS_INVALID', { historyNodeId, status }));
   if (!text(node?.firstObservedRevision) || !text(node?.lastObservedRevision)) blockers.push(issue('REVISION_EVIDENCE_MISSING', { historyNodeId }));
+  validateAliasesAndIdentity(node, historyNodeId, blockers);
+  validateImmutableFactShape(node, mainLineKey, blockers);
+  if (status === 'RETIRED' && !validLifecycleEvidence(node?.retirementEvidence)) blockers.push(issue('RETIREMENT_EVIDENCE_MISSING', { historyNodeId }));
+  if (status === 'REACTIVATED' && !validLifecycleEvidence(node?.reactivationEvidence)) blockers.push(issue('REACTIVATION_EVIDENCE_MISSING', { historyNodeId }));
+  if (status === 'SUPERSEDED' && (!validLifecycleEvidence(node?.supersessionEvidence) || !text(node?.supersededByHistoryNodeId))) {
+    blockers.push(issue('SUPERSESSION_EVIDENCE_MISSING', { historyNodeId }));
+  }
+}
+
+function validateAliasesAndIdentity(node, historyNodeId, blockers) {
   const aliases = Array.isArray(node?.sourceAliases) ? node.sourceAliases : [];
   if (!Array.isArray(node?.sourceAliases) || aliases.some((alias) => !text(alias)) || new Set(aliases).size !== aliases.length) {
     blockers.push(issue('SOURCE_ALIAS_EVIDENCE_INVALID', { historyNodeId }));
@@ -166,12 +141,6 @@ function validateHistoryNode(node, mainLineKey, blockers) {
     blockers.push(issue('IDENTITY_EVIDENCE_INVALID', { historyNodeId }));
   }
   if (new Set(identity.map((row) => canonicalSemanticJson(row))).size !== identity.length) blockers.push(issue('DUPLICATE_IDENTITY_EVIDENCE', { historyNodeId }));
-  validateImmutableFactShape(node, mainLineKey, blockers);
-  if (status === 'RETIRED' && !validLifecycleEvidence(node?.retirementEvidence)) blockers.push(issue('RETIREMENT_EVIDENCE_MISSING', { historyNodeId }));
-  if (status === 'REACTIVATED' && !validLifecycleEvidence(node?.reactivationEvidence)) blockers.push(issue('REACTIVATION_EVIDENCE_MISSING', { historyNodeId }));
-  if (status === 'SUPERSEDED' && (!validLifecycleEvidence(node?.supersessionEvidence) || !text(node?.supersededByHistoryNodeId))) {
-    blockers.push(issue('SUPERSESSION_EVIDENCE_MISSING', { historyNodeId }));
-  }
 }
 
 function validateImmutableFactShape(node, mainLineKey, blockers) {
@@ -199,45 +168,6 @@ async function validateArtifactHashes(registry, histories, blockers) {
   }
 }
 
-function validateTransition(before, after, operation, blockers) {
-  if (before.lifecycleStatus === after.lifecycleStatus) {
-    if (operation && text(operation.type) !== 'ADD_NODE') blockers.push(issue('LIFECYCLE_OPERATION_NO_STATE_CHANGE', { historyNodeId: before.historyNodeId }));
-    return;
-  }
-  const allowed = ALLOWED_TRANSITIONS[text(before.lifecycleStatus)];
-  if (!allowed?.has(text(after.lifecycleStatus))) blockers.push(issue('INVALID_LIFECYCLE_TRANSITION', {
-    historyNodeId: before.historyNodeId, from: before.lifecycleStatus, to: after.lifecycleStatus,
-  }));
-  const expectedType = operationTypeForStatus(after.lifecycleStatus);
-  if (text(operation?.type) !== expectedType || !validLifecycleEvidence(operation?.evidence)) blockers.push(issue('LIFECYCLE_TRANSITION_EVIDENCE_MISSING', {
-    historyNodeId: before.historyNodeId, expectedType,
-  }));
-  const storedEvidence = lifecycleEvidenceForStatus(after);
-  if (operation && canonicalSemanticJson(operation.evidence) !== canonicalSemanticJson(storedEvidence)) blockers.push(issue('LIFECYCLE_OPERATION_EVIDENCE_MISMATCH', {
-    historyNodeId: before.historyNodeId, expectedType,
-  }));
-}
-
-function validateImmutableFacts(before, after, blockers) {
-  for (const field of ['historyNodeId', 'engineeringNodeNumber', 'firstObservedRevision']) {
-    if (before[field] !== after[field]) blockers.push(issue('IMMUTABLE_HISTORICAL_FACT_CHANGED', { historyNodeId: before.historyNodeId, field }));
-  }
-  if (canonicalSemanticJson(before.immutableFacts) !== canonicalSemanticJson(after.immutableFacts)) {
-    blockers.push(issue('IMMUTABLE_HISTORICAL_FACT_CHANGED', { historyNodeId: before.historyNodeId, field: 'immutableFacts' }));
-  }
-}
-
-function validateRetiredNumberOwnership(base, proposed, blockers) {
-  const retired = new Map();
-  for (const node of base.values()) if (['RETIRED', 'SUPERSEDED'].includes(text(node.lifecycleStatus))) retired.set(node.engineeringNodeNumber, node.historyNodeId);
-  for (const node of proposed.values()) {
-    const owner = retired.get(node.engineeringNodeNumber);
-    if (owner && owner !== node.historyNodeId) blockers.push(issue('RETIRED_NUMBER_REASSIGNED', {
-      engineeringNodeNumber: node.engineeringNodeNumber, retiredHistoryNodeId: owner, proposedHistoryNodeId: node.historyNodeId,
-    }));
-  }
-}
-
 function addNumberClaim(claims, node, mainLineKey) {
   const number = node?.engineeringNodeNumber;
   const rows = claims.get(number) || [];
@@ -249,7 +179,7 @@ function validateNumberClaims(claims, blockers) {
   for (const [engineeringNodeNumber, rows] of claims) {
     const identities = new Set(rows.map((row) => row.historyNodeId));
     if (identities.size <= 1) continue;
-    const active = rows.filter((row) => ACTIVE_STATES.has(row.status));
+    const active = rows.filter((row) => ACTIVE_LIFECYCLE_STATES.has(row.status));
     blockers.push(issue(active.length > 1 ? 'DUPLICATE_ACTIVE_ZONE_NODE_NUMBER' : 'HISTORICAL_NUMBER_IDENTITY_CONFLICT', {
       engineeringNodeNumber, claims: rows,
     }));
@@ -277,48 +207,8 @@ function validRange(range, namespace) {
     && (range.end - range.start) % range.step === 0;
 }
 
-function indexNodes(histories, blockers, owner) {
-  const result = new Map();
-  for (const history of histories || []) for (const node of history?.historyNodes || []) {
-    const historyNodeId = text(node?.historyNodeId);
-    if (result.has(historyNodeId)) blockers.push(issue('DUPLICATE_HISTORY_IDENTITY', { historyNodeId, owner }));
-    else result.set(historyNodeId, node);
-  }
-  return result;
-}
-
-function indexLifecycleOperations(operations, blockers) {
-  const result = new Map();
-  for (const operation of operations || []) {
-    if (!LIFECYCLE_OPERATION_TYPES.has(text(operation?.type))) continue;
-    const historyNodeId = text(operation?.historyNodeId);
-    if (!historyNodeId) continue;
-    if (result.has(historyNodeId)) blockers.push(issue('DUPLICATE_LIFECYCLE_OPERATION', { historyNodeId }));
-    else result.set(historyNodeId, operation);
-  }
-  return result;
-}
-
-function lifecycleEvidenceForStatus(node) {
-  return ({
-    RETIRED: node?.retirementEvidence,
-    REACTIVATED: node?.reactivationEvidence,
-    SUPERSEDED: node?.supersessionEvidence,
-    REVIEW_REQUIRED: node?.reviewRequiredEvidence,
-    ACTIVE: node?.activationEvidence,
-  })[text(node?.lifecycleStatus)] || null;
-}
-
-function validLifecycleEvidence(value) {
-  return isRecord(value) && text(value.authority) && text(value.revisionId) && text(value.reason);
-}
-
 function validLeaseEvidence(value) {
   return isRecord(value) && text(value.authority) && text(value.revisionId);
-}
-
-function operationTypeForStatus(status) {
-  return ({ ACTIVE: 'ACTIVATE_NODE', RETIRED: 'RETIRE_NODE', REACTIVATED: 'REACTIVATE_NODE', SUPERSEDED: 'SUPERSEDE_NODE', REVIEW_REQUIRED: 'MARK_REVIEW_REQUIRED' })[status];
 }
 
 function addShapeErrors(blockers, errors, code, evidence = {}) {
