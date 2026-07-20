@@ -125,11 +125,11 @@ class TestCompilerOrchestrationIntegration(unittest.TestCase):
             context=context or {},
         )
 
-    def test_malformed_xml_blocks_at_dialect_gate(self):
+    def test_malformed_xml_blocks_at_media_inspection_gate(self):
         root, _, validation = self.compile(b"<not-valid-xml")
         self.assertIsNone(root)
         self.assertEqual("BLOCKED", validation["status"])
-        self.assertEqual("DIALECT_GATE", validation["blockedAt"])
+        self.assertEqual("MEDIA_INSPECTION_GATE", validation["blockedAt"])
         self.assertEqual(
             [
                 "INITIALIZED",

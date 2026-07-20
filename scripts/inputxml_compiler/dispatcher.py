@@ -19,6 +19,7 @@ from .model import _ledger_direct_canonical
 from .pdf_input_echo import _compile_pdf_input_echo_source
 from .resolver_contract import OutcomeKind, ResolverOutcome
 from .seljson import _compile_seljson_custom_root
+from .topology_accounting import account_topology_profile_source
 from .uxml_rvm import _compile_uxml_rvm_source
 from .xml_builder import _compile_xml_builder_source
 
@@ -28,6 +29,9 @@ _NON_XML_DIALECTS = {
     "uxml-rvm-intake",
 }
 _PR5_FAMILY_DIALECTS = frozenset(PROFILE_CONTRACTS)
+_PR6_TOPOLOGY_DIALECTS = frozenset(
+    {"xml-builder-root-branch-node", "seljson-custom-root"}
+)
 
 
 def _require_xml(dialect: str, root: ET._Element | None) -> ET._Element:
@@ -160,28 +164,20 @@ def _compile_xml_profile(
             _mark_diagnostic_sidecar(canonical, ledger)
         return canonical
     if dialect == "xml-builder-root-branch-node":
-        source_root = _compile_xml_builder_source(
+        return _compile_xml_builder_source(
             source,
             source_root=root,
             ledger=ledger,
             context=context,
         )
-    elif dialect == "seljson-custom-root":
-        source_root = _compile_seljson_custom_root(
+    if dialect == "seljson-custom-root":
+        return _compile_seljson_custom_root(
             source,
             source_root=root,
             ledger=ledger,
             context=context,
         )
-    else:
-        raise CompileBlocked(f"No registered runtime resolver for {dialect!r}.")
-    return _compile_inputxml_family(
-        source_root,
-        dialect=dialect,
-        ledger=ledger,
-        aliases=aliases,
-        context=context,
-    )
+    raise CompileBlocked(f"No registered runtime resolver for {dialect!r}.")
 
 
 def resolve_registered_profile(
@@ -216,6 +212,14 @@ def resolve_registered_profile(
     if dialect in _PR5_FAMILY_DIALECTS:
         accounting_status, proof = account_profile_source(
             _require_xml(dialect, root),
+            profile_id=dialect,
+            ledger=ledger,
+        )
+        metrics["sourceAccounting"] = proof
+    elif dialect in _PR6_TOPOLOGY_DIALECTS:
+        accounting_status, proof = account_topology_profile_source(
+            _require_xml(dialect, root),
+            canonical,
             profile_id=dialect,
             ledger=ledger,
         )

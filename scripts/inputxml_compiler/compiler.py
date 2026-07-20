@@ -20,6 +20,10 @@ from .state_machine import CompilerState, CompilerStage
 from .dispatcher import resolve_registered_profile
 from .family_profiles import PROFILE_CONTRACTS, validate_profile_intake
 from .resolver_contract import OutcomeKind
+from .topology_profiles import (
+    TOPOLOGY_PROFILE_CONTRACTS,
+    validate_topology_profile_intake,
+)
 
 
 _BLOCK_GATE_BY_STAGE = {
@@ -81,9 +85,8 @@ def _result(
         from .serialization import serialize_canonical_xml, hash_canonical_bytes
         output = serialize_canonical_xml(candidate, policy)
         return candidate, ledger.as_dict(source_hash, hash_canonical_bytes(output)), validation
-    else:
-        output = _xml_bytes(candidate)
-        return candidate, ledger.as_dict(source_hash, _sha256(output)), validation
+    output = _xml_bytes(candidate)
+    return candidate, ledger.as_dict(source_hash, _sha256(output)), validation
 
 
 def compile_document(
@@ -104,7 +107,6 @@ def compile_document(
     context: dict[str, Any] | None = None,
 ) -> tuple[ET._Element | None, dict[str, Any], dict[str, Any]]:
     context = context or {}
-    source_hash = None
     if source:
         from .serialization import hash_source_bytes
         source_hash = hash_source_bytes(source)
@@ -178,7 +180,6 @@ def compile_document(
 
         state.transition(CompilerStage.CONTRACT_BUNDLE_VERIFIED)
         ledger.current_stage_sequence = len(state.completed_stages)
-
         ledger.contract_bundle = bundle.metadata
         validation["contractBundle"] = bundle.metadata
         state.transition(CompilerStage.SOURCE_ENVELOPE_CREATED)
@@ -204,7 +205,18 @@ def compile_document(
             root = None
             dialect = _json_dialect(source, dialect_override)
         else:
-            root = _parse_xml(source, source_name)
+            try:
+                root = _parse_xml(source, source_name)
+            except CompileBlocked as exc:
+                ledger.diagnostic(
+                    "BLOCKING",
+                    "XML_MEDIA_PARSE_FAILED",
+                    str(exc),
+                    "source-document",
+                )
+                state.block("MEDIA_INSPECTION_GATE")
+                update_validation()
+                return _result(None, ledger, source_hash, validation, policy)
             dialect = dialect_override or detect_dialect(root, bundle.registry)
         if dialect not in dialects:
             raise CompileBlocked(f"Dialect {dialect!r} is not registered.")
@@ -254,6 +266,14 @@ def compile_document(
                 categorized_xsd_path=categorized_xsd_path,
                 ledger=ledger,
             )
+        elif dialect in TOPOLOGY_PROFILE_CONTRACTS:
+            validate_topology_profile_intake(
+                profile_id=dialect,
+                root=root,
+                context=context,
+                explicit_override=dialect_override is not None,
+                ledger=ledger,
+            )
         state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
         ledger.current_stage_sequence = len(state.completed_stages)
         aliases = _resolve_aliases(_load_json(alias_registry_path))
@@ -291,7 +311,10 @@ def compile_document(
             return _result(None, ledger, source_hash, validation, policy)
         if outcome.source_accounting_status != "COMPLETE":
             if not any(
-                item.get("code") == "SOURCE_ACCOUNTING_INCOMPLETE"
+                item.get("code") in {
+                    "SOURCE_ACCOUNTING_INCOMPLETE",
+                    "TOPOLOGY_SOURCE_ACCOUNTING_INCOMPLETE",
+                }
                 for item in ledger.diagnostics
             ):
                 ledger.diagnostic(
