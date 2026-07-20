@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from lxml import etree as ET
 
@@ -54,8 +54,11 @@ def account_profile_source(
         for record in ledger.records
         if str(record.get("sourceType") or "") not in _ACCOUNTING_TYPES
     )
-    coverage = tuple(_cover_item(item, decisions) for item in inventory)
-    missing = [item.item.source_entity_id for item in coverage if not item.covered]
+    coverage = tuple(
+        _cover_item(item, decisions, profile_id=profile_id)
+        for item in inventory
+    )
+    missing = [entry.item.source_entity_id for entry in coverage if not entry.covered]
     duplicate_inventory = len(inventory) - len(
         {item.source_entity_id for item in inventory}
     )
@@ -131,23 +134,33 @@ def _ledger_coverage(
 def _cover_item(
     item: SourceInventoryItem,
     records: tuple[dict[str, Any], ...],
+    *,
+    profile_id: str,
 ) -> SourceCoverage:
-    matching: list[dict[str, Any]] = []
-    for record in records:
-        if _record_covers(item, record):
-            matching.append(record)
-    record_ids = tuple(str(record.get("recordId") or "") for record in matching)
-    dispositions = tuple(
-        sorted({str(record.get("disposition") or "") for record in matching})
+    matching = [
+        record
+        for record in records
+        if _record_covers(item, record, profile_id=profile_id)
+    ]
+    return SourceCoverage(
+        item,
+        tuple(str(record.get("recordId") or "") for record in matching),
+        tuple(sorted({str(record.get("disposition") or "") for record in matching})),
     )
-    return SourceCoverage(item, record_ids, dispositions)
 
 
-def _record_covers(item: SourceInventoryItem, record: dict[str, Any]) -> bool:
+def _record_covers(
+    item: SourceInventoryItem,
+    record: dict[str, Any],
+    *,
+    profile_id: str,
+) -> bool:
     record_id = _normalize_identity(str(record.get("sourceEntityId") or ""))
     item_id = _normalize_identity(item.source_entity_id)
     if not record_id:
         return False
+    if _synthetic_wrapper_covers(item, record, profile_id=profile_id):
+        return True
     if item.attribute_name is not None:
         parent_id = _normalize_identity(item.parent_source_entity_id or "")
         if _identity_equal(record_id, item_id):
@@ -167,11 +180,34 @@ def _record_covers(item: SourceInventoryItem, record: dict[str, Any]) -> bool:
         return True
     parent_id = _normalize_identity(item.parent_source_entity_id or "")
     if _identity_equal(record_id, parent_id):
-        local_name = _local_name_from_identity(item_id)
-        value = item.source_fields.get("text")
-        return _source_fields_contain(record.get("sourceFields"), local_name, value)
+        return _source_fields_contain(
+            record.get("sourceFields"),
+            _local_name_from_identity(item_id),
+            item.source_fields.get("text"),
+        )
     if _is_extension_wrapper(item_id):
         return record_id.startswith(f"{item_id}/Record")
+    return False
+
+
+def _synthetic_wrapper_covers(
+    item: SourceInventoryItem,
+    record: dict[str, Any],
+    *,
+    profile_id: str,
+) -> bool:
+    if item.parent_source_entity_id is not None:
+        return False
+    if record.get("sourceType") != "SYNTHETIC_CANONICAL_WRAPPER":
+        return False
+    fields = record.get("sourceFields") or {}
+    source_root = str(fields.get("sourceRoot") or "")
+    declared_profile = str(fields.get("profileId") or "")
+    local = _local_name_from_identity(_normalize_identity(item.source_entity_id))
+    if profile_id == "inputxml-fragment":
+        return source_root == local
+    if profile_id == "categorized-inputxml-v3":
+        return declared_profile == profile_id and local == "CategorizedInputXML"
     return False
 
 
@@ -180,10 +216,11 @@ def _preserved_subtree_covers(
     record_id: str,
     record: dict[str, Any],
 ) -> bool:
-    if not item_id.startswith(f"{record_id}/"):
-        return False
     source_fields = record.get("sourceFields")
-    return isinstance(source_fields, dict) and isinstance(source_fields.get("xml"), str)
+    has_xml = isinstance(source_fields, dict) and isinstance(source_fields.get("xml"), str)
+    if not has_xml:
+        return False
+    return item_id.startswith(f"{record_id}/") or record_id.startswith(f"{item_id}/")
 
 
 def _source_fields_contain(value: Any, name: str, expected: Any) -> bool:
