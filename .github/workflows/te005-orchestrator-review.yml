@@ -10,6 +10,10 @@ on:
       - '.github/workflows/te005-orchestrator-review.yml'
   workflow_dispatch:
 
+concurrency:
+  group: te005-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   review:
     runs-on: ubuntu-latest
