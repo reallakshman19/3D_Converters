@@ -16,7 +16,7 @@ class ManagedStageReviewRegressionTests(unittest.TestCase):
         node = shutil.which("node")
         self.assertIsNotNone(node)
         script = """
-import { rigidWeightEvidence } from process.argv[1];
+const { rigidWeightEvidence } = await import(process.argv[1]);
 process.stdout.write(JSON.stringify({
   missing: rigidWeightEvidence({ resolved: {}, sourceWeightKg: null }),
   resolved: rigidWeightEvidence({ resolved: { weightKg: 12.5 }, sourceWeightKg: null }),
