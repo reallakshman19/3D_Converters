@@ -4,7 +4,7 @@ import { issue } from '../registry/registry-contracts.js';
 export function buildZoneLeaseIndex({ zoneRegistry, lineHistories, policy = {} }) {
   const blockers = [], allByLine = new Map(), activeByLine = new Map(), historyById = new Map();
   const numberOwner = new Map(), occupiedNumbers = new Set(), namespace = zoneRegistry?.namespace || {};
-  validatePolicy(zoneRegistry, policy, blockers);
+  const reservedNumbers = validatePolicy(zoneRegistry, policy, namespace, blockers);
   const flattened = flattenLeases(zoneRegistry?.leases, namespace, blockers);
   detectOverlap(flattened, blockers);
   for (const row of flattened) {
@@ -21,10 +21,7 @@ export function buildZoneLeaseIndex({ zoneRegistry, lineHistories, policy = {} }
     numberOwner.set(number, historyNodeId);
     if (Number.isInteger(number)) occupiedNumbers.add(number);
   }
-  return deepFreeze({
-    blockers, historyById, occupiedNumbers, reservedNumbers: new Set(validNumbers(policy.reservedNumbers)),
-    allByLine, activeByLine,
-  });
+  return deepFreeze({ blockers, historyById, occupiedNumbers, reservedNumbers, allByLine, activeByLine });
 }
 
 export function leaseEvidence(index, mainLineKeys) {
@@ -69,22 +66,40 @@ function flattenLeases(leases, namespace, blockers) {
   }
   return rows.sort(compareRanges);
 }
+
 function detectOverlap(rows, blockers) {
-  const sorted = [...rows].sort((a, b) => a.start - b.start || a.end - b.end || a.leaseId.localeCompare(b.leaseId));
-  for (let index = 1; index < sorted.length; index += 1) if (sorted[index].start <= sorted[index - 1].end) blockers.push(issue('LEASE_OVERLAP', {
-    previous: sorted[index - 1], current: sorted[index],
-  }));
+  const sorted = [...rows].sort((a, b) => a.start - b.start || b.end - a.end || a.leaseId.localeCompare(b.leaseId));
+  let furthest = null;
+  for (const current of sorted) {
+    if (furthest && current.start <= furthest.end) blockers.push(issue('LEASE_OVERLAP', {
+      previous: furthest, current,
+    }));
+    if (!furthest || current.end > furthest.end) furthest = current;
+  }
 }
-function validatePolicy(registry, policy, blockers) {
+
+function validatePolicy(registry, policy, namespace, blockers) {
   if (text(policy.policyVersion) !== text(registry?.policyVersion) || text(policy.configVersion) !== text(registry?.configVersion)) blockers.push(issue('ALLOCATION_POLICY_MISMATCH', {
     expectedPolicyVersion: text(registry?.policyVersion), actualPolicyVersion: text(policy.policyVersion),
     expectedConfigVersion: text(registry?.configVersion), actualConfigVersion: text(policy.configVersion),
   }));
   if (text(policy.strategy || 'LOWEST_AVAILABLE') !== 'LOWEST_AVAILABLE') blockers.push(issue('ALLOCATION_POLICY_MISMATCH', { strategy: text(policy.strategy) }));
+  if (!Array.isArray(policy.reservedNumbers)) {
+    blockers.push(issue('ALLOCATION_POLICY_MISMATCH', { field: 'reservedNumbers', reason: 'ARRAY_REQUIRED' }));
+    return new Set();
+  }
+  const valid = [];
+  for (const number of policy.reservedNumbers) {
+    if (!Number.isInteger(number) || number < namespace.minimum || number > namespace.maximum) blockers.push(issue(
+      'ALLOCATION_POLICY_MISMATCH', { field: 'reservedNumbers', engineeringNodeNumber: number, reason: 'OUTSIDE_NAMESPACE_OR_NON_INTEGER' },
+    ));
+    else valid.push(number);
+  }
+  return new Set(valid);
 }
+
 function validRange(r, n) { return Number.isInteger(r?.start) && Number.isInteger(r?.end) && Number.isInteger(r?.step) && r.step > 0 && r.start <= r.end && r.start >= n.minimum && r.end <= n.maximum && (r.end - r.start) % r.step === 0; }
 function rangeValues(row) { return Array.from({ length: Math.floor((row.end - row.start) / row.step) + 1 }, (_, index) => row.start + index * row.step); }
-function validNumbers(rows) { return (Array.isArray(rows) ? rows : []).filter((value) => Number.isInteger(value) && value >= 0); }
 function addMap(map, key, value) { const rows = map.get(key) || []; rows.push(value); rows.sort(compareRanges); map.set(key, rows); }
 function compareRawRanges(a, b) { return (a?.start ?? 0) - (b?.start ?? 0) || (a?.end ?? 0) - (b?.end ?? 0) || (a?.step ?? 0) - (b?.step ?? 0); }
 function compareRanges(a, b) { return a.start - b.start || a.end - b.end || a.step - b.step || a.leaseId.localeCompare(b.leaseId); }
