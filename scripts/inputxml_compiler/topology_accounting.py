@@ -196,7 +196,8 @@ def account_topology_profile_source(
             "topology-source-accounting-proof",
             invariants=invariants,
         )
-    return accounting_proof["status"], accounting_proof
+    resolver_status = "COMPLETE" if complete else "BLOCKED"
+    return resolver_status, accounting_proof
 
 
 def _record_indexes(
