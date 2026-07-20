@@ -2,12 +2,11 @@
 """Exact source entity, path, attribute, and producer-port reconciliation."""
 from __future__ import annotations
 
-from collections import Counter
 from typing import Any
 
 from .base import DecisionLedger
 from .managed_stage_diagnostics import block
-from .managed_stage_hashes import source_entity_id
+from .managed_stage_hashes import source_entity_id, source_file_id
 from .managed_stage_intake import ManagedStageIntake, MAX_SOURCE_PORTS
 
 _COMPONENT_PORTS = (("APOS", "A"), ("POS", "P"), ("LPOS", "L"))
@@ -56,18 +55,22 @@ def verify_source_entities_and_ports(
         "ports": tuple(expected_ports),
         "entityById": {row["sourceEntityId"]: row for row in expected_entities},
         "portById": {row["sourcePortId"]: row for row in expected_ports},
+        "sourceModel": model,
     }
 
 
 def _expected_source_rows(
     intake: ManagedStageIntake,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    file_id = source_entity_id.__globals__["source_file_id"](intake.source_text)
+    file_id = source_file_id(intake.source_text)
     entities: list[dict[str, Any]] = []
     ports: list[dict[str, Any]] = []
     for branch_index, branch in enumerate(intake.branches):
         branch_path = _branch_path(intake.branch_collection_path, branch_index)
-        branch_row = _entity_row(branch, branch_path, "BRANCH", file_id, "")
+        branch_type = str(
+            branch.get("type") or _attributes(branch).get("TYPE") or "BRANCH"
+        ).strip().upper()
+        branch_row = _entity_row(branch, branch_path, branch_type, file_id, "")
         entities.append(branch_row)
         ports.extend(_port_rows(branch_row, branch, _BRANCH_PORTS, file_id))
         children = branch.get("children") if isinstance(branch.get("children"), list) else []
@@ -75,7 +78,9 @@ def _expected_source_rows(
             if not isinstance(child, dict):
                 continue
             child_path = f"{branch_path}.children[{child_index}]"
-            source_type = str(child.get("type") or _attributes(child).get("TYPE") or "").strip().upper()
+            source_type = str(
+                child.get("type") or _attributes(child).get("TYPE") or ""
+            ).strip().upper()
             component = _entity_row(
                 child,
                 child_path,
@@ -169,7 +174,7 @@ def _verify_entity_rows(
             "sourceEntityId", "sourcePath", "sourceType", "name", "sourceRef",
             "sourceBranchEntityId", "attributes", "enrichedAttributes",
         ):
-            actual_value = row.get(field, "" if field == "sourceBranchEntityId" else None)
+            actual_value = _entity_field(row, field)
             if actual_value != wanted[field]:
                 _entity_block(
                     ledger,
@@ -177,13 +182,21 @@ def _verify_entity_rows(
                 )
 
 
+def _entity_field(row: dict[str, Any], field: str) -> Any:
+    if field == "sourceBranchEntityId":
+        return row.get(field) or ""
+    if field in {"attributes", "enrichedAttributes"}:
+        return _record(row.get(field))
+    return row.get(field)
+
+
 def _verify_model_collections(
     model: dict[str, Any],
     expected: list[dict[str, Any]],
     ledger: DecisionLedger,
 ) -> None:
-    expected_branches = [row for row in expected if row["sourceType"] == "BRANCH"]
-    expected_components = [row for row in expected if row["sourceType"] != "BRANCH"]
+    expected_branches = [row for row in expected if not row["sourceBranchEntityId"]]
+    expected_components = [row for row in expected if row["sourceBranchEntityId"]]
     for field, wanted in (("branches", expected_branches), ("components", expected_components)):
         actual = _object_array(model.get(field), f"sourceModel.{field}", ledger)
         ids = [str(row.get("sourceEntityId") or "") for row in actual]
@@ -198,12 +211,11 @@ def _verify_ports(
     ledger: DecisionLedger,
 ) -> None:
     ids = [str(row.get("sourcePortId") or "") for row in actual]
-    collisions = len(ids) - len(set(ids))
     path_roles = [
         (str(row.get("sourcePath") or ""), str(row.get("role") or ""))
         for row in actual
     ]
-    if collisions or len(path_roles) != len(set(path_roles)):
+    if len(ids) != len(set(ids)) or len(path_roles) != len(set(path_roles)):
         block(
             ledger,
             "MANAGED_STAGE_SOURCE_PORT_DUPLICATE",
@@ -214,7 +226,8 @@ def _verify_ports(
         _port_block(ledger, f"{label} source-port count differs from strict source evidence.")
     for wanted, row in zip(expected, actual):
         for field in (
-            "sourcePortId", "sourceEntityId", "sourcePath", "field", "role", "position",
+            "sourcePortId", "sourceEntityId", "sourcePath", "field", "role",
+            "sourceType", "position",
         ):
             if row.get(field) != wanted[field]:
                 _port_block(
@@ -246,15 +259,7 @@ def _verify_trace_port_manifest(
     ledger: DecisionLedger,
 ) -> None:
     manifest = _object_array(trace.get("sourcePorts"), "traceLedger.sourcePorts", ledger)
-    if len(manifest) != len(expected):
-        _port_block(ledger, "Trace-ledger source-port manifest is incomplete.")
-    for wanted, row in zip(expected, manifest):
-        for field in ("sourcePortId", "sourceEntityId", "sourcePath", "field", "role", "sourceType"):
-            if row.get(field) != wanted[field]:
-                _port_block(
-                    ledger,
-                    f"Trace-ledger source port {wanted['sourcePath']} has wrong {field}.",
-                )
+    _verify_ports(expected, manifest, "trace-ledger", ledger)
 
 
 def _branch_path(collection: str, index: int) -> str:
