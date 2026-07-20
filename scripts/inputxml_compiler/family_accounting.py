@@ -102,12 +102,17 @@ def build_source_inventory(root: ET._Element) -> tuple[SourceInventoryItem, ...]
             )
         )
         for attribute_name in element.attrib:
+            source_path = f"{path}@{attribute_name}"
+            inventory_id = f"{path}/attribute::{attribute_name}"
             items.append(
                 SourceInventoryItem(
-                    source_entity_id=f"{path}@{attribute_name}",
+                    source_entity_id=inventory_id,
                     parent_source_entity_id=path,
                     source_type="ATTRIBUTE",
-                    source_fields={attribute_name: element.get(attribute_name)},
+                    source_fields={
+                        "sourcePath": source_path,
+                        attribute_name: element.get(attribute_name),
+                    },
                 )
             )
         occurrences: dict[tuple[str, str], int] = {}
