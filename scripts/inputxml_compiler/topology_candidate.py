@@ -11,18 +11,23 @@ from .base import COUNT_FIELDS, DecisionLedger, EXT_NS
 from .counts import _new_root
 from .extension import _ensure_extension_last, _extension_record
 from .family_counts import apply_canonical_counts
-from .topology_components import apply_component_evidence, attach_restraint
+from .topology_components import apply_component_evidence
 from .topology_engineering import (
     canonical_edge_attributes,
-    decimal_value,
     resolve_branch_engineering,
 )
 from .topology_profiles import TopologyProfileContract
-from .topology_source import TopologySourceDocument
+from .topology_restraints import attach_restraint
+from .topology_source_model import TopologySourceDocument
 from .xml import _decimal_text, _local, _namespace
 
-
-_CHILD_ORDER = {"BEND": 0, "RIGID": 1, "SIF": 2, "RESTRAINT": 3, "HANGER": 4}
+_CHILD_ORDER = {
+    "BEND": 0,
+    "RIGID": 1,
+    "SIF": 2,
+    "RESTRAINT": 3,
+    "HANGER": 4,
+}
 
 
 def build_topology_candidate(
@@ -151,14 +156,19 @@ def _apply_model_context(
             cii_section="VERSION",
             projection_cardinality="1_TO_1",
             disposition="EMIT_1_TO_1",
-            evidence=["profile contract explicitly permits and requires this context authority"],
+            evidence=[
+                "profile contract explicitly permits and requires this context authority"
+            ],
         )
 
 
 def _record_edge_mapping(edge: dict[str, Any], ledger: DecisionLedger) -> None:
     element_id = str(edge["canonicalElementId"])
     ledger.add(
-        source_entity_id=f"{edge['sourceBranchPath']}/edge::{edge['sourceFromNodePath']}->{edge['sourceToNodePath']}",
+        source_entity_id=(
+            f"{edge['sourceBranchPath']}/edge::"
+            f"{edge['sourceFromNodePath']}->{edge['sourceToNodePath']}"
+        ),
         source_type="TOPOLOGY_EDGE_MAPPING",
         source_fields={
             "sourceBranchPath": edge["sourceBranchPath"],
@@ -191,7 +201,9 @@ def _record_node_mappings(
 ) -> None:
     for mapping in mappings:
         ledger.add(
-            source_entity_id=f"{mapping['sourceNodePath']}/logical-node-mapping",
+            source_entity_id=(
+                f"{mapping['sourceNodePath']}/logical-node-mapping"
+            ),
             source_type="TOPOLOGY_NODE_MAPPING",
             source_fields={
                 "sourceNodePath": mapping["sourceNodePath"],
@@ -273,7 +285,10 @@ def _record_document_projection(
     ledger: DecisionLedger,
 ) -> None:
     element_ids = list(elements)
-    node_ids = [str(row["canonicalNodeId"]) for row in bridge_result["nodeMappings"]]
+    node_ids = [
+        str(row["canonicalNodeId"])
+        for row in bridge_result["nodeMappings"]
+    ]
     ledger.add(
         source_entity_id=f"/Root[1]/profile::{profile.profile_id}",
         source_type=profile.document_source_type,
@@ -303,7 +318,9 @@ def _order_element_children(element: ET._Element) -> None:
     ordered = sorted(
         enumerate(children),
         key=lambda pair: (
-            99 if _namespace(pair[1].tag) == EXT_NS else _CHILD_ORDER.get(_local(pair[1].tag), 90),
+            99
+            if _namespace(pair[1].tag) == EXT_NS
+            else _CHILD_ORDER.get(_local(pair[1].tag), 90),
             pair[0],
         ),
     )
