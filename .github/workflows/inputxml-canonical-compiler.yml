@@ -82,11 +82,13 @@ jobs:
             scripts/inputxml_compiler/topology_profiles.py \
             scripts/inputxml_compiler/topology_diagnostics.py \
             scripts/inputxml_compiler/topology_inventory.py \
+            scripts/inputxml_compiler/topology_source_model.py \
             scripts/inputxml_compiler/topology_source.py \
             scripts/inputxml_compiler/topology_bridge_io.py \
             scripts/inputxml_compiler/topology_bridge.py \
             scripts/inputxml_compiler/topology_engineering.py \
             scripts/inputxml_compiler/topology_components.py \
+            scripts/inputxml_compiler/topology_restraints.py \
             scripts/inputxml_compiler/topology_candidate.py \
             scripts/inputxml_compiler/topology_candidate_policy.py \
             scripts/inputxml_compiler/topology_accounting.py \
