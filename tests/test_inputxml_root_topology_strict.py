@@ -2,10 +2,16 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+
+from scripts.inputxml_compiler import topology_resolver
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "inputxml_canonical_compiler.py"
-spec = importlib.util.spec_from_file_location("strict_root_topology_tests", MODULE_PATH)
+spec = importlib.util.spec_from_file_location(
+    "strict_root_topology_tests",
+    MODULE_PATH,
+)
 compiler = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = compiler
 spec.loader.exec_module(compiler)
@@ -57,15 +63,26 @@ def node(
     )
 
 
-def branch(nodes, *, line="L1", name=None, material="106", extra=""):
+def branch(
+    nodes,
+    *,
+    line="L1",
+    line_id=None,
+    name=None,
+    material="106",
+    pressure="1000",
+    temperature="100",
+    extra="",
+):
     name = line if name is None else name
     material_xml = f"<MaterialNumber>{material}</MaterialNumber>" if material is not None else ""
+    line_id_xml = f"<LINE_ID>{line_id}</LINE_ID>" if line_id is not None else ""
     return (
         "<Branch>"
-        f"<Branchname>{name}</Branchname><LineNo>{line}</LineNo>"
-        "<Pressure><Pressure1>1000</Pressure1>"
+        f"<Branchname>{name}</Branchname><LineNo>{line}</LineNo>{line_id_xml}"
+        f"<Pressure><Pressure1>{pressure}</Pressure1>"
         "<HydroPressure>1500</HydroPressure></Pressure>"
-        "<Temperature><Temperature1>100</Temperature1></Temperature>"
+        f"<Temperature><Temperature1>{temperature}</Temperature1></Temperature>"
         f"{material_xml}<InsulationDensity>0</InsulationDensity>"
         "<FluidDensity>965</FluidDensity>"
         f"{extra}{''.join(nodes)}</Branch>"
@@ -109,30 +126,24 @@ class StrictRootTopologyTests(unittest.TestCase):
     def basic(self, **second):
         second_position = second.pop("position", "1000 0 0")
         return document(
-            branch(
-                [
-                    node("10", "0 0 0"),
-                    node("20", second_position, **second),
-                ]
-            )
+            branch([node("10", "0 0 0"), node("20", second_position, **second)])
         )
 
     def test_three_node_route_preserves_two_adjacencies(self):
         source = document(
-            branch(
-                [
-                    node("10", "0 0 0"),
-                    node("20", "1000 0 0"),
-                    node("30", "1000 1000 0"),
-                ]
-            )
+            branch([
+                node("10", "0 0 0"),
+                node("20", "1000 0 0"),
+                node("30", "1000 1000 0"),
+            ])
         )
         root, ledger, validation = self.compile(source)
         self.assertEqual("PASS", validation["status"])
         elements = root.findall("PIPINGMODEL/PIPINGELEMENT")
         self.assertEqual(2, len(elements))
         edge_records = [
-            row for row in ledger["records"] if row["sourceType"] == "TOPOLOGY_EDGE_MAPPING"
+            row for row in ledger["records"]
+            if row["sourceType"] == "TOPOLOGY_EDGE_MAPPING"
         ]
         self.assertEqual(2, len(edge_records))
         self.assertEqual(
@@ -142,38 +153,95 @@ class StrictRootTopologyTests(unittest.TestCase):
 
     def test_invalid_middle_node_does_not_connect_around(self):
         source = document(
-            branch(
-                [
-                    node("10", "0 0 0"),
-                    node("bad", "500 0 0"),
-                    node("30", "1000 0 0"),
-                ]
-            )
+            branch([
+                node("10", "0 0 0"),
+                node("bad", "500 0 0"),
+                node("30", "1000 0 0"),
+            ])
         )
         root, ledger, validation = self.compile(source)
         self.assertIsNone(root)
         self.assertEqual("PROFILE_RESOLVER_GATE", validation["blockedAt"])
         self.assert_code(ledger, "NODE_NUMBER_INVALID")
-        self.assertFalse(any(row["sourceType"] == "TOPOLOGY_EDGE_MAPPING" for row in ledger["records"]))
+        self.assertFalse(any(
+            row["sourceType"] == "TOPOLOGY_EDGE_MAPPING"
+            for row in ledger["records"]
+        ))
 
-    def test_branch_identity_conflict_blocks(self):
+    def test_branch_display_path_is_separate_from_line_identity(self):
+        display = '/ASIM-1836-4"-P8810031-31441C4-PP/B4'
         source = document(
-            branch([node("10", "0 0 0"), node("20", "1 0 0")], line="L1", name="OTHER")
+            branch(
+                [node("10", "0 0 0"), node("20", "1 0 0")],
+                line="P8810031",
+                line_id="P8810031",
+                name=display,
+            )
+        )
+        root, ledger, validation = self.compile(source)
+        self.assertEqual("PASS", validation["status"])
+        self.assertEqual("P8810031", root.find("PIPINGMODEL/PIPINGELEMENT").get("LINE"))
+        branch_decision = next(
+            row for row in ledger["records"]
+            if row["sourceType"] == "TOPOLOGY_SOURCE_DECISION"
+            and row["sourceEntityId"].endswith("/Branchname[1]")
+        )
+        self.assertEqual(
+            "PRESERVE_BRANCH_DISPLAY_PATH_SEPARATELY",
+            branch_decision["sourceFields"]["decisionRule"],
+        )
+
+    def test_line_no_and_line_id_conflict_blocks(self):
+        source = document(
+            branch(
+                [node("10", "0 0 0"), node("20", "1 0 0")],
+                line="P8810031",
+                line_id="OTHER",
+                name="/MODEL/B4",
+            )
         )
         root, ledger, validation = self.compile(source)
         self.assertIsNone(root)
         self.assertEqual("PROFILE_RESOLVER_GATE", validation["blockedAt"])
         self.assert_code(ledger, "BRANCH_IDENTITY_CONFLICT")
 
-    def test_repeated_line_identity_does_not_merge_branch_state(self):
+    def test_repeated_line_identity_is_legal_and_branch_state_isolated(self):
         source = document(
-            branch([node("10", "0 0 0"), node("20", "1 0 0")], line="L1"),
-            branch([node("30", "0 10 0"), node("40", "1 10 0")], line="L1"),
+            branch(
+                [
+                    node("10", "0 0 0", diameter="114.3"),
+                    node("20", "1000 0 0", diameter="114.3"),
+                ],
+                line="P8810031",
+                name="/MODEL/P8810031/B4",
+                pressure="1000",
+            ),
+            branch(
+                [
+                    node("30", "0 1000 0", diameter="219.1"),
+                    node("40", "1000 1000 0", diameter="219.1"),
+                ],
+                line="P8810031",
+                name="/MODEL/P8810031/B5",
+                pressure="2000",
+            ),
         )
-        root, ledger, validation = self.compile(source)
-        self.assertIsNone(root)
-        self.assertEqual("PROFILE_RESOLVER_GATE", validation["blockedAt"])
-        self.assert_code(ledger, "BRANCH_IDENTITY_CONFLICT")
+        root, _, validation = self.compile(source)
+        self.assertEqual("PASS", validation["status"])
+        elements = root.findall("PIPINGMODEL/PIPINGELEMENT")
+        self.assertEqual(2, len(elements))
+        self.assertEqual(["P8810031", "P8810031"], [row.get("LINE") for row in elements])
+        self.assertEqual(["1000", "2000"], [row.get("PRESSURE_C1") for row in elements])
+        self.assertEqual(["114.3", "219.1"], [row.get("DIAMETER") for row in elements])
+
+    def test_duplicate_branch_display_names_do_not_merge_occurrences(self):
+        source = document(
+            branch([node("10", "0 0 0"), node("20", "1 0 0")], line="L1", name="/MODEL/SHARED"),
+            branch([node("30", "0 10 0"), node("40", "1 10 0")], line="L2", name="/MODEL/SHARED"),
+        )
+        root, _, validation = self.compile(source)
+        self.assertIsNotNone(root)
+        self.assertEqual("PASS", validation["status"])
 
     def test_equal_coordinates_with_distinct_nodes_do_not_merge(self):
         root, ledger, validation = self.compile(self.basic(position="0 0 0"))
@@ -203,12 +271,10 @@ class StrictRootTopologyTests(unittest.TestCase):
 
     def test_missing_branch_state_seed_blocks(self):
         source = document(
-            branch(
-                [
-                    node("10", "0 0 0", diameter=None),
-                    node("20", "1 0 0", diameter=None),
-                ]
-            )
+            branch([
+                node("10", "0 0 0", diameter=None),
+                node("20", "1 0 0", diameter=None),
+            ])
         )
         root, ledger, validation = self.compile(source)
         self.assertIsNone(root)
@@ -247,10 +313,7 @@ class StrictRootTopologyTests(unittest.TestCase):
         root, ledger, validation = self.compile(self.basic(component="GASK"))
         self.assertIsNotNone(root)
         self.assertEqual("LEDGER_GATE", validation["blockedAt"])
-        self.assertEqual(
-            "BLOCKED_WITH_CANDIDATE",
-            validation["resolverOutcome"]["outcomeKind"],
-        )
+        self.assertEqual("BLOCKED_WITH_CANDIDATE", validation["resolverOutcome"]["outcomeKind"])
         self.assert_code(ledger, "COMPONENT_PROJECTION_UNRESOLVED")
         records = root.xpath(
             "//ext:Record[@name='UnsupportedComponentEvidence']",
@@ -265,9 +328,10 @@ class StrictRootTopologyTests(unittest.TestCase):
         )
         self.assertEqual("PASS", validation["status"])
         self.assertEqual(1, len(root.findall("PIPINGMODEL/PIPINGELEMENT/RESTRAINT")))
-        self.assertTrue(
-            any(row["sourceType"] == "CUSTOM_RESTRAINT_COMPATIBILITY" for row in ledger["records"])
-        )
+        self.assertTrue(any(
+            row["sourceType"] == "CUSTOM_RESTRAINT_COMPATIBILITY"
+            for row in ledger["records"]
+        ))
 
     def test_unresolved_restraint_type_blocks_before_emission(self):
         root, ledger, validation = self.compile(
@@ -277,22 +341,58 @@ class StrictRootTopologyTests(unittest.TestCase):
         self.assert_code(ledger, "RESTRAINT_TYPE_UNRESOLVED")
         self.assertEqual("PROFILE_RESOLVER_GATE", validation["blockedAt"])
 
-    def test_source_accounting_index_cannot_certify_itself(self):
+    def test_source_accounting_uses_only_semantic_decisions(self):
         root, ledger, validation = self.compile(self.basic())
         self.assertEqual("PASS", validation["status"])
         proof = validation["resolverOutcome"]["profileMetrics"]["sourceAccounting"]
-        self.assertEqual(0, proof["invariants"]["accountingIndexSelfCertificationCount"])
+        self.assertEqual("TOPOLOGY_SOURCE_DECISION", proof["accountingAuthoritySourceType"])
+        self.assertEqual(0, proof["invariants"]["blanketInventoryAuthorityCount"])
+        records_by_id = {row["recordId"]: row for row in ledger["records"]}
         indexes = [
-            row for row in ledger["records"] if row["sourceType"] == "TOPOLOGY_SOURCE_ACCOUNTING_INDEX"
+            row for row in ledger["records"]
+            if row["sourceType"] == "TOPOLOGY_SOURCE_ACCOUNTING_INDEX"
         ]
         self.assertTrue(indexes)
-        self.assertTrue(
-            all(
-                row["sourceFields"]["coverageRule"] == "PRIOR_TRANSFORMATION_DECISION_REQUIRED"
-                and row["sourceFields"]["priorDecisionRecordIds"]
-                for row in indexes
+        for row in indexes:
+            prior_ids = row["sourceFields"]["priorDecisionRecordIds"]
+            self.assertEqual(1, len(prior_ids))
+            self.assertEqual("TOPOLOGY_SOURCE_DECISION", records_by_id[prior_ids[0]]["sourceType"])
+
+    def test_blanket_inventory_record_cannot_cover_missing_decision(self):
+        original = topology_resolver.record_topology_source_decisions
+        missing = "/Root[1]/Branch[1]/Node[2]/Position[1]"
+
+        def incomplete(source, bridge_result, ledger):
+            original(source, bridge_result, ledger)
+            ledger.records[:] = [
+                row for row in ledger.records
+                if not (
+                    row["sourceType"] == "TOPOLOGY_SOURCE_DECISION"
+                    and row["sourceEntityId"] == missing
+                )
+            ]
+            ledger.add(
+                source_entity_id=missing,
+                source_type="TOPOLOGY_SOURCE_ELEMENT",
+                source_fields={"legacyBlanketInventory": True},
+                projection_cardinality="1_TO_0",
+                disposition="PRESERVE_EXTENSION",
+                evidence=["deliberate accounting tamper test"],
             )
-        )
+
+        with patch.object(
+            topology_resolver,
+            "record_topology_source_decisions",
+            side_effect=incomplete,
+        ):
+            root, ledger, validation = self.compile(self.basic())
+        self.assertIsNotNone(root)
+        self.assertEqual("SOURCE_ACCOUNTING_GATE", validation["blockedAt"])
+        proof = validation["resolverOutcome"]["profileMetrics"]["sourceAccounting"]
+        self.assertEqual("INCOMPLETE", proof["status"])
+        self.assertIn(missing, proof["unaccountedSourceIdentities"])
+        self.assertEqual(1, proof["invariants"]["blanketInventoryAuthorityCount"])
+        self.assert_code(ledger, "TOPOLOGY_SOURCE_ACCOUNTING_INCOMPLETE")
 
 
 if __name__ == "__main__":
