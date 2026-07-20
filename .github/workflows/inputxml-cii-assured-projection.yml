@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'contracts/inputxml/v1/**'
+      - 'docs/inputxml/**'
+      - 'scripts/inputxml_compiler/**'
+      - 'tests/test_inputxml_family_profiles.py'
       - 'converters/scripts/inputxml_to_cii2019.py'
       - 'converters/scripts/inputxml_to_cii2019_assured.py'
       - 'converters/scripts/inputxml_to_cii2019_assured_projection.py'

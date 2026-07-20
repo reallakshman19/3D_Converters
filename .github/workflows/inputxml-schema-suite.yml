@@ -4,8 +4,11 @@ on:
   pull_request:
     paths:
       - 'contracts/inputxml/v1/**'
+      - 'docs/inputxml/**'
+      - 'scripts/inputxml_compiler/**'
       - 'scripts/validate-inputxml-contract-catalogs.py'
       - 'scripts/validate-inputxml-schema-suite.py'
+      - 'tests/test_inputxml_family_profiles.py'
       - '.github/workflows/inputxml-schema-suite.yml'
   workflow_dispatch:
 

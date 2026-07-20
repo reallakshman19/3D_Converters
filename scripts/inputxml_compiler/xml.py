@@ -89,6 +89,7 @@ def _registered_dialects(registry: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def detect_dialect(root: ET._Element, registry: dict[str, Any]) -> str:
+    del registry
     local = _local(root.tag)
     ns = _namespace(root.tag)
     if local == "CategorizedInputXML" and ns == "":
@@ -109,10 +110,22 @@ def detect_dialect(root: ET._Element, registry: dict[str, Any]) -> str:
     if len(models) != 1:
         raise CompileBlocked("Exactly one direct unqualified PIPINGMODEL is required for InputXML-family intake.")
     model = models[0]
-    child_names = {_local(child.tag) for element in model if _local(element.tag) == "PIPINGELEMENT" for child in element}
+    elements = [
+        element
+        for element in model
+        if _local(element.tag) == "PIPINGELEMENT" and _namespace(element.tag) == ""
+    ]
+    version = (root.get("VERSION") or "").strip()
+    if version.split(".", 1)[0] == "14":
+        return "cii14-inputxml"
+    child_names = {
+        _local(child.tag)
+        for element in elements
+        for child in element
+        if _namespace(child.tag) == ""
+    }
     if child_names & KNOWN_ENRICHMENT_CHILDREN:
         return "enriched-inputxml-app"
-    elements = [element for element in model if _local(element.tag) == "PIPINGELEMENT" and _namespace(element.tag) == ""]
     attrs = {name for element in elements for name in element.attrib}
     if any(re.fullmatch(r"PRESSURE[1-9]", name) for name in attrs) or "LINE_ID" in attrs:
         return "caesar-inputxml-pressure1"
@@ -122,9 +135,6 @@ def detect_dialect(root: ET._Element, registry: dict[str, Any]) -> str:
     )
     if elements and all(element.get("ID") and element.get("LINE") for element in elements) and not unsupported_children:
         return "canonical-inputxml-v1"
-    version = (root.get("VERSION") or "").strip()
-    if version.startswith("14"):
-        return "cii14-inputxml"
     return "caesar-inputxml-pressure-c"
 
 

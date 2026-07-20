@@ -8,6 +8,23 @@ from scripts.inputxml_compiler.dispatcher import resolve_registered_profile
 from scripts.inputxml_compiler.resolver_contract import OutcomeKind, ResolverOutcome
 
 
+COUNT_VALUES = {
+    "NUMELT": "1",
+    "NUMNOZ": "0",
+    "NOHGRS": "0",
+    "NUMBEND": "0",
+    "NUMRIGID": "0",
+    "NUMEXPJNT": "0",
+    "NUMREST": "0",
+    "NUMFORCMNT": "0",
+    "NUMUNFLOAD": "0",
+    "NUMWIND": "0",
+    "NUMELEOFF": "0",
+    "NUMALLOW": "0",
+    "NUMISECT": "0",
+}
+
+
 class TestInputXMLResolverContract(unittest.TestCase):
     def setUp(self):
         self.ledger = DecisionLedger("repo", "path", "prod", "dialect")
@@ -48,10 +65,19 @@ class TestInputXMLResolverContract(unittest.TestCase):
             XML_TYPE="Input",
             VERSION="11.00",
         )
-        model = ET.SubElement(root, "PIPINGMODEL", JOBNAME="T")
+        model = ET.SubElement(
+            root,
+            "PIPINGMODEL",
+            JOBNAME="T",
+            NORTH_X="0",
+            NORTH_Y="1",
+            NORTH_Z="0",
+            **COUNT_VALUES,
+        )
         ET.SubElement(
             model,
             "PIPINGELEMENT",
+            ID="E1",
             FROM_NODE="10",
             TO_NODE="20",
             LINE="L1",
@@ -65,10 +91,10 @@ class TestInputXMLResolverContract(unittest.TestCase):
             "xml-to-cii-diagnostic-sidecar",
             "diagnostic-sidecar-reconciliation",
             root,
-            {"north": [0, 1, 0]},
         )
         self.assertEqual(outcome.adapter_id, "diagnostic-sidecar-reconciliation")
         self.assertEqual(outcome.outcome_kind, OutcomeKind.BLOCKED_WITH_CANDIDATE)
+        self.assertEqual(outcome.source_accounting_status, "COMPLETE")
         self.assertTrue(self.ledger.blocked)
 
     def test_candidate_outcome_requires_candidate(self):

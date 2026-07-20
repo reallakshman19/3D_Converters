@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - 'contracts/inputxml/v1/**'
+      - 'docs/inputxml/**'
+      - 'scripts/inputxml_compiler/**'
       - 'scripts/inputxml_assurance_ledger.py'
+      - 'tests/test_inputxml_family_profiles.py'
       - 'tests/test_inputxml_assurance_ledger.py'
       - 'tests/test_inputxml_assurance_integration.py'
       - 'tabs/model-converters/converters/component-topology/**'
