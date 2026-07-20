@@ -9,6 +9,7 @@ from lxml import etree as ET
 from .base import DecisionLedger
 from .topology_bridge import invoke_topology_bridge
 from .topology_candidate import build_topology_candidate
+from .topology_candidate_policy import apply_topology_candidate_policy
 from .topology_diagnostics import policy_rows
 from .topology_profiles import get_topology_profile
 from .topology_source import build_topology_source_document
@@ -48,7 +49,7 @@ def compile_strict_topology_candidate(
             "blocking behavior is selected by registered code policy, never substring matching"
         ],
     )
-    return build_topology_candidate(
+    candidate = build_topology_candidate(
         source,
         source_document,
         bridge_result,
@@ -56,6 +57,8 @@ def compile_strict_topology_candidate(
         context=context,
         ledger=ledger,
     )
+    apply_topology_candidate_policy(candidate, ledger)
+    return candidate
 
 
 __all__ = ["compile_strict_topology_candidate"]
