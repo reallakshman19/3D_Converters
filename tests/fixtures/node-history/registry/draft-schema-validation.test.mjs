@@ -67,3 +67,20 @@ test('validates positive registry artifacts against Draft 2020-12 schemas', asyn
   ]);
   assert.ok(results.every((row) => row.valid), JSON.stringify(results));
 });
+
+test('rejects malformed lease evidence, lifecycle evidence and manifest pool structure', async () => {
+  const data = await materialize();
+  const badZone = structuredClone(data.zoneRegistry);
+  delete badZone.leases[0].evidence.authority;
+  const badLine = structuredClone(data.lineHistories[0]);
+  const retired = badLine.historyNodes.find((row) => row.lifecycleStatus === 'RETIRED');
+  retired.retirementEvidence = {};
+  const badManifest = structuredClone(data.manifest);
+  delete badManifest.pool.namespace;
+  const results = validate([
+    { id: 'zone-negative', schema: schema('PsiNodeZoneRegistry.v1'), artifact: badZone },
+    { id: 'line-negative', schema: schema('PsiNodeLineHistory.v1'), artifact: badLine },
+    { id: 'manifest-negative', schema: schema('RegistrySnapshotManifest.v1'), artifact: badManifest },
+  ]);
+  assert.ok(results.every((row) => !row.valid), JSON.stringify(results));
+});
