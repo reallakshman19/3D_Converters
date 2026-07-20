@@ -7,7 +7,6 @@ from typing import Any
 
 from lxml import etree as ET
 
-from .base import DecisionLedger
 from .xml import _local, _namespace
 
 
@@ -50,7 +49,7 @@ def build_source_inventory(root: ET._Element) -> SourceInventory:
         for name, value in element.attrib.items():
             entries.append(
                 {
-                    "identity": f"{path}@{name}",
+                    "identity": f"{path}/attribute::{name}",
                     "parentIdentity": path,
                     "kind": "ATTRIBUTE",
                     "name": name,
@@ -70,32 +69,4 @@ def build_source_inventory(root: ET._Element) -> SourceInventory:
     return SourceInventory(tuple(entries), duplicate_count)
 
 
-def record_inventory_decisions(
-    inventory: SourceInventory,
-    *,
-    ledger: DecisionLedger,
-) -> None:
-    for row in inventory.entries:
-        ledger.add(
-            source_entity_id=str(row["identity"]),
-            source_type=f"TOPOLOGY_SOURCE_{row['kind']}",
-            source_fields={
-                "name": row["name"],
-                "namespace": row["namespace"],
-                "value": row["value"],
-                "parentIdentity": row["parentIdentity"],
-            },
-            projection_cardinality="1_TO_0",
-            disposition="PRESERVE_EXTENSION",
-            evidence=[
-                "secure lxml occurrence inventory retained before topology resolution",
-                "full source document is preserved in canonical extension evidence",
-            ],
-        )
-
-
-__all__ = [
-    "SourceInventory",
-    "build_source_inventory",
-    "record_inventory_decisions",
-]
+__all__ = ["SourceInventory", "build_source_inventory"]
