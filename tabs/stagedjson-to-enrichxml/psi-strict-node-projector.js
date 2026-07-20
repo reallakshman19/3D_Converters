@@ -1,5 +1,6 @@
 import { formatRestraintXml } from './sj-restraint-resolver.js';
 import { resolveXmlEngineeringValues } from './sj-node-contract.js';
+import { arrivePosition, leavePosition } from './sj-point-resolver.js';
 import { rigidValue } from './sj-type-mapper.js';
 import { DN_TO_OD_MM } from './sj-weight-db.js';
 
@@ -140,7 +141,7 @@ function resolveBendRadius(record) {
 function resolveReducerAlphaAngle(record) {
   const explicit = firstPositive(record?.anglDeg, record?.attrs?.ANGL);
   if (explicit !== null) return explicit;
-  const start = point(record?.attrs?.APOS), end = point(record?.attrs?.LPOS);
+  const start = arrivePosition(record?.attrs), end = leavePosition(record?.attrs);
   if (!start || !end) return null;
   const length = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y), Math.abs(end.z - start.z));
   if (!(length > 0)) return null;
@@ -151,11 +152,6 @@ function resolveReducerAlphaAngle(record) {
   if (!(largeOd > 0) || !(smallOd > 0) || largeOd === smallOd) return null;
   const radialChange = Math.abs(largeOd - smallOd) / 2;
   return Math.round((Math.atan2(radialChange, length) * 180 / Math.PI) * 1000) / 1000;
-}
-
-function point(value) {
-  if (!value || typeof value !== 'object') return null;
-  return normalizePoint(value);
 }
 
 function normalizePoint(value) {
