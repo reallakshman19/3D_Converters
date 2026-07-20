@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://reallaksh19.github.io/3D_Converters/node-history/schemas/RegistrySnapshotManifest.v1.schema.json",
+  "title": "RegistrySnapshotManifest.v1",
+  "type": "object",
+  "required": [
+    "schema", "projectId", "zoneId", "schemaVersions", "policy", "pool",
+    "lineHistories", "validation", "registrySnapshotHash"
+  ],
+  "properties": {
+    "schema": {"const": "RegistrySnapshotManifest.v1"},
+    "projectId": {"type": "string", "minLength": 1},
+    "zoneId": {"type": "string", "minLength": 1},
+    "schemaVersions": {
+      "type": "object",
+      "required": ["zoneRegistry", "lineHistory", "registryPatch", "snapshotManifest"],
+      "properties": {
+        "zoneRegistry": {"const": "PsiNodeZoneRegistry.v1"},
+        "lineHistory": {"const": "PsiNodeLineHistory.v1"},
+        "registryPatch": {"const": "TopoNodeRegistryPatch.v1"},
+        "snapshotManifest": {"const": "RegistrySnapshotManifest.v1"}
+      },
+      "additionalProperties": false
+    },
+    "policy": {
+      "type": "object",
+      "required": ["registryVersion", "allocationPolicyVersion", "registryConfigVersion"],
+      "properties": {
+        "registryVersion": {"const": "1.0.0"},
+        "allocationPolicyVersion": {"type": "string", "minLength": 1},
+        "registryConfigVersion": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "pool": {"type": "object"},
+    "lineHistories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mainLineKey", "path", "lineHistoryHash"],
+        "properties": {
+          "mainLineKey": {"type": "string", "pattern": "^/[A-Z0-9][A-Z0-9._-]*(/[A-Z0-9][A-Z0-9._-]*)*$"},
+          "path": {"type": "string", "minLength": 1},
+          "lineHistoryHash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["status", "blockers", "reviewItems", "warnings"],
+      "properties": {
+        "status": {"enum": ["PASS", "REVIEW_REQUIRED", "BLOCKED"]},
+        "blockers": {"type": "array"},
+        "reviewItems": {"type": "array"},
+        "warnings": {"type": "array"}
+      },
+      "additionalProperties": false
+    },
+    "registrySnapshotHash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "audit": {"type": "object"}
+  },
+  "additionalProperties": false
+}
