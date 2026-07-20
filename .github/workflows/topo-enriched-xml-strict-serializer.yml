@@ -10,6 +10,10 @@ on:
       - 'tests/fixtures/topo-enriched-xml/strict-serializer/**'
       - 'contracts/topo-enriched-xml/**'
       - 'schemas/topo-enriched-xml/**'
+      - 'node-history/registry/**'
+      - 'node-history/schemas/**'
+      - 'tests/node-history-registry-foundation.test.mjs'
+      - 'tests/fixtures/node-history/registry/**'
       - '.github/workflows/topo-enriched-xml-strict-serializer.yml'
   workflow_dispatch:
 
@@ -21,16 +25,39 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Syntax check strict serializer slice
+      - name: Validate registry module size
+        run: |
+          for file in node-history/registry/*.js; do
+            lines=$(wc -l < "$file")
+            echo "$file: $lines"
+            test "$lines" -le 300
+          done
+      - name: Syntax check strict serializer and registry foundation
         run: |
           node --check tabs/stagedjson-to-enrichxml/psi-serialization-plan.js
           node --check tabs/stagedjson-to-enrichxml/psi-strict-node-projector.js
           node --check tabs/stagedjson-to-enrichxml/topo-enriched-xml-writer.js
           node --check tests/topo-enriched-xml-strict-serializer.test.mjs
           node --check tests/fixtures/topo-enriched-xml/strict-serializer/orchestrator-regressions.test.mjs
+          node --check node-history/registry/registry-contracts.js
+          node --check node-history/registry/registry-hash.js
+          node --check node-history/registry/registry-consistency.js
+          node --check node-history/registry/registry-lifecycle.js
+          node --check node-history/registry/registry-patch-diff.js
+          node --check node-history/registry/registry-patch.js
+          node --check node-history/registry/registry-validator.js
+          node --check tests/node-history-registry-foundation.test.mjs
+          node --check tests/fixtures/node-history/registry/draft-schema-validation.test.mjs
+          node --check tests/fixtures/node-history/registry/orchestrator-regressions.test.mjs
+      - name: Run TE-005 foundation tests
+        run: node --test tests/node-history-registry-foundation.test.mjs
+      - name: Run TE-005 Draft 2020-12 schema tests
+        run: node --test tests/fixtures/node-history/registry/draft-schema-validation.test.mjs
+      - name: Run TE-005 orchestrator regressions
+        run: node --test tests/fixtures/node-history/registry/orchestrator-regressions.test.mjs
       - name: Run TE-004 strict serializer tests
         run: node --test tests/topo-enriched-xml-strict-serializer.test.mjs
-      - name: Run orchestrator semantic regressions
+      - name: Run TE-004 orchestrator semantic regressions
         run: node --test tests/fixtures/topo-enriched-xml/strict-serializer/orchestrator-regressions.test.mjs
       - name: Protect TE-003 occurrence planning
         run: node --test tests/psi-writer-occurrence-planner.test.mjs
