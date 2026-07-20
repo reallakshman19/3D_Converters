@@ -35,7 +35,7 @@ class ManagedStageNumericHashTests(unittest.TestCase):
         self.assertIsNotNone(node)
         script = """
 import fs from 'node:fs';
-import { canonicalJson, deterministicHash } from process.argv[1];
+const { canonicalJson, deterministicHash } = await import(process.argv[1]);
 const contract = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const source = contract.objectVector.value;
 const value = {
