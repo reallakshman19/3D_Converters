@@ -107,7 +107,9 @@ def _verify_proof_counts(
     proof = result.get("topologyProof")
     if not isinstance(proof, dict):
         _mapping_block(ledger, "Bridge topology proof is missing.")
-    if proof.get("sourceInventorySummary") != request.get("sourceInventorySummary"):
+    if proof.get("sourceInventorySummary") != request.get(
+        "sourceInventorySummary"
+    ):
         _mapping_block(
             ledger,
             "Bridge proof inventory summary differs from the request.",
@@ -117,8 +119,6 @@ def _verify_proof_counts(
         "logicalEdgeCount": len(expected.edges),
         "nodeMappingCount": len(result["nodeMappings"]),
         "elementMappingCount": len(result["elementMappings"]),
-        "componentMappingCount": len(result["components"]),
-        "auxiliaryMappingCount": len(result["auxiliaries"]),
         "unresolvedEdgeCount": 0,
         "unresolvedOwnershipCount": 0,
         "syntheticTopologyCount": 0,
