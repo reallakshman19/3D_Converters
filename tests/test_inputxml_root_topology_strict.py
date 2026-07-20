@@ -107,11 +107,12 @@ class StrictRootTopologyTests(unittest.TestCase):
         )
 
     def basic(self, **second):
+        second_position = second.pop("position", "1000 0 0")
         return document(
             branch(
                 [
                     node("10", "0 0 0"),
-                    node("20", "1000 0 0", **second),
+                    node("20", second_position, **second),
                 ]
             )
         )
