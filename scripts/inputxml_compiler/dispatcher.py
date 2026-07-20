@@ -9,16 +9,17 @@ from typing import Any
 from lxml import etree as ET
 
 from .base import CompileBlocked, DecisionLedger
-from .categorized import _categorized_document
 from .extension import _ensure_extension_last, _extension_record
 from .family import _compile_inputxml_family
+from .family_accounting import account_profile_source
+from .family_profiles import PROFILE_CONTRACTS, get_family_profile
+from .family_resolver import compile_family_profile_candidate
 from .managed_stage import _compile_managed_stage_source
-from .model import _fragment_document, _ledger_direct_canonical
+from .model import _ledger_direct_canonical
 from .pdf_input_echo import _compile_pdf_input_echo_source
 from .resolver_contract import OutcomeKind, ResolverOutcome
 from .seljson import _compile_seljson_custom_root
 from .uxml_rvm import _compile_uxml_rvm_source
-from .validation import _validate_xsd
 from .xml_builder import _compile_xml_builder_source
 
 _NON_XML_DIALECTS = {
@@ -26,13 +27,7 @@ _NON_XML_DIALECTS = {
     "pdf-input-echo",
     "uxml-rvm-intake",
 }
-_GENERIC_INPUTXML_DIALECTS = {
-    "caesar-inputxml-pressure1",
-    "caesar-inputxml-pressure-c",
-    "cii14-inputxml",
-    "enriched-inputxml-app",
-    "xml-to-cii-diagnostic-sidecar",
-}
+_PR5_FAMILY_DIALECTS = frozenset(PROFILE_CONTRACTS)
 
 
 def _require_xml(dialect: str, root: ET._Element | None) -> ET._Element:
@@ -93,12 +88,13 @@ def _compile_profile_candidate(
     source: bytes,
     root: ET._Element | None,
     ledger: DecisionLedger,
-    aliases: dict[str, str],
+    aliases: dict[str, dict[str, str]],
     context: dict[str, Any],
     source_name: str,
     source_path: str,
     categorized_xsd_path: Path,
 ) -> ET._Element:
+    del categorized_xsd_path
     if dialect == "uxml-rvm-intake":
         wrapped = _compile_uxml_rvm_source(
             source,
@@ -129,7 +125,6 @@ def _compile_profile_candidate(
             ledger=ledger,
             aliases=aliases,
             context=context,
-            categorized_xsd_path=categorized_xsd_path,
         )
     return _compile_inputxml_family(
         wrapped,
@@ -146,25 +141,25 @@ def _compile_xml_profile(
     source: bytes,
     root: ET._Element,
     ledger: DecisionLedger,
-    aliases: dict[str, str],
+    aliases: dict[str, dict[str, str]],
     context: dict[str, Any],
-    categorized_xsd_path: Path,
 ) -> ET._Element:
     if dialect == "canonical-inputxml-v1":
         canonical = copy.deepcopy(root)
         _ledger_direct_canonical(canonical, ledger)
         return canonical
-    if dialect == "inputxml-fragment":
-        source_root = _fragment_document(root, context)
-    elif dialect == "categorized-inputxml-v3":
-        errors = _validate_xsd(root, categorized_xsd_path)
-        if errors:
-            raise CompileBlocked(
-                "CategorizedInputXML failed categorized-inputxml-v3.xsd: "
-                + "; ".join(errors)
-            )
-        source_root = _categorized_document(root, context, ledger)
-    elif dialect == "xml-builder-root-branch-node":
+    if dialect in _PR5_FAMILY_DIALECTS:
+        canonical = compile_family_profile_candidate(
+            root=root,
+            profile=get_family_profile(dialect),
+            ledger=ledger,
+            aliases=aliases,
+            context=context,
+        )
+        if dialect == "xml-to-cii-diagnostic-sidecar":
+            _mark_diagnostic_sidecar(canonical, ledger)
+        return canonical
+    if dialect == "xml-builder-root-branch-node":
         source_root = _compile_xml_builder_source(
             source,
             source_root=root,
@@ -178,20 +173,15 @@ def _compile_xml_profile(
             ledger=ledger,
             context=context,
         )
-    elif dialect in _GENERIC_INPUTXML_DIALECTS:
-        source_root = root
     else:
         raise CompileBlocked(f"No registered runtime resolver for {dialect!r}.")
-    canonical = _compile_inputxml_family(
+    return _compile_inputxml_family(
         source_root,
         dialect=dialect,
         ledger=ledger,
         aliases=aliases,
         context=context,
     )
-    if dialect == "xml-to-cii-diagnostic-sidecar":
-        _mark_diagnostic_sidecar(canonical, ledger)
-    return canonical
 
 
 def resolve_registered_profile(
@@ -201,7 +191,7 @@ def resolve_registered_profile(
     source: bytes,
     root: ET._Element | None,
     ledger: DecisionLedger,
-    aliases: dict[str, str],
+    aliases: dict[str, dict[str, str]],
     context: dict[str, Any],
     source_name: str,
     source_path: str,
@@ -221,6 +211,15 @@ def resolve_registered_profile(
         source_path=source_path,
         categorized_xsd_path=categorized_xsd_path,
     )
+    accounting_status = "COMPLETE"
+    metrics: dict[str, Any] = {}
+    if dialect in _PR5_FAMILY_DIALECTS:
+        accounting_status, proof = account_profile_source(
+            _require_xml(dialect, root),
+            profile_id=dialect,
+            ledger=ledger,
+        )
+        metrics["sourceAccounting"] = proof
     outcome_kind = (
         OutcomeKind.BLOCKED_WITH_CANDIDATE
         if ledger.blocked
@@ -231,7 +230,8 @@ def resolve_registered_profile(
         adapter_id=adapter_id,
         outcome_kind=outcome_kind,
         canonical_candidate=canonical,
-        source_accounting_status="COMPLETE",
+        source_accounting_status=accounting_status,
+        profile_metrics=metrics,
     )
 
 
