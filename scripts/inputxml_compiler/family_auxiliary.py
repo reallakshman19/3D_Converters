@@ -152,6 +152,13 @@ def _normalize_sif(
         return
     if node is None:
         _block(ledger, "UNSUPPORTED_ENGINEERING_FIELD", f"{source_entity_id} requires explicit NODE.", source_entity_id)
+    if target.find("SIF") is not None:
+        _block(
+            ledger,
+            "COUNT_AUTHORITY_UNRESOLVED",
+            f"{source_entity_id} is an additional active SIF record; the unchanged writer has no proven independent projection for it.",
+            source_entity_id,
+        )
     out = ET.Element("SIF", NODE=_integer_text(node, "SIF@NODE", positive=True))
     for attr, value in source.attrib.items():
         if attr != "NODE" and not _is_sentinel(value):
