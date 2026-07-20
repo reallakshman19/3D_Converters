@@ -4,7 +4,12 @@
  * reconstructed here.
  */
 
-import { cleanText, strictPoint, uniqueText } from './topology-values.js';
+import {
+  cleanText,
+  sequenceId,
+  strictPoint,
+  uniqueText,
+} from './topology-values.js';
 
 function sourceIndexes(model) {
   const branchByEntity = new Map(), pathByEntity = new Map(), refByEntity = new Map();
@@ -60,7 +65,7 @@ export function enrichCanonicalTopologyIdentity(canonical, model) {
     )).map((edge) => edge.id)),
   }));
   const supports = (canonical.supports ?? []).map((row) => traceRow(row, indexes));
-  const rigids = (canonical.rigids ?? []).map((row) => {
+  const rigids = (canonical.rigids ?? []).map((row, index) => {
     const branchIds = indexedValues([row.sourceEntityId], indexes.branchByEntity);
     const edge = edgeById.get(row.edgeId);
     const assignmentAuthority = edge?.sourceEntityIds?.includes(row.sourceEntityId)
@@ -70,6 +75,7 @@ export function enrichCanonicalTopologyIdentity(canonical, model) {
         : 'GLOBAL_PROXIMITY_FALLBACK';
     return {
       ...row,
+      id: cleanText(row.id) || `CR-${sequenceId(index + 1)}`,
       sourceEntityIds: uniqueText([row.sourceEntityId]),
       sourcePaths: uniqueText([row.sourcePath, ...indexedValues([row.sourceEntityId], indexes.pathByEntity)]),
       branchIds,

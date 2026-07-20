@@ -1,8 +1,10 @@
 /**
  * Deterministic topology artifact hashing.
- * Object keys are sorted, array order is preserved, and selected self-hash keys
- * are omitted before canonical JSON serialization. The implementation is
- * browser-safe and does not depend on Node crypto.
+ * Object keys are sorted by ECMAScript UTF-16 code-unit order, array order is
+ * preserved, negative zero is normalized to zero, and finite numbers use the
+ * exact ECMAScript JSON.stringify lexical form. Selected self-hash keys are
+ * omitted. The implementation is browser-safe and does not depend on Node
+ * crypto. Python verification must reproduce these exact UTF-8 bytes.
  */
 
 const DEFAULT_OMIT_KEYS = Object.freeze([

@@ -62,6 +62,7 @@ function parseRigid(attrs, elementId) {
     sourcePaths: Object.freeze(list(attribute(attrs, 'SOURCE_PATHS'))),
     branchIds: Object.freeze(list(attribute(attrs, 'BRANCH_IDS'))),
     assignmentAuthorities: Object.freeze(list(attribute(attrs, 'ASSIGNMENT_AUTHORITY'))),
+    weightAuthorities: Object.freeze(list(attribute(attrs, 'WEIGHT_AUTHORITY'))),
     connectionResidual: normalizedNumber(attribute(attrs, 'CONNECTION_RESIDUAL'), DELTA_DECIMALS),
     sourceBodyCount: finiteNumber(attribute(attrs, 'SOURCE_BODY_COUNT')),
     weight: finiteNumber(attribute(attrs, 'WEIGHT')),

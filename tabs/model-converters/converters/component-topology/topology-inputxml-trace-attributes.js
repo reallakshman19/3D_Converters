@@ -71,6 +71,7 @@ export function topologyRigidTraceAttributes(edge, rigids) {
     ['SOURCE_PATHS', list(rigids.map((rigid) => rigid.sourcePath))],
     ['BRANCH_IDS', list(rigids.flatMap((rigid) => rigid.branchIds ?? rigid.sourceBranchEntityIds ?? []))],
     ['ASSIGNMENT_AUTHORITY', list(rigids.map((rigid) => rigid.assignmentAuthority))],
+    ['WEIGHT_AUTHORITY', list(rigids.map((rigid) => rigid.weightAuthority))],
     ['CONNECTION_RESIDUAL', fixedTrace(Math.max(0, ...rigids.map((rigid) => Number(rigid.connectionResidual) || 0)))],
   ];
 }
