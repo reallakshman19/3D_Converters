@@ -12,7 +12,6 @@ sys.modules[spec.name] = compiler
 spec.loader.exec_module(compiler)
 compiler._compiler._validate_xsd = lambda root, path: []
 compiler._compiler._validate_schematron = lambda root, path: []
-compiler._compiler.validate_profile_intake.__globals__['_validate_xsd'] = lambda root, path: []
 
 CONTRACTS = ROOT / 'contracts' / 'inputxml' / 'v1'
 
@@ -38,7 +37,8 @@ class CompilerTests(unittest.TestCase):
             producer='test', registry_path=CONTRACTS / 'inputxml-dialect-registry.json',
             adapter_registry_path=CONTRACTS / 'compiler' / 'inputxml-compiler-adapters.json',
             alias_registry_path=CONTRACTS / 'catalogs' / 'inputxml-alias-registry.json',
-            canonical_xsd_path=self.dummy, categorized_xsd_path=self.dummy,
+            canonical_xsd_path=self.dummy,
+            categorized_xsd_path=CONTRACTS / 'categorized-inputxml-v3.xsd',
             semantic_rules_path=self.dummy, dialect_override=dialect, context=context or {})
 
     def test_pressure_alias_and_contiguous_line_inheritance(self):
