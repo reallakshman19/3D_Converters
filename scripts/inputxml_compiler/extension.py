@@ -62,22 +62,79 @@ def _extension_record(
     record.text = value
 
 
-def _copy_existing_extension(source: ET._Element, target: ET._Element, ledger: DecisionLedger, entity_id: str) -> None:
+def _copy_existing_extension(
+    source: ET._Element,
+    target: ET._Element,
+    ledger: DecisionLedger,
+    entity_id: str,
+) -> None:
     ext = source.find(f"{{{EXT_NS}}}Extension")
     if ext is None:
         return
     target_ext = _extension(target, ledger.producer, ledger.dialect)
-    for index, record in enumerate(ext.findall(f"{{{EXT_NS}}}Record"), 1):
+    wrapper_id = f"{entity_id}/Extension[1]"
+    wrapper_attributes = dict(ext.attrib)
+    ledger.add(
+        source_entity_id=wrapper_id,
+        source_type="EXTENSION_WRAPPER",
+        source_fields={"attributes": wrapper_attributes},
+        projection_cardinality="1_TO_0",
+        disposition="PRESERVE_EXTENSION",
+        evidence=[
+            "source extension-wrapper identity and metadata are retained separately from compiler-owned wrapper metadata"
+        ],
+    )
+    _preserve_extension_wrapper_metadata(
+        target,
+        target_ext,
+        wrapper_id,
+        wrapper_attributes,
+        ledger,
+    )
+    for index, record in enumerate(
+        ext.findall(f"{{{EXT_NS}}}Record"),
+        1,
+    ):
         target_ext.append(copy.deepcopy(record))
         disposition = record.get("disposition") or "UNSUPPORTED_BLOCKING"
         ledger.add(
-            source_entity_id=f"{entity_id}/Extension/Record[{index}]",
+            source_entity_id=f"{wrapper_id}/Record[{index}]",
             source_type="EXTENSION_RECORD",
-            source_fields=dict(record.attrib),
+            source_fields={
+                "attributes": dict(record.attrib),
+                "text": record.text or "",
+            },
+            projection_cardinality="1_TO_0",
             disposition=disposition,
             evidence=["existing extension record preserved verbatim"],
         )
     _ensure_extension_last(target)
+
+
+def _preserve_extension_wrapper_metadata(
+    target: ET._Element,
+    target_ext: ET._Element,
+    wrapper_id: str,
+    source_attributes: dict[str, str],
+    ledger: DecisionLedger,
+) -> None:
+    for name in ("schema", "producer", "dialect"):
+        value = source_attributes.get(name)
+        if value is None or target_ext.get(name) == value:
+            continue
+        _extension_record(
+            target,
+            producer=ledger.producer,
+            dialect=ledger.dialect,
+            name=f"SourceExtension{name.title()}",
+            source_path=ledger.source_path,
+            source_entity_id=wrapper_id,
+            source_field=name,
+            value=value,
+            disposition="PRESERVE_EXTENSION",
+            criticality="MEDIUM",
+            confidence=1.0,
+        )
 
 
 def _preserve_attr(
@@ -121,7 +178,15 @@ def _preserve_attr(
     )
 
 
-def _preserve_child(target_scope: ET._Element, child: ET._Element, source_path: str, entity_id: str, ledger: DecisionLedger, *, blocking: bool) -> None:
+def _preserve_child(
+    target_scope: ET._Element,
+    child: ET._Element,
+    source_path: str,
+    entity_id: str,
+    ledger: DecisionLedger,
+    *,
+    blocking: bool,
+) -> None:
     name = _local(child.tag)
     value = ET.tostring(child, encoding="unicode")
     disposition = "UNSUPPORTED_BLOCKING" if blocking else "PRESERVE_EXTENSION"
