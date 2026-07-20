@@ -32,8 +32,8 @@ export async function buildProposedRegistryArtifacts({
     pathsByMainLine: pathsByMainLine(zoneRegistry),
   });
   const snapshotValidation = await validateRegistrySnapshot({ zoneRegistry, lineHistories, manifest });
-  if (snapshotValidation.status !== 'PASS') blockers.push(issue('BOOTSTRAP_SEED_NOT_PASS', {
-    reason: 'PROPOSED_SNAPSHOT_NOT_PASS', validation: snapshotValidation,
+  if (snapshotValidation.status !== 'PASS') blockers.push(issue('BOOTSTRAP_PROPOSED_SNAPSHOT_NOT_PASS', {
+    validation: snapshotValidation,
   }));
   validateProposedCoverage(zoneRegistry, lineHistories, manifest, blockers);
   if (blockers.length) return blockedArtifacts(blockers);
@@ -139,9 +139,7 @@ function collectPatchValidation(validation, blockers, evidence) {
   blockers.push(...validation.blockers);
   blockers.push(issue('BOOTSTRAP_PATCH_NOT_PASS', evidence));
 }
-function currentSnapshotHash(approval) {
-  return text(approval?.currentRegistrySnapshotHash || approval?.approvedBaseRegistrySnapshotHash);
-}
+function currentSnapshotHash(approval) { return text(approval?.currentRegistrySnapshotHash); }
 
 function validateNoLeaseOrNamespaceChange(seed, proposed, blockers) {
   const before = normalizeZoneRegistrySemantic(seed || {}), after = normalizeZoneRegistrySemantic(proposed || {});
