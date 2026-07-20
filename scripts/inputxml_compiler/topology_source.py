@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
-"""Lossless Root/Branch/Node source model for PR-6 topology profiles."""
+"""Lossless Root/Branch/Node source parser for PR-6 topology profiles."""
 from __future__ import annotations
-
-from dataclasses import dataclass
-from decimal import Decimal
-from typing import Any
 
 from lxml import etree as ET
 
 from .base import DecisionLedger
 from .topology_diagnostics import block, retain_blocker
-from .topology_inventory import (
-    SourceInventory,
-    build_source_inventory,
-    record_inventory_decisions,
-)
+from .topology_inventory import build_source_inventory, record_inventory_decisions
 from .topology_profiles import TopologyProfileContract
+from .topology_source_model import (
+    BranchOccurrence,
+    NodeOccurrence,
+    RestraintOccurrence,
+    TopologySourceDocument,
+)
 from .xml import _decimal_text, _integer_text, _local, _namespace, _sha256
-
 
 _BRANCH_FIELDS = {
     "Branchname",
@@ -67,115 +64,6 @@ _RESTRAINT_FIELDS = {
 _ROOT_METADATA = {"Producer", "Profile", "SourceIdentity", "SelectionJsonSourceIds"}
 
 
-@dataclass(frozen=True)
-class RestraintOccurrence:
-    path: str
-    source_name: str
-    fields: dict[str, str]
-    field_paths: dict[str, str]
-
-    def as_bridge_value(self) -> dict[str, Any]:
-        return {
-            "sourcePath": self.path,
-            "sourceName": self.source_name,
-            "fields": self.fields,
-            "fieldPaths": self.field_paths,
-        }
-
-
-@dataclass(frozen=True)
-class NodeOccurrence:
-    path: str
-    sequence: int
-    node_number: int
-    node_number_lexical: str
-    position: tuple[str, str, str]
-    fields: dict[str, str]
-    field_paths: dict[str, str]
-    restraints: tuple[RestraintOccurrence, ...]
-
-    def as_bridge_value(self) -> dict[str, Any]:
-        return {
-            "sourcePath": self.path,
-            "sequence": self.sequence,
-            "nodeNumber": self.node_number,
-            "nodeNumberLexical": self.node_number_lexical,
-            "position": list(self.position),
-            "fields": self.fields,
-            "fieldPaths": self.field_paths,
-            "restraints": [row.as_bridge_value() for row in self.restraints],
-        }
-
-
-@dataclass(frozen=True)
-class BranchOccurrence:
-    path: str
-    sequence: int
-    line_identity: str
-    fields: dict[str, str]
-    field_paths: dict[str, str]
-    nodes: tuple[NodeOccurrence, ...]
-
-    def as_bridge_value(self) -> dict[str, Any]:
-        return {
-            "sourcePath": self.path,
-            "sequence": self.sequence,
-            "lineIdentity": self.line_identity,
-            "fields": self.fields,
-            "fieldPaths": self.field_paths,
-            "nodes": [row.as_bridge_value() for row in self.nodes],
-        }
-
-
-@dataclass(frozen=True)
-class TopologySourceDocument:
-    profile_id: str
-    adapter_id: str
-    source_hash_sha256: str
-    inventory: SourceInventory
-    metadata: dict[str, str]
-    branches: tuple[BranchOccurrence, ...]
-
-    def bridge_request(self, context: dict[str, Any]) -> dict[str, Any]:
-        context_value = {
-            key: context[key]
-            for key in (
-                "version",
-                "jobName",
-                "time",
-                "issueNo",
-                "north",
-                "rigidWeightScale",
-                "fluidDensityScale",
-            )
-            if key in context
-        }
-        return {
-            "schema": "InputXmlTopologyBridgeRequest.v1",
-            "profileId": self.profile_id,
-            "adapterId": self.adapter_id,
-            "sourceHashSha256": self.source_hash_sha256,
-            "sourceDocumentIdentity": {
-                "rootPath": "/Root[1]",
-                "profileId": self.profile_id,
-                "producer": self.metadata.get("Producer", ""),
-                "sourceIdentity": self.metadata.get("SourceIdentity", ""),
-            },
-            "context": context_value,
-            "branches": [row.as_bridge_value() for row in self.branches],
-            "sourceInventorySummary": self.inventory.summary(),
-            "engineOptions": {
-                "adjacencyAuthority": "DIRECT_NODE_CHILD_ORDER_REGISTERED_PRODUCER_V1",
-                "coordinateCoalescing": False,
-                "shortFillers": False,
-                "rayFillers": False,
-                "secondPassFillers": False,
-                "midspanSplits": False,
-                "syntheticNodes": False,
-            },
-        }
-
-
 def build_topology_source_document(
     source: bytes,
     root: ET._Element,
@@ -210,8 +98,24 @@ def _parse_branch(
     path = f"/Root[1]/Branch[{index}]"
     fields, field_paths = _field_map(branch, path, _BRANCH_FIELDS, ledger)
     line_identity = _line_identity(fields, field_paths, path, ledger)
-    _parse_case_container(branch, path, "Pressure", "Pressure", fields, field_paths, ledger)
-    _parse_case_container(branch, path, "Temperature", "Temperature", fields, field_paths, ledger)
+    _parse_case_container(
+        branch,
+        path,
+        "Pressure",
+        "Pressure",
+        fields,
+        field_paths,
+        ledger,
+    )
+    _parse_case_container(
+        branch,
+        path,
+        "Temperature",
+        "Temperature",
+        fields,
+        field_paths,
+        ledger,
+    )
     nodes = tuple(
         _parse_node(node, path, node_index, ledger)
         for node_index, node in enumerate(_direct(branch, "Node"), 1)
@@ -269,7 +173,10 @@ def _parse_node(
             field_paths.get("Position", path),
         )
     try:
-        position = tuple(_decimal_text(value, f"{path}/Position") for value in parts)
+        position = tuple(
+            _decimal_text(value, f"{path}/Position")
+            for value in parts
+        )
     except Exception as exc:
         block(
             ledger,
@@ -307,7 +214,9 @@ def _parse_node(
         },
         projection_cardinality="1_TO_1",
         disposition="PRESERVE_EXTENSION",
-        evidence=["node occurrence identity remains separate from logical node identity"],
+        evidence=[
+            "node occurrence identity remains separate from logical node identity"
+        ],
     )
     return NodeOccurrence(
         path,
@@ -329,10 +238,19 @@ def _parse_restraint(
 ) -> RestraintOccurrence:
     name = _local(element.tag)
     path = f"{node_path}/{name}[{occurrence}]"
-    fields, field_paths = _field_map(element, path, _RESTRAINT_FIELDS, ledger)
+    fields, field_paths = _field_map(
+        element,
+        path,
+        _RESTRAINT_FIELDS,
+        ledger,
+    )
     ledger.add(
         source_entity_id=path,
-        source_type="CUSTOM_RESTRAINT_COMPATIBILITY" if name == "CustomRestraint" else "SOURCE_RESTRAINT_OCCURRENCE",
+        source_type=(
+            "CUSTOM_RESTRAINT_COMPATIBILITY"
+            if name == "CustomRestraint"
+            else "SOURCE_RESTRAINT_OCCURRENCE"
+        ),
         source_fields={"sourceName": name, "fields": fields},
         projection_cardinality="ATTACH_AUXILIARY",
         disposition="PRESERVE_EXTENSION",
@@ -354,7 +272,13 @@ def _field_map(
         name = _local(child.tag)
         counts[name] = counts.get(name, 0) + 1
         child_path = f"{parent_path}/{name}[{counts[name]}]"
-        if name in {"Node", "Pressure", "Temperature", "Restraint", "CustomRestraint"}:
+        if name in {
+            "Node",
+            "Pressure",
+            "Temperature",
+            "Restraint",
+            "CustomRestraint",
+        }:
             continue
         if name not in allowed:
             _unknown(child_path, name, child, ledger)
@@ -390,12 +314,16 @@ def _parse_case_container(
         )
     if not containers:
         return
-    container = containers[0]
     container_path = f"{branch_path}/{container_name}[1]"
     allowed = {f"{prefix}{index}" for index in range(1, 10)}
     if container_name == "Pressure":
         allowed.add("HydroPressure")
-    values, value_paths = _field_map(container, container_path, allowed, ledger)
+    values, value_paths = _field_map(
+        containers[0],
+        container_path,
+        allowed,
+        ledger,
+    )
     fields.update(values)
     paths.update(value_paths)
 
@@ -406,7 +334,10 @@ def _line_identity(
     branch_path: str,
     ledger: DecisionLedger,
 ) -> str:
-    authoritative = [fields.get(name, "").strip() for name in ("LineNo", "LINE_ID")]
+    authoritative = [
+        fields.get(name, "").strip()
+        for name in ("LineNo", "LINE_ID")
+    ]
     authoritative = [value for value in authoritative if value]
     if not authoritative:
         block(
@@ -415,7 +346,10 @@ def _line_identity(
             f"{branch_path} requires explicit LineNo or LINE_ID.",
             branch_path,
         )
-    values = [fields.get(name, "").strip() for name in ("Branchname", "LineNo", "LINE_ID")]
+    values = [
+        fields.get(name, "").strip()
+        for name in ("Branchname", "LineNo", "LINE_ID")
+    ]
     populated = [value for value in values if value]
     if any(value != authoritative[0] for value in populated):
         block(
@@ -464,17 +398,30 @@ def _metadata(root: ET._Element) -> dict[str, str]:
     }
 
 
-def _record_unknown_root_content(root: ET._Element, ledger: DecisionLedger) -> None:
+def _record_unknown_root_content(
+    root: ET._Element,
+    ledger: DecisionLedger,
+) -> None:
     allowed = {"Branch", *_ROOT_METADATA}
     counts: dict[str, int] = {}
     for child in root:
         name = _local(child.tag)
         counts[name] = counts.get(name, 0) + 1
         if name not in allowed:
-            _unknown(f"/Root[1]/{name}[{counts[name]}]", name, child, ledger)
+            _unknown(
+                f"/Root[1]/{name}[{counts[name]}]",
+                name,
+                child,
+                ledger,
+            )
 
 
-def _unknown(path: str, name: str, child: ET._Element, ledger: DecisionLedger) -> None:
+def _unknown(
+    path: str,
+    name: str,
+    child: ET._Element,
+    ledger: DecisionLedger,
+) -> None:
     value = ET.tostring(child, encoding="unicode")
     ledger.add(
         source_entity_id=path,
@@ -482,7 +429,9 @@ def _unknown(path: str, name: str, child: ET._Element, ledger: DecisionLedger) -
         source_fields={"name": name, "xml": value},
         projection_cardinality="1_TO_0",
         disposition="UNSUPPORTED_BLOCKING",
-        evidence=["unknown Root topology evidence is retained in the full source extension"],
+        evidence=[
+            "unknown Root topology evidence is retained in the full source extension"
+        ],
     )
     retain_blocker(
         ledger,
