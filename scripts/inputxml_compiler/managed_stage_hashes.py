@@ -61,11 +61,9 @@ def deterministic_hash(value: Any, *, hash_field: str | None = None) -> str:
     omit = (hash_field,) if hash_field else ()
     data = canonical_json(value, extra_omit=omit).encode("utf-8")
     current = 0xCBF29CE484222325
-    prime = 0x100000001B3
-    mask = 0xFFFFFFFFFFFFFFFF
     for byte in data:
         current ^= byte
-        current = (current * prime) & mask
+        current = (current * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
     return f"fnv1a64:{current:016x}"
 
 
@@ -77,16 +75,16 @@ def _canonical_value(value: Any, omit: set[str]) -> Any:
     if isinstance(value, float):
         if not math.isfinite(value):
             raise ValueError(f"Cannot hash non-finite number: {value!r}.")
-        return 0 if value == 0 else value
+        if value == 0:
+            return 0
+        return int(value) if value.is_integer() else value
     if isinstance(value, list):
         return [_canonical_value(item, omit) for item in value]
     if isinstance(value, dict):
         return {
             key: _canonical_value(value[key], omit)
             for key in sorted(value)
-            if key not in omit and value[key] is not None or (
-                key not in omit and value[key] is None
-            )
+            if key not in omit
         }
     raise TypeError(f"Unsupported topology hash value: {type(value).__name__}.")
 
