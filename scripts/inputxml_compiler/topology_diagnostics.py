@@ -66,7 +66,7 @@ _POLICIES = {
             "COMPONENT_PROJECTION_UNRESOLVED",
             "LEDGER_GATE",
             candidate="RETAIN_CANDIDATE",
-            disposition="UNSUPPORTED_BLOCKING",
+            disposition="DEFER_EXPLICITLY",
         ),
         _policy("SIF_TYPE_UNRESOLVED", "PROFILE_RESOLVER_GATE"),
         _policy("RIGID_WEIGHT_UNIT_UNRESOLVED", "PROFILE_RESOLVER_GATE"),
