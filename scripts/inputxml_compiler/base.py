@@ -94,6 +94,7 @@ class DecisionLedger:
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
     blocked: bool = False
     contract_bundle: dict[str, Any] | None = None
+    current_stage_sequence: int = 0
 
     def add(
         self,
@@ -144,12 +145,32 @@ class DecisionLedger:
         if disposition in {"DEFER_EXPLICITLY", "UNSUPPORTED_BLOCKING", "REJECT_INVALID"}:
             self.blocked = True
 
-    def diagnostic(self, severity: str, code: str, message: str, **context: Any) -> None:
-        self.diagnostics.append({"severity": severity, "code": code, "message": message, "context": context})
+    def diagnostic(self, severity: str, code: str, message: str, source_entity_id: str = "", **context: Any) -> None:
+        self.diagnostics.append({
+            "stageSequence": self.current_stage_sequence,
+            "severity": severity,
+            "code": code,
+            "sourceEntityId": source_entity_id,
+            "message": message,
+            "context": context
+        })
         if severity in {"ERROR", "BLOCKING"}:
             self.blocked = True
 
     def as_dict(self, source_hash: str, output_hash: str | None) -> dict[str, Any]:
+        severity_rank = {"ERROR": 0, "BLOCKING": 1, "WARNING": 2, "INFO": 3}
+        sorted_diagnostics = sorted(
+            self.diagnostics,
+            key=lambda d: (
+                d.get("stageSequence", 0),
+                severity_rank.get(d.get("severity", "INFO"), 4),
+                d.get("code", ""),
+                d.get("sourceEntityId", ""),
+                json.dumps(d.get("context", {}), sort_keys=True),
+                d.get("message", "")
+            )
+        )
+        
         result = {
             "schema": "InputXmlCanonicalizationDecisionLedger.v1",
             "sourceHashSha256": source_hash,
@@ -161,7 +182,7 @@ class DecisionLedger:
             "status": "BLOCKED" if self.blocked else "PASS",
             "recordCount": len(self.records),
             "records": self.records,
-            "diagnostics": self.diagnostics,
+            "diagnostics": sorted_diagnostics,
         }
         if self.contract_bundle is not None:
             result["contractBundle"] = self.contract_bundle

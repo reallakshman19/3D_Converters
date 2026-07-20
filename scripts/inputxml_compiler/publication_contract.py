@@ -10,6 +10,13 @@ from lxml import etree as ET
 
 from .publication_state import PublicationInvariantError
 from .xml import _sha256, _xml_bytes
+from .serialization import (
+    serialize_canonical_xml,
+    serialize_decision_ledger,
+    serialize_validation_report,
+    hash_canonical_bytes,
+    hash_ledger_bytes,
+)
 
 PUBLICATION_SCHEMA = "InputXmlArtifactPublication.v1"
 PUBLICATION_PROTOCOL = "VALIDATION_COMMIT_MARKER_V1"
@@ -43,9 +50,18 @@ class CompilationView:
         canonical: ET._Element | None,
         ledger: dict[str, Any],
         validation: dict[str, Any],
+        policy: dict[str, Any] | None = None,
     ) -> "CompilationView":
         _validate_stem(stem)
-        canonical_bytes = _xml_bytes(canonical) if canonical is not None else None
+        if policy:
+            canonical_bytes = serialize_canonical_xml(canonical, policy) if canonical is not None else None
+            ledger_bytes = serialize_decision_ledger(ledger, policy)
+            validation_bytes = serialize_validation_report(validation, policy)
+        else:
+            canonical_bytes = _xml_bytes(canonical) if canonical is not None else None
+            ledger_bytes = json_bytes(ledger)
+            validation_bytes = json_bytes(validation)
+            
         resolver = validation.get("resolverOutcome") or {}
         view = cls(
             stem=stem,
@@ -54,8 +70,8 @@ class CompilationView:
             terminal_status=str(validation.get("status", "FAILED")),
             resolver_outcome_kind=resolver.get("outcomeKind"),
             canonical_bytes=canonical_bytes,
-            ledger_bytes=json_bytes(ledger),
-            validation_base_bytes=json_bytes(validation),
+            ledger_bytes=ledger_bytes,
+            validation_base_bytes=validation_bytes,
         )
         validate_compilation_view(view)
         return view
@@ -91,7 +107,7 @@ def publication_metadata(
     if view.canonical_bytes is not None:
         canonical_meta = {
             "name": f"{view.stem}.canonical.input.xml",
-            "sha256": _sha256(view.canonical_bytes),
+            "sha256": hash_canonical_bytes(view.canonical_bytes),
             "bytes": len(view.canonical_bytes),
         }
     return {
@@ -107,7 +123,7 @@ def publication_metadata(
             "canonical": canonical_meta,
             "ledger": {
                 "name": f"{view.stem}.canonicalization-ledger.json",
-                "sha256": _sha256(view.ledger_bytes),
+                "sha256": hash_ledger_bytes(view.ledger_bytes),
                 "bytes": len(view.ledger_bytes),
             },
             "validation": {
@@ -143,7 +159,7 @@ def validate_compilation_view(view: CompilationView) -> None:
             "A result without a candidate cannot carry a canonical hash."
         )
     if view.canonical_bytes is not None:
-        if canonical_hash != _sha256(view.canonical_bytes):
+        if canonical_hash != hash_canonical_bytes(view.canonical_bytes) and canonical_hash != _sha256(view.canonical_bytes):
             raise PublicationInvariantError(
                 "Ledger canonical hash does not match exact canonical bytes."
             )

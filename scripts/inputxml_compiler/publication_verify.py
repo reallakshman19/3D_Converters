@@ -13,7 +13,7 @@ from .publication_contract import (
     VALID_STATUSES,
 )
 from .publication_state import PublicationIntegrityError
-from .xml import _sha256
+from .serialization import hash_canonical_bytes, hash_ledger_bytes
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -60,7 +60,8 @@ def _verify_hashed_file(path: Path, metadata: dict[str, Any], ops) -> bytes:
     data = ops.read_bytes(path)
     if metadata.get("bytes") != len(data):
         raise PublicationIntegrityError(f"Committed byte length mismatch: {path.name}.")
-    if metadata.get("sha256") != _sha256(data):
+    hash_fn = hash_ledger_bytes if "ledger" in path.name else hash_canonical_bytes
+    if metadata.get("sha256") != hash_fn(data):
         raise PublicationIntegrityError(f"Committed hash mismatch: {path.name}.")
     return data
 
@@ -176,7 +177,7 @@ def verify_committed_bundle(
         if canonical_meta.get("name") != canonical_path.name:
             raise PublicationIntegrityError("Unexpected canonical filename in metadata.")
         canonical_bytes = _verify_hashed_file(canonical_path, canonical_meta, ops)
-        if ledger.get("canonicalHashSha256") != _sha256(canonical_bytes):
+        if ledger.get("canonicalHashSha256") != hash_canonical_bytes(canonical_bytes):
             raise PublicationIntegrityError(
                 "Canonical hash does not match decision ledger."
             )

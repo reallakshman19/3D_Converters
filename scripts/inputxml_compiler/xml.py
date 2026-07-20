@@ -30,10 +30,12 @@ def _decimal(value: Any, field: str) -> Decimal:
 
 def _decimal_text(value: Any, field: str) -> str:
     number = _decimal(value, field)
+    if number == 0:
+        return "0"
     text = format(number, "f")
     if "." in text:
         text = text.rstrip("0").rstrip(".")
-    return text or "0"
+    return text
 
 
 def _integer_text(value: Any, field: str, *, positive: bool = False, nonnegative: bool = False) -> str:

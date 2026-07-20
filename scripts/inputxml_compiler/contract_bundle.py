@@ -26,6 +26,7 @@ class VerifiedContractBundle:
     dialects: dict[str, dict[str, Any]]
     adapters: dict[str, dict[str, Any]]
     metadata: dict[str, Any]
+    serialization_policy: dict[str, Any] | None = None
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -142,6 +143,7 @@ def _verify_profile_contract(
 def verify_contract_bundle(
     registry_path: Path,
     adapter_registry_path: Path | None = None,
+    serialization_policy_path: Path | None = None,
     *,
     runtime_supported_dialects: set[str] | None = None,
 ) -> VerifiedContractBundle:
@@ -215,17 +217,34 @@ def verify_contract_bundle(
 
     registry_hash = _sha256_bytes(registry_raw)
     adapter_hash = _sha256_bytes(adapter_raw)
-    digest_payload = json.dumps(
-        {
-            "adapterRegistry": {
-                "schema": ADAPTER_REGISTRY_SCHEMA,
-                "sha256": adapter_hash,
-            },
-            "dialectRegistry": {
-                "schema": DIALECT_REGISTRY_SCHEMA,
-                "sha256": registry_hash,
-            },
+    
+    policy_hash = None
+    policy = None
+    if serialization_policy_path:
+        policy, policy_raw = _load_json_strict(serialization_policy_path)
+        if policy.get("schema") != "InputXmlDeterministicSerializationPolicy.v1":
+            raise ContractBundleError("Serialization policy schema must be 'InputXmlDeterministicSerializationPolicy.v1'.")
+        policy_hash = _sha256_bytes(policy_raw)
+
+    digest_dict: dict[str, Any] = {
+        "adapterRegistry": {
+            "schema": ADAPTER_REGISTRY_SCHEMA,
+            "sha256": adapter_hash,
         },
+        "dialectRegistry": {
+            "schema": DIALECT_REGISTRY_SCHEMA,
+            "sha256": registry_hash,
+        },
+    }
+    if policy_hash:
+        digest_dict["serializationPolicy"] = {
+            "schema": "InputXmlDeterministicSerializationPolicy.v1",
+            "sha256": policy_hash,
+            "policyId": policy.get("policyId", "unknown"),
+        }
+
+    digest_payload = json.dumps(
+        digest_dict,
         sort_keys=True,
         separators=(",", ":"),
     ).encode("utf-8")
@@ -244,12 +263,20 @@ def verify_contract_bundle(
             "sha256": adapter_hash,
         },
     }
+    if policy_hash:
+        metadata["serializationPolicy"] = {
+            "schema": "InputXmlDeterministicSerializationPolicy.v1",
+            "sha256": policy_hash,
+            "policyId": policy.get("policyId", "unknown"),
+        }
+        
     return VerifiedContractBundle(
         registry=registry,
         adapter_registry=adapter_registry,
         dialects=dialects,
         adapters=adapters,
         metadata=metadata,
+        serialization_policy=policy,
     )
 
 

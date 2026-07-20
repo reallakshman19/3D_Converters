@@ -72,11 +72,17 @@ def _result(
     ledger: DecisionLedger,
     source_hash: str,
     validation: dict[str, Any],
+    policy: dict[str, Any] | None = None,
 ) -> tuple[ET._Element | None, dict[str, Any], dict[str, Any]]:
     if candidate is None:
         return None, ledger.as_dict(source_hash, None), validation
-    output = _xml_bytes(candidate)
-    return candidate, ledger.as_dict(source_hash, _sha256(output)), validation
+    if policy:
+        from .serialization import serialize_canonical_xml, hash_canonical_bytes
+        output = serialize_canonical_xml(candidate, policy)
+        return candidate, ledger.as_dict(source_hash, hash_canonical_bytes(output)), validation
+    else:
+        output = _xml_bytes(candidate)
+        return candidate, ledger.as_dict(source_hash, _sha256(output)), validation
 
 
 def compile_document(
@@ -92,11 +98,17 @@ def compile_document(
     categorized_xsd_path: Path,
     semantic_rules_path: Path,
     adapter_registry_path: Path | None = None,
+    serialization_policy_path: Path | None = None,
     dialect_override: str | None = None,
     context: dict[str, Any] | None = None,
 ) -> tuple[ET._Element | None, dict[str, Any], dict[str, Any]]:
     context = context or {}
-    source_hash = _sha256(source)
+    source_hash = None
+    if source:
+        from .serialization import hash_source_bytes
+        source_hash = hash_source_bytes(source)
+    else:
+        source_hash = _sha256(source)
     ledger = DecisionLedger(
         source_repository,
         source_path,
@@ -130,8 +142,10 @@ def compile_document(
             bundle = verify_contract_bundle(
                 registry_path,
                 adapter_registry_path,
+                serialization_policy_path,
                 runtime_supported_dialects=SUPPORTED_COMPILER_DIALECTS,
             )
+            policy = bundle.serialization_policy
         except ContractBundleError as exc:
             ledger.add(
                 source_entity_id="contract-bundle",
@@ -162,9 +176,12 @@ def compile_document(
             return _result(None, ledger, source_hash, validation)
 
         state.transition(CompilerStage.CONTRACT_BUNDLE_VERIFIED)
+        ledger.current_stage_sequence = len(state.completed_stages)
+
         ledger.contract_bundle = bundle.metadata
         validation["contractBundle"] = bundle.metadata
         state.transition(CompilerStage.SOURCE_ENVELOPE_CREATED)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         dialects = bundle.dialects
         stripped = source.lstrip()
@@ -176,6 +193,7 @@ def compile_document(
             dialect_override == "pdf-input-echo" or stripped.startswith(b"%PDF")
         )
         state.transition(CompilerStage.MEDIA_INSPECTED)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         root: ET._Element | None
         if pdf_source:
@@ -190,6 +208,7 @@ def compile_document(
         if dialect not in dialects:
             raise CompileBlocked(f"Dialect {dialect!r} is not registered.")
         state.transition(CompilerStage.DIALECT_RESOLVED)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         ledger.dialect = dialect
         validation["dialect"] = dialect
@@ -223,9 +242,10 @@ def compile_document(
             )
             state.block("PROFILE_INTAKE_GATE")
             update_validation()
-            return _result(None, ledger, source_hash, validation)
+            return _result(None, ledger, source_hash, validation, policy)
 
         state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
+        ledger.current_stage_sequence = len(state.completed_stages)
         aliases = _resolve_aliases(_load_json(alias_registry_path))
         registered_adapter_id = bundle.adapters[dialect]["adapterId"]
         outcome = resolve_registered_profile(
@@ -251,14 +271,16 @@ def compile_document(
             "sourceAccountingStatus": outcome.source_accounting_status,
         }
         state.transition(CompilerStage.PROFILE_RESOLVED)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         canonical = outcome.canonical_candidate
         if canonical is None:
             state.block("PROFILE_RESOLVER_GATE")
             update_validation()
-            return _result(None, ledger, source_hash, validation)
+            return _result(None, ledger, source_hash, validation, policy)
 
         state.transition(CompilerStage.SOURCE_ACCOUNTED)
+        ledger.current_stage_sequence = len(state.completed_stages)
         try:
             reconcile_decision_ledger(canonical, ledger, context=context)
         except CompileBlocked as exc:
@@ -269,8 +291,9 @@ def compile_document(
             )
             state.block("LEDGER_GATE")
             update_validation()
-            return _result(None, ledger, source_hash, validation)
+            return _result(None, ledger, source_hash, validation, policy)
         state.transition(CompilerStage.CANONICAL_CANDIDATE_BUILT)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         xsd_errors = _validate_xsd(canonical, canonical_xsd_path)
         validation["xsdErrors"] = xsd_errors
@@ -284,8 +307,9 @@ def compile_document(
             state.block("XSD_GATE")
             update_validation()
             blocked_candidate = _blocked_return_candidate(dialect, canonical)
-            return _result(blocked_candidate, ledger, source_hash, validation)
+            return _result(blocked_candidate, ledger, source_hash, validation, policy)
         state.transition(CompilerStage.XSD_VALIDATED)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         semantic_errors = _validate_schematron(canonical, semantic_rules_path)
         validation["semanticErrors"] = semantic_errors
@@ -299,19 +323,22 @@ def compile_document(
             state.block("SCHEMATRON_GATE")
             update_validation()
             blocked_candidate = _blocked_return_candidate(dialect, canonical)
-            return _result(blocked_candidate, ledger, source_hash, validation)
+            return _result(blocked_candidate, ledger, source_hash, validation, policy)
         state.transition(CompilerStage.SCHEMATRON_VALIDATED)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         if outcome.outcome_kind != OutcomeKind.CANONICAL_CANDIDATE or ledger.blocked:
             state.block("LEDGER_GATE")
             update_validation()
-            return _result(canonical, ledger, source_hash, validation)
+            return _result(canonical, ledger, source_hash, validation, policy)
         state.transition(CompilerStage.LEDGER_VALIDATED)
+        ledger.current_stage_sequence = len(state.completed_stages)
 
         state.transition(CompilerStage.PRODUCTION_ACCEPTED)
+        ledger.current_stage_sequence = len(state.completed_stages)
         state.accept()
         update_validation()
-        return _result(canonical, ledger, source_hash, validation)
+        return _result(canonical, ledger, source_hash, validation, policy)
 
     except CompileBlocked as exc:
         ledger.diagnostic(
@@ -321,7 +348,7 @@ def compile_document(
         )
         state.block(_BLOCK_GATE_BY_STAGE[state.current_stage])
         update_validation()
-        return _result(None, ledger, source_hash, validation)
+        return _result(None, ledger, source_hash, validation, policy if 'policy' in locals() else None)
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
