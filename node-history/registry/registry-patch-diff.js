@@ -30,14 +30,20 @@ export function validatePatchDiffCoverage({
 export function describePoolUpdates(base, proposed) {
   const before = normalizeZoneRegistrySemantic(base || {});
   const after = normalizeZoneRegistrySemantic(proposed || {});
-  if (canonicalSemanticJson({ namespace: before.namespace, leases: before.leases })
-    === canonicalSemanticJson({ namespace: after.namespace, leases: after.leases })) return [];
+  if (canonicalSemanticJson(before) === canonicalSemanticJson(after)) return [];
   return [{
     type: 'REPLACE_POOL_STATE',
     zoneId: text(base?.zoneId),
     baseZoneRegistryHash: text(base?.zoneRegistryHash),
     proposedZoneRegistryHash: text(proposed?.zoneRegistryHash),
   }];
+}
+
+export function changedPoolMainLines(base, proposed) {
+  const before = poolLineSemantics(base);
+  const after = poolLineSemantics(proposed);
+  const keys = new Set([...before.keys(), ...after.keys()]);
+  return [...keys].filter((key) => before.get(key) !== after.get(key)).sort();
 }
 
 export function describeLineHistoryUpdates(baseHistories = [], proposedHistories = []) {
@@ -126,6 +132,22 @@ function validatePhantomOperations(index, leaseDiff, historyDiff, blockers) {
   }
 }
 
+function poolLineSemantics(registry) {
+  const grouped = new Map();
+  for (const lease of registry?.leases || []) addPoolRow(grouped, text(lease?.mainLineKey), 'lease', lease);
+  for (const reference of registry?.lineHistoryRefs || []) addPoolRow(grouped, text(reference?.mainLineKey), 'historyRef', reference);
+  const result = new Map();
+  for (const [key, rows] of grouped) result.set(key, canonicalSemanticJson(rows.sort(canonicalSort)));
+  return result;
+}
+
+function addPoolRow(grouped, mainLineKey, kind, value) {
+  if (!mainLineKey) return;
+  const rows = grouped.get(mainLineKey) || [];
+  rows.push({ kind, value });
+  grouped.set(mainLineKey, rows);
+}
+
 function indexOperations(operations, blockers) {
   const byTarget = new Map(), all = Array.isArray(operations) ? operations : [];
   for (const operation of all) {
@@ -178,3 +200,5 @@ function semanticHistory(history) {
 function sortedAliases(values) {
   return (Array.isArray(values) ? values : []).map(text).sort();
 }
+
+function canonicalSort(a, b) { return canonicalSemanticJson(a).localeCompare(canonicalSemanticJson(b)); }
