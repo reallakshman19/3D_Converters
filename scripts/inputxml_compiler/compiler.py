@@ -18,6 +18,7 @@ from .ledger_reconciliation import *
 from .contract_bundle import *
 from .state_machine import CompilerState, CompilerStage
 from .dispatcher import resolve_registered_profile
+from .family_profiles import PROFILE_CONTRACTS, validate_profile_intake
 from .resolver_contract import OutcomeKind
 
 
@@ -244,6 +245,15 @@ def compile_document(
             update_validation()
             return _result(None, ledger, source_hash, validation, policy)
 
+        if dialect in PROFILE_CONTRACTS:
+            validate_profile_intake(
+                profile_id=dialect,
+                root=root,
+                context=context,
+                explicit_override=dialect_override is not None,
+                categorized_xsd_path=categorized_xsd_path,
+                ledger=ledger,
+            )
         state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
         ledger.current_stage_sequence = len(state.completed_stages)
         aliases = _resolve_aliases(_load_json(alias_registry_path))
@@ -269,6 +279,7 @@ def compile_document(
             "adapterId": outcome.adapter_id,
             "outcomeKind": outcome.outcome_kind.value,
             "sourceAccountingStatus": outcome.source_accounting_status,
+            "profileMetrics": outcome.profile_metrics,
         }
         state.transition(CompilerStage.PROFILE_RESOLVED)
         ledger.current_stage_sequence = len(state.completed_stages)
@@ -278,6 +289,20 @@ def compile_document(
             state.block("PROFILE_RESOLVER_GATE")
             update_validation()
             return _result(None, ledger, source_hash, validation, policy)
+        if outcome.source_accounting_status != "COMPLETE":
+            if not any(
+                item.get("code") == "SOURCE_ACCOUNTING_INCOMPLETE"
+                for item in ledger.diagnostics
+            ):
+                ledger.diagnostic(
+                    "BLOCKING",
+                    "SOURCE_ACCOUNTING_INCOMPLETE",
+                    "Resolver did not prove complete source accounting.",
+                    "source-accounting-proof",
+                )
+            state.block("SOURCE_ACCOUNTING_GATE")
+            update_validation()
+            return _result(canonical, ledger, source_hash, validation, policy)
 
         state.transition(CompilerStage.SOURCE_ACCOUNTED)
         ledger.current_stage_sequence = len(state.completed_stages)
@@ -341,14 +366,24 @@ def compile_document(
         return _result(canonical, ledger, source_hash, validation, policy)
 
     except CompileBlocked as exc:
-        ledger.diagnostic(
-            "BLOCKING",
-            "CANONICALIZATION_BLOCKED",
-            str(exc),
-        )
+        if not any(
+            item.get("severity") in {"ERROR", "BLOCKING"}
+            for item in ledger.diagnostics
+        ):
+            ledger.diagnostic(
+                "BLOCKING",
+                "CANONICALIZATION_BLOCKED",
+                str(exc),
+            )
         state.block(_BLOCK_GATE_BY_STAGE[state.current_stage])
         update_validation()
-        return _result(None, ledger, source_hash, validation, policy if 'policy' in locals() else None)
+        return _result(
+            None,
+            ledger,
+            source_hash,
+            validation,
+            policy if "policy" in locals() else None,
+        )
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
