@@ -110,6 +110,7 @@ jobs:
             tests/test_inputxml_family_review_regressions.py \
             tests/test_inputxml_canonical_compiler_family_corpus.py \
             tests/test_inputxml_root_topology_strict.py \
+            tests/test_inputxml_topology_blocked_publication.py \
             tests/test_inputxml_topology_bridge_contract.py \
             tests/test_inputxml_topology_corpus.py \
             tests/test_inputxml_topology_determinism.py \
@@ -133,6 +134,7 @@ jobs:
             tests/test_inputxml_xml_builder_adapter.py \
             tests/test_inputxml_seljson_adapter.py \
             tests/test_inputxml_root_topology_strict.py \
+            tests/test_inputxml_topology_blocked_publication.py \
             tests/test_inputxml_topology_bridge_contract.py \
             tests/test_inputxml_topology_corpus.py \
             tests/test_inputxml_topology_determinism.py \
