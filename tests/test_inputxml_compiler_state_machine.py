@@ -140,12 +140,16 @@ class TestCompilerOrchestrationIntegration(unittest.TestCase):
             validation["completedStages"],
         )
 
-    def test_malformed_json_blocks_at_dialect_gate(self):
-        root, _, validation = self.compile(b"{not-json", name="source.json")
+    def test_malformed_json_blocks_at_media_inspection_gate(self):
+        root, ledger, validation = self.compile(b"{not-json", name="source.json")
         self.assertIsNone(root)
         self.assertEqual("BLOCKED", validation["status"])
-        self.assertEqual("DIALECT_GATE", validation["blockedAt"])
+        self.assertEqual("MEDIA_INSPECTION_GATE", validation["blockedAt"])
         self.assertNotIn("DIALECT_RESOLVED", validation["completedStages"])
+        self.assertTrue(any(
+            row["code"] == "MANAGED_STAGE_JSON_INVALID"
+            for row in ledger["diagnostics"]
+        ))
 
     def test_diagnostic_candidate_reaches_common_validation(self):
         source = (
