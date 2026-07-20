@@ -1,112 +1,140 @@
-/**
- * Managed-stage source identity projection.
- * Inputs: original JSON text and explicit source options. Output: an immutable
- * branch/component/port model whose IDs use SourceEnvelope.v1 and the existing
- * UniversalSourceGraph.v1 entity identity contract. Invalid source data raises.
- */
-
 import { createSourceEnvelope } from '../../../universal-enrichment-workbench/source-envelope.js';
-import { createSourceEntityId } from '../../../universal-enrichment-workbench/graph-identity.js';
-import { classifySupportProjection } from './topology-support-policy.js';
-import {
-  ROUTE_TYPES,
-  cleanText,
-  componentCategory,
-  geometryClass,
-  pointDistance,
-  strictPoint,
-} from './topology-values.js';
-
-const COMPONENT_PORTS = Object.freeze([
-  ['APOS', 'A'], ['POS', 'P'], ['LPOS', 'L'],
-]);
-const BRANCH_PORTS = Object.freeze([
-  ['HPOS', 'H'], ['TPOS', 'T'],
-]);
+import { assignSourceEntityIds } from '../../../universal-enrichment-workbench/graph-identity.js';
+import { cleanText, componentCategory, normalizePoint, pointDistance } from './topology-values.js';
 
 /** @param {unknown} value @returns {Record<string, unknown>} */
 function record(value) {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? /** @type {Record<string, unknown>} */ (value) : {};
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
-/** @param {Record<string, unknown>} owner @param {string} sourcePath @param {readonly (readonly string[])[]} definitions @param {number} orderStart @returns {Record<string, unknown>[]} */
-function portDescriptors(owner, sourcePath, definitions, orderStart) {
-  const attributes = record(owner.attributes);
-  return definitions.flatMap(([field, role], index) => {
-    const position = strictPoint(attributes[field]);
-    if (!position) return [];
-    return [{
-      field, role, position, order: orderStart + index,
-      sourcePath: `${sourcePath}.attributes.${field}`,
-    }];
-  });
+/** @param {Record<string, unknown>} source @returns {Record<string, unknown>} */
+function attributes(source) {
+  return record(source.attributes);
 }
 
-/** @param {Record<string, unknown>} child @param {number} branchIndex @param {number} sourceIndex @param {number} order @param {number} toleranceMm @param {string} branchSourcePath @returns {Record<string, unknown>} */
-function componentDescriptor(child, branchIndex, sourceIndex, order, toleranceMm, branchSourcePath) {
-  const sourcePath = `${branchSourcePath}.children[${sourceIndex}]`;
-  const attributes = record(child.attributes);
-  const sourceType = cleanText(child.type ?? attributes.TYPE).toUpperCase();
-  const positions = {
-    APOS: strictPoint(attributes.APOS),
-    POS: strictPoint(attributes.POS),
-    LPOS: strictPoint(attributes.LPOS),
-  };
-  const spanLengthMm = pointDistance(positions.APOS, positions.LPOS);
-  const supportProjection = componentCategory(sourceType) === 'SUPPORT'
-    ? classifySupportProjection(attributes) : null;
+/** @param {Record<string, unknown>} source @returns {Record<string, unknown>} */
+function enrichedAttributes(source) {
+  return record(source.enrichedAttributes);
+}
+
+/** @param {Record<string, unknown>} source @returns {string} */
+function sourceType(source) {
+  return cleanText(source.type || attributes(source).TYPE).toUpperCase();
+}
+
+/** @param {Record<string, unknown>} source @returns {string} */
+function sourceName(source) {
+  const attrs = attributes(source);
+  return cleanText(source.name || attrs.NAME);
+}
+
+/** @param {Record<string, unknown>} source @returns {string} */
+function sourceRef(source) {
+  return cleanText(attributes(source).REF);
+}
+
+/** @param {Record<string, unknown>} source @param {string} field @returns {Record<string, number>|null} */
+function point(source, field) {
+  return normalizePoint(attributes(source)[field]);
+}
+
+/** @param {Record<string, unknown>} source @returns {boolean} */
+function routeBearing(source) {
+  return ['PIPE', 'ELBO', 'BEND', 'TEE', 'OLET', 'VALV', 'VALVE', 'FLAN', 'FLANGE', 'GASK', 'GASKET', 'INST', 'REDU', 'REDUCER'].includes(sourceType(source));
+}
+
+/** @param {Record<string, unknown>} component @param {number} toleranceMm @returns {Record<string, unknown>} */
+function geometry(component, toleranceMm) {
+  const from = point(component, 'APOS');
+  const middle = point(component, 'POS');
+  const to = point(component, 'LPOS');
+  const finiteSpan = Boolean(from && to && pointDistance(from, to) > toleranceMm);
   return {
-    sourcePath, sourceType, branchIndex, sourceIndex, order,
-    name: cleanText(child.name ?? attributes.NAME),
-    sourceRef: cleanText(attributes.REF),
-    attributes,
-    enrichedAttributes: record(child.enrichedAttributes),
-    positions,
-    supportProjection,
-    geometryClassification: geometryClass(sourceType, positions, toleranceMm),
-    finiteSpan: Number.isFinite(spanLengthMm) && spanLengthMm > toleranceMm,
-    spanLengthMm,
-    isRouteComponent: ROUTE_TYPES.includes(sourceType),
-    ports: portDescriptors(child, sourcePath, COMPONENT_PORTS, order * 10),
+    from,
+    middle,
+    to,
+    finiteSpan,
+    spanLengthMm: finiteSpan ? pointDistance(from, to) : 0,
+    geometryClassification: finiteSpan ? 'FINITE_SPAN' : (middle || from || to ? 'POINT' : 'NONE'),
   };
 }
 
 /** @param {Record<string, unknown>} branch @param {number} branchIndex @param {number} order @param {number} toleranceMm @param {string} rootPath @returns {Record<string, unknown>} */
 function branchDescriptor(branch, branchIndex, order, toleranceMm, rootPath) {
-  const sourcePath = `${rootPath}[${branchIndex}]`;
-  const attributes = record(branch.attributes);
+  const path = `${rootPath}[${branchIndex}]`;
+  const attrs = attributes(branch);
   const children = Array.isArray(branch.children) ? branch.children : [];
-  return {
-    sourcePath, sourceType: 'BRANCH', branchIndex, order,
-    name: cleanText(branch.name ?? attributes.NAME),
-    sourceRef: cleanText(attributes.REF),
-    attributes,
-    ports: portDescriptors(branch, sourcePath, BRANCH_PORTS, order * 10),
-    components: children.map((child, sourceIndex) => componentDescriptor(
-      record(child), branchIndex, sourceIndex, order + sourceIndex + 1, toleranceMm, sourcePath,
-    )),
+  const descriptor = {
+    sourcePath: path,
+    sourceType: sourceType(branch) || 'BRANCH',
+    name: sourceName(branch),
+    sourceRef: sourceRef(branch),
+    attributes: attrs,
+    order,
+    sourceBranchEntityId: '',
+    sourceBranchName: '',
+    isRouteComponent: false,
+    components: children.map((child, childIndex) => {
+      const source = record(child);
+      const componentPath = `${path}.children[${childIndex}]`;
+      const type = sourceType(source);
+      return {
+        sourcePath: componentPath,
+        sourceType: type,
+        name: sourceName(source),
+        sourceRef: sourceRef(source),
+        attributes: attributes(source),
+        enrichedAttributes: enrichedAttributes(source),
+        order: order + childIndex + 1,
+        sourceBranchEntityId: '',
+        sourceBranchName: '',
+        isRouteComponent: routeBearing(source),
+        category: componentCategory(type),
+        ...geometry(source, toleranceMm),
+      };
+    }),
   };
+  return descriptor;
 }
 
 /** @param {Record<string, unknown>[]} entities @param {string} sourceFileId @returns {Promise<Record<string, unknown>[]>} */
 async function assignEntityIds(entities, sourceFileId) {
-  const ids = await Promise.all(entities.map((entity) => createSourceEntityId(
-    sourceFileId, 'stagedjson', cleanText(entity.sourcePath), 'json-object',
-  )));
+  const requests = entities.map((entity) => ({
+    sourceFileId,
+    sourceKind: 'stagedjson',
+    sourcePath: entity.sourcePath,
+    entityKind: 'json-object',
+  }));
+  const ids = await assignSourceEntityIds(requests);
   return entities.map((entity, index) => ({ ...entity, sourceEntityId: ids[index] }));
 }
 
 /** @param {Record<string, unknown>[]} entities @param {string} sourceFileId @returns {Promise<Record<string, unknown>[]>} */
 async function assignPortIds(entities, sourceFileId) {
-  const descriptors = entities.flatMap((entity) => entity.ports.map((port) => ({
-    ...port,
-    sourceEntityId: entity.sourceEntityId,
-    sourceType: entity.sourceType,
-  })));
-  const ids = await Promise.all(descriptors.map((port) => createSourceEntityId(
-    sourceFileId, 'stagedjson', cleanText(port.sourcePath), 'json-object',
-  )));
+  const descriptors = entities.flatMap((entity) => {
+    const fields = entity.sourceType === 'BRANCH'
+      ? [['HPOS', 'H'], ['TPOS', 'T']]
+      : [['APOS', 'A'], ['POS', 'P'], ['LPOS', 'L']];
+    return fields.flatMap(([field, role]) => {
+      const position = normalizePoint(entity.attributes[field]);
+      if (!position) return [];
+      return [{
+        sourceEntityId: entity.sourceEntityId,
+        sourcePath: `${entity.sourcePath}.attributes.${field}`,
+        sourceType: entity.sourceType,
+        field,
+        role,
+        position,
+      }];
+    });
+  });
+  const requests = descriptors.map((port) => ({
+    sourceFileId,
+    sourceKind: 'stagedjson',
+    sourcePath: port.sourcePath,
+    entityKind: 'json-object',
+  }));
+  const ids = await assignSourceEntityIds(requests);
   return descriptors.map((port, index) => ({
     ...port,
     key: `${port.sourceEntityId}:${port.role}`,
@@ -121,14 +149,16 @@ function attachPorts(entities, ports) {
   return entities.map((entity) => ({ ...entity, ports: Object.freeze(byEntity.get(entity.sourceEntityId) ?? []) }));
 }
 
-/** @param {string} sourceText @param {{sourceName:string,toleranceMm:number}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
+/** @param {string} sourceText @param {{sourceName:string,sourceRevision?:number,toleranceMm:number}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
 export async function buildTopologySourceModel(sourceText, options) {
+  const revision = Number(options.sourceRevision);
+  if (!Number.isInteger(revision) || revision < 1) throw new TypeError('Managed-stage sourceRevision must be a positive integer.');
   const envelope = await createSourceEnvelope({
     sourceText,
     sourceKind: 'stagedjson',
     sourceName: options.sourceName,
     origin: 'file',
-    revision: 1,
+    revision,
   });
   if (!envelope.validation.ok) throw new TypeError(`Invalid managed-stage source: ${envelope.validation.errors.join('; ')}`);
   const parsed = JSON.parse(envelope.sourceText);
@@ -177,3 +207,8 @@ export async function buildTopologySourceModel(sourceText, options) {
     sourcePorts: Object.freeze(ports),
   });
 }
+
+export const _test = Object.freeze({
+  record, attributes, enrichedAttributes, sourceType, sourceName, sourceRef,
+  point, routeBearing, geometry, branchDescriptor, assignEntityIds, assignPortIds, attachPorts,
+});
