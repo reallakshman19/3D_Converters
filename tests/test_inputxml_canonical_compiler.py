@@ -115,6 +115,37 @@ class CompilerTests(unittest.TestCase):
         self.assertEqual('PROFILE_RESOLVER_GATE',validation['blockedAt'])
         self.assertTrue(any(item['code'] == 'CATEGORIZED_OVERLAY_CONFLICT' for item in ledger['diagnostics']))
 
+    def test_direct_canonical_ignores_assured_node_evidence(self):
+        e = element(
+            'ID="E1" FROM_NODE="10" TO_NODE="20" DELTA_X="1" '
+            'DELTA_Y="0" DELTA_Z="0" DIAMETER="100" WALL_THICK="5" '
+            'LINE="L1" PRESSURE_C1="10"'
+        )
+        context = {
+            'assuredNodeEvidence': {
+                '10': {'name': 'INJECTED-10', 'x': 100, 'y': 200, 'z': 300},
+                '20': {'name': 'INJECTED-20', 'x': 101, 'y': 200, 'z': 300},
+            }
+        }
+        root, ledger, validation = self.compile(
+            BASE_HEAD.format(numelt=1) + e + BASE_TAIL,
+            dialect='canonical-inputxml-v1',
+            context=context,
+        )
+        self.assertEqual('PASS', validation['status'])
+        output = root.find('PIPINGMODEL/PIPINGELEMENT')
+        for field in (
+            'FROM_NAME', 'TO_NAME', 'FROM_X', 'FROM_Y', 'FROM_Z',
+            'TO_X', 'TO_Y', 'TO_Z',
+        ):
+            self.assertIsNone(output.get(field))
+        self.assertFalse(
+            any(
+                row['sourceType'] == 'EXPLICIT_ASSURED_NODE_EVIDENCE'
+                for row in ledger['records']
+            )
+        )
+
     def test_excluded_nodeset_dialect_is_rejected(self):
         root,ledger,validation=self.compile('<NodeSet/>', dialect='nodeset-v1')
         self.assertIsNone(root)
