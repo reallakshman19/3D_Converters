@@ -31,7 +31,7 @@ test('blocks stale normalization, action and approval hashes atomically', async 
     async (input) => { input.topologyNormalizationApproval.normalizationApprovalHash = stale(); },
   ];
   for (const mutate of cases) {
-    const input = await makeProductionFixture();
+    const input = structuredClone(await makeProductionFixture());
     await mutate(input);
     const result = await runTopoEnrichedXmlProduction(input);
     assert.equal(result.validation.status, 'BLOCKED');
@@ -43,15 +43,15 @@ test('blocks stale normalization, action and approval hashes atomically', async 
 
 // 10 — bootstrap, current snapshot and registry patch hashes are independently recomputed.
 test('blocks stale bootstrap, current-registry and registry-patch evidence', async () => {
-  const bootstrap = await makeProductionFixture();
+  const bootstrap = structuredClone(await makeProductionFixture());
   bootstrap.bootstrapResult.bootstrapResultHash = stale();
   assertBlocked(await runTopoEnrichedXmlProduction(bootstrap), 'BOOTSTRAP_RESULT_HASH_MISMATCH');
 
-  const current = await makeProductionFixture();
+  const current = structuredClone(await makeProductionFixture());
   current.currentRegistryEvidence.registrySnapshotHash = stale();
   assertBlocked(await runTopoEnrichedXmlProduction(current), 'CURRENT_REGISTRY_SNAPSHOT_HASH_MISMATCH');
 
-  const patch = await makeProductionFixture();
+  const patch = structuredClone(await makeProductionFixture());
   patch.bootstrapResult.registryPatch.proposedRegistryHash = stale();
   await rehashBootstrap(patch);
   assertBlocked(await runTopoEnrichedXmlProduction(patch), 'REGISTRY_PATCH_HASH_MISMATCH');
@@ -59,7 +59,7 @@ test('blocks stale bootstrap, current-registry and registry-patch evidence', asy
 
 // 11 — no occurrence ownership inference.
 test('blocks an occurrence without explicit logical-node ownership before writer invocation', async () => {
-  const input = await makeProductionFixture();
+  const input = structuredClone(await makeProductionFixture());
   delete input.occurrencePlan.occurrences[0].logicalNodeId;
   input.occurrencePlan.occurrencePlanHash = await computeOccurrencePlanHash(input.occurrencePlan);
   const result = await runTopoEnrichedXmlProduction(input);
@@ -70,7 +70,7 @@ test('blocks an occurrence without explicit logical-node ownership before writer
 
 // 12 — current registry, not writer behavior, is the number authority.
 test('blocks allocation renumbering that disagrees with approved current history', async () => {
-  const input = await makeProductionFixture();
+  const input = structuredClone(await makeProductionFixture());
   const allocation = input.allocationResult.allocations.find((row) => row.logicalNodeId === 'LN-A-NEW');
   allocation.engineeringNodeNumber = 140;
   input.allocationResult.allocationResultHash = await computeSemanticHash(
@@ -87,14 +87,14 @@ test('blocks allocation renumbering that disagrees with approved current history
 
 // 13 — independently supplied current evidence is mandatory.
 test('blocks when current registry evidence is absent even with an approved bootstrap', async () => {
-  const input = await makeProductionFixture();
+  const input = structuredClone(await makeProductionFixture());
   input.currentRegistryEvidence = null;
   assertBlocked(await runTopoEnrichedXmlProduction(input), 'CURRENT_REGISTRY_EVIDENCE_MISSING');
 });
 
 // 14 — a late topology/trace blocker still clears all production output.
 test('clears production output after a late source-path topology evidence blocker', async () => {
-  const input = await makeProductionFixture();
+  const input = structuredClone(await makeProductionFixture());
   input.sourceInventory.entities.find((row) => row.sourceEntityId === 'SE-ELBO').sourcePath = '';
   await rehashSourceChain(input);
   const result = await runTopoEnrichedXmlProduction(input);
@@ -109,7 +109,7 @@ test('clears production output after a late source-path topology evidence blocke
 
 // 15 — REVIEW technical blockers cannot leave a proposed bundle.
 test('REVIEW exposes no proposed bundle when a technical hash gate is blocked', async () => {
-  const input = await makeProductionFixture({ operatingMode: 'REVIEW' });
+  const input = structuredClone(await makeProductionFixture({ operatingMode: 'REVIEW' }));
   input.configHash = stale();
   const result = await runTopoEnrichedXmlProduction(input);
   assert.equal(result.validation.status, 'BLOCKED');
