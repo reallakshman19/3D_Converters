@@ -1,0 +1,10 @@
+{
+  "buildCommand": "CC=clang-18 WASI_SYSROOT=/usr bash scripts/fbx/build-ufbx-wasm.sh",
+  "license": "MIT alternative",
+  "schema": "UfbxWasmProvenance.v1",
+  "sourceSha256": "a4ee13223113fa9b2e99c6bbca54110e5ce140f5c013f1b3c1e289fe58e7e73e",
+  "upstreamRepository": "ufbx/ufbx",
+  "upstreamRevision": "729ab835444f5f229e5f7cff332692ce6c00415d",
+  "upstreamTag": "v0.18.0",
+  "wasmSha256": "a8a3795cff20d152814f8f7b063693822f135daf17b15fc4dc8b9627134878bd"
+}

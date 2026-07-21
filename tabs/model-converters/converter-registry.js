@@ -698,6 +698,18 @@ const CONVERTER_DEFS = {
       { key: 'headerMdbName', label: 'Header MDBName', type: 'text' },
     ],
   },
+  fbx_to_stagedjson: {
+    id: 'fbx_to_stagedjson',
+    label: 'FBX -> StagedJSON',
+    group: '3D Models',
+    primaryAccept: '.fbx,.FBX',
+    primaryLabel: 'FBX Input',
+    secondaryLabel: 'FBX Mapping Manifest',
+    secondaryAccept: '.fbxmap.json,.json,.JSON',
+    description: 'Parse binary FBX with pinned ufbx/WASM and publish only explicitly mapped two-port PIPE occurrences.',
+    defaults: {},
+    fields: [],
+  },
   inputxml_to_rvm: {
     id: 'inputxml_to_rvm',
     label: 'InputXML -> RVM (+GLB)',
@@ -763,6 +775,7 @@ const CONVERTER_ORDER = [
   'inputxml_to_cii',
   'inputxml14_to_cii',
   'inputxml_to_cii2019',
+  'fbx_to_stagedjson',
   'inputxml_to_rvm',
   'pcf_continuity_check',
 ];
@@ -778,6 +791,7 @@ import { run as stagedJsonToCsvRun } from './converters/stagedjson-to-csv.js';
 import { run as inputXmlToXmlRun } from './converters/inputxml-to-xml.js';
 import { run as xmlToCiiRun } from './converters/xmltocii2019_runner.js?v=20260620-weight-ready-1';
 import { run as inputXmlToCii2019Run } from './converters/inputxml-to-cii2019.js';
+import { run as fbxToStagedJsonRun } from './converters/fbx-to-stagedjson.js';
 import { run as inputXmlToRvmRun } from './converters/inputxml-to-rvm.js';
 import { run as pcfContinuityCheckRun } from './converters/pcf-continuity-check.js';
 
@@ -801,6 +815,7 @@ const RUNNERS = {
   inputxml_to_cii: pythonWorkerRun,
   inputxml14_to_cii: pythonWorkerRun,
   inputxml_to_cii2019: inputXmlToCii2019Run,
+  fbx_to_stagedjson: fbxToStagedJsonRun,
   inputxml_to_rvm: inputXmlToRvmRun,
   pcf_continuity_check: pcfContinuityCheckRun,
 };
