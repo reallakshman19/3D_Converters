@@ -200,8 +200,8 @@ def _record_document(
             "extractedTextByteLength": provenance["extractedTextByteLength"],
             "provenanceHashSha256": provenance["provenanceHashSha256"],
         },
-        projection_cardinality="1_TO_MANY",
-        disposition="PARSE_AUTHORITATIVE_INPUT_ECHO_GRAMMAR",
+        projection_cardinality="1_TO_0",
+        disposition="PRESERVE_EXTENSION",
         evidence=[
             "validated immutable extraction provenance",
             "current-clock, filename and generated line defaults are disabled",
@@ -242,6 +242,7 @@ def _record_header(
         source_entity_id="document/header",
         source_type="PDF_INPUT_ECHO_REPORT_HEADER",
         source_fields=header,
+        cii_section="VERSION",
         projection_cardinality="1_TO_1",
         disposition="EMIT_REPORT_METADATA",
         evidence=["explicit report Job Name and Date/Time; no current-clock fallback"],
@@ -273,8 +274,8 @@ def _record_line_scopes(
             source_entity_id=str(scope["lineScopeId"]),
             source_type="PDF_LINE_SCOPE",
             source_fields=scope,
-            projection_cardinality="1_TO_MANY",
-            disposition="ESTABLISH_AUTHORITATIVE_LINE_SCOPE",
+            projection_cardinality="1_TO_0",
+            disposition="PRESERVE_EXTENSION",
             evidence=list(scope["sourceEvidenceReferences"]),
         )
 
