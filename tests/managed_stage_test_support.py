@@ -8,6 +8,10 @@ from typing import Any
 
 from scripts.inputxml_compiler.base import DecisionLedger
 from scripts.inputxml_compiler.managed_stage_bridge_io import run_bridge
+from scripts.inputxml_compiler.managed_stage_component_closure import (
+    attach_verified_trace_elements,
+    verify_component_topology_closure,
+)
 from scripts.inputxml_compiler.managed_stage_engineering import verify_engineering_projection
 from scripts.inputxml_compiler.managed_stage_entities import verify_source_entities_and_ports
 from scripts.inputxml_compiler.managed_stage_identity import verify_result_identity
@@ -18,6 +22,7 @@ from scripts.inputxml_compiler.managed_stage_intake import (
     validate_managed_stage_intake,
 )
 from scripts.inputxml_compiler.managed_stage_parity import verify_parity_and_metrics
+from scripts.inputxml_compiler.managed_stage_port_coverage import bind_source_port_element_coverage
 from scripts.inputxml_compiler.managed_stage_source_decisions import (
     record_managed_stage_source_decisions,
 )
@@ -222,6 +227,14 @@ def verified_evidence(
     identity = verify_result_identity(intake, result, used_ledger)
     source = verify_source_entities_and_ports(intake, result, used_ledger)
     topology = verify_topology_and_trace(result, source, used_ledger)
+    mappings = verify_component_topology_closure(
+        result["canonicalTopology"],
+        topology["collections"],
+        source,
+        used_ledger,
+    )
+    attach_verified_trace_elements(mappings, topology["traceByEntity"], used_ledger)
+    topology["componentMappings"] = mappings
     topology["branchCollectionPath"] = intake.branch_collection_path
     projection = verify_engineering_projection(
         result,
@@ -249,6 +262,7 @@ def verified_evidence(
         projection,
         used_ledger,
     )
+    bind_source_port_element_coverage(topology, used_ledger)
     evidence = {
         "intake": intake,
         "identity": identity,
