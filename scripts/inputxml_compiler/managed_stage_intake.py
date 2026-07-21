@@ -10,6 +10,7 @@ from typing import Any
 
 from .base import CompileBlocked, DecisionLedger
 from .managed_stage_diagnostics import block
+from .managed_stage_hashes import reject_unpaired_surrogates
 
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_BRANCHES = 5000
@@ -88,9 +89,6 @@ def strict_json_loads(source: bytes) -> tuple[str, Any]:
         raise CompileBlocked(f"Managed-stage source exceeds {MAX_SOURCE_BYTES} bytes.")
     try:
         text = source.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as exc:
-        raise CompileBlocked(f"Managed-stage source is not strict UTF-8: {exc}.") from exc
-    try:
         decoder = json.JSONDecoder(
             object_pairs_hook=_reject_duplicate_pairs,
             parse_constant=_reject_nonfinite,
@@ -98,7 +96,8 @@ def strict_json_loads(source: bytes) -> tuple[str, Any]:
         value, end = decoder.raw_decode(text)
         if text[end:].strip():
             raise ValueError("trailing data after the root JSON value")
-    except (json.JSONDecodeError, ValueError) as exc:
+        reject_unpaired_surrogates(value, path="managed-stage-source")
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise CompileBlocked(f"Managed-stage JSON is invalid: {exc}.") from exc
     return text, value
 
@@ -123,6 +122,7 @@ def validate_managed_stage_intake(
 ) -> ManagedStageIntake:
     del explicit_override
     try:
+        reject_unpaired_surrogates(source_name, path="source-name")
         root_form, root_path, collection_path, branches = _classify_root(parsed)
     except ValueError as exc:
         code = (
@@ -162,6 +162,7 @@ def validate_managed_stage_intake(
         disposition="PRESERVE_EXTENSION",
         evidence=[
             "strict UTF-8 and JSON media accepted before Node execution",
+            "unpaired UTF-16 surrogate code units are rejected before profile resolution",
             "managed-stage root predicate was positively established",
         ],
     )
@@ -240,6 +241,15 @@ def _validate_context(
     context: dict[str, Any],
     ledger: DecisionLedger,
 ) -> dict[str, Any]:
+    try:
+        reject_unpaired_surrogates(context, path="compiler-context")
+    except ValueError as exc:
+        block(
+            ledger,
+            "MANAGED_STAGE_CONTEXT_MISSING",
+            str(exc),
+            "compiler-context",
+        )
     allowed = set(_REQUIRED_CONTEXT) | set(_OPTIONAL_CONTEXT)
     extra = sorted(set(context) - allowed)
     if extra:
