@@ -135,9 +135,31 @@ jobs:
       - name: Protect TE-011 parity and selection
         run: node --test tests/psi-writer-parity-v2.test.mjs
       - name: Protect TE-012 registry bootstrap
+        id: te012
+        continue-on-error: true
         run: |
-          node --test tests/node-history-registry-bootstrap.test.mjs
-          node --test tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs
+          set +e
+          node --test tests/node-history-registry-bootstrap.test.mjs > "$RUNNER_TEMP/te012-main.log" 2>&1
+          first=$?
+          node --test tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs > "$RUNNER_TEMP/te012-orchestrator.log" 2>&1
+          second=$?
+          status=0
+          test "$first" -eq 0 -a "$second" -eq 0 || status=1
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo '--- TE-012 primary ---'
+          tail -n 180 "$RUNNER_TEMP/te012-main.log"
+          echo '--- TE-012 orchestrator ---'
+          tail -n 180 "$RUNNER_TEMP/te012-orchestrator.log"
+      - name: Upload TE-012 regression logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: te012-regression-logs
+          path: |
+            ${{ runner.temp }}/te012-main.log
+            ${{ runner.temp }}/te012-orchestrator.log
+      - name: Enforce TE-012 regression result
+        run: test "${{ steps.te012.outputs.status }}" -eq 0
       - name: Protect exact LEGACY behavior
         run: |
           node --test tests/stagedjson-psi-writer-selection.test.mjs
