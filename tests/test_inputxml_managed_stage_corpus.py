@@ -72,9 +72,17 @@ class ManagedStageCorpusTests(unittest.TestCase):
                 continue
             with self.subTest(case=row["caseId"]):
                 candidate, ledger, validation = self.compile_case(row)
-                self.assertEqual(row["expectedStatus"], validation["status"])
+                self.assertEqual(
+                    row["expectedStatus"],
+                    validation["status"],
+                    ledger["diagnostics"],
+                )
                 if "expectedBlockedAt" in row:
-                    self.assertEqual(row["expectedBlockedAt"], validation["blockedAt"])
+                    self.assertEqual(
+                        row["expectedBlockedAt"],
+                        validation["blockedAt"],
+                        ledger["diagnostics"],
+                    )
                 outcome = validation.get("resolverOutcome")
                 outcome_kind = (
                     outcome.get("outcomeKind")
@@ -82,11 +90,15 @@ class ManagedStageCorpusTests(unittest.TestCase):
                     else "BLOCKED_NO_CANDIDATE"
                 )
                 if "expectedOutcomeKind" in row:
-                    self.assertEqual(row["expectedOutcomeKind"], outcome_kind)
+                    self.assertEqual(
+                        row["expectedOutcomeKind"],
+                        outcome_kind,
+                        ledger["diagnostics"],
+                    )
                 if row["category"] == "blocked-with-candidate":
-                    self.assertIsNotNone(candidate)
+                    self.assertIsNotNone(candidate, ledger["diagnostics"])
                 if row["category"] in {"negative", "blocked-without-candidate"}:
-                    self.assertIsNone(candidate)
+                    self.assertIsNone(candidate, ledger["diagnostics"])
                 if "expectedDiagnostic" in row:
                     self.assertTrue(
                         any(
