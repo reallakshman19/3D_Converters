@@ -6,6 +6,7 @@ from typing import Any, Callable
 from converters.scripts import pdf_to_inputxml as pdf_parser
 
 from .base import CompileBlocked, DecisionLedger, ET
+from .extension import _ensure_extension_last
 from .pdf_input_echo_accounting import verify_pdf_input_echo_accounting
 from .pdf_input_echo_auxiliary import (
     preserve_report_record,
@@ -16,7 +17,7 @@ from .pdf_input_echo_elements import build_pdf_element, set_pdf_counts
 from .pdf_input_echo_provenance import extract_input_echo_text
 from .pdf_input_echo_scopes import validate_line_scopes
 from .pdf_input_echo_state import line_state_policy, resolve_line_scoped_blocks
-from .xml import _decimal_text, _ensure_extension_last
+from .xml import _decimal_text
 
 
 def compile_pdf_input_echo_source(
