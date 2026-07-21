@@ -99,8 +99,18 @@ jobs:
           ! grep -Ein 'dependencies\s*=|runLegacy|runProduction' tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js
       - name: Run TE-013 production tests
         run: |
-          node --test tests/topo-enriched-xml-production.test.mjs
-          node --test tests/topo-enriched-xml-production-adversarial.test.mjs
+          set +e
+          node --test tests/topo-enriched-xml-production.test.mjs tests/topo-enriched-xml-production-adversarial.test.mjs \
+            > "$RUNNER_TEMP/te013-production-tests.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/te013-production-tests.log"
+          exit "$status"
+      - name: Upload TE-013 production test log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: te013-production-test-log
+          path: ${{ runner.temp }}/te013-production-tests.log
       - name: Protect TE-002 frozen contracts
         run: node --test tests/topo-enriched-xml-contracts.test.mjs
       - name: Protect TE-003 occurrence identity
