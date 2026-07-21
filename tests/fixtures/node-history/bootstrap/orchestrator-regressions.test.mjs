@@ -90,6 +90,7 @@ test('requires a valid declared source root', async () => {
 async function rehashMatchChain(input) {
   input.historyMatchResult.historyMatchResultHash = await computeSemanticHash(input.historyMatchResult, 'historyMatchResultHash');
   input.approval.approvedHistoryMatchResultHash = input.historyMatchResult.historyMatchResultHash;
+  input.allocationResult = clone(input.allocationResult);
   input.allocationResult.historyMatchResultHash = input.historyMatchResult.historyMatchResultHash;
   await rehashAllocation(input);
 }

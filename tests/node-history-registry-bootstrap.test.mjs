@@ -179,12 +179,11 @@ test('blocks reactivation of a different identity and active-history renumbering
   assertCode(await buildApprovedRegistryBootstrap(renumber), 'BOOTSTRAP_LIFECYCLE_CONFLICT');
 });
 
-test('promotes stale patch target evidence and emits no partial patch', async () => {
+test('blocks stale current-target approval before patch construction and emits no publication artifacts', async () => {
   const input = await makeApprovedBootstrapInput();
   input.approval.currentRegistrySnapshotHash = fakeHash('6');
   const result = await buildApprovedRegistryBootstrap(input);
-  assertCode(result, 'PATCH_BASE_SNAPSHOT_MISMATCH');
-  assertCode(result, 'BOOTSTRAP_PATCH_NOT_PASS');
+  assertCode(result, 'BOOTSTRAP_APPROVAL_SCOPE_MISMATCH');
   assertNoProposedArtifacts(result);
 });
 
@@ -215,7 +214,6 @@ test('production bootstrap files contain no matching, allocation or runtime writ
     forbidden.forEach((pattern) => assert.doesNotMatch(source, pattern, `${file}: ${pattern}`));
   }
 });
-
 
 async function refreshAssignmentApproval(input) {
   const acceptedMatches = new Map([
