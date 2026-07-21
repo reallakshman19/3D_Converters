@@ -40,6 +40,7 @@ jobs:
           from pathlib import Path
           allowed_exact = {
               '.github/workflows/topo-enriched-xml-cii2019-proof.yml',
+              '.github/workflows/topo-enriched-xml-production.yml',
               'contracts/inputxml/v1/inputxml-dialect-registry.json',
               'contracts/inputxml/v1/compiler/inputxml-compiler-adapters.json',
               'scripts/inputxml_compiler/compiler.py',
