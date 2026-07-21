@@ -158,9 +158,9 @@ jobs:
           path: |
             ${{ runner.temp }}/te012-main.log
             ${{ runner.temp }}/te012-orchestrator.log
-      - name: Enforce TE-012 regression result
-        run: test "${{ steps.te012.outputs.status }}" -eq 0
       - name: Protect exact LEGACY behavior
         run: |
           node --test tests/stagedjson-psi-writer-selection.test.mjs
           node --test tests/stagedjson-enriched-xml-topology.test.mjs
+      - name: Enforce TE-012 regression result
+        run: test "${{ steps.te012.outputs.status }}" -eq 0
