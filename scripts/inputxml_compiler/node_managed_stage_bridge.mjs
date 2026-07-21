@@ -24,19 +24,44 @@ const REQUEST_FIELDS = new Set([
   'sourceName', 'sourceContext', 'sourceIntake', 'producerPolicy',
   'requestedArtifacts',
 ]);
+const CONTEXT_FIELDS = new Set([
+  'version', 'jobName', 'north', 'sourceRevision', 'time', 'issueNo', 'enrichmentConfig',
+]);
+const CONTEXT_REQUIRED = new Set(['version', 'jobName', 'north', 'sourceRevision']);
+const INTAKE_FIELDS = new Set([
+  'rootForm', 'rootPath', 'branchCollectionPath', 'branchCount', 'sourceOccurrenceCount',
+]);
+const PRODUCER_POLICY_FIELDS = new Set([
+  'engineIdentity', 'engineVersion', 'hashAlgorithm', 'sourceIdentitySchema', 'entityIdentitySchema',
+]);
+
+function validateClosedRecord(value, label, allowed, required = allowed) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError(`${label} must be one JSON object.`);
+  }
+  const missing = [...required].filter((field) => !Object.hasOwn(value, field));
+  const extra = Object.keys(value).filter((field) => !allowed.has(field));
+  if (missing.length || extra.length) {
+    throw new TypeError(`${label} fields mismatch: missing=${missing}; extra=${extra}.`);
+  }
+  return value;
+}
 
 function readRequest() {
   const raw = fs.readFileSync(0);
   if (raw.length > MAX_STDIN_BYTES) throw new TypeError('Managed-stage request exceeds its byte limit.');
   const text = new TextDecoder('utf-8', { fatal: true }).decode(raw);
-  const request = parseStrictJson(text);
-  if (!request || typeof request !== 'object' || Array.isArray(request)) {
-    throw new TypeError('Managed-stage bridge request must be one JSON object.');
-  }
-  const missing = [...REQUEST_FIELDS].filter((field) => !Object.hasOwn(request, field));
-  const extra = Object.keys(request).filter((field) => !REQUEST_FIELDS.has(field));
-  if (missing.length || extra.length) {
-    throw new TypeError(`Managed-stage request fields mismatch: missing=${missing}; extra=${extra}.`);
+  const request = validateClosedRecord(
+    parseStrictJson(text),
+    'Managed-stage request',
+    REQUEST_FIELDS,
+  );
+  validateClosedRecord(request.sourceContext, 'Managed-stage sourceContext', CONTEXT_FIELDS, CONTEXT_REQUIRED);
+  validateClosedRecord(request.sourceIntake, 'Managed-stage sourceIntake', INTAKE_FIELDS);
+  validateClosedRecord(request.producerPolicy, 'Managed-stage producerPolicy', PRODUCER_POLICY_FIELDS);
+  if (!Array.isArray(request.requestedArtifacts)
+      || request.requestedArtifacts.some((value) => typeof value !== 'string' || !value)) {
+    throw new TypeError('Managed-stage requestedArtifacts must be a nonblank string array.');
   }
   if (request.schema !== REQUEST_SCHEMA) throw new TypeError('Managed-stage request schema mismatch.');
   if (request.profileId !== 'managed-stage-json') throw new TypeError('Managed-stage profile identity mismatch.');
@@ -190,4 +215,5 @@ export const _test = Object.freeze({
   ENGINE_VERSION,
   engineeringArtifact,
   sourceEntityRows,
+  validateClosedRecord,
 });
