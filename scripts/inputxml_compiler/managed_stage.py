@@ -8,6 +8,10 @@ from lxml import etree as ET
 
 from .base import DecisionLedger, SUPPORTED_COMPILER_DIALECTS
 from .managed_stage_bridge_io import run_bridge
+from .managed_stage_component_closure import (
+    attach_verified_trace_elements,
+    verify_component_topology_closure,
+)
 from .managed_stage_engineering import verify_engineering_projection
 from .managed_stage_entities import verify_source_entities_and_ports
 from .managed_stage_identity import verify_result_identity
@@ -35,6 +39,14 @@ def _compile_managed_stage_source(
     identity = verify_result_identity(intake, result, ledger)
     source_evidence = verify_source_entities_and_ports(intake, result, ledger)
     topology = verify_topology_and_trace(result, source_evidence, ledger)
+    component_mappings = verify_component_topology_closure(
+        result["canonicalTopology"],
+        topology["collections"],
+        source_evidence,
+        ledger,
+    )
+    attach_verified_trace_elements(component_mappings, topology["traceByEntity"], ledger)
+    topology["componentMappings"] = component_mappings
     topology["branchCollectionPath"] = intake.branch_collection_path
     engineering = verify_engineering_projection(
         result,
