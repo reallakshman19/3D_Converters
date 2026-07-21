@@ -26,17 +26,12 @@ class ManagedStageNumericHashTests(unittest.TestCase):
                 value = json.loads(row["source"])
                 self.assertEqual(row["expected"], canonical_number(value))
 
-    def test_python_and_javascript_share_exact_object_bytes_and_hash(self):
+    def test_python_and_javascript_share_exact_numeric_object_bytes_and_hash(self):
         expected = self.contract["objectVector"]
         value = self.object_value(expected["value"])
         self.assertEqual(expected["expectedCanonicalJson"], canonical_json(value))
         self.assertEqual(expected["expectedHash"], deterministic_hash(value))
-        node = shutil.which("node")
-        self.assertIsNotNone(node)
-        script = """
-import fs from 'node:fs';
-const { canonicalJson, deterministicHash } = await import(process.argv[1]);
-const contract = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+        actual = self.run_javascript("""
 const source = contract.objectVector.value;
 const value = {
   zero: source.zero,
@@ -48,7 +43,69 @@ const value = {
   unsafeInteger: Number(source.unsafeIntegerSource),
   fraction: source.fraction,
 };
-process.stdout.write(JSON.stringify({ json: canonicalJson(value), hash: deterministicHash(value) }));
+return { json: canonicalJson(value), hash: deterministicHash(value) };
+""")
+        self.assertEqual(expected["expectedCanonicalJson"], actual["json"])
+        self.assertEqual(expected["expectedHash"], actual["hash"])
+
+    def test_cross_language_each_numeric_lexical_form(self):
+        javascript = self.run_javascript("""
+return contract.vectors.map((row) => JSON.stringify(JSON.parse(row.source)));
+""")
+        python = [canonical_number(json.loads(row["source"])) for row in self.contract["vectors"]]
+        self.assertEqual(python, javascript)
+
+    def test_string_vectors_share_exact_bytes_hash_and_rejection_policy(self):
+        javascript = self.run_javascript("""
+return contract.stringVectors.map((row) => {
+  const value = JSON.parse(row.source);
+  try {
+    return { status: 'ACCEPT', json: canonicalJson(value), hash: deterministicHash(value) };
+  } catch (error) {
+    return { status: 'REJECT', message: error.message };
+  }
+});
+""")
+        for row, actual in zip(self.contract["stringVectors"], javascript):
+            with self.subTest(vector=row["name"]):
+                value = json.loads(row["source"])
+                if row["policy"] == "REJECT":
+                    with self.assertRaises(ValueError):
+                        canonical_json(value)
+                    self.assertEqual("REJECT", actual["status"])
+                else:
+                    self.assertEqual(row["expected"], canonical_json(value))
+                    self.assertEqual(row["expectedHash"], deterministic_hash(value))
+                    self.assertEqual("ACCEPT", actual["status"])
+                    self.assertEqual(row["expected"], actual["json"])
+                    self.assertEqual(row["expectedHash"], actual["hash"])
+
+    def test_prototype_and_non_bmp_keys_are_preserved_cross_language(self):
+        expected = self.contract["stringObjectVector"]
+        value = expected["value"]
+        self.assertEqual(expected["expectedCanonicalJson"], canonical_json(value))
+        self.assertEqual(expected["expectedHash"], deterministic_hash(value))
+        actual = self.run_javascript("""
+const value = contract.stringObjectVector.value;
+return {
+  ownsPrototypeKey: Object.hasOwn(value, '__proto__'),
+  json: canonicalJson(value),
+  hash: deterministicHash(value),
+};
+""")
+        self.assertTrue(actual["ownsPrototypeKey"])
+        self.assertEqual(expected["expectedCanonicalJson"], actual["json"])
+        self.assertEqual(expected["expectedHash"], actual["hash"])
+
+    def run_javascript(self, body):
+        node = shutil.which("node")
+        self.assertIsNotNone(node)
+        script = f"""
+import fs from 'node:fs';
+const {{ canonicalJson, deterministicHash }} = await import(process.argv[1]);
+const contract = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const run = () => {{ {body} }};
+process.stdout.write(JSON.stringify(run()));
 """
         completed = subprocess.run(
             [node, "--input-type=module", "-e", script, JS_HASH.as_uri(), str(VECTORS)],
@@ -56,27 +113,7 @@ process.stdout.write(JSON.stringify({ json: canonicalJson(value), hash: determin
             capture_output=True,
             text=True,
         )
-        actual = json.loads(completed.stdout)
-        self.assertEqual(expected["expectedCanonicalJson"], actual["json"])
-        self.assertEqual(expected["expectedHash"], actual["hash"])
-
-    def test_cross_language_each_numeric_lexical_form(self):
-        node = shutil.which("node")
-        self.assertIsNotNone(node)
-        script = """
-import fs from 'node:fs';
-const contract = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-process.stdout.write(JSON.stringify(contract.vectors.map((row) => JSON.stringify(JSON.parse(row.source)))));
-"""
-        completed = subprocess.run(
-            [node, "--input-type=module", "-e", script, str(VECTORS)],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        javascript = json.loads(completed.stdout)
-        python = [canonical_number(json.loads(row["source"])) for row in self.contract["vectors"]]
-        self.assertEqual(python, javascript)
+        return json.loads(completed.stdout)
 
     @staticmethod
     def object_value(source):
