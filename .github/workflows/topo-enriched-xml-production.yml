@@ -1,0 +1,125 @@
+name: TopoEnrichedXML Production Pipeline
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/stagedjson-to-enrichxml/production/**'
+      - 'tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js'
+      - 'tests/topo-enriched-xml-production*.test.mjs'
+      - 'tests/fixtures/topo-enriched-xml/production/**'
+      - '.github/workflows/topo-enriched-xml-production.yml'
+      - 'contracts/topo-enriched-xml/**'
+      - 'schemas/topo-enriched-xml/**'
+      - 'node-history/**'
+      - 'tabs/stagedjson-to-enrichxml/topology-normalization/**'
+      - 'tabs/stagedjson-to-enrichxml/topo-enriched-xml-writer.js'
+      - 'tabs/stagedjson-to-enrichxml/psi-serialization-plan.js'
+      - 'tabs/stagedjson-to-enrichxml/psi-strict-node-projector.js'
+      - 'tabs/stagedjson-to-enrichxml/topo-topology-index*.js'
+      - 'tabs/stagedjson-to-enrichxml/topo-trace-ledger.js'
+      - 'tabs/stagedjson-to-enrichxml/psi-writer-parity-*.js'
+      - 'tabs/stagedjson-to-enrichxml/psi-writer-selection-v2.js'
+  workflow_dispatch:
+
+jobs:
+  validate-production-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enforce TE-013 authorized paths
+        run: |
+          python - <<'PY'
+          import subprocess
+          base = '2eaf6655d3240b774b8de3fa48c9de4dd67af2b4'
+          allowed = (
+              '.github/workflows/topo-enriched-xml-production.yml',
+              'tabs/stagedjson-to-enrichxml/production/',
+              'tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js',
+              'tests/topo-enriched-xml-production.test.mjs',
+              'tests/topo-enriched-xml-production-adversarial.test.mjs',
+              'tests/fixtures/topo-enriched-xml/production/',
+          )
+          files = subprocess.check_output(['git', 'diff', '--name-only', f'{base}...HEAD'], text=True).splitlines()
+          bad = [path for path in files if not any(path == item or path.startswith(item) for item in allowed)]
+          assert not bad, f'unauthorized TE-013 paths: {bad}'
+          PY
+      - name: Validate TE-013 file and function bounds
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          files = [
+              *Path('tabs/stagedjson-to-enrichxml/production').glob('*.js'),
+              Path('tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js'),
+              Path('tests/topo-enriched-xml-production.test.mjs'),
+              Path('tests/topo-enriched-xml-production-adversarial.test.mjs'),
+              Path('tests/fixtures/topo-enriched-xml/production/production-fixture.mjs'),
+          ]
+          for path in files:
+              lines = path.read_text().splitlines()
+              assert len(lines) <= 300, f'{path}: {len(lines)} lines'
+              for start, line in enumerate(lines):
+                  match = re.match(r'(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(', line)
+                  if not match:
+                      continue
+                  depth = line.count('{') - line.count('}')
+                  end = start
+                  while depth > 0 and end + 1 < len(lines):
+                      end += 1
+                      depth += lines[end].count('{') - lines[end].count('}')
+                  assert end - start + 1 <= 55, f'{path}:{start + 1} {match.group(1)} exceeds 55 lines'
+          PY
+      - name: Syntax check TE-013 slice
+        run: |
+          for file in tabs/stagedjson-to-enrichxml/production/*.js \
+            tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js \
+            tests/topo-enriched-xml-production.test.mjs \
+            tests/topo-enriched-xml-production-adversarial.test.mjs \
+            tests/fixtures/topo-enriched-xml/production/production-fixture.mjs; do
+            node --check "$file"
+          done
+      - name: Enforce TE-013 non-goals
+        run: |
+          ! grep -REin 'buildEnrichedXml\s*\(|buildSequentialWriterShadow\s*\(|selectPsiWriterOutput\s*\(|new Date\s*\(|Date\.now\s*\(|nodeCounter|numberingSpan|xmlNodeNum\s*=|inputxml_to_cii2019|xml_to_cii2019' tabs/stagedjson-to-enrichxml/production
+      - name: Run TE-013 production tests
+        run: |
+          node --test tests/topo-enriched-xml-production.test.mjs
+          node --test tests/topo-enriched-xml-production-adversarial.test.mjs
+      - name: Protect TE-002 frozen contracts
+        run: node --test tests/topo-enriched-xml-contracts.test.mjs
+      - name: Protect TE-003 occurrence identity
+        run: node --test tests/psi-writer-occurrence-planner.test.mjs
+      - name: Protect TE-004 strict serializer
+        run: node --test tests/topo-enriched-xml-strict-serializer.test.mjs
+      - name: Protect TE-005 registry foundation
+        run: |
+          node --test tests/node-history-registry-foundation.test.mjs
+          node --test tests/fixtures/node-history/registry/draft-schema-validation.test.mjs
+          node --test tests/fixtures/node-history/registry/orchestrator-regressions.test.mjs
+      - name: Protect TE-006 allocator
+        run: node --test tests/node-history-zone-allocator.test.mjs
+      - name: Protect TE-007 exact matcher
+        run: node --test tests/node-history-exact-matcher.test.mjs
+      - name: Protect TE-008 registered matcher
+        run: node --test tests/node-history-registered-global-matcher.test.mjs
+      - name: Protect TE-009 normalization
+        run: |
+          node --test tests/topology-normalization-shadow.test.mjs
+          node --test tests/fixtures/topology-normalization/orchestrator-regressions.test.mjs
+      - name: Protect TE-010 topology and trace
+        run: node --test tests/topo-topology-index.test.mjs
+      - name: Protect TE-011 parity and selection
+        run: node --test tests/psi-writer-parity-v2.test.mjs
+      - name: Protect TE-012 registry bootstrap
+        run: |
+          node --test tests/node-history-registry-bootstrap.test.mjs
+          node --test tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs
+      - name: Protect exact LEGACY behavior
+        run: |
+          node --test tests/stagedjson-psi-writer-selection.test.mjs
+          node --test tests/stagedjson-enriched-xml-topology.test.mjs
