@@ -33,7 +33,7 @@ function readRequest() {
   if (!request || typeof request !== 'object' || Array.isArray(request)) {
     throw new TypeError('Managed-stage bridge request must be one JSON object.');
   }
-  const missing = [...REQUEST_FIELDS].filter((field) => !(field in request));
+  const missing = [...REQUEST_FIELDS].filter((field) => !Object.hasOwn(request, field));
   const extra = Object.keys(request).filter((field) => !REQUEST_FIELDS.has(field));
   if (missing.length || extra.length) {
     throw new TypeError(`Managed-stage request fields mismatch: missing=${missing}; extra=${extra}.`);
