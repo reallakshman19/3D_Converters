@@ -1,8 +1,8 @@
-# ADR-007 — PDF Input Echo provenance and line-scope authority
+# ADR-007 — PDF Input Echo provenance, line-scope, and state-accounting authority
 
 ## Status
 
-Accepted for PR-8 implementation review. Production activation, migration, OCR, writer changes, and PR-9 are not authorized.
+Accepted for PR-8/PR-8A implementation review. Production activation, migration, OCR, writer changes, and PR-9 are not authorized.
 
 ## Scope
 
@@ -10,23 +10,28 @@ This decision governs only:
 
 - dialect `pdf-input-echo`;
 - adapter `pdf-input-echo-to-canonical`;
-- the PDF Input Echo canonicalization ledger and source-accounting proof.
+- PDF extraction provenance;
+- explicit source line scopes;
+- line-scoped state reconstruction;
+- `PdfInputEchoSourceAccountingProof.v1`.
 
-The production CII writer, canonical schemas, registries, compiler state machine, dispatcher, serialization policy, publication protocol, browser runtime, and the frozen Input Echo grammar parser remain unchanged.
+The frozen Input Echo parser, compiler/dispatcher, canonical schemas and registries, production CII writer, serialization policy, publication protocol, browser runtime, managed-stage resolver, and UXML/RVM resolver remain unchanged.
 
 ## Binding statements
 
-> A PDF filename, job name, node number, coordinate, or process default is not line-scope authority.
+> Filename, Job Name, node identity, coordinates, adjacency, and process defaults are not piping-line authority.
 
-> Extracted text is authoritative only when it is bound to an immutable source-document and ordered page-text provenance manifest.
+> Extracted text is authoritative only when bound to immutable source-document and ordered page-text evidence.
 
-> State may carry only from an exact predecessor in the same proven line scope.
+> Every PIPE DATA block belongs to exactly one explicit line scope.
 
-> A new line scope must establish every required line-state field explicitly, even when its values happen to equal the preceding line.
+> State may carry only from the latest earlier decision for the same field in the same proven line scope.
 
-> OCR is outside PR-8. A PDF without an authoritative text layer blocks unless approved extracted-text evidence is supplied separately.
+> The first block of each line scope explicitly establishes every required line-start field.
 
-> Source accounting is complete only when document, provenance, pages, report header, scopes, source blocks, fields, omitted axes, auxiliaries, unsupported evidence, and emitted element line ownership reconcile exactly.
+> A ledger record and emitted XML attribute cannot validate one another. Both are independently compared with reconstructed source authority.
+
+> `COMPLETE` requires exact block × field cardinality and complete semantic equality; dictionary overwrite or last-value-wins behavior is forbidden.
 
 ## Authority precedence
 
@@ -34,77 +39,53 @@ The production CII writer, canonical schemas, registries, compiler state machine
 2. `PdfInputEchoExtractionProvenance.v1`.
 3. Ordered page-text manifest and complete extracted-text hash.
 4. Explicit report Job Name and Date/Time.
-5. `PdfInputEchoLineScopeSet.v1` supplied as immutable line-scope evidence.
-6. Exact PIPE DATA source-block order and content.
-7. Explicit field markers in each source block.
-8. Same-line predecessor and explicit same-line origin evidence.
-9. Profile-defined omitted-axis normalization.
-10. Frozen parser values for one isolated source block.
-11. Canonical InputXML and `PdfInputEchoSourceAccountingProof.v1`.
+5. `PdfInputEchoLineScopeSet.v1`.
+6. Exact PIPE DATA block order and block content.
+7. Explicit field markers in each block.
+8. Frozen parser values from one isolated block.
+9. Reconstructed block × field decisions under `PdfInputEchoLineStartPolicy.v1`.
+10. Canonical InputXML candidate and canonicalization ledger, each independently checked against reconstructed authority.
+11. `PdfInputEchoSourceAccountingProof.v1`.
 
-The frozen parser decodes one isolated source block at a time. Its legacy document-wide state chain is never accepted as PR-8 authority.
+The frozen parser decodes one isolated source block at a time. Its legacy document-wide state chain is never accepted as authority.
 
-## Provenance contract
+## Extraction-provenance contract
 
 ### Raw PDF
 
-A raw PDF source records and verifies:
+A raw PDF records and validates:
 
 - source-document SHA-256 and byte length;
 - document kind `PDF`;
-- extractor identity `pypdf.PdfReader.extract_text`;
-- installed extractor version;
+- extractor identity and installed version;
 - ordered page index and stable page identity;
-- exact normalized page text;
-- page-text SHA-256 and UTF-8 byte length;
-- complete normalized extracted-text SHA-256 and byte length;
+- normalized page text, page SHA-256, and UTF-8 length;
+- complete normalized extracted-text SHA-256 and length;
 - deterministic provenance-object SHA-256.
 
-The source is bounded to 64 MiB, extracted text to 32 MiB, and page count to 10,000. An empty or image-only text layer blocks. No OCR fallback exists.
+Raw input is bounded to 64 MiB, extracted text to 32 MiB, and page count to 10,000. Empty or image-only text layers block. OCR is outside PR-8.
 
 ### Approved extracted text
 
-Non-PDF input is accepted only when:
+Supplied text requires strict UTF-8 and a closed `PdfInputEchoExtractionProvenance.v1` manifest. Ordered page texts must reproduce the received normalized text exactly. Missing, duplicate, reordered, altered, generic, or restamped-but-contradictory evidence blocks.
 
-- `sourceKind` is `extracted-text` or `pdf-extracted-text`;
-- bytes are strict UTF-8;
-- `extractionProvenance` has the exact closed v1 field set;
-- the source-document hash, length, kind, extractor identity, and extractor version are explicit;
-- `textLayerSourceKind` is `APPROVED_EXTRACTED_TEXT_MANIFEST`;
-- page identities are unique and page indexes are contiguous and ordered;
-- every page text, page hash, and page length verifies;
-- joining page texts with the contract separator reproduces the received normalized text exactly;
-- the complete extracted-text hash and provenance hash verify independently.
+## Exact line-scope contract
 
-`unknown`, `default`, `filename`, and `caller-supplied` are not extractor authorities.
+`lineScopes` is mandatory. Each scope contains:
 
-## Line-scope contract
-
-`lineScopes` is mandatory. One line scope contains exactly:
-
-- `lineScopeId`;
-- `lineId`;
-- `sourceAuthority`;
+- unique `lineScopeId`;
+- unique `lineId`;
+- explicit `sourceAuthority`;
 - ordered `blockMembership`;
-- `firstBlock` and `lastBlock`;
-- non-empty `sourceEvidenceReferences`.
+- matching `firstBlock` and `lastBlock`;
+- non-empty `sourceEvidenceReferences`;
+- deterministic scope hash.
 
-Accepted authority labels are:
+Membership must be ordered, contiguous, non-overlapping, non-duplicated, and cover blocks `1..N` exactly. `lineId` or `defaultLine` alone does not legalize a source.
 
-- `CALLER_SUPPLIED_SCOPE_MAP`;
-- `REPORT_LINE_IDENTITY`.
+## Line-state policy
 
-The label does not infer scope. The complete scope object is still required and validated.
-
-Scopes must have unique scope IDs and unique line IDs. Block memberships must be ordered, contiguous, non-duplicated, non-overlapping, and must cover source blocks `1..N` exactly. Inter-scope gaps, internal gaps, reordered membership, nonexistent blocks, and competing owners block.
-
-`lineId`, `defaultLine`, filename text, Job Name, coordinates, node identity, or numeric-state similarity cannot replace `lineScopes`.
-
-## Line-state contract
-
-### Required fields
-
-The first source block of each line scope must explicitly establish:
+The first block of each line scope explicitly establishes:
 
 - `DIAMETER`;
 - `WALL_THICK`;
@@ -117,88 +98,138 @@ The first source block of each line scope must explicitly establish:
 - `FLUID_DENSITY`;
 - `MATERIAL_NUM`.
 
-Pressure and hydrostatic pressure are converted from report bar values to canonical kPa.
+Material name, elastic modulus, Poisson ratio, pipe density, and hot moduli 1–9 are also line-scoped. Optional absence is explicit on the line start and may be inherited only within that scope.
 
-### Optional line state
-
-The following are also line-scoped:
-
-- material name;
-- elastic modulus;
-- Poisson ratio;
-- pipe density;
-- hot moduli 1–9.
-
-An optional field absent at line start receives explicit absence evidence. Later blocks may inherit that absence only within the same scope.
-
-### Decision records
-
-Each state field on every source block has exactly one semantic decision:
+Every block × `ALL_STATE_FIELDS` pair has exactly one decision:
 
 - `PDF_INPUT_ECHO_EXPLICIT_FIELD`;
 - `PDF_INPUT_ECHO_INHERITANCE`;
 - `PDF_INPUT_ECHO_EXPLICIT_ABSENCE`;
 - `PDF_INPUT_ECHO_INHERITED_ABSENCE`.
 
-Inheritance records name:
+## Independent PR-8A state-accounting closure
 
-- current source block and element;
-- current line scope and line ID;
-- exact predecessor block and element;
-- predecessor line scope;
-- explicit origin block and element;
-- policy ID `PdfInputEchoLineStartPolicy.v1`.
+### Authoritative expected decisions
 
-A missing required line-start value, sentinel, duplicate source marker, duplicate delta axis, or cross-line predecessor blocks.
+`scripts/inputxml_compiler/pdf_input_echo_accounting_state.py` reconstructs expected decisions from resolved immutable source-block evidence. It does not derive expected values, classifications, owners, predecessor/origin identities, line identity, disposition, or projection cardinality from the ledger or emitted XML under verification.
 
-## Geometry and auxiliaries
+For each block × field, the reconstruction contains:
 
-Each source block emits at most one `PIPINGELEMENT` with its proven `LINE` value. Present delta axes are parsed. An omitted delta axis is normalized to zero only with a `PDF_OMITTED_DELTA_AXIS` record under `OMITTED_AXIS_IS_ZERO_V1`. Three zero axes block.
+- source entity identity;
+- decision source type;
+- field and canonical value or absence;
+- source block identity;
+- line scope and line identity;
+- line-state policy identity;
+- predecessor block, element, and scope where inherited;
+- explicit origin block and element where inherited;
+- canonical and InputXML element owner;
+- CII section applicability;
+- projection cardinality;
+- disposition;
+- expected emitted canonical attribute and value where applicable.
 
-Bend and generic rigid behavior remains the established adapter behavior. Meaningful valve/flange/gasket/instrument/reducer rigid identity, incomplete restraints, SIF/Tee evidence, unsupported report sections, and unparsed post-`NODENAMES` evidence remain preserved and blocking. PR-8 does not add engineering projection authority.
+### Exact semantic tuple
 
-## Source-accounting proof
+The ledger comparison is closed over:
 
-`PdfInputEchoSourceAccountingProof.v1` independently reconciles:
+```text
+sourceEntityId
+sourceType
+sourceFields
+canonicalElementIds
+InputXMLElementIds
+CIISection
+projectionCardinality
+disposition
+```
 
-- one document record;
-- one provenance record;
-- every ordered page record;
-- the explicit report header;
-- every line-scope record and scope hash;
-- every raw PIPE DATA block and exact block content;
-- one emitted element per source block;
-- every required and optional state decision;
-- every omitted-axis decision;
-- exact emitted element-to-line ownership;
-- ledger-to-element line agreement;
-- cross-line inheritance count;
-- bend, rigid, restraint, and SIF populations;
-- unsupported-section and unparsed-tail evidence.
+Any extra, missing, or changed nested semantic field blocks. This detects value substitution, explicit/inherited classification substitution, absence-classification substitution, wrong field, wrong scope/line, wrong predecessor/origin, wrong owner, wrong cardinality, and wrong disposition.
 
-`COMPLETE` requires every invariant count to be zero. Missing, extra, duplicate, substituted, or contradictory records make the proof `BLOCKED` and add a blocking canonicalization decision.
+### Exact cardinality before indexing
+
+Before dictionary or set lookup, the proof requires:
+
+```text
+expected decision count == actual state-record count
+unique actual sourceEntityId count == expected decision count
+one actual record per expected block × field identity
+```
+
+Duplicate identical records and duplicate conflicting records both block. Equal-total-count field replacement still yields a missing expected identity and a duplicated replacement identity.
+
+### Predecessor and origin ownership
+
+Authoritative indexes are built from source/resolved evidence:
+
+```text
+blockId  -> blockIndex, entityId, lineScopeId, lineId
+entityId -> blockId, blockIndex, lineScopeId, lineId
+sourceEntityId -> reconstructed expected decision
+```
+
+For inherited decisions, the proof independently establishes that:
+
+- predecessor block and element both exist and identify the same source owner;
+- predecessor is in the current authoritative scope;
+- predecessor precedes the current block;
+- predecessor is the latest earlier decision for that field;
+- origin block and element both exist and identify the same source owner;
+- origin is in the current authoritative scope;
+- origin decision is explicit field or explicit absence;
+- origin value/absence equals the inherited ledger result;
+- self-declared `predecessorLineScopeId` is evidence only and cannot override source ownership.
+
+### Source, ledger, and XML comparison
+
+The proof performs separate comparisons:
+
+1. reconstructed source decision versus complete ledger semantic tuple;
+2. reconstructed required-field value versus the owning emitted `PIPINGELEMENT` attribute;
+3. ledger value versus the ledger-declared emitted element attribute;
+4. reconstructed scope/line ownership versus ledger and emitted `LINE`.
+
+Therefore coordinated ledger/XML value substitution still fails the source comparison even when ledger and XML agree with each other and downstream hashes are recomputed.
+
+## PR-8A invariants
+
+The proof retains the original document, provenance, page, scope, block, element, axis, auxiliary, unsupported-section, and line invariants and adds:
+
+```text
+stateDecisionCountMismatchCount
+stateDecisionUniqueIdentityMismatchCount
+missingStateDecisionCount
+extraStateDecisionCount
+duplicateStateDecisionCount
+stateDecisionSemanticMismatchCount
+stateDecisionSourceXmlMismatchCount
+stateDecisionLedgerXmlMismatchCount
+stateDecisionPredecessorOwnershipMismatchCount
+stateDecisionOriginOwnershipMismatchCount
+stateDecisionLineOwnershipMismatchCount
+```
+
+It also retains deterministic expected and actual semantic-tuple hashes and explicit mismatch collections for cardinality, semantics, source/XML, ledger/XML, predecessor, origin, and line ownership.
+
+`COMPLETE` requires every invariant to equal zero.
+
+## Geometry and unsupported engineering
+
+Present delta axes are parsed. Omitted axes normalize to zero only under `OMITTED_AXIS_IS_ZERO_V1`. Three zero axes block.
+
+Incomplete restraints, SIF/Tee records, meaningful special rigid identities, unsupported sections, and unparsed post-`NODENAMES` evidence remain preserved and blocking. PR-8/PR-8A does not add engineering projection authority.
 
 ## Determinism
 
-Raw-PDF extraction and approved extracted-text processing use normalized `LF` text and strict UTF-8. Ordering follows page order, source-block order, line-scope order, field-policy order, and emitted element order. Tests compare exact canonical XML, canonicalization ledger, validation output, and accounting proof across processes, Python hash seeds, Ubuntu, and Windows.
-
-## Compatibility impact
-
-- Existing valid one-line Input Echo data remains representable when explicit extraction provenance and one exact line scope are supplied.
-- `lineId` and `defaultLine` alone no longer legalize the profile.
-- missing report Date/Time no longer uses the current clock;
-- image-only PDFs no longer appear equivalent to parsed Input Echo sources;
-- repeated state across lines must be explicitly restated at each line start;
-- the full 14-dialect end-to-end matrix remains intact and supplies the new PDF evidence through a focused PR-8 launcher.
+Ordering follows page order, source-block order, line-scope order, `ALL_STATE_FIELDS` policy order, ledger record order, and emitted element order. Expected and actual semantic tuples are hashed through sorted-key canonical JSON. Protected Ubuntu and Windows jobs prove repeated-process and hash-seed stability.
 
 ## Unchanged boundaries
 
-- Frozen parser: unchanged.
-- Production CII writer: unchanged.
-- Canonical schemas and registries: unchanged.
-- Compiler state machine and dispatcher: unchanged.
-- Canonical serialization: unchanged.
-- Publication protocol: unchanged.
-- OCR: not implemented.
-- Migration: not authorized.
-- PR-9: not started.
+- Frozen parser: **UNCHANGED**
+- Compiler and dispatcher: **UNCHANGED**
+- Canonical schemas and registries: **UNCHANGED**
+- Production CII writer: **UNCHANGED**
+- Canonical serialization and publication: **UNCHANGED**
+- OCR: **NOT IMPLEMENTED**
+- Migration: **NOT AUTHORIZED**
+- PR-9: **NOT STARTED**
