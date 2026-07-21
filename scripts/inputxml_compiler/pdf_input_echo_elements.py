@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import Any
 
 from .base import DecisionLedger, Decimal, ET
+from .extension import _ensure_extension_last
 from .pdf_input_echo_auxiliary import (
     append_pdf_bend,
     append_pdf_rigid,
     preserve_incomplete_auxiliaries,
     preserve_report_record,
 )
-from .xml import _decimal_text, _ensure_extension_last, _integer_text
+from .xml import _decimal_text, _integer_text
 
 
 def build_pdf_element(row: dict[str, Any], ledger: DecisionLedger) -> ET._Element:
