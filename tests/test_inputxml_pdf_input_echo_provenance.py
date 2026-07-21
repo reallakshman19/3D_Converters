@@ -38,6 +38,11 @@ class PdfInputEchoProvenanceTests(unittest.TestCase):
         row["provenanceHashSha256"] = sha256(canonical_bytes(row))
         return row
 
+    def two_exact_pages(self):
+        split_at = self.text.find("\n", len(self.text) // 3)
+        self.assertGreater(split_at, 0)
+        return self.text[:split_at], self.text[split_at + 1:]
+
     def assert_blocked(self, provenance):
         root, _, validation = self.compile_with_provenance(provenance)
         self.assertIsNone(root)
@@ -65,9 +70,7 @@ class PdfInputEchoProvenanceTests(unittest.TestCase):
         self.assert_blocked(self.restamp(provenance))
 
     def test_reordered_page_manifest_blocks_after_restamping(self):
-        lines = self.text.splitlines()
-        page_one = "\n".join(lines[:8])
-        page_two = "\n".join(lines[8:])
+        page_one, page_two = self.two_exact_pages()
         provenance = extraction_provenance(
             self.text,
             page_texts=[page_one, page_two],
@@ -76,9 +79,7 @@ class PdfInputEchoProvenanceTests(unittest.TestCase):
         self.assert_blocked(self.restamp(provenance))
 
     def test_missing_page_manifest_entry_blocks_after_restamping(self):
-        lines = self.text.splitlines()
-        page_one = "\n".join(lines[:8])
-        page_two = "\n".join(lines[8:])
+        page_one, page_two = self.two_exact_pages()
         provenance = extraction_provenance(
             self.text,
             page_texts=[page_one, page_two],
