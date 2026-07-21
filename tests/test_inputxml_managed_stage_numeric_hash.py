@@ -111,9 +111,8 @@ process.stdout.write(JSON.stringify(run()));
             [node, "--input-type=module", "-e", script, JS_HASH.as_uri(), str(VECTORS)],
             check=True,
             capture_output=True,
-            text=True,
         )
-        return json.loads(completed.stdout)
+        return json.loads(completed.stdout.decode("utf-8", errors="strict"))
 
     @staticmethod
     def object_value(source):
