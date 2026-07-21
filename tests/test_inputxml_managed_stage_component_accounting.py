@@ -31,18 +31,19 @@ class ManagedStageComponentAccountingTests(unittest.TestCase):
     def test_unrelated_valid_element_can_not_certify_port_coverage(self):
         candidate, ledger, evidence = verified_evidence(two_pipe_source())
         mappings = evidence["topology"]["componentMappings"]
+        all_elements = {
+            value
+            for mapping in mappings.values()
+            for value in mapping["inputXmlElementIds"]
+        }
         record = next(
             row for row in ledger.records
             if str((row.get("sourceFields") or {}).get("sourcePortDisposition") or "")
             and row.get("InputXMLElementIds")
+            and set(row["sourceFields"]["authorizedComponentElementIds"]) != all_elements
         )
         authorized = set(record["sourceFields"]["authorizedComponentElementIds"])
-        unrelated = next(
-            value
-            for mapping in mappings.values()
-            for value in mapping["inputXmlElementIds"]
-            if value not in authorized
-        )
+        unrelated = next(value for value in all_elements if value not in authorized)
         record["InputXMLElementIds"].append(unrelated)
         status, proof = account_managed_stage_source(
             evidence["intake"], candidate, evidence=evidence, ledger=ledger
