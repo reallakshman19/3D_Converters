@@ -87,9 +87,28 @@ jobs:
         run: |
           ! grep -REin 'buildEnrichedXml\s*\(|buildSequentialWriterShadow\s*\(|selectPsiWriterOutput\s*\(|new Date\s*\(|Date\.now\s*\(|nodeCounter|numberingSpan|xmlNodeNum\s*=|inputxml_to_cii2019|xml_to_cii2019' tabs/stagedjson-to-enrichxml/production
       - name: Run TE-013 production tests
+        id: focused
+        continue-on-error: true
         run: |
-          node --test tests/topo-enriched-xml-production.test.mjs
-          node --test tests/topo-enriched-xml-production-adversarial.test.mjs
+          set +e
+          {
+            node --test tests/topo-enriched-xml-production.test.mjs
+            first=$?
+            node --test tests/topo-enriched-xml-production-adversarial.test.mjs
+            second=$?
+            test "$first" -eq 0 -a "$second" -eq 0
+          } > "$RUNNER_TEMP/te013-focused.log" 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          tail -n 240 "$RUNNER_TEMP/te013-focused.log"
+      - name: Upload TE-013 focused test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: te013-focused-test-log
+          path: ${{ runner.temp }}/te013-focused.log
+      - name: Enforce TE-013 focused test result
+        run: test "${{ steps.focused.outputs.status }}" -eq 0
       - name: Protect TE-002 frozen contracts
         run: node --test tests/topo-enriched-xml-contracts.test.mjs
       - name: Protect TE-003 occurrence identity
