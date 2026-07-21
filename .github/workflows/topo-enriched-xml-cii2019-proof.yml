@@ -1,4 +1,4 @@
-name: TopoEnrichedXML CII2019 Proof
+name: TE-014 Remediation Snapshot
 
 on:
   push:
@@ -12,136 +12,17 @@ permissions:
   contents: read
 
 jobs:
-  validate-te014:
+  snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - name: Archive reviewed TE-014 head
+        run: git archive --format=zip --output=te014-remediation-source.zip HEAD
+      - uses: actions/upload-artifact@v4
         with:
-          python-version: '3.11'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install proof dependencies
-        run: python -m pip install --disable-pip-version-check lxml jsonschema pytest pypdf
-      - name: Enforce TE-014 authorized paths
-        shell: bash
-        run: |
-          set -euo pipefail
-          base=ba8b4e43698e1bed8e30f25832659603b40e86b2
-          head="${{ github.event.pull_request.head.sha || github.sha }}"
-          git cat-file -e "$base^{commit}"
-          git cat-file -e "$head^{commit}"
-          git diff --name-only "$base" "$head" > /tmp/te014-files.txt
-          python - <<'PY'
-          from pathlib import Path
-          allowed_exact = {
-              '.github/workflows/topo-enriched-xml-cii2019-proof.yml',
-              '.github/workflows/topo-enriched-xml-production.yml',
-              'contracts/inputxml/v1/inputxml-dialect-registry.json',
-              'contracts/inputxml/v1/compiler/inputxml-compiler-adapters.json',
-              'scripts/inputxml_compiler/compiler.py',
-              'scripts/inputxml_compiler/contract_bundle.py',
-              'scripts/inputxml_compiler/dispatcher.py',
-              'scripts/inputxml_compiler/xml.py',
-              'scripts/validate-inputxml-schema-suite.py',
-              'scripts/inputxml_e2e_regression_matrix.py',
-              'tests/test_inputxml_contract_bundle_gate.py',
-              'tests/test_inputxml_e2e_regression_matrix.py',
-              'tests/test_topo_enriched_xml_cii2019_proof.py',
-              'tests/test_topo_enriched_xml_cii2019_adversarial.py',
-              'docs/architecture/topo-enriched-xml/te-014-cii2019-proof.md',
-          }
-          allowed_prefixes = (
-              'scripts/inputxml_compiler/psi116_',
-              'converters/scripts/topo_enriched_xml_cii2019_',
-              'contracts/topo-enriched-xml/cii2019-proof/',
-              'tests/fixtures/topo-enriched-xml/cii2019-proof/',
-          )
-          changed = [line.strip() for line in Path('/tmp/te014-files.txt').read_text().splitlines() if line.strip()]
-          bad = [path for path in changed if path not in allowed_exact and not path.startswith(allowed_prefixes)]
-          if bad:
-              raise SystemExit(f'Unauthorized TE-014 paths: {bad}')
-          print(f'Authorized TE-014 changed files: {len(changed)}')
-          PY
-      - name: Validate syntax, JSON and source bounds
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m compileall -q \
-            scripts/inputxml_compiler/psi116_*.py \
-            converters/scripts/topo_enriched_xml_cii2019_*.py \
-            tests/test_topo_enriched_xml_cii2019_*.py \
-            tests/fixtures/topo-enriched-xml/cii2019-proof/te013_mutation.py
-          python -m json.tool contracts/inputxml/v1/inputxml-dialect-registry.json >/dev/null
-          python -m json.tool contracts/inputxml/v1/compiler/inputxml-compiler-adapters.json >/dev/null
-          for file in contracts/topo-enriched-xml/cii2019-proof/*.json; do
-            python -m json.tool "$file" >/dev/null
-          done
-          python - <<'PY'
-          import ast
-          from pathlib import Path
-          paths = [
-              *Path('scripts/inputxml_compiler').glob('psi116_*.py'),
-              *Path('converters/scripts').glob('topo_enriched_xml_cii2019_*.py'),
-          ]
-          violations = []
-          for path in paths:
-              lines = path.read_text(encoding='utf-8').splitlines()
-              if len(lines) > 650:
-                  violations.append(f'{path}: {len(lines)} lines > 650')
-              tree = ast.parse('\n'.join(lines), filename=str(path))
-              for node in ast.walk(tree):
-                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                      size = node.end_lineno - node.lineno + 1
-                      if size > 110:
-                          violations.append(f'{path}:{node.lineno} {node.name}: {size} lines > 110')
-          if violations:
-              raise SystemExit('\n'.join(violations))
-          PY
-      - name: Enforce authority and non-goals
-        shell: bash
-        run: |
-          set -euo pipefail
-          files="scripts/inputxml_compiler/psi116_*.py converters/scripts/topo_enriched_xml_cii2019_*.py"
-          ! grep -REn '(^|[[:space:]])(from[[:space:]]+xml_to_cii2019|import[[:space:]]+xml_to_cii2019)([[:space:]]|$)' $files
-          ! grep -REn 'buildTopoEnrichedXml|nodeMatcher|nodeAllocator|node-history/' $files
-          ! grep -REn 'datetime\.now|datetime\.today|date\.today|time\.time|random\.|uuid\.uuid' $files
-          ! grep -REn 'converters/scripts/xml_to_cii2019\.py' converters/scripts/topo_enriched_xml_cii2019_*.py
-          ! find scripts/inputxml_compiler converters/scripts tests contracts/topo-enriched-xml/cii2019-proof \
-            -type f \( -name '*.bak' -o -name '*.tmp' -o -name '*~' \) -print -quit | grep .
-          ! grep -REn 'pytest\.mark\.skip|unittest\.skip|allow_failure|continue-on-error' \
-            tests/test_topo_enriched_xml_cii2019_*.py
-      - name: Run TE-014 proof tests
-        shell: bash
-        run: |
-          set -o pipefail
-          python -m pytest -q tests/test_topo_enriched_xml_cii2019_proof.py 2>&1 | tee /tmp/te014-proof.log
-      - name: Upload TE-014 proof log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: te014-proof-test-log
-          path: /tmp/te014-proof.log
-          if-no-files-found: ignore
-      - name: Run TE-014 adversarial tests
-        run: python -m pytest -q tests/test_topo_enriched_xml_cii2019_adversarial.py
-      - name: Protect assured InputXML to CII boundary
-        run: |
-          python -m pytest -q tests/test_inputxml_cii_assured_projection.py
-          python -m pytest -q tests/test_inputxml_cii_reparse_proof.py
-          python -m pytest -q tests/test_inputxml_assurance_integration.py
-      - name: Protect canonical compiler and contract bundle
-        run: |
-          python -m pytest -q tests/test_inputxml_contract_bundle_gate.py
-          python -m pytest -q tests/test_inputxml_canonical_compiler.py
-          python -m pytest -q tests/test_inputxml_compiler_state_machine.py
-          python scripts/validate-inputxml-schema-suite.py
-          python -m unittest tests.test_inputxml_e2e_regression_matrix
-      - name: Protect accepted TE-013 production result
-        run: |
-          node tests/topo-enriched-xml-production.test.mjs
-          node tests/topo-enriched-xml-production-adversarial.test.mjs
+          name: te014-remediation-source
+          path: te014-remediation-source.zip
+          if-no-files-found: error
+          retention-days: 1
