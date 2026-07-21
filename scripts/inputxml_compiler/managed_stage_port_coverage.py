@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind verified managed-stage source-port decisions to canonical InputXML elements."""
+"""Bind source-port decisions only to verified owner-component InputXML elements."""
 from __future__ import annotations
 
 from typing import Any
@@ -18,8 +18,9 @@ def bind_source_port_element_coverage(
     topology: dict[str, Any],
     ledger: DecisionLedger,
 ) -> None:
-    """Attach exact incident InputXML element IDs after topology verification."""
+    """Attach exact owner-authorized incident elements after topology verification."""
     node_elements = _node_element_index(topology)
+    mappings = topology["componentMappings"]
     for record in ledger.records:
         if record.get("sourceType") != _PORT_DECISION_TYPE:
             continue
@@ -30,26 +31,38 @@ def bind_source_port_element_coverage(
         if disposition in _EVIDENCE_ONLY_PORTS:
             _mark_evidence_only(record, disposition)
             continue
+        owner_id = str(fields.get("ownerSourceEntityId") or "")
+        mapping = mappings.get(owner_id)
+        if mapping is None:
+            _coverage_block(record, ledger, "Source port has no verified owner-component mapping.")
+        authorized = set(str(value) for value in mapping.get("inputXmlElementIds") or [])
         node_ids = [str(value) for value in fields.get("canonicalTopologyNodeIds") or []]
-        element_ids = _ordered_unique(
+        incident = _ordered_unique(
             element_id
             for node_id in node_ids
             for element_id in node_elements.get(node_id, ())
         )
+        element_ids = [value for value in incident if value in authorized]
         if not element_ids:
-            block(
+            _coverage_block(
+                record,
                 ledger,
-                "MANAGED_STAGE_INPUTXML_RELATION_MISMATCH",
-                "Mapped managed-stage source port has no incident InputXML element.",
-                str(record.get("sourceEntityId") or "sourcePort"),
+                "Mapped source port has no incident InputXML element owned by its source component.",
+                ownerSourceEntityId=owner_id,
                 sourcePortDisposition=disposition,
                 canonicalTopologyNodeIds=node_ids,
+                incidentElementIds=incident,
+                authorizedComponentElementIds=sorted(authorized),
             )
+        unrelated = [value for value in incident if value not in authorized]
         record["canonicalElementIds"] = element_ids
         record["InputXMLElementIds"] = element_ids
         record["CIISection"] = "ELEMENTS"
+        fields["authorizedComponentElementIds"] = sorted(authorized)
+        fields["unrelatedIncidentElementIds"] = unrelated
+        fields["portElementCoverageStatus"] = "VERIFIED_OWNER_INTERSECTION"
         record.setdefault("evidence", []).append(
-            "source-port coverage is bound to exact incident elements from verified canonical incidence"
+            "source-port coverage is restricted to the verified owner component or authorized managed merge"
         )
 
 
@@ -71,8 +84,27 @@ def _mark_evidence_only(record: dict[str, Any], disposition: str) -> None:
     record["InputXMLElementIds"] = []
     record["CIISection"] = None
     record["disposition"] = "PRESERVE_EXTENSION"
+    fields = record.get("sourceFields") or {}
+    fields["authorizedComponentElementIds"] = []
+    fields["unrelatedIncidentElementIds"] = []
+    fields["portElementCoverageStatus"] = "VERIFIED_INTENTIONAL_NONPROJECTION"
     record.setdefault("evidence", []).append(
         f"explicit source-port disposition {disposition} requires no CII element"
+    )
+
+
+def _coverage_block(
+    record: dict[str, Any],
+    ledger: DecisionLedger,
+    message: str,
+    **context: Any,
+) -> None:
+    block(
+        ledger,
+        "MANAGED_STAGE_COMPONENT_MAPPING_INCOMPLETE",
+        message,
+        str(record.get("sourceEntityId") or "sourcePort"),
+        **context,
     )
 
 
