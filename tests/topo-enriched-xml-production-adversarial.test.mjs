@@ -14,8 +14,13 @@ import {
 import { runTopoEnrichedXmlProduction } from '../tabs/stagedjson-to-enrichxml/production/topo-enriched-xml-production.js';
 import { makeProductionFixture } from './fixtures/topo-enriched-xml/production/production-fixture.mjs';
 
-const blockerCodes = (result) => result.validation.blockers
-  .flatMap((row) => [row.code, ...(row.evidence?.blockers || []).map((child) => child.code)]);
+function blockerCodes(result) {
+  return collectBlockerCodes(result.validation.blockers);
+}
+
+function collectBlockerCodes(rows = []) {
+  return rows.flatMap((row) => [row.code, ...collectBlockerCodes(row.evidence?.blockers || [])]);
+}
 
 // 12 — normalization result, action and approval hashes are independent hard gates.
 test('blocks stale normalization, action and approval hashes atomically', async () => {
@@ -62,6 +67,8 @@ test('blocks an occurrence without explicit logical-node ownership before writer
   const input = structuredClone(await makeProductionFixture());
   delete input.occurrencePlan.occurrences[0].logicalNodeId;
   input.occurrencePlan.occurrencePlanHash = await computeOccurrencePlanHash(input.occurrencePlan);
+  input.topologyNormalizationResult.normalization.occurrencePlanHash = input.occurrencePlan.occurrencePlanHash;
+  await rehashNormalization(input);
   const result = await runTopoEnrichedXmlProduction(input);
   assertBlocked(result, 'NODE_PLAN_BUILD_BLOCKED');
   assert.equal(result.canonicalBundle, null);
