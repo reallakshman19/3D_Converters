@@ -26,7 +26,7 @@ export async function validateTopologyNormalizationApproval(input) {
   requirePass(blockers, input?.logicalGraph, 'LOGICAL_GRAPH_NOT_PASS');
   const hashes = await recomputeHashes(input?.logicalGraph, result, blockers);
   validateEvidenceChain(result?.normalization, input, blockers);
-  const actions = validateAppliedActions(result?.nnormalization?.actions, blockers);
+  const actions = validateAppliedActions(result?.normalization?.actions, blockers);
   hashes.approvedActionHash = await computeApprovedActionHash(actions);
   validateApproval(approval, result, hashes, blockers);
   hashes.normalizationApprovalHash = await computeNormalizationApprovalHash(approval || {});
@@ -148,7 +148,7 @@ function validateApproval(approval, result, hashes, blockers) {
     inputLogicalTopologyHash: hashes.inputLogicalTopologyHash,
     outputLogicalTopologyHash: hashes.outputLogicalTopologyHash,
     topologyNormalizationHash: hashes.topologyNormalizationHash,
-    policyHash: result?.nnormalization?.policyHash,
+    policyHash: result?.normalization?.policyHash,
     approvedActionHash: hashes.approvedActionHash,
   };
   for (const [field, value] of Object.entries(expected)) {
@@ -158,11 +158,11 @@ function validateApproval(approval, result, hashes, blockers) {
 
 function compareRoot(graph, result, blockers) {
   for (const field of ['projectId', 'zoneId']) {
-    const values = [graph?.[field], result?.nnormalization?.[field], result?.proposedLogicalGraph?.[field]]
+    const values = [graph?.[field], result?.normalization?.[field], result?.proposedLogicalGraph?.[field]]
       .map(text).filter(Boolean);
     if (new Set(values).size !== 1) blockers.push(issue('TOPOLOGY_NORMALIZATION_ROOT_MISMATCH', { field, values }));
   }
-  if (canonicalSemanticJson(result?.nnormalization?.rawPortMappings || [])
+  if (canonicalSemanticJson(result?.normalization?.rawPortMappings || [])
     !== canonicalSemanticJson(sortCanonical(result?.normalization?.rawPortMappings || []))) {
     blockers.push(issue('NORMALIZATION_RAW_PORT_MAPPING_NONCANONICAL'));
   }
