@@ -68,6 +68,7 @@ jobs:
                       raise SystemExit(f'unsafe archive path: {member.name}')
               archive.extractall(root)
           PY
+          git checkout HEAD -- .github/workflows/topo-enriched-xml-cii2019-proof.yml
           rm -rf .te014-upload
       - name: Commit implementation
         shell: bash
