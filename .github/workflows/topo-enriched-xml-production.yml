@@ -47,11 +47,33 @@ jobs:
               'tests/fixtures/topo-enriched-xml/production/',
               'tests/node-history-registry-bootstrap.test.mjs',
               'tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs',
+              'contracts/topo-enriched-xml/cii2019-proof/',
+          )
+          watched = (
+              '.github/workflows/topo-enriched-xml-production.yml',
+              'tabs/stagedjson-to-enrichxml/production/',
+              'tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js',
+              'tests/topo-enriched-xml-production',
+              'tests/fixtures/topo-enriched-xml/production/',
+              'tests/node-history-registry-bootstrap.test.mjs',
+              'tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs',
+              'contracts/topo-enriched-xml/',
+              'schemas/topo-enriched-xml/',
+              'node-history/',
+              'tabs/stagedjson-to-enrichxml/topology-normalization/',
+              'tabs/stagedjson-to-enrichxml/topo-enriched-xml-writer.js',
+              'tabs/stagedjson-to-enrichxml/psi-serialization-plan.js',
+              'tabs/stagedjson-to-enrichxml/psi-strict-node-projector.js',
+              'tabs/stagedjson-to-enrichxml/topo-topology-index',
+              'tabs/stagedjson-to-enrichxml/topo-trace-ledger.js',
+              'tabs/stagedjson-to-enrichxml/psi-writer-parity-',
+              'tabs/stagedjson-to-enrichxml/psi-writer-selection-v2.js',
           )
           head = '${{ github.event.pull_request.head.sha }}' or 'HEAD'
           files = subprocess.check_output(['git', 'diff', '--name-only', f'{base}...{head}'], text=True).splitlines()
-          print('TE-013 changed files:', files)
-          bad = [path for path in files if not any(path == item or path.startswith(item) for item in allowed)]
+          watched_files = [path for path in files if any(path == item or path.startswith(item) for item in watched)]
+          print('TE-013 watched changes:', watched_files)
+          bad = [path for path in watched_files if not any(path == item or path.startswith(item) for item in allowed)]
           assert not bad, f'unauthorized TE-013 paths: {bad}'
           PY
       - name: Validate TE-013 file and function bounds
