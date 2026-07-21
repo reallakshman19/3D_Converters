@@ -121,14 +121,18 @@ function attachPorts(entities, ports) {
   return entities.map((entity) => ({ ...entity, ports: Object.freeze(byEntity.get(entity.sourceEntityId) ?? []) }));
 }
 
-/** @param {string} sourceText @param {{sourceName:string,toleranceMm:number}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
+/** @param {string} sourceText @param {{sourceName:string,sourceRevision?:number,toleranceMm:number}} options @returns {Promise<Readonly<Record<string, unknown>>>} */
 export async function buildTopologySourceModel(sourceText, options) {
+  const revision = Number(options.sourceRevision ?? 1);
+  if (!Number.isInteger(revision) || revision < 1) {
+    throw new TypeError('Managed-stage sourceRevision must be a positive integer.');
+  }
   const envelope = await createSourceEnvelope({
     sourceText,
     sourceKind: 'stagedjson',
     sourceName: options.sourceName,
     origin: 'file',
-    revision: 1,
+    revision,
   });
   if (!envelope.validation.ok) throw new TypeError(`Invalid managed-stage source: ${envelope.validation.errors.join('; ')}`);
   const parsed = JSON.parse(envelope.sourceText);

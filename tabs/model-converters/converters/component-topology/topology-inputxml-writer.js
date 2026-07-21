@@ -103,7 +103,7 @@ function bendXml(bend, nodes) {
   return `      <BEND ${serialize(attributes)}/>`;
 }
 
-/** @param {Record<string,unknown>} canonical @returns {{supportsByEdge:Map<string,Record<string,unknown>[]>,namesByNode:Map<string,string>}} */
+/** @param {Record<string, unknown>} canonical @returns {{supportsByEdge:Map<string,Record<string,unknown>[]>,namesByNode:Map<string,string>}} */
 function supportIndex(canonical) {
   const supportsByEdge = new Map(), namesByNode = new Map();
   for (const support of canonical.supports) {
@@ -119,6 +119,12 @@ function supportIndex(canonical) {
   return { supportsByEdge, namesByNode };
 }
 
+function rigidGroupWeight(rigids) {
+  const weights = rigids.map((rigid) => finiteNumber(rigid.weightKg));
+  if (weights.some((weight) => weight === null)) return null;
+  return weights.reduce((sum, weight) => sum + weight, 0);
+}
+
 /** @param {Record<string, unknown>} edge @param {Map<string,Record<string,unknown>>} nodes @param {Record<string,unknown>} values @param {Record<string,unknown>[]} supports @param {Record<string,unknown>[]} rigids @param {Map<string,string>} names @returns {string} */
 function elementXml(edge, nodes, values, supports, rigids, bends, names) {
   const from = nodes.get(edge.fromNodeId), to = nodes.get(edge.toNodeId);
@@ -126,7 +132,7 @@ function elementXml(edge, nodes, values, supports, rigids, bends, names) {
   const attributes = nativeAttributes(edge, from, to, values, names.get(from.id) ?? '', names.get(to.id) ?? '');
   const children = [];
   if (rigids.length) {
-    const weight = rigids.reduce((sum, rigid) => sum + Number(rigid.weightKg || 0), 0);
+    const weight = rigidGroupWeight(rigids);
     const types = [...new Set(rigids.map((rigid) => cleanText(rigid.componentType)).filter(Boolean))];
     children.push(`      <RIGID ${serialize([
       ['ID', `RIGID:${edge.id}`], ['WEIGHT', fixed(weight)], ['TYPE', types.join('+')], ['SOURCE_BODY_COUNT', rigids.length],
@@ -187,4 +193,4 @@ export function buildTopologyInputXml(canonical, engineering, options) {
   ].join('\n');
 }
 
-export const _test = Object.freeze({ finiteNumber, fixed, globalFixed, physicalWall, nodeMap, engineeringRecord, engineeringValues, nativeAttributes, serialize, supportIndex, bendXml, elementXml });
+export const _test = Object.freeze({ finiteNumber, fixed, globalFixed, physicalWall, nodeMap, engineeringRecord, engineeringValues, nativeAttributes, serialize, supportIndex, bendXml, rigidGroupWeight, elementXml });

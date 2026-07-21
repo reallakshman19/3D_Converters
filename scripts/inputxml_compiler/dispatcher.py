@@ -15,6 +15,8 @@ from .family_accounting import account_profile_source
 from .family_profiles import PROFILE_CONTRACTS, get_family_profile
 from .family_resolver import compile_family_profile_candidate
 from .managed_stage import _compile_managed_stage_source
+from .managed_stage_accounting import account_managed_stage_source
+from .managed_stage_intake import ManagedStageIntake
 from .model import _ledger_direct_canonical
 from .pdf_input_echo import _compile_pdf_input_echo_source
 from .resolver_contract import OutcomeKind, ResolverOutcome
@@ -67,8 +69,7 @@ def _mark_diagnostic_sidecar(
         source_fields={"dialect": ledger.dialect},
         disposition="DEFER_EXPLICITLY",
         evidence=[
-            "diagnostic sidecar is not assumed to be the exact "
-            "writer-consumed model"
+            "diagnostic sidecar is not assumed to be the exact writer-consumed model"
         ],
         confidence={
             "identity": 0.80,
@@ -97,8 +98,19 @@ def _compile_profile_candidate(
     source_name: str,
     source_path: str,
     categorized_xsd_path: Path,
-) -> ET._Element:
+    managed_stage_intake: ManagedStageIntake | None,
+) -> tuple[ET._Element, dict[str, Any] | None]:
     del categorized_xsd_path
+    if dialect == "managed-stage-json":
+        if managed_stage_intake is None:
+            raise CompileBlocked("Managed-stage resolver requires verified profile intake.")
+        return _compile_managed_stage_source(
+            source,
+            source_name=source_name,
+            ledger=ledger,
+            context=context,
+            intake=managed_stage_intake,
+        )
     if dialect == "uxml-rvm-intake":
         wrapped = _compile_uxml_rvm_source(
             source,
@@ -114,28 +126,27 @@ def _compile_profile_candidate(
             ledger=ledger,
             context=context,
         )
-    elif dialect == "managed-stage-json":
-        wrapped = _compile_managed_stage_source(
-            source,
-            source_name=source_name,
-            ledger=ledger,
-            context=context,
-        )
     else:
-        return _compile_xml_profile(
+        return (
+            _compile_xml_profile(
+                dialect=dialect,
+                source=source,
+                root=_require_xml(dialect, root),
+                ledger=ledger,
+                aliases=aliases,
+                context=context,
+            ),
+            None,
+        )
+    return (
+        _compile_inputxml_family(
+            wrapped,
             dialect=dialect,
-            source=source,
-            root=_require_xml(dialect, root),
             ledger=ledger,
             aliases=aliases,
             context=context,
-        )
-    return _compile_inputxml_family(
-        wrapped,
-        dialect=dialect,
-        ledger=ledger,
-        aliases=aliases,
-        context=context,
+        ),
+        None,
     )
 
 
@@ -192,11 +203,12 @@ def resolve_registered_profile(
     source_name: str,
     source_path: str,
     categorized_xsd_path: Path,
+    managed_stage_intake: ManagedStageIntake | None = None,
 ) -> ResolverOutcome:
     """Invoke one closed registered resolver and standardize its outcome."""
     if dialect not in _NON_XML_DIALECTS and root is None:
         raise CompileBlocked(f"Dialect {dialect} requires XML input.")
-    canonical = _compile_profile_candidate(
+    canonical, managed_evidence = _compile_profile_candidate(
         dialect=dialect,
         source=source,
         root=root,
@@ -206,6 +218,7 @@ def resolve_registered_profile(
         source_name=source_name,
         source_path=source_path,
         categorized_xsd_path=categorized_xsd_path,
+        managed_stage_intake=managed_stage_intake,
     )
     accounting_status = "COMPLETE"
     metrics: dict[str, Any] = {}
@@ -224,6 +237,20 @@ def resolve_registered_profile(
             ledger=ledger,
         )
         metrics["sourceAccounting"] = proof
+    elif dialect == "managed-stage-json":
+        if managed_stage_intake is None or managed_evidence is None:
+            raise CompileBlocked("Managed-stage accounting evidence is missing.")
+        accounting_status, proof = account_managed_stage_source(
+            managed_stage_intake,
+            canonical,
+            evidence=managed_evidence,
+            ledger=ledger,
+        )
+        metrics.update({
+            "sourceAccounting": proof,
+            "artifactHashes": managed_evidence["identity"]["artifactHashes"],
+            "managedStageMetrics": managed_evidence["metrics"],
+        })
     outcome_kind = (
         OutcomeKind.BLOCKED_WITH_CANDIDATE
         if ledger.blocked

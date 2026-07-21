@@ -170,6 +170,16 @@ function findSupportAnchor(component, byPosition, byName) {
   return null;
 }
 
+function rigidWeight(record) {
+  if (Number.isFinite(record.resolved?.weightKg)) {
+    return { weightKg: Number(record.resolved.weightKg), weightAuthority: 'RESOLVED_WEIGHT_KG' };
+  }
+  if (Number.isFinite(record.sourceWeightKg)) {
+    return { weightKg: Number(record.sourceWeightKg), weightAuthority: 'SOURCE_WEIGHT_KG' };
+  }
+  return { weightKg: null, weightAuthority: 'MISSING' };
+}
+
 export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   return rigids.map((rigid) => {
@@ -203,7 +213,7 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
       inputXmlNodeId: nodeById.get(selected.edge.toNodeId).inputXmlNodeIds[0],
       connectionResidual: selected.distanceMm,
       componentType: rigid.record.componentType,
-      weightKg: Number(rigid.record.resolved?.weightKg ?? rigid.record.sourceWeightKg ?? 0),
+      ...rigidWeight(rigid.record),
     };
   });
 }
@@ -248,3 +258,4 @@ export function buildTopologyEngineeringProjection(sourceText, model, options) {
 }
 
 export { splitEdgeSpecsAtSupports };
+export const _test = Object.freeze({ rigidWeight });

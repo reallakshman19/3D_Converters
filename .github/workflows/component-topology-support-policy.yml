@@ -26,7 +26,15 @@ jobs:
       - name: Validate exact three-way parity mutations
         run: node tests/component-topology-parity.test.mjs
       - name: Validate focused support policy
-        run: node tests/component-topology-support-policy.test.mjs
+        run: |
+          set -o pipefail
+          node tests/component-topology-support-policy.test.mjs 2>&1 | tee component-topology-support.log
+      - name: Upload focused support evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: component-topology-support-policy
+          path: component-topology-support.log
       - name: Validate real 1885_NC topology parity
         run: |
           set -o pipefail
