@@ -48,7 +48,9 @@ jobs:
               'tests/node-history-registry-bootstrap.test.mjs',
               'tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs',
           )
-          files = subprocess.check_output(['git', 'diff', '--name-only', f'{base}...HEAD'], text=True).splitlines()
+          head = '${{ github.event.pull_request.head.sha }}' or 'HEAD'
+          files = subprocess.check_output(['git', 'diff', '--name-only', f'{base}...{head}'], text=True).splitlines()
+          print('TE-013 changed files:', files)
           bad = [path for path in files if not any(path == item or path.startswith(item) for item in allowed)]
           assert not bad, f'unauthorized TE-013 paths: {bad}'
           PY
