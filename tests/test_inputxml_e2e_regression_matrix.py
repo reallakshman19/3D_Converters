@@ -24,15 +24,15 @@ class InputXmlEndToEndRegressionMatrixTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 result = matrix.run_matrix(Path(tmp))
         self.assertEqual("PASS", result["status"], result["diagnostics"])
-        self.assertEqual(14, result["summary"]["registeredDialectCount"])
-        self.assertEqual(14, result["summary"]["caseCount"])
-        self.assertEqual(12, result["summary"]["fullChainExpectedCount"])
-        self.assertEqual(12, result["summary"]["fullChainPassCount"])
+        self.assertEqual(15, result["summary"]["registeredDialectCount"])
+        self.assertEqual(15, result["summary"]["caseCount"])
+        self.assertEqual(13, result["summary"]["fullChainExpectedCount"])
+        self.assertEqual(13, result["summary"]["fullChainPassCount"])
         self.assertEqual(2, result["summary"]["canonicalBlockedExpectedCount"])
-        self.assertEqual(14, result["summary"]["passCount"])
+        self.assertEqual(15, result["summary"]["passCount"])
         self.assertEqual(0, result["summary"]["failCount"])
         dialects = {row["dialect"] for row in result["cases"]}
-        self.assertEqual(14, len(dialects))
+        self.assertEqual(15, len(dialects))
         for row in result["cases"]:
             if row["expected"] == "FULL_CHAIN_PASS":
                 self.assertEqual("PASS", row["canonicalStatus"], row)
