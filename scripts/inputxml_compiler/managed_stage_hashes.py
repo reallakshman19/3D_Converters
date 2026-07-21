@@ -17,6 +17,23 @@ _SELF_HASH_KEYS = frozenset({
 })
 
 
+def reject_unpaired_surrogates(value: Any, *, path: str = "$") -> None:
+    """Reject strings that cannot participate in strict cross-language UTF-8."""
+    if isinstance(value, str):
+        _reject_string_surrogates(value, path)
+        return
+    if isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            reject_unpaired_surrogates(item, path=f"{path}[{index}]")
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ValueError(f"Managed-stage JSON object key at {path} is not text.")
+            _reject_string_surrogates(key, f"{path}.<key>")
+            reject_unpaired_surrogates(item, path=f"{path}.{key}")
+
+
 def normalize_source_text(value: str) -> str:
     text = str(value)
     if text.startswith("\ufeff"):
@@ -48,6 +65,7 @@ def source_entity_id(
 
 def canonical_json(value: Any, *, extra_omit: tuple[str, ...] = ()) -> str:
     """Serialize exactly as sorted-key JavaScript JSON.stringify would."""
+    reject_unpaired_surrogates(value)
     omit = _SELF_HASH_KEYS | set(extra_omit)
     return _canonical_text(value, omit)
 
@@ -106,6 +124,17 @@ def _canonical_text(value: Any, omit: set[str]) -> str:
     raise TypeError(f"Unsupported topology hash value: {type(value).__name__}.")
 
 
+def _reject_string_surrogates(value: str, path: str) -> None:
+    for index, character in enumerate(value):
+        code = ord(character)
+        if 0xD800 <= code <= 0xDFFF:
+            kind = "high" if code <= 0xDBFF else "low"
+            raise ValueError(
+                f"Managed-stage string at {path} contains an unpaired {kind} surrogate "
+                f"at character {index}."
+            )
+
+
 def _split_exponent(raw: str) -> tuple[str, int]:
     if "e" not in raw:
         return raw, 0
@@ -152,6 +181,7 @@ __all__ = [
     "canonical_number",
     "deterministic_hash",
     "normalize_source_text",
+    "reject_unpaired_surrogates",
     "source_content_hash",
     "source_entity_id",
     "source_file_id",
