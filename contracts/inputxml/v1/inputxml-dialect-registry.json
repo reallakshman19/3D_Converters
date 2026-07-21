@@ -20,6 +20,7 @@
     {"dialectId":"xml-to-cii-diagnostic-sidecar","root":"{COADE}CAESARII","xmlType":"Input","artifactRole":"diagnostic-reconstruction","adapter":"diagnostic-sidecar-reconciliation","canonicalAcceptance":"DIAGNOSTIC_ONLY","signals":["SOURCE debug export","parallel route"]},
     {"dialectId":"cii14-inputxml","root":"{COADE}CAESARII","xmlType":"Input","artifactRole":"versioned-vendor-intake","adapter":"cii14-to-canonical-v1","canonicalAcceptance":"ADAPTER_REQUIRED","signals":["CII14 template/profile"]},
     {"dialectId":"uxml-rvm-intake","root":"multiple","xmlType":null,"artifactRole":"geometry-intake","adapter":"uxml-rvm-to-canonical","canonicalAcceptance":"ADAPTER_REQUIRED","signals":["UXML component graph","RVM-derived geometry"]},
+    {"dialectId":"pipesstressexport-psi116-xml","root":"{http://aveva.com/pipeStress116.xsd}PipeStressExport","xmlType":null,"artifactRole":"te013-selected-psi116-source","adapter":"psi116-to-canonical-v1","canonicalAcceptance":"ADAPTER_REQUIRED","signals":["exact TE-013 production result","Pipe/Branch/Node","strict source and policy hash binding"]},
     {"dialectId":"nodeset-v1","root":"NodeSet","xmlType":null,"artifactRole":"comparison-only","adapter":"none","canonicalAcceptance":"EXCLUDED","signals":["nodeset/v1","synthetic-comparison coordinates"]}
   ]
 }

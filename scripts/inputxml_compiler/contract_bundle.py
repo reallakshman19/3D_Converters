@@ -18,7 +18,7 @@ from .serialization_policy import (
 DIALECT_REGISTRY_SCHEMA = "InputXmlDialectRegistry.v1"
 ADAPTER_REGISTRY_SCHEMA = "InputXmlCanonicalCompilerAdapterRegistry.v1"
 CONTRACT_BUNDLE_SCHEMA = "InputXmlRuntimeContractBundle.v1"
-EXPECTED_DIALECT_COUNT = 14
+EXPECTED_DIALECT_COUNT = 15
 
 
 class ContractBundleError(CompileBlocked):

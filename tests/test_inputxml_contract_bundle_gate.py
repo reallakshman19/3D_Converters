@@ -43,7 +43,7 @@ class ContractBundleGateTests(unittest.TestCase):
         self.assertIsNotNone(root)
         self.assertEqual("PASS", validation["status"])
         self.assertEqual("VERIFIED", validation["contractBundle"]["status"])
-        self.assertEqual(14, validation["contractBundle"]["dialectCount"])
+        self.assertEqual(15, validation["contractBundle"]["dialectCount"])
         self.assertEqual(
             validation["contractBundle"]["digestSha256"],
             ledger["contractBundle"]["digestSha256"],

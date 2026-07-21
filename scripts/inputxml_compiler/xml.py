@@ -122,6 +122,8 @@ def detect_dialect(root: ET._Element, registry: dict[str, Any]) -> str:
         return "nodeset-v1"
     if local == "Root" and ns == "":
         return "xml-builder-root-branch-node"
+    if local == "PipeStressExport" and ns == "http://aveva.com/pipeStress116.xsd":
+        return "pipesstressexport-psi116-xml"
     if local != "CAESARII" or ns != COADE_NS:
         raise CompileBlocked(f"No registered dialect matches root {{{ns}}}{local}.")
     if root.get("XML_TYPE") != "Input":

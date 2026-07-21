@@ -26,6 +26,7 @@ from .managed_stage_intake import (
     validate_managed_stage_intake,
 )
 from .resolver_contract import OutcomeKind
+from .psi116_intake import Psi116Intake, validate_psi116_profile_intake
 from .topology_profiles import (
     TOPOLOGY_PROFILE_CONTRACTS,
     validate_topology_profile_intake,
@@ -199,6 +200,7 @@ def compile_document(
         json_text: str | None = None
         json_payload: Any = None
         managed_stage_intake: ManagedStageIntake | None = None
+        psi116_intake: Psi116Intake | None = None
         if pdf_source:
             root = None
             dialect = dialect_override or "pdf-input-echo"
@@ -291,6 +293,14 @@ def compile_document(
                 explicit_override=dialect_override is not None,
                 ledger=ledger,
             )
+        elif dialect == "pipesstressexport-psi116-xml":
+            psi116_intake = validate_psi116_profile_intake(
+                source,
+                root=root,
+                context=context,
+                explicit_override=dialect_override is not None,
+                ledger=ledger,
+            )
         state.transition(CompilerStage.PROFILE_INTAKE_VALIDATED)
         ledger.current_stage_sequence = len(state.completed_stages)
         aliases = _resolve_aliases(_load_json(alias_registry_path))
@@ -307,6 +317,7 @@ def compile_document(
             source_path=source_path,
             categorized_xsd_path=categorized_xsd_path,
             managed_stage_intake=managed_stage_intake,
+            psi116_intake=psi116_intake,
         )
         if outcome.profile_id != dialect:
             raise RuntimeError("Resolver returned a mismatched profile identity.")
@@ -332,6 +343,7 @@ def compile_document(
                 "SOURCE_ACCOUNTING_INCOMPLETE",
                 "TOPOLOGY_SOURCE_ACCOUNTING_INCOMPLETE",
                 "MANAGED_STAGE_SOURCE_ACCOUNTING_INCOMPLETE",
+                "PSI116_SOURCE_ACCOUNTING_INCOMPLETE",
             }
             if not any(item.get("code") in known_codes for item in ledger.diagnostics):
                 ledger.diagnostic(
