@@ -94,6 +94,8 @@ function loadMembersIntoTraceState(state, report) {
     jsonTraceTableSheetNames: [],
     jsonTraceTableActiveSheet: '',
     jsonTraceTableWorkbookData: null,
+    resolverJsonTraceTableResult: null,
+    jsonTraceTableBenchmark: null,
     jsonTraceTableStatus: `Loaded ${rawRows.length} Support Family member row(s). Profile ${profile.label} (${profile.confidence}%). Review mapping, then build table trace.`,
     supportFamilyReportStatus: `Loaded ${rawRows.length} member row(s) into CSV/XLS Trace without replacing the JSON resolver result.`,
     jsonTraceActiveSubTabId: 'tableImport',
