@@ -8,11 +8,15 @@ on:
       - 'converters/xml-cii2019-core/dtxr-resolver.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-support-family-report.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-support-family-report.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js'
       - 'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js'
       - 'tests/xml-cii-standalone-dtxr-enrichment.test.js'
       - 'tests/xml-cii-standalone-dtxr-pos-precedence.test.js'
       - 'tests/xml-cii-standalone-trace-ledger.test.js'
+      - 'tests/xml-cii-support-family-report.test.js'
       - 'tests/xml-cii-standalone-parity.test.js'
       - '.github/workflows/xml-cii-standalone-dtxr-enrichment.yml'
 
@@ -55,6 +59,9 @@ jobs:
 
       - name: Run authoritative trace ledger checks
         run: node tests/xml-cii-standalone-trace-ledger.test.js
+
+      - name: Run Support Family Report checks
+        run: node tests/xml-cii-support-family-report.test.js
 
       - name: Run implementation guard checks
         run: node tests/xml-cii-standalone-implementation-guard.test.js
