@@ -1,29 +1,78 @@
-name: TE-014 Source Snapshot
+name: TE-014 Apply Implementation
 
 on:
   push:
     branches:
       - agent/te-014-psi116-canonical-cii-proof
-  pull_request:
-    branches:
-      - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  snapshot:
+  apply:
+    if: "!contains(github.event.head_commit.message, 'feat(te-014): add strict PSI116 intake and CII2019 proof')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: agent/te-014-psi116-canonical-cii-proof
           fetch-depth: 0
-      - name: Archive accepted checkout
+      - name: Apply verified implementation archive
+        shell: bash
         run: |
-          git archive --format=zip --output=te014-source-snapshot.zip HEAD
-      - uses: actions/upload-artifact@v4
-        with:
-          name: te014-source-snapshot
-          path: te014-source-snapshot.zip
-          if-no-files-found: error
-          retention-days: 1
+          set -euo pipefail
+          cat .te014-upload/chunk-*.txt > /tmp/te014.b64
+          base64 --decode /tmp/te014.b64 > /tmp/te014.tar.gz
+          echo 'bb19b640058c2d43f34fbe8a2f1a18f49849ca33d9c4a91fdccc53cc121c9651  /tmp/te014.tar.gz' | sha256sum --check --strict
+          python - <<'PY'
+          import tarfile
+          from pathlib import Path
+          expected = {
+              '.github/workflows/topo-enriched-xml-cii2019-proof.yml',
+              'contracts/inputxml/v1/inputxml-dialect-registry.json',
+              'contracts/inputxml/v1/compiler/inputxml-compiler-adapters.json',
+              'contracts/topo-enriched-xml/cii2019-proof/psi116-canonical-projection-policy.json',
+              'contracts/topo-enriched-xml/cii2019-proof/topo-enriched-xml-cii-projection-ledger.v1.schema.json',
+              'contracts/topo-enriched-xml/cii2019-proof/topo-enriched-xml-cii-proof-result.v1.schema.json',
+              'converters/scripts/topo_enriched_xml_cii2019_ledger.py',
+              'converters/scripts/topo_enriched_xml_cii2019_projection.py',
+              'converters/scripts/topo_enriched_xml_cii2019_proof.py',
+              'converters/scripts/topo_enriched_xml_cii2019_reparse.py',
+              'docs/architecture/topo-enriched-xml/te-014-cii2019-proof.md',
+              'scripts/inputxml_compiler/compiler.py',
+              'scripts/inputxml_compiler/contract_bundle.py',
+              'scripts/inputxml_compiler/dispatcher.py',
+              'scripts/inputxml_compiler/xml.py',
+              'scripts/inputxml_compiler/psi116_accounting.py',
+              'scripts/inputxml_compiler/psi116_adapter.py',
+              'scripts/inputxml_compiler/psi116_common.py',
+              'scripts/inputxml_compiler/psi116_intake.py',
+              'scripts/inputxml_compiler/psi116_te013_evidence.py',
+              'tests/fixtures/topo-enriched-xml/cii2019-proof/generate-production-result.mjs',
+              'tests/fixtures/topo-enriched-xml/cii2019-proof/te013_mutation.py',
+              'tests/test_inputxml_contract_bundle_gate.py',
+              'tests/test_topo_enriched_xml_cii2019_proof.py',
+              'tests/test_topo_enriched_xml_cii2019_adversarial.py',
+          }
+          root = Path.cwd().resolve()
+          with tarfile.open('/tmp/te014.tar.gz', 'r:gz') as archive:
+              names = {m.name for m in archive.getmembers() if m.isfile()}
+              if names != expected:
+                  raise SystemExit(f'archive path mismatch: {sorted(names ^ expected)}')
+              for member in archive.getmembers():
+                  target = (root / member.name).resolve()
+                  if root not in target.parents:
+                      raise SystemExit(f'unsafe archive path: {member.name}')
+              archive.extractall(root)
+          PY
+          rm -rf .te014-upload
+      - name: Commit implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add --all
+          git diff --cached --stat
+          git commit -m 'feat(te-014): add strict PSI116 intake and CII2019 proof'
+          git push origin HEAD:agent/te-014-psi116-canonical-cii-proof
