@@ -1,0 +1,26 @@
+name: TE-014 Source Snapshot
+
+on:
+  push:
+    branches:
+      - agent/te-014-psi116-canonical-cii-proof
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Archive accepted checkout
+        run: |
+          git archive --format=zip --output=te014-source-snapshot.zip HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: te014-source-snapshot
+          path: te014-source-snapshot.zip
+          if-no-files-found: error
+          retention-days: 1
