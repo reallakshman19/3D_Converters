@@ -4,8 +4,7 @@ on:
   pull_request:
     paths:
       - 'contracts/inputxml/v1/**'
-      - 'docs/inputxml/ADR-006-managed-stage-source-accounting-reconciliation.md'
-      - 'docs/inputxml/PR-7-managed-stage-implementation-evidence.md'
+      - 'docs/inputxml/**'
       - 'scripts/inputxml_canonical_compiler.py'
       - 'scripts/inputxml_compiler/**'
       - 'scripts/inputxml_assurance_ledger.py'
@@ -14,6 +13,7 @@ on:
       - 'converters/scripts/inputxml_to_cii2019_assured*.py'
       - 'converters/scripts/cii2019_reparse_proof.py'
       - 'tests/test_inputxml_*adapter.py'
+      - 'tests/test_inputxml_pdf_input_echo_*.py'
       - 'tests/test_inputxml_cii_*.py'
       - 'tests/test_inputxml_e2e_regression_matrix.py'
       - 'tabs/model-converters/xml-cii-node-to-inputxml-*.js'
@@ -41,7 +41,8 @@ jobs:
             converters/scripts/cii2019_reparse_proof.py \
             scripts/inputxml_e2e_regression_matrix.py \
             tests/test_inputxml_cii_reparse_proof.py \
-            tests/test_inputxml_e2e_regression_matrix.py
+            tests/test_inputxml_e2e_regression_matrix.py \
+            tests/test_inputxml_pdf_input_echo_e2e_matrix.py
       - name: Run independent CII reparse tests
         id: reparse
         continue-on-error: true
@@ -50,7 +51,7 @@ jobs:
           set -o pipefail
           python -m unittest -v tests/test_inputxml_cii_reparse_proof.py \
             2>&1 | tee "$RUNNER_TEMP/inputxml-prg-reparse.log"
-      - name: Run all-dialect end-to-end matrix
+      - name: Run all-dialect end-to-end matrix with PR-8 PDF evidence
         id: matrix
         continue-on-error: true
         shell: bash
@@ -59,7 +60,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p "$INPUTXML_PRG_OUTPUT_DIR"
-          python -m unittest -v tests/test_inputxml_e2e_regression_matrix.py \
+          python -m unittest -v tests/test_inputxml_pdf_input_echo_e2e_matrix.py \
             2>&1 | tee "$RUNNER_TEMP/inputxml-prg-matrix.log"
       - name: Upload PR-G matrix and diagnostics
         if: always()

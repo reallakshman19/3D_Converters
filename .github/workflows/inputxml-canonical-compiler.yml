@@ -25,7 +25,7 @@ on:
       - 'tests/test_inputxml_managed_stage*.py'
       - 'tests/managed_stage_test_support.py'
       - 'tests/strict-root-topology.test.cjs'
-      - 'tests/test_inputxml_pdf_input_echo_adapter.py'
+      - 'tests/test_inputxml_pdf_input_echo_*.py'
       - 'tests/test_inputxml_uxml_rvm_adapter.py'
       - 'tests/xml-cii-node-to-inputxml-core.test.js'
       - 'tests/component-topology-*.test.*'
@@ -131,7 +131,15 @@ jobs:
             scripts/inputxml_compiler/managed_stage_topology.py \
             scripts/inputxml_compiler/managed_stage_trace_relations.py \
             scripts/inputxml_compiler/pdf_input_echo.py \
+            scripts/inputxml_compiler/pdf_input_echo_accounting.py \
+            scripts/inputxml_compiler/pdf_input_echo_auxiliary.py \
             scripts/inputxml_compiler/pdf_input_echo_bindings.py \
+            scripts/inputxml_compiler/pdf_input_echo_elements.py \
+            scripts/inputxml_compiler/pdf_input_echo_provenance.py \
+            scripts/inputxml_compiler/pdf_input_echo_runtime.py \
+            scripts/inputxml_compiler/pdf_input_echo_scopes.py \
+            scripts/inputxml_compiler/pdf_input_echo_state.py \
+            scripts/inputxml_compiler/pdf_input_echo_state_fields.py \
             scripts/inputxml_compiler/uxml_rvm.py \
             scripts/inputxml_compiler/contract_bundle.py \
             scripts/inputxml_compiler/state_machine.py \
@@ -146,7 +154,8 @@ jobs:
             scripts/inputxml_compiler/publication_io.py \
             scripts/inputxml_compiler/publication_verify.py \
             scripts/inputxml_compiler/cli.py \
-            tests/managed_stage_test_support.py
+            tests/managed_stage_test_support.py \
+            tests/test_inputxml_pdf_input_echo_support.py
           node --check scripts/inputxml_compiler/node_uxml_rvm_bridge.mjs
       - name: Run canonical compiler unit and integration tests
         run: |
@@ -190,6 +199,10 @@ jobs:
             tests/test_inputxml_managed_stage_trace_ownership.py \
             tests/test_inputxml_managed_stage_unicode_intake.py \
             tests/test_inputxml_pdf_input_echo_adapter.py \
+            tests/test_inputxml_pdf_input_echo_accounting.py \
+            tests/test_inputxml_pdf_input_echo_determinism.py \
+            tests/test_inputxml_pdf_input_echo_line_scope.py \
+            tests/test_inputxml_pdf_input_echo_provenance.py \
             tests/test_inputxml_uxml_rvm_adapter.py \
             2>&1 | tee /tmp/inputxml-compiler-tests.log
           status=${PIPESTATUS[0]}
@@ -250,3 +263,4 @@ jobs:
           tests/test_inputxml_managed_stage_bridge_request.py
           tests/test_inputxml_managed_stage_bridge_containment.py
           tests/test_inputxml_managed_stage_unicode_intake.py
+          tests/test_inputxml_pdf_input_echo_determinism.py
