@@ -5,7 +5,7 @@ import { buildTopoTraceLedger } from '../topo-trace-ledger.js';
 import { comparePsiWriterBundles } from '../psi-writer-parity-v2.js';
 import { selectPsiWriterBundle } from '../psi-writer-selection-v2.js';
 import {
-  array, assertUnchanged, freeze, issue, makeValidation, shaSemantic, snapshot,
+  array, assertUnchanged, issue, makeValidation, shaSemantic, snapshot,
 } from './production-common.js';
 import { validateProductionEvidence } from './production-evidence-validator.js';
 import { buildProductionTopoNodePlan } from './topo-node-plan-builder.js';
@@ -200,18 +200,18 @@ async function finalize(state, input) {
 }
 
 function atomicOutputs(state, input, validation) {
+  if (state.mode === 'SHADOW') return {
+    productionBundle: null,
+    proposedBundle: null,
+    xmlText: String(input.legacyOutput?.xmlText ?? ''),
+    trace: structuredClone(array(input.legacyOutput?.trace)),
+  };
   if (validation.status === 'BLOCKED') return emptyOutputs();
   if (state.mode === 'REVIEW') return {
     productionBundle: null,
     proposedBundle: state.selection?.proposedBundle || null,
     xmlText: '',
     trace: [],
-  };
-  if (state.mode === 'SHADOW') return {
-    productionBundle: null,
-    proposedBundle: null,
-    xmlText: String(input.legacyOutput?.xmlText ?? ''),
-    trace: structuredClone(array(input.legacyOutput?.trace)),
   };
   if (state.mode === 'ENFORCED' && state.selection?.authority === 'STRICT_ENFORCED') {
     const productionBundle = state.selection.productionBundle;

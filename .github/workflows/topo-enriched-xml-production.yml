@@ -7,6 +7,8 @@ on:
       - 'tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js'
       - 'tests/topo-enriched-xml-production*.test.mjs'
       - 'tests/fixtures/topo-enriched-xml/production/**'
+      - 'tests/node-history-registry-bootstrap.test.mjs'
+      - 'tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs'
       - '.github/workflows/topo-enriched-xml-production.yml'
       - 'contracts/topo-enriched-xml/**'
       - 'schemas/topo-enriched-xml/**'
@@ -43,6 +45,8 @@ jobs:
               'tests/topo-enriched-xml-production.test.mjs',
               'tests/topo-enriched-xml-production-adversarial.test.mjs',
               'tests/fixtures/topo-enriched-xml/production/',
+              'tests/node-history-registry-bootstrap.test.mjs',
+              'tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs',
           )
           files = subprocess.check_output(['git', 'diff', '--name-only', f'{base}...HEAD'], text=True).splitlines()
           bad = [path for path in files if not any(path == item or path.startswith(item) for item in allowed)]
@@ -59,6 +63,8 @@ jobs:
               Path('tests/topo-enriched-xml-production.test.mjs'),
               Path('tests/topo-enriched-xml-production-adversarial.test.mjs'),
               Path('tests/fixtures/topo-enriched-xml/production/production-fixture.mjs'),
+              Path('tests/node-history-registry-bootstrap.test.mjs'),
+              Path('tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs'),
           ]
           for path in files:
               lines = path.read_text().splitlines()
@@ -80,35 +86,19 @@ jobs:
             tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js \
             tests/topo-enriched-xml-production.test.mjs \
             tests/topo-enriched-xml-production-adversarial.test.mjs \
-            tests/fixtures/topo-enriched-xml/production/production-fixture.mjs; do
+            tests/fixtures/topo-enriched-xml/production/production-fixture.mjs \
+            tests/node-history-registry-bootstrap.test.mjs \
+            tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs; do
             node --check "$file"
           done
       - name: Enforce TE-013 non-goals
         run: |
           ! grep -REin 'buildEnrichedXml\s*\(|buildSequentialWriterShadow\s*\(|selectPsiWriterOutput\s*\(|new Date\s*\(|Date\.now\s*\(|nodeCounter|numberingSpan|xmlNodeNum\s*=|inputxml_to_cii2019|xml_to_cii2019' tabs/stagedjson-to-enrichxml/production
+          ! grep -Ein 'dependencies\s*=|runLegacy|runProduction' tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js
       - name: Run TE-013 production tests
-        id: focused
-        continue-on-error: true
         run: |
-          set +e
-          {
-            node --test tests/topo-enriched-xml-production.test.mjs
-            first=$?
-            node --test tests/topo-enriched-xml-production-adversarial.test.mjs
-            second=$?
-            test "$first" -eq 0 -a "$second" -eq 0
-          } > "$RUNNER_TEMP/te013-focused.log" 2>&1
-          status=$?
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          tail -n 240 "$RUNNER_TEMP/te013-focused.log"
-      - name: Upload TE-013 focused test log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: te013-focused-test-log
-          path: ${{ runner.temp }}/te013-focused.log
-      - name: Enforce TE-013 focused test result
-        run: test "${{ steps.focused.outputs.status }}" -eq 0
+          node --test tests/topo-enriched-xml-production.test.mjs
+          node --test tests/topo-enriched-xml-production-adversarial.test.mjs
       - name: Protect TE-002 frozen contracts
         run: node --test tests/topo-enriched-xml-contracts.test.mjs
       - name: Protect TE-003 occurrence identity
@@ -135,32 +125,10 @@ jobs:
       - name: Protect TE-011 parity and selection
         run: node --test tests/psi-writer-parity-v2.test.mjs
       - name: Protect TE-012 registry bootstrap
-        id: te012
-        continue-on-error: true
         run: |
-          set +e
-          node --test tests/node-history-registry-bootstrap.test.mjs > "$RUNNER_TEMP/te012-main.log" 2>&1
-          first=$?
-          node --test tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs > "$RUNNER_TEMP/te012-orchestrator.log" 2>&1
-          second=$?
-          status=0
-          test "$first" -eq 0 -a "$second" -eq 0 || status=1
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          echo '--- TE-012 primary ---'
-          tail -n 180 "$RUNNER_TEMP/te012-main.log"
-          echo '--- TE-012 orchestrator ---'
-          tail -n 180 "$RUNNER_TEMP/te012-orchestrator.log"
-      - name: Upload TE-012 regression logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: te012-regression-logs
-          path: |
-            ${{ runner.temp }}/te012-main.log
-            ${{ runner.temp }}/te012-orchestrator.log
+          node --test tests/node-history-registry-bootstrap.test.mjs
+          node --test tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs
       - name: Protect exact LEGACY behavior
         run: |
           node --test tests/stagedjson-psi-writer-selection.test.mjs
           node --test tests/stagedjson-enriched-xml-topology.test.mjs
-      - name: Enforce TE-012 regression result
-        run: test "${{ steps.te012.outputs.status }}" -eq 0

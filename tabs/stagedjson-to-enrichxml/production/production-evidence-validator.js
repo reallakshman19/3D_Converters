@@ -1,5 +1,5 @@
 import {
-  canonicalSemanticJson, computeSemanticHash, text,
+  computeSemanticHash, text,
 } from '../../../contracts/topo-enriched-xml/contract-core.js';
 import {
   PSIWRITEROCCURRENCEPLAN_V1, TOPOLOGICALGRAPH_V1, TOPONODEALLOCATIONRESULT_V1,
@@ -25,15 +25,13 @@ export async function validateProductionEvidence(input) {
   const warnings = [];
   validateModeAndTime(input, blockers);
   validateContracts(input, blockers);
-  const normalizationApproval = await validateTopologyNormalizationApproval({
-    logicalGraph: input.logicalGraph,
-    topologyNormalizationResult: input.topologyNormalizationResult,
-    topologyNormalizationApproval: input.topologyNormalizationApproval,
-  });
+  validateHistoryResolution(input?.historyMatchResult, blockers);
+  const baseHashes = await recomputeBaseHashes(input, blockers);
+  const normalizationApproval = await validateNormalizationForMode(input, baseHashes);
   inheritValidation(blockers, warnings, normalizationApproval.validation,
     'TOPOLOGY_NORMALIZATION_APPROVAL_BLOCKED');
-  const selectedLogicalGraph = selectGraph(input.operatingMode, input.logicalGraph, normalizationApproval);
-  const hashes = await recomputeHashes(input, selectedLogicalGraph, normalizationApproval, blockers);
+  const selectedLogicalGraph = normalizationApproval.selectedLogicalGraph;
+  const hashes = await completeHashes(input, selectedLogicalGraph, normalizationApproval, baseHashes, blockers);
   validateRootAndChains(input, selectedLogicalGraph, hashes, blockers);
   const registry = await validateCurrentRegistry(input, hashes, blockers);
   hashes.currentRegistrySnapshotHash = registry.currentRegistrySnapshotHash;
@@ -96,21 +94,75 @@ function validateContracts(input, blockers) {
   }
 }
 
-async function recomputeHashes(input, selectedGraph, approval, blockers) {
-  const sourceInventoryHash = await computeSemanticHash(input.sourceInventory || {}, 'sourceInventoryHash');
-  const selectedLogicalTopologyHash = await computeSemanticHash(selectedGraph || {}, 'logicalTopologyHash');
-  const sequencePlanHash = await computeSemanticHash(input.sequencePlan || {}, 'sequencePlanHash');
-  const occurrencePlanHash = await computeOccurrencePlanHash(input.occurrencePlan || {});
-  const historyMatchResultHash = await computeSemanticHash(input.historyMatchResult || {}, 'historyMatchResultHash');
-  const allocationResultHash = await computeSemanticHash(input.allocationResult || {}, 'allocationResultHash');
-  const bootstrapResultHash = await computeBootstrapResultHash(input.bootstrapResult || {});
-  const configHash = await computeSemanticHash({ config: input.config || {} }, 'configHash');
+function validateHistoryResolution(result, blockers) {
+  const unresolved = [
+    ['ambiguous', 'HISTORY_MATCH_AMBIGUITY_UNRESOLVED'],
+    ['conflicts', 'HISTORY_MATCH_CONFLICT_UNRESOLVED'],
+  ];
+  for (const [field, code] of unresolved) {
+    const rows = array(result?.[field]);
+    if (rows.length) blockers.push(issue(code, { count: rows.length, rows: structuredClone(rows) }));
+  }
+}
+
+async function recomputeBaseHashes(input, blockers) {
   const values = {
-    sourceInventoryHash, selectedLogicalTopologyHash, sequencePlanHash, occurrencePlanHash,
-    historyMatchResultHash, allocationResultHash, bootstrapResultHash, configHash,
-    topologyNormalizationHash: approval.topologyNormalizationHash,
-    approvedActionHash: approval.approvedActionHash,
-    normalizationApprovalHash: approval.normalizationApprovalHash,
+    sourceInventoryHash: await computeSemanticHash(input.sourceInventory || {}, 'sourceInventoryHash'),
+    sequencePlanHash: await computeSemanticHash(input.sequencePlan || {}, 'sequencePlanHash'),
+    occurrencePlanHash: await computeOccurrencePlanHash(input.occurrencePlan || {}),
+    historyMatchResultHash: await computeSemanticHash(input.historyMatchResult || {}, 'historyMatchResultHash'),
+    allocationResultHash: await computeSemanticHash(input.allocationResult || {}, 'allocationResultHash'),
+    bootstrapResultHash: await computeBootstrapResultHash(input.bootstrapResult || {}),
+    configHash: await computeSemanticHash({ config: input.config || {} }, 'configHash'),
+  };
+  compareStoredHashes(input, values, blockers);
+  return values;
+}
+
+async function validateNormalizationForMode(input, hashes) {
+  if (text(input?.operatingMode).toUpperCase() === 'SHADOW') {
+    return buildShadowNormalizationEvidence(input?.logicalGraph);
+  }
+  return validateTopologyNormalizationApproval({
+    logicalGraph: input?.logicalGraph,
+    topologyNormalizationResult: input?.topologyNormalizationResult,
+    topologyNormalizationApproval: input?.topologyNormalizationApproval,
+    expectedSourceInventoryHash: hashes.sourceInventoryHash,
+    expectedOccurrencePlanHash: hashes.occurrencePlanHash,
+    expectedExactHistoryEvidenceHash: hashes.historyMatchResultHash,
+  });
+}
+
+async function buildShadowNormalizationEvidence(logicalGraph) {
+  const logicalTopologyHash = await computeSemanticHash(logicalGraph || {}, 'logicalTopologyHash');
+  const topologyNormalizationHash = await shaSemantic({
+    schema: 'TopoShadowOriginalGraphSelection.v1', logicalTopologyHash,
+  });
+  const approvedActionHash = await shaSemantic({ actions: [] });
+  const normalizationApprovalHash = await shaSemantic({
+    schema: 'TopoNormalizationApprovalNotRequired.v1', operatingMode: 'SHADOW', logicalTopologyHash,
+  });
+  return freeze({
+    schema: 'TopoTopologyNormalizationApprovalValidation.v1',
+    approval: null,
+    topologyNormalizationHash,
+    approvedActionHash,
+    normalizationApprovalHash,
+    inputLogicalTopologyHash: logicalTopologyHash,
+    outputLogicalTopologyHash: logicalTopologyHash,
+    selectedLogicalGraph: freeze(logicalGraph),
+    approvalRequired: false,
+    validation: makeValidation(),
+  });
+}
+
+async function completeHashes(input, selectedGraph, approval, base, blockers) {
+  const values = {
+    ...base,
+    selectedLogicalTopologyHash: await computeSemanticHash(selectedGraph || {}, 'logicalTopologyHash'),
+    topologyNormalizationHash: text(approval?.topologyNormalizationHash),
+    approvedActionHash: text(approval?.approvedActionHash),
+    normalizationApprovalHash: text(approval?.normalizationApprovalHash),
   };
   compareStoredHashes(input, values, blockers);
   return values;
@@ -125,9 +177,9 @@ function compareStoredHashes(input, hashes, blockers) {
     ['bootstrapResultHash', hashes.bootstrapResultHash, input.bootstrapResult?.bootstrapResultHash],
     ['configHash', hashes.configHash, input.configHash],
   ];
-  for (const [field, expected, actual] of rows) {
-    compareText(blockers, `${constant(field)}_MISMATCH`, field, expected, actual);
-  }
+  for (const [field, expected, actual] of rows) compareText(
+    blockers, `${constant(field)}_MISMATCH`, field, expected, actual,
+  );
 }
 
 function validateRootAndChains(input, selectedGraph, hashes, blockers) {
@@ -139,6 +191,11 @@ function validateRootAndChains(input, selectedGraph, hashes, blockers) {
     const values = artifacts.map((row) => text(row?.[field])).filter(Boolean);
     if (new Set(values).size !== 1) blockers.push(issue('PRODUCTION_ROOT_CHAIN_MISMATCH', { field, values }));
   }
+  validatePrimaryLinks(input, selectedGraph, hashes, blockers);
+  validateBootstrapLinks(input, hashes, blockers);
+}
+
+function validatePrimaryLinks(input, selectedGraph, hashes, blockers) {
   const links = [
     ['logicalGraph.sourceInventoryHash', hashes.sourceInventoryHash, selectedGraph?.sourceInventoryHash],
     ['sequencePlan.sourceInventoryHash', hashes.sourceInventoryHash, input.sequencePlan?.sourceInventoryHash],
@@ -154,12 +211,15 @@ function validateRootAndChains(input, selectedGraph, hashes, blockers) {
   for (const [field, expected, actual] of links) {
     compareText(blockers, 'PRODUCTION_HASH_CHAIN_MISMATCH', field, expected, actual);
   }
+}
+
+function validateBootstrapLinks(input, hashes, blockers) {
   if (input.bootstrapResult?.schema !== 'TopoNodeRegistryBootstrapResult.v1') {
     blockers.push(issue('BOOTSTRAP_RESULT_INVALID', { schema: input.bootstrapResult?.schema }));
   }
   requirePass(blockers, input.bootstrapResult, 'BOOTSTRAP_RESULT_NOT_PASS');
   const approval = input.bootstrapResult?.approvalEvidence || {};
-  const bootstrapLinks = [
+  const links = [
     ['approvalEvidence.approvedProjectId', input.sourceInventory?.projectId, approval.approvedProjectId],
     ['approvalEvidence.approvedZoneId', input.sourceInventory?.zoneId, approval.approvedZoneId],
     ['approvalEvidence.approvedHistoryMatchResultHash', hashes.historyMatchResultHash,
@@ -168,7 +228,7 @@ function validateRootAndChains(input, selectedGraph, hashes, blockers) {
       approval.approvedAllocationResultHash],
     ['registryPatch.sourceHash', hashes.sourceInventoryHash, input.bootstrapResult?.registryPatch?.sourceHash],
   ];
-  for (const [field, expected, actual] of bootstrapLinks) {
+  for (const [field, expected, actual] of links) {
     compareText(blockers, 'BOOTSTRAP_APPROVAL_CHAIN_MISMATCH', field, expected, actual);
   }
 }
@@ -211,11 +271,6 @@ async function validateCurrentRegistry(input, hashes, blockers) {
     registryPatchHash,
     evidence: freeze({ ...evidence, registrySnapshotHash: currentRegistrySnapshotHash }),
   };
-}
-
-function selectGraph(mode, original, approval) {
-  return text(mode).toUpperCase() === 'SHADOW'
-    ? freeze(original) : approval.selectedLogicalGraph;
 }
 
 function inheritValidation(blockers, warnings, validation, code) {

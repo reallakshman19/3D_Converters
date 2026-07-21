@@ -16,18 +16,17 @@ const APPROVAL_FIELDS = Object.freeze([
   'policyHash', 'approvedActionHash',
 ]);
 
-export async function validateTopologyNormalizationApproval({
-  logicalGraph, topologyNormalizationResult, topologyNormalizationApproval,
-}) {
-  const inputBefore = snapshot({ logicalGraph, topologyNormalizationResult, topologyNormalizationApproval });
+export async function validateTopologyNormalizationApproval(input) {
+  const before = snapshot(input);
   const blockers = [];
-  const result = record(topologyNormalizationResult);
-  const approval = record(topologyNormalizationApproval);
+  const result = record(input?.topologyNormalizationResult);
+  const approval = record(input?.topologyNormalizationApproval);
   validateResultShape(result, blockers);
-  addContractIssues(blockers, TOPOLOGICALGRAPH_V1, logicalGraph, 'LOGICAL_GRAPH_INVALID');
-  requirePass(blockers, logicalGraph, 'LOGICAL_GRAPH_NOT_PASS');
-  const hashes = await recomputeHashes(logicalGraph, result, blockers);
-  const actions = validateAppliedActions(result?.normalization?.actions, blockers);
+  addContractIssues(blockers, TOPOLOGICALGRAPH_V1, input?.logicalGraph, 'LOGICAL_GRAPH_INVALID');
+  requirePass(blockers, input?.logicalGraph, 'LOGICAL_GRAPH_NOT_PASS');
+  const hashes = await recomputeHashes(input?.logicalGraph, result, blockers);
+  validateEvidenceChain(result?.normalization, input, blockers);
+  const actions = validateAppliedActions(result?.nnormalization?.actions, blockers);
   hashes.approvedActionHash = await computeApprovedActionHash(actions);
   validateApproval(approval, result, hashes, blockers);
   hashes.normalizationApprovalHash = await computeNormalizationApprovalHash(approval || {});
@@ -45,10 +44,10 @@ export async function validateTopologyNormalizationApproval({
     inputLogicalTopologyHash: hashes.inputLogicalTopologyHash,
     outputLogicalTopologyHash: hashes.outputLogicalTopologyHash,
     selectedLogicalGraph,
+    approvalRequired: true,
     validation,
   });
-  assertUnchanged({ logicalGraph, topologyNormalizationResult, topologyNormalizationApproval }, inputBefore,
-    'Topology normalization approval validator');
+  assertUnchanged(input, before, 'Topology normalization approval validator');
   return output;
 }
 
@@ -97,6 +96,20 @@ async function recomputeHashes(logicalGraph, result, blockers) {
   return { inputLogicalTopologyHash, outputLogicalTopologyHash, topologyNormalizationHash };
 }
 
+function validateEvidenceChain(normalization, input, blockers) {
+  const links = [
+    ['NORMALIZATION_SOURCE_INVENTORY_HASH_MISMATCH', 'sourceInventoryHash',
+      input?.expectedSourceInventoryHash, normalization?.sourceInventoryHash],
+    ['NORMALIZATION_OCCURRENCE_PLAN_HASH_MISMATCH', 'occurrencePlanHash',
+      input?.expectedOccurrencePlanHash, normalization?.occurrencePlanHash],
+    ['NORMALIZATION_EXACT_HISTORY_EVIDENCE_HASH_MISMATCH', 'exactHistoryEvidenceHash',
+      input?.expectedExactHistoryEvidenceHash, normalization?.exactHistoryEvidenceHash],
+  ];
+  for (const [code, field, expected, actual] of links) {
+    compareText(blockers, code, field, expected, actual);
+  }
+}
+
 function validateAppliedActions(rows, blockers) {
   const actions = sortCanonical(array(rows).filter((row) => APPLIED.has(text(row?.disposition))));
   for (const action of actions) {
@@ -135,7 +148,7 @@ function validateApproval(approval, result, hashes, blockers) {
     inputLogicalTopologyHash: hashes.inputLogicalTopologyHash,
     outputLogicalTopologyHash: hashes.outputLogicalTopologyHash,
     topologyNormalizationHash: hashes.topologyNormalizationHash,
-    policyHash: result?.normalization?.policyHash,
+    policyHash: result?.nnormalization?.policyHash,
     approvedActionHash: hashes.approvedActionHash,
   };
   for (const [field, value] of Object.entries(expected)) {
@@ -145,11 +158,11 @@ function validateApproval(approval, result, hashes, blockers) {
 
 function compareRoot(graph, result, blockers) {
   for (const field of ['projectId', 'zoneId']) {
-    const values = [graph?.[field], result?.normalization?.[field], result?.proposedLogicalGraph?.[field]]
+    const values = [graph?.[field], result?.nnormalization?.[field], result?.proposedLogicalGraph?.[field]]
       .map(text).filter(Boolean);
     if (new Set(values).size !== 1) blockers.push(issue('TOPOLOGY_NORMALIZATION_ROOT_MISMATCH', { field, values }));
   }
-  if (canonicalSemanticJson(result?.normalization?.rawPortMappings || [])
+  if (canonicalSemanticJson(result?.nnormalization?.rawPortMappings || [])
     !== canonicalSemanticJson(sortCanonical(result?.normalization?.rawPortMappings || []))) {
     blockers.push(issue('NORMALIZATION_RAW_PORT_MAPPING_NONCANONICAL'));
   }

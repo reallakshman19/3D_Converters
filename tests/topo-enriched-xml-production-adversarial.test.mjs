@@ -17,7 +17,7 @@ import { makeProductionFixture } from './fixtures/topo-enriched-xml/production/p
 const blockerCodes = (result) => result.validation.blockers
   .flatMap((row) => [row.code, ...(row.evidence?.blockers || []).map((child) => child.code)]);
 
-// 9 — normalization result, action and approval hashes are independent hard gates.
+// 12 — normalization result, action and approval hashes are independent hard gates.
 test('blocks stale normalization, action and approval hashes atomically', async () => {
   const cases = [
     async (input) => {
@@ -41,7 +41,7 @@ test('blocks stale normalization, action and approval hashes atomically', async 
   }
 });
 
-// 10 — bootstrap, current snapshot and registry patch hashes are independently recomputed.
+// 13 — bootstrap, current snapshot and registry patch hashes are independently recomputed.
 test('blocks stale bootstrap, current-registry and registry-patch evidence', async () => {
   const bootstrap = structuredClone(await makeProductionFixture());
   bootstrap.bootstrapResult.bootstrapResultHash = stale();
@@ -57,7 +57,7 @@ test('blocks stale bootstrap, current-registry and registry-patch evidence', asy
   assertBlocked(await runTopoEnrichedXmlProduction(patch), 'REGISTRY_PATCH_HASH_MISMATCH');
 });
 
-// 11 — no occurrence ownership inference.
+// 14 — no occurrence ownership inference.
 test('blocks an occurrence without explicit logical-node ownership before writer invocation', async () => {
   const input = structuredClone(await makeProductionFixture());
   delete input.occurrencePlan.occurrences[0].logicalNodeId;
@@ -68,7 +68,7 @@ test('blocks an occurrence without explicit logical-node ownership before writer
   assert.equal(result.sequentialBundle, null);
 });
 
-// 12 — current registry, not writer behavior, is the number authority.
+// 15 — current registry, not writer behavior, is the number authority.
 test('blocks allocation renumbering that disagrees with approved current history', async () => {
   const input = structuredClone(await makeProductionFixture());
   const allocation = input.allocationResult.allocations.find((row) => row.logicalNodeId === 'LN-A-NEW');
@@ -85,15 +85,15 @@ test('blocks allocation renumbering that disagrees with approved current history
   assert.equal(result.xmlText, '');
 });
 
-// 13 — independently supplied current evidence is mandatory.
+// 16 — independently supplied current evidence is mandatory.
 test('blocks when current registry evidence is absent even with an approved bootstrap', async () => {
   const input = structuredClone(await makeProductionFixture());
   input.currentRegistryEvidence = null;
   assertBlocked(await runTopoEnrichedXmlProduction(input), 'CURRENT_REGISTRY_EVIDENCE_MISSING');
 });
 
-// 14 — a late topology/trace blocker still clears all production output.
-test('clears production output after a late source-path topology evidence blocker', async () => {
+// 17 — a late topology/trace blocker still clears all strict production output.
+test('clears strict production output after a late source-path topology evidence blocker', async () => {
   const input = structuredClone(await makeProductionFixture());
   input.sourceInventory.entities.find((row) => row.sourceEntityId === 'SE-ELBO').sourcePath = '';
   await rehashSourceChain(input);
@@ -107,7 +107,7 @@ test('clears production output after a late source-path topology evidence blocke
   assert.deepEqual(result.trace, []);
 });
 
-// 15 — REVIEW technical blockers cannot leave a proposed bundle.
+// 18 — REVIEW technical blockers cannot leave a proposed bundle.
 test('REVIEW exposes no proposed bundle when a technical hash gate is blocked', async () => {
   const input = structuredClone(await makeProductionFixture({ operatingMode: 'REVIEW' }));
   input.configHash = stale();
@@ -119,8 +119,54 @@ test('REVIEW exposes no proposed bundle when a technical hash gate is blocked', 
   assert.deepEqual(result.trace, []);
 });
 
-// 16 — no hidden legacy, numbering or CII authority in TE-013 modules.
-test('production modules contain no legacy writer, counter, mutation or CII invocation authority', () => {
+// 19 — blocked SHADOW diagnostics cannot erase legacy authority.
+test('SHADOW preserves authoritative legacy XML and trace when strict diagnostics are blocked', async () => {
+  const input = structuredClone(await makeProductionFixture({
+    operatingMode: 'SHADOW',
+    legacyOutput: { xmlText: '<authoritative-legacy/>', trace: [{ legacy: true }] },
+  }));
+  input.configHash = stale();
+  const result = await runTopoEnrichedXmlProduction(input);
+  assert.equal(result.validation.status, 'BLOCKED');
+  assert.equal(result.productionBundle, null);
+  assert.equal(result.proposedBundle, null);
+  assert.equal(result.xmlText, '<authoritative-legacy/>');
+  assert.deepEqual(result.trace, [{ legacy: true }]);
+});
+
+// 20 — normalization artifact roots must bind to the active production chain.
+test('blocks stale normalization source, occurrence and exact-history evidence roots', async () => {
+  const cases = [
+    ['sourceInventoryHash', 'NORMALIZATION_SOURCE_INVENTORY_HASH_MISMATCH'],
+    ['occurrencePlanHash', 'NORMALIZATION_OCCURRENCE_PLAN_HASH_MISMATCH'],
+    ['exactHistoryEvidenceHash', 'NORMALIZATION_EXACT_HISTORY_EVIDENCE_HASH_MISMATCH'],
+  ];
+  for (const [field, code] of cases) {
+    const input = structuredClone(await makeProductionFixture());
+    input.topologyNormalizationResult.normalization[field] = stale();
+    await rehashNormalization(input);
+    assertBlocked(await runTopoEnrichedXmlProduction(input), code);
+  }
+});
+
+// 21 — PASS status cannot conceal unresolved ambiguity or conflicts.
+test('independently rejects non-empty history ambiguity and conflict arrays', async () => {
+  const cases = [
+    ['ambiguous', 'HISTORY_MATCH_AMBIGUITY_UNRESOLVED'],
+    ['conflicts', 'HISTORY_MATCH_CONFLICT_UNRESOLVED'],
+  ];
+  for (const [field, code] of cases) {
+    const input = structuredClone(await makeProductionFixture());
+    input.historyMatchResult[field].push({
+      logicalNodeId: 'LN-A-100', outcome: 'UNRESOLVED', candidates: [], rejectedCandidates: [],
+    });
+    await rehashHistoryChain(input);
+    assertBlocked(await runTopoEnrichedXmlProduction(input), code);
+  }
+});
+
+// 22 — no hidden legacy, injection, numbering or CII authority in TE-013 modules.
+test('production modules contain no legacy writer, runtime switch, counter, mutation or CII authority', () => {
   const files = [
     'production/production-common.js',
     'production/topology-normalization-approval.js',
@@ -141,14 +187,20 @@ test('production modules contain no legacy writer, counter, mutation or CII invo
     const source = readFileSync(new URL(`../tabs/stagedjson-to-enrichxml/${file}`, import.meta.url), 'utf8');
     for (const pattern of prohibited) assert.doesNotMatch(source, pattern, `${file}: ${pattern}`);
   }
+  const entrypoint = readFileSync(new URL(
+    '../tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js', import.meta.url,
+  ), 'utf8');
+  assert.doesNotMatch(entrypoint, /dependencies\s*=|runLegacy|runProduction/);
 });
 
 function assertBlocked(result, code) {
   assert.equal(result.validation.status, 'BLOCKED');
   assert.ok(blockerCodes(result).includes(code), `${code}: ${blockerCodes(result)}`);
   assert.equal(result.productionBundle, null);
-  assert.equal(result.xmlText, '');
-  assert.deepEqual(result.trace, []);
+  if (result.operatingMode !== 'SHADOW') {
+    assert.equal(result.xmlText, '');
+    assert.deepEqual(result.trace, []);
+  }
 }
 
 async function rehashApproval(input) {
@@ -156,9 +208,27 @@ async function rehashApproval(input) {
     await computeNormalizationApprovalHash(input.topologyNormalizationApproval);
 }
 
+async function rehashNormalization(input) {
+  const normalization = input.topologyNormalizationResult.normalization;
+  normalization.normalizationHash = await computeTopologyNormalizationHash(normalization);
+  input.topologyNormalizationApproval.topologyNormalizationHash = normalization.normalizationHash;
+  await rehashApproval(input);
+}
+
 async function rehashBootstrap(input) {
   input.bootstrapResult.bootstrapResultHash = await computeBootstrapResultHash(input.bootstrapResult);
   input.currentRegistryEvidence.bootstrapResultHash = input.bootstrapResult.bootstrapResultHash;
+}
+
+async function rehashHistoryChain(input) {
+  const matchHash = await computeSemanticHash(input.historyMatchResult, 'historyMatchResultHash');
+  input.historyMatchResult.historyMatchResultHash = matchHash;
+  input.allocationResult.historyMatchResultHash = matchHash;
+  input.bootstrapResult.historyMatchResultHash = matchHash;
+  input.bootstrapResult.approvalEvidence.approvedHistoryMatchResultHash = matchHash;
+  input.topologyNormalizationResult.normalization.exactHistoryEvidenceHash = matchHash;
+  await rehashNormalization(input);
+  await rehashBootstrap(input);
 }
 
 async function rehashSourceChain(input) {
@@ -173,9 +243,7 @@ async function rehashSourceChain(input) {
   const normalization = input.topologyNormalizationResult.normalization;
   normalization.sourceInventoryHash = sourceInventoryHash;
   normalization.occurrencePlanHash = input.occurrencePlan.occurrencePlanHash;
-  normalization.normalizationHash = await computeTopologyNormalizationHash(normalization);
-  input.topologyNormalizationApproval.topologyNormalizationHash = normalization.normalizationHash;
-  await rehashApproval(input);
+  await rehashNormalization(input);
   input.bootstrapResult.registryPatch.sourceHash = sourceInventoryHash;
   await rehashBootstrap(input);
 }

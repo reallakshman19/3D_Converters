@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 
 import { canonicalSemanticJson } from '../contracts/topo-enriched-xml/contract-core.js';
-import { runEnrichmentWithTopology } from '../tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js';
+import { runEnrichment } from '../tabs/stagedjson-to-enrichxml/sj-enrichment-engine.js?v=4';
+import {
+  runEnrichmentWithTopology, selectShadowRecords,
+} from '../tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js';
 import { runTopoEnrichedXmlProduction } from '../tabs/stagedjson-to-enrichxml/production/topo-enriched-xml-production.js';
 import { makeProductionFixture } from './fixtures/topo-enriched-xml/production/production-fixture.mjs';
 
@@ -89,18 +93,16 @@ test('SHADOW keeps legacy XML authoritative and never selects a strict bundle', 
   assert.ok(result.sequentialBundle.generated);
 });
 
-// 7 — additive engine entrypoint branches before legacy in ENFORCED.
-test('async engine entrypoint never invokes the legacy runner in ENFORCED', async () => {
-  let legacyCalls = 0;
-  let productionCalls = 0;
-  const expected = Object.freeze({ schema: 'FAKE_PRODUCTION' });
-  const result = await runEnrichmentWithTopology({ operatingMode: 'ENFORCED', records: [] }, {
-    runLegacy: () => { legacyCalls += 1; throw new Error('legacy must not execute'); },
-    runProduction: async () => { productionCalls += 1; return expected; },
-  });
-  assert.equal(result, expected);
-  assert.equal(legacyCalls, 0);
-  assert.equal(productionCalls, 1);
+// 7 — no public implementation replacement switch.
+test('async entrypoint exposes one input parameter and ENFORCED uses the real strict implementation', async () => {
+  assert.equal(runEnrichmentWithTopology.length, 1);
+  const result = await runEnrichmentWithTopology(await makeProductionFixture());
+  assert.equal(result.validation.status, 'PASS');
+  assert.equal(result.selection.authority, 'STRICT_ENFORCED');
+  const source = readFileSync(new URL(
+    '../tabs/stagedjson-to-enrichxml/sj-enrichment-topology.js', import.meta.url,
+  ), 'utf8');
+  assert.doesNotMatch(source, /dependencies\s*=|runLegacy|runProduction/);
 });
 
 // 8 — deterministic, immutable and mutation free.
@@ -117,3 +119,55 @@ test('repeated production is byte-deterministic and deeply immutable without inp
   assert.equal(Object.isFrozen(first.productionBundle), true);
   assert.equal(codes(first).length, 0);
 });
+
+// 9 — G0 SHADOW diagnostics require no normalization approval or proposal.
+test('SHADOW runs strict G0 diagnostics on the original graph without normalization approval', async () => {
+  const input = structuredClone(await makeProductionFixture({
+    operatingMode: 'SHADOW',
+    legacyOutput: { xmlText: '<legacy-g0/>', trace: [{ legacy: 'g0' }] },
+  }));
+  delete input.topologyNormalizationResult;
+  delete input.topologyNormalizationApproval;
+  const result = await runTopoEnrichedXmlProduction(input);
+  assert.equal(result.validation.status, 'PASS', JSON.stringify(result.validation));
+  assert.equal(result.evidence?.normalizationApproval, undefined);
+  assert.equal(result.xmlText, '<legacy-g0/>');
+  assert.deepEqual(result.trace, [{ legacy: 'g0' }]);
+  assert.ok(result.canonicalBundle.generated);
+  assert.ok(result.sequentialBundle.generated);
+  assert.match(result.normalizationApprovalHash, /^sha256:[a-f0-9]{64}$/);
+});
+
+// 10 — an empty caller list cannot suppress enriched legacy records.
+test('SHADOW record selection falls back from an empty caller array to enriched legacy records', () => {
+  const canonicalRecords = [{ sourceEntityId: 'LEGACY-CANONICAL' }];
+  const selected = selectShadowRecords([], {
+    canonicalRecords,
+    records: [{ sourceEntityId: 'LEGACY-SELECTED' }],
+  });
+  assert.deepEqual(selected, canonicalRecords);
+  assert.notEqual(selected, canonicalRecords);
+});
+
+// 11 — exact real-fixture LEGACY equivalence.
+test('async entrypoint is exactly equivalent to runEnrichment for the real 1885 LEGACY fixture', async () => {
+  const stagedJson = JSON.parse(readFileSync(
+    new URL('../Benchmarks/1885Sjson/Sjson.json', import.meta.url), 'utf8',
+  ));
+  const input = { stagedJsonText: stagedJson, config: { psiWriterMode: 'sequential' } };
+  await withFixedDate(async () => {
+    const expected = runEnrichment(structuredClone(input));
+    const actual = await runEnrichmentWithTopology(structuredClone(input));
+    assert.deepEqual(actual, expected);
+  });
+});
+
+async function withFixedDate(callback) {
+  const NativeDate = globalThis.Date;
+  const fixed = '2026-07-21T00:00:00.000Z';
+  globalThis.Date = class FixedDate extends NativeDate {
+    constructor(...args) { super(...(args.length ? args : [fixed])); }
+    static now() { return new NativeDate(fixed).getTime(); }
+  };
+  try { return await callback(); } finally { globalThis.Date = NativeDate; }
+}
