@@ -19,8 +19,8 @@ export async function validateApprovedProposal({ input, current, targetManifest,
   const artifacts = proposalArtifacts(bootstrap);
   const proposed = await snapshotFromArtifacts(artifacts, targetManifest, blockers);
   validateScope(current, proposed, patch, bootstrap, blockers);
-  await verifyPatchBundle(patch, bootstrap, current, proposed, blockers);
   validatePartialAuthority(current, proposed, patch, blockers);
+  await verifyPatchBundle(patch, bootstrap, current, proposed, blockers);
   return proposed;
 }
 
