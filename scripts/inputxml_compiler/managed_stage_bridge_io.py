@@ -10,6 +10,7 @@ from typing import Any
 
 from .base import CompileBlocked, DecisionLedger
 from .managed_stage_diagnostics import block
+from .managed_stage_hashes import reject_unpaired_surrogates
 from .managed_stage_process import (
     ProcessStreamLimitError,
     ProcessTimeoutError,
@@ -28,13 +29,17 @@ TIMEOUT_SECONDS = 45
 def request_bytes(request: dict[str, Any]) -> bytes:
     if request.get("schema") != REQUEST_SCHEMA:
         raise CompileBlocked("Internal managed-stage request schema mismatch.")
-    payload = json.dumps(
-        request,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-        allow_nan=False,
-    ).encode("utf-8")
+    try:
+        reject_unpaired_surrogates(request, path="bridge-request")
+        payload = json.dumps(
+            request,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError, UnicodeEncodeError) as exc:
+        raise CompileBlocked(f"Managed-stage bridge request is not strict UTF-8 JSON: {exc}.") from exc
     if len(payload) > MAX_REQUEST_BYTES:
         raise CompileBlocked(
             f"Managed-stage bridge request exceeds {MAX_REQUEST_BYTES} bytes."
@@ -121,6 +126,7 @@ def strict_json_object(raw: bytes, ledger: DecisionLedger) -> dict[str, Any]:
         value, end = decoder.raw_decode(text)
         if text[end:].strip():
             raise ValueError("extra trailing bridge output")
+        reject_unpaired_surrogates(value, path="bridge-result")
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         block(
             ledger,
