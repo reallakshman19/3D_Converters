@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { parseFbxBytesNode } from '../../tabs/model-converters/converters/fbx/parser-node.js';
+import { transformPoint } from '../../tabs/model-converters/converters/fbx/transform-policy.js';
 import { fixtureBytes } from './helpers.mjs';
 
 const bytes = await fixtureBytes();
@@ -21,6 +23,18 @@ const pipeOne = graph.occurrences.find((item) => item.sourceOccurrenceId === 'oc
 const pipeTwo = graph.occurrences.find((item) => item.sourceOccurrenceId === 'occ:202');
 assert.equal(Math.round(pipeOne.geometryMatrixMm[9]), 300, 'parent transform composition');
 assert.equal(Math.round(pipeTwo.geometryMatrixMm[9]), 400, 'unit conversion to mm');
+
+const axisBytes = new Uint8Array(await readFile(new URL('../fixtures/fbx/axis-geometric.fbx', import.meta.url)));
+const axisGraph = await parseFbxBytesNode(axisBytes);
+const axisOccurrence = axisGraph.occurrences.find((item) => item.sourceOccurrenceId === 'occ:301');
+const axisGeometry = axisGraph.geometries.find((item) => item.geometryObjectId === '103');
+assert.equal(axisGraph.globalSettings.axes.up, 4, 'source Z-up axis is preserved');
+assert.equal(axisOccurrence.hasGeometryTransform, true);
+assert.equal(Math.round(axisOccurrence.worldMatrixSource[11]), 30, 'source parent composition');
+assert.equal(Math.round(axisOccurrence.geometryMatrixSource[11]), 35, 'source geometric transform');
+assert.equal(Math.round(axisOccurrence.worldMatrixMm[10]), 300, 'Z-up converts to Y-up millimetres');
+assert.equal(Math.round(axisOccurrence.geometryMatrixMm[10]), 350, 'geometric transform converts to millimetres');
+assert.deepEqual(transformPoint(axisOccurrence.geometryMatrixMm, axisGeometry.verticesMm[1]).map(Math.round), [0, 450, 0]);
 
 await assert.rejects(() => parseFbxBytesNode(bytes.slice(0, 100)), /truncated|failed|rejected/i);
 const malformed = bytes.slice();

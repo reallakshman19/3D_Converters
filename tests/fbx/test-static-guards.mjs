@@ -17,6 +17,22 @@ async function filesAt(path) {
   return nested.flat();
 }
 
+function namedFunctionLengths(text) {
+  const lines = text.split('\n');
+  const lengths = [];
+  for (let start = 0; start < lines.length; start++) {
+    if (!/\bfunction\s+\w+\s*\(/.test(lines[start])) continue;
+    let depth = 0, opened = false;
+    for (let end = start; end < lines.length; end++) {
+      depth += (lines[end].match(/\{/g) || []).length;
+      depth -= (lines[end].match(/\}/g) || []).length;
+      opened ||= lines[end].includes('{');
+      if (opened && depth === 0) { lengths.push({ line: start + 1, length: end - start + 1 }); break; }
+    }
+  }
+  return lengths;
+}
+
 const prohibited = [
   /\bFBXLoader\b/, /THREE\.FBXLoader/, /Math\.random/, /Date\.now/,
   /nearestNeighbor/i, /raycast.*topology/i, /tolerance.*connect/i,
@@ -29,6 +45,9 @@ for (const sourceRoot of sourceRoots) {
     const lines = text.split('\n').length;
     assert.ok(lines <= 300, `${relative(root, file)} has ${lines} lines`);
     for (const pattern of prohibited) assert.doesNotMatch(text, pattern, `${relative(root, file)} violates ${pattern}`);
+    for (const fn of namedFunctionLengths(text)) {
+      assert.ok(fn.length <= 40, `${relative(root, file)} function at line ${fn.line} has ${fn.length} lines`);
+    }
   }
 }
 console.log('test-static-guards: PASS');

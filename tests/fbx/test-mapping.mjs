@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { normalizeStagedJson } from '../../contracts/stagedjson-contract.js';
 import { convertFbxToStagedJson } from '../../tabs/model-converters/converters/fbx/conversion.js';
+import { parseFbxBytesNode } from '../../tabs/model-converters/converters/fbx/parser-node.js';
 import { validateConnectivity } from '../../tabs/model-converters/converters/fbx/connectivity.js';
 import { validateMappingManifest } from '../../tabs/model-converters/converters/fbx/mapping-validator.js';
 import { resolveEntryPorts } from '../../tabs/model-converters/converters/fbx/port-resolver.js';
@@ -21,16 +22,19 @@ const nurbsEntry = {
 assert.deepEqual(meshPorts.B.positionMm, [100, 0, 0]);
 assert.deepEqual(resolveEntryPorts(nurbsEntry, nurbsGraph).B.positionMm, [200, 0, 0]);
 
-const parse = async () => graph;
-const success = await convertFbxToStagedJson({ bytes, inputName: 'two-pipes.fbx', mapping, parse });
+const actualGraph = await parseFbxBytesNode(bytes);
+const success = await convertFbxToStagedJson({ bytes, inputName: 'two-pipes.fbx', mapping, parse: parseFbxBytesNode });
 assert.equal(success.conversionStatus, 'STAGEDJSON_PASS');
 assert.equal(success.outputs.length, 4);
 const stagedOutput = success.outputs.find((item) => item.name.endsWith('.staged.json'));
 const normalized = normalizeStagedJson(stagedOutput.text);
 assert.equal(normalized.branches[0].children.length, 2);
+assert.deepEqual(normalized.branches[0].children[0].attributes.ports.A.positionMm, { x: 300, y: 0, z: 0 });
+assert.deepEqual(normalized.branches[0].children[1].attributes.ports.B.positionMm, { x: 500, y: 0, z: 0 });
+assert.equal(actualGraph.occurrences.length, 3);
 assert.doesNotMatch(stagedOutput.text, /diameter|wallThickness|temperature|pressure|material|nodeNumber/i);
 
-const blocked = await convertFbxToStagedJson({ bytes, inputName: 'two-pipes.fbx', mapping: null, parse });
+const blocked = await convertFbxToStagedJson({ bytes, inputName: 'two-pipes.fbx', mapping: null, parse: parseFbxBytesNode });
 assert.equal(blocked.conversionStatus, 'BLOCKED_MAPPING');
 assert.ok(!blocked.outputs.some((item) => item.name.endsWith('.staged.json')));
 

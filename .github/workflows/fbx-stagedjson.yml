@@ -44,7 +44,7 @@ jobs:
         run: |
           bash scripts/fbx/build-ufbx-wasm.sh
           python3 scripts/fbx/generate-fixture.py
-          git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx
+          git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
       - name: Run FBX certification
         run: |
           node tests/fbx/run-all.mjs
