@@ -1,11 +1,39 @@
 // Strict JSON decoder used before bridge-request object construction.
 
+const JSON_WHITESPACE = new Set([' ', '\t', '\n', '\r']);
+
+export function assertNoUnpairedSurrogates(value, label = 'JSON string') {
+  const text = String(value ?? '');
+  for (let index = 0; index < text.length; index += 1) {
+    const unit = text.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = text.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) {
+        throw new SyntaxError(`${label} contains an unpaired high surrogate at code-unit ${index}`);
+      }
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+      throw new SyntaxError(`${label} contains an unpaired low surrogate at code-unit ${index}`);
+    }
+  }
+  return text;
+}
+
+function defineOwn(record, key, value) {
+  Object.defineProperty(record, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+}
+
 export function parseStrictJson(text) {
   const source = String(text ?? '');
   let index = 0;
 
   function whitespace() {
-    while (/\s/.test(source[index] ?? '')) index += 1;
+    while (JSON_WHITESPACE.has(source[index] ?? '')) index += 1;
   }
 
   function value() {
@@ -24,7 +52,7 @@ export function parseStrictJson(text) {
   function object() {
     index += 1;
     whitespace();
-    const result = {}, keys = new Set();
+    const result = Object.create(null), keys = new Set();
     if (source[index] === '}') { index += 1; return result; }
     while (true) {
       whitespace();
@@ -35,7 +63,7 @@ export function parseStrictJson(text) {
       whitespace();
       if (source[index] !== ':') throw syntax('object key must be followed by colon');
       index += 1;
-      result[key] = value();
+      defineOwn(result, key, value());
       whitespace();
       if (source[index] === '}') { index += 1; return result; }
       if (source[index] !== ',') throw syntax('object members must be comma-separated');
@@ -62,7 +90,10 @@ export function parseStrictJson(text) {
     index += 1;
     while (index < source.length) {
       const token = source[index++];
-      if (token === '"') return JSON.parse(source.slice(start, index));
+      if (token === '"') {
+        const decoded = JSON.parse(source.slice(start, index));
+        return assertNoUnpairedSurrogates(decoded);
+      }
       if (token === '\\') {
         const escape = source[index++];
         if (escape === 'u') {
@@ -105,4 +136,8 @@ export function parseStrictJson(text) {
   return result;
 }
 
-export const _test = Object.freeze({ parseStrictJson });
+export const _test = Object.freeze({
+  assertNoUnpairedSurrogates,
+  defineOwn,
+  parseStrictJson,
+});
