@@ -3,14 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 from .base import DecisionLedger, ET
+from .pdf_input_echo_accounting_state import verify_state_decision_closure
 
 _ACCOUNTING_SCHEMA = "PdfInputEchoSourceAccountingProof.v1"
-_STATE_TYPES = {
-    "PDF_INPUT_ECHO_EXPLICIT_FIELD",
-    "PDF_INPUT_ECHO_INHERITANCE",
-    "PDF_INPUT_ECHO_EXPLICIT_ABSENCE",
-    "PDF_INPUT_ECHO_INHERITED_ABSENCE",
-}
 
 
 def verify_pdf_input_echo_accounting(
@@ -32,24 +27,14 @@ def verify_pdf_input_echo_accounting(
     }
     expected_element_ids = {str(row["entityId"]) for row in resolved}
     expected_scope_ids = {str(row["lineScopeId"]) for row in scopes}
-    expected_state_ids = {
-        f"{row['entityId']}@{field}"
-        for row in resolved
-        for field in row["stateDecisionFields"]
-    }
     expected_omitted_axes = {
         f"{row['entityId']}@DELTA_{axis}"
         for row in resolved
         for axis in "XYZ"
         if f"DELTA_{axis}" not in row["explicitFields"]
     }
-    state_records = _records(ledger, _STATE_TYPES)
-    actual_state_ids = {str(row.get("sourceEntityId") or "") for row in state_records}
+    state = verify_state_decision_closure(resolved, ledger.records, element_by_id)
     line_mismatches = _element_line_mismatches(resolved, element_by_id)
-    ledger_line_mismatches, cross_line = _state_relation_mismatches(
-        state_records,
-        element_by_id,
-    )
     page_mismatches = _page_mismatches(
         _records(ledger, {"PDF_INPUT_ECHO_PAGE"}),
         provenance,
@@ -93,9 +78,6 @@ def verify_pdf_input_echo_accounting(
         "extraLineScopeRecordCount": len(
             _record_ids(ledger, "PDF_LINE_SCOPE") - expected_scope_ids
         ),
-        "missingStateDecisionCount": len(expected_state_ids - actual_state_ids),
-        "extraStateDecisionCount": len(actual_state_ids - expected_state_ids),
-        "duplicateStateDecisionCount": len(state_records) - len(actual_state_ids),
         "missingOmittedAxisDecisionCount": len(
             expected_omitted_axes - _record_ids(ledger, "PDF_OMITTED_DELTA_AXIS")
         ),
@@ -103,8 +85,11 @@ def verify_pdf_input_echo_accounting(
             _record_ids(ledger, "PDF_OMITTED_DELTA_AXIS") - expected_omitted_axes
         ),
         "elementLineMismatchCount": len(line_mismatches),
-        "ledgerLineMismatchCount": len(ledger_line_mismatches),
-        "crossLineInheritanceCount": len(cross_line),
+        "ledgerLineMismatchCount": len(state["lineOwnershipMismatches"]),
+        "crossLineInheritanceCount": sum(
+            row["reason"] == "predecessor-cross-scope"
+            for row in state["predecessorOwnershipMismatches"]
+        ),
         "unsupportedSectionAccountingMismatchCount": _identity_mismatch_count(
             unsupported_section_ids,
             _blocking_ids(ledger, "PDF_UNSUPPORTED_REPORT_SECTION"),
@@ -117,6 +102,7 @@ def verify_pdf_input_echo_accounting(
             abs(auxiliary_expected.get(name, 0) - auxiliary_actual.get(name, 0))
             for name in sorted(set(auxiliary_expected) | set(auxiliary_actual))
         ),
+        **state["invariants"],
     }
     complete = all(value == 0 for value in invariants.values())
     proof = {
@@ -130,11 +116,31 @@ def verify_pdf_input_echo_accounting(
         "canonicalElementIds": [str(row.get("ID") or "") for row in elements],
         "invariants": invariants,
         "lineMismatches": line_mismatches,
-        "ledgerLineMismatchRecordIds": ledger_line_mismatches,
-        "crossLineInheritanceRecordIds": cross_line,
+        "ledgerLineMismatchRecordIds": [
+            row["sourceEntityId"] for row in state["lineOwnershipMismatches"]
+        ],
+        "crossLineInheritanceRecordIds": [
+            row["sourceEntityId"]
+            for row in state["predecessorOwnershipMismatches"]
+            if row["reason"] == "predecessor-cross-scope"
+        ],
         "pageManifestMismatches": page_mismatches,
         "scopeMismatches": scope_mismatches,
         "blockMismatches": block_mismatches,
+        "stateDecisionExpectedCount": state["expectedCount"],
+        "stateDecisionActualCount": state["actualCount"],
+        "stateDecisionSemanticTupleFields": state["semanticTupleFields"],
+        "expectedStateDecisionHashSha256": state["expectedHashSha256"],
+        "actualStateDecisionHashSha256": state["actualHashSha256"],
+        "stateDecisionCardinalityMismatches": state["cardinalityMismatches"],
+        "stateDecisionSemanticMismatches": state["semanticMismatches"],
+        "stateDecisionSourceXmlMismatches": state["sourceXmlMismatches"],
+        "stateDecisionLedgerXmlMismatches": state["ledgerXmlMismatches"],
+        "stateDecisionPredecessorOwnershipMismatches": (
+            state["predecessorOwnershipMismatches"]
+        ),
+        "stateDecisionOriginOwnershipMismatches": state["originOwnershipMismatches"],
+        "stateDecisionLineOwnershipMismatches": state["lineOwnershipMismatches"],
         "auxiliaryExpected": auxiliary_expected,
         "auxiliaryActual": auxiliary_actual,
     }
@@ -147,7 +153,7 @@ def verify_pdf_input_echo_accounting(
         projection_cardinality="MANY_TO_MANY",
         disposition="PRESERVE_EXTENSION" if complete else "UNSUPPORTED_BLOCKING",
         evidence=[
-            "exact document, provenance, page, header, scope, block, field, axis, auxiliary and emitted-line reconciliation"
+            "independent source-block x field reconstruction and exact ledger/XML semantic closure"
         ],
         diagnostics=(
             [] if complete
@@ -263,26 +269,6 @@ def _element_line_mismatches(
         if actual != expected:
             mismatches.append({"entityId": entity_id, "expected": expected, "actual": actual})
     return mismatches
-
-
-def _state_relation_mismatches(
-    records: list[dict[str, Any]],
-    elements: dict[str, ET._Element],
-) -> tuple[list[str], list[str]]:
-    line_mismatches: list[str] = []
-    cross_line: list[str] = []
-    for row in records:
-        fields = row.get("sourceFields") if isinstance(row.get("sourceFields"), dict) else {}
-        entity_ids = row.get("canonicalElementIds") or []
-        element = elements.get(str(entity_ids[0])) if entity_ids else None
-        if element is None or str(element.get("LINE") or "") != str(fields.get("lineId") or ""):
-            line_mismatches.append(str(row.get("recordId") or ""))
-        if row.get("sourceType") in {
-            "PDF_INPUT_ECHO_INHERITANCE",
-            "PDF_INPUT_ECHO_INHERITED_ABSENCE",
-        } and fields.get("lineScopeId") != fields.get("predecessorLineScopeId"):
-            cross_line.append(str(row.get("recordId") or ""))
-    return line_mismatches, cross_line
 
 
 def _blocking_ids(ledger: DecisionLedger, source_type: str) -> list[str]:
