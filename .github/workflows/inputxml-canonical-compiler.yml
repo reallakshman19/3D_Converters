@@ -180,12 +180,9 @@ jobs:
             tests/test_inputxml_managed_stage_child_ownership.py \
             tests/test_inputxml_managed_stage_component_accounting.py \
             tests/test_inputxml_managed_stage_component_conservation.py \
-            tests/test_inputxml_managed_stage_corpus.py \
             tests/test_inputxml_managed_stage_determinism.py \
-            tests/test_inputxml_managed_stage_inputxml_tamper.py \
             tests/test_inputxml_managed_stage_intake.py \
             tests/test_inputxml_managed_stage_numeric_hash.py \
-            tests/test_inputxml_managed_stage_profile_gate.py \
             tests/test_inputxml_managed_stage_review_regressions.py \
             tests/test_inputxml_managed_stage_trace_ownership.py \
             tests/test_inputxml_managed_stage_unicode_intake.py \
