@@ -34,8 +34,8 @@
     {
       "Piping Class": "96620",
       "Size": "10",
-      "SCH": "100",
-      "Wall thickness": "18.262599999999999",
+      "SCH": "80",
+      "Wall thickness": "15.09",
       "Material_Name": "ASTM A333-6/A671-CC65 cl 22 + Clad UNS N08825",
       "PMSMat_Categories": "Alloy 825 LT Sour",
       "PMSMat_Cat": "AS825",
