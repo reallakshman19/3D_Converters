@@ -10,9 +10,22 @@
     "sourceUnit": "mm",
     "canonicalUnit": "mm",
     "axisMapping": "IDENTITY_XYZ",
-    "elementOwnership": "TO_NODE",
+    "elementOwnership": "EXPLICIT_OCCURRENCE_SECTION_CLAIMS",
     "deltaRule": "TO_MINUS_FROM",
     "zeroLength": "BLOCK"
+  },
+  "occurrenceOwnershipPolicy": {
+    "elementRule": "ADJACENT_SOURCE_NODES_FORM_ONE_ELEMENT",
+    "incomingOwner": {"role": "INCOMING_ELEMENT_OWNER", "baseElementFields": true},
+    "outgoingOwner": {
+      "role": "OUTGOING_ENDPOINT_OWNER",
+      "branchStartOnly": true,
+      "requiredEndpoint": 0,
+      "allowedProjectionRoles": ["ARRIVE"],
+      "auxiliarySectionsOnly": ["BEND", "RIGID", "RESTRANT"]
+    },
+    "sharedElementPolicy": "SECTION_SCOPED_NON_CONFLICTING_CLAIMS",
+    "omissionPolicy": "PAYLOAD_FREE_ISOLATED_TOPOLOGY_ENDPOINT_ONLY"
   },
   "unitPolicy": {
     "DistanceUnits": {"requiredSource": "mm", "factor": 1},
@@ -27,6 +40,12 @@
   "componentPolicy": {
     "supported": ["PIPE", "OLET", "ELBO", "VALV", "FLAN", "GASK", "INST", "ATTA"],
     "unsupportedBlocking": ["BRAN", "REDU"],
+    "independentPayloadTypes": ["OLET", "ELBO", "VALV", "FLAN", "GASK", "INST", "ATTA"],
+    "requiredProjectionSections": {
+      "PIPE": [], "OLET": ["ELEMENTS"], "ELBO": ["BEND"],
+      "VALV": ["RIGID"], "FLAN": ["RIGID"], "GASK": ["RIGID"],
+      "INST": ["RIGID"], "ATTA": ["RESTRANT"]
+    },
     "bend": {"componentType": "ELBO", "endpoint": 0, "requiresPositiveRadius": true},
     "rigidValues": [0, 2],
     "rigidOwnerValues": [2],
@@ -53,27 +72,38 @@
     "cnode": 0,
     "directionCosines": [0, 0, 0]
   },
+  "fieldPolicy": {
+    "HYDRO_PRESSURE": {
+      "canonicalValue": "0",
+      "canonicalUnit": "pascal",
+      "authority": "TE014_POLICY_EXPLICIT_ABSENCE_OF_HYDROSTATIC_TEST_CASE",
+      "sourceDisposition": "PSI116_SOURCE_CONTRACT_HAS_NO_HYDRO_PRESSURE_FIELD",
+      "projectionDisposition": "NORMALIZE_EXPLICIT_ABSENCE",
+      "ciiSection": "ELEMENTS",
+      "fallbackAllowed": false
+    }
+  },
   "openEndPolicy": {
     "sourceField": "RestrainOpenEnds",
     "canonicalDisposition": "EVIDENCE_ONLY",
     "syntheticRestraintsAllowed": false
   },
   "isolatedNodePolicy": {
-    "disposition": "INTENTIONALLY_OMITTED_ISOLATED_NODE",
+    "disposition": "INTENTIONALLY_OMITTED_PAYLOAD_FREE_ENDPOINT",
     "requiresExplicitLedgerRow": true,
+    "requiresPayloadFree": true,
     "ciiProjection": false
   },
   "boundaryNodePolicy": {
-    "disposition": "INTENTIONALLY_OMITTED_BRANCH_BOUNDARY",
+    "disposition": "PROJECT_TO_ADJACENT_ELEMENT_OR_BLOCK",
+    "payloadFreeComponentTypes": ["PIPE"],
     "requiresExplicitLedgerRow": true,
-    "ciiProjection": false
+    "requiresPayloadFreeForOmission": true
   },
-  "materialPolicy": {
-    "zeroMeaning": "EXPLICIT_UNSPECIFIED",
-    "fallbackAllowed": false
-  },
+  "materialPolicy": {"zeroMeaning": "EXPLICIT_UNSPECIFIED", "fallbackAllowed": false},
   "fallbackPolicy": {
     "fieldDefaultsAllowed": false,
+    "policyNormalizedExplicitAbsenceAllowed": ["HYDRO_PRESSURE"],
     "nodeNumberAllocationAllowed": false,
     "coordinateInferenceAllowed": false,
     "topologyRepairAllowed": false,
