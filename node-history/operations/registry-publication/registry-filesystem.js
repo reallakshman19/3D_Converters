@@ -100,12 +100,13 @@ async function inspectComponent(target, leaf, options) {
 }
 
 async function removeOwnedTree(directory, expectedCanonical = '') {
+  if (!expectedCanonical) throw operationError('CUSTODY_OWNERSHIP_CLAIM_REQUIRED', directory);
   if (!await exists(directory)) return;
   const canonical = await resolveCustodyPath(directory, { mustExist: true, expectedType: 'directory' });
-  if (expectedCanonical && path.resolve(canonical) !== path.resolve(expectedCanonical)) {
+  if (path.resolve(canonical) !== path.resolve(expectedCanonical)) {
     throw operationError('CUSTODY_ROOT_CHANGED', directory);
   }
-  await fs.rm(directory, { recursive: true, force: false });
+  await fs.rm(canonical, { recursive: true, force: false });
 }
 
 async function exists(target) {
