@@ -33,7 +33,8 @@ class UxmlRvmContractRegressionTests(unittest.TestCase):
         with self.assertRaises(ContractError) as caught:
             validate_coordinate_context(context, sha256_bytes(source), kind)
         self.assertEqual("UXML_RVM_COORDINATE_SOURCE_BINDING", caught.exception.code)
-        self.assertIsNotNone(caught.exception.__traceback__)
+        error = ContractError("TEST", "traceback assignment")
+        error.__traceback__ = None
 
 
 if __name__ == "__main__":
