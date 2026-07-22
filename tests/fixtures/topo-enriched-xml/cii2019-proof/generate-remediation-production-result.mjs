@@ -17,11 +17,14 @@ source = source.replace(/from '([^']+)'/g, (match, specifier) => {
   if (!specifier.startsWith('.')) return match;
   return `from '${new URL(specifier, fixtureUrl).href}'`;
 });
+const branchLine = "      { sourceBranch: '/LINE-B/B1', canonicalMainLine: '/LINE-B' },\n";
 const componentLine = "      { sourceEntityId: 'SE-FLAN', sourceBranch: '/LINE-B/B1' },\n";
 const recordLine = "    record('SE-FLAN', 'FLAN', 'FLANGE-1', { POS: point(300) }),\n";
-if (!source.includes(componentLine) || !source.includes(recordLine)) {
+if (!source.includes(branchLine) || !source.includes(componentLine) || !source.includes(recordLine)) {
   throw new Error('Accepted TE-013 production fixture shape changed.');
 }
+const branchIndex = source.lastIndexOf(branchLine);
+source = source.slice(0, branchIndex) + source.slice(branchIndex + branchLine.length);
 source = source.replace(componentLine, '').replace(recordLine, '');
 const directory = await mkdtemp(join(tmpdir(), 'te014-remediation-fixture-'));
 const modulePath = join(directory, 'production-fixture-remediation.mjs');
