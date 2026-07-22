@@ -6,7 +6,7 @@ TE-015 is an operations-side controller over the accepted TE-005 registry contra
 
 The controller prepares evidence for operator-controlled publication. It has no authority to alter the live registry, invoke GitHub, commit, push, merge, allocate node numbers, change lifecycle state, normalize topology, or run PSI/CII conversion.
 
-The owner-remediation gate requires executable proof for unowned-root preservation, no-follow ancestry, disjoint temporary roots, truthful live-custody state, and complete TE-002 through TE-013 regression execution.
+GitHub Actions workflows are intentionally outside this branch. Repository workflows were removed by the owner to avoid Actions-credit consumption. TE-015 verification is therefore reported as explicit local command evidence rather than workflow status.
 
 ## API
 
@@ -33,7 +33,7 @@ Every current, registry-subtree, candidate, rollback, file, and ancestor path is
 
 The candidate and rollback roots must be fully disjoint from the current registry and from one another in both parent/child directions. Containment is checked on canonical paths, not only lexical path strings.
 
-A temporary root becomes invocation-owned only after exclusive creation succeeds. Cleanup receives the exact canonical ownership claim and may remove only that claimed root. A pre-existing candidate or rollback root is rejected and remains byte-identical. Early validation failures cannot delete caller-owned paths.
+A temporary root becomes invocation-owned only after exclusive creation succeeds. Cleanup requires the exact canonical ownership claim and removes only that verified canonical root. A pre-existing candidate or rollback root is rejected and remains byte-identical. Early validation failures cannot delete caller-owned paths.
 
 ## Target manifest
 
@@ -96,9 +96,9 @@ liveRegistryMutated: false
 A blocked result never exposes an accepted package or root. Live custody is three-state:
 
 ```text
-confirmed difference     -> liveRegistryMutated: true
-confirmed byte equality  -> liveRegistryMutated: false
-failed/unprovable reread  -> liveRegistryMutated: null
+confirmed difference      -> liveRegistryMutated: true
+confirmed byte equality   -> liveRegistryMutated: false
+failed/unprovable reread   -> liveRegistryMutated: null
 ```
 
 Controller-owned partial trees are cleaned after failure. Unowned existing trees are never reused or removed.
