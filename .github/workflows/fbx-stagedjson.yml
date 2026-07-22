@@ -38,19 +38,32 @@ jobs:
       - name: Install pinned compiler family
         run: sudo apt-get update && sudo apt-get install -y clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32
       - name: Rebuild committed parser and fixtures
-        env:
-          CC: clang-18
-          WASI_SYSROOT: /usr
+        id: rebuild
         run: |
-          bash scripts/fbx/build-ufbx-wasm.sh
-          python3 scripts/fbx/generate-fixture.py
+          set +e
+          CC=clang-18 WASI_SYSROOT=/usr bash scripts/fbx/build-ufbx-wasm.sh > fbx-build.log 2>&1
+          parser_status=$?
+          python3 scripts/fbx/generate-fixture.py >> fbx-build.log 2>&1
+          fixture_status=$?
+          echo "$parser_status" > fbx-parser-build.status
+          echo "$fixture_status" > fbx-fixture-build.status
+          exit 0
       - name: Upload rebuilt parser proof
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: fbx-parser-rebuild-${{ github.sha }}
-          path: third_party/ufbx/fbx_parser.wasm
+          path: |
+            fbx-build.log
+            fbx-parser-build.status
+            fbx-fixture-build.status
+            third_party/ufbx/fbx_parser.wasm
           if-no-files-found: error
           retention-days: 3
+      - name: Verify rebuild succeeded
+        run: |
+          test "$(cat fbx-parser-build.status)" = "0"
+          test "$(cat fbx-fixture-build.status)" = "0"
       - name: Verify generated-byte determinism
         run: git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
       - name: Run FBX certification
