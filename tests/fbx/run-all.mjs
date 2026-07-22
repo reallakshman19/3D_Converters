@@ -1,5 +1,8 @@
 const tests = [
   'test-parser.mjs',
+  'test-source-graph-v2.mjs',
+  'test-v1-compatibility.mjs',
+  'test-node-attribute-compatibility.mjs',
   'test-transforms.mjs',
   'test-mapping.mjs',
   'test-worker.mjs',

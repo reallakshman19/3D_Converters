@@ -2,6 +2,7 @@ import { canonicalJson } from './canonical-json.js';
 import { validateConnectivity } from './connectivity.js';
 import { validateMappingManifest } from './mapping-validator.js';
 import { resolveEntryPorts } from './port-resolver.js';
+import { projectSourceGraphV1 } from './source-graph-v1-compat.js';
 import { writeNativeStagedJson } from './staged-writer.js';
 
 function baseName(name) {
@@ -68,6 +69,15 @@ function successResult(stem, graph, ledger, staged, counts) {
   } };
 }
 
+function compatibilityGraph(stem, graph) {
+  try {
+    return { graph: projectSourceGraphV1(graph), blocked: null };
+  } catch (error) {
+    const diagnostic = error instanceof Error ? error.message : String(error);
+    return { graph: null, blocked: blockedResult(stem, graph, 'BLOCKED_PARSE', [diagnostic]) };
+  }
+}
+
 export async function convertFbxToStagedJson({ bytes, inputName, mapping, mappingError, parse }) {
   const stem = baseName(inputName);
   let graph;
@@ -77,12 +87,14 @@ export async function convertFbxToStagedJson({ bytes, inputName, mapping, mappin
     const diagnostic = error instanceof Error ? error.message : String(error);
     return blockedResult(stem, null, 'BLOCKED_PARSE', [diagnostic]);
   }
+  const compatibility = compatibilityGraph(stem, graph);
+  if (compatibility.blocked) return compatibility.blocked;
   if (mappingError) return blockedResult(stem, graph, 'BLOCKED_MAPPING', [mappingError]);
   if (!mapping) return blockedResult(stem, graph, 'BLOCKED_MAPPING', ['Mapping manifest is required.']);
   try {
-    const accepted = validateMappingManifest(mapping, graph);
+    const accepted = validateMappingManifest(mapping, compatibility.graph);
     const resolvedByEntry = new Map(accepted.entries.map((entry) => [
-      entry.mappingEntryId, resolveEntryPorts(entry, graph),
+      entry.mappingEntryId, resolveEntryPorts(entry, compatibility.graph),
     ]));
     const links = validateConnectivity(accepted.entries, resolvedByEntry);
     const ledger = mappingLedger(accepted, resolvedByEntry, links);

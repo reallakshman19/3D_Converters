@@ -36,7 +36,8 @@ function namedFunctionLengths(text) {
 const prohibited = [
   /\bFBXLoader\b/, /THREE\.FBXLoader/, /Math\.random/, /Date\.now/,
   /nearestNeighbor/i, /raycast.*topology/i, /tolerance.*connect/i,
-  /https?:\/\/.*(?:cdn|unpkg|jsdelivr)/i, /export\s+default\b/,
+  /distance.*(?:connect|topology)/i, /https?:\/\/.*(?:cdn|unpkg|jsdelivr)/i,
+  /export\s+default\b/, /(?:displayName|domSourceName).*\.(?:match|test)\(/i,
 ];
 for (const sourceRoot of sourceRoots) {
   for (const file of await filesAt(sourceRoot)) {
@@ -49,5 +50,10 @@ for (const sourceRoot of sourceRoots) {
       assert.ok(fn.length <= 40, `${relative(root, file)} function at line ${fn.line} has ${fn.length} lines`);
     }
   }
+}
+const parser = await readFile(join(root, 'third_party/ufbx/fbx_parser.c'), 'utf8');
+assert.doesNotMatch(parser, /default:\s*return\s+"OTHER"/, 'parser silently collapses element evidence');
+for (const type of ['MATERIAL', 'CAMERA', 'LIGHT', 'TEXTURE', 'VIDEO', 'SKIN_DEFORMER', 'ANIM_CURVE']) {
+  assert.match(parser, new RegExp(`UFBX_ELEMENT_${type}`), `parser lacks ${type} evidence`);
 }
 console.log('test-static-guards: PASS');
