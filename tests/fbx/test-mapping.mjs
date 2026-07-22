@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { normalizeStagedJson } from '../../contracts/stagedjson-contract.js';
+import { buildTopologySourceModel } from '../../tabs/model-converters/converters/component-topology/topology-source-model.js';
+import { buildExplicitConnectivity, portForRole } from '../../tabs/model-converters/converters/component-topology/topology-connectivity.js';
 import { convertFbxToStagedJson } from '../../tabs/model-converters/converters/fbx/conversion.js';
 import { parseFbxBytesNode } from '../../tabs/model-converters/converters/fbx/parser-node.js';
 import { validateConnectivity } from '../../tabs/model-converters/converters/fbx/connectivity.js';
@@ -28,15 +30,32 @@ assert.equal(success.conversionStatus, 'STAGEDJSON_PASS');
 assert.equal(success.outputs.length, 4);
 const stagedOutput = success.outputs.find((item) => item.name.endsWith('.staged.json'));
 const normalized = normalizeStagedJson(stagedOutput.text);
+assert.equal(normalized.branches.length, 1);
 assert.equal(normalized.branches[0].children.length, 2);
-assert.deepEqual(normalized.branches[0].children[0].attributes.ports.A.positionMm, { x: 300, y: 0, z: 0 });
-assert.deepEqual(normalized.branches[0].children[1].attributes.ports.B.positionMm, { x: 500, y: 0, z: 0 });
+assert.deepEqual(normalized.branches[0].children[0].attributes.APOS, { x: 300, y: 0, z: 0 });
+assert.deepEqual(normalized.branches[0].children[1].attributes.LPOS, { x: 500, y: 0, z: 0 });
 assert.equal(actualGraph.occurrences.length, 3);
 assert.doesNotMatch(stagedOutput.text, /diameter|wallThickness|temperature|pressure|material|nodeNumber/i);
+
+const topologyModel = await buildTopologySourceModel(stagedOutput.text, {
+  sourceName: 'two-pipes.staged.json', sourceRevision: 1, toleranceMm: 0.5,
+});
+assert.equal(topologyModel.components.length, 2);
+assert.ok(topologyModel.components.every((component) => component.geometryClassification === 'FINITE'));
+const topologyConnectivity = buildExplicitConnectivity(topologyModel, 0.5);
+assert.equal(topologyConnectivity.issues.filter((issue) => issue.blocking !== false).length, 0);
+const firstExit = portForRole(topologyModel.components[0], 'L');
+const secondEntry = portForRole(topologyModel.components[1], 'A');
+assert.equal(topologyConnectivity.set.find(firstExit.key), topologyConnectivity.set.find(secondEntry.key));
 
 const blocked = await convertFbxToStagedJson({ bytes, inputName: 'two-pipes.fbx', mapping: null, parse: parseFbxBytesNode });
 assert.equal(blocked.conversionStatus, 'BLOCKED_MAPPING');
 assert.ok(!blocked.outputs.some((item) => item.name.endsWith('.staged.json')));
+const parseBlocked = await convertFbxToStagedJson({
+  bytes, inputName: 'broken.fbx', mapping, parse: async () => { throw new Error('parser-error-proof'); },
+});
+assert.equal(parseBlocked.conversionStatus, 'BLOCKED_PARSE');
+assert.ok(!parseBlocked.outputs.some((item) => item.name.endsWith('.fbx-source-graph.json')));
 
 const incomplete = structuredClone(mapping);
 incomplete.inScopeSourceObjectIds.push('999');
@@ -60,9 +79,12 @@ assert.throws(() => validateMappingManifest(nameOnly, graph), /geometryObjectId|
 const disconnected = structuredClone(mapping);
 disconnected.entries[0].portB.connections = [];
 disconnected.entries[1].portA.connections = [];
-const disconnectedAccepted = validateMappingManifest(disconnected, graph);
-const resolved = new Map(disconnectedAccepted.entries.map((entry) => [entry.mappingEntryId, resolveEntryPorts(entry, graph)]));
-assert.deepEqual(validateConnectivity(disconnectedAccepted.entries, resolved), [], 'no proximity-derived connectivity');
+const disconnectedResult = await convertFbxToStagedJson({
+  bytes, inputName: 'two-pipes.fbx', mapping: disconnected, parse: parseFbxBytesNode,
+});
+assert.equal(disconnectedResult.conversionStatus, 'STAGEDJSON_PASS');
+const disconnectedStaged = JSON.parse(disconnectedResult.outputs.find((item) => item.name.endsWith('.staged.json')).text);
+assert.equal(disconnectedStaged.length, 2, 'disconnected mapped PIPEs must not share one branch');
 
 for (const mutation of ['self', 'dangling', 'asymmetric']) {
   const bad = structuredClone(mapping);
@@ -73,4 +95,13 @@ for (const mutation of ['self', 'dangling', 'asymmetric']) {
   const portMap = new Map(valid.entries.map((entry) => [entry.mappingEntryId, resolveEntryPorts(entry, graph)]));
   assert.throws(() => validateConnectivity(valid.entries, portMap), new RegExp(mutation));
 }
+
+const cyclic = structuredClone(mapping);
+cyclic.entries[0].portA.connections = [{ mappingEntryId: 'map-pipe-2', port: 'B' }];
+cyclic.entries[1].portB.connections = [{ mappingEntryId: 'map-pipe-1', port: 'A' }];
+const cycleResult = await convertFbxToStagedJson({
+  bytes, inputName: 'two-pipes.fbx', mapping: cyclic, parse: parseFbxBytesNode,
+});
+assert.equal(cycleResult.conversionStatus, 'BLOCKED_STAGEDJSON_CONTRACT');
+assert.ok(!cycleResult.outputs.some((item) => item.name.endsWith('.staged.json')));
 console.log('test-mapping: PASS');
