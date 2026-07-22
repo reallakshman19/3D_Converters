@@ -68,7 +68,7 @@ function successResult(stem, graph, ledger, staged, counts) {
   } };
 }
 
-export async function convertFbxToStagedJson({ bytes, inputName, mapping, parse }) {
+export async function convertFbxToStagedJson({ bytes, inputName, mapping, mappingError, parse }) {
   const stem = baseName(inputName);
   let graph;
   try {
@@ -77,6 +77,7 @@ export async function convertFbxToStagedJson({ bytes, inputName, mapping, parse 
     const diagnostic = error instanceof Error ? error.message : String(error);
     return blockedResult(stem, null, 'BLOCKED_PARSE', [diagnostic]);
   }
+  if (mappingError) return blockedResult(stem, graph, 'BLOCKED_MAPPING', [mappingError]);
   if (!mapping) return blockedResult(stem, graph, 'BLOCKED_MAPPING', ['Mapping manifest is required.']);
   try {
     const accepted = validateMappingManifest(mapping, graph);
