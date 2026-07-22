@@ -93,7 +93,7 @@ test('candidate and rollback roots cannot overlap in either direction', async (t
 });
 
 test('symlinked custody roots and ancestors fail closed', async (t) => {
-  if (process.platform === 'win32') { t.skip('symlink custody proof runs on the Ubuntu workflow'); return; }
+  if (process.platform === 'win32') { t.skip('symlink custody proof runs on POSIX'); return; }
   const cases = [symlinkCurrentRoot, symlinkRegistrySubtree, symlinkCandidateParent, symlinkRollbackParent];
   for (const configure of cases) {
     const fixture = await makeOperationsCase();
@@ -125,6 +125,24 @@ test('simulated write failure removes only the invocation-owned candidate root',
   assert.equal(result.status, 'BLOCKED');
   assert.equal(await base.exists(candidateRoot), false);
   assert.equal(result.publishablePackage, null);
+});
+
+test('cleanup requires the exact canonical ownership claim', async (t) => {
+  const fixture = await makeOperationsCase();
+  t.after(fixture.cleanup);
+  const root = fixture.input.targetManifest.temporaryRoot;
+  await mkdir(root);
+  await assert.rejects(
+    fixture.fileSystem.removeTree(root),
+    (error) => error?.code === 'CUSTODY_OWNERSHIP_CLAIM_REQUIRED',
+  );
+  assert.equal(await fixture.fileSystem.exists(root), true);
+  const canonical = await fixture.fileSystem.resolveCustodyPath(root, { mustExist: true, expectedType: 'directory' });
+  await assert.rejects(
+    fixture.fileSystem.removeTree(root, `${canonical}-wrong`),
+    (error) => error?.code === 'CUSTODY_ROOT_CHANGED',
+  );
+  assert.equal(await fixture.fileSystem.exists(root), true);
 });
 
 test('simulated candidate re-read corruption cannot become publishable', async (t) => {
