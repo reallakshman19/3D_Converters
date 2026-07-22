@@ -20,17 +20,20 @@
         "type": "object",
         "required": [
           "sourceObjectId", "elementId", "typedId", "class", "subtype",
-          "sourceName", "name", "ufbxType", "customProperties"
+          "name", "customProperties"
         ],
         "properties": {
           "sourceObjectId": { "type": "string", "minLength": 1 },
           "elementId": { "type": "integer", "minimum": 0 },
           "typedId": { "type": "integer", "minimum": 0 },
-          "class": { "type": "string", "minLength": 1 },
+          "class": {
+            "enum": [
+              "NODE", "MESH", "NURBS_CURVE", "LINE_CURVE",
+              "NURBS_SURFACE", "UNKNOWN", "OTHER"
+            ]
+          },
           "subtype": { "type": "string" },
-          "sourceName": { "type": "string" },
           "name": { "type": "string" },
-          "ufbxType": { "type": "string", "minLength": 1 },
           "customProperties": { "type": "array" }
         }
       }
