@@ -66,13 +66,33 @@ def node(index, number, kind, endpoint, x, *, role, rigid=None, weight="0", radi
 
 
 def intake(nodes):
+    node_rows = tuple(nodes)
     branch = SimpleNamespace(
         source_path="/b", branch_index=0, branch_name="L1",
         temperatures=tuple(["0"] * 9), pressures=tuple(["0"] * 9),
         material_number=106, insulation_density="0", fluid_density="0",
-        nodes=tuple(nodes),
+        nodes=node_rows,
     )
-    return SimpleNamespace(branches=(branch,))
+    edge_ids = [f"E{index + 1}" for index in range(max(0, len(node_rows) - 1))]
+    source_entities = []
+    occurrences = []
+    for index, value in enumerate(node_rows):
+        occurrence_id = value.trace["occurrenceId"]
+        source_entity_id = value.trace["sourceEntityId"]
+        owned_edges = []
+        if edge_ids:
+            owned_edges.append(edge_ids[min(index, len(edge_ids) - 1)])
+        source_entities.append({
+            "sourceEntityId": source_entity_id,
+            "logicalEdgeIds": owned_edges,
+            "occurrenceIds": [occurrence_id],
+        })
+        occurrences.append({
+            "occurrenceId": occurrence_id,
+            "sourceEntityId": source_entity_id,
+        })
+    production = {"topologyIndex": {"sourceEntities": source_entities, "occurrences": occurrences}}
+    return SimpleNamespace(branches=(branch,), production_result=production)
 
 
 class TopoEnrichedXmlCii2019ProofTests(unittest.TestCase):
