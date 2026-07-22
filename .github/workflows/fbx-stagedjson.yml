@@ -22,49 +22,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Capture parser rebuild
+      - name: Install pinned compiler family
+        run: sudo apt-get update && sudo apt-get install -y clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32
+      - name: Rebuild committed parser and fixtures
+        env:
+          CC: clang-18
+          WASI_SYSROOT: /usr
         run: |
-          set +e
-          {
-            echo '=== toolchain ==='
-            uname -a
-            command -v clang-18 || true
-            clang-18 --version || true
-            echo '=== apt update ==='
-            sudo apt-get update
-            echo '=== apt install ==='
-            sudo apt-get install -y clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32
-            echo '=== parser build ==='
-            CC=clang-18 WASI_SYSROOT=/usr bash scripts/fbx/build-ufbx-wasm.sh
-            parser_status=$?
-            echo "parserStatus=$parser_status"
-            echo '=== fixture build ==='
-            python3 scripts/fbx/generate-fixture.py
-            fixture_status=$?
-            echo "fixtureStatus=$fixture_status"
-          } > fbx-build.log 2>&1
-          parser_status=$(grep '^parserStatus=' fbx-build.log | tail -1 | cut -d= -f2)
-          fixture_status=$(grep '^fixtureStatus=' fbx-build.log | tail -1 | cut -d= -f2)
-          echo "${parser_status:-99}" > fbx-parser-build.status
-          echo "${fixture_status:-99}" > fbx-fixture-build.status
-          exit 0
-      - name: Upload parser rebuild proof
-        uses: actions/upload-artifact@v4
-        with:
-          name: fbx-parser-rebuild-${{ github.sha }}
-          path: |
-            fbx-build.log
-            fbx-parser-build.status
-            fbx-fixture-build.status
-            third_party/ufbx/fbx_parser.wasm
-          if-no-files-found: error
-          retention-days: 3
-      - name: Verify rebuild succeeded
-        run: |
-          test "$(cat fbx-parser-build.status)" = "0"
-          test "$(cat fbx-fixture-build.status)" = "0"
-      - name: Verify generated-byte determinism
-        run: git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
+          bash scripts/fbx/build-ufbx-wasm.sh
+          python3 scripts/fbx/generate-fixture.py
+          git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
       - name: Run FBX certification
         run: |
           node tests/fbx/run-all.mjs
