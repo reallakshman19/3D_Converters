@@ -28,9 +28,12 @@ proof = load_module("te014_proof_adversarial", SCRIPTS / "topo_enriched_xml_cii2
 mutation = load_module("te014_mutation", FIXTURES / "te013_mutation.py")
 
 
-def production_result() -> dict:
+def production_result(*, coverage_mode: str = "CLEAN") -> dict:
     completed = subprocess.run(
-        ["node", str(FIXTURES / "generate-remediation-production-result.mjs"), "CANONICAL"],
+        [
+            "node", str(FIXTURES / "generate-remediation-production-result.mjs"),
+            "CANONICAL", coverage_mode,
+        ],
         cwd=ROOT, check=True, capture_output=True, text=True,
     )
     return json.loads(completed.stdout)
@@ -48,6 +51,14 @@ class TopoEnrichedXmlCii2019AdversarialTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.valid = production_result()
+
+    def test_edge_owned_source_entity_without_occurrence_is_rejected(self):
+        incomplete = production_result(coverage_mode="INCOMPLETE_TOPOLOGY")
+        result = blocked(incomplete)
+        diagnostics = json.dumps(result["diagnostics"])
+        self.assertIn("topology occurrence coverage is incomplete", diagnostics)
+        self.assertIn("SE-FLAN", diagnostics)
+        self.assertIn("LE-B-1", diagnostics)
 
     def test_non_selectable_production_bundle_is_rejected(self):
         value = copy.deepcopy(self.valid)
