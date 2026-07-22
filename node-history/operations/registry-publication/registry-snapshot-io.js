@@ -1,9 +1,7 @@
 import path from 'node:path';
 import { deepFreeze, text } from '../../../contracts/topo-enriched-xml/contract-core.js';
 import { issue } from '../../registry/registry-contracts.js';
-import {
-  computeRegistrySnapshotHash,
-} from '../../registry/registry-hash.js';
+import { computeRegistrySnapshotHash } from '../../registry/registry-hash.js';
 import { validateRegistrySnapshot } from '../../registry/registry-validator.js';
 import {
   canonicalBytes,
@@ -29,9 +27,12 @@ export async function readRegistrySnapshot({ root, targetManifest, fileSystem })
   });
 }
 
-export async function materializeRegistrySnapshot({ root, targetManifest, artifacts, fileSystem }) {
+export async function materializeRegistrySnapshot({
+  root, targetManifest, artifacts, fileSystem, onRootCreated = () => {},
+}) {
   if (await fileSystem.exists(root)) throw stageError('MATERIALIZATION_ROOT_ALREADY_EXISTS', { root });
-  await fileSystem.createDirectoryExclusive(root);
+  const canonicalRoot = await fileSystem.createDirectoryExclusive(root);
+  onRootCreated(canonicalRoot);
   for (const target of targetManifest.files) {
     const artifact = artifactForTarget(target, artifacts);
     await fileSystem.writeFileExclusive(path.join(root, target.path), canonicalBytes(artifact));
@@ -129,11 +130,17 @@ function artifactForTarget(target, artifacts) {
 }
 
 function publicFileRecord(row) {
-  return { role: row.role, path: row.path, ...(row.mainLineKey ? { mainLineKey: row.mainLineKey } : {}), sha256: row.sha256, bytesBase64: row.bytes.toString('base64') };
+  return {
+    role: row.role,
+    path: row.path,
+    ...(row.mainLineKey ? { mainLineKey: row.mainLineKey } : {}),
+    sha256: row.sha256,
+    bytesBase64: row.bytes.toString('base64'),
+  };
 }
 
 function errorEvidence(error, target = '') {
-  return { code: text(error?.code), message: text(error?.message), ...(target ? { target } : {}) };
+  return { code: text(error?.code), message: text(error?.message), evidence: error?.evidence || {}, ...(target ? { target } : {}) };
 }
 
 function stageError(code, evidence) {
