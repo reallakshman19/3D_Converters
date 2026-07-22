@@ -41,6 +41,21 @@ const EXPECTED_GIT_BLOB_SHA1 = '9ac18595acdf8938f01579b5c211f0deebc5dc0a';
 const EVALUATED_AT = '2026-07-22T00:00:00Z';
 const REVISION_ID = 'REV-ASIM-1885-NC-001';
 const APPROVAL_RECORD_ID = 'APPROVAL-ASIM-1885-TE016A-001';
+const BOOTSTRAP_RUN_ID = 'RUN-TE016A-ASIM-1885-BOOTSTRAP-001';
+
+/**
+ * Explicit, owner-approved resolutions for OWNER_SOURCE_CONFLICT branch
+ * identities (concept §8.2). Each entry records a real disagreement between
+ * a branch's own name-root and its OWNER attribute that the adapter refuses
+ * to resolve silently. Approved 2026-07-22: branch
+ * /ASIM-1885-4"-P-8810288-31441C4/B1 has OWNER=/ASIM-1885-4"-P8810288-31441C4-PP-01
+ * (an existing 11-branch line) while its own name is missing the "-PP-01"
+ * job-spec suffix and has an extra hyphen — a source-data label typo, not a
+ * distinct line. OWNER is authoritative.
+ */
+const APPROVED_BRANCH_IDENTITY_RESOLUTIONS = Object.freeze({
+  '/ASIM-1885-4"-P-8810288-31441C4/B1': 'OWNER',
+});
 const APPROVED_DIR = join(REPO_ROOT, 'node-history/bootstrap/approved/ASIM-1885/ZONE-1885-NC');
 const LEASE_STEP = 10;
 const LEASE_FIRST_START = 10;
@@ -61,6 +76,7 @@ async function main() {
     toleranceMm: 0.5,
     supportProjectionToleranceMm: 50,
     expectedGitBlobSha1: EXPECTED_GIT_BLOB_SHA1,
+    approvedBranchIdentityResolutions: APPROVED_BRANCH_IDENTITY_RESOLUTIONS,
   });
   console.log(`Source identity verified: gitBlobSha1=${inventory.identity.gitBlobSha1}`);
   console.log(`Envelope: ${inventory.metrics.canonical.nodes} canonical nodes across ${inventory.lines.length} lines.`);
@@ -95,7 +111,9 @@ async function main() {
   }
   console.log(`Allocation complete: ${allocationResult.allocations.length} NEW engineering numbers assigned.`);
 
-  const approvedIdentityAssignments = buildIdentityAssignments(inventory.currentLogicalNodes);
+  const approvedIdentityAssignments = await buildIdentityAssignments(
+    inventory.currentLogicalNodes, seedManifest.registrySnapshotHash,
+  );
   const assignmentResult = await validateApprovedIdentityAssignments({
     assignments: approvedIdentityAssignments,
     acceptedMatches: acceptedMatchMap(historyMatchResult),
@@ -202,6 +220,18 @@ async function buildSeedZoneRegistry(leases, lineHistories) {
   return registry;
 }
 
+/**
+ * Only the exact-identity matcher runs here. The registered/spatial matcher
+ * (matchRegisteredHistoricalNodes) additionally requires a coordinate
+ * registration authority and a full RegisteredHistoryMatcherPolicy.v1 score
+ * model — but this seed's previousRegistry has zero history nodes on any
+ * line (concept §4.3) and zero coordinateRegistrationRefs. Spatial/registered
+ * matching can only ever propose a match against existing history; with none
+ * to match against, its result is guaranteed to be "no match" regardless of
+ * policy or registration, so running it here would add no evidentiary value.
+ * It becomes load-bearing once ASIM-1885 has a real revision history (i.e.
+ * inside TE-016, not this bootstrap).
+ */
 async function runMatchAndAllocatePerLine({ inventory, seedZoneRegistry, seedLineHistories, seedManifest }) {
   const previousRegistry = {
     projectId: PROJECT_ID, zoneId: ZONE_ID,
@@ -293,19 +323,51 @@ function acceptedMatchMap(result) {
   ]);
 }
 
-function buildIdentityAssignments(currentLogicalNodes) {
-  return currentLogicalNodes.map((node) => ({
-    logicalNodeId: node.logicalNodeId,
-    historyNodeId: `HN-${node.logicalNodeId.slice(3)}`,
-    mainLineKey: node.mainLineKey,
-    identityAuthority: 'BOOTSTRAP_IDENTITY_BOARD',
-    sourceAliases: [node.logicalNodeId],
-    approvalRecordId: APPROVAL_RECORD_ID,
-    identityEvidence: [{
-      kind: 'CANONICAL_TOPOLOGY_NODE_ID', value: node.logicalNodeId,
-      authority: 'BOOTSTRAP_IDENTITY_BOARD', approvalRecordId: APPROVAL_RECORD_ID,
-    }],
-  }));
+/**
+ * Concept §11.4: new history IDs must be deterministically proposed from
+ * transaction identity, not from coordinates or mutable topology
+ * fingerprints (the canonical-topology node ID shifts if upstream
+ * components are added/removed, since it is assigned by global sort
+ * order). HN-<sha256(project|zone|baseSnapshotHash|runId|ordinal)[0:16]>
+ * is stable against exactly that kind of topology churn.
+ *
+ * Source aliases use the real content-hashed sourcePortIds (Tier 3 evidence
+ * per §9.2), not the topology-order-derived logicalNodeId. sourcePortIds are
+ * the correct exclusive unit here: a single source entity (e.g. a PIPE
+ * component) legitimately touches two different canonical nodes through its
+ * arrive/leave ports, so sourceEntityIds are not node-exclusive, but each
+ * port belongs to exactly one connectivity-grouped node.
+ */
+async function buildIdentityAssignments(currentLogicalNodes, baseRegistrySnapshotHash) {
+  const seenAliases = new Set();
+  const assignments = [];
+  for (const [ordinal, node] of currentLogicalNodes.entries()) {
+    const historyNodeId = `HN-${(await sha256Hex(
+      [PROJECT_ID, ZONE_ID, baseRegistrySnapshotHash, BOOTSTRAP_RUN_ID, ordinal].join('|'),
+    )).slice(0, 16)}`;
+    for (const alias of node.sourcePortIds) {
+      if (seenAliases.has(alias)) throw new Error(`sourcePortId ${alias} is claimed by more than one canonical node.`);
+      seenAliases.add(alias);
+    }
+    assignments.push({
+      logicalNodeId: node.logicalNodeId,
+      historyNodeId,
+      mainLineKey: node.mainLineKey,
+      identityAuthority: 'BOOTSTRAP_IDENTITY_BOARD',
+      sourceAliases: [...node.sourcePortIds],
+      approvalRecordId: APPROVAL_RECORD_ID,
+      identityEvidence: [{
+        kind: 'STABLE_SOURCE_PORT', value: node.sourcePortIds[0],
+        authority: 'BOOTSTRAP_IDENTITY_BOARD', approvalRecordId: APPROVAL_RECORD_ID,
+      }],
+    });
+  }
+  return assignments;
+}
+
+async function sha256Hex(value) {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function slugForLine(mainLineKey) {

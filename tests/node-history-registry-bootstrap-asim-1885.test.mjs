@@ -9,17 +9,23 @@ import {
 } from '../node-history/registry/registry-hash.js';
 import { validateRegistrySnapshot } from '../node-history/registry/registry-validator.js';
 import { buildApprovedRegistryBootstrap, serializeBootstrapArtifact } from '../node-history/bootstrap/bootstrap-result.js';
-import { buildAsim1885SourceLineInventory } from '../node-history/bootstrap/asim-1885/source-line-inventory.js';
+import {
+  BranchIdentityConflictError,
+  buildAsim1885SourceLineInventory,
+} from '../node-history/bootstrap/asim-1885/source-line-inventory.js';
 
 const APPROVED = new URL('../node-history/bootstrap/approved/ASIM-1885/ZONE-1885-NC/', import.meta.url);
 const EXPECTED_GIT_BLOB_SHA1 = '9ac18595acdf8938f01579b5c211f0deebc5dc0a';
+const APPROVED_BRANCH_IDENTITY_RESOLUTIONS = Object.freeze({
+  '/ASIM-1885-4"-P-8810288-31441C4/B1': 'OWNER',
+});
 
 function readJson(relativePath) {
   return JSON.parse(readFileSync(new URL(relativePath, APPROVED), 'utf8'));
 }
 
-test('TE-016A source identity and topology envelope reproduce exactly from committed benchmark bytes', async () => {
-  const inventory = await buildAsim1885SourceLineInventory({
+function inventoryOptions(overrides = {}) {
+  return {
     filePath: new URL('../Benchmarks/1885_NC/1885_NC.json', import.meta.url),
     sourceName: '1885_NC.json',
     jobName: '1885_NC',
@@ -29,7 +35,25 @@ test('TE-016A source identity and topology envelope reproduce exactly from commi
     toleranceMm: 0.5,
     supportProjectionToleranceMm: 50,
     expectedGitBlobSha1: EXPECTED_GIT_BLOB_SHA1,
-  });
+    approvedBranchIdentityResolutions: APPROVED_BRANCH_IDENTITY_RESOLUTIONS,
+    ...overrides,
+  };
+}
+
+test('an unresolved OWNER/source-root branch-identity conflict fails closed rather than silently picking a side', async () => {
+  await assert.rejects(
+    () => buildAsim1885SourceLineInventory(inventoryOptions({ approvedBranchIdentityResolutions: {} })),
+    (error) => {
+      assert.ok(error instanceof BranchIdentityConflictError);
+      assert.equal(error.conflicts.length, 1);
+      assert.equal(error.conflicts[0].sourceBranch, '/ASIM-1885-4"-P-8810288-31441C4/B1');
+      return true;
+    },
+  );
+});
+
+test('TE-016A source identity and topology envelope reproduce exactly from committed benchmark bytes', async () => {
+  const inventory = await buildAsim1885SourceLineInventory(inventoryOptions());
   assert.equal(inventory.identity.gitBlobSha1, EXPECTED_GIT_BLOB_SHA1);
   assert.equal(inventory.metrics.source.branches, 278);
   assert.equal(inventory.metrics.source.childRecords, 4320);
