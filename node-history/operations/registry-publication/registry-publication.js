@@ -7,6 +7,7 @@ import {
   compareCanonical,
   immutableResult,
   normalizeTargetManifest,
+  pathsOverlap,
   sortIssues,
   validateCommit,
   validateEvaluatedAt,
@@ -22,6 +23,10 @@ import {
 } from './registry-snapshot-io.js';
 import { buildPublicationPackage } from './registry-publication-package.js';
 
+const LIVE_UNKNOWN = 'UNKNOWN';
+const LIVE_UNCHANGED = 'UNCHANGED';
+const LIVE_MUTATED = 'MUTATED';
+
 export async function prepareRegistryPublication(input) {
   const inputsBefore = captureInputs(input), blockers = [];
   const targetManifest = normalizeTargetManifest(input?.targetManifest);
@@ -29,28 +34,29 @@ export async function prepareRegistryPublication(input) {
   const expectedBaseCommit = validateCommit(input?.expectedBaseCommit, 'expectedBaseCommit', blockers);
   const evaluatedAt = validateEvaluatedAt(input?.evaluatedAt, blockers);
   const fileSystem = input?.fileSystem || createNodeFileSystemAdapter();
-  let current = null, proposed = null, rollbackProof = emptyRollbackProof();
+  const ownership = createOwnershipState(), liveCustody = { state: LIVE_UNKNOWN };
+  let current = null, proposed = null, rollbackProof = emptyRollbackProof(), reRead = null;
   try {
-    validateRootIsolation(input?.currentRegistryRoot, targetManifest, blockers);
+    await validateCustodyRoots(input?.currentRegistryRoot, targetManifest, fileSystem, blockers);
     current = await readCurrent(input, targetManifest, fileSystem, blockers);
     proposed = await validateApprovedProposal({ input, current, targetManifest, blockers });
-    const reRead = await materializeAndRead(input, targetManifest, fileSystem, blockers);
+    reRead = await materializeAndRead(input, targetManifest, fileSystem, ownership, blockers);
     validateMaterialized(proposed, reRead, blockers);
     const recoveryManifest = blockers.length ? null : buildRecoveryManifest({
       currentSnapshot: current, targetManifest, expectedBaseCommit,
     });
-    rollbackProof = await proveRollback(recoveryManifest, targetManifest, fileSystem, blockers);
-    await verifyLiveRegistry(input, current, targetManifest, fileSystem, blockers);
+    rollbackProof = await proveRollback(recoveryManifest, targetManifest, fileSystem, ownership, blockers);
+    await verifyLiveRegistry(input, current, targetManifest, fileSystem, liveCustody, blockers);
     const result = blockers.length
-      ? await blockedResult({ blockers, current, proposed, rollbackProof, evaluatedAt, targetManifest, fileSystem })
+      ? await blockedResult({ blockers, current, proposed, rollbackProof, evaluatedAt, targetManifest, fileSystem, ownership, liveCustody })
       : passResult({ input, current, proposed: reRead, rollbackProof, recoveryManifest, targetManifest, expectedBaseCommit, evaluatedAt });
     assertArtifactsUnchanged(inputsBefore, captureInputs(input));
     return result;
   } catch (error) {
     blockers.push(issue(error?.code || 'REGISTRY_PUBLICATION_STAGE_FAILED', errorEvidence(error)));
-    await cleanupTemporaryRoots(targetManifest, fileSystem);
+    await cleanupOwnedRoots(targetManifest, fileSystem, ownership, blockers);
     assertArtifactsUnchanged(inputsBefore, captureInputs(input));
-    return blockedResult({ blockers, current, proposed, rollbackProof, evaluatedAt, targetManifest, fileSystem, cleaned: true });
+    return blockedResult({ blockers, current, proposed, rollbackProof, evaluatedAt, targetManifest, fileSystem, ownership, liveCustody, cleaned: true });
   }
 }
 
@@ -67,29 +73,31 @@ async function readCurrent(input, targetManifest, fileSystem, blockers) {
   return current;
 }
 
-async function materializeAndRead(input, targetManifest, fileSystem, blockers) {
+async function materializeAndRead(input, targetManifest, fileSystem, ownership, blockers) {
   if (blockers.length) return null;
   await materializeRegistrySnapshot({
     root: targetManifest.temporaryRoot,
     targetManifest,
     artifacts: proposalArtifacts(input.bootstrapResult),
     fileSystem,
+    onRootCreated: (canonical) => claimRoot(ownership, 'temporaryRoot', canonical),
   });
   return readRegistrySnapshot({ root: targetManifest.temporaryRoot, targetManifest, fileSystem });
 }
 
-async function proveRollback(recoveryManifest, targetManifest, fileSystem, blockers) {
+async function proveRollback(recoveryManifest, targetManifest, fileSystem, ownership, blockers) {
   if (!recoveryManifest) return emptyRollbackProof();
-  let proof;
+  let proof = emptyRollbackProof();
   try {
     proof = await restoreRegistrySnapshot({
       recoveryManifest,
       restoreRoot: targetManifest.rollbackProofRoot,
       targetManifest,
       fileSystem,
+      onRootCreated: (canonical) => claimRoot(ownership, 'rollbackProofRoot', canonical),
     });
   } finally {
-    await fileSystem.removeTree(targetManifest.rollbackProofRoot);
+    await cleanupOwnedRoot('rollbackProofRoot', targetManifest, fileSystem, ownership, blockers);
   }
   if (proof.status !== 'PASS') blockers.push(issue('ROLLBACK_PROOF_NOT_PASS', {
     blockers: proof.validation.blockers,
@@ -97,16 +105,19 @@ async function proveRollback(recoveryManifest, targetManifest, fileSystem, block
   return proof;
 }
 
-async function verifyLiveRegistry(input, before, targetManifest, fileSystem, blockers) {
+async function verifyLiveRegistry(input, before, targetManifest, fileSystem, liveCustody, blockers) {
   if (!before) return;
   const after = await readRegistrySnapshot({ root: input.currentRegistryRoot, targetManifest, fileSystem });
   if (after.validation.status !== 'PASS') {
     blockers.push(...after.validation.blockers);
     blockers.push(issue('LIVE_REGISTRY_REREAD_FAILED', { blockers: after.validation.blockers }));
+    liveCustody.state = LIVE_UNKNOWN;
     return;
   }
-  if (text(before.snapshotHash) !== text(after.snapshotHash)
-    || !compareCanonical(artifactFileHashes(before), artifactFileHashes(after))) blockers.push(issue('LIVE_REGISTRY_MUTATED'));
+  const changed = text(before.snapshotHash) !== text(after.snapshotHash)
+    || !compareCanonical(artifactFileHashes(before), artifactFileHashes(after));
+  liveCustody.state = changed ? LIVE_MUTATED : LIVE_UNCHANGED;
+  if (changed) blockers.push(issue('LIVE_REGISTRY_MUTATED'));
 }
 
 function validateMaterialized(proposed, reRead, blockers) {
@@ -153,7 +164,7 @@ function passResult(values) {
 }
 
 async function blockedResult(values) {
-  if (!values.cleaned) await cleanupTemporaryRoots(values.targetManifest, values.fileSystem);
+  if (!values.cleaned) await cleanupOwnedRoots(values.targetManifest, values.fileSystem, values.ownership, values.blockers);
   return immutableResult({
     schema: PUBLICATION_RESULT_SCHEMA,
     status: 'BLOCKED',
@@ -168,18 +179,72 @@ async function blockedResult(values) {
     publishablePackage: null,
     acceptedMaterializedRoot: null,
     rollbackProof: values.rollbackProof,
-    liveRegistryMutated: false,
+    liveRegistryMutated: liveMutationValue(values.liveCustody?.state),
     validation: validationFrom(sortIssues(values.blockers)),
     evaluatedAt: text(values.evaluatedAt),
   });
 }
 
-async function cleanupTemporaryRoots(targetManifest, fileSystem) {
-  if (!targetManifest || !fileSystem) return;
-  await Promise.allSettled([
-    targetManifest.temporaryRoot && fileSystem.removeTree(targetManifest.temporaryRoot),
-    targetManifest.rollbackProofRoot && fileSystem.removeTree(targetManifest.rollbackProofRoot),
-  ]);
+async function cleanupOwnedRoots(targetManifest, fileSystem, ownership, blockers) {
+  if (!targetManifest || !fileSystem || !ownership) return;
+  await cleanupOwnedRoot('rollbackProofRoot', targetManifest, fileSystem, ownership, blockers);
+  await cleanupOwnedRoot('temporaryRoot', targetManifest, fileSystem, ownership, blockers);
+}
+
+async function cleanupOwnedRoot(field, targetManifest, fileSystem, ownership, blockers) {
+  const claim = ownership[field];
+  if (!claim?.owned) return;
+  try {
+    await fileSystem.removeTree(targetManifest[field], claim.canonical);
+    ownership[field] = { owned: false, canonical: '' };
+  } catch (error) {
+    blockers.push(issue('OWNED_TEMPORARY_ROOT_CLEANUP_FAILED', { field, ...errorEvidence(error) }));
+  }
+}
+
+async function validateCustodyRoots(currentRoot, targetManifest, fileSystem, blockers) {
+  if (!text(currentRoot)) {
+    blockers.push(issue('CURRENT_REGISTRY_ROOT_MISSING'));
+    return;
+  }
+  if (!targetManifest.temporaryRoot || !targetManifest.rollbackProofRoot || !targetManifest.registryRootPath) return;
+  try {
+    const current = await fileSystem.resolveCustodyPath(currentRoot, { mustExist: true, expectedType: 'directory' });
+    const registry = await fileSystem.resolveCustodyPath(path.join(currentRoot, targetManifest.registryRootPath), {
+      mustExist: true, expectedType: 'directory',
+    });
+    const temporary = await fileSystem.resolveCustodyPath(targetManifest.temporaryRoot, { mustExist: false, expectedType: 'directory' });
+    const rollback = await fileSystem.resolveCustodyPath(targetManifest.rollbackProofRoot, { mustExist: false, expectedType: 'directory' });
+    validateCanonicalIsolation({ current, registry, temporary, rollback }, targetManifest, blockers);
+  } catch (error) {
+    blockers.push(issue(error?.code || 'CUSTODY_PATH_VALIDATION_FAILED', errorEvidence(error)));
+  }
+}
+
+function validateCanonicalIsolation(roots, targetManifest, blockers) {
+  if (!pathsOverlap(roots.current, roots.registry) || roots.registry === roots.current) blockers.push(issue('REGISTRY_SUBTREE_CONTAINMENT_INVALID'));
+  for (const [field, value] of [['temporaryRoot', roots.temporary], ['rollbackProofRoot', roots.rollback]]) {
+    if (pathsOverlap(roots.current, value)) blockers.push(issue('LIVE_REGISTRY_TEMPORARY_ROOT_OVERLAP', {
+      field, currentRegistryRoot: roots.current, value,
+    }));
+  }
+  if (pathsOverlap(roots.temporary, roots.rollback)) blockers.push(issue('TEMPORARY_ROOT_COLLISION', {
+    temporaryRoot: targetManifest.temporaryRoot, rollbackProofRoot: targetManifest.rollbackProofRoot,
+  }));
+}
+
+function createOwnershipState() {
+  return { temporaryRoot: { owned: false, canonical: '' }, rollbackProofRoot: { owned: false, canonical: '' } };
+}
+
+function claimRoot(ownership, field, canonical) {
+  ownership[field] = { owned: true, canonical: text(canonical) };
+}
+
+function liveMutationValue(state) {
+  if (state === LIVE_MUTATED) return true;
+  if (state === LIVE_UNCHANGED) return false;
+  return null;
 }
 
 function captureInputs(input = {}) {
@@ -192,21 +257,6 @@ function captureInputs(input = {}) {
     targetManifest: input.targetManifest,
     evaluatedAt: input.evaluatedAt,
   });
-}
-
-function validateRootIsolation(currentRoot, targetManifest, blockers) {
-  const current = text(currentRoot);
-  for (const [field, value] of [['temporaryRoot', targetManifest.temporaryRoot], ['rollbackProofRoot', targetManifest.rollbackProofRoot]]) {
-    if (current && value && rootsOverlap(current, value)) blockers.push(issue('LIVE_REGISTRY_TEMPORARY_ROOT_OVERLAP', {
-      field, currentRegistryRoot: current, value,
-    }));
-  }
-  if (!current) blockers.push(issue('CURRENT_REGISTRY_ROOT_MISSING'));
-}
-
-function rootsOverlap(left, right) {
-  const first = path.resolve(left), second = path.resolve(right);
-  return second === first || second.startsWith(`${first}${path.sep}`) || first.startsWith(`${second}${path.sep}`);
 }
 
 function emptyRollbackProof() {
