@@ -37,14 +37,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install pinned compiler family
         run: sudo apt-get update && sudo apt-get install -y clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32
-      - name: Rebuild committed parser and fixture
+      - name: Rebuild committed parser and fixtures
         env:
           CC: clang-18
           WASI_SYSROOT: /usr
         run: |
           bash scripts/fbx/build-ufbx-wasm.sh
           python3 scripts/fbx/generate-fixture.py
-          git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
+      - name: Upload rebuilt parser proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: fbx-parser-rebuild-${{ github.sha }}
+          path: third_party/ufbx/fbx_parser.wasm
+          if-no-files-found: error
+          retention-days: 3
+      - name: Verify generated-byte determinism
+        run: git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
       - name: Run FBX certification
         run: |
           node tests/fbx/run-all.mjs
