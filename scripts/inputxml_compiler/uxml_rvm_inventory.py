@@ -115,7 +115,7 @@ def validate_topology_plan(
     if artifact in (None, {}):
         if source_kind == "RVM_ROWS":
             fail("UXML_RVM_TOPOLOGY_PLAN_MISSING", "RVM rows require an approved exact-topology plan")
-        return None, ""
+        return None, sha256_bytes(b"")
     plan = require_object(artifact, "UXML_RVM_TOPOLOGY_PLAN_SHAPE", "topology plan")
     if clean(plan.get("schema")) != TOPOLOGY_SCHEMA:
         fail("UXML_RVM_TOPOLOGY_PLAN_SCHEMA", f"Expected {TOPOLOGY_SCHEMA}")
