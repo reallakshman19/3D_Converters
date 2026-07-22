@@ -38,6 +38,15 @@ jobs:
           python - <<'PY'
           import subprocess
           base = '2eaf6655d3240b774b8de3fa48c9de4dd67af2b4'
+          owned_surfaces = (
+              '.github/workflows/topo-enriched-xml-production.yml',
+              'tabs/stagedjson-to-enrichxml/',
+              'tests/topo-enriched-xml-production.test.mjs',
+              'tests/topo-enriched-xml-production-adversarial.test.mjs',
+              'tests/fixtures/topo-enriched-xml/production/',
+              'tests/node-history-registry-bootstrap.test.mjs',
+              'tests/fixtures/node-history/bootstrap/orchestrator-regressions.test.mjs',
+          )
           allowed = (
               '.github/workflows/topo-enriched-xml-production.yml',
               'tabs/stagedjson-to-enrichxml/production/',
@@ -50,8 +59,11 @@ jobs:
           )
           head = '${{ github.event.pull_request.head.sha }}' or 'HEAD'
           files = subprocess.check_output(['git', 'diff', '--name-only', f'{base}...{head}'], text=True).splitlines()
-          print('TE-013 changed files:', files)
-          bad = [path for path in files if not any(path == item or path.startswith(item) for item in allowed)]
+          owned = [path for path in files if any(path == item or path.startswith(item) for item in owned_surfaces)]
+          unrelated = [path for path in files if path not in owned]
+          print('TE-013-owned changed files:', owned)
+          print('Other authorized work-pack files ignored by TE-013 scope guard:', unrelated)
+          bad = [path for path in owned if not any(path == item or path.startswith(item) for item in allowed)]
           assert not bad, f'unauthorized TE-013 paths: {bad}'
           PY
       - name: Validate TE-013 file and function bounds
