@@ -23,13 +23,9 @@ from .uxml_rvm_contracts import (
     semantic_normalize,
 )
 
+from .uxml_rvm_source_contract import require_source_sections, validate_source_contract
+
 PIPE_ROLES = {"PIPE_END_1", "PIPE_END_2"}
-_REQUIRED_SECTIONS = (
-    "header", "sources", "mappings", "units", "pipelines", "components",
-    "anchors", "ports", "segments", "supports", "topologyHints",
-    "rayEvidence", "lossContract", "diagnostics",
-)
-_BLOCKING_SEVERITIES = {"ERROR", "FATAL", "BLOCKING"}
 
 def _request_source(request: dict[str, Any]) -> tuple[Any, str]:
     encoded = clean(request.get("sourceBase64"))
@@ -67,7 +63,7 @@ def verify_bridge_result(request: dict[str, Any], result: Any) -> dict[str, Any]
     else:
         expected_rows = payload if isinstance(payload, list) else payload.get("rows", payload.get("rvmRows"))
         if expected_rows != rows:
-            fail("UXML_RVM_RVM_ROW_MUTATION", "Bridge altered exact RVM row semantics")
+            fail("UXML_RVM_RVM_ROW_MUTATION", "Bride altered exact RVM row semantics")
     expected = {
         "adaptedUxmlHashSha256": sha256_bytes(stable_json_bytes(uxml)),
         "componentHashSha256": sha256_bytes(stable_json_bytes(uxml.get("components") or [])),
@@ -91,53 +87,10 @@ def verify_bridge_result(request: dict[str, Any], result: Any) -> dict[str, Any]
     require_hash(value, "resultHashSha256", "UXML_RVM_BRIDGE_RESULT_HASH")
     return value
 
-def _require_sections(uxml: dict[str, Any]) -> None:
-    missing = [name for name in _REQUIRED_SECTIONS if name not in uxml]
-    if missing:
-        fail("UXML_RVM_REQUIRED_SECTION", f"UXML is missing required sections: {missing}")
-    if not isinstance(uxml.get("header"), dict) or not isinstance(uxml.get("units"), dict):
-        fail("UXML_RVM_REQUIRED_SECTION", "header and units must be objects")
-    for name in _REQUIRED_SECTIONS:
-        if name in {"header", "units"}:
-            continue
-        if not isinstance(uxml.get(name), list):
-            fail("UXML_RVM_REQUIRED_SECTION", f"{name} must be an array")
-
-def _validate_units(uxml: dict[str, Any], coordinate_context: dict[str, Any]) -> None:
-    units = uxml["units"]
-    coordinate_unit = clean(units.get("coordinates")).upper()
-    length_unit = clean(units.get("length")).upper()
-    if not coordinate_unit or not length_unit:
-        fail("UXML_RVM_SOURCE_UNITS_MISSING", "Source coordinate and length units are mandatory")
-    if coordinate_unit != clean(coordinate_context.get("sourceCoordinateUnits")).upper():
-        fail("UXML_RVM_SOURCE_COORDINATE_UNIT_CONTRADICTION", "Source and coordinate-context units disagree")
-
-def _validate_source_refs(
-    components: list[dict[str, Any]], source_by_id: dict[str, dict[str, Any]]
-) -> None:
-    for component in components:
-        refs = require_strings(
-            component.get("sourceRefs"),
-            "UXML_RVM_COMPONENT_SOURCE_REFS",
-            f"{component.get('id')}.sourceRefs",
-        )
-        unknown = sorted(set(refs) - set(source_by_id))
-        if unknown:
-            fail("UXML_RVM_COMPONENT_SOURCE_REF", f"Component {component['id']} has unknown sourceRefs {unknown}")
-
-def _validate_diagnostics(uxml: dict[str, Any]) -> None:
-    for index, diagnostic in enumerate(uxml.get("diagnostics") or []):
-        row = require_object(diagnostic, "UXML_RVM_DIAGNOSTIC_SHAPE", f"diagnostics[{index}]")
-        severity = normalized_identity(row.get("severity") or row.get("level") or "INFO")
-        if severity in _BLOCKING_SEVERITIES:
-            fail("UXML_RVM_SOURCE_DIAGNOSTIC_BLOCKING", f"Source diagnostic blocks: {row.get('code') or index}")
-
 def source_inventory(
     uxml: dict[str, Any], coordinate_context: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    _require_sections(uxml)
-    if coordinate_context is not None:
-        _validate_units(uxml, coordinate_context)
+    require_source_sections(uxml)
     sources, source_by_id = unique_index(
         uxml.get("sources") or [], "id", "UXML_RVM_SOURCE_IDENTITY", "sources"
     )
@@ -162,8 +115,7 @@ def source_inventory(
     supports, support_by_id = unique_index(
         uxml.get("supports") or [], "id", "UXML_RVM_SUPPORT_IDENTITY", "supports"
     ) if uxml.get("supports") else ([], {})
-    _validate_source_refs(components, source_by_id)
-    _validate_diagnostics(uxml)
+    validate_source_contract(uxml, coordinate_context, source_by_id, mappings, components)
     for port in ports:
         component_id, anchor_id = clean(port.get("componentId")), clean(port.get("anchorId"))
         if component_id not in component_by_id or anchor_id not in anchor_by_id:
@@ -205,7 +157,7 @@ def source_inventory(
             "segmentIds": [row["id"] for row in segments if clean(row.get("componentId")) == component_id],
         }
         for field in declared:
-            if len(declared[field]) != len(set(declared[field])) or sorted(declared[field]) != sorted(actual[field]):
+            if len(declared[field]) != len(set(declared[field]))  or sorted(declared[field]) != sorted(actual[field]):
                 fail("UXML_RVM_COMPONENT_OWNERSHIP", f"Component {component_id} {field} does not exactly match source relations")
     required_ports: list[str] = []
     pipe_components: list[str] = []
@@ -285,9 +237,4 @@ def validate_topology_plan(
         source_port = inventory["portById"].get(clean(row["sourcePortId"]))
         if (
             not source_port
-            or clean(row.get("componentId")) != clean(source_port.get("componentId"))
-            or clean(row.get("anchorId")) != clean(source_port.get("anchorId"))
-        ):
-            fail("UXML_RVM_PORT_OCCURRENCE_OWNER", f"Topology plan port occurrence {row['sourcePortId']} has wrong ownership")
-    digest = require_hash(plan, "topologyPlanHashSha256", "UXML_RVM_TOPOLOGY_PLAN_HASH")
-    return semantic_normalize(plan), digest
+            or clean(row.get("componentId")) != clean(source_port¹•Ğ ‰½µÁ½¹•¹Ñ%ˆ¤¤(€€€€€€€€€€€½È±•…¸¡É½Ü¹•Ğ ‰…¹¡½É%ˆ¤¤€„ô±•…¸¡Í½ÕÉ•}Á½ÉĞ¹•Ğ ‰…¹¡½É%ˆ¤¤(€€€€€€€€¤è(€€€€€€€€€€€™…¥° ‰Ua51}IY5}A=IQ}=UII9}=]9Hˆ°˜‰Q½Á½±½äÁ±…¸Á½ÉĞ½ÕÉÉ•¹”íÉ½İlÍ½ÕÉ•A½ÉÑ%uô¡…ÌİÉ½¹œ½İ¹•ÉÍ¡¥Àˆ¤(€€€‘¥•ÍĞ€ôÉ•ÅÕ¥É•}¡…Í ¡Á±…¸°€‰Ñ½Á½±½åA±…¹!…Í¡M¡„ÈÔØˆ°€‰Ua51}IY5}Q=A=1=e}A19}!M ˆ¤(€€€É•ÑÕÉ¸Í•µ…¹Ñ¥}¹½Éµ…±¥é”¡Á±…¸¤°‘¥•ÍĞ

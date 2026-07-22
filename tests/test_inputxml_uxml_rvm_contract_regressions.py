@@ -77,5 +77,46 @@ class UxmlRvmContractRegressionTests(unittest.TestCase):
             )))
         finally:
             os.environ[APPROVAL_KEY_ENV] = key
+    def test_mapping_source_format_must_exist(self):
+        document = json.loads(support.fixture("direct-exact.json"))
+        document["mappings"] = [{
+            "id": "M1", "profile": "P", "sourceFormat": "RVM",
+            "sourceField": "A", "targetField": "B", "confidence": "EXACT_SOURCE",
+        }]
+        source = support.json_source(document)
+        self.assertEqual("UXML_RVM_MAPPING_SOURCE_FORMAT", blocked(lambda: support.evaluate(source)))
+
+    def test_mapping_required_field_is_enforced(self):
+        document = json.loads(support.fixture("direct-exact.json"))
+        document["mappings"] = [{
+            "id": "M1", "profile": "P", "sourceFormat": "UXML",
+            "sourceField": "A", "targetField": "", "confidence": "EXACT_SOURCE",
+        }]
+        source = support.json_source(document)
+        self.assertEqual("UXML_RVM_MAPPING_FIELD", blocked(lambda: support.evaluate(source)))
+
+    def test_entity_local_blocking_diagnostic_blocks(self):
+        document = json.loads(support.fixture("direct-exact.json"))
+        document["components"][0]["diagnostics"] = [{
+            "id": "INLINE", "severity": "ERROR", "code": "INLINE-BLOCK",
+        }]
+        source = support.json_source(document)
+        self.assertEqual("UXML_RVM_SOURCE_DIAGNOSTIC_BLOCKING", blocked(lambda: support.evaluate(source)))
+
+    def test_entity_diagnostic_reference_resolves_and_blocks(self):
+        document = json.loads(support.fixture("direct-exact.json"))
+        document["diagnostics"] = [{
+            "id": "D1", "severity": "FATAL", "code": "REFERENCED-BLOCK",
+        }]
+        document["ports"][0]["diagnostics"] = ["D1"]
+        source = support.json_source(document)
+        self.assertEqual("UXML_RVM_SOURCE_DIAGNOSTIC_BLOCKING", blocked(lambda: support.evaluate(source)))
+
+    def test_entity_diagnostic_reference_must_exist(self):
+        document = json.loads(support.fixture("direct-exact.json"))
+        document["anchors"][0]["diagnostics"] = ["MISSING"]
+        source = support.json_source(document)
+        self.assertEqual("UXML_RVM_DIAGNOSTIC_REFERENCE", blocked(lambda: support.evaluate(source)))
+
 
 if __name__ == "__main__": unittest.main()
