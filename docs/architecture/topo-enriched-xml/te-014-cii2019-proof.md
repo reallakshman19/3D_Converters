@@ -43,3 +43,5 @@ The value, authority, disposition, and policy hash are recorded for every canoni
 ## Validation policy
 
 GitHub Actions is not a TE-014 evidence authority. Workflows may be absent or disabled for repository-credit management. The remediation disposition relies on exact accepted-base scope comparison, local focused/adversarial and protected test execution, deterministic artifact comparison, and independent semantic review.
+
+The governing semantic comparison baseline remains `ba8b4e43698e1bed8e30f25832659603b40e86b2`. Pull-request targeting of `main` is administrative and must not silently redefine that accepted implementation baseline.
