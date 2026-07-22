@@ -31,7 +31,7 @@ UNIT_SCALE_MM = {
     "FT": Decimal("304.8"),
 }
 
-@dataclass(frozen=True)
+@dataclass
 class ContractError(ValueError):
     code: str
     message: str
@@ -44,13 +44,7 @@ def fail(code: str, message: str) -> None:
 
 def stable_json_bytes(value: Any) -> bytes:
     try:
-        text = json.dumps(
-            value,
-            ensure_ascii=False,
-            allow_nan=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
+        text = json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":"))
     except (TypeError, ValueError) as exc:
         fail("UXML_RVM_NON_CANONICAL_JSON", str(exc))
     return text.encode("utf-8")
@@ -58,8 +52,10 @@ def stable_json_bytes(value: Any) -> bytes:
 def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
-_UNORDERED_SEMANTIC_LISTS = {"evidenceReferences", "componentOccurrences", "portOccurrences",
-    "logicalNodes", "explicitConnections", "lineAssignments", "componentDecisions", "diagnostics"}
+_UNORDERED_SEMANTIC_LISTS = {
+    "evidenceReferences", "componentOccurrences", "portOccurrences", "logicalNodes",
+    "explicitConnections", "lineAssignments", "componentDecisions", "diagnostics",
+}
 
 def semantic_normalize(value: Any, parent_key: str = "") -> Any:
     if isinstance(value, dict):
@@ -103,10 +99,11 @@ def strict_json_loads(text: str) -> Any:
                 fail("UXML_RVM_DUPLICATE_JSON_KEY", f"Duplicate JSON key {key!r}")
             result[key] = value
         return result
-
     try:
-        decoder = json.JSONDecoder(object_pairs_hook=pairs, parse_constant=lambda item: fail(
-            "UXML_RVM_NON_FINITE_JSON", f"Non-finite JSON number {item}"))
+        decoder = json.JSONDecoder(
+            object_pairs_hook=pairs,
+            parse_constant=lambda item: fail("UXML_RVM_NON_FINITE_JSON", f"Non-finite JSON number {item}"),
+        )
         start = len(text) - len(text.lstrip())
         value, end = decoder.raw_decode(text, start)
         if text[end:].strip():
@@ -187,23 +184,21 @@ def require_source_binding(artifact: dict[str, Any], source_hash: str, source_ki
     if clean(artifact.get("sourceKind")).upper() != source_kind:
         fail(code, "Artifact source kind does not match detected intake")
 
-def validate_coordinate_context(
-    artifact: Any, source_hash: str, source_kind: str
-) -> tuple[dict[str, Any], str]:
+def validate_coordinate_context(artifact: Any, source_hash: str, source_kind: str) -> tuple[dict[str, Any], str]:
     context = require_object(artifact, "UXML_RVM_COORDINATE_CONTEXT_MISSING", "coordinate context")
     if clean(context.get("schema")) != COORDINATE_SCHEMA:
         fail("UXML_RVM_COORDINATE_SCHEMA", f"Expected {COORDINATE_SCHEMA}")
-    allowed = {"schema", "sourceHashSha256", "sourceKind", "authorityId", "authorityType",
+    allowed = {
+        "schema", "sourceHashSha256", "sourceKind", "authorityId", "authorityType",
         "sourceFrameId", "targetFrameId", "sourceCoordinateUnits", "targetCoordinateUnits",
         "axisMap", "scaleToMillimetres", "offsetMillimetres", "handedness",
-        "evidenceReferences", "coordinateContextHashSha256"}
+        "evidenceReferences", "coordinateContextHashSha256",
+    }
     unknown = sorted(set(context) - allowed)
     if unknown:
         fail("UXML_RVM_COORDINATE_UNKNOWN_FIELD", f"Unknown coordinate-context fields: {unknown}")
     require_source_binding(context, source_hash, source_kind, "UXML_RVM_COORDINATE_SOURCE_BINDING")
-    if clean(context.get("authorityType")) not in {
-        "EXACT_SOURCE_COORDINATE_CONTEXT", "APPROVED_COORDINATE_CONTEXT"
-    }:
+    if clean(context.get("authorityType")) not in {"EXACT_SOURCE_COORDINATE_CONTEXT", "APPROVED_COORDINATE_CONTEXT"}:
         fail("UXML_RVM_COORDINATE_AUTHORITY", "Unknown coordinate authority type")
     for field in ("authorityId", "sourceFrameId", "targetFrameId"):
         if not clean(context.get(field)):
@@ -218,25 +213,32 @@ def validate_coordinate_context(
     if scale != UNIT_SCALE_MM[source_unit]:
         fail("UXML_RVM_COORDINATE_SCALE", "Scale does not exactly match registered unit conversion")
     axis_map = require_object(context.get("axisMap"), "UXML_RVM_AXIS_MAP", "axisMap")
+    if set(axis_map) != {"targetX", "targetY", "targetZ"}:
+        fail("UXML_RVM_AXIS_MAP", "axisMap must define exactly targetX, targetY, and targetZ")
     axes: list[str] = []
     signs: list[int] = []
     for target in ("targetX", "targetY", "targetZ"):
         decision = require_object(axis_map.get(target), "UXML_RVM_AXIS_MAP", target)
+        if set(decision) != {"sourceAxis", "sign"}:
+            fail("UXML_RVM_AXIS_MAP", f"{target} must contain exactly sourceAxis and sign")
         source_axis = clean(decision.get("sourceAxis")).upper()
         if source_axis not in {"X", "Y", "Z"}:
             fail("UXML_RVM_AXIS_MAP", f"Invalid source axis for {target}")
         sign_number = decimal_value(decision.get("sign"), "UXML_RVM_AXIS_SIGN", f"{target}.sign")
         if sign_number != sign_number.to_integral_value() or int(sign_number) not in {-1, 1}:
             fail("UXML_RVM_AXIS_SIGN", "Axis signs must be exactly -1 or 1")
-        sign = int(sign_number)
         axes.append(source_axis)
-        signs.append(sign)
+        signs.append(int(sign_number))
     if sorted(axes) != ["X", "Y", "Z"]:
         fail("UXML_RVM_AXIS_PERMUTATION", "Each source axis must be used exactly once")
     offset = require_object(context.get("offsetMillimetres"), "UXML_RVM_COORDINATE_OFFSET", "offset")
+    if set(offset) != {"x", "y", "z"}:
+        fail("UXML_RVM_COORDINATE_OFFSET", "offsetMillimetres must define exactly x, y, z")
     for axis in ("x", "y", "z"):
         decimal_value(offset.get(axis), "UXML_RVM_COORDINATE_OFFSET", axis)
     handedness = require_object(context.get("handedness"), "UXML_RVM_HANDEDNESS", "handedness")
+    if set(handedness) != {"source", "target"}:
+        fail("UXML_RVM_HANDEDNESS", "handedness must define exactly source and target")
     source_hand = clean(handedness.get("source")).upper()
     target_hand = clean(handedness.get("target")).upper()
     if source_hand not in {"RIGHT_HANDED", "LEFT_HANDED"} or target_hand not in {"RIGHT_HANDED", "LEFT_HANDED"}:
@@ -264,10 +266,8 @@ def transform_point(point: Any, context: dict[str, Any]) -> dict[str, Decimal]:
         result[target_axis] = Decimal("0") if value == 0 else value
     return result
 
-def build_bridge_request(
-    source: bytes, source_kind: str, coordinate_hash: str, topology_hash: str,
-    engineering_hash: str, authority_manifest_hash: str = "",
-) -> dict[str, Any]:
+def build_bridge_request(source: bytes, source_kind: str, coordinate_hash: str, topology_hash: str,
+                         engineering_hash: str, authority_manifest_hash: str = "") -> dict[str, Any]:
     request = {
         "schema": REQUEST_SCHEMA,
         "dialect": DIALECT,
