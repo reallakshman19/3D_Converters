@@ -110,7 +110,7 @@ def static_contract_checks() -> None:
     assert 'categorized-inputxml/v3' in categorized_text
     assert "UNSUPPORTED_BLOCKING extension evidence blocks production validation" in schematron_text
     dialects = dialect_registry.get("dialects", [])
-    assert len(dialects) == 14, "dialect registry must retain all 14 PR-A profiles"
+    assert len(dialects) == 15, "dialect registry must retain all 15 registered profiles"
     ids = [entry.get("dialectId") for entry in dialects]
     assert len(ids) == len(set(ids)), "dialect IDs must be unique"
     direct = [entry for entry in dialects if entry.get("canonicalAcceptance") == "DIRECT"]

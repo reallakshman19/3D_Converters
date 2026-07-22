@@ -19,6 +19,9 @@ from .managed_stage_accounting import account_managed_stage_source
 from .managed_stage_intake import ManagedStageIntake
 from .model import _ledger_direct_canonical
 from .pdf_input_echo import _compile_pdf_input_echo_source
+from .psi116_accounting import account_psi116_source
+from .psi116_adapter import compile_psi116_source
+from .psi116_intake import Psi116Intake
 from .resolver_contract import OutcomeKind, ResolverOutcome
 from .seljson import _compile_seljson_custom_root
 from .topology_accounting import account_topology_profile_source
@@ -99,6 +102,7 @@ def _compile_profile_candidate(
     source_path: str,
     categorized_xsd_path: Path,
     managed_stage_intake: ManagedStageIntake | None,
+    psi116_intake: Psi116Intake | None,
 ) -> tuple[ET._Element, dict[str, Any] | None]:
     del categorized_xsd_path
     if dialect == "managed-stage-json":
@@ -110,6 +114,13 @@ def _compile_profile_candidate(
             ledger=ledger,
             context=context,
             intake=managed_stage_intake,
+        )
+    if dialect == "pipesstressexport-psi116-xml":
+        if psi116_intake is None:
+            raise CompileBlocked("PSI116 resolver requires verified profile intake.")
+        return (
+            compile_psi116_source(source, intake=psi116_intake, ledger=ledger),
+            None,
         )
     if dialect == "uxml-rvm-intake":
         wrapped = _compile_uxml_rvm_source(
@@ -204,6 +215,7 @@ def resolve_registered_profile(
     source_path: str,
     categorized_xsd_path: Path,
     managed_stage_intake: ManagedStageIntake | None = None,
+    psi116_intake: Psi116Intake | None = None,
 ) -> ResolverOutcome:
     """Invoke one closed registered resolver and standardize its outcome."""
     if dialect not in _NON_XML_DIALECTS and root is None:
@@ -219,6 +231,7 @@ def resolve_registered_profile(
         source_path=source_path,
         categorized_xsd_path=categorized_xsd_path,
         managed_stage_intake=managed_stage_intake,
+        psi116_intake=psi116_intake,
     )
     accounting_status = "COMPLETE"
     metrics: dict[str, Any] = {}
@@ -251,6 +264,13 @@ def resolve_registered_profile(
             "artifactHashes": managed_evidence["identity"]["artifactHashes"],
             "managedStageMetrics": managed_evidence["metrics"],
         })
+    elif dialect == "pipesstressexport-psi116-xml":
+        if psi116_intake is None:
+            raise CompileBlocked("PSI116 source accounting intake is missing.")
+        accounting_status, proof = account_psi116_source(
+            psi116_intake, canonical, ledger=ledger,
+        )
+        metrics["sourceAccounting"] = proof
     outcome_kind = (
         OutcomeKind.BLOCKED_WITH_CANDIDATE
         if ledger.blocked

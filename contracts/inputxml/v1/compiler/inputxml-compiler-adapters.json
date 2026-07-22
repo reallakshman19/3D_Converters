@@ -21,6 +21,7 @@
     {"dialectId":"managed-stage-json","adapterId":"managed-stage-to-canonical","status":"IMPLEMENTED","resultPolicy":"COMPONENT_TOPOLOGY_SOURCE_MODEL_TRACE_LEDGER_AND_FAIL_CLOSED_CII_PROJECTION"},
     {"dialectId":"pdf-input-echo","adapterId":"pdf-input-echo-to-canonical","status":"IMPLEMENTED","resultPolicy":"TEXT_LAYER_PROVENANCE_EXPLICIT_CONTEXT_NO_PROFILE_OR_DEFAULT_FALLBACK"},
     {"dialectId":"uxml-rvm-intake","adapterId":"uxml-rvm-to-canonical","status":"IMPLEMENTED","resultPolicy":"VALIDATED_UXML_EXACT_TOPOLOGY_EXPLICIT_ENGINEERING_AND_COORDINATE_FRAME"},
+    {"dialectId":"pipesstressexport-psi116-xml","adapterId":"psi116-to-canonical-v1","status":"IMPLEMENTED","resultPolicy":"EXACT_TE013_BYTES_STRICT_SOURCE_ACCOUNTING_POLICY_HASH_AND_NO_FALLBACK"},
     {"dialectId":"nodeset-v1","adapterId":"none","status":"EXCLUDED","resultPolicy":"REJECT_INVALID_COMPARISON_ONLY_ARTIFACT"}
   ]
 }

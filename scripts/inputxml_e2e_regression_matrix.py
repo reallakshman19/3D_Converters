@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ _json_hash = _legacy._json_hash
 _load_json = _legacy._load_json
 _registered_outcomes = _legacy._registered_outcomes
 _BASE_MATRIX_CASES = _legacy.matrix_cases
+_FIXTURE = _legacy.ROOT / "tests" / "fixtures" / "topo-enriched-xml" / "cii2019-proof" / "generate-production-result.mjs"
 
 
 def _assured_node_evidence() -> dict[str, dict[str, Any]]:
@@ -26,11 +28,24 @@ def _assured_node_evidence() -> dict[str, dict[str, Any]]:
     }
 
 
+def _psi116_case() -> MatrixCase:
+    completed = subprocess.run(
+        ["node", str(_FIXTURE), "CANONICAL"],
+        cwd=_legacy.ROOT, check=True, capture_output=True, text=True,
+    )
+    production_result = json.loads(completed.stdout)
+    source = str(production_result["xmlText"]).encode("utf-8")
+    return MatrixCase(
+        "psi116-te013", "pipesstressexport-psi116-xml", "te013.psi116.xml",
+        source, {"te013ProductionResult": production_result}, "FULL_CHAIN_PASS",
+    )
+
+
 def matrix_cases() -> list[MatrixCase]:
     """Return the registry-closed matrix with explicit profile evidence."""
     evidence = _assured_node_evidence()
     result: list[MatrixCase] = []
-    for case in _BASE_MATRIX_CASES():
+    for case in [*_BASE_MATRIX_CASES(), _psi116_case()]:
         if case.case_id == "managed-stage":
             result.append(
                 replace(
