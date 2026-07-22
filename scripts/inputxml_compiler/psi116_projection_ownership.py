@@ -39,8 +39,45 @@ def require_selectable_production_result(result: dict[str, Any]) -> None:
         )
 
 
+def require_topology_occurrence_coverage(result: dict[str, Any]) -> None:
+    """Reject edge-owned source topology that has no TE-013 occurrence disposition."""
+    topology = result.get("topologyIndex") if isinstance(result, dict) else None
+    if not isinstance(topology, dict):
+        raise CompileBlocked("TE-013 topology index is required for PSI116 projection coverage.")
+    entities = topology.get("sourceEntities") or []
+    occurrences = topology.get("occurrences") or []
+    if not isinstance(entities, list) or not isinstance(occurrences, list):
+        raise CompileBlocked("TE-013 topology sourceEntities and occurrences must be arrays.")
+    occurrence_sources = {
+        str(row.get("occurrenceId") or ""): str(row.get("sourceEntityId") or "")
+        for row in occurrences if isinstance(row, dict) and row.get("occurrenceId")
+    }
+    missing: list[dict[str, Any]] = []
+    mismatched: list[dict[str, Any]] = []
+    for entity in entities:
+        if not isinstance(entity, dict):
+            raise CompileBlocked("TE-013 topology source entity row is not an object.")
+        entity_id = str(entity.get("sourceEntityId") or "")
+        edge_ids = [str(value) for value in (entity.get("logicalEdgeIds") or []) if str(value)]
+        occurrence_ids = [str(value) for value in (entity.get("occurrenceIds") or []) if str(value)]
+        if edge_ids and not occurrence_ids:
+            missing.append({"sourceEntityId": entity_id, "logicalEdgeIds": sorted(edge_ids)})
+        wrong = sorted(
+            occurrence_id for occurrence_id in occurrence_ids
+            if occurrence_sources.get(occurrence_id) != entity_id
+        )
+        if wrong:
+            mismatched.append({"sourceEntityId": entity_id, "occurrenceIds": wrong})
+    if missing or mismatched:
+        raise CompileBlocked(
+            "TE-013 topology occurrence coverage is incomplete: "
+            f"edgeOwnedWithoutOccurrence={missing}, mismatchedOccurrenceOwnership={mismatched}."
+        )
+
+
 def build_occurrence_projections(intake: Any, segments: tuple[Any, ...], policy: dict[str, Any]) -> tuple[OccurrenceProjection, ...]:
     """Bind each emitted occurrence to explicit canonical/CII sections or omit safely."""
+    require_topology_occurrence_coverage(intake.production_result)
     segment_index = {(row.branch_index, row.segment_index): row for row in segments}
     result: list[OccurrenceProjection] = []
     for branch in intake.branches:
@@ -233,4 +270,5 @@ __all__ = [
     "has_independent_engineering_payload", "hydro_pressure_policy",
     "is_payload_free_topology_endpoint", "owns_bend", "owns_rigid",
     "projection_index", "require_selectable_production_result",
+    "require_topology_occurrence_coverage",
 ]
