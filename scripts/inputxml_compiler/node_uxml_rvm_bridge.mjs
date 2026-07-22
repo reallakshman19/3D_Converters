@@ -169,7 +169,7 @@ function run(request) {
 try {
   const input = fs.readFileSync(0);
   if (input.length > MAX_REQUEST_BYTES) fail('UXML_RVM_BRIDGE_REQUEST_LIMIT', 'Bridge request exceeds limit');
-  const result = run(parseStrictJson(input.toString('utf8'));
+  const result = run(parseStrictJson(input.toString('utf8')));
   process.stdout.write(stableStringify(result));
 } catch (error) {
   process.stdout.write(stableStringify({ ok: false, code: error.code ?? 'UXML_RVM_BRIDGE_FAILURE', error: error.message ?? String(error) }));
