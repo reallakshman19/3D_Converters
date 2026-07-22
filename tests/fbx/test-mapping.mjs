@@ -51,6 +51,12 @@ assert.equal(topologyConnectivity.set.find(firstExit.key), topologyConnectivity.
 const blocked = await convertFbxToStagedJson({ bytes, inputName: 'two-pipes.fbx', mapping: null, parse: parseFbxBytesNode });
 assert.equal(blocked.conversionStatus, 'BLOCKED_MAPPING');
 assert.ok(!blocked.outputs.some((item) => item.name.endsWith('.staged.json')));
+const malformedMapping = await convertFbxToStagedJson({
+  bytes, inputName: 'two-pipes.fbx', mapping: null, mappingError: 'Invalid mapping JSON: proof', parse: parseFbxBytesNode,
+});
+assert.equal(malformedMapping.conversionStatus, 'BLOCKED_MAPPING');
+assert.match(malformedMapping.outputs.at(-1).text, /Invalid mapping JSON: proof/);
+assert.ok(malformedMapping.outputs.some((item) => item.name.endsWith('.fbx-source-graph.json')));
 const parseBlocked = await convertFbxToStagedJson({
   bytes, inputName: 'broken.fbx', mapping, parse: async () => { throw new Error('parser-error-proof'); },
 });
