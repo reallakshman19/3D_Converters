@@ -8,6 +8,7 @@
 - Accepted merge commit: `c23f49c6d5a0e2fab392c08a52d125966fd43fa9`.
 - Current live `main` at start: `ff6b2fc4ad37d6ead3bedf0e55aa6ed64258a370`.
 - Recovery branch: `fix/inputxml-workflow-protection-recovery`.
+- Initial restoration head: `4c5cd57fd95ce0832d51963f2e9f58e50feaaba8`.
 
 No repository-level `AGENTS.md`, `.github/AGENTS.md`, or `CONTRIBUTING` file was found. WFR-001 is therefore the controlling restoration instruction. The available GitHub connector does not expose branch-protection or repository-ruleset configuration; this is recorded as configuration visibility unavailable, not as an assertion that no protection exists.
 
@@ -82,37 +83,38 @@ The execution container has Python, Node.js, Git, and PyYAML, but has no authent
 - accepted failure-behavior verification;
 - eight required adversarial hash/structure checks.
 
-Full repository command replay is not represented as local platform proof. It is delegated to the restored GitHub Actions workflows, which execute against the complete repository on Ubuntu and Windows.
+Full repository command replay is not represented as local platform proof. It was delegated to the restored GitHub Actions workflows.
 
-## GitHub Actions qualification
+## GitHub Actions qualification — blocked before execution
 
-To be populated after all six restored workflows complete on the immutable final PR head.
+All six restored workflows were created on initial restoration head `4c5cd57fd95ce0832d51963f2e9f58e50feaaba8`, but every job failed before its first step. Job payloads contain `steps: none`; no checkout, setup, validator, test, Ubuntu proof, or Windows proof executed. No job log blob or diagnostic artifact was produced. A focused rerun of InputXML Contract Catalogs reproduced the same no-step failure.
 
-| Workflow | Run ID | Job IDs | Result | Head SHA |
+| Workflow | Run ID | Job IDs | Result | Execution evidence |
 |---|---:|---|---|---|
-| InputXML Schema Suite | pending | pending | pending | pending |
-| InputXML Contract Catalogs | pending | pending | pending | pending |
-| InputXML Canonical Compiler | pending | pending | pending | pending |
-| InputXML Assurance Ledger | pending | pending | pending | pending |
-| InputXML Assured CII Projection | pending | pending | pending | pending |
-| InputXML End-to-End Regression Matrix | pending | pending | pending | pending |
+| InputXML Schema Suite | `29882311771` | `88805591902` | FAILURE | zero steps |
+| InputXML Contract Catalogs | `29882311825` | initial `88805592051`; rerun `88805885269` | FAILURE | zero steps on both attempts |
+| InputXML Canonical Compiler | `29882311858` | Ubuntu `88805592280`; compiler `88805592282`; Windows `88805592319` | FAILURE | zero steps in all jobs |
+| InputXML Assurance Ledger | `29882311809` | `88805592029` | FAILURE | zero steps |
+| InputXML Assured CII Projection | `29882311802` | `88805591974` | FAILURE | zero steps |
+| InputXML End-to-End Regression Matrix | `29882311792` | `88805591947` | FAILURE | zero steps |
 
-Ubuntu deterministic proof: pending.  
-Windows deterministic proof: pending.  
-Dialect matrix: pending.
+Ubuntu deterministic proof: **NOT EXECUTED — infrastructure/scheduling blocker**.  
+Windows deterministic proof: **NOT EXECUTED — infrastructure/scheduling blocker**.  
+Dialect matrix: **NOT EXECUTED — infrastructure/scheduling blocker**.
 
-## Final exact-head containment
+This failure pattern does not expose a current source or test defect because repository commands never began. The exact external Actions reason is not available through the connector: job logs return no blob and the repository-settings API for Actions/billing/runners is not exposed. The owner must inspect the Actions run banner and repository/account Actions availability before qualification can continue.
 
-- Exact final branch head: pending.
-- Ahead/behind current `main`: pending final check.
+## Exact-head containment and disposition
+
+- Evidence update head: the commit containing this document; the exact SHA is frozen in draft PR #255 after this write because a file cannot contain its own commit SHA without changing that SHA.
 - Changed files: the six authorized workflow files plus this evidence document only.
 - Source-code changes: zero.
 - Test changes: zero.
 - Schema/registry changes: zero.
 - CII writer changes: zero.
 - Workflow semantic drift from accepted PR-8 merge: zero.
-- Unresolved blockers: workflow qualification and independent owner review.
-- Merge recommendation: do not merge until exact-head workflow qualification is complete and independent owner review approves restoration.
+- Unresolved blocker: GitHub Actions jobs terminate before execution.
+- Merge recommendation: **DO NOT MERGE**. Restore Actions execution, rerun all six workflows on the then-current exact head, obtain independent owner review, and only then reconsider merge.
 
 ## Programme boundaries
 
