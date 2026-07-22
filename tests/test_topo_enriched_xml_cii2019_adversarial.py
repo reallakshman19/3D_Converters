@@ -30,7 +30,7 @@ mutation = load_module("te014_mutation", FIXTURES / "te013_mutation.py")
 
 def production_result() -> dict:
     completed = subprocess.run(
-        ["node", str(FIXTURES / "generate-production-result.mjs"), "CANONICAL"],
+        ["node", str(FIXTURES / "generate-remediation-production-result.mjs"), "CANONICAL"],
         cwd=ROOT, check=True, capture_output=True, text=True,
     )
     return json.loads(completed.stdout)
@@ -49,6 +49,13 @@ class TopoEnrichedXmlCii2019AdversarialTests(unittest.TestCase):
     def setUpClass(cls):
         cls.valid = production_result()
 
+    def test_non_selectable_production_bundle_is_rejected(self):
+        value = copy.deepcopy(self.valid)
+        value["productionBundle"]["selectable"] = False
+        value["selection"]["productionBundle"]["selectable"] = False
+        result = blocked(value)
+        self.assertIn("not selectable", json.dumps(result["diagnostics"]))
+
     def test_non_enforced_and_blocked_results_are_rejected(self):
         for mode in ("LEGACY", "SHADOW", "REVIEW"):
             with self.subTest(mode=mode):
@@ -56,10 +63,7 @@ class TopoEnrichedXmlCii2019AdversarialTests(unittest.TestCase):
                 value["operatingMode"] = mode
                 blocked(value)
         value = copy.deepcopy(self.valid)
-        value["validation"] = {
-            "status": "BLOCKED", "blockers": [{"code": "TEST"}],
-            "reviewItems": [], "warnings": [],
-        }
+        value["validation"] = {"status": "BLOCKED", "blockers": [{"code": "TEST"}], "reviewItems": [], "warnings": []}
         blocked(value)
 
     def test_each_consumed_te013_hash_is_rejected_when_stale(self):
@@ -98,27 +102,18 @@ class TopoEnrichedXmlCii2019AdversarialTests(unittest.TestCase):
         base = copy.deepcopy(trace[0])
         base.update({
             "traceIndex": len(trace), "nodeIndexInBranch": base["nodeIndexInBranch"] + 1,
-            "occurrenceId": reserved["occurrenceId"],
-            "componentProjectionId": reserved["componentProjectionId"],
-            "logicalNodeId": reserved["logicalNodeId"],
-            "engineeringNodeNumber": reserved["engineeringNodeNumber"],
+            "occurrenceId": reserved["occurrenceId"], "componentProjectionId": reserved["componentProjectionId"],
+            "logicalNodeId": reserved["logicalNodeId"], "engineeringNodeNumber": reserved["engineeringNodeNumber"],
             "psiComponentType": "ELBO", "endpoint": 0,
         })
         trace.append(base)
         blocked(mutation.rebind_selected_bundle(self.valid, xml_text=xml, trace=trace))
 
-    def test_branch_and_endpoint_reassignment_block(self):
-        xml = self.valid["xmlText"].replace("<Branchname>/LINE-A</Branchname>", "<Branchname>/OTHER</Branchname>", 1)
-        blocked(mutation.rebind_selected_bundle(self.valid, xml_text=xml))
-        xml = self.valid["xmlText"].replace("<Endpoint>0</Endpoint>", "<Endpoint>1</Endpoint>", 1)
-        blocked(mutation.rebind_selected_bundle(self.valid, xml_text=xml))
-
-    def test_unsupported_mandatory_engineering_field_blocks(self):
-        xml = re.sub(r"(<NodeNumber>130</NodeNumber>.*?<SIF>)0(</SIF>)", r"\g<1>1\g<2>", self.valid["xmlText"], count=1, flags=re.S)
-        blocked(mutation.rebind_selected_bundle(self.valid, xml_text=xml))
-
-    def test_namespace_unit_and_security_fail_closed(self):
+    def test_branch_endpoint_sif_namespace_unit_and_security_fail_closed(self):
         variants = [
+            self.valid["xmlText"].replace("<Branchname>/LINE-A</Branchname>", "<Branchname>/OTHER</Branchname>", 1),
+            self.valid["xmlText"].replace("<Endpoint>0</Endpoint>", "<Endpoint>1</Endpoint>", 1),
+            re.sub(r"(<NodeNumber>130</NodeNumber>.*?<SIF>)0(</SIF>)", r"\g<1>1\g<2>", self.valid["xmlText"], count=1, flags=re.S),
             self.valid["xmlText"].replace("http://aveva.com/pipeStress116.xsd", "urn:wrong", 1),
             self.valid["xmlText"].replace("<DistanceUnits>mm</DistanceUnits>", "<DistanceUnits>m</DistanceUnits>", 1),
             self.valid["xmlText"].replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "<?xml version=\"1.0\"?><!DOCTYPE x [<!ENTITY a 'x'>]>", 1),
@@ -127,32 +122,32 @@ class TopoEnrichedXmlCii2019AdversarialTests(unittest.TestCase):
             with self.subTest(case=index):
                 blocked(mutation.rebind_selected_bundle(self.valid, xml_text=xml))
 
-    def test_duplicate_cii_projection_is_invalid(self):
+    def test_shared_cii_element_requires_non_conflicting_section_claims(self):
         result = proof.prove_topo_enriched_xml_to_cii2019(self.valid)
+        self.assertEqual("PASS", result["status"])
         ledger = copy.deepcopy(result["projectionLedger"])
-        projected = next(row for row in ledger["records"] if row["disposition"] == "PROJECTED")
-        duplicate = copy.deepcopy(projected)
-        duplicate["recordId"] = "TE014-PROJ-DUPLICATE"
-        duplicate["occurrenceId"] = next(
-            row["occurrenceId"] for row in ledger["records"]
-            if row["disposition"].startswith("INTENTIONALLY_OMITTED")
-        )
+        projected = [row for row in ledger["records"] if row["disposition"] == "PROJECTED"]
+        self.assertEqual(projected[0]["ciiElementIndex"], projected[1]["ciiElementIndex"])
+        self.assertEqual([], proof.validate_projection_ledger(ledger))
+        duplicate = copy.deepcopy(next(row for row in projected if "BEND" in row["projectionSections"]))
+        duplicate["recordId"] = "TE014-PROJ-CONFLICT"
+        duplicate["occurrenceId"] = next(row["occurrenceId"] for row in ledger["records"] if row["sourceDisposition"] == "RESERVED")
         ledger["records"].append(duplicate)
-        ledger["projectionLedgerHashSha256"] = proof.json_hash({
-            key: value for key, value in ledger.items() if key != "projectionLedgerHashSha256"
-        })
+        ledger["projectionLedgerHashSha256"] = proof.json_hash({key: value for key, value in ledger.items() if key != "projectionLedgerHashSha256"})
         errors = proof.validate_projection_ledger(ledger)
-        self.assertIn("projected CII element indexes must be unique", errors)
+        self.assertIn("PASS requires conflict-free occurrence section claims", errors)
 
     def test_static_authority_guard(self):
-        proof_text = (SCRIPTS / "topo_enriched_xml_cii2019_proof.py").read_text()
-        adapter_text = (ROOT / "scripts" / "inputxml_compiler" / "psi116_adapter.py").read_text()
-        combined = proof_text + adapter_text
+        files = [
+            SCRIPTS / "topo_enriched_xml_cii2019_proof.py",
+            ROOT / "scripts" / "inputxml_compiler" / "psi116_adapter_v2.py",
+            ROOT / "scripts" / "inputxml_compiler" / "psi116_projection_ownership.py",
+        ]
+        combined = "".join(path.read_text() for path in files)
         self.assertNotRegex(combined, r"(?:from|import)\s+.*xml_to_cii2019")
         self.assertNotRegex(combined, r"(?:from|import)\s+.*inputxml_to_cii2019")
         for token in ("buildTopoEnrichedXml", "nodeMatcher", "nodeAllocator", "node-history/"):
             self.assertNotIn(token, combined)
-
 
 
 if __name__ == "__main__":
