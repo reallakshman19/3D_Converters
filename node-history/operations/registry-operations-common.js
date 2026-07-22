@@ -78,6 +78,11 @@ export function sortIssues(rows) {
   return [...rows].sort((a, b) => issueSortKey(a).localeCompare(issueSortKey(b)));
 }
 
+export function pathsOverlap(left, right) {
+  const first = path.resolve(left), second = path.resolve(right);
+  return second === first || second.startsWith(`${first}${path.sep}`) || first.startsWith(`${second}${path.sep}`);
+}
+
 function normalizeTargetFiles(rows, registryRootPath, blockers) {
   if (!Array.isArray(rows)) {
     blockers.push(issue('TARGET_MANIFEST_FILES_INVALID'));
@@ -145,15 +150,11 @@ function absolutePath(value, field, blockers) {
 }
 
 function validateTemporaryRoots(temporaryRoot, rollbackProofRoot, blockers) {
-  if (temporaryRoot && rollbackProofRoot && samePath(temporaryRoot, rollbackProofRoot)) {
+  if (temporaryRoot && rollbackProofRoot && pathsOverlap(temporaryRoot, rollbackProofRoot)) {
     blockers.push(issue('TEMPORARY_ROOT_COLLISION', { temporaryRoot, rollbackProofRoot }));
   }
 }
 
 function withinRoot(filePath, registryRootPath) {
   return filePath === registryRootPath || filePath.startsWith(`${registryRootPath}/`);
-}
-
-function samePath(left, right) {
-  return path.resolve(left) === path.resolve(right);
 }
