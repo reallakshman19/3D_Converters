@@ -2,94 +2,63 @@
 
 ## Status
 
-Accepted for implementation in PR-9. Production activation and migration are not authorized.
+Accepted for PR-9 implementation. Production activation and migration remain unauthorized. This revision incorporates the PR-9 owner-review corrections.
 
-## Context
+## Scope
 
-The `uxml-rvm-intake` resolver previously accepted topology produced by `UniversalTopoGraph`, whose node construction used coordinate tolerance. The bridge also retained ray, proximity, graph-comparison, topology-decision, and accepted-handoff artifacts in the canonical authority chain. Engineering node numbers were generated from sorted graph order, line identity could fall back to caller defaults, coordinate authority could be a loose basis string or arbitrary matrix, engineering aliases used first-value-wins lookup, and the ledger did not independently reconstruct every source relation.
+Only `uxml-rvm-intake` / `uxml-rvm-to-canonical` changes semantically. Shared `uxml/**`, `rvm-pcf-extract/**`, schemas, registries, publication, the production CII writer, and GitHub Actions remain unchanged.
 
-Those mechanisms violate the governing distinction:
+## Authority model
 
-```text
-topology authority != coordinate coincidence
-geometry evidence  != ownership evidence
-node identity       != generated ordering
-line identity       != caller default
-```
+Canonical acceptance requires four source-bound artifacts:
 
-## Decision
+- `UxmlRvmCoordinateContext.v1`;
+- `UxmlRvmExactTopologyPlan.v1` when direct exact topology is absent or the intake is RVM rows;
+- `UxmlRvmEngineeringContext.v1` when required PIPE fields are absent;
+- `UxmlRvmCanonicalMetadata.v1` for job, time, issue, version, and north authority.
 
-### Profile isolation
+Their semantic hashes are bound by `UxmlRvmAuthorityManifest.v1`. The manifest is approved with an HMAC key and key identifier supplied through process configuration, not the compile request. A caller can provide candidate artifacts but cannot replace the detached approval trust root. Missing or mismatched trust blocks.
 
-Only this registered pair changes semantically:
+## Exact topology
 
-```text
-dialect: uxml-rvm-intake
-adapter: uxml-rvm-to-canonical
-```
+Logical-node membership comes only from direct `EXACT_LOGICAL_NODE` / `EXACT_PORT_CONNECTION` declarations with `EXACT_SOURCE` confidence or from an approved source- and adapted-UXML-bound topology plan. Coordinates, tolerance, ray evidence, proximity, ordering, generic export decisions, and accepted handoffs have zero authority.
 
-Shared modules under `uxml/**` and `rvm-pcf-extract/**` remain unchanged. The RVM adapter is used only to create a source inventory. Generic graph, ray, proximity, comparison, topology-decision, and accepted-handoff outputs have no canonical authority.
+Every required PIPE endpoint belongs to exactly one logical node. Connected ports must transform to exactly equal coordinates. Distinct nodes may occupy equal coordinates. A node incident to more than two PIPE endpoints blocks because PR-9 does not authorize TEE/OLET/SIF junction projection.
 
-### Immutable authority manifest
+## Coordinate and source intake
 
-Every accepted compile requires `UxmlRvmAuthorityManifest.v1`, source-bound and independently pinned by `uxmlRvmApprovedAuthorityManifestHashSha256`. The manifest binds the exact coordinate-context, topology-plan, and engineering-context semantic hashes. Restamping an authority artifact cannot create acceptance unless the independently approved manifest hash also changes.
+The coordinate context uses a signed-axis permutation, registered exact scale to millimetres, finite offset, named frames, and determinant-consistent handedness. Source coordinate units are mandatory and must equal the context source units. No matrix, snapping, averaging, inferred units, or endpoint repair is allowed.
 
-### Coordinate context
+The compiler-specific intake validates required UXML sections, exact identities, component source references, component/anchor/port/segment ownership, support ownership, source diagnostics, and exact anchor/port coordinate agreement. Unsafe JSON integers, precision-losing decimals, duplicate keys, trailing data, unpaired surrogates, and prototype-key loss block.
 
-`UxmlRvmCoordinateContext.v1` is mandatory. It binds the exact source bytes and requires:
+## Node, line, and engineering authority
 
-- named source and `CAESAR_GLOBAL` target frames;
-- registered source units and exact conversion to millimetres;
-- an exact signed-axis permutation using each source axis once;
-- signs exactly `1` or `-1`;
-- finite explicit offset;
-- explicit source and target handedness consistent with the permutation determinant;
-- exact nested object shapes with no arbitrary matrix, shear, rotation, or non-uniform scale;
-- independently recomputed semantic hash.
+Node numbers come only from exact source anchors or an approved plan. They are positive exact integers with one-to-one logical-node ownership. Sorted generated numbering is forbidden.
 
-Coordinates corroborate an explicit logical node. Connected ports must transform to exactly equal coordinates. No snapping, averaging, tolerance, midpoint creation, repair, or endpoint mutation is permitted. Distinct logical nodes may occupy identical coordinates.
+Line identity is reconciled from all source aliases or an approved plan assignment. Caller defaults, filenames, metadata, coordinates, numbering, and order cannot establish line ownership.
 
-### Exact topology
+OD and wall thickness are reconciled across every registered alias. Source and approved external values must agree. Bore is not OD. Unsupported components and every support/restraint/hanger record remain explicit blocking evidence.
 
-Logical-node membership comes only from:
+## Bridge boundary
 
-1. direct `EXACT_LOGICAL_NODE` and `EXACT_PORT_CONNECTION` UXML declarations with `EXACT_SOURCE` confidence; or
-2. `UxmlRvmExactTopologyPlan.v1`, source-hash and adapted-UXML-hash bound.
+`InputXmlUxmlRvmBridgeRequest.v1` / `InputXmlUxmlRvmBridgeResult.v1` bind source bytes, profile identity, authority hashes, bridge identity, adapted UXML, inventories, diagnostics, and semantic hashes. The bridge performs adaptation and inventory only.
 
-Every required PIPE endpoint port appears exactly once. Explicit connections must be registered, symmetric or undirected-exact, and contained within one declared logical node. Coordinates, rays, proximity, row order, lexical order, and generic export labels cannot create membership or adjacency.
+The Python runner uses bounded streaming reads and terminates the child on timeout or stdout/stderr limit breach. The Node parser uses null-prototype objects, own data properties, code-point key ordering, and exact-number acceptance rules aligned with Python.
 
-### Engineering node numbers
+## Independent accounting
 
-Each logical node requires one finite positive integer from an explicit source anchor or the approved topology plan. Source and external values must agree. Number ownership is one-to-one and globally unique. Sorted `10,20,30,...` generation is removed.
+`InputXmlUxmlRvmSourceAccountingProof.v1` reconstructs expected decisions from source and detached-approved authority, then compares them independently with:
 
-### Line ownership
+1. serialized and reparsed canonical XML;
+2. actual ledger semantic tuples and cardinality;
+3. actual extension authority-hash bindings.
 
-All `pipelineRef`, `lineKey`, and `lineNo` occurrences are collected from component and matching pipeline records. Equivalent aliases normalize; contradictions block. An approved plan assignment may supply a missing value but cannot override source evidence. `defaultLine`, `lineId`, filename, Job Name, model ID, coordinates, node numbers, and component ordering have no line authority. Cross-line logical nodes block.
+The proof covers topology, node numbers, line ownership, transformed coordinates and DELTA, engineering fields, metadata, unsupported evidence, bridge bindings, and output cardinality. Coordinated XML/ledger restamping therefore produces named non-zero invariants.
 
-### Engineering fields
+## Compatibility
 
-All OD and wall-thickness aliases are collected from every source origin. Equivalent values reconcile; contradictions block. `UxmlRvmEngineeringContext.v1` can provide missing fields only through source-bound, versioned decisions. External values cannot override explicit source values. Bore is never an OD alias. Required PIPE OD and wall thickness must be finite and positive.
-
-### Bridge boundary
-
-`InputXmlUxmlRvmBridgeRequest.v1` and `InputXmlUxmlRvmBridgeResult.v1` bind source bytes, source kind, profile identity, authority hashes, request hash, bridge identity, adapted UXML, collection hashes, diagnostics, and result hash. The boundary uses strict UTF-8 and duplicate-key-rejecting JSON, bounded source/stdout/stderr, hard timeout, canonical base64, stable key ordering, no current-clock values, and no runtime bridge replacement.
-
-### Independent accounting
-
-`InputXmlUxmlRvmSourceAccountingProof.v1` reconstructs expected canonical elements from immutable source and approved artifacts, not from the candidate XML or ledger. It records cardinality before map/set collapse and verifies source collections, ownership, logical nodes, node numbers, line decisions, coordinate transforms, DELTA, engineering fields, unsupported evidence, bridge hashes, and canonical relations. Every invariant must equal zero for accounting closure.
-
-## Compatibility consequences
-
-Previously accepted coordinate-only UXML and RVM loops now block. RVM rows require an approved exact-topology plan. Loose `coordinateBasis=CAESAR`, caller line defaults, restamped topology decisions, ray/proximity handoffs, and generated node numbers no longer provide compatibility authority. Unsupported components and supports remain preserved and blocking.
-
-## Security consequences
-
-Coordinated changes to ledger and XML remain detectable because expected values are reconstructed from source and independently approved authority artifacts. Full authority-artifact restamping remains detectable through the independent manifest pin.
-
-## Rollback
-
-Rollback is limited to the PR-9 compiler-specific files and fixtures. Shared UXML/RVM runtimes, schemas, registries, publication, production CII writer, and workflows are outside the rollback scope because they are unchanged.
+Coordinate-only and tolerance-derived UXML/RVM cases now block. RVM rows require an approved exact-topology plan. Loose coordinate basis, arbitrary transforms, caller line defaults, generated node numbers, ray/proximity handoffs, and adapter-generated metadata cannot authorize production output.
 
 ## Deferred work
 
-PR-10 resource characterization, corpus expansion, legacy parity, migration, and production activation are not started by this decision.
+Resource characterization is PR-10 and is not started. Corpus expansion, legacy parity, migration, and production activation remain deferred.
