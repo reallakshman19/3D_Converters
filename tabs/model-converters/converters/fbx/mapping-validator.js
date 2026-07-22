@@ -4,6 +4,11 @@ function fail(message) {
   throw new Error(`BLOCKED_MAPPING ${message}`);
 }
 
+function compareText(left, right) {
+  const a = String(left ?? ''), b = String(right ?? '');
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function indexMany(items, key) {
   const result = new Map();
   for (const item of items) {
@@ -18,6 +23,12 @@ function indexMany(items, key) {
 function requireText(value, label) {
   if (typeof value !== 'string' || !value.trim()) fail(`${label} is required.`);
   return value;
+}
+
+function normalizeConnections(connections = []) {
+  return connections.map((item) => ({ ...item })).sort((left, right) => (
+    compareText(left.mappingEntryId, right.mappingEntryId) || compareText(left.port, right.port)
+  ));
 }
 
 function validatePort(port, label) {
@@ -49,7 +60,13 @@ function validateUnique(items, key, label) {
   }
 }
 
-function validateScope(manifest, entries) {
+function normalizeExclusions(exclusions = []) {
+  return exclusions.map((item) => ({ ...item })).sort((left, right) => (
+    compareText(left.sourceModelObjectId, right.sourceModelObjectId) || compareText(left.reason, right.reason)
+  ));
+}
+
+function validateScope(manifest, entries, exclusions) {
   if (!Array.isArray(manifest.inScopeSourceObjectIds) || !manifest.inScopeSourceObjectIds.length) {
     fail('inScopeSourceObjectIds must declare the exact scope.');
   }
@@ -57,7 +74,7 @@ function validateScope(manifest, entries) {
   if (new Set(scope).size !== scope.length) fail('scope contains duplicate object IDs.');
   const dispositions = new Map();
   for (const entry of entries) dispositions.set(entry.sourceModelObjectId, 'promote');
-  for (const excluded of manifest.exclusions || []) {
+  for (const excluded of exclusions) {
     if (excluded.scopeDisposition !== 'exclude-with-reason' || !excluded.reason?.trim()) {
       fail(`exclusion ${excluded.sourceModelObjectId || ''} requires a reason.`);
     }
@@ -66,7 +83,7 @@ function validateScope(manifest, entries) {
   }
   for (const id of scope) if (!dispositions.has(id)) fail(`object ${id} has no disposition.`);
   for (const id of dispositions.keys()) if (!scope.includes(id)) fail(`object ${id} is outside declared scope.`);
-  return scope.sort();
+  return scope.sort(compareText);
 }
 
 function validateSourceResolution(graph, scope, entries) {
@@ -91,8 +108,11 @@ function validateSourceResolution(graph, scope, entries) {
 }
 
 function normalizeEntries(entries) {
-  return entries.map((entry) => ({ ...entry, portA: { ...entry.portA }, portB: { ...entry.portB } }))
-    .sort((a, b) => a.mappingEntryId.localeCompare(b.mappingEntryId));
+  return entries.map((entry) => ({
+    ...entry,
+    portA: { ...entry.portA, connections: normalizeConnections(entry.portA?.connections) },
+    portB: { ...entry.portB, connections: normalizeConnections(entry.portB?.connections) },
+  })).sort((a, b) => compareText(a.mappingEntryId, b.mappingEntryId));
 }
 
 export function validateMappingManifest(manifest, graph) {
@@ -100,11 +120,12 @@ export function validateMappingManifest(manifest, graph) {
   if (manifest.schema !== 'FbxStagedMapping.v1') fail('unsupported mapping schema.');
   if (!Array.isArray(manifest.entries) || !manifest.entries.length) fail('mapping entries are required.');
   const entries = normalizeEntries(manifest.entries);
+  const exclusions = normalizeExclusions(manifest.exclusions);
   entries.forEach(validateEntryShape);
   validateUnique(entries, 'mappingEntryId', 'mappingEntryId');
   validateUnique(entries, 'logicalComponentId', 'logicalComponentId');
   validateUnique(entries, 'sourceOccurrenceId', 'sourceOccurrenceId');
-  const scope = validateScope(manifest, entries);
+  const scope = validateScope(manifest, entries, exclusions);
   validateSourceResolution(graph, scope, entries);
-  return { schema: manifest.schema, scope, entries, exclusions: manifest.exclusions || [] };
+  return { schema: manifest.schema, scope, entries, exclusions };
 }
