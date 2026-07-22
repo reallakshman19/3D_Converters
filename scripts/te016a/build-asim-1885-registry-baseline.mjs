@@ -220,6 +220,18 @@ async function buildSeedZoneRegistry(leases, lineHistories) {
   return registry;
 }
 
+/**
+ * Only the exact-identity matcher runs here. The registered/spatial matcher
+ * (matchRegisteredHistoricalNodes) additionally requires a coordinate
+ * registration authority and a full RegisteredHistoryMatcherPolicy.v1 score
+ * model — but this seed's previousRegistry has zero history nodes on any
+ * line (concept §4.3) and zero coordinateRegistrationRefs. Spatial/registered
+ * matching can only ever propose a match against existing history; with none
+ * to match against, its result is guaranteed to be "no match" regardless of
+ * policy or registration, so running it here would add no evidentiary value.
+ * It becomes load-bearing once ASIM-1885 has a real revision history (i.e.
+ * inside TE-016, not this bootstrap).
+ */
 async function runMatchAndAllocatePerLine({ inventory, seedZoneRegistry, seedLineHistories, seedManifest }) {
   const previousRegistry = {
     projectId: PROJECT_ID, zoneId: ZONE_ID,
