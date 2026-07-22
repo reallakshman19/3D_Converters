@@ -23,12 +23,14 @@ export function buildRecoveryManifest({ currentSnapshot, targetManifest, expecte
   return deepFreeze({ ...semantic, recoveryManifestHash: hashCanonical(semantic) });
 }
 
-export async function restoreRegistrySnapshot({ recoveryManifest, restoreRoot, targetManifest, fileSystem }) {
+export async function restoreRegistrySnapshot({
+  recoveryManifest, restoreRoot, targetManifest, fileSystem, onRootCreated = () => {},
+}) {
   const blockers = validateRecoveryManifest(recoveryManifest, targetManifest);
   if (blockers.length) return blockedProof(blockers);
   try {
     if (await fileSystem.exists(restoreRoot)) blockers.push(issue('ROLLBACK_ROOT_ALREADY_EXISTS', { restoreRoot }));
-    if (!blockers.length) await writeRecoveryFiles(recoveryManifest, restoreRoot, fileSystem);
+    if (!blockers.length) await writeRecoveryFiles(recoveryManifest, restoreRoot, fileSystem, onRootCreated);
     const restored = blockers.length ? null : await readRegistrySnapshot({ root: restoreRoot, targetManifest, fileSystem });
     if (restored && restored.validation.status !== 'PASS') blockers.push(issue('ROLLBACK_SNAPSHOT_NOT_PASS', {
       blockers: restored.validation.blockers,
@@ -56,8 +58,9 @@ export function validateRecoveryManifest(manifest, targetManifest) {
   return sortIssues(blockers);
 }
 
-async function writeRecoveryFiles(manifest, restoreRoot, fileSystem) {
-  await fileSystem.createDirectoryExclusive(restoreRoot);
+async function writeRecoveryFiles(manifest, restoreRoot, fileSystem, onRootCreated) {
+  const canonicalRoot = await fileSystem.createDirectoryExclusive(restoreRoot);
+  onRootCreated(canonicalRoot);
   for (const row of manifest.files) {
     const bytes = Buffer.from(row.bytesBase64, 'base64');
     await fileSystem.writeFileExclusive(path.join(restoreRoot, row.path), bytes);
@@ -94,5 +97,5 @@ function blockedProof(blockers) {
 }
 
 function errorEvidence(error) {
-  return { code: text(error?.code), message: text(error?.message) };
+  return { code: text(error?.code), message: text(error?.message), evidence: error?.evidence || {} };
 }
