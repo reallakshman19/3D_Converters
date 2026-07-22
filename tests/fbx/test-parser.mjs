@@ -16,14 +16,14 @@ for (const id of ['101', '102', '200', '201', '202']) assert.ok(objectIds.has(id
 const pipeModel = graph.sourceObjects.find((item) => item.sourceObjectId === '201');
 const pipeGeometry = graph.sourceObjects.find((item) => item.sourceObjectId === '101');
 assert.deepEqual(
-  { class: pipeModel.class, subtype: pipeModel.subtype, sourceName: pipeModel.sourceName, ufbxType: pipeModel.ufbxType },
-  { class: 'Model', subtype: 'Mesh', sourceName: 'Model::PipeOne', ufbxType: 'NODE' },
+  { class: pipeModel.class, subtype: pipeModel.subtype, name: pipeModel.name },
+  { class: 'NODE', subtype: 'MESH', name: 'PipeOne' },
 );
 assert.deepEqual(
-  { class: pipeGeometry.class, subtype: pipeGeometry.subtype, sourceName: pipeGeometry.sourceName, ufbxType: pipeGeometry.ufbxType },
-  { class: 'Geometry', subtype: 'Mesh', sourceName: 'Geometry::PipeOne', ufbxType: 'MESH' },
+  { class: pipeGeometry.class, subtype: pipeGeometry.subtype, name: pipeGeometry.name },
+  { class: 'MESH', subtype: 'MESH', name: 'PipeOne' },
 );
-assert.ok(!graph.sourceObjects.some((item) => item.ufbxType === 'OTHER'));
+assert.ok(graph.unsupportedRecords.every((item) => item.sourceObjectId && item.class));
 
 const occurrenceIds = new Set(graph.occurrences.map((item) => item.sourceOccurrenceId));
 assert.ok(occurrenceIds.has('occ:201'));
