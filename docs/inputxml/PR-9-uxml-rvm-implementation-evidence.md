@@ -103,7 +103,7 @@ All numbered Work Pack cases 1-85 are represented. Each authority failure assert
 | `python -m py_compile scripts/inputxml_compiler/uxml_rvm*.py tests/test_inputxml_uxml_rvm_*.py` | 0 | syntax pass in reconstructed PR-9 proof checkout |
 | `node --check scripts/inputxml_compiler/node_uxml_rvm_bridge.mjs` | 0 | syntax pass |
 | `python -m unittest -v tests/test_inputxml_uxml_rvm_adapter.py` | 0 | 16 passed |
-| `python -m unittest -v tests/test_inputxml_uxml_rvm_*.py` | 0 | 104 discovered; 101 passed, 3 full-compiler integration tests skipped because the execution environment did not contain the complete private repository checkout |
+| `python -m unittest -v tests/test_inputxml_uxml_rvm_*.py` | 0 | 107 discovered; 104 passed, 3 full-compiler integration tests skipped because the execution environment did not contain the complete private repository checkout |
 | explicit focused four-module command | 0 | 101 passed in 3.109 s |
 
 Focused resource observation from `/usr/bin/time -v`:
@@ -174,6 +174,7 @@ tests/test_inputxml_uxml_rvm_accounting.py
 tests/test_inputxml_uxml_rvm_adversarial.py
 tests/test_inputxml_uxml_rvm_bridge_security.py
 tests/test_inputxml_uxml_rvm_compiler.py
+tests/test_inputxml_uxml_rvm_contract_regressions.py
 tests/test_inputxml_uxml_rvm_support.py
 tests/fixtures/inputxml/uxml-rvm/direct-exact.json
 tests/fixtures/inputxml/uxml-rvm/rvm-rows.json
