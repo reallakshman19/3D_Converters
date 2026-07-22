@@ -6,6 +6,8 @@ TE-015 is an operations-side controller over the accepted TE-005 registry contra
 
 The controller prepares evidence for operator-controlled publication. It has no authority to alter the live registry, invoke GitHub, commit, push, merge, allocate node numbers, change lifecycle state, normalize topology, or run PSI/CII conversion.
 
+The owner-remediation gate requires executable proof for unowned-root preservation, no-follow ancestry, disjoint temporary roots, truthful live-custody state, and complete TE-002 through TE-013 regression execution.
+
 ## API
 
 ```js
