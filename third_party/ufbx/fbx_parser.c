@@ -80,6 +80,22 @@ static void jb_string(json_buffer *buffer, ufbx_string value) {
     jb_string_n(buffer, value.data ? value.data : "", value.data ? value.length : 0);
 }
 
+static ufbx_string empty_string(void) {
+    ufbx_string value = { 0 };
+    return value;
+}
+
+static ufbx_string dom_value_string(const ufbx_element *element, size_t index) {
+    if (!element || !element->dom_node || element->dom_node->values.count <= index) return empty_string();
+    const ufbx_dom_value *value = &element->dom_node->values.data[index];
+    return value->value_str.data ? value->value_str : empty_string();
+}
+
+static ufbx_string source_class_name(const ufbx_element *element) {
+    if (element && element->dom_node && element->dom_node->name.data) return element->dom_node->name;
+    return empty_string();
+}
+
 static uint64_t source_id(const ufbx_element *element) {
     if (element && element->dom_node && element->dom_node->values.count > 0) {
         return (uint64_t)element->dom_node->values.data[0].value_int;
@@ -89,13 +105,49 @@ static uint64_t source_id(const ufbx_element *element) {
 
 static const char *element_type_name(ufbx_element_type type) {
     switch (type) {
+        case UFBX_ELEMENT_UNKNOWN: return "UNKNOWN";
         case UFBX_ELEMENT_NODE: return "NODE";
         case UFBX_ELEMENT_MESH: return "MESH";
-        case UFBX_ELEMENT_NURBS_CURVE: return "NURBS_CURVE";
+        case UFBX_ELEMENT_LIGHT: return "LIGHT";
+        case UFBX_ELEMENT_CAMERA: return "CAMERA";
+        case UFBX_ELEMENT_BONE: return "BONE";
+        case UFBX_ELEMENT_EMPTY: return "EMPTY";
         case UFBX_ELEMENT_LINE_CURVE: return "LINE_CURVE";
+        case UFBX_ELEMENT_NURBS_CURVE: return "NURBS_CURVE";
         case UFBX_ELEMENT_NURBS_SURFACE: return "NURBS_SURFACE";
-        case UFBX_ELEMENT_UNKNOWN: return "UNKNOWN";
-        default: return "OTHER";
+        case UFBX_ELEMENT_NURBS_TRIM_SURFACE: return "NURBS_TRIM_SURFACE";
+        case UFBX_ELEMENT_NURBS_TRIM_BOUNDARY: return "NURBS_TRIM_BOUNDARY";
+        case UFBX_ELEMENT_PROCEDURAL_GEOMETRY: return "PROCEDURAL_GEOMETRY";
+        case UFBX_ELEMENT_STEREO_CAMERA: return "STEREO_CAMERA";
+        case UFBX_ELEMENT_CAMERA_SWITCHER: return "CAMERA_SWITCHER";
+        case UFBX_ELEMENT_MARKER: return "MARKER";
+        case UFBX_ELEMENT_LOD_GROUP: return "LOD_GROUP";
+        case UFBX_ELEMENT_SKIN_DEFORMER: return "SKIN_DEFORMER";
+        case UFBX_ELEMENT_SKIN_CLUSTER: return "SKIN_CLUSTER";
+        case UFBX_ELEMENT_BLEND_DEFORMER: return "BLEND_DEFORMER";
+        case UFBX_ELEMENT_BLEND_CHANNEL: return "BLEND_CHANNEL";
+        case UFBX_ELEMENT_BLEND_SHAPE: return "BLEND_SHAPE";
+        case UFBX_ELEMENT_CACHE_DEFORMER: return "CACHE_DEFORMER";
+        case UFBX_ELEMENT_CACHE_FILE: return "CACHE_FILE";
+        case UFBX_ELEMENT_MATERIAL: return "MATERIAL";
+        case UFBX_ELEMENT_TEXTURE: return "TEXTURE";
+        case UFBX_ELEMENT_VIDEO: return "VIDEO";
+        case UFBX_ELEMENT_SHADER: return "SHADER";
+        case UFBX_ELEMENT_SHADER_BINDING: return "SHADER_BINDING";
+        case UFBX_ELEMENT_ANIM_STACK: return "ANIM_STACK";
+        case UFBX_ELEMENT_ANIM_LAYER: return "ANIM_LAYER";
+        case UFBX_ELEMENT_ANIM_VALUE: return "ANIM_VALUE";
+        case UFBX_ELEMENT_ANIM_CURVE: return "ANIM_CURVE";
+        case UFBX_ELEMENT_DISPLAY_LAYER: return "DISPLAY_LAYER";
+        case UFBX_ELEMENT_SELECTION_SET: return "SELECTION_SET";
+        case UFBX_ELEMENT_SELECTION_NODE: return "SELECTION_NODE";
+        case UFBX_ELEMENT_CHARACTER: return "CHARACTER";
+        case UFBX_ELEMENT_CONSTRAINT: return "CONSTRAINT";
+        case UFBX_ELEMENT_AUDIO_LAYER: return "AUDIO_LAYER";
+        case UFBX_ELEMENT_AUDIO_CLIP: return "AUDIO_CLIP";
+        case UFBX_ELEMENT_POSE: return "POSE";
+        case UFBX_ELEMENT_METADATA_OBJECT: return "METADATA_OBJECT";
+        default: return "UNRECOGNIZED_ELEMENT_TYPE";
     }
 }
 
@@ -152,17 +204,20 @@ static void write_source_objects(json_buffer *buffer, const ufbx_scene *scene) {
     jb_raw(buffer, "\"sourceObjects\":[");
     for (size_t i = 0; i < scene->elements.count; i++) {
         const ufbx_element *element = scene->elements.data[i];
+        const char *ufbx_type = element_type_name(element->type);
         if (i) jb_char(buffer, ',');
         jb_raw(buffer, "{\"sourceObjectId\":"); write_id_string(buffer, source_id(element));
         jb_raw(buffer, ",\"elementId\":"); jb_u64(buffer, element->element_id);
         jb_raw(buffer, ",\"typedId\":"); jb_u64(buffer, element->typed_id);
-        jb_raw(buffer, ",\"class\":"); jb_string_n(buffer, element_type_name(element->type), strlen(element_type_name(element->type)));
-        jb_raw(buffer, ",\"subtype\":");
-        if (element->type == UFBX_ELEMENT_NODE) {
-            const ufbx_node *node = (const ufbx_node*)element;
-            jb_string_n(buffer, element_type_name(node->attrib_type), strlen(element_type_name(node->attrib_type)));
-        } else jb_string_n(buffer, element_type_name(element->type), strlen(element_type_name(element->type)));
+        ufbx_string source_class = source_class_name(element);
+        ufbx_string source_name = dom_value_string(element, 1);
+        jb_raw(buffer, ",\"class\":");
+        if (source_class.data) jb_string(buffer, source_class); else jb_string_n(buffer, ufbx_type, strlen(ufbx_type));
+        jb_raw(buffer, ",\"subtype\":"); jb_string(buffer, dom_value_string(element, 2));
+        jb_raw(buffer, ",\"sourceName\":");
+        if (source_name.data) jb_string(buffer, source_name); else jb_string(buffer, element->name);
         jb_raw(buffer, ",\"name\":"); jb_string(buffer, element->name);
+        jb_raw(buffer, ",\"ufbxType\":"); jb_string_n(buffer, ufbx_type, strlen(ufbx_type));
         jb_raw(buffer, ",\"customProperties\":"); write_custom_properties(buffer, &element->props);
         jb_char(buffer, '}');
     }
@@ -286,7 +341,13 @@ static void write_diagnostics(json_buffer *buffer, const ufbx_scene *scene) {
         if (element->type == UFBX_ELEMENT_NODE || element->type == UFBX_ELEMENT_MESH || element->type == UFBX_ELEMENT_NURBS_CURVE) continue;
         if (!first) jb_char(buffer, ','); first = 0;
         jb_raw(buffer, "{\"sourceObjectId\":"); write_id_string(buffer, source_id(element));
-        jb_raw(buffer, ",\"class\":"); jb_string_n(buffer, element_type_name(element->type), strlen(element_type_name(element->type))); jb_char(buffer, '}');
+        const char *ufbx_type = element_type_name(element->type);
+        ufbx_string source_class = source_class_name(element);
+        jb_raw(buffer, ",\"class\":");
+        if (source_class.data) jb_string(buffer, source_class); else jb_string_n(buffer, ufbx_type, strlen(ufbx_type));
+        jb_raw(buffer, ",\"subtype\":"); jb_string(buffer, dom_value_string(element, 2));
+        jb_raw(buffer, ",\"ufbxType\":");
+        jb_string_n(buffer, ufbx_type, strlen(ufbx_type)); jb_char(buffer, '}');
     }
     jb_raw(buffer, "],\"unresolvedReferences\":[]");
 }
