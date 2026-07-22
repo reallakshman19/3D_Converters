@@ -92,12 +92,12 @@ An emitted occurrence may be intentionally omitted only as `INTENTIONALLY_OMITTE
 PSI116 does not contain a hydrostatic-test pressure field. Canonical `HYDRO_PRESSURE="0"` is therefore not a parser fallback. It is a policy-normalized explicit absence with all of the following evidence:
 
 ```text
-canonical value:       0 pascal
-authority:             TE014_POLICY_EXPLICIT_ABSENCE_OF_HYDROSTATIC_TEST_CASE
-source disposition:    PSI116_SOURCE_CONTRACT_HAS_NO_HYDRO_PRESSURE_FIELD
+canonical value:        0 pascal
+authority:              TE014_POLICY_EXPLICIT_ABSENCE_OF_HYDROSTATIC_TEST_CASE
+source disposition:     PSI116_SOURCE_CONTRACT_HAS_NO_HYDRO_PRESSURE_FIELD
 projection disposition: NORMALIZE_EXPLICIT_ABSENCE
-fallbackAllowed:       false
-CII section:           ELEMENTS
+fallbackAllowed:        false
+CII section:            ELEMENTS
 ```
 
 The policy hash, authority, value and disposition are recorded for every canonical element in the compiler decision ledger, assurance ledger and TE-014 loss accounting. Missing or altered policy evidence blocks before canonical acceptance.
@@ -135,6 +135,10 @@ The focused and adversarial suites prove:
 - omission only for a payload-free topology endpoint;
 - explicit hydro-pressure policy evidence;
 - rejection of `selectable=false` even though TE-013's historical bundle hash excludes that field.
+
+## Validation policy
+
+GitHub Actions is not a TE-014 evidence authority. Workflows may be absent or disabled for repository-credit management. The remediation disposition relies on exact accepted-base scope comparison, local focused and adversarial execution, protected compiler/assurance/reparse/schema tests, deterministic artifact comparison, and independent semantic review.
 
 ## Determinism
 
