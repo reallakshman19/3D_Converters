@@ -59,29 +59,23 @@ Executed in the reconstructed connector-side proof checkout:
 ```text
 python -m py_compile scripts/inputxml_compiler/*.py tests/test_inputxml_uxml_rvm_*.py
 node --check scripts/inputxml_compiler/node_uxml_rvm_bridge.mjs
-python -m unittest -v \
-  tests.test_inputxml_uxml_rvm_adapter \
-  tests.test_inputxml_uxml_rvm_contract_regressions \
-  tests.test_inputxml_uxml_rvm_accounting \
-  tests.test_inputxml_uxml_rvm_bridge_security \
-  tests.test_inputxml_uxml_rvm_compiler
+python -m unittest -v tests/test_inputxml_uxml_rvm_*.py
 ```
 
 Result:
 
 ```text
-54 discovered
-51 passed
+107 discovered
+104 passed
 3 full-compiler integration tests skipped because the connector environment lacks the complete repository checkout
 ```
 
-The 51 executed tests include detached-approval restamping, reparsed XML plus actual-ledger substitution, standalone support blocking, orphan ownership, unit contradiction, anchor/port disagreement, unsafe integer and precision loss, prototype keys, non-BMP ordering, real output overflow termination, unsupported junctions, generated metadata, and deterministic bridge output.
+The 104 executed tests include the retained numbered adversarial suite and detached-approval restamping, reparsed XML plus actual-ledger substitution, standalone support blocking, orphan ownership, unit contradiction, anchor/port disagreement, unsafe integer and precision loss, prototype keys, non-BMP ordering, real output overflow termination, unsupported junctions, generated metadata, and deterministic bridge output.
 
 ## Remaining independent gate
 
 Before the PR is marked ready or merged, run on the exact corrected head in a complete checkout:
 
-- all UXML/RVM focused tests including the retained numbered adversarial suite;
 - all three full-compiler integration tests without skips;
 - contract-bundle tests;
 - compiler state-machine tests;
