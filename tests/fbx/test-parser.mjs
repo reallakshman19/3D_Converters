@@ -13,6 +13,18 @@ assert.equal(graph.globalSettings.unitMeters, 0.01);
 
 const objectIds = new Set(graph.sourceObjects.map((item) => item.sourceObjectId));
 for (const id of ['101', '102', '200', '201', '202']) assert.ok(objectIds.has(id), `missing source ID ${id}`);
+const pipeModel = graph.sourceObjects.find((item) => item.sourceObjectId === '201');
+const pipeGeometry = graph.sourceObjects.find((item) => item.sourceObjectId === '101');
+assert.deepEqual(
+  { class: pipeModel.class, subtype: pipeModel.subtype, sourceName: pipeModel.sourceName, ufbxType: pipeModel.ufbxType },
+  { class: 'Model', subtype: 'Mesh', sourceName: 'Model::PipeOne', ufbxType: 'NODE' },
+);
+assert.deepEqual(
+  { class: pipeGeometry.class, subtype: pipeGeometry.subtype, sourceName: pipeGeometry.sourceName, ufbxType: pipeGeometry.ufbxType },
+  { class: 'Geometry', subtype: 'Mesh', sourceName: 'Geometry::PipeOne', ufbxType: 'MESH' },
+);
+assert.ok(!graph.sourceObjects.some((item) => item.ufbxType === 'OTHER'));
+
 const occurrenceIds = new Set(graph.occurrences.map((item) => item.sourceOccurrenceId));
 assert.ok(occurrenceIds.has('occ:201'));
 assert.ok(occurrenceIds.has('occ:202'));
