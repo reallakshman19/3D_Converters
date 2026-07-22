@@ -16,6 +16,8 @@ A branch-start occurrence can own the outgoing element only when it is source-br
 
 `ELBO`, `VALV`, `FLAN`, `ATTA`, bend, rigid, restraint/support, non-zero SIF, weight, bend radius, or other mandatory engineering content without an explicit element/section claim blocks with `PSI116_UNPROJECTABLE_ENGINEERING_CONTENT`.
 
+Every source entity that owns a logical topology edge must also own at least one TE-013 emitted or reserved occurrence. A reduced sequence/record subset cannot be certified while its source edge remains in the accepted topology index.
+
 ## HYDRO_PRESSURE authority
 
 PSI116 has no hydrostatic-test pressure field. Canonical `HYDRO_PRESSURE="0"` is a policy-normalized explicit absence, not a parser fallback:
@@ -37,6 +39,7 @@ The value, authority, disposition, and policy hash are recorded for every canoni
 - Branch-start bend, rigid, restraint, and support payloads are covered.
 - Isolated `ELBO`, `VALV`, `FLAN`, and `ATTA` block.
 - Only payload-free topology endpoints may be omitted.
+- Edge-owned source topology without an occurrence disposition blocks.
 - `selectable=false` blocks independently of historical TE-013 bundle hashes.
 - Node-number mismatches, unaccounted occurrences, conflicting claims, and unexplained losses are zero for PASS.
 
