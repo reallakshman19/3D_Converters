@@ -13,26 +13,18 @@ on:
       - 'tests/fixtures/fbx/**'
       - 'docs/fbx/**'
       - '.github/workflows/fbx-stagedjson.yml'
-  push:
-    branches: ['agent/f2s-001-fbx-stagedjson-pipe']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   certify:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Capture parser build and materialize result
-        if: github.event_name == 'push'
+      - name: Capture parser rebuild
         run: |
-          if [ "$(git log -1 --pretty=%s)" = "build(fbx): materialize parser diagnostic" ]; then
-            echo 'Diagnostic commit already materialized.'
-            exit 0
-          fi
           set +e
-          mkdir -p docs/fbx
           {
             echo '=== toolchain ==='
             uname -a
@@ -44,24 +36,38 @@ jobs:
             sudo apt-get install -y clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32
             echo '=== parser build ==='
             CC=clang-18 WASI_SYSROOT=/usr bash scripts/fbx/build-ufbx-wasm.sh
+            parser_status=$?
+            echo "parserStatus=$parser_status"
             echo '=== fixture build ==='
             python3 scripts/fbx/generate-fixture.py
-          } > docs/fbx/ci-build-debug.log 2>&1
-          status=$?
-          echo "buildStatus=$status" >> docs/fbx/ci-build-debug.log
-          if [ -f third_party/ufbx/fbx_parser.wasm ]; then
-            python3 - <<'PY'
-          import hashlib, json
-          from pathlib import Path
-          path = Path('third_party/ufbx/provenance.json')
-          data = json.loads(path.read_text())
-          data['wasmSha256'] = hashlib.sha256(Path('third_party/ufbx/fbx_parser.wasm').read_bytes()).hexdigest()
-          path.write_text(json.dumps(data, indent=2, sort_keys=True) + '\n')
-          PY
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/fbx/ci-build-debug.log third_party/ufbx/fbx_parser.wasm third_party/ufbx/provenance.json tests/fixtures/fbx
-          git commit -m 'build(fbx): materialize parser diagnostic'
-          git push origin HEAD:agent/f2s-001-fbx-stagedjson-pipe
+            fixture_status=$?
+            echo "fixtureStatus=$fixture_status"
+          } > fbx-build.log 2>&1
+          parser_status=$(grep '^parserStatus=' fbx-build.log | tail -1 | cut -d= -f2)
+          fixture_status=$(grep '^fixtureStatus=' fbx-build.log | tail -1 | cut -d= -f2)
+          echo "${parser_status:-99}" > fbx-parser-build.status
+          echo "${fixture_status:-99}" > fbx-fixture-build.status
           exit 0
+      - name: Upload parser rebuild proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: fbx-parser-rebuild-${{ github.sha }}
+          path: |
+            fbx-build.log
+            fbx-parser-build.status
+            fbx-fixture-build.status
+            third_party/ufbx/fbx_parser.wasm
+          if-no-files-found: error
+          retention-days: 3
+      - name: Verify rebuild succeeded
+        run: |
+          test "$(cat fbx-parser-build.status)" = "0"
+          test "$(cat fbx-fixture-build.status)" = "0"
+      - name: Verify generated-byte determinism
+        run: git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
+      - name: Run FBX certification
+        run: |
+          node tests/fbx/run-all.mjs
+          node tests/fbx/test-determinism.mjs
+          node tests/fbx/test-registry.mjs
+          node tests/fbx/test-static-guards.mjs
