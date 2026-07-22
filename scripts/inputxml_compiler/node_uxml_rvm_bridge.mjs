@@ -7,19 +7,62 @@ const REQUEST_SCHEMA = 'InputXmlUxmlRvmBridgeRequest.v1';
 const RESULT_SCHEMA = 'InputXmlUxmlRvmBridgeResult.v1';
 const BRIDGE_IDENTITY = 'inputxml-uxml-rvm-exact-bridge/v1';
 const MAX_REQUEST_BYTES = 24 * 1024 * 1024;
+const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 
+function compareCodePoints(left, right) {
+  const a = Array.from(left, char => char.codePointAt(0));
+  const b = Array.from(right, char => char.codePointAt(0));
+  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return a.length - b.length;
+}
 function stableStringify(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  const keys = Object.keys(value).sort(compareCodePoints);
+  return `{${keys.map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
 }
 function hashBytes(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function semanticHash(value, field) {
-  const body = Object.fromEntries(Object.entries(value).filter(([key]) => key !== field));
+  const body = Object.create(null);
+  for (const key of Object.keys(value)) if (key !== field) body[key] = value[key];
   return hashBytes(Buffer.from(stableStringify(body), 'utf8'));
 }
 function clean(value) { return String(value ?? '').trim(); }
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
+
+function canonicalDecimal(token) {
+  const match = String(token).match(/^(-?)(\d+)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/u);
+  if (!match) fail('UXML_RVM_INVALID_JSON', `Invalid number ${token}`);
+  const sign = match[1]; const integer = match[2]; const fraction = match[3] ?? '';
+  const exponent = Number(match[4] ?? 0); let digits = `${integer}${fraction}`;
+  let point = integer.length + exponent;
+  digits = digits.replace(/^0+/u, '') || '0';
+  if (digits === '0') return '0';
+  const removed = integer.length + fraction.length - digits.length;
+  point -= removed;
+  let result;
+  if (point <= 0) result = `0.${'0'.repeat(-point)}${digits}`;
+  else if (point >= digits.length) result = `${digits}${'0'.repeat(point - digits.length)}`;
+  else result = `${digits.slice(0, point)}.${digits.slice(point)}`;
+  result = result.replace(/(?:\.0+|(?<=\..*?)0+)$/u, '').replace(/\.$/u, '');
+  return sign === '-' ? `-${result}` : result;
+}
+function exactNumber(token) {
+  const value = Number(token);
+  if (!Number.isFinite(value)) fail('UXML_RVM_NON_FINITE_JSON', `Non-finite JSON number ${token}`);
+  if (!/[.eE]/u.test(token) && !Number.isSafeInteger(value)) {
+    fail('UXML_RVM_UNSAFE_INTEGER', `JSON integer exceeds exact bridge range: ${token}`);
+  }
+  if (Math.abs(value) > MAX_SAFE_INTEGER && Number.isInteger(value)) {
+    fail('UXML_RVM_UNSAFE_INTEGER', `JSON integer exceeds exact bridge range: ${token}`);
+  }
+  if (canonicalDecimal(token) !== canonicalDecimal(String(value))) {
+    fail('UXML_RVM_PRECISION_LOSS', `JSON number cannot round-trip exactly through bridge: ${token}`);
+  }
+  return value;
+}
 
 function parseStrictJson(text) {
   let index = 0;
@@ -31,7 +74,8 @@ function parseStrictJson(text) {
       const char = text[index++];
       if (char === '"') {
         let value;
-        try { value = JSON.parse(text.slice(start, index)); } catch { fail('UXML_RVM_INVALID_JSON', 'Invalid JSON string'); }
+        try { value = JSON.parse(text.slice(start, index)); }
+        catch { fail('UXML_RVM_INVALID_JSON', 'Invalid JSON string'); }
         for (let i = 0; i < value.length; i += 1) {
           const code = value.charCodeAt(i);
           if (code >= 0xD800 && code <= 0xDBFF) {
@@ -51,13 +95,10 @@ function parseStrictJson(text) {
     const match = text.slice(index).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/u);
     if (!match) fail('UXML_RVM_INVALID_JSON', 'Invalid number');
     index += match[0].length;
-    const value = Number(match[0]);
-    if (!Number.isFinite(value)) fail('UXML_RVM_NON_FINITE_JSON', 'Non-finite number');
-    return value;
+    return exactNumber(match[0]);
   };
   const value = () => {
-    whitespace();
-    const char = text[index];
+    whitespace(); const char = text[index];
     if (char === '{') return object();
     if (char === '[') return array();
     if (char === '"') return string();
@@ -69,15 +110,16 @@ function parseStrictJson(text) {
   };
   const object = () => {
     index += 1; whitespace();
-    const result = {}; const keys = new Set();
+    const result = Object.create(null); const keys = new Set();
     if (text[index] === '}') { index += 1; return result; }
     while (true) {
       whitespace(); const key = string(); whitespace();
       if (keys.has(key)) fail('UXML_RVM_DUPLICATE_JSON_KEY', `Duplicate JSON key ${key}`);
       keys.add(key);
       if (text[index++] !== ':') fail('UXML_RVM_INVALID_JSON', 'Expected colon');
-      result[key] = value(); whitespace();
-      const separator = text[index++];
+      const item = value();
+      Object.defineProperty(result, key, { value: item, enumerable: true, writable: true, configurable: true });
+      whitespace(); const separator = text[index++];
       if (separator === '}') return result;
       if (separator !== ',') fail('UXML_RVM_INVALID_JSON', 'Expected comma or object end');
     }
@@ -86,8 +128,7 @@ function parseStrictJson(text) {
     index += 1; whitespace(); const result = [];
     if (text[index] === ']') { index += 1; return result; }
     while (true) {
-      result.push(value()); whitespace();
-      const separator = text[index++];
+      result.push(value()); whitespace(); const separator = text[index++];
       if (separator === ']') return result;
       if (separator !== ',') fail('UXML_RVM_INVALID_JSON', 'Expected comma or array end');
     }
@@ -105,10 +146,10 @@ function requireRequest(request) {
   if (!['UXML_DOCUMENT', 'RVM_ROWS'].includes(request.sourceKind)) fail('UXML_RVM_INPUT_KIND', 'Unknown source kind');
   if (request.dialect !== 'uxml-rvm-intake' || request.adapter !== 'uxml-rvm-to-canonical') fail('UXML_RVM_PROFILE_IDENTITY', 'Profile identity mismatch');
 }
-
 function sourcePayload(request) {
   let source;
-  try { source = Buffer.from(request.sourceBase64, 'base64'); } catch { fail('UXML_RVM_SOURCE_BASE64', 'Invalid source base64'); }
+  try { source = Buffer.from(request.sourceBase64, 'base64'); }
+  catch { fail('UXML_RVM_SOURCE_BASE64', 'Invalid source base64'); }
   if (source.toString('base64') !== request.sourceBase64) fail('UXML_RVM_SOURCE_BASE64', 'Non-canonical source base64');
   if (!Buffer.from(source.toString('utf8'), 'utf8').equals(source)) fail('UXML_RVM_INVALID_UTF8', 'Source bytes are not strict UTF-8');
   if (source.length !== request.sourceByteLength) fail('UXML_RVM_SOURCE_LENGTH', 'Source length mismatch');
@@ -124,33 +165,29 @@ function sourcePayload(request) {
   if (!uxml || uxml.schemaVersion !== 'uxml-topology-v1') fail('UXML_RVM_UXML_SCHEMA', 'Unregistered UXML schema');
   return { payload, rows: [], uxml };
 }
-
 function inventoryHash(uxml) {
   const names = ['sources', 'mappings', 'pipelines', 'components', 'anchors', 'ports', 'segments', 'supports', 'topologyHints', 'rayEvidence', 'lossContract'];
-  return hashBytes(Buffer.from(stableStringify(Object.fromEntries(names.map(name => [name, uxml[name] ?? []]))), 'utf8'));
+  const inventory = Object.create(null);
+  for (const name of names) inventory[name] = uxml[name] ?? [];
+  return hashBytes(Buffer.from(stableStringify(inventory), 'utf8'));
 }
-
 function run(request) {
   requireRequest(request);
   const parsed = sourcePayload(request);
-  let uxml = parsed.uxml; let adapter = null; let rowIdentityByComponentId = {};
+  let uxml = parsed.uxml; let adapter = null; let rowIdentityByComponentId = Object.create(null);
   if (request.sourceKind === 'RVM_ROWS') {
     adapter = adaptRvmRowsToUxml(parsed.rows, { name: 'source-bytes', path: '', hash: request.sourceByteHashSha256 });
-    uxml = adapter.uxml; rowIdentityByComponentId = adapter.rowIdentityByComponentId ?? {};
+    uxml = adapter.uxml; rowIdentityByComponentId = adapter.rowIdentityByComponentId ?? Object.create(null);
   }
   const diagnosticMap = new Map();
   for (const item of [...(adapter?.diagnostics ?? []), ...(uxml.diagnostics ?? [])]) diagnosticMap.set(stableStringify(item), { ...item });
-  const diagnostics = [...diagnosticMap.values()].sort((a, b) => stableStringify(a).localeCompare(stableStringify(b)));
+  const diagnostics = [...diagnosticMap.values()].sort((a, b) => compareCodePoints(stableStringify(a), stableStringify(b)));
   const result = {
-    schema: RESULT_SCHEMA,
-    bridgeImplementationIdentity: BRIDGE_IDENTITY,
+    schema: RESULT_SCHEMA, bridgeImplementationIdentity: BRIDGE_IDENTITY,
     requestHashSha256: request.requestHashSha256,
     sourceByteHashSha256: request.sourceByteHashSha256,
-    sourceByteLength: request.sourceByteLength,
-    sourceKind: request.sourceKind,
-    rows: parsed.rows,
-    rowIdentityByComponentId,
-    uxml,
+    sourceByteLength: request.sourceByteLength, sourceKind: request.sourceKind,
+    rows: parsed.rows, rowIdentityByComponentId, uxml,
     adapter: adapter ? { schema: adapter.schema, stats: adapter.stats } : null,
     diagnostics,
     adaptedUxmlHashSha256: hashBytes(Buffer.from(stableStringify(uxml), 'utf8')),
@@ -169,8 +206,7 @@ function run(request) {
 try {
   const input = fs.readFileSync(0);
   if (input.length > MAX_REQUEST_BYTES) fail('UXML_RVM_BRIDGE_REQUEST_LIMIT', 'Bridge request exceeds limit');
-  const result = run(parseStrictJson(input.toString('utf8')));
-  process.stdout.write(stableStringify(result));
+  process.stdout.write(stableStringify(run(parseStrictJson(input.toString('utf8')))));
 } catch (error) {
   process.stdout.write(stableStringify({ ok: false, code: error.code ?? 'UXML_RVM_BRIDGE_FAILURE', error: error.message ?? String(error) }));
   process.exitCode = 2;
