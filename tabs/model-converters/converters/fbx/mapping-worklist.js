@@ -57,14 +57,30 @@ function compareText(left, right) {
 
 function validateParserEvidence(value) {
   const keys = ['provenanceSchema', 'upstreamRevision', 'sourceSha256', 'wasmSha256'];
-  exactKeys(value, keys, 'parserEvidence');
-  requireText(value.provenanceSchema, 'parserEvidence.provenanceSchema');
-  requireHash(value.sourceSha256, 'parserEvidence.sourceSha256');
-  requireHash(value.wasmSha256, 'parserEvidence.wasmSha256');
-  if (!REVISION_PATTERN.test(requireText(value.upstreamRevision, 'parserEvidence.upstreamRevision'))) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence must be an object.');
+  }
+  if (Object.keys(value).sort().join('\0') !== [...keys].sort().join('\0')) {
+    fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence has missing or unexpected fields.');
+  }
+  if (typeof value.provenanceSchema !== 'string' || !value.provenanceSchema) {
+    fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence.provenanceSchema is required.');
+  }
+  for (const key of ['sourceSha256', 'wasmSha256']) if (!HASH_PATTERN.test(value[key])) {
+    fail('BLOCKED_WORKLIST_PARSER_BINDING', `parserEvidence.${key} is malformed.`);
+  }
+  if (!REVISION_PATTERN.test(value.upstreamRevision)) {
     fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence.upstreamRevision is malformed.');
   }
   return value;
+}
+
+function canonicalSourceGraph(graph) {
+  try { return enforceSourceGraphPolicy(graph); }
+  catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', detail);
+  }
 }
 
 function typeEvidence(source) {
@@ -182,7 +198,7 @@ function assertOwnedGeometry(occurrences, geometries) {
 
 export async function buildMappingWorklist({ bytes, graph, parserEvidence }) {
   validateParserEvidence(parserEvidence);
-  const canonicalGraph = enforceSourceGraphPolicy(graph);
+  const canonicalGraph = canonicalSourceGraph(graph);
   const { sources, geometries } = sourceIndexes(canonicalGraph);
   const occurrences = governedOccurrences(canonicalGraph, sources);
   assertOwnedGeometry(occurrences, geometries);
@@ -245,8 +261,11 @@ export async function verifyMappingWorklist({ bytes, graph, parserEvidence, work
   catch (error) { mapBindingError(error, 'BLOCKED_WORKLIST_SOURCE_BINDING'); }
   try { verifyParserBinding(worklist, parserEvidence); }
   catch (error) { mapBindingError(error, 'BLOCKED_WORKLIST_PARSER_BINDING'); }
-  try { await verifySourceGraphBinding(worklist, enforceSourceGraphPolicy(graph)); }
-  catch (error) { mapBindingError(error, 'BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING'); }
+  try { await verifySourceGraphBinding(worklist, canonicalSourceGraph(graph)); }
+  catch (error) {
+    if (error instanceof WorklistFailure) throw error;
+    mapBindingError(error, 'BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING');
+  }
   const regenerated = await buildMappingWorklist({ bytes, graph, parserEvidence });
   if (canonicalJson(regenerated) !== canonicalJson(worklist)) {
     fail('BLOCKED_WORKLIST_CONTRACT', 'worklist does not match canonical source evidence.');
