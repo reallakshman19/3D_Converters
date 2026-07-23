@@ -10,6 +10,13 @@ import {
   enrichTopologyTraceLedgerIdentity,
 } from './topology-artifact-identity.js';
 import { stampArtifactHash } from './topology-deterministic-hash.js';
+import {
+  applyNumberedTopologyProjection,
+  buildTopologyNumberingArtifacts,
+  canonicalTopologyV2FromLegacy,
+  legacyNumberMap,
+  stampCanonicalTopologyV2,
+} from './topology-numbering-projection.js';
 import { buildTopologySvgScene } from './topology-svg-scene-builder.js';
 import { parseTopologyInputXml } from './topology-inputxml-topology-parser.js';
 import {
@@ -17,6 +24,10 @@ import {
   topologyParityMismatchesCsv,
   TopologyParityError,
 } from './topology-parity-engine.js';
+import {
+  buildParsedInputXmlTopologyV1,
+  buildTopologyParityReportV2,
+} from './topology-parity-report-v2.js';
 import { cleanText, componentCategory, pointDistance } from './topology-values.js';
 
 function componentCounts(model) {
@@ -127,15 +138,22 @@ async function buildProducerState(sourceText, options) {
     options.toleranceMm,
     options.supportProjectionToleranceMm,
   );
-  const canonicalTopology = stampArtifactHash(
+  const canonicalTopologyV2 = await stampCanonicalTopologyV2(
     enrichCanonicalTopologyIdentity(built, model),
+  );
+  const numbering = await buildTopologyNumberingArtifacts(canonicalTopologyV2, model, null);
+  const canonicalTopology = stampArtifactHash(
+    applyNumberedTopologyProjection(canonicalTopologyV2, numbering.numberedTopologyProjection),
     'canonicalTopologyHash',
   );
-  return Object.freeze({ model, engineering, canonicalTopology });
+  return Object.freeze({ model, engineering, canonicalTopology, canonicalTopologyV2, ...numbering });
 }
 
-function buildArtifactsFromState(state, options, editMetadata, failOnParity) {
-  const { model, engineering, canonicalTopology } = state;
+async function buildArtifactsFromState(state, options, editMetadata, failOnParity) {
+  const {
+    model, engineering, canonicalTopology, canonicalTopologyV2,
+    topoNodePlan, numberedTopologyProjection, numberingShadowReport,
+  } = state;
   const builtLedger = buildTopologyTraceLedger(model, canonicalTopology);
   const traceLedger = stampArtifactHash(
     enrichTopologyTraceLedgerIdentity(
@@ -151,18 +169,34 @@ function buildArtifactsFromState(state, options, editMetadata, failOnParity) {
     ),
     'topologyTraceLedgerHash',
   );
-  const topologyInputXml = buildTopologyInputXml(canonicalTopology, engineering, {
+  const topologyInputXml = buildTopologyInputXml(canonicalTopologyV2, engineering, numberedTopologyProjection, {
     jobName: options.jobName,
+    legacyCanonicalTopologyHash: canonicalTopology.canonicalTopologyHash,
     topologyTraceLedgerHash: traceLedger.topologyTraceLedgerHash,
     topologyEditDraftHash: editMetadata?.editDraft?.topologyEditDraftHash,
     topologyEditLedgerHash: editMetadata?.editLedger?.topologyEditLedgerHash,
   });
   const parsedInputXmlTopology = parseTopologyInputXml(topologyInputXml);
+  const parsedInputXmlTopologyV2 = await buildParsedInputXmlTopologyV1({
+    parsedInputXmlTopology,
+    topologyInputXml,
+    canonicalTopologyV2,
+  });
   const topologySvgScene = buildTopologySvgScene(canonicalTopology, traceLedger, []);
   const topologyParityReport = buildTopologyParityReport({
     canonicalTopology,
     traceLedger,
     parsedInputXmlTopology,
+    topologySvgScene,
+  });
+  const topologyParityReportV2 = await buildTopologyParityReportV2({
+    topologyParityReportV1: topologyParityReport,
+    canonicalTopologyV2,
+    topoNodePlan,
+    numberedTopologyProjection,
+    numberingShadowReport,
+    topologyInputXml,
+    parsedInputXmlTopologyV2,
     topologySvgScene,
   });
   const metrics = artifactMetrics(
@@ -178,17 +212,23 @@ function buildArtifactsFromState(state, options, editMetadata, failOnParity) {
   const artifacts = Object.freeze({
     sourceIdentity: model.sourceIdentity,
     canonicalTopology,
+    canonicalTopologyV2,
+    topoNodePlan,
+    numberedTopologyProjection,
+    numberingShadowReport,
     traceLedger,
     topologyInputXml,
     parsedInputXmlTopology,
+    parsedInputXmlTopologyV2,
     topologySvgScene,
     topologyParityReport,
+    topologyParityReportV2,
     topologyParityMismatchesCsv: topologyParityMismatchesCsv(topologyParityReport),
     metrics,
     buildIssues: canonicalTopology.buildIssues,
     ...(editMetadata ?? {}),
   });
-  if (failOnParity && !topologyParityReport.ok) {
+  if (failOnParity && (!topologyParityReport.ok || topologyParityReportV2.status !== 'PASS')) {
     throw new TopologyParityError(topologyParityReport);
   }
   return artifacts;
@@ -203,11 +243,19 @@ export async function buildEditedComponentTopologyArtifacts(sourceText, draft, o
   const baseState = await buildProducerState(sourceText, options);
   const materialized = materializeTopologyEditDraft(baseState.canonicalTopology, draft);
   const editValidation = materialized.validation;
+  const canonicalTopologyV2 = await canonicalTopologyV2FromLegacy(materialized.canonicalTopology);
+  const numbering = await buildTopologyNumberingArtifacts(
+    canonicalTopologyV2,
+    baseState.model,
+    legacyNumberMap(materialized.canonicalTopology),
+  );
   const state = Object.freeze({
     ...baseState,
     canonicalTopology: materialized.canonicalTopology,
+    canonicalTopologyV2,
+    ...numbering,
   });
-  const artifacts = buildArtifactsFromState(state, options, {
+  const artifacts = await buildArtifactsFromState(state, options, {
     editDraft: draft,
     editLedger: materialized.editLedger,
     editValidation,
@@ -234,11 +282,17 @@ export async function buildEditedComponentTopologyArtifacts(sourceText, draft, o
 export function topologyArtifactOutputs(artifacts, options) {
   const outputs = [
     ['canonical-topology.json', artifacts.canonicalTopology, 'application/json;charset=utf-8'],
+    ['canonical-topology-v2.json', artifacts.canonicalTopologyV2, 'application/json;charset=utf-8'],
+    ['topo-node-plan.json', artifacts.topoNodePlan, 'application/json;charset=utf-8'],
+    ['numbered-topology-projection.json', artifacts.numberedTopologyProjection, 'application/json;charset=utf-8'],
+    ['topology-numbering-shadow-report.json', artifacts.numberingShadowReport, 'application/json;charset=utf-8'],
     ['topology-trace-ledger.json', artifacts.traceLedger, 'application/json;charset=utf-8'],
     ['topology.input.xml', artifacts.topologyInputXml, 'application/xml;charset=utf-8'],
     ['topology-svg-scene.json', artifacts.topologySvgScene, 'application/json;charset=utf-8'],
     ['parsed-inputxml-topology.json', artifacts.parsedInputXmlTopology, 'application/json;charset=utf-8'],
+    ['parsed-inputxml-topology-v2.json', artifacts.parsedInputXmlTopologyV2, 'application/json;charset=utf-8'],
     ['topology-parity-report.json', artifacts.topologyParityReport, 'application/json;charset=utf-8'],
+    ['topology-parity-report-v2.json', artifacts.topologyParityReportV2, 'application/json;charset=utf-8'],
     ['topology-parity-mismatches.csv', artifacts.topologyParityMismatchesCsv, 'text/csv;charset=utf-8'],
   ].map(([suffix, value, mime]) => Object.freeze({
     name: `${options.stem}.${suffix}`,

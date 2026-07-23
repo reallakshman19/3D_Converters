@@ -47,6 +47,8 @@ if (!existsSync(fixturePath)) {
   assert.equal(built.metrics.ledger.deferredSupports, 92);
   assert.equal(built.metrics.canonical.supports, 580);
   assert.equal(built.metrics.inputXml.restraints, 758);
+  assert.equal(built.numberingShadowReport.status, 'PASS');
+  assert.deepEqual(built.numberingShadowReport.differences, []);
 
   const parity = built.topologyParityReport;
   assert.equal(parity.ok, true);

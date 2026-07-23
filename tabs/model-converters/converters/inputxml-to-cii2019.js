@@ -395,6 +395,27 @@ export async function openInputxml2019PreRunPopup(def, values, primaryFileName, 
   return true;
 }
 
+function buildReleasePreflightRows(logs) {
+  const preflight = logs?.preflight;
+  if (!preflight) return [];
+  const mode = logs?.argv?.includes('--mode')
+    ? logs.argv[logs.argv.indexOf('--mode') + 1]
+    : 'UNKNOWN';
+  return [
+    {
+      type: 'inputxml-release-preflight',
+      method: mode,
+      needsReview: preflight.releaseEligible !== true,
+      message: `${preflight.status}: ${preflight.releaseEligible ? 'all mandatory v2 gates passed; CII released' : 'release blocked; no CII emitted'}.`,
+    },
+    {
+      type: 'inputxml-runtime-manifest',
+      method: logs?.runtime?.sourceRevision || '',
+      message: logs?.runtime?.manifestHashSha256 || 'Runtime manifest evidence unavailable.',
+    },
+  ];
+}
+
 export async function run(context) {
   if (!context.workerRunner) {
     throw new Error('Python worker runtime is not available.');
@@ -432,9 +453,11 @@ export async function run(context) {
     Object.entries(runValues).filter(([, v]) => typeof v !== 'function'),
   );
 
-  return await context.workerRunner.runJob({
+  const response = await context.workerRunner.runJob({
     converterId: context.converterId,
     inputFiles: context.inputFiles,
     options: workerOptions,
   });
+  const blocked = response.logs?.preflight?.releaseEligible === false;
+  return { ...response, blocked, diagnosticsRows: buildReleasePreflightRows(response.logs) };
 }

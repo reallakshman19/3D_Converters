@@ -210,7 +210,6 @@ export function assignRigidEdges(edges, nodes, rigids, toleranceMm) {
       sourcePath: rigid.component.sourcePath,
       edgeId: selected.edge.id,
       inputXmlElementId: selected.edge.inputXmlElementIds[0],
-      inputXmlNodeId: nodeById.get(selected.edge.toNodeId).inputXmlNodeIds[0],
       connectionResidual: selected.distanceMm,
       componentType: rigid.record.componentType,
       ...rigidWeight(rigid.record),

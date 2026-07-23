@@ -7,16 +7,15 @@
  * "PRESSURE_C1" the converter engines hardcode, or "TEMP_EXPC1" instead of
  * "TEMP_EXP_C1"). Rather than teaching every alias to the core Python
  * engines (inputxml_to_cii2019.py, inputxml_to_cii2014.py, ...), this module
- * rewrites known variant attribute names to their canonical spelling before
- * the file ever reaches Python. The engines stay untouched and keep reading
- * a single hardcoded name per field.
+ * reports and rewrites known variants only for retained legacy routes and
+ * explicit diagnostics. The production InputXML->CII(2019) release path uses
+ * the structural compiler and never feeds this text adapter into conversion.
  *
  * It also normalizes CAESAR restraint slot numbering at the InputXML boundary:
  * one PIPINGELEMENT can carry only six RESTRAINT slots in the downstream CII
- * RESTRANT auxiliary block. Real/enriched InputXML may contain duplicate,
- * missing, or overflow NUM values (for example NUM="7"). Those are reassigned
- * into free slots 1..6 where possible; excess restraints are removed from that
- * single element rather than allowing the converter to abort.
+ * RESTRANT auxiliary block. Duplicate or missing NUM values are reassigned to
+ * free slots 1..6. An element containing more than six restraints is rejected
+ * before any slot rewrite so engineering content is never silently removed.
  *
  * How to add a new alias: add the variant spelling to the array for its
  * canonical attribute name in INPUTXML_ATTRIBUTE_ALIASES below. No other
@@ -74,10 +73,24 @@ export const INPUTXML_ATTRIBUTE_ALIASES = Object.freeze({
 // that the alias map above applies to. Other converters (e.g. the PSI-style
 // XML->CII(2019) source XML) use an unrelated schema and must not be touched.
 const INPUTXML_DIALECT_CONVERTER_IDS = Object.freeze(
-  new Set(['inputxml_to_cii2019', 'inputxml_to_cii', 'inputxml14_to_cii']),
+  new Set(['inputxml_to_cii', 'inputxml14_to_cii']),
 );
 
 const RESTRAINT_SLOTS_PER_ELEMENT = 6;
+
+/** Specific fail-closed error raised when one element exceeds CII capacity. */
+export class InputXmlRestraintOverflowError extends Error {
+  constructor(elementIdentity, observedCount, allowedCount) {
+    const remediation = 'Use an approved semantic split in ADAPTED_CANONICAL mode.';
+    super(`InputXML restraint overflow at ${elementIdentity}: found ${observedCount}, allowed ${allowedCount}. ${remediation}`);
+    this.name = 'InputXmlRestraintOverflowError';
+    this.code = 'INPUTXML_RESTRAINT_OVERFLOW';
+    this.elementIdentity = elementIdentity;
+    this.observedCount = observedCount;
+    this.allowedCount = allowedCount;
+    this.remediation = remediation;
+  }
+}
 
 export function converterUsesInputXmlDialect(converterId) {
   return INPUTXML_DIALECT_CONVERTER_IDS.has(String(converterId || ''));
@@ -133,11 +146,24 @@ function setRestraintSlot(restraintXml, slot) {
   return `${startTag.slice(0, insertAt)} NUM="${slot}"${startTag.slice(insertAt)}${rest}`;
 }
 
+function elementIdentity(elementXml) {
+  const startTag = String(elementXml).match(/^<PIPINGELEMENT\b[^>]*>/i)?.[0] || '';
+  const fromNode = startTag.match(/\bFROM_NODE\s*=\s*(["'])(.*?)\1/i)?.[2] || '(missing)';
+  const toNode = startTag.match(/\bTO_NODE\s*=\s*(["'])(.*?)\1/i)?.[2] || '(missing)';
+  return `PIPINGELEMENT ${fromNode}->${toNode}`;
+}
+
 function normalizeRestraintsInsideElement(elementXml, changes) {
+  const restraints = elementXml.match(/<RESTRAINT\b[^>]*(?:\/>|>[\s\S]*?<\/RESTRAINT>)/gi) || [];
+  if (restraints.length > RESTRAINT_SLOTS_PER_ELEMENT) {
+    throw new InputXmlRestraintOverflowError(
+      elementIdentity(elementXml),
+      restraints.length,
+      RESTRAINT_SLOTS_PER_ELEMENT,
+    );
+  }
   const usedSlots = new Set();
-  let restraintCount = 0;
   return elementXml.replace(/<RESTRAINT\b[^>]*(?:\/>|>[\s\S]*?<\/RESTRAINT>)/gi, (restraintXml) => {
-    restraintCount += 1;
     const numMatch = restraintXml.match(/\bNUM\s*=\s*(["'])(.*?)\1/i);
     const currentSlot = parseSlot(numMatch?.[2]);
     if (currentSlot !== null && currentSlot >= 1 && currentSlot <= RESTRAINT_SLOTS_PER_ELEMENT && !usedSlots.has(currentSlot)) {
@@ -145,10 +171,7 @@ function normalizeRestraintsInsideElement(elementXml, changes) {
       return restraintXml;
     }
     const replacementSlot = nextFreeSlot(usedSlots);
-    if (replacementSlot === null) {
-      changes.push(`dropped overflow RESTRAINT ${restraintCount}`);
-      return '';
-    }
+    if (replacementSlot === null) throw new Error(`No restraint slot is available at ${elementIdentity(elementXml)}.`);
     usedSlots.add(replacementSlot);
     changes.push(`RESTRAINT NUM ${numMatch?.[2] || '(missing)'} -> ${replacementSlot}`);
     return setRestraintSlot(restraintXml, replacementSlot);

@@ -1,7 +1,7 @@
 /**
  * Canonical component-topology builder.
  * Inputs: identified source model plus explicit connection evidence. Output:
- * CanonicalTopology.v1 with stable source-order IDs. Zero-length route objects
+ * CanonicalTopology.v2 with stable, number-free source-order IDs. Zero-length route objects
  * become point features; supports are excluded from route continuity.
  */
 
@@ -117,17 +117,6 @@ function canonicalPort(ports) {
 
 /** @param {Record<string, unknown>} model @param {Record<string, unknown>} connectivity @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>[]} junctions @param {Record<string, unknown>[]} boundaries @returns {Record<string, unknown>} */
 function buildNodes(model, connectivity, edgeSpecs, junctions, boundaries) {
-  const branchIndexByComponentId = new Map();
-  if (model.branches) {
-    model.branches.forEach((branch, bIdx) => {
-      if (branch.components) {
-        branch.components.forEach(comp => {
-          branchIndexByComponentId.set(comp.sourceEntityId, bIdx);
-        });
-      }
-    });
-  }
-
   const projectedPorts = edgeSpecs.flatMap((edge) => [edge.fromPort, edge.toPort]);
   const terminalPorts = [...junctions.map((row) => row.port), ...boundaries.map((row) => row.port)];
   const portByKey = new Map(model.sourcePorts.map((port) => [port.key, port]));
@@ -145,23 +134,14 @@ function buildNodes(model, connectivity, edgeSpecs, junctions, boundaries) {
     ports: ports.sort((left, right) => left.order - right.order),
   })).sort((left, right) => left.ports[0].order - right.ports[0].order);
 
-  const branchCounters = new Map();
-
   const nodes = ordered.map((group, index) => {
     const authority = canonicalPort(group.ports);
-    let bIdx = branchIndexByComponentId.get(authority.sourceEntityId);
-    if (bIdx === undefined) bIdx = 0;
-
-    const count = (branchCounters.get(bIdx) ?? 0) + 1;
-    branchCounters.set(bIdx, count);
-    const caesarNodeNumber = (bIdx + 1) * 10000 + (count * 10);
-
     return {
       id: `CN-${sequenceId(index + 1)}`,
       position: { ...authority.position },
       sourcePortIds: uniqueText(group.ports.map((port) => port.sourcePortId)),
       sourceEntityIds: uniqueText(group.ports.map((port) => port.sourceEntityId)),
-      inputXmlNodeIds: [String(caesarNodeNumber)],
+      numberingAuthoritySourceEntityId: authority.sourceEntityId,
       positionAuthority: authority.attachmentAuthority || authority.sourcePath,
       connectionAuthority: uniqueText(group.ports.map((port) => port.sourcePath)),
       connectionResidual: maximumResidual(group.ports, authority.position),
@@ -256,7 +236,6 @@ export function buildCanonicalTopology(model, connectivity, engineering, toleran
     return {
       id: support.id,
       nodeId: node.id,
-      inputXmlNodeId: node.inputXmlNodeIds[0],
       position: { ...node.position },
       sourcePosition: { ...support.sourcePosition },
       attachmentPosition: { ...support.attachmentPosition },
@@ -273,7 +252,7 @@ export function buildCanonicalTopology(model, connectivity, engineering, toleran
   });
   const rigids = assignRigidEdges(edges, nodes, engineering.rigids, supportProjectionToleranceMm);
   return Object.freeze({
-    schema: 'CanonicalTopology.v1',
+    schema: 'CanonicalTopology.v2',
     sourceIdentity: model.sourceIdentity,
     coordinateFrame: Object.freeze({ schema: 'ManagedStage.XYZ.v1', unit: 'mm', axisFabrication: false }),
     toleranceMm: toleranceMm ?? TOPOLOGY_TOLERANCE_MM,

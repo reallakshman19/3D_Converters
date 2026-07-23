@@ -31,6 +31,8 @@ if (!existsSync(fixturePath)) {
     supportProjectionToleranceMm: 50,
     enrichmentConfig: {},
   });
+  assert.equal(artifacts.numberingShadowReport.status, 'PASS');
+  assert.deepEqual(artifacts.numberingShadowReport.differences, []);
   assert.deepEqual(artifacts.metrics.engineering, { supports: 663, restraints: 828, rigids: 1652 });
   assert.deepEqual(artifacts.metrics.inputXml, { elements: 4434, restraints: 828, rigids: 1606, rigidBodies: 1652 });
   assert.equal(artifacts.metrics.canonical.nodes, 4406);
