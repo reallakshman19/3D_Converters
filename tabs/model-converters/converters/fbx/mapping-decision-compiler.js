@@ -112,7 +112,7 @@ function validateDecision(decision, index) {
   const label = `decisions[${index}]`;
   if (decision?.disposition === 'exclude-with-reason') {
     exactKeys(decision, EXCLUSION_KEYS, label);
-    requireText(decision.reason, `${label}.reason`);
+    assertNoPlaceholders(requireText(decision.reason, `${label}.reason`), `${label}.reason`);
   } else if (decision?.disposition === 'promote') {
     exactKeys(decision, PROMOTION_KEYS, label);
     validateMappingEntry(decision.mappingEntry, `${label}.mappingEntry`);
