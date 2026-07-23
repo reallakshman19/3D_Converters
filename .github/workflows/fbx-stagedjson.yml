@@ -68,3 +68,6 @@ jobs:
           node tests/fbx/test-provenance.mjs
           node tests/fbx/test-registry.mjs
           node tests/fbx/test-static-guards.mjs
+          node tests/fbx/test-mapping-review-bundle.mjs
+          node tests/fbx/test-mapping-fragment-assembler.mjs
+          node tests/fbx/test-mapping-review-cli.mjs

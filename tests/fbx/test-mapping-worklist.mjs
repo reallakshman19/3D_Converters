@@ -144,6 +144,11 @@ const converterResult = await convertFbxToStagedJson({
   mapping: family.worklist,
   parse: async () => family.graph,
 });
-assert.equal(converterResult.conversionStatus, 'BLOCKED_MAPPING');
+assert.equal(
+  converterResult.conversionStatus,
+  'BLOCKED_MAPPING_BINDING',
+);
+const logs = [...converterResult.logs.stdout, ...converterResult.logs.stderr];
+assert.ok(logs.some((msg) => msg.includes('BLOCKED_MAPPING_BINDING')));
 assert.ok(!converterResult.outputs.some((item) => item.name.endsWith('.staged.json')));
 console.log('test-mapping-worklist: PASS');
