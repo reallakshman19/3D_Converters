@@ -3,6 +3,7 @@ import { buildReviewBundle, calculateBundleId } from '../../tabs/model-converter
 import { assembleFragments } from '../../tabs/model-converters/converters/fbx/mapping-fragment-assembler.js';
 import { worklistFixture } from './worklist-helpers.mjs';
 import { calculateFragmentId } from '../../tabs/model-converters/converters/fbx/mapping-decision-fragment.js';
+import { runAssemblerRegressions } from './mapping-fragment-assembler-regressions.mjs';
 
 const family = await worklistFixture('family');
 const { bundle, shards } = await buildReviewBundle(family.worklist, 2);
@@ -157,5 +158,7 @@ const reversed = structuredClone(fragments[0]);
 reversed.decisions = [...reversed.decisions].reverse();
 const reversedId = await calculateFragmentId(reversed);
 assert.equal(fragments[0].fragmentId, reversedId, 'Fragment hash must be order-invariant');
+
+await runAssemblerRegressions({ family, bundle, shards, fragments });
 
 console.log('test-mapping-fragment-assembler: PASS');

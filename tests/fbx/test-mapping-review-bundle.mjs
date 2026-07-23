@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { buildReviewBundle, calculateBundleId, calculateShardId } from '../../tabs/model-converters/converters/fbx/mapping-review-bundle.js';
-import { WorklistFailure } from '../../tabs/model-converters/converters/fbx/mapping-worklist-contract.js';
 import { worklistFixture } from './worklist-helpers.mjs';
 
 function schemaErrors(schema, auxSchemas, instances) {
@@ -18,11 +17,18 @@ for aux in payload["auxSchemas"]:
 validator = Draft202012Validator(payload["schema"], registry=registry)
 print(json.dumps([[error.message for error in validator.iter_errors(item)] for item in payload["instances"]]))
 `;
-  const child = spawnSync('python', ['-c', program], {
-    input: JSON.stringify({ schema, auxSchemas, instances }),
-    encoding: 'utf8',
-  });
-  if (child.status !== 0) throw new Error(`Schema validation failed:\n${child.stderr}`);
+  const child = spawnSync(
+    process.env.FBX_SCHEMA_PYTHON || 'python3',
+    ['-c', program],
+    {
+      input: JSON.stringify({ schema, auxSchemas, instances }),
+      encoding: 'utf8',
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
+  if (child.error || child.status !== 0) {
+    throw new Error(child.error?.message || child.stderr);
+  }
   return JSON.parse(child.stdout);
 }
 

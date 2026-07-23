@@ -1,18 +1,16 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { access, rm, readFile, mkdir, writeFile } from 'node:fs/promises';
-import { resolve, join } from 'node:path';
+import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { worklistFixture } from './worklist-helpers.mjs';
 import { calculateFragmentId } from '../../tabs/model-converters/converters/fbx/mapping-decision-fragment.js';
 
 const family = await worklistFixture('family');
-const testDir = resolve('tests/fbx/fixtures/review-cli-test');
+const testDir = await mkdtemp(join(tmpdir(), 'fbx-review-cli-'));
 
 // Always clean up on exit, even on test failure
 try {
-  await rm(testDir, { recursive: true, force: true });
-  await mkdir(testDir, { recursive: true });
-
   const worklistPath = join(testDir, 'worklist.json');
   await writeFile(worklistPath, JSON.stringify(family.worklist));
 
