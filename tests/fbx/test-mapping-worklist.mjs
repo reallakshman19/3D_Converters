@@ -3,7 +3,9 @@ import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { canonicalJson } from '../../tabs/model-converters/converters/fbx/canonical-json.js';
 import { convertFbxToStagedJson } from '../../tabs/model-converters/converters/fbx/conversion.js';
-import { buildMappingWorklist, verifyMappingWorklist } from '../../tabs/model-converters/converters/fbx/mapping-worklist.js';
+import {
+  buildMappingWorklist, validateMappingWorklistShape, verifyMappingWorklist,
+} from '../../tabs/model-converters/converters/fbx/mapping-worklist.js';
 import { enforceSourceGraphPolicy } from '../../tabs/model-converters/converters/fbx/source-graph.js';
 import { worklistFixture } from './worklist-helpers.mjs';
 
@@ -42,6 +44,15 @@ function permutedGraph(graph) {
   return value;
 }
 
+async function assertGraphBlocked(context, mutate) {
+  const graph = structuredClone(context.graph);
+  mutate(graph);
+  await assert.rejects(
+    () => buildMappingWorklist({ ...context, graph }),
+    /BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING/,
+  );
+}
+
 const twoPipe = await worklistFixture(false);
 const family = await worklistFixture(true);
 for (const context of [twoPipe, family]) {
@@ -74,6 +85,33 @@ extra.unexpected = true;
 const schemaResults = schemaErrors(schema, [family.worklist, extra]);
 assert.equal(schemaResults[0].length, 0, JSON.stringify(schemaResults[0]));
 assert.notEqual(schemaResults[1].length, 0, 'unexpected worklist field passed schema');
+
+const malformedWorklists = [
+  (value) => { value.source = null; },
+  (value) => { value.parser.unexpected = true; },
+  (value) => { value.sourceGraph = null; },
+  (value) => { value.scopePolicy.namesAuthoritative = true; },
+  (value) => { value.workItems[0].nameEvidence.unexpected = true; },
+  (value) => { value.retainedEvidence[0].typeEvidence.unexpected = true; },
+];
+for (const mutate of malformedWorklists) {
+  const value = structuredClone(family.worklist);
+  mutate(value);
+  assert.throws(() => validateMappingWorklistShape(value), /BLOCKED_WORKLIST_CONTRACT/);
+}
+
+await assertGraphBlocked(family, (graph) => {
+  graph.sourceObjects.push(structuredClone(graph.sourceObjects[0]));
+});
+await assertGraphBlocked(family, (graph) => {
+  graph.occurrences.push(structuredClone(graph.occurrences[0]));
+});
+await assertGraphBlocked(family, (graph) => {
+  graph.geometries.push(structuredClone(graph.geometries[0]));
+});
+await assertGraphBlocked(family, (graph) => {
+  graph.occurrences[0].sourceModelObjectId = '999999';
+});
 
 const changedBytes = family.bytes.slice();
 changedBytes[changedBytes.length - 1] ^= 1;
