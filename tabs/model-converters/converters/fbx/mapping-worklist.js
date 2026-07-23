@@ -3,76 +3,19 @@ import {
   BindingFailure, canonicalDigest, observeSource,
   verifyParserBinding, verifySourceBinding, verifySourceGraphBinding,
 } from './mapping-package.js';
+import {
+  WorklistFailure, failWorklist, validateMappingWorklistShape, validateParserEvidence,
+} from './mapping-worklist-contract.js';
 import { enforceSourceGraphPolicy } from './source-graph.js';
 
-const WORKLIST_KEYS = Object.freeze([
-  'schema', 'worklistId', 'source', 'parser', 'sourceGraph',
-  'scopePolicy', 'workItems', 'retainedEvidence',
-]);
-const WORK_ITEM_KEYS = Object.freeze([
-  'workItemId', 'sourceModelObjectId', 'sourceOccurrenceId',
-  'sourceGeometryObjectIds', 'typeEvidence', 'nameEvidence',
-  'sourceRecordDisposition', 'geometryEvidence', 'reviewState',
-]);
-const HASH_PATTERN = /^[0-9a-f]{64}$/;
-const REVISION_PATTERN = /^[0-9a-f]{40}$/;
-
-export class WorklistFailure extends Error {
-  constructor(status, message, evidence = null) {
-    super(`${status} ${message}`);
-    this.name = 'WorklistFailure';
-    this.status = status;
-    this.evidence = evidence;
-  }
-}
+export { WorklistFailure, validateMappingWorklistShape };
 
 function fail(status, message, evidence = null) {
-  throw new WorklistFailure(status, message, evidence);
-}
-
-function exactKeys(value, keys, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    fail('BLOCKED_WORKLIST_CONTRACT', `${label} must be an object.`);
-  }
-  const actual = Object.keys(value).sort().join('\0');
-  const expected = [...keys].sort().join('\0');
-  if (actual !== expected) fail('BLOCKED_WORKLIST_CONTRACT', `${label} has missing or unexpected fields.`);
-  return value;
-}
-
-function requireText(value, label) {
-  if (typeof value !== 'string' || !value) fail('BLOCKED_WORKLIST_CONTRACT', `${label} is required.`);
-  return value;
-}
-
-function requireHash(value, label) {
-  const text = requireText(value, label);
-  if (!HASH_PATTERN.test(text)) fail('BLOCKED_WORKLIST_CONTRACT', `${label} must be lowercase SHA-256.`);
-  return text;
+  failWorklist(status, message, evidence);
 }
 
 function compareText(left, right) {
   return String(left) < String(right) ? -1 : String(left) > String(right) ? 1 : 0;
-}
-
-function validateParserEvidence(value) {
-  const keys = ['provenanceSchema', 'upstreamRevision', 'sourceSha256', 'wasmSha256'];
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence must be an object.');
-  }
-  if (Object.keys(value).sort().join('\0') !== [...keys].sort().join('\0')) {
-    fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence has missing or unexpected fields.');
-  }
-  if (typeof value.provenanceSchema !== 'string' || !value.provenanceSchema) {
-    fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence.provenanceSchema is required.');
-  }
-  for (const key of ['sourceSha256', 'wasmSha256']) if (!HASH_PATTERN.test(value[key])) {
-    fail('BLOCKED_WORKLIST_PARSER_BINDING', `parserEvidence.${key} is malformed.`);
-  }
-  if (!REVISION_PATTERN.test(value.upstreamRevision)) {
-    fail('BLOCKED_WORKLIST_PARSER_BINDING', 'parserEvidence.upstreamRevision is malformed.');
-  }
-  return value;
 }
 
 function canonicalSourceGraph(graph) {
@@ -121,12 +64,19 @@ function nameEvidence(source) {
 }
 
 function geometryEvidence(geometry) {
+  if (!['MESH', 'NURBS_CURVE'].includes(geometry.kind)) {
+    fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', `geometry ${geometry.geometryObjectId} has unsupported kind.`);
+  }
   const mesh = geometry.kind === 'MESH';
+  const points = mesh ? geometry.verticesMm : geometry.controlPointsMm;
+  if (!Array.isArray(points)) {
+    fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', `geometry ${geometry.geometryObjectId} lacks governed points.`);
+  }
   return {
     geometryObjectId: geometry.geometryObjectId,
     kind: geometry.kind,
     pointAuthority: mesh ? 'MESH_VERTEX' : 'NURBS_CONTROL_POINT',
-    governedPointCount: mesh ? geometry.verticesMm.length : geometry.controlPointsMm.length,
+    governedPointCount: points.length,
   };
 }
 
@@ -187,23 +137,40 @@ export async function calculateWorklistId(value) {
   return canonicalDigest(worklistPayload(value));
 }
 
-function sourceIndexes(graph) {
-  return {
-    sources: new Map(graph.sourceObjects.map((item) => [item.sourceObjectId, item])),
-    geometries: new Map(graph.geometries.map((item) => [item.geometryObjectId, item])),
-  };
+function indexUnique(items, key, label) {
+  const result = new Map();
+  for (const item of items) {
+    const id = String(item?.[key] ?? '');
+    if (!id) fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', `${label} lacks ${key}.`);
+    if (result.has(id)) fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', `duplicate ${label} ${id}.`);
+    result.set(id, item);
+  }
+  return result;
 }
 
-function governedOccurrences(graph, sources) {
-  return graph.occurrences.filter((occurrence) => {
-    const source = sources.get(occurrence.sourceModelObjectId);
-    return source?.ufbxElementType === 'NODE' && source.sourceRecordDisposition === 'supported-occurrence';
+function sourceIndexes(graph) {
+  const sources = indexUnique(graph.sourceObjects, 'sourceObjectId', 'source object');
+  const occurrences = indexUnique(graph.occurrences, 'sourceOccurrenceId', 'occurrence');
+  const geometries = indexUnique(graph.geometries, 'geometryObjectId', 'geometry');
+  for (const occurrence of occurrences.values()) {
+    if (!sources.has(String(occurrence.sourceModelObjectId))) {
+      fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', `occurrence ${occurrence.sourceOccurrenceId} has unknown source model.`);
+    }
+  }
+  return { sources, occurrences, geometries };
+}
+
+function governedOccurrences(occurrences, sources) {
+  return [...occurrences.values()].filter((occurrence) => {
+    const source = sources.get(String(occurrence.sourceModelObjectId));
+    return source.ufbxElementType === 'NODE' && source.sourceRecordDisposition === 'supported-occurrence';
   });
 }
 
 function assertOwnedGeometry(occurrences, geometries) {
-  for (const occurrence of occurrences) for (const id of occurrence.geometryObjectIds) {
-    const geometry = geometries.get(String(id));
+  for (const occurrence of occurrences) for (const rawId of occurrence.geometryObjectIds) {
+    const id = String(rawId);
+    const geometry = geometries.get(id);
     if (!geometry) fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', `geometry ${id} is missing.`);
     if (!geometry.ownerOccurrenceIds.includes(occurrence.sourceOccurrenceId)) {
       fail('BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING', `geometry ${id} lacks occurrence ownership.`);
@@ -214,11 +181,11 @@ function assertOwnedGeometry(occurrences, geometries) {
 export async function buildMappingWorklist({ bytes, graph, parserEvidence }) {
   validateParserEvidence(parserEvidence);
   const canonicalGraph = canonicalSourceGraph(graph);
-  const { sources, geometries } = sourceIndexes(canonicalGraph);
-  const occurrences = governedOccurrences(canonicalGraph, sources);
+  const { sources, occurrences: allOccurrences, geometries } = sourceIndexes(canonicalGraph);
+  const occurrences = governedOccurrences(allOccurrences, sources);
   assertOwnedGeometry(occurrences, geometries);
   const workItems = await Promise.all(occurrences.map((occurrence) => (
-    buildWorkItem(sources.get(occurrence.sourceModelObjectId), occurrence, geometries)
+    buildWorkItem(sources.get(String(occurrence.sourceModelObjectId)), occurrence, geometries)
   )));
   workItems.sort((left, right) => compareText(left.workItemId, right.workItemId));
   const governedIds = new Set(workItems.map((item) => item.sourceModelObjectId));
@@ -236,31 +203,6 @@ export async function buildMappingWorklist({ bytes, graph, parserEvidence }) {
   };
   draft.worklistId = await calculateWorklistId(draft);
   return deepFreeze(validateMappingWorklistShape(draft));
-}
-
-function validateWorkItem(item, index) {
-  exactKeys(item, WORK_ITEM_KEYS, `workItems[${index}]`);
-  requireText(item.workItemId, `workItems[${index}].workItemId`);
-  requireText(item.sourceModelObjectId, `workItems[${index}].sourceModelObjectId`);
-  requireText(item.sourceOccurrenceId, `workItems[${index}].sourceOccurrenceId`);
-  if (!Array.isArray(item.sourceGeometryObjectIds) || !Array.isArray(item.geometryEvidence)) {
-    fail('BLOCKED_WORKLIST_CONTRACT', `workItems[${index}] geometry evidence must be arrays.`);
-  }
-  if (item.reviewState !== 'PENDING') fail('BLOCKED_WORKLIST_CONTRACT', `workItems[${index}] must be PENDING.`);
-  if (item.sourceRecordDisposition !== 'supported-occurrence') {
-    fail('BLOCKED_WORKLIST_CONTRACT', `workItems[${index}] has invalid source disposition.`);
-  }
-}
-
-export function validateMappingWorklistShape(value) {
-  const worklist = exactKeys(value, WORKLIST_KEYS, 'worklist');
-  if (worklist.schema !== 'FbxMappingWorklist.v1') fail('BLOCKED_WORKLIST_CONTRACT', 'unsupported worklist schema.');
-  requireHash(worklist.worklistId, 'worklist.worklistId');
-  if (!Array.isArray(worklist.workItems) || !Array.isArray(worklist.retainedEvidence)) {
-    fail('BLOCKED_WORKLIST_CONTRACT', 'worklist arrays are required.');
-  }
-  worklist.workItems.forEach(validateWorkItem);
-  return worklist;
 }
 
 function mapBindingError(error, status) {
