@@ -18,12 +18,11 @@ async function filesAt(path) {
 }
 
 function namedFunctionLengths(text) {
-  const lines = text.split('\n');
-  const lengths = [];
-  for (let start = 0; start < lines.length; start++) {
+  const lines = text.split('\n'), lengths = [];
+  for (let start = 0; start < lines.length; start += 1) {
     if (!/\bfunction\s+\w+\s*\(/.test(lines[start])) continue;
     let depth = 0, opened = false;
-    for (let end = start; end < lines.length; end++) {
+    for (let end = start; end < lines.length; end += 1) {
       depth += (lines[end].match(/\{/g) || []).length;
       depth -= (lines[end].match(/\}/g) || []).length;
       opened ||= lines[end].includes('{');
@@ -37,14 +36,14 @@ const prohibited = [
   /\bFBXLoader\b/, /THREE\.FBXLoader/, /Math\.random/, /Date\.now/,
   /nearestNeighbor/i, /raycast.*topology/i, /tolerance.*connect/i,
   /distance.*(?:connect|topology)/i, /https?:\/\/.*(?:cdn|unpkg|jsdelivr)/i,
-  /export\s+default\b/, /(?:displayName|domSourceName).*\.(?:match|test)\(/i,
+  /export\s+default\b/, /(?:displayName|domSourceName|domClass).*\.(?:match|test)\(/i,
+  /componentType\s*(?:\|\||\?\?)/,
 ];
 for (const sourceRoot of sourceRoots) {
   for (const file of await filesAt(sourceRoot)) {
     if (!file.endsWith('.js')) continue;
     const text = await readFile(file, 'utf8');
-    const lines = text.split('\n').length;
-    assert.ok(lines <= 300, `${relative(root, file)} has ${lines} lines`);
+    assert.ok(text.split('\n').length <= 300, `${relative(root, file)} exceeds 300 lines`);
     for (const pattern of prohibited) assert.doesNotMatch(text, pattern, `${relative(root, file)} violates ${pattern}`);
     for (const fn of namedFunctionLengths(text)) {
       assert.ok(fn.length <= 40, `${relative(root, file)} function at line ${fn.line} has ${fn.length} lines`);

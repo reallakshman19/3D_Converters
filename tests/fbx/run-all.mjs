@@ -5,6 +5,8 @@ const tests = [
   'test-node-attribute-compatibility.mjs',
   'test-transforms.mjs',
   'test-mapping.mjs',
+  'test-family-mapping.mjs',
+  'test-family-parser.mjs',
   'test-worker.mjs',
   'test-determinism.mjs',
   'test-registry.mjs',

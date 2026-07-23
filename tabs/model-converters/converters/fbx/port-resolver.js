@@ -1,3 +1,4 @@
+import { rolesFor, validateResolvedFamilyEvidence } from './family-policy.js';
 import { transformPoint, validateOccurrenceTransform } from './transform-policy.js';
 
 function byId(items, key, value) {
@@ -19,21 +20,37 @@ function resolveLocalPoint(geometry, port) {
   return point.slice(0, 3);
 }
 
+function resolvePort(graph, occurrence, name, port) {
+  const geometry = byId(graph.geometries, 'geometryObjectId', port.geometryObjectId);
+  const positionMm = transformPoint(occurrence.geometryMatrixMm, resolveLocalPoint(geometry, port));
+  return {
+    port: name,
+    ...(port.portId === undefined ? {} : { portId: port.portId, role: port.role }),
+    authority: port.authority,
+    geometryObjectId: port.geometryObjectId,
+    vertexIndex: port.vertexIndex,
+    controlPointIndex: port.controlPointIndex,
+    positionMm,
+    ...(port.direction === undefined ? {} : { direction: { ...port.direction, vector: [...port.direction.vector] } }),
+    connections: [...(port.connections || [])].map((item) => ({ ...item })),
+  };
+}
+
 export function resolveEntryPorts(entry, graph) {
   const occurrence = byId(graph.occurrences, 'sourceOccurrenceId', entry.sourceOccurrenceId);
   validateOccurrenceTransform(occurrence);
-  const resolve = (name, port) => {
-    const geometry = byId(graph.geometries, 'geometryObjectId', port.geometryObjectId);
-    const positionMm = transformPoint(occurrence.geometryMatrixMm, resolveLocalPoint(geometry, port));
-    return {
-      port: name,
-      authority: port.authority,
-      geometryObjectId: port.geometryObjectId,
-      vertexIndex: port.vertexIndex,
-      controlPointIndex: port.controlPointIndex,
-      positionMm,
-      connections: [...(port.connections || [])],
-    };
+  return {
+    A: resolvePort(graph, occurrence, 'A', entry.portA),
+    B: resolvePort(graph, occurrence, 'B', entry.portB),
   };
-  return { A: resolve('A', entry.portA), B: resolve('B', entry.portB) };
+}
+
+export function resolveEntryPortsV2(entry, graph) {
+  const occurrence = byId(graph.occurrences, 'sourceOccurrenceId', entry.sourceOccurrenceId);
+  validateOccurrenceTransform(occurrence);
+  const ports = Object.fromEntries(rolesFor(entry.componentType).map((role) => [
+    role, resolvePort(graph, occurrence, role, entry.ports[role]),
+  ]));
+  validateResolvedFamilyEvidence(entry, ports);
+  return ports;
 }
