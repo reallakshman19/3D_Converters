@@ -209,6 +209,11 @@ def _infer_sections(record: dict[str, Any], field_sections: dict[str, list[str]]
     source_type = str(record.get("sourceType") or "")
     source_entity_id = str(record.get("sourceEntityId") or "")
     attr = _path_attr(source_entity_id)
+    if source_type == "ATTRIBUTE" and attr:
+        if attr in {"VERSION", "XML_TYPE", "JOBNAME", "TIME", "ISSUE_NO", "NORTH_X", "NORTH_Y", "NORTH_Z"}:
+            return ["VERSION"]
+        if attr.startswith("NUM") or attr == "NOHGRS":
+            return ["CONTROL"]
     if attr and attr in field_sections:
         return field_sections[attr]
     if source_type.startswith("ELEMENT:"):
@@ -221,11 +226,6 @@ def _infer_sections(record: dict[str, Any], field_sections: dict[str, list[str]]
             return ["ELEMENTS"]
         if name in AUX_SECTION_BY_ELEMENT:
             return [AUX_SECTION_BY_ELEMENT[name]]
-    if source_type == "ATTRIBUTE" and attr:
-        if attr in {"VERSION", "XML_TYPE", "JOBNAME", "TIME", "ISSUE_NO", "NORTH_X", "NORTH_Y", "NORTH_Z"}:
-            return ["VERSION"]
-        if attr.startswith("NUM") or attr == "NOHGRS":
-            return ["CONTROL"]
     return []
 
 

@@ -8,8 +8,11 @@ import { buildInvocation } from './invocation-builder.js';
 import { normalizeInputXmlAttributeNames, converterUsesInputXmlDialect } from './inputxml-field-adapter.js';
 import { getConverterPackageWheelUrls } from './pyodide-local-packages.js';
 import { buildXmlCiiSidecarExportSpec, readXmlCiiSidecarArtifacts } from './xml-cii-inputxml-sidecar-worker.js';
+import { loadVerifiedInputXmlRuntime } from './inputxml-release-runtime-loader.js';
+import { runInputXmlReleaseJob } from './inputxml-release-worker.js';
 
 const PYODIDE_INDEX_URL = new URL('../vendor/pyodide/', import.meta.url).href;
+const INPUTXML_RUNTIME_MANIFEST_URL = new URL('./inputxml-runtime-manifest.json', import.meta.url).href;
 
 const SCRIPT_FILE_NAMES = Object.freeze([
   'rvm_to_rev.py',
@@ -82,6 +85,7 @@ exit_code
 `;
 
 let _pyodidePromise = null;
+let _inputXmlRuntimePromise = null;
 let _scriptsLoaded = false;
 let _activeJobId = null;
 
@@ -215,6 +219,13 @@ async function _getPyodide() {
   return _pyodidePromise;
 }
 
+async function _ensureInputXmlRuntime(pyodide) {
+  if (!_inputXmlRuntimePromise) {
+    _inputXmlRuntimePromise = loadVerifiedInputXmlRuntime(pyodide, INPUTXML_RUNTIME_MANIFEST_URL);
+  }
+  return await _inputXmlRuntimePromise;
+}
+
 async function _installLocalPythonPackages(pyodide) {
   await pyodide.loadPackage(getConverterPackageWheelUrls(PYODIDE_INDEX_URL));
 }
@@ -261,15 +272,19 @@ function _writeInputFile(pyodide, jobDir, fileSpec, { normalizeInputXmlDialect =
 }
 
 async function _runPythonScript(pyodide, scriptPath, argv, stdout, stderr) {
+  const exitCode = await _runPythonScriptExitCode(pyodide, scriptPath, argv);
+  if (exitCode === 0) return;
+  const stdoutLines = decodeLogBatches(stdout);
+  const stderrLines = decodeLogBatches(stderr);
+  const detail = _extractFailureDetail(stderrLines);
+  throw new Error(detail ? `Converter exited with code ${exitCode}: ${detail}` : `Converter exited with code ${exitCode}. Logs: ${stdoutLines.slice(-5).join(' | ')}`);
+}
+
+async function _runPythonScriptExitCode(pyodide, scriptPath, argv) {
   pyodide.globals.set('job_script_path', scriptPath);
   pyodide.globals.set('job_argv', argv);
   const exitCode = await pyodide.runPythonAsync(RUN_SNIPPET);
-  if (Number(exitCode) !== 0) {
-    const stdoutLines = decodeLogBatches(stdout);
-    const stderrLines = decodeLogBatches(stderr);
-    const detail = _extractFailureDetail(stderrLines);
-    throw new Error(detail ? `Converter exited with code ${exitCode}: ${detail}` : `Converter exited with code ${exitCode}. Logs: ${stdoutLines.slice(-5).join(' | ')}`);
-  }
+  return Number(exitCode);
 }
 
 function _contractSourceKind(converterId) {
@@ -424,7 +439,10 @@ async function _runJob(message) {
   const secondary = (message?.inputFiles || []).find((f) => f?.role === 'secondary');
   const options = message?.options || {};
   const pyodide = await _getPyodide();
-  await _ensureScripts(pyodide);
+  const inputXmlRuntime = converterId === 'inputxml_to_cii2019'
+    ? await _ensureInputXmlRuntime(pyodide)
+    : null;
+  if (!inputXmlRuntime) await _ensureScripts(pyodide);
 
   const stdout = [];
   const stderr = [];
@@ -435,10 +453,36 @@ async function _runJob(message) {
   pyodide.FS.mkdirTree(jobDir);
 
   const primaryPath = _writeInputFile(pyodide, jobDir, primary, {
-    normalizeInputXmlDialect: converterUsesInputXmlDialect(converterId),
+    normalizeInputXmlDialect: converterUsesInputXmlDialect(converterId) && converterId !== 'inputxml_to_cii2019',
     adapterLog: stdout,
   });
   const secondaryPath = secondary ? _writeInputFile(pyodide, jobDir, secondary) : null;
+  if (converterId === 'inputxml_to_cii2019') {
+    const result = await runInputXmlReleaseJob({
+      pyodide,
+      sourcePath: primaryPath,
+      options,
+      jobDir,
+      runScript: async (scriptPath, argv) => await _runPythonScriptExitCode(pyodide, scriptPath, argv),
+    });
+    return {
+      output: result.outputs,
+      logs: {
+        stdout: decodeLogBatches(stdout),
+        stderr: decodeLogBatches(stderr),
+        argv: result.argv.slice(1),
+        preflight: result.preflight,
+        released: result.released,
+        runtime: {
+          schema: inputXmlRuntime.manifest.schema,
+          sourceRevision: inputXmlRuntime.manifest.sourceRevision,
+          manifestHashSha256: inputXmlRuntime.manifest.manifestHashSha256,
+          assetCount: inputXmlRuntime.assetCount,
+          packageCount: inputXmlRuntime.packageCount,
+        },
+      },
+    };
+  }
   const invocation = buildInvocation(converterId, primaryPath, primary.name, secondaryPath, options, jobDir);
 
   let stagedConversionError = null;

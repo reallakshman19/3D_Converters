@@ -61,7 +61,27 @@ function fixture() {
     summary: { routeRecords: 1, blockedRecords: 0 },
   }, 'topologyTraceLedgerHash');
   const engineering = { recordBySourceEntityId: new Map() };
-  const xml = buildTopologyInputXml(canonical, engineering, { jobName: 'Parity Fixture', topologyTraceLedgerHash: ledger.topologyTraceLedgerHash });
+  const canonicalTopologyHashSha256 = 'a'.repeat(64);
+  const releaseCanonical = {
+    ...canonical,
+    schema: 'CanonicalTopology.v2',
+    canonicalTopologyHashSha256,
+    nodes: canonical.nodes.map(({ inputXmlNodeIds: _numbers, ...row }) => row),
+    supports: canonical.supports.map(({ inputXmlNodeId: _number, ...row }) => row),
+  };
+  const projection = {
+    schema: 'NumberedTopologyProjection.v1', canonicalTopologyHashSha256,
+    topoNodePlanHashSha256: 'b'.repeat(64), numberedTopologyProjectionHashSha256: 'c'.repeat(64),
+    authority: 'TopoNodePlan.v1',
+    nodes: canonical.nodes.map((row, index) => ({
+      canonicalNodeId: row.id, logicalNodeId: `LN-${index + 1}`,
+      engineeringNodeNumber: Number(row.inputXmlNodeIds[0]),
+    })),
+  };
+  const xml = buildTopologyInputXml(releaseCanonical, engineering, projection, {
+    jobName: 'Parity Fixture', topologyTraceLedgerHash: ledger.topologyTraceLedgerHash,
+    legacyCanonicalTopologyHash: canonical.canonicalTopologyHash,
+  });
   const parsed = parseTopologyInputXml(xml);
   const scene = buildTopologySvgScene(canonical, ledger, []);
   return { canonical, ledger, xml, parsed, scene };

@@ -1,8 +1,7 @@
 /**
  * Native CAESAR II 11 topology InputXML writer.
- * CanonicalTopology.v1 is the sole topology authority. Engineering values are
- * resolved from the existing enrichment projection, while all topology trace
- * metadata is delegated to topology-inputxml-trace-attributes.js.
+ * CanonicalTopology.v2 is the topology authority and TopoNodePlan.v1, applied
+ * through NumberedTopologyProjection.v1, is the sole numbering authority.
  */
 
 import { RESTRAINT_CODE_MAP } from '../../../stagedjson-to-enrichxml/sj-restraint-resolver.js';
@@ -19,6 +18,7 @@ import {
   topologyRestraintTraceAttributes,
   topologyRigidTraceAttributes,
 } from './topology-inputxml-trace-attributes.js';
+import { applyNumberedTopologyProjection } from './topology-numbering-projection.js';
 
 const SENTINEL = '-1.010100';
 
@@ -151,34 +151,39 @@ function elementXml(edge, nodes, values, supports, rigids, bends, names) {
  *
  * @param {Record<string, unknown>} canonical
  * @param {Record<string,unknown>} engineering
+ * @param {Record<string,unknown>} numberedProjection
  * @param {{jobName:string,topologyTraceLedgerHash?:string,topologyEditDraftHash?:string,topologyEditLedgerHash?:string}} options
  * @returns {string}
  */
-export function buildTopologyInputXml(canonical, engineering, options) {
-  if (!cleanText(canonical.canonicalTopologyHash)) throw new Error('Topology InputXML requires a hashed CanonicalTopology.v1 snapshot.');
-  const nodes = nodeMap(canonical), supportData = supportIndex(canonical);
-  const engineeringByEdge = buildEdgeEngineeringValues(canonical.edges, engineering.recordBySourceEntityId);
+export function buildTopologyInputXml(canonical, engineering, numberedProjection, options) {
+  if (!cleanText(canonical.canonicalTopologyHashSha256)) throw new Error('Topology InputXML requires a hashed CanonicalTopology.v2 snapshot.');
+  const numbered = applyNumberedTopologyProjection(canonical, numberedProjection);
+  const nodes = nodeMap(numbered), supportData = supportIndex(numbered);
+  const engineeringByEdge = buildEdgeEngineeringValues(numbered.edges, engineering.recordBySourceEntityId);
   const rigidByEdge = new Map();
-  for (const rigid of canonical.rigids) rigidByEdge.set(rigid.edgeId, [...(rigidByEdge.get(rigid.edgeId) ?? []), rigid]);
+  for (const rigid of numbered.rigids) rigidByEdge.set(rigid.edgeId, [...(rigidByEdge.get(rigid.edgeId) ?? []), rigid]);
   const bendByEdge = new Map();
-  for (const bend of canonical.bends ?? []) {
+  for (const bend of numbered.bends ?? []) {
     const edgeId = bend.edgeIds?.[0];
     if (!edgeId) throw new Error(`Bend ${bend.id} has no owning InputXML edge.`);
     bendByEdge.set(edgeId, [...(bendByEdge.get(edgeId) ?? []), bend]);
   }
-  const elements = canonical.edges.map((edge) => elementXml(
+  const elements = numbered.edges.map((edge) => elementXml(
     edge, nodes, engineeringByEdge.get(edge.id),
     supportData.supportsByEdge.get(edge.id) ?? [], rigidByEdge.get(edge.id) ?? [],
     bendByEdge.get(edge.id) ?? [], supportData.namesByNode,
   )).join('\n');
-  const restraintCount = canonical.supports.reduce((sum, support) => sum + support.restraints.length, 0);
-  const derivedBendCount = canonical.edges.filter((edge) => edge.segmentRole.includes('ELBO/BEND_RUN_IN')).length;
-  const bendCount = derivedBendCount + (canonical.bends ?? []).length;
+  const restraintCount = numbered.supports.reduce((sum, support) => sum + support.restraints.length, 0);
+  const derivedBendCount = numbered.edges.filter((edge) => edge.segmentRole.includes('ELBO/BEND_RUN_IN')).length;
+  const bendCount = derivedBendCount + (numbered.bends ?? []).length;
   const modelAttributes = [
-    ['JOBNAME', options.jobName], ['NUMELT', canonical.edges.length], ['NUMNOZ', 0], ['NOHGRS', 0], ['NUMBEND', bendCount],
+    ['JOBNAME', options.jobName], ['NUMELT', numbered.edges.length], ['NUMNOZ', 0], ['NOHGRS', 0], ['NUMBEND', bendCount],
     ['NUMRIGID', rigidByEdge.size], ['NUMEXPJNT', 0], ['NUMREST', restraintCount], ['NUMFORCMNT', 0], ['NUMUNFLOAD', 0],
     ['NUMWIND', 0], ['NUMELEOFF', 0], ['NUMALLOW', 0], ['NUMISECT', 0], ['NORTH_X', 0], ['NORTH_Y', 1], ['NORTH_Z', 0],
-    ['CANONICAL_TOPOLOGY_HASH', canonical.canonicalTopologyHash], ['TOPOLOGY_TRACE_LEDGER_HASH', cleanText(options.topologyTraceLedgerHash)],
+    ['CANONICAL_TOPOLOGY_HASH', cleanText(options.legacyCanonicalTopologyHash)],
+    ['CANONICAL_TOPOLOGY_SHA256', canonical.canonicalTopologyHashSha256], ['TOPO_NODE_PLAN_HASH', numberedProjection.topoNodePlanHashSha256],
+    ['NUMBERED_TOPOLOGY_PROJECTION_HASH', numberedProjection.numberedTopologyProjectionHashSha256],
+    ['TOPOLOGY_TRACE_LEDGER_HASH', cleanText(options.topologyTraceLedgerHash)],
   ];
   if (cleanText(options.topologyEditDraftHash)) modelAttributes.push(['TOPOLOGY_EDIT_DRAFT_HASH', cleanText(options.topologyEditDraftHash)]);
   if (cleanText(options.topologyEditLedgerHash)) modelAttributes.push(['TOPOLOGY_EDIT_LEDGER_HASH', cleanText(options.topologyEditLedgerHash)]);

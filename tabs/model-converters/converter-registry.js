@@ -663,8 +663,10 @@ const CONVERTER_DEFS = {
     primaryLabel: 'Input XML (2019)',
     secondaryLabel: '',
     secondaryAccept: '',
-    description: 'Convert CAESARII Input XML to CII using 2019 benchmark structure profiles.',
+    description: 'Structurally compile InputXML, reparse exact emitted bytes, verify topology/assurance, and release CII only when every mandatory v2 gate passes.',
     defaults: {
+      inputXmlCompatibilityMode: 'CANONICAL_STRICT',
+      approvedSemanticSplitId: '',
       inferReducerAngleFromGeometry: false,
       defaultDiameter: 0,
       defaultWallThickness: 0.01,
@@ -679,6 +681,17 @@ const CONVERTER_DEFS = {
       ...INPUTXML_HEADER_DEFAULTS,
     },
     fields: [
+      {
+        key: 'inputXmlCompatibilityMode',
+        label: 'InputXML Compatibility Policy',
+        type: 'select',
+        options: [
+          'CANONICAL_STRICT',
+          'ADAPTED_CANONICAL',
+          'DIAGNOSTIC_ONLY',
+        ],
+      },
+      { key: 'approvedSemanticSplitId', label: 'Approved Semantic Split ID (adapted mode only)', type: 'text' },
       { key: 'inferReducerAngleFromGeometry', label: 'Infer Reducer Angle From Geometry', type: 'checkbox' },
       { key: 'defaultDiameter', label: 'Fallback Diameter if DIAMETER Missing', type: 'number', step: '0.001' },
       { key: 'defaultWallThickness', label: 'Fallback Wall Thickness if Missing', type: 'number', step: '0.001' },

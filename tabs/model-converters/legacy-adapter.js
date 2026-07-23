@@ -9389,7 +9389,7 @@ export function renderModelConvertersTab(container) {
     }
 
     runBtnEl.disabled = true;
-    setStatus(selectedConverter === 'inputxml_to_cii2019' ? 'Preparing file-based config...' : 'Running converter...', 'running');
+    setStatus(selectedConverter === 'inputxml_to_cii2019' ? 'Running structural preflight...' : 'Running converter...', 'running');
     setLogs([]);
     outputEl.innerHTML = '<span class="model-converters-muted">Working...</span>';
     _3DModelConv_resetPreview('Running conversion...');
@@ -9529,11 +9529,13 @@ export function renderModelConvertersTab(container) {
       setCiiWarningRows(response.logs?.warnings || []);
       setLogs(logLines);
 
-      if (selectedConverter !== 'pcf_continuity_check') {
+      if (response.blocked) {
+        setStatus(`BLOCKED: ${output.name}`, 'bad');
+      } else if (selectedConverter !== 'pcf_continuity_check') {
         setStatus(`Completed: ${output.name}`, 'ok');
       }
-      notify({ level: 'success', title: 'Converter', message: `${converter.label} completed.` });
-      emit(RuntimeEvents.MODEL_CONVERTER_SUCCESS, { converterId: selectedConverter, output: output.name });
+      notify({ level: response.blocked ? 'warning' : 'success', title: 'Converter', message: response.blocked ? `${converter.label} blocked; no CII was emitted.` : `${converter.label} completed.` });
+      emit(response.blocked ? RuntimeEvents.MODEL_CONVERTER_ERROR : RuntimeEvents.MODEL_CONVERTER_SUCCESS, { converterId: selectedConverter, output: output.name });
 
       const stpOut = outputs.find((o) => {
         const n = _toText(o?.name).toLowerCase();
