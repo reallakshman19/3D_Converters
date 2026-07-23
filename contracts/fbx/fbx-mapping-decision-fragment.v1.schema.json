@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "FbxMappingDecisionFragment.v1",
+  "title": "FbxMappingDecisionFragment.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "fragmentId",
+    "bundleId",
+    "worklistId",
+    "sourceGraphCanonicalSha256",
+    "shardId",
+    "decisions"
+  ],
+  "properties": {
+    "schema": {
+      "const": "FbxMappingDecisionFragment.v1"
+    },
+    "fragmentId": {
+      "$ref": "#/$defs/sha256"
+    },
+    "bundleId": {
+      "$ref": "#/$defs/sha256"
+    },
+    "worklistId": {
+      "$ref": "#/$defs/sha256"
+    },
+    "sourceGraphCanonicalSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "shardId": {
+      "$ref": "#/$defs/sha256"
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/decision"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "workItemId": {
+      "type": "string",
+      "pattern": "^work-[0-9a-f]{64}$"
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workItemId",
+        "disposition",
+        "reason"
+      ],
+      "properties": {
+        "workItemId": {
+          "$ref": "#/$defs/workItemId"
+        },
+        "disposition": {
+          "const": "exclude-with-reason"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\s*(?:[Tt][Bb][Dd]|[Tt][Oo][Dd][Oo]|[Pp][Ll][Aa][Cc][Ee][Hh][Oo][Ll][Dd][Ee][Rr]|[Dd][Ee][Ff][Aa][Uu][Ll][Tt])\\s*$).+"
+        }
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workItemId",
+        "disposition",
+        "mappingEntry"
+      ],
+      "properties": {
+        "workItemId": {
+          "$ref": "#/$defs/workItemId"
+        },
+        "disposition": {
+          "const": "promote"
+        },
+        "mappingEntry": {
+          "$ref": "FbxStagedMapping.v2#/$defs/entry"
+        }
+      }
+    },
+    "decision": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/exclusion"
+        },
+        {
+          "$ref": "#/$defs/promotion"
+        }
+      ]
+    }
+  }
+}
