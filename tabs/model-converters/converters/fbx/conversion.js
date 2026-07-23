@@ -1,5 +1,13 @@
 import { canonicalJson } from './canonical-json.js';
+import {
+  addBinding, addMappingBinding, addStatus, createBindingReport,
+  failBindingReport, finishBindingReport, invalidBindingReport,
+} from './binding-report.js';
 import { validateConnectivity, validateConnectivityV2 } from './connectivity.js';
+import {
+  BindingFailure, isMappingPackage, observeSource, validateMappingPackageShape,
+  verifyMappingBinding, verifyParserBinding, verifySourceBinding, verifySourceGraphBinding,
+} from './mapping-package.js';
 import { validateMappingManifest } from './mapping-validator.js';
 import { resolveEntryPorts, resolveEntryPortsV2 } from './port-resolver.js';
 import { projectSourceGraphV1 } from './source-graph-v1-compat.js';
@@ -31,6 +39,14 @@ function blockedResult(stem, graph, status, diagnostics, ledger = null) {
   if (ledger) outputs.push(artifact(`${stem}.fbx-mapping-ledger.json`, ledger));
   outputs.push(artifact(`${stem}.fbx-conversion-report.json`, report(status, diagnostics, graphCounts(graph))));
   return { ok: true, conversionStatus: status, outputs, logs: { stdout: [], stderr: diagnostics } };
+}
+
+function packageBlockedResult(stem, graph, status, diagnostics, binding) {
+  const result = blockedResult(stem, graph, status, [...binding.statuses, ...diagnostics]);
+  result.outputs.push(artifact(`${stem}.fbx-binding-report.json`, binding));
+  result.logs.stdout = [...binding.statuses];
+  result.logs.stderr = [...diagnostics];
+  return result;
 }
 
 function mappingLedger(mapping, resolvedByEntry, links) {
@@ -69,6 +85,15 @@ function successResult(stem, graph, ledger, staged, counts) {
   return { ok: true, conversionStatus: 'STAGEDJSON_PASS', outputs, logs: {
     stdout: ['PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS'], stderr: [],
   } };
+}
+
+function packageSuccessResult(stem, graph, ledger, staged, counts, binding) {
+  const result = successResult(stem, graph, ledger, staged, counts);
+  const diagnostics = [...binding.statuses];
+  result.outputs[3] = artifact(`${stem}.fbx-conversion-report.json`, report('STAGEDJSON_PASS', diagnostics, counts));
+  result.outputs.push(artifact(`${stem}.fbx-binding-report.json`, binding));
+  result.logs.stdout = diagnostics;
+  return result;
 }
 
 function compatibilityGraph(stem, graph) {
@@ -113,26 +138,159 @@ function successCounts(execution) {
     branches: execution.staged.length,
   };
 }
+function diagnosticOf(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+function failureStatus(error, fallback) {
+  return error instanceof BindingFailure ? error.status : fallback;
+}
+function packageFailure(stem, graph, reportValue, error, fallback) {
+  const diagnostic = diagnosticOf(error), status = failureStatus(error, fallback);
+  const binding = failBindingReport(reportValue, status, diagnostic, error?.evidence);
+  return packageBlockedResult(stem, graph, status, [diagnostic], binding);
+}
+function createValidatedBinding(packageValue) {
+  validateMappingPackageShape(packageValue);
+  return createBindingReport(packageValue);
+}
+async function addSourceBinding(binding, packageValue, bytes) {
+  return addBinding(binding, 'source', verifySourceBinding(packageValue, await observeSource(bytes)));
+}
+function addParserBinding(binding, packageValue, parserEvidence, parserEvidenceError) {
+  if (parserEvidenceError) {
+    const detail = parserEvidenceError.replace(/^BLOCKED_PARSER_BINDING\s+/, '');
+    throw new BindingFailure('BLOCKED_PARSER_BINDING', detail);
+  }
+  if (!parserEvidence) throw new BindingFailure('BLOCKED_PARSER_BINDING', 'Repository parser evidence is unavailable.');
+  return addBinding(binding, 'parser', verifyParserBinding(packageValue, parserEvidence));
+}
+async function parsePackageSource(bytes, parse, binding) {
+  try {
+    const graph = await parse(bytes);
+    return { graph, binding: addStatus(binding, 'PARSE_PASS') };
+  } catch (error) {
+    throw new BindingFailure('BLOCKED_PARSE', diagnosticOf(error));
+  }
+}
 
-export async function convertFbxToStagedJson({ bytes, inputName, mapping, mappingError, parse }) {
-  const stem = baseName(inputName);
+async function packageConversion(options) {
+  const { bytes, stem, packageValue, parse, parserEvidence, parserEvidenceError } = options;
+  let binding;
+  try {
+    binding = createValidatedBinding(packageValue);
+  } catch (error) {
+    const reportValue = invalidBindingReport(failureStatus(error, 'BLOCKED_MAPPING_BINDING'), diagnosticOf(error));
+    return packageFailure(stem, null, reportValue, error, 'BLOCKED_MAPPING_BINDING');
+  }
+  try {
+    binding = await addSourceBinding(binding, packageValue, bytes);
+  } catch (error) {
+    return packageFailure(stem, null, binding, error, 'BLOCKED_SOURCE_BINDING');
+  }
+  try {
+    binding = addParserBinding(binding, packageValue, parserEvidence, parserEvidenceError);
+  } catch (error) {
+    return packageFailure(stem, null, binding, error, 'BLOCKED_PARSER_BINDING');
+  }
+  const parsed = await packageParsedResult({ bytes, stem, parse, binding });
+  if (parsed.blocked) return parsed.blocked;
+  return packageGraphResult({ ...options, graph: parsed.graph, binding: parsed.binding });
+}
+
+async function packageParsedResult({ bytes, stem, parse, binding }) {
+  try {
+    const parsed = await parsePackageSource(bytes, parse, binding);
+    return { ...parsed, blocked: null };
+  } catch (error) {
+    return { blocked: packageFailure(stem, null, binding, error, 'BLOCKED_PARSE') };
+  }
+}
+
+async function packageGraphResult(options) {
+  const { stem, packageValue, graph } = options;
+  let { binding } = options;
+  try {
+    binding = addBinding(binding, 'sourceGraph', await verifySourceGraphBinding(packageValue, graph));
+  } catch (error) {
+    return packageFailure(stem, graph, binding, error, 'BLOCKED_SOURCE_GRAPH_BINDING');
+  }
+  const compatibility = compatibilityGraph(stem, graph);
+  if (compatibility.blocked) return packageCompatibilityFailure(stem, graph, binding, compatibility);
+  return packageMappingResult({ ...options, binding, compatibility: compatibility.graph });
+}
+
+function packageCompatibilityFailure(stem, graph, binding, compatibility) {
+  const diagnostic = compatibility.blocked.logs.stderr[0] || 'FbxSourceGraph.v1 compatibility projection failed.';
+  const error = new BindingFailure('BLOCKED_PARSE', diagnostic);
+  return packageFailure(stem, graph, binding, error, 'BLOCKED_PARSE');
+}
+
+async function packageMappingResult(options) {
+  const { stem, packageValue, graph, compatibility } = options;
+  let { binding } = options;
+  try {
+    binding = addMappingBinding(binding, await verifyMappingBinding(packageValue));
+  } catch (error) {
+    return packageFailure(stem, graph, binding, error, 'BLOCKED_MAPPING_BINDING');
+  }
+  try {
+    const execution = executeMapping(packageValue.mapping.manifest, graph, compatibility);
+    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry, execution.links);
+    binding = finishBindingReport(addStatus(addStatus(binding, 'MAPPING_PASS'), 'STAGEDJSON_PASS'), 'STAGEDJSON_PASS');
+    return packageSuccessResult(stem, graph, ledger, execution.staged, successCounts(execution), binding);
+  } catch (error) {
+    const status = blockedStatus(diagnosticOf(error));
+    return packageFailure(stem, graph, binding, error, status);
+  }
+}
+
+async function legacyConversion({ bytes, stem, mapping, parse }) {
   let graph;
   try {
     graph = await parse(bytes);
   } catch (error) {
-    const diagnostic = error instanceof Error ? error.message : String(error);
-    return blockedResult(stem, null, 'BLOCKED_PARSE', [diagnostic]);
+    return blockedResult(stem, null, 'BLOCKED_PARSE', [diagnosticOf(error)]);
   }
   const compatibility = compatibilityGraph(stem, graph);
   if (compatibility.blocked) return compatibility.blocked;
-  if (mappingError) return blockedResult(stem, graph, 'BLOCKED_MAPPING', [mappingError]);
-  if (!mapping) return blockedResult(stem, graph, 'BLOCKED_MAPPING', ['Mapping manifest is required.']);
   try {
     const execution = executeMapping(mapping, graph, compatibility.graph);
     const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry, execution.links);
     return successResult(stem, graph, ledger, execution.staged, successCounts(execution));
   } catch (error) {
-    const diagnostic = error instanceof Error ? error.message : String(error);
+    const diagnostic = diagnosticOf(error);
     return blockedResult(stem, graph, blockedStatus(diagnostic), [diagnostic]);
   }
+}
+
+function markLegacy(result) {
+  return { ...result, logs: { ...result.logs, stdout: ['UNBOUND_LEGACY_MAPPING', ...result.logs.stdout] } };
+}
+
+export async function convertFbxToStagedJson({
+  bytes, inputName, mapping, mappingError, parse, parserEvidence, parserEvidenceError,
+}) {
+  const stem = baseName(inputName);
+  if (mappingError || !mapping) {
+    const diagnostic = mappingError || 'Mapping manifest is required.';
+    return legacyMappingProblem({ bytes, stem, parse, diagnostic });
+  }
+  if (isMappingPackage(mapping)) {
+    return packageConversion({
+      bytes, stem, packageValue: mapping, parse, parserEvidence, parserEvidenceError,
+    });
+  }
+  return markLegacy(await legacyConversion({ bytes, stem, mapping, parse }));
+}
+
+async function legacyMappingProblem({ bytes, stem, parse, diagnostic }) {
+  let graph;
+  try {
+    graph = await parse(bytes);
+  } catch (error) {
+    return blockedResult(stem, null, 'BLOCKED_PARSE', [diagnosticOf(error)]);
+  }
+  const compatibility = compatibilityGraph(stem, graph);
+  if (compatibility.blocked) return compatibility.blocked;
+  return blockedResult(stem, graph, 'BLOCKED_MAPPING', [diagnostic]);
 }
