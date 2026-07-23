@@ -4,7 +4,9 @@
     "vendor:inputxml-pyodide": "node scripts/vendor-inputxml-pyodide-packages.mjs",
     "build:inputxml-runtime-manifest": "node scripts/build-inputxml-runtime-manifest.mjs",
     "build:inputxml-contract-bundle": "node scripts/build-inputxml-contract-bundle.mjs",
-    "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs"
+    "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
+    "build:node-history-closure-candidate": "node scripts/build-node-history-closure-candidate.mjs",
+    "verify:node-history-closure": "node scripts/verify-node-history-closure.mjs"
   },
   "dependencies": {
     "pyodide": "^0.27.2",

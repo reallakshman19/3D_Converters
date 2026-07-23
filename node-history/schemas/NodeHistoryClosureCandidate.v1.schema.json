@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://reallaksh19.github.io/3D_Converters/node-history/schemas/NodeHistoryClosureCandidate.v1.schema.json",
+  "title": "NodeHistoryClosureCandidate.v1",
+  "type": "object",
+  "required": [
+    "schema", "candidateId", "evidenceBaselineRevision", "projectId", "zoneId",
+    "lifecyclePolicyHash", "requestedMode", "decisionStatement", "benchmarks",
+    "downstreamComparison", "closureGates", "approval", "evaluatedAt",
+    "enforcementEligible", "validation", "candidateHash"
+  ],
+  "properties": {
+    "schema": {"const": "NodeHistoryClosureCandidate.v1"},
+    "candidateId": {"type": "string", "minLength": 1},
+    "evidenceBaselineRevision": {"type": "string", "minLength": 1},
+    "projectId": {"type": "string", "minLength": 1},
+    "zoneId": {"type": "string", "minLength": 1},
+    "lifecyclePolicyHash": {"$ref": "#/$defs/hash"},
+    "requestedMode": {"enum": ["BOOTSTRAP_REVIEW", "HISTORY_DRY_RUN", "HISTORY_SHADOW", "HISTORY_ENFORCED"]},
+    "decisionStatement": {"type": "object", "minProperties": 1},
+    "benchmarks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/benchmark"}
+    },
+    "downstreamComparison": {"$ref": "#/$defs/evidenceResult"},
+    "closureGates": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {"$ref": "#/$defs/gate"}
+    },
+    "approval": {"$ref": "#/$defs/approval"},
+    "evaluatedAt": {"type": "string", "format": "date-time"},
+    "enforcementEligible": {"type": "boolean"},
+    "validation": {"$ref": "#/$defs/validation"},
+    "candidateHash": {"$ref": "#/$defs/hash"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "status": {"enum": ["PASS", "REVIEW_REQUIRED", "BLOCKED", "NOT_EVALUATED"]},
+    "evidenceResult": {
+      "type": "object",
+      "required": ["status", "basis", "summary"],
+      "properties": {
+        "status": {"$ref": "#/$defs/status"},
+        "basis": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "artifactHash": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/hash"}
+      },
+      "additionalProperties": false
+    },
+    "benchmark": {
+      "type": "object",
+      "required": [
+        "benchmarkId", "basis", "command", "status", "positiveResult",
+        "negativeResult", "determinismResult", "metrics", "artifactHashes"
+      ],
+      "properties": {
+        "benchmarkId": {"type": "string", "minLength": 1},
+        "basis": {"enum": ["REAL_PROJECT", "[SIMULATED]"]},
+        "command": {"type": "string", "minLength": 1},
+        "status": {"$ref": "#/$defs/status"},
+        "positiveResult": {"$ref": "#/$defs/status"},
+        "negativeResult": {"$ref": "#/$defs/status"},
+        "determinismResult": {"$ref": "#/$defs/status"},
+        "metrics": {"type": "object"},
+        "artifactHashes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/artifactHash"}
+        },
+        "blockerCodes": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "gate": {
+      "type": "object",
+      "required": ["gateId", "decision", "status", "reason", "evidenceBenchmarkIds"],
+      "properties": {
+        "gateId": {"enum": ["EG-01", "EG-02", "EG-03", "EG-04", "EG-05", "EG-06", "EG-07", "EG-08"]},
+        "decision": {"type": "string", "minLength": 1},
+        "status": {"$ref": "#/$defs/status"},
+        "reason": {"type": "string", "minLength": 1},
+        "evidenceBenchmarkIds": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "approval": {
+      "type": "object",
+      "required": ["status", "approvalRecordId", "approvers", "approvedAt", "approvalRecordHash"],
+      "properties": {
+        "status": {"enum": ["UNAPPROVED", "APPROVED"]},
+        "approvalRecordId": {"type": ["string", "null"]},
+        "approvers": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "approvedAt": {"type": ["string", "null"]},
+        "approvalRecordHash": {
+          "anyOf": [
+            {"$ref": "#/$defs/hash"},
+            {"type": "null"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "issue": {
+      "type": "object",
+      "required": ["code", "evidence"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "evidence": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["status", "blockers", "reviewItems", "warnings"],
+      "properties": {
+        "status": {"enum": ["PASS", "REVIEW_REQUIRED", "BLOCKED"]},
+        "blockers": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+        "reviewItems": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+        "warnings": {"type": "array", "items": {"$ref": "#/$defs/issue"}}
+      },
+      "additionalProperties": false
+    }
+  }
+}
