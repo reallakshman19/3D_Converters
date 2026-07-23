@@ -24,7 +24,7 @@ assert.deepEqual({
   nodeAttributeType: pipeModel.nodeAttributeType,
 }, {
   type: 'NODE', domClass: 'Model', domSubtype: 'Mesh',
-  domSourceName: 'Model::PipeOne', displayName: 'PipeOne', nodeAttributeType: 'MESH',
+  domSourceName: 'Model::PipeOne', displayName: 'Model::PipeOne', nodeAttributeType: 'MESH',
 });
 assert.deepEqual({
   type: pipeGeometry.ufbxElementType,
@@ -34,7 +34,7 @@ assert.deepEqual({
   displayName: pipeGeometry.displayName,
 }, {
   type: 'MESH', domClass: 'Geometry', domSubtype: 'Mesh',
-  domSourceName: 'Geometry::PipeOne', displayName: 'PipeOne',
+  domSourceName: 'Geometry::PipeOne', displayName: 'Geometry::PipeOne',
 });
 assert.ok(graph.sourceObjects.every((item) => item.ufbxElementType !== 'OTHER'));
 assert.ok(graph.unsupportedRecords.every((item) => item.sourceObjectId && item.domClass));

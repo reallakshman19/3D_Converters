@@ -95,6 +95,9 @@ def animation_curve(object_id):
         node("KeyVer", (4008,)),
         node("KeyTime", (("l", [0, 46186158000]),)),
         node("KeyValueFloat", (("f", [0.0, 1.0]),)),
+        node("KeyAttrFlags", (("i", [0]),)),
+        node("KeyAttrDataFloat", (("f", [0.0, 0.0, 0.0, 0.0]),)),
+        node("KeyAttrRefCount", (("i", [2]),)),
     ))
 
 

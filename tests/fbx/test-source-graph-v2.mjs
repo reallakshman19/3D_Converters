@@ -5,21 +5,21 @@ import { parseFbxBytesNode } from '../../tabs/model-converters/converters/fbx/pa
 import { ALL_CATEGORY_URL, fixtureBytes } from './helpers.mjs';
 
 const expected = new Map([
-  ['400', ['NODE', 1, 'Model', 'Null', 'Model::EvidenceNull', 'EvidenceNull']],
-  ['401', ['NODE', 1, 'Model', 'Mesh', 'Model::EvidenceMesh', 'EvidenceMesh']],
-  ['402', ['MESH', 2, 'Geometry', 'Mesh', 'Geometry::EvidenceMesh', 'EvidenceMesh']],
-  ['403', ['NODE', 1, 'Model', 'NurbsCurve', 'Model::EvidenceCurve', 'EvidenceCurve']],
-  ['404', ['NURBS_CURVE', 8, 'Geometry', 'NurbsCurve', 'Geometry::EvidenceCurve', 'EvidenceCurve']],
-  ['405', ['MATERIAL', 24, 'Material', '', 'Material::EvidenceMaterial', 'EvidenceMaterial']],
-  ['406', ['CAMERA', 4, 'NodeAttribute', 'Camera', 'NodeAttribute::EvidenceCamera', 'EvidenceCamera']],
-  ['407', ['LIGHT', 3, 'NodeAttribute', 'Light', 'NodeAttribute::EvidenceLight', 'EvidenceLight']],
-  ['408', ['TEXTURE', 25, 'Texture', 'TextureVideoClip', 'Texture::EvidenceTexture', 'EvidenceTexture']],
-  ['409', ['VIDEO', 26, 'Video', 'Clip', 'Video::EvidenceVideo', 'EvidenceVideo']],
-  ['410', ['SKIN_DEFORMER', 17, 'Deformer', 'Skin', 'Deformer::EvidenceSkin', 'EvidenceSkin']],
-  ['411', ['ANIM_STACK', 29, 'AnimationStack', '', 'AnimStack::EvidenceTake', 'EvidenceTake']],
-  ['412', ['ANIM_LAYER', 30, 'AnimationLayer', '', 'AnimLayer::EvidenceLayer', 'EvidenceLayer']],
-  ['413', ['ANIM_CURVE', 32, 'AnimationCurve', '', 'AnimCurve::EvidenceCurve', 'EvidenceCurve']],
-  ['414', ['UNKNOWN', 0, 'MysteryObject', 'FutureSubtype', 'Mystery::EvidenceUnknown', 'EvidenceUnknown']],
+  ['400', ['NODE', 1, 'Model', 'Null', 'Model::EvidenceNull', 'Model::EvidenceNull']],
+  ['401', ['NODE', 1, 'Model', 'Mesh', 'Model::EvidenceMesh', 'Model::EvidenceMesh']],
+  ['402', ['MESH', 2, 'Geometry', 'Mesh', 'Geometry::EvidenceMesh', 'Geometry::EvidenceMesh']],
+  ['403', ['NODE', 1, 'Model', 'NurbsCurve', 'Model::EvidenceCurve', 'Model::EvidenceCurve']],
+  ['404', ['NURBS_CURVE', 8, 'Geometry', 'NurbsCurve', 'Geometry::EvidenceCurve', 'Geometry::EvidenceCurve']],
+  ['405', ['MATERIAL', 24, 'Material', '', 'Material::EvidenceMaterial', 'Material::EvidenceMaterial']],
+  ['406', ['CAMERA', 4, 'NodeAttribute', 'Camera', 'NodeAttribute::EvidenceCamera', 'NodeAttribute::EvidenceCamera']],
+  ['407', ['LIGHT', 3, 'NodeAttribute', 'Light', 'NodeAttribute::EvidenceLight', 'NodeAttribute::EvidenceLight']],
+  ['408', ['TEXTURE', 25, 'Texture', 'TextureVideoClip', 'Texture::EvidenceTexture', 'Texture::EvidenceTexture']],
+  ['409', ['VIDEO', 26, 'Video', 'Clip', 'Video::EvidenceVideo', 'Video::EvidenceVideo']],
+  ['410', ['SKIN_DEFORMER', 17, 'Deformer', 'Skin', 'Deformer::EvidenceSkin', 'Deformer::EvidenceSkin']],
+  ['411', ['ANIM_STACK', 29, 'AnimationStack', '', 'AnimStack::EvidenceTake', 'AnimStack::EvidenceTake']],
+  ['412', ['ANIM_LAYER', 30, 'AnimationLayer', '', 'AnimLayer::EvidenceLayer', 'AnimLayer::EvidenceLayer']],
+  ['413', ['ANIM_CURVE', 32, 'AnimationCurve', '', 'AnimCurve::EvidenceCurve', 'AnimCurve::EvidenceCurve']],
+  ['414', ['UNKNOWN', 0, 'MysteryObject', 'FutureSubtype', 'Mystery::EvidenceUnknown', 'Mystery::EvidenceUnknown']],
 ]);
 
 const validatorProgram = String.raw`

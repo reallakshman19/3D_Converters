@@ -241,11 +241,19 @@ static void write_source_object(json_buffer *buffer, const ufbx_element *element
     if (element->type == UFBX_ELEMENT_NODE && ((const ufbx_node*)element)->all_attribs.count) {
         const ufbx_node *node = (const ufbx_node*)element;
         jb_string_n(buffer, element_type_name(node->attrib_type), strlen(element_type_name(node->attrib_type)));
-    } else jb_raw(buffer, "null");
+    } else if (element->type == UFBX_ELEMENT_NODE) {
+        jb_raw(buffer, "\"UNKNOWN\"");
+    } else {
+        jb_raw(buffer, "null");
+    }
     jb_raw(buffer, ",\"nodeAttributeTypeValue\":");
     if (element->type == UFBX_ELEMENT_NODE && ((const ufbx_node*)element)->all_attribs.count) {
         jb_i64(buffer, ((const ufbx_node*)element)->attrib_type);
-    } else jb_raw(buffer, "null");
+    } else if (element->type == UFBX_ELEMENT_NODE) {
+        jb_raw(buffer, "0");
+    } else {
+        jb_raw(buffer, "null");
+    }
     jb_raw(buffer, ",\"objectPropertyPath\":null,\"connectionPropertyNames\":");
     write_connection_property_names(buffer, element);
     jb_raw(buffer, ",\"sourceDocumentOrder\":"); jb_u64(buffer, order); jb_char(buffer, '}');
