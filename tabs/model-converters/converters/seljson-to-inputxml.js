@@ -4,6 +4,7 @@ import { parseSelJsonToInputSource, selJsonTraceToCsv } from '../../../converter
 import { applyXmlCiiTopologyElementLengths } from '../../../converters/xml-cii2019-core/topology/xml-cii-topology-element-length.js';
 import { buildXmlCiiTopologyDisconnectAudit } from '../../../converters/xml-cii2019-core/topology/xml-cii-topology-disconnect-audit.js';
 import { decodeTextUtf8, baseNameWithoutExtension } from '../core/output-utils.js';
+import { gateProducedInputXml } from './inputxml-compatibility-gate.js';
 
 /**
  * Runs SelJson -> InputXML from 3DV Conv JSON exports.
@@ -83,6 +84,14 @@ export async function run(context) {
     { name: `${stem}_seljson_to_inputxml.trace.csv`, text: selJsonTraceToCsv(parsed.trace), mime: 'text/csv;charset=utf-8' },
   ];
   if (topologyAudit) outputs.push({ name: `${stem}_seljson_topology_audit.json`, text: JSON.stringify(topologyAudit, null, 2), mime: 'application/json;charset=utf-8' });
+  const produced = outputs[0];
+  const gated = await gateProducedInputXml(context, {
+    xmlText: produced.text,
+    sourceName: produced.name,
+    outputName: produced.name,
+  });
+  if (!gated.releaseEligible) context.setStatus?.(`SelJson -> InputXML ${gated.status}; no InputXML was released.`, 'warn');
+  const verifiedOutputs = [...gated.outputs, ...outputs.slice(1)];
 
   const stdout = [
     `SelJson source kind: ${parsed.summary.sourceKind}`,
@@ -95,11 +104,13 @@ export async function run(context) {
   if (topologyAudit) stdout.push(`Topology audit: ${topologyAudit.disconnectedRows.length} disconnected/orphan row(s) of ${topologyAudit.rows.length}.`);
 
   return {
-    ok: true,
-    outputs,
+    ok: gated.releaseEligible,
+    outputs: verifiedOutputs,
     logs: {
       stdout,
       stderr: parsed.diagnostics.map((entry) => `${entry.severity || 'info'} ${entry.code || ''}: ${entry.message || ''}`),
+      preflight: gated.logs?.preflight,
+      inputXmlCompatibilityRequest: gated.request,
     },
   };
 }

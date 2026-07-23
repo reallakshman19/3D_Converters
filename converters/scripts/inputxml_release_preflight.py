@@ -19,10 +19,15 @@ if REPOSITORY_SCRIPTS.is_dir() and str(REPOSITORY_SCRIPTS) not in sys.path:
 from inputxml_approved_semantic_split import validate_approval
 from inputxml_assurance_ledger import build_assurance_ledger
 from inputxml_assurance_ledger_v2 import build_assurance_ledger_v2
+from inputxml_compatibility_request import (
+    build_compatibility_request,
+    validate_compatibility_request,
+)
 from inputxml_compiler.compiler import compile_document
 from inputxml_compiler.publication_contract import CompilationView
 from inputxml_compiler.serialization import hash_source_bytes
 from inputxml_compiler.serialization_policy import load_serialization_policy
+from inputxml_diagnostics import build_diagnostic_report
 from inputxml_import_topology import build_import_topology_evidence, stable_json_bytes
 from inputxml_release_policy import (
     build_canonical_source_model,
@@ -31,6 +36,7 @@ from inputxml_release_policy import (
     build_resolved_relationships,
     sha256,
 )
+from inputxml_resolver_trace import build_resolver_trace
 
 
 class InputXmlReleasePreflightError(RuntimeError):
@@ -131,17 +137,23 @@ def write_json(output_dir: Path, name: str, value: Any) -> str:
 
 def write_preliminary(
     output_dir: Path,
+    request: dict[str, Any],
     ledger: dict[str, Any],
     validation: dict[str, Any],
     policy: dict[str, Any],
     normalization: dict[str, Any],
+    diagnostic_report: dict[str, Any],
+    resolver_trace: dict[str, Any],
 ) -> dict[str, str]:
     """Write evidence available for PASS, BLOCKED, and diagnostic outcomes."""
     return {
+        "compatibilityRequest": write_json(output_dir, "compatibility-request.json", request),
         "canonicalizationLedger": write_json(output_dir, "canonicalization-ledger.json", ledger),
         "canonicalValidation": write_json(output_dir, "canonical-validation.json", validation),
         "compatibilityPolicy": write_json(output_dir, "compatibility-policy.json", policy),
         "normalizationPlan": write_json(output_dir, "normalization-plan.json", normalization),
+        "diagnosticReport": write_json(output_dir, "diagnostic-report.json", diagnostic_report),
+        "resolverTrace": write_json(output_dir, "resolver-trace.json", resolver_trace),
     }
 
 
@@ -198,6 +210,22 @@ def run_preflight(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     """Execute structural preflight and return its summary plus process status."""
     source = args.input.read_bytes()
     source_hash = hash_source_bytes(source)
+    if args.compatibility_request is not None:
+        request = validate_compatibility_request(
+            load_json(args.compatibility_request),
+            args.input.name,
+            source,
+            args.mode,
+            args.approved_split_id,
+        )
+    else:
+        request = build_compatibility_request(
+            args.converter_id,
+            args.mode,
+            args.input.name,
+            source,
+            args.approved_split_id,
+        )
     initial = compile_source(source, args.input.name, str(args.input), args.contracts_dir, None)
     _, initial_ledger, initial_validation, _ = initial
     detected_dialect = str(initial_validation.get("dialect") or initial_ledger.get("dialect") or "unresolved")
@@ -222,7 +250,33 @@ def run_preflight(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     policy = build_compatibility_policy(args.mode, detected_dialect, source_hash, args.approved_split_id, validation.get("status"))
     compiled_hash = ledger.get("canonicalHashSha256") if canonical is not None else None
     normalization = build_normalization_plan(source_hash, compiled_hash, policy, ledger, args.approved_split_id)
-    outputs = write_preliminary(args.output_dir, ledger, validation, policy, normalization)
+    diagnostic_report = build_diagnostic_report(
+        source_hash,
+        policy["status"],
+        [
+            list(ledger.get("diagnostics") or []),
+            list(validation.get("diagnostics") or []),
+            list(policy.get("diagnostics") or []),
+            list(normalization.get("diagnostics") or []),
+        ],
+    )
+    resolver_trace = build_resolver_trace(
+        source_hash,
+        policy["status"],
+        ledger,
+        validation,
+        None,
+    )
+    outputs = write_preliminary(
+        args.output_dir,
+        request,
+        ledger,
+        validation,
+        policy,
+        normalization,
+        diagnostic_report,
+        resolver_trace,
+    )
     if canonical is None or validation.get("status") != "PASS":
         result = {"schema": "InputXmlReleasePreflightResult.v1", "status": policy["status"], "releaseEligible": False, "outputs": outputs}
         outputs["preflightResult"] = write_json(args.output_dir, "preflight-result.json", result)
@@ -236,7 +290,39 @@ def run_preflight(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     relationships = build_resolved_relationships(topology["canonicalTopology"])
     source_model = build_canonical_source_model(source_hash, detected_dialect, ledger, [row["relationshipId"] for row in relationships])
     v1_assurance = build_v1_assurance(canonical_xml, ledger, validation, args.contracts_dir)
-    v2_assurance = build_assurance_ledger_v2(v1_assurance, policy, normalization, topology["canonicalTopology"], topology["topoNodePlan"], topology["numberedTopologyProjection"], topology["parsedInputXmlTopology"], topology["topologyParityReport"], approval)
+    diagnostic_report = build_diagnostic_report(
+        source_hash,
+        policy["status"],
+        [
+            list(ledger.get("diagnostics") or []),
+            list(validation.get("diagnostics") or []),
+            list(policy.get("diagnostics") or []),
+            list(normalization.get("diagnostics") or []),
+            list(topology["topologyParityReport"].get("diagnostics") or []),
+        ],
+    )
+    resolver_trace = build_resolver_trace(
+        source_hash,
+        policy["status"],
+        ledger,
+        validation,
+        topology["topologyParityReport"],
+    )
+    outputs["diagnosticReport"] = write_json(args.output_dir, "diagnostic-report.json", diagnostic_report)
+    outputs["resolverTrace"] = write_json(args.output_dir, "resolver-trace.json", resolver_trace)
+    v2_assurance = build_assurance_ledger_v2(
+        v1_assurance,
+        policy,
+        normalization,
+        topology["canonicalTopology"],
+        topology["topoNodePlan"],
+        topology["numberedTopologyProjection"],
+        topology["parsedInputXmlTopology"],
+        topology["topologyParityReport"],
+        diagnostic_report,
+        resolver_trace,
+        approval,
+    )
     outputs.update(write_release_evidence(args.output_dir, canonical_xml, topology, source_model, relationships, v1_assurance, v2_assurance, approval))
     release_eligible = policy["status"] == "PASS" and v2_assurance["status"] == "PASS"
     result = {"schema": "InputXmlReleasePreflightResult.v1", "status": "PASS" if release_eligible else policy["status"], "releaseEligible": release_eligible, "outputs": outputs}
@@ -251,6 +337,9 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--approval-dir", type=Path, required=True)
     value.add_argument("--mode", choices=["CANONICAL_STRICT", "ADAPTED_CANONICAL", "DIAGNOSTIC_ONLY"], required=True)
     value.add_argument("--approved-split-id")
+    request = value.add_mutually_exclusive_group(required=True)
+    request.add_argument("--converter-id")
+    request.add_argument("--compatibility-request", type=Path)
     return value
 
 

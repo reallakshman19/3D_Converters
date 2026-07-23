@@ -20,15 +20,16 @@ assert.throws(() => validateCompatibilityPolicy({ ...policy, detectedDialect: 'l
 
 const gates = Object.fromEntries([
   'compatibility', 'canonicalization', 'canonicalValidation', 'topologyTrace',
-  'topologyParity', 'ciiProjectionReadiness',
+  'topologyParity', 'diagnostics', 'resolverTrace', 'ciiProjectionReadiness',
 ].map((name) => [name, 'PASS']));
 const assurance = {
   schema: 'InputXmlCiiAssuranceLedger.v2', status: 'PASS', gates,
   assuranceHashSha256: await sha256Hex('assurance'),
 };
 const artifactNames = [
-  'canonicalInputXml', 'cii', 'compatibilityPolicy', 'canonicalizationLedger',
-  'canonicalValidation', 'normalizationPlan', 'canonicalSourceModel', 'resolvedRelationships',
+  'canonicalInputXml', 'cii', 'compatibilityRequest', 'compatibilityPolicy',
+  'canonicalizationLedger', 'canonicalValidation', 'normalizationPlan',
+  'diagnosticReport', 'resolverTrace', 'canonicalSourceModel', 'resolvedRelationships',
   'canonicalTopology', 'topoNodePlan', 'numberedTopologyProjection',
   'parsedInputXmlTopology', 'topologyParityReport', 'assuranceLedger', 'ciiProjectionLedger',
 ];

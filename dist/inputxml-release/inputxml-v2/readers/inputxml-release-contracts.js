@@ -77,14 +77,24 @@ function validateAssurance(value) {
   if (ledger.schema !== 'InputXmlCiiAssuranceLedger.v2') fail('ASSURANCE_SCHEMA_INVALID', 'Release requires InputXmlCiiAssuranceLedger.v2.');
   if (ledger.status !== 'PASS') fail('ASSURANCE_BLOCKED', 'Release requires PASS assurance.');
   const gates = objectValue(ledger.gates, 'Assurance gates');
-  const required = ['compatibility', 'canonicalization', 'canonicalValidation', 'topologyTrace', 'topologyParity', 'ciiProjectionReadiness'];
+  const required = [
+    'compatibility', 'canonicalization', 'canonicalValidation', 'topologyTrace',
+    'topologyParity', 'diagnostics', 'resolverTrace', 'ciiProjectionReadiness',
+  ];
   for (const gate of required) if (gates[gate] !== 'PASS') fail('ASSURANCE_GATE_BLOCKED', `Assurance gate ${gate} must be PASS.`);
   hashValue(ledger.assuranceHashSha256, 'Assurance hash');
   return ledger;
 }
 
 function selectedArtifactNames(approval) {
-  const names = ['canonicalInputXml', 'cii', 'compatibilityPolicy', 'canonicalizationLedger', 'canonicalValidation', 'normalizationPlan', 'canonicalSourceModel', 'resolvedRelationships', 'canonicalTopology', 'topoNodePlan', 'numberedTopologyProjection', 'parsedInputXmlTopology', 'topologyParityReport', 'assuranceLedger', 'ciiProjectionLedger'];
+  const names = [
+    'canonicalInputXml', 'cii', 'compatibilityRequest', 'compatibilityPolicy',
+    'canonicalizationLedger', 'canonicalValidation', 'normalizationPlan',
+    'diagnosticReport', 'resolverTrace', 'canonicalSourceModel', 'resolvedRelationships',
+    'canonicalTopology', 'topoNodePlan', 'numberedTopologyProjection',
+    'parsedInputXmlTopology', 'topologyParityReport', 'assuranceLedger',
+    'ciiProjectionLedger',
+  ];
   return approval === null || approval === undefined ? names : [...names, 'approvedSemanticSplitEvidence'];
 }
 

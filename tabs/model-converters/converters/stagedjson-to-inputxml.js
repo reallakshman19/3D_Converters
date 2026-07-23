@@ -1,3 +1,9 @@
+/**
+ * Functionality: produce StagedJSON previews, topology evidence, and gated canonical InputXML.
+ * Parameters: converter context containing staged JSON bytes and explicit compatibility options.
+ * Outputs: preview/topology sidecars plus canonical InputXML and structural evidence on PASS.
+ * Fallback: none; blocking preflight omits the generated InputXML.
+ */
 import { decodeTextUtf8, baseNameWithoutExtension } from '../core/output-utils.js';
 import {
   buildComponentTopologyArtifacts,
@@ -7,6 +13,7 @@ import {
   SUPPORT_PROJECTION_TOLERANCE_MM,
   TOPOLOGY_TOLERANCE_MM,
 } from './component-topology/topology-values.js';
+import { gateProducedInputXml } from './inputxml-compatibility-gate.js';
 
 /** Keep host callbacks on the main thread; worker options are data only. */
 function serializableWorkerOptions(options) {
@@ -61,6 +68,14 @@ export async function run(context) {
   const topologyOutputs = await buildTopologyOutputs(stagedJsonPreviewText, primary.name, stem);
 
   const outputs = Array.isArray(response.outputs) ? response.outputs : [];
+  const produced = outputs.find((output) => output?.mime?.startsWith('application/xml') || /\.xml$/i.test(output?.name || ''));
+  if (!produced?.text) throw new Error('StagedJSON -> InputXML returned no XML for structural preflight.');
+  const gated = await gateProducedInputXml(context, {
+    xmlText: produced.text,
+    sourceName: produced.name,
+    outputName: produced.name,
+  });
+  if (!gated.releaseEligible) context.setStatus?.(`StagedJSON -> InputXML ${gated.status}; no InputXML was released.`, 'warn');
   const previewOutputs = [
     {
       name: `${stem}_managed_stage_preview.json`,
@@ -68,11 +83,18 @@ export async function run(context) {
       mime: 'application/json;charset=utf-8',
     },
     ...topologyOutputs,
-    ...outputs,
+    ...outputs.filter((output) => output !== produced),
+    ...gated.outputs,
   ];
 
   return {
     ...response,
+    ok: gated.releaseEligible,
     outputs: previewOutputs,
+    logs: {
+      ...(response.logs || {}),
+      preflight: gated.logs?.preflight,
+      inputXmlCompatibilityRequest: gated.request,
+    },
   };
 }

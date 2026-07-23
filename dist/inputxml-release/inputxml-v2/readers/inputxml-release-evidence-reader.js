@@ -11,6 +11,7 @@ import {
   validateCompatibilityPolicy,
   verifySelectedOutputFiles,
 } from './inputxml-release-contracts.js';
+import { validateInputXmlCompatibilityRequest } from './inputxml-compatibility-request.js';
 
 function decodeJson(bytes, label) {
   try {
@@ -42,11 +43,13 @@ function semanticTopologyDifferences(parity) {
   return Object.freeze({ status: parity.status, mismatches: Object.freeze([...mismatches]), summary: Object.freeze({ ...(parity.summary || {}) }) });
 }
 
-function validateEvidenceSchemas(plan, parity, assurance, projection) {
+function validateEvidenceSchemas(plan, parity, assurance, projection, diagnostics, resolverTrace) {
   if (plan.schema !== 'InputXmlNormalizationPlan.v1') throw new InputXmlReleaseContractError('NORMALIZATION_SCHEMA_INVALID', 'InputXML v2 normalization plan schema is invalid.');
   if (parity.schema !== 'TopologyParityReport.v2' || parity.status !== 'PASS') throw new InputXmlReleaseContractError('TOPOLOGY_PARITY_BLOCKED', 'InputXML v2 topology parity must be PASS.');
   if (assurance.schema !== 'InputXmlCiiAssuranceLedger.v2' || assurance.status !== 'PASS') throw new InputXmlReleaseContractError('ASSURANCE_BLOCKED', 'InputXML v2 assurance must be PASS.');
   if (projection.schema !== 'InputXmlCiiProjectionLedger.v1' || projection.status !== 'PASS') throw new InputXmlReleaseContractError('PROJECTION_BLOCKED', 'InputXML CII projection evidence must be PASS.');
+  if (diagnostics.schema !== 'InputXmlDiagnosticReport.v1' || diagnostics.status !== 'PASS') throw new InputXmlReleaseContractError('DIAGNOSTIC_REPORT_BLOCKED', 'InputXML diagnostic report must be PASS.');
+  if (resolverTrace.schema !== 'InputXmlResolverTrace.v1' || resolverTrace.status !== 'PASS') throw new InputXmlReleaseContractError('RESOLVER_TRACE_BLOCKED', 'InputXML resolver trace must be PASS.');
 }
 
 export async function readInputXmlReleaseEvidence(filesByName, manifestFileName) {
@@ -59,13 +62,17 @@ export async function readInputXmlReleaseEvidence(filesByName, manifestFileName)
   const manifestBytes = filesByName[manifestFileName];
   if (manifestBytes === undefined) throw new InputXmlReleaseContractError('MANIFEST_MISSING', `Selected-output manifest is missing: ${manifestFileName}.`);
   const manifest = await verifySelectedOutputFiles(decodeJson(manifestBytes, manifestFileName), filesByName);
+  const request = await validateInputXmlCompatibilityRequest(requiredArtifact(manifest, filesByName, 'compatibilityRequest'));
+  if (request.sourceHashSha256 !== manifest.sourceHashSha256) throw new InputXmlReleaseContractError('REQUEST_SOURCE_MISMATCH', 'InputXML compatibility request source hash differs from the selected manifest.');
   const policy = validateCompatibilityPolicy(requiredArtifact(manifest, filesByName, 'compatibilityPolicy'));
   if (policy.status !== 'PASS') throw new InputXmlReleaseContractError('POLICY_BLOCKED', 'Release-selected compatibility policy is not PASS.');
   const plan = requiredArtifact(manifest, filesByName, 'normalizationPlan');
   const parity = requiredArtifact(manifest, filesByName, 'topologyParityReport');
   const assurance = requiredArtifact(manifest, filesByName, 'assuranceLedger');
   const projection = requiredArtifact(manifest, filesByName, 'ciiProjectionLedger');
-  validateEvidenceSchemas(plan, parity, assurance, projection);
+  const diagnostics = requiredArtifact(manifest, filesByName, 'diagnosticReport');
+  const resolverTrace = requiredArtifact(manifest, filesByName, 'resolverTrace');
+  validateEvidenceSchemas(plan, parity, assurance, projection, diagnostics, resolverTrace);
   const approval = manifest.approvedSemanticSplit
     ? await validateApprovedSemanticSplit(requiredArtifact(manifest, filesByName, 'approvedSemanticSplitEvidence'))
     : null;
@@ -76,7 +83,10 @@ export async function readInputXmlReleaseEvidence(filesByName, manifestFileName)
     classification: 'RELEASE_VALIDATED_V2',
     releaseValidated: true,
     manifest,
+    compatibilityRequest: request,
     compatibilityPolicy: policy,
+    diagnosticReport: diagnostics,
+    resolverTrace,
     approvedSemanticSplit: approval,
     normalizedDifferences: normalizedDifferences(plan),
     semanticTopologyDifferences: semanticTopologyDifferences(parity),

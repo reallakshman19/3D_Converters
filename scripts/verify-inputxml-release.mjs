@@ -42,6 +42,7 @@ function generatePreflight() {
     '--contracts-dir', 'contracts/inputxml/v1',
     '--approval-dir', 'contracts/inputxml/v2/approvals',
     '--mode', 'CANONICAL_STRICT',
+    '--converter-id', 'inputxml_to_cii2019',
   ]);
 }
 
@@ -52,10 +53,13 @@ function generateSelectedRelease() {
     '--input', value('canonical.input.xml'),
     '--assurance-ledger', value('assurance-ledger-v2.json'),
     '--projection-contract', 'contracts/inputxml/v1/catalogs/inputxml-cii-projection-contract.json',
+    '--compatibility-request', value('compatibility-request.json'),
     '--compatibility-policy', value('compatibility-policy.json'),
     '--canonicalization-ledger', value('canonicalization-ledger.json'),
     '--canonical-validation', value('canonical-validation.json'),
     '--normalization-plan', value('normalization-plan.json'),
+    '--diagnostic-report', value('diagnostic-report.json'),
+    '--resolver-trace', value('resolver-trace.json'),
     '--canonical-source-model', value('canonical-source-model.json'),
     '--resolved-relationships', value('resolved-relationships.json'),
     '--canonical-topology', value('canonical-topology-v2.json'),
@@ -77,6 +81,7 @@ async function main() {
   run('[SIMULATED] Exact approved split and altered-source rejection', PYTHON, ['tests/test_inputxml_approved_semantic_split.py']);
   run('[SIMULATED] Adapted exact-hash CII release', PYTHON, ['tests/test_inputxml_adapted_release.py']);
   run('Typed policy/manifest contracts', 'node', ['tests/inputxml-release-contracts.test.mjs']);
+  run('Phase 2 route/request/diagnostic contracts', 'node', ['tests/inputxml-phase2-contracts.test.mjs']);
   run('Core topology parity seam', 'node', ['tests/component-topology-parity.test.mjs']);
   run('Edited artifact projection seam', 'node', ['tests/component-topology-edited-artifacts.test.mjs']);
   run('Real 1885_NC parity and numbering shadow', 'node', ['tests/component-topology-artifacts-1885-nc.test.mjs']);

@@ -93,6 +93,9 @@ async function runSmoke() {
     assert.equal(result.preflight.status, 'PASS');
     assert.equal(result.released, true);
     assert.ok(result.outputs.some((artifact) => artifact.role === 'cii' && artifact.text.length > 0));
+    assert.ok(result.outputs.some((artifact) => artifact.role === 'compatibilityRequest'));
+    assert.ok(result.outputs.some((artifact) => artifact.role === 'diagnosticReport'));
+    assert.ok(result.outputs.some((artifact) => artifact.role === 'resolverTrace'));
     const selected = result.outputs.find((artifact) => artifact.role === 'selectedOutputManifest');
     assert.equal(JSON.parse(selected.text).status, 'PASS');
     pyodide.FS.writeFile('/work/offline-smoke/overflow.xml', new Uint8Array(await readFile(OVERFLOW_SOURCE)));

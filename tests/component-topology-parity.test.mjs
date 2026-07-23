@@ -79,7 +79,8 @@ function fixture() {
     })),
   };
   const xml = buildTopologyInputXml(releaseCanonical, engineering, projection, {
-    jobName: 'Parity Fixture', topologyTraceLedgerHash: ledger.topologyTraceLedgerHash,
+    jobName: 'Parity Fixture', inputXmlCompatibilityMode: 'CANONICAL_STRICT',
+    topologyTraceLedgerHash: ledger.topologyTraceLedgerHash,
     legacyCanonicalTopologyHash: canonical.canonicalTopologyHash,
   });
   const parsed = parseTopologyInputXml(xml);
