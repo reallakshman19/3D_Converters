@@ -56,8 +56,16 @@ function compareText(left, right) {
   return String(left) < String(right) ? -1 : String(left) > String(right) ? 1 : 0;
 }
 
+function normalizedDecision(decision) {
+  const value = structuredClone(decision);
+  if (value.disposition === 'promote' && Array.isArray(value.mappingEntry?.sourceGeometryObjectIds)) {
+    value.mappingEntry.sourceGeometryObjectIds.sort(compareText);
+  }
+  return value;
+}
+
 function normalizedDecisions(decisions) {
-  return structuredClone(decisions).sort((left, right) => (
+  return decisions.map(normalizedDecision).sort((left, right) => (
     compareText(left.workItemId, right.workItemId) || compareText(left.disposition, right.disposition)
   ));
 }
@@ -75,6 +83,20 @@ export async function calculateDecisionSetId(value) {
   return canonicalDigest(decisionSetPayload(value));
 }
 
+function assertNoPlaceholders(value, label, path = '') {
+  if (value === null) fail('BLOCKED_DECISION_BINDING', `${label}${path} cannot be null.`);
+  if (typeof value === 'string' && ['TBD', 'TODO', 'PLACEHOLDER', 'DEFAULT'].includes(value.trim().toUpperCase())) {
+    fail('BLOCKED_DECISION_BINDING', `${label}${path} contains a placeholder sentinel.`);
+  }
+  if (Array.isArray(value)) value.forEach((item, index) => assertNoPlaceholders(item, label, `${path}[${index}]`));
+  else if (value && typeof value === 'object') for (const [key, child] of Object.entries(value)) {
+    if (['coordinate', 'position', 'xyz'].includes(key)) {
+      fail('BLOCKED_DECISION_BINDING', `${label}${path}.${key} is unbound coordinate authority.`);
+    }
+    assertNoPlaceholders(child, label, `${path}.${key}`);
+  }
+}
+
 function validateMappingEntry(entry, label) {
   exactKeys(entry, ENTRY_KEYS, label);
   if (entry.scopeDisposition !== 'promote') {
@@ -83,6 +105,7 @@ function validateMappingEntry(entry, label) {
   if (!Array.isArray(entry.sourceGeometryObjectIds)) {
     fail('BLOCKED_DECISION_BINDING', `${label}.sourceGeometryObjectIds must be an array.`);
   }
+  assertNoPlaceholders(entry, label);
 }
 
 function validateDecision(decision, index) {
@@ -218,8 +241,8 @@ async function verifyDecisionBinding(set, worklist) {
 export async function compileMappingDecisions({
   bytes, graph, parserEvidence, worklist, decisionSet,
 }) {
+  await verifyMappingWorklist({ bytes, graph, parserEvidence, worklist });
   const canonicalGraph = enforceSourceGraphPolicy(graph);
-  await verifyMappingWorklist({ bytes, graph: canonicalGraph, parserEvidence, worklist });
   await verifyDecisionBinding(decisionSet, worklist);
   const manifest = compileManifest(worklist, normalizedDecisions(decisionSet.decisions));
   return validateCompiledMapping(manifest, canonicalGraph);
