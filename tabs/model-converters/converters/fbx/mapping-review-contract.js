@@ -1,5 +1,3 @@
-import { canonicalJson } from './canonical-json.js';
-
 export class BundleFailure extends Error {
   constructor(status, message) {
     super(`${status} ${message}`);
