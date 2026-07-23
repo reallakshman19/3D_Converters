@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://reallaksh19.github.io/3D_Converters/node-history/schemas/NodeHistoryLifecyclePolicy.v1.schema.json",
+  "title": "NodeHistoryLifecyclePolicy.v1",
+  "type": "object",
+  "required": [
+    "schema", "policyVersion", "configVersion", "defaultMode", "rollbackMode",
+    "promotionSequence", "modes", "lifecyclePolicyHash"
+  ],
+  "properties": {
+    "schema": {"const": "NodeHistoryLifecyclePolicy.v1"},
+    "policyVersion": {"type": "string", "minLength": 1},
+    "configVersion": {"type": "string", "minLength": 1},
+    "defaultMode": {"const": "BOOTSTRAP_REVIEW"},
+    "rollbackMode": {"const": "HISTORY_DRY_RUN"},
+    "promotionSequence": {
+      "prefixItems": [
+        {"const": "BOOTSTRAP_REVIEW"},
+        {"const": "HISTORY_DRY_RUN"},
+        {"const": "HISTORY_SHADOW"},
+        {"const": "HISTORY_ENFORCED"}
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "modes": {
+      "type": "object",
+      "required": ["BOOTSTRAP_REVIEW", "HISTORY_DRY_RUN", "HISTORY_SHADOW", "HISTORY_ENFORCED"],
+      "properties": {
+        "BOOTSTRAP_REVIEW": {"$ref": "#/$defs/mode"},
+        "HISTORY_DRY_RUN": {"$ref": "#/$defs/mode"},
+        "HISTORY_SHADOW": {"$ref": "#/$defs/mode"},
+        "HISTORY_ENFORCED": {"$ref": "#/$defs/mode"}
+      },
+      "additionalProperties": false
+    },
+    "lifecyclePolicyHash": {"$ref": "#/$defs/hash"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "mode": {
+      "type": "object",
+      "required": [
+        "modeAvailable", "matcherAuthority", "nodePlanAuthority", "outputAuthority",
+        "registryMutationAllowed", "approvedClosureRequired"
+      ],
+      "properties": {
+        "modeAvailable": {"type": "boolean"},
+        "matcherAuthority": {"type": "string", "minLength": 1},
+        "nodePlanAuthority": {"type": "string", "minLength": 1},
+        "outputAuthority": {"type": "string", "minLength": 1},
+        "registryMutationAllowed": {"type": "boolean"},
+        "approvedClosureRequired": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
