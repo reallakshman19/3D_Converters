@@ -1,3 +1,9 @@
+/**
+ * Functionality: build numbered topology, InputXML, parity, and compatibility-request artifacts.
+ * Parameters: exact source text, topology tolerances, engineering options, and optional edit evidence.
+ * Outputs: hash-bound topology release artifacts and downloadable projections.
+ * Fallback: none; blocking topology/parity findings prevent release-ready artifacts.
+ */
 import { buildTopologySourceModel } from './topology-source-model.js';
 import { buildExplicitConnectivity } from './topology-connectivity.js';
 import { buildCanonicalTopology } from './topology-canonical-builder.js';
@@ -29,6 +35,7 @@ import {
   buildTopologyParityReportV2,
 } from './topology-parity-report-v2.js';
 import { cleanText, componentCategory, pointDistance } from './topology-values.js';
+import { buildInputXmlCompatibilityRequest } from '../../../../converters/inputxml-release/inputxml-compatibility-request.js';
 
 function componentCounts(model) {
   const counts = {};
@@ -171,15 +178,26 @@ async function buildArtifactsFromState(state, options, editMetadata, failOnParit
   );
   const topologyInputXml = buildTopologyInputXml(canonicalTopologyV2, engineering, numberedTopologyProjection, {
     jobName: options.jobName,
+    inputXmlCompatibilityMode: 'CANONICAL_STRICT',
     legacyCanonicalTopologyHash: canonicalTopology.canonicalTopologyHash,
     topologyTraceLedgerHash: traceLedger.topologyTraceLedgerHash,
     topologyEditDraftHash: editMetadata?.editDraft?.topologyEditDraftHash,
     topologyEditLedgerHash: editMetadata?.editLedger?.topologyEditLedgerHash,
   });
+  const inputXmlCompatibilityRequest = await buildInputXmlCompatibilityRequest({
+    converterId: 'component_topology_inputxml_writer',
+    sourceName: `${options.sourceName}.topology.input.xml`,
+    sourceBytes: new TextEncoder().encode(topologyInputXml),
+    options: {
+      inputXmlCompatibilityMode: 'CANONICAL_STRICT',
+      approvedSemanticSplitId: '',
+    },
+  });
   const parsedInputXmlTopology = parseTopologyInputXml(topologyInputXml);
   const parsedInputXmlTopologyV2 = await buildParsedInputXmlTopologyV1({
     parsedInputXmlTopology,
     topologyInputXml,
+    inputXmlCompatibilityRequest,
     canonicalTopologyV2,
   });
   const topologySvgScene = buildTopologySvgScene(canonicalTopology, traceLedger, []);
@@ -288,6 +306,7 @@ export function topologyArtifactOutputs(artifacts, options) {
     ['topology-numbering-shadow-report.json', artifacts.numberingShadowReport, 'application/json;charset=utf-8'],
     ['topology-trace-ledger.json', artifacts.traceLedger, 'application/json;charset=utf-8'],
     ['topology.input.xml', artifacts.topologyInputXml, 'application/xml;charset=utf-8'],
+    ['topology.inputxml-compatibility-request.json', artifacts.inputXmlCompatibilityRequest, 'application/json;charset=utf-8'],
     ['topology-svg-scene.json', artifacts.topologySvgScene, 'application/json;charset=utf-8'],
     ['parsed-inputxml-topology.json', artifacts.parsedInputXmlTopology, 'application/json;charset=utf-8'],
     ['parsed-inputxml-topology-v2.json', artifacts.parsedInputXmlTopologyV2, 'application/json;charset=utf-8'],

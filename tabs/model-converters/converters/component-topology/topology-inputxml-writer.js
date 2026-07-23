@@ -152,11 +152,14 @@ function elementXml(edge, nodes, values, supports, rigids, bends, names) {
  * @param {Record<string, unknown>} canonical
  * @param {Record<string,unknown>} engineering
  * @param {Record<string,unknown>} numberedProjection
- * @param {{jobName:string,topologyTraceLedgerHash?:string,topologyEditDraftHash?:string,topologyEditLedgerHash?:string}} options
+ * @param {{jobName:string,inputXmlCompatibilityMode:string,topologyTraceLedgerHash?:string,topologyEditDraftHash?:string,topologyEditLedgerHash?:string}} options
  * @returns {string}
  */
 export function buildTopologyInputXml(canonical, engineering, numberedProjection, options) {
   if (!cleanText(canonical.canonicalTopologyHashSha256)) throw new Error('Topology InputXML requires a hashed CanonicalTopology.v2 snapshot.');
+  if (options.inputXmlCompatibilityMode !== 'CANONICAL_STRICT') {
+    throw new Error('Topology InputXML writer requires explicit CANONICAL_STRICT compatibility mode.');
+  }
   const numbered = applyNumberedTopologyProjection(canonical, numberedProjection);
   const nodes = nodeMap(numbered), supportData = supportIndex(numbered);
   const engineeringByEdge = buildEdgeEngineeringValues(numbered.edges, engineering.recordBySourceEntityId);
@@ -184,6 +187,7 @@ export function buildTopologyInputXml(canonical, engineering, numberedProjection
     ['CANONICAL_TOPOLOGY_SHA256', canonical.canonicalTopologyHashSha256], ['TOPO_NODE_PLAN_HASH', numberedProjection.topoNodePlanHashSha256],
     ['NUMBERED_TOPOLOGY_PROJECTION_HASH', numberedProjection.numberedTopologyProjectionHashSha256],
     ['TOPOLOGY_TRACE_LEDGER_HASH', cleanText(options.topologyTraceLedgerHash)],
+    ['INPUTXML_COMPATIBILITY_MODE', options.inputXmlCompatibilityMode],
   ];
   if (cleanText(options.topologyEditDraftHash)) modelAttributes.push(['TOPOLOGY_EDIT_DRAFT_HASH', cleanText(options.topologyEditDraftHash)]);
   if (cleanText(options.topologyEditLedgerHash)) modelAttributes.push(['TOPOLOGY_EDIT_LEDGER_HASH', cleanText(options.topologyEditLedgerHash)]);

@@ -39,6 +39,7 @@ def preflight_command(source: Path, output: Path, approvals: Path, mode: str, ap
     command = [
         sys.executable, str(PREFLIGHT), "--input", str(source), "--output-dir", str(output),
         "--contracts-dir", str(CONTRACTS), "--approval-dir", str(approvals), "--mode", mode,
+        "--converter-id", "inputxml_to_cii2019",
     ]
     if approval_id is not None:
         command.extend(["--approved-split-id", approval_id])
@@ -53,10 +54,13 @@ def release_command(directory: Path) -> list[str]:
         sys.executable, str(RELEASE), "--input", path("canonical.input.xml"),
         "--assurance-ledger", path("assurance-ledger-v2.json"),
         "--projection-contract", str(CONTRACTS / "catalogs/inputxml-cii-projection-contract.json"),
+        "--compatibility-request", path("compatibility-request.json"),
         "--compatibility-policy", path("compatibility-policy.json"),
         "--canonicalization-ledger", path("canonicalization-ledger.json"),
         "--canonical-validation", path("canonical-validation.json"),
         "--normalization-plan", path("normalization-plan.json"),
+        "--diagnostic-report", path("diagnostic-report.json"),
+        "--resolver-trace", path("resolver-trace.json"),
         "--canonical-source-model", path("canonical-source-model.json"),
         "--resolved-relationships", path("resolved-relationships.json"),
         "--canonical-topology", path("canonical-topology-v2.json"),

@@ -8,8 +8,9 @@ from pathlib import Path
 from typing import Any
 
 BASE_REQUIRED_ARTIFACTS = (
-    "canonicalInputXml", "cii", "compatibilityPolicy", "canonicalizationLedger",
-    "canonicalValidation", "normalizationPlan", "canonicalSourceModel", "resolvedRelationships",
+    "canonicalInputXml", "cii", "compatibilityRequest", "compatibilityPolicy",
+    "canonicalizationLedger", "canonicalValidation", "normalizationPlan",
+    "diagnosticReport", "resolverTrace", "canonicalSourceModel", "resolvedRelationships",
     "canonicalTopology", "topoNodePlan", "numberedTopologyProjection",
     "parsedInputXmlTopology", "topologyParityReport", "assuranceLedger",
     "ciiProjectionLedger",
@@ -64,7 +65,10 @@ def validate_pass_evidence(
         raise SelectedOutputManifestError("Diagnostic-only mode cannot publish selected output.")
     if assurance_ledger.get("schema") != "InputXmlCiiAssuranceLedger.v2" or assurance_ledger.get("status") != "PASS":
         raise SelectedOutputManifestError("Selected output requires PASS InputXmlCiiAssuranceLedger.v2 evidence.")
-    required_gates = {"compatibility", "canonicalization", "canonicalValidation", "topologyTrace", "topologyParity", "ciiProjectionReadiness"}
+    required_gates = {
+        "compatibility", "canonicalization", "canonicalValidation", "topologyTrace",
+        "topologyParity", "diagnostics", "resolverTrace", "ciiProjectionReadiness",
+    }
     failed = sorted(gate for gate in required_gates if (assurance_ledger.get("gates") or {}).get(gate) != "PASS")
     if failed:
         raise SelectedOutputManifestError(f"Selected output assurance gates are not PASS: {', '.join(failed)}.")

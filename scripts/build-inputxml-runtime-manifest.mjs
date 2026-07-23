@@ -21,8 +21,11 @@ const ROOT_SCRIPTS = Object.freeze([
   'inputxml_approved_semantic_split.py',
   'inputxml_assurance_ledger.py',
   'inputxml_assurance_ledger_v2.py',
+  'inputxml_compatibility_request.py',
+  'inputxml_diagnostics.py',
   'inputxml_import_topology.py',
   'inputxml_release_policy.py',
+  'inputxml_resolver_trace.py',
   'inputxml_selected_output_manifest.py',
 ]);
 const CONVERTER_FILES = Object.freeze([

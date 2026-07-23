@@ -21,6 +21,7 @@ from scripts.inputxml_selected_output_manifest import (  # noqa: E402
 )
 
 SCHEMA_ARTIFACTS = {
+    "inputxml-compatibility-request.schema.json": "compatibility-request.json",
     "inputxml-compatibility-policy.schema.json": "compatibility-policy.json",
     "inputxml-normalization-plan.schema.json": "normalization-plan.json",
     "canonical-source-model.schema.json": "canonical-source-model.json",
@@ -29,6 +30,8 @@ SCHEMA_ARTIFACTS = {
     "parsed-inputxml-topology.schema.json": "parsed-inputxml-topology.json",
     "topology-parity-report.schema.json": "topology-parity-report-v2.json",
     "inputxml-cii-assurance-ledger.schema.json": "assurance-ledger-v2.json",
+    "inputxml-diagnostic.schema.json": "diagnostic-report.json",
+    "inputxml-resolver-trace.schema.json": "resolver-trace.json",
     "selected-output-manifest.schema.json": "selected-output-manifest.json",
 }
 

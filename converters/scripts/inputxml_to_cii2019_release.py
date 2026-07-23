@@ -71,10 +71,13 @@ def artifact_paths(args: argparse.Namespace) -> dict[str, Path]:
     paths = {
         "canonicalInputXml": args.input,
         "cii": args.output,
+        "compatibilityRequest": args.compatibility_request,
         "compatibilityPolicy": args.compatibility_policy,
         "canonicalizationLedger": args.canonicalization_ledger,
         "canonicalValidation": args.canonical_validation,
         "normalizationPlan": args.normalization_plan,
+        "diagnosticReport": args.diagnostic_report,
+        "resolverTrace": args.resolver_trace,
         "canonicalSourceModel": args.canonical_source_model,
         "resolvedRelationships": args.resolved_relationships,
         "canonicalTopology": args.canonical_topology,
@@ -119,7 +122,7 @@ def run_release(args: argparse.Namespace) -> dict[str, Any]:
 def parser() -> argparse.ArgumentParser:
     """Create the explicit assured-release CLI parser."""
     value = argparse.ArgumentParser(description=__doc__)
-    for name in ("input", "assurance-ledger", "projection-contract", "compatibility-policy", "canonicalization-ledger", "canonical-validation", "normalization-plan", "canonical-source-model", "resolved-relationships", "canonical-topology", "topo-node-plan", "numbered-projection", "parsed-topology", "topology-parity", "output", "projection-ledger", "selected-output-manifest"):
+    for name in ("input", "assurance-ledger", "projection-contract", "compatibility-request", "compatibility-policy", "canonicalization-ledger", "canonical-validation", "normalization-plan", "diagnostic-report", "resolver-trace", "canonical-source-model", "resolved-relationships", "canonical-topology", "topo-node-plan", "numbered-projection", "parsed-topology", "topology-parity", "output", "projection-ledger", "selected-output-manifest"):
         value.add_argument(f"--{name}", type=Path, required=True)
     value.add_argument("--approved-semantic-split", type=Path)
     return value
