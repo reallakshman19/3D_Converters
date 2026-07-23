@@ -15,6 +15,13 @@ function runBuilder(output) {
   if (result.error || result.status !== 0) throw new Error(result.error?.message || result.stderr);
 }
 
+function fbxRegistryBlock(text) {
+  const start = text.indexOf('  fbx_to_stagedjson: {');
+  const end = text.indexOf('\n  inputxml_to_rvm:', start);
+  assert.ok(start >= 0 && end > start, 'FBX registry entry is missing');
+  return text.slice(start, end);
+}
+
 const directory = await mkdtemp(join(tmpdir(), 'f2s004-'));
 try {
   const first = join(directory, 'first.fbxmap.json');
@@ -28,10 +35,12 @@ try {
 
 const converter = getConverterById('fbx_to_stagedjson');
 assert.equal(converter.id, 'fbx_to_stagedjson');
-for (const family of ['PIPE', 'ELBOW', 'TEE', 'REDUCER', 'FLANGE', 'VALVE']) {
-  assert.match(converter.description, new RegExp(`\\b${family}\\b`));
-}
-assert.doesNotMatch(converter.description, /two-port PIPE only/i);
 assert.equal(converter.inputs[0].accept, '.fbx,.FBX');
 assert.match(converter.inputs[1].accept, /fbxmap/);
+const registryText = await readFile(new URL('../../tabs/model-converters/converter-registry.js', import.meta.url), 'utf8');
+const registryBlock = fbxRegistryBlock(registryText);
+for (const family of ['PIPE', 'ELBOW', 'TEE', 'REDUCER', 'FLANGE', 'VALVE']) {
+  assert.match(registryBlock, new RegExp(`\\b${family}\\b`));
+}
+assert.doesNotMatch(registryBlock, /two-port PIPE occurrences/i);
 console.log('test-mapping-package-static: PASS');
