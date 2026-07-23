@@ -1,5 +1,7 @@
 import { convertFbxToStagedJson } from './fbx/conversion.js';
+import { isMappingPackage } from './fbx/mapping-package.js';
 import { parseFbxInWorker } from './fbx/parser-client.js';
+import { loadBrowserParserEvidence } from './fbx/parser-provenance.js';
 
 function findInput(context, role) {
   return context.inputFiles?.find((file) => file.role === role);
@@ -16,16 +18,28 @@ function parseMapping(file) {
   }
 }
 
+async function parserBinding(mappingInput) {
+  if (!isMappingPackage(mappingInput.mapping)) return {};
+  try {
+    return { parserEvidence: await loadBrowserParserEvidence() };
+  } catch (error) {
+    const parserEvidenceError = error instanceof Error ? error.message : String(error);
+    return { parserEvidenceError };
+  }
+}
+
 export async function run(context = {}) {
   const primary = findInput(context, 'primary');
   if (!primary?.bytes) throw new Error('FBX input is required.');
   const secondary = findInput(context, 'secondary');
   const mappingInput = parseMapping(secondary);
+  const binding = await parserBinding(mappingInput);
   context.setStatus?.('Parsing binary FBX in isolated worker...', 'running');
   const result = await convertFbxToStagedJson({
     bytes: primary.bytes,
     inputName: primary.name,
     ...mappingInput,
+    ...binding,
     parse: (bytes) => parseFbxInWorker(bytes, { signal: context.signal }),
   });
   const state = result.conversionStatus === 'STAGEDJSON_PASS' ? 'ok' : 'warning';
