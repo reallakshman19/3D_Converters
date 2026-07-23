@@ -23,6 +23,9 @@ async function convert(bytes, mapping, parserEvidence, parse = parseFbxBytesNode
 async function compareLegacy(bytes, mapping, packageValue, parserEvidence) {
   const legacy = await convert(bytes, mapping, parserEvidence);
   const bound = await convert(bytes, packageValue, parserEvidence);
+  assert.equal(legacy.conversionStatus, 'STAGEDJSON_PASS');
+  assert.equal(legacy.outputs.length, 4);
+  assert.ok(legacy.logs.stdout.includes('UNBOUND_LEGACY_MAPPING'));
   assert.equal(bound.conversionStatus, 'STAGEDJSON_PASS');
   assert.equal(bound.outputs.length, 5);
   for (const suffix of ['.fbx-source-graph.json', '.fbx-mapping-ledger.json', '.staged.json']) {
