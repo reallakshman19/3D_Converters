@@ -18,7 +18,9 @@ function usage() {
 async function parserEvidence(root) {
   const base = resolve(root, 'third_party/ufbx');
   const provenance = JSON.parse(await readFile(resolve(base, 'provenance.json'), 'utf8'));
-  const wasmBytes = new Uint8Array(await readFile(resolve(base, 'fbx_parser.wasm'));
+  const wasmBytes = new Uint8Array(
+    await readFile(resolve(base, 'fbx_parser.wasm')),
+  );
   return observeParserEvidence({ provenance, wasmBytes });
 }
 
