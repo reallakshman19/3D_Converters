@@ -72,9 +72,16 @@ const mappingSchema = JSON.parse(await readFile(
 ));
 const extra = structuredClone(complete);
 extra.unexpected = true;
-const results = schemaErrors(decisionSchema, mappingSchema, [complete, extra]);
+const placeholderSchema = structuredClone(complete);
+placeholderSchema.decisions[0] = {
+  workItemId: placeholderSchema.decisions[0].workItemId,
+  disposition: 'exclude-with-reason',
+  reason: 'tBd',
+};
+const results = schemaErrors(decisionSchema, mappingSchema, [complete, extra, placeholderSchema]);
 assert.equal(results[0].length, 0, JSON.stringify(results[0]));
 assert.notEqual(results[1].length, 0, 'unexpected decision-set field passed schema');
+assert.notEqual(results[2].length, 0, 'placeholder exclusion reason passed schema');
 
 const missing = await createDecisionSet({ worklist: context.worklist, decisions: complete.decisions.slice(1) });
 await assert.rejects(() => compile(context, missing), /BLOCKED_DECISION_COVERAGE/);
@@ -120,6 +127,17 @@ await assert.rejects(
     decisions[0].mappingEntry.ports.A.coordinate = [0, 0, 0];
   }),
   /BLOCKED_DECISION_BINDING.*unbound coordinate/,
+);
+await assert.rejects(
+  () => createDecisionSet({
+    worklist: context.worklist,
+    decisions: context.worklist.workItems.map((item, index) => ({
+      workItemId: item.workItemId,
+      disposition: 'exclude-with-reason',
+      reason: index ? 'Explicit fixture exclusion.' : 'TBD',
+    })),
+  }),
+  /BLOCKED_DECISION_BINDING.*placeholder/,
 );
 
 const unsupported = await changedSet(context, (decisions) => {
