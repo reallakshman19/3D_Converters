@@ -93,6 +93,13 @@ await assert.rejects(
   /BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING/,
 );
 
+const invalidGraph = structuredClone(family.graph);
+delete invalidGraph.schema;
+await assert.rejects(
+  () => verifyMappingWorklist({ ...family, graph: invalidGraph, worklist: family.worklist }),
+  /BLOCKED_WORKLIST_SOURCE_GRAPH_BINDING/,
+);
+
 const converterResult = await convertFbxToStagedJson({
   bytes: family.bytes,
   inputName: 'worklist.fbx',
