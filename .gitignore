@@ -6,4 +6,3 @@ node_modules/
 __pycache__/
 *.pyc
 .agent-worklogs/
-tests/fbx/fixtures/review-cli-test/

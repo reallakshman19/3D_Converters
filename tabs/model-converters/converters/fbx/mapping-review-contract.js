@@ -146,6 +146,9 @@ export function validateFragmentShape(value) {
       requireText(d.reason, 'reason', status, fail);
     } else if (d.disposition === 'promote') {
       if (!d.mappingEntry || typeof d.mappingEntry !== 'object') fail(status, 'mappingEntry missing');
+      if (!Array.isArray(d.mappingEntry.sourceGeometryObjectIds)) {
+        fail(status, 'mappingEntry.sourceGeometryObjectIds must be an array.');
+      }
     } else {
       fail(status, 'invalid disposition');
     }

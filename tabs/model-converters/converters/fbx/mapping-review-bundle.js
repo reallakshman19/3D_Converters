@@ -1,5 +1,6 @@
 import { canonicalDigest } from './mapping-package.js';
 import { validateMappingWorklistShape } from './mapping-worklist-contract.js';
+import { calculateWorklistId } from './mapping-worklist.js';
 import { failBundle, validateBundleShape, validateShardShape } from './mapping-review-contract.js';
 import { deepFreeze } from './canonical-json.js';
 
@@ -87,6 +88,11 @@ export async function buildReviewBundle(worklist, maxItemsPerShard) {
     failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'Cannot build review bundle for an empty worklist.');
   }
 
+  const observedWorklistId = await calculateWorklistId(safeWorklist);
+  if (observedWorklistId !== safeWorklist.worklistId) {
+    failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'worklistId is stale or tampered.');
+  }
+
   const items = [...safeWorklist.workItems].sort((a, b) => compareText(a.workItemId, b.workItemId));
   const policy = createPartitionPolicy(items, maxItemsPerShard);
   const { shards, bundleShards } = await generateShards(safeWorklist, items, policy);
@@ -99,11 +105,11 @@ export async function buildReviewBundle(worklist, maxItemsPerShard) {
     partitionPolicy: policy,
     shards: bundleShards,
   };
-  
+
   const bundleId = await calculateBundleId(draftBundle);
   draftBundle.bundleId = bundleId;
   const safeBundle = validateBundleShape(draftBundle);
-  
+
   const finalShards = shards.map((shard) => deepFreeze(validateShardShape({ ...shard, bundleId })));
   return { bundle: deepFreeze(safeBundle), shards: finalShards };
 }

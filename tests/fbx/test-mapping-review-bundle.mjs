@@ -81,4 +81,14 @@ try {
   assert.equal(error.status, 'BLOCKED_REVIEW_BUNDLE_CONTRACT');
 }
 
+// Test 5: Stale worklistId blocks buildReviewBundle
+const staleWorklist = structuredClone(family.worklist);
+staleWorklist.worklistId = '0'.repeat(64);
+try {
+  await buildReviewBundle(staleWorklist, 2);
+  assert.fail('Should block stale worklistId');
+} catch (error) {
+  assert.equal(error.status, 'BLOCKED_REVIEW_BUNDLE_CONTRACT');
+}
+
 console.log('test-mapping-review-bundle: PASS');
