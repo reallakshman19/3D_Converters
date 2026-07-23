@@ -109,6 +109,19 @@ const geometryTamper = await changedSet(context, (decisions) => {
 });
 await assert.rejects(() => compile(context, geometryTamper), /BLOCKED_DECISION_CONFLICT/);
 
+await assert.rejects(
+  () => changedSet(context, (decisions) => {
+    decisions.find((item) => item.mappingEntry?.componentType === 'VALVE').mappingEntry.engineering.valveType = 'TBD';
+  }),
+  /BLOCKED_DECISION_BINDING.*placeholder/,
+);
+await assert.rejects(
+  () => changedSet(context, (decisions) => {
+    decisions[0].mappingEntry.ports.A.coordinate = [0, 0, 0];
+  }),
+  /BLOCKED_DECISION_BINDING.*unbound coordinate/,
+);
+
 const unsupported = await changedSet(context, (decisions) => {
   decisions[0].mappingEntry.componentType = 'PUMP';
 });
