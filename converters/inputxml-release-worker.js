@@ -4,9 +4,16 @@
  * Outputs: diagnostic evidence for BLOCKED runs or a complete manifest-selected PASS release.
  * Fallback: none; CII is never returned without PASS assurance and a selected-output manifest.
  */
+import {
+  buildInputXmlCompatibilityRequest,
+  validateInputXmlCompatibilityRequest,
+} from './inputxml-release/inputxml-compatibility-request.js';
+import { sha256Hex, stableReleaseJson } from './inputxml-release/inputxml-release-hash.js';
+
 const MODES = Object.freeze(new Set(['CANONICAL_STRICT', 'ADAPTED_CANONICAL', 'DIAGNOSTIC_ONLY']));
 const PREFLIGHT_FILES = Object.freeze([
   ['preflight-result.json', 'preflightResult'],
+  ['compatibility-request.json', 'compatibilityRequest'],
   ['canonicalization-ledger.json', 'canonicalizationLedger'],
   ['canonical-validation.json', 'canonicalValidation'],
   ['compatibility-policy.json', 'compatibilityPolicy'],
@@ -21,6 +28,8 @@ const PREFLIGHT_FILES = Object.freeze([
   ['resolved-relationships.json', 'resolvedRelationships'],
   ['assurance-ledger-v1.json', 'assuranceLedgerV1'],
   ['assurance-ledger-v2.json', 'assuranceLedger'],
+  ['diagnostic-report.json', 'diagnosticReport'],
+  ['resolver-trace.json', 'resolverTrace'],
   ['approved-semantic-split.json', 'approvedSemanticSplitEvidence'],
 ]);
 
@@ -38,13 +47,14 @@ function tryReadOutput(pyodide, directory, fileName, role) {
   }
 }
 
-function preflightArgv(sourcePath, outputDir, mode, approvalId) {
+function preflightArgv(sourcePath, outputDir, requestPath, mode, approvalId) {
   const argv = [
     '/repo/converters/scripts/inputxml_release_preflight.py', '--input', sourcePath,
     '--output-dir', outputDir,
     '--contracts-dir', '/repo/contracts/inputxml/v1',
     '--approval-dir', '/repo/contracts/inputxml/v2/approvals',
     '--mode', mode,
+    '--compatibility-request', requestPath,
   ];
   if (approvalId) argv.push('--approved-split-id', approvalId);
   return argv;
@@ -56,10 +66,13 @@ function releaseArgv(releaseDir, hasApproval) {
     '--input', `${releaseDir}/canonical.input.xml`,
     '--assurance-ledger', `${releaseDir}/assurance-ledger-v2.json`,
     '--projection-contract', '/repo/contracts/inputxml/v1/catalogs/inputxml-cii-projection-contract.json',
+    '--compatibility-request', `${releaseDir}/compatibility-request.json`,
     '--compatibility-policy', `${releaseDir}/compatibility-policy.json`,
     '--canonicalization-ledger', `${releaseDir}/canonicalization-ledger.json`,
     '--canonical-validation', `${releaseDir}/canonical-validation.json`,
     '--normalization-plan', `${releaseDir}/normalization-plan.json`,
+    '--diagnostic-report', `${releaseDir}/diagnostic-report.json`,
+    '--resolver-trace', `${releaseDir}/resolver-trace.json`,
     '--canonical-source-model', `${releaseDir}/canonical-source-model.json`,
     '--resolved-relationships', `${releaseDir}/resolved-relationships.json`,
     '--canonical-topology', `${releaseDir}/canonical-topology-v2.json`,
@@ -77,8 +90,10 @@ function releaseArgv(releaseDir, hasApproval) {
 
 function copyReleaseInputs(pyodide, preflightDir, releaseDir) {
   const fileNames = [
-    'canonical.input.xml', 'assurance-ledger-v2.json', 'compatibility-policy.json',
+    'canonical.input.xml', 'assurance-ledger-v2.json', 'compatibility-request.json',
+    'compatibility-policy.json',
     'canonicalization-ledger.json', 'canonical-validation.json', 'normalization-plan.json',
+    'diagnostic-report.json', 'resolver-trace.json',
     'canonical-source-model.json', 'resolved-relationships.json',
     'canonical-topology-v2.json', 'topo-node-plan.json',
     'numbered-topology-projection.json', 'parsed-inputxml-topology.json',
@@ -100,7 +115,6 @@ function requireMode(options) {
   if (!MODES.has(mode)) throw new Error(`Unsupported InputXML compatibility mode ${mode}.`);
   const approvalId = String(options?.approvedSemanticSplitId || '').trim();
   if (approvalId && mode !== 'ADAPTED_CANONICAL') throw new Error('Approved semantic split requires ADAPTED_CANONICAL mode.');
-  if (mode === 'ADAPTED_CANONICAL' && !approvalId) throw new Error('ADAPTED_CANONICAL mode requires an exact approved semantic split ID.');
   return { mode, approvalId };
 }
 
@@ -114,20 +128,55 @@ function parsePreflight(outputs) {
   return JSON.parse(artifact.text);
 }
 
-export async function runInputXmlReleaseJob(input) {
+async function exactRequest(input, selection) {
+  const { pyodide, sourcePath, options } = input;
+  const sourceBytes = pyodide.FS.readFile(sourcePath);
+  const sourceName = sourcePath.split('/').pop();
+  const value = input.compatibilityRequest || await buildInputXmlCompatibilityRequest({
+    converterId: input.converterId || 'inputxml_to_cii2019',
+    sourceName,
+    sourceBytes,
+    options: {
+      ...(options || {}),
+      inputXmlCompatibilityMode: selection.mode,
+      approvedSemanticSplitId: selection.approvalId,
+    },
+  });
+  const request = await validateInputXmlCompatibilityRequest(value);
+  if (request.mode !== selection.mode || (request.approvedSemanticSplitId || '') !== selection.approvalId) {
+    throw new Error('InputXML compatibility request differs from selected worker options.');
+  }
+  if (request.sourceName !== sourceName || request.sourceHashSha256 !== await sha256Hex(sourceBytes)) {
+    throw new Error('InputXML compatibility request differs from exact worker source bytes.');
+  }
+  return request;
+}
+
+export async function runInputXmlPreflightJob(input) {
   const { pyodide, sourcePath, options, jobDir, runScript } = input;
   const selection = requireMode(options);
+  const request = await exactRequest(input, selection);
   const preflightDir = `${jobDir}/inputxml-preflight`;
-  const releaseDir = `${jobDir}/inputxml-release`;
   pyodide.FS.mkdirTree(preflightDir);
-  pyodide.FS.mkdirTree(releaseDir);
-  const preflightExit = await runScript('/repo/converters/scripts/inputxml_release_preflight.py', preflightArgv(sourcePath, preflightDir, selection.mode, selection.approvalId));
+  const requestPath = `${jobDir}/inputxml-compatibility-request.json`;
+  pyodide.FS.writeFile(requestPath, stableReleaseJson(request), { encoding: 'utf8' });
+  const argv = preflightArgv(sourcePath, preflightDir, requestPath, selection.mode, selection.approvalId);
+  const preflightExit = await runScript('/repo/converters/scripts/inputxml_release_preflight.py', argv);
   if (![0, 2].includes(preflightExit)) throw new Error(`Structural InputXML preflight exited with code ${preflightExit}.`);
   const outputs = collectPreflightOutputs(pyodide, preflightDir);
   const preflight = parsePreflight(outputs);
+  return { outputs, preflight, released: false, argv, preflightDir };
+}
+
+export async function runInputXmlReleaseJob(input) {
+  const { pyodide, jobDir, runScript } = input;
+  const preflightResult = await runInputXmlPreflightJob(input);
+  const { outputs, preflight, preflightDir } = preflightResult;
   if (!preflight.releaseEligible) {
-    return { outputs, preflight, released: false, argv: preflightArgv(sourcePath, preflightDir, selection.mode, selection.approvalId) };
+    return preflightResult;
   }
+  const releaseDir = `${jobDir}/inputxml-release`;
+  pyodide.FS.mkdirTree(releaseDir);
   const hasApproval = copyReleaseInputs(pyodide, preflightDir, releaseDir);
   const argv = releaseArgv(releaseDir, hasApproval);
   const releaseExit = await runScript('/repo/converters/scripts/inputxml_to_cii2019_release.py', argv);

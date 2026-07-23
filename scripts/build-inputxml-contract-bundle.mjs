@@ -14,6 +14,7 @@ const ROOT = dirname(SCRIPT_DIR);
 const OUTPUT = join(ROOT, 'dist', 'inputxml-release', 'inputxml-v2');
 const TEMPORARY = join(ROOT, 'dist', 'inputxml-release', '.inputxml-v2-building');
 const READERS = Object.freeze([
+  'inputxml-compatibility-request.js',
   'inputxml-release-hash.js',
   'inputxml-release-contracts.js',
   'inputxml-release-evidence-reader.js',

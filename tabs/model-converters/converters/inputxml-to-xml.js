@@ -2,6 +2,7 @@ import { buildInputXmlDirectManagedStageJson } from '../../../converters/inputxm
 import { buildPsiXmlFromCustomInputXml, looksLikeCustomInputXml, looksLikePsiXml } from '../../../converters/xml-cii2019-core/inputxml-to-psi-xml.js';
 import { decodeTextUtf8, baseNameWithoutExtension } from '../core/output-utils.js';
 import { _buildPsiXmlFromRmssHierarchy } from './stagedjson-xml-helpers.js';
+import { runInputXmlCompatibilityPreflight } from './inputxml-compatibility-gate.js';
 
 /**
  * Runs InputXML -> PSI XML conversion for the Model Converters tab.
@@ -49,8 +50,24 @@ function convertInputXml(xmlText, sourceName, options) {
 export async function run(context) {
   const primary = primaryInput(context);
   const inputText = decodeTextUtf8(primary.bytes);
-  const converted = convertInputXml(inputText, primary.name, context.options || {});
   const stem = baseNameWithoutExtension(primary.name);
+  const gated = await runInputXmlCompatibilityPreflight(context, {
+    xmlText: inputText,
+    sourceName: primary.name,
+    outputName: `${stem}_canonical.input.xml`,
+  });
+  if (!gated.releaseEligible) {
+    context.setStatus?.(`InputXML -> XML ${gated.status}; no XML output was released.`, 'warn');
+    return {
+      ok: false,
+      outputs: gated.evidence,
+      logs: {
+        ...(gated.logs || {}),
+        inputXmlCompatibilityRequest: gated.request,
+      },
+    };
+  }
+  const converted = convertInputXml(gated.canonicalOutput.text, primary.name, context.options || {});
   const positionTags = (converted.xmlText.match(/<Position>/g) || []).length;
   const audit = {
     schema: 'inputxml-to-xml-audit/v1',
@@ -66,10 +83,13 @@ export async function run(context) {
     outputs: [
       { name: `${stem}_inputxml_to_xml.xml`, text: converted.xmlText, mime: 'application/xml;charset=utf-8' },
       { name: `${stem}_inputxml_to_xml.audit.json`, text: JSON.stringify(audit, null, 2), mime: 'application/json;charset=utf-8' },
+      ...gated.evidence,
     ],
     logs: {
       stdout: [`Input dialect: ${converted.dialect}`, `Position tags: ${positionTags}`, `Stats: ${JSON.stringify(converted.stats)}`],
       stderr: [],
+      preflight: gated.logs?.preflight,
+      inputXmlCompatibilityRequest: gated.request,
     },
   };
 }

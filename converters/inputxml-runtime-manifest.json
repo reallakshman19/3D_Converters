@@ -2,7 +2,7 @@
   "schema": "InputXmlBrowserRuntimeManifest.v1",
   "runtimeVersion": "1.0.0",
   "pyodideVersion": "0.27.2",
-  "sourceRevision": "sha256:2708e89ff679de61e46d3405b13618bd2161f64e4bd95539da7b28d823adc617",
+  "sourceRevision": "sha256:a705d8f46e7f4114f23f4702dc98100f15a04f7b886745cefe19f43c2a79f91a",
   "assets": [
     {
       "kind": "contract",
@@ -484,8 +484,8 @@
       "kind": "contract",
       "url": "../contracts/inputxml/v2/inputxml-cii-assurance-ledger.schema.json",
       "target": "/repo/contracts/inputxml/v2/inputxml-cii-assurance-ledger.schema.json",
-      "bytes": 1806,
-      "sha256": "9472681ad39ed481f6d7b7fd611774a22239b7165ae9a6fc294b8db88a9bcc0d"
+      "bytes": 1989,
+      "sha256": "52eb77e88166d46ad04e57f0d8a6f6698f1019420d61955c2d27694eef791813"
     },
     {
       "kind": "contract",
@@ -496,10 +496,38 @@
     },
     {
       "kind": "contract",
+      "url": "../contracts/inputxml/v2/inputxml-compatibility-request.schema.json",
+      "target": "/repo/contracts/inputxml/v2/inputxml-compatibility-request.schema.json",
+      "bytes": 1417,
+      "sha256": "6e0befa1fd07b188bc01625be96e43d41317f9b2e8cb8f0c49e3bb422869c364"
+    },
+    {
+      "kind": "contract",
+      "url": "../contracts/inputxml/v2/inputxml-diagnostic-catalog.json",
+      "target": "/repo/contracts/inputxml/v2/inputxml-diagnostic-catalog.json",
+      "bytes": 1061,
+      "sha256": "1dcad63bbfa248c1e5bed0680c52a20da258a41e1a48677ca47c15370141d080"
+    },
+    {
+      "kind": "contract",
+      "url": "../contracts/inputxml/v2/inputxml-diagnostic.schema.json",
+      "target": "/repo/contracts/inputxml/v2/inputxml-diagnostic.schema.json",
+      "bytes": 1752,
+      "sha256": "25c2545a928e7dfd1cecb47ffdd20d777e1c0cb506691dc12376e1632a858ccc"
+    },
+    {
+      "kind": "contract",
       "url": "../contracts/inputxml/v2/inputxml-normalization-plan.schema.json",
       "target": "/repo/contracts/inputxml/v2/inputxml-normalization-plan.schema.json",
       "bytes": 1594,
       "sha256": "bb76237162a4e1b402b599bd0bc4db812679b0f802131fc2e426e4892ab99fe0"
+    },
+    {
+      "kind": "contract",
+      "url": "../contracts/inputxml/v2/inputxml-resolver-trace.schema.json",
+      "target": "/repo/contracts/inputxml/v2/inputxml-resolver-trace.schema.json",
+      "bytes": 1685,
+      "sha256": "e10c540c91576000530f17449a28c88071a95773230b44a7c625ed8005035883"
     },
     {
       "kind": "contract",
@@ -519,8 +547,8 @@
       "kind": "contract",
       "url": "../contracts/inputxml/v2/README.md",
       "target": "/repo/contracts/inputxml/v2/README.md",
-      "bytes": 521,
-      "sha256": "531aa66d6a8fc597f93589ef1ad2702b8aebff99ca2973058d34f026c69b01e9"
+      "bytes": 922,
+      "sha256": "05eba75a06473bdfb7ced233694475482a57f276250dcf04aac806c94c5b6fbb"
     },
     {
       "kind": "contract",
@@ -533,8 +561,8 @@
       "kind": "contract",
       "url": "../contracts/inputxml/v2/selected-output-manifest.schema.json",
       "target": "/repo/contracts/inputxml/v2/selected-output-manifest.schema.json",
-      "bytes": 2762,
-      "sha256": "b2f6eaaa3d089776527a4bfd24770c4969b6adfbaa2375454c59f945d40c9bf6"
+      "bytes": 2974,
+      "sha256": "ef4b59f968d90bd87ec011542e8ecf8b8fd61aefb1d854badb06723532f79585"
     },
     {
       "kind": "contract",
@@ -568,8 +596,8 @@
       "kind": "runtime",
       "url": "../converters/scripts/inputxml_release_preflight.py",
       "target": "/repo/converters/scripts/inputxml_release_preflight.py",
-      "bytes": 12998,
-      "sha256": "6df57369da63f0927e7d92191daf039614c17a5d34198a8033f855a9237e04ef"
+      "bytes": 15777,
+      "sha256": "c25e6d6454e0d696059a8df5521905e344c13b547cba05724cd8abdc2240187f"
     },
     {
       "kind": "runtime",
@@ -589,8 +617,8 @@
       "kind": "runtime",
       "url": "../converters/scripts/inputxml_to_cii2019_release.py",
       "target": "/repo/converters/scripts/inputxml_to_cii2019_release.py",
-      "bytes": 6528,
-      "sha256": "8e14c5a945ed23759e6f3b39148a4a349d030d2d5fdab5c40e38d75c52051bf6"
+      "bytes": 6750,
+      "sha256": "4183faa34d6088119926c9d55c36293bbb30a27322f09f0439db662f24f65095"
     },
     {
       "kind": "runtime",
@@ -624,8 +652,8 @@
       "kind": "runtime",
       "url": "../scripts/inputxml_assurance_ledger_v2.py",
       "target": "/repo/scripts/inputxml_assurance_ledger_v2.py",
-      "bytes": 12171,
-      "sha256": "870cc8d9d84a8bfe749beeefe6154014cd948287be37491d1e426769236a8c52"
+      "bytes": 13754,
+      "sha256": "1cc826dc79365ccc594e1bb5da158437ca978883d30b77b37f7e79f14467bf9c"
     },
     {
       "kind": "runtime",
@@ -633,6 +661,13 @@
       "target": "/repo/scripts/inputxml_assurance_ledger.py",
       "bytes": 27886,
       "sha256": "2c3f4ef9ac52789bfce11efab513ccc485cb1063cdc3ee44a2e4a15b1a82e1d3"
+    },
+    {
+      "kind": "runtime",
+      "url": "../scripts/inputxml_compatibility_request.py",
+      "target": "/repo/scripts/inputxml_compatibility_request.py",
+      "bytes": 3218,
+      "sha256": "889fe4ada82a503b61f11585c51374286ff3436492c854e2d3a7ba355237f4f6"
     },
     {
       "kind": "runtime",
@@ -1322,6 +1357,13 @@
     },
     {
       "kind": "runtime",
+      "url": "../scripts/inputxml_diagnostics.py",
+      "target": "/repo/scripts/inputxml_diagnostics.py",
+      "bytes": 4223,
+      "sha256": "cb81ce9d1253736e0d61a292471d450624e1419880386d50e2d13773f6ae9f93"
+    },
+    {
+      "kind": "runtime",
       "url": "../scripts/inputxml_import_topology.py",
       "target": "/repo/scripts/inputxml_import_topology.py",
       "bytes": 14237,
@@ -1336,10 +1378,17 @@
     },
     {
       "kind": "runtime",
+      "url": "../scripts/inputxml_resolver_trace.py",
+      "target": "/repo/scripts/inputxml_resolver_trace.py",
+      "bytes": 3546,
+      "sha256": "a0d9293d404953674a9ffbbd523954403a54ab362b8e15f2a7bb16eae0e5b69f"
+    },
+    {
+      "kind": "runtime",
       "url": "../scripts/inputxml_selected_output_manifest.py",
       "target": "/repo/scripts/inputxml_selected_output_manifest.py",
-      "bytes": 6532,
-      "sha256": "6a9fb8764799eec62ed29844fa81c02fafe93142f16c368bdab65fd82019b34e"
+      "bytes": 6652,
+      "sha256": "d2424347764295410a694604211247293ece14c5c72774dc5440b8d077d92771"
     },
     {
       "kind": "python-package",
@@ -1423,5 +1472,5 @@
       "version": "6.14.2"
     }
   ],
-  "manifestHashSha256": "06cfdc18a671d6a8d9a45a52ef45a18ad7ba8191cd1b8297ee3f37d1457c0225"
+  "manifestHashSha256": "f26c50c9d02f058bb959566eae885532c20d1f3ee5e6ee4c0f5c55e59c4e4917"
 }

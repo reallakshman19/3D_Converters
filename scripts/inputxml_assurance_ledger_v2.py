@@ -122,6 +122,8 @@ def build_assurance_ledger_v2(
     numbered_projection: dict[str, Any],
     parsed_topology: dict[str, Any],
     topology_parity: dict[str, Any],
+    diagnostic_report: dict[str, Any],
+    resolver_trace: dict[str, Any],
     approved_semantic_split: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Build mandatory-gate v2 assurance from explicit release evidence."""
@@ -133,6 +135,8 @@ def build_assurance_ledger_v2(
     require_schema(numbered_projection, "NumberedTopologyProjection.v1", "Numbered projection")
     require_schema(parsed_topology, "ParsedInputXmlTopology.v1", "Parsed topology")
     require_schema(topology_parity, "TopologyParityReport.v2", "Topology parity")
+    require_schema(diagnostic_report, "InputXmlDiagnosticReport.v1", "Diagnostic report")
+    require_schema(resolver_trace, "InputXmlResolverTrace.v1", "Resolver trace")
     diagnostics: list[dict[str, Any]] = []
     validate_artifact_hashes(diagnostics, normalization_plan, canonical_topology, numbered_projection, parsed_topology, topology_parity)
     v1_chain = v1_assurance.get("chain") or {}
@@ -140,7 +144,18 @@ def build_assurance_ledger_v2(
     compare_anchor(diagnostics, "NORMALIZATION_SOURCE_HASH_MISMATCH", compatibility_policy.get("sourceHashSha256"), normalization_plan.get("sourceHashSha256"))
     compare_anchor(diagnostics, "NORMALIZATION_CANONICAL_HASH_MISMATCH", v1_chain.get("canonicalHashSha256"), normalization_plan.get("canonicalHashSha256"))
     compare_anchor(diagnostics, "NODE_PLAN_HASH_MISMATCH", str(topo_node_plan.get("nodePlanHash") or "").removeprefix("sha256:"), numbered_projection.get("topoNodePlanHashSha256"))
-    for label, value in (("v1 assurance", v1_assurance.get("status")), ("compatibility", compatibility_policy.get("status")), ("normalization", normalization_plan.get("status")), ("topology parity", topology_parity.get("status"))):
+    compare_anchor(diagnostics, "DIAGNOSTIC_REPORT_HASH_MISMATCH", hash_without(diagnostic_report, "diagnosticReportHashSha256"), diagnostic_report.get("diagnosticReportHashSha256"))
+    compare_anchor(diagnostics, "RESOLVER_TRACE_HASH_MISMATCH", hash_without(resolver_trace, "resolverTraceHashSha256"), resolver_trace.get("resolverTraceHashSha256"))
+    compare_anchor(diagnostics, "DIAGNOSTIC_SOURCE_HASH_MISMATCH", compatibility_policy.get("sourceHashSha256"), diagnostic_report.get("sourceHashSha256"))
+    compare_anchor(diagnostics, "RESOLVER_SOURCE_HASH_MISMATCH", compatibility_policy.get("sourceHashSha256"), resolver_trace.get("sourceHashSha256"))
+    for label, value in (
+        ("v1 assurance", v1_assurance.get("status")),
+        ("compatibility", compatibility_policy.get("status")),
+        ("normalization", normalization_plan.get("status")),
+        ("topology parity", topology_parity.get("status")),
+        ("diagnostics", diagnostic_report.get("status")),
+        ("resolver trace", resolver_trace.get("status")),
+    ):
         if value != "PASS":
             diagnostics.append(diagnostic("RELEASE_GATE_NOT_PASS", f"{label} status must be PASS.", {"status": value}))
     approval_ref = validate_approval_anchor(diagnostics, compatibility_policy, v1_assurance, canonical_topology, approved_semantic_split)
@@ -157,6 +172,8 @@ def build_assurance_ledger_v2(
             "numberedTopologyProjectionHashSha256": numbered_projection.get("numberedTopologyProjectionHashSha256"),
             "parsedInputXmlTopologyHashSha256": parsed_topology.get("parsedInputXmlTopologyHashSha256"),
             "topologyParityReportHashSha256": topology_parity.get("topologyParityReportHashSha256"),
+            "diagnosticReportHashSha256": diagnostic_report.get("diagnosticReportHashSha256"),
+            "resolverTraceHashSha256": resolver_trace.get("resolverTraceHashSha256"),
         },
         "gates": {
             "compatibility": "PASS" if compatibility_policy.get("status") == "PASS" else "BLOCKED",
@@ -164,6 +181,8 @@ def build_assurance_ledger_v2(
             "canonicalValidation": "PASS" if (v1_assurance.get("gates") or {}).get("canonicalValidation") == "PASS" else "BLOCKED",
             "topologyTrace": gate,
             "topologyParity": "PASS" if topology_parity.get("status") == "PASS" and not diagnostics else "BLOCKED",
+            "diagnostics": "PASS" if diagnostic_report.get("status") == "PASS" and not diagnostics else "BLOCKED",
+            "resolverTrace": "PASS" if resolver_trace.get("status") == "PASS" and not diagnostics else "BLOCKED",
             "ciiProjectionReadiness": "PASS" if (v1_assurance.get("gates") or {}).get("ciiProjectionReadiness") == "PASS" and not diagnostics else "BLOCKED",
         },
         "approvedSemanticSplit": approval_ref,
@@ -185,7 +204,7 @@ def load_json(path: Path) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     """Build one v2 assurance ledger from explicit artifact paths."""
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("v1-assurance", "compatibility-policy", "normalization-plan", "canonical-topology", "topo-node-plan", "numbered-projection", "parsed-topology", "topology-parity"):
+    for name in ("v1-assurance", "compatibility-policy", "normalization-plan", "canonical-topology", "topo-node-plan", "numbered-projection", "parsed-topology", "topology-parity", "diagnostic-report", "resolver-trace"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--approved-semantic-split", type=Path)
     parser.add_argument("--output", type=Path, required=True)
@@ -195,7 +214,8 @@ def main(argv: list[str] | None = None) -> int:
         load_json(args.v1_assurance), load_json(args.compatibility_policy),
         load_json(args.normalization_plan), load_json(args.canonical_topology),
         load_json(args.topo_node_plan), load_json(args.numbered_projection),
-        load_json(args.parsed_topology), load_json(args.topology_parity), approval,
+        load_json(args.parsed_topology), load_json(args.topology_parity),
+        load_json(args.diagnostic_report), load_json(args.resolver_trace), approval,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(stable_json_bytes(ledger))

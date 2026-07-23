@@ -1,3 +1,9 @@
+/**
+ * Functionality: execute browser Python converters and governed InputXML preflight/release jobs.
+ * Parameters: one validated worker request with exact input bytes and explicit converter options.
+ * Outputs: converted artifacts, structural evidence, and decoded execution logs.
+ * Fallback: none for governed InputXML routes; blocked preflight returns evidence without XML/CII.
+ */
 import { loadPyodide } from '../vendor/pyodide/pyodide.mjs';
 import {
   buildConverterWorkerResponse,
@@ -9,10 +15,12 @@ import { normalizeInputXmlAttributeNames, converterUsesInputXmlDialect } from '.
 import { getConverterPackageWheelUrls } from './pyodide-local-packages.js';
 import { buildXmlCiiSidecarExportSpec, readXmlCiiSidecarArtifacts } from './xml-cii-inputxml-sidecar-worker.js';
 import { loadVerifiedInputXmlRuntime } from './inputxml-release-runtime-loader.js';
-import { runInputXmlReleaseJob } from './inputxml-release-worker.js';
+import { runInputXmlPreflightJob, runInputXmlReleaseJob } from './inputxml-release-worker.js';
 
 const PYODIDE_INDEX_URL = new URL('../vendor/pyodide/', import.meta.url).href;
 const INPUTXML_RUNTIME_MANIFEST_URL = new URL('./inputxml-runtime-manifest.json', import.meta.url).href;
+const INPUTXML_PREFLIGHT_CONVERTER_ID = 'inputxml_compatibility_preflight';
+const INPUTXML_LEGACY_CONSUMERS = Object.freeze(new Set(['inputxml_to_cii', 'inputxml14_to_cii']));
 
 const SCRIPT_FILE_NAMES = Object.freeze([
   'rvm_to_rev.py',
@@ -439,10 +447,13 @@ async function _runJob(message) {
   const secondary = (message?.inputFiles || []).find((f) => f?.role === 'secondary');
   const options = message?.options || {};
   const pyodide = await _getPyodide();
-  const inputXmlRuntime = converterId === 'inputxml_to_cii2019'
+  const requiresInputXmlRuntime = converterId === 'inputxml_to_cii2019'
+    || converterId === INPUTXML_PREFLIGHT_CONVERTER_ID
+    || INPUTXML_LEGACY_CONSUMERS.has(converterId);
+  const inputXmlRuntime = requiresInputXmlRuntime
     ? await _ensureInputXmlRuntime(pyodide)
     : null;
-  if (!inputXmlRuntime) await _ensureScripts(pyodide);
+  if (!inputXmlRuntime || INPUTXML_LEGACY_CONSUMERS.has(converterId)) await _ensureScripts(pyodide);
 
   const stdout = [];
   const stderr = [];
@@ -453,15 +464,44 @@ async function _runJob(message) {
   pyodide.FS.mkdirTree(jobDir);
 
   const primaryPath = _writeInputFile(pyodide, jobDir, primary, {
-    normalizeInputXmlDialect: converterUsesInputXmlDialect(converterId) && converterId !== 'inputxml_to_cii2019',
+    normalizeInputXmlDialect: converterUsesInputXmlDialect(converterId)
+      && converterId !== 'inputxml_to_cii2019'
+      && !INPUTXML_LEGACY_CONSUMERS.has(converterId),
     adapterLog: stdout,
   });
   const secondaryPath = secondary ? _writeInputFile(pyodide, jobDir, secondary) : null;
+  if (converterId === INPUTXML_PREFLIGHT_CONVERTER_ID) {
+    const request = options.inputXmlCompatibilityRequest;
+    const result = await runInputXmlPreflightJob({
+      pyodide,
+      sourcePath: primaryPath,
+      options: {
+        inputXmlCompatibilityMode: request?.mode,
+        approvedSemanticSplitId: request?.approvedSemanticSplitId || '',
+      },
+      converterId: request?.converterId,
+      compatibilityRequest: request,
+      jobDir,
+      runScript: async (scriptPath, argv) => await _runPythonScriptExitCode(pyodide, scriptPath, argv),
+    });
+    return {
+      output: result.outputs,
+      logs: {
+        stdout: decodeLogBatches(stdout),
+        stderr: decodeLogBatches(stderr),
+        argv: result.argv.slice(1),
+        preflight: result.preflight,
+        released: false,
+      },
+    };
+  }
   if (converterId === 'inputxml_to_cii2019') {
     const result = await runInputXmlReleaseJob({
       pyodide,
       sourcePath: primaryPath,
       options,
+      converterId,
+      compatibilityRequest: options.inputXmlCompatibilityRequest,
       jobDir,
       runScript: async (scriptPath, argv) => await _runPythonScriptExitCode(pyodide, scriptPath, argv),
     });
@@ -483,7 +523,33 @@ async function _runJob(message) {
       },
     };
   }
-  const invocation = buildInvocation(converterId, primaryPath, primary.name, secondaryPath, options, jobDir);
+  let compatibilityPreflight = null;
+  let effectivePrimaryPath = primaryPath;
+  if (INPUTXML_LEGACY_CONSUMERS.has(converterId)) {
+    compatibilityPreflight = await runInputXmlPreflightJob({
+      pyodide,
+      sourcePath: primaryPath,
+      options,
+      converterId,
+      compatibilityRequest: options.inputXmlCompatibilityRequest,
+      jobDir,
+      runScript: async (scriptPath, argv) => await _runPythonScriptExitCode(pyodide, scriptPath, argv),
+    });
+    if (!compatibilityPreflight.preflight.releaseEligible) {
+      return {
+        output: compatibilityPreflight.outputs,
+        logs: {
+          stdout: decodeLogBatches(stdout),
+          stderr: decodeLogBatches(stderr),
+          argv: compatibilityPreflight.argv.slice(1),
+          preflight: compatibilityPreflight.preflight,
+          released: false,
+        },
+      };
+    }
+    effectivePrimaryPath = `${compatibilityPreflight.preflightDir}/canonical.input.xml`;
+  }
+  const invocation = buildInvocation(converterId, effectivePrimaryPath, primary.name, secondaryPath, options, jobDir);
 
   let stagedConversionError = null;
   try {
@@ -584,6 +650,7 @@ async function _runJob(message) {
   const outputText = pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' });
   const outputs = [
     { name: invocation.outputName, text: outputText, mime: _inferTextMime(invocation.outputName) },
+    ...(compatibilityPreflight?.outputs || []),
   ];
   let stagedInputXmlDiagnostics = null;
   if (converterId === 'stagedjson_to_inputxml') {
@@ -644,6 +711,7 @@ async function _runJob(message) {
       warnings: ciiWarnings,
       diagnostics: stagedInputXmlDiagnostics,
       sidecarDiagnostics,
+      preflight: compatibilityPreflight?.preflight || null,
     },
   };
 }

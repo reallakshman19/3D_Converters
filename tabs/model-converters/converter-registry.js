@@ -1,3 +1,9 @@
+/**
+ * Functionality: declare Model Converter routes, defaults, fields, and runner ownership.
+ * Parameters: route IDs selected by the converter UI.
+ * Outputs: converter definitions with explicit compatibility intent.
+ * Fallback: missing runner entries use the established no-op registry fallback.
+ */
 // InputXML header defaults and unit setups
 const INPUTXML_HEADER_DEFAULTS = Object.freeze({
   headerDateTime: '13:40:45 6 May 2026',
@@ -7,6 +13,23 @@ const INPUTXML_HEADER_DEFAULTS = Object.freeze({
   headerPurpose: 'Preliminary stress run',
   headerProjectName: 'ZAU',
 });
+const INPUTXML_COMPATIBILITY_DEFAULTS = Object.freeze({
+  inputXmlCompatibilityMode: 'CANONICAL_STRICT',
+  approvedSemanticSplitId: '',
+});
+const INPUTXML_COMPATIBILITY_FIELDS = Object.freeze([
+  {
+    key: 'inputXmlCompatibilityMode',
+    label: 'InputXML Compatibility Policy',
+    type: 'select',
+    options: ['CANONICAL_STRICT', 'ADAPTED_CANONICAL', 'DIAGNOSTIC_ONLY'],
+  },
+  {
+    key: 'approvedSemanticSplitId',
+    label: 'Approved Semantic Split ID (adapted mode only)',
+    type: 'text',
+  },
+]);
 
 const INPUTXML2019_SAFE_UNITS = Object.freeze({
   numeric_lines: Object.freeze([
@@ -306,6 +329,7 @@ const CONVERTER_DEFS = {
     secondaryAccept: '',
     description: 'Convert staged hierarchy JSON to CAESAR II InputXML with explicit source authority and a diagnostics sidecar.',
     defaults: {
+      ...INPUTXML_COMPATIBILITY_DEFAULTS,
       inputxmlBookmarkJson: '{}',
       nodeStart: 10,
       nodeStep: 10,
@@ -319,6 +343,7 @@ const CONVERTER_DEFS = {
       disableSupports: false,
     },
     fields: [
+      ...INPUTXML_COMPATIBILITY_FIELDS,
       { key: 'inputxmlBookmarkJson', label: 'Defaults Bookmark JSON', type: 'json-popup' },
       { key: 'nodeStart', label: 'Node Start', type: 'number', step: '1' },
       { key: 'nodeStep', label: 'Node Step', type: 'number', step: '1' },
@@ -347,6 +372,7 @@ const CONVERTER_DEFS = {
     secondaryAccept: '',
     description: 'Convert 3DV Conv JSON selections (rvm-converter-stage/v1) to Custom InputXML while preserving Position records.',
     defaults: {
+      ...INPUTXML_COMPATIBILITY_DEFAULTS,
       nodeStart: 10,
       nodeStep: 10,
       wallThicknessMm: 0,
@@ -360,6 +386,7 @@ const CONVERTER_DEFS = {
       includeNonRouteGeometry: false,
     },
     fields: [
+      ...INPUTXML_COMPATIBILITY_FIELDS,
       { key: 'nodeStart', label: 'Node Start', type: 'number', step: '1' },
       { key: 'nodeStep', label: 'Node Step', type: 'number', step: '1' },
       { key: 'fallbackBranchName', label: 'Fallback Branch Name', type: 'text' },
@@ -425,8 +452,8 @@ const CONVERTER_DEFS = {
     secondaryLabel: 'Misc PDF (optional)',
     secondaryAccept: '.pdf,.PDF',
     description: 'Convert CAESAR Input Echo PDF to Input XML.',
-    defaults: {},
-    fields: [],
+    defaults: { ...INPUTXML_COMPATIBILITY_DEFAULTS },
+    fields: [...INPUTXML_COMPATIBILITY_FIELDS],
   },
   pdf_to_inputxml_cii14: {
     id: 'pdf_to_inputxml_cii14',
@@ -437,9 +464,11 @@ const CONVERTER_DEFS = {
     secondaryAccept: '.xml,.XML',
     description: 'Convert PDF to CII14 InputXML using benchmark structure (falls back to bundled profile when omitted).',
     defaults: {
+      ...INPUTXML_COMPATIBILITY_DEFAULTS,
       outputMode: 'preserve',
     },
     fields: [
+      ...INPUTXML_COMPATIBILITY_FIELDS,
       { key: 'outputMode', label: 'Output Mode', type: 'select', options: ['preserve', 'overlay'] },
     ],
   },
@@ -452,6 +481,7 @@ const CONVERTER_DEFS = {
     secondaryAccept: '',
     description: 'Convert Custom InputXML or CAESAR InputXML into PSI116-style XML for XML -> CII (2019).',
     defaults: {
+      ...INPUTXML_COMPATIBILITY_DEFAULTS,
       source: 'InputXML -> XML',
       purpose: 'InputXML bridge conversion',
       titleLine: 'InputXML converted XML',
@@ -463,6 +493,7 @@ const CONVERTER_DEFS = {
       defaultCorrosionAllowance: 0,
     },
     fields: [
+      ...INPUTXML_COMPATIBILITY_FIELDS,
       { key: 'source', label: 'Source', type: 'text' },
       { key: 'purpose', label: 'Purpose', type: 'text' },
       { key: 'titleLine', label: 'Title Line', type: 'text' },
@@ -582,6 +613,7 @@ const CONVERTER_DEFS = {
     secondaryAccept: '',
     description: 'Convert CAESARII Input XML to CII.',
     defaults: {
+      ...INPUTXML_COMPATIBILITY_DEFAULTS,
       inferReducerAngleFromGeometry: false,
       defaultDiameter: 0,
       defaultWallThickness: 0.01,
@@ -596,6 +628,7 @@ const CONVERTER_DEFS = {
       ...INPUTXML_HEADER_DEFAULTS,
     },
     fields: [
+      ...INPUTXML_COMPATIBILITY_FIELDS,
       { key: 'inferReducerAngleFromGeometry', label: 'Infer ReducerAngle From Geometry', type: 'checkbox' },
       { key: 'defaultDiameter', label: 'Default Diameter', type: 'number', step: '0.001' },
       { key: 'defaultWallThickness', label: 'Default Wall Thickness', type: 'number', step: '0.001' },
@@ -624,6 +657,7 @@ const CONVERTER_DEFS = {
     secondaryAccept: '',
     description: 'Convert CAESARII Input XML Ver14 to CII.',
     defaults: {
+      ...INPUTXML_COMPATIBILITY_DEFAULTS,
       inferReducerAngleFromGeometry: false,
       defaultDiameter: 0,
       defaultWallThickness: 0.01,
@@ -637,6 +671,7 @@ const CONVERTER_DEFS = {
       ...INPUTXML_HEADER_DEFAULTS,
     },
     fields: [
+      ...INPUTXML_COMPATIBILITY_FIELDS,
       { key: 'inferReducerAngleFromGeometry', label: 'Infer Reducer Angle From Geometry', type: 'checkbox' },
       { key: 'defaultDiameter', label: 'Default Diameter', type: 'number', step: '0.001' },
       { key: 'defaultWallThickness', label: 'Default Wall Thickness', type: 'number', step: '0.001' },
@@ -665,8 +700,7 @@ const CONVERTER_DEFS = {
     secondaryAccept: '',
     description: 'Structurally compile InputXML, reparse exact emitted bytes, verify topology/assurance, and release CII only when every mandatory v2 gate passes.',
     defaults: {
-      inputXmlCompatibilityMode: 'CANONICAL_STRICT',
-      approvedSemanticSplitId: '',
+      ...INPUTXML_COMPATIBILITY_DEFAULTS,
       inferReducerAngleFromGeometry: false,
       defaultDiameter: 0,
       defaultWallThickness: 0.01,
@@ -681,17 +715,7 @@ const CONVERTER_DEFS = {
       ...INPUTXML_HEADER_DEFAULTS,
     },
     fields: [
-      {
-        key: 'inputXmlCompatibilityMode',
-        label: 'InputXML Compatibility Policy',
-        type: 'select',
-        options: [
-          'CANONICAL_STRICT',
-          'ADAPTED_CANONICAL',
-          'DIAGNOSTIC_ONLY',
-        ],
-      },
-      { key: 'approvedSemanticSplitId', label: 'Approved Semantic Split ID (adapted mode only)', type: 'text' },
+      ...INPUTXML_COMPATIBILITY_FIELDS,
       { key: 'inferReducerAngleFromGeometry', label: 'Infer Reducer Angle From Geometry', type: 'checkbox' },
       { key: 'defaultDiameter', label: 'Fallback Diameter if DIAMETER Missing', type: 'number', step: '0.001' },
       { key: 'defaultWallThickness', label: 'Fallback Wall Thickness if Missing', type: 'number', step: '0.001' },
