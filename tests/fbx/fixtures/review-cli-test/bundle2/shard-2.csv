@@ -1,3 +1,0 @@
-NON_AUTHORITATIVE_REVIEW_VIEW,workItemId,sourceModelObjectId,sourceOccurrenceId,displayName,geometryKind
-NON_AUTHORITATIVE_REVIEW_VIEW,work-9ab44ab4f7eaf5cc6f3f8bebd87db51a6d7ca7145dc63f1c112bbb19336ecb52,505,occ:505,Model::Valve,MESH
-NON_AUTHORITATIVE_REVIEW_VIEW,work-ec550fc7c3856c107311ec675db521aa4ea21ac49103f7581f1ddfedef3acb18,507,occ:507,Model::DisconnectedPipe,MESH

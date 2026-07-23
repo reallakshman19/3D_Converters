@@ -5,3 +5,5 @@ node_modules/
 .backups/
 __pycache__/
 *.pyc
+.agent-worklogs/
+tests/fbx/fixtures/review-cli-test/
