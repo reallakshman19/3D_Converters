@@ -10,6 +10,11 @@ function compareText(left, right) {
 function calculateExpectedShards(worklist, bundle) {
   const { maxItemsPerShard, shardCount } = bundle.partitionPolicy;
   const items = [...worklist.workItems].sort((a, b) => compareText(a.workItemId, b.workItemId));
+  
+  const actualShardCount = Math.ceil(items.length / maxItemsPerShard);
+  if (shardCount !== actualShardCount) failAssembler('BLOCKED_ASSEMBLER_BINDING', 'partitionPolicy shardCount does not cover the worklist exactly.');
+  if (bundle.shards.length !== actualShardCount) failAssembler('BLOCKED_ASSEMBLER_BINDING', 'bundle.shards length does not match required shard count.');
+  
   const expectedShards = new Map();
   for (let i = 0; i < shardCount; i++) {
     const chunk = items.slice(i * maxItemsPerShard, (i + 1) * maxItemsPerShard);
@@ -48,8 +53,9 @@ async function collectFragments(fragments, bundle, expectedShards) {
   return providedFragments;
 }
 
-function extractDecisions(expectedShards, providedFragments) {
+function extractDecisions(expectedShards, providedFragments, worklist) {
   const allDecisions = [];
+  const workItemsById = new Map(worklist.workItems.map((w) => [w.workItemId, w]));
   for (const [shardId, expectedItemIds] of expectedShards.entries()) {
     const fragment = providedFragments.get(shardId);
     if (fragment.decisions.length !== expectedItemIds.size) {
@@ -58,6 +64,16 @@ function extractDecisions(expectedShards, providedFragments) {
     for (const decision of fragment.decisions) {
       if (!expectedItemIds.has(decision.workItemId)) {
         failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Fragment ${shardId} has unexpected item ${decision.workItemId}.`);
+      }
+      if (decision.disposition === 'promote') {
+        const item = workItemsById.get(decision.workItemId);
+        const entry = decision.mappingEntry;
+        if (entry.sourceModelObjectId !== item.sourceModelObjectId) failAssembler('BLOCKED_ASSEMBLER_IDENTITY_TAMPERING', 'sourceModelObjectId tampered.');
+        if (entry.sourceOccurrenceId !== item.sourceOccurrenceId) failAssembler('BLOCKED_ASSEMBLER_IDENTITY_TAMPERING', 'sourceOccurrenceId tampered.');
+        
+        const expectedGeometry = item.geometryEvidence.map((g) => g.geometryObjectId).sort().join('\0');
+        const actualGeometry = [...entry.sourceGeometryObjectIds].sort().join('\0');
+        if (expectedGeometry !== actualGeometry) failAssembler('BLOCKED_ASSEMBLER_IDENTITY_TAMPERING', 'sourceGeometryObjectIds tampered.');
       }
       allDecisions.push(decision);
     }
@@ -72,10 +88,16 @@ export async function assembleFragments(worklist, bundle, fragments) {
   if (safeBundle.worklistId !== safeWorklist.worklistId) {
     failAssembler('BLOCKED_ASSEMBLER_BINDING', 'Bundle worklistId does not match the provided worklist.');
   }
+  
+  const { calculateBundleId } = await import('./mapping-review-bundle.js');
+  const expectedBundleId = await calculateBundleId(safeBundle);
+  if (expectedBundleId !== safeBundle.bundleId) {
+    failAssembler('BLOCKED_ASSEMBLER_BINDING', 'Bundle ID is stale or tampered.');
+  }
 
   const expectedShards = calculateExpectedShards(safeWorklist, safeBundle);
   const providedFragments = await collectFragments(fragments, safeBundle, expectedShards);
-  const allDecisions = extractDecisions(expectedShards, providedFragments);
+  const allDecisions = extractDecisions(expectedShards, providedFragments, safeWorklist);
   
   allDecisions.sort((a, b) => compareText(a.workItemId, b.workItemId));
   return createDecisionSet({ worklist: safeWorklist, decisions: allDecisions });

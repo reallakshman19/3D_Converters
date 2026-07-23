@@ -1,0 +1,78 @@
+{
+  "bundleId": "0d38bbb9268262df239f4e7c1655bb4b609d30988aebab6b6a07e3dc550deb47",
+  "ordinal": 1,
+  "schema": "FbxMappingReviewShard.v1",
+  "shardId": "180fd346aa587d8c36616e7b0d87d14c39eafa4ff30335303dd629c94858648b",
+  "sourceGraphCanonicalSha256": "074d508c10bcd3fae5903d65447fb56c63cc909a2aeb3108b9f47df127d3748e",
+  "workItems": [
+    {
+      "geometryEvidence": [
+        {
+          "geometryObjectId": "606",
+          "governedPointCount": 2,
+          "kind": "MESH",
+          "pointAuthority": "MESH_VERTEX"
+        }
+      ],
+      "nameEvidence": {
+        "authority": "NON_AUTHORITATIVE",
+        "displayName": "Model::BranchPipe",
+        "domClass": "Model",
+        "domSourceName": "Model::BranchPipe",
+        "domSubtype": "Mesh"
+      },
+      "reviewState": "PENDING",
+      "sourceGeometryObjectIds": [
+        "606"
+      ],
+      "sourceModelObjectId": "506",
+      "sourceOccurrenceId": "occ:506",
+      "sourceRecordDisposition": "supported-occurrence",
+      "typeEvidence": {
+        "nodeAttributeType": "MESH",
+        "nodeAttributeTypeValue": 2,
+        "sourceDocumentOrder": 13,
+        "ufbxElementId": 13,
+        "ufbxElementType": "NODE",
+        "ufbxElementTypeValue": 1,
+        "ufbxTypedId": 7
+      },
+      "workItemId": "work-45e3e4ad547b5e7d4706e96c249c292a312872fb51db9b04129a2c3c73db4414"
+    },
+    {
+      "geometryEvidence": [
+        {
+          "geometryObjectId": "601",
+          "governedPointCount": 2,
+          "kind": "MESH",
+          "pointAuthority": "MESH_VERTEX"
+        }
+      ],
+      "nameEvidence": {
+        "authority": "NON_AUTHORITATIVE",
+        "displayName": "Model::Elbow",
+        "domClass": "Model",
+        "domSourceName": "Model::Elbow",
+        "domSubtype": "Mesh"
+      },
+      "reviewState": "PENDING",
+      "sourceGeometryObjectIds": [
+        "601"
+      ],
+      "sourceModelObjectId": "501",
+      "sourceOccurrenceId": "occ:501",
+      "sourceRecordDisposition": "supported-occurrence",
+      "typeEvidence": {
+        "nodeAttributeType": "MESH",
+        "nodeAttributeTypeValue": 2,
+        "sourceDocumentOrder": 3,
+        "ufbxElementId": 3,
+        "ufbxElementType": "NODE",
+        "ufbxElementTypeValue": 1,
+        "ufbxTypedId": 2
+      },
+      "workItemId": "work-6a5bf2212ae0c1510ba214e70ca8fb4d39326a462bf68226cf18962071cc3a5f"
+    }
+  ],
+  "worklistId": "e0023b4b94c88915f00898e1abf12a8fa4949733347fd203067c70c54aaf523f"
+}

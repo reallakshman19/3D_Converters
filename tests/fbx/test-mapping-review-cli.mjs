@@ -29,6 +29,26 @@ if (buildCmd.status !== 0) throw new Error(`build CLI failed: ${buildCmd.stderr}
 const manifest = JSON.parse(await readFile(join(bundleDir, 'manifest.json'), 'utf8'));
 assert.equal(manifest.schema, 'FbxMappingReviewBundle.v1');
 
+// Test 1b: CSV Byte Determinism
+const bundleDir2 = join(testDir, 'bundle2');
+const buildCmd2 = spawnSync('node', [
+  'scripts/fbx/build-mapping-review-bundle.mjs',
+  worklistPath,
+  bundleDir2,
+  '--max-items',
+  '2'
+], { encoding: 'utf8' });
+if (buildCmd2.status !== 0) throw new Error(`build CLI failed: ${buildCmd2.stderr}`);
+
+for (const shardMeta of manifest.shards) {
+  const csv1 = await readFile(join(bundleDir, shardMeta.fileName.replace('.json', '.csv')));
+  const csv2 = await readFile(join(bundleDir2, shardMeta.fileName.replace('.json', '.csv')));
+  assert.equal(Buffer.compare(csv1, csv2), 0, 'CSV output is not byte-deterministic');
+  
+  const csvText = csv1.toString('utf8');
+  assert.ok(csvText.startsWith('NON_AUTHORITATIVE_REVIEW_VIEW,'), 'CSV missing NON_AUTHORITATIVE_REVIEW_VIEW header');
+}
+
 // Mock decision fragments
 const fragmentPaths = [];
 for (const shardMeta of manifest.shards) {

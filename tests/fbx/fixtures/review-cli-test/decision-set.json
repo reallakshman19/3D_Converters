@@ -1,0 +1,48 @@
+{
+  "decisionSetId": "acf9a7aa11221fb630a5eadedb468d091cc88ada91004f86ae4cabd899ae526b",
+  "decisions": [
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-05fe79465c813df137db1102f34f6ba12dc54c28eda472d32314267aeb55be1e"
+    },
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-1776b9d843317ab6e7f3c91b985045c6f167a04bbd088e0781c13370ced9dae9"
+    },
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-45e3e4ad547b5e7d4706e96c249c292a312872fb51db9b04129a2c3c73db4414"
+    },
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-6a5bf2212ae0c1510ba214e70ca8fb4d39326a462bf68226cf18962071cc3a5f"
+    },
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-9ab44ab4f7eaf5cc6f3f8bebd87db51a6d7ca7145dc63f1c112bbb19336ecb52"
+    },
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-ec550fc7c3856c107311ec675db521aa4ea21ac49103f7581f1ddfedef3acb18"
+    },
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-ede75f091adeecee3e774bacc37f0fade976f528c7ed8038c3d14c746bba24a6"
+    },
+    {
+      "disposition": "exclude-with-reason",
+      "reason": "cli test",
+      "workItemId": "work-f212a8ed8b1553bfb43baa883b21a4c958ec188acf469a153e456695ff06d7d2"
+    }
+  ],
+  "schema": "FbxMappingDecisionSet.v1",
+  "sourceGraphCanonicalSha256": "074d508c10bcd3fae5903d65447fb56c63cc909a2aeb3108b9f47df127d3748e",
+  "worklistId": "e0023b4b94c88915f00898e1abf12a8fa4949733347fd203067c70c54aaf523f"
+}

@@ -30,11 +30,12 @@ function csvEscape(text) {
 }
 
 function writeCsv(shard) {
-  const header = ['workItemId', 'sourceModelObjectId', 'sourceOccurrenceId', 'displayName', 'geometryKind'];
+  const header = ['NON_AUTHORITATIVE_REVIEW_VIEW', 'workItemId', 'sourceModelObjectId', 'sourceOccurrenceId', 'displayName', 'geometryKind'];
   const rows = [header.join(',')];
   for (const item of shard.workItems) {
     const geom = item.geometryEvidence?.[0]?.kind || '';
     rows.push([
+      'NON_AUTHORITATIVE_REVIEW_VIEW',
       item.workItemId,
       item.sourceModelObjectId,
       item.sourceOccurrenceId,

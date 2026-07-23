@@ -5,17 +5,21 @@ import { buildReviewBundle, calculateBundleId, calculateShardId } from '../../ta
 import { WorklistFailure } from '../../tabs/model-converters/converters/fbx/mapping-worklist-contract.js';
 import { worklistFixture } from './worklist-helpers.mjs';
 
-function schemaErrors(schema, instances) {
+function schemaErrors(schema, auxSchemas, instances) {
   const program = String.raw`
 import json, sys
 from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
 payload = json.load(sys.stdin)
 Draft202012Validator.check_schema(payload["schema"])
-validator = Draft202012Validator(payload["schema"])
+registry = Registry()
+for aux in payload["auxSchemas"]:
+    registry = registry.with_resource(aux["$id"], Resource.from_contents(aux))
+validator = Draft202012Validator(payload["schema"], registry=registry)
 print(json.dumps([[error.message for error in validator.iter_errors(item)] for item in payload["instances"]]))
 `;
   const child = spawnSync('python', ['-c', program], {
-    input: JSON.stringify({ schema, instances }),
+    input: JSON.stringify({ schema, auxSchemas, instances }),
     encoding: 'utf8',
   });
   if (child.status !== 0) throw new Error(`Schema validation failed:\n${child.stderr}`);
@@ -49,11 +53,12 @@ for (const shard of bundleOutput1.shards) {
 // Test 2: Schema validation
 const bundleSchema = JSON.parse(await readFile('contracts/fbx/fbx-mapping-review-bundle.v1.schema.json', 'utf8'));
 const shardSchema = JSON.parse(await readFile('contracts/fbx/fbx-mapping-review-shard.v1.schema.json', 'utf8'));
+const worklistSchema = JSON.parse(await readFile('contracts/fbx/fbx-mapping-worklist.v1.schema.json', 'utf8'));
 
-const [bundleErrors] = schemaErrors(bundleSchema, [bundleOutput1.bundle]);
+const [bundleErrors] = schemaErrors(bundleSchema, [worklistSchema], [bundleOutput1.bundle]);
 assert.deepEqual(bundleErrors, [], 'Bundle schema validation should pass');
 
-const shardErrors = schemaErrors(shardSchema, bundleOutput1.shards);
+const shardErrors = schemaErrors(shardSchema, [worklistSchema], bundleOutput1.shards);
 for (const errors of shardErrors) {
   assert.deepEqual(errors, [], 'Shard schema validation should pass');
 }

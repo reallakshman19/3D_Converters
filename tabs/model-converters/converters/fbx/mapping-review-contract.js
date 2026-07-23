@@ -51,79 +51,106 @@ export function failAssembler(status, message) {
 const HASH_PATTERN = /^[0-9a-f]{64}$/;
 const WORK_ITEM_ID_PATTERN = /^work-[0-9a-f]{64}$/;
 
-function requireText(value, label, fail) {
-  if (typeof value !== 'string' || !value) fail('BLOCKED_REVIEW_BUNDLE_CONTRACT', `${label} is required.`);
+function requireText(value, label, failStatus, failFn) {
+  if (typeof value !== 'string' || !value) failFn(failStatus, `${label} is required.`);
   return value;
 }
 
-function requirePattern(value, pattern, label, fail) {
-  const text = requireText(value, label, fail);
-  if (!pattern.test(text)) fail('BLOCKED_REVIEW_BUNDLE_CONTRACT', `${label} has invalid syntax.`);
+function requirePattern(value, pattern, label, failStatus, failFn) {
+  const text = requireText(value, label, failStatus, failFn);
+  if (!pattern.test(text)) failFn(failStatus, `${label} has invalid syntax.`);
   return text;
 }
 
-export function validateBundleShape(value) {
+function requireInteger(value, label, failStatus, failFn, minimum = 0) {
+  if (!Number.isInteger(value) || value < minimum) {
+    failFn(failStatus, `${label} must be an integer >= ${minimum}.`);
+  }
+}
+
+function exactKeys(value, keys, label, failStatus, failFn) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'Bundle must be an object.');
+    failFn(failStatus, `${label} must be an object.`);
   }
-  if (value.schema !== 'FbxMappingReviewBundle.v1') {
-    failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'schema must be FbxMappingReviewBundle.v1.');
-  }
-  const keys = Object.keys(value).sort().join('\0');
-  const expected = ['bundleId', 'partitionPolicy', 'schema', 'shards', 'sourceGraphCanonicalSha256', 'worklistId'].join('\0');
-  if (keys !== expected) {
-    failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'Bundle has missing or unexpected fields.');
-  }
-  requirePattern(value.bundleId, HASH_PATTERN, 'bundleId', failBundle);
-  requirePattern(value.worklistId, HASH_PATTERN, 'worklistId', failBundle);
-  requirePattern(value.sourceGraphCanonicalSha256, HASH_PATTERN, 'sourceGraphCanonicalSha256', failBundle);
-  if (!Array.isArray(value.shards) || value.shards.length === 0) {
-    failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'shards must be a non-empty array.');
+  const actual = Object.keys(value).sort().join('\0');
+  const expected = [...keys].sort().join('\0');
+  if (actual !== expected) failFn(failStatus, `${label} has missing or unexpected fields.`);
+  return value;
+}
+
+export function validateBundleShape(value) {
+  const fail = failBundle;
+  const status = 'BLOCKED_REVIEW_BUNDLE_CONTRACT';
+  exactKeys(value, ['bundleId', 'partitionPolicy', 'schema', 'shards', 'sourceGraphCanonicalSha256', 'worklistId'], 'Bundle', status, fail);
+  if (value.schema !== 'FbxMappingReviewBundle.v1') fail(status, 'schema must be FbxMappingReviewBundle.v1.');
+  requirePattern(value.bundleId, HASH_PATTERN, 'bundleId', status, fail);
+  requirePattern(value.worklistId, HASH_PATTERN, 'worklistId', status, fail);
+  requirePattern(value.sourceGraphCanonicalSha256, HASH_PATTERN, 'sourceGraphCanonicalSha256', status, fail);
+  
+  exactKeys(value.partitionPolicy, ['id', 'orderingAuthority', 'maxItemsPerShard', 'shardCount'], 'partitionPolicy', status, fail);
+  if (value.partitionPolicy.id !== 'WORK_ITEM_ID_CONTIGUOUS_V1') fail(status, 'Invalid partitionPolicy id');
+  if (value.partitionPolicy.orderingAuthority !== 'workItemId') fail(status, 'Invalid orderingAuthority');
+  requireInteger(value.partitionPolicy.maxItemsPerShard, 'maxItemsPerShard', status, fail, 1);
+  requireInteger(value.partitionPolicy.shardCount, 'shardCount', status, fail, 1);
+
+  if (!Array.isArray(value.shards) || value.shards.length === 0) fail(status, 'shards must be a non-empty array.');
+  for (const s of value.shards) {
+    exactKeys(s, ['canonicalSha256', 'fileName', 'firstWorkItemId', 'lastWorkItemId', 'ordinal', 'shardId', 'workItemCount'], 'shard metadata', status, fail);
+    requirePattern(s.shardId, HASH_PATTERN, 'shardId', status, fail);
+    requireInteger(s.ordinal, 'ordinal', status, fail, 0);
+    requirePattern(s.firstWorkItemId, WORK_ITEM_ID_PATTERN, 'firstWorkItemId', status, fail);
+    requirePattern(s.lastWorkItemId, WORK_ITEM_ID_PATTERN, 'lastWorkItemId', status, fail);
+    requireInteger(s.workItemCount, 'workItemCount', status, fail, 1);
+    requirePattern(s.canonicalSha256, HASH_PATTERN, 'canonicalSha256', status, fail);
+    requirePattern(s.fileName, /^shard-\d+\.json$/, 'fileName', status, fail);
   }
   return value;
 }
 
 export function validateShardShape(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    failShard('BLOCKED_FRAGMENT_CONTRACT', 'Shard must be an object.');
-  }
-  if (value.schema !== 'FbxMappingReviewShard.v1') {
-    failShard('BLOCKED_FRAGMENT_CONTRACT', 'schema must be FbxMappingReviewShard.v1.');
-  }
-  const keys = Object.keys(value).sort().join('\0');
-  const expected = ['bundleId', 'ordinal', 'schema', 'shardId', 'sourceGraphCanonicalSha256', 'workItems', 'worklistId'].join('\0');
-  if (keys !== expected) {
-    failShard('BLOCKED_FRAGMENT_CONTRACT', 'Shard has missing or unexpected fields.');
-  }
-  requirePattern(value.bundleId, HASH_PATTERN, 'bundleId', failShard);
-  requirePattern(value.worklistId, HASH_PATTERN, 'worklistId', failShard);
-  requirePattern(value.sourceGraphCanonicalSha256, HASH_PATTERN, 'sourceGraphCanonicalSha256', failShard);
-  requirePattern(value.shardId, HASH_PATTERN, 'shardId', failShard);
-  if (!Array.isArray(value.workItems)) {
-    failShard('BLOCKED_FRAGMENT_CONTRACT', 'workItems must be an array.');
+  const fail = failShard;
+  const status = 'BLOCKED_REVIEW_SHARD_CONTRACT';
+  exactKeys(value, ['bundleId', 'ordinal', 'schema', 'shardId', 'sourceGraphCanonicalSha256', 'workItems', 'worklistId'], 'Shard', status, fail);
+  if (value.schema !== 'FbxMappingReviewShard.v1') fail(status, 'schema must be FbxMappingReviewShard.v1.');
+  requirePattern(value.bundleId, HASH_PATTERN, 'bundleId', status, fail);
+  requirePattern(value.worklistId, HASH_PATTERN, 'worklistId', status, fail);
+  requirePattern(value.sourceGraphCanonicalSha256, HASH_PATTERN, 'sourceGraphCanonicalSha256', status, fail);
+  requirePattern(value.shardId, HASH_PATTERN, 'shardId', status, fail);
+  requireInteger(value.ordinal, 'ordinal', status, fail, 0);
+
+  if (!Array.isArray(value.workItems)) fail(status, 'workItems must be an array.');
+  for (const w of value.workItems) {
+    if (!w || typeof w !== 'object') fail(status, 'workItem must be object');
+    requirePattern(w.workItemId, WORK_ITEM_ID_PATTERN, 'workItemId', status, fail);
+    requireText(w.sourceModelObjectId, 'sourceModelObjectId', status, fail);
+    requireText(w.sourceOccurrenceId, 'sourceOccurrenceId', status, fail);
+    if (!w.typeEvidence || !w.nameEvidence || !Array.isArray(w.geometryEvidence)) fail(status, 'evidence missing');
   }
   return value;
 }
 
 export function validateFragmentShape(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    failFragment('BLOCKED_FRAGMENT_CONTRACT', 'Fragment must be an object.');
-  }
-  if (value.schema !== 'FbxMappingDecisionFragment.v1') {
-    failFragment('BLOCKED_FRAGMENT_CONTRACT', 'schema must be FbxMappingDecisionFragment.v1.');
-  }
-  const keys = Object.keys(value).sort().join('\0');
-  const expected = ['bundleId', 'decisions', 'fragmentId', 'schema', 'shardId', 'sourceGraphCanonicalSha256', 'worklistId'].join('\0');
-  if (keys !== expected) {
-    failFragment('BLOCKED_FRAGMENT_CONTRACT', 'Fragment has missing or unexpected fields.');
-  }
-  requirePattern(value.bundleId, HASH_PATTERN, 'bundleId', failFragment);
-  requirePattern(value.worklistId, HASH_PATTERN, 'worklistId', failFragment);
-  requirePattern(value.sourceGraphCanonicalSha256, HASH_PATTERN, 'sourceGraphCanonicalSha256', failFragment);
-  requirePattern(value.shardId, HASH_PATTERN, 'shardId', failFragment);
-  requirePattern(value.fragmentId, HASH_PATTERN, 'fragmentId', failFragment);
-  if (!Array.isArray(value.decisions)) {
-    failFragment('BLOCKED_FRAGMENT_CONTRACT', 'decisions must be an array.');
+  const fail = failFragment;
+  const status = 'BLOCKED_REVIEW_FRAGMENT_CONTRACT';
+  exactKeys(value, ['bundleId', 'decisions', 'fragmentId', 'schema', 'shardId', 'sourceGraphCanonicalSha256', 'worklistId'], 'Fragment', status, fail);
+  if (value.schema !== 'FbxMappingDecisionFragment.v1') fail(status, 'schema must be FbxMappingDecisionFragment.v1.');
+  requirePattern(value.bundleId, HASH_PATTERN, 'bundleId', status, fail);
+  requirePattern(value.worklistId, HASH_PATTERN, 'worklistId', status, fail);
+  requirePattern(value.sourceGraphCanonicalSha256, HASH_PATTERN, 'sourceGraphCanonicalSha256', status, fail);
+  requirePattern(value.shardId, HASH_PATTERN, 'shardId', status, fail);
+  requirePattern(value.fragmentId, HASH_PATTERN, 'fragmentId', status, fail);
+
+  if (!Array.isArray(value.decisions)) fail(status, 'decisions must be an array.');
+  for (const d of value.decisions) {
+    if (!d || typeof d !== 'object') fail(status, 'decision must be object');
+    requirePattern(d.workItemId, WORK_ITEM_ID_PATTERN, 'workItemId', status, fail);
+    if (d.disposition === 'exclude-with-reason') {
+      requireText(d.reason, 'reason', status, fail);
+    } else if (d.disposition === 'promote') {
+      if (!d.mappingEntry || typeof d.mappingEntry !== 'object') fail(status, 'mappingEntry missing');
+    } else {
+      fail(status, 'invalid disposition');
+    }
   }
   return value;
 }

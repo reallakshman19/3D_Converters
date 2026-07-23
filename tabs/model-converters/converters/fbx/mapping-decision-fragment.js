@@ -2,6 +2,10 @@ import { canonicalDigest } from './mapping-package.js';
 import { failFragment, validateFragmentShape } from './mapping-review-contract.js';
 import { deepFreeze } from './canonical-json.js';
 
+function compareText(left, right) {
+  return String(left) < String(right) ? -1 : String(left) > String(right) ? 1 : 0;
+}
+
 function fragmentPayload(fragment) {
   return {
     schema: fragment.schema,
@@ -9,7 +13,7 @@ function fragmentPayload(fragment) {
     worklistId: fragment.worklistId,
     sourceGraphCanonicalSha256: fragment.sourceGraphCanonicalSha256,
     shardId: fragment.shardId,
-    decisions: fragment.decisions,
+    decisions: [...fragment.decisions].sort((a, b) => compareText(a.workItemId, b.workItemId)),
   };
 }
 
@@ -24,19 +28,12 @@ export async function parseDecisionFragment(fragment) {
     failFragment('BLOCKED_FRAGMENT_CONTRACT', 'fragmentId is stale or tampered.');
   }
 
-  // decisions must be ordered by workItemId deterministically?
-  // Let's verify decisions are unique per workItemId.
   const seenWorkItemIds = new Set();
-  let lastId = '';
   for (const decision of safeFragment.decisions) {
-    if (decision.workItemId < lastId) {
-      failFragment('BLOCKED_FRAGMENT_CONTRACT', 'decisions must be strictly ordered by workItemId.');
-    }
     if (seenWorkItemIds.has(decision.workItemId)) {
       failFragment('BLOCKED_FRAGMENT_CONTRACT', 'Duplicate workItemId found in decisions.');
     }
     seenWorkItemIds.add(decision.workItemId);
-    lastId = decision.workItemId;
   }
 
   return deepFreeze(safeFragment);

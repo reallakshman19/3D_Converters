@@ -60,4 +60,24 @@ try {
   assert.equal(error.status, 'BLOCKED_FRAGMENT_COVERAGE');
 }
 
+// Test 5: Identity Tampering
+const tamperedFragment = structuredClone(fragments[0]);
+// Modify the first decision to be a promotion with tampered identity
+tamperedFragment.decisions[0] = {
+  workItemId: tamperedFragment.decisions[0].workItemId,
+  disposition: 'promote',
+  mappingEntry: {
+    sourceModelObjectId: 'tampered-id',
+    sourceOccurrenceId: 'occ:999',
+    sourceGeometryObjectIds: []
+  }
+};
+tamperedFragment.fragmentId = await calculateFragmentId(tamperedFragment);
+try {
+  await assembleFragments(family.worklist, bundle, [tamperedFragment, ...fragments.slice(1)]);
+  assert.fail('Should block tampered identity');
+} catch (error) {
+  assert.equal(error.status, 'BLOCKED_ASSEMBLER_IDENTITY_TAMPERING');
+}
+
 console.log('test-mapping-fragment-assembler: PASS');
