@@ -1,9 +1,9 @@
 import { canonicalJson } from './canonical-json.js';
-import { validateConnectivity } from './connectivity.js';
+import { validateConnectivity, validateConnectivityV2 } from './connectivity.js';
 import { validateMappingManifest } from './mapping-validator.js';
-import { resolveEntryPorts } from './port-resolver.js';
+import { resolveEntryPorts, resolveEntryPortsV2 } from './port-resolver.js';
 import { projectSourceGraphV1 } from './source-graph-v1-compat.js';
-import { writeNativeStagedJson } from './staged-writer.js';
+import { writeNativeStagedJson, writeNativeStagedJsonV2 } from './staged-writer.js';
 
 function baseName(name) {
   return String(name || 'model.fbx').replace(/\.[^.]+$/, '');
@@ -43,6 +43,8 @@ function mappingLedger(mapping, resolvedByEntry, links) {
       sourceModelObjectId: entry.sourceModelObjectId,
       sourceOccurrenceId: entry.sourceOccurrenceId,
       componentType: entry.componentType,
+      ...(entry.sourceGeometryObjectIds ? { sourceGeometryObjectIds: [...entry.sourceGeometryObjectIds] } : {}),
+      ...(entry.engineering ? { engineering: structuredClone(entry.engineering) } : {}),
       ports: resolvedByEntry.get(entry.mappingEntryId),
     })),
     explicitConnections: links.map((link) => link.endpoints),
@@ -78,6 +80,40 @@ function compatibilityGraph(stem, graph) {
   }
 }
 
+function executeMapping(mapping, graph, compatibility) {
+  const v2 = mapping.schema === 'FbxStagedMapping.v2';
+  const authorityGraph = v2 ? graph : compatibility;
+  const accepted = validateMappingManifest(mapping, authorityGraph);
+  const resolve = v2 ? resolveEntryPortsV2 : resolveEntryPorts;
+  const resolvedByEntry = new Map(accepted.entries.map((entry) => [
+    entry.mappingEntryId, resolve(entry, authorityGraph),
+  ]));
+  const links = v2
+    ? validateConnectivityV2(accepted.entries, resolvedByEntry)
+    : validateConnectivity(accepted.entries, resolvedByEntry);
+  const staged = v2
+    ? writeNativeStagedJsonV2(accepted.entries, resolvedByEntry, links)
+    : writeNativeStagedJson(accepted.entries, resolvedByEntry, links);
+  return { accepted, resolvedByEntry, links, staged, v2 };
+}
+
+function successCounts(execution) {
+  if (!execution.v2) return {
+    promotedPipes: execution.accepted.entries.length,
+    explicitConnections: execution.links.length,
+    branches: execution.staged.length,
+  };
+  const byFamily = Object.fromEntries(['PIPE', 'ELBOW', 'TEE', 'REDUCER', 'FLANGE', 'VALVE'].map((type) => [
+    type, execution.accepted.entries.filter((entry) => entry.componentType === type).length,
+  ]));
+  return {
+    promotedComponents: execution.accepted.entries.length,
+    promotedByFamily: byFamily,
+    explicitConnections: execution.links.length,
+    branches: execution.staged.length,
+  };
+}
+
 export async function convertFbxToStagedJson({ bytes, inputName, mapping, mappingError, parse }) {
   const stem = baseName(inputName);
   let graph;
@@ -92,18 +128,9 @@ export async function convertFbxToStagedJson({ bytes, inputName, mapping, mappin
   if (mappingError) return blockedResult(stem, graph, 'BLOCKED_MAPPING', [mappingError]);
   if (!mapping) return blockedResult(stem, graph, 'BLOCKED_MAPPING', ['Mapping manifest is required.']);
   try {
-    const accepted = validateMappingManifest(mapping, compatibility.graph);
-    const resolvedByEntry = new Map(accepted.entries.map((entry) => [
-      entry.mappingEntryId, resolveEntryPorts(entry, compatibility.graph),
-    ]));
-    const links = validateConnectivity(accepted.entries, resolvedByEntry);
-    const ledger = mappingLedger(accepted, resolvedByEntry, links);
-    const staged = writeNativeStagedJson(accepted.entries, resolvedByEntry, links);
-    return successResult(stem, graph, ledger, staged, {
-      promotedPipes: accepted.entries.length,
-      explicitConnections: links.length,
-      branches: staged.length,
-    });
+    const execution = executeMapping(mapping, graph, compatibility.graph);
+    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry, execution.links);
+    return successResult(stem, graph, ledger, execution.staged, successCounts(execution));
   } catch (error) {
     const diagnostic = error instanceof Error ? error.message : String(error);
     return blockedResult(stem, graph, blockedStatus(diagnostic), [diagnostic]);

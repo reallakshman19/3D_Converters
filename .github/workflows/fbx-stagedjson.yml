@@ -47,11 +47,14 @@ jobs:
         run: |
           bash scripts/fbx/build-ufbx-wasm.sh
           python3 scripts/fbx/generate-fixture.py
+          python3 scripts/fbx/generate-family-fixture.py
           git diff --exit-code -- \
             third_party/ufbx/fbx_parser.wasm \
             tests/fixtures/fbx/two-pipes.fbx \
             tests/fixtures/fbx/axis-geometric.fbx \
-            tests/fixtures/fbx/all-categories.fbx
+            tests/fixtures/fbx/all-categories.fbx \
+            tests/fixtures/fbx/component-families.fbx \
+            tests/fixtures/fbx/component-families.fbxmap.json
       - name: Run FBX certification
         env:
           FBX_SCHEMA_PYTHON: .venv-fbx-schema/bin/python
@@ -59,6 +62,8 @@ jobs:
           node tests/fbx/run-all.mjs
           node tests/fbx/test-source-graph-v2.mjs
           node tests/fbx/test-v1-compatibility.mjs
+          node tests/fbx/test-family-mapping.mjs
+          node tests/fbx/test-family-parser.mjs
           node tests/fbx/test-determinism.mjs
           node tests/fbx/test-provenance.mjs
           node tests/fbx/test-registry.mjs
