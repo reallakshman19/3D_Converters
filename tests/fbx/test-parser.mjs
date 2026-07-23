@@ -6,7 +6,7 @@ import { fixtureBytes } from './helpers.mjs';
 
 const bytes = await fixtureBytes();
 const graph = await parseFbxBytesNode(bytes);
-assert.equal(graph.schema, 'FbxSourceGraph.v1');
+assert.equal(graph.schema, 'FbxSourceGraph.v2');
 assert.equal(graph.file.version, 7400);
 assert.equal(graph.file.ascii, false);
 assert.equal(graph.globalSettings.unitMeters, 0.01);
@@ -15,15 +15,29 @@ const objectIds = new Set(graph.sourceObjects.map((item) => item.sourceObjectId)
 for (const id of ['101', '102', '200', '201', '202']) assert.ok(objectIds.has(id), `missing source ID ${id}`);
 const pipeModel = graph.sourceObjects.find((item) => item.sourceObjectId === '201');
 const pipeGeometry = graph.sourceObjects.find((item) => item.sourceObjectId === '101');
-assert.deepEqual(
-  { class: pipeModel.class, subtype: pipeModel.subtype, name: pipeModel.name },
-  { class: 'NODE', subtype: 'MESH', name: 'PipeOne' },
-);
-assert.deepEqual(
-  { class: pipeGeometry.class, subtype: pipeGeometry.subtype, name: pipeGeometry.name },
-  { class: 'MESH', subtype: 'MESH', name: 'PipeOne' },
-);
-assert.ok(graph.unsupportedRecords.every((item) => item.sourceObjectId && item.class));
+assert.deepEqual({
+  type: pipeModel.ufbxElementType,
+  domClass: pipeModel.domClass,
+  domSubtype: pipeModel.domSubtype,
+  domSourceName: pipeModel.domSourceName,
+  displayName: pipeModel.displayName,
+  nodeAttributeType: pipeModel.nodeAttributeType,
+}, {
+  type: 'NODE', domClass: 'Model', domSubtype: 'Mesh',
+  domSourceName: 'Model::PipeOne', displayName: 'Model::PipeOne', nodeAttributeType: 'MESH',
+});
+assert.deepEqual({
+  type: pipeGeometry.ufbxElementType,
+  domClass: pipeGeometry.domClass,
+  domSubtype: pipeGeometry.domSubtype,
+  domSourceName: pipeGeometry.domSourceName,
+  displayName: pipeGeometry.displayName,
+}, {
+  type: 'MESH', domClass: 'Geometry', domSubtype: 'Mesh',
+  domSourceName: 'Geometry::PipeOne', displayName: 'Geometry::PipeOne',
+});
+assert.ok(graph.sourceObjects.every((item) => item.ufbxElementType !== 'OTHER'));
+assert.ok(graph.unsupportedRecords.every((item) => item.sourceObjectId && item.domClass));
 
 const occurrenceIds = new Set(graph.occurrences.map((item) => item.sourceOccurrenceId));
 assert.ok(occurrenceIds.has('occ:201'));
@@ -52,7 +66,6 @@ await assert.rejects(() => parseFbxBytesNode(bytes.slice(0, 100)), /truncated|fa
 const malformed = bytes.slice();
 malformed.fill(0, 0, 24);
 await assert.rejects(() => parseFbxBytesNode(malformed), /format|failed|rejected/i);
-
 const unsupported = bytes.slice();
 new DataView(unsupported.buffer).setUint32(23, 8000, true);
 await assert.rejects(() => parseFbxBytesNode(unsupported), /version|failed|unsupported/i);

@@ -22,8 +22,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install pinned compiler family
-        run: sudo apt-get update && sudo apt-get install -y clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32
+      - name: Install pinned compiler and schema validator environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-18 \
+            lld-18 \
+            wasi-libc \
+            libclang-rt-18-dev-wasm32 \
+            python3-venv
+          python3 -m venv .venv-fbx-schema
+          .venv-fbx-schema/bin/python -m pip install \
+            --disable-pip-version-check \
+            --requirement scripts/fbx/schema-validator-requirements.txt
+          .venv-fbx-schema/bin/python - <<'PY'
+          from jsonschema import Draft202012Validator
+          from referencing import Registry, Resource
+          print('FBX schema validator dependencies: PASS')
+          PY
       - name: Rebuild committed parser and fixtures
         env:
           CC: clang-18
@@ -31,10 +47,19 @@ jobs:
         run: |
           bash scripts/fbx/build-ufbx-wasm.sh
           python3 scripts/fbx/generate-fixture.py
-          git diff --exit-code -- third_party/ufbx/fbx_parser.wasm tests/fixtures/fbx/two-pipes.fbx tests/fixtures/fbx/axis-geometric.fbx
+          git diff --exit-code -- \
+            third_party/ufbx/fbx_parser.wasm \
+            tests/fixtures/fbx/two-pipes.fbx \
+            tests/fixtures/fbx/axis-geometric.fbx \
+            tests/fixtures/fbx/all-categories.fbx
       - name: Run FBX certification
+        env:
+          FBX_SCHEMA_PYTHON: .venv-fbx-schema/bin/python
         run: |
           node tests/fbx/run-all.mjs
+          node tests/fbx/test-source-graph-v2.mjs
+          node tests/fbx/test-v1-compatibility.mjs
           node tests/fbx/test-determinism.mjs
+          node tests/fbx/test-provenance.mjs
           node tests/fbx/test-registry.mjs
           node tests/fbx/test-static-guards.mjs
