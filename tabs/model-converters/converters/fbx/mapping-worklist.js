@@ -83,6 +83,21 @@ function canonicalSourceGraph(graph) {
   }
 }
 
+function bindingDetail(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return error instanceof BindingFailure ? message.replace(`${error.status} `, '') : message;
+}
+
+async function observedSource(bytes) {
+  try { return await observeSource(bytes); }
+  catch (error) {
+    if (error instanceof BindingFailure) {
+      fail('BLOCKED_WORKLIST_SOURCE_BINDING', bindingDetail(error), error.evidence);
+    }
+    throw error;
+  }
+}
+
 function typeEvidence(source) {
   return {
     ufbxElementId: source.ufbxElementId,
@@ -210,7 +225,7 @@ export async function buildMappingWorklist({ bytes, graph, parserEvidence }) {
   const draft = {
     schema: 'FbxMappingWorklist.v1',
     worklistId: '0'.repeat(64),
-    source: await observeSource(bytes),
+    source: await observedSource(bytes),
     parser: structuredClone(parserEvidence),
     sourceGraph: { schema: canonicalGraph.schema, canonicalSha256: await canonicalDigest(canonicalGraph) },
     scopePolicy: scopePolicy(),
@@ -249,7 +264,7 @@ export function validateMappingWorklistShape(value) {
 }
 
 function mapBindingError(error, status) {
-  if (error instanceof BindingFailure) fail(status, error.message, error.evidence);
+  if (error instanceof BindingFailure) fail(status, bindingDetail(error), error.evidence);
   throw error;
 }
 
@@ -257,8 +272,11 @@ export async function verifyMappingWorklist({ bytes, graph, parserEvidence, work
   validateMappingWorklistShape(worklist);
   const observedId = await calculateWorklistId(worklist);
   if (observedId !== worklist.worklistId) fail('BLOCKED_WORKLIST_CONTRACT', 'worklistId is stale or tampered.');
-  try { verifySourceBinding(worklist, await observeSource(bytes)); }
-  catch (error) { mapBindingError(error, 'BLOCKED_WORKLIST_SOURCE_BINDING'); }
+  try { verifySourceBinding(worklist, await observedSource(bytes)); }
+  catch (error) {
+    if (error instanceof WorklistFailure) throw error;
+    mapBindingError(error, 'BLOCKED_WORKLIST_SOURCE_BINDING');
+  }
   try { verifyParserBinding(worklist, parserEvidence); }
   catch (error) { mapBindingError(error, 'BLOCKED_WORKLIST_PARSER_BINDING'); }
   try { await verifySourceGraphBinding(worklist, canonicalSourceGraph(graph)); }
