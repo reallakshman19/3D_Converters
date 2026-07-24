@@ -10,8 +10,9 @@ function usage() {
 }
 
 function positiveInteger(value, label) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isInteger(parsed) || parsed < 1) throw new Error(`${label} must be a positive integer.`);
+  if (!/^[1-9]\d*$/.test(String(value))) throw new Error(`${label} must be a positive integer.`);
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) throw new Error(`${label} must be a positive integer.`);
   return parsed;
 }
 
