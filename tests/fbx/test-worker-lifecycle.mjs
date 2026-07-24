@@ -8,7 +8,15 @@ import {
   makeProgress,
 } from '../../tabs/model-converters/converters/fbx/worker-protocol.js';
 
-const graph = { schema: 'FbxSourceGraph.v2' };
+const graph = {
+  schema: 'FbxSourceGraph.v2',
+  file: { version: 7400, ascii: false, creator: '' },
+  documentMetadata: { originalApplication: '', latestApplication: '' },
+  globalSettings: { unitMeters: 1, axes: { right: 0, up: 1, front: 2 } },
+  sourceObjects: [], occurrences: [], geometries: [], hierarchyEdges: [],
+  connectionEdges: [], warnings: [], unsupportedRecords: [], unresolvedReferences: [],
+  duplicateSourceObjectIds: [],
+};
 
 function trackingSignal() {
   let listener = null;
@@ -51,6 +59,26 @@ assert.equal(signal.removeCount, 1);
 assert.equal(successWorker.onmessage, null);
 assert.equal(successWorker.onerror, null);
 assert.equal(successWorker.onmessageerror, null);
+
+function malformedCompletionWorker() {
+  return {
+    onmessage: null, onerror: null, onmessageerror: null,
+    terminate() {},
+    postMessage(job) {
+      queueMicrotask(() => {
+        this.onmessage?.({ data: makeAccepted(job) });
+        FBX_WORKER_STAGES.slice(0, -1).forEach((stage, ordinal) => {
+          this.onmessage?.({ data: makeProgress(job.jobId, stage, ordinal) });
+        });
+        this.onmessage?.({ data: makeComplete(job.jobId, { schema: 'FbxSourceGraph.v2' }, {}) });
+      });
+    },
+  };
+}
+await assert.rejects(
+  () => parseFbxInWorker(new Uint8Array([1]), { workerFactory: malformedCompletionWorker, timeoutMs: 100 }),
+  (error) => error.code === FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+);
 
 function wrongIdWorker() {
   return {
