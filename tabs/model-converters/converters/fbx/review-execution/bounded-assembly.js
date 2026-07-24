@@ -1,5 +1,5 @@
 import { createReadStream, createWriteStream } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { calculateBundleId, calculateShardId } from '../mapping-review-bundle.js';
@@ -109,31 +109,33 @@ function assertPromotionIdentity(item, decision) {
   }
 }
 
-async function validatedDecisions(fragmentPath, header) {
-  const fragment = await parseDecisionFragment(await readJson(fragmentPath));
-  const set = await createDecisionSet({ worklist: header, decisions: fragment.decisions });
-  const byId = new Map();
-  for (const decision of set.decisions) {
-    if (byId.has(decision.workItemId)) failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Duplicate decision ${decision.workItemId}.`);
-    byId.set(decision.workItemId, decision);
+function indexShardDecisions(items, fragment, shardId) {
+  if (fragment.decisions.length !== items.length) {
+    failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Fragment ${shardId} missing decisions.`);
   }
-  return byId;
+  const itemsById = new Map(items.map((item) => [item.workItemId, item]));
+  const decisions = new Map();
+  for (const decision of fragment.decisions) {
+    const item = itemsById.get(decision.workItemId);
+    if (!item) failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Fragment ${shardId} has unexpected item ${decision.workItemId}.`);
+    assertPromotionIdentity(item, decision);
+    decisions.set(decision.workItemId, decision);
+  }
+  return decisions;
 }
 
-async function spoolDecisions(worklist, expected, fragments, path, checkCancellation) {
+async function spoolRawDecisions(worklist, expected, fragments, path, checkCancellation) {
   const stream = createWriteStream(path, { encoding: 'utf8', flags: 'wx' });
   let decisionIndex = 0;
   try {
     await eachWorkItemChunk(worklist.sortedItemsPath, expected.maxItemsPerShard, async (items, ordinal) => {
       checkCancellation();
       const meta = expected.shards[ordinal];
-      const decisions = await validatedDecisions(fragments.get(meta.shardId), worklist.header);
-      if (decisions.size !== items.length) failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Fragment ${meta.shardId} has incorrect decision coverage.`);
+      const fragment = await parseDecisionFragment(await readJson(fragments.get(meta.shardId)));
+      const decisions = indexShardDecisions(items, fragment, meta.shardId);
       for (const item of items) {
-        checkCancellation();
         const decision = decisions.get(item.workItemId);
         if (!decision) failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Missing decision ${item.workItemId}.`);
-        assertPromotionIdentity(item, decision);
         await appendCanonicalArrayItem(stream, decision, decisionIndex++);
       }
     }, checkCancellation);
@@ -141,6 +143,45 @@ async function spoolDecisions(worklist, expected, fragments, path, checkCancella
     await closeWritable(stream);
   }
   return decisionIndex;
+}
+
+async function writeNormalized(stream, decisions, header, offset) {
+  const set = await createDecisionSet({ worklist: header, decisions });
+  let index = offset;
+  for (const decision of set.decisions) await appendCanonicalArrayItem(stream, decision, index++);
+  return index;
+}
+
+async function normalizeDecisions(rawPath, outputPath, header, maxItems, checkCancellation) {
+  const lines = createInterface({ input: createReadStream(rawPath, { encoding: 'utf8' }), crlfDelay: Infinity });
+  const stream = createWriteStream(outputPath, { encoding: 'utf8', flags: 'wx' });
+  let decisions = [];
+  let index = 0;
+  try {
+    for await (const line of lines) {
+      checkCancellation();
+      decisions.push(JSON.parse(line));
+      if (decisions.length === maxItems) {
+        index = await writeNormalized(stream, decisions, header, index);
+        decisions = [];
+      }
+    }
+    if (decisions.length > 0) index = await writeNormalized(stream, decisions, header, index);
+  } finally {
+    await closeWritable(stream);
+  }
+  return index;
+}
+
+async function spoolDecisions(worklist, expected, fragments, path, checkCancellation) {
+  const rawPath = `${path}.raw`;
+  const rawCount = await spoolRawDecisions(worklist, expected, fragments, rawPath, checkCancellation);
+  const count = await normalizeDecisions(
+    rawPath, path, worklist.header, expected.maxItemsPerShard, checkCancellation,
+  );
+  await rm(rawPath, { force: true });
+  if (count !== rawCount) failAssembler('BLOCKED_FRAGMENT_COVERAGE', 'Decision normalization changed coverage.');
+  return count;
 }
 
 export async function assembleBoundedFragments({
