@@ -11,12 +11,13 @@ import { calculateFragmentId } from '../../tabs/model-converters/converters/fbx/
 import { buildBoundedReviewBundle } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-bundle.js';
 import { assembleBoundedFragments } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-assembly.js';
 import {
-  publishDirectory, withPrivateWorkspace,
+  assertAbsentFile, commitDirectoryPublication, prepareDirectoryTarget,
+  publishFile, withPrivateWorkspace,
 } from '../../tabs/model-converters/converters/fbx/review-execution/atomic-publication.js';
 import {
   closeWritable, writeChunk,
 } from '../../tabs/model-converters/converters/fbx/review-execution/canonical-spool.js';
-import { worklistFixture } from './worklist-helpers.mjs';
+import { createSyntheticWorklist } from './review-scale-helpers.mjs';
 
 async function assertAbsent(path) {
   await assert.rejects(access(path), (error) => error.code === 'ENOENT');
@@ -81,15 +82,34 @@ async function assertWriteFailureCleanup(root) {
   await assertNoWorkspace(root, target);
 }
 
-async function assertPublicationFailureCleanup(root) {
-  const target = join(root, 'publication-target');
+async function assertDirectoryPublicationRaceCleanup(root) {
+  const target = join(root, 'publication-directory-target');
   await assert.rejects(withPrivateWorkspace(target, async (workspace) => {
     const staged = join(workspace, 'staged');
     await mkdir(staged);
-    await writeFile(join(staged, 'manifest.json'), 'mission partial');
+    await writeFile(join(staged, 'manifest.json'), 'mission artifact');
+    await mkdir(target);
+    await prepareDirectoryTarget(target);
+    await mkdir(target);
+    await writeFile(join(target, 'sentinel.txt'), 'external sentinel');
+    await commitDirectoryPublication(staged, target);
+  }), (error) => error.code === 'ENOTEMPTY' || error.code === 'EEXIST');
+  assert.equal(await readFile(join(target, 'sentinel.txt'), 'utf8'), 'external sentinel');
+  await assertAbsent(join(target, 'manifest.json'));
+  assert.deepEqual(await readdir(target), ['sentinel.txt']);
+  await assertNoWorkspace(root, target);
+  await rm(target, { recursive: true, force: true });
+}
+
+async function assertFilePublicationRaceCleanup(root) {
+  const target = join(root, 'publication-file-target.json');
+  await assert.rejects(withPrivateWorkspace(target, async (workspace) => {
+    const staged = join(workspace, 'staged.json');
+    await writeFile(staged, 'mission artifact');
+    await assertAbsentFile(target);
     await writeFile(target, 'external sentinel');
-    await publishDirectory(staged, target);
-  }), /not a directory/);
+    await publishFile(staged, target);
+  }), (error) => error.code === 'EEXIST');
   assert.equal(await readFile(target, 'utf8'), 'external sentinel');
   await assertNoWorkspace(root, target);
   await rm(target, { force: true });
@@ -183,7 +203,8 @@ function exclusionFragment(bundle, shard) {
 
 const root = await mkdtemp(join(tmpdir(), 'f2s007-failures-'));
 try {
-  const family = await worklistFixture('family');
+  const corpus = await createSyntheticWorklist(root, 8);
+  const family = { worklist: JSON.parse(await readFile(corpus.worklistPath, 'utf8')) };
   const duplicate = structuredClone(family.worklist);
   duplicate.workItems.push(structuredClone(duplicate.workItems[0]));
   duplicate.worklistId = '0'.repeat(64);
@@ -221,7 +242,8 @@ try {
   await assertNoWorkspace(root, outputPath);
   await assertCancellationCleanup(root);
   await assertWriteFailureCleanup(root);
-  await assertPublicationFailureCleanup(root);
+  await assertDirectoryPublicationRaceCleanup(root);
+  await assertFilePublicationRaceCleanup(root);
   assert.ok((await readFile(worklistPath)).length > 0);
   await assertStaticGuards();
 } finally {
