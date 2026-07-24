@@ -49,12 +49,15 @@ async function writeLine(stream, value) {
   if (!stream.write(`${JSON.stringify(value)}\n`, 'utf8')) await once(stream, 'drain');
 }
 
-async function validateRetained(path, fields) {
+async function validateRetained(path, fields, checkCancellation) {
   const lines = createInterface({ input: createReadStream(path, { encoding: 'utf8' }), crlfDelay: Infinity });
-  for await (const line of lines) validateSingleton(fields, 'retainedEvidence', JSON.parse(line));
+  for await (const line of lines) {
+    checkCancellation();
+    validateSingleton(fields, 'retainedEvidence', JSON.parse(line));
+  }
 }
 
-function createState(workspace, sortRunItems) {
+function createState(workspace, sortRunItems, checkCancellation) {
   const arrays = {
     workItems: join(workspace, 'work-items-input.canonical'),
     retainedEvidence: join(workspace, 'retained-input.canonical'),
@@ -62,21 +65,22 @@ function createState(workspace, sortRunItems) {
   const streams = Object.fromEntries(Object.entries(arrays).map(([key, path]) => [key, createWriteStream(path, { flags: 'wx' })]));
   const retainedPath = join(workspace, 'retained-raw.ndjson');
   return {
-    arrays, streams, retainedPath,
+    arrays, streams, retainedPath, checkCancellation,
     retainedStream: createWriteStream(retainedPath, { flags: 'wx' }),
     counts: { workItems: 0, retainedEvidence: 0 },
     itemSorter: new ExternalJsonSorter({
       directory: join(workspace, 'work-item-runs'), prefix: 'work-items', maxRecords: sortRunItems,
-      keyOf: (item) => item.workItemId,
+      keyOf: (item) => item.workItemId, checkCancellation,
     }),
     identitySorter: new ExternalJsonSorter({
       directory: join(workspace, 'identity-runs'), prefix: 'identities', maxRecords: sortRunItems * 2,
-      keyOf: (record) => record.key,
+      keyOf: (record) => record.key, checkCancellation,
     }),
   };
 }
 
 async function consumeArrayItem(state, key, item, index) {
+  state.checkCancellation();
   await appendCanonicalArrayItem(state.streams[key], item, index);
   state.counts[key] += 1;
   if (key === 'workItems') await state.itemSorter.add(item);
@@ -90,6 +94,7 @@ async function parseWorklist(path, state, inputChunkBytes) {
       chunkBytes: inputChunkBytes,
       arrayKeys: ['workItems', 'retainedEvidence'],
       onArrayItem: (key, item, index) => consumeArrayItem(state, key, item, index),
+      checkCancellation: state.checkCancellation,
     });
   } finally {
     await Promise.all([...Object.values(state.streams), state.retainedStream].map(closeWritable));
@@ -119,20 +124,23 @@ function staleIdFailure(kind) {
 }
 
 export async function streamValidatedWorklist({
-  worklistPath, workspace, sortRunItems = 5000, inputChunkBytes = 64 * 1024, failureKind = 'bundle',
+  worklistPath, workspace, sortRunItems = 5000, inputChunkBytes = 64 * 1024,
+  failureKind = 'bundle', checkCancellation = () => {},
 }) {
-  const state = createState(workspace, sortRunItems);
+  const state = createState(workspace, sortRunItems, checkCancellation);
   const parsed = await parseWorklist(worklistPath, state, inputChunkBytes);
+  checkCancellation();
   exactTopLevelKeys(parsed.seenKeys);
   const fields = parsed.fields;
   validateMappingWorklistShape({ ...fields, workItems: [], retainedEvidence: [] });
-  await validateRetained(state.retainedPath, fields);
+  await validateRetained(state.retainedPath, fields, checkCancellation);
   const observedId = await digestWorklistPayload(fields, state.arrays, state.counts);
   if (observedId !== fields.worklistId) staleIdFailure(failureKind);
   const [sorted, identities] = await Promise.all([
     finishItemSort(state, workspace, fields),
     finishIdentitySort(state, workspace),
   ]);
+  checkCancellation();
   return {
     header: fields,
     workItemCount: state.counts.workItems,
