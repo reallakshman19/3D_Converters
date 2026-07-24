@@ -47,6 +47,13 @@ const ERROR_STAGE_BY_CODE = Object.freeze({
   [FBX_WORKER_ERROR_CODES.RESULT_DECODE_FAILED]: 'decoding-result',
   [FBX_WORKER_ERROR_CODES.SOURCE_GRAPH_POLICY_FAILED]: 'enforcing-source-policy',
 });
+const SOURCE_GRAPH_KEYS = Object.freeze([
+  'schema', 'file', 'documentMetadata', 'globalSettings',
+  'sourceObjects', 'occurrences', 'geometries', 'hierarchyEdges',
+  'connectionEdges', 'warnings', 'unsupportedRecords',
+  'unresolvedReferences', 'duplicateSourceObjectIds',
+]);
+const SOURCE_GRAPH_ARRAY_KEYS = Object.freeze(SOURCE_GRAPH_KEYS.slice(4));
 const JOB_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
 function isRecord(value) {
@@ -115,19 +122,36 @@ export function assertProgressMessage(value, receivedStages) {
   return value;
 }
 
+function assertSourceGraphEnvelope(graph) {
+  if (!isRecord(graph) || graph.schema !== 'FbxSourceGraph.v2') {
+    throw protocolError('Completion graph is not FbxSourceGraph.v2.');
+  }
+  const keys = Object.keys(graph);
+  if (keys.length !== SOURCE_GRAPH_KEYS.length || keys.some((key) => !SOURCE_GRAPH_KEYS.includes(key))) {
+    throw protocolError('Completion graph top-level fields are invalid.');
+  }
+  if (!isRecord(graph.file) || !isRecord(graph.documentMetadata) || !isRecord(graph.globalSettings)) {
+    throw protocolError('Completion graph metadata is invalid.');
+  }
+  for (const key of SOURCE_GRAPH_ARRAY_KEYS) {
+    if (!Array.isArray(graph[key])) throw protocolError(`Completion graph ${key} must be an array.`);
+  }
+}
+
 export function assertCompleteMessage(value, receivedStages) {
   const required = FBX_WORKER_STAGES.slice(0, -1);
   if (value.stage !== 'complete') throw protocolError('Completion stage is invalid.');
   if (receivedStages.length !== required.length) throw protocolError('Completion arrived before all required stages.');
-  if (!isRecord(value.graph) || value.graph.schema !== 'FbxSourceGraph.v2') {
-    throw protocolError('Completion graph is not FbxSourceGraph.v2.');
-  }
+  assertSourceGraphEnvelope(value.graph);
+  if (!isRecord(value.diagnostics)) throw protocolError('Completion diagnostics are invalid.');
   return value;
 }
 
 export function assertErrorMessage(value, receivedStages) {
   if (!KNOWN_CODES.has(value.code)) throw protocolError('Worker error code is invalid.');
   if (!boundedText(value.message, 2048)) throw protocolError('Worker error message is invalid.');
+  if (value.detail !== null && !boundedText(value.detail, 4096)) throw protocolError('Worker error detail is invalid.');
+  if (value.diagnostics !== null && !isRecord(value.diagnostics)) throw protocolError('Worker error diagnostics are invalid.');
   if (!Array.isArray(value.progressStages)) throw protocolError('Worker error progress history is invalid.');
   if (value.progressStages.length !== receivedStages.length) throw protocolError('Worker error progress history is inconsistent.');
   for (let i = 0; i < receivedStages.length; i += 1) {
