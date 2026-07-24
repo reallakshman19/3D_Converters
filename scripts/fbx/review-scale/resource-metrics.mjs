@@ -45,13 +45,16 @@ function ioDelta(before, after, key) {
   return Math.max(0, (after[key] || 0) - (before[key] || 0));
 }
 
-async function sampleState(state) {
+async function sampleMemory(state) {
   const memory = process.memoryUsage();
   state.peaks.rss = Math.max(state.peaks.rss, memory.rss);
   state.peaks.heap = Math.max(state.peaks.heap, memory.heapUsed);
-  state.peaks.disk = Math.max(state.peaks.disk, await pathSize(state.monitorRoot));
   const fds = await fileDescriptorCount();
   if (fds !== null) state.peaks.fds = Math.max(state.peaks.fds, fds);
+}
+
+async function sampleDisk(state) {
+  state.peaks.disk = Math.max(state.peaks.disk, await pathSize(state.monitorRoot));
 }
 
 function resourceResult(state, endingIo) {
@@ -70,30 +73,39 @@ function resourceResult(state, endingIo) {
   };
 }
 
-function scheduleSampling(state, intervalMs) {
+function scheduleSampler(state, key, intervalMs, sampler) {
   const timer = setInterval(() => {
-    if (!state.active || state.pending) return;
-    state.pending = sampleState(state).finally(() => { state.pending = null; });
+    if (!state.active || state[key]) return;
+    state[key] = sampler(state).finally(() => { state[key] = null; });
   }, intervalMs);
   timer.unref();
   return timer;
 }
 
-export async function startResourceSampler(monitorRoot, intervalMs = 250) {
+async function stopSampling(state) {
+  state.active = false;
+  for (const timer of state.timers) clearInterval(timer);
+  await Promise.all([state.memoryPending, state.diskPending].filter(Boolean));
+  await Promise.all([sampleMemory(state), sampleDisk(state)]);
+}
+
+export async function startResourceSampler(monitorRoot, options = {}) {
+  const memoryIntervalMs = options.memoryIntervalMs || 100;
+  const diskIntervalMs = options.diskIntervalMs || 2000;
   const baselineDisk = await pathSize(monitorRoot);
   const state = {
     monitorRoot, baselineDisk, startingIo: await procIo(),
     startingCpu: process.cpuUsage(), started: process.hrtime.bigint(),
     peaks: { rss: 0, heap: 0, disk: baselineDisk, fds: 0 },
-    active: true, pending: null, timer: null,
+    active: true, memoryPending: null, diskPending: null, timers: [],
   };
-  state.timer = scheduleSampling(state, intervalMs);
-  await sampleState(state);
+  state.timers = [
+    scheduleSampler(state, 'memoryPending', memoryIntervalMs, sampleMemory),
+    scheduleSampler(state, 'diskPending', diskIntervalMs, sampleDisk),
+  ];
+  await Promise.all([sampleMemory(state), sampleDisk(state)]);
   return async function stop() {
-    state.active = false;
-    clearInterval(state.timer);
-    if (state.pending) await state.pending;
-    await sampleState(state);
+    await stopSampling(state);
     return resourceResult(state, await procIo());
   };
 }
