@@ -104,6 +104,7 @@ for (const mutate of [
   (value) => { value.occurrences.push(structuredClone(value.occurrences[0])); },
   (value) => { value.occurrences[0].geometryObjectIds = ['999']; },
   (value) => { value.duplicateSourceObjectIds = ['1']; },
+  (value) => { value.unsupportedRecords = [{ sourceObjectId: '2', ufbxElementType: 'MESH', ufbxElementTypeValue: 2, domClass: 'Geometry', domSubtype: 'Mesh', domSourceName: 'Geometry::2', sourceRecordDisposition: 'retained-evidence' }]; },
 ]) {
   const malformed = structuredClone(validNested);
   mutate(malformed);
