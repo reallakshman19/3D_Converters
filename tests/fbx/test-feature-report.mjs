@@ -68,4 +68,16 @@ assert.ok(report.blockedCapabilities.some((item) => item.featureId === 'material
 assert.throws(() => buildFbxFeatureReport({ graph, sourceIdentity:{...sourceIdentity,fbxVersion:7500}, parserIdentity }), /does not match/);
 assert.throws(() => buildFbxFeatureReport({ graph, sourceIdentity, parserIdentity:{...parserIdentity,wasmSha256:'bad'} }), /digest/);
 const malformed = structuredClone(report); malformed.runtimeEnvironment = {}; assert.throws(() => validateFbxFeatureReport(malformed), /fields/);
+for (const mutate of [
+  (value) => { value.sourceIdentity.fbxVersion = 1; },
+  (value) => { value.features.find((item) => item.featureId === 'mesh-topology').parsed = true; },
+  (value) => { value.features.find((item) => item.featureId === 'mesh-points').stagedJsonStatus = 'supported'; },
+  (value) => { value.summary.presentFeatures += 1; },
+  (value) => { value.blockedCapabilities.pop(); },
+  (value) => { value.unknownElementTypes[0].count += 1; },
+  (value) => { value.counts.meshPointValues += 1; },
+  (value) => { value.warnings[0].count = 0; },
+]) {
+  const value = structuredClone(report); mutate(value); assert.throws(() => validateFbxFeatureReport(value));
+}
 console.log('test-feature-report: PASS');
