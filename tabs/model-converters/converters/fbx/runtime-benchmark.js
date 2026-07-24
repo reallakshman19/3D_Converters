@@ -14,10 +14,10 @@ export class FbxRuntimeBenchmarkError extends Error {
   constructor(code, message) { super(`${code} ${message}`); this.name = 'FbxRuntimeBenchmarkError'; this.code = code; }
 }
 function fail(code, message) { throw new FbxRuntimeBenchmarkError(code, message); }
-function exactKeys(value, keys, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) fail('BENCHMARK_CONTRACT_INVALID', `${label} must be an object.`);
+function exactKeys(value, keys, label, code = 'BENCHMARK_CONTRACT_INVALID') {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) fail(code, `${label} must be an object.`);
   const actual = Object.keys(value).sort(), expected = [...keys].sort();
-  if (actual.join('\0') !== expected.join('\0')) fail('BENCHMARK_CONTRACT_INVALID', `${label} fields are invalid.`);
+  if (actual.join('\0') !== expected.join('\0')) fail(code, `${label} fields are invalid.`);
 }
 function available(value) { return { status: 'available', value }; }
 function unavailable(reason) { return { status: 'unavailable', reason }; }
@@ -53,17 +53,31 @@ function validateEnvironment(value) {
   if (value.hardwareConcurrency.status === 'available' && (!Number.isSafeInteger(value.hardwareConcurrency.value) || value.hardwareConcurrency.value < 1)) fail('BENCHMARK_CONTRACT_INVALID', 'hardwareConcurrency is invalid.');
   validateAvailability(value.crossOriginIsolated, 'runtimeEnvironment.crossOriginIsolated', 'boolean');
 }
-function normalizeConfiguration(value = {}) {
-  const config = { operation: value.operation ?? OPERATION, warmupRuns: value.warmupRuns ?? 1,
-    measuredRuns: value.measuredRuns ?? 5, timeoutMs: value.timeoutMs ?? null };
-  exactKeys(config, CONFIG_KEYS, 'runConfiguration');
-  if (config.operation !== OPERATION || !Number.isSafeInteger(config.warmupRuns) || config.warmupRuns < 0) fail('BENCHMARK_CONFIGURATION_INVALID', 'Warmup configuration is invalid.');
-  if (!Number.isSafeInteger(config.measuredRuns) || config.measuredRuns < 1 || config.measuredRuns > 1000) fail('BENCHMARK_CONFIGURATION_INVALID', 'Measured run count is invalid.');
-  if (config.timeoutMs !== null && (!Number.isSafeInteger(config.timeoutMs) || config.timeoutMs < 1)) fail('BENCHMARK_CONFIGURATION_INVALID', 'timeoutMs is invalid.');
+function validateConfigurationValues(config, code) {
+  if (config.operation !== OPERATION || !Number.isSafeInteger(config.warmupRuns) || config.warmupRuns < 0) fail(code, 'Warmup configuration is invalid.');
+  if (!Number.isSafeInteger(config.measuredRuns) || config.measuredRuns < 1 || config.measuredRuns > 1000) fail(code, 'Measured run count is invalid.');
+  if (config.timeoutMs !== null && (!Number.isSafeInteger(config.timeoutMs) || config.timeoutMs < 1)) fail(code, 'timeoutMs is invalid.');
+}
+function normalizeConfiguration(value) {
+  if (value === undefined) return { operation: OPERATION, warmupRuns: 1, measuredRuns: 5, timeoutMs: null };
+  exactKeys(value, CONFIG_KEYS, 'runConfiguration', 'BENCHMARK_CONFIGURATION_INVALID');
+  const config = structuredClone(value);
+  validateConfigurationValues(config, 'BENCHMARK_CONFIGURATION_INVALID');
   return config;
+}
+function validateConfiguration(value) {
+  exactKeys(value, CONFIG_KEYS, 'runConfiguration');
+  validateConfigurationValues(value, 'BENCHMARK_CONTRACT_INVALID');
 }
 function timerMeasurement(start, end) {
   return Number.isFinite(start) && Number.isFinite(end) && end >= start ? available(roundMs(end - start)) : unavailable('CLOCK_UNAVAILABLE');
+}
+function sortedNames(value, code, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) fail(code, `${label} must be an object.`);
+  const names = Object.keys(value), ordered = [...names].sort();
+  if (names.some((name, index) => name !== ordered[index])) fail(code, `${label} names must be ASCII-sorted.`);
+  if (names.some((name) => !name || name.length > 256)) fail(code, `${label} name is invalid.`);
+  return names;
 }
 async function digestArtifacts(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('BENCHMARK_RESULT_INVALID', 'semanticArtifacts must be an object.');
@@ -109,43 +123,42 @@ function aggregateRuns(runs) {
   const values = passed.map((run) => run.durationMs).filter((item) => item.status === 'available').map((item) => item.value);
   return { successfulRuns: passed.length, failedRuns: runs.length - passed.length, durationMs: measurementAggregate(values) };
 }
+function digestKey(value) { return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))); }
 function commonDigests(runs) {
   const passed = runs.filter((run) => run.status === 'passed');
   if (!passed.length) return {};
-  const baseline = JSON.stringify(passed[0].artifactDigests);
-  if (passed.some((run) => JSON.stringify(run.artifactDigests) !== baseline)) fail('SEMANTIC_ARTIFACT_DRIFT', 'Semantic artifact digests changed between measured runs.');
-  return structuredClone(passed[0].artifactDigests);
+  const baseline = digestKey(passed[0].artifactDigests);
+  if (passed.some((run) => digestKey(run.artifactDigests) !== baseline)) fail('SEMANTIC_ARTIFACT_DRIFT', 'Semantic artifact digests changed between measured runs.');
+  return Object.fromEntries(Object.entries(passed[0].artifactDigests).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
 }
 async function runWarmups(execute, config) {
   for (let index = 0; index < config.warmupRuns; index += 1) {
     try { await executeOnce(execute, { phase: 'warmup', runIndex: index, operation: OPERATION }, config.timeoutMs); }
-    catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      fail('WARMUP_FAILED', detail);
-    }
+    catch (error) { const detail = error instanceof Error ? error.message : String(error); fail('WARMUP_FAILED', detail); }
   }
 }
 export async function benchmarkFbxRuntime({ sourceBytes, parserDigest, execute, runtimeEnvironment = observeRuntimeEnvironment(), runConfiguration, now = defaultNow }) {
   let bytes;
-  try { bytes = sourceView(sourceBytes); } catch { fail('BENCHMARK_CONFIGURATION_INVALID', 'sourceBytes must be bytes.'); }
+  try { bytes = sourceView(sourceBytes).slice(); } catch { fail('BENCHMARK_CONFIGURATION_INVALID', 'sourceBytes must be bytes.'); }
   const config = normalizeConfiguration(runConfiguration);
   if (!bytes.byteLength || !HASH.test(parserDigest) || typeof execute !== 'function' || typeof now !== 'function') fail('BENCHMARK_CONFIGURATION_INVALID', 'Benchmark inputs are invalid.');
-  validateEnvironment(runtimeEnvironment); await runWarmups(execute, config);
+  const environment = structuredClone(runtimeEnvironment); validateEnvironment(environment);
+  const sourceSha256 = await sha256Hex(bytes); await runWarmups(execute, config);
   const runs = [];
   for (let index = 0; index < config.measuredRuns; index += 1) runs.push(await measuredRun(execute, index, config, now));
-  const report = { schema: 'FbxRuntimeBenchmark.v1', sourceSha256: await sha256Hex(bytes), sourceByteLength: bytes.byteLength,
-    parserDigest, runtimeEnvironment: structuredClone(runtimeEnvironment), runConfiguration: config, runs,
+  const report = { schema: 'FbxRuntimeBenchmark.v1', sourceSha256, sourceByteLength: bytes.byteLength,
+    parserDigest, runtimeEnvironment: environment, runConfiguration: config, runs,
     aggregate: aggregateRuns(runs), semanticArtifactDigests: commonDigests(runs) };
   return deepFreeze(validateFbxRuntimeBenchmark(report));
 }
 function validateDigestMap(value, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) fail('BENCHMARK_CONTRACT_INVALID', `${label} must be an object.`);
-  for (const [key, digest] of Object.entries(value)) if (!key || !HASH.test(digest)) fail('BENCHMARK_CONTRACT_INVALID', `${label} is invalid.`);
+  const names = sortedNames(value, 'BENCHMARK_CONTRACT_INVALID', label);
+  for (const name of names) if (!HASH.test(value[name])) fail('BENCHMARK_CONTRACT_INVALID', `${label} is invalid.`);
 }
 export function validateFbxRuntimeBenchmark(value) {
   exactKeys(value, REPORT_KEYS, 'benchmark');
   if (value.schema !== 'FbxRuntimeBenchmark.v1' || !HASH.test(value.sourceSha256) || !HASH.test(value.parserDigest) || !Number.isSafeInteger(value.sourceByteLength) || value.sourceByteLength < 1) fail('BENCHMARK_CONTRACT_INVALID', 'Benchmark identity is invalid.');
-  validateEnvironment(value.runtimeEnvironment); normalizeConfiguration(value.runConfiguration);
+  validateEnvironment(value.runtimeEnvironment); validateConfiguration(value.runConfiguration);
   if (!Array.isArray(value.runs)) fail('BENCHMARK_CONTRACT_INVALID', 'runs must be an array.');
   if (value.runs.length !== value.runConfiguration.measuredRuns) fail('BENCHMARK_CONTRACT_INVALID', 'Run count differs from configuration.');
   value.runs.forEach((run, index) => {
@@ -161,6 +174,6 @@ export function validateFbxRuntimeBenchmark(value) {
   const expectedAggregate = aggregateRuns(value.runs);
   if (JSON.stringify(value.aggregate) !== JSON.stringify(expectedAggregate)) fail('BENCHMARK_CONTRACT_INVALID', 'Aggregate differs from measured runs.');
   validateDigestMap(value.semanticArtifactDigests, 'semanticArtifactDigests');
-  if (JSON.stringify(value.semanticArtifactDigests) !== JSON.stringify(commonDigests(value.runs))) fail('BENCHMARK_CONTRACT_INVALID', 'Semantic artifact digests differ from measured runs.');
+  if (digestKey(value.semanticArtifactDigests) !== digestKey(commonDigests(value.runs))) fail('BENCHMARK_CONTRACT_INVALID', 'Semantic artifact digests differ from measured runs.');
   return value;
 }
