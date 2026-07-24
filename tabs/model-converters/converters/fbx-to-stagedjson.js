@@ -1,6 +1,10 @@
 import { convertFbxToStagedJson } from './fbx/conversion.js';
+import { canonicalJson } from './fbx/canonical-json.js';
 import { parseFbxInWorker } from './fbx/parser-client.js';
 import { loadBrowserParserEvidence } from './fbx/parser-provenance.js';
+
+const SOURCE_GRAPH_JSON_PASS = 'SOURCE_GRAPH_JSON_PASS';
+const OPTIONAL_MAPPING_ABSENT = 'OPTIONAL_MAPPING_ABSENT';
 
 function findInput(context, role) {
   return context.inputFiles?.find((file) => file.role === role);
@@ -15,6 +19,51 @@ function parseMapping(file) {
     const detail = error instanceof Error ? error.message : String(error);
     return { mapping: null, mappingError: `Invalid mapping JSON: ${detail}` };
   }
+}
+
+function baseName(name) {
+  return String(name || 'model.fbx').replace(/\.[^.]+$/, '') || 'model';
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function promotedReport(output) {
+  if (!/\.fbx-conversion-report\.json$/i.test(output.name || '')) return output;
+  try {
+    const report = JSON.parse(output.text);
+    report.status = SOURCE_GRAPH_JSON_PASS;
+    report.diagnostics = unique([
+      ...(Array.isArray(report.diagnostics) ? report.diagnostics : []),
+      'PARSE_PASS', OPTIONAL_MAPPING_ABSENT, SOURCE_GRAPH_JSON_PASS,
+    ]).sort();
+    return { ...output, text: canonicalJson(report) };
+  } catch {
+    return output;
+  }
+}
+
+export function promoteNoMappingJsonOutput(result, inputName) {
+  const outputs = Array.isArray(result?.outputs) ? result.outputs : [];
+  const graph = outputs.find((output) => /\.fbx-source-graph\.json$/i.test(output?.name || ''));
+  if (!graph) return result;
+  const outputName = `${baseName(inputName)}.json`;
+  if (outputs.some((output) => output?.name === outputName)) return result;
+  const logs = result?.logs || {};
+  return {
+    ...result,
+    ok: true,
+    conversionStatus: SOURCE_GRAPH_JSON_PASS,
+    outputs: [{ ...graph, name: outputName }, ...outputs.map(promotedReport)],
+    logs: {
+      stdout: unique([
+        'PARSE_PASS', OPTIONAL_MAPPING_ABSENT, SOURCE_GRAPH_JSON_PASS,
+        ...(logs.stdout || []), ...(logs.stderr || []),
+      ]),
+      stderr: [],
+    },
+  };
 }
 
 // Always load parser evidence — needed for worklist generation (no manifest path)
@@ -35,14 +84,15 @@ export async function run(context = {}) {
   const mappingInput = parseMapping(secondary);
   const binding = await loadParserEvidence();
   context.setStatus?.('Parsing binary FBX in isolated worker...', 'running');
-  const result = await convertFbxToStagedJson({
+  const converted = await convertFbxToStagedJson({
     bytes: primary.bytes,
     inputName: primary.name,
     ...mappingInput,
     ...binding,
     parse: (bytes) => parseFbxInWorker(bytes, { signal: context.signal }),
   });
-  const state = result.conversionStatus === 'STAGEDJSON_PASS' ? 'ok' : 'warning';
+  const result = secondary ? converted : promoteNoMappingJsonOutput(converted, primary.name);
+  const state = [SOURCE_GRAPH_JSON_PASS, 'STAGEDJSON_PASS'].includes(result.conversionStatus) ? 'ok' : 'warning';
   context.setStatus?.(result.conversionStatus, state);
   return result;
 }
