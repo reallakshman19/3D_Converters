@@ -8,7 +8,15 @@ import {
   makeProgress,
 } from '../../tabs/model-converters/converters/fbx/worker-protocol.js';
 
-const graph = { schema: 'FbxSourceGraph.v2' };
+const graph = {
+  schema: 'FbxSourceGraph.v2',
+  file: { version: 7400, ascii: false, creator: '' },
+  documentMetadata: { originalApplication: '', latestApplication: '' },
+  globalSettings: { unitMeters: 1, axes: { right: 0, up: 1, front: 2 } },
+  sourceObjects: [], occurrences: [], geometries: [], hierarchyEdges: [],
+  connectionEdges: [], warnings: [], unsupportedRecords: [], unresolvedReferences: [],
+  duplicateSourceObjectIds: [],
+};
 let terminateCount = 0;
 let savedOnMessage;
 let savedJob;
