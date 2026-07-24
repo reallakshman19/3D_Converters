@@ -78,7 +78,7 @@ function parserRejection(api) {
   }
   return new FbxWorkerRuntimeError(
     FBX_WORKER_ERROR_CODES.PARSE_REJECTED,
-    'The FBX parser rejected the input.',
+    'The FBX parser failed or rejected the input.',
     { stage: 'parsing-fbx', detail: detail || 'ufbx rejected the FBX input.' },
   );
 }
