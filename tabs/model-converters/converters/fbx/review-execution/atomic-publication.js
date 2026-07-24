@@ -1,12 +1,30 @@
-import { mkdtemp, mkdir, readdir, rename, rm, stat } from 'node:fs/promises';
+import {
+  link, lstat, mkdtemp, mkdir, readdir, rename, rm, rmdir, unlink,
+} from 'node:fs/promises';
 import { dirname, join, basename } from 'node:path';
 
 async function targetState(path) {
-  try { return await stat(path); }
+  try { return await lstat(path); }
   catch (error) {
     if (error.code === 'ENOENT') return null;
     throw error;
   }
+}
+
+function publicationConflict(message, cause) {
+  const error = new Error(message, { cause });
+  error.code = cause.code;
+  return error;
+}
+
+function directoryPublicationError(error, targetPath) {
+  if (error.code === 'ENOTEMPTY' || error.code === 'EEXIST') {
+    return publicationConflict(`Output directory ${targetPath} became non-empty before publication.`, error);
+  }
+  if (error.code === 'ENOTDIR' || error.code === 'EISDIR') {
+    return publicationConflict(`Output target ${targetPath} changed type before publication.`, error);
+  }
+  return error;
 }
 
 export async function assertEmptyOrAbsentDirectory(path) {
@@ -49,13 +67,31 @@ export async function withPrivateWorkspace(targetPath, task) {
   }
 }
 
+export async function prepareDirectoryTarget(targetPath) {
+  const state = await targetState(targetPath);
+  if (!state) return;
+  if (!state.isDirectory()) throw new Error(`Output target ${targetPath} is not a directory.`);
+  try { await rmdir(targetPath); }
+  catch (error) { throw directoryPublicationError(error, targetPath); }
+}
+
+export async function commitDirectoryPublication(stagedPath, targetPath) {
+  try { await rename(stagedPath, targetPath); }
+  catch (error) { throw directoryPublicationError(error, targetPath); }
+}
+
 export async function publishDirectory(stagedPath, targetPath) {
-  await assertEmptyOrAbsentDirectory(targetPath);
-  await rm(targetPath, { recursive: true, force: true });
-  await rename(stagedPath, targetPath);
+  await prepareDirectoryTarget(targetPath);
+  await commitDirectoryPublication(stagedPath, targetPath);
 }
 
 export async function publishFile(stagedPath, targetPath) {
-  await assertAbsentFile(targetPath);
-  await rename(stagedPath, targetPath);
+  try { await link(stagedPath, targetPath); }
+  catch (error) {
+    if (error.code === 'EEXIST') {
+      throw publicationConflict(`Output file ${targetPath} appeared before publication.`, error);
+    }
+    throw error;
+  }
+  await unlink(stagedPath);
 }
