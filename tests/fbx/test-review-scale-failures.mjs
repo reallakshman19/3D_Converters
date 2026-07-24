@@ -74,19 +74,46 @@ function namedFunctionLengths(text) {
   return lengths;
 }
 
+function isJavaScript(path) {
+  return path.endsWith('.js') || path.endsWith('.mjs');
+}
+
+function assertSourceShape(path, text, repositoryRoot) {
+  const label = relative(repositoryRoot, path);
+  assert.ok(text.split('\n').length <= 300, `${label} exceeds 300 lines`);
+  for (const fn of namedFunctionLengths(text)) {
+    assert.ok(fn.length <= 40, `${label} function at line ${fn.line} exceeds 40 lines`);
+  }
+}
+
+async function filesAtRoots(roots) {
+  return (await Promise.all(roots.map(sourceFiles))).flat().filter(isJavaScript);
+}
+
 async function assertStaticGuards() {
   const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
-  const sourceRoot = join(repositoryRoot, 'tabs/model-converters/converters/fbx/review-execution');
+  const productionRoots = [
+    join(repositoryRoot, 'tabs/model-converters/converters/fbx/review-execution'),
+    join(repositoryRoot, 'scripts/fbx/review-scale'),
+    join(repositoryRoot, 'scripts/fbx/build-mapping-review-bundle.mjs'),
+    join(repositoryRoot, 'scripts/fbx/assemble-mapping-decision-fragments.mjs'),
+  ];
+  const testRoots = [
+    join(repositoryRoot, 'tests/fbx/review-scale-helpers.mjs'),
+    join(repositoryRoot, 'tests/fbx/test-review-scale-parity.mjs'),
+    join(repositoryRoot, 'tests/fbx/test-review-scale-failures.mjs'),
+    join(repositoryRoot, 'tests/fbx/test-review-resource-bounds.mjs'),
+  ];
+  const production = await filesAtRoots(productionRoots);
+  const all = [...new Set([...production, ...await filesAtRoots(testRoots)])];
   const prohibited = [
     /localeCompare/, /Intl\.Collator/, /Math\.random/, /Date\.now/,
     /randomUUID/, /\.normalize\(/, /export\s+default\b/, /https?:\/\//,
   ];
-  for (const path of await sourceFiles(sourceRoot)) {
-    if (!path.endsWith('.js')) continue;
+  for (const path of all) assertSourceShape(path, await readFile(path, 'utf8'), repositoryRoot);
+  for (const path of production) {
     const text = await readFile(path, 'utf8');
-    assert.ok(text.split('\n').length <= 300, `${relative(repositoryRoot, path)} exceeds 300 lines`);
-    for (const pattern of prohibited) assert.doesNotMatch(text, pattern);
-    for (const fn of namedFunctionLengths(text)) assert.ok(fn.length <= 40, `${path}:${fn.line} exceeds 40 lines`);
+    for (const pattern of prohibited) assert.doesNotMatch(text, pattern, `${path} violates ${pattern}`);
   }
 }
 
