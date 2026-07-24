@@ -183,10 +183,14 @@ export async function buildMappingWorklist({ bytes, graph, parserEvidence }) {
   const canonicalGraph = canonicalSourceGraph(graph);
   const { sources, occurrences: allOccurrences, geometries } = sourceIndexes(canonicalGraph);
   const occurrences = governedOccurrences(allOccurrences, sources);
+  for (const occurrence of occurrences) {
+    occurrence.geometryObjectIds = occurrence.geometryObjectIds.filter(id => geometries.has(String(id)));
+  }
   assertOwnedGeometry(occurrences, geometries);
-  const workItems = await Promise.all(occurrences.map((occurrence) => (
-    buildWorkItem(sources.get(String(occurrence.sourceModelObjectId)), occurrence, geometries)
-  )));
+  const workItems = [];
+  for (const occurrence of occurrences) {
+    workItems.push(await buildWorkItem(sources.get(String(occurrence.sourceModelObjectId)), occurrence, geometries));
+  }
   workItems.sort((left, right) => compareText(left.workItemId, right.workItemId));
   const governedIds = new Set(workItems.map((item) => item.sourceModelObjectId));
   const draft = {

@@ -12,6 +12,7 @@ import { validateMappingManifest } from './mapping-validator.js';
 import {
   compileMappingDecisions, validateDecisionSetShape,
 } from './mapping-decision-compiler.js';
+import { generateDraftDecisions } from './mapping-heuristic.js';
 import { buildMappingWorklist } from './mapping-worklist.js';
 import { resolveEntryPorts, resolveEntryPortsV2 } from './port-resolver.js';
 import { projectSourceGraphV1 } from './source-graph-v1-compat.js';
@@ -374,7 +375,11 @@ async function legacyMappingProblem({ bytes, stem, parse, parserEvidence, diagno
     try {
       const worklist = await buildMappingWorklist({ bytes, graph, parserEvidence });
       result.outputs.splice(1, 0, artifact(`${stem}.fbx-mapping-worklist.json`, worklist));
-      result.logs.stdout = ['PARSE_PASS', 'WORKLIST_GENERATED'];
+      
+      const draft = generateDraftDecisions(worklist);
+      result.outputs.splice(2, 0, artifact(`${stem}.fbx-draft-decisions.json`, draft));
+      
+      result.logs.stdout = ['PARSE_PASS', 'WORKLIST_GENERATED', 'DRAFT_DECISIONS_GENERATED'];
     } catch (_) {
       // Worklist generation is best-effort; don't fail the whole conversion.
     }
