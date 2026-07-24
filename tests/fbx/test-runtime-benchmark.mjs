@@ -37,4 +37,15 @@ assert.equal(unavailableClock.runs[0].durationMs.reason,'CLOCK_UNAVAILABLE');
 for (const value of Object.values(unavailableClock.aggregate.durationMs)) {
   assert.equal(value.status,'unavailable'); assert.notEqual(value,0);
 }
+
+const mutableBytes = new Uint8Array([5,6,7]);
+const mutableEnvironment = structuredClone(environment);
+const initialDigest = await sha256Hex(mutableBytes);
+let snapshotClock = 0;
+const snapshot = await benchmarkFbxRuntime({ sourceBytes:mutableBytes, parserDigest:'c'.repeat(64), runtimeEnvironment:mutableEnvironment,
+  runConfiguration:{operation:'PARSE_SOURCE_GRAPH',warmupRuns:0,measuredRuns:1,timeoutMs:null}, now:()=>snapshotClock++,
+  execute:async()=>{ mutableBytes[0]=99; mutableEnvironment.runtimeKind='browser'; return {semanticArtifacts:{z:'z',a:'a'}}; } });
+assert.equal(snapshot.sourceSha256,initialDigest);
+assert.equal(snapshot.runtimeEnvironment.runtimeKind,'node');
+assert.deepEqual(Object.keys(snapshot.semanticArtifactDigests),['a','z']);
 console.log('test-runtime-benchmark: PASS');
