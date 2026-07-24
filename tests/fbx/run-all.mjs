@@ -16,6 +16,8 @@ const tests = [
   'test-mapping-review-bundle.mjs',
   'test-mapping-fragment-assembler.mjs',
   'test-mapping-review-cli.mjs',
+  'test-review-scale-parity.mjs',
+  'test-review-scale-failures.mjs',
   'test-worker.mjs',
   'test-determinism.mjs',
   'test-registry.mjs',
