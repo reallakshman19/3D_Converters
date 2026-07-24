@@ -1,4 +1,5 @@
 import { createReadStream, createWriteStream } from 'node:fs';
+import { once } from 'node:events';
 import { readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -12,6 +13,10 @@ import { streamValidatedWorklist } from './worklist-stream.js';
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, 'utf8'));
+}
+
+async function writeRawDecision(stream, decision) {
+  if (!stream.write(`${JSON.stringify(decision)}\n`, 'utf8')) await once(stream, 'drain');
 }
 
 function verifyShardMeta(meta, ordinal, shardId, items) {
@@ -136,7 +141,8 @@ async function spoolRawDecisions(worklist, expected, fragments, path, checkCance
       for (const item of items) {
         const decision = decisions.get(item.workItemId);
         if (!decision) failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Missing decision ${item.workItemId}.`);
-        await appendCanonicalArrayItem(stream, decision, decisionIndex++);
+        await writeRawDecision(stream, decision);
+        decisionIndex += 1;
       }
     }, checkCancellation);
   } finally {
