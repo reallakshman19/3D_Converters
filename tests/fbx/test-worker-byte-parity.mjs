@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { canonicalJson, deepFreeze } from '../../tabs/model-converters/converters/fbx/canonical-json.js';
 import { convertFbxToStagedJson } from '../../tabs/model-converters/converters/fbx/conversion.js';
 import { parseFbxBytesWithWasm } from '../../tabs/model-converters/converters/fbx/parser-wasm.js';
+import { observeParserEvidence } from '../../tabs/model-converters/converters/fbx/parser-provenance.js';
 import { handleFbxWorkerMessage } from '../../tabs/model-converters/converters/fbx/parser-worker.js';
 import { enforceSourceGraphPolicy } from '../../tabs/model-converters/converters/fbx/source-graph.js';
 import { promoteNoMappingJsonOutput } from '../../tabs/model-converters/converters/fbx-to-stagedjson.js';
@@ -59,8 +61,13 @@ const directGraph = deepFreeze(enforceSourceGraphPolicy(await parseFbxBytesWithW
 const workerGraph = await managedParse(bytes);
 assert.equal(canonicalJson(workerGraph), canonicalJson(directGraph), 'FbxSourceGraph.v2 bytes changed');
 
+const parserBase = new URL('../../third_party/ufbx/', import.meta.url);
+const parserEvidence = await observeParserEvidence({
+  provenance: JSON.parse(await readFile(new URL('provenance.json', parserBase), 'utf8')),
+  wasmBytes: new Uint8Array(await readFile(new URL('fbx_parser.wasm', parserBase))),
+});
 const mapping = await fixtureMapping();
-const baseOptions = { bytes, inputName: 'two-pipes.fbx', parserEvidence: null, parserEvidenceError: null };
+const baseOptions = { bytes, inputName: 'two-pipes.fbx', parserEvidence, parserEvidenceError: null };
 const directMapped = await convertFbxToStagedJson({
   ...baseOptions,
   mapping,
