@@ -74,6 +74,43 @@ async function finalizeShards(draftsDir, outputDir, metadata, bundleId, checkCan
   }
 }
 
+function bundleDraft(worklist, maxItemsPerShard, shards) {
+  return {
+    schema: 'FbxMappingReviewBundle.v1',
+    bundleId: '0'.repeat(64),
+    worklistId: worklist.header.worklistId,
+    sourceGraphCanonicalSha256: worklist.header.sourceGraph.canonicalSha256,
+    partitionPolicy: partitionPolicy(worklist.workItemCount, maxItemsPerShard),
+    shards,
+  };
+}
+
+async function executeBoundedBundle(config, workspace, checkCancellation) {
+  const worklist = await streamValidatedWorklist({
+    worklistPath: config.worklistPath, workspace,
+    sortRunItems: config.sortRunItems, inputChunkBytes: config.inputChunkBytes,
+    checkCancellation,
+  });
+  if (worklist.workItemCount === 0) failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'Cannot build review bundle for an empty worklist.');
+  const draftsDir = join(workspace, 'draft-shards');
+  const stagedDir = join(workspace, 'published-bundle');
+  await mkdir(draftsDir);
+  await mkdir(stagedDir);
+  const shards = await createShardDrafts(worklist, config.maxItemsPerShard, draftsDir, checkCancellation);
+  const bundle = bundleDraft(worklist, config.maxItemsPerShard, shards);
+  bundle.bundleId = await calculateBundleId(bundle);
+  validateBundleShape(bundle);
+  await finalizeShards(draftsDir, stagedDir, shards, bundle.bundleId, checkCancellation);
+  checkCancellation();
+  await writeFile(join(stagedDir, 'manifest.json'), canonicalJson(bundle), { encoding: 'utf8', flag: 'wx' });
+  checkCancellation();
+  await publishDirectory(stagedDir, config.outputDir);
+  return { bundle, metrics: {
+    workItemCount: worklist.workItemCount, shardCount: shards.length,
+    sortRunCount: worklist.sortRunCount, mergePassCount: worklist.mergePassCount,
+  } };
+}
+
 export async function buildBoundedReviewBundle({
   worklistPath, outputDir, maxItemsPerShard, sortRunItems = 5000, inputChunkBytes = 64 * 1024,
 }) {
@@ -81,39 +118,8 @@ export async function buildBoundedReviewBundle({
     failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'maxItemsPerShard must be a positive integer.');
   }
   await assertEmptyOrAbsentDirectory(outputDir);
-  return withPrivateWorkspace(outputDir, async (workspace, checkCancellation) => {
-    const worklist = await streamValidatedWorklist({
-      worklistPath, workspace, sortRunItems, inputChunkBytes, checkCancellation,
-    });
-    if (worklist.workItemCount === 0) failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'Cannot build review bundle for an empty worklist.');
-    const draftsDir = join(workspace, 'draft-shards');
-    const stagedDir = join(workspace, 'published-bundle');
-    await mkdir(draftsDir);
-    await mkdir(stagedDir);
-    const shards = await createShardDrafts(worklist, maxItemsPerShard, draftsDir, checkCancellation);
-    const bundle = {
-      schema: 'FbxMappingReviewBundle.v1',
-      bundleId: '0'.repeat(64),
-      worklistId: worklist.header.worklistId,
-      sourceGraphCanonicalSha256: worklist.header.sourceGraph.canonicalSha256,
-      partitionPolicy: partitionPolicy(worklist.workItemCount, maxItemsPerShard),
-      shards,
-    };
-    bundle.bundleId = await calculateBundleId(bundle);
-    validateBundleShape(bundle);
-    await finalizeShards(draftsDir, stagedDir, shards, bundle.bundleId, checkCancellation);
-    checkCancellation();
-    await writeFile(join(stagedDir, 'manifest.json'), canonicalJson(bundle), { encoding: 'utf8', flag: 'wx' });
-    checkCancellation();
-    await publishDirectory(stagedDir, outputDir);
-    return {
-      bundle,
-      metrics: {
-        workItemCount: worklist.workItemCount,
-        shardCount: shards.length,
-        sortRunCount: worklist.sortRunCount,
-        mergePassCount: worklist.mergePassCount,
-      },
-    };
-  });
+  const config = { worklistPath, outputDir, maxItemsPerShard, sortRunItems, inputChunkBytes };
+  return withPrivateWorkspace(outputDir, (workspace, checkCancellation) => (
+    executeBoundedBundle(config, workspace, checkCancellation)
+  ));
 }
