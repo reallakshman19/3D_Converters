@@ -1,5 +1,5 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js';
+import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260724-fbx-json-no-mapping-1';
 import { canonicalJson } from './converters/fbx/canonical-json.js';
 import { buildMappingWorklist } from './converters/fbx/mapping-worklist.js';
 import { buildReviewBundle } from './converters/fbx/mapping-review-bundle.js';
@@ -140,7 +140,6 @@ function appendReviewOptions(converter) {
 export function installFbxReviewUiAddon() {
   const converter = getConverterById('fbx_to_stagedjson');
   if (!converter || converter.__fbxReviewUiAddonInstalled) return false;
-  const baseRun = converter.run || runBaseFbxToStagedJson;
   converter.defaults = {
     ...(converter.defaults || {}),
     fbxOperation: FBX_CONVERT_OPERATION,
@@ -148,7 +147,7 @@ export function installFbxReviewUiAddon() {
   };
   appendReviewOptions(converter);
   converter.description = 'Convert FBX with an approved mapping package, or create a deterministic non-authoritative mapping review bundle in the browser. Bounded-memory review execution remains available through the Node CLI.';
-  converter.run = (context = {}) => runFbxWithReviewUi(context, baseRun);
+  converter.run = (context = {}) => runFbxWithReviewUi(context, runBaseFbxToStagedJson);
   converter.__fbxReviewUiAddonInstalled = true;
   return true;
 }
