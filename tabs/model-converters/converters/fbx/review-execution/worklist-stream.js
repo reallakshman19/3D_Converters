@@ -27,21 +27,25 @@ function validateSingleton(fields, key, value) {
 
 function identityRecords(item, key) {
   if (key === 'workItems') return [
-    { key: `unique:work:${item.workItemId}`, role: 'work-item' },
-    { key: `unique:occ:${item.sourceOccurrenceId}`, role: 'occurrence' },
-    { key: `owner:${item.sourceModelObjectId}`, role: 'governed' },
+    { key: `0:occ:${item.sourceOccurrenceId}`, role: 'occurrence' },
+    { key: `2:owner:${item.sourceModelObjectId}`, role: 'governed' },
   ];
   return [
-    { key: `unique:retained:${item.sourceObjectId}`, role: 'retained' },
-    { key: `owner:${item.sourceObjectId}`, role: 'retained' },
+    { key: `1:retained:${item.sourceObjectId}`, role: 'retained' },
+    { key: `2:owner:${item.sourceObjectId}`, role: 'retained' },
   ];
 }
 
 function validateIdentity(record, key, previousKey, previousRecord) {
   if (key !== previousKey) return;
-  if (key.startsWith('unique:')) failWorklist('BLOCKED_WORKLIST_CONTRACT', `${record.role} identity is duplicated.`);
-  if (key.startsWith('owner:') && record.role !== previousRecord.role) {
-    failWorklist('BLOCKED_WORKLIST_CONTRACT', `source object ${key.slice(6)} is both governed and retained.`);
+  if (key.startsWith('0:occ:')) {
+    failWorklist('BLOCKED_WORKLIST_CONTRACT', 'worklist sourceOccurrenceId contains duplicates.');
+  }
+  if (key.startsWith('1:retained:')) {
+    failWorklist('BLOCKED_WORKLIST_CONTRACT', 'worklist retained sourceObjectId contains duplicates.');
+  }
+  if (key.startsWith('2:owner:') && record.role !== previousRecord.role) {
+    failWorklist('BLOCKED_WORKLIST_CONTRACT', `source object ${key.slice(8)} is both governed and retained.`);
   }
 }
 
@@ -49,24 +53,40 @@ async function writeLine(stream, value) {
   if (!stream.write(`${JSON.stringify(value)}\n`, 'utf8')) await once(stream, 'drain');
 }
 
-async function validateRetained(path, fields, checkCancellation) {
+async function validateArray(path, fields, key, checkCancellation) {
   const lines = createInterface({ input: createReadStream(path, { encoding: 'utf8' }), crlfDelay: Infinity });
   for await (const line of lines) {
     checkCancellation();
-    validateSingleton(fields, 'retainedEvidence', JSON.parse(line));
+    validateSingleton(fields, key, JSON.parse(line));
   }
 }
 
-function createState(workspace, sortRunItems, checkCancellation) {
-  const arrays = {
+function canonicalPaths(workspace) {
+  return {
     workItems: join(workspace, 'work-items-input.canonical'),
     retainedEvidence: join(workspace, 'retained-input.canonical'),
   };
-  const streams = Object.fromEntries(Object.entries(arrays).map(([key, path]) => [key, createWriteStream(path, { flags: 'wx' })]));
-  const retainedPath = join(workspace, 'retained-raw.ndjson');
+}
+
+function rawPaths(workspace) {
   return {
-    arrays, streams, retainedPath, checkCancellation,
-    retainedStream: createWriteStream(retainedPath, { flags: 'wx' }),
+    workItems: join(workspace, 'work-items-input.ndjson'),
+    retainedEvidence: join(workspace, 'retained-input.ndjson'),
+  };
+}
+
+function streamsFor(paths) {
+  return Object.fromEntries(Object.entries(paths).map(([key, path]) => [
+    key, createWriteStream(path, { flags: 'wx' }),
+  ]));
+}
+
+function createState(workspace, sortRunItems, checkCancellation) {
+  const arrays = canonicalPaths(workspace);
+  const raw = rawPaths(workspace);
+  return {
+    arrays, raw, checkCancellation,
+    streams: streamsFor(arrays), rawStreams: streamsFor(raw),
     counts: { workItems: 0, retainedEvidence: 0 },
     itemSorter: new ExternalJsonSorter({
       directory: join(workspace, 'work-item-runs'), prefix: 'work-items', maxRecords: sortRunItems,
@@ -82,9 +102,9 @@ function createState(workspace, sortRunItems, checkCancellation) {
 async function consumeArrayItem(state, key, item, index) {
   state.checkCancellation();
   await appendCanonicalArrayItem(state.streams[key], item, index);
+  await writeLine(state.rawStreams[key], item);
   state.counts[key] += 1;
   if (key === 'workItems') await state.itemSorter.add(item);
-  else await writeLine(state.retainedStream, item);
   for (const record of identityRecords(item, key)) await state.identitySorter.add(record);
 }
 
@@ -97,16 +117,16 @@ async function parseWorklist(path, state, inputChunkBytes) {
       checkCancellation: state.checkCancellation,
     });
   } finally {
-    await Promise.all([...Object.values(state.streams), state.retainedStream].map(closeWritable));
+    const streams = [...Object.values(state.streams), ...Object.values(state.rawStreams)];
+    await Promise.all(streams.map(closeWritable));
   }
 }
 
-async function finishItemSort(state, workspace, fields) {
+async function finishItemSort(state, workspace) {
   return state.itemSorter.finish({
     outputPath: join(workspace, 'work-items-sorted.ndjson'),
     onRecord: async (item, key, previousKey) => {
       if (key === previousKey) failWorklist('BLOCKED_WORKLIST_CONTRACT', 'worklist workItemId contains duplicates.');
-      validateSingleton(fields, 'workItems', item);
     },
   });
 }
@@ -133,13 +153,12 @@ export async function streamValidatedWorklist({
   exactTopLevelKeys(parsed.seenKeys);
   const fields = parsed.fields;
   validateMappingWorklistShape({ ...fields, workItems: [], retainedEvidence: [] });
-  await validateRetained(state.retainedPath, fields, checkCancellation);
+  await validateArray(state.raw.workItems, fields, 'workItems', checkCancellation);
+  await validateArray(state.raw.retainedEvidence, fields, 'retainedEvidence', checkCancellation);
+  const sorted = await finishItemSort(state, workspace);
+  const identities = await finishIdentitySort(state, workspace);
   const observedId = await digestWorklistPayload(fields, state.arrays, state.counts);
   if (observedId !== fields.worklistId) staleIdFailure(failureKind);
-  const [sorted, identities] = await Promise.all([
-    finishItemSort(state, workspace, fields),
-    finishIdentitySort(state, workspace),
-  ]);
   checkCancellation();
   return {
     header: fields,
