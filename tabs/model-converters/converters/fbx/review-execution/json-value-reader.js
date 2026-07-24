@@ -9,14 +9,16 @@ function isJsonWhitespace(value) {
 }
 
 class ChunkReader {
-  constructor(path, chunkBytes) {
+  constructor(path, chunkBytes, checkCancellation) {
     this.iterator = createReadStream(path, { encoding: 'utf8', highWaterMark: chunkBytes })[Symbol.asyncIterator]();
+    this.checkCancellation = checkCancellation;
     this.buffer = '';
     this.offset = 0;
     this.done = false;
   }
 
   async refill() {
+    this.checkCancellation();
     if (this.offset < this.buffer.length || this.done) return;
     const next = await this.iterator.next();
     this.done = Boolean(next.done);
@@ -161,7 +163,10 @@ async function parseArray(reader, key, onItem) {
 }
 
 export async function readTopLevelObject(path, options = {}) {
-  const reader = new ChunkReader(path, options.chunkBytes || 64 * 1024);
+  const reader = new ChunkReader(
+    path, options.chunkBytes || 64 * 1024,
+    options.checkCancellation || (() => {}),
+  );
   const arrayKeys = new Set(options.arrayKeys || []);
   const fields = {};
   const seen = new Set();
