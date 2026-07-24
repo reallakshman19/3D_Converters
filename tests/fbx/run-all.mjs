@@ -19,6 +19,7 @@ const tests = [
   'test-review-scale-parity.mjs',
   'test-review-scale-failures.mjs',
   'test-review-resource-bounds.mjs',
+  'test-review-ui-addon.mjs',
   'test-worker.mjs',
   'test-determinism.mjs',
   'test-registry.mjs',
