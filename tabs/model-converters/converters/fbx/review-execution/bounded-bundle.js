@@ -47,11 +47,12 @@ async function flushShard({ header, ordinal, workItems, draftsDir, metadata }) {
   });
 }
 
-async function createShardDrafts(worklist, maxItemsPerShard, draftsDir) {
+async function createShardDrafts(worklist, maxItemsPerShard, draftsDir, checkCancellation) {
   const metadata = [];
   const lines = createInterface({ input: createReadStream(worklist.sortedItemsPath, { encoding: 'utf8' }), crlfDelay: Infinity });
   let items = [];
   for await (const line of lines) {
+    checkCancellation();
     items.push(JSON.parse(line));
     if (items.length === maxItemsPerShard) {
       await flushShard({ header: worklist.header, ordinal: metadata.length, workItems: items, draftsDir, metadata });
@@ -62,8 +63,9 @@ async function createShardDrafts(worklist, maxItemsPerShard, draftsDir) {
   return metadata;
 }
 
-async function finalizeShards(draftsDir, outputDir, metadata, bundleId) {
+async function finalizeShards(draftsDir, outputDir, metadata, bundleId, checkCancellation) {
   for (const meta of metadata) {
+    checkCancellation();
     const shard = JSON.parse(await readFile(join(draftsDir, meta.fileName), 'utf8'));
     shard.bundleId = bundleId;
     validateShardShape(shard);
@@ -79,14 +81,16 @@ export async function buildBoundedReviewBundle({
     failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'maxItemsPerShard must be a positive integer.');
   }
   await assertEmptyOrAbsentDirectory(outputDir);
-  return withPrivateWorkspace(outputDir, async (workspace) => {
-    const worklist = await streamValidatedWorklist({ worklistPath, workspace, sortRunItems, inputChunkBytes });
+  return withPrivateWorkspace(outputDir, async (workspace, checkCancellation) => {
+    const worklist = await streamValidatedWorklist({
+      worklistPath, workspace, sortRunItems, inputChunkBytes, checkCancellation,
+    });
     if (worklist.workItemCount === 0) failBundle('BLOCKED_REVIEW_BUNDLE_CONTRACT', 'Cannot build review bundle for an empty worklist.');
     const draftsDir = join(workspace, 'draft-shards');
     const stagedDir = join(workspace, 'published-bundle');
     await mkdir(draftsDir);
     await mkdir(stagedDir);
-    const shards = await createShardDrafts(worklist, maxItemsPerShard, draftsDir);
+    const shards = await createShardDrafts(worklist, maxItemsPerShard, draftsDir, checkCancellation);
     const bundle = {
       schema: 'FbxMappingReviewBundle.v1',
       bundleId: '0'.repeat(64),
@@ -97,8 +101,10 @@ export async function buildBoundedReviewBundle({
     };
     bundle.bundleId = await calculateBundleId(bundle);
     validateBundleShape(bundle);
-    await finalizeShards(draftsDir, stagedDir, shards, bundle.bundleId);
+    await finalizeShards(draftsDir, stagedDir, shards, bundle.bundleId, checkCancellation);
+    checkCancellation();
     await writeFile(join(stagedDir, 'manifest.json'), canonicalJson(bundle), { encoding: 'utf8', flag: 'wx' });
+    checkCancellation();
     await publishDirectory(stagedDir, outputDir);
     return {
       bundle,
