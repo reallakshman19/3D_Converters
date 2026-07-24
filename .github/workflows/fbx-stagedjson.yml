@@ -71,3 +71,5 @@ jobs:
           node tests/fbx/test-mapping-review-bundle.mjs
           node tests/fbx/test-mapping-fragment-assembler.mjs
           node tests/fbx/test-mapping-review-cli.mjs
+          node tests/fbx/test-review-scale-parity.mjs
+          node tests/fbx/test-review-scale-failures.mjs
