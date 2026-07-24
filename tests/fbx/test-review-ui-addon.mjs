@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { getConverterById } from '../../tabs/model-converters/converter-registry.js?v=20260617-basic-glb-3';
+import { promoteNoMappingJsonOutput } from '../../tabs/model-converters/converters/fbx-to-stagedjson.js';
 import {
   FBX_CONVERT_OPERATION,
   FBX_REVIEW_OPERATION,
@@ -19,6 +20,33 @@ assert.deepEqual(
 );
 assert.equal(converter.options.find((option) => option.key === 'reviewMaxItemsPerShard')?.type, 'number');
 assert.match(converter.description, /bounded-memory review execution remains available through the Node CLI/i);
+
+const graphText = '{"schema":"FbxSourceGraph.v2"}\n';
+const reportText = JSON.stringify({
+  schema: 'FbxConversionReport.v1',
+  status: 'BLOCKED_MAPPING',
+  diagnostics: ['Mapping manifest is absent.'],
+  counts: { sourceObjects: 1 },
+});
+const promoted = promoteNoMappingJsonOutput({
+  ok: true,
+  conversionStatus: 'BLOCKED_MAPPING',
+  outputs: [
+    { name: 'TAY-A.fbx-source-graph.json', text: graphText, mime: 'application/json;charset=utf-8' },
+    { name: 'TAY-A.fbx-conversion-report.json', text: reportText, mime: 'application/json;charset=utf-8' },
+  ],
+  logs: { stdout: ['WORKLIST_GENERATED'], stderr: ['Mapping manifest is absent.'] },
+}, 'TAY-A.fbx');
+assert.equal(promoted.conversionStatus, 'SOURCE_GRAPH_JSON_PASS');
+assert.equal(promoted.outputs[0].name, 'TAY-A.json');
+assert.equal(promoted.outputs[0].text, graphText);
+assert.equal(promoted.outputs[1].name, 'TAY-A.fbx-source-graph.json');
+assert.equal(JSON.parse(promoted.outputs.at(-1).text).status, 'SOURCE_GRAPH_JSON_PASS');
+assert.ok(JSON.parse(promoted.outputs.at(-1).text).diagnostics.includes('OPTIONAL_MAPPING_ABSENT'));
+assert.deepEqual(promoted.logs.stderr, []);
+assert.ok(promoted.logs.stdout.includes('SOURCE_GRAPH_JSON_PASS'));
+assert.ok(promoted.logs.stdout.includes('Mapping manifest is absent.'));
+assert.equal(promoteNoMappingJsonOutput({ outputs: [] }, 'TAY-A.fbx').outputs.length, 0);
 
 let delegated = false;
 const delegatedResult = await runFbxWithReviewUi(
