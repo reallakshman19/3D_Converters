@@ -741,7 +741,7 @@ const CONVERTER_DEFS = {
     group: '3D Models',
     primaryAccept: '.fbx,.FBX',
     primaryLabel: 'FBX Input',
-    secondaryLabel: 'FBX Mapping Package or Manifest',
+    secondaryLabel: 'FBX Mapping Package or Manifest (optional)',
     secondaryAccept: '.fbxmap.json,.json,.JSON',
     description: 'Parse binary FBX with pinned ufbx/WASM and publish explicitly mapped PIPE, ELBOW, TEE, REDUCER, FLANGE, and VALVE components.',
     defaults: {},

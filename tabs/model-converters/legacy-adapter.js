@@ -896,6 +896,7 @@ const CONVERTER_ORDER = Object.freeze([
   'inputxml_to_cii',
   'inputxml14_to_cii',
   'inputxml_to_cii2019',
+  'fbx_to_stagedjson',
   'inputxml_to_rvm',
   'pcf_continuity_check',
 ]);

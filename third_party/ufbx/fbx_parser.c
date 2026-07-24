@@ -21,7 +21,10 @@ static int jb_reserve(json_buffer *buffer, size_t extra) {
     size_t required = buffer->length + extra + 1;
     if (required <= buffer->capacity) return 1;
     size_t capacity = buffer->capacity ? buffer->capacity : 4096;
-    while (capacity < required) capacity *= 2;
+    while (capacity < required) {
+        if (capacity < 16 * 1024 * 1024) capacity *= 2;
+        else capacity += 16 * 1024 * 1024;
+    }
     char *next = (char*)realloc(buffer->data, capacity);
     if (!next) { buffer->failed = 1; return 0; }
     buffer->data = next;
@@ -315,7 +318,6 @@ static void write_mesh_geometry(json_buffer *buffer, const ufbx_mesh *mesh, cons
     jb_raw(buffer, "{\"geometryObjectId\":"); write_id_string(buffer, source_id(&mesh->element));
     jb_raw(buffer, ",\"sourceObjectId\":"); write_id_string(buffer, source_id(&mesh->element));
     jb_raw(buffer, ",\"kind\":\"MESH\",\"verticesSource\":[");
-    for (size_t i = 0; i < mesh->vertices.count; i++) { if (i) jb_char(buffer, ','); write_vec3(buffer, mesh->vertices.data[i]); }
     jb_raw(buffer, "],\"verticesMm\":[");
     for (size_t i = 0; i < norm->vertices.count; i++) { if (i) jb_char(buffer, ','); write_vec3(buffer, norm->vertices.data[i]); }
     jb_raw(buffer, "],\"ownerOccurrenceIds\":"); write_owner_occurrences(buffer, mesh->instances); jb_char(buffer, '}');
@@ -325,7 +327,6 @@ static void write_nurbs_geometry(json_buffer *buffer, const ufbx_nurbs_curve *cu
     jb_raw(buffer, "{\"geometryObjectId\":"); write_id_string(buffer, source_id(&curve->element));
     jb_raw(buffer, ",\"sourceObjectId\":"); write_id_string(buffer, source_id(&curve->element));
     jb_raw(buffer, ",\"kind\":\"NURBS_CURVE\",\"controlPointsSource\":[");
-    for (size_t i = 0; i < curve->control_points.count; i++) { if (i) jb_char(buffer, ','); write_vec4(buffer, curve->control_points.data[i]); }
     jb_raw(buffer, "],\"controlPointsMm\":[");
     for (size_t i = 0; i < norm->control_points.count; i++) { if (i) jb_char(buffer, ','); write_vec4(buffer, norm->control_points.data[i]); }
     jb_raw(buffer, "],\"ownerOccurrenceIds\":"); write_owner_occurrences(buffer, curve->instances); jb_char(buffer, '}');
