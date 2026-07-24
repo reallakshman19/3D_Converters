@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { withPrivateWorkspace } from '../../tabs/model-converters/converters/fbx/review-execution/atomic-publication.js';
 import {
   SCALE_COUNTS, assertDirectoriesEqual, assertFilesEqual, assertNoMissionWorkspaces,
   createExclusionFragments, createSyntheticWorklist, runMeasuredOperation, runStatistics,
@@ -128,6 +129,21 @@ function assertResourceBounds(results) {
   }
 }
 
+async function measureInjectedFailureCleanup(root) {
+  const target = join(root, 'injected-failure-output');
+  const injectedBytes = 16 * 1024 * 1024;
+  let failureStarted = null;
+  await assert.rejects(withPrivateWorkspace(target, async (workspace) => {
+    await writeFile(join(workspace, 'partial.bin'), Buffer.alloc(injectedBytes));
+    failureStarted = process.hrtime.bigint();
+    throw new Error('F2S007_INJECTED_FAILURE');
+  }), /F2S007_INJECTED_FAILURE/);
+  const cleanupDurationMs = Number(process.hrtime.bigint() - failureStarted) / 1e6;
+  await assert.rejects(access(target), (error) => error.code === 'ENOENT');
+  await assertNoMissionWorkspaces(root);
+  return { injectedBytes, cleanupDurationMs, finalArtifactCount: 0, orphanWorkspaceCount: 0 };
+}
+
 const levels = selectedLevels();
 const options = {
   maxItemsPerShard: positiveInteger(process.env.F2S007_MAX_ITEMS_PER_SHARD, 1000),
@@ -139,7 +155,8 @@ try {
   const results = [];
   for (const level of levels) results.push(await qualifyLevel(root, level, options, runCount(levels)));
   assertResourceBounds(results);
-  const report = { schema: 'F2S007ReviewResourceReport.v1', options, results };
+  const failureCleanup = await measureInjectedFailureCleanup(root);
+  const report = { schema: 'F2S007ReviewResourceReport.v1', options, failureCleanup, results };
   if (process.env.F2S007_REPORT_PATH) await writeFile(resolve(process.env.F2S007_REPORT_PATH), `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));
   console.log('test-review-resource-bounds: PASS');
