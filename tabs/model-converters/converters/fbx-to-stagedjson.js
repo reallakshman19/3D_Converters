@@ -1,5 +1,4 @@
 import { convertFbxToStagedJson } from './fbx/conversion.js';
-import { isMappingPackage } from './fbx/mapping-package.js';
 import { parseFbxInWorker } from './fbx/parser-client.js';
 import { loadBrowserParserEvidence } from './fbx/parser-provenance.js';
 
@@ -18,8 +17,9 @@ function parseMapping(file) {
   }
 }
 
-async function parserBinding(mappingInput) {
-  if (!isMappingPackage(mappingInput.mapping)) return {};
+// Always load parser evidence — needed for worklist generation (no manifest path)
+// and for decision-set compilation (decision set path), not only for mapping packages.
+async function loadParserEvidence() {
   try {
     return { parserEvidence: await loadBrowserParserEvidence() };
   } catch (error) {
@@ -33,7 +33,7 @@ export async function run(context = {}) {
   if (!primary?.bytes) throw new Error('FBX input is required.');
   const secondary = findInput(context, 'secondary');
   const mappingInput = parseMapping(secondary);
-  const binding = await parserBinding(mappingInput);
+  const binding = await loadParserEvidence();
   context.setStatus?.('Parsing binary FBX in isolated worker...', 'running');
   const result = await convertFbxToStagedJson({
     bytes: primary.bytes,
