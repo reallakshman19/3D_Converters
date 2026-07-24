@@ -76,6 +76,43 @@ assert.throws(
   () => assertCompleteMessage(makeComplete(job.jobId, { ...graph, jobId: 'leak' }, {}), progress),
   (error) => error.code === FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
 );
+
+function validNestedGraph() {
+  const transform = { translation: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1] };
+  const matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+  const source = (id, type, value, disposition, nodeAttributeType = null, nodeAttributeTypeValue = null) => ({
+    sourceObjectId: id, ufbxElementId: value, ufbxTypedId: 0, ufbxElementType: type,
+    ufbxElementTypeValue: value, domClass: type === 'NODE' ? 'Model' : 'Geometry', domSubtype: type,
+    domSourceName: `${type}::${id}`, displayName: id, customProperties: [], sourceRecordDisposition: disposition,
+    nodeAttributeType, nodeAttributeTypeValue, objectPropertyPath: null, connectionPropertyNames: [], sourceDocumentOrder: value,
+  });
+  return {
+    ...structuredClone(graph),
+    sourceObjects: [source('1', 'NODE', 1, 'supported-occurrence', 'MESH', 2), source('2', 'MESH', 2, 'supported-geometry')],
+    occurrences: [{ sourceOccurrenceId: 'occ:1', sourceModelObjectId: '1', parentOccurrenceId: null, geometryObjectIds: ['2'], inheritMode: 0, originalInheritMode: 0, hasGeometryTransform: false, localTransformSource: transform, geometryTransformSource: transform, worldMatrixSource: matrix, geometryMatrixSource: matrix, worldMatrixMm: matrix, geometryMatrixMm: matrix }],
+    geometries: [{ geometryObjectId: '2', sourceObjectId: '2', kind: 'MESH', verticesSource: [[0, 0, 0]], verticesMm: [[0, 0, 0]], ownerOccurrenceIds: ['occ:1'] }],
+  };
+}
+
+const validNested = validNestedGraph();
+assertCompleteMessage(makeComplete(job.jobId, validNested, {}), progress);
+for (const mutate of [
+  (value) => { value.file.version = 9999; },
+  (value) => { value.sourceObjects[0].unexpected = true; },
+  (value) => { value.occurrences[0].worldMatrixMm = [1, 2, 3]; },
+  (value) => { value.geometries[0].verticesMm = [[0, Number.NaN, 0]]; },
+  (value) => { value.occurrences.push(structuredClone(value.occurrences[0])); },
+  (value) => { value.occurrences[0].geometryObjectIds = ['999']; },
+  (value) => { value.duplicateSourceObjectIds = ['1']; },
+]) {
+  const malformed = structuredClone(validNested);
+  mutate(malformed);
+  assert.throws(
+    () => assertCompleteMessage(makeComplete(job.jobId, malformed, {}), progress),
+    (error) => error.code === FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+  );
+}
+
 const failure = new FbxWorkerRuntimeError(
   FBX_WORKER_ERROR_CODES.PARSE_REJECTED,
   'rejected',
