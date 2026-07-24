@@ -58,8 +58,24 @@ for (const [ordinal, stage] of FBX_WORKER_STAGES.slice(0, -1).entries()) {
   progress.push(stage);
 }
 
-const graph = { schema: 'FbxSourceGraph.v2' };
+const graph = {
+  schema: 'FbxSourceGraph.v2',
+  file: { version: 7400, ascii: false, creator: '' },
+  documentMetadata: { originalApplication: '', latestApplication: '' },
+  globalSettings: { unitMeters: 1, axes: { right: 0, up: 1, front: 2 } },
+  sourceObjects: [], occurrences: [], geometries: [], hierarchyEdges: [],
+  connectionEdges: [], warnings: [], unsupportedRecords: [], unresolvedReferences: [],
+  duplicateSourceObjectIds: [],
+};
 assertCompleteMessage(assertWorkerEnvelope(makeComplete(job.jobId, graph, {}), job.jobId), progress);
+assert.throws(
+  () => assertCompleteMessage(makeComplete(job.jobId, { schema: 'FbxSourceGraph.v2' }, {}), progress),
+  (error) => error.code === FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+);
+assert.throws(
+  () => assertCompleteMessage(makeComplete(job.jobId, { ...graph, jobId: 'leak' }, {}), progress),
+  (error) => error.code === FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+);
 const failure = new FbxWorkerRuntimeError(
   FBX_WORKER_ERROR_CODES.PARSE_REJECTED,
   'rejected',
