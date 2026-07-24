@@ -130,13 +130,7 @@ function assertSimpleRecords(graph) {
   graph.hierarchyEdges.forEach((value, index) => { exactRecord(value, GRAPH_SHAPES.hierarchy, `hierarchyEdges[${index}]`); if (!OCCURRENCE_ID_PATTERN.test(value.parentOccurrenceId) || !OCCURRENCE_ID_PATTERN.test(value.childOccurrenceId)) graphError(`hierarchyEdges[${index}] identity is invalid.`); });
   graph.connectionEdges.forEach((value, index) => { exactRecord(value, GRAPH_SHAPES.connection, `connectionEdges[${index}]`); if (!SOURCE_ID_PATTERN.test(value.sourceObjectId) || !SOURCE_ID_PATTERN.test(value.destinationObjectId) || typeof value.sourceProperty !== 'string' || typeof value.destinationProperty !== 'string') graphError(`connectionEdges[${index}] is invalid.`); });
   graph.warnings.forEach((value, index) => { exactRecord(value, GRAPH_SHAPES.warning, `warnings[${index}]`); if (!Number.isInteger(value.type) || value.type < 0 || typeof value.description !== 'string' || !Number.isInteger(value.elementId) || value.elementId < 0 || !Number.isInteger(value.count) || value.count < 1) graphError(`warnings[${index}] is invalid.`); });
-  graph.unsupportedRecords.forEach((value, index) => {
-    const label = `unsupportedRecords[${index}]`;
-    exactRecord(value, GRAPH_SHAPES.unsupported, label);
-    elementPair(value.ufbxElementType, value.ufbxElementTypeValue, label);
-    const expectedDisposition = ['UNKNOWN', 'UNRECOGNIZED_ELEMENT_TYPE'].includes(value.ufbxElementType) ? 'unresolved-unknown' : 'retained-evidence';
-    if (!SOURCE_ID_PATTERN.test(value.sourceObjectId) || ['NODE', 'MESH', 'NURBS_CURVE'].includes(value.ufbxElementType) || value.sourceRecordDisposition !== expectedDisposition || typeof value.domClass !== 'string' || !value.domClass || typeof value.domSubtype !== 'string' || typeof value.domSourceName !== 'string') graphError(`${label} is invalid.`);
-  });
+  graph.unsupportedRecords.forEach((value, index) => { const label = `unsupportedRecords[${index}]`; exactRecord(value, GRAPH_SHAPES.unsupported, label); elementPair(value.ufbxElementType, value.ufbxElementTypeValue, label); const expectedDisposition = ['UNKNOWN', 'UNRECOGNIZED_ELEMENT_TYPE'].includes(value.ufbxElementType) ? 'unresolved-unknown' : 'retained-evidence'; if (!SOURCE_ID_PATTERN.test(value.sourceObjectId) || ['NODE', 'MESH', 'NURBS_CURVE'].includes(value.ufbxElementType) || value.sourceRecordDisposition !== expectedDisposition || typeof value.domClass !== 'string' || !value.domClass || typeof value.domSubtype !== 'string' || typeof value.domSourceName !== 'string') graphError(`${label} is invalid.`); });
   graph.unresolvedReferences.forEach((value, index) => { exactRecord(value, GRAPH_SHAPES.unresolved, `unresolvedReferences[${index}]`); if (!SOURCE_ID_PATTERN.test(value.sourceObjectId) || value.reason !== 'unknown-element-type') graphError(`unresolvedReferences[${index}] is invalid.`); });
 }
 function assertGraphReferences(graph) {
