@@ -35,6 +35,18 @@ async function expectBundleFailure(root, worklist, name, expected) {
   await assertNoWorkspace(root, output);
 }
 
+async function expectRawBundleFailure(root, name, bytes, expected) {
+  const input = join(root, `${name}.json`);
+  const output = join(root, `${name}-bundle`);
+  await writeFile(input, bytes);
+  await assert.rejects(buildBoundedReviewBundle({
+    worklistPath: input, outputDir: output,
+    maxItemsPerShard: 1, sortRunItems: 1, inputChunkBytes: 1,
+  }), expected);
+  await assertAbsent(output);
+  await assertNoWorkspace(root, output);
+}
+
 async function sourceFiles(path) {
   const { stat } = await import('node:fs/promises');
   if ((await stat(path)).isFile()) return [path];
@@ -107,16 +119,9 @@ try {
   stale.worklistId = '0'.repeat(64);
   await expectBundleFailure(root, stale, 'stale', /worklistId is stale or tampered/);
 
-  const malformedPath = join(root, 'malformed.json');
-  const malformedOutput = join(root, 'malformed-bundle');
-  const bytes = Buffer.from(canonicalJson(family.worklist));
-  await writeFile(malformedPath, bytes.subarray(0, bytes.length - 2));
-  await assert.rejects(buildBoundedReviewBundle({
-    worklistPath: malformedPath, outputDir: malformedOutput,
-    maxItemsPerShard: 1, sortRunItems: 1, inputChunkBytes: 1,
-  }), /Malformed JSON/);
-  await assertAbsent(malformedOutput);
-  await assertNoWorkspace(root, malformedOutput);
+  const canonical = canonicalJson(family.worklist);
+  await expectRawBundleFailure(root, 'malformed', Buffer.from(canonical).subarray(0, Buffer.byteLength(canonical) - 2), /Malformed JSON/);
+  await expectRawBundleFailure(root, 'non-json-whitespace', canonical.replace('{\n', '{\u00a0'), /Malformed JSON/);
 
   const worklistPath = join(root, 'assembly-worklist.json');
   await writeFile(worklistPath, canonicalJson(family.worklist));
