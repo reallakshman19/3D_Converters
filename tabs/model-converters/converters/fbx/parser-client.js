@@ -144,6 +144,13 @@ const runWorkerJob = (context) => {
   });
 };
 
+function settleWorkerError(message, progressStages, settle, options) {
+  assertErrorMessage(message, progressStages);
+  const failure = new FbxWorkerRuntimeError(message.code, message.message, message);
+  const settled = settle('SETTLED_ERROR', failure);
+  if (settled) safeNotify(options.onDiagnostics, message.diagnostics);
+}
+
 function handleWorkerMessage(context) {
   const { event, jobId, inputByteLength, progressStages, accepted, markAccepted, isPending, settle, options } = context;
   if (!isPending()) return;
@@ -155,7 +162,13 @@ function handleWorkerMessage(context) {
       markAccepted();
       return;
     }
-    if (!accepted()) throw protocolError('Worker emitted a message before accepting the job.', progressStages);
+    if (!accepted()) {
+      if (message.type !== FBX_WORKER_TYPES.ERROR || message.code !== FBX_WORKER_ERROR_CODES.JOB_INVALID) {
+        throw protocolError('Worker emitted a message before accepting the job.', progressStages);
+      }
+      settleWorkerError(message, progressStages, settle, options);
+      return;
+    }
     if (message.type === FBX_WORKER_TYPES.PROGRESS) {
       assertProgressMessage(message, progressStages);
       progressStages.push(message.stage);
@@ -168,10 +181,7 @@ function handleWorkerMessage(context) {
       if (settled) safeNotify(options.onDiagnostics, message.diagnostics);
       return;
     }
-    assertErrorMessage(message, progressStages);
-    const failure = new FbxWorkerRuntimeError(message.code, message.message, message);
-    const settled = settle('SETTLED_ERROR', failure);
-    if (settled) safeNotify(options.onDiagnostics, message.diagnostics);
+    settleWorkerError(message, progressStages, settle, options);
   } catch (error) {
     const failure = error instanceof FbxWorkerRuntimeError
       ? error
