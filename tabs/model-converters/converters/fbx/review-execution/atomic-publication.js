@@ -85,6 +85,14 @@ export async function publishDirectory(stagedPath, targetPath) {
   await commitDirectoryPublication(stagedPath, targetPath);
 }
 
+async function removeStagedLink(stagedPath) {
+  try { await unlink(stagedPath); }
+  catch (error) {
+    if (error.code === 'ENOENT') return;
+    // Publication is already committed. The private-workspace finally path owns cleanup.
+  }
+}
+
 export async function publishFile(stagedPath, targetPath) {
   try { await link(stagedPath, targetPath); }
   catch (error) {
@@ -93,5 +101,5 @@ export async function publishFile(stagedPath, targetPath) {
     }
     throw error;
   }
-  await unlink(stagedPath);
+  await removeStagedLink(stagedPath);
 }
