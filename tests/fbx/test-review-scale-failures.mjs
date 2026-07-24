@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { access, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +10,12 @@ import { buildReviewBundle } from '../../tabs/model-converters/converters/fbx/ma
 import { calculateFragmentId } from '../../tabs/model-converters/converters/fbx/mapping-decision-fragment.js';
 import { buildBoundedReviewBundle } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-bundle.js';
 import { assembleBoundedFragments } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-assembly.js';
-import { withPrivateWorkspace } from '../../tabs/model-converters/converters/fbx/review-execution/atomic-publication.js';
+import {
+  publishDirectory, withPrivateWorkspace,
+} from '../../tabs/model-converters/converters/fbx/review-execution/atomic-publication.js';
+import {
+  closeWritable, writeChunk,
+} from '../../tabs/model-converters/converters/fbx/review-execution/canonical-spool.js';
 import { worklistFixture } from './worklist-helpers.mjs';
 
 async function assertAbsent(path) {
@@ -57,6 +63,36 @@ async function assertCancellationCleanup(root) {
   }), (error) => error.code === 'F2S007_CANCELLED');
   await assertAbsent(target);
   await assertNoWorkspace(root, target);
+}
+
+async function assertWriteFailureCleanup(root) {
+  try { await access('/dev/full'); }
+  catch (error) {
+    if (error.code === 'ENOENT') return;
+    throw error;
+  }
+  const target = join(root, 'write-failure-output.json');
+  await assert.rejects(withPrivateWorkspace(target, async () => {
+    const stream = createWriteStream('/dev/full');
+    await writeChunk(stream, 'injected write failure');
+    await closeWritable(stream);
+  }), (error) => error.code === 'ENOSPC');
+  await assertAbsent(target);
+  await assertNoWorkspace(root, target);
+}
+
+async function assertPublicationFailureCleanup(root) {
+  const target = join(root, 'publication-target');
+  await assert.rejects(withPrivateWorkspace(target, async (workspace) => {
+    const staged = join(workspace, 'staged');
+    await mkdir(staged);
+    await writeFile(join(staged, 'manifest.json'), 'mission partial');
+    await writeFile(target, 'external sentinel');
+    await publishDirectory(staged, target);
+  }), /not a directory/);
+  assert.equal(await readFile(target, 'utf8'), 'external sentinel');
+  await assertNoWorkspace(root, target);
+  await rm(target, { force: true });
 }
 
 async function sourceFiles(path) {
@@ -184,6 +220,8 @@ try {
   await assertAbsent(outputPath);
   await assertNoWorkspace(root, outputPath);
   await assertCancellationCleanup(root);
+  await assertWriteFailureCleanup(root);
+  await assertPublicationFailureCleanup(root);
   assert.ok((await readFile(worklistPath)).length > 0);
   await assertStaticGuards();
 } finally {
