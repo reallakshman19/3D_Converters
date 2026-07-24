@@ -15,6 +15,10 @@ async function pathSize(path) {
   }
 }
 
+export async function directoryBytes(path) {
+  return pathSize(path);
+}
+
 async function procIo() {
   try {
     const text = await readFile('/proc/self/io', 'utf8');
