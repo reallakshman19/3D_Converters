@@ -26,11 +26,12 @@ function verifyShardMeta(meta, ordinal, shardId, items) {
   }
 }
 
-async function eachWorkItemChunk(path, maxItems, callback) {
+async function eachWorkItemChunk(path, maxItems, callback, checkCancellation) {
   const lines = createInterface({ input: createReadStream(path, { encoding: 'utf8' }), crlfDelay: Infinity });
   let items = [];
   let ordinal = 0;
   for await (const line of lines) {
+    checkCancellation();
     items.push(JSON.parse(line));
     if (items.length === maxItems) {
       await callback(items, ordinal++);
@@ -49,18 +50,22 @@ async function expectedShardId(header, ordinal, items) {
   });
 }
 
-async function reconstructExpected(worklist, bundle) {
+async function reconstructExpected(worklist, bundle, checkCancellation) {
   const expected = [];
   const seen = new Set();
   for (const meta of bundle.shards) {
+    checkCancellation();
     if (seen.has(meta.shardId)) failAssembler('BLOCKED_ASSEMBLER_BINDING', `Duplicate shardId in bundle manifest: ${meta.shardId}.`);
     seen.add(meta.shardId);
   }
-  const count = await eachWorkItemChunk(worklist.sortedItemsPath, bundle.partitionPolicy.maxItemsPerShard, async (items, ordinal) => {
-    const shardId = await expectedShardId(worklist.header, ordinal, items);
-    verifyShardMeta(bundle.shards[ordinal], ordinal, shardId, items);
-    expected.push({ shardId, ordinal });
-  });
+  const count = await eachWorkItemChunk(
+    worklist.sortedItemsPath, bundle.partitionPolicy.maxItemsPerShard,
+    async (items, ordinal) => {
+      const shardId = await expectedShardId(worklist.header, ordinal, items);
+      verifyShardMeta(bundle.shards[ordinal], ordinal, shardId, items);
+      expected.push({ shardId, ordinal });
+    }, checkCancellation,
+  );
   if (count !== bundle.partitionPolicy.shardCount || count !== bundle.shards.length) {
     failAssembler('BLOCKED_ASSEMBLER_BINDING', 'partitionPolicy does not cover the worklist exactly.');
   }
@@ -77,10 +82,11 @@ function validateFragmentBinding(fragment, bundle, expectedIds, indexed) {
   if (indexed.has(fragment.shardId)) failAssembler('BLOCKED_FRAGMENT_CONFLICT', `Multiple fragments provided for shard ${fragment.shardId}.`);
 }
 
-async function indexFragments(paths, bundle, expected) {
+async function indexFragments(paths, bundle, expected, checkCancellation) {
   const expectedIds = new Set(expected.map((entry) => entry.shardId));
   const indexed = new Map();
   for (const path of paths) {
+    checkCancellation();
     const fragment = await parseDecisionFragment(await readJson(path));
     validateFragmentBinding(fragment, bundle, expectedIds, indexed);
     indexed.set(fragment.shardId, path);
@@ -114,21 +120,23 @@ async function validatedDecisions(fragmentPath, header) {
   return byId;
 }
 
-async function spoolDecisions(worklist, expected, fragments, path) {
+async function spoolDecisions(worklist, expected, fragments, path, checkCancellation) {
   const stream = createWriteStream(path, { encoding: 'utf8', flags: 'wx' });
   let decisionIndex = 0;
   try {
     await eachWorkItemChunk(worklist.sortedItemsPath, expected.maxItemsPerShard, async (items, ordinal) => {
+      checkCancellation();
       const meta = expected.shards[ordinal];
       const decisions = await validatedDecisions(fragments.get(meta.shardId), worklist.header);
       if (decisions.size !== items.length) failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Fragment ${meta.shardId} has incorrect decision coverage.`);
       for (const item of items) {
+        checkCancellation();
         const decision = decisions.get(item.workItemId);
         if (!decision) failAssembler('BLOCKED_FRAGMENT_COVERAGE', `Missing decision ${item.workItemId}.`);
         assertPromotionIdentity(item, decision);
         await appendCanonicalArrayItem(stream, decision, decisionIndex++);
       }
-    });
+    }, checkCancellation);
   } finally {
     await closeWritable(stream);
   }
@@ -139,28 +147,31 @@ export async function assembleBoundedFragments({
   worklistPath, bundlePath, fragmentPaths, outputPath, sortRunItems = 5000, inputChunkBytes = 64 * 1024,
 }) {
   await assertAbsentFile(outputPath);
-  return withPrivateWorkspace(outputPath, async (workspace) => {
+  return withPrivateWorkspace(outputPath, async (workspace, checkCancellation) => {
     const worklist = await streamValidatedWorklist({
-      worklistPath, workspace, sortRunItems, inputChunkBytes, failureKind: 'assembler',
+      worklistPath, workspace, sortRunItems, inputChunkBytes,
+      failureKind: 'assembler', checkCancellation,
     });
     const bundle = validateBundleShape(await readJson(bundlePath));
     if (bundle.worklistId !== worklist.header.worklistId) failAssembler('BLOCKED_ASSEMBLER_BINDING', 'Bundle worklistId mismatch.');
     if (bundle.sourceGraphCanonicalSha256 !== worklist.header.sourceGraph.canonicalSha256) failAssembler('BLOCKED_ASSEMBLER_BINDING', 'Bundle source graph mismatch.');
     if (await calculateBundleId(bundle) !== bundle.bundleId) failAssembler('BLOCKED_ASSEMBLER_BINDING', 'Bundle ID is stale or tampered.');
-    const expectedShards = await reconstructExpected(worklist, bundle);
-    const fragments = await indexFragments(fragmentPaths, bundle, expectedShards);
+    const expectedShards = await reconstructExpected(worklist, bundle, checkCancellation);
+    const fragments = await indexFragments(fragmentPaths, bundle, expectedShards, checkCancellation);
     const decisionsPath = join(workspace, 'decisions.canonical');
     const decisionCount = await spoolDecisions(worklist, {
       shards: expectedShards, maxItemsPerShard: bundle.partitionPolicy.maxItemsPerShard,
-    }, fragments, decisionsPath);
+    }, fragments, decisionsPath, checkCancellation);
     if (decisionCount !== worklist.workItemCount) failAssembler('BLOCKED_FRAGMENT_COVERAGE', 'Decision coverage does not equal worklist coverage.');
     const header = {
       worklistId: worklist.header.worklistId,
       sourceGraphCanonicalSha256: worklist.header.sourceGraph.canonicalSha256,
     };
+    checkCancellation();
     const decisionSetId = await digestDecisionSetPayload(header, decisionsPath);
     const stagedPath = join(workspace, 'decision-set.json');
     await writeDecisionSetFile(stagedPath, header, decisionsPath, decisionSetId);
+    checkCancellation();
     await publishFile(stagedPath, outputPath);
     return { decisionSetId, decisionCount, metrics: {
       fragmentCount: fragmentPaths.length,
