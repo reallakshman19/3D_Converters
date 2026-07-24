@@ -21,23 +21,31 @@ function positiveInteger(value, label) {
 function optionValue(args, name, fallback) {
   const index = args.indexOf(name);
   if (index === -1) return fallback;
-  if (index === args.length - 1) throw new Error(usage());
   return positiveInteger(args[index + 1], name);
+}
+
+function validateOptions(args) {
+  const valued = new Set(['--max-items', '--sort-run-items', '--input-chunk-bytes']);
+  const seen = new Set();
+  for (let index = 2; index < args.length; index += 1) {
+    const token = args[index];
+    if (token !== '--bounded-memory' && !valued.has(token)) throw new Error(usage());
+    if (seen.has(token)) throw new Error(`Duplicate option ${token}.`);
+    seen.add(token);
+    if (valued.has(token)) {
+      if (index === args.length - 1) throw new Error(usage());
+      index += 1;
+    }
+  }
+  if (!seen.has('--max-items')) throw new Error(usage());
 }
 
 function parseArgs(args) {
   if (args.length < 4) throw new Error(usage());
-  const maxIndex = args.indexOf('--max-items');
-  if (maxIndex === -1 || maxIndex === args.length - 1) throw new Error(usage());
-  const known = new Set(['--max-items', '--sort-run-items', '--input-chunk-bytes']);
-  for (let index = 2; index < args.length; index++) {
-    if (args[index] === '--bounded-memory') continue;
-    if (!known.has(args[index])) throw new Error(usage());
-    index += 1;
-  }
+  validateOptions(args);
   return {
     worklistPath: resolve(args[0]), outputDir: resolve(args[1]),
-    maxItems: positiveInteger(args[maxIndex + 1], '--max-items'),
+    maxItems: optionValue(args, '--max-items', null),
     boundedMemory: args.includes('--bounded-memory'),
     sortRunItems: optionValue(args, '--sort-run-items', 5000),
     inputChunkBytes: optionValue(args, '--input-chunk-bytes', 64 * 1024),
