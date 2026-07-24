@@ -20,12 +20,33 @@ export async function assertAbsentFile(path) {
   if (await targetState(path)) throw new Error(`Output file ${path} already exists.`);
 }
 
+function cancellationState() {
+  let signal = null;
+  const handlers = Object.fromEntries(['SIGINT', 'SIGTERM'].map((name) => [name, () => { signal = name; }]));
+  for (const [name, handler] of Object.entries(handlers)) process.once(name, handler);
+  return {
+    check() {
+      if (!signal) return;
+      const error = new Error(`F2S-007 execution cancelled by ${signal}.`);
+      error.code = 'F2S007_CANCELLED';
+      throw error;
+    },
+    close() {
+      for (const [name, handler] of Object.entries(handlers)) process.removeListener(name, handler);
+    },
+  };
+}
+
 export async function withPrivateWorkspace(targetPath, task) {
   const parent = dirname(targetPath);
   await mkdir(parent, { recursive: true });
   const workspace = await mkdtemp(join(parent, `.${basename(targetPath)}.f2s007-`));
-  try { return await task(workspace); }
-  finally { await rm(workspace, { recursive: true, force: true }); }
+  const cancellation = cancellationState();
+  try { return await task(workspace, cancellation.check); }
+  finally {
+    cancellation.close();
+    await rm(workspace, { recursive: true, force: true });
+  }
 }
 
 export async function publishDirectory(stagedPath, targetPath) {
