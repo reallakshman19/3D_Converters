@@ -45,49 +45,55 @@ function ioDelta(before, after, key) {
   return Math.max(0, (after[key] || 0) - (before[key] || 0));
 }
 
-export async function startResourceSampler(monitorRoot, intervalMs = 250) {
-  const baselineDisk = await pathSize(monitorRoot);
-  const startingIo = await procIo();
-  const startingCpu = process.cpuUsage();
-  const started = process.hrtime.bigint();
-  const peaks = { rss: 0, heap: 0, disk: baselineDisk, fds: 0 };
-  let active = true;
-  let pending = null;
+async function sampleState(state) {
+  const memory = process.memoryUsage();
+  state.peaks.rss = Math.max(state.peaks.rss, memory.rss);
+  state.peaks.heap = Math.max(state.peaks.heap, memory.heapUsed);
+  state.peaks.disk = Math.max(state.peaks.disk, await pathSize(state.monitorRoot));
+  const fds = await fileDescriptorCount();
+  if (fds !== null) state.peaks.fds = Math.max(state.peaks.fds, fds);
+}
 
-  async function sample() {
-    const memory = process.memoryUsage();
-    peaks.rss = Math.max(peaks.rss, memory.rss);
-    peaks.heap = Math.max(peaks.heap, memory.heapUsed);
-    peaks.disk = Math.max(peaks.disk, await pathSize(monitorRoot));
-    const fds = await fileDescriptorCount();
-    if (fds !== null) peaks.fds = Math.max(peaks.fds, fds);
-  }
+function resourceResult(state, endingIo) {
+  const cpu = process.cpuUsage(state.startingCpu);
+  const maxRss = process.resourceUsage().maxRSS * 1024;
+  return {
+    wallMs: Number(process.hrtime.bigint() - state.started) / 1e6,
+    cpuUserMs: cpu.user / 1000,
+    cpuSystemMs: cpu.system / 1000,
+    peakRssBytes: Math.max(state.peaks.rss, maxRss),
+    peakHeapBytes: state.peaks.heap,
+    temporaryDiskPeakBytes: Math.max(0, state.peaks.disk - state.baselineDisk),
+    bytesRead: ioDelta(state.startingIo, endingIo, 'read_bytes'),
+    bytesWritten: ioDelta(state.startingIo, endingIo, 'write_bytes'),
+    fileDescriptorPeak: state.peaks.fds || null,
+  };
+}
 
+function scheduleSampling(state, intervalMs) {
   const timer = setInterval(() => {
-    if (!active || pending) return;
-    pending = sample().finally(() => { pending = null; });
+    if (!state.active || state.pending) return;
+    state.pending = sampleState(state).finally(() => { state.pending = null; });
   }, intervalMs);
   timer.unref();
-  await sample();
+  return timer;
+}
 
+export async function startResourceSampler(monitorRoot, intervalMs = 250) {
+  const baselineDisk = await pathSize(monitorRoot);
+  const state = {
+    monitorRoot, baselineDisk, startingIo: await procIo(),
+    startingCpu: process.cpuUsage(), started: process.hrtime.bigint(),
+    peaks: { rss: 0, heap: 0, disk: baselineDisk, fds: 0 },
+    active: true, pending: null, timer: null,
+  };
+  state.timer = scheduleSampling(state, intervalMs);
+  await sampleState(state);
   return async function stop() {
-    active = false;
-    clearInterval(timer);
-    if (pending) await pending;
-    await sample();
-    const endingIo = await procIo();
-    const cpu = process.cpuUsage(startingCpu);
-    const maxRss = process.resourceUsage().maxRSS * 1024;
-    return {
-      wallMs: Number(process.hrtime.bigint() - started) / 1e6,
-      cpuUserMs: cpu.user / 1000,
-      cpuSystemMs: cpu.system / 1000,
-      peakRssBytes: Math.max(peaks.rss, maxRss),
-      peakHeapBytes: peaks.heap,
-      temporaryDiskPeakBytes: Math.max(0, peaks.disk - baselineDisk),
-      bytesRead: ioDelta(startingIo, endingIo, 'read_bytes'),
-      bytesWritten: ioDelta(startingIo, endingIo, 'write_bytes'),
-      fileDescriptorPeak: peaks.fds || null,
-    };
+    state.active = false;
+    clearInterval(state.timer);
+    if (state.pending) await state.pending;
+    await sampleState(state);
+    return resourceResult(state, await procIo());
   };
 }
