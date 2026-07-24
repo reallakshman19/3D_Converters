@@ -17,22 +17,27 @@ async function close(stream) {
   await once(stream, 'close');
 }
 
-async function writeRun(path, records, keyOf) {
+async function writeRun(path, records, keyOf, checkCancellation) {
   records.sort((left, right) => compareText(keyOf(left), keyOf(right)));
   const stream = createWriteStream(path, { encoding: 'utf8', flags: 'wx' });
-  for (const record of records) await writeLine(stream, record);
+  for (const record of records) {
+    checkCancellation();
+    await writeLine(stream, record);
+  }
   await close(stream);
 }
 
-async function openCursor(path, keyOf) {
+async function openCursor(path, keyOf, checkCancellation) {
+  checkCancellation();
   const lines = createInterface({ input: createReadStream(path, { encoding: 'utf8' }), crlfDelay: Infinity });
   const iterator = lines[Symbol.asyncIterator]();
   const cursor = { iterator, lines, value: null, key: null, done: false };
-  await advance(cursor, keyOf);
+  await advance(cursor, keyOf, checkCancellation);
   return cursor;
 }
 
-async function advance(cursor, keyOf) {
+async function advance(cursor, keyOf, checkCancellation) {
+  checkCancellation();
   const next = await cursor.iterator.next();
   cursor.done = Boolean(next.done);
   if (cursor.done) {
@@ -55,14 +60,15 @@ function minimumCursor(cursors) {
   return selected;
 }
 
-async function mergeRuns(inputs, output, keyOf, onRecord) {
-  const cursors = await Promise.all(inputs.map((path) => openCursor(path, keyOf)));
+async function mergeRuns(inputs, output, keyOf, onRecord, checkCancellation) {
+  const cursors = await Promise.all(inputs.map((path) => openCursor(path, keyOf, checkCancellation)));
   const stream = createWriteStream(output, { encoding: 'utf8', flags: 'wx' });
   let previousKey = null;
   let previousRecord = null;
   let index = 0;
   try {
     for (;;) {
+      checkCancellation();
       const cursor = minimumCursor(cursors);
       if (!cursor) break;
       if (onRecord) await onRecord(cursor.value, cursor.key, previousKey, previousRecord, index);
@@ -70,7 +76,7 @@ async function mergeRuns(inputs, output, keyOf, onRecord) {
       previousKey = cursor.key;
       previousRecord = cursor.value;
       index += 1;
-      await advance(cursor, keyOf);
+      await advance(cursor, keyOf, checkCancellation);
     }
     await close(stream);
   } catch (error) {
@@ -84,12 +90,16 @@ async function mergeRuns(inputs, output, keyOf, onRecord) {
 }
 
 export class ExternalJsonSorter {
-  constructor({ directory, prefix, maxRecords = 5000, maxOpenRuns = 32, keyOf }) {
+  constructor({
+    directory, prefix, maxRecords = 5000, maxOpenRuns = 32,
+    keyOf, checkCancellation = () => {},
+  }) {
     this.directory = directory;
     this.prefix = prefix;
     this.maxRecords = maxRecords;
     this.maxOpenRuns = maxOpenRuns;
     this.keyOf = keyOf;
+    this.checkCancellation = checkCancellation;
     this.buffer = [];
     this.runs = [];
     this.runOrdinal = 0;
@@ -97,28 +107,31 @@ export class ExternalJsonSorter {
   }
 
   async add(record) {
+    this.checkCancellation();
     this.buffer.push(record);
     if (this.buffer.length >= this.maxRecords) await this.flush();
   }
 
   async flush() {
+    this.checkCancellation();
     if (this.buffer.length === 0) return;
     await mkdir(this.directory, { recursive: true });
     const path = join(this.directory, `${this.prefix}-run-${this.runOrdinal++}.ndjson`);
     const records = this.buffer;
     this.buffer = [];
-    await writeRun(path, records, this.keyOf);
+    await writeRun(path, records, this.keyOf, this.checkCancellation);
     this.runs.push(path);
   }
 
   async reduceRuns() {
     let runs = this.runs;
     while (runs.length > this.maxOpenRuns) {
+      this.checkCancellation();
       const next = [];
       for (let offset = 0; offset < runs.length; offset += this.maxOpenRuns) {
         const batch = runs.slice(offset, offset + this.maxOpenRuns);
         const output = join(this.directory, `${this.prefix}-merge-${this.mergePasses}-${next.length}.ndjson`);
-        await mergeRuns(batch, output, this.keyOf);
+        await mergeRuns(batch, output, this.keyOf, null, this.checkCancellation);
         await Promise.all(batch.map((path) => rm(path, { force: true })));
         next.push(output);
       }
@@ -137,7 +150,7 @@ export class ExternalJsonSorter {
       return { outputPath: output, count: 0, sortRunCount: 0, mergePassCount: 0 };
     }
     await this.reduceRuns();
-    const count = await mergeRuns(this.runs, output, this.keyOf, onRecord);
+    const count = await mergeRuns(this.runs, output, this.keyOf, onRecord, this.checkCancellation);
     await Promise.all(this.runs.map((path) => rm(path, { force: true })));
     this.runs = [output];
     return { outputPath: output, count, sortRunCount: this.runOrdinal, mergePassCount: this.mergePasses + 1 };
