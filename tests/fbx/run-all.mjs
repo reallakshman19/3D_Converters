@@ -18,6 +18,7 @@ const tests = [
   'test-mapping-review-cli.mjs',
   'test-review-scale-parity.mjs',
   'test-review-scale-failures.mjs',
+  'test-review-resource-bounds.mjs',
   'test-worker.mjs',
   'test-determinism.mjs',
   'test-registry.mjs',
