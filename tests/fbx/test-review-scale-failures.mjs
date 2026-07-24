@@ -9,6 +9,7 @@ import { buildReviewBundle } from '../../tabs/model-converters/converters/fbx/ma
 import { calculateFragmentId } from '../../tabs/model-converters/converters/fbx/mapping-decision-fragment.js';
 import { buildBoundedReviewBundle } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-bundle.js';
 import { assembleBoundedFragments } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-assembly.js';
+import { withPrivateWorkspace } from '../../tabs/model-converters/converters/fbx/review-execution/atomic-publication.js';
 import { worklistFixture } from './worklist-helpers.mjs';
 
 async function assertAbsent(path) {
@@ -45,6 +46,17 @@ async function expectRawBundleFailure(root, name, bytes, expected) {
   }), expected);
   await assertAbsent(output);
   await assertNoWorkspace(root, output);
+}
+
+async function assertCancellationCleanup(root) {
+  const target = join(root, 'cancelled-output.json');
+  await assert.rejects(withPrivateWorkspace(target, async (workspace, checkCancellation) => {
+    await writeFile(join(workspace, 'partial'), 'partial');
+    process.emit('SIGTERM', 'SIGTERM');
+    checkCancellation();
+  }), (error) => error.code === 'F2S007_CANCELLED');
+  await assertAbsent(target);
+  await assertNoWorkspace(root, target);
 }
 
 async function sourceFiles(path) {
@@ -166,6 +178,7 @@ try {
   }), /Not all shards/);
   await assertAbsent(outputPath);
   await assertNoWorkspace(root, outputPath);
+  await assertCancellationCleanup(root);
   assert.ok((await readFile(worklistPath)).length > 0);
   await assertStaticGuards();
 } finally {
