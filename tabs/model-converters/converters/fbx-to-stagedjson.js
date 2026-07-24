@@ -5,6 +5,15 @@ import { loadBrowserParserEvidence } from './fbx/parser-provenance.js';
 
 const SOURCE_GRAPH_JSON_PASS = 'SOURCE_GRAPH_JSON_PASS';
 const OPTIONAL_MAPPING_ABSENT = 'OPTIONAL_MAPPING_ABSENT';
+const STAGE_LABELS = Object.freeze({
+  preflight: 'Checking FBX header...',
+  'loading-wasm': 'Loading FBX parser...',
+  'copying-input': 'Copying FBX into parser memory...',
+  'parsing-fbx': 'Parsing FBX...',
+  'decoding-result': 'Decoding parser result...',
+  'enforcing-source-policy': 'Enforcing FBX source policy...',
+  'preparing-transfer': 'Preparing FBX source graph...',
+});
 
 function findInput(context, role) {
   return context.inputFiles?.find((file) => file.role === role);
@@ -66,8 +75,6 @@ export function promoteNoMappingJsonOutput(result, inputName) {
   };
 }
 
-// Always load parser evidence — needed for worklist generation (no manifest path)
-// and for decision-set compilation (decision set path), not only for mapping packages.
 async function loadParserEvidence() {
   try {
     return { parserEvidence: await loadBrowserParserEvidence() };
@@ -75,6 +82,14 @@ async function loadParserEvidence() {
     const parserEvidenceError = error instanceof Error ? error.message : String(error);
     return { parserEvidenceError };
   }
+}
+
+function workerOptions(context) {
+  return {
+    signal: context.signal,
+    timeoutMs: context.options?.fbxWorkerTimeoutMs,
+    onProgress: (stage) => context.setStatus?.(STAGE_LABELS[stage] || `FBX worker: ${stage}`, 'running'),
+  };
 }
 
 export async function run(context = {}) {
@@ -89,7 +104,7 @@ export async function run(context = {}) {
     inputName: primary.name,
     ...mappingInput,
     ...binding,
-    parse: (bytes) => parseFbxInWorker(bytes, { signal: context.signal }),
+    parse: (bytes) => parseFbxInWorker(bytes, workerOptions(context)),
   });
   const result = secondary ? converted : promoteNoMappingJsonOutput(converted, primary.name);
   const state = [SOURCE_GRAPH_JSON_PASS, 'STAGEDJSON_PASS'].includes(result.conversionStatus) ? 'ok' : 'warning';
