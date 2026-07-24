@@ -27,4 +27,7 @@ await assert.rejects(()=>benchmarkFbxRuntime({...base,sourceBytes:new Uint8Array
 await assert.rejects(()=>benchmarkFbxRuntime({...base,parserDigest:'bad',execute:async()=>({semanticArtifacts:{}})}),/BENCHMARK_CONFIGURATION_INVALID/);
 await assert.rejects(()=>benchmarkFbxRuntime({...base,runConfiguration:{...base.runConfiguration,measuredRuns:0},execute:async()=>({semanticArtifacts:{}})}),/BENCHMARK_CONFIGURATION_INVALID/);
 const malformed=structuredClone(partial);malformed.extra=true;assert.throws(()=>validateFbxRuntimeBenchmark(malformed),/BENCHMARK_CONTRACT_INVALID/);
+const aggregateDrift=structuredClone(partial);aggregateDrift.aggregate.failedRuns=0;assert.throws(()=>validateFbxRuntimeBenchmark(aggregateDrift),/Aggregate differs/);
+const terminalDrift=structuredClone(partial);terminalDrift.runs[0].errorCode='BAD';assert.throws(()=>validateFbxRuntimeBenchmark(terminalDrift),/terminal fields/);
+await assert.rejects(()=>benchmarkFbxRuntime({...base,runConfiguration:{...base.runConfiguration,warmupRuns:1},execute:async({phase})=>{if(phase==='warmup')throw new Error('warmup');return {semanticArtifacts:{}};}}),(error)=>error.code==='WARMUP_FAILED');
 console.log('test-runtime-benchmark-failures: PASS');
