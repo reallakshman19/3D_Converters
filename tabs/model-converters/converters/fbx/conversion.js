@@ -9,6 +9,11 @@ import {
   verifyMappingBinding, verifyParserBinding, verifySourceBinding, verifySourceGraphBinding,
 } from './mapping-package.js';
 import { validateMappingManifest } from './mapping-validator.js';
+import {
+  compileMappingDecisions, validateDecisionSetShape,
+} from './mapping-decision-compiler.js';
+import { generateDraftDecisions } from './mapping-heuristic.js';
+import { buildMappingWorklist } from './mapping-worklist.js';
 import { resolveEntryPorts, resolveEntryPortsV2 } from './port-resolver.js';
 import { projectSourceGraphV1 } from './source-graph-v1-compat.js';
 import { writeNativeStagedJson, writeNativeStagedJsonV2 } from './staged-writer.js';
@@ -267,13 +272,80 @@ function markLegacy(result) {
   return { ...result, logs: { ...result.logs, stdout: ['UNBOUND_LEGACY_MAPPING', ...result.logs.stdout] } };
 }
 
+// ---------------------------------------------------------------------------
+// Decision-set detection helper
+// ---------------------------------------------------------------------------
+function isDecisionSet(value) {
+  return value && typeof value === 'object' && value.schema === 'FbxMappingDecisionSet.v1';
+}
+
+// ---------------------------------------------------------------------------
+// Decision-set conversion path (Option 2)
+// ---------------------------------------------------------------------------
+async function decisionSetConversion({ bytes, stem, decisionSet, parse, parserEvidence, parserEvidenceError }) {
+  // We need parserEvidence to verify the worklist binding.
+  if (parserEvidenceError) {
+    const diagnostic = parserEvidenceError.replace(/^BLOCKED_PARSER_BINDING\s+/, '');
+    return blockedResult(stem, null, 'BLOCKED_PARSER_BINDING', [diagnostic]);
+  }
+  if (!parserEvidence) {
+    return blockedResult(stem, null, 'BLOCKED_PARSER_BINDING', ['Parser evidence is unavailable for decision-set compilation.']);
+  }
+
+  // Validate shape before doing any heavy work.
+  try { validateDecisionSetShape(decisionSet); } catch (error) {
+    return blockedResult(stem, null, 'BLOCKED_DECISION_BINDING', [diagnosticOf(error)]);
+  }
+
+  // Parse the FBX.
+  let graph;
+  try {
+    graph = await parse(bytes);
+  } catch (error) {
+    return blockedResult(stem, null, 'BLOCKED_PARSE', [diagnosticOf(error)]);
+  }
+
+  // Build the live worklist from the parsed graph and verify the decision set against it.
+  let compiledManifest;
+  try {
+    const worklist = await buildMappingWorklist({ bytes, graph, parserEvidence });
+    compiledManifest = await compileMappingDecisions({
+      bytes, graph, parserEvidence, worklist, decisionSet,
+    });
+  } catch (error) {
+    const compatibility = compatibilityGraph(stem, graph);
+    const reportGraph = compatibility.blocked ? null : graph;
+    return blockedResult(stem, reportGraph, 'BLOCKED_DECISION_BINDING', [diagnosticOf(error)]);
+  }
+
+  // Run the mapping execution with the compiled manifest.
+  const compatibility = compatibilityGraph(stem, graph);
+  if (compatibility.blocked) return compatibility.blocked;
+  try {
+    const execution = executeMapping(compiledManifest, graph, compatibility.graph);
+    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry, execution.links);
+    return successResult(stem, graph, ledger, execution.staged, successCounts(execution));
+  } catch (error) {
+    const diagnostic = diagnosticOf(error);
+    return blockedResult(stem, graph, blockedStatus(diagnostic), [diagnostic]);
+  }
+}
+
 export async function convertFbxToStagedJson({
   bytes, inputName, mapping, mappingError, parse, parserEvidence, parserEvidenceError,
 }) {
   const stem = baseName(inputName);
+
+  // Option 2: secondary file is a compiled decision set — no static manifest needed.
+  if (!mappingError && isDecisionSet(mapping)) {
+    return decisionSetConversion({
+      bytes, stem, decisionSet: mapping, parse, parserEvidence, parserEvidenceError,
+    });
+  }
+
   if (mappingError || !mapping) {
     const diagnostic = mappingError || 'Mapping manifest is absent. StagedJSON conversion skipped. FBX Source Graph extracted successfully.';
-    return legacyMappingProblem({ bytes, stem, parse, diagnostic });
+    return legacyMappingProblem({ bytes, stem, parse, parserEvidence, diagnostic });
   }
   if (isMappingPackage(mapping)) {
     return packageConversion({
@@ -283,7 +355,10 @@ export async function convertFbxToStagedJson({
   return markLegacy(await legacyConversion({ bytes, stem, mapping, parse }));
 }
 
-async function legacyMappingProblem({ bytes, stem, parse, diagnostic }) {
+// ---------------------------------------------------------------------------
+// No-manifest path: parse the FBX and emit the source graph + worklist (Option 1)
+// ---------------------------------------------------------------------------
+async function legacyMappingProblem({ bytes, stem, parse, parserEvidence, diagnostic }) {
   let graph;
   try {
     graph = await parse(bytes);
@@ -292,5 +367,22 @@ async function legacyMappingProblem({ bytes, stem, parse, diagnostic }) {
   }
   const compatibility = compatibilityGraph(stem, graph);
   if (compatibility.blocked) return compatibility.blocked;
-  return blockedResult(stem, graph, 'BLOCKED_MAPPING', [diagnostic]);
+
+  // Option 1: if we have parser evidence, also emit a mapping worklist so the
+  // user has something actionable to work from without needing a static manifest.
+  const result = blockedResult(stem, graph, 'BLOCKED_MAPPING', [diagnostic]);
+  if (parserEvidence) {
+    try {
+      const worklist = await buildMappingWorklist({ bytes, graph, parserEvidence });
+      result.outputs.splice(1, 0, artifact(`${stem}.fbx-mapping-worklist.json`, worklist));
+      
+      const draft = generateDraftDecisions(worklist);
+      result.outputs.splice(2, 0, artifact(`${stem}.fbx-draft-decisions.json`, draft));
+      
+      result.logs.stdout = ['PARSE_PASS', 'WORKLIST_GENERATED', 'DRAFT_DECISIONS_GENERATED'];
+    } catch (_) {
+      // Worklist generation is best-effort; don't fail the whole conversion.
+    }
+  }
+  return result;
 }
