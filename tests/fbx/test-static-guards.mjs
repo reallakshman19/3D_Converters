@@ -62,6 +62,8 @@ for (const stage of [
   'decoding-result', 'enforcing-source-policy', 'preparing-transfer', 'complete',
 ]) assert.match(protocol, new RegExp(`['"]${stage}['"]`), `worker protocol lacks ${stage}`);
 assert.doesNotMatch(protocol, /percent(?:age)?|estimated remaining/i, 'worker protocol invents opaque parse progress');
+assert.match(protocol, /assertSourceGraphEnvelope/, 'worker protocol must validate completion graphs');
+assert.match(protocol, /assertGraphReferences/, 'worker protocol must validate completion references');
 
 const client = await readFile(join(fbxRoot, 'parser-client.js'), 'utf8');
 assert.match(client, /settle\('SETTLED_SUCCESS', message\.graph\)/, 'client must resolve only the graph');
