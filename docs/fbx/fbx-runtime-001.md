@@ -36,7 +36,7 @@ FBX_WORKER_COMPLETE
 FBX_WORKER_ERROR
 ```
 
-Only a structurally valid `FBX_WORKER_COMPLETE` for the active job may resolve the parser promise. The resolved value is the `FbxSourceGraph.v2` graph alone. Diagnostics remain a sibling message field and are available only through an optional runtime callback.
+Only a structurally valid `FBX_WORKER_COMPLETE` for the active job may resolve the parser promise. The completion graph is validated as a closed `FbxSourceGraph.v2` value, including nested record shapes, element-type pairings, transforms, geometry arrays, duplicate identities and cross-references. The resolved value is the graph alone. Diagnostics remain a sibling message field and are available only through an optional runtime callback.
 
 ## Memory ownership
 
@@ -134,7 +134,7 @@ FBX_SOURCE_GRAPH_POLICY_FAILED
 
 Parser descriptions and JavaScript exception messages are retained only as bounded, non-authoritative detail. They do not create new public classifications or authorize partial publication.
 
-Malformed messages, wrong job IDs, duplicate acceptance/completion, impossible progress, deserialization failure, and completion after timeout all fail closed. No conversion artifact is published from those paths.
+Malformed messages, wrong job IDs, duplicate acceptance/completion, impossible progress, deserialization failure, malformed nested completion graphs, and completion after timeout all fail closed. No conversion artifact is published from those paths.
 
 ## Canonical-byte isolation
 
@@ -182,4 +182,11 @@ node tests/fbx/run-all.mjs
 node tests/fbx/test-static-guards.mjs
 ```
 
-The parity test compares canonical source-graph bytes and complete conversion results between the direct WASM/policy path and the managed worker path for accepted fixtures and mapping/no-mapping execution.
+The parity test compares canonical source-graph bytes and complete conversion results between the direct WASM/policy path and the managed worker path for:
+
+- two-pipe mapping, package and no-mapping execution;
+- axis/geometric-transform no-mapping execution;
+- all-category no-mapping execution;
+- component-family mapping, package, decision-set and no-mapping execution.
+
+No hosted workflow run was available for the final head at merge time. That absence is recorded as an owner-directed residual-risk waiver and must not be represented as a passing CI result.
