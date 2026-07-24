@@ -20,6 +20,7 @@ function removeOption(args, name, hasValue) {
   const copy = [...args];
   const index = copy.indexOf(name);
   if (index === -1) return { args: copy, value: null };
+  if (copy.indexOf(name, index + 1) !== -1) throw new Error(`Duplicate option ${name}.`);
   if (hasValue && index === copy.length - 1) throw new Error(usage());
   const value = hasValue ? copy[index + 1] : true;
   copy.splice(index, hasValue ? 2 : 1);
@@ -35,7 +36,9 @@ function parseArgs(rawArgs) {
   const inputChunkBytes = parsed.value === null ? 64 * 1024 : positiveInteger(parsed.value, '--input-chunk-bytes');
   const args = parsed.args;
   const outIndex = args.indexOf('--output');
-  if (outIndex === -1 || outIndex !== args.length - 2 || outIndex < 3) throw new Error(usage());
+  const outputCount = args.filter((value) => value === '--output').length;
+  if (outputCount !== 1 || outIndex !== args.length - 2 || outIndex < 3) throw new Error(usage());
+  if (args.slice(0, outIndex).some((value) => value.startsWith('--'))) throw new Error(usage());
   return {
     worklistPath: resolve(args[0]), bundlePath: resolve(args[1]),
     fragmentPaths: args.slice(2, outIndex).map((path) => resolve(path)),
