@@ -37,6 +37,16 @@ export const FBX_WORKER_ERROR_CODES = Object.freeze({
 
 const KNOWN_TYPES = new Set(Object.values(FBX_WORKER_TYPES));
 const KNOWN_CODES = new Set(Object.values(FBX_WORKER_ERROR_CODES));
+const ERROR_STAGE_BY_CODE = Object.freeze({
+  [FBX_WORKER_ERROR_CODES.PREFLIGHT_EMPTY_INPUT]: 'preflight',
+  [FBX_WORKER_ERROR_CODES.PREFLIGHT_SIZE_MISMATCH]: 'preflight',
+  [FBX_WORKER_ERROR_CODES.PREFLIGHT_UNSUPPORTED_HEADER]: 'preflight',
+  [FBX_WORKER_ERROR_CODES.PREFLIGHT_UNSUPPORTED_VERSION]: 'preflight',
+  [FBX_WORKER_ERROR_CODES.WASM_LOAD_FAILED]: 'loading-wasm',
+  [FBX_WORKER_ERROR_CODES.PARSE_REJECTED]: 'parsing-fbx',
+  [FBX_WORKER_ERROR_CODES.RESULT_DECODE_FAILED]: 'decoding-result',
+  [FBX_WORKER_ERROR_CODES.SOURCE_GRAPH_POLICY_FAILED]: 'enforcing-source-policy',
+});
 const JOB_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
 function isRecord(value) {
@@ -123,6 +133,10 @@ export function assertErrorMessage(value, receivedStages) {
   for (let i = 0; i < receivedStages.length; i += 1) {
     if (value.progressStages[i] !== receivedStages[i]) throw protocolError('Worker error progress history is inconsistent.');
   }
+  const currentStage = receivedStages.at(-1) ?? null;
+  if (value.stage !== currentStage) throw protocolError('Worker error stage is inconsistent with progress history.');
+  const requiredStage = ERROR_STAGE_BY_CODE[value.code];
+  if (requiredStage && value.stage !== requiredStage) throw protocolError('Worker error code is invalid for the current stage.');
   return value;
 }
 
