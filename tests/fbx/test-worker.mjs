@@ -111,4 +111,24 @@ await assert.rejects(
     && error.detail === 'parser-error-proof',
 );
 
+function invalidJobWorker() {
+  return {
+    onmessage: null, onerror: null, onmessageerror: null,
+    terminate() {},
+    postMessage(job) {
+      const failure = new FbxWorkerRuntimeError(
+        FBX_WORKER_ERROR_CODES.JOB_INVALID,
+        'The FBX worker job is invalid.',
+        { detail: 'job-invalid-proof' },
+      );
+      queueMicrotask(() => this.onmessage?.({ data: makeWorkerError(job.jobId, failure, [], {}) }));
+    },
+  };
+}
+await assert.rejects(
+  () => parseFbxInWorker(new Uint8Array([1]), { workerFactory: invalidJobWorker, timeoutMs: 100 }),
+  (error) => error.code === FBX_WORKER_ERROR_CODES.JOB_INVALID
+    && error.detail === 'job-invalid-proof',
+);
+
 console.log('test-worker: PASS');
