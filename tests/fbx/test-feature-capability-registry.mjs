@@ -35,6 +35,7 @@ for (const mutate of [
   (value) => { value.entries[0].featureId = 'wrong'; },
   (value) => { value.entries[0].evidenceStatus = 'requires-governed-mapping'; },
   (value) => { value.entries[0].renderStatus = 'unknown'; },
+  (value) => { value.entries[0].renderStatus = 'blocked-unsupported'; },
   (value) => { value.entries[0].limitations = ['UNKNOWN_LIMITATION']; },
   (value) => { value.entries[0].futureWorkPack = 'FUTURE'; },
   (value) => { value.entries.pop(); },
