@@ -43,13 +43,14 @@ function validateAvailability(value, label, type) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('BENCHMARK_CONTRACT_INVALID', `${label} is invalid.`);
   if (value.status === 'unavailable') { exactKeys(value, ['status','reason'], label); if (typeof value.reason !== 'string' || !value.reason) fail('BENCHMARK_CONTRACT_INVALID', `${label}.reason is invalid.`); return; }
   exactKeys(value, ['status','value'], label);
-  if (value.status !== 'available' || typeof value.value !== type || (type === 'number' && !Number.isFinite(value.value))) fail('BENCHMARK_CONTRACT_INVALID', `${label}.value is invalid.`);
+  if (value.status !== 'available' || typeof value.value !== type || (type === 'number' && !Number.isFinite(value.value)) || (type === 'string' && !value.value)) fail('BENCHMARK_CONTRACT_INVALID', `${label}.value is invalid.`);
 }
 function validateEnvironment(value) {
   exactKeys(value, ENV_KEYS, 'runtimeEnvironment');
   if (!['node','browser','unknown'].includes(value.runtimeKind)) fail('BENCHMARK_CONTRACT_INVALID', 'runtimeKind is invalid.');
   for (const key of ['runtimeVersion','platform','architecture','userAgent']) validateAvailability(value[key], `runtimeEnvironment.${key}`, 'string');
   validateAvailability(value.hardwareConcurrency, 'runtimeEnvironment.hardwareConcurrency', 'number');
+  if (value.hardwareConcurrency.status === 'available' && (!Number.isSafeInteger(value.hardwareConcurrency.value) || value.hardwareConcurrency.value < 1)) fail('BENCHMARK_CONTRACT_INVALID', 'hardwareConcurrency is invalid.');
   validateAvailability(value.crossOriginIsolated, 'runtimeEnvironment.crossOriginIsolated', 'boolean');
 }
 function normalizeConfiguration(value = {}) {
@@ -115,16 +116,27 @@ function commonDigests(runs) {
   if (passed.some((run) => JSON.stringify(run.artifactDigests) !== baseline)) fail('SEMANTIC_ARTIFACT_DRIFT', 'Semantic artifact digests changed between measured runs.');
   return structuredClone(passed[0].artifactDigests);
 }
+async function runWarmups(execute, config) {
+  for (let index = 0; index < config.warmupRuns; index += 1) {
+    try { await executeOnce(execute, { phase: 'warmup', runIndex: index, operation: OPERATION }, config.timeoutMs); }
+    catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      fail('WARMUP_FAILED', detail);
+    }
+  }
+}
 export async function benchmarkFbxRuntime({ sourceBytes, parserDigest, execute, runtimeEnvironment = observeRuntimeEnvironment(), runConfiguration, now = defaultNow }) {
-  const bytes = sourceView(sourceBytes), config = normalizeConfiguration(runConfiguration);
+  let bytes;
+  try { bytes = sourceView(sourceBytes); } catch { fail('BENCHMARK_CONFIGURATION_INVALID', 'sourceBytes must be bytes.'); }
+  const config = normalizeConfiguration(runConfiguration);
   if (!bytes.byteLength || !HASH.test(parserDigest) || typeof execute !== 'function' || typeof now !== 'function') fail('BENCHMARK_CONFIGURATION_INVALID', 'Benchmark inputs are invalid.');
-  validateEnvironment(runtimeEnvironment);
-  for (let index = 0; index < config.warmupRuns; index += 1) await executeOnce(execute, { phase: 'warmup', runIndex: index, operation: OPERATION }, config.timeoutMs);
+  validateEnvironment(runtimeEnvironment); await runWarmups(execute, config);
   const runs = [];
   for (let index = 0; index < config.measuredRuns; index += 1) runs.push(await measuredRun(execute, index, config, now));
-  return deepFreeze({ schema: 'FbxRuntimeBenchmark.v1', sourceSha256: await sha256Hex(bytes), sourceByteLength: bytes.byteLength,
+  const report = { schema: 'FbxRuntimeBenchmark.v1', sourceSha256: await sha256Hex(bytes), sourceByteLength: bytes.byteLength,
     parserDigest, runtimeEnvironment: structuredClone(runtimeEnvironment), runConfiguration: config, runs,
-    aggregate: aggregateRuns(runs), semanticArtifactDigests: commonDigests(runs) });
+    aggregate: aggregateRuns(runs), semanticArtifactDigests: commonDigests(runs) };
+  return deepFreeze(validateFbxRuntimeBenchmark(report));
 }
 function validateDigestMap(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('BENCHMARK_CONTRACT_INVALID', `${label} must be an object.`);
@@ -135,9 +147,20 @@ export function validateFbxRuntimeBenchmark(value) {
   if (value.schema !== 'FbxRuntimeBenchmark.v1' || !HASH.test(value.sourceSha256) || !HASH.test(value.parserDigest) || !Number.isSafeInteger(value.sourceByteLength) || value.sourceByteLength < 1) fail('BENCHMARK_CONTRACT_INVALID', 'Benchmark identity is invalid.');
   validateEnvironment(value.runtimeEnvironment); normalizeConfiguration(value.runConfiguration);
   if (!Array.isArray(value.runs)) fail('BENCHMARK_CONTRACT_INVALID', 'runs must be an array.');
-  value.runs.forEach((run, index) => { exactKeys(run, RUN_KEYS, `runs[${index}]`); if (run.runIndex !== index || !['passed','failed'].includes(run.status)) fail('BENCHMARK_CONTRACT_INVALID', 'Run ordering or status is invalid.'); validateAvailability(run.durationMs, `runs[${index}].durationMs`, 'number'); validateDigestMap(run.artifactDigests, `runs[${index}].artifactDigests`); });
+  if (value.runs.length !== value.runConfiguration.measuredRuns) fail('BENCHMARK_CONTRACT_INVALID', 'Run count differs from configuration.');
+  value.runs.forEach((run, index) => {
+    exactKeys(run, RUN_KEYS, `runs[${index}]`);
+    if (run.runIndex !== index || !['passed','failed'].includes(run.status)) fail('BENCHMARK_CONTRACT_INVALID', 'Run ordering or status is invalid.');
+    validateAvailability(run.durationMs, `runs[${index}].durationMs`, 'number');
+    if (run.durationMs.status === 'available' && run.durationMs.value < 0) fail('BENCHMARK_CONTRACT_INVALID', 'Run duration is invalid.');
+    validateDigestMap(run.artifactDigests, `runs[${index}].artifactDigests`);
+    if ((run.status === 'passed' && run.errorCode !== null) || (run.status === 'failed' && (typeof run.errorCode !== 'string' || !run.errorCode || Object.keys(run.artifactDigests).length))) fail('BENCHMARK_CONTRACT_INVALID', 'Run terminal fields are inconsistent.');
+  });
   exactKeys(value.aggregate, AGGREGATE_KEYS, 'aggregate'); exactKeys(value.aggregate.durationMs, DURATION_KEYS, 'aggregate.durationMs');
   for (const key of DURATION_KEYS) validateAvailability(value.aggregate.durationMs[key], `aggregate.durationMs.${key}`, 'number');
+  const expectedAggregate = aggregateRuns(value.runs);
+  if (JSON.stringify(value.aggregate) !== JSON.stringify(expectedAggregate)) fail('BENCHMARK_CONTRACT_INVALID', 'Aggregate differs from measured runs.');
   validateDigestMap(value.semanticArtifactDigests, 'semanticArtifactDigests');
+  if (JSON.stringify(value.semanticArtifactDigests) !== JSON.stringify(commonDigests(value.runs))) fail('BENCHMARK_CONTRACT_INVALID', 'Semantic artifact digests differ from measured runs.');
   return value;
 }
