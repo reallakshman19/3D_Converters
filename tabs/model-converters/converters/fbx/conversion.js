@@ -272,7 +272,7 @@ export async function convertFbxToStagedJson({
 }) {
   const stem = baseName(inputName);
   if (mappingError || !mapping) {
-    const diagnostic = mappingError || 'Mapping manifest is required.';
+    const diagnostic = mappingError || 'Mapping manifest is absent. StagedJSON conversion skipped. FBX Source Graph extracted successfully.';
     return legacyMappingProblem({ bytes, stem, parse, diagnostic });
   }
   if (isMappingPackage(mapping)) {
