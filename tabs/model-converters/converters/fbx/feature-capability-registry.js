@@ -89,6 +89,10 @@ function validateEntry(value, index) {
   sortedUnique(value.limitations, `${value.featureId}.limitations`);
   if (value.limitations.some((item) => !LIMITATION_SET.has(item))) throw new TypeError(`${value.featureId} has an unknown limitation.`);
   if (value.futureWorkPack !== null && !/^FBX-RUNTIME-[0-9]{3}$/.test(value.futureWorkPack)) throw new TypeError('futureWorkPack is invalid.');
+  const expected = ENTRIES[index];
+  if (POLICY_FIELDS.some((field) => value[field] !== expected[field])
+    || JSON.stringify(value.limitations) !== JSON.stringify(expected.limitations)
+    || value.futureWorkPack !== expected.futureWorkPack) throw new TypeError(`${value.featureId} policy differs from the frozen v1 registry.`);
 }
 
 export function validateFeatureCapabilityRegistry(value) {
