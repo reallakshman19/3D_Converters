@@ -10,7 +10,7 @@ import { calculateFragmentId } from '../../tabs/model-converters/converters/fbx/
 import { buildBoundedReviewBundle } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-bundle.js';
 import { assembleBoundedFragments } from '../../tabs/model-converters/converters/fbx/review-execution/bounded-assembly.js';
 import { reviewShardCsv } from '../../tabs/model-converters/converters/fbx/review-execution/review-csv.js';
-import { worklistFixture } from './worklist-helpers.mjs';
+import { createSyntheticWorklist } from './review-scale-helpers.mjs';
 
 function permutedWorklist(source) {
   const worklist = structuredClone(source);
@@ -43,9 +43,7 @@ async function assertDirectoriesEqual(left, right) {
   const rightNames = (await readdir(right)).sort();
   assert.deepEqual(leftNames, rightNames);
   for (const name of leftNames) {
-    const leftBytes = await readFile(join(left, name));
-    const rightBytes = await readFile(join(right, name));
-    assert.equal(Buffer.compare(leftBytes, rightBytes), 0, `${name} differs`);
+    assert.equal(Buffer.compare(await readFile(join(left, name)), await readFile(join(right, name))), 0, `${name} differs`);
   }
 }
 
@@ -77,8 +75,9 @@ async function createFragments(path, bundleResult) {
 
 const root = await mkdtemp(join(tmpdir(), 'f2s007-parity-'));
 try {
-  const family = await worklistFixture('family');
-  const worklist = await restampWorklist(permutedWorklist(family.worklist));
+  const corpus = await createSyntheticWorklist(root, 23);
+  const sourceWorklist = JSON.parse(await readFile(corpus.worklistPath, 'utf8'));
+  const worklist = await restampWorklist(permutedWorklist(sourceWorklist));
   const worklistPath = join(root, 'worklist.json');
   await writeFile(worklistPath, canonicalJson(worklist));
   const reference = await buildReviewBundle(worklist, 2);
