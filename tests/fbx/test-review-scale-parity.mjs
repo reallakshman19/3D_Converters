@@ -84,12 +84,18 @@ try {
   const reference = await buildReviewBundle(worklist, 2);
   const referenceDir = join(root, 'reference');
   const boundedDir = join(root, 'bounded');
+  const boundedDir2 = join(root, 'bounded-alt');
   await writeReferenceBundle(referenceDir, reference);
   await buildBoundedReviewBundle({
     worklistPath, outputDir: boundedDir, maxItemsPerShard: 2,
     sortRunItems: 1, inputChunkBytes: 7,
   });
+  await buildBoundedReviewBundle({
+    worklistPath, outputDir: boundedDir2, maxItemsPerShard: 2,
+    sortRunItems: 3, inputChunkBytes: 1,
+  });
   await assertDirectoriesEqual(referenceDir, boundedDir);
+  await assertDirectoriesEqual(referenceDir, boundedDir2);
   const { fragments, paths } = await createFragments(root, reference);
   const direct = await assembleFragments(worklist, reference.bundle, fragments);
   const boundedPath = join(root, 'bounded-decision-set.json');
@@ -97,7 +103,14 @@ try {
     worklistPath, bundlePath: join(boundedDir, 'manifest.json'), fragmentPaths: paths,
     outputPath: boundedPath, sortRunItems: 1, inputChunkBytes: 5,
   });
-  assert.equal(await readFile(boundedPath, 'utf8'), canonicalJson(direct));
+  const boundedPath2 = join(root, 'bounded-decision-set-alt.json');
+  await assembleBoundedFragments({
+    worklistPath, bundlePath: join(boundedDir2, 'manifest.json'), fragmentPaths: [...paths].reverse(),
+    outputPath: boundedPath2, sortRunItems: 4, inputChunkBytes: 1,
+  });
+  const expectedBytes = canonicalJson(direct);
+  assert.equal(await readFile(boundedPath, 'utf8'), expectedBytes);
+  assert.equal(await readFile(boundedPath2, 'utf8'), expectedBytes);
 } finally {
   await rm(root, { recursive: true, force: true });
 }
