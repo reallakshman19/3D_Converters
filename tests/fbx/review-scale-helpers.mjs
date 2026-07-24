@@ -156,17 +156,46 @@ export async function assertNoMissionWorkspaces(root) {
   assert.deepEqual(await missionWorkspaces(root), []);
 }
 
-export function runStatistics(runs) {
-  const durations = runs.map((run) => run.resources.wallMs).sort((a, b) => a - b);
-  const rss = runs.map((run) => run.resources.peakRssBytes);
+function median(values) {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
+function resourceSample(run) {
+  const resources = run.resources;
   return {
-    medianWallMs: durations[Math.floor(durations.length / 2)],
-    worstWallMs: durations[durations.length - 1],
-    peakRssBytes: Math.max(...rss),
-    peakHeapBytes: Math.max(...runs.map((run) => run.resources.peakHeapBytes)),
-    temporaryDiskPeakBytes: Math.max(...runs.map((run) => run.resources.temporaryDiskPeakBytes)),
-    bytesRead: Math.max(...runs.map((run) => run.resources.bytesRead || 0)),
-    bytesWritten: Math.max(...runs.map((run) => run.resources.bytesWritten || 0)),
-    fileDescriptorPeak: Math.max(...runs.map((run) => run.resources.fileDescriptorPeak || 0)),
+    wallMs: resources.wallMs,
+    cpuUserMs: resources.cpuUserMs,
+    cpuSystemMs: resources.cpuSystemMs,
+    cpuTotalMs: resources.cpuUserMs + resources.cpuSystemMs,
+    peakRssBytes: resources.peakRssBytes,
+    peakHeapBytes: resources.peakHeapBytes,
+    temporaryDiskPeakBytes: resources.temporaryDiskPeakBytes,
+    bytesRead: resources.bytesRead,
+    bytesWritten: resources.bytesWritten,
+    fileDescriptorPeak: resources.fileDescriptorPeak,
+  };
+}
+
+export function runStatistics(runs) {
+  const samples = runs.map(resourceSample);
+  const wall = samples.map((sample) => sample.wallMs);
+  const cpu = samples.map((sample) => sample.cpuTotalMs);
+  return {
+    runCount: runs.length,
+    canonicalInputBytes: runs[0].canonicalInputBytes,
+    canonicalOutputBytes: runs[0].canonicalOutputBytes,
+    executionMetrics: runs[0].executionMetrics,
+    runs: samples,
+    medianWallMs: median(wall),
+    worstWallMs: Math.max(...wall),
+    medianCpuMs: median(cpu),
+    worstCpuMs: Math.max(...cpu),
+    peakRssBytes: Math.max(...samples.map((sample) => sample.peakRssBytes)),
+    peakHeapBytes: Math.max(...samples.map((sample) => sample.peakHeapBytes)),
+    temporaryDiskPeakBytes: Math.max(...samples.map((sample) => sample.temporaryDiskPeakBytes)),
+    bytesRead: Math.max(...samples.map((sample) => sample.bytesRead || 0)),
+    bytesWritten: Math.max(...samples.map((sample) => sample.bytesWritten || 0)),
+    fileDescriptorPeak: Math.max(...samples.map((sample) => sample.fileDescriptorPeak || 0)),
   };
 }
