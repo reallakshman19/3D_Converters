@@ -154,6 +154,11 @@ try {
   duplicate.worklistId = await calculateWorklistId(duplicate);
   await expectBundleFailure(root, duplicate, 'duplicate', /contains duplicates/);
 
+  const duplicateAndStale = structuredClone(family.worklist);
+  duplicateAndStale.workItems.push(structuredClone(duplicateAndStale.workItems[0]));
+  duplicateAndStale.worklistId = '0'.repeat(64);
+  await expectBundleFailure(root, duplicateAndStale, 'duplicate-and-stale', /contains duplicates/);
+
   const stale = structuredClone(family.worklist);
   stale.worklistId = '0'.repeat(64);
   await expectBundleFailure(root, stale, 'stale', /worklistId is stale or tampered/);
