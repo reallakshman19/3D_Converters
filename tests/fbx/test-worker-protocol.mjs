@@ -65,8 +65,13 @@ const failure = new FbxWorkerRuntimeError(
   'rejected',
   { stage: 'parsing-fbx', detail: 'proof' },
 );
-const errorMessage = makeWorkerError(job.jobId, failure, progress, {});
-assertErrorMessage(assertWorkerEnvelope(errorMessage, job.jobId), progress);
+const errorProgress = FBX_WORKER_STAGES.slice(0, 4);
+const errorMessage = makeWorkerError(job.jobId, failure, errorProgress, {});
+assertErrorMessage(assertWorkerEnvelope(errorMessage, job.jobId), errorProgress);
+assert.throws(
+  () => assertErrorMessage({ ...errorMessage, stage: 'decoding-result' }, errorProgress),
+  (error) => error.code === FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+);
 
 assert.throws(
   () => assertWorkerEnvelope({ ...accepted, jobId: 'other' }, job.jobId),
