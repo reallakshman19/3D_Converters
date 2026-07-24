@@ -13,7 +13,12 @@ import {
 
 const graph = {
   schema: 'FbxSourceGraph.v2',
-  sourceObjects: [], occurrences: [], geometries: [], warnings: [], unsupportedRecords: [],
+  file: { version: 7400, ascii: false, creator: '' },
+  documentMetadata: { originalApplication: '', latestApplication: '' },
+  globalSettings: { unitMeters: 1, axes: { right: 0, up: 1, front: 2 } },
+  sourceObjects: [], occurrences: [], geometries: [], hierarchyEdges: [],
+  connectionEdges: [], warnings: [], unsupportedRecords: [], unresolvedReferences: [],
+  duplicateSourceObjectIds: [],
 };
 
 function successWorker() {
