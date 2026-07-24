@@ -4,10 +4,9 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const sourceRoots = [
-  join(root, 'tabs/model-converters/converters/fbx'),
-  join(root, 'tabs/model-converters/converters/fbx-to-stagedjson.js'),
-];
+const fbxRoot = join(root, 'tabs/model-converters/converters/fbx');
+const converterPath = join(root, 'tabs/model-converters/converters/fbx-to-stagedjson.js');
+const sourceRoots = [fbxRoot, converterPath];
 
 async function filesAt(path) {
   const stat = await import('node:fs/promises').then(({ stat }) => stat(path));
@@ -50,6 +49,30 @@ for (const sourceRoot of sourceRoots) {
     }
   }
 }
+
+const runtimeFiles = [
+  'worker-protocol.js', 'worker-preflight.js', 'worker-diagnostics.js',
+  'parser-client.js', 'parser-worker.js', 'parser-wasm.js',
+];
+for (const name of runtimeFiles) await readFile(join(fbxRoot, name), 'utf8');
+
+const protocol = await readFile(join(fbxRoot, 'worker-protocol.js'), 'utf8');
+for (const stage of [
+  'preflight', 'loading-wasm', 'copying-input', 'parsing-fbx',
+  'decoding-result', 'enforcing-source-policy', 'preparing-transfer', 'complete',
+]) assert.match(protocol, new RegExp(`['"]${stage}['"]`), `worker protocol lacks ${stage}`);
+assert.doesNotMatch(protocol, /percent(?:age)?|estimated remaining/i, 'worker protocol invents opaque parse progress');
+assert.match(protocol, /assertSourceGraphEnvelope/, 'worker protocol must validate completion graphs');
+assert.match(protocol, /assertGraphReferences/, 'worker protocol must validate completion references');
+
+const client = await readFile(join(fbxRoot, 'parser-client.js'), 'utf8');
+assert.match(client, /settle\('SETTLED_SUCCESS', message\.graph\)/, 'client must resolve only the graph');
+assert.match(client, /worker\.onmessageerror = null/, 'client must release messageerror listener');
+assert.match(client, /worker\.terminate\(\)/, 'client must terminate every worker');
+
+const converter = await readFile(converterPath, 'utf8');
+assert.doesNotMatch(converter, /onDiagnostics|stageTimingsMs|workerMode|jobId/, 'runtime diagnostics entered converter artifacts');
+
 const parser = await readFile(join(root, 'third_party/ufbx/fbx_parser.c'), 'utf8');
 assert.doesNotMatch(parser, /default:\s*return\s+"OTHER"/, 'parser silently collapses element evidence');
 for (const type of ['MATERIAL', 'CAMERA', 'LIGHT', 'TEXTURE', 'VIDEO', 'SKIN_DEFORMER', 'ANIM_CURVE']) {
