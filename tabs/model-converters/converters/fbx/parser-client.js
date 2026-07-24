@@ -164,13 +164,14 @@ function handleWorkerMessage(context) {
     }
     if (message.type === FBX_WORKER_TYPES.COMPLETE) {
       assertCompleteMessage(message, progressStages);
-      safeNotify(options.onDiagnostics, message.diagnostics);
-      settle('SETTLED_SUCCESS', message.graph);
+      const settled = settle('SETTLED_SUCCESS', message.graph);
+      if (settled) safeNotify(options.onDiagnostics, message.diagnostics);
       return;
     }
     assertErrorMessage(message, progressStages);
-    safeNotify(options.onDiagnostics, message.diagnostics);
-    settle('SETTLED_ERROR', new FbxWorkerRuntimeError(message.code, message.message, message));
+    const failure = new FbxWorkerRuntimeError(message.code, message.message, message);
+    const settled = settle('SETTLED_ERROR', failure);
+    if (settled) safeNotify(options.onDiagnostics, message.diagnostics);
   } catch (error) {
     const failure = error instanceof FbxWorkerRuntimeError
       ? error
