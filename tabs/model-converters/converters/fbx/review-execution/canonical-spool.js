@@ -44,6 +44,20 @@ async function updateArray(hash, path, count) {
   hash.update('\n  ]');
 }
 
+async function writeArray(stream, path, count) {
+  if (count === 0) {
+    await writeChunk(stream, '[]');
+    return;
+  }
+  await writeChunk(stream, '[\n');
+  for await (const chunk of createReadStream(path)) await writeChunk(stream, chunk);
+  await writeChunk(stream, '\n  ]');
+}
+
+function scalarText(value) {
+  return indentText(canonicalInline(value), 2).slice(2);
+}
+
 export async function digestWorklistPayload(fields, arrayPaths, arrayCounts) {
   const hash = createHash('sha256');
   const keys = ['parser', 'retainedEvidence', 'schema', 'scopePolicy', 'source', 'sourceGraph', 'workItems'];
@@ -52,10 +66,32 @@ export async function digestWorklistPayload(fields, arrayPaths, arrayCounts) {
     const key = keys[index];
     hash.update(fieldPrefix(key, index === 0));
     if (arrayPaths[key]) await updateArray(hash, arrayPaths[key], arrayCounts[key]);
-    else hash.update(indentText(canonicalInline(fields[key]), 2).slice(2));
+    else hash.update(scalarText(fields[key]));
   }
   hash.update('\n}\n');
   return hash.digest('hex');
+}
+
+export async function writeWorklistFile(path, fields, arrayPaths, arrayCounts) {
+  const keys = [
+    'parser', 'retainedEvidence', 'schema', 'scopePolicy',
+    'source', 'sourceGraph', 'workItems', 'worklistId',
+  ];
+  const stream = createWriteStream(path, { encoding: 'utf8', flags: 'wx' });
+  try {
+    await writeChunk(stream, '{\n');
+    for (let index = 0; index < keys.length; index++) {
+      const key = keys[index];
+      await writeChunk(stream, fieldPrefix(key, index === 0));
+      if (arrayPaths[key]) await writeArray(stream, arrayPaths[key], arrayCounts[key]);
+      else await writeChunk(stream, scalarText(fields[key]));
+    }
+    await writeChunk(stream, '\n}\n');
+    await closeWritable(stream);
+  } catch (error) {
+    stream.destroy();
+    throw error;
+  }
 }
 
 export async function writeDecisionSetFile(path, header, decisionsPath, decisionSetId) {
