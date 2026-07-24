@@ -4,6 +4,10 @@ function syntax(message) {
   throw new SyntaxError(`Malformed JSON: ${message}`);
 }
 
+function isJsonWhitespace(value) {
+  return value === ' ' || value === '\t' || value === '\r' || value === '\n';
+}
+
 class ChunkReader {
   constructor(path, chunkBytes) {
     this.iterator = createReadStream(path, { encoding: 'utf8', highWaterMark: chunkBytes })[Symbol.asyncIterator]();
@@ -23,7 +27,7 @@ class ChunkReader {
   async skipSpace() {
     for (;;) {
       await this.refill();
-      while (this.offset < this.buffer.length && /\s/.test(this.buffer[this.offset])) this.offset += 1;
+      while (this.offset < this.buffer.length && isJsonWhitespace(this.buffer[this.offset])) this.offset += 1;
       if (this.offset < this.buffer.length || this.done) return;
     }
   }
@@ -115,7 +119,7 @@ class ChunkReader {
       const start = this.offset;
       while (this.offset < this.buffer.length) {
         const ch = this.buffer[this.offset];
-        if (/[,\]}\s]/.test(ch)) {
+        if (ch === ',' || ch === ']' || ch === '}' || isJsonWhitespace(ch)) {
           parts.push(this.buffer.slice(start, this.offset));
           return parts.join('');
         }
