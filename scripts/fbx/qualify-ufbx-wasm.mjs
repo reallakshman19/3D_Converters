@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
-  cp, lstat, mkdir, mkdtemp, readFile, readlink, realpath, rm, stat, writeFile,
+  cp, lstat, mkdir, mkdtemp, readFile, readlink, realpath, rm, writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   UFBX_BUILD_SOURCE_FILES,
@@ -45,13 +45,13 @@ async function fileManifest(paths, root = ROOT) {
   const entries = [];
   for (const path of [...paths].sort()) {
     const bytes = await readFile(join(root, path));
-    entries.push({ path, byteLength: bytes.byteLength, sha256: sha256(bytes) });
+    entries.push({ path, type: 'file', byteLength: bytes.byteLength, sha256: sha256(bytes) });
   }
   return Object.freeze(entries);
 }
 
 function manifestSha256(domain, entries) {
-  const body = entries.map((item) => `${item.path}\0${item.byteLength}\0${item.sha256}\n`).join('');
+  const body = entries.map((item) => `${item.path}\0${item.type}\0${item.byteLength}\0${item.sha256}\n`).join('');
   return sha256(Buffer.from(`${domain}\0${body}`, 'utf8'));
 }
 
@@ -111,8 +111,8 @@ async function sysrootFiles() {
 async function wasiIdentity() {
   const packages = [];
   for (const name of PACKAGE_NAMES) packages.push(await packageIdentity(name));
-  const entries = await sysrootFiles();
-  return { packages, sha256: manifestSha256('UfbxWasiSysroot.v1', entries) };
+  return { packages,
+    sha256: manifestSha256('UfbxWasiSysroot.v1', await sysrootFiles()) };
 }
 
 function buildEnvironment(root, compilerPath) {
@@ -129,6 +129,7 @@ async function extractCheckout(commit, directory) {
   run('bash', ['-lc', `git archive ${commit} | tar -xf - -C "${directory}"`]);
   await rm(join(directory, 'third_party/ufbx/fbx_parser.wasm'), { force: true });
   await rm(join(directory, 'third_party/ufbx/provenance.json'), { force: true });
+  await rm(join(directory, 'third_party/ufbx/reproducibility.json'), { force: true });
   await mkdir(join(directory, '.qualification'), { recursive: true });
   await mkdir(join(directory, '.home'), { recursive: true });
   await mkdir(join(directory, '.tmp'), { recursive: true });
@@ -183,13 +184,12 @@ async function qualify(outputDirectory) {
   const buildB = await cleanBuild(commit, 'B', compiler.path);
   const byteIdentical = buildA.bytes.equals(buildB.bytes);
   if (!byteIdentical) throw new Error('FBX_WASM_REPRODUCIBILITY_FAILED build bytes differ.');
-  const facts = { commit, sourceSha256, buildSourceSha256, compiler, linker,
+  const facts = { sourceSha256, buildSourceSha256, compiler, linker,
     wasiSysroot, buildA, buildB };
   const provenance = await buildProvenance(facts);
-  const committedPath = join(ROOT, 'third_party/ufbx/fbx_parser.wasm');
-  const committed = await readFile(committedPath);
+  const committed = await readFile(join(ROOT, 'third_party/ufbx/fbx_parser.wasm'));
   const evidence = {
-    schema: 'UfbxWasmReproducibility.v1', repositoryCommit: commit,
+    schema: 'UfbxWasmReproducibility.v1',
     upstreamRevision: UFBX_UPSTREAM_REVISION, sourceSha256, buildSourceSha256,
     compiler: stableTool(compiler), linker: stableTool(linker), wasiSysroot,
     builds: [buildRecord(buildA), buildRecord(buildB)], byteIdentical,
