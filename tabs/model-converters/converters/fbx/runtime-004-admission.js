@@ -1,17 +1,19 @@
+// Publish the immutable predecessor admission proven by governed build and parser evidence.
+// All four independent gates must pass; no owner-waiver fallback grants release eligibility.
 import { deepFreeze } from './canonical-json.js';
 import { buildFbxPredecessorCertification } from './predecessor-certification.js';
 
 export const FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION = deepFreeze(
   buildFbxPredecessorCertification({
     evidence: {
-      governedWasmBuild: 'missing',
-      provenanceReconciliation: 'missing',
-      reproducibility: 'missing',
-      parserParity: 'missing',
+      governedWasmBuild: 'passed',
+      provenanceReconciliation: 'passed',
+      reproducibility: 'passed',
+      parserParity: 'passed',
     },
     ownerWaiver: {
-      authorized: true,
-      rationale: 'Owner authorized implementation continuation while predecessor evidence remains open.',
+      authorized: false,
+      rationale: null,
     },
   }),
 );

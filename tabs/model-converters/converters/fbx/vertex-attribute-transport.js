@@ -1,3 +1,5 @@
+// Run FBX attribute parsing in a managed worker and validate transferred evidence.
+// Inputs are copied bytes/options; every terminal path terminates the worker without fallback.
 import { deepFreeze } from './canonical-json.js';
 import { validateFbxGeometryBundle } from './geometry-bundle.js';
 import { loadFbxParserIdentity } from './parser-wasm.js';
@@ -77,9 +79,38 @@ async function validateCompletion(message, sourceIdentity, parserIdentity) {
   });
 }
 
+async function handleJobMessage(event, job, status, settle, identities) {
+  try {
+    const message = assertFbxAttributeWorkerEnvelope(event?.data, job.jobId);
+    if (message.type === FBX_ATTRIBUTE_WORKER_TYPES.ACCEPTED) {
+      if (status.accepted) throw localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+        'The FBX attribute worker accepted twice.', null, 'duplicate-acceptance');
+      assertFbxAttributeAccepted(message, job.inputByteLength);
+      status.accepted = true;
+      return;
+    }
+    if (!status.accepted) throw localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+      'The FBX attribute worker completed before acceptance.', null,
+      'terminal-before-acceptance');
+    if (message.type === FBX_ATTRIBUTE_WORKER_TYPES.ERROR) {
+      assertFbxAttributeError(message);
+      settle('ERROR', new FbxWorkerRuntimeError(message.code, message.message, message));
+      return;
+    }
+    status.state = 'VALIDATING';
+    settle('SUCCESS', await validateCompletion(
+      message, identities.sourceIdentity, identities.parserIdentity));
+  } catch (error) {
+    settle('ERROR', error instanceof FbxWorkerRuntimeError ? error
+      : localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
+        'The FBX attribute worker protocol failed.', 'validating-result', String(error)));
+  }
+}
+
 function runJob({ worker, job, signal, timeoutMs, sourceIdentity, parserIdentity }) {
   return new Promise((resolve, reject) => {
-    let state = 'PENDING', accepted = false, timeoutHandle = null, terminated = false;
+    const status = { state: 'PENDING', accepted: false };
+    let timeoutHandle = null, terminated = false;
     const cleanup = () => {
       if (timeoutHandle !== null) clearTimeout(timeoutHandle);
       timeoutHandle = null;
@@ -88,50 +119,28 @@ function runJob({ worker, job, signal, timeoutMs, sourceIdentity, parserIdentity
       if (!terminated) { terminated = true; try { worker.terminate(); } catch { /* settled */ } }
     };
     const settle = (next, value) => {
-      if (state !== 'PENDING' && state !== 'VALIDATING') return false;
-      state = next; cleanup();
+      if (status.state !== 'PENDING' && status.state !== 'VALIDATING') return false;
+      status.state = next; cleanup();
       if (next === 'SUCCESS') resolve(value); else reject(value);
       return true;
     };
     const abort = () => settle('ABORTED', localError(FBX_WORKER_ERROR_CODES.ABORTED,
-      'FBX attribute parsing was cancelled.', accepted ? 'worker' : null));
+      'FBX attribute parsing was cancelled.', status.accepted ? 'worker' : null));
     worker.onerror = (event) => settle('ERROR', localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
-      'The FBX attribute worker runtime failed.', accepted ? 'worker' : null,
+      'The FBX attribute worker runtime failed.', status.accepted ? 'worker' : null,
       event?.message || null));
     worker.onmessageerror = () => settle('ERROR', localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
-      'The FBX attribute worker returned an unreadable message.', accepted ? 'worker' : null,
+      'The FBX attribute worker returned an unreadable message.', status.accepted ? 'worker' : null,
       'message-deserialization-failed'));
     worker.onmessage = (event) => {
-      void (async () => {
-        try {
-          const message = assertFbxAttributeWorkerEnvelope(event?.data, job.jobId);
-          if (message.type === FBX_ATTRIBUTE_WORKER_TYPES.ACCEPTED) {
-            if (accepted) throw localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
-              'The FBX attribute worker accepted twice.', null, 'duplicate-acceptance');
-            assertFbxAttributeAccepted(message, job.inputByteLength); accepted = true; return;
-          }
-          if (!accepted) throw localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
-            'The FBX attribute worker completed before acceptance.', null,
-            'terminal-before-acceptance');
-          if (message.type === FBX_ATTRIBUTE_WORKER_TYPES.ERROR) {
-            assertFbxAttributeError(message);
-            settle('ERROR', new FbxWorkerRuntimeError(message.code, message.message, message));
-            return;
-          }
-          state = 'VALIDATING';
-          settle('SUCCESS', await validateCompletion(message, sourceIdentity, parserIdentity));
-        } catch (error) {
-          settle('ERROR', error instanceof FbxWorkerRuntimeError ? error
-            : localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
-              'The FBX attribute worker protocol failed.', 'validating-result', String(error)));
-        }
-      })();
+      void handleJobMessage(
+        event, job, status, settle, { sourceIdentity, parserIdentity });
     };
     signal?.addEventListener('abort', abort, { once: true });
     if (signal?.aborted) { abort(); return; }
     if (timeoutMs > 0) timeoutHandle = setTimeout(() => settle('TIMEOUT',
       localError(FBX_WORKER_ERROR_CODES.TIMEOUT, 'FBX attribute parsing timed out.',
-        accepted ? 'worker' : null, `timeoutMs=${timeoutMs}`)), timeoutMs);
+        status.accepted ? 'worker' : null, `timeoutMs=${timeoutMs}`)), timeoutMs);
     try { worker.postMessage(job, [job.bytes]); }
     catch (error) { settle('ERROR', localError(FBX_WORKER_ERROR_CODES.RUNTIME_ERROR,
       'The FBX attribute worker job could not be dispatched.', null,

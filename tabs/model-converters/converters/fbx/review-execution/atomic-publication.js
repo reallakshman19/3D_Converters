@@ -1,3 +1,5 @@
+// Publish review artifacts atomically and clean private workspaces after every outcome.
+// Inputs are staged/target paths; verified destination races become explicit conflicts.
 import {
   link, lstat, mkdtemp, mkdir, readdir, rename, rm, rmdir, unlink,
 } from 'node:fs/promises';
@@ -11,18 +13,25 @@ async function targetState(path) {
   }
 }
 
-function publicationConflict(message, cause) {
+function publicationConflict(message, cause, code) {
   const error = new Error(message, { cause });
-  error.code = cause.code;
+  error.code = code;
   return error;
 }
 
-function directoryPublicationError(error, targetPath) {
+async function directoryPublicationError(error, targetPath) {
   if (error.code === 'ENOTEMPTY' || error.code === 'EEXIST') {
-    return publicationConflict(`Output directory ${targetPath} became non-empty before publication.`, error);
+    return publicationConflict(
+      `Output directory ${targetPath} became non-empty before publication.`, error, error.code);
   }
   if (error.code === 'ENOTDIR' || error.code === 'EISDIR') {
-    return publicationConflict(`Output target ${targetPath} changed type before publication.`, error);
+    return publicationConflict(
+      `Output target ${targetPath} changed type before publication.`, error, error.code);
+  }
+  if (process.platform === 'win32' && error.code === 'EPERM'
+    && await targetState(targetPath)) {
+    return publicationConflict(
+      `Output target ${targetPath} appeared before publication.`, error, 'EEXIST');
   }
   return error;
 }
@@ -72,12 +81,12 @@ export async function prepareDirectoryTarget(targetPath) {
   if (!state) return;
   if (!state.isDirectory()) throw new Error(`Output target ${targetPath} is not a directory.`);
   try { await rmdir(targetPath); }
-  catch (error) { throw directoryPublicationError(error, targetPath); }
+  catch (error) { throw await directoryPublicationError(error, targetPath); }
 }
 
 export async function commitDirectoryPublication(stagedPath, targetPath) {
   try { await rename(stagedPath, targetPath); }
-  catch (error) { throw directoryPublicationError(error, targetPath); }
+  catch (error) { throw await directoryPublicationError(error, targetPath); }
 }
 
 export async function publishDirectory(stagedPath, targetPath) {
@@ -97,7 +106,8 @@ export async function publishFile(stagedPath, targetPath) {
   try { await link(stagedPath, targetPath); }
   catch (error) {
     if (error.code === 'EEXIST') {
-      throw publicationConflict(`Output file ${targetPath} appeared before publication.`, error);
+      throw publicationConflict(
+        `Output file ${targetPath} appeared before publication.`, error, error.code);
     }
     throw error;
   }

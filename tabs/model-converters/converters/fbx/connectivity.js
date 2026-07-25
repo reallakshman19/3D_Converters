@@ -1,3 +1,5 @@
+// Validate symmetric FBX mapping connections and return deterministic link ordering.
+// Inputs must resolve every referenced port; invalid topology has no fallback.
 import { compareText, rolesFor } from './family-policy.js';
 
 function key(entryId, port) {
@@ -35,7 +37,7 @@ export function validateConnectivity(entries, resolvedByEntry) {
     if (ownership.has(ownerKey)) fail(`duplicate port ownership ${ownerKey}.`);
     ownership.add(ownerKey);
   }
-  return links.sort((left, right) => left.pairKey.localeCompare(right.pairKey));
+  return links.sort((left, right) => compareText(left.pairKey, right.pairKey));
 }
 
 function v2Ports(entries, resolvedByEntry) {
