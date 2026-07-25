@@ -125,6 +125,13 @@ await assert.rejects(
   (error) => error.code === FBX_ATTRIBUTE_ERROR_CODES.RAW_INVALID,
 );
 
+const malformedId = fixture();
+malformedId.rawAttributes.geometries[0].geometryObjectId = '07';
+await assert.rejects(
+  buildFbxVertexAttributeBundle({ geometryBundle, ...malformedId }),
+  (error) => error.code === FBX_ATTRIBUTE_ERROR_CODES.RAW_INVALID,
+);
+
 const incomplete = fixture();
 incomplete.buffers.pop();
 await assert.rejects(
