@@ -54,7 +54,8 @@
     },
     "decimalId": {
       "type": "string",
-      "pattern": "^(0|[1-9][0-9]*)$"
+      "pattern": "^(0|[1-9][0-9]{0,19})$",
+      "maxLength": 20
     },
     "sourceIdentity": {
       "type": "object",
@@ -82,9 +83,9 @@
       "additionalProperties": false,
       "required": ["controlPointsMm", "polygonOffsets", "polygonVertexIndices"],
       "properties": {
-        "controlPointsMm": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]*)/control-points-mm$" },
-        "polygonOffsets": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]*)/polygon-offsets$" },
-        "polygonVertexIndices": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]*)/polygon-vertex-indices$" }
+        "controlPointsMm": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]{0,19})/control-points-mm$" },
+        "polygonOffsets": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]{0,19})/polygon-offsets$" },
+        "polygonVertexIndices": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]{0,19})/polygon-vertex-indices$" }
       }
     },
     "geometry": {
@@ -130,7 +131,7 @@
         "sha256"
       ],
       "properties": {
-        "bufferId": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]*)/(control-points-mm|polygon-offsets|polygon-vertex-indices)$" },
+        "bufferId": { "type": "string", "pattern": "^geometry/(0|[1-9][0-9]{0,19})/(control-points-mm|polygon-offsets|polygon-vertex-indices)$" },
         "geometryObjectId": { "$ref": "#/$defs/decimalId" },
         "role": { "enum": ["control-points-mm", "polygon-offsets", "polygon-vertex-indices"] },
         "scalarType": { "enum": ["Float64", "Uint32"] },
