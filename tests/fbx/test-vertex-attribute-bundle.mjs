@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { buildFbxGeometryBundle } from '../../tabs/model-converters/converters/fbx/geometry-bundle.js';
 import {
   FBX_ATTRIBUTE_ERROR_CODES,
   FBX_VERTEX_ATTRIBUTE_BUNDLE_SCHEMA,
@@ -8,15 +9,37 @@ import {
 } from '../../tabs/model-converters/converters/fbx/vertex-attribute-bundle.js';
 
 const hash = (char) => char.repeat(64);
-const geometryBundle = {
-  manifest: {
-    schema: 'FbxGeometryBundle.v1',
-    bundleDigest: hash('a'),
-    sourceGraphSha256: hash('b'),
-    geometries: [{ geometryObjectId: '7', polygonCount: 1, polygonVertexCount: 3 }],
-  },
-  buffers: [],
+const sourceIdentity = { sha256: hash('a'), byteLength: 128, fbxVersion: 7400 };
+const parserIdentity = {
+  provenanceSchema: 'UfbxWasmProvenance.v1', upstreamRevision: 'b'.repeat(40),
+  sourceSha256: hash('c'), wasmSha256: hash('d'),
 };
+function sourceObject() {
+  return { sourceObjectId: '7', ufbxElementId: 7, ufbxTypedId: 0,
+    ufbxElementType: 'MESH', ufbxElementTypeValue: 2, domClass: 'Geometry',
+    domSubtype: 'Mesh', domSourceName: '', displayName: '', customProperties: [],
+    sourceRecordDisposition: 'supported-geometry', nodeAttributeType: null,
+    nodeAttributeTypeValue: null, objectPropertyPath: null,
+    connectionPropertyNames: [], sourceDocumentOrder: 0 };
+}
+async function geometryFixture() {
+  const points = [[0, 0, 0], [1, 0, 0], [0, 1, 0]];
+  const graph = { schema: 'FbxSourceGraph.v2', file: { version: 7400, ascii: false, creator: '' },
+    documentMetadata: { originalApplication: '', latestApplication: '' },
+    globalSettings: { unitMeters: 1, axes: { right: 0, up: 1, front: 2 } },
+    sourceObjects: [sourceObject()], occurrences: [],
+    geometries: [{ geometryObjectId: '7', sourceObjectId: '7', kind: 'MESH',
+      verticesSource: [], verticesMm: points, ownerOccurrenceIds: [] }],
+    hierarchyEdges: [], connectionEdges: [], warnings: [], unsupportedRecords: [],
+    unresolvedReferences: [], duplicateSourceObjectIds: [] };
+  return buildFbxGeometryBundle({ rawTopology: { schema: 'FbxRawMeshTopology.v1', sourceGraph: graph,
+    geometries: [{ geometryObjectId: '7', sourceObjectId: '7', controlPointCount: 3,
+      polygonCount: 1, polygonVertexCount: 3, emptyPolygonCount: 0,
+      pointPolygonCount: 0, linePolygonCount: 0, reversedWinding: false,
+      bufferIndices: { controlPointsMm: 0, polygonOffsets: 1, polygonVertexIndices: 2 } }] },
+    buffers: [float64(points.flat()), uint32([0, 3]), uint32([0, 1, 2])],
+    sourceIdentity, parserIdentity });
+}
 
 function float64(values) {
   const bytes = new ArrayBuffer(values.length * 8), view = new DataView(bytes);
@@ -73,10 +96,11 @@ function fixture() {
   };
 }
 
+const geometryBundle = await geometryFixture();
 const input = fixture();
 const bundle = await buildFbxVertexAttributeBundle({ geometryBundle, ...input });
 assert.equal(bundle.manifest.schema, FBX_VERTEX_ATTRIBUTE_BUNDLE_SCHEMA);
-assert.equal(bundle.manifest.geometryBundleDigest, hash('a'));
+assert.equal(bundle.manifest.geometryBundleDigest, geometryBundle.manifest.bundleDigest);
 assert.equal(bundle.manifest.geometries[0].uvSets.length, 2);
 assert.deepEqual(bundle.manifest.geometries[0].uvSets.map((item) => item.name), ['', '']);
 assert.deepEqual(bundle.manifest.geometries[0].uvSets.map((item) => item.sourceSetIndex), [5, 6]);
