@@ -212,8 +212,8 @@ async function buildProvenance(facts) {
 }
 
 async function qualify(outputDirectory, sdkRoot, archivePath, tempRoot) {
-  runGit(['diff', '--quiet']);
-  runGit(['diff', '--cached', '--quiet']);
+  runGit(['diff', '--quiet', '--', ...UFBX_BUILD_SOURCE_FILES]);
+  runGit(['diff', '--cached', '--quiet', '--', ...UFBX_BUILD_SOURCE_FILES]);
   const commit = runGit(['rev-parse', 'HEAD']);
   const sourceSha256 = await calculateUfbxSourceIdentity();
   const buildSourceSha256 = await calculateUfbxBuildSourceIdentity();

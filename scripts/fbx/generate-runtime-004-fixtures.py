@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Generate deterministic binary FBX fixtures with attributes and non-fatal warnings."""
+
 import struct
 from pathlib import Path
 
@@ -108,10 +110,10 @@ def material_layer():
     ))
 
 
-def mesh(object_id, name, uv_names, warning_index=False, with_color=True):
+def mesh(object_id, name, uv_names, with_color=True):
     vertices = [0.0, 0.0, 0.0, 100.0, 0.0, 0.0,
                 100.0, 100.0, 0.0, 0.0, 100.0, 0.0]
-    polygon = [0, 1, 99 if warning_index else 2, -4]
+    polygon = [0, 1, 2, -4]
     layers = [normal_layer(), *(uv_layer(i, value) for i, value in enumerate(uv_names))]
     references = [layer_reference("LayerElementNormal", 0)]
     references.extend(layer_reference("LayerElementUV", i) for i in range(len(uv_names)))
@@ -159,19 +161,22 @@ def binary_document(specs, creator):
     return header + bytes(body) + footer
 
 
-def fixture(uv_names, warning_index, object_base, creator):
+def fixture(uv_names, duplicate_connection, object_base, creator):
     geometry_id = object_base + 1
     model_id = object_base + 2
     material_id = object_base + 3
     objects = node("Objects", children=(
         model(model_id, "Runtime004"),
-        mesh(geometry_id, "Runtime004", uv_names, warning_index),
+        mesh(geometry_id, "Runtime004", uv_names),
         material(material_id),
     ))
-    connections = node("Connections", children=(
+    connection_nodes = [
         connection(geometry_id, model_id), connection(material_id, model_id),
         connection(model_id, 0),
-    ))
+    ]
+    if duplicate_connection:
+        connection_nodes.append(connection(geometry_id, model_id))
+    connections = node("Connections", children=connection_nodes)
     return binary_document((global_settings(), objects, connections), creator)
 
 
