@@ -3,8 +3,12 @@ import { state } from '../../core/state.js';
 import { RuntimeEvents } from '../../contracts/runtime-events.js';
 import { notify } from '../../diagnostics/notification-center.js';
 import { pickImportAdapter } from '../../interchange/source/adapter-registry.js';
-import { ModelConverters_3DModelConv_PreviewRenderer } from '../../converters/view/model-conv-preview-renderer.js';
+import { ModelConverters_3DModelConv_PreviewRenderer } from '../../converters/view/model-conv-preview-renderer.js?v=20260725-fbx-source-graph-preview-1';
 import { buildInputXmlCiiGeometryPreviewProject } from './inputxml-cii-geometry-preview.js?v=20260710-inputxml-cii-geometry-preview-2';
+import {
+  buildFbxSourceGraphPreviewProject,
+  FBX_SOURCE_GRAPH_PREVIEW_POINT_LIMIT,
+} from './fbx-source-graph-preview.js';
 import {
   buildConverterWorkerRequest,
   validateConverterWorkerResponse,
@@ -5597,7 +5601,12 @@ function _3DModelConv_buildPreviewMetaText(project, outputName, adapterName) {
   const nodeCount = Array.isArray(project?.nodes) ? project.nodes.length : 0;
   const supportCount = Array.isArray(project?.supports) ? project.supports.length : 0;
   const annotationCount = Array.isArray(project?.annotations) ? project.annotations.length : 0;
-  return `Preview source: ${outputName} | adapter: ${adapterName} | segments: ${segmentCount} | nodes: ${nodeCount} | supports: ${supportCount} | annotations: ${annotationCount}`;
+  const displayedPointCount = Number(project?.displayedPointCount || project?.points?.length || 0);
+  const sourcePointCount = Number(project?.sourcePointCount || displayedPointCount);
+  const pointSummary = sourcePointCount === displayedPointCount
+    ? `${displayedPointCount}`
+    : `${displayedPointCount} of ${sourcePointCount}`;
+  return `Preview source: ${outputName} | adapter: ${adapterName} | points: ${pointSummary} | segments: ${segmentCount} | nodes: ${nodeCount} | supports: ${supportCount} | annotations: ${annotationCount}`;
 }
 
 async function _3DModelConv_tryBuildProjectFromOutput(output) {
@@ -5643,6 +5652,19 @@ async function _3DModelConv_tryBuildProjectFromOutput(output) {
   if (lowerName.endsWith('.json')) {
     try {
       const parsed = JSON.parse(text);
+      const fbxProject = buildFbxSourceGraphPreviewProject(
+        parsed,
+        name,
+        FBX_SOURCE_GRAPH_PREVIEW_POINT_LIMIT,
+      );
+      if (fbxProject) {
+        return {
+          ok: true,
+          project: fbxProject,
+          adapterName: 'FbxSourceGraphPointPreview',
+          outputName: name,
+        };
+      }
       const stagedProject = _buildPreviewProjectFromStagedHierarchy(parsed);
       if (stagedProject) {
         return {

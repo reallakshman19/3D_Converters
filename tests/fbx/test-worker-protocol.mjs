@@ -1,3 +1,4 @@
+// Verify worker envelopes, graph transfer integrity, root connections, and fail-closed errors.
 import assert from 'node:assert/strict';
 import {
   FBX_WORKER_JOB_SCHEMA,
@@ -96,6 +97,12 @@ function validNestedGraph() {
 
 const validNested = validNestedGraph();
 assertCompleteMessage(makeComplete(job.jobId, validNested, {}), progress);
+const rootConnection = structuredClone(validNested);
+rootConnection.connectionEdges = [{
+  sourceObjectId: '1', destinationObjectId: '0',
+  sourceProperty: '', destinationProperty: '',
+}];
+assertCompleteMessage(makeComplete(job.jobId, rootConnection, {}), progress);
 for (const mutate of [
   (value) => { value.file.version = 9999; },
   (value) => { value.sourceObjects[0].unexpected = true; },
@@ -103,6 +110,8 @@ for (const mutate of [
   (value) => { value.geometries[0].verticesMm = [[0, Number.NaN, 0]]; },
   (value) => { value.occurrences.push(structuredClone(value.occurrences[0])); },
   (value) => { value.occurrences[0].geometryObjectIds = ['999']; },
+  (value) => { value.connectionEdges = [{ sourceObjectId: '1',
+    destinationObjectId: '999', sourceProperty: '', destinationProperty: '' }]; },
   (value) => { value.duplicateSourceObjectIds = ['1']; },
   (value) => { value.unsupportedRecords = [{ sourceObjectId: '2', ufbxElementType: 'MESH', ufbxElementTypeValue: 2, domClass: 'Geometry', domSubtype: 'Mesh', domSourceName: 'Geometry::2', sourceRecordDisposition: 'retained-evidence' }]; },
 ]) {

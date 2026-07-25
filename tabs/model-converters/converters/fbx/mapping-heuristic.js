@@ -1,7 +1,10 @@
-function generateId() {
-  return typeof crypto !== 'undefined' && crypto.randomUUID 
-    ? crypto.randomUUID() 
-    : 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+// Generate deterministic review-only decisions from a validated mapping worklist.
+// Mapping IDs reuse content-derived work item IDs; invalid inputs have no random fallback.
+function mappingEntryId(workItemId) {
+  if (typeof workItemId !== 'string' || !workItemId) {
+    throw new TypeError('A content-derived workItemId is required.');
+  }
+  return `draft-${workItemId}`;
 }
 
 const HEURISTIC_KEYWORDS = {
@@ -41,7 +44,7 @@ export function generateDraftDecisions(worklist) {
     
     if (inferredType) {
       decisions.push({
-        mappingEntryId: generateId(),
+        mappingEntryId: mappingEntryId(item.workItemId),
         workItemId: item.workItemId,
         scopeDisposition: 'promote',
         componentType: inferredType,
@@ -53,7 +56,7 @@ export function generateDraftDecisions(worklist) {
       });
     } else {
       decisions.push({
-        mappingEntryId: generateId(),
+        mappingEntryId: mappingEntryId(item.workItemId),
         workItemId: item.workItemId,
         scopeDisposition: 'exclude-with-reason',
         reason: 'Heuristic: Unclassified component name',

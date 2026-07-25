@@ -1,34 +1,19 @@
 import { sha256Hex } from './sha256.js';
-
-const REQUIRED_KEYS = Object.freeze([
-  'schema', 'sourceSha256', 'upstreamRevision', 'wasmSha256',
-]);
-const HASH_PATTERN = /^[0-9a-f]{64}$/;
-const REVISION_PATTERN = /^[0-9a-f]{40}$/;
+import { acceptUfbxWasmProvenance } from './ufbx-provenance.js';
+import { inspectFbxWasmAbi } from './wasm-abi.js';
 
 function fail(message) {
   throw new Error(`BLOCKED_PARSER_BINDING ${message}`);
 }
 
-function validateProvenance(provenance) {
-  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) {
-    fail('Repository parser provenance must be an object.');
-  }
-  for (const key of REQUIRED_KEYS) {
-    if (typeof provenance[key] !== 'string' || !provenance[key]) {
-      fail(`Repository parser provenance ${key} is required.`);
-    }
-  }
-  if (!HASH_PATTERN.test(provenance.sourceSha256)) fail('Repository parser sourceSha256 is malformed.');
-  if (!HASH_PATTERN.test(provenance.wasmSha256)) fail('Repository parser wasmSha256 is malformed.');
-  if (!REVISION_PATTERN.test(provenance.upstreamRevision)) fail('Repository parser upstreamRevision is malformed.');
-  return provenance;
-}
-
 export async function observeParserEvidence({ provenance, wasmBytes }) {
-  const accepted = validateProvenance(provenance);
-  const observedWasmSha256 = await sha256Hex(wasmBytes);
-  if (observedWasmSha256 !== accepted.wasmSha256) {
+  const accepted = acceptUfbxWasmProvenance(provenance);
+  const bytes = wasmBytes instanceof Uint8Array ? wasmBytes.slice()
+    : new Uint8Array(wasmBytes).slice();
+  inspectFbxWasmAbi(bytes);
+  const observedWasmSha256 = await sha256Hex(bytes);
+  if (observedWasmSha256 !== accepted.wasmSha256
+    || bytes.byteLength !== accepted.wasmByteLength) {
     fail('Committed parser WASM does not match repository provenance.');
   }
   return Object.freeze({
