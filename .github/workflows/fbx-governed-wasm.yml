@@ -17,20 +17,32 @@ permissions:
 
 jobs:
   qualify:
-    runs-on: ubuntu-24.04
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    env:
+      WASI_SDK_ROOT: ${{ runner.temp }}/wasi-sdk-22.0+m
+      WASI_SDK_ARCHIVE: ${{ runner.temp }}/wasi-sdk-22.0.m-mingw64.tar.gz
+      FBX_QUALIFICATION_TEMP_ROOT: ${{ runner.temp }}/fbx-wasm-clean-builds
+      FBX_BASH_PATH: C:/Program Files/Git/bin/bash.exe
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install governed Clang and WASI toolchain
+      - name: Install pinned governed WASI SDK
+        shell: pwsh
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            clang-18 \
-            lld-18 \
-            wasi-libc \
-            libclang-rt-18-dev-wasm32
+          curl.exe -L --fail --retry 3 `
+            -o "$env:WASI_SDK_ARCHIVE" `
+            "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-22/wasi-sdk-22.0.m-mingw64.tar.gz"
+          $actual = (Get-FileHash -Algorithm SHA256 "$env:WASI_SDK_ARCHIVE").Hash.ToLower()
+          $expected = "723f2c4d00b37cb3d1039c080184c58e8bad71aa6dd1a700ead88a07e0f1f446"
+          if ($actual -ne $expected) {
+            throw "Governed WASI SDK archive hash differs: $actual"
+          }
+          tar.exe -xf "$env:WASI_SDK_ARCHIVE" -C "$env:RUNNER_TEMP"
 
       - name: Verify source syntax and governed fixtures
         run: |

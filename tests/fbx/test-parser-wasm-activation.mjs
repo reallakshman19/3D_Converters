@@ -1,8 +1,10 @@
+// Verify the governed shell build fails closed before compilation and preserves the prior WASM.
 import assert from 'node:assert/strict';
 import { chmod, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   FBX_WASM_REQUIRED_EXPORTS,
 } from '../../tabs/model-converters/converters/fbx/wasm-abi.js';
@@ -10,6 +12,8 @@ import {
 const root = new URL('../../', import.meta.url);
 const buildPath = new URL('scripts/fbx/build-ufbx-wasm.sh', root);
 const build = await readFile(buildPath, 'utf8');
+const bashPath = process.env.FBX_BASH_PATH || 'bash';
+const shellBuildPath = fileURLToPath(buildPath).replaceAll('\\', '/');
 
 for (const evidence of [
   'WASI_SYSROOT must identify the governed WASI sysroot',
@@ -41,6 +45,7 @@ async function environment({ compilerMajor = 18, linkerMajor = 18,
     await mkdir(join(rootPath, 'lib', 'wasm32-wasi'), { recursive: true });
   }
   const linkerPath = join(bin, 'wasm-ld-18');
+  const shellLinkerPath = linkerPath.replaceAll('\\', '/');
   await executable(linkerPath, `printf 'LLD ${linkerMajor}.0.0 test double\\n'`);
   if (compilerName === 'clang-18') {
     await executable(join(bin, compilerName), `
@@ -49,7 +54,7 @@ if [[ "\${1-}" == --version ]]; then
   exit 0
 fi
 if [[ "\${*-}" == *-print-prog-name=wasm-ld* ]]; then
-  printf '${linkerPath}\\n'
+  printf '${shellLinkerPath}\\n'
   exit 0
 fi
 exit 99`);
@@ -64,7 +69,7 @@ function runBuild(context, includeSysroot = true) {
     CC: context.compilerName, FBX_WASM_OUTPUT: context.output,
   };
   if (includeSysroot) env.WASI_SYSROOT = context.rootPath;
-  return spawnSync('bash', [buildPath.pathname], { encoding: 'utf8', env });
+  return spawnSync(bashPath, [shellBuildPath], { encoding: 'utf8', env });
 }
 
 const missingCompiler = await environment({ compilerName: 'missing-clang' });

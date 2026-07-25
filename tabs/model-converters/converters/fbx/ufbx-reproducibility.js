@@ -1,5 +1,14 @@
+// Validate two-build FBX WASM evidence against optional accepted provenance.
+// The output is immutable and rejects missing, divergent, or fallback build identities.
 import { deepFreeze } from './canonical-json.js';
-import { UFBX_UPSTREAM_REVISION } from './ufbx-provenance.js';
+import {
+  UFBX_UPSTREAM_REVISION,
+  UFBX_WASI_SDK_ARCHIVE,
+  UFBX_WASI_SDK_ARCHIVE_SHA256,
+  UFBX_WASI_SDK_COMPILER,
+  UFBX_WASI_SDK_LINKER,
+  UFBX_WASI_SDK_RELEASE,
+} from './ufbx-provenance.js';
 import {
   FBX_WASM_REQUIRED_EXPORTS,
   FBX_WASM_REQUIRED_IMPORTS,
@@ -11,8 +20,7 @@ const TOP_KEYS = ['schema', 'upstreamRevision', 'sourceSha256', 'buildSourceSha2
   'compiler', 'linker', 'wasiSysroot', 'builds', 'byteIdentical',
   'workingDirectoryIndependent', 'committed'];
 const TOOL_KEYS = ['command', 'sha256', 'version'];
-const SYSROOT_KEYS = ['packages', 'sha256'];
-const PACKAGE_KEYS = ['name', 'version'];
+const SYSROOT_KEYS = ['archive', 'archiveSha256', 'distribution', 'release', 'sha256'];
 const BUILD_KEYS = ['sha256', 'byteLength', 'target', 'exports', 'imports'];
 const COMMITTED_KEYS = ['sha256', 'byteLength', 'matchesBuilds'];
 const HASH = /^[0-9a-f]{64}$/;
@@ -43,16 +51,13 @@ function tool(value, label, command) {
 function sysroot(value) {
   exactKeys(value, SYSROOT_KEYS, 'wasiSysroot');
   hash(value.sha256, 'wasiSysroot.sha256');
-  const names = ['libclang-rt-18-dev-wasm32', 'wasi-libc'];
-  if (!Array.isArray(value.packages) || value.packages.length !== names.length) {
-    fail('wasiSysroot packages are invalid.');
+  hash(value.archiveSha256, 'wasiSysroot.archiveSha256');
+  if (value.distribution !== 'wasi-sdk'
+    || value.release !== UFBX_WASI_SDK_RELEASE
+    || value.archive !== UFBX_WASI_SDK_ARCHIVE
+    || value.archiveSha256 !== UFBX_WASI_SDK_ARCHIVE_SHA256) {
+    fail('wasiSysroot SDK identity is invalid.');
   }
-  value.packages.forEach((item, index) => {
-    exactKeys(item, PACKAGE_KEYS, `wasiSysroot.packages[${index}]`);
-    if (item.name !== names[index] || typeof item.version !== 'string' || !item.version) {
-      fail('wasiSysroot package identity is invalid.');
-    }
-  });
 }
 
 function build(value, index) {
@@ -75,8 +80,8 @@ export function acceptUfbxWasmReproducibility(value, provenance = null) {
   }
   hash(evidence.sourceSha256, 'sourceSha256');
   hash(evidence.buildSourceSha256, 'buildSourceSha256');
-  tool(evidence.compiler, 'compiler', 'clang-18');
-  tool(evidence.linker, 'linker', 'wasm-ld-18');
+  tool(evidence.compiler, 'compiler', UFBX_WASI_SDK_COMPILER);
+  tool(evidence.linker, 'linker', UFBX_WASI_SDK_LINKER);
   sysroot(evidence.wasiSysroot);
   if (!Array.isArray(evidence.builds) || evidence.builds.length !== 2) {
     fail('Exactly two builds are required.');
