@@ -1,19 +1,13 @@
 import { buildFbxGeometryBundle } from './geometry-bundle.js';
 import { sha256Hex } from './sha256.js';
+import { buildFbxVertexAttributeBundle } from './vertex-attribute-bundle.js';
+import { inspectFbxWasmAbi } from './wasm-abi.js';
 import { preflightFbxInput } from './worker-preflight.js';
 import { FBX_WORKER_ERROR_CODES, FbxWorkerRuntimeError } from './worker-protocol.js';
 import { FBX_GEOMETRY_WORKER_ERROR_CODES } from './geometry-worker-protocol.js';
 
 const WASM_URL = new URL('../../../../third_party/ufbx/fbx_parser.wasm', import.meta.url);
 const PROVENANCE_URL = new URL('../../../../third_party/ufbx/provenance.json', import.meta.url);
-const LEGACY_EXPORTS = [
-  'memory', 'malloc', 'free', 'fbx_parse', 'fbx_result_ptr', 'fbx_result_len',
-  'fbx_error_ptr', 'fbx_error_len',
-];
-const GEOMETRY_EXPORTS = [
-  'fbx_geometry_parse', 'fbx_geometry_result_ptr', 'fbx_geometry_result_len',
-  'fbx_geometry_buffer_count', 'fbx_geometry_buffer_ptr', 'fbx_geometry_buffer_len',
-];
 const HASH_PATTERN = /^[0-9a-f]{64}$/;
 const REVISION_PATTERN = /^[0-9a-f]{40}$/;
 let modulePromise;
@@ -38,15 +32,13 @@ function wasmBytes() {
   });
   return wasmBytesPromise;
 }
-function requireExports(api, names) {
-  for (const name of names) if (!(name in api)) throw new Error(`FBX parser WASM export is missing: ${name}`);
-  return api;
-}
 async function instantiateModule() {
-  const result = await WebAssembly.instantiate(await wasmBytes(), {
+  const bytes = await wasmBytes();
+  inspectFbxWasmAbi(bytes);
+  const result = await WebAssembly.instantiate(bytes, {
     wasi_snapshot_preview1: wasiImports(), env: {},
   });
-  return requireExports(result.instance.exports, LEGACY_EXPORTS);
+  return result.instance.exports;
 }
 function wasmLoadFailure(error) {
   const detail = error instanceof Error ? error.message : String(error);
@@ -68,14 +60,12 @@ async function readParserIdentity() {
     const text = new TextDecoder('utf-8', { fatal: true }).decode(await readUrlBytes(PROVENANCE_URL));
     const provenance = JSON.parse(text);
     if (!validProvenance(provenance)) throw new Error('FBX parser provenance fields are invalid.');
-    const digest = await sha256Hex(await wasmBytes());
+    const bytes = await wasmBytes(), digest = await sha256Hex(bytes);
+    inspectFbxWasmAbi(bytes);
     if (digest !== provenance.wasmSha256) throw new Error('FBX parser WASM digest differs from provenance.');
-    return Object.freeze({
-      provenanceSchema: provenance.schema,
-      upstreamRevision: provenance.upstreamRevision,
-      sourceSha256: provenance.sourceSha256,
-      wasmSha256: provenance.wasmSha256,
-    });
+    return Object.freeze({ provenanceSchema: provenance.schema,
+      upstreamRevision: provenance.upstreamRevision, sourceSha256: provenance.sourceSha256,
+      wasmSha256: digest });
   } catch (error) { throw wasmLoadFailure(error); }
 }
 export async function loadFbxParserIdentity() {
@@ -96,9 +86,9 @@ function copyString(memory, pointer, length) {
 function runtimeFailure(message, stage, detail, code = FBX_WORKER_ERROR_CODES.RUNTIME_ERROR) {
   return new FbxWorkerRuntimeError(code, message, { stage, detail });
 }
-function parserRejection(api) {
+function parserRejection(api, pointerName = 'fbx_error_ptr', lengthName = 'fbx_error_len') {
   let detail = '';
-  try { detail = copyString(api.memory, api.fbx_error_ptr(), api.fbx_error_len()); }
+  try { detail = copyString(api.memory, api[pointerName](), api[lengthName]()); }
   catch (error) { detail = error instanceof Error ? error.message : String(error); }
   return new FbxWorkerRuntimeError(FBX_WORKER_ERROR_CODES.PARSE_REJECTED,
     'The FBX parser failed or rejected the input.', {
@@ -116,8 +106,8 @@ function copyInput(api, source, pointer) {
   try { new Uint8Array(api.memory.buffer, pointer, source.byteLength).set(source); }
   catch (error) { throw runtimeFailure('The FBX input could not be copied into WASM memory.', 'copying-input', error instanceof Error ? error.message : String(error)); }
 }
-function runParser(api, name, pointer, length) {
-  try { if (!api[name](pointer, length)) throw parserRejection(api); }
+function runParser(api, name, pointer, length, errorPointer, errorLength) {
+  try { if (!api[name](pointer, length)) throw parserRejection(api, errorPointer, errorLength); }
   catch (error) {
     if (error instanceof FbxWorkerRuntimeError) throw error;
     throw runtimeFailure('The FBX parser runtime failed.', 'parsing-fbx', error instanceof Error ? error.message : String(error));
@@ -149,29 +139,38 @@ export async function parseFbxBytesWithWasm(bytes, options = {}) {
     return decodeJson(api, 'fbx_result_ptr', 'fbx_result_len', FBX_WORKER_ERROR_CODES.RESULT_DECODE_FAILED);
   });
 }
-function copyGeometryBuffers(api) {
-  const count = api.fbx_geometry_buffer_count();
-  if (!Number.isSafeInteger(count) || count < 0 || count > 196608) throw runtimeFailure('The FBX geometry buffer count is invalid.', 'decoding-result', String(count), FBX_GEOMETRY_WORKER_ERROR_CODES.RESULT_DECODE_FAILED);
+function copyWasmBuffers(api, prefix, maximum, code) {
+  const count = api[`${prefix}_buffer_count`]();
+  if (!Number.isSafeInteger(count) || count < 0 || count > maximum) throw runtimeFailure('The FBX parser buffer count is invalid.', 'decoding-result', String(count), code);
   const buffers = [];
   for (let index = 0; index < count; index += 1) {
-    const pointer = api.fbx_geometry_buffer_ptr(index), length = api.fbx_geometry_buffer_len(index);
+    const pointer = api[`${prefix}_buffer_ptr`](index), length = api[`${prefix}_buffer_len`](index);
     if (!Number.isSafeInteger(pointer) || pointer < 0 || !Number.isSafeInteger(length)
-      || length < 0 || (length > 0 && pointer === 0)) throw runtimeFailure('The FBX geometry buffer length is invalid.', 'decoding-result', `index=${index}`, FBX_GEOMETRY_WORKER_ERROR_CODES.RESULT_DECODE_FAILED);
+      || length < 0 || (length > 0 && pointer === 0)) throw runtimeFailure('The FBX parser buffer length is invalid.', 'decoding-result', `index=${index}`, code);
     try {
       const bytes = new Uint8Array(length);
       if (length) bytes.set(new Uint8Array(api.memory.buffer, pointer, length));
       buffers.push(bytes.buffer);
-    } catch (error) { throw runtimeFailure('The FBX geometry buffer could not be copied.', 'decoding-result', error instanceof Error ? error.message : String(error), FBX_GEOMETRY_WORKER_ERROR_CODES.RESULT_DECODE_FAILED); }
+    } catch (error) { throw runtimeFailure('The FBX parser buffer could not be copied.', 'decoding-result', error instanceof Error ? error.message : String(error), code); }
   }
   return buffers;
 }
 export async function parseFbxGeometryRawWithWasm(bytes, options = {}) {
   return withInput(bytes, options, (api, pointer, length) => {
-    try { requireExports(api, GEOMETRY_EXPORTS); }
-    catch (error) { throw wasmLoadFailure(error); }
     runParser(api, 'fbx_geometry_parse', pointer, length); options.onStage?.('decoding-result');
     const rawTopology = decodeJson(api, 'fbx_geometry_result_ptr', 'fbx_geometry_result_len', FBX_GEOMETRY_WORKER_ERROR_CODES.RESULT_DECODE_FAILED);
-    return { rawTopology, buffers: copyGeometryBuffers(api) };
+    return { rawTopology, buffers: copyWasmBuffers(api, 'fbx_geometry', 196608, FBX_GEOMETRY_WORKER_ERROR_CODES.RESULT_DECODE_FAILED) };
+  });
+}
+export async function parseFbxVertexAttributesRawWithWasm(bytes, options = {}) {
+  return withInput(bytes, options, (api, pointer, length) => {
+    runParser(api, 'fbx_attribute_parse', pointer, length,
+      'fbx_attribute_error_ptr', 'fbx_attribute_error_len');
+    options.onStage?.('decoding-result');
+    const rawAttributes = decodeJson(api, 'fbx_attribute_result_ptr',
+      'fbx_attribute_result_len', FBX_GEOMETRY_WORKER_ERROR_CODES.RESULT_DECODE_FAILED);
+    return { rawAttributes, buffers: copyWasmBuffers(api, 'fbx_attribute', 2031616,
+      FBX_GEOMETRY_WORKER_ERROR_CODES.RESULT_DECODE_FAILED) };
   });
 }
 function byteView(value) {
@@ -193,4 +192,13 @@ export async function parseFbxGeometryBundleWithWasm(bytes, options = {}) {
   const bundle = await buildFbxGeometryBundle({ ...parsed, sourceIdentity: actualSourceIdentity, parserIdentity });
   options.onStage?.('preparing-transfer');
   return bundle;
+}
+export async function parseFbxVertexAttributeBundleWithWasm(bytes, options = {}) {
+  const source = byteView(bytes).slice();
+  const geometryBundle = options.geometryBundle
+    || await parseFbxGeometryBundleWithWasm(source, options);
+  const parsed = await parseFbxVertexAttributesRawWithWasm(source, {
+    parserIdentity: geometryBundle.manifest.parserIdentity,
+  });
+  return buildFbxVertexAttributeBundle({ geometryBundle, ...parsed });
 }
