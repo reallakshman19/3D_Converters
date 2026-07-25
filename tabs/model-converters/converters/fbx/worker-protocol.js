@@ -1,3 +1,4 @@
+// Validate transferred FBX worker graphs; only external root "0" may be unresolved.
 export const FBX_WORKER_JOB_SCHEMA = 'FbxWorkerJob.v1';
 export const FBX_WORKER_MESSAGE_SCHEMA = 'FbxWorkerMessage.v1';
 export const FBX_WORKER_OPERATION = 'PARSE_SOURCE_GRAPH';
@@ -143,7 +144,10 @@ function assertGraphReferences(graph) {
   }
   for (const item of graph.geometries) if (!sourceIds.has(item.sourceObjectId) || item.ownerOccurrenceIds.some((id) => !occurrenceIds.has(id))) graphError(`geometry ${item.geometryObjectId} has unresolved references.`);
   for (const item of graph.hierarchyEdges) if (!occurrenceIds.has(item.parentOccurrenceId) || !occurrenceIds.has(item.childOccurrenceId)) graphError('hierarchy edge has unresolved references.');
-  for (const item of graph.connectionEdges) if (!sourceIds.has(item.sourceObjectId) || !sourceIds.has(item.destinationObjectId)) graphError('connection edge has unresolved references.');
+  for (const item of graph.connectionEdges) {
+    const destinationKnown = item.destinationObjectId === '0' || sourceIds.has(item.destinationObjectId);
+    if (!sourceIds.has(item.sourceObjectId) || !destinationKnown) graphError('connection edge has unresolved references.');
+  }
   for (const item of [...graph.unsupportedRecords, ...graph.unresolvedReferences]) if (!sourceIds.has(item.sourceObjectId)) graphError('retained evidence has an unresolved source identity.');
   const seen = new Set(), duplicates = new Set();
   for (const id of graph.sourceObjects.map((item) => item.sourceObjectId)) { if (seen.has(id)) duplicates.add(id); seen.add(id); }

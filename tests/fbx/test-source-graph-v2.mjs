@@ -1,3 +1,4 @@
+// Validate real SourceGraph v2 evidence, multiplicity, and fail-closed schema cases.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
@@ -105,7 +106,8 @@ assert.ok(graph.unresolvedReferences.some((record) => record.sourceObjectId === 
 
 const multiplicity = changed(graph, (value) => {
   value.sourceObjects[0].connectionPropertyNames.push('RepeatedEvidence', 'RepeatedEvidence');
-  value.occurrences[0].geometryObjectIds.push(value.occurrences[0].geometryObjectIds[0]);
+  const occurrence = value.occurrences.find((item) => item.geometryObjectIds.length > 0);
+  occurrence.geometryObjectIds.push(occurrence.geometryObjectIds[0]);
   value.geometries[0].ownerOccurrenceIds.push(value.geometries[0].ownerOccurrenceIds[0]);
 });
 const cases = [

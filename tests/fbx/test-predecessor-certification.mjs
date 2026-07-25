@@ -1,3 +1,4 @@
+// Verify exact COMPLETE/BLOCKED/OWNER-WAIVED predecessor admission semantics.
 import assert from 'node:assert/strict';
 import {
   FBX_PREDECESSOR_CERTIFICATION_ERROR_CODES,
@@ -14,10 +15,25 @@ import {
   FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION,
 } from '../../tabs/model-converters/converters/fbx/runtime-004-admission.js';
 
-assert.equal(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION.status, 'OWNER-WAIVED');
-assert.equal(isFbxPredecessorEvidencePassing(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), false);
+assert.equal(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION.status, 'COMPLETE');
+assert.equal(isFbxPredecessorEvidencePassing(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), true);
 assert.equal(isFbxPredecessorContinuationAuthorized(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), true);
-assert.equal(isFbxPredecessorReleaseEligible(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), false);
+assert.equal(isFbxPredecessorReleaseEligible(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), true);
+assert.deepEqual(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION.ownerWaiver, {
+  authorized: false,
+  rationale: null,
+});
+assert.deepEqual(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION.evidence, {
+  governedWasmBuild: 'passed',
+  provenanceReconciliation: 'passed',
+  reproducibility: 'passed',
+  parserParity: 'passed',
+});
+assert.deepEqual(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION.admission, {
+  evidencePassing: true,
+  continuationAuthorized: true,
+  releaseEligible: true,
+});
 
 const passed = {
   governedWasmBuild: 'passed',
