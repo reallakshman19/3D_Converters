@@ -17,6 +17,8 @@ export {
 } from './vertex-attribute-contract.js';
 
 const HASH = /^[0-9a-f]{64}$/;
+const DECIMAL_ID = /^(0|[1-9]\d{0,19})$/;
+const MAX_OBJECT_ID = 18446744073709551615n;
 const MANIFEST_KEYS = [
   'schema', 'geometryBundleDigest', 'sourceGraphSha256', 'byteOrder',
   'limitsVersion', 'geometries', 'buffers', 'bundleDigest',
@@ -135,9 +137,15 @@ function validateOrigin(origin, normal) {
     failAttribute(FBX_ATTRIBUTE_ERROR_CODES.BUNDLE_INVALID, 'normalOrigin is invalid.');
   }
 }
-function validateGeometry(value, index) {
+function validGeometryId(value) {
+  return typeof value === 'string' && DECIMAL_ID.test(value) && BigInt(value) <= MAX_OBJECT_ID;
+}
+function validateGeometry(value, index, array) {
   exactAttributeKeys(value, GEOMETRY_KEYS, `geometries[${index}]`, FBX_ATTRIBUTE_ERROR_CODES.BUNDLE_INVALID);
-  if (typeof value.geometryObjectId !== 'string' || !Number.isSafeInteger(value.polygonCount)
+  const previous = array[index - 1];
+  if (!validGeometryId(value.geometryObjectId)
+    || (previous && BigInt(previous.geometryObjectId) >= BigInt(value.geometryObjectId))
+    || !Number.isSafeInteger(value.polygonCount)
     || value.polygonCount < 0 || !Number.isSafeInteger(value.polygonVertexCount)
     || value.polygonVertexCount < 0) failAttribute(FBX_ATTRIBUTE_ERROR_CODES.BUNDLE_INVALID, 'Bundle geometry identity or counts are invalid.');
   for (const [name, components] of FBX_VECTOR_ATTRIBUTES) validateAttribute(value[name], components, value.polygonVertexCount, name);
@@ -161,7 +169,8 @@ function validateDescriptor(value, index) {
   exactAttributeKeys(value, BUFFER_KEYS, `buffers[${index}]`, FBX_ATTRIBUTE_ERROR_CODES.BUNDLE_INVALID);
   const size = value.scalarType === 'Float64' ? 8 : value.scalarType === 'Uint32' ? 4 : 0;
   if (typeof value.bufferId !== 'string' || !value.bufferId
-    || typeof value.geometryObjectId !== 'string' || typeof value.role !== 'string'
+    || !validGeometryId(value.geometryObjectId) || typeof value.role !== 'string'
+    || value.bufferId !== attributeBufferId(value.geometryObjectId, value.role)
     || ![1, 2, 3, 4].includes(value.componentCount) || !Number.isSafeInteger(value.count)
     || value.count < 0 || !size || value.alignment !== size
     || value.byteLength !== checkedAttributeProduct([value.count, value.componentCount, size], 'descriptor byte length')
