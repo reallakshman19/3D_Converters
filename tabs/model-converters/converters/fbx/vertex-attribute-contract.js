@@ -20,6 +20,8 @@ export const FBX_VECTOR_ATTRIBUTES = deepFreeze([
   ['normal', 3], ['tangent', 3], ['bitangent', 3],
 ]);
 
+const DECIMAL_ID = /^(0|[1-9]\d{0,19})$/;
+const MAX_OBJECT_ID = 18446744073709551615n;
 const TOP_KEYS = ['schema', 'geometries'];
 const GEOMETRY_KEYS = [
   'geometryObjectId', 'normalOrigin', 'normal', 'tangent', 'bitangent',
@@ -173,6 +175,9 @@ function validateOrigin(origin, normal) {
     failAttribute(FBX_ATTRIBUTE_ERROR_CODES.RAW_INVALID, 'normalOrigin is invalid.');
   }
 }
+function validGeometryId(value) {
+  return typeof value === 'string' && DECIMAL_ID.test(value) && BigInt(value) <= MAX_OBJECT_ID;
+}
 function compareGeometry(left, right) {
   const a = BigInt(left.geometryObjectId), b = BigInt(right.geometryObjectId);
   return a === b ? 0 : a < b ? -1 : 1;
@@ -203,6 +208,9 @@ export function validateFbxRawVertexAttributes({ rawAttributes, buffers, geometr
   const geometries = geometryManifest.geometries;
   if (rawAttributes.geometries.length !== geometries.length || geometries.length > FBX_RENDER_LIMITS.geometries) {
     failAttribute(FBX_ATTRIBUTE_ERROR_CODES.RAW_INVALID, 'Raw attribute geometry coverage is invalid.');
+  }
+  if (rawAttributes.geometries.some((item) => !validGeometryId(item?.geometryObjectId))) {
+    failAttribute(FBX_ATTRIBUTE_ERROR_CODES.RAW_INVALID, 'Raw attribute geometry identity is invalid.');
   }
   const ordered = [...rawAttributes.geometries].sort(compareGeometry), used = new Set(), result = [];
   for (let index = 0; index < geometries.length; index += 1) {
