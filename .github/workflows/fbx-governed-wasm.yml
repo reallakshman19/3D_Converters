@@ -22,11 +22,18 @@ jobs:
       run:
         shell: bash
     env:
-      WASI_SDK_ROOT: ${{ runner.temp }}/wasi-sdk-22.0+m
-      WASI_SDK_ARCHIVE: ${{ runner.temp }}/wasi-sdk-22.0.m-mingw64.tar.gz
-      FBX_QUALIFICATION_TEMP_ROOT: ${{ runner.temp }}/fbx-wasm-clean-builds
       FBX_BASH_PATH: C:/Program Files/Git/bin/bash.exe
     steps:
+      - name: Configure governed temporary paths
+        shell: pwsh
+        run: |
+          $runnerTemp = $env:RUNNER_TEMP.Replace('\', '/')
+          @(
+            "WASI_SDK_ROOT=$runnerTemp/wasi-sdk-22.0+m"
+            "WASI_SDK_ARCHIVE=$runnerTemp/wasi-sdk-22.0.m-mingw64.tar.gz"
+            "FBX_QUALIFICATION_TEMP_ROOT=$runnerTemp/fbx-wasm-clean-builds"
+          ) | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
