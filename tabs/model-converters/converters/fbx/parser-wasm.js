@@ -1,4 +1,5 @@
 import { buildFbxGeometryBundle } from './geometry-bundle.js';
+import { observeParserEvidence } from './parser-provenance.js';
 import { sha256Hex } from './sha256.js';
 import { buildFbxVertexAttributeBundle } from './vertex-attribute-bundle.js';
 import { inspectFbxWasmAbi } from './wasm-abi.js';
@@ -8,8 +9,6 @@ import { FBX_GEOMETRY_WORKER_ERROR_CODES } from './geometry-worker-protocol.js';
 
 const WASM_URL = new URL('../../../../third_party/ufbx/fbx_parser.wasm', import.meta.url);
 const PROVENANCE_URL = new URL('../../../../third_party/ufbx/provenance.json', import.meta.url);
-const HASH_PATTERN = /^[0-9a-f]{64}$/;
-const REVISION_PATTERN = /^[0-9a-f]{40}$/;
 let modulePromise;
 let wasmBytesPromise;
 let parserIdentityPromise;
@@ -49,23 +48,12 @@ export async function loadFbxWasmModule() {
   if (!modulePromise) modulePromise = instantiateModule();
   try { return await modulePromise; } catch (error) { modulePromise = undefined; throw wasmLoadFailure(error); }
 }
-function validProvenance(value) {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    && value.schema === 'UfbxWasmProvenance.v1'
-    && REVISION_PATTERN.test(value.upstreamRevision) && HASH_PATTERN.test(value.sourceSha256)
-    && HASH_PATTERN.test(value.wasmSha256);
-}
 async function readParserIdentity() {
   try {
     const text = new TextDecoder('utf-8', { fatal: true }).decode(await readUrlBytes(PROVENANCE_URL));
-    const provenance = JSON.parse(text);
-    if (!validProvenance(provenance)) throw new Error('FBX parser provenance fields are invalid.');
-    const bytes = await wasmBytes(), digest = await sha256Hex(bytes);
-    inspectFbxWasmAbi(bytes);
-    if (digest !== provenance.wasmSha256) throw new Error('FBX parser WASM digest differs from provenance.');
-    return Object.freeze({ provenanceSchema: provenance.schema,
-      upstreamRevision: provenance.upstreamRevision, sourceSha256: provenance.sourceSha256,
-      wasmSha256: digest });
+    return await observeParserEvidence({
+      provenance: JSON.parse(text), wasmBytes: await wasmBytes(),
+    });
   } catch (error) { throw wasmLoadFailure(error); }
 }
 export async function loadFbxParserIdentity() {
