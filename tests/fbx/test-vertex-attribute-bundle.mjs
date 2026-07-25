@@ -1,0 +1,121 @@
+import assert from 'node:assert/strict';
+import {
+  FBX_ATTRIBUTE_ERROR_CODES,
+  FBX_VERTEX_ATTRIBUTE_BUNDLE_SCHEMA,
+  FbxVertexAttributeContractError,
+  buildFbxVertexAttributeBundle,
+  validateFbxVertexAttributeBundle,
+} from '../../tabs/model-converters/converters/fbx/vertex-attribute-bundle.js';
+
+const hash = (char) => char.repeat(64);
+const geometryBundle = {
+  manifest: {
+    schema: 'FbxGeometryBundle.v1',
+    bundleDigest: hash('a'),
+    sourceGraphSha256: hash('b'),
+    geometries: [{ geometryObjectId: '7', polygonCount: 1, polygonVertexCount: 3 }],
+  },
+  buffers: [],
+};
+
+function float64(values) {
+  const bytes = new ArrayBuffer(values.length * 8), view = new DataView(bytes);
+  values.forEach((value, index) => view.setFloat64(index * 8, value, true));
+  return bytes;
+}
+function uint32(values) {
+  const bytes = new ArrayBuffer(values.length * 4), view = new DataView(bytes);
+  values.forEach((value, index) => view.setUint32(index * 4, value, true));
+  return bytes;
+}
+let bufferList = [];
+function attribute(valueCount, valueReals, values, indices, uniquePerVertex = false) {
+  const valueIndex = bufferList.push(float64(values)) - 1;
+  const indexIndex = bufferList.push(uint32(indices)) - 1;
+  return {
+    sourceDomain: uniquePerVertex ? 'control-point' : 'polygon-vertex',
+    referenceMode: 'indexed-value-table', valueCount, valueReals,
+    uniquePerVertex, bufferIndices: { values: valueIndex, indices: indexIndex },
+  };
+}
+function setAttribute(setOrdinal, sourceSetIndex, name, components, values, indices) {
+  return {
+    ...attribute(values.length / components, components, values, indices),
+    setOrdinal, sourceSetIndex, name,
+  };
+}
+function fixtureSets() {
+  const uvSets = [
+    setAttribute(0, 5, '', 2, [0, 0, 1, 0, 0, 1], [0, 1, 2]),
+    setAttribute(1, 6, '', 2, [0, 0, 2, 0, 0, 2], [0, 1, 2]),
+  ];
+  const colorSets = [
+    setAttribute(0, 2, 'Color', 4, [1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1], [0, 1, 2]),
+  ];
+  return { uvSets, colorSets };
+}
+function fixtureGeometry() {
+  const normal = attribute(3, 3, [1, 0, -0, 0, 1, 0, 0, 0, 1], [0, 1, 2]);
+  const materialIndex = bufferList.push(uint32([4])) - 1;
+  return {
+    geometryObjectId: '7', normalOrigin: 'source', normal,
+    tangent: null, bitangent: null, ...fixtureSets(),
+    faceMaterialSlots: { count: 1, bufferIndex: materialIndex },
+  };
+}
+function fixture() {
+  bufferList = [];
+  return {
+    rawAttributes: {
+      schema: 'FbxRawVertexAttributes.v1', geometries: [fixtureGeometry()],
+    },
+    buffers: bufferList,
+  };
+}
+
+const input = fixture();
+const bundle = await buildFbxVertexAttributeBundle({ geometryBundle, ...input });
+assert.equal(bundle.manifest.schema, FBX_VERTEX_ATTRIBUTE_BUNDLE_SCHEMA);
+assert.equal(bundle.manifest.geometryBundleDigest, hash('a'));
+assert.equal(bundle.manifest.geometries[0].uvSets.length, 2);
+assert.deepEqual(bundle.manifest.geometries[0].uvSets.map((item) => item.name), ['', '']);
+assert.deepEqual(bundle.manifest.geometries[0].uvSets.map((item) => item.sourceSetIndex), [5, 6]);
+assert.equal(bundle.manifest.geometries[0].faceMaterialSlots.count, 1);
+assert.equal(await validateFbxVertexAttributeBundle(bundle), true);
+
+const normalValues = bundle.buffers.find((item) => item.bufferId.endsWith('/normal-values')).bytes;
+assert.equal(Object.is(new DataView(normalValues).getFloat64(16, true), -0), false);
+
+const invalidIndex = fixture();
+new DataView(invalidIndex.buffers[1]).setUint32(8, 3, true);
+await assert.rejects(
+  buildFbxVertexAttributeBundle({ geometryBundle, ...invalidIndex }),
+  (error) => error instanceof FbxVertexAttributeContractError
+    && error.code === FBX_ATTRIBUTE_ERROR_CODES.RAW_INVALID,
+);
+
+const duplicateSet = fixture();
+duplicateSet.rawAttributes.geometries[0].uvSets[1].sourceSetIndex = 5;
+await assert.rejects(
+  buildFbxVertexAttributeBundle({ geometryBundle, ...duplicateSet }),
+  (error) => error.code === FBX_ATTRIBUTE_ERROR_CODES.RAW_INVALID,
+);
+
+const incomplete = fixture();
+incomplete.buffers.pop();
+await assert.rejects(
+  buildFbxVertexAttributeBundle({ geometryBundle, ...incomplete }),
+  (error) => error.code === FBX_ATTRIBUTE_ERROR_CODES.BUFFER_INVALID,
+);
+
+const tooManyUvSets = fixture();
+tooManyUvSets.rawAttributes.geometries[0].uvSets = Array.from({ length: 9 }, (_, index) => ({
+  ...tooManyUvSets.rawAttributes.geometries[0].uvSets[0],
+  setOrdinal: index, sourceSetIndex: index,
+}));
+await assert.rejects(
+  buildFbxVertexAttributeBundle({ geometryBundle, ...tooManyUvSets }),
+  (error) => error.code === FBX_ATTRIBUTE_ERROR_CODES.LIMIT_EXCEEDED,
+);
+
+console.log('test-vertex-attribute-bundle: PASS');
