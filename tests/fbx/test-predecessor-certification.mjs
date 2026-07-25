@@ -10,6 +10,14 @@ import {
   isFbxPredecessorReleaseEligible,
   validateFbxPredecessorCertification,
 } from '../../tabs/model-converters/converters/fbx/predecessor-certification.js';
+import {
+  FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION,
+} from '../../tabs/model-converters/converters/fbx/runtime-004-admission.js';
+
+assert.equal(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION.status, 'OWNER-WAIVED');
+assert.equal(isFbxPredecessorEvidencePassing(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), false);
+assert.equal(isFbxPredecessorContinuationAuthorized(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), true);
+assert.equal(isFbxPredecessorReleaseEligible(FBX_RUNTIME_004_PREDECESSOR_CERTIFICATION), false);
 
 const passed = {
   governedWasmBuild: 'passed',
