@@ -56,6 +56,7 @@ TOOL_OUTPUT="$(tool_path "$TEMP_OUTPUT")"
 
 export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=0
 "$COMPILER_PATH" --target=wasm32-wasi --sysroot="$TOOL_SYSROOT" -O2 -std=c99 -nostartfiles \
+  "-ffile-prefix-map=$TOOL_ROOT=." "-fmacro-prefix-map=$TOOL_ROOT=." \
   -DUFBX_WASM_32BIT -DUFBX_NO_STDIO -DUFBX_ENABLE_ERROR_STACK \
   -I"$TOOL_ROOT/third_party/ufbx" \
   "$TOOL_ROOT/third_party/ufbx/ufbx.c" \

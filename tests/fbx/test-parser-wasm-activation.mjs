@@ -21,7 +21,8 @@ for (const evidence of [
   'governed linker major 18 is required',
   'compiler.sha256=', 'compiler.version<<EOF', 'linker.sha256=',
   'linker.version<<EOF', 'wasi_sysroot.path=', 'output.bytes=', 'output.sha256=',
-  'inspect-ufbx-wasm.mjs', 'fbx_attributes.c',
+  'inspect-ufbx-wasm.mjs', 'fbx_attributes.c', 'ffile-prefix-map',
+  'fmacro-prefix-map',
 ]) assert.match(build, new RegExp(evidence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
 for (const [symbol] of FBX_WASM_REQUIRED_EXPORTS) {
