@@ -1,479 +1,115 @@
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ufbx.h"
 
-typedef struct json_buffer {
-    char *data;
-    size_t length;
-    size_t capacity;
-    int failed;
-} json_buffer;
+typedef struct json_buffer { char *data; size_t length, capacity; int failed; } json_buffer;
+typedef struct binary_buffer { void *data; size_t length; } binary_buffer;
 
 static char *g_result;
 static size_t g_result_length;
+static char *g_geometry_result;
+static size_t g_geometry_result_length;
+static binary_buffer *g_geometry_buffers;
+static size_t g_geometry_buffer_count;
 static char g_error[512];
 static size_t g_error_length;
 
-static int jb_reserve(json_buffer *buffer, size_t extra) {
-    if (buffer->failed) return 0;
-    size_t required = buffer->length + extra + 1;
-    if (required <= buffer->capacity) return 1;
-    size_t capacity = buffer->capacity ? buffer->capacity : 4096;
+static int checked_add(size_t a, size_t b, size_t *out) { if (a > SIZE_MAX - b) return 0; *out = a + b; return 1; }
+static int checked_mul(size_t a, size_t b, size_t *out) { if (a && b > SIZE_MAX / a) return 0; *out = a * b; return 1; }
+static int jb_reserve(json_buffer *b, size_t extra) {
+    size_t required;
+    if (b->failed) return 0;
+    if (!checked_add(b->length, extra, &required) || !checked_add(required, 1, &required)) { b->failed = 1; return 0; }
+    if (required <= b->capacity) return 1;
+    size_t capacity = b->capacity ? b->capacity : 4096;
     while (capacity < required) {
-        if (capacity < 16 * 1024 * 1024) capacity *= 2;
-        else capacity += 16 * 1024 * 1024;
+        size_t next = capacity < 16 * 1024 * 1024 ? capacity * 2 : capacity + 16 * 1024 * 1024;
+        if (next <= capacity) { b->failed = 1; return 0; }
+        capacity = next;
     }
-    char *next = (char*)realloc(buffer->data, capacity);
-    if (!next) { buffer->failed = 1; return 0; }
-    buffer->data = next;
-    buffer->capacity = capacity;
-    return 1;
+    char *data = (char*)realloc(b->data, capacity);
+    if (!data) { b->failed = 1; return 0; }
+    b->data = data; b->capacity = capacity; return 1;
 }
-
-static void jb_raw(json_buffer *buffer, const char *text) {
-    size_t size = strlen(text);
-    if (!jb_reserve(buffer, size)) return;
-    memcpy(buffer->data + buffer->length, text, size);
-    buffer->length += size;
-    buffer->data[buffer->length] = '\0';
+static void jb_raw(json_buffer *b, const char *s) { size_t n = strlen(s); if (!jb_reserve(b,n)) return; memcpy(b->data+b->length,s,n); b->length+=n; b->data[b->length]='\0'; }
+static void jb_char(json_buffer *b, char c) { if (!jb_reserve(b,1)) return; b->data[b->length++]=c; b->data[b->length]='\0'; }
+static void jb_u64(json_buffer *b, uint64_t v) { char s[32]; snprintf(s,sizeof(s),"%llu",(unsigned long long)v); jb_raw(b,s); }
+static void jb_i64(json_buffer *b, int64_t v) { char s[32]; snprintf(s,sizeof(s),"%lld",(long long)v); jb_raw(b,s); }
+static void jb_real(json_buffer *b, double v) { char s[64]; if (v == 0.0) v = 0.0; snprintf(s,sizeof(s),"%.17g",v); jb_raw(b,s); }
+static void jb_string_n(json_buffer *b, const char *s, size_t n) {
+    jb_char(b,'"');
+    for (size_t i=0;i<n;i++) { unsigned char c=(unsigned char)s[i]; if(c=='"'||c=='\\'){jb_char(b,'\\');jb_char(b,(char)c);} else if(c=='\n')jb_raw(b,"\\n"); else if(c=='\r')jb_raw(b,"\\r"); else if(c=='\t')jb_raw(b,"\\t"); else if(c<0x20)jb_raw(b,"?"); else jb_char(b,(char)c); }
+    jb_char(b,'"');
 }
-
-static void jb_char(json_buffer *buffer, char value) {
-    if (!jb_reserve(buffer, 1)) return;
-    buffer->data[buffer->length++] = value;
-    buffer->data[buffer->length] = '\0';
-}
-
-static void jb_u64(json_buffer *buffer, uint64_t value) {
-    char text[32];
-    snprintf(text, sizeof(text), "%llu", (unsigned long long)value);
-    jb_raw(buffer, text);
-}
-
-static void jb_i64(json_buffer *buffer, int64_t value) {
-    char text[32];
-    snprintf(text, sizeof(text), "%lld", (long long)value);
-    jb_raw(buffer, text);
-}
-
-static void jb_real(json_buffer *buffer, double value) {
-    char text[64];
-    if (value == 0.0) value = 0.0;
-    snprintf(text, sizeof(text), "%.17g", value);
-    jb_raw(buffer, text);
-}
-
-static void jb_string_n(json_buffer *buffer, const char *data, size_t size) {
-    jb_char(buffer, '"');
-    for (size_t i = 0; i < size; i++) {
-        unsigned char ch = (unsigned char)data[i];
-        if (ch == '"' || ch == '\\') { jb_char(buffer, '\\'); jb_char(buffer, (char)ch); }
-        else if (ch == '\n') jb_raw(buffer, "\\n");
-        else if (ch == '\r') jb_raw(buffer, "\\r");
-        else if (ch == '\t') jb_raw(buffer, "\\t");
-        else if (ch < 0x20) jb_raw(buffer, "?");
-        else jb_char(buffer, (char)ch);
-    }
-    jb_char(buffer, '"');
-}
-
-static void jb_string(json_buffer *buffer, ufbx_string value) {
-    jb_string_n(buffer, value.data ? value.data : "", value.data ? value.length : 0);
-}
-
-static uint64_t source_id(const ufbx_element *element) {
-    if (element && element->dom_node && element->dom_node->values.count > 0) {
-        return (uint64_t)element->dom_node->values.data[0].value_int;
-    }
-    return element ? element->element_id : 0;
-}
-
-static ufbx_string dom_value_string(const ufbx_element *element, size_t index) {
-    ufbx_string empty = { 0 };
-    if (!element || !element->dom_node || element->dom_node->values.count <= index) return empty;
-    return element->dom_node->values.data[index].value_str;
-}
-
-static const char *element_type_name(ufbx_element_type type) {
-    switch (type) {
-        case UFBX_ELEMENT_UNKNOWN: return "UNKNOWN";
-        case UFBX_ELEMENT_NODE: return "NODE";
-        case UFBX_ELEMENT_MESH: return "MESH";
-        case UFBX_ELEMENT_LIGHT: return "LIGHT";
-        case UFBX_ELEMENT_CAMERA: return "CAMERA";
-        case UFBX_ELEMENT_BONE: return "BONE";
-        case UFBX_ELEMENT_EMPTY: return "EMPTY";
-        case UFBX_ELEMENT_LINE_CURVE: return "LINE_CURVE";
-        case UFBX_ELEMENT_NURBS_CURVE: return "NURBS_CURVE";
-        case UFBX_ELEMENT_NURBS_SURFACE: return "NURBS_SURFACE";
-        case UFBX_ELEMENT_NURBS_TRIM_SURFACE: return "NURBS_TRIM_SURFACE";
-        case UFBX_ELEMENT_NURBS_TRIM_BOUNDARY: return "NURBS_TRIM_BOUNDARY";
-        case UFBX_ELEMENT_PROCEDURAL_GEOMETRY: return "PROCEDURAL_GEOMETRY";
-        case UFBX_ELEMENT_STEREO_CAMERA: return "STEREO_CAMERA";
-        case UFBX_ELEMENT_CAMERA_SWITCHER: return "CAMERA_SWITCHER";
-        case UFBX_ELEMENT_MARKER: return "MARKER";
-        case UFBX_ELEMENT_LOD_GROUP: return "LOD_GROUP";
-        case UFBX_ELEMENT_SKIN_DEFORMER: return "SKIN_DEFORMER";
-        case UFBX_ELEMENT_SKIN_CLUSTER: return "SKIN_CLUSTER";
-        case UFBX_ELEMENT_BLEND_DEFORMER: return "BLEND_DEFORMER";
-        case UFBX_ELEMENT_BLEND_CHANNEL: return "BLEND_CHANNEL";
-        case UFBX_ELEMENT_BLEND_SHAPE: return "BLEND_SHAPE";
-        case UFBX_ELEMENT_CACHE_DEFORMER: return "CACHE_DEFORMER";
-        case UFBX_ELEMENT_CACHE_FILE: return "CACHE_FILE";
-        case UFBX_ELEMENT_MATERIAL: return "MATERIAL";
-        case UFBX_ELEMENT_TEXTURE: return "TEXTURE";
-        case UFBX_ELEMENT_VIDEO: return "VIDEO";
-        case UFBX_ELEMENT_SHADER: return "SHADER";
-        case UFBX_ELEMENT_SHADER_BINDING: return "SHADER_BINDING";
-        case UFBX_ELEMENT_ANIM_STACK: return "ANIM_STACK";
-        case UFBX_ELEMENT_ANIM_LAYER: return "ANIM_LAYER";
-        case UFBX_ELEMENT_ANIM_VALUE: return "ANIM_VALUE";
-        case UFBX_ELEMENT_ANIM_CURVE: return "ANIM_CURVE";
-        case UFBX_ELEMENT_DISPLAY_LAYER: return "DISPLAY_LAYER";
-        case UFBX_ELEMENT_SELECTION_SET: return "SELECTION_SET";
-        case UFBX_ELEMENT_SELECTION_NODE: return "SELECTION_NODE";
-        case UFBX_ELEMENT_CHARACTER: return "CHARACTER";
-        case UFBX_ELEMENT_CONSTRAINT: return "CONSTRAINT";
-        case UFBX_ELEMENT_AUDIO_LAYER: return "AUDIO_LAYER";
-        case UFBX_ELEMENT_AUDIO_CLIP: return "AUDIO_CLIP";
-        case UFBX_ELEMENT_POSE: return "POSE";
-        case UFBX_ELEMENT_METADATA_OBJECT: return "METADATA_OBJECT";
-        default: return "UNRECOGNIZED_ELEMENT_TYPE";
+static void jb_string(json_buffer *b, ufbx_string s) { jb_string_n(b,s.data?s.data:"",s.data?s.length:0); }
+static uint64_t source_id(const ufbx_element *e) { return e&&e->dom_node&&e->dom_node->values.count ? (uint64_t)e->dom_node->values.data[0].value_int : e ? e->element_id : 0; }
+static ufbx_string dom_value_string(const ufbx_element *e,size_t i){ufbx_string z={0};return !e||!e->dom_node||e->dom_node->values.count<=i?z:e->dom_node->values.data[i].value_str;}
+static const char *element_type_name(ufbx_element_type t) {
+    switch(t){
+        case UFBX_ELEMENT_UNKNOWN:return"UNKNOWN";case UFBX_ELEMENT_NODE:return"NODE";case UFBX_ELEMENT_MESH:return"MESH";case UFBX_ELEMENT_LIGHT:return"LIGHT";case UFBX_ELEMENT_CAMERA:return"CAMERA";case UFBX_ELEMENT_BONE:return"BONE";case UFBX_ELEMENT_EMPTY:return"EMPTY";case UFBX_ELEMENT_LINE_CURVE:return"LINE_CURVE";case UFBX_ELEMENT_NURBS_CURVE:return"NURBS_CURVE";case UFBX_ELEMENT_NURBS_SURFACE:return"NURBS_SURFACE";case UFBX_ELEMENT_NURBS_TRIM_SURFACE:return"NURBS_TRIM_SURFACE";case UFBX_ELEMENT_NURBS_TRIM_BOUNDARY:return"NURBS_TRIM_BOUNDARY";case UFBX_ELEMENT_PROCEDURAL_GEOMETRY:return"PROCEDURAL_GEOMETRY";case UFBX_ELEMENT_STEREO_CAMERA:return"STEREO_CAMERA";case UFBX_ELEMENT_CAMERA_SWITCHER:return"CAMERA_SWITCHER";case UFBX_ELEMENT_MARKER:return"MARKER";case UFBX_ELEMENT_LOD_GROUP:return"LOD_GROUP";case UFBX_ELEMENT_SKIN_DEFORMER:return"SKIN_DEFORMER";case UFBX_ELEMENT_SKIN_CLUSTER:return"SKIN_CLUSTER";case UFBX_ELEMENT_BLEND_DEFORMER:return"BLEND_DEFORMER";case UFBX_ELEMENT_BLEND_CHANNEL:return"BLEND_CHANNEL";case UFBX_ELEMENT_BLEND_SHAPE:return"BLEND_SHAPE";case UFBX_ELEMENT_CACHE_DEFORMER:return"CACHE_DEFORMER";case UFBX_ELEMENT_CACHE_FILE:return"CACHE_FILE";case UFBX_ELEMENT_MATERIAL:return"MATERIAL";case UFBX_ELEMENT_TEXTURE:return"TEXTURE";case UFBX_ELEMENT_VIDEO:return"VIDEO";case UFBX_ELEMENT_SHADER:return"SHADER";case UFBX_ELEMENT_SHADER_BINDING:return"SHADER_BINDING";case UFBX_ELEMENT_ANIM_STACK:return"ANIM_STACK";case UFBX_ELEMENT_ANIM_LAYER:return"ANIM_LAYER";case UFBX_ELEMENT_ANIM_VALUE:return"ANIM_VALUE";case UFBX_ELEMENT_ANIM_CURVE:return"ANIM_CURVE";case UFBX_ELEMENT_DISPLAY_LAYER:return"DISPLAY_LAYER";case UFBX_ELEMENT_SELECTION_SET:return"SELECTION_SET";case UFBX_ELEMENT_SELECTION_NODE:return"SELECTION_NODE";case UFBX_ELEMENT_CHARACTER:return"CHARACTER";case UFBX_ELEMENT_CONSTRAINT:return"CONSTRAINT";case UFBX_ELEMENT_AUDIO_LAYER:return"AUDIO_LAYER";case UFBX_ELEMENT_AUDIO_CLIP:return"AUDIO_CLIP";case UFBX_ELEMENT_POSE:return"POSE";case UFBX_ELEMENT_METADATA_OBJECT:return"METADATA_OBJECT";default:return"UNRECOGNIZED_ELEMENT_TYPE";
     }
 }
+static const char *record_disposition(ufbx_element_type t){if(t==UFBX_ELEMENT_NODE)return"supported-occurrence";if(t==UFBX_ELEMENT_MESH||t==UFBX_ELEMENT_NURBS_CURVE)return"supported-geometry";if(t==UFBX_ELEMENT_UNKNOWN||t<0||t>=UFBX_ELEMENT_TYPE_COUNT)return"unresolved-unknown";return"retained-evidence";}
+static void write_id_string(json_buffer*b,uint64_t v){jb_char(b,'"');jb_u64(b,v);jb_char(b,'"');}
+static void write_vec3(json_buffer*b,ufbx_vec3 v){jb_char(b,'[');jb_real(b,v.x);jb_char(b,',');jb_real(b,v.y);jb_char(b,',');jb_real(b,v.z);jb_char(b,']');}
+static void write_vec4(json_buffer*b,ufbx_vec4 v){jb_char(b,'[');jb_real(b,v.x);jb_char(b,',');jb_real(b,v.y);jb_char(b,',');jb_real(b,v.z);jb_char(b,',');jb_real(b,v.w);jb_char(b,']');}
+static void write_matrix(json_buffer*b,ufbx_matrix m){jb_char(b,'[');for(size_t i=0;i<12;i++){if(i)jb_char(b,',');jb_real(b,m.v[i]);}jb_char(b,']');}
+static void write_transform(json_buffer*b,ufbx_transform t){jb_raw(b,"{\"translation\":");write_vec3(b,t.translation);jb_raw(b,",\"rotation\":");write_vec4(b,(ufbx_vec4){t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w});jb_raw(b,",\"scale\":");write_vec3(b,t.scale);jb_char(b,'}');}
+static void write_custom_properties(json_buffer*b,const ufbx_props*p){jb_char(b,'[');int first=1;for(size_t i=0;i<p->props.count;i++){const ufbx_prop*x=&p->props.data[i];if(!(x->flags&UFBX_PROP_FLAG_USER_DEFINED))continue;if(!first)jb_char(b,',');first=0;jb_raw(b,"{\"name\":");jb_string(b,x->name);jb_raw(b,",\"type\":");jb_i64(b,x->type);jb_raw(b,",\"flags\":");jb_i64(b,x->flags);jb_raw(b,",\"valueInt\":");jb_i64(b,x->value_int);jb_raw(b,",\"valueReal\":");jb_real(b,x->value_real);jb_raw(b,",\"valueVec4\":");write_vec4(b,x->value_vec4);jb_raw(b,",\"valueString\":");jb_string(b,x->value_str);jb_char(b,'}');}jb_char(b,']');}
+static void write_connection_property_names(json_buffer*b,const ufbx_element*e){jb_char(b,'[');int first=1;for(size_t i=0;i<e->connections_src.count;i++){const ufbx_connection*c=&e->connections_src.data[i];if(c->src_prop.length){if(!first)jb_char(b,',');first=0;jb_string(b,c->src_prop);}if(c->dst_prop.length){if(!first)jb_char(b,',');first=0;jb_string(b,c->dst_prop);}}for(size_t i=0;i<e->connections_dst.count;i++){const ufbx_connection*c=&e->connections_dst.data[i];if(c->src_prop.length){if(!first)jb_char(b,',');first=0;jb_string(b,c->src_prop);}if(c->dst_prop.length){if(!first)jb_char(b,',');first=0;jb_string(b,c->dst_prop);}}jb_char(b,']');}
+static void write_source_object(json_buffer*b,const ufbx_element*e,size_t order){ufbx_string dc=e->dom_node?e->dom_node->name:(ufbx_string){0};jb_raw(b,"{\"sourceObjectId\":");write_id_string(b,source_id(e));jb_raw(b,",\"ufbxElementId\":");jb_u64(b,e->element_id);jb_raw(b,",\"ufbxTypedId\":");jb_u64(b,e->typed_id);jb_raw(b,",\"ufbxElementType\":");jb_string_n(b,element_type_name(e->type),strlen(element_type_name(e->type)));jb_raw(b,",\"ufbxElementTypeValue\":");jb_i64(b,e->type);jb_raw(b,",\"domClass\":");jb_string(b,dc);jb_raw(b,",\"domSubtype\":");jb_string(b,dom_value_string(e,2));jb_raw(b,",\"domSourceName\":");jb_string(b,dom_value_string(e,1));jb_raw(b,",\"displayName\":");jb_string(b,e->name);jb_raw(b,",\"customProperties\":");write_custom_properties(b,&e->props);jb_raw(b,",\"sourceRecordDisposition\":");jb_string_n(b,record_disposition(e->type),strlen(record_disposition(e->type)));jb_raw(b,",\"nodeAttributeType\":");if(e->type==UFBX_ELEMENT_NODE&&((const ufbx_node*)e)->all_attribs.count)jb_string_n(b,element_type_name(((const ufbx_node*)e)->attrib_type),strlen(element_type_name(((const ufbx_node*)e)->attrib_type)));else if(e->type==UFBX_ELEMENT_NODE)jb_raw(b,"\"UNKNOWN\"");else jb_raw(b,"null");jb_raw(b,",\"nodeAttributeTypeValue\":");if(e->type==UFBX_ELEMENT_NODE&&((const ufbx_node*)e)->all_attribs.count)jb_i64(b,((const ufbx_node*)e)->attrib_type);else if(e->type==UFBX_ELEMENT_NODE)jb_raw(b,"0");else jb_raw(b,"null");jb_raw(b,",\"objectPropertyPath\":null,\"connectionPropertyNames\":");write_connection_property_names(b,e);jb_raw(b,",\"sourceDocumentOrder\":");jb_u64(b,order);jb_char(b,'}');}
+static void write_source_objects(json_buffer*b,const ufbx_scene*s){jb_raw(b,"\"sourceObjects\":[");int first=1;for(size_t i=0;i<s->elements.count;i++){const ufbx_element*e=s->elements.data[i];if(!e->dom_node)continue;if(!first)jb_char(b,',');first=0;write_source_object(b,e,i);}jb_raw(b,"],");}
+static void write_occurrences(json_buffer*b,const ufbx_scene*s,const ufbx_scene*n){jb_raw(b,"\"occurrences\":[");int first=1;for(size_t i=0;i<s->nodes.count;i++){const ufbx_node*x=s->nodes.data[i];if(x->is_root)continue;const ufbx_node*y=n->nodes.data[x->typed_id];if(!first)jb_char(b,',');first=0;jb_raw(b,"{\"sourceOccurrenceId\":\"occ:");jb_u64(b,source_id(&x->element));jb_raw(b,"\",\"sourceModelObjectId\":");write_id_string(b,source_id(&x->element));jb_raw(b,",\"parentOccurrenceId\":");if(!x->parent||x->parent->is_root)jb_raw(b,"null");else{jb_raw(b,"\"occ:");jb_u64(b,source_id(&x->parent->element));jb_char(b,'"');}jb_raw(b,",\"geometryObjectIds\":[");for(size_t j=0;j<x->all_attribs.count;j++){if(j)jb_char(b,',');write_id_string(b,source_id(x->all_attribs.data[j]));}jb_raw(b,"],\"inheritMode\":");jb_i64(b,x->inherit_mode);jb_raw(b,",\"originalInheritMode\":");jb_i64(b,x->original_inherit_mode);jb_raw(b,",\"hasGeometryTransform\":");jb_raw(b,x->has_geometry_transform?"true":"false");jb_raw(b,",\"localTransformSource\":");write_transform(b,x->local_transform);jb_raw(b,",\"geometryTransformSource\":");write_transform(b,x->geometry_transform);jb_raw(b,",\"worldMatrixSource\":");write_matrix(b,x->node_to_world);jb_raw(b,",\"geometryMatrixSource\":");write_matrix(b,x->geometry_to_world);jb_raw(b,",\"worldMatrixMm\":");write_matrix(b,y->node_to_world);jb_raw(b,",\"geometryMatrixMm\":");write_matrix(b,y->geometry_to_world);jb_char(b,'}');}jb_raw(b,"],");}
+static void write_owner_occurrences(json_buffer*b,ufbx_node_list xs){jb_char(b,'[');for(size_t i=0;i<xs.count;i++){if(i)jb_char(b,',');jb_raw(b,"\"occ:");jb_u64(b,source_id(&xs.data[i]->element));jb_char(b,'"');}jb_char(b,']');}
+static void write_mesh_geometry(json_buffer*b,const ufbx_mesh*m,const ufbx_mesh*n){jb_raw(b,"{\"geometryObjectId\":");write_id_string(b,source_id(&m->element));jb_raw(b,",\"sourceObjectId\":");write_id_string(b,source_id(&m->element));jb_raw(b,",\"kind\":\"MESH\",\"verticesSource\":[],\"verticesMm\":[");for(size_t i=0;i<n->vertices.count;i++){if(i)jb_char(b,',');write_vec3(b,n->vertices.data[i]);}jb_raw(b,"],\"ownerOccurrenceIds\":");write_owner_occurrences(b,m->instances);jb_char(b,'}');}
+static void write_nurbs_geometry(json_buffer*b,const ufbx_nurbs_curve*c,const ufbx_nurbs_curve*n){jb_raw(b,"{\"geometryObjectId\":");write_id_string(b,source_id(&c->element));jb_raw(b,",\"sourceObjectId\":");write_id_string(b,source_id(&c->element));jb_raw(b,",\"kind\":\"NURBS_CURVE\",\"controlPointsSource\":[],\"controlPointsMm\":[");for(size_t i=0;i<n->control_points.count;i++){if(i)jb_char(b,',');write_vec4(b,n->control_points.data[i]);}jb_raw(b,"],\"ownerOccurrenceIds\":");write_owner_occurrences(b,c->instances);jb_char(b,'}');}
+static void write_geometries(json_buffer*b,const ufbx_scene*s,const ufbx_scene*n){jb_raw(b,"\"geometries\":[");int first=1;for(size_t i=0;i<s->elements.count;i++){const ufbx_element*e=s->elements.data[i];if(e->type!=UFBX_ELEMENT_MESH&&e->type!=UFBX_ELEMENT_NURBS_CURVE)continue;if(!first)jb_char(b,',');first=0;if(e->type==UFBX_ELEMENT_MESH){const ufbx_mesh*m=(const ufbx_mesh*)e;write_mesh_geometry(b,m,n->meshes.data[m->typed_id]);}else{const ufbx_nurbs_curve*c=(const ufbx_nurbs_curve*)e;write_nurbs_geometry(b,c,n->nurbs_curves.data[c->typed_id]);}}jb_raw(b,"],");}
+static void write_edges(json_buffer*b,const ufbx_scene*s){jb_raw(b,"\"hierarchyEdges\":[");int first=1;for(size_t i=0;i<s->nodes.count;i++){const ufbx_node*n=s->nodes.data[i];if(n->is_root||!n->parent||n->parent->is_root)continue;if(!first)jb_char(b,',');first=0;jb_raw(b,"{\"parentOccurrenceId\":\"occ:");jb_u64(b,source_id(&n->parent->element));jb_raw(b,"\",\"childOccurrenceId\":\"occ:");jb_u64(b,source_id(&n->element));jb_raw(b,"\"}");}jb_raw(b,"],\"connectionEdges\":[");for(size_t i=0;i<s->connections_src.count;i++){const ufbx_connection*c=&s->connections_src.data[i];if(i)jb_char(b,',');jb_raw(b,"{\"sourceObjectId\":");write_id_string(b,source_id(c->src));jb_raw(b,",\"destinationObjectId\":");write_id_string(b,source_id(c->dst));jb_raw(b,",\"sourceProperty\":");jb_string(b,c->src_prop);jb_raw(b,",\"destinationProperty\":");jb_string(b,c->dst_prop);jb_char(b,'}');}jb_raw(b,"],");}
+static void write_unsupported_record(json_buffer*b,const ufbx_element*e){ufbx_string dc=e->dom_node?e->dom_node->name:(ufbx_string){0};jb_raw(b,"{\"sourceObjectId\":");write_id_string(b,source_id(e));jb_raw(b,",\"ufbxElementType\":");jb_string_n(b,element_type_name(e->type),strlen(element_type_name(e->type)));jb_raw(b,",\"ufbxElementTypeValue\":");jb_i64(b,e->type);jb_raw(b,",\"domClass\":");jb_string(b,dc);jb_raw(b,",\"domSubtype\":");jb_string(b,dom_value_string(e,2));jb_raw(b,",\"domSourceName\":");jb_string(b,dom_value_string(e,1));jb_raw(b,",\"sourceRecordDisposition\":");jb_string_n(b,record_disposition(e->type),strlen(record_disposition(e->type)));jb_char(b,'}');}
+static void write_diagnostics(json_buffer*b,const ufbx_scene*s){jb_raw(b,"\"warnings\":[");for(size_t i=0;i<s->metadata.warnings.count;i++){const ufbx_warning*w=&s->metadata.warnings.data[i];if(i)jb_char(b,',');jb_raw(b,"{\"type\":");jb_i64(b,w->type);jb_raw(b,",\"description\":");jb_string(b,w->description);jb_raw(b,",\"elementId\":");jb_u64(b,w->element_id);jb_raw(b,",\"count\":");jb_u64(b,w->count);jb_char(b,'}');}jb_raw(b,"],\"unsupportedRecords\":[");int first=1;for(size_t i=0;i<s->elements.count;i++){const ufbx_element*e=s->elements.data[i];if(!e->dom_node||e->type==UFBX_ELEMENT_NODE||e->type==UFBX_ELEMENT_MESH||e->type==UFBX_ELEMENT_NURBS_CURVE)continue;if(!first)jb_char(b,',');first=0;write_unsupported_record(b,e);}jb_raw(b,"],\"unresolvedReferences\":[");first=1;for(size_t i=0;i<s->elements.count;i++){const ufbx_element*e=s->elements.data[i];if(!e->dom_node||e->type!=UFBX_ELEMENT_UNKNOWN)continue;if(!first)jb_char(b,',');first=0;jb_raw(b,"{\"sourceObjectId\":");write_id_string(b,source_id(e));jb_raw(b,",\"reason\":\"unknown-element-type\"}");}jb_char(b,']');}
+static void write_graph(json_buffer*b,const ufbx_scene*s,const ufbx_scene*n){jb_raw(b,"{\"schema\":\"FbxSourceGraph.v2\",\"file\":{\"version\":");jb_u64(b,s->metadata.version);jb_raw(b,",\"ascii\":");jb_raw(b,s->metadata.ascii?"true":"false");jb_raw(b,",\"creator\":");jb_string(b,s->metadata.creator);jb_raw(b,"},\"documentMetadata\":{\"originalApplication\":");jb_string(b,s->metadata.original_application.name);jb_raw(b,",\"latestApplication\":");jb_string(b,s->metadata.latest_application.name);jb_raw(b,"},\"globalSettings\":{\"unitMeters\":");jb_real(b,s->settings.unit_meters);jb_raw(b,",\"axes\":{\"right\":");jb_i64(b,s->settings.axes.right);jb_raw(b,",\"up\":");jb_i64(b,s->settings.axes.up);jb_raw(b,",\"front\":");jb_i64(b,s->settings.axes.front);jb_raw(b,"}},");write_source_objects(b,s);write_occurrences(b,s,n);write_geometries(b,s,n);write_edges(b,s);write_diagnostics(b,s);jb_char(b,'}');}
 
-static const char *record_disposition(ufbx_element_type type) {
-    if (type == UFBX_ELEMENT_NODE) return "supported-occurrence";
-    if (type == UFBX_ELEMENT_MESH || type == UFBX_ELEMENT_NURBS_CURVE) return "supported-geometry";
-    if (type == UFBX_ELEMENT_UNKNOWN || type < 0 || type >= UFBX_ELEMENT_TYPE_COUNT) return "unresolved-unknown";
-    return "retained-evidence";
-}
+static void set_error_text(const char *text){snprintf(g_error,sizeof(g_error),"%s",text);g_error_length=strlen(g_error);}
+static void set_error(const char*prefix,const ufbx_error*e){const char*d=e&&e->description.data?e->description.data:"unknown parser error";snprintf(g_error,sizeof(g_error),"%s: %.*s",prefix,e?(int)e->description.length:20,d);g_error_length=strlen(g_error);}
+static void clear_geometry(void){free(g_geometry_result);g_geometry_result=NULL;g_geometry_result_length=0;for(size_t i=0;i<g_geometry_buffer_count;i++)free(g_geometry_buffers[i].data);free(g_geometry_buffers);g_geometry_buffers=NULL;g_geometry_buffer_count=0;}
+static int load_scenes(const void*data,size_t size,ufbx_scene**source,ufbx_scene**normalized){ufbx_load_opts a={0};a.retain_dom=true;a.load_external_files=false;a.ignore_embedded=true;ufbx_error e1;*source=ufbx_load_memory(data,size,&a,&e1);if(!*source){set_error("ufbx source parse failed",&e1);return 0;}ufbx_load_opts b=a;b.target_axes=ufbx_axes_right_handed_y_up;b.target_unit_meters=0.001;b.space_conversion=UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY;ufbx_error e2;*normalized=ufbx_load_memory(data,size,&b,&e2);if(!*normalized){set_error("ufbx normalization failed",&e2);ufbx_free_scene(*source);*source=NULL;return 0;}return 1;}
 
-static void write_id_string(json_buffer *buffer, uint64_t value) {
-    jb_char(buffer, '"'); jb_u64(buffer, value); jb_char(buffer, '"');
-}
+int fbx_parse(const void*data,size_t size){free(g_result);g_result=NULL;g_result_length=0;g_error_length=0;ufbx_scene*s=NULL,*n=NULL;if(!load_scenes(data,size,&s,&n))return 0;json_buffer b={0};write_graph(&b,s,n);ufbx_free_scene(n);ufbx_free_scene(s);if(b.failed){free(b.data);set_error_text("FBX source graph allocation failed.");return 0;}g_result=b.data;g_result_length=b.length;return 1;}
 
-static void write_vec3(json_buffer *buffer, ufbx_vec3 value) {
-    jb_char(buffer, '['); jb_real(buffer, value.x); jb_char(buffer, ',');
-    jb_real(buffer, value.y); jb_char(buffer, ','); jb_real(buffer, value.z); jb_char(buffer, ']');
-}
+static int allocate_buffer(size_t index,size_t length){void*p=length?malloc(length):NULL;if(length&&!p){set_error_text("FBX geometry buffer allocation failed.");return 0;}g_geometry_buffers[index].data=p;g_geometry_buffers[index].length=length;return 1;}
+static int geometry_fail(const char*message){set_error_text(message);clear_geometry();return 0;}
 
-static void write_vec4(json_buffer *buffer, ufbx_vec4 value) {
-    jb_char(buffer, '['); jb_real(buffer, value.x); jb_char(buffer, ',');
-    jb_real(buffer, value.y); jb_char(buffer, ','); jb_real(buffer, value.z);
-    jb_char(buffer, ','); jb_real(buffer, value.w); jb_char(buffer, ']');
-}
-
-static void write_matrix(json_buffer *buffer, ufbx_matrix matrix) {
-    jb_char(buffer, '[');
-    for (size_t i = 0; i < 12; i++) {
-        if (i) jb_char(buffer, ',');
-        jb_real(buffer, matrix.v[i]);
+int fbx_geometry_parse(const void*data,size_t size){
+    clear_geometry();g_error_length=0;ufbx_scene*s=NULL,*n=NULL;if(!load_scenes(data,size,&s,&n))return 0;
+    size_t mesh_count=0;for(size_t i=0;i<s->elements.count;i++)if(s->elements.data[i]->type==UFBX_ELEMENT_MESH)mesh_count++;
+    if(mesh_count>65536){ufbx_free_scene(n);ufbx_free_scene(s);return geometry_fail("FBX geometry limit exceeded.");}
+    size_t buffer_count;if(!checked_mul(mesh_count,3,&buffer_count)){ufbx_free_scene(n);ufbx_free_scene(s);return geometry_fail("FBX geometry integer overflow.");}
+    g_geometry_buffers=(binary_buffer*)calloc(buffer_count?buffer_count:1,sizeof(binary_buffer));if(buffer_count&&!g_geometry_buffers){ufbx_free_scene(n);ufbx_free_scene(s);return geometry_fail("FBX geometry buffer allocation failed.");}g_geometry_buffer_count=buffer_count;
+    json_buffer out={0};jb_raw(&out,"{\"schema\":\"FbxRawMeshTopology.v1\",\"sourceGraph\":");write_graph(&out,s,n);jb_raw(&out,",\"geometries\":[");
+    size_t mesh_index=0,total_bytes=0;int first=1;
+    for(size_t i=0;i<s->elements.count;i++){
+        const ufbx_element*e=s->elements.data[i];if(e->type!=UFBX_ELEMENT_MESH)continue;const ufbx_mesh*src=(const ufbx_mesh*)e;const ufbx_mesh*m=n->meshes.data[src->typed_id];
+        if(m->subdivision_evaluated||m->from_tessellated_nurbs||m->vertices.count!=m->num_vertices||m->faces.count!=m->num_faces||m->vertex_indices.count!=m->num_indices){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX topology is invalid.");}
+        if(m->num_vertices>8388608||m->num_faces>16777215||m->num_indices>67108864||m->num_vertices>UINT32_MAX||m->num_faces>=UINT32_MAX||m->num_indices>UINT32_MAX){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX geometry limit exceeded.");}
+        size_t cp_values,cp_bytes,off_count,off_bytes,index_bytes;if(!checked_mul(m->num_vertices,3,&cp_values)||!checked_mul(cp_values,sizeof(double),&cp_bytes)||!checked_add(m->num_faces,1,&off_count)||!checked_mul(off_count,sizeof(uint32_t),&off_bytes)||!checked_mul(m->num_indices,sizeof(uint32_t),&index_bytes)){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX geometry integer overflow.");}
+        if(cp_bytes>268435456||off_bytes>268435456||index_bytes>268435456||!checked_add(total_bytes,cp_bytes,&total_bytes)||!checked_add(total_bytes,off_bytes,&total_bytes)||!checked_add(total_bytes,index_bytes,&total_bytes)||total_bytes>536870912){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX geometry limit exceeded.");}
+        size_t base=mesh_index*3;if(!allocate_buffer(base,cp_bytes)||!allocate_buffer(base+1,off_bytes)||!allocate_buffer(base+2,index_bytes)){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX geometry buffer allocation failed.");}
+        double*cp=(double*)g_geometry_buffers[base].data;for(size_t v=0;v<m->num_vertices;v++){double x=m->vertices.data[v].x,y=m->vertices.data[v].y,z=m->vertices.data[v].z;if(!isfinite(x)||!isfinite(y)||!isfinite(z)){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX topology contains non-finite control points.");}cp[v*3+0]=x==0.0?0.0:x;cp[v*3+1]=y==0.0?0.0:y;cp[v*3+2]=z==0.0?0.0:z;}
+        uint32_t*offsets=(uint32_t*)g_geometry_buffers[base+1].data;uint32_t*indices=(uint32_t*)g_geometry_buffers[base+2].data;size_t cursor=0,empty=0,point=0,line=0;offsets[0]=0;
+        for(size_t f=0;f<m->faces.count;f++){ufbx_face face=m->faces.data[f];size_t end;if(face.index_begin!=cursor||!checked_add(face.index_begin,face.num_indices,&end)||end>m->num_indices){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX topology face ranges are invalid.");}cursor=end;offsets[f+1]=(uint32_t)cursor;if(face.num_indices==0)empty++;else if(face.num_indices==1)point++;else if(face.num_indices==2)line++;}
+        if(cursor!=m->num_indices||empty!=m->num_empty_faces||point!=m->num_point_faces||line!=m->num_line_faces){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX topology counts are invalid.");}
+        for(size_t k=0;k<m->num_indices;k++){uint32_t index=m->vertex_indices.data[k];if(index>=m->num_vertices){ufbx_free_scene(n);ufbx_free_scene(s);free(out.data);return geometry_fail("FBX topology index is out of range.");}indices[k]=index;}
+        if(!first)jb_char(&out,',');first=0;jb_raw(&out,"{\"geometryObjectId\":");write_id_string(&out,source_id(&src->element));jb_raw(&out,",\"sourceObjectId\":");write_id_string(&out,source_id(&src->element));jb_raw(&out,",\"controlPointCount\":");jb_u64(&out,m->num_vertices);jb_raw(&out,",\"polygonCount\":");jb_u64(&out,m->num_faces);jb_raw(&out,",\"polygonVertexCount\":");jb_u64(&out,m->num_indices);jb_raw(&out,",\"emptyPolygonCount\":");jb_u64(&out,empty);jb_raw(&out,",\"pointPolygonCount\":");jb_u64(&out,point);jb_raw(&out,",\"linePolygonCount\":");jb_u64(&out,line);jb_raw(&out,",\"reversedWinding\":");jb_raw(&out,m->reversed_winding?"true":"false");jb_raw(&out,",\"bufferIndices\":{\"controlPointsMm\":");jb_u64(&out,base);jb_raw(&out,",\"polygonOffsets\":");jb_u64(&out,base+1);jb_raw(&out,",\"polygonVertexIndices\":");jb_u64(&out,base+2);jb_raw(&out,"}}");mesh_index++;
     }
-    jb_char(buffer, ']');
+    jb_raw(&out,"]}");ufbx_free_scene(n);ufbx_free_scene(s);if(out.failed){free(out.data);return geometry_fail("FBX geometry result allocation failed.");}g_geometry_result=out.data;g_geometry_result_length=out.length;return 1;
 }
 
-static void write_transform(json_buffer *buffer, ufbx_transform transform) {
-    jb_raw(buffer, "{\"translation\":"); write_vec3(buffer, transform.translation);
-    jb_raw(buffer, ",\"rotation\":"); write_vec4(buffer, (ufbx_vec4){
-        transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w });
-    jb_raw(buffer, ",\"scale\":"); write_vec3(buffer, transform.scale); jb_char(buffer, '}');
-}
-
-static void write_custom_properties(json_buffer *buffer, const ufbx_props *props) {
-    jb_char(buffer, '[');
-    int first = 1;
-    for (size_t i = 0; i < props->props.count; i++) {
-        const ufbx_prop *prop = &props->props.data[i];
-        if (!(prop->flags & UFBX_PROP_FLAG_USER_DEFINED)) continue;
-        if (!first) jb_char(buffer, ','); first = 0;
-        jb_raw(buffer, "{\"name\":"); jb_string(buffer, prop->name);
-        jb_raw(buffer, ",\"type\":"); jb_i64(buffer, prop->type);
-        jb_raw(buffer, ",\"flags\":"); jb_i64(buffer, prop->flags);
-        jb_raw(buffer, ",\"valueInt\":"); jb_i64(buffer, prop->value_int);
-        jb_raw(buffer, ",\"valueReal\":"); jb_real(buffer, prop->value_real);
-        jb_raw(buffer, ",\"valueVec4\":"); write_vec4(buffer, prop->value_vec4);
-        jb_raw(buffer, ",\"valueString\":"); jb_string(buffer, prop->value_str); jb_char(buffer, '}');
-    }
-    jb_char(buffer, ']');
-}
-
-static void write_connection_property_names(json_buffer *buffer, const ufbx_element *element) {
-    jb_char(buffer, '[');
-    int first = 1;
-    for (size_t i = 0; i < element->connections_src.count; i++) {
-        const ufbx_connection *connection = &element->connections_src.data[i];
-        if (connection->src_prop.length) {
-            if (!first) jb_char(buffer, ','); first = 0; jb_string(buffer, connection->src_prop);
-        }
-        if (connection->dst_prop.length) {
-            if (!first) jb_char(buffer, ','); first = 0; jb_string(buffer, connection->dst_prop);
-        }
-    }
-    for (size_t i = 0; i < element->connections_dst.count; i++) {
-        const ufbx_connection *connection = &element->connections_dst.data[i];
-        if (connection->src_prop.length) {
-            if (!first) jb_char(buffer, ','); first = 0; jb_string(buffer, connection->src_prop);
-        }
-        if (connection->dst_prop.length) {
-            if (!first) jb_char(buffer, ','); first = 0; jb_string(buffer, connection->dst_prop);
-        }
-    }
-    jb_char(buffer, ']');
-}
-
-static void write_source_object(json_buffer *buffer, const ufbx_element *element, size_t order) {
-    ufbx_string dom_class = element->dom_node ? element->dom_node->name : (ufbx_string){ 0 };
-    ufbx_string dom_source_name = dom_value_string(element, 1);
-    ufbx_string dom_subtype = dom_value_string(element, 2);
-    jb_raw(buffer, "{\"sourceObjectId\":"); write_id_string(buffer, source_id(element));
-    jb_raw(buffer, ",\"ufbxElementId\":"); jb_u64(buffer, element->element_id);
-    jb_raw(buffer, ",\"ufbxTypedId\":"); jb_u64(buffer, element->typed_id);
-    jb_raw(buffer, ",\"ufbxElementType\":"); jb_string_n(buffer, element_type_name(element->type), strlen(element_type_name(element->type)));
-    jb_raw(buffer, ",\"ufbxElementTypeValue\":"); jb_i64(buffer, element->type);
-    jb_raw(buffer, ",\"domClass\":"); jb_string(buffer, dom_class);
-    jb_raw(buffer, ",\"domSubtype\":"); jb_string(buffer, dom_subtype);
-    jb_raw(buffer, ",\"domSourceName\":"); jb_string(buffer, dom_source_name);
-    jb_raw(buffer, ",\"displayName\":"); jb_string(buffer, element->name);
-    jb_raw(buffer, ",\"customProperties\":"); write_custom_properties(buffer, &element->props);
-    jb_raw(buffer, ",\"sourceRecordDisposition\":");
-    jb_string_n(buffer, record_disposition(element->type), strlen(record_disposition(element->type)));
-    jb_raw(buffer, ",\"nodeAttributeType\":");
-    if (element->type == UFBX_ELEMENT_NODE && ((const ufbx_node*)element)->all_attribs.count) {
-        const ufbx_node *node = (const ufbx_node*)element;
-        jb_string_n(buffer, element_type_name(node->attrib_type), strlen(element_type_name(node->attrib_type)));
-    } else if (element->type == UFBX_ELEMENT_NODE) {
-        jb_raw(buffer, "\"UNKNOWN\"");
-    } else {
-        jb_raw(buffer, "null");
-    }
-    jb_raw(buffer, ",\"nodeAttributeTypeValue\":");
-    if (element->type == UFBX_ELEMENT_NODE && ((const ufbx_node*)element)->all_attribs.count) {
-        jb_i64(buffer, ((const ufbx_node*)element)->attrib_type);
-    } else if (element->type == UFBX_ELEMENT_NODE) {
-        jb_raw(buffer, "0");
-    } else {
-        jb_raw(buffer, "null");
-    }
-    jb_raw(buffer, ",\"objectPropertyPath\":null,\"connectionPropertyNames\":");
-    write_connection_property_names(buffer, element);
-    jb_raw(buffer, ",\"sourceDocumentOrder\":"); jb_u64(buffer, order); jb_char(buffer, '}');
-}
-
-static void write_source_objects(json_buffer *buffer, const ufbx_scene *scene) {
-    jb_raw(buffer, "\"sourceObjects\":[");
-    int first = 1;
-    for (size_t i = 0; i < scene->elements.count; i++) {
-        const ufbx_element *element = scene->elements.data[i];
-        if (!element->dom_node) continue;
-        if (!first) jb_char(buffer, ','); first = 0;
-        write_source_object(buffer, element, i);
-    }
-    jb_raw(buffer, "],");
-}
-
-static void write_occurrences(json_buffer *buffer, const ufbx_scene *source, const ufbx_scene *normalized) {
-    jb_raw(buffer, "\"occurrences\":[");
-    int first = 1;
-    for (size_t i = 0; i < source->nodes.count; i++) {
-        const ufbx_node *node = source->nodes.data[i];
-        if (node->is_root) continue;
-        const ufbx_node *norm = normalized->nodes.data[node->typed_id];
-        if (!first) jb_char(buffer, ','); first = 0;
-        jb_raw(buffer, "{\"sourceOccurrenceId\":\"occ:"); jb_u64(buffer, source_id(&node->element));
-        jb_raw(buffer, "\",\"sourceModelObjectId\":"); write_id_string(buffer, source_id(&node->element));
-        jb_raw(buffer, ",\"parentOccurrenceId\":");
-        if (!node->parent || node->parent->is_root) jb_raw(buffer, "null");
-        else { jb_raw(buffer, "\"occ:"); jb_u64(buffer, source_id(&node->parent->element)); jb_char(buffer, '"'); }
-        jb_raw(buffer, ",\"geometryObjectIds\":[");
-        for (size_t j = 0; j < node->all_attribs.count; j++) {
-            if (j) jb_char(buffer, ','); write_id_string(buffer, source_id(node->all_attribs.data[j]));
-        }
-        jb_raw(buffer, "],\"inheritMode\":"); jb_i64(buffer, node->inherit_mode);
-        jb_raw(buffer, ",\"originalInheritMode\":"); jb_i64(buffer, node->original_inherit_mode);
-        jb_raw(buffer, ",\"hasGeometryTransform\":"); jb_raw(buffer, node->has_geometry_transform ? "true" : "false");
-        jb_raw(buffer, ",\"localTransformSource\":"); write_transform(buffer, node->local_transform);
-        jb_raw(buffer, ",\"geometryTransformSource\":"); write_transform(buffer, node->geometry_transform);
-        jb_raw(buffer, ",\"worldMatrixSource\":"); write_matrix(buffer, node->node_to_world);
-        jb_raw(buffer, ",\"geometryMatrixSource\":"); write_matrix(buffer, node->geometry_to_world);
-        jb_raw(buffer, ",\"worldMatrixMm\":"); write_matrix(buffer, norm->node_to_world);
-        jb_raw(buffer, ",\"geometryMatrixMm\":"); write_matrix(buffer, norm->geometry_to_world);
-        jb_char(buffer, '}');
-    }
-    jb_raw(buffer, "],");
-}
-
-static void write_owner_occurrences(json_buffer *buffer, ufbx_node_list instances) {
-    jb_char(buffer, '[');
-    for (size_t i = 0; i < instances.count; i++) {
-        if (i) jb_char(buffer, ',');
-        jb_raw(buffer, "\"occ:"); jb_u64(buffer, source_id(&instances.data[i]->element)); jb_char(buffer, '"');
-    }
-    jb_char(buffer, ']');
-}
-
-static void write_mesh_geometry(json_buffer *buffer, const ufbx_mesh *mesh, const ufbx_mesh *norm) {
-    jb_raw(buffer, "{\"geometryObjectId\":"); write_id_string(buffer, source_id(&mesh->element));
-    jb_raw(buffer, ",\"sourceObjectId\":"); write_id_string(buffer, source_id(&mesh->element));
-    jb_raw(buffer, ",\"kind\":\"MESH\",\"verticesSource\":[");
-    jb_raw(buffer, "],\"verticesMm\":[");
-    for (size_t i = 0; i < norm->vertices.count; i++) { if (i) jb_char(buffer, ','); write_vec3(buffer, norm->vertices.data[i]); }
-    jb_raw(buffer, "],\"ownerOccurrenceIds\":"); write_owner_occurrences(buffer, mesh->instances); jb_char(buffer, '}');
-}
-
-static void write_nurbs_geometry(json_buffer *buffer, const ufbx_nurbs_curve *curve, const ufbx_nurbs_curve *norm) {
-    jb_raw(buffer, "{\"geometryObjectId\":"); write_id_string(buffer, source_id(&curve->element));
-    jb_raw(buffer, ",\"sourceObjectId\":"); write_id_string(buffer, source_id(&curve->element));
-    jb_raw(buffer, ",\"kind\":\"NURBS_CURVE\",\"controlPointsSource\":[");
-    jb_raw(buffer, "],\"controlPointsMm\":[");
-    for (size_t i = 0; i < norm->control_points.count; i++) { if (i) jb_char(buffer, ','); write_vec4(buffer, norm->control_points.data[i]); }
-    jb_raw(buffer, "],\"ownerOccurrenceIds\":"); write_owner_occurrences(buffer, curve->instances); jb_char(buffer, '}');
-}
-
-static void write_geometries(json_buffer *buffer, const ufbx_scene *source, const ufbx_scene *normalized) {
-    jb_raw(buffer, "\"geometries\":[");
-    int first = 1;
-    for (size_t i = 0; i < source->elements.count; i++) {
-        const ufbx_element *element = source->elements.data[i];
-        if (element->type != UFBX_ELEMENT_MESH && element->type != UFBX_ELEMENT_NURBS_CURVE) continue;
-        if (!first) jb_char(buffer, ','); first = 0;
-        if (element->type == UFBX_ELEMENT_MESH) {
-            const ufbx_mesh *mesh = (const ufbx_mesh*)element;
-            write_mesh_geometry(buffer, mesh, normalized->meshes.data[mesh->typed_id]);
-        } else {
-            const ufbx_nurbs_curve *curve = (const ufbx_nurbs_curve*)element;
-            write_nurbs_geometry(buffer, curve, normalized->nurbs_curves.data[curve->typed_id]);
-        }
-    }
-    jb_raw(buffer, "],");
-}
-
-static void write_edges(json_buffer *buffer, const ufbx_scene *scene) {
-    jb_raw(buffer, "\"hierarchyEdges\":[");
-    int first = 1;
-    for (size_t i = 0; i < scene->nodes.count; i++) {
-        const ufbx_node *node = scene->nodes.data[i];
-        if (node->is_root || !node->parent || node->parent->is_root) continue;
-        if (!first) jb_char(buffer, ','); first = 0;
-        jb_raw(buffer, "{\"parentOccurrenceId\":\"occ:"); jb_u64(buffer, source_id(&node->parent->element));
-        jb_raw(buffer, "\",\"childOccurrenceId\":\"occ:"); jb_u64(buffer, source_id(&node->element)); jb_raw(buffer, "\"}");
-    }
-    jb_raw(buffer, "],\"connectionEdges\":[");
-    for (size_t i = 0; i < scene->connections_src.count; i++) {
-        const ufbx_connection *connection = &scene->connections_src.data[i];
-        if (i) jb_char(buffer, ',');
-        jb_raw(buffer, "{\"sourceObjectId\":"); write_id_string(buffer, source_id(connection->src));
-        jb_raw(buffer, ",\"destinationObjectId\":"); write_id_string(buffer, source_id(connection->dst));
-        jb_raw(buffer, ",\"sourceProperty\":"); jb_string(buffer, connection->src_prop);
-        jb_raw(buffer, ",\"destinationProperty\":"); jb_string(buffer, connection->dst_prop); jb_char(buffer, '}');
-    }
-    jb_raw(buffer, "],");
-}
-
-static void write_unsupported_record(json_buffer *buffer, const ufbx_element *element) {
-    ufbx_string dom_class = element->dom_node ? element->dom_node->name : (ufbx_string){ 0 };
-    jb_raw(buffer, "{\"sourceObjectId\":"); write_id_string(buffer, source_id(element));
-    jb_raw(buffer, ",\"ufbxElementType\":"); jb_string_n(buffer, element_type_name(element->type), strlen(element_type_name(element->type)));
-    jb_raw(buffer, ",\"ufbxElementTypeValue\":"); jb_i64(buffer, element->type);
-    jb_raw(buffer, ",\"domClass\":"); jb_string(buffer, dom_class);
-    jb_raw(buffer, ",\"domSubtype\":"); jb_string(buffer, dom_value_string(element, 2));
-    jb_raw(buffer, ",\"domSourceName\":"); jb_string(buffer, dom_value_string(element, 1));
-    jb_raw(buffer, ",\"sourceRecordDisposition\":");
-    jb_string_n(buffer, record_disposition(element->type), strlen(record_disposition(element->type)));
-    jb_char(buffer, '}');
-}
-
-static void write_diagnostics(json_buffer *buffer, const ufbx_scene *scene) {
-    jb_raw(buffer, "\"warnings\":[");
-    for (size_t i = 0; i < scene->metadata.warnings.count; i++) {
-        const ufbx_warning *warning = &scene->metadata.warnings.data[i];
-        if (i) jb_char(buffer, ',');
-        jb_raw(buffer, "{\"type\":"); jb_i64(buffer, warning->type);
-        jb_raw(buffer, ",\"description\":"); jb_string(buffer, warning->description);
-        jb_raw(buffer, ",\"elementId\":"); jb_u64(buffer, warning->element_id);
-        jb_raw(buffer, ",\"count\":"); jb_u64(buffer, warning->count); jb_char(buffer, '}');
-    }
-    jb_raw(buffer, "],\"unsupportedRecords\":[");
-    int first = 1;
-    for (size_t i = 0; i < scene->elements.count; i++) {
-        const ufbx_element *element = scene->elements.data[i];
-        if (!element->dom_node) continue;
-        if (element->type == UFBX_ELEMENT_NODE || element->type == UFBX_ELEMENT_MESH || element->type == UFBX_ELEMENT_NURBS_CURVE) continue;
-        if (!first) jb_char(buffer, ','); first = 0;
-        write_unsupported_record(buffer, element);
-    }
-    jb_raw(buffer, "],\"unresolvedReferences\":[");
-    first = 1;
-    for (size_t i = 0; i < scene->elements.count; i++) {
-        const ufbx_element *element = scene->elements.data[i];
-        if (!element->dom_node || element->type != UFBX_ELEMENT_UNKNOWN) continue;
-        if (!first) jb_char(buffer, ','); first = 0;
-        jb_raw(buffer, "{\"sourceObjectId\":"); write_id_string(buffer, source_id(element));
-        jb_raw(buffer, ",\"reason\":\"unknown-element-type\"}");
-    }
-    jb_char(buffer, ']');
-}
-
-static void write_graph(json_buffer *buffer, const ufbx_scene *source, const ufbx_scene *normalized) {
-    jb_raw(buffer, "{\"schema\":\"FbxSourceGraph.v2\",\"file\":{\"version\":");
-    jb_u64(buffer, source->metadata.version);
-    jb_raw(buffer, ",\"ascii\":"); jb_raw(buffer, source->metadata.ascii ? "true" : "false");
-    jb_raw(buffer, ",\"creator\":"); jb_string(buffer, source->metadata.creator); jb_raw(buffer, "},");
-    jb_raw(buffer, "\"documentMetadata\":{\"originalApplication\":"); jb_string(buffer, source->metadata.original_application.name);
-    jb_raw(buffer, ",\"latestApplication\":"); jb_string(buffer, source->metadata.latest_application.name); jb_raw(buffer, "},");
-    jb_raw(buffer, "\"globalSettings\":{\"unitMeters\":"); jb_real(buffer, source->settings.unit_meters);
-    jb_raw(buffer, ",\"axes\":{\"right\":"); jb_i64(buffer, source->settings.axes.right);
-    jb_raw(buffer, ",\"up\":"); jb_i64(buffer, source->settings.axes.up);
-    jb_raw(buffer, ",\"front\":"); jb_i64(buffer, source->settings.axes.front); jb_raw(buffer, "}},");
-    write_source_objects(buffer, source);
-    write_occurrences(buffer, source, normalized);
-    write_geometries(buffer, source, normalized);
-    write_edges(buffer, source);
-    write_diagnostics(buffer, source);
-    jb_char(buffer, '}');
-}
-
-static void set_error(const char *prefix, const ufbx_error *error) {
-    const char *description = error && error->description.data ? error->description.data : "unknown parser error";
-    snprintf(g_error, sizeof(g_error), "%s: %.*s", prefix, error ? (int)error->description.length : 20, description);
-    g_error_length = strlen(g_error);
-}
-
-int fbx_parse(const void *data, size_t size) {
-    free(g_result); g_result = NULL; g_result_length = 0; g_error_length = 0;
-    ufbx_load_opts source_opts = { 0 };
-    source_opts.retain_dom = true;
-    source_opts.load_external_files = false;
-    source_opts.ignore_embedded = true;
-    ufbx_error source_error;
-    ufbx_scene *source = ufbx_load_memory(data, size, &source_opts, &source_error);
-    if (!source) { set_error("ufbx source parse failed", &source_error); return 0; }
-
-    ufbx_load_opts normalized_opts = source_opts;
-    normalized_opts.target_axes = ufbx_axes_right_handed_y_up;
-    normalized_opts.target_unit_meters = 0.001;
-    normalized_opts.space_conversion = UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY;
-    ufbx_error normalized_error;
-    ufbx_scene *normalized = ufbx_load_memory(data, size, &normalized_opts, &normalized_error);
-    if (!normalized) {
-        set_error("ufbx normalization failed", &normalized_error);
-        ufbx_free_scene(source);
-        return 0;
-    }
-
-    json_buffer buffer = { 0 };
-    write_graph(&buffer, source, normalized);
-    ufbx_free_scene(normalized);
-    ufbx_free_scene(source);
-    if (buffer.failed) { free(buffer.data); snprintf(g_error, sizeof(g_error), "FBX source graph allocation failed."); g_error_length = strlen(g_error); return 0; }
-    g_result = buffer.data;
-    g_result_length = buffer.length;
-    return 1;
-}
-
-const char *fbx_result_ptr(void) { return g_result; }
-size_t fbx_result_len(void) { return g_result_length; }
-const char *fbx_error_ptr(void) { return g_error; }
-size_t fbx_error_len(void) { return g_error_length; }
+const char *fbx_result_ptr(void){return g_result;} size_t fbx_result_len(void){return g_result_length;}
+const char *fbx_geometry_result_ptr(void){return g_geometry_result;} size_t fbx_geometry_result_len(void){return g_geometry_result_length;}
+size_t fbx_geometry_buffer_count(void){return g_geometry_buffer_count;}
+const void *fbx_geometry_buffer_ptr(size_t index){return index<g_geometry_buffer_count?g_geometry_buffers[index].data:NULL;}
+size_t fbx_geometry_buffer_len(size_t index){return index<g_geometry_buffer_count?g_geometry_buffers[index].length:0;}
+const char *fbx_error_ptr(void){return g_error;} size_t fbx_error_len(void){return g_error_length;}
