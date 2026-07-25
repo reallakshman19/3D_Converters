@@ -11,6 +11,8 @@ export const FBX_GEOMETRY_BUFFER_ROLES = deepFreeze([
 ]);
 
 const HASH = /^[0-9a-f]{64}$/;
+const DECIMAL_ID = /^(0|[1-9]\d{0,19})$/;
+const MAX_OBJECT_ID = 18446744073709551615n;
 const REVISION = /^[0-9a-f]{40}$/;
 const MANIFEST_KEYS = [
   'schema', 'sourceGraphSchema', 'sourceGraphSha256', 'sourceIdentity',
@@ -36,6 +38,7 @@ const ROLE_SPECS = deepFreeze({
   'polygon-vertex-indices': { scalarType: 'Uint32', componentCount: 1, alignment: 4 },
 });
 
+function validId(value) { return typeof value === 'string' && DECIMAL_ID.test(value) && BigInt(value) <= MAX_OBJECT_ID; }
 function fail(code, message) { throw new FbxGeometryContractError(code, message); }
 function exactKeys(value, keys, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail(FBX_GEOMETRY_ERROR_CODES.BUNDLE_INVALID, `${label} must be an object.`);
@@ -118,7 +121,7 @@ export async function buildFbxGeometryBundle({ rawTopology, buffers, sourceIdent
 }
 function validateGeometry(value, index, previous) {
   exactKeys(value, GEOMETRY_KEYS, `geometries[${index}]`); exactKeys(value.bufferIds, BUFFER_ID_KEYS, `geometries[${index}].bufferIds`);
-  for (const key of ['geometryObjectId', 'sourceObjectId']) if (!/^(0|[1-9]\d*)$/.test(value[key])) fail(FBX_GEOMETRY_ERROR_CODES.BUNDLE_INVALID, `${key} is invalid.`);
+  for (const key of ['geometryObjectId', 'sourceObjectId']) if (!validId(value[key])) fail(FBX_GEOMETRY_ERROR_CODES.BUNDLE_INVALID, `${key} is invalid.`);
   for (const key of ['controlPointCount', 'polygonCount', 'polygonVertexCount', 'emptyPolygonCount', 'pointPolygonCount', 'linePolygonCount']) if (!Number.isSafeInteger(value[key]) || value[key] < 0) fail(FBX_GEOMETRY_ERROR_CODES.BUNDLE_INVALID, `${key} is invalid.`);
   if (value.controlPointCount > FBX_GEOMETRY_LIMITS.controlPointsPerGeometry || value.polygonCount > FBX_GEOMETRY_LIMITS.polygonsPerGeometry || value.polygonVertexCount > FBX_GEOMETRY_LIMITS.polygonVerticesPerGeometry) fail(FBX_GEOMETRY_ERROR_CODES.LIMIT_EXCEEDED, 'Geometry counts exceed the programme limit.');
   if (typeof value.reversedWinding !== 'boolean' || value.emptyPolygonCount > value.polygonCount || value.pointPolygonCount > value.polygonCount || value.linePolygonCount > value.polygonCount) fail(FBX_GEOMETRY_ERROR_CODES.BUNDLE_INVALID, 'Geometry counts or winding are invalid.');
