@@ -1,5 +1,6 @@
 const tests = [
   'test-parser.mjs',
+  'test-fbx-source-graph-preview.mjs',
   'test-source-graph-v2.mjs',
   'test-v1-compatibility.mjs',
   'test-node-attribute-compatibility.mjs',

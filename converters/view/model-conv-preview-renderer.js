@@ -60,6 +60,18 @@ function _3DModelConv_collectSegmentEndpoints(project) {
   return endpoints;
 }
 
+function _3DModelConv_collectPointPositions(project) {
+  const positions = [];
+  for (const point of project?.points || []) {
+    positions.push(
+      _3DModelConv_toNumber(point?.x),
+      _3DModelConv_toNumber(point?.y),
+      _3DModelConv_toNumber(point?.z),
+    );
+  }
+  return positions;
+}
+
 function _3DModelConv_disposeMaterial(material) {
   if (!material) return;
   if (Array.isArray(material)) {
@@ -178,6 +190,18 @@ export class ModelConverters_3DModelConv_PreviewRenderer {
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       this._3DModelConv_group.add(new THREE.LineSegments(geometry, segmentMaterial));
+    }
+
+    const pointPositions = _3DModelConv_collectPointPositions(project);
+    if (pointPositions.length > 0) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(pointPositions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0x67c4ff,
+        size: 3,
+        sizeAttenuation: false,
+      });
+      this._3DModelConv_group.add(new THREE.Points(geometry, material));
     }
 
     const nodeGeometry = new THREE.SphereGeometry(8, 8, 8);
