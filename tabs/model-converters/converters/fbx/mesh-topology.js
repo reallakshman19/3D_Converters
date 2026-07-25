@@ -27,7 +27,8 @@ const GEOMETRY_KEYS = [
   'linePolygonCount', 'reversedWinding', 'bufferIndices',
 ];
 const INDEX_KEYS = ['controlPointsMm', 'polygonOffsets', 'polygonVertexIndices'];
-const DECIMAL_ID = /^(0|[1-9]\d*)$/;
+const DECIMAL_ID = /^(0|[1-9]\d{0,19})$/;
+const MAX_OBJECT_ID = 18446744073709551615n;
 
 export class FbxGeometryContractError extends Error {
   constructor(code, message) { super(`${code} ${message}`); this.name = 'FbxGeometryContractError'; this.code = code; }
@@ -60,6 +61,7 @@ function ordinaryBytes(value, label) {
   const view = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   return view.slice().buffer;
 }
+function validId(value) { return typeof value === 'string' && DECIMAL_ID.test(value) && BigInt(value) <= MAX_OBJECT_ID; }
 function compareId(left, right) {
   const a = BigInt(left.geometryObjectId), b = BigInt(right.geometryObjectId);
   if (a !== b) return a < b ? -1 : 1;
@@ -72,7 +74,7 @@ function countValue(value, limit, label) {
 }
 function validateDescriptor(value, index) {
   exactKeys(value, GEOMETRY_KEYS, `geometries[${index}]`); exactKeys(value.bufferIndices, INDEX_KEYS, `geometries[${index}].bufferIndices`);
-  if (!DECIMAL_ID.test(value.geometryObjectId) || !DECIMAL_ID.test(value.sourceObjectId)) fail(FBX_GEOMETRY_ERROR_CODES.TOPOLOGY_INVALID, 'Geometry identity is invalid.');
+  if (!validId(value.geometryObjectId) || !validId(value.sourceObjectId)) fail(FBX_GEOMETRY_ERROR_CODES.TOPOLOGY_INVALID, 'Geometry identity is invalid.');
   countValue(value.controlPointCount, FBX_GEOMETRY_LIMITS.controlPointsPerGeometry, 'controlPointCount');
   countValue(value.polygonCount, FBX_GEOMETRY_LIMITS.polygonsPerGeometry, 'polygonCount');
   countValue(value.polygonVertexCount, FBX_GEOMETRY_LIMITS.polygonVerticesPerGeometry, 'polygonVertexCount');
@@ -84,7 +86,7 @@ function graphMeshMap(graph) {
   const map = new Map();
   for (const item of graph.geometries) {
     if (item.kind !== 'MESH') continue;
-    if (!DECIMAL_ID.test(item.geometryObjectId) || !DECIMAL_ID.test(item.sourceObjectId) || map.has(item.geometryObjectId)) fail(FBX_GEOMETRY_ERROR_CODES.TOPOLOGY_INVALID, 'Source graph mesh identity is invalid.');
+    if (!validId(item.geometryObjectId) || !validId(item.sourceObjectId) || map.has(item.geometryObjectId)) fail(FBX_GEOMETRY_ERROR_CODES.TOPOLOGY_INVALID, 'Source graph mesh identity is invalid.');
     if (!Array.isArray(item.verticesMm)) fail(FBX_GEOMETRY_ERROR_CODES.TOPOLOGY_INVALID, 'Source graph mesh control points are invalid.');
     map.set(item.geometryObjectId, item);
   }
