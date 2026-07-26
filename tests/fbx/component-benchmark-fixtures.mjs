@@ -5,6 +5,9 @@ import {
   buildFbxZoneMembershipIndex,
 } from '../../tabs/model-converters/converters/fbx/benchmark-zone-membership.js';
 import {
+  loadFbxBenchmark,
+} from '../../tabs/model-converters/converters/fbx/benchmark/benchmark-loader.js';
+import {
   buildComponentSubjects,
   qualifyComponents,
 } from '../../tabs/model-converters/converters/fbx/benchmark/component-qualification.js';
@@ -187,19 +190,32 @@ export function zoneIndexFor(branches, zoneId = 'ZONE-LINE') {
   return buildFbxZoneMembershipIndex(zoneManifest(branches, zoneId), branches);
 }
 
+export async function loadBranches(value) {
+  if (value?.schema === 'FbxBenchmarkLoaded.v1') return value;
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  return loadFbxBenchmark({ bytes });
+}
+
 export async function qualify(options) {
+  const referenceSource = options.reference;
+  const actualSource = options.actual;
+  const referenceLoaded = await loadBranches(referenceSource);
+  const actualLoaded = await loadBranches(actualSource);
   return qualifyComponents({
     ...options,
+    reference: referenceLoaded,
+    actual: actualLoaded,
     benchmarkIdentity: options.benchmarkIdentity ?? benchmark,
     referenceZoneIndex: options.referenceZoneIndex
-      ?? zoneIndexFor(options.reference),
+      ?? zoneIndexFor(referenceLoaded.branches),
     actualZoneIndex: options.actualZoneIndex
-      ?? zoneIndexFor(options.actual),
+      ?? zoneIndexFor(actualLoaded.branches),
   });
 }
 
 export async function buildSubjects(value, side = 'REFERENCE') {
-  return buildComponentSubjects(value, componentPolicy(), side, {
-    zoneIndex: zoneIndexFor(value), benchmarkIdentity: benchmark,
+  const loaded = await loadBranches(value);
+  return buildComponentSubjects(loaded, componentPolicy(), side, {
+    zoneIndex: zoneIndexFor(loaded.branches), benchmarkIdentity: benchmark,
   });
 }
