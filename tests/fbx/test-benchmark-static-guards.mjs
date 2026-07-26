@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../tabs/model-converters/converters/fbx', import.meta.url));
 const benchmarkRoot = join(root, 'benchmark');
 const agentEOwnedFiles = new Set([
-  'benchmark-loader.js', 'evidence-json.js', 'inventory.js', 'semantic-indexes.js', 'strict-json.js',
+  'benchmark-loader.js', 'evidence-index.js', 'evidence-json.js', 'inventory.js',
+  'semantic-indexes.js', 'strict-json.js',
 ]);
 
 async function filesAt(path) {
