@@ -65,6 +65,7 @@ export const toleranceProfile = {
   schema: 'FbxBenchmarkToleranceProfile.v1',
   profileId: 'test-tolerance-profile',
   supportPositionTolerance: { absolute: 0.01, relative: 0 },
+  orientationAngularTolerance: { absolute: 0.5, relative: 0 },
   scalarEngineeringTolerance: { absolute: 0.001, relative: 0 },
 };
 
@@ -80,5 +81,9 @@ export function explicitHostResolver({ record }) {
   if (!Object.hasOwn(record.attributes, 'HOST_REF') || !record.attributes.HOST_REF) {
     return { state: 'ORPHAN', reason: 'HOST_REF_MISSING' };
   }
-  return { state: 'RESOLVED', hostIdentity: String(record.attributes.HOST_REF) };
+  return {
+    state: 'RESOLVED',
+    authority: 'EXPLICIT_SOURCE_REFERENCE',
+    hostIdentity: String(record.attributes.HOST_REF),
+  };
 }
