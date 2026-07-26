@@ -22,5 +22,7 @@ for (const file of benchmarkFiles) {
     `${file} contains runtime-dependent evidence state`);
   assert.doesNotMatch(text, /coordinate.*(?:zone|membership)|distance.*(?:match|identity)/i,
     `${file} contains prohibited engineering inference`);
+  assert.doesNotMatch(text, /supportByClass|supportClasses|classifiedSupports|unclassifiedSupports/,
+    `${file} publishes normalized support-class authority`);
 }
 console.log('test-benchmark-static-guards: PASS');
