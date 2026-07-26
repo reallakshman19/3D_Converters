@@ -1,21 +1,25 @@
 import assert from 'node:assert/strict';
 import { canonicalJson } from '../../tabs/model-converters/converters/fbx/canonical-json.js';
 import { collectSupportRecords, buildSupportInventory } from '../../tabs/model-converters/converters/fbx/benchmark/support-records.js';
+import { buildSupportClassInventory } from '../../tabs/model-converters/converters/fbx/benchmark/support-classification.js';
 import { validateSupportBenchmark } from '../../tabs/model-converters/converters/fbx/benchmark/support-validator.js';
 import {
   benchmarkFixture, explicitHostResolver, identityPolicy, normalizers, propertyRules, toleranceProfile,
 } from './support-benchmark-fixtures.mjs';
 
 const reference = benchmarkFixture();
-const records = collectSupportRecords(reference);
+const records = await collectSupportRecords(reference);
 assert.equal(records.length, 3);
-const inventory = buildSupportInventory(records);
+assert.match(records[0].recordId, /^support:sha256:[0-9a-f]{64}:\d{4}$/);
+assert.match(records[0].evidenceSha256, /^[0-9a-f]{64}$/);
+const inventory = { ...buildSupportInventory(records), ...buildSupportClassInventory(records) };
 assert.deepEqual(inventory.countsByClass, { GUIDE: 1, REST: 2 });
 assert.equal(inventory.duplicateTagGroups.length, 1);
 assert.equal(inventory.duplicateTagGroups[0].supportTag, 'SHARED');
+assert.equal(Object.hasOwn(records[0], 'supportClass'), false, 'occurrence layer must not own normalized support class');
 
 const actual = structuredClone(reference);
-const report = validateSupportBenchmark({
+const report = await validateSupportBenchmark({
   reference,
   actual,
   identityPolicy: identityPolicy(),
@@ -33,7 +37,7 @@ const reorderedReference = structuredClone(reference);
 reorderedReference[0].children.reverse();
 const reorderedActual = structuredClone(actual);
 reorderedActual[0].children.reverse();
-const reordered = validateSupportBenchmark({
+const reordered = await validateSupportBenchmark({
   reference: reorderedReference,
   actual: reorderedActual,
   identityPolicy: identityPolicy(),
@@ -44,5 +48,4 @@ const reordered = validateSupportBenchmark({
   hostRequired: true,
 });
 assert.equal(canonicalJson(reordered), canonicalJson(report), 'support evidence depends on input ordering');
-
 console.log('test-support-benchmark: PASS');
