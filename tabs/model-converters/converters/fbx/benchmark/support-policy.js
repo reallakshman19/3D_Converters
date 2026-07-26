@@ -22,6 +22,16 @@ function requireStringArray(value, label) {
   return values;
 }
 
+function toleranceDimension(value, label, { relativeAllowed = true } = {}) {
+  const record = requireObject(value, label);
+  const absolute = Number(record.absolute);
+  const relative = Number(record.relative ?? 0);
+  if (!Number.isFinite(absolute) || absolute < 0) fail(`${label}.absolute must be non-negative.`);
+  if (!Number.isFinite(relative) || relative < 0) fail(`${label}.relative must be non-negative.`);
+  if (!relativeAllowed && relative !== 0) fail(`${label}.relative must be zero.`);
+  return Object.freeze({ absolute, relative });
+}
+
 export function validateSupportIdentityPolicy(policy) {
   const record = requireObject(policy, 'policy');
   if (record.schema !== 'FbxSupportIdentityPolicy.v1') fail('policy.schema must be FbxSupportIdentityPolicy.v1.');
@@ -40,12 +50,22 @@ export function validateSupportIdentityPolicy(policy) {
     if (ranks.has(item.rank)) fail(`duplicate stage rank ${item.rank}.`);
     ranks.add(item.rank);
     if (!STAGE_AUTHORITIES.has(item.authority)) fail(`${stageId}.authority is invalid.`);
+    const approvedEquivalentRuleId = item.approvedEquivalentRuleId === undefined
+      ? null
+      : requireText(item.approvedEquivalentRuleId, `${stageId}.approvedEquivalentRuleId`);
+    if (item.authority === 'APPROVED_EQUIVALENT' && !approvedEquivalentRuleId) {
+      fail(`${stageId}.approvedEquivalentRuleId is required for APPROVED_EQUIVALENT.`);
+    }
+    if (item.authority !== 'APPROVED_EQUIVALENT' && approvedEquivalentRuleId) {
+      fail(`${stageId}.approvedEquivalentRuleId is only allowed for APPROVED_EQUIVALENT.`);
+    }
     return {
       stageId,
       rank: item.rank,
       authority: item.authority,
       keyPaths: requireStringArray(item.keyPaths, `${stageId}.keyPaths`),
       requireNonEmpty: item.requireNonEmpty !== false,
+      approvedEquivalentRuleId,
     };
   }).sort((left, right) => left.rank - right.rank || left.stageId.localeCompare(right.stageId));
   const classAuthority = requireObject(record.classAuthority, 'policy.classAuthority');
@@ -70,20 +90,21 @@ export function validateToleranceProfile(profile) {
     fail('toleranceProfile.schema must be FbxBenchmarkToleranceProfile.v1.');
   }
   requireText(record.profileId, 'toleranceProfile.profileId');
-  const position = requireObject(record.supportPositionTolerance, 'toleranceProfile.supportPositionTolerance');
-  const absolute = Number(position.absolute);
-  const relative = Number(position.relative ?? 0);
-  if (!Number.isFinite(absolute) || absolute < 0) fail('supportPositionTolerance.absolute must be non-negative.');
-  if (!Number.isFinite(relative) || relative < 0) fail('supportPositionTolerance.relative must be non-negative.');
-  const scalar = requireObject(record.scalarEngineeringTolerance, 'toleranceProfile.scalarEngineeringTolerance');
-  const scalarAbsolute = Number(scalar.absolute);
-  const scalarRelative = Number(scalar.relative ?? 0);
-  if (!Number.isFinite(scalarAbsolute) || scalarAbsolute < 0) fail('scalarEngineeringTolerance.absolute must be non-negative.');
-  if (!Number.isFinite(scalarRelative) || scalarRelative < 0) fail('scalarEngineeringTolerance.relative must be non-negative.');
   return Object.freeze({
     schema: record.schema,
     profileId: record.profileId,
-    supportPositionTolerance: Object.freeze({ absolute, relative }),
-    scalarEngineeringTolerance: Object.freeze({ absolute: scalarAbsolute, relative: scalarRelative }),
+    supportPositionTolerance: toleranceDimension(
+      record.supportPositionTolerance,
+      'toleranceProfile.supportPositionTolerance',
+    ),
+    orientationAngularTolerance: toleranceDimension(
+      record.orientationAngularTolerance,
+      'toleranceProfile.orientationAngularTolerance',
+      { relativeAllowed: false },
+    ),
+    scalarEngineeringTolerance: toleranceDimension(
+      record.scalarEngineeringTolerance,
+      'toleranceProfile.scalarEngineeringTolerance',
+    ),
   });
 }
