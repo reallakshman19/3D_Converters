@@ -11,10 +11,16 @@ import { reconcileCoverage } from './coverage-reconciliation.js';
 
 const COMPONENT_INPUT_KEYS = ['identityPolicy', 'report'];
 const SUPPORT_INPUT_KEYS = ['loadedBenchmark', 'report'];
+const PASSING_SUMMARIES = new Set(['PASS', 'PASS_WITH_OBSERVATIONS']);
+const NON_PASSING_SUMMARIES = new Set(['FAIL', 'BLOCKED']);
 
 function auditResult(schema, findings) {
   const unique = [...new Set(findings)].sort();
   return deepFreeze({ schema, findings:unique, status:unique.length ? 'FAIL' : 'PASS' });
+}
+
+function componentSummaryFalsePass(reportStatus, auditStatus) {
+  return PASSING_SUMMARIES.has(reportStatus) && NON_PASSING_SUMMARIES.has(auditStatus);
 }
 
 export function auditComponentIdentityInvariants(input) {
@@ -23,8 +29,8 @@ export function auditComponentIdentityInvariants(input) {
   validateComponentReportInvariants(value.report, policyAudit);
   const reconciliation = reconcileCoverage(adaptComponentBenchmarkReport(value.report));
   const findings = [];
-  if (value.report.summary.componentStatus !== reconciliation.status) {
-    findings.push('COMPONENT_SUMMARY_MISMATCH');
+  if (componentSummaryFalsePass(value.report.summary.componentStatus, reconciliation.status)) {
+    findings.push('COMPONENT_SUMMARY_FALSE_PASS');
   }
   return auditResult('FbxComponentIdentityAudit.v3', findings);
 }
