@@ -152,7 +152,7 @@ export function componentPolicy() {
       atomicReservationRequired: true,
     },
     unknownTypePolicy: 'BLOCKED_IDENTITY',
-    policyContentSha256: 'a'.repeat(64),
+    policyContentSha256: '8b112808ff0828299e23ba7545a20792cad1446ce95d1b6310abc0e2ec6479e4',
   };
 }
 
