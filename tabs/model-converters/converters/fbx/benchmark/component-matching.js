@@ -70,9 +70,20 @@ function addCollisionGroup(groups, rule, key, refs, acts) {
   return true;
 }
 
+function respectsPriorCollisions(referenceId, actualId, groups) {
+  for (const group of groups) {
+    if (group.referenceSubjectIds.includes(referenceId)
+      && !group.actualSubjectIds.includes(actualId)) return false;
+    if (group.actualSubjectIds.includes(actualId)
+      && !group.referenceSubjectIds.includes(referenceId)) return false;
+  }
+  return true;
+}
+
 function reserveUniqueMatch(rule, refs, acts, state) {
   if (!rule.passing || refs.length !== 1 || acts.length !== 1) return;
   const referenceId = refs[0], actualId = acts[0];
+  if (!respectsPriorCollisions(referenceId, actualId, state.collisionGroups)) return;
   if (state.referenceReserved.has(referenceId) || state.actualReserved.has(actualId)) {
     fail('atomic reservation invariant failed.');
   }
