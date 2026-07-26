@@ -68,6 +68,24 @@ export function buildRelationshipLedger(reference, actual, tolerance) {
   return Object.freeze(records);
 }
 
+function semanticRelationshipKey(relationship) {
+  return `${relationship.kind}|${directedEndpointKey(relationship)}`;
+}
+
+export function duplicateRelationshipAnomalies(graph, side) {
+  const groups = bucketsBy(graph.relationships, semanticRelationshipKey);
+  return [...groups.entries()].filter(([, rows]) => rows.length > 1).map(([semanticKey, rows]) => Object.freeze({
+    code: 'DUPLICATE_SEMANTIC_EDGE',
+    side,
+    semanticKey,
+    relationshipIds: rows.map((row) => row.relationshipId).sort(compareText),
+    sourcePaths: rows.map((row) => row.sourcePath).sort(compareText),
+    blocking: side === 'reference',
+  })).sort((left, right) => (
+    compareText(left.semanticKey, right.semanticKey) || compareText(left.side, right.side)
+  ));
+}
+
 export function duplicateEntityAnomalies(graph, side) {
   return [...graph.entityBuckets.entries()].filter(([, rows]) => rows.length > 1).map(([entityId, rows]) => Object.freeze({
     code: 'DUPLICATE_ENTITY_IDENTITY', side, entityId,
