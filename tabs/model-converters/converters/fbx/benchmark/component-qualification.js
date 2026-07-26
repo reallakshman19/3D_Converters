@@ -5,9 +5,18 @@ import { buildComponentSubjects, discoverComponentCatalog } from './component-ca
 import { COMPONENT_COMPARATORS } from './component-comparators.js';
 import { buildComponentLedger, componentInventory, summarizeComponentLedger } from './component-ledger.js';
 import { resolveComponentMatches } from './component-matching.js';
-import { validateComponentIdentityPolicy } from './component-policy.js';
+import {
+  validateComponentIdentityPolicy,
+  validateFrozenComponentIdentityPolicy,
+} from './component-policy.js';
 
-export { buildComponentSubjects, COMPONENT_COMPARATORS, discoverComponentCatalog, validateComponentIdentityPolicy };
+export {
+  buildComponentSubjects,
+  COMPONENT_COMPARATORS,
+  discoverComponentCatalog,
+  validateComponentIdentityPolicy,
+  validateFrozenComponentIdentityPolicy,
+};
 
 function benchmarkLoadIdentity(loaded, side) {
   const contentSha256 = loaded?.identity?.contentSha256;
@@ -56,8 +65,7 @@ export async function qualifyComponents({
   identityPolicy: policyValue, toleranceProfile, normalizers = {}, comparators = {},
   topologyByReferenceId = {}, executionIdentity = {}, benchmarkIdentity = {},
 } = {}) {
-  const policy = validateComponentIdentityPolicy(policyValue);
-  if (policy.authorityState !== 'FROZEN') fail('component identity policy must be FROZEN.');
+  const policy = await validateFrozenComponentIdentityPolicy(policyValue);
   const referenceSubjects = await buildComponentSubjects(reference, policy, 'REFERENCE',
     { zoneIndex: referenceZoneIndex, benchmarkIdentity });
   const actualSubjects = await buildComponentSubjects(actual, policy, 'ACTUAL',
