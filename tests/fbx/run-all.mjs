@@ -18,6 +18,7 @@ const tests = [
   'test-benchmark-static-guards.mjs',
   'test-component-benchmark.mjs',
   'test-component-benchmark-adversarial.mjs',
+  'test-component-matching-boundaries.mjs',
   'test-component-benchmark-inventory.mjs',
   'test-mapping-package.mjs',
   'test-fbx-mapping-package.mjs',
