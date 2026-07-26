@@ -1,4 +1,4 @@
-import { canonicalJson, deepFreeze } from '../canonical-json.js';
+import { deepFreeze } from '../canonical-json.js';
 import { sha256Hex } from '../sha256.js';
 import {
   canonicalKey, cloneJson, compareText, fail, isObject, point,
@@ -6,9 +6,15 @@ import {
 import {
   catalogEntryForTypes, validateComponentIdentityPolicy,
 } from './component-policy.js';
+import {
+  buildComponentZoneResolver, componentZoneBlockers,
+} from './component-zone.js';
 
 const FIELD_ALIASES = Object.freeze({
-  zoneId: (subject) => subject.zoneId,
+  zoneId: (subject) => subject.zoneMembership.zoneIds.length === 1
+    ? subject.zoneMembership.zoneIds[0] : null,
+  zoneIds: (subject) => subject.zoneMembership.zoneIds,
+  zoneStatus: (subject) => subject.zoneMembership.status,
   branchId: (subject) => subject.branchId,
   owner: (subject) => subject.owner,
   family: (subject) => subject.family,
@@ -64,7 +70,7 @@ export function fieldValue(subject, path) {
   return value;
 }
 
-function branchesOf(value, label) {
+export function componentBranchesOf(value, label) {
   if (Array.isArray(value)) return value;
   if (isObject(value) && Array.isArray(value.hierarchy)) return value.hierarchy;
   if (isObject(value) && Array.isArray(value.objects)) return value.objects;
@@ -72,18 +78,14 @@ function branchesOf(value, label) {
   fail(`${label} must be a StagedJSON branch array or recognized envelope.`);
 }
 
-function normalizeSubject(branch, child, policy, side, zoneResolver) {
+function normalizeSubject(branch, child, policy, side, zoneMembership) {
   const attributes = isObject(child.attributes) ? child.attributes : {};
   const outer = childType(child), raw = rawType(child);
   const catalogEntry = catalogEntryForTypes(outer, raw, policy);
-  const zoneId = typeof zoneResolver === 'function'
-    ? zoneResolver({ branch, child, side }) : null;
-  if (zoneId !== null && (typeof zoneId !== 'string' || !zoneId.trim())) {
-    fail('zoneResolver must return a non-empty string or null.');
-  }
   const subject = {
     side,
-    zoneId,
+    zoneMembership,
+    qualificationBlockers: componentZoneBlockers(zoneMembership),
     family: catalogEntry?.familyId ?? 'UNKNOWN',
     outerType: outer,
     rawType: raw,
@@ -110,7 +112,7 @@ function normalizeSubject(branch, child, policy, side, zoneResolver) {
     family: subject.family,
     outerType: subject.outerType,
     rawType: subject.rawType,
-    zoneId: subject.zoneId,
+    zoneMembership: subject.zoneMembership,
     branchId: subject.branchId,
     owner: subject.owner,
     reference: subject.reference,
@@ -148,20 +150,27 @@ export async function buildComponentSubjects(
   value,
   policyValue,
   side = 'REFERENCE',
-  { zoneResolver = null } = {},
+  { zoneIndex, benchmarkIdentity = {} } = {},
 ) {
   const policy = validateComponentIdentityPolicy(policyValue), subjects = [];
-  for (const [branchIndex, branch] of branchesOf(value, side).entries()) {
+  const branches = componentBranchesOf(value, side);
+  const zoneFor = buildComponentZoneResolver(
+    zoneIndex, branches, side, benchmarkIdentity,
+  );
+  for (const [branchIndex, branch] of branches.entries()) {
     if (!isObject(branch) || childType(branch) !== 'BRANCH'
       || !Array.isArray(branch.children)) {
       fail(`${side} branch[${branchIndex}] is invalid.`);
     }
+    const zoneMembership = zoneFor(branch);
     for (const child of branch.children) {
       if (!isObject(child)) {
         fail(`${side} branch[${branchIndex}] contains a non-object child.`);
       }
       if (childType(child) === 'SUPPORT') continue;
-      subjects.push(normalizeSubject(branch, child, policy, side, zoneResolver));
+      subjects.push(normalizeSubject(
+        branch, child, policy, side, cloneJson(zoneMembership),
+      ));
     }
   }
   return deepFreeze(await assignSubjectIds(subjects, side));
@@ -170,7 +179,7 @@ export async function buildComponentSubjects(
 export function discoverComponentCatalog(value) {
   const countsByOuterType = new Map(), countsByRawType = new Map();
   let branchCount = 0, supportCount = 0, componentCount = 0;
-  for (const [branchIndex, branch] of branchesOf(value, 'benchmark').entries()) {
+  for (const [branchIndex, branch] of componentBranchesOf(value, 'benchmark').entries()) {
     if (!isObject(branch) || childType(branch) !== 'BRANCH'
       || !Array.isArray(branch.children)) {
       fail(`benchmark branch[${branchIndex}] is invalid.`);
