@@ -22,6 +22,7 @@ const tests = [
   'test-component-benchmark-inventory.mjs',
   'test-support-benchmark.mjs',
   'test-support-benchmark-failures.mjs',
+  'test-support-occurrence-boundaries.mjs',
   'test-mapping-package.mjs',
   'test-fbx-mapping-package.mjs',
   'test-mapping-package-static.mjs',
