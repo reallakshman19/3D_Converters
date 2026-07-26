@@ -1,12 +1,12 @@
 # FBX Component Benchmark Qualification
 
-This directory is the Agent C boundary for semantic component qualification. It does not assign zones, classify supports, construct topology authority, define engineering tolerances, or invent source occurrences.
+This directory is the Agent C boundary for semantic component qualification. It does not assign zones, classify supports, construct topology authority, define engineering tolerances, or create benchmark occurrences.
 
-## Integration state
+## Integrated dependencies
 
-Agent Z's merged `FbxZoneMembershipIndex.v1` is a mandatory input. Both reference and actual indexes are validated, bound to the benchmark identity, required to cover the branch population exactly, and hashed into execution evidence.
+Agent C consumes Agent E's immutable `FbxBenchmarkLoaded.v1` contract. Component discovery and subject construction use only `loaded.occurrences` and `loaded.occurrenceById`; Agent C does not parse benchmark JSON or independently traverse raw branch children. Every ledger locator retains both `sourceOccurrenceId` and `branchOccurrenceId`, and both loaded input identities are recorded in execution evidence.
 
-Agent E's occurrence/loader/index/inventory foundation is not present on `main` at the time of this change. The current catalog therefore retains the pre-integration StagedJSON branch-child intake. Replacing that intake with Agent E occurrences is a required follow-up rebase step; this branch must not be represented as E-integrated until that contract exists.
+Agent Z's `FbxZoneMembershipIndex.v1` is also mandatory. Reference and actual indexes are validated, bound to the benchmark identity, required to cover the loaded branch population exactly, and hashed into execution evidence.
 
 ## Files
 
@@ -16,6 +16,7 @@ contracts/fbx/fbx-component-benchmark-report.v1.schema.json
 
 tabs/model-converters/converters/fbx/benchmark/component-common.js
 tabs/model-converters/converters/fbx/benchmark/component-policy.js
+tabs/model-converters/converters/fbx/benchmark/component-occurrences.js
 tabs/model-converters/converters/fbx/benchmark/component-zone.js
 tabs/model-converters/converters/fbx/benchmark/component-catalog.js
 tabs/model-converters/converters/fbx/benchmark/component-matching.js
@@ -29,7 +30,7 @@ tests/fbx/test-component-benchmark-adversarial.mjs
 tests/fbx/test-component-benchmark-inventory.mjs
 ```
 
-Production JavaScript modules are each below 300 lines. Matching, comparison, ledger construction, zone admission, and orchestration are separate units.
+Production JavaScript modules are each below 300 lines. Occurrence admission, zone admission, catalog construction, identity matching, comparison, ledger construction, and orchestration are separate units.
 
 ## Public API
 
@@ -42,49 +43,60 @@ import {
 } from './component-qualification.js';
 ```
 
-### `discoverComponentCatalog(stagedJson)`
+### `discoverComponentCatalog(loadedBenchmark)`
 
-Performs read-only inventory of branch children. Supports are counted separately and are not returned as components. This entry point is temporary pending Agent E occurrence integration.
+Requires Agent E `FbxBenchmarkLoaded.v1`. It inventories child occurrences, counts supports separately, and returns component counts by outer and raw type. Raw benchmark arrays are rejected.
 
 ### `validateComponentIdentityPolicy(policy)`
 
-Validates the closed Agent C policy contract and rejects non-multimap indexes, duplicate merging, greedy collision resolution, passing diagnostic rules, non-one-to-one cardinality, overlapping type catalogs, incomplete scope keys, and frozen policies without a lowercase SHA-256 identity.
+Validates the closed Agent C policy contract. It rejects non-multimap indexes, duplicate merging, greedy collision resolution, passing diagnostic rules, non-one-to-one cardinality, overlapping type catalogs, incomplete scope keys, and frozen policies without a lowercase SHA-256 identity.
 
-A `ZONE` identity rule must use `zoneIds`. Shared-boundary membership is a zone set and must not be collapsed to one arbitrary zone.
+A `ZONE` identity rule must use `zoneIds`. Shared-boundary membership is a set and is never collapsed to an arbitrary single zone.
 
-### `buildComponentSubjects(value, policy, side, options)`
+### `buildComponentSubjects(loadedBenchmark, policy, side, options)`
 
-Requires:
+Required inputs:
 
 ```text
+Agent E FbxBenchmarkLoaded.v1
 options.zoneIndex
 options.benchmarkIdentity
 ```
 
-The zone index must be a valid `FbxZoneMembershipIndex.v1`, match the benchmark identity when supplied, and exactly cover the named branch population. `CONFLICT`, `UNASSIGNED`, and `EXCLUDED` records remain in the ledger but block qualification. No coordinate or naming inference is used.
+Occurrence structure and lookup coverage are validated before use. Supports are excluded from Agent C's component population. Identical semantic components remain distinct through multiplicity indexes ordered by the stable occurrence handles supplied by Agent E.
 
-Identical components remain distinct through multiplicity indexes. Canonical subject payloads and report payloads use SHA-256 identities.
+The zone index must be a valid `FbxZoneMembershipIndex.v1`, match the benchmark identity, and exactly cover the loaded branch occurrences. `CONFLICT`, `UNASSIGNED`, and `EXCLUDED` records remain visible but block qualification. No coordinate, file-order, or naming inference assigns zones.
 
 ### `qualifyComponents(options)`
 
-Requires separate `referenceZoneIndex` and `actualZoneIndex` values. It produces `FbxComponentBenchmarkReport.v1` with complete reference and actual ledgers, ranked identity evidence, conflict-preserving collision groups, atomic one-to-one reservations, family comparison evidence, zone membership evidence, and deterministic summaries.
+Requires separately loaded reference and actual benchmarks plus separate reference and actual zone indexes. It produces `FbxComponentBenchmarkReport.v1` with complete two-sided ledgers, occurrence evidence, ranked identity evidence, conflict-preserving collision groups, atomic one-to-one reservations, family comparison evidence, zone evidence, and deterministic summaries.
 
-Numeric comparisons have no fallback tolerance. Missing tolerance rules produce blocked evidence. Spatial and structural diagnostic rules can expose candidates but cannot reserve passing matches.
+Numeric comparisons have no fallback tolerance. Missing tolerance rules produce blocked evidence. Structural and spatial diagnostic rules may expose candidates but cannot reserve a passing match.
 
-## Zone evidence
+## Evidence retained
 
-Every ledger locator includes the full canonical membership record:
+Every component ledger locator includes:
 
 ```text
-branchName
-status
-authority
-zoneIds
-candidateZoneIds
-exclusionReason
+sourceOccurrenceId
+branchOccurrenceId
+branchId
+owner
+canonicalSubjectPayloadSha256
+multiplicityIndex
+zoneMembership
 ```
 
-Common comparisons evaluate zone status and the canonical zone set. Authority differences are observations; membership differences fail. Each ledger record references its source zone index, and both complete indexes are hashed into `executionIdentity.zoneMembershipIndexes`.
+The complete zone membership record preserves `branchName`, `status`, `authority`, `zoneIds`, `candidateZoneIds`, and `exclusionReason`. Common comparisons evaluate status and the canonical zone set. Authority differences are observation-only; membership differences fail.
+
+`executionIdentity` binds:
+
+```text
+reference and actual FbxBenchmarkLoaded.v1 content SHA-256 and byte length
+component identity policy ID and content SHA-256
+tolerance profile identity when supplied
+reference and actual zone-index SHA-256 identities
+```
 
 ## Built-in comparator IDs
 
@@ -104,15 +116,14 @@ Selecting a comparator in a frozen type catalog is an authority decision. Orient
 
 ## Tests
 
-`test-component-benchmark.mjs` covers schemas, policy admission, Z-index binding, zone-set scope, deterministic hashes, input-order independence, exact matching, and approved composite matching.
+`test-component-benchmark.mjs` covers E occurrence consumption, schema admission, Z-index binding, zone-set scope, deterministic semantic identities, exact matching, and approved composite matching.
 
-`test-component-benchmark-adversarial.mjs` covers duplicate collisions, approved collision resolution, family/attribute/geometry failures, missing and unexpected components, absent tolerances, observation-only differences, unknown types, cross-zone mismatches, zone conflicts, and forged branch coverage.
+`test-component-benchmark-adversarial.mjs` covers duplicate collisions, approved collision resolution, family/attribute/geometry failures, missing and unexpected components, absent tolerances, observation-only differences, unknown types, cross-zone mismatches, zone conflicts, and forged zone coverage.
 
-`test-component-benchmark-inventory.mjs` parses the immutable benchmark and asserts 37 branches, 354 components, 145 supports, 536 typed records, and the complete observed outer/raw type populations.
+`test-component-benchmark-inventory.mjs` loads the immutable benchmark through Agent E and asserts 37 branches, 354 components, 145 supports, 536 occurrences, and the complete observed outer/raw type populations.
 
-## Remaining integration blockers
+## Remaining qualification blockers
 
-- Agent E occurrence, loader, index, and inventory contracts are not available on `main`.
 - No frozen production component identity policy exists.
 - No frozen tolerance profile exists.
 - No approved actual zone manifest exists.
