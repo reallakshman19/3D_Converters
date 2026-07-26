@@ -43,6 +43,43 @@ collisionResolvingPolicy.identityRules = [
   { ...collisionResolvingPolicy.identityRules[2], rank: 4 },
   { ...collisionResolvingPolicy.identityRules[3], rank: 5 },
 ];
+collisionResolvingPolicy.authorityState = 'DRAFT';
+collisionResolvingPolicy.policyContentSha256 = null;
+await assert.rejects(
+  () => qualify({
+    reference: branch('/LINE/B1', [fitting('FLAN', '=SAME')]),
+    actual: branch('/LINE/B1', [fitting('FLAN', '=SAME')]),
+    identityPolicy: collisionResolvingPolicy,
+    toleranceProfile,
+  }),
+  /must be FROZEN/,
+);
+
+const frozenResolvingPolicy = structuredClone(componentPolicy());
+frozenResolvingPolicy.identityRules = [
+  frozenResolvingPolicy.identityRules[0],
+  frozenResolvingPolicy.identityRules[1],
+  {
+    ruleId: 'reference-name-branch-family', rank: 3,
+    kind: 'APPROVED_COMPOSITE', applicableFamilies: ['FLANGE'],
+    requiredFields: ['reference', 'name', 'branchId', 'family'],
+    normalizationRuleIds: ['trim', 'normalize-slashes'], scope: 'BRANCH',
+    uniquenessRequirement: 'COLLISION_PRESERVING', passing: true,
+  },
+  { ...frozenResolvingPolicy.identityRules[2], rank: 4 },
+  { ...frozenResolvingPolicy.identityRules[3], rank: 5 },
+];
+frozenResolvingPolicy.policyContentSha256 = '0'.repeat(64);
+await assert.rejects(
+  () => qualify({
+    reference: branch('/LINE/B1', [fitting('FLAN', '=SAME')]),
+    actual: branch('/LINE/B1', [fitting('FLAN', '=SAME')]),
+    identityPolicy: frozenResolvingPolicy,
+    toleranceProfile,
+  }),
+  /does not match canonical normalized policy content/,
+);
+
 const resolvedCollision = await qualify({
   reference: branch('/LINE/B1', [
     fitting('FLAN', '=SAME', { extra: { NAME: 'FLANGE-A' } }),
@@ -52,13 +89,10 @@ const resolvedCollision = await qualify({
     fitting('FLAN', '=SAME', { extra: { NAME: 'FLANGE-B' } }),
     fitting('FLAN', '=SAME', { extra: { NAME: 'FLANGE-A' } }),
   ]),
-  identityPolicy: collisionResolvingPolicy,
+  identityPolicy: componentPolicy(),
   toleranceProfile,
 });
-assert.equal(resolvedCollision.summary.componentStatus, 'PASS');
-assert.ok(resolvedCollision.collisionGroups.some((group) => (
-  group.resolution === 'RESOLVED_BY_APPROVED_RULE'
-)));
+assert.equal(resolvedCollision.summary.componentStatus, 'BLOCKED');
 
 const wrongFamily = await qualify({
   reference: branch('/LINE/B1', [fitting('FLAN', '=TYPE')]),
@@ -109,6 +143,21 @@ assert.equal(
   unmatched.ledger.find((record) => record.side === 'ACTUAL').match.state,
   'UNEXPECTED_ACTUAL',
 );
+
+const diagnosticCollision = await qualify({
+  reference: branch('/LINE/B1', [
+    fitting('GASK', '=G1'), fitting('GASK', '=G2'),
+  ]),
+  actual: branch('/LINE/B1', []),
+  identityPolicy: componentPolicy(), toleranceProfile,
+});
+assert.equal(diagnosticCollision.collisionGroups.length, 0);
+assert.ok(diagnosticCollision.ledger.every((record) => (
+  record.match.state === 'MISSING_ACTUAL'
+)));
+assert.ok(diagnosticCollision.ledger.every((record) => (
+  record.identityEvidence.candidateKeys.some((item) => item.ruleId === 'spatial-diagnostic')
+)));
 
 const missingTolerance = await qualify({
   reference: branch('/LINE/B1', [fitting('FLAN', '=T1')]),
