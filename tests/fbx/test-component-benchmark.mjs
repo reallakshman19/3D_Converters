@@ -7,7 +7,7 @@ import {
   validateComponentIdentityPolicy,
 } from '../../tabs/model-converters/converters/fbx/benchmark/component-qualification.js';
 import {
-  branch, buildSubjects, componentPolicy, fitting, pipe, qualify,
+  branch, buildSubjects, componentPolicy, fitting, loadBranches, pipe, qualify,
   toleranceProfile,
 } from './component-benchmark-fixtures.mjs';
 
@@ -67,7 +67,7 @@ const inventoryFixture = branch('/LINE/B1', [
   fitting('FLAN', '=1'), pipe('PIPE AUTO /LINE/B1 1'), fitting('OLET', '=2'),
   { name: 'SUPPORT X', type: 'SUPPORT', attributes: { TYPE: 'ATTA' } },
 ]);
-assert.deepEqual(discoverComponentCatalog(inventoryFixture), {
+assert.deepEqual(discoverComponentCatalog(await loadBranches(inventoryFixture)), {
   schema: 'FbxComponentCatalog.v1', branchCount: 1,
   componentCount: 3, supportCount: 1,
   countsByOuterType: { FLAN: 1, OLET: 1, PIPE: 1 },
@@ -109,9 +109,13 @@ const reordered = await qualify({
   actual: branch('/LINE/B1', [...actual[0].children].reverse()),
   identityPolicy: componentPolicy(), toleranceProfile,
 });
+const semanticLedger = (report) => report.ledger.map((record) => ({
+  side: record.side, family: record.classification.family,
+  subjectId: record.subjectId, state: record.match.state,
+}));
 assert.equal(
-  canonicalJson(exact), canonicalJson(reordered),
-  'qualification evidence depends on input order',
+  canonicalJson(semanticLedger(exact)), canonicalJson(semanticLedger(reordered)),
+  'semantic component matching depends on child order',
 );
 
 const subjects = await buildSubjects(reference);
@@ -120,6 +124,8 @@ assert.ok(subjects.every((subject) => (
   /^[RA]-COMP-[0-9a-f]{24}-\d+$/.test(subject.subjectId)
   && /^[0-9a-f]{64}$/.test(subject.canonicalSubjectPayloadSha256)
   && subject.zoneMembership.status === 'ASSIGNED'
+  && /^branch:\d+\/child:\d+$/.test(subject.sourceOccurrenceId)
+  && /^branch:\d+$/.test(subject.branchOccurrenceId)
 )));
 
 const identityPolicySchema = JSON.parse(await readFile(
