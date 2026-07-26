@@ -8,6 +8,7 @@ export function supportNode({
   orientation = 'Y is N and Z is U',
   rawType = 'ATTA',
   gap = '0',
+  hostRef = 'PIPE-001',
 }) {
   return {
     name: `SUPPORT ${tag}`,
@@ -25,6 +26,7 @@ export function supportNode({
       SUPPORT_KIND: supportClass,
       SUPPORT_MAPPER_KIND: supportClass,
       NODEGAP: gap,
+      HOST_REF: hostRef,
     },
   };
 }
@@ -73,3 +75,10 @@ export const propertyRules = [
 export const normalizers = {
   'plain-number': (value) => Number(value),
 };
+
+export function explicitHostResolver({ record }) {
+  if (!Object.hasOwn(record.attributes, 'HOST_REF') || !record.attributes.HOST_REF) {
+    return { state: 'ORPHAN', reason: 'HOST_REF_MISSING' };
+  }
+  return { state: 'RESOLVED', hostIdentity: String(record.attributes.HOST_REF) };
+}
