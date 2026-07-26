@@ -9,12 +9,22 @@ const STATUS_SET = new Set(STATUSES);
 const DIGEST_RULE = 'SHA256_CANONICAL_JSON_WITHOUT_ROOT_FIELD';
 const ORDERING = Object.freeze(['artifactId', 'artifactType', 'relativePath']);
 const SPEC_KEYS = new Set(['artifactId', 'artifactType', 'relativePath', 'qualificationStatus', 'value']);
+const INDEX_KEYS = new Set(['schema', 'benchmarkIdentity', 'executionIdentity', 'artifacts', 'countsByStatus',
+  'rootDigestRule', 'canonicalOrdering', 'rootEvidenceSha256']);
+const ENTRY_KEYS = new Set(['artifactId', 'artifactType', 'artifactSchema', 'relativePath', 'mediaType',
+  'qualificationStatus', 'contentSha256', 'byteLength']);
 
 function assertObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new TypeError(`${label} must be an object.`);
   }
   return value;
+}
+
+function assertOnlyKeys(value, allowed, label) {
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) throw new TypeError(`${label} contains unsupported field ${key}.`);
+  }
 }
 
 function assertText(value, label, pattern = null) {
@@ -56,9 +66,7 @@ function normalizedIdentity(value, label) {
 
 function normalizedSpec(value, index) {
   const spec = assertObject(value, `artifacts[${index}]`);
-  for (const key of Object.keys(spec)) {
-    if (!SPEC_KEYS.has(key)) throw new TypeError(`artifacts[${index}] contains unsupported field ${key}.`);
-  }
+  assertOnlyKeys(spec, SPEC_KEYS, `artifacts[${index}]`);
   const artifactId = assertText(spec.artifactId, `artifacts[${index}].artifactId`, /^[A-Za-z0-9][A-Za-z0-9._:-]*$/);
   const artifactType = assertText(spec.artifactType, `artifacts[${index}].artifactType`, /^[A-Z][A-Z0-9_]*$/);
   const relativePath = assertRelativePath(spec.relativePath);
@@ -106,6 +114,7 @@ async function indexedArtifact(spec) {
 
 function assertEntry(entry, index) {
   assertObject(entry, `index.artifacts[${index}]`);
+  assertOnlyKeys(entry, ENTRY_KEYS, `index.artifacts[${index}]`);
   assertText(entry.artifactId, `index.artifacts[${index}].artifactId`, /^[A-Za-z0-9][A-Za-z0-9._:-]*$/);
   assertText(entry.artifactType, `index.artifacts[${index}].artifactType`, /^[A-Z][A-Z0-9_]*$/);
   assertText(entry.artifactSchema, `index.artifacts[${index}].artifactSchema`);
@@ -158,6 +167,7 @@ export async function buildFbxBenchmarkEvidenceIndex({ benchmarkIdentity, execut
 
 export async function validateFbxBenchmarkEvidenceIndex(value) {
   const index = assertObject(value, 'index');
+  assertOnlyKeys(index, INDEX_KEYS, 'index');
   if (index.schema !== 'FbxBenchmarkEvidenceIndex.v1') throw new TypeError('Evidence index schema is invalid.');
   normalizedIdentity(index.benchmarkIdentity, 'index.benchmarkIdentity');
   normalizedIdentity(index.executionIdentity, 'index.executionIdentity');
