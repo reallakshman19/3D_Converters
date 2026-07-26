@@ -1,4 +1,5 @@
-import { deepFreeze } from '../canonical-json.js';
+import { canonicalJson, deepFreeze } from '../canonical-json.js';
+import { sha256Hex } from '../sha256.js';
 import {
   COMPONENT_FAMILIES, POLICY_SCHEMA, cloneJson, exactKeys, fail,
   requireArray, requireBoolean, requireObject, requireText, stringArray,
@@ -212,6 +213,22 @@ export function validateComponentIdentityPolicy(value) {
     }
   }
   return deepFreeze(policy);
+}
+
+function policyHashPayload(policy) {
+  return { ...cloneJson(policy), policyContentSha256: null };
+}
+
+export async function validateFrozenComponentIdentityPolicy(value) {
+  const policy = validateComponentIdentityPolicy(value);
+  if (policy.authorityState !== 'FROZEN') {
+    fail('component identity policy must be FROZEN.');
+  }
+  const calculated = await sha256Hex(canonicalJson(policyHashPayload(policy)));
+  if (policy.policyContentSha256 !== calculated) {
+    fail('policy.policyContentSha256 does not match canonical normalized policy content.');
+  }
+  return policy;
 }
 
 export function catalogEntryForTypes(outerType, rawType, policy) {
