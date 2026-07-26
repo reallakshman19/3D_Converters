@@ -43,6 +43,7 @@ function exactKeys(value, keys, label) {
 
 function requiredText(value, label) {
   if (typeof value !== 'string' || !value.trim()) fail(`${label} must be non-empty text.`);
+  if (value !== value.trim()) fail(`${label} must not have surrounding whitespace.`);
   return value;
 }
 
@@ -54,11 +55,12 @@ function canonicalTextList(values, label) {
   return [...result].sort(compareText);
 }
 
-function validateBenchmark(benchmark) {
+function canonicalBenchmark(benchmark) {
   exactKeys(benchmark, BENCHMARK_KEYS, 'benchmark');
   for (const key of BENCHMARK_KEYS) requiredText(benchmark[key], `benchmark.${key}`);
   if (!/^[0-9a-f]{40}$/.test(benchmark.commit)) fail('benchmark.commit must be a lowercase SHA-1.');
   if (!/^[0-9a-f]{40}$/.test(benchmark.blobSha)) fail('benchmark.blobSha must be a lowercase blob SHA-1.');
+  return { commit: benchmark.commit, path: benchmark.path, blobSha: benchmark.blobSha };
 }
 
 function canonicalZone(zone, index) {
@@ -131,7 +133,7 @@ function canonicalManifest(value) {
   if (value.sharedBoundaryPolicy !== FBX_BENCHMARK_SHARED_BOUNDARY_POLICY) {
     fail('sharedBoundaryPolicy is invalid.');
   }
-  validateBenchmark(value.benchmark);
+  const benchmark = canonicalBenchmark(value.benchmark);
   if (!Array.isArray(value.zones) || !value.zones.length) fail('zones must be a non-empty array.');
   if (!Array.isArray(value.exclusions)) fail('exclusions must be an array.');
   const zones = value.zones.map(canonicalZone).sort((a, b) => compareText(a.zoneId, b.zoneId));
@@ -140,7 +142,7 @@ function canonicalManifest(value) {
   validateZoneSelectors(zones, exclusions);
   return {
     schema: FBX_BENCHMARK_ZONE_MANIFEST_SCHEMA,
-    benchmark: structuredClone(value.benchmark),
+    benchmark,
     zonePolicyId: FBX_BENCHMARK_ZONE_POLICY,
     sharedBoundaryPolicy: FBX_BENCHMARK_SHARED_BOUNDARY_POLICY,
     zones,
