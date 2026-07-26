@@ -143,6 +143,7 @@
         "actual": { "$ref": "#/$defs/recordView" },
         "identityResult": { "type": "object", "additionalProperties": true },
         "classResult": { "type": "object", "additionalProperties": true },
+        "hostResult": { "type": "object", "additionalProperties": true },
         "fieldResults": {
           "type": "array",
           "items": { "type": "object", "additionalProperties": true }
