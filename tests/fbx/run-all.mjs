@@ -15,6 +15,7 @@ const tests = [
   'test-benchmark-inventory.mjs',
   'test-benchmark-real-inventory.mjs',
   'test-benchmark-determinism.mjs',
+  'test-benchmark-evidence-index.mjs',
   'test-benchmark-static-guards.mjs',
   'test-component-benchmark.mjs',
   'test-component-benchmark-adversarial.mjs',
