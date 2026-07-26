@@ -14,6 +14,7 @@ const tests = [
   'test-benchmark-strict-json.mjs',
   'test-benchmark-inventory.mjs',
   'test-benchmark-real-inventory.mjs',
+  'test-benchmark-source-binding.mjs',
   'test-benchmark-determinism.mjs',
   'test-benchmark-static-guards.mjs',
   'test-component-benchmark.mjs',
