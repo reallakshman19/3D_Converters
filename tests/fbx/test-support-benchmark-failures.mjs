@@ -117,4 +117,64 @@ function validate(actual, options = {}) {
   assert.equal(report.summary.countsByMatchState.ORPHAN_SUPPORT, 1);
 }
 
+{
+  const policy = identityPolicy();
+  policy.identityStages[0].authority = 'APPROVED_EQUIVALENT';
+  assert.throws(
+    () => validate(benchmarkFixture(), { identityPolicy: policy }),
+    /approvedEquivalentRuleId is required/,
+  );
+}
+
+{
+  const reference = benchmarkFixture();
+  const actual = benchmarkFixture();
+  actual[0].children[0].attributes.REF = '=CHANGED';
+  actual[0].children[0].attributes.NAME = '/CHANGED';
+  const policy = identityPolicy();
+  policy.identityStages[2].authority = 'DIAGNOSTIC_ONLY';
+  const report = validateSupportBenchmark({
+    reference,
+    actual,
+    identityPolicy: policy,
+    toleranceProfile,
+    propertyRules,
+    normalizers,
+    hostResolver: explicitHostResolver,
+    hostRequired: true,
+  });
+  const missing = report.ledgerEntries.find((entry) => entry.matchState === 'MISSING_ACTUAL');
+  const unexpected = report.ledgerEntries.find((entry) => entry.matchState === 'UNEXPECTED_ACTUAL');
+  assert.equal(missing.identityResult.state, 'CANDIDATE_ONLY');
+  assert.equal(unexpected.identityResult.state, 'CANDIDATE_ONLY');
+  assert.equal(missing.identityResult.candidateRecordIds.length, 1);
+  assert.equal(unexpected.identityResult.candidateRecordIds.length, 1);
+}
+
+{
+  const actual = benchmarkFixture();
+  actual[0].children[0].attributes.ORI = 'equivalent orientation';
+  const report = validate(actual, {
+    orientationComparator: () => ({ authorityId: 'TEST_ORIENTATION_POLICY', angularResidual: 0.25 }),
+  });
+  assert.equal(report.summary.countsByMatchState.EXACT_MATCH, 3);
+}
+
+{
+  const actual = benchmarkFixture();
+  actual[0].children[0].attributes.ORI = 'different orientation';
+  const report = validate(actual, {
+    orientationComparator: () => ({ authorityId: 'TEST_ORIENTATION_POLICY', angularResidual: 0.75 }),
+  });
+  assert.equal(report.summary.countsByMatchState.ORIENTATION_MISMATCH, 1);
+}
+
+{
+  const actual = benchmarkFixture();
+  const report = validate(actual, {
+    hostResolver: ({ record }) => ({ state: 'RESOLVED', hostIdentity: record.attributes.HOST_REF }),
+  });
+  assert.equal(report.summary.countsByMatchState.BLOCKED, 3);
+}
+
 console.log('test-support-benchmark-failures: PASS');
