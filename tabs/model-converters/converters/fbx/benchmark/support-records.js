@@ -33,11 +33,17 @@ function assertObject(value, label) {
   return value;
 }
 
+function expectedBranchId(branchIndex) {
+  return `branch:${branchIndex}`;
+}
+
 function validateBranchOccurrence(loaded, occurrence, index) {
   const at = `loaded.occurrences[${index}]`;
+  const expectedId = expectedBranchId(occurrence.branchIndex);
   if (occurrence.childIndex !== null || occurrence.recordRole !== 'BRANCH_RECORD'
     || occurrence.parentOccurrenceId !== null
-    || occurrence.occurrenceId !== occurrence.branchOccurrenceId
+    || occurrence.occurrenceId !== expectedId
+    || occurrence.branchOccurrenceId !== expectedId
     || occurrence.record.type !== 'BRANCH') {
     throw new TypeError(`${at} is not a valid Agent E branch occurrence.`);
   }
@@ -48,9 +54,13 @@ function validateBranchOccurrence(loaded, occurrence, index) {
 
 function validateChildOccurrence(loaded, occurrence, index) {
   const at = `loaded.occurrences[${index}]`;
+  const branchOccurrenceId = expectedBranchId(occurrence.branchIndex);
+  const expectedId = `${branchOccurrenceId}/child:${occurrence.childIndex}`;
   if (!Number.isInteger(occurrence.childIndex) || occurrence.childIndex < 0
     || occurrence.recordRole !== 'CHILD_RECORD'
-    || occurrence.parentOccurrenceId !== occurrence.branchOccurrenceId) {
+    || occurrence.branchOccurrenceId !== branchOccurrenceId
+    || occurrence.parentOccurrenceId !== branchOccurrenceId
+    || occurrence.occurrenceId !== expectedId) {
     throw new TypeError(`${at} is not a valid Agent E child occurrence.`);
   }
   const branch = loaded.branches[occurrence.branchIndex];
@@ -58,7 +68,7 @@ function validateChildOccurrence(loaded, occurrence, index) {
     || branch.children[occurrence.childIndex] !== occurrence.record) {
     throw new TypeError(`${at} does not preserve branch child identity.`);
   }
-  const parent = loaded.occurrenceById[occurrence.branchOccurrenceId];
+  const parent = loaded.occurrenceById[branchOccurrenceId];
   if (!parent || parent.childIndex !== null || parent.branchIndex !== occurrence.branchIndex) {
     throw new TypeError(`${at} references an invalid branch occurrence.`);
   }
@@ -85,6 +95,16 @@ function validateOccurrence(loaded, occurrence, index, ids) {
   else validateChildOccurrence(loaded, occurrence, index);
 }
 
+function expectedOccurrenceCount(branches) {
+  return branches.reduce((count, branch, index) => {
+    assertObject(branch, `loaded.branches[${index}]`);
+    if (branch.type !== 'BRANCH' || !Array.isArray(branch.children)) {
+      throw new TypeError(`loaded.branches[${index}] is not a valid branch record.`);
+    }
+    return count + 1 + branch.children.length;
+  }, 0);
+}
+
 function assertLoadedBenchmark(value) {
   const loaded = assertObject(value, 'loaded benchmark');
   if (loaded.schema !== 'FbxBenchmarkLoaded.v1') {
@@ -95,16 +115,16 @@ function assertLoadedBenchmark(value) {
     || Array.isArray(loaded.occurrenceById)) {
     throw new TypeError('Loaded benchmark branches, occurrences, and occurrenceById are required.');
   }
+  const expectedCount = expectedOccurrenceCount(loaded.branches);
+  if (loaded.occurrences.length !== expectedCount) {
+    throw new TypeError('Loaded benchmark occurrences do not exactly cover branch records and children.');
+  }
   const ids = new Set();
   loaded.occurrences.forEach((occurrence, index) => {
     validateOccurrence(loaded, occurrence, index, ids);
   });
-  if (Object.keys(loaded.occurrenceById).length !== ids.size) {
+  if (Object.keys(loaded.occurrenceById).length !== expectedCount) {
     throw new TypeError('Loaded benchmark occurrenceById does not exactly cover occurrences.');
-  }
-  const branchCount = loaded.occurrences.filter((item) => item.childIndex === null).length;
-  if (branchCount !== loaded.branches.length) {
-    throw new TypeError('Loaded benchmark branch occurrences do not exactly cover branches.');
   }
   return loaded;
 }
