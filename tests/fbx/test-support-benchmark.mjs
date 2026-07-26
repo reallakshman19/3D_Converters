@@ -3,7 +3,7 @@ import { canonicalJson } from '../../tabs/model-converters/converters/fbx/canoni
 import { collectSupportRecords, buildSupportInventory } from '../../tabs/model-converters/converters/fbx/benchmark/support-records.js';
 import { validateSupportBenchmark } from '../../tabs/model-converters/converters/fbx/benchmark/support-validator.js';
 import {
-  benchmarkFixture, identityPolicy, normalizers, propertyRules, toleranceProfile,
+  benchmarkFixture, explicitHostResolver, identityPolicy, normalizers, propertyRules, toleranceProfile,
 } from './support-benchmark-fixtures.mjs';
 
 const reference = benchmarkFixture();
@@ -22,6 +22,8 @@ const report = validateSupportBenchmark({
   toleranceProfile,
   propertyRules,
   normalizers,
+  hostResolver: explicitHostResolver,
+  hostRequired: true,
 });
 assert.equal(report.summary.status, 'PASS');
 assert.deepEqual(report.summary.countsByMatchState, { EXACT_MATCH: 3 });
@@ -38,6 +40,8 @@ const reordered = validateSupportBenchmark({
   toleranceProfile,
   propertyRules,
   normalizers,
+  hostResolver: explicitHostResolver,
+  hostRequired: true,
 });
 assert.equal(canonicalJson(reordered), canonicalJson(report), 'support evidence depends on input ordering');
 
