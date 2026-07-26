@@ -1,52 +1,52 @@
-import { deepFreeze, fail, requireArray, requireBoolean, requireClosedObject, requireSha256, requireText } from './audit-utils.js';
+import { canonicalJson } from '../canonical-json.js';
+import { sha256Hex } from '../sha256.js';
+import { deepFreeze, fail, requireArray, requireClosedObject, requireObject } from './audit-utils.js';
+import { adaptSupportBenchmarkReport, auditLoadedBenchmarkOccurrenceContract } from './integrated-adapters.js';
+import { reconcileCoverage } from './coverage-reconciliation.js';
 
-const COMPONENT_KEYS = ['frozenPolicyContentSha256', 'declaredPolicySha256', 'diagnosticRules', 'collisionGroups', 'laterRuleSelections'];
-const DIAGNOSTIC_RULE_KEYS = ['ruleId', 'passing', 'blocking', 'reservesCounterparts'];
-const COLLISION_GROUP_KEYS = ['groupId', 'candidateOccurrenceIds'];
-const SELECTION_KEYS = ['ruleId', 'collisionGroupId', 'selectedOccurrenceId'];
+const COMPONENT_INPUT_KEYS = ['identityPolicy', 'report'];
+const SUPPORT_INPUT_KEYS = ['loadedBenchmark', 'report'];
 
-export function auditComponentIdentityInvariants(input) {
-  const value = requireClosedObject(input, 'component identity audit', COMPONENT_KEYS);
-  const recomputed = requireSha256(value.frozenPolicyContentSha256, 'frozenPolicyContentSha256');
-  const declared = requireSha256(value.declaredPolicySha256, 'declaredPolicySha256');
+export async function auditComponentIdentityInvariants(input) {
+  const value = requireClosedObject(input, 'component identity audit', COMPONENT_INPUT_KEYS);
+  const policy = requireObject(value.identityPolicy, 'identityPolicy');
+  const report = requireObject(value.report, 'componentReport');
+  if (policy.schema !== 'FbxComponentIdentityPolicy.v1' || report.schema !== 'FbxComponentBenchmarkReport.v1') {
+    fail('BLOCKED_AUDIT_CONTRACT', 'component audit requires integrated policy and report schemas.');
+  }
   const findings = [];
-  if (recomputed !== declared) findings.push('POLICY_HASH_MISMATCH');
-  for (const [index, ruleValue] of requireArray(value.diagnosticRules, 'diagnosticRules').entries()) {
-    const rule = requireClosedObject(ruleValue, `diagnosticRules[${index}]`, DIAGNOSTIC_RULE_KEYS);
-    requireText(rule.ruleId, `diagnosticRules[${index}].ruleId`);
-    if (requireBoolean(rule.passing, `diagnosticRules[${index}].passing`)) findings.push('DIAGNOSTIC_RULE_PASSING');
-    if (requireBoolean(rule.blocking, `diagnosticRules[${index}].blocking`)) findings.push('DIAGNOSTIC_RULE_BLOCKING');
-    if (requireBoolean(rule.reservesCounterparts, `diagnosticRules[${index}].reservesCounterparts`)) findings.push('DIAGNOSTIC_RULE_RESERVES_COUNTERPART');
+  const calculated = await sha256Hex(canonicalJson({ ...structuredClone(policy), policyContentSha256: null }));
+  if (calculated !== policy.policyContentSha256) findings.push('POLICY_HASH_MISMATCH');
+  const diagnosticRuleIds = new Set(policy.identityRules.filter((rule) => rule.kind.startsWith('DIAGNOSTIC_')).map((rule) => rule.ruleId));
+  for (const rule of policy.identityRules) if (diagnosticRuleIds.has(rule.ruleId) && rule.passing !== false) findings.push('DIAGNOSTIC_RULE_PASSING');
+  findings.push(...componentLedgerFindings(report, diagnosticRuleIds));
+  return auditResult('FbxComponentIdentityAudit.v2', findings);
+}
+function componentLedgerFindings(report, diagnosticRuleIds) {
+  const findings = [], groups = new Map(report.collisionGroups.map((group) => [group.collisionGroupId,
+    new Set([...group.referenceSubjectIds, ...group.actualSubjectIds])]));
+  for (const row of requireArray(report.ledger, 'componentReport.ledger')) {
+    if (diagnosticRuleIds.has(row.identityEvidence.selectedRuleId)) findings.push('DIAGNOSTIC_RULE_SELECTED');
+    for (const groupId of row.identityEvidence.collisionGroupIds) {
+      const allowed = groups.get(groupId);
+      if (!allowed || row.match.counterpartSubjectIds.some((id) => !allowed.has(id))) findings.push('COLLISION_GROUP_ESCAPE');
+    }
   }
-  const groups = new Map(requireArray(value.collisionGroups, 'collisionGroups').map((groupValue, index) => {
-    const group = requireClosedObject(groupValue, `collisionGroups[${index}]`, COLLISION_GROUP_KEYS);
-    return [requireText(group.groupId, `collisionGroups[${index}].groupId`), new Set(requireArray(group.candidateOccurrenceIds, `collisionGroups[${index}].candidateOccurrenceIds`).map((id, idIndex) => requireText(id, `collisionGroups[${index}].candidateOccurrenceIds[${idIndex}]`)))];
-  }));
-  for (const [index, selectionValue] of requireArray(value.laterRuleSelections, 'laterRuleSelections').entries()) {
-    const selection = requireClosedObject(selectionValue, `laterRuleSelections[${index}]`, SELECTION_KEYS);
-    const groupId = requireText(selection.collisionGroupId, `laterRuleSelections[${index}].collisionGroupId`);
-    const selected = requireText(selection.selectedOccurrenceId, `laterRuleSelections[${index}].selectedOccurrenceId`);
-    if (!groups.has(groupId) || !groups.get(groupId).has(selected)) findings.push('COLLISION_GROUP_ESCAPE');
-  }
-  return deepFreeze({ schema: 'FbxComponentIdentityAudit.v1', findings: [...new Set(findings)].sort(), status: findings.length ? 'FAIL' : 'PASS' });
+  return findings;
 }
 
-const SUPPORT_KEYS = ['loadedSchema', 'occurrenceIds', 'occurrenceByIdKeys', 'branchOccurrenceIds', 'branchIds', 'childOccurrenceIds', 'branchChildIds', 'canonicalOccurrenceIdsValid', 'parentAncestryValid', 'toleranceAdmittedBeforeMatching', 'populationCount', 'summaryStatus'];
-
 export function auditSupportFoundationInvariants(input) {
-  const value = requireClosedObject(input, 'support foundation audit', SUPPORT_KEYS);
+  const value = requireClosedObject(input, 'support foundation audit', SUPPORT_INPUT_KEYS);
+  auditLoadedBenchmarkOccurrenceContract(value.loadedBenchmark);
+  const reconciliation = reconcileCoverage(adaptSupportBenchmarkReport(value.report));
   const findings = [];
-  if (value.loadedSchema !== 'FbxBenchmarkLoaded.v1') findings.push('FABRICATED_LOADED_SCHEMA');
-  const exactSet = (left, right) => [...left].sort().join('\0') === [...right].sort().join('\0');
-  const textArray = (field) => requireArray(value[field], field).map((item, index) => requireText(item, `${field}[${index}]`));
-  if (!exactSet(textArray('occurrenceIds'), textArray('occurrenceByIdKeys'))) findings.push('OCCURRENCE_BY_ID_COVERAGE');
-  if (!exactSet(textArray('branchOccurrenceIds'), textArray('branchIds'))) findings.push('BRANCH_OCCURRENCE_COVERAGE');
-  if (!exactSet(textArray('childOccurrenceIds'), textArray('branchChildIds'))) findings.push('CHILD_OCCURRENCE_COVERAGE');
-  if (!requireBoolean(value.canonicalOccurrenceIdsValid, 'canonicalOccurrenceIdsValid')) findings.push('NON_CANONICAL_OCCURRENCE_ID');
-  if (!requireBoolean(value.parentAncestryValid, 'parentAncestryValid')) findings.push('INVALID_PARENT_ANCESTRY');
-  if (!requireBoolean(value.toleranceAdmittedBeforeMatching, 'toleranceAdmittedBeforeMatching')) findings.push('TOLERANCE_ADMISSION_BYPASS');
-  if (!Number.isSafeInteger(value.populationCount) || value.populationCount < 0) fail('BLOCKED_AUDIT_CONTRACT', 'populationCount must be non-negative integer.');
-  const summaryStatus = requireText(value.summaryStatus, 'summaryStatus');
-  if (value.populationCount === 0 && summaryStatus !== 'NOT_APPLICABLE') findings.push('ZERO_SUPPORT_STATUS');
-  return deepFreeze({ schema: 'FbxSupportFoundationAudit.v1', findings: [...new Set(findings)].sort(), status: findings.length ? 'FAIL' : 'PASS' });
+  if (!value.report.toleranceProfileId) findings.push('TOLERANCE_PROFILE_ID_MISSING');
+  if (reconciliation.status === 'FAIL') findings.push('SUPPORT_RECONCILIATION_FAILED');
+  if (reconciliation.status === 'BLOCKED') findings.push('SUPPORT_RECONCILIATION_BLOCKED');
+  if (value.report.summary.status !== reconciliation.status) findings.push('SUPPORT_SUMMARY_MISMATCH');
+  return auditResult('FbxSupportFoundationAudit.v2', findings);
+}
+function auditResult(schema, findings) {
+  const unique = [...new Set(findings)].sort();
+  return deepFreeze({ schema, findings: unique, status: unique.length ? 'FAIL' : 'PASS' });
 }
