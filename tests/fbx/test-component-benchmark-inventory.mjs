@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { loadFbxBenchmark } from '../../tabs/model-converters/converters/fbx/benchmark/benchmark-loader.js';
 import { discoverComponentCatalog } from '../../tabs/model-converters/converters/fbx/benchmark/component-qualification.js';
 
 const benchmarkUrl = new URL('../../Benchmarks/fbx%20BM/StaggedJsonBMforFBX', import.meta.url);
-const benchmarkText = await readFile(benchmarkUrl, 'utf8');
-const benchmark = JSON.parse(benchmarkText);
-const inventory = discoverComponentCatalog(benchmark);
+const benchmarkBytes = await readFile(benchmarkUrl);
+const loaded = await loadFbxBenchmark({ bytes: benchmarkBytes });
+const inventory = discoverComponentCatalog(loaded);
 
 assert.deepEqual(inventory, {
   schema: 'FbxComponentCatalog.v1',
@@ -42,5 +43,6 @@ assert.equal(
   536,
   'benchmark typed-record reconciliation failed',
 );
+assert.equal(loaded.occurrences.length, 536);
 
 console.log('test-component-benchmark-inventory: PASS');
