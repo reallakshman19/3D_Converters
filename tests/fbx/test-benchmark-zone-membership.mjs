@@ -6,6 +6,7 @@ import {
 } from '../../tabs/model-converters/converters/fbx/benchmark-zone-contract.js';
 import {
   buildFbxZoneMembershipIndex,
+  validateFbxZoneMembershipIndex,
 } from '../../tabs/model-converters/converters/fbx/benchmark-zone-membership.js';
 import {
   buildFbxZoneBenchmarkReport,
@@ -71,6 +72,7 @@ assert.deepEqual(byName.get('BR-BOUNDARY').zoneIds, ['ZONE-A', 'ZONE-B']);
 assert.equal(byName.get('BR-UNKNOWN').status, 'UNASSIGNED');
 assert.equal(byName.get('BR-IGNORED').status, 'EXCLUDED');
 assert.equal(Object.isFrozen(index.records[0]), true);
+assert.equal(validateFbxZoneMembershipIndex(index), index);
 
 const reordered = buildFbxZoneMembershipIndex(manifest, [...branches].reverse());
 assert.equal(canonicalJson(index), canonicalJson(reordered));
@@ -98,6 +100,13 @@ assert.deepEqual(
   ['BR-B-EXPLICIT'],
 );
 assert.equal(buildFbxZoneBenchmarkReport(index, passingActual).status, 'BLOCKED_REFERENCE');
+
+const forgedIndex = structuredClone(passingReference);
+forgedIndex.conflictBranchNames = ['FORGED'];
+assert.throws(
+  () => buildFbxZoneBenchmarkReport(forgedIndex, passingActual),
+  /not derived from records/,
+);
 
 const otherManifest = buildFbxBenchmarkZoneManifest({
   ...manifestInput(),
