@@ -59,7 +59,7 @@ function comparePosition(reference, actual, tolerance) {
   };
 }
 
-function compareOrientation(referenceRecord, actualRecord, orientationComparator) {
+function compareOrientation(referenceRecord, actualRecord, orientationComparator, tolerance) {
   const reference = referenceRecord.orientation;
   const actual = actualRecord.orientation;
   if (reference === actual) return compareExact('orientation', reference, actual);
@@ -80,7 +80,9 @@ function compareOrientation(referenceRecord, actualRecord, orientationComparator
       reason: `ORIENTATION_COMPARATOR_ERROR:${error instanceof Error ? error.message : String(error)}`,
     };
   }
-  if (!result || typeof result !== 'object' || typeof result.pass !== 'boolean') {
+  if (!result || typeof result !== 'object'
+    || typeof result.authorityId !== 'string' || !result.authorityId
+    || !Number.isFinite(result.angularResidual) || result.angularResidual < 0) {
     return {
       ...compareExact('orientation', reference, actual),
       state: 'BLOCKED',
@@ -90,13 +92,14 @@ function compareOrientation(referenceRecord, actualRecord, orientationComparator
   return {
     fieldId: 'orientation',
     comparison: 'TOLERANCED',
+    authorityId: result.authorityId,
     referenceValueState: valueState(reference),
     actualValueState: valueState(actual),
     referenceValue: reference,
     actualValue: actual,
-    angularResidual: result.angularResidual ?? null,
-    toleranceLimit: result.toleranceLimit ?? null,
-    state: result.pass ? 'PASS' : 'FAIL',
+    angularResidual: result.angularResidual,
+    toleranceLimit: tolerance.absolute,
+    state: result.angularResidual <= tolerance.absolute ? 'PASS' : 'FAIL',
   };
 }
 
@@ -211,12 +214,17 @@ function resolveHost(record, side, resolver, required) {
   if (!['RESOLVED', 'ORPHAN', 'AMBIGUOUS', 'NOT_APPLICABLE', 'BLOCKED'].includes(state)) {
     return { state: 'BLOCKED', hostIdentity: null, candidateHostIdentities: [], reason: 'HOST_RESOLVER_INVALID_STATE' };
   }
+  const allowedAuthorities = new Set(['EXPLICIT_SOURCE_REFERENCE', 'APPROVED_HOST_MANIFEST']);
   if (state === 'RESOLVED' && (typeof result.hostIdentity !== 'string' || !result.hostIdentity)) {
-    return { state: 'BLOCKED', hostIdentity: null, candidateHostIdentities: [], reason: 'HOST_IDENTITY_REQUIRED' };
+    return { state: 'BLOCKED', hostIdentity: null, authority: null, candidateHostIdentities: [], reason: 'HOST_IDENTITY_REQUIRED' };
+  }
+  if (state === 'RESOLVED' && !allowedAuthorities.has(result.authority)) {
+    return { state: 'BLOCKED', hostIdentity: null, authority: null, candidateHostIdentities: [], reason: 'HOST_AUTHORITY_NOT_APPROVED' };
   }
   return {
     state,
     hostIdentity: result.hostIdentity ?? null,
+    authority: result.authority ?? null,
     candidateHostIdentities: Array.isArray(result.candidateHostIdentities)
       ? [...result.candidateHostIdentities].map(String).sort()
       : [],
@@ -236,11 +244,15 @@ function compareHost(referenceRecord, actualRecord, resolver, required) {
     state = 'NOT_APPLICABLE';
   } else if (reference.state !== 'RESOLVED' || actual.state !== 'RESOLVED') {
     state = 'BLOCKED';
+  } else if (reference.authority !== actual.authority) {
+    state = 'BLOCKED';
   } else {
     state = reference.hostIdentity === actual.hostIdentity ? 'PASS' : 'FAIL';
   }
   return Object.freeze({
-    authorityMode: typeof resolver === 'function' ? 'INJECTED_EXPLICIT_AUTHORITY' : null,
+    authorityMode: reference.authority && reference.authority === actual.authority
+      ? reference.authority
+      : null,
     referenceHostIdentity: reference.hostIdentity,
     actualHostIdentity: actual.hostIdentity,
     referenceState: reference.state,
@@ -266,7 +278,12 @@ export function compareMatchedSupport(referenceRecord, actualRecord, options) {
     compareExact('supportClass', referenceRecord.supportClass, actualRecord.supportClass),
     compareExact('ownerBranch', referenceRecord.ownerBranch, actualRecord.ownerBranch),
     comparePosition(referenceRecord.position, actualRecord.position, toleranceProfile.supportPositionTolerance),
-    compareOrientation(referenceRecord, actualRecord, options.orientationComparator),
+    compareOrientation(
+      referenceRecord,
+      actualRecord,
+      options.orientationComparator,
+      toleranceProfile.orientationAngularTolerance,
+    ),
   ];
   for (const rule of options.propertyRules || []) {
     fieldResults.push(compareProperty(
