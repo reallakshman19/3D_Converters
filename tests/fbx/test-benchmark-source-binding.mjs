@@ -15,6 +15,8 @@ assert.equal(binding.source.sha256, '0c2c0600a1232541a497aea05832b728569fefcf62e
 assert.equal(binding.benchmark.gitBlobSha1, 'e4ce63f180d3bcc3cba0e85137ce9811cef477e9');
 assert.equal(binding.lineage.derivationStatus, 'UNPROVEN');
 assert.equal(binding.lineage.certificationStatus, 'BLOCKED');
+const benchmarkUrl = new URL(`../../${binding.benchmark.path}`, import.meta.url);
+await verifyBoundBenchmarkBytes(binding, new Uint8Array(await readFile(benchmarkUrl)));
 assert.equal(binding.benchmark.inventory.branchRecords + binding.benchmark.inventory.childRecords,
   binding.benchmark.inventory.totalRecords);
 assert.equal(binding.lineage.benchmarkChildCount - binding.lineage.sourceDirectBranchChildCount,
