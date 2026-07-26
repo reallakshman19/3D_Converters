@@ -137,6 +137,7 @@ export function resolveComponentMatches(
           state.candidateEvidence, id, candidateRecord(rule, key, refs),
         );
       }
+      if (!rule.passing) continue;
       if (!addCollisionGroup(state.collisionGroups, rule, key, refs, acts)) {
         reserveUniqueMatch(rule, refs, acts, state);
       }
