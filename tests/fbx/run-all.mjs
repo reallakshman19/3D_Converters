@@ -1,6 +1,9 @@
 const tests = [
   'test-parser.mjs',
   'test-fbx-source-graph-preview.mjs',
+  'test-benchmark-zone-membership.mjs',
+  'test-support-benchmark.mjs',
+  'test-support-benchmark-failures.mjs',
   'test-source-graph-v2.mjs',
   'test-v1-compatibility.mjs',
   'test-node-attribute-compatibility.mjs',
