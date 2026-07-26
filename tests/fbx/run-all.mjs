@@ -21,6 +21,7 @@ const tests = [
   'test-component-matching-boundaries.mjs',
   'test-component-benchmark-inventory.mjs',
   'test-qualification-audit.mjs',
+  'test-qualification-component-evidence.mjs',
   'test-qualification-audit-adversarial.mjs',
   'test-qualification-scope-audit.mjs',
   'test-mapping-package.mjs',
