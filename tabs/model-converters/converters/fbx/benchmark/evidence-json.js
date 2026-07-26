@@ -19,10 +19,22 @@ function sorted(values, fields) {
   });
 }
 
+function canonicalSupportObservations(value = {}) {
+  return Object.fromEntries(Object.keys(value).sort(compareText).map((field) => [field, {
+    ...stableValue(value[field]), values: sorted(value[field]?.values, ['value']),
+  }]));
+}
+
 function canonicalInventory(value) {
-  return { ...stableValue(value), normalizedTypes: sorted(value.normalizedTypes, ['type']),
-    rawTypes: sorted(value.rawTypes, ['rawType']), ownerSites: sorted(value.ownerSites, ['ownerSite']),
-    duplicateIdentities: sorted(value.duplicateIdentities, ['indexName', 'key']) };
+  return {
+    ...stableValue(value),
+    rawOuterTypes: sorted(value.rawOuterTypes, ['outerType']),
+    rawAttributeTypes: sorted(value.rawAttributeTypes, ['attributeType']),
+    rawAttributeRawTypes: sorted(value.rawAttributeRawTypes, ['rawType']),
+    supportAttributeObservations: canonicalSupportObservations(value.supportAttributeObservations),
+    ownerSiteObservations: sorted(value.ownerSiteObservations, ['ownerSite']),
+    duplicateIdentities: sorted(value.duplicateIdentities, ['indexName', 'key']),
+  };
 }
 
 export function canonicalBenchmarkEvidence(value) {
