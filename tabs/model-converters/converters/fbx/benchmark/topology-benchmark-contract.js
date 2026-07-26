@@ -36,7 +36,9 @@ function nullableText(value, label) {
 }
 
 export function compareText(left, right) {
-  return String(left).localeCompare(String(right));
+  const a = String(left);
+  const b = String(right);
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 export function stableUnique(values) {

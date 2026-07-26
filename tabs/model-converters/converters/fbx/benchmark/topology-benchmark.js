@@ -40,96 +40,102 @@ function statusCounts(records) {
   return Object.freeze(counts);
 }
 
+function topologyAnomalies(reference, actual, policy, referenceFlow, actualFlow, ledger) {
+  return Object.freeze({
+    unresolvedReferences: [
+      ...unresolvedAnomalies(reference, 'reference'),
+      ...unresolvedAnomalies(actual, 'actual'),
+    ],
+    ambiguousReferences: [
+      ...duplicateEntityAnomalies(reference, 'reference'),
+      ...duplicateEntityAnomalies(actual, 'actual'),
+    ],
+    reciprocityMismatches: reciprocityAnomalies(actual, policy),
+    duplicateEdges: ledger.filter((row) => row.matchState === 'DUPLICATE_EDGE'),
+    selfConnections: selfConnectionAnomalies(actual),
+    orphanBranches: orphanBranchAnomalies(actual),
+    disconnectedIslands: islandAnomalies(referenceFlow, actualFlow),
+    unexpectedCycles: cycleAnomalies(referenceFlow, actualFlow, policy),
+    boundaryDiscontinuities: boundaryAnomalies(actual),
+    relationshipKindConflicts: ledger.filter((row) => row.matchState === 'RELATIONSHIP_KIND_CONFLICT'),
+  });
+}
+
+function coverageEvidence(reference, actual, ledger) {
+  const referenceIds = new Set(reference.entities.map((entity) => entity.entityId));
+  const actualIds = new Set(actual.entities.map((entity) => entity.entityId));
+  return Object.freeze({
+    referenceEntityCount: reference.entities.length,
+    actualEntityCount: actual.entities.length,
+    referenceRelationshipCount: reference.relationships.length,
+    actualRelationshipCount: actual.relationships.length,
+    relationshipLedgerCount: ledger.length,
+    unrepresentedReferenceEntities: [...referenceIds].filter((id) => !actualIds.has(id)).sort(),
+    unrepresentedActualEntities: [...actualIds].filter((id) => !referenceIds.has(id)).sort(),
+    unrepresentedReferenceRelationships: ledger.filter((row) => row.matchState === 'MISSING_ACTUAL')
+      .map((row) => row.relationshipId),
+    unrepresentedActualRelationships: ledger.filter((row) => row.matchState === 'UNEXPECTED_ACTUAL')
+      .map((row) => row.relationshipId),
+  });
+}
+
+function resultStatus(coverage, ledger, anomalies, branches, junctions, boundaries) {
+  const blocking = anomalies.ambiguousReferences.some((row) => row.blocking)
+    || anomalies.unresolvedReferences.some((row) => row.blocking);
+  const coverageFailed = coverage.unrepresentedReferenceEntities.length
+    || coverage.unrepresentedActualEntities.length;
+  const anomaliesFailed = anomalies.reciprocityMismatches.length || anomalies.selfConnections.length
+    || anomalies.disconnectedIslands.length || anomalies.unexpectedCycles.length
+    || anomalies.orphanBranches.length || anomalies.boundaryDiscontinuities.length;
+  const recordsFailed = ledger.some((row) => FAIL_STATES.has(row.matchState))
+    || branches.some((row) => row.status === 'FAIL') || junctions.some((row) => row.status === 'FAIL')
+    || boundaries.some((row) => row.status === 'FAIL');
+  return blocking ? 'BLOCKED' : coverageFailed || anomaliesFailed || recordsFailed ? 'FAIL' : 'PASS';
+}
+
+function summaryEvidence(branches, ledger, junctions, boundaries, actualFlow, anomalies, status) {
+  return Object.freeze({
+    branchStatusCounts: statusCounts(branches),
+    relationshipStatusCounts: statusCounts(ledger),
+    junctionStatusCounts: statusCounts(junctions),
+    boundaryStatusCounts: statusCounts(boundaries),
+    islandCount: actualFlow.islands.length,
+    unexpectedCycleCount: anomalies.unexpectedCycles.length,
+    topologyStatus: status,
+  });
+}
+
+function frozenAnomalies(anomalies) {
+  return Object.freeze(Object.fromEntries(
+    Object.entries(anomalies).map(([key, value]) => [key, Object.freeze(value)]),
+  ));
+}
+
 export function buildFbxTopologyBenchmarkReport(input) {
   const request = record(input, 'input');
   const reference = normalizeGraph(request.referenceGraph, 'referenceGraph');
   const actual = normalizeGraph(request.actualGraph, 'actualGraph');
   const policy = normalizePolicy(request.policy);
   const tolerance = normalizeTolerance(request.toleranceProfile);
-  const relationshipLedger = buildRelationshipLedger(reference, actual, tolerance);
-  const referenceFlow = flowState(reference);
-  const actualFlow = flowState(actual);
-
-  const ambiguousReferences = [
-    ...duplicateEntityAnomalies(reference, 'reference'),
-    ...duplicateEntityAnomalies(actual, 'actual'),
-  ];
-  const unresolvedReferences = [
-    ...unresolvedAnomalies(reference, 'reference'),
-    ...unresolvedAnomalies(actual, 'actual'),
-  ];
-  const reciprocityMismatches = reciprocityAnomalies(actual, policy);
-  const selfConnections = selfConnectionAnomalies(actual);
-  const disconnectedIslands = islandAnomalies(referenceFlow, actualFlow);
-  const unexpectedCycles = cycleAnomalies(referenceFlow, actualFlow, policy);
-  const orphanBranches = orphanBranchAnomalies(actual);
-  const boundaryDiscontinuities = boundaryAnomalies(actual);
-  const duplicateEdges = relationshipLedger.filter((row) => row.matchState === 'DUPLICATE_EDGE');
-  const relationshipKindConflicts = relationshipLedger.filter((row) => row.matchState === 'RELATIONSHIP_KIND_CONFLICT');
-
-  const referenceIds = new Set(reference.entities.map((entity) => entity.entityId));
-  const actualIds = new Set(actual.entities.map((entity) => entity.entityId));
-  const branches = branchReports(reference, actual, relationshipLedger, policy, actualFlow);
+  const ledger = buildRelationshipLedger(reference, actual, tolerance);
+  const referenceFlow = flowState(reference), actualFlow = flowState(actual);
+  const anomalies = topologyAnomalies(reference, actual, policy, referenceFlow, actualFlow, ledger);
+  const coverage = coverageEvidence(reference, actual, ledger);
+  const branches = branchReports(reference, actual, ledger, policy, actualFlow);
   const junctions = junctionReports(reference, actual);
-  const boundaries = boundaryReports(relationshipLedger, reference, actual);
-
-  const blocking = ambiguousReferences.some((row) => row.blocking)
-    || unresolvedReferences.some((row) => row.blocking);
-  const failing = relationshipLedger.some((row) => FAIL_STATES.has(row.matchState))
-    || reciprocityMismatches.length || selfConnections.length || disconnectedIslands.length
-    || unexpectedCycles.length || orphanBranches.length || boundaryDiscontinuities.length
-    || branches.some((row) => row.status === 'FAIL') || junctions.some((row) => row.status === 'FAIL')
-    || boundaries.some((row) => row.status === 'FAIL');
-  const overallStatus = blocking ? 'BLOCKED' : failing ? 'FAIL' : 'PASS';
-
+  const boundaries = boundaryReports(ledger, reference, actual);
+  const status = resultStatus(coverage, ledger, anomalies, branches, junctions, boundaries);
   return Object.freeze({
     schema: 'FbxTopologyBenchmarkReport.v1',
     benchmarkIdentity: structuredClone(record(request.benchmarkIdentity, 'benchmarkIdentity')),
     executionIdentity: structuredClone(record(request.executionIdentity, 'executionIdentity')),
-    coverage: Object.freeze({
-      referenceEntityCount: reference.entities.length,
-      actualEntityCount: actual.entities.length,
-      referenceRelationshipCount: reference.relationships.length,
-      actualRelationshipCount: actual.relationships.length,
-      relationshipLedgerCount: relationshipLedger.length,
-      unrepresentedReferenceEntities: [...referenceIds].filter((id) => !actualIds.has(id)).sort(),
-      unrepresentedActualEntities: [...actualIds].filter((id) => !referenceIds.has(id)).sort(),
-      unrepresentedReferenceRelationships: relationshipLedger.filter((row) => row.matchState === 'MISSING_ACTUAL')
-        .map((row) => row.relationshipId),
-      unrepresentedActualRelationships: relationshipLedger.filter((row) => row.matchState === 'UNEXPECTED_ACTUAL')
-        .map((row) => row.relationshipId),
-    }),
-    graphModel: Object.freeze({
-      relationshipKinds: TOPOLOGY_RELATIONSHIP_KINDS,
-      topologyPolicyId: policy.policyId,
-      toleranceProfileId: tolerance.profileId,
-    }),
-    branches: Object.freeze(branches),
-    relationships: relationshipLedger,
-    junctions: Object.freeze(junctions),
-    boundaries: Object.freeze(boundaries),
-    anomalies: Object.freeze({
-      unresolvedReferences: Object.freeze(unresolvedReferences),
-      ambiguousReferences: Object.freeze(ambiguousReferences),
-      reciprocityMismatches: Object.freeze(reciprocityMismatches),
-      duplicateEdges: Object.freeze(duplicateEdges),
-      selfConnections: Object.freeze(selfConnections),
-      orphanBranches: Object.freeze(orphanBranches),
-      disconnectedIslands: Object.freeze(disconnectedIslands),
-      unexpectedCycles: Object.freeze(unexpectedCycles),
-      boundaryDiscontinuities: Object.freeze(boundaryDiscontinuities),
-      relationshipKindConflicts: Object.freeze(relationshipKindConflicts),
-    }),
-    summary: Object.freeze({
-      branchStatusCounts: statusCounts(branches),
-      relationshipStatusCounts: statusCounts(relationshipLedger),
-      junctionStatusCounts: statusCounts(junctions),
-      boundaryStatusCounts: statusCounts(boundaries),
-      islandCount: actualFlow.islands.length,
-      unexpectedCycleCount: unexpectedCycles.length,
-      topologyStatus: overallStatus,
-    }),
+    coverage,
+    graphModel: Object.freeze({ relationshipKinds: TOPOLOGY_RELATIONSHIP_KINDS,
+      topologyPolicyId: policy.policyId, toleranceProfileId: tolerance.profileId }),
+    branches: Object.freeze(branches), relationships: ledger, junctions: Object.freeze(junctions),
+    boundaries: Object.freeze(boundaries), anomalies: frozenAnomalies(anomalies),
+    summary: summaryEvidence(branches, ledger, junctions, boundaries, actualFlow, anomalies, status),
     determinism: request.determinism == null ? null : structuredClone(record(request.determinism, 'determinism')),
-    status: overallStatus,
+    status,
   });
 }

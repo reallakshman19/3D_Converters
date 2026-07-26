@@ -10,6 +10,7 @@ const tests = [
   'test-family-mapping.mjs',
   'test-family-parser.mjs',
   'test-benchmark-topology.mjs',
+  'test-benchmark-topology-review.mjs',
   'test-mapping-package.mjs',
   'test-fbx-mapping-package.mjs',
   'test-mapping-package-static.mjs',

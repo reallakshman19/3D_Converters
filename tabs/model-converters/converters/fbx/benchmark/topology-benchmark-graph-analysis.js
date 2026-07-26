@@ -7,6 +7,19 @@ import {
   stableUnique,
 } from './topology-benchmark-contract.js';
 
+function flowRelationships(graph) {
+  return graph.relationships.filter((row) => row.kind === 'FLOW_ADJACENCY' && row.targetEntityId)
+    .sort((left, right) => compareText(relationshipSortKey(left), relationshipSortKey(right)));
+}
+
+function connectFlowRelationship(relationship, participants, parent, unite, cycleIds) {
+  participants.add(relationship.sourceEntityId);
+  participants.add(relationship.targetEntityId);
+  if (!parent.has(relationship.sourceEntityId)) parent.set(relationship.sourceEntityId, relationship.sourceEntityId);
+  if (!parent.has(relationship.targetEntityId)) parent.set(relationship.targetEntityId, relationship.targetEntityId);
+  if (!unite(relationship.sourceEntityId, relationship.targetEntityId)) cycleIds.push(relationship.relationshipId);
+}
+
 export function flowState(graph) {
   const participants = new Set(graph.entities.filter((entity) => entity.flowParticipant).map((entity) => entity.entityId));
   const parent = new Map([...participants].map((id) => [id, id]));
@@ -20,23 +33,14 @@ export function flowState(graph) {
   };
   const unite = (left, right) => {
     const leftRoot = find(left), rightRoot = find(right);
-    if (leftRoot == null || rightRoot == null) return false;
-    if (leftRoot === rightRoot) return false;
+    if (leftRoot == null || rightRoot == null || leftRoot === rightRoot) return false;
     const [first, second] = [leftRoot, rightRoot].sort(compareText);
     parent.set(second, first);
     return true;
   };
   const cycleClosingRelationshipIds = [];
-  const flowRelationships = graph.relationships.filter((row) => row.kind === 'FLOW_ADJACENCY' && row.targetEntityId)
-    .sort((left, right) => compareText(relationshipSortKey(left), relationshipSortKey(right)));
-  for (const relationship of flowRelationships) {
-    participants.add(relationship.sourceEntityId);
-    participants.add(relationship.targetEntityId);
-    if (!parent.has(relationship.sourceEntityId)) parent.set(relationship.sourceEntityId, relationship.sourceEntityId);
-    if (!parent.has(relationship.targetEntityId)) parent.set(relationship.targetEntityId, relationship.targetEntityId);
-    if (!unite(relationship.sourceEntityId, relationship.targetEntityId)) {
-      cycleClosingRelationshipIds.push(relationship.relationshipId);
-    }
+  for (const relationship of flowRelationships(graph)) {
+    connectFlowRelationship(relationship, participants, parent, unite, cycleClosingRelationshipIds);
   }
   const groups = new Map();
   for (const id of [...participants].sort(compareText)) {
@@ -79,44 +83,56 @@ export function orphanBranchAnomalies(graph) {
     }));
 }
 
+function routeAdjacencyResults(ledger, routeEntityIds) {
+  return ledger.filter((row) => {
+    if (row.kind !== 'FLOW_ADJACENCY') return false;
+    const relationship = row.actual ?? row.reference;
+    return relationship?.targetEntityId != null
+      && routeEntityIds.has(relationship.sourceEntityId)
+      && routeEntityIds.has(relationship.targetEntityId);
+  });
+}
+
+function branchReport(branchId, expected, observed, ledger, policy, actualFlow) {
+  const matchState = expected && observed ? 'EXACT_MATCH' : expected ? 'MISSING_ACTUAL' : 'UNEXPECTED_ACTUAL';
+  const sequenceMismatch = Boolean(expected && observed
+    && policy.branchSequenceAuthority === 'AUTHORITATIVE'
+    && expected.routeSequence.join('\0') !== observed.routeSequence.join('\0'));
+  const relationshipResults = ledger.filter((row) => (
+    row.reference?.sourceEntityId === branchId || row.actual?.sourceEntityId === branchId
+    || row.reference?.targetEntityId === branchId || row.actual?.targetEntityId === branchId
+  ));
+  const routeIds = new Set(observed?.routeSequence ?? expected?.routeSequence ?? []);
+  const adjacencyResults = routeAdjacencyResults(ledger, routeIds);
+  const island = actualFlow.islands.find((ids) => observed?.routeSequence.some((id) => ids.includes(id))) ?? null;
+  const cycleIds = actualFlow.cycleClosingRelationshipIds.filter((id) => (
+    adjacencyResults.some((row) => row.relationshipId === id)
+  ));
+  const failed = matchState !== 'EXACT_MATCH' || sequenceMismatch
+    || relationshipResults.some((row) => row.status === 'FAIL')
+    || adjacencyResults.some((row) => row.status === 'FAIL');
+  return Object.freeze({
+    branchId, referenceBranchId: expected?.entityId ?? null, actualBranchId: observed?.entityId ?? null,
+    zoneId: observed?.zoneId ?? expected?.zoneId ?? null, matchState,
+    route: Object.freeze({
+      sequenceAuthority: policy.branchSequenceAuthority,
+      referenceSequence: expected?.routeSequence ?? [], actualSequence: observed?.routeSequence ?? [],
+      sequenceMatch: !sequenceMismatch, adjacencyResultIds: adjacencyResults.map((row) => row.ledgerId),
+      islandId: island?.join('|') ?? null, cycleIds, status: failed ? 'FAIL' : 'PASS',
+    }),
+    status: failed ? 'FAIL' : 'PASS',
+  });
+}
+
 export function branchReports(reference, actual, ledger, policy, actualFlow) {
   const referenceBranches = new Map(reference.entities.filter((entity) => entity.kind === 'BRANCH')
     .map((entity) => [entity.entityId, entity]));
   const actualBranches = new Map(actual.entities.filter((entity) => entity.kind === 'BRANCH')
     .map((entity) => [entity.entityId, entity]));
-  return stableUnique([...referenceBranches.keys(), ...actualBranches.keys()]).map((branchId) => {
-    const expected = referenceBranches.get(branchId) ?? null;
-    const observed = actualBranches.get(branchId) ?? null;
-    const matchState = expected && observed ? 'EXACT_MATCH' : expected ? 'MISSING_ACTUAL' : 'UNEXPECTED_ACTUAL';
-    const sequenceMismatch = Boolean(expected && observed
-      && policy.branchSequenceAuthority === 'AUTHORITATIVE'
-      && expected.routeSequence.join('\0') !== observed.routeSequence.join('\0'));
-    const relationshipResults = ledger.filter((row) => (
-      row.reference?.sourceEntityId === branchId || row.actual?.sourceEntityId === branchId
-      || row.reference?.targetEntityId === branchId || row.actual?.targetEntityId === branchId
-    ));
-    const island = actualFlow.islands.find((ids) => observed?.routeSequence.some((id) => ids.includes(id))) ?? null;
-    const failed = matchState !== 'EXACT_MATCH' || sequenceMismatch || relationshipResults.some((row) => row.status === 'FAIL');
-    return Object.freeze({
-      branchId,
-      referenceBranchId: expected?.entityId ?? null,
-      actualBranchId: observed?.entityId ?? null,
-      zoneId: observed?.zoneId ?? expected?.zoneId ?? null,
-      matchState,
-      route: Object.freeze({
-        sequenceAuthority: policy.branchSequenceAuthority,
-        referenceSequence: expected?.routeSequence ?? [],
-        actualSequence: observed?.routeSequence ?? [],
-        sequenceMatch: !sequenceMismatch,
-        adjacencyResultIds: relationshipResults.filter((row) => row.kind === 'FLOW_ADJACENCY')
-          .map((row) => row.ledgerId),
-        islandId: island?.join('|') ?? null,
-        cycleIds: actualFlow.cycleClosingRelationshipIds,
-        status: failed ? 'FAIL' : 'PASS',
-      }),
-      status: failed ? 'FAIL' : 'PASS',
-    });
-  });
+  return stableUnique([...referenceBranches.keys(), ...actualBranches.keys()]).map((branchId) => branchReport(
+    branchId, referenceBranches.get(branchId) ?? null, actualBranches.get(branchId) ?? null,
+    ledger, policy, actualFlow,
+  ));
 }
 
 export function junctionReports(reference, actual) {
@@ -135,18 +151,13 @@ export function junctionReports(reference, actual) {
     let matchState = referenceEntity && actualEntity ? 'EXACT_MATCH' : referenceEntity ? 'MISSING_ACTUAL' : 'UNEXPECTED_ACTUAL';
     const degree = actualEntity ? actualDegree.get(entityId) ?? 0 : null;
     if (matchState === 'EXACT_MATCH' && referenceEntity.expectedFlowDegree != null
-        && degree !== referenceEntity.expectedFlowDegree) {
-      matchState = 'DEGREE_MISMATCH';
-    }
+        && degree !== referenceEntity.expectedFlowDegree) matchState = 'DEGREE_MISMATCH';
     return Object.freeze({
       ledgerId: `TJ-${String(entityId).replace(/[^A-Za-z0-9_.-]/g, '_')}`,
-      referenceComponentId: referenceEntity?.entityId ?? null,
-      actualComponentId: actualEntity?.entityId ?? null,
+      referenceComponentId: referenceEntity?.entityId ?? null, actualComponentId: actualEntity?.entityId ?? null,
       junctionKind: actualEntity?.junctionKind ?? referenceEntity?.junctionKind,
-      expectedFlowDegree: referenceEntity?.expectedFlowDegree ?? null,
-      actualFlowDegree: degree,
-      matchState,
-      status: matchState === 'EXACT_MATCH' ? 'PASS' : 'FAIL',
+      expectedFlowDegree: referenceEntity?.expectedFlowDegree ?? null, actualFlowDegree: degree,
+      matchState, status: matchState === 'EXACT_MATCH' ? 'PASS' : 'FAIL',
     });
   });
 }

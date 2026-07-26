@@ -13,7 +13,8 @@ function zonePair(relationship, graph) {
   if (!relationship) return null;
   const source = graph.entityBuckets.get(relationship.sourceEntityId)?.[0] ?? null;
   const target = relationship.targetEntityId ? graph.entityBuckets.get(relationship.targetEntityId)?.[0] ?? null : null;
-  return [source?.zoneId ?? null, target?.zoneId ?? null];
+  const pair = [source?.zoneId ?? null, target?.zoneId ?? null];
+  return relationship.directed ? pair : pair.sort(compareText);
 }
 
 function relationshipState(reference, actual, duplicate, tolerance, referenceGraph, actualGraph) {
@@ -89,8 +90,7 @@ export function unresolvedAnomalies(graph, side) {
 export function selfConnectionAnomalies(graph) {
   return graph.relationships.filter((relationship) => (
     relationship.targetEntityId != null
-    && endpoint(relationship.sourceEntityId, relationship.sourcePortRole)
-      === endpoint(relationship.targetEntityId, relationship.targetPortRole)
+    && relationship.sourceEntityId === relationship.targetEntityId
   )).map((relationship) => Object.freeze({
     code: 'SELF_CONNECTION', relationshipId: relationship.relationshipId,
     sourcePath: relationship.sourcePath, blocking: false,
