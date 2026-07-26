@@ -21,8 +21,11 @@ function assertObject(value, label) {
 }
 
 function occurrence(branchIndex, childIndex, record) {
-  const occurrenceId = childIndex === null ? `branch:${branchIndex}` : `branch:${branchIndex}/child:${childIndex}`;
-  return Object.freeze({ occurrenceId, branchIndex, childIndex, record });
+  const branchOccurrenceId = `branch:${branchIndex}`;
+  const occurrenceId = childIndex === null ? branchOccurrenceId : `${branchOccurrenceId}/child:${childIndex}`;
+  return Object.freeze({ occurrenceId, branchOccurrenceId,
+    parentOccurrenceId: childIndex === null ? null : branchOccurrenceId,
+    branchIndex, childIndex, recordRole: childIndex === null ? 'BRANCH_RECORD' : 'CHILD_RECORD', record });
 }
 
 function validateBranch(branch, branchIndex) {
@@ -47,6 +50,10 @@ function collectOccurrences(branches, limits) {
   return occurrences;
 }
 
+function occurrenceLookup(occurrences) {
+  return Object.freeze(Object.fromEntries(occurrences.map((item) => [item.occurrenceId, item])));
+}
+
 function assertIdentity(identity, digest, byteLength) {
   if (identity?.contentSha256 && identity.contentSha256 !== digest) throw new Error('BENCHMARK_CONTENT_SHA256_MISMATCH');
   if (identity?.byteLength !== undefined && identity.byteLength !== byteLength) throw new Error('BENCHMARK_BYTE_LENGTH_MISMATCH');
@@ -61,6 +68,6 @@ export async function loadFbxBenchmark({ bytes, identity = {}, jsonLimits = {}, 
   const branches = deepFreeze(parsed.value);
   const occurrences = deepFreeze(collectOccurrences(branches, semantic));
   return deepFreeze({ schema: 'FbxBenchmarkLoaded.v1', identity: { ...identity, contentSha256: digest,
-    byteLength: parsed.metrics.byteLength }, branches, occurrences, parserMetrics: parsed.metrics,
-  semanticLimits: semantic });
+    byteLength: parsed.metrics.byteLength }, branches, occurrences, occurrenceById: occurrenceLookup(occurrences),
+  parserMetrics: parsed.metrics, semanticLimits: semantic });
 }
