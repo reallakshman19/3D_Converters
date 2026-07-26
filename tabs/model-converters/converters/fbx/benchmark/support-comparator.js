@@ -70,9 +70,22 @@ function compareOrientation(referenceRecord, actualRecord, orientationComparator
       reason: 'ORIENTATION_COMPARATOR_REQUIRED',
     };
   }
-  const result = orientationComparator({ reference, actual, referenceRecord, actualRecord });
+  let result;
+  try {
+    result = orientationComparator({ reference, actual, referenceRecord, actualRecord });
+  } catch (error) {
+    return {
+      ...compareExact('orientation', reference, actual),
+      state: 'BLOCKED',
+      reason: `ORIENTATION_COMPARATOR_ERROR:${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
   if (!result || typeof result !== 'object' || typeof result.pass !== 'boolean') {
-    throw new Error('BLOCKED_SUPPORT_COMPARISON orientationComparator returned an invalid result.');
+    return {
+      ...compareExact('orientation', reference, actual),
+      state: 'BLOCKED',
+      reason: 'ORIENTATION_COMPARATOR_INVALID_RESULT',
+    };
   }
   return {
     fieldId: 'orientation',
@@ -129,8 +142,23 @@ function compareProperty(rule, referenceRecord, actualRecord, tolerance, normali
       reason: `NORMALIZER_REQUIRED:${rule.normalizerId}`,
     };
   }
-  const normalizedReference = normalizer(reference.value);
-  const normalizedActual = normalizer(actual.value);
+  let normalizedReference;
+  let normalizedActual;
+  try {
+    normalizedReference = normalizer(reference.value);
+    normalizedActual = normalizer(actual.value);
+  } catch (error) {
+    return {
+      fieldId: rule.fieldId,
+      comparison: rule.comparison || 'TOLERANCED',
+      referenceValueState: 'UNPARSEABLE_VALUE',
+      actualValueState: 'UNPARSEABLE_VALUE',
+      referenceValue: reference.value,
+      actualValue: actual.value,
+      state: 'BLOCKED',
+      reason: `NORMALIZER_ERROR:${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
   if (!Number.isFinite(normalizedReference) || !Number.isFinite(normalizedActual)) {
     return {
       fieldId: rule.fieldId,
@@ -159,6 +187,73 @@ function compareProperty(rule, referenceRecord, actualRecord, tolerance, normali
   };
 }
 
+function resolveHost(record, side, resolver, required) {
+  if (typeof resolver !== 'function') {
+    return required
+      ? { state: 'BLOCKED', hostIdentity: null, candidateHostIdentities: [], reason: 'HOST_RESOLVER_REQUIRED' }
+      : { state: 'NOT_APPLICABLE', hostIdentity: null, candidateHostIdentities: [] };
+  }
+  let result;
+  try {
+    result = resolver({ record, side });
+  } catch (error) {
+    return {
+      state: 'BLOCKED',
+      hostIdentity: null,
+      candidateHostIdentities: [],
+      reason: `HOST_RESOLVER_ERROR:${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+  if (!result || typeof result !== 'object') {
+    return { state: 'BLOCKED', hostIdentity: null, candidateHostIdentities: [], reason: 'HOST_RESOLVER_INVALID_RESULT' };
+  }
+  const state = result.state;
+  if (!['RESOLVED', 'ORPHAN', 'AMBIGUOUS', 'NOT_APPLICABLE', 'BLOCKED'].includes(state)) {
+    return { state: 'BLOCKED', hostIdentity: null, candidateHostIdentities: [], reason: 'HOST_RESOLVER_INVALID_STATE' };
+  }
+  if (state === 'RESOLVED' && (typeof result.hostIdentity !== 'string' || !result.hostIdentity)) {
+    return { state: 'BLOCKED', hostIdentity: null, candidateHostIdentities: [], reason: 'HOST_IDENTITY_REQUIRED' };
+  }
+  return {
+    state,
+    hostIdentity: result.hostIdentity ?? null,
+    candidateHostIdentities: Array.isArray(result.candidateHostIdentities)
+      ? [...result.candidateHostIdentities].map(String).sort()
+      : [],
+    reason: result.reason ?? null,
+  };
+}
+
+function compareHost(referenceRecord, actualRecord, resolver, required) {
+  const reference = resolveHost(referenceRecord, 'reference', resolver, required);
+  const actual = resolveHost(actualRecord, 'actual', resolver, required);
+  let state;
+  if ([reference.state, actual.state].includes('BLOCKED') || [reference.state, actual.state].includes('AMBIGUOUS')) {
+    state = 'BLOCKED';
+  } else if ([reference.state, actual.state].includes('ORPHAN')) {
+    state = 'ORPHAN';
+  } else if (reference.state === 'NOT_APPLICABLE' && actual.state === 'NOT_APPLICABLE') {
+    state = 'NOT_APPLICABLE';
+  } else if (reference.state !== 'RESOLVED' || actual.state !== 'RESOLVED') {
+    state = 'BLOCKED';
+  } else {
+    state = reference.hostIdentity === actual.hostIdentity ? 'PASS' : 'FAIL';
+  }
+  return Object.freeze({
+    authorityMode: typeof resolver === 'function' ? 'INJECTED_EXPLICIT_AUTHORITY' : null,
+    referenceHostIdentity: reference.hostIdentity,
+    actualHostIdentity: actual.hostIdentity,
+    referenceState: reference.state,
+    actualState: actual.state,
+    candidateHostIdentities: [...new Set([
+      ...reference.candidateHostIdentities,
+      ...actual.candidateHostIdentities,
+    ])].sort(),
+    reasons: [reference.reason, actual.reason].filter(Boolean),
+    state,
+  });
+}
+
 function firstFailure(fieldResults, fieldId) {
   return fieldResults.some((item) => item.fieldId === fieldId && item.state === 'FAIL');
 }
@@ -182,13 +277,20 @@ export function compareMatchedSupport(referenceRecord, actualRecord, options) {
       options.normalizers,
     ));
   }
-  const classBlocked = referenceRecord.classConflicts.length
+  const hostResult = compareHost(referenceRecord, actualRecord, options.hostResolver, options.hostRequired === true);
+  const classBlocked = Boolean(
+    referenceRecord.classConflicts.length
     || actualRecord.classConflicts.length
     || ((referenceRecord.supportClass === null || actualRecord.supportClass === null)
-      && policy.classAuthority.emptyExplicitClassDisposition === 'BLOCKED_CLASSIFICATION');
-  const hasBlocked = classBlocked || fieldResults.some((item) => item.state === 'BLOCKED');
+      && policy.classAuthority.emptyExplicitClassDisposition === 'BLOCKED_CLASSIFICATION'),
+  );
+  const hasBlocked = classBlocked
+    || hostResult.state === 'BLOCKED'
+    || fieldResults.some((item) => item.state === 'BLOCKED');
   let matchState;
   if (hasBlocked) matchState = 'BLOCKED';
+  else if (hostResult.state === 'ORPHAN') matchState = 'ORPHAN_SUPPORT';
+  else if (hostResult.state === 'FAIL') matchState = 'HOST_MISMATCH';
   else if (firstFailure(fieldResults, 'rawType') || firstFailure(fieldResults, 'supportClass')) matchState = 'TYPE_MISMATCH';
   else if (firstFailure(fieldResults, 'ownerBranch')) matchState = 'PROPERTY_MISMATCH';
   else if (firstFailure(fieldResults, 'position')) matchState = 'POSITION_MISMATCH';
@@ -204,6 +306,7 @@ export function compareMatchedSupport(referenceRecord, actualRecord, options) {
       actualConflicts: actualRecord.classConflicts,
       state: classBlocked ? 'BLOCKED' : referenceRecord.supportClass === actualRecord.supportClass ? 'PASS' : 'FAIL',
     }),
+    hostResult,
     fieldResults: Object.freeze(fieldResults),
   });
 }
