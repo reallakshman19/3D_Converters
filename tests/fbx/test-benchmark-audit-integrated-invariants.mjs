@@ -22,6 +22,15 @@ const componentReport = await qualify({
 });
 assert.equal(auditComponentIdentityInvariants({ identityPolicy:policy, report:componentReport }).status,'PASS');
 
+const falsePassReport = structuredClone(componentReport);
+for (const row of falsePassReport.ledger.filter((item) => item.side === 'REFERENCE')) {
+  row.match.state = 'ATTRIBUTE_MISMATCH';
+}
+assert.deepEqual(
+  auditComponentIdentityInvariants({ identityPolicy:policy, report:falsePassReport }).findings,
+  ['COMPONENT_SUMMARY_FALSE_PASS'],
+);
+
 const wrongPolicy = structuredClone(policy);
 wrongPolicy.policyContentSha256 = '0'.repeat(64);
 assert.throws(() => auditComponentIdentityInvariants({ identityPolicy:wrongPolicy, report:componentReport }),
