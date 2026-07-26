@@ -63,6 +63,28 @@ function collisionEntries(group, referenceById, actualById) {
   return entries;
 }
 
+function diagnosticCandidates(matching) {
+  const byReference = new Map();
+  const byActual = new Map();
+  for (const group of matching.diagnosticCandidateGroups) {
+    for (const id of group.referenceIds) {
+      const list = byReference.get(id) || [];
+      list.push({ groupId: group.candidateGroupId, stageId: group.stageId, recordIds: group.actualIds });
+      byReference.set(id, list);
+    }
+    for (const id of group.actualIds) {
+      const list = byActual.get(id) || [];
+      list.push({ groupId: group.candidateGroupId, stageId: group.stageId, recordIds: group.referenceIds });
+      byActual.set(id, list);
+    }
+  }
+  return { byReference, byActual };
+}
+
+function flattenCandidateIds(groups) {
+  return [...new Set((groups || []).flatMap((group) => group.recordIds))].sort(compareText);
+}
+
 function dispositionFor(matchState) {
   if (matchState === 'EXACT_MATCH') return 'PASS';
   if (matchState === 'APPROVED_EQUIVALENT') return 'OBSERVATION';
@@ -101,6 +123,7 @@ export function validateSupportBenchmark({
   const actualById = new Map(actualRecords.map((record) => [record.recordId, record]));
   const matching = matchSupportRecords(referenceRecords, actualRecords, identityPolicy);
   const ledgerEntries = [];
+  const candidates = diagnosticCandidates(matching);
 
   for (const match of matching.matches) {
     const referenceRecord = referenceById.get(match.referenceId);
@@ -126,6 +149,7 @@ export function validateSupportBenchmark({
         collisionGroupId: null,
         normalizedKey: match.normalizedKey,
         candidateRecordIds: [],
+        approvedEquivalentRuleId: match.approvedEquivalentRuleId,
         state: match.authority,
       },
       classResult: comparison.classResult,
@@ -145,7 +169,12 @@ export function validateSupportBenchmark({
       matchState: 'MISSING_ACTUAL',
       reference: recordView(referenceById.get(referenceId)),
       actual: null,
-      identityResult: { stageId: null, collisionGroupId: null, normalizedKey: null, candidateRecordIds: [], state: 'UNRESOLVED' },
+      identityResult: {
+        stageId: null, collisionGroupId: null, normalizedKey: null,
+        candidateRecordIds: flattenCandidateIds(candidates.byReference.get(referenceId)),
+        diagnosticCandidateGroups: candidates.byReference.get(referenceId) || [],
+        state: candidates.byReference.has(referenceId) ? 'CANDIDATE_ONLY' : 'UNRESOLVED',
+      },
       fieldResults: [],
     });
   }
@@ -156,7 +185,12 @@ export function validateSupportBenchmark({
       matchState: 'UNEXPECTED_ACTUAL',
       reference: null,
       actual: recordView(actualById.get(actualId)),
-      identityResult: { stageId: null, collisionGroupId: null, normalizedKey: null, candidateRecordIds: [], state: 'UNRESOLVED' },
+      identityResult: {
+        stageId: null, collisionGroupId: null, normalizedKey: null,
+        candidateRecordIds: flattenCandidateIds(candidates.byActual.get(actualId)),
+        diagnosticCandidateGroups: candidates.byActual.get(actualId) || [],
+        state: candidates.byActual.has(actualId) ? 'CANDIDATE_ONLY' : 'UNRESOLVED',
+      },
       fieldResults: [],
     });
   }
