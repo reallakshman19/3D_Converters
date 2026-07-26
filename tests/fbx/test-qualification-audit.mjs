@@ -1,5 +1,25 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { buildFbxQualificationAudit } from '../../tabs/model-converters/converters/fbx/benchmark/qualification-audit.js';
+
+function validateSchema(schema, instance) {
+  const program = String.raw`
+import json, sys
+from jsonschema import Draft202012Validator
+payload = json.load(sys.stdin)
+Draft202012Validator.check_schema(payload["schema"])
+errors = sorted(Draft202012Validator(payload["schema"]).iter_errors(payload["instance"]),
+    key=lambda error: (list(error.absolute_path), error.message))
+print(json.dumps([{"path": list(error.absolute_path), "message": error.message} for error in errors]))
+`;
+  const python = process.env.FBX_SCHEMA_PYTHON || 'python3';
+  const result = spawnSync(python, ['-c', program], {
+    input: JSON.stringify({ schema, instance }), encoding: 'utf8', maxBuffer: 8 * 1024 * 1024,
+  });
+  if (result.error || result.status !== 0) throw new Error(result.error?.message || result.stderr);
+  return JSON.parse(result.stdout);
+}
 
 const exactHeadCommit = 'a'.repeat(40);
 const benchmarkContentSha256 = 'b'.repeat(64);
@@ -45,6 +65,10 @@ assert.deepEqual(report.domains.map(({ domainId }) => domainId), [...requiredDom
 assert.deepEqual(report.requiredDomains, [...requiredDomains].sort());
 assert.ok(Object.isFrozen(report));
 assert.ok(Object.isFrozen(report.domains[0].reference));
+const schema = JSON.parse(await readFile(new URL(
+  '../../contracts/fbx/fbx-qualification-audit-report.v1.schema.json', import.meta.url,
+), 'utf8'));
+assert.deepEqual(validateSchema(schema, report), []);
 
 const reordered = await buildFbxQualificationAudit({
   benchmarkIdentity: { benchmarkCommit: benchmarkIdentity.benchmarkCommit,
