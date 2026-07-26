@@ -9,20 +9,30 @@ const loaded = await loadFbxBenchmark({ bytes, identity: { benchmarkId: 'Stagged
   repository: 'reallaksh19/3D_Converters', benchmarkCommit: 'ecd841cd41cc7a8df1764cec502e0873f578a5dc',
   benchmarkPath, benchmarkBlobSha: 'e4ce63f180d3bcc3cba0e85137ce9811cef477e9' } });
 const inventory = buildFbxBenchmarkInventory(loaded);
-assert.deepEqual(inventory.counts, { totalRecords: 536, branches: 37, children: 499, components: 354,
-  supports: 145 });
-assert.deepEqual(inventory.normalizedTypes, [
-  { type: 'BRANCH', count: 37 }, { type: 'ELBO', count: 29 }, { type: 'FLAN', count: 77 },
-  { type: 'GASK', count: 88 }, { type: 'INST', count: 17 }, { type: 'OLET', count: 13 },
-  { type: 'PIPE', count: 88 }, { type: 'REDU', count: 8 }, { type: 'SUPPORT', count: 145 },
-  { type: 'TEE', count: 7 }, { type: 'VALV', count: 27 },
+
+assert.deepEqual(inventory.counts, { totalRecords: 536, branchRecords: 37, childRecords: 499,
+  nonSupportChildRecords: 354, supportOuterTypeRecords: 145 });
+assert.deepEqual(inventory.rawOuterTypes, [
+  { outerType: 'BRANCH', count: 37 }, { outerType: 'ELBO', count: 29 }, { outerType: 'FLAN', count: 77 },
+  { outerType: 'GASK', count: 88 }, { outerType: 'INST', count: 17 }, { outerType: 'OLET', count: 13 },
+  { outerType: 'PIPE', count: 88 }, { outerType: 'REDU', count: 8 }, { outerType: 'SUPPORT', count: 145 },
+  { outerType: 'TEE', count: 7 }, { outerType: 'VALV', count: 27 },
 ]);
+assert.equal(Object.hasOwn(inventory, 'normalizedTypes'), false);
 assert.equal(Object.hasOwn(inventory, 'supportClasses'), false);
-assert.deepEqual(inventory.ownerSites, [
+assert.deepEqual(inventory.supportAttributeObservations.SUPPORT_KIND, {
+  present: 134, missing: 11,
+  values: [{ value: 'GUIDE', count: 27 }, { value: 'LINESTOP', count: 3 }, { value: 'REST', count: 104 }],
+});
+for (const observation of Object.values(inventory.supportAttributeObservations)) {
+  assert.equal(observation.present + observation.missing, inventory.counts.supportOuterTypeRecords);
+}
+assert.deepEqual(inventory.ownerSiteObservations, [
   { ownerSite: '/TWGA-1000-CU-PI', count: 34 }, { ownerSite: '/TWGA-1000-CU-PL', count: 3 },
 ]);
-assert.deepEqual(inventory.referenceCounts, { href: 33, tref: 19 });
+assert.deepEqual(inventory.referenceCounts, { HREF: 33, TREF: 19 });
 assert.match(inventory.benchmarkIdentity.contentSha256, /^[0-9a-f]{64}$/);
 assert.equal(inventory.parseResult.duplicateJsonKeyCount, 0);
 assert.equal(inventory.parseResult.skippedRecordCount, 0);
+assert.equal(Object.keys(loaded.occurrenceById).length, 536);
 console.log('test-benchmark-real-inventory: PASS');
