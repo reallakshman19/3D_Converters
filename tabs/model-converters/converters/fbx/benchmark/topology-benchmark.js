@@ -27,6 +27,7 @@ import {
   boundaryReports,
   buildRelationshipLedger,
   duplicateEntityAnomalies,
+  duplicateRelationshipAnomalies,
   reciprocityAnomalies,
   selfConnectionAnomalies,
   unresolvedAnomalies,
@@ -51,7 +52,11 @@ function topologyAnomalies(reference, actual, policy, referenceFlow, actualFlow,
       ...duplicateEntityAnomalies(actual, 'actual'),
     ],
     reciprocityMismatches: reciprocityAnomalies(actual, policy),
-    duplicateEdges: ledger.filter((row) => row.matchState === 'DUPLICATE_EDGE'),
+    duplicateEdges: [
+      ...ledger.filter((row) => row.matchState === 'DUPLICATE_EDGE'),
+      ...duplicateRelationshipAnomalies(reference, 'reference'),
+      ...duplicateRelationshipAnomalies(actual, 'actual'),
+    ],
     selfConnections: selfConnectionAnomalies(actual),
     orphanBranches: orphanBranchAnomalies(actual),
     disconnectedIslands: islandAnomalies(referenceFlow, actualFlow),
@@ -80,11 +85,13 @@ function coverageEvidence(reference, actual, ledger) {
 }
 
 function resultStatus(coverage, ledger, anomalies, branches, junctions, boundaries) {
-  const blocking = anomalies.ambiguousReferences.some((row) => row.blocking)
-    || anomalies.unresolvedReferences.some((row) => row.blocking);
+  const blocking = Object.values(anomalies).some((rows) => (
+    rows.some((row) => row.blocking === true)
+  ));
   const coverageFailed = coverage.unrepresentedReferenceEntities.length
     || coverage.unrepresentedActualEntities.length;
-  const anomaliesFailed = anomalies.reciprocityMismatches.length || anomalies.selfConnections.length
+  const anomaliesFailed = anomalies.unresolvedReferences.length || anomalies.reciprocityMismatches.length
+    || anomalies.duplicateEdges.length || anomalies.selfConnections.length
     || anomalies.disconnectedIslands.length || anomalies.unexpectedCycles.length
     || anomalies.orphanBranches.length || anomalies.boundaryDiscontinuities.length;
   const recordsFailed = ledger.some((row) => FAIL_STATES.has(row.matchState))
