@@ -23,6 +23,8 @@ const tests = [
   'test-support-benchmark.mjs',
   'test-support-benchmark-failures.mjs',
   'test-support-occurrence-boundaries.mjs',
+  'test-exact-head-evidence.mjs',
+  'test-qualification-reconciliation.mjs',
   'test-mapping-package.mjs',
   'test-fbx-mapping-package.mjs',
   'test-mapping-package-static.mjs',
