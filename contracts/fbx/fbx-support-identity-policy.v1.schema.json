@@ -27,8 +27,19 @@
             "uniqueItems": true,
             "items": { "type": "string", "minLength": 1 }
           },
-          "requireNonEmpty": { "type": "boolean" }
-        }
+          "requireNonEmpty": { "type": "boolean" },
+          "approvedEquivalentRuleId": { "type": "string", "minLength": 1 }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "authority": { "const": "APPROVED_EQUIVALENT" } },
+              "required": ["authority"]
+            },
+            "then": { "required": ["approvedEquivalentRuleId"] },
+            "else": { "not": { "required": ["approvedEquivalentRuleId"] } }
+          }
+        ]
       }
     },
     "classAuthority": {
