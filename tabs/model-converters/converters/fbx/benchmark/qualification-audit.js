@@ -58,6 +58,10 @@ function normalizeDomain(domain, index) {
   const status = assertNonEmptyString(domain.status, `${domainId}.status`);
   if (!DOMAIN_STATUSES.has(status)) throw new TypeError(`Unsupported domain status: ${status}.`);
   const coverage = assertObject(domain.coverage, `${domainId}.coverage`);
+  const evidenceReferences = [...(domain.evidenceReferences || [])].map((value, itemIndex) => (
+    assertNonEmptyString(value, `${domainId}.evidenceReferences[${itemIndex}]`)
+  )).sort();
+  assertUnique(evidenceReferences, `${domainId}.evidenceReferences`);
   return {
     schema: 'FbxQualificationDomainEvidence.v1',
     domainId,
@@ -67,9 +71,7 @@ function normalizeDomain(domain, index) {
     reference: normalizeSide(coverage.reference, REFERENCE_BUCKETS, `${domainId}.coverage.reference`),
     actual: normalizeSide(coverage.actual, ACTUAL_BUCKETS, `${domainId}.coverage.actual`),
     findings: (domain.findings || []).map((item, findingIndex) => normalizeFinding(item, domainId, findingIndex)),
-    evidenceReferences: [...(domain.evidenceReferences || [])].map((value, itemIndex) => (
-      assertNonEmptyString(value, `${domainId}.evidenceReferences[${itemIndex}]`)
-    )).sort(),
+    evidenceReferences,
   };
 }
 
