@@ -6,8 +6,10 @@ import {
 } from '../../tabs/model-converters/converters/fbx/benchmark-zone-contract.js';
 import {
   buildFbxZoneMembershipIndex,
-  validateFbxZoneMembershipIndex,
 } from '../../tabs/model-converters/converters/fbx/benchmark-zone-membership.js';
+import {
+  validateFbxZoneMembershipIndex,
+} from '../../tabs/model-converters/converters/fbx/benchmark-zone-index.js';
 import {
   buildFbxZoneBenchmarkReport,
 } from '../../tabs/model-converters/converters/fbx/benchmark-zone-report.js';
@@ -47,6 +49,7 @@ function branch(name, owner = '', ownerSite = '') {
 const manifest = buildFbxBenchmarkZoneManifest(manifestInput());
 assert.equal(Object.isFrozen(manifest), true);
 assert.deepEqual(manifest.zones.map((zone) => zone.zoneId), ['ZONE-A', 'ZONE-B']);
+assert.deepEqual(Object.keys(manifest.benchmark), ['commit', 'path', 'blobSha']);
 
 const branches = [
   branch('BR-UNKNOWN'),
@@ -106,6 +109,13 @@ forgedIndex.conflictBranchNames = ['FORGED'];
 assert.throws(
   () => buildFbxZoneBenchmarkReport(forgedIndex, passingActual),
   /not derived from records/,
+);
+
+const forgedAuthority = structuredClone(passingReference);
+forgedAuthority.records[0].authority = 'none';
+assert.throws(
+  () => validateFbxZoneMembershipIndex(forgedAuthority),
+  /assigned state is invalid/,
 );
 
 const otherManifest = buildFbxBenchmarkZoneManifest({
