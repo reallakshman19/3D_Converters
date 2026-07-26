@@ -41,4 +41,16 @@ assert.equal(loaded.occurrenceById['branch:0/child:1'].parentOccurrenceId, 'bran
 assert.equal(Object.isFrozen(loaded.occurrenceById), true);
 assert.deepEqual(inventory.coordinateExtents,
   { minimum: { x: 0, y: 1, z: 2 }, maximum: { x: 3, y: 4, z: 5 } });
+
+const emptyBranches = [0, 1].map((index) => ({
+  name: `/EMPTY/B${index}`, type: 'BRANCH', attributes: {}, children: [],
+}));
+await assert.rejects(
+  () => loadFbxBenchmark({
+    bytes: new TextEncoder().encode(JSON.stringify(emptyBranches)),
+    semanticLimits: { recordLimit: 1, branchLimit: 2 },
+  }),
+  /Benchmark exceeds the record limit/,
+);
+
 console.log('test-benchmark-inventory: PASS');
