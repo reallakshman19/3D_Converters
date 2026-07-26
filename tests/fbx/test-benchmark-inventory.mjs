@@ -24,6 +24,8 @@ assert.deepEqual(inventory.rawOuterTypes, [
 assert.deepEqual(inventory.ownerSiteObservations, [{ ownerSite: '/SITE', count: 1 }]);
 assert.deepEqual(inventory.supportAttributeObservations.SUPPORT_KIND,
   { present: 1, missing: 1, values: [{ value: 'REST', count: 1 }] });
+assert.equal(Object.isFrozen(inventory.supportAttributeObservations.SUPPORT_KIND), true);
+assert.equal(Object.isFrozen(inventory.supportAttributeObservations.SUPPORT_KIND.values), true);
 assert.equal(Object.hasOwn(inventory, 'normalizedTypes'), false);
 assert.equal(Object.hasOwn(inventory, 'supportClasses'), false);
 assert.ok(inventory.duplicateIdentities.some((item) => item.indexName === 'supportByTag' && item.key === 'S1'));
