@@ -35,16 +35,21 @@ function validateBranch(branch, branchIndex) {
   assertObject(branch.attributes, `benchmark[${branchIndex}].attributes`);
 }
 
+function assertRecordLimit(occurrences, limits) {
+  if (occurrences.length > limits.recordLimit) throw new RangeError('Benchmark exceeds the record limit.');
+}
+
 function collectOccurrences(branches, limits) {
   if (branches.length > limits.branchLimit) throw new RangeError('Benchmark exceeds the branch limit.');
   const occurrences = [];
   branches.forEach((branch, branchIndex) => {
     validateBranch(branch, branchIndex);
     occurrences.push(occurrence(branchIndex, null, branch));
+    assertRecordLimit(occurrences, limits);
     branch.children.forEach((child, childIndex) => {
       assertObject(child, `benchmark[${branchIndex}].children[${childIndex}]`);
       occurrences.push(occurrence(branchIndex, childIndex, child));
-      if (occurrences.length > limits.recordLimit) throw new RangeError('Benchmark exceeds the record limit.');
+      assertRecordLimit(occurrences, limits);
     });
   });
   return occurrences;
