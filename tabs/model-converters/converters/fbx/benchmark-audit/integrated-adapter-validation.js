@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto';
+import { canonicalJson as componentCanonicalJson } from '../canonical-json.js';
 import {
-  canonicalSha256, fail, requireArray, requireBoolean, requireNonNegativeInteger,
+  fail, requireArray, requireBoolean, requireNonNegativeInteger,
   requireObject, requireText,
 } from './audit-utils.js';
 
@@ -12,7 +14,9 @@ function requireSchema(value, schema, label) {
 export function validateComponentPolicy(policy) {
   const value = requireSchema(policy, 'FbxComponentIdentityPolicy.v1', 'component policy');
   const declared = requireText(value.policyContentSha256, 'component policy.policyContentSha256');
-  const calculated = canonicalSha256({ ...structuredClone(value), policyContentSha256: null });
+  const calculated = createHash('sha256')
+    .update(componentCanonicalJson({ ...structuredClone(value), policyContentSha256: null }))
+    .digest('hex');
   if (declared !== calculated) fail('BLOCKED_AUDIT_IDENTITY', 'component policy content hash mismatch.');
   const diagnosticRuleIds = new Set();
   for (const [index, rule] of requireArray(value.identityRules, 'component policy.identityRules').entries()) {
