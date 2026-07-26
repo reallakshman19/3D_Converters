@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "FbxQualificationAuditReport.v1",
+  "title": "FbxQualificationAuditReport.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmarkIdentity",
+    "exactHeadCommit",
+    "requiredDomains",
+    "domains",
+    "issues",
+    "summary",
+    "canonicalOrdering",
+    "reportId"
+  ],
+  "properties": {
+    "schema": { "const": "FbxQualificationAuditReport.v1" },
+    "benchmarkIdentity": { "type": "object" },
+    "exactHeadCommit": { "$ref": "#/$defs/commitSha" },
+    "requiredDomains": { "$ref": "#/$defs/uniqueStrings" },
+    "domains": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/domainEvidence" }
+    },
+    "issues": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/issue" }
+    },
+    "summary": { "$ref": "#/$defs/summary" },
+    "canonicalOrdering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domains", "issues"],
+      "properties": {
+        "domains": { "$ref": "#/$defs/uniqueStrings" },
+        "issues": { "$ref": "#/$defs/uniqueStrings" }
+      }
+    },
+    "reportId": {
+      "type": "string",
+      "pattern": "^FBQA-[0-9a-f]{32}$"
+    }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "uniqueStrings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" },
+      "uniqueItems": true
+    },
+    "count": { "type": "integer", "minimum": 0 },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "referenceCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "matched", "missing", "ambiguous", "blocked", "excluded"],
+      "properties": {
+        "total": { "$ref": "#/$defs/count" },
+        "matched": { "$ref": "#/$defs/count" },
+        "missing": { "$ref": "#/$defs/count" },
+        "ambiguous": { "$ref": "#/$defs/count" },
+        "blocked": { "$ref": "#/$defs/count" },
+        "excluded": { "$ref": "#/$defs/count" }
+      }
+    },
+    "actualCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "matched", "unexpected", "ambiguous", "blocked", "excluded"],
+      "properties": {
+        "total": { "$ref": "#/$defs/count" },
+        "matched": { "$ref": "#/$defs/count" },
+        "unexpected": { "$ref": "#/$defs/count" },
+        "ambiguous": { "$ref": "#/$defs/count" },
+        "blocked": { "$ref": "#/$defs/count" },
+        "excluded": { "$ref": "#/$defs/count" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "details"],
+      "properties": {
+        "code": { "$ref": "#/$defs/nonEmptyString" },
+        "severity": { "enum": ["FAILURE", "BLOCKER", "OBSERVATION"] },
+        "details": true
+      }
+    },
+    "domainEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "domainId",
+        "status",
+        "executionCommitSha",
+        "benchmarkContentSha256",
+        "reference",
+        "actual",
+        "findings",
+        "evidenceReferences"
+      ],
+      "properties": {
+        "schema": { "const": "FbxQualificationDomainEvidence.v1" },
+        "domainId": { "$ref": "#/$defs/nonEmptyString" },
+        "status": {
+          "enum": ["PASS", "PASS_WITH_OBSERVATIONS", "FAIL", "BLOCKED", "UNEXECUTED"]
+        },
+        "executionCommitSha": { "$ref": "#/$defs/commitSha" },
+        "benchmarkContentSha256": { "$ref": "#/$defs/sha256" },
+        "reference": { "$ref": "#/$defs/referenceCoverage" },
+        "actual": { "$ref": "#/$defs/actualCoverage" },
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "evidenceReferences": { "$ref": "#/$defs/uniqueStrings" }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "domainId", "details"],
+      "properties": {
+        "code": { "$ref": "#/$defs/nonEmptyString" },
+        "severity": { "enum": ["FAILURE", "BLOCKER", "OBSERVATION"] },
+        "domainId": {
+          "oneOf": [
+            { "$ref": "#/$defs/nonEmptyString" },
+            { "type": "null" }
+          ]
+        },
+        "details": true
+      }
+    },
+    "statusCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["BLOCKED", "FAIL", "PASS", "PASS_WITH_OBSERVATIONS", "UNEXECUTED"],
+      "properties": {
+        "BLOCKED": { "$ref": "#/$defs/count" },
+        "FAIL": { "$ref": "#/$defs/count" },
+        "PASS": { "$ref": "#/$defs/count" },
+        "PASS_WITH_OBSERVATIONS": { "$ref": "#/$defs/count" },
+        "UNEXECUTED": { "$ref": "#/$defs/count" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statusCounts",
+        "requiredDomainCount",
+        "presentRequiredDomainCount",
+        "failureIssueCount",
+        "blockingIssueCount",
+        "observationCount",
+        "auditVerdict",
+        "certificationRecommendation"
+      ],
+      "properties": {
+        "statusCounts": { "$ref": "#/$defs/statusCounts" },
+        "requiredDomainCount": { "$ref": "#/$defs/count" },
+        "presentRequiredDomainCount": { "$ref": "#/$defs/count" },
+        "failureIssueCount": { "$ref": "#/$defs/count" },
+        "blockingIssueCount": { "$ref": "#/$defs/count" },
+        "observationCount": { "$ref": "#/$defs/count" },
+        "auditVerdict": { "enum": ["PASS", "CONDITIONAL_PASS", "FAIL"] },
+        "certificationRecommendation": { "enum": ["CERTIFY", "DO_NOT_CERTIFY"] }
+      }
+    }
+  }
+}
