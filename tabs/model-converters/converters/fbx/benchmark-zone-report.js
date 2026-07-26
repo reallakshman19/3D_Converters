@@ -1,5 +1,5 @@
 import { deepFreeze } from './canonical-json.js';
-import { validateFbxZoneMembershipIndex } from './benchmark-zone-membership.js';
+import { validateFbxZoneMembershipIndex } from './benchmark-zone-index.js';
 
 export const FBX_ZONE_BENCHMARK_REPORT_SCHEMA = 'FbxZoneBenchmarkReport.v1';
 export const FBX_ZONE_BENCHMARK_STATUSES = deepFreeze([
