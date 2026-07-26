@@ -1,122 +1,87 @@
 import assert from 'node:assert/strict';
 import { reconcileCoverage } from '../../tabs/model-converters/converters/fbx/benchmark-audit/coverage-reconciliation.js';
 
-const occurrence = (occurrenceId, identityKey = occurrenceId) => ({ occurrenceId, identityKey });
-const terminal = (recordId, state, referenceOccurrenceIds = [], actualOccurrenceIds = [],
-  originalReferenceCandidateIds = [], originalActualCandidateIds = []) => ({
-  recordId, state, referenceOccurrenceIds, actualOccurrenceIds,
-  originalReferenceCandidateIds, originalActualCandidateIds,
+const occurrence = (occurrenceId) => ({ occurrenceId, identityKey: occurrenceId });
+const terminal = (recordId, state, refs = [], actuals = [], refCandidates = refs, actualCandidates = actuals) => ({
+  recordId, state, referenceOccurrenceIds: refs, actualOccurrenceIds: actuals,
+  originalReferenceCandidateIds: refCandidates, originalActualCandidateIds: actualCandidates,
 });
-const diagnostic = (diagnosticId, state, referenceOccurrenceIds = [], actualOccurrenceIds = []) => ({
-  diagnosticId, state, referenceOccurrenceIds, actualOccurrenceIds,
+const diagnostic = (diagnosticId, state, refs = [], actuals = []) => ({
+  diagnosticId, state, referenceOccurrenceIds: refs, actualOccurrenceIds: actuals,
 });
-function input(populationKind, ledgerSchema, overrides = {}) {
-  return {
-    schema: 'FbxCoverageReconciliationInput.v1',
-    populationId: `${populationKind.toLowerCase()}-population`,
-    populationKind,
-    ledgerSchema,
-    referencePopulation: [occurrence('shared-reference')],
-    actualPopulation: [occurrence('shared-actual')],
-    terminalRecords: [terminal('terminal-1', 'EXACT_MATCH', ['shared-reference'], ['shared-actual'],
-      ['shared-reference'], ['shared-actual'])],
-    diagnosticRecords: [],
-    ...overrides,
-  };
+function input(kind = 'COMPONENT', schema = 'FbxComponentBenchmarkReport.v1', overrides = {}) {
+  return { schema: 'FbxCoverageReconciliationInput.v2', populationId: `${kind}:test`, populationKind: kind,
+    ledgerSchema: schema, referencePopulation: [occurrence('r1')], actualPopulation: [occurrence('a1')],
+    terminalRecords: [terminal('t1', 'EXACT_MATCH', ['r1'], ['a1'])], diagnosticRecords: [], ...overrides };
 }
 
-const zone = reconcileCoverage(input('ZONE_BRANCH', 'FbxZoneMembershipIndex.v1', {
-  terminalRecords: [terminal('zone-terminal', 'ASSIGNED', ['shared-reference'], ['shared-actual'],
-    ['shared-reference'], ['shared-actual'])],
-}));
-const topology = reconcileCoverage(input('TOPOLOGY_BRANCH', 'FbxTopologyBenchmarkReport.v1'));
-assert.equal(zone.status, 'PASS');
-assert.equal(topology.status, 'PASS');
+assert.equal(reconcileCoverage(input()).status, 'PASS');
+assert.throws(() => reconcileCoverage(input('UNKNOWN')), /BLOCKED_AUDIT_VOCABULARY/);
+assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxSupportBenchmarkReport.v1')), /BLOCKED_AUDIT_VOCABULARY/);
+assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
+  terminalRecords: [terminal('x', 'MADE_UP_STATE', ['r1'], ['a1'])],
+})), /BLOCKED_AUDIT_VOCABULARY/);
 
-const duplicate = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
-  terminalRecords: [
-    terminal('component-1', 'EXACT_MATCH', ['shared-reference'], ['shared-actual'], ['shared-reference'], ['shared-actual']),
-    terminal('component-2', 'APPROVED_EQUIVALENT', ['shared-reference'], [], ['shared-reference'], []),
-  ],
-}));
-assert.equal(duplicate.status, 'FAIL');
-assert.deepEqual(duplicate.duplicateConsumptionAttempts.map((item) => `${item.side}:${item.occurrenceId}`),
-  ['reference:shared-reference']);
+for (const state of ['EXACT_MATCH', 'APPROVED_EQUIVALENT']) {
+  assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
+    referencePopulation: [occurrence('r1'), occurrence('r2')], actualPopulation: [occurrence('a1'), occurrence('a2')],
+    terminalRecords: [terminal('many', state, ['r1', 'r2'], ['a1', 'a2'])],
+  })), /BLOCKED_AUDIT_CARDINALITY/);
+}
+assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
+  terminalRecords: [terminal('bad-missing', 'MISSING_ACTUAL', ['r1'], ['a1'])],
+})), /BLOCKED_AUDIT_CARDINALITY/);
+assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
+  terminalRecords: [terminal('bad-unexpected', 'UNEXPECTED_ACTUAL', ['r1'], ['a1'])],
+})), /BLOCKED_AUDIT_CARDINALITY/);
 
-const missingReference = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
-  terminalRecords: [terminal('actual-only', 'UNEXPECTED_ACTUAL', [], ['shared-actual'], [], ['shared-actual'])],
-}));
-assert.equal(missingReference.status, 'FAIL');
-assert.deepEqual(missingReference.unreconciledRecords, [{ side: 'reference', occurrenceId: 'shared-reference' }]);
-
-const missingActual = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
-  terminalRecords: [terminal('reference-only', 'MISSING_ACTUAL', ['shared-reference'], [], ['shared-reference'], [])],
-}));
-assert.equal(missingActual.status, 'FAIL');
-assert.deepEqual(missingActual.unreconciledRecords, [{ side: 'actual', occurrenceId: 'shared-actual' }]);
-
+for (const state of ['EXACT_MATCH', 'APPROVED_EQUIVALENT', 'BLOCKED_IDENTITY', 'MISSING_ACTUAL', 'UNEXPECTED_ACTUAL']) {
+  assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
+    diagnosticRecords: [diagnostic('launder', state, ['r1'], ['a1'])],
+  })), /BLOCKED_AUDIT_VOCABULARY/);
+}
 const diagnosticOnly = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
-  terminalRecords: [terminal('missing', 'MISSING_ACTUAL', ['shared-reference'], [], ['shared-reference'], [])],
-  diagnosticRecords: [diagnostic('candidate', 'EXACT_MATCH', ['shared-reference'], ['shared-actual'])],
+  terminalRecords: [terminal('missing', 'MISSING_ACTUAL', ['r1'], [])],
+  diagnosticRecords: [diagnostic('candidate', 'DIAGNOSTIC_CANDIDATE', ['r1'], ['a1'])],
 }));
 assert.equal(diagnosticOnly.status, 'FAIL');
-assert.equal(diagnosticOnly.diagnosticRecordCount, 1);
-assert.equal(diagnosticOnly.terminalRecordCount, 1);
-assert.deepEqual(diagnosticOnly.unreconciledRecords, [{ side: 'actual', occurrenceId: 'shared-actual' }]);
+assert.deepEqual(diagnosticOnly.unreconciledRecords, [{ side: 'actual', occurrenceId: 'a1' }]);
 
-const diagnosticBlocked = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
-  diagnosticRecords: [diagnostic('blocked-candidate', 'BLOCKED_IDENTITY', ['shared-reference'], ['shared-actual'])],
+const duplicate = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
+  actualPopulation: [occurrence('a1'), occurrence('a2')],
+  terminalRecords: [terminal('p1', 'EXACT_MATCH', ['r1'], ['a1']), terminal('p2', 'EXACT_MATCH', ['r1'], ['a2'])],
 }));
-assert.equal(diagnosticBlocked.status, 'PASS');
+assert.equal(duplicate.status, 'FAIL');
+assert.deepEqual(duplicate.duplicateConsumptionAttempts.map((row) => row.occurrenceId), ['r1']);
 
-assert.throws(() => reconcileCoverage(input('UNKNOWN', 'FbxComponentBenchmarkReport.v1')), /BLOCKED_AUDIT_VOCABULARY/);
-assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
-  terminalRecords: [terminal('unknown', 'MADE_UP_STATE', ['shared-reference'], ['shared-actual'])],
-})), /BLOCKED_AUDIT_VOCABULARY/);
-assert.throws(() => reconcileCoverage(input('COMPONENT', 'FbxSupportBenchmarkReport.v1')), /BLOCKED_AUDIT_VOCABULARY/);
-
-const collisionEscape = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
-  actualPopulation: [occurrence('candidate-a'), occurrence('outside-a')],
-  terminalRecords: [
-    terminal('escaped-pair', 'EXACT_MATCH', ['shared-reference'], ['outside-a'], ['shared-reference'], ['candidate-a']),
-    terminal('candidate-unexpected', 'UNEXPECTED_ACTUAL', [], ['candidate-a'], [], ['candidate-a']),
-  ],
+const escaped = reconcileCoverage(input('COMPONENT', 'FbxComponentBenchmarkReport.v1', {
+  actualPopulation: [occurrence('a1'), occurrence('a2')],
+  terminalRecords: [terminal('pair', 'EXACT_MATCH', ['r1'], ['a2'], ['r1'], ['a1']),
+    terminal('leftover', 'UNEXPECTED_ACTUAL', [], ['a1'])],
 }));
-assert.equal(collisionEscape.status, 'FAIL');
-assert.deepEqual(collisionEscape.collisionEscapeAttempts.map((item) => item.occurrenceId), ['outside-a']);
+assert.equal(escaped.status, 'FAIL');
+assert.deepEqual(escaped.collisionEscapeAttempts.map((row) => row.occurrenceId), ['a2']);
 
-const blockedSupport = reconcileCoverage(input('SUPPORT', 'FbxSupportBenchmarkReport.v1', {
-  referencePopulation: [occurrence('support-r1'), occurrence('support-r2')],
-  actualPopulation: [occurrence('support-a1')],
-  terminalRecords: [
-    terminal('blocked', 'BLOCKED', ['support-r1'], ['support-a1'], ['support-r1'], ['support-a1']),
-    terminal('missing', 'MISSING_ACTUAL', ['support-r2'], [], ['support-r2'], []),
-  ],
+const supportBlocked = reconcileCoverage(input('SUPPORT', 'FbxSupportBenchmarkReport.v1', {
+  referencePopulation: [occurrence('r1'), occurrence('r2')], actualPopulation: [occurrence('a1')],
+  terminalRecords: [terminal('blocked', 'BLOCKED', ['r1'], ['a1']), terminal('missing', 'MISSING_ACTUAL', ['r2'], [])],
 }));
-assert.equal(blockedSupport.status, 'BLOCKED');
+assert.equal(supportBlocked.status, 'BLOCKED');
+assert.equal(reconcileCoverage(input('SUPPORT', 'FbxSupportBenchmarkReport.v1', {
+  referencePopulation: [], actualPopulation: [], terminalRecords: [],
+})).status, 'NOT_APPLICABLE');
 
-const noSupports = reconcileCoverage(input('SUPPORT', 'FbxSupportBenchmarkReport.v1', {
-  referencePopulation: [], actualPopulation: [], terminalRecords: [], diagnosticRecords: [],
-}));
-assert.equal(noSupports.status, 'NOT_APPLICABLE');
-
-const topologyBranch = reconcileCoverage(input('TOPOLOGY_BRANCH', 'FbxTopologyBenchmarkReport.v1'));
-const topologyRelationship = reconcileCoverage(input('TOPOLOGY_RELATIONSHIP', 'FbxTopologyBenchmarkReport.v1'));
-assert.equal(topologyBranch.populationKind, 'TOPOLOGY_BRANCH');
-assert.equal(topologyRelationship.populationKind, 'TOPOLOGY_RELATIONSHIP');
-assert.equal(topologyBranch.status, 'PASS');
-assert.equal(topologyRelationship.status, 'PASS');
-
-const zoneFailures = reconcileCoverage(input('ZONE_BRANCH', 'FbxZoneMembershipIndex.v1', {
-  referencePopulation: [occurrence('zone-r1'), occurrence('zone-r2')],
-  actualPopulation: [],
-  terminalRecords: [
-    terminal('zone-conflict', 'CONFLICT', ['zone-r1'], [], ['zone-r1'], []),
-    terminal('zone-unassigned', 'UNASSIGNED', ['zone-r2'], [], ['zone-r2'], []),
-  ],
-}));
-assert.equal(zoneFailures.status, 'FAIL');
-assert.deepEqual(zoneFailures.terminalStateCounts, { CONFLICT: 1, UNASSIGNED: 1 });
-assert.ok(Object.isFrozen(zoneFailures));
-
+for (const state of ['CONFLICT', 'UNASSIGNED', 'EXCLUDED']) {
+  const result = reconcileCoverage(input('ZONE_BRANCH', 'FbxZoneMembershipIndex.v1', {
+    referencePopulation: [occurrence('z1')], actualPopulation: [],
+    terminalRecords: [terminal('zone', state, ['z1'], [])],
+  }));
+  assert.equal(result.status, 'BLOCKED');
+}
+const branch = reconcileCoverage(input('TOPOLOGY_BRANCH', 'FbxTopologyBenchmarkReport.v1'));
+const relationship = reconcileCoverage(input('TOPOLOGY_RELATIONSHIP', 'FbxTopologyBenchmarkReport.v1'));
+assert.equal(branch.status, 'PASS');
+assert.equal(relationship.status, 'PASS');
+assert.notEqual(branch.populationKind, relationship.populationKind);
+assert.ok(Object.isFrozen(branch));
 console.log('test-benchmark-coverage-reconciliation: PASS');
