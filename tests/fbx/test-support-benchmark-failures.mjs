@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { validateSupportBenchmark } from '../../tabs/model-converters/converters/fbx/benchmark/support-validator.js';
 import {
-  benchmarkFixture, identityPolicy, normalizers, propertyRules, supportNode, toleranceProfile,
+  benchmarkFixture, explicitHostResolver, identityPolicy, normalizers, propertyRules, supportNode, toleranceProfile,
 } from './support-benchmark-fixtures.mjs';
 
 function validate(actual, options = {}) {
@@ -13,6 +13,8 @@ function validate(actual, options = {}) {
     propertyRules,
     normalizers,
     orientationComparator: options.orientationComparator,
+    hostResolver: options.hostResolver || explicitHostResolver,
+    hostRequired: options.hostRequired ?? true,
   });
 }
 
@@ -99,6 +101,20 @@ function validate(actual, options = {}) {
     normalizers,
   });
   assert.equal(allowed.summary.countsByMatchState.EXACT_MATCH, 3);
+}
+
+{
+  const actual = benchmarkFixture();
+  actual[0].children[0].attributes.HOST_REF = 'PIPE-999';
+  const report = validate(actual);
+  assert.equal(report.summary.countsByMatchState.HOST_MISMATCH, 1);
+}
+
+{
+  const actual = benchmarkFixture();
+  delete actual[0].children[0].attributes.HOST_REF;
+  const report = validate(actual);
+  assert.equal(report.summary.countsByMatchState.ORPHAN_SUPPORT, 1);
 }
 
 console.log('test-support-benchmark-failures: PASS');
