@@ -112,6 +112,26 @@ const selfReferenceReport = qualify(selfReference, selfReference);
 assert.equal(selfReferenceReport.status, 'FAIL');
 assert.ok(selfReferenceReport.anomalies.selfConnections.some((row) => row.relationshipId === 'REF-SELF'));
 
+const semanticDuplicate = structuredClone(graph());
+semanticDuplicate.relationships.push(relationship(
+  'OWN-C1-ALIAS', 'BRANCH_OWNERSHIP', 'B1', 'C1', { directed: true },
+));
+const semanticDuplicateReport = qualify(semanticDuplicate, semanticDuplicate);
+assert.equal(semanticDuplicateReport.status, 'BLOCKED');
+assert.ok(semanticDuplicateReport.anomalies.duplicateEdges.some((row) => (
+  row.code === 'DUPLICATE_SEMANTIC_EDGE'
+  && row.side === 'reference'
+  && row.relationshipIds.join('|') === 'OWN-C1|OWN-C1-ALIAS'
+)));
+const permutedSemanticDuplicate = structuredClone(semanticDuplicate);
+permutedSemanticDuplicate.entities.reverse();
+permutedSemanticDuplicate.relationships.reverse();
+assert.deepEqual(
+  qualify(permutedSemanticDuplicate, permutedSemanticDuplicate),
+  semanticDuplicateReport,
+  'semantic duplicate evidence changed under non-authoritative input permutation',
+);
+
 const permuted = graph();
 permuted.entities.reverse();
 permuted.relationships.reverse();
