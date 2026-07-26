@@ -91,6 +91,10 @@ await assert.rejects(
   /domains contains duplicate value component/,
 );
 await assert.rejects(
+  () => audit(domain({ evidenceReferences: ['same', 'same'] })),
+  /evidenceReferences contains duplicate value same/,
+);
+await assert.rejects(
   () => audit(domain({ benchmarkContentSha256: 'not-a-digest' })),
   /lowercase SHA-256 digest/,
 );
