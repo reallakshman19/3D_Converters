@@ -1,5 +1,5 @@
 import { deepFreeze } from './canonical-json.js';
-import { FBX_ZONE_MEMBERSHIP_INDEX_SCHEMA } from './benchmark-zone-membership.js';
+import { validateFbxZoneMembershipIndex } from './benchmark-zone-membership.js';
 
 export const FBX_ZONE_BENCHMARK_REPORT_SCHEMA = 'FbxZoneBenchmarkReport.v1';
 export const FBX_ZONE_BENCHMARK_STATUSES = deepFreeze([
@@ -10,15 +10,6 @@ function compareText(left, right) {
   const a = String(left);
   const b = String(right);
   return a < b ? -1 : a > b ? 1 : 0;
-}
-
-function assertIndex(index, label) {
-  if (!index || index.schema !== FBX_ZONE_MEMBERSHIP_INDEX_SCHEMA) {
-    throw new Error(`${label} must be ${FBX_ZONE_MEMBERSHIP_INDEX_SCHEMA}.`);
-  }
-  if (!Array.isArray(index.zones) || !Array.isArray(index.records)) {
-    throw new Error(`${label} zone membership arrays are missing.`);
-  }
 }
 
 function difference(left, right) {
@@ -60,8 +51,8 @@ function hasReferenceBlockers(index) {
 }
 
 export function buildFbxZoneBenchmarkReport(reference, actual) {
-  assertIndex(reference, 'reference');
-  assertIndex(actual, 'actual');
+  validateFbxZoneMembershipIndex(reference);
+  validateFbxZoneMembershipIndex(actual);
   assertCompatible(reference, actual);
   const referenceZones = zoneMap(reference);
   const actualZones = zoneMap(actual);
