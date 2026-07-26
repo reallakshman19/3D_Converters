@@ -1,195 +1,103 @@
-import {
-  deepFreeze, fail, requireArray, requireClosedObject, requireText, sortedUniqueText, stableCompare,
-} from './audit-utils.js';
-import {
-  requireLedgerSchema, requirePopulationKind, requireTerminalState, terminalClassForState,
-} from './ledger-vocabularies.js';
+import { deepFreeze, fail, requireArray, requireClosedObject, requireText, sortedUniqueText, stableCompare } from './audit-utils.js';
+import { requireDiagnosticState, requireLedgerSchema, requirePopulationKind, requireTerminalState, terminalClassForState } from './ledger-vocabularies.js';
 
-const INPUT_KEYS = [
-  'schema', 'populationId', 'populationKind', 'ledgerSchema',
-  'referencePopulation', 'actualPopulation', 'terminalRecords', 'diagnosticRecords',
-];
-const OCCURRENCE_KEYS = ['occurrenceId', 'identityKey'];
-const TERMINAL_KEYS = [
-  'recordId', 'state', 'referenceOccurrenceIds', 'actualOccurrenceIds',
-  'originalReferenceCandidateIds', 'originalActualCandidateIds',
-];
-const DIAGNOSTIC_KEYS = ['diagnosticId', 'state', 'referenceOccurrenceIds', 'actualOccurrenceIds'];
+const INPUT_KEYS=['schema','populationId','populationKind','ledgerSchema','referencePopulation','actualPopulation','terminalRecords','diagnosticRecords'];
+const OCCURRENCE_KEYS=['occurrenceId','identityKey'];
+const TERMINAL_KEYS=['recordId','state','referenceOccurrenceIds','actualOccurrenceIds','originalReferenceCandidateIds','originalActualCandidateIds'];
+const DIAGNOSTIC_KEYS=['diagnosticId','state','referenceOccurrenceIds','actualOccurrenceIds'];
+const ONE_TO_ONE=new Set(['EXACT_MATCH','APPROVED_EQUIVALENT','TOPOLOGY_MISMATCH','GEOMETRY_MISMATCH','ATTRIBUTE_MISMATCH','TYPE_MISMATCH','POSITION_MISMATCH','ORIENTATION_MISMATCH','PROPERTY_MISMATCH','HOST_MISMATCH','ENDPOINT_MISMATCH','RELATIONSHIP_KIND_CONFLICT','RECIPROCITY_MISMATCH','ZONE_BOUNDARY_MISMATCH','DEGREE_MISMATCH']);
+const REF_ONLY=new Set(['MISSING_ACTUAL','ORPHAN_SUPPORT']);
+const ACTUAL_ONLY=new Set(['UNEXPECTED_ACTUAL']);
+const COLLISION=new Set(['AMBIGUOUS_MATCH','BLOCKED_IDENTITY','BLOCKED','DUPLICATE_IDENTITY','DUPLICATE_EDGE','SELF_CONNECTION']);
 
-function normalizedPopulation(values, label) {
-  const seen = new Set();
-  return requireArray(values, label).map((value, index) => {
-    const item = requireClosedObject(value, `${label}[${index}]`, OCCURRENCE_KEYS);
-    const occurrenceId = requireText(item.occurrenceId, `${label}[${index}].occurrenceId`);
-    if (seen.has(occurrenceId)) fail('BLOCKED_AUDIT_IDENTITY', `${label} repeats ${occurrenceId}.`);
-    seen.add(occurrenceId);
-    return { occurrenceId, identityKey: requireText(item.identityKey, `${label}[${index}].identityKey`) };
-  }).sort((left, right) => stableCompare(left.occurrenceId, right.occurrenceId));
+function normalizedPopulation(values,label){
+  const seen=new Set();
+  return requireArray(values,label).map((value,index)=>{
+    const item=requireClosedObject(value,`${label}[${index}]`,OCCURRENCE_KEYS);
+    const occurrenceId=requireText(item.occurrenceId,`${label}[${index}].occurrenceId`);
+    if(seen.has(occurrenceId)) fail('BLOCKED_AUDIT_IDENTITY',`${label} repeats ${occurrenceId}.`);
+    seen.add(occurrenceId); return {occurrenceId,identityKey:requireText(item.identityKey,`${label}[${index}].identityKey`)};
+  }).sort((a,b)=>stableCompare(a.occurrenceId,b.occurrenceId));
 }
-
-function requireKnownIds(values, known, label) {
-  const ids = sortedUniqueText(values, label);
-  for (const id of ids) if (!known.has(id)) {
-    fail('BLOCKED_AUDIT_IDENTITY', `${label} references unknown occurrence ${id}.`);
-  }
+function requireKnownIds(values,known,label){
+  const ids=sortedUniqueText(values,label);
+  for(const id of ids) if(!known.has(id)) fail('BLOCKED_AUDIT_IDENTITY',`${label} references unknown occurrence ${id}.`);
   return ids;
 }
-
-function normalizeTerminalRecords(values, populationKind, referenceIds, actualIds) {
-  const recordIds = new Set();
-  return requireArray(values, 'terminalRecords').map((value, index) => {
-    const label = `terminalRecords[${index}]`;
-    const item = requireClosedObject(value, label, TERMINAL_KEYS);
-    const recordId = requireText(item.recordId, `${label}.recordId`);
-    if (recordIds.has(recordId)) fail('BLOCKED_AUDIT_IDENTITY', `terminalRecords repeats ${recordId}.`);
-    recordIds.add(recordId);
-    const referenceOccurrenceIds = requireKnownIds(item.referenceOccurrenceIds, referenceIds, `${label}.referenceOccurrenceIds`);
-    const actualOccurrenceIds = requireKnownIds(item.actualOccurrenceIds, actualIds, `${label}.actualOccurrenceIds`);
-    if (!referenceOccurrenceIds.length && !actualOccurrenceIds.length) {
-      fail('BLOCKED_AUDIT_CONTRACT', `${label} must consume at least one occurrence.`);
-    }
-    return {
-      recordId,
-      state: requireTerminalState(populationKind, item.state, `${label}.state`),
-      referenceOccurrenceIds,
-      actualOccurrenceIds,
-      originalReferenceCandidateIds: requireKnownIds(
-        item.originalReferenceCandidateIds, referenceIds, `${label}.originalReferenceCandidateIds`,
-      ),
-      originalActualCandidateIds: requireKnownIds(
-        item.originalActualCandidateIds, actualIds, `${label}.originalActualCandidateIds`,
-      ),
-    };
-  }).sort((left, right) => stableCompare(left.recordId, right.recordId));
-}
-
-function normalizeDiagnosticRecords(values, populationKind, referenceIds, actualIds) {
-  const diagnosticIds = new Set();
-  return requireArray(values, 'diagnosticRecords').map((value, index) => {
-    const label = `diagnosticRecords[${index}]`;
-    const item = requireClosedObject(value, label, DIAGNOSTIC_KEYS);
-    const diagnosticId = requireText(item.diagnosticId, `${label}.diagnosticId`);
-    if (diagnosticIds.has(diagnosticId)) fail('BLOCKED_AUDIT_IDENTITY', `diagnosticRecords repeats ${diagnosticId}.`);
-    diagnosticIds.add(diagnosticId);
-    return {
-      diagnosticId,
-      state: requireTerminalState(populationKind, item.state, `${label}.state`),
-      referenceOccurrenceIds: requireKnownIds(item.referenceOccurrenceIds, referenceIds, `${label}.referenceOccurrenceIds`),
-      actualOccurrenceIds: requireKnownIds(item.actualOccurrenceIds, actualIds, `${label}.actualOccurrenceIds`),
-    };
-  }).sort((left, right) => stableCompare(left.diagnosticId, right.diagnosticId));
-}
-
-function occurrenceUses(population, terminalRecords, side) {
-  const key = side === 'reference' ? 'referenceOccurrenceIds' : 'actualOccurrenceIds';
-  const uses = new Map(population.map((item) => [item.occurrenceId, []]));
-  for (const record of terminalRecords) {
-    for (const occurrenceId of record[key]) uses.get(occurrenceId).push(record.recordId);
+function requireShape(state,refs,actuals,label){
+  const shape=`${refs.length}:${actuals.length}`;
+  if(ONE_TO_ONE.has(state) && shape!=='1:1') fail('BLOCKED_AUDIT_CARDINALITY',`${label} ${state} requires 1 reference and 1 actual.`);
+  if(REF_ONLY.has(state) && shape!=='1:0') fail('BLOCKED_AUDIT_CARDINALITY',`${label} ${state} requires 1 reference and 0 actual.`);
+  if(ACTUAL_ONLY.has(state) && shape!=='0:1') fail('BLOCKED_AUDIT_CARDINALITY',`${label} ${state} requires 0 references and 1 actual.`);
+  if(COLLISION.has(state) && refs.length+actuals.length<2) fail('BLOCKED_AUDIT_CARDINALITY',`${label} ${state} requires an explicit collision set.`);
+  if(!ONE_TO_ONE.has(state)&&!REF_ONLY.has(state)&&!ACTUAL_ONLY.has(state)&&!COLLISION.has(state)&&refs.length+actuals.length!==1) {
+    fail('BLOCKED_AUDIT_CARDINALITY',`${label} ${state} requires exactly one consumed occurrence.`);
   }
-  return uses;
 }
-
-function duplicateConsumption(side, uses) {
-  return [...uses.entries()].filter(([, recordIds]) => recordIds.length > 1)
-    .map(([occurrenceId, recordIds]) => ({ side, occurrenceId, recordIds: [...recordIds].sort(stableCompare) }))
-    .sort((left, right) => stableCompare(left.occurrenceId, right.occurrenceId));
+function normalizeTerminal(value,index,kind,referenceIds,actualIds,seen){
+  const label=`terminalRecords[${index}]`, item=requireClosedObject(value,label,TERMINAL_KEYS);
+  const recordId=requireText(item.recordId,`${label}.recordId`); if(seen.has(recordId)) fail('BLOCKED_AUDIT_IDENTITY',`terminalRecords repeats ${recordId}.`); seen.add(recordId);
+  const state=requireTerminalState(kind,item.state,`${label}.state`);
+  const refs=requireKnownIds(item.referenceOccurrenceIds,referenceIds,`${label}.referenceOccurrenceIds`);
+  const actuals=requireKnownIds(item.actualOccurrenceIds,actualIds,`${label}.actualOccurrenceIds`); requireShape(state,refs,actuals,label);
+  return {recordId,state,referenceOccurrenceIds:refs,actualOccurrenceIds:actuals,
+    originalReferenceCandidateIds:requireKnownIds(item.originalReferenceCandidateIds,referenceIds,`${label}.originalReferenceCandidateIds`),
+    originalActualCandidateIds:requireKnownIds(item.originalActualCandidateIds,actualIds,`${label}.originalActualCandidateIds`)};
 }
-
-function unreconciled(side, uses) {
-  return [...uses.entries()].filter(([, recordIds]) => recordIds.length === 0)
-    .map(([occurrenceId]) => ({ side, occurrenceId }))
-    .sort((left, right) => stableCompare(left.occurrenceId, right.occurrenceId));
+function normalizeTerminalRecords(values,kind,referenceIds,actualIds){
+  const seen=new Set(); return requireArray(values,'terminalRecords').map((v,i)=>normalizeTerminal(v,i,kind,referenceIds,actualIds,seen)).sort((a,b)=>stableCompare(a.recordId,b.recordId));
 }
-
-function candidateEscape(record, side) {
-  const selectedKey = side === 'reference' ? 'referenceOccurrenceIds' : 'actualOccurrenceIds';
-  const candidatesKey = side === 'reference' ? 'originalReferenceCandidateIds' : 'originalActualCandidateIds';
-  const candidates = new Set(record[candidatesKey]);
-  if (!candidates.size) return [];
-  return record[selectedKey].filter((occurrenceId) => !candidates.has(occurrenceId)).map((occurrenceId) => ({
-    recordId: record.recordId, side, occurrenceId, originalCandidateIds: [...record[candidatesKey]],
-  }));
+function normalizeDiagnosticRecords(values,referenceIds,actualIds){
+  const seen=new Set(); return requireArray(values,'diagnosticRecords').map((value,index)=>{
+    const label=`diagnosticRecords[${index}]`,item=requireClosedObject(value,label,DIAGNOSTIC_KEYS);
+    const diagnosticId=requireText(item.diagnosticId,`${label}.diagnosticId`); if(seen.has(diagnosticId)) fail('BLOCKED_AUDIT_IDENTITY',`diagnosticRecords repeats ${diagnosticId}.`); seen.add(diagnosticId);
+    return {diagnosticId,state:requireDiagnosticState(item.state,`${label}.state`),
+      referenceOccurrenceIds:requireKnownIds(item.referenceOccurrenceIds,referenceIds,`${label}.referenceOccurrenceIds`),
+      actualOccurrenceIds:requireKnownIds(item.actualOccurrenceIds,actualIds,`${label}.actualOccurrenceIds`)};
+  }).sort((a,b)=>stableCompare(a.diagnosticId,b.diagnosticId));
 }
-
-function stateCounts(populationKind, records) {
-  const counts = {};
-  const classCounts = { PASS: 0, OBSERVATION: 0, FAIL: 0, BLOCKED: 0 };
-  for (const record of records) {
-    counts[record.state] = (counts[record.state] || 0) + 1;
-    classCounts[terminalClassForState(populationKind, record.state)] += 1;
-  }
-  return {
-    counts: Object.fromEntries(Object.entries(counts).sort(([left], [right]) => stableCompare(left, right))),
-    classCounts,
-  };
+function occurrenceUses(population,records,side){
+  const key=side==='reference'?'referenceOccurrenceIds':'actualOccurrenceIds',uses=new Map(population.map(i=>[i.occurrenceId,[]]));
+  for(const record of records) for(const id of record[key]) uses.get(id).push(record.recordId); return uses;
 }
-
-function equation(name, left, right) {
-  return { name, left, right, pass: left === right };
+function findings(side,uses,mode){
+  return [...uses.entries()].filter(([,ids])=>mode==='duplicate'?ids.length>1:ids.length===0).map(([occurrenceId,recordIds])=>
+    mode==='duplicate'?{side,occurrenceId,recordIds:[...recordIds].sort(stableCompare)}:{side,occurrenceId}).sort((a,b)=>stableCompare(a.occurrenceId,b.occurrenceId));
 }
-
-function coveredExactlyOnce(uses) {
-  return [...uses.values()].filter((recordIds) => recordIds.length === 1).length;
+function candidateEscapes(records){
+  const out=[]; for(const record of records) for(const side of ['reference','actual']){
+    const selected=record[`${side}OccurrenceIds`],candidates=record[`original${side[0].toUpperCase()+side.slice(1)}CandidateIds`]; if(!candidates.length) continue;
+    const allowed=new Set(candidates); for(const id of selected) if(!allowed.has(id)) out.push({recordId:record.recordId,side,occurrenceId:id,originalCandidateIds:[...candidates]});
+  } return out.sort((a,b)=>stableCompare(`${a.recordId}:${a.side}:${a.occurrenceId}`,`${b.recordId}:${b.side}:${b.occurrenceId}`));
 }
-
-function summaryStatus(populationKind, referenceTotal, actualTotal, classCounts, auditFailures) {
-  if (populationKind === 'SUPPORT' && referenceTotal === 0 && actualTotal === 0) return 'NOT_APPLICABLE';
-  if (classCounts.BLOCKED) return 'BLOCKED';
-  if (auditFailures || classCounts.FAIL) return 'FAIL';
-  if (classCounts.OBSERVATION) return 'PASS_WITH_OBSERVATIONS';
-  return 'PASS';
+function stateCounts(kind,records){
+  const counts={},classes={PASS:0,OBSERVATION:0,FAIL:0,BLOCKED:0}; for(const record of records){ counts[record.state]=(counts[record.state]||0)+1; classes[terminalClassForState(kind,record.state)]+=1; }
+  return {counts:Object.fromEntries(Object.entries(counts).sort(([a],[b])=>stableCompare(a,b))),classCounts:classes};
 }
-
-export function reconcileCoverage(input) {
-  const value = requireClosedObject(input, 'coverage input', INPUT_KEYS);
-  if (value.schema !== 'FbxCoverageReconciliationInput.v1') {
-    fail('BLOCKED_AUDIT_CONTRACT', 'schema must be FbxCoverageReconciliationInput.v1.');
-  }
-  const populationKind = requirePopulationKind(value.populationKind);
-  const ledgerSchema = requireLedgerSchema(populationKind, value.ledgerSchema);
-  const referencePopulation = normalizedPopulation(value.referencePopulation, 'referencePopulation');
-  const actualPopulation = normalizedPopulation(value.actualPopulation, 'actualPopulation');
-  const referenceIds = new Set(referencePopulation.map((item) => item.occurrenceId));
-  const actualIds = new Set(actualPopulation.map((item) => item.occurrenceId));
-  const terminalRecords = normalizeTerminalRecords(value.terminalRecords, populationKind, referenceIds, actualIds);
-  const diagnosticRecords = normalizeDiagnosticRecords(value.diagnosticRecords, populationKind, referenceIds, actualIds);
-  const referenceUses = occurrenceUses(referencePopulation, terminalRecords, 'reference');
-  const actualUses = occurrenceUses(actualPopulation, terminalRecords, 'actual');
-  const duplicateConsumptionAttempts = [
-    ...duplicateConsumption('reference', referenceUses), ...duplicateConsumption('actual', actualUses),
-  ];
-  const unreconciledRecords = [...unreconciled('reference', referenceUses), ...unreconciled('actual', actualUses)];
-  const collisionEscapeAttempts = terminalRecords.flatMap((record) => [
-    ...candidateEscape(record, 'reference'), ...candidateEscape(record, 'actual'),
-  ]).sort((left, right) => stableCompare(`${left.recordId}:${left.side}:${left.occurrenceId}`,
-    `${right.recordId}:${right.side}:${right.occurrenceId}`));
-  const reconciliationEquations = [
-    equation('reference population coverage', coveredExactlyOnce(referenceUses), referencePopulation.length),
-    equation('actual population coverage', coveredExactlyOnce(actualUses), actualPopulation.length),
-    equation('diagnostic reference consumption', 0, 0),
-    equation('diagnostic actual consumption', 0, 0),
-  ];
-  const { counts: terminalStateCounts, classCounts: terminalClassCounts } = stateCounts(populationKind, terminalRecords);
-  const { counts: diagnosticStateCounts } = stateCounts(populationKind, diagnosticRecords);
-  const auditFailures = duplicateConsumptionAttempts.length + unreconciledRecords.length
-    + collisionEscapeAttempts.length + reconciliationEquations.filter((item) => !item.pass).length;
-  return deepFreeze({
-    schema: 'FbxCoverageReconciliation.v2',
-    populationId: requireText(value.populationId, 'populationId'),
-    populationKind,
-    ledgerSchema,
-    referencePopulationCount: referencePopulation.length,
-    actualPopulationCount: actualPopulation.length,
-    terminalRecordCount: terminalRecords.length,
-    diagnosticRecordCount: diagnosticRecords.length,
-    terminalStateCounts,
-    terminalClassCounts,
-    diagnosticStateCounts,
-    duplicateConsumptionAttempts,
-    unreconciledRecords,
-    collisionEscapeAttempts,
-    reconciliationEquations,
-    status: summaryStatus(populationKind, referencePopulation.length, actualPopulation.length,
-      terminalClassCounts, auditFailures),
-  });
+function buildCoverage(value){
+  const populationKind=requirePopulationKind(value.populationKind),ledgerSchema=requireLedgerSchema(populationKind,value.ledgerSchema);
+  const referencePopulation=normalizedPopulation(value.referencePopulation,'referencePopulation'),actualPopulation=normalizedPopulation(value.actualPopulation,'actualPopulation');
+  const referenceIds=new Set(referencePopulation.map(i=>i.occurrenceId)),actualIds=new Set(actualPopulation.map(i=>i.occurrenceId));
+  return {populationKind,ledgerSchema,referencePopulation,actualPopulation,
+    terminalRecords:normalizeTerminalRecords(value.terminalRecords,populationKind,referenceIds,actualIds),
+    diagnosticRecords:normalizeDiagnosticRecords(value.diagnosticRecords,referenceIds,actualIds)};
+}
+function buildResult(value,data){
+  const referenceUses=occurrenceUses(data.referencePopulation,data.terminalRecords,'reference'),actualUses=occurrenceUses(data.actualPopulation,data.terminalRecords,'actual');
+  const duplicateConsumptionAttempts=[...findings('reference',referenceUses,'duplicate'),...findings('actual',actualUses,'duplicate')];
+  const unreconciledRecords=[...findings('reference',referenceUses,'missing'),...findings('actual',actualUses,'missing')],collisionEscapeAttempts=candidateEscapes(data.terminalRecords);
+  const {counts:terminalStateCounts,classCounts:terminalClassCounts}=stateCounts(data.populationKind,data.terminalRecords),diagnosticStateCounts={};
+  for(const record of data.diagnosticRecords) diagnosticStateCounts[record.state]=(diagnosticStateCounts[record.state]||0)+1;
+  const failures=duplicateConsumptionAttempts.length+unreconciledRecords.length+collisionEscapeAttempts.length;
+  const emptySupport=data.populationKind==='SUPPORT'&&!data.referencePopulation.length&&!data.actualPopulation.length;
+  const status=emptySupport?'NOT_APPLICABLE':terminalClassCounts.BLOCKED?'BLOCKED':failures||terminalClassCounts.FAIL?'FAIL':terminalClassCounts.OBSERVATION?'PASS_WITH_OBSERVATIONS':'PASS';
+  return {schema:'FbxCoverageReconciliation.v2',populationId:requireText(value.populationId,'populationId'),populationKind:data.populationKind,ledgerSchema:data.ledgerSchema,
+    referencePopulationCount:data.referencePopulation.length,actualPopulationCount:data.actualPopulation.length,terminalRecordCount:data.terminalRecords.length,diagnosticRecordCount:data.diagnosticRecords.length,
+    terminalStateCounts,terminalClassCounts,diagnosticStateCounts,duplicateConsumptionAttempts,unreconciledRecords,collisionEscapeAttempts,
+    reconciliationEquations:[{name:'reference population coverage',left:[...referenceUses.values()].filter(x=>x.length===1).length,right:data.referencePopulation.length,pass:!unreconciledRecords.some(x=>x.side==='reference')&&!duplicateConsumptionAttempts.some(x=>x.side==='reference')},{name:'actual population coverage',left:[...actualUses.values()].filter(x=>x.length===1).length,right:data.actualPopulation.length,pass:!unreconciledRecords.some(x=>x.side==='actual')&&!duplicateConsumptionAttempts.some(x=>x.side==='actual')}],status};
+}
+export function reconcileCoverage(input){
+  const value=requireClosedObject(input,'coverage input',INPUT_KEYS);
+  if(value.schema!=='FbxCoverageReconciliationInput.v1') fail('BLOCKED_AUDIT_CONTRACT','schema must be FbxCoverageReconciliationInput.v1.');
+  return deepFreeze(buildResult(value,buildCoverage(value)));
 }
