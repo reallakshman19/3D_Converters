@@ -8,6 +8,9 @@ const converter = await readFile(new URL('tabs/model-converters/converters/fbx-t
 const auditSource = await readFile(new URL(
   'tabs/model-converters/converters/fbx/benchmark/qualification-audit.js', root,
 ), 'utf8');
+const evidenceSource = await readFile(new URL(
+  'tabs/model-converters/converters/fbx/benchmark/qualification-domain-evidence.js', root,
+), 'utf8');
 const schema = JSON.parse(await readFile(new URL(
   'contracts/fbx/fbx-qualification-audit-report.v1.schema.json', root,
 ), 'utf8'));
@@ -16,6 +19,7 @@ assert.match(workflow, /'Benchmarks\/fbx BM\/\*\*'/, 'benchmark changes must tri
 let previous = -1;
 for (const test of [
   'test-qualification-audit.mjs',
+  'test-qualification-component-evidence.mjs',
   'test-qualification-audit-adversarial.mjs',
   'test-qualification-scope-audit.mjs',
 ]) {
@@ -24,9 +28,12 @@ for (const test of [
   previous = index;
 }
 assert.doesNotMatch(runAll, /allSettled|\bcatch\b/, 'qualification tests may not be swallowed');
-assert.doesNotMatch(converter, /benchmark\/qualification-audit/, 'production converter imports Agent Q audit code');
-assert.doesNotMatch(auditSource, /Date\.now|Math\.random|performance\.|process\.env|navigator\./,
-  'qualification audit contains runtime-dependent evidence state');
+assert.doesNotMatch(converter, /benchmark\/qualification-(?:audit|domain-evidence)/,
+  'production converter imports Agent Q audit code');
+for (const source of [auditSource, evidenceSource]) {
+  assert.doesNotMatch(source, /Date\.now|Math\.random|performance\.|process\.env|navigator\./,
+    'qualification audit contains runtime-dependent evidence state');
+}
 assert.equal(schema.$id, 'FbxQualificationAuditReport.v1');
 assert.equal(schema.additionalProperties, false);
 
