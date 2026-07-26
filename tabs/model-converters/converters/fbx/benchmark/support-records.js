@@ -35,7 +35,9 @@ function nonEmptyText(value) {
 
 function pointValue(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const point = { x: Number(value.x), y: Number(value.y), z: Number(value.z) };
+  const raw = [value.x, value.y, value.z];
+  if (raw.some((item) => item === null || item === undefined || item === '')) return null;
+  const point = { x: Number(raw[0]), y: Number(raw[1]), z: Number(raw[2]) };
   return Object.values(point).every(Number.isFinite) ? point : null;
 }
 
