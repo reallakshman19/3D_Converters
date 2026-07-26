@@ -92,6 +92,8 @@ export function validateSupportBenchmark({
   propertyRules = [],
   normalizers = {},
   orientationComparator,
+  hostResolver,
+  hostRequired = false,
 }) {
   const referenceRecords = collectSupportRecords(reference);
   const actualRecords = collectSupportRecords(actual);
@@ -110,6 +112,8 @@ export function validateSupportBenchmark({
       propertyRules,
       normalizers,
       orientationComparator,
+      hostResolver,
+      hostRequired,
     });
     ledgerEntries.push({
       ledgerKey: `match:${match.referenceId}:${match.actualId}`,
@@ -125,6 +129,7 @@ export function validateSupportBenchmark({
         state: match.authority,
       },
       classResult: comparison.classResult,
+      hostResult: comparison.hostResult,
       fieldResults: comparison.fieldResults,
     });
   }
