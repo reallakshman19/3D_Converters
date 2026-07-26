@@ -72,6 +72,13 @@ await assert.rejects(buildFbxBenchmarkEvidenceIndex({
   benchmarkIdentity, executionIdentity, artifacts: [{ ...artifacts[0], extra: true }],
 }), /unsupported field extra/);
 
+const forgedTopLevel = structuredClone(first);
+forgedTopLevel.extra = true;
+await assert.rejects(validateFbxBenchmarkEvidenceIndex(forgedTopLevel), /unsupported field extra/);
+const forgedEntry = structuredClone(first);
+forgedEntry.artifacts[0].extra = true;
+await assert.rejects(validateFbxBenchmarkEvidenceIndex(forgedEntry), /unsupported field extra/);
+
 const forgedRoot = structuredClone(first);
 forgedRoot.rootEvidenceSha256 = '0'.repeat(64);
 await assert.rejects(validateFbxBenchmarkEvidenceIndex(forgedRoot), /EVIDENCE_ROOT_SHA256_MISMATCH/);
