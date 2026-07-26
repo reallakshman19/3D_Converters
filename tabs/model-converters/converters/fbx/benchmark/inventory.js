@@ -2,8 +2,9 @@ import { deepFreeze } from '../canonical-json.js';
 import { benchmarkIndexCollisions, buildFbxBenchmarkIndexes } from './semantic-indexes.js';
 
 function increment(map, key) {
-  const normalized = key == null || key === '' ? 'UNCLASSIFIED' : String(key);
-  map.set(normalized, (map.get(normalized) || 0) + 1);
+  if (key == null || key === '') return;
+  const observed = String(key);
+  map.set(observed, (map.get(observed) || 0) + 1);
 }
 
 function sortedCounts(map, keyName) {
@@ -25,43 +26,80 @@ function extendExtents(extents, point) {
 }
 
 function finalExtents(extents) {
-  if (!Number.isFinite(extents.minimum.x)) return null;
-  return extents;
+  return Number.isFinite(extents.minimum.x) ? extents : null;
+}
+
+function observeSupport(attributes, state) {
+  increment(state.supportKinds, attributes.SUPPORT_KIND);
+  increment(state.supportMapperKinds, attributes.SUPPORT_MAPPER_KIND);
+  increment(state.supportTypes, attributes.SUPPORT_TYPE);
 }
 
 function observeOccurrence(occurrence, state) {
-  const { record } = occurrence, attributes = record.attributes || {};
-  increment(state.normalizedTypes, record.type);
+  const { record } = occurrence;
+  const attributes = record.attributes || {};
+  increment(state.outerTypes, record.type);
+  increment(state.attributeTypes, attributes.TYPE);
+  increment(state.attributeRawTypes, attributes.RAW_TYPE);
   if (occurrence.childIndex === null) increment(state.ownerSites, attributes.OWNER_SITE);
-  else increment(state.rawTypes, attributes.RAW_TYPE || attributes.TYPE);
-  if (record.type === 'SUPPORT') increment(state.supportClasses, attributes.SUPPORT_KIND);
+  if (record.type === 'SUPPORT') observeSupport(attributes, state);
   if (attributes.HREF !== undefined) state.referenceCounts.href += 1;
   if (attributes.TREF !== undefined) state.referenceCounts.tref += 1;
   for (const point of coordinateValues(record)) extendExtents(state.extents, point);
 }
 
 function createState() {
-  return { normalizedTypes: new Map(), rawTypes: new Map(), supportClasses: new Map(), ownerSites: new Map(),
-    referenceCounts: { href: 0, tref: 0 }, extents: { minimum: { x: Infinity, y: Infinity, z: Infinity },
-      maximum: { x: -Infinity, y: -Infinity, z: -Infinity } } };
+  return {
+    outerTypes: new Map(), attributeTypes: new Map(), attributeRawTypes: new Map(),
+    supportKinds: new Map(), supportMapperKinds: new Map(), supportTypes: new Map(),
+    ownerSites: new Map(), referenceCounts: { href: 0, tref: 0 },
+    extents: { minimum: { x: Infinity, y: Infinity, z: Infinity },
+      maximum: { x: -Infinity, y: -Infinity, z: -Infinity } },
+  };
+}
+
+function observedCount(map) {
+  return [...map.values()].reduce((sum, count) => sum + count, 0);
+}
+
+function rawSupportCoverage(state, supportCount) {
+  const coverage = {};
+  for (const [field, map] of [
+    ['supportKind', state.supportKinds],
+    ['supportMapperKind', state.supportMapperKinds],
+    ['supportType', state.supportTypes],
+  ]) {
+    const observed = observedCount(map);
+    coverage[field] = { observed, missing: supportCount - observed };
+  }
+  return coverage;
 }
 
 export function buildFbxBenchmarkInventory(loaded) {
   const state = createState();
   for (const occurrence of loaded.occurrences) observeOccurrence(occurrence, state);
   const indexes = buildFbxBenchmarkIndexes(loaded);
-  const supportCount = state.normalizedTypes.get('SUPPORT') || 0;
-  const classifiedSupportCount = [...state.supportClasses.values()].reduce((sum, value) => sum + value, 0)
-    - (state.supportClasses.get('UNCLASSIFIED') || 0);
-  return deepFreeze({ schema: 'FbxBenchmarkInventory.v1', benchmarkIdentity: loaded.identity,
+  const supportCount = state.outerTypes.get('SUPPORT') || 0;
+  const childCount = loaded.occurrences.length - loaded.branches.length;
+  return deepFreeze({
+    schema: 'FbxBenchmarkInventory.v1', benchmarkIdentity: loaded.identity,
     parseResult: { status: 'PASS', duplicateJsonKeyCount: loaded.parserMetrics.duplicateKeyCount,
       skippedRecordCount: 0 }, observedLimits: loaded.parserMetrics,
     counts: { totalRecords: loaded.occurrences.length, branches: loaded.branches.length,
-      children: loaded.occurrences.length - loaded.branches.length,
-      components: loaded.occurrences.length - loaded.branches.length - supportCount, supports: supportCount,
-      classifiedSupports: classifiedSupportCount, unclassifiedSupports: supportCount - classifiedSupportCount },
-    normalizedTypes: sortedCounts(state.normalizedTypes, 'type'), rawTypes: sortedCounts(state.rawTypes, 'rawType'),
-    supportClasses: sortedCounts(state.supportClasses, 'supportClass'), ownerSites: sortedCounts(state.ownerSites, 'ownerSite'),
-    referenceCounts: state.referenceCounts, duplicateIdentities: benchmarkIndexCollisions(indexes),
-    coordinateExtents: finalExtents(state.extents), inventoryStatus: 'PASS' });
+      children: childCount, supportOccurrences: supportCount,
+      nonSupportOccurrences: childCount - supportCount },
+    outerTypes: sortedCounts(state.outerTypes, 'outerType'),
+    attributeTypes: sortedCounts(state.attributeTypes, 'attributeType'),
+    attributeRawTypes: sortedCounts(state.attributeRawTypes, 'attributeRawType'),
+    rawSupportObservations: {
+      supportKinds: sortedCounts(state.supportKinds, 'value'),
+      supportMapperKinds: sortedCounts(state.supportMapperKinds, 'value'),
+      supportTypes: sortedCounts(state.supportTypes, 'value'),
+    },
+    rawSupportObservationCoverage: rawSupportCoverage(state, supportCount),
+    ownerSites: sortedCounts(state.ownerSites, 'ownerSite'),
+    referenceCounts: state.referenceCounts,
+    duplicateIdentities: benchmarkIndexCollisions(indexes),
+    coordinateExtents: finalExtents(state.extents), inventoryStatus: 'PASS',
+  });
 }
