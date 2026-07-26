@@ -1,5 +1,5 @@
 import {
-  cloneJson, isObject, parseScalar, pointDistance,
+  canonicalKey, cloneJson, isObject, parseScalar, pointDistance,
 } from './component-common.js';
 
 function toleranceRule(profile, id) {
@@ -65,6 +65,29 @@ export function compareExact(
     });
   }
   return comparison(fieldId, authorityClass, reference, actual, equal ? 'PASS' : 'FAIL', {
+    diagnosticCodes: equal ? [] : [`${fieldId.toUpperCase()}_MISMATCH`],
+  });
+}
+
+export function compareCanonical(
+  fieldId,
+  reference,
+  actual,
+  authorityClass = 'EXACT',
+) {
+  const normalizedReferenceValue = canonicalKey(reference);
+  const normalizedActualValue = canonicalKey(actual);
+  const equal = normalizedReferenceValue === normalizedActualValue;
+  if (authorityClass === 'OBSERVATION') {
+    return comparison(fieldId, authorityClass, reference, actual, 'OBSERVATION', {
+      normalizedReferenceValue,
+      normalizedActualValue,
+      diagnosticCodes: equal ? [] : [`${fieldId.toUpperCase()}_OBSERVATION`],
+    });
+  }
+  return comparison(fieldId, authorityClass, reference, actual, equal ? 'PASS' : 'FAIL', {
+    normalizedReferenceValue,
+    normalizedActualValue,
     diagnosticCodes: equal ? [] : [`${fieldId.toUpperCase()}_MISMATCH`],
   });
 }
@@ -155,6 +178,16 @@ export function commonComparisons(reference, actual, context) {
   return [
     compareExact('family', reference.family, actual.family),
     compareExact('rawType', reference.rawType, actual.rawType),
+    compareExact(
+      'zoneStatus', reference.zoneMembership.status, actual.zoneMembership.status,
+    ),
+    compareCanonical(
+      'zoneIds', reference.zoneMembership.zoneIds, actual.zoneMembership.zoneIds,
+    ),
+    compareExact(
+      'zoneAuthority', reference.zoneMembership.authority,
+      actual.zoneMembership.authority, 'OBSERVATION',
+    ),
     compareExact('owner', reference.owner, actual.owner),
     compareExact('branchId', reference.branchId, actual.branchId),
     comparePoint(
