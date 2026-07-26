@@ -62,11 +62,11 @@ function createState() {
 }
 
 function supportAttributeObservations(state, supportOuterTypeRecords) {
-  return Object.freeze(Object.fromEntries(Object.keys(state.supportAttributeValues).sort().map((field) => [field, {
+  return Object.fromEntries(Object.keys(state.supportAttributeValues).sort().map((field) => [field, {
     present: state.supportAttributePresence[field],
     missing: supportOuterTypeRecords - state.supportAttributePresence[field],
     values: sortedCounts(state.supportAttributeValues[field], 'value'),
-  }])));
+  }]));
 }
 
 export function buildFbxBenchmarkInventory(loaded) {
