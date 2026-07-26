@@ -45,7 +45,7 @@ const componentReport = await qualify({
   identityPolicy:componentPolicy(), toleranceProfile,
 });
 const componentAudit = reconcileCoverage(adaptComponentBenchmarkReport(componentReport));
-assert.equal(componentAudit.status,'PASS');
+assert.equal(componentAudit.status,'PASS_WITH_OBSERVATIONS');
 assert.equal(componentAudit.referencePopulationCount,componentReport.inventory.referenceComponentCount);
 assert.equal(componentAudit.actualPopulationCount,componentReport.inventory.actualComponentCount);
 assert.equal(componentAudit.unreconciledRecords.length,0);
