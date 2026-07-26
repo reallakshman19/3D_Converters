@@ -17,7 +17,7 @@ import { validateSupportBenchmark } from '../../tabs/model-converters/converters
 const zoneManifest = buildFbxBenchmarkZoneManifest({
   schema:'FbxBenchmarkZoneManifest.v1',
   benchmark:{ commit:'a'.repeat(40), path:'benchmark.json', blobSha:'b'.repeat(40) },
-  zonePolicyId:'audit-zone-policy', sharedBoundaryPolicy:'explicit-only',
+  zonePolicyId:'explicit-branch-owner-site-v1', sharedBoundaryPolicy:'explicit-only',
   zones:[
     { zoneId:'Z1', displayName:'Zone 1', ownerSites:['SITE-1'], owners:[], branches:[], sharedBoundaryBranches:['BOUNDARY'] },
     { zoneId:'Z2', displayName:'Zone 2', ownerSites:['SITE-2'], owners:[], branches:[], sharedBoundaryBranches:['BOUNDARY'] },
