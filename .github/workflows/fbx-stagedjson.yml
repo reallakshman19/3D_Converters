@@ -3,6 +3,7 @@ name: FBX StagedJSON
 on:
   pull_request:
     paths:
+      - 'Benchmarks/fbx BM/**'
       - 'tabs/model-converters/converter-registry.js'
       - 'tabs/model-converters/converters/fbx-to-stagedjson.js'
       - 'tabs/model-converters/converters/fbx/**'
