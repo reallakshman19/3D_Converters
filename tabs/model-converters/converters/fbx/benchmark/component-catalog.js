@@ -4,6 +4,10 @@ import {
   canonicalKey, cloneJson, compareText, fail, isObject, point,
 } from './component-common.js';
 import {
+  benchmarkBranchOccurrences, benchmarkComponentOccurrences,
+  branchRecordForOccurrence, validateLoadedBenchmark,
+} from './component-occurrences.js';
+import {
   catalogEntryForTypes, validateComponentIdentityPolicy,
 } from './component-policy.js';
 import {
@@ -34,28 +38,28 @@ const FIELD_ALIASES = Object.freeze({
   'attributes.BORE_SOURCE': (subject) => subject.attributes.BORE_SOURCE,
 });
 
-export function childType(child) {
-  return String(child?.type ?? '').trim().toUpperCase();
+export function childType(record) {
+  return String(record?.type ?? '').trim().toUpperCase();
 }
 
-export function rawType(child) {
-  const attributes = isObject(child?.attributes) ? child.attributes : {};
-  return String(attributes.RAW_TYPE ?? attributes.TYPE ?? child?.type ?? '')
+export function rawType(record) {
+  const attributes = isObject(record?.attributes) ? record.attributes : {};
+  return String(attributes.RAW_TYPE ?? attributes.TYPE ?? record?.type ?? '')
     .trim().toUpperCase() || null;
 }
 
-function branchIdentity(branch) {
-  const attributes = isObject(branch?.attributes) ? branch.attributes : {};
+function branchIdentity(record) {
+  const attributes = isObject(record?.attributes) ? record.attributes : {};
   return String(
-    attributes.REF ?? attributes.NAME ?? branch?.id ?? branch?.name ?? '',
+    attributes.REF ?? attributes.NAME ?? record?.id ?? record?.name ?? '',
   ).trim() || null;
 }
 
-function sourceIdentityOf(child) {
-  const attributes = isObject(child?.attributes) ? child.attributes : {};
+function sourceIdentityOf(record) {
+  const attributes = isObject(record?.attributes) ? record.attributes : {};
   const value = attributes.sourceModelObjectId
     ?? attributes.SOURCE_OBJECT_ID
-    ?? child?.sourceModelObjectId;
+    ?? record?.sourceModelObjectId;
   return value === undefined || value === null || value === '' ? null : String(value);
 }
 
@@ -70,20 +74,15 @@ export function fieldValue(subject, path) {
   return value;
 }
 
-export function componentBranchesOf(value, label) {
-  if (Array.isArray(value)) return value;
-  if (isObject(value) && Array.isArray(value.hierarchy)) return value.hierarchy;
-  if (isObject(value) && Array.isArray(value.objects)) return value.objects;
-  if (isObject(value) && value.type && Array.isArray(value.children)) return [value];
-  fail(`${label} must be a StagedJSON branch array or recognized envelope.`);
-}
-
-function normalizeSubject(branch, child, policy, side, zoneMembership) {
-  const attributes = isObject(child.attributes) ? child.attributes : {};
-  const outer = childType(child), raw = rawType(child);
+function normalizeSubject(branchOccurrence, occurrence, policy, side, zoneMembership) {
+  const branch = branchOccurrence.record, record = occurrence.record;
+  const attributes = isObject(record.attributes) ? record.attributes : {};
+  const outer = childType(record), raw = rawType(record);
   const catalogEntry = catalogEntryForTypes(outer, raw, policy);
   const subject = {
     side,
+    sourceOccurrenceId: occurrence.occurrenceId,
+    branchOccurrenceId: occurrence.branchOccurrenceId,
     zoneMembership,
     qualificationBlockers: componentZoneBlockers(zoneMembership),
     family: catalogEntry?.familyId ?? 'UNKNOWN',
@@ -97,16 +96,16 @@ function normalizeSubject(branch, child, policy, side, zoneMembership) {
     owner: attributes.OWNER == null ? null : String(attributes.OWNER),
     reference: attributes.REF == null ? null : String(attributes.REF),
     sourceName: attributes.NAME == null
-      ? (child.name == null ? null : String(child.name)) : String(attributes.NAME),
-    displayName: child.name == null ? null : String(child.name),
-    sourceIdentity: sourceIdentityOf(child),
+      ? (record.name == null ? null : String(record.name)) : String(attributes.NAME),
+    displayName: record.name == null ? null : String(record.name),
+    sourceIdentity: sourceIdentityOf(record),
     geometry: {
       position: point(attributes.POS),
       apos: point(attributes.APOS),
       lpos: point(attributes.LPOS),
     },
     attributes: cloneJson(attributes),
-    raw: cloneJson(child),
+    raw: cloneJson(record),
   };
   subject.canonicalSubject = canonicalKey({
     family: subject.family,
@@ -133,7 +132,10 @@ async function assignSubjectIds(subjects, side) {
   }
   const result = [];
   for (const key of [...grouped.keys()].sort(compareText)) {
-    const hash = await sha256Hex(key), list = grouped.get(key);
+    const hash = await sha256Hex(key);
+    const list = grouped.get(key).sort((left, right) => (
+      compareText(left.sourceOccurrenceId, right.sourceOccurrenceId)
+    ));
     for (let index = 0; index < list.length; index += 1) {
       result.push({
         ...list[index],
@@ -147,62 +149,54 @@ async function assignSubjectIds(subjects, side) {
 }
 
 export async function buildComponentSubjects(
-  value,
+  loadedValue,
   policyValue,
   side = 'REFERENCE',
   { zoneIndex, benchmarkIdentity = {} } = {},
 ) {
-  const policy = validateComponentIdentityPolicy(policyValue), subjects = [];
-  const branches = componentBranchesOf(value, side);
+  const policy = validateComponentIdentityPolicy(policyValue);
+  const loaded = validateLoadedBenchmark(loadedValue, side);
+  const branchOccurrences = benchmarkBranchOccurrences(loaded, side);
+  const branches = branchOccurrences.map((occurrence) => occurrence.record);
   const zoneFor = buildComponentZoneResolver(
     zoneIndex, branches, side, benchmarkIdentity,
   );
-  for (const [branchIndex, branch] of branches.entries()) {
-    if (!isObject(branch) || childType(branch) !== 'BRANCH'
-      || !Array.isArray(branch.children)) {
-      fail(`${side} branch[${branchIndex}] is invalid.`);
-    }
-    const zoneMembership = zoneFor(branch);
-    for (const child of branch.children) {
-      if (!isObject(child)) {
-        fail(`${side} branch[${branchIndex}] contains a non-object child.`);
-      }
-      if (childType(child) === 'SUPPORT') continue;
-      subjects.push(normalizeSubject(
-        branch, child, policy, side, cloneJson(zoneMembership),
-      ));
-    }
-  }
+  const zoneByBranchOccurrence = new Map(branchOccurrences.map((occurrence) => [
+    occurrence.occurrenceId, zoneFor(occurrence.record),
+  ]));
+  const subjects = benchmarkComponentOccurrences(loaded, side).map((occurrence) => {
+    const branchOccurrence = branchRecordForOccurrence(loaded, occurrence, side);
+    const zoneMembership = zoneByBranchOccurrence.get(occurrence.branchOccurrenceId);
+    if (!zoneMembership) fail(`${side} occurrence ${occurrence.occurrenceId} lacks zone evidence.`);
+    return normalizeSubject(
+      branchOccurrence, occurrence, policy, side, cloneJson(zoneMembership),
+    );
+  });
   return deepFreeze(await assignSubjectIds(subjects, side));
 }
 
-export function discoverComponentCatalog(value) {
+export function discoverComponentCatalog(loadedValue) {
+  const loaded = validateLoadedBenchmark(loadedValue, 'benchmark');
   const countsByOuterType = new Map(), countsByRawType = new Map();
-  let branchCount = 0, supportCount = 0, componentCount = 0;
-  for (const [branchIndex, branch] of componentBranchesOf(value, 'benchmark').entries()) {
-    if (!isObject(branch) || childType(branch) !== 'BRANCH'
-      || !Array.isArray(branch.children)) {
-      fail(`benchmark branch[${branchIndex}] is invalid.`);
+  let supportCount = 0, componentCount = 0;
+  for (const occurrence of loaded.occurrences) {
+    if (occurrence.childIndex === null) continue;
+    const outer = childType(occurrence.record);
+    if (outer === 'SUPPORT') {
+      supportCount += 1;
+      continue;
     }
-    branchCount += 1;
-    for (const child of branch.children) {
-      const outer = childType(child);
-      if (outer === 'SUPPORT') {
-        supportCount += 1;
-        continue;
-      }
-      componentCount += 1;
-      const raw = rawType(child) ?? 'UNKNOWN';
-      countsByOuterType.set(outer, (countsByOuterType.get(outer) || 0) + 1);
-      countsByRawType.set(raw, (countsByRawType.get(raw) || 0) + 1);
-    }
+    componentCount += 1;
+    const raw = rawType(occurrence.record) ?? 'UNKNOWN';
+    countsByOuterType.set(outer, (countsByOuterType.get(outer) || 0) + 1);
+    countsByRawType.set(raw, (countsByRawType.get(raw) || 0) + 1);
   }
   const sortedObject = (map) => Object.fromEntries(
     [...map.entries()].sort(([left], [right]) => compareText(left, right)),
   );
   return deepFreeze({
     schema: 'FbxComponentCatalog.v1',
-    branchCount,
+    branchCount: benchmarkBranchOccurrences(loaded).length,
     componentCount,
     supportCount,
     countsByOuterType: sortedObject(countsByOuterType),
