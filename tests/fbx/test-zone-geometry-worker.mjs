@@ -75,6 +75,8 @@ assert.equal((await cancelledRun).stale, true);
 assert.equal(cancelledSignal.aborted, true);
 assert.equal(cancellationController.snapshot().zoneGeometryJson, null);
 assert.equal(cancellationController.snapshot().derivedPortJson, null);
+assert.equal(cancellationController.snapshot().phase, 'cancelled');
+assert.equal(cancellationController.snapshot().status, ZONE_GEOMETRY_STATUS.CANCELLED);
 
 const timeoutController = createZoneAnalysisController({
   parseBundle: async () => { throw Object.assign(new Error('timed out'), { code: 'FBX_WORKER_TIMEOUT' }); },
