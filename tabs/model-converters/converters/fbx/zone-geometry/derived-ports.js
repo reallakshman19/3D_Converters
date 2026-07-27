@@ -1,6 +1,6 @@
 import { FBX_DERIVED_PORT_SCHEMA, FBX_DERIVED_PORT_TOLERANCE_PROFILE,
   ZONE_GEOMETRY_STATUS, REJECTION_REASON_ORDER } from './constants.js';
-import { compareOccurrenceId, compareText } from './compare.js';
+import { compareDecimalId, compareOccurrenceId, compareText } from './compare.js';
 import { artifactWithId, evidenceId } from './identity.js';
 import { decodeExactPolygonTopology } from './polygon-topology.js';
 import { deriveConnectedShells } from './shells.js';
@@ -105,7 +105,7 @@ export async function buildDerivedPortEvidence(zoneArtifact, scope, selections) 
   for (const selection of selections) candidates.push(...await geometryCandidates(
     zoneArtifact.artifactId, scope, selection));
   candidates.sort((a, b) => compareOccurrenceId(a.sourceOccurrenceId, b.sourceOccurrenceId)
-    || compareText(a.geometryObjectId, b.geometryObjectId) || compareText(a.shellId, b.shellId)
+    || compareDecimalId(a.geometryObjectId, b.geometryObjectId) || compareText(a.shellId, b.shellId)
     || compareText(a.boundaryLoopId, b.boundaryLoopId));
   const admittedPortCount = candidates.filter((item) => item.admissionDisposition === 'ADMITTED').length;
   return artifactWithId(FBX_DERIVED_PORT_SCHEMA, 'fbx-derived-port-evidence', {
