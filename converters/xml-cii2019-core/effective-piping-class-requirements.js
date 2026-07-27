@@ -1,4 +1,6 @@
+import { computeLineNoKey } from './linelist-mapping.js';
 import { normalizePipingClass } from './piping-class-resolver.js';
+import { deriveLineKeyFromBranchName } from './regex-line-key.js';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -26,6 +28,40 @@ function branchClassToken(branchName, config = {}) {
   return value;
 }
 
+function normalizeLineKey(value) {
+  return text(value).toUpperCase().replace(/\s+/g, '');
+}
+
+function lineKeyAliases(value) {
+  const compact = normalizeLineKey(value);
+  if (!compact) return [];
+  const withoutServicePrefix = compact.replace(/^[A-Z](?=\d{5,}$)/, '');
+  return [...new Set([compact, withoutServicePrefix].filter(Boolean))];
+}
+
+function activeLineKeyAliases(branchNames, config) {
+  const aliases = new Set();
+  for (const branchName of branchNames || []) {
+    for (const alias of lineKeyAliases(deriveLineKeyFromBranchName(branchName, config))) aliases.add(alias);
+  }
+  return aliases;
+}
+
+function rowLineKey(row, config) {
+  const mapped = computeLineNoKey(row, config?.linelist?.fieldMap || {});
+  const compact = normalizeLineKey(mapped);
+  if (compact && !/^[A-Z]$/.test(compact)) return mapped;
+  return rowText(row, [
+    'lineNoKey', 'lineNo', 'lineKey', 'lineSeqNo',
+    'LineNo', 'Line No', 'Line Number', 'PipelineReference',
+  ]);
+}
+
+function lineRowApplies(row, aliases, config) {
+  if (!aliases.size) return false;
+  return lineKeyAliases(rowLineKey(row, config)).some((alias) => aliases.has(alias));
+}
+
 function addRequirement(target, value, source) {
   const display = text(value).toUpperCase();
   const normalized = normalizePipingClass(display);
@@ -50,8 +86,10 @@ export function collectEffectivePipingClassRequirements({ branchNames = [], conf
     addRequirement(requirements, branchClassToken(branchName, config), 'branch-name');
   }
 
+  const aliases = activeLineKeyAliases(branchNames, config);
   const lineRows = Array.isArray(config?.linelist?.masterRows) ? config.linelist.masterRows : [];
   for (const row of lineRows) {
+    if (!lineRowApplies(row, aliases, config)) continue;
     addRequirement(
       requirements,
       rowText(row, ['pipingClass', 'Piping Class', 'PIPING_CLASS', 'SPEC', 'Spec']),
