@@ -13,9 +13,6 @@ function parseSupportConfig(raw) {
   }
 }
 
-// Bridges the effective run-state facts (weight overrides, preview/manual matched facts, support
-// mapper rules) into the support config the engine actually consumes, so a run reflects the same
-// data the preview tabs showed rather than only the raw config JSON.
 function applyEffectiveFactsToJob(job) {
   const config = parseSupportConfig(job.supportConfigJson);
   const weightOverrides = job.weightOverrides && typeof job.weightOverrides === 'object' ? job.weightOverrides : {};
@@ -73,6 +70,34 @@ function normalizeXmlEngineResult(engineResult) {
   });
 }
 
+function blockedRunParityResult(job, parity) {
+  const evidence = parity?.evidence || null;
+  const error = parity?.error
+    || (!parity?.applied ? 'Standalone run parity did not release a verified converter input.' : '')
+    || (!evidence ? 'Standalone run parity evidence is missing.' : '')
+    || 'Standalone run parity verification failed.';
+  return normalizeXmlEngineResult({
+    ok: false,
+    sourceKind: 'xml',
+    outputKind: 'enrichedXML',
+    enrichedText: '',
+    enrichedName: '',
+    ciiText: null,
+    ciiName: null,
+    diagnostics: {
+      schema: 'xml-cii-2019-workflow-diagnostics/v1',
+      sourceKind: 'xml',
+      outputMode: job?.options?.outputMode || 'enriched-only',
+      warnings: [error],
+      runParityStats: parity?.stats || {},
+      runParityEvidence: evidence,
+      converterInputReleased: false,
+    },
+    logs: Array.isArray(parity?.logs) ? parity.logs : [],
+    error,
+  });
+}
+
 export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   const factedJob = applyEffectiveFactsToJob(job);
   if (factedJob.sourceKind === 'inputxml') {
@@ -84,14 +109,24 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     const engineResult = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
     return mergeInputXmlEngineResult(finalEnrichedResult, engineResult, factedJob.options.outputMode);
   }
-  // Browser-side run parity (same enrichment the parent workflow performs):
-  // bakes preview process data, weight master matches, CMPSUPGAP restraint
-  // gaps, and split renumbering into the XML before the Python engine runs.
-  const parity = await enrichStandaloneXmlForRun(factedJob);
-  const engineJob = parity.applied ? { ...factedJob, sourceText: parity.xmlText } : factedJob;
+
+  const parityRunner = typeof runtime.runParityEnricher === 'function'
+    ? runtime.runParityEnricher
+    : enrichStandaloneXmlForRun;
+  const parity = await parityRunner(factedJob);
+  if (!parity?.applied || parity?.error || !parity?.evidence || parity.evidence.ok !== true) {
+    return blockedRunParityResult(factedJob, parity);
+  }
+
+  const engineJob = { ...factedJob, sourceText: parity.xmlText };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
-  if (parity.applied && Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
+  if (Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
   const normalized = normalizeXmlEngineResult(result);
-  if (parity.applied && normalized.diagnostics) normalized.diagnostics.runParityStats = parity.stats;
+  if (normalized.diagnostics) {
+    normalized.diagnostics.runParityStats = parity.stats;
+    normalized.diagnostics.runParityEvidence = parity.evidence;
+    normalized.diagnostics.converterInputReleased = true;
+    normalized.diagnostics.converterInputDigest = parity.evidence.engineInputDigest;
+  }
   return normalized;
 }
