@@ -87,8 +87,8 @@ function selectedZone(controller) {
 function updateAvailability(controller) {
   const selected = Boolean(selectedZone(controller).zoneId);
   const ready = Boolean(controller.graph && controller.runInput?.sourceBytes?.byteLength);
-  const complete = controller.analysis.snapshot().phase === 'complete';
-  controller.analyse.disabled = !selected || !ready || controller.analysis.snapshot().phase === 'running';
+  const state = controller.analysis.snapshot(), complete = state.phase === 'complete';
+  controller.analyse.disabled = !selected || !ready || state.phase === 'running';
   controller.zoneDownload.disabled = !complete;
   controller.portDownload.disabled = !complete;
 }
@@ -128,6 +128,40 @@ function ensureController(container) {
 function invalidate(controller, reason) {
   controller.analysis.invalidate(reason);
   updateAvailability(controller);
+}
+
+function inputType(target) {
+  return String(target?.type || target?.getAttribute?.('type') || '').toLowerCase();
+}
+
+function acceptsFbx(target) {
+  const accept = String(target?.accept || target?.getAttribute?.('accept') || '');
+  return accept.split(',').some((item) => item.trim().toLowerCase() === '.fbx');
+}
+
+export function isFbxPrimaryInputChange(event) {
+  const target = event?.target;
+  if (inputType(target) !== 'file') return false;
+  const name = String(target?.files?.[0]?.name || '');
+  return acceptsFbx(target) || /\.fbx$/i.test(name);
+}
+
+export function invalidateFbxZoneGeometryInput(controller) {
+  if (!controller) return false;
+  controller.runInput = null; controller.project = null; controller.graph = null;
+  invalidate(controller, 'A new FBX input was loaded; prior analysis was cleared.');
+  return true;
+}
+
+export function bindFbxPrimaryInputInvalidation(container, onInput) {
+  const listener = (event) => { if (isFbxPrimaryInputChange(event)) onInput(event); };
+  container.addEventListener('change', listener, true);
+  return () => container.removeEventListener?.('change', listener, true);
+}
+
+function handlePrimaryInputChange(container) {
+  RUN_INPUTS.delete(container);
+  invalidateFbxZoneGeometryInput(CONTROLLERS.get(container));
 }
 
 async function runAnalysis(controller) {
@@ -187,6 +221,7 @@ function handleRun(container, event) {
 export function installFbxZoneGeometryToolbar(container) {
   if (!container || container.dataset.fbxZoneGeometryToolbar === 'true') return;
   patchFbxRunner(); container.dataset.fbxZoneGeometryToolbar = 'true';
+  bindFbxPrimaryInputInvalidation(container, () => handlePrimaryInputChange(container));
   window.addEventListener(RUN_EVENT, (event) => handleRun(container, event));
   container.addEventListener(PREVIEW_EVENT, (event) => handlePreview(container, event));
 }
