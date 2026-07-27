@@ -7,7 +7,9 @@ import {
 import { buildFbxBenchmarkZoneManifest } from '../../tabs/model-converters/converters/fbx/benchmark-zone-contract.js';
 import { buildFbxZoneMembershipIndex } from '../../tabs/model-converters/converters/fbx/benchmark-zone-membership.js';
 import { buildFbxTopologyBenchmarkReport } from '../../tabs/model-converters/converters/fbx/benchmark/topology-benchmark.js';
-import { branch, componentPolicy, fitting, pipe, qualify, toleranceProfile } from './component-benchmark-fixtures.mjs';
+import {
+  branch, componentPolicy, fitting, loadBranches, pipe, qualify, toleranceProfile,
+} from './component-benchmark-fixtures.mjs';
 import {
   benchmarkFixture, explicitHostResolver, identityPolicy, loadedBenchmarkFixture,
   normalizers, propertyRules, toleranceProfile as supportToleranceProfile,
@@ -40,11 +42,15 @@ assert.equal(reconcileCoverage(adaptZoneMembershipIndex(blockedIndex)).status,'B
 const componentReference = branch('/LINE/B1', [
   fitting('FLAN','=F1'), pipe('PIPE AUTO /LINE/B1 1'),
 ]);
+const componentReferenceLoaded = await loadBranches(componentReference);
+const componentActualLoaded = await loadBranches(structuredClone(componentReference));
 const componentReport = await qualify({
-  reference:componentReference, actual:structuredClone(componentReference),
+  reference:componentReferenceLoaded, actual:componentActualLoaded,
   identityPolicy:componentPolicy(), toleranceProfile,
 });
-const componentAudit = reconcileCoverage(adaptComponentBenchmarkReport(componentReport));
+const componentAudit = reconcileCoverage(adaptComponentBenchmarkReport(
+  componentReport, componentReferenceLoaded, componentActualLoaded,
+));
 assert.equal(componentAudit.status,'PASS_WITH_OBSERVATIONS');
 assert.equal(componentAudit.referencePopulationCount,componentReport.inventory.referenceComponentCount);
 assert.equal(componentAudit.actualPopulationCount,componentReport.inventory.actualComponentCount);
