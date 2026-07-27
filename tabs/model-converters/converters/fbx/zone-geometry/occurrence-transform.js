@@ -87,9 +87,13 @@ function finiteOutput(centre, normal, radius, planarity, circular, limits) {
 
 export function transformBoundaryFit(occurrence, fit, localPoints) {
   if (!validLocalEvidence(fit, localPoints)) return nonFiniteResult();
+  const matrix = occurrence?.geometryMatrixMm;
+  if (Array.isArray(matrix) && matrix.length === 12 && !matrix.every(Number.isFinite)) {
+    return nonFiniteResult();
+  }
   try { validateOccurrenceTransform(occurrence); }
   catch (error) { return { rejectionReasons: [transformReason(error)] }; }
-  const matrix = occurrence.geometryMatrixMm, linear = linearMatrix(matrix), det = determinant(linear);
+  const linear = linearMatrix(matrix), det = determinant(linear);
   if (!Number.isFinite(det)) return nonFiniteResult();
   if (Math.abs(det) < 1e-12) return { rejectionReasons: ['SINGULAR_TRANSFORM'] };
   const inverseMatrix = inverse(linear, det);
