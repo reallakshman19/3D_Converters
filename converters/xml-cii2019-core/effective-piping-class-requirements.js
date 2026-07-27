@@ -54,7 +54,7 @@ export function collectEffectivePipingClassRequirements({ branchNames = [], conf
   for (const row of lineRows) {
     addRequirement(
       requirements,
-      rowText(row, ['pipingClass', 'Piping Class', 'PIPING_CLASS', 'SPEC', 'Spec', 'Class']),
+      rowText(row, ['pipingClass', 'Piping Class', 'PIPING_CLASS', 'SPEC', 'Spec']),
       'line-list',
     );
   }
