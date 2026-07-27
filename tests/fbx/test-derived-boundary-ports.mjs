@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import { analyseFbxZoneGeometry } from '../../tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js';
+import { buildFixture, cylinderGeometry, diskGeometry } from './test-zone-geometry-evidence.mjs';
+
+function candidate(result, index = 0) {
+  return result.derivedPortEvidence.candidates[index];
+}
+
+const ordinaryFixture = await buildFixture({ matrixA: [2,0,0,0,2,0,0,0,2,5,6,7] });
+const ordinary = await analyseFbxZoneGeometry({ sourceGraph: ordinaryFixture.graph,
+  geometryBundle: ordinaryFixture.bundle, zoneId: 'occ:3' });
+assert.equal(ordinary.derivedPortEvidence.admittedPortCount, 1);
+assert.deepEqual(candidate(ordinary).centreMm.map((value) => Math.round(value * 1e9) / 1e9), [5,6,7]);
+assert.deepEqual(candidate(ordinary).normal.map((value) => Math.round(value)), [0,0,1]);
+assert.ok(Math.abs(candidate(ordinary).radiusMm - 20) < 1e-9);
+assert.equal(candidate(ordinary).transformDisposition, 'ORDINARY_POSITIVE_DETERMINANT');
+
+const mirroredFixture = await buildFixture({ matrixA: [-1,0,0,0,1,0,0,0,1,5,0,0] });
+const mirrored = await analyseFbxZoneGeometry({ sourceGraph: mirroredFixture.graph,
+  geometryBundle: mirroredFixture.bundle, zoneId: 'occ:3' });
+assert.equal(mirrored.derivedPortEvidence.admittedPortCount, 1);
+assert.deepEqual(candidate(mirrored).normal.map((value) => Math.round(value)), [0,0,-1]);
+assert.equal(candidate(mirrored).transformDisposition, 'MIRRORED_NEGATIVE_DETERMINANT_ACCEPTED');
+assert.equal(candidate(mirrored).orientationRule, 'sign(det(A))*inverse-transpose(local-winding-normal)');
+
+const cylinderFixture = await buildFixture({ geometry10: cylinderGeometry() });
+const cylinder = await analyseFbxZoneGeometry({ sourceGraph: cylinderFixture.graph,
+  geometryBundle: cylinderFixture.bundle, zoneId: 'occ:3' });
+assert.equal(cylinder.derivedPortEvidence.admittedPortCount, 2);
+assert.notEqual(candidate(cylinder, 0).boundaryLoopId, candidate(cylinder, 1).boundaryLoopId);
+assert.notEqual(candidate(cylinder, 0).portEvidenceId, candidate(cylinder, 1).portEvidenceId);
+
+const disk = diskGeometry();
+const reordered = { points: disk.points, faces: [...disk.faces].reverse() };
+const rotated = { points: disk.points, faces: disk.faces.map((face) => [face[1], face[2], face[0]]) };
+const reversedWinding = { points: disk.points, faces: disk.faces.map((face) => [...face].reverse()) };
+const baseFixture = await buildFixture({ geometry10: disk });
+const reorderFixture = await buildFixture({ geometry10: reordered });
+const rotateFixture = await buildFixture({ geometry10: rotated });
+const reverseFixture = await buildFixture({ geometry10: reversedWinding });
+const results = [];
+for (const fixture of [baseFixture, reorderFixture, rotateFixture, reverseFixture]) results.push(await analyseFbxZoneGeometry({
+  sourceGraph: fixture.graph, geometryBundle: fixture.bundle, zoneId: 'occ:3' }));
+assert.equal(candidate(results[0]).shellId, candidate(results[1]).shellId);
+assert.equal(candidate(results[0]).boundaryLoopId, candidate(results[1]).boundaryLoopId);
+assert.equal(candidate(results[0]).shellId, candidate(results[2]).shellId);
+assert.equal(candidate(results[0]).boundaryLoopId, candidate(results[2]).boundaryLoopId);
+assert.deepEqual(candidate(results[0]).orderedTopology, candidate(results[1]).orderedTopology);
+assert.deepEqual(candidate(results[0]).orderedTopology, candidate(results[2]).orderedTopology);
+assert.equal(candidate(results[0]).shellId, candidate(results[3]).shellId);
+assert.equal(candidate(results[0]).boundaryLoopId, candidate(results[3]).boundaryLoopId);
+assert.deepEqual(candidate(results[0]).orderedTopology.orderedVertexIndices,
+  candidate(results[3]).orderedTopology.orderedVertexIndices);
+assert.deepEqual(candidate(results[0]).normal.map((value) => Math.round(value)), [0,0,1]);
+assert.deepEqual(candidate(results[3]).normal.map((value) => Math.round(value)), [0,0,-1]);
+
+console.log('test-derived-boundary-ports: PASS');
