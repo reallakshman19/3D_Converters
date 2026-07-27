@@ -170,6 +170,14 @@ function joinPath(folder, file) {
   return `${normalizeMasterPath(folder).replace(/\/+$/, '')}/${clean(file).replace(/^\/+/, '')}`;
 }
 
+function hydrationAttemptSignature(requirements, indexPath, folderPath) {
+  return JSON.stringify({
+    missing: effectivePipingClassRequirementSignature(requirements),
+    indexPath,
+    folderPath,
+  });
+}
+
 function notifyOnce(key, payload) {
   if (!browserReady()) return;
   if (window.__xmlCiiEffectiveClassHydratorNotice === key) return;
@@ -199,13 +207,24 @@ export async function hydrateXmlCiiEffectivePipingClassShards({ input, xmlText =
   const indexPath = paths.pipingClassIndexPath || DEFAULT_INDEX;
   const folderPath = paths.pipingClassShardFolder || DEFAULT_FOLDER;
   const signature = JSON.stringify({ requirementSignature, indexPath, folderPath });
+  const attemptSignature = hydrationAttemptSignature(missingRequirements, indexPath, folderPath);
 
   if (!force && !missingRequirements.length && config?.pipingClass?._effectiveHydrationSignature === signature) {
     return { changed: false, reason: 'already-hydrated', requirements };
   }
+  if (!force && missingRequirements.length && config?.pipingClass?._effectiveHydrationAttemptSignature === attemptSignature) {
+    return {
+      changed: false,
+      reason: 'attempt-already-recorded',
+      requirements,
+      missingRequirements,
+      unmatched: config?.pipingClass?._unmatchedEffectiveClasses || [],
+    };
+  }
   if (!missingRequirements.length) {
     config.pipingClass = config.pipingClass && typeof config.pipingClass === 'object' ? config.pipingClass : {};
     config.pipingClass._effectiveHydrationSignature = signature;
+    config.pipingClass._effectiveHydrationAttemptSignature = '';
     config.pipingClass._requiredEffectiveClasses = requirements.map((item) => item.value);
     writeConfig(configInput, config);
     return { changed: true, reason: 'metadata-refreshed', requirements };
@@ -232,7 +251,8 @@ export async function hydrateXmlCiiEffectivePipingClassShards({ input, xmlText =
   config.pipingClass = config.pipingClass && typeof config.pipingClass === 'object' && !Array.isArray(config.pipingClass)
     ? config.pipingClass
     : {};
-  config.pipingClass.masterRows = mergeRows(existingRows, incomingRows);
+  const mergedRows = mergeRows(existingRows, incomingRows);
+  config.pipingClass.masterRows = mergedRows.length ? mergedRows : existingRows;
   config.pipingClass.fieldMap = {
     ...(config.pipingClass.fieldMap || {}),
     pipingClass: 'pipingClass',
@@ -246,12 +266,15 @@ export async function hydrateXmlCiiEffectivePipingClassShards({ input, xmlText =
     endCondition: 'endCondition',
   };
   config.pipingClass._effectiveHydrationSignature = signature;
+  config.pipingClass._effectiveHydrationAttemptSignature = unmatched.length
+    ? hydrationAttemptSignature(unmatched, indexPath, folderPath)
+    : '';
   config.pipingClass._effectiveHydrationAt = new Date().toISOString();
   config.pipingClass._requiredEffectiveClasses = requirements.map((item) => item.value);
   config.pipingClass._effectiveHydratedClasses = loadedClasses;
   config.pipingClass._effectiveHydratedShardFiles = loadedFiles;
   config.pipingClass._unmatchedEffectiveClasses = unmatched.map((item) => item.value || item.normalized || String(item));
-  config.pipingClass._autoloadedRows = config.pipingClass.masterRows.length;
+  config.pipingClass._autoloadedRows = Array.isArray(config.pipingClass.masterRows) ? config.pipingClass.masterRows.length : 0;
   config.pipingClass._smartMode = 'specwise-shard-plus-effective-hydration';
   config.pipingClass.masterUrl = config.pipingClass.masterUrl || indexLoad.url;
   config.pipingClass.defaultUrl = config.pipingClass.defaultUrl || indexLoad.url;
@@ -280,7 +303,7 @@ export async function hydrateXmlCiiEffectivePipingClassShards({ input, xmlText =
     loadedClasses,
     loadedFiles,
     unmatched,
-    rowCount: config.pipingClass.masterRows.length,
+    rowCount: Array.isArray(config.pipingClass.masterRows) ? config.pipingClass.masterRows.length : 0,
   };
 }
 
