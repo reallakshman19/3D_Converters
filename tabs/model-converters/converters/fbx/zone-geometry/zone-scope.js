@@ -3,6 +3,7 @@ import { failZoneGeometry } from './errors.js';
 import { ZONE_GEOMETRY_STATUS } from './constants.js';
 
 export const UNOWNED_ZONE_ID = 'preview-zone:unowned';
+const GOVERNED_NULL_SUBTYPE = 'Null';
 
 function mapsFor(graph) {
   return {
@@ -39,7 +40,7 @@ function commonPrefixLength(chains) {
 
 function isNullGroup(occurrence, maps) {
   const source = maps.sources.get(occurrence?.sourceModelObjectId);
-  return String(source?.domSubtype || '').trim().toUpperCase() === 'NULL';
+  return source?.domSubtype === GOVERNED_NULL_SUBTYPE;
 }
 
 function zoneForChain(chain, commonLength, maps) {
@@ -81,6 +82,14 @@ function labelFor(zoneId, maps) {
   return cleanName(source?.displayName) || cleanName(source?.domSourceName) || zoneId;
 }
 
+function disambiguatedLabels(counts, maps) {
+  const bases = new Map([...counts.keys()].map((zoneId) => [zoneId, labelFor(zoneId, maps)]));
+  const duplicates = new Map();
+  for (const label of bases.values()) duplicates.set(label, (duplicates.get(label) || 0) + 1);
+  return new Map([...bases].map(([zoneId, label]) => [zoneId,
+    duplicates.get(label) > 1 ? `${label} · ${zoneId}` : label]));
+}
+
 function zoneOptions(graph, maps, assignment) {
   const counts = new Map();
   for (const occurrence of graph.occurrences) {
@@ -95,8 +104,9 @@ function zoneOptions(graph, maps, assignment) {
   const unowned = graph.geometries.reduce((sum, item) => referenced.has(item.geometryObjectId)
     ? sum : sum + geometryPointCount(item), 0);
   if (unowned) counts.set(UNOWNED_ZONE_ID, unowned);
+  const labels = disambiguatedLabels(counts, maps);
   return [...counts].map(([zoneId, sourcePointCount]) => ({
-    zoneId, label: labelFor(zoneId, maps), sourcePointCount,
+    zoneId, label: labels.get(zoneId), sourcePointCount,
   })).sort((a, b) => compareText(a.label, b.label) || compareText(a.zoneId, b.zoneId));
 }
 
