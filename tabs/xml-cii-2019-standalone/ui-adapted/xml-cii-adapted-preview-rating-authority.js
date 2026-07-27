@@ -14,6 +14,13 @@ import {
   _xmlText,
 } from './xml-cii-adapted-preview-dryrun-core.js';
 
+const BLOCKED_DTXR_RATING_TYPES = new Set(['SUPPORT', 'RESTRAINT', 'ATTA', 'GASK']);
+
+function ratingEvidenceCarrierAllowed(componentType) {
+  const type = _toText(componentType).trim().toUpperCase();
+  return !BLOCKED_DTXR_RATING_TYPES.has(type);
+}
+
 function classRowRating(row) {
   return _rowText(row, ['rating', 'Rating', 'RATING', 'Pressure Class', 'classRating', 'Class Rating', 'PRESSURE_CLASS']);
 }
@@ -23,6 +30,7 @@ function branchDtxrEvidence(branch, stagedIndex, config) {
   for (const node of _xmlChildrenByName(branch, 'Node')) {
     const componentType = _xmlText(node, 'ComponentType');
     const componentRefNo = _xmlText(node, 'ComponentRefNo');
+    if (!ratingEvidenceCarrierAllowed(componentType)) continue;
     for (const key of ['DTXR', 'DTXR_POS', 'TEEDESC_POS', 'DTXR_PS']) {
       const dtxr = _xmlText(node, key);
       if (dtxr) out.push({ dtxr, source: `xml-${key.toLowerCase()}`, componentType, componentRefNo });
