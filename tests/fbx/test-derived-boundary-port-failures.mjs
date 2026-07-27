@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { analyseFbxZoneGeometry } from '../../tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js';
 import { deriveBoundaryLoops } from '../../tabs/model-converters/converters/fbx/zone-geometry/boundary-loops.js';
 import { fitBoundaryCircleLocal } from '../../tabs/model-converters/converters/fbx/zone-geometry/circle-fit.js';
+import { transformBoundaryFit } from '../../tabs/model-converters/converters/fbx/zone-geometry/occurrence-transform.js';
 import { ZONE_GEOMETRY_STATUS } from '../../tabs/model-converters/converters/fbx/zone-geometry/constants.js';
 import { buildFixture, diskGeometry } from './test-zone-geometry-evidence.mjs';
 
@@ -59,6 +60,19 @@ for (const [matrix, reason] of [
   assert.equal(result.derivedPortEvidence.admittedPortCount, 0);
   assert.ok(result.derivedPortEvidence.candidates.some((item) => item.rejectionReasons.includes(reason)));
 }
+
+const finiteFit = { centre: [0,0,0], normal: [0,0,1], radius: 10,
+  planarityResidual: 0, circularResidual: 0, rejectionReasons: [] };
+const infiniteTranslation = transformBoundaryFit({ sourceOccurrenceId: 'occ:finite-check', inheritMode: 0,
+  geometryMatrixMm: [1,0,0,0,1,0,0,0,1,Number.POSITIVE_INFINITY,0,0] },
+finiteFit, [[10,0,0],[0,10,0],[-10,0,0],[0,-10,0]]);
+assert.deepEqual(infiniteTranslation, { rejectionReasons: ['NON_FINITE_RESULT'] });
+assert.equal('centreMm' in infiniteTranslation, false);
+
+const infiniteFit = transformBoundaryFit({ sourceOccurrenceId: 'occ:fit-check', inheritMode: 0,
+  geometryMatrixMm: [1,0,0,0,1,0,0,0,1,0,0,0] },
+{ ...finiteFit, radius: Number.NaN }, [[10,0,0],[0,10,0],[-10,0,0],[0,-10,0]]);
+assert.deepEqual(infiniteFit, { rejectionReasons: ['NON_FINITE_RESULT'] });
 
 for (const result of [nonManifold, nonPlanar, nonCircular]) {
   assert.equal(result.derivedPortEvidence.classificationDisposition, 'NOT_PERFORMED');
