@@ -4,6 +4,7 @@ import {
 } from './xml-cii-adapted-preview-renderer.js';
 import {
   XML_CII_PREVIEW_CACHE_SCHEMA,
+  XML_CII_PREVIEW_LEGACY_CACHE_KEY,
   capturePreviewCacheV7,
   clearPreviewCacheBridge,
   createPreviewCacheAuthority,
@@ -48,6 +49,14 @@ function previewRendered(host) {
   return !!host?.querySelector?.('table, [data-mc-edit-type], .mc-preview-editable-val');
 }
 
+function legacyBridgePresent() {
+  try {
+    return typeof localStorage !== 'undefined' && !!localStorage.getItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY);
+  } catch {
+    return false;
+  }
+}
+
 function addCacheEvidence(host, { status, authority, reason = '' } = {}) {
   if (!host) return;
   const existing = host.querySelector?.('[data-mc-preview-cache-evidence]');
@@ -66,9 +75,50 @@ function addCacheEvidence(host, { status, authority, reason = '' } = {}) {
   );
 }
 
+function installInternalRebuildCapture(host, xmlText, config, options) {
+  if (!host || typeof MutationObserver === 'undefined') return;
+  host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
+  let timer = null;
+  let running = false;
+  const observer = new MutationObserver(() => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(async () => {
+      timer = null;
+      if (running || !previewRendered(host) || !legacyBridgePresent()) return;
+      running = true;
+      try {
+        const stagedSource = await resolveStagedSource(options, config);
+        const authority = await createPreviewCacheAuthority({
+          xmlText,
+          stagedJsonText: stagedSource.text,
+          config,
+        });
+        const captured = capturePreviewCacheV7(authority);
+        addCacheEvidence(host, {
+          status: captured.stored ? 'REBUILT' : 'UNCACHED',
+          authority,
+          reason: captured.stored ? '' : captured.reason,
+        });
+      } catch (error) {
+        clearPreviewCacheBridge();
+        addCacheEvidence(host, {
+          status: 'UNCACHED',
+          authority: null,
+          reason: text(error?.message || error),
+        });
+      } finally {
+        running = false;
+      }
+    }, 0);
+  });
+  observer.observe(host, { childList: true, subtree: true });
+  host.__xmlCiiPreviewCacheV7Observer = observer;
+}
+
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
   const host = rootEl?.querySelector?.('#mc-preview-table-host');
   if (!host) return;
+  installInternalRebuildCapture(host, xmlText, config, options);
 
   const stagedSource = await resolveStagedSource(options, config);
   const delegatedOptions = {
