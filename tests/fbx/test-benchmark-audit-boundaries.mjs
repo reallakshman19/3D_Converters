@@ -7,13 +7,11 @@ import { POPULATION_KINDS, LEDGER_VOCABULARIES } from '../../tabs/model-converte
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const fbxRoot = join(root, 'tabs/model-converters/converters/fbx');
 const auditRoot = join(fbxRoot, 'benchmark-audit');
-
 async function filesAt(path) {
   if ((await stat(path)).isFile()) return [path];
   const entries = await readdir(path, { withFileTypes: true });
   return (await Promise.all(entries.map((entry) => filesAt(join(path, entry.name))))).flat();
 }
-
 for (const file of await filesAt(fbxRoot)) {
   if (!file.endsWith('.js') || file.startsWith(auditRoot)) continue;
   const text = await readFile(file, 'utf8');
@@ -25,7 +23,6 @@ for (const file of await filesAt(auditRoot)) {
   assert.doesNotMatch(text, /from ['"]\.\.\/(?:conversion|staged-writer|mapping-)/,
     `${relative(root, file)} imports production behavior`);
 }
-
 assert.deepEqual(POPULATION_KINDS, [
   'ZONE_BRANCH', 'COMPONENT', 'SUPPORT', 'TOPOLOGY_BRANCH',
   'TOPOLOGY_RELATIONSHIP', 'TOPOLOGY_JUNCTION', 'TOPOLOGY_BOUNDARY',
@@ -43,6 +40,9 @@ const requiredAuthorityTests = [
   'test-benchmark-strict-json.mjs',
   'test-benchmark-inventory.mjs',
   'test-benchmark-real-inventory.mjs',
+  'test-benchmark-source-binding.mjs',
+  'test-benchmark-lineage-accounting.mjs',
+  'test-benchmark-derivation-authority.mjs',
   'test-benchmark-determinism.mjs',
   'test-benchmark-static-guards.mjs',
   'test-component-benchmark.mjs',
@@ -59,11 +59,17 @@ for (const test of requiredAuthorityTests) {
   assert.ok(index > previous, `${test} must remain registered in integrated order`);
   previous = index;
 }
-for (const test of [
+const agentQTests = [
   'test-benchmark-coverage-reconciliation.mjs',
+  'test-benchmark-audit-integrated-ledgers.mjs',
+  'test-benchmark-audit-integrated-invariants.mjs',
   'test-benchmark-exact-head-evidence.mjs',
+  'test-benchmark-exact-head-integrated-identities.mjs',
   'test-benchmark-adversarial-manifest.mjs',
+  'test-benchmark-audit-stage4-closure.mjs',
   'test-benchmark-audit-boundaries.mjs',
-]) assert.equal(runAll.split(`'${test}'`).length - 1, 1, `${test} must be registered exactly once`);
-
+];
+for (const test of agentQTests) {
+  assert.equal(runAll.split(`'${test}'`).length - 1, 1, `${test} must be registered exactly once`);
+}
 console.log('test-benchmark-audit-boundaries: PASS');
