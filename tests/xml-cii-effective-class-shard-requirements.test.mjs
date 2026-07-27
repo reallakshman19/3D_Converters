@@ -8,16 +8,19 @@ import {
   matchPipingClassIndexRequirements,
 } from '../converters/xml-cii2019-core/effective-piping-class-requirements.js';
 
-test('collects branch, line-list, override and process-data effective classes', () => {
+const BRANCH = '/AREA-SERVICE-X-S8810105-93834-TAIL/B1';
+
+test('collects branch, active line-list, override and process-data effective classes', () => {
   const requirements = collectEffectivePipingClassRequirements({
-    branchNames: ['/AREA-SERVICE-4-93834-TAIL/B1'],
+    branchNames: [BRANCH],
     config: {
-      rating: { pipingClassTokenIndex: 4, tokenDelimiter: '-' },
+      rating: { pipingClassTokenIndex: 5, tokenDelimiter: '-' },
       linelist: {
         masterRows: [
-          { 'Piping Class': '13421' },
-          { pipingClass: '93834' },
-          { Class: '900' },
+          { lineKey: 'S8810105', 'Piping Class': '13421' },
+          { lineKey: 'S8810105', pipingClass: '93834' },
+          { lineKey: 'S8810105', Class: '900' },
+          { lineKey: 'S9999999', pipingClass: '77777' },
         ],
       },
       overrides: {
@@ -40,6 +43,7 @@ test('collects branch, line-list, override and process-data effective classes', 
     ['override'],
   );
   assert.equal(requirements.some((item) => item.normalized === '900'), false);
+  assert.equal(requirements.some((item) => item.normalized === '77777'), false);
 });
 
 test('matches only exact class keys or declared index tokens', () => {
@@ -71,15 +75,21 @@ test('loaded class set ignores the on-demand placeholder', () => {
 
 test('requirement signature changes when an override introduces a class', () => {
   const before = collectEffectivePipingClassRequirements({
-    config: { linelist: { masterRows: [{ pipingClass: '13421' }] } },
+    branchNames: [BRANCH],
+    config: {
+      rating: { pipingClassTokenIndex: 5, tokenDelimiter: '-' },
+      linelist: { masterRows: [{ lineKey: 'S8810105', pipingClass: '13421' }] },
+    },
   });
   const after = collectEffectivePipingClassRequirements({
+    branchNames: [BRANCH],
     config: {
-      linelist: { masterRows: [{ pipingClass: '13421' }] },
-      overrides: { pipingClass: { '13421': '93834' } },
+      rating: { pipingClassTokenIndex: 5, tokenDelimiter: '-' },
+      linelist: { masterRows: [{ lineKey: 'S8810105', pipingClass: '13421' }] },
+      overrides: { pipingClass: { '13421': '96620' } },
     },
   });
 
-  assert.equal(effectivePipingClassRequirementSignature(before), '13421');
-  assert.equal(effectivePipingClassRequirementSignature(after), '13421|93834');
+  assert.equal(effectivePipingClassRequirementSignature(before), '13421|93834');
+  assert.equal(effectivePipingClassRequirementSignature(after), '13421|93834|96620');
 });
