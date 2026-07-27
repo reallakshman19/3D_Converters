@@ -5,11 +5,11 @@
  * rather than from legacy-adapter.js, ModelConvertersTab.js, or any other
  * internal file.
  *
- * The exports from sub-modules (WorkflowShell, ConverterSelector,
- * ConverterRunner) are available here for convenience.
+ * The exports from sub-modules (WorkflowShell, ConverterSelector, ConverterRunner)
+ * are available here for convenience.
  */
 
-export { renderModelConvertersTab } from './ModelConvertersTab.js?v=20260724-fbx-json-no-mapping-1';
+export { renderModelConvertersTab } from './ModelConvertersTab.js?v=20260727-fbx-preview-zone-1';
 
 // Re-export reusable module surfaces so external consumers have one import target.
 export { XML_CII_WORKFLOW_PHASES, normalizeWorkflowPhaseId, getWorkflowPhase } from './WorkflowShell.js';
