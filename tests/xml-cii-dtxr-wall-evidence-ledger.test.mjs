@@ -87,6 +87,22 @@ test('lower-priority valid evidence remains auditable without changing selection
   assert.equal(result.selectionPolicy, 'existing-resolver-rank-then-source-sequence');
 });
 
+test('parsed but unsupported schedule is rejected rather than called eligible', () => {
+  const result = resolveXmlCiiWallThicknessWithEvidence({
+    boreMm: 250,
+    dtxrValues: [
+      { componentType: 'FLAN', componentRefNo: 'FL-999', boreMm: 250, dtxr: 'FLANGE SCH 999', source: 'staged-json' },
+      { componentType: 'PIPE', componentRefNo: 'P-80', boreMm: 250, dtxr: 'PIPE SCH 80', source: 'xml-dtxr' },
+    ],
+  });
+
+  assert.equal(result.wallThicknessMm, 15.09);
+  assert.equal(result.evidenceRecords[0].schedule, '999');
+  assert.equal(result.evidenceRecords[0].candidateWallThicknessMm, null);
+  assert.equal(result.evidenceRecords[0].disposition, 'REJECTED_UNRESOLVED_WALL_EVIDENCE');
+  assert.equal(result.evidenceRecords[1].disposition, 'SELECTED');
+});
+
 test('Preview authority exposes complete structured wall evidence fields', () => {
   const source = fs.readFileSync(
     new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-bore-wall-authority.js', import.meta.url),
