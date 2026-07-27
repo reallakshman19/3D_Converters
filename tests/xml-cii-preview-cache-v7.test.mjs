@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import { webcrypto } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -12,6 +15,8 @@ import {
   restorePreviewCacheV7,
   stablePreviewCacheStringify,
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-cache-v7.js';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 class MemoryStorage {
   constructor() { this.values = new Map(); }
@@ -90,4 +95,18 @@ test('legacy cache payload is released only for an exact v7 authority match', as
   const exact = restorePreviewCacheV7(authority150, storage);
   assert.equal(exact.restored, true);
   assert.deepEqual(JSON.parse(storage.getItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY)), legacyPayload('150'));
+});
+
+test('phase routing and internal rebuild capture use the cache v7 boundary', () => {
+  const phasePanels = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'), 'utf8');
+  const renderer = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js'), 'utf8');
+  const facade = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js'), 'utf8');
+
+  assert.match(phasePanels, /xml-cii-adapted-preview-diagnostics-audit-v7\.js/);
+  assert.match(renderer, /createPreviewCacheAuthority/);
+  assert.match(renderer, /MutationObserver/);
+  assert.match(renderer, /capturePreviewCacheV7/);
+  assert.match(renderer, /data-mc-preview-cache-evidence/);
+  assert.match(facade, /clearPreviewCachesV7/);
+  assert.match(facade, /resolveStagedJsonText/);
 });
