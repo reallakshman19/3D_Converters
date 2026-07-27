@@ -63,22 +63,36 @@ function selectedRecord(records, resolution) {
   )) || null;
 }
 
-function dispositionFor(record, targetBore, selectedSequence) {
+function candidateResolution(record, targetBore, config) {
+  if (!record.dtxr || !sameBore(record.boreMm, targetBore)) return null;
+  if (BLOCKED_CARRIER_TYPES.has(record.componentType)) return null;
+  return resolveXmlCiiWallThicknessFromDtxr({
+    boreMm: targetBore,
+    dtxrValues: [record],
+    config,
+  });
+}
+
+function dispositionFor(record, targetBore, selectedSequence, candidate) {
   if (!record.dtxr) return 'REJECTED_EMPTY_DTXR';
   if (!sameBore(record.boreMm, targetBore)) return 'REJECTED_BORE_MISMATCH';
   if (BLOCKED_CARRIER_TYPES.has(record.componentType)) return 'REJECTED_BLOCKED_CARRIER_TYPE';
   if (record.sequence === selectedSequence) return 'SELECTED';
-  if (xmlCiiDtxrDirectWallText(record.dtxr) !== null) return 'ELIGIBLE_DIRECT_WALL';
-  if (xmlCiiDtxrScheduleText(record.dtxr)) return 'ELIGIBLE_SCHEDULE';
+  const directWallMm = xmlCiiDtxrDirectWallText(record.dtxr);
+  const schedule = xmlCiiDtxrScheduleText(record.dtxr);
+  if (!candidate && (directWallMm !== null || schedule)) return 'REJECTED_UNRESOLVED_WALL_EVIDENCE';
+  if (candidate?.evidenceKind === 'DIRECT_WALL') return 'ELIGIBLE_DIRECT_WALL';
+  if (candidate?.evidenceKind === 'SCHEDULE') return 'ELIGIBLE_SCHEDULE';
   return 'REJECTED_NO_WALL_EVIDENCE';
 }
 
-function evidenceRecord(record, targetBore, selectedSequence) {
+function evidenceRecord(record, targetBore, selectedSequence, config) {
   const directWallMm = xmlCiiDtxrDirectWallText(record.dtxr);
   const schedule = xmlCiiDtxrScheduleText(record.dtxr);
+  const candidate = candidateResolution(record, targetBore, config);
   return {
     sequence: record.sequence,
-    disposition: dispositionFor(record, targetBore, selectedSequence),
+    disposition: dispositionFor(record, targetBore, selectedSequence, candidate),
     selected: record.sequence === selectedSequence,
     dtxr: record.dtxr,
     componentType: record.componentType,
@@ -88,6 +102,9 @@ function evidenceRecord(record, targetBore, selectedSequence) {
     source: record.source,
     directWallMm,
     schedule,
+    candidateWallThicknessMm: candidate?.wallThicknessMm ?? null,
+    candidateSource: candidate?.source || '',
+    candidateProvenance: candidate?.provenance || null,
   };
 }
 
@@ -113,6 +130,7 @@ export function resolveXmlCiiWallThicknessWithEvidence({
     record,
     targetBore,
     selected?.sequence,
+    config,
   ));
   const rejectedCount = records.filter((record) => record.disposition.startsWith('REJECTED_')).length;
   const eligibleCount = records.length - rejectedCount;
