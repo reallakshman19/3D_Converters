@@ -1,5 +1,6 @@
 import { XmlCiiAdaptedEditablePreviewTable } from './xml-cii-adapted-editable-preview-table.js';
 import { applyAdaptedPreviewOverrideFillDown, applyAdaptedPreviewProcessFillDown, markAdaptedPreviewOverrideManual, markAdaptedPreviewProcessManual, applyAdaptedPreviewSmartFillByClass, applyAdaptedPreviewSmartProcessFillByClass } from './xml-cii-adapted-preview-filldown.js';
+import { replaceJsonObject, runAtomicPreviewClassTransaction } from './xml-cii-adapted-preview-class-transaction.js';
 import {
   _toText,
   _esc,
@@ -138,6 +139,40 @@ function _updateEditedPreviewCell(td, newVal) {
   const val = _toText(newVal).trim() || '—';
   const span = td?.querySelector?.('.mc-preview-editable-val');
   if (span) span.textContent = val;
+}
+
+function _renderClassTransactionStatus(host, value) {
+  if (!host) return;
+  host.innerHTML = `<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;border-color:#2b6cb0;color:#1e3a8a;background:#eff6ff;">Resolving Piping Class <strong>${_esc(value)}</strong>, loading exact authority if needed, and recomputing dependent fields…</div>`;
+}
+
+async function _hydrateEffectiveClassConfig(config, xmlText) {
+  const { hydrateXmlCiiEffectivePipingClassShards } = await import('../../xml-cii-effective-class-shard-hydrator.js');
+  const configInput = {
+    value: JSON.stringify(config),
+    dispatchEvent() {},
+  };
+  const result = await hydrateXmlCiiEffectivePipingClassShards({
+    input: configInput,
+    xmlText,
+    force: true,
+  });
+  const hydratedConfig = JSON.parse(configInput.value || '{}');
+  replaceJsonObject(config, hydratedConfig);
+  return result;
+}
+
+function _classTransactionSuccessMessage(hydrationResult, value) {
+  const unmatched = Array.isArray(hydrationResult?.unmatched)
+    ? hydrationResult.unmatched.map((item) => _toText(item?.value || item?.normalized || item).trim()).filter(Boolean)
+    : [];
+  if (unmatched.length) {
+    return `Piping Class ${value} saved and the full Preview row was recomputed. No exact shard exists for ${unmatched.join(', ')}; dependent fields remain review-required.`;
+  }
+  const loaded = Array.isArray(hydrationResult?.loadedClasses) ? hydrationResult.loadedClasses.filter(Boolean) : [];
+  return loaded.length
+    ? `Piping Class ${value} saved. Loaded ${loaded.join(', ')} and atomically recomputed Rating, material, wall, corrosion, and Weight Match.`
+    : `Piping Class ${value} saved and atomically recomputed Rating, material, wall, corrosion, and Weight Match.`;
 }
 
 import {
@@ -281,6 +316,35 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     },
     onCellEditClick: ({ editType, derivedKey, currentVal, rowIndex, td }) => openOverridePopup({ editType, derivedKey, currentVal, config, onSave: (newVal) => {
       const row = branchRows[Number(rowIndex)] || {};
+      if (editType === 'pipingClass') {
+        _renderClassTransactionStatus(host, newVal);
+        void runAtomicPreviewClassTransaction({
+          config,
+          applyOverride: async () => {
+            const savedKey = _savePreviewOverride({ config, ensureOverrides, editType, row, derivedKey, value: newVal });
+            markAdaptedPreviewOverrideManual({ config, ensureOverrides, field: editType, key: savedKey, value: newVal });
+            return { savedKey, value: newVal };
+          },
+          hydrateAuthority: async () => _hydrateEffectiveClassConfig(config, xmlText),
+          persistConfig: async () => onSaveConfig?.(config),
+          rebuildPreview: async ({ hydrationResult, rollback, error }) => {
+            await xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+            const rebuiltHost = rootEl?.querySelector('#mc-preview-table-host');
+            if (rollback) {
+              _markPreviewSaved(rebuiltHost, `Piping Class update failed and was rolled back: ${_toText(error?.message || error)}`);
+            } else {
+              _markPreviewSaved(rebuiltHost, _classTransactionSuccessMessage(hydrationResult, newVal));
+            }
+          },
+        }).catch((error) => {
+          console.error('Atomic Piping Class Preview update failed:', error);
+          const currentHost = rootEl?.querySelector('#mc-preview-table-host');
+          if (error?.rollbackError) {
+            currentHost.innerHTML = `<div class="model-converters-workflow-detail-note" style="border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">Piping Class update failed, and the prior Preview could not be restored: ${_esc(error.rollbackError?.message || error.rollbackError)}</div>`;
+          }
+        });
+        return;
+      }
       const savedKey = _savePreviewOverride({ config, ensureOverrides, editType, row, derivedKey, value: newVal });
       markAdaptedPreviewOverrideManual({ config, ensureOverrides, field: editType, key: savedKey, value: newVal });
       if (editType === 'rating' && row.lineKey) markAdaptedPreviewProcessManual({ config, ensureOverrides, field: 'rating', lineKey: row.lineKey, value: newVal });
