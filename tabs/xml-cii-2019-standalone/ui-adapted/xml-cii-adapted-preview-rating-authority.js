@@ -46,7 +46,7 @@ function branchDtxrEvidence(branch, stagedIndex, config) {
   });
 }
 
-function exactPipingClassRating(row, pipingClassIndex, config) {
+export function resolvePreviewPipingClassRating(row, pipingClassIndex, config) {
   const pipingClass = _toText(row?.pipingClass || row?.pipingClassDerived).trim();
   const boreMm = Number(row?.sizeMm);
   if (!pipingClass || !Number.isFinite(boreMm) || boreMm <= 0) return '';
@@ -120,7 +120,7 @@ export function applyPreviewRatingAuthority({ xmlText, config = {}, stagedJsonTe
     const lineListRating = _rowText(lineListRow, ['rating', 'Rating', 'RATING', 'Pressure Class']);
     const ratingKeys = _uniqueKeys([row.lineKey, row.branchName, row.pipingClassDerived, row.pipingClass]);
     const manualRating = _ratingOverride(config, ratingKeys);
-    const pipingClassRating = exactPipingClassRating(row, pipingClassIndex, config);
+    const pipingClassRating = resolvePreviewPipingClassRating(row, pipingClassIndex, config);
     const prefixRating = _deriveRatingFromPipingClass(row.pipingClass || row.pipingClassDerived, config);
     const dtxrValues = branch ? branchDtxrEvidence(branch, stagedIndex, config) : [];
     const authority = resolveXmlCiiRatingAuthority({
