@@ -1,6 +1,6 @@
 import { fail, requireArray, requireText, stableCompare } from './audit-utils.js';
 import { occurrence, reconciliationInput, requireSchema, sorted, terminal } from './adapter-common.js';
-import { validateSupportReportInvariants } from './integrated-adapter-validation.js';
+import { validateSupportReportInvariants, validateTopologyReportInvariants } from './integrated-adapter-validation.js';
 
 function uniqueRecordOccurrences(rows, side) {
   const found = new Map();
@@ -8,14 +8,11 @@ function uniqueRecordOccurrences(rows, side) {
     const record = row[side];
     const id = requireText(record.sourceOccurrenceId, `ledgerEntries[${index}].${side}.sourceOccurrenceId`);
     requireText(record.branchOccurrenceId, `ledgerEntries[${index}].${side}.branchOccurrenceId`);
-    if (found.has(id) && found.get(id).identityKey !== record.recordId) {
-      fail('BLOCKED_AUDIT_IDENTITY', `support ${side} occurrence ${id} has conflicting record identities.`);
-    }
+    if (found.has(id) && found.get(id).identityKey !== record.recordId) fail('BLOCKED_AUDIT_IDENTITY', `support ${side} occurrence ${id} has conflicting record identities.`);
     found.set(id, occurrence(id, record.recordId || id));
   }
   return sorted(found.keys()).map((id) => found.get(id));
 }
-
 function supportCollisionGroups(rows) {
   const groups = new Map();
   for (const row of rows.filter((item) => ['DUPLICATE_IDENTITY','AMBIGUOUS_MATCH'].includes(item.matchState))) {
@@ -27,7 +24,6 @@ function supportCollisionGroups(rows) {
   }
   return groups;
 }
-
 function supportDiagnostics(rows, recordOccurrences) {
   const diagnostics = [];
   for (const [index, row] of rows.entries()) {
@@ -41,7 +37,6 @@ function supportDiagnostics(rows, recordOccurrences) {
   }
   return diagnostics;
 }
-
 function supportTerminals(rows, collisionGroups) {
   const terminals = [];
   for (const [id, group] of collisionGroups) terminals.push(terminal(`support-collision:${id}`, group.state,
@@ -53,7 +48,6 @@ function supportTerminals(rows, collisionGroups) {
   }
   return terminals;
 }
-
 export function adaptSupportBenchmarkReport(report) {
   const value = requireSchema(report, 'FbxSupportBenchmarkReport.v1', 'supportReport');
   const rows = requireArray(value.ledgerEntries, 'supportReport.ledgerEntries');
@@ -62,9 +56,8 @@ export function adaptSupportBenchmarkReport(report) {
   const recordOccurrences = new Map(rows.flatMap((row) => [row.reference, row.actual]).filter(Boolean)
     .map((record) => [record.recordId, record.sourceOccurrenceId]));
   return reconciliationInput('support', 'SUPPORT', value.schema, refs, actuals,
-    supportTerminals(rows, supportCollisionGroups(rows)), supportDiagnostics(rows, recordOccurrences));
+    supportTerminals(rows, supportCollisionGroups(rows)), supportDiagnostics(rows, recordOccurrences), value.summary.status);
 }
-
 function topologyRows(report, kind) {
   if (kind === 'TOPOLOGY_BRANCH') return report.branches.map((row) => ({ row, key:row.branchId,
     state:row.matchState, referenceKey:row.referenceBranchId, actualKey:row.actualBranchId }));
@@ -73,24 +66,19 @@ function topologyRows(report, kind) {
   if (kind === 'TOPOLOGY_JUNCTION') return report.junctions.map((row) => ({ row, key:row.ledgerId,
     state:row.matchState, referenceKey:row.referenceComponentId, actualKey:row.actualComponentId }));
   if (kind === 'TOPOLOGY_BOUNDARY') return report.boundaries.map((row) => ({ row, key:row.boundaryId,
-    state:boundaryState(row.status), referenceKey:row.referencePair?.relationshipId,
-    actualKey:row.actualPair?.relationshipId }));
+    state:boundaryState(row.status), referenceKey:row.referencePair?.relationshipId, actualKey:row.actualPair?.relationshipId }));
   fail('BLOCKED_AUDIT_VOCABULARY', `unsupported topology population ${kind}.`);
 }
-
 function boundaryState(status) {
   if (status === 'PASS') return 'EXACT_MATCH';
   if (status === 'PASS_WITH_OBSERVATIONS') return 'APPROVED_EQUIVALENT';
   if (status === 'BLOCKED') return 'BLOCKED_IDENTITY';
   return 'ZONE_BOUNDARY_MISMATCH';
 }
-
 function topologyOccurrences(rows, kind, side) {
   const key = side === 'reference' ? 'referenceKey' : 'actualKey';
-  return rows.flatMap((item, index) => item[key]
-    ? [occurrence(`topology:${kind}:${side}:${index}`, item[key])] : []);
+  return rows.flatMap((item, index) => item[key] ? [occurrence(`topology:${kind}:${side}:${index}`, item[key])] : []);
 }
-
 function duplicateTopologyTerminals(rows, kind) {
   const groups = new Map();
   rows.forEach((item, index) => {
@@ -102,7 +90,6 @@ function duplicateTopologyTerminals(rows, kind) {
   });
   return groups;
 }
-
 function topologyTerminals(rows, kind) {
   const duplicates = duplicateTopologyTerminals(rows, kind), terminals = [];
   for (const [key, group] of duplicates) terminals.push(terminal(`topology-duplicate:${key}`,
@@ -110,16 +97,19 @@ function topologyTerminals(rows, kind) {
   rows.forEach((item, index) => {
     if (item.state === 'DUPLICATE_EDGE') return;
     terminals.push(terminal(`topology:${kind}:${index}`, item.state,
-      item.referenceKey ? [`topology:${kind}:reference:${index}`] : [],
-      item.actualKey ? [`topology:${kind}:actual:${index}`] : []));
+      item.referenceKey ? [`topology:${kind}:reference:${index}`] : [], item.actualKey ? [`topology:${kind}:actual:${index}`] : []));
   });
   return terminals.sort((a, b) => stableCompare(a.recordId, b.recordId));
 }
-
 export function adaptTopologyBenchmarkReport(report, populationKind) {
   const value = requireSchema(report, 'FbxTopologyBenchmarkReport.v1', 'topologyReport');
-  const rows = topologyRows(value, populationKind);
+  const producerStatus = validateTopologyReportInvariants(value), rows = topologyRows(value, populationKind);
+  const refs = topologyOccurrences(rows, populationKind, 'reference'), actuals = topologyOccurrences(rows, populationKind, 'actual');
+  if (populationKind === 'TOPOLOGY_RELATIONSHIP') {
+    if (value.coverage.referenceRelationshipCount !== refs.length || value.coverage.actualRelationshipCount !== actuals.length) {
+      fail('BLOCKED_AUDIT_COVERAGE', 'topology relationship populations differ from producer coverage.');
+    }
+  }
   return reconciliationInput(`topology:${populationKind}`, populationKind, value.schema,
-    topologyOccurrences(rows, populationKind, 'reference'),
-    topologyOccurrences(rows, populationKind, 'actual'), topologyTerminals(rows, populationKind));
+    refs, actuals, topologyTerminals(rows, populationKind), [], producerStatus);
 }
