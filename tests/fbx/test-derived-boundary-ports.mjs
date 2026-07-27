@@ -59,4 +59,18 @@ assert.deepEqual(candidate(results[0]).orderedTopology.orderedVertexIndices,
 assertVectorNear(candidate(results[0]).normal, [0,0,1]);
 assertVectorNear(candidate(results[3]).normal, [0,0,-1]);
 
+const orderedFixture = await buildFixture({ geometryAId: '2', geometryBId: '10',
+  geometryA: diskGeometry(), geometryB: diskGeometry(12, 15),
+  selectedGeometryIds: ['10', '2'], siblingGeometryIds: [] });
+const orderedPermuted = await buildFixture({ geometryAId: '2', geometryBId: '10',
+  geometryA: diskGeometry(), geometryB: diskGeometry(12, 15),
+  selectedGeometryIds: ['10', '2'], siblingGeometryIds: [], reverseInput: true });
+const ordered = await analyseFbxZoneGeometry({ sourceGraph: orderedFixture.graph,
+  geometryBundle: orderedFixture.bundle, zoneId: 'occ:3' });
+const permuted = await analyseFbxZoneGeometry({ sourceGraph: orderedPermuted.graph,
+  geometryBundle: orderedPermuted.bundle, zoneId: 'occ:3' });
+assert.deepEqual(ordered.derivedPortEvidence.candidates.map((item) => item.geometryObjectId), ['2', '10']);
+assert.equal(ordered.derivedPortJson, permuted.derivedPortJson);
+assert.equal(ordered.derivedPortEvidence.artifactId, permuted.derivedPortEvidence.artifactId);
+
 console.log('test-derived-boundary-ports: PASS');
