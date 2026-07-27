@@ -20,7 +20,7 @@ import { installXmlCiiWorkflowPopup } from './xml-cii-workflow-popup.js?v=202607
 import { installXmlCiiCustomInputWorkflowTab } from './custom-input/xml-cii-custom-input-workflow-tab.js?v=20260625-custom-input-2';
 import { installXmlCiiBranchSampleSync } from './xml-cii-branch-sample-sync.js?v=20260624-workflow-consolidation-1';
 import { installXmlCiiFinaliseRunButton } from './xml-cii-finalise-run-button.js?v=20260625-model-converters-finalise-run-owner-1';
-import { installXmlCiiShortElementToggle } from './xml-cii-short-element-drop-1';
+import { installXmlCiiShortElementToggle } from './xml-cii-short-element-toggle.js?v=20260625-short-element-drop-1';
 import { installXmlCiiWeightSemanticInfo } from './xml-cii-weight-semantic-info.js?v=20260625-weight-semantic-info-1';
 import { installInputXmlBasicGlbBridge } from './inputxml-basic-glb-bridge.js';
 import { installInputXmlManagedStageBridge } from './inputxml-managed-stage-bridge.js?v=20260623-inputxml-direct-stage-1';
