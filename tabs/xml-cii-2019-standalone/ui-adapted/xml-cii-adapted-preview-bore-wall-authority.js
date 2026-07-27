@@ -1,12 +1,16 @@
 import {
+  collectStagedBranchWallEvidence,
+  collectXmlBranchWallEvidence,
   childText,
   children,
   findExactClassWall,
   nodeBoreMm,
   resolveBranchNominalBore,
-  resolveBranchWallEvidence,
   text,
 } from './xml-cii-adapted-preview-wall-evidence.js';
+import {
+  resolveXmlCiiWallThicknessWithEvidence,
+} from '../../../converters/xml-cii2019-core/dtxr-wall-evidence-ledger.js';
 
 function norm(value) {
   return text(value).toUpperCase().replace(/\s+/g, '');
@@ -19,9 +23,21 @@ function classSizeKey(row, boreMm) {
     : row?.wallThicknessKey;
 }
 
+function branchDtxrWallEvidence(branch, branchName, stagedJsonText, boreMm, config) {
+  const evidence = [
+    ...collectStagedBranchWallEvidence(stagedJsonText, branchName),
+    ...collectXmlBranchWallEvidence(branch),
+  ];
+  return resolveXmlCiiWallThicknessWithEvidence({
+    boreMm,
+    dtxrValues: evidence,
+    config,
+  });
+}
+
 function correctedRow(row, branch, stagedJsonText, config) {
   const boreMm = resolveBranchNominalBore(row.branchName, row.sizeMm, config);
-  const dtxr = resolveBranchWallEvidence(
+  const dtxr = branchDtxrWallEvidence(
     branch, row.branchName, stagedJsonText, boreMm, config,
   );
   const classWall = findExactClassWall(
@@ -45,7 +61,18 @@ function correctedRow(row, branch, stagedJsonText, config) {
   result.dtxrWallDtxr = dtxr?.dtxr || '';
   result.dtxrWallEvidenceKind = dtxr?.evidenceKind || '';
   result.dtxrWallComponentType = dtxr?.componentType || '';
+  result.dtxrWallComponentRefNo = dtxr?.componentRefNo || '';
   result.dtxrWallEvidenceBoreMm = dtxr?.evidenceBoreMm || '';
+  result.dtxrWallEvidenceSource = dtxr?.evidenceSource || '';
+  result.dtxrWallNps = dtxr?.nps || '';
+  result.dtxrWallProvenance = dtxr?.provenance || null;
+  result.dtxrWallEvidenceSchema = dtxr?.evidenceSchema || '';
+  result.dtxrWallSelectionPolicy = dtxr?.selectionPolicy || '';
+  result.dtxrWallSelectedEvidence = dtxr?.selectedEvidence || null;
+  result.dtxrWallEvidenceRecords = dtxr?.evidenceRecords || [];
+  result.dtxrWallEvidenceCount = dtxr?.evidenceCount || 0;
+  result.dtxrWallEligibleEvidenceCount = dtxr?.eligibleEvidenceCount || 0;
+  result.dtxrWallRejectedEvidenceCount = dtxr?.rejectedEvidenceCount || 0;
   return result;
 }
 
