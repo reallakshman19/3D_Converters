@@ -56,8 +56,10 @@ export function createZoneAnalysisController({ parseBundle, analyse, onState = n
   runtime.clear = (phase, message, status = null) => runtime.publish({ phase, status, message,
     zoneGeometryJson: null, derivedPortJson: null, result: null });
   runtime.invalidate = (reason = 'invalidated') => {
+    const cancelled = Boolean(runtime.active);
     runtime.generation += 1; runtime.active?.abort(); runtime.active = null;
-    return runtime.clear('idle', reason);
+    return runtime.clear(cancelled ? 'cancelled' : 'idle', reason,
+      cancelled ? ZONE_GEOMETRY_STATUS.CANCELLED : null);
   };
   runtime.clear('idle', '');
   return Object.freeze({ run: (input, progress) => executeRun(runtime, input, progress),
