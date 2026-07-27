@@ -83,7 +83,6 @@ assert.deepEqual(selected[0].children[1].attributes.ports.L.connections,[]);
 assert.equal(JSON.stringify(branches),original,'source StagedJSON must not mutate');
 assert.equal(JSON.stringify(selected),JSON.stringify(buildFbxStagedJsonZoneExport(graph,branches,zoneA.zoneId)));
 assert.deepEqual(buildFbxStagedJsonZoneExport(graph,branches,zoneB.zoneId).map((branch) => branch.id),['BB']);
-
 const mixedGraph = structuredClone(graph);
 mixedGraph.sourceObjects.push(source('8','Mixed Zone','Null'));
 mixedGraph.occurrences.push(occurrence('occ:mixed','8','occ:2',[]));
