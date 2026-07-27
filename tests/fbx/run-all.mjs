@@ -16,6 +16,7 @@ const tests = [
   'test-benchmark-real-inventory.mjs',
   'test-benchmark-source-binding.mjs',
   'test-benchmark-lineage-accounting.mjs',
+  'test-benchmark-derivation-authority.mjs',
   'test-benchmark-determinism.mjs',
   'test-benchmark-static-guards.mjs',
   'test-component-benchmark.mjs',
