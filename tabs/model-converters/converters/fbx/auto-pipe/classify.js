@@ -1,16 +1,12 @@
+import { transformPoint } from '../transform-policy.js';
 import { AUTO_PIPE_PROFILE, scaledTolerance } from './profile.js';
-import { distance, dot, finiteVector, normalize, subtract } from './vector.js';
+import { dot, finiteVector, normalize, subtract } from './vector.js';
 
 function fail(reason, detail) {
   return Object.freeze({ admitted: false, status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION', reason, detail });
 }
 
-function admittedCandidates(derived, occurrenceId, geometryId) {
-  return derived.candidates.filter((item) => item.sourceOccurrenceId === occurrenceId
-    && item.geometryObjectId === geometryId && item.admissionDisposition === 'ADMITTED');
-}
-
-function allCandidates(derived, occurrenceId, geometryId) {
+function candidatesFor(derived, occurrenceId, geometryId) {
   return derived.candidates.filter((item) => item.sourceOccurrenceId === occurrenceId
     && item.geometryObjectId === geometryId);
 }
@@ -37,14 +33,18 @@ function radiusMatches(ports, profile) {
   return Math.abs(ports.A.radiusMm - ports.L.radiusMm) <= tolerance;
 }
 
-function controlPoints(selection) {
-  const item = selection.buffers.find((buffer) => buffer.role === 'control-points-mm');
+function localControlPoints(selection) {
+  const item = selection?.buffers.find((buffer) => buffer.role === 'control-points-mm');
   if (!item) return [];
   const bytes = item.buffer.bytes;
   const view = new Float64Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 8);
   const points = [];
   for (let index = 0; index < view.length; index += 3) points.push([view[index], view[index + 1], view[index + 2]]);
   return points;
+}
+
+function worldControlPoints(selection, occurrence) {
+  return localControlPoints(selection).map((point) => transformPoint(occurrence.geometryMatrixMm, point));
 }
 
 function cylinderResiduals(points, ports, profile) {
@@ -57,19 +57,19 @@ function cylinderResiduals(points, ports, profile) {
     const radial = subtract(offset, axis.map((value) => value * axial));
     if (Math.abs(Math.hypot(...radial) - radius) > radialTolerance) return false;
   }
-  return true;
+  return points.length > 0;
 }
 
 export function classifyPipeOccurrence({ occurrence, selection, derivedPortEvidence, profile = AUTO_PIPE_PROFILE }) {
   const geometryIds = occurrence.geometryObjectIds || [];
   if (geometryIds.length !== 1) return fail('GEOMETRY_COUNT', 'PIPE requires exactly one selected geometry.');
-  const geometryId = geometryIds[0], candidates = allCandidates(derivedPortEvidence, occurrence.sourceOccurrenceId, geometryId);
-  const admitted = admittedCandidates(derivedPortEvidence, occurrence.sourceOccurrenceId, geometryId);
+  const geometryId = geometryIds[0], candidates = candidatesFor(derivedPortEvidence, occurrence.sourceOccurrenceId, geometryId);
+  const admitted = candidates.filter((item) => item.admissionDisposition === 'ADMITTED');
   if (candidates.length !== 2 || admitted.length !== 2) return fail('BOUNDARY_COUNT', 'PIPE requires exactly two admitted boundary loops and no rejected candidates.');
   const ports = assignRoles(admitted[0], admitted[1], profile);
   if (!ports) return fail('ROLE_ASSIGNMENT', 'Exactly one deterministic A/L assignment is required.');
   if (!radiusMatches(ports, profile)) return fail('RADIUS_MISMATCH', 'End radii exceed the PIPE admission tolerance.');
-  if (!cylinderResiduals(controlPoints(selection), ports, profile)) return fail('CYLINDER_RESIDUAL', 'Exact control points do not form a constant-radius open cylinder.');
+  if (!cylinderResiduals(worldControlPoints(selection, occurrence), ports, profile)) return fail('CYLINDER_RESIDUAL', 'Exact transformed control points do not form a constant-radius open cylinder.');
   return Object.freeze({ admitted: true, status: 'PIPE_INFERENCE_PASS', geometryObjectId: geometryId, ...ports });
 }
 
