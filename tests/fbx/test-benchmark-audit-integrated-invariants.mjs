@@ -4,7 +4,7 @@ import {
   auditSupportFoundationInvariants,
 } from '../../tabs/model-converters/converters/fbx/benchmark-audit/integrated-invariants.js';
 import {
-  branch, componentPolicy, fitting, pipe, qualify, toleranceProfile,
+  branch, componentPolicy, fitting, loadBranches, pipe, qualify, toleranceProfile,
 } from './component-benchmark-fixtures.mjs';
 import {
   benchmarkFixture, explicitHostResolver, identityPolicy, loadedBenchmarkFixture,
@@ -15,30 +15,34 @@ import { validateSupportBenchmark } from '../../tabs/model-converters/converters
 const referenceComponents = branch('/LINE/B1', [
   fitting('FLAN','=F1'), pipe('PIPE AUTO /LINE/B1 1'),
 ]);
+const referenceLoaded = await loadBranches(referenceComponents);
+const actualLoaded = await loadBranches(structuredClone(referenceComponents));
 const policy = componentPolicy();
 const componentReport = await qualify({
-  reference:referenceComponents, actual:structuredClone(referenceComponents),
+  reference:referenceLoaded, actual:actualLoaded,
   identityPolicy:policy, toleranceProfile,
 });
-assert.equal(auditComponentIdentityInvariants({ identityPolicy:policy, report:componentReport }).status,'PASS');
+const componentInput = {
+  identityPolicy:policy, referenceLoadedBenchmark:referenceLoaded,
+  actualLoadedBenchmark:actualLoaded, report:componentReport,
+};
+assert.equal(auditComponentIdentityInvariants(componentInput).status,'PASS');
 
 const falsePassReport = structuredClone(componentReport);
 for (const row of falsePassReport.ledger.filter((item) => item.side === 'REFERENCE')) {
   row.match.state = 'ATTRIBUTE_MISMATCH';
 }
-assert.deepEqual(
-  auditComponentIdentityInvariants({ identityPolicy:policy, report:falsePassReport }).findings,
-  ['COMPONENT_SUMMARY_FALSE_PASS'],
-);
+assert.deepEqual(auditComponentIdentityInvariants({ ...componentInput, report:falsePassReport }).findings,
+  ['COMPONENT_SUMMARY_FALSE_PASS']);
 
 const wrongPolicy = structuredClone(policy);
 wrongPolicy.policyContentSha256 = '0'.repeat(64);
-assert.throws(() => auditComponentIdentityInvariants({ identityPolicy:wrongPolicy, report:componentReport }),
+assert.throws(() => auditComponentIdentityInvariants({ ...componentInput, identityPolicy:wrongPolicy }),
   /component policy content hash mismatch/);
 const diagnosticPolicy = structuredClone(policy);
 diagnosticPolicy.identityRules.find((rule) => rule.kind.startsWith('DIAGNOSTIC_')).passing = true;
 diagnosticPolicy.policyContentSha256 = policy.policyContentSha256;
-assert.throws(() => auditComponentIdentityInvariants({ identityPolicy:diagnosticPolicy, report:componentReport }),
+assert.throws(() => auditComponentIdentityInvariants({ ...componentInput, identityPolicy:diagnosticPolicy }),
   /content hash mismatch|diagnostic rule can pass/);
 
 const escapedReport = structuredClone(componentReport);
@@ -49,7 +53,7 @@ escapedReport.collisionGroups = [{ collisionGroupId:'g1', identityRuleId:'source
   resolution:'UNRESOLVED', resolutionRuleIds:[] }];
 referenceLedger.identityEvidence.collisionGroupIds = ['g1'];
 referenceLedger.match.passingCounterpartSubjectId = 'outside-subject';
-assert.throws(() => auditComponentIdentityInvariants({ identityPolicy:policy, report:escapedReport }),
+assert.throws(() => auditComponentIdentityInvariants({ ...componentInput, report:escapedReport }),
   /escaped collision group/);
 assert.throws(() => auditComponentIdentityInvariants({
   frozenPolicyContentSha256:'a'.repeat(64), declaredPolicySha256:'a'.repeat(64),
