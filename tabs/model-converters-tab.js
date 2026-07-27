@@ -1,5 +1,5 @@
-const MODEL_CONVERTERS_SHIM_VERSION = '20260727-fbx-preview-zone-1';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260727-fbx-preview-zone-1';
+const MODEL_CONVERTERS_SHIM_VERSION = '20260727-fbx-zone-download-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260727-fbx-zone-download-1';
 const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260725-fbx-source-graph-preview-1';
 
 function escapeHtml(value) {
