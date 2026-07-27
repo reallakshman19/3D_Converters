@@ -8,10 +8,10 @@ const RATING_ALT = SUPPORTED_RATINGS.join('|');
 export function normalizeXmlCiiRating(value) {
   const source = text(value).toUpperCase();
   if (!source) return '';
-  const explicit = source.match(new RegExp(`\\b(?:CL|CLASS|RATING)?\\s*(${RATING_ALT})\\s*#?\\b`, 'i'));
+  const explicit = source.match(/\b(?:CL|CLASS|RATING)\s*[-:]?\s*([0-9]+)\s*#?\b/i);
   if (explicit) return explicit[1];
   const digits = source.replace(/[^0-9]/g, '');
-  return SUPPORTED_RATINGS.includes(digits) ? digits : '';
+  return digits;
 }
 
 export function extractXmlCiiRatingFromDtxr(value) {
