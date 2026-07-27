@@ -17,6 +17,7 @@ test('collects branch, line-list, override and process-data effective classes', 
         masterRows: [
           { 'Piping Class': '13421' },
           { pipingClass: '93834' },
+          { Class: '900' },
         ],
       },
       overrides: {
@@ -38,6 +39,7 @@ test('collects branch, line-list, override and process-data effective classes', 
     requirements.find((item) => item.normalized === '96620').sources,
     ['override'],
   );
+  assert.equal(requirements.some((item) => item.normalized === '900'), false);
 });
 
 test('matches only exact class keys or declared index tokens', () => {
