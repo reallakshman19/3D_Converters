@@ -36,16 +36,26 @@ function multiplyTranspose(matrix, vector) {
 
 function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 function length(value) { return Math.sqrt(dot(value, value)); }
-function normalize(value) { const size = length(value); return size ? value.map((item) => item / size) : null; }
+function finiteVector(value) { return Array.isArray(value) && value.length === 3 && value.every(Number.isFinite); }
+function finiteMatrix(value) { return value.flat().every(Number.isFinite); }
+function nonFiniteResult() { return { rejectionReasons: ['NON_FINITE_RESULT'] }; }
 function clean(value) { return value.map(normalizedNumber); }
+
+function normalize(value) {
+  if (!finiteVector(value)) return null;
+  const size = length(value);
+  if (!Number.isFinite(size) || size <= 0) return null;
+  const result = value.map((item) => item / size);
+  return finiteVector(result) ? result : null;
+}
 
 function transformReason(error) {
   const text = String(error?.message || error);
   if (/inheritance/i.test(text)) return 'UNSUPPORTED_INHERITANCE';
   if (/missing geometry matrix/i.test(text)) return 'MISSING_TRANSFORM';
-  if (/singular/i.test(text)) return 'SINGULAR_TRANSFORM';
   if (/shear/i.test(text)) return 'SHEAR_TRANSFORM';
   if (/non-uniform/i.test(text)) return 'NON_UNIFORM_SCALE';
+  if (/singular/i.test(text) && !/non-finite/i.test(text)) return 'SINGULAR_TRANSFORM';
   return 'NON_FINITE_RESULT';
 }
 
@@ -63,30 +73,58 @@ function tolerance(radiusMm) {
   };
 }
 
+function validLocalEvidence(fit, localPoints) {
+  const values = [fit?.radius, fit?.planarityResidual, fit?.circularResidual];
+  return finiteVector(fit?.centre) && finiteVector(fit?.normal)
+    && values.every(Number.isFinite) && localPoints.every(finiteVector);
+}
+
+function finiteOutput(centre, normal, radius, planarity, circular, limits) {
+  return finiteVector(centre) && finiteVector(normal)
+    && [radius, radius * 2, planarity, circular,
+      limits.planarityMm, limits.circularMm].every(Number.isFinite);
+}
+
 export function transformBoundaryFit(occurrence, fit, localPoints) {
+  if (!validLocalEvidence(fit, localPoints)) return nonFiniteResult();
   try { validateOccurrenceTransform(occurrence); }
   catch (error) { return { rejectionReasons: [transformReason(error)] }; }
   const matrix = occurrence.geometryMatrixMm, linear = linearMatrix(matrix), det = determinant(linear);
-  if (!Number.isFinite(det) || Math.abs(det) < 1e-12) return { rejectionReasons: ['SINGULAR_TRANSFORM'] };
+  if (!Number.isFinite(det)) return nonFiniteResult();
+  if (Math.abs(det) < 1e-12) return { rejectionReasons: ['SINGULAR_TRANSFORM'] };
   const inverseMatrix = inverse(linear, det);
+  if (!finiteMatrix(inverseMatrix)) return nonFiniteResult();
   const transformed = multiplyTranspose(inverseMatrix, fit.normal).map((value) => value * Math.sign(det));
+  if (!finiteVector(transformed)) return nonFiniteResult();
   const worldNormal = normalize(transformed);
   if (!worldNormal) return { rejectionReasons: ['SINGULAR_TRANSFORM'] };
   const worldPoints = localPoints.map((point) => transformPoint(matrix, point));
+  if (!worldPoints.every(finiteVector)) return nonFiniteResult();
   const winding = windingNormalForPoints(worldPoints);
-  if (!winding || dot(worldNormal, winding) <= 0) return { rejectionReasons: ['MIRRORED_ORIENTATION_MISMATCH'] };
-  const uniformScale = scaleFor(matrix), radiusMm = fit.radius * uniformScale;
+  if (winding && !finiteVector(winding)) return nonFiniteResult();
+  const orientation = winding ? dot(worldNormal, winding) : 0;
+  if (!Number.isFinite(orientation)) return nonFiniteResult();
+  if (!winding || orientation <= 0) return { rejectionReasons: ['MIRRORED_ORIENTATION_MISMATCH'] };
+  const uniformScale = scaleFor(matrix);
+  if (!Number.isFinite(uniformScale)) return nonFiniteResult();
+  if (uniformScale <= 0) return { rejectionReasons: ['SINGULAR_TRANSFORM'] };
+  const radiusMm = fit.radius * uniformScale;
   const planarityResidualMm = fit.planarityResidual * uniformScale;
   const circularResidualMm = fit.circularResidual * uniformScale;
-  const limits = tolerance(radiusMm), reasons = [];
+  const limits = tolerance(radiusMm), centreMm = transformPoint(matrix, fit.centre);
+  if (!finiteOutput(centreMm, worldNormal, radiusMm,
+    planarityResidualMm, circularResidualMm, limits)) return nonFiniteResult();
+  const reasons = [];
   if (radiusMm < FBX_DERIVED_PORT_TOLERANCE_PROFILE.minimumRadiusMm) reasons.push('RADIUS_BELOW_MINIMUM');
   if (planarityResidualMm > limits.planarityMm) reasons.push('NON_PLANAR');
   if (circularResidualMm > limits.circularMm) reasons.push('NON_CIRCULAR');
   return {
-    centreMm: clean(transformPoint(matrix, fit.centre)), normal: clean(worldNormal),
+    centreMm: clean(centreMm), normal: clean(worldNormal),
     radiusMm: normalizedNumber(radiusMm), diameterMm: normalizedNumber(radiusMm * 2),
     planarityResidualMm: normalizedNumber(planarityResidualMm),
-    circularResidualMm: normalizedNumber(circularResidualMm), tolerancesMm: limits,
+    circularResidualMm: normalizedNumber(circularResidualMm),
+    tolerancesMm: { planarityMm: normalizedNumber(limits.planarityMm),
+      circularMm: normalizedNumber(limits.circularMm) },
     orientationRule: 'sign(det(A))*inverse-transpose(local-winding-normal)',
     transformDisposition: det < 0 ? 'MIRRORED_NEGATIVE_DETERMINANT_ACCEPTED' : 'ORDINARY_POSITIVE_DETERMINANT',
     rejectionReasons: reasons,
