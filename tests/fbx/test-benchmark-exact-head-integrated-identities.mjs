@@ -15,7 +15,7 @@ function identity() {
 function evidence() {
   const authority = identity();
   const observed = identity();
-  return { schema: 'FbxExactHeadEvidence.v2', authority, observed, regressionStatus: 'PASS', determinismStatus: 'PASS' };
+  return { schema: 'FbxExactHeadEvidence.v3', authority, observed, regressionStatus: 'PASS', determinismStatus: 'PASS' };
 }
 
 assert.equal(evaluateExactHeadEvidence(evidence()).status, 'PASS');
