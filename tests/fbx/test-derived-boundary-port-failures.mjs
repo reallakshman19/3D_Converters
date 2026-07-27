@@ -74,6 +74,11 @@ const infiniteFit = transformBoundaryFit({ sourceOccurrenceId: 'occ:fit-check', 
 { ...finiteFit, radius: Number.NaN }, [[10,0,0],[0,10,0],[-10,0,0],[0,-10,0]]);
 assert.deepEqual(infiniteFit, { rejectionReasons: ['NON_FINITE_RESULT'] });
 
+const nonFiniteBasis = transformBoundaryFit({ sourceOccurrenceId: 'occ:basis-check', inheritMode: 0,
+  geometryMatrixMm: [Number.NaN,0,0,0,1,0,0,0,1,0,0,0] },
+finiteFit, [[10,0,0],[0,10,0],[-10,0,0],[0,-10,0]]);
+assert.deepEqual(nonFiniteBasis, { rejectionReasons: ['NON_FINITE_RESULT'] });
+
 for (const result of [nonManifold, nonPlanar, nonCircular]) {
   assert.equal(result.derivedPortEvidence.classificationDisposition, 'NOT_PERFORMED');
   assert.equal(result.derivedPortEvidence.connectivityDisposition, 'NOT_PERFORMED');
