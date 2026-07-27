@@ -2,6 +2,7 @@ const tests = [
   'test-parser.mjs',
   'test-fbx-source-graph-preview.mjs',
   'test-fbx-source-graph-preview-zones.mjs',
+  'test-fbx-source-graph-zone-export.mjs',
   'test-fbx-preview-zone-selector-static.mjs',
   'test-benchmark-zone-membership.mjs',
   'test-source-graph-v2.mjs',
