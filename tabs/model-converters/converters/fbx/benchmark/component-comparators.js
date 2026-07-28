@@ -125,47 +125,29 @@ export function comparePoint(
   });
 }
 
-export function compareScalar(
-  fieldId,
-  reference,
-  actual,
-  toleranceProfile,
-  toleranceRuleId,
-  unit,
-) {
+export function compareScalar(fieldId, reference, actual, toleranceProfile, toleranceRuleId, unit) {
   if (reference == null && actual == null) {
-    return comparison(fieldId, 'TOLERANT', reference, actual, 'NOT_APPLICABLE', {
-      toleranceRuleId,
-    });
+    return comparison(fieldId, 'TOLERANT', reference, actual, 'NOT_APPLICABLE', { toleranceRuleId });
   }
-  const normalizedReferenceValue = parseScalar(reference, unit);
-  const normalizedActualValue = parseScalar(actual, unit);
-  if (normalizedReferenceValue == null || normalizedActualValue == null) {
+  const normRef = parseScalar(reference, unit), normAct = parseScalar(actual, unit);
+  if (normRef == null || normAct == null) {
     return comparison(fieldId, 'BLOCKED', reference, actual, 'BLOCKED', {
-      normalizedReferenceValue,
-      normalizedActualValue,
-      toleranceRuleId,
+      normalizedReferenceValue: normRef, normalizedActualValue: normAct, toleranceRuleId,
       diagnosticCodes: [`${fieldId.toUpperCase()}_UNPARSEABLE`],
     });
   }
   const rule = toleranceRule(toleranceProfile, toleranceRuleId);
   if (!rule) {
     return comparison(fieldId, 'BLOCKED', reference, actual, 'BLOCKED', {
-      normalizedReferenceValue,
-      normalizedActualValue,
-      toleranceRuleId,
+      normalizedReferenceValue: normRef, normalizedActualValue: normAct, toleranceRuleId,
       diagnosticCodes: ['TOLERANCE_RULE_UNAVAILABLE'],
     });
   }
-  const result = scalarWithin(
-    normalizedReferenceValue, normalizedActualValue, rule,
-  );
-  return comparison(fieldId, 'TOLERANT', reference, actual, result.pass ? 'PASS' : 'FAIL', {
-    normalizedReferenceValue,
-    normalizedActualValue,
-    toleranceRuleId,
-    delta: { absolute: result.delta, allowed: result.allowed },
-    diagnosticCodes: result.pass ? [] : [`${fieldId.toUpperCase()}_MISMATCH`],
+  const res = scalarWithin(normRef, normAct, rule);
+  return comparison(fieldId, 'TOLERANT', reference, actual, res.pass ? 'PASS' : 'FAIL', {
+    normalizedReferenceValue: normRef, normalizedActualValue: normAct, toleranceRuleId,
+    delta: { absolute: res.delta, allowed: res.allowed },
+    diagnosticCodes: res.pass ? [] : [`${fieldId.toUpperCase()}_MISMATCH`],
   });
 }
 

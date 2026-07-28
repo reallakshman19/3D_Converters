@@ -4,6 +4,7 @@ const tests = [
   'test-fbx-source-graph-preview-zones.mjs',
   'test-fbx-source-graph-zone-export.mjs',
   'test-fbx-staged-json-zone-export.mjs',
+  'test-selected-zone-package-core.mjs',
   'test-fbx-preview-zone-staged-run.mjs',
   'test-fbx-preview-zone-selector-static.mjs',
   'test-benchmark-zone-membership.mjs',

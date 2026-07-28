@@ -5,13 +5,23 @@ import { buildFbxBenchmarkDerivationAuthority } from '../../tabs/model-converter
 import {
   gitBlobSha1, sealProducerAuthority, verifyProducerAuthority, verifyProducerFiles,
 } from '../../tabs/model-converters/converters/fbx/benchmark/producer-authority.js';
+import { sealFbxBenchmarkSourceBinding } from '../../tabs/model-converters/converters/fbx/benchmark/source-binding.js';
 
 const producerPath = new URL('../../Benchmarks/fbx BM/StaggedJsonBMforFBX.producer-authority.json', import.meta.url);
 const producer = await verifyProducerAuthority(JSON.parse(await readFile(producerPath, 'utf8')));
-const binding = {
-  schema: 'FbxBenchmarkSourceBinding.v1', bindingSha256: 'a'.repeat(64),
-  benchmark: { commit: producer.benchmarkCommit },
-};
+const binding = await sealFbxBenchmarkSourceBinding({ schema: 'FbxBenchmarkSourceBinding.v1',
+  source: { fileName: 'fixture.fbx', byteLength: 27, sha256: 'f'.repeat(64),
+    storage: { provider: 'GOOGLE_DRIVE', fileId: 'fixture', revisionId: 'revision' },
+    fbx: { encoding: 'BINARY', version: 7500, fileId: '1'.repeat(32), creator: 'fixture',
+      creationTime: '2026-01-01 00:00:00:000', globalSettings: { upAxis: 2, upAxisSign: 1,
+        frontAxis: 1, frontAxisSign: 1, coordAxis: 0, coordAxisSign: -1,
+        unitScaleFactor: 100, originalUnitScaleFactor: 1 } } },
+  benchmark: { repository: 'owner/repo', commit: producer.benchmarkCommit, path: 'benchmark.json',
+    gitBlobSha1: 'a'.repeat(40), inventory: { totalRecords: 6, branchRecords: 2,
+      childRecords: 4, supportRecords: 1 } },
+  lineage: { sourceBranchRootCount: 2, sourceDirectBranchChildCount: 4, benchmarkBranchCount: 2,
+    benchmarkChildCount: 4, netAdditionalBenchmarkRecords: 0, commonModelStatus: 'STRONGLY_SUPPORTED',
+    derivationStatus: 'UNPROVEN', certificationStatus: 'BLOCKED' }, bindingSha256: null });
 const branch = { name: '/SITE/PIPE/B1', type: 'BRANCH', attributes: { OWNER_SITE: '/SITE' }, children: [] };
 const flange = { name: 'FLAN =1/2', type: 'FLAN', attributes: { NAME: '=1/2', RAW_TYPE: 'FLANGE' } };
 const pipe = { name: 'PIPE AUTO /SITE/PIPE/B1 HEAD', type: 'PIPE', attributes: {

@@ -95,48 +95,27 @@ function validateScope(entry, requiredFields, label) {
 
 function identityRule(entry, index, state) {
   const label = `policy.identityRules[${index}]`;
-  exactKeys(entry, [
-    'ruleId', 'rank', 'kind', 'applicableFamilies', 'requiredFields',
-    'normalizationRuleIds', 'scope', 'uniquenessRequirement', 'passing',
-  ], label);
+  exactKeys(entry, ['ruleId', 'rank', 'kind', 'applicableFamilies', 'requiredFields',
+    'normalizationRuleIds', 'scope', 'uniquenessRequirement', 'passing'], label);
   const ruleId = requireText(entry.ruleId, `${label}.ruleId`);
   if (state.ids.has(ruleId)) fail(`duplicate identity rule ${ruleId}.`);
   state.ids.add(ruleId);
-  if (!Number.isInteger(entry.rank) || entry.rank < 1) {
-    fail(`${label}.rank must be a positive integer.`);
-  }
+  if (!Number.isInteger(entry.rank) || entry.rank < 1) fail(`${label}.rank must be a positive integer.`);
   if (state.ranks.has(entry.rank)) fail(`duplicate identity rank ${entry.rank}.`);
   state.ranks.add(entry.rank);
   const kind = validateRuleKind(entry, label);
-  const applicableFamilies = stringArray(
-    entry.applicableFamilies, `${label}.applicableFamilies`, { allowEmpty: false },
-  ).map((family) => {
-    if (!COMPONENT_FAMILIES.includes(family)) {
-      fail(`${label}.applicableFamilies contains unsupported family ${family}.`);
-    }
+  const applicableFamilies = stringArray(entry.applicableFamilies, `${label}.applicableFamilies`, { allowEmpty: false }).map((family) => {
+    if (!COMPONENT_FAMILIES.includes(family)) fail(`${label}.applicableFamilies contains unsupported family ${family}.`);
     return family;
   });
-  const requiredFields = stringArray(
-    entry.requiredFields, `${label}.requiredFields`, { allowEmpty: false },
-  );
+  const requiredFields = stringArray(entry.requiredFields, `${label}.requiredFields`, { allowEmpty: false });
   const scope = validateScope(entry, requiredFields, label);
-  const uniquenessRequirement = requireText(
-    entry.uniquenessRequirement, `${label}.uniquenessRequirement`,
-  );
-  if (!['EXACTLY_ONE', 'COLLISION_PRESERVING'].includes(uniquenessRequirement)) {
-    fail(`${label}.uniquenessRequirement is invalid.`);
-  }
+  const uniquenessRequirement = requireText(entry.uniquenessRequirement, `${label}.uniquenessRequirement`);
+  if (!['EXACTLY_ONE', 'COLLISION_PRESERVING'].includes(uniquenessRequirement)) fail(`${label}.uniquenessRequirement is invalid.`);
   return {
-    ruleId,
-    rank: entry.rank,
-    ...kind,
-    applicableFamilies,
-    requiredFields,
-    normalizationRuleIds: stringArray(
-      entry.normalizationRuleIds, `${label}.normalizationRuleIds`,
-    ),
-    scope,
-    uniquenessRequirement,
+    ruleId, rank: entry.rank, ...kind, applicableFamilies, requiredFields,
+    normalizationRuleIds: stringArray(entry.normalizationRuleIds, `${label}.normalizationRuleIds`),
+    scope, uniquenessRequirement,
   };
 }
 

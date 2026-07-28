@@ -66,40 +66,25 @@ export async function qualifyComponents({
   topologyByReferenceId = {}, executionIdentity = {}, benchmarkIdentity = {},
 } = {}) {
   const policy = await validateFrozenComponentIdentityPolicy(policyValue);
-  const referenceSubjects = await buildComponentSubjects(reference, policy, 'REFERENCE',
-    { zoneIndex: referenceZoneIndex, benchmarkIdentity });
-  const actualSubjects = await buildComponentSubjects(actual, policy, 'ACTUAL',
-    { zoneIndex: actualZoneIndex, benchmarkIdentity });
+  const referenceSubjects = await buildComponentSubjects(reference, policy, 'REFERENCE', { zoneIndex: referenceZoneIndex, benchmarkIdentity });
+  const actualSubjects = await buildComponentSubjects(actual, policy, 'ACTUAL', { zoneIndex: actualZoneIndex, benchmarkIdentity });
   if (!referenceSubjects.length) fail('reference component population must not be empty.');
   const resolution = resolveComponentMatches(referenceSubjects, actualSubjects, policy, normalizers);
-  const ledger = buildComponentLedger(referenceSubjects, actualSubjects, resolution,
-    { toleranceProfile, comparators, topologyByReferenceId });
+  const ledger = buildComponentLedger(referenceSubjects, actualSubjects, resolution, { toleranceProfile, comparators, topologyByReferenceId });
   const reportPayload = {
     schema: REPORT_SCHEMA,
     benchmarkIdentity: cloneJson(benchmarkIdentity),
     executionIdentity: {
       ...cloneJson(executionIdentity),
       componentIdentityPolicyIdentity: { policyId: policy.policyId, contentSha256: policy.policyContentSha256 },
-      toleranceProfileIdentity: toleranceProfile?.profileId
-        ? { profileId: toleranceProfile.profileId, contentSha256: toleranceProfile.contentSha256 ?? null } : null,
-      benchmarkLoads: {
-        reference: benchmarkLoadIdentity(reference, 'REFERENCE'),
-        actual: benchmarkLoadIdentity(actual, 'ACTUAL'),
-      },
-      zoneMembershipIndexes: {
-        reference: await zoneIndexIdentity(referenceZoneIndex),
-        actual: await zoneIndexIdentity(actualZoneIndex),
-      },
+      toleranceProfileIdentity: toleranceProfile?.profileId ? { profileId: toleranceProfile.profileId, contentSha256: toleranceProfile.contentSha256 ?? null } : null,
+      benchmarkLoads: { reference: benchmarkLoadIdentity(reference, 'REFERENCE'), actual: benchmarkLoadIdentity(actual, 'ACTUAL') },
+      zoneMembershipIndexes: { reference: await zoneIndexIdentity(referenceZoneIndex), actual: await zoneIndexIdentity(actualZoneIndex) },
     },
-    inventory: reportInventory(referenceSubjects, actualSubjects, resolution),
-    ledger,
+    inventory: reportInventory(referenceSubjects, actualSubjects, resolution), ledger,
     collisionGroups: resolution.collisionGroups,
     summary: summarizeComponentLedger(ledger, referenceSubjects.length, actualSubjects.length),
-    canonicalOrdering: {
-      ledger: ['side', 'classification.family', 'subjectId'],
-      collisionGroups: ['identityRuleId', 'normalizedKey', 'collisionGroupId'],
-      comparisons: ['fieldId'],
-    },
+    canonicalOrdering: { ledger: ['side', 'classification.family', 'subjectId'], collisionGroups: ['identityRuleId', 'normalizedKey', 'collisionGroupId'], comparisons: ['fieldId'] },
   };
   const reportDigest = await sha256Hex(canonicalJson(reportPayload));
   return deepFreeze({ ...reportPayload, reportId: `FBCOMP-${reportDigest.slice(0, 32)}` });

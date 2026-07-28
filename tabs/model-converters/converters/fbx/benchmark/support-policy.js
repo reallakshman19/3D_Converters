@@ -32,55 +32,36 @@ function toleranceDimension(value, label, { relativeAllowed = true } = {}) {
   return Object.freeze({ absolute, relative });
 }
 
+function validateIdentityStage(stage, index, stageIds, ranks) {
+  const item = requireObject(stage, `policy.identityStages[${index}]`);
+  const stageId = requireText(item.stageId, `policy.identityStages[${index}].stageId`);
+  if (stageIds.has(stageId)) fail(`duplicate stageId ${stageId}.`);
+  stageIds.add(stageId);
+  if (!Number.isInteger(item.rank) || item.rank < 1) fail(`${stageId}.rank must be a positive integer.`);
+  if (ranks.has(item.rank)) fail(`duplicate stage rank ${item.rank}.`);
+  ranks.add(item.rank);
+  if (!STAGE_AUTHORITIES.has(item.authority)) fail(`${stageId}.authority is invalid.`);
+  const approvedEquivalentRuleId = item.approvedEquivalentRuleId === undefined
+    ? null : requireText(item.approvedEquivalentRuleId, `${stageId}.approvedEquivalentRuleId`);
+  if (item.authority === 'APPROVED_EQUIVALENT' && !approvedEquivalentRuleId) fail(`${stageId}.approvedEquivalentRuleId is required for APPROVED_EQUIVALENT.`);
+  if (item.authority !== 'APPROVED_EQUIVALENT' && approvedEquivalentRuleId) fail(`${stageId}.approvedEquivalentRuleId is only allowed for APPROVED_EQUIVALENT.`);
+  return { stageId, rank: item.rank, authority: item.authority, keyPaths: requireStringArray(item.keyPaths, `${stageId}.keyPaths`), requireNonEmpty: item.requireNonEmpty !== false, approvedEquivalentRuleId };
+}
+
 export function validateSupportIdentityPolicy(policy) {
   const record = requireObject(policy, 'policy');
   if (record.schema !== 'FbxSupportIdentityPolicy.v1') fail('policy.schema must be FbxSupportIdentityPolicy.v1.');
   requireText(record.policyId, 'policy.policyId');
-  if (!Array.isArray(record.identityStages) || !record.identityStages.length) {
-    fail('policy.identityStages must be a non-empty array.');
-  }
-  const stageIds = new Set();
-  const ranks = new Set();
-  const identityStages = record.identityStages.map((stage, index) => {
-    const item = requireObject(stage, `policy.identityStages[${index}]`);
-    const stageId = requireText(item.stageId, `policy.identityStages[${index}].stageId`);
-    if (stageIds.has(stageId)) fail(`duplicate stageId ${stageId}.`);
-    stageIds.add(stageId);
-    if (!Number.isInteger(item.rank) || item.rank < 1) fail(`${stageId}.rank must be a positive integer.`);
-    if (ranks.has(item.rank)) fail(`duplicate stage rank ${item.rank}.`);
-    ranks.add(item.rank);
-    if (!STAGE_AUTHORITIES.has(item.authority)) fail(`${stageId}.authority is invalid.`);
-    const approvedEquivalentRuleId = item.approvedEquivalentRuleId === undefined
-      ? null
-      : requireText(item.approvedEquivalentRuleId, `${stageId}.approvedEquivalentRuleId`);
-    if (item.authority === 'APPROVED_EQUIVALENT' && !approvedEquivalentRuleId) {
-      fail(`${stageId}.approvedEquivalentRuleId is required for APPROVED_EQUIVALENT.`);
-    }
-    if (item.authority !== 'APPROVED_EQUIVALENT' && approvedEquivalentRuleId) {
-      fail(`${stageId}.approvedEquivalentRuleId is only allowed for APPROVED_EQUIVALENT.`);
-    }
-    return {
-      stageId,
-      rank: item.rank,
-      authority: item.authority,
-      keyPaths: requireStringArray(item.keyPaths, `${stageId}.keyPaths`),
-      requireNonEmpty: item.requireNonEmpty !== false,
-      approvedEquivalentRuleId,
-    };
-  }).sort((left, right) => left.rank - right.rank || left.stageId.localeCompare(right.stageId));
+  if (!Array.isArray(record.identityStages) || !record.identityStages.length) fail('policy.identityStages must be a non-empty array.');
+  const stageIds = new Set(), ranks = new Set();
+  const identityStages = record.identityStages.map((stage, i) => validateIdentityStage(stage, i, stageIds, ranks))
+    .sort((left, right) => left.rank - right.rank || (left.stageId < right.stageId ? -1 : left.stageId > right.stageId ? 1 : 0));
   const classAuthority = requireObject(record.classAuthority, 'policy.classAuthority');
   const emptyExplicitClassDisposition = classAuthority.emptyExplicitClassDisposition || 'BLOCKED_CLASSIFICATION';
-  if (!EMPTY_CLASS_DISPOSITIONS.has(emptyExplicitClassDisposition)) {
-    fail('policy.classAuthority.emptyExplicitClassDisposition is invalid.');
-  }
+  if (!EMPTY_CLASS_DISPOSITIONS.has(emptyExplicitClassDisposition)) fail('policy.classAuthority.emptyExplicitClassDisposition is invalid.');
   return Object.freeze({
-    schema: record.schema,
-    policyId: record.policyId,
-    identityStages: Object.freeze(identityStages),
-    classAuthority: Object.freeze({
-      emptyExplicitClassDisposition,
-      explicitConflictDisposition: classAuthority.explicitConflictDisposition || 'BLOCKED_CLASSIFICATION',
-    }),
+    schema: record.schema, policyId: record.policyId, identityStages: Object.freeze(identityStages),
+    classAuthority: Object.freeze({ emptyExplicitClassDisposition, explicitConflictDisposition: classAuthority.explicitConflictDisposition || 'BLOCKED_CLASSIFICATION' }),
   });
 }
 

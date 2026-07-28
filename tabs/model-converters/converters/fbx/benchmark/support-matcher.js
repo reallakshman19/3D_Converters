@@ -61,70 +61,42 @@ function diagnosticGroups(stages, references, actuals, referenceIds, actualIds) 
   return groups.sort((left, right) => compareText(left.candidateGroupId, right.candidateGroupId));
 }
 
+function processAuthoritativeStages(authoritativeStages, references, actuals, remRef, remAct, lockedRef, lockedAct, matches, collisionGroups) {
+  for (const stage of authoritativeStages) {
+    const refGroups = groupByStage(references, [...remRef].filter((id) => !lockedRef.has(id)), stage);
+    const actGroups = groupByStage(actuals, [...remAct].filter((id) => !lockedAct.has(id)), stage);
+    for (const key of sortedUnion(refGroups, actGroups)) {
+      const refIds = refGroups.get(key) || [], actIds = actGroups.get(key) || [];
+      if (refIds.length === 1 && actIds.length === 1) {
+        const referenceId = refIds[0], actualId = actIds[0];
+        remRef.delete(referenceId); remAct.delete(actualId);
+        matches.push({ stageId: stage.stageId, authority: stage.authority, approvedEquivalentRuleId: stage.approvedEquivalentRuleId, normalizedKey: JSON.parse(key), referenceId, actualId });
+      } else if (refIds.length > 1 || actIds.length > 1) {
+        for (const id of refIds) lockedRef.add(id);
+        for (const id of actIds) lockedAct.add(id);
+        collisionGroups.push({ collisionGroupId: `support-collision:${stage.stageId}:${collisionGroups.length + 1}`, stageId: stage.stageId, normalizedKey: JSON.parse(key), referenceIds: refIds, actualIds: actIds });
+      }
+    }
+  }
+}
+
 export function matchSupportRecords(referenceRecords, actualRecords, policyValue) {
   const policy = validateSupportIdentityPolicy(policyValue);
   const references = new Map(referenceRecords.map((record) => [record.recordId, record]));
   const actuals = new Map(actualRecords.map((record) => [record.recordId, record]));
-  const remainingReference = new Set(references.keys());
-  const remainingActual = new Set(actuals.keys());
-  const lockedReference = new Set();
-  const lockedActual = new Set();
-  const matches = [];
-  const collisionGroups = [];
+  const remRef = new Set(references.keys()), remAct = new Set(actuals.keys());
+  const lockedRef = new Set(), lockedAct = new Set(), matches = [], collisionGroups = [];
   const authoritativeStages = policy.identityStages.filter((stage) => stage.authority !== 'DIAGNOSTIC_ONLY');
   const diagnosticStages = policy.identityStages.filter((stage) => stage.authority === 'DIAGNOSTIC_ONLY');
-
-  for (const stage of authoritativeStages) {
-    const referenceGroups = groupByStage(references, [...remainingReference].filter((id) => !lockedReference.has(id)), stage);
-    const actualGroups = groupByStage(actuals, [...remainingActual].filter((id) => !lockedActual.has(id)), stage);
-    for (const key of sortedUnion(referenceGroups, actualGroups)) {
-      const referenceIds = referenceGroups.get(key) || [];
-      const actualIds = actualGroups.get(key) || [];
-      if (referenceIds.length === 1 && actualIds.length === 1) {
-        const referenceId = referenceIds[0];
-        const actualId = actualIds[0];
-        remainingReference.delete(referenceId);
-        remainingActual.delete(actualId);
-        matches.push({
-          stageId: stage.stageId,
-          authority: stage.authority,
-          approvedEquivalentRuleId: stage.approvedEquivalentRuleId,
-          normalizedKey: JSON.parse(key),
-          referenceId,
-          actualId,
-        });
-      } else if (referenceIds.length > 1 || actualIds.length > 1) {
-        for (const id of referenceIds) lockedReference.add(id);
-        for (const id of actualIds) lockedActual.add(id);
-        collisionGroups.push({
-          collisionGroupId: `support-collision:${stage.stageId}:${collisionGroups.length + 1}`,
-          stageId: stage.stageId,
-          normalizedKey: JSON.parse(key),
-          referenceIds,
-          actualIds,
-        });
-      }
-    }
-  }
-
-  const unmatchedReferenceIds = [...remainingReference].filter((id) => !lockedReference.has(id)).sort(compareText);
-  const unmatchedActualIds = [...remainingActual].filter((id) => !lockedActual.has(id)).sort(compareText);
+  processAuthoritativeStages(authoritativeStages, references, actuals, remRef, remAct, lockedRef, lockedAct, matches, collisionGroups);
+  const unmatchedReferenceIds = [...remRef].filter((id) => !lockedRef.has(id)).sort(compareText);
+  const unmatchedActualIds = [...remAct].filter((id) => !lockedAct.has(id)).sort(compareText);
   matches.sort((left, right) => compareText(left.referenceId, right.referenceId));
   collisionGroups.sort((left, right) => compareText(left.collisionGroupId, right.collisionGroupId));
   return Object.freeze({
-    policy,
-    matches: Object.freeze(matches),
-    collisionGroups: Object.freeze(collisionGroups),
-    diagnosticCandidateGroups: Object.freeze(diagnosticGroups(
-      diagnosticStages,
-      references,
-      actuals,
-      unmatchedReferenceIds,
-      unmatchedActualIds,
-    )),
-    unmatchedReferenceIds: Object.freeze(unmatchedReferenceIds),
-    unmatchedActualIds: Object.freeze(unmatchedActualIds),
-    lockedReferenceIds: Object.freeze([...lockedReference].sort(compareText)),
-    lockedActualIds: Object.freeze([...lockedActual].sort(compareText)),
+    policy, matches: Object.freeze(matches), collisionGroups: Object.freeze(collisionGroups),
+    diagnosticCandidateGroups: Object.freeze(diagnosticGroups(diagnosticStages, references, actuals, unmatchedReferenceIds, unmatchedActualIds)),
+    unmatchedReferenceIds: Object.freeze(unmatchedReferenceIds), unmatchedActualIds: Object.freeze(unmatchedActualIds),
+    lockedReferenceIds: Object.freeze([...lockedRef].sort(compareText)), lockedActualIds: Object.freeze([...lockedAct].sort(compareText)),
   });
 }

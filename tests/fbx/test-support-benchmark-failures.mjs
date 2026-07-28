@@ -16,7 +16,7 @@ async function validate(actual, options = {}) {
   const malformed = structuredClone(loadedBenchmarkFixture());
   malformed.occurrences[1].branchOccurrenceId = 'branch:999';
   malformed.occurrenceById[malformed.occurrences[1].occurrenceId] = malformed.occurrences[1];
-  await assert.rejects(() => collectSupportRecords(malformed), /invalid branch occurrence/);
+  await assert.rejects(() => collectSupportRecords(malformed), /not a valid Agent E child occurrence|invalid branch occurrence/);
 }
 {
   const empty = loadedBenchmarkFixture([{ name: '/EMPTY/B1', type: 'BRANCH', attributes: { NAME: '/EMPTY/B1' }, children: [] }]);

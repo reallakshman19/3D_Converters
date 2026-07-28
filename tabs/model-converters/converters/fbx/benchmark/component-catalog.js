@@ -74,51 +74,34 @@ export function fieldValue(subject, path) {
   return value;
 }
 
+function createSubjectObject(occurrence, branch, attrs, entry, side, zoneMembership, outer, raw) {
+  const rec = occurrence.record;
+  return {
+    side, sourceOccurrenceId: occurrence.occurrenceId, branchOccurrenceId: occurrence.branchOccurrenceId,
+    zoneMembership, qualificationBlockers: componentZoneBlockers(zoneMembership),
+    family: entry?.familyId ?? 'UNKNOWN', outerType: outer, rawType: raw,
+    subtype: entry?.preserveRawSubtype ? raw : null, disposition: entry?.disposition ?? 'BLOCK',
+    comparatorId: entry?.comparatorId ?? null, exclusionReason: entry?.exclusionReason ?? null,
+    branchId: branchIdentity(branch), owner: attrs.OWNER == null ? null : String(attrs.OWNER),
+    reference: attrs.REF == null ? null : String(attrs.REF),
+    sourceName: attrs.NAME == null ? (rec.name == null ? null : String(rec.name)) : String(attrs.NAME),
+    displayName: rec.name == null ? null : String(rec.name), sourceIdentity: sourceIdentityOf(rec),
+    geometry: { position: point(attrs.POS), apos: point(attrs.APOS), lpos: point(attrs.LPOS) },
+    attributes: cloneJson(attrs), raw: cloneJson(rec),
+  };
+}
+
 function normalizeSubject(branchOccurrence, occurrence, policy, side, zoneMembership) {
   const branch = branchOccurrence.record, record = occurrence.record;
   const attributes = isObject(record.attributes) ? record.attributes : {};
   const outer = childType(record), raw = rawType(record);
   const catalogEntry = catalogEntryForTypes(outer, raw, policy);
-  const subject = {
-    side,
-    sourceOccurrenceId: occurrence.occurrenceId,
-    branchOccurrenceId: occurrence.branchOccurrenceId,
-    zoneMembership,
-    qualificationBlockers: componentZoneBlockers(zoneMembership),
-    family: catalogEntry?.familyId ?? 'UNKNOWN',
-    outerType: outer,
-    rawType: raw,
-    subtype: catalogEntry?.preserveRawSubtype ? raw : null,
-    disposition: catalogEntry?.disposition ?? 'BLOCK',
-    comparatorId: catalogEntry?.comparatorId ?? null,
-    exclusionReason: catalogEntry?.exclusionReason ?? null,
-    branchId: branchIdentity(branch),
-    owner: attributes.OWNER == null ? null : String(attributes.OWNER),
-    reference: attributes.REF == null ? null : String(attributes.REF),
-    sourceName: attributes.NAME == null
-      ? (record.name == null ? null : String(record.name)) : String(attributes.NAME),
-    displayName: record.name == null ? null : String(record.name),
-    sourceIdentity: sourceIdentityOf(record),
-    geometry: {
-      position: point(attributes.POS),
-      apos: point(attributes.APOS),
-      lpos: point(attributes.LPOS),
-    },
-    attributes: cloneJson(attributes),
-    raw: cloneJson(record),
-  };
+  const subject = createSubjectObject(occurrence, branch, attributes, catalogEntry, side, zoneMembership, outer, raw);
   subject.canonicalSubject = canonicalKey({
-    family: subject.family,
-    outerType: subject.outerType,
-    rawType: subject.rawType,
-    zoneMembership: subject.zoneMembership,
-    branchId: subject.branchId,
-    owner: subject.owner,
-    reference: subject.reference,
-    sourceName: subject.sourceName,
-    sourceIdentity: subject.sourceIdentity,
-    geometry: subject.geometry,
-    attributes: subject.attributes,
+    family: subject.family, outerType: subject.outerType, rawType: subject.rawType,
+    zoneMembership: subject.zoneMembership, branchId: subject.branchId, owner: subject.owner,
+    reference: subject.reference, sourceName: subject.sourceName, sourceIdentity: subject.sourceIdentity,
+    geometry: subject.geometry, attributes: subject.attributes,
   });
   return subject;
 }
