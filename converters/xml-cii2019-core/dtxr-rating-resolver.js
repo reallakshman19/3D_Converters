@@ -10,8 +10,7 @@ export function normalizeXmlCiiRating(value) {
   if (!source) return '';
   const explicit = source.match(/\b(?:CL|CLASS|RATING)\s*[-:]?\s*([0-9]+)\s*#?\b/i);
   if (explicit) return explicit[1];
-  const digits = source.replace(/[^0-9]/g, '');
-  return digits;
+  return source.replace(/[^0-9]/g, '');
 }
 
 export function extractXmlCiiRatingFromDtxr(value) {
@@ -46,39 +45,97 @@ export function collectXmlCiiDtxrRatingEvidence(values = []) {
   };
 }
 
+export function deriveXmlCiiRatingFromPipingClass(pipingClass, config = {}) {
+  const source = text(pipingClass).toUpperCase();
+  if (!source) return '';
+  const sequence = Array.isArray(config?.rating?.ratingSequence)
+    ? config.rating.ratingSequence : [];
+  for (const pair of sequence) {
+    if (!Array.isArray(pair) || pair.length < 2) continue;
+    const prefix = text(pair[0]).toUpperCase();
+    if (prefix && source.startsWith(prefix)) return normalizeXmlCiiRating(pair[1]);
+  }
+  return '';
+}
+
+export function extractXmlCiiRatingFromConfiguredRegex(branchName, config = {}) {
+  const source = text(branchName);
+  const pattern = text(config?.rating?.ratingRegex);
+  if (!source || !pattern) return '';
+  try {
+    const match = new RegExp(pattern, 'i').exec(source);
+    const group = Math.max(0, Number(config?.rating?.ratingGroup || 1));
+    return normalizeXmlCiiRating(match?.[group] ?? match?.[0]);
+  } catch {
+    return '';
+  }
+}
+
+export function resolveXmlCiiAutomaticRating({
+  manualRating = '',
+  pipingClassRating = '',
+  pipingClass = '',
+  branchName = '',
+  prefixRating = '',
+  regexRating = '',
+  config = {},
+} = {}) {
+  const candidates = [
+    ['override', manualRating],
+    ['piping-class-master', pipingClassRating],
+    ['piping-class-prefix', prefixRating || deriveXmlCiiRatingFromPipingClass(pipingClass, config)],
+    ['rating-regex', regexRating || extractXmlCiiRatingFromConfiguredRegex(branchName, config)],
+  ].map(([source, value]) => ({
+    source,
+    rating: normalizeXmlCiiRating(value),
+    raw: text(value),
+  }));
+  const selected = candidates.find((item) => item.rating) || null;
+  return {
+    rating: selected?.rating || '',
+    source: selected?.source || 'none',
+    raw: selected?.raw || '',
+  };
+}
+
 export function resolveXmlCiiRatingAuthority({
   manualRating = '',
-  lineListRating = '',
   pipingClassRating = '',
+  pipingClass = '',
+  branchName = '',
   prefixRating = '',
+  regexRating = '',
   dtxrValues = [],
+  config = {},
+  allowDtxrFallback = false,
 } = {}) {
-  const higher = [
-    ['override', manualRating],
-    ['line-list', lineListRating],
-    ['piping-class-master', pipingClassRating],
-    ['piping-class-prefix', prefixRating],
-  ]
-    .map(([source, value]) => ({ source, rating: normalizeXmlCiiRating(value), raw: text(value) }))
-    .find((item) => item.rating);
-
+  const automatic = resolveXmlCiiAutomaticRating({
+    manualRating,
+    pipingClassRating,
+    pipingClass,
+    branchName,
+    prefixRating,
+    regexRating,
+    config,
+  });
   const dtxr = collectXmlCiiDtxrRatingEvidence(dtxrValues);
-  const rating = higher?.rating || (!dtxr.conflict ? dtxr.rating : '');
-  const source = higher?.source || (rating ? 'dtxr-rating' : 'none');
+  const useDtxr = allowDtxrFallback && !automatic.rating && !dtxr.conflict && dtxr.rating;
+  const rating = automatic.rating || (useDtxr ? dtxr.rating : '');
+  const source = automatic.rating ? automatic.source : (useDtxr ? 'dtxr-rating' : 'none');
   const dtxrConflict = Boolean(
-    dtxr.conflict ||
-    (higher?.rating && dtxr.rating && higher.rating !== dtxr.rating),
+    dtxr.conflict
+    || (automatic.rating && dtxr.rating && automatic.rating !== dtxr.rating),
   );
-
   return {
     rating,
-    source: dtxrConflict ? 'dtxr-rating-conflict' : source,
+    source,
     resolvedSource: source,
-    raw: higher?.raw || rating,
+    raw: automatic.raw || rating,
     dtxrRating: dtxr.rating,
     dtxrRatings: dtxr.ratings,
     dtxrEvidence: dtxr.evidence,
-    conflict: dtxrConflict,
-    needsReview: !rating || dtxrConflict,
+    dtxrConflict,
+    conflict: allowDtxrFallback ? dtxrConflict : false,
+    needsReview: !rating || (allowDtxrFallback && dtxrConflict),
   };
 }
