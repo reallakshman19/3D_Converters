@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  XML_CII_PREVIEW_CACHE_ENVELOPE_KEY,
   buildXmlCiiPreviewRatingSnapshot,
+  readXmlCiiPreviewRatingSnapshot,
   resolveXmlCiiPreviewRating,
   resolveXmlCiiWeightMatchRating,
 } from '../converters/xml-cii2019-core/preview-rating-snapshot.js';
@@ -58,4 +60,31 @@ test('missing Preview Rating remains unresolved rather than re-derived', () => {
   }, { mode: 'preview', snapshot });
   assert.equal(result.rating, '');
   assert.equal(result.source, 'preview-rating-missing');
+});
+
+test('deterministic Preview cache envelope restores Weight Match Rating authority', () => {
+  const previousStorage = globalThis.localStorage;
+  const values = new Map();
+  globalThis.localStorage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+  };
+  try {
+    values.set(XML_CII_PREVIEW_CACHE_ENVELOPE_KEY, JSON.stringify({
+      authority: { digest: 'sha256:preview-900' },
+      legacyPayload: {
+        fp: 'preview-fingerprint',
+        data: {
+          branchRows: [{ branchName: '/E/B1', lineKey: 'E1', rating: '900' }],
+        },
+      },
+    }));
+    const snapshot = readXmlCiiPreviewRatingSnapshot();
+    assert.equal(snapshot.authorityDigest, 'sha256:preview-900');
+    assert.equal(resolveXmlCiiPreviewRating({ branchName: '/E/B1' }, snapshot).rating, '900');
+  } finally {
+    if (previousStorage === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = previousStorage;
+  }
 });
