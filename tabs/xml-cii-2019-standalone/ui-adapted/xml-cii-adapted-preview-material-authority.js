@@ -107,6 +107,13 @@ function manualMaterial(row) {
   return source.includes('override') ? text(row?.material) : '';
 }
 
+function nonClassMaterial(row) {
+  const material = text(row?.material);
+  const source = text(row?.materialSource).toLowerCase();
+  if (!material || source.includes('piping-class')) return '';
+  return material;
+}
+
 function unresolvedMaterialResult({ material, resolved, override }) {
   if (material) {
     return {
@@ -161,7 +168,7 @@ function unresolvedMaterialResult({ material, resolved, override }) {
 }
 
 export function resolvePreviewMaterialCodeAuthority(row, config = {}) {
-  const processMaterial = manualMaterial(row) || processLineListMaterial(row, config);
+  const processMaterial = manualMaterial(row) || processLineListMaterial(row, config) || nonClassMaterial(row);
   const materialRows = Array.isArray(config?.material?.mapRows) && config.material.mapRows.length
     ? config.material.mapRows
     : DEFAULT_MATERIAL_MAP_ROWS;
