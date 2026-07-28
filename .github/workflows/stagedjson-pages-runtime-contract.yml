@@ -1,0 +1,36 @@
+name: StagedJSON and Pages Runtime Contract
+
+on:
+  pull_request:
+    paths:
+      - '.nojekyll'
+      - 'contracts/stagedjson-contract.js'
+      - 'tabs/model-converters/converters/stagedjson-to-xml.js'
+      - 'tabs/model-converters/converters/stagedjson-xml-helpers.js'
+      - 'converters/inputxml-runtime-manifest.json'
+      - 'converters/inputxml-release-runtime-loader.js'
+      - 'scripts/inputxml_compiler/**'
+      - 'tests/stagedjson-to-xml-envelope-contract.test.mjs'
+      - 'tests/inputxml-pages-runtime-publication.test.mjs'
+      - '.github/workflows/stagedjson-pages-runtime-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify staged JSON envelope intake
+        run: node tests/stagedjson-to-xml-envelope-contract.test.mjs
+      - name: Verify InputXML Pages runtime publication
+        run: node tests/inputxml-pages-runtime-publication.test.mjs
+      - name: Verify published package initializer is retained
+        run: |
+          test -f .nojekyll
+          test -f scripts/inputxml_compiler/__init__.py
