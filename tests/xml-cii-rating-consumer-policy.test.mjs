@@ -33,14 +33,28 @@ test('Weight Match consumes Preview Rating and exposes explicit DTXR mode', asyn
   assert.match(source, /xml-cii-wm-cache-v2-preview-rating/);
 });
 
+test('standalone Weight Match routes only through the shared renderer authority', async () => {
+  const phaseSource = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js');
+  const routeSource = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js');
+  assert.match(phaseSource, /renderAdaptedWeightMatchPanelV2/);
+  assert.doesNotMatch(phaseSource, /renderAdaptedWeightMatchPanel\s+from\s+'\.\/xml-cii-adapted-weight-match\.js'/);
+  assert.match(routeSource, /loadParentWeightMatchModules/);
+  assert.match(routeSource, /xmlCiiRenderWeightMatchPhase/);
+  assert.match(routeSource, /shared Preview Rating authority could not load/);
+  assert.doesNotMatch(routeSource, /bindAdaptedWeightMatchPanel/);
+});
+
 test('Piping Class import declares separate NPS and Bore mm columns', async () => {
   const source = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-fields-config.js');
   assert.match(source, /name:\s*'nps',\s*label:\s*'NPS \(in\)'/);
   assert.match(source, /name:\s*'convertedBore',\s*label:\s*'Bore \(mm\)'/);
 });
 
-test('Preview cache schema invalidates pre-policy Rating rows', async () => {
+test('Preview cache schema publishes and clears Weight Match Rating snapshots atomically', async () => {
   const source = await read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-cache-v7.js');
   assert.match(source, /xml-cii-preview-cache\/v8-rating-policy/);
   assert.match(source, /xml-cii-pv-cache-v8-dtxr/);
+  assert.match(source, /publishXmlCiiPreviewRatingSnapshot/);
+  assert.match(source, /clearXmlCiiPreviewRatingSnapshot/);
+  assert.match(source, /xml-cii-wm-cache-v2-preview-rating/);
 });
