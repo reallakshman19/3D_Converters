@@ -7,25 +7,59 @@ import { prepareZoneGeometryEvidence } from './zone-evidence.js';
 import { ZONE_GEOMETRY_STATUS } from './constants.js';
 import { buildFbxZoneWireframeData } from './wireframe-preview.js';
 
+function packagePrefix(artifact) {
+  return String(artifact.selectedZone.label || artifact.selectedZone.zoneId)
+    .trim().replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '')
+    || 'selected-zone';
+}
+async function optionalPackageInputs(input, prepared, autoPipe) {
+  if (input.includeZonePackageInputs === false) {
+    return { zonePackageInputs: null, zonePackageError: null };
+  }
+  try {
+    const zonePackageInputs = await buildLiveZonePackageInputs({
+      zoneGeometryEvidence: prepared.artifact,
+      scope: prepared.scope,
+      selections: prepared.selections,
+      stagedJsonText: autoPipe.status === 'STAGEDJSON_PASS'
+        ? autoPipe.stagedJsonText : null,
+    });
+    zonePackageInputs.fileNamePrefix = packagePrefix(prepared.artifact);
+    return { zonePackageInputs, zonePackageError: null };
+  } catch (error) {
+    return {
+      zonePackageInputs: null,
+      zonePackageError: Object.freeze({
+        code: error?.code || 'ZONE_PACKAGE_PREPARATION_FAILED',
+        message: error?.message || String(error),
+      }),
+    };
+  }
+}
+
 export async function analyseFbxZoneGeometry(input) {
   try {
     const prepared = await prepareZoneGeometryEvidence(input);
-    const wireframePreview = buildFbxZoneWireframeData({ scope: prepared.scope, selections: prepared.selections });
-    const derivedPortEvidence = await buildDerivedPortEvidence(prepared.artifact, prepared.scope, prepared.selections);
+    const wireframePreview = buildFbxZoneWireframeData({
+      scope: prepared.scope, selections: prepared.selections,
+    });
+    const derivedPortEvidence = await buildDerivedPortEvidence(
+      prepared.artifact, prepared.scope, prepared.selections);
     const autoPipe = await runFbxAutoPipe({
-      zoneGeometryEvidence: prepared.artifact, derivedPortEvidence, selections: prepared.selections,
+      zoneGeometryEvidence: prepared.artifact,
+      derivedPortEvidence,
+      selections: prepared.selections,
     });
-    const zonePackageInputs = await buildLiveZonePackageInputs({
-      zoneGeometryEvidence: prepared.artifact, scope: prepared.scope, selections: prepared.selections,
-      stagedJsonText: autoPipe.status === 'STAGEDJSON_PASS' ? autoPipe.stagedJsonText : null,
-    });
-    zonePackageInputs.fileNamePrefix = String(
-      prepared.artifact.selectedZone.label || prepared.artifact.selectedZone.zoneId)
-      .trim().replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '') || 'selected-zone';
+    const packageResult = await optionalPackageInputs(input, prepared, autoPipe);
     return Object.freeze({
-      status: ZONE_GEOMETRY_STATUS.PASS, zoneGeometryEvidence: prepared.artifact,
-      derivedPortEvidence, wireframePreview, autoPipe, zonePackageInputs,
-      zoneGeometryJson: canonicalJson(prepared.artifact), derivedPortJson: canonicalJson(derivedPortEvidence),
+      status: ZONE_GEOMETRY_STATUS.PASS,
+      zoneGeometryEvidence: prepared.artifact,
+      derivedPortEvidence,
+      wireframePreview,
+      autoPipe,
+      ...packageResult,
+      zoneGeometryJson: canonicalJson(prepared.artifact),
+      derivedPortJson: canonicalJson(derivedPortEvidence),
       counts: Object.freeze({
         selectedOccurrences: prepared.artifact.conservation.selectedOccurrenceCount,
         selectedGeometries: prepared.artifact.conservation.selectedGeometryCount,
@@ -37,5 +71,7 @@ export async function analyseFbxZoneGeometry(input) {
         stagedBranches: autoPipe.counts?.branches || 0,
       }),
     });
-  } catch (error) { throw asZoneGeometryError(error); }
+  } catch (error) {
+    throw asZoneGeometryError(error);
+  }
 }

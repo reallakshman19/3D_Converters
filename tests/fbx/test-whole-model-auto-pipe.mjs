@@ -121,6 +121,20 @@ function fakeAnalyse(byZone, activity = null) {
 }
 
 {
+  let includeZonePackageInputs = null;
+  await runFbxWholeModelAutoPipe({
+    zoneIds: ['occ:1'],
+    analyse: async (input) => {
+      includeZonePackageInputs = input.includeZonePackageInputs;
+      return { autoPipe: { status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION' },
+        counts: { admittedPipes: 0 } };
+    },
+  });
+  assert.equal(includeZonePackageInputs, false,
+    'whole-model orchestration must not prepare an export package for every zone');
+}
+
+{
   const result = await runFbxWholeModelAutoPipe({
     zoneIds: [], analyse: fakeAnalyse({}),
   });
