@@ -3,6 +3,7 @@ import { canonicalJson } from '../../tabs/model-converters/converters/fbx/canoni
 import { buildFbxGeometryBundle } from '../../tabs/model-converters/converters/fbx/geometry-bundle.js';
 import { enforceSourceGraphPolicy } from '../../tabs/model-converters/converters/fbx/source-graph.js';
 import { sha256Hex } from '../../tabs/model-converters/converters/fbx/sha256.js';
+import { validateSelectedZoneGeometryManifest } from '../../tabs/model-converters/converters/fbx/selected-zone-package/geometry-manifest.js';
 import {
   buildSelectedZonePackageCore,
   validateSelectedZonePackageCore,
@@ -36,6 +37,17 @@ function sourceObject(id, order) {
   };
 }
 
+function modelSourceObject(id, order) {
+  return {
+    ...sourceObject(id, order),
+    ufbxElementType: 'MODEL',
+    domClass: 'Model',
+    domSubtype: 'Null',
+    domSourceName: `Model::${id}`,
+    displayName: `Model ${id}`,
+  };
+}
+
 function occurrence(id, modelId, geometryId) {
   return {
     sourceOccurrenceId: id,
@@ -65,7 +77,10 @@ function graphFixture() {
     file: { version: 7400, ascii: false },
     documentMetadata: {},
     globalSettings: {},
-    sourceObjects: [sourceObject('10', 0), sourceObject('11', 1)],
+    sourceObjects: [
+      sourceObject('10', 0), sourceObject('11', 1),
+      modelSourceObject('20', 2), modelSourceObject('21', 3),
+    ],
     occurrences: [occurrence('occ:10', '20', '10'), occurrence('occ:11', '21', '11')],
     geometries: [geometry('10', [0, 0, 0]), geometry('11', [1, 0, 0])],
     hierarchyEdges: [],
@@ -79,7 +94,7 @@ function graphFixture() {
 function selectedGraph(fullGraph) {
   return enforceSourceGraphPolicy({
     ...structuredClone(fullGraph),
-    sourceObjects: fullGraph.sourceObjects.filter((item) => item.sourceObjectId === '10'),
+    sourceObjects: fullGraph.sourceObjects.filter((item) => ['10', '20'].includes(item.sourceObjectId)),
     occurrences: fullGraph.occurrences.filter((item) => item.sourceOccurrenceId === 'occ:10'),
     geometries: fullGraph.geometries.filter((item) => item.geometryObjectId === '10'),
     duplicateSourceObjectIds: [],
@@ -179,8 +194,24 @@ assert.equal(first.audit.authority.supportSemantics, 'NOT_AUTHORIZED');
 assert.equal(first.audit.files.find((item) => item.path === 'support-evidence.json').status, 'OMITTED_BLOCKED');
 assert.equal(first.audit.files.find((item) => item.path === 'selected-zone.staged.json').status, 'OMITTED_BLOCKED');
 
+const projectedAuthorityDrift = structuredClone(first.geometryManifest);
+projectedAuthorityDrift.occurrenceEvidence = [];
+await assert.rejects(
+  () => validateSelectedZoneGeometryManifest(projectedAuthorityDrift),
+  /BLOCKED_PACKAGE_SHAPE.*fields/,
+);
+
+const extraFilePackage = {
+  ...first,
+  files: [...first.files, { path: 'unbound.bin', role: 'UNBOUND', schema: null, content: new ArrayBuffer(0) }],
+};
+await assert.rejects(() => validateSelectedZonePackageCore(extraFilePackage), /BLOCKED_PACKAGE_FILE.*unbound/);
+
 const expandedGraph = structuredClone(selected);
-expandedGraph.sourceObjects.push(structuredClone(fullGraph.sourceObjects[1]));
+expandedGraph.sourceObjects.push(
+  structuredClone(fullGraph.sourceObjects.find((item) => item.sourceObjectId === '11')),
+  structuredClone(fullGraph.sourceObjects.find((item) => item.sourceObjectId === '21')),
+);
 expandedGraph.occurrences.push(structuredClone(fullGraph.occurrences[1]));
 expandedGraph.geometries.push(structuredClone(fullGraph.geometries[1]));
 await assert.rejects(
