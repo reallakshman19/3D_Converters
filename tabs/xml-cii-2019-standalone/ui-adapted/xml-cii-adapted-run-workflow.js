@@ -2,46 +2,16 @@ import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-wor
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import {
+  resolveStandaloneWeightReviewRating,
+  standaloneWeightReviewRatingInfo,
+} from './xml-cii-adapted-weight-rating-authority.js';
 
 const esc = (val) => String(val ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (val) => esc(val).replace(/'/g, '&#39;');
 
-function normalizeRatingText(value) {
-  return String(value ?? '').toUpperCase().replace(/CLASS|CL|#/g, '').replace(/[^0-9A-Z]/g, '').trim();
-}
-
-function ratingFromDtxrText(value) {
-  const text = String(value ?? '').toUpperCase();
-  const hashMatch = text.match(/\b(?:CL|CLASS)?\s*(150|300|600|900|1500|2500)\s*#/i);
-  if (hashMatch) return hashMatch[1];
-  const clMatch = text.match(/\b(?:CL|CLASS)\s*(150|300|600|900|1500|2500)\b/i);
-  return clMatch ? clMatch[1] : '';
-}
-
-function ratingFromConfig(row, config) {
-  const keys = [row?.key, row?.lineKey, row?.branchName, row?.requestedPipingClass, row?.resolvedPipingClass, row?.nodeNumber];
-  const bucket = config?.overrides?.rating;
-  let val = '';
-  if (bucket && typeof bucket === 'object') {
-    for (const key of keys.filter(Boolean)) {
-      if (bucket[key]) { val = String(bucket[key]).trim(); break; }
-    }
-  }
-  if (!val && config?.overrides?.processData) {
-    const pb = config.overrides.processData;
-    for (const key of keys.filter(Boolean)) {
-      if (pb[key]?.rating) { val = String(pb[key].rating).trim(); break; }
-    }
-  }
-  return val || String(row?.rating || '').trim() || String(row?.dtxrRating || '').trim() || ratingFromDtxrText(row?.dtxr) || String(config?.rating?.defaultRating || config?.defaultRating || '').trim();
-}
-
 function ratingInfo(issue) {
-  const dtxrRating = issue.dtxrRating || ratingFromDtxrText(issue.dtxr);
-  const shownRating = String(issue.rating || dtxrRating || '').trim();
-  const derivedRating = String(issue.branchRating || issue.derivedRating || '').trim();
-  const conflict = Boolean(shownRating && dtxrRating && normalizeRatingText(shownRating) !== normalizeRatingText(dtxrRating));
-  const fromDtxr = Boolean(!issue.branchRating && dtxrRating && normalizeRatingText(shownRating) === normalizeRatingText(dtxrRating));
+  const { shownRating, dtxrRating, conflict, fromDtxr, derivedRating } = standaloneWeightReviewRatingInfo(issue);
   const title = conflict
     ? `DTXR rating ${dtxrRating}# differs from resolved/override rating ${shownRating}. DTXR: ${issue.dtxr || ''}`
     : (fromDtxr ? `Rating populated from DTXR text: ${issue.dtxr || ''}` : (derivedRating ? `Resolved rating from piping class/override: ${derivedRating}` : 'Rating used for weight suggestions'));
@@ -114,7 +84,7 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
   const finish = (result) => { overlay.remove(); resolve(result); };
   const statusVal = overlay.querySelector('[data-rigid-review-status]');
   const setStatus = (message, bad) => { if (statusVal) { statusVal.textContent = message; statusVal.style.color = bad ? '#ef4444' : '#10b981'; } };
-  
+
   const bindCandidates = () => {
     overlay.querySelectorAll('[data-rigid-review-candidate]').forEach((btn) => btn.addEventListener('click', () => {
       const input = overlay.querySelectorAll('.mc-rigid-review-input')[Number(btn.getAttribute('data-rigid-review-candidate'))];
@@ -167,7 +137,7 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
       rows.length = 0;
       rows.push(...newIssues);
     }
-    
+
     setStatus('Suggestions refreshed based on updated ratings; rows remain visible until a weight is applied or review is skipped.', false);
     if (refreshBtn) refreshBtn.disabled = false;
   });
@@ -199,11 +169,19 @@ async function unresolvedRigidIssues(state, config) {
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
   return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', config).map((issue) => {
-    const dtxrRating = ratingFromDtxrText(issue.dtxr);
-    const rating = ratingFromConfig({ ...issue, dtxrRating }, config);
-    const conflict = Boolean(rating && dtxrRating && normalizeRatingText(rating) !== normalizeRatingText(dtxrRating));
+    const ratingAuthority = resolveStandaloneWeightReviewRating(issue, config);
+    const rating = ratingAuthority.rating;
     const ranking = rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, config, { includeRejected: true });
-    return applyXmlCiiFlangeWeightFallbackToIssue({ ...issue, rating, dtxrRating, ratingConflict: conflict, branchRating: issue.rating, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) }, config);
+    return applyXmlCiiFlangeWeightFallbackToIssue({
+      ...issue,
+      rating,
+      dtxrRating: ratingAuthority.dtxrRating,
+      ratingAuthority,
+      ratingConflict: ratingAuthority.conflict,
+      branchRating: issue.rating,
+      candidates: ranking.candidates.slice(0, 5),
+      rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
+    }, config);
   }).filter((issue) => !issue.mapped);
 }
 
