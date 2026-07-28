@@ -51,6 +51,32 @@ function smartClassSizeKey(row) {
   return cls && Number.isFinite(bore) && bore > 0 ? `${cls}|DN:${Math.round(bore)}` : cls;
 }
 
+function formatRatingConflictDetail(row) {
+  if (row?.ratingSource !== 'dtxr-rating-conflict') return '';
+  const parts = [];
+  const ratings = Array.isArray(row.ratingDtxrRatings) ? row.ratingDtxrRatings : [];
+  const resSource = row.ratingResolvedSource && row.ratingResolvedSource !== 'dtxr-rating-conflict' ? row.ratingResolvedSource : 'unknown authority';
+  if (row.rating && ratings.length > 0 && !ratings.includes(String(row.rating))) {
+    parts.push(`Rating mismatch: Resolved rating is "${row.rating}" (via ${resSource}), but DTXR evidence shows "${ratings.join(', ')}".`);
+  } else if (ratings.length > 1) {
+    parts.push(`Model discrepancy: 3D model annotations contain conflicting ratings (${ratings.join(' vs ')}).`);
+  } else {
+    parts.push(`Rating conflict detected between 3D model DTXR annotations and master data.`);
+  }
+  const evidence = Array.isArray(row.ratingDtxrEvidence) ? row.ratingDtxrEvidence : [];
+  if (evidence.length > 0) {
+    parts.push(`Component DTXR Evidence:`);
+    for (const e of evidence.slice(0, 5)) {
+      const who = [e.componentType, e.componentRefNo].filter(Boolean).join(' #');
+      parts.push(` • "${e.rating}" on ${who || 'component'} (${e.source || 'dtxr'}): "${e.dtxr}"`);
+    }
+  }
+  if (row.ratingResolvedSource && row.ratingResolvedSource !== 'dtxr-rating-conflict') {
+    parts.push(`Effective conversion rating currently governed by: ${row.ratingResolvedSource}`);
+  }
+  return parts.join('\n');
+}
+
 export class XmlCiiAdaptedEditablePreviewTable {
   constructor({ branchRows, nodesByBranch, onCellEditClick, onFillDownClick, onProcessInputChange, onProcessFillDownClick, onWeightCandidateSelect, processInputHtmlRenderer, matchBadgeHtmlRenderer }) {
     this.branchRows = branchRows;
@@ -84,11 +110,11 @@ export class XmlCiiAdaptedEditablePreviewTable {
     const fillDownBtn = (field, fromRow) => `<button type="button" class="mc-preview-filldown-btn" data-mc-fill-field="${this._escape(field)}" data-mc-fill-from="${fromRow}" title="Smart fill by field key: wall thickness by piping class + size; corrosion/material code by piping class; process data by line key.">↓</button>`;
     const renderProcessField = (fieldKey, val, src, pcKey = '') => this.processInputHtmlRenderer ? this.processInputHtmlRenderer(fieldKey, row.lineKey, val, src, ri, pcKey) : `<input type="text" value="${this._escape(val)}" data-mc-pd-field="${this._escape(fieldKey)}" data-mc-pd-linekey="${this._escape(row.lineKey)}" data-mc-pd-row="${ri}">`;
     const editAttrs = (type, key, extra = '') => `data-mc-edit-type="${this._escapeAttr(type)}" data-mc-edit-key="${this._escapeAttr(key || row.lineKey || row.branchName || '')}" data-mc-edit-row="${ri}" data-mc-pc-key="${this._escapeAttr(type === 'wallThickness' || type === 'materialCode' ? classSizeKey : classKey)}" ${extra}`;
-    const editablePlain = (type, value, key, source = '') => {
+    const editablePlain = (type, value, key, source = '', detail = '') => {
       const isDefault = source === 'default' || source === 'config-default' || source === 'default-zero';
       const cls = `mc-preview-editable-val${isDefault ? ' mc-preview-default-val' : ''}`;
       const style = isDefault ? ' style="color:#7f1d1d;font-weight:600;font-style:italic;" title="Config default value"' : '';
-      const provenance = previewProvenanceBadge(type, source);
+      const provenance = previewProvenanceBadge(type, source, detail);
       const badge = provenance ? ` <span class="mc-preview-badge ${this._escapeAttr(provenance.className)}" title="${this._escapeAttr(provenance.title)}">${this._escape(provenance.label)}</span>` : '';
       return `<span class="${cls}"${style}>${this._escape(value || '—')}</span>${badge}`;
     };
@@ -97,11 +123,13 @@ export class XmlCiiAdaptedEditablePreviewTable {
     const materialCodeKey = row.materialCodeKey || classKey || row.material || row.lineKey;
     const wallKey = row.wallThicknessKey || classSizeKey || row.lineKey;
     const corrosionKey = row.corrosionKey || classKey || row.lineKey;
+    const ratingKey = classKey || row.pipingClassDerived || row.pipingClass || row.lineKey;
     const branchText = row.branchName?.length > 36 ? `…${row.branchName.slice(-32)}` : row.branchName;
     const branchTitle = `Branch: ${row.branchName || ''}\nClick to override the Branch → Line List key mapping.`;
     const ratingDerivedBadge = row.ratingDerived && String(row.ratingDerived).trim() !== String(row.rating || '').trim()
       ? ` <span class="mc-preview-badge" style="background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.15);" title="Derived from Piping Class: ${this._escapeAttr(row.ratingDerived)}">derived: ${this._escape(row.ratingDerived)}</span>`
       : '';
+    const ratingConflictDetail = formatRatingConflictDetail(row);
 
     return `
       <tr class="mc-preview-row${row.lineMiss ? ' mc-preview-line-miss' : ''}">
@@ -112,7 +140,7 @@ export class XmlCiiAdaptedEditablePreviewTable {
         <td class="mc-preview-td">${this._escape(row.size || '—')}</td>
         <td ${tdApprox(row.pipingClassNeedsReview, editAttrs('pipingClass', row.pipingClassDerived, `data-mc-edit-derived="${this._escapeAttr(row.pipingClassDerived || '')}" title="${this._escapeAttr(pipingClassTitle)}"`))}>${pcBadge}${row.pipingClassNeedsReview ? fillDownBtn('pipingClass', ri) : ''}</td>
         <td ${tdApprox(false, editAttrs('material', row.lineKey))}>${editablePlain('material', row.material, row.lineKey, row.materialSource)}</td>
-        <td ${tdApprox(false, editAttrs('rating', row.lineKey))}>${editablePlain('rating', row.rating, row.lineKey, row.ratingSource)}${ratingDerivedBadge}${fillDownBtn('rating', ri)}</td>
+        <td ${tdApprox(false, editAttrs('rating', ratingKey, `title="Rating override key (Piping Class): ${this._escapeAttr(ratingKey)}"`))}>${editablePlain('rating', row.rating, ratingKey, row.ratingSource, ratingConflictDetail)}${ratingDerivedBadge}${fillDownBtn('rating', ri)}</td>
         <td ${tdApprox(row.materialCodeNeedsReview, editAttrs('materialCode', materialCodeKey, `data-mc-edit-mat="${this._escapeAttr(materialCodeKey || row.material || '')}" data-mc-edit-linekey="${this._escapeAttr(row.lineKey || '')}"`))}>${mcBadge}${row.materialCodeNeedsReview ? fillDownBtn('materialCode', ri) : ''}</td>
         <td class="mc-preview-td mc-preview-pd-td">${renderProcessField('p1', row.p1, row.p1Source)}</td>
         <td class="mc-preview-td mc-preview-pd-td">${renderProcessField('hydroPressure', row.hydroPressure, row.hydroPressureSource, classKey)}</td>

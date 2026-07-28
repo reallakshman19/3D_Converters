@@ -1,5 +1,8 @@
 import { XmlCiiAdaptedEditablePreviewTable } from './xml-cii-adapted-editable-preview-table.js';
+import { renderBranchLineMapPanel } from './xml-cii-adapted-branch-line-map-panel.js';
+import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js';
 import { applyAdaptedPreviewOverrideFillDown, applyAdaptedPreviewProcessFillDown, markAdaptedPreviewOverrideManual, markAdaptedPreviewProcessManual, applyAdaptedPreviewSmartFillByClass, applyAdaptedPreviewSmartProcessFillByClass } from './xml-cii-adapted-preview-filldown.js';
+import { replaceJsonObject, runAtomicPreviewClassTransaction } from './xml-cii-adapted-preview-class-transaction.js';
 import {
   _toText,
   _esc,
@@ -12,8 +15,7 @@ import {
   xmlCiiDryRunPreview
 } from './xml-cii-adapted-preview-dryrun.js';
 
-// v6: branch rows now carry lineFrom/lineTo + similar-linekey fields.
-const PV_CACHE_KEY = 'xml-cii-pv-cache-v6';
+const PV_CACHE_KEY = 'xml-cii-pv-cache-v8-dtxr';
 const _PV_CACHE_MAX_BYTES = 2500000;
 
 function pvCacheFingerprint(xmlText, cfg) {
@@ -140,6 +142,40 @@ function _updateEditedPreviewCell(td, newVal) {
   if (span) span.textContent = val;
 }
 
+function _renderClassTransactionStatus(host, value) {
+  if (!host) return;
+  host.innerHTML = `<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;border-color:#2b6cb0;color:#1e3a8a;background:#eff6ff;">Resolving Piping Class <strong>${_esc(value)}</strong>, loading exact authority if needed, and recomputing dependent fields…</div>`;
+}
+
+async function _hydrateEffectiveClassConfig(config, xmlText) {
+  const { hydrateXmlCiiEffectivePipingClassShards } = await import('../../xml-cii-effective-class-shard-hydrator.js');
+  const configInput = {
+    value: JSON.stringify(config),
+    dispatchEvent() {},
+  };
+  const result = await hydrateXmlCiiEffectivePipingClassShards({
+    input: configInput,
+    xmlText,
+    force: true,
+  });
+  const hydratedConfig = JSON.parse(configInput.value || '{}');
+  replaceJsonObject(config, hydratedConfig);
+  return result;
+}
+
+function _classTransactionSuccessMessage(hydrationResult, value) {
+  const unmatched = Array.isArray(hydrationResult?.unmatched)
+    ? hydrationResult.unmatched.map((item) => _toText(item?.value || item?.normalized || item).trim()).filter(Boolean)
+    : [];
+  if (unmatched.length) {
+    return `Piping Class ${value} saved and the full Preview row was recomputed. No exact shard exists for ${unmatched.join(', ')}; dependent fields remain review-required.`;
+  }
+  const loaded = Array.isArray(hydrationResult?.loadedClasses) ? hydrationResult.loadedClasses.filter(Boolean) : [];
+  return loaded.length
+    ? `Piping Class ${value} saved. Loaded ${loaded.join(', ')} and atomically recomputed Rating, material, wall, corrosion, and Weight Match.`
+    : `Piping Class ${value} saved and atomically recomputed Rating, material, wall, corrosion, and Weight Match.`;
+}
+
 import {
   _dtxrWallCandidateForRow,
   _dtxrWallCandidateIndex
@@ -256,12 +292,18 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     nodesByBranch,
     matchBadgeHtmlRenderer: (method, confidence, needsReview, value, derived) => {
       const valEsc = _esc(value || '—'), derivedEsc = _esc(derived || ''), pctText = _percentText(confidence);
-      if (method === 'override') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact" title="Manual override${pctText ? ` · ${pctText}` : ''}">✓ override${pctText ? ` ${pctText}` : ''}</span>`;
-      if (method === 'exact') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact">✓ exact ${pctText || '100%'}</span>`;
-      if (['startsWith', 'leading-numeric-base', 'prefix-base', 'leading-numeric-exact'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge amber" title="Approximate match ${pctText || ''} from ${derivedEsc}">approx${pctText ? ` ${pctText}` : ''}</span>`;
-      if (['fuzzy', 'fuzzy-ratio', 'numeric-near'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge ${needsReview ? 'orange' : 'amber'}" title="Approximate match ${pctText || ''} to ${derivedEsc}">fuzzy${pctText ? ` ${pctText}` : ''}</span>`;
-      if (method === 'ambiguous' || method === 'ambiguous-approximate') return `<span class="mc-preview-editable-val">—</span> <span class="mc-preview-badge bad" title="Ambiguous match for ${derivedEsc}">ambiguous${pctText ? ` ${pctText}` : ''}</span>`;
-      if (needsReview) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge bad" title="Review ${derivedEsc}">review${pctText ? ` ${pctText}` : ''}</span>`;
+      if (method === 'override') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact" title="Manual override applied by user in Preview table${pctText ? ` (${pctText})` : ''}.">✓ override${pctText ? ` ${pctText}` : ''}</span>`;
+      if (method === 'exact') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact" title="Exact match (100% confidence) verified in master data for: ${derivedEsc || valEsc}.">✓ exact ${pctText || '100%'}</span>`;
+      if (['startsWith', 'leading-numeric-base', 'prefix-base', 'leading-numeric-exact'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge amber" title="Approximate prefix/numeric match (${method}): resolved '${valEsc}' from raw value '${derivedEsc}'${pctText ? ` (${pctText} confidence)` : ''}.">approx${pctText ? ` ${pctText}` : ''}</span>`;
+      if (['fuzzy', 'fuzzy-ratio', 'numeric-near'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge ${needsReview ? 'orange' : 'amber'}" title="Fuzzy similarity match (${method}): proposed '${valEsc}' for raw input '${derivedEsc}'${pctText ? ` (${pctText} confidence)` : ''}.">fuzzy${pctText ? ` ${pctText}` : ''}</span>`;
+      if (method === 'ambiguous' || method === 'ambiguous-approximate') return `<span class="mc-preview-editable-val">—</span> <span class="mc-preview-badge bad" title="Ambiguous candidate match for '${derivedEsc}'. Multiple conflicting master rows match with similar scores; manual override required.">ambiguous${pctText ? ` ${pctText}` : ''}</span>`;
+      if (needsReview) {
+        const noCode = !value || value === '—';
+        const badgeTitle = noCode
+          ? `No material code found in the material map for: ${derived || 'unknown key'}. Click to override manually.`
+          : `Review: material code "${value}" resolved from "${derived || ''}" but confidence is low.`;
+        return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge bad" title="${_esc(badgeTitle)}">review${pctText ? ` ${pctText}` : ''}</span>`;
+      }
       return `<span class="mc-preview-editable-val">${valEsc}</span>`;
     },
     processInputHtmlRenderer: (fieldKey, lineKey, val, src, ri, pcKey = '') => {
@@ -281,6 +323,35 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     },
     onCellEditClick: ({ editType, derivedKey, currentVal, rowIndex, td }) => openOverridePopup({ editType, derivedKey, currentVal, config, onSave: (newVal) => {
       const row = branchRows[Number(rowIndex)] || {};
+      if (editType === 'pipingClass') {
+        _renderClassTransactionStatus(host, newVal);
+        void runAtomicPreviewClassTransaction({
+          config,
+          applyOverride: async () => {
+            const savedKey = _savePreviewOverride({ config, ensureOverrides, editType, row, derivedKey, value: newVal });
+            markAdaptedPreviewOverrideManual({ config, ensureOverrides, field: editType, key: savedKey, value: newVal });
+            return { savedKey, value: newVal };
+          },
+          hydrateAuthority: async () => _hydrateEffectiveClassConfig(config, xmlText),
+          persistConfig: async () => onSaveConfig?.(config),
+          rebuildPreview: async ({ hydrationResult, rollback, error }) => {
+            await xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+            const rebuiltHost = rootEl?.querySelector('#mc-preview-table-host');
+            if (rollback) {
+              _markPreviewSaved(rebuiltHost, `Piping Class update failed and was rolled back: ${_toText(error?.message || error)}`);
+            } else {
+              _markPreviewSaved(rebuiltHost, _classTransactionSuccessMessage(hydrationResult, newVal));
+            }
+          },
+        }).catch((error) => {
+          console.error('Atomic Piping Class Preview update failed:', error);
+          const currentHost = rootEl?.querySelector('#mc-preview-table-host');
+          if (error?.rollbackError) {
+            currentHost.innerHTML = `<div class="model-converters-workflow-detail-note" style="border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">Piping Class update failed, and the prior Preview could not be restored: ${_esc(error.rollbackError?.message || error.rollbackError)}</div>`;
+          }
+        });
+        return;
+      }
       const savedKey = _savePreviewOverride({ config, ensureOverrides, editType, row, derivedKey, value: newVal });
       markAdaptedPreviewOverrideManual({ config, ensureOverrides, field: editType, key: savedKey, value: newVal });
       if (editType === 'rating' && row.lineKey) markAdaptedPreviewProcessManual({ config, ensureOverrides, field: 'rating', lineKey: row.lineKey, value: newVal });
@@ -332,7 +403,23 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     }
   });
 
-  host.innerHTML = `${_manualPreviewActionHtml('Rebuild Preview', true, config)}${table.renderHTML()}`;
+  host.innerHTML = `${_manualPreviewActionHtml('Rebuild Preview', true, config)}<div class="bulk-map-container-host"></div>${table.renderHTML()}`;
+  const mapContainer = host.querySelector('.bulk-map-container-host');
+  if (mapContainer) {
+    const lineListKeys = _xmlCiiLineListKeys(config);
+    renderBranchLineMapPanel(mapContainer, {
+      branchRows,
+      lineListKeys,
+      config,
+      onSaveConfig: (cfg) => {
+        if (typeof onSaveConfig === 'function') onSaveConfig(cfg);
+        _markPreviewSaved(host, 'Branch mappings saved. Click Rebuild Preview to apply.');
+      },
+      onRebuildPreview: () => {
+        void xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+      }
+    });
+  }
   _bindManualPreviewButton(host, rootEl, xmlText, config, options, 'Rebuilding preview...');
   _bindParsedCustomSourceToggle(host, config, options);
 
