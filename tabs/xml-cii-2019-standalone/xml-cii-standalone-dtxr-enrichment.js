@@ -88,6 +88,10 @@ function supportKindsForRecord(record, kindsByPath) {
   return [...new Set(paths.map((path) => kindsByPath.get(path)).filter(Boolean))];
 }
 
+export function resolveStandaloneStagedSupportTypes(stagedJsonText, record, config = {}) {
+  return supportKindsForRecord(record, stagedSupportKindsByPath(stagedJsonText, config));
+}
+
 export function materializeMissingStandaloneRestRestraint(document, node, resolved, config = {}, stagedSupportTypes = []) {
   const existing = childrenByName(node, 'Restraint');
   const supportMapping = migrateSupportMappingConfig(config);
