@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { DEFAULT_MATERIAL_MAP_ROWS } from '../converters/xml-cii2019-core/default-material-map-rows.js';
+import { resolveMaterialCodeFromLineMaterial } from '../converters/xml-cii2019-core/branch-process-resolver.js';
 import {
   isolateXmlCiiPipingClassRatingPrefix,
   resolveConfiguredMaterialCode,
@@ -162,4 +163,51 @@ test('Piping Class fallback is used only when Process Material is blank', () => 
   assert.equal(result.materialCodeSource, 'piping-class-fallback');
   assert.equal(result.materialCodeResolutionMethod, 'rating-prefix-family-wildcard');
   assert.equal(result.materialCodeNeedsReview, true);
+});
+
+test('shared resolver corrects a stale class-scoped code from Process Material', () => {
+  const result = resolveMaterialCodeFromLineMaterial({
+    lineRow: { Material: 'ASTM A790 UNS S31803' },
+    materialMap: DEFAULT_MATERIAL_MAP_ROWS,
+    pipingClassRow: { materialName: 'ASTM A106-B', materialCode: '106' },
+    pipingClass: '61033M1',
+    overrides: { materialCode: { 'PC:61033M1': '193' } },
+    overrideKeys: ['PC:61033M1'],
+    config: fallbackConfig(),
+  });
+  assert.equal(result.materialCode, '338');
+  assert.equal(result.source, 'material-evidence-corrected');
+  assert.equal(result.needsReview, false);
+  assert.equal(result.conflict.overrideCode, '193');
+});
+
+test('shared resolver blocks class fallback for unresolved Process Material', () => {
+  const result = resolveMaterialCodeFromLineMaterial({
+    lineRow: { Material: 'UNKNOWN MATERIAL XYZ' },
+    materialMap: DEFAULT_MATERIAL_MAP_ROWS,
+    pipingClassRow: { materialName: 'ASTM A106-B', materialCode: '106' },
+    pipingClass: '61033M1',
+    overrides: { materialCode: { 'PC:61033M1': '106' } },
+    overrideKeys: ['PC:61033M1'],
+    config: fallbackConfig(),
+  });
+  assert.equal(result.materialCode, '');
+  assert.equal(result.source, 'process-material-unresolved');
+  assert.equal(result.needsReview, true);
+});
+
+test('shared resolver uses Rating-prefix class fallback only for blank Process Material', () => {
+  const result = resolveMaterialCodeFromLineMaterial({
+    lineRow: { Material: '' },
+    materialMap: DEFAULT_MATERIAL_MAP_ROWS,
+    pipingClassRow: null,
+    pipingClass: '61033M1',
+    overrides: {},
+    overrideKeys: ['PC:61033M1'],
+    config: fallbackConfig(),
+  });
+  assert.equal(result.materialCode, '106');
+  assert.equal(result.source, 'piping-class-fallback');
+  assert.equal(result.matchMethod, 'rating-prefix-family-wildcard');
+  assert.equal(result.needsReview, true);
 });
