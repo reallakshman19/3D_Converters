@@ -1,5 +1,5 @@
 import { transformPoint } from '../transform-policy.js';
-import { compareOccurrenceId } from './identity.js';
+import { compareOccurrenceId, compareText } from './identity.js';
 import { AUTO_PIPE_PROFILE, scaledTolerance } from './profile.js';
 import { dot, finiteVector, normalize, subtract } from './vector.js';
 
@@ -20,9 +20,19 @@ function candidatesFor(derived, occurrenceId, geometryId) {
     && item.geometryObjectId === geometryId);
 }
 
+function compareCentre(left, right) {
+  for (let index = 0; index < 3; index += 1) {
+    if (left.centreMm[index] < right.centreMm[index]) return -1;
+    if (left.centreMm[index] > right.centreMm[index]) return 1;
+  }
+  return compareText(left.portEvidenceId, right.portEvidenceId);
+}
+
 function roleAssignment(left, right, profile) {
   if (!finiteVector(left.centreMm) || !finiteVector(right.centreMm)
       || !finiteVector(left.normal) || !finiteVector(right.normal)) return null;
+  if (profile.roleOrdering !== 'world-centre-lexicographic'
+      || compareCentre(left, right) >= 0) return null;
   const delta = subtract(right.centreMm, left.centreMm), span = Math.hypot(...delta);
   if (!(span > profile.minimumSpanMm)) return null;
   const axis = normalize(delta);
@@ -136,7 +146,7 @@ export function classifyPipeOccurrence({
     status: 'PIPE_INFERENCE_PASS',
     sourceOccurrenceId: occurrence.sourceOccurrenceId,
     sourceModelObjectId: occurrence.sourceModelObjectId,
-    geometryObjectId,
+    geometryObjectId: geometryId,
     ...ports,
   });
 }
