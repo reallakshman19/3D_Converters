@@ -20,6 +20,10 @@ function finite(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function sources(row) {
+  return [row, row?._raw].filter((source) => source && typeof source === 'object');
+}
+
 function parseFraction(source) {
   const mixed = source.match(/^(\d+)\s*(?:-|\s)\s*(\d+)\s*\/\s*(\d+)$/);
   if (mixed) {
@@ -54,33 +58,68 @@ export function resolveXmlCiiBoreMmFromNps(value) {
   return NPS_TO_BORE_MM[String(Number(nps))] ?? null;
 }
 
+function readDedicatedBoreMm(row = {}) {
+  for (const source of sources(row)) {
+    for (const key of ['Converted Bore', 'Bore (mm)', 'Bore mm', 'BORE_MM', 'DN', 'NB']) {
+      const numeric = finite(source?.[key]);
+      if (numeric != null && numeric > 0) return numeric;
+    }
+  }
+  return null;
+}
+
 export function readXmlCiiExplicitBoreMm(row = {}) {
-  for (const key of ['convertedBore', 'Converted Bore', 'Bore (mm)', 'Bore mm', 'BORE_MM', 'boreMm', 'DN', 'NB']) {
-    const numeric = finite(row?.[key]);
-    if (numeric != null && numeric > 0) return numeric;
+  const dedicated = readDedicatedBoreMm(row);
+  if (dedicated != null) return dedicated;
+  for (const source of sources(row)) {
+    for (const key of ['convertedBore', 'boreMm']) {
+      const numeric = finite(source?.[key]);
+      if (numeric != null && numeric > 0) return numeric;
+    }
   }
   return null;
 }
 
 export function readXmlCiiPipingClassNps(row = {}) {
-  for (const key of ['nps', 'NPS', 'NPS (in)', 'Size (NPS)', 'Nominal Pipe Size', 'Nominal Size', 'Size']) {
-    const raw = text(row?.[key]);
-    if (raw) return raw;
+  for (const source of sources(row)) {
+    for (const key of ['nps', 'NPS', 'NPS (in)', 'Size (NPS)', 'Nominal Pipe Size', 'Nominal Size', 'Size']) {
+      const raw = text(source?.[key]);
+      if (raw) return raw;
+    }
   }
   return '';
 }
 
+function ambiguousConvertedBore(row) {
+  for (const source of sources(row)) {
+    for (const key of ['convertedBore', 'boreMm']) {
+      const numeric = finite(source?.[key]);
+      if (numeric != null && numeric > 0) return numeric;
+    }
+  }
+  return null;
+}
+
 export function normalizeXmlCiiPipingClassMasterRow(row = {}) {
   const source = row && typeof row === 'object' ? row : {};
-  const explicitBore = readXmlCiiExplicitBoreMm(source);
+  const dedicatedBore = readDedicatedBoreMm(source);
   const nps = readXmlCiiPipingClassNps(source);
+  const parsedNps = parseXmlCiiNps(nps);
+  const ambiguousBore = ambiguousConvertedBore(source);
+  const legacyNpsCopy = dedicatedBore == null
+    && parsedNps != null
+    && ambiguousBore != null
+    && Math.abs(ambiguousBore - parsedNps) <= 1e-9;
+  const explicitBore = dedicatedBore ?? (legacyNpsCopy ? null : ambiguousBore);
   const derivedBore = explicitBore ?? resolveXmlCiiBoreMmFromNps(nps);
   return {
     ...source,
     nps: text(source.nps || nps),
     convertedBore: derivedBore ?? '',
     boreMm: derivedBore ?? '',
-    boreSource: explicitBore != null ? 'master-bore-mm' : (derivedBore != null ? 'nps-master-table' : 'unresolved'),
+    boreSource: explicitBore != null
+      ? 'master-bore-mm'
+      : (derivedBore != null ? (legacyNpsCopy ? 'legacy-nps-remapped' : 'nps-master-table') : 'unresolved'),
   };
 }
 
