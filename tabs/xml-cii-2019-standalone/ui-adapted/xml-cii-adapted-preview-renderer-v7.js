@@ -12,6 +12,7 @@ import {
   restorePreviewCacheV7,
   shortPreviewCacheDigest,
 } from './xml-cii-adapted-preview-cache-v7.js';
+import { applyPreviewDtxrRatingOverrides } from './xml-cii-adapted-preview-rating-fetch.js';
 
 export { xmlCiiRenderPreviewPhase };
 
@@ -49,12 +50,71 @@ function previewRendered(host) {
   return !!host?.querySelector?.('table, [data-mc-edit-type], .mc-preview-editable-val');
 }
 
-function legacyBridgePresent() {
+function readLegacyPayload() {
   try {
-    return typeof localStorage !== 'undefined' && !!localStorage.getItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY);
+    const value = typeof localStorage !== 'undefined'
+      ? JSON.parse(localStorage.getItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY) || 'null')
+      : null;
+    return value && Array.isArray(value?.data?.branchRows) ? value : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+function legacyBridgePresent() {
+  return Boolean(readLegacyPayload());
+}
+
+function addNotice(host, message, bad = false) {
+  if (!host) return;
+  const existing = host.querySelector?.('[data-mc-dtxr-rating-notice]');
+  if (existing) existing.remove();
+  host.insertAdjacentHTML?.(
+    'afterbegin',
+    `<div data-mc-dtxr-rating-notice class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:${bad ? '#b91c1c' : '#2f855a'};color:${bad ? '#7f1d1d' : '#14532d'};background:${bad ? '#fff7f7' : '#f0fff4'};">${esc(message)}</div>`,
+  );
+}
+
+function ratingFetchMessage(result) {
+  const parts = [];
+  if (result.applied) parts.push(`Fetched DTXR Rating for ${result.applied} branch${result.applied === 1 ? '' : 'es'}.`);
+  if (result.conflicts) parts.push(`Skipped ${result.conflicts} branch${result.conflicts === 1 ? '' : 'es'} with conflicting DTXR ratings.`);
+  if (result.missing) parts.push(`${result.missing} branch${result.missing === 1 ? '' : 'es'} had no explicit DTXR Rating.`);
+  if (!result.applied && result.cleared) parts.push(`Cleared ${result.cleared} previous fetched DTXR Rating override${result.cleared === 1 ? '' : 's'}.`);
+  return parts.join(' ') || 'No unambiguous DTXR Rating evidence was available.';
+}
+
+function installDtxrRatingAction({ host, rootEl, xmlText, config, options, branchRows }) {
+  if (!host || !Array.isArray(branchRows) || !branchRows.length) return;
+  const actionBar = host.querySelector?.('[data-mc-preview-build]')?.parentElement;
+  if (!actionBar || actionBar.querySelector('[data-mc-dtxr-rating-fetch]')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'model-converters-download-btn';
+  button.dataset.mcDtxrRatingFetch = 'true';
+  button.textContent = 'Fetch Rating as per DTXR';
+  button.title = 'Explicitly fetch unambiguous DTXR ratings as branch-scoped overrides. Normal execution uses Piping Class master Rating, then Regex Rating extraction.';
+  button.style.cssText = 'padding:8px 14px;min-width:210px;';
+  actionBar.appendChild(button);
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    const result = applyPreviewDtxrRatingOverrides(config, branchRows);
+    const changed = result.applied > 0 || result.cleared > 0;
+    if (!changed) {
+      addNotice(host, ratingFetchMessage(result), true);
+      button.disabled = false;
+      return;
+    }
+    try {
+      await options?.onSaveConfig?.(config);
+      await xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+      const rebuiltHost = rootEl?.querySelector?.('#mc-preview-table-host');
+      addNotice(rebuiltHost, ratingFetchMessage(result), result.applied === 0);
+    } catch (error) {
+      addNotice(host, `DTXR Rating fetch failed: ${text(error?.message || error)}`, true);
+      button.disabled = false;
+    }
+  });
 }
 
 function addCacheEvidence(host, { status, authority, reason = '' } = {}) {
@@ -71,11 +131,11 @@ function addCacheEvidence(host, { status, authority, reason = '' } = {}) {
   const reasonDetail = reason ? ` · ${reason}` : '';
   host.insertAdjacentHTML?.(
     'afterbegin',
-    `<div data-mc-preview-cache-evidence class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#475569;color:#334155;background:#f8fafc;">Preview cache v7: <strong>${esc(status)}</strong> · SHA-256 ${esc(digest)} · ${esc(byteDetail)}${esc(reasonDetail)}</div>`,
+    `<div data-mc-preview-cache-evidence class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#475569;color:#334155;background:#f8fafc;">Preview cache authority: <strong>${esc(status)}</strong> · SHA-256 ${esc(digest)} · ${esc(byteDetail)}${esc(reasonDetail)}</div>`,
   );
 }
 
-function installInternalRebuildCapture(host, xmlText, config, options) {
+function installInternalRebuildCapture(host, rootEl, xmlText, config, options) {
   if (!host || typeof MutationObserver === 'undefined') return;
   host.__xmlCiiPreviewCacheV7Observer?.disconnect?.();
   let timer = null;
@@ -87,6 +147,15 @@ function installInternalRebuildCapture(host, xmlText, config, options) {
       if (running || !previewRendered(host) || !legacyBridgePresent()) return;
       running = true;
       try {
+        const legacy = readLegacyPayload();
+        installDtxrRatingAction({
+          host,
+          rootEl,
+          xmlText,
+          config,
+          options,
+          branchRows: legacy?.data?.branchRows || [],
+        });
         const stagedSource = await resolveStagedSource(options, config);
         const authority = await createPreviewCacheAuthority({
           xmlText,
@@ -118,7 +187,7 @@ function installInternalRebuildCapture(host, xmlText, config, options) {
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
   const host = rootEl?.querySelector?.('#mc-preview-table-host');
   if (!host) return;
-  installInternalRebuildCapture(host, xmlText, config, options);
+  installInternalRebuildCapture(host, rootEl, xmlText, config, options);
 
   const stagedSource = await resolveStagedSource(options, config);
   const delegatedOptions = {
@@ -168,6 +237,15 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     return;
   }
 
+  const legacy = readLegacyPayload();
+  installDtxrRatingAction({
+    host,
+    rootEl,
+    xmlText,
+    config,
+    options,
+    branchRows: legacy?.data?.branchRows || [],
+  });
   const captured = capturePreviewCacheV7(authority);
   const status = options.forceBuild === true
     ? (captured.stored ? 'REBUILT' : 'UNCACHED')
