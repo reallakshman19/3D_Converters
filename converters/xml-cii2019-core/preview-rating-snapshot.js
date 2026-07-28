@@ -2,6 +2,8 @@ import { extractXmlCiiRatingFromDtxr } from './dtxr-rating-resolver.js';
 
 export const XML_CII_PREVIEW_RATING_SNAPSHOT_SCHEMA = 'xml-cii-preview-rating-snapshot/v1';
 export const XML_CII_PREVIEW_RATING_SNAPSHOT_KEY = 'xml-cii-preview-rating-snapshot-v1';
+export const XML_CII_PREVIEW_CACHE_ENVELOPE_KEY = 'xml-cii-pv-cache-v8-rating-policy';
+export const XML_CII_PREVIEW_CACHE_BRIDGE_KEY = 'xml-cii-pv-cache-v8-dtxr';
 export const XML_CII_LEGACY_PREVIEW_CACHE_KEY = 'xml-cii-pv-cache-v2';
 
 function text(value) {
@@ -65,10 +67,33 @@ function readJsonStorage(key) {
   try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
 }
 
-function legacySnapshot() {
-  const payload = readJsonStorage(XML_CII_LEGACY_PREVIEW_CACHE_KEY);
+function snapshotFromPayload(payload, authorityDigest) {
   const rows = payload?.data?.branchRows;
-  return Array.isArray(rows) ? buildXmlCiiPreviewRatingSnapshot(rows, { authorityDigest: 'legacy-preview-cache' }) : null;
+  return Array.isArray(rows)
+    ? buildXmlCiiPreviewRatingSnapshot(rows, { authorityDigest })
+    : null;
+}
+
+function deterministicEnvelopeSnapshot() {
+  const envelope = readJsonStorage(XML_CII_PREVIEW_CACHE_ENVELOPE_KEY);
+  return snapshotFromPayload(
+    envelope?.legacyPayload,
+    text(envelope?.authority?.digest) || 'preview-cache-v8-envelope',
+  );
+}
+
+function bridgeSnapshot() {
+  return snapshotFromPayload(
+    readJsonStorage(XML_CII_PREVIEW_CACHE_BRIDGE_KEY),
+    'preview-cache-v8-bridge',
+  );
+}
+
+function legacySnapshot() {
+  return snapshotFromPayload(
+    readJsonStorage(XML_CII_LEGACY_PREVIEW_CACHE_KEY),
+    'legacy-preview-cache',
+  );
 }
 
 export function publishXmlCiiPreviewRatingSnapshot(branchRows = [], metadata = {}) {
@@ -85,7 +110,11 @@ export function clearXmlCiiPreviewRatingSnapshot() {
 }
 
 export function readXmlCiiPreviewRatingSnapshot() {
-  return parseStored(readJsonStorage(XML_CII_PREVIEW_RATING_SNAPSHOT_KEY)) || legacySnapshot() || buildXmlCiiPreviewRatingSnapshot([]);
+  return parseStored(readJsonStorage(XML_CII_PREVIEW_RATING_SNAPSHOT_KEY))
+    || deterministicEnvelopeSnapshot()
+    || bridgeSnapshot()
+    || legacySnapshot()
+    || buildXmlCiiPreviewRatingSnapshot([]);
 }
 
 export function resolveXmlCiiPreviewRating(row = {}, snapshot = readXmlCiiPreviewRatingSnapshot()) {
