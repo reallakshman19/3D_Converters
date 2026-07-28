@@ -17,9 +17,16 @@ function blocked(status, classifications, error = null) {
 
 function failureStatus(error) {
   const text = String(error?.message || error || '');
-  if (text.startsWith('BLOCKED_AUTO_PIPE_CONNECTIVITY')) return 'BLOCKED_AUTO_PIPE_CONNECTIVITY';
-  if (text.startsWith('BLOCKED_AUTO_PIPE_RESOURCE')) return 'BLOCKED_AUTO_PIPE_RESOURCE';
-  return 'BLOCKED_AUTO_PIPE_EXECUTION';
+  const statuses = [
+    'BLOCKED_AUTO_PIPE_BINDING',
+    'BLOCKED_AUTO_PIPE_SCOPE',
+    'BLOCKED_AUTO_PIPE_CLASSIFICATION',
+    'BLOCKED_AUTO_PIPE_ROLE_ASSIGNMENT',
+    'BLOCKED_AUTO_PIPE_CONNECTIVITY',
+    'BLOCKED_AUTO_PIPE_RESOURCE',
+    'BLOCKED_AUTO_PIPE_CANCELLED',
+  ];
+  return statuses.find((status) => text.startsWith(status)) || 'BLOCKED_AUTO_PIPE_EXECUTION';
 }
 
 export async function runFbxAutoPipe(input) {
@@ -32,6 +39,8 @@ export async function runFbxAutoPipe(input) {
       zoneGeometryEvidence: input.zoneGeometryEvidence,
       derivedPortEvidence: input.derivedPortEvidence,
       classifications,
+      classificationProfile: input.classificationProfile,
+      connectivityProfile: input.connectivityProfile,
     });
     const execution = executeInternalPipeMapping(internalPipeMapping);
     return Object.freeze({
