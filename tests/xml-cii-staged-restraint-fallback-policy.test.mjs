@@ -1,8 +1,18 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import test from 'node:test';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import test, { after } from 'node:test';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { decideMissingStagedRestRestraint } from '../converters/xml-cii2019-core/staged-restraint-fallback-policy.js';
+const policySourceUrl = new URL('../converters/xml-cii2019-core/staged-restraint-fallback-policy.js', import.meta.url);
+const tempRoot = await mkdtemp(join(tmpdir(), 'xml-cii-staged-restraint-fallback-'));
+const policyTarget = join(tempRoot, 'converters/xml-cii2019-core/staged-restraint-fallback-policy.js');
+await mkdir(dirname(policyTarget), { recursive: true });
+await writeFile(join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
+await copyFile(fileURLToPath(policySourceUrl), policyTarget);
+const { decideMissingStagedRestRestraint } = await import(pathToFileURL(policyTarget).href);
+after(() => rm(tempRoot, { recursive: true, force: true }));
 
 test('ANCI missing restraint adopts staged REST', () => {
   const result = decideMissingStagedRestRestraint({ componentType: 'ANCI', stagedSupportTypes: ['REST'] });
