@@ -99,11 +99,11 @@ function countText(displayed, source) {
   return displayed === source ? `${displayed}` : `${displayed} of ${source}`;
 }
 
-export function buildFbxZoneWireframeMetaText(project, wireframe) {
+export function buildFbxZoneWireframeMetaText(project, wireframe, supportStatus = 'not evaluated') {
   const source = project?.previewSourceName || 'FBX source graph';
   const zone = project?.selectedZoneLabel || 'Selected zone';
   const zones = Array.isArray(project?.previewZones) ? project.previewZones.length : 0;
   const points = Number(project?.displayedPointCount ?? project?.points?.length ?? 0);
   const segments = countText(wireframe.displayedSegmentCount, wireframe.sourceSegmentCount);
-  return `Preview source: ${source} | adapter: ${wireframe.adapter} | zone: ${zone} | zones: ${zones} | points: ${points} | segments: ${segments} | nodes: 0 | supports: 0 | annotations: 0`;
+  return `Preview source: ${source} | adapter: ${wireframe.adapter} | zone: ${zone} | zones: ${zones} | points: ${points} | segments: ${segments} | nodes: 0 | supports: ${supportStatus} | annotations: 0`;
 }

@@ -3,6 +3,7 @@ import { parseFbxGeometryBundleInWorker } from '../geometry-transport.js';
 import { analyseFbxZoneGeometry } from './analyse-zone.js';
 import { createZoneAnalysisController } from './analysis-controller.js';
 import { buildFbxZoneWireframeMetaText } from './wireframe-preview.js';
+import { attachFbxSupportControls, handleFbxSupportGeometryState, supportPreviewMetaValue } from '../support-analysis/ui.js';
 
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const RUN_EVENT = 'model-converters:fbx-zone-geometry-run';
@@ -10,18 +11,15 @@ const AUTO_PIPE_OUTPUT_EVENT = 'model-converters:fbx-auto-pipe-outputs';
 const PATCH_MARKER = Symbol.for('model-converters.fbx-zone-geometry-run.v1');
 const CONTROLLERS = new WeakMap();
 const RUN_INPUTS = new WeakMap();
-
 function bytesView(value) {
   if (value instanceof Uint8Array) return value;
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
   if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   return new Uint8Array(value || 0);
 }
-
 function primaryInput(context) {
   return context?.inputFiles?.find((file) => file.role === 'primary') || null;
 }
-
 function dispatchRun(detail) {
   if (typeof window === 'undefined' || typeof CustomEvent !== 'function') return;
   window.dispatchEvent(new CustomEvent(RUN_EVENT, { detail }));
@@ -115,6 +113,7 @@ function updateAvailability(controller) {
 }
 
 function renderAnalysisState(controller, state) {
+  handleFbxSupportGeometryState(controller, state);
   controller.status.textContent = state.message || '';
   controller.disclaimer.textContent = state.autoPipeStatus === 'STAGEDJSON_PASS'
     ? 'PIPE-only internal authority passed; selected-zone StagedJSON is available.'
@@ -142,6 +141,7 @@ function createController(container, wrap) {
     analyse: analyseFbxZoneGeometry,
     onState: (state) => renderAnalysisState(controller, state),
   });
+  attachFbxSupportControls(controller);
   bindControls(controller); CONTROLLERS.set(container, controller); return controller;
 }
 
@@ -212,7 +212,8 @@ function renderWireframePreview(controller, result) {
   if (!wireframe || !controller.renderer || !controller.project) return;
   controller.renderer._3DModelConv_overlayStp(wireframe.members);
   const meta = controller.container.querySelector?.('#model-converters-preview-meta');
-  if (meta) meta.textContent = buildFbxZoneWireframeMetaText(controller.project, wireframe);
+  if (meta) meta.textContent = buildFbxZoneWireframeMetaText(controller.project, wireframe,
+    supportPreviewMetaValue(controller));
 }
 
 async function runAnalysis(controller) {

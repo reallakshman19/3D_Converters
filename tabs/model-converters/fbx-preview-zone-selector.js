@@ -21,7 +21,7 @@ export function buildFbxPreviewZoneMetaText(project) {
   const source = project?.previewSourceName || 'FBX source graph';
   const zone = project?.selectedZoneLabel || 'All zones';
   const zoneCount = Array.isArray(project?.previewZones) ? project.previewZones.length : 0;
-  return `Preview source: ${source} | adapter: FbxSourceGraphPointPreview | zone: ${zone} | zones: ${zoneCount} | points: ${pointSummary(project)} | segments: 0 | nodes: 0 | supports: 0 | annotations: 0`;
+  return `Preview source: ${source} | adapter: FbxSourceGraphPointPreview | zone: ${zone} | zones: ${zoneCount} | points: ${pointSummary(project)} | segments: 0 | nodes: 0 | supports: not evaluated | annotations: 0`;
 }
 function cleanFilePart(value, fallback) {
   const cleaned = String(value ?? '').trim().replace(/\.[^.]+$/, '')

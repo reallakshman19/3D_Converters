@@ -25,6 +25,8 @@ export async function analyseFbxZoneGeometry(input) {
       derivedPortEvidence,
       wireframePreview,
       autoPipe,
+      supportContext: Object.freeze({ selections: prepared.selections,
+        canonicalGraph: prepared.canonicalGraph }),
       zoneGeometryJson: canonicalJson(prepared.artifact),
       derivedPortJson: canonicalJson(derivedPortEvidence),
       counts: Object.freeze({
