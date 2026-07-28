@@ -2,16 +2,49 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { buildFbxBenchmarkDerivationAuthority } from '../../tabs/model-converters/converters/fbx/benchmark/derivation-authority.js';
+import { sealFbxBenchmarkSourceBinding } from '../../tabs/model-converters/converters/fbx/benchmark/source-binding.js';
 import {
   gitBlobSha1, sealProducerAuthority, verifyProducerAuthority, verifyProducerFiles,
 } from '../../tabs/model-converters/converters/fbx/benchmark/producer-authority.js';
 
 const producerPath = new URL('../../Benchmarks/fbx BM/StaggedJsonBMforFBX.producer-authority.json', import.meta.url);
 const producer = await verifyProducerAuthority(JSON.parse(await readFile(producerPath, 'utf8')));
-const binding = {
-  schema: 'FbxBenchmarkSourceBinding.v1', bindingSha256: 'a'.repeat(64),
-  benchmark: { commit: producer.benchmarkCommit },
-};
+const binding = await sealFbxBenchmarkSourceBinding({
+  schema: 'FbxBenchmarkSourceBinding.v1',
+  source: {
+    fileName: 'fbxtaya.fbx',
+    byteLength: 71486048,
+    sha256: '0c2c0600a1232541a497aea05832b728569fefcf62ea86e71dea520247fe9ca8',
+    storage: {
+      fileId: '1febjASkHnzLA667P81YuLF3pZqjI2ySM',
+      provider: 'GOOGLE_DRIVE',
+      revisionId: '0B3VXl1aCZ-GkVmM3S3grcTROdjBOTEpadFptaGRIZXUxN01BPQ',
+    },
+    fbx: {
+      creationTime: '2026-07-21 16:23:48:291',
+      creator: 'FBX SDK/FBX Plugins version 2019.0 build=b92b15b23',
+      encoding: 'BINARY',
+      fileId: '2cbf26e1bc28c2ccb3cdb625a327f2fc',
+      globalSettings: {
+        coordAxis: 0, coordAxisSign: -1, frontAxis: 1, frontAxisSign: 1,
+        originalUnitScaleFactor: 1, unitScaleFactor: 100, upAxis: 2, upAxisSign: 1,
+      },
+      version: 7500,
+    },
+  },
+  benchmark: {
+    commit: producer.benchmarkCommit,
+    gitBlobSha1: 'e4ce63f180d3bcc3cba0e85137ce9811cef477e9',
+    inventory: { branchRecords: 1, childRecords: 3, supportRecords: 1, totalRecords: 4 },
+    path: 'Benchmarks/fbx BM/StaggedJsonBMforFBX',
+    repository: 'reallaksh19/3D_Converters',
+  },
+  lineage: {
+    benchmarkBranchCount: 1, benchmarkChildCount: 3, certificationStatus: 'BLOCKED',
+    commonModelStatus: 'STRONGLY_SUPPORTED', derivationStatus: 'UNPROVEN',
+    netAdditionalBenchmarkRecords: 0, sourceBranchRootCount: 1, sourceDirectBranchChildCount: 3,
+  },
+});
 const branch = { name: '/SITE/PIPE/B1', type: 'BRANCH', attributes: { OWNER_SITE: '/SITE' }, children: [] };
 const flange = { name: 'FLAN =1/2', type: 'FLAN', attributes: { NAME: '=1/2', RAW_TYPE: 'FLANGE' } };
 const pipe = { name: 'PIPE AUTO /SITE/PIPE/B1 HEAD', type: 'PIPE', attributes: {

@@ -93,6 +93,21 @@ function validateScope(entry, requiredFields, label) {
   return scope;
 }
 
+function ruleFamiliesAndFields(entry, label) {
+  const applicableFamilies = stringArray(
+    entry.applicableFamilies, `${label}.applicableFamilies`, { allowEmpty: false },
+  ).map((family) => {
+    if (!COMPONENT_FAMILIES.includes(family)) {
+      fail(`${label}.applicableFamilies contains unsupported family ${family}.`);
+    }
+    return family;
+  });
+  const requiredFields = stringArray(
+    entry.requiredFields, `${label}.requiredFields`, { allowEmpty: false },
+  );
+  return { applicableFamilies, requiredFields };
+}
+
 function identityRule(entry, index, state) {
   const label = `policy.identityRules[${index}]`;
   exactKeys(entry, [
@@ -108,17 +123,7 @@ function identityRule(entry, index, state) {
   if (state.ranks.has(entry.rank)) fail(`duplicate identity rank ${entry.rank}.`);
   state.ranks.add(entry.rank);
   const kind = validateRuleKind(entry, label);
-  const applicableFamilies = stringArray(
-    entry.applicableFamilies, `${label}.applicableFamilies`, { allowEmpty: false },
-  ).map((family) => {
-    if (!COMPONENT_FAMILIES.includes(family)) {
-      fail(`${label}.applicableFamilies contains unsupported family ${family}.`);
-    }
-    return family;
-  });
-  const requiredFields = stringArray(
-    entry.requiredFields, `${label}.requiredFields`, { allowEmpty: false },
-  );
+  const { applicableFamilies, requiredFields } = ruleFamiliesAndFields(entry, label);
   const scope = validateScope(entry, requiredFields, label);
   const uniquenessRequirement = requireText(
     entry.uniquenessRequirement, `${label}.uniquenessRequirement`,

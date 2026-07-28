@@ -61,51 +61,65 @@ function diagnosticGroups(stages, references, actuals, referenceIds, actualIds) 
   return groups.sort((left, right) => compareText(left.candidateGroupId, right.candidateGroupId));
 }
 
+function processAuthoritativeStage(stage, state) {
+  const {
+    references, actuals, remainingReference, remainingActual, lockedReference, lockedActual, matches, collisionGroups,
+  } = state;
+  const referenceGroups = groupByStage(references, [...remainingReference].filter((id) => !lockedReference.has(id)), stage);
+  const actualGroups = groupByStage(actuals, [...remainingActual].filter((id) => !lockedActual.has(id)), stage);
+  for (const key of sortedUnion(referenceGroups, actualGroups)) {
+    const referenceIds = referenceGroups.get(key) || [];
+    const actualIds = actualGroups.get(key) || [];
+    if (referenceIds.length === 1 && actualIds.length === 1) {
+      const referenceId = referenceIds[0];
+      const actualId = actualIds[0];
+      remainingReference.delete(referenceId);
+      remainingActual.delete(actualId);
+      matches.push({
+        stageId: stage.stageId,
+        authority: stage.authority,
+        approvedEquivalentRuleId: stage.approvedEquivalentRuleId,
+        normalizedKey: JSON.parse(key),
+        referenceId,
+        actualId,
+      });
+    } else if (referenceIds.length > 1 || actualIds.length > 1) {
+      for (const id of referenceIds) lockedReference.add(id);
+      for (const id of actualIds) lockedActual.add(id);
+      collisionGroups.push({
+        collisionGroupId: `support-collision:${stage.stageId}:${collisionGroups.length + 1}`,
+        stageId: stage.stageId,
+        normalizedKey: JSON.parse(key),
+        referenceIds,
+        actualIds,
+      });
+    }
+  }
+}
+
+function matchState(references, actuals) {
+  return {
+    references,
+    actuals,
+    remainingReference: new Set(references.keys()),
+    remainingActual: new Set(actuals.keys()),
+    lockedReference: new Set(),
+    lockedActual: new Set(),
+    matches: [],
+    collisionGroups: [],
+  };
+}
+
 export function matchSupportRecords(referenceRecords, actualRecords, policyValue) {
   const policy = validateSupportIdentityPolicy(policyValue);
   const references = new Map(referenceRecords.map((record) => [record.recordId, record]));
   const actuals = new Map(actualRecords.map((record) => [record.recordId, record]));
-  const remainingReference = new Set(references.keys());
-  const remainingActual = new Set(actuals.keys());
-  const lockedReference = new Set();
-  const lockedActual = new Set();
-  const matches = [];
-  const collisionGroups = [];
+  const state = matchState(references, actuals);
+  const { remainingReference, remainingActual, lockedReference, lockedActual, matches, collisionGroups } = state;
   const authoritativeStages = policy.identityStages.filter((stage) => stage.authority !== 'DIAGNOSTIC_ONLY');
   const diagnosticStages = policy.identityStages.filter((stage) => stage.authority === 'DIAGNOSTIC_ONLY');
 
-  for (const stage of authoritativeStages) {
-    const referenceGroups = groupByStage(references, [...remainingReference].filter((id) => !lockedReference.has(id)), stage);
-    const actualGroups = groupByStage(actuals, [...remainingActual].filter((id) => !lockedActual.has(id)), stage);
-    for (const key of sortedUnion(referenceGroups, actualGroups)) {
-      const referenceIds = referenceGroups.get(key) || [];
-      const actualIds = actualGroups.get(key) || [];
-      if (referenceIds.length === 1 && actualIds.length === 1) {
-        const referenceId = referenceIds[0];
-        const actualId = actualIds[0];
-        remainingReference.delete(referenceId);
-        remainingActual.delete(actualId);
-        matches.push({
-          stageId: stage.stageId,
-          authority: stage.authority,
-          approvedEquivalentRuleId: stage.approvedEquivalentRuleId,
-          normalizedKey: JSON.parse(key),
-          referenceId,
-          actualId,
-        });
-      } else if (referenceIds.length > 1 || actualIds.length > 1) {
-        for (const id of referenceIds) lockedReference.add(id);
-        for (const id of actualIds) lockedActual.add(id);
-        collisionGroups.push({
-          collisionGroupId: `support-collision:${stage.stageId}:${collisionGroups.length + 1}`,
-          stageId: stage.stageId,
-          normalizedKey: JSON.parse(key),
-          referenceIds,
-          actualIds,
-        });
-      }
-    }
-  }
+  for (const stage of authoritativeStages) processAuthoritativeStage(stage, state);
 
   const unmatchedReferenceIds = [...remainingReference].filter((id) => !lockedReference.has(id)).sort(compareText);
   const unmatchedActualIds = [...remainingActual].filter((id) => !lockedActual.has(id)).sort(compareText);

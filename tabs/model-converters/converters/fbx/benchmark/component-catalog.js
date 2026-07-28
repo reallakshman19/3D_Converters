@@ -74,12 +74,8 @@ export function fieldValue(subject, path) {
   return value;
 }
 
-function normalizeSubject(branchOccurrence, occurrence, policy, side, zoneMembership) {
-  const branch = branchOccurrence.record, record = occurrence.record;
-  const attributes = isObject(record.attributes) ? record.attributes : {};
-  const outer = childType(record), raw = rawType(record);
-  const catalogEntry = catalogEntryForTypes(outer, raw, policy);
-  const subject = {
+function subjectFields(branch, record, attributes, catalogEntry, occurrence, side, zoneMembership, outer, raw) {
+  return {
     side,
     sourceOccurrenceId: occurrence.occurrenceId,
     branchOccurrenceId: occurrence.branchOccurrenceId,
@@ -107,6 +103,14 @@ function normalizeSubject(branchOccurrence, occurrence, policy, side, zoneMember
     attributes: cloneJson(attributes),
     raw: cloneJson(record),
   };
+}
+
+function normalizeSubject(branchOccurrence, occurrence, policy, side, zoneMembership) {
+  const branch = branchOccurrence.record, record = occurrence.record;
+  const attributes = isObject(record.attributes) ? record.attributes : {};
+  const outer = childType(record), raw = rawType(record);
+  const catalogEntry = catalogEntryForTypes(outer, raw, policy);
+  const subject = subjectFields(branch, record, attributes, catalogEntry, occurrence, side, zoneMembership, outer, raw);
   subject.canonicalSubject = canonicalKey({
     family: subject.family,
     outerType: subject.outerType,

@@ -125,6 +125,15 @@ export function comparePoint(
   });
 }
 
+function blockedScalar(fieldId, reference, actual, normalizedReferenceValue, normalizedActualValue, toleranceRuleId, diagnosticCode) {
+  return comparison(fieldId, 'BLOCKED', reference, actual, 'BLOCKED', {
+    normalizedReferenceValue,
+    normalizedActualValue,
+    toleranceRuleId,
+    diagnosticCodes: [diagnosticCode],
+  });
+}
+
 export function compareScalar(
   fieldId,
   reference,
@@ -141,21 +150,13 @@ export function compareScalar(
   const normalizedReferenceValue = parseScalar(reference, unit);
   const normalizedActualValue = parseScalar(actual, unit);
   if (normalizedReferenceValue == null || normalizedActualValue == null) {
-    return comparison(fieldId, 'BLOCKED', reference, actual, 'BLOCKED', {
-      normalizedReferenceValue,
-      normalizedActualValue,
-      toleranceRuleId,
-      diagnosticCodes: [`${fieldId.toUpperCase()}_UNPARSEABLE`],
-    });
+    return blockedScalar(fieldId, reference, actual, normalizedReferenceValue, normalizedActualValue,
+      toleranceRuleId, `${fieldId.toUpperCase()}_UNPARSEABLE`);
   }
   const rule = toleranceRule(toleranceProfile, toleranceRuleId);
   if (!rule) {
-    return comparison(fieldId, 'BLOCKED', reference, actual, 'BLOCKED', {
-      normalizedReferenceValue,
-      normalizedActualValue,
-      toleranceRuleId,
-      diagnosticCodes: ['TOLERANCE_RULE_UNAVAILABLE'],
-    });
+    return blockedScalar(fieldId, reference, actual, normalizedReferenceValue, normalizedActualValue,
+      toleranceRuleId, 'TOLERANCE_RULE_UNAVAILABLE');
   }
   const result = scalarWithin(
     normalizedReferenceValue, normalizedActualValue, rule,

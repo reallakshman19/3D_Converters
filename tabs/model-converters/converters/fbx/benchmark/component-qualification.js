@@ -60,6 +60,25 @@ function reportInventory(reference, actual, resolution) {
   };
 }
 
+async function qualificationExecutionIdentity({
+  executionIdentity, policy, toleranceProfile, reference, actual, referenceZoneIndex, actualZoneIndex,
+}) {
+  return {
+    ...cloneJson(executionIdentity),
+    componentIdentityPolicyIdentity: { policyId: policy.policyId, contentSha256: policy.policyContentSha256 },
+    toleranceProfileIdentity: toleranceProfile?.profileId
+      ? { profileId: toleranceProfile.profileId, contentSha256: toleranceProfile.contentSha256 ?? null } : null,
+    benchmarkLoads: {
+      reference: benchmarkLoadIdentity(reference, 'REFERENCE'),
+      actual: benchmarkLoadIdentity(actual, 'ACTUAL'),
+    },
+    zoneMembershipIndexes: {
+      reference: await zoneIndexIdentity(referenceZoneIndex),
+      actual: await zoneIndexIdentity(actualZoneIndex),
+    },
+  };
+}
+
 export async function qualifyComponents({
   reference, actual, referenceZoneIndex, actualZoneIndex,
   identityPolicy: policyValue, toleranceProfile, normalizers = {}, comparators = {},
@@ -77,20 +96,9 @@ export async function qualifyComponents({
   const reportPayload = {
     schema: REPORT_SCHEMA,
     benchmarkIdentity: cloneJson(benchmarkIdentity),
-    executionIdentity: {
-      ...cloneJson(executionIdentity),
-      componentIdentityPolicyIdentity: { policyId: policy.policyId, contentSha256: policy.policyContentSha256 },
-      toleranceProfileIdentity: toleranceProfile?.profileId
-        ? { profileId: toleranceProfile.profileId, contentSha256: toleranceProfile.contentSha256 ?? null } : null,
-      benchmarkLoads: {
-        reference: benchmarkLoadIdentity(reference, 'REFERENCE'),
-        actual: benchmarkLoadIdentity(actual, 'ACTUAL'),
-      },
-      zoneMembershipIndexes: {
-        reference: await zoneIndexIdentity(referenceZoneIndex),
-        actual: await zoneIndexIdentity(actualZoneIndex),
-      },
-    },
+    executionIdentity: await qualificationExecutionIdentity({
+      executionIdentity, policy, toleranceProfile, reference, actual, referenceZoneIndex, actualZoneIndex,
+    }),
     inventory: reportInventory(referenceSubjects, actualSubjects, resolution),
     ledger,
     collisionGroups: resolution.collisionGroups,
