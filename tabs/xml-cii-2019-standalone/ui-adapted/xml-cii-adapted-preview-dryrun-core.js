@@ -300,7 +300,7 @@ export function _deriveBoreFromBranchName(branchName, config) {
   return _nominalDnFromNps(_numericFromSizeToken(raw), config);
 }
 
-export function _ratingKeys(row, derivedKey = '') { return _uniqueKeys([derivedKey, row?.lineKey, row?.branchName, row?.pipingClassDerived, row?.pipingClass]); }
+export function _ratingKeys(row, derivedKey = '') { return _uniqueKeys([derivedKey, _classKey(row), row?.pipingClassDerived, row?.pipingClass, row?.lineKey, row?.branchName]); }
 export function _ratingOverride(config, keys) { return _bucketText(config, 'rating', keys) || _processDataText(config, keys, 'rating'); }
 export function _classKey(row) { const pc = _toText(row?.pipingClass || row?.pipingClassDerived).toUpperCase().replace(/\s+/g, ''); return pc ? `PC:${pc}` : ''; }
 export function _classSizeKey(row) { const cls = _classKey(row), bore = Number(row?.sizeMm ?? _toText(row?.size).replace(/[^0-9.+-]/g, '')); return cls && Number.isFinite(bore) && bore > 0 ? `${cls}|DN:${Math.round(bore)}` : cls; }

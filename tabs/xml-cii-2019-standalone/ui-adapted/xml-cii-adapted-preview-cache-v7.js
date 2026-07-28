@@ -1,10 +1,11 @@
 export const XML_CII_PREVIEW_CACHE_SCHEMA = 'xml-cii-preview-cache/v7';
 export const XML_CII_PREVIEW_CACHE_KEY = 'xml-cii-pv-cache-v7';
-export const XML_CII_PREVIEW_LEGACY_CACHE_KEY = 'xml-cii-pv-cache-v6';
+export const XML_CII_PREVIEW_LEGACY_CACHE_KEY = 'xml-cii-pv-cache-v8-dtxr';
 
 const DEFAULT_MAX_BYTES = 2500000;
 const LEGACY_KEYS = Object.freeze([
   XML_CII_PREVIEW_LEGACY_CACHE_KEY,
+  'xml-cii-pv-cache-v6',
   'xml-cii-pv-cache-v2',
 ]);
 

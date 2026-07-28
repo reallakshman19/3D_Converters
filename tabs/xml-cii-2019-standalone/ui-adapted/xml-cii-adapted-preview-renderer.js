@@ -1,4 +1,6 @@
 import { XmlCiiAdaptedEditablePreviewTable } from './xml-cii-adapted-editable-preview-table.js';
+import { renderBranchLineMapPanel } from './xml-cii-adapted-branch-line-map-panel.js';
+import { _xmlCiiLineListKeys } from './xml-cii-adapted-preview-diagnostics-audit.js';
 import { applyAdaptedPreviewOverrideFillDown, applyAdaptedPreviewProcessFillDown, markAdaptedPreviewOverrideManual, markAdaptedPreviewProcessManual, applyAdaptedPreviewSmartFillByClass, applyAdaptedPreviewSmartProcessFillByClass } from './xml-cii-adapted-preview-filldown.js';
 import { replaceJsonObject, runAtomicPreviewClassTransaction } from './xml-cii-adapted-preview-class-transaction.js';
 import {
@@ -13,8 +15,7 @@ import {
   xmlCiiDryRunPreview
 } from './xml-cii-adapted-preview-dryrun.js';
 
-// v6: branch rows now carry lineFrom/lineTo + similar-linekey fields.
-const PV_CACHE_KEY = 'xml-cii-pv-cache-v6';
+const PV_CACHE_KEY = 'xml-cii-pv-cache-v8-dtxr';
 const _PV_CACHE_MAX_BYTES = 2500000;
 
 function pvCacheFingerprint(xmlText, cfg) {
@@ -291,12 +292,18 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     nodesByBranch,
     matchBadgeHtmlRenderer: (method, confidence, needsReview, value, derived) => {
       const valEsc = _esc(value || '—'), derivedEsc = _esc(derived || ''), pctText = _percentText(confidence);
-      if (method === 'override') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact" title="Manual override${pctText ? ` · ${pctText}` : ''}">✓ override${pctText ? ` ${pctText}` : ''}</span>`;
-      if (method === 'exact') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact">✓ exact ${pctText || '100%'}</span>`;
-      if (['startsWith', 'leading-numeric-base', 'prefix-base', 'leading-numeric-exact'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge amber" title="Approximate match ${pctText || ''} from ${derivedEsc}">approx${pctText ? ` ${pctText}` : ''}</span>`;
-      if (['fuzzy', 'fuzzy-ratio', 'numeric-near'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge ${needsReview ? 'orange' : 'amber'}" title="Approximate match ${pctText || ''} to ${derivedEsc}">fuzzy${pctText ? ` ${pctText}` : ''}</span>`;
-      if (method === 'ambiguous' || method === 'ambiguous-approximate') return `<span class="mc-preview-editable-val">—</span> <span class="mc-preview-badge bad" title="Ambiguous match for ${derivedEsc}">ambiguous${pctText ? ` ${pctText}` : ''}</span>`;
-      if (needsReview) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge bad" title="Review ${derivedEsc}">review${pctText ? ` ${pctText}` : ''}</span>`;
+      if (method === 'override') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact" title="Manual override applied by user in Preview table${pctText ? ` (${pctText})` : ''}.">✓ override${pctText ? ` ${pctText}` : ''}</span>`;
+      if (method === 'exact') return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge exact" title="Exact match (100% confidence) verified in master data for: ${derivedEsc || valEsc}.">✓ exact ${pctText || '100%'}</span>`;
+      if (['startsWith', 'leading-numeric-base', 'prefix-base', 'leading-numeric-exact'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge amber" title="Approximate prefix/numeric match (${method}): resolved '${valEsc}' from raw value '${derivedEsc}'${pctText ? ` (${pctText} confidence)` : ''}.">approx${pctText ? ` ${pctText}` : ''}</span>`;
+      if (['fuzzy', 'fuzzy-ratio', 'numeric-near'].includes(method)) return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge ${needsReview ? 'orange' : 'amber'}" title="Fuzzy similarity match (${method}): proposed '${valEsc}' for raw input '${derivedEsc}'${pctText ? ` (${pctText} confidence)` : ''}.">fuzzy${pctText ? ` ${pctText}` : ''}</span>`;
+      if (method === 'ambiguous' || method === 'ambiguous-approximate') return `<span class="mc-preview-editable-val">—</span> <span class="mc-preview-badge bad" title="Ambiguous candidate match for '${derivedEsc}'. Multiple conflicting master rows match with similar scores; manual override required.">ambiguous${pctText ? ` ${pctText}` : ''}</span>`;
+      if (needsReview) {
+        const noCode = !value || value === '—';
+        const badgeTitle = noCode
+          ? `No material code found in the material map for: ${derived || 'unknown key'}. Click to override manually.`
+          : `Review: material code "${value}" resolved from "${derived || ''}" but confidence is low.`;
+        return `<span class="mc-preview-editable-val">${valEsc}</span> <span class="mc-preview-badge bad" title="${_esc(badgeTitle)}">review${pctText ? ` ${pctText}` : ''}</span>`;
+      }
       return `<span class="mc-preview-editable-val">${valEsc}</span>`;
     },
     processInputHtmlRenderer: (fieldKey, lineKey, val, src, ri, pcKey = '') => {
@@ -396,7 +403,23 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     }
   });
 
-  host.innerHTML = `${_manualPreviewActionHtml('Rebuild Preview', true, config)}${table.renderHTML()}`;
+  host.innerHTML = `${_manualPreviewActionHtml('Rebuild Preview', true, config)}<div class="bulk-map-container-host"></div>${table.renderHTML()}`;
+  const mapContainer = host.querySelector('.bulk-map-container-host');
+  if (mapContainer) {
+    const lineListKeys = _xmlCiiLineListKeys(config);
+    renderBranchLineMapPanel(mapContainer, {
+      branchRows,
+      lineListKeys,
+      config,
+      onSaveConfig: (cfg) => {
+        if (typeof onSaveConfig === 'function') onSaveConfig(cfg);
+        _markPreviewSaved(host, 'Branch mappings saved. Click Rebuild Preview to apply.');
+      },
+      onRebuildPreview: () => {
+        void xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, { ...options, forceBuild: true });
+      }
+    });
+  }
   _bindManualPreviewButton(host, rootEl, xmlText, config, options, 'Rebuilding preview...');
   _bindParsedCustomSourceToggle(host, config, options);
 

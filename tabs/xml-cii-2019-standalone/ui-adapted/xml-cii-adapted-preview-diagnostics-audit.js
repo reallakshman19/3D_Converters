@@ -81,7 +81,7 @@ function _xmlCiiKnownClasses(config) {
     .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
 }
 
-function _xmlCiiLineListKeys(config) {
+export function _xmlCiiLineListKeys(config) {
   const rows = Array.isArray(config.linelist?.masterRows) ? config.linelist.masterRows : [];
   return [...new Set(rows.map((r) => _rowText(r, ['lineNoKey', 'lineNo', 'lineKey', 'LineNo', 'Line No', 'Line Number', 'PipelineReference', 'lineSeqNo'])).filter(Boolean))]
     .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
@@ -98,7 +98,7 @@ function _esc(value) {
 
 function invalidatePreviewCaches() {
   if (typeof localStorage === 'undefined') return;
-  for (const key of ['xml-cii-pv-cache-v6', 'xml-cii-pv-cache-v2', 'xml-cii-wm-cache-v1']) {
+  for (const key of ['xml-cii-pv-cache-v8-dtxr', 'xml-cii-pv-cache-v7', 'xml-cii-pv-cache-v6', 'xml-cii-pv-cache-v2', 'xml-cii-wm-cache-v1']) {
     try { localStorage.removeItem(key); } catch {}
   }
 }
@@ -106,6 +106,16 @@ function invalidatePreviewCaches() {
 function _datalistHtml(id, values) {
   if (!values.length) return '';
   return `<datalist id="${_esc(id)}">${values.map((v) => `<option value="${_esc(v)}"></option>`).join('')}</datalist>`;
+}
+
+function _keyTypeLabel(editType, derivedKey) {
+  if (editType !== 'materialCode' && editType !== 'rating') return '';
+  const key = String(derivedKey || '');
+  const fieldName = editType === 'rating' ? 'Rating' : 'Material code';
+  if (key.startsWith('PC:')) return `<div style="font-size:11px;color:#6ee7b7;margin-top:2px;">✓ Piping class key — ${fieldName} override applies to all lines with this class.</div>`;
+  if (key.startsWith('/') || key.startsWith('=') || key.length > 35 || key.startsWith('P4') || key.startsWith('L'))
+    return `<div style="font-size:11px;color:#fbbf24;margin-top:2px;">⚠ Using line/branch key fallback (${key}). ${fieldName} override will apply only to this line number.</div>`;
+  return `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">Override stored under this key in config.overrides.${editType}.</div>`;
 }
 
 function _candidateControlHtml(editType, config) {
@@ -145,8 +155,8 @@ export function _xmlCiiOpenPreviewOverridePopup({ editType, derivedKey, currentV
     branchLineKey: 'Branch name',
     pipingClass: 'Requested / derived class',
     material: 'Line/material key',
-    rating: 'Effective rating key',
-    materialCode: 'Material code override key',
+    rating: 'Effective rating key (Piping Class)',
+    materialCode: 'Override lookup key',
     wallThickness: 'Wall thickness class+DN key',
     corrosion: 'Corrosion piping-class key'
   }[editType] || 'Key';
@@ -154,10 +164,10 @@ export function _xmlCiiOpenPreviewOverridePopup({ editType, derivedKey, currentV
   const helperText = {
     branchLineKey: 'Select a loaded Line List key for this branch. The mapping is stored in linelist.branchLineKeyMap and is used by preview, weight match, and conversion.',
     pipingClass: 'Suggestions come from the full loaded Piping Class master. You may still type any class manually.',
-    materialCode: 'This writes a material-code override, not a material-name override.',
+    materialCode: 'Writes a material-code override (e.g. "A106B"), not a material-name override. The key above is derived from the resolved piping class; if none was resolved it falls back to the line/branch key.',
     corrosion: 'Corrosion remains resolved from the effective Piping Class key unless you manually override this cell.',
     wallThickness: 'Wall thickness is keyed by effective Piping Class + DN so class override changes can drive the lookup.',
-    rating: 'Manual rating is propagated to processData and weight matching.'
+    rating: 'Keyed primarily by Piping Class so rating applies across all matching lines. Overrides are synced to processData and weight matching.'
   }[editType] || 'Overrides take priority over regex and fuzzy matching in both preview and real conversion.';
 
   const overlay = document.createElement('div');
@@ -165,7 +175,7 @@ export function _xmlCiiOpenPreviewOverridePopup({ editType, derivedKey, currentV
   overlay.innerHTML = `
     <div style="width:min(520px,92vw);background:#0f1724;border:1px solid #2c3a4f;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px;">
       <div style="color:#9cc5ff;font-weight:700;font-size:15px;">${_esc(title)}</div>
-      <div style="font-size:12px;color:#9aa8ba;">${_esc(label)}: <strong style="color:#d7e6ff;word-break:break-all;">${_esc(derivedKey)}</strong></div>
+      <div style="font-size:12px;color:#9aa8ba;">${_esc(label)}: <strong style="color:#d7e6ff;word-break:break-all;">${_esc(derivedKey)}</strong>${_keyTypeLabel(editType, derivedKey)}</div>
       ${_candidateControlHtml(editType, config)}
       <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9cc5ff;">
         Override value:
