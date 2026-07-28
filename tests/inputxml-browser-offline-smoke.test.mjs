@@ -35,7 +35,7 @@ exit_code
 function localPath(urlPath) {
   const relativePath = decodeURIComponent(urlPath.split('?')[0]).replace(/^\/+/, '');
   const path = normalize(join(ROOT, relativePath));
-  if (!path.startsWith(`${ROOT}\\`) && path !== ROOT) throw new Error('Static request escapes repository root.');
+  if (!path.startsWith(`${ROOT}${sep}`) && path !== ROOT) throw new Error('Static request escapes repository root.');
   return path;
 }
 
