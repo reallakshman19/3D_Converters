@@ -1,50 +1,43 @@
-// Add preview-zone selection plus explicit source-graph and authorized StagedJSON downloads.
-// Downloads do not change converter output, mapping authority, or audit evidence.
 import { ModelConverters_3DModelConv_PreviewRenderer } from
   '../../converters/view/model-conv-preview-renderer.js?v=20260725-fbx-source-graph-preview-1';
 import { buildFbxSourceGraphPreviewProject } from './fbx-source-graph-preview.js';
 import { buildFbxSourceGraphZoneExport } from './fbx-source-graph-zone-export.js';
 import { buildFbxStagedJsonZoneExport } from './fbx-staged-json-zone-export.js';
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const OUTPUT_EVENT = 'model-converters:fbx-run-outputs';
+const AUTO_PIPE_OUTPUT_EVENT = 'model-converters:fbx-auto-pipe-outputs';
 const PATCH_MARKER = Symbol.for('model-converters.fbx-preview-zone-selector.v2');
 const RUN_PATCH_MARKER = Symbol.for('model-converters.fbx-preview-zone-run.v1');
 const CONTROLLERS = new WeakMap();
 const RUN_OUTPUTS = new WeakMap();
-
+const AUTO_PIPE_OUTPUTS = new WeakMap();
 function pointSummary(project) {
   const displayed = Number(project?.displayedPointCount || project?.points?.length || 0);
   const source = Number(project?.sourcePointCount || displayed);
   return displayed === source ? `${displayed}` : `${displayed} of ${source}`;
 }
-
 export function buildFbxPreviewZoneMetaText(project) {
   const source = project?.previewSourceName || 'FBX source graph';
   const zone = project?.selectedZoneLabel || 'All zones';
   const zoneCount = Array.isArray(project?.previewZones) ? project.previewZones.length : 0;
   return `Preview source: ${source} | adapter: FbxSourceGraphPointPreview | zone: ${zone} | zones: ${zoneCount} | points: ${pointSummary(project)} | segments: 0 | nodes: 0 | supports: 0 | annotations: 0`;
 }
-
 function cleanFilePart(value, fallback) {
   const cleaned = String(value ?? '').trim().replace(/\.[^.]+$/, '')
     .replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '');
   return cleaned || fallback;
 }
-
 export function buildFbxPreviewZoneDownloadName(sourceName, zoneLabel) {
   const source = cleanFilePart(sourceName, 'fbx-source');
   const zone = cleanFilePart(zoneLabel, 'selected-zone');
   return `${source}.${zone}.FbxSourceGraph.v2.json`;
 }
-
 export function buildFbxStagedZoneDownloadName(sourceName, zoneLabel) {
   const source = cleanFilePart(sourceName, 'fbx-source');
   const zone = cleanFilePart(zoneLabel, 'selected-zone');
   return `${source}.${zone}.staged.json`;
 }
-
 function dispatchPreviewEvent(renderer, project) {
   const host = renderer?.container;
   if (!host?.dispatchEvent || typeof CustomEvent !== 'function') return;
@@ -53,7 +46,6 @@ function dispatchPreviewEvent(renderer, project) {
     detail: { project, renderer },
   }));
 }
-
 function patchPreviewRenderer() {
   const prototype = ModelConverters_3DModelConv_PreviewRenderer.prototype;
   if (prototype[PATCH_MARKER]) return;
@@ -65,7 +57,6 @@ function patchPreviewRenderer() {
   };
   Object.defineProperty(prototype, PATCH_MARKER, { value: true });
 }
-
 function publishFbxRun(result) {
   if (typeof window === 'undefined' || typeof CustomEvent !== 'function') return;
   window.dispatchEvent(new CustomEvent(OUTPUT_EVENT, {
@@ -75,7 +66,6 @@ function publishFbxRun(result) {
     },
   }));
 }
-
 function patchFbxConverterRunner() {
   const converter = getConverterById('fbx_to_stagedjson');
   if (!converter || converter[RUN_PATCH_MARKER]) return;
@@ -87,7 +77,6 @@ function patchFbxConverterRunner() {
   };
   Object.defineProperty(converter, RUN_PATCH_MARKER, { value: true });
 }
-
 function toolbarHtml() {
   return `
     <div data-fbx-preview-zone-wrap style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;color:#9cc5ff;font-size:12px;">
@@ -101,7 +90,6 @@ function toolbarHtml() {
       <span data-fbx-preview-zone-status style="color:#9aa8ba;"></span>
     </div>`;
 }
-
 function ensureController(container) {
   const cached = CONTROLLERS.get(container);
   if (cached && container.contains(cached.host)) return cached;
@@ -125,7 +113,6 @@ function ensureController(container) {
   CONTROLLERS.set(container, controller);
   return controller;
 }
-
 function renderSelectedZone(controller) {
   const state = controller.state;
   if (!state?.graph || !state.renderer) return;
@@ -137,7 +124,6 @@ function renderSelectedZone(controller) {
   );
   state.renderer._3DModelConv_renderProject(project);
 }
-
 function triggerJsonDownload(payload, fileName) {
   const text = `${JSON.stringify(payload, null, 2)}\n`;
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }));
@@ -149,17 +135,14 @@ function triggerJsonDownload(payload, fileName) {
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
-
 function selectedZone(controller) {
   const zoneId = controller.select.value;
   const zone = controller.state?.project?.previewZones?.find((item) => item.zoneId === zoneId);
   return { zoneId, zone };
 }
-
 function reportDownloadError(controller, label, error) {
   if (controller.meta) controller.meta.textContent = `${label} failed: ${error?.message || error}`;
 }
-
 function downloadSelectedSource(controller) {
   const state = controller.state;
   const { zoneId, zone } = selectedZone(controller);
@@ -171,7 +154,6 @@ function downloadSelectedSource(controller) {
     reportDownloadError(controller, 'Zone source-graph download', error);
   }
 }
-
 function downloadSelectedStaged(controller) {
   const state = controller.state;
   const { zoneId, zone } = selectedZone(controller);
@@ -187,20 +169,17 @@ function downloadSelectedStaged(controller) {
     reportDownloadError(controller, 'Zone StagedJSON download', error);
   }
 }
-
 function bindControls(controller) {
   controller.select.addEventListener('change', () => renderSelectedZone(controller));
   controller.sourceDownload.addEventListener('click', () => downloadSelectedSource(controller));
   controller.stagedDownload.addEventListener('click', () => downloadSelectedStaged(controller));
 }
-
 function optionElement(value, label) {
   const option = document.createElement('option');
   option.value = value;
   option.textContent = label;
   return option;
 }
-
 function setOptions(controller, project) {
   const zones = Array.isArray(project.previewZones) ? project.previewZones : [];
   const signature = zones.map((item) => `${item.zoneId}:${item.sourcePointCount}`).join('|');
@@ -213,7 +192,6 @@ function setOptions(controller, project) {
   }
   return signature;
 }
-
 export function extractFbxStagedRun(detail) {
   const outputs = Array.isArray(detail?.outputs) ? detail.outputs : [];
   if (detail?.conversionStatus !== 'STAGEDJSON_PASS') return null;
@@ -226,17 +204,31 @@ export function extractFbxStagedRun(detail) {
     return null;
   }
 }
-
+export function extractFbxAutoPipeRun(detail) {
+  const run = extractFbxStagedRun(detail), zoneId = String(detail?.zoneId || '');
+  return run && zoneId ? { ...run, zoneId, authority: 'internal-auto-pipe' } : null;
+}
+function activeStagedRun(container, project) {
+  const auto = AUTO_PIPE_OUTPUTS.get(container);
+  return auto?.zoneId === project?.selectedZoneId ? auto : RUN_OUTPUTS.get(container) || null;
+}
 function updateAvailability(controller) {
   const selected = Boolean(controller.state?.project?.selectedZoneId);
   const staged = Boolean(controller.state?.stagedRun);
   controller.sourceDownload.disabled = !selected;
   controller.stagedDownload.disabled = !selected || !staged;
   controller.status.textContent = staged
-    ? 'Authorized StagedJSON is available.'
-    : 'Source graph only; run FBX with a valid mapping to enable StagedJSON.';
+    ? controller.state.stagedRun.authority === 'internal-auto-pipe'
+      ? 'Authorized PIPE-only internal StagedJSON is available.'
+      : 'Authorized StagedJSON is available.'
+    : 'Source graph only; valid external mapping or PIPE inference is required.';
 }
-
+function refreshStagedState(container) {
+  const controller = CONTROLLERS.get(container);
+  if (!controller?.state) return;
+  controller.state.stagedRun = activeStagedRun(container, controller.state.project);
+  updateAvailability(controller);
+}
 function hideController(controller) {
   controller.state = null;
   controller.wrap.style.display = 'none';
@@ -246,7 +238,6 @@ function hideController(controller) {
   controller.count.textContent = '';
   controller.status.textContent = '';
 }
-
 function updateController(container, controller, project, renderer) {
   if (project?.id !== 'fbx-source-graph-preview' || !project.previewSourceGraph) {
     hideController(controller);
@@ -261,7 +252,7 @@ function updateController(container, controller, project, renderer) {
     renderer,
     signature,
     project,
-    stagedRun: RUN_OUTPUTS.get(container) || null,
+    stagedRun: activeStagedRun(container, project),
   };
   controller.wrap.style.display = zones.length ? 'flex' : 'none';
   controller.select.value = project.selectedZoneId || '';
@@ -273,7 +264,6 @@ function updateController(container, controller, project, renderer) {
     }
   });
 }
-
 export function installFbxPreviewZoneSelector(container) {
   if (!container || container.dataset.fbxPreviewZoneSelector === 'true') return;
   patchPreviewRenderer();
@@ -281,6 +271,12 @@ export function installFbxPreviewZoneSelector(container) {
   container.dataset.fbxPreviewZoneSelector = 'true';
   window.addEventListener(OUTPUT_EVENT, (event) => {
     RUN_OUTPUTS.set(container, extractFbxStagedRun(event.detail));
+    refreshStagedState(container);
+  });
+  window.addEventListener(AUTO_PIPE_OUTPUT_EVENT, (event) => {
+    if (event.detail?.container !== container) return;
+    AUTO_PIPE_OUTPUTS.set(container, extractFbxAutoPipeRun(event.detail));
+    refreshStagedState(container);
   });
   container.addEventListener(PREVIEW_EVENT, (event) => {
     const controller = ensureController(container);

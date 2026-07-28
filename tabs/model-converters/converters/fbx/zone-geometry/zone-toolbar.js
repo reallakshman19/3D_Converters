@@ -5,6 +5,7 @@ import { createZoneAnalysisController } from './analysis-controller.js';
 
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const RUN_EVENT = 'model-converters:fbx-zone-geometry-run';
+const AUTO_PIPE_OUTPUT_EVENT = 'model-converters:fbx-auto-pipe-outputs';
 const PATCH_MARKER = Symbol.for('model-converters.fbx-zone-geometry-run.v1');
 const CONTROLLERS = new WeakMap();
 const RUN_INPUTS = new WeakMap();
@@ -23,6 +24,13 @@ function primaryInput(context) {
 function dispatchRun(detail) {
   if (typeof window === 'undefined' || typeof CustomEvent !== 'function') return;
   window.dispatchEvent(new CustomEvent(RUN_EVENT, { detail }));
+}
+
+function dispatchAutoPipe(controller, detail = {}) {
+  if (typeof window === 'undefined' || typeof CustomEvent !== 'function') return;
+  window.dispatchEvent(new CustomEvent(AUTO_PIPE_OUTPUT_EVENT, {
+    detail: { container: controller.container, ...detail },
+  }));
 }
 
 function patchFbxRunner() {
@@ -51,8 +59,9 @@ function controlsHtml() {
     <button type="button" data-fbx-zone-geometry-analyse class="model-converters-download-btn" disabled>Analyse zone geometry</button>
     <button type="button" data-fbx-zone-geometry-download class="model-converters-download-btn" disabled>Download zone geometry evidence</button>
     <button type="button" data-fbx-derived-port-download class="model-converters-download-btn" disabled>Download derived port evidence</button>
+    <button type="button" data-fbx-internal-pipe-download class="model-converters-download-btn" disabled>Download PIPE inference evidence</button>
     <span data-fbx-zone-geometry-status style="color:#9aa8ba;"></span>
-    <span data-fbx-derived-port-disclaimer style="color:#d4b36a;">Derived port evidence does not authorize engineering StagedJSON; FBX-AUTO-002 is not implemented.</span>`;
+    <span data-fbx-derived-port-disclaimer style="color:#d4b36a;">PIPE-only StagedJSON requires complete deterministic classification and connectivity.</span>`;
 }
 
 function cleanFilePart(value, fallback) {
@@ -69,6 +78,16 @@ export function buildFbxZoneGeometryDownloadName(sourceName, zoneLabel) {
 export function buildFbxDerivedPortDownloadName(sourceName, zoneLabel) {
   return `${cleanFilePart(sourceName, 'fbx-source')}.${cleanFilePart(zoneLabel,
     'selected-zone')}.FbxDerivedPortEvidence.v1.json`;
+}
+
+export function buildFbxInternalPipeDownloadName(sourceName, zoneLabel) {
+  return `${cleanFilePart(sourceName, 'fbx-source')}.${cleanFilePart(zoneLabel,
+    'selected-zone')}.FbxInternalPipeMapping.v1.json`;
+}
+
+function stagedOutputName(sourceName, zoneLabel) {
+  return `${cleanFilePart(sourceName, 'fbx-source')}.${cleanFilePart(zoneLabel,
+    'selected-zone')}.auto-pipe.staged.json`;
 }
 
 function triggerTextDownload(text, fileName) {
@@ -91,21 +110,29 @@ function updateAvailability(controller) {
   controller.analyse.disabled = !selected || !ready || state.phase === 'running';
   controller.zoneDownload.disabled = !complete;
   controller.portDownload.disabled = !complete;
+  controller.pipeDownload.disabled = !complete || !state.internalPipeJson;
 }
 
 function renderAnalysisState(controller, state) {
   controller.status.textContent = state.message || '';
+  controller.disclaimer.textContent = state.autoPipeStatus === 'STAGEDJSON_PASS'
+    ? 'PIPE-only internal authority passed; selected-zone StagedJSON is available.'
+    : state.phase === 'complete'
+      ? `Geometry evidence is available; StagedJSON remains blocked by ${state.autoPipeStatus}.`
+      : 'PIPE-only StagedJSON requires complete deterministic classification and connectivity.';
   updateAvailability(controller);
 }
 
 function createController(container, wrap) {
   wrap.insertAdjacentHTML('beforeend', controlsHtml());
   const controller = {
-    wrap, select: wrap.querySelector('[data-fbx-preview-zone]'),
+    container, wrap, select: wrap.querySelector('[data-fbx-preview-zone]'),
     analyse: wrap.querySelector('[data-fbx-zone-geometry-analyse]'),
     zoneDownload: wrap.querySelector('[data-fbx-zone-geometry-download]'),
     portDownload: wrap.querySelector('[data-fbx-derived-port-download]'),
+    pipeDownload: wrap.querySelector('[data-fbx-internal-pipe-download]'),
     status: wrap.querySelector('[data-fbx-zone-geometry-status]'),
+    disclaimer: wrap.querySelector('[data-fbx-derived-port-disclaimer]'),
     project: null, graph: null, runInput: RUN_INPUTS.get(container) || null,
     analysis: null,
   };
@@ -127,6 +154,7 @@ function ensureController(container) {
 
 function invalidate(controller, reason) {
   controller.analysis.invalidate(reason);
+  dispatchAutoPipe(controller, { conversionStatus: '', zoneId: '' });
   updateAvailability(controller);
 }
 
@@ -164,37 +192,58 @@ function handlePrimaryInputChange(container) {
   invalidateFbxZoneGeometryInput(CONTROLLERS.get(container));
 }
 
+function publishAnalysisOutput(controller, selection, result) {
+  if (result?.autoPipe?.status !== 'STAGEDJSON_PASS') {
+    dispatchAutoPipe(controller, { conversionStatus: '', zoneId: selection.zoneId });
+    return;
+  }
+  dispatchAutoPipe(controller, {
+    conversionStatus: 'STAGEDJSON_PASS',
+    zoneId: selection.zoneId,
+    outputs: [{ name: stagedOutputName(controller.runInput?.sourceName, selection.zoneLabel),
+      text: result.autoPipe.stagedJsonText }],
+  });
+}
+
 async function runAnalysis(controller) {
   const selection = selectedZone(controller);
   if (!selection.zoneId || !controller.graph || !controller.runInput?.sourceBytes) return;
+  dispatchAutoPipe(controller, { conversionStatus: '', zoneId: selection.zoneId });
   try {
-    await controller.analysis.run({ bytes: controller.runInput.sourceBytes,
+    const result = await controller.analysis.run({ bytes: controller.runInput.sourceBytes,
       sourceGraph: controller.graph, zoneId: selection.zoneId });
+    if (!result?.stale) publishAnalysisOutput(controller, selection, result);
   } catch { /* Controller publishes the closed terminal state. */ }
 }
 
 function downloadArtifact(controller, kind) {
   const state = controller.analysis.snapshot(), selection = selectedZone(controller);
-  const text = kind === 'zone' ? state.zoneGeometryJson : state.derivedPortJson;
+  const text = kind === 'zone' ? state.zoneGeometryJson
+    : kind === 'port' ? state.derivedPortJson : state.internalPipeJson;
   if (!text) return;
   const name = kind === 'zone'
     ? buildFbxZoneGeometryDownloadName(controller.runInput?.sourceName, selection.zoneLabel)
-    : buildFbxDerivedPortDownloadName(controller.runInput?.sourceName, selection.zoneLabel);
+    : kind === 'port'
+      ? buildFbxDerivedPortDownloadName(controller.runInput?.sourceName, selection.zoneLabel)
+      : buildFbxInternalPipeDownloadName(controller.runInput?.sourceName, selection.zoneLabel);
   triggerTextDownload(text, name);
 }
 
 function bindControls(controller) {
-  controller.select?.addEventListener('change', () => invalidate(controller, 'Selected zone changed; prior analysis was cleared.'));
+  controller.select?.addEventListener('change', () => invalidate(controller,
+    'Selected zone changed; prior analysis was cleared.'));
   controller.analyse.addEventListener('click', () => { void runAnalysis(controller); });
   controller.zoneDownload.addEventListener('click', () => downloadArtifact(controller, 'zone'));
   controller.portDownload.addEventListener('click', () => downloadArtifact(controller, 'port'));
+  controller.pipeDownload.addEventListener('click', () => downloadArtifact(controller, 'pipe'));
 }
 
 function handlePreview(container, event) {
   const project = event.detail?.project, controller = ensureController(container);
   if (!controller) return;
   if (project?.id !== 'fbx-source-graph-preview' || !project.previewSourceGraph) {
-    controller.project = null; controller.graph = null; invalidate(controller, 'No FBX zone is active.'); return;
+    controller.project = null; controller.graph = null;
+    invalidate(controller, 'No FBX zone is active.'); return;
   }
   const priorGraph = controller.graph, priorZone = controller.project?.selectedZoneId || '';
   controller.project = project; controller.graph = project.previewSourceGraph;
@@ -209,12 +258,17 @@ function handleRun(container, event) {
   if (detail.phase === 'started') {
     const runInput = detail.sourceBytes ? { sourceName: detail.sourceName,
       sourceBytes: detail.sourceBytes.slice() } : null;
-    RUN_INPUTS.set(container, runInput); if (controller) { controller.runInput = runInput;
-      controller.project = null; controller.graph = null;
-      invalidate(controller, 'A new FBX run started; prior analysis was cleared.'); }
+    RUN_INPUTS.set(container, runInput);
+    if (controller) {
+      controller.runInput = runInput; controller.project = null; controller.graph = null;
+      invalidate(controller, 'A new FBX run started; prior analysis was cleared.');
+    }
   } else if (detail.phase === 'failed') {
-    RUN_INPUTS.delete(container); if (controller) { controller.runInput = null;
-      invalidate(controller, 'The FBX run failed; no zone evidence is available.'); }
+    RUN_INPUTS.delete(container);
+    if (controller) {
+      controller.runInput = null;
+      invalidate(controller, 'The FBX run failed; no zone evidence is available.');
+    }
   }
 }
 
