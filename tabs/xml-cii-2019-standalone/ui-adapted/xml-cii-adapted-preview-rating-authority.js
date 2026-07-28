@@ -82,12 +82,17 @@ export function resolvePreviewPipingClassRating(row, pipingClassIndex, config) {
   return classRowRating(match?.row);
 }
 
+function emptyWeightAuthority(nodeRow, rating) {
+  return { ...nodeRow, rating, valveHint: '', weightMatch: null, weightCandidates: [], rejectedWeightCandidates: [] };
+}
+
 function rerankNodeRows(nodeRows, branchRows, config) {
   const byBranch = new Map(branchRows.map((row) => [row.branchName, row]));
   return (nodeRows || []).map((nodeRow) => {
     const branch = byBranch.get(nodeRow.branchName);
-    const rating = _toText(branch?.rating || nodeRow.rating).trim();
-    if (!rating || !Number.isFinite(Number(nodeRow.boreMm)) || !Number.isFinite(Number(nodeRow.lengthMm))) return { ...nodeRow, rating };
+    const rating = _toText(branch?.rating || '').trim();
+    if (!rating) return emptyWeightAuthority(nodeRow, '');
+    if (!Number.isFinite(Number(nodeRow.boreMm)) || !Number.isFinite(Number(nodeRow.lengthMm))) return emptyWeightAuthority(nodeRow, rating);
     const ranking = rankXmlCiiWeightCandidates({
       boreMm: nodeRow.boreMm,
       rating,
