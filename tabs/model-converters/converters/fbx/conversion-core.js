@@ -1,5 +1,5 @@
 // Build deterministic FBX conversion artifacts and execute validated mapping manifests.
-// Inputs are accepted graphs/mappings; outputs are result records with no implicit conversion fallback.
+// Inputs are accepted graphs/mappings; outputs preserve blocked states without hidden fallback.
 import { canonicalJson } from './canonical-json.js';
 import { validateConnectivity, validateConnectivityV2 } from './connectivity.js';
 import { validateMappingManifest } from './mapping-validator.js';
@@ -41,7 +41,8 @@ export function blockedResult(stem, graph, status, diagnostics, ledger = null) {
     report(status, diagnostics, graphCounts(graph)),
   ));
   return {
-    ok: true,
+    ok: false,
+    blocked: true,
     conversionStatus: status,
     outputs,
     logs: { stdout: [], stderr: diagnostics },
@@ -96,6 +97,7 @@ export function successResult(stem, graph, ledger, staged, counts) {
   ];
   return {
     ok: true,
+    blocked: false,
     conversionStatus: 'STAGEDJSON_PASS',
     outputs,
     logs: {
