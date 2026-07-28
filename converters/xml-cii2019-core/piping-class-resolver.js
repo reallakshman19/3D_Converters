@@ -156,7 +156,7 @@ export function scorePipingClassCandidate(requestedClass, candidateClass, config
     if (!requestedDigits || !candidateDigits || depth === 0) return result(-Infinity, 0, 'family-mismatch', ['numeric-family-mismatch']);
     const lengthPenalty = Math.abs(requestedDigits.length - candidateDigits.length) * 3;
     const score = cfg.numericFamilyBaseScore + Math.min(5, depth) * cfg.numericFamilyPrefixWeight - lengthPenalty;
-    return result(score, Math.min(0.95, score / cfg.classExactScore), `numeric-family-${depth}`, [`numeric-family-prefix:${requestedDigits.slice(0, depth)}`]);
+    return result(score, Math.min(0.95, score / cfg.classExactScore), 'prefix-base', [`numeric-family-prefix:${requestedDigits.slice(0, depth)}`]);
   }
   const ratio = sequenceRatio(requested, candidate);
   const score = Math.round(ratio * cfg.fuzzyRatioWeight);
