@@ -49,6 +49,7 @@ const tests = [
   'test-mesh-topology.mjs',
   'test-geometry-bundle.mjs',
   'test-geometry-bundle-failures.mjs',
+  'test-selected-zone-package-core.mjs',
   'test-vertex-attribute-bundle.mjs',
   'test-vertex-attribute-bundle-failures.mjs',
   'test-vertex-attribute-integration.mjs',
