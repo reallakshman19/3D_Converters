@@ -1,4 +1,5 @@
 import { decodeTextUtf8, baseNameWithoutExtension } from '../core/output-utils.js';
+import { normalizeStagedJson } from '../../../contracts/stagedjson-contract.js';
 import {
   _looksLikeStagedHierarchy,
   _filterStagedHierarchyByScope,
@@ -17,10 +18,18 @@ export function _buildXmlFromStagedJsonText(stagedJsonText, inputName, options) 
   } catch (error) {
     throw new Error(`Staged JSON parse failed: ${_toText(error?.message || error)}`);
   }
-  if (!_looksLikeStagedHierarchy(parsed)) {
+
+  let normalized;
+  try {
+    normalized = normalizeStagedJson(parsed);
+  } catch (error) {
+    throw new Error(`JSON payload is not staged hierarchy format (branch -> children -> attributes): ${_toText(error?.message || error)}`);
+  }
+  const hierarchy = normalized.branches;
+  if (!_looksLikeStagedHierarchy(hierarchy)) {
     throw new Error('JSON payload is not staged hierarchy format (branch -> children -> attributes).');
   }
-  const scope = _filterStagedHierarchyByScope(parsed, options?.rvmScope);
+  const scope = _filterStagedHierarchyByScope(hierarchy, options?.rvmScope);
   const scopedHierarchy = scope.hierarchy;
   if (!scopedHierarchy.length) {
     throw new Error(`Scope filter ${JSON.stringify(scope.pattern)} did not match any staged branch/site.`);
@@ -36,6 +45,7 @@ export function _buildXmlFromStagedJsonText(stagedJsonText, inputName, options) 
     scopeStats: scope.stats,
     scopePattern: scope.pattern,
     rvmScope: scope.scope,
+    stagedEnvelope: normalized.envelope,
   };
 }
 

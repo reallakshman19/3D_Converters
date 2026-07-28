@@ -1,0 +1,55 @@
+name: StagedJSON and Pages Runtime Contract
+
+on:
+  pull_request:
+    paths:
+      - '.nojekyll'
+      - 'contracts/stagedjson-contract.js'
+      - 'tabs/model-converters/converters/stagedjson-to-xml.js'
+      - 'tabs/model-converters/converters/stagedjson-xml-helpers.js'
+      - 'converters/inputxml-runtime-manifest.json'
+      - 'converters/inputxml-release-runtime-loader.js'
+      - 'scripts/inputxml_compiler/**'
+      - 'tests/stagedjson-to-xml-envelope-contract.test.mjs'
+      - 'tests/inputxml-pages-runtime-publication.test.mjs'
+      - '.github/workflows/stagedjson-pages-runtime-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Run focused contracts
+        id: contracts
+        shell: bash
+        run: |
+          set +e
+          node tests/stagedjson-to-xml-envelope-contract.test.mjs > stagedjson-contract.log 2>&1
+          staged_status=$?
+          node tests/inputxml-pages-runtime-publication.test.mjs > pages-runtime-contract.log 2>&1
+          pages_status=$?
+          test -f .nojekyll
+          nojekyll_status=$?
+          test -f scripts/inputxml_compiler/__init__.py
+          initializer_status=$?
+          cat stagedjson-contract.log
+          cat pages-runtime-contract.log
+          if (( staged_status || pages_status || nojekyll_status || initializer_status )); then
+            exit 1
+          fi
+      - name: Upload contract diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: stagedjson-pages-runtime-contract
+          path: |
+            stagedjson-contract.log
+            pages-runtime-contract.log
+          if-no-files-found: error
