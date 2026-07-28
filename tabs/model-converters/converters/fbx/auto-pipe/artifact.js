@@ -100,14 +100,25 @@ async function linkRecords(links) {
   })));
 }
 
-function occurrenceDispositions(classifications) {
-  return classifications.map((item) => ({
-    sourceOccurrenceId: item.sourceOccurrenceId,
-    sourceModelObjectId: item.sourceModelObjectId,
-    geometryObjectId: item.geometryObjectId,
-    disposition: 'PIPE_ADMITTED',
-    status: item.status,
-  }));
+function occurrenceDispositions(zoneGeometryEvidence, classifications) {
+  const classified = new Map(classifications.map((item) => [item.sourceOccurrenceId, item]));
+  return zoneGeometryEvidence.occurrenceEvidence.map((occurrence) => {
+    const item = classified.get(occurrence.sourceOccurrenceId);
+    if (!item) return {
+      sourceOccurrenceId: occurrence.sourceOccurrenceId,
+      sourceModelObjectId: occurrence.sourceModelObjectId,
+      geometryObjectId: null,
+      disposition: 'CONTEXT_ONLY',
+      status: 'NOT_COMPONENT_EVIDENCE',
+    };
+    return {
+      sourceOccurrenceId: item.sourceOccurrenceId,
+      sourceModelObjectId: item.sourceModelObjectId,
+      geometryObjectId: item.geometryObjectId,
+      disposition: 'PIPE_ADMITTED',
+      status: item.status,
+    };
+  });
 }
 
 export async function buildInternalPipeMapping({
@@ -140,12 +151,14 @@ export async function buildInternalPipeMapping({
     classificationProfileSha256: await profileHash(classificationProfile),
     connectivityProfile: structuredClone(connectivityProfile),
     connectivityProfileSha256: await profileHash(connectivityProfile),
-    occurrenceDispositions: occurrenceDispositions(ordered),
+    occurrenceDispositions: occurrenceDispositions(zoneGeometryEvidence, ordered),
     entries,
     links,
     conservation: {
-      selectedOccurrenceCount: ordered.length,
-      dispositionCount: ordered.length,
+      selectedOccurrenceCount: zoneGeometryEvidence.conservation.selectedOccurrenceCount,
+      meshBearingOccurrenceCount: ordered.length,
+      contextOccurrenceCount: zoneGeometryEvidence.conservation.selectedOccurrenceCount - ordered.length,
+      dispositionCount: zoneGeometryEvidence.conservation.selectedOccurrenceCount,
       admittedPipeCount: entries.length,
       rejectedOccurrenceCount: 0,
       portCount: entries.length * 2,
