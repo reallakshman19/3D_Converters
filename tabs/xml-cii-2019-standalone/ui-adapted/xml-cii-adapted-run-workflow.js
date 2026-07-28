@@ -2,76 +2,74 @@ import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-wor
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { extractXmlCiiRatingFromDtxr } from '../../../converters/xml-cii2019-core/dtxr-rating-resolver.js';
 
-const esc = (val) => String(val ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const attr = (val) => esc(val).replace(/'/g, '&#39;');
+const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const attr = (value) => esc(value).replace(/'/g, '&#39;');
 
 function normalizeRatingText(value) {
   return String(value ?? '').toUpperCase().replace(/CLASS|CL|#/g, '').replace(/[^0-9A-Z]/g, '').trim();
 }
 
-function ratingFromDtxrText(value) {
-  const text = String(value ?? '').toUpperCase();
-  const hashMatch = text.match(/\b(?:CL|CLASS)?\s*(150|300|600|900|1500|2500)\s*#/i);
-  if (hashMatch) return hashMatch[1];
-  const clMatch = text.match(/\b(?:CL|CLASS)\s*(150|300|600|900|1500|2500)\b/i);
-  return clMatch ? clMatch[1] : '';
-}
-
-function ratingFromConfig(row, config) {
+export function standaloneRunReviewRatingFromConfig(row, config) {
   const keys = [row?.key, row?.lineKey, row?.branchName, row?.requestedPipingClass, row?.resolvedPipingClass, row?.nodeNumber];
-  const bucket = config?.overrides?.rating;
-  let val = '';
-  if (bucket && typeof bucket === 'object') {
+  const ratingBucket = config?.overrides?.rating;
+  if (ratingBucket && typeof ratingBucket === 'object' && !Array.isArray(ratingBucket)) {
     for (const key of keys.filter(Boolean)) {
-      if (bucket[key]) { val = String(bucket[key]).trim(); break; }
+      const value = String(ratingBucket[key] ?? '').trim();
+      if (value) return value;
     }
   }
-  if (!val && config?.overrides?.processData) {
-    const pb = config.overrides.processData;
+  const processBucket = config?.overrides?.processData;
+  if (processBucket && typeof processBucket === 'object' && !Array.isArray(processBucket)) {
     for (const key of keys.filter(Boolean)) {
-      if (pb[key]?.rating) { val = String(pb[key].rating).trim(); break; }
+      const value = String(processBucket[key]?.rating ?? '').trim();
+      if (value) return value;
     }
   }
-  return val || String(row?.rating || '').trim() || String(row?.dtxrRating || '').trim() || ratingFromDtxrText(row?.dtxr) || String(config?.rating?.defaultRating || config?.defaultRating || '').trim();
+  return String(row?.rating ?? '').trim();
 }
 
 function ratingInfo(issue) {
-  const dtxrRating = issue.dtxrRating || ratingFromDtxrText(issue.dtxr);
-  const shownRating = String(issue.rating || dtxrRating || '').trim();
+  const dtxrRating = issue.dtxrRating || extractXmlCiiRatingFromDtxr(issue.dtxr);
+  const shownRating = String(issue.rating || '').trim();
   const derivedRating = String(issue.branchRating || issue.derivedRating || '').trim();
   const conflict = Boolean(shownRating && dtxrRating && normalizeRatingText(shownRating) !== normalizeRatingText(dtxrRating));
-  const fromDtxr = Boolean(!issue.branchRating && dtxrRating && normalizeRatingText(shownRating) === normalizeRatingText(dtxrRating));
+  const missingWithDtxr = Boolean(!shownRating && dtxrRating);
   const title = conflict
     ? `DTXR rating ${dtxrRating}# differs from resolved/override rating ${shownRating}. DTXR: ${issue.dtxr || ''}`
-    : (fromDtxr ? `Rating populated from DTXR text: ${issue.dtxr || ''}` : (derivedRating ? `Resolved rating from piping class/override: ${derivedRating}` : 'Rating used for weight suggestions'));
-  const style = conflict
+    : (missingWithDtxr
+      ? `DTXR contains ${dtxrRating}#, but normal execution does not auto-populate Rating. Use “Fetch Rating as per DTXR” in Preview or enter a manual Rating.`
+      : (derivedRating ? `Resolved rating from Piping Class master, Regex, or explicit override: ${derivedRating}` : 'Rating used for weight suggestions'));
+  const style = conflict || missingWithDtxr
     ? 'width:64px;background:#3a1010;color:#ffd6d6;border:1px solid #ef4444;border-radius:4px;padding:4px;font-size:11px;'
-    : (fromDtxr ? 'width:64px;background:#062d22;color:#bbf7d0;border:1px solid #10b981;border-radius:4px;padding:4px;font-size:11px;' : 'width:64px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;font-size:11px;');
-  return { shownRating, dtxrRating, conflict, fromDtxr, title, style };
+    : 'width:64px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;font-size:11px;';
+  return { shownRating, dtxrRating, conflict, missingWithDtxr, title, style };
 }
 
 function rigidCandidateButtons(issue, index) {
   return (issue.candidates || []).map((candidate) => {
     const value = candidate.suggestedWeight ?? candidate.weight;
-    const scoreVal = Math.round((candidate.totalScore || candidate.score || 0) * 100);
+    const scoreValue = Math.round((candidate.totalScore || candidate.score || 0) * 100);
     return `<button type="button" class="mc-rigid-review-candidate${candidate.preferred ? ' best' : ''}"
       data-rigid-review-candidate="${index}" data-rigid-review-weight="${esc(value)}"
-      title="Bore ${candidate.boreMm || candidate.rowBore || '-'} | Rating ${candidate.rating || candidate.rowRating || issue.rating || '-'} | Master length ${(candidate.lengthMm || candidate.rowLength || 0).toFixed(1)} | Score ${scoreVal}%"
-      style="font-size:11px;padding:3px 6px;margin:2px;cursor:pointer;">${candidate.preferred ? '* ' : ''}${esc(value)} kg - ${scoreVal}%</button>`;
+      title="Bore ${candidate.boreMm || candidate.rowBore || '-'} | Rating ${candidate.rating || candidate.rowRating || issue.rating || '-'} | Master length ${(candidate.lengthMm || candidate.rowLength || 0).toFixed(1)} | Score ${scoreValue}%"
+      style="font-size:11px;padding:3px 6px;margin:2px;cursor:pointer;">${candidate.preferred ? '* ' : ''}${esc(value)} kg - ${scoreValue}%</button>`;
   }).join('');
 }
 
 function rigidReviewRow(issue, index) {
   const best = issue.candidates?.[0] || null;
-  const rInfo = ratingInfo(issue);
-  const ratingBadge = rInfo.conflict ? ' <span title="Rating conflict with DTXR" style="color:#fca5a5;font-weight:700;">!</span>' : (rInfo.fromDtxr ? ' <span title="Rating from DTXR" style="color:#86efac;font-weight:700;">DTXR</span>' : '');
+  const info = ratingInfo(issue);
+  const ratingBadge = info.conflict
+    ? ' <span title="Rating conflict with DTXR" style="color:#fca5a5;font-weight:700;">!</span>'
+    : (info.missingWithDtxr ? ' <span title="DTXR Rating is evidence only; use the Preview fetch button" style="color:#fbbf24;font-weight:700;">DTXR available</span>' : '');
   return `<tr>
     <td class="mc-rigid-review-branch" title="${attr(issue.branchName)}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.branchName)}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td>
-    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="text" class="mc-rigid-review-rating-input" data-rigid-review-key="${attr(issue.key)}" value="${attr(rInfo.shownRating)}" placeholder="Rating" title="${attr(rInfo.title)}" style="${rInfo.style}">${ratingBadge}</td>
+    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="text" class="mc-rigid-review-rating-input" data-rigid-review-key="${attr(issue.key)}" value="${attr(info.shownRating)}" placeholder="Rating" title="${attr(info.title)}" style="${info.style}">${ratingBadge}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
-    <td class="mc-rigid-review-dtxr" title="${attr([issue.dtxrSourcePath, rInfo.dtxrRating ? `DTXR rating ${rInfo.dtxrRating}#` : ''].filter(Boolean).join(' · '))}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
+    <td class="mc-rigid-review-dtxr" title="${attr([issue.dtxrSourcePath, info.dtxrRating ? `DTXR rating ${info.dtxrRating}# (evidence only)` : ''].filter(Boolean).join(' · '))}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-rigid-review-key="${attr(issue.key)}" value="${esc(best ? (best.suggestedWeight ?? best.weight) : '')}" placeholder="kg" style="width:72px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"></td>
     <td class="mc-rigid-review-candidates" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${rigidCandidateButtons(issue, index) || '<span style="color:#64748b;">No suggestion</span>'}</td>
@@ -84,7 +82,7 @@ function rigidReviewMarkup(rows) {
       <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Rigid Weights Need Review</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} rigid node(s) have zero weight and length greater than 6 mm.</div></div>
       <button type="button" data-rigid-review-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;font-size:12px;">Cancel</button>
     </div>
-    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Enter missing weights before conversion. Suggestions are ranked from the weight master using bore, rating, and length. DTXR is matched from staged JSON by PS tag first, then coordinates. Rating is validated against DTXR text such as 150#/300#.</div>
+    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Enter missing weights before conversion. Suggestions use the resolved Rating from explicit overrides, Piping Class master, or Regex extraction. DTXR Rating is comparison evidence only unless explicitly fetched in Preview.</div>
     <div style="overflow:auto;max-height:45vh;border:1px solid rgba(148,163,184,0.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,0.3);color:#fff;border-bottom:1px solid rgba(148,163,184,0.15);"><th style="padding:8px;">Branch</th><th style="padding:8px;">Bore</th><th style="padding:8px;">Rating</th><th style="padding:8px;">Node</th><th style="padding:8px;">DTXR</th><th style="padding:8px;">Length</th><th style="padding:8px;">Manual Weight</th><th style="padding:8px;">Nearest Suggestions</th></tr></thead><tbody>${rows.map(rigidReviewRow).join('')}</tbody></table></div>
     <div data-rigid-review-status style="font-size:12px;margin-top:8px;"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-top:1px solid #253a55;padding-top:16px;">
@@ -112,29 +110,30 @@ function openStandaloneRigidWeightReviewPopup(issues, stateRef, config) {
 
 function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
   const finish = (result) => { overlay.remove(); resolve(result); };
-  const statusVal = overlay.querySelector('[data-rigid-review-status]');
-  const setStatus = (message, bad) => { if (statusVal) { statusVal.textContent = message; statusVal.style.color = bad ? '#ef4444' : '#10b981'; } };
-  
+  const statusValue = overlay.querySelector('[data-rigid-review-status]');
+  const setStatus = (message, bad) => {
+    if (!statusValue) return;
+    statusValue.textContent = message;
+    statusValue.style.color = bad ? '#ef4444' : '#10b981';
+  };
   const bindCandidates = () => {
-    overlay.querySelectorAll('[data-rigid-review-candidate]').forEach((btn) => btn.addEventListener('click', () => {
-      const input = overlay.querySelectorAll('.mc-rigid-review-input')[Number(btn.getAttribute('data-rigid-review-candidate'))];
-      if (input) input.value = btn.getAttribute('data-rigid-review-weight') || '';
+    overlay.querySelectorAll('[data-rigid-review-candidate]').forEach((button) => button.addEventListener('click', () => {
+      const input = overlay.querySelectorAll('.mc-rigid-review-input')[Number(button.getAttribute('data-rigid-review-candidate'))];
+      if (input) input.value = button.getAttribute('data-rigid-review-weight') || '';
     }));
   };
   bindCandidates();
 
   overlay.querySelector('[data-rigid-review-refresh]')?.addEventListener('click', async () => {
     setStatus('Refreshing suggestions...', false);
-    const refreshBtn = overlay.querySelector('[data-rigid-review-refresh]');
-    if (refreshBtn) refreshBtn.disabled = true;
-
+    const refreshButton = overlay.querySelector('[data-rigid-review-refresh]');
+    if (refreshButton) refreshButton.disabled = true;
     const newRatings = {};
     overlay.querySelectorAll('.mc-rigid-review-rating-input').forEach((input) => {
-      const val = input.value.trim();
+      const value = input.value.trim();
       const key = input.getAttribute('data-rigid-review-key') || '';
-      if (val && key) newRatings[key] = val;
+      if (value && key) newRatings[key] = value;
     });
-
     if (Object.keys(newRatings).length > 0) {
       config.overrides = { ...(config.overrides || {}) };
       config.overrides.rating = { ...(config.overrides.rating || {}), ...newRatings };
@@ -146,13 +145,11 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
         }
       }
     }
-
     const currentWeights = {};
     overlay.querySelectorAll('.mc-rigid-review-input').forEach((input) => {
       const numeric = Number(input.value);
       if (Number.isFinite(numeric) && numeric > 0) currentWeights[input.getAttribute('data-rigid-review-key') || ''] = numeric;
     });
-
     if (stateRef?.current) {
       const newIssues = await unresolvedRigidIssues(stateRef.current, config);
       const tbody = overlay.querySelector('tbody');
@@ -167,13 +164,16 @@ function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
       rows.length = 0;
       rows.push(...newIssues);
     }
-    
     setStatus('Suggestions refreshed based on updated ratings; rows remain visible until a weight is applied or review is skipped.', false);
-    if (refreshBtn) refreshBtn.disabled = false;
+    if (refreshButton) refreshButton.disabled = false;
   });
 
   overlay.querySelector('[data-rigid-review-fill-best]')?.addEventListener('click', () => {
-    rows.forEach((issue, index) => { const input = overlay.querySelectorAll('.mc-rigid-review-input')[index]; const best = issue.candidates?.[0] || null; if (input && best) input.value = String(best.suggestedWeight ?? best.weight ?? ''); });
+    rows.forEach((issue, index) => {
+      const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
+      const best = issue.candidates?.[0] || null;
+      if (input && best) input.value = String(best.suggestedWeight ?? best.weight ?? '');
+    });
     setStatus('Filled available best suggestions. Review values before applying.', false);
   });
   overlay.querySelector('[data-rigid-review-cancel]')?.addEventListener('click', () => finish({ cancelled: true, skipped: false, weightsByKey: {} }));
@@ -186,11 +186,18 @@ function applyRigidReviewWeights(overlay, finish, setStatus) {
   const missing = [];
   overlay.querySelectorAll('.mc-rigid-review-input').forEach((input) => {
     const numeric = Number(input.value);
-    if (!Number.isFinite(numeric) || numeric <= 0) { missing.push(input.getAttribute('data-rigid-review-key') || ''); input.style.borderColor = '#ef4444'; return; }
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      missing.push(input.getAttribute('data-rigid-review-key') || '');
+      input.style.borderColor = '#ef4444';
+      return;
+    }
     input.style.borderColor = '';
     weightsByKey[input.getAttribute('data-rigid-review-key') || ''] = numeric;
   });
-  if (missing.length) { setStatus('Enter a positive weight for every listed rigid component, or click Skip Review.', true); return; }
+  if (missing.length) {
+    setStatus('Enter a positive weight for every listed rigid component, or click Skip Review.', true);
+    return;
+  }
   finish({ cancelled: false, skipped: false, weightsByKey });
 }
 
@@ -199,26 +206,39 @@ async function unresolvedRigidIssues(state, config) {
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
   return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', config).map((issue) => {
-    const dtxrRating = ratingFromDtxrText(issue.dtxr);
-    const rating = ratingFromConfig({ ...issue, dtxrRating }, config);
+    const dtxrRating = extractXmlCiiRatingFromDtxr(issue.dtxr);
+    const rating = standaloneRunReviewRatingFromConfig(issue, config);
     const conflict = Boolean(rating && dtxrRating && normalizeRatingText(rating) !== normalizeRatingText(dtxrRating));
-    const ranking = rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, config, { includeRejected: true });
-    return applyXmlCiiFlangeWeightFallbackToIssue({ ...issue, rating, dtxrRating, ratingConflict: conflict, branchRating: issue.rating, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3) }, config);
+    const ranking = rating
+      ? rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, config, { includeRejected: true })
+      : { candidates: [], rejectedCandidates: [] };
+    return applyXmlCiiFlangeWeightFallbackToIssue({
+      ...issue,
+      rating,
+      dtxrRating,
+      ratingConflict: conflict,
+      branchRating: issue.rating,
+      candidates: ranking.candidates.slice(0, 5),
+      rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
+    }, config);
   }).filter((issue) => !issue.mapped);
 }
 
 async function reviewRigidWeights(stateRef, config) {
   try {
-    const popupRes = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config), stateRef, config);
-    if (popupRes.cancelled) return false;
-    if (popupRes.weightsByKey && Object.keys(popupRes.weightsByKey).length > 0) {
-      config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...popupRes.weightsByKey } };
+    const result = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config), stateRef, config);
+    if (result.cancelled) return false;
+    if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
+      config.overrides = { ...(config.overrides || {}), rigidWeight: { ...(config.overrides?.rigidWeight || {}), ...result.weightsByKey } };
       stateRef.current.supportConfigJson = JSON.stringify(config, null, 2);
-      if (stateRef.current.masterContext) { stateRef.current.masterContext.config = config; saveMasterContextToLocalStorage(stateRef.current.masterContext); }
+      if (stateRef.current.masterContext) {
+        stateRef.current.masterContext.config = config;
+        saveMasterContextToLocalStorage(stateRef.current.masterContext);
+      }
     }
     return true;
-  } catch (err) {
-    console.warn('Standalone rigid weight review failed to execute:', err);
+  } catch (error) {
+    console.warn('Standalone rigid weight review failed to execute:', error);
     return true;
   }
 }
@@ -226,7 +246,11 @@ async function reviewRigidWeights(stateRef, config) {
 export async function runWorkflowFromUi(stateRef, render) {
   if (stateRef.current.running || !validateSupportConfigJson(stateRef.current.supportConfigJson).ok) return;
   const readiness = buildStandaloneOutputRunReadiness(stateRef.current);
-  if (readiness.summary.blockingCount > 0) { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, readiness); render(); return; }
+  if (readiness.summary.blockingCount > 0) {
+    stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, readiness);
+    render();
+    return;
+  }
   if (!await reviewRigidWeights(stateRef, xmlCiiEnrichedConfigFromState(stateRef.current))) return;
   stateRef.current = updateWorkflowState(stateRef.current, { running: true, result: null });
   render();
@@ -234,7 +258,10 @@ export async function runWorkflowFromUi(stateRef, render) {
     const result = await runXmlCii2019Workflow(await buildXmlCiiWorkflowJobFromUiState(stateRef.current));
     stateRef.current = updateWorkflowState(stateRef.current, { result });
   } finally {
-    stateRef.current = applyStandaloneOutputRunReadiness(updateWorkflowState(stateRef.current, { running: false }), buildStandaloneOutputRunReadiness(stateRef.current));
+    stateRef.current = applyStandaloneOutputRunReadiness(
+      updateWorkflowState(stateRef.current, { running: false }),
+      buildStandaloneOutputRunReadiness(stateRef.current),
+    );
     render();
   }
 }
