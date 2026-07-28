@@ -1,4 +1,5 @@
 import { findBestPipingClassRow, buildPipingClassIndex } from '../../../converters/xml-cii2019-core/piping-class-resolver.js';
+import { deriveXmlCiiPipingClassFromBranchName } from '../../../converters/xml-cii2019-core/piping-class-source-resolver.js';
 import { buildStagedDtxrIndex, resolveXmlCiiNodeDtxr } from '../../../converters/xml-cii2019-core/dtxr-resolver.js';
 import { rankXmlCiiWeightCandidates, formatValveHint } from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 import {
@@ -35,14 +36,7 @@ function branchDtxrEvidence(branch, stagedIndex, config) {
       if (dtxr) out.push({ dtxr, source: `xml-${key.toLowerCase()}`, componentType, componentRefNo });
     }
     const resolved = resolveXmlCiiNodeDtxr(node, stagedIndex, config);
-    if (resolved?.value) {
-      out.push({
-        dtxr: resolved.value,
-        source: resolved.source || 'staged-dtxr',
-        componentType,
-        componentRefNo,
-      });
-    }
+    if (resolved?.value) out.push({ dtxr: resolved.value, source: resolved.source || 'staged-dtxr', componentType, componentRefNo });
   }
   const seen = new Set();
   return out.filter((item) => {
@@ -93,9 +87,7 @@ function rerankNodeRows(nodeRows, branchRows, config) {
   return (nodeRows || []).map((nodeRow) => {
     const branch = byBranch.get(nodeRow.branchName);
     const rating = _toText(branch?.rating || nodeRow.rating).trim();
-    if (!rating || !Number.isFinite(Number(nodeRow.boreMm)) || !Number.isFinite(Number(nodeRow.lengthMm))) {
-      return { ...nodeRow, rating };
-    }
+    if (!rating || !Number.isFinite(Number(nodeRow.boreMm)) || !Number.isFinite(Number(nodeRow.lengthMm))) return { ...nodeRow, rating };
     const ranking = rankXmlCiiWeightCandidates({
       boreMm: nodeRow.boreMm,
       rating,
@@ -111,21 +103,13 @@ function rerankNodeRows(nodeRows, branchRows, config) {
     const weightMatch = selectedOverride && Number.isFinite(selectedWeight) && selectedWeight > 0
       ? { ...(candidates[0] || nodeRow.weightMatch || {}), selectedWeight, suggestedWeight: selectedWeight, weight: selectedWeight, selectedOverride: true }
       : (ranking.best || null);
-    return {
-      ...nodeRow,
-      rating,
-      valveHint: formatValveHint(ranking.nodeHint),
-      weightMatch,
-      weightCandidates: candidates,
-      rejectedWeightCandidates: ranking.rejectedCandidates.slice(0, 3),
-    };
+    return { ...nodeRow, rating, valveHint: formatValveHint(ranking.nodeHint), weightMatch, weightCandidates: candidates, rejectedWeightCandidates: ranking.rejectedCandidates.slice(0, 3) };
   });
 }
 
 export function applyPreviewRatingAuthority({ xmlText, config = {}, stagedJsonText = '', result } = {}) {
   const branchRows = Array.isArray(result?.branchRows) ? result.branchRows : [];
   if (!branchRows.length || typeof DOMParser === 'undefined') return result || { branchRows: [], nodeRows: [] };
-
   let document;
   try {
     document = new DOMParser().parseFromString(_toText(xmlText), 'application/xml');
@@ -133,36 +117,24 @@ export function applyPreviewRatingAuthority({ xmlText, config = {}, stagedJsonTe
   } catch {
     return result;
   }
-
   const branches = [...document.getElementsByTagName('Branch')];
   const stagedIndex = buildStagedDtxrIndex(stagedJsonText || '', config);
   const pipingClassIndex = buildPipingClassIndex(config?.pipingClass?.masterRows || []);
-
   const ratedRows = branchRows.map((row, index) => {
     const branch = branches[index] || branches.find((item) => _xmlText(item, 'Branchname') === row.branchName);
+    const branchPipingClass = deriveXmlCiiPipingClassFromBranchName(row.branchName, config);
     const ratingKeys = _ratingKeys(row);
     const manual = ratingOverrideRecord(config, ratingKeys);
-    const pipingClass = _toText(row.pipingClass || row.pipingClassDerived).trim();
-    const pipingClassRating = resolvePreviewPipingClassRating(row, pipingClassIndex, config);
+    const pipingClass = _toText(row.pipingClass || branchPipingClass || row.pipingClassDerived).trim();
+    const pipingClassRating = resolvePreviewPipingClassRating({ ...row, pipingClass }, pipingClassIndex, config);
     const dtxrValues = branch ? branchDtxrEvidence(branch, stagedIndex, config) : [];
-    const authority = resolveXmlCiiRatingAuthority({
-      manualRating: manual.value,
-      pipingClassRating,
-      pipingClass,
-      branchName: row.branchName,
-      config,
-      dtxrValues,
-    });
-    const automatic = resolveXmlCiiAutomaticRating({
-      pipingClassRating,
-      pipingClass,
-      branchName: row.branchName,
-      config,
-    });
+    const authority = resolveXmlCiiRatingAuthority({ manualRating: manual.value, pipingClassRating, pipingClass, branchName: row.branchName, config, dtxrValues });
+    const automatic = resolveXmlCiiAutomaticRating({ pipingClassRating, pipingClass, branchName: row.branchName, config });
     const fetched = manual.key && isPreviewDtxrRatingOverride(config, manual.key);
-
     return {
       ...row,
+      pipingClassDerived: branchPipingClass || row.pipingClassDerived,
+      pipingClassSource: branchPipingClass ? 'branch-name' : (row.pipingClassSource || 'line-list'),
       rating: authority.rating || '',
       ratingDerived: automatic.rating || '',
       ratingSource: fetched ? 'dtxr-rating-fetched' : authority.source,
@@ -175,10 +147,5 @@ export function applyPreviewRatingAuthority({ xmlText, config = {}, stagedJsonTe
       ratingNeedsReview: !authority.rating,
     };
   });
-
-  return {
-    ...(result || {}),
-    branchRows: ratedRows,
-    nodeRows: rerankNodeRows(result?.nodeRows || [], ratedRows, config),
-  };
+  return { ...(result || {}), branchRows: ratedRows, nodeRows: rerankNodeRows(result?.nodeRows || [], ratedRows, config) };
 }
