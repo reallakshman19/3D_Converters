@@ -46,13 +46,33 @@ if test ! -d "$WASI_SYSROOT/lib/wasm32-wasi" \
   fail "WASI sysroot library directory is missing"
 fi
 
-mkdir -p "$(dirname "$OUT")"
+mkdir -p "$(dirname "$OUT")" "$ROOT/.qualification"
 TEMP_OUTPUT="$(mktemp "${OUT}.tmp.XXXXXX")"
-trap 'rm -f "$TEMP_OUTPUT"' EXIT
+PROFILED_PARSER="$ROOT/.qualification/fbx_parser.runtime-profile.c"
+trap 'rm -f "$TEMP_OUTPUT" "$PROFILED_PARSER"' EXIT
+
+# The source graph requires DOM evidence from the authoritative source scene,
+# but the normalized scene is consumed only for typed node/geometry arrays.
+# Compile a deterministic profile that disables duplicate normalized DOM
+# retention. The exact one-replacement guard fails closed on source drift.
+python3 - "$ROOT/third_party/ufbx/fbx_parser.c" "$PROFILED_PARSER" <<'PY'
+from pathlib import Path
+import sys
+
+source_path = Path(sys.argv[1])
+target_path = Path(sys.argv[2])
+source = source_path.read_text(encoding='utf-8')
+needle = 'ufbx_load_opts b=a;b.target_axes=ufbx_axes_right_handed_y_up;'
+replacement = 'ufbx_load_opts b=a;b.retain_dom=false;b.target_axes=ufbx_axes_right_handed_y_up;'
+if source.count(needle) != 1:
+    raise SystemExit('build-ufbx-wasm: normalized-scene profile source drift')
+target_path.write_text(source.replace(needle, replacement), encoding='utf-8', newline='\n')
+PY
 
 TOOL_ROOT="$(tool_path "$ROOT")"
 TOOL_SYSROOT="$(tool_path "$WASI_SYSROOT")"
 TOOL_OUTPUT="$(tool_path "$TEMP_OUTPUT")"
+TOOL_PROFILED_PARSER="$(tool_path "$PROFILED_PARSER")"
 
 export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=0
 "$COMPILER_PATH" --target=wasm32-wasi --sysroot="$TOOL_SYSROOT" -O2 -std=c99 -nostartfiles \
@@ -60,7 +80,7 @@ export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=0
   -DUFBX_WASM_32BIT -DUFBX_NO_STDIO -DUFBX_ENABLE_ERROR_STACK \
   -I"$TOOL_ROOT/third_party/ufbx" \
   "$TOOL_ROOT/third_party/ufbx/ufbx.c" \
-  "$TOOL_ROOT/third_party/ufbx/fbx_parser.c" \
+  "$TOOL_PROFILED_PARSER" \
   "$TOOL_ROOT/third_party/ufbx/fbx_attributes.c" \
   -Wl,--no-entry -Wl,--export=malloc -Wl,--export=free \
   -Wl,--export=fbx_parse -Wl,--export=fbx_result_ptr -Wl,--export=fbx_result_len \
@@ -79,6 +99,7 @@ export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=0
 
 node "$ROOT/scripts/fbx/inspect-ufbx-wasm.mjs" "$TEMP_OUTPUT" >/dev/null
 mv "$TEMP_OUTPUT" "$OUT"
+rm -f "$PROFILED_PARSER"
 trap - EXIT
 
 printf 'target=wasm32-wasi\n'
