@@ -6,6 +6,7 @@
  */
 
 import { editError, finiteNumber, textIds } from './topology-edit-contract.js';
+import { pointSegmentDistance } from './topology-geometry-distance.js';
 
 /** @param {Record<string, unknown>} canonical @returns {Record<string, unknown>} */
 export function mutableCanonical(canonical) {
@@ -47,10 +48,7 @@ export function synchronizeNodeDependents(state, nodeId, position) {
     for (const row of state[collectionName]) {
       if (row.nodeId !== nodeId) continue;
       row.position = { ...position };
-      if (collectionName === 'supports') {
-        row.attachmentPosition = { ...position };
-        row.inputXmlNodeId = nodeById(state, nodeId).inputXmlNodeIds[0];
-      }
+      if (collectionName === 'supports') row.inputXmlNodeId = nodeById(state, nodeId).inputXmlNodeIds[0];
     }
   }
 }
@@ -89,6 +87,55 @@ export function inheritedEdge(context, id, inputId, fromNodeId, toNodeId, operat
   };
 }
 
+/** @param {Record<string, unknown>} edge @returns {string[]} */
+function edgeSourcePaths(edge) {
+  return textIds([edge.sourcePath, ...(edge.sourcePaths ?? [])]);
+}
+
+/** @param {Record<string, unknown>} state @param {Record<string, unknown>} support @param {Map<string,Record<string,unknown>>} nodeIndex @returns {Record<string, unknown>|null} */
+function supportCarrierProjection(state, support, nodeIndex) {
+  const sourcePosition = support.sourcePosition;
+  if (!sourcePosition || !['x', 'y', 'z'].every((axis) => Number.isFinite(Number(sourcePosition[axis])))) return null;
+  const authoritativePath = String(support.attachmentEdgeSourcePath ?? '').trim();
+  const attachedIds = new Set((support.attachedComponentEntityIds ?? []).map(String));
+  const ranked = state.edges.flatMap((edge) => {
+    const from = nodeIndex.get(edge.fromNodeId), to = nodeIndex.get(edge.toNodeId);
+    if (!from || !to) return [];
+    const pathMatch = authoritativePath && edgeSourcePaths(edge).includes(authoritativePath);
+    const referenceMatch = (edge.sourceEntityIds ?? []).some((id) => attachedIds.has(String(id)));
+    const incident = edge.fromNodeId === support.nodeId || edge.toNodeId === support.nodeId;
+    if (!pathMatch && !referenceMatch && !incident) return [];
+    const projection = pointSegmentDistance(sourcePosition, from.position, to.position);
+    return [{ edge, projection, rank: pathMatch ? 0 : referenceMatch ? 1 : 2 }];
+  }).sort((left, right) => left.rank - right.rank
+    || left.projection.distanceMm - right.projection.distanceMm
+    || String(left.edge.id).localeCompare(String(right.edge.id)));
+  const selected = ranked[0];
+  if (authoritativePath && selected?.rank !== 0) {
+    throw editError('SUPPORT_CARRIER_NOT_FOUND', `Support ${support.id} cannot resolve authoritative carrier ${authoritativePath} after topology editing.`);
+  }
+  return selected ?? null;
+}
+
+/** @param {Record<string, unknown>} state @param {Record<string, unknown>} support @param {Map<string,Record<string,unknown>>} nodeIndex @returns {void} */
+function refreshSupport(state, support, nodeIndex) {
+  const node = nodeIndex.get(support.nodeId);
+  if (!node) return;
+  support.position = { ...node.position };
+  support.inputXmlNodeId = node.inputXmlNodeIds[0];
+  const selected = supportCarrierProjection(state, support, nodeIndex);
+  if (!selected) {
+    support.attachmentPosition = { ...node.position };
+    support.connectionResidual = 0;
+    return;
+  }
+  support.attachmentPosition = { ...selected.projection.projected };
+  support.connectionResidual = selected.projection.distanceMm;
+  if (!String(support.attachmentEdgeSourcePath ?? '').trim()) {
+    support.attachmentEdgeSourcePath = edgeSourcePaths(selected.edge)[0] ?? '';
+  }
+}
+
 /** @param {Record<string, unknown>} state @returns {void} */
 export function refreshDerivedTopology(state) {
   const nodeIndex = new Map(state.nodes.map((node) => [node.id, node]));
@@ -108,16 +155,12 @@ export function refreshDerivedTopology(state) {
     if (node) boundary.position = { ...node.position };
     boundary.participatingEdgeIds = incidentEdges(state, boundary.nodeId).map((edge) => edge.id);
   }
-  for (const support of state.supports) {
-    const node = nodeIndex.get(support.nodeId);
-    if (!node) continue;
-    support.position = { ...node.position };
-    support.attachmentPosition = { ...node.position };
-    support.inputXmlNodeId = node.inputXmlNodeIds[0];
-  }
+  for (const support of state.supports) refreshSupport(state, support, nodeIndex);
   for (const bend of state.bends ?? []) {
     const node = nodeIndex.get(bend.nodeId);
     if (node) bend.position = { ...node.position };
     bend.edgeIds = incidentEdges(state, bend.nodeId).map((edge) => edge.id);
   }
 }
+
+export const _test = Object.freeze({ edgeSourcePaths, supportCarrierProjection, refreshSupport });
