@@ -1,4 +1,11 @@
 import {
+  applyXmlRestraints,
+  resolveXmlCiiSupportKind,
+  restraintEntriesFromSupportKind,
+} from '../../converters/xml-cii2019-core/support-mapping.js';
+import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
+import { decideMissingStagedRestRestraint } from '../../converters/xml-cii2019-core/staged-restraint-fallback-policy.js';
+import {
   buildStandaloneDtxrPositionGroups,
   buildStandaloneDtxrResolutionLedger,
   canonicalStandaloneDtxrBranch,
@@ -21,6 +28,10 @@ function childrenByName(parent, name) {
 
 function firstChild(parent, name) {
   return childrenByName(parent, name)[0] || null;
+}
+
+function childText(parent, name) {
+  return text(firstChild(parent, name)?.textContent);
 }
 
 function ensureChild(document, parent, name) {
@@ -50,6 +61,51 @@ function recordsByXmlIndex(records) {
   return new Map((records || []).map((record) => [Number(record.xmlIndex), record]));
 }
 
+function stagedSupportKindsByPath(stagedJsonText, config = {}) {
+  const out = new Map();
+  let parsed;
+  try { parsed = typeof stagedJsonText === 'string' ? JSON.parse(stagedJsonText) : stagedJsonText; } catch { return out; }
+  const visit = (value, path) => {
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => visit(item, `${path}[${index}]`));
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    const attrs = value.attributes && typeof value.attributes === 'object' ? value.attributes : {};
+    const kind = resolveXmlCiiSupportKind(attrs, config);
+    if (kind) out.set(path, kind);
+    if (Array.isArray(value.children)) value.children.forEach((child, index) => visit(child, `${path}.children[${index}]`));
+  };
+  visit(parsed, '$');
+  return out;
+}
+
+function supportKindsForRecord(record, kindsByPath) {
+  const paths = [
+    ...(Array.isArray(record?.sourcePaths) ? record.sourcePaths : []),
+    ...(Array.isArray(record?.positionMembers) ? record.positionMembers.map((member) => member?.sourcePath) : []),
+  ].map(text).filter(Boolean);
+  return [...new Set(paths.map((path) => kindsByPath.get(path)).filter(Boolean))];
+}
+
+export function materializeMissingStandaloneRestRestraint(document, node, resolved, config = {}, stagedSupportTypes = []) {
+  const existing = childrenByName(node, 'Restraint');
+  const supportMapping = migrateSupportMappingConfig(config);
+  const decision = decideMissingStagedRestRestraint({
+    componentType: childText(node, 'ComponentType'),
+    hasExistingRestraint: existing.length > 0,
+    ledgerSupportTypes: resolved?.derivedSupportTypes || [],
+    stagedSupportTypes,
+    jsonRestraintsEnabled: supportMapping.useJsonForRestraints !== false,
+  });
+  if (!decision.apply) return { added: false, ...decision, entries: [] };
+  const entries = restraintEntriesFromSupportKind('REST', {}, node, config);
+  if (!entries.length) return { added: false, ...decision, reason: 'rest-profile-empty', entries: [] };
+  applyXmlRestraints(document, node, entries, config);
+  const added = childrenByName(node, 'Restraint').length > 0;
+  return { added, ...decision, reason: added ? 'staged-rest-restraint-added' : 'restraint-write-failed', entries };
+}
+
 export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config = {}) {
   const source = String(xmlText ?? '');
   const stats = {
@@ -58,19 +114,22 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
     dtxrPsAnnotations: 0,
     dtxrUnresolvedNodes: 0,
     dtxrAmbiguousNodes: 0,
+    stagedRestRestraintsAdded: 0,
+    stagedRestRestraintsPreserved: 0,
   };
   const ledgerResult = buildStandaloneDtxrResolutionLedger(source, stagedJsonText, config);
+  const diagnostics = [...(Array.isArray(ledgerResult.diagnostics) ? ledgerResult.diagnostics : [])];
   stats.dtxrPositionGroups = ledgerResult.groups.length;
   stats.dtxrUnresolvedNodes = ledgerResult.records.filter((record) => record.status === 'UNRESOLVED').length;
   stats.dtxrAmbiguousNodes = ledgerResult.records.filter((record) => record.status === 'AMBIGUOUS_REVIEW').length;
 
   if (!source.trim() || !text(stagedJsonText)) {
-    return { text: source, diagnostics: ledgerResult.diagnostics, stats, ledger: ledgerResult.records, ledgerResult };
+    return { text: source, diagnostics, stats, ledger: ledgerResult.records, ledgerResult };
   }
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
     return {
       text: source,
-      diagnostics: [...ledgerResult.diagnostics, { type: 'standalone-dtxr-enrichment-skipped', reason: 'DOM unavailable' }],
+      diagnostics: [...diagnostics, { type: 'standalone-dtxr-enrichment-skipped', reason: 'DOM unavailable' }],
       stats,
       ledger: ledgerResult.records,
       ledgerResult,
@@ -81,7 +140,7 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
   if (parserFailed(document)) {
     return {
       text: source,
-      diagnostics: [...ledgerResult.diagnostics, { type: 'standalone-dtxr-enrichment-skipped', reason: 'XML parse failed' }],
+      diagnostics: [...diagnostics, { type: 'standalone-dtxr-enrichment-skipped', reason: 'XML parse failed' }],
       stats,
       ledger: ledgerResult.records,
       ledgerResult,
@@ -89,6 +148,7 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
   }
 
   const byIndex = recordsByXmlIndex(ledgerResult.records);
+  const kindsByPath = stagedSupportKindsByPath(stagedJsonText, config);
   let xmlIndex = 0;
   for (const branch of [...document.getElementsByTagName('Branch')]) {
     for (const node of childrenByName(branch, 'Node')) {
@@ -106,12 +166,36 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
       } else if (resolved.effectiveSource === 'DTXR_PS_FALLBACK') {
         setChildText(document, node, 'DTXR_SOURCE', 'staged-json-ps-fallback');
       }
+      const materialized = materializeMissingStandaloneRestRestraint(
+        document,
+        node,
+        resolved,
+        config,
+        supportKindsForRecord(resolved, kindsByPath),
+      );
+      if (materialized.added) {
+        stats.stagedRestRestraintsAdded += 1;
+        diagnostics.push({
+          type: 'staged-json-rest-restraint-materialized',
+          nodeNumber: childText(node, 'NodeNumber'),
+          nodeName: childText(node, 'NodeName'),
+          componentType: childText(node, 'ComponentType'),
+          effectiveSource: resolved.effectiveSource || '',
+          matchType: resolved.matchType || '',
+          status: resolved.status || '',
+          supportTypes: materialized.supportTypes,
+          restraintTypes: materialized.entries.map((entry) => entry.type),
+          message: 'Uploaded XML had no restraint; REST resolved from authoritative staged JSON evidence was materialized through the shared support-mapping profile.',
+        });
+      } else if (materialized.reason === 'existing-restraint-preserved') {
+        stats.stagedRestRestraintsPreserved += 1;
+      }
     }
   }
 
   return {
     text: new XMLSerializer().serializeToString(document),
-    diagnostics: ledgerResult.diagnostics,
+    diagnostics,
     stats,
     ledger: ledgerResult.records,
     ledgerResult,
