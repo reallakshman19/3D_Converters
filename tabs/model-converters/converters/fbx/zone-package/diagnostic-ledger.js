@@ -6,53 +6,40 @@ import { FBX_ZONE_PACKAGE_SCHEMAS, fail } from './constants.js';
 const GOVERNED_DISPOSITIONS = Object.freeze([
   'CLOSED', 'CAPPED', 'MERGED', 'MULTI_SHELL', 'INVALID_TOPOLOGY', 'OTHER_GOVERNED',
 ]);
-
 function ledgerEntry(manifestGeometry, raw) {
   const { disposition, reasonCode, stats } = classifyGeometryTopology(raw);
   if (!GOVERNED_DISPOSITIONS.includes(disposition)) fail('ZONE_PACKAGE_UNGOVERNED_DISPOSITION', `${disposition} is not a governed disposition.`);
-  return {
-    geometryId: manifestGeometry.geometryId,
-    occurrenceId: manifestGeometry.occurrenceId,
-    disposition,
-    reasonCode,
-    stats,
-  };
+  return { geometryId: manifestGeometry.geometryId, occurrenceIds: [...manifestGeometry.occurrenceIds], disposition, reasonCode, stats };
 }
-
 function summarize(entries) {
-  const countsByDisposition = Object.fromEntries(GOVERNED_DISPOSITIONS.map((disposition) => [disposition, 0]));
+  const countsByDisposition = Object.fromEntries(GOVERNED_DISPOSITIONS.map((value) => [value, 0]));
   for (const entry of entries) countsByDisposition[entry.disposition] += 1;
   return { totalGeometries: entries.length, countsByDisposition };
 }
-
-/**
- * Phase 5: explains every selected geometry in the Phase 1 manifest with a
- * governed topology disposition. Requires exact 1:1 coverage between the
- * manifest and the ledger — a geometry with no explanation is a defect, not
- * an omission. Does not widen FbxAutoPipeProfile.v1 admission; this is a
- * read-only diagnostic over already-selected geometry.
- */
+function exactRawGeometryMap(geometries, manifestIds) {
+  const rawById = new Map();
+  for (const geometry of geometries) {
+    const geometryId = String(geometry?.geometryId || '');
+    if (!geometryId || rawById.has(geometryId)) {
+      fail('ZONE_PACKAGE_UNEXPLAINED_GEOMETRY', `raw geometry identity ${geometryId || '<missing>'} is invalid or duplicate.`);
+    }
+    rawById.set(geometryId, geometry);
+  }
+  if (canonicalJson([...rawById.keys()].sort()) !== canonicalJson([...manifestIds].sort())) {
+    fail('ZONE_PACKAGE_UNEXPLAINED_GEOMETRY', 'raw geometry set must match the manifest exactly.');
+  }
+  return rawById;
+}
 export async function buildSelectedZoneDiagnosticLedger({ manifest, geometries } = {}) {
   if (!manifest || manifest.schema !== FBX_ZONE_PACKAGE_SCHEMAS.geometryManifest) {
-    fail('ZONE_PACKAGE_INVALID_INPUT', 'manifest must be a validated FbxSelectedZoneGeometryManifest.v1.');
+    fail('ZONE_PACKAGE_INVALID_INPUT', 'manifest must be an FbxSelectedZoneGeometryManifest.v1.');
   }
   if (!Array.isArray(geometries)) fail('ZONE_PACKAGE_INVALID_INPUT', 'geometries must be an array.');
-  const rawById = new Map(geometries.map((geometry) => [geometry.geometryId, geometry]));
-  const entries = manifest.geometries.map((manifestGeometry) => {
-    const raw = rawById.get(manifestGeometry.geometryId);
-    if (!raw) fail('ZONE_PACKAGE_UNEXPLAINED_GEOMETRY', `no raw geometry supplied to explain manifest geometryId ${manifestGeometry.geometryId}.`);
-    return ledgerEntry(manifestGeometry, raw);
-  });
-  if (entries.length !== manifest.geometries.length) {
-    fail('ZONE_PACKAGE_UNEXPLAINED_GEOMETRY', 'the diagnostic ledger must explain every selected geometry exactly once.');
-  }
-  const payload = {
-    schema: FBX_ZONE_PACKAGE_SCHEMAS.diagnosticLedger,
-    selectedZoneDigest: manifest.selectedZoneDigest,
-    manifestDigest: manifest.manifestDigest,
-    entries,
-    summary: summarize(entries),
-  };
-  const ledgerDigest = await sha256Hex(canonicalJson(payload));
-  return deepFreeze({ ...payload, ledgerDigest });
+  const manifestIds = manifest.geometries.map((entry) => entry.geometryId);
+  const rawById = exactRawGeometryMap(geometries, manifestIds);
+  const entries = manifest.geometries.map((entry) => ledgerEntry(entry, rawById.get(entry.geometryId)));
+  const payload = { schema: FBX_ZONE_PACKAGE_SCHEMAS.diagnosticLedger,
+    selectedZoneDigest: manifest.selectedZoneDigest, manifestDigest: manifest.manifestDigest,
+    entries, summary: summarize(entries) };
+  return deepFreeze({ ...payload, ledgerDigest: await sha256Hex(canonicalJson(payload)) });
 }

@@ -11,19 +11,21 @@ export const FBX_ZONE_PACKAGE_BUFFER_ROLES = Object.freeze([
 ]);
 
 export const FBX_ZONE_PACKAGE_ROLE_SPECS = Object.freeze({
-  'control-points-mm': { scalarType: 'Float64', componentCount: 3 },
-  'polygon-offsets': { scalarType: 'Uint32', componentCount: 1 },
-  'polygon-vertex-indices': { scalarType: 'Uint32', componentCount: 1 },
+  'control-points-mm': { scalarType: 'Float64', componentCount: 3, bytesPerValue: 8 },
+  'polygon-offsets': { scalarType: 'Uint32', componentCount: 1, bytesPerValue: 4 },
+  'polygon-vertex-indices': { scalarType: 'Uint32', componentCount: 1, bytesPerValue: 4 },
 });
 
 export const FBX_ZONE_PACKAGE_FILE_ROLES = Object.freeze([
-  'MANIFEST', 'AUDIT', 'STAGEDJSON', 'SUPPORT_EVIDENCE',
+  'MANIFEST', 'GEOMETRY_DESCRIPTOR', 'GEOMETRY_BUFFER', 'STAGEDJSON', 'SUPPORT_EVIDENCE',
 ]);
 
 export const FBX_ZONE_PACKAGE_LIMITS = Object.freeze({
   maxSelectedGeometries: 20000,
   maxGeometryBufferBytes: 64 * 1024 * 1024,
   maxPackageFiles: 200000,
+  maxArchiveBytes: 512 * 1024 * 1024,
+  maxArchiveHeaderBytes: 16 * 1024 * 1024,
 });
 
 export class FbxZonePackageError extends Error {

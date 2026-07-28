@@ -1,5 +1,6 @@
 import { runFbxAutoPipe } from '../auto-pipe/pipeline.js';
 import { canonicalJson } from '../canonical-json.js';
+import { buildLiveZonePackageInputs } from '../zone-package/live-input.js';
 import { buildDerivedPortEvidence } from './derived-ports.js';
 import { asZoneGeometryError } from './errors.js';
 import { prepareZoneGeometryEvidence } from './zone-evidence.js';
@@ -9,24 +10,22 @@ import { buildFbxZoneWireframeData } from './wireframe-preview.js';
 export async function analyseFbxZoneGeometry(input) {
   try {
     const prepared = await prepareZoneGeometryEvidence(input);
-    const wireframePreview = buildFbxZoneWireframeData({
-      scope: prepared.scope, selections: prepared.selections,
-    });
-    const derivedPortEvidence = await buildDerivedPortEvidence(
-      prepared.artifact, prepared.scope, prepared.selections);
+    const wireframePreview = buildFbxZoneWireframeData({ scope: prepared.scope, selections: prepared.selections });
+    const derivedPortEvidence = await buildDerivedPortEvidence(prepared.artifact, prepared.scope, prepared.selections);
     const autoPipe = await runFbxAutoPipe({
-      zoneGeometryEvidence: prepared.artifact,
-      derivedPortEvidence,
-      selections: prepared.selections,
+      zoneGeometryEvidence: prepared.artifact, derivedPortEvidence, selections: prepared.selections,
     });
+    const zonePackageInputs = await buildLiveZonePackageInputs({
+      zoneGeometryEvidence: prepared.artifact, scope: prepared.scope, selections: prepared.selections,
+      stagedJsonText: autoPipe.status === 'STAGEDJSON_PASS' ? autoPipe.stagedJsonText : null,
+    });
+    zonePackageInputs.fileNamePrefix = String(
+      prepared.artifact.selectedZone.label || prepared.artifact.selectedZone.zoneId)
+      .trim().replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '') || 'selected-zone';
     return Object.freeze({
-      status: ZONE_GEOMETRY_STATUS.PASS,
-      zoneGeometryEvidence: prepared.artifact,
-      derivedPortEvidence,
-      wireframePreview,
-      autoPipe,
-      zoneGeometryJson: canonicalJson(prepared.artifact),
-      derivedPortJson: canonicalJson(derivedPortEvidence),
+      status: ZONE_GEOMETRY_STATUS.PASS, zoneGeometryEvidence: prepared.artifact,
+      derivedPortEvidence, wireframePreview, autoPipe, zonePackageInputs,
+      zoneGeometryJson: canonicalJson(prepared.artifact), derivedPortJson: canonicalJson(derivedPortEvidence),
       counts: Object.freeze({
         selectedOccurrences: prepared.artifact.conservation.selectedOccurrenceCount,
         selectedGeometries: prepared.artifact.conservation.selectedGeometryCount,
@@ -38,7 +37,5 @@ export async function analyseFbxZoneGeometry(input) {
         stagedBranches: autoPipe.counts?.branches || 0,
       }),
     });
-  } catch (error) {
-    throw asZoneGeometryError(error);
-  }
+  } catch (error) { throw asZoneGeometryError(error); }
 }
