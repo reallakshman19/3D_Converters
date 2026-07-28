@@ -29,7 +29,7 @@ const envelope = _buildXmlFromStagedJsonText(JSON.stringify({
 for (const result of [bare, envelope]) {
   assert.equal(result.branchCount, 1);
   assert.equal(result.nodeCount, 2);
-  assert.match(result.xmlText, /<PipeStressExport>/);
+  assert.match(result.xmlText, /<PipeStressExport\b/);
   assert.match(result.xmlText, /<Branch>/);
   assert.match(result.xmlText, /<ComponentType>PIPE<\/ComponentType>/);
 }
