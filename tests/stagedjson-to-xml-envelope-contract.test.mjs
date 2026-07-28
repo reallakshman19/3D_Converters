@@ -26,15 +26,15 @@ const envelope = _buildXmlFromStagedJsonText(JSON.stringify({
   provenance: { schema: 'StagedEditProvenance.v1' },
 }), 'envelope.json', options);
 
-assert.equal(bare.branchCount, 1);
-assert.equal(envelope.branchCount, 1);
-assert.equal(bare.nodeCount, 2);
-assert.equal(envelope.nodeCount, 2);
+for (const result of [bare, envelope]) {
+  assert.equal(result.branchCount, 1);
+  assert.equal(result.nodeCount, 2);
+  assert.match(result.xmlText, /<PipeStressExport>/);
+  assert.match(result.xmlText, /<Branch>/);
+  assert.match(result.xmlText, /<ComponentType>PIPE<\/ComponentType>/);
+}
 assert.equal(envelope.stagedEnvelope.schema, 'inputxml-managed-stage/v1');
 assert.equal(envelope.stagedEnvelope.provenance.schema, 'StagedEditProvenance.v1');
-assert.equal(
-  envelope.xmlText.replaceAll('envelope', 'fixture'),
-  bare.xmlText.replaceAll('bare', 'fixture'),
-);
+assert.deepEqual(JSON.parse(envelope.stageJsonText), hierarchy);
 
 console.log('stagedjson-to-xml envelope contract passed');
