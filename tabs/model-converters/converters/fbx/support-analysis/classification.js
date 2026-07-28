@@ -46,9 +46,10 @@ export function releaseBlock(candidateDispositions, analyses, admittedPipeCount)
   if (analyses.some((item) => item?.blockStatus === 'BLOCKED_SUPPORT_CLASSIFICATION')) {
     return 'BLOCKED_SUPPORT_CLASSIFICATION';
   }
-  const candidates = candidateDispositions.filter((item) => item.inventoryDisposition
-    === 'POSSIBLE_SUPPORT_CANDIDATE');
-  if (candidates.length && admittedPipeCount === 0) return 'BLOCKED_SUPPORT_HOST_ASSOCIATION';
+  const hostPending = candidateDispositions.some((item) => item.inventoryDisposition
+    === 'POSSIBLE_SUPPORT_CANDIDATE' && item.geometryDisposition === 'ELIGIBLE'
+    && item.hostDisposition === 'HOST_NOT_FOUND');
+  if (hostPending && admittedPipeCount === 0) return 'BLOCKED_SUPPORT_HOST_ASSOCIATION';
   if (candidateDispositions.some((item) => item.terminalDisposition === 'SUPPORT_CANDIDATE_AMBIGUOUS')) {
     return 'BLOCKED_SUPPORT_AMBIGUITY';
   }

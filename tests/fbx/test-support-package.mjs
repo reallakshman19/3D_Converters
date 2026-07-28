@@ -39,12 +39,11 @@ const original = new Uint8Array(input.selections[1].buffers[0].buffer.bytes);
 assert.deepEqual(entries.get('geometry-buffers/geometry-20-control-points-mm.bin'), original);
 const manifest = JSON.parse(new TextDecoder().decode(entries.get('manifest.json')));
 assert.equal(manifest.stagedJsonDisposition, 'INCLUDED');
+assert.ok(manifest.includedBinaryBuffers.every((item) => Number.isInteger(item.elementCount)));
 const absentRequest = { ...request, autoPipe: { ...input.autoPipe,
-  status: 'BLOCKED_AUTO_PIPE_CONNECTIVITY', stagedJsonText: null } };
-const absentPackage = await buildSelectedZoneEngineeringPackage(absentRequest);
-const absentEntries = zipEntries(absentPackage.archiveBytes);
-assert.ok(!absentEntries.has('selected-zone.staged.json'));
-const absentManifest = JSON.parse(new TextDecoder().decode(absentEntries.get('manifest.json')));
-assert.equal(absentManifest.stagedJsonDisposition, 'ABSENT');
-assert.equal(absentManifest.stagedJsonBlockStatus, 'BLOCKED_AUTO_PIPE_CONNECTIVITY');
-console.log('PASS test-support-package');
+  status: 'BLOCKED_AUTO_PIPE_CONNECTIVITIËİYÙYœÛÛ•^ˆ[HNÂ˜ÛÛœİXœÙ[XÚØYÙHH]ØZ]Z[Ù[XİY›Û™Q[™Ú[™Y\š[™ÔXÚØYÙJXœÙ[™\]Y\İ
+NÂ˜ÛÛœİXœÙ[[šY\ÈHš\[šY\ÊXœÙ[XÚØYÙK˜\˜Ú]™P]\ÊNÂ˜\ÜÙ\›ÚÊXXœÙ[[šY\Ëš\Ê	ÜÙ[XİY^›Û™KœİYÙYšœÛÛ‰ÊJNÂ˜ÛÛœİXœÙ[X[šY™\İH”ÓÓ‹œ\œÙJ™]È^XÛÙ\Š
+K™XÛÙJXœÙ[[šY\Ë™Ù]
+	ÛX[šY™\İšœÛÛ‰ÊJJNÂ˜\ÜÙ\™\]X[
+XœÙ[X[šY™\İœİYÙYœÛÛ‘\ÜÜÚ][Û‹	ĞP”ÑS•	ÊNÂ˜\ÜÙ\™\]X[
+XœÙ[X[šY™\İœİYÙYœÛÛ›ØÚÔİ]\Ë	Ğ“ĞÒÑQĞUU×ÔTWĞÓÓ“‘PÕU’UIÊNÂ˜ÛÛœÛÛK›ÙÊ	ÔTÔÈ\İ\İ\Ü\XÚØYÙIÊNÂ

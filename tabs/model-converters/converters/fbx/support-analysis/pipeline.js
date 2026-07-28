@@ -38,14 +38,34 @@ function geometryIds(item) {
   return sortedUnique(item.occurrence.geometryObjectIds || []);
 }
 
-async function attachCandidateIds(inventory, zoneGeometryEvidence, digest) {
-  return Promise.all(inventory.map(async (item) => Object.freeze({ ...item, candidateId: await candidateId({
-    sourceSha256: zoneGeometryEvidence.sourceIdentity.sha256,
-    sourceZoneGeometryArtifactId: zoneGeometryEvidence.artifactId,
-    sourceOccurrenceId: item.occurrence.sourceOccurrenceId,
-    sourceGeometryObjectIds: geometryIds(item),
-    analysisProfileSha256: digest,
-  }) })));
+async function geometrySemanticDigest(item, analysis) {
+  const triangles = (analysis?.triangles || []).map((triangle) => triangle.points
+    .map((point) => point.map((value) => value.toPrecision(17)).join(','))
+    .sort().join(';')).sort();
+  const fallback = item.selections.map((selection) => ({
+    geometryObjectId: selection.geometry.geometryObjectId,
+    buffers: selection.buffers.map((buffer) => ({ role: buffer.role,
+      sha256: buffer.descriptor.sha256 })).sort((left, right) => (
+      left.role < right.role ? -1 : left.role > right.role ? 1 : 0)),
+  })).sort((left, right) => left.geometryObjectId < right.geometryObjectId ? -1 : 1);
+  return sha256Hex(`fbx-support-geometry-semantic/v1\0${canonicalJson({
+    triangles, shellCount: analysis?.shellCount || 0, fallback: triangles.length ? [] : fallback,
+  })}`);
+}
+
+async function attachCandidateIds(inventory, analysisByOccurrence, zoneGeometryEvidence, digest) {
+  return Promise.all(inventory.map(async (item) => {
+    const analysis = analysisByOccurrence.get(item.occurrence.sourceOccurrenceId);
+    const semanticDigest = await geometrySemanticDigest(item, analysis);
+    return Object.freeze({ ...item, geometrySemanticDigest: semanticDigest,
+      candidateId: await candidateId({
+        sourceSha256: zoneGeometryEvidence.sourceIdentity.sha256,
+        sourceZoneGeometryArtifactId: zoneGeometryEvidence.artifactId,
+        sourceOccurrenceId: item.occurrence.sourceOccurrenceId,
+        sourceGeometryObjectIds: geometryIds(item), geometrySemanticDigest: semanticDigest,
+        analysisProfileSha256: digest,
+      }) });
+  }));
 }
 
 function dispositionRecord(item, terminal, analysis = null) {
@@ -54,6 +74,7 @@ function dispositionRecord(item, terminal, analysis = null) {
     sourceOccurrenceId: item.occurrence.sourceOccurrenceId,
     sourceModelObjectId: item.occurrence.sourceModelObjectId,
     sourceGeometryObjectIds: Object.freeze(geometryIds(item)),
+    geometrySemanticDigest: item.geometrySemanticDigest,
     inventoryDisposition: item.inventoryDisposition,
     terminalDisposition: terminal.terminalDisposition,
     geometryDisposition: analysis?.geometryDisposition || 'NOT_APPLICABLE',
@@ -68,10 +89,15 @@ function candidateForMember(member, candidates) {
 }
 
 async function attachAssemblyIdentity(assembly, candidates, zoneGeometryEvidence) {
-  const candidateIds = assembly.members.map((member) => candidateForMember(member, candidates).candidateId).sort();
+  const members = assembly.members.map((member) => candidateForMember(member, candidates));
+  const candidateIds = members.map((member) => member.candidateId).sort();
+  const geometrySemanticDigests = members.map((member) => member.geometrySemanticDigest).sort();
+  const semanticDigest = await sha256Hex(`fbx-support-assembly-geometry/v1\0${canonicalJson(
+    geometrySemanticDigests)}`);
   return Object.freeze({ ...assembly, candidateIds: Object.freeze(candidateIds),
+    geometrySemanticDigest: semanticDigest,
     supportAssemblyId: await assemblyId({ sourceZoneGeometryArtifactId: zoneGeometryEvidence.artifactId,
-      candidateIds }) });
+      candidateIds, geometrySemanticDigest: semanticDigest }) });
 }
 
 function contactEvidence(association) {
@@ -157,10 +183,13 @@ async function admittedSupport(assembly, hostResult, identifiedHosts, profile, s
   return Object.freeze({
     supportId: id,
     supportAssemblyId: assembly.supportAssemblyId,
+    assemblyId: assembly.supportAssemblyId,
     candidateIds: [...assembly.candidateIds],
     ...source,
     supportClass: 'GENERIC_SUPPORT',
     supportSubtypeDisposition: 'NOT_EVALUATED',
+    orientationDisposition: 'EVIDENCE_ONLY_NO_RESTRAINT_INFERENCE',
+    geometrySemanticDigest: assembly.geometrySemanticDigest,
     supportTagEvidence: evidence.tags,
     worldPositionMm: witnessMedoid(hostResult.associations),
     positionAuthority: 'CONTACT_WITNESS_MEDOID',
@@ -199,17 +228,19 @@ export async function runFbxSupportAnalysis({
   await validateSourceGraphBinding(zoneGeometryEvidence, sourceGraph);
   validateHostBindings(zoneGeometryEvidence, pipeClassifications);
   const digest = await profileSha256(profile);
-  const inventory = await attachCandidateIds(inventorySupportCandidates({
+  const rawInventory = inventorySupportCandidates({
     zoneGeometryEvidence, selections, pipeClassifications,
-  }), zoneGeometryEvidence, digest);
-  const analyses = inventory.map((item) => analyseCandidateGeometry(item, profile)).filter(Boolean);
+  });
+  const analyses = rawInventory.map((item) => analyseCandidateGeometry(item, profile)).filter(Boolean);
+  const analysisByOccurrence = new Map(analyses.map((item) => (
+    [item.item.occurrence.sourceOccurrenceId, item]
+  )));
+  const inventory = await attachCandidateIds(rawInventory, analysisByOccurrence,
+    zoneGeometryEvidence, digest);
   const triangleCount = analyses.reduce((sum, item) => sum + item.triangles.length, 0);
   if (triangleCount > profile.maximumDerivedTrianglesPerZone) {
     throw new Error('BLOCKED_SUPPORT_RESOURCE zone triangle limit exceeded.');
   }
-  const analysisByOccurrence = new Map(analyses.map((item) => (
-    [item.item.occurrence.sourceOccurrenceId, item]
-  )));
   const dispositions = inventory.map((item) => {
     const analysis = analysisByOccurrence.get(item.occurrence.sourceOccurrenceId);
     const terminal = terminalForInventory(item) || terminalForGeometry(analysis) || {

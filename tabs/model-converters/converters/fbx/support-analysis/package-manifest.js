@@ -13,6 +13,7 @@ export async function digestEntries(entries) {
     artifactId: entry.artifactId || null,
     bufferRole: entry.bufferRole || null,
     sourceGeometryObjectId: entry.sourceGeometryObjectId || null,
+    elementCount: entry.elementCount ?? null,
   })));
 }
 
@@ -28,7 +29,8 @@ function bufferEntries(digests) {
     path: entry.path, bufferId: `fbx-engineering-buffer:${entry.sha256}`,
     sourceGeometryObjectId: entry.sourceGeometryObjectId, bufferRole: entry.bufferRole,
     mediaType: entry.mediaType, elementType: entry.bufferRole === 'control-points-mm'
-      ? 'Float64' : 'Uint32', endianness: 'little', byteLength: entry.byteLength,
+      ? 'Float64' : 'Uint32', endianness: 'little', elementCount: entry.elementCount,
+    byteLength: entry.byteLength,
     sha256: entry.sha256,
   }));
 }

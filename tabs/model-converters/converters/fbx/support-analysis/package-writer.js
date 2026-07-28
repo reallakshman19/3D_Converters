@@ -37,7 +37,7 @@ function binaryEntries(selections) {
   return selections.flatMap((selection) => selection.buffers.map((item) => ({
     path: bufferPath(selection, item), bytes: bytes(item.buffer.bytes),
     mediaType: 'application/octet-stream', bufferRole: item.role,
-    sourceGeometryObjectId: selection.geometry.geometryObjectId,
+    elementCount: item.descriptor.count, sourceGeometryObjectId: selection.geometry.geometryObjectId,
   })));
 }
 
