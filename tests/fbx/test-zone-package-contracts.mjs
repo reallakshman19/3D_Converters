@@ -73,6 +73,9 @@ const auditSchema = await loadJson('../../contracts/fbx/fbx-selected-zone-packag
     mutate(audit, (item) => {
       item.files.find((file) => file.disposition === 'PRESENT').sha256 = null;
     }),
+    mutate(audit, (item) => {
+      item.supportSemantics = 'CANDIDATE_EVIDENCE_ONLY';
+    }),
     mutate(audit, (item) => { item.unknown = true; }),
   ];
   for (const instance of malformedAudits) {
