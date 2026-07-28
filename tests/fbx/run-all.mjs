@@ -1,5 +1,6 @@
 const tests = [
   'test-parser.mjs',
+  'test-taya-parser-runtime-guard.mjs',
   'test-fbx-source-graph-preview.mjs',
   'test-fbx-source-graph-preview-zones.mjs',
   'test-fbx-source-graph-zone-export.mjs',
