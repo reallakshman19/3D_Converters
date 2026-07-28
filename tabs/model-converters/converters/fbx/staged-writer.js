@@ -248,8 +248,16 @@ function branchReferences(segmentIndex, ordered, cuts, entryById) {
   return result;
 }
 
-export function writeNativeStagedJsonV2(entries, resolvedByEntry, links) {
+function v2Metadata(options = {}) {
+  return {
+    mappingSchema: options.mappingSchema || 'FbxStagedMapping.v2',
+    connectivityAuthority: options.connectivityAuthority || 'explicit-mapping-port-links',
+  };
+}
+
+export function writeNativeStagedJsonV2(entries, resolvedByEntry, links, options = {}) {
   const graph = graphV2(entries, resolvedByEntry, links), { components } = v2Segments(entries, graph);
+  const metadata = v2Metadata(options);
   const branchNames = components.map((_, index) => `FBX Mapping Branch ${index + 1}`);
   const cutsByTee = new Map(graph.cuts.map((cut) => [cut.tee.entryId, branchNames[cut.targetSegment]]));
   return components.map((segment, index) => {
@@ -276,8 +284,7 @@ export function writeNativeStagedJsonV2(entries, resolvedByEntry, links) {
     return {
       type: 'BRANCH', id, name: branchNames[index], attributes: {
         REF: id, HPOS: children[0].attributes.APOS, TPOS: children.at(-1).attributes.LPOS,
-        ...references, sourceFormat: 'FBX', mappingSchema: 'FbxStagedMapping.v2',
-        connectivityAuthority: 'explicit-mapping-port-links',
+        ...references, sourceFormat: 'FBX', ...metadata,
       }, children,
     };
   });
