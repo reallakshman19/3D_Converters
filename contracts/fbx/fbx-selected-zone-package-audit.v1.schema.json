@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "FbxSelectedZonePackageAudit.v1",
+  "title": "FbxSelectedZonePackageAudit.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "auditId",
+    "packageStatus",
+    "producerRevision",
+    "sourceIdentity",
+    "parserIdentity",
+    "selectedSourceGraphSha256",
+    "sourceGeometryBundleSourceGraphSha256",
+    "sourceGeometryBundleDigest",
+    "selectedZone",
+    "authority",
+    "files"
+  ],
+  "properties": {
+    "schema": { "const": "FbxSelectedZonePackageAudit.v1" },
+    "auditId": { "$ref": "#/$defs/hash" },
+    "packageStatus": { "const": "EVIDENCE_READY" },
+    "producerRevision": { "$ref": "#/$defs/revision" },
+    "sourceIdentity": { "$ref": "#/$defs/sourceIdentity" },
+    "parserIdentity": { "$ref": "#/$defs/parserIdentity" },
+    "selectedSourceGraphSha256": { "$ref": "#/$defs/hash" },
+    "sourceGeometryBundleSourceGraphSha256": { "$ref": "#/$defs/hash" },
+    "sourceGeometryBundleDigest": { "$ref": "#/$defs/hash" },
+    "selectedZone": { "$ref": "#/$defs/selectedZone" },
+    "authority": { "$ref": "#/$defs/authority" },
+    "files": {
+      "type": "array",
+      "minItems": 6,
+      "items": { "$ref": "#/$defs/fileRecord" },
+      "allOf": [
+        { "contains": { "properties": { "role": { "const": "SOURCE_GRAPH" } }, "required": ["role"] }, "minContains": 1 },
+        { "contains": { "properties": { "role": { "const": "ZONE_GEOMETRY_EVIDENCE" } }, "required": ["role"] }, "minContains": 1 },
+        { "contains": { "properties": { "role": { "const": "GEOMETRY_MANIFEST" } }, "required": ["role"] }, "minContains": 1 },
+        { "contains": { "properties": { "role": { "const": "GEOMETRY_BUFFER" } }, "required": ["role"] }, "minContains": 3 },
+        { "contains": { "properties": { "role": { "const": "STAGED_JSON" } }, "required": ["role"] }, "minContains": 1 },
+        { "contains": { "properties": { "role": { "const": "SUPPORT_EVIDENCE" } }, "required": ["role"] }, "minContains": 1 }
+      ]
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "byteLength", "fbxVersion"],
+      "properties": {
+        "sha256": { "$ref": "#/$defs/hash" },
+        "byteLength": { "type": "integer", "minimum": 1 },
+        "fbxVersion": { "type": "integer", "minimum": 3000, "maximum": 7700 }
+      }
+    },
+    "parserIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenanceSchema", "upstreamRevision", "sourceSha256", "wasmSha256"],
+      "properties": {
+        "provenanceSchema": { "type": "string", "minLength": 1 },
+        "upstreamRevision": { "$ref": "#/$defs/revision" },
+        "sourceSha256": { "$ref": "#/$defs/hash" },
+        "wasmSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "selectedZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zoneId", "label"],
+      "properties": {
+        "zoneId": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engineeringSemantics", "occurrenceAndTransform", "topologyAndBuffers", "supportSemantics"],
+      "properties": {
+        "engineeringSemantics": { "enum": ["selected-zone.staged.json", "OMITTED_BLOCKED"] },
+        "occurrenceAndTransform": { "const": "zone-geometry-evidence.json" },
+        "topologyAndBuffers": { "const": "geometry-bundle.manifest.json" },
+        "supportSemantics": { "const": "NOT_AUTHORIZED" }
+      }
+    },
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "required", "status", "schema", "bufferId", "sha256", "byteLength", "reason"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "role": {
+          "enum": ["SOURCE_GRAPH", "ZONE_GEOMETRY_EVIDENCE", "GEOMETRY_MANIFEST", "GEOMETRY_BUFFER", "STAGED_JSON", "SUPPORT_EVIDENCE"]
+        },
+        "required": { "type": "boolean" },
+        "status": { "enum": ["PRESENT", "OMITTED_BLOCKED"] },
+        "schema": { "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+        "bufferId": { "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+        "sha256": { "oneOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "reason": { "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "PRESENT" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "sha256": { "$ref": "#/$defs/hash" },
+              "reason": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "OMITTED_BLOCKED" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "required": { "const": false },
+              "sha256": { "type": "null" },
+              "byteLength": { "const": 0 },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "role": { "const": "SOURCE_GRAPH" } }, "required": ["role"] },
+          "then": { "properties": { "path": { "const": "source-graph.selected-zone.json" }, "status": { "const": "PRESENT" }, "required": { "const": true }, "schema": { "const": "FbxSourceGraph.v2" }, "bufferId": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "ZONE_GEOMETRY_EVIDENCE" } }, "required": ["role"] },
+          "then": { "properties": { "path": { "const": "zone-geometry-evidence.json" }, "status": { "const": "PRESENT" }, "required": { "const": true }, "schema": { "const": "FbxZoneGeometryEvidence.v1" }, "bufferId": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "GEOMETRY_MANIFEST" } }, "required": ["role"] },
+          "then": { "properties": { "path": { "const": "geometry-bundle.manifest.json" }, "status": { "const": "PRESENT" }, "required": { "const": true }, "schema": { "const": "FbxSelectedZoneGeometryManifest.v1" }, "bufferId": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "GEOMETRY_BUFFER" } }, "required": ["role"] },
+          "then": { "properties": { "path": { "type": "string", "pattern": "^geometry-buffers/[0-9]+\\.(control-points-mm|polygon-offsets|polygon-vertex-indices)\\.bin$" }, "status": { "const": "PRESENT" }, "required": { "const": true }, "schema": { "type": "null" }, "bufferId": { "type": "string", "pattern": "^geometry/[0-9]+/(control-points-mm|polygon-offsets|polygon-vertex-indices)$" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "STAGED_JSON" } }, "required": ["role"] },
+          "then": { "properties": { "path": { "const": "selected-zone.staged.json" }, "required": { "const": false }, "bufferId": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "SUPPORT_EVIDENCE" } }, "required": ["role"] },
+          "then": { "properties": { "path": { "const": "support-evidence.json" }, "status": { "const": "OMITTED_BLOCKED" }, "required": { "const": false }, "schema": { "type": "null" }, "bufferId": { "type": "null" } } }
+        }
+      ]
+    }
+  }
+}
