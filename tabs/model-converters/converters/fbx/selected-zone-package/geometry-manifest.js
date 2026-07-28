@@ -16,6 +16,14 @@ const TOP_KEYS = [
   'sourceGeometryBundleDigest', 'zoneGeometryEvidenceId', 'selectedZone',
   'selectedGeometryIds', 'geometries', 'buffers',
 ];
+const GEOMETRY_KEYS = [
+  'geometryObjectId', 'sourceObjectId', 'controlPointCount', 'polygonCount',
+  'polygonVertexCount', 'emptyPolygonCount', 'pointPolygonCount',
+  'linePolygonCount', 'reversedWinding', 'bufferIds',
+];
+const SOURCE_KEYS = ['sha256', 'byteLength', 'fbxVersion'];
+const PARSER_KEYS = ['provenanceSchema', 'upstreamRevision', 'sourceSha256', 'wasmSha256'];
+const ZONE_KEYS = ['zoneId', 'label'];
 const BUFFER_KEYS = [
   'bufferId', 'geometryObjectId', 'role', 'scalarType', 'componentCount',
   'count', 'alignment', 'byteLength', 'sha256', 'packagePath',
@@ -48,9 +56,19 @@ function sorted(values) {
   return [...values].map(String).sort();
 }
 
+function graphSourceIds(graph) {
+  const ids = new Set();
+  for (const occurrence of graph.occurrences) ids.add(String(occurrence.sourceModelObjectId));
+  for (const geometry of graph.geometries) {
+    ids.add(String(geometry.geometryObjectId));
+    ids.add(String(geometry.sourceObjectId));
+  }
+  return ids;
+}
+
 function validateSelectedSourceGraph(graph, zoneEvidence) {
-  if (graph?.schema !== 'FbxSourceGraph.v2' || !Array.isArray(graph.occurrences)
-    || !Array.isArray(graph.geometries)) {
+  if (graph?.schema !== 'FbxSourceGraph.v2' || !Array.isArray(graph.sourceObjects)
+    || !Array.isArray(graph.occurrences) || !Array.isArray(graph.geometries)) {
     failSelectedZonePackage('BLOCKED_SOURCE_GRAPH_BINDING', 'Expected selected-zone FbxSourceGraph.v2.');
   }
   const expectedOccurrences = sorted([
@@ -58,9 +76,17 @@ function validateSelectedSourceGraph(graph, zoneEvidence) {
   ]);
   const observedOccurrences = sorted(graph.occurrences.map((item) => item.sourceOccurrenceId));
   const observedGeometries = sorted(graph.geometries.map((item) => item.geometryObjectId));
-  if (canonicalJson(expectedOccurrences) !== canonicalJson(observedOccurrences)
-    || canonicalJson(sorted(zoneEvidence.selectedGeometryIds || [])) !== canonicalJson(observedGeometries)) {
-    failSelectedZonePackage('BLOCKED_SOURCE_GRAPH_BINDING', 'Selected source graph scope differs from zone evidence.');
+  const expectedSources = graphSourceIds(graph);
+  const observedSources = new Set(graph.sourceObjects.map((item) => String(item.sourceObjectId)));
+  const wrongScope = canonicalJson(expectedOccurrences) !== canonicalJson(observedOccurrences)
+    || canonicalJson(sorted(zoneEvidence.selectedGeometryIds || [])) !== canonicalJson(observedGeometries)
+    || canonicalJson(sorted(expectedSources)) !== canonicalJson(sorted(observedSources));
+  if (wrongScope) failSelectedZonePackage('BLOCKED_SOURCE_GRAPH_BINDING',
+    'Selected source graph scope differs from zone evidence.');
+  for (const edge of graph.connectionEdges || []) {
+    if (!expectedSources.has(String(edge.sourceObjectId)) || !expectedSources.has(String(edge.destinationObjectId))) {
+      failSelectedZonePackage('BLOCKED_SOURCE_GRAPH_BINDING', 'Selected source graph contains a sibling connection.');
+    }
   }
 }
 
@@ -111,6 +137,31 @@ function selectBuffers(manifest, ids) {
   }));
 }
 
+function validateManifestIdentities(manifest) {
+  exactObject(manifest.sourceIdentity, SOURCE_KEYS, 'selected-zone source identity');
+  exactObject(manifest.parserIdentity, PARSER_KEYS, 'selected-zone parser identity');
+  exactObject(manifest.selectedZone, ZONE_KEYS, 'selected zone');
+  if (!HASH.test(manifest.sourceIdentity.sha256 || '') || !HASH.test(manifest.parserIdentity.sourceSha256 || '')
+    || !HASH.test(manifest.parserIdentity.wasmSha256 || '')) {
+    failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Selected-zone identity digest is invalid.');
+  }
+}
+
+function validateGeometryDescriptor(item) {
+  exactObject(item, GEOMETRY_KEYS, 'selected-zone geometry descriptor');
+  if (!/^\d+$/.test(item.geometryObjectId) || !/^\d+$/.test(item.sourceObjectId)) {
+    failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Selected geometry identity is invalid.');
+  }
+}
+
+function validateBufferDescriptor(item, geometryIds) {
+  exactObject(item, BUFFER_KEYS, 'selected-zone buffer descriptor');
+  if (!geometryIds.has(item.geometryObjectId) || !HASH.test(item.sha256 || '')
+    || item.packagePath !== packagePath(item)) {
+    failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Selected buffer descriptor is invalid.');
+  }
+}
+
 function validateSelectedCollections(manifest) {
   if (!Array.isArray(manifest.selectedGeometryIds) || !Array.isArray(manifest.geometries)
     || !Array.isArray(manifest.buffers) || !manifest.selectedGeometryIds.length) {
@@ -122,11 +173,12 @@ function validateSelectedCollections(manifest) {
     || manifest.buffers.length !== geometryIds.length * 3) {
     failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Selected geometry conservation is invalid.');
   }
-  const paths = new Set();
+  manifest.geometries.forEach(validateGeometryDescriptor);
+  const geometryIdSet = new Set(geometryIds), paths = new Set();
   for (const item of manifest.buffers) {
-    exactObject(item, BUFFER_KEYS, 'selected-zone buffer descriptor');
-    if (item.packagePath !== packagePath(item) || paths.has(item.packagePath)) {
-      failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Selected buffer package path is invalid.');
+    validateBufferDescriptor(item, geometryIdSet);
+    if (paths.has(item.packagePath)) {
+      failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Selected buffer package path is duplicate.');
     }
     paths.add(item.packagePath);
   }
@@ -157,6 +209,7 @@ export async function validateSelectedZoneGeometryManifest(manifest) {
   if (!ARTIFACT_ID.test(manifest.zoneGeometryEvidenceId || '')) {
     failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Zone evidence identity is invalid.');
   }
+  validateManifestIdentities(manifest);
   validateSelectedCollections(manifest);
   if (await calculateSelectedZoneGeometryManifestDigest(manifest) !== manifest.manifestDigest) {
     failSelectedZonePackage('BLOCKED_GEOMETRY_MANIFEST', 'Selected-zone geometry manifest digest is invalid.');
