@@ -2,6 +2,7 @@ import { getConverterById } from '../../../converter-registry.js?v=20260617-basi
 import { parseFbxGeometryBundleInWorker } from '../geometry-transport.js';
 import { analyseFbxZoneGeometry } from './analyse-zone.js';
 import { createZoneAnalysisController } from './analysis-controller.js';
+import { buildFbxZoneWireframeMetaText } from './wireframe-preview.js';
 
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const RUN_EVENT = 'model-converters:fbx-zone-geometry-run';
@@ -118,7 +119,7 @@ function renderAnalysisState(controller, state) {
   controller.disclaimer.textContent = state.autoPipeStatus === 'STAGEDJSON_PASS'
     ? 'PIPE-only internal authority passed; selected-zone StagedJSON is available.'
     : state.phase === 'complete'
-      ? `Geometry evidence is available; StagedJSON remains blocked by ${state.autoPipeStatus}.`
+      ? `Geometry wireframe/evidence is available; StagedJSON remains blocked by ${state.autoPipeStatus}.`
       : 'PIPE-only StagedJSON requires complete deterministic classification and connectivity.';
   updateAvailability(controller);
 }
@@ -133,7 +134,7 @@ function createController(container, wrap) {
     pipeDownload: wrap.querySelector('[data-fbx-internal-pipe-download]'),
     status: wrap.querySelector('[data-fbx-zone-geometry-status]'),
     disclaimer: wrap.querySelector('[data-fbx-derived-port-disclaimer]'),
-    project: null, graph: null, runInput: RUN_INPUTS.get(container) || null,
+    project: null, graph: null, renderer: null, runInput: RUN_INPUTS.get(container) || null,
     analysis: null,
   };
   controller.analysis = createZoneAnalysisController({
@@ -154,6 +155,7 @@ function ensureController(container) {
 
 function invalidate(controller, reason) {
   controller.analysis.invalidate(reason);
+  controller.renderer?._3DModelConv_clearStp?.();
   dispatchAutoPipe(controller, { conversionStatus: '', zoneId: '' });
   updateAvailability(controller);
 }
@@ -205,6 +207,14 @@ function publishAnalysisOutput(controller, selection, result) {
   });
 }
 
+function renderWireframePreview(controller, result) {
+  const wireframe = result?.wireframePreview;
+  if (!wireframe || !controller.renderer || !controller.project) return;
+  controller.renderer._3DModelConv_overlayStp(wireframe.members);
+  const meta = controller.container.querySelector?.('#model-converters-preview-meta');
+  if (meta) meta.textContent = buildFbxZoneWireframeMetaText(controller.project, wireframe);
+}
+
 async function runAnalysis(controller) {
   const selection = selectedZone(controller);
   if (!selection.zoneId || !controller.graph || !controller.runInput?.sourceBytes) return;
@@ -212,7 +222,10 @@ async function runAnalysis(controller) {
   try {
     const result = await controller.analysis.run({ bytes: controller.runInput.sourceBytes,
       sourceGraph: controller.graph, zoneId: selection.zoneId });
-    if (!result?.stale) publishAnalysisOutput(controller, selection, result);
+    if (!result?.stale) {
+      renderWireframePreview(controller, result);
+      publishAnalysisOutput(controller, selection, result);
+    }
   } catch { /* Controller publishes the closed terminal state. */ }
 }
 
@@ -239,7 +252,8 @@ function bindControls(controller) {
 }
 
 function handlePreview(container, event) {
-  const project = event.detail?.project, controller = ensureController(container);
+  const project = event.detail?.project, renderer = event.detail?.renderer;
+  const controller = ensureController(container);
   if (!controller) return;
   if (project?.id !== 'fbx-source-graph-preview' || !project.previewSourceGraph) {
     controller.project = null; controller.graph = null;
@@ -247,6 +261,7 @@ function handlePreview(container, event) {
   }
   const priorGraph = controller.graph, priorZone = controller.project?.selectedZoneId || '';
   controller.project = project; controller.graph = project.previewSourceGraph;
+  controller.renderer = renderer || controller.renderer;
   if (priorGraph && (priorGraph !== controller.graph || priorZone !== (project.selectedZoneId || ''))) {
     invalidate(controller, 'Selected zone or FBX source changed; prior analysis was cleared.');
   }
