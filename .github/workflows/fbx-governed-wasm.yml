@@ -80,6 +80,7 @@ jobs:
 
       - name: Generate two-build qualification evidence
         run: |
+          export PATH="/c/Windows/System32:$PATH"
           node scripts/fbx/qualify-ufbx-wasm.mjs .qualification/ufbx-wasm
 
       - name: Upload candidate qualification artifacts
