@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 
 import {
   resolveXmlCiiMaterialCodeFromMap,
@@ -100,4 +101,12 @@ test('authority applies to all Preview branch rows without changing node rows', 
   const result = applyPreviewMaterialCodeAuthority({ config, result: { branchRows: [baseRow], nodeRows } });
   assert.equal(result.branchRows[0].materialCode, '338');
   assert.equal(result.nodeRows, nodeRows);
+});
+
+test('Preview wrapper chains Material Code authority before Rating authority', async () => {
+  const source = await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js', import.meta.url), 'utf8');
+  assert.match(source, /applyPreviewMaterialCodeAuthority/);
+  assert.match(source, /result: wallResult/);
+  assert.match(source, /result: materialResult/);
+  assert(source.indexOf('applyPreviewMaterialCodeAuthority') < source.lastIndexOf('applyPreviewRatingAuthority'));
 });
