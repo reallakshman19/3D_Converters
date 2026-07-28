@@ -50,9 +50,8 @@ export async function buildPackageArchive(files) {
   if (headerBytes.byteLength > FBX_ZONE_PACKAGE_LIMITS.maxArchiveHeaderBytes) {
     fail('ZONE_PACKAGE_LIMIT_EXCEEDED', `archive header exceeds ${FBX_ZONE_PACKAGE_LIMITS.maxArchiveHeaderBytes} bytes.`);
   }
-  const totalLength = MAGIC.byteLength + 4 + headerBytes.byteLength + bodyLength;
-  const result = new Uint8Array(totalLength), headerLength = new Uint8Array(4);
-  new DataView(headerLength.buffer).setUint32(0, headerBytes.byteLength, false);
+  const result = new Uint8Array(MAGIC.byteLength + 4 + headerBytes.byteLength + bodyLength);
+  const headerLength = new Uint8Array(4); new DataView(headerLength.buffer).setUint32(0, headerBytes.byteLength, false);
   let cursor = 0; result.set(MAGIC, cursor); cursor += MAGIC.byteLength;
   result.set(headerLength, cursor); cursor += 4; result.set(headerBytes, cursor); cursor += headerBytes.byteLength;
   for (const file of normalized) { result.set(file.bytes, cursor); cursor += file.bytes.byteLength; }
@@ -79,7 +78,7 @@ function validatedEntries(header, bodyLength) {
     fail('ZONE_PACKAGE_INVALID_ARCHIVE', 'archive directory metadata is invalid.');
   }
   const seen = new Set(); let expectedOffset = 0;
-  return header.entries.map((entry) => {
+  const entries = header.entries.map((entry) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)
         || Object.keys(entry).sort().join('\0') !== ['length', 'offset', 'path', 'sha256'].sort().join('\0')
         || !safePath(entry.path) || seen.has(entry.path)
@@ -91,6 +90,8 @@ function validatedEntries(header, bodyLength) {
     if (expectedOffset > bodyLength) fail('ZONE_PACKAGE_INVALID_ARCHIVE', `archive entry ${entry.path} exceeds the body.`);
     return entry;
   });
+  if (expectedOffset !== bodyLength) fail('ZONE_PACKAGE_INVALID_ARCHIVE', 'archive directory does not cover the body exactly.');
+  return entries;
 }
 export async function readPackageArchive(bytes) {
   const view = bytesView(bytes), { header, bodyStart } = parseHeader(view);

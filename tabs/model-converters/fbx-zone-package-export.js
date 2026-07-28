@@ -35,16 +35,16 @@ export function installFbxZonePackageExport(container, getPackageInputs = null) 
   let latestInputs = null;
   const provided = typeof getPackageInputs === 'function' ? getPackageInputs : null;
   const update = (inputs) => {
-    latestInputs = inputs || null; button.disabled = !latestInputs && !provided;
-    reportStatus(container, latestInputs || provided
+    latestInputs = inputs || null; button.disabled = !latestInputs;
+    reportStatus(container, latestInputs
       ? 'Selected-zone package is ready to build.'
       : 'Analyse a selected FBX zone before exporting.');
   };
   window.addEventListener(PACKAGE_INPUT_EVENT, (event) => update(event.detail?.inputs || null));
   update(null);
   button.addEventListener('click', () => {
-    Promise.resolve(provided ? provided() : latestInputs)
-      .then((inputs) => exportSelectedZonePackage(container, inputs))
+    Promise.resolve(provided ? provided() : null)
+      .then((inputs) => exportSelectedZonePackage(container, inputs || latestInputs))
       .catch((error) => reportStatus(container, `Zone package export failed: ${error?.message || error}`));
   });
 }
