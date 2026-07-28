@@ -45,7 +45,7 @@ export function promoteNoMappingJsonOutput(result, inputName, evidence = {}) {
   if (outputs.some((output) => output?.name === outputName)) return result;
   const logs = result?.logs || {};
   const tags = unique(['PARSE_PASS', OPTIONAL_MAPPING_ABSENT, SOURCE_GRAPH_JSON_PASS, ...(evidence.diagnostics || [])]);
-  return { ...result, ok: true, conversionStatus: SOURCE_GRAPH_JSON_PASS,
+  return { ...result, ok: true, blocked: false, conversionStatus: SOURCE_GRAPH_JSON_PASS,
     outputs: [{ ...graph, name: outputName }, ...outputs.map((output) => promotedReport(output, SOURCE_GRAPH_JSON_PASS, tags))],
     logs: { stdout: unique([...tags, ...(logs.stdout || [])]), stderr: unique([...(logs.stderr || []), ...(evidence.errors || [])]) } };
 }
@@ -96,7 +96,7 @@ function promoteWholeModelAutoPipeOutput(result, inputName, autoPipe) {
     status === STAGEDJSON_PARTIAL_PASS ? 'WHOLE_MODEL_AUTO_PIPE_PARTIAL' : 'WHOLE_MODEL_AUTO_PIPE_PASS',
     status, ...evidence.diagnostics]);
   const outputName = `${baseName(inputName)}.json`;
-  return { ...result, ok: true, conversionStatus: status,
+  return { ...result, ok: true, blocked: false, conversionStatus: status,
     outputs: [{ name: outputName, text: autoPipe.stagedJsonText },
       ...outputs.filter((output) => output?.name !== outputName).map((output) => promotedReport(output, status, tags))],
     logs: { stdout: unique([...tags, ...(result?.logs?.stdout || [])]),
@@ -127,7 +127,8 @@ export async function run(context = {}) {
     parse: (bytes) => parseFbxInWorker(bytes, workerOptions(context)),
   });
   const result = secondary ? converted : await noMappingResult(context, primary, converted);
-  context.setStatus?.(result.conversionStatus,
-    [SOURCE_GRAPH_JSON_PASS, STAGEDJSON_PASS].includes(result.conversionStatus) ? 'ok' : 'warning');
+  const terminalState = result.blocked ? 'bad'
+    : [SOURCE_GRAPH_JSON_PASS, STAGEDJSON_PASS].includes(result.conversionStatus) ? 'ok' : 'warning';
+  context.setStatus?.(result.conversionStatus, terminalState);
   return result;
 }
