@@ -12,6 +12,14 @@ function _esc(val) {
     .replaceAll("'", '&#39;');
 }
 
+function _text(value) {
+  return value === undefined || value === null ? '' : String(value).trim();
+}
+
+function _hasOwn(object, key) {
+  return Boolean(object && Object.prototype.hasOwnProperty.call(object, key));
+}
+
 function _createHeaderHtml(mappedCount, unmappedCount) {
   return `
     <div class="bulk-map-header" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(135deg,rgba(30,41,59,0.9) 0%,rgba(15,23,42,0.95) 100%);border:1px solid rgba(99,102,241,0.35);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.25);transition:all 0.2s ease;">
@@ -51,7 +59,7 @@ function _createPatternCardHtml() {
     <div style="margin-top:14px;padding:12px 16px;background:rgba(15,23,42,0.6);border:1px dashed rgba(148,163,184,0.25);border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div style="display:flex;flex-direction:column;gap:2px;">
         <span style="font-size:12px;font-weight:600;color:#e2e8f0;">⚡ Bulk Pattern Rules (Unmapped Only)</span>
-        <span style="font-size:11px;color:#94a3b8;">Apply a regular expression transformation to assign line keys without overwriting existing mappings.</span>
+        <span style="font-size:11px;color:#94a3b8;">Apply a regular expression transformation only when the result is an exact loaded Line List key.</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <input type="text" class="bulk-pattern-regex" placeholder="Regex (e.g. ^/GLRD-(\\d+).*$)" style="width:190px;background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:12px;font-family:monospace;">
@@ -62,28 +70,51 @@ function _createPatternCardHtml() {
     </div>`;
 }
 
+export function branchLineMapRowState(row, map = {}) {
+  const branchName = _text(row?.branchName);
+  const explicitValue = _hasOwn(map, branchName) ? _text(map[branchName]) : '';
+  const resolvedValue = !row?.lineMiss && _text(row?.lineKey) && _text(row.lineKey) !== branchName
+    ? _text(row.lineKey)
+    : '';
+  if (explicitValue) {
+    return { branchName, value: explicitValue, status: 'override', mapped: true, explicit: true, resolvedValue };
+  }
+  if (resolvedValue) {
+    return { branchName, value: resolvedValue, status: 'resolved', mapped: true, explicit: false, resolvedValue };
+  }
+  return { branchName, value: '', status: 'unmapped', mapped: false, explicit: false, resolvedValue: '' };
+}
+
+function _statusBadge(status) {
+  if (status === 'override') return '<span class="bulk-row-status" style="color:#34d399;font-weight:600;font-size:11px;">✓ Explicit override</span>';
+  if (status === 'resolved') return '<span class="bulk-row-status" style="color:#93c5fd;font-weight:600;font-size:11px;">✓ Resolver mapped</span>';
+  return '<span class="bulk-row-status" style="color:#fbbf24;font-weight:500;font-size:11px;">⚠ Unmapped</span>';
+}
+
 function _createTableRows(branches, map, datalistId) {
-  return branches.map(b => {
-    const name = b.branchName || '';
-    const mapped = map[name] || '';
-    const isMapped = Boolean(mapped);
-    const badgeHtml = isMapped
-      ? '<span class="bulk-row-status" style="color:#34d399;font-weight:600;font-size:11px;">✓ Mapped</span>'
-      : '<span class="bulk-row-status" style="color:#fbbf24;font-weight:500;font-size:11px;">⚠ Unmapped</span>';
+  return branches.map((row) => {
+    const state = branchLineMapRowState(row, map);
+    const isResolverLocked = state.status === 'resolved';
+    const overrideButton = isResolverLocked
+      ? '<button type="button" class="bulk-enable-override-btn" style="margin-left:6px;background:#1e293b;color:#bfdbfe;border:1px solid #3b82f6;border-radius:5px;padding:5px 8px;font-size:11px;cursor:pointer;">Override</button>'
+      : '';
     return `
-      <tr class="bulk-map-tr" data-branch="${_esc(name)}" data-status="${isMapped ? 'mapped' : 'unmapped'}" style="border-bottom:1px solid rgba(148,163,184,0.1);background:transparent;transition:background 0.15s ease;">
-        <td style="padding:8px 12px;font-family:monospace;font-size:12px;color:#e2e8f0;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_esc(name)}">${_esc(name)}</td>
+      <tr class="bulk-map-tr" data-branch="${_esc(state.branchName)}" data-status="${state.mapped ? 'mapped' : 'unmapped'}" data-mapping-source="${_esc(state.status)}" data-has-explicit-override="${state.explicit ? 'true' : 'false'}" data-resolved-line-key="${_esc(state.resolvedValue)}" style="border-bottom:1px solid rgba(148,163,184,0.1);background:transparent;transition:background 0.15s ease;">
+        <td style="padding:8px 12px;font-family:monospace;font-size:12px;color:#e2e8f0;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_esc(state.branchName)}">${_esc(state.branchName)}</td>
         <td style="padding:6px 12px;">
-          <input type="text" list="${_esc(datalistId)}" class="bulk-line-input" data-branch="${_esc(name)}" value="${_esc(mapped)}" placeholder="Type or select line list key..." style="width:100%;max-width:320px;background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:5px;padding:5px 10px;font-size:12px;outline:none;">
+          <div style="display:flex;align-items:center;">
+            <input type="text" list="${_esc(datalistId)}" class="bulk-line-input" data-branch="${_esc(state.branchName)}" value="${_esc(state.value)}" placeholder="Type or select line list key..." ${isResolverLocked ? 'readonly aria-readonly="true"' : ''} style="width:100%;max-width:320px;background:${isResolverLocked ? '#111827' : '#0f172a'};color:#f8fafc;border:1px solid ${isResolverLocked ? '#475569' : '#334155'};border-radius:5px;padding:5px 10px;font-size:12px;outline:none;">
+            ${overrideButton}
+          </div>
         </td>
-        <td style="padding:8px 12px;text-align:center;">${badgeHtml}</td>
+        <td style="padding:8px 12px;text-align:center;">${_statusBadge(state.status)}</td>
       </tr>`;
   }).join('');
 }
 
 function _filterRows(tableBody, searchVal, statusVal) {
   const query = searchVal.trim().toLowerCase();
-  tableBody.querySelectorAll('.bulk-map-tr').forEach(tr => {
+  tableBody.querySelectorAll('.bulk-map-tr').forEach((tr) => {
     const branch = tr.getAttribute('data-branch') || '';
     const input = tr.querySelector('.bulk-line-input');
     const assigned = (input?.value || '').trim();
@@ -103,52 +134,145 @@ function _bindSearchFilters(container) {
   statusSelect?.addEventListener('change', doFilter);
 }
 
-function _bindPatternApply(container) {
+function _markPending(tr, label = '✏ Modified') {
+  tr.dataset.status = 'mapped';
+  tr.dataset.mappingSource = 'pending';
+  const input = tr.querySelector('.bulk-line-input');
+  if (input) {
+    input.style.borderColor = '#3b82f6';
+    input.style.backgroundColor = 'rgba(59,130,246,0.1)';
+  }
+  const statusEl = tr.querySelector('.bulk-row-status');
+  if (statusEl) {
+    statusEl.textContent = label;
+    statusEl.style.color = '#60a5fa';
+  }
+}
+
+function _bindExplicitOverrideControls(container) {
+  container.querySelectorAll('.bulk-enable-override-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      const tr = button.closest('.bulk-map-tr');
+      const input = tr?.querySelector('.bulk-line-input');
+      if (!tr || !input) return;
+      tr.dataset.overrideEnabled = 'true';
+      input.readOnly = false;
+      input.removeAttribute('aria-readonly');
+      button.remove();
+      _markPending(tr, '✏ Override enabled');
+      input.focus();
+      input.select();
+    });
+  });
+}
+
+function _loadedLineKeySet(lineListKeys) {
+  return new Set((Array.isArray(lineListKeys) ? lineListKeys : []).map(_text).filter(Boolean));
+}
+
+function _bindPatternApply(container, lineListKeys) {
   const applyBtn = container.querySelector('.bulk-apply-pattern-btn');
+  const allowedKeys = _loadedLineKeySet(lineListKeys);
   applyBtn?.addEventListener('click', () => {
     const regexText = container.querySelector('.bulk-pattern-regex')?.value?.trim();
     const replaceText = container.querySelector('.bulk-pattern-replace')?.value || '';
     if (!regexText) return alert('Please provide a valid Regular Expression pattern.');
     let re;
-    try { re = new RegExp(regexText); } catch (e) { return alert(`Invalid regex syntax: ${e.message}`); }
-    let count = 0;
-    container.querySelectorAll('.bulk-map-tr').forEach(tr => {
+    try { re = new RegExp(regexText); } catch (error) { return alert(`Invalid regex syntax: ${error.message}`); }
+    let appliedCount = 0;
+    let rejectedCount = 0;
+    container.querySelectorAll('.bulk-map-tr[data-mapping-source="unmapped"]').forEach((tr) => {
       const input = tr.querySelector('.bulk-line-input');
       if (!input || input.value.trim()) return;
       const branch = tr.getAttribute('data-branch') || '';
-      if (re.test(branch)) {
-        input.value = branch.replace(re, replaceText).trim();
-        input.style.borderColor = '#3b82f6';
-        input.style.backgroundColor = 'rgba(59,130,246,0.1)';
+      re.lastIndex = 0;
+      if (!re.test(branch)) return;
+      re.lastIndex = 0;
+      const candidate = branch.replace(re, replaceText).trim();
+      if (!allowedKeys.has(candidate)) {
+        rejectedCount += 1;
         const statusEl = tr.querySelector('.bulk-row-status');
-        if (statusEl) { statusEl.innerHTML = '✏ Modified'; statusEl.style.color = '#60a5fa'; }
-        count++;
+        if (statusEl) {
+          statusEl.textContent = `⚠ Not in Line List: ${candidate || 'blank'}`;
+          statusEl.style.color = '#fbbf24';
+        }
+        return;
       }
+      input.value = candidate;
+      _markPending(tr);
+      appliedCount += 1;
     });
-    alert(count ? `Applied pattern rule to ${count} unmapped branch${count === 1 ? '' : 'es'}. Click Save & Apply Mappings to save.` : 'No unmapped branches matched the pattern.');
+    const detail = [
+      appliedCount ? `Applied ${appliedCount} exact loaded key${appliedCount === 1 ? '' : 's'}.` : '',
+      rejectedCount ? `Rejected ${rejectedCount} result${rejectedCount === 1 ? '' : 's'} not present in the loaded Line List.` : '',
+    ].filter(Boolean).join(' ');
+    alert(detail || 'No genuinely unmapped branch matched the pattern.');
   });
+}
+
+function _regexEscape(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function _lineKeyMatchScore(branchName, lineKey) {
+  const branch = _text(branchName).toUpperCase();
+  const key = _text(lineKey).toUpperCase();
+  if (!branch || !key) return 0;
+  const keyParts = key.split(/[^A-Z0-9]+/).filter(Boolean);
+  const keyCompact = keyParts.join('');
+  if (!keyCompact) return 0;
+  const branchCompact = branch.replace(/[^A-Z0-9]+/g, '');
+  if (branchCompact === keyCompact) return 300000 + keyCompact.length;
+  const flexibleKey = keyParts.map(_regexEscape).join('[^A-Z0-9]*');
+  const boundaryMatch = new RegExp(`(^|[^A-Z0-9])${flexibleKey}(?=$|[^A-Z0-9])`).test(branch);
+  return boundaryMatch ? 200000 + keyCompact.length : 0;
+}
+
+export function resolveBranchLineKeySuggestion(branchName, lineListKeys = []) {
+  const candidates = [...new Set((Array.isArray(lineListKeys) ? lineListKeys : []).map(_text).filter(Boolean))]
+    .map((key) => ({ key, score: _lineKeyMatchScore(branchName, key) }))
+    .filter((candidate) => candidate.score > 0)
+    .sort((left, right) => right.score - left.score || right.key.length - left.key.length || left.key.localeCompare(right.key, undefined, { numeric: true }));
+  if (!candidates.length) return { status: 'none', key: '', candidates: [] };
+  const topScore = candidates[0].score;
+  const top = candidates.filter((candidate) => candidate.score === topScore);
+  if (top.length > 1) return { status: 'ambiguous', key: '', candidates: top.map((candidate) => candidate.key) };
+  return { status: 'match', key: top[0].key, candidates: [top[0].key] };
 }
 
 function _bindAutoSuggest(container, lineListKeys) {
   const suggestBtn = container.querySelector('.bulk-autosuggest-btn');
   suggestBtn?.addEventListener('click', () => {
     if (!Array.isArray(lineListKeys) || !lineListKeys.length) return alert('No master Line List keys loaded.');
-    let count = 0;
-    container.querySelectorAll('.bulk-map-tr').forEach(tr => {
+    let suggestedCount = 0;
+    let ambiguousCount = 0;
+    container.querySelectorAll('.bulk-map-tr[data-mapping-source="unmapped"]').forEach((tr) => {
       const input = tr.querySelector('.bulk-line-input');
       if (!input || input.value.trim()) return;
-      const branch = (tr.getAttribute('data-branch') || '').toUpperCase();
-      const match = lineListKeys.find(k => k && branch.includes(String(k).toUpperCase().replace(/[^A-Z0-9-]/g, '')));
-      if (match) {
-        input.value = match;
-        input.style.borderColor = '#3b82f6';
-        input.style.backgroundColor = 'rgba(59,130,246,0.1)';
+      const branch = tr.getAttribute('data-branch') || '';
+      const result = resolveBranchLineKeySuggestion(branch, lineListKeys);
+      if (result.status === 'match') {
+        input.value = result.key;
+        _markPending(tr, '✨ Suggested');
+        suggestedCount += 1;
+        return;
+      }
+      if (result.status === 'ambiguous') {
+        ambiguousCount += 1;
+        tr.dataset.suggestAmbiguous = 'true';
         const statusEl = tr.querySelector('.bulk-row-status');
-        if (statusEl) { statusEl.innerHTML = '✨ Suggested'; statusEl.style.color = '#60a5fa'; }
-        count++;
+        if (statusEl) {
+          statusEl.textContent = `⚠ Ambiguous: ${result.candidates.join(' / ')}`;
+          statusEl.style.color = '#fbbf24';
+          statusEl.title = 'No mapping was assigned because multiple equally ranked Line List keys matched.';
+        }
       }
     });
-    alert(count ? `Auto-suggested line keys for ${count} unmapped branch${count === 1 ? '' : 'es'}. Verify and click Save.` : 'Could not auto-suggest keys for remaining unmapped branches.');
+    const detail = [
+      suggestedCount ? `Suggested ${suggestedCount} unambiguous mapping${suggestedCount === 1 ? '' : 's'}.` : '',
+      ambiguousCount ? `Blocked ${ambiguousCount} ambiguous result${ambiguousCount === 1 ? '' : 's'} for manual review.` : '',
+    ].filter(Boolean).join(' ');
+    alert(detail || 'No boundary-safe Line List key match was found for the remaining unmapped branches.');
   });
 }
 
@@ -157,21 +281,17 @@ function _bindSaveAction(container, config, onSaveConfig, onRebuildPreview) {
   saveBtn?.addEventListener('click', () => {
     if (!config.linelist) config.linelist = {};
     const newMap = { ...(config.linelist.branchLineKeyMap || {}) };
-    let savedCount = 0;
-    container.querySelectorAll('.bulk-line-input').forEach(input => {
-      const branch = input.getAttribute('data-branch');
-      const val = (input.value || '').trim();
-      if (!branch) return;
-      if (val) { newMap[branch] = val; savedCount++; }
+    container.querySelectorAll('.bulk-map-tr').forEach((tr) => {
+      const input = tr.querySelector('.bulk-line-input');
+      const branch = input?.getAttribute('data-branch') || '';
+      if (!input || !branch) return;
+      const source = tr.dataset.mappingSource || 'unmapped';
+      const hadExplicitOverride = tr.dataset.hasExplicitOverride === 'true';
+      const overrideEnabled = tr.dataset.overrideEnabled === 'true';
+      if (source === 'resolved' && !hadExplicitOverride && !overrideEnabled) return;
+      const value = input.value.trim();
+      if (value) newMap[branch] = value;
       else delete newMap[branch];
-      input.style.borderColor = '#334155';
-      input.style.backgroundColor = '#0f172a';
-      const tr = input.closest('tr');
-      const statusEl = tr?.querySelector('.bulk-row-status');
-      if (statusEl) {
-        statusEl.innerHTML = val ? '✓ Mapped' : '⚠ Unmapped';
-        statusEl.style.color = val ? '#34d399' : '#fbbf24';
-      }
     });
     config.linelist.branchLineKeyMap = newMap;
     if (typeof onSaveConfig === 'function') onSaveConfig(config);
@@ -192,13 +312,11 @@ function _bindHeaderToggle(header, body, chevron, hint) {
 export function renderBranchLineMapPanel(container, { branchRows = [], lineListKeys = [], config = {}, onSaveConfig, onRebuildPreview }) {
   if (!container || !Array.isArray(branchRows) || !branchRows.length) return;
   const currentMap = config.linelist?.branchLineKeyMap || {};
-  let mappedCount = 0, unmappedCount = 0;
-  for (const r of branchRows) {
-    if (currentMap[r.branchName] || (r.lineKey && !r.lineMiss && r.lineKey !== r.branchName)) mappedCount++;
-    else unmappedCount++;
-  }
+  const states = branchRows.map((row) => branchLineMapRowState(row, currentMap));
+  const mappedCount = states.filter((state) => state.mapped).length;
+  const unmappedCount = states.length - mappedCount;
   const datalistId = `bulk-ll-keys-${Math.random().toString(36).slice(2, 8)}`;
-  const datalistHtml = `<datalist id="${datalistId}">${(lineListKeys || []).map(k => `<option value="${_esc(k)}"></option>`).join('')}</datalist>`;
+  const datalistHtml = `<datalist id="${datalistId}">${(lineListKeys || []).map((key) => `<option value="${_esc(key)}"></option>`).join('')}</datalist>`;
   const rowsHtml = _createTableRows(branchRows, currentMap, datalistId);
 
   container.innerHTML = `
@@ -229,7 +347,8 @@ export function renderBranchLineMapPanel(container, { branchRows = [], lineListK
   const hint = container.querySelector('.bulk-toggle-hint');
   _bindHeaderToggle(header, body, chevron, hint);
   _bindSearchFilters(container);
-  _bindPatternApply(container);
+  _bindExplicitOverrideControls(container);
+  _bindPatternApply(container, lineListKeys);
   _bindAutoSuggest(container, lineListKeys);
   _bindSaveAction(container, config, onSaveConfig, onRebuildPreview);
 }
