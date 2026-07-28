@@ -28,7 +28,8 @@ export const MASTER_FIELDS = {
     configKey: 'pipingClass',
     fields: [
       { name: 'pipingClass', label: 'Piping Class', required: true, aliases: ['Piping Class', 'PIPING_CLASS', 'Class', 'SPEC', 'Spec'] },
-      { name: 'convertedBore', label: 'Converted Bore', required: true, aliases: ['convertedBore', 'Converted Bore', 'Size', 'DN', 'NB', 'Bore', 'NPS'] },
+      { name: 'nps', label: 'NPS (in)', aliases: ['NPS', 'NPS (in)', 'Size (NPS)', 'Nominal Pipe Size', 'Nominal Size', 'Size'] },
+      { name: 'convertedBore', label: 'Bore (mm)', required: true, aliases: ['Bore (mm)', 'Bore mm', 'BORE_MM', 'convertedBore', 'Converted Bore', 'DN', 'NB', 'Bore'] },
       { name: 'componentType', label: 'Component Type', aliases: ['Component Type', 'COMPONENT_TYPE', 'Type', 'Item Type'] },
       { name: 'rating', label: 'Rating', aliases: ['Rating', 'RATING', 'Pressure Class'] },
       { name: 'materialName', label: 'Material Name', aliases: ['Material_Name', 'Material', 'MATERIAL'] },
