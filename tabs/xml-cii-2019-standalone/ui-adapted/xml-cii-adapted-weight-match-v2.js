@@ -60,7 +60,12 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         import('../../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js'),
         import('../xml-cii-standalone-run-parity.js'),
       ]);
-      if (typeof renderer.xmlCiiRenderWeightMatchPhase !== 'function' || typeof renderer.bindXmlCiiWeightMatchPhase !== 'function') {
+      const shared = await parity.loadParentWeightMatchModules();
+      if (
+        typeof renderer.xmlCiiRenderWeightMatchPhase !== 'function'
+        || typeof shared.bindXmlCiiWeightMatchPhase !== 'function'
+        || typeof shared.enrichXmlForCii2019 !== 'function'
+      ) {
         throw new Error('Shared Weight Match renderer contract is incomplete.');
       }
       const state = stateRef.current;
@@ -69,25 +74,11 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         ? new File([state.sourceText], 'source.xml', { type: 'application/xml' })
         : null);
       card.innerHTML = renderer.xmlCiiRenderWeightMatchPhase();
-      renderer.bindXmlCiiWeightMatchPhase(card, {
+      shared.bindXmlCiiWeightMatchPhase(card, {
         xmlFile,
         stagedJsonText: state.stagedJsonText || '',
         config,
-        enrichXmlForCii2019: parity.enrichStandaloneXmlForRun
-          ? async (xmlText, stagedJsonText, options = {}) => {
-              const result = await parity.enrichStandaloneXmlForRun({
-                sourceText: xmlText,
-                stagedJsonText,
-                supportConfigJson: options.supportConfigJson || JSON.stringify(config),
-                options,
-              }, options);
-              return {
-                xmlText: result.xmlText || xmlText,
-                config: JSON.parse(options.supportConfigJson || JSON.stringify(config)),
-                diagnostics: result.diagnostics || [],
-              };
-            }
-          : undefined,
+        enrichXmlForCii2019: shared.enrichXmlForCii2019,
         onSaveConfig: (nextConfig) => persistConfig(stateRef, nextConfig),
         ensureOverrides,
         resolveStagedJsonText: async () => ({
