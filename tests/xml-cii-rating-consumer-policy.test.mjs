@@ -19,13 +19,18 @@ test('run review does not auto-populate Rating from DTXR or defaults', async () 
   assert.match(source, /DTXR Rating is comparison evidence only/);
 });
 
-test('Weight Match does not use DTXR or default Rating as ranking authority', async () => {
+test('Weight Match consumes Preview Rating and exposes explicit DTXR mode', async () => {
   const source = await read('tabs/model-converters/converters/xmltocii2019_helper/weight-match-renderer.js');
-  assert.match(source, /xmlCiiWeightMatchRatingFromConfig/);
-  assert.doesNotMatch(source, /\|\|\s*clean\(row\?\.dtxrRating\)/);
-  assert.doesNotMatch(source, /\|\|\s*extractXmlCiiRatingFromDtxr\(row\?\.dtxr\)/);
-  assert.doesNotMatch(source, /\|\|\s*clean\(config\?\.rating\?\.defaultRating/);
-  assert.match(source, /DTXR Rating remains comparison evidence/);
+  assert.match(source, /xmlCiiWeightMatchRatingFromPreview/);
+  assert.match(source, /readXmlCiiPreviewRatingSnapshot/);
+  assert.match(source, /resolveXmlCiiWeightMatchRating/);
+  assert.match(source, /Use Rating as per DTXR/);
+  assert.match(source, /Use Rating shown in Preview/);
+  assert.match(source, /Weight Match does not derive Rating again/);
+  assert.doesNotMatch(source, /xmlCiiWeightMatchRatingFromConfig/);
+  assert.doesNotMatch(source, /processRating\(/);
+  assert.doesNotMatch(source, /overrideValue\(config,\s*'rating'/);
+  assert.match(source, /xml-cii-wm-cache-v2-preview-rating/);
 });
 
 test('Piping Class import declares separate NPS and Bore mm columns', async () => {
