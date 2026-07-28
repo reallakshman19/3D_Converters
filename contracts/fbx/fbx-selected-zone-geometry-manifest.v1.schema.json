@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "FbxSelectedZoneGeometryManifest.v1",
+  "title": "FbxSelectedZoneGeometryManifest.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "manifestDigest",
+    "sourceGraphSchema",
+    "selectedSourceGraphSha256",
+    "sourceGeometryBundleSourceGraphSha256",
+    "sourceIdentity",
+    "parserIdentity",
+    "coordinateUnit",
+    "byteOrder",
+    "sourceGeometryBundleDigest",
+    "zoneGeometryEvidenceId",
+    "selectedZone",
+    "selectedGeometryIds",
+    "geometries",
+    "buffers"
+  ],
+  "properties": {
+    "schema": { "const": "FbxSelectedZoneGeometryManifest.v1" },
+    "manifestDigest": { "$ref": "#/$defs/hash" },
+    "sourceGraphSchema": { "const": "FbxSourceGraph.v2" },
+    "selectedSourceGraphSha256": { "$ref": "#/$defs/hash" },
+    "sourceGeometryBundleSourceGraphSha256": { "$ref": "#/$defs/hash" },
+    "sourceIdentity": { "$ref": "#/$defs/sourceIdentity" },
+    "parserIdentity": { "$ref": "#/$defs/parserIdentity" },
+    "coordinateUnit": { "const": "millimetre" },
+    "byteOrder": { "const": "little-endian" },
+    "sourceGeometryBundleDigest": { "$ref": "#/$defs/hash" },
+    "zoneGeometryEvidenceId": {
+      "type": "string",
+      "pattern": "^fbx-zone-geometry-evidence:[0-9a-f]{64}$"
+    },
+    "selectedZone": { "$ref": "#/$defs/selectedZone" },
+    "selectedGeometryIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/decimalId" }
+    },
+    "geometries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/geometry" }
+    },
+    "buffers": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/buffer" }
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "decimalId": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "byteLength", "fbxVersion"],
+      "properties": {
+        "sha256": { "$ref": "#/$defs/hash" },
+        "byteLength": { "type": "integer", "minimum": 1 },
+        "fbxVersion": { "type": "integer", "minimum": 3000, "maximum": 7700 }
+      }
+    },
+    "parserIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenanceSchema", "upstreamRevision", "sourceSha256", "wasmSha256"],
+      "properties": {
+        "provenanceSchema": { "type": "string", "minLength": 1 },
+        "upstreamRevision": { "$ref": "#/$defs/revision" },
+        "sourceSha256": { "$ref": "#/$defs/hash" },
+        "wasmSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "selectedZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zoneId", "label"],
+      "properties": {
+        "zoneId": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "bufferIds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["controlPointsMm", "polygonOffsets", "polygonVertexIndices"],
+      "properties": {
+        "controlPointsMm": { "$ref": "#/$defs/bufferId" },
+        "polygonOffsets": { "$ref": "#/$defs/bufferId" },
+        "polygonVertexIndices": { "$ref": "#/$defs/bufferId" }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "geometryObjectId",
+        "sourceObjectId",
+        "controlPointCount",
+        "polygonCount",
+        "polygonVertexCount",
+        "emptyPolygonCount",
+        "pointPolygonCount",
+        "linePolygonCount",
+        "reversedWinding",
+        "bufferIds"
+      ],
+      "properties": {
+        "geometryObjectId": { "$ref": "#/$defs/decimalId" },
+        "sourceObjectId": { "$ref": "#/$defs/decimalId" },
+        "controlPointCount": { "type": "integer", "minimum": 0 },
+        "polygonCount": { "type": "integer", "minimum": 0 },
+        "polygonVertexCount": { "type": "integer", "minimum": 0 },
+        "emptyPolygonCount": { "type": "integer", "minimum": 0 },
+        "pointPolygonCount": { "type": "integer", "minimum": 0 },
+        "linePolygonCount": { "type": "integer", "minimum": 0 },
+        "reversedWinding": { "type": "boolean" },
+        "bufferIds": { "$ref": "#/$defs/bufferIds" }
+      }
+    },
+    "role": {
+      "enum": ["control-points-mm", "polygon-offsets", "polygon-vertex-indices"]
+    },
+    "bufferId": {
+      "type": "string",
+      "pattern": "^geometry/[0-9]+/(control-points-mm|polygon-offsets|polygon-vertex-indices)$"
+    },
+    "packagePath": {
+      "type": "string",
+      "pattern": "^geometry-buffers/[0-9]+\\.(control-points-mm|polygon-offsets|polygon-vertex-indices)\\.bin$"
+    },
+    "buffer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bufferId",
+        "geometryObjectId",
+        "role",
+        "scalarType",
+        "componentCount",
+        "count",
+        "alignment",
+        "byteLength",
+        "sha256",
+        "packagePath"
+      ],
+      "properties": {
+        "bufferId": { "$ref": "#/$defs/bufferId" },
+        "geometryObjectId": { "$ref": "#/$defs/decimalId" },
+        "role": { "$ref": "#/$defs/role" },
+        "scalarType": { "enum": ["Float64", "Uint32"] },
+        "componentCount": { "type": "integer", "minimum": 1 },
+        "count": { "type": "integer", "minimum": 0 },
+        "alignment": { "enum": [4, 8] },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "packagePath": { "$ref": "#/$defs/packagePath" }
+      }
+    }
+  }
+}
