@@ -18,6 +18,13 @@ export const AUTO_PIPE_CONNECTIVITY_PROFILE = Object.freeze({
   radiusRatio: 0.001,
 });
 
+export const AUTO_PIPE_RESOURCE_LIMITS = Object.freeze({
+  schema: 'FbxAutoPipeResourceLimits.v1',
+  maximumPipeOccurrences: 1024,
+  maximumPorts: 2048,
+  maximumConnectionPairs: 2096128,
+});
+
 export function scaledTolerance(absolute, ratio, scale) {
   return Math.max(absolute, ratio * scale);
 }
