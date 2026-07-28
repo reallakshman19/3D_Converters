@@ -2,6 +2,7 @@ export const AUTO_PIPE_PROFILE = Object.freeze({
   schema: 'FbxAutoPipeProfile.v1',
   minimumSpanMm: 1e-6,
   normalDotTolerance: 1e-8,
+  roleOrdering: 'world-centre-lexicographic',
   radiusAbsoluteMm: 0.05,
   radiusRatio: 0.001,
   axialAbsoluteMm: 0.01,
