@@ -18,12 +18,12 @@ export function previewProvenanceBadge(field, source, detail = '') {
   if (source === 'manual-override' || source === 'override') return { label: '✓ override', className: 'exact', title: 'Manually overridden value by user in Preview table.' };
   if (source === 'auto-fill') return { label: 'auto-fill', className: 'exact', title: 'Automatically propagated down by Smart Fill / Fill-down button.' };
   if (source === 'saved-override') return { label: 'saved', className: 'exact', title: 'Saved override value loaded from existing configuration file.' };
-  if (source === 'line-list' && field === 'rating') return { label: 'line list', className: 'exact', title: 'Rating resolved explicitly from matched Line List master row.' };
-  if (source === 'piping-class-master' && field === 'rating') return { label: 'class', className: 'exact', title: 'Rating resolved directly from Piping Class master data table.' };
-  if (source === 'piping-class-prefix' && field === 'rating') return { label: 'prefix', className: 'amber', title: 'Rating matched via configured piping-class prefix rule.' };
-  if (source === 'dtxr-rating' && field === 'rating') return { label: 'DTXR', className: 'exact', title: 'Rating extracted from unambiguous 3D model DTXR annotations.' };
-  if (source === 'dtxr-rating-conflict' && field === 'rating') return withDetail({ label: 'DTXR conflict', className: 'bad', title: 'DTXR rating evidence conflicts with master rating or has multiple conflicting values in 3D model. Click to override.' }, true);
-  if (source === 'piping-class-master' && (field === 'wallThickness' || field === 'corrosion')) return { label: 'derived', className: 'exact', title: `Derived from Piping Class master specification for this bore; click to override.` };
+  if (source === 'piping-class-master' && field === 'rating') return { label: 'class', className: 'exact', title: 'Rating resolved from the Rating column of the effective Piping Class master row.' };
+  if (source === 'piping-class-prefix' && field === 'rating') return { label: 'Regex prefix', className: 'amber', title: 'Piping Class master Rating was unavailable; Rating used the Regex-tab prefix mapping.' };
+  if (source === 'rating-regex' && field === 'rating') return { label: 'Regex', className: 'amber', title: 'Piping Class master Rating was unavailable; Rating used the configured Regex-tab Rating extraction rule.' };
+  if (source === 'dtxr-rating-fetched' && field === 'rating') return { label: '✓ DTXR fetched', className: 'exact', title: 'Rating was explicitly fetched from unambiguous DTXR evidence by the Preview action button.' };
+  if (source === 'dtxr-rating-conflict' && field === 'rating') return withDetail({ label: 'DTXR conflict', className: 'bad', title: 'DTXR rating evidence contains multiple conflicting values.' }, true);
+  if (source === 'piping-class-master' && (field === 'wallThickness' || field === 'corrosion')) return { label: 'derived', className: 'exact', title: 'Derived from Piping Class master specification for this bore; click to override.' };
   if (source === 'dtxr-sch-applied') return { label: '✓ DTXR Sch', className: 'exact', title: 'Wall thickness applied from 3D model DTXR schedule annotation.' };
   if (source === 'default' || source === 'config-default' || source === 'default-zero') return { label: 'default', className: 'bad', title: 'Fallback default value applied from conversion settings.' };
   return null;
