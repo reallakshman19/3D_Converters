@@ -89,6 +89,12 @@ test('JSON restraint disable remains authoritative', () => {
   assert.equal(result.reason, 'json-restraints-disabled');
 });
 
+test('raw staged SUPPORT_KIND REST is recovered through the ledger source path', () => {
+  const staged = JSON.stringify({ children: [{ name: 'SUPPORT PS00365.1', type: 'SUPPORT', attributes: { NAME: '/PS00365.1', SUPPORT_TYPE: 'REST', SUPPORT_KIND: 'REST', SUPPORT_MAPPER_KIND: 'REST' } }] });
+  const kinds = enrichment.resolveStandaloneStagedSupportTypes(staged, { sourcePaths: ['$.children[0]'] }, {});
+  assert.deepEqual(kinds, ['REST']);
+});
+
 test('standalone fallback materializes +Y on an ANCI node with missing restraint', () => {
   const node = nodeWith('ANCI');
   const result = enrichment.materializeMissingStandaloneRestRestraint(document, node, { derivedSupportTypes: ['REST'] }, {});
