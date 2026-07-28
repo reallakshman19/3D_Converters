@@ -2,40 +2,26 @@ import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-wor
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
-import { extractXmlCiiRatingFromDtxr } from '../../../converters/xml-cii2019-core/dtxr-rating-resolver.js';
+import {
+  resolveStandaloneWeightReviewRating,
+  standaloneWeightReviewRatingInfo,
+} from './xml-cii-adapted-weight-rating-authority.js';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const attr = (value) => esc(value).replace(/'/g, '&#39;');
 
-function normalizeRatingText(value) {
-  return String(value ?? '').toUpperCase().replace(/CLASS|CL|#/g, '').replace(/[^0-9A-Z]/g, '').trim();
-}
-
 export function standaloneRunReviewRatingFromConfig(row, config) {
-  const keys = [row?.key, row?.lineKey, row?.branchName, row?.requestedPipingClass, row?.resolvedPipingClass, row?.nodeNumber];
-  const ratingBucket = config?.overrides?.rating;
-  if (ratingBucket && typeof ratingBucket === 'object' && !Array.isArray(ratingBucket)) {
-    for (const key of keys.filter(Boolean)) {
-      const value = String(ratingBucket[key] ?? '').trim();
-      if (value) return value;
-    }
-  }
-  const processBucket = config?.overrides?.processData;
-  if (processBucket && typeof processBucket === 'object' && !Array.isArray(processBucket)) {
-    for (const key of keys.filter(Boolean)) {
-      const value = String(processBucket[key]?.rating ?? '').trim();
-      if (value) return value;
-    }
-  }
-  return String(row?.rating ?? '').trim();
+  return resolveStandaloneWeightReviewRating(row, config).rating;
 }
 
 function ratingInfo(issue) {
-  const dtxrRating = issue.dtxrRating || extractXmlCiiRatingFromDtxr(issue.dtxr);
-  const shownRating = String(issue.rating || '').trim();
-  const derivedRating = String(issue.branchRating || issue.derivedRating || '').trim();
-  const conflict = Boolean(shownRating && dtxrRating && normalizeRatingText(shownRating) !== normalizeRatingText(dtxrRating));
-  const missingWithDtxr = Boolean(!shownRating && dtxrRating);
+  const {
+    shownRating,
+    dtxrRating,
+    conflict,
+    missingWithDtxr,
+    derivedRating,
+  } = standaloneWeightReviewRatingInfo(issue);
   const title = conflict
     ? `DTXR rating ${dtxrRating}# differs from resolved/override rating ${shownRating}. DTXR: ${issue.dtxr || ''}`
     : (missingWithDtxr
@@ -206,17 +192,17 @@ async function unresolvedRigidIssues(state, config) {
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
   return collectXmlCiiZeroRigidWeightIssues(state.sourceText || '', state.stagedJsonText || '', config).map((issue) => {
-    const dtxrRating = extractXmlCiiRatingFromDtxr(issue.dtxr);
-    const rating = standaloneRunReviewRatingFromConfig(issue, config);
-    const conflict = Boolean(rating && dtxrRating && normalizeRatingText(rating) !== normalizeRatingText(dtxrRating));
+    const ratingAuthority = resolveStandaloneWeightReviewRating(issue, config);
+    const rating = ratingAuthority.rating;
     const ranking = rating
       ? rankXmlCiiWeightCandidates({ boreMm: issue.boreMm, rating, lengthMm: issue.lengthMm, nodeName: issue.nodeName, componentType: issue.componentType, componentRefNo: issue.componentRefNo, dtxr: issue.dtxr }, config, { includeRejected: true })
       : { candidates: [], rejectedCandidates: [] };
     return applyXmlCiiFlangeWeightFallbackToIssue({
       ...issue,
       rating,
-      dtxrRating,
-      ratingConflict: conflict,
+      dtxrRating: ratingAuthority.dtxrRating,
+      ratingAuthority,
+      ratingConflict: ratingAuthority.conflict,
       branchRating: issue.rating,
       candidates: ranking.candidates.slice(0, 5),
       rejectedCandidates: ranking.rejectedCandidates.slice(0, 3),
