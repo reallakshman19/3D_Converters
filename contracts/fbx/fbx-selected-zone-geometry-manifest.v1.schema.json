@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.3d-converters.org/fbx/fbx-selected-zone-geometry-manifest.v1.schema.json",
+  "title": "FbxSelectedZoneGeometryManifest.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "manifestDigest",
+    "sourceGraphSchema",
+    "selectedSourceGraphSha256",
+    "sourceGeometryBundleSourceGraphSha256",
+    "sourceIdentity",
+    "parserIdentity",
+    "coordinateUnit",
+    "byteOrder",
+    "sourceGeometryBundleDigest",
+    "zoneGeometryEvidenceId",
+    "selectedZone",
+    "selectedGeometryIds",
+    "geometries",
+    "buffers"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "FbxSelectedZoneGeometryManifest.v1"
+    },
+    "manifestDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceGraphSchema": {
+      "type": "string",
+      "const": "FbxSourceGraph.v2"
+    },
+    "selectedSourceGraphSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceGeometryBundleSourceGraphSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "byteLength", "fbxVersion"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "fbxVersion": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "parserIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenanceSchema", "upstreamRevision", "sourceSha256", "wasmSha256"],
+      "properties": {
+        "provenanceSchema": { "type": "string", "minLength": 1 },
+        "upstreamRevision": { "type": "string", "minLength": 1 },
+        "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "wasmSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "coordinateUnit": {
+      "type": "string",
+      "const": "millimetre"
+    },
+    "byteOrder": {
+      "type": "string",
+      "const": "little-endian"
+    },
+    "sourceGeometryBundleDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "zoneGeometryEvidenceId": {
+      "type": "string",
+      "pattern": "^fbx-zone-geometry-evidence:[a-f0-9]{64}$"
+    },
+    "selectedZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zoneId", "label"],
+      "properties": {
+        "zoneId": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "selectedGeometryIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "geometries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "geometryObjectId",
+          "sourceObjectId",
+          "controlPointCount",
+          "polygonCount",
+          "polygonVertexCount",
+          "emptyPolygonCount",
+          "pointPolygonCount",
+          "linePolygonCount",
+          "reversedWinding",
+          "bufferIds"
+        ],
+        "properties": {
+          "geometryObjectId": { "type": "string", "minLength": 1 },
+          "sourceObjectId": { "type": "string", "minLength": 1 },
+          "controlPointCount": { "type": "integer", "minimum": 0 },
+          "polygonCount": { "type": "integer", "minimum": 0 },
+          "polygonVertexCount": { "type": "integer", "minimum": 0 },
+          "emptyPolygonCount": { "type": "integer", "minimum": 0 },
+          "pointPolygonCount": { "type": "integer", "minimum": 0 },
+          "linePolygonCount": { "type": "integer", "minimum": 0 },
+          "reversedWinding": { "type": "boolean" },
+          "bufferIds": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["controlPointsMm", "polygonOffsets", "polygonVertexIndices"],
+            "properties": {
+              "controlPointsMm": { "type": "string", "minLength": 1 },
+              "polygonOffsets": { "type": "string", "minLength": 1 },
+              "polygonVertexIndices": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "buffers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bufferId",
+          "geometryObjectId",
+          "role",
+          "scalarType",
+          "componentCount",
+          "count",
+          "alignment",
+          "byteLength",
+          "sha256",
+          "packagePath"
+        ],
+        "properties": {
+          "bufferId": { "type": "string", "minLength": 1 },
+          "geometryObjectId": { "type": "string", "minLength": 1 },
+          "role": {
+            "type": "string",
+            "enum": ["control-points-mm", "polygon-offsets", "polygon-vertex-indices"]
+          },
+          "scalarType": { "type": "string", "minLength": 1 },
+          "componentCount": { "type": "integer", "minimum": 1 },
+          "count": { "type": "integer", "minimum": 0 },
+          "alignment": { "type": "integer", "minimum": 1 },
+          "byteLength": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "packagePath": {
+            "type": "string",
+            "pattern": "^geometry-buffers/[a-zA-Z0-9_-]+\\.(control-points-mm|polygon-offsets|polygon-vertex-indices)\\.bin$"
+          }
+        }
+      }
+    }
+  }
+}

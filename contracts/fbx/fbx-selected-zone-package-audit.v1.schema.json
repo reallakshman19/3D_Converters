@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.3d-converters.org/fbx/fbx-selected-zone-package-audit.v1.schema.json",
+  "title": "FbxSelectedZonePackageAudit.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "auditId",
+    "packageStatus",
+    "producerRevision",
+    "sourceIdentity",
+    "parserIdentity",
+    "selectedSourceGraphSha256",
+    "sourceGeometryBundleSourceGraphSha256",
+    "sourceGeometryBundleDigest",
+    "selectedZone",
+    "authority",
+    "files"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "FbxSelectedZonePackageAudit.v1"
+    },
+    "auditId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "packageStatus": {
+      "type": "string",
+      "const": "EVIDENCE_READY"
+    },
+    "producerRevision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "byteLength", "fbxVersion"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "fbxVersion": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "parserIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenanceSchema", "upstreamRevision", "sourceSha256", "wasmSha256"],
+      "properties": {
+        "provenanceSchema": { "type": "string", "minLength": 1 },
+        "upstreamRevision": { "type": "string", "minLength": 1 },
+        "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "wasmSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "selectedSourceGraphSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceGeometryBundleSourceGraphSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceGeometryBundleDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "selectedGeometryManifestSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "selectedGeometryManifestDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "zoneGeometryEvidenceId": {
+      "type": "string",
+      "pattern": "^fbx-zone-geometry-evidence:[a-f0-9]{64}$"
+    },
+    "selectedZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zoneId", "label"],
+      "properties": {
+        "zoneId": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engineeringSemantics", "occurrenceAndTransform", "topologyAndBuffers", "supportSemantics"],
+      "properties": {
+        "engineeringSemantics": {
+          "type": "string",
+          "enum": ["selected-zone.staged.json", "OMITTED_BLOCKED"]
+        },
+        "occurrenceAndTransform": {
+          "type": "string",
+          "const": "zone-geometry-evidence.json"
+        },
+        "topologyAndBuffers": {
+          "type": "string",
+          "const": "geometry-bundle.manifest.json"
+        },
+        "supportSemantics": {
+          "type": "string",
+          "const": "NOT_AUTHORIZED"
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "required", "status", "schema", "bufferId", "sha256", "byteLength", "reason"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SOURCE_GRAPH",
+              "ZONE_GEOMETRY_EVIDENCE",
+              "GEOMETRY_MANIFEST",
+              "GEOMETRY_BUFFER",
+              "STAGED_JSON",
+              "SUPPORT_EVIDENCE",
+              "PACKAGE_AUDIT"
+            ]
+          },
+          "required": { "type": "boolean" },
+          "status": {
+            "type": "string",
+            "enum": ["PRESENT", "OMITTED_BLOCKED", "EVIDENCE_READY", "BLOCKED", "NOT_AUTHORIZED"]
+          },
+          "schema": {
+            "type": ["string", "null"],
+            "minLength": 1
+          },
+          "bufferId": {
+            "type": ["string", "null"],
+            "minLength": 1
+          },
+          "sha256": {
+            "type": ["string", "null"],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "byteLength": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "reason": {
+            "type": ["string", "null"],
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "status": { "const": "OMITTED_BLOCKED" } } },
+            "then": { "properties": { "reason": { "type": "string", "minLength": 1 } } }
+          }
+        ]
+      }
+    }
+  }
+}
