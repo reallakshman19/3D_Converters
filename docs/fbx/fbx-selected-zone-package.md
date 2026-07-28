@@ -1,52 +1,39 @@
-# FBX selected-zone package (Phases 1-2)
+# FBX Selected-Zone Package
 
-Deterministic packaging of a user-selected FBX zone into a byte-reproducible
-file set, independent of any StagedJSON or support-mapping decision.
-
-## Schemas
-
-- `contracts/fbx/fbx-selected-zone-geometry-manifest.v1.schema.json` —
-  `FbxSelectedZoneGeometryManifest.v1`: the exact set of selected geometries,
-  their control-point/polygon counts, and their three authoritative buffer
-  digests (`control-points-mm`, `polygon-offsets`, `polygon-vertex-indices`).
-- `contracts/fbx/fbx-selected-zone-package-audit.v1.schema.json` —
-  `FbxSelectedZonePackageAudit.v1`: which optional file roles
-  (`STAGEDJSON`, `SUPPORT_EVIDENCE`) are `PRESENT` versus explicitly
-  `OMITTED_BLOCKED`, plus a package-wide digest.
+The selected-zone package is a deterministic, validated export of already accepted FBX topology. It does not parse FBX, infer support restraint type, or invent host relationships.
 
 ## Authority boundaries
 
-- `FbxSelectedZoneGeometryManifest.v1` owns only selected geometry
-  descriptors, buffer digests, and deterministic package paths. It does not
-  own occurrence ancestry, ports, or support semantics.
-- `supportSemantics` is `NOT_AUTHORIZED` unless a Phase 3
-  `FbxSupportEvidence.v1` object is supplied to the package builder, in
-  which case it is `CANDIDATE_EVIDENCE_ONLY` — never a restraint or host
-  determination.
-- StagedJSON, when supplied, is carried through unmodified as an opaque
-  file; this package format neither derives nor validates its content.
+- `FbxZoneGeometryEvidence.v1` remains the authority for selected occurrences, ancestry, transforms, and selected-zone scope.
+- `FbxSelectedZoneGeometryManifest.v1` owns the selected geometry projection and exact binary-buffer integrity only.
+- Shared geometry is represented once with a sorted `occurrenceIds` array. The manifest does not own occurrence transforms.
+- StagedJSON remains engineering-semantic authority when present.
+- Support evidence is candidate evidence only; host binding requires explicit owner review.
 
-## Determinism
+## Deterministic binary contract
 
-`buildSelectedZoneGeometryManifest` + `buildSelectedZonePackage` are pure
-functions over their inputs: the same selected geometries always produce
-byte-identical manifest JSON, geometry buffer files, and package audit
-(`tests/fbx/test-zone-package-core.mjs` asserts this directly by building
-the same package twice and comparing every file's bytes).
+All geometry buffers are encoded explicitly in little-endian byte order:
 
-## Malformed-package fixtures
+- `control-points-mm`: Float64, three components per control point;
+- `polygon-offsets`: Uint32;
+- `polygon-vertex-indices`: Uint32.
 
-`tests/fixtures/fbx/zone-package/` contains hand-authored instances that
-violate the published schemas (missing `manifestDigest`, an unauthorized
-extra property, a `PRESENT` file role with a null digest, and an
-unrecognized file role) so the contract test
-(`tests/fbx/test-zone-package-contracts.mjs`) proves the schema actually
-rejects malformed packages and not just accepts well-formed ones.
+The runtime validates integer ranges, buffer lengths, topology offsets, hashes, deterministic paths, and the exact three-role order.
 
-## Explicit non-scope (Phase 1-2 boundary)
+## Package audit
 
-No UI, archive/download transport, parser, Writer, Worker, or canvas
-change is included at this layer. No REST/GUIDE/LINE_STOP support
-disposition, restraint DOF, or host inference is produced here — see
-`docs/fbx/fbx-selected-zone-support-evidence.md` (Phase 3) and
-`docs/fbx/fbx-selected-zone-host-authority.md` (Phase 4).
+The audit inventories every physical file except `audit.json` itself, including every geometry descriptor and binary buffer. Each present record binds path, role, byte length, and SHA-256. Optional StagedJSON and support evidence are either present with integrity metadata or explicitly `OMITTED_BLOCKED` with a reason.
+
+The package builder immediately re-validates its own output. Validation rejects unbound files, omitted-file publication, manifest or buffer tampering, unsafe paths, malformed StagedJSON, support evidence from another zone, and incomplete geometry inventory.
+
+## Browser export
+
+The zone-analysis controller publishes validated package inputs only after a successful selected-zone analysis. The **Download zone package** control remains disabled until those live inputs exist and is invalidated when the analysis is cleared or fails.
+
+## Archive
+
+`FBXZPKG1` archives enforce fixed file-count, header-size, and total-byte ceilings. Decoding rejects unsafe or duplicate paths, non-contiguous or overlapping offsets, truncation, malformed directories, and SHA-256 mismatches.
+
+## Remaining release evidence
+
+Synthetic qualification proves mechanical determinism and coverage. Real TAY-A qualification and hosted exact-head CI remain required before a release claim specific to that source model.

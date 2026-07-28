@@ -1,10 +1,41 @@
 import { runFbxAutoPipe } from '../auto-pipe/pipeline.js';
 import { canonicalJson } from '../canonical-json.js';
+import { buildLiveZonePackageInputs } from '../zone-package/live-input.js';
 import { buildDerivedPortEvidence } from './derived-ports.js';
 import { asZoneGeometryError } from './errors.js';
 import { prepareZoneGeometryEvidence } from './zone-evidence.js';
 import { ZONE_GEOMETRY_STATUS } from './constants.js';
 import { buildFbxZoneWireframeData } from './wireframe-preview.js';
+
+function packagePrefix(artifact) {
+  return String(artifact.selectedZone.label || artifact.selectedZone.zoneId)
+    .trim().replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '')
+    || 'selected-zone';
+}
+async function optionalPackageInputs(input, prepared, autoPipe) {
+  if (input.includeZonePackageInputs === false) {
+    return { zonePackageInputs: null, zonePackageError: null };
+  }
+  try {
+    const zonePackageInputs = await buildLiveZonePackageInputs({
+      zoneGeometryEvidence: prepared.artifact,
+      scope: prepared.scope,
+      selections: prepared.selections,
+      stagedJsonText: autoPipe.status === 'STAGEDJSON_PASS'
+        ? autoPipe.stagedJsonText : null,
+    });
+    zonePackageInputs.fileNamePrefix = packagePrefix(prepared.artifact);
+    return { zonePackageInputs, zonePackageError: null };
+  } catch (error) {
+    return {
+      zonePackageInputs: null,
+      zonePackageError: Object.freeze({
+        code: error?.code || 'ZONE_PACKAGE_PREPARATION_FAILED',
+        message: error?.message || String(error),
+      }),
+    };
+  }
+}
 
 export async function analyseFbxZoneGeometry(input) {
   try {
@@ -19,12 +50,14 @@ export async function analyseFbxZoneGeometry(input) {
       derivedPortEvidence,
       selections: prepared.selections,
     });
+    const packageResult = await optionalPackageInputs(input, prepared, autoPipe);
     return Object.freeze({
       status: ZONE_GEOMETRY_STATUS.PASS,
       zoneGeometryEvidence: prepared.artifact,
       derivedPortEvidence,
       wireframePreview,
       autoPipe,
+      ...packageResult,
       zoneGeometryJson: canonicalJson(prepared.artifact),
       derivedPortJson: canonicalJson(derivedPortEvidence),
       counts: Object.freeze({
