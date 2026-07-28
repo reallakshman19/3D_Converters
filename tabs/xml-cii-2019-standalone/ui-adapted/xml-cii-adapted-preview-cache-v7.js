@@ -1,5 +1,5 @@
-export const XML_CII_PREVIEW_CACHE_SCHEMA = 'xml-cii-preview-cache/v7';
-export const XML_CII_PREVIEW_CACHE_KEY = 'xml-cii-pv-cache-v7';
+export const XML_CII_PREVIEW_CACHE_SCHEMA = 'xml-cii-preview-cache/v8-rating-policy';
+export const XML_CII_PREVIEW_CACHE_KEY = 'xml-cii-pv-cache-v8-rating-policy';
 export const XML_CII_PREVIEW_LEGACY_CACHE_KEY = 'xml-cii-pv-cache-v8-dtxr';
 
 const DEFAULT_MAX_BYTES = 2500000;
@@ -8,6 +8,7 @@ const LEGACY_KEYS = Object.freeze([
   'xml-cii-pv-cache-v6',
   'xml-cii-pv-cache-v2',
 ]);
+const OLD_ENVELOPE_KEYS = Object.freeze(['xml-cii-pv-cache-v7']);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -151,6 +152,7 @@ export function capturePreviewCacheV7(authority, storage, maxBytes = DEFAULT_MAX
   }
   try {
     target.setItem(XML_CII_PREVIEW_CACHE_KEY, serialized);
+    for (const key of OLD_ENVELOPE_KEYS) target.removeItem(key);
     return { stored: true, reason: 'stored', bytes: serialized.length, envelope };
   } catch (error) {
     return { stored: false, reason: 'storage-write-failed', error };
@@ -168,7 +170,7 @@ export function clearPreviewCacheBridge(storage) {
 export function clearPreviewCachesV7(storage) {
   const target = storageOrNull(storage);
   if (!target) return;
-  for (const key of [XML_CII_PREVIEW_CACHE_KEY, ...LEGACY_KEYS, 'xml-cii-wm-cache-v1']) {
+  for (const key of [XML_CII_PREVIEW_CACHE_KEY, ...OLD_ENVELOPE_KEYS, ...LEGACY_KEYS, 'xml-cii-wm-cache-v1']) {
     try { target.removeItem(key); } catch {}
   }
 }
