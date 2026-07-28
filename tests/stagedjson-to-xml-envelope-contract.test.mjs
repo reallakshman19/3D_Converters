@@ -32,6 +32,9 @@ assert.equal(bare.nodeCount, 2);
 assert.equal(envelope.nodeCount, 2);
 assert.equal(envelope.stagedEnvelope.schema, 'inputxml-managed-stage/v1');
 assert.equal(envelope.stagedEnvelope.provenance.schema, 'StagedEditProvenance.v1');
-assert.equal(envelope.xmlText, bare.xmlText.replace('bare', 'envelope'));
+assert.equal(
+  envelope.xmlText.replaceAll('envelope', 'fixture'),
+  bare.xmlText.replaceAll('bare', 'fixture'),
+);
 
 console.log('stagedjson-to-xml envelope contract passed');
