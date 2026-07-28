@@ -127,7 +127,10 @@ async function linkRecords(links) {
 
 function occurrenceDispositions(zoneGeometryEvidence, classifications) {
   const classified = new Map(classifications.map((item) => [item.sourceOccurrenceId, item]));
-  return zoneGeometryEvidence.occurrenceEvidence.map((occurrence) => {
+  const occurrences = [...zoneGeometryEvidence.occurrenceEvidence].sort((left, right) => (
+    compareOccurrenceId(left.sourceOccurrenceId, right.sourceOccurrenceId)
+  ));
+  return occurrences.map((occurrence) => {
     const item = classified.get(occurrence.sourceOccurrenceId);
     if (!item) return {
       sourceOccurrenceId: occurrence.sourceOccurrenceId,
