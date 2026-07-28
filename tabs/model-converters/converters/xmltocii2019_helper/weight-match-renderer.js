@@ -1,6 +1,7 @@
 import { collectXmlCiiWeightMatchRows } from '../../../../converters/xml-cii2019-core/weight-match-model.js?v=20260626-weight-review-2';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../../converters/xml-cii2019-core/flange-weight-fallback.js?v=20260626-special-factor-guard-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../../../converters/xml-cii2019-core/staged-geometry-authority.js?v=20260625-staged-geometry-1';
+import { extractXmlCiiRatingFromDtxr } from '../../../../converters/xml-cii2019-core/dtxr-rating-resolver.js';
 import {
   ensureValveHintConfig,
   formatValveHint,
@@ -131,7 +132,6 @@ function mergeRuntimeOverrides(baseConfig, liveConfig) {
       else if (clean(bucketValue)) out.overrides[bucketName] = bucketValue;
     }
   }
-  if (clean(live?.rating?.defaultRating)) out.rating = { ...(out.rating || {}), defaultRating: clean(live.rating.defaultRating) };
   return out;
 }
 
@@ -163,55 +163,52 @@ function processRating(config, keys) {
 }
 
 function normalizeRatingText(value) {
-  const text = clean(value).toUpperCase();
-  const match = text.match(/\b(?:CL|CLASS|PN)?\s*(1500|2500|150|300|600|900|16|40)\b/);
-  return match ? match[1] : text.replace(/[^0-9]/g, '');
+  const source = clean(value).toUpperCase();
+  const match = source.match(/\b(?:CL|CLASS|PN)?\s*(1500|2500|150|300|600|900|16|40)\b/);
+  return match ? match[1] : source.replace(/[^0-9]/g, '');
 }
 
-function ratingFromDtxrText(value) {
-  const text = clean(value).toUpperCase();
-  const hashMatch = text.match(/\b(?:CL|CLASS)?\s*(150|300|600|900|1500|2500)\s*#/i);
-  if (hashMatch) return hashMatch[1];
-  const clMatch = text.match(/\b(?:CL|CLASS)\s*(150|300|600|900|1500|2500)\b/i);
-  return clMatch ? clMatch[1] : '';
-}
-
-function ratingFromConfig(row, config) {
+export function xmlCiiWeightMatchRatingFromConfig(row, config) {
   const keys = [row?.lineKey, row?.branchName, row?.requestedPipingClass, row?.resolvedPipingClass, row?.nodeNumber];
   return overrideValue(config, 'rating', keys)
     || processRating(config, keys)
-    || clean(row?.rating)
-    || clean(row?.dtxrRating)
-    || ratingFromDtxrText(row?.dtxr)
-    || clean(config?.rating?.defaultRating || config?.defaultRating);
+    || clean(row?.rating);
 }
 
 function ratingDisplayInfo(issue) {
   const shownRating = clean(issue?.rating);
-  const dtxrRating = clean(issue?.dtxrRating) || ratingFromDtxrText(issue?.dtxr);
+  const dtxrRating = clean(issue?.dtxrRating) || extractXmlCiiRatingFromDtxr(issue?.dtxr);
   const derivedRating = clean(issue?.branchRating || issue?.derivedRating || issue?.resolvedRating);
   const conflict = Boolean(shownRating && dtxrRating && normalizeRatingText(shownRating) !== normalizeRatingText(dtxrRating));
-  const fromDtxr = Boolean(shownRating && dtxrRating && normalizeRatingText(shownRating) === normalizeRatingText(dtxrRating) && !derivedRating);
+  const missingWithDtxr = Boolean(!shownRating && dtxrRating);
   const title = conflict
     ? `DTXR rating ${dtxrRating}# differs from resolved/override rating ${shownRating}. DTXR: ${issue?.dtxr || ''}`
-    : (fromDtxr ? `Rating populated from DTXR text: ${issue?.dtxr || ''}` : (dtxrRating ? `DTXR rating evidence: ${dtxrRating}#` : 'Rating used for weight suggestions'));
-  const style = conflict
+    : (missingWithDtxr
+      ? `DTXR rating evidence ${dtxrRating}# is available but not automatically applied. Use Fetch Rating as per DTXR in Preview.`
+      : (derivedRating ? `Resolved Rating authority: ${derivedRating}` : 'Rating used for weight suggestions'));
+  const style = conflict || missingWithDtxr
     ? 'background:#3a1010;color:#ffd6d6;border:1px solid #ef4444;font-weight:700;'
-    : (fromDtxr ? 'background:#062d22;color:#bbf7d0;border:1px solid #10b981;font-weight:700;' : '');
-  return { shownRating, dtxrRating, conflict, fromDtxr, title, style };
+    : '';
+  return { shownRating, dtxrRating, conflict, missingWithDtxr, title, style };
+}
+
+function emptyRanking() {
+  return { nodeHint: null, semanticSource: null, candidates: [], rejectedCandidates: [] };
 }
 
 function rerankWithRating(row, config) {
-  const dtxrRating = clean(row?.dtxrRating) || ratingFromDtxrText(row?.dtxr);
-  const rating = ratingFromConfig(row, config);
-  const ranking = rankXmlCiiWeightCandidates({ boreMm: row.boreMm, rating, lengthMm: row.lengthMm, nodeName: row.nodeName, componentType: row.componentType, componentRefNo: row.componentRefNo, dtxr: row.dtxr }, config, { includeRejected: true });
-  const _derivedValveHint = formatValveHint(ranking.nodeHint) || (() => {
-    const _best = ranking.candidates?.[0];
-    if (_best?.specialFactorRule && _best?.specialFactorCode) return (_best.typeDesc || '').split(':')[0].trim() || _best.specialFactorCode;
-    const _sm = ranking.semanticSource;
-    return _sm?.matches?.[0] ? `${_sm.matches[0].label} (keyword)` : '';
+  const dtxrRating = clean(row?.dtxrRating) || extractXmlCiiRatingFromDtxr(row?.dtxr);
+  const rating = xmlCiiWeightMatchRatingFromConfig(row, config);
+  const ranking = rating
+    ? rankXmlCiiWeightCandidates({ boreMm: row.boreMm, rating, lengthMm: row.lengthMm, nodeName: row.nodeName, componentType: row.componentType, componentRefNo: row.componentRefNo, dtxr: row.dtxr }, config, { includeRejected: true })
+    : emptyRanking();
+  const derivedValveHint = formatValveHint(ranking.nodeHint) || (() => {
+    const best = ranking.candidates?.[0];
+    if (best?.specialFactorRule && best?.specialFactorCode) return (best.typeDesc || '').split(':')[0].trim() || best.specialFactorCode;
+    const semantic = ranking.semanticSource;
+    return semantic?.matches?.[0] ? `${semantic.matches[0].label} (keyword)` : '';
   })();
-  return { ...row, rating, dtxrRating, valveHint: _derivedValveHint, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3), ranking };
+  return { ...row, rating, dtxrRating, valveHint: derivedValveHint, nodeHint: ranking.nodeHint, candidates: ranking.candidates.slice(0, 5), rejectedCandidates: ranking.rejectedCandidates.slice(0, 3), ranking };
 }
 
 function xmlLocalName(node) { return clean(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
@@ -273,7 +270,7 @@ function hintPanel(config) { ensureValveHintConfig(config); return `<div class="
 function patternText(patterns) { return esc((patterns || []).join('\n')); }
 function targetText(targets) { return esc((targets || []).map((target) => `${target.code || ''}|${target.label || ''}|${target.factor || 1}`).join('\n')); }
 
-function semanticRuleRowsHtml(config) { return semanticKeywordRows(config).map((rule, index) => `<tr data-wm-semantic-row><td><input type="checkbox" data-wm-rule-on ${rule.on ? 'checked' : ''}></td><td><input type="number" data-wm-rule-priority value="${attr(rule.priority)}" style="width:72px;"></td><td><input type="text" data-wm-rule-code value="${attr(rule.code)}" style="width:130px;"></td><td><input type="text" data-wm-rule-label value="${attr(rule.label)}" style="width:150px;"></td><td><textarea data-wm-rule-patterns spellcheck="false" style="min-width:320px;min-height:64px;">${patternText(rule.patterns)}</textarea></td></tr>`).join(''); }
+function semanticRuleRowsHtml(config) { return semanticKeywordRows(config).map((rule) => `<tr data-wm-semantic-row><td><input type="checkbox" data-wm-rule-on ${rule.on ? 'checked' : ''}></td><td><input type="number" data-wm-rule-priority value="${attr(rule.priority)}" style="width:72px;"></td><td><input type="text" data-wm-rule-code value="${attr(rule.code)}" style="width:130px;"></td><td><input type="text" data-wm-rule-label value="${attr(rule.label)}" style="width:150px;"></td><td><textarea data-wm-rule-patterns spellcheck="false" style="min-width:320px;min-height:64px;">${patternText(rule.patterns)}</textarea></td></tr>`).join(''); }
 function factorRuleRowsHtml(config) { return specialValveFactorRows(config).map((rule) => `<tr data-wm-factor-row><td><input type="checkbox" data-wm-rule-on ${rule.on ? 'checked' : ''}></td><td><input type="number" data-wm-rule-priority value="${attr(rule.priority)}" style="width:72px;"></td><td><input type="text" data-wm-rule-code value="${attr(rule.code)}" style="width:150px;"></td><td><input type="text" data-wm-rule-label value="${attr(rule.label)}" style="width:170px;"></td><td><textarea data-wm-rule-patterns spellcheck="false" style="min-width:280px;min-height:64px;">${patternText(rule.patterns)}</textarea></td><td><textarea data-wm-rule-targets spellcheck="false" style="min-width:260px;min-height:64px;" title="One target per line: CODE|Label|Factor">${targetText(rule.targets)}</textarea></td></tr>`).join(''); }
 function editableRuleTable(title, headers, rowsHtml, helpText) { return `<section style="border:1px solid #253a55;border-radius:6px;overflow:hidden;background:#101a29;"><div style="padding:7px 9px;color:#9cc5ff;font-weight:700;font-size:12px;border-bottom:1px solid #253a55;">${esc(title)}</div><div style="overflow:auto;max-height:280px;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;min-width:100%;"><thead><tr>${headers.map((header) => `<th style="white-space:nowrap;">${esc(header)}</th>`).join('')}</tr></thead><tbody>${rowsHtml}</tbody></table></div><div class="model-converters-workflow-detail-text" style="padding:6px 8px;">${esc(helpText)}</div></section>`; }
 function enhancedHintPanel(config) { ensureValveHintConfig(config); return `${hintPanel(config)}<details class="model-converters-workflow-master-card" style="margin:8px 0;"><summary style="cursor:pointer;color:#d7e6ff;font-weight:700;">Editable weight keyword / factor rules</summary><div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;align-items:stretch;"><label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#9cc5ff;">Length gate (mm)<input type="number" min="0" step="0.1" data-wm-weight-tolerance value="${attr(valveHintLengthToleranceMm(config))}" style="max-width:180px;background:#0b1320;color:#e6edf5;border:1px solid #31455f;border-radius:6px;padding:6px;"></label>${editableRuleTable('DTXR semantic keyword rules', ['On', 'Priority', 'Code', 'Label', 'Regex patterns'], semanticRuleRowsHtml(config), 'Use one regex per line. Higher priority rules use lower priority numbers.')}${editableRuleTable('Non-standard valve factor rules', ['On', 'Priority', 'Code', 'Label', 'Regex patterns', 'Targets'], factorRuleRowsHtml(config), 'Targets use CODE|Label|Factor, one per line. Candidate weight uses the maximum factored interpolated/extrapolated subset weight.')}</div><div class="model-converters-workflow-detail-text" style="margin-top:8px;">Factor targets use semantic codes such as CONTROL and BALL. Candidate weight uses the maximum factored interpolated/extrapolated subset weight and flags odd extrapolation ratios.</div></details>`; }
@@ -289,8 +286,8 @@ function parseRuleRows(panelEl, selector, withTargets) { return [...(panelEl?.qu
 function applyWeightRulePanelConfig(panelEl, config) { const cfg = plainObject(config) ? config : {}; cfg.weight = plainObject(cfg.weight) ? cfg.weight : {}; const tolerance = Number(panelEl?.querySelector('[data-wm-weight-tolerance]')?.value); if (Number.isFinite(tolerance) && tolerance >= 0) cfg.weight.valveHintLengthToleranceMm = tolerance; cfg.weight.semanticKeywordRules = parseRuleRows(panelEl, '[data-wm-semantic-row]', false); cfg.weight.specialValveFactorRules = parseRuleRows(panelEl, '[data-wm-factor-row]', true); ensureValveHintConfig(cfg); return cfg; }
 
 export function xmlCiiRenderWeightMatchPhase() {
-  const info = 'Length gate is mandatory. Rating is resolved before nearest-weight candidate ranking.';
-  return `<div class="model-converters-workflow-detail-title">5 Weight Match <span title="${attr(info)}" style="cursor:help;color:#8bb7ff;border:1px solid #406089;border-radius:50%;padding:0 5px;font-size:11px;">i</span></div><div class="model-converters-workflow-detail-text">Approximate component weights are computed after enriched/split XML nodes are produced. Click Build Weight Data to compute/recompute; the tab no longer starts matching automatically.</div><div id="mc-wm-hint-panel"></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;"><button type="button" class="model-converters-run-btn" id="mc-wm-refresh">Build Weight Data</button><button type="button" class="model-converters-download-btn" id="mc-wm-fill-best">Use all ★ preferred</button><button type="button" class="model-converters-download-btn" id="mc-wm-length-toggle" title="Convert small master lengths (<100) from inch to mm. Default OFF.">⇄ in→mm: OFF</button><span id="mc-wm-status" class="mc-diag-run-status"></span></div><div id="mc-wm-content"><div class="model-converters-workflow-detail-note">Click <strong>Build Weight Data</strong> to compute approximate matches for the current enriched/split XML node set.</div></div>`;
+  const info = 'Length gate is mandatory. Rating is resolved from explicit override, Piping Class master, or Regex before nearest-weight candidate ranking.';
+  return `<div class="model-converters-workflow-detail-title">5 Weight Match <span title="${attr(info)}" style="cursor:help;color:#8bb7ff;border:1px solid #406089;border-radius:50%;padding:0 5px;font-size:11px;">i</span></div><div class="model-converters-workflow-detail-text">Approximate component weights are computed after enriched/split XML nodes are produced. Click Build Weight Data to compute/recompute; DTXR Rating remains comparison evidence unless explicitly fetched in Preview.</div><div id="mc-wm-hint-panel"></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;"><button type="button" class="model-converters-run-btn" id="mc-wm-refresh">Build Weight Data</button><button type="button" class="model-converters-download-btn" id="mc-wm-fill-best">Use all ★ preferred</button><button type="button" class="model-converters-download-btn" id="mc-wm-length-toggle" title="Convert small master lengths (<100) from inch to mm. Default OFF.">⇄ in→mm: OFF</button><span id="mc-wm-status" class="mc-diag-run-status"></span></div><div id="mc-wm-content"><div class="model-converters-workflow-detail-note">Click <strong>Build Weight Data</strong> to compute approximate matches for the current enriched/split XML node set.</div></div>`;
 }
 
 const WM_CACHE_KEY = 'xml-cii-wm-cache-v1';
@@ -330,10 +327,10 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const refEndpoint = issue.componentRefEndpoint || componentRefEndpoint(issue.componentRefNo, issue.endpoint);
       const nodeDisplay = issue.nodeNumberDisplay || issue.nodeNumber;
       const ratingInfo = ratingDisplayInfo(issue);
-      return `<tr style="${rowStyle}"><td>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td title="${attr(ratingInfo.title)}" style="${ratingInfo.style}">${esc(ratingInfo.shownRating || '')}</td><td title="${attr(issue.nodeNumber)}">${esc(nodeDisplay)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td><td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" value="${attr(initial)}" placeholder="kg" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
+      return `<tr style="${rowStyle}"><td>${esc(statusText)}</td><td title="${attr(issue.branchName)}">${esc(issue.branchName)}</td><td>${esc(issue.lineKey || '')}</td><td>${esc(issue.componentType || '')}</td><td>${esc(issue.boreMm == null ? '' : `${Number(issue.boreMm).toFixed(0)} mm`)}</td><td title="${attr(ratingInfo.title)}" style="${ratingInfo.style}">${esc(ratingInfo.shownRating || '')}</td><td title="${attr(issue.nodeNumber)}">${esc(nodeDisplay)}</td><td title="${attr(refEndpoint)}">${esc(refEndpoint)}</td><td title="${attr([issue.dtxrSource, issue.dtxrMatchedKey, issue.dtxrSourcePath, issue.dtxrSuppressionReason, ratingInfo.dtxrRating ? `DTXR Rating ${ratingInfo.dtxrRating}# evidence only` : ''].filter(Boolean).join(' · '))}">${esc(issue.dtxr || 'Not found')}</td><td>${esc(issue.valveHint || '')}</td><td title="${attr(issue.elementLengthSource || '')}">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td><td><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-wm-key="${attr(issue.key)}" value="${attr(initial)}" placeholder="kg" style="${inputStyle}"></td><td style="max-width:540px;"><div style="display:flex;flex-wrap:wrap;gap:4px;max-height:72px;overflow:auto;align-items:flex-start;">${chips}</div></td></tr>`;
     }).join('');
     const cfg = activeConfig();
-    contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Approximate matching source: enriched/split XML nodes. Drag the right edge of a column header to adjust table column width. Valve Hint is applied only to Endpoint 2 nodes. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    contentEl.innerHTML = `<div class="model-converters-workflow-detail-note" style="margin-bottom:8px;">Approximate matching source: enriched/split XML nodes. Drag the right edge of a column header to adjust table column width. DTXR Rating is evidence only. Exact candidate length gate is ±${nfmt(valveHintLengthToleranceMm(cfg))} mm. Length conversion is ${convOn(cfg) ? 'ON' : 'OFF'}.</div><div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;"><table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;"><thead><tr>${[['Status', 140], ['Branch', 280], ['Line Key', 110], ['ComponentType', 130], ['Bore', 90], ['Rating', 90], ['Node', 90], ['ComponentRefNo_Endpoint', 190], ['DTXR', 260], ['Valve Hint', 160], ['Length', 100], ['Weight (kg)', 110], ['Nearest Suggestions', 360]].map(([label, width]) => widthTh(label, width)).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
     contentEl.querySelectorAll('[data-wm-candidate]').forEach((button) => button.addEventListener('click', () => { const input = contentEl.querySelectorAll('.mc-rigid-review-input')[Number(button.dataset.wmCandidate)]; if (!input) return; input.value = button.dataset.wmWeight || ''; input.dispatchEvent(new Event('change', { bubbles: true })); }));
   };
   const fillBest = () => { let count = 0; contentEl.querySelectorAll('.mc-rigid-review-input').forEach((input, index) => { const best = localIssues[index]?.candidates?.[0]; if (!best || Number(selectedWeight(best)) <= 0 || best.zeroFallback) return; input.value = String(selectedWeight(best)); saveInput(input); count += 1; }); return count; };
@@ -345,16 +342,16 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
     liveConfig = await ensureWeightMasterRows(liveConfig);
     if (!hasWeightMasterRows(liveConfig)) { localIssues = []; renderWeightMasterBlocked(contentEl); status('Weight master not ready', 'bad'); return; }
     if (!opts.force) {
-      const _stagedSourceForFp = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText).catch(() => '') };
-      const _jsonLenForFp = clean(_stagedSourceForFp?.text ?? _stagedSourceForFp).length;
-      const _fp = wmCacheFingerprint(file, _jsonLenForFp, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides);
-      const _cached = readCache(WM_CACHE_KEY);
-      if (_cached?.fp === _fp && Array.isArray(_cached?.data) && _cached.data.length) {
-        localIssues = _cached.data.map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, liveConfig), liveConfig));
-        const _mapped = localIssues.filter((r) => r.mapped).length;
-        const _zero = localIssues.filter((r) => r.candidates?.[0]?.zeroFallback).length;
-        const _unresolved = localIssues.length - _mapped - localIssues.filter((r) => r.candidates?.[0]?.preferred || r.candidates?.[0]?.flangeWeightFallback || (r.candidates?.[0]?.inferredWeight && !r.candidates?.[0]?.zeroFallback)).length - _zero;
-        status(`${_mapped} mapped · (restored from cache) · ${localIssues.length} shown`, (_zero || _unresolved) ? 'bad' : 'ok');
+      const stagedSourceForFp = typeof resolveStagedJsonText === 'function' ? await resolveStagedJsonText(liveConfig).catch(() => ({ text: '' })) : { text: await stagedText(stagedJsonText).catch(() => '') };
+      const jsonLenForFp = clean(stagedSourceForFp?.text ?? stagedSourceForFp).length;
+      const fingerprint = wmCacheFingerprint(file, jsonLenForFp, liveConfig?.weight?.masterRows?.length || 0, liveConfig?.overrides);
+      const cached = readCache(WM_CACHE_KEY);
+      if (cached?.fp === fingerprint && Array.isArray(cached?.data) && cached.data.length) {
+        localIssues = cached.data.map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, liveConfig), liveConfig));
+        const mapped = localIssues.filter((row) => row.mapped).length;
+        const zero = localIssues.filter((row) => row.candidates?.[0]?.zeroFallback).length;
+        const unresolved = localIssues.length - mapped - localIssues.filter((row) => row.candidates?.[0]?.preferred || row.candidates?.[0]?.flangeWeightFallback || (row.candidates?.[0]?.inferredWeight && !row.candidates?.[0]?.zeroFallback)).length - zero;
+        status(`${mapped} mapped · (restored from cache) · ${localIssues.length} shown`, (zero || unresolved) ? 'bad' : 'ok');
         drawRows(localIssues);
         if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; detailEl?.dispatchEvent(new CustomEvent('xml-cii-weight-validator-ready', { bubbles: true, cancelable: true, detail: { issues: localIssues, masterRows: liveConfig.weight?.masterRows || [], config: liveConfig } })); }
         return;
@@ -379,10 +376,10 @@ export function bindXmlCiiWeightMatchPhase(detailEl, { xmlFile, stagedJsonText, 
       const unresolved = localIssues.length - mapped - suggested - flange - inferred - zero;
       status(`${mapped} mapped · ${suggested} exact · ${flange} flange fallback · ${inferred} inferred · ${zero} zero fallback · ${unresolved} unresolved · ${localIssues.length} shown${stagedSource?.label ? ` · ${stagedSource.label}` : ''}`, (zero || unresolved) ? 'bad' : 'ok');
       drawRows(localIssues);
-      const _cacheable = localIssues.map((row) => { const { ranking: _r, ...rest } = row; return rest; });
-      const _fpWrite = wmCacheFingerprint(file, jsonText.length, cfg?.weight?.masterRows?.length || 0, cfg?.overrides);
-      writeCache(WM_CACHE_KEY, _fpWrite, _cacheable);
-      if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; const _validatorEvent = new CustomEvent('xml-cii-weight-validator-ready', { bubbles: true, cancelable: true, detail: { issues: localIssues, masterRows: cfg.weight?.masterRows || [], config: cfg } }); detailEl?.dispatchEvent(_validatorEvent); }
+      const cacheable = localIssues.map((row) => { const { ranking, ...rest } = row; return rest; });
+      const fingerprint = wmCacheFingerprint(file, jsonText.length, cfg?.weight?.masterRows?.length || 0, cfg?.overrides);
+      writeCache(WM_CACHE_KEY, fingerprint, cacheable);
+      if (window.__xmlCiiPendingValidation) { window.__xmlCiiPendingValidation = false; const validatorEvent = new CustomEvent('xml-cii-weight-validator-ready', { bubbles: true, cancelable: true, detail: { issues: localIssues, masterRows: cfg.weight?.masterRows || [], config: cfg } }); detailEl?.dispatchEvent(validatorEvent); }
     } catch (error) {
       localIssues = [];
       contentEl.innerHTML = `<div class="model-converters-workflow-detail-note">Could not compute weight matches: ${esc(error?.message || error)}</div>`;
@@ -415,8 +412,8 @@ export async function computeXmlCiiWeightIssues({ xmlFile, resolveStagedJsonText
     const geometryXml = applyXmlCiiStagedGeometryAuthority(enriched.xmlText || xmlText, jsonText, { config: cfg }).xmlText;
     const issues = applyNodeMeta(collectXmlCiiWeightMatchRows(geometryXml, jsonText, cfg), geometryXml).map(cleanRow).filter(Boolean).map((row) => applyXmlCiiFlangeWeightFallbackToIssue(rerankWithRating(row, cfg), cfg));
     return { issues, masterRows: cfg.weight?.masterRows || [], config: cfg };
-  } catch (err) {
-    console.warn('XML→CII standalone weight computation failed:', err);
+  } catch (error) {
+    console.warn('XML→CII standalone weight computation failed:', error);
     return null;
   }
 }
