@@ -17,12 +17,31 @@ import {
 const REVISION = /^[0-9a-f]{40}$/;
 const HASH = /^[0-9a-f]{64}$/;
 const TEXT_ENCODER = new TextEncoder();
+const AUDIT_KEYS = [
+  'schema', 'auditId', 'packageStatus', 'producerRevision', 'sourceIdentity',
+  'parserIdentity', 'selectedSourceGraphSha256', 'sourceGeometryBundleSourceGraphSha256',
+  'sourceGeometryBundleDigest', 'selectedZone', 'authority', 'files',
+];
+const AUTHORITY_KEYS = ['engineeringSemantics', 'occurrenceAndTransform', 'topologyAndBuffers', 'supportSemantics'];
+const FILE_RECORD_KEYS = [
+  'path', 'role', 'required', 'status', 'schema', 'bufferId', 'sha256', 'byteLength', 'reason',
+];
 
 function bytesOf(content) {
   if (typeof content === 'string') return TEXT_ENCODER.encode(content);
   if (content instanceof ArrayBuffer) return new Uint8Array(content);
   if (ArrayBuffer.isView(content)) return new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
   failSelectedZonePackage('BLOCKED_PACKAGE_FILE', 'Package content must be text or bytes.');
+}
+
+function exactObject(value, keys, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    failSelectedZonePackage('BLOCKED_PACKAGE_SHAPE', `${label} must be an object.`);
+  }
+  if (Object.keys(value).sort().join('\0') !== [...keys].sort().join('\0')) {
+    failSelectedZonePackage('BLOCKED_PACKAGE_SHAPE', `${label} fields are invalid.`);
+  }
+  return value;
 }
 
 function nonEmptyReason(value, label) {
@@ -168,6 +187,29 @@ function fileMap(packageValue) {
   return map;
 }
 
+function validateAuditShape(audit) {
+  exactObject(audit, AUDIT_KEYS, 'package audit');
+  exactObject(audit.authority, AUTHORITY_KEYS, 'package audit authority');
+  if (audit.schema !== FBX_SELECTED_ZONE_PACKAGE_AUDIT_SCHEMA
+    || audit.packageStatus !== SELECTED_ZONE_PACKAGE_STATUS.evidenceReady
+    || !REVISION.test(audit.producerRevision || '') || !Array.isArray(audit.files)) {
+    failSelectedZonePackage('BLOCKED_PACKAGE_AUDIT', 'Package audit identity is invalid.');
+  }
+  audit.files.forEach((item) => exactObject(item, FILE_RECORD_KEYS, 'package audit file record'));
+}
+
+function verifyFileSet(audit, files) {
+  const present = audit.files.filter((item) => item.status === SELECTED_ZONE_PACKAGE_STATUS.present);
+  const expected = new Set([SELECTED_ZONE_PACKAGE_PATHS.audit, ...present.map((item) => item.path)]);
+  const omitted = audit.files.filter((item) => item.status === SELECTED_ZONE_PACKAGE_STATUS.omittedBlocked);
+  if (files.size !== expected.size || [...files.keys()].some((path) => !expected.has(path))) {
+    failSelectedZonePackage('BLOCKED_PACKAGE_FILE', 'Package contains unbound or missing files.');
+  }
+  if (omitted.some((item) => files.has(item.path))) {
+    failSelectedZonePackage('BLOCKED_PACKAGE_FILE', 'An omitted package file was silently published.');
+  }
+}
+
 async function verifyAuditFiles(audit, files) {
   for (const record of audit.files) {
     if (record.status !== SELECTED_ZONE_PACKAGE_STATUS.present) continue;
@@ -192,6 +234,8 @@ export async function validateSelectedZonePackageCore(packageValue) {
     failSelectedZonePackage('BLOCKED_PACKAGE_SHAPE', 'Expected FbxSelectedZonePackage.v1.');
   }
   const files = fileMap(packageValue);
+  validateAuditShape(packageValue.audit);
+  verifyFileSet(packageValue.audit, files);
   await validateSelectedZoneGeometryManifest(packageValue.geometryManifest);
   if (await calculateSelectedZoneGeometryManifestDigest(packageValue.geometryManifest)
     !== packageValue.geometryManifest.manifestDigest) {
