@@ -14,33 +14,33 @@ test('extracts explicit DTXR rating forms only', () => {
   assert.equal(extractXmlCiiRatingFromDtxr('PIPE SCH 80 WTH 15.09'), '');
 });
 
-test('uses DTXR only when higher authority is absent', () => {
+test('normal authority does not auto-populate Rating from DTXR', () => {
   const result = resolveXmlCiiRatingAuthority({ dtxrValues: ['FLANGE 900#'] });
+  assert.equal(result.rating, '');
+  assert.equal(result.source, 'none');
+  assert.equal(result.dtxrRating, '900');
+  assert.equal(result.needsReview, true);
+});
+
+test('explicit compatibility flag may consume unambiguous DTXR evidence', () => {
+  const result = resolveXmlCiiRatingAuthority({ dtxrValues: ['FLANGE 900#'], allowDtxrFallback: true });
   assert.equal(result.rating, '900');
   assert.equal(result.source, 'dtxr-rating');
-  assert.equal(result.conflict, false);
 });
 
-test('piping class rating outranks corroborating DTXR', () => {
-  const result = resolveXmlCiiRatingAuthority({ pipingClassRating: '900', dtxrValues: ['FLANGE 900#'] });
+test('piping class rating remains authoritative over DTXR evidence', () => {
+  const result = resolveXmlCiiRatingAuthority({ pipingClassRating: '900', dtxrValues: ['FLANGE 150#'] });
   assert.equal(result.rating, '900');
   assert.equal(result.source, 'piping-class-master');
+  assert.equal(result.dtxrConflict, true);
   assert.equal(result.conflict, false);
 });
 
-test('higher authority is retained when DTXR conflicts', () => {
-  const result = resolveXmlCiiRatingAuthority({ pipingClassRating: '150', dtxrValues: ['FLANGE 900#'] });
-  assert.equal(result.rating, '150');
-  assert.equal(result.source, 'dtxr-rating-conflict');
-  assert.equal(result.resolvedSource, 'piping-class-master');
-  assert.equal(result.conflict, true);
-});
-
-test('conflicting DTXR ratings do not auto-populate', () => {
+test('conflicting DTXR ratings remain evidence-only in normal execution', () => {
   const evidence = collectXmlCiiDtxrRatingEvidence(['FLANGE 150#', 'VALVE CLASS 900']);
   assert.deepEqual(evidence.ratings, ['150', '900']);
   const result = resolveXmlCiiRatingAuthority({ dtxrValues: evidence.evidence });
   assert.equal(result.rating, '');
-  assert.equal(result.conflict, true);
-  assert.equal(result.needsReview, true);
+  assert.equal(result.dtxrConflict, true);
+  assert.equal(result.conflict, false);
 });

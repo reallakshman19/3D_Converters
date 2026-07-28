@@ -1,5 +1,10 @@
-export const XML_CII_PREVIEW_CACHE_SCHEMA = 'xml-cii-preview-cache/v7';
-export const XML_CII_PREVIEW_CACHE_KEY = 'xml-cii-pv-cache-v7';
+import {
+  clearXmlCiiPreviewRatingSnapshot,
+  publishXmlCiiPreviewRatingSnapshot,
+} from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
+
+export const XML_CII_PREVIEW_CACHE_SCHEMA = 'xml-cii-preview-cache/v8-rating-policy';
+export const XML_CII_PREVIEW_CACHE_KEY = 'xml-cii-pv-cache-v8-rating-policy';
 export const XML_CII_PREVIEW_LEGACY_CACHE_KEY = 'xml-cii-pv-cache-v8-dtxr';
 
 const DEFAULT_MAX_BYTES = 2500000;
@@ -8,6 +13,7 @@ const LEGACY_KEYS = Object.freeze([
   'xml-cii-pv-cache-v6',
   'xml-cii-pv-cache-v2',
 ]);
+const OLD_ENVELOPE_KEYS = Object.freeze(['xml-cii-pv-cache-v7']);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -124,9 +130,13 @@ export function restorePreviewCacheV7(authority, storage) {
   try {
     if (exact) {
       target.setItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY, JSON.stringify(envelope.legacyPayload));
+      publishXmlCiiPreviewRatingSnapshot(envelope.legacyPayload.data.branchRows, {
+        authorityDigest: authority.digest,
+      });
       return { restored: true, reason: 'exact-authority-match', envelope };
     }
     target.removeItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY);
+    clearXmlCiiPreviewRatingSnapshot();
   } catch {}
   return { restored: false, reason: envelope ? 'authority-mismatch' : 'cache-missing-or-invalid' };
 }
@@ -136,8 +146,14 @@ export function capturePreviewCacheV7(authority, storage, maxBytes = DEFAULT_MAX
   if (!target || !authority?.digest) return { stored: false, reason: 'storage-or-authority-unavailable' };
   const legacyPayload = parseStored(target.getItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY));
   try { target.removeItem(XML_CII_PREVIEW_LEGACY_CACHE_KEY); } catch {}
-  if (!validLegacyPayload(legacyPayload)) return { stored: false, reason: 'legacy-payload-missing-or-invalid' };
+  if (!validLegacyPayload(legacyPayload)) {
+    clearXmlCiiPreviewRatingSnapshot();
+    return { stored: false, reason: 'legacy-payload-missing-or-invalid' };
+  }
 
+  publishXmlCiiPreviewRatingSnapshot(legacyPayload.data.branchRows, {
+    authorityDigest: authority.digest,
+  });
   const envelope = {
     schema: XML_CII_PREVIEW_CACHE_SCHEMA,
     authority,
@@ -151,6 +167,7 @@ export function capturePreviewCacheV7(authority, storage, maxBytes = DEFAULT_MAX
   }
   try {
     target.setItem(XML_CII_PREVIEW_CACHE_KEY, serialized);
+    for (const key of OLD_ENVELOPE_KEYS) target.removeItem(key);
     return { stored: true, reason: 'stored', bytes: serialized.length, envelope };
   } catch (error) {
     return { stored: false, reason: 'storage-write-failed', error };
@@ -163,14 +180,22 @@ export function clearPreviewCacheBridge(storage) {
   for (const key of LEGACY_KEYS) {
     try { target.removeItem(key); } catch {}
   }
+  clearXmlCiiPreviewRatingSnapshot();
 }
 
 export function clearPreviewCachesV7(storage) {
   const target = storageOrNull(storage);
   if (!target) return;
-  for (const key of [XML_CII_PREVIEW_CACHE_KEY, ...LEGACY_KEYS, 'xml-cii-wm-cache-v1']) {
+  for (const key of [
+    XML_CII_PREVIEW_CACHE_KEY,
+    ...OLD_ENVELOPE_KEYS,
+    ...LEGACY_KEYS,
+    'xml-cii-wm-cache-v1',
+    'xml-cii-wm-cache-v2-preview-rating',
+  ]) {
     try { target.removeItem(key); } catch {}
   }
+  clearXmlCiiPreviewRatingSnapshot();
 }
 
 export function discardPreviewCacheV7(storage) {

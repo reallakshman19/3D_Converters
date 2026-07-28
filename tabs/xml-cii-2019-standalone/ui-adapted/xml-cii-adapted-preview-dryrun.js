@@ -10,11 +10,15 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     .catch((error) => console.error('Failed to install XML→CII effective-class shard hydrator:', error));
 }
 
-// Preview v6 rows did not contain the effective rating authority fields. Purge
-// that cache at module load so an upgraded deployment cannot reuse blank/stale
-// Rating rows without invoking the new resolver.
+// Rating authority changed from automatic Line List / DTXR fallback to explicit
+// override → Piping Class master → Regex extraction. Remove old renderer bridges
+// and the former cache envelope before any upgraded Preview can restore them.
 try {
-  if (typeof localStorage !== 'undefined') localStorage.removeItem('xml-cii-pv-cache-v6');
+  if (typeof localStorage !== 'undefined') {
+    for (const key of ['xml-cii-pv-cache-v8-dtxr', 'xml-cii-pv-cache-v7', 'xml-cii-pv-cache-v6']) {
+      localStorage.removeItem(key);
+    }
+  }
 } catch {}
 
 export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText) {
