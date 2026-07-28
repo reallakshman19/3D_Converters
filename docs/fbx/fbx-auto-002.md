@@ -28,6 +28,7 @@ resolution remain unchanged. No second StagedJSON writer exists.
 ```text
 minimum centre span:             0.000001 mm
 normal dot tolerance:            0.00000001
+A/L endpoint ordering:           world-centre lexicographic
 end-radius agreement:            max(0.05 mm, radius × 0.001)
 axial containment tolerance:     max(0.01 mm, span × 0.0001)
 radial residual tolerance:       max(0.05 mm, radius × 0.001)
@@ -36,11 +37,13 @@ comparison:                      inclusive
 
 Every mesh-bearing occurrence must own exactly one selected geometry. That
 geometry must produce exactly two admitted boundary-loop candidates, zero
-rejected or additional candidates, and one shell identity. Both possible A/L
-assignments are evaluated; exactly one must align the two outward normals with
-the centre span. At least six exact control points are transformed by the
-accepted occurrence matrix and must lie within the endpoint interval and on
-one constant-radius open cylinder.
+rejected or additional candidates, and one shell identity. Both candidate
+orientations are evaluated, but only the lexicographically ordered world-centre
+orientation may assign A to the lower endpoint and L to the higher endpoint.
+That orientation must align both outward normals with the A→L centre span.
+At least six exact control points are transformed by the accepted occurrence
+matrix and must lie within the endpoint interval and on one constant-radius
+open cylinder.
 
 Names, materials, colours, display labels, hierarchy labels, preview samples
 and renderer data are prohibited classification inputs. Capped, stepped,
@@ -78,7 +81,8 @@ Identity binds the exact source and parser evidence, both merged evidence
 artifact IDs, selected zone ID, occurrence and geometry identities, derived
 port evidence, profiles, reciprocal links and conservation counts. UI labels,
 source insertion order, polygon order, candidate order, locale, time and random
-values do not affect canonical bytes.
+values do not affect canonical bytes. Occurrence dispositions are emitted in
+canonical occurrence-ID order.
 
 ## Writer and UI integration
 
@@ -108,8 +112,20 @@ internal result exists.
 
 ## Validation status
 
-Focused deterministic, connectivity, writer-default regression and UI admission
-tests are committed. Hosted Actions are unavailable because repository credits
-are exhausted and remain `WAIVED_RESOURCE_LIMIT`, not PASS. Full-checkout test,
-committed-WASM Worker and browser certification must be reported separately;
-unexecuted proof must not be represented as passing.
+At exact head `2b5fa1003efe475c3c0950a0c99da406db4051bc`, all seven focused tests pass
+in the reconstruction environment: classification, classification failures,
+connectivity, repeated-byte determinism, accepted-writer/public-default
+regression, UI behavior and UI static authority. JavaScript syntax and the
+production-file limit below 300 lines also pass.
+
+A Chromium 144 DevTools run of the exact 14-module PIPE pipeline passes
+successful release, repeated internal/StagedJSON bytes, topology counts,
+context accounting and fail-closed blocked output. The managed browser is
+restricted to an insecure `about:blank` context, so the harness supplies only
+a SHA-256 `subtle.digest` polyfill; production modules are unchanged.
+
+Hosted Actions remain `WAIVED_RESOURCE_LIMIT`, not PASS. A complete repository
+checkout, complete FBX suite and committed-WASM direct/Worker parity remain
+unexecuted because GitHub DNS is unavailable and the connector cannot
+materialize the binary WASM blob. These unavailable proofs are not represented
+as passing.
