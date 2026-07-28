@@ -145,9 +145,9 @@ export function classifySelectedPipes({
   zoneGeometryEvidence, derivedPortEvidence, selections, profile = AUTO_PIPE_PROFILE,
 }) {
   const selectionById = new Map(selections.map((item) => [item.geometry.geometryObjectId, item]));
-  const occurrences = [...zoneGeometryEvidence.occurrenceEvidence].sort((a, b) => (
-    compareOccurrenceId(a.sourceOccurrenceId, b.sourceOccurrenceId)
-  ));
+  const occurrences = zoneGeometryEvidence.occurrenceEvidence
+    .filter((item) => item.geometryObjectIds?.length)
+    .sort((a, b) => compareOccurrenceId(a.sourceOccurrenceId, b.sourceOccurrenceId));
   return occurrences.map((occurrence) => classifyPipeOccurrence({
     occurrence,
     selection: selectionById.get(occurrence.geometryObjectIds?.[0]),
