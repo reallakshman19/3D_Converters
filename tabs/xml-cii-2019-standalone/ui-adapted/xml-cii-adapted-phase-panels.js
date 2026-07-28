@@ -26,6 +26,27 @@ export function renderActivePhase(root, stateRef, render) {
   root.appendChild(card);
 }
 
+function ensureWeightMatchDtxrRatingButton(card) {
+  if (!card || card.querySelector?.('#mc-wm-use-dtxr-rating')) return;
+  const refresh = card.querySelector?.('#mc-wm-refresh');
+  if (!refresh?.parentElement) return;
+  const button = createElement('button', 'Use Rating as per DTXR');
+  button.type = 'button';
+  button.id = 'mc-wm-use-dtxr-rating';
+  button.className = 'model-converters-download-btn';
+  button.title = 'Explicitly rerank Weight Match rows using DTXR Rating. Default authority remains the exact Rating shown in Preview.';
+  if (button.style) Object.assign(button.style, {
+    cursor: 'pointer',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    background: '#1e293b',
+    color: '#cbd5e1',
+    border: '1px solid #334155',
+  });
+  refresh.insertAdjacentElement?.('afterend', button);
+  if (!button.parentElement) refresh.parentElement.insertBefore(button, refresh.nextSibling);
+}
+
 export function renderPhaseBody(card, phaseId, stateRef, render) {
   const state = stateRef.current;
   if (phaseId === 'source') {
@@ -89,7 +110,11 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   if (phaseId === 'preview') return renderStandalonePreviewReportPanel(card, stateRef, render);
   if (phaseId === 'diagnostics') return renderStandaloneDiagnosticsReportPanel(card, state);
   if (phaseId === 'matched-audit') return renderStandalonePropagationAuditPanel(card, state, render);
-  if (phaseId === 'weight-match') return renderAdaptedWeightMatchPanel(card, stateRef, render);
+  if (phaseId === 'weight-match') {
+    renderAdaptedWeightMatchPanel(card, stateRef, render);
+    ensureWeightMatchDtxrRatingButton(card);
+    return;
+  }
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, stateRef, render);
   if (phaseId === 'config') return renderAdaptedConfigPanel(card, stateRef, render);
   if (phaseId === 'run') return renderRunPanel(card, stateRef, render);
