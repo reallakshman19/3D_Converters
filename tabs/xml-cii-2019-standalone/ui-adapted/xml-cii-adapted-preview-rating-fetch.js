@@ -25,7 +25,8 @@ function targetKey(row) {
 function clearFetchedRatingOverrides(overrides) {
   const markers = object(overrides.__dtxrRatingKeys);
   const rating = object(overrides.rating);
-  for (const key of Object.keys(markers)) {
+  const keys = Object.keys(markers);
+  for (const key of keys) {
     delete rating[key];
     const processRow = overrides.processData?.[key];
     if (processRow && typeof processRow === 'object') {
@@ -35,6 +36,7 @@ function clearFetchedRatingOverrides(overrides) {
   }
   overrides.rating = rating;
   overrides.__dtxrRatingKeys = {};
+  return keys.length;
 }
 
 export function isPreviewDtxrRatingOverride(config, key) {
@@ -46,7 +48,7 @@ export function applyPreviewDtxrRatingOverrides(config = {}, branchRows = []) {
   const target = config && typeof config === 'object' ? config : {};
   target.overrides = object(target.overrides);
   target.overrides.processData = object(target.overrides.processData);
-  clearFetchedRatingOverrides(target.overrides);
+  const cleared = clearFetchedRatingOverrides(target.overrides);
 
   let applied = 0;
   let conflicts = 0;
@@ -68,7 +70,7 @@ export function applyPreviewDtxrRatingOverrides(config = {}, branchRows = []) {
     targets.push({ key, rating: candidate.rating, branchName: text(row?.branchName) });
     applied += 1;
   }
-  return { config: target, applied, conflicts, missing, targets };
+  return { config: target, applied, cleared, conflicts, missing, targets };
 }
 
 export function previewDtxrRatingCandidate(row) {
