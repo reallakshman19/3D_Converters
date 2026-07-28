@@ -22,21 +22,31 @@ function targetKey(row) {
   return text(row?.branchName) || text(row?.lineKey);
 }
 
+function isManualRating(overrides, key) {
+  return overrides?.__previewFillDown?.rating?.[key]?.fillState === 'manual';
+}
+
 function clearFetchedRatingOverrides(overrides) {
   const markers = object(overrides.__dtxrRatingKeys);
   const rating = object(overrides.rating);
-  const keys = Object.keys(markers);
-  for (const key of keys) {
+  const preservedManual = new Set();
+  let cleared = 0;
+  for (const key of Object.keys(markers)) {
+    if (isManualRating(overrides, key)) {
+      preservedManual.add(key);
+      continue;
+    }
     delete rating[key];
     const processRow = overrides.processData?.[key];
     if (processRow && typeof processRow === 'object') {
       delete processRow.rating;
       if (!Object.keys(processRow).length) delete overrides.processData[key];
     }
+    cleared += 1;
   }
   overrides.rating = rating;
   overrides.__dtxrRatingKeys = {};
-  return keys.length;
+  return { cleared, preservedManual };
 }
 
 export function isPreviewDtxrRatingOverride(config, key) {
@@ -48,14 +58,19 @@ export function applyPreviewDtxrRatingOverrides(config = {}, branchRows = []) {
   const target = config && typeof config === 'object' ? config : {};
   target.overrides = object(target.overrides);
   target.overrides.processData = object(target.overrides.processData);
-  const cleared = clearFetchedRatingOverrides(target.overrides);
+  const refresh = clearFetchedRatingOverrides(target.overrides);
 
   let applied = 0;
   let conflicts = 0;
   let missing = 0;
+  let manualProtected = 0;
   const targets = [];
   for (const row of Array.isArray(branchRows) ? branchRows : []) {
     const key = targetKey(row);
+    if (key && refresh.preservedManual.has(key)) {
+      manualProtected += 1;
+      continue;
+    }
     const candidate = candidateForRow(row);
     if (candidate.status === 'conflict') {
       conflicts += 1;
@@ -70,7 +85,15 @@ export function applyPreviewDtxrRatingOverrides(config = {}, branchRows = []) {
     targets.push({ key, rating: candidate.rating, branchName: text(row?.branchName) });
     applied += 1;
   }
-  return { config: target, applied, cleared, conflicts, missing, targets };
+  return {
+    config: target,
+    applied,
+    cleared: refresh.cleared,
+    conflicts,
+    missing,
+    manualProtected,
+    targets,
+  };
 }
 
 export function previewDtxrRatingCandidate(row) {
