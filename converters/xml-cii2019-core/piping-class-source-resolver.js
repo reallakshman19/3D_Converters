@@ -17,7 +17,10 @@ function regexGroup(value, pattern, group = 1) {
 }
 
 function looksLikeNps(value) {
-  return /^\s*\d+(?:\.\d+)?\s*(?:"|in|inch|nps)?\s*$/i.test(text(value));
+  const source = text(value).replace(/(?:nps|inch(?:es)?|in\.?|["”])/gi, '').trim();
+  if (!/^\d+(?:\.\d+)?$/.test(source)) return false;
+  const numeric = Number(source);
+  return Number.isFinite(numeric) && numeric >= 0.25 && numeric <= 80;
 }
 
 function likelyMaterial(value) {
