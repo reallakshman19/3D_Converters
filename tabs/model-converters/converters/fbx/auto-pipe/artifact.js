@@ -1,5 +1,7 @@
 import { derivePipeConnectivity } from './connectivity.js';
-import { AUTO_PIPE_CONNECTIVITY_PROFILE, AUTO_PIPE_PROFILE } from './profile.js';
+import {
+  AUTO_PIPE_CONNECTIVITY_PROFILE, AUTO_PIPE_PROFILE, AUTO_PIPE_RESOURCE_LIMITS,
+} from './profile.js';
 import {
   compareOccurrenceId, deterministicId, profileHash, splitEndpoint,
 } from './identity.js';
@@ -7,6 +9,29 @@ import {
 function requireAdmitted(classifications) {
   if (!classifications.length || classifications.some((item) => !item.admitted)) {
     throw new Error('BLOCKED_AUTO_PIPE_CLASSIFICATION selected scope is not fully PIPE-admitted.');
+  }
+}
+
+function requireResourceBound(classifications) {
+  if (classifications.length > AUTO_PIPE_RESOURCE_LIMITS.maximumPipeOccurrences) {
+    throw new Error('BLOCKED_AUTO_PIPE_RESOURCE selected PIPE count exceeds the approved limit.');
+  }
+  const ports = classifications.length * 2;
+  const pairs = ports * (ports - 1) / 2;
+  if (ports > AUTO_PIPE_RESOURCE_LIMITS.maximumPorts
+      || pairs > AUTO_PIPE_RESOURCE_LIMITS.maximumConnectionPairs) {
+    throw new Error('BLOCKED_AUTO_PIPE_RESOURCE port matching exceeds the approved limit.');
+  }
+}
+
+function requireExclusiveEvidence(classifications) {
+  const models = new Set(), geometries = new Set();
+  for (const item of classifications) {
+    if (models.has(item.sourceModelObjectId) || geometries.has(item.geometryObjectId)) {
+      throw new Error('BLOCKED_AUTO_PIPE_SCOPE source evidence is claimed by multiple PIPE entries.');
+    }
+    models.add(item.sourceModelObjectId);
+    geometries.add(item.geometryObjectId);
   }
 }
 
@@ -121,12 +146,53 @@ function occurrenceDispositions(zoneGeometryEvidence, classifications) {
   });
 }
 
+function conservation(zoneGeometryEvidence, entries, links) {
+  const selected = zoneGeometryEvidence.conservation.selectedOccurrenceCount;
+  return {
+    selectedOccurrenceCount: selected,
+    meshBearingOccurrenceCount: entries.length,
+    contextOccurrenceCount: selected - entries.length,
+    dispositionCount: selected,
+    admittedPipeCount: entries.length,
+    rejectedOccurrenceCount: 0,
+    portCount: entries.length * 2,
+    linkCount: links.length,
+    openPortCount: entries.length * 2 - links.length * 2,
+  };
+}
+
+async function artifactCore(input, ordered, entries, links) {
+  const zone = input.zoneGeometryEvidence, derived = input.derivedPortEvidence;
+  return {
+    schema: 'FbxInternalPipeMapping.v1',
+    authorityDisposition: 'INTERNAL_DERIVED_ONLY',
+    publicMappingDisposition: 'NOT_FBX_STAGED_MAPPING',
+    sourceIdentity: structuredClone(zone.sourceIdentity),
+    parserIdentity: structuredClone(zone.parserIdentity),
+    sourceGraphSha256: zone.sourceGraphSha256,
+    sourceZoneGeometryArtifactId: zone.artifactId,
+    sourceDerivedPortArtifactId: derived.artifactId,
+    selectedZone: { zoneId: zone.selectedZone.zoneId },
+    classificationProfile: structuredClone(input.classificationProfile),
+    classificationProfileSha256: await profileHash(input.classificationProfile),
+    connectivityProfile: structuredClone(input.connectivityProfile),
+    connectivityProfileSha256: await profileHash(input.connectivityProfile),
+    occurrenceDispositions: occurrenceDispositions(zone, ordered),
+    entries,
+    links,
+    conservation: conservation(zone, entries, links),
+    releaseDisposition: 'PIPE_ONLY_RELEASED',
+  };
+}
+
 export async function buildInternalPipeMapping({
   zoneGeometryEvidence, derivedPortEvidence, classifications,
   classificationProfile = AUTO_PIPE_PROFILE,
   connectivityProfile = AUTO_PIPE_CONNECTIVITY_PROFILE,
 }) {
   requireAdmitted(classifications);
+  requireResourceBound(classifications);
+  requireExclusiveEvidence(classifications);
   const ordered = [...classifications].sort((a, b) => compareOccurrenceId(
     a.sourceOccurrenceId, b.sourceOccurrenceId));
   const source = {
@@ -137,36 +203,9 @@ export async function buildInternalPipeMapping({
   const rawLinks = derivePipeConnectivity(connectivityPorts(entries), connectivityProfile);
   entries = attachConnections(entries, rawLinks);
   const links = await linkRecords(rawLinks);
-  const core = {
-    schema: 'FbxInternalPipeMapping.v1',
-    authorityDisposition: 'INTERNAL_DERIVED_ONLY',
-    publicMappingDisposition: 'NOT_FBX_STAGED_MAPPING',
-    sourceIdentity: structuredClone(zoneGeometryEvidence.sourceIdentity),
-    parserIdentity: structuredClone(zoneGeometryEvidence.parserIdentity),
-    sourceGraphSha256: zoneGeometryEvidence.sourceGraphSha256,
-    sourceZoneGeometryArtifactId: zoneGeometryEvidence.artifactId,
-    sourceDerivedPortArtifactId: derivedPortEvidence.artifactId,
-    selectedZone: { zoneId: zoneGeometryEvidence.selectedZone.zoneId },
-    classificationProfile: structuredClone(classificationProfile),
-    classificationProfileSha256: await profileHash(classificationProfile),
-    connectivityProfile: structuredClone(connectivityProfile),
-    connectivityProfileSha256: await profileHash(connectivityProfile),
-    occurrenceDispositions: occurrenceDispositions(zoneGeometryEvidence, ordered),
-    entries,
-    links,
-    conservation: {
-      selectedOccurrenceCount: zoneGeometryEvidence.conservation.selectedOccurrenceCount,
-      meshBearingOccurrenceCount: ordered.length,
-      contextOccurrenceCount: zoneGeometryEvidence.conservation.selectedOccurrenceCount - ordered.length,
-      dispositionCount: zoneGeometryEvidence.conservation.selectedOccurrenceCount,
-      admittedPipeCount: entries.length,
-      rejectedOccurrenceCount: 0,
-      portCount: entries.length * 2,
-      linkCount: links.length,
-      openPortCount: entries.length * 2 - links.length * 2,
-    },
-    releaseDisposition: 'PIPE_ONLY_RELEASED',
-  };
+  const core = await artifactCore({
+    zoneGeometryEvidence, derivedPortEvidence, classificationProfile, connectivityProfile,
+  }, ordered, entries, links);
   const artifactId = await deterministicId(
     'fbx-internal-pipe-mapping', 'FbxInternalPipeMapping.v1', core);
   return Object.freeze({ artifactId, ...core });
