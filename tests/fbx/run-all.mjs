@@ -14,6 +14,7 @@ const tests = [
   'test-zone-package-diagnostic-ledger.mjs',
   'test-zone-package-archive.mjs',
   'test-zone-package-export-static.mjs',
+  'test-zone-package-live-input.mjs',
   'test-zone-package-qualification.mjs',
   'test-benchmark-zone-membership.mjs',
   'test-source-graph-v2.mjs',

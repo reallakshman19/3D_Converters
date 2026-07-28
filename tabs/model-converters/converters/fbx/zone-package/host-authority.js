@@ -1,9 +1,8 @@
 import { canonicalJson, deepFreeze } from '../canonical-json.js';
 import { sha256Hex } from '../sha256.js';
+import { validateSupportCandidateEvidence } from './support-evidence.js';
 import { FBX_ZONE_PACKAGE_SCHEMAS, fail } from './constants.js';
 
-const CANDIDATE_ID = /^[0-9a-f]{32}$/;
-const HASH = /^[0-9a-f]{64}$/;
 const ISO_8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 function nonEmptyText(value, label) {
   if (typeof value !== 'string' || !value.trim()) fail('ZONE_PACKAGE_INVALID_REVIEW', `${label} must be non-empty text.`);
@@ -33,28 +32,12 @@ function validateReviewEntry(entry, candidateId) {
   return { candidateId, hostOccurrenceIds, multiHost: hostOccurrenceIds.length > 1,
     ambiguous: entry.ambiguous === true, reviewedBy, reviewedAt: entry.reviewedAt };
 }
-async function validateSupportEvidence(supportEvidence) {
-  if (!supportEvidence || supportEvidence.schema !== FBX_ZONE_PACKAGE_SCHEMAS.supportEvidence
-      || !HASH.test(supportEvidence.selectedZoneDigest || '') || !HASH.test(supportEvidence.evidenceDigest || '')
-      || !Array.isArray(supportEvidence.candidates)) {
-    fail('ZONE_PACKAGE_INVALID_INPUT', 'supportEvidence must be a valid FbxSupportEvidence.v1.');
-  }
-  const payload = structuredClone(supportEvidence); delete payload.evidenceDigest;
-  if (await sha256Hex(canonicalJson(payload)) !== supportEvidence.evidenceDigest) {
-    fail('ZONE_PACKAGE_INVALID_INPUT', 'supportEvidence digest is invalid.');
-  }
-  const candidateIds = supportEvidence.candidates.map((candidate) => candidate?.candidateId);
-  if (candidateIds.some((candidateId) => !CANDIDATE_ID.test(candidateId || '')) || new Set(candidateIds).size !== candidateIds.length) {
-    fail('ZONE_PACKAGE_INVALID_IDENTITY', 'supportEvidence candidate identities are malformed or duplicate.');
-  }
-  return candidateIds;
-}
 export async function buildHostAuthorityBinding({ supportEvidence, ownerMapping } = {}) {
-  const candidateIds = await validateSupportEvidence(supportEvidence);
+  await validateSupportCandidateEvidence(supportEvidence);
   if (!ownerMapping || typeof ownerMapping !== 'object' || Array.isArray(ownerMapping)) {
     fail('ZONE_PACKAGE_INVALID_INPUT', 'ownerMapping must be an object keyed by candidateId.');
   }
-  const candidateSet = new Set(candidateIds);
+  const candidateSet = new Set(supportEvidence.candidates.map((candidate) => candidate.candidateId));
   const unknownKeys = Object.keys(ownerMapping).filter((key) => !candidateSet.has(key)).sort(compareText);
   if (unknownKeys.length) fail('ZONE_PACKAGE_INVALID_REVIEW', `ownerMapping contains stale or unknown candidate ids: ${unknownKeys.join(',')}.`);
   const bindings = [], unresolvedCandidateIds = [], ambiguousCandidateIds = [];

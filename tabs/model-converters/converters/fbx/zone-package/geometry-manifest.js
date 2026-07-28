@@ -78,7 +78,8 @@ async function buildManifestGeometry(entry) {
     packagePath: `geometries/${entry.geometryId}/geometry.json`, buffers }, rawBuffers: encoded.buffers };
 }
 async function calculateSelectedZoneDigest(completeSourceGraphSha256, geometries) {
-  const selection = geometries.map((item) => ({ geometryId: item.geometryId, occurrenceIds: [...item.occurrenceIds] }));
+  const selection = geometries.map((item) => ({ geometryId: item.geometryId,
+    sourceObjectId: item.sourceObjectId, occurrenceIds: [...item.occurrenceIds] }));
   return sha256Hex(canonicalJson({ completeSourceGraphSha256, selection }));
 }
 function manifestDigestPayload(manifest) { const payload = structuredClone(manifest); delete payload.manifestDigest; return payload; }
