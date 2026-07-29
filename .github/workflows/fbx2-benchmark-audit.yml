@@ -7,6 +7,7 @@ on:
       - 'scripts/fbx/audit-fbx2-benchmark.mjs'
       - 'scripts/fbx/audit-fbx2-weld-projection.mjs'
       - 'scripts/fbx/audit-fbx2-weld-tolerance.mjs'
+      - 'scripts/fbx/qualify-fbx2-benchmark.mjs'
       - 'tabs/model-converters/converters/fbx/**'
       - 'contracts/fbx/**'
       - 'tests/fbx/**'
@@ -39,7 +40,9 @@ jobs:
           node --check scripts/fbx/audit-fbx2-benchmark.mjs
           node --check scripts/fbx/audit-fbx2-weld-projection.mjs
           node --check scripts/fbx/audit-fbx2-weld-tolerance.mjs
+          node --check scripts/fbx/qualify-fbx2-benchmark.mjs
           node --check tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js
+          node --check tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js
 
       - name: Extract governed benchmark archives
         shell: bash
@@ -84,6 +87,9 @@ jobs:
             --output-zip Benchmarks/FBX2/ATTRIBUTE_GL_managed_stage.zip \
             --zone '/GLRD-1000-CU-PI-P' \
             --evidence artifacts/fbx2-benchmark-audit.json
+          node scripts/fbx/qualify-fbx2-benchmark.mjs \
+            --audit artifacts/fbx2-benchmark-audit.json \
+            --output artifacts/fbx2-benchmark-qualification.json
           node scripts/fbx/audit-fbx2-weld-projection.mjs \
             --fbx "$fbx_path" \
             --zone '/GLRD-1000-CU-PI-P' \
