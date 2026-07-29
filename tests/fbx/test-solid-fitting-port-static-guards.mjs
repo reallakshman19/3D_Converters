@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const root = new URL('../../', import.meta.url);
+const files = {
+  constants: 'tabs/model-converters/converters/fbx/solid-fitting-ports/constants.js',
+  profile: 'tabs/model-converters/converters/fbx/solid-fitting-ports/profile.js',
+  topologyProjection: 'tabs/model-converters/converters/fbx/solid-fitting-ports/topology-projection.js',
+  capClustering: 'tabs/model-converters/converters/fbx/solid-fitting-ports/cap-clustering.js',
+  candidateEvaluation: 'tabs/model-converters/converters/fbx/solid-fitting-ports/candidate-evaluation.js',
+  disposition: 'tabs/model-converters/converters/fbx/solid-fitting-ports/port-topology-disposition.js',
+  evidence: 'tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js',
+  classifier: 'tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js',
+  admissionGates: 'tabs/model-converters/converters/fbx/auto-pipe/pipe-admission-gates.js',
+  classify: 'tabs/model-converters/converters/fbx/auto-pipe/classify.js',
+  runAll: 'tests/fbx/run-all.mjs',
+};
+
+const text = Object.fromEntries(await Promise.all(Object.entries(files).map(async ([key, path]) => [
+  key, await readFile(new URL(path, root), 'utf8'),
+])));
+
+for (const key of Object.keys(files)) {
+  const lines = text[key].split('\n');
+  assert.ok(lines.length <= 300, `${files[key]} exceeds 300 lines (${lines.length})`);
+  assert.doesNotMatch(text[key], /export\s+default|Math\.random|Date\.now|localeCompare|https?:\/\/(?:unpkg|cdn|jsdelivr)/i);
+}
+
+// The closed-solid classifier must reuse the exact same admission gates as the
+// existing open-boundary classifier, not a duplicate implementation, so both
+// inference routes share one strict cylinder-residual verifier.
+assert.match(text.classifier, /from '\.\.\/auto-pipe\/pipe-admission-gates\.js'/);
+assert.doesNotMatch(text.classifier, /function\s+assignRoles|function\s+cylinderResiduals/);
+assert.match(text.classify, /from '\.\/pipe-admission-gates\.js'/);
+assert.doesNotMatch(text.classify, /function\s+assignRoles|function\s+cylinderResiduals/);
+
+// Cap-region circle fitting must reuse the existing deterministic circle-fit
+// and world-transform primitives, not a parallel implementation.
+assert.match(text.candidateEvaluation, /from '\.\.\/zone-geometry\/circle-fit\.js'/);
+assert.match(text.candidateEvaluation, /from '\.\.\/zone-geometry\/occurrence-transform\.js'/);
+assert.doesNotMatch(text.candidateEvaluation, /rotateJacobi/);
+
+const expectedOrder = [
+  'test-auto-pipe-partial-zone.mjs',
+  'test-solid-fitting-port-kernel.mjs', 'test-solid-fitting-port-disposition.mjs',
+  'test-solid-fitting-port-negative.mjs', 'test-solid-fitting-port-evidence-contract.mjs',
+  'test-solid-fitting-port-static-guards.mjs',
+];
+let previous = -1;
+for (const name of expectedOrder) {
+  const index = text.runAll.indexOf(`'${name}'`);
+  assert.ok(index > previous, `${name} is missing or out of order`); previous = index;
+}
+
+console.log('test-solid-fitting-port-static-guards: PASS');
