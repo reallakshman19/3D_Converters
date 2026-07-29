@@ -15,6 +15,7 @@ const tests = [
   'test-auto-pipe-stagedjson.mjs',
   'test-auto-pipe-partial-zone.mjs',
   'test-fbx-preview-zone-selector-static.mjs',
+  'test-fbx-preview-zone-recommendation.mjs',
   'test-zone-package-core.mjs',
   'test-zone-package-contracts.mjs',
   'test-zone-package-support-evidence.mjs',
