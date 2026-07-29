@@ -827,7 +827,7 @@ import { run as selJsonToXmlRun } from './converters/seljson-to-xml.js';
 import { run as stagedJsonToCsvRun } from './converters/stagedjson-to-csv.js';
 import { run as inputXmlToXmlRun } from './converters/inputxml-to-xml.js';
 import { run as xmlToCiiRun } from './converters/xmltocii2019_runner.js?v=20260620-weight-ready-1';
-import { run as inputXmlToCii2019Run } from './converters/inputxml-to-cii2019.js';
+import { run as inputXmlToCii2019Run } from './converters/inputxml-to-cii2019.js?v=20260729-inputxml-live-release-1';
 import { run as fbxToStagedJsonRun } from './converters/fbx-to-stagedjson.js';
 import { run as inputXmlToRvmRun } from './converters/inputxml-to-rvm.js';
 import { run as pcfContinuityCheckRun } from './converters/pcf-continuity-check.js';

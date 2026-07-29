@@ -15,6 +15,7 @@ import { normalizeInputXmlAttributeNames, converterUsesInputXmlDialect } from '.
 import { getConverterPackageWheelUrls } from './pyodide-local-packages.js';
 import { buildXmlCiiSidecarExportSpec, readXmlCiiSidecarArtifacts } from './xml-cii-inputxml-sidecar-worker.js';
 import { loadVerifiedInputXmlRuntime } from './inputxml-release-runtime-loader.js';
+import { createRetryableAsyncCache } from './inputxml-runtime-cache.js';
 import { runInputXmlPreflightJob, runInputXmlReleaseJob } from './inputxml-release-worker.js';
 
 const PYODIDE_INDEX_URL = new URL('../vendor/pyodide/', import.meta.url).href;
@@ -93,7 +94,9 @@ exit_code
 `;
 
 let _pyodidePromise = null;
-let _inputXmlRuntimePromise = null;
+const _inputXmlRuntimeCache = createRetryableAsyncCache(
+  (pyodide) => loadVerifiedInputXmlRuntime(pyodide, INPUTXML_RUNTIME_MANIFEST_URL),
+);
 let _scriptsLoaded = false;
 let _activeJobId = null;
 
@@ -228,10 +231,7 @@ async function _getPyodide() {
 }
 
 async function _ensureInputXmlRuntime(pyodide) {
-  if (!_inputXmlRuntimePromise) {
-    _inputXmlRuntimePromise = loadVerifiedInputXmlRuntime(pyodide, INPUTXML_RUNTIME_MANIFEST_URL);
-  }
-  return await _inputXmlRuntimePromise;
+  return await _inputXmlRuntimeCache.get(pyodide);
 }
 
 async function _installLocalPythonPackages(pyodide) {

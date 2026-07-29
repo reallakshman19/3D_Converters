@@ -54,7 +54,7 @@ function buildWorkerErrorMessage(event, fallback = 'Converter worker crashed.') 
 }
 
 export function createBrowserConverterExecutor() {
-  const worker = new Worker(new URL('./py-worker.js?v=20260711-local-pyodide-worker-1', import.meta.url), {
+  const worker = new Worker(new URL('./py-worker.js?v=20260729-inputxml-live-release-1', import.meta.url), {
     type: 'module',
   });
 

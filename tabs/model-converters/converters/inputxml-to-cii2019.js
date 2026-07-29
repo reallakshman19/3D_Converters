@@ -1,4 +1,8 @@
 import { decodeTextUtf8 } from '../core/output-utils.js';
+import {
+  buildInputXmlBlockedSummary,
+  buildInputXmlPreflightRows,
+} from './inputxml-blocked-diagnostics.js';
 
 const INPUTXML_HEADER_DEFAULTS = Object.freeze({
   headerDateTime: '13:40:45 6 May 2026',
@@ -459,5 +463,14 @@ export async function run(context) {
     options: workerOptions,
   });
   const blocked = response.logs?.preflight?.releaseEligible === false;
-  return { ...response, blocked, diagnosticsRows: buildReleasePreflightRows(response.logs) };
+  const rawOutputs = Array.isArray(response.outputs) ? response.outputs : [];
+  const blockedSummary = blocked ? buildInputXmlBlockedSummary(rawOutputs, response.logs) : null;
+  const outputs = blockedSummary ? [blockedSummary.artifact, ...rawOutputs] : rawOutputs;
+  return {
+    ...response,
+    outputs,
+    blocked,
+    blockedSummary,
+    diagnosticsRows: buildInputXmlPreflightRows(outputs, response.logs),
+  };
 }
