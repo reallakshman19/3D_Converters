@@ -1,9 +1,9 @@
 name: FBX2 Runtime Cache Patch
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/fbx2-pages-runtime-release
+      - main
     paths:
       - '.github/workflows/fbx2-runtime-cache-patch.yml'
 
@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   patch:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
@@ -28,24 +29,12 @@ jobs:
 
           key = '20260729-fbx2-direct-pipe-1'
           replacements = {
-              'index.html': [
-                  ('20260729-fbx-preview-auto-zone-1', key),
-              ],
-              'main-rhbg-fitguard.js': [
-                  ('20260729-fbx-preview-auto-zone-1', key),
-              ],
-              'core/app.js': [
-                  ('20260729-fbx-preview-auto-zone-1', key),
-              ],
-              'core/app-standalone-runtime.js': [
-                  ('20260729-fbx-preview-auto-zone-1', key),
-              ],
-              'tabs/model-converters-tab.js': [
-                  ('20260729-fbx-preview-auto-zone-1', key),
-              ],
-              'tabs/model-converters/index.js': [
-                  ('20260729-fbx-preview-auto-zone-1', key),
-              ],
+              'index.html': [('20260729-fbx-preview-auto-zone-1', key)],
+              'main-rhbg-fitguard.js': [('20260729-fbx-preview-auto-zone-1', key)],
+              'core/app.js': [('20260729-fbx-preview-auto-zone-1', key)],
+              'core/app-standalone-runtime.js': [('20260729-fbx-preview-auto-zone-1', key)],
+              'tabs/model-converters-tab.js': [('20260729-fbx-preview-auto-zone-1', key)],
+              'tabs/model-converters/index.js': [('20260729-fbx-preview-auto-zone-1', key)],
               'tabs/model-converters/ModelConvertersTab.js': [
                   ('fbx-review-ui-addon.js?v=20260724-fbx-json-no-mapping-1', f'fbx-review-ui-addon.js?v={key}'),
                   ('fbx-preview-zone-selector.js?v=20260729-fbx-preview-auto-zone-1', f'fbx-preview-zone-selector.js?v={key}'),
