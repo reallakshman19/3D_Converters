@@ -88,8 +88,8 @@ jobs:
               text = path.read_text(encoding='utf-8')
               for old, new in edits:
                   count = text.count(old)
-                  if count != 1:
-                      raise SystemExit(f'{name}: expected one occurrence of {old!r}, found {count}')
+                  if count < 1:
+                      raise SystemExit(f'{name}: expected at least one occurrence of {old!r}, found {count}')
                   text = text.replace(old, new)
               path.write_text(text, encoding='utf-8', newline='\n')
           PY
