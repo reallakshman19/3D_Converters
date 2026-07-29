@@ -79,8 +79,11 @@ function closedSolidRecordFor(closedSolidPipeEvidence, occurrenceId, geometryId)
 
 function repairedShellEvidence(record) {
   const projection = record?.analysisProjection;
-  return projection?.method === 'POSITION_WELD_AND_FACE_DEDUP_V1'
+  const baseRepair = projection?.method === 'POSITION_WELD_AND_FACE_DEDUP_V1'
     && (projection.mergedVertexCount > 0 || projection.duplicateFaceIds?.length > 0);
+  const capRepair = projection?.terminalCapBridge?.method === 'DETACHED_CAP_RING_BRIDGE_V1'
+    && projection.terminalCapBridge.disposition === 'APPLIED';
+  return baseRepair || capRepair;
 }
 
 function closedSolidEligible(openBoundary, record) {
@@ -90,7 +93,7 @@ function closedSolidEligible(openBoundary, record) {
 
 // Open-boundary admission always wins. Closed-solid inference is consulted only
 // when open topology cannot represent the component, including a shell split
-// that a governed weld/dedup projection demonstrably repaired.
+// that a governed weld/dedup or detached-cap projection demonstrably repaired.
 function classifyOccurrence({
   occurrence, selection, derivedPortEvidence, closedSolidPipeEvidence, profile, closedSolidProfile,
 }) {
