@@ -101,6 +101,7 @@
         "sourceGeometryObjectIds",
         "generated",
         "generationMethod",
+        "generationProvenanceStatus",
         "exactSourceOccurrenceId",
         "candidateSourceOccurrenceIds",
         "disposition"
@@ -117,6 +118,9 @@
         "sourceGeometryObjectIds": { "$ref": "#/$defs/stringArray" },
         "generated": { "type": "boolean" },
         "generationMethod": { "$ref": "#/$defs/nullableText" },
+        "generationProvenanceStatus": {
+          "enum": ["NOT_APPLICABLE", "EVIDENCED", "UNRESOLVED"]
+        },
         "exactSourceOccurrenceId": { "$ref": "#/$defs/nullableText" },
         "candidateSourceOccurrenceIds": { "$ref": "#/$defs/stringArray" },
         "disposition": {
@@ -128,7 +132,38 @@
             "UNMATCHED_MANAGED_COMPONENT"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "generated": { "const": true } } },
+          "then": {
+            "properties": {
+              "generationProvenanceStatus": { "enum": ["EVIDENCED", "UNRESOLVED"] },
+              "sourceOccurrenceId": { "type": "null" },
+              "sourceModelObjectId": { "type": "null" },
+              "sourceGeometryObjectIds": { "maxItems": 0 },
+              "exactSourceOccurrenceId": { "type": "null" },
+              "candidateSourceOccurrenceIds": { "maxItems": 0 },
+              "disposition": { "const": "GENERATED_MANAGED_COMPONENT" }
+            }
+          },
+          "else": {
+            "properties": {
+              "generationMethod": { "type": "null" },
+              "generationProvenanceStatus": { "const": "NOT_APPLICABLE" },
+              "disposition": { "not": { "const": "GENERATED_MANAGED_COMPONENT" } }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "generationProvenanceStatus": { "const": "EVIDENCED" } } },
+          "then": { "properties": { "generationMethod": { "type": "string", "minLength": 1 } } }
+        },
+        {
+          "if": { "properties": { "generationProvenanceStatus": { "const": "UNRESOLVED" } } },
+          "then": { "properties": { "generationMethod": { "type": "null" } } }
+        }
+      ]
     },
     "countMap": {
       "type": "object",
@@ -146,6 +181,7 @@
         "managedCountsByRawType",
         "matchedManagedComponentCount",
         "generatedManagedComponentCount",
+        "unresolvedGenerationProvenanceCount",
         "candidateManagedComponentCount",
         "unresolvedSourceBindingCount",
         "unmatchedManagedComponentCount",
@@ -158,6 +194,7 @@
         "managedCountsByRawType": { "$ref": "#/$defs/countMap" },
         "matchedManagedComponentCount": { "type": "integer", "minimum": 0 },
         "generatedManagedComponentCount": { "type": "integer", "minimum": 0 },
+        "unresolvedGenerationProvenanceCount": { "type": "integer", "minimum": 0 },
         "candidateManagedComponentCount": { "type": "integer", "minimum": 0 },
         "unresolvedSourceBindingCount": { "type": "integer", "minimum": 0 },
         "unmatchedManagedComponentCount": { "type": "integer", "minimum": 0 },
@@ -171,12 +208,14 @@
       "required": [
         "exactBindingsRequireSourceOccurrenceId",
         "candidatesAreNonAuthoritative",
+        "missingGenerationMethodIsUnresolved",
         "runtimeAdmissionChanged",
         "engineeringAttributesInferred"
       ],
       "properties": {
         "exactBindingsRequireSourceOccurrenceId": { "const": true },
         "candidatesAreNonAuthoritative": { "const": true },
+        "missingGenerationMethodIsUnresolved": { "const": true },
         "runtimeAdmissionChanged": { "const": false },
         "engineeringAttributesInferred": { "const": false }
       }
