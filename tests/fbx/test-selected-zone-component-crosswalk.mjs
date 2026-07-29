@@ -172,10 +172,23 @@ await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
     children: [component('PIPE', 'INVALID', {
       REF: 'INVALID',
       AUTO_GENERATED_PIPE: true,
+      generationMethod: 'PORT_GAP_RECONSTRUCTION_V1',
       sourceOccurrenceId: 'occ:pipe',
     })],
   }],
-}), /generated record BRANCH-A cannot claim source occurrence occ:pipe/);
+}), /generated record BRANCH-A cannot claim direct source identity/);
+
+await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
+  sourceGraph,
+  zoneGeometryEvidence,
+  stagedBranches: [{
+    ...stagedBranches[0],
+    children: [component('PIPE', 'NO-METHOD', {
+      REF: 'NO-METHOD',
+      AUTO_GENERATED_PIPE: true,
+    })],
+  }],
+}), /generated managed component requires generationMethod/);
 
 await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
   sourceGraph,
