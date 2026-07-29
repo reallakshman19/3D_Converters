@@ -1,4 +1,4 @@
-export const FBX_SOLID_FITTING_PORT_SCHEMA = 'FbxSolidFittingPortEvidence.v2';
+export const FBX_SOLID_FITTING_PORT_SCHEMA = 'FbxSolidFittingPortEvidence.v3';
 
 export const SOLID_FITTING_PORT_STATUS = Object.freeze({
   PASS: 'SOLID_FITTING_PORT_PASS',
