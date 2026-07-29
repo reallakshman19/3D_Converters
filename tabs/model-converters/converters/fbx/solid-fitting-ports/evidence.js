@@ -2,6 +2,7 @@ import { compareDecimalId, compareOccurrenceId, compareText } from '../zone-geom
 import { artifactWithId } from '../zone-geometry/identity.js';
 import { decodeExactPolygonTopology } from '../zone-geometry/polygon-topology.js';
 import { deriveConnectedShells } from '../zone-geometry/shells.js';
+import { buildSolidFittingAnalysisTopology } from './analysis-topology.js';
 import { deriveCapRegions } from './cap-clustering.js';
 import { evaluateCapRegions } from './candidate-evaluation.js';
 import { FBX_SOLID_FITTING_PORT_SCHEMA, SOLID_FITTING_REJECTION_REASON_ORDER } from './constants.js';
@@ -23,20 +24,24 @@ function relevantOccurrences(scope, geometryObjectId) {
     .sort((a, b) => compareOccurrenceId(a.sourceOccurrenceId, b.sourceOccurrenceId));
 }
 
-function rejectedRecord(occurrence, geometryObjectId, reasons) {
+function rejectedRecord(occurrence, geometryObjectId, analysisProjection, reasons) {
   return {
     sourceOccurrenceId: occurrence.sourceOccurrenceId,
     sourceModelObjectId: occurrence.sourceModelObjectId,
     geometryObjectId,
     shellId: null,
+    analysisProjection,
     topologyDisposition: 'REJECTED',
     candidates: [],
     rejectionReasons: orderedReasons(reasons),
   };
 }
 
-async function occurrenceRecord(occurrence, geometryObjectId, shell, regions, profile) {
-  const candidates = await evaluateCapRegions(occurrence, geometryObjectId, shell.shellId, regions, profile);
+async function occurrenceRecord(
+  occurrence, geometryObjectId, analysisProjection, shell, regions, profile,
+) {
+  const candidates = await evaluateCapRegions(
+    occurrence, geometryObjectId, shell.shellId, regions, profile);
   const admitted = candidates.filter((item) => item.admissionDisposition === 'ADMITTED');
   const disposition = classifyPortTopology(admitted, profile);
   return {
@@ -44,6 +49,7 @@ async function occurrenceRecord(occurrence, geometryObjectId, shell, regions, pr
     sourceModelObjectId: occurrence.sourceModelObjectId,
     geometryObjectId,
     shellId: shell.shellId,
+    analysisProjection,
     topologyDisposition: disposition.disposition,
     candidates,
     rejectionReasons: disposition.reason ? orderedReasons([disposition.reason]) : [],
@@ -51,22 +57,27 @@ async function occurrenceRecord(occurrence, geometryObjectId, shell, regions, pr
 }
 
 async function geometryOccurrenceRecords(scope, selection, profile) {
-  const topology = decodeExactPolygonTopology(selection);
+  const decoded = decodeExactPolygonTopology(selection);
+  const projected = buildSolidFittingAnalysisTopology(decoded, profile);
+  const topology = projected.topology;
   const occurrences = relevantOccurrences(scope, topology.geometryObjectId);
   if (!occurrences.length) return [];
   const shells = await deriveConnectedShells(topology);
   if (shells.length !== 1) {
-    return occurrences.map((occurrence) => rejectedRecord(occurrence, topology.geometryObjectId, ['MULTIPLE_SHELLS']));
+    return occurrences.map((occurrence) => rejectedRecord(
+      occurrence, topology.geometryObjectId, projected.evidence, ['MULTIPLE_SHELLS']));
   }
   const [shell] = shells;
   if (shell.rejectionReasons.length) {
-    return occurrences.map((occurrence) => rejectedRecord(occurrence, topology.geometryObjectId, shell.rejectionReasons));
+    return occurrences.map((occurrence) => rejectedRecord(
+      occurrence, topology.geometryObjectId, projected.evidence, shell.rejectionReasons));
   }
   const faceFeatures = projectFaceFeatures(topology);
   const regions = deriveCapRegions(topology, shell, faceFeatures, profile);
   const records = [];
   for (const occurrence of occurrences) {
-    records.push(await occurrenceRecord(occurrence, topology.geometryObjectId, shell, regions, profile));
+    records.push(await occurrenceRecord(
+      occurrence, topology.geometryObjectId, projected.evidence, shell, regions, profile));
   }
   return records;
 }
