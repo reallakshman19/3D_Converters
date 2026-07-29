@@ -2,6 +2,11 @@ name: InputXML Pages Live Release
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/inputxml-pages-live-release.yml'
   push:
     branches:
       - main
@@ -35,7 +40,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: inputxml-pages-live-release
+  group: inputxml-pages-live-release-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -45,6 +50,7 @@ jobs:
     env:
       PAGES_ROOT: https://reallaksh19.github.io/3D_Converters
       EVIDENCE_PATH: evidence/inputxml-pages-release-deployment.json
+      DEPLOYED_REPOSITORY_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -84,7 +90,7 @@ jobs:
           matched=false
           matched_attempt=0
           for attempt in $(seq 1 60); do
-            cache_bust="commit=${GITHUB_SHA}&attempt=${attempt}"
+            cache_bust="commit=${DEPLOYED_REPOSITORY_COMMIT}&attempt=${attempt}"
             if ! curl --fail --location --silent --show-error \
                 --header 'Cache-Control: no-cache' \
                 "$PAGES_ROOT/converters/inputxml-runtime-manifest.json?$cache_bust" \
@@ -136,7 +142,7 @@ jobs:
 
       - name: Run end-to-end live Pages release qualification
         env:
-          REPOSITORY_COMMIT: ${{ github.sha }}
+          REPOSITORY_COMMIT: ${{ env.DEPLOYED_REPOSITORY_COMMIT }}
           INPUTXML_PAGES_EVIDENCE_PATH: evidence/inputxml-pages-release-deployment.json
         run: node tests/inputxml-pages-live-release.test.mjs
 
@@ -203,7 +209,7 @@ jobs:
           {
             echo '### InputXML Pages live release'
             echo
-            echo "- repository commit: \`${GITHUB_SHA}\`"
+            echo "- repository commit: \`$(jq -r '.repositoryCommit' "$EVIDENCE_PATH")\`"
             echo "- convergence attempt: \`${CONVERGENCE_ATTEMPT}\`"
             echo "- runtime source revision: \`$(jq -r '.runtime.sourceRevision' "$EVIDENCE_PATH")\`"
             echo "- CII SHA-256: \`$(jq -r '.passRelease.ciiSha256' "$EVIDENCE_PATH")\`"
