@@ -13,7 +13,7 @@ const DEFAULT_MAX_GEOMETRIES = 2000;
 const DEFAULT_MAX_SOURCE_POINTS = 2000000;
 const SHAPE_SAMPLE_LIMIT = 512;
 const PIPE_NAME = /(^|[^A-Z0-9])(PIPE|PIPING|SPOOL|TUBE|TUBING)([^A-Z0-9]|$)/i;
-const NON_PIPE_NAME = /(^|[^A-Z0-9])(BUILDING|STRUCTURE|CABLE|TRAY|EQUIPMENT)([^A-Z0-9]|$)/i;
+const NON_PIPE_NAME = /(^|[^A-Z0-9])(TEE|SUPP|SUPPORT|VALVE|FLANGE|ELBOW|REDUCER|GASK|BOLT|BUILDING|STRUCTURE|CABLE|TRAY|EQUIPMENT)([^A-Z0-9]|$)/i;
 
 function compareText(left, right) { return left < right ? -1 : left > right ? 1 : 0; }
 function finiteLimit(value, fallback) {
