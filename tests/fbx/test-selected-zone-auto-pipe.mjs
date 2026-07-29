@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   BLOCKED_SELECTED_ZONE_AUTO_PIPE,
+  SELECTED_ZONE_EVIDENCE_PASS,
   STAGEDJSON_SELECTED_ZONE_PASS,
   rankFbxAutoPipeZones,
   runFbxSelectedZoneAutoPipe,
@@ -28,6 +29,14 @@ function passingAnalysis() {
       attributes: { REF: 'B-1' }, children: [{ type: 'PIPE', id: 'P-1',
         attributes: { REF: 'P-1' }, children: [] }] }]) },
   counts: { admittedPipes: 1 } };
+}
+function evidenceAnalysis() {
+  return { autoPipe: { status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION', error: null,
+    counts: { admittedPipes: 0 }, classificationDispositions: [] },
+  zoneGeometryEvidence: { schema: 'FbxZoneGeometryEvidence.v1' },
+  derivedPortEvidence: { schema: 'FbxDerivedPortEvidence.v1' },
+  zonePackageInputs: { manifest: { schema: 'FbxSelectedZoneGeometryManifest.v1' } },
+  zonePackageError: null, counts: { admittedPipes: 0 } };
 }
 const graph = {
   schema: 'FbxSourceGraph.v2',
@@ -82,7 +91,7 @@ const graph = {
     analyse: async ({ zoneId, includeZonePackageInputs }) => {
       calls += 1;
       assert.equal(zoneId, selection.zoneId);
-      assert.equal(includeZonePackageInputs, false);
+      assert.equal(includeZonePackageInputs, true);
       return passingAnalysis();
     },
   });
@@ -102,9 +111,7 @@ const graph = {
     options: { maxAttempts: 2 },
     analyse: async ({ zoneId }) => {
       calls.push(zoneId);
-      return calls.length === 1 ? { autoPipe: {
-        status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION', error: null,
-      }, counts: { admittedPipes: 0 } } : passingAnalysis();
+      return calls.length === 1 ? evidenceAnalysis() : passingAnalysis();
     },
   });
   assert.deepEqual(calls, candidates.map((item) => item.zoneId),
@@ -119,15 +126,24 @@ const graph = {
   let calls = 0;
   const result = await runFbxSelectedZoneAutoPipe({
     sourceGraph: graph, geometryBundle: {}, options: { maxAttempts: 1 },
-    analyse: async () => { calls += 1; return { autoPipe: {
-      status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION', error: null,
-    }, counts: { admittedPipes: 0 } }; },
+    analyse: async () => { calls += 1; return evidenceAnalysis(); },
   });
-  assert.equal(calls, 1, 'hard attempt cap must prevent whole-model analysis');
-  assert.equal(result.conversionStatus, BLOCKED_SELECTED_ZONE_AUTO_PIPE);
+  assert.equal(calls, 1, 'default zone evidence path must not scan the whole model');
+  assert.equal(result.conversionStatus, SELECTED_ZONE_EVIDENCE_PASS);
   assert.equal(result.counts.attemptedZones, 1);
-  assert.equal(result.counts.blockedZones, 1);
-  assert.match(result.blockingReasons[0], /ATTEMPT_LIMIT:1/);
+  assert.equal(result.counts.evidenceZones, 1);
+  assert.equal(result.selectedZone.zoneId, 'occ:3');
+  assert.equal(result.selectedZoneAnalysis.zonePackageManifest.schema,
+    'FbxSelectedZoneGeometryManifest.v1');
+}
+{
+  const result = await runFbxSelectedZoneAutoPipe({
+    sourceGraph: graph, geometryBundle: {}, options: { maxAttempts: 1 },
+    analyse: async () => { throw new Error('zone preparation failed'); },
+  });
+  assert.equal(result.conversionStatus, BLOCKED_SELECTED_ZONE_AUTO_PIPE);
+  assert.equal(result.counts.errorZones, 1);
+  assert.match(result.blockingReasons[0], /NO_ZONE_EVIDENCE/);
 }
 {
   assert.throws(() => selectFbxAutoPipeZone({
