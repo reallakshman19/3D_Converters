@@ -1,0 +1,89 @@
+name: FBX Pages Deployment Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fbx-pages-deployment-smoke.yml'
+      - 'tabs/model-converters/converters/fbx/parser-wasm.js'
+      - 'tabs/model-converters/converters/fbx/parser-provenance.js'
+      - 'third_party/ufbx/fbx_parser.wasm'
+      - 'third_party/ufbx/provenance.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fbx-pages-deployment-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify-pages-parser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Poll deployed parser identity
+        env:
+          PAGES_ROOT: https://reallaksh19.github.io/3D_Converters
+        run: |
+          set -euo pipefail
+          expected_sha="$(jq -r '.wasmSha256' third_party/ufbx/provenance.json)"
+          expected_bytes="$(jq -r '.wasmByteLength' third_party/ufbx/provenance.json)"
+          test "$expected_sha" != null
+          test "$expected_bytes" != null
+
+          rm -rf .pages-smoke
+          mkdir -p .pages-smoke
+          matched=false
+          for attempt in $(seq 1 60); do
+            cache_bust="commit=${GITHUB_SHA}&attempt=${attempt}"
+            if curl --fail --location --silent --show-error \
+                --header 'Cache-Control: no-cache' \
+                "$PAGES_ROOT/third_party/ufbx/provenance.json?$cache_bust" \
+                --output .pages-smoke/provenance.json \
+              && curl --fail --location --silent --show-error \
+                --header 'Cache-Control: no-cache' \
+                "$PAGES_ROOT/third_party/ufbx/fbx_parser.wasm?$cache_bust" \
+                --output .pages-smoke/fbx_parser.wasm; then
+              deployed_sha="$(sha256sum .pages-smoke/fbx_parser.wasm | cut -d' ' -f1)"
+              deployed_bytes="$(stat -c '%s' .pages-smoke/fbx_parser.wasm)"
+              declared_sha="$(jq -r '.wasmSha256 // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
+              declared_bytes="$(jq -r '.wasmByteLength // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
+              if [[ "$deployed_sha" == "$expected_sha" \
+                  && "$deployed_bytes" == "$expected_bytes" \
+                  && "$declared_sha" == "$expected_sha" \
+                  && "$declared_bytes" == "$expected_bytes" ]]; then
+                matched=true
+                break
+              fi
+              printf 'attempt=%s deployed_sha=%s deployed_bytes=%s declared_sha=%s declared_bytes=%s\n' \
+                "$attempt" "$deployed_sha" "$deployed_bytes" \
+                "$declared_sha" "$declared_bytes"
+            fi
+            sleep 10
+          done
+
+          if [[ "$matched" != true ]]; then
+            echo 'GitHub Pages did not converge to the repository parser identity.' >&2
+            exit 1
+          fi
+
+          curl --fail --location --silent --show-error \
+            --header 'Cache-Control: no-cache' \
+            "$PAGES_ROOT/tabs/model-converters/converters/fbx/parser-wasm.js?commit=${GITHUB_SHA}" \
+            --output .pages-smoke/parser-wasm.js
+          grep -F "fetch(url, { cache: 'no-store' })" .pages-smoke/parser-wasm.js
+
+          {
+            echo '### FBX Pages parser deployment'
+            echo
+            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- SHA-256: \`${expected_sha}\`"
+            echo "- byte length: \`${expected_bytes}\`"
+            echo '- deployed provenance: matched'
+            echo '- browser fetch policy: no-store'
+          } >> "$GITHUB_STEP_SUMMARY"
