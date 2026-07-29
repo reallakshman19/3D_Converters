@@ -7,14 +7,15 @@ import { mergeWholeModelBranches } from './whole-model-identities.js';
 
 export const FBX_SELECTED_ZONE_AUTO_PIPE_POLICY = 'FbxSelectedZoneAutoPipePolicy.v1';
 export const STAGEDJSON_SELECTED_ZONE_PASS = 'STAGEDJSON_SELECTED_ZONE_PASS';
+export const SELECTED_ZONE_EVIDENCE_PASS = 'SELECTED_ZONE_EVIDENCE_PASS';
 export const BLOCKED_SELECTED_ZONE_AUTO_PIPE = 'BLOCKED_SELECTED_ZONE_AUTO_PIPE';
 
 const DEFAULT_MAX_GEOMETRIES = 2000;
 const DEFAULT_MAX_SOURCE_POINTS = 2000000;
-const DEFAULT_MAX_ATTEMPTS = 8;
+const DEFAULT_MAX_ATTEMPTS = 1;
 const MAX_MAX_ATTEMPTS = 12;
 const SHAPE_SAMPLE_LIMIT = 512;
-const PIPE_NAME = /(^|[^A-Z0-9])(PIPE|PIPING|SPOOL|TUBE|TUBING)([^A-Z0-9]|$)/i;
+const PIPE_NAME = /(^|[^A-Z0-9])(PIPE|PIPING|PIPELINE|FLOWLINE|FL|PL|SPOOL|TUBE|TUBING)([^A-Z0-9]|$)/i;
 const NON_PIPE_NAME = /(^|[^A-Z0-9])(TEE|SUPP|SUPPORT|VALVE|FLANGE|ELBOW|REDUCER|GASK|BOLT|MEQP|EQUIP|BUILDING|STRUCTURE|CABLE|TRAY|EQUIPMENT)([^A-Z0-9]|$)/i;
 
 function compareText(left, right) { return left < right ? -1 : left > right ? 1 : 0; }
@@ -143,12 +144,12 @@ function reportFor(selection, status, admittedPipes, error = null) {
   return { zoneId: selection.zoneId, label: selection.label, rank: selection.rank,
     status, admittedPipes, error };
 }
-function countsFor(candidates, reports, branches = 0) {
+function countsFor(candidates, reports, branches = 0, evidenceZones = 0) {
   const passedZones = reports.filter((item) => item.status === 'STAGEDJSON_PASS').length;
   const errorZones = reports.filter((item) => item.status === 'ERROR').length;
   return { totalZones: candidates[0]?.candidateCount || 0,
     eligibleZones: candidates[0]?.eligibleCandidateCount || 0,
-    attemptedZones: reports.length, passedZones,
+    attemptedZones: reports.length, passedZones, evidenceZones,
     blockedZones: reports.length - passedZones - errorZones,
     errorZones, branches };
 }
@@ -163,7 +164,7 @@ async function qualifyCandidate(input, selection) {
     input.onAttempt?.(selection);
     const result = await input.analyse({ sourceGraph: input.sourceGraph,
       geometryBundle: input.geometryBundle, zoneId: selection.zoneId,
-      includeZonePackageInputs: false });
+      includeZonePackageInputs: true });
     const status = result?.autoPipe?.status || 'UNKNOWN';
     return { selection, result, report: reportFor(selection, status,
       result?.counts?.admittedPipes || 0, result?.autoPipe?.error || null) };
@@ -172,6 +173,30 @@ async function qualifyCandidate(input, selection) {
     return { selection, result: null,
       report: reportFor(selection, 'ERROR', 0, message) };
   }
+}
+function analysisEvidence(qualified) {
+  const result = qualified.result;
+  return Object.freeze({
+    zoneGeometryEvidence: result.zoneGeometryEvidence,
+    derivedPortEvidence: result.derivedPortEvidence,
+    zonePackageManifest: result.zonePackageInputs?.manifest || null,
+    zonePackageError: result.zonePackageError,
+    counts: result.counts,
+    autoPipeStatus: result.autoPipe?.status || 'UNKNOWN',
+    autoPipeCounts: result.autoPipe?.counts || null,
+    classificationStatus: result.autoPipe?.classificationStatus || null,
+    classificationDispositions: result.autoPipe?.classificationDispositions || [],
+    autoPipeError: result.autoPipe?.error || null,
+  });
+}
+function evidenceResult(candidates, attempts, qualified) {
+  const status = qualified.report.status;
+  return { conversionStatus: SELECTED_ZONE_EVIDENCE_PASS, stagedJsonText: null,
+    selectedZone: qualified.selection, candidateZones: candidates,
+    selectedZoneAnalysis: analysisEvidence(qualified), zoneReports: attempts,
+    duplicateIdentifiers: [], unresolvedCrefs: [],
+    blockingReasons: [`PIPE_INFERENCE_NOT_RELEASED:${status}`],
+    counts: countsFor(candidates, attempts, 0, 1) };
 }
 async function successfulResult(candidates, attempts, qualified) {
   const branches = validatedBranches(qualified.result.autoPipe.stagedJsonText);
@@ -183,9 +208,10 @@ async function successfulResult(candidates, attempts, qualified) {
   }
   return { conversionStatus: STAGEDJSON_SELECTED_ZONE_PASS,
     stagedJsonText: canonicalJson(identity.merged), selectedZone: qualified.selection,
+    selectedZoneAnalysis: analysisEvidence(qualified),
     candidateZones: candidates, zoneReports: attempts,
     duplicateIdentifiers: [], unresolvedCrefs: [], blockingReasons: [],
-    counts: countsFor(candidates, attempts, identity.merged.length) };
+    counts: countsFor(candidates, attempts, identity.merged.length, 1) };
 }
 export async function runFbxSelectedZoneAutoPipe({
   sourceGraph, geometryBundle, selection, selections, options = {},
@@ -197,17 +223,19 @@ export async function runFbxSelectedZoneAutoPipe({
       : selections || rankFbxAutoPipeZones(sourceGraph, options);
     const limit = selection || options.zoneId ? 1
       : positiveInteger(options.maxAttempts, DEFAULT_MAX_ATTEMPTS, MAX_MAX_ATTEMPTS);
-    const attempts = [];
-    const input = { sourceGraph, geometryBundle, analyse, onAttempt };
+    const attempts = [], input = { sourceGraph, geometryBundle, analyse, onAttempt };
+    let firstEvidence = null;
     for (const candidate of candidates.slice(0, limit)) {
       const qualified = await qualifyCandidate(input, candidate);
       attempts.push(qualified.report);
+      if (qualified.result && !firstEvidence) firstEvidence = qualified;
       if (qualified.report.status === 'STAGEDJSON_PASS') {
         return successfulResult(candidates, attempts, qualified);
       }
     }
+    if (firstEvidence) return evidenceResult(candidates, attempts, firstEvidence);
     return blocked(candidates, attempts,
-      `NO_PIPE_ZONE_PASSED_WITHIN_ATTEMPT_LIMIT:${Math.min(limit, candidates.length)}`);
+      `NO_ZONE_EVIDENCE_PASSED_WITHIN_ATTEMPT_LIMIT:${Math.min(limit, candidates.length)}`);
   } catch (error) {
     const message = error?.message || String(error);
     const fallback = candidates || [];
