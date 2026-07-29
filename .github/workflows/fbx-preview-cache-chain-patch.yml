@@ -1,0 +1,79 @@
+name: FBX Preview Cache Chain Patch
+
+on:
+  push:
+    branches:
+      - agent/fbx-preview-cache-chain
+    paths:
+      - '.github/workflows/fbx-preview-cache-chain-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-cache-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fbx-preview-cache-chain
+          fetch-depth: 0
+
+      - name: Apply deterministic preview cache chain
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          token = '20260729-fbx-preview-auto-zone-1'
+          replacements = {
+              'index.html': [
+                  ('main-rhbg-fitguard.js?v=standalone-4', f'main-rhbg-fitguard.js?v={token}'),
+              ],
+              'main-rhbg-fitguard.js': [
+                  ('core/app.js?v=standalone-4', f'core/app.js?v={token}'),
+              ],
+              'core/app.js': [
+                  ('app-standalone-runtime.js?v=standalone-4', f'app-standalone-runtime.js?v={token}'),
+              ],
+              'core/app-standalone-runtime.js': [
+                  ('model-converters-tab.js?v=20260729-inputxml-live-release-1',
+                   f'model-converters-tab.js?v={token}'),
+              ],
+              'tabs/model-converters-tab.js': [
+                  ("MODEL_CONVERTERS_SHIM_VERSION = '20260729-inputxml-live-release-1'",
+                   f"MODEL_CONVERTERS_SHIM_VERSION = '{token}'"),
+                  ('model-converters/index.js?v=20260729-inputxml-live-release-1',
+                   f'model-converters/index.js?v={token}'),
+                  ('model-converters/legacy-adapter.js?v=20260729-inputxml-live-release-1',
+                   f'model-converters/legacy-adapter.js?v={token}'),
+              ],
+              'tabs/model-converters/index.js': [
+                  ('ModelConvertersTab.js?v=20260729-inputxml-live-release-1',
+                   f'ModelConvertersTab.js?v={token}'),
+              ],
+              'tabs/model-converters/ModelConvertersTab.js': [
+                  ('fbx-preview-zone-selector.js?v=20260727-fbx-zone-stagedjson-1',
+                   f'fbx-preview-zone-selector.js?v={token}'),
+              ],
+          }
+
+          for path_text, pairs in replacements.items():
+              path = Path(path_text)
+              text = path.read_text(encoding='utf-8')
+              for old, new in pairs:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected one occurrence of {old!r}, found {count}')
+                  text = text.replace(old, new)
+              path.write_text(text, encoding='utf-8', newline='\n')
+          PY
+
+          git rm .github/workflows/fbx-preview-cache-chain-patch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html main-rhbg-fitguard.js core/app.js core/app-standalone-runtime.js \
+            tabs/model-converters-tab.js tabs/model-converters/index.js \
+            tabs/model-converters/ModelConvertersTab.js
+          git commit -m 'fix(fbx): propagate preview runtime cache key'
+          git push origin HEAD:agent/fbx-preview-cache-chain
