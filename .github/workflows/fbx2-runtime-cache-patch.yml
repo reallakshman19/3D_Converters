@@ -1,0 +1,156 @@
+name: FBX2 Runtime Cache Patch
+
+on:
+  push:
+    branches:
+      - agent/fbx2-pages-runtime-release
+    paths:
+      - '.github/workflows/fbx2-runtime-cache-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/fbx2-pages-runtime-release
+          fetch-depth: 0
+
+      - name: Apply deterministic cache-key patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          key = '20260729-fbx2-direct-pipe-1'
+          replacements = {
+              'index.html': [
+                  ('20260729-fbx-preview-auto-zone-1', key),
+              ],
+              'main-rhbg-fitguard.js': [
+                  ('20260729-fbx-preview-auto-zone-1', key),
+              ],
+              'core/app.js': [
+                  ('20260729-fbx-preview-auto-zone-1', key),
+              ],
+              'core/app-standalone-runtime.js': [
+                  ('20260729-fbx-preview-auto-zone-1', key),
+              ],
+              'tabs/model-converters-tab.js': [
+                  ('20260729-fbx-preview-auto-zone-1', key),
+              ],
+              'tabs/model-converters/index.js': [
+                  ('20260729-fbx-preview-auto-zone-1', key),
+              ],
+              'tabs/model-converters/ModelConvertersTab.js': [
+                  ('fbx-review-ui-addon.js?v=20260724-fbx-json-no-mapping-1', f'fbx-review-ui-addon.js?v={key}'),
+                  ('fbx-preview-zone-selector.js?v=20260729-fbx-preview-auto-zone-1', f'fbx-preview-zone-selector.js?v={key}'),
+                  ('zone-toolbar.js?v=20260727-fbx-auto-001-1', f'zone-toolbar.js?v={key}'),
+              ],
+              'tabs/model-converters/fbx-review-ui-addon.js': [
+                  ('converters/fbx-to-stagedjson.js?v=20260724-fbx-json-no-mapping-1', f'converters/fbx-to-stagedjson.js?v={key}'),
+              ],
+              'tabs/model-converters/converters/fbx-to-stagedjson.js': [
+                  ("from './fbx/zone-geometry/selected-zone-auto-pipe.js'", f"from './fbx/zone-geometry/selected-zone-auto-pipe.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js': [
+                  ("from './analyse-zone.js'", f"from './analyse-zone.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js': [
+                  ("from './analyse-zone.js'", f"from './analyse-zone.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js': [
+                  ("from '../auto-pipe/pipeline.js'", f"from '../auto-pipe/pipeline.js?v={key}'"),
+                  ("from '../solid-fitting-ports/evidence.js'", f"from '../solid-fitting-ports/evidence.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/auto-pipe/pipeline.js': [
+                  ("from './classify.js'", f"from './classify.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/auto-pipe/classify.js': [
+                  ("from '../solid-fitting-ports/classifier.js'", f"from '../solid-fitting-ports/classifier.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js': [
+                  ("from './analysis-topology.js'", f"from './analysis-topology.js?v={key}'"),
+                  ("from './constants.js'", f"from './constants.js?v={key}'"),
+                  ("from './profile.js'", f"from './profile.js?v={key}'"),
+                  ("from './terminal-cap-bridge.js'", f"from './terminal-cap-bridge.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js': [
+                  ("from './constants.js'", f"from './constants.js?v={key}'"),
+                  ("from './sidewall-residual.js'", f"from './sidewall-residual.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js': [
+                  ("from './analysis-topology.js'", f"from './analysis-topology.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/solid-fitting-ports/sidewall-residual.js': [
+                  ("from '../transform-policy.js'", f"from '../transform-policy.js?v={key}'"),
+              ],
+              'tabs/model-converters/converters/fbx/zone-geometry/occurrence-transform.js': [
+                  ("from '../transform-policy.js'", f"from '../transform-policy.js?v={key}'"),
+              ],
+          }
+
+          for name, edits in replacements.items():
+              path = Path(name)
+              text = path.read_text(encoding='utf-8')
+              for old, new in edits:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{name}: expected one occurrence of {old!r}, found {count}')
+                  text = text.replace(old, new)
+              path.write_text(text, encoding='utf-8', newline='\n')
+          PY
+
+      - name: Verify patched import chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          key='20260729-fbx2-direct-pipe-1'
+          grep -F "main-rhbg-fitguard.js?v=$key" index.html
+          grep -F "core/app.js?v=$key" main-rhbg-fitguard.js
+          grep -F "app-standalone-runtime.js?v=$key" core/app.js
+          grep -F "model-converters-tab.js?v=$key" core/app-standalone-runtime.js
+          grep -F "model-converters/index.js?v=$key" tabs/model-converters-tab.js
+          grep -F "ModelConvertersTab.js?v=$key" tabs/model-converters/index.js
+          grep -F "fbx-review-ui-addon.js?v=$key" tabs/model-converters/ModelConvertersTab.js
+          grep -F "zone-toolbar.js?v=$key" tabs/model-converters/ModelConvertersTab.js
+          grep -F "fbx-to-stagedjson.js?v=$key" tabs/model-converters/fbx-review-ui-addon.js
+          grep -F "selected-zone-auto-pipe.js?v=$key" tabs/model-converters/converters/fbx-to-stagedjson.js
+          grep -F "analyse-zone.js?v=$key" tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js
+          grep -F "pipeline.js?v=$key" tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js
+          grep -F "evidence.js?v=$key" tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js
+          grep -F "classify.js?v=$key" tabs/model-converters/converters/fbx/auto-pipe/pipeline.js
+          grep -F "classifier.js?v=$key" tabs/model-converters/converters/fbx/auto-pipe/classify.js
+          grep -F "terminal-cap-bridge.js?v=$key" tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js
+          grep -F "sidewall-residual.js?v=$key" tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js
+          grep -F "transform-policy.js?v=$key" tabs/model-converters/converters/fbx/solid-fitting-ports/sidewall-residual.js
+          node --check tabs/model-converters/converters/fbx-to-stagedjson.js
+          node --check tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js
+          node --check tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js
+
+      - name: Commit cache chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html main-rhbg-fitguard.js core/app.js core/app-standalone-runtime.js \
+            tabs/model-converters-tab.js tabs/model-converters/index.js \
+            tabs/model-converters/ModelConvertersTab.js tabs/model-converters/fbx-review-ui-addon.js \
+            tabs/model-converters/converters/fbx-to-stagedjson.js \
+            tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js \
+            tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js \
+            tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js \
+            tabs/model-converters/converters/fbx/zone-geometry/occurrence-transform.js \
+            tabs/model-converters/converters/fbx/auto-pipe/pipeline.js \
+            tabs/model-converters/converters/fbx/auto-pipe/classify.js \
+            tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js \
+            tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js \
+            tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js \
+            tabs/model-converters/converters/fbx/solid-fitting-ports/sidewall-residual.js
+          git commit -m 'fix(fbx): propagate qualified runtime cache key'
+          git push origin HEAD:agent/fbx2-pages-runtime-release
