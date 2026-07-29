@@ -38,7 +38,7 @@ function argument(name, fallback = '') {
 }
 
 function compareText(left, right) { return left < right ? -1 : left > right ? 1 : 0; }
-function increment(map, key, amount = 1) { map.set(key, (map.get(key) || 0) + amount); }
+function increment(map, key, amount = 1) { map.set(String(key), (map.get(String(key)) || 0) + amount); }
 function sha256(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
 function orderedCounts(map, limit = 100) {
   return [...map].sort((a, b) => b[1] - a[1] || compareText(a[0], b[0]))
@@ -123,6 +123,37 @@ function sourceName(sourceGraph, occurrence) {
   return source?.displayName || source?.domSourceName || occurrence.sourceModelObjectId;
 }
 
+function familyName(value) {
+  const name = String(value || '').trim().toUpperCase();
+  if (name === 'CYLINDER') return name;
+  if (name.startsWith('/')) return 'NAMED_ITEM';
+  return name.match(/^[A-Z]+/)?.[0] || 'UNKNOWN';
+}
+
+function classificationSummary(sourceGraph, analysis) {
+  const occurrenceById = new Map(sourceGraph.occurrences.map((item) => [item.sourceOccurrenceId, item]));
+  const reasons = new Map(), methods = new Map(), familyReasons = new Map(), admittedFamilies = new Map();
+  const admitted = [];
+  for (const item of analysis.autoPipe.classificationDispositions || []) {
+    const occurrence = occurrenceById.get(item.sourceOccurrenceId);
+    const family = familyName(sourceName(sourceGraph, occurrence));
+    increment(reasons, item.admitted ? 'ADMITTED' : item.reason || 'UNKNOWN');
+    increment(methods, item.inferenceMethod || 'NONE');
+    increment(familyReasons, `${family}:${item.admitted ? 'ADMITTED' : item.reason || 'UNKNOWN'}`);
+    if (item.admitted) {
+      increment(admittedFamilies, family);
+      admitted.push({ sourceOccurrenceId: item.sourceOccurrenceId,
+        sourceModelObjectId: item.sourceModelObjectId, geometryObjectId: item.geometryObjectId,
+        sourceName: sourceName(sourceGraph, occurrence), family,
+        inferenceMethod: item.inferenceMethod || 'OPEN_BOUNDARY_CYLINDER',
+        spanMm: item.spanMm, radiusMm: item.A?.radiusMm || null });
+    }
+  }
+  admitted.sort((a, b) => compareText(a.sourceOccurrenceId, b.sourceOccurrenceId));
+  return { reasons: orderedCounts(reasons), methods: orderedCounts(methods),
+    familyReasons: orderedCounts(familyReasons), admittedFamilies: orderedCounts(admittedFamilies), admitted };
+}
+
 async function selectionDiagnostic(selection, scope, sourceGraph) {
   const topology = decodeExactPolygonTopology(selection);
   const shells = await deriveConnectedShells(topology);
@@ -179,7 +210,7 @@ async function main() {
     zoneId: targetZone.zoneId, includeZonePackageInputs: false });
   const diagnostics = await geometryDiagnostics(sourceGraph, geometryBundle, targetZone.zoneId);
   const evidence = {
-    schema: 'Fbx2BenchmarkAudit.v1',
+    schema: 'Fbx2BenchmarkAudit.v2',
     source: { file: fbxPath, byteLength: fbxBytes.length, sha256: sha256(fbxBytes),
       archiveByteLength: inputZipBytes?.length || null, archiveSha256: inputZipBytes ? sha256(inputZipBytes) : null },
     managedStage: { file: managedPath, byteLength: managedBytes.length, sha256: sha256(managedBytes),
@@ -191,6 +222,7 @@ async function main() {
     targetZone,
     zoneAnalysis: { status: analysis.status, counts: analysis.counts,
       autoPipeStatus: analysis.autoPipe.status, autoPipeCounts: analysis.autoPipe.counts,
+      autoPipeClassifications: classificationSummary(sourceGraph, analysis),
       openBoundaryRejectionCounts: analysis.derivedPortEvidence.rejectionCounts,
       closedSolidRejectionCounts: analysis.closedSolidPipeEvidence.rejectionCounts,
       closedSolidDispositionCounts: dispositionCounts(analysis.closedSolidPipeEvidence) },
