@@ -47,6 +47,7 @@ jobs:
           npm ci --ignore-scripts
           npm install --no-save --package-lock=false --ignore-scripts \
             three@0.160.1 mdb-reader@2 buffer@6
+          python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
 
       - name: Install pinned governed WASI SDK
         shell: pwsh
