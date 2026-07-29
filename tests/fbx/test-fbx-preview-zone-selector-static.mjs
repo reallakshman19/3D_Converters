@@ -35,7 +35,9 @@ assert.doesNotMatch(addon, /convertFbxToStagedJson|mapping-package|downloadOutpu
 assert.doesNotMatch(sourceExporter, /converter-registry|convertFbxToStagedJson|mapping-package|Blob|document\./);
 assert.doesNotMatch(stagedExporter, /converter-registry|convertFbxToStagedJson|mapping-package|Blob|document\./);
 assert.ok(shell.indexOf('installFbxPreviewZoneSelector(container)') < shell.indexOf('renderLegacyModelConvertersTab(container, ctx)'));
-for (const text of [shell, index, shim]) assert.match(text, /20260727-fbx-zone-stagedjson-1/);
+assert.match(shell, /fbx-preview-zone-selector\.js\?v=[^'"]+/);
+assert.match(index, /ModelConvertersTab\.js\?v=[^'"]+/);
+assert.match(shim, /model-converters\/index\.js\?v=[^'"]+/);
 for (const test of [
   'test-fbx-source-graph-preview-zones.mjs',
   'test-fbx-source-graph-zone-export.mjs',
