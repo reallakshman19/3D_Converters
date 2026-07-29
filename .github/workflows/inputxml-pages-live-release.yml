@@ -7,23 +7,28 @@ on:
       - main
     paths:
       - '.github/workflows/inputxml-pages-live-release.yml'
+      - 'core/app-standalone-runtime.js'
+      - 'tabs/model-converters-tab.js'
+      - 'tabs/model-converters/index.js'
+      - 'tabs/model-converters/ModelConvertersTab.js'
+      - 'tabs/model-converters/xml-cii-workflow-bridge.js'
+      - 'tabs/model-converters/xml-cii-rich-worker-cache-bust.js'
+      - 'tabs/model-converters/converter-registry.js'
+      - 'tabs/model-converters/legacy-adapter.js'
+      - 'tabs/model-converters/converters/inputxml-to-cii2019.js'
+      - 'tabs/model-converters/converters/inputxml-blocked-diagnostics.js'
+      - 'converters/BrowserConverterExecutor.js'
       - 'converters/inputxml-runtime-manifest.json'
       - 'converters/inputxml-release-runtime-loader.js'
       - 'converters/inputxml-release-worker.js'
       - 'converters/inputxml-runtime-cache.js'
       - 'converters/py-worker.js'
-      - 'converters/BrowserConverterExecutor.js'
       - 'converters/inputxml-release/**'
       - 'converters/scripts/inputxml_release_preflight.py'
       - 'converters/scripts/inputxml_to_cii2019_release.py'
       - 'scripts/inputxml_compiler/**'
       - 'scripts/inputxml_release_*.py'
       - 'contracts/inputxml/**'
-      - 'tabs/model-converters/converter-registry.js'
-      - 'tabs/model-converters/legacy-adapter.js'
-      - 'tabs/model-converters/xml-cii-rich-worker-cache-bust.js'
-      - 'tabs/model-converters/converters/inputxml-to-cii2019.js'
-      - 'tabs/model-converters/converters/inputxml-blocked-diagnostics.js'
       - 'tests/inputxml-pages-live-release.test.mjs'
 
 permissions:
@@ -60,12 +65,19 @@ jobs:
           test -n "$expected_revision"
           test "$expected_revision" != null
           paths=(
-            'converters/py-worker.js'
-            'converters/inputxml-runtime-cache.js'
+            'core/app-standalone-runtime.js'
+            'tabs/model-converters-tab.js'
+            'tabs/model-converters/index.js'
+            'tabs/model-converters/ModelConvertersTab.js'
+            'tabs/model-converters/xml-cii-workflow-bridge.js'
+            'tabs/model-converters/xml-cii-rich-worker-cache-bust.js'
             'tabs/model-converters/converter-registry.js'
             'tabs/model-converters/legacy-adapter.js'
             'tabs/model-converters/converters/inputxml-to-cii2019.js'
             'tabs/model-converters/converters/inputxml-blocked-diagnostics.js'
+            'converters/BrowserConverterExecutor.js'
+            'converters/py-worker.js'
+            'converters/inputxml-runtime-cache.js'
           )
           rm -rf .inputxml-pages-live
           mkdir -p .inputxml-pages-live
@@ -115,6 +127,8 @@ jobs:
             echo 'GitHub Pages did not converge to the exact InputXML application identity.' >&2
             exit 1
           fi
+          grep -F '20260729-inputxml-live-release-1' .inputxml-pages-live/core__app-standalone-runtime.js
+          grep -F '20260729-inputxml-live-release-1' .inputxml-pages-live/tabs__model-converters-tab.js
           grep -F 'createRetryableAsyncCache' .inputxml-pages-live/converters__py-worker.js
           grep -F 'buildInputXmlBlockedSummary' .inputxml-pages-live/tabs__model-converters__converters__inputxml-to-cii2019.js
           grep -F 'inputxml-release-blocked-' .inputxml-pages-live/tabs__model-converters__converters__inputxml-blocked-diagnostics.js
@@ -136,12 +150,19 @@ jobs:
           evidence_path = Path(os.environ['EVIDENCE_PATH'])
           evidence = json.loads(evidence_path.read_text(encoding='utf-8'))
           paths = [
-              'converters/py-worker.js',
-              'converters/inputxml-runtime-cache.js',
+              'core/app-standalone-runtime.js',
+              'tabs/model-converters-tab.js',
+              'tabs/model-converters/index.js',
+              'tabs/model-converters/ModelConvertersTab.js',
+              'tabs/model-converters/xml-cii-workflow-bridge.js',
+              'tabs/model-converters/xml-cii-rich-worker-cache-bust.js',
               'tabs/model-converters/converter-registry.js',
               'tabs/model-converters/legacy-adapter.js',
               'tabs/model-converters/converters/inputxml-to-cii2019.js',
               'tabs/model-converters/converters/inputxml-blocked-diagnostics.js',
+              'converters/BrowserConverterExecutor.js',
+              'converters/py-worker.js',
+              'converters/inputxml-runtime-cache.js',
           ]
           evidence['convergenceAttempt'] = int(os.environ['CONVERGENCE_ATTEMPT'])
           evidence['deployedApplicationFiles'] = {
