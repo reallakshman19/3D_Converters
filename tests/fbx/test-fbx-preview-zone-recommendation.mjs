@@ -46,8 +46,9 @@ const project = {
   assert.deepEqual(matchFbxPreviewZoneRecommendation(project, selectedZone), selectedZone);
   assert.equal(matchFbxPreviewZoneRecommendation(project, { zoneId: 'occ:missing' }), null);
   assert.deepEqual(resolveFbxPreviewAutoSelection(project, selectedZone, false), selectedZone);
-  assert.equal(resolveFbxPreviewAutoSelection({ ...project, selectedZoneId: 'occ:mixed' },
-    selectedZone, false), null, 'manual selection must remain authoritative');
+  assert.deepEqual(resolveFbxPreviewAutoSelection({ ...project, selectedZoneId: 'occ:mixed' },
+    selectedZone, false), selectedZone,
+  'governed recommendation must supersede a pre-existing preview default');
   assert.equal(resolveFbxPreviewAutoSelection(project, selectedZone, true), null,
     'automatic selection must be applied only once per source graph');
 }
