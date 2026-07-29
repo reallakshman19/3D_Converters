@@ -57,6 +57,7 @@ const tests = [
   'test-component-benchmark-adversarial.mjs',
   'test-component-matching-boundaries.mjs',
   'test-component-benchmark-inventory.mjs',
+  'test-selected-zone-component-crosswalk.mjs',
   'test-support-benchmark.mjs',
   'test-support-benchmark-failures.mjs',
   'test-support-occurrence-boundaries.mjs',
