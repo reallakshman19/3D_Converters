@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { classifySelectedPipes } from '../../tabs/model-converters/converters/fbx/auto-pipe/classify.js';
 import { buildSolidFittingPortEvidence } from '../../tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js';
 import { classifySolidFittingPipeOccurrence } from '../../tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js';
 import { SOLID_FITTING_PORT_PROFILE } from '../../tabs/model-converters/converters/fbx/solid-fitting-ports/profile.js';
+import { buildDerivedPortEvidence } from '../../tabs/model-converters/converters/fbx/zone-geometry/derived-ports.js';
 import { occurrenceFixture, selectionFromGeometry } from './solid-fitting-port-fixtures.mjs';
 
 function splitCappedCylinder(radius = 30.15, height = 240, sides = 32, seam = 1.5e-6) {
@@ -53,6 +55,16 @@ async function main() {
   const classified = classifySolidFittingPipeOccurrence({ occurrence, selection, record });
   assert.equal(classified?.admitted, true);
   assert.equal(classified.inferenceMethod, 'CLOSED_SOLID_CYLINDER');
+
+  const derived = await buildDerivedPortEvidence(zoneArtifact, scope, [selection]);
+  assert.equal(derived.candidates.length, 2);
+  assert.equal(new Set(derived.candidates.map((item) => item.shellId)).size, 2);
+  const [routed] = classifySelectedPipes({
+    zoneGeometryEvidence: { occurrenceEvidence: [occurrence] },
+    derivedPortEvidence: derived, closedSolidPipeEvidence: evidence, selections: [selection],
+  });
+  assert.equal(routed.admitted, true);
+  assert.equal(routed.inferenceMethod, 'CLOSED_SOLID_CYLINDER');
 
   const narrow = { ...SOLID_FITTING_PORT_PROFILE, vertexMergeAbsoluteMm: 1e-6 };
   const blocked = await buildSolidFittingPortEvidence(zoneArtifact, scope, [selection], narrow);
