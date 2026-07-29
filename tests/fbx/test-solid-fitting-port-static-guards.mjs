@@ -6,6 +6,7 @@ const files = {
   constants: 'tabs/model-converters/converters/fbx/solid-fitting-ports/constants.js',
   profile: 'tabs/model-converters/converters/fbx/solid-fitting-ports/profile.js',
   analysisTopology: 'tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js',
+  terminalCapBridge: 'tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js',
   topologyProjection: 'tabs/model-converters/converters/fbx/solid-fitting-ports/topology-projection.js',
   capClustering: 'tabs/model-converters/converters/fbx/solid-fitting-ports/cap-clustering.js',
   candidateEvaluation: 'tabs/model-converters/converters/fbx/solid-fitting-ports/candidate-evaluation.js',
@@ -29,9 +30,8 @@ for (const key of Object.keys(files)) {
   assert.doesNotMatch(text[key], /export\s+default|Math\.random|Date\.now|localeCompare|https?:\/\/(?:unpkg|cdn|jsdelivr)/i);
 }
 
-// Both inference routes share the same deterministic role and radius gates.
-// Closed solids use a dedicated sidewall residual because capped-centre vertices
-// are not cylindrical sidewall evidence.
+// Both inference routes share deterministic role and radius gates. Closed solids
+// use a dedicated sidewall residual because cap-centre vertices are not sidewall evidence.
 assert.match(text.classifier, /from '\.\.\/auto-pipe\/pipe-admission-gates\.js'/);
 assert.match(text.classifier, /from '\.\/sidewall-residual\.js'/);
 assert.doesNotMatch(text.classifier, /function\s+assignRoles|function\s+radiusMatches|function\s+cylinderResiduals/);
@@ -41,29 +41,36 @@ assert.doesNotMatch(text.sidewallResidual, /Math\.random|Date\.now|localeCompare
 assert.match(text.classify, /from '\.\/pipe-admission-gates\.js'/);
 assert.doesNotMatch(text.classify, /function\s+assignRoles|function\s+cylinderResiduals/);
 
-// The immutable source topology must be projected rather than mutated.
+// Source topology remains immutable. Recovery is an evidenced analysis projection
+// with a 2e-6 base weld and a separately gated 1e-4 detached-cap bridge.
+assert.match(text.constants, /FbxSolidFittingPortEvidence\.v3/);
+assert.match(text.profile, /FbxSolidFittingPortProfile\.v3/);
 assert.match(text.evidence, /buildSolidFittingAnalysisTopology/);
+assert.match(text.evidence, /bridgeDetachedTerminalCap/);
 assert.match(text.analysisTopology, /POSITION_WELD_AND_FACE_DEDUP_V1/);
 assert.match(text.analysisTopology, /duplicateFaceIds/);
 assert.match(text.profile, /vertexMergeAbsoluteMm:\s*2e-6/);
 assert.match(text.profile, /vertexMergeRelativeTolerance:\s*0/);
+assert.match(text.profile, /terminalCapBridgeAbsoluteMm:\s*1e-4/);
+assert.match(text.terminalCapBridge, /DETACHED_CAP_RING_BRIDGE_V1/);
+assert.match(text.terminalCapBridge, /deriveBoundaryLoops/);
+assert.match(text.terminalCapBridge, /fitBoundaryCircleLocal/);
+assert.match(text.terminalCapBridge, /pairedVertexCount/);
 
 // Open-boundary admission retains priority. Closed-solid fallback is limited to
-// boundary absence or an open-shell mismatch that the governed analysis
-// projection demonstrably repaired.
+// boundary absence or a shell mismatch demonstrably repaired by governed evidence.
 assert.match(text.classify, /from '\.\.\/solid-fitting-ports\/classifier\.js'/);
 assert.match(text.classify, /reason === 'BOUNDARY_COUNT'/);
 assert.match(text.classify, /reason === 'SHELL_COUNT'/);
 assert.match(text.classify, /repairedShellEvidence/);
 assert.match(text.classify, /POSITION_WELD_AND_FACE_DEDUP_V1/);
+assert.match(text.classify, /DETACHED_CAP_RING_BRIDGE_V1/);
 
-// The selected-zone pipeline must build closed-solid evidence alongside the
-// existing derived-port evidence and pass both into the same auto-pipe run.
+// Selected-zone analysis builds closed-solid evidence alongside derived-port evidence.
 assert.match(text.analyseZone, /from '\.\.\/solid-fitting-ports\/evidence\.js'/);
 assert.match(text.analyseZone, /closedSolidPipeEvidence/);
 
-// Cap-region circle fitting must reuse the existing deterministic circle-fit
-// and world-transform primitives, not a parallel implementation.
+// Cap circles reuse the deterministic circle-fit and world-transform primitives.
 assert.match(text.candidateEvaluation, /from '\.\.\/zone-geometry\/circle-fit\.js'/);
 assert.match(text.candidateEvaluation, /from '\.\.\/zone-geometry\/occurrence-transform\.js'/);
 assert.doesNotMatch(text.candidateEvaluation, /rotateJacobi/);
