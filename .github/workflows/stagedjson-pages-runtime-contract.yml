@@ -30,8 +30,8 @@ on:
       - 'tests/inputxml-runtime-cache.test.mjs'
       - 'tests/inputxml-blocked-diagnostics-ui.test.mjs'
       - 'tests/inputxml-pages-live-release.test.mjs'
+      - 'tests/inputxml-live-release-static.test.mjs'
       - 'tests/inputxml-browser-offline-smoke.test.mjs'
-      - 'tests/standalone-static.test.js'
       - '.github/workflows/stagedjson-pages-runtime-contract.yml'
       - '.github/workflows/inputxml-pages-live-release.yml'
   workflow_dispatch:
@@ -65,10 +65,10 @@ jobs:
           diagnostics_status=$?
           node --check tests/inputxml-pages-live-release.test.mjs > inputxml-pages-live-release-syntax.log 2>&1
           live_syntax_status=$?
+          node tests/inputxml-live-release-static.test.mjs > inputxml-live-release-static.log 2>&1
+          live_static_status=$?
           node tests/inputxml-browser-offline-smoke.test.mjs > inputxml-browser-offline-smoke.log 2>&1
           smoke_status=$?
-          node tests/standalone-static.test.js > standalone-static.log 2>&1
-          static_status=$?
           test -f .nojekyll
           nojekyll_status=$?
           test -f scripts/inputxml_compiler/__init__.py
@@ -79,9 +79,9 @@ jobs:
           cat inputxml-runtime-cache.log
           cat inputxml-blocked-diagnostics-ui.log
           cat inputxml-pages-live-release-syntax.log
+          cat inputxml-live-release-static.log
           cat inputxml-browser-offline-smoke.log
-          cat standalone-static.log
-          if (( staged_status || pages_status || recovery_status || cache_status || diagnostics_status || live_syntax_status || smoke_status || static_status || nojekyll_status || initializer_status )); then
+          if (( staged_status || pages_status || recovery_status || cache_status || diagnostics_status || live_syntax_status || live_static_status || smoke_status || nojekyll_status || initializer_status )); then
             exit 1
           fi
       - name: Upload contract diagnostics
@@ -96,6 +96,6 @@ jobs:
             inputxml-runtime-cache.log
             inputxml-blocked-diagnostics-ui.log
             inputxml-pages-live-release-syntax.log
+            inputxml-live-release-static.log
             inputxml-browser-offline-smoke.log
-            standalone-static.log
           if-no-files-found: error
