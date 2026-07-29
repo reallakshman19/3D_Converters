@@ -4,6 +4,10 @@ import { buildFbxSourceGraphPreviewProject } from './fbx-source-graph-preview.js
 import { buildFbxSourceGraphZoneExport } from './fbx-source-graph-zone-export.js';
 import { buildFbxStagedJsonZoneExport } from './fbx-staged-json-zone-export.js';
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
+import {
+  extractFbxSelectedZoneRecommendation, matchFbxPreviewZoneRecommendation,
+  resolveFbxPreviewAutoSelection,
+} from './fbx-preview-zone-recommendation.js';
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const OUTPUT_EVENT = 'model-converters:fbx-run-outputs';
 const AUTO_PIPE_OUTPUT_EVENT = 'model-converters:fbx-auto-pipe-outputs';
@@ -211,46 +215,13 @@ export function extractFbxAutoPipeRun(detail) {
   const run = extractFbxStagedRun(detail), zoneId = String(detail?.zoneId || '');
   return run && zoneId ? { ...run, zoneId, authority: 'internal-auto-pipe' } : null;
 }
-function parsedOutput(output) {
-  if (!output || typeof output.text !== 'string') return null;
-  try { return JSON.parse(output.text); } catch { return null; }
-}
-function normalizedRecommendation(selection) {
-  const zoneId = String(selection?.zoneId || '');
-  if (!zoneId) return null;
-  return { zoneId, label: String(selection?.label || zoneId),
-    policy: String(selection?.policy || ''), rank: Number(selection?.rank || 0) };
-}
-function diagnosticValue(diagnostics, prefix) {
-  const item = diagnostics.find((value) => String(value).startsWith(prefix));
-  return item ? String(item).slice(prefix.length) : '';
-}
-export function extractFbxSelectedZoneRecommendation(detail) {
-  const outputs = Array.isArray(detail?.outputs) ? detail.outputs : [];
-  const classification = outputs.find((item) =>
-    /\.selected-zone-classification-report\.json$/i.test(String(item?.name || '')));
-  const classified = normalizedRecommendation(parsedOutput(classification)?.selectedZone);
-  if (classified) return classified;
-  const conversion = outputs.find((item) =>
-    /\.fbx-conversion-report\.json$/i.test(String(item?.name || '')));
-  const diagnostics = parsedOutput(conversion)?.diagnostics;
-  if (!Array.isArray(diagnostics)) return null;
-  const zoneId = diagnosticValue(diagnostics, 'SELECTED_ZONE_ID:');
-  if (!zoneId) return null;
-  return { zoneId,
-    label: diagnosticValue(diagnostics, 'SELECTED_ZONE_LABEL:') || zoneId,
-    policy: diagnosticValue(diagnostics, 'SELECTED_ZONE_POLICY:'),
-    rank: Number(diagnosticValue(diagnostics, 'SELECTED_ZONE_RANK:') || 0) };
-}
 function activeStagedRun(container, project) {
   const auto = AUTO_PIPE_OUTPUTS.get(container);
   return auto?.zoneId === project?.selectedZoneId ? auto : RUN_OUTPUTS.get(container) || null;
 }
 function recommendationFor(controller) {
-  const recommendation = RUN_SELECTIONS.get(controller.container);
-  const zone = controller.state?.project?.previewZones?.find((item) =>
-    item.zoneId === recommendation?.zoneId);
-  return zone ? { ...recommendation, label: zone.label } : null;
+  return matchFbxPreviewZoneRecommendation(
+    controller.state?.project, RUN_SELECTIONS.get(controller.container));
 }
 function updateAvailability(controller) {
   const selected = Boolean(controller.state?.project?.selectedZoneId);
@@ -269,8 +240,9 @@ function updateAvailability(controller) {
 }
 function applyRecommendedZone(controller) {
   const state = controller.state, graph = state?.graph;
-  if (!graph || state.project?.selectedZoneId || AUTO_SELECTED_GRAPHS.has(graph)) return false;
-  const recommendation = recommendationFor(controller);
+  if (!graph) return false;
+  const recommendation = resolveFbxPreviewAutoSelection(
+    state.project, RUN_SELECTIONS.get(controller.container), AUTO_SELECTED_GRAPHS.has(graph));
   if (!recommendation) return false;
   AUTO_SELECTED_GRAPHS.add(graph);
   controller.select.value = recommendation.zoneId;
