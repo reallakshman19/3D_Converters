@@ -185,7 +185,17 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add evidence/fbx-pages-direct-pipe-runtime-deployment.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'evidence(fbx): record deployed direct PIPE runtime'
-            git push origin HEAD:main
+          if git diff --cached --quiet; then
+            exit 0
           fi
+          git commit -m 'evidence(fbx): record deployed direct PIPE runtime'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo 'Unable to publish direct-PIPE deployment evidence after five synchronized attempts.' >&2
+          exit 1
