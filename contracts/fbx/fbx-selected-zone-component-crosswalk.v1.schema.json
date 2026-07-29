@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/contracts/fbx/fbx-selected-zone-component-crosswalk.v1.schema.json",
+  "$id": "FbxSelectedZoneComponentCrosswalk.v1",
   "title": "FBX Selected-Zone Component Crosswalk v1",
   "type": "object",
   "additionalProperties": false,
