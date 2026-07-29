@@ -77,18 +77,31 @@ function closedSolidRecordFor(closedSolidPipeEvidence, occurrenceId, geometryId)
     && item.geometryObjectId === geometryId) || null;
 }
 
-// The closed-solid route is only ever consulted when the open-boundary
-// classifier structurally cannot apply (no admitted-pair boundary loops at
-// all) — never when it applies but fails a stricter downstream gate, so
-// open-boundary PIPE admission always takes priority when both could pass.
+function repairedShellEvidence(record) {
+  const projection = record?.analysisProjection;
+  const baseRepair = projection?.method === 'POSITION_WELD_AND_FACE_DEDUP_V1'
+    && (projection.mergedVertexCount > 0 || projection.duplicateFaceIds?.length > 0);
+  const capRepair = projection?.terminalCapBridge?.method === 'DETACHED_CAP_RING_BRIDGE_V1'
+    && projection.terminalCapBridge.disposition === 'APPLIED';
+  return baseRepair || capRepair;
+}
+
+function closedSolidEligible(openBoundary, record) {
+  if (openBoundary.reason === 'BOUNDARY_COUNT') return true;
+  return openBoundary.reason === 'SHELL_COUNT' && repairedShellEvidence(record);
+}
+
+// Open-boundary admission always wins. Closed-solid inference is consulted only
+// when open topology cannot represent the component, including a shell split
+// that a governed weld/dedup or detached-cap projection demonstrably repaired.
 function classifyOccurrence({
   occurrence, selection, derivedPortEvidence, closedSolidPipeEvidence, profile, closedSolidProfile,
 }) {
   const openBoundary = classifyPipeOccurrence({ occurrence, selection, derivedPortEvidence, profile });
-  if (openBoundary.admitted || openBoundary.reason !== 'BOUNDARY_COUNT') return openBoundary;
+  if (openBoundary.admitted) return openBoundary;
   const geometryId = occurrence.geometryObjectIds?.[0];
   const record = closedSolidRecordFor(closedSolidPipeEvidence, occurrence.sourceOccurrenceId, geometryId);
-  if (!record) return openBoundary;
+  if (!record || !closedSolidEligible(openBoundary, record)) return openBoundary;
   const closedSolid = classifySolidFittingPipeOccurrence({
     occurrence, selection, record, profile: closedSolidProfile || profile,
   });

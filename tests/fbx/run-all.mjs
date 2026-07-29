@@ -15,6 +15,7 @@ const tests = [
   'test-auto-pipe-stagedjson.mjs',
   'test-auto-pipe-partial-zone.mjs',
   'test-solid-fitting-port-kernel.mjs',
+  'test-solid-fitting-welded-taya-profile.mjs',
   'test-solid-fitting-port-disposition.mjs',
   'test-solid-fitting-port-negative.mjs',
   'test-solid-fitting-port-evidence-contract.mjs',

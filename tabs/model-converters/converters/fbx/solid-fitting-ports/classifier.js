@@ -1,8 +1,7 @@
-import {
-  assignRoles, cylinderResiduals, radiusMatches, worldControlPoints,
-} from '../auto-pipe/pipe-admission-gates.js';
+import { assignRoles, radiusMatches } from '../auto-pipe/pipe-admission-gates.js';
 import { AUTO_PIPE_PROFILE } from '../auto-pipe/profile.js';
 import { PORT_TOPOLOGY_DISPOSITION } from './constants.js';
+import { closedSolidSidewallResiduals } from './sidewall-residual.js';
 
 function fail(occurrence, record, reason) {
   return Object.freeze({
@@ -25,7 +24,7 @@ export function classifySolidFittingPipeOccurrence({
   const ports = assignRoles(admitted[0], admitted[1], profile);
   if (!ports) return fail(occurrence, record, 'ROLE_ASSIGNMENT');
   if (!radiusMatches(ports, profile)) return fail(occurrence, record, 'RADIUS_MISMATCH');
-  if (!cylinderResiduals(worldControlPoints(selection, occurrence), ports, profile)) {
+  if (!closedSolidSidewallResiduals({ occurrence, selection, record, ports, profile })) {
     return fail(occurrence, record, 'CYLINDER_RESIDUAL');
   }
   return Object.freeze({
