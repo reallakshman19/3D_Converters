@@ -6,7 +6,7 @@
  */
 
 import { pointSegmentDistance } from './topology-geometry-distance.js';
-import { pointDistance, uniqueText } from './topology-values.js';
+import { pointDistance, strictPoint, uniqueText } from './topology-values.js';
 
 /** @param {{x:number,y:number,z:number}|null} point @returns {string} */
 function pointText(point) {
@@ -17,6 +17,19 @@ function pointText(point) {
 /** @param {number|undefined} value @returns {string} */
 function distanceText(value) {
   return Number.isFinite(value) ? Number(value).toFixed(3) : 'unbounded';
+}
+
+/** @param {Record<string, unknown>} support @returns {void} */
+function applySupportPositionEvidence(support) {
+  const attributes = support.component?.attributes;
+  if (!attributes || !Object.hasOwn(attributes, 'TOPOLOGY_SOURCE_POSITION')) return;
+  const sourcePosition = strictPoint(attributes.TOPOLOGY_SOURCE_POSITION);
+  if (!sourcePosition) {
+    throw new TypeError(`Support ${support.tag || support.id} has invalid TOPOLOGY_SOURCE_POSITION evidence.`);
+  }
+  support.sourcePosition = sourcePosition;
+  support.positionAuthority = 'ATTRIBUTE:TOPOLOGY_SOURCE_POSITION';
+  support.topologyPositionOverride = true;
 }
 
 /** @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>} support @param {'owning'|'referenced'|'all'} scope @returns {Record<string, unknown>[]} */
@@ -92,6 +105,7 @@ function acceptMatch(support, match, authority, toleranceMm) {
 function matchSupportsToEdges(edgeSpecs, supports, toleranceMm) {
   const matches = new Map();
   for (const support of supports) {
+    applySupportPositionEvidence(support);
     const referenced = rankedSupportCandidates(edgeSpecs, support, 'referenced');
     if (support.attachmentReferences.length && !referenced.length) throw unresolvedReferenceError(support);
     const owning = rankedSupportCandidates(edgeSpecs, support, 'owning');
@@ -161,6 +175,7 @@ export function splitEdgeSpecsAtSupports(specs, supports, connectivity, topology
 }
 
 export const _test = Object.freeze({
+  applySupportPositionEvidence,
   rankedSupportCandidates,
   supportProjectionError,
   editedTopologyPosition,
