@@ -1,5 +1,5 @@
-// Select one bounded source-graph zone, then run the existing exact auto-pipe
-// classifier only for that zone. Whole-model orchestration remains separate.
+// Rank bounded source-graph zones, then qualify one zone at a time with the
+// existing exact auto-pipe classifier. Whole-model orchestration stays separate.
 import { canonicalJson } from '../canonical-json.js';
 import { analyseFbxZoneGeometry } from './analyse-zone.js';
 import { listFbxZoneScopeSummaries } from './zone-scope.js';
@@ -11,13 +11,15 @@ export const BLOCKED_SELECTED_ZONE_AUTO_PIPE = 'BLOCKED_SELECTED_ZONE_AUTO_PIPE'
 
 const DEFAULT_MAX_GEOMETRIES = 2000;
 const DEFAULT_MAX_SOURCE_POINTS = 2000000;
+const DEFAULT_MAX_ATTEMPTS = 8;
+const MAX_MAX_ATTEMPTS = 12;
 const SHAPE_SAMPLE_LIMIT = 512;
 const PIPE_NAME = /(^|[^A-Z0-9])(PIPE|PIPING|SPOOL|TUBE|TUBING)([^A-Z0-9]|$)/i;
-const NON_PIPE_NAME = /(^|[^A-Z0-9])(TEE|SUPP|SUPPORT|VALVE|FLANGE|ELBOW|REDUCER|GASK|BOLT|BUILDING|STRUCTURE|CABLE|TRAY|EQUIPMENT)([^A-Z0-9]|$)/i;
+const NON_PIPE_NAME = /(^|[^A-Z0-9])(TEE|SUPP|SUPPORT|VALVE|FLANGE|ELBOW|REDUCER|GASK|BOLT|MEQP|EQUIP|BUILDING|STRUCTURE|CABLE|TRAY|EQUIPMENT)([^A-Z0-9]|$)/i;
 
 function compareText(left, right) { return left < right ? -1 : left > right ? 1 : 0; }
-function finiteLimit(value, fallback) {
-  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+function positiveInteger(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
+  return Number.isSafeInteger(value) && value > 0 ? Math.min(value, maximum) : fallback;
 }
 function sampledBounds(points) {
   const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
@@ -59,12 +61,15 @@ function candidateEvidence(summary, maps, shapeCache, limits) {
   }
   const eligible = summary.selectedGeometryCount <= limits.maxGeometries
     && summary.sourcePointCount <= limits.maxSourcePoints;
-  return Object.freeze({ ...summary, eligible, positiveNames, negativeNames,
+  return { ...summary, eligible, positiveNames, negativeNames,
     pipeLikeGeometryCount, pipeLikeRatio: summary.selectedGeometryCount
-      ? pipeLikeGeometryCount / summary.selectedGeometryCount : 0 });
+      ? pipeLikeGeometryCount / summary.selectedGeometryCount : 0 };
 }
 function compareCandidates(left, right) {
   if (left.eligible !== right.eligible) return left.eligible ? -1 : 1;
+  const leftPenalty = left.negativeNames > left.positiveNames ? 1 : 0;
+  const rightPenalty = right.negativeNames > right.positiveNames ? 1 : 0;
+  if (leftPenalty !== rightPenalty) return leftPenalty - rightPenalty;
   const leftNames = left.positiveNames - left.negativeNames;
   const rightNames = right.positiveNames - right.negativeNames;
   if (leftNames !== rightNames) return rightNames - leftNames;
@@ -76,9 +81,9 @@ function compareCandidates(left, right) {
     || left.sourcePointCount - right.sourcePointCount
     || compareText(left.label, right.label) || compareText(left.zoneId, right.zoneId);
 }
-function selectedEvidence(candidate, candidates, reason) {
+function selectedEvidence(candidate, metadata, reason, rank) {
   return Object.freeze({
-    policy: FBX_SELECTED_ZONE_AUTO_PIPE_POLICY, reason,
+    policy: FBX_SELECTED_ZONE_AUTO_PIPE_POLICY, reason, rank,
     zoneId: candidate.zoneId, label: candidate.label,
     sourcePointCount: candidate.sourcePointCount,
     selectedOccurrenceCount: candidate.selectedOccurrenceCount,
@@ -87,11 +92,11 @@ function selectedEvidence(candidate, candidates, reason) {
     pipeLikeRatio: candidate.pipeLikeRatio,
     positiveNameHints: candidate.positiveNames,
     negativeNameHints: candidate.negativeNames,
-    candidateCount: candidates.length,
-    eligibleCandidateCount: candidates.filter((item) => item.eligible).length,
+    candidateCount: metadata.candidateCount,
+    eligibleCandidateCount: metadata.eligibleCandidateCount,
   });
 }
-export function selectFbxAutoPipeZone(sourceGraph, options = {}) {
+function rankedCandidateData(sourceGraph, options) {
   const summaries = listFbxZoneScopeSummaries(sourceGraph);
   if (!summaries.length) throw new Error(`${BLOCKED_SELECTED_ZONE_AUTO_PIPE} no mesh-bearing zone is available.`);
   const maps = {
@@ -99,20 +104,32 @@ export function selectFbxAutoPipeZone(sourceGraph, options = {}) {
     sourceById: new Map(sourceGraph.sourceObjects.map((item) => [item.sourceObjectId, item])),
   };
   const limits = {
-    maxGeometries: finiteLimit(options.maxGeometries, DEFAULT_MAX_GEOMETRIES),
-    maxSourcePoints: finiteLimit(options.maxSourcePoints, DEFAULT_MAX_SOURCE_POINTS),
+    maxGeometries: positiveInteger(options.maxGeometries, DEFAULT_MAX_GEOMETRIES),
+    maxSourcePoints: positiveInteger(options.maxSourcePoints, DEFAULT_MAX_SOURCE_POINTS),
   };
   const shapeCache = new Map();
-  const candidates = summaries.map((item) => candidateEvidence(item, maps, shapeCache, limits))
+  return summaries.map((item) => candidateEvidence(item, maps, shapeCache, limits))
     .sort(compareCandidates);
+}
+export function rankFbxAutoPipeZones(sourceGraph, options = {}) {
+  const ranked = rankedCandidateData(sourceGraph, options);
+  const metadata = { candidateCount: ranked.length,
+    eligibleCandidateCount: ranked.filter((item) => item.eligible).length };
   const requested = options.zoneId
-    ? candidates.find((item) => item.zoneId === options.zoneId) : null;
+    ? ranked.find((item) => item.zoneId === options.zoneId) : null;
   if (options.zoneId && !requested) throw new Error(
     `${BLOCKED_SELECTED_ZONE_AUTO_PIPE} requested zone ${options.zoneId} is unavailable.`);
-  const selected = requested || candidates.find((item) => item.eligible);
-  if (!selected?.eligible) throw new Error(
+  if (requested && !requested.eligible) throw new Error(
+    `${BLOCKED_SELECTED_ZONE_AUTO_PIPE} requested zone exceeds the automatic resource ceiling.`);
+  const eligible = requested ? [requested] : ranked.filter((item) => item.eligible);
+  if (!eligible.length) throw new Error(
     `${BLOCKED_SELECTED_ZONE_AUTO_PIPE} every zone exceeds the automatic resource ceiling.`);
-  return selectedEvidence(selected, candidates, requested ? 'explicit-zone' : 'ranked-source-graph');
+  const reason = requested ? 'explicit-zone' : 'ranked-source-graph';
+  return Object.freeze(eligible.map((item, index) =>
+    selectedEvidence(item, metadata, reason, index + 1)));
+}
+export function selectFbxAutoPipeZone(sourceGraph, options = {}) {
+  return rankFbxAutoPipeZones(sourceGraph, options)[0];
 }
 function validatedBranches(text) {
   const value = JSON.parse(text);
@@ -122,45 +139,80 @@ function validatedBranches(text) {
   }
   return value;
 }
-function blocked(selection, report, reason) {
-  return { conversionStatus: BLOCKED_SELECTED_ZONE_AUTO_PIPE, stagedJsonText: null,
-    selectedZone: selection, zoneReports: [report], duplicateIdentifiers: [],
-    unresolvedCrefs: [], blockingReasons: [reason],
-    counts: { totalZones: selection?.candidateCount || 0,
-      eligibleZones: selection?.eligibleCandidateCount || 0, attemptedZones: 1,
-      passedZones: 0, blockedZones: report.status === 'ERROR' ? 0 : 1,
-      errorZones: report.status === 'ERROR' ? 1 : 0, branches: 0 } };
+function reportFor(selection, status, admittedPipes, error = null) {
+  return { zoneId: selection.zoneId, label: selection.label, rank: selection.rank,
+    status, admittedPipes, error };
 }
-export async function runFbxSelectedZoneAutoPipe({
-  sourceGraph, geometryBundle, selection, analyse = analyseFbxZoneGeometry,
-} = {}) {
-  let selected = selection;
+function countsFor(candidates, reports, branches = 0) {
+  const passedZones = reports.filter((item) => item.status === 'STAGEDJSON_PASS').length;
+  const errorZones = reports.filter((item) => item.status === 'ERROR').length;
+  return { totalZones: candidates[0]?.candidateCount || 0,
+    eligibleZones: candidates[0]?.eligibleCandidateCount || 0,
+    attemptedZones: reports.length, passedZones,
+    blockedZones: reports.length - passedZones - errorZones,
+    errorZones, branches };
+}
+function blocked(candidates, reports, reason) {
+  return { conversionStatus: BLOCKED_SELECTED_ZONE_AUTO_PIPE, stagedJsonText: null,
+    selectedZone: null, candidateZones: candidates, zoneReports: reports,
+    duplicateIdentifiers: [], unresolvedCrefs: [], blockingReasons: [reason],
+    counts: countsFor(candidates, reports) };
+}
+async function qualifyCandidate(input, selection) {
   try {
-    selected ||= selectFbxAutoPipeZone(sourceGraph);
-    const result = await analyse({ sourceGraph, geometryBundle, zoneId: selected.zoneId,
+    input.onAttempt?.(selection);
+    const result = await input.analyse({ sourceGraph: input.sourceGraph,
+      geometryBundle: input.geometryBundle, zoneId: selection.zoneId,
       includeZonePackageInputs: false });
     const status = result?.autoPipe?.status || 'UNKNOWN';
-    const report = { zoneId: selected.zoneId, label: selected.label, status,
-      admittedPipes: result?.counts?.admittedPipes || 0, error: result?.autoPipe?.error || null };
-    if (status !== 'STAGEDJSON_PASS') return blocked(selected, report, status);
-    const branches = validatedBranches(result.autoPipe.stagedJsonText);
-    const identity = await mergeWholeModelBranches([
-      { zoneId: selected.zoneId, status: 'STAGEDJSON_PASS', branches },
-    ]);
-    if (identity.duplicateIdentifiers.length || identity.unresolvedCrefs.length) {
-      return { ...blocked(selected, report, 'SELECTED_ZONE_IDENTITY_INVALID'), ...identity };
-    }
-    return { conversionStatus: STAGEDJSON_SELECTED_ZONE_PASS,
-      stagedJsonText: canonicalJson(identity.merged), selectedZone: selected,
-      zoneReports: [report], duplicateIdentifiers: [], unresolvedCrefs: [],
-      blockingReasons: [], counts: { totalZones: selected.candidateCount,
-        eligibleZones: selected.eligibleCandidateCount, attemptedZones: 1,
-        passedZones: 1, blockedZones: 0, errorZones: 0,
-        branches: identity.merged.length } };
+    return { selection, result, report: reportFor(selection, status,
+      result?.counts?.admittedPipes || 0, result?.autoPipe?.error || null) };
   } catch (error) {
     const message = error?.message || String(error);
-    const report = { zoneId: selected?.zoneId || null, label: selected?.label || null,
-      status: 'ERROR', admittedPipes: 0, error: message };
-    return blocked(selected, report, message);
+    return { selection, result: null,
+      report: reportFor(selection, 'ERROR', 0, message) };
+  }
+}
+async function successfulResult(candidates, attempts, qualified) {
+  const branches = validatedBranches(qualified.result.autoPipe.stagedJsonText);
+  const identity = await mergeWholeModelBranches([
+    { zoneId: qualified.selection.zoneId, status: 'STAGEDJSON_PASS', branches },
+  ]);
+  if (identity.duplicateIdentifiers.length || identity.unresolvedCrefs.length) {
+    return { ...blocked(candidates, attempts, 'SELECTED_ZONE_IDENTITY_INVALID'), ...identity };
+  }
+  return { conversionStatus: STAGEDJSON_SELECTED_ZONE_PASS,
+    stagedJsonText: canonicalJson(identity.merged), selectedZone: qualified.selection,
+    candidateZones: candidates, zoneReports: attempts,
+    duplicateIdentifiers: [], unresolvedCrefs: [], blockingReasons: [],
+    counts: countsFor(candidates, attempts, identity.merged.length) };
+}
+export async function runFbxSelectedZoneAutoPipe({
+  sourceGraph, geometryBundle, selection, selections, options = {},
+  analyse = analyseFbxZoneGeometry, onAttempt,
+} = {}) {
+  let candidates;
+  try {
+    candidates = selection ? [selection]
+      : selections || rankFbxAutoPipeZones(sourceGraph, options);
+    const limit = selection || options.zoneId ? 1
+      : positiveInteger(options.maxAttempts, DEFAULT_MAX_ATTEMPTS, MAX_MAX_ATTEMPTS);
+    const attempts = [];
+    const input = { sourceGraph, geometryBundle, analyse, onAttempt };
+    for (const candidate of candidates.slice(0, limit)) {
+      const qualified = await qualifyCandidate(input, candidate);
+      attempts.push(qualified.report);
+      if (qualified.report.status === 'STAGEDJSON_PASS') {
+        return successfulResult(candidates, attempts, qualified);
+      }
+    }
+    return blocked(candidates, attempts,
+      `NO_PIPE_ZONE_PASSED_WITHIN_ATTEMPT_LIMIT:${Math.min(limit, candidates.length)}`);
+  } catch (error) {
+    const message = error?.message || String(error);
+    const fallback = candidates || [];
+    const report = reportFor(fallback[0] || { zoneId: null, label: null, rank: null },
+      'ERROR', 0, message);
+    return blocked(fallback, [report], message);
   }
 }
