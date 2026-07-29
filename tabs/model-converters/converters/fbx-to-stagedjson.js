@@ -3,8 +3,8 @@ import { canonicalJson } from './fbx/canonical-json.js';
 import { parseFbxInWorker } from './fbx/parser-client.js';
 import { parseFbxGeometryBundleInWorker } from './fbx/geometry-transport.js';
 import {
-  BLOCKED_SELECTED_ZONE_AUTO_PIPE, STAGEDJSON_SELECTED_ZONE_PASS,
-  rankFbxAutoPipeZones, runFbxSelectedZoneAutoPipe,
+  BLOCKED_SELECTED_ZONE_AUTO_PIPE, SELECTED_ZONE_EVIDENCE_PASS,
+  STAGEDJSON_SELECTED_ZONE_PASS, rankFbxAutoPipeZones, runFbxSelectedZoneAutoPipe,
 } from './fbx/zone-geometry/selected-zone-auto-pipe.js';
 import { loadBrowserParserEvidence } from './fbx/parser-provenance.js';
 
@@ -33,6 +33,9 @@ function unique(values) { return [...new Set(values.filter(Boolean))]; }
 function slug(value) {
   return String(value || 'zone').trim().replace(/[^a-z0-9._-]+/gi, '-')
     .replace(/^-+|-+$/g, '') || 'zone';
+}
+function jsonOutput(name, value) {
+  return { name, text: canonicalJson(value), mime: 'application/json;charset=utf-8' };
 }
 function promotedReport(output, status, tags) {
   if (!/\.fbx-conversion-report\.json$/i.test(output.name || '')) return output;
@@ -88,7 +91,7 @@ function blockedSelectedZone(reason, candidates = []) {
     duplicateIdentifiers: [], unresolvedCrefs: [], blockingReasons: [reason],
     counts: { totalZones: candidates[0]?.candidateCount || 0,
       eligibleZones: candidates[0]?.eligibleCandidateCount || 0,
-      attemptedZones: 0, passedZones: 0, blockedZones: 0,
+      attemptedZones: 0, passedZones: 0, evidenceZones: 0, blockedZones: 0,
       errorZones: 1, branches: 0 } };
 }
 function selectedZoneOptions(context) {
@@ -96,7 +99,7 @@ function selectedZoneOptions(context) {
     zoneId: context.options?.fbxSelectedZoneId,
     maxGeometries: context.options?.fbxSelectedZoneMaxGeometries,
     maxSourcePoints: context.options?.fbxSelectedZoneMaxSourcePoints,
-    maxAttempts: context.options?.fbxSelectedZoneMaxAttempts,
+    maxAttempts: context.options?.fbxSelectedZoneMaxAttempts ?? 1,
   };
 }
 function geometryWorkerOptions(context, candidate) {
@@ -105,9 +108,9 @@ function geometryWorkerOptions(context, candidate) {
       `${candidate.label}: ${STAGE_LABELS[stage] || `FBX geometry worker: ${stage}`}`, 'running') };
 }
 function attemptStatus(context, candidate, options) {
-  const maximum = options.zoneId ? 1 : (options.maxAttempts || 8);
+  const maximum = options.zoneId ? 1 : options.maxAttempts;
   context.setStatus?.(
-    `Qualifying PIPE zone ${candidate.rank}/${maximum}: ${candidate.label}...`, 'running');
+    `Qualifying selected zone ${candidate.rank}/${maximum}: ${candidate.label}...`, 'running');
 }
 async function attemptSelectedZoneAutoPipe(context, primary, converted) {
   const sourceGraph = parsedSourceGraph(converted);
@@ -117,7 +120,7 @@ async function attemptSelectedZoneAutoPipe(context, primary, converted) {
     const options = selectedZoneOptions(context);
     context.setStatus?.('Classifying and ranking source-graph zones...', 'running');
     candidates = rankFbxAutoPipeZones(sourceGraph, options);
-    context.setStatus?.(`Ranked ${candidates.length} bounded zones. Loading exact topology...`, 'running');
+    context.setStatus?.(`Selected zone: ${candidates[0].label}. Loading exact topology...`, 'running');
     const geometryBundle = await parseFbxGeometryBundleInWorker(
       primary.bytes, geometryWorkerOptions(context, candidates[0]));
     return await runFbxSelectedZoneAutoPipe({ sourceGraph, geometryBundle,
@@ -139,7 +142,7 @@ function selectedZoneEvidence(autoPipe) {
   const counts = autoPipe?.counts || {}, selection = autoPipe?.selectedZone;
   return {
     diagnostics: [
-      `SELECTED_ZONE_AUTO_PIPE_STATUS:${autoPipe?.conversionStatus || 'UNKNOWN'}`,
+      `SELECTED_ZONE_STATUS:${autoPipe?.conversionStatus || 'UNKNOWN'}`,
       ...(selection ? [
         `SELECTED_ZONE_ID:${selection.zoneId}`,
         `SELECTED_ZONE_LABEL:${selection.label}`,
@@ -155,7 +158,7 @@ function selectedZoneEvidence(autoPipe) {
       ...attemptTags(autoPipe), ...(autoPipe?.blockingReasons || []),
     ],
     errors: (autoPipe?.zoneReports || []).filter((report) => report.error)
-      .map((report) => `SELECTED_ZONE_AUTO_PIPE_ERROR:${report.zoneId || 'unselected'}:${report.error}`),
+      .map((report) => `SELECTED_ZONE_ERROR:${report.zoneId || 'unselected'}:${report.error}`),
   };
 }
 function promoteSelectedZoneOutput(result, inputName, autoPipe) {
@@ -172,11 +175,47 @@ function promoteSelectedZoneOutput(result, inputName, autoPipe) {
     logs: { stdout: unique([...tags, ...(result?.logs?.stdout || [])]),
       stderr: unique([...(result?.logs?.stderr || []), ...evidence.errors]) } };
 }
+function classificationReport(autoPipe) {
+  const analysis = autoPipe.selectedZoneAnalysis;
+  return { schema: 'FbxSelectedZoneClassificationReport.v1',
+    status: autoPipe.conversionStatus, selectedZone: autoPipe.selectedZone,
+    counts: autoPipe.counts, zoneCounts: analysis?.counts || null,
+    autoPipeStatus: analysis?.autoPipeStatus || null,
+    autoPipeCounts: analysis?.autoPipeCounts || null,
+    classificationStatus: analysis?.classificationStatus || null,
+    classificationDispositions: analysis?.classificationDispositions || [],
+    blockingReasons: autoPipe.blockingReasons || [], zoneReports: autoPipe.zoneReports || [],
+    zonePackageError: analysis?.zonePackageError || null };
+}
+function promoteSelectedZoneEvidenceOutput(result, inputName, autoPipe) {
+  const selection = autoPipe.selectedZone, analysis = autoPipe.selectedZoneAnalysis;
+  const prefix = `${baseName(inputName)}.${slug(selection.label || selection.zoneId)}`;
+  const evidence = selectedZoneEvidence(autoPipe);
+  const artifacts = [
+    jsonOutput(`${prefix}.selected-zone-geometry-evidence.json`, analysis.zoneGeometryEvidence),
+    jsonOutput(`${prefix}.selected-zone-derived-port-evidence.json`, analysis.derivedPortEvidence),
+    jsonOutput(`${prefix}.selected-zone-classification-report.json`, classificationReport(autoPipe)),
+    ...(analysis.zonePackageManifest ? [jsonOutput(
+      `${prefix}.selected-zone-geometry-manifest.json`, analysis.zonePackageManifest)] : []),
+  ];
+  const tags = unique(['PARSE_PASS', OPTIONAL_MAPPING_ABSENT,
+    SELECTED_ZONE_EVIDENCE_PASS, ...evidence.diagnostics]);
+  return { ...result, ok: true, blocked: false,
+    conversionStatus: SELECTED_ZONE_EVIDENCE_PASS,
+    outputs: [...artifacts, ...(result.outputs || []).map((output) =>
+      promotedReport(output, SELECTED_ZONE_EVIDENCE_PASS, tags))],
+    logs: { stdout: unique([...tags, ...(result.logs?.stdout || [])]),
+      stderr: unique([...(result.logs?.stderr || []), ...evidence.errors]) } };
+}
 async function noMappingResult(context, primary, converted) {
   const autoPipe = await attemptSelectedZoneAutoPipe(context, primary, converted);
-  return autoPipe.conversionStatus === STAGEDJSON_SELECTED_ZONE_PASS
-    ? promoteSelectedZoneOutput(converted, primary.name, autoPipe)
-    : promoteNoMappingJsonOutput(converted, primary.name, selectedZoneEvidence(autoPipe));
+  if (autoPipe.conversionStatus === STAGEDJSON_SELECTED_ZONE_PASS) {
+    return promoteSelectedZoneOutput(converted, primary.name, autoPipe);
+  }
+  if (autoPipe.conversionStatus === SELECTED_ZONE_EVIDENCE_PASS) {
+    return promoteSelectedZoneEvidenceOutput(converted, primary.name, autoPipe);
+  }
+  return promoteNoMappingJsonOutput(converted, primary.name, selectedZoneEvidence(autoPipe));
 }
 async function loadParserEvidence() {
   try { return { parserEvidence: await loadBrowserParserEvidence() }; }
