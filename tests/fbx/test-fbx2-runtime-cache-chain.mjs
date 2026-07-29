@@ -68,5 +68,8 @@ requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', `CACHE_KEY: ${ke
 requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'FbxPagesDirectPipeRuntimeDeploymentEvidence.v1');
 requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'benchmarkAdmittedPipeCount 112');
 requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'DETACHED_CAP_RING_BRIDGE_V1');
+requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'git fetch origin main');
+requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'git rebase origin/main');
+requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'after five synchronized attempts');
 
 console.log('test-fbx2-runtime-cache-chain: PASS');
