@@ -25,7 +25,7 @@ print(json.dumps([[error.message for error in validator.iter_errors(item)] for i
 
 async function main() {
   const geometry = prismGeometry(10, 50, 8);
-  const selection = selectionFromGeometry('101', 'src:1', geometry);
+  const selection = selectionFromGeometry('101', '1', geometry);
   const occurrence = occurrenceFixture('occ:1', '1', '101');
   const scope = { selectedOccurrences: [occurrence] };
   const zoneArtifact = { artifactId: `fbx-zone-geometry-evidence:${'a'.repeat(64)}` };
@@ -35,14 +35,17 @@ async function main() {
   extra.unexpected = true;
   const malformed = structuredClone(evidence);
   malformed.artifactId = 'not-a-valid-id';
+  const missingProjection = structuredClone(evidence);
+  delete missingProjection.occurrenceEvidence[0].analysisProjection;
 
   const schema = JSON.parse(await readFile(
-    new URL('../../contracts/fbx/fbx-solid-fitting-port-evidence.v1.schema.json', import.meta.url), 'utf8',
+    new URL('../../contracts/fbx/fbx-solid-fitting-port-evidence.v2.schema.json', import.meta.url), 'utf8',
   ));
-  const results = validateSchema(schema, [evidence, extra, malformed]);
+  const results = validateSchema(schema, [evidence, extra, malformed, missingProjection]);
   assert.equal(results[0].length, 0, JSON.stringify(results[0]));
   assert.notEqual(results[1].length, 0, 'unexpected top-level field passed schema');
   assert.notEqual(results[2].length, 0, 'malformed artifactId passed schema');
+  assert.notEqual(results[3].length, 0, 'missing analysis projection passed schema');
 
   console.log('PASS test-solid-fitting-port-evidence-contract');
 }
