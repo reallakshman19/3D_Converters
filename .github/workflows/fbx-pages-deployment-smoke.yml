@@ -7,8 +7,11 @@ on:
       - main
     paths:
       - '.github/workflows/fbx-pages-deployment-smoke.yml'
+      - 'tabs/model-converters/converters/fbx-to-stagedjson.js'
       - 'tabs/model-converters/converters/fbx/parser-wasm.js'
       - 'tabs/model-converters/converters/fbx/parser-provenance.js'
+      - 'tabs/model-converters/converters/fbx/auto-pipe/**'
+      - 'tabs/model-converters/converters/fbx/zone-geometry/**'
       - 'third_party/ufbx/fbx_parser.wasm'
       - 'third_party/ufbx/provenance.json'
 
@@ -20,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify-pages-parser:
+  verify-pages-runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -28,15 +31,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Poll deployed parser identity
+      - name: Poll deployed FBX parser and selected-zone runtime
         env:
           PAGES_ROOT: https://reallaksh19.github.io/3D_Converters
         run: |
           set -euo pipefail
-          expected_sha="$(jq -r '.wasmSha256' third_party/ufbx/provenance.json)"
-          expected_bytes="$(jq -r '.wasmByteLength' third_party/ufbx/provenance.json)"
-          test "$expected_sha" != null
-          test "$expected_bytes" != null
+          expected_wasm_sha="$(jq -r '.wasmSha256' third_party/ufbx/provenance.json)"
+          expected_wasm_bytes="$(jq -r '.wasmByteLength' third_party/ufbx/provenance.json)"
+          expected_parser_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx/parser-wasm.js | cut -d' ' -f1)"
+          expected_converter_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx-to-stagedjson.js | cut -d' ' -f1)"
+          expected_selected_zone_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js | cut -d' ' -f1)"
+          test "$expected_wasm_sha" != null
+          test "$expected_wasm_bytes" != null
 
           rm -rf .pages-smoke
           mkdir -p .pages-smoke evidence
@@ -51,48 +57,65 @@ jobs:
               && curl --fail --location --silent --show-error \
                 --header 'Cache-Control: no-cache' \
                 "$PAGES_ROOT/third_party/ufbx/fbx_parser.wasm?$cache_bust" \
-                --output .pages-smoke/fbx_parser.wasm; then
-              deployed_sha="$(sha256sum .pages-smoke/fbx_parser.wasm | cut -d' ' -f1)"
-              deployed_bytes="$(stat -c '%s' .pages-smoke/fbx_parser.wasm)"
-              declared_sha="$(jq -r '.wasmSha256 // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
-              declared_bytes="$(jq -r '.wasmByteLength // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
-              if [[ "$deployed_sha" == "$expected_sha" \
-                  && "$deployed_bytes" == "$expected_bytes" \
-                  && "$declared_sha" == "$expected_sha" \
-                  && "$declared_bytes" == "$expected_bytes" ]]; then
+                --output .pages-smoke/fbx_parser.wasm \
+              && curl --fail --location --silent --show-error \
+                --header 'Cache-Control: no-cache' \
+                "$PAGES_ROOT/tabs/model-converters/converters/fbx/parser-wasm.js?$cache_bust" \
+                --output .pages-smoke/parser-wasm.js \
+              && curl --fail --location --silent --show-error \
+                --header 'Cache-Control: no-cache' \
+                "$PAGES_ROOT/tabs/model-converters/converters/fbx-to-stagedjson.js?$cache_bust" \
+                --output .pages-smoke/fbx-to-stagedjson.js \
+              && curl --fail --location --silent --show-error \
+                --header 'Cache-Control: no-cache' \
+                "$PAGES_ROOT/tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js?$cache_bust" \
+                --output .pages-smoke/selected-zone-auto-pipe.js; then
+              deployed_wasm_sha="$(sha256sum .pages-smoke/fbx_parser.wasm | cut -d' ' -f1)"
+              deployed_wasm_bytes="$(stat -c '%s' .pages-smoke/fbx_parser.wasm)"
+              declared_wasm_sha="$(jq -r '.wasmSha256 // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
+              declared_wasm_bytes="$(jq -r '.wasmByteLength // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
+              deployed_parser_runtime_sha="$(sha256sum .pages-smoke/parser-wasm.js | cut -d' ' -f1)"
+              deployed_converter_runtime_sha="$(sha256sum .pages-smoke/fbx-to-stagedjson.js | cut -d' ' -f1)"
+              deployed_selected_zone_runtime_sha="$(sha256sum .pages-smoke/selected-zone-auto-pipe.js | cut -d' ' -f1)"
+              if [[ "$deployed_wasm_sha" == "$expected_wasm_sha" \
+                  && "$deployed_wasm_bytes" == "$expected_wasm_bytes" \
+                  && "$declared_wasm_sha" == "$expected_wasm_sha" \
+                  && "$declared_wasm_bytes" == "$expected_wasm_bytes" \
+                  && "$deployed_parser_runtime_sha" == "$expected_parser_runtime_sha" \
+                  && "$deployed_converter_runtime_sha" == "$expected_converter_runtime_sha" \
+                  && "$deployed_selected_zone_runtime_sha" == "$expected_selected_zone_runtime_sha" ]]; then
                 matched=true
                 matched_attempt="$attempt"
                 break
               fi
-              printf 'attempt=%s deployed_sha=%s deployed_bytes=%s declared_sha=%s declared_bytes=%s\n' \
-                "$attempt" "$deployed_sha" "$deployed_bytes" \
-                "$declared_sha" "$declared_bytes"
+              printf 'attempt=%s wasm=%s converter=%s selected_zone=%s\n' \
+                "$attempt" "$deployed_wasm_sha" \
+                "$deployed_converter_runtime_sha" "$deployed_selected_zone_runtime_sha"
             fi
             sleep 10
           done
 
           if [[ "$matched" != true ]]; then
-            echo 'GitHub Pages did not converge to the repository parser identity.' >&2
+            echo 'GitHub Pages did not converge to the repository FBX runtime.' >&2
             exit 1
           fi
 
-          curl --fail --location --silent --show-error \
-            --header 'Cache-Control: no-cache' \
-            "$PAGES_ROOT/tabs/model-converters/converters/fbx/parser-wasm.js?commit=${GITHUB_SHA}" \
-            --output .pages-smoke/parser-wasm.js
           grep -F "fetch(url, { cache: 'no-store' })" .pages-smoke/parser-wasm.js
+          grep -F 'SELECTED_ZONE_EVIDENCE_PASS' .pages-smoke/fbx-to-stagedjson.js
+          grep -F 'fbxSelectedZoneMaxAttempts ?? 1' .pages-smoke/fbx-to-stagedjson.js
+          grep -F 'rankFbxAutoPipeZones' .pages-smoke/selected-zone-auto-pipe.js
+          grep -F 'PIPE_INFERENCE_NOT_RELEASED' .pages-smoke/selected-zone-auto-pipe.js
 
           provenance_sha="$(sha256sum .pages-smoke/provenance.json | cut -d' ' -f1)"
-          runtime_sha="$(sha256sum .pages-smoke/parser-wasm.js | cut -d' ' -f1)"
           verified_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           jq -n \
             --arg schema 'FbxPagesParserDeploymentEvidence.v1' \
             --arg repositoryCommit "$GITHUB_SHA" \
             --arg pagesRoot "$PAGES_ROOT" \
-            --arg wasmSha256 "$expected_sha" \
-            --argjson wasmByteLength "$expected_bytes" \
+            --arg wasmSha256 "$expected_wasm_sha" \
+            --argjson wasmByteLength "$expected_wasm_bytes" \
             --arg provenanceSha256 "$provenance_sha" \
-            --arg parserRuntimeSha256 "$runtime_sha" \
+            --arg parserRuntimeSha256 "$expected_parser_runtime_sha" \
             --arg browserFetchPolicy 'no-store' \
             --argjson convergenceAttempt "$matched_attempt" \
             --arg verifiedAt "$verified_at" \
@@ -103,15 +126,36 @@ jobs:
               verifiedAt:$verifiedAt}' \
             > evidence/fbx-pages-parser-deployment.json
 
+          jq -n \
+            --arg schema 'FbxPagesSelectedZoneDeploymentEvidence.v1' \
+            --arg repositoryCommit "$GITHUB_SHA" \
+            --arg pagesRoot "$PAGES_ROOT" \
+            --arg converterRuntimeSha256 "$expected_converter_runtime_sha" \
+            --arg selectedZoneRuntimeSha256 "$expected_selected_zone_runtime_sha" \
+            --arg terminalStatus 'SELECTED_ZONE_EVIDENCE_PASS' \
+            --arg defaultZoneAttemptLimit '1' \
+            --arg selectionPolicy 'FbxSelectedZoneAutoPipePolicy.v1' \
+            --argjson convergenceAttempt "$matched_attempt" \
+            --arg verifiedAt "$verified_at" \
+            '{schema:$schema,repositoryCommit:$repositoryCommit,pagesRoot:$pagesRoot,
+              converterRuntimeSha256:$converterRuntimeSha256,
+              selectedZoneRuntimeSha256:$selectedZoneRuntimeSha256,
+              terminalStatus:$terminalStatus,defaultZoneAttemptLimit:$defaultZoneAttemptLimit,
+              selectionPolicy:$selectionPolicy,convergenceAttempt:$convergenceAttempt,
+              verifiedAt:$verifiedAt}' \
+            > evidence/fbx-pages-selected-zone-deployment.json
+
           {
-            echo '### FBX Pages parser deployment'
+            echo '### FBX Pages runtime deployment'
             echo
             echo "- repository commit: \`${GITHUB_SHA}\`"
-            echo "- SHA-256: \`${expected_sha}\`"
-            echo "- byte length: \`${expected_bytes}\`"
+            echo "- parser WASM SHA-256: \`${expected_wasm_sha}\`"
+            echo "- converter runtime SHA-256: \`${expected_converter_runtime_sha}\`"
+            echo "- selected-zone runtime SHA-256: \`${expected_selected_zone_runtime_sha}\`"
             echo "- convergence attempt: \`${matched_attempt}\`"
-            echo '- deployed provenance: matched'
-            echo '- browser fetch policy: no-store'
+            echo '- selected-zone terminal status: `SELECTED_ZONE_EVIDENCE_PASS`'
+            echo '- default attempted zones: `1`'
+            echo '- browser fetch policy: `no-store`'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Commit deployment evidence
@@ -120,8 +164,9 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add evidence/fbx-pages-parser-deployment.json
+          git add evidence/fbx-pages-parser-deployment.json \
+            evidence/fbx-pages-selected-zone-deployment.json
           if ! git diff --cached --quiet; then
-            git commit -m 'evidence(fbx): record deployed Pages parser identity'
+            git commit -m 'evidence(fbx): record deployed selected-zone runtime'
             git push origin HEAD:main
           fi
