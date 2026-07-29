@@ -22,6 +22,10 @@ function upper(value) {
   return text(value)?.toUpperCase() ?? null;
 }
 
+function trueFlag(value) {
+  return value === true || upper(value) === 'TRUE';
+}
+
 function compareText(left, right) {
   const leftText = String(left), rightText = String(right);
   return leftText < rightText ? -1 : leftText > rightText ? 1 : 0;
@@ -117,10 +121,11 @@ function isSupport(record) {
 
 function generationEvidence(attributes) {
   const method = explicitValue(attributes, ['generationMethod', 'GENERATION_METHOD']);
-  const flagged = attributes.AUTO_GENERATED_PIPE === true || attributes.generated === true;
-  if (flagged && !method) fail('generated managed component requires generationMethod.');
+  const flagged = trueFlag(attributes.AUTO_GENERATED_PIPE) || trueFlag(attributes.generated);
   const generated = flagged || method !== null;
-  return { generated, generationMethod: generated ? method : null };
+  const generationProvenanceStatus = !generated ? 'NOT_APPLICABLE'
+    : method ? 'EVIDENCED' : 'UNRESOLVED';
+  return { generated, generationMethod: generated ? method : null, generationProvenanceStatus };
 }
 
 function managedRecordId(branchId, child, childIndex) {
