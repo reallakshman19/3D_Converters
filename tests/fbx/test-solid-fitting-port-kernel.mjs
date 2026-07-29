@@ -13,11 +13,13 @@ async function main() {
   const zoneArtifact = { artifactId: `fbx-zone-geometry-evidence:${'a'.repeat(64)}` };
 
   const evidence = await buildSolidFittingPortEvidence(zoneArtifact, scope, [selection]);
-  assert.equal(evidence.schema, 'FbxSolidFittingPortEvidence.v1');
+  assert.equal(evidence.schema, 'FbxSolidFittingPortEvidence.v2');
   assert.equal(evidence.occurrenceCount, 1);
   assert.equal(evidence.admittedOccurrenceCount, 1);
 
   const [record] = evidence.occurrenceEvidence;
+  assert.equal(record.analysisProjection.method, 'POSITION_WELD_AND_FACE_DEDUP_V1');
+  assert.equal(record.analysisProjection.toleranceMm, 2e-6);
   assert.equal(record.topologyDisposition, 'STRAIGHT_TWO_PORT');
   const admitted = record.candidates.filter((item) => item.admissionDisposition === 'ADMITTED');
   assert.equal(admitted.length, 2);
