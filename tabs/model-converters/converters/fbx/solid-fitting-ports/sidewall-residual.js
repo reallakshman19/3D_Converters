@@ -1,20 +1,11 @@
 import { transformPoint } from '../transform-policy.js';
 import { decodeExactPolygonTopology } from '../zone-geometry/polygon-topology.js';
-import { deriveConnectedShells } from '../zone-geometry/shells.js';
 import { dot, finiteVector, subtract } from '../auto-pipe/vector.js';
 import { scaledTolerance } from '../auto-pipe/profile.js';
-import { buildSolidFittingAnalysisTopology } from './analysis-topology.js';
-import { SOLID_FITTING_PORT_PROFILE } from './profile.js';
 
-function selectedShell(topology, shellId) {
-  return deriveConnectedShells(topology).then((shells) => (
-    shells.length === 1 && shells[0].shellId === shellId ? shells[0] : null
-  ));
-}
-
-function sidewallIndices(shell, capFaceIds) {
+function sidewallIndices(topology, capFaceIds) {
   const indices = new Set();
-  for (const face of shell.faces) {
+  for (const face of topology.faces) {
     if (capFaceIds.has(face.faceId)) continue;
     for (const index of face.vertices) indices.add(index);
   }
@@ -42,31 +33,26 @@ function pointResidual(point, ports, radii, profile) {
   const radius = Math.hypot(...radialVector);
   const outerTolerance = scaledTolerance(
     profile.radialAbsoluteMm, profile.radialRadiusRatio, radii.outer);
-  const outerResidual = Math.abs(radius - radii.outer);
-  if (outerResidual <= outerTolerance) return { valid: true, outer: true };
+  if (Math.abs(radius - radii.outer) <= outerTolerance) return { valid: true, outer: true };
   if (!radii.inner) return { valid: false, outer: false };
   const innerTolerance = scaledTolerance(
     profile.radialAbsoluteMm, profile.radialRadiusRatio, radii.inner);
   return { valid: Math.abs(radius - radii.inner) <= innerTolerance, outer: false };
 }
 
-export async function closedSolidSidewallResiduals({
-  occurrence, selection, record, ports, profile, solidProfile = SOLID_FITTING_PORT_PROFILE,
+export function closedSolidSidewallResiduals({
+  occurrence, selection, record, ports, profile,
 }) {
-  const decoded = decodeExactPolygonTopology(selection);
-  const projected = buildSolidFittingAnalysisTopology(decoded, solidProfile);
-  const shell = await selectedShell(projected.topology, record.shellId);
-  if (!shell) return false;
+  const topology = decodeExactPolygonTopology(selection);
   const admitted = record.candidates.filter((item) => item.admissionDisposition === 'ADMITTED');
   const capFaceIds = new Set(admitted.flatMap((item) => item.faceIds));
-  const indices = sidewallIndices(shell, capFaceIds);
+  const indices = sidewallIndices(topology, capFaceIds);
   if (indices.length < 6) return false;
   const radii = inferredRadii(admitted, ports);
   let outerCount = 0;
   for (const index of indices) {
     const result = pointResidual(
-      transformPoint(occurrence.geometryMatrixMm, projected.topology.points[index]),
-      ports, radii, profile);
+      transformPoint(occurrence.geometryMatrixMm, topology.points[index]), ports, radii, profile);
     if (!result.valid) return false;
     if (result.outer) outerCount += 1;
   }
