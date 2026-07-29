@@ -13,7 +13,7 @@ on:
       - 'third_party/ufbx/provenance.json'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: fbx-pages-deployment-smoke
@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Poll deployed parser identity
         env:
@@ -37,8 +39,9 @@ jobs:
           test "$expected_bytes" != null
 
           rm -rf .pages-smoke
-          mkdir -p .pages-smoke
+          mkdir -p .pages-smoke evidence
           matched=false
+          matched_attempt=0
           for attempt in $(seq 1 60); do
             cache_bust="commit=${GITHUB_SHA}&attempt=${attempt}"
             if curl --fail --location --silent --show-error \
@@ -58,6 +61,7 @@ jobs:
                   && "$declared_sha" == "$expected_sha" \
                   && "$declared_bytes" == "$expected_bytes" ]]; then
                 matched=true
+                matched_attempt="$attempt"
                 break
               fi
               printf 'attempt=%s deployed_sha=%s deployed_bytes=%s declared_sha=%s declared_bytes=%s\n' \
@@ -78,12 +82,46 @@ jobs:
             --output .pages-smoke/parser-wasm.js
           grep -F "fetch(url, { cache: 'no-store' })" .pages-smoke/parser-wasm.js
 
+          provenance_sha="$(sha256sum .pages-smoke/provenance.json | cut -d' ' -f1)"
+          runtime_sha="$(sha256sum .pages-smoke/parser-wasm.js | cut -d' ' -f1)"
+          verified_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          jq -n \
+            --arg schema 'FbxPagesParserDeploymentEvidence.v1' \
+            --arg repositoryCommit "$GITHUB_SHA" \
+            --arg pagesRoot "$PAGES_ROOT" \
+            --arg wasmSha256 "$expected_sha" \
+            --argjson wasmByteLength "$expected_bytes" \
+            --arg provenanceSha256 "$provenance_sha" \
+            --arg parserRuntimeSha256 "$runtime_sha" \
+            --arg browserFetchPolicy 'no-store' \
+            --argjson convergenceAttempt "$matched_attempt" \
+            --arg verifiedAt "$verified_at" \
+            '{schema:$schema,repositoryCommit:$repositoryCommit,pagesRoot:$pagesRoot,
+              wasmSha256:$wasmSha256,wasmByteLength:$wasmByteLength,
+              provenanceSha256:$provenanceSha256,parserRuntimeSha256:$parserRuntimeSha256,
+              browserFetchPolicy:$browserFetchPolicy,convergenceAttempt:$convergenceAttempt,
+              verifiedAt:$verifiedAt}' \
+            > evidence/fbx-pages-parser-deployment.json
+
           {
             echo '### FBX Pages parser deployment'
             echo
-            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- repository commit: \`${GITHUB_SHA}\`"
             echo "- SHA-256: \`${expected_sha}\`"
             echo "- byte length: \`${expected_bytes}\`"
+            echo "- convergence attempt: \`${matched_attempt}\`"
             echo '- deployed provenance: matched'
             echo '- browser fetch policy: no-store'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit deployment evidence
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/fbx-pages-parser-deployment.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(fbx): record deployed Pages parser identity'
+            git push origin HEAD:main
+          fi
