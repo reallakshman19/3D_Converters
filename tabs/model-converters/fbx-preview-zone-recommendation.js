@@ -47,6 +47,6 @@ export function matchFbxPreviewZoneRecommendation(project, recommendation) {
 }
 
 export function resolveFbxPreviewAutoSelection(project, recommendation, alreadyApplied = false) {
-  if (alreadyApplied || project?.selectedZoneId) return null;
+  if (alreadyApplied) return null;
   return matchFbxPreviewZoneRecommendation(project, recommendation);
 }
