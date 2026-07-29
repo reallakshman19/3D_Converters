@@ -177,4 +177,22 @@ await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
   }],
 }), /generated record BRANCH-A cannot claim source occurrence occ:pipe/);
 
+await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
+  sourceGraph,
+  zoneGeometryEvidence,
+  stagedBranches: [{
+    type: 'BRANCH', attributes: {},
+    children: [component('PIPE', 'P-NO-BRANCH', { REF: 'P-NO-BRANCH' })],
+  }],
+}), /branch 0 explicit identity is required/);
+
+await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
+  sourceGraph,
+  zoneGeometryEvidence,
+  stagedBranches: [{
+    ...stagedBranches[0],
+    children: [{ type: 'PIPE', attributes: {}, children: [] }],
+  }],
+}), /BRANCH-A child 0 explicit identity is required/);
+
 console.log('test-selected-zone-component-crosswalk: PASS');
