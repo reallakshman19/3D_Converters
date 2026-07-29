@@ -12,6 +12,7 @@ export const SOLID_FITTING_PORT_PROFILE = Object.freeze({
   radiusRatio: AUTO_PIPE_PROFILE.radiusRatio,
   vertexMergeAbsoluteMm: 2e-6,
   vertexMergeRelativeTolerance: 0,
+  terminalCapBridgeAbsoluteMm: 1e-4,
   maximumPortsPerOccurrence: 4,
 });
 
