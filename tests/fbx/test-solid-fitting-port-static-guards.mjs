@@ -13,6 +13,7 @@ const files = {
   classifier: 'tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js',
   admissionGates: 'tabs/model-converters/converters/fbx/auto-pipe/pipe-admission-gates.js',
   classify: 'tabs/model-converters/converters/fbx/auto-pipe/classify.js',
+  analyseZone: 'tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js',
   runAll: 'tests/fbx/run-all.mjs',
 };
 
@@ -34,6 +35,17 @@ assert.doesNotMatch(text.classifier, /function\s+assignRoles|function\s+cylinder
 assert.match(text.classify, /from '\.\/pipe-admission-gates\.js'/);
 assert.doesNotMatch(text.classify, /function\s+assignRoles|function\s+cylinderResiduals/);
 
+// The router must consult the closed-solid classifier only when open-boundary
+// structurally cannot apply (BOUNDARY_COUNT), never as a first choice or on
+// any other rejection reason.
+assert.match(text.classify, /from '\.\.\/solid-fitting-ports\/classifier\.js'/);
+assert.match(text.classify, /reason !== 'BOUNDARY_COUNT'/);
+
+// The selected-zone pipeline must build closed-solid evidence alongside the
+// existing derived-port evidence and pass both into the same auto-pipe run.
+assert.match(text.analyseZone, /from '\.\.\/solid-fitting-ports\/evidence\.js'/);
+assert.match(text.analyseZone, /closedSolidPipeEvidence/);
+
 // Cap-region circle fitting must reuse the existing deterministic circle-fit
 // and world-transform primitives, not a parallel implementation.
 assert.match(text.candidateEvaluation, /from '\.\.\/zone-geometry\/circle-fit\.js'/);
@@ -44,6 +56,8 @@ const expectedOrder = [
   'test-auto-pipe-partial-zone.mjs',
   'test-solid-fitting-port-kernel.mjs', 'test-solid-fitting-port-disposition.mjs',
   'test-solid-fitting-port-negative.mjs', 'test-solid-fitting-port-evidence-contract.mjs',
+  'test-auto-pipe-router-priority.mjs', 'test-auto-pipe-closed-solid-router.mjs',
+  'test-internal-pipe-mapping-cap-ring-contract.mjs',
   'test-solid-fitting-port-static-guards.mjs',
 ];
 let previous = -1;

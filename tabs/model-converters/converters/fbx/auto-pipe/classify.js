@@ -3,6 +3,7 @@ import {
   assignRoles, cylinderResiduals, radiusMatches, worldControlPoints,
 } from './pipe-admission-gates.js';
 import { AUTO_PIPE_PROFILE } from './profile.js';
+import { classifySolidFittingPipeOccurrence } from '../solid-fitting-ports/classifier.js';
 
 function fail(occurrence, reason, detail) {
   return Object.freeze({
@@ -71,17 +72,43 @@ export function classifyPipeOccurrence({
   });
 }
 
+function closedSolidRecordFor(closedSolidPipeEvidence, occurrenceId, geometryId) {
+  return closedSolidPipeEvidence?.occurrenceEvidence.find((item) => item.sourceOccurrenceId === occurrenceId
+    && item.geometryObjectId === geometryId) || null;
+}
+
+// The closed-solid route is only ever consulted when the open-boundary
+// classifier structurally cannot apply (no admitted-pair boundary loops at
+// all) — never when it applies but fails a stricter downstream gate, so
+// open-boundary PIPE admission always takes priority when both could pass.
+function classifyOccurrence({
+  occurrence, selection, derivedPortEvidence, closedSolidPipeEvidence, profile, closedSolidProfile,
+}) {
+  const openBoundary = classifyPipeOccurrence({ occurrence, selection, derivedPortEvidence, profile });
+  if (openBoundary.admitted || openBoundary.reason !== 'BOUNDARY_COUNT') return openBoundary;
+  const geometryId = occurrence.geometryObjectIds?.[0];
+  const record = closedSolidRecordFor(closedSolidPipeEvidence, occurrence.sourceOccurrenceId, geometryId);
+  if (!record) return openBoundary;
+  const closedSolid = classifySolidFittingPipeOccurrence({
+    occurrence, selection, record, profile: closedSolidProfile || profile,
+  });
+  return closedSolid || openBoundary;
+}
+
 export function classifySelectedPipes({
-  zoneGeometryEvidence, derivedPortEvidence, selections, profile = AUTO_PIPE_PROFILE,
+  zoneGeometryEvidence, derivedPortEvidence, closedSolidPipeEvidence, selections,
+  profile = AUTO_PIPE_PROFILE, closedSolidProfile,
 }) {
   const selectionById = new Map(selections.map((item) => [item.geometry.geometryObjectId, item]));
   const occurrences = zoneGeometryEvidence.occurrenceEvidence
     .filter((item) => item.geometryObjectIds?.length)
     .sort((a, b) => compareOccurrenceId(a.sourceOccurrenceId, b.sourceOccurrenceId));
-  return occurrences.map((occurrence) => classifyPipeOccurrence({
+  return occurrences.map((occurrence) => classifyOccurrence({
     occurrence,
     selection: selectionById.get(occurrence.geometryObjectIds?.[0]),
     derivedPortEvidence,
+    closedSolidPipeEvidence,
     profile,
+    closedSolidProfile,
   }));
 }

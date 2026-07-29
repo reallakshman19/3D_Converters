@@ -88,6 +88,25 @@ watertight shell and classifying the relationship between them:
   this change, with the repo's own documented Python schema-validator
   dependencies installed per `scripts/fbx/schema-validator-requirements.txt`)
   passes with no change to any pre-existing test's outcome.
+- **Router integration is now live.** `auto-pipe/classify.js`'s
+  `classifySelectedPipes()` tries the existing open-boundary classifier
+  first; only when it structurally cannot apply (`BOUNDARY_COUNT` — never on
+  `SHELL_COUNT`/`ROLE_ASSIGNMENT`/`RADIUS_MISMATCH`/`CYLINDER_RESIDUAL`, which
+  are hard rejections) does it consult `classifySolidFittingPipeOccurrence`
+  for the same occurrence. `zone-geometry/analyse-zone.js` now builds
+  `closedSolidPipeEvidence` via `buildSolidFittingPortEvidence` alongside the
+  existing derived-port evidence and passes both into `runFbxAutoPipe`, so a
+  genuinely closed-solid straight pipe in a real selected zone now reaches
+  `STAGEDJSON_PASS` end-to-end, verified with a real (non-mocked)
+  `buildDerivedPortEvidence` + `buildSolidFittingPortEvidence` +
+  `runFbxAutoPipe` run (`test-auto-pipe-closed-solid-router.mjs`), plus a
+  priority test confirming open-boundary always wins when it structurally
+  applies at all (`test-auto-pipe-router-priority.mjs`).
+  `contracts/fbx/fbx-internal-pipe-mapping.v1.schema.json`'s `boundaryLoopId`
+  and `sourcePortEvidenceId` patterns are now widened (`oneOf`) to accept a
+  `cap-ring:` origin alongside the existing `boundary-loop:`/`port-evidence:`
+  origins, self-validated against a real `buildInternalPipeMapping()` output
+  carrying a `cap-ring:` id (`test-internal-pipe-mapping-cap-ring-contract.mjs`).
 
 ## Real-source qualification findings (STF/GLRD, `Benchmarks/FBX2/`)
 
@@ -139,6 +158,16 @@ named family — not assumed. They are recorded here rather than silently
 smoothed over, per the same convention already established by
 `docs/fbx/fbx-selected-zone-diagnostic-ledger.md`'s "Known gap" section.
 
+**Practical consequence of router integration on real sources:** with the
+router now live, a zone whose selected occurrence is a genuinely single-shell,
+seam-clean watertight solid will now be rescued and admitted as a PIPE. A zone
+like `/GLRD-1000-FL-3"-G4110001-900#-01` (a real flange-family occurrence
+observed in production logs, blocked with `BLOCKED_AUTO_PIPE_CLASSIFICATION`)
+is **not** rescued by this change alone — its geometry resolves to
+`MULTIPLE_SHELLS` under this kernel's exact-topology decode (consistent with
+the FLANGE-family finding above), which the multi-shell disambiguation work
+below would need to address first.
+
 ## Explicitly deferred / not delivered
 
 - **Vertex-equivalence welding** for seam-duplicated real geometry (needed
@@ -151,14 +180,6 @@ smoothed over, per the same convention already established by
   layer described in the original plan — not built in this increment.
   `mapping-heuristic.js`'s existing keyword table is the natural starting
   point but does not yet parse the nesting structure into a tree.
-- **Router integration**: `classifySolidFittingPipeOccurrence` is not yet
-  wired into `auto-pipe/classify.js`'s `classifySelectedPipes()` router, nor
-  is `buildSolidFittingPortEvidence` yet called from
-  `zone-geometry/analyse-zone.js`. The kernel is complete, tested, and
-  contract-backed in isolation, but not yet load-bearing in the production
-  selected-zone pipeline. `contracts/fbx/fbx-internal-pipe-mapping.v1.schema.json`'s
-  `boundaryLoopId` pattern has **not** been widened to accept a `cap-ring:`
-  origin, since nothing yet produces one through that path in production.
 - **Catalog/spec attribute enrichment** and full parity with
   `ATTRIBUTE_GL_managed_stage.json` — out of scope; no catalog database
   exists in this repo.
