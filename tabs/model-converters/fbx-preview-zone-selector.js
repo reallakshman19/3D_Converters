@@ -12,6 +12,8 @@ const RUN_PATCH_MARKER = Symbol.for('model-converters.fbx-preview-zone-run.v1');
 const CONTROLLERS = new WeakMap();
 const RUN_OUTPUTS = new WeakMap();
 const AUTO_PIPE_OUTPUTS = new WeakMap();
+const RUN_SELECTIONS = new WeakMap();
+const AUTO_SELECTED_GRAPHS = new WeakSet();
 function pointSummary(project) {
   const displayed = Number(project?.displayedPointCount || project?.points?.length || 0);
   const source = Number(project?.sourcePointCount || displayed);
@@ -99,6 +101,7 @@ function ensureController(container) {
   if (!card || !host) return null;
   host.insertAdjacentHTML('beforebegin', toolbarHtml());
   const controller = {
+    container,
     host,
     meta: container.querySelector('#model-converters-preview-meta'),
     wrap: card.querySelector('[data-fbx-preview-zone-wrap]'),
@@ -208,26 +211,77 @@ export function extractFbxAutoPipeRun(detail) {
   const run = extractFbxStagedRun(detail), zoneId = String(detail?.zoneId || '');
   return run && zoneId ? { ...run, zoneId, authority: 'internal-auto-pipe' } : null;
 }
+function parsedOutput(output) {
+  if (!output || typeof output.text !== 'string') return null;
+  try { return JSON.parse(output.text); } catch { return null; }
+}
+function normalizedRecommendation(selection) {
+  const zoneId = String(selection?.zoneId || '');
+  if (!zoneId) return null;
+  return { zoneId, label: String(selection?.label || zoneId),
+    policy: String(selection?.policy || ''), rank: Number(selection?.rank || 0) };
+}
+function diagnosticValue(diagnostics, prefix) {
+  const item = diagnostics.find((value) => String(value).startsWith(prefix));
+  return item ? String(item).slice(prefix.length) : '';
+}
+export function extractFbxSelectedZoneRecommendation(detail) {
+  const outputs = Array.isArray(detail?.outputs) ? detail.outputs : [];
+  const classification = outputs.find((item) =>
+    /\.selected-zone-classification-report\.json$/i.test(String(item?.name || '')));
+  const classified = normalizedRecommendation(parsedOutput(classification)?.selectedZone);
+  if (classified) return classified;
+  const conversion = outputs.find((item) =>
+    /\.fbx-conversion-report\.json$/i.test(String(item?.name || '')));
+  const diagnostics = parsedOutput(conversion)?.diagnostics;
+  if (!Array.isArray(diagnostics)) return null;
+  const zoneId = diagnosticValue(diagnostics, 'SELECTED_ZONE_ID:');
+  if (!zoneId) return null;
+  return { zoneId,
+    label: diagnosticValue(diagnostics, 'SELECTED_ZONE_LABEL:') || zoneId,
+    policy: diagnosticValue(diagnostics, 'SELECTED_ZONE_POLICY:'),
+    rank: Number(diagnosticValue(diagnostics, 'SELECTED_ZONE_RANK:') || 0) };
+}
 function activeStagedRun(container, project) {
   const auto = AUTO_PIPE_OUTPUTS.get(container);
   return auto?.zoneId === project?.selectedZoneId ? auto : RUN_OUTPUTS.get(container) || null;
 }
+function recommendationFor(controller) {
+  const recommendation = RUN_SELECTIONS.get(controller.container);
+  const zone = controller.state?.project?.previewZones?.find((item) =>
+    item.zoneId === recommendation?.zoneId);
+  return zone ? { ...recommendation, label: zone.label } : null;
+}
 function updateAvailability(controller) {
   const selected = Boolean(controller.state?.project?.selectedZoneId);
   const staged = Boolean(controller.state?.stagedRun);
+  const recommendation = recommendationFor(controller);
+  const prefix = recommendation?.zoneId === controller.state?.project?.selectedZoneId
+    && AUTO_SELECTED_GRAPHS.has(controller.state?.graph)
+    ? `Auto-selected governed zone: ${recommendation.label}. ` : '';
   controller.sourceDownload.disabled = !selected;
   controller.stagedDownload.disabled = !selected || !staged;
-  controller.status.textContent = staged
+  controller.status.textContent = prefix + (staged
     ? controller.state.stagedRun.authority === 'internal-auto-pipe'
       ? 'Authorized PIPE-only internal StagedJSON is available.'
       : 'Authorized StagedJSON is available.'
-    : 'Source graph only; valid external mapping or PIPE inference is required.';
+    : 'Source graph only; valid external mapping or PIPE inference is required.');
+}
+function applyRecommendedZone(controller) {
+  const state = controller.state, graph = state?.graph;
+  if (!graph || state.project?.selectedZoneId || AUTO_SELECTED_GRAPHS.has(graph)) return false;
+  const recommendation = recommendationFor(controller);
+  if (!recommendation) return false;
+  AUTO_SELECTED_GRAPHS.add(graph);
+  controller.select.value = recommendation.zoneId;
+  renderSelectedZone(controller);
+  return true;
 }
 function refreshStagedState(container) {
   const controller = CONTROLLERS.get(container);
   if (!controller?.state) return;
   controller.state.stagedRun = activeStagedRun(container, controller.state.project);
-  updateAvailability(controller);
+  if (!applyRecommendedZone(controller)) updateAvailability(controller);
 }
 function hideController(controller) {
   controller.state = null;
@@ -257,6 +311,7 @@ function updateController(container, controller, project, renderer) {
   controller.wrap.style.display = zones.length ? 'flex' : 'none';
   controller.select.value = project.selectedZoneId || '';
   controller.count.textContent = `${zones.length} zone${zones.length === 1 ? '' : 's'}`;
+  if (applyRecommendedZone(controller)) return;
   updateAvailability(controller);
   queueMicrotask(() => {
     if (controller.state?.project === project && controller.meta) {
@@ -271,6 +326,9 @@ export function installFbxPreviewZoneSelector(container) {
   container.dataset.fbxPreviewZoneSelector = 'true';
   window.addEventListener(OUTPUT_EVENT, (event) => {
     RUN_OUTPUTS.set(container, extractFbxStagedRun(event.detail));
+    const recommendation = extractFbxSelectedZoneRecommendation(event.detail);
+    if (recommendation) RUN_SELECTIONS.set(container, recommendation);
+    else RUN_SELECTIONS.delete(container);
     refreshStagedState(container);
   });
   window.addEventListener(AUTO_PIPE_OUTPUT_EVENT, (event) => {
