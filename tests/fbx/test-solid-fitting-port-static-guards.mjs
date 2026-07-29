@@ -48,11 +48,14 @@ assert.match(text.analysisTopology, /duplicateFaceIds/);
 assert.match(text.profile, /vertexMergeAbsoluteMm:\s*2e-6/);
 assert.match(text.profile, /vertexMergeRelativeTolerance:\s*0/);
 
-// The router must consult the closed-solid classifier only when open-boundary
-// structurally cannot apply (BOUNDARY_COUNT), never as a first choice or on
-// any other rejection reason.
+// Open-boundary admission retains priority. Closed-solid fallback is limited to
+// boundary absence or an open-shell mismatch that the governed analysis
+// projection demonstrably repaired.
 assert.match(text.classify, /from '\.\.\/solid-fitting-ports\/classifier\.js'/);
-assert.match(text.classify, /reason !== 'BOUNDARY_COUNT'/);
+assert.match(text.classify, /reason === 'BOUNDARY_COUNT'/);
+assert.match(text.classify, /reason === 'SHELL_COUNT'/);
+assert.match(text.classify, /repairedShellEvidence/);
+assert.match(text.classify, /POSITION_WELD_AND_FACE_DEDUP_V1/);
 
 // The selected-zone pipeline must build closed-solid evidence alongside the
 // existing derived-port evidence and pass both into the same auto-pipe run.
