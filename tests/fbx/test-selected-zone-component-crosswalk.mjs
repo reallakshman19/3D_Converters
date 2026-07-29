@@ -79,8 +79,7 @@ const stagedBranches = [{
     component('FLAN', 'F-1', { REF: 'F-1', sourceModelObjectId: '101' }),
     component('PIPE', 'P-GAP', {
       REF: 'P-GAP',
-      AUTO_GENERATED_PIPE: true,
-      generationMethod: 'PORT_GAP_RECONSTRUCTION_V1',
+      AUTO_GENERATED_PIPE: 'true',
     }),
     component('TEE', 'T-MISSING', {
       REF: 'T-MISSING',
@@ -117,6 +116,7 @@ assert.equal(first.summary.selectedSourceOccurrenceCount, 3);
 assert.equal(first.summary.managedComponentCount, 7);
 assert.equal(first.summary.matchedManagedComponentCount, 3);
 assert.equal(first.summary.generatedManagedComponentCount, 1);
+assert.equal(first.summary.unresolvedGenerationProvenanceCount, 1);
 assert.equal(first.summary.candidateManagedComponentCount, 1);
 assert.equal(first.summary.unresolvedSourceBindingCount, 1);
 assert.equal(first.summary.unmatchedManagedComponentCount, 1);
@@ -142,9 +142,11 @@ assert.equal(candidate.exactSourceOccurrenceId, null);
 
 const generated = first.managedComponents.find((record) => record.reference === 'P-GAP');
 assert.equal(generated.disposition, 'GENERATED_MANAGED_COMPONENT');
-assert.equal(generated.generationMethod, 'PORT_GAP_RECONSTRUCTION_V1');
+assert.equal(generated.generationMethod, null);
+assert.equal(generated.generationProvenanceStatus, 'UNRESOLVED');
 assert.equal(generated.exactSourceOccurrenceId, null);
 
+assert.equal(first.authority.missingGenerationMethodIsUnresolved, true);
 assert.equal(first.authority.runtimeAdmissionChanged, false);
 assert.equal(first.authority.engineeringAttributesInferred, false);
 assert.equal(Object.isFrozen(first), true);
@@ -154,6 +156,26 @@ assert.equal(canonicalJson(first), canonicalJson(second));
 const original = canonicalJson({ sourceGraph, zoneGeometryEvidence, stagedBranches });
 await buildSelectedZoneComponentCrosswalk({ sourceGraph, zoneGeometryEvidence, stagedBranches });
 assert.equal(canonicalJson({ sourceGraph, zoneGeometryEvidence, stagedBranches }), original);
+
+const governedGenerated = await buildSelectedZoneComponentCrosswalk({
+  sourceGraph,
+  zoneGeometryEvidence,
+  stagedBranches: [{
+    ...stagedBranches[0],
+    children: [component('PIPE', 'P-GOV', {
+      REF: 'P-GOV',
+      AUTO_GENERATED_PIPE: 'true',
+      generationMethod: 'PORT_GAP_RECONSTRUCTION_V1',
+    })],
+  }],
+});
+assert.equal(governedGenerated.managedComponents[0].generationProvenanceStatus, 'EVIDENCED');
+assert.equal(governedGenerated.summary.unresolvedGenerationProvenanceCount, 0);
+
+const inconsistentGenerated = structuredClone(first);
+const inconsistentRecord = inconsistentGenerated.managedComponents.find((record) => record.generated);
+inconsistentRecord.generationProvenanceStatus = 'EVIDENCED';
+assert.notDeepEqual(validateSchema(schema, inconsistentGenerated), []);
 
 await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
   sourceGraph,
@@ -177,18 +199,6 @@ await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
     })],
   }],
 }), /generated record BRANCH-A cannot claim direct source identity/);
-
-await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
-  sourceGraph,
-  zoneGeometryEvidence,
-  stagedBranches: [{
-    ...stagedBranches[0],
-    children: [component('PIPE', 'NO-METHOD', {
-      REF: 'NO-METHOD',
-      AUTO_GENERATED_PIPE: true,
-    })],
-  }],
-}), /generated managed component requires generationMethod/);
 
 await assert.rejects(() => buildSelectedZoneComponentCrosswalk({
   sourceGraph,
