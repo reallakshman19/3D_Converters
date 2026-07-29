@@ -4,7 +4,7 @@ import { parseFbxInWorker } from './fbx/parser-client.js';
 import { parseFbxGeometryBundleInWorker } from './fbx/geometry-transport.js';
 import {
   BLOCKED_SELECTED_ZONE_AUTO_PIPE, STAGEDJSON_SELECTED_ZONE_PASS,
-  runFbxSelectedZoneAutoPipe, selectFbxAutoPipeZone,
+  rankFbxAutoPipeZones, runFbxSelectedZoneAutoPipe,
 } from './fbx/zone-geometry/selected-zone-auto-pipe.js';
 import { loadBrowserParserEvidence } from './fbx/parser-provenance.js';
 
@@ -82,46 +82,58 @@ function parsedSourceGraph(converted) {
   if (!graphOutput) return null;
   try { return JSON.parse(graphOutput.text); } catch { return null; }
 }
-function blockedSelectedZone(reason, selection = null) {
+function blockedSelectedZone(reason, candidates = []) {
   return { conversionStatus: BLOCKED_SELECTED_ZONE_AUTO_PIPE, stagedJsonText: null,
-    selectedZone: selection, zoneReports: [], duplicateIdentifiers: [],
-    unresolvedCrefs: [], blockingReasons: [reason],
-    counts: { totalZones: selection?.candidateCount || 0,
-      eligibleZones: selection?.eligibleCandidateCount || 0,
-      attemptedZones: selection ? 1 : 0, passedZones: 0,
-      blockedZones: 0, errorZones: 1, branches: 0 } };
+    selectedZone: null, candidateZones: candidates, zoneReports: [],
+    duplicateIdentifiers: [], unresolvedCrefs: [], blockingReasons: [reason],
+    counts: { totalZones: candidates[0]?.candidateCount || 0,
+      eligibleZones: candidates[0]?.eligibleCandidateCount || 0,
+      attemptedZones: 0, passedZones: 0, blockedZones: 0,
+      errorZones: 1, branches: 0 } };
 }
 function selectedZoneOptions(context) {
   return {
     zoneId: context.options?.fbxSelectedZoneId,
     maxGeometries: context.options?.fbxSelectedZoneMaxGeometries,
     maxSourcePoints: context.options?.fbxSelectedZoneMaxSourcePoints,
+    maxAttempts: context.options?.fbxSelectedZoneMaxAttempts,
   };
 }
-function geometryWorkerOptions(context, selection) {
+function geometryWorkerOptions(context, candidate) {
   return { signal: context.signal, timeoutMs: context.options?.fbxWorkerTimeoutMs,
     onProgress: (stage) => context.setStatus?.(
-      `${selection.label}: ${STAGE_LABELS[stage] || `FBX geometry worker: ${stage}`}`, 'running') };
+      `${candidate.label}: ${STAGE_LABELS[stage] || `FBX geometry worker: ${stage}`}`, 'running') };
+}
+function attemptStatus(context, candidate, options) {
+  const maximum = options.zoneId ? 1 : (options.maxAttempts || 8);
+  context.setStatus?.(
+    `Qualifying PIPE zone ${candidate.rank}/${maximum}: ${candidate.label}...`, 'running');
 }
 async function attemptSelectedZoneAutoPipe(context, primary, converted) {
   const sourceGraph = parsedSourceGraph(converted);
   if (!sourceGraph) return blockedSelectedZone('SELECTED_ZONE_SOURCE_GRAPH_UNAVAILABLE');
-  let selection;
+  let candidates = [];
   try {
-    context.setStatus?.('Classifying source-graph zones...', 'running');
-    selection = selectFbxAutoPipeZone(sourceGraph, selectedZoneOptions(context));
-    context.setStatus?.(`Selected zone: ${selection.label}. Loading exact topology...`, 'running');
+    const options = selectedZoneOptions(context);
+    context.setStatus?.('Classifying and ranking source-graph zones...', 'running');
+    candidates = rankFbxAutoPipeZones(sourceGraph, options);
+    context.setStatus?.(`Ranked ${candidates.length} bounded zones. Loading exact topology...`, 'running');
     const geometryBundle = await parseFbxGeometryBundleInWorker(
-      primary.bytes, geometryWorkerOptions(context, selection));
-    context.setStatus?.(`Classifying PIPE geometry in selected zone: ${selection.label}...`, 'running');
-    return await runFbxSelectedZoneAutoPipe({ sourceGraph, geometryBundle, selection });
+      primary.bytes, geometryWorkerOptions(context, candidates[0]));
+    return await runFbxSelectedZoneAutoPipe({ sourceGraph, geometryBundle,
+      selections: candidates, options,
+      onAttempt: (candidate) => attemptStatus(context, candidate, options) });
   } catch (error) {
     return blockedSelectedZone(
-      `SELECTED_ZONE_AUTO_PIPE_RUNTIME_ERROR:${formatFbxWorkerFailure(error)}`, selection);
+      `SELECTED_ZONE_AUTO_PIPE_RUNTIME_ERROR:${formatFbxWorkerFailure(error)}`, candidates);
   }
 }
 function ratioText(value) {
   return Number.isFinite(value) ? value.toFixed(6) : '0.000000';
+}
+function attemptTags(autoPipe) {
+  return (autoPipe?.zoneReports || []).map((report) =>
+    `SELECTED_ZONE_ATTEMPT:${report.rank || 0}:${report.zoneId || 'unknown'}:${report.status}`);
 }
 function selectedZoneEvidence(autoPipe) {
   const counts = autoPipe?.counts || {}, selection = autoPipe?.selectedZone;
@@ -133,13 +145,14 @@ function selectedZoneEvidence(autoPipe) {
         `SELECTED_ZONE_LABEL:${selection.label}`,
         `SELECTED_ZONE_POLICY:${selection.policy}`,
         `SELECTED_ZONE_REASON:${selection.reason}`,
+        `SELECTED_ZONE_RANK:${selection.rank}`,
         `SELECTED_ZONE_GEOMETRIES:${selection.selectedGeometryCount}`,
         `SELECTED_ZONE_SOURCE_POINTS:${selection.sourcePointCount}`,
         `SELECTED_ZONE_PIPE_LIKE_RATIO:${ratioText(selection.pipeLikeRatio)}`,
       ] : []),
       `SELECTED_ZONE_CANDIDATES:${counts.eligibleZones || 0}/${counts.totalZones || 0}`,
       `SELECTED_ZONE_ATTEMPTED:${counts.attemptedZones || 0}`,
-      ...(autoPipe?.blockingReasons || []),
+      ...attemptTags(autoPipe), ...(autoPipe?.blockingReasons || []),
     ],
     errors: (autoPipe?.zoneReports || []).filter((report) => report.error)
       .map((report) => `SELECTED_ZONE_AUTO_PIPE_ERROR:${report.zoneId || 'unselected'}:${report.error}`),
