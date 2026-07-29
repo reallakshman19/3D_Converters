@@ -12,7 +12,8 @@ function fail(message) {
 }
 
 function compareText(left, right) {
-  return String(left).localeCompare(String(right), 'en');
+  const leftText = String(left), rightText = String(right);
+  return leftText < rightText ? -1 : leftText > rightText ? 1 : 0;
 }
 
 function sortedUnique(values) {
