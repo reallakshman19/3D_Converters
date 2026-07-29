@@ -20,9 +20,7 @@ const EXPECTED_STAGES = Object.freeze([
   'preflight', 'loading-wasm', 'copying-input', 'parsing-fbx',
   'decoding-result', 'enforcing-source-policy', 'preparing-transfer',
 ]);
-const SELECTED_STATUSES = new Set([
-  'STAGEDJSON_SELECTED_ZONE_PASS', 'BLOCKED_SELECTED_ZONE_AUTO_PIPE',
-]);
+const MAX_ZONE_ATTEMPTS = 8;
 const root = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const sourcePath = path.resolve(process.argv[2] || '');
 
@@ -54,10 +52,11 @@ const harness = `<!doctype html>
 import { parseFbxInWorker } from '/tabs/model-converters/converters/fbx/parser-client.js';
 import { parseFbxGeometryBundleInWorker } from '/tabs/model-converters/converters/fbx/geometry-transport.js';
 import {
-  runFbxSelectedZoneAutoPipe, selectFbxAutoPipeZone,
+  rankFbxAutoPipeZones, runFbxSelectedZoneAutoPipe,
 } from '/tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js';
 const sourceStages = [];
 const geometryStages = [];
+const attemptedLabels = [];
 const started = performance.now();
 try {
   const response = await fetch('/__taya_source.fbx', { cache: 'no-store' });
@@ -69,7 +68,7 @@ try {
   });
   const sourceElapsedMs = Math.round(performance.now() - started);
   const selectionStarted = performance.now();
-  const selection = selectFbxAutoPipeZone(graph);
+  const candidates = rankFbxAutoPipeZones(graph);
   const selectionElapsedMs = Math.round(performance.now() - selectionStarted);
   const geometryStarted = performance.now();
   const geometryBundle = await parseFbxGeometryBundleInWorker(bytes, {
@@ -82,7 +81,9 @@ try {
   const geometryElapsedMs = Math.round(performance.now() - geometryStarted);
   const selectedStarted = performance.now();
   const selectedResult = await runFbxSelectedZoneAutoPipe({
-    sourceGraph: graph, geometryBundle, selection,
+    sourceGraph: graph, geometryBundle, selections: candidates,
+    options: { maxAttempts: ${MAX_ZONE_ATTEMPTS} },
+    onAttempt: (candidate) => attemptedLabels.push(candidate.label),
   });
   const selectedElapsedMs = Math.round(performance.now() - selectedStarted);
   window.__TAYA_RESULT__ = {
@@ -93,7 +94,7 @@ try {
     geometries: graph.geometries.length,
     sourceStages,
     sourceElapsedMs,
-    selectedZone: selection,
+    rankedCandidates: candidates.slice(0, ${MAX_ZONE_ATTEMPTS}),
     selectionElapsedMs,
     geometrySchema: geometryBundle.manifest.schema,
     topologyGeometries: geometryBundle.manifest.geometries.length,
@@ -101,9 +102,11 @@ try {
     geometryBufferBytes,
     geometryStages,
     geometryElapsedMs,
+    selectedZone: selectedResult.selectedZone,
+    attemptedLabels,
     selectedAutoPipeStatus: selectedResult.conversionStatus,
     selectedAutoPipeCounts: selectedResult.counts,
-    selectedAutoPipeReport: selectedResult.zoneReports?.[0] || null,
+    selectedAutoPipeReports: selectedResult.zoneReports,
     selectedAutoPipeBlockingReasons: selectedResult.blockingReasons,
     selectedElapsedMs,
     elapsedMs: Math.round(performance.now() - started),
@@ -120,6 +123,7 @@ try {
     progressStages: error?.progressStages || null,
     sourceStages,
     geometryStages,
+    attemptedLabels,
     elapsedMs: Math.round(performance.now() - started),
     mainHeapBytes: performance.memory?.usedJSHeapSize ?? null,
   };
@@ -231,15 +235,17 @@ try {
   assert(result.geometryBufferBytes > 0, 'geometry buffer payload is empty');
   assert.deepEqual(result.sourceStages, EXPECTED_STAGES);
   assert.deepEqual(result.geometryStages, EXPECTED_STAGES);
+  assert.equal(result.selectedAutoPipeStatus, 'STAGEDJSON_SELECTED_ZONE_PASS',
+    `no exact PIPE-only zone passed: ${JSON.stringify(result.selectedAutoPipeReports)}`);
   assert.equal(result.selectedZone.policy, 'FbxSelectedZoneAutoPipePolicy.v1');
   assert(result.selectedZone.selectedGeometryCount > 0, 'selected zone has no mesh geometry');
   assert(result.selectedZone.selectedGeometryCount <= 2000, 'selected zone exceeds geometry ceiling');
-  assert.equal(result.selectedAutoPipeCounts.attemptedZones, 1,
-    'browser auto-pipe must analyse exactly one selected zone');
-  assert(SELECTED_STATUSES.has(result.selectedAutoPipeStatus),
-    `unexpected selected-zone status: ${result.selectedAutoPipeStatus}`);
+  assert(result.selectedAutoPipeCounts.attemptedZones >= 1);
+  assert(result.selectedAutoPipeCounts.attemptedZones <= MAX_ZONE_ATTEMPTS,
+    'selected-zone search exceeded its hard attempt cap');
+  assert.equal(result.attemptedLabels.length, result.selectedAutoPipeCounts.attemptedZones);
   assert(result.selectedElapsedMs < 180000,
-    `selected-zone analysis exceeded three minutes: ${result.selectedElapsedMs}`);
+    `selected-zone qualification exceeded three minutes: ${result.selectedElapsedMs}`);
 } finally {
   await browser?.close();
   await new Promise((resolve) => server.close(resolve));
