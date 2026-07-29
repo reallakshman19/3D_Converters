@@ -29,7 +29,8 @@ const reportText = JSON.stringify({
   counts: { sourceObjects: 1 },
 });
 const promoted = promoteNoMappingJsonOutput({
-  ok: true,
+  ok: false,
+  blocked: true,
   conversionStatus: 'BLOCKED_MAPPING',
   outputs: [
     { name: 'TAY-A.fbx-source-graph.json', text: graphText, mime: 'application/json;charset=utf-8' },
@@ -37,15 +38,17 @@ const promoted = promoteNoMappingJsonOutput({
   ],
   logs: { stdout: ['WORKLIST_GENERATED'], stderr: ['Mapping manifest is absent.'] },
 }, 'TAY-A.fbx');
+assert.equal(promoted.ok, true);
+assert.equal(promoted.blocked, false);
 assert.equal(promoted.conversionStatus, 'SOURCE_GRAPH_JSON_PASS');
 assert.equal(promoted.outputs[0].name, 'TAY-A.json');
 assert.equal(promoted.outputs[0].text, graphText);
 assert.equal(promoted.outputs[1].name, 'TAY-A.fbx-source-graph.json');
 assert.equal(JSON.parse(promoted.outputs.at(-1).text).status, 'SOURCE_GRAPH_JSON_PASS');
 assert.ok(JSON.parse(promoted.outputs.at(-1).text).diagnostics.includes('OPTIONAL_MAPPING_ABSENT'));
-assert.deepEqual(promoted.logs.stderr, []);
+assert.deepEqual(promoted.logs.stderr, ['Mapping manifest is absent.']);
 assert.ok(promoted.logs.stdout.includes('SOURCE_GRAPH_JSON_PASS'));
-assert.ok(promoted.logs.stdout.includes('Mapping manifest is absent.'));
+assert.ok(!promoted.logs.stdout.includes('Mapping manifest is absent.'));
 assert.equal(promoteNoMappingJsonOutput({ outputs: [] }, 'TAY-A.fbx').outputs.length, 0);
 
 let delegated = false;

@@ -1,8 +1,8 @@
 {
   "schema": "UfbxWasmReproducibility.v1",
   "upstreamRevision": "729ab835444f5f229e5f7cff332692ce6c00415d",
-  "sourceSha256": "a4ee13223113fa9b2e99c6bbca54110e5ce140f5c013f1b3c1e289fe58e7e73e",
-  "buildSourceSha256": "19588e4ca5c65f1427ec9c1bf9c675439ee8587c22c60e39c893ae61e1d4e6b9",
+  "sourceSha256": "c1f2d11ca64e20d18d9fd86ca05112c8faefb9fbe30e2b560d7cda8fb072823f",
+  "buildSourceSha256": "eccf11eb2cab873a95a6def4f7783fe4875adc070d57b814a9d19db4591b691f",
   "compiler": {
     "command": "wasi-sdk/bin/clang.exe",
     "sha256": "99a29ab34998a6914bf3f93b50f564f50a7669142d312b1f4990bba294695196",
@@ -22,8 +22,8 @@
   },
   "builds": [
     {
-      "sha256": "fe9e90813a55382fbd51d1a975f66a59cf81efadf24b94572f4ccd53d4652b8f",
-      "byteLength": 454058,
+      "sha256": "d05ffb1cc0a3b1b2ab0d6abe85baedd2908db31069a02d3e6d8aef5422d65db8",
+      "byteLength": 454066,
       "target": "wasm32-wasi",
       "exports": [
         [
@@ -134,8 +134,8 @@
       ]
     },
     {
-      "sha256": "fe9e90813a55382fbd51d1a975f66a59cf81efadf24b94572f4ccd53d4652b8f",
-      "byteLength": 454058,
+      "sha256": "d05ffb1cc0a3b1b2ab0d6abe85baedd2908db31069a02d3e6d8aef5422d65db8",
+      "byteLength": 454066,
       "target": "wasm32-wasi",
       "exports": [
         [
@@ -249,8 +249,8 @@
   "byteIdentical": true,
   "workingDirectoryIndependent": true,
   "committed": {
-    "sha256": "fe9e90813a55382fbd51d1a975f66a59cf81efadf24b94572f4ccd53d4652b8f",
-    "byteLength": 454058,
+    "sha256": "d05ffb1cc0a3b1b2ab0d6abe85baedd2908db31069a02d3e6d8aef5422d65db8",
+    "byteLength": 454066,
     "matchesBuilds": true
   }
 }
