@@ -53,6 +53,8 @@ async function prepareLocalEsmFixture() {
     'tabs/model-converters/xml-cii-node-to-inputxml-topology-normalizer.js',
     'tabs/xml-cii-2019-standalone',
     'xml-compare/CategorizedInputXmlConverter.js',
+    'xml-compare/XmlCompareCoordinateSideload.js',
+    'xml-compare/XmlCompareCoordinateDiagnostics.js',
   ];
   for (const relativePath of paths) {
     const source = join(REPOSITORY_ROOT, relativePath);
@@ -99,6 +101,22 @@ function sampleTables() {
   });
 }
 
+async function readLocalAuthorityPin(pin) {
+  const manifestPath = join(REPOSITORY_ROOT, String(pin.localAuthorityManifest || ''));
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const valid = manifest.schema === 'categorized-inputxml-authority-pin/v1'
+    && manifest.mode === 'exact-vendored-authority'
+    && manifest.sourceRepository === pin.sourceRepository
+    && manifest.sourceCommit === pin.requiredLocalAuthorityCommit
+    && manifest.sourceCommit === pin.sourceCommit;
+  if (!valid) {
+    throw Object.assign(new Error('Local CategorizedInputXML authority manifest does not match the required upstream pin.'), {
+      code: 'LOCAL_AUTHORITY_PIN_MISMATCH',
+    });
+  }
+  return Object.freeze({ path: pin.localAuthorityManifest, ...manifest });
+}
+
 async function loadAuthorities(localFixtureRoot, xmlUtilitiesRoot, pin) {
   const localApi = await import(pathToFileURL(join(localFixtureRoot, 'converters/xml-cii2019-core/custom-input-api.js')).href);
   const localCore = await import(pathToFileURL(join(localFixtureRoot, 'tabs/model-converters/xml-cii-node-to-inputxml-core.js')).href);
@@ -138,11 +156,13 @@ async function runConformance(xmlUtilitiesRoot, evidencePath) {
   const upstreamCommit = gitHead(xmlUtilitiesRoot);
   const localCommit = gitHead(REPOSITORY_ROOT);
   const localFixtureRoot = await prepareLocalEsmFixture();
+  let localAuthority = null;
   let evidence;
   try {
     if (upstreamCommit !== pin.sourceCommit) {
       throw Object.assign(new Error(`Pinned XML Utilities commit mismatch: expected ${pin.sourceCommit}, observed ${upstreamCommit}.`), { code: 'UPSTREAM_COMMIT_MISMATCH' });
     }
+    localAuthority = await readLocalAuthorityPin(pin);
     const authorities = await loadAuthorities(localFixtureRoot, xmlUtilitiesRoot, pin);
     const generated = buildInputXml(authorities);
     const elementCount = pipingElementCount(generated.text);
@@ -162,6 +182,7 @@ async function runConformance(xmlUtilitiesRoot, evidencePath) {
     const upstreamCategorizedText = String(result?.artifact?.text || '');
     const difference = firstDifference(localCategorizedText, upstreamCategorizedText);
     const checks = Object.freeze({
+      localAuthorityPinned: localAuthority.sourceCommit === pin.sourceCommit,
       upstreamSuccess: result?.success === true,
       resultSchema: result?.schema === pin.resultSchema,
       artifactRole: result?.artifact?.role === pin.artifactRole,
@@ -178,6 +199,14 @@ async function runConformance(xmlUtilitiesRoot, evidencePath) {
       mode: pin.mode,
       localRepository: 'reallaksh19/3D_Converters',
       localCommit,
+      localAuthority: {
+        manifestPath: localAuthority.path,
+        schema: localAuthority.schema,
+        mode: localAuthority.mode,
+        sourceRepository: localAuthority.sourceRepository,
+        sourceCommit: localAuthority.sourceCommit,
+        files: localAuthority.files,
+      },
       upstreamRepository: pin.sourceRepository,
       upstreamCommit,
       serviceEntrypoint: pin.serviceEntrypoint,
@@ -226,6 +255,11 @@ async function runConformance(xmlUtilitiesRoot, evidencePath) {
         mode: 'shadow-only',
         localRepository: 'reallaksh19/3D_Converters',
         localCommit,
+        localAuthority: localAuthority ? {
+          manifestPath: localAuthority.path,
+          sourceRepository: localAuthority.sourceRepository,
+          sourceCommit: localAuthority.sourceCommit,
+        } : null,
         upstreamRepository: pin.sourceRepository,
         upstreamCommit,
         error: { code: error?.code || 'SHADOW_CONFORMANCE_FAILED', message: error?.message || String(error) },
@@ -258,4 +292,4 @@ try {
   process.exitCode = 1;
 }
 
-export const _test = Object.freeze({ argument, sha256, pipingElementCount, firstDifference, sampleTables, createRequest, runConformance });
+export const _test = Object.freeze({ argument, sha256, pipingElementCount, firstDifference, sampleTables, readLocalAuthorityPin, createRequest, runConformance });
