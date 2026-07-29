@@ -1,0 +1,91 @@
+name: FBX Preview Governed Override Patch
+
+on:
+  push:
+    branches:
+      - agent/fbx-preview-governed-override
+    paths:
+      - '.github/workflows/fbx-preview-governed-override-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fbx-preview-governed-override
+          fetch-depth: 0
+      - name: Apply governed preview override
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old!r}')
+              p.write_text(text.replace(old, new), encoding='utf-8')
+
+          replace_once(
+              'tabs/model-converters/fbx-preview-zone-recommendation.js',
+              "  if (alreadyApplied || project?.selectedZoneId) return null;",
+              "  if (alreadyApplied) return null;",
+          )
+          replace_once(
+              'tests/fbx/test-fbx-preview-zone-recommendation.mjs',
+              "  assert.equal(resolveFbxPreviewAutoSelection({ ...project, selectedZoneId: 'occ:mixed' },\n    selectedZone, false), null, 'manual selection must remain authoritative');",
+              "  assert.deepEqual(resolveFbxPreviewAutoSelection({ ...project, selectedZoneId: 'occ:mixed' },\n    selectedZone, false), selectedZone,\n  'governed recommendation must supersede a pre-existing preview default');",
+          )
+
+          old = '20260729-fbx-preview-auto-zone-1'
+          new = '20260729-fbx-preview-auto-zone-2'
+          cache_files = [
+              'index.html',
+              'main-rhbg-fitguard.js',
+              'core/app.js',
+              'core/app-standalone-runtime.js',
+              'tabs/model-converters-tab.js',
+              'tabs/model-converters/index.js',
+              'tabs/model-converters/ModelConvertersTab.js',
+              'tests/inputxml-live-release-static.test.mjs',
+              '.github/workflows/fbx-preview-shell-pages-smoke.yml',
+          ]
+          total = 0
+          for path in cache_files:
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count:
+                  p.write_text(text.replace(old, new), encoding='utf-8')
+                  total += count
+          if total < 8:
+              raise SystemExit(f'cache-chain replacement too small: {total}')
+
+          workflow = Path('.github/workflows/fbx-preview-governed-override-patch.yml')
+          workflow.unlink()
+          PY
+      - name: Verify focused behavior and full FBX suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tabs/model-converters/fbx-preview-zone-recommendation.js
+          node tests/fbx/test-fbx-preview-zone-recommendation.mjs
+          node tests/fbx/test-fbx-preview-zone-selector-static.mjs
+          node tests/fbx/run-all.mjs
+          node tests/inputxml-live-release-static.test.mjs
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(fbx): override stale preview default with governed zone'
+          git push origin HEAD:agent/fbx-preview-governed-override
