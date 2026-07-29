@@ -1,4 +1,4 @@
-import { transformPoint } from '../transform-policy.js';
+import { transformPoint } from '../transform-policy.js?v=20260729-fbx2-direct-pipe-1';
 import { decodeExactPolygonTopology } from '../zone-geometry/polygon-topology.js';
 import { dot, finiteVector, subtract } from '../auto-pipe/vector.js';
 import { scaledTolerance } from '../auto-pipe/profile.js';

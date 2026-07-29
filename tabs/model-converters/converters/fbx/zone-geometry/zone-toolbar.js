@@ -1,6 +1,6 @@
 import { getConverterById } from '../../../converter-registry.js?v=20260617-basic-glb-3';
 import { parseFbxGeometryBundleInWorker } from '../geometry-transport.js';
-import { analyseFbxZoneGeometry } from './analyse-zone.js';
+import { analyseFbxZoneGeometry } from './analyse-zone.js?v=20260729-fbx2-direct-pipe-1';
 import { createZoneAnalysisController } from './analysis-controller.js';
 import { buildFbxZoneWireframeMetaText } from './wireframe-preview.js';
 

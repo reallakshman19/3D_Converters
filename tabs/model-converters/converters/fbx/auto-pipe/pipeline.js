@@ -1,6 +1,6 @@
 import { canonicalJson } from '../canonical-json.js';
 import { buildInternalPipeMapping } from './artifact.js';
-import { classifySelectedPipes } from './classify.js';
+import { classifySelectedPipes } from './classify.js?v=20260729-fbx2-direct-pipe-1';
 import { executeInternalPipeMapping } from './executor.js';
 
 function classificationCounts(classifications) {

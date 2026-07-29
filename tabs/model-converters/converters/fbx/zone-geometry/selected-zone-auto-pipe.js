@@ -1,7 +1,7 @@
 // Rank bounded source-graph zones, then qualify one zone at a time with the
 // existing exact auto-pipe classifier. Whole-model orchestration stays separate.
 import { canonicalJson } from '../canonical-json.js';
-import { analyseFbxZoneGeometry } from './analyse-zone.js';
+import { analyseFbxZoneGeometry } from './analyse-zone.js?v=20260729-fbx2-direct-pipe-1';
 import { listFbxZoneScopeSummaries } from './zone-scope.js';
 import { mergeWholeModelBranches } from './whole-model-identities.js';
 
