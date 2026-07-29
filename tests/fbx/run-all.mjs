@@ -7,6 +7,7 @@ const tests = [
   'test-fbx-staged-json-zone-export.mjs',
   'test-fbx-preview-zone-staged-run.mjs',
   'test-whole-model-auto-pipe.mjs',
+  'test-selected-zone-auto-pipe.mjs',
   'test-fbx-preview-zone-selector-static.mjs',
   'test-zone-package-core.mjs',
   'test-zone-package-contracts.mjs',
