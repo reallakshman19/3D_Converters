@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { access, readFile, stat } from 'node:fs/promises';
+import { access, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,17 @@ import { chromium } from 'playwright-core';
 
 const EXPECTED_BYTES = 71_486_048;
 const EXPECTED_SHA256 = '0c2c0600a1232541a497aea05832b728569fefcf62ea86e71dea520247fe9ca8';
-const EXPECTED_COUNTS = Object.freeze({ sourceObjects: 50_228, occurrences: 19_281, geometries: 12_119 });
+const EXPECTED_COUNTS = Object.freeze({
+  sourceObjects: 50_228,
+  occurrences: 19_281,
+  geometries: 12_119,
+  topologyGeometries: 6_660,
+  geometryBuffers: 19_980,
+});
+const EXPECTED_STAGES = Object.freeze([
+  'preflight', 'loading-wasm', 'copying-input', 'parsing-fbx',
+  'decoding-result', 'enforcing-source-policy', 'preparing-transfer',
+]);
 const root = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const sourcePath = path.resolve(process.argv[2] || '');
 
@@ -39,7 +49,9 @@ const harness = `<!doctype html>
 <pre id="result">RUNNING</pre>
 <script type="module">
 import { parseFbxInWorker } from '/tabs/model-converters/converters/fbx/parser-client.js';
-const stages = [];
+import { parseFbxGeometryBundleInWorker } from '/tabs/model-converters/converters/fbx/geometry-transport.js';
+const sourceStages = [];
+const geometryStages = [];
 const started = performance.now();
 try {
   const response = await fetch('/__taya_source.fbx', { cache: 'no-store' });
@@ -47,15 +59,31 @@ try {
   const bytes = new Uint8Array(await response.arrayBuffer());
   const graph = await parseFbxInWorker(bytes, {
     timeoutMs: 600000,
-    onProgress: (stage) => stages.push(stage),
+    onProgress: (stage) => sourceStages.push(stage),
   });
+  const sourceElapsedMs = Math.round(performance.now() - started);
+  const geometryStarted = performance.now();
+  const geometryBundle = await parseFbxGeometryBundleInWorker(bytes, {
+    timeoutMs: 600000,
+    onProgress: (stage) => geometryStages.push(stage),
+  });
+  const geometryBufferBytes = geometryBundle.buffers.reduce(
+    (total, item) => total + item.bytes.byteLength, 0,
+  );
   window.__TAYA_RESULT__ = {
     ok: true,
     schema: graph.schema,
     sourceObjects: graph.sourceObjects.length,
     occurrences: graph.occurrences.length,
     geometries: graph.geometries.length,
-    stages,
+    sourceStages,
+    sourceElapsedMs,
+    geometrySchema: geometryBundle.manifest.schema,
+    topologyGeometries: geometryBundle.manifest.geometries.length,
+    geometryBuffers: geometryBundle.buffers.length,
+    geometryBufferBytes,
+    geometryStages,
+    geometryElapsedMs: Math.round(performance.now() - geometryStarted),
     elapsedMs: Math.round(performance.now() - started),
     mainHeapBytes: performance.memory?.usedJSHeapSize ?? null,
   };
@@ -67,7 +95,9 @@ try {
     code: error?.code || null,
     stage: error?.stage || null,
     detail: error?.detail || null,
-    progressStages: error?.progressStages || stages,
+    progressStages: error?.progressStages || null,
+    sourceStages,
+    geometryStages,
     elapsedMs: Math.round(performance.now() - started),
     mainHeapBytes: performance.memory?.usedJSHeapSize ?? null,
   };
@@ -170,13 +200,15 @@ try {
   const result = await page.evaluate(() => window.__TAYA_RESULT__);
   console.log(JSON.stringify({ crashed, ...result }, null, 2));
   assert.equal(crashed, false, 'Chrome renderer or worker crashed');
-  assert.equal(result.ok, true, `Chrome worker parse failed: ${JSON.stringify(result)}`);
+  assert.equal(result.ok, true, `Chrome worker qualification failed: ${JSON.stringify(result)}`);
   assert.equal(result.schema, 'FbxSourceGraph.v2');
-  for (const [key, expected] of Object.entries(EXPECTED_COUNTS)) assert.equal(result[key], expected, `${key} count differs`);
-  assert.deepEqual(result.stages, [
-    'preflight', 'loading-wasm', 'copying-input', 'parsing-fbx',
-    'decoding-result', 'enforcing-source-policy', 'preparing-transfer',
-  ]);
+  assert.equal(result.geometrySchema, 'FbxGeometryBundle.v1');
+  for (const [key, expected] of Object.entries(EXPECTED_COUNTS)) {
+    assert.equal(result[key], expected, `${key} count differs`);
+  }
+  assert(result.geometryBufferBytes > 0, 'geometry buffer payload is empty');
+  assert.deepEqual(result.sourceStages, EXPECTED_STAGES);
+  assert.deepEqual(result.geometryStages, EXPECTED_STAGES);
 } finally {
   await browser?.close();
   await new Promise((resolve) => server.close(resolve));
