@@ -1,7 +1,7 @@
 import { AUTO_PIPE_PROFILE, scaledTolerance } from '../auto-pipe/profile.js';
 
 export const SOLID_FITTING_PORT_PROFILE = Object.freeze({
-  schema: 'FbxSolidFittingPortProfile.v2',
+  schema: 'FbxSolidFittingPortProfile.v3',
   planarJoinDotTolerance: 0.999,
   minimumRegionAreaRatio: 0.75,
   coAxialDotTolerance: 0.01,
