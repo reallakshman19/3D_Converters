@@ -51,10 +51,10 @@ TEMP_OUTPUT="$(mktemp "${OUT}.tmp.XXXXXX")"
 PROFILED_PARSER="$ROOT/.qualification/fbx_parser.runtime-profile.c"
 trap 'rm -f "$TEMP_OUTPUT" "$PROFILED_PARSER"' EXIT
 
-# The source graph requires DOM evidence from the authoritative source scene,
-# but the normalized scene is consumed only for typed node/geometry arrays.
-# Compile a deterministic profile that disables duplicate normalized DOM
-# retention. The exact one-replacement guard fails closed on source drift.
+# The authoritative source scene retains DOM, identities, properties, connections,
+# ownership, and source transforms, but it does not consume vertex/index payloads.
+# The normalized scene alone owns geometry and does not retain a duplicate DOM.
+# Exact one-replacement guards fail closed if the parser source drifts.
 python3 - "$ROOT/third_party/ufbx/fbx_parser.c" "$PROFILED_PARSER" <<'PY'
 from pathlib import Path
 import sys
@@ -62,11 +62,21 @@ import sys
 source_path = Path(sys.argv[1])
 target_path = Path(sys.argv[2])
 source = source_path.read_text(encoding='utf-8')
-needle = 'ufbx_load_opts b=a;b.target_axes=ufbx_axes_right_handed_y_up;'
-replacement = 'ufbx_load_opts b=a;b.retain_dom=false;b.target_axes=ufbx_axes_right_handed_y_up;'
-if source.count(needle) != 1:
-    raise SystemExit('build-ufbx-wasm: normalized-scene profile source drift')
-target_path.write_text(source.replace(needle, replacement), encoding='utf-8', newline='\n')
+replacements = [
+    (
+        'ufbx_load_opts a={0};a.retain_dom=true;a.load_external_files=false;a.ignore_embedded=true;',
+        'ufbx_load_opts a={0};a.retain_dom=true;a.ignore_geometry=true;a.load_external_files=false;a.ignore_embedded=true;',
+    ),
+    (
+        'ufbx_load_opts b=a;b.target_axes=ufbx_axes_right_handed_y_up;',
+        'ufbx_load_opts b=a;b.ignore_geometry=false;b.retain_dom=false;b.target_axes=ufbx_axes_right_handed_y_up;',
+    ),
+]
+for needle, replacement in replacements:
+    if source.count(needle) != 1:
+        raise SystemExit('build-ufbx-wasm: source-scene memory profile source drift')
+    source = source.replace(needle, replacement)
+target_path.write_text(source, encoding='utf-8', newline='\n')
 PY
 
 TOOL_ROOT="$(tool_path "$ROOT")"

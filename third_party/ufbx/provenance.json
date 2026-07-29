@@ -19,9 +19,9 @@
     "third_party/ufbx/ufbx.c",
     "third_party/ufbx/ufbx.h"
   ],
-  "buildSourceSha256": "eccf11eb2cab873a95a6def4f7783fe4875adc070d57b814a9d19db4591b691f",
+  "buildSourceSha256": "4c1e847069f72f2230c4e74b787ed6ecf24f4705e12f020b917705013e8e9245",
   "buildScriptPath": "scripts/fbx/build-ufbx-wasm.sh",
-  "buildScriptSha256": "27975e62f529e475ee1360206aab5c24a732bc064285845449d6926ef58213c8",
+  "buildScriptSha256": "2a3b6a6a94869ed89fa97a6447a40ee05996e7a634a4d9655e41da41dda2634a",
   "buildCommand": "CC=$WASI_SDK_ROOT/bin/clang.exe WASI_SYSROOT=$WASI_SDK_ROOT/share/wasi-sysroot bash scripts/fbx/build-ufbx-wasm.sh",
   "target": "wasm32-wasi",
   "compiler": {
@@ -153,6 +153,6 @@
       "function"
     ]
   ],
-  "wasmSha256": "d05ffb1cc0a3b1b2ab0d6abe85baedd2908db31069a02d3e6d8aef5422d65db8",
-  "wasmByteLength": 454066
+  "wasmSha256": "982b8387fac47b05588e39c5afdbb92659883e316a8fcd14079bde158a9c25d5",
+  "wasmByteLength": 454082
 }

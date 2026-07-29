@@ -46,8 +46,9 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm install --no-save --package-lock=false --ignore-scripts \
-            three@0.160.1 mdb-reader@2 buffer@6
-          python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
+            three@0.160.1 mdb-reader@2 buffer@6 playwright-core@1.55.0
+          python3 -m pip install --disable-pip-version-check \
+            jsonschema==4.23.0 gdown==5.2.0
 
       - name: Install pinned governed WASI SDK
         shell: pwsh
@@ -72,6 +73,7 @@ jobs:
             tests/fixtures/fbx/runtime-004-attribute-limit.fbx
           node --check scripts/fbx/inspect-ufbx-wasm.mjs
           node --check scripts/fbx/qualify-ufbx-wasm.mjs
+          node --check scripts/fbx/qualify-taya-browser.mjs
           node --check tabs/model-converters/converters/fbx/wasm-abi.js
           node --check tabs/model-converters/converters/fbx/ufbx-provenance.js
           node --check tabs/model-converters/converters/fbx/ufbx-reproducibility.js
@@ -122,6 +124,17 @@ jobs:
           cp .qualification/ufbx-wasm/provenance.json third_party/ufbx/provenance.json
           cp .qualification/ufbx-wasm/reproducibility.json third_party/ufbx/reproducibility.json
           node scripts/fbx/inspect-ufbx-wasm.mjs third_party/ufbx/fbx_parser.wasm
+
+      - name: Qualify exact governed TAYA in Chrome worker
+        run: |
+          mkdir -p .qualification/taya
+          python3 -m gdown --id 1febjASkHnzLA667P81YuLF3pZqjI2ySM \
+            --output .qualification/taya/fbxtaya.fbx
+          test "$(stat -c '%s' .qualification/taya/fbxtaya.fbx)" = "71486048"
+          printf '%s  %s\n' \
+            '0c2c0600a1232541a497aea05832b728569fefcf62ea86e71dea520247fe9ca8' \
+            '.qualification/taya/fbxtaya.fbx' | sha256sum -c -
+          node scripts/fbx/qualify-taya-browser.mjs .qualification/taya/fbxtaya.fbx
 
       - name: Run focused governed evidence tests
         run: |

@@ -37,6 +37,27 @@ function promotedReport(output, status, tags) {
   } catch { return output; }
 }
 
+export function formatFbxWorkerFailure(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  const evidence = [];
+  if (typeof error?.code === 'string' && error.code) evidence.push(`code=${error.code}`);
+  if (typeof error?.stage === 'string' && error.stage) evidence.push(`stage=${error.stage}`);
+  if (typeof error?.detail === 'string' && error.detail && error.detail !== message) {
+    evidence.push(`detail=${error.detail}`);
+  }
+  return evidence.length ? `${message} [${evidence.join('; ')}]` : message;
+}
+
+async function parseFbxWithDetailedWorkerError(bytes, options) {
+  try { return await parseFbxInWorker(bytes, options); }
+  catch (error) {
+    const enriched = new Error(formatFbxWorkerFailure(error));
+    enriched.name = error?.name || 'FbxWorkerRuntimeError';
+    enriched.cause = error;
+    throw enriched;
+  }
+}
+
 export function promoteNoMappingJsonOutput(result, inputName, evidence = {}) {
   const outputs = Array.isArray(result?.outputs) ? result.outputs : [];
   const graph = outputs.find((output) => /\.fbx-source-graph\.json$/i.test(output?.name || ''));
@@ -71,7 +92,7 @@ async function attemptWholeModelAutoPipe(context, primary, converted) {
       sourceGraph, geometryBundle, concurrency: context.options?.fbxWholeModelConcurrency,
     });
   } catch (error) {
-    return blockedAutoPipe(`WHOLE_MODEL_AUTO_PIPE_RUNTIME_ERROR:${error?.message || String(error)}`);
+    return blockedAutoPipe(`WHOLE_MODEL_AUTO_PIPE_RUNTIME_ERROR:${formatFbxWorkerFailure(error)}`);
   }
 }
 function autoPipeEvidence(autoPipe) {
@@ -124,7 +145,7 @@ export async function run(context = {}) {
   const secondary = findInput(context, 'secondary');
   const converted = await convertFbxToStagedJson({
     bytes: primary.bytes, inputName: primary.name, ...parseMapping(secondary), ...(await loadParserEvidence()),
-    parse: (bytes) => parseFbxInWorker(bytes, workerOptions(context)),
+    parse: (bytes) => parseFbxWithDetailedWorkerError(bytes, workerOptions(context)),
   });
   const result = secondary ? converted : await noMappingResult(context, primary, converted);
   const terminalState = result.blocked ? 'bad'
