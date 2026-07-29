@@ -1,4 +1,5 @@
 const EPSILON = 1e-8;
+const RESOLVED_INHERIT_MODES = new Set([0, 1, 2]);
 
 function vector(matrix, offset) {
   return [matrix[offset], matrix[offset + 1], matrix[offset + 2]];
@@ -20,7 +21,7 @@ function determinant(matrix) {
 }
 
 export function validateOccurrenceTransform(occurrence) {
-  if (occurrence.inheritMode !== 0) {
+  if (!Number.isInteger(occurrence.inheritMode) || !RESOLVED_INHERIT_MODES.has(occurrence.inheritMode)) {
     throw new Error(`BLOCKED_TRANSFORM unsupported inheritance on ${occurrence.sourceOccurrenceId}.`);
   }
   const matrix = occurrence.geometryMatrixMm;
