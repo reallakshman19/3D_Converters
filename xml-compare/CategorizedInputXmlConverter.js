@@ -1,3 +1,5 @@
+import { solveElementCoordinates } from './XmlCompareCoordinateSideload.js';
+
 export const CATEGORIZED_INPUTXML_CONVERTER_SCHEMA='categorized-inputxml-converter/v7';
 
 const esc=(value)=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;');
@@ -156,6 +158,34 @@ function temperatureBlockXml(attrs={},used=new Set()){
   for(const key of BLOCK_FIELDS.TemperatureBlock){if(attrs[key]!=null&&clean(attrs[key])!==''&&!isUnset(attrs[key])){used.add(key);const idx=key.replace('TEMP_EXP_C','');rows.push(`          <Temperature${esc(idx)} sourceField="${esc(key)}">${esc(attrs[key])}</Temperature${esc(idx)}>`);}}
   return rows.length?`        <TemperatureBlock source="element-non-sentinel">\n${rows.join('\n')}\n        </TemperatureBlock>`:'';
 }
+const GLOBAL_KEYS=Object.freeze(['FROM_GLOBAL_X','FROM_GLOBAL_Y','FROM_GLOBAL_Z','TO_GLOBAL_X','TO_GLOBAL_Y','TO_GLOBAL_Z']);
+const DELTA_KEYS=Object.freeze(['DELTA_X','DELTA_Y','DELTA_Z']);
+function coordText(value){const n=Number(value);return Number.isFinite(n)?n.toFixed(3):'';}
+function hasAnyGlobal(list=[]){return list.some((attrs)=>GLOBAL_KEYS.some((key)=>attrs[key]!=null&&!isUnset(attrs[key])));}
+function hasAnyDelta(list=[]){return list.some((attrs)=>DELTA_KEYS.some((key)=>attrs[key]!=null&&!isUnset(attrs[key])));}
+// Root-cause fix: line-basis inputs carry only DELTA_* (no global coords). Reuse the existing
+// solveElementCoordinates propagator to integrate the delta chain from a seeded basis so the
+// categorized output emits DerivedCoordinateBlock per node. No-op when globals already exist.
+function solveGlobalsForElements(list=[]){
+  if(!list.length||hasAnyGlobal(list)||!hasAnyDelta(list))return null;
+  const firstFrom=normalizeNode(list[0].FROM_NODE);
+  if(!firstFrom||isUnset(firstFrom))return null;
+  const {solvedNodes}=solveElementCoordinates({elements:list,originCoordinates:[{node:firstFrom,x:0,y:0,z:0}],toleranceMm:1});
+  const map=new Map();
+  for(const [node,point] of Object.entries(solvedNodes||{}))map.set(node,point);
+  return map.size?map:null;
+}
+function withSolvedGlobals(attrs={},from='',to='',solvedNodes=null){
+  if(!solvedNodes)return attrs;
+  const out={...attrs};
+  const apply=(node,prefix)=>{
+    const point=solvedNodes.get(node);if(!point)return;
+    for(const axis of ['X','Y','Z']){const key=`${prefix}_GLOBAL_${axis}`;if(out[key]==null||isUnset(out[key]))out[key]=coordText(point[axis.toLowerCase()]);}
+    if(out.GLOBAL_COORD_BASIS_NODE==null||clean(out.GLOBAL_COORD_BASIS_NODE)===''||isUnset(out.GLOBAL_COORD_BASIS_NODE))out.GLOBAL_COORD_BASIS_NODE=clean(point.basisNode||node);
+  };
+  apply(from,'FROM');apply(to,'TO');
+  return out;
+}
 function coordinateBlockXml(attrs={},role='FROM',used=new Set()){
   const blockName=role==='TO'?'ToCoordinateBlock':'FromCoordinateBlock',rows=[];
   for(const key of BLOCK_FIELDS[blockName]||[]){if(attrs[key]!=null&&clean(attrs[key])!==''&&!isUnset(attrs[key])){used.add(key);rows.push(`          <${key}>${esc(attrs[key])}</${key}>`);}}
@@ -176,10 +206,12 @@ function nodesBlockXml({attrs={},key='',from='',to='',attachedByNode=new Map(),s
 }
 function cdata(text=''){return String(text).replaceAll(']]>',']]]]><![CDATA[>');}
 function decdata(text=''){return String(text).replaceAll(']]]]><![CDATA[>',']]>');}
-function categorizedElementXml(elementXml='',nodeBlockMap=new Map()){
+function categorizedElementXml(elementXml='',nodeBlockMap=new Map(),solvedNodes=null){
   const open=firstOpenTag(elementXml)||elementXml.match(/^<PIPINGELEMENT\b[^>]*\/>/i)?.[0]||'';
-  const attrs=attrsOf(open);
-  const key=elementKey(attrs),from=normalizeNode(attrs.FROM_NODE),to=normalizeNode(attrs.TO_NODE),line=lineId(attrs),used=new Set();
+  const rawAttrs=attrsOf(open);
+  const from=normalizeNode(rawAttrs.FROM_NODE),to=normalizeNode(rawAttrs.TO_NODE);
+  const attrs=withSolvedGlobals(rawAttrs,from,to,solvedNodes);
+  const key=elementKey(attrs),line=lineId(attrs),used=new Set();
   const children=childrenOfElement(elementXml);
   const childGroups={};for(const child of children){const group=CHILD_BLOCKS[openName(child)];if(group){childGroups[group] ||= [];childGroups[group].push(child);}}
   const sifByNode=new Map();for(const block of sifBlocksOfElement(elementXml)){const node=nodeBlockKey(block,'SIF');if(!node||isUnset(node))continue;if(!sifByNode.has(node))sifByNode.set(node,[]);sifByNode.get(node).push(block);}
@@ -203,8 +235,11 @@ function categorizedExternalBlocks(categorizedText=''){
 function originalDocument(categorizedText=''){const match=String(categorizedText).match(/<OriginalDocument>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/OriginalDocument>/i);return match?decdata(match[1]):'';}
 export function inputXmlToCategorizedInputXml(xmlText='',{sourceName='InputXML'}={}){
   const nodeBlockMap=nodeBlocks(xmlText),branchGroups=branchBlocks(xmlText),byLine=new Map(),lineAttrsByLine=new Map();
-  for(const element of splitPipingElements(xmlText)){
-    const entry=categorizedElementXml(element,nodeBlockMap);
+  const elementXmls=splitPipingElements(xmlText);
+  const elementAttrsList=elementXmls.map((element)=>attrsOf(firstOpenTag(element)||element.match(/^<PIPINGELEMENT\b[^>]*\/>/i)?.[0]||''));
+  const solvedNodes=solveGlobalsForElements(elementAttrsList);
+  for(const element of elementXmls){
+    const entry=categorizedElementXml(element,nodeBlockMap,solvedNodes);
     if(!byLine.has(entry.line))byLine.set(entry.line,[]);
     if(!lineAttrsByLine.has(entry.line))lineAttrsByLine.set(entry.line,{});
     mergeLineAttrs(lineAttrsByLine.get(entry.line),entry.attrs);
@@ -234,4 +269,4 @@ export function categorizedFileName(name='',direction='input-to-categorized'){
   const base=clean(name||'input.xml').replace(/\.(xml|txt)$/i,'');
   return direction==='categorized-to-input'?`${base}_inputxml.xml`:`${base}_categorized_enriched.xml`;
 }
-export const _test=Object.freeze({attrsOf,isUnset,activeChildBlock,activeNodeBlock,activeBranchBlock,activeSifBlock,splitPipingElements,splitLooseBlocks,nodeBlocks,branchBlocks,categorizedExternalBlocks,originalDocument,deltaLength,derivedBlockXml,lineBlockXml,lineBlocksXml,mergeLineAttrs,temperatureBlockXml,coordinateBlockXml,groupNodeBlocks,nodesBlockXml,inputXmlToCategorizedInputXml,categorizedInputXmlToInputXml,categorizedFileName});
+export const _test=Object.freeze({attrsOf,isUnset,activeChildBlock,activeNodeBlock,activeBranchBlock,activeSifBlock,splitPipingElements,splitLooseBlocks,nodeBlocks,branchBlocks,categorizedExternalBlocks,originalDocument,deltaLength,derivedBlockXml,lineBlockXml,lineBlocksXml,mergeLineAttrs,temperatureBlockXml,coordinateBlockXml,groupNodeBlocks,nodesBlockXml,inputXmlToCategorizedInputXml,categorizedInputXmlToInputXml,categorizedFileName,solveGlobalsForElements,withSolvedGlobals,hasAnyGlobal,hasAnyDelta});
