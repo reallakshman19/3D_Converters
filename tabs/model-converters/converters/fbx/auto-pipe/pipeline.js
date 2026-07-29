@@ -3,6 +3,11 @@ import { buildInternalPipeMapping } from './artifact.js';
 import { classifySelectedPipes } from './classify.js';
 import { executeInternalPipeMapping } from './executor.js';
 
+function classificationCounts(classifications) {
+  const admittedPipes = classifications.filter((item) => item.admitted).length;
+  return Object.freeze({ classifiedOccurrences: classifications.length,
+    admittedPipes, rejectedOccurrences: classifications.length - admittedPipes });
+}
 function blocked(status, classifications, error = null) {
   return Object.freeze({
     status,
@@ -11,6 +16,7 @@ function blocked(status, classifications, error = null) {
     internalPipeMappingJson: null,
     stagedJson: null,
     stagedJsonText: null,
+    counts: classificationCounts(classifications),
     error: error ? String(error?.message || error) : null,
   });
 }
@@ -31,7 +37,8 @@ function failureStatus(error) {
 
 export async function runFbxAutoPipe(input) {
   const classifications = classifySelectedPipes(input);
-  if (!classifications.length || classifications.some((item) => !item.admitted)) {
+  const admitted = classifications.filter((item) => item.admitted);
+  if (!classifications.length || !admitted.length) {
     return blocked('BLOCKED_AUTO_PIPE_CLASSIFICATION', classifications);
   }
   try {
@@ -45,7 +52,8 @@ export async function runFbxAutoPipe(input) {
     const execution = executeInternalPipeMapping(internalPipeMapping);
     return Object.freeze({
       status: 'STAGEDJSON_PASS',
-      classificationStatus: 'PIPE_INFERENCE_PASS',
+      classificationStatus: classifications.length === admitted.length
+        ? 'PIPE_INFERENCE_PASS' : 'PIPE_INFERENCE_PARTIAL_PASS',
       connectivityStatus: 'PIPE_CONNECTIVITY_PASS',
       classificationDispositions: classifications,
       internalPipeMapping,
@@ -53,7 +61,7 @@ export async function runFbxAutoPipe(input) {
       stagedJson: execution.stagedJson,
       stagedJsonText: canonicalJson(execution.stagedJson),
       counts: Object.freeze({
-        admittedPipes: internalPipeMapping.entries.length,
+        ...classificationCounts(classifications),
         links: internalPipeMapping.links.length,
         branches: execution.stagedJson.length,
       }),

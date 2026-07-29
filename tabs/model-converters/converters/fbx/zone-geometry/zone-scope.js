@@ -148,20 +148,46 @@ function sharedEvidence(population, maps) {
   });
 }
 
-export function resolveSelectedZoneScope(graph, zoneId) {
-  if (graph?.schema !== 'FbxSourceGraph.v2' || !zoneId) {
-    failZoneGeometry(ZONE_GEOMETRY_STATUS.SCOPE, 'A governed source graph and explicit zone are required.');
-  }
-  const maps = mapsFor(graph), assignment = assignedOccurrences(graph, maps);
-  const option = zoneOptions(graph, maps, assignment).find((item) => item.zoneId === zoneId);
-  if (!option) failZoneGeometry(ZONE_GEOMETRY_STATUS.SCOPE, `Unknown selected zone ${zoneId}.`);
-  const population = selectedPopulation(graph, maps, assignment, zoneId);
-  if (!population.geometryIds.length) failZoneGeometry(ZONE_GEOMETRY_STATUS.SCOPE,
-    'The selected zone contains no exact mesh topology.');
+function scopeContext(graph) {
+  const maps = mapsFor(graph);
+  const assignment = assignedOccurrences(graph, maps);
+  return { maps, assignment, options: zoneOptions(graph, maps, assignment) };
+}
+
+function scopeValue(option, population, maps) {
   return Object.freeze({
-    zoneId, zoneLabel: option.label, selectedOccurrences: population.occurrences,
+    zoneId: option.zoneId, zoneLabel: option.label,
+    selectedOccurrences: population.occurrences,
     selectedGeometryIds: population.geometryIds,
     ancestorOccurrenceIds: ancestorIds(population.occurrences, maps.occurrences),
     geometryOwnership: sharedEvidence(population, maps),
   });
+}
+
+export function listFbxZoneScopeSummaries(graph) {
+  if (graph?.schema !== 'FbxSourceGraph.v2') return [];
+  const { maps, assignment, options } = scopeContext(graph);
+  return options.filter((option) => option.zoneId !== UNOWNED_ZONE_ID).map((option) => {
+    const population = selectedPopulation(graph, maps, assignment, option.zoneId);
+    return Object.freeze({
+      zoneId: option.zoneId, label: option.label,
+      sourcePointCount: option.sourcePointCount,
+      selectedOccurrenceCount: population.occurrences.length,
+      selectedGeometryIds: Object.freeze([...population.geometryIds]),
+      selectedGeometryCount: population.geometryIds.length,
+    });
+  }).filter((item) => item.selectedGeometryCount > 0);
+}
+
+export function resolveSelectedZoneScope(graph, zoneId) {
+  if (graph?.schema !== 'FbxSourceGraph.v2' || !zoneId) {
+    failZoneGeometry(ZONE_GEOMETRY_STATUS.SCOPE, 'A governed source graph and explicit zone are required.');
+  }
+  const { maps, assignment, options } = scopeContext(graph);
+  const option = options.find((item) => item.zoneId === zoneId);
+  if (!option) failZoneGeometry(ZONE_GEOMETRY_STATUS.SCOPE, `Unknown selected zone ${zoneId}.`);
+  const population = selectedPopulation(graph, maps, assignment, zoneId);
+  if (!population.geometryIds.length) failZoneGeometry(ZONE_GEOMETRY_STATUS.SCOPE,
+    'The selected zone contains no exact mesh topology.');
+  return scopeValue(option, population, maps);
 }

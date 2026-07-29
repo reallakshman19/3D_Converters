@@ -20,6 +20,7 @@ const EXPECTED_STAGES = Object.freeze([
   'preflight', 'loading-wasm', 'copying-input', 'parsing-fbx',
   'decoding-result', 'enforcing-source-policy', 'preparing-transfer',
 ]);
+const MAX_ZONE_ATTEMPTS = 1;
 const root = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const sourcePath = path.resolve(process.argv[2] || '');
 
@@ -50,8 +51,12 @@ const harness = `<!doctype html>
 <script type="module">
 import { parseFbxInWorker } from '/tabs/model-converters/converters/fbx/parser-client.js';
 import { parseFbxGeometryBundleInWorker } from '/tabs/model-converters/converters/fbx/geometry-transport.js';
+import {
+  rankFbxAutoPipeZones, runFbxSelectedZoneAutoPipe,
+} from '/tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js';
 const sourceStages = [];
 const geometryStages = [];
+const attemptedLabels = [];
 const started = performance.now();
 try {
   const response = await fetch('/__taya_source.fbx', { cache: 'no-store' });
@@ -62,6 +67,9 @@ try {
     onProgress: (stage) => sourceStages.push(stage),
   });
   const sourceElapsedMs = Math.round(performance.now() - started);
+  const selectionStarted = performance.now();
+  const candidates = rankFbxAutoPipeZones(graph);
+  const selectionElapsedMs = Math.round(performance.now() - selectionStarted);
   const geometryStarted = performance.now();
   const geometryBundle = await parseFbxGeometryBundleInWorker(bytes, {
     timeoutMs: 600000,
@@ -70,6 +78,15 @@ try {
   const geometryBufferBytes = geometryBundle.buffers.reduce(
     (total, item) => total + item.bytes.byteLength, 0,
   );
+  const geometryElapsedMs = Math.round(performance.now() - geometryStarted);
+  const selectedStarted = performance.now();
+  const selectedResult = await runFbxSelectedZoneAutoPipe({
+    sourceGraph: graph, geometryBundle, selections: candidates,
+    options: { maxAttempts: ${MAX_ZONE_ATTEMPTS} },
+    onAttempt: (candidate) => attemptedLabels.push(candidate.label),
+  });
+  const selectedElapsedMs = Math.round(performance.now() - selectedStarted);
+  const analysis = selectedResult.selectedZoneAnalysis;
   window.__TAYA_RESULT__ = {
     ok: true,
     schema: graph.schema,
@@ -78,12 +95,40 @@ try {
     geometries: graph.geometries.length,
     sourceStages,
     sourceElapsedMs,
+    rankedCandidate: candidates[0],
+    selectionElapsedMs,
     geometrySchema: geometryBundle.manifest.schema,
     topologyGeometries: geometryBundle.manifest.geometries.length,
     geometryBuffers: geometryBundle.buffers.length,
     geometryBufferBytes,
     geometryStages,
-    geometryElapsedMs: Math.round(performance.now() - geometryStarted),
+    geometryElapsedMs,
+    selectedZone: selectedResult.selectedZone,
+    attemptedLabels,
+    selectedStatus: selectedResult.conversionStatus,
+    selectedCounts: selectedResult.counts,
+    selectedReports: selectedResult.zoneReports,
+    selectedBlockingReasons: selectedResult.blockingReasons,
+    selectedAnalysis: analysis ? {
+      zoneGeometrySchema: analysis.zoneGeometryEvidence?.schema || null,
+      derivedPortSchema: analysis.derivedPortEvidence?.schema || null,
+      geometryManifestSchema: analysis.zonePackageManifest?.schema || null,
+      selectedOccurrences: analysis.counts?.selectedOccurrences || 0,
+      selectedGeometries: analysis.counts?.selectedGeometries || 0,
+      admittedLoops: analysis.counts?.admittedLoops || 0,
+      rejectedLoops: analysis.counts?.rejectedLoops || 0,
+      admittedPipes: analysis.counts?.admittedPipes || 0,
+      autoPipeStatus: analysis.autoPipeStatus,
+      autoPipeCounts: analysis.autoPipeCounts,
+      classificationStatus: analysis.classificationStatus,
+      classificationFailureReasons: analysis.classificationDispositions.reduce(
+        (result, item) => {
+          const key = item.admitted ? 'ADMITTED' : (item.reason || 'UNKNOWN');
+          result[key] = (result[key] || 0) + 1;
+          return result;
+        }, {}),
+    } : null,
+    selectedElapsedMs,
     elapsedMs: Math.round(performance.now() - started),
     mainHeapBytes: performance.memory?.usedJSHeapSize ?? null,
   };
@@ -98,6 +143,7 @@ try {
     progressStages: error?.progressStages || null,
     sourceStages,
     geometryStages,
+    attemptedLabels,
     elapsedMs: Math.round(performance.now() - started),
     mainHeapBytes: performance.memory?.usedJSHeapSize ?? null,
   };
@@ -209,6 +255,23 @@ try {
   assert(result.geometryBufferBytes > 0, 'geometry buffer payload is empty');
   assert.deepEqual(result.sourceStages, EXPECTED_STAGES);
   assert.deepEqual(result.geometryStages, EXPECTED_STAGES);
+  assert.equal(result.selectedStatus, 'SELECTED_ZONE_EVIDENCE_PASS');
+  assert.match(result.selectedZone.label, /-FL-/,
+    `automatic selection did not choose a flowline zone: ${result.selectedZone.label}`);
+  assert.equal(result.selectedZone.policy, 'FbxSelectedZoneAutoPipePolicy.v1');
+  assert(result.selectedZone.selectedGeometryCount > 0, 'selected zone has no mesh geometry');
+  assert(result.selectedZone.selectedGeometryCount <= 2000, 'selected zone exceeds geometry ceiling');
+  assert.equal(result.selectedCounts.attemptedZones, 1,
+    'browser conversion must process exactly one selected zone');
+  assert.equal(result.selectedCounts.evidenceZones, 1);
+  assert.equal(result.attemptedLabels.length, 1);
+  assert.equal(result.selectedAnalysis.zoneGeometrySchema, 'FbxZoneGeometryEvidence.v1');
+  assert.equal(result.selectedAnalysis.derivedPortSchema, 'FbxDerivedPortEvidence.v1');
+  assert.equal(result.selectedAnalysis.geometryManifestSchema,
+    'FbxSelectedZoneGeometryManifest.v1');
+  assert(result.selectedAnalysis.selectedGeometries > 0);
+  assert(result.selectedElapsedMs < 180000,
+    `selected-zone evidence exceeded three minutes: ${result.selectedElapsedMs}`);
 } finally {
   await browser?.close();
   await new Promise((resolve) => server.close(resolve));
