@@ -1,5 +1,4 @@
-import { canonicalJson, deepFreeze } from '../canonical-json.js';
-import { sha256Hex } from '../sha256.js';
+import { deepFreeze } from '../canonical-json.js';
 
 const SOURCE_GRAPH_SCHEMA = 'FbxSourceGraph.v2';
 const ZONE_EVIDENCE_SCHEMA = 'FbxZoneGeometryEvidence.v1';
@@ -102,7 +101,9 @@ export function inventorySelectedSourceOccurrences({ sourceGraph, zoneGeometryEv
 
 function branchIdentity(branch, branchIndex) {
   const attributes = attributesOf(branch);
-  return text(attributes.REF ?? branch.id ?? branch.name) ?? `branch-index:${branchIndex}`;
+  const identity = text(attributes.REF ?? branch.id ?? branch.name);
+  if (!identity) fail(`branch ${branchIndex} explicit identity is required.`);
+  return identity;
 }
 
 function rawTypeOf(record) {
@@ -121,15 +122,14 @@ function generationEvidence(attributes) {
     : { generated: false, generationMethod: null };
 }
 
-async function managedRecordId(branchId, child, childIndex) {
+function managedRecordId(branchId, child, childIndex) {
   const attributes = attributesOf(child);
-  const explicit = text(attributes.REF ?? child.id ?? attributes.mappingEntryId ?? child.name);
-  if (explicit) return `${branchId}::${explicit}`;
-  const digest = await sha256Hex(canonicalJson({ branchId, child }));
-  return `${branchId}::anonymous-${digest.slice(0, 24)}-${childIndex + 1}`;
+  const identity = text(attributes.REF ?? child.id ?? attributes.mappingEntryId ?? child.name);
+  if (!identity) fail(`${branchId} child ${childIndex} explicit identity is required.`);
+  return `${branchId}::${identity}`;
 }
 
-async function managedRecord(branch, branchIndex, child, childIndex) {
+function managedRecord(branch, branchIndex, child, childIndex) {
   const attributes = attributesOf(child);
   const branchId = branchIdentity(branch, branchIndex);
   const sourceOccurrenceId = explicitValue(attributes, [
@@ -140,7 +140,7 @@ async function managedRecord(branch, branchIndex, child, childIndex) {
     fail(`generated record ${branchId} cannot claim source occurrence ${sourceOccurrenceId}.`);
   }
   return {
-    managedRecordId: await managedRecordId(branchId, child, childIndex),
+    managedRecordId: managedRecordId(branchId, child, childIndex),
     branchId,
     outerType: upper(child?.type) ?? 'UNKNOWN',
     rawType: rawTypeOf(child),
@@ -157,7 +157,7 @@ async function managedRecord(branch, branchIndex, child, childIndex) {
   };
 }
 
-export async function inventoryManagedComponents(stagedBranches) {
+export function inventoryManagedComponents(stagedBranches) {
   if (!Array.isArray(stagedBranches)) fail('stagedBranches root must be an array.');
   const pending = [];
   stagedBranches.forEach((branch, branchIndex) => {
@@ -166,7 +166,7 @@ export async function inventoryManagedComponents(stagedBranches) {
       if (!isSupport(child)) pending.push(managedRecord(branch, branchIndex, child, childIndex));
     });
   });
-  const records = await Promise.all(pending);
+  const records = pending;
   const ids = new Set(records.map((record) => record.managedRecordId));
   if (ids.size !== records.length) fail('managed component identities are not unique.');
   return deepFreeze(records.sort((left, right) => compareText(left.managedRecordId, right.managedRecordId)));
