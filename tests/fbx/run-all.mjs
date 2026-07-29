@@ -24,6 +24,7 @@ const tests = [
   'test-internal-pipe-mapping-cap-ring-contract.mjs',
   'test-solid-fitting-port-static-guards.mjs',
   'test-fbx-preview-zone-selector-static.mjs',
+  'test-fbx2-runtime-cache-chain.mjs',
   'test-fbx-preview-zone-recommendation.mjs',
   'test-zone-package-core.mjs',
   'test-zone-package-contracts.mjs',

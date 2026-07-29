@@ -2,13 +2,13 @@ import { compareDecimalId, compareOccurrenceId, compareText } from '../zone-geom
 import { artifactWithId } from '../zone-geometry/identity.js';
 import { decodeExactPolygonTopology } from '../zone-geometry/polygon-topology.js';
 import { deriveConnectedShells } from '../zone-geometry/shells.js';
-import { buildSolidFittingAnalysisTopology } from './analysis-topology.js';
+import { buildSolidFittingAnalysisTopology } from './analysis-topology.js?v=20260729-fbx2-direct-pipe-1';
 import { deriveCapRegions } from './cap-clustering.js';
-import { evaluateCapRegions } from './candidate-evaluation.js';
-import { FBX_SOLID_FITTING_PORT_SCHEMA, SOLID_FITTING_REJECTION_REASON_ORDER } from './constants.js';
+import { evaluateCapRegions } from './candidate-evaluation.js?v=20260729-fbx2-direct-pipe-1';
+import { FBX_SOLID_FITTING_PORT_SCHEMA, SOLID_FITTING_REJECTION_REASON_ORDER } from './constants.js?v=20260729-fbx2-direct-pipe-1';
 import { classifyPortTopology } from './port-topology-disposition.js';
-import { SOLID_FITTING_PORT_PROFILE } from './profile.js';
-import { bridgeDetachedTerminalCap } from './terminal-cap-bridge.js';
+import { SOLID_FITTING_PORT_PROFILE } from './profile.js?v=20260729-fbx2-direct-pipe-1';
+import { bridgeDetachedTerminalCap } from './terminal-cap-bridge.js?v=20260729-fbx2-direct-pipe-1';
 import { projectFaceFeatures } from './topology-projection.js';
 
 function reasonRank(value) {

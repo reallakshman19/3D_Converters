@@ -1,7 +1,7 @@
 import { assignRoles, radiusMatches } from '../auto-pipe/pipe-admission-gates.js';
 import { AUTO_PIPE_PROFILE } from '../auto-pipe/profile.js';
-import { PORT_TOPOLOGY_DISPOSITION } from './constants.js';
-import { closedSolidSidewallResiduals } from './sidewall-residual.js';
+import { PORT_TOPOLOGY_DISPOSITION } from './constants.js?v=20260729-fbx2-direct-pipe-1';
+import { closedSolidSidewallResiduals } from './sidewall-residual.js?v=20260729-fbx2-direct-pipe-1';
 
 function fail(occurrence, record, reason) {
   return Object.freeze({

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../../', import.meta.url);
+const releaseKey = '20260729-fbx2-direct-pipe-1';
 const files = {
   constants: 'tabs/model-converters/converters/fbx/solid-fitting-ports/constants.js',
   profile: 'tabs/model-converters/converters/fbx/solid-fitting-ports/profile.js',
@@ -30,15 +31,20 @@ for (const key of Object.keys(files)) {
   assert.doesNotMatch(text[key], /export\s+default|Math\.random|Date\.now|localeCompare|https?:\/\/(?:unpkg|cdn|jsdelivr)/i);
 }
 
+function requires(key, fragment) {
+  assert.equal(text[key].includes(fragment), true, `${files[key]} lacks ${fragment}`);
+}
+
 // Both inference routes share deterministic role and radius gates. Closed solids
 // use a dedicated sidewall residual because cap-centre vertices are not sidewall evidence.
-assert.match(text.classifier, /from '\.\.\/auto-pipe\/pipe-admission-gates\.js'/);
-assert.match(text.classifier, /from '\.\/sidewall-residual\.js'/);
+requires('classifier', "from '../auto-pipe/pipe-admission-gates.js'");
+requires('classifier', `from './sidewall-residual.js?v=${releaseKey}'`);
 assert.doesNotMatch(text.classifier, /function\s+assignRoles|function\s+radiusMatches|function\s+cylinderResiduals/);
 assert.match(text.sidewallResidual, /decodeExactPolygonTopology/);
 assert.match(text.sidewallResidual, /transformPoint/);
+requires('sidewallResidual', `from '../transform-policy.js?v=${releaseKey}'`);
 assert.doesNotMatch(text.sidewallResidual, /Math\.random|Date\.now|localeCompare/);
-assert.match(text.classify, /from '\.\/pipe-admission-gates\.js'/);
+requires('classify', "from './pipe-admission-gates.js'");
 assert.doesNotMatch(text.classify, /function\s+assignRoles|function\s+cylinderResiduals/);
 
 // Source topology remains immutable. Recovery is an evidenced analysis projection
@@ -59,20 +65,20 @@ assert.match(text.terminalCapBridge, /pairedVertexCount/);
 
 // Open-boundary admission retains priority. Closed-solid fallback is limited to
 // boundary absence or a shell mismatch demonstrably repaired by governed evidence.
-assert.match(text.classify, /from '\.\.\/solid-fitting-ports\/classifier\.js'/);
+requires('classify', `from '../solid-fitting-ports/classifier.js?v=${releaseKey}'`);
 assert.match(text.classify, /reason === 'BOUNDARY_COUNT'/);
 assert.match(text.classify, /reason === 'SHELL_COUNT'/);
 assert.match(text.classify, /repairedShellEvidence/);
 assert.match(text.classify, /POSITION_WELD_AND_FACE_DEDUP_V1/);
 assert.match(text.classify, /DETACHED_CAP_RING_BRIDGE_V1/);
 
-// Selected-zone analysis builds closed-solid evidence alongside derived-port evidence.
-assert.match(text.analyseZone, /from '\.\.\/solid-fitting-ports\/evidence\.js'/);
+// Selected-zone analysis builds versioned closed-solid evidence alongside derived-port evidence.
+requires('analyseZone', `from '../solid-fitting-ports/evidence.js?v=${releaseKey}'`);
 assert.match(text.analyseZone, /closedSolidPipeEvidence/);
 
-// Cap circles reuse the deterministic circle-fit and world-transform primitives.
-assert.match(text.candidateEvaluation, /from '\.\.\/zone-geometry\/circle-fit\.js'/);
-assert.match(text.candidateEvaluation, /from '\.\.\/zone-geometry\/occurrence-transform\.js'/);
+// Cap circles reuse the deterministic circle-fit and versioned world-transform primitives.
+requires('candidateEvaluation', "from '../zone-geometry/circle-fit.js'");
+requires('candidateEvaluation', `from '../zone-geometry/occurrence-transform.js?v=${releaseKey}'`);
 assert.doesNotMatch(text.candidateEvaluation, /rotateJacobi/);
 
 const expectedOrder = [
@@ -82,7 +88,7 @@ const expectedOrder = [
   'test-solid-fitting-port-evidence-contract.mjs',
   'test-auto-pipe-router-priority.mjs', 'test-auto-pipe-closed-solid-router.mjs',
   'test-internal-pipe-mapping-cap-ring-contract.mjs',
-  'test-solid-fitting-port-static-guards.mjs',
+  'test-solid-fitting-port-static-guards.mjs', 'test-fbx2-runtime-cache-chain.mjs',
 ];
 let previous = -1;
 for (const name of expectedOrder) {

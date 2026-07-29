@@ -1,6 +1,6 @@
-import { runFbxAutoPipe } from '../auto-pipe/pipeline.js';
+import { runFbxAutoPipe } from '../auto-pipe/pipeline.js?v=20260729-fbx2-direct-pipe-1';
 import { canonicalJson } from '../canonical-json.js';
-import { buildSolidFittingPortEvidence } from '../solid-fitting-ports/evidence.js';
+import { buildSolidFittingPortEvidence } from '../solid-fitting-ports/evidence.js?v=20260729-fbx2-direct-pipe-1';
 import { buildLiveZonePackageInputs } from '../zone-package/live-input.js';
 import { buildDerivedPortEvidence } from './derived-ports.js';
 import { asZoneGeometryError } from './errors.js';

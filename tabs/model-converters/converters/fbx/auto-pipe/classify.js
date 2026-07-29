@@ -3,7 +3,7 @@ import {
   assignRoles, cylinderResiduals, radiusMatches, worldControlPoints,
 } from './pipe-admission-gates.js';
 import { AUTO_PIPE_PROFILE } from './profile.js';
-import { classifySolidFittingPipeOccurrence } from '../solid-fitting-ports/classifier.js';
+import { classifySolidFittingPipeOccurrence } from '../solid-fitting-ports/classifier.js?v=20260729-fbx2-direct-pipe-1';
 
 function fail(occurrence, reason, detail) {
   return Object.freeze({

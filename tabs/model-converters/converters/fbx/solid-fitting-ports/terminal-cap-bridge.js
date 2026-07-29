@@ -1,7 +1,7 @@
 import { scaledTolerance } from '../auto-pipe/profile.js';
 import { deriveBoundaryLoops } from '../zone-geometry/boundary-loops.js';
 import { fitBoundaryCircleLocal } from '../zone-geometry/circle-fit.js';
-import { buildSolidFittingAnalysisTopology } from './analysis-topology.js';
+import { buildSolidFittingAnalysisTopology } from './analysis-topology.js?v=20260729-fbx2-direct-pipe-1';
 
 function subtract(left, right) {
   return [left[0] - right[0], left[1] - right[1], left[2] - right[2]];

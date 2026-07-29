@@ -3,4 +3,4 @@ import { installAppTabClickStateBridge } from './app-tab-click-state-bridge.js?v
 
 installAppTabClickStateBridge();
 
-export { init, destroy } from './app-standalone-runtime.js?v=20260729-fbx-preview-auto-zone-1';
+export { init, destroy } from './app-standalone-runtime.js?v=20260729-fbx2-direct-pipe-1';

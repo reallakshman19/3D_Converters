@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260729-fbx-preview-auto-zone-1');
+  const module = await import('./core/app.js?v=20260729-fbx2-direct-pipe-1');
   await module.init(startupMount());
 }
 

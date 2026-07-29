@@ -1,4 +1,4 @@
-import { transformPoint, validateOccurrenceTransform } from '../transform-policy.js';
+import { transformPoint, validateOccurrenceTransform } from '../transform-policy.js?v=20260729-fbx2-direct-pipe-1';
 import { FBX_DERIVED_PORT_TOLERANCE_PROFILE } from './constants.js';
 import { normalizedNumber } from './compare.js';
 import { windingNormalForPoints } from './circle-fit.js';

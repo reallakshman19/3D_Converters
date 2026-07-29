@@ -1,5 +1,5 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260724-fbx-json-no-mapping-1';
+import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260729-fbx2-direct-pipe-1';
 import { canonicalJson } from './converters/fbx/canonical-json.js';
 import { buildMappingWorklist } from './converters/fbx/mapping-worklist.js';
 import { buildReviewBundle } from './converters/fbx/mapping-review-bundle.js';

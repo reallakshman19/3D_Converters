@@ -5,7 +5,7 @@ import { parseFbxGeometryBundleInWorker } from './fbx/geometry-transport.js';
 import {
   BLOCKED_SELECTED_ZONE_AUTO_PIPE, SELECTED_ZONE_EVIDENCE_PASS,
   STAGEDJSON_SELECTED_ZONE_PASS, rankFbxAutoPipeZones, runFbxSelectedZoneAutoPipe,
-} from './fbx/zone-geometry/selected-zone-auto-pipe.js';
+} from './fbx/zone-geometry/selected-zone-auto-pipe.js?v=20260729-fbx2-direct-pipe-1';
 import { loadBrowserParserEvidence } from './fbx/parser-provenance.js';
 
 const SOURCE_GRAPH_JSON_PASS = 'SOURCE_GRAPH_JSON_PASS';
