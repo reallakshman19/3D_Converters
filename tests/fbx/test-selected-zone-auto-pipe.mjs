@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   BLOCKED_SELECTED_ZONE_AUTO_PIPE,
   STAGEDJSON_SELECTED_ZONE_PASS,
+  rankFbxAutoPipeZones,
   runFbxSelectedZoneAutoPipe,
   selectFbxAutoPipeZone,
 } from '../../tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js';
@@ -20,6 +21,13 @@ function box(length, width, height) {
     [0,0,0], [length,0,0], [0,width,0], [length,width,0],
     [0,0,height], [length,0,height], [0,width,height], [length,width,height],
   ];
+}
+function passingAnalysis() {
+  return { autoPipe: { status: 'STAGEDJSON_PASS', error: null,
+    stagedJsonText: JSON.stringify([{ type: 'BRANCH', id: 'B-1', name: 'Branch',
+      attributes: { REF: 'B-1' }, children: [{ type: 'PIPE', id: 'P-1',
+        attributes: { REF: 'P-1' }, children: [] }] }]) },
+  counts: { admittedPipes: 1 } };
 }
 const graph = {
   schema: 'FbxSourceGraph.v2',
@@ -45,7 +53,10 @@ const graph = {
 };
 
 {
-  const selected = selectFbxAutoPipeZone(graph);
+  const ranked = rankFbxAutoPipeZones(graph);
+  assert.equal(ranked.length, 2);
+  assert.deepEqual(ranked.map((item) => item.rank), [1, 2]);
+  const selected = ranked[0];
   assert.equal(selected.zoneId, 'occ:3');
   assert.equal(selected.label, 'Piping Zone');
   assert.equal(selected.selectedGeometryCount, 1);
@@ -72,14 +83,10 @@ const graph = {
       calls += 1;
       assert.equal(zoneId, selection.zoneId);
       assert.equal(includeZonePackageInputs, false);
-      return { autoPipe: { status: 'STAGEDJSON_PASS', error: null,
-        stagedJsonText: JSON.stringify([{ type: 'BRANCH', id: 'B-1', name: 'Branch',
-          attributes: { REF: 'B-1' }, children: [{ type: 'PIPE', id: 'P-1',
-            attributes: { REF: 'P-1' }, children: [] }] }]) },
-      counts: { admittedPipes: 1 } };
+      return passingAnalysis();
     },
   });
-  assert.equal(calls, 1, 'selected-zone mode must analyse exactly one zone');
+  assert.equal(calls, 1, 'explicit selected-zone mode must analyse exactly one zone');
   assert.equal(result.conversionStatus, STAGEDJSON_SELECTED_ZONE_PASS);
   assert.equal(result.counts.attemptedZones, 1);
   assert.equal(result.counts.passedZones, 1);
@@ -88,17 +95,39 @@ const graph = {
   assert.equal(output[0].attributes.sourceZoneId, selection.zoneId);
 }
 {
-  const selection = selectFbxAutoPipeZone(graph);
+  const calls = [];
+  const candidates = rankFbxAutoPipeZones(graph);
   const result = await runFbxSelectedZoneAutoPipe({
-    sourceGraph: graph, geometryBundle: {}, selection,
-    analyse: async () => ({ autoPipe: {
-      status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION', error: null,
-    }, counts: { admittedPipes: 0 } }),
+    sourceGraph: graph, geometryBundle: {}, selections: candidates,
+    options: { maxAttempts: 2 },
+    analyse: async ({ zoneId }) => {
+      calls.push(zoneId);
+      return calls.length === 1 ? { autoPipe: {
+        status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION', error: null,
+      }, counts: { admittedPipes: 0 } } : passingAnalysis();
+    },
   });
+  assert.deepEqual(calls, candidates.map((item) => item.zoneId),
+    'ranked qualification must run one zone at a time in deterministic order');
+  assert.equal(result.conversionStatus, STAGEDJSON_SELECTED_ZONE_PASS);
+  assert.equal(result.selectedZone.zoneId, candidates[1].zoneId);
+  assert.equal(result.counts.attemptedZones, 2);
+  assert.deepEqual(result.zoneReports.map((item) => item.status),
+    ['BLOCKED_AUTO_PIPE_CLASSIFICATION', 'STAGEDJSON_PASS']);
+}
+{
+  let calls = 0;
+  const result = await runFbxSelectedZoneAutoPipe({
+    sourceGraph: graph, geometryBundle: {}, options: { maxAttempts: 1 },
+    analyse: async () => { calls += 1; return { autoPipe: {
+      status: 'BLOCKED_AUTO_PIPE_CLASSIFICATION', error: null,
+    }, counts: { admittedPipes: 0 } }; },
+  });
+  assert.equal(calls, 1, 'hard attempt cap must prevent whole-model analysis');
   assert.equal(result.conversionStatus, BLOCKED_SELECTED_ZONE_AUTO_PIPE);
   assert.equal(result.counts.attemptedZones, 1);
   assert.equal(result.counts.blockedZones, 1);
-  assert.equal(result.zoneReports.length, 1);
+  assert.match(result.blockingReasons[0], /ATTEMPT_LIMIT:1/);
 }
 {
   assert.throws(() => selectFbxAutoPipeZone({
