@@ -1,0 +1,148 @@
+name: FBX Preview Shell Pages Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fbx-preview-shell-pages-smoke.yml'
+      - 'index.html'
+      - 'main-rhbg-fitguard.js'
+      - 'core/app.js'
+      - 'core/app-standalone-runtime.js'
+      - 'tabs/model-converters-tab.js'
+      - 'tabs/model-converters/index.js'
+      - 'tabs/model-converters/ModelConvertersTab.js'
+      - 'tabs/model-converters/fbx-preview-zone-selector.js'
+      - 'tabs/model-converters/fbx-preview-zone-recommendation.js'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fbx-preview-shell-pages-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify-preview-shell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PAGES_ROOT: https://reallaksh19.github.io/3D_Converters
+      CACHE_KEY: 20260729-fbx-preview-auto-zone-1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Poll deployed preview shell chain
+        run: |
+          set -euo pipefail
+          files=(
+            index.html
+            main-rhbg-fitguard.js
+            core/app.js
+            core/app-standalone-runtime.js
+            tabs/model-converters-tab.js
+            tabs/model-converters/index.js
+            tabs/model-converters/ModelConvertersTab.js
+            tabs/model-converters/fbx-preview-zone-selector.js
+            tabs/model-converters/fbx-preview-zone-recommendation.js
+          )
+          rm -rf .pages-preview-shell
+          mkdir -p .pages-preview-shell evidence
+          matched=false
+          matched_attempt=0
+          for attempt in $(seq 1 60); do
+            cache_bust="commit=${GITHUB_SHA}&attempt=${attempt}"
+            download_ok=true
+            for file in "${files[@]}"; do
+              output=".pages-preview-shell/${file//\//__}"
+              if ! curl --fail --location --silent --show-error \
+                  --header 'Cache-Control: no-cache' \
+                  "$PAGES_ROOT/$file?$cache_bust" --output "$output"; then
+                download_ok=false
+                break
+              fi
+            done
+            if [[ "$download_ok" == true ]]; then
+              matched=true
+              for file in "${files[@]}"; do
+                output=".pages-preview-shell/${file//\//__}"
+                expected="$(sha256sum "$file" | cut -d' ' -f1)"
+                deployed="$(sha256sum "$output" | cut -d' ' -f1)"
+                if [[ "$expected" != "$deployed" ]]; then
+                  matched=false
+                  printf 'attempt=%s file=%s expected=%s deployed=%s\n' \
+                    "$attempt" "$file" "$expected" "$deployed"
+                fi
+              done
+            fi
+            if [[ "$matched" == true ]]; then
+              matched_attempt="$attempt"
+              break
+            fi
+            sleep 10
+          done
+          if [[ "$matched" != true ]]; then
+            echo 'GitHub Pages did not converge to the FBX preview shell chain.' >&2
+            exit 1
+          fi
+
+          grep -F "main-rhbg-fitguard.js?v=$CACHE_KEY" .pages-preview-shell/index.html
+          grep -F "core/app.js?v=$CACHE_KEY" .pages-preview-shell/main-rhbg-fitguard.js
+          grep -F "app-standalone-runtime.js?v=$CACHE_KEY" .pages-preview-shell/core__app.js
+          grep -F "model-converters-tab.js?v=$CACHE_KEY" .pages-preview-shell/core__app-standalone-runtime.js
+          grep -F "model-converters/index.js?v=$CACHE_KEY" .pages-preview-shell/tabs__model-converters-tab.js
+          grep -F "ModelConvertersTab.js?v=$CACHE_KEY" .pages-preview-shell/tabs__model-converters__index.js
+          grep -F "fbx-preview-zone-selector.js?v=$CACHE_KEY" .pages-preview-shell/tabs__model-converters__ModelConvertersTab.js
+          grep -F 'Auto-selected governed zone:' .pages-preview-shell/tabs__model-converters__fbx-preview-zone-selector.js
+          grep -F 'selected-zone-classification-report' .pages-preview-shell/tabs__model-converters__fbx-preview-zone-recommendation.js
+
+          index_sha="$(sha256sum index.html | cut -d' ' -f1)"
+          shell_sha="$(sha256sum core/app-standalone-runtime.js | cut -d' ' -f1)"
+          selector_sha="$(sha256sum tabs/model-converters/fbx-preview-zone-selector.js | cut -d' ' -f1)"
+          recommendation_sha="$(sha256sum tabs/model-converters/fbx-preview-zone-recommendation.js | cut -d' ' -f1)"
+          verified_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          jq -n \
+            --arg schema 'FbxPagesPreviewShellDeploymentEvidence.v1' \
+            --arg repositoryCommit "$GITHUB_SHA" \
+            --arg pagesRoot "$PAGES_ROOT" \
+            --arg cacheKey "$CACHE_KEY" \
+            --arg indexSha256 "$index_sha" \
+            --arg appShellSha256 "$shell_sha" \
+            --arg previewSelectorSha256 "$selector_sha" \
+            --arg previewRecommendationSha256 "$recommendation_sha" \
+            --arg previewAutoSelection 'governed-selected-zone-once' \
+            --argjson convergenceAttempt "$matched_attempt" \
+            --arg verifiedAt "$verified_at" \
+            '{schema:$schema,repositoryCommit:$repositoryCommit,pagesRoot:$pagesRoot,
+              cacheKey:$cacheKey,indexSha256:$indexSha256,appShellSha256:$appShellSha256,
+              previewSelectorSha256:$previewSelectorSha256,
+              previewRecommendationSha256:$previewRecommendationSha256,
+              previewAutoSelection:$previewAutoSelection,
+              convergenceAttempt:$convergenceAttempt,verifiedAt:$verifiedAt}' \
+            > evidence/fbx-pages-preview-shell-deployment.json
+
+          {
+            echo '### FBX preview shell deployment'
+            echo
+            echo "- repository commit: \`${GITHUB_SHA}\`"
+            echo "- cache key: \`${CACHE_KEY}\`"
+            echo "- convergence attempt: \`${matched_attempt}\`"
+            echo '- preview auto-selection: `governed-selected-zone-once`'
+            echo '- complete import chain: matched'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit deployment evidence
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/fbx-pages-preview-shell-deployment.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'evidence(fbx): record deployed preview shell chain'
+            git push origin HEAD:main
+          fi
