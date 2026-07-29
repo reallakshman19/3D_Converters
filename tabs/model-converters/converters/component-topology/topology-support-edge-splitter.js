@@ -6,7 +6,7 @@
  */
 
 import { pointSegmentDistance } from './topology-geometry-distance.js';
-import { pointDistance, uniqueText } from './topology-values.js';
+import { pointDistance, strictPoint, uniqueText } from './topology-values.js';
 
 /** @param {{x:number,y:number,z:number}|null} point @returns {string} */
 function pointText(point) {
@@ -17,6 +17,19 @@ function pointText(point) {
 /** @param {number|undefined} value @returns {string} */
 function distanceText(value) {
   return Number.isFinite(value) ? Number(value).toFixed(3) : 'unbounded';
+}
+
+/** @param {Record<string, unknown>} support @returns {void} */
+function applySupportPositionEvidence(support) {
+  const attributes = support.component?.attributes;
+  if (!attributes || !Object.hasOwn(attributes, 'TOPOLOGY_SOURCE_POSITION')) return;
+  const sourcePosition = strictPoint(attributes.TOPOLOGY_SOURCE_POSITION);
+  if (!sourcePosition) {
+    throw new TypeError(`Support ${support.tag || support.id} has invalid TOPOLOGY_SOURCE_POSITION evidence.`);
+  }
+  support.sourcePosition = sourcePosition;
+  support.positionAuthority = 'ATTRIBUTE:TOPOLOGY_SOURCE_POSITION';
+  support.topologyPositionOverride = true;
 }
 
 /** @param {Record<string, unknown>[]} edgeSpecs @param {Record<string, unknown>} support @param {'owning'|'referenced'|'all'} scope @returns {Record<string, unknown>[]} */
@@ -47,6 +60,21 @@ function supportProjectionError(support, owning, global, toleranceMm) {
   );
 }
 
+/** @param {Record<string, unknown>} support @param {Record<string, unknown>} match @param {number} toleranceMm @returns {Record<string, unknown>|null} */
+function editedTopologyPosition(support, match, toleranceMm) {
+  if (support.topologyPositionOverride !== true) return null;
+  const projection = pointSegmentDistance(support.position, match.edge.fromPort.position, match.edge.toPort.position);
+  if (projection.distanceMm > toleranceMm) {
+    throw new Error(
+      `Support ${support.tag || support.id} edited topology position is ${distanceText(projection.distanceMm)} mm from `
+      + `carrier ${match.edge.sourcePath}; limit is ${distanceText(toleranceMm)} mm. `
+      + `[TOPOLOGY_EDITED_SUPPORT_POSITION_OFF_CARRIER] position=${pointText(support.position)}; `
+      + `nearest=${pointText(projection.projected)}.`,
+    );
+  }
+  return projection;
+}
+
 /** @param {Record<string, unknown>} support @returns {Error} */
 function unresolvedReferenceError(support) {
   return new Error(
@@ -55,16 +83,17 @@ function unresolvedReferenceError(support) {
   );
 }
 
-/** @param {Record<string, unknown>} support @param {Record<string, unknown>} match @param {string} authority @returns {void} */
-function acceptMatch(support, match, authority) {
+/** @param {Record<string, unknown>} support @param {Record<string, unknown>} match @param {string} authority @param {number} toleranceMm @returns {void} */
+function acceptMatch(support, match, authority, toleranceMm) {
+  const topologyProjection = editedTopologyPosition(support, match, toleranceMm);
   support.connectionResidual = match.distanceMm;
-  support.edgeParameter = match.parameter;
+  support.edgeParameter = topologyProjection?.parameter ?? match.parameter;
   support.attachmentPosition = match.projected;
   support.attachmentAuthority = authority;
   support.attachmentEdgeSourcePath = match.edge.sourcePath;
   support.attachmentPort = {
     ...support.port,
-    position: match.projected,
+    position: topologyProjection ? { ...support.position } : match.projected,
     sourcePath: `${support.port.sourcePath}:PROJECTED_ATTACHMENT`,
     canonicalPositionAuthority: true,
     attachmentAuthority: authority,
@@ -76,6 +105,7 @@ function acceptMatch(support, match, authority) {
 function matchSupportsToEdges(edgeSpecs, supports, toleranceMm) {
   const matches = new Map();
   for (const support of supports) {
+    applySupportPositionEvidence(support);
     const referenced = rankedSupportCandidates(edgeSpecs, support, 'referenced');
     if (support.attachmentReferences.length && !referenced.length) throw unresolvedReferenceError(support);
     const owning = rankedSupportCandidates(edgeSpecs, support, 'owning');
@@ -87,7 +117,7 @@ function matchSupportsToEdges(edgeSpecs, supports, toleranceMm) {
     const authority = referenced.length
       ? `${support.attachmentAuthorities.join('+') || 'ATTACHED_COMPONENT_REF/COMPRE'}:${support.attachmentReferences.join('|')}`
       : 'OWNING_BRANCH_PROXIMITY';
-    acceptMatch(support, match, authority);
+    acceptMatch(support, match, authority, toleranceMm);
     matches.set(match.index, [...(matches.get(match.index) ?? []), support]);
   }
   return matches;
@@ -145,7 +175,9 @@ export function splitEdgeSpecsAtSupports(specs, supports, connectivity, topology
 }
 
 export const _test = Object.freeze({
+  applySupportPositionEvidence,
   rankedSupportCandidates,
   supportProjectionError,
+  editedTopologyPosition,
   unresolvedReferenceError,
 });
