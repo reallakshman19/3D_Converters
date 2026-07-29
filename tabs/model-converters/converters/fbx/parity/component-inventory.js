@@ -117,9 +117,10 @@ function isSupport(record) {
 
 function generationEvidence(attributes) {
   const method = explicitValue(attributes, ['generationMethod', 'GENERATION_METHOD']);
-  const generated = attributes.AUTO_GENERATED_PIPE === true || attributes.generated === true || method !== null;
-  return generated ? { generated: true, generationMethod: method ?? 'UNSPECIFIED_GENERATED' }
-    : { generated: false, generationMethod: null };
+  const flagged = attributes.AUTO_GENERATED_PIPE === true || attributes.generated === true;
+  if (flagged && !method) fail('generated managed component requires generationMethod.');
+  const generated = flagged || method !== null;
+  return { generated, generationMethod: generated ? method : null };
 }
 
 function managedRecordId(branchId, child, childIndex) {
@@ -135,9 +136,16 @@ function managedRecord(branch, branchIndex, child, childIndex) {
   const sourceOccurrenceId = explicitValue(attributes, [
     'sourceOccurrenceId', 'SOURCE_OCCURRENCE_ID', 'sourceGeometryOccurrenceId',
   ]);
+  const sourceModelObjectId = explicitValue(attributes, [
+    'sourceModelObjectId', 'SOURCE_MODEL_OBJECT_ID', 'SOURCE_OBJECT_ID',
+  ]);
+  const sourceGeometryObjectIds = explicitArray(attributes, [
+    'sourceGeometryObjectIds', 'SOURCE_GEOMETRY_OBJECT_IDS',
+  ]);
   const generation = generationEvidence(attributes);
-  if (generation.generated && sourceOccurrenceId) {
-    fail(`generated record ${branchId} cannot claim source occurrence ${sourceOccurrenceId}.`);
+  if (generation.generated && (sourceOccurrenceId || sourceModelObjectId
+    || sourceGeometryObjectIds.length)) {
+    fail(`generated record ${branchId} cannot claim direct source identity.`);
   }
   return {
     managedRecordId: managedRecordId(branchId, child, childIndex),
@@ -147,12 +155,8 @@ function managedRecord(branch, branchIndex, child, childIndex) {
     reference: text(attributes.REF ?? child.id),
     displayName: text(attributes.NAME ?? child.name),
     sourceOccurrenceId,
-    sourceModelObjectId: explicitValue(attributes, [
-      'sourceModelObjectId', 'SOURCE_MODEL_OBJECT_ID', 'SOURCE_OBJECT_ID',
-    ]),
-    sourceGeometryObjectIds: explicitArray(attributes, [
-      'sourceGeometryObjectIds', 'SOURCE_GEOMETRY_OBJECT_IDS',
-    ]),
+    sourceModelObjectId,
+    sourceGeometryObjectIds,
     ...generation,
   };
 }
