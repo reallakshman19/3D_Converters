@@ -1,5 +1,5 @@
 import { fitBoundaryCircleLocal } from '../zone-geometry/circle-fit.js';
-import { transformBoundaryFit } from '../zone-geometry/occurrence-transform.js';
+import { transformBoundaryFit } from '../zone-geometry/occurrence-transform.js?v=20260729-fbx2-direct-pipe-1';
 import { evidenceId } from '../zone-geometry/identity.js';
 
 function subtract(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
