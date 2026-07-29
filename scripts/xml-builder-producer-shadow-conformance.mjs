@@ -64,12 +64,38 @@ async function prepareLocalEsmFixture() {
 }
 
 function sampleTables() {
+  const branchName = '/CUSTOM-4"-P8810212-31441C4-PP/B1';
   return Object.freeze({
-    branchRows: 'BranchName\tLineNo\tNodeNumber\tBoreMm\tOutsideDiameter\tWallThickness\tP1\tP9\tT1\tT2\tT3\tT9\tFluidDensity\tInsulationDensity\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t4-P8810212-31441C4-PP\t100\t100\t114.3\t6.02\t4140\t900\t260\t151\t5\t9\t983\t0.00012',
-    coordinateRows: 'BranchName\tNodeNumber\tX\tY\tZ\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t100\t200000\t-1098000\t101000\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t110\t200500\t-1098000\t101000',
-    weightRows: 'BranchName\tNodeNumber\tComponentType\tRigid\tEndpoint\tWeight\tComponentRefNo\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t100\tPIPE\t0\t1\t0\tP-100\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t110\tRIGID\t2\t2\t43\tV-110',
-    restraintRows: 'BranchName\tNodeNumber\tNodeName\tRestraintType\tGap\tStiffness\tFriction\tDirection\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t110\tPS-1001\tREST\t0\t1.751270E+12\t0.3\t+Y',
-    dtxrRows: 'BranchName\tNodeNumber\tDTXR\n/CUSTOM-4"-P8810212-31441C4-PP/B1\t110\tGATE VALVE FLGD 300#',
+    branchRows: Object.freeze([Object.freeze({
+      branchName,
+      lineKey: '4-P8810212-31441C4-PP',
+      nodeNumber: '100',
+      boreMm: '100',
+      outsideDiameter: '114.3',
+      wallThickness: '6.02',
+      p1: '4140',
+      p9: '900',
+      t1: '260',
+      t2: '151',
+      t3: '5',
+      t9: '9',
+      fluidDensity: '983',
+      insulationDensity: '0.00012',
+    })]),
+    coordinateRows: Object.freeze([
+      Object.freeze({ branchName, nodeNumber: '100', x: '200000', y: '-1098000', z: '101000' }),
+      Object.freeze({ branchName, nodeNumber: '110', x: '200500', y: '-1098000', z: '101000' }),
+    ]),
+    weightRows: Object.freeze([
+      Object.freeze({ branchName, nodeNumber: '100', componentType: 'PIPE', rigid: '0', endpoint: '1', weight: '0', componentRefNo: 'P-100' }),
+      Object.freeze({ branchName, nodeNumber: '110', componentType: 'RIGID', rigid: '2', endpoint: '2', weight: '43', componentRefNo: 'V-110' }),
+    ]),
+    restraintRows: Object.freeze([
+      Object.freeze({ branchName, nodeNumber: '110', nodeName: 'PS-1001', restraintType: 'REST', gap: '0', stiffness: '1.751270E+12', friction: '0.3', direction: '+Y' }),
+    ]),
+    dtxrRows: Object.freeze([
+      Object.freeze({ branchName, nodeNumber: '110', dtxr: 'GATE VALVE FLGD 300#' }),
+    ]),
   });
 }
 
