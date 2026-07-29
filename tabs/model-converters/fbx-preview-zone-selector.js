@@ -4,6 +4,10 @@ import { buildFbxSourceGraphPreviewProject } from './fbx-source-graph-preview.js
 import { buildFbxSourceGraphZoneExport } from './fbx-source-graph-zone-export.js';
 import { buildFbxStagedJsonZoneExport } from './fbx-staged-json-zone-export.js';
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
+import {
+  extractFbxSelectedZoneRecommendation, matchFbxPreviewZoneRecommendation,
+  resolveFbxPreviewAutoSelection,
+} from './fbx-preview-zone-recommendation.js';
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const OUTPUT_EVENT = 'model-converters:fbx-run-outputs';
 const AUTO_PIPE_OUTPUT_EVENT = 'model-converters:fbx-auto-pipe-outputs';
@@ -12,6 +16,8 @@ const RUN_PATCH_MARKER = Symbol.for('model-converters.fbx-preview-zone-run.v1');
 const CONTROLLERS = new WeakMap();
 const RUN_OUTPUTS = new WeakMap();
 const AUTO_PIPE_OUTPUTS = new WeakMap();
+const RUN_SELECTIONS = new WeakMap();
+const AUTO_SELECTED_GRAPHS = new WeakSet();
 function pointSummary(project) {
   const displayed = Number(project?.displayedPointCount || project?.points?.length || 0);
   const source = Number(project?.sourcePointCount || displayed);
@@ -99,6 +105,7 @@ function ensureController(container) {
   if (!card || !host) return null;
   host.insertAdjacentHTML('beforebegin', toolbarHtml());
   const controller = {
+    container,
     host,
     meta: container.querySelector('#model-converters-preview-meta'),
     wrap: card.querySelector('[data-fbx-preview-zone-wrap]'),
@@ -212,22 +219,41 @@ function activeStagedRun(container, project) {
   const auto = AUTO_PIPE_OUTPUTS.get(container);
   return auto?.zoneId === project?.selectedZoneId ? auto : RUN_OUTPUTS.get(container) || null;
 }
+function recommendationFor(controller) {
+  return matchFbxPreviewZoneRecommendation(
+    controller.state?.project, RUN_SELECTIONS.get(controller.container));
+}
 function updateAvailability(controller) {
   const selected = Boolean(controller.state?.project?.selectedZoneId);
   const staged = Boolean(controller.state?.stagedRun);
+  const recommendation = recommendationFor(controller);
+  const prefix = recommendation?.zoneId === controller.state?.project?.selectedZoneId
+    && AUTO_SELECTED_GRAPHS.has(controller.state?.graph)
+    ? `Auto-selected governed zone: ${recommendation.label}. ` : '';
   controller.sourceDownload.disabled = !selected;
   controller.stagedDownload.disabled = !selected || !staged;
-  controller.status.textContent = staged
+  controller.status.textContent = prefix + (staged
     ? controller.state.stagedRun.authority === 'internal-auto-pipe'
       ? 'Authorized PIPE-only internal StagedJSON is available.'
       : 'Authorized StagedJSON is available.'
-    : 'Source graph only; valid external mapping or PIPE inference is required.';
+    : 'Source graph only; valid external mapping or PIPE inference is required.');
+}
+function applyRecommendedZone(controller) {
+  const state = controller.state, graph = state?.graph;
+  if (!graph) return false;
+  const recommendation = resolveFbxPreviewAutoSelection(
+    state.project, RUN_SELECTIONS.get(controller.container), AUTO_SELECTED_GRAPHS.has(graph));
+  if (!recommendation) return false;
+  AUTO_SELECTED_GRAPHS.add(graph);
+  controller.select.value = recommendation.zoneId;
+  renderSelectedZone(controller);
+  return true;
 }
 function refreshStagedState(container) {
   const controller = CONTROLLERS.get(container);
   if (!controller?.state) return;
   controller.state.stagedRun = activeStagedRun(container, controller.state.project);
-  updateAvailability(controller);
+  if (!applyRecommendedZone(controller)) updateAvailability(controller);
 }
 function hideController(controller) {
   controller.state = null;
@@ -257,6 +283,7 @@ function updateController(container, controller, project, renderer) {
   controller.wrap.style.display = zones.length ? 'flex' : 'none';
   controller.select.value = project.selectedZoneId || '';
   controller.count.textContent = `${zones.length} zone${zones.length === 1 ? '' : 's'}`;
+  if (applyRecommendedZone(controller)) return;
   updateAvailability(controller);
   queueMicrotask(() => {
     if (controller.state?.project === project && controller.meta) {
@@ -271,6 +298,9 @@ export function installFbxPreviewZoneSelector(container) {
   container.dataset.fbxPreviewZoneSelector = 'true';
   window.addEventListener(OUTPUT_EVENT, (event) => {
     RUN_OUTPUTS.set(container, extractFbxStagedRun(event.detail));
+    const recommendation = extractFbxSelectedZoneRecommendation(event.detail);
+    if (recommendation) RUN_SELECTIONS.set(container, recommendation);
+    else RUN_SELECTIONS.delete(container);
     refreshStagedState(container);
   });
   window.addEventListener(AUTO_PIPE_OUTPUT_EVENT, (event) => {
