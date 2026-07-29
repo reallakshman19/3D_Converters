@@ -178,7 +178,7 @@ for (const wheel of ['pypdf-6.14.2-py3-none-any.whl']) {
   assertLocalRefExists('converters/pyodide-local-packages.js', 'vendor/pyodide/' + wheel, 'local Pyodide wheel');
 }
 for (const text of [legacyAdapter, workerCacheBust]) {
-  if (!text.includes('py-worker.js?v=20260711-local-pyodide-worker-1')) {
+  if (!text.includes('py-worker.js?v=20260729-inputxml-live-release-1')) {
     fail('model-converters worker paths must use the current local Pyodide cache key.');
   }
   if (text.includes('py-worker.js?v=20260623-xml-cii-rich-worker-1')) {

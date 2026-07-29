@@ -2,10 +2,10 @@
  * ModelConvertersTab — orchestration shell for the Model Converters tab.
  */
 
-import './xml-cii-rich-worker-cache-bust.js?v=20260623-xml-cii-rich-worker-1';
-import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260725-fbx-source-graph-preview-1';
-import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260713-stagedjson-inputxml-audit-1';
-import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260627-inputxml-cii2019-live-guard-1';
+import './xml-cii-rich-worker-cache-bust.js?v=20260729-inputxml-live-release-1';
+import { renderLegacyModelConvertersTab } from './legacy-adapter.js?v=20260729-inputxml-live-release-1';
+import { CONVERTERS as LIVE_MODEL_CONVERTERS } from './converter-registry.js?v=20260729-inputxml-live-release-1';
+import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii2019.js?v=20260729-inputxml-live-release-1';
 import { installFbxReviewUiAddon } from './fbx-review-ui-addon.js?v=20260724-fbx-json-no-mapping-1';
 import { installFbxPreviewZoneSelector } from './fbx-preview-zone-selector.js?v=20260727-fbx-zone-stagedjson-1';
 import { installFbxZoneGeometryToolbar } from './converters/fbx/zone-geometry/zone-toolbar.js?v=20260727-fbx-auto-001-1';

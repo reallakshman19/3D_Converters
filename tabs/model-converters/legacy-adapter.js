@@ -1519,7 +1519,7 @@ function _xmlCiiSaveMasterToConfig(values, masterDef, rows, fieldMap) {
 }
 
 function _createWorkerRuntime() {
-  const worker = new Worker(new URL('../converters/py-worker.js?v=20260711-local-pyodide-worker-1', import.meta.url), { type: 'module' });
+  const worker = new Worker(new URL('../converters/py-worker.js?v=20260729-inputxml-live-release-1', import.meta.url), { type: 'module' });
   const pending = new Map();
   let nextJobId = 1;
 

@@ -6,7 +6,7 @@
  */
 const FLAG = '__xmlCiiRichWorkerCacheBust_v1';
 const STALE_WORKER_TOKEN = 'py-worker.js?v=20260515-cii-compat-check2';
-const FRESH_WORKER_TOKEN = 'py-worker.js?v=20260711-local-pyodide-worker-1';
+const FRESH_WORKER_TOKEN = 'py-worker.js?v=20260729-inputxml-live-release-1';
 
 function canPatchWorker() {
   return typeof window !== 'undefined' && typeof window.Worker === 'function';
