@@ -116,6 +116,9 @@ function buildSummary(sources, managed) {
     managedCountsByRawType: countBy(managed, 'rawType'),
     matchedManagedComponentCount: countDisposition(managed, 'MATCHED_SOURCE_COMPONENT'),
     generatedManagedComponentCount: countDisposition(managed, 'GENERATED_MANAGED_COMPONENT'),
+    unresolvedGenerationProvenanceCount: managed.filter((record) => (
+      record.generationProvenanceStatus === 'UNRESOLVED'
+    )).length,
     candidateManagedComponentCount: countDisposition(managed, 'SOURCE_OCCURRENCE_CANDIDATES'),
     unresolvedSourceBindingCount: countDisposition(managed, 'UNRESOLVED_SOURCE_BINDING'),
     unmatchedManagedComponentCount: countDisposition(managed, 'UNMATCHED_MANAGED_COMPONENT'),
@@ -161,6 +164,7 @@ export async function buildSelectedZoneComponentCrosswalk({
     authority: {
       exactBindingsRequireSourceOccurrenceId: true,
       candidatesAreNonAuthoritative: true,
+      missingGenerationMethodIsUnresolved: true,
       runtimeAdmissionChanged: false,
       engineeringAttributesInferred: false,
     },
