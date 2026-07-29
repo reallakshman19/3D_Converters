@@ -6,6 +6,7 @@ on:
       - 'Benchmarks/FBX2/**'
       - 'scripts/fbx/audit-fbx2-benchmark.mjs'
       - 'scripts/fbx/audit-fbx2-weld-projection.mjs'
+      - 'scripts/fbx/audit-fbx2-weld-tolerance.mjs'
       - 'tabs/model-converters/converters/fbx/**'
       - 'contracts/fbx/**'
       - 'tests/fbx/**'
@@ -37,6 +38,7 @@ jobs:
         run: |
           node --check scripts/fbx/audit-fbx2-benchmark.mjs
           node --check scripts/fbx/audit-fbx2-weld-projection.mjs
+          node --check scripts/fbx/audit-fbx2-weld-tolerance.mjs
           node --check tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js
 
       - name: Extract governed benchmark archives
@@ -86,6 +88,10 @@ jobs:
             --fbx "$fbx_path" \
             --zone '/GLRD-1000-CU-PI-P' \
             --evidence artifacts/fbx2-weld-projection.json
+          node scripts/fbx/audit-fbx2-weld-tolerance.mjs \
+            --fbx "$fbx_path" \
+            --zone '/GLRD-1000-CU-PI-P' \
+            --evidence artifacts/fbx2-weld-tolerance-sweep.json
 
       - name: Upload benchmark audit evidence
         if: always()
