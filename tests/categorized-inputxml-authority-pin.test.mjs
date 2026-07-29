@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -10,6 +11,9 @@ const MANIFEST_PATH = join(ROOT, 'xml-compare', 'CategorizedInputXmlConverter.pi
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
+
+const trackedCheckout = execFileSync('git', ['-C', ROOT, 'ls-files', '--stage', 'XML_Compare_Utilities'], { encoding: 'utf8' }).trim();
+assert.equal(trackedCheckout, '', 'temporary XML_Compare_Utilities checkout must never be committed');
 
 const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
 assert.equal(manifest.schema, 'categorized-inputxml-authority-pin/v1');
