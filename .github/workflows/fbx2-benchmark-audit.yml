@@ -5,6 +5,7 @@ on:
     paths:
       - 'Benchmarks/FBX2/**'
       - 'scripts/fbx/audit-fbx2-benchmark.mjs'
+      - 'scripts/fbx/audit-fbx2-weld-projection.mjs'
       - 'tabs/model-converters/converters/fbx/**'
       - 'contracts/fbx/**'
       - 'tests/fbx/**'
@@ -32,8 +33,11 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Validate audit source
-        run: node --check scripts/fbx/audit-fbx2-benchmark.mjs
+      - name: Validate audit sources
+        run: |
+          node --check scripts/fbx/audit-fbx2-benchmark.mjs
+          node --check scripts/fbx/audit-fbx2-weld-projection.mjs
+          node --check tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js
 
       - name: Extract governed benchmark archives
         shell: bash
@@ -61,7 +65,7 @@ jobs:
                   print(f'{archive}: {names}')
           PY
 
-      - name: Run exact FBX2 selected-zone audit
+      - name: Run exact FBX2 selected-zone audits
         shell: bash
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -78,12 +82,16 @@ jobs:
             --output-zip Benchmarks/FBX2/ATTRIBUTE_GL_managed_stage.zip \
             --zone '/GLRD-1000-CU-PI-P' \
             --evidence artifacts/fbx2-benchmark-audit.json
+          node scripts/fbx/audit-fbx2-weld-projection.mjs \
+            --fbx "$fbx_path" \
+            --zone '/GLRD-1000-CU-PI-P' \
+            --evidence artifacts/fbx2-weld-projection.json
 
       - name: Upload benchmark audit evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: fbx2-benchmark-audit
-          path: artifacts/fbx2-benchmark-audit.json
+          path: artifacts/*.json
           if-no-files-found: error
           retention-days: 30
