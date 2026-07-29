@@ -19,7 +19,7 @@ jobs:
           ref: agent/inputxml-live-release-diagnostics
           fetch-depth: 0
 
-      - name: Apply byte-preserving integration cleanup
+      - name: Apply byte-exact cleanup
         run: |
           python - <<'PY'
           import subprocess
@@ -27,106 +27,45 @@ jobs:
 
           version = b'20260729-inputxml-live-release-1'
 
-          # Reconstruct the CRLF/BOM-sensitive bridge from exact main bytes and
-          # change only the required cache-keyed legacy-adapter import.
           bridge_path = 'tabs/model-converters/xml-cii-workflow-bridge.js'
           bridge = subprocess.check_output(['git', 'show', f'origin/main:{bridge_path}'])
-          old_bridge = b"./legacy-adapter.js?v=20260725-fbx-source-graph-preview-1"
-          new_bridge = b"./legacy-adapter.js?v=" + version
+          old_bridge = b'./legacy-adapter.js?v=20260725-fbx-source-graph-preview-1'
+          new_bridge = b'./legacy-adapter.js?v=' + version
           if bridge.count(old_bridge) != 1:
               raise SystemExit('Unexpected workflow bridge import count.')
           Path(bridge_path).write_bytes(bridge.replace(old_bridge, new_bridge))
 
           legacy_path = Path('tabs/model-converters/legacy-adapter.js')
           legacy = legacy_path.read_bytes()
-          old_status = b"setStatus(`BLOCKED: ${output.name}`, 'bad');"
-          new_status = b"setStatus(`BLOCKED: ${response.blockedSummary?.headline || output.name}`, 'bad');"
-          if legacy.count(old_status) != 1:
-              raise SystemExit('Unexpected blocked status branch count.')
-          legacy = legacy.replace(old_status, new_status)
-          old_notice = b"message: response.blocked ? `${converter.label} blocked; no CII was emitted.` : `${converter.label} completed.`"
-          new_notice = b"message: response.blocked ? `${converter.label} blocked: ${response.blockedSummary?.headline || 'no CII was emitted.'}` : `${converter.label} completed.`"
-          if legacy.count(old_notice) != 1:
-              raise SystemExit('Unexpected blocked notification branch count.')
-          legacy_path.write_bytes(legacy.replace(old_notice, new_notice))
-
-          # Expand live Pages identity binding to the full browser module chain.
-          workflow_path = Path('.github/workflows/inputxml-pages-live-release.yml')
-          workflow = workflow_path.read_text(encoding='utf-8')
-          old_paths = """          paths=(
-            'converters/py-worker.js'
-            'converters/inputxml-runtime-cache.js'
-            'tabs/model-converters/converter-registry.js'
-            'tabs/model-converters/legacy-adapter.js'
-            'tabs/model-converters/converters/inputxml-to-cii2019.js'
-            'tabs/model-converters/converters/inputxml-blocked-diagnostics.js'
-          )"""
-          new_paths = """          paths=(
-            'core/app-standalone-runtime.js'
-            'tabs/model-converters-tab.js'
-            'tabs/model-converters/index.js'
-            'tabs/model-converters/ModelConvertersTab.js'
-            'tabs/model-converters/xml-cii-workflow-bridge.js'
-            'tabs/model-converters/xml-cii-rich-worker-cache-bust.js'
-            'tabs/model-converters/converter-registry.js'
-            'tabs/model-converters/legacy-adapter.js'
-            'tabs/model-converters/converters/inputxml-to-cii2019.js'
-            'tabs/model-converters/converters/inputxml-blocked-diagnostics.js'
-            'converters/BrowserConverterExecutor.js'
-            'converters/py-worker.js'
-            'converters/inputxml-runtime-cache.js'
-          )"""
-          if workflow.count(old_paths) != 1:
-              raise SystemExit('Unexpected live workflow deployed path list.')
-          workflow = workflow.replace(old_paths, new_paths)
-          old_python_paths = """          paths = [
-              'converters/py-worker.js',
-              'converters/inputxml-runtime-cache.js',
-              'tabs/model-converters/converter-registry.js',
-              'tabs/model-converters/legacy-adapter.js',
-              'tabs/model-converters/converters/inputxml-to-cii2019.js',
-              'tabs/model-converters/converters/inputxml-blocked-diagnostics.js',
-          ]"""
-          new_python_paths = """          paths = [
-              'core/app-standalone-runtime.js',
-              'tabs/model-converters-tab.js',
-              'tabs/model-converters/index.js',
-              'tabs/model-converters/ModelConvertersTab.js',
-              'tabs/model-converters/xml-cii-workflow-bridge.js',
-              'tabs/model-converters/xml-cii-rich-worker-cache-bust.js',
-              'tabs/model-converters/converter-registry.js',
-              'tabs/model-converters/legacy-adapter.js',
-              'tabs/model-converters/converters/inputxml-to-cii2019.js',
-              'tabs/model-converters/converters/inputxml-blocked-diagnostics.js',
-              'converters/BrowserConverterExecutor.js',
-              'converters/py-worker.js',
-              'converters/inputxml-runtime-cache.js',
-          ]"""
-          if workflow.count(old_python_paths) != 1:
-              raise SystemExit('Unexpected live workflow evidence path list.')
-          workflow_path.write_text(workflow.replace(old_python_paths, new_python_paths), encoding='utf-8')
-
-          contract_path = Path('.github/workflows/stagedjson-pages-runtime-contract.yml')
-          contract = contract_path.read_text(encoding='utf-8')
-          anchor = "      - 'tabs/model-converters/converter-registry.js'\n"
-          expanded = """      - 'core/app-standalone-runtime.js'
-      - 'tabs/model-converters-tab.js'
-      - 'tabs/model-converters/index.js'
-      - 'tabs/model-converters/ModelConvertersTab.js'
-      - 'tabs/model-converters/xml-cii-workflow-bridge.js'
-      - 'tabs/model-converters/converter-registry.js'
-"""
-          if contract.count(anchor) != 1:
-              raise SystemExit('Unexpected PR workflow path anchor.')
-          contract_path.write_text(contract.replace(anchor, expanded), encoding='utf-8')
+          replacements = [
+              (
+                  b"setStatus(`BLOCKED: ${output.name}`, 'bad');",
+                  b"setStatus(`BLOCKED: ${response.blockedSummary?.headline || output.name}`, 'bad');",
+              ),
+              (
+                  b"message: response.blocked ? `${converter.label} blocked; no CII was emitted.` : `${converter.label} completed.`",
+                  b"message: response.blocked ? `${converter.label} blocked: ${response.blockedSummary?.headline || 'no CII was emitted.'}` : `${converter.label} completed.`",
+              ),
+          ]
+          for old, new in replacements:
+              if legacy.count(old) != 1:
+                  raise SystemExit(f'Unexpected legacy-adapter replacement count for {old!r}.')
+              legacy = legacy.replace(old, new)
+          legacy_path.write_bytes(legacy)
 
           Path('.github/workflows/inputxml-live-release-cleanup.yml').unlink()
           PY
+
+      - name: Verify exact diff scope
+        run: |
+          git diff --check
+          test "$(git diff --numstat origin/main -- tabs/model-converters/xml-cii-workflow-bridge.js | awk '{print $1":"$2}')" = '1:1'
+          grep -F 'BLOCKED: ${response.blockedSummary?.headline || output.name}' tabs/model-converters/legacy-adapter.js
 
       - name: Commit cleanup
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'fix(inputxml): show blocking code and bind full Pages identity'
+          git commit -m 'fix(inputxml): show blocking code with byte-exact module alignment'
           git push origin HEAD:agent/inputxml-live-release-diagnostics
