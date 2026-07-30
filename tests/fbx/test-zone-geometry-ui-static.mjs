@@ -5,7 +5,7 @@ const root = new URL('../../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const [toolbar, shell, index, shim, scope, ports, worker, analysis, capture,
   reviewUi, panels, inlineReviewUi, connectivityUi, artifactActions,
-  generatedGapUi, mappedScope] = await Promise.all([
+  generatedGapUi, mappedScope, primaryReviewUi] = await Promise.all([
   read('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js'),
   read('tabs/model-converters/ModelConvertersTab.js'),
   read('tabs/model-converters/index.js'),
@@ -22,6 +22,7 @@ const [toolbar, shell, index, shim, scope, ports, worker, analysis, capture,
   read('tabs/model-converters/converters/fbx/zone-geometry/zone-artifact-actions.js'),
   read('tabs/model-converters/converters/fbx/generated-gap-pipe/review-ui.js'),
   read('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-scope.js'),
+  read('tabs/model-converters/converters/fbx/fitting-kernels/primary-fitting/review-ui.js'),
 ]);
 
 for (const label of ['Analyse zone geometry', 'Download zone geometry evidence',
@@ -36,21 +37,33 @@ assert.match(connectivityUi, /Explicit mapping links only/);
 assert.match(generatedGapUi, /Download generated gap PIPE evidence/);
 assert.match(generatedGapUi, /No proximity fallback/);
 assert.match(generatedGapUi, /data-fbx-generated-gap-pipe-profile-info/);
+assert.match(primaryReviewUi, /Download ELBOW evidence/);
+assert.match(primaryReviewUi, /Download TEE evidence/);
+assert.match(primaryReviewUi, /Download REDUCER evidence/);
+assert.match(primaryReviewUi, /no engineering attributes or flow direction are inferred/i);
 assert.match(toolbar, /installMappedStageCapture/);
 assert.match(toolbar, /installZoneReviewPanels/);
 assert.match(panels, /installConnectivityReviewUi/);
 assert.match(panels, /installGeneratedGapPipeReviewUi/);
+assert.match(panels, /installPrimaryFittingReviewUi/);
 assert.match(panels, /installBranchFittingReviewUi/);
 assert.match(panels, /installInlineAssemblyReviewUi/);
 assert.match(toolbar, /stagedBranches: controller\.runInput\.stagedBranches/);
 assert.match(toolbar, /downloadZoneArtifact/);
 assert.match(artifactActions, /connectivity: 'connectivityJson'/);
 assert.match(artifactActions, /'generated-gap-pipe': 'generatedGapPipeJson'/);
+assert.match(artifactActions, /elbow: 'elbowJson'/);
+assert.match(artifactActions, /tee: 'teeJson'/);
+assert.match(artifactActions, /reducer: 'reducerJson'/);
 assert.match(artifactActions, /buildFbxGeneratedGapPipeDownloadName/);
 assert.match(capture, /extractMappedStagedBranches/);
 assert.match(analysis, /buildSelectedZoneComponentCrosswalk/);
 assert.match(analysis, /buildSelectedZoneConnectivityEvidence/);
 assert.match(analysis, /buildSelectedZoneGeneratedGapPipeEvidence/);
+assert.match(analysis, /buildElbowPortEvidence/);
+assert.match(analysis, /buildTeePortEvidence/);
+assert.match(analysis, /buildReducerPortEvidence/);
+assert.match(analysis, /buildPrimaryFittingReviewModel/);
 assert.match(analysis, /buildBranchFittingPortEvidence/);
 assert.match(analysis, /buildInlineAssemblyPortEvidence/);
 assert.match(analysis, /scopeMappedStagedBranches/);
