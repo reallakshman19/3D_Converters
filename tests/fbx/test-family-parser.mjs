@@ -28,7 +28,8 @@ assert.deepEqual(
 const report = JSON.parse(output(success, '.fbx-conversion-report.json').text);
 assert.equal(report.counts.promotedComponents, 8);
 assert.deepEqual(report.counts.promotedByFamily, {
-  ELBOW: 1, FLANGE: 1, PIPE: 3, REDUCER: 1, TEE: 1, VALVE: 1,
+  BRANCH_FITTING: 0, ELBOW: 1, FLANGE: 1, PIPE: 3,
+  REDUCER: 1, TEE: 1, VALVE: 1,
 });
 const ledger = JSON.parse(output(success, '.fbx-mapping-ledger.json').text);
 assert.equal(ledger.mappingSchema, 'FbxStagedMapping.v2');
