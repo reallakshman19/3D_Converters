@@ -2,9 +2,12 @@ import {
   buildFbxBranchFittingDownloadName,
   buildFbxConnectivityDownloadName,
   buildFbxDerivedPortDownloadName,
+  buildFbxElbowDownloadName,
   buildFbxGeneratedGapPipeDownloadName,
   buildFbxInlineAssemblyDownloadName,
   buildFbxInternalPipeDownloadName,
+  buildFbxReducerDownloadName,
+  buildFbxTeeDownloadName,
   buildFbxZoneGeometryDownloadName,
   triggerJsonDownload,
 } from './zone-downloads.js';
@@ -15,6 +18,9 @@ const TEXT_FIELDS = Object.freeze({
   pipe: 'internalPipeJson',
   connectivity: 'connectivityJson',
   'generated-gap-pipe': 'generatedGapPipeJson',
+  elbow: 'elbowJson',
+  tee: 'teeJson',
+  reducer: 'reducerJson',
   'branch-fitting': 'branchFittingJson',
   'inline-assembly': 'inlineAssemblyJson',
 });
@@ -25,6 +31,9 @@ const NAME_BUILDERS = Object.freeze({
   pipe: buildFbxInternalPipeDownloadName,
   connectivity: buildFbxConnectivityDownloadName,
   'generated-gap-pipe': buildFbxGeneratedGapPipeDownloadName,
+  elbow: buildFbxElbowDownloadName,
+  tee: buildFbxTeeDownloadName,
+  reducer: buildFbxReducerDownloadName,
   'branch-fitting': buildFbxBranchFittingDownloadName,
   'inline-assembly': buildFbxInlineAssemblyDownloadName,
 });
