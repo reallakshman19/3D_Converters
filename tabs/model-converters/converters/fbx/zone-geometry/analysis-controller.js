@@ -2,21 +2,31 @@ import { ZONE_GEOMETRY_STATUS } from './constants.js';
 import { FbxZoneGeometryError, asZoneGeometryError } from './errors.js';
 
 const PACKAGE_INPUT_EVENT = 'model-converters:fbx-zone-package-inputs';
+
 function frozenState(value) {
   return Object.freeze({
-    phase: value.phase, status: value.status, message: value.message,
-    zoneGeometryJson: value.zoneGeometryJson, derivedPortJson: value.derivedPortJson,
-    internalPipeJson: value.internalPipeJson, stagedJsonText: value.stagedJsonText,
-    autoPipeStatus: value.autoPipeStatus, result: value.result,
+    phase: value.phase,
+    status: value.status,
+    message: value.message,
+    zoneGeometryJson: value.zoneGeometryJson,
+    derivedPortJson: value.derivedPortJson,
+    internalPipeJson: value.internalPipeJson,
+    stagedJsonText: value.stagedJsonText,
+    componentCrosswalkJson: value.componentCrosswalkJson,
+    branchFittingJson: value.branchFittingJson,
+    autoPipeStatus: value.autoPipeStatus,
+    result: value.result,
     generation: value.generation,
   });
 }
+
 function publishPackageInputs(inputs) {
   if (typeof window === 'undefined' || typeof CustomEvent !== 'function') return;
   window.dispatchEvent(new CustomEvent(PACKAGE_INPUT_EVENT, {
     detail: { inputs: inputs || null },
   }));
 }
+
 function mappedRuntimeError(error) {
   const text = `${error?.code || ''} ${error?.message || ''}`;
   if (/ABORT|cancel/i.test(text)) {
@@ -29,11 +39,19 @@ function mappedRuntimeError(error) {
   }
   return asZoneGeometryError(error, ZONE_GEOMETRY_STATUS.TOPOLOGY);
 }
+
 function runningProgress(runtime, generation, stage, onProgress) {
   if (runtime.generation !== generation) return;
   runtime.clear('running', `Geometry worker: ${stage}`);
   onProgress?.(stage);
 }
+
+function branchFittingMessage(result) {
+  const review = result.branchFittingReview;
+  if (!review || review.status === 'MAPPING_REQUIRED') return ' OLET review requires approved mapped StagedJSON.';
+  return ` OLET review: ${review.admittedCount} admitted, ${review.blockedCount} blocked.`;
+}
+
 function completionMessage(result) {
   const base = `Analysed ${result.counts.selectedGeometries} geometries; ${result.counts.admittedLoops} admitted loops.`;
   const pipes = result.autoPipe.status === 'STAGEDJSON_PASS'
@@ -41,8 +59,20 @@ function completionMessage(result) {
     : ` PIPE-only release blocked: ${result.autoPipe.status}.`;
   const packageStatus = result.zonePackageError
     ? ` Package export unavailable: ${result.zonePackageError.code}.` : '';
-  return `${base}${pipes}${packageStatus}`;
+  return `${base}${pipes}${branchFittingMessage(result)}${packageStatus}`;
 }
+
+function analysisInput(input, bundle) {
+  return {
+    sourceGraph: input.sourceGraph,
+    geometryBundle: bundle,
+    zoneId: input.zoneId,
+    stagedBranches: input.stagedBranches,
+    mappedStageStatus: input.mappedStageStatus,
+    includeZonePackageInputs: true,
+  };
+}
+
 async function executeRun(runtime, input, onProgress) {
   runtime.invalidate('analysis-started');
   const generation = runtime.generation;
@@ -56,12 +86,7 @@ async function executeRun(runtime, input, onProgress) {
     });
     if (runtime.generation !== generation) return Object.freeze({ stale: true });
     runtime.clear('running', 'Deriving selected-zone boundary evidence...');
-    const result = await runtime.analyse({
-      sourceGraph: input.sourceGraph,
-      geometryBundle: bundle,
-      zoneId: input.zoneId,
-      includeZonePackageInputs: true,
-    });
+    const result = await runtime.analyse(analysisInput(input, bundle));
     if (runtime.generation !== generation) return Object.freeze({ stale: true });
     runtime.active = null;
     runtime.publish({
@@ -71,6 +96,8 @@ async function executeRun(runtime, input, onProgress) {
       derivedPortJson: result.derivedPortJson,
       internalPipeJson: result.autoPipe.internalPipeMappingJson,
       stagedJsonText: result.autoPipe.stagedJsonText,
+      componentCrosswalkJson: result.componentCrosswalkJson,
+      branchFittingJson: result.branchFittingJson,
       autoPipeStatus: result.autoPipe.status,
       result,
     });
@@ -83,6 +110,7 @@ async function executeRun(runtime, input, onProgress) {
     throw failure;
   }
 }
+
 export function createZoneAnalysisController({ parseBundle, analyse, onState = null }) {
   const runtime = {
     generation: 0, active: null, parseBundle, analyse, state: null,
@@ -97,6 +125,7 @@ export function createZoneAnalysisController({ parseBundle, analyse, onState = n
     phase, status, message,
     zoneGeometryJson: null, derivedPortJson: null,
     internalPipeJson: null, stagedJsonText: null,
+    componentCrosswalkJson: null, branchFittingJson: null,
     autoPipeStatus: null, result: null,
   });
   runtime.invalidate = (reason = 'invalidated') => {

@@ -7,6 +7,7 @@ const FAMILY_SPECS = Object.freeze({
   ELBOW: { nativeType: 'ELBO', roles: ['A', 'L'] },
   TEE: { nativeType: 'TEE', roles: ['A', 'L', 'P'] },
   REDUCER: { nativeType: 'REDU', roles: ['A', 'L'] },
+  BRANCH_FITTING: { nativeType: 'OLET', roles: ['A', 'L'] },
   FLANGE: { nativeType: 'FLAN', roles: ['A', 'L'] },
   VALVE: { nativeType: 'VALV', roles: ['A', 'L'] },
 });
@@ -127,7 +128,32 @@ function validateReducer(engineering, ports) {
   if (eccentric && Math.abs(dot(eccentric.vector, ports.A.direction.vector)) > VECTOR_EPSILON) {
     fail('REDUCER eccentricDirection must be perpendicular to the run axis.');
   }
-  return { ...record, largeEndDiameterMm: large, smallEndDiameterMm: small, ...(eccentric ? { eccentricDirection: eccentric } : {}) };
+  return { ...record, largeEndDiameterMm: large, smallEndDiameterMm: small,
+    ...(eccentric ? { eccentricDirection: eccentric } : {}) };
+}
+
+function validateBranchFitting(engineering, ports) {
+  const required = [
+    'largePortDiameterMm', 'smallPortDiameterMm',
+    'largePortId', 'smallPortId', 'branchFittingType',
+  ];
+  const record = assertKeys(engineering, required, [], 'engineering');
+  requireOpposed(ports, 'BRANCH_FITTING');
+  const large = positive(record.largePortDiameterMm, 'engineering.largePortDiameterMm');
+  const small = positive(record.smallPortDiameterMm, 'engineering.smallPortDiameterMm');
+  if (large <= small) fail('BRANCH_FITTING largePortDiameterMm must exceed smallPortDiameterMm.');
+  const ids = new Set([ports.A.portId, ports.L.portId]);
+  if (!ids.has(record.largePortId) || !ids.has(record.smallPortId)
+    || record.largePortId === record.smallPortId) {
+    fail('BRANCH_FITTING port identities are invalid.');
+  }
+  return {
+    largePortDiameterMm: large,
+    smallPortDiameterMm: small,
+    largePortId: record.largePortId,
+    smallPortId: record.smallPortId,
+    branchFittingType: requireText(record.branchFittingType, 'engineering.branchFittingType'),
+  };
 }
 
 function validateFlange(engineering, ports) {
@@ -158,6 +184,7 @@ const VALIDATORS = Object.freeze({
   ELBOW: validateElbow,
   TEE: validateTee,
   REDUCER: validateReducer,
+  BRANCH_FITTING: validateBranchFitting,
   FLANGE: validateFlange,
   VALVE: validateValve,
 });
@@ -177,14 +204,6 @@ export function nativeTypeFor(componentType) {
 export function validateFamilyEvidence(componentType, ports, engineering) {
   rolesFor(componentType);
   return VALIDATORS[componentType](engineering, ports);
-}
-
-function distance(left, right) {
-  return Math.hypot(
-    left.positionMm[0] - right.positionMm[0],
-    left.positionMm[1] - right.positionMm[1],
-    left.positionMm[2] - right.positionMm[2],
-  );
 }
 
 function spanAxis(ports, label) {

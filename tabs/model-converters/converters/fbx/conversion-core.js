@@ -1,5 +1,3 @@
-// Build deterministic FBX conversion artifacts and execute validated mapping manifests.
-// Inputs are accepted graphs/mappings; outputs preserve blocked states without hidden fallback.
 import { canonicalJson } from './canonical-json.js';
 import { validateConnectivity, validateConnectivityV2 } from './connectivity.js';
 import { validateMappingManifest } from './mapping-validator.js';
@@ -16,12 +14,7 @@ export function artifact(name, value) {
 }
 
 function report(status, diagnostics, counts) {
-  return {
-    schema: 'FbxConversionReport.v1',
-    status,
-    diagnostics: [...diagnostics].sort(),
-    counts,
-  };
+  return { schema: 'FbxConversionReport.v1', status, diagnostics: [...diagnostics].sort(), counts };
 }
 
 function graphCounts(graph) {
@@ -36,17 +29,9 @@ export function blockedResult(stem, graph, status, diagnostics, ledger = null) {
   const outputs = [];
   if (graph) outputs.push(artifact(`${stem}.fbx-source-graph.json`, graph));
   if (ledger) outputs.push(artifact(`${stem}.fbx-mapping-ledger.json`, ledger));
-  outputs.push(artifact(
-    `${stem}.fbx-conversion-report.json`,
-    report(status, diagnostics, graphCounts(graph)),
-  ));
-  return {
-    ok: false,
-    blocked: true,
-    conversionStatus: status,
-    outputs,
-    logs: { stdout: [], stderr: diagnostics },
-  };
+  outputs.push(artifact(`${stem}.fbx-conversion-report.json`, report(status, diagnostics, graphCounts(graph))));
+  return { ok: false, blocked: true, conversionStatus: status, outputs,
+    logs: { stdout: [], stderr: diagnostics } };
 }
 
 export function packageBlockedResult(stem, graph, status, diagnostics, binding) {
@@ -69,8 +54,7 @@ export function mappingLedger(mapping, resolvedByEntry, links) {
       sourceModelObjectId: entry.sourceModelObjectId,
       sourceOccurrenceId: entry.sourceOccurrenceId,
       componentType: entry.componentType,
-      ...(entry.sourceGeometryObjectIds
-        ? { sourceGeometryObjectIds: [...entry.sourceGeometryObjectIds] } : {}),
+      ...(entry.sourceGeometryObjectIds ? { sourceGeometryObjectIds: [...entry.sourceGeometryObjectIds] } : {}),
       ...(entry.engineering ? { engineering: structuredClone(entry.engineering) } : {}),
       ports: resolvedByEntry.get(entry.mappingEntryId),
     })),
@@ -80,9 +64,7 @@ export function mappingLedger(mapping, resolvedByEntry, links) {
 
 export function blockedStatus(diagnostic) {
   if (diagnostic.startsWith('BLOCKED_TRANSFORM')) return 'BLOCKED_TRANSFORM';
-  if (diagnostic.startsWith('BLOCKED_STAGEDJSON_CONTRACT')) {
-    return 'BLOCKED_STAGEDJSON_CONTRACT';
-  }
+  if (diagnostic.startsWith('BLOCKED_STAGEDJSON_CONTRACT')) return 'BLOCKED_STAGEDJSON_CONTRACT';
   return 'BLOCKED_MAPPING';
 }
 
@@ -95,25 +77,14 @@ export function successResult(stem, graph, ledger, staged, counts) {
       'PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS',
     ], counts)),
   ];
-  return {
-    ok: true,
-    blocked: false,
-    conversionStatus: 'STAGEDJSON_PASS',
-    outputs,
-    logs: {
-      stdout: ['PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS'],
-      stderr: [],
-    },
-  };
+  return { ok: true, blocked: false, conversionStatus: 'STAGEDJSON_PASS', outputs,
+    logs: { stdout: ['PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS'], stderr: [] } };
 }
 
 export function packageSuccessResult(stem, graph, ledger, staged, counts, binding) {
   const result = successResult(stem, graph, ledger, staged, counts);
   const diagnostics = [...binding.statuses];
-  result.outputs[3] = artifact(
-    `${stem}.fbx-conversion-report.json`,
-    report('STAGEDJSON_PASS', diagnostics, counts),
-  );
+  result.outputs[3] = artifact(`${stem}.fbx-conversion-report.json`, report('STAGEDJSON_PASS', diagnostics, counts));
   result.outputs.push(artifact(`${stem}.fbx-binding-report.json`, binding));
   result.logs.stdout = diagnostics;
   return result;
@@ -124,10 +95,7 @@ export function compatibilityGraph(stem, graph) {
     return { graph: projectSourceGraphV1(graph), blocked: null };
   } catch (error) {
     const diagnostic = error instanceof Error ? error.message : String(error);
-    return {
-      graph: null,
-      blocked: blockedResult(stem, graph, 'BLOCKED_PARSE', [diagnostic]),
-    };
+    return { graph: null, blocked: blockedResult(stem, graph, 'BLOCKED_PARSE', [diagnostic]) };
   }
 }
 
@@ -148,6 +116,13 @@ export function executeMapping(mapping, graph, compatibility) {
   return { accepted, resolvedByEntry, links, staged, v2 };
 }
 
+function familyCounts(entries) {
+  const families = ['PIPE', 'ELBOW', 'TEE', 'REDUCER', 'BRANCH_FITTING', 'FLANGE', 'VALVE'];
+  return Object.fromEntries(families.map((type) => [
+    type, entries.filter((entry) => entry.componentType === type).length,
+  ]));
+}
+
 export function successCounts(execution) {
   if (!execution.v2) {
     return {
@@ -156,14 +131,9 @@ export function successCounts(execution) {
       branches: execution.staged.length,
     };
   }
-  const families = ['PIPE', 'ELBOW', 'TEE', 'REDUCER', 'FLANGE', 'VALVE'];
-  const promotedByFamily = Object.fromEntries(families.map((type) => [
-    type,
-    execution.accepted.entries.filter((entry) => entry.componentType === type).length,
-  ]));
   return {
     promotedComponents: execution.accepted.entries.length,
-    promotedByFamily,
+    promotedByFamily: familyCounts(execution.accepted.entries),
     explicitConnections: execution.links.length,
     branches: execution.staged.length,
   };
