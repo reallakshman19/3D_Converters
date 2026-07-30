@@ -60,6 +60,7 @@ const tests = [
   'test-selected-zone-component-crosswalk.mjs',
   'test-elbow-port-evidence.mjs',
   'test-tee-port-evidence.mjs',
+  'test-reducer-port-evidence.mjs',
   'test-support-benchmark.mjs',
   'test-support-benchmark-failures.mjs',
   'test-support-occurrence-boundaries.mjs',
