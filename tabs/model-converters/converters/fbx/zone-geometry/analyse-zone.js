@@ -9,6 +9,7 @@ import { buildSelectedZoneComponentCrosswalk } from '../parity/component-crosswa
 import { buildSolidFittingPortEvidence } from '../solid-fitting-ports/evidence.js?v=20260729-fbx2-direct-pipe-1';
 import { buildLiveZonePackageInputs } from '../zone-package/live-input.js';
 import { buildDerivedPortEvidence } from './derived-ports.js';
+import { scopeMappedStagedBranches } from './mapped-stage-scope.js';
 import { asZoneGeometryError } from './errors.js';
 import { prepareZoneGeometryEvidence } from './zone-evidence.js';
 import { ZONE_GEOMETRY_STATUS } from './constants.js';
@@ -68,10 +69,12 @@ async function branchFittingAnalysis(input, prepared, solidEvidence) {
       review: unavailableBranchFittingReview(mappingStatus),
     });
   }
+  const stagedBranches = scopeMappedStagedBranches(
+    input.stagedBranches, prepared.artifact);
   const componentCrosswalk = await buildSelectedZoneComponentCrosswalk({
     sourceGraph: prepared.canonicalGraph,
     zoneGeometryEvidence: prepared.artifact,
-    stagedBranches: input.stagedBranches,
+    stagedBranches,
   });
   const branchFittingEvidence = await buildBranchFittingPortEvidence({
     componentCrosswalk,
