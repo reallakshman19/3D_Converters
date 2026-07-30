@@ -13,6 +13,7 @@ function frozenState(value) {
     internalPipeJson: value.internalPipeJson,
     stagedJsonText: value.stagedJsonText,
     componentCrosswalkJson: value.componentCrosswalkJson,
+    connectivityJson: value.connectivityJson,
     branchFittingJson: value.branchFittingJson,
     inlineAssemblyJson: value.inlineAssemblyJson,
     autoPipeStatus: value.autoPipeStatus,
@@ -47,6 +48,15 @@ function runningProgress(runtime, generation, stage, onProgress) {
   onProgress?.(stage);
 }
 
+function connectivityMessage(result) {
+  const review = result.connectivityReview;
+  if (!review || review.status === 'MAPPING_REQUIRED') {
+    return ' Connectivity review requires approved mapped StagedJSON.';
+  }
+  const counts = review.counts;
+  return ` Connectivity: ${counts.internalLinkCount} internal, ${counts.boundaryLinkCount} boundary, ${counts.openPortCount} open ports.`;
+}
+
 function branchFittingMessage(result) {
   const review = result.branchFittingReview;
   if (!review || review.status === 'MAPPING_REQUIRED') return ' OLET review requires approved mapped StagedJSON.';
@@ -68,7 +78,7 @@ function completionMessage(result) {
     : ` PIPE-only release blocked: ${result.autoPipe.status}.`;
   const packageStatus = result.zonePackageError
     ? ` Package export unavailable: ${result.zonePackageError.code}.` : '';
-  return `${base}${pipes}${branchFittingMessage(result)}${inlineAssemblyMessage(result)}${packageStatus}`;
+  return `${base}${pipes}${connectivityMessage(result)}${branchFittingMessage(result)}${inlineAssemblyMessage(result)}${packageStatus}`;
 }
 
 function analysisInput(input, bundle) {
@@ -106,6 +116,7 @@ async function executeRun(runtime, input, onProgress) {
       internalPipeJson: result.autoPipe.internalPipeMappingJson,
       stagedJsonText: result.autoPipe.stagedJsonText,
       componentCrosswalkJson: result.componentCrosswalkJson,
+      connectivityJson: result.connectivityJson,
       branchFittingJson: result.branchFittingJson,
       inlineAssemblyJson: result.inlineAssemblyJson,
       autoPipeStatus: result.autoPipe.status,
@@ -135,8 +146,8 @@ export function createZoneAnalysisController({ parseBundle, analyse, onState = n
     phase, status, message,
     zoneGeometryJson: null, derivedPortJson: null,
     internalPipeJson: null, stagedJsonText: null,
-    componentCrosswalkJson: null, branchFittingJson: null,
-    inlineAssemblyJson: null,
+    componentCrosswalkJson: null, connectivityJson: null,
+    branchFittingJson: null, inlineAssemblyJson: null,
     autoPipeStatus: null, result: null,
   });
   runtime.invalidate = (reason = 'invalidated') => {

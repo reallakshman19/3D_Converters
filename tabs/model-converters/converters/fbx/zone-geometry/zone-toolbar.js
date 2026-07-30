@@ -1,23 +1,17 @@
 import { parseFbxGeometryBundleInWorker } from '../geometry-transport.js';
 import { analyseFbxZoneGeometry } from './analyse-zone.js?v=20260729-fbx2-direct-pipe-1';
 import { createZoneAnalysisController } from './analysis-controller.js';
+import { downloadZoneArtifact } from './zone-artifact-actions.js';
 import { installMappedStageCapture } from './mapped-stage-capture.js';
 import { mappedStageStatusText } from './mapped-stage-output.js';
-import {
-  buildFbxAutoPipeOutputName,
-  buildFbxBranchFittingDownloadName,
-  buildFbxDerivedPortDownloadName,
-  buildFbxInlineAssemblyDownloadName,
-  buildFbxInternalPipeDownloadName,
-  buildFbxZoneGeometryDownloadName,
-  triggerJsonDownload,
-} from './zone-downloads.js';
+import { buildFbxAutoPipeOutputName } from './zone-downloads.js';
 import { bindZoneReviewDownloads, installZoneReviewPanels, renderZoneReviewPanels,
   updateZoneReviewDownloads } from './zone-review-panels.js';
 import { buildFbxZoneWireframeMetaText } from './wireframe-preview.js';
 
-export { buildFbxBranchFittingDownloadName, buildFbxDerivedPortDownloadName,
-  buildFbxInlineAssemblyDownloadName, buildFbxInternalPipeDownloadName, buildFbxZoneGeometryDownloadName } from './zone-downloads.js';
+export { buildFbxBranchFittingDownloadName, buildFbxConnectivityDownloadName,
+  buildFbxDerivedPortDownloadName, buildFbxInlineAssemblyDownloadName,
+  buildFbxInternalPipeDownloadName, buildFbxZoneGeometryDownloadName } from './zone-downloads.js';
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const RUN_EVENT = 'model-converters:fbx-zone-geometry-run';
 const AUTO_PIPE_OUTPUT_EVENT = 'model-converters:fbx-auto-pipe-outputs';
@@ -191,29 +185,13 @@ async function runAnalysis(controller) {
   } catch { /* Controller publishes the closed terminal state. */ }
 }
 
-function artifactText(state, kind) {
-  if (kind === 'zone') return state.zoneGeometryJson;
-  if (kind === 'port') return state.derivedPortJson;
-  if (kind === 'pipe') return state.internalPipeJson;
-  if (kind === 'branch-fitting') return state.branchFittingJson;
-  return state.inlineAssemblyJson;
-}
-
-function artifactName(controller, selection, kind) {
-  const source = controller.runInput?.sourceName;
-  if (kind === 'zone') return buildFbxZoneGeometryDownloadName(source, selection.zoneLabel);
-  if (kind === 'port') return buildFbxDerivedPortDownloadName(source, selection.zoneLabel);
-  if (kind === 'pipe') return buildFbxInternalPipeDownloadName(source, selection.zoneLabel);
-  if (kind === 'branch-fitting') {
-    return buildFbxBranchFittingDownloadName(source, selection.zoneLabel);
-  }
-  return buildFbxInlineAssemblyDownloadName(source, selection.zoneLabel);
-}
-
 function downloadArtifact(controller, kind) {
-  const state = controller.analysis.snapshot(), selection = selectedZone(controller);
-  const text = artifactText(state, kind);
-  if (text) triggerJsonDownload(text, artifactName(controller, selection, kind));
+  const selection = selectedZone(controller);
+  downloadZoneArtifact({
+    state: controller.analysis.snapshot(), kind,
+    sourceName: controller.runInput?.sourceName,
+    zoneLabel: selection.zoneLabel,
+  });
 }
 
 function bindControls(controller) {
@@ -223,8 +201,7 @@ function bindControls(controller) {
   controller.zoneDownload.addEventListener('click', () => downloadArtifact(controller, 'zone'));
   controller.portDownload.addEventListener('click', () => downloadArtifact(controller, 'port'));
   controller.pipeDownload.addEventListener('click', () => downloadArtifact(controller, 'pipe'));
-  bindZoneReviewDownloads(controller.reviewPanels, (kind) =>
-    downloadArtifact(controller, kind));
+  bindZoneReviewDownloads(controller.reviewPanels, (kind) => downloadArtifact(controller, kind));
 }
 
 function handlePreview(container, event) {

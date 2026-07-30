@@ -65,6 +65,7 @@ const tests = [
   'test-branch-fitting-production-capability.mjs',
   'test-inline-assembly-production-capability.mjs',
   'test-inline-assembly-mapping.mjs',
+  'test-connectivity-production-capability.mjs',
   'test-support-benchmark.mjs',
   'test-support-benchmark-failures.mjs',
   'test-support-occurrence-boundaries.mjs',
