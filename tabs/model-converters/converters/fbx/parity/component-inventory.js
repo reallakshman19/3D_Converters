@@ -3,6 +3,7 @@ import { deepFreeze } from '../canonical-json.js';
 const SOURCE_GRAPH_SCHEMA = 'FbxSourceGraph.v2';
 const ZONE_EVIDENCE_SCHEMA = 'FbxZoneGeometryEvidence.v1';
 const SUPPORT_TYPES = new Set(['SUPPORT', 'ATTA']);
+const GAP_METHOD = 'EXPLICIT_LINK_STRAIGHT_GAP_V1';
 
 function fail(message) {
   throw new TypeError(`FBX component crosswalk: ${message}`);
@@ -119,13 +120,25 @@ function isSupport(record) {
   return SUPPORT_TYPES.has(upper(record?.type)) || SUPPORT_TYPES.has(rawTypeOf(record));
 }
 
+function mappedGeneration(attributes) {
+  const value = attributes.mappingEngineering?.generationProvenance;
+  return isObject(value) ? value : null;
+}
+
 function generationEvidence(attributes) {
-  const method = explicitValue(attributes, ['generationMethod', 'GENERATION_METHOD']);
-  const flagged = trueFlag(attributes.AUTO_GENERATED_PIPE) || trueFlag(attributes.generated);
+  const mapped = mappedGeneration(attributes);
+  const method = explicitValue(attributes, ['generationMethod', 'GENERATION_METHOD'])
+    ?? text(mapped?.generationMethod);
+  const flagged = trueFlag(attributes.AUTO_GENERATED_PIPE)
+    || trueFlag(attributes.generated) || mapped?.generated === true;
   const generated = flagged || method !== null;
   const generationProvenanceStatus = !generated ? 'NOT_APPLICABLE'
     : method ? 'EVIDENCED' : 'UNRESOLVED';
-  return { generated, generationMethod: generated ? method : null, generationProvenanceStatus };
+  return {
+    generated,
+    generationMethod: generated ? method : null,
+    generationProvenanceStatus,
+  };
 }
 
 function managedRecordId(branchId, child, childIndex) {

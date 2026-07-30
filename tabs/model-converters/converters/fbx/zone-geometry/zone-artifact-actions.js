@@ -2,6 +2,7 @@ import {
   buildFbxBranchFittingDownloadName,
   buildFbxConnectivityDownloadName,
   buildFbxDerivedPortDownloadName,
+  buildFbxGeneratedGapPipeDownloadName,
   buildFbxInlineAssemblyDownloadName,
   buildFbxInternalPipeDownloadName,
   buildFbxZoneGeometryDownloadName,
@@ -13,6 +14,7 @@ const TEXT_FIELDS = Object.freeze({
   port: 'derivedPortJson',
   pipe: 'internalPipeJson',
   connectivity: 'connectivityJson',
+  'generated-gap-pipe': 'generatedGapPipeJson',
   'branch-fitting': 'branchFittingJson',
   'inline-assembly': 'inlineAssemblyJson',
 });
@@ -22,6 +24,7 @@ const NAME_BUILDERS = Object.freeze({
   port: buildFbxDerivedPortDownloadName,
   pipe: buildFbxInternalPipeDownloadName,
   connectivity: buildFbxConnectivityDownloadName,
+  'generated-gap-pipe': buildFbxGeneratedGapPipeDownloadName,
   'branch-fitting': buildFbxBranchFittingDownloadName,
   'inline-assembly': buildFbxInlineAssemblyDownloadName,
 });

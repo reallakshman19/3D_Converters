@@ -14,6 +14,7 @@ function frozenState(value) {
     stagedJsonText: value.stagedJsonText,
     componentCrosswalkJson: value.componentCrosswalkJson,
     connectivityJson: value.connectivityJson,
+    generatedGapPipeJson: value.generatedGapPipeJson,
     branchFittingJson: value.branchFittingJson,
     inlineAssemblyJson: value.inlineAssemblyJson,
     autoPipeStatus: value.autoPipeStatus,
@@ -57,6 +58,14 @@ function connectivityMessage(result) {
   return ` Connectivity: ${counts.internalLinkCount} internal, ${counts.boundaryLinkCount} boundary, ${counts.openPortCount} open ports.`;
 }
 
+function gapPipeMessage(result) {
+  const review = result.generatedGapPipeReview;
+  if (!review || review.status === 'MAPPING_REQUIRED') {
+    return ' Generated gap PIPE review requires approved mapped StagedJSON.';
+  }
+  return ` Generated gap PIPEs: ${review.counts.generatedPipeCount} released, ${review.counts.blockedCandidateCount} blocked.`;
+}
+
 function branchFittingMessage(result) {
   const review = result.branchFittingReview;
   if (!review || review.status === 'MAPPING_REQUIRED') return ' OLET review requires approved mapped StagedJSON.';
@@ -78,7 +87,7 @@ function completionMessage(result) {
     : ` PIPE-only release blocked: ${result.autoPipe.status}.`;
   const packageStatus = result.zonePackageError
     ? ` Package export unavailable: ${result.zonePackageError.code}.` : '';
-  return `${base}${pipes}${connectivityMessage(result)}${branchFittingMessage(result)}${inlineAssemblyMessage(result)}${packageStatus}`;
+  return `${base}${pipes}${connectivityMessage(result)}${gapPipeMessage(result)}${branchFittingMessage(result)}${inlineAssemblyMessage(result)}${packageStatus}`;
 }
 
 function analysisInput(input, bundle) {
@@ -117,6 +126,7 @@ async function executeRun(runtime, input, onProgress) {
       stagedJsonText: result.autoPipe.stagedJsonText,
       componentCrosswalkJson: result.componentCrosswalkJson,
       connectivityJson: result.connectivityJson,
+      generatedGapPipeJson: result.generatedGapPipeJson,
       branchFittingJson: result.branchFittingJson,
       inlineAssemblyJson: result.inlineAssemblyJson,
       autoPipeStatus: result.autoPipe.status,
@@ -147,6 +157,7 @@ export function createZoneAnalysisController({ parseBundle, analyse, onState = n
     zoneGeometryJson: null, derivedPortJson: null,
     internalPipeJson: null, stagedJsonText: null,
     componentCrosswalkJson: null, connectivityJson: null,
+    generatedGapPipeJson: null,
     branchFittingJson: null, inlineAssemblyJson: null,
     autoPipeStatus: null, result: null,
   });

@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const [toolbar, shell, index, shim, scope, ports, worker, analysis, capture,
-  reviewUi, panels, inlineReviewUi, connectivityUi, artifactActions] = await Promise.all([
+  reviewUi, panels, inlineReviewUi, connectivityUi, artifactActions,
+  generatedGapUi, mappedScope] = await Promise.all([
   read('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js'),
   read('tabs/model-converters/ModelConvertersTab.js'),
   read('tabs/model-converters/index.js'),
@@ -19,6 +20,8 @@ const [toolbar, shell, index, shim, scope, ports, worker, analysis, capture,
   read('tabs/model-converters/converters/fbx/fitting-kernels/inline-assembly/review-ui.js'),
   read('tabs/model-converters/converters/fbx/fitting-kernels/connectivity/review-ui.js'),
   read('tabs/model-converters/converters/fbx/zone-geometry/zone-artifact-actions.js'),
+  read('tabs/model-converters/converters/fbx/generated-gap-pipe/review-ui.js'),
+  read('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-scope.js'),
 ]);
 
 for (const label of ['Analyse zone geometry', 'Download zone geometry evidence',
@@ -30,21 +33,29 @@ assert.match(inlineReviewUi, /Download inline assembly evidence/);
 assert.match(inlineReviewUi, /BLIND remains review-only/);
 assert.match(connectivityUi, /Download connectivity evidence/);
 assert.match(connectivityUi, /Explicit mapping links only/);
+assert.match(generatedGapUi, /Download generated gap PIPE evidence/);
+assert.match(generatedGapUi, /No proximity fallback/);
+assert.match(generatedGapUi, /data-fbx-generated-gap-pipe-profile-info/);
 assert.match(toolbar, /installMappedStageCapture/);
 assert.match(toolbar, /installZoneReviewPanels/);
 assert.match(panels, /installConnectivityReviewUi/);
+assert.match(panels, /installGeneratedGapPipeReviewUi/);
 assert.match(panels, /installBranchFittingReviewUi/);
 assert.match(panels, /installInlineAssemblyReviewUi/);
 assert.match(toolbar, /stagedBranches: controller\.runInput\.stagedBranches/);
 assert.match(toolbar, /downloadZoneArtifact/);
 assert.match(artifactActions, /connectivity: 'connectivityJson'/);
-assert.match(artifactActions, /buildFbxConnectivityDownloadName/);
+assert.match(artifactActions, /'generated-gap-pipe': 'generatedGapPipeJson'/);
+assert.match(artifactActions, /buildFbxGeneratedGapPipeDownloadName/);
 assert.match(capture, /extractMappedStagedBranches/);
 assert.match(analysis, /buildSelectedZoneComponentCrosswalk/);
 assert.match(analysis, /buildSelectedZoneConnectivityEvidence/);
+assert.match(analysis, /buildSelectedZoneGeneratedGapPipeEvidence/);
 assert.match(analysis, /buildBranchFittingPortEvidence/);
 assert.match(analysis, /buildInlineAssemblyPortEvidence/);
 assert.match(analysis, /scopeMappedStagedBranches/);
+assert.match(mappedScope, /generationProvenance/);
+assert.match(mappedScope, /sourceOccurrenceIds/);
 assert.match(toolbar, /bindFbxPrimaryInputInvalidation/);
 assert.match(toolbar, /A new FBX input was loaded; prior analysis was cleared/);
 assert.match(toolbar, /container\.addEventListener\('change', listener, true\)/);
