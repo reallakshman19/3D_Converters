@@ -53,6 +53,7 @@ async function optionalPackageInputs(input, prepared, pipeEvidence, mapped) {
       sourceGraph: prepared.canonicalGraph,
       scope: prepared.scope,
       selections: prepared.selections,
+      pipeClassifications: pipeEvidence.autoPipe.classificationDispositions,
       stagedBranches: mapped.stagedBranches,
       stagedJsonText: mapped.stagedBranches ? null
         : pipeEvidence.autoPipe.status === 'STAGEDJSON_PASS'
