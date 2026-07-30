@@ -14,6 +14,16 @@ on:
       - 'tabs/model-converters/converters/fbx/parser-provenance.js'
       - 'tabs/model-converters/converters/fbx/auto-pipe/**'
       - 'tabs/model-converters/converters/fbx/zone-geometry/**'
+      - 'tabs/model-converters/converters/fbx/generated-gap-pipe/**'
+      - 'tabs/model-converters/converters/fbx/fitting-kernels/connectivity/**'
+      - 'tabs/model-converters/converters/fbx/parity/component-inventory.js'
+      - 'tabs/model-converters/converters/fbx/conversion.js'
+      - 'tabs/model-converters/converters/fbx/conversion-core.js'
+      - 'tabs/model-converters/converters/fbx/connectivity.js'
+      - 'tabs/model-converters/converters/fbx/family-policy.js'
+      - 'tabs/model-converters/converters/fbx/mapping-validator.js'
+      - 'tabs/model-converters/converters/fbx/port-resolver.js'
+      - 'tabs/model-converters/converters/fbx/staged-writer.js'
       - 'third_party/ufbx/fbx_parser.wasm'
       - 'third_party/ufbx/provenance.json'
 
@@ -40,13 +50,38 @@ jobs:
           set -euo pipefail
           expected_wasm_sha="$(jq -r '.wasmSha256' third_party/ufbx/provenance.json)"
           expected_wasm_bytes="$(jq -r '.wasmByteLength' third_party/ufbx/provenance.json)"
-          expected_parser_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx/parser-wasm.js | cut -d' ' -f1)"
-          expected_converter_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx-to-stagedjson.js | cut -d' ' -f1)"
-          expected_selected_zone_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js | cut -d' ' -f1)"
-          expected_preview_selector_sha="$(sha256sum tabs/model-converters/fbx-preview-zone-selector.js | cut -d' ' -f1)"
-          expected_preview_recommendation_sha="$(sha256sum tabs/model-converters/fbx-preview-zone-recommendation.js | cut -d' ' -f1)"
           test "$expected_wasm_sha" != null
           test "$expected_wasm_bytes" != null
+
+          runtime_files=(
+            third_party/ufbx/provenance.json
+            third_party/ufbx/fbx_parser.wasm
+            tabs/model-converters/converters/fbx/parser-wasm.js
+            tabs/model-converters/converters/fbx-to-stagedjson.js
+            tabs/model-converters/converters/fbx/conversion.js
+            tabs/model-converters/converters/fbx/conversion-core.js
+            tabs/model-converters/converters/fbx/connectivity.js
+            tabs/model-converters/converters/fbx/family-policy.js
+            tabs/model-converters/converters/fbx/mapping-validator.js
+            tabs/model-converters/converters/fbx/port-resolver.js
+            tabs/model-converters/converters/fbx/staged-writer.js
+            tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js
+            tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js
+            tabs/model-converters/converters/fbx/zone-geometry/zone-review-panels.js
+            tabs/model-converters/converters/fbx/generated-gap-pipe/profile.js
+            tabs/model-converters/converters/fbx/generated-gap-pipe/endpoint-model.js
+            tabs/model-converters/converters/fbx/generated-gap-pipe/qualify.js
+            tabs/model-converters/converters/fbx/generated-gap-pipe/release.js
+            tabs/model-converters/converters/fbx/generated-gap-pipe/selected-evidence.js
+            tabs/model-converters/converters/fbx/generated-gap-pipe/review-model.js
+            tabs/model-converters/converters/fbx/generated-gap-pipe/review-ui.js
+            tabs/model-converters/converters/fbx/fitting-kernels/connectivity/component-reader.js
+            tabs/model-converters/converters/fbx/fitting-kernels/connectivity/evidence.js
+            tabs/model-converters/converters/fbx/fitting-kernels/connectivity/graph.js
+            tabs/model-converters/converters/fbx/parity/component-inventory.js
+            tabs/model-converters/fbx-preview-zone-selector.js
+            tabs/model-converters/fbx-preview-zone-recommendation.js
+          )
 
           rm -rf .pages-smoke
           mkdir -p .pages-smoke evidence
@@ -54,60 +89,32 @@ jobs:
           matched_attempt=0
           for attempt in $(seq 1 60); do
             cache_bust="commit=${GITHUB_SHA}&attempt=${attempt}"
-            if curl --fail --location --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                "$PAGES_ROOT/third_party/ufbx/provenance.json?$cache_bust" \
-                --output .pages-smoke/provenance.json \
-              && curl --fail --location --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                "$PAGES_ROOT/third_party/ufbx/fbx_parser.wasm?$cache_bust" \
-                --output .pages-smoke/fbx_parser.wasm \
-              && curl --fail --location --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                "$PAGES_ROOT/tabs/model-converters/converters/fbx/parser-wasm.js?$cache_bust" \
-                --output .pages-smoke/parser-wasm.js \
-              && curl --fail --location --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                "$PAGES_ROOT/tabs/model-converters/converters/fbx-to-stagedjson.js?$cache_bust" \
-                --output .pages-smoke/fbx-to-stagedjson.js \
-              && curl --fail --location --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                "$PAGES_ROOT/tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js?$cache_bust" \
-                --output .pages-smoke/selected-zone-auto-pipe.js \
-              && curl --fail --location --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                "$PAGES_ROOT/tabs/model-converters/fbx-preview-zone-selector.js?$cache_bust" \
-                --output .pages-smoke/fbx-preview-zone-selector.js \
-              && curl --fail --location --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                "$PAGES_ROOT/tabs/model-converters/fbx-preview-zone-recommendation.js?$cache_bust" \
-                --output .pages-smoke/fbx-preview-zone-recommendation.js; then
-              deployed_wasm_sha="$(sha256sum .pages-smoke/fbx_parser.wasm | cut -d' ' -f1)"
-              deployed_wasm_bytes="$(stat -c '%s' .pages-smoke/fbx_parser.wasm)"
-              declared_wasm_sha="$(jq -r '.wasmSha256 // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
-              declared_wasm_bytes="$(jq -r '.wasmByteLength // empty' .pages-smoke/provenance.json 2>/dev/null || true)"
-              deployed_parser_runtime_sha="$(sha256sum .pages-smoke/parser-wasm.js | cut -d' ' -f1)"
-              deployed_converter_runtime_sha="$(sha256sum .pages-smoke/fbx-to-stagedjson.js | cut -d' ' -f1)"
-              deployed_selected_zone_runtime_sha="$(sha256sum .pages-smoke/selected-zone-auto-pipe.js | cut -d' ' -f1)"
-              deployed_preview_selector_sha="$(sha256sum .pages-smoke/fbx-preview-zone-selector.js | cut -d' ' -f1)"
-              deployed_preview_recommendation_sha="$(sha256sum .pages-smoke/fbx-preview-zone-recommendation.js | cut -d' ' -f1)"
-              if [[ "$deployed_wasm_sha" == "$expected_wasm_sha" \
-                  && "$deployed_wasm_bytes" == "$expected_wasm_bytes" \
-                  && "$declared_wasm_sha" == "$expected_wasm_sha" \
-                  && "$declared_wasm_bytes" == "$expected_wasm_bytes" \
-                  && "$deployed_parser_runtime_sha" == "$expected_parser_runtime_sha" \
-                  && "$deployed_converter_runtime_sha" == "$expected_converter_runtime_sha" \
-                  && "$deployed_selected_zone_runtime_sha" == "$expected_selected_zone_runtime_sha" \
-                  && "$deployed_preview_selector_sha" == "$expected_preview_selector_sha" \
-                  && "$deployed_preview_recommendation_sha" == "$expected_preview_recommendation_sha" ]]; then
-                matched=true
-                matched_attempt="$attempt"
+            download_ok=true
+            for file in "${runtime_files[@]}"; do
+              output=".pages-smoke/${file//\//__}"
+              if ! curl --fail --location --silent --show-error \
+                  --header 'Cache-Control: no-cache' \
+                  "$PAGES_ROOT/$file?$cache_bust" --output "$output"; then
+                download_ok=false
                 break
               fi
-              printf 'attempt=%s wasm=%s converter=%s selected_zone=%s preview_selector=%s preview_recommendation=%s\n' \
-                "$attempt" "$deployed_wasm_sha" "$deployed_converter_runtime_sha" \
-                "$deployed_selected_zone_runtime_sha" "$deployed_preview_selector_sha" \
-                "$deployed_preview_recommendation_sha"
+            done
+            if [[ "$download_ok" == true ]]; then
+              matched=true
+              for file in "${runtime_files[@]}"; do
+                output=".pages-smoke/${file//\//__}"
+                expected="$(sha256sum "$file" | cut -d' ' -f1)"
+                deployed="$(sha256sum "$output" | cut -d' ' -f1)"
+                if [[ "$expected" != "$deployed" ]]; then
+                  matched=false
+                  printf 'attempt=%s file=%s expected=%s deployed=%s\n' \
+                    "$attempt" "$file" "$expected" "$deployed"
+                fi
+              done
+            fi
+            if [[ "$matched" == true ]]; then
+              matched_attempt="$attempt"
+              break
             fi
             sleep 10
           done
@@ -117,17 +124,46 @@ jobs:
             exit 1
           fi
 
-          grep -F "fetch(url, { cache: 'no-store' })" .pages-smoke/parser-wasm.js
-          grep -F 'SELECTED_ZONE_EVIDENCE_PASS' .pages-smoke/fbx-to-stagedjson.js
-          grep -F 'fbxSelectedZoneMaxAttempts ?? 1' .pages-smoke/fbx-to-stagedjson.js
-          grep -F 'rankFbxAutoPipeZones' .pages-smoke/selected-zone-auto-pipe.js
-          grep -F 'PIPE_INFERENCE_NOT_RELEASED' .pages-smoke/selected-zone-auto-pipe.js
-          grep -F 'Auto-selected governed zone:' .pages-smoke/fbx-preview-zone-selector.js
-          grep -F 'resolveFbxPreviewAutoSelection' .pages-smoke/fbx-preview-zone-selector.js
-          grep -F 'selected-zone-classification-report' .pages-smoke/fbx-preview-zone-recommendation.js
+          deployed_wasm_sha="$(sha256sum .pages-smoke/third_party__ufbx__fbx_parser.wasm | cut -d' ' -f1)"
+          deployed_wasm_bytes="$(stat -c '%s' .pages-smoke/third_party__ufbx__fbx_parser.wasm)"
+          declared_wasm_sha="$(jq -r '.wasmSha256 // empty' .pages-smoke/third_party__ufbx__provenance.json)"
+          declared_wasm_bytes="$(jq -r '.wasmByteLength // empty' .pages-smoke/third_party__ufbx__provenance.json)"
+          test "$deployed_wasm_sha" = "$expected_wasm_sha"
+          test "$deployed_wasm_bytes" = "$expected_wasm_bytes"
+          test "$declared_wasm_sha" = "$expected_wasm_sha"
+          test "$declared_wasm_bytes" = "$expected_wasm_bytes"
 
-          provenance_sha="$(sha256sum .pages-smoke/provenance.json | cut -d' ' -f1)"
+          grep -F "fetch(url, { cache: 'no-store' })" .pages-smoke/tabs__model-converters__converters__fbx__parser-wasm.js
+          grep -F 'SELECTED_ZONE_EVIDENCE_PASS' .pages-smoke/tabs__model-converters__converters__fbx-to-stagedjson.js
+          grep -F 'fbxSelectedZoneMaxAttempts ?? 1' .pages-smoke/tabs__model-converters__converters__fbx-to-stagedjson.js
+          grep -F './fbx/conversion.js' .pages-smoke/tabs__model-converters__converters__fbx-to-stagedjson.js
+          grep -F './generated-gap-pipe/release.js' .pages-smoke/tabs__model-converters__converters__fbx__conversion-core.js
+          grep -F 'rankFbxAutoPipeZones' .pages-smoke/tabs__model-converters__converters__fbx__zone-geometry__selected-zone-auto-pipe.js
+          grep -F 'PIPE_INFERENCE_NOT_RELEASED' .pages-smoke/tabs__model-converters__converters__fbx__zone-geometry__selected-zone-auto-pipe.js
+          grep -F 'buildSelectedZoneGeneratedGapPipeEvidence' .pages-smoke/tabs__model-converters__converters__fbx__zone-geometry__analyse-zone.js
+          grep -F 'buildGeneratedGapPipeReviewModel' .pages-smoke/tabs__model-converters__converters__fbx__zone-geometry__analyse-zone.js
+          grep -F 'EXPLICIT_LINK_STRAIGHT_GAP_V1' .pages-smoke/tabs__model-converters__converters__fbx__generated-gap-pipe__profile.js
+          grep -F 'FbxGeneratedGapPipeEvidence.v1' .pages-smoke/tabs__model-converters__converters__fbx__generated-gap-pipe__release.js
+          grep -F 'sourceModelObjectId: null' .pages-smoke/tabs__model-converters__converters__fbx__generated-gap-pipe__release.js
+          grep -F 'gapReinferredInSelectedZone: false' .pages-smoke/tabs__model-converters__converters__fbx__generated-gap-pipe__selected-evidence.js
+          grep -F 'Auto-selected governed zone:' .pages-smoke/tabs__model-converters__fbx-preview-zone-selector.js
+          grep -F 'resolveFbxPreviewAutoSelection' .pages-smoke/tabs__model-converters__fbx-preview-zone-selector.js
+          grep -F 'selected-zone-classification-report' .pages-smoke/tabs__model-converters__fbx-preview-zone-recommendation.js
+
+          provenance_sha="$(sha256sum .pages-smoke/third_party__ufbx__provenance.json | cut -d' ' -f1)"
+          parser_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx/parser-wasm.js | cut -d' ' -f1)"
+          converter_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx-to-stagedjson.js | cut -d' ' -f1)"
+          selected_zone_runtime_sha="$(sha256sum tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js | cut -d' ' -f1)"
+          preview_selector_sha="$(sha256sum tabs/model-converters/fbx-preview-zone-selector.js | cut -d' ' -f1)"
+          preview_recommendation_sha="$(sha256sum tabs/model-converters/fbx-preview-zone-recommendation.js | cut -d' ' -f1)"
+          hashes_file='.pages-smoke/runtime-hashes.txt'
+          : > "$hashes_file"
+          for file in "${runtime_files[@]}"; do
+            printf '%s  %s\n' "$(sha256sum "$file" | cut -d' ' -f1)" "$file" >> "$hashes_file"
+          done
+          runtime_chain_sha="$(sha256sum "$hashes_file" | cut -d' ' -f1)"
           verified_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
           jq -n \
             --arg schema 'FbxPagesParserDeploymentEvidence.v1' \
             --arg repositoryCommit "$GITHUB_SHA" \
@@ -135,7 +171,7 @@ jobs:
             --arg wasmSha256 "$expected_wasm_sha" \
             --argjson wasmByteLength "$expected_wasm_bytes" \
             --arg provenanceSha256 "$provenance_sha" \
-            --arg parserRuntimeSha256 "$expected_parser_runtime_sha" \
+            --arg parserRuntimeSha256 "$parser_runtime_sha" \
             --arg browserFetchPolicy 'no-store' \
             --argjson convergenceAttempt "$matched_attempt" \
             --arg verifiedAt "$verified_at" \
@@ -150,10 +186,10 @@ jobs:
             --arg schema 'FbxPagesSelectedZoneDeploymentEvidence.v1' \
             --arg repositoryCommit "$GITHUB_SHA" \
             --arg pagesRoot "$PAGES_ROOT" \
-            --arg converterRuntimeSha256 "$expected_converter_runtime_sha" \
-            --arg selectedZoneRuntimeSha256 "$expected_selected_zone_runtime_sha" \
-            --arg previewSelectorRuntimeSha256 "$expected_preview_selector_sha" \
-            --arg previewRecommendationRuntimeSha256 "$expected_preview_recommendation_sha" \
+            --arg converterRuntimeSha256 "$converter_runtime_sha" \
+            --arg selectedZoneRuntimeSha256 "$selected_zone_runtime_sha" \
+            --arg previewSelectorRuntimeSha256 "$preview_selector_sha" \
+            --arg previewRecommendationRuntimeSha256 "$preview_recommendation_sha" \
             --arg terminalStatus 'SELECTED_ZONE_EVIDENCE_PASS' \
             --arg defaultZoneAttemptLimit '1' \
             --arg selectionPolicy 'FbxSelectedZoneAutoPipePolicy.v1' \
@@ -170,17 +206,38 @@ jobs:
               convergenceAttempt:$convergenceAttempt,verifiedAt:$verifiedAt}' \
             > evidence/fbx-pages-selected-zone-deployment.json
 
+          jq -n \
+            --arg schema 'FbxPagesGeneratedGapRuntimeDeploymentEvidence.v1' \
+            --arg repositoryCommit "$GITHUB_SHA" \
+            --arg pagesRoot "$PAGES_ROOT" \
+            --arg runtimeChainSha256 "$runtime_chain_sha" \
+            --argjson runtimeModuleCount "${#runtime_files[@]}" \
+            --arg generationMethod 'EXPLICIT_LINK_STRAIGHT_GAP_V1' \
+            --arg connectivityAuthority 'explicit-mapping-port-links' \
+            --argjson sourceIdentityClaimedByGeneratedPipe false \
+            --argjson convergenceAttempt "$matched_attempt" \
+            --arg verifiedAt "$verified_at" \
+            '{schema:$schema,repositoryCommit:$repositoryCommit,pagesRoot:$pagesRoot,
+              runtimeChainSha256:$runtimeChainSha256,runtimeModuleCount:$runtimeModuleCount,
+              generationMethod:$generationMethod,connectivityAuthority:$connectivityAuthority,
+              sourceIdentityClaimedByGeneratedPipe:$sourceIdentityClaimedByGeneratedPipe,
+              convergenceAttempt:$convergenceAttempt,verifiedAt:$verifiedAt}' \
+            > evidence/fbx-pages-generated-gap-runtime-deployment.json
+
           {
             echo '### FBX Pages runtime deployment'
             echo
             echo "- repository commit: \`${GITHUB_SHA}\`"
             echo "- parser WASM SHA-256: \`${expected_wasm_sha}\`"
-            echo "- converter runtime SHA-256: \`${expected_converter_runtime_sha}\`"
-            echo "- selected-zone runtime SHA-256: \`${expected_selected_zone_runtime_sha}\`"
-            echo "- preview selector SHA-256: \`${expected_preview_selector_sha}\`"
-            echo "- preview recommendation SHA-256: \`${expected_preview_recommendation_sha}\`"
+            echo "- converter runtime SHA-256: \`${converter_runtime_sha}\`"
+            echo "- selected-zone runtime SHA-256: \`${selected_zone_runtime_sha}\`"
+            echo "- generated-gap runtime-chain SHA-256: \`${runtime_chain_sha}\`"
+            echo "- generated-gap runtime modules: \`${#runtime_files[@]}\`"
+            echo "- preview selector SHA-256: \`${preview_selector_sha}\`"
+            echo "- preview recommendation SHA-256: \`${preview_recommendation_sha}\`"
             echo "- convergence attempt: \`${matched_attempt}\`"
             echo '- selected-zone terminal status: `SELECTED_ZONE_EVIDENCE_PASS`'
+            echo '- generated-gap authority: `EXPLICIT_LINK_STRAIGHT_GAP_V1`'
             echo '- default attempted zones: `1`'
             echo '- preview auto-selection: `governed-selected-zone-once`'
             echo '- browser fetch policy: `no-store`'
@@ -193,8 +250,19 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add evidence/fbx-pages-parser-deployment.json \
-            evidence/fbx-pages-selected-zone-deployment.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'evidence(fbx): record deployed selected-zone runtime'
-            git push origin HEAD:main
+            evidence/fbx-pages-selected-zone-deployment.json \
+            evidence/fbx-pages-generated-gap-runtime-deployment.json
+          if git diff --cached --quiet; then
+            exit 0
           fi
+          git commit -m 'evidence(fbx): record deployed selected-zone runtime'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo 'Unable to publish selected-zone deployment evidence after five synchronized attempts.' >&2
+          exit 1
