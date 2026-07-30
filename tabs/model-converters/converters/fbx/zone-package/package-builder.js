@@ -1,5 +1,6 @@
 import { canonicalJson } from '../canonical-json.js';
 import { sha256Hex } from '../sha256.js';
+import { buildPackageArtifactFiles } from './package-artifacts.js';
 import { validateSelectedZoneGeometryManifest } from './geometry-manifest.js';
 import { validateSupportCandidateEvidence } from './support-evidence.js';
 import { validateSelectedZonePackage } from './package-validation.js';
@@ -111,15 +112,17 @@ async function validatedSupportEvidence(value, manifest) {
   }
   return textFile('support-evidence.json', canonicalJson(value));
 }
-function physicalFiles(manifestFile, geometryFileList, stagedFile, supportFile) {
+function physicalFiles(manifestFile, geometryFileList, stagedFile, supportFile,
+  artifactFiles) {
   return [
     manifestFile, ...geometryFileList,
     ...(stagedFile ? [stagedFile] : []),
     ...(supportFile ? [supportFile] : []),
+    ...artifactFiles,
   ].sort(comparePath);
 }
 async function auditFor(manifest, manifestFile, physical, stagedFile, supportFile,
-  stagedJsonOmissionReason, supportEvidenceOmissionReason) {
+  stagedJsonOmissionReason, supportEvidenceOmissionReason, omittedArtifacts) {
   const records = await Promise.all(
     physical.map((file) => presentRecord(file.role, file)));
   if (!stagedFile) {
@@ -130,6 +133,7 @@ async function auditFor(manifest, manifestFile, physical, stagedFile, supportFil
     records.push(omittedRecord('SUPPORT_EVIDENCE', 'support-evidence.json',
       supportEvidenceOmissionReason));
   }
+  records.push(...omittedArtifacts);
   records.sort(comparePath);
   const auditBase = {
     schema: FBX_ZONE_PACKAGE_SCHEMAS.packageAudit,
@@ -150,6 +154,7 @@ export { validateSelectedZonePackage } from './package-validation.js';
 
 export async function buildSelectedZonePackage({
   manifest, buffersByGeometryId, stagedJsonText = null, supportEvidence = null,
+  artifacts = {}, artifactOmissionReasons = {},
   stagedJsonOmissionReason = 'StagedJSON was not produced for this selected zone.',
   supportEvidenceOmissionReason = 'Support evidence was not produced for this selected zone.',
 } = {}) {
@@ -163,15 +168,16 @@ export async function buildSelectedZonePackage({
   const supportValue = await validatedSupportEvidence(supportEvidence, manifest);
   const supportFile = supportValue
     ? { role: 'SUPPORT_EVIDENCE', ...supportValue } : null;
+  const packagedArtifacts = buildPackageArtifactFiles(artifacts, artifactOmissionReasons);
   const physical = physicalFiles(
-    manifestFile, geometryFileList, stagedFile, supportFile);
+    manifestFile, geometryFileList, stagedFile, supportFile, packagedArtifacts.files);
   if (physical.length + 1 > FBX_ZONE_PACKAGE_LIMITS.maxPackageFiles) {
     fail('ZONE_PACKAGE_LIMIT_EXCEEDED',
       `package file count exceeds ${FBX_ZONE_PACKAGE_LIMITS.maxPackageFiles}.`);
   }
   const audit = await auditFor(
     manifest, manifestFile, physical, stagedFile, supportFile,
-    stagedJsonOmissionReason, supportEvidenceOmissionReason);
+    stagedJsonOmissionReason, supportEvidenceOmissionReason, packagedArtifacts.omitted);
   const files = [
     ...physical.map(({ path, bytes }) => ({ path, bytes })),
     textFile('audit.json', canonicalJson(audit)),
