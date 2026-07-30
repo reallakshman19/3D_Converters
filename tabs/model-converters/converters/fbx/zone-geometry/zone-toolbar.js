@@ -4,7 +4,7 @@ import {
   renderBranchFittingReviewUi,
   setBranchFittingDownloadAvailability,
 } from '../fitting-kernels/branch-fitting/review-ui.js';
-import { analyseFbxZoneGeometry } from './analyse-zone.js?v=20260730-fbx-olet-review-1';
+import { analyseFbxZoneGeometry } from './analyse-zone.js?v=20260729-fbx2-direct-pipe-1';
 import { createZoneAnalysisController } from './analysis-controller.js';
 import { installMappedStageCapture } from './mapped-stage-capture.js';
 import { mappedStageStatusText } from './mapped-stage-output.js';
