@@ -11,6 +11,7 @@ import {
   extractMappedStagedBranches,
   mappedStageStatusText,
 } from '../../tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-output.js';
+import { scopeMappedStagedBranches } from '../../tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-scope.js';
 import {
   buildBranchFittingReviewModel,
   unavailableBranchFittingReview,
@@ -133,6 +134,13 @@ async function main() {
   assert.equal(captured.stagedBranches[0].children[0].type, 'OLET');
   assert.match(mappedStageStatusText(captured.status), /selected-zone OLET review/);
   assert.equal(extractMappedStagedBranches({ conversionStatus: 'SOURCE_GRAPH_JSON_PASS' }).stagedBranches, null);
+  const scoped = scopeMappedStagedBranches([{ type: 'BRANCH', children: [
+    { type: 'OLET', attributes: { sourceOccurrenceId: 'occ:1' } },
+    { type: 'OLET', attributes: { sourceOccurrenceId: 'occ:2' } },
+  ] }], { selectedOccurrenceIds: ['occ:1'] });
+  assert.equal(scoped.length, 1);
+  assert.equal(scoped[0].children.length, 1);
+  assert.equal(scoped[0].children[0].attributes.sourceOccurrenceId, 'occ:1');
 
   const model = buildBranchFittingReviewModel(evidence());
   assert.equal(model.status, 'PARTIAL');
