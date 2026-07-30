@@ -1,8 +1,10 @@
 import { compareText } from '../../zone-geometry/compare.js';
 
+const GAP_METHOD = 'EXPLICIT_LINK_STRAIGHT_GAP_V1';
 const BLOCKING_CODES = new Set([
   'MISSING_CROSSWALK_RECORD',
   'UNRESOLVED_SOURCE_BINDING',
+  'UNSUPPORTED_GENERATED_AUTHORITY',
   'MULTIPLE_PORT_CONNECTIONS',
   'SELF_LINK',
   'ASYMMETRIC_LINK',
@@ -46,11 +48,27 @@ function explicitPairSet(component) {
   return new Set(component.explicitConnectivity.map((pair) => pair.pairKey));
 }
 
+function generatedAuthority(component, record) {
+  const provenance = component.generationProvenance;
+  return record.disposition === 'GENERATED_MANAGED_COMPONENT'
+    && record.generationProvenanceStatus === 'EVIDENCED'
+    && provenance?.generated === true
+    && provenance.generationMethod === GAP_METHOD;
+}
+
 function authorityDisposition(component, crosswalk, diagnostics) {
   const record = crosswalk.get(component.managedRecordId);
   if (!record) {
     diagnostics.push(diagnostic('MISSING_CROSSWALK_RECORD', component.managedRecordId,
       'Mapped component is absent from the selected-zone component crosswalk.'));
+    return { disposition: 'BLOCKED', exactSourceOccurrenceId: null };
+  }
+  if (generatedAuthority(component, record)) {
+    return { disposition: 'EVIDENCED', exactSourceOccurrenceId: null };
+  }
+  if (record.disposition === 'GENERATED_MANAGED_COMPONENT') {
+    diagnostics.push(diagnostic('UNSUPPORTED_GENERATED_AUTHORITY', component.managedRecordId,
+      `Generated component method is ${component.generationProvenance?.generationMethod || 'UNRESOLVED'}.`));
     return { disposition: 'BLOCKED', exactSourceOccurrenceId: null };
   }
   if (record.disposition !== 'MATCHED_SOURCE_COMPONENT' || !record.exactSourceOccurrenceId) {
