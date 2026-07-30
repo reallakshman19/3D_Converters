@@ -9,7 +9,9 @@ const CROSSWALK_SCHEMA = 'FbxSelectedZoneComponentCrosswalk.v1';
 const AUTHORITY = Object.freeze({
   componentIdentityAuthority: CROSSWALK_SCHEMA,
   connectivityAuthority: 'explicit-mapping-port-links',
-  exactSourceBindingRequired: true,
+  exactSourceBindingRequiredForSourceComponents: true,
+  generatedGapPipeAuthority: 'EXPLICIT_LINK_STRAIGHT_GAP_V1',
+  generatedComponentsRequirePublishedProvenance: true,
   proximityConnectionsAccepted: false,
   geometricConnectionsInferred: false,
   flowDirectionInferred: false,
