@@ -46,6 +46,8 @@ function hostBindingValid(root, supportEvidence, hostEvidence, manifest) {
   const expectedStatus = hostEvidence?.status === 'PASS' ? 'PASS' : 'BLOCKED';
   return hostEvidence && check?.status === expectedStatus
     && hostEvidence.selectedZoneDigest === manifest.selectedZoneDigest
+    && hostEvidence.sourceZoneGeometryArtifactId
+      === root?.selectedZone?.zoneGeometryArtifactId
     && hostEvidence.sourceSupportEvidenceDigest === supportEvidence?.evidenceDigest
     && hostEvidence.sourceSupportCandidateCount === supportEvidence?.candidates?.length
     && check.evidence?.supportHostEvidenceDigest === hostEvidence.evidenceDigest
