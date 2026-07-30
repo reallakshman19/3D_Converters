@@ -1,9 +1,14 @@
+import { selectedZonePackageArtifactRoles } from './artifact-roles.js';
+
 export const FBX_ZONE_PACKAGE_SCHEMAS = Object.freeze({
   geometryManifest: 'FbxSelectedZoneGeometryManifest.v1',
   packageAudit: 'FbxSelectedZonePackageAudit.v1',
   supportEvidence: 'FbxSupportEvidence.v1',
   hostAuthorityBinding: 'FbxHostAuthorityBinding.v1',
   diagnosticLedger: 'FbxSelectedZoneDiagnosticLedger.v1',
+  selectedSourceGraph: 'FbxSelectedZoneSourceGraph.v1',
+  selectedEngineeringAttributes: 'FbxSelectedZoneEngineeringAttributeLedger.v1',
+  qualificationRoot: 'FbxSelectedZoneQualificationRoot.v1',
 });
 
 export const FBX_ZONE_PACKAGE_BUFFER_ROLES = Object.freeze([
@@ -17,7 +22,8 @@ export const FBX_ZONE_PACKAGE_ROLE_SPECS = Object.freeze({
 });
 
 export const FBX_ZONE_PACKAGE_FILE_ROLES = Object.freeze([
-  'MANIFEST', 'GEOMETRY_DESCRIPTOR', 'GEOMETRY_BUFFER', 'STAGEDJSON', 'SUPPORT_EVIDENCE',
+  'MANIFEST', 'GEOMETRY_DESCRIPTOR', 'GEOMETRY_BUFFER', 'STAGEDJSON',
+  'SUPPORT_EVIDENCE', ...selectedZonePackageArtifactRoles(),
 ]);
 
 export const FBX_ZONE_PACKAGE_LIMITS = Object.freeze({

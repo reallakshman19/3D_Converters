@@ -177,6 +177,8 @@ async function runAnalysis(controller) {
       zoneId: selection.zoneId,
       stagedBranches: controller.runInput.stagedBranches,
       mappedStageStatus: controller.runInput.mappedStageStatus,
+      engineeringAttributeLedger: controller.runInput.engineeringAttributeLedger,
+      engineeringAttributeStatus: controller.runInput.engineeringAttributeStatus,
     });
     if (!result?.stale) {
       renderWireframePreview(controller, result);
@@ -230,6 +232,8 @@ function startedRun(detail) {
     sourceBytes: detail.sourceBytes.slice(),
     mappedStageStatus: 'MAPPED_STAGE_NOT_AVAILABLE',
     stagedBranches: null,
+    engineeringAttributeStatus: 'ENGINEERING_ATTRIBUTE_LEDGER_NOT_AVAILABLE',
+    engineeringAttributeLedger: null,
   } : null;
 }
 
@@ -251,6 +255,8 @@ function handleRun(container, event) {
       sourceName: detail.sourceName,
       mappedStageStatus: detail.mappedStageStatus,
       stagedBranches: detail.stagedBranches,
+      engineeringAttributeStatus: detail.engineeringAttributeStatus,
+      engineeringAttributeLedger: detail.engineeringAttributeLedger,
     } : null;
     RUN_INPUTS.set(container, runInput);
     if (controller) {
