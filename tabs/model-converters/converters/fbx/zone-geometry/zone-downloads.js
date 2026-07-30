@@ -24,6 +24,10 @@ export function buildFbxConnectivityDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxSelectedZoneConnectivityEvidence.v1.json`;
 }
 
+export function buildFbxGeneratedGapPipeDownloadName(sourceName, zoneLabel) {
+  return `${prefix(sourceName, zoneLabel)}.FbxSelectedZoneGeneratedGapPipeEvidence.v1.json`;
+}
+
 export function buildFbxBranchFittingDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxBranchFittingPortEvidence.v1.json`;
 }
