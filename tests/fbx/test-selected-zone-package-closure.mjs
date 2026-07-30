@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { buildSupportHostAssociationEvidence } from '../../tabs/model-converters/converters/fbx/support-host/evidence.js';
 import { buildPackageArchive } from '../../tabs/model-converters/converters/fbx/zone-package/archive.js';
 import { buildSelectedZoneGeometryManifest } from '../../tabs/model-converters/converters/fbx/zone-package/geometry-manifest.js';
 import { buildSelectedZonePackage, validateSelectedZonePackage } from '../../tabs/model-converters/converters/fbx/zone-package/package-builder.js';
@@ -101,6 +102,10 @@ const selectedEngineering = await buildSelectedZoneEngineeringAttributeLedger({
 const supportEvidence = await buildSupportCandidateEvidence({
   selectedZoneDigest: manifest.selectedZoneDigest, occurrences: [],
 });
+const supportHostAssociationEvidence = await buildSupportHostAssociationEvidence({
+  supportEvidence, zoneGeometryEvidence, scope, selections: [],
+  pipeClassifications: [], manifest,
+});
 const artifacts = {
   ZONE_GEOMETRY_EVIDENCE: zoneGeometryEvidence,
   SELECTED_SOURCE_GRAPH: selectedSourceGraph,
@@ -115,12 +120,13 @@ const artifacts = {
   REDUCER_EVIDENCE: boundFitting('FbxReducerPortEvidence.v1'),
   BRANCH_FITTING_EVIDENCE: boundFitting('FbxBranchFittingPortEvidence.v1'),
   INLINE_ASSEMBLY_EVIDENCE: boundFitting('FbxInlineAssemblyPortEvidence.v1'),
+  SUPPORT_HOST_ASSOCIATION_EVIDENCE: supportHostAssociationEvidence,
 };
 const qualificationRoot = await buildSelectedZoneQualificationRoot({
   manifest, stagedBranches, artifacts, supportEvidence,
 });
 assert.equal(qualificationRoot.status, 'PASS');
-assert.equal(qualificationRoot.summary.passCount, 11);
+assert.equal(qualificationRoot.summary.passCount, 12);
 artifacts.QUALIFICATION_ROOT = qualificationRoot;
 const inputs = {
   manifest, buffersByGeometryId, stagedJsonText: JSON.stringify(stagedBranches),
@@ -132,15 +138,18 @@ const second = await buildSelectedZonePackage(inputs);
 assert.equal(first.audit.packageDigest, second.audit.packageDigest);
 assert.equal(first.audit.files.find((item) => item.role === 'QUALIFICATION_ROOT').disposition, 'PRESENT');
 assert.equal(first.audit.files.find((item) => item.role === 'SUPPORT_EVIDENCE').disposition, 'PRESENT');
+assert.equal(first.audit.files.find((item) => item.role === 'SUPPORT_HOST_ASSOCIATION_EVIDENCE').disposition, 'PRESENT');
 assert.equal(first.audit.files.find((item) => item.role === 'GENERATED_GAP_PIPE_EVIDENCE').disposition, 'OMITTED_BLOCKED');
 const validated = await validateSelectedZonePackage(first);
 assert.equal(validated.artifacts.QUALIFICATION_ROOT.status, 'PASS');
+assert.equal(validated.artifacts.SUPPORT_HOST_ASSOCIATION_EVIDENCE.status, 'PASS');
 const archiveA = await buildPackageArchive(first.files);
 const archiveB = await buildPackageArchive(second.files);
 assert.equal(archiveA.sha256, archiveB.sha256);
 await contract('fbx-selected-zone-package-audit.v1.schema.json', first.audit);
 await contract('fbx-selected-zone-source-graph.v1.schema.json', selectedSourceGraph);
 await contract('fbx-selected-zone-engineering-attribute-ledger.v1.schema.json', selectedEngineering);
+await contract('fbx-support-host-association-evidence.v1.schema.json', supportHostAssociationEvidence);
 await contract('fbx-selected-zone-qualification-root.v1.schema.json', qualificationRoot);
 const tampered = structuredClone(first);
 const engineeringFile = tampered.files.find((item) => item.path === 'evidence/engineering-attributes.json');
