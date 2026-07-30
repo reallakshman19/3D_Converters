@@ -117,7 +117,10 @@ export function executeMapping(mapping, graph, compatibility) {
 }
 
 function familyCounts(entries) {
-  const families = ['PIPE', 'ELBOW', 'TEE', 'REDUCER', 'BRANCH_FITTING', 'FLANGE', 'VALVE'];
+  const families = [
+    'PIPE', 'ELBOW', 'TEE', 'REDUCER', 'BRANCH_FITTING',
+    'FLANGE', 'GASKET', 'VALVE', 'INSTRUMENT',
+  ];
   return Object.fromEntries(families.map((type) => [
     type, entries.filter((entry) => entry.componentType === type).length,
   ]));

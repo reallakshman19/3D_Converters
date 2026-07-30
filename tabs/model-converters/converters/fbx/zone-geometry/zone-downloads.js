@@ -24,6 +24,10 @@ export function buildFbxBranchFittingDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxBranchFittingPortEvidence.v1.json`;
 }
 
+export function buildFbxInlineAssemblyDownloadName(sourceName, zoneLabel) {
+  return `${prefix(sourceName, zoneLabel)}.FbxInlineAssemblyPortEvidence.v1.json`;
+}
+
 export function buildFbxAutoPipeOutputName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.auto-pipe.staged.json`;
 }

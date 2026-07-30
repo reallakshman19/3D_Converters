@@ -159,16 +159,18 @@ async function main() {
   const paths = [
     'tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js',
     'tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js',
+    'tabs/model-converters/converters/fbx/zone-geometry/zone-review-panels.js',
     'tabs/model-converters/converters/fbx/conversion-core.js',
     'tabs/model-converters/converters/fbx/staged-writer.js',
   ];
   const files = await Promise.all(paths.map((path) => readFile(new URL(path, root), 'utf8')));
   assert.match(files[0], /buildSelectedZoneComponentCrosswalk/);
   assert.match(files[0], /buildBranchFittingPortEvidence/);
-  assert.match(files[1], /installBranchFittingReviewUi/);
+  assert.match(files[1], /installZoneReviewPanels/);
+  assert.match(files[2], /installBranchFittingReviewUi/);
   assert.match(files[1], /stagedBranches: controller\.runInput\.stagedBranches/);
-  assert.match(files[2], /BRANCH_FITTING/);
-  assert.match(files[3], /nativeTypeFor\(entry\.componentType\)/);
+  assert.match(files[3], /BRANCH_FITTING/);
+  assert.match(files[4], /nativeTypeFor\(entry\.componentType\)/);
   console.log('PASS test-branch-fitting-production-capability');
 }
 

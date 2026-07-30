@@ -5,6 +5,11 @@ import {
   buildBranchFittingReviewModel,
   unavailableBranchFittingReview,
 } from '../fitting-kernels/branch-fitting/review-model.js';
+import { buildInlineAssemblyPortEvidence } from '../fitting-kernels/inline-assembly/evidence.js';
+import {
+  buildInlineAssemblyReviewModel,
+  unavailableInlineAssemblyReview,
+} from '../fitting-kernels/inline-assembly/review-model.js';
 import { buildSelectedZoneComponentCrosswalk } from '../parity/component-crosswalk.js';
 import { buildSolidFittingPortEvidence } from '../solid-fitting-ports/evidence.js?v=20260729-fbx2-direct-pipe-1';
 import { buildLiveZonePackageInputs } from '../zone-package/live-input.js';
@@ -60,15 +65,19 @@ async function gatherPipeEvidence(prepared) {
   return { derivedPortEvidence, closedSolidPipeEvidence, autoPipe };
 }
 
-async function branchFittingAnalysis(input, prepared, solidEvidence) {
+function unavailableMappedAnalysis(mappingStatus) {
+  return Object.freeze({
+    componentCrosswalk: null,
+    branchFittingEvidence: null,
+    branchFittingReview: unavailableBranchFittingReview(mappingStatus),
+    inlineAssemblyEvidence: null,
+    inlineAssemblyReview: unavailableInlineAssemblyReview(mappingStatus),
+  });
+}
+
+async function mappedComponentAnalysis(input, prepared, solidEvidence) {
   const mappingStatus = input.mappedStageStatus || 'MAPPED_STAGE_NOT_AVAILABLE';
-  if (!Array.isArray(input.stagedBranches)) {
-    return Object.freeze({
-      status: 'MAPPING_REQUIRED', componentCrosswalk: null,
-      branchFittingEvidence: null,
-      review: unavailableBranchFittingReview(mappingStatus),
-    });
-  }
+  if (!Array.isArray(input.stagedBranches)) return unavailableMappedAnalysis(mappingStatus);
   const stagedBranches = scopeMappedStagedBranches(
     input.stagedBranches, prepared.artifact);
   const componentCrosswalk = await buildSelectedZoneComponentCrosswalk({
@@ -80,14 +89,24 @@ async function branchFittingAnalysis(input, prepared, solidEvidence) {
     componentCrosswalk,
     solidFittingPortEvidence: solidEvidence,
   });
+  const inlineAssemblyEvidence = await buildInlineAssemblyPortEvidence({
+    componentCrosswalk,
+    solidFittingPortEvidence: solidEvidence,
+  });
   return Object.freeze({
-    status: 'EVALUATED', componentCrosswalk, branchFittingEvidence,
-    review: buildBranchFittingReviewModel(branchFittingEvidence, mappingStatus),
+    componentCrosswalk,
+    branchFittingEvidence,
+    branchFittingReview: buildBranchFittingReviewModel(
+      branchFittingEvidence, mappingStatus),
+    inlineAssemblyEvidence,
+    inlineAssemblyReview: buildInlineAssemblyReviewModel(
+      inlineAssemblyEvidence, mappingStatus),
   });
 }
 
-function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPipe, branchFitting) {
-  const review = branchFitting.review;
+function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPipe, mapped) {
+  const branchReview = mapped.branchFittingReview;
+  const inlineReview = mapped.inlineAssemblyReview;
   return Object.freeze({
     selectedOccurrences: prepared.artifact.conservation.selectedOccurrenceCount,
     selectedGeometries: prepared.artifact.conservation.selectedGeometryCount,
@@ -97,9 +116,12 @@ function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPip
     admittedPipes: autoPipe.counts?.admittedPipes || 0,
     pipeLinks: autoPipe.counts?.links || 0,
     stagedBranches: autoPipe.counts?.branches || 0,
-    mappedBranchFittings: review.managedCount,
-    admittedBranchFittings: review.admittedCount,
-    blockedBranchFittings: review.blockedCount,
+    mappedBranchFittings: branchReview.managedCount,
+    admittedBranchFittings: branchReview.admittedCount,
+    blockedBranchFittings: branchReview.blockedCount,
+    mappedInlineAssemblies: inlineReview.managedCount,
+    admittedInlineAssemblies: inlineReview.admittedCount,
+    blockedInlineAssemblies: inlineReview.blockedCount,
   });
 }
 
@@ -114,7 +136,7 @@ export async function analyseFbxZoneGeometry(input) {
       scope: prepared.scope, selections: prepared.selections,
     });
     const pipeEvidence = await gatherPipeEvidence(prepared);
-    const branchFitting = await branchFittingAnalysis(
+    const mapped = await mappedComponentAnalysis(
       input, prepared, pipeEvidence.closedSolidPipeEvidence);
     const packageResult = await optionalPackageInputs(input, prepared, pipeEvidence.autoPipe);
     return Object.freeze({
@@ -122,20 +144,23 @@ export async function analyseFbxZoneGeometry(input) {
       zoneGeometryEvidence: prepared.artifact,
       derivedPortEvidence: pipeEvidence.derivedPortEvidence,
       closedSolidPipeEvidence: pipeEvidence.closedSolidPipeEvidence,
-      componentCrosswalk: branchFitting.componentCrosswalk,
-      branchFittingEvidence: branchFitting.branchFittingEvidence,
-      branchFittingReview: branchFitting.review,
+      componentCrosswalk: mapped.componentCrosswalk,
+      branchFittingEvidence: mapped.branchFittingEvidence,
+      branchFittingReview: mapped.branchFittingReview,
+      inlineAssemblyEvidence: mapped.inlineAssemblyEvidence,
+      inlineAssemblyReview: mapped.inlineAssemblyReview,
       wireframePreview,
       autoPipe: pipeEvidence.autoPipe,
       ...packageResult,
       zoneGeometryJson: canonicalJson(prepared.artifact),
       derivedPortJson: canonicalJson(pipeEvidence.derivedPortEvidence),
       closedSolidPipeJson: canonicalJson(pipeEvidence.closedSolidPipeEvidence),
-      componentCrosswalkJson: optionalJson(branchFitting.componentCrosswalk),
-      branchFittingJson: optionalJson(branchFitting.branchFittingEvidence),
+      componentCrosswalkJson: optionalJson(mapped.componentCrosswalk),
+      branchFittingJson: optionalJson(mapped.branchFittingEvidence),
+      inlineAssemblyJson: optionalJson(mapped.inlineAssemblyEvidence),
       counts: analysisCounts(
         prepared, pipeEvidence.derivedPortEvidence, wireframePreview,
-        pipeEvidence.autoPipe, branchFitting),
+        pipeEvidence.autoPipe, mapped),
     });
   } catch (error) {
     throw asZoneGeometryError(error);

@@ -63,6 +63,8 @@ const tests = [
   'test-reducer-port-evidence.mjs',
   'test-branch-fitting-port-evidence.mjs',
   'test-branch-fitting-production-capability.mjs',
+  'test-inline-assembly-production-capability.mjs',
+  'test-inline-assembly-mapping.mjs',
   'test-support-benchmark.mjs',
   'test-support-benchmark-failures.mjs',
   'test-support-occurrence-boundaries.mjs',
