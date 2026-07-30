@@ -7,6 +7,7 @@ import { buildSelectedZonePackage, validateSelectedZonePackage } from '../../tab
 import { buildSelectedZoneQualificationRoot } from '../../tabs/model-converters/converters/fbx/zone-package/qualification-root.js';
 import { buildSelectedZoneEngineeringAttributeLedger } from '../../tabs/model-converters/converters/fbx/zone-package/selected-engineering-attributes.js';
 import { buildSelectedZoneSourceGraph } from '../../tabs/model-converters/converters/fbx/zone-package/selected-source-graph.js';
+import { buildSupportCandidateEvidence } from '../../tabs/model-converters/converters/fbx/zone-package/support-evidence.js';
 
 function schemaErrors(schema, instance) {
   const program = `
@@ -97,6 +98,9 @@ assert.equal(selectedSourceGraph.geometries[0].coordinatePayloadDisposition,
 const selectedEngineering = await buildSelectedZoneEngineeringAttributeLedger({
   engineeringAttributeLedger: globalEngineering, componentCrosswalk, zoneGeometryEvidence,
 });
+const supportEvidence = await buildSupportCandidateEvidence({
+  selectedZoneDigest: manifest.selectedZoneDigest, occurrences: [],
+});
 const artifacts = {
   ZONE_GEOMETRY_EVIDENCE: zoneGeometryEvidence,
   SELECTED_SOURCE_GRAPH: selectedSourceGraph,
@@ -113,20 +117,21 @@ const artifacts = {
   INLINE_ASSEMBLY_EVIDENCE: boundFitting('FbxInlineAssemblyPortEvidence.v1'),
 };
 const qualificationRoot = await buildSelectedZoneQualificationRoot({
-  manifest, stagedBranches, artifacts,
+  manifest, stagedBranches, artifacts, supportEvidence,
 });
 assert.equal(qualificationRoot.status, 'PASS');
-assert.equal(qualificationRoot.summary.passCount, 10);
+assert.equal(qualificationRoot.summary.passCount, 11);
 artifacts.QUALIFICATION_ROOT = qualificationRoot;
 const inputs = {
   manifest, buffersByGeometryId, stagedJsonText: JSON.stringify(stagedBranches),
-  supportEvidence: null, artifacts,
+  supportEvidence, artifacts,
   artifactOmissionReasons: { GENERATED_GAP_PIPE_EVIDENCE: 'No generated gap PIPE was applicable.' },
 };
 const first = await buildSelectedZonePackage(inputs);
 const second = await buildSelectedZonePackage(inputs);
 assert.equal(first.audit.packageDigest, second.audit.packageDigest);
 assert.equal(first.audit.files.find((item) => item.role === 'QUALIFICATION_ROOT').disposition, 'PRESENT');
+assert.equal(first.audit.files.find((item) => item.role === 'SUPPORT_EVIDENCE').disposition, 'PRESENT');
 assert.equal(first.audit.files.find((item) => item.role === 'GENERATED_GAP_PIPE_EVIDENCE').disposition, 'OMITTED_BLOCKED');
 const validated = await validateSelectedZonePackage(first);
 assert.equal(validated.artifacts.QUALIFICATION_ROOT.status, 'PASS');
