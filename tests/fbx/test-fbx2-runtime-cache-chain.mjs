@@ -26,6 +26,7 @@ const files = Object.fromEntries(await Promise.all([
   'tabs/model-converters/converters/fbx/solid-fitting-ports/sidewall-residual.js',
   'tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js',
   '.github/workflows/fbx-preview-shell-pages-smoke.yml',
+  '.github/workflows/fbx-pages-deployment-smoke.yml',
 ].map(async (path) => [path, await read(path)])));
 
 function requires(path, fragment) {
@@ -55,21 +56,56 @@ requires('tabs/model-converters/converters/fbx/zone-geometry/occurrence-transfor
 requires('tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js', `sidewall-residual.js?v=${key}`);
 requires('tabs/model-converters/converters/fbx/solid-fitting-ports/sidewall-residual.js', `transform-policy.js?v=${key}`);
 
-const workflow = files['.github/workflows/fbx-preview-shell-pages-smoke.yml'];
+const directWorkflow = '.github/workflows/fbx-preview-shell-pages-smoke.yml';
 for (const path of [
   'tabs/model-converters/converters/fbx/auto-pipe/classify.js',
   'tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js',
   'tabs/model-converters/converters/fbx/solid-fitting-ports/candidate-evaluation.js',
   'tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js',
   'tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js',
+  'tabs/model-converters/converters/fbx/conversion.js',
+  'tabs/model-converters/converters/fbx/conversion-core.js',
+  'tabs/model-converters/converters/fbx/staged-writer.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/profile.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/release.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/selected-evidence.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/review-ui.js',
+  'tabs/model-converters/converters/fbx/fitting-kernels/connectivity/component-reader.js',
+  'tabs/model-converters/converters/fbx/parity/component-inventory.js',
   'tabs/model-converters/converters/fbx/transform-policy.js',
-]) requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', path);
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', `CACHE_KEY: ${key}`);
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'FbxPagesDirectPipeRuntimeDeploymentEvidence.v1');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'benchmarkAdmittedPipeCount 112');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'DETACHED_CAP_RING_BRIDGE_V1');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'git fetch origin main');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'git rebase origin/main');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'after five synchronized attempts');
+]) requires(directWorkflow, path);
+requires(directWorkflow, `CACHE_KEY: ${key}`);
+requires(directWorkflow, 'FbxPagesDirectPipeRuntimeDeploymentEvidence.v1');
+requires(directWorkflow, 'benchmarkAdmittedPipeCount 112');
+requires(directWorkflow, 'DETACHED_CAP_RING_BRIDGE_V1');
+requires(directWorkflow, 'EXPLICIT_LINK_STRAIGHT_GAP_V1');
+requires(directWorkflow, 'FbxGeneratedGapPipeEvidence.v1');
+requires(directWorkflow, 'sourceModelObjectId: null');
+requires(directWorkflow, 'gapReinferredInSelectedZone: false');
+requires(directWorkflow, 'git fetch origin main');
+requires(directWorkflow, 'git rebase origin/main');
+requires(directWorkflow, 'after five synchronized attempts');
+
+const selectedWorkflow = '.github/workflows/fbx-pages-deployment-smoke.yml';
+for (const path of [
+  'tabs/model-converters/converters/fbx/conversion.js',
+  'tabs/model-converters/converters/fbx/conversion-core.js',
+  'tabs/model-converters/converters/fbx/staged-writer.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/profile.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/release.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/selected-evidence.js',
+  'tabs/model-converters/converters/fbx/generated-gap-pipe/review-ui.js',
+  'tabs/model-converters/converters/fbx/fitting-kernels/connectivity/component-reader.js',
+  'tabs/model-converters/converters/fbx/parity/component-inventory.js',
+]) requires(selectedWorkflow, path);
+requires(selectedWorkflow, 'FbxPagesSelectedZoneDeploymentEvidence.v1');
+requires(selectedWorkflow, 'FbxPagesGeneratedGapRuntimeDeploymentEvidence.v1');
+requires(selectedWorkflow, 'fbx-pages-generated-gap-runtime-deployment.json');
+requires(selectedWorkflow, 'EXPLICIT_LINK_STRAIGHT_GAP_V1');
+requires(selectedWorkflow, 'explicit-mapping-port-links');
+requires(selectedWorkflow, 'sourceIdentityClaimedByGeneratedPipe false');
+requires(selectedWorkflow, 'git fetch origin main');
+requires(selectedWorkflow, 'git rebase origin/main');
+requires(selectedWorkflow, 'after five synchronized attempts');
 
 console.log('test-fbx2-runtime-cache-chain: PASS');
