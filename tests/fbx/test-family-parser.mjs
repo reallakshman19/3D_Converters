@@ -18,7 +18,8 @@ const success = await convertFbxToStagedJson({
   bytes, inputName: 'component-families.fbx', mapping, parse: parseFbxBytesNode,
 });
 assert.equal(success.conversionStatus, 'STAGEDJSON_PASS');
-assert.equal(success.outputs.length, 4);
+assert.equal(success.outputs.length, 5);
+assert.ok(success.logs.stdout.includes('ENGINEERING_ATTRIBUTES_PASS'));
 const staged = JSON.parse(output(success, '.staged.json').text);
 assert.equal(staged.length, 3);
 assert.deepEqual(
@@ -35,6 +36,11 @@ const ledger = JSON.parse(output(success, '.fbx-mapping-ledger.json').text);
 assert.equal(ledger.mappingSchema, 'FbxStagedMapping.v2');
 assert.equal(ledger.promoted.length, 8);
 assert.ok(ledger.promoted.every((item) => item.sourceGeometryObjectIds?.length));
+assert.equal(ledger.engineeringAttributes.status, 'PASS');
+assert.equal(ledger.engineeringAttributes.counts.componentCount, 8);
+const engineering = JSON.parse(output(success, '.FbxEngineeringAttributeLedger.v1.json').text);
+assert.deepEqual(engineering, ledger.engineeringAttributes);
+assert.equal(engineering.authority.geometryAttributeInference, false);
 
 const missing = await convertFbxToStagedJson({ bytes, inputName: 'component-families.fbx', mapping: null, parse: parseFbxBytesNode });
 assert.equal(missing.conversionStatus, 'BLOCKED_MAPPING');

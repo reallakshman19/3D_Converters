@@ -6,6 +6,7 @@ import {
 } from './binding-report.js';
 import {
   artifact,
+  attachEngineeringAttributeLedger,
   attachGeneratedGapPipeEvidence,
   baseName,
   blockedResult,
@@ -36,16 +37,22 @@ function failureStatus(error, fallback) {
   return error instanceof BindingFailure ? error.status : fallback;
 }
 
+function attachFailureEvidence(result, stem, error) {
+  attachGeneratedGapPipeEvidence(result, stem, error);
+  attachEngineeringAttributeLedger(result, stem, error);
+  return result;
+}
+
 function packageFailure(stem, graph, reportValue, error, fallback) {
   const diagnostic = diagnosticOf(error), status = failureStatus(error, fallback);
   const binding = failBindingReport(reportValue, status, diagnostic, error?.evidence);
   const result = packageBlockedResult(stem, graph, status, [diagnostic], binding);
-  return attachGeneratedGapPipeEvidence(result, stem, error);
+  return attachFailureEvidence(result, stem, error);
 }
 
 function blockedFailure(stem, graph, status, error) {
   const result = blockedResult(stem, graph, status, [diagnosticOf(error)]);
-  return attachGeneratedGapPipeEvidence(result, stem, error);
+  return attachFailureEvidence(result, stem, error);
 }
 
 function createValidatedBinding(packageValue) {
@@ -138,7 +145,7 @@ async function packageMappingResult(options) {
   try {
     const execution = executeMapping(packageValue.mapping.manifest, graph, compatibility);
     const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry,
-      execution.links, execution.entries);
+      execution.links, execution.entries, execution.staged);
     binding = finishBindingReport(addStatus(addStatus(binding, 'MAPPING_PASS'), 'STAGEDJSON_PASS'), 'STAGEDJSON_PASS');
     return packageSuccessResult(stem, graph, ledger, execution.staged,
       successCounts(execution), binding, execution.gapPipeEvidence);
@@ -160,7 +167,7 @@ async function legacyConversion({ bytes, stem, mapping, parse }) {
   try {
     const execution = executeMapping(mapping, graph, compatibility.graph);
     const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry,
-      execution.links, execution.entries);
+      execution.links, execution.entries, execution.staged);
     return successResult(stem, graph, ledger, execution.staged,
       successCounts(execution), execution.gapPipeEvidence);
   } catch (error) {
@@ -209,7 +216,7 @@ async function decisionSetConversion({ bytes, stem, decisionSet, parse, parserEv
   try {
     const execution = executeMapping(compiledManifest, graph, compatibility.graph);
     const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry,
-      execution.links, execution.entries);
+      execution.links, execution.entries, execution.staged);
     return successResult(stem, graph, ledger, execution.staged,
       successCounts(execution), execution.gapPipeEvidence);
   } catch (error) {

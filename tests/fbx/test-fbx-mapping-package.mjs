@@ -24,13 +24,22 @@ async function compareLegacy(bytes, mapping, packageValue, parserEvidence) {
   const legacy = await convert(bytes, mapping, parserEvidence);
   const bound = await convert(bytes, packageValue, parserEvidence);
   assert.equal(legacy.conversionStatus, 'STAGEDJSON_PASS');
-  assert.equal(legacy.outputs.length, 4);
+  assert.equal(legacy.outputs.length, 5);
   assert.ok(legacy.logs.stdout.includes('UNBOUND_LEGACY_MAPPING'));
+  assert.ok(legacy.logs.stdout.includes('ENGINEERING_ATTRIBUTES_PASS'));
   assert.equal(bound.conversionStatus, 'STAGEDJSON_PASS');
-  assert.equal(bound.outputs.length, 5);
-  for (const suffix of ['.fbx-source-graph.json', '.fbx-mapping-ledger.json', '.staged.json']) {
+  assert.equal(bound.outputs.length, 6);
+  for (const suffix of [
+    '.fbx-source-graph.json',
+    '.fbx-mapping-ledger.json',
+    '.FbxEngineeringAttributeLedger.v1.json',
+    '.staged.json',
+  ]) {
     assert.equal(output(bound, suffix).text, output(legacy, suffix).text, `${suffix} changed in package mode`);
   }
+  const engineering = JSON.parse(output(bound, '.FbxEngineeringAttributeLedger.v1.json').text);
+  assert.equal(engineering.status, 'PASS');
+  assert.equal(engineering.authority.engineeringValueAuthority, 'APPROVED_MAPPING');
   const report = JSON.parse(output(bound, '.fbx-binding-report.json').text);
   for (const status of [
     'SOURCE_BINDING_PASS', 'PARSER_BINDING_PASS', 'SOURCE_GRAPH_BINDING_PASS',

@@ -27,7 +27,8 @@ assert.deepEqual(resolveEntryPorts(nurbsEntry, nurbsGraph).B.positionMm, [200, 0
 const actualGraph = await parseFbxBytesNode(bytes);
 const success = await convertFbxToStagedJson({ bytes, inputName: 'two-pipes.fbx', mapping, parse: parseFbxBytesNode });
 assert.equal(success.conversionStatus, 'STAGEDJSON_PASS');
-assert.equal(success.outputs.length, 4);
+assert.equal(success.outputs.length, 5);
+assert.ok(success.logs.stdout.includes('ENGINEERING_ATTRIBUTES_PASS'));
 const stagedOutput = success.outputs.find((item) => item.name.endsWith('.staged.json'));
 const normalized = normalizeStagedJson(stagedOutput.text);
 assert.equal(normalized.branches.length, 1);
@@ -36,6 +37,12 @@ assert.deepEqual(normalized.branches[0].children[0].attributes.APOS, { x: 300, y
 assert.deepEqual(normalized.branches[0].children[1].attributes.LPOS, { x: 500, y: 0, z: 0 });
 assert.equal(actualGraph.occurrences.length, 3);
 assert.doesNotMatch(stagedOutput.text, /diameter|wallThickness|temperature|pressure|material|nodeNumber/i);
+const engineeringOutput = success.outputs.find((item) => item.name.endsWith('.FbxEngineeringAttributeLedger.v1.json'));
+const engineering = JSON.parse(engineeringOutput.text);
+assert.equal(engineering.status, 'PASS');
+assert.equal(engineering.counts.componentCount, 2);
+assert.equal(engineering.counts.fieldCount, 0);
+assert.equal(engineering.authority.sourceAttributeInference, false);
 
 const topologyModel = await buildTopologySourceModel(stagedOutput.text, {
   sourceName: 'two-pipes.staged.json', sourceRevision: 1, toleranceMm: 0.5,
