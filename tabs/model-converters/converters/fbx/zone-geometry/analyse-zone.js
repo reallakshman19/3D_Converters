@@ -43,17 +43,32 @@ function packagePrefix(artifact) {
     || 'selected-zone';
 }
 
-async function optionalPackageInputs(input, prepared, autoPipe) {
+async function optionalPackageInputs(input, prepared, pipeEvidence, mapped) {
   if (input.includeZonePackageInputs === false) {
     return { zonePackageInputs: null, zonePackageError: null };
   }
   try {
     const zonePackageInputs = await buildLiveZonePackageInputs({
       zoneGeometryEvidence: prepared.artifact,
+      sourceGraph: prepared.canonicalGraph,
       scope: prepared.scope,
       selections: prepared.selections,
-      stagedJsonText: autoPipe.status === 'STAGEDJSON_PASS'
-        ? autoPipe.stagedJsonText : null,
+      stagedBranches: mapped.stagedBranches,
+      stagedJsonText: mapped.stagedBranches ? null
+        : pipeEvidence.autoPipe.status === 'STAGEDJSON_PASS'
+          ? pipeEvidence.autoPipe.stagedJsonText : null,
+      mappedStageStatus: input.mappedStageStatus,
+      engineeringAttributeLedger: input.engineeringAttributeLedger,
+      derivedPortEvidence: pipeEvidence.derivedPortEvidence,
+      solidFittingPortEvidence: pipeEvidence.closedSolidPipeEvidence,
+      componentCrosswalk: mapped.componentCrosswalk,
+      connectivityEvidence: mapped.connectivityEvidence,
+      generatedGapPipeEvidence: mapped.generatedGapPipeEvidence,
+      elbowEvidence: mapped.elbowEvidence,
+      teeEvidence: mapped.teeEvidence,
+      reducerEvidence: mapped.reducerEvidence,
+      branchFittingEvidence: mapped.branchFittingEvidence,
+      inlineAssemblyEvidence: mapped.inlineAssemblyEvidence,
     });
     zonePackageInputs.fileNamePrefix = packagePrefix(prepared.artifact);
     return { zonePackageInputs, zonePackageError: null };
@@ -84,6 +99,7 @@ async function gatherPipeEvidence(prepared) {
 
 function unavailableMappedAnalysis(mappingStatus) {
   return Object.freeze({
+    stagedBranches: null,
     componentCrosswalk: null,
     connectivityEvidence: null,
     connectivityReview: unavailableConnectivityReview(mappingStatus),
@@ -114,8 +130,7 @@ async function buildPrimaryFittingAnalysis(componentCrosswalk, solidEvidence, ma
 async function mappedComponentAnalysis(input, prepared, solidEvidence) {
   const mappingStatus = input.mappedStageStatus || 'MAPPED_STAGE_NOT_AVAILABLE';
   if (!Array.isArray(input.stagedBranches)) return unavailableMappedAnalysis(mappingStatus);
-  const stagedBranches = scopeMappedStagedBranches(
-    input.stagedBranches, prepared.artifact);
+  const stagedBranches = scopeMappedStagedBranches(input.stagedBranches, prepared.artifact);
   const componentCrosswalk = await buildSelectedZoneComponentCrosswalk({
     sourceGraph: prepared.canonicalGraph,
     zoneGeometryEvidence: prepared.artifact,
@@ -127,8 +142,8 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
   const connectivityEvidence = await buildSelectedZoneConnectivityEvidence({
     stagedBranches, componentCrosswalk, mappingStatus,
   });
-  const primaryFittings = await buildPrimaryFittingAnalysis(
-    componentCrosswalk, solidEvidence, mappingStatus);
+  const primaryFittings = await buildPrimaryFittingAnalysis(componentCrosswalk,
+    solidEvidence, mappingStatus);
   const branchFittingEvidence = await buildBranchFittingPortEvidence({
     componentCrosswalk, solidFittingPortEvidence: solidEvidence,
   });
@@ -136,6 +151,7 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
     componentCrosswalk, solidFittingPortEvidence: solidEvidence,
   });
   return Object.freeze({
+    stagedBranches,
     componentCrosswalk,
     connectivityEvidence,
     connectivityReview: buildConnectivityReviewModel(connectivityEvidence, mappingStatus),
@@ -249,7 +265,7 @@ export async function analyseFbxZoneGeometry(input) {
     const mapped = await mappedComponentAnalysis(
       input, prepared, pipeEvidence.closedSolidPipeEvidence);
     const packageResult = await optionalPackageInputs(
-      input, prepared, pipeEvidence.autoPipe);
+      input, prepared, pipeEvidence, mapped);
     return analysisResult(
       prepared, pipeEvidence, mapped, wireframePreview, packageResult);
   } catch (error) {
