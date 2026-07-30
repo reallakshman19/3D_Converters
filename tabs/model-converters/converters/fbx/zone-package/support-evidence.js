@@ -21,7 +21,7 @@ function isObject(value) { return Boolean(value) && typeof value === 'object' &&
 function compareText(left, right) { return left < right ? -1 : left > right ? 1 : 0; }
 function candidateRawType(record) {
   const attributes = isObject(record?.attributes) ? record.attributes : {};
-  const raw = nonEmptyText(attributes.RAW_TYPE) || nonEmptyText(attributes.TYPE) || nonEmptyText(record?.type);
+  const raw = nonEmptyText(attributes.RAW_TYPE) || nonEmptyText(attributes.TYPE);
   return raw ? raw.toUpperCase() : null;
 }
 function candidateIdentity(record) {

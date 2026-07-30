@@ -38,6 +38,7 @@ const tests = [
   'test-selected-zone-package-capture.mjs',
   'test-selected-zone-package-closure.mjs',
   'test-selected-zone-package-live-closure.mjs',
+  'test-selected-zone-support-evidence.mjs',
   'test-selected-zone-package-production-capability.mjs',
   'test-benchmark-zone-membership.mjs',
   'test-source-graph-v2.mjs',

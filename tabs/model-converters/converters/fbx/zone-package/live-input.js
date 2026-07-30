@@ -3,6 +3,7 @@ import { buildSelectedZoneGeometryManifest } from './geometry-manifest.js';
 import { buildSelectedZoneQualificationRoot } from './qualification-root.js';
 import { buildSelectedZoneEngineeringAttributeLedger } from './selected-engineering-attributes.js';
 import { buildSelectedZoneSourceGraph } from './selected-source-graph.js';
+import { buildSelectedZoneSupportEvidence } from './selected-support-evidence.js';
 import { fail } from './constants.js';
 
 function bytesView(value, label) {
@@ -105,9 +106,7 @@ function packageStageText(input) {
 }
 
 export async function buildLiveZonePackageInputs(input = {}) {
-  const {
-    zoneGeometryEvidence, sourceGraph, scope, selections,
-  } = input;
+  const { zoneGeometryEvidence, sourceGraph, scope, selections } = input;
   if (!zoneGeometryEvidence || !sourceGraph || !scope || !Array.isArray(selections)) {
     fail('ZONE_PACKAGE_INVALID_INPUT',
       'validated zone evidence, source graph, scope, and selections are required.');
@@ -120,12 +119,11 @@ export async function buildLiveZonePackageInputs(input = {}) {
   const selectedSourceGraph = await buildSelectedZoneSourceGraph({
     sourceGraph, scope, zoneGeometryEvidence,
   });
+  const supportEvidence = await buildSelectedZoneSupportEvidence({ sourceGraph, scope, manifest });
   const selectedEngineeringAttributes = await selectedEngineering(input);
   const artifacts = semanticArtifacts(input, selectedSourceGraph, selectedEngineeringAttributes);
   const qualificationRoot = await buildSelectedZoneQualificationRoot({
-    manifest,
-    stagedBranches: input.stagedBranches,
-    artifacts,
+    manifest, stagedBranches: input.stagedBranches, artifacts, supportEvidence,
   });
   artifacts.QUALIFICATION_ROOT = qualificationRoot;
   return {
@@ -133,7 +131,7 @@ export async function buildLiveZonePackageInputs(input = {}) {
     buffersByGeometryId,
     stagedJsonText: packageStageText(input),
     stagedJsonOmissionReason: 'No selected-zone StagedJSON was available.',
-    supportEvidence: input.supportEvidence || null,
+    supportEvidence,
     artifacts,
     artifactOmissionReasons: omissionReasons(input),
     qualificationRoot,

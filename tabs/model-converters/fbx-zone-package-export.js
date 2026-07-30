@@ -19,13 +19,18 @@ function qualificationText(inputs) {
   return root.status === 'PASS' ? `qualification PASS, ${checks}`
     : `qualification BLOCKED, ${checks}`;
 }
+function supportText(inputs) {
+  const count = inputs?.supportEvidence?.candidates?.length;
+  return Number.isInteger(count) ? `${count} support candidate${count === 1 ? '' : 's'}`
+    : 'support evidence unavailable';
+}
 async function exportSelectedZonePackage(container, inputs) {
   if (!inputs) { reportStatus(container, 'Analyse a selected FBX zone before exporting.'); return; }
-  reportStatus(container, `Building selected-zone package (${qualificationText(inputs)})...`);
+  reportStatus(container, `Building selected-zone package (${qualificationText(inputs)}, ${supportText(inputs)})...`);
   const { files, audit } = await buildSelectedZonePackage(inputs);
   const archive = await buildPackageArchive(files);
   triggerBoundedDownload(archive.bytes, `${inputs.fileNamePrefix || 'selected-zone'}.fbxzonepkg`);
-  reportStatus(container, `Package exported: ${qualificationText(inputs)}, ${audit.geometryCount} geometries, ${files.length} files, digest ${archive.sha256.slice(0, 12)}...`);
+  reportStatus(container, `Package exported: ${qualificationText(inputs)}, ${supportText(inputs)}, ${audit.geometryCount} geometries, ${files.length} files, digest ${archive.sha256.slice(0, 12)}...`);
 }
 function mountButton(container) {
   const existing = container.querySelector?.(`[${BUTTON_ATTR}]`); if (existing) return existing;
@@ -44,7 +49,7 @@ export function installFbxZonePackageExport(container, getPackageInputs = null) 
   const update = (inputs) => {
     latestInputs = inputs || null; button.disabled = !latestInputs;
     reportStatus(container, latestInputs
-      ? `Selected-zone package is ready: ${qualificationText(latestInputs)}.`
+      ? `Selected-zone package is ready: ${qualificationText(latestInputs)}, ${supportText(latestInputs)}.`
       : 'Analyse a selected FBX zone before exporting.');
   };
   window.addEventListener(PACKAGE_INPUT_EVENT, (event) => update(event.detail?.inputs || null));
