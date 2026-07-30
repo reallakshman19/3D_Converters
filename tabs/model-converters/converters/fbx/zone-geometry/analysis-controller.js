@@ -91,14 +91,26 @@ function inlineAssemblyMessage(result) {
   return ` Inline assemblies: ${review.admittedCount} admitted, ${review.blockedCount} blocked.`;
 }
 
+function packageMessage(result) {
+  if (result.zonePackageError) {
+    return ` Package export unavailable: ${result.zonePackageError.code}.`;
+  }
+  const root = result.zonePackageInputs?.qualificationRoot;
+  if (!root) return ' Package qualification was not produced.';
+  const summary = root.summary || {};
+  if (root.status === 'PASS') {
+    return ` Package qualification: PASS (${summary.passCount || 0}/${summary.checkCount || 0} checks).`;
+  }
+  const blocked = Array.isArray(summary.blockedChecks) ? summary.blockedChecks.join(', ') : 'unknown checks';
+  return ` Package qualification: BLOCKED (${blocked}).`;
+}
+
 function completionMessage(result) {
   const base = `Analysed ${result.counts.selectedGeometries} geometries; ${result.counts.admittedLoops} admitted loops.`;
   const pipes = result.autoPipe.status === 'STAGEDJSON_PASS'
     ? ` Released ${result.counts.admittedPipes} PIPE components in ${result.counts.stagedBranches} branches.`
     : ` PIPE-only release blocked: ${result.autoPipe.status}.`;
-  const packageStatus = result.zonePackageError
-    ? ` Package export unavailable: ${result.zonePackageError.code}.` : '';
-  return `${base}${pipes}${connectivityMessage(result)}${gapPipeMessage(result)}${primaryFittingMessage(result)}${branchFittingMessage(result)}${inlineAssemblyMessage(result)}${packageStatus}`;
+  return `${base}${pipes}${connectivityMessage(result)}${gapPipeMessage(result)}${primaryFittingMessage(result)}${branchFittingMessage(result)}${inlineAssemblyMessage(result)}${packageMessage(result)}`;
 }
 
 function analysisInput(input, bundle) {
@@ -108,8 +120,24 @@ function analysisInput(input, bundle) {
     zoneId: input.zoneId,
     stagedBranches: input.stagedBranches,
     mappedStageStatus: input.mappedStageStatus,
+    engineeringAttributeLedger: input.engineeringAttributeLedger,
+    engineeringAttributeStatus: input.engineeringAttributeStatus,
     includeZonePackageInputs: true,
   };
+}
+
+function publishComplete(runtime, result) {
+  return runtime.publish({
+    phase: 'complete', status: result.status, message: completionMessage(result),
+    zoneGeometryJson: result.zoneGeometryJson, derivedPortJson: result.derivedPortJson,
+    internalPipeJson: result.autoPipe.internalPipeMappingJson,
+    stagedJsonText: result.autoPipe.stagedJsonText,
+    componentCrosswalkJson: result.componentCrosswalkJson, connectivityJson: result.connectivityJson,
+    generatedGapPipeJson: result.generatedGapPipeJson, elbowJson: result.elbowJson,
+    teeJson: result.teeJson, reducerJson: result.reducerJson,
+    branchFittingJson: result.branchFittingJson, inlineAssemblyJson: result.inlineAssemblyJson,
+    autoPipeStatus: result.autoPipe.status, result,
+  });
 }
 
 async function executeRun(runtime, input, onProgress) {
@@ -128,24 +156,7 @@ async function executeRun(runtime, input, onProgress) {
     const result = await runtime.analyse(analysisInput(input, bundle));
     if (runtime.generation !== generation) return Object.freeze({ stale: true });
     runtime.active = null;
-    runtime.publish({
-      phase: 'complete', status: result.status,
-      message: completionMessage(result),
-      zoneGeometryJson: result.zoneGeometryJson,
-      derivedPortJson: result.derivedPortJson,
-      internalPipeJson: result.autoPipe.internalPipeMappingJson,
-      stagedJsonText: result.autoPipe.stagedJsonText,
-      componentCrosswalkJson: result.componentCrosswalkJson,
-      connectivityJson: result.connectivityJson,
-      generatedGapPipeJson: result.generatedGapPipeJson,
-      elbowJson: result.elbowJson,
-      teeJson: result.teeJson,
-      reducerJson: result.reducerJson,
-      branchFittingJson: result.branchFittingJson,
-      inlineAssemblyJson: result.inlineAssemblyJson,
-      autoPipeStatus: result.autoPipe.status,
-      result,
-    });
+    publishComplete(runtime, result);
     return result;
   } catch (error) {
     if (runtime.generation !== generation) return Object.freeze({ stale: true });
