@@ -1,5 +1,6 @@
 const STAGEDJSON_PASS = 'STAGEDJSON_PASS';
 const STAGE_FILE_PATTERN = /\.staged\.json$/i;
+const ENGINEERING_FILE_PATTERN = /\.FbxEngineeringAttributeLedger\.v1\.json$/i;
 
 function cloneBranches(value) {
   return value.map((branch) => structuredClone(branch));
@@ -20,14 +21,25 @@ function parseStageOutput(output) {
   }
 }
 
-function mappedStageOutput(result) {
+function outputByPattern(result, pattern) {
   if (result?.conversionStatus !== STAGEDJSON_PASS) return null;
   const outputs = Array.isArray(result.outputs) ? result.outputs : [];
-  return outputs.find((output) => STAGE_FILE_PATTERN.test(String(output?.name || ''))) || null;
+  return outputs.find((output) => pattern.test(String(output?.name || ''))) || null;
+}
+
+function parseEngineeringOutput(output) {
+  if (!output || typeof output.text !== 'string') return null;
+  try {
+    const parsed = JSON.parse(output.text);
+    return parsed?.schema === 'FbxEngineeringAttributeLedger.v1'
+      && parsed.status === 'PASS' ? structuredClone(parsed) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function extractMappedStagedBranches(result) {
-  const output = mappedStageOutput(result);
+  const output = outputByPattern(result, STAGE_FILE_PATTERN);
   if (!output) {
     return Object.freeze({
       status: result?.conversionStatus === STAGEDJSON_PASS
@@ -48,6 +60,31 @@ export function extractMappedStagedBranches(result) {
     status: 'MAPPED_STAGE_AVAILABLE',
     outputName: String(output.name || ''),
     stagedBranches: Object.freeze(stagedBranches),
+  });
+}
+
+export function extractMappedEngineeringAttributeLedger(result) {
+  const output = outputByPattern(result, ENGINEERING_FILE_PATTERN);
+  if (!output) {
+    return Object.freeze({
+      status: result?.conversionStatus === STAGEDJSON_PASS
+        ? 'ENGINEERING_ATTRIBUTE_LEDGER_MISSING' : 'ENGINEERING_ATTRIBUTE_LEDGER_NOT_AVAILABLE',
+      outputName: null,
+      ledger: null,
+    });
+  }
+  const ledger = parseEngineeringOutput(output);
+  if (!ledger) {
+    return Object.freeze({
+      status: 'ENGINEERING_ATTRIBUTE_LEDGER_INVALID',
+      outputName: String(output.name || ''),
+      ledger: null,
+    });
+  }
+  return Object.freeze({
+    status: 'ENGINEERING_ATTRIBUTE_LEDGER_AVAILABLE',
+    outputName: String(output.name || ''),
+    ledger: Object.freeze(ledger),
   });
 }
 
