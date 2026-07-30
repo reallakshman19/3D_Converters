@@ -5,6 +5,11 @@ import {
   buildBranchFittingReviewModel,
   unavailableBranchFittingReview,
 } from '../fitting-kernels/branch-fitting/review-model.js';
+import { buildSelectedZoneConnectivityEvidence } from '../fitting-kernels/connectivity/evidence.js';
+import {
+  buildConnectivityReviewModel,
+  unavailableConnectivityReview,
+} from '../fitting-kernels/connectivity/review-model.js';
 import { buildInlineAssemblyPortEvidence } from '../fitting-kernels/inline-assembly/evidence.js';
 import {
   buildInlineAssemblyReviewModel,
@@ -68,6 +73,8 @@ async function gatherPipeEvidence(prepared) {
 function unavailableMappedAnalysis(mappingStatus) {
   return Object.freeze({
     componentCrosswalk: null,
+    connectivityEvidence: null,
+    connectivityReview: unavailableConnectivityReview(mappingStatus),
     branchFittingEvidence: null,
     branchFittingReview: unavailableBranchFittingReview(mappingStatus),
     inlineAssemblyEvidence: null,
@@ -85,6 +92,9 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
     zoneGeometryEvidence: prepared.artifact,
     stagedBranches,
   });
+  const connectivityEvidence = await buildSelectedZoneConnectivityEvidence({
+    stagedBranches, componentCrosswalk, mappingStatus,
+  });
   const branchFittingEvidence = await buildBranchFittingPortEvidence({
     componentCrosswalk,
     solidFittingPortEvidence: solidEvidence,
@@ -95,6 +105,8 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
   });
   return Object.freeze({
     componentCrosswalk,
+    connectivityEvidence,
+    connectivityReview: buildConnectivityReviewModel(connectivityEvidence, mappingStatus),
     branchFittingEvidence,
     branchFittingReview: buildBranchFittingReviewModel(
       branchFittingEvidence, mappingStatus),
@@ -105,7 +117,7 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
 }
 
 function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPipe, mapped) {
-  const branchReview = mapped.branchFittingReview;
+  const connectivity = mapped.connectivityReview, branchReview = mapped.branchFittingReview;
   const inlineReview = mapped.inlineAssemblyReview;
   return Object.freeze({
     selectedOccurrences: prepared.artifact.conservation.selectedOccurrenceCount,
@@ -116,6 +128,11 @@ function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPip
     admittedPipes: autoPipe.counts?.admittedPipes || 0,
     pipeLinks: autoPipe.counts?.links || 0,
     stagedBranches: autoPipe.counts?.branches || 0,
+    mappedComponents: connectivity.counts.componentCount,
+    mappedInternalLinks: connectivity.counts.internalLinkCount,
+    mappedBoundaryLinks: connectivity.counts.boundaryLinkCount,
+    mappedOpenPorts: connectivity.counts.openPortCount,
+    mappedBlockedComponents: connectivity.counts.blockedComponentCount,
     mappedBranchFittings: branchReview.managedCount,
     admittedBranchFittings: branchReview.admittedCount,
     blockedBranchFittings: branchReview.blockedCount,
@@ -145,6 +162,8 @@ export async function analyseFbxZoneGeometry(input) {
       derivedPortEvidence: pipeEvidence.derivedPortEvidence,
       closedSolidPipeEvidence: pipeEvidence.closedSolidPipeEvidence,
       componentCrosswalk: mapped.componentCrosswalk,
+      connectivityEvidence: mapped.connectivityEvidence,
+      connectivityReview: mapped.connectivityReview,
       branchFittingEvidence: mapped.branchFittingEvidence,
       branchFittingReview: mapped.branchFittingReview,
       inlineAssemblyEvidence: mapped.inlineAssemblyEvidence,
@@ -156,6 +175,7 @@ export async function analyseFbxZoneGeometry(input) {
       derivedPortJson: canonicalJson(pipeEvidence.derivedPortEvidence),
       closedSolidPipeJson: canonicalJson(pipeEvidence.closedSolidPipeEvidence),
       componentCrosswalkJson: optionalJson(mapped.componentCrosswalk),
+      connectivityJson: optionalJson(mapped.connectivityEvidence),
       branchFittingJson: optionalJson(mapped.branchFittingEvidence),
       inlineAssemblyJson: optionalJson(mapped.inlineAssemblyEvidence),
       counts: analysisCounts(

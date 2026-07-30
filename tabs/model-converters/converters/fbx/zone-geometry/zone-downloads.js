@@ -20,6 +20,10 @@ export function buildFbxInternalPipeDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxInternalPipeMapping.v1.json`;
 }
 
+export function buildFbxConnectivityDownloadName(sourceName, zoneLabel) {
+  return `${prefix(sourceName, zoneLabel)}.FbxSelectedZoneConnectivityEvidence.v1.json`;
+}
+
 export function buildFbxBranchFittingDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxBranchFittingPortEvidence.v1.json`;
 }
