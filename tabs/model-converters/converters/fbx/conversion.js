@@ -6,6 +6,7 @@ import {
 } from './binding-report.js';
 import {
   artifact,
+  attachGeneratedGapPipeEvidence,
   baseName,
   blockedResult,
   blockedStatus,
@@ -26,24 +27,36 @@ import {
 } from './mapping-decision-compiler.js';
 import { generateDraftDecisions } from './mapping-heuristic.js';
 import { buildMappingWorklist } from './mapping-worklist.js';
+
 function diagnosticOf(error) {
   return error instanceof Error ? error.message : String(error);
 }
+
 function failureStatus(error, fallback) {
   return error instanceof BindingFailure ? error.status : fallback;
 }
+
 function packageFailure(stem, graph, reportValue, error, fallback) {
   const diagnostic = diagnosticOf(error), status = failureStatus(error, fallback);
   const binding = failBindingReport(reportValue, status, diagnostic, error?.evidence);
-  return packageBlockedResult(stem, graph, status, [diagnostic], binding);
+  const result = packageBlockedResult(stem, graph, status, [diagnostic], binding);
+  return attachGeneratedGapPipeEvidence(result, stem, error);
 }
+
+function blockedFailure(stem, graph, status, error) {
+  const result = blockedResult(stem, graph, status, [diagnosticOf(error)]);
+  return attachGeneratedGapPipeEvidence(result, stem, error);
+}
+
 function createValidatedBinding(packageValue) {
   validateMappingPackageShape(packageValue);
   return createBindingReport(packageValue);
 }
+
 async function addSourceBinding(binding, packageValue, bytes) {
   return addBinding(binding, 'source', verifySourceBinding(packageValue, await observeSource(bytes)));
 }
+
 function addParserBinding(binding, packageValue, parserEvidence, parserEvidenceError) {
   if (parserEvidenceError) {
     const detail = parserEvidenceError.replace(/^BLOCKED_PARSER_BINDING\s+/, '');
@@ -52,6 +65,7 @@ function addParserBinding(binding, packageValue, parserEvidence, parserEvidenceE
   if (!parserEvidence) throw new BindingFailure('BLOCKED_PARSER_BINDING', 'Repository parser evidence is unavailable.');
   return addBinding(binding, 'parser', verifyParserBinding(packageValue, parserEvidence));
 }
+
 async function parsePackageSource(bytes, parse, binding) {
   try {
     const graph = await parse(bytes);
@@ -123,9 +137,11 @@ async function packageMappingResult(options) {
   }
   try {
     const execution = executeMapping(packageValue.mapping.manifest, graph, compatibility);
-    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry, execution.links);
+    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry,
+      execution.links, execution.entries);
     binding = finishBindingReport(addStatus(addStatus(binding, 'MAPPING_PASS'), 'STAGEDJSON_PASS'), 'STAGEDJSON_PASS');
-    return packageSuccessResult(stem, graph, ledger, execution.staged, successCounts(execution), binding);
+    return packageSuccessResult(stem, graph, ledger, execution.staged,
+      successCounts(execution), binding, execution.gapPipeEvidence);
   } catch (error) {
     const status = blockedStatus(diagnosticOf(error));
     return packageFailure(stem, graph, binding, error, status);
@@ -143,11 +159,12 @@ async function legacyConversion({ bytes, stem, mapping, parse }) {
   if (compatibility.blocked) return compatibility.blocked;
   try {
     const execution = executeMapping(mapping, graph, compatibility.graph);
-    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry, execution.links);
-    return successResult(stem, graph, ledger, execution.staged, successCounts(execution));
+    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry,
+      execution.links, execution.entries);
+    return successResult(stem, graph, ledger, execution.staged,
+      successCounts(execution), execution.gapPipeEvidence);
   } catch (error) {
-    const diagnostic = diagnosticOf(error);
-    return blockedResult(stem, graph, blockedStatus(diagnostic), [diagnostic]);
+    return blockedFailure(stem, graph, blockedStatus(diagnosticOf(error)), error);
   }
 }
 
@@ -155,16 +172,10 @@ function markLegacy(result) {
   return { ...result, logs: { ...result.logs, stdout: ['UNBOUND_LEGACY_MAPPING', ...result.logs.stdout] } };
 }
 
-// ---------------------------------------------------------------------------
-// Decision-set detection helper
-// ---------------------------------------------------------------------------
 function isDecisionSet(value) {
   return value && typeof value === 'object' && value.schema === 'FbxMappingDecisionSet.v1';
 }
 
-// ---------------------------------------------------------------------------
-// Decision-set conversion path (Option 2)
-// ---------------------------------------------------------------------------
 async function decisionSetConversion({ bytes, stem, decisionSet, parse, parserEvidence, parserEvidenceError }) {
   if (parserEvidenceError) {
     const diagnostic = parserEvidenceError.replace(/^BLOCKED_PARSER_BINDING\s+/, '');
@@ -197,11 +208,12 @@ async function decisionSetConversion({ bytes, stem, decisionSet, parse, parserEv
   if (compatibility.blocked) return compatibility.blocked;
   try {
     const execution = executeMapping(compiledManifest, graph, compatibility.graph);
-    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry, execution.links);
-    return successResult(stem, graph, ledger, execution.staged, successCounts(execution));
+    const ledger = mappingLedger(execution.accepted, execution.resolvedByEntry,
+      execution.links, execution.entries);
+    return successResult(stem, graph, ledger, execution.staged,
+      successCounts(execution), execution.gapPipeEvidence);
   } catch (error) {
-    const diagnostic = diagnosticOf(error);
-    return blockedResult(stem, graph, blockedStatus(diagnostic), [diagnostic]);
+    return blockedFailure(stem, graph, blockedStatus(diagnosticOf(error)), error);
   }
 }
 
@@ -209,14 +221,11 @@ export async function convertFbxToStagedJson({
   bytes, inputName, mapping, mappingError, parse, parserEvidence, parserEvidenceError,
 }) {
   const stem = baseName(inputName);
-
-  // Option 2: secondary file is a compiled decision set — no static manifest needed.
   if (!mappingError && isDecisionSet(mapping)) {
     return decisionSetConversion({
       bytes, stem, decisionSet: mapping, parse, parserEvidence, parserEvidenceError,
     });
   }
-
   if (mappingError || !mapping) {
     const diagnostic = mappingError || 'Mapping manifest is absent. StagedJSON conversion skipped. FBX Source Graph extracted successfully.';
     return legacyMappingProblem({ bytes, stem, parse, parserEvidence, diagnostic });
@@ -229,9 +238,6 @@ export async function convertFbxToStagedJson({
   return markLegacy(await legacyConversion({ bytes, stem, mapping, parse }));
 }
 
-// ---------------------------------------------------------------------------
-// No-manifest path: parse the FBX and emit the source graph + worklist (Option 1)
-// ---------------------------------------------------------------------------
 async function legacyMappingProblem({ bytes, stem, parse, parserEvidence, diagnostic }) {
   let graph;
   try {
@@ -241,18 +247,13 @@ async function legacyMappingProblem({ bytes, stem, parse, parserEvidence, diagno
   }
   const compatibility = compatibilityGraph(stem, graph);
   if (compatibility.blocked) return compatibility.blocked;
-
-  // Option 1: if we have parser evidence, also emit a mapping worklist so the
-  // user has something actionable to work from without needing a static manifest.
   const result = blockedResult(stem, graph, 'BLOCKED_MAPPING', [diagnostic]);
   if (parserEvidence) {
     try {
       const worklist = await buildMappingWorklist({ bytes, graph, parserEvidence });
       result.outputs.splice(1, 0, artifact(`${stem}.fbx-mapping-worklist.json`, worklist));
-      
       const draft = generateDraftDecisions(worklist);
       result.outputs.splice(2, 0, artifact(`${stem}.fbx-draft-decisions.json`, draft));
-      
       result.logs.stdout = ['PARSE_PASS', 'WORKLIST_GENERATED', 'DRAFT_DECISIONS_GENERATED'];
     } catch (_) {
       // Worklist generation is best-effort; don't fail the whole conversion.
