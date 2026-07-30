@@ -15,6 +15,11 @@ import {
   buildInlineAssemblyReviewModel,
   unavailableInlineAssemblyReview,
 } from '../fitting-kernels/inline-assembly/review-model.js';
+import {
+  buildGeneratedGapPipeReviewModel,
+  unavailableGeneratedGapPipeReview,
+} from '../generated-gap-pipe/review-model.js';
+import { buildSelectedZoneGeneratedGapPipeEvidence } from '../generated-gap-pipe/selected-evidence.js';
 import { buildSelectedZoneComponentCrosswalk } from '../parity/component-crosswalk.js';
 import { buildSolidFittingPortEvidence } from '../solid-fitting-ports/evidence.js?v=20260729-fbx2-direct-pipe-1';
 import { buildLiveZonePackageInputs } from '../zone-package/live-input.js';
@@ -75,6 +80,8 @@ function unavailableMappedAnalysis(mappingStatus) {
     componentCrosswalk: null,
     connectivityEvidence: null,
     connectivityReview: unavailableConnectivityReview(mappingStatus),
+    generatedGapPipeEvidence: null,
+    generatedGapPipeReview: unavailableGeneratedGapPipeReview(mappingStatus),
     branchFittingEvidence: null,
     branchFittingReview: unavailableBranchFittingReview(mappingStatus),
     inlineAssemblyEvidence: null,
@@ -92,21 +99,25 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
     zoneGeometryEvidence: prepared.artifact,
     stagedBranches,
   });
+  const generatedGapPipeEvidence = buildSelectedZoneGeneratedGapPipeEvidence({
+    stagedBranches, zoneGeometryEvidence: prepared.artifact, mappingStatus,
+  });
   const connectivityEvidence = await buildSelectedZoneConnectivityEvidence({
     stagedBranches, componentCrosswalk, mappingStatus,
   });
   const branchFittingEvidence = await buildBranchFittingPortEvidence({
-    componentCrosswalk,
-    solidFittingPortEvidence: solidEvidence,
+    componentCrosswalk, solidFittingPortEvidence: solidEvidence,
   });
   const inlineAssemblyEvidence = await buildInlineAssemblyPortEvidence({
-    componentCrosswalk,
-    solidFittingPortEvidence: solidEvidence,
+    componentCrosswalk, solidFittingPortEvidence: solidEvidence,
   });
   return Object.freeze({
     componentCrosswalk,
     connectivityEvidence,
     connectivityReview: buildConnectivityReviewModel(connectivityEvidence, mappingStatus),
+    generatedGapPipeEvidence,
+    generatedGapPipeReview: buildGeneratedGapPipeReviewModel(
+      generatedGapPipeEvidence, mappingStatus),
     branchFittingEvidence,
     branchFittingReview: buildBranchFittingReviewModel(
       branchFittingEvidence, mappingStatus),
@@ -118,7 +129,7 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
 
 function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPipe, mapped) {
   const connectivity = mapped.connectivityReview, branchReview = mapped.branchFittingReview;
-  const inlineReview = mapped.inlineAssemblyReview;
+  const inlineReview = mapped.inlineAssemblyReview, gapReview = mapped.generatedGapPipeReview;
   return Object.freeze({
     selectedOccurrences: prepared.artifact.conservation.selectedOccurrenceCount,
     selectedGeometries: prepared.artifact.conservation.selectedGeometryCount,
@@ -133,6 +144,8 @@ function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPip
     mappedBoundaryLinks: connectivity.counts.boundaryLinkCount,
     mappedOpenPorts: connectivity.counts.openPortCount,
     mappedBlockedComponents: connectivity.counts.blockedComponentCount,
+    generatedGapPipes: gapReview.counts.generatedPipeCount,
+    blockedGeneratedGapPipes: gapReview.counts.blockedCandidateCount,
     mappedBranchFittings: branchReview.managedCount,
     admittedBranchFittings: branchReview.admittedCount,
     blockedBranchFittings: branchReview.blockedCount,
@@ -146,6 +159,35 @@ function optionalJson(value) {
   return value ? canonicalJson(value) : null;
 }
 
+function analysisResult(prepared, pipeEvidence, mapped, wireframePreview, packageResult) {
+  return Object.freeze({
+    status: ZONE_GEOMETRY_STATUS.PASS,
+    zoneGeometryEvidence: prepared.artifact,
+    derivedPortEvidence: pipeEvidence.derivedPortEvidence,
+    closedSolidPipeEvidence: pipeEvidence.closedSolidPipeEvidence,
+    componentCrosswalk: mapped.componentCrosswalk,
+    connectivityEvidence: mapped.connectivityEvidence,
+    connectivityReview: mapped.connectivityReview,
+    generatedGapPipeEvidence: mapped.generatedGapPipeEvidence,
+    generatedGapPipeReview: mapped.generatedGapPipeReview,
+    branchFittingEvidence: mapped.branchFittingEvidence,
+    branchFittingReview: mapped.branchFittingReview,
+    inlineAssemblyEvidence: mapped.inlineAssemblyEvidence,
+    inlineAssemblyReview: mapped.inlineAssemblyReview,
+    wireframePreview, autoPipe: pipeEvidence.autoPipe, ...packageResult,
+    zoneGeometryJson: canonicalJson(prepared.artifact),
+    derivedPortJson: canonicalJson(pipeEvidence.derivedPortEvidence),
+    closedSolidPipeJson: canonicalJson(pipeEvidence.closedSolidPipeEvidence),
+    componentCrosswalkJson: optionalJson(mapped.componentCrosswalk),
+    connectivityJson: optionalJson(mapped.connectivityEvidence),
+    generatedGapPipeJson: optionalJson(mapped.generatedGapPipeEvidence),
+    branchFittingJson: optionalJson(mapped.branchFittingEvidence),
+    inlineAssemblyJson: optionalJson(mapped.inlineAssemblyEvidence),
+    counts: analysisCounts(prepared, pipeEvidence.derivedPortEvidence,
+      wireframePreview, pipeEvidence.autoPipe, mapped),
+  });
+}
+
 export async function analyseFbxZoneGeometry(input) {
   try {
     const prepared = await prepareZoneGeometryEvidence(input);
@@ -155,33 +197,10 @@ export async function analyseFbxZoneGeometry(input) {
     const pipeEvidence = await gatherPipeEvidence(prepared);
     const mapped = await mappedComponentAnalysis(
       input, prepared, pipeEvidence.closedSolidPipeEvidence);
-    const packageResult = await optionalPackageInputs(input, prepared, pipeEvidence.autoPipe);
-    return Object.freeze({
-      status: ZONE_GEOMETRY_STATUS.PASS,
-      zoneGeometryEvidence: prepared.artifact,
-      derivedPortEvidence: pipeEvidence.derivedPortEvidence,
-      closedSolidPipeEvidence: pipeEvidence.closedSolidPipeEvidence,
-      componentCrosswalk: mapped.componentCrosswalk,
-      connectivityEvidence: mapped.connectivityEvidence,
-      connectivityReview: mapped.connectivityReview,
-      branchFittingEvidence: mapped.branchFittingEvidence,
-      branchFittingReview: mapped.branchFittingReview,
-      inlineAssemblyEvidence: mapped.inlineAssemblyEvidence,
-      inlineAssemblyReview: mapped.inlineAssemblyReview,
-      wireframePreview,
-      autoPipe: pipeEvidence.autoPipe,
-      ...packageResult,
-      zoneGeometryJson: canonicalJson(prepared.artifact),
-      derivedPortJson: canonicalJson(pipeEvidence.derivedPortEvidence),
-      closedSolidPipeJson: canonicalJson(pipeEvidence.closedSolidPipeEvidence),
-      componentCrosswalkJson: optionalJson(mapped.componentCrosswalk),
-      connectivityJson: optionalJson(mapped.connectivityEvidence),
-      branchFittingJson: optionalJson(mapped.branchFittingEvidence),
-      inlineAssemblyJson: optionalJson(mapped.inlineAssemblyEvidence),
-      counts: analysisCounts(
-        prepared, pipeEvidence.derivedPortEvidence, wireframePreview,
-        pipeEvidence.autoPipe, mapped),
-    });
+    const packageResult = await optionalPackageInputs(
+      input, prepared, pipeEvidence.autoPipe);
+    return analysisResult(
+      prepared, pipeEvidence, mapped, wireframePreview, packageResult);
   } catch (error) {
     throw asZoneGeometryError(error);
   }
