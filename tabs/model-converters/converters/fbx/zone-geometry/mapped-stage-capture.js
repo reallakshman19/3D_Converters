@@ -1,5 +1,8 @@
 import { getConverterById } from '../../../converter-registry.js?v=20260617-basic-glb-3';
-import { extractMappedStagedBranches } from './mapped-stage-output.js';
+import {
+  extractMappedEngineeringAttributeLedger,
+  extractMappedStagedBranches,
+} from './mapped-stage-output.js';
 
 const PATCH_MARKER = Symbol.for('model-converters.fbx-zone-geometry-run.v2');
 
@@ -16,6 +19,7 @@ function primaryInput(context) {
 
 function completedRunDetail(input, result) {
   const mapped = extractMappedStagedBranches(result);
+  const engineering = extractMappedEngineeringAttributeLedger(result);
   return {
     phase: 'complete',
     sourceName: input?.name || 'model.fbx',
@@ -23,6 +27,8 @@ function completedRunDetail(input, result) {
     conversionStatus: result?.conversionStatus || '',
     mappedStageStatus: mapped.status,
     stagedBranches: mapped.stagedBranches,
+    engineeringAttributeStatus: engineering.status,
+    engineeringAttributeLedger: engineering.ledger,
   };
 }
 
