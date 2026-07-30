@@ -3,15 +3,18 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const [analysis, controller, toolbar, capture, liveInput, supportProjection,
-  builder, validator, exporter] = await Promise.all([
+  hostEvidence, hostAssociation, builder, validator, validationSupport, exporter] = await Promise.all([
   read('tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js'),
   read('tabs/model-converters/converters/fbx/zone-geometry/analysis-controller.js'),
   read('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js'),
   read('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-capture.js'),
   read('tabs/model-converters/converters/fbx/zone-package/live-input.js'),
   read('tabs/model-converters/converters/fbx/zone-package/selected-support-evidence.js'),
+  read('tabs/model-converters/converters/fbx/support-host/evidence.js'),
+  read('tabs/model-converters/converters/fbx/support-host/association.js'),
   read('tabs/model-converters/converters/fbx/zone-package/package-builder.js'),
   read('tabs/model-converters/converters/fbx/zone-package/package-validation.js'),
+  read('tabs/model-converters/converters/fbx/zone-package/package-validation-support.js'),
   read('tabs/model-converters/fbx-zone-package-export.js'),
 ]);
 assert.match(capture, /extractMappedEngineeringAttributeLedger/);
@@ -21,18 +24,28 @@ for (const token of ['componentCrosswalk', 'connectivityEvidence', 'elbowEvidenc
   'teeEvidence', 'reducerEvidence', 'branchFittingEvidence', 'inlineAssemblyEvidence']) {
   assert.match(analysis, new RegExp(token));
 }
+assert.match(analysis, /pipeClassifications: pipeEvidence\.autoPipe\.classificationDispositions/);
 assert.match(liveInput, /buildSelectedZoneQualificationRoot/);
 assert.match(liveInput, /buildSelectedZoneEngineeringAttributeLedger/);
 assert.match(liveInput, /buildSelectedZoneSourceGraph/);
 assert.match(liveInput, /buildSelectedZoneSupportEvidence/);
+assert.match(liveInput, /buildSupportHostAssociationEvidence/);
+assert.match(liveInput, /SUPPORT_HOST_ASSOCIATION_EVIDENCE/);
 assert.match(supportProjection, /customProperties/);
 assert.doesNotMatch(supportProjection, /displayName.*RAW_TYPE|domSourceName.*RAW_TYPE/);
+assert.match(hostEvidence, /ADMITTED_AUTO_PIPE_CLASSIFICATIONS_ONLY/);
+assert.match(hostEvidence, /nearestPipeFallbackUsed: false/);
+assert.match(hostEvidence, /restraintSubtypeEvaluated: false/);
+assert.match(hostAssociation, /DUPLICATE_CYLINDER_HOST_AUTHORITY/);
 assert.match(builder, /buildPackageArtifactFiles/);
 assert.match(validator, /verifyPackagedSemanticArtifacts/);
-assert.match(validator, /SUPPORT_EVIDENCE_BINDING/);
-assert.match(validator, /supportEvidenceDigest/);
+assert.match(validator, /verifyQualifiedSupportBindings/);
+assert.match(validationSupport, /SUPPORT_HOST_ASSOCIATION_BINDING/);
+assert.match(validationSupport, /supportHostEvidenceDigest/);
 assert.match(exporter, /qualification PASS/);
-assert.match(exporter, /support candidate/);
-assert.doesNotMatch([analysis, liveInput, supportProjection, builder].join('\n'),
-  /Math\.random|Date\.now|localeCompare/);
+assert.match(exporter, /support hosts proved/);
+assert.match(exporter, /data-fbx-support-host-policy/);
+assert.match(exporter, /No nearest-pipe fallback/);
+assert.doesNotMatch([analysis, liveInput, supportProjection, hostEvidence,
+  hostAssociation, builder].join('\n'), /Math\.random|Date\.now|localeCompare/);
 console.log('test-selected-zone-package-production-capability: PASS');
