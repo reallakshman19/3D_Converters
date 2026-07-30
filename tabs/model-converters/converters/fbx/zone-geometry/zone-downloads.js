@@ -28,6 +28,18 @@ export function buildFbxGeneratedGapPipeDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxSelectedZoneGeneratedGapPipeEvidence.v1.json`;
 }
 
+export function buildFbxElbowDownloadName(sourceName, zoneLabel) {
+  return `${prefix(sourceName, zoneLabel)}.FbxElbowPortEvidence.v1.json`;
+}
+
+export function buildFbxTeeDownloadName(sourceName, zoneLabel) {
+  return `${prefix(sourceName, zoneLabel)}.FbxTeePortEvidence.v1.json`;
+}
+
+export function buildFbxReducerDownloadName(sourceName, zoneLabel) {
+  return `${prefix(sourceName, zoneLabel)}.FbxReducerPortEvidence.v1.json`;
+}
+
 export function buildFbxBranchFittingDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxBranchFittingPortEvidence.v1.json`;
 }

@@ -52,8 +52,14 @@ export function extractMappedStagedBranches(result) {
 }
 
 export function mappedStageStatusText(status) {
-  if (status === 'MAPPED_STAGE_AVAILABLE') return 'Approved mapped StagedJSON is available for selected-zone OLET review.';
-  if (status === 'MAPPED_STAGE_OUTPUT_INVALID') return 'Mapped StagedJSON output is invalid; OLET review is blocked.';
-  if (status === 'MAPPED_STAGE_OUTPUT_MISSING') return 'The mapping run passed but did not publish StagedJSON; OLET review is blocked.';
-  return 'Run FBX conversion with an approved mapping package to enable selected-zone OLET review.';
+  if (status === 'MAPPED_STAGE_AVAILABLE') {
+    return 'Approved mapped StagedJSON is available for selected-zone component evidence review.';
+  }
+  if (status === 'MAPPED_STAGE_OUTPUT_INVALID') {
+    return 'Mapped StagedJSON output is invalid; selected-zone component review is blocked.';
+  }
+  if (status === 'MAPPED_STAGE_OUTPUT_MISSING') {
+    return 'The mapping run passed but did not publish StagedJSON; selected-zone component review is blocked.';
+  }
+  return 'Run FBX conversion with an approved mapping package to enable selected-zone component review.';
 }
