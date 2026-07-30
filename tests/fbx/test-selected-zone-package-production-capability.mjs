@@ -29,6 +29,8 @@ assert.match(supportProjection, /customProperties/);
 assert.doesNotMatch(supportProjection, /displayName.*RAW_TYPE|domSourceName.*RAW_TYPE/);
 assert.match(builder, /buildPackageArtifactFiles/);
 assert.match(validator, /verifyPackagedSemanticArtifacts/);
+assert.match(validator, /SUPPORT_EVIDENCE_BINDING/);
+assert.match(validator, /supportEvidenceDigest/);
 assert.match(exporter, /qualification PASS/);
 assert.match(exporter, /support candidate/);
 assert.doesNotMatch([analysis, liveInput, supportProjection, builder].join('\n'),
