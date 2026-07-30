@@ -1,5 +1,9 @@
 import { canonicalJson } from './canonical-json.js';
 import { validateConnectivity, validateConnectivityV2 } from './connectivity.js';
+import {
+  assertEngineeringAttributePublication,
+  buildEngineeringAttributeLedger,
+} from './engineering-attributes/ledger.js';
 import { prepareGeneratedGapPipeRelease } from './generated-gap-pipe/release.js';
 import { validateMappingManifest } from './mapping-validator.js';
 import { resolveEntryPorts, resolveEntryPortsV2 } from './port-resolver.js';
@@ -43,6 +47,13 @@ export function attachGeneratedGapPipeEvidence(result, stem, value) {
   return result;
 }
 
+export function attachEngineeringAttributeLedger(result, stem, value) {
+  const ledger = value?.engineeringAttributeLedger || value;
+  if (ledger?.schema !== 'FbxEngineeringAttributeLedger.v1') return result;
+  result.outputs.push(artifact(`${stem}.FbxEngineeringAttributeLedger.v1.json`, ledger));
+  return result;
+}
+
 export function packageBlockedResult(stem, graph, status, diagnostics, binding) {
   const result = blockedResult(stem, graph, status, [...binding.statuses, ...diagnostics]);
   result.outputs.push(artifact(`${stem}.fbx-binding-report.json`, binding));
@@ -65,7 +76,19 @@ function promotedRecord(entry, resolvedByEntry) {
   };
 }
 
-export function mappingLedger(mapping, resolvedByEntry, links, releasedEntries = mapping.entries) {
+export function mappingLedger(
+  mapping,
+  resolvedByEntry,
+  links,
+  releasedEntries = mapping.entries,
+  stagedBranches = null,
+) {
+  const engineeringAttributes = stagedBranches ? buildEngineeringAttributeLedger({
+    acceptedEntries: mapping.entries,
+    releasedEntries,
+    stagedBranches,
+  }) : null;
+  if (engineeringAttributes) assertEngineeringAttributePublication(engineeringAttributes);
   return {
     schema: 'FbxMappingLedger.v1',
     mappingSchema: mapping.schema,
@@ -73,6 +96,7 @@ export function mappingLedger(mapping, resolvedByEntry, links, releasedEntries =
     exclusions: mapping.exclusions,
     promoted: releasedEntries.map((entry) => promotedRecord(entry, resolvedByEntry)),
     explicitConnections: links.map((link) => link.endpoints),
+    ...(engineeringAttributes ? { engineeringAttributes } : {}),
   };
 }
 
@@ -80,28 +104,47 @@ export function blockedStatus(diagnostic) {
   if (diagnostic.startsWith('BLOCKED_TRANSFORM')) return 'BLOCKED_TRANSFORM';
   if (diagnostic.startsWith('BLOCKED_STAGEDJSON_CONTRACT')) return 'BLOCKED_STAGEDJSON_CONTRACT';
   if (diagnostic.startsWith('BLOCKED_GAP_PIPE')) return 'BLOCKED_GAP_PIPE';
+  if (diagnostic.startsWith('BLOCKED_ENGINEERING_ATTRIBUTES')) return 'BLOCKED_ENGINEERING_ATTRIBUTES';
   return 'BLOCKED_MAPPING';
 }
 
-export function successResult(stem, graph, ledger, staged, counts, gapPipeEvidence = null) {
+function successOutputs(stem, graph, ledger, staged, counts) {
   const outputs = [
     artifact(`${stem}.fbx-source-graph.json`, graph),
     artifact(`${stem}.fbx-mapping-ledger.json`, ledger),
+  ];
+  if (ledger.engineeringAttributes) {
+    outputs.push(artifact(`${stem}.FbxEngineeringAttributeLedger.v1.json`, ledger.engineeringAttributes));
+  }
+  outputs.push(
     artifact(`${stem}.staged.json`, staged),
     artifact(`${stem}.fbx-conversion-report.json`, report('STAGEDJSON_PASS', [
-      'PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS',
+      'PARSE_PASS', 'MAPPING_PASS', 'ENGINEERING_ATTRIBUTES_PASS', 'STAGEDJSON_PASS',
     ], counts)),
-  ];
+  );
+  return outputs;
+}
+
+export function successResult(stem, graph, ledger, staged, counts, gapPipeEvidence = null) {
+  const outputs = successOutputs(stem, graph, ledger, staged, counts);
+  const stdout = ['PARSE_PASS', 'MAPPING_PASS', 'ENGINEERING_ATTRIBUTES_PASS', 'STAGEDJSON_PASS'];
   const result = { ok: true, blocked: false, conversionStatus: 'STAGEDJSON_PASS', outputs,
-    logs: { stdout: ['PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS'], stderr: [] } };
+    logs: { stdout, stderr: [] } };
   return attachGeneratedGapPipeEvidence(result, stem, gapPipeEvidence);
+}
+
+function replaceConversionReport(result, stem, value) {
+  const name = `${stem}.fbx-conversion-report.json`;
+  const index = result.outputs.findIndex((output) => output.name === name);
+  if (index < 0) throw new Error('BLOCKED_STAGEDJSON_CONTRACT conversion report output is missing.');
+  result.outputs[index] = artifact(name, value);
 }
 
 export function packageSuccessResult(stem, graph, ledger, staged, counts, binding,
   gapPipeEvidence = null) {
   const result = successResult(stem, graph, ledger, staged, counts, gapPipeEvidence);
-  const diagnostics = [...binding.statuses];
-  result.outputs[3] = artifact(`${stem}.fbx-conversion-report.json`, report('STAGEDJSON_PASS', diagnostics, counts));
+  const diagnostics = [...binding.statuses, 'ENGINEERING_ATTRIBUTES_PASS'];
+  replaceConversionReport(result, stem, report('STAGEDJSON_PASS', diagnostics, counts));
   result.outputs.push(artifact(`${stem}.fbx-binding-report.json`, binding));
   result.logs.stdout = diagnostics;
   return result;
