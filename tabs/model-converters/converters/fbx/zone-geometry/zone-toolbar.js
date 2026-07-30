@@ -18,7 +18,6 @@ import { buildFbxZoneWireframeMetaText } from './wireframe-preview.js';
 
 export { buildFbxBranchFittingDownloadName, buildFbxDerivedPortDownloadName,
   buildFbxInlineAssemblyDownloadName, buildFbxInternalPipeDownloadName, buildFbxZoneGeometryDownloadName } from './zone-downloads.js';
-
 const PREVIEW_EVENT = 'model-converters:preview-project-rendered';
 const RUN_EVENT = 'model-converters:fbx-zone-geometry-run';
 const AUTO_PIPE_OUTPUT_EVENT = 'model-converters:fbx-auto-pipe-outputs';
