@@ -61,6 +61,7 @@ const tests = [
   'test-elbow-port-evidence.mjs',
   'test-tee-port-evidence.mjs',
   'test-reducer-port-evidence.mjs',
+  'test-primary-fitting-production-capability.mjs',
   'test-branch-fitting-port-evidence.mjs',
   'test-branch-fitting-production-capability.mjs',
   'test-inline-assembly-production-capability.mjs',
