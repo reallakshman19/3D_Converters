@@ -1,3 +1,4 @@
+import { validateSupportHostAssociationEvidence } from '../support-host/evidence.js';
 import { packageArtifactSpecForRole, selectedZonePackageArtifactSpecs } from './artifact-roles.js';
 import { parsePackagedArtifact } from './package-artifacts.js';
 import { validateSelectedZoneQualificationRoot } from './qualification-root.js';
@@ -21,6 +22,9 @@ export async function verifyPackagedSemanticArtifacts(audit, files) {
   }
   if (parsed.ENGINEERING_ATTRIBUTES) {
     await validateSelectedZoneEngineeringAttributeLedger(parsed.ENGINEERING_ATTRIBUTES);
+  }
+  if (parsed.SUPPORT_HOST_ASSOCIATION_EVIDENCE) {
+    await validateSupportHostAssociationEvidence(parsed.SUPPORT_HOST_ASSOCIATION_EVIDENCE);
   }
   if (parsed.QUALIFICATION_ROOT) {
     await validateSelectedZoneQualificationRoot(parsed.QUALIFICATION_ROOT);
