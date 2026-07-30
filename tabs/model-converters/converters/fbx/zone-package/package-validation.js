@@ -4,10 +4,17 @@ import {
   calculateSelectedZoneGeometryManifestDigest,
   validateSelectedZoneGeometryManifest,
 } from './geometry-manifest.js';
+import {
+  packageArtifactSpecForRole,
+  selectedZonePackageArtifactSpecs,
+} from './artifact-roles.js';
+import { verifyPackagedSemanticArtifacts } from './package-validation-artifacts.js';
 import { validateSupportCandidateEvidence } from './support-evidence.js';
 import {
-  FBX_ZONE_PACKAGE_FILE_ROLES, FBX_ZONE_PACKAGE_LIMITS,
-  FBX_ZONE_PACKAGE_SCHEMAS, fail,
+  FBX_ZONE_PACKAGE_FILE_ROLES,
+  FBX_ZONE_PACKAGE_LIMITS,
+  FBX_ZONE_PACKAGE_SCHEMAS,
+  fail,
 } from './constants.js';
 
 const HASH = /^[0-9a-f]{64}$/;
@@ -29,55 +36,53 @@ function bytesView(value, label = 'file bytes') {
   }
   fail('ZONE_PACKAGE_INVALID_FILE', `${label} must be bytes.`);
 }
+
 function exactKeys(value, keys, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)
-      || Object.keys(value).sort().join('\0') !== [...keys].sort().join('\0')) {
+  const actual = value && typeof value === 'object' && !Array.isArray(value)
+    ? Object.keys(value).sort().join('\0') : '';
+  if (actual !== [...keys].sort().join('\0')) {
     fail('ZONE_PACKAGE_INVALID_AUDIT', `${label} fields are invalid.`);
   }
 }
+
 function safePath(path) {
   return typeof path === 'string' && path.length > 0 && path.length <= 512
     && !path.startsWith('/') && !path.includes('\\')
     && !path.split('/').some((part) => !part || part === '.' || part === '..');
 }
+
 function auditPayload(audit) {
-  const payload = structuredClone(audit);
-  delete payload.packageDigest;
-  return payload;
+  const value = structuredClone(audit);
+  delete value.packageDigest;
+  return value;
 }
-async function calculatePackageDigest(audit) {
-  return sha256Hex(canonicalJson(auditPayload(audit)));
-}
+
 function recordsByRole(audit, role) {
   return audit.files.filter((record) => record.role === role);
 }
+
 function roleContract(record) {
-  if (record.role === 'MANIFEST') {
-    return record.path === 'manifest.json' && record.disposition === 'PRESENT';
-  }
-  if (record.role === 'GEOMETRY_DESCRIPTOR') {
-    return DESCRIPTOR_PATH.test(record.path) && record.disposition === 'PRESENT';
-  }
-  if (record.role === 'GEOMETRY_BUFFER') {
-    return BUFFER_PATH.test(record.path) && record.disposition === 'PRESENT';
-  }
+  if (record.role === 'MANIFEST') return record.path === 'manifest.json';
+  if (record.role === 'GEOMETRY_DESCRIPTOR') return DESCRIPTOR_PATH.test(record.path);
+  if (record.role === 'GEOMETRY_BUFFER') return BUFFER_PATH.test(record.path);
   if (record.role === 'STAGEDJSON') return record.path === 'stagedjson.json';
-  if (record.role === 'SUPPORT_EVIDENCE') {
-    return record.path === 'support-evidence.json';
-  }
-  return false;
+  if (record.role === 'SUPPORT_EVIDENCE') return record.path === 'support-evidence.json';
+  const spec = packageArtifactSpecForRole(record.role);
+  return Boolean(spec && spec.path === record.path);
 }
+
 function validateDisposition(record) {
   if (record.disposition === 'PRESENT') {
-    return HASH.test(record.sha256 || '')
-      && Number.isSafeInteger(record.byteLength)
+    return HASH.test(record.sha256 || '') && Number.isSafeInteger(record.byteLength)
       && record.byteLength >= 0 && record.reason === null;
   }
-  return record.disposition === 'OMITTED_BLOCKED'
-    && ['STAGEDJSON', 'SUPPORT_EVIDENCE'].includes(record.role)
+  const optionalRole = ['STAGEDJSON', 'SUPPORT_EVIDENCE'].includes(record.role)
+    || Boolean(packageArtifactSpecForRole(record.role));
+  return record.disposition === 'OMITTED_BLOCKED' && optionalRole
     && record.sha256 === null && record.byteLength === 0
     && typeof record.reason === 'string' && Boolean(record.reason.trim());
 }
+
 function validateFileRecord(record, priorPath) {
   exactKeys(record, FILE_KEYS, `audit file ${record?.path || '?'}`);
   if (!FBX_ZONE_PACKAGE_FILE_ROLES.includes(record.role)
@@ -89,15 +94,18 @@ function validateFileRecord(record, priorPath) {
   }
   return record.path;
 }
+
 function validateRoleInventory(audit) {
-  const valid = recordsByRole(audit, 'MANIFEST').length === 1
+  const fixed = recordsByRole(audit, 'MANIFEST').length === 1
     && recordsByRole(audit, 'STAGEDJSON').length === 1
     && recordsByRole(audit, 'SUPPORT_EVIDENCE').length === 1
     && recordsByRole(audit, 'GEOMETRY_DESCRIPTOR').length === audit.geometryCount
     && recordsByRole(audit, 'GEOMETRY_BUFFER').length === audit.geometryCount * 3;
-  if (!valid) {
-    fail('ZONE_PACKAGE_INVALID_AUDIT',
-      'audit role inventory does not match geometryCount.');
+  const semantic = selectedZonePackageArtifactSpecs().every((spec) => (
+    recordsByRole(audit, spec.role).length === 1
+  ));
+  if (!fixed || !semantic) {
+    fail('ZONE_PACKAGE_INVALID_AUDIT', 'audit role inventory is incomplete.');
   }
   const support = recordsByRole(audit, 'SUPPORT_EVIDENCE')[0];
   const expected = support.disposition === 'PRESENT'
@@ -107,26 +115,25 @@ function validateRoleInventory(audit) {
       'supportSemantics contradicts the support evidence disposition.');
   }
 }
+
 async function validateAudit(audit) {
   exactKeys(audit, AUDIT_KEYS, 'audit');
-  const identityValid = audit.schema === FBX_ZONE_PACKAGE_SCHEMAS.packageAudit
-    && HASH.test(audit.manifestSha256 || '')
-    && HASH.test(audit.manifestDigest || '')
-    && HASH.test(audit.selectedZoneDigest || '')
-    && HASH.test(audit.packageDigest || '')
+  const valid = audit.schema === FBX_ZONE_PACKAGE_SCHEMAS.packageAudit
+    && HASH.test(audit.manifestSha256 || '') && HASH.test(audit.manifestDigest || '')
+    && HASH.test(audit.selectedZoneDigest || '') && HASH.test(audit.packageDigest || '')
     && Number.isSafeInteger(audit.geometryCount) && audit.geometryCount >= 1
     && audit.geometryCount <= FBX_ZONE_PACKAGE_LIMITS.maxSelectedGeometries
     && ['NOT_AUTHORIZED', 'CANDIDATE_EVIDENCE_ONLY'].includes(audit.supportSemantics)
-    && Array.isArray(audit.files)
-    && audit.files.length <= FBX_ZONE_PACKAGE_LIMITS.maxPackageFiles;
-  if (!identityValid) fail('ZONE_PACKAGE_INVALID_AUDIT', 'audit identity is invalid.');
+    && Array.isArray(audit.files) && audit.files.length <= FBX_ZONE_PACKAGE_LIMITS.maxPackageFiles;
+  if (!valid) fail('ZONE_PACKAGE_INVALID_AUDIT', 'audit identity is invalid.');
   let priorPath = null;
   for (const record of audit.files) priorPath = validateFileRecord(record, priorPath);
   validateRoleInventory(audit);
-  if (await calculatePackageDigest(audit) !== audit.packageDigest) {
+  if (await sha256Hex(canonicalJson(auditPayload(audit))) !== audit.packageDigest) {
     fail('ZONE_PACKAGE_INVALID_AUDIT', 'packageDigest is invalid.');
   }
 }
+
 function fileMap(files) {
   if (!Array.isArray(files) || !files.length
       || files.length > FBX_ZONE_PACKAGE_LIMITS.maxPackageFiles) {
@@ -142,39 +149,36 @@ function fileMap(files) {
   }
   return map;
 }
+
 async function verifyInventory(audit, files) {
   const present = audit.files.filter((record) => record.disposition === 'PRESENT');
   const omitted = audit.files.filter((record) => record.disposition === 'OMITTED_BLOCKED');
   const expected = new Set(['audit.json', ...present.map((record) => record.path)]);
-  if (files.size !== expected.size
-      || [...files.keys()].some((path) => !expected.has(path))
+  if (files.size !== expected.size || [...files.keys()].some((path) => !expected.has(path))
       || omitted.some((record) => files.has(record.path))) {
-    fail('ZONE_PACKAGE_INVALID_FILE',
-      'physical package files differ from the audit inventory.');
+    fail('ZONE_PACKAGE_INVALID_FILE', 'physical package files differ from the audit inventory.');
   }
   for (const record of present) {
-    const bytes = bytesView(files.get(record.path).bytes, record.path);
-    if (bytes.byteLength !== record.byteLength
-        || await sha256Hex(bytes) !== record.sha256) {
-      fail('ZONE_PACKAGE_INVALID_FILE',
-        `file ${record.path} differs from its audit record.`);
+    const bytes = files.get(record.path).bytes;
+    if (bytes.byteLength !== record.byteLength || await sha256Hex(bytes) !== record.sha256) {
+      fail('ZONE_PACKAGE_INVALID_FILE', `file ${record.path} differs from its audit record.`);
     }
   }
 }
+
 function descriptorPayload(entry) {
   return {
-    geometryId: entry.geometryId,
-    sourceObjectId: entry.sourceObjectId,
-    occurrenceIds: [...entry.occurrenceIds],
-    controlPointCount: entry.controlPointCount,
+    geometryId: entry.geometryId, sourceObjectId: entry.sourceObjectId,
+    occurrenceIds: [...entry.occurrenceIds], controlPointCount: entry.controlPointCount,
     polygonCount: entry.polygonCount,
   };
 }
+
 async function verifyGeometryFiles(manifest, files) {
   for (const entry of manifest.geometries) {
     const descriptor = files.get(entry.packagePath);
-    const expected = canonicalJson(descriptorPayload(entry));
-    if (!descriptor || new TextDecoder().decode(descriptor.bytes) !== expected) {
+    if (!descriptor || new TextDecoder().decode(descriptor.bytes)
+        !== canonicalJson(descriptorPayload(entry))) {
       fail('ZONE_PACKAGE_INVALID_FILE',
         `geometry descriptor ${entry.packagePath} differs from the manifest.`);
     }
@@ -188,6 +192,7 @@ async function verifyGeometryFiles(manifest, files) {
     }
   }
 }
+
 function parsedJsonFile(files, path, code, label) {
   try {
     const value = JSON.parse(new TextDecoder().decode(files.get(path).bytes));
@@ -197,11 +202,11 @@ function parsedJsonFile(files, path, code, label) {
     fail(code, `${label} is invalid JSON: ${error?.message || error}`);
   }
 }
-async function verifyOptionalFiles(audit, manifest, files) {
+
+async function verifySupportAndStage(audit, manifest, files) {
   const staged = recordsByRole(audit, 'STAGEDJSON')[0];
   if (staged.disposition === 'PRESENT') {
-    parsedJsonFile(files, staged.path,
-      'ZONE_PACKAGE_INVALID_STAGEDJSON', 'StagedJSON');
+    parsedJsonFile(files, staged.path, 'ZONE_PACKAGE_INVALID_STAGEDJSON', 'StagedJSON');
   }
   const support = recordsByRole(audit, 'SUPPORT_EVIDENCE')[0];
   if (support.disposition === 'PRESENT') {
@@ -214,28 +219,30 @@ async function verifyOptionalFiles(audit, manifest, files) {
     }
   }
 }
+
 function expectedGeometryPaths(manifest) {
   return new Set(manifest.geometries.flatMap((entry) => [
     entry.packagePath, ...entry.buffers.map((buffer) => buffer.packagePath),
   ]));
 }
+
 function verifyGeometryInventory(audit, manifest) {
   const inventoried = new Set(audit.files
     .filter((record) => ['GEOMETRY_DESCRIPTOR', 'GEOMETRY_BUFFER'].includes(record.role))
     .map((record) => record.path));
   if (canonicalJson([...inventoried].sort())
       !== canonicalJson([...expectedGeometryPaths(manifest)].sort())) {
-    fail('ZONE_PACKAGE_INVALID_AUDIT',
-      'geometry file inventory differs from the manifest.');
+    fail('ZONE_PACKAGE_INVALID_AUDIT', 'geometry file inventory differs from the manifest.');
   }
 }
+
 async function parsedManifest(files) {
-  const manifestFile = files.get('manifest.json');
-  if (!manifestFile) fail('ZONE_PACKAGE_INVALID_FILE', 'manifest.json is missing.');
+  const file = files.get('manifest.json');
+  if (!file) fail('ZONE_PACKAGE_INVALID_FILE', 'manifest.json is missing.');
   try {
-    const manifest = JSON.parse(new TextDecoder().decode(manifestFile.bytes));
+    const manifest = JSON.parse(new TextDecoder().decode(file.bytes));
     await validateSelectedZoneGeometryManifest(manifest);
-    return { manifest, manifestFile };
+    return { manifest, file };
   } catch (error) {
     if (error?.code) throw error;
     fail('ZONE_PACKAGE_INVALID_MANIFEST',
@@ -249,20 +256,22 @@ export async function validateSelectedZonePackage({ files, audit } = {}) {
   await verifyInventory(audit, filesByPath);
   const auditFile = filesByPath.get('audit.json');
   if (new TextDecoder().decode(auditFile.bytes) !== canonicalJson(audit)) {
-    fail('ZONE_PACKAGE_INVALID_AUDIT',
-      'audit.json differs from the bound audit object.');
+    fail('ZONE_PACKAGE_INVALID_AUDIT', 'audit.json differs from the bound audit object.');
   }
-  const { manifest, manifestFile } = await parsedManifest(filesByPath);
-  const manifestBound = await sha256Hex(manifestFile.bytes) === audit.manifestSha256
+  const { manifest, file } = await parsedManifest(filesByPath);
+  const bound = await sha256Hex(file.bytes) === audit.manifestSha256
     && await calculateSelectedZoneGeometryManifestDigest(manifest) === audit.manifestDigest
     && manifest.selectedZoneDigest === audit.selectedZoneDigest
     && manifest.geometries.length === audit.geometryCount;
-  if (!manifestBound) {
-    fail('ZONE_PACKAGE_INVALID_AUDIT',
-      'manifest identity differs from the audit.');
-  }
+  if (!bound) fail('ZONE_PACKAGE_INVALID_AUDIT', 'manifest identity differs from the audit.');
   verifyGeometryInventory(audit, manifest);
   await verifyGeometryFiles(manifest, filesByPath);
-  await verifyOptionalFiles(audit, manifest, filesByPath);
-  return { files, audit, manifest };
+  await verifySupportAndStage(audit, manifest, filesByPath);
+  const artifacts = await verifyPackagedSemanticArtifacts(audit, filesByPath);
+  const root = artifacts.QUALIFICATION_ROOT;
+  if (root && root.selectedZone.manifestDigest !== manifest.manifestDigest) {
+    fail('ZONE_PACKAGE_INVALID_QUALIFICATION',
+      'qualification root differs from the selected geometry manifest.');
+  }
+  return { files, audit, manifest, artifacts };
 }
