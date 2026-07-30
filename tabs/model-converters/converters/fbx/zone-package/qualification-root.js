@@ -18,11 +18,8 @@ function sameSet(left, right) {
 
 function stagedMappingEntryIds(stagedBranches) {
   const ids = [];
-  for (const branch of stagedBranches || []) {
-    for (const child of branch?.children || []) {
-      const id = child?.attributes?.mappingEntryId;
-      if (id) ids.push(id);
-    }
+  for (const branch of stagedBranches || []) for (const child of branch?.children || []) {
+    if (child?.attributes?.mappingEntryId) ids.push(child.attributes.mappingEntryId);
   }
   return uniqueSorted(ids);
 }
@@ -32,12 +29,8 @@ function crosswalkMappingEntryIds(crosswalk) {
 }
 
 function check(code, pass, detail, evidence = {}) {
-  return Object.freeze({
-    code,
-    status: pass ? 'PASS' : 'BLOCKED',
-    detail,
-    evidence: structuredClone(evidence),
-  });
+  return Object.freeze({ code, status: pass ? 'PASS' : 'BLOCKED', detail,
+    evidence: structuredClone(evidence) });
 }
 
 function roleCoverageCheck(artifacts) {
@@ -47,7 +40,8 @@ function roleCoverageCheck(artifacts) {
   return check('REQUIRED_ARTIFACT_COVERAGE', missing.length === 0,
     missing.length ? `Missing required package artifacts: ${missing.join(', ')}.`
       : 'Every required selected-zone package artifact is present.',
-    { missingRequiredRoles: missing, presentRoles: inventory.filter((item) => item.present).map((item) => item.role) });
+    { missingRequiredRoles: missing,
+      presentRoles: inventory.filter((item) => item.present).map((item) => item.role) });
 }
 
 function geometryConservationCheck(manifest, zoneGeometry) {
@@ -67,6 +61,21 @@ function sourceGraphBindingCheck(zoneGeometry, selectedSourceGraph) {
     'Selected source graph must preserve the exact zone geometry and occurrence population.', {
       zoneGeometryArtifactId: zoneGeometry?.artifactId || null,
       selectedSourceGraphArtifactId: selectedSourceGraph?.artifactId || null,
+    });
+}
+
+function supportEvidenceBindingCheck(manifest, selectedSourceGraph, supportEvidence) {
+  const selectedIds = uniqueSorted(selectedSourceGraph?.selectedZone?.selectedOccurrenceIds || []);
+  const candidateIds = uniqueSorted(supportEvidence?.candidates?.map((item) => item.occurrenceId) || []);
+  const unknownIds = candidateIds.filter((id) => !selectedIds.includes(id));
+  const pass = supportEvidence?.schema === 'FbxSupportEvidence.v1'
+    && supportEvidence?.selectedZoneDigest === manifest?.selectedZoneDigest
+    && unknownIds.length === 0;
+  return check('SUPPORT_EVIDENCE_BINDING', pass,
+    'Support candidates must come from the selected occurrence population and bind the selected-zone digest.', {
+      candidateCount: supportEvidence?.candidates?.length || 0,
+      supportEvidenceDigest: supportEvidence?.evidenceDigest || null,
+      unknownOccurrenceIds: unknownIds,
     });
 }
 
@@ -97,8 +106,7 @@ function stagedParityCheck(stagedBranches, crosswalk) {
   const managedIds = crosswalkMappingEntryIds(crosswalk);
   return check('STAGED_COMPONENT_PARITY', sameSet(stagedIds, managedIds),
     'Scoped StagedJSON mapping entries must equal the selected component crosswalk population.', {
-      stagedMappingEntryIds: stagedIds,
-      crosswalkMappingEntryIds: managedIds,
+      stagedMappingEntryIds: stagedIds, crosswalkMappingEntryIds: managedIds,
     });
 }
 
@@ -107,8 +115,7 @@ function engineeringParityCheck(zoneGeometry, crosswalk, engineering) {
   const crosswalkIds = crosswalkMappingEntryIds(crosswalk);
   const pass = engineering?.zoneGeometryArtifactId === zoneGeometry?.artifactId
     && engineering?.sourceComponentCrosswalkArtifactId === crosswalk?.artifactId
-    && engineering?.status === 'PASS'
-    && sameSet(componentIds, crosswalkIds);
+    && engineering?.status === 'PASS' && sameSet(componentIds, crosswalkIds);
   return check('ENGINEERING_ATTRIBUTE_PARITY', pass,
     'Selected engineering records must be complete, passing, and bound to the selected component crosswalk.', {
       engineeringArtifactId: engineering?.artifactId || null,
@@ -118,23 +125,22 @@ function engineeringParityCheck(zoneGeometry, crosswalk, engineering) {
 }
 
 function evidenceCrosswalkBound(value, crosswalk, solidPorts) {
-  if (!value) return false;
-  const crosswalkBound = value.sourceComponentCrosswalkArtifactId === crosswalk?.artifactId;
-  const solidBound = value.sourceSolidFittingPortEvidenceArtifactId === solidPorts?.artifactId;
-  return crosswalkBound && solidBound;
+  return Boolean(value
+    && value.sourceComponentCrosswalkArtifactId === crosswalk?.artifactId
+    && value.sourceSolidFittingPortEvidenceArtifactId === solidPorts?.artifactId);
 }
 
 function fittingBindingCheck(artifacts) {
   const crosswalk = artifacts.COMPONENT_CROSSWALK;
   const solid = artifacts.SOLID_FITTING_PORT_EVIDENCE;
-  const roles = [
-    'ELBOW_EVIDENCE', 'TEE_EVIDENCE', 'REDUCER_EVIDENCE',
-    'BRANCH_FITTING_EVIDENCE', 'INLINE_ASSEMBLY_EVIDENCE',
-  ];
+  const roles = ['ELBOW_EVIDENCE', 'TEE_EVIDENCE', 'REDUCER_EVIDENCE',
+    'BRANCH_FITTING_EVIDENCE', 'INLINE_ASSEMBLY_EVIDENCE'];
   const failed = roles.filter((role) => !evidenceCrosswalkBound(artifacts[role], crosswalk, solid));
   return check('FITTING_EVIDENCE_BINDING', failed.length === 0,
-    'Every fitting artifact must bind the same component crosswalk and solid-port authority.',
-    { failedRoles: failed, componentCrosswalkArtifactId: crosswalk?.artifactId || null, solidPortArtifactId: solid?.artifactId || null });
+    'Every fitting artifact must bind the same component crosswalk and solid-port authority.', {
+      failedRoles: failed, componentCrosswalkArtifactId: crosswalk?.artifactId || null,
+      solidPortArtifactId: solid?.artifactId || null,
+    });
 }
 
 function connectivityBindingCheck(zoneGeometry, crosswalk, connectivity) {
@@ -164,18 +170,21 @@ async function artifactDigests(artifacts) {
   for (const item of packageArtifactRoleInventory(artifacts).filter((entry) => entry.present)) {
     if (item.role === 'QUALIFICATION_ROOT') continue;
     validatePackageArtifactValue(item.role, artifacts[item.role]);
-    values.push({ role: item.role, schema: item.schema, sha256: await sha256Hex(canonicalJson(artifacts[item.role])) });
+    values.push({ role: item.role, schema: item.schema,
+      sha256: await sha256Hex(canonicalJson(artifacts[item.role])) });
   }
   return values.sort((left, right) => compareText(left.role, right.role));
 }
 
-function qualificationChecks(manifest, stagedBranches, artifacts) {
+function qualificationChecks(manifest, stagedBranches, artifacts, supportEvidence) {
   const zoneGeometry = artifacts?.ZONE_GEOMETRY_EVIDENCE;
   const selectedSourceGraph = artifacts?.SELECTED_SOURCE_GRAPH;
   const crosswalk = artifacts?.COMPONENT_CROSSWALK;
   return [
-    roleCoverageCheck(artifacts || {}), geometryConservationCheck(manifest, zoneGeometry),
+    roleCoverageCheck(artifacts || {}),
+    geometryConservationCheck(manifest, zoneGeometry),
     sourceGraphBindingCheck(zoneGeometry, selectedSourceGraph),
+    supportEvidenceBindingCheck(manifest, selectedSourceGraph, supportEvidence),
     portEvidenceBindingCheck(zoneGeometry, artifacts?.DERIVED_PORT_EVIDENCE,
       artifacts?.SOLID_FITTING_PORT_EVIDENCE),
     crosswalkBindingCheck(zoneGeometry, selectedSourceGraph, crosswalk),
@@ -200,22 +209,22 @@ function qualificationPayload(manifest, artifacts, checks, digests) {
       selectedZoneDigest: manifest?.selectedZoneDigest || null,
     },
     artifactDigests: digests, checks,
-    summary: {
-      checkCount: checks.length, passCount: checks.length - blockedChecks.length,
-      blockedCount: blockedChecks.length, blockedChecks,
-    },
+    summary: { checkCount: checks.length, passCount: checks.length - blockedChecks.length,
+      blockedCount: blockedChecks.length, blockedChecks },
     authority: {
       qualificationChangesEngineeringAuthority: false,
-      qualificationChangesWriterAuthority: false, qualificationChangesTopologyAuthority: false,
-      packageConsumerBecomesAuthority: false, unresolvedValuesDefaulted: false,
+      qualificationChangesWriterAuthority: false,
+      qualificationChangesTopologyAuthority: false,
+      packageConsumerBecomesAuthority: false,
+      unresolvedValuesDefaulted: false,
     },
   };
 }
 
 export async function buildSelectedZoneQualificationRoot({
-  manifest, stagedBranches, artifacts,
+  manifest, stagedBranches, artifacts, supportEvidence,
 } = {}) {
-  const checks = qualificationChecks(manifest, stagedBranches, artifacts);
+  const checks = qualificationChecks(manifest, stagedBranches, artifacts, supportEvidence);
   const digests = await artifactDigests(artifacts || {});
   const payload = qualificationPayload(manifest, artifacts, checks, digests);
   const rootDigest = await sha256Hex(canonicalJson(payload));
@@ -227,17 +236,15 @@ export async function validateSelectedZoneQualificationRoot(value) {
       || !Array.isArray(value.artifactDigests) || !value.summary) {
     throw new TypeError(`${SCHEMA} structure is invalid.`);
   }
-  const payload = structuredClone(value);
-  const rootDigest = payload.rootDigest;
-  delete payload.rootDigest;
-  delete payload.artifactId;
+  const payload = structuredClone(value), rootDigest = payload.rootDigest;
+  delete payload.rootDigest; delete payload.artifactId;
   const actual = await sha256Hex(canonicalJson(payload));
   if (rootDigest !== actual || value.artifactId !== `FBXZQUAL-${actual.slice(0, 32)}`) {
     throw new TypeError(`${SCHEMA} digest is invalid.`);
   }
   const blocked = value.checks.filter((item) => item.status === 'BLOCKED').map((item) => item.code);
-  const expectedStatus = blocked.length ? 'BLOCKED' : 'PASS';
-  if (value.status !== expectedStatus || value.summary.blockedCount !== blocked.length) {
+  if (value.status !== (blocked.length ? 'BLOCKED' : 'PASS')
+      || value.summary.blockedCount !== blocked.length) {
     throw new TypeError(`${SCHEMA} status summary is inconsistent.`);
   }
   return value;
