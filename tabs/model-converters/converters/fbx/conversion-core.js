@@ -1,5 +1,6 @@
 import { canonicalJson } from './canonical-json.js';
 import { validateConnectivity, validateConnectivityV2 } from './connectivity.js';
+import { prepareGeneratedGapPipeRelease } from './generated-gap-pipe/release.js';
 import { validateMappingManifest } from './mapping-validator.js';
 import { resolveEntryPorts, resolveEntryPortsV2 } from './port-resolver.js';
 import { projectSourceGraphV1 } from './source-graph-v1-compat.js';
@@ -34,6 +35,14 @@ export function blockedResult(stem, graph, status, diagnostics, ledger = null) {
     logs: { stdout: [], stderr: diagnostics } };
 }
 
+export function attachGeneratedGapPipeEvidence(result, stem, value) {
+  const evidence = value?.gapPipeEvidence || value;
+  if (evidence?.schema !== 'FbxGeneratedGapPipeEvidence.v1') return result;
+  if (evidence.status === 'PASS' && !evidence.counts?.generatedPipeCount) return result;
+  result.outputs.push(artifact(`${stem}.FbxGeneratedGapPipeEvidence.v1.json`, evidence));
+  return result;
+}
+
 export function packageBlockedResult(stem, graph, status, diagnostics, binding) {
   const result = blockedResult(stem, graph, status, [...binding.statuses, ...diagnostics]);
   result.outputs.push(artifact(`${stem}.fbx-binding-report.json`, binding));
@@ -42,22 +51,27 @@ export function packageBlockedResult(stem, graph, status, diagnostics, binding) 
   return result;
 }
 
-export function mappingLedger(mapping, resolvedByEntry, links) {
+function promotedRecord(entry, resolvedByEntry) {
+  return {
+    mappingEntryId: entry.mappingEntryId,
+    logicalComponentId: entry.logicalComponentId,
+    sourceModelObjectId: entry.sourceModelObjectId,
+    sourceOccurrenceId: entry.sourceOccurrenceId,
+    componentType: entry.componentType,
+    ...(entry.sourceGeometryObjectIds ? { sourceGeometryObjectIds: [...entry.sourceGeometryObjectIds] } : {}),
+    ...(entry.engineering ? { engineering: structuredClone(entry.engineering) } : {}),
+    ...(entry.generation ? { generation: structuredClone(entry.generation) } : {}),
+    ports: resolvedByEntry.get(entry.mappingEntryId),
+  };
+}
+
+export function mappingLedger(mapping, resolvedByEntry, links, releasedEntries = mapping.entries) {
   return {
     schema: 'FbxMappingLedger.v1',
     mappingSchema: mapping.schema,
     scope: mapping.scope,
     exclusions: mapping.exclusions,
-    promoted: mapping.entries.map((entry) => ({
-      mappingEntryId: entry.mappingEntryId,
-      logicalComponentId: entry.logicalComponentId,
-      sourceModelObjectId: entry.sourceModelObjectId,
-      sourceOccurrenceId: entry.sourceOccurrenceId,
-      componentType: entry.componentType,
-      ...(entry.sourceGeometryObjectIds ? { sourceGeometryObjectIds: [...entry.sourceGeometryObjectIds] } : {}),
-      ...(entry.engineering ? { engineering: structuredClone(entry.engineering) } : {}),
-      ports: resolvedByEntry.get(entry.mappingEntryId),
-    })),
+    promoted: releasedEntries.map((entry) => promotedRecord(entry, resolvedByEntry)),
     explicitConnections: links.map((link) => link.endpoints),
   };
 }
@@ -65,10 +79,11 @@ export function mappingLedger(mapping, resolvedByEntry, links) {
 export function blockedStatus(diagnostic) {
   if (diagnostic.startsWith('BLOCKED_TRANSFORM')) return 'BLOCKED_TRANSFORM';
   if (diagnostic.startsWith('BLOCKED_STAGEDJSON_CONTRACT')) return 'BLOCKED_STAGEDJSON_CONTRACT';
+  if (diagnostic.startsWith('BLOCKED_GAP_PIPE')) return 'BLOCKED_GAP_PIPE';
   return 'BLOCKED_MAPPING';
 }
 
-export function successResult(stem, graph, ledger, staged, counts) {
+export function successResult(stem, graph, ledger, staged, counts, gapPipeEvidence = null) {
   const outputs = [
     artifact(`${stem}.fbx-source-graph.json`, graph),
     artifact(`${stem}.fbx-mapping-ledger.json`, ledger),
@@ -77,12 +92,14 @@ export function successResult(stem, graph, ledger, staged, counts) {
       'PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS',
     ], counts)),
   ];
-  return { ok: true, blocked: false, conversionStatus: 'STAGEDJSON_PASS', outputs,
+  const result = { ok: true, blocked: false, conversionStatus: 'STAGEDJSON_PASS', outputs,
     logs: { stdout: ['PARSE_PASS', 'MAPPING_PASS', 'STAGEDJSON_PASS'], stderr: [] } };
+  return attachGeneratedGapPipeEvidence(result, stem, gapPipeEvidence);
 }
 
-export function packageSuccessResult(stem, graph, ledger, staged, counts, binding) {
-  const result = successResult(stem, graph, ledger, staged, counts);
+export function packageSuccessResult(stem, graph, ledger, staged, counts, binding,
+  gapPipeEvidence = null) {
+  const result = successResult(stem, graph, ledger, staged, counts, gapPipeEvidence);
   const diagnostics = [...binding.statuses];
   result.outputs[3] = artifact(`${stem}.fbx-conversion-report.json`, report('STAGEDJSON_PASS', diagnostics, counts));
   result.outputs.push(artifact(`${stem}.fbx-binding-report.json`, binding));
@@ -99,21 +116,39 @@ export function compatibilityGraph(stem, graph) {
   }
 }
 
+function v2Release(entries, resolvedByEntry, links) {
+  return prepareGeneratedGapPipeRelease({ entries, resolvedByEntry, links });
+}
+
 export function executeMapping(mapping, graph, compatibility) {
   const v2 = mapping.schema === 'FbxStagedMapping.v2';
   const authorityGraph = v2 ? graph : compatibility;
   const accepted = validateMappingManifest(mapping, authorityGraph);
   const resolve = v2 ? resolveEntryPortsV2 : resolveEntryPorts;
-  const resolvedByEntry = new Map(accepted.entries.map((entry) => [
+  const initialResolved = new Map(accepted.entries.map((entry) => [
     entry.mappingEntryId, resolve(entry, authorityGraph),
   ]));
-  const links = v2
-    ? validateConnectivityV2(accepted.entries, resolvedByEntry)
-    : validateConnectivity(accepted.entries, resolvedByEntry);
+  const initialLinks = v2
+    ? validateConnectivityV2(accepted.entries, initialResolved)
+    : validateConnectivity(accepted.entries, initialResolved);
+  const released = v2 ? v2Release(accepted.entries, initialResolved, initialLinks) : {
+    entries: accepted.entries,
+    resolvedByEntry: initialResolved,
+    links: initialLinks,
+    evidence: null,
+  };
   const staged = v2
-    ? writeNativeStagedJsonV2(accepted.entries, resolvedByEntry, links)
-    : writeNativeStagedJson(accepted.entries, resolvedByEntry, links);
-  return { accepted, resolvedByEntry, links, staged, v2 };
+    ? writeNativeStagedJsonV2(released.entries, released.resolvedByEntry, released.links)
+    : writeNativeStagedJson(released.entries, released.resolvedByEntry, released.links);
+  return {
+    accepted,
+    entries: released.entries,
+    resolvedByEntry: released.resolvedByEntry,
+    links: released.links,
+    staged,
+    gapPipeEvidence: released.evidence,
+    v2,
+  };
 }
 
 function familyCounts(entries) {
@@ -134,9 +169,15 @@ export function successCounts(execution) {
       branches: execution.staged.length,
     };
   }
+  const generatedGapPipes = execution.gapPipeEvidence?.counts.generatedPipeCount || 0;
   return {
     promotedComponents: execution.accepted.entries.length,
     promotedByFamily: familyCounts(execution.accepted.entries),
+    ...(generatedGapPipes ? {
+      releasedComponents: execution.entries.length,
+      releasedByFamily: familyCounts(execution.entries),
+      generatedGapPipes,
+    } : {}),
     explicitConnections: execution.links.length,
     branches: execution.staged.length,
   };
