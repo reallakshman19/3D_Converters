@@ -10,11 +10,18 @@ import {
   buildConnectivityReviewModel,
   unavailableConnectivityReview,
 } from '../fitting-kernels/connectivity/review-model.js';
+import { buildElbowPortEvidence } from '../fitting-kernels/elbow/evidence.js';
 import { buildInlineAssemblyPortEvidence } from '../fitting-kernels/inline-assembly/evidence.js';
 import {
   buildInlineAssemblyReviewModel,
   unavailableInlineAssemblyReview,
 } from '../fitting-kernels/inline-assembly/review-model.js';
+import {
+  buildPrimaryFittingReviewModel,
+  unavailablePrimaryFittingReview,
+} from '../fitting-kernels/primary-fitting/review-model.js';
+import { buildReducerPortEvidence } from '../fitting-kernels/reducer/evidence.js';
+import { buildTeePortEvidence } from '../fitting-kernels/tee/evidence.js';
 import {
   buildGeneratedGapPipeReviewModel,
   unavailableGeneratedGapPipeReview,
@@ -82,11 +89,26 @@ function unavailableMappedAnalysis(mappingStatus) {
     connectivityReview: unavailableConnectivityReview(mappingStatus),
     generatedGapPipeEvidence: null,
     generatedGapPipeReview: unavailableGeneratedGapPipeReview(mappingStatus),
+    elbowEvidence: null,
+    teeEvidence: null,
+    reducerEvidence: null,
+    primaryFittingReview: unavailablePrimaryFittingReview(mappingStatus),
     branchFittingEvidence: null,
     branchFittingReview: unavailableBranchFittingReview(mappingStatus),
     inlineAssemblyEvidence: null,
     inlineAssemblyReview: unavailableInlineAssemblyReview(mappingStatus),
   });
+}
+
+async function buildPrimaryFittingAnalysis(componentCrosswalk, solidEvidence, mappingStatus) {
+  const inputs = { componentCrosswalk, solidFittingPortEvidence: solidEvidence };
+  const elbowEvidence = await buildElbowPortEvidence(inputs);
+  const teeEvidence = await buildTeePortEvidence(inputs);
+  const reducerEvidence = await buildReducerPortEvidence(inputs);
+  const primaryFittingReview = buildPrimaryFittingReviewModel({
+    elbowEvidence, teeEvidence, reducerEvidence, mappingStatus,
+  });
+  return { elbowEvidence, teeEvidence, reducerEvidence, primaryFittingReview };
 }
 
 async function mappedComponentAnalysis(input, prepared, solidEvidence) {
@@ -105,6 +127,8 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
   const connectivityEvidence = await buildSelectedZoneConnectivityEvidence({
     stagedBranches, componentCrosswalk, mappingStatus,
   });
+  const primaryFittings = await buildPrimaryFittingAnalysis(
+    componentCrosswalk, solidEvidence, mappingStatus);
   const branchFittingEvidence = await buildBranchFittingPortEvidence({
     componentCrosswalk, solidFittingPortEvidence: solidEvidence,
   });
@@ -118,6 +142,7 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
     generatedGapPipeEvidence,
     generatedGapPipeReview: buildGeneratedGapPipeReviewModel(
       generatedGapPipeEvidence, mappingStatus),
+    ...primaryFittings,
     branchFittingEvidence,
     branchFittingReview: buildBranchFittingReviewModel(
       branchFittingEvidence, mappingStatus),
@@ -125,6 +150,24 @@ async function mappedComponentAnalysis(input, prepared, solidEvidence) {
     inlineAssemblyReview: buildInlineAssemblyReviewModel(
       inlineAssemblyEvidence, mappingStatus),
   });
+}
+
+function primaryFittingCounts(review) {
+  const family = Object.fromEntries(review.familySummary.map((item) => [item.family, item]));
+  return {
+    mappedPrimaryFittings: review.managedCount,
+    admittedPrimaryFittings: review.admittedCount,
+    blockedPrimaryFittings: review.blockedCount,
+    mappedElbows: family.ELBOW?.managedCount || 0,
+    admittedElbows: family.ELBOW?.admittedCount || 0,
+    blockedElbows: family.ELBOW?.blockedCount || 0,
+    mappedTees: family.TEE?.managedCount || 0,
+    admittedTees: family.TEE?.admittedCount || 0,
+    blockedTees: family.TEE?.blockedCount || 0,
+    mappedReducers: family.REDUCER?.managedCount || 0,
+    admittedReducers: family.REDUCER?.admittedCount || 0,
+    blockedReducers: family.REDUCER?.blockedCount || 0,
+  };
 }
 
 function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPipe, mapped) {
@@ -146,6 +189,7 @@ function analysisCounts(prepared, derivedPortEvidence, wireframePreview, autoPip
     mappedBlockedComponents: connectivity.counts.blockedComponentCount,
     generatedGapPipes: gapReview.counts.generatedPipeCount,
     blockedGeneratedGapPipes: gapReview.counts.blockedCandidateCount,
+    ...primaryFittingCounts(mapped.primaryFittingReview),
     mappedBranchFittings: branchReview.managedCount,
     admittedBranchFittings: branchReview.admittedCount,
     blockedBranchFittings: branchReview.blockedCount,
@@ -170,6 +214,10 @@ function analysisResult(prepared, pipeEvidence, mapped, wireframePreview, packag
     connectivityReview: mapped.connectivityReview,
     generatedGapPipeEvidence: mapped.generatedGapPipeEvidence,
     generatedGapPipeReview: mapped.generatedGapPipeReview,
+    elbowEvidence: mapped.elbowEvidence,
+    teeEvidence: mapped.teeEvidence,
+    reducerEvidence: mapped.reducerEvidence,
+    primaryFittingReview: mapped.primaryFittingReview,
     branchFittingEvidence: mapped.branchFittingEvidence,
     branchFittingReview: mapped.branchFittingReview,
     inlineAssemblyEvidence: mapped.inlineAssemblyEvidence,
@@ -181,6 +229,9 @@ function analysisResult(prepared, pipeEvidence, mapped, wireframePreview, packag
     componentCrosswalkJson: optionalJson(mapped.componentCrosswalk),
     connectivityJson: optionalJson(mapped.connectivityEvidence),
     generatedGapPipeJson: optionalJson(mapped.generatedGapPipeEvidence),
+    elbowJson: optionalJson(mapped.elbowEvidence),
+    teeJson: optionalJson(mapped.teeEvidence),
+    reducerJson: optionalJson(mapped.reducerEvidence),
     branchFittingJson: optionalJson(mapped.branchFittingEvidence),
     inlineAssemblyJson: optionalJson(mapped.inlineAssemblyEvidence),
     counts: analysisCounts(prepared, pipeEvidence.derivedPortEvidence,
