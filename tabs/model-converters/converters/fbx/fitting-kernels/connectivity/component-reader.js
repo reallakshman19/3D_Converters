@@ -107,22 +107,39 @@ function normalizeExplicitConnectivity(value, label) {
   return pairs;
 }
 
+function normalizeGeneration(attributes, label) {
+  const value = attributes.mappingEngineering?.generationProvenance;
+  if (value === undefined) return null;
+  const record = objectValue(value, `${label}.generationProvenance`);
+  return {
+    generated: record.generated === true,
+    generationMethod: optionalText(record.generationMethod),
+    sourcePairKey: optionalText(record.sourcePairKey),
+    sourceEndpointIds: Array.isArray(record.sourceEndpointIds)
+      ? record.sourceEndpointIds.map(String).sort(compareText) : [],
+    sourceOccurrenceIds: Array.isArray(record.sourceOccurrenceIds)
+      ? record.sourceOccurrenceIds.map(String).sort(compareText) : [],
+  };
+}
+
 function normalizeComponent(branch, branchIndex, child, childIndex) {
   const branchId = branchIdentity(branch, branchIndex);
   const logicalComponentId = componentIdentity(child, branchId, childIndex);
-  const attributes = objectValue(child.attributes || {}, `${branchId}::${logicalComponentId}.attributes`);
-  const mappingEntryId = text(attributes.mappingEntryId, `${branchId}::${logicalComponentId}.mappingEntryId`);
+  const label = `${branchId}::${logicalComponentId}`;
+  const attributes = objectValue(child.attributes || {}, `${label}.attributes`);
+  const mappingEntryId = text(attributes.mappingEntryId, `${label}.mappingEntryId`);
   return {
     managedRecordId: `${branchId}::${logicalComponentId}`,
     branchId,
     logicalComponentId,
     mappingEntryId,
-    nativeType: text(child.type, `${branchId}::${logicalComponentId}.type`).toUpperCase(),
+    nativeType: text(child.type, `${label}.type`).toUpperCase(),
     sourceOccurrenceId: optionalText(attributes.sourceOccurrenceId),
     sourceModelObjectId: optionalText(attributes.sourceModelObjectId),
-    ports: normalizePorts(attributes, mappingEntryId, `${branchId}::${logicalComponentId}`),
+    generationProvenance: normalizeGeneration(attributes, label),
+    ports: normalizePorts(attributes, mappingEntryId, label),
     explicitConnectivity: normalizeExplicitConnectivity(
-      attributes.explicitConnectivity, `${branchId}::${logicalComponentId}.explicitConnectivity`),
+      attributes.explicitConnectivity, `${label}.explicitConnectivity`),
   };
 }
 
