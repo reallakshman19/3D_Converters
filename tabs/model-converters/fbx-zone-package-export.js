@@ -12,13 +12,20 @@ function triggerBoundedDownload(bytes, fileName) {
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = fileName;
   document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 0);
 }
+function qualificationText(inputs) {
+  const root = inputs?.qualificationRoot;
+  if (!root) return 'qualification unavailable';
+  const checks = `${root.summary?.passCount || 0}/${root.summary?.checkCount || 0} checks`;
+  return root.status === 'PASS' ? `qualification PASS, ${checks}`
+    : `qualification BLOCKED, ${checks}`;
+}
 async function exportSelectedZonePackage(container, inputs) {
   if (!inputs) { reportStatus(container, 'Analyse a selected FBX zone before exporting.'); return; }
-  reportStatus(container, 'Building selected-zone package...');
+  reportStatus(container, `Building selected-zone package (${qualificationText(inputs)})...`);
   const { files, audit } = await buildSelectedZonePackage(inputs);
   const archive = await buildPackageArchive(files);
   triggerBoundedDownload(archive.bytes, `${inputs.fileNamePrefix || 'selected-zone'}.fbxzonepkg`);
-  reportStatus(container, `Package exported: ${audit.geometryCount} geometries, ${files.length} files, digest ${archive.sha256.slice(0, 12)}...`);
+  reportStatus(container, `Package exported: ${qualificationText(inputs)}, ${audit.geometryCount} geometries, ${files.length} files, digest ${archive.sha256.slice(0, 12)}...`);
 }
 function mountButton(container) {
   const existing = container.querySelector?.(`[${BUTTON_ATTR}]`); if (existing) return existing;
@@ -37,7 +44,7 @@ export function installFbxZonePackageExport(container, getPackageInputs = null) 
   const update = (inputs) => {
     latestInputs = inputs || null; button.disabled = !latestInputs;
     reportStatus(container, latestInputs
-      ? 'Selected-zone package is ready to build.'
+      ? `Selected-zone package is ready: ${qualificationText(latestInputs)}.`
       : 'Analyse a selected FBX zone before exporting.');
   };
   window.addEventListener(PACKAGE_INPUT_EVENT, (event) => update(event.detail?.inputs || null));
