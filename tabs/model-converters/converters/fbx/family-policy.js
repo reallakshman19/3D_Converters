@@ -9,7 +9,9 @@ const FAMILY_SPECS = Object.freeze({
   REDUCER: { nativeType: 'REDU', roles: ['A', 'L'] },
   BRANCH_FITTING: { nativeType: 'OLET', roles: ['A', 'L'] },
   FLANGE: { nativeType: 'FLAN', roles: ['A', 'L'] },
+  GASKET: { nativeType: 'GASK', roles: ['A', 'L'] },
   VALVE: { nativeType: 'VALV', roles: ['A', 'L'] },
+  INSTRUMENT: { nativeType: 'INST', roles: ['A', 'L'] },
 });
 
 function fail(message) {
@@ -166,6 +168,17 @@ function validateFlange(engineering, ports) {
   };
 }
 
+function validateGasket(engineering, ports) {
+  const required = ['nominalDiameterMm', 'thicknessMm', 'gasketType'];
+  const record = assertKeys(engineering, required, [], 'engineering');
+  requireOpposed(ports, 'GASKET');
+  return {
+    nominalDiameterMm: positive(record.nominalDiameterMm, 'engineering.nominalDiameterMm'),
+    thicknessMm: positive(record.thicknessMm, 'engineering.thicknessMm'),
+    gasketType: requireText(record.gasketType, 'engineering.gasketType'),
+  };
+}
+
 function validateValve(engineering, ports) {
   const record = assertKeys(engineering, ['nominalDiameterMm', 'faceToFaceMm', 'valveType'], ['operatorDirection'], 'engineering');
   requireOpposed(ports, 'VALVE');
@@ -179,6 +192,18 @@ function validateValve(engineering, ports) {
   };
 }
 
+function validateInstrument(engineering, ports) {
+  const required = ['nominalDiameterMm', 'faceToFaceMm', 'instrumentType', 'tag'];
+  const record = assertKeys(engineering, required, [], 'engineering');
+  requireOpposed(ports, 'INSTRUMENT');
+  return {
+    nominalDiameterMm: positive(record.nominalDiameterMm, 'engineering.nominalDiameterMm'),
+    faceToFaceMm: positive(record.faceToFaceMm, 'engineering.faceToFaceMm'),
+    instrumentType: requireText(record.instrumentType, 'engineering.instrumentType'),
+    tag: requireText(record.tag, 'engineering.tag'),
+  };
+}
+
 const VALIDATORS = Object.freeze({
   PIPE: validatePipe,
   ELBOW: validateElbow,
@@ -186,7 +211,9 @@ const VALIDATORS = Object.freeze({
   REDUCER: validateReducer,
   BRANCH_FITTING: validateBranchFitting,
   FLANGE: validateFlange,
+  GASKET: validateGasket,
   VALVE: validateValve,
+  INSTRUMENT: validateInstrument,
 });
 
 export function rolesFor(componentType) {
@@ -253,8 +280,9 @@ function validateElbowGeometry(entry, ports) {
 export function validateResolvedFamilyEvidence(entry, ports) {
   if (entry.componentType === 'ELBOW') validateElbowGeometry(entry, ports);
   else if (entry.componentType === 'TEE') validateTeeGeometry(entry, ports);
-  else if (entry.componentType === 'FLANGE') validateStraightGeometry(entry, ports, entry.engineering.thicknessMm);
-  else if (entry.componentType === 'VALVE') {
+  else if (['FLANGE', 'GASKET'].includes(entry.componentType)) {
+    validateStraightGeometry(entry, ports, entry.engineering.thicknessMm);
+  } else if (['VALVE', 'INSTRUMENT'].includes(entry.componentType)) {
     const { axis } = validateStraightGeometry(entry, ports, entry.engineering.faceToFaceMm);
     const operator = entry.engineering.operatorDirection?.vector;
     if (operator && Math.abs(dot(operator, axis)) > VECTOR_EPSILON) {

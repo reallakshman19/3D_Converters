@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 
 const root = new URL('../../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
-const [toolbar, shell, index, shim, scope, ports, worker, analysis, capture, reviewUi] = await Promise.all([
+const [toolbar, shell, index, shim, scope, ports, worker, analysis, capture,
+  reviewUi, panels, inlineReviewUi] = await Promise.all([
   read('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js'),
   read('tabs/model-converters/ModelConvertersTab.js'),
   read('tabs/model-converters/index.js'),
@@ -14,6 +15,8 @@ const [toolbar, shell, index, shim, scope, ports, worker, analysis, capture, rev
   read('tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js'),
   read('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-capture.js'),
   read('tabs/model-converters/converters/fbx/fitting-kernels/branch-fitting/review-ui.js'),
+  read('tabs/model-converters/converters/fbx/zone-geometry/zone-review-panels.js'),
+  read('tabs/model-converters/converters/fbx/fitting-kernels/inline-assembly/review-ui.js'),
 ]);
 
 for (const label of ['Analyse zone geometry', 'Download zone geometry evidence',
@@ -21,13 +24,19 @@ for (const label of ['Analyse zone geometry', 'Download zone geometry evidence',
   assert.match(toolbar, new RegExp(label));
 }
 assert.match(reviewUi, /Download OLET evidence/);
+assert.match(inlineReviewUi, /Download inline assembly evidence/);
+assert.match(inlineReviewUi, /BLIND remains review-only/);
 assert.match(toolbar, /installMappedStageCapture/);
-assert.match(toolbar, /installBranchFittingReviewUi/);
+assert.match(toolbar, /installZoneReviewPanels/);
+assert.match(panels, /installBranchFittingReviewUi/);
+assert.match(panels, /installInlineAssemblyReviewUi/);
 assert.match(toolbar, /stagedBranches: controller\.runInput\.stagedBranches/);
 assert.match(toolbar, /branchFittingJson/);
+assert.match(toolbar, /inlineAssemblyJson/);
 assert.match(capture, /extractMappedStagedBranches/);
 assert.match(analysis, /buildSelectedZoneComponentCrosswalk/);
 assert.match(analysis, /buildBranchFittingPortEvidence/);
+assert.match(analysis, /buildInlineAssemblyPortEvidence/);
 assert.match(analysis, /scopeMappedStagedBranches/);
 assert.match(toolbar, /bindFbxPrimaryInputInvalidation/);
 assert.match(toolbar, /A new FBX input was loaded; prior analysis was cleared/);

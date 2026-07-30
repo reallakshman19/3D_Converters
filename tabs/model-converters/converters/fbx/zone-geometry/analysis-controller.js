@@ -14,6 +14,7 @@ function frozenState(value) {
     stagedJsonText: value.stagedJsonText,
     componentCrosswalkJson: value.componentCrosswalkJson,
     branchFittingJson: value.branchFittingJson,
+    inlineAssemblyJson: value.inlineAssemblyJson,
     autoPipeStatus: value.autoPipeStatus,
     result: value.result,
     generation: value.generation,
@@ -52,6 +53,14 @@ function branchFittingMessage(result) {
   return ` OLET review: ${review.admittedCount} admitted, ${review.blockedCount} blocked.`;
 }
 
+function inlineAssemblyMessage(result) {
+  const review = result.inlineAssemblyReview;
+  if (!review || review.status === 'MAPPING_REQUIRED') {
+    return ' Inline assembly review requires approved mapped StagedJSON.';
+  }
+  return ` Inline assemblies: ${review.admittedCount} admitted, ${review.blockedCount} blocked.`;
+}
+
 function completionMessage(result) {
   const base = `Analysed ${result.counts.selectedGeometries} geometries; ${result.counts.admittedLoops} admitted loops.`;
   const pipes = result.autoPipe.status === 'STAGEDJSON_PASS'
@@ -59,7 +68,7 @@ function completionMessage(result) {
     : ` PIPE-only release blocked: ${result.autoPipe.status}.`;
   const packageStatus = result.zonePackageError
     ? ` Package export unavailable: ${result.zonePackageError.code}.` : '';
-  return `${base}${pipes}${branchFittingMessage(result)}${packageStatus}`;
+  return `${base}${pipes}${branchFittingMessage(result)}${inlineAssemblyMessage(result)}${packageStatus}`;
 }
 
 function analysisInput(input, bundle) {
@@ -98,6 +107,7 @@ async function executeRun(runtime, input, onProgress) {
       stagedJsonText: result.autoPipe.stagedJsonText,
       componentCrosswalkJson: result.componentCrosswalkJson,
       branchFittingJson: result.branchFittingJson,
+      inlineAssemblyJson: result.inlineAssemblyJson,
       autoPipeStatus: result.autoPipe.status,
       result,
     });
@@ -126,6 +136,7 @@ export function createZoneAnalysisController({ parseBundle, analyse, onState = n
     zoneGeometryJson: null, derivedPortJson: null,
     internalPipeJson: null, stagedJsonText: null,
     componentCrosswalkJson: null, branchFittingJson: null,
+    inlineAssemblyJson: null,
     autoPipeStatus: null, result: null,
   });
   runtime.invalidate = (reason = 'invalidated') => {
