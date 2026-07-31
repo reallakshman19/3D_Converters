@@ -13,6 +13,7 @@ const SPECS = Object.freeze([
   Object.freeze({ role: 'BRANCH_FITTING_EVIDENCE', path: 'evidence/branch-fittings.json', schema: 'FbxBranchFittingPortEvidence.v1', required: true }),
   Object.freeze({ role: 'INLINE_ASSEMBLY_EVIDENCE', path: 'evidence/inline-assemblies.json', schema: 'FbxInlineAssemblyPortEvidence.v1', required: true }),
   Object.freeze({ role: 'SUPPORT_HOST_ASSOCIATION_EVIDENCE', path: 'evidence/support-host-associations.json', schema: 'FbxSupportHostAssociationEvidence.v1', required: true }),
+  Object.freeze({ role: 'SUPPORT_ASSEMBLY_EVIDENCE', path: 'evidence/support-assemblies.json', schema: 'FbxSupportAssemblyEvidence.v1', required: true }),
   Object.freeze({ role: 'QUALIFICATION_ROOT', path: 'qualification-root.json', schema: 'FbxSelectedZoneQualificationRoot.v1', required: true }),
 ]);
 
