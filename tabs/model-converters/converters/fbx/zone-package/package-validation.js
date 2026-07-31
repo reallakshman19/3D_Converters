@@ -9,7 +9,10 @@ import {
   selectedZonePackageArtifactSpecs,
 } from './artifact-roles.js';
 import { verifyPackagedSemanticArtifacts } from './package-validation-artifacts.js';
-import { validateSupportCandidateEvidence } from './support-evidence.js';
+import {
+  verifyPackagedSupportAndStage,
+  verifyQualifiedSupportBindings,
+} from './package-validation-support.js';
 import {
   FBX_ZONE_PACKAGE_FILE_ROLES,
   FBX_ZONE_PACKAGE_LIMITS,
@@ -193,47 +196,6 @@ async function verifyGeometryFiles(manifest, files) {
   }
 }
 
-function parsedJsonFile(files, path, code, label) {
-  try {
-    const value = JSON.parse(new TextDecoder().decode(files.get(path).bytes));
-    if (!value || typeof value !== 'object') throw new Error(`${label} root is invalid.`);
-    return value;
-  } catch (error) {
-    fail(code, `${label} is invalid JSON: ${error?.message || error}`);
-  }
-}
-
-async function verifySupportAndStage(audit, manifest, files) {
-  const staged = recordsByRole(audit, 'STAGEDJSON')[0];
-  if (staged.disposition === 'PRESENT') {
-    parsedJsonFile(files, staged.path, 'ZONE_PACKAGE_INVALID_STAGEDJSON', 'StagedJSON');
-  }
-  const support = recordsByRole(audit, 'SUPPORT_EVIDENCE')[0];
-  if (support.disposition !== 'PRESENT') return null;
-  const evidence = parsedJsonFile(files, support.path,
-    'ZONE_PACKAGE_INVALID_SUPPORT_EVIDENCE', 'support evidence');
-  await validateSupportCandidateEvidence(evidence);
-  if (evidence.selectedZoneDigest !== manifest.selectedZoneDigest) {
-    fail('ZONE_PACKAGE_INVALID_SUPPORT_EVIDENCE',
-      'support evidence differs from the selected manifest.');
-  }
-  return evidence;
-}
-
-function verifyQualifiedSupport(root, supportEvidence) {
-  if (!root) return;
-  const supportCheck = root.checks.find((item) => item.code === 'SUPPORT_EVIDENCE_BINDING');
-  const expectedDigest = supportCheck?.evidence?.supportEvidenceDigest || null;
-  const expectedCount = supportCheck?.evidence?.candidateCount;
-  const valid = supportCheck?.status === 'PASS' && supportEvidence
-    && expectedDigest === supportEvidence.evidenceDigest
-    && expectedCount === supportEvidence.candidates.length;
-  if (!valid) {
-    fail('ZONE_PACKAGE_INVALID_QUALIFICATION',
-      'qualification root support binding differs from support-evidence.json.');
-  }
-}
-
 function expectedGeometryPaths(manifest) {
   return new Set(manifest.geometries.flatMap((entry) => [
     entry.packagePath, ...entry.buffers.map((buffer) => buffer.packagePath),
@@ -280,13 +242,14 @@ export async function validateSelectedZonePackage({ files, audit } = {}) {
   if (!bound) fail('ZONE_PACKAGE_INVALID_AUDIT', 'manifest identity differs from the audit.');
   verifyGeometryInventory(audit, manifest);
   await verifyGeometryFiles(manifest, filesByPath);
-  const supportEvidence = await verifySupportAndStage(audit, manifest, filesByPath);
+  const supportEvidence = await verifyPackagedSupportAndStage(audit, manifest, filesByPath);
   const artifacts = await verifyPackagedSemanticArtifacts(audit, filesByPath);
   const root = artifacts.QUALIFICATION_ROOT;
   if (root && root.selectedZone.manifestDigest !== manifest.manifestDigest) {
     fail('ZONE_PACKAGE_INVALID_QUALIFICATION',
       'qualification root differs from the selected geometry manifest.');
   }
-  verifyQualifiedSupport(root, supportEvidence);
+  verifyQualifiedSupportBindings(root, supportEvidence,
+    artifacts.SUPPORT_HOST_ASSOCIATION_EVIDENCE, manifest);
   return { files, audit, manifest, supportEvidence, artifacts };
 }

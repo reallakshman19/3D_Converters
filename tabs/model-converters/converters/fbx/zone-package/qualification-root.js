@@ -55,8 +55,10 @@ function geometryConservationCheck(manifest, zoneGeometry) {
 function sourceGraphBindingCheck(zoneGeometry, selectedSourceGraph) {
   const pass = selectedSourceGraph?.zoneGeometryArtifactId === zoneGeometry?.artifactId
     && selectedSourceGraph?.completeSourceGraphSha256 === zoneGeometry?.sourceGraphSha256
-    && sameSet(selectedSourceGraph?.selectedZone?.selectedGeometryIds || [], zoneGeometry?.selectedGeometryIds || [])
-    && sameSet(selectedSourceGraph?.selectedZone?.selectedOccurrenceIds || [], zoneGeometry?.selectedOccurrenceIds || []);
+    && sameSet(selectedSourceGraph?.selectedZone?.selectedGeometryIds || [],
+      zoneGeometry?.selectedGeometryIds || [])
+    && sameSet(selectedSourceGraph?.selectedZone?.selectedOccurrenceIds || [],
+      zoneGeometry?.selectedOccurrenceIds || []);
   return check('SELECTED_SOURCE_GRAPH_BINDING', pass,
     'Selected source graph must preserve the exact zone geometry and occurrence population.', {
       zoneGeometryArtifactId: zoneGeometry?.artifactId || null,
@@ -76,6 +78,29 @@ function supportEvidenceBindingCheck(manifest, selectedSourceGraph, supportEvide
       candidateCount: supportEvidence?.candidates?.length || 0,
       supportEvidenceDigest: supportEvidence?.evidenceDigest || null,
       unknownOccurrenceIds: unknownIds,
+    });
+}
+
+function supportHostBindingCheck(manifest, zoneGeometry, supportEvidence, hostEvidence) {
+  const candidateCount = supportEvidence?.candidates?.length || 0;
+  const counts = hostEvidence?.counts || {};
+  const pass = hostEvidence?.schema === 'FbxSupportHostAssociationEvidence.v1'
+    && hostEvidence?.status === 'PASS'
+    && hostEvidence?.selectedZoneDigest === manifest?.selectedZoneDigest
+    && hostEvidence?.sourceZoneGeometryArtifactId === zoneGeometry?.artifactId
+    && hostEvidence?.sourceSupportEvidenceDigest === supportEvidence?.evidenceDigest
+    && hostEvidence?.sourceSupportCandidateCount === candidateCount
+    && counts.candidateCount === candidateCount;
+  return check('SUPPORT_HOST_ASSOCIATION_BINDING', pass,
+    'Every support candidate must have exact admitted-PIPE host disposition evidence.', {
+      supportHostArtifactId: hostEvidence?.artifactId || null,
+      supportHostEvidenceDigest: hostEvidence?.evidenceDigest || null,
+      supportHostStatus: hostEvidence?.status || null,
+      candidateCount,
+      singleHostCount: counts.singleHostCount || 0,
+      multiHostCount: counts.multiHostCount || 0,
+      hostNotFoundCount: counts.hostNotFoundCount || 0,
+      hostAmbiguousCount: counts.hostAmbiguousCount || 0,
     });
 }
 
@@ -185,6 +210,8 @@ function qualificationChecks(manifest, stagedBranches, artifacts, supportEvidenc
     geometryConservationCheck(manifest, zoneGeometry),
     sourceGraphBindingCheck(zoneGeometry, selectedSourceGraph),
     supportEvidenceBindingCheck(manifest, selectedSourceGraph, supportEvidence),
+    supportHostBindingCheck(manifest, zoneGeometry, supportEvidence,
+      artifacts?.SUPPORT_HOST_ASSOCIATION_EVIDENCE),
     portEvidenceBindingCheck(zoneGeometry, artifacts?.DERIVED_PORT_EVIDENCE,
       artifacts?.SOLID_FITTING_PORT_EVIDENCE),
     crosswalkBindingCheck(zoneGeometry, selectedSourceGraph, crosswalk),
