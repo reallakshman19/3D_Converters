@@ -1,5 +1,6 @@
 import { validateSupportAssemblyEvidence } from '../support-assembly/evidence.js';
 import { validateSupportHostAssociationEvidence } from '../support-host/evidence.js';
+import { verifyPackagedBenchmarkClosure } from './benchmark-closure-validation.js';
 import { packageArtifactSpecForRole, selectedZonePackageArtifactSpecs } from './artifact-roles.js';
 import { parsePackagedArtifact } from './package-artifacts.js';
 import { validateSelectedZoneQualificationRoot } from './qualification-root.js';
@@ -11,7 +12,19 @@ function recordsByRole(audit, role) {
   return audit.files.filter((record) => record.role === role);
 }
 
-export async function verifyPackagedSemanticArtifacts(audit, files) {
+function packagedManifest(files, supplied) {
+  if (supplied) return supplied;
+  const file = files.get('manifest.json');
+  if (!file) fail('ZONE_PACKAGE_INVALID_FILE', 'manifest.json is missing.');
+  try {
+    return JSON.parse(new TextDecoder().decode(file.bytes));
+  } catch (error) {
+    fail('ZONE_PACKAGE_INVALID_MANIFEST',
+      `manifest.json is invalid JSON: ${error?.message || error}`);
+  }
+}
+
+export async function verifyPackagedSemanticArtifacts(audit, files, manifest = null) {
   const parsed = {};
   for (const spec of selectedZonePackageArtifactSpecs()) {
     const record = recordsByRole(audit, spec.role)[0];
@@ -43,5 +56,6 @@ export async function verifyPackagedSemanticArtifacts(audit, files) {
       }
     }
   }
+  await verifyPackagedBenchmarkClosure(parsed, packagedManifest(files, manifest));
   return parsed;
 }

@@ -29,6 +29,8 @@ const tests = [
   'test-fbx2-small-benchmark-profile.mjs',
   'test-fbx2-small-benchmark-contract.mjs',
   'test-fbx2-small-benchmark-static.mjs',
+  'test-fbx2-selected-zone-package-closure.mjs',
+  'test-fbx2-selected-zone-package-contracts.mjs',
   'test-fbx-preview-zone-recommendation.mjs',
   'test-zone-package-core.mjs',
   'test-zone-package-contracts.mjs',
