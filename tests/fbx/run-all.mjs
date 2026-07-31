@@ -30,6 +30,8 @@ const tests = [
   'test-zone-package-contracts.mjs',
   'test-zone-package-support-evidence.mjs',
   'test-support-host-association.mjs',
+  'test-support-assembly-evidence.mjs',
+  'test-support-assembly-package-binding.mjs',
   'test-zone-package-host-authority.mjs',
   'test-zone-package-diagnostic-ledger.mjs',
   'test-zone-package-archive.mjs',

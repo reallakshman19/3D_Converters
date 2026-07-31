@@ -73,10 +73,14 @@ assert.equal(inputs.manifest.byteOrder, 'little-endian');
 assert.equal(inputs.stagedJsonText, '[]\n');
 assert.equal(inputs.supportHostAssociationEvidence.status, 'PASS');
 assert.equal(inputs.supportHostAssociationEvidence.counts.candidateCount, 0);
+assert.equal(inputs.supportAssemblyEvidence.status, 'PASS');
+assert.equal(inputs.supportAssemblyEvidence.counts.candidateCount, 0);
+assert.equal(inputs.supportAssemblyEvidence.counts.assemblyCount, 0);
 const packageValue = await buildSelectedZonePackage(inputs);
 await validateSelectedZonePackage(packageValue);
 assert.equal(packageValue.audit.geometryCount, 1);
 assert.ok(packageValue.files.some((file) => file.path === 'stagedjson.json'));
 assert.ok(packageValue.files.some((file) => file.path === 'evidence/support-host-associations.json'));
+assert.ok(packageValue.files.some((file) => file.path === 'evidence/support-assemblies.json'));
 
 console.log('test-zone-package-live-input: PASS');

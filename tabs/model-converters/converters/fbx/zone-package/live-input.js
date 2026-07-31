@@ -1,4 +1,5 @@
 import { canonicalJson } from '../canonical-json.js';
+import { buildSupportAssemblyEvidence } from '../support-assembly/evidence.js';
 import { buildSupportHostAssociationEvidence } from '../support-host/evidence.js';
 import { buildSelectedZoneGeometryManifest } from './geometry-manifest.js';
 import { buildSelectedZoneQualificationRoot } from './qualification-root.js';
@@ -52,7 +53,8 @@ function packageGeometries(scope, selections) {
   });
 }
 
-function semanticArtifacts(input, selectedSourceGraph, selectedEngineering, supportHosts) {
+function semanticArtifacts(input, selectedSourceGraph, selectedEngineering,
+  supportHosts, supportAssemblies) {
   return {
     ZONE_GEOMETRY_EVIDENCE: input.zoneGeometryEvidence || null,
     SELECTED_SOURCE_GRAPH: selectedSourceGraph,
@@ -68,6 +70,7 @@ function semanticArtifacts(input, selectedSourceGraph, selectedEngineering, supp
     BRANCH_FITTING_EVIDENCE: input.branchFittingEvidence || null,
     INLINE_ASSEMBLY_EVIDENCE: input.inlineAssemblyEvidence || null,
     SUPPORT_HOST_ASSOCIATION_EVIDENCE: supportHosts,
+    SUPPORT_ASSEMBLY_EVIDENCE: supportAssemblies,
   };
 }
 
@@ -92,6 +95,8 @@ function omissionReasons(input) {
     INLINE_ASSEMBLY_EVIDENCE: mappingReason,
     SUPPORT_HOST_ASSOCIATION_EVIDENCE:
       'Exact support-to-PIPE host association evidence was not produced.',
+    SUPPORT_ASSEMBLY_EVIDENCE:
+      'Exact-ancestry generic support assembly evidence was not produced.',
   };
 }
 
@@ -109,41 +114,58 @@ function packageStageText(input) {
   return input.stagedJsonText || null;
 }
 
-export async function buildLiveZonePackageInputs(input = {}) {
+function validateLiveInput(input) {
   const { zoneGeometryEvidence, sourceGraph, scope, selections } = input;
   if (!zoneGeometryEvidence || !sourceGraph || !scope || !Array.isArray(selections)) {
     fail('ZONE_PACKAGE_INVALID_INPUT',
       'validated zone evidence, source graph, scope, and selections are required.');
   }
-  const { manifest, buffersByGeometryId } = await buildSelectedZoneGeometryManifest({
-    completeSourceGraphSha256: zoneGeometryEvidence.sourceGraphSha256,
-    sourceIdentity: zoneGeometryEvidence.sourceIdentity,
-    geometries: packageGeometries(scope, selections),
+}
+
+async function packageGeometry(input) {
+  return buildSelectedZoneGeometryManifest({
+    completeSourceGraphSha256: input.zoneGeometryEvidence.sourceGraphSha256,
+    sourceIdentity: input.zoneGeometryEvidence.sourceIdentity,
+    geometries: packageGeometries(input.scope, input.selections),
   });
-  const selectedSourceGraph = await buildSelectedZoneSourceGraph({
-    sourceGraph, scope, zoneGeometryEvidence,
+}
+
+async function buildSupportArtifacts(input, manifest, selectedSourceGraph) {
+  const supportEvidence = await buildSelectedZoneSupportEvidence({
+    sourceGraph: input.sourceGraph, scope: input.scope, manifest,
   });
-  const supportEvidence = await buildSelectedZoneSupportEvidence({ sourceGraph, scope, manifest });
   const supportHostAssociationEvidence = await buildSupportHostAssociationEvidence({
-    supportEvidence, zoneGeometryEvidence, scope, selections,
+    supportEvidence, zoneGeometryEvidence: input.zoneGeometryEvidence,
+    scope: input.scope, selections: input.selections,
     pipeClassifications: input.pipeClassifications || [], manifest,
   });
+  const supportAssemblyEvidence = await buildSupportAssemblyEvidence({
+    selectedSourceGraph, supportEvidence,
+    hostEvidence: supportHostAssociationEvidence,
+  });
+  return { supportEvidence, supportHostAssociationEvidence, supportAssemblyEvidence };
+}
+
+export async function buildLiveZonePackageInputs(input = {}) {
+  validateLiveInput(input);
+  const { manifest, buffersByGeometryId } = await packageGeometry(input);
+  const selectedSourceGraph = await buildSelectedZoneSourceGraph({
+    sourceGraph: input.sourceGraph, scope: input.scope,
+    zoneGeometryEvidence: input.zoneGeometryEvidence,
+  });
+  const support = await buildSupportArtifacts(input, manifest, selectedSourceGraph);
   const selectedEngineeringAttributes = await selectedEngineering(input);
-  const artifacts = semanticArtifacts(
-    input, selectedSourceGraph, selectedEngineeringAttributes, supportHostAssociationEvidence);
+  const artifacts = semanticArtifacts(input, selectedSourceGraph,
+    selectedEngineeringAttributes, support.supportHostAssociationEvidence,
+    support.supportAssemblyEvidence);
   const qualificationRoot = await buildSelectedZoneQualificationRoot({
-    manifest, stagedBranches: input.stagedBranches, artifacts, supportEvidence,
+    manifest, stagedBranches: input.stagedBranches,
+    artifacts, supportEvidence: support.supportEvidence,
   });
   artifacts.QUALIFICATION_ROOT = qualificationRoot;
   return {
-    manifest,
-    buffersByGeometryId,
-    stagedJsonText: packageStageText(input),
+    manifest, buffersByGeometryId, stagedJsonText: packageStageText(input),
     stagedJsonOmissionReason: 'No selected-zone StagedJSON was available.',
-    supportEvidence,
-    supportHostAssociationEvidence,
-    artifacts,
-    artifactOmissionReasons: omissionReasons(input),
-    qualificationRoot,
+    ...support, artifacts, artifactOmissionReasons: omissionReasons(input), qualificationRoot,
   };
 }

@@ -14,15 +14,19 @@ const [addon, tab, controller, analysis, liveInput] = await Promise.all([
 assert.match(addon, /export function installFbxZonePackageExport/);
 assert.match(addon, /buildSelectedZonePackage/);
 assert.match(addon, /buildPackageArchive/);
+assert.match(addon, /buildSupportAssemblyReviewModel/);
+assert.match(addon, /supportAssemblySummaryText/);
 assert.match(addon, /URL\.createObjectURL/);
 assert.match(addon, /URL\.revokeObjectURL/);
 assert.match(addon, /Download zone package/);
 assert.match(addon, /model-converters:fbx-zone-package-inputs/);
 assert.match(addon, /data-fbx-support-host-policy/);
 assert.match(addon, /title="\$\{POLICY_TEXT\}"/,
-  'the support host policy must be visible through icon hover');
+  'the support and assembly policy must be visible through icon hover');
 assert.match(addon, /No nearest-pipe fallback/);
+assert.match(addon, /Sibling candidates are not grouped/);
 assert.match(addon, /support hosts proved/);
+assert.match(addon, /generic support assemblies proved/);
 assert.match(addon, /button\.disabled = !latestInputs/,
   'the package control must remain disabled until live analysis inputs exist');
 assert.match(addon, /inputs \|\| latestInputs/,
@@ -42,6 +46,7 @@ assert.match(analysis, /zonePackageInputs/);
 assert.match(liveInput, /buildLiveZonePackageInputs/);
 assert.match(liveInput, /buildSelectedZoneGeometryManifest/);
 assert.match(liveInput, /buildSupportHostAssociationEvidence/);
+assert.match(liveInput, /buildSupportAssemblyEvidence/);
 assert.match(liveInput, /getFloat64\(offset, true\)/);
 assert.match(liveInput, /getUint32\(offset, true\)/);
 

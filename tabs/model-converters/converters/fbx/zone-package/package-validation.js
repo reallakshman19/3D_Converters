@@ -250,6 +250,9 @@ export async function validateSelectedZonePackage({ files, audit } = {}) {
       'qualification root differs from the selected geometry manifest.');
   }
   verifyQualifiedSupportBindings(root, supportEvidence,
-    artifacts.SUPPORT_HOST_ASSOCIATION_EVIDENCE, manifest);
+    artifacts.SELECTED_SOURCE_GRAPH,
+    artifacts.SUPPORT_HOST_ASSOCIATION_EVIDENCE,
+    artifacts.SUPPORT_ASSEMBLY_EVIDENCE,
+    manifest);
   return { files, audit, manifest, supportEvidence, artifacts };
 }
