@@ -12,7 +12,19 @@ function recordsByRole(audit, role) {
   return audit.files.filter((record) => record.role === role);
 }
 
-export async function verifyPackagedSemanticArtifacts(audit, files, manifest) {
+function packagedManifest(files, supplied) {
+  if (supplied) return supplied;
+  const file = files.get('manifest.json');
+  if (!file) fail('ZONE_PACKAGE_INVALID_FILE', 'manifest.json is missing.');
+  try {
+    return JSON.parse(new TextDecoder().decode(file.bytes));
+  } catch (error) {
+    fail('ZONE_PACKAGE_INVALID_MANIFEST',
+      `manifest.json is invalid JSON: ${error?.message || error}`);
+  }
+}
+
+export async function verifyPackagedSemanticArtifacts(audit, files, manifest = null) {
   const parsed = {};
   for (const spec of selectedZonePackageArtifactSpecs()) {
     const record = recordsByRole(audit, spec.role)[0];
@@ -44,6 +56,6 @@ export async function verifyPackagedSemanticArtifacts(audit, files, manifest) {
       }
     }
   }
-  await verifyPackagedBenchmarkClosure(parsed, manifest);
+  await verifyPackagedBenchmarkClosure(parsed, packagedManifest(files, manifest));
   return parsed;
 }
