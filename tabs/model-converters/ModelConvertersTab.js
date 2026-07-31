@@ -9,7 +9,7 @@ import { run as inputXmlToCii2019LiveRun } from './converters/inputxml-to-cii201
 import { installFbxReviewUiAddon } from './fbx-review-ui-addon.js?v=20260729-fbx2-direct-pipe-1';
 import { installFbxPreviewZoneSelector } from './fbx-preview-zone-selector.js?v=20260729-fbx2-direct-pipe-1';
 import { installFbxZoneGeometryToolbar } from './converters/fbx/zone-geometry/zone-toolbar.js?v=20260729-fbx2-direct-pipe-1';
-import { installFbxZonePackageExport } from './fbx-zone-package-export.js?v=20260728-fbx-zone-package-export-1';
+import { installFbxZonePackageExport } from './fbx-zone-package-export.js?v=20260731-fbx-taya-support-qualification-1';
 import { installBmCiiSupportAnnotationPopup } from './bm-cii-support-annotation-popup.js?v=20260617-bmcii-open-basic-handoff-2';
 import { installInputXmlPropertyTransferUi } from './inputxml-property-transfer-popup-ui-v4.js?v=20260615-inputxml-property-transfer-popup-host-hide-1';
 import { installRvmAttrUxmlAddon } from './rvmattr-uxml-addon.js?v=20260618-port-bore-contract-1';
@@ -26,7 +26,7 @@ import { installXmlCiiWeightSemanticInfo } from './xml-cii-weight-semantic-info.
 import { installInputXmlBasicGlbBridge } from './inputxml-basic-glb-bridge.js';
 import { installInputXmlManagedStageBridge } from './inputxml-managed-stage-bridge.js?v=20260623-inputxml-direct-stage-1';
 import { installStagedJsonInputXmlDiagnosticsPanel } from './stagedjson-inputxml-diagnostics-panel.js?v=20260713-stagedjson-inputxml-audit-1';
-import { installXmlCiiInputXmlSidecarDiagnosticsPanel } from './xml-cii-inputxml-sidecar-diagnostics-panel.js?v=20260713-xml-cii-sidecar-audit-1';
+import { installXmlCiiInputXmlSidecarDiagnosticsPanel } from './stagedjson-inputxml-sidecar-diagnostics-panel.js?v=20260713-stagedjson-inputxml-audit-1';
 import { installXmlCiiDefaultMasterAutoloadLite } from '../xml-cii-master-autoload-lite.js?v=20260624-startup-autoload-noise-1';
 import { installXmlCiiPreviewLineKeyRemap } from './xml-cii-preview-linekey-remap.js?v=20260620-rating-runtime-1';
 import { installXmlCiiRuntimeOverrideSync } from './xml-cii-runtime-override-sync.js?v=20260624-master-tab-responsive-1';
