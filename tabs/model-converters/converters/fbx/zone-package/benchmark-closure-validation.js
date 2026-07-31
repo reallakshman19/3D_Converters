@@ -154,7 +154,7 @@ async function validateSupportAssociation(evidence, profile) {
     'support source claim');
   if (stats.matched.some((item) => item.disposition !== 'MATCHED_CROSS_ZONE_SUPPORT'
       || !nonEmpty(item.branchId) || !nonEmpty(item.hostManagedRecordId)
-      || !Array.isArray(item.selectedGeometryObjectIds))) {
+      || !item.assignedZoneIds?.length || !item.selectedGeometryObjectIds?.length)) {
     fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
       'passing support associations are invalid.');
   }
@@ -207,6 +207,26 @@ async function validateBranchLedger(ledger, manifest) {
     'branch match ledger counts or digest are invalid.');
 }
 
+function geometryIndex(records) {
+  const result = new Map();
+  for (const record of records) {
+    for (const geometryId of record.geometryObjectIds || []) {
+      const key = String(geometryId), owners = result.get(key) || [];
+      owners.push(record); result.set(key, owners);
+    }
+  }
+  return result;
+}
+
+function supportGeometryIsBound(association, context) {
+  return association.selectedGeometryObjectIds.every((geometryId) => (
+    (context.geometryById.get(String(geometryId)) || []).some((owner) => (
+      owner.fullAncestryOccurrenceIds.includes(association.sourceOccurrenceId)
+      && association.assignedZoneIds.includes(owner.assignedZoneId)
+    ))
+  ));
+}
+
 function verifySupportBinding(association, context) {
   const record = context.ledgerById.get(association.managedRecordId);
   if (!record || record.family !== 'SUPPORT') {
@@ -216,9 +236,11 @@ function verifySupportBinding(association, context) {
   if (association.status !== 'PASS') return;
   const source = context.indexById.get(association.sourceOccurrenceId);
   const host = context.ledgerById.get(association.hostManagedRecordId);
+  const outside = association.assignedZoneIds.length > 0
+    && association.assignedZoneIds.every((zoneId) => zoneId !== context.selectedZoneId);
   const imported = association.selectedGeometryObjectIds
     .some((geometryId) => context.manifestGeometryIds.has(String(geometryId)));
-  const bound = source && source.assignedZoneId !== context.selectedZoneId
+  const bound = source && outside && supportGeometryIsBound(association, context)
     && record.status === 'PASS'
     && record.disposition === 'MATCHED_CROSS_ZONE_SUPPORT'
     && record.exactSourceOccurrenceId === association.sourceOccurrenceId
@@ -241,6 +263,7 @@ function verifyCrossBindings(ledger, index, support, profile, manifest) {
   const context = {
     selectedZoneId: ledger.selectedZoneId,
     indexById: new Map(index.records.map((record) => [record.sourceOccurrenceId, record])),
+    geometryById: geometryIndex(index.records),
     ledgerById: new Map(ledger.records.map((record) => [record.managedRecordId, record])),
     manifestGeometryIds: new Set(manifest.geometries.map((entry) => String(entry.geometryId))),
   };
