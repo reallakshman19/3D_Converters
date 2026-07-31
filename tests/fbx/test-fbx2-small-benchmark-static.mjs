@@ -8,6 +8,7 @@ const productionFiles = [
   'scripts/fbx/fbx2-small-benchmark/cross-zone-support-association.mjs',
   'scripts/fbx/fbx2-small-benchmark/global-occurrence-index.mjs',
   'scripts/fbx/fbx2-small-benchmark/managed-inventory.mjs',
+  'scripts/fbx/fbx2-small-benchmark/package-closure.mjs',
   'scripts/fbx/fbx2-small-benchmark/profile.mjs',
   'scripts/fbx/fbx2-small-benchmark/reconcile-indexes.mjs',
   'scripts/fbx/fbx2-small-benchmark/reconcile.mjs',
@@ -15,6 +16,7 @@ const productionFiles = [
   'scripts/fbx/fbx2-small-benchmark/run-artifacts.mjs',
   'scripts/fbx/fbx2-small-benchmark/source-inventory.mjs',
   'scripts/fbx/run-fbx2-small-benchmark.mjs',
+  'tabs/model-converters/converters/fbx/zone-package/benchmark-closure-validation.js',
 ];
 
 function logicalLines(body) {
@@ -57,7 +59,24 @@ assert.match(runner, /buildSelectedZoneComponentCrosswalk/);
 assert.match(runner, /buildFbx2GlobalOccurrenceIndex/);
 assert.match(runner, /buildFbx2CrossZoneSupportAssociation/);
 assert.match(runner, /buildFbx2SmallBenchmarkReport/);
+assert.match(runner, /buildFbx2SelectedZonePackageClosure/);
 assert.match(runner, /includeZonePackageInputs:\s*true/);
+assert.match(runner, /mappedStageStatus:\s*'MAPPED_STAGE_AVAILABLE'/);
+assert.match(runner, /stagedBranches:\s*managedStage/);
+
+const outputs = await readFile(new URL(
+  'scripts/fbx/fbx2-small-benchmark/run-artifacts.mjs', root), 'utf8');
+assert.match(outputs, /--branch-ledger-output/);
+assert.match(outputs, /--package-audit-output/);
+assert.match(outputs, /--package-output/);
+assert.match(outputs, /fbx2-selected-zone-package\.fbxzpkg/);
+
+const artifactRoles = await readFile(new URL(
+  'tabs/model-converters/converters/fbx/zone-package/artifact-roles.js', root), 'utf8');
+for (const role of [
+  'BRANCH_MATCH_LEDGER', 'GLOBAL_OCCURRENCE_INDEX',
+  'CROSS_ZONE_SUPPORT_ASSOCIATION_EVIDENCE', 'COORDINATE_PROFILE',
+]) assert.match(artifactRoles, new RegExp(role));
 
 const coordinateProfile = await readFile(new URL(
   'scripts/fbx/fbx2-small-benchmark/coordinate-profile.mjs', root), 'utf8');
