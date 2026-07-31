@@ -26,7 +26,7 @@ import { installXmlCiiWeightSemanticInfo } from './xml-cii-weight-semantic-info.
 import { installInputXmlBasicGlbBridge } from './inputxml-basic-glb-bridge.js';
 import { installInputXmlManagedStageBridge } from './inputxml-managed-stage-bridge.js?v=20260623-inputxml-direct-stage-1';
 import { installStagedJsonInputXmlDiagnosticsPanel } from './stagedjson-inputxml-diagnostics-panel.js?v=20260713-stagedjson-inputxml-audit-1';
-import { installXmlCiiInputXmlSidecarDiagnosticsPanel } from './stagedjson-inputxml-sidecar-diagnostics-panel.js?v=20260713-stagedjson-inputxml-audit-1';
+import { installXmlCiiInputXmlSidecarDiagnosticsPanel } from './xml-cii-inputxml-sidecar-diagnostics-panel.js?v=20260713-xml-cii-sidecar-audit-1';
 import { installXmlCiiDefaultMasterAutoloadLite } from '../xml-cii-master-autoload-lite.js?v=20260624-startup-autoload-noise-1';
 import { installXmlCiiPreviewLineKeyRemap } from './xml-cii-preview-linekey-remap.js?v=20260620-rating-runtime-1';
 import { installXmlCiiRuntimeOverrideSync } from './xml-cii-runtime-override-sync.js?v=20260624-master-tab-responsive-1';
