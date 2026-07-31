@@ -1,6 +1,8 @@
 import { buildSupportAssemblyReviewModel,
   SUPPORT_ASSEMBLY_POLICY_TEXT,
   supportAssemblySummaryText } from './converters/fbx/support-assembly/review-model.js';
+import { installFbxTayaSupportQualification } from
+  './converters/fbx/taya-qualification/ui.js';
 import { buildSelectedZonePackage } from './converters/fbx/zone-package/package-builder.js';
 import { buildPackageArchive } from './converters/fbx/zone-package/archive.js';
 
@@ -70,6 +72,7 @@ export function installFbxZonePackageExport(container, getPackageInputs = null) 
   if (typeof document === 'undefined' || !container || container[INSTALL_MARKER]) return;
   Object.defineProperty(container, INSTALL_MARKER, { value: true });
   const button = mountButton(container); if (!button) return;
+  installFbxTayaSupportQualification(container);
   let latestInputs = null;
   const provided = typeof getPackageInputs === 'function' ? getPackageInputs : null;
   const update = (inputs) => {
