@@ -59,7 +59,7 @@ assert.match(runner, /buildSelectedZoneComponentCrosswalk/);
 assert.match(runner, /buildFbx2GlobalOccurrenceIndex/);
 assert.match(runner, /buildFbx2CrossZoneSupportAssociation/);
 assert.match(runner, /buildFbx2SmallBenchmarkReport/);
-assert.match(runner, /buildFbx2SelectedZonePackageClosure/);
+assert.match(runner, /buildDeterministicFbx2SelectedZonePackageClosure/);
 assert.match(runner, /includeZonePackageInputs:\s*true/);
 assert.match(runner, /mappedStageStatus:\s*'MAPPED_STAGE_AVAILABLE'/);
 assert.match(runner, /stagedBranches:\s*managedStage/);
