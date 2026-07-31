@@ -14,6 +14,10 @@ const SPECS = Object.freeze([
   Object.freeze({ role: 'INLINE_ASSEMBLY_EVIDENCE', path: 'evidence/inline-assemblies.json', schema: 'FbxInlineAssemblyPortEvidence.v1', required: true }),
   Object.freeze({ role: 'SUPPORT_HOST_ASSOCIATION_EVIDENCE', path: 'evidence/support-host-associations.json', schema: 'FbxSupportHostAssociationEvidence.v1', required: true }),
   Object.freeze({ role: 'SUPPORT_ASSEMBLY_EVIDENCE', path: 'evidence/support-assemblies.json', schema: 'FbxSupportAssemblyEvidence.v1', required: true }),
+  Object.freeze({ role: 'BRANCH_MATCH_LEDGER', path: 'evidence/branch-match-ledger.json', schema: 'FbxSelectedZoneBranchMatchLedger.v1', required: false }),
+  Object.freeze({ role: 'GLOBAL_OCCURRENCE_INDEX', path: 'evidence/global-occurrence-index.json', schema: 'FbxGlobalOccurrenceIndex.v1', required: false }),
+  Object.freeze({ role: 'CROSS_ZONE_SUPPORT_ASSOCIATION_EVIDENCE', path: 'evidence/cross-zone-support-associations.json', schema: 'FbxCrossZoneSupportAssociationEvidence.v1', required: false }),
+  Object.freeze({ role: 'COORDINATE_PROFILE', path: 'evidence/coordinate-profile.json', schema: 'FbxBenchmarkCoordinateProfile.v1', required: false }),
   Object.freeze({ role: 'QUALIFICATION_ROOT', path: 'qualification-root.json', schema: 'FbxSelectedZoneQualificationRoot.v1', required: true }),
 ]);
 
