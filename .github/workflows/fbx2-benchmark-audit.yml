@@ -50,6 +50,7 @@ jobs:
           node --check scripts/fbx/fbx2-small-benchmark/cross-zone-support-association.mjs
           node --check scripts/fbx/fbx2-small-benchmark/global-occurrence-index.mjs
           node --check scripts/fbx/fbx2-small-benchmark/managed-inventory.mjs
+          node --check scripts/fbx/fbx2-small-benchmark/package-closure.mjs
           node --check scripts/fbx/fbx2-small-benchmark/source-inventory.mjs
           node --check scripts/fbx/fbx2-small-benchmark/reconcile-indexes.mjs
           node --check scripts/fbx/fbx2-small-benchmark/reconcile.mjs
@@ -57,6 +58,7 @@ jobs:
           node --check scripts/fbx/fbx2-small-benchmark/run-artifacts.mjs
           node --check scripts/fbx/fbx2-small-benchmark/profile.mjs
           node --check scripts/fbx/fbx2-small-benchmark/support-name-authority.mjs
+          node --check tabs/model-converters/converters/fbx/zone-package/benchmark-closure-validation.js
           node --check tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js
           node --check tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js
           node tests/fbx/test-fbx2-small-benchmark-core.mjs
@@ -65,6 +67,7 @@ jobs:
           node tests/fbx/test-fbx2-small-benchmark-static.mjs
           node tests/fbx/test-fbx2-support-name-authority.mjs
           node tests/fbx/test-fbx2-global-support-association.mjs
+          node tests/fbx/test-fbx2-selected-zone-package-closure.mjs
 
       - name: Extract governed benchmark archives
         shell: bash
@@ -120,7 +123,10 @@ jobs:
             --zone '/GLRD-1000-CU-PI-P' \
             --output artifacts/fbx2-small-benchmark.json \
             --global-index-output artifacts/fbx2-global-occurrence-index.json \
-            --support-association-output artifacts/fbx2-cross-zone-support-association.json
+            --support-association-output artifacts/fbx2-cross-zone-support-association.json \
+            --branch-ledger-output artifacts/fbx2-branch-match-ledger.json \
+            --package-audit-output artifacts/fbx2-selected-zone-package-audit.json \
+            --package-output artifacts/fbx2-selected-zone-package.fbxzpkg
           node scripts/fbx/audit-fbx2-support-names.mjs \
             --fbx "$fbx_path" \
             --input-zip Benchmarks/FBX2/STF_2026Jul23-1554_binary.zip \
@@ -140,6 +146,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: fbx2-benchmark-audit
-          path: artifacts/*.json
+          path: artifacts/*
           if-no-files-found: error
           retention-days: 30
