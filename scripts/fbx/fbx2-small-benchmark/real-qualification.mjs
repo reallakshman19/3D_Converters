@@ -2,6 +2,7 @@ import { benchmarkSha256 } from './report.mjs';
 
 const RECEIPT_SCHEMA = 'Fbx2RealQualificationReceipt.v1';
 const EXPLICIT_OMISSION = 'SOURCE_NOT_EXPORTED_AS_STANDALONE_GEOMETRY';
+const HASH = /^[0-9a-f]{64}$/;
 const CLOSURE_ROLES = Object.freeze([
   'BRANCH_MATCH_LEDGER',
   'GLOBAL_OCCURRENCE_INDEX',
@@ -34,12 +35,19 @@ function managedCounts(report) {
 }
 
 function supportCounts(evidence) {
+  const associations = evidence?.associations || [];
+  const matched = recordsWith(associations, (record) => record.status === 'PASS').length;
+  const blocked = recordsWith(associations, (record) => record.status === 'BLOCKED').length;
+  const ambiguous = recordsWith(associations,
+    (record) => record.disposition === 'AMBIGUOUS_MATCH').length;
   return Object.freeze({
     expected: evidence?.expectedManagedSupportCount ?? null,
-    matched: evidence?.matchedCount ?? null,
-    blocked: evidence?.blockedCount ?? null,
-    ambiguous: evidence?.ambiguousCount ?? null,
-    associationCount: evidence?.associations?.length ?? null,
+    matched,
+    blocked,
+    ambiguous,
+    associationCount: associations.length,
+    declaredConsistent: evidence?.matchedCount === matched
+      && evidence?.blockedCount === blocked && evidence?.ambiguousCount === ambiguous,
   });
 }
 
@@ -52,26 +60,69 @@ function closureInventory(audit) {
   })));
 }
 
+function identityBound(value) {
+  return typeof value?.file === 'string' && Boolean(value.file)
+    && Number.isSafeInteger(value.byteLength) && value.byteLength > 0
+    && HASH.test(value.sha256 || '')
+    && typeof value.archive === 'string' && Boolean(value.archive)
+    && Number.isSafeInteger(value.archiveByteLength) && value.archiveByteLength > 0
+    && HASH.test(value.archiveSha256 || '');
+}
+
+function artifactHash(audit, role) {
+  const record = (audit?.files || []).find((item) => item.role === role);
+  return record?.disposition === 'PRESENT' ? record.sha256 : null;
+}
+
+function closureSidecarsBound(input) {
+  const values = new Map([
+    ['BRANCH_MATCH_LEDGER', input.branchLedger],
+    ['GLOBAL_OCCURRENCE_INDEX', input.globalIndex],
+    ['CROSS_ZONE_SUPPORT_ASSOCIATION_EVIDENCE', input.supportAssociation],
+    ['COORDINATE_PROFILE', input.supportAssociation?.coordinateProfile],
+  ]);
+  return CLOSURE_ROLES.every((role) => values.get(role)
+    && benchmarkSha256(values.get(role)) === artifactHash(input.packageAudit, role));
+}
+
+function managedConserved(managed) {
+  return managed.pass + managed.blocked + managed.unresolved === managed.total
+    && managed.representedGeometryPass + managed.supportPass === managed.pass
+    && managed.explicitSourceExportOmissions + managed.otherBlocked === managed.blocked;
+}
+
 function gateChecks(input, managed, support) {
   const ledger = input.branchLedger;
   const report = input.report;
   const checks = [
-    ['SOURCE_IDENTITIES_BOUND', Boolean(report?.source?.sha256 && report?.managedStage?.sha256)],
+    ['SOURCE_IDENTITIES_BOUND', identityBound(report?.source)
+      && identityBound(report?.managedStage)],
     ['TWO_RUN_DETERMINISM', report?.comparison?.status === 'PASS'],
     ['TERMINAL_COVERAGE', report?.coverage?.status === 'PASS'],
+    ['MANAGED_COUNTS_CONSERVED', managedConserved(managed)],
+    ['REPORT_COUNTS_BOUND', report?.parity?.managedComponentCount === managed.total
+      && report?.parity?.passCount === managed.pass
+      && report?.parity?.blockedCount === managed.blocked
+      && report?.parity?.unresolvedCount === managed.unresolved],
     ['NO_UNRESOLVED_MANAGED_RECORDS', managed.unresolved === 0],
     ['ONLY_EXPLICIT_SOURCE_OMISSIONS_BLOCKED', managed.otherBlocked === 0],
-    ['SUPPORT_POPULATION_CONSERVED', support.expected === support.associationCount],
+    ['SUPPORT_POPULATION_CONSERVED', support.declaredConsistent
+      && support.expected === support.associationCount
+      && support.matched + support.blocked === support.associationCount],
     ['ALL_SUPPORTS_MATCHED', support.expected === support.matched && support.blocked === 0],
     ['NO_AMBIGUOUS_SUPPORTS', support.ambiguous === 0],
     ['BRANCH_LEDGER_COMPLETE', ledger?.coverageRatio === 1
       && ledger?.managedComponentCount === managed.total
       && ledger?.terminalDispositionCount === managed.total],
+    ['BRANCH_LEDGER_COUNTS_BOUND', ledger?.passCount === managed.pass
+      && ledger?.blockedCount === managed.blocked
+      && ledger?.unresolvedCount === managed.unresolved],
     ['PACKAGE_REOPEN_VALIDATED', input.packageValidation?.validated === true],
     ['PACKAGE_AUDIT_BOUND', input.packageValidation?.packageDigest
       === input.packageAudit?.packageDigest],
     ['CLOSURE_ARTIFACTS_PRESENT', closureInventory(input.packageAudit)
       .every((record) => record.disposition === 'PRESENT' && record.sha256)],
+    ['CLOSURE_SIDECARS_BOUND', closureSidecarsBound(input)],
   ];
   return Object.freeze(checks.map(([code, passed]) => Object.freeze({
     code, status: passed ? 'PASS' : 'BLOCKED',
@@ -81,7 +132,8 @@ function gateChecks(input, managed, support) {
 function receiptDisposition(checks, report, managed) {
   if (checks.some((check) => check.status !== 'PASS')) return 'BLOCKED_REAL_QUALIFICATION';
   if (report.parity?.status === 'PASS' && managed.blocked === 0) return 'QUALIFIED_EXACT_PARITY';
-  return managed.blocked === managed.explicitSourceExportOmissions
+  return managed.explicitSourceExportOmissions > 0
+    && managed.blocked === managed.explicitSourceExportOmissions
     ? 'QUALIFIED_WITH_EXPLICIT_SOURCE_OMISSIONS'
     : 'BLOCKED_REAL_QUALIFICATION';
 }
@@ -103,7 +155,7 @@ function receiptPayload(input, managed, support, checks) {
       parityStatus: report.parity.status,
       parityRatio: report.parity.actualRatio,
     }),
-    managed: managed,
+    managed,
     supports: support,
     package: Object.freeze({
       packageDigest: input.packageAudit.packageDigest,
@@ -123,13 +175,32 @@ function receiptPayload(input, managed, support, checks) {
   };
 }
 
+function receiptConserved(receipt) {
+  const managed = receipt.managed, support = receipt.supports;
+  return managedConserved(managed)
+    && support.matched + support.blocked === support.associationCount
+    && typeof support.declaredConsistent === 'boolean';
+}
+
+function dispositionConsistent(receipt) {
+  if (receipt.disposition === 'QUALIFIED_EXACT_PARITY') {
+    return receipt.benchmark.parityStatus === 'PASS' && receipt.managed.blocked === 0;
+  }
+  if (receipt.disposition === 'QUALIFIED_WITH_EXPLICIT_SOURCE_OMISSIONS') {
+    return receipt.managed.explicitSourceExportOmissions > 0
+      && receipt.managed.blocked === receipt.managed.explicitSourceExportOmissions;
+  }
+  return true;
+}
+
 export function validateFbx2RealQualificationReceipt(receipt) {
   const valid = receipt?.schema === RECEIPT_SCHEMA
     && typeof receipt.profileId === 'string' && Boolean(receipt.profileId)
     && ['QUALIFIED_EXACT_PARITY', 'QUALIFIED_WITH_EXPLICIT_SOURCE_OMISSIONS',
       'BLOCKED_REAL_QUALIFICATION'].includes(receipt.disposition)
-    && Array.isArray(receipt.checks) && receipt.checks.length > 0
-    && /^[0-9a-f]{64}$/.test(receipt.receiptDigest || '');
+    && Array.isArray(receipt.checks) && receipt.checks.length === 16
+    && receiptConserved(receipt) && dispositionConsistent(receipt)
+    && HASH.test(receipt.receiptDigest || '');
   if (!valid) throw new TypeError('FBX2_REAL_QUALIFICATION_RECEIPT_INVALID');
   const payload = structuredClone(receipt);
   const digest = payload.receiptDigest;
@@ -146,8 +217,9 @@ export function validateFbx2RealQualificationReceipt(receipt) {
 }
 
 export function buildFbx2RealQualificationReceipt(input = {}) {
-  if (!input.report || !input.supportAssociation || !input.branchLedger
-      || !input.packageAudit || !input.packageValidation || !input.profileId) {
+  if (!input.report || !input.globalIndex || !input.supportAssociation
+      || !input.branchLedger || !input.packageAudit
+      || !input.packageValidation || !input.profileId) {
     throw new TypeError('FBX2_REAL_QUALIFICATION_INPUT_INVALID');
   }
   const managed = managedCounts(input.report);
