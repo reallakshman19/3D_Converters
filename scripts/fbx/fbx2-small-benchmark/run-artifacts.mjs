@@ -62,3 +62,33 @@ export async function writeFbx2BenchmarkOutputs(args, result) {
     writeFile(args.packageOutputPath, result.closure.archive.bytes),
   ]);
 }
+
+export function fbx2BenchmarkConsoleSummary(args, result) {
+  const support = result.runs[0].crossZoneSupportAssociation;
+  const audit = result.closure.packageResult.audit;
+  const archive = result.closure.archive;
+  return {
+    status: result.report.status,
+    coverage: result.report.coverage,
+    parity: result.report.parity,
+    comparison: result.report.comparison,
+    crossZoneSupportAssociation: {
+      matchedCount: support.matchedCount,
+      blockedCount: support.blockedCount,
+      ambiguousCount: support.ambiguousCount,
+    },
+    selectedZonePackage: {
+      packageDigest: audit.packageDigest,
+      archiveSha256: archive.sha256,
+      byteLength: archive.bytes.byteLength,
+    },
+    outputPaths: {
+      report: args.outputPath,
+      globalIndex: args.globalIndexOutputPath,
+      supportAssociation: args.supportAssociationOutputPath,
+      branchLedger: args.branchLedgerOutputPath,
+      packageAudit: args.packageAuditOutputPath,
+      package: args.packageOutputPath,
+    },
+  };
+}
