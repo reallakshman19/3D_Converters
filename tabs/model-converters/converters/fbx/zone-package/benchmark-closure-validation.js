@@ -42,6 +42,10 @@ function finiteVector(value, length) {
     && value.every((item) => typeof item === 'number' && Number.isFinite(item));
 }
 
+function nonNegativeInteger(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
 function uniqueText(values, label) {
   if (!Array.isArray(values) || values.some((value) => !nonEmpty(value))
       || new Set(values).size !== values.length) {
@@ -74,23 +78,20 @@ function validateCoordinateProfile(profile) {
     && profile.hostAxisToleranceMm > 0
     && profile.oneToOneRequired === true
     && nonEmpty(profile.authoritySource);
-  if (!valid) {
-    fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'coordinate profile is invalid.');
-  }
+  if (!valid) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'coordinate profile is invalid.');
 }
 
 async function validateGlobalIndex(index) {
-  if (index?.schema !== 'FbxGlobalOccurrenceIndex.v1'
-      || !Number.isSafeInteger(index.sourceOccurrenceCount)
-      || !Number.isSafeInteger(index.zoneAssignedOccurrenceCount)
-      || !Number.isSafeInteger(index.geometryOccurrenceCount)
-      || !Array.isArray(index.records)
-      || index.sourceOccurrenceCount !== index.records.length
-      || !HASH.test(index.indexDigest || '')) {
-    fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'global occurrence index is invalid.');
-  }
+  const shape = index?.schema === 'FbxGlobalOccurrenceIndex.v1'
+    && nonNegativeInteger(index.sourceOccurrenceCount)
+    && nonNegativeInteger(index.zoneAssignedOccurrenceCount)
+    && nonNegativeInteger(index.geometryOccurrenceCount)
+    && Array.isArray(index.records)
+    && index.sourceOccurrenceCount === index.records.length
+    && HASH.test(index.indexDigest || '');
+  if (!shape) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'global occurrence index is invalid.');
   uniqueText(index.records.map((record) => record.sourceOccurrenceId),
     'global occurrence');
   if (index.records.some((record) => !nonEmpty(record.sourceModelObjectId)
@@ -101,66 +102,76 @@ async function validateGlobalIndex(index) {
   }
   const assigned = index.records.filter((record) => nonEmpty(record.assignedZoneId)).length;
   const geometry = index.records.filter((record) => record.geometryObjectIds.length > 0).length;
-  const digest = await compactDigest(without(index, 'indexDigest'));
-  if (assigned !== index.zoneAssignedOccurrenceCount
-      || geometry !== index.geometryOccurrenceCount
-      || index.authority?.selectedZonePopulationChanged !== false
-      || index.authority?.siblingGeometryImported !== false
-      || index.authority?.fullSourceGraphIndexed !== true
-      || digest !== index.indexDigest) {
-    fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'global occurrence index binding is invalid.');
-  }
+  const valid = assigned === index.zoneAssignedOccurrenceCount
+    && geometry === index.geometryOccurrenceCount
+    && index.authority?.selectedZonePopulationChanged === false
+    && index.authority?.siblingGeometryImported === false
+    && index.authority?.fullSourceGraphIndexed === true
+    && await compactDigest(without(index, 'indexDigest')) === index.indexDigest;
+  if (!valid) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'global occurrence index binding is invalid.');
+}
+
+function supportStats(evidence) {
+  return {
+    matched: evidence.associations.filter((item) => item.status === 'PASS'),
+    blocked: evidence.associations.filter((item) => item.status === 'BLOCKED'),
+    ambiguous: evidence.associations
+      .filter((item) => item.disposition === 'AMBIGUOUS_MATCH'),
+  };
 }
 
 async function validateSupportAssociation(evidence, profile) {
-  if (evidence?.schema !== 'FbxCrossZoneSupportAssociationEvidence.v1'
-      || !nonEmpty(evidence.selectedZoneId)
-      || !HASH.test(evidence.coordinateProfileDigest || '')
-      || !HASH.test(evidence.evidenceDigest || '')
-      || !Array.isArray(evidence.associations)
-      || !Number.isSafeInteger(evidence.expectedManagedSupportCount)
-      || !Number.isSafeInteger(evidence.matchedCount)
-      || !Number.isSafeInteger(evidence.blockedCount)
-      || !Number.isSafeInteger(evidence.ambiguousCount)) {
-    fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'cross-zone support evidence is invalid.');
-  }
-  const profileDigest = await compactDigest(profile);
-  const evidenceDigest = await compactDigest(without(evidence, 'evidenceDigest'));
-  const matched = evidence.associations.filter((item) => item.status === 'PASS');
-  const blocked = evidence.associations.filter((item) => item.status === 'BLOCKED');
-  const ambiguous = evidence.associations
-    .filter((item) => item.disposition === 'AMBIGUOUS_MATCH');
+  const shape = evidence?.schema === 'FbxCrossZoneSupportAssociationEvidence.v1'
+    && nonEmpty(evidence.selectedZoneId)
+    && HASH.test(evidence.coordinateProfileDigest || '')
+    && HASH.test(evidence.evidenceDigest || '')
+    && Array.isArray(evidence.associations)
+    && nonNegativeInteger(evidence.expectedManagedSupportCount)
+    && nonNegativeInteger(evidence.matchedCount)
+    && nonNegativeInteger(evidence.blockedCount)
+    && nonNegativeInteger(evidence.ambiguousCount);
+  if (!shape) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'cross-zone support evidence is invalid.');
+  const stats = supportStats(evidence);
   const valid = compactJson(evidence.coordinateProfile) === compactJson(profile)
-    && evidence.coordinateProfileDigest === profileDigest
+    && evidence.coordinateProfileDigest === await compactDigest(profile)
     && evidence.expectedManagedSupportCount === evidence.associations.length
-    && evidence.matchedCount === matched.length
-    && evidence.blockedCount === blocked.length
-    && matched.length + blocked.length === evidence.associations.length
-    && evidence.ambiguousCount === ambiguous.length
+    && evidence.matchedCount === stats.matched.length
+    && evidence.blockedCount === stats.blocked.length
+    && stats.matched.length + stats.blocked.length === evidence.associations.length
+    && evidence.ambiguousCount === stats.ambiguous.length
     && evidence.authority?.selectedZonePopulationChanged === false
     && evidence.authority?.siblingGeometryImported === false
     && evidence.authority?.oneToOneSourceClaimRequired === true
     && evidence.authority?.restraintSubtypeParityClaimed === false
-    && evidenceDigest === evidence.evidenceDigest;
-  if (!valid) {
-    fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'cross-zone support binding is invalid.');
-  }
+    && await compactDigest(without(evidence, 'evidenceDigest')) === evidence.evidenceDigest;
+  if (!valid) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'cross-zone support binding is invalid.');
   uniqueText(evidence.associations.map((item) => item.managedRecordId),
     'support association');
-  uniqueText(matched.map((item) => item.sourceOccurrenceId),
+  uniqueText(stats.matched.map((item) => item.sourceOccurrenceId),
     'support source claim');
-  if (matched.some((item) => item.disposition !== 'MATCHED_CROSS_ZONE_SUPPORT'
-      || !nonEmpty(item.hostManagedRecordId))) {
+  if (stats.matched.some((item) => item.disposition !== 'MATCHED_CROSS_ZONE_SUPPORT'
+      || !nonEmpty(item.branchId) || !nonEmpty(item.hostManagedRecordId)
+      || !Array.isArray(item.selectedGeometryObjectIds))) {
     fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
       'passing support associations are invalid.');
   }
 }
 
+function validateBranchSequence(records) {
+  const seen = new Set();
+  for (const record of records) {
+    const key = `${record.branchId}\0${record.branchSequence}`;
+    if (seen.has(key)) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+      `branch sequence ${record.branchId}/${record.branchSequence} is duplicated.`);
+    seen.add(key);
+  }
+}
+
 async function validateBranchLedger(ledger, manifest) {
-  const valid = ledger?.schema === 'FbxSelectedZoneBranchMatchLedger.v1'
+  const shape = ledger?.schema === 'FbxSelectedZoneBranchMatchLedger.v1'
     && nonEmpty(ledger.selectedZoneId)
     && ledger.selectedZoneDigest === manifest.selectedZoneDigest
     && HASH.test(ledger.coordinateProfileDigest || '')
@@ -168,36 +179,54 @@ async function validateBranchLedger(ledger, manifest) {
     && HASH.test(ledger.crossZoneSupportAssociationDigest || '')
     && HASH.test(ledger.ledgerDigest || '')
     && Array.isArray(ledger.records)
-    && Number.isSafeInteger(ledger.managedComponentCount)
-    && Number.isSafeInteger(ledger.terminalDispositionCount)
+    && nonNegativeInteger(ledger.managedComponentCount)
+    && nonNegativeInteger(ledger.terminalDispositionCount)
     && ledger.managedComponentCount === ledger.records.length
     && ledger.terminalDispositionCount === ledger.records.length;
-  if (!valid) {
-    fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'branch match ledger is invalid.');
-  }
+  if (!shape) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'branch match ledger is invalid.');
   uniqueText(ledger.records.map((record) => record.managedRecordId),
     'managed branch record');
   if (ledger.records.some((record) => !nonEmpty(record.branchId)
-      || !Number.isSafeInteger(record.branchSequence)
-      || record.branchSequence < 0
-      || !nonEmpty(record.family)
-      || !STATUS.has(record.status)
+      || !nonNegativeInteger(record.branchSequence)
+      || !nonEmpty(record.family) || !STATUS.has(record.status)
       || !nonEmpty(record.disposition))) {
     fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
       'branch match records are invalid.');
   }
+  validateBranchSequence(ledger.records);
   const pass = ledger.records.filter((record) => record.status === 'PASS').length;
   const blocked = ledger.records.filter((record) => record.status === 'BLOCKED').length;
   const unresolved = ledger.records.length - pass - blocked;
-  const digest = await sha256Hex(canonicalJson(without(ledger, 'ledgerDigest')));
-  if (ledger.passCount !== pass || ledger.blockedCount !== blocked
-      || ledger.unresolvedCount !== unresolved
-      || ledger.coverageRatio !== (ledger.records.length ? 1 : 0)
-      || digest !== ledger.ledgerDigest) {
+  const valid = ledger.passCount === pass && ledger.blockedCount === blocked
+    && ledger.unresolvedCount === unresolved
+    && ledger.coverageRatio === (ledger.records.length ? 1 : 0)
+    && await sha256Hex(canonicalJson(without(ledger, 'ledgerDigest')))
+      === ledger.ledgerDigest;
+  if (!valid) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'branch match ledger counts or digest are invalid.');
+}
+
+function verifySupportBinding(association, context) {
+  const record = context.ledgerById.get(association.managedRecordId);
+  if (!record || record.family !== 'SUPPORT') {
     fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'branch match ledger counts or digest are invalid.');
+      `support association ${association.managedRecordId} lacks a ledger record.`);
   }
+  if (association.status !== 'PASS') return;
+  const source = context.indexById.get(association.sourceOccurrenceId);
+  const host = context.ledgerById.get(association.hostManagedRecordId);
+  const imported = association.selectedGeometryObjectIds
+    .some((geometryId) => context.manifestGeometryIds.has(String(geometryId)));
+  const bound = source && source.assignedZoneId !== context.selectedZoneId
+    && record.status === 'PASS'
+    && record.disposition === 'MATCHED_CROSS_ZONE_SUPPORT'
+    && record.exactSourceOccurrenceId === association.sourceOccurrenceId
+    && record.branchId === association.branchId
+    && host?.family === 'PIPE' && host.branchId === record.branchId
+    && !imported;
+  if (!bound) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    `support association ${association.managedRecordId} is not ledger-bound.`);
 }
 
 function verifyCrossBindings(ledger, index, support, profile, manifest) {
@@ -207,32 +236,15 @@ function verifyCrossBindings(ledger, index, support, profile, manifest) {
     && ledger.globalOccurrenceIndexDigest === index.indexDigest
     && ledger.crossZoneSupportAssociationDigest === support.evidenceDigest
     && compactJson(profile) === compactJson(support.coordinateProfile);
-  if (!identitiesAgree) {
-    fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-      'benchmark closure identities disagree.');
-  }
-  const occurrenceIds = new Set(index.records
-    .map((record) => record.sourceOccurrenceId));
-  const ledgerById = new Map(ledger.records
-    .map((record) => [record.managedRecordId, record]));
-  for (const association of support.associations) {
-    const record = ledgerById.get(association.managedRecordId);
-    if (!record || record.family !== 'SUPPORT') {
-      fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-        `support association ${association.managedRecordId} lacks a ledger record.`);
-    }
-    if (association.status !== 'PASS') continue;
-    const host = ledgerById.get(association.hostManagedRecordId);
-    const bound = occurrenceIds.has(association.sourceOccurrenceId)
-      && record.status === 'PASS'
-      && record.disposition === 'MATCHED_CROSS_ZONE_SUPPORT'
-      && record.exactSourceOccurrenceId === association.sourceOccurrenceId
-      && host?.family === 'PIPE';
-    if (!bound) {
-      fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
-        `support association ${association.managedRecordId} is not ledger-bound.`);
-    }
-  }
+  if (!identitiesAgree) fail('ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE',
+    'benchmark closure identities disagree.');
+  const context = {
+    selectedZoneId: ledger.selectedZoneId,
+    indexById: new Map(index.records.map((record) => [record.sourceOccurrenceId, record])),
+    ledgerById: new Map(ledger.records.map((record) => [record.managedRecordId, record])),
+    manifestGeometryIds: new Set(manifest.geometries.map((entry) => String(entry.geometryId))),
+  };
+  for (const association of support.associations) verifySupportBinding(association, context);
 }
 
 export async function verifyPackagedBenchmarkClosure(artifacts = {}, manifest) {
