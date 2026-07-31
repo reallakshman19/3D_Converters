@@ -17,7 +17,7 @@ import {
   FBX2_BENCHMARK_COORDINATE_PROFILE_DIGEST,
 } from '../../scripts/fbx/fbx2-small-benchmark/coordinate-profile.mjs';
 import {
-  buildFbx2SelectedZonePackageClosure,
+  buildDeterministicFbx2SelectedZonePackageClosure,
 } from '../../scripts/fbx/fbx2-small-benchmark/package-closure.mjs';
 import {
   COMPLETE_SOURCE_GRAPH_SHA256,
@@ -153,8 +153,8 @@ const run = {
   crossZoneSupportAssociation: support,
   zonePackageInputs: { manifest, buffersByGeometryId, artifacts: {}, artifactOmissionReasons: {} },
 };
-
-const closure = await buildFbx2SelectedZonePackageClosure(run);
+const complete = { comparison: { status: 'PASS' }, coverage: { status: 'PASS' } };
+const closure = await buildDeterministicFbx2SelectedZonePackageClosure([run, run], complete);
 assert.equal(closure.branchMatchLedger.schema, 'FbxSelectedZoneBranchMatchLedger.v1');
 assert.equal(closure.branchMatchLedger.terminalDispositionCount, 2);
 assert.equal(closure.packageResult.audit.geometryCount, 1);
@@ -171,6 +171,9 @@ assert.ok(archived.some((file) => file.path === 'evidence/branch-match-ledger.js
 assert.ok(archived.some((file) => file.path === 'evidence/global-occurrence-index.json'));
 assert.ok(archived.some((file) => file.path === 'evidence/cross-zone-support-associations.json'));
 assert.ok(archived.some((file) => file.path === 'evidence/coordinate-profile.json'));
+await assert.rejects(() => buildDeterministicFbx2SelectedZonePackageClosure(
+  [run, run], { ...complete, coverage: { status: 'BLOCKED' } }),
+/FBX2_PACKAGE_CLOSURE_BENCHMARK_INCOMPLETE/);
 
 const tamperedSupport = structuredClone(support);
 tamperedSupport.associations[0].sourceOccurrenceId = 'occ:unrelated';
