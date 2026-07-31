@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { Worker as ThreadWorker } from 'node:worker_threads';
 import { buildBranchFittingPortEvidence } from '../../tabs/model-converters/converters/fbx/fitting-kernels/branch-fitting/evidence.js';
 import { buildElbowPortEvidence } from '../../tabs/model-converters/converters/fbx/fitting-kernels/elbow/evidence.js';
@@ -11,17 +11,23 @@ import { parseFbxGeometryBundleInWorker } from '../../tabs/model-converters/conv
 import { buildSelectedZoneComponentCrosswalk } from '../../tabs/model-converters/converters/fbx/parity/component-crosswalk.js';
 import { parseFbxInWorker } from '../../tabs/model-converters/converters/fbx/parser-client.js';
 import { analyseFbxZoneGeometry } from '../../tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js';
-import { listFbxZoneScopeSummaries } from '../../tabs/model-converters/converters/fbx/zone-geometry/zone-scope.js';
+import {
+  listFbxZoneScopeSummaries,
+  resolveSelectedZoneScope,
+} from '../../tabs/model-converters/converters/fbx/zone-geometry/zone-scope.js';
+import { buildFbx2CrossZoneSupportAssociation } from './fbx2-small-benchmark/cross-zone-support-association.mjs';
+import { buildFbx2GlobalOccurrenceIndex } from './fbx2-small-benchmark/global-occurrence-index.mjs';
 import { inventoryFbx2ManagedStage } from './fbx2-small-benchmark/managed-inventory.mjs';
 import {
   validateFbx2SmallBenchmarkPopulation,
   validateFbx2SmallBenchmarkSources,
 } from './fbx2-small-benchmark/profile.mjs';
+import { buildFbx2SmallBenchmarkReport } from './fbx2-small-benchmark/report.mjs';
 import {
-  benchmarkCanonicalJson,
-  benchmarkSha256,
-  buildFbx2SmallBenchmarkReport,
-} from './fbx2-small-benchmark/report.mjs';
+  buildFbx2RunIdentities,
+  fbx2BenchmarkArguments,
+  writeFbx2BenchmarkOutputs,
+} from './fbx2-small-benchmark/run-artifacts.mjs';
 import { reconcileFbx2SmallBenchmark } from './fbx2-small-benchmark/reconcile.mjs';
 import { inventoryFbx2SelectedSource } from './fbx2-small-benchmark/source-inventory.mjs';
 
@@ -107,36 +113,25 @@ function packageSummary(zonePackageInputs, zonePackageError) {
   });
 }
 
-function runIdentities(sourceGraph, geometryBundle, analysis, familyEvidence, crosswalk) {
-  const packageInputs = analysis.zonePackageInputs;
-  return Object.freeze({
-    sourceGraphDigest: benchmarkSha256(sourceGraph),
-    geometryBundleDigest: geometryBundle.bundleDigest ?? benchmarkSha256(geometryBundle),
-    zoneGeometryArtifactId: analysis.zoneGeometryEvidence.artifactId,
-    autoPipeDigest: benchmarkSha256(analysis.autoPipe),
-    componentCrosswalkArtifactId: crosswalk.artifactId,
-    elbowArtifactId: familyEvidence.elbowEvidence.artifactId,
-    teeArtifactId: familyEvidence.teeEvidence.artifactId,
-    reducerArtifactId: familyEvidence.reducerEvidence.artifactId,
-    branchFittingArtifactId: familyEvidence.branchFittingEvidence.artifactId,
-    inlineAssemblyArtifactId: familyEvidence.inlineAssemblyEvidence.artifactId,
-    supportEvidenceDigest: packageInputs?.supportEvidence?.evidenceDigest ?? null,
-    supportHostEvidenceDigest: packageInputs?.supportHostAssociationEvidence?.evidenceDigest ?? null,
-    supportAssemblyEvidenceDigest: packageInputs?.supportAssemblyEvidence?.evidenceDigest ?? null,
-    qualificationRootDigest: packageInputs?.qualificationRoot?.rootDigest ?? null,
-  });
+function allZoneScopes(sourceGraph, summaries) {
+  return summaries.map((summary) => resolveSelectedZoneScope(sourceGraph, summary.zoneId));
 }
 
 async function parseBenchmarkSource(fbxBytes, zoneLabel) {
   const sourceGraph = await parseFbxInWorker(new Uint8Array(fbxBytes), { timeoutMs: 300000 });
   const geometryBundle = await parseFbxGeometryBundleInWorker(
     new Uint8Array(fbxBytes), { timeoutMs: 300000 });
-  const targetZone = selectZone(listFbxZoneScopeSummaries(sourceGraph), zoneLabel);
+  const zoneSummaries = listFbxZoneScopeSummaries(sourceGraph);
+  const targetZone = selectZone(zoneSummaries, zoneLabel);
   validateFbx2SmallBenchmarkPopulation({ sourceGraph, selectedZone: targetZone });
+  const globalOccurrenceIndex = buildFbx2GlobalOccurrenceIndex({
+    sourceGraph,
+    zoneScopes: allZoneScopes(sourceGraph, zoneSummaries),
+  });
   const analysis = await analyseFbxZoneGeometry({
     sourceGraph, geometryBundle, zoneId: targetZone.zoneId, includeZonePackageInputs: true,
   });
-  return { sourceGraph, geometryBundle, targetZone, analysis };
+  return { sourceGraph, geometryBundle, targetZone, globalOccurrenceIndex, analysis };
 }
 
 async function buildReferenceEvidence(sourceGraph, analysis, managedStage) {
@@ -150,41 +145,57 @@ async function buildReferenceEvidence(sourceGraph, analysis, managedStage) {
   return { componentCrosswalk, familyEvidence };
 }
 
-function buildBenchmarkInventories(sourceGraph, analysis, managedStage, evidence) {
-  const packageInputs = analysis.zonePackageInputs;
+function buildBenchmarkInventories(parsed, managedStage, evidence) {
+  const packageInputs = parsed.analysis.zonePackageInputs;
   const managedInventory = inventoryFbx2ManagedStage(managedStage);
   const sourceInventory = inventoryFbx2SelectedSource({
-    sourceGraph,
-    zoneGeometryEvidence: analysis.zoneGeometryEvidence,
-    autoPipe: analysis.autoPipe,
-    solidFittingPortEvidence: analysis.closedSolidPipeEvidence,
+    sourceGraph: parsed.sourceGraph,
+    zoneGeometryEvidence: parsed.analysis.zoneGeometryEvidence,
+    autoPipe: parsed.analysis.autoPipe,
+    solidFittingPortEvidence: parsed.analysis.closedSolidPipeEvidence,
     supportEvidence: packageInputs?.supportEvidence,
+  });
+  const crossZoneSupportAssociation = buildFbx2CrossZoneSupportAssociation({
+    sourceGraph: parsed.sourceGraph,
+    managedInventory,
+    globalOccurrenceIndex: parsed.globalOccurrenceIndex,
+    selectedZoneId: parsed.targetZone.zoneId,
   });
   const reconciliation = reconcileFbx2SmallBenchmark({
     managedInventory,
     componentCrosswalk: evidence.componentCrosswalk,
     sourceInventory,
-    autoPipe: analysis.autoPipe,
+    globalOccurrenceIndex: parsed.globalOccurrenceIndex,
+    crossZoneSupportAssociation,
+    autoPipe: parsed.analysis.autoPipe,
     familyEvidence: evidence.familyEvidence,
     supportEvidence: packageInputs?.supportEvidence,
     supportHostEvidence: packageInputs?.supportHostAssociationEvidence,
   });
-  return { managedInventory, sourceInventory, reconciliation };
+  return {
+    managedInventory,
+    sourceInventory,
+    globalOccurrenceIndex: parsed.globalOccurrenceIndex,
+    crossZoneSupportAssociation,
+    reconciliation,
+  };
 }
 
 async function executeRun(fbxBytes, managedStage, zoneLabel) {
   const parsed = await parseBenchmarkSource(fbxBytes, zoneLabel);
   const evidence = await buildReferenceEvidence(
     parsed.sourceGraph, parsed.analysis, managedStage);
-  const inventories = buildBenchmarkInventories(
-    parsed.sourceGraph, parsed.analysis, managedStage, evidence);
+  const inventories = buildBenchmarkInventories(parsed, managedStage, evidence);
   return Object.freeze({
     targetZone: parsed.targetZone,
     ...inventories,
     packageSummary: packageSummary(
       parsed.analysis.zonePackageInputs, parsed.analysis.zonePackageError),
-    identities: runIdentities(parsed.sourceGraph, parsed.geometryBundle,
-      parsed.analysis, evidence.familyEvidence, evidence.componentCrosswalk),
+    identities: buildFbx2RunIdentities({
+      sourceGraph: parsed.sourceGraph, geometryBundle: parsed.geometryBundle,
+      analysis: parsed.analysis, familyEvidence: evidence.familyEvidence,
+      crosswalk: evidence.componentCrosswalk, inventories,
+    }),
   });
 }
 
@@ -208,17 +219,6 @@ function managedIdentity(managedPath, managedBytes, archivePath, archiveBytes) {
     archiveByteLength: archiveBytes?.length ?? null,
     archiveSha256: archiveBytes ? sha256(archiveBytes) : null,
   });
-}
-
-function benchmarkArguments() {
-  return {
-    fbxPath: argument('--fbx'),
-    managedPath: argument('--managed'),
-    sourceArchivePath: argument('--input-zip'),
-    managedArchivePath: argument('--output-zip'),
-    zoneLabel: argument('--zone', '/GLRD-1000-CU-PI-P'),
-    outputPath: argument('--output', 'artifacts/fbx2-small-benchmark.json'),
-  };
 }
 
 async function loadBenchmarkInputs(args) {
@@ -249,25 +249,38 @@ async function runBenchmark(args, input) {
     await executeRun(input.fbxBytes, input.managedStage, args.zoneLabel),
   ];
   assert.equal(runs[0].targetZone.zoneId, runs[1].targetZone.zoneId);
-  return buildFbx2SmallBenchmarkReport({
+  assert.equal(runs[0].globalOccurrenceIndex.indexDigest,
+    runs[1].globalOccurrenceIndex.indexDigest, 'Global occurrence index must be deterministic.');
+  assert.equal(runs[0].crossZoneSupportAssociation.evidenceDigest,
+    runs[1].crossZoneSupportAssociation.evidenceDigest,
+    'Cross-zone support association must be deterministic.');
+  const report = buildFbx2SmallBenchmarkReport({
     source: input.source,
     managedStage: input.managed,
     selectedZone: runs[0].targetZone,
     runs,
   });
+  return { report, runs };
 }
 
 async function main() {
-  const args = benchmarkArguments();
+  const args = fbx2BenchmarkArguments(argument);
   const input = await loadBenchmarkInputs(args);
-  const report = await runBenchmark(args, input);
-  await writeFile(args.outputPath, benchmarkCanonicalJson(report), 'utf8');
+  const result = await runBenchmark(args, input);
+  await writeFbx2BenchmarkOutputs(args, result);
   console.log(JSON.stringify({
-    status: report.status,
-    coverage: report.coverage,
-    parity: report.parity,
-    comparison: report.comparison,
+    status: result.report.status,
+    coverage: result.report.coverage,
+    parity: result.report.parity,
+    comparison: result.report.comparison,
+    crossZoneSupportAssociation: {
+      matchedCount: result.runs[0].crossZoneSupportAssociation.matchedCount,
+      blockedCount: result.runs[0].crossZoneSupportAssociation.blockedCount,
+      ambiguousCount: result.runs[0].crossZoneSupportAssociation.ambiguousCount,
+    },
     outputPath: args.outputPath,
+    globalIndexOutputPath: args.globalIndexOutputPath,
+    supportAssociationOutputPath: args.supportAssociationOutputPath,
   }, null, 2));
 }
 
