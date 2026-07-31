@@ -1,5 +1,6 @@
 import { validateSupportAssemblyEvidence } from '../support-assembly/evidence.js';
 import { validateSupportHostAssociationEvidence } from '../support-host/evidence.js';
+import { verifyPackagedBenchmarkClosure } from './benchmark-closure-validation.js';
 import { packageArtifactSpecForRole, selectedZonePackageArtifactSpecs } from './artifact-roles.js';
 import { parsePackagedArtifact } from './package-artifacts.js';
 import { validateSelectedZoneQualificationRoot } from './qualification-root.js';
@@ -11,7 +12,7 @@ function recordsByRole(audit, role) {
   return audit.files.filter((record) => record.role === role);
 }
 
-export async function verifyPackagedSemanticArtifacts(audit, files) {
+export async function verifyPackagedSemanticArtifacts(audit, files, manifest) {
   const parsed = {};
   for (const spec of selectedZonePackageArtifactSpecs()) {
     const record = recordsByRole(audit, spec.role)[0];
@@ -43,5 +44,6 @@ export async function verifyPackagedSemanticArtifacts(audit, files) {
       }
     }
   }
+  await verifyPackagedBenchmarkClosure(parsed, manifest);
   return parsed;
 }
