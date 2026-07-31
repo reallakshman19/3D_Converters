@@ -110,3 +110,30 @@ export async function buildFbx2SelectedZonePackageClosure(run = {}) {
   const archive = await buildPackageArchive(packageResult.files);
   return Object.freeze({ branchMatchLedger, packageResult, archive });
 }
+
+function requireCompleteBenchmark(report, runs) {
+  if (!Array.isArray(runs) || runs.length !== 2
+      || report?.comparison?.status !== 'PASS'
+      || report?.coverage?.status !== 'PASS') {
+    throw new TypeError('FBX2_PACKAGE_CLOSURE_BENCHMARK_INCOMPLETE');
+  }
+}
+
+function requireEqual(first, second, label) {
+  if (first !== second) {
+    throw new TypeError(`FBX2_PACKAGE_CLOSURE_NONDETERMINISTIC ${label}`);
+  }
+}
+
+export async function buildDeterministicFbx2SelectedZonePackageClosure(runs, report) {
+  requireCompleteBenchmark(report, runs);
+  const closures = await Promise.all(runs.map(
+    (run) => buildFbx2SelectedZonePackageClosure(run)));
+  requireEqual(closures[0].branchMatchLedger.ledgerDigest,
+    closures[1].branchMatchLedger.ledgerDigest, 'BRANCH_MATCH_LEDGER');
+  requireEqual(closures[0].packageResult.audit.packageDigest,
+    closures[1].packageResult.audit.packageDigest, 'PACKAGE_AUDIT');
+  requireEqual(closures[0].archive.sha256,
+    closures[1].archive.sha256, 'PACKAGE_ARCHIVE');
+  return closures[0];
+}
