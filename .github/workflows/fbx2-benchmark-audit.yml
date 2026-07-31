@@ -8,6 +8,8 @@ on:
       - 'scripts/fbx/audit-fbx2-weld-projection.mjs'
       - 'scripts/fbx/audit-fbx2-weld-tolerance.mjs'
       - 'scripts/fbx/qualify-fbx2-benchmark.mjs'
+      - 'scripts/fbx/run-fbx2-small-benchmark.mjs'
+      - 'scripts/fbx/fbx2-small-benchmark/**'
       - 'tabs/model-converters/converters/fbx/**'
       - 'contracts/fbx/**'
       - 'tests/fbx/**'
@@ -20,7 +22,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -41,8 +43,18 @@ jobs:
           node --check scripts/fbx/audit-fbx2-weld-projection.mjs
           node --check scripts/fbx/audit-fbx2-weld-tolerance.mjs
           node --check scripts/fbx/qualify-fbx2-benchmark.mjs
+          node --check scripts/fbx/run-fbx2-small-benchmark.mjs
+          node --check scripts/fbx/fbx2-small-benchmark/managed-inventory.mjs
+          node --check scripts/fbx/fbx2-small-benchmark/source-inventory.mjs
+          node --check scripts/fbx/fbx2-small-benchmark/reconcile.mjs
+          node --check scripts/fbx/fbx2-small-benchmark/report.mjs
+          node --check scripts/fbx/fbx2-small-benchmark/profile.mjs
           node --check tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js
           node --check tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js
+          node tests/fbx/test-fbx2-small-benchmark-core.mjs
+          node tests/fbx/test-fbx2-small-benchmark-profile.mjs
+          node tests/fbx/test-fbx2-small-benchmark-contract.mjs
+          node tests/fbx/test-fbx2-small-benchmark-static.mjs
 
       - name: Extract governed benchmark archives
         shell: bash
@@ -90,6 +102,13 @@ jobs:
           node scripts/fbx/qualify-fbx2-benchmark.mjs \
             --audit artifacts/fbx2-benchmark-audit.json \
             --output artifacts/fbx2-benchmark-qualification.json
+          node scripts/fbx/run-fbx2-small-benchmark.mjs \
+            --fbx "$fbx_path" \
+            --managed "$managed_path" \
+            --input-zip Benchmarks/FBX2/STF_2026Jul23-1554_binary.zip \
+            --output-zip Benchmarks/FBX2/ATTRIBUTE_GL_managed_stage.zip \
+            --zone '/GLRD-1000-CU-PI-P' \
+            --output artifacts/fbx2-small-benchmark.json
           node scripts/fbx/audit-fbx2-weld-projection.mjs \
             --fbx "$fbx_path" \
             --zone '/GLRD-1000-CU-PI-P' \
