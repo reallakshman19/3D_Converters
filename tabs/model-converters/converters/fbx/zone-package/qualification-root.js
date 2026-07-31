@@ -5,6 +5,7 @@ import {
   packageArtifactRoleInventory,
   validatePackageArtifactValue,
 } from './artifact-roles.js';
+import { buildSupportQualificationChecks } from './qualification-support.js';
 
 const SCHEMA = 'FbxSelectedZoneQualificationRoot.v1';
 
@@ -63,44 +64,6 @@ function sourceGraphBindingCheck(zoneGeometry, selectedSourceGraph) {
     'Selected source graph must preserve the exact zone geometry and occurrence population.', {
       zoneGeometryArtifactId: zoneGeometry?.artifactId || null,
       selectedSourceGraphArtifactId: selectedSourceGraph?.artifactId || null,
-    });
-}
-
-function supportEvidenceBindingCheck(manifest, selectedSourceGraph, supportEvidence) {
-  const selectedIds = uniqueSorted(selectedSourceGraph?.selectedZone?.selectedOccurrenceIds || []);
-  const candidateIds = uniqueSorted(supportEvidence?.candidates?.map((item) => item.occurrenceId) || []);
-  const unknownIds = candidateIds.filter((id) => !selectedIds.includes(id));
-  const pass = supportEvidence?.schema === 'FbxSupportEvidence.v1'
-    && supportEvidence?.selectedZoneDigest === manifest?.selectedZoneDigest
-    && unknownIds.length === 0;
-  return check('SUPPORT_EVIDENCE_BINDING', pass,
-    'Support candidates must come from the selected occurrence population and bind the selected-zone digest.', {
-      candidateCount: supportEvidence?.candidates?.length || 0,
-      supportEvidenceDigest: supportEvidence?.evidenceDigest || null,
-      unknownOccurrenceIds: unknownIds,
-    });
-}
-
-function supportHostBindingCheck(manifest, zoneGeometry, supportEvidence, hostEvidence) {
-  const candidateCount = supportEvidence?.candidates?.length || 0;
-  const counts = hostEvidence?.counts || {};
-  const pass = hostEvidence?.schema === 'FbxSupportHostAssociationEvidence.v1'
-    && hostEvidence?.status === 'PASS'
-    && hostEvidence?.selectedZoneDigest === manifest?.selectedZoneDigest
-    && hostEvidence?.sourceZoneGeometryArtifactId === zoneGeometry?.artifactId
-    && hostEvidence?.sourceSupportEvidenceDigest === supportEvidence?.evidenceDigest
-    && hostEvidence?.sourceSupportCandidateCount === candidateCount
-    && counts.candidateCount === candidateCount;
-  return check('SUPPORT_HOST_ASSOCIATION_BINDING', pass,
-    'Every support candidate must have exact admitted-PIPE host disposition evidence.', {
-      supportHostArtifactId: hostEvidence?.artifactId || null,
-      supportHostEvidenceDigest: hostEvidence?.evidenceDigest || null,
-      supportHostStatus: hostEvidence?.status || null,
-      candidateCount,
-      singleHostCount: counts.singleHostCount || 0,
-      multiHostCount: counts.multiHostCount || 0,
-      hostNotFoundCount: counts.hostNotFoundCount || 0,
-      hostAmbiguousCount: counts.hostAmbiguousCount || 0,
     });
 }
 
@@ -209,9 +172,9 @@ function qualificationChecks(manifest, stagedBranches, artifacts, supportEvidenc
     roleCoverageCheck(artifacts || {}),
     geometryConservationCheck(manifest, zoneGeometry),
     sourceGraphBindingCheck(zoneGeometry, selectedSourceGraph),
-    supportEvidenceBindingCheck(manifest, selectedSourceGraph, supportEvidence),
-    supportHostBindingCheck(manifest, zoneGeometry, supportEvidence,
-      artifacts?.SUPPORT_HOST_ASSOCIATION_EVIDENCE),
+    ...buildSupportQualificationChecks({
+      manifest, zoneGeometry, selectedSourceGraph, supportEvidence, artifacts,
+    }),
     portEvidenceBindingCheck(zoneGeometry, artifacts?.DERIVED_PORT_EVIDENCE,
       artifacts?.SOLID_FITTING_PORT_EVIDENCE),
     crosswalkBindingCheck(zoneGeometry, selectedSourceGraph, crosswalk),
@@ -264,7 +227,8 @@ export async function validateSelectedZoneQualificationRoot(value) {
     throw new TypeError(`${SCHEMA} structure is invalid.`);
   }
   const payload = structuredClone(value), rootDigest = payload.rootDigest;
-  delete payload.rootDigest; delete payload.artifactId;
+  delete payload.rootDigest;
+  delete payload.artifactId;
   const actual = await sha256Hex(canonicalJson(payload));
   if (rootDigest !== actual || value.artifactId !== `FBXZQUAL-${actual.slice(0, 32)}`) {
     throw new TypeError(`${SCHEMA} digest is invalid.`);
