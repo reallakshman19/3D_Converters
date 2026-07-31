@@ -100,4 +100,5 @@ assert.match(profile, /18758c5283b852efb2a1154fd07dcd9982c088b793e4ffe63b1a9ab2f
 assert.match(profile, /e0dbbc42ddedd17e96c3eadced2a4d65e10a333552c791dea4e725b9feea4cd8/);
 assert.match(profile, /\/GLRD-1000-CU-PI-P/);
 
+await import(new URL('test-fbx2-real-qualification.mjs', import.meta.url));
 console.log(`test-fbx2-small-benchmark-static: PASS (${fileURLToPath(root)})`);
