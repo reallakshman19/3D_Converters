@@ -1,4 +1,6 @@
-const SUPPORT_TYPES = new Set(['SUPPORT', 'ATTA']);
+const SUPPORT_TYPES = new Set([
+  'SUPPORT', 'ATTA', 'REST', 'GUIDE', 'STOP', 'WP', 'BP', 'SPR',
+]);
 const FAMILY_BY_TYPE = Object.freeze({
   PIPE: 'PIPE',
   ELBO: 'ELBOW',
@@ -15,6 +17,12 @@ const FAMILY_BY_TYPE = Object.freeze({
   INST: 'INLINE_ASSEMBLY',
   SUPPORT: 'SUPPORT',
   ATTA: 'SUPPORT',
+  REST: 'SUPPORT',
+  GUIDE: 'SUPPORT',
+  STOP: 'SUPPORT',
+  WP: 'SUPPORT',
+  BP: 'SUPPORT',
+  SPR: 'SUPPORT',
 });
 
 function compareText(left, right) {
@@ -48,6 +56,41 @@ function exactValue(attributes, keys) {
   for (const key of keys) {
     const value = text(attributes[key]);
     if (value !== null) return value;
+  }
+  return null;
+}
+
+function vector(value) {
+  if (Array.isArray(value) && value.length >= 3) {
+    const result = value.slice(0, 3).map(Number);
+    return result.every(Number.isFinite) ? result : null;
+  }
+  if (typeof value === 'string') {
+    const parts = value.trim().split(/[\s,;]+/).filter(Boolean).slice(0, 3).map(Number);
+    return parts.length === 3 && parts.every(Number.isFinite) ? parts : null;
+  }
+  return null;
+}
+
+function exactVector(attributes, keys) {
+  for (const key of keys) {
+    const result = vector(attributes[key]);
+    if (result) return result;
+  }
+  return null;
+}
+
+function nestedValue(attributes, keys) {
+  const containers = [
+    attributes,
+    objectValue(attributes.mappingEngineering),
+    objectValue(attributes.mappingEngineering?.identity),
+    objectValue(attributes.mappingEngineering?.support),
+    objectValue(attributes.mappingEngineering?.association),
+  ];
+  for (const container of containers) {
+    const result = exactValue(container, keys);
+    if (result !== null) return result;
   }
   return null;
 }
@@ -108,10 +151,31 @@ function sourceIdentity(attributes) {
   };
 }
 
+function matchingEvidence(attributes, child, identity) {
+  const matchingTags = [...new Set([
+    identity.reference,
+    text(child?.name),
+    exactValue(attributes, ['NAME', 'TAG', 'SUPPORT_TAG', 'SUPPORT_REF', 'REF']),
+  ].filter(Boolean).map((value) => value.toUpperCase()))].sort(compareText);
+  return {
+    branchSequence: Number.isInteger(child.__benchmarkSequence)
+      ? child.__benchmarkSequence : null,
+    managedPositionMm: exactVector(attributes, ['POS', 'POSITION', 'POSITION_MM']),
+    managedEndpointAMm: exactVector(attributes, ['APOS', 'A_POS', 'START_POS']),
+    managedEndpointBMm: exactVector(attributes, ['LPOS', 'BPOS', 'B_POS', 'END_POS']),
+    explicitHostReference: nestedValue(attributes, [
+      'HOST_REF', 'HOST_COMPONENT_REF', 'ATTACHED_COMPONENT_REF',
+      'COMPONENT_REF', 'PIPE_REF', 'PARENT_REF',
+    ]),
+    matchingTags,
+  };
+}
+
 function managedComponent(branchInfo, child, childIndex) {
   const attributes = objectValue(child?.attributes);
   const identity = componentIdentity(branchInfo.branchId, child, childIndex);
   const rawType = rawTypeOf(child);
+  const sequenceChild = { ...child, __benchmarkSequence: childIndex };
   return {
     ...identity,
     branchId: branchInfo.branchId,
@@ -123,6 +187,7 @@ function managedComponent(branchInfo, child, childIndex) {
     displayName: text(attributes.NAME ?? child?.name),
     ...sourceIdentity(attributes),
     ...generationEvidence(attributes),
+    ...matchingEvidence(attributes, sequenceChild, identity),
   };
 }
 
@@ -171,8 +236,7 @@ export function inventoryFbx2ManagedStage(stagedBranches) {
   }
   const branches = stagedBranches.map(inventoryBranch)
     .sort((left, right) => compareText(left.branchId, right.branchId));
-  const components = branches.flatMap((branch) => branch.components)
-    .sort((left, right) => compareText(left.managedRecordId, right.managedRecordId));
+  const components = branches.flatMap((branch) => branch.components);
   validateUnique(components);
   return Object.freeze({
     branches: Object.freeze(branches.map((branch) => Object.freeze({
