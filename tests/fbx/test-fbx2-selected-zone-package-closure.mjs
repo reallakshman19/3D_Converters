@@ -53,9 +53,33 @@ function globalIndex() {
       parentOccurrenceId: 'occ:ps',
       fullAncestryOccurrenceIds: ['occ:root', 'occ:ps', 'occ:support'],
       fullAncestrySourceObjectIds: ['model:root', 'model:ps', 'model:support'],
-      assignedZoneId: 'occ:support-zone', assignedZoneLabel: '/PS',
-      geometryObjectIds: ['2'], displayName: 'REST-1', domSubtype: 'Mesh', rawType: 'REST',
+      assignedZoneId: null, assignedZoneLabel: null, geometryObjectIds: [],
+      displayName: 'REST-1', domSubtype: 'Null', rawType: 'REST',
       sourceProperties: {}, exactTagValues: ['REST-1'], worldMatrixMm: [],
+      geometryMatrixMm: [], worldOriginMm: [0, 0, 100000], worldBoundsMm: null,
+      worldCentroidMm: [0, 0, 100000],
+    },
+    {
+      sourceOccurrenceId: 'occ:support-mesh', sourceModelObjectId: 'model:support-mesh',
+      parentOccurrenceId: 'occ:support',
+      fullAncestryOccurrenceIds: ['occ:root', 'occ:ps', 'occ:support', 'occ:support-mesh'],
+      fullAncestrySourceObjectIds: [
+        'model:root', 'model:ps', 'model:support', 'model:support-mesh',
+      ],
+      assignedZoneId: 'occ:support-zone', assignedZoneLabel: '/PS',
+      geometryObjectIds: ['2'], displayName: 'REST mesh', domSubtype: 'Mesh', rawType: null,
+      sourceProperties: {}, exactTagValues: [], worldMatrixMm: [],
+      geometryMatrixMm: [], worldOriginMm: [0, 0, 100000], worldBoundsMm: null,
+      worldCentroidMm: [0, 0, 100000],
+    },
+    {
+      sourceOccurrenceId: 'occ:unrelated-mesh', sourceModelObjectId: 'model:unrelated',
+      parentOccurrenceId: 'occ:other',
+      fullAncestryOccurrenceIds: ['occ:root', 'occ:other', 'occ:unrelated-mesh'],
+      fullAncestrySourceObjectIds: ['model:root', 'model:other', 'model:unrelated'],
+      assignedZoneId: 'occ:support-zone', assignedZoneLabel: '/PS',
+      geometryObjectIds: ['3'], displayName: 'Unrelated', domSubtype: 'Mesh', rawType: null,
+      sourceProperties: {}, exactTagValues: [], worldMatrixMm: [],
       geometryMatrixMm: [], worldOriginMm: [0, 0, 100000], worldBoundsMm: null,
       worldCentroidMm: [0, 0, 100000],
     },
@@ -63,8 +87,8 @@ function globalIndex() {
   const payload = {
     schema: 'FbxGlobalOccurrenceIndex.v1',
     sourceOccurrenceCount: records.length,
-    zoneAssignedOccurrenceCount: records.length,
-    geometryOccurrenceCount: records.length,
+    zoneAssignedOccurrenceCount: records.filter((record) => record.assignedZoneId).length,
+    geometryOccurrenceCount: records.filter((record) => record.geometryObjectIds.length).length,
     records,
     bySourceModelObjectId: {}, byGeometryObjectId: {}, byExactTag: {},
     authority: {
@@ -83,7 +107,7 @@ function supportEvidence() {
     sourceOccurrenceId: 'occ:support', sourceModelObjectId: 'model:support',
     supportToken: 'REST', supportLabel: 'REST-1', structureAnchorOccurrenceId: 'occ:ps',
     structureLabel: 'PS-1', assignedZoneIds: ['occ:support-zone'],
-    selectedDescendantOccurrenceIds: ['occ:support'], selectedGeometryObjectIds: ['2'],
+    selectedDescendantOccurrenceIds: ['occ:support-mesh'], selectedGeometryObjectIds: ['2'],
     transformedManagedPositionMm: [0, 0, 100000], sourcePositionMm: [0, 0, 100000],
     positionResidualMm: 0, matchedTags: ['REST-1'],
     hostManagedRecordId: 'B-1::PIPE-1', hostAuthority: 'UNIQUE_BRANCH_PIPE_AXIS',
@@ -107,6 +131,14 @@ function supportEvidence() {
     },
   };
   return { ...payload, evidenceDigest: compactDigest(payload) };
+}
+
+function rehashedSupport(source, change) {
+  const copy = structuredClone(source);
+  change(copy.associations[0]);
+  delete copy.evidenceDigest;
+  copy.evidenceDigest = compactDigest(copy);
+  return copy;
 }
 
 function component(id, family, branchSequence) {
@@ -175,19 +207,27 @@ await assert.rejects(() => buildDeterministicFbx2SelectedZonePackageClosure(
   [run, run], { ...complete, coverage: { status: 'BLOCKED' } }),
 /FBX2_PACKAGE_CLOSURE_BENCHMARK_INCOMPLETE/);
 
-const tamperedSupport = structuredClone(support);
-tamperedSupport.associations[0].sourceOccurrenceId = 'occ:unrelated';
-delete tamperedSupport.evidenceDigest;
-tamperedSupport.evidenceDigest = compactDigest(tamperedSupport);
-await assert.rejects(() => buildSelectedZonePackage({
-  manifest, buffersByGeometryId,
-  artifacts: {
-    BRANCH_MATCH_LEDGER: closure.branchMatchLedger,
-    GLOBAL_OCCURRENCE_INDEX: index,
-    CROSS_ZONE_SUPPORT_ASSOCIATION_EVIDENCE: tamperedSupport,
-    COORDINATE_PROFILE: FBX2_BENCHMARK_COORDINATE_PROFILE,
-  },
-}), (error) => error instanceof FbxZonePackageError
-  && error.code === 'ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE');
+async function rejectsSupportEvidence(candidate) {
+  await assert.rejects(() => buildSelectedZonePackage({
+    manifest, buffersByGeometryId,
+    artifacts: {
+      BRANCH_MATCH_LEDGER: closure.branchMatchLedger,
+      GLOBAL_OCCURRENCE_INDEX: index,
+      CROSS_ZONE_SUPPORT_ASSOCIATION_EVIDENCE: candidate,
+      COORDINATE_PROFILE: FBX2_BENCHMARK_COORDINATE_PROFILE,
+    },
+  }), (error) => error instanceof FbxZonePackageError
+    && error.code === 'ZONE_PACKAGE_INVALID_BENCHMARK_CLOSURE');
+}
+
+await rejectsSupportEvidence(rehashedSupport(support, (association) => {
+  association.sourceOccurrenceId = 'occ:unrelated';
+}));
+await rejectsSupportEvidence(rehashedSupport(support, (association) => {
+  association.assignedZoneIds = [];
+}));
+await rejectsSupportEvidence(rehashedSupport(support, (association) => {
+  association.selectedGeometryObjectIds = ['3'];
+}));
 
 console.log('test-fbx2-selected-zone-package-closure: PASS');
