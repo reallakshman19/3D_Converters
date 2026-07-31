@@ -18,6 +18,7 @@ import {
 import { buildFbx2CrossZoneSupportAssociation } from './fbx2-small-benchmark/cross-zone-support-association.mjs';
 import { buildFbx2GlobalOccurrenceIndex } from './fbx2-small-benchmark/global-occurrence-index.mjs';
 import { inventoryFbx2ManagedStage } from './fbx2-small-benchmark/managed-inventory.mjs';
+import { buildFbx2SelectedZonePackageClosure } from './fbx2-small-benchmark/package-closure.mjs';
 import {
   validateFbx2SmallBenchmarkPopulation,
   validateFbx2SmallBenchmarkSources,
@@ -117,8 +118,9 @@ function allZoneScopes(sourceGraph, summaries) {
   return summaries.map((summary) => resolveSelectedZoneScope(sourceGraph, summary.zoneId));
 }
 
-async function parseBenchmarkSource(fbxBytes, zoneLabel) {
-  const sourceGraph = await parseFbxInWorker(new Uint8Array(fbxBytes), { timeoutMs: 300000 });
+async function parseBenchmarkSource(fbxBytes, managedStage, zoneLabel) {
+  const sourceGraph = await parseFbxInWorker(
+    new Uint8Array(fbxBytes), { timeoutMs: 300000 });
   const geometryBundle = await parseFbxGeometryBundleInWorker(
     new Uint8Array(fbxBytes), { timeoutMs: 300000 });
   const zoneSummaries = listFbxZoneScopeSummaries(sourceGraph);
@@ -129,7 +131,12 @@ async function parseBenchmarkSource(fbxBytes, zoneLabel) {
     zoneScopes: allZoneScopes(sourceGraph, zoneSummaries),
   });
   const analysis = await analyseFbxZoneGeometry({
-    sourceGraph, geometryBundle, zoneId: targetZone.zoneId, includeZonePackageInputs: true,
+    sourceGraph,
+    geometryBundle,
+    zoneId: targetZone.zoneId,
+    includeZonePackageInputs: true,
+    stagedBranches: managedStage,
+    mappedStageStatus: 'MAPPED_STAGE_AVAILABLE',
   });
   return { sourceGraph, geometryBundle, targetZone, globalOccurrenceIndex, analysis };
 }
@@ -182,19 +189,23 @@ function buildBenchmarkInventories(parsed, managedStage, evidence) {
 }
 
 async function executeRun(fbxBytes, managedStage, zoneLabel) {
-  const parsed = await parseBenchmarkSource(fbxBytes, zoneLabel);
+  const parsed = await parseBenchmarkSource(fbxBytes, managedStage, zoneLabel);
   const evidence = await buildReferenceEvidence(
     parsed.sourceGraph, parsed.analysis, managedStage);
   const inventories = buildBenchmarkInventories(parsed, managedStage, evidence);
   return Object.freeze({
     targetZone: parsed.targetZone,
     ...inventories,
+    zonePackageInputs: parsed.analysis.zonePackageInputs,
     packageSummary: packageSummary(
       parsed.analysis.zonePackageInputs, parsed.analysis.zonePackageError),
     identities: buildFbx2RunIdentities({
-      sourceGraph: parsed.sourceGraph, geometryBundle: parsed.geometryBundle,
-      analysis: parsed.analysis, familyEvidence: evidence.familyEvidence,
-      crosswalk: evidence.componentCrosswalk, inventories,
+      sourceGraph: parsed.sourceGraph,
+      geometryBundle: parsed.geometryBundle,
+      analysis: parsed.analysis,
+      familyEvidence: evidence.familyEvidence,
+      crosswalk: evidence.componentCrosswalk,
+      inventories,
     }),
   });
 }
@@ -240,7 +251,12 @@ async function loadBenchmarkInputs(args) {
     managedArchive: { byteLength: managed.archiveByteLength, sha256: managed.archiveSha256 },
     managedJson: { byteLength: managed.byteLength, sha256: managed.sha256 },
   });
-  return { fbxBytes, managedStage: JSON.parse(managedBytes.toString('utf8')), source, managed };
+  return {
+    fbxBytes,
+    managedStage: JSON.parse(managedBytes.toString('utf8')),
+    source,
+    managed,
+  };
 }
 
 async function runBenchmark(args, input) {
@@ -250,7 +266,8 @@ async function runBenchmark(args, input) {
   ];
   assert.equal(runs[0].targetZone.zoneId, runs[1].targetZone.zoneId);
   assert.equal(runs[0].globalOccurrenceIndex.indexDigest,
-    runs[1].globalOccurrenceIndex.indexDigest, 'Global occurrence index must be deterministic.');
+    runs[1].globalOccurrenceIndex.indexDigest,
+    'Global occurrence index must be deterministic.');
   assert.equal(runs[0].crossZoneSupportAssociation.evidenceDigest,
     runs[1].crossZoneSupportAssociation.evidenceDigest,
     'Cross-zone support association must be deterministic.');
@@ -260,7 +277,8 @@ async function runBenchmark(args, input) {
     selectedZone: runs[0].targetZone,
     runs,
   });
-  return { report, runs };
+  const closure = await buildFbx2SelectedZonePackageClosure(runs[0]);
+  return { report, runs, closure };
 }
 
 async function main() {
@@ -278,9 +296,17 @@ async function main() {
       blockedCount: result.runs[0].crossZoneSupportAssociation.blockedCount,
       ambiguousCount: result.runs[0].crossZoneSupportAssociation.ambiguousCount,
     },
+    selectedZonePackage: {
+      packageDigest: result.closure.packageResult.audit.packageDigest,
+      archiveSha256: result.closure.archive.sha256,
+      byteLength: result.closure.archive.bytes.byteLength,
+    },
     outputPath: args.outputPath,
     globalIndexOutputPath: args.globalIndexOutputPath,
     supportAssociationOutputPath: args.supportAssociationOutputPath,
+    branchLedgerOutputPath: args.branchLedgerOutputPath,
+    packageAuditOutputPath: args.packageAuditOutputPath,
+    packageOutputPath: args.packageOutputPath,
   }, null, 2));
 }
 
