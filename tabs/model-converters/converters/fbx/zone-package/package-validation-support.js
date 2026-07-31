@@ -55,7 +55,25 @@ function hostBindingValid(root, supportEvidence, hostEvidence, manifest) {
     && check.evidence?.candidateCount === hostEvidence.counts.candidateCount;
 }
 
-export function verifyQualifiedSupportBindings(root, supportEvidence, hostEvidence, manifest) {
+function assemblyBindingValid(root, supportEvidence, selectedSourceGraph,
+  hostEvidence, assemblyEvidence, manifest) {
+  const check = root?.checks?.find((item) => item.code === 'SUPPORT_ASSEMBLY_BINDING');
+  const expectedStatus = assemblyEvidence?.status === 'PASS' ? 'PASS' : 'BLOCKED';
+  return assemblyEvidence && check?.status === expectedStatus
+    && assemblyEvidence.selectedZoneDigest === manifest.selectedZoneDigest
+    && assemblyEvidence.sourceSelectedSourceGraphArtifactId === selectedSourceGraph?.artifactId
+    && assemblyEvidence.sourceSelectedSourceGraphDigest === selectedSourceGraph?.graphDigest
+    && assemblyEvidence.sourceSupportEvidenceDigest === supportEvidence?.evidenceDigest
+    && assemblyEvidence.sourceSupportHostEvidenceDigest === hostEvidence?.evidenceDigest
+    && assemblyEvidence.sourceSupportCandidateCount === supportEvidence?.candidates?.length
+    && check.evidence?.supportAssemblyEvidenceDigest === assemblyEvidence.evidenceDigest
+    && check.evidence?.supportAssemblyStatus === assemblyEvidence.status
+    && check.evidence?.candidateCount === assemblyEvidence.counts.candidateCount
+    && check.evidence?.assemblyCount === assemblyEvidence.counts.assemblyCount;
+}
+
+export function verifyQualifiedSupportBindings(root, supportEvidence,
+  selectedSourceGraph, hostEvidence, assemblyEvidence, manifest) {
   if (!root) return;
   if (!supportBindingValid(root, supportEvidence)) {
     fail('ZONE_PACKAGE_INVALID_QUALIFICATION',
@@ -64,5 +82,10 @@ export function verifyQualifiedSupportBindings(root, supportEvidence, hostEviden
   if (!hostBindingValid(root, supportEvidence, hostEvidence, manifest)) {
     fail('ZONE_PACKAGE_INVALID_QUALIFICATION',
       'qualification root host binding differs from support-host-associations.json.');
+  }
+  if (!assemblyBindingValid(root, supportEvidence, selectedSourceGraph,
+    hostEvidence, assemblyEvidence, manifest)) {
+    fail('ZONE_PACKAGE_INVALID_QUALIFICATION',
+      'qualification root assembly binding differs from support-assemblies.json.');
   }
 }
