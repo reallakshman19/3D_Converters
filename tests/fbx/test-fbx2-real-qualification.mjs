@@ -5,8 +5,11 @@ import {
   buildFbx2RealQualificationReceipt,
   validateFbx2RealQualificationReceipt,
 } from '../../scripts/fbx/fbx2-small-benchmark/real-qualification.mjs';
+import { benchmarkSha256 } from '../../scripts/fbx/fbx2-small-benchmark/report.mjs';
 
 const hash = (value) => value.repeat(64);
+const coordinateProfile = { schema: 'FbxBenchmarkCoordinateProfile.v1', profileId: 'TEST' };
+const globalIndex = { schema: 'FbxGlobalOccurrenceIndex.v1', records: [], indexDigest: hash('a') };
 const sourceIdentity = (prefix) => ({
   file: `${prefix}.json`, byteLength: 100, sha256: hash('1'),
   archive: `${prefix}.zip`, archiveByteLength: 50, archiveSha256: hash('2'),
@@ -22,37 +25,53 @@ function managedRecord(id, family, status, disposition) {
       ? `occ:${id}` : null, candidateSourceOccurrenceIds: [], reasons: [] };
 }
 function report(records, parityStatus = 'BLOCKED') {
+  const pass = records.filter((item) => item.status === 'PASS').length;
+  const blocked = records.filter((item) => item.status === 'BLOCKED').length;
+  const unresolved = records.length - pass - blocked;
   return {
     status: parityStatus === 'PASS' ? 'COMPLETE_TARGET_MET' : 'COMPLETE_TARGET_NOT_MET',
     source: sourceIdentity('source'), managedStage: sourceIdentity('managed'), selectedZone,
     reportDigest: hash('3'), comparison: { status: 'PASS' }, coverage: { status: 'PASS' },
-    parity: { status: parityStatus, actualRatio: records.filter((item) => item.status === 'PASS').length
-      / records.length }, managedRecords: records,
+    parity: { status: parityStatus, actualRatio: pass / records.length,
+      managedComponentCount: records.length, passCount: pass, blockedCount: blocked,
+      unresolvedCount: unresolved }, managedRecords: records,
   };
 }
 function support(ambiguous = 0) {
-  return { expectedManagedSupportCount: 1, matchedCount: ambiguous ? 0 : 1,
-    blockedCount: ambiguous ? 1 : 0, ambiguousCount: ambiguous,
-    associations: [{ managedRecordId: 'B-1::SUPPORT-1' }] };
+  const blocked = Boolean(ambiguous);
+  return { coordinateProfile, expectedManagedSupportCount: 1,
+    matchedCount: blocked ? 0 : 1, blockedCount: blocked ? 1 : 0,
+    ambiguousCount: ambiguous, associations: [{ managedRecordId: 'B-1::SUPPORT-1',
+      status: blocked ? 'BLOCKED' : 'PASS',
+      disposition: blocked ? 'AMBIGUOUS_MATCH' : 'MATCHED_CROSS_ZONE_SUPPORT' }] };
 }
-function audit() {
-  const roles = [
-    'BRANCH_MATCH_LEDGER', 'GLOBAL_OCCURRENCE_INDEX',
-    'CROSS_ZONE_SUPPORT_ASSOCIATION_EVIDENCE', 'COORDINATE_PROFILE',
-  ];
+function ledger(records) {
+  const pass = records.filter((item) => item.status === 'PASS').length;
+  const blocked = records.filter((item) => item.status === 'BLOCKED').length;
+  return { schema: 'FbxSelectedZoneBranchMatchLedger.v1', coverageRatio: 1,
+    managedComponentCount: records.length, terminalDispositionCount: records.length,
+    passCount: pass, blockedCount: blocked, unresolvedCount: records.length - pass - blocked };
+}
+function audit(values) {
+  const roles = new Map([
+    ['BRANCH_MATCH_LEDGER', values.branchLedger],
+    ['GLOBAL_OCCURRENCE_INDEX', values.globalIndex],
+    ['CROSS_ZONE_SUPPORT_ASSOCIATION_EVIDENCE', values.supportAssociation],
+    ['COORDINATE_PROFILE', coordinateProfile],
+  ]);
   return { packageDigest: hash('4'), geometryCount: 1,
-    files: roles.map((role, index) => ({
-      role, disposition: 'PRESENT', sha256: String(index + 5).repeat(64),
+    files: [...roles].map(([role, value]) => ({
+      role, disposition: 'PRESENT', sha256: benchmarkSha256(value),
     })) };
 }
 function input(records, options = {}) {
-  const packageAudit = audit();
+  const supportAssociation = support(options.ambiguous);
+  const branchLedger = ledger(records);
+  const values = { branchLedger, globalIndex, supportAssociation };
+  const packageAudit = audit(values);
   return {
     profileId: 'FBX2-SMALL-TEST', report: report(records, options.parityStatus),
-    supportAssociation: support(options.ambiguous),
-    branchLedger: { coverageRatio: 1, managedComponentCount: records.length,
-      terminalDispositionCount: records.length },
-    packageAudit,
+    globalIndex, supportAssociation, branchLedger, packageAudit,
     packageValidation: { validated: true, packageDigest: packageAudit.packageDigest,
       archiveSha256: hash('9'), archiveByteLength: 1000 },
   };
@@ -69,6 +88,7 @@ assert.equal(qualified.disposition, 'QUALIFIED_WITH_EXPLICIT_SOURCE_OMISSIONS');
 assert.equal(qualified.managed.explicitSourceExportOmissions, 1);
 assert.equal(qualified.managed.otherBlocked, 0);
 assert.equal(qualified.supports.matched, 1);
+assert.equal(qualified.supports.declaredConsistent, true);
 assert.equal(validateFbx2RealQualificationReceipt(qualified), qualified);
 
 const exactRecords = records.slice(0, 2);
@@ -85,8 +105,15 @@ const otherBlockedRecords = [...exactRecords,
 const otherBlocked = buildFbx2RealQualificationReceipt(input(otherBlockedRecords));
 assert.equal(otherBlocked.disposition, 'BLOCKED_REAL_QUALIFICATION');
 
+const sidecarMismatchInput = input(records);
+sidecarMismatchInput.globalIndex = { ...globalIndex, indexDigest: hash('b') };
+const sidecarMismatch = buildFbx2RealQualificationReceipt(sidecarMismatchInput);
+assert.equal(sidecarMismatch.disposition, 'BLOCKED_REAL_QUALIFICATION');
+assert.ok(sidecarMismatch.checks.some((check) => check.code === 'CLOSURE_SIDECARS_BOUND'
+  && check.status === 'BLOCKED'));
+
 const tampered = structuredClone(qualified);
-tampered.managed.pass += 1;
+tampered.package.archiveByteLength += 1;
 assert.throws(() => validateFbx2RealQualificationReceipt(tampered),
   /RECEIPT_DIGEST_INVALID/);
 
