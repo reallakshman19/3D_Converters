@@ -10,11 +10,13 @@ const productionFiles = [
   'scripts/fbx/fbx2-small-benchmark/managed-inventory.mjs',
   'scripts/fbx/fbx2-small-benchmark/package-closure.mjs',
   'scripts/fbx/fbx2-small-benchmark/profile.mjs',
+  'scripts/fbx/fbx2-small-benchmark/real-qualification.mjs',
   'scripts/fbx/fbx2-small-benchmark/reconcile-indexes.mjs',
   'scripts/fbx/fbx2-small-benchmark/reconcile.mjs',
   'scripts/fbx/fbx2-small-benchmark/report.mjs',
   'scripts/fbx/fbx2-small-benchmark/run-artifacts.mjs',
   'scripts/fbx/fbx2-small-benchmark/source-inventory.mjs',
+  'scripts/fbx/qualify-fbx2-real.mjs',
   'scripts/fbx/run-fbx2-small-benchmark.mjs',
   'tabs/model-converters/converters/fbx/zone-package/benchmark-closure-validation.js',
 ];
@@ -70,6 +72,15 @@ assert.match(outputs, /--branch-ledger-output/);
 assert.match(outputs, /--package-audit-output/);
 assert.match(outputs, /--package-output/);
 assert.match(outputs, /fbx2-selected-zone-package\.fbxzpkg/);
+
+const qualification = await readFile(new URL(
+  'scripts/fbx/qualify-fbx2-real.mjs', root), 'utf8');
+assert.match(qualification, /readPackageArchive/);
+assert.match(qualification, /validateSelectedZonePackage/);
+assert.match(qualification, /FBX2_REAL_PACKAGE_AUDIT_SIDECAR_MISMATCH/);
+assert.match(qualification, /buildFbx2RealQualificationReceipt/);
+assert.match(qualification, /mode == 0o120000/);
+assert.doesNotMatch(qualification, /\bshell:\s*true\b/);
 
 const artifactRoles = await readFile(new URL(
   'tabs/model-converters/converters/fbx/zone-package/artifact-roles.js', root), 'utf8');
