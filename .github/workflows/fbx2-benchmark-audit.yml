@@ -68,6 +68,7 @@ jobs:
           node tests/fbx/test-fbx2-support-name-authority.mjs
           node tests/fbx/test-fbx2-global-support-association.mjs
           node tests/fbx/test-fbx2-selected-zone-package-closure.mjs
+          node tests/fbx/test-fbx2-selected-zone-package-contracts.mjs
 
       - name: Extract governed benchmark archives
         shell: bash
