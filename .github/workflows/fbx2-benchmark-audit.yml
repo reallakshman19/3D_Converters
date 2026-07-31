@@ -9,6 +9,7 @@ on:
       - 'scripts/fbx/audit-fbx2-weld-projection.mjs'
       - 'scripts/fbx/audit-fbx2-weld-tolerance.mjs'
       - 'scripts/fbx/qualify-fbx2-benchmark.mjs'
+      - 'scripts/fbx/qualify-fbx2-real.mjs'
       - 'scripts/fbx/run-fbx2-small-benchmark.mjs'
       - 'scripts/fbx/fbx2-small-benchmark/**'
       - 'tabs/model-converters/converters/fbx/**'
@@ -45,12 +46,14 @@ jobs:
           node --check scripts/fbx/audit-fbx2-weld-projection.mjs
           node --check scripts/fbx/audit-fbx2-weld-tolerance.mjs
           node --check scripts/fbx/qualify-fbx2-benchmark.mjs
+          node --check scripts/fbx/qualify-fbx2-real.mjs
           node --check scripts/fbx/run-fbx2-small-benchmark.mjs
           node --check scripts/fbx/fbx2-small-benchmark/coordinate-profile.mjs
           node --check scripts/fbx/fbx2-small-benchmark/cross-zone-support-association.mjs
           node --check scripts/fbx/fbx2-small-benchmark/global-occurrence-index.mjs
           node --check scripts/fbx/fbx2-small-benchmark/managed-inventory.mjs
           node --check scripts/fbx/fbx2-small-benchmark/package-closure.mjs
+          node --check scripts/fbx/fbx2-small-benchmark/real-qualification.mjs
           node --check scripts/fbx/fbx2-small-benchmark/source-inventory.mjs
           node --check scripts/fbx/fbx2-small-benchmark/reconcile-indexes.mjs
           node --check scripts/fbx/fbx2-small-benchmark/reconcile.mjs
@@ -116,18 +119,14 @@ jobs:
           node scripts/fbx/qualify-fbx2-benchmark.mjs \
             --audit artifacts/fbx2-benchmark-audit.json \
             --output artifacts/fbx2-benchmark-qualification.json
-          node scripts/fbx/run-fbx2-small-benchmark.mjs \
+          node scripts/fbx/qualify-fbx2-real.mjs \
             --fbx "$fbx_path" \
             --managed "$managed_path" \
             --input-zip Benchmarks/FBX2/STF_2026Jul23-1554_binary.zip \
             --output-zip Benchmarks/FBX2/ATTRIBUTE_GL_managed_stage.zip \
             --zone '/GLRD-1000-CU-PI-P' \
-            --output artifacts/fbx2-small-benchmark.json \
-            --global-index-output artifacts/fbx2-global-occurrence-index.json \
-            --support-association-output artifacts/fbx2-cross-zone-support-association.json \
-            --branch-ledger-output artifacts/fbx2-branch-match-ledger.json \
-            --package-audit-output artifacts/fbx2-selected-zone-package-audit.json \
-            --package-output artifacts/fbx2-selected-zone-package.fbxzpkg
+            --artifact-root artifacts \
+            --receipt artifacts/fbx2-real-qualification.json
           node scripts/fbx/audit-fbx2-support-names.mjs \
             --fbx "$fbx_path" \
             --input-zip Benchmarks/FBX2/STF_2026Jul23-1554_binary.zip \
