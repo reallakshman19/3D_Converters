@@ -19,6 +19,9 @@ import {
 import {
   buildFbx2RealQualificationReceipt,
 } from './fbx2-small-benchmark/real-qualification.mjs';
+import {
+  validateFbx2SmallBenchmarkReport,
+} from './fbx2-small-benchmark/report.mjs';
 
 function argument(name, fallback = '') {
   const index = process.argv.indexOf(name);
@@ -65,7 +68,9 @@ with ZipFile(archive) as source:
     for member in members:
         name = Path(member.filename)
         mode = (member.external_attr >> 16) & 0o170000
-        if name.is_absolute() or '..' in name.parts or mode == 0o120000:
+        drive_like = bool(name.parts and ':' in name.parts[0])
+        if (not member.filename or '\\' in member.filename or drive_like
+                or name.is_absolute() or '..' in name.parts or mode == 0o120000):
             raise SystemExit(f'Unsafe governed archive member: {member.filename}')
     source.extractall(target)
 `;
@@ -178,6 +183,7 @@ async function qualificationInput(outputs) {
     jsonFile(outputs.report), jsonFile(outputs.globalIndex), jsonFile(outputs.support),
     jsonFile(outputs.ledger), jsonFile(outputs.audit), readFile(outputs.package),
   ]);
+  validateFbx2SmallBenchmarkReport(report);
   const files = await readPackageArchive(packageBytes);
   const audit = archiveAudit(files);
   if (canonicalJson(audit) !== canonicalJson(sidecarAudit)) {
@@ -198,7 +204,10 @@ async function qualificationInput(outputs) {
 
 async function main() {
   const args = resolvedArguments();
-  await mkdir(args.artifactRoot, { recursive: true });
+  await Promise.all([
+    mkdir(args.artifactRoot, { recursive: true }),
+    mkdir(path.dirname(args.receiptPath), { recursive: true }),
+  ]);
   const inputs = await preparedInputs(args);
   const outputs = outputPaths(args);
   run(process.execPath, benchmarkArguments(args, inputs, outputs),
