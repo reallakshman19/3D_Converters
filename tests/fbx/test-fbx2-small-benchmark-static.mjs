@@ -4,10 +4,15 @@ import { fileURLToPath } from 'node:url';
 
 const root = new URL('../../', import.meta.url);
 const productionFiles = [
+  'scripts/fbx/fbx2-small-benchmark/coordinate-profile.mjs',
+  'scripts/fbx/fbx2-small-benchmark/cross-zone-support-association.mjs',
+  'scripts/fbx/fbx2-small-benchmark/global-occurrence-index.mjs',
   'scripts/fbx/fbx2-small-benchmark/managed-inventory.mjs',
   'scripts/fbx/fbx2-small-benchmark/profile.mjs',
+  'scripts/fbx/fbx2-small-benchmark/reconcile-indexes.mjs',
   'scripts/fbx/fbx2-small-benchmark/reconcile.mjs',
   'scripts/fbx/fbx2-small-benchmark/report.mjs',
+  'scripts/fbx/fbx2-small-benchmark/run-artifacts.mjs',
   'scripts/fbx/fbx2-small-benchmark/source-inventory.mjs',
   'scripts/fbx/run-fbx2-small-benchmark.mjs',
 ];
@@ -49,8 +54,15 @@ assert.equal((runner.match(/await executeRun\(/g) || []).length, 2);
 assert.match(runner, /validateFbx2SmallBenchmarkSources/);
 assert.match(runner, /validateFbx2SmallBenchmarkPopulation/);
 assert.match(runner, /buildSelectedZoneComponentCrosswalk/);
+assert.match(runner, /buildFbx2GlobalOccurrenceIndex/);
+assert.match(runner, /buildFbx2CrossZoneSupportAssociation/);
 assert.match(runner, /buildFbx2SmallBenchmarkReport/);
 assert.match(runner, /includeZonePackageInputs:\s*true/);
+
+const coordinateProfile = await readFile(new URL(
+  'scripts/fbx/fbx2-small-benchmark/coordinate-profile.mjs', root), 'utf8');
+assert.match(coordinateProfile, /FbxBenchmarkCoordinateProfile\.v1/);
+assert.match(coordinateProfile, /managedToSourceTranslationMm:\s*Object\.freeze\(\[0, 0, 100000\]\)/);
 
 const profile = await readFile(new URL(
   'scripts/fbx/fbx2-small-benchmark/profile.mjs', root), 'utf8');
