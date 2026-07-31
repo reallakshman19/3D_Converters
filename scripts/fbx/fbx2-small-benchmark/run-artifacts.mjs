@@ -39,6 +39,12 @@ export function fbx2BenchmarkArguments(argument) {
       '--global-index-output', 'artifacts/fbx2-global-occurrence-index.json'),
     supportAssociationOutputPath: argument(
       '--support-association-output', 'artifacts/fbx2-cross-zone-support-association.json'),
+    branchLedgerOutputPath: argument(
+      '--branch-ledger-output', 'artifacts/fbx2-branch-match-ledger.json'),
+    packageAuditOutputPath: argument(
+      '--package-audit-output', 'artifacts/fbx2-selected-zone-package-audit.json'),
+    packageOutputPath: argument(
+      '--package-output', 'artifacts/fbx2-selected-zone-package.fbxzpkg'),
   };
 }
 
@@ -49,5 +55,10 @@ export async function writeFbx2BenchmarkOutputs(args, result) {
       benchmarkCanonicalJson(result.runs[0].globalOccurrenceIndex), 'utf8'),
     writeFile(args.supportAssociationOutputPath,
       benchmarkCanonicalJson(result.runs[0].crossZoneSupportAssociation), 'utf8'),
+    writeFile(args.branchLedgerOutputPath,
+      benchmarkCanonicalJson(result.closure.branchMatchLedger), 'utf8'),
+    writeFile(args.packageAuditOutputPath,
+      benchmarkCanonicalJson(result.closure.packageResult.audit), 'utf8'),
+    writeFile(args.packageOutputPath, result.closure.archive.bytes),
   ]);
 }
