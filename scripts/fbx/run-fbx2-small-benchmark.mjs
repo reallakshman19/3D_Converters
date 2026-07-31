@@ -18,7 +18,9 @@ import {
 import { buildFbx2CrossZoneSupportAssociation } from './fbx2-small-benchmark/cross-zone-support-association.mjs';
 import { buildFbx2GlobalOccurrenceIndex } from './fbx2-small-benchmark/global-occurrence-index.mjs';
 import { inventoryFbx2ManagedStage } from './fbx2-small-benchmark/managed-inventory.mjs';
-import { buildFbx2SelectedZonePackageClosure } from './fbx2-small-benchmark/package-closure.mjs';
+import {
+  buildDeterministicFbx2SelectedZonePackageClosure,
+} from './fbx2-small-benchmark/package-closure.mjs';
 import {
   validateFbx2SmallBenchmarkPopulation,
   validateFbx2SmallBenchmarkSources,
@@ -278,7 +280,7 @@ async function runBenchmark(args, input) {
     selectedZone: runs[0].targetZone,
     runs,
   });
-  const closure = await buildFbx2SelectedZonePackageClosure(runs[0]);
+  const closure = await buildDeterministicFbx2SelectedZonePackageClosure(runs, report);
   return { report, runs, closure };
 }
 
