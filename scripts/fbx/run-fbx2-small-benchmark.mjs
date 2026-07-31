@@ -27,6 +27,7 @@ import { buildFbx2SmallBenchmarkReport } from './fbx2-small-benchmark/report.mjs
 import {
   buildFbx2RunIdentities,
   fbx2BenchmarkArguments,
+  fbx2BenchmarkConsoleSummary,
   writeFbx2BenchmarkOutputs,
 } from './fbx2-small-benchmark/run-artifacts.mjs';
 import { reconcileFbx2SmallBenchmark } from './fbx2-small-benchmark/reconcile.mjs';
@@ -286,28 +287,7 @@ async function main() {
   const input = await loadBenchmarkInputs(args);
   const result = await runBenchmark(args, input);
   await writeFbx2BenchmarkOutputs(args, result);
-  console.log(JSON.stringify({
-    status: result.report.status,
-    coverage: result.report.coverage,
-    parity: result.report.parity,
-    comparison: result.report.comparison,
-    crossZoneSupportAssociation: {
-      matchedCount: result.runs[0].crossZoneSupportAssociation.matchedCount,
-      blockedCount: result.runs[0].crossZoneSupportAssociation.blockedCount,
-      ambiguousCount: result.runs[0].crossZoneSupportAssociation.ambiguousCount,
-    },
-    selectedZonePackage: {
-      packageDigest: result.closure.packageResult.audit.packageDigest,
-      archiveSha256: result.closure.archive.sha256,
-      byteLength: result.closure.archive.bytes.byteLength,
-    },
-    outputPath: args.outputPath,
-    globalIndexOutputPath: args.globalIndexOutputPath,
-    supportAssociationOutputPath: args.supportAssociationOutputPath,
-    branchLedgerOutputPath: args.branchLedgerOutputPath,
-    packageAuditOutputPath: args.packageAuditOutputPath,
-    packageOutputPath: args.packageOutputPath,
-  }, null, 2));
+  console.log(JSON.stringify(fbx2BenchmarkConsoleSummary(args, result), null, 2));
 }
 
 await main();
