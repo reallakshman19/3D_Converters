@@ -34,6 +34,10 @@ function childText(parent, name) {
   return text(firstChild(parent, name)?.textContent);
 }
 
+function attributeText(element, name) {
+  return text(element?.getAttribute?.(name));
+}
+
 function ensureChild(document, parent, name) {
   let child = firstChild(parent, name);
   if (child) return child;
@@ -92,12 +96,35 @@ export function resolveStandaloneStagedSupportTypes(stagedJsonText, record, conf
   return supportKindsForRecord(record, stagedSupportKindsByPath(stagedJsonText, config));
 }
 
+function existingRestraintSummary(restraint) {
+  return {
+    type: childText(restraint, 'Type'),
+    stiffness: childText(restraint, 'Stiffness'),
+    gap: childText(restraint, 'Gap'),
+    friction: childText(restraint, 'Friction'),
+    directionCosineX: childText(restraint, 'DirectionCosineX'),
+    directionCosineY: childText(restraint, 'DirectionCosineY'),
+    directionCosineZ: childText(restraint, 'DirectionCosineZ'),
+    source: attributeText(restraint, 'source'),
+    basis: attributeText(restraint, 'basis'),
+    resolvedKey: attributeText(restraint, 'resolvedKey'),
+    originalText: childText(restraint, 'OriginalText'),
+    resolvedFrom: childText(restraint, 'ResolvedFrom'),
+    sideloadRow: childText(restraint, 'SideloadRow'),
+  };
+}
+
+function existingRestraintSummaries(node) {
+  return childrenByName(node, 'Restraint').map(existingRestraintSummary);
+}
+
 export function materializeMissingStandaloneRestRestraint(document, node, resolved, config = {}, stagedSupportTypes = []) {
   const existing = childrenByName(node, 'Restraint');
   const supportMapping = migrateSupportMappingConfig(config);
   const decision = decideMissingStagedRestRestraint({
     componentType: childText(node, 'ComponentType'),
     hasExistingRestraint: existing.length > 0,
+    existingRestraints: existingRestraintSummaries(node),
     ledgerSupportTypes: resolved?.derivedSupportTypes || [],
     stagedSupportTypes,
     jsonRestraintsEnabled: supportMapping.useJsonForRestraints !== false,
@@ -107,7 +134,39 @@ export function materializeMissingStandaloneRestRestraint(document, node, resolv
   if (!entries.length) return { added: false, ...decision, reason: 'rest-profile-empty', entries: [] };
   applyXmlRestraints(document, node, entries, config);
   const added = childrenByName(node, 'Restraint').length > 0;
-  return { added, ...decision, reason: added ? 'staged-rest-restraint-added' : 'restraint-write-failed', entries };
+  return {
+    added,
+    ...decision,
+    reason: added ? decision.reason : 'restraint-write-failed',
+    entries,
+  };
+}
+
+function materializedDiagnostic(node, resolved, materialized) {
+  const replacement = materialized.replaceExisting === true;
+  const defaulted = materialized.authority === 'component-default-rest';
+  const type = replacement
+    ? 'zero-information-limit-restraint-replaced'
+    : (defaulted ? 'atta-default-rest-restraint-materialized' : 'staged-json-rest-restraint-materialized');
+  const message = replacement
+    ? 'A zero-information LIM placeholder was replaced by the REST profile because no authoritative line-stop evidence existed.'
+    : (defaulted
+      ? 'ATTA had no authoritative restraint evidence; the configured ATTA default REST profile was materialized.'
+      : 'Uploaded XML had no restraint; REST resolved from authoritative staged JSON evidence was materialized through the shared support-mapping profile.');
+  return {
+    type,
+    nodeNumber: childText(node, 'NodeNumber'),
+    nodeName: childText(node, 'NodeName'),
+    componentType: childText(node, 'ComponentType'),
+    effectiveSource: resolved?.effectiveSource || '',
+    matchType: resolved?.matchType || '',
+    status: resolved?.status || '',
+    supportTypes: materialized.supportTypes,
+    restraintTypes: materialized.entries.map((entry) => entry.type),
+    replacedExistingPlaceholder: replacement,
+    authority: materialized.authority,
+    message,
+  };
 }
 
 export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config = {}) {
@@ -120,6 +179,8 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
     dtxrAmbiguousNodes: 0,
     stagedRestRestraintsAdded: 0,
     stagedRestRestraintsPreserved: 0,
+    zeroInformationLimitPlaceholdersReplaced: 0,
+    attaDefaultRestRestraintsAdded: 0,
   };
   const ledgerResult = buildStandaloneDtxrResolutionLedger(source, stagedJsonText, config);
   const diagnostics = [...(Array.isArray(ledgerResult.diagnostics) ? ledgerResult.diagnostics : [])];
@@ -179,18 +240,9 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
       );
       if (materialized.added) {
         stats.stagedRestRestraintsAdded += 1;
-        diagnostics.push({
-          type: 'staged-json-rest-restraint-materialized',
-          nodeNumber: childText(node, 'NodeNumber'),
-          nodeName: childText(node, 'NodeName'),
-          componentType: childText(node, 'ComponentType'),
-          effectiveSource: resolved.effectiveSource || '',
-          matchType: resolved.matchType || '',
-          status: resolved.status || '',
-          supportTypes: materialized.supportTypes,
-          restraintTypes: materialized.entries.map((entry) => entry.type),
-          message: 'Uploaded XML had no restraint; REST resolved from authoritative staged JSON evidence was materialized through the shared support-mapping profile.',
-        });
+        if (materialized.replaceExisting) stats.zeroInformationLimitPlaceholdersReplaced += 1;
+        if (materialized.authority === 'component-default-rest') stats.attaDefaultRestRestraintsAdded += 1;
+        diagnostics.push(materializedDiagnostic(node, resolved, materialized));
       } else if (materialized.reason === 'existing-restraint-preserved') {
         stats.stagedRestRestraintsPreserved += 1;
       }
