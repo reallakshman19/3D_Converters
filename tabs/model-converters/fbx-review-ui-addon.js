@@ -1,6 +1,7 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260729-fbx2-direct-pipe-1';
+import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260802-fbx2-managed-reference-1';
 import { canonicalJson } from './converters/fbx/canonical-json.js';
+import { resolveBrowserFbxPrimary } from './converters/fbx/fbx2-browser-inputs.js?v=20260802-fbx2-managed-reference-1';
 import { buildMappingWorklist } from './converters/fbx/mapping-worklist.js';
 import { buildReviewBundle } from './converters/fbx/mapping-review-bundle.js';
 import { parseFbxInWorker } from './converters/fbx/parser-client.js';
@@ -14,20 +15,9 @@ const DEFAULT_REVIEW_SHARD_SIZE = 500;
 function findInput(context, role) {
   return context.inputFiles?.find((file) => file.role === role);
 }
-
-function inputBytes(file) {
-  if (file?.bytes instanceof Uint8Array) return file.bytes;
-  if (file?.bytes instanceof ArrayBuffer) return new Uint8Array(file.bytes);
-  if (ArrayBuffer.isView(file?.bytes)) {
-    return new Uint8Array(file.bytes.buffer, file.bytes.byteOffset, file.bytes.byteLength);
-  }
-  throw new Error('FBX input is required.');
-}
-
 function baseName(name) {
   return String(name || 'model.fbx').replace(/\.[^.]+$/, '') || 'model';
 }
-
 function positiveInteger(value, fallback) {
   const parsed = Number(value ?? fallback);
   if (!Number.isSafeInteger(parsed) || parsed < 1) {
@@ -35,15 +25,12 @@ function positiveInteger(value, fallback) {
   }
   return parsed;
 }
-
 function jsonOutput(name, value) {
   return { name, text: canonicalJson(value), mime: 'application/json;charset=utf-8' };
 }
-
 function csvOutput(name, text) {
   return { name, text, mime: 'text/csv;charset=utf-8' };
 }
-
 function reviewDiagnostics() {
   return [
     'PARSE_PASS',
@@ -53,7 +40,6 @@ function reviewDiagnostics() {
     'BOUNDED_MEMORY_CLI_NOT_EXECUTED',
   ];
 }
-
 function reviewReport(worklist, bundle, shards) {
   return {
     schema: 'FbxBrowserReviewReport.v1',
@@ -67,7 +53,6 @@ function reviewReport(worklist, bundle, shards) {
     diagnostics: reviewDiagnostics(),
   };
 }
-
 function appendShardOutputs(outputs, bundle, shards) {
   for (const shard of shards) {
     const metadata = bundle.shards.find((entry) => entry.shardId === shard.shardId);
@@ -76,10 +61,9 @@ function appendShardOutputs(outputs, bundle, shards) {
     outputs.push(csvOutput(metadata.fileName.replace(/\.json$/i, '.csv'), reviewShardCsv(shard)));
   }
 }
-
 async function createBrowserReview(context) {
-  const primary = findInput(context, 'primary');
-  const bytes = inputBytes(primary);
+  const primary = await resolveBrowserFbxPrimary(findInput(context, 'primary'));
+  const bytes = primary.bytes;
   const stem = baseName(primary.name);
   const maxItems = positiveInteger(context.options?.reviewMaxItemsPerShard, DEFAULT_REVIEW_SHARD_SIZE);
   context.setStatus?.('Parsing FBX for mapping review...', 'running');
@@ -119,7 +103,9 @@ export async function runFbxWithReviewUi(context = {}, baseRun = runBaseFbxToSta
 
 function appendReviewOptions(converter) {
   const existing = Array.isArray(converter.options) ? converter.options : [];
-  const retained = existing.filter((option) => !['fbxOperation', 'reviewMaxItemsPerShard'].includes(option.key));
+  const retained = existing.filter((option) => ![
+    'fbxOperation', 'reviewMaxItemsPerShard', 'fbxSelectedZoneLabel',
+  ].includes(option.key));
   converter.options = [
     ...retained,
     {
@@ -134,20 +120,36 @@ function appendReviewOptions(converter) {
       type: 'number',
       step: '1',
     },
+    {
+      key: 'fbxSelectedZoneLabel',
+      label: 'Managed Reference Zone Label',
+      type: 'text',
+      placeholder: '/GLRD-1000-CU-PI-P',
+    },
   ];
+}
+function configureManagedReferenceInputs(converter) {
+  converter.primaryAccept = '.fbx,.FBX,.zip,.ZIP';
+  converter.primaryLabel = 'FBX Input or governed FBX2 source ZIP';
+  converter.secondaryLabel = 'Mapping JSON or managed-stage JSON/ZIP (optional)';
+  converter.secondaryAccept = '.fbxmap.json,.json,.JSON,.zip,.ZIP';
 }
 
 export function installFbxReviewUiAddon() {
   const converter = getConverterById('fbx_to_stagedjson');
-  if (!converter || converter.__fbxReviewUiAddonInstalled) return false;
+  if (!converter || converter.__fbxReviewUiAddonInstalled === '20260802-fbx2-managed-reference-1') {
+    return false;
+  }
   converter.defaults = {
     ...(converter.defaults || {}),
     fbxOperation: FBX_CONVERT_OPERATION,
     reviewMaxItemsPerShard: DEFAULT_REVIEW_SHARD_SIZE,
+    fbxSelectedZoneLabel: '',
   };
   appendReviewOptions(converter);
-  converter.description = 'Convert FBX with an approved mapping package, or create a deterministic non-authoritative mapping review bundle in the browser. Bounded-memory review execution remains available through the Node CLI.';
+  configureManagedReferenceInputs(converter);
+  converter.description = 'Convert FBX with mapping JSON, or reconcile a managed-stage JSON/ZIP against an explicit zone. The exact governed FBX2 ZIP pair is identity-bound to /GLRD-1000-CU-PI-P. Mapping review bundles remain non-authoritative.';
   converter.run = (context = {}) => runFbxWithReviewUi(context, runBaseFbxToStagedJson);
-  converter.__fbxReviewUiAddonInstalled = true;
+  converter.__fbxReviewUiAddonInstalled = '20260802-fbx2-managed-reference-1';
   return true;
 }
