@@ -154,6 +154,8 @@ function selectedZoneEvidence(autoPipe, managed = null) {
     diagnostics: [
       ...(managed ? [MANAGED_STAGE_REFERENCE_PRESENT,
         MAPPING_NOT_REQUIRED_MANAGED_REFERENCE,
+        'BROWSER_MANAGED_REFERENCE_RUN',
+        'T0_QUALIFICATION_NOT_EXECUTED',
         ...(managed.profile ? [`FBX2_PROFILE_BOUND:${managed.profile.profileId}`,
           'FBX2_ARCHIVE_IDENTITIES_BOUND'] : [])] : []),
       `SELECTED_ZONE_STATUS:${autoPipe?.conversionStatus || 'UNKNOWN'}`,
