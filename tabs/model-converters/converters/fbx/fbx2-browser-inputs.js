@@ -111,10 +111,12 @@ async function managedFromZip(input) {
 }
 async function secondaryFromJson(input) {
   const bytes = bytesOf(input.bytes), name = nameOf(input), value = parseJson(bytes, 'SECONDARY');
+  const managedIntent = /_managed_stage\.json$/i.test(name);
   if (isManagedStageHierarchy(value)) {
     return Object.freeze({ kind: 'managed-stage', value, name,
       archive: null, file: await identity(name, bytes), fromArchive: false });
   }
+  if (managedIntent) throw new Error('MANAGED_STAGE_HIERARCHY_INVALID');
   return Object.freeze({ kind: 'mapping', value, name, archive: null,
     file: await identity(name, bytes), fromArchive: false });
 }
@@ -125,6 +127,7 @@ export async function resolveBrowserFbxSecondary(input) {
   if (type === 'json') {
     try { return await secondaryFromJson(input); }
     catch (error) {
+      if (/_managed_stage\.json$/i.test(nameOf(input))) throw error;
       return Object.freeze({ kind: 'mapping-error', value: null,
         error: error instanceof Error ? error.message : String(error), name: nameOf(input) });
     }
