@@ -62,6 +62,13 @@ const malformed = await resolveBrowserFbxSecondary({
 assert.equal(malformed.kind, 'mapping-error');
 
 await assert.rejects(
+  resolveBrowserFbxSecondary({
+    name: 'bad_managed_stage.json', bytes: new TextEncoder().encode('{"schema":"mapping"}'),
+  }),
+  /MANAGED_STAGE_HIERARCHY_INVALID/,
+);
+
+await assert.rejects(
   readUniqueZipEntry(zipEntry('../escape.fbx', fbxBytes), (name) => /\.fbx$/i.test(name)),
   /ZIP_UNSAFE_PATH/,
 );
