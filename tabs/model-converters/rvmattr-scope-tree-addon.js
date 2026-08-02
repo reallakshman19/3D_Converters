@@ -171,22 +171,6 @@ function installFullScopeButton(card) {
   });
   cancelButton.parentElement.insertBefore(button, cancelButton);
 }
-function enhanceLegacyTree(treeElement, expanded) {
-  if (treeElement.querySelector('[data-rvm-full-tree-root]')) return;
-  const entries = [...treeElement.querySelectorAll('li')];
-  entries.forEach((entry, index) => {
-    const childList = [...entry.children].find((child) => child.tagName === 'UL');
-    const label = [...entry.children].find((child) => child.tagName === 'LABEL');
-    if (!childList || !label || label.querySelector('[data-rvm-tree-toggle]')) return;
-    const input = label.querySelector('input[data-scope-node]');
-    const id = input?.getAttribute('data-scope-node') || `legacy:${index}`;
-    const isExpanded = expanded.has(id) ? expanded.get(id) : true;
-    const wrapper = document.createElement('span');
-    wrapper.innerHTML = toggleHtml({ id, label: id, children: [{}] }, isExpanded);
-    label.insertBefore(wrapper.firstElementChild, label.firstChild);
-    childList.style.display = isExpanded ? '' : 'none';
-  });
-}
 async function readFileText(file) {
   if (typeof file?.text === 'function') return file.text();
   return new Promise((resolve, reject) => {
@@ -208,13 +192,22 @@ function isScopeCard(card) {
     && card.textContent.includes('Select ATT/RVM hierarchy scope'));
 }
 function installTreeWatch(context) {
-  const observer = new MutationObserver(() => {
+  let lifetimeObserver = null;
+  const stop = () => {
+    treeObserver.disconnect();
+    lifetimeObserver?.disconnect();
+  };
+  const treeObserver = new MutationObserver(() => {
+    if (!context.card.isConnected) { stop(); return; }
     if (context.treeElement.querySelector('[data-rvm-full-tree-root]')) return;
     mergeSelectionStates(context.selection, context.treeElement);
     renderFullTree(context);
   });
-  observer.observe(context.treeElement, { childList: true });
-  context.card.addEventListener('rvm-scope-close', () => observer.disconnect(), { once: true });
+  lifetimeObserver = new MutationObserver(() => {
+    if (!context.card.isConnected) stop();
+  });
+  treeObserver.observe(context.treeElement, { childList: true });
+  lifetimeObserver.observe(document.body, { childList: true, subtree: true });
 }
 async function enhanceScopeCard(card) {
   if (!isScopeCard(card) || card.dataset.rvmFullScopeTree === VERSION) return;
@@ -222,7 +215,6 @@ async function enhanceScopeCard(card) {
   installFullScopeButton(card);
   const treeElement = card.querySelector('[data-scope-tree]');
   const expanded = new Map();
-  enhanceLegacyTree(treeElement, expanded);
   try {
     const hierarchy = await hierarchyFromCurrentFile();
     if (!card.isConnected || !Array.isArray(hierarchy)) return;
