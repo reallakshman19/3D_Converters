@@ -1,32 +1,28 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import {
+  normalizeSelectedZonePreviewDetail,
+} from '../../tabs/model-converters/fbx-selected-zone-preview-bridge.js';
 
 const root = new URL('../../', import.meta.url);
-const key = '20260729-fbx2-direct-pipe-1';
+const key = '20260802-fbx-live-ui-3';
+const obsolete = '20260729-fbx2-direct-pipe-1';
 const read = (path) => readFile(new URL(path, root), 'utf8');
-const files = Object.fromEntries(await Promise.all([
+const paths = [
   'index.html',
   'main-rhbg-fitguard.js',
   'core/app.js',
-  'core/app-standalone-runtime.js',
   'tabs/model-converters-tab.js',
   'tabs/model-converters/index.js',
-  'tabs/model-converters/ModelConvertersTab.js',
-  'tabs/model-converters/fbx-review-ui-addon.js',
-  'tabs/model-converters/converters/fbx-to-stagedjson.js',
-  'tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js',
+  'tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js',
+  'tabs/model-converters/fbx-live-runner-addon.js',
+  'tabs/model-converters/fbx-selected-zone-preview-bridge.js',
+  'tabs/model-converters/fbx-preview-zone-selector.js',
   'tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js',
-  'tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js',
-  'tabs/model-converters/converters/fbx/zone-geometry/occurrence-transform.js',
-  'tabs/model-converters/converters/fbx/auto-pipe/pipeline.js',
-  'tabs/model-converters/converters/fbx/auto-pipe/classify.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/candidate-evaluation.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/sidewall-residual.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js',
-  '.github/workflows/fbx-preview-shell-pages-smoke.yml',
-].map(async (path) => [path, await read(path)])));
+];
+const files = Object.fromEntries(await Promise.all(
+  paths.map(async (path) => [path, await read(path)]),
+));
 
 function requires(path, fragment) {
   assert.equal(files[path].includes(fragment), true, `${path} lacks ${fragment}`);
@@ -35,41 +31,53 @@ function requires(path, fragment) {
 requires('index.html', `main-rhbg-fitguard.js?v=${key}`);
 requires('main-rhbg-fitguard.js', `core/app.js?v=${key}`);
 requires('core/app.js', `app-standalone-runtime.js?v=${key}`);
-requires('core/app-standalone-runtime.js', `model-converters-tab.js?v=${key}`);
+requires('core/app.js', `model-converters-tab.js?v=${key}`);
 requires('tabs/model-converters-tab.js', `model-converters/index.js?v=${key}`);
-requires('tabs/model-converters/index.js', `ModelConvertersTab.js?v=${key}`);
-requires('tabs/model-converters/ModelConvertersTab.js', `fbx-review-ui-addon.js?v=${key}`);
-requires('tabs/model-converters/ModelConvertersTab.js', `zone-toolbar.js?v=${key}`);
-requires('tabs/model-converters/fbx-review-ui-addon.js', `fbx-to-stagedjson.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx-to-stagedjson.js', `selected-zone-auto-pipe.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/zone-geometry/selected-zone-auto-pipe.js', `analyse-zone.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', `analyse-zone.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js', `pipeline.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/zone-geometry/analyse-zone.js', `evidence.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/auto-pipe/pipeline.js', `classify.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/auto-pipe/classify.js', `classifier.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js', `candidate-evaluation.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js', `terminal-cap-bridge.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/solid-fitting-ports/candidate-evaluation.js', `occurrence-transform.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/zone-geometry/occurrence-transform.js', `transform-policy.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/solid-fitting-ports/classifier.js', `sidewall-residual.js?v=${key}`);
-requires('tabs/model-converters/converters/fbx/solid-fitting-ports/sidewall-residual.js', `transform-policy.js?v=${key}`);
+requires('tabs/model-converters/index.js', `ModelConvertersTab-fbx2-managed-reference.js?v=${key}`);
 
-const workflow = files['.github/workflows/fbx-preview-shell-pages-smoke.yml'];
-for (const path of [
-  'tabs/model-converters/converters/fbx/auto-pipe/classify.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/analysis-topology.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/candidate-evaluation.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/evidence.js',
-  'tabs/model-converters/converters/fbx/solid-fitting-ports/terminal-cap-bridge.js',
-  'tabs/model-converters/converters/fbx/transform-policy.js',
-]) requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', path);
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', `CACHE_KEY: ${key}`);
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'FbxPagesDirectPipeRuntimeDeploymentEvidence.v1');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'benchmarkAdmittedPipeCount 112');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'DETACHED_CAP_RING_BRIDGE_V1');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'git fetch origin main');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'git rebase origin/main');
-requires('.github/workflows/fbx-preview-shell-pages-smoke.yml', 'after five synchronized attempts');
+const wrapper = files['tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js'];
+for (const dependency of [
+  'fbx-review-ui-addon.js',
+  'fbx-live-runner-addon.js',
+  'fbx-preview-zone-selector.js',
+  'fbx-selected-zone-preview-bridge.js',
+  'zone-toolbar.js',
+]) assert.equal(wrapper.includes(`${dependency}?v=${key}`), true, `wrapper lacks live ${dependency}`);
+
+const calls = [
+  'installFbxReviewUiAddon();',
+  'installFbxLiveRunnerAddon();',
+  'installFbxPreviewZoneSelector(container);',
+  'installFbxSelectedZonePreviewBridge();',
+  'installFbxZoneGeometryToolbar(container);',
+  'renderBaseModelConvertersTab(container, ctx);',
+].map((fragment) => wrapper.indexOf(fragment));
+assert.equal(calls.every((index) => index >= 0), true, 'live installer call is missing');
+assert.deepEqual([...calls].sort((a, b) => a - b), calls, 'live installers are out of order');
+
+requires('tabs/model-converters/fbx-live-runner-addon.js', `FBX_LIVE_UI_ACTIVE:${key}`);
+requires('tabs/model-converters/fbx-live-runner-addon.js', 'fbxSelectedZoneId');
+requires('tabs/model-converters/fbx-selected-zone-preview-bridge.js', 'STAGEDJSON_SELECTED_ZONE_PASS');
+requires('tabs/model-converters/fbx-selected-zone-preview-bridge.js', "conversionStatus: 'STAGEDJSON_PASS'");
+requires('tabs/model-converters/fbx-preview-zone-selector.js', 'Preview zone');
+requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'Analyse zone geometry');
+requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'buildFbxZoneWireframeMetaText');
+
+for (const path of paths.slice(0, 8)) {
+  assert.equal(files[path].includes(obsolete), false, `${path} still exposes obsolete cache key`);
+}
+
+const selectedOutput = {
+  name: 'sample.zone.selected-zone.json',
+  text: '[{"type":"BRANCH","children":[{"type":"PIPE"}]}]',
+};
+const normalized = normalizeSelectedZonePreviewDetail({
+  conversionStatus: 'STAGEDJSON_SELECTED_ZONE_PASS',
+  outputs: [selectedOutput, { name: 'sample.fbx-conversion-report.json', text: '{}' }],
+});
+assert.equal(normalized.conversionStatus, 'STAGEDJSON_PASS');
+assert.equal(normalized.originalConversionStatus, 'STAGEDJSON_SELECTED_ZONE_PASS');
+assert.equal(normalized.outputs[0].name, 'sample.zone.staged.json');
+assert.equal(normalizeSelectedZonePreviewDetail({ conversionStatus: 'BLOCKED' }), null);
 
 console.log('test-fbx2-runtime-cache-chain: PASS');
