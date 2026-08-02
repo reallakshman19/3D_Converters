@@ -35,5 +35,8 @@ const binding = managedReferenceBindingOutput({
   profile: { profileId: 'P', archiveBound: true, source: {}, managed: {} },
 }, 'STAGEDJSON_SELECTED_ZONE_PASS');
 assert.equal(binding.length, 1);
-assert.equal(JSON.parse(binding[0].text).selectedZoneLabel, '/GLRD-1000-CU-PI-P');
+const bindingValue = JSON.parse(binding[0].text);
+assert.equal(bindingValue.selectedZoneLabel, '/GLRD-1000-CU-PI-P');
+assert.equal(bindingValue.executionScope, 'BROWSER_SELECTED_ZONE_REFERENCE');
+assert.equal(bindingValue.t0Qualified, false);
 console.log('FBX2 managed-reference promotion cleanup: PASS');
