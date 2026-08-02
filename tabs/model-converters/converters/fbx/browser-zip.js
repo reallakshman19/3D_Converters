@@ -65,7 +65,7 @@ function readDirectory(bytes, limits) {
   }
   if (entryCount > limits.maxEntries) throw new Error('ZIP_ENTRY_LIMIT_EXCEEDED');
   if (directoryOffset + directorySize > eocd) throw new Error('ZIP_DIRECTORY_OUT_OF_RANGE');
-  const entries = [];
+  const entries = [], names = new Set();
   let offset = directoryOffset, totalBytes = 0;
   for (let index = 0; index < entryCount; index += 1) {
     if (u32(view, offset) !== CENTRAL_SIGNATURE) throw new Error('ZIP_CENTRAL_HEADER_INVALID');
@@ -85,6 +85,8 @@ function readDirectory(bytes, limits) {
     const nameStart = offset + 46, nameEnd = nameStart + nameLength;
     if (nameEnd > bytes.length) throw new Error('ZIP_FILENAME_TRUNCATED');
     const name = decodeName(bytes.subarray(nameStart, nameEnd), flags);
+    if (names.has(name)) throw new Error(`ZIP_DUPLICATE_ENTRY:${name}`);
+    names.add(name);
     entries.push(Object.freeze({ name, flags, method, crc, compressedSize, uncompressedSize, localOffset }));
     offset = nameEnd + extraLength + commentLength;
   }
@@ -97,7 +99,11 @@ function localCompressedBytes(bytes, entry) {
   const flags = u16(view, offset + 6), method = u16(view, offset + 8);
   const nameLength = u16(view, offset + 26), extraLength = u16(view, offset + 28);
   if (flags !== entry.flags || method !== entry.method) throw new Error(`ZIP_HEADER_MISMATCH:${entry.name}`);
-  const start = offset + 30 + nameLength + extraLength, end = start + entry.compressedSize;
+  const nameStart = offset + 30, nameEnd = nameStart + nameLength;
+  if (nameEnd > bytes.length) throw new Error(`ZIP_LOCAL_NAME_TRUNCATED:${entry.name}`);
+  const localName = decodeName(bytes.subarray(nameStart, nameEnd), flags);
+  if (localName !== entry.name) throw new Error(`ZIP_LOCAL_NAME_MISMATCH:${entry.name}`);
+  const start = nameEnd + extraLength, end = start + entry.compressedSize;
   if (end > bytes.length) throw new Error(`ZIP_ENTRY_TRUNCATED:${entry.name}`);
   return bytes.subarray(start, end);
 }
