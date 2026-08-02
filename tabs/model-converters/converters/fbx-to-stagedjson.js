@@ -22,6 +22,7 @@ const STAGEDJSON_PASS = 'STAGEDJSON_PASS';
 const OPTIONAL_MAPPING_ABSENT = 'OPTIONAL_MAPPING_ABSENT';
 const MANAGED_STAGE_REFERENCE_PRESENT = 'MANAGED_STAGE_REFERENCE_PRESENT';
 const MAPPING_NOT_REQUIRED_MANAGED_REFERENCE = 'MAPPING_NOT_REQUIRED_MANAGED_REFERENCE';
+const BLOCKED_MANAGED_STAGE_REFERENCE = 'BLOCKED_MANAGED_STAGE_REFERENCE';
 const STAGE_LABELS = Object.freeze({
   preflight: 'Checking FBX header...', 'loading-wasm': 'Loading FBX parser...',
   'copying-input': 'Copying FBX into parser memory...', 'parsing-fbx': 'Parsing FBX...',
@@ -106,10 +107,7 @@ function attemptStatus(context, candidate, options) {
 }
 function managedCandidate(candidates, managed) {
   if (!managed) return candidates;
-  const exact = candidates.find((item) => item.label === managed.zoneLabel);
-  const folded = managed.zoneLabel.toUpperCase();
-  const partial = candidates.filter((item) => item.label.toUpperCase().includes(folded));
-  const selected = exact || (partial.length === 1 ? partial[0] : null);
+  const selected = candidates.find((item) => item.label === managed.zoneLabel);
   if (!selected) throw new Error(`MANAGED_STAGE_ZONE_NOT_FOUND:${managed.zoneLabel}`);
   const reason = managed.profile ? 'governed-fbx2-profile' : 'managed-reference-label';
   return [Object.freeze({ ...selected, reason })];
@@ -227,14 +225,27 @@ function promoteSelectedZoneEvidenceOutput(result, inputName, autoPipe, managed 
     outputs: [...artifacts, ...retained],
     logs: selectedZonePromotionLogs(result, tags, evidence.errors) };
 }
+function blockedManagedReference(result, autoPipe, managed) {
+  const evidence = selectedZoneEvidence(autoPipe, managed);
+  const tags = unique(['PARSE_PASS', MAPPING_NOT_REQUIRED_MANAGED_REFERENCE,
+    BLOCKED_MANAGED_STAGE_REFERENCE, ...evidence.diagnostics]);
+  const errors = unique([...evidence.errors, ...(autoPipe?.blockingReasons || [])]);
+  const outputs = (result.outputs || []).filter((output) => !isSupersededMappingOutput(output))
+    .map((output) => promoteSelectedZoneReport(output, BLOCKED_MANAGED_STAGE_REFERENCE, tags));
+  return { ...result, ok: false, blocked: true,
+    conversionStatus: BLOCKED_MANAGED_STAGE_REFERENCE,
+    outputs: [...managedReferenceBindingOutput(managed, BLOCKED_MANAGED_STAGE_REFERENCE), ...outputs],
+    logs: selectedZonePromotionLogs(result, tags, errors) };
+}
 async function noMappingResult(context, primary, converted, managed = null) {
   const autoPipe = await attemptSelectedZoneAutoPipe(context, primary, converted, managed);
   if (autoPipe.conversionStatus === STAGEDJSON_SELECTED_ZONE_PASS) {
     return promoteSelectedZoneOutput(converted, primary.name, autoPipe, managed);
   }
-  if (autoPipe.conversionStatus === SELECTED_ZONE_EVIDENCE_PASS) {
+  if (autoPipe.conversionStatus === SELECTED_ZONE_EVIDENCE_PASS && !managed) {
     return promoteSelectedZoneEvidenceOutput(converted, primary.name, autoPipe, managed);
   }
+  if (managed) return blockedManagedReference(converted, autoPipe, managed);
   return promoteNoMappingJsonOutput(converted, primary.name, selectedZoneEvidence(autoPipe, managed));
 }
 async function loadParserEvidence() {
