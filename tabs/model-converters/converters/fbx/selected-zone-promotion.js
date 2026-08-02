@@ -47,6 +47,8 @@ export function managedReferenceBindingOutput(managed, status) {
     profileId: managed.profile?.profileId || null,
     archiveBound: managed.profile?.archiveBound || false,
     selectedZoneLabel: managed.zoneLabel,
+    executionScope: 'BROWSER_SELECTED_ZONE_REFERENCE',
+    t0Qualified: false,
     source: managed.profile?.source || null,
     managed: managed.profile?.managed || null,
   };
