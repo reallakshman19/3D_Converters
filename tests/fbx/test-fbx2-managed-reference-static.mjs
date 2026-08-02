@@ -20,6 +20,7 @@ assert.match(runner, /mappedStageStatus: 'MAPPED_STAGE_AVAILABLE'/);
 assert.match(runner, /MANAGED_STAGE_ZONE_NOT_FOUND/);
 assert.match(runner, /governed-fbx2-profile/);
 assert.match(runner, /MAPPING_NOT_REQUIRED_MANAGED_REFERENCE/);
+assert.match(runner, /T0_QUALIFICATION_NOT_EXECUTED/);
 assert.match(review, /primaryAccept = '\.fbx,\.FBX,\.zip,\.ZIP'/);
 assert.match(review, /secondaryAccept = '\.fbxmap\.json,\.json,\.JSON,\.zip,\.ZIP'/);
 assert.match(review, /Managed Reference Zone Label/);
