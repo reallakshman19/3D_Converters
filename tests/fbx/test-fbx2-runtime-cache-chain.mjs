@@ -61,16 +61,24 @@ const installerFragments = [
   'installFbxZoneGeometryToolbar(container);',
 ];
 const installerIndexes = installerFragments.map((fragment) => wrapper.indexOf(fragment));
-const dynamicImportIndex = wrapper.indexOf(`import('./ModelConvertersTab.js?v=${key}')`);
-const renderIndex = wrapper.indexOf('renderBaseModelConvertersTab(container, ctx)');
 assert.equal(installerIndexes.every((index) => index >= 0), true, 'live installer call is missing');
 assert.deepEqual(
   [...installerIndexes].sort((a, b) => a - b),
   installerIndexes,
   'live installers are out of order',
 );
-assert.ok(dynamicImportIndex > installerIndexes.at(-1), 'legacy/base module loads before FBX input installation');
-assert.ok(renderIndex > dynamicImportIndex, 'base renderer invocation precedes dynamic module loading');
+requires(
+  'tabs/model-converters/ModelConvertersTab-fbx2-managed-reference.js',
+  `import('./ModelConvertersTab.js?v=${key}')`,
+);
+const renderFunctionStart = wrapper.indexOf('export function renderModelConvertersTab(container, ctx)');
+const installCallIndex = wrapper.indexOf('installFbxLiveUi(container);', renderFunctionStart);
+const loadCallIndex = wrapper.indexOf('return loadBaseModelConvertersTab()', renderFunctionStart);
+const renderCallIndex = wrapper.indexOf('renderBaseModelConvertersTab(container, ctx)', loadCallIndex);
+assert.ok(renderFunctionStart >= 0, 'exported renderer is missing');
+assert.ok(installCallIndex > renderFunctionStart, 'FBX live UI installation is missing from renderer');
+assert.ok(loadCallIndex > installCallIndex, 'base module is requested before FBX input installation');
+assert.ok(renderCallIndex > loadCallIndex, 'base renderer invocation precedes module loading');
 
 requires('tabs/model-converters/fbx-review-ui-addon.js', 'synchronizeInput');
 requires('tabs/model-converters/fbx-review-ui-addon.js', "const SECONDARY_ACCEPT = '.fbxmap.json,.json,.JSON,.zip,.ZIP'");
