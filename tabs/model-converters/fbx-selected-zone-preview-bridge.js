@@ -1,6 +1,6 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
 
-const VERSION = '20260802-fbx-live-ui-3';
+const VERSION = '20260804-fbx-secondary-preview-1';
 const OUTPUT_EVENT = 'model-converters:fbx-run-outputs';
 const PATCH_MARKER = Symbol.for('model-converters.fbx-selected-zone-preview-bridge.v1');
 const SELECTED_ZONE_PASS = 'STAGEDJSON_SELECTED_ZONE_PASS';
