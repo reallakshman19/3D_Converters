@@ -26,6 +26,7 @@ function completedRunDetail(input, result) {
     sourceBytes: input?.bytes ? bytesView(input.bytes).slice() : null,
     conversionStatus: result?.conversionStatus || '',
     mappedStageStatus: mapped.status,
+    mappedStageAuthority: mapped.authority,
     stagedBranches: mapped.stagedBranches,
     engineeringAttributeStatus: engineering.status,
     engineeringAttributeLedger: engineering.ledger,
