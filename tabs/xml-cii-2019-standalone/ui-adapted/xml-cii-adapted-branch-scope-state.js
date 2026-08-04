@@ -33,9 +33,12 @@ function processingState(base) {
   };
 }
 
-function inputFileChanged(base, next) {
-  return (!!next?.sourceFile && next.sourceFile !== base.sourceFile)
-    || (!!next?.stagedJsonFile && next.stagedJsonFile !== base.stagedJsonFile);
+function sourceFileChanged(base, next) {
+  return !!next?.sourceFile && next.sourceFile !== base.sourceFile;
+}
+
+function stagedFileChanged(base, next) {
+  return !!next?.stagedJsonFile && next.stagedJsonFile !== base.stagedJsonFile;
 }
 
 export function createXmlCiiBranchScopedStateRef(baseRef) {
@@ -49,12 +52,22 @@ export function createXmlCiiBranchScopedStateRef(baseRef) {
         baseRef.current = { ...next, branchScope: null };
         return;
       }
-      if (inputFileChanged(base, next)) {
-        const sourceChanged = !!next?.sourceFile && next.sourceFile !== base.sourceFile;
+      if (sourceFileChanged(base, next)) {
         baseRef.current = ensureXmlCiiBranchSelectionState({
           ...next,
           branchScope: null,
-          branchSelection: sourceChanged ? {} : base.branchSelection,
+          branchSelection: {},
+        });
+        return;
+      }
+      if (stagedFileChanged(base, next)) {
+        baseRef.current = ensureXmlCiiBranchSelectionState({
+          ...next,
+          sourceText: base.sourceText,
+          sourceFile: base.sourceFile,
+          branchScope: null,
+          branchSelection: base.branchSelection,
+          sourceNameOverride: base.sourceNameOverride,
         });
         return;
       }
