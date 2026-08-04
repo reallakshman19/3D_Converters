@@ -27,7 +27,7 @@ import {
 function installReviewHost(wrap) {
   const details = document.createElement('details');
   details.dataset.fbxZoneReviewPanels = 'true';
-  details.style.cssText = 'width:100%;border:1px solid #2b3d55;border-radius:8px;background:#0d1623;box-sizing:border-box;';
+  details.style.cssText = 'grid-column:1 / -1;width:100%;border:1px solid #2b3d55;border-radius:8px;background:#0d1623;box-sizing:border-box;';
   details.innerHTML = `
     <summary style="cursor:pointer;padding:9px 10px;color:#9cc5ff;font-size:12px;font-weight:700;user-select:none;">
       Detailed fitting, connectivity and generated-component evidence
