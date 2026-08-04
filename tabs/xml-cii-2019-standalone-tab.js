@@ -1,4 +1,4 @@
-import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-atta-default.js?v=20260803-atta-default-rest-closure-1';
+import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-strict-line.js?v=20260804-strict-line-authority-v2';
 
 
 export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
@@ -11,9 +11,7 @@ export function ensureXmlCiiStandaloneStylesheet() {
   const existing = document.querySelector('link[data-xml-cii-standalone-style="true"]');
   const href = './tabs/xml-cii-2019-standalone-tab.css?v=20260708-layout-v8';
   if (existing) {
-    if (existing.getAttribute('href') !== href) {
-      existing.setAttribute('href', href);
-    }
+    if (existing.getAttribute('href') !== href) existing.setAttribute('href', href);
     return;
   }
   const link = document.createElement('link');
