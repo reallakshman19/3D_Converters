@@ -48,16 +48,29 @@ for (const dependency of [
   'zone-toolbar.js',
 ]) assert.equal(wrapper.includes(`${dependency}?v=${key}`), true, `wrapper lacks live ${dependency}`);
 
-const calls = [
+assert.equal(
+  wrapper.includes('import { renderModelConvertersTab as renderBaseModelConvertersTab }'),
+  false,
+  'base renderer must not be statically imported before the FBX input contract is installed',
+);
+const installerFragments = [
   'installFbxReviewUiAddon();',
   'installFbxLiveRunnerAddon();',
   'installFbxPreviewZoneSelector(container);',
   'installFbxSelectedZonePreviewBridge();',
   'installFbxZoneGeometryToolbar(container);',
-  'renderBaseModelConvertersTab(container, ctx);',
-].map((fragment) => wrapper.indexOf(fragment));
-assert.equal(calls.every((index) => index >= 0), true, 'live installer call is missing');
-assert.deepEqual([...calls].sort((a, b) => a - b), calls, 'live installers are out of order');
+];
+const installerIndexes = installerFragments.map((fragment) => wrapper.indexOf(fragment));
+const dynamicImportIndex = wrapper.indexOf(`import('./ModelConvertersTab.js?v=${key}')`);
+const renderIndex = wrapper.indexOf('renderBaseModelConvertersTab(container, ctx)');
+assert.equal(installerIndexes.every((index) => index >= 0), true, 'live installer call is missing');
+assert.deepEqual(
+  [...installerIndexes].sort((a, b) => a - b),
+  installerIndexes,
+  'live installers are out of order',
+);
+assert.ok(dynamicImportIndex > installerIndexes.at(-1), 'legacy/base module loads before FBX input installation');
+assert.ok(renderIndex > dynamicImportIndex, 'base renderer invocation precedes dynamic module loading');
 
 requires('tabs/model-converters/fbx-review-ui-addon.js', 'synchronizeInput');
 requires('tabs/model-converters/fbx-review-ui-addon.js', "const SECONDARY_ACCEPT = '.fbxmap.json,.json,.JSON,.zip,.ZIP'");
