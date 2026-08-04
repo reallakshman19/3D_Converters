@@ -1,10 +1,15 @@
+import { canonicalJson } from '../canonical-json.js';
 import { parseFbxGeometryBundleInWorker } from '../geometry-transport.js';
 import { analyseFbxZoneGeometry } from './analyse-zone.js?v=20260729-fbx2-direct-pipe-1';
 import { createZoneAnalysisController } from './analysis-controller.js';
 import { downloadZoneArtifact } from './zone-artifact-actions.js';
 import { installMappedStageCapture } from './mapped-stage-capture.js';
 import { mappedStageStatusText } from './mapped-stage-output.js';
-import { buildFbxAutoPipeOutputName } from './zone-downloads.js';
+import { scopeMappedStagedBranches } from './mapped-stage-scope.js';
+import {
+  buildFbxAutoPipeOutputName,
+  buildFbxSelectedZoneReleaseOutputName,
+} from './zone-downloads.js';
 import { bindZoneReviewDownloads, installZoneReviewPanels, renderZoneReviewPanels,
   updateZoneReviewDownloads } from './zone-review-panels.js';
 import { buildFbxZoneWireframeMetaText } from './wireframe-preview.js';
@@ -32,12 +37,19 @@ function dispatchAutoPipe(controller, detail = {}) {
 
 function controlsHtml() {
   return `
-    <button type="button" data-fbx-zone-geometry-analyse class="model-converters-download-btn" disabled>Analyse zone geometry</button>
-    <button type="button" data-fbx-zone-geometry-download class="model-converters-download-btn" disabled>Download zone geometry evidence</button>
-    <button type="button" data-fbx-derived-port-download class="model-converters-download-btn" disabled>Download derived port evidence</button>
-    <button type="button" data-fbx-internal-pipe-download class="model-converters-download-btn" disabled>Download PIPE inference evidence</button>
-    <span data-fbx-zone-geometry-status style="color:#9aa8ba;"></span>
-    <span data-fbx-derived-port-disclaimer style="color:#d4b36a;">PIPE-only StagedJSON requires complete deterministic classification and connectivity.</span>`;
+    <section data-fbx-zone-analysis-panel style="display:grid;gap:8px;width:100%;padding:10px;border:1px solid #2f4562;border-radius:8px;background:#101a29;box-sizing:border-box;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <strong style="color:#d7e6ff;font-size:12px;">Geometry &amp; topology analysis</strong>
+        <span data-fbx-zone-geometry-status style="color:#9aa8ba;font-size:11px;"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button type="button" data-fbx-zone-geometry-analyse class="model-converters-run-btn" disabled>Analyze geometry</button>
+        <button type="button" data-fbx-zone-geometry-download class="model-converters-download-btn" disabled title="Download selected-zone geometry evidence">Zone geometry</button>
+        <button type="button" data-fbx-derived-port-download class="model-converters-download-btn" disabled title="Download derived port evidence">Derived ports</button>
+        <button type="button" data-fbx-internal-pipe-download class="model-converters-download-btn" disabled title="Download PIPE-only inference evidence">PIPE inference</button>
+      </div>
+      <span data-fbx-derived-port-disclaimer style="color:#d4b36a;font-size:11px;line-height:1.4;">Complete StagedJSON requires approved mapped data; PIPE inference remains diagnostic.</span>
+    </section>`;
 }
 
 function selectedZone(controller) {
@@ -57,13 +69,20 @@ function updateAvailability(controller) {
   updateZoneReviewDownloads(controller.reviewPanels, state, complete);
 }
 
+function completeReleaseMessage(controller, state) {
+  if (state.phase !== 'complete') return mappedStageStatusText(controller.runInput?.mappedStageStatus);
+  if (controller.runInput?.mappedStageStatus === 'MAPPED_STAGE_AVAILABLE') {
+    return 'Complete selected-zone StagedJSON preserves approved PIPE, ELBOW, TEE, REDUCER, FLANGE, VALVE and other mapped families.';
+  }
+  if (state.autoPipeStatus === 'STAGEDJSON_PASS') {
+    return 'Only PIPE inference is available; this is diagnostic and is not a complete multi-family StagedJSON release.';
+  }
+  return `Geometry evidence is available; StagedJSON remains blocked by ${state.autoPipeStatus}.`;
+}
+
 function renderAnalysisState(controller, state) {
   controller.status.textContent = state.message || '';
-  controller.disclaimer.textContent = state.autoPipeStatus === 'STAGEDJSON_PASS'
-    ? 'PIPE-only internal authority passed; selected-zone StagedJSON is available.'
-    : state.phase === 'complete'
-      ? `Geometry wireframe/evidence is available; StagedJSON remains blocked by ${state.autoPipeStatus}.`
-      : mappedStageStatusText(controller.runInput?.mappedStageStatus);
+  controller.disclaimer.textContent = completeReleaseMessage(controller, state);
   renderZoneReviewPanels(controller.reviewPanels, state.result);
   updateAvailability(controller);
 }
@@ -120,7 +139,7 @@ export function isFbxPrimaryInputChange(event) {
   const target = event?.target;
   if (inputType(target) !== 'file') return false;
   const name = String(target?.files?.[0]?.name || '');
-  return acceptsFbx(target) || /\.fbx$/i.test(name);
+  return acceptsFbx(target) || /\.fbx$/i.test(name) || /\.zip$/i.test(name);
 }
 
 export function invalidateFbxZoneGeometryInput(controller) {
@@ -143,18 +162,64 @@ function handlePrimaryInputChange(container) {
   invalidateFbxZoneGeometryInput(CONTROLLERS.get(container));
 }
 
+function mappedAnalysisRelease(controller, result) {
+  const runInput = controller.runInput;
+  if (runInput?.mappedStageStatus !== 'MAPPED_STAGE_AVAILABLE') return null;
+  if (!Array.isArray(runInput.stagedBranches)) {
+    throw new Error('BLOCKED_MANAGED_MULTI_FAMILY_RELEASE mapped StagedJSON is unavailable.');
+  }
+  const branches = scopeMappedStagedBranches(runInput.stagedBranches, result.zoneGeometryEvidence);
+  if (!branches.length) {
+    throw new Error('BLOCKED_MANAGED_MULTI_FAMILY_RELEASE selected zone has no mapped components.');
+  }
+  return {
+    authority: 'APPROVED_MANAGED_STAGE',
+    status: 'MANAGED_MULTI_FAMILY_STAGEDJSON_PASS',
+    branches,
+    text: canonicalJson(branches),
+  };
+}
+
+function pipeOnlyAnalysisRelease(result) {
+  if (result?.autoPipe?.status !== 'STAGEDJSON_PASS' || !result.autoPipe.stagedJsonText) return null;
+  const branches = JSON.parse(result.autoPipe.stagedJsonText);
+  return {
+    authority: 'INTERNAL_PIPE_ONLY',
+    status: 'PIPE_ONLY_STAGEDJSON_PASS',
+    branches,
+    text: result.autoPipe.stagedJsonText,
+  };
+}
+
+function analysisRelease(controller, result) {
+  if (controller.runInput?.mappedStageStatus === 'MAPPED_STAGE_AVAILABLE') {
+    return mappedAnalysisRelease(controller, result);
+  }
+  return pipeOnlyAnalysisRelease(result);
+}
+
 function publishAnalysisOutput(controller, selection, result) {
-  if (result?.autoPipe?.status !== 'STAGEDJSON_PASS') {
+  let release;
+  try {
+    release = analysisRelease(controller, result);
+  } catch (error) {
+    controller.status.textContent = error?.message || String(error);
     dispatchAutoPipe(controller, { conversionStatus: '', zoneId: selection.zoneId });
     return;
   }
+  if (!release) {
+    dispatchAutoPipe(controller, { conversionStatus: '', zoneId: selection.zoneId });
+    return;
+  }
+  const outputName = release.authority === 'APPROVED_MANAGED_STAGE'
+    ? buildFbxSelectedZoneReleaseOutputName(controller.runInput?.sourceName, selection.zoneLabel)
+    : buildFbxAutoPipeOutputName(controller.runInput?.sourceName, selection.zoneLabel);
   dispatchAutoPipe(controller, {
     conversionStatus: 'STAGEDJSON_PASS',
     zoneId: selection.zoneId,
-    outputs: [{
-      name: buildFbxAutoPipeOutputName(controller.runInput?.sourceName, selection.zoneLabel),
-      text: result.autoPipe.stagedJsonText,
-    }],
+    authority: release.authority,
+    releaseStatus: release.status,
+    outputs: [{ name: outputName, text: release.text }],
   });
 }
 
