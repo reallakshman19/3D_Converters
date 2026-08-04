@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "uxml-topology-v1",
+  "profile": "UXML-TOPOLOGY-FULL",
+  "header": {"modelId": "DIRECT-EXACT", "createdAt": "2026-07-22T00:00:00Z"},
+  "sources": [{"id": "SRC-1", "format": "UXML", "name": "direct-exact.json", "path": "fixture", "role": "PRIMARY", "hash": "fixture"}],
+  "mappings": [],
+  "units": {"coordinates": "MM", "bore": "MM", "length": "MM", "weight": "KG", "pressure": "kPa", "temperature": "C", "rotation": "DEGREES"},
+  "pipelines": [{"id": "PL-1", "pipelineRef": "L-100", "lineKey": "L-100", "lineNo": "L-100", "attributes": {}}],
+  "components": [
+    {"id": "C1", "sourceRefs": ["SRC-1"], "type": "PIPE", "normalizedType": "PIPE", "pipelineRef": "PL-1", "lineKey": "L-100", "anchorIds": ["A-C1-EP1", "A-C1-EP2"], "portIds": ["P-C1-PIPE_END_1", "P-C1-PIPE_END_2"], "segmentIds": ["S-C1-001"], "rawAttributes": {"outsideDiameterMm": 114.3, "wallThicknessMm": 6.02}, "normalized": {}, "derived": {}, "confidence": "EXACT_SOURCE"},
+    {"id": "C2", "sourceRefs": ["SRC-1"], "type": "PIPE", "normalizedType": "PIPE", "pipelineRef": "PL-1", "lineKey": "L-100", "anchorIds": ["A-C2-EP1", "A-C2-EP2"], "portIds": ["P-C2-PIPE_END_1", "P-C2-PIPE_END_2"], "segmentIds": ["S-C2-001"], "rawAttributes": {"outsideDiameterMm": 114.3, "wallThicknessMm": 6.02}, "normalized": {}, "derived": {}, "confidence": "EXACT_SOURCE"}
+  ],
+  "anchors": [
+    {"id": "A-C1-EP1", "componentId": "C1", "role": "EP1", "point": {"x": 0, "y": 0, "z": 0}, "sourceField": "EP1", "confidence": "EXACT_SOURCE", "nodeNumber": 100},
+    {"id": "A-C1-EP2", "componentId": "C1", "role": "EP2", "point": {"x": 1000, "y": 0, "z": 0}, "sourceField": "EP2", "confidence": "EXACT_SOURCE", "nodeNumber": 200},
+    {"id": "A-C2-EP1", "componentId": "C2", "role": "EP1", "point": {"x": 1000, "y": 0, "z": 0}, "sourceField": "EP1", "confidence": "EXACT_SOURCE", "nodeNumber": 200},
+    {"id": "A-C2-EP2", "componentId": "C2", "role": "EP2", "point": {"x": 2000, "y": 0, "z": 0}, "sourceField": "EP2", "confidence": "EXACT_SOURCE", "nodeNumber": 300}
+  ],
+  "ports": [
+    {"id": "P-C1-PIPE_END_1", "componentId": "C1", "anchorId": "A-C1-EP1", "role": "PIPE_END_1", "point": {"x": 0, "y": 0, "z": 0}, "bore": 100, "fixed": false, "futureMovable": true, "mutableNow": false, "connectsTo": "ENDPOINT", "maxDegree": 1},
+    {"id": "P-C1-PIPE_END_2", "componentId": "C1", "anchorId": "A-C1-EP2", "role": "PIPE_END_2", "point": {"x": 1000, "y": 0, "z": 0}, "bore": 100, "fixed": false, "futureMovable": true, "mutableNow": false, "connectsTo": "ENDPOINT", "maxDegree": 1},
+    {"id": "P-C2-PIPE_END_1", "componentId": "C2", "anchorId": "A-C2-EP1", "role": "PIPE_END_1", "point": {"x": 1000, "y": 0, "z": 0}, "bore": 100, "fixed": false, "futureMovable": true, "mutableNow": false, "connectsTo": "ENDPOINT", "maxDegree": 1},
+    {"id": "P-C2-PIPE_END_2", "componentId": "C2", "anchorId": "A-C2-EP2", "role": "PIPE_END_2", "point": {"x": 2000, "y": 0, "z": 0}, "bore": 100, "fixed": false, "futureMovable": true, "mutableNow": false, "connectsTo": "ENDPOINT", "maxDegree": 1}
+  ],
+  "segments": [
+    {"id": "S-C1-001", "componentId": "C1", "type": "PIPE_RUN", "startAnchorId": "A-C1-EP1", "endAnchorId": "A-C1-EP2", "supportAnchorId": "", "bore": 100, "branchBore": null, "metadata": {}},
+    {"id": "S-C2-001", "componentId": "C2", "type": "PIPE_RUN", "startAnchorId": "A-C2-EP1", "endAnchorId": "A-C2-EP2", "supportAnchorId": "", "bore": 100, "branchBore": null, "metadata": {}}
+  ],
+  "supports": [],
+  "topologyHints": [
+    {"id": "TH-N1", "hintType": "EXACT_LOGICAL_NODE", "sourceConfidence": "EXACT_SOURCE", "logicalNodeId": "N1", "sourcePortIds": ["P-C1-PIPE_END_1"], "lineId": "L-100", "evidenceReferences": ["source:N1"]},
+    {"id": "TH-N2", "hintType": "EXACT_LOGICAL_NODE", "sourceConfidence": "EXACT_SOURCE", "logicalNodeId": "N2", "sourcePortIds": ["P-C1-PIPE_END_2", "P-C2-PIPE_END_1"], "lineId": "L-100", "evidenceReferences": ["source:N2"]},
+    {"id": "TH-N3", "hintType": "EXACT_LOGICAL_NODE", "sourceConfidence": "EXACT_SOURCE", "logicalNodeId": "N3", "sourcePortIds": ["P-C2-PIPE_END_2"], "lineId": "L-100", "evidenceReferences": ["source:N3"]},
+    {"id": "TH-C12", "hintType": "EXACT_PORT_CONNECTION", "sourceConfidence": "EXACT_SOURCE", "sourcePortId": "P-C1-PIPE_END_2", "targetPortId": "P-C2-PIPE_END_1", "reconciliation": "UNDIRECTED_EXACT", "evidenceReferences": ["source:C12"]}
+  ],
+  "rayEvidence": [],
+  "lossContract": [],
+  "diagnostics": [],
+  "metadata": {}
+}
