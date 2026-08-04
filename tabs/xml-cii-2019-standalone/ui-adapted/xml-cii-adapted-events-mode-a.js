@@ -2,6 +2,7 @@ import { bindAdaptedWorkflowEvents as bindSmartWorkflowEvents } from './xml-cii-
 import { downloadTextFile } from './xml-cii-adapted-dom.js?v=20260804-mode-a-v1';
 import { activateModeASource, normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
 import {
+  clearModeASourceCaches,
   importModeASources,
   removeModeASource,
   replaceModeAState,
@@ -46,6 +47,7 @@ function installMultipleSourceCapture(container, stateRef, render) {
       const { rows, rejected } = await sourceRows(files, stateRef.current);
       const imported = importModeASources(stateRef.current, rows);
       const batch = imported.state.sourceBatch || {};
+      clearModeASourceCaches();
       replaceModeAState(stateRef, {
         ...imported.state,
         sourceKind: 'xml',
@@ -62,6 +64,7 @@ function installMultipleSourceCapture(container, stateRef, render) {
 function bindInventoryActions(container, stateRef, render) {
   container.querySelectorAll('[data-mode-a-action="activate"]').forEach((control) => {
     control.addEventListener('click', () => {
+      clearModeASourceCaches();
       replaceModeAState(stateRef, activateModeASource(stateRef.current, control.dataset.modeASourceId));
       render();
     });
@@ -74,6 +77,7 @@ function bindInventoryActions(container, stateRef, render) {
   });
   container.querySelectorAll('[data-mode-a-action="remove"]').forEach((control) => {
     control.addEventListener('click', () => {
+      clearModeASourceCaches();
       replaceModeAState(stateRef, removeModeASource(stateRef.current, control.dataset.modeASourceId));
       render();
     });
