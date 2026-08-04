@@ -7,7 +7,6 @@ import {
 const root = new URL('../../', import.meta.url);
 const key = '20260804-fbx-multifamily-release-1';
 const obsoleteKeys = [
-  '20260729-fbx2-direct-pipe-1',
   '20260802-fbx-live-ui-3',
   '20260804-fbx-secondary-preview-1',
 ];
@@ -116,7 +115,6 @@ requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', '
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'buildFbxZoneWireframeMetaText');
 
 for (const path of paths) {
-  if (path === 'tabs/model-converters/fbx-review-ui-addon.js') continue;
   for (const obsolete of obsoleteKeys) {
     assert.equal(files[path].includes(obsolete), false, `${path} still exposes obsolete cache key ${obsolete}`);
   }
