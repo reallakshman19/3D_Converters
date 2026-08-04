@@ -4,8 +4,8 @@ import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope
 import {
   extendXmlCiiBranchScopeReadiness,
   prependXmlCiiBranchScopeBanner,
-  renderXmlCiiBranchSelectionPanel,
 } from './xml-cii-adapted-branch-scope.js?v=20260804-branch-scope-v1';
+import { renderXmlCiiBranchSelectionPanelV2 } from './xml-cii-adapted-branch-scope-panel-v2.js?v=20260804-branch-scope-v1';
 
 function phaseCard(root, phaseId) {
   return root.querySelector?.(`[data-active-phase="${phaseId}"]`) || root;
@@ -34,7 +34,7 @@ export function renderActivePhase(root, stateRef, render) {
   const card = phaseCard(root, phaseId);
   if (phaseId === 'source' && (stateRef.current.activeSubTabId || 'loader') === 'loader') {
     const workspace = card.querySelector?.('.xml-cii-sub-workspace') || card;
-    renderXmlCiiBranchSelectionPanel(workspace, stateRef, render);
+    renderXmlCiiBranchSelectionPanelV2(workspace, stateRef, render);
     return;
   }
   prependXmlCiiBranchScopeBanner(card, stateRef, render);
