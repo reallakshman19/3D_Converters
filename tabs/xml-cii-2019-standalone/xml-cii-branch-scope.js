@@ -4,8 +4,12 @@ function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
 
+function canonicalBranchName(value) {
+  return text(value).replace(/\/B0*(\d+)$/i, (_match, digits) => `/B${Number(digits)}`);
+}
+
 function normalize(value) {
-  return text(value).toUpperCase();
+  return canonicalBranchName(value).toUpperCase();
 }
 
 function localName(node) {
@@ -23,7 +27,7 @@ function childText(parent, name) {
 }
 
 export function xmlCiiBranchGroupName(branchName) {
-  return text(branchName).replace(BRANCH_SUFFIX, '');
+  return canonicalBranchName(branchName).replace(BRANCH_SUFFIX, '');
 }
 
 export function xmlCiiSourceDigest(value) {
@@ -91,14 +95,19 @@ function orderedSelection(sourceBranches, selectedBranchNames) {
   return sourceBranches.filter((name) => selected.has(normalize(name)));
 }
 
-function selectedRoots(branchNames) {
-  return new Set(branchNames.map((name) => normalize(xmlCiiBranchGroupName(name))).filter(Boolean));
+function stagedSelection(branchNames) {
+  return {
+    exact: new Set(branchNames.map(normalize).filter(Boolean)),
+    roots: new Set(branchNames.map((name) => normalize(xmlCiiBranchGroupName(name))).filter(Boolean)),
+  };
 }
 
-function branchCompatible(branchName, roots) {
+function branchCompatible(branchName, selection) {
   const normalized = normalize(branchName);
+  if (!normalized) return true;
+  if (BRANCH_SUFFIX.test(canonicalBranchName(branchName))) return selection.exact.has(normalized);
   const root = normalize(xmlCiiBranchGroupName(branchName));
-  return roots.has(normalized) || roots.has(root);
+  return selection.roots.has(normalized) || selection.roots.has(root);
 }
 
 function filterXmlWithDom(source, selectedSet) {
@@ -123,16 +132,16 @@ function filterXmlWithText(source, selectedSet) {
   });
 }
 
-function filterStagedValue(value, roots) {
-  if (Array.isArray(value)) return value.map((item) => filterStagedValue(item, roots)).filter((item) => item !== null);
+function filterStagedValue(value, selection) {
+  if (Array.isArray(value)) return value.map((item) => filterStagedValue(item, selection)).filter((item) => item !== null);
   if (!value || typeof value !== 'object') return value;
   const type = normalize(value.type || value.TYPE || value.kind || value.KIND);
   const attrs = value.attributes && typeof value.attributes === 'object' ? value.attributes : {};
   const branchName = text(value.name || value.NAME || attrs.BRANCH || attrs.BRANCHNAME || attrs.LINE_ID);
-  if (type === 'BRANCH' && branchName && !branchCompatible(branchName, roots)) return null;
+  if (type === 'BRANCH' && branchName && !branchCompatible(branchName, selection)) return null;
   const out = { ...value };
   for (const key of ['children', 'items', 'branches']) {
-    if (Array.isArray(value[key])) out[key] = filterStagedValue(value[key], roots);
+    if (Array.isArray(value[key])) out[key] = filterStagedValue(value[key], selection);
   }
   return out;
 }
@@ -142,7 +151,7 @@ export function filterXmlCiiStagedJsonByBranches(stagedJsonText, selectedBranchN
   if (!source) return '';
   try {
     const parsed = JSON.parse(source);
-    return JSON.stringify(filterStagedValue(parsed, selectedRoots(selectedBranchNames)));
+    return JSON.stringify(filterStagedValue(parsed, stagedSelection(selectedBranchNames)));
   } catch {
     return source;
   }
@@ -170,10 +179,10 @@ export function buildSelectedBranchScope({ sourceText = '', stagedJsonText = '',
   const selected = Array.isArray(selectedBranchNames)
     ? orderedSelection(sourceBranches, selectedBranchNames)
     : [...sourceBranches];
-  const excluded = sourceBranches.filter((name) => !new Set(selected.map(normalize)).has(normalize(name)));
+  const selectedSet = new Set(selected.map(normalize));
+  const excluded = sourceBranches.filter((name) => !selectedSet.has(normalize(name)));
   const allSelected = selected.length === sourceBranches.length;
   const blocked = applicable && selected.length === 0;
-  const selectedSet = new Set(selected.map(normalize));
   const filteredSourceText = !applicable || allSelected
     ? source
     : (blocked ? '' : (filterXmlWithDom(source, selectedSet) || filterXmlWithText(source, selectedSet)));
