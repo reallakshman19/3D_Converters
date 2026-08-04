@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20260802-fbx-live-ui-3');
+  const module = await import('./core/app.js?v=20260804-fbx-secondary-preview-1');
   await module.init(startupMount());
 }
 

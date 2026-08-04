@@ -9,7 +9,7 @@
  * ConverterRunner) are available here for convenience.
  */
 
-export { renderModelConvertersTab } from './ModelConvertersTab-fbx2-managed-reference.js?v=20260802-fbx-live-ui-3';
+export { renderModelConvertersTab } from './ModelConvertersTab-fbx2-managed-reference.js?v=20260804-fbx-secondary-preview-1';
 
 // Re-export reusable module surfaces so external consumers have one import target.
 export { XML_CII_WORKFLOW_PHASES, normalizeWorkflowPhaseId, getWorkflowPhase } from './WorkflowShell.js';
