@@ -25,6 +25,7 @@ const paths = [
   'tabs/model-converters/fbx-preview-zone-selector.js',
   'tabs/model-converters/fbx-staged-json-zone-export.js',
   'tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-output.js',
+  'tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-capture.js',
   'tabs/model-converters/converters/fbx/zone-geometry/zone-downloads.js',
   'tabs/model-converters/converters/fbx/zone-geometry/zone-review-panels.js',
   'tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js',
@@ -106,11 +107,14 @@ requires('tabs/model-converters/fbx-preview-zone-selector.js', 'INTERNAL_PIPE_ON
 requires('tabs/model-converters/fbx-staged-json-zone-export.js', 'generationProvenance');
 requires('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-output.js', 'STAGEDJSON_SELECTED_ZONE_PASS');
 requires('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-output.js', '/\\.selected-zone\\.json$/i');
+requires('tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-capture.js', 'mappedStageAuthority: mapped.authority');
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-downloads.js', 'pipe-only-inference.staged.json');
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-review-panels.js', 'Detailed fitting, connectivity and generated-component evidence');
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'Geometry &amp; topology analysis');
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'Analyze geometry');
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'mappedAnalysisRelease');
+requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'buildFbxStagedJsonZoneExport');
+requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'mappedStageAuthority');
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'PIPE inference');
 requires('tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js', 'buildFbxZoneWireframeMetaText');
 
