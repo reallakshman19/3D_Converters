@@ -1,7 +1,7 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260802-fbx2-managed-reference-1';
+import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260804-fbx-secondary-preview-1';
 import { canonicalJson } from './converters/fbx/canonical-json.js';
-import { resolveBrowserFbxPrimary } from './converters/fbx/fbx2-browser-inputs.js?v=20260802-fbx2-managed-reference-1';
+import { resolveBrowserFbxPrimary } from './converters/fbx/fbx2-browser-inputs.js?v=20260804-fbx-secondary-preview-1';
 import { buildMappingWorklist } from './converters/fbx/mapping-worklist.js';
 import { buildReviewBundle } from './converters/fbx/mapping-review-bundle.js';
 import { parseFbxInWorker } from './converters/fbx/parser-client.js';
@@ -10,7 +10,12 @@ import { reviewShardCsv } from './converters/fbx/review-execution/review-csv.js'
 
 export const FBX_CONVERT_OPERATION = 'Convert with approved mapping';
 export const FBX_REVIEW_OPERATION = 'Create mapping review bundle';
+export const FBX_REVIEW_UI_VERSION = '20260804-fbx-secondary-preview-1';
 const DEFAULT_REVIEW_SHARD_SIZE = 500;
+const PRIMARY_ACCEPT = '.fbx,.FBX,.zip,.ZIP';
+const SECONDARY_ACCEPT = '.fbxmap.json,.json,.JSON,.zip,.ZIP';
+const PRIMARY_LABEL = 'FBX Input or governed FBX2 source ZIP';
+const SECONDARY_LABEL = 'Mapping JSON or managed-stage JSON/ZIP (optional)';
 
 function findInput(context, role) {
   return context.inputFiles?.find((file) => file.role === role);
@@ -128,16 +133,33 @@ function appendReviewOptions(converter) {
     },
   ];
 }
-function configureManagedReferenceInputs(converter) {
-  converter.primaryAccept = '.fbx,.FBX,.zip,.ZIP';
-  converter.primaryLabel = 'FBX Input or governed FBX2 source ZIP';
-  converter.secondaryLabel = 'Mapping JSON or managed-stage JSON/ZIP (optional)';
-  converter.secondaryAccept = '.fbxmap.json,.json,.JSON,.zip,.ZIP';
+
+function synchronizeInput(converter, role, label, accept, required) {
+  const inputs = Array.isArray(converter.inputs) ? converter.inputs : [];
+  let input = inputs.find((entry) => entry?.role === role);
+  if (!input) {
+    input = { role };
+    inputs.push(input);
+  }
+  input.label = label;
+  input.accept = accept;
+  input.required = required;
+  converter.inputs = inputs;
+}
+
+export function configureManagedReferenceInputs(converter) {
+  converter.primaryAccept = PRIMARY_ACCEPT;
+  converter.primaryLabel = PRIMARY_LABEL;
+  converter.secondaryLabel = SECONDARY_LABEL;
+  converter.secondaryAccept = SECONDARY_ACCEPT;
+  synchronizeInput(converter, 'primary', PRIMARY_LABEL, PRIMARY_ACCEPT, true);
+  synchronizeInput(converter, 'secondary', SECONDARY_LABEL, SECONDARY_ACCEPT, false);
+  return converter;
 }
 
 export function installFbxReviewUiAddon() {
   const converter = getConverterById('fbx_to_stagedjson');
-  if (!converter || converter.__fbxReviewUiAddonInstalled === '20260802-fbx2-managed-reference-1') {
+  if (!converter || converter.__fbxReviewUiAddonInstalled === FBX_REVIEW_UI_VERSION) {
     return false;
   }
   converter.defaults = {
@@ -150,6 +172,6 @@ export function installFbxReviewUiAddon() {
   configureManagedReferenceInputs(converter);
   converter.description = 'Convert FBX with mapping JSON, or reconcile a managed-stage JSON/ZIP against an explicit zone. The exact governed FBX2 ZIP pair is identity-bound to /GLRD-1000-CU-PI-P. Mapping review bundles remain non-authoritative.';
   converter.run = (context = {}) => runFbxWithReviewUi(context, runBaseFbxToStagedJson);
-  converter.__fbxReviewUiAddonInstalled = '20260802-fbx2-managed-reference-1';
+  converter.__fbxReviewUiAddonInstalled = FBX_REVIEW_UI_VERSION;
   return true;
 }
