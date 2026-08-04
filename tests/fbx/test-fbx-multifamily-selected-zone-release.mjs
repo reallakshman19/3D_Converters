@@ -92,13 +92,15 @@ const managed = [{
     child('PIPE','occ:10',{ APOS:point(5), LPOS:point(99) }),
   ],
 }];
-const context = {
-  inputFiles:[
-    { role:'primary', name:'sample.fbx', bytes:new Uint8Array([1,2,3]) },
-    { role:'secondary', name:'sample_managed_stage.json',
-      bytes:new TextEncoder().encode(JSON.stringify(managed)) },
-  ],
-};
+function contextFor(stage, name = 'sample_managed_stage.json') {
+  return {
+    inputFiles:[
+      { role:'primary', name:'sample.fbx', bytes:new Uint8Array([1,2,3]) },
+      { role:'secondary', name, bytes:new TextEncoder().encode(JSON.stringify(stage)) },
+    ],
+  };
+}
+const context = contextFor(managed);
 const result = {
   ok:true, blocked:false, conversionStatus:'STAGEDJSON_SELECTED_ZONE_PASS',
   outputs:[
@@ -123,19 +125,23 @@ assert.deepEqual(summary.familyCounts, {
   ELBOW:1, FLANGE:1, PIPE:2, TEE:1, VALVE:1,
 });
 
-const emptyContext = {
-  ...context,
-  inputFiles:[context.inputFiles[0], {
-    role:'secondary', name:'empty_managed_stage.json',
-    bytes:new TextEncoder().encode(JSON.stringify([{
-      type:'BRANCH', id:'B2', name:'B2', attributes:{ REF:'B2' },
-      children:[child('PIPE','occ:10')],
-    }])),
-  }],
-};
-const blocked = await promoteManagedMultiFamilyResult(emptyContext, result);
+const emptyStage = [{
+  type:'BRANCH', id:'B2', name:'B2', attributes:{ REF:'B2' },
+  children:[child('PIPE','occ:10')],
+}];
+const blocked = await promoteManagedMultiFamilyResult(
+  contextFor(emptyStage, 'empty_managed_stage.json'), result);
 assert.equal(blocked.conversionStatus, BLOCKED_MANAGED_MULTI_FAMILY_RELEASE);
 assert.equal(blocked.blocked, true);
 assert.equal(blocked.outputs.some((item) => /selected-zone\.json$/.test(item.name)), false);
+
+const nonContiguousStage = [{
+  type:'BRANCH', id:'B3', name:'B3', attributes:{ REF:'B3' },
+  children:[child('PIPE','occ:5'), child('PIPE','occ:10'), child('ELBO','occ:6')],
+}];
+const nonContiguous = await promoteManagedMultiFamilyResult(
+  contextFor(nonContiguousStage, 'noncontiguous_managed_stage.json'), result);
+assert.equal(nonContiguous.conversionStatus, BLOCKED_MANAGED_MULTI_FAMILY_RELEASE);
+assert.match(nonContiguous.logs.stderr.join('\n'), /non-contiguous selected-zone components/);
 
 console.log('test-fbx-multifamily-selected-zone-release: PASS');
