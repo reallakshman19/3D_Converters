@@ -45,27 +45,28 @@ function child(type, occurrenceId, extra = {}) {
   };
 }
 
+const modelIds = ['5','6','7','8','9','10'];
+const geometryIds = ['15','16','17','18','19','20'];
 const graph = enforceSourceGraphPolicy({
   schema:'FbxSourceGraph.v2', file:{ version:7500, ascii:false, creator:'test' },
   documentMetadata:{ originalApplication:'test', latestApplication:'test' },
   globalSettings:{ unitMeters:1, axes:{ right:1, up:2, front:-3 } },
   sourceObjects:[
     source('1','Scene'), source('2','Project'), source('3','Zone A'), source('4','Zone B'),
-    source('5','Pipe','Mesh',true), source('6','Elbow','Mesh',true),
-    source('7','Tee','Mesh',true), source('8','Valve','Mesh',true),
-    source('9','Flange','Mesh',true), source('10','Other','Mesh',true),
+    ...modelIds.map((id) => source(id, `Model ${id}`, 'Mesh')),
+    ...geometryIds.map((id) => source(id, `Geometry ${id}`, 'Mesh', true)),
   ],
   occurrences:[
     occurrence('occ:1','1',null), occurrence('occ:2','2','occ:1'),
     occurrence('occ:3','3','occ:2'), occurrence('occ:4','4','occ:2'),
-    occurrence('occ:5','5','occ:3',['5']), occurrence('occ:6','6','occ:3',['6']),
-    occurrence('occ:7','7','occ:3',['7']), occurrence('occ:8','8','occ:3',['8']),
-    occurrence('occ:9','9','occ:3',['9']), occurrence('occ:10','10','occ:4',['10']),
+    occurrence('occ:5','5','occ:3',['15']), occurrence('occ:6','6','occ:3',['16']),
+    occurrence('occ:7','7','occ:3',['17']), occurrence('occ:8','8','occ:3',['18']),
+    occurrence('occ:9','9','occ:3',['19']), occurrence('occ:10','10','occ:4',['20']),
   ],
-  geometries:['5','6','7','8','9','10'].map((id) => ({
+  geometries:geometryIds.map((id, index) => ({
     geometryObjectId:id, sourceObjectId:id, kind:'MESH',
     verticesSource:[[0,0,0],[1,0,0]], verticesMm:[[0,0,0],[1,0,0]],
-    ownerOccurrenceIds:[`occ:${id}`],
+    ownerOccurrenceIds:[`occ:${modelIds[index]}`],
   })),
   hierarchyEdges:[
     ['occ:1','occ:2'], ['occ:2','occ:3'], ['occ:2','occ:4'],
@@ -112,9 +113,6 @@ assert.equal(promoted.selectedZoneRelease.authority, 'APPROVED_MANAGED_STAGE');
 const released = JSON.parse(promoted.outputs.find((item) => /selected-zone\.json$/.test(item.name)).text);
 const types = released.flatMap((branch) => branch.children.map((item) => item.type));
 assert.deepEqual(types, ['PIPE','ELBO','TEE','VALV','FLAN','PIPE']);
-assert.equal(types.includes('PIPE') && types.includes('ELBO') && types.includes('TEE'), true);
-assert.equal(types.includes('VALV') && types.includes('FLAN'), true);
-assert.equal(types.some((type) => type === 'PIPE' && types.length === 6), true);
 assert.equal(promoted.logs.stdout.includes('SELECTED_ZONE_RELEASE:MANAGED_MULTI_FAMILY'), true);
 const summary = countSelectedZoneFamilies(released);
 assert.deepEqual(summary.familyCounts, {
@@ -126,8 +124,9 @@ const emptyContext = {
   inputFiles:[context.inputFiles[0], {
     role:'secondary', name:'empty_managed_stage.json',
     bytes:new TextEncoder().encode(JSON.stringify([{
-      type:'BRANCH', id:'B2', name:'B2', attributes:{ REF:'B2' }, children:[child('PIPE','occ:10')],
-    }])) ,
+      type:'BRANCH', id:'B2', name:'B2', attributes:{ REF:'B2' },
+      children:[child('PIPE','occ:10')],
+    }])),
   }],
 };
 const blocked = await promoteManagedMultiFamilyResult(emptyContext, result);
