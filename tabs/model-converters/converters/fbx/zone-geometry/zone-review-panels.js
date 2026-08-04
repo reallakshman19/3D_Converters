@@ -24,13 +24,28 @@ import {
   setGeneratedGapPipeDownloadAvailability,
 } from '../generated-gap-pipe/review-ui.js';
 
+function installReviewHost(wrap) {
+  const details = document.createElement('details');
+  details.dataset.fbxZoneReviewPanels = 'true';
+  details.style.cssText = 'width:100%;border:1px solid #2b3d55;border-radius:8px;background:#0d1623;box-sizing:border-box;';
+  details.innerHTML = `
+    <summary style="cursor:pointer;padding:9px 10px;color:#9cc5ff;font-size:12px;font-weight:700;user-select:none;">
+      Detailed fitting, connectivity and generated-component evidence
+    </summary>
+    <div data-fbx-zone-review-panels-body style="display:grid;gap:8px;padding:0 10px 10px;"></div>`;
+  wrap.appendChild(details);
+  return { details, body: details.querySelector('[data-fbx-zone-review-panels-body]') };
+}
+
 export function installZoneReviewPanels(wrap) {
+  const host = installReviewHost(wrap);
   return Object.freeze({
-    connectivity: installConnectivityReviewUi(wrap),
-    generatedGapPipe: installGeneratedGapPipeReviewUi(wrap),
-    primaryFitting: installPrimaryFittingReviewUi(wrap),
-    branchFitting: installBranchFittingReviewUi(wrap),
-    inlineAssembly: installInlineAssemblyReviewUi(wrap),
+    host,
+    connectivity: installConnectivityReviewUi(host.body),
+    generatedGapPipe: installGeneratedGapPipeReviewUi(host.body),
+    primaryFitting: installPrimaryFittingReviewUi(host.body),
+    branchFitting: installBranchFittingReviewUi(host.body),
+    inlineAssembly: installInlineAssemblyReviewUi(host.body),
   });
 }
 
