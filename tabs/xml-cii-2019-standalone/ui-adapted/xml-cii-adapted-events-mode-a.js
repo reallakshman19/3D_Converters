@@ -110,11 +110,12 @@ function bindDownloads(container, stateRef) {
 }
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
-  installMultipleSourceCapture(container, stateRef, render);
+  const rawRef = stateRef.modeABaseRef || stateRef;
+  installMultipleSourceCapture(container, rawRef, render);
   const result = bindSmartWorkflowEvents(container, stateRef, render);
-  bindInventoryActions(container, stateRef, render);
-  replaceRunHandler(container, stateRef, render);
-  bindDownloads(container, stateRef);
+  bindInventoryActions(container, rawRef, render);
+  replaceRunHandler(container, rawRef, render);
+  bindDownloads(container, rawRef);
   return result;
 }
 
