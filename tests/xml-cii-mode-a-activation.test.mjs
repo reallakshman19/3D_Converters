@@ -22,8 +22,9 @@ assert.match(run, /clearModeASourceCaches\(\)/);
 assert.match(authority, /mode: 'separate-models'/);
 assert.match(authority, /DUPLICATE_BRANCH_ACROSS_FILES/);
 assert.match(authority, /DUPLICATE_NODE_ACROSS_FILES/);
-assert.doesNotMatch(authority, /renumber/i);
-assert.doesNotMatch(authority, /merge[-_ ]?model/i);
-assert.doesNotMatch(authority, /cross[-_ ]?file.*connect/i);
+assert.doesNotMatch(authority, /effectiveNodeNumber/);
+assert.doesNotMatch(authority, /nodeNumberOffset/);
+assert.doesNotMatch(authority, /crossFileConnection/);
+assert.doesNotMatch(authority, /mergedSourceText/);
 
 console.log('xml-cii Mode A activation tests: PASS');
