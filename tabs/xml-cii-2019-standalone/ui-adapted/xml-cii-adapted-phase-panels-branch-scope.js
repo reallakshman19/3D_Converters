@@ -1,7 +1,7 @@
 import { renderActivePhase as renderBaseActivePhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260804-branch-scope-v1';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js?v=20260804-branch-scope-v1';
+import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260804-branch-scope-v1';
 import {
-  ensureXmlCiiBranchSelectionInRef,
   extendXmlCiiBranchScopeReadiness,
   prependXmlCiiBranchScopeBanner,
   renderXmlCiiBranchSelectionPanel,
