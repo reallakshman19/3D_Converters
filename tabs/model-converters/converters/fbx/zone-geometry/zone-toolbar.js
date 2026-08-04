@@ -6,6 +6,7 @@ import { downloadZoneArtifact } from './zone-artifact-actions.js';
 import { installMappedStageCapture } from './mapped-stage-capture.js';
 import { mappedStageStatusText } from './mapped-stage-output.js';
 import { scopeMappedStagedBranches } from './mapped-stage-scope.js';
+import { buildFbxStagedJsonZoneExport } from '../../../fbx-staged-json-zone-export.js';
 import {
   buildFbxAutoPipeOutputName,
   buildFbxSelectedZoneReleaseOutputName,
@@ -162,19 +163,31 @@ function handlePrimaryInputChange(container) {
   invalidateFbxZoneGeometryInput(CONTROLLERS.get(container));
 }
 
+function mappedReleaseStatus(authority) {
+  return authority === 'APPROVED_MANAGED_STAGE'
+    ? 'MANAGED_MULTI_FAMILY_STAGEDJSON_PASS'
+    : 'MAPPED_MULTI_FAMILY_STAGEDJSON_PASS';
+}
+
 function mappedAnalysisRelease(controller, result) {
   const runInput = controller.runInput;
   if (runInput?.mappedStageStatus !== 'MAPPED_STAGE_AVAILABLE') return null;
   if (!Array.isArray(runInput.stagedBranches)) {
     throw new Error('BLOCKED_MANAGED_MULTI_FAMILY_RELEASE mapped StagedJSON is unavailable.');
   }
-  const branches = scopeMappedStagedBranches(runInput.stagedBranches, result.zoneGeometryEvidence);
-  if (!branches.length) {
+  const scoped = scopeMappedStagedBranches(runInput.stagedBranches, result.zoneGeometryEvidence);
+  if (!scoped.length) {
     throw new Error('BLOCKED_MANAGED_MULTI_FAMILY_RELEASE selected zone has no mapped components.');
   }
+  const selection = selectedZone(controller);
+  if (!selection.zoneId || !controller.graph) {
+    throw new Error('BLOCKED_MANAGED_MULTI_FAMILY_RELEASE selected-zone source authority is unavailable.');
+  }
+  const branches = buildFbxStagedJsonZoneExport(controller.graph, scoped, selection.zoneId);
+  const authority = runInput.mappedStageAuthority || 'APPROVED_MAPPING_OUTPUT';
   return {
-    authority: 'APPROVED_MANAGED_STAGE',
-    status: 'MANAGED_MULTI_FAMILY_STAGEDJSON_PASS',
+    authority,
+    status: mappedReleaseStatus(authority),
     branches,
     text: canonicalJson(branches),
   };
@@ -211,7 +224,7 @@ function publishAnalysisOutput(controller, selection, result) {
     dispatchAutoPipe(controller, { conversionStatus: '', zoneId: selection.zoneId });
     return;
   }
-  const outputName = release.authority === 'APPROVED_MANAGED_STAGE'
+  const outputName = release.authority !== 'INTERNAL_PIPE_ONLY'
     ? buildFbxSelectedZoneReleaseOutputName(controller.runInput?.sourceName, selection.zoneLabel)
     : buildFbxAutoPipeOutputName(controller.runInput?.sourceName, selection.zoneLabel);
   dispatchAutoPipe(controller, {
@@ -296,6 +309,7 @@ function startedRun(detail) {
     sourceName: detail.sourceName,
     sourceBytes: detail.sourceBytes.slice(),
     mappedStageStatus: 'MAPPED_STAGE_NOT_AVAILABLE',
+    mappedStageAuthority: null,
     stagedBranches: null,
     engineeringAttributeStatus: 'ENGINEERING_ATTRIBUTE_LEDGER_NOT_AVAILABLE',
     engineeringAttributeLedger: null,
@@ -319,6 +333,7 @@ function handleRun(container, event) {
       ...prior,
       sourceName: detail.sourceName,
       mappedStageStatus: detail.mappedStageStatus,
+      mappedStageAuthority: detail.mappedStageAuthority,
       stagedBranches: detail.stagedBranches,
       engineeringAttributeStatus: detail.engineeringAttributeStatus,
       engineeringAttributeLedger: detail.engineeringAttributeLedger,
