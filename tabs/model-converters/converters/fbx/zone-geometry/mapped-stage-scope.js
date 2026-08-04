@@ -30,9 +30,27 @@ function childInScope(child, selectedIds) {
   return sourceIds.length > 0 && sourceIds.every((id) => selectedIds.has(id));
 }
 
+function selectedRunCount(membership) {
+  let runs = 0, active = false;
+  for (const selected of membership) {
+    if (selected && !active) runs += 1;
+    active = selected;
+  }
+  return runs;
+}
+
+function branchLabel(branch) {
+  return String(branch?.id || branch?.name || branch?.attributes?.REF || '<unnamed>');
+}
+
 function scopedBranch(branch, selectedIds) {
   if (!Array.isArray(branch?.children)) fail('mapped branch children must be an array.');
-  const children = branch.children.filter((child) => childInScope(child, selectedIds))
+  const membership = branch.children.map((child) => childInScope(child, selectedIds));
+  const runs = selectedRunCount(membership);
+  if (runs > 1) {
+    fail(`branch ${branchLabel(branch)} has non-contiguous selected-zone components.`);
+  }
+  const children = branch.children.filter((_, index) => membership[index])
     .map((child) => structuredClone(child));
   if (!children.length) return null;
   return { ...structuredClone(branch), children };

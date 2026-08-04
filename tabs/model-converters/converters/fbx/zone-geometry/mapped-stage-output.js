@@ -1,5 +1,11 @@
-const STAGEDJSON_PASS = 'STAGEDJSON_PASS';
-const STAGE_FILE_PATTERN = /\.staged\.json$/i;
+const STAGEDJSON_STATUSES = new Set([
+  'STAGEDJSON_PASS',
+  'STAGEDJSON_SELECTED_ZONE_PASS',
+]);
+const STAGE_FILE_PATTERNS = Object.freeze([
+  /\.staged\.json$/i,
+  /\.selected-zone\.json$/i,
+]);
 const ENGINEERING_FILE_PATTERN = /\.FbxEngineeringAttributeLedger\.v1\.json$/i;
 
 function cloneBranches(value) {
@@ -21,10 +27,16 @@ function parseStageOutput(output) {
   }
 }
 
-function outputByPattern(result, pattern) {
-  if (result?.conversionStatus !== STAGEDJSON_PASS) return null;
+function passedStatus(result) {
+  return STAGEDJSON_STATUSES.has(String(result?.conversionStatus || ''));
+}
+
+function outputByPatterns(result, patterns) {
+  if (!passedStatus(result)) return null;
   const outputs = Array.isArray(result.outputs) ? result.outputs : [];
-  return outputs.find((output) => pattern.test(String(output?.name || ''))) || null;
+  return outputs.find((output) => patterns.some((pattern) => pattern.test(
+    String(output?.name || ''),
+  ))) || null;
 }
 
 function parseEngineeringOutput(output) {
@@ -39,13 +51,14 @@ function parseEngineeringOutput(output) {
 }
 
 export function extractMappedStagedBranches(result) {
-  const output = outputByPattern(result, STAGE_FILE_PATTERN);
+  const output = outputByPatterns(result, STAGE_FILE_PATTERNS);
   if (!output) {
     return Object.freeze({
-      status: result?.conversionStatus === STAGEDJSON_PASS
+      status: passedStatus(result)
         ? 'MAPPED_STAGE_OUTPUT_MISSING' : 'MAPPED_STAGE_NOT_AVAILABLE',
       outputName: null,
       stagedBranches: null,
+      authority: null,
     });
   }
   const stagedBranches = parseStageOutput(output);
@@ -54,20 +67,22 @@ export function extractMappedStagedBranches(result) {
       status: 'MAPPED_STAGE_OUTPUT_INVALID',
       outputName: String(output.name || ''),
       stagedBranches: null,
+      authority: null,
     });
   }
   return Object.freeze({
     status: 'MAPPED_STAGE_AVAILABLE',
     outputName: String(output.name || ''),
     stagedBranches: Object.freeze(stagedBranches),
+    authority: result?.selectedZoneRelease?.authority || 'APPROVED_MAPPING_OUTPUT',
   });
 }
 
 export function extractMappedEngineeringAttributeLedger(result) {
-  const output = outputByPattern(result, ENGINEERING_FILE_PATTERN);
+  const output = outputByPatterns(result, [ENGINEERING_FILE_PATTERN]);
   if (!output) {
     return Object.freeze({
-      status: result?.conversionStatus === STAGEDJSON_PASS
+      status: passedStatus(result)
         ? 'ENGINEERING_ATTRIBUTE_LEDGER_MISSING' : 'ENGINEERING_ATTRIBUTE_LEDGER_NOT_AVAILABLE',
       outputName: null,
       ledger: null,
@@ -90,13 +105,13 @@ export function extractMappedEngineeringAttributeLedger(result) {
 
 export function mappedStageStatusText(status) {
   if (status === 'MAPPED_STAGE_AVAILABLE') {
-    return 'Approved mapped StagedJSON is available for selected-zone component evidence review.';
+    return 'Approved mapped StagedJSON is available for selected-zone component evidence and complete multi-family release.';
   }
   if (status === 'MAPPED_STAGE_OUTPUT_INVALID') {
-    return 'Mapped StagedJSON output is invalid; selected-zone component review is blocked.';
+    return 'Mapped StagedJSON output is invalid; selected-zone component review and release are blocked.';
   }
   if (status === 'MAPPED_STAGE_OUTPUT_MISSING') {
-    return 'The mapping run passed but did not publish StagedJSON; selected-zone component review is blocked.';
+    return 'The mapping run passed but did not publish StagedJSON; selected-zone component review and release are blocked.';
   }
-  return 'Run FBX conversion with an approved mapping package to enable selected-zone component review.';
+  return 'Run FBX conversion with an approved mapping or managed-stage package to enable complete selected-zone release.';
 }

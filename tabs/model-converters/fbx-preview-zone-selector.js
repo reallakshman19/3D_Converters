@@ -18,6 +18,8 @@ const RUN_OUTPUTS = new WeakMap();
 const AUTO_PIPE_OUTPUTS = new WeakMap();
 const RUN_SELECTIONS = new WeakMap();
 const AUTO_SELECTED_GRAPHS = new WeakSet();
+const STAGEDJSON_STATUSES = new Set(['STAGEDJSON_PASS', 'STAGEDJSON_SELECTED_ZONE_PASS']);
+const STAGED_OUTPUT_PATTERNS = Object.freeze([/\.staged\.json$/i, /\.selected-zone\.json$/i]);
 function pointSummary(project) {
   const displayed = Number(project?.displayedPointCount || project?.points?.length || 0);
   const source = Number(project?.sourcePointCount || displayed);
@@ -69,6 +71,8 @@ function publishFbxRun(result) {
     detail: {
       outputs: Array.isArray(result?.outputs) ? result.outputs : [],
       conversionStatus: result?.conversionStatus || '',
+      authority: result?.selectedZoneRelease?.authority || 'APPROVED_MAPPING_OUTPUT',
+      releaseStatus: result?.selectedZoneRelease?.status || '',
     },
   }));
 }
@@ -85,15 +89,22 @@ function patchFbxConverterRunner() {
 }
 function toolbarHtml() {
   return `
-    <div data-fbx-preview-zone-wrap style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;color:#9cc5ff;font-size:12px;">
-      <label style="display:flex;align-items:center;gap:8px;">
-        <span>Preview zone</span>
-        <select data-fbx-preview-zone style="min-width:220px;max-width:100%;background:#182334;color:#e6edf5;border:1px solid #31455f;border-radius:6px;padding:5px 8px;font-size:12px;"></select>
-      </label>
-      <button type="button" data-fbx-zone-staged-download class="model-converters-download-btn" disabled>Download zone StagedJSON</button>
-      <button type="button" data-fbx-zone-source-download class="model-converters-download-btn" disabled>Download zone source graph</button>
-      <span data-fbx-preview-zone-count style="color:#9aa8ba;"></span>
-      <span data-fbx-preview-zone-status style="color:#9aa8ba;"></span>
+    <div data-fbx-preview-zone-wrap style="display:none;grid-template-columns:minmax(240px,1fr) auto;gap:10px;margin:0 0 10px;padding:10px;border:1px solid #31455f;border-radius:9px;background:#0e1827;color:#9cc5ff;font-size:12px;box-sizing:border-box;">
+      <div style="display:grid;gap:6px;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong style="color:#d7e6ff;">Selected-zone workspace</strong>
+          <span data-fbx-preview-zone-count style="color:#7f93ad;font-size:11px;"></span>
+        </div>
+        <label style="display:grid;grid-template-columns:auto minmax(180px,1fr);align-items:center;gap:8px;min-width:0;">
+          <span style="color:#9cc5ff;">Zone</span>
+          <select data-fbx-preview-zone style="width:100%;min-width:0;background:#182334;color:#e6edf5;border:1px solid #3b526f;border-radius:6px;padding:6px 8px;font-size:12px;"></select>
+        </label>
+        <span data-fbx-preview-zone-status style="color:#9aa8ba;font-size:11px;line-height:1.35;"></span>
+      </div>
+      <div style="display:flex;align-items:flex-start;justify-content:flex-end;gap:6px;flex-wrap:wrap;">
+        <button type="button" data-fbx-zone-staged-download class="model-converters-run-btn" disabled title="Download the complete authorized selected-zone StagedJSON">Download StagedJSON</button>
+        <button type="button" data-fbx-zone-source-download class="model-converters-download-btn" disabled title="Download the selected-zone FBX source graph">Source graph</button>
+      </div>
     </div>`;
 }
 function ensureController(container) {
@@ -199,29 +210,64 @@ function setOptions(controller, project) {
   }
   return signature;
 }
-export function extractFbxStagedRun(detail) {
+function stagedOutput(detail) {
   const outputs = Array.isArray(detail?.outputs) ? detail.outputs : [];
-  if (detail?.conversionStatus !== 'STAGEDJSON_PASS') return null;
-  const output = outputs.find((item) => /\.staged\.json$/i.test(String(item?.name || '')));
+  return outputs.find((item) => STAGED_OUTPUT_PATTERNS.some((pattern) => pattern.test(
+    String(item?.name || ''),
+  ))) || null;
+}
+export function extractFbxStagedRun(detail) {
+  if (!STAGEDJSON_STATUSES.has(String(detail?.conversionStatus || ''))) return null;
+  const output = stagedOutput(detail);
   if (!output || typeof output.text !== 'string') return null;
   try {
     const branches = JSON.parse(output.text);
-    return Array.isArray(branches) ? { branches, outputName: output.name } : null;
+    return Array.isArray(branches) ? {
+      branches,
+      outputName: output.name,
+      authority: detail?.authority || 'APPROVED_MAPPING_OUTPUT',
+      releaseStatus: detail?.releaseStatus || '',
+    } : null;
   } catch {
     return null;
   }
 }
 export function extractFbxAutoPipeRun(detail) {
   const run = extractFbxStagedRun(detail), zoneId = String(detail?.zoneId || '');
-  return run && zoneId ? { ...run, zoneId, authority: 'internal-auto-pipe' } : null;
+  return run && zoneId ? { ...run, zoneId,
+    authority: detail?.authority || 'INTERNAL_PIPE_ONLY' } : null;
+}
+function authorityRank(run) {
+  if (!run) return -1;
+  if (run.authority === 'APPROVED_MANAGED_STAGE') return 4;
+  if (run.authority === 'APPROVED_MAPPING_OUTPUT') return 3;
+  if (run.authority === 'INTERNAL_PIPE_ONLY') return 1;
+  return 2;
+}
+export function choosePreferredFbxStagedRun(mappedRun, analysisRun, selectedZoneId) {
+  const eligibleAnalysis = analysisRun?.zoneId === selectedZoneId ? analysisRun : null;
+  return authorityRank(eligibleAnalysis) > authorityRank(mappedRun) ? eligibleAnalysis : mappedRun;
 }
 function activeStagedRun(container, project) {
-  const auto = AUTO_PIPE_OUTPUTS.get(container);
-  return auto?.zoneId === project?.selectedZoneId ? auto : RUN_OUTPUTS.get(container) || null;
+  return choosePreferredFbxStagedRun(
+    RUN_OUTPUTS.get(container) || null,
+    AUTO_PIPE_OUTPUTS.get(container) || null,
+    project?.selectedZoneId || '',
+  );
 }
 function recommendationFor(controller) {
   return matchFbxPreviewZoneRecommendation(
     controller.state?.project, RUN_SELECTIONS.get(controller.container));
+}
+function statusForRun(run) {
+  if (!run) return 'Source graph only; approved mapping or bounded PIPE inference is required.';
+  if (run.authority === 'APPROVED_MANAGED_STAGE') {
+    return 'Complete multi-family StagedJSON is ready from the approved managed stage and selected-zone scope.';
+  }
+  if (run.authority === 'APPROVED_MAPPING_OUTPUT') {
+    return 'Authorized mapped StagedJSON is ready for the selected zone.';
+  }
+  return 'PIPE-only diagnostic StagedJSON is available; fittings are not released without approved mapped data.';
 }
 function updateAvailability(controller) {
   const selected = Boolean(controller.state?.project?.selectedZoneId);
@@ -232,11 +278,7 @@ function updateAvailability(controller) {
     ? `Auto-selected governed zone: ${recommendation.label}. ` : '';
   controller.sourceDownload.disabled = !selected;
   controller.stagedDownload.disabled = !selected || !staged;
-  controller.status.textContent = prefix + (staged
-    ? controller.state.stagedRun.authority === 'internal-auto-pipe'
-      ? 'Authorized PIPE-only internal StagedJSON is available.'
-      : 'Authorized StagedJSON is available.'
-    : 'Source graph only; valid external mapping or PIPE inference is required.');
+  controller.status.textContent = prefix + statusForRun(controller.state?.stagedRun);
 }
 function applyRecommendedZone(controller) {
   const state = controller.state, graph = state?.graph;
@@ -280,7 +322,7 @@ function updateController(container, controller, project, renderer) {
     project,
     stagedRun: activeStagedRun(container, project),
   };
-  controller.wrap.style.display = zones.length ? 'flex' : 'none';
+  controller.wrap.style.display = zones.length ? 'grid' : 'none';
   controller.select.value = project.selectedZoneId || '';
   controller.count.textContent = `${zones.length} zone${zones.length === 1 ? '' : 's'}`;
   if (applyRecommendedZone(controller)) return;

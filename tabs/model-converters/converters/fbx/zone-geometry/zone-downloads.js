@@ -48,8 +48,12 @@ export function buildFbxInlineAssemblyDownloadName(sourceName, zoneLabel) {
   return `${prefix(sourceName, zoneLabel)}.FbxInlineAssemblyPortEvidence.v1.json`;
 }
 
+export function buildFbxSelectedZoneReleaseOutputName(sourceName, zoneLabel) {
+  return `${prefix(sourceName, zoneLabel)}.selected-zone.staged.json`;
+}
+
 export function buildFbxAutoPipeOutputName(sourceName, zoneLabel) {
-  return `${prefix(sourceName, zoneLabel)}.auto-pipe.staged.json`;
+  return `${prefix(sourceName, zoneLabel)}.pipe-only-inference.staged.json`;
 }
 
 export function triggerJsonDownload(text, fileName, documentRef = document) {

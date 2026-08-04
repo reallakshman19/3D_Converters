@@ -1,6 +1,6 @@
-const MODEL_CONVERTERS_SHIM_VERSION = '20260804-fbx-secondary-preview-1';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260804-fbx-secondary-preview-1';
-const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260804-fbx-secondary-preview-1';
+const MODEL_CONVERTERS_SHIM_VERSION = '20260804-fbx-multifamily-release-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260804-fbx-multifamily-release-1';
+const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260804-fbx-multifamily-release-1';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]);
