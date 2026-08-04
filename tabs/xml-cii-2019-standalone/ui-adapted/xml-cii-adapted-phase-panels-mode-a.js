@@ -27,6 +27,12 @@ export function renderActivePhase(root, stateRef, render) {
   if (phaseId === 'source' && (state.activeSubTabId || 'loader') === 'loader') {
     const workspace = sourceWorkspace(card);
     renderModeASourceInventory(workspace, stateRef);
+    const sourceKind = workspace.querySelector?.('[data-field="source-kind"]');
+    if (sourceKind && state.sourceBatch?.sources?.length) {
+      sourceKind.value = 'xml';
+      sourceKind.disabled = true;
+      sourceKind.title = 'Mode A supports multiple PSI116 XML sources only. InputXML remains single-source.';
+    }
     const inventory = workspace.querySelector?.('[data-mode-a-panel="source-inventory"]');
     const branchPanel = workspace.querySelector?.('.xml-cii-branch-scope-panel');
     if (inventory && branchPanel) workspace.insertBefore(inventory, branchPanel);
