@@ -16,8 +16,22 @@ function selectedOccurrenceIds(graph, zoneId) {
   return new Set(subset.occurrences.map((item) => item.sourceOccurrenceId));
 }
 
-function childOccurrenceId(child) {
-  return String(child?.attributes?.sourceOccurrenceId || '');
+function directOccurrenceId(child) {
+  const value = child?.attributes?.sourceOccurrenceId;
+  return value === null || value === undefined ? '' : String(value).trim();
+}
+
+function generatedOccurrenceIds(child) {
+  const provenance = child?.attributes?.mappingEngineering?.generationProvenance;
+  if (provenance?.generated !== true || !Array.isArray(provenance.sourceOccurrenceIds)) return [];
+  return provenance.sourceOccurrenceIds.map(String).filter(Boolean);
+}
+
+function childInSelectedZone(child, occurrenceIds) {
+  const direct = directOccurrenceId(child);
+  if (direct) return occurrenceIds.has(direct);
+  const generated = generatedOccurrenceIds(child);
+  return generated.length > 0 && generated.every((id) => occurrenceIds.has(id));
 }
 
 function selectedBranches(branches, occurrenceIds) {
@@ -26,7 +40,7 @@ function selectedBranches(branches, occurrenceIds) {
     if (branch?.type !== 'BRANCH' || !Array.isArray(branch.children)) {
       fail('Every StagedJSON record must be a BRANCH with children.');
     }
-    const membership = branch.children.map((child) => occurrenceIds.has(childOccurrenceId(child)));
+    const membership = branch.children.map((child) => childInSelectedZone(child, occurrenceIds));
     const count = membership.filter(Boolean).length;
     if (!count) continue;
     if (count !== branch.children.length) {
