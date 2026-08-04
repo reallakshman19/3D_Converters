@@ -1,4 +1,4 @@
-import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell.js?v=20260802-smart-ui-v1';
+import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-atta-default.js?v=20260803-atta-default-rest-closure-1';
 
 
 export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
