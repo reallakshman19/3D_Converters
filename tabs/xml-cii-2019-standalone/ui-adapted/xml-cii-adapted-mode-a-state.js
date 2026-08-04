@@ -4,6 +4,19 @@ import {
   normalizeModeABatchState,
   syncActiveModeASource,
 } from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
+import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260804-mode-a-v1';
+
+const MODE_A_SOURCE_CACHE_KEYS = Object.freeze([
+  'xml-cii-wm-cache-v1',
+  'xml-cii-wm-cache-v2-preview-rating',
+]);
+
+export function clearModeASourceCaches() {
+  clearPreviewCachesV7();
+  try {
+    for (const key of MODE_A_SOURCE_CACHE_KEYS) localStorage.removeItem(key);
+  } catch {}
+}
 
 function stripMarker(state) {
   if (!state || typeof state !== 'object') return state;
