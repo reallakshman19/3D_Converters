@@ -1,5 +1,9 @@
 import { createElement } from './xml-cii-adapted-dom.js';
 import { parseStandaloneRegexBranchSamples } from '../xml-cii-regex-tester.js';
+import {
+  decorateJsonTraceMember,
+  formatConfiguredJsonTraceMember,
+} from '../xml-cii-json-trace-fields.js';
 
 function text(value, fallback = '') {
   const out = String(value ?? '').trim();
@@ -113,6 +117,17 @@ function getBore(row) {
   return String(raw).replace(/mm$/i, '').trim() || 'Unknown Bore';
 }
 
+function rowMembers(row) {
+  const config = row?.jsonTraceConfig || {};
+  const members = Array.isArray(row?.positionMembers) && row.positionMembers.length
+    ? row.positionMembers
+    : [row?.raw || row];
+  return members.map((member) => {
+    const decorated = member?.capturedFields ? member : decorateJsonTraceMember(member, config);
+    return formatConfiguredJsonTraceMember(decorated, config);
+  }).filter(Boolean);
+}
+
 export function buildAdaptedJsonTraceTree(traceRows, delimiter = '-') {
   const branchMap = new Map();
   for (const row of traceRows) {
@@ -136,7 +151,8 @@ export function buildAdaptedJsonTraceTree(traceRows, delimiter = '-') {
       boreObj.positions.set(posKey, { posKey, label: posKey, count: 0, rows: [] });
     }
     const posObj = boreObj.positions.get(posKey);
-    posObj.count++;
+    const memberCount = Array.isArray(row.positionMembers) && row.positionMembers.length ? row.positionMembers.length : 1;
+    posObj.count += memberCount;
     posObj.rows.push(row);
   }
   
@@ -147,22 +163,7 @@ export function buildAdaptedJsonTraceTree(traceRows, delimiter = '-') {
       bore: s.bore,
       count: s.count,
       positions: Array.from(s.positions.values()).map(p => {
-        const formattedRows = p.rows.map(r => {
-          const raw = r.raw || {};
-          const attrs = raw.attributes || raw || {};
-          const dtxr = String(r.dtxrPosValue || r.dtxrPsValue || attrs.DTXR_POS || attrs.DTXR_PS || attrs.DTXR || attrs.ISONOTE || attrs.DESCRIPTION || raw.type || '').trim();
-          const name = String(attrs.NAME || '').trim();
-          const gap = String(attrs.CMPSUPGAP || '').trim();
-          let suffix = '';
-          const parts = [];
-          if (name) parts.push(`NAME=${name}`);
-          if (gap) parts.push(`CMPSUPGAP=${gap}`);
-          if (parts.length) {
-            suffix = `(${parts.join(',')})`;
-          }
-          return dtxr + suffix;
-        });
-        const uniqueFormatted = [...new Set(formattedRows.filter(Boolean))];
+        const uniqueFormatted = [...new Set(p.rows.flatMap(rowMembers))];
         const concatenated = uniqueFormatted.join(' | ');
         return {
           posKey: p.posKey,

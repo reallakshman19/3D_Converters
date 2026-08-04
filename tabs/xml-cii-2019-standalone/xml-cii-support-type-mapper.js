@@ -2,8 +2,8 @@ const KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP', 'ANCHOR']);
 
 const DEFAULT_ROWS = Object.freeze([
   { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest'], ciiKind: 'REST_STYLE_CII_SUPPORT', ciiPreview: '+Y/restraint support preview' },
-  { kind: 'GUIDE', aliases: ['Guide', 'PG', 'Lateral Guide'], ciiKind: 'GUIDE_STYLE_CII_SUPPORT', ciiPreview: 'lateral guide preview' },
-  { kind: 'LINESTOP', aliases: ['Line Stop', 'Directional Anchor', 'LS', 'Axial Stop'], ciiKind: 'LINESTOP_STYLE_CII_SUPPORT', ciiPreview: 'axial stop preview' },
+  { kind: 'GUIDE', aliases: ['Guide', 'PG', 'Lateral Guide', 'GT'], ciiKind: 'GUIDE_STYLE_CII_SUPPORT', ciiPreview: 'GUI / lateral guide preview' },
+  { kind: 'LINESTOP', aliases: ['Line Stop', 'Directional Anchor', 'LS', 'Axial Stop', 'ST'], ciiKind: 'LINESTOP_STYLE_CII_SUPPORT', ciiPreview: 'LIM / axial stop preview' },
   { kind: 'ANCHOR', aliases: ['Anchor', 'Fixed'], ciiKind: 'ANCHOR_STYLE_CII_SUPPORT', ciiPreview: 'anchor/fixed support preview' },
 ]);
 
@@ -88,9 +88,26 @@ function evidenceLine(line, index) {
   return { source: match ? match[1].toUpperCase() : `line-${index + 1}`, text: match ? match[2] : cleaned };
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function aliasMatches(evidence, alias) {
+  const source = text(evidence).toUpperCase();
+  const pattern = text(alias).toUpperCase();
+  if (!source || !pattern) return false;
+  if (pattern.includes('*')) {
+    const regex = pattern.split('*').map(escapeRegex).join('.*');
+    try { return new RegExp(regex, 'i').test(source); } catch { return false; }
+  }
+  if (pattern === 'GT' || pattern === 'ST') {
+    return new RegExp(`(?:^|[^A-Z0-9])${pattern}[A-Z0-9_-]*(?=$|[^A-Z0-9])`, 'i').test(source);
+  }
+  return norm(source).includes(norm(pattern));
+}
+
 function rowMatches(evidence, row) {
-  const normalized = norm(evidence);
-  return row.aliases.filter((alias) => normalized.includes(norm(alias)));
+  return row.aliases.filter((alias) => aliasMatches(evidence, alias));
 }
 
 export function classifySupportText(value, mapperRows = createDefaultSupportTypeMapperConfig()) {
@@ -126,11 +143,33 @@ function previewDiagnostics(previewRows) {
   }));
 }
 
+function mdsPrefixRules(mapperRows) {
+  const guide = mapperRows.find((row) => row.kind === 'GUIDE');
+  const lineStop = mapperRows.find((row) => row.kind === 'LINESTOP');
+  const rules = [];
+  if (guide?.aliases.some((alias) => text(alias).toUpperCase().replace(/\*/g, '') === 'GT')) {
+    rules.push({ id: 'standalone-mds-gt-guide', enabled: true, priority: 5, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'GT', match: 'startsWith', kind: 'GUIDE', label: 'MDSSUPPTYPE GT* -> GUI' });
+  }
+  if (lineStop?.aliases.some((alias) => text(alias).toUpperCase().replace(/\*/g, '') === 'ST')) {
+    rules.push({ id: 'standalone-mds-st-linestop', enabled: true, priority: 6, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'ST', match: 'startsWith', kind: 'LINESTOP', label: 'MDSSUPPTYPE ST* -> LIM' });
+  }
+  return rules;
+}
+
 function serializeMapperConfig(input, mapperRows) {
   const config = parseJson(input.supportConfigJson);
   config.supportTypeMapper = {
     schema: 'xml-cii-2019-support-type-mapper/v1',
     rows: mapperRows.map(({ kind, aliases, ciiKind, ciiPreview }) => ({ kind, aliases, ciiKind, ciiPreview })),
+  };
+  const injected = mdsPrefixRules(mapperRows);
+  const injectedIds = new Set(injected.map((rule) => rule.id));
+  const existingMapping = object(config.supportMapping);
+  const existingRules = array(existingMapping.rules).filter((rule) => !injectedIds.has(text(rule?.id)));
+  config.supportMapping = {
+    ...existingMapping,
+    version: 2,
+    rules: [...existingRules, ...injected],
   };
   return JSON.stringify(config, null, 2);
 }
