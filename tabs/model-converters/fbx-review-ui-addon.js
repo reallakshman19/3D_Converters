@@ -1,7 +1,7 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260804-fbx-secondary-preview-1';
+import { run as runBaseFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260804-fbx-multifamily-release-1';
 import { canonicalJson } from './converters/fbx/canonical-json.js';
-import { resolveBrowserFbxPrimary } from './converters/fbx/fbx2-browser-inputs.js?v=20260804-fbx-secondary-preview-1';
+import { resolveBrowserFbxPrimary } from './converters/fbx/fbx2-browser-inputs.js?v=20260804-fbx-multifamily-release-1';
 import { buildMappingWorklist } from './converters/fbx/mapping-worklist.js';
 import { buildReviewBundle } from './converters/fbx/mapping-review-bundle.js';
 import { parseFbxInWorker } from './converters/fbx/parser-client.js';
@@ -11,7 +11,7 @@ import { reviewShardCsv } from './converters/fbx/review-execution/review-csv.js'
 export const FBX_CONVERT_OPERATION = 'Convert with approved mapping';
 export const FBX_REVIEW_OPERATION = 'Create mapping review bundle';
 export const FBX_REVIEW_UI_VERSION = '20260802-fbx2-managed-reference-1';
-export const FBX_REVIEW_UI_BUILD = '20260804-fbx-secondary-preview-1';
+export const FBX_REVIEW_UI_BUILD = '20260804-fbx-multifamily-release-1';
 const DEFAULT_REVIEW_SHARD_SIZE = 500;
 const PRIMARY_ACCEPT = '.fbx,.FBX,.zip,.ZIP';
 const SECONDARY_ACCEPT = '.fbxmap.json,.json,.JSON,.zip,.ZIP';
