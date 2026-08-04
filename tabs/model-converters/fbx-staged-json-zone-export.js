@@ -106,6 +106,21 @@ function sanitizeChild(child, identities) {
   }
 }
 
+function cloneEndpoint(value) {
+  return value && typeof value === 'object' ? structuredClone(value) : null;
+}
+
+function synchronizeBranchEndpoints(branch) {
+  const attributes = branch.attributes;
+  if (!attributes || typeof attributes !== 'object' || !branch.children.length) return;
+  const first = cloneEndpoint(branch.children[0]?.attributes?.APOS);
+  const last = cloneEndpoint(branch.children.at(-1)?.attributes?.LPOS);
+  if (first) attributes.HPOS = first;
+  else delete attributes.HPOS;
+  if (last) attributes.TPOS = last;
+  else delete attributes.TPOS;
+}
+
 function sanitizeBranch(branch, identities) {
   const attributes = branch.attributes;
   if (attributes && typeof attributes === 'object') {
@@ -114,6 +129,7 @@ function sanitizeBranch(branch, identities) {
     }
   }
   branch.children.forEach((child) => sanitizeChild(child, identities));
+  synchronizeBranchEndpoints(branch);
   return branch;
 }
 
