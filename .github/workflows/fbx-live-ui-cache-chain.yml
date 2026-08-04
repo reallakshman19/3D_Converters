@@ -39,6 +39,7 @@ jobs:
           node --check tabs/model-converters/fbx-preview-zone-selector.js
           node --check tabs/model-converters/fbx-staged-json-zone-export.js
           node --check tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-output.js
+          node --check tabs/model-converters/converters/fbx/zone-geometry/mapped-stage-capture.js
           node --check tabs/model-converters/converters/fbx/zone-geometry/zone-downloads.js
           node --check tabs/model-converters/converters/fbx/zone-geometry/zone-review-panels.js
           node --check tabs/model-converters/converters/fbx/zone-geometry/zone-toolbar.js
