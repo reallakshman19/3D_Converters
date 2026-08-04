@@ -2,7 +2,7 @@ import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3
 import { buildFbxSourceGraphZoneExport } from './fbx-source-graph-zone-export.js';
 import { buildFbxStagedJsonZoneExport } from './fbx-staged-json-zone-export.js';
 import { canonicalJson } from './converters/fbx/canonical-json.js';
-import { resolveBrowserFbxSecondary } from './converters/fbx/fbx2-browser-inputs.js?v=20260804-fbx-secondary-preview-1';
+import { resolveBrowserFbxSecondary } from './converters/fbx/fbx2-browser-inputs.js?v=20260804-fbx-multifamily-release-1';
 import { scopeMappedStagedBranches } from './converters/fbx/zone-geometry/mapped-stage-scope.js';
 
 export const FBX_MULTI_FAMILY_RELEASE_VERSION = '20260804-fbx-multifamily-release-1';
