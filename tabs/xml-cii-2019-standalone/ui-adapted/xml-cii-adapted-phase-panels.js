@@ -7,7 +7,6 @@ import { renderStandaloneSourcePreviewPanel } from './xml-cii-adapted-source-pre
 import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js?v=20260713-master-autoload-v10';
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20260708-v8';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
-import { enhanceStandaloneResolverSupportFamilyReport } from './xml-cii-adapted-support-family-report.js';
 import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
 import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20260727-cache-v7';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20260708-v8';
@@ -137,7 +136,6 @@ export function renderJsonTracePanel(card, stateRef, render) {
   fileRow.appendChild(jsonGroup);
   card.appendChild(fileRow);
   renderStandaloneResolverJsonTracePanel(card, stateRef.current, stateRef, render);
-  enhanceStandaloneResolverSupportFamilyReport(card, stateRef.current, stateRef, render);
 }
 
 export function renderCustomInputPanel(card, state) {
