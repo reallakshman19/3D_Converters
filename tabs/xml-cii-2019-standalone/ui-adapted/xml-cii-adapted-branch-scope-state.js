@@ -46,7 +46,7 @@ export function createXmlCiiBranchScopedStateRef(baseRef) {
     set current(next) {
       const base = baseRef.current;
       if (!PROCESSING_PHASES.has(base.activePhaseId)) {
-        baseRef.current = next;
+        baseRef.current = { ...next, branchScope: null };
         return;
       }
       if (inputFileChanged(base, next)) {
@@ -59,14 +59,14 @@ export function createXmlCiiBranchScopedStateRef(baseRef) {
         return;
       }
       const resetToEmpty = next?.activePhaseId === 'source' && !next?.sourceText && !next?.sourceFile;
-      baseRef.current = resetToEmpty ? next : {
+      baseRef.current = resetToEmpty ? { ...next, branchScope: null } : {
         ...next,
         sourceText: base.sourceText,
         sourceFile: base.sourceFile,
         stagedJsonText: base.stagedJsonText,
         stagedJsonFile: base.stagedJsonFile,
         branchSelection: next?.branchSelection || base.branchSelection,
-        branchScope: next?.branchScope || base.branchScope,
+        branchScope: null,
         sourceNameOverride: base.sourceNameOverride,
       };
     },
