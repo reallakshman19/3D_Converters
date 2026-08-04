@@ -1,8 +1,8 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-import { runFbxWithReviewUi } from './fbx-review-ui-addon.js?v=20260804-fbx-secondary-preview-1';
-import { run as runLiveFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260804-fbx-secondary-preview-1';
+import { runFbxWithReviewUi } from './fbx-review-ui-addon.js?v=20260804-fbx-multifamily-release-1';
+import { run as runLiveFbxToStagedJson } from './converters/fbx-to-stagedjson.js?v=20260804-fbx-multifamily-release-1';
 
-const VERSION = '20260804-fbx-secondary-preview-1';
+const VERSION = '20260804-fbx-multifamily-release-1';
 const LIVE_TAG = `FBX_LIVE_UI_ACTIVE:${VERSION}`;
 const PATCH_MARKER = Symbol.for('model-converters.fbx-live-runner.v1');
 const SOURCE_GRAPH_PATTERN = /\.fbx-source-graph\.json$/i;
