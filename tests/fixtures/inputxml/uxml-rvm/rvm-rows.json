@@ -1,7 +1,0 @@
-{
-  "inputKind": "RVM_ROWS",
-  "rows": [
-    {"componentId": "R1", "rowNo": 1, "type": "PIPE", "componentType": "PIPE", "pipelineRef": "L-RVM", "lineNo": "L-RVM", "convertedBore": 100, "ep1": {"x": 0, "y": 0, "z": 0}, "ep2": {"x": 1000, "y": 0, "z": 0}, "outsideDiameterMm": 114.3, "wallThicknessMm": 6.02},
-    {"componentId": "R2", "rowNo": 2, "type": "PIPE", "componentType": "PIPE", "pipelineRef": "L-RVM", "lineNo": "L-RVM", "convertedBore": 100, "ep1": {"x": 1000, "y": 0, "z": 0}, "ep2": {"x": 2000, "y": 0, "z": 0}, "outsideDiameterMm": 114.3, "wallThicknessMm": 6.02}
-  ]
-}
