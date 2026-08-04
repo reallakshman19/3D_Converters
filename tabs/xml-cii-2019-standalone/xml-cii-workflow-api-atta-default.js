@@ -1,7 +1,7 @@
-import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from './xml-cii-workflow-source-detect.js?v=20260803-atta-default-rest-closure-1';
-import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20260803-atta-default-rest-closure-1';
-import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20260803-atta-default-rest-closure-1';
-import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity-atta-default.js?v=20260803-atta-default-rest-closure-1';
+import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from './xml-cii-workflow-source-detect.js?v=20260804-mds-position-restraints-1';
+import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20260804-mds-position-restraints-1';
+import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20260804-mds-position-restraints-1';
+import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity-mds-restraints.js?v=20260804-mds-position-restraints-1';
 
 export async function runXmlCii2019Workflow(job, runtime = {}) {
   const normalized = normalizeWorkflowJob(job);
@@ -51,10 +51,10 @@ export async function runXmlCii2019Workflow(job, runtime = {}) {
   }
 }
 
-export { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js?v=20260803-atta-default-rest-closure-1';
+export { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js?v=20260804-mds-position-restraints-1';
 export {
   DEFAULT_XML_CII_WORKFLOW_OPTIONS,
   normalizeWorkflowJob,
   normalizeWorkflowOptions,
   validateSupportConfigJson,
-} from './xml-cii-workflow-types.js?v=20260803-atta-default-rest-closure-1';
+} from './xml-cii-workflow-types.js?v=20260804-mds-position-restraints-1';
