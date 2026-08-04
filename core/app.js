@@ -1,8 +1,8 @@
 // Standalone app shell runtime delegate.
 import { installAppTabClickStateBridge } from './app-tab-click-state-bridge.js?v=standalone-3';
-import * as runtime from './app-standalone-runtime.js?v=20260802-fbx-live-ui-3';
+import * as runtime from './app-standalone-runtime.js?v=20260804-fbx-secondary-preview-1';
 
-const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260802-fbx-live-ui-3';
+const MODEL_CONVERTERS_MODULE = '../tabs/model-converters-tab.js?v=20260804-fbx-secondary-preview-1';
 
 function loadLiveModelConverters() {
   return import(MODEL_CONVERTERS_MODULE).then((module) => {
@@ -24,4 +24,4 @@ installLiveModelConvertersLoader();
 
 export const init = runtime.init;
 export const destroy = runtime.destroy;
-export const __FBX_LIVE_UI_CACHE_KEY__ = '20260802-fbx-live-ui-3';
+export const __FBX_LIVE_UI_CACHE_KEY__ = '20260804-fbx-secondary-preview-1';
