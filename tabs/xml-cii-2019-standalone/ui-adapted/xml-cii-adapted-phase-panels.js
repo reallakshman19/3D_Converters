@@ -9,9 +9,9 @@ import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 import { enhanceStandaloneResolverSupportFamilyReport } from './xml-cii-adapted-support-family-report.js';
 import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
-import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20260708-v8';
+import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20260727-cache-v7';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20260708-v8';
-import { renderAdaptedWeightMatchPanel } from './xml-cii-adapted-weight-match.js';
+import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
 import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p7';
@@ -90,7 +90,7 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   if (phaseId === 'preview') return renderStandalonePreviewReportPanel(card, stateRef, render);
   if (phaseId === 'diagnostics') return renderStandaloneDiagnosticsReportPanel(card, state);
   if (phaseId === 'matched-audit') return renderStandalonePropagationAuditPanel(card, state, render);
-  if (phaseId === 'weight-match') return renderAdaptedWeightMatchPanel(card, stateRef, render);
+  if (phaseId === 'weight-match') return renderAdaptedWeightMatchPanelV2(card, stateRef);
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, stateRef, render);
   if (phaseId === 'config') return renderAdaptedConfigPanel(card, stateRef, render);
   if (phaseId === 'run') return renderRunPanel(card, stateRef, render);
