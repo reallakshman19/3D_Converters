@@ -3,12 +3,18 @@ import {
   buildStandaloneDtxrResolutionLedger,
   parseStandaloneDtxrXmlNodes,
 } from './xml-cii-trace-resolution-ledger.js';
+import {
+  DEFAULT_JSON_TRACE_CAPTURE_FIELDS,
+  decorateJsonTraceLedger,
+  normalizeJsonTraceCaptureFields,
+} from './xml-cii-json-trace-fields.js';
 
 export function createDefaultResolverJsonTraceConfig() {
   return {
     nodeAliases: ['node', 'nodeKey', 'NODE', 'Node', 'FROM_NODE', 'TO_NODE'],
     psAliases: ['ps', 'PS', 'DTXR_PS', 'supportPs', 'psNo'],
     posAliases: ['DTXR_POS', 'POSI', 'POS', 'APOS', 'LPOS', 'BPOS', 'HPOS', 'TPOS', 'SPOS', 'EPOS', 'SUPPORTCOORD'],
+    captureFields: DEFAULT_JSON_TRACE_CAPTURE_FIELDS.map((field) => ({ ...field })),
     coordinateTolerance: 6.0,
   };
 }
@@ -33,6 +39,7 @@ function configFrom(input = {}) {
     nodeAliases: arrayOr(source.nodeAliases, defaults.nodeAliases),
     psAliases: arrayOr(source.psAliases, defaults.psAliases),
     posAliases: arrayOr(source.posAliases, defaults.posAliases),
+    captureFields: normalizeJsonTraceCaptureFields(source.captureFields),
     coordinateTolerance: Number(source.coordinateTolerance ?? defaults.coordinateTolerance) || defaults.coordinateTolerance,
     dtxrPositionOffset: safeObject(source.dtxrPositionOffset || parsed.dtxrPositionOffset),
   };
@@ -88,7 +95,7 @@ function matchedByForRecord(record) {
   return [];
 }
 
-function factFromLedgerRecord(record, node) {
+function factFromLedgerRecord(record, node, jsonConfig) {
   const members = Array.isArray(record.positionMembers) ? record.positionMembers : [];
   const firstMember = members[0] || {};
   const matched = record.status.startsWith('RESOLVED_');
@@ -125,6 +132,8 @@ function factFromLedgerRecord(record, node) {
     groupId: record.groupId,
     sourcePaths: record.sourcePaths || [],
     positionMembers: members,
+    capturedFields: firstMember.capturedFields || {},
+    jsonTraceConfig: jsonConfig,
     ledgerRecord: record,
     raw: firstMember,
   };
@@ -141,6 +150,7 @@ function positionIndexFromLedger(ledgerResult) {
         dtxr: entry.labeled || entry.description || '',
         dtxrPs: entry.dtxrPs || '',
         cmpSupGap: entry.cmpSupGap || '',
+        capturedFields: entry.capturedFields || {},
         point: entry.point || null,
         nodeKey: entry.jsonNodeNo || '',
         psKey: entry.tags?.[0] || '',
@@ -185,11 +195,12 @@ export function runStandaloneResolverJsonTrace(input = {}) {
     jsonTrace: { ...safeObject(supportConfig.jsonTrace), ...jsonConfig },
     dtxrPositionOffset: jsonConfig.dtxrPositionOffset,
   };
-  const ledgerResult = buildStandaloneDtxrResolutionLedger(sourceText, input.stagedJsonText, ledgerConfig);
+  const rawLedgerResult = buildStandaloneDtxrResolutionLedger(sourceText, input.stagedJsonText, ledgerConfig);
+  const ledgerResult = decorateJsonTraceLedger(rawLedgerResult, jsonConfig);
   const indexes = buildStandaloneXmlResolverIndex(sourceText);
   const nodeByIndex = new Map(indexes.nodes.map((node) => [Number(node.xmlIndex), node]));
   const resolvedFacts = ledgerResult.records
-    .map((record) => factFromLedgerRecord(record, nodeByIndex.get(Number(record.xmlIndex))))
+    .map((record) => factFromLedgerRecord(record, nodeByIndex.get(Number(record.xmlIndex)), jsonConfig))
     .sort((a, b) => Number(a.xmlIndex) - Number(b.xmlIndex));
   const matchedFacts = resolvedFacts.filter((fact) => fact.hitCount > 0);
   const rejectedFacts = resolvedFacts.filter((fact) => fact.hitCount <= 0);
@@ -199,6 +210,7 @@ export function runStandaloneResolverJsonTrace(input = {}) {
     { type: 'resolver-json-trace-source-kind', sourceKind },
     { type: 'resolver-json-trace-index-stats', ...indexes.indexStats },
     { type: 'resolver-json-trace-position-index', count: positionIndex.count, groups: ledgerResult.groups.length },
+    { type: 'resolver-json-trace-capture-fields', rows: jsonConfig.captureFields.filter((field) => field.enabled).length },
     { type: 'resolver-json-trace-matched-facts', rows: matchedFacts.length },
     { type: 'resolver-json-trace-rejected-facts', rows: rejectedFacts.length },
     ...ledgerResult.diagnostics,

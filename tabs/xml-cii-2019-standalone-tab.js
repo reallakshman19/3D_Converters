@@ -1,4 +1,4 @@
-import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-rigid-review-v2.js?v=20260804-rigid-review-actions-v2';
+import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-rigid-review-v2.js?v=20260804-json-trace-fields-v3';
 
 
 export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
