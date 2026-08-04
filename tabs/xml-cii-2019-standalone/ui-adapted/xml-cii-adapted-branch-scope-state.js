@@ -43,6 +43,7 @@ function stagedFileChanged(base, next) {
 
 export function createXmlCiiBranchScopedStateRef(baseRef) {
   return {
+    modeABaseRef: baseRef,
     get current() {
       return processingState(baseRef.current);
     },
