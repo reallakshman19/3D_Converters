@@ -7,7 +7,7 @@ import {
   normalizeModeABatchState,
   syncActiveModeASource,
 } from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260804-mode-a-v1';
+import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260804-mode-a-v1';
 
 function sourceManifest(source, result, scope) {
   return {
@@ -72,6 +72,7 @@ export async function runModeABatchFromUi(stateRef, render) {
     });
     render();
 
+    clearModeASourceCaches();
     const execution = buildModeAExecutionState(sharedState, source);
     const isolatedRef = { current: execution };
     await runSingleWorkflow(isolatedRef, () => {});
