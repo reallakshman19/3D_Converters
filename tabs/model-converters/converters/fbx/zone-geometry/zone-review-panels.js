@@ -25,6 +25,8 @@ import {
 } from '../generated-gap-pipe/review-ui.js';
 
 function installReviewHost(wrap) {
+  const analysisPanel = wrap.querySelector?.('[data-fbx-zone-analysis-panel]');
+  if (analysisPanel) analysisPanel.style.gridColumn = '1 / -1';
   const details = document.createElement('details');
   details.dataset.fbxZoneReviewPanels = 'true';
   details.style.cssText = 'grid-column:1 / -1;width:100%;border:1px solid #2b3d55;border-radius:8px;background:#0d1623;box-sizing:border-box;';
