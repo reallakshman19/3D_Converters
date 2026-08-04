@@ -1,6 +1,6 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
 
-const VERSION = '20260804-fbx-secondary-preview-1';
+const VERSION = '20260804-fbx-multifamily-release-1';
 const OUTPUT_EVENT = 'model-converters:fbx-run-outputs';
 const PATCH_MARKER = Symbol.for('model-converters.fbx-selected-zone-preview-bridge.v1');
 const SELECTED_ZONE_PASS = 'STAGEDJSON_SELECTED_ZONE_PASS';
@@ -33,6 +33,8 @@ export function normalizeSelectedZonePreviewDetail(result) {
     outputs: [alias, ...outputs],
     conversionStatus: 'STAGEDJSON_PASS',
     originalConversionStatus: SELECTED_ZONE_PASS,
+    authority: result?.selectedZoneRelease?.authority || 'APPROVED_MAPPING_OUTPUT',
+    releaseStatus: result?.selectedZoneRelease?.status || '',
   };
 }
 
