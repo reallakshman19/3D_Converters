@@ -8,7 +8,7 @@ import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detec
 import {
   createXmlCiiBranchScopedStateRef,
   ensureXmlCiiBranchSelectionInRef,
-} from './xml-cii-adapted-branch-scope.js?v=20260804-branch-scope-v1';
+} from './xml-cii-adapted-branch-scope-state.js?v=20260804-branch-scope-v1';
 import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260804-branch-scope-v1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
