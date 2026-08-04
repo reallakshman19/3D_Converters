@@ -10,6 +10,7 @@ import { enforceSourceGraphPolicy } from '../../tabs/model-converters/converters
 
 const matrix = () => [1,0,0,0,1,0,0,0,1,0,0,0];
 const transform = { translation:[0,0,0], rotation:[0,0,0,1], scale:[1,1,1] };
+const point = (x) => ({ x, y:0, z:0 });
 function source(id, name, subtype = 'Null', mesh = false) {
   return {
     sourceObjectId:id, ufbxElementId:Number(id), ufbxTypedId:Number(id),
@@ -80,14 +81,15 @@ const zoneA = listFbxSourceGraphPreviewZones(graph).find((item) => item.label ==
 assert.ok(zoneA?.zoneId);
 
 const managed = [{
-  type:'BRANCH', id:'B1', name:'B1', attributes:{ REF:'B1' },
+  type:'BRANCH', id:'B1', name:'B1', attributes:{ REF:'B1', HPOS:point(-1), TPOS:point(99) },
   children:[
-    child('PIPE','occ:5'), child('ELBO','occ:6'), child('TEE','occ:7'),
-    child('VALV','occ:8'), child('FLAN','occ:9'),
+    child('PIPE','occ:5',{ APOS:point(0), LPOS:point(1) }),
+    child('ELBO','occ:6'), child('TEE','occ:7'), child('VALV','occ:8'), child('FLAN','occ:9'),
     child('PIPE',null,{
+      APOS:point(4), LPOS:point(5),
       mappingEngineering:{ generationProvenance:{ generated:true, sourceOccurrenceIds:['occ:5'] } },
     }),
-    child('PIPE','occ:10'),
+    child('PIPE','occ:10',{ APOS:point(5), LPOS:point(99) }),
   ],
 }];
 const context = {
@@ -113,6 +115,8 @@ assert.equal(promoted.selectedZoneRelease.authority, 'APPROVED_MANAGED_STAGE');
 const released = JSON.parse(promoted.outputs.find((item) => /selected-zone\.json$/.test(item.name)).text);
 const types = released.flatMap((branch) => branch.children.map((item) => item.type));
 assert.deepEqual(types, ['PIPE','ELBO','TEE','VALV','FLAN','PIPE']);
+assert.deepEqual(released[0].attributes.HPOS, point(0));
+assert.deepEqual(released[0].attributes.TPOS, point(5));
 assert.equal(promoted.logs.stdout.includes('SELECTED_ZONE_RELEASE:MANAGED_MULTI_FAMILY'), true);
 const summary = countSelectedZoneFamilies(released);
 assert.deepEqual(summary.familyCounts, {
