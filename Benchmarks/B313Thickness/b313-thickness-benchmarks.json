@@ -1,0 +1,267 @@
+{
+  "schemaVersion": "1.0.0",
+  "standard": "ASME B31.3",
+  "edition": "2024",
+  "scope": "straight metallic pipe, internal pressure, implemented para. 304.1.2 equation 3a envelope",
+  "standardStatusChecked": "2026-08-10",
+  "referencePolicy": "Expected values are frozen independently of the production JavaScript. The repository does not embed ASME material/property tables; S, E, W and Y are benchmark inputs.",
+  "numericTolerance": {
+    "absoluteMm": 1e-9,
+    "dimensionless": 1e-12
+  },
+  "cases": [
+    {
+      "id": "B313-V001",
+      "description": "SI baseline with 12.5 percent negative manufacturing tolerance",
+      "inputs": {
+        "edition": "2024",
+        "designPressure": 10,
+        "pressureUnit": "MPa",
+        "outsideDiameter": 273.05,
+        "lengthUnit": "mm",
+        "allowableStress": 138,
+        "stressUnit": "MPa",
+        "qualityFactorE": 1,
+        "weldStrengthReductionW": 1,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 3,
+        "negativeMillTolerance": { "basis": "percent", "value": 12.5 }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 9.61443661971831,
+        "requiredMinimumThicknessMm": 12.61443661971831,
+        "requiredNominalThicknessMm": 14.416498993963783,
+        "pressureStressRatio": 0.07246376811594203,
+        "thicknessDiameterRatio": 0.035211267605633804
+      }
+    },
+    {
+      "id": "B313-V002",
+      "description": "Same design case with absolute 1.8 mm negative manufacturing tolerance",
+      "inputs": {
+        "edition": "B31.3-2024",
+        "designPressure": 10,
+        "pressureUnit": "MPa",
+        "outsideDiameter": 273.05,
+        "lengthUnit": "mm",
+        "allowableStress": 138,
+        "stressUnit": "MPa",
+        "qualityFactorE": 1,
+        "weldStrengthReductionW": 1,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 3,
+        "negativeMillTolerance": { "basis": "absolute", "value": 1.8, "unit": "mm" }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 9.61443661971831,
+        "requiredMinimumThicknessMm": 12.61443661971831,
+        "requiredNominalThicknessMm": 14.41443661971831,
+        "pressureStressRatio": 0.07246376811594203,
+        "thicknessDiameterRatio": 0.035211267605633804
+      }
+    },
+    {
+      "id": "B313-V003",
+      "description": "Zero manufacturing tolerance isolates pressure design plus corrosion allowance",
+      "inputs": {
+        "designPressure": 4,
+        "pressureUnit": "MPa",
+        "outsideDiameter": 114.3,
+        "lengthUnit": "mm",
+        "allowableStress": 120,
+        "stressUnit": "MPa",
+        "qualityFactorE": 1,
+        "weldStrengthReductionW": 1,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 1.5,
+        "negativeMillTolerance": { "basis": "percent", "value": 0 }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 1.879934210526316,
+        "requiredMinimumThicknessMm": 3.379934210526316,
+        "requiredNominalThicknessMm": 3.379934210526316,
+        "pressureStressRatio": 0.03333333333333333,
+        "thicknessDiameterRatio": 0.016447368421052634
+      }
+    },
+    {
+      "id": "B313-V004",
+      "description": "Reduced E and W with corrosion, mechanical and erosion allowances",
+      "inputs": {
+        "designPressure": 5,
+        "pressureUnit": "MPa",
+        "outsideDiameter": 168.3,
+        "lengthUnit": "mm",
+        "allowableStress": 120,
+        "stressUnit": "MPa",
+        "qualityFactorE": 0.85,
+        "weldStrengthReductionW": 0.95,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 1.5,
+        "mechanicalAllowance": 0.5,
+        "erosionAllowance": 0.25,
+        "negativeMillTolerance": { "basis": "percent", "value": 10 }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 4.254297269969666,
+        "requiredMinimumThicknessMm": 6.504297269969666,
+        "requiredNominalThicknessMm": 7.226996966632963,
+        "pressureStressRatio": 0.049019607843137254,
+        "thicknessDiameterRatio": 0.025278058645096056
+      }
+    },
+    {
+      "id": "B313-V005",
+      "description": "Small pipe with absolute 0.3 mm manufacturing tolerance",
+      "inputs": {
+        "designPressure": 1.6,
+        "pressureUnit": "MPa",
+        "outsideDiameter": 60.3,
+        "lengthUnit": "mm",
+        "allowableStress": 115,
+        "stressUnit": "MPa",
+        "qualityFactorE": 1,
+        "weldStrengthReductionW": 1,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 1,
+        "negativeMillTolerance": { "basis": "absolute", "value": 0.3, "unit": "mm" }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 0.4171566931857489,
+        "requiredMinimumThicknessMm": 1.4171566931857489,
+        "requiredNominalThicknessMm": 1.717156693185749,
+        "pressureStressRatio": 0.01391304347826087,
+        "thicknessDiameterRatio": 0.0069180214458664825
+      }
+    },
+    {
+      "id": "B313-V006",
+      "description": "Higher pressure case inside implemented applicability envelope",
+      "inputs": {
+        "designPressure": 16,
+        "pressureUnit": "MPa",
+        "outsideDiameter": 323.85,
+        "lengthUnit": "mm",
+        "allowableStress": 145,
+        "stressUnit": "MPa",
+        "qualityFactorE": 0.95,
+        "weldStrengthReductionW": 0.9,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 3,
+        "mechanicalAllowance": 0.5,
+        "negativeMillTolerance": { "basis": "percent", "value": 12.5 }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 19.871907957814,
+        "requiredMinimumThicknessMm": 23.371907957814,
+        "requiredNominalThicknessMm": 26.710751951787426,
+        "pressureStressRatio": 0.1161524500907441,
+        "thicknessDiameterRatio": 0.061361457334611694
+      }
+    },
+    {
+      "id": "B313-V007",
+      "description": "US customary inputs physically equivalent to B313-V001",
+      "inputs": {
+        "designPressure": 1450.3773773020923,
+        "pressureUnit": "psi",
+        "outsideDiameter": 10.75,
+        "lengthUnit": "in",
+        "allowableStress": 20015.207806768874,
+        "stressUnit": "psi",
+        "qualityFactorE": 1,
+        "weldStrengthReductionW": 1,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 0.11811023622047245,
+        "negativeMillTolerance": { "basis": "percent", "value": 12.5 }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 9.61443661971831,
+        "requiredMinimumThicknessMm": 12.61443661971831,
+        "requiredNominalThicknessMm": 14.416498993963783,
+        "pressureStressRatio": 0.07246376811594203,
+        "thicknessDiameterRatio": 0.035211267605633804
+      }
+    },
+    {
+      "id": "B313-V008",
+      "description": "Absolute tolerance expressed in inches",
+      "inputs": {
+        "designPressure": 8,
+        "pressureUnit": "MPa",
+        "outsideDiameter": 219.1,
+        "lengthUnit": "mm",
+        "allowableStress": 125,
+        "stressUnit": "MPa",
+        "qualityFactorE": 1,
+        "weldStrengthReductionW": 0.9,
+        "coefficientY": 0.4,
+        "corrosionAllowance": 2,
+        "mechanicalAllowance": 0.4,
+        "erosionAllowance": 0.2,
+        "negativeMillTolerance": { "basis": "absolute", "value": 0.03125, "unit": "in" }
+      },
+      "expected": {
+        "pressureDesignThicknessMm": 7.57476231633535,
+        "requiredMinimumThicknessMm": 10.174762316335348,
+        "requiredNominalThicknessMm": 10.968512316335348,
+        "pressureStressRatio": 0.064,
+        "thicknessDiameterRatio": 0.034572169403630074
+      }
+    }
+  ],
+  "negativeCases": [
+    {
+      "id": "B313-N001",
+      "description": "Bare 0.125 tolerance is rejected as ambiguous",
+      "inputs": {
+        "designPressure": 10, "pressureUnit": "MPa", "outsideDiameter": 273.05, "lengthUnit": "mm",
+        "allowableStress": 138, "stressUnit": "MPa", "qualityFactorE": 1, "weldStrengthReductionW": 1,
+        "coefficientY": 0.4, "corrosionAllowance": 3, "negativeMillTolerance": 0.125
+      },
+      "expectedCode": "INVALID_NEGATIVE_MILL_TOLERANCE"
+    },
+    {
+      "id": "B313-N002",
+      "description": "External pressure is outside v1 scope",
+      "inputs": {
+        "pressureMode": "external", "designPressure": 1, "pressureUnit": "MPa", "outsideDiameter": 114.3,
+        "lengthUnit": "mm", "allowableStress": 120, "stressUnit": "MPa", "qualityFactorE": 1,
+        "weldStrengthReductionW": 1, "coefficientY": 0.4, "negativeMillTolerance": { "basis": "percent", "value": 12.5 }
+      },
+      "expectedCode": "UNSUPPORTED_B313_SCOPE"
+    },
+    {
+      "id": "B313-N003",
+      "description": "Pressure to SE ratio above implemented envelope fails closed",
+      "inputs": {
+        "designPressure": 50, "pressureUnit": "MPa", "outsideDiameter": 100, "lengthUnit": "mm",
+        "allowableStress": 100, "stressUnit": "MPa", "qualityFactorE": 1, "weldStrengthReductionW": 1,
+        "coefficientY": 0.4, "negativeMillTolerance": { "basis": "percent", "value": 0 }
+      },
+      "expectedCode": "UNSUPPORTED_B313_EQUATION_SCOPE"
+    },
+    {
+      "id": "B313-N004",
+      "description": "Calculated pressure thickness at or above D over 6 fails closed",
+      "inputs": {
+        "designPressure": 34, "pressureUnit": "MPa", "outsideDiameter": 100, "lengthUnit": "mm",
+        "allowableStress": 100, "stressUnit": "MPa", "qualityFactorE": 1, "weldStrengthReductionW": 1,
+        "coefficientY": 0, "negativeMillTolerance": { "basis": "percent", "value": 0 }
+      },
+      "expectedCode": "UNSUPPORTED_B313_EQUATION_SCOPE"
+    },
+    {
+      "id": "B313-N005",
+      "description": "Unsupported edition is explicit",
+      "inputs": { "edition": "2022" },
+      "expectedCode": "UNSUPPORTED_B313_EDITION"
+    },
+    {
+      "id": "B313-N006",
+      "description": "Chapter IX high-pressure fluid service is outside v1 scope",
+      "inputs": { "chapterIX": true },
+      "expectedCode": "UNSUPPORTED_B313_SCOPE"
+    }
+  ]
+}
