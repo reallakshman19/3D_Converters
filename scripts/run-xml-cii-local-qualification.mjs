@@ -33,6 +33,7 @@ function assertLocalActivation() {
   const service = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js'), 'utf8');
   const modeA = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js'), 'utf8');
   const finalReview = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js'), 'utf8');
+  const finalAuthority = fs.readFileSync(path.join(root, 'converters/xml-cii2019-core/final-weight-review-authority.js'), 'utf8');
   const adapter = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js'), 'utf8');
   const match1 = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js'), 'utf8');
   const evidence = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-conversion-evidence.js'), 'utf8');
@@ -43,7 +44,8 @@ function assertLocalActivation() {
     ['X003 mass conservation active', parity.includes('applyXmlCiiSplitRigidWeightPropagation')],
     ['X003 conservation retained', service.includes('normalized.diagnostics.weightConservation')],
     ['X003 Match1 physical identity', match1.includes('migrateMatch1ToPhysicalIdentity') && match1.includes("match1Identity: 'physical-component'")],
-    ['X003 Final all-component review', finalReview.includes('collectXmlCiiWeightMatchRows') && !finalReview.includes('collectXmlCiiZeroRigidWeightIssues')],
+    ['X003 Final authority collector active', finalReview.includes('collectXmlCiiFinalWeightReviewRows') && finalAuthority.includes('sourceIdentityRows')],
+    ['X003 Final no length exemption', !finalAuthority.includes('lengthMm <= 6') && !finalAuthority.includes('endpointEligible')],
     ['X003 Final physical keys', finalReview.includes("key.startsWith('WPC1::')") && finalReview.includes('rigidWeightFinal')],
     ['X003 run-boundary legacy materialization', adapter.includes('materializeXmlCiiLegacyWeightCompatibility') && adapter.includes('sourceIdFromPhysicalWeightMap')],
     ['X004 Final evidence isolated', evidence.includes("identity: 'physical-component'") && !evidence.includes('const transient = plainObject(config?.overrides?.rigidWeight)')],
