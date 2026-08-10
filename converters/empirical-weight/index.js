@@ -7,6 +7,11 @@ export {
   estimateEmpiricalWeightApproach2,
 } from './empirical-weight-estimator.js';
 export {
+  cloneEmpiricalWeightModel,
+  validateEmpiricalWeightTuningModel,
+  createEmpiricalWeightTuningSession,
+} from './empirical-weight-tuning.js';
+export {
   DEFAULT_EMPIRICAL_WEIGHT_ABNORMALITY_THRESHOLD_PCT,
   compareObservedWeightToEmpiricalEstimate,
   createEmpiricalWeightValidator,
