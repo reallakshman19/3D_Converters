@@ -1,5 +1,9 @@
 import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core/default-weight-master-rows.js';
 import {
+  collectXmlCiiWeightIdentityRows,
+  migrateXmlCiiWeightDecisionMap,
+} from '../../../converters/xml-cii2019-core/weight-component-identity.js';
+import {
   saveMasterContextToLocalStorage,
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
@@ -52,6 +56,28 @@ function ensureOverrides(config) {
   return config.overrides;
 }
 
+function migrateMatch1ToPhysicalIdentity(stateRef, config) {
+  const state = stateRef.current || {};
+  const sourceText = state.sourceText || '';
+  const rows = collectXmlCiiWeightIdentityRows(sourceText);
+  const sourceId = state.sourceBatch?.activeSourceId || '';
+  const migrated = migrateXmlCiiWeightDecisionMap(
+    config?.overrides?.rigidWeightMatch1 || {},
+    rows,
+    { sourceText, sourceId, config },
+  );
+  config.overrides = { ...(config.overrides || {}), rigidWeightMatch1: migrated.accepted };
+  delete config.overrides.rigidWeight;
+  config.weightReviewLifecycle = {
+    ...(config.weightReviewLifecycle || {}),
+    schema: 'xml-cii-weight-review-lifecycle/v2',
+    match1Identity: 'physical-component',
+    match1PhysicalMigrationCount: migrated.migrations.length,
+    unresolvedLegacyMatch1Keys: migrated.unmatched,
+  };
+  return config;
+}
+
 export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
   card.innerHTML = '<div class="model-converters-workflow-detail-note">Loading shared Weight Match authority…</div>';
   void (async () => {
@@ -79,7 +105,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
         stagedJsonText: state.stagedJsonText || '',
         config,
         enrichXmlForCii2019: shared.enrichXmlForCii2019,
-        onSaveConfig: (nextConfig) => persistConfig(stateRef, nextConfig),
+        onSaveConfig: (nextConfig) => persistConfig(stateRef, migrateMatch1ToPhysicalIdentity(stateRef, nextConfig)),
         ensureOverrides,
         resolveStagedJsonText: async () => ({
           text: stateRef.current.stagedJsonText || '',
