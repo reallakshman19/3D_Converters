@@ -14,7 +14,24 @@ fs.copyFileSync(
 );
 fs.writeFileSync(
   path.join(tempRoot, 'converters/empirical-weight/empirical-weight-estimator.js'),
-  'export function createEmpiricalWeightEstimator(){ throw new Error("test must inject estimator"); }\n',
+  `
+function positive(value) { const n = Number(value); return Number.isFinite(n) && n > 0 ? n : null; }
+export function createEmpiricalWeightEstimator({ masterRows = [], model = {} } = {}) {
+  return {
+    masterRows,
+    model,
+    approach1(input) {
+      return { ok: true, weightKg: 100, approach: 'A1_SIZE_BAND', confidence: 'EQUATION', modelId: 'A1|FACTORY', typeDesc: input.typeDesc, rating: Number(input.rating), size: Number(input.ns), target: String(input.target || '').toUpperCase().includes('BW') ? 'BW KG' : 'RF/RTJ KG' };
+    },
+    approach2(input) {
+      const target = String(input.target || '').toUpperCase().includes('BW') ? 'BW KG' : 'RF/RTJ KG';
+      const exact = masterRows.find((row) => String(row.TypeDesc || row.typeDesc || '').toLowerCase() === String(input.typeDesc || '').toLowerCase() && Number(row.NS || row.ns) === Number(input.ns) && Number(row.Rating || row.rating) === Number(input.rating));
+      const exactWeight = target === 'BW KG' ? positive(exact?.['BW KG']) : positive(exact?.['RF/RTJ KG']);
+      return { ok: true, weightKg: exactWeight || 80, approach: 'A2_MATRIX', confidence: 'HIGH', modelId: 'A2|FACTORY', typeDesc: input.typeDesc, rating: Number(input.rating), size: Number(input.ns), target, predictions: { band: 100, ratio: exactWeight || 80, cross: 80 }, weights: { band: 0.2, ratio: 0.4, cross: 0.4 } };
+    },
+  };
+}
+`,
   'utf8',
 );
 
@@ -82,15 +99,39 @@ const stubEstimator = {
   assert.strictEqual(customThreshold.approach1.abnormal, true);
   assert.strictEqual(customThreshold.abnormalityThresholdPct, 20);
 
+  // A2 validation must not use the exact target master cell. The fixture
+  // estimator would return that exact 120 kg if it remained present; after
+  // leave-target-cell-out it returns the neighbor-derived 80 kg instead.
+  const looValidator = api.createEmpiricalWeightValidator({
+    masterRows: [
+      { TypeDesc: 'VALVE', NS: 4, DN: 100, Rating: 300, 'RF/RTJ KG': 120, 'BW KG': 90 },
+      { TypeDesc: 'VALVE', NS: 6, DN: 150, Rating: 300, 'RF/RTJ KG': 180, 'BW KG': 140 },
+    ],
+  });
+  const loo = looValidator.validate({ rowId: 'LOO', typeDesc: 'VALVE', ns: 4, rating: 300, target: 'RF', observedWeightKg: 120 });
+  assert.strictEqual(loo.approach2.estimatedWeightKg, 80, 'A2 must not see the target cell during validation');
+  assert.strictEqual(loo.approach2.validationBasis, 'A2_LEAVE_TARGET_CELL_OUT');
+  assert.strictEqual(loo.approach2.excludedTargetCellRows, 1);
+  assert.strictEqual(loo.approach2.abnormal, true);
+
+  const fullCatalog = looValidator.validate(
+    { rowId: 'FULL', typeDesc: 'VALVE', ns: 4, rating: 300, target: 'RF', observedWeightKg: 120 },
+    { leaveTargetCellOutOfA2: false },
+  );
+  assert.strictEqual(fullCatalog.approach2.estimatedWeightKg, 120);
+  assert.strictEqual(fullCatalog.approach2.validationBasis, 'A2_FULL_CATALOG');
+  assert.strictEqual(fullCatalog.approach2.abnormal, false);
+
   const report = validator.buildReport([
     { rowId: 'OK', typeDesc: 'VALVE', ns: 4, rating: 300, observedWeightKg: 105 },
     { rowId: 'A1', typeDesc: 'VALVE', ns: 4, rating: 300, observedWeightKg: 140 },
     { rowId: 'BOTH', typeDesc: 'VALVE', ns: 4, rating: 300, observedWeightKg: 131 },
     { rowId: 'PARTIAL', typeDesc: 'NO_A2', ns: 4, rating: 300, observedWeightKg: 100 },
   ]);
-  assert.strictEqual(report.schema, 'empirical-weight-validation-report/v1');
+  assert.strictEqual(report.schema, 'empirical-weight-validation-report/v2');
   assert.strictEqual(report.authority, 'READ_ONLY_VALIDATION_NOT_WEIGHT_AUTHORITY');
   assert.strictEqual(report.exactLookupUsed, false);
+  assert.strictEqual(report.approach2ValidationBasis, 'LEAVE_TARGET_CELL_OUT');
   assert.deepStrictEqual(report.approaches, ['A1_SIZE_BAND', 'A2_MATRIX']);
   assert.strictEqual(report.summary.inputRows, 4);
   assert.strictEqual(report.summary.abnormalRows, 3);
@@ -98,6 +139,8 @@ const stubEstimator = {
 
   const abnormalCsv = api.empiricalWeightValidationReportToCsv(report);
   assert(abnormalCsv.includes('rowId,componentRefNo'));
+  assert(abnormalCsv.includes('A1_validationBasis'));
+  assert(abnormalCsv.includes('A2_validationBasis'));
   assert(abnormalCsv.includes('A1'));
   assert(abnormalCsv.includes('BOTH'));
   assert(!abnormalCsv.includes('PARTIAL,', abnormalCsv.indexOf('\n') + 1));
