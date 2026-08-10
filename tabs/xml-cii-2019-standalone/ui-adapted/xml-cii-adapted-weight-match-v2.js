@@ -3,6 +3,7 @@ import {
   saveMasterContextToLocalStorage,
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js';
+import { appendEmpiricalWeightValidationReport } from './xml-cii-adapted-weight-validation-report.js';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -86,6 +87,7 @@ export function renderAdaptedWeightMatchPanelV2(card, stateRef) {
           label: stateRef.current.stagedJsonFile?.name || '',
         }),
       });
+      appendEmpiricalWeightValidationReport(card, stateRef);
     } catch (error) {
       card.innerHTML = `<div class="model-converters-workflow-detail-note" style="border-color:#b91c1c;color:#fecaca;background:#450a0a;">Weight Match was not started because the shared Preview Rating authority could not load: ${escapeHtml(error?.message || error)}</div>`;
       console.error('Standalone Weight Match authority load failed:', error);
