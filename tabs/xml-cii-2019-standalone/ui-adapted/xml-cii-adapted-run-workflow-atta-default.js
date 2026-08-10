@@ -2,9 +2,8 @@ import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-wor
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
+import { collectXmlCiiFinalWeightReviewRows } from '../../../converters/xml-cii2019-core/final-weight-review-authority.js';
 import {
-  decorateXmlCiiWeightReviewRows,
-  dedupeXmlCiiPhysicalWeightRows,
   migrateXmlCiiWeightDecisionMap,
   resolveXmlCiiWeightDecision,
 } from '../../../converters/xml-cii2019-core/weight-component-identity.js';
@@ -46,11 +45,18 @@ function suggestedWeight(issue) {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
+function sourceWeight(issue) {
+  const numeric = Number(issue.originalWeight);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
 function initialFinalWeight(issue) {
   const prior = Number(issue.priorFinalWeight);
   if (Number.isFinite(prior) && prior > 0) return prior;
   const match1 = Number(issue.match1Weight);
   if (Number.isFinite(match1) && match1 > 0) return match1;
+  const source = sourceWeight(issue);
+  if (source !== null) return source;
   return suggestedWeight(issue) ?? '';
 }
 
@@ -68,6 +74,8 @@ function rigidCandidateButtons(issue, index) {
 function authorityBadge(issue) {
   if (Number(issue.priorFinalWeight) > 0) return `Prior Final ${Number(issue.priorFinalWeight)} kg`;
   if (Number(issue.match1Weight) > 0) return `Match1 ${Number(issue.match1Weight)} kg${issue.match1Legacy ? ' · migrated legacy key' : ''}`;
+  const source = sourceWeight(issue);
+  if (source !== null) return `Source XML ${source} kg · Final confirmation required`;
   if (Number(issue.legacyTransientWeight) > 0) return `Legacy ${Number(issue.legacyTransientWeight)} kg · review required`;
   return 'No accepted prior weight';
 }
@@ -84,26 +92,26 @@ function rigidReviewRow(issue, index) {
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="text" class="mc-rigid-review-rating-input" data-rigid-review-key="${attr(issue.key)}" value="${attr(info.shownRating)}" placeholder="Rating" title="${attr(info.title)}" style="${info.style}">${ratingBadge}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
     <td class="mc-rigid-review-dtxr" title="${attr([issue.dtxrSourcePath, info.dtxrRating ? `DTXR rating ${info.dtxrRating}# (evidence only)` : ''].filter(Boolean).join(' · '))}" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.dtxr || 'Not found')}</td>
-    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
+    <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${esc(issue.lengthMm == null ? 'n/a' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
     <td style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-rigid-review-key="${attr(issue.key)}" value="${esc(initial)}" placeholder="kg" title="${attr(authorityBadge(issue))}" style="width:82px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"><div style="font-size:10px;color:#94a3b8;margin-top:3px;">${esc(authorityBadge(issue))}</div></td>
-    <td class="mc-rigid-review-candidates" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${rigidCandidateButtons(issue, index) || '<span style="color:#64748b;">No suggestion</span>'}</td>
+    <td class="mc-rigid-review-candidates" style="padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">${rigidCandidateButtons(issue, index) || '<span style="color:#64748b;">No qualified suggestion · review source/manual value</span>'}</td>
   </tr>`;
 }
 
 function rigidReviewMarkup(rows) {
   return `<div class="mc-rigid-review-dialog" role="dialog" aria-modal="true" aria-label="Final rigid weight review" style="color:#e2e8f0;max-height:86vh;overflow:auto;background:#0f172a;border:1px solid #253a55;border-radius:8px;padding:20px;max-width:1020px;width:92%;">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #253a55;padding-bottom:12px;margin-bottom:16px;">
-      <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Final Rigid Weight Review</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} physical component(s) require an explicit Final disposition. Positive Match1 or legacy values do not bypass this review.</div></div>
+      <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Final Rigid Weight Review</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} physical component(s) require an explicit Final disposition. Length is candidate evidence only; it never exempts a weight-bearing component from Final review.</div></div>
       <button type="button" data-rigid-review-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;font-size:12px;">Cancel</button>
     </div>
-    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Applying writes <strong>Rigidmatch2</strong> using physical-component identity. Skipping explicitly clears prior Final decisions and uses retained <strong>RigidMatch1</strong> for this run. Suggestions are candidates only.</div>
+    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:10px;border-radius:6px;font-size:12px;margin-bottom:16px;">Applying writes <strong>Rigidmatch2</strong> using physical-component identity. Skipping explicitly clears prior Final decisions and uses retained <strong>RigidMatch1</strong> / source XML authority for this run. Suggestions are candidates only.</div>
     <div style="overflow:auto;max-height:48vh;border:1px solid rgba(148,163,184,0.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,0.3);color:#fff;border-bottom:1px solid rgba(148,163,184,0.15);"><th style="padding:8px;">Branch</th><th style="padding:8px;">Bore</th><th style="padding:8px;">Rating</th><th style="padding:8px;">Node</th><th style="padding:8px;">DTXR</th><th style="padding:8px;">Length</th><th style="padding:8px;">Final kg</th><th style="padding:8px;">Candidates</th></tr></thead><tbody>${rows.map(rigidReviewRow).join('')}</tbody></table></div>
     <div data-rigid-review-status style="font-size:12px;margin-top:8px;"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-top:1px solid #253a55;padding-top:16px;">
       <button type="button" data-rigid-review-refresh style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Refresh Suggestions</button>
       <div style="display:flex;gap:12px;">
         <button type="button" data-rigid-review-fill-best style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Use All Suggestions</button>
-        <button type="button" data-rigid-review-skip style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Skip Final Review · Use Match1</button>
+        <button type="button" data-rigid-review-skip style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:8px 16px;font-size:12px;">Skip Final Review · Use Match1/Source</button>
         <button type="button" data-rigid-review-apply style="cursor:pointer;background:#1e4ed8;border:none;color:#fff;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;">Accept Final Weights and Continue</button>
       </div>
     </div>
@@ -211,12 +219,15 @@ function applyRigidReviewWeights(overlay, finish, setStatus) {
 }
 
 async function allRigidReviewIssues(state, config) {
-  const { collectXmlCiiWeightMatchRows } = await import('../../../converters/xml-cii2019-core/weight-match-model.js');
   const { applyXmlCiiFlangeWeightFallbackToIssue } = await import('../../../converters/xml-cii2019-core/flange-weight-fallback.js');
   const { rankXmlCiiWeightCandidates } = await import('../../../converters/xml-cii2019-core/weight-valve-hints.js');
-  const raw = collectXmlCiiWeightMatchRows(state.sourceText || '', state.stagedJsonText || '', config);
   const identityOptions = { sourceText: state.sourceText || '', sourceId: state.sourceBatch?.activeSourceId || '', config };
-  const identified = dedupeXmlCiiPhysicalWeightRows(decorateXmlCiiWeightReviewRows(raw, identityOptions));
+  const identified = collectXmlCiiFinalWeightReviewRows(
+    state.sourceText || '',
+    state.stagedJsonText || '',
+    config,
+    identityOptions,
+  );
   return identified.map((issue) => {
     const ratingAuthority = resolveStandaloneWeightReviewRating(issue, config);
     const rating = ratingAuthority.rating;
@@ -276,7 +287,7 @@ async function reviewRigidWeights(stateRef, config) {
       config.overrides.rigidWeightFinal = {};
       config.weightReviewLifecycle = {
         ...(config.weightReviewLifecycle || {}),
-        finalReviewDisposition: result.noReviewRows ? 'no-review-rows' : 'explicit-skip-use-match1',
+        finalReviewDisposition: result.noReviewRows ? 'no-review-rows' : 'explicit-skip-use-match1-or-source',
         explicitFinalReview: !result.noReviewRows,
       };
     } else {
