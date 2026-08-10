@@ -1,8 +1,9 @@
 # Overall Roadmap — XML/InputXML → CII 2019 Exact-Head Closure
 
 Maintained by the Owner. Updated after every merged XML/InputXML → CII 2019
-Work Pack. This is the single source of truth for **phase status, sequencing,
-and release authority** for this workstream.
+Work Pack and after any material implementation/qualification event that
+changes the next authorized action. This is the single source of truth for
+**phase status, sequencing, and release authority** for this workstream.
 
 The detailed engineering mandate remains
 [`docs/InputxmltoCII2019Fixplan.md`](./InputxmltoCII2019Fixplan.md). That file
@@ -46,6 +47,24 @@ inspection, scoped implementation after Owner authorization, and qualification
 work are allowed. No future agent may convert source presence or a green unit
 test into a claim of browser/runtime activation or numerical correctness.
 
+### 1.1 Current X001 implementation record
+
+| Item | Current fact |
+|---|---|
+| Work Pack | `X001` — coordinate/topology custody |
+| Draft PR | `#417` — `fix(xml-cii): close X001 coordinate topology custody` |
+| Branch | `agent/xml-cii-x001-coordinate-topology` |
+| Base | `9bd60db7b013ff7e1aaaadf661bf84b977f42643` |
+| Implementation code head before this roadmap-only update | `05269c6dae61e8bea2717b907c0f2ff91e3c930e` |
+| Targeted Actions run | `31362264540` |
+| Actions result | **NOT EXECUTED** — GitHub did not start a runner because account payment/spending-limit state blocked the job before any step ran |
+| Qualification decision | **Not accepted yet** — no GLRD pass is claimed until the targeted commands actually execute |
+
+The Actions infrastructure result is not treated as a converter failure and is
+also not treated as evidence of success. X001 implementation is present for
+review, but P2 remains open until the real regression and negative controls
+execute against the exact PR head.
+
 ---
 
 ## 2. Phase status
@@ -54,8 +73,8 @@ test into a claim of browser/runtime activation or numerical correctness.
 |---|---|---|
 | P0 Baseline freeze + expert qualification gate | **Done** | Fix plan at `152f0d18…`; repository-specific expert gate answered |
 | P1 Runtime route / Mode A activation proof | **Incomplete** | Exact browser/deployed-module proof, not source-text proof only |
-| P2 Coordinate + topology custody | **Ready — first implementation phase** | Occurrence-scoped identity, fail-closed coordinates, correct COORDS anchoring |
-| P3 OD / bore / property authority | **Blocked on P2 isolation** | Raw-vs-effective OD, unit-qualified bore authority, reducer/change-size rules |
+| P2 Coordinate + topology custody | **Implemented in draft PR #417; qualification blocked** | X001 code isolated; targeted GLRD/negative-control run has not executed because GitHub Actions runner was blocked by billing/spending state |
+| P3 OD / bore / property authority | **Blocked on accepted P2 qualification** | Raw-vs-effective OD, unit-qualified bore authority, reducer/change-size rules |
 | P4 Rigid / valve / flange weight authority | **Blocked on P3 isolation** | Review-state separation, stable identity, mass conservation, explicit kg→N contract |
 | P5 Immutable Preview / Weight evidence | **Blocked on P4 data contracts** | `<preview>`, `<RigidMatch1>`, `<Rigidmatch2>` frozen snapshots + digests |
 | P6 Enriched XML ZIP package | **Blocked on P5** | Deterministic per-source evidence ZIP + manifest |
@@ -77,8 +96,8 @@ root-cause attribution impossible.
 
 | Mission | Status | Scope | Exit gate |
 |---|---|---|---|
-| X001 | **Ready** | Coordinate/topology custody | GLRD origin failures closed without OD/weight changes |
-| X002 | Planned | OD/bore/property authority | Six 26.7-mm cases and `4 mm` bore failure closed with source provenance retained |
+| X001 | **Implemented in draft PR #417; qualification pending** | Coordinate/topology custody | Execute targeted GLRD seven-node regression + negative controls on exact PR head; no OD/weight changes |
+| X002 | Planned / blocked | OD/bore/property authority | Six 26.7-mm cases and `4 mm` bore failure closed with source provenance retained |
 | X003 | Planned | Weight identity, review lifecycle and conservation | Reported suspect weights trace to one accepted mass each; no stale/sibling duplication |
 | X004 | Planned | Immutable Preview / RigidMatch evidence + digest chain | Three snapshots frozen at correct lifecycle points; exact engine inputs hash-linked |
 | X005 | Planned | `Save Enriched XML ZIP` | Deterministic per-source ZIP with manifest and qualification artifacts |
@@ -219,6 +238,81 @@ Each must fail or resolve for the intended, documented reason.
 X001 must not change OD/bore rules, weight matching, mass conversion, weight
 propagation, evidence XML schema, or ZIP packaging except where a minimal
 identity contract is required by topology itself.
+
+### 4.7 Implementation and qualification record — draft PR #417
+
+The implementation intentionally reuses the repository's existing PSI116
+component-occurrence topology layer instead of creating a competing topology
+algorithm.
+
+Repository finding:
+
+```text
+general XML→CII route
+  -> xml_to_cii2019_contracted_direction.py
+
+standalone production route before X001
+  -> xml_to_cii2019_direction.py
+```
+
+Therefore the standalone path was not consuming the stronger contracted
+component-topology layer already present elsewhere in the repository.
+
+X001 changes on implementation head `05269c6dae61e8bea2717b907c0f2ff91e3c930e`:
+
+```text
+ADDED    converters/scripts/xml_to_cii2019_coordinate_custody.py
+MODIFIED converters/xml-cii-2019-standalone/invocation-builder.js
+MODIFIED converters/xml-cii-2019-standalone/engine.js
+ADDED    converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
+ADDED    tests/xml-cii-standalone-x001-coordinate-custody.test.js
+ADDED    .github/workflows/xml-cii-x001-coordinate-custody.yml
+```
+
+The patch does the following and no more:
+
+- composes `xml_to_cii2019_contracted_direction.py` in the standalone route;
+- blocks malformed/non-finite Position data instead of permitting an implicit
+  origin fallback;
+- validates that one final CII NodeNumber cannot own non-equivalent physical
+  positions beyond the existing 0.5 mm topology tolerance;
+- makes `coords-mode=first` emit an absolute anchor for the first retained node
+  of every serialized branch occurrence;
+- makes `coords-mode=all` deterministic over retained final node coordinates;
+- preserves explicit `coords-mode=none`;
+- does not modify OD, bore, rigid-weight, review lifecycle, evidence XML, or ZIP
+  code.
+
+The committed targeted regression is designed to execute the real frozen GLRD
+benchmark through the X001 Python entrypoint and verify Nodes
+`10, 760, 1200, 1640, 2080, 2520, 2960` against source-derived `(X,Z,-Y)`
+coordinates. It also includes negative controls for malformed Position and one
+reused CII NodeNumber mapped to two physically different coordinates.
+
+**Qualification state:** the targeted GitHub Actions run `31362264540` did not
+start a runner. GitHub reported an account payment/spending-limit blocker
+before any workflow step executed. Consequently:
+
+```text
+IMPLEMENTATION_PRESENT
+TARGETED_TESTS_COMMITTED
+TARGETED_TESTS_NOT_EXECUTED
+GLRD_X001_PASS_NOT_CLAIMED
+P2_NOT_DONE
+X002_NOT_AUTHORIZED_YET
+```
+
+The exact commands that still require execution in a qualified environment are:
+
+```bash
+node tests/xml-cii-standalone-x001-coordinate-custody.test.js
+python converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
+```
+
+After those pass on the exact PR head, inspect the emitted GLRD COORDS records
+and negative-control diagnostics before changing P2 to Done. Browser/runtime
+activation proof remains a separate P1/P7 requirement; passing these repository
+checks alone must not be described as deployed-browser qualification.
 
 ---
 
@@ -788,18 +882,19 @@ Passing one Work Pack does not grant unrestricted authority over later phases.
 
 ## 14. Status update rules
 
-Update this roadmap after every merged Work Pack or Owner decision.
+Update this roadmap after every merged Work Pack, material implementation
+checkpoint, qualification result, or Owner decision.
 
 Every update should record:
 
 ```text
 mission / issue / PR
-exact merged SHA
+exact merged SHA, or exact unmerged implementation head when qualification is pending
 phase status change
-benchmark evidence produced
-newly discovered defects
+benchmark evidence produced or explicitly not produced
+newly discovered defects / infrastructure blockers
 known limitations still open
-next authorized mission
+next authorized mission or qualification action
 ```
 
 Do not mark a phase Done based on:
@@ -810,19 +905,27 @@ Do not mark a phase Done based on:
 - a hand reconstruction that did not execute the repository path;
 - a PR description saying a test passed;
 - a generated report that cannot be tied by digest to the exact engine input;
-- numerical agreement obtained by changing unrelated defaults or tolerances.
+- numerical agreement obtained by changing unrelated defaults or tolerances;
+- a workflow that was created but never received a runner.
 
 ---
 
 ## 15. Immediate next action
 
-**X001 — Coordinate/topology custody is the next authorized implementation
-scope after this roadmap is accepted.**
+**X001 implementation exists in draft PR #417, but X001 qualification is the
+next authorized action. X002 remains blocked.**
 
-The first implementation should close the coordinate/origin failure with the
-smallest possible patch set and produce the seven-node GLRD trace before any
-OD/bore or weight code is changed.
+Execute the two committed X001 checks against the exact current PR head in a
+qualified environment after GitHub Actions billing/spending state permits a
+runner (or in another exact-head repository checkout):
 
-After X001 evidence is accepted, proceed to X002. Do not start X002–X005 in
-parallel merely to accelerate the schedule; these phases deliberately depend
-on a stable identity/topology contract from X001.
+```bash
+node tests/xml-cii-standalone-x001-coordinate-custody.test.js
+python converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
+```
+
+Then inspect the seven-node GLRD COORDS trace and both negative controls. Only
+after that evidence is accepted may P2 be changed to Done and X002 begin.
+Do not start OD/bore or weight implementation in parallel while X001 remains
+unqualified; the sequence is intentionally designed to preserve root-cause
+attribution.
