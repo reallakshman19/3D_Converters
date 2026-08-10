@@ -1,17 +1,17 @@
-# InputXML / PSI116 XML → CII 2019 Concept, Current-State Ground Truth and Roadmap
+# InputXML / PSI116 XML → CII 2019 Fix Plan, Current-State Ground Truth and Roadmap
 
-**Canonical file:** `docs/InputxmltoCII2019ConceptNote.md`  
+**Canonical file:** `docs/InputxmltoCII2019Fixplan.md`  
 **Repository:** `reallaksh19/3D_Converters`  
 **Audited source baseline:** `b168cced3f5aaaada15de290d14ce64928a9a7a3`  
 **Audit date:** 2026-08-10  
-**Document status:** `GOVERNING_CONCEPT_AND_ROADMAP`  
+**Document status:** `GOVERNING_FIX_PLAN_AND_ROADMAP`  
 **Engineering status:** This document governs architecture, data authority, qualification gates, benchmark expectations, and roadmap sequencing for the XML/InputXML → CII 2019 programme. It is not, by itself, proof that the current browser route is production-qualified or that any reported benchmark defect has been numerically corrected.
 
 ---
 
 ## 0. Purpose and mandatory use
 
-This document is the source-level concept, current-state record, and forward roadmap for the **XML / InputXML → CII 2019** programme in `3D_Converters`.
+This document is the source-level fix plan, current-state record, and forward roadmap for the **XML / InputXML → CII 2019** programme in `3D_Converters`.
 
 It shall be used as the first reference when:
 
@@ -909,7 +909,7 @@ same NodeNumber  -> warning, allowed
 Within one source:
 
 ```text
-duplicate Branchname occurrence       -> block pending explicit semantics
+duplicate Branchname occurrence        -> block pending explicit semantics
 duplicate NodeNumber within one branch -> block
 ```
 
@@ -1203,7 +1203,7 @@ Current parity focuses on selected process/weight facts and engine-input release
 
 The existing readiness document predates Mode A and recent MDS/branch-scope work and records `needs-more-proof` at an older baseline.
 
-**Action:** subordinate historical readiness reports to this concept note and create new exact-head qualification receipts rather than editing old history into apparent proof.
+**Action:** subordinate historical readiness reports to this fix plan and create new exact-head qualification receipts rather than editing old history into apparent proof.
 
 **Severity:** governance debt.
 
@@ -1692,6 +1692,244 @@ Must prove the real browser path, not just source imports or unit tests.
 
 Requires all previous gates plus exact-head browser/engine benchmark evidence and rollback criteria.
 
+## 19.9 Mandatory expert qualification gate for any new agent
+
+### 19.9.1 Authority rule
+
+No new agent, contractor, autonomous coding agent, or replacement maintainer shall receive XML/InputXML → CII 2019 implementation, review-approval, or merge authority merely from a self-description, generic software answer, generic piping-stress answer, or prior FEA experience.
+
+Before changing production code, the candidate shall pass the **five-question written expert gate** below against the repository and benchmark state defined by this document.
+
+Until the gate is passed and the owner explicitly authorizes implementation, the candidate state is:
+
+```text
+READ_ONLY_REPOSITORY_INSPECTION_ALLOWED
+WRITTEN_RCA_ALLOWED
+PRODUCTION_CODE_WRITES_NOT_AUTHORIZED
+PR_APPROVAL_NOT_AUTHORIZED
+MERGE_AUTHORITY_NOT_AUTHORIZED
+```
+
+The candidate may inspect source, benchmark files, tests, commits, and retained artifacts in order to answer the gate. The candidate shall not “prove expertise” by first changing the implementation.
+
+### 19.9.2 Qualification stages
+
+```text
+Stage 0 — Background and provenance review
+Stage 1 — Five-question written expert gate
+Stage 2 — Repository-specific trace exercise
+Stage 3 — Numerical/data-conservation implementation exercise
+Stage 4 — Debugging and retained-evidence exercise
+Stage 5 — Limited implementation authority under review
+Stage 6 — Independent exact-head qualification
+Stage 7 — Merge authority only if explicitly granted by owner
+```
+
+Passing Stage 1 does **not** itself grant merge authority. It only permits progression to the repository-specific exercises and, after explicit owner authorization, limited implementation work.
+
+### 19.9.3 Scoring
+
+Each question carries 20 marks.
+
+```text
+Question 1: 20 marks
+Question 2: 20 marks
+Question 3: 20 marks
+Question 4: 20 marks
+Question 5: 20 marks
+
+Minimum total: 92/100
+Minimum per question: 17/20
+```
+
+A candidate scoring below either threshold fails the written gate.
+
+A safety-critical or provenance-critical false claim may cause immediate failure regardless of total score. Examples include claiming that a source import proves browser activation, treating kg as N, treating nominal bore as OD without authority, accepting silent `(0,0,0)` coordinates, or claiming benchmark parity without tracing the exact engine input and CII output.
+
+Self-scoring by the candidate is not authority. The gate must be adjudicated by the owner or an already-authorized reviewer.
+
+### 19.9.4 Question 1 — Runtime architecture, browser activation, and Mode A isolation — 20 marks
+
+**Question:**
+
+The repository contains Mode A source files and the standalone tab imports the Mode A shell, yet the operator cannot see the multi-XML / branch-multiselect UI. Without changing code, explain how you will determine exactly where the active runtime diverges from repository source. Then define the minimum corrective architecture and browser proof required before you would call Mode A operational.
+
+A qualified answer must include all of the following:
+
+- exact trace from application/tab registration to `xml-cii-2019-standalone-tab.js`, Mode A shell composition, active phase renderer, Source panel, file input, inventory injection, branch selector, and event binder;
+- distinction between repository SHA, built/deployed artifact, browser-loaded module URL/version, DOM visibility, event binding, and downstream state mutation;
+- explanation of why a passing static import test, unit test, or merged PR does not prove that the user-visible route is active;
+- how `input.multiple`, source inventory, active-source switching, and branch multiselect shall be proven in the actual browser route;
+- how two XML files with duplicate `NodeNumber` or `Branchname` values remain isolated in Mode A;
+- zero-selection blocking and restoration of per-source branch selection when switching away and back;
+- cache/version invalidation considerations and how stale assets will be ruled in or out;
+- exact browser-level negative test in which source code exists but the expected selector is missing, which must fail;
+- source files/functions the candidate expects to inspect before proposing a patch;
+- the smallest change boundary they would use after the failure point is identified.
+
+**Automatic major deductions:** generic statements such as “clear cache,” “set `multiple=true`,” or “the feature is already implemented because the import exists” without tracing the runtime composition and state path.
+
+### 19.9.5 Question 2 — Coordinate, topology, node identity, and generated-node custody — 20 marks
+
+**Question:**
+
+The converted GLRD model contains repeated `(0,0,0)` nodes, while source Node 10 has a non-zero `<Position>`. Describe the exact RCA you will perform to identify whether coordinate loss occurs during source parsing, occurrence identity, enrichment, branch scoping, split/renumber generation, Python/Pyodide engine input, or CII serialization. Define the invariants that must prevent recurrence.
+
+A qualified answer must include all of the following:
+
+- a trace for source Node 10 from raw XML `<Branchname>`, `<NodeNumber>`, `<ComponentRefNo>`, `<Position>` and declared distance units through normalized/enriched XML, exact engine-input XML, converter node table, and emitted CII coordinate;
+- the same trace strategy for at least one reported zero node that may be generated or renumbered rather than a direct source node;
+- occurrence-scoped identity so duplicate engineering node numbers cannot cause cross-branch or cross-file lookup errors;
+- explicit distinction between an engineering `NodeNumber`, a source-order node occurrence, and a generated/split node identity;
+- proof that missing or malformed positions cannot silently fall back to `(0,0,0)`;
+- rules for generated split-node coordinates, including parent component identity and deterministic derivation;
+- from/to topology continuity, orphan detection, zero-length detection, and large-jump detection;
+- unit and axis/order verification at every conversion boundary;
+- an exact before/after trace for one failed CII coordinate row, not merely a model-level screenshot;
+- deterministic regression tests using the frozen GLRD benchmark and at least one hostile malformed-position negative control.
+
+**Automatic fail examples:** accepting zero as a harmless default, repairing coordinates only in the CII writer without recovering source provenance, or using `NodeNumber` alone as a universal identity.
+
+### 19.9.6 Question 3 — Piping geometry/property authority: nominal size, bore, OD, wall, corrosion and branch provenance — 20 marks
+
+**Question:**
+
+The reported output contains OD = 26.7 mm around the repeated element pairs `596-598`, `1036-1038`, `1476-1478`, `1916-1918`, `2356-2358`, and `2796-2798`, while Preview also contains suspicious rows whose “Branch Name” looks like an AVEVA reference such as `=134234934/21706`. Explain how you will establish the authoritative geometry and branch identity for each affected occurrence and prevent a size/weight lookup from corrupting pipe geometry.
+
+A qualified answer must include all of the following:
+
+- explicit distinction between nominal line size, `BoreMm`, `OutsideDiameter`, `WallThickness`, `CorrosionAllowance`, derived ID, and weight-master bore keys;
+- source/derived/master/override precedence for each quantity rather than one generic “size” precedence;
+- why a valid source `<OutsideDiameter>` must not be overwritten merely because a weight or piping-class candidate has a different bore;
+- how reducers, valves, flanges, branch components, endpoint-specific properties, and generated condensed/split nodes will be treated without assuming every node on a branch has one OD;
+- exact occurrence trace for at least one affected pair through source node/component refs, Preview, resolved piping class, weight candidate, enriched XML, engine input, and CII OD;
+- an explanation of how a component/reference fallback could incorrectly appear as a branch identity and how `branchOccurrenceId` prevents that ambiguity;
+- exact/approximate line or piping-class match semantics and which geometry fields are forbidden from approximate propagation;
+- wall/corrosion and OD consistency checks, including impossible or nonphysical combinations;
+- test cases proving a valid source OD survives all weight-matching and Preview operations unchanged unless an explicit authorized override exists;
+- negative tests in which a small-bore weight candidate must not change an unrelated component's OD.
+
+**Automatic fail examples:** stating that “4 mm/50 mm bore means OD 26.7 mm,” deriving OD from nominal size without a governed source, or using text-similarity class matching as geometry authority without qualification.
+
+### 19.9.7 Question 4 — Rigid/valve/flange weight mechanics, mass-to-force conversion, splitting and conservation — 20 marks
+
+**Question:**
+
+The operator used suggested weights, yet the CII contains examples such as `478-480 = 1207.3401 N`, `529-530 = 1288.9501 N`, `598-600 = 1207.3401 N`, and several other large weights on short rigid elements. Describe how you will prove whether these are correct lumped component weights or mapping/conservation defects, and how you will prevent suggestion, override, split, and final-popup state from diverging.
+
+A qualified answer must include all of the following:
+
+- dimensional separation of mass `[kg]` from weight/force `[N]` and identification of the actual configured gravitational constant used by the converter;
+- a numerical back-calculation for at least one reported CII weight to its implied mass and comparison with the UI candidate(s), without assuming the short element length makes the weight wrong;
+- exact trace from Weight Match row and candidate method through selected candidate, override key, physical component-group identity, XML `<Weight>`, split/condensed children, engine input, and final CII element(s);
+- distinction among `SOURCE`, `SUGGESTED_EXACT`, `SUGGESTED_INTERPOLATED`, `SUGGESTED_EXTRAPOLATED`, `MANUAL_OVERRIDE`, `MAPPED_OVERRIDE`, and `FINAL_POPUP_OVERRIDE` or equivalent explicit states;
+- precedence rules between Weight Match and the last `Finalise and Run` rigid popup;
+- component-group conservation: selected physical-component mass equals the sum of final child/split masses within tolerance;
+- model-level conservation with clearly declared exclusions;
+- proof that kg→N is applied exactly once;
+- prevention of full valve/flange mass being copied to multiple split children or leaking to an adjacent rigid solely by position/proximity;
+- tests for repeated candidate application, double kg→N conversion, stale override keys, negative/temporary node numbers, generated node renumbering, and rerunning the same model twice;
+- retained trace for at least one of the user's suspect rows showing why the final number is right or wrong.
+
+**Automatic fail examples:** treating mass and force as interchangeable, dividing a component mass by element length without a declared distributed-mass model, or accepting several split children each carrying the complete selected component mass.
+
+### 19.9.8 Question 5 — End-to-end provenance, enriched evidence, safe implementation sequence and exact-head qualification — 20 marks
+
+**Question:**
+
+Design the minimum safe correction programme for the current GLRD defects and requested evidence enhancements. Your design must ensure that Preview, Weight Match, the final rigid popup, exact engine input, and CII can be reconciled row-by-row without turning the UI into a second engineering kernel or breaking the PSI116 engine schema.
+
+A qualified answer must include all of the following:
+
+- one authoritative chain from raw source fact to normalized fact, explicit override, effective review fact, exact enriched XML, exact engine input, and final CII quantity;
+- separation between UI presentation, evidence capture, enrichment authority, parity checking, and Python/Pyodide conversion authority;
+- machine-readable `<preview>`, `<RigidMatch1>`, and `<Rigidmatch2>` snapshots frozen at the correct operator transitions;
+- explicit precedence where `RigidMatch2` may legitimately supersede `RigidMatch1`, with both retained rather than rewriting history;
+- schema-safe strategy if `ConversionEvidence` cannot be inserted into the exact engine-input PSI116 XML;
+- source, selection, staged-JSON, configuration, evidence, engine-input, enriched-evidence XML, and CII digests;
+- `Save Enriched XML ZIP` contents and deterministic naming, including Mode A per-source separation and no model merge;
+- expansion of parity to coordinates, OD/wall/corrosion, branch/node identity, restraints, and weight conservation, not only the currently selected Preview fields;
+- a staged implementation sequence that isolates UI activation, coordinate/topology, geometry properties, weight conservation, evidence XML, and ZIP packaging rather than changing all mechanics simultaneously;
+- exact regression cases for one zero-coordinate row, one OD=26.7 pair, one suspect weight row, one GT/ST restraint case, and a two-source Mode A browser case;
+- negative controls that fail for the intended reasons;
+- exact-head browser and engine proof, retained artifacts, rollback criteria, and an explicit list of authority states that remain false even after a partial fix;
+- a trace from at least one failed reported CII row all the way back to its raw source quantity and operator review evidence.
+
+**Automatic fail examples:** claiming screenshots alone are evidence, regenerating review evidence after the run from mutated state, inserting non-schema XML into the engine input without compatibility proof, or asserting production authorization from isolated unit tests.
+
+### 19.9.9 Mandatory answer format
+
+The candidate shall answer all five questions before touching production code. Each answer shall contain:
+
+```text
+A. Engineering diagnosis / governing principles
+B. Exact repository files and functions to inspect
+C. One or more concrete GLRD traces
+D. Proposed single-factor or narrowly scoped tests
+E. Negative controls
+F. Expected evidence/artifacts
+G. What the answer does NOT yet prove
+```
+
+Answers that only paraphrase this document without repository-specific inspection shall not qualify.
+
+### 19.9.10 Safety-critical false claims and immediate-fail conditions
+
+Any of the following may cause immediate written-gate failure regardless of numerical score:
+
+- claiming Mode A is operational solely because source files/imports exist;
+- claiming a passing static/unit test proves the browser path is active;
+- accepting or introducing a silent `(0,0,0)` coordinate fallback;
+- using `NodeNumber` alone as a globally unique identity across branches or Mode A files;
+- treating `BoreMm`, nominal size, OD, wall, and weight-master bore as interchangeable;
+- overwriting a valid source OD from an unrelated approximate master match without explicit authority;
+- treating kg and N as the same quantity or applying kg→N twice;
+- duplicating complete component mass onto multiple split children without conservation proof;
+- allowing a suggested or final-popup weight to propagate without retained candidate/override provenance;
+- claiming Preview correctness proves engine-input or CII correctness;
+- treating JSON Trace evidence as production support authority by itself;
+- merging Mode A source models, renumbering nodes across independent Mode A files, or inferring cross-file connectivity without an explicit separate programme;
+- changing coordinate, geometry, weight, support, and UI mechanics simultaneously such that single-factor RCA becomes impossible;
+- claiming the GLRD benchmark passes without exact retained source→engine→CII traces for the reported failures;
+- claiming production or merge authority that has not been explicitly granted.
+
+### 19.9.11 Post-written-gate takeover exercises
+
+A candidate who passes the written gate must still complete repository-specific exercises before independent authority.
+
+Minimum exercises are:
+
+1. **Runtime trace:** prove why the Mode A selector is or is not visible at the exact deployed/browser head without changing production behavior.
+2. **Geometry trace:** trace one GLRD non-zero source position that became zero and identify the exact first divergent representation.
+3. **OD trace:** trace one reported OD=26.7 occurrence and prove the authoritative OD source.
+4. **Weight trace:** trace one suspect final CII weight, reconstruct implied mass, candidate/override history, split allocation, and kg→N conversion.
+5. **Evidence trace:** reconstruct one CII row using source data plus retained Preview/rigid-review evidence and the exact engine-input digest.
+
+The exercises must use exact repository source and retained outputs, not hypothetical examples.
+
+### 19.9.12 Authority after qualification
+
+Recommended authority progression is:
+
+```text
+Written gate failed
+  -> NO_IMPLEMENTATION_AUTHORITY
+
+Written gate passed only
+  -> REPOSITORY_TRACE_EXERCISES_ALLOWED
+
+Written + repository exercises passed + owner authorization
+  -> LIMITED_IMPLEMENTATION_AUTHORITY
+
+Implementation + exact-head benchmark passed
+  -> PR_READY_FOR_INDEPENDENT_REVIEW
+
+Independent review + owner approval
+  -> MERGE_AUTHORITY_FOR_NAMED_SCOPE_ONLY
+```
+
+Qualification is scope-specific. Passing this gate does not automatically authorize unrelated FEA solvers, code-stress engines, FBX/GLB conversion, or other repository modules.
+
 ---
 
 # 20. Mandatory PR maintenance checklist
@@ -1718,7 +1956,7 @@ Every future XML/InputXML → CII 2019 capability PR shall answer:
 17. Which authority state advanced?
 18. Which authority states remain false?
 19. Which limitations were added or removed?
-20. Was this concept note updated?
+20. Was this fix plan updated?
 ```
 
 A PR shall be blocked when source, UI, evidence, engine input, and CII cannot be reconciled.
@@ -1802,7 +2040,7 @@ docs/xml-cii-2019-standalone-production-readiness.md
 docs/xml-cii-2019-standalone-live-proof.md
 ```
 
-These historical documents remain useful evidence of programme evolution but are subordinate to executable exact-head source and this governing concept note when capability state has changed.
+These historical documents remain useful evidence of programme evolution but are subordinate to executable exact-head source and this governing fix plan when capability state has changed.
 
 ---
 
@@ -1813,7 +2051,8 @@ The XML/InputXML → CII 2019 programme already contains substantial enrichment,
 The governing sequence is:
 
 ```text
-source/runtime truth reconciliation
+expert qualification gate
+  -> source/runtime truth reconciliation
   -> prove Mode A UI activation
   -> fix coordinate/topology custody
   -> fix OD/bore/wall/property custody
