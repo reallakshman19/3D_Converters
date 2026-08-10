@@ -17,7 +17,7 @@ export function buildStandaloneCiiInvocation(job, paths, jobDir) {
   const cfg = parseObject(job.supportConfigJson);
   const split = boolOrNull(options.splitCondensedValveFlange) ?? boolOrNull(cfg.splitCondensedValveFlange) ?? boolOrNull(cfg.split_condensed_valve_flange);
   const mode = ['all', 'none'].includes(text(options.coordsMode).toLowerCase()) ? text(options.coordsMode).toLowerCase() : 'first';
-  const argv = ['/scripts/xml_to_cii2019_direction.py', '--input', paths.inputPath, '--output', outputPath, '--coords-mode', mode];
+  const argv = ['/scripts/xml_to_cii2019_runtime_custody.py', '--input', paths.inputPath, '--output', outputPath, '--coords-mode', mode];
   if (options.kgToNewton !== false) argv.push('--weight-scale', '10');
   pushText(argv, '--support-config-json', job.supportConfigJson);
   if (split === true) argv.push('--split-condensed-valve-flange');
@@ -25,5 +25,5 @@ export function buildStandaloneCiiInvocation(job, paths, jobDir) {
   if (paths.stagedJsonPath) argv.push('--staged-json', paths.stagedJsonPath);
   if (options.useRestraintTypeBasedOnJson === false) argv.push('--no-use-restraint-type-based-on-json');
   else argv.push('--use-restraint-type-based-on-json');
-  return { scriptPath: '/scripts/xml_to_cii2019_direction.py', outputPath, outputName, argv };
+  return { scriptPath: '/scripts/xml_to_cii2019_runtime_custody.py', outputPath, outputName, argv };
 }
