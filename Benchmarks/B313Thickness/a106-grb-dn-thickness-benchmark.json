@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "benchmarkId": "USER-A106-GRB-DN-TM-001",
+  "description": "User-supplied CS ASTM A106 Grade B DN series for deriving pressure-design thickness t, required minimum thickness tm, and required nominal wall after manufacturing tolerance.",
+  "sourceAuthority": "USER_SUPPLIED_ENGINEERING_BENCHMARK",
+  "materialLabel": "CS - ASTM A106 Grade B",
+  "temperatureC": 0,
+  "sharedInputs": {
+    "designPressure": 51.1,
+    "pressureUnit": "barg",
+    "allowableStress": 20000,
+    "stressUnit": "psi",
+    "qualityFactorE": 1.0,
+    "corrosionAllowance": 6.0,
+    "coefficientY": 0.4,
+    "weldStrengthReductionW": 1.0,
+    "negativeMillTolerance": { "basis": "percent", "value": 12.5 },
+    "lengthUnit": "mm"
+  },
+  "notation": {
+    "tMm": "pressure-design thickness",
+    "tmMm": "required minimum thickness after allowances = t + C",
+    "requiredNominalThicknessMm": "ordered/nominal wall required after negative manufacturing tolerance"
+  },
+  "expectedPressureAllowableStressRatio": 0.03705714199006846,
+  "rows": [
+    { "dn": 15, "outsideDiameterMm": 21.3, "expected": { "tMm": 0.3888940415081258, "tmMm": 6.3888940415081255, "requiredNominalThicknessMm": 7.301593190295001 } },
+    { "dn": 20, "outsideDiameterMm": 26.7, "expected": { "tMm": 0.48748689710173515, "tmMm": 6.487486897101735, "requiredNominalThicknessMm": 7.41427073954484 } },
+    { "dn": 25, "outsideDiameterMm": 33.4, "expected": { "tMm": 0.6098150697826948, "tmMm": 6.6098150697826945, "requiredNominalThicknessMm": 7.554074365465937 } },
+    { "dn": 40, "outsideDiameterMm": 48.3, "expected": { "tMm": 0.8818583194761724, "tmMm": 6.881858319476173, "requiredNominalThicknessMm": 7.864980936544198 } },
+    { "dn": 50, "outsideDiameterMm": 60.3, "expected": { "tMm": 1.1009535541286377, "tmMm": 7.100953554128638, "requiredNominalThicknessMm": 8.11537549043273 } },
+    { "dn": 80, "outsideDiameterMm": 88.9, "expected": { "tMm": 1.6231305300503467, "tmMm": 7.6231305300503465, "requiredNominalThicknessMm": 8.712149177200397 } },
+    { "dn": 100, "outsideDiameterMm": 114.3, "expected": { "tMm": 2.0868821100647312, "tmMm": 8.086882110064732, "requiredNominalThicknessMm": 9.242150982931122 } },
+    { "dn": 150, "outsideDiameterMm": 168.3, "expected": { "tMm": 3.072810666000825, "tmMm": 9.072810666000825, "requiredNominalThicknessMm": 10.368926475429515 } },
+    { "dn": 200, "outsideDiameterMm": 219.1, "expected": { "tMm": 4.000313826029594, "tmMm": 10.000313826029593, "requiredNominalThicknessMm": 11.428930086890963 } },
+    { "dn": 250, "outsideDiameterMm": 273.0, "expected": { "tMm": 4.984416588343584, "tmMm": 10.984416588343585, "requiredNominalThicknessMm": 12.553618958106954 } },
+    { "dn": 300, "outsideDiameterMm": 323.8, "expected": { "tMm": 5.911919748372354, "tmMm": 11.911919748372354, "requiredNominalThicknessMm": 13.613622569568404 } },
+    { "dn": 350, "outsideDiameterMm": 355.6, "expected": { "tMm": 6.492522120201387, "tmMm": 12.492522120201386, "requiredNominalThicknessMm": 14.277168137373012 } }
+  ],
+  "note": "The user table labelled S units as psig. For calculation, S=20000 is interpreted as allowable stress in psi (20 ksi); allowable stress is not gauge pressure. P=51.1 barg is treated as a pressure difference and normalized to 5.11 MPa."
+}
