@@ -1,0 +1,14 @@
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.resolve(__dirname, '..');
+const source = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js'), 'utf8');
+assert(source.includes("const LOW_CODE_ALIASES = new Set(['GT', 'ST', 'PG', 'LS'])"));
+assert(source.includes("'LINESTOP', 'DIRECTIONALANCHOR', 'AXIALSTOP'"));
+assert(source.includes("priority: 900"));
+assert(source.includes("priority: 910"));
+assert(source.includes('strongerEvidenceSuppressesLowerConfidenceCompetingKinds: true'));
+assert(source.includes('equalStrengthConflictsRequireReview: true'));
+assert(source.includes("text(row.text).split('|')"));
+assert(source.includes('suppressedCandidates'));
+console.log('XML/CII support confidence static checks passed.');
