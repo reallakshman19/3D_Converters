@@ -49,7 +49,7 @@ function localHeader(nameBytes, dataBytes, crc) {
   write16(view, 6, 0x0800);
   write16(view, 8, 0);
   write16(view, 10, 0);
-  write16(view, 12, 33); // 1980-01-01, fixed for deterministic bytes.
+  write16(view, 12, 33);
   write32(view, 14, crc);
   write32(view, 18, dataBytes.length);
   write32(view, 22, dataBytes.length);
@@ -193,6 +193,7 @@ export function buildXmlCiiEvidenceZipPackage(state) {
   const missingRequired = required.filter((suffix) => !manifestArtifacts.some((item) => item.path.endsWith(`.${suffix}`)));
   const manifest = {
     schema: 'xml-cii-evidence-zip-manifest/v1',
+    mode: 'single-source',
     sourceStem: stem,
     repositorySha: text(state?.repositorySha || result?.repositorySha),
     repositoryShaStatus: text(state?.repositorySha || result?.repositorySha) ? 'provided-by-runtime' : 'not-exposed-by-runtime',
@@ -216,10 +217,70 @@ export function buildXmlCiiEvidenceZipPackage(state) {
   };
 }
 
-export function downloadXmlCiiEvidenceZip(state) {
-  const pkg = buildXmlCiiEvidenceZipPackage(state);
-  if (pkg.manifest.missingRequired.length) {
-    throw new Error(`Evidence ZIP is incomplete: missing ${pkg.manifest.missingRequired.join(', ')}.`);
+function modeASourceDirectory(row, index) {
+  const stem = safeStem(row?.alias || row?.fileName || `source-${index + 1}`);
+  const sourceId = safeStem(row?.sourceId || String(index + 1)).replace(/[^A-Za-z0-9_.-]/g, '_');
+  return `${stem}__${sourceId.slice(0, 12)}`;
+}
+
+export function buildXmlCiiModeAEvidenceZipPackage(state) {
+  const rows = Array.isArray(state?.batchRunResult?.sources) ? state.batchRunResult.sources : [];
+  const files = {};
+  const sources = [];
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    const pkg = buildXmlCiiEvidenceZipPackage({
+      sourceText: row?.sourceText || '',
+      sourceNameOverride: row?.fileName || row?.alias || `source-${index + 1}.xml`,
+      result: row?.result || {},
+      repositorySha: state?.repositorySha,
+    });
+    const directory = modeASourceDirectory(row, index);
+    const originalRoot = `${pkg.stem}/`;
+    for (const [filePath, content] of Object.entries(pkg.files)) {
+      const relative = filePath.startsWith(originalRoot) ? filePath.slice(originalRoot.length) : filePath;
+      files[`batch/${directory}/${relative}`] = content;
+    }
+    sources.push({
+      sourceId: row?.sourceId || '',
+      sourceDigest: row?.sourceDigest || '',
+      fileName: row?.fileName || '',
+      alias: row?.alias || '',
+      status: row?.status || '',
+      directory: `batch/${directory}/`,
+      packageStatus: pkg.manifest.qualificationStatus,
+      missingRequired: pkg.manifest.missingRequired,
+      sourceManifestDigest: digestXmlCiiEvidenceText(stableJson(pkg.manifest)),
+    });
+  }
+  const incompleteSources = sources.filter((row) => row.status !== 'SUCCEEDED' || row.packageStatus !== 'PACKAGE_COMPLETE');
+  const manifest = {
+    schema: 'xml-cii-mode-a-evidence-zip-manifest/v1',
+    mode: 'separate-model',
+    crossFileTopology: false,
+    crossFileNodeRenumbering: false,
+    crossFilePhysicalComponentGrouping: false,
+    deterministicZip: true,
+    compression: 'STORE',
+    fixedTimestamp: '1980-01-01T00:00:00Z',
+    sourceCount: sources.length,
+    sources,
+    qualificationStatus: sources.length > 0 && incompleteSources.length === 0 ? 'PACKAGE_COMPLETE' : 'INCOMPLETE',
+    incompleteSourceIds: incompleteSources.map((row) => row.sourceId || row.fileName),
+  };
+  files['batch/batch-manifest.json'] = stableJson(manifest);
+  return {
+    zipName: 'xml-cii-mode-a.enriched-evidence.zip',
+    files,
+    manifest,
+    bytes: buildDeterministicXmlCiiZip(files),
+  };
+}
+
+function downloadPackage(pkg) {
+  if (pkg.manifest.qualificationStatus !== 'PACKAGE_COMPLETE') {
+    const detail = pkg.manifest.missingRequired?.join(', ') || pkg.manifest.incompleteSourceIds?.join(', ') || 'required evidence';
+    throw new Error(`Evidence ZIP is incomplete: ${detail}.`);
   }
   const blob = new Blob([pkg.bytes], { type: 'application/zip' });
   const url = URL.createObjectURL(blob);
@@ -232,4 +293,9 @@ export function downloadXmlCiiEvidenceZip(state) {
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
   return pkg.manifest;
+}
+
+export function downloadXmlCiiEvidenceZip(state) {
+  const isModeA = Array.isArray(state?.batchRunResult?.sources) && state.batchRunResult.sources.length > 0;
+  return downloadPackage(isModeA ? buildXmlCiiModeAEvidenceZipPackage(state) : buildXmlCiiEvidenceZipPackage(state));
 }
