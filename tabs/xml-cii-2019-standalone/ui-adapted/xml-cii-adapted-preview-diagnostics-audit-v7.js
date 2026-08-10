@@ -7,6 +7,7 @@ import {
   xmlCiiRenderPreviewPhase,
 } from './xml-cii-adapted-preview-renderer-v7.js';
 import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js';
+import { installPreviewB313WallUpdateController } from './xml-cii-adapted-preview-b313-wall-update.js';
 import {
   saveMasterContextToLocalStorage,
   xmlCiiEnrichedConfigFromState,
@@ -41,19 +42,27 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
   const host = card.querySelector('#mc-preview-table-host');
   if (!host) return;
 
+  const persistConfig = (newCfg, { clearPreview = true } = {}) => {
+    if (clearPreview) clearPreviewCachesV7();
+    const nextJson = JSON.stringify(newCfg, null, 2);
+    if (stateRef && stateRef.current !== undefined) {
+      const context = stateRef.current.masterContext || {};
+      context.config = newCfg;
+      stateRef.current = {
+        ...stateRef.current,
+        supportConfigJson: nextJson,
+        masterContext: { ...context, config: newCfg },
+      };
+      saveMasterContextToLocalStorage(stateRef.current.masterContext);
+    }
+  };
+
   const options = {
-    onSaveConfig: (newCfg) => {
-      clearPreviewCachesV7();
-      const nextJson = JSON.stringify(newCfg, null, 2);
+    onSaveConfig: (newCfg) => persistConfig(newCfg, { clearPreview: true }),
+    onSaveConfigPreservePreview: (newCfg) => persistConfig(newCfg, { clearPreview: false }),
+    onB313WallUpdateReport: (report) => {
       if (stateRef && stateRef.current !== undefined) {
-        const context = stateRef.current.masterContext || {};
-        context.config = newCfg;
-        stateRef.current = {
-          ...stateRef.current,
-          supportConfigJson: nextJson,
-          masterContext: { ...context, config: newCfg },
-        };
-        saveMasterContextToLocalStorage(stateRef.current.masterContext);
+        stateRef.current = { ...stateRef.current, b313WallUpdateReport: report };
       }
     },
     openOverridePopup: _xmlCiiOpenPreviewOverridePopup,
@@ -74,6 +83,7 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
 
   try {
     await xmlCiiBuildAndRenderPreview(card, xmlText, config, options);
+    installPreviewB313WallUpdateController({ host, config, xmlText, options });
   } catch (error) {
     console.error('Failed to build standalone preview table:', error);
     host.innerHTML = `<div class="xml-cii-phase-help" style="border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">⚠ Build failed: ${esc(error?.message || error)}</div>`;
