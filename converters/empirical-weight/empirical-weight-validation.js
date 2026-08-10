@@ -52,6 +52,61 @@ function compactError(result) {
   };
 }
 
+function targetOf(input = {}) {
+  const raw = String(input.target ?? input.endType ?? '').trim().toUpperCase();
+  return raw.includes('BW') ? 'BW KG' : 'RF/RTJ KG';
+}
+
+function rowTypeDesc(row = {}) {
+  return String(row.TypeDesc ?? row.typeDesc ?? row.valveType ?? '').trim();
+}
+
+function rowRating(row = {}) {
+  return positive(row.Rating ?? row.rating);
+}
+
+function sameNumber(left, right) {
+  const a = positive(left);
+  const b = positive(right);
+  return a !== null && b !== null && Math.abs(a - b) < 1e-9;
+}
+
+function matchesValidationCell(row, request) {
+  const requestedType = String(request.typeDesc ?? '').trim().toLowerCase();
+  if (!requestedType || rowTypeDesc(row).toLowerCase() !== requestedType) return false;
+  if (!sameNumber(rowRating(row), request.rating)) return false;
+  const requestNs = positive(request.ns);
+  const requestDn = positive(request.dn);
+  if (requestNs !== null) return sameNumber(row.NS ?? row.ns, requestNs);
+  if (requestDn !== null) return sameNumber(row.DN ?? row.dn, requestDn);
+  return false;
+}
+
+function blankTargetWeight(row, target) {
+  const copy = { ...row };
+  if (target === 'BW KG') {
+    copy['BW KG'] = null;
+    copy.bwKg = null;
+    copy.bwWeightKg = null;
+  } else {
+    copy['RF/RTJ KG'] = null;
+    copy.rfRtjKg = null;
+    copy.rfWeightKg = null;
+  }
+  return copy;
+}
+
+function leaveTargetCellOut(masterRows, request) {
+  const target = targetOf(request);
+  let excludedRows = 0;
+  const rows = (Array.isArray(masterRows) ? masterRows : []).map((row) => {
+    if (!matchesValidationCell(row, request)) return row;
+    excludedRows += 1;
+    return blankTargetWeight(row, target);
+  });
+  return { rows, excludedRows, target };
+}
+
 export function compareObservedWeightToEmpiricalEstimate(observedKg, result, abnormalityThresholdPct = 30) {
   const observed = positive(observedKg);
   const predicted = result?.ok ? positive(result.weightKg) : null;
@@ -65,6 +120,7 @@ export function compareObservedWeightToEmpiricalEstimate(observedKg, result, abn
       observedWeightKg: observedKg ?? null,
       estimatedWeightKg: predicted,
       thresholdPct: threshold,
+      validationBasis: result?.validationBasis || null,
       error: { code: 'INVALID_OBSERVED_WEIGHT', message: 'Observed weight must be a positive number.' },
     };
   }
@@ -77,6 +133,8 @@ export function compareObservedWeightToEmpiricalEstimate(observedKg, result, abn
       observedWeightKg: observed,
       estimatedWeightKg: null,
       thresholdPct: threshold,
+      validationBasis: result?.validationBasis || null,
+      excludedTargetCellRows: result?.excludedTargetCellRows ?? null,
       error: compactError(result),
     };
   }
@@ -115,6 +173,8 @@ export function compareObservedWeightToEmpiricalEstimate(observedKg, result, abn
     weights: result.weights || null,
     configuredWeights: result.configuredWeights || null,
     support: result.support || null,
+    validationBasis: result.validationBasis || null,
+    excludedTargetCellRows: result.excludedTargetCellRows ?? null,
     error: null,
   };
 }
@@ -140,9 +200,43 @@ export function createEmpiricalWeightValidator({
   masterRows,
   model,
   abnormalityThresholdPct = DEFAULT_EMPIRICAL_WEIGHT_ABNORMALITY_THRESHOLD_PCT,
+  leaveTargetCellOutOfA2 = true,
 } = {}) {
   const empiricalEstimator = estimator || createEmpiricalWeightEstimator({ masterRows, model });
+  const validationMasterRows = Array.isArray(masterRows)
+    ? masterRows
+    : (Array.isArray(empiricalEstimator.masterRows) ? empiricalEstimator.masterRows : []);
+  const validationModel = model || empiricalEstimator.model;
   const defaultThreshold = thresholdPct(abnormalityThresholdPct);
+  const a2EstimatorCache = new Map();
+
+  function a2EstimatorFor(request, options = {}) {
+    const useLoo = options.leaveTargetCellOutOfA2 ?? leaveTargetCellOutOfA2;
+    if (!useLoo || !validationMasterRows.length) {
+      return {
+        estimator: empiricalEstimator,
+        validationBasis: useLoo ? 'A2_TARGET_CELL_LOO_UNAVAILABLE_NO_MASTER_ROWS' : 'A2_FULL_CATALOG',
+        excludedTargetCellRows: 0,
+      };
+    }
+    const cacheKey = [
+      String(request.typeDesc ?? '').trim().toLowerCase(),
+      positive(request.ns) ?? '',
+      positive(request.dn) ?? '',
+      positive(request.rating) ?? '',
+      targetOf(request),
+    ].join('|');
+    if (a2EstimatorCache.has(cacheKey)) return a2EstimatorCache.get(cacheKey);
+
+    const excluded = leaveTargetCellOut(validationMasterRows, request);
+    const value = {
+      estimator: createEmpiricalWeightEstimator({ masterRows: excluded.rows, model: validationModel }),
+      validationBasis: 'A2_LEAVE_TARGET_CELL_OUT',
+      excludedTargetCellRows: excluded.excludedRows,
+    };
+    a2EstimatorCache.set(cacheKey, value);
+    return value;
+  }
 
   function validate(input = {}, options = {}) {
     const observed = observedWeightKg(input);
@@ -158,13 +252,19 @@ export function createEmpiricalWeightValidator({
     const a1Result = empiricalEstimator.approach1(request, {
       allowExtrapolation: options.allowA1Extrapolation === true,
     });
-    const a2Result = empiricalEstimator.approach2(request);
+    a1Result.validationBasis = 'A1_FIXED_SIZE_BAND_MODEL';
+
+    const a2Context = a2EstimatorFor(request, options);
+    const a2Result = a2Context.estimator.approach2(request);
+    a2Result.validationBasis = a2Context.validationBasis;
+    a2Result.excludedTargetCellRows = a2Context.excludedTargetCellRows;
+
     const approach1 = compareObservedWeightToEmpiricalEstimate(observed, a1Result, threshold);
     const approach2 = compareObservedWeightToEmpiricalEstimate(observed, a2Result, threshold);
     const status = overallStatus(approach1, approach2);
 
     return {
-      schema: 'empirical-weight-validation-row/v1',
+      schema: 'empirical-weight-validation-row/v2',
       ok: observed !== null,
       rowId: rowId(input, options.rowIndex ?? null),
       source: input.source ?? input.weightSource ?? null,
@@ -174,7 +274,7 @@ export function createEmpiricalWeightValidator({
       ns: finite(input.ns ?? input.NS),
       dn: finite(input.dn ?? input.DN),
       rating: finite(input.rating ?? input.Rating),
-      target: a1Result.target ?? a2Result.target ?? request.target ?? null,
+      target: a1Result.target ?? a2Result.target ?? targetOf(request),
       observedWeightKg: observed,
       abnormalityThresholdPct: threshold,
       approach1,
@@ -206,13 +306,15 @@ export function createEmpiricalWeightValidator({
       approach2Available: validations.filter((row) => row.approach2.available).length,
       approach1Abnormal: validations.filter((row) => row.approach1.abnormal).length,
       approach2Abnormal: validations.filter((row) => row.approach2.abnormal).length,
+      approach2TargetCellRowsExcluded: validations.reduce((sum, row) => sum + Number(row.approach2.excludedTargetCellRows || 0), 0),
     };
 
     return {
-      schema: 'empirical-weight-validation-report/v1',
+      schema: 'empirical-weight-validation-report/v2',
       abnormalityThresholdPct: thresholdPct(options.abnormalityThresholdPct ?? defaultThreshold),
       abnormalityDefinition: '((observedWeightKg - estimatedWeightKg) / estimatedWeightKg) * 100; abnormal only when absolute deviation is greater than threshold',
       exactLookupUsed: false,
+      approach2ValidationBasis: (options.leaveTargetCellOutOfA2 ?? leaveTargetCellOutOfA2) ? 'LEAVE_TARGET_CELL_OUT' : 'FULL_CATALOG',
       approaches: ['A1_SIZE_BAND', 'A2_MATRIX'],
       authority: 'READ_ONLY_VALIDATION_NOT_WEIGHT_AUTHORITY',
       summary,
@@ -239,8 +341,8 @@ export function empiricalWeightValidationReportToCsv(report, { abnormalOnly = tr
   const rows = abnormalOnly ? (report?.abnormalities || []) : (report?.rows || []);
   const headers = [
     'rowId', 'componentRefNo', 'nodeNumber', 'typeDesc', 'NS', 'DN', 'rating', 'target', 'observedWeightKg',
-    'A1_estimatedWeightKg', 'A1_deviationPct', 'A1_status', 'A1_confidence', 'A1_modelId',
-    'A2_estimatedWeightKg', 'A2_deviationPct', 'A2_status', 'A2_confidence', 'A2_modelId',
+    'A1_estimatedWeightKg', 'A1_deviationPct', 'A1_status', 'A1_confidence', 'A1_modelId', 'A1_validationBasis',
+    'A2_estimatedWeightKg', 'A2_deviationPct', 'A2_status', 'A2_confidence', 'A2_modelId', 'A2_validationBasis', 'A2_excludedTargetCellRows',
     'overallStatus', 'maximumAbsoluteDeviationPct', 'thresholdPct',
   ];
   const lines = [headers.join(',')];
@@ -260,11 +362,14 @@ export function empiricalWeightValidationReportToCsv(report, { abnormalOnly = tr
       row.approach1.status,
       row.approach1.confidence,
       row.approach1.modelId,
+      row.approach1.validationBasis,
       rounded(row.approach2.estimatedWeightKg),
       rounded(row.approach2.deviationPct),
       row.approach2.status,
       row.approach2.confidence,
       row.approach2.modelId,
+      row.approach2.validationBasis,
+      row.approach2.excludedTargetCellRows,
       row.status,
       rounded(row.maximumAbsoluteDeviationPct),
       row.abnormalityThresholdPct,
