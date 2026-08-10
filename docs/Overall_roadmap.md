@@ -55,8 +55,8 @@ test into a claim of browser/runtime activation or numerical correctness.
 | Draft PR | `#417` — `fix(xml-cii): close X001 coordinate topology custody` |
 | Branch | `agent/xml-cii-x001-coordinate-topology` |
 | Base | `9bd60db7b013ff7e1aaaadf661bf84b977f42643` |
-| Implementation code head before this roadmap-only update | `05269c6dae61e8bea2717b907c0f2ff91e3c930e` |
-| Targeted Actions run | `31362264540` |
+| Final implementation/test head before this roadmap-only update | `e2d161aefe825976c39d6b30fd7d05dcfdadb21c` |
+| Latest targeted Actions run on that head | `31362586893` |
 | Actions result | **NOT EXECUTED** — GitHub did not start a runner because account payment/spending-limit state blocked the job before any step ran |
 | Qualification decision | **Not accepted yet** — no GLRD pass is claimed until the targeted commands actually execute |
 
@@ -258,7 +258,8 @@ standalone production route before X001
 Therefore the standalone path was not consuming the stronger contracted
 component-topology layer already present elsewhere in the repository.
 
-X001 changes on implementation head `05269c6dae61e8bea2717b907c0f2ff91e3c930e`:
+X001 implementation/test head `e2d161aefe825976c39d6b30fd7d05dcfdadb21c`
+contains the following non-roadmap files relative to base `9bd60db7…`:
 
 ```text
 ADDED    converters/scripts/xml_to_cii2019_coordinate_custody.py
@@ -286,12 +287,14 @@ The patch does the following and no more:
 The committed targeted regression is designed to execute the real frozen GLRD
 benchmark through the X001 Python entrypoint and verify Nodes
 `10, 760, 1200, 1640, 2080, 2520, 2960` against source-derived `(X,Z,-Y)`
-coordinates. It also includes negative controls for malformed Position and one
-reused CII NodeNumber mapped to two physically different coordinates.
+coordinates. Its fail-closed controls cover a nonnumeric Position, a
+two-component Position, a non-finite Position, and one reused CII NodeNumber
+mapped to two physically different coordinates.
 
-**Qualification state:** the targeted GitHub Actions run `31362264540` did not
-start a runner. GitHub reported an account payment/spending-limit blocker
-before any workflow step executed. Consequently:
+**Qualification state:** the latest targeted GitHub Actions run `31362586893`
+on implementation/test head `e2d161a…` did not start a runner. GitHub reported
+an account payment/spending-limit blocker before any workflow step executed.
+Consequently:
 
 ```text
 IMPLEMENTATION_PRESENT
@@ -924,8 +927,8 @@ node tests/xml-cii-standalone-x001-coordinate-custody.test.js
 python converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
 ```
 
-Then inspect the seven-node GLRD COORDS trace and both negative controls. Only
-after that evidence is accepted may P2 be changed to Done and X002 begin.
-Do not start OD/bore or weight implementation in parallel while X001 remains
-unqualified; the sequence is intentionally designed to preserve root-cause
-attribution.
+Then inspect the seven-node GLRD COORDS trace and all fail-closed coordinate
+negative controls. Only after that evidence is accepted may P2 be changed to
+Done and X002 begin. Do not start OD/bore or weight implementation in parallel
+while X001 remains unqualified; the sequence is intentionally designed to
+preserve root-cause attribution.
