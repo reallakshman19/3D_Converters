@@ -36,7 +36,7 @@ function buildFamilyLookup(model) {
 function buildA1Index(model) {
   const index = new Map();
   for (const row of model.approach1.models) {
-    const key = `${row.target}\u0000${row.typeDesc}\u0000${row.rating}`;
+    const key = `${row.target}|||${row.typeDesc}|||${row.rating}`;
     if (!index.has(key)) index.set(key, []);
     index.get(key).push(row);
   }
@@ -117,7 +117,7 @@ export function createEmpiricalWeightEstimator({
   function approach1(input = {}, options = {}) {
     const request = normalize(input);
     if (!request.ok) return request;
-    const key = `${request.target}\u0000${request.typeDesc}\u0000${request.rating}`;
+    const key = `${request.target}|||${request.typeDesc}|||${request.rating}`;
     const selected = selectBand(a1Index.get(key), request.size, options.allowExtrapolation === true);
     if (!selected?.row) {
       return fail(
