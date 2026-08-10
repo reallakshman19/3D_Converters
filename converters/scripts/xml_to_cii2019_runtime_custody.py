@@ -97,7 +97,18 @@ def _topology_aware_build_restraints(
                 f"tol_mm={row['toleranceMm']}",
                 file=sys.stderr,
             )
-    return _ORIGINAL_BUILD_RESTRAINTS(metadata, edges, adjusted, explicit_specs, support_map)
+    restraints, edge_to_index = _ORIGINAL_BUILD_RESTRAINTS(metadata, edges, adjusted, explicit_specs, support_map)
+    if metadata.restrain_open_ends:
+        for assigned in restraints:
+            if not any(getattr(spec, "is_open_end", False) for spec in assigned.specs):
+                continue
+            print(
+                "OPEN_END_ANC_CREATED "
+                f"node={assigned.node_number} basis=true-physical-open-end "
+                f"stiffness={base.OPEN_END_STIFFNESS:.6E}",
+                file=sys.stderr,
+            )
+    return restraints, edge_to_index
 
 
 def _runtime_bend_payload(model: base.ConversionModel) -> list[str]:
