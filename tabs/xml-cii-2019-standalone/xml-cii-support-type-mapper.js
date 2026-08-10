@@ -1,14 +1,14 @@
 const KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP', 'ANCHOR']);
 
 const DEFAULT_ROWS = Object.freeze([
-  { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest'], ciiKind: 'REST_STYLE_CII_SUPPORT', ciiPreview: '+Y/restraint support preview' },
+  { kind: 'REST', aliases: ['Shoe', 'Pipe Rest', 'Wear Pad', 'Rest', 'RES'], ciiKind: 'REST_STYLE_CII_SUPPORT', ciiPreview: '+Y/restraint support preview' },
   { kind: 'GUIDE', aliases: ['Guide', 'PG', 'Lateral Guide', 'GT'], ciiKind: 'GUIDE_STYLE_CII_SUPPORT', ciiPreview: 'GUI / lateral guide preview' },
   { kind: 'LINESTOP', aliases: ['Line Stop', 'Directional Anchor', 'LS', 'Axial Stop', 'ST'], ciiKind: 'LINESTOP_STYLE_CII_SUPPORT', ciiPreview: 'LIM / axial stop preview' },
   { kind: 'ANCHOR', aliases: ['Anchor', 'Fixed'], ciiKind: 'ANCHOR_STYLE_CII_SUPPORT', ciiPreview: 'anchor/fixed support preview' },
 ]);
 
 const HIGH_SEMANTIC_ALIASES = new Set([
-  'SHOE', 'PIPEREST', 'WEARPAD', 'REST',
+  'SHOE', 'PIPEREST', 'WEARPAD', 'REST', 'RES',
   'GUIDE', 'LATERALGUIDE',
   'LINESTOP', 'DIRECTIONALANCHOR', 'AXIALSTOP',
   'ANCHOR', 'FIXED',
@@ -174,10 +174,15 @@ function aliasMatchEvidence(evidence, alias) {
       return { alias, matchMode: 'wildcard', score, confidence: confidenceClass(score) };
     } catch { return null; }
   }
-  if (pattern === 'GT' || pattern === 'ST') {
+  if (LOW_CODE_ALIASES.has(pattern)) {
     if (!new RegExp(`(?:^|[^A-Z0-9])${pattern}[A-Z0-9_-]*(?=$|[^A-Z0-9])`, 'i').test(source)) return null;
     const score = aliasScore(alias, 'prefix-code');
     return { alias, matchMode: 'prefix-code', score, confidence: confidenceClass(score) };
+  }
+  if (pattern === 'RES') {
+    if (!/(?:^|[^A-Z0-9])RES(?=$|[^A-Z0-9])/i.test(source)) return null;
+    const score = aliasScore(alias, 'explicit-semantic');
+    return { alias, matchMode: 'explicit-semantic', score, confidence: confidenceClass(score) };
   }
   if (!norm(source).includes(norm(pattern))) return null;
   const score = aliasScore(alias, 'semantic');
@@ -278,14 +283,13 @@ function mdsPrefixRules(mapperRows) {
   const guide = mapperRows.find((row) => row.kind === 'GUIDE');
   const lineStop = mapperRows.find((row) => row.kind === 'LINESTOP');
   const rules = [];
+  const hasAlias = (row, wanted) => row?.aliases.some((alias) => text(alias).toUpperCase().replace(/\*/g, '') === wanted);
   // Abbreviated MDSSUPPTYPE prefixes are deliberate LOW-confidence fallbacks.
   // They must run after explicit semantic rules (priority 10/20/30).
-  if (guide?.aliases.some((alias) => text(alias).toUpperCase().replace(/\*/g, '') === 'GT')) {
-    rules.push({ id: 'standalone-mds-gt-guide', enabled: true, priority: 900, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'GT', match: 'startsWith', kind: 'GUIDE', confidence: 'LOW', confidenceScore: 0.45, label: 'LOW: MDSSUPPTYPE GT* -> GUI' });
-  }
-  if (lineStop?.aliases.some((alias) => text(alias).toUpperCase().replace(/\*/g, '') === 'ST')) {
-    rules.push({ id: 'standalone-mds-st-linestop', enabled: true, priority: 910, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'ST', match: 'startsWith', kind: 'LINESTOP', confidence: 'LOW', confidenceScore: 0.45, label: 'LOW: MDSSUPPTYPE ST* -> LIM' });
-  }
+  if (hasAlias(guide, 'GT')) rules.push({ id: 'standalone-mds-gt-guide', enabled: true, priority: 900, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'GT', match: 'startsWith', kind: 'GUIDE', confidence: 'LOW', confidenceScore: 0.45, label: 'LOW: MDSSUPPTYPE GT* -> GUI' });
+  if (hasAlias(lineStop, 'ST')) rules.push({ id: 'standalone-mds-st-linestop', enabled: true, priority: 910, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'ST', match: 'startsWith', kind: 'LINESTOP', confidence: 'LOW', confidenceScore: 0.45, label: 'LOW: MDSSUPPTYPE ST* -> LIM' });
+  if (hasAlias(guide, 'PG')) rules.push({ id: 'standalone-mds-pg-guide', enabled: true, priority: 920, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'PG', match: 'startsWith', kind: 'GUIDE', confidence: 'LOW', confidenceScore: 0.45, label: 'LOW: MDSSUPPTYPE PG* -> GUI' });
+  if (hasAlias(lineStop, 'LS')) rules.push({ id: 'standalone-mds-ls-linestop', enabled: true, priority: 930, source: 'staged-json', field: 'MDSSUPPTYPE', pattern: 'LS', match: 'startsWith', kind: 'LINESTOP', confidence: 'LOW', confidenceScore: 0.45, label: 'LOW: MDSSUPPTYPE LS* -> LIM' });
   return rules;
 }
 
