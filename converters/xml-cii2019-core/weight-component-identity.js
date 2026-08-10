@@ -74,6 +74,7 @@ export function xmlCiiLegacyWeightDecisionKeys(row = {}) {
     const key = text(value);
     if (key && !isXmlCiiPhysicalWeightDecisionKey(key) && !keys.includes(key)) keys.push(key);
   };
+  for (const key of Array.isArray(row.legacyKeys) ? row.legacyKeys : []) push(key);
   push(row.legacyKey);
   push(row.originalKey);
   push(row.key);
@@ -98,6 +99,15 @@ export function decorateXmlCiiWeightReviewRows(rows = [], options = {}) {
   return (Array.isArray(rows) ? rows : []).map((row) => decorateXmlCiiWeightReviewRow(row, options));
 }
 
+function rowOwnershipScore(candidate = {}) {
+  let value = 0;
+  if (String(candidate.endpoint).trim() === '2') value += 50;
+  if (Number(candidate.nodeNumber) > 0) value += 20;
+  if (Number(candidate.originalWeight) > 0) value += 10;
+  if (candidate.componentType === 'RIGID') value += 5;
+  return value;
+}
+
 export function dedupeXmlCiiPhysicalWeightRows(rows = []) {
   const byGroup = new Map();
   for (const row of Array.isArray(rows) ? rows : []) {
@@ -105,18 +115,28 @@ export function dedupeXmlCiiPhysicalWeightRows(rows = []) {
     if (!key) continue;
     const current = byGroup.get(key);
     if (!current) {
-      byGroup.set(key, row);
+      byGroup.set(key, {
+        ...row,
+        legacyKeys: xmlCiiLegacyWeightDecisionKeys(row),
+        componentOccurrenceIds: [text(row.componentOccurrenceId)].filter(Boolean),
+      });
       continue;
     }
-    const score = (candidate) => {
-      let value = 0;
-      if (String(candidate.endpoint).trim() === '2') value += 50;
-      if (Number(candidate.nodeNumber) > 0) value += 20;
-      if (Number(candidate.originalWeight) > 0) value += 10;
-      if (candidate.componentType === 'RIGID') value += 5;
-      return value;
-    };
-    if (score(row) > score(current)) byGroup.set(key, row);
+    const chosen = rowOwnershipScore(row) > rowOwnershipScore(current) ? row : current;
+    const mergedLegacyKeys = [...new Set([
+      ...xmlCiiLegacyWeightDecisionKeys(current),
+      ...xmlCiiLegacyWeightDecisionKeys(row),
+    ])];
+    const componentOccurrenceIds = [...new Set([
+      ...(Array.isArray(current.componentOccurrenceIds) ? current.componentOccurrenceIds : [current.componentOccurrenceId]),
+      text(row.componentOccurrenceId),
+    ].filter(Boolean))];
+    byGroup.set(key, {
+      ...chosen,
+      legacyKeys: mergedLegacyKeys,
+      legacyKey: chosen.legacyKey || mergedLegacyKeys[0] || '',
+      componentOccurrenceIds,
+    });
   }
   return [...byGroup.values()];
 }
@@ -124,7 +144,7 @@ export function dedupeXmlCiiPhysicalWeightRows(rows = []) {
 export function resolveXmlCiiWeightDecision(decisions, row = {}, options = {}) {
   const map = decisions && typeof decisions === 'object' && !Array.isArray(decisions) ? decisions : {};
   const decorated = row.physicalComponentGroupId ? row : decorateXmlCiiWeightReviewRow(row, options);
-  const candidates = [decorated.decisionKey, ...(decorated.legacyKeys || xmlCiiLegacyWeightDecisionKeys(decorated))];
+  const candidates = [decorated.decisionKey, ...xmlCiiLegacyWeightDecisionKeys(decorated)];
   for (const key of candidates) {
     const weight = positiveWeight(map[key]);
     if (weight === null) continue;
@@ -235,14 +255,14 @@ export function materializeXmlCiiLegacyWeightCompatibility(config, xmlText, opti
   const decorated = decorateXmlCiiWeightReviewRows(rows, { ...options, config: out, sourceText: xmlText });
   const legacy = {};
   const materialized = [];
-  for (const row of decorated) {
+  for (const row of dedupeXmlCiiPhysicalWeightRows(decorated)) {
     const resolved = resolveXmlCiiWeightDecision(effective, row, { ...options, config: out, sourceText: xmlText });
     if (resolved.weight === null) continue;
     for (const key of row.legacyKeys || []) {
       if (!key || isXmlCiiPhysicalWeightDecisionKey(key)) continue;
       legacy[key] = resolved.weight;
     }
-    materialized.push({ decisionKey: row.decisionKey, legacyKey: row.legacyKey, weight: resolved.weight, sourceKey: resolved.key });
+    materialized.push({ decisionKey: row.decisionKey, legacyKey: row.legacyKey, weight: resolved.weight, sourceKey: resolved.key, legacyKeys: row.legacyKeys || [] });
   }
   out.overrides.rigidWeightPhysical = effective;
   out.overrides.rigidWeight = legacy;
