@@ -3,6 +3,7 @@ export {
   evaluateB313ProvidedWall,
 } from './b313-straight-pipe.js';
 export { selectB313NominalWall } from './b313-wall-selection.js';
+export { calculateB313PressureStressRatios } from './b313-ratios.js';
 export {
   normalizeNegativeMillTolerance,
   requiredNominalFromMinimum,
@@ -20,11 +21,13 @@ import {
   evaluateB313ProvidedWall,
 } from './b313-straight-pipe.js';
 import { selectB313NominalWall } from './b313-wall-selection.js';
+import { calculateB313PressureStressRatios } from './b313-ratios.js';
 
 export function createB313ThicknessCalculator(defaults = {}) {
   const withDefaults = (input = {}) => ({ ...defaults, ...input });
   return Object.freeze({
     calculate: (input) => calculateB313Thickness(withDefaults(input)),
+    calculatePressureStressRatios: (input) => calculateB313PressureStressRatios(withDefaults(input)),
     evaluateProvidedWall: (input) => evaluateB313ProvidedWall(withDefaults(input)),
     selectNominalWall: (input) => selectB313NominalWall(withDefaults(input)),
   });
