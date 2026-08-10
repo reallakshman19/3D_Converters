@@ -55,6 +55,8 @@ function match1Payload(config) {
   const map = plainObject(config?.overrides?.rigidWeightMatch1) ? config.overrides.rigidWeightMatch1 : {};
   return {
     authority: 'RigidMatch1',
+    identity: 'physical-component',
+    sourceId: text(config?.weightIdentity?.sourceId || config?.weightReviewLifecycle?.match1SourceId || ''),
     decisionsKgByKey: map,
     decisionCount: Object.keys(map).length,
   };
@@ -62,13 +64,16 @@ function match1Payload(config) {
 
 function finalPayload(config) {
   const finalMap = plainObject(config?.overrides?.rigidWeightFinal) ? config.overrides.rigidWeightFinal : {};
-  const transient = plainObject(config?.overrides?.rigidWeight) ? config.overrides.rigidWeight : {};
-  const map = Object.keys(finalMap).length ? finalMap : transient;
+  const lifecycle = plainObject(config?.weightReviewLifecycle) ? config.weightReviewLifecycle : {};
+  const disposition = text(lifecycle.finalReviewDisposition);
   return {
     authority: 'Rigidmatch2',
-    decisionsKgByKey: map,
-    decisionCount: Object.keys(map).length,
-    action: Object.keys(map).length ? 'apply' : 'skip-or-no-final-values',
+    identity: 'physical-component',
+    sourceId: text(config?.weightIdentity?.sourceId || lifecycle.match1SourceId || ''),
+    decisionsKgByKey: finalMap,
+    decisionCount: Object.keys(finalMap).length,
+    action: disposition || (Object.keys(finalMap).length ? 'explicit-final-accepted' : 'no-explicit-final-disposition'),
+    explicitFinalReview: lifecycle.explicitFinalReview === true,
   };
 }
 
