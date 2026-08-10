@@ -60,6 +60,15 @@ function outputKindFor(sourceKind) { return sourceKind === 'inputxml' ? 'enriche
 function enrichedNameFor(job) { const stem = outputStem(job.sourceName); return job.sourceKind === 'inputxml' ? `${stem}_enriched.input.xml` : `${stem}_enriched.xml`; }
 function splitValue(job) { const v = job?.options?.splitCondensedValveFlange; return v === true || v === false ? v : null; }
 function diagnostics(job, extra = {}) { return { schema: 'xml-cii-2019-workflow-diagnostics/v1', engine: 'standalone-compatibility-engine', sourceKind: job.sourceKind === 'inputxml' ? 'inputxml' : 'xml', outputMode: job.options?.outputMode || 'enriched-only', warnings: [], ...extra }; }
+function lastMarker(lines, marker) {
+  const prefix = `${marker}=`;
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = text(lines[index]);
+    const at = line.indexOf(prefix);
+    if (at >= 0) return line.slice(at + prefix.length).trim();
+  }
+  return '';
+}
 
 function emptyTopologyResult() {
   return {
@@ -138,7 +147,20 @@ async function runEnrichedXml(pyodide, job, paths, jobDir, stdout) {
 async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
   const invocation = buildStandaloneCiiInvocation(job, paths, jobDir);
   await runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr);
-  return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: invocation.argv.slice(1) };
+  const converterParseXmlPath = lastMarker(stdout, 'CONVERTER_PARSE_XML_PATH');
+  const converterParseXmlDigest = lastMarker(stdout, 'CONVERTER_PARSE_XML_DIGEST');
+  let converterParseXmlText = '';
+  if (converterParseXmlPath) {
+    try { converterParseXmlText = pyodide.FS.readFile(converterParseXmlPath, { encoding: 'utf8' }); } catch {}
+  }
+  return {
+    ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }),
+    ciiName: invocation.outputName,
+    argv: invocation.argv.slice(1),
+    converterParseXmlPath,
+    converterParseXmlDigest,
+    converterParseXmlText,
+  };
 }
 
 export async function runXmlCii2019StandaloneEngine(job) {
@@ -162,6 +184,9 @@ export async function runXmlCii2019StandaloneEngine(job) {
     let enrichedName = '';
     let ciiText = null;
     let ciiName = null;
+    let converterParseXmlText = '';
+    let converterParseXmlDigest = '';
+    let converterParseXmlPath = '';
     const postprocess = [];
 
     let topology = emptyTopologyResult();
@@ -194,6 +219,9 @@ export async function runXmlCii2019StandaloneEngine(job) {
       const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
+      converterParseXmlText = cii.converterParseXmlText;
+      converterParseXmlDigest = cii.converterParseXmlDigest;
+      converterParseXmlPath = cii.converterParseXmlPath;
       postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv, inputSource: topology.ciiInputSource || 'original' });
     }
     const warnings = [];
@@ -206,7 +234,15 @@ export async function runXmlCii2019StandaloneEngine(job) {
       ciiText,
       ciiName,
       ...topology,
-      diagnostics: diagnostics(normalizedJob, { postprocess, warnings, topology: topology.topologySummary }),
+      diagnostics: diagnostics(normalizedJob, {
+        postprocess,
+        warnings,
+        topology: topology.topologySummary,
+        engineRequestXmlText: sourceKind === 'xml' ? normalizedJob.sourceText : '',
+        converterParseXmlText,
+        converterParseXmlDigest,
+        converterParseXmlPath,
+      }),
       logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)],
       error: null,
     };
