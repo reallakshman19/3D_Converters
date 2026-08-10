@@ -2,6 +2,9 @@ import {
   buildSelectedBranchScope,
   normalizeXmlCiiBranchSelection,
 } from './xml-cii-branch-scope.js?v=20260804-branch-scope-v1';
+import {
+  prepareXmlCiiRunWeightLifecycle,
+} from '../../converters/xml-cii2019-core/weight-review-lifecycle.js';
 
 export function readTextFile(file) {
   if (!file) return Promise.resolve(null);
@@ -57,6 +60,11 @@ function enrichSupportConfigJson(state, branchScope = null) {
     config.weight.masterRows = weightMasterRows;
   }
   if (branchScope?.manifest) config.branchSelection = branchScope.manifest;
+  // X003 lifecycle boundary: Weight Match decisions are retained under
+  // rigidWeightMatch1, Finalise-and-Run decisions under rigidWeightFinal, and
+  // only the selected authority is materialized into legacy rigidWeight for
+  // the existing converter/enrichment consumers.
+  config = prepareXmlCiiRunWeightLifecycle(config);
   return JSON.stringify(config, null, 2);
 }
 
