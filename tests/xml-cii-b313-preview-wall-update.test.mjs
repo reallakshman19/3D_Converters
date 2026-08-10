@@ -28,7 +28,8 @@ assert.equal(dn250.selectedSchedule, '60');
 assert.deepEqual(dn250.equivalentSchedules, ['60', 'XS']);
 assert.ok(Math.abs(dn250.selectionMarginMm - (12.7 - dn250.calculation.requiredNominalThicknessMm)) < 1e-10);
 assert.equal(dn250.calculation.manufacturingTolerance.basis, 'percent');
-assert.equal(dn250.calculation.manufacturingTolerance.value, 12.5);
+assert.equal(dn250.calculation.manufacturingTolerance.percent, 12.5);
+assert.equal(dn250.calculation.manufacturingTolerance.inputValue, 12.5);
 assert.equal(dn250.authority, 'EXPLICIT_PREVIEW_ACTION_NOT_AUTOMATIC_WALL_AUTHORITY');
 
 const missingOd = calculateAndSelectPreviewB313Wall({
