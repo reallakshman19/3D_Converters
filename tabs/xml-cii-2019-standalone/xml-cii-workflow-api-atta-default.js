@@ -2,6 +2,32 @@ import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from './x
 import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20260804-mds-position-restraints-1';
 import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20260804-mds-position-restraints-1';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity-mds-restraints.js?v=20260804-mds-position-restraints-1';
+import {
+  buildXmlCiiConversionEvidenceXml,
+  digestXmlCiiEvidenceText,
+} from './xml-cii-conversion-evidence.js';
+
+function parseEvidence(supportConfigJson) {
+  try {
+    const config = JSON.parse(String(supportConfigJson || '{}'));
+    return config?.conversionEvidence && typeof config.conversionEvidence === 'object'
+      ? config.conversionEvidence
+      : null;
+  } catch { return null; }
+}
+
+function evidenceResultFields(workflowJob, result) {
+  const evidence = parseEvidence(workflowJob?.supportConfigJson);
+  if (!evidence) return {};
+  const ciiDigest = result?.ciiText ? digestXmlCiiEvidenceText(result.ciiText) : '';
+  const enrichedEvidenceXml = buildXmlCiiConversionEvidenceXml(evidence, { ciiDigest });
+  const stem = String(workflowJob?.sourceName || 'source.xml').replace(/\.[^.]+$/, '');
+  return {
+    conversionEvidence: evidence,
+    enrichedEvidenceXml,
+    enrichedEvidenceName: `${stem}.enriched-evidence.xml`,
+  };
+}
 
 export async function runXmlCii2019Workflow(job, runtime = {}) {
   const normalized = normalizeWorkflowJob(job);
@@ -31,12 +57,13 @@ export async function runXmlCii2019Workflow(job, runtime = {}) {
     : runtime;
 
   try {
-    return await runXmlCii2019WorkflowService(
+    const result = await runXmlCii2019WorkflowService(
       { ...workflowJob, sourceKind: resolvedSourceKind },
       serviceRuntime,
     );
+    return { ...result, ...evidenceResultFields(workflowJob, result) };
   } catch (error) {
-    return normalizeWorkflowResult({
+    const result = normalizeWorkflowResult({
       ok: false,
       sourceKind: resolvedSourceKind,
       outputKind: workflowOutputKindForSource(resolvedSourceKind),
@@ -48,6 +75,7 @@ export async function runXmlCii2019Workflow(job, runtime = {}) {
       logs: [],
       error: error?.message || String(error),
     });
+    return { ...result, ...evidenceResultFields(workflowJob, result) };
   }
 }
 
