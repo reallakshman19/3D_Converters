@@ -30,9 +30,6 @@ import xml_to_cii2019_contracted_direction as contracted
 import xml_to_cii2019_direction as direction
 
 
-# The contracted topology layer already governs when two cross-branch nodes
-# are close enough to be considered a candidate junction. Coordinate custody
-# must never be looser than that decision.
 NODE_POSITION_EQUIVALENCE_TOLERANCE_MM = float(
     getattr(contracted, "BRANCH_LINK_TOLERANCE_MM", 0.5)
 )
@@ -71,6 +68,18 @@ def _strict_parse_position(value: str) -> tuple[float, float, float]:
             f"{text!r}; refusing implicit (0,0,0) fallback."
         )
     return position
+
+
+def _fnv1a32_text(value: str) -> str:
+    hash_value = 0x811C9DC5
+    for char in value:
+        hash_value ^= ord(char)
+        hash_value = (hash_value * 0x01000193) & 0xFFFFFFFF
+    return f"fnv1a32:{hash_value:08x}:{len(value)}"
+
+
+def _converter_parse_xml_digest(path: Path) -> str:
+    return _fnv1a32_text(path.read_text(encoding="utf-8"))
 
 
 def _position_distance(
@@ -126,6 +135,9 @@ def _validate_node_number_coordinate_identity(document: base.XmlDocument) -> Non
 
 
 def _parse_xml_document_with_coordinate_custody(path: Path) -> base.XmlDocument:
+    # X004 provenance boundary: this is the exact post-Python-enrichment file
+    # handed to the parser. Emit its digest before any parser/model mutation.
+    print(f"CONVERTER_PARSE_XML_DIGEST={_converter_parse_xml_digest(path)}")
     document = _CONTRACTED_PARSE_XML_DOCUMENT(path)
     _validate_node_number_coordinate_identity(document)
     return document
@@ -161,14 +173,7 @@ def _canonical_position_by_node(
 
 
 def _branch_start_node_numbers(model: base.ConversionModel) -> list[int]:
-    """Return first retained node of every serialized branch occurrence.
-
-    _build_edges emits each XmlBranch contiguously. A new branch occurrence is
-    therefore visible either when branch_name changes or when the next edge no
-    longer continues from the previous edge's to-node. The second rule keeps
-    this correct even if two adjacent source Branch blocks share the same text
-    Branchname.
-    """
+    """Return first retained node of every serialized branch occurrence."""
     starts: list[int] = []
     previous = None
     for edge in model.edges:
@@ -206,8 +211,6 @@ def _build_coords_payload_with_coordinate_custody(
     if coords_mode == "all":
         selected_numbers = list(positions)
     else:
-        # Standalone production default. Do not rely on CAESAR reconstructing
-        # an independently serialized branch from some other branch's anchor.
         selected_numbers = _unique_in_order(_branch_start_node_numbers(model))
 
     if not selected_numbers:
