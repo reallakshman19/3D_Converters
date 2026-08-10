@@ -4,7 +4,7 @@
 The governing GLRD benchmark is converted through the same Python entrypoint
 selected by the standalone browser invocation. The test proves the reported
 branch-start nodes receive their source-derived absolute CII coordinates and
-exercises two fail-closed negative controls.
+exercises fail-closed coordinate negative controls.
 """
 
 from __future__ import annotations
@@ -135,21 +135,27 @@ def _node(number: int, position: str, component: str = "BRAN") -> str:
     )
 
 
-def _negative_controls(temp_root: Path) -> None:
-    malformed = temp_root / "malformed-position.xml"
-    malformed.write_text(
+def _assert_position_is_blocked(temp_root: Path, label: str, position: str) -> None:
+    source = temp_root / f"bad-position-{label}.xml"
+    source.write_text(
         _minimal_xml(
-            "<Branch><Branchname>/BAD-POS</Branchname>"
-            + _node(10, "not-a-position")
+            f"<Branch><Branchname>/BAD-POS-{label}</Branchname>"
+            + _node(10, position)
             + _node(20, "10 0 0")
             + "</Branch>"
         ),
         encoding="utf-8",
     )
-    malformed_result = _run(malformed, temp_root / "malformed.cii")
-    assert malformed_result.returncode != 0, "Malformed Position must block conversion"
-    malformed_log = malformed_result.stdout + "\n" + malformed_result.stderr
-    assert "refusing implicit (0,0,0) fallback" in malformed_log, malformed_log
+    result = _run(source, temp_root / f"bad-position-{label}.cii")
+    assert result.returncode != 0, f"Invalid Position {position!r} must block conversion"
+    log = result.stdout + "\n" + result.stderr
+    assert "refusing implicit (0,0,0) fallback" in log, log
+
+
+def _negative_controls(temp_root: Path) -> None:
+    _assert_position_is_blocked(temp_root, "nonnumeric", "not-a-position")
+    _assert_position_is_blocked(temp_root, "two-component", "1 2")
+    _assert_position_is_blocked(temp_root, "nonfinite", "NaN 0 0")
 
     conflict = temp_root / "duplicate-node-position-conflict.xml"
     conflict.write_text(
@@ -230,7 +236,7 @@ def main() -> None:
     print(
         "X001 GLRD coordinate custody passed: "
         + ", ".join(str(number) for number in TARGET_NODES)
-        + "; malformed Position and duplicate-node conflict both fail closed."
+        + "; malformed/non-finite Position and duplicate-node conflicts fail closed."
     )
 
 
