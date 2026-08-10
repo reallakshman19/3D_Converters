@@ -128,13 +128,20 @@ const paritySource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalo
 assert(paritySource.includes('persistXmlCiiRigidMatch1Config'), 'Parent Weight Match binding must persist RigidMatch1 separately.');
 assert(paritySource.includes('rigidWeight: { ...match1 }'), 'Weight Match may use only a transient legacy mirror.');
 
+const finalAuthoritySource = fs.readFileSync(path.join(root, 'converters/xml-cii2019-core/final-weight-review-authority.js'), 'utf8');
+assert(finalAuthoritySource.includes('collectXmlCiiFinalWeightReviewRows'), 'Final review needs a dedicated all-component authority collector.');
+assert(finalAuthoritySource.includes('sourceIdentityRows'), 'Final authority must union source identity rows with candidate-rich rows.');
+assert(!finalAuthoritySource.includes('lengthMm <= 6'), 'Short/zero-length physical components must not bypass Final review.');
+assert(!finalAuthoritySource.includes('endpointEligible'), 'Endpoint-1-only components must not bypass Final review.');
+
 const finalReviewSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js'), 'utf8');
-assert(finalReviewSource.includes('collectXmlCiiWeightMatchRows'), 'Final review must enumerate all reviewable components, not only zero/unmapped rows.');
+assert(finalReviewSource.includes('collectXmlCiiFinalWeightReviewRows'), 'Final review must enumerate every eligible physical component, not only candidate-rich or zero rows.');
 assert(!finalReviewSource.includes('collectXmlCiiZeroRigidWeightIssues'), 'Mapped/positive Match1 values must not bypass Final review.');
 assert(finalReviewSource.includes('rigidWeightFinal'), 'Final review must write its own authority bucket.');
 assert(finalReviewSource.includes("finalReviewDisposition: 'explicit-final-accepted'"));
 assert(finalReviewSource.includes("return false;\n  }\n}"), 'Final-review execution failures must block the run.');
 assert(finalReviewSource.includes("key.startsWith('WPC1::')"), 'Final acceptance must use physical-component decision keys.');
+assert(finalReviewSource.includes('Source XML ${source} kg · Final confirmation required'), 'Positive source XML mass must be visible evidence, not a bypass.');
 
 const adapterSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js'), 'utf8');
 assert(adapterSource.includes('prepareXmlCiiRunWeightLifecycle(config)'), 'Run job must materialize Final > Match1 authority.');
