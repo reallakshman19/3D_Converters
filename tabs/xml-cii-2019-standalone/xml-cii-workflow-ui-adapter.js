@@ -5,6 +5,9 @@ import {
 import {
   prepareXmlCiiRunWeightLifecycle,
 } from '../../converters/xml-cii2019-core/weight-review-lifecycle.js';
+import {
+  buildXmlCiiConversionEvidence,
+} from './xml-cii-conversion-evidence.js';
 
 export function readTextFile(file) {
   if (!file) return Promise.resolve(null);
@@ -30,7 +33,7 @@ function getStoredMaster(key) {
   return getStoredJson(`xml-cii-master-${key}`);
 }
 
-function enrichSupportConfigJson(state, branchScope = null) {
+function enrichSupportConfigObject(state, branchScope = null) {
   let config = {};
   try {
     config = JSON.parse(state.supportConfigJson || '{}');
@@ -60,12 +63,8 @@ function enrichSupportConfigJson(state, branchScope = null) {
     config.weight.masterRows = weightMasterRows;
   }
   if (branchScope?.manifest) config.branchSelection = branchScope.manifest;
-  // X003 lifecycle boundary: Weight Match decisions are retained under
-  // rigidWeightMatch1, Finalise-and-Run decisions under rigidWeightFinal, and
-  // only the selected authority is materialized into legacy rigidWeight for
-  // the existing converter/enrichment consumers.
   config = prepareXmlCiiRunWeightLifecycle(config);
-  return JSON.stringify(config, null, 2);
+  return config;
 }
 
 function parseJsonOrDefault(text, fallback) {
@@ -102,13 +101,26 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
   const stagedJsonText = String(state.branchScope?.filteredStagedJsonText ?? stagedFileText ?? state.stagedJsonText ?? '');
   const branchScope = branchScopeFromState(state, sourceText, stagedJsonText);
   if (branchScope.blocked) throw new Error('Select at least one source branch before running XML→CII.');
+
+  const supportConfig = enrichSupportConfigObject(state, branchScope);
+  const supportConfigBeforeEvidence = JSON.stringify(supportConfig, null, 2);
+  const evidenceState = {
+    ...state,
+    sourceText: branchScope.filteredSourceText,
+    stagedJsonText: branchScope.filteredStagedJsonText,
+  };
+  // Evidence is attached to the JSON control plane only. It is not injected
+  // into PSI116 XML and therefore cannot contaminate converter schema input.
+  supportConfig.conversionEvidence = buildXmlCiiConversionEvidence(evidenceState, supportConfigBeforeEvidence);
+  const supportConfigJson = JSON.stringify(supportConfig, null, 2);
+
   return {
     sourceKind: state.sourceKind || 'auto',
     sourceText: branchScope.filteredSourceText,
     sourceName: sourceNameFromState(state),
     stagedJsonText: branchScope.filteredStagedJsonText,
     elementSideLoadText: state.elementSideLoadText || null,
-    supportConfigJson: enrichSupportConfigJson(state, branchScope),
+    supportConfigJson,
     options: workflowOptionsFromState(state),
     previewFacts: state.previewDiagnosticsAuditReport?.matchedFacts || [],
     manualFacts: state.manualElementSideloadResult?.matchedFacts || [],
