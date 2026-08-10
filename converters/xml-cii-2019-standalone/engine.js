@@ -8,6 +8,8 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019.py',
   'xml_to_cii2019_patched.py',
   'xml_to_cii2019_direction.py',
+  'xml_to_cii2019_bend_radius_policy.py',
+  'xml_to_cii2019_runtime_custody.py',
   'xml_to_cii2019_master_addon.py',
   'master_customization.py',
   'cii2019_section_rules.py',
@@ -39,13 +41,15 @@ exit_code
 const ENRICH_XML_SNIPPET = `
 from pathlib import Path
 import xml_to_cii2019_patched as patched
+from xml_to_cii2019_bend_radius_policy import apply_bend_radius_policy
 support_config = patched._load_support_config(job_support_config_json)
 if job_split_condensed is not None:
     support_config["splitCondensedValveFlange"] = bool(job_split_condensed)
 staged = Path(job_staged_json_path) if job_staged_json_path else None
 final_xml = patched._maybe_enrich_from_staged_json(Path(job_input_path), staged, support_config)
 final_xml = patched._apply_process_data_to_xml(final_xml, support_config)
-Path(job_output_path).write_text(Path(final_xml).read_text(encoding="utf-8"), encoding="utf-8")
+policy_xml, bend_policy = apply_bend_radius_policy(final_xml, support_config, Path(job_output_path))
+print("BEND_RADIUS_POLICY enabled=%s published=%s removed=%s" % (bend_policy.get("enabled"), bend_policy.get("published"), bend_policy.get("removed")))
 `;
 
 let pyodidePromise = null;
