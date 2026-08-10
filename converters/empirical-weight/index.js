@@ -14,4 +14,9 @@ export {
   buildEmpiricalWeightValidationReport,
   empiricalWeightValidationReportToCsv,
 } from './empirical-weight-validation.js';
+export {
+  buildEmpiricalWeightValidationZipBytes,
+  buildEmpiricalWeightValidationEvidenceZip,
+  downloadEmpiricalWeightValidationEvidenceZip,
+} from './empirical-weight-validation-zip.js';
 export { EMPIRICAL_WEIGHT_MODEL } from './empirical-weight-model.js';
