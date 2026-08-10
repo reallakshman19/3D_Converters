@@ -13,6 +13,7 @@ import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propaga
 import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
+import { appendXmlCiiEvidenceZipControl } from './xml-cii-adapted-evidence-zip.js';
 import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p7';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js';
 
@@ -172,4 +173,5 @@ export function renderSupportMapperPanel(card, stateRef, render) {
 
 export function renderRunPanel(card, stateRef, render) {
   renderStandaloneOutputRunPanel(card, stateRef, render);
+  appendXmlCiiEvidenceZipControl(card, stateRef);
 }
