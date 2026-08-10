@@ -1,17 +1,23 @@
 // Standalone XML→CII run parity
 // -----------------------------
-// The parent Model Converters workflow enriches the XML in the browser
-// (process data, staged-support restraints with CMPSUPGAP gaps, DTXR
-// annotations, weight master matches, valve/flange split renumbering) BEFORE
-// the Python conversion runs. This module reuses that enrichment authority and
-// now emits deterministic evidence proving that the exact XML sent to Python
-// contains the Preview and Weight Match facts that were selected.
+// This module is the browser authority immediately before Python conversion.
+// X002/X003 property and mass authority are applied here so standalone runs do
+// not bypass fixes that also exist on the parent Model Converters path.
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
 import {
   persistXmlCiiRigidMatch1Config,
 } from '../../converters/xml-cii2019-core/weight-review-lifecycle.js';
+import {
+  applyXmlCiiStagedGeometryAuthority,
+} from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
+import {
+  applyXmlCiiOutsideDiameterResolver,
+} from '../../converters/xml-cii2019-core/outside-diameter-resolver.js';
+import {
+  applyXmlCiiSplitRigidWeightPropagation,
+} from '../../converters/xml-cii2019-core/split-rigid-weight-propagation.js';
 
 const PARITY_MODULE_URL = new URL(
   '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
@@ -172,6 +178,16 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   return result;
 }
 
+function expectedEntriesAfterConservation(entries, appliedRows) {
+  const updates = new Map((appliedRows || []).map((row) => [`${text(row.branchName)}|${text(row.nodeNumber)}`, row]));
+  return (entries || []).map((entry) => {
+    if (entry?.scope !== 'node' || entry?.field !== 'weight') return entry;
+    const row = updates.get(`${text(entry.branchName)}|${text(entry.nodeNumber)}`);
+    if (!row) return entry;
+    return { ...entry, expected: String(row.weightKg), source: 'weight-conservation' };
+  });
+}
+
 const WEIGHT_MATCH_MODULE_URL = new URL(
   '../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
   import.meta.url,
@@ -189,9 +205,6 @@ function weightMatchUiConfig(config) {
     ...source,
     overrides: {
       ...overrides,
-      // Parent renderer still expects rigidWeight while the operator is in
-      // Weight Match. This mirror is deliberately UI-local and is never
-      // persisted as the Match1 authority.
       rigidWeight: { ...match1 },
     },
   };
@@ -243,6 +256,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     branchRows: [],
     nodeRows: [],
     expectedEntries: [],
+    weightConservation: [],
   };
   if (!sourceText.trim()) {
     out.error = 'Standalone run parity requires non-empty XML source text.';
@@ -258,28 +272,45 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
   try {
     const parity = await import(PARITY_MODULE_URL.href);
     const options = { ...standaloneParityOptions(job.supportConfigJson, job.options || {}), ...extraOptions };
-    const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
     const config = parseConfig(options.supportConfigJson);
-    const dtxr = enrichStandaloneDtxrAnnotations(enriched.xmlText || sourceText, text(job.stagedJsonText), config);
+    const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
+
+    const stagedGeometry = applyXmlCiiStagedGeometryAuthority(
+      enriched.xmlText || sourceText,
+      text(job.stagedJsonText),
+      { config },
+    );
+    const outsideDiameter = applyXmlCiiOutsideDiameterResolver(stagedGeometry.xmlText, { config });
+    const dtxr = enrichStandaloneDtxrAnnotations(outsideDiameter.xmlText, text(job.stagedJsonText), config);
+
     out.diagnostics = [
       ...(Array.isArray(enriched.diagnostics) ? enriched.diagnostics : []),
+      ...(Array.isArray(stagedGeometry.diagnostics) ? stagedGeometry.diagnostics : []),
+      ...(Array.isArray(outsideDiameter.diagnostics) ? outsideDiameter.diagnostics : []),
       ...(Array.isArray(dtxr.diagnostics) ? dtxr.diagnostics : []),
     ];
     out.stats = {
       ...(enriched.stats && typeof enriched.stats === 'object' ? enriched.stats : {}),
+      ...(stagedGeometry.stats && typeof stagedGeometry.stats === 'object' ? stagedGeometry.stats : {}),
+      ...(outsideDiameter.stats && typeof outsideDiameter.stats === 'object' ? outsideDiameter.stats : {}),
       ...(dtxr.stats && typeof dtxr.stats === 'object' ? dtxr.stats : {}),
     };
 
     const process = await applyStandaloneProcessParity(
-      dtxr.text || enriched.xmlText || sourceText,
+      dtxr.text || outsideDiameter.xmlText,
       config,
       text(job.stagedJsonText),
       out.diagnostics,
     );
-    out.xmlText = process.xmlText;
+    const splitWeight = applyXmlCiiSplitRigidWeightPropagation(process.xmlText, { config });
+    out.xmlText = splitWeight.xmlText;
     out.branchRows = process.branchRows;
     out.nodeRows = process.nodeRows;
-    out.expectedEntries = process.expectedEntries;
+    out.expectedEntries = expectedEntriesAfterConservation(process.expectedEntries, splitWeight.appliedRows);
+    out.weightConservation = Array.isArray(splitWeight.conservation) ? splitWeight.conservation : [];
+    out.diagnostics.push(...(Array.isArray(splitWeight.diagnostics) ? splitWeight.diagnostics : []));
+    out.stats = { ...out.stats, ...(splitWeight.stats || {}) };
+
     out.evidence = createStandaloneRunParityEvidence({
       xmlText: out.xmlText,
       expectedEntries: out.expectedEntries,
@@ -299,7 +330,9 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     out.logs.push(
       `Standalone run parity PASS (${out.evidence.status}): ${out.evidence.comparisons} comparison(s), input ${out.evidence.engineInputDigest}.`,
     );
-    out.logs.push(`Standalone run parity applied: ${out.stats.weightAnnotations || 0} weight annotation(s), ${out.stats.processAnnotations || 0} process annotation(s), ${out.stats.stagedSupportsMapped || 0} staged support(s), ${out.stats.dtxrPosAnnotations || 0} DTXR_POS annotation(s), ${out.stats.dtxrPsAnnotations || 0} DTXR_PS annotation(s), ${out.stats.splitCondensedRigidNodes || 0} renumbered node(s).`);
+    out.logs.push(
+      `X002/X003 authority active: staged bore rejects ${out.stats.stagedBoreAmbiguousRejected || 0}; endpoint OD fixes ${out.stats.endpointOutsideDiameterResolvedFromFlowPath || 0}; conserved split groups ${out.stats.splitRigidWeightConservedGroups || 0}; review-required split groups ${out.stats.splitRigidWeightReviewRequired || 0}.`,
+    );
   } catch (error) {
     out.error = text(error?.message || error);
     out.applied = false;
