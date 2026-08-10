@@ -60,6 +60,7 @@ const tests = [
   ['X002 real GLRD property authority', 'node', ['tests/xml-cii-x002-property-authority.test.js']],
   ['X003 weight lifecycle/conservation', 'node', ['tests/xml-cii-x003-weight-authority.test.js']],
   ['X003 weight freeze boundaries', 'node', ['tests/xml-cii-x003-weight-freeze-boundaries.test.js']],
+  ['X003 split sibling migration', 'node', ['tests/xml-cii-x003-split-sibling-migration.test.js']],
   ['X004 immutable evidence/digests', 'node', ['tests/xml-cii-x004-evidence-snapshots.test.js']],
   ['X005 deterministic evidence ZIP', 'node', ['tests/xml-cii-x005-evidence-zip.test.js']],
   ['X005 Mode A isolated evidence ZIP', 'node', ['tests/xml-cii-x005-mode-a-evidence-zip.test.js']],
