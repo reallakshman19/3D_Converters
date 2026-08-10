@@ -95,6 +95,23 @@ function branchScopeFromState(state, sourceText, stagedJsonText) {
   });
 }
 
+function sourceIdFromPhysicalWeightMap(config) {
+  const buckets = [
+    config?.overrides?.rigidWeight,
+    config?.overrides?.rigidWeightFinal,
+    config?.overrides?.rigidWeightMatch1,
+  ];
+  for (const bucket of buckets) {
+    if (!bucket || typeof bucket !== 'object' || Array.isArray(bucket)) continue;
+    for (const key of Object.keys(bucket)) {
+      if (!String(key).startsWith('WPC1::')) continue;
+      const encoded = String(key).split('::')[1] || '';
+      try { return decodeURIComponent(encoded); } catch { return encoded; }
+    }
+  }
+  return String(config?.weightIdentity?.sourceId || '');
+}
+
 export async function buildXmlCiiWorkflowJobFromUiState(state) {
   const [sourceFileText, stagedFileText] = await Promise.all([
     readTextFile(state.sourceFile),
@@ -106,13 +123,14 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
   if (branchScope.blocked) throw new Error('Select at least one source branch before running XML→CII.');
 
   let supportConfig = enrichSupportConfigObject(state, branchScope);
+  const sourceId = state.sourceBatch?.activeSourceId || sourceIdFromPhysicalWeightMap(supportConfig);
   // Persisted authority remains source/branch/physical-component scoped. Only
   // at this compatibility boundary do we materialize the legacy branch/node
   // keys required by the existing XML mutator and Python conversion path.
   supportConfig = materializeXmlCiiLegacyWeightCompatibility(
     supportConfig,
     branchScope.filteredSourceText,
-    { sourceId: state.sourceBatch?.activeSourceId || '' },
+    { sourceId },
   );
   const supportConfigBeforeEvidence = JSON.stringify(supportConfig, null, 2);
   const evidenceState = {
