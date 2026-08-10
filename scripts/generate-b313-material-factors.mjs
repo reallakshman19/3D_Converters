@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
+const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),source=path.join(ROOT,'docs','Masters','b313-material-factor-master.json'),target=path.join(ROOT,'converters','b313-material-factors','default-b313-material-factor-data.js');
+const data=JSON.parse(fs.readFileSync(source,'utf8')),out='// Generated from docs/Masters/b313-material-factor-master.json. Do not hand-edit.\n\nexport const B313_MATERIAL_FACTOR_MASTER = Object.freeze('+JSON.stringify(data)+');\n';const mode=process.argv[2]||'--check';if(mode==='--write'){fs.writeFileSync(target,out);console.log('Wrote runtime material-factor registry.');}else{if(fs.readFileSync(target,'utf8')!==out){console.error('B31.3 material factor runtime registry is out of sync.');process.exit(1);}console.log('B31.3 material factor runtime registry matches canonical master.');}
