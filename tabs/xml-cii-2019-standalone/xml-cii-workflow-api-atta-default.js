@@ -16,16 +16,31 @@ function parseEvidence(supportConfigJson) {
   } catch { return null; }
 }
 
+function converterParseDigestFromLogs(logs) {
+  for (const line of Array.isArray(logs) ? logs : []) {
+    const match = String(line).match(/CONVERTER_PARSE_XML_DIGEST=(fnv1a32:[0-9a-f]{8}:\d+)/i);
+    if (match) return match[1].toLowerCase();
+  }
+  return '';
+}
+
 function evidenceResultFields(workflowJob, result) {
   const evidence = parseEvidence(workflowJob?.supportConfigJson);
   if (!evidence) return {};
+  const engineRequestXmlDigest = String(result?.diagnostics?.converterInputDigest || result?.diagnostics?.runParityEvidence?.engineInputDigest || '');
+  const converterParseXmlDigest = converterParseDigestFromLogs(result?.logs);
   const ciiDigest = result?.ciiText ? digestXmlCiiEvidenceText(result.ciiText) : '';
-  const enrichedEvidenceXml = buildXmlCiiConversionEvidenceXml(evidence, { ciiDigest });
+  const enrichedEvidenceXml = buildXmlCiiConversionEvidenceXml(evidence, {
+    engineRequestXmlDigest,
+    converterParseXmlDigest,
+    ciiDigest,
+  });
   const stem = String(workflowJob?.sourceName || 'source.xml').replace(/\.[^.]+$/, '');
   return {
     conversionEvidence: evidence,
     enrichedEvidenceXml,
     enrichedEvidenceName: `${stem}.enriched-evidence.xml`,
+    conversionEvidenceDigests: { engineRequestXmlDigest, converterParseXmlDigest, ciiDigest },
   };
 }
 
