@@ -1,0 +1,43 @@
+name: XML CII X001 Coordinate Custody
+
+on:
+  push:
+    branches:
+      - agent/xml-cii-x001-coordinate-topology
+  pull_request:
+    paths:
+      - 'converters/scripts/xml_to_cii2019_coordinate_custody.py'
+      - 'converters/xml-cii-2019-standalone/invocation-builder.js'
+      - 'converters/xml-cii-2019-standalone/engine.js'
+      - 'tests/xml-cii-standalone-x001-coordinate-custody.test.js'
+      - 'converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py'
+      - '.github/workflows/xml-cii-x001-coordinate-custody.yml'
+      - 'docs/Overall_roadmap.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  x001-coordinate-custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify standalone activation
+        run: node tests/xml-cii-standalone-x001-coordinate-custody.test.js
+
+      - name: Run governing GLRD coordinate regression
+        run: python converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
