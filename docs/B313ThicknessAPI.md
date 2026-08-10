@@ -15,6 +15,7 @@ The API does **not** embed ASME material/property tables. The caller supplies th
 ```js
 import {
   calculateB313Thickness,
+  calculateB313PressureStressRatios,
   evaluateB313ProvidedWall,
   selectB313NominalWall,
   createB313ThicknessCalculator,
@@ -57,7 +58,41 @@ The calculation then applies caller-supplied corrosion, mechanical, erosion, and
 t_required_minimum = t + total_allowance
 ```
 
-## 4. Negative manufacturing / mill tolerance
+## 4. Pressure / allowable-stress ratios
+
+The calculation result exposes two ratios explicitly:
+
+```text
+pressureAllowableStressRatio = P / S
+pressureEffectiveStressRatio = P / (S*E)
+```
+
+`P/S` is useful for engineering tables and review screens. `P/(S*E)` is kept separately because the implemented applicability guard uses the effective stress including `E`. The API does not label these two quantities with one ambiguous name.
+
+A direct ratio-only call is also available:
+
+```js
+const ratios = calculateB313PressureStressRatios({
+  designPressure: 51.1,
+  pressureUnit: 'barg',
+  allowableStress: 20,
+  stressUnit: 'ksi',
+});
+
+// pressureAllowableStressRatio ~= 0.03705714 -> 0.0371 at 4 decimals
+```
+
+If `qualityFactorE` is supplied, the same call also returns `pressureEffectiveStressRatio`; otherwise that field is `null`.
+
+The A106 Grade B benchmark supplied for this work is stored separately at:
+
+```text
+Benchmarks/B313Thickness/a106-grb-ps-ratio-benchmark.json
+```
+
+It validates the supplied `P/S` values only. It is **not** treated as an ASME allowable-stress table authority and it does not interpolate stress by temperature.
+
+## 5. Negative manufacturing / mill tolerance
 
 A bare number is intentionally rejected:
 
@@ -130,7 +165,7 @@ T_min_as_manufactured >= t_required_minimum
 
 The API echoes the original tolerance basis and normalized tolerance in the result so downstream evidence can retain the exact engineering assumption.
 
-## 5. Provided-wall evaluation
+## 6. Provided-wall evaluation
 
 ```js
 const result = evaluateB313ProvidedWall({
@@ -160,7 +195,7 @@ Relevant output:
 
 `status` is based on minimum as-manufactured wall, not simply nominal-wall comparison.
 
-## 6. Nominal-wall / schedule selection
+## 7. Nominal-wall / schedule selection
 
 The API does not own a B36.10/B36.19 table. A caller supplies candidate nominal walls from its approved dataset:
 
@@ -180,7 +215,7 @@ Candidates are normalized, sorted by wall thickness, and the thinnest candidate 
 
 If none pass, the function returns `NO_ADEQUATE_NOMINAL_WALL`.
 
-## 7. Reusable calculator
+## 8. Reusable calculator
 
 ```js
 const b313 = createB313ThicknessCalculator({
@@ -200,20 +235,27 @@ const result = b313.calculate({
   allowableStress: 138,
   corrosionAllowance: 3,
 });
+
+const ratios = b313.calculatePressureStressRatios({
+  designPressure: 10,
+  allowableStress: 138,
+});
 ```
 
 This is intended for modules that share project or piping-class defaults but calculate many pipe cases.
 
-## 8. Supported units
+## 9. Supported units
 
 Pressure/stress:
 
 - `Pa`
 - `kPa`
 - `MPa`
-- `bar`
-- `psi`
+- `bar`, `barg`
+- `psi`, `psig`
 - `ksi`
+
+For `barg` and `psig`, the numerical value is treated as the design pressure difference and converted to MPa; no atmospheric offset is added.
 
 Length:
 
@@ -224,7 +266,7 @@ Length:
 
 Internally the API uses MPa and mm.
 
-## 9. Fail-closed scope
+## 10. Fail-closed scope
 
 The API rejects rather than guesses when:
 
@@ -241,7 +283,7 @@ The API rejects rather than guesses when:
 
 Bends, branch reinforcement, fittings, external pressure, and Chapter IX calculations require separate APIs.
 
-## 10. Result provenance
+## 11. Result provenance
 
 A successful result records:
 
@@ -251,6 +293,10 @@ A successful result records:
   edition: '2024',
   paragraph: '304.1.2',
   equation: '3a',
+  applicability: {
+    pressureAllowableStressRatio: P / S,
+    pressureEffectiveStressRatio: P / (S * E)
+  },
   provenance: {
     factorAuthority: 'CALLER_SUPPLIED',
     standardStatusChecked: '2026-08-10',
@@ -261,7 +307,7 @@ A successful result records:
 
 No result should be interpreted as having resolved material properties or code-table values unless a separate, qualified resolver supplied them.
 
-## 11. Existing wall-authority boundary
+## 12. Existing wall-authority boundary
 
 This module does not replace:
 
@@ -270,12 +316,13 @@ This module does not replace:
 - direct source wall values;
 - approved project schedule data.
 
-A later adoption PR should compare those source values with the B31.3 calculated requirement and report `PASS`, `FAIL`, margin, and provenance. It should not silently overwrite source wall thickness.
+A later adoption PR should compare those source values with the B31.3 calculated requirement and report `PASS`, `FAIL`, margin, ratios, and provenance. It should not silently overwrite source wall thickness.
 
-## 12. Validation
+## 13. Validation
 
-See `docs/B313ThicknessValidation.md` and the frozen benchmark dataset:
+See `docs/B313ThicknessValidation.md` and the frozen benchmark datasets:
 
 ```text
 Benchmarks/B313Thickness/b313-thickness-benchmarks.json
+Benchmarks/B313Thickness/a106-grb-ps-ratio-benchmark.json
 ```
