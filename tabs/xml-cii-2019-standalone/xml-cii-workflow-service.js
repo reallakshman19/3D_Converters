@@ -91,6 +91,7 @@ function blockedRunParityResult(job, parity) {
       warnings: [error],
       runParityStats: parity?.stats || {},
       runParityEvidence: evidence,
+      weightConservation: Array.isArray(parity?.weightConservation) ? parity.weightConservation : [],
       converterInputReleased: false,
     },
     logs: Array.isArray(parity?.logs) ? parity.logs : [],
@@ -125,8 +126,12 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   if (normalized.diagnostics) {
     normalized.diagnostics.runParityStats = parity.stats;
     normalized.diagnostics.runParityEvidence = parity.evidence;
+    normalized.diagnostics.weightConservation = Array.isArray(parity.weightConservation) ? parity.weightConservation : [];
     normalized.diagnostics.converterInputReleased = true;
     normalized.diagnostics.converterInputDigest = parity.evidence.engineInputDigest;
+    // Exact browser→engine XML bytes. This is the same string whose digest is
+    // recorded above and is packaged by X005 without recomputation.
+    normalized.diagnostics.engineRequestXmlText = parity.xmlText;
   }
   return normalized;
 }
