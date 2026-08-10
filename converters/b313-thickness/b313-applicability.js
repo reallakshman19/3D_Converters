@@ -44,15 +44,16 @@ export function preflightScope(input = {}) {
 }
 
 export function postflightApplicability({ pressureMPa, allowableStressMPa, qualityFactorE, pressureDesignThicknessMm, outsideDiameterMm }) {
-  const pressureStressRatio = pressureMPa / (allowableStressMPa * qualityFactorE);
+  const pressureAllowableStressRatio = pressureMPa / allowableStressMPa;
+  const pressureEffectiveStressRatio = pressureMPa / (allowableStressMPa * qualityFactorE);
   const thicknessDiameterRatio = pressureDesignThicknessMm / outsideDiameterMm;
   const checks = [
     {
       id: 'P_OVER_SE',
-      value: pressureStressRatio,
+      value: pressureEffectiveStressRatio,
       limit: 0.385,
       operator: '<=',
-      pass: pressureStressRatio <= 0.385,
+      pass: pressureEffectiveStressRatio <= 0.385,
     },
     {
       id: 'T_OVER_D',
@@ -65,7 +66,8 @@ export function postflightApplicability({ pressureMPa, allowableStressMPa, quali
   const failed = checks.filter((check) => !check.pass);
   return {
     valid: failed.length === 0,
-    pressureStressRatio,
+    pressureAllowableStressRatio,
+    pressureEffectiveStressRatio,
     thicknessDiameterRatio,
     checks,
     failed,
