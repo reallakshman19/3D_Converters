@@ -14,6 +14,7 @@ import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
 import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p7';
+import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js';
 
 export function renderActivePhase(root, stateRef, render) {
@@ -91,7 +92,11 @@ export function renderPhaseBody(card, phaseId, stateRef, render) {
   if (phaseId === 'matched-audit') return renderStandalonePropagationAuditPanel(card, state, render);
   if (phaseId === 'weight-match') return renderAdaptedWeightMatchPanelV2(card, stateRef);
   if (phaseId === 'support-mapper') return renderSupportMapperPanel(card, stateRef, render);
-  if (phaseId === 'config') return renderAdaptedConfigPanel(card, stateRef, render);
+  if (phaseId === 'config') {
+    renderAdaptedConfigPanel(card, stateRef, render);
+    appendBendRadiusConfigToggle(card, stateRef, render);
+    return;
+  }
   if (phaseId === 'run') return renderRunPanel(card, stateRef, render);
   renderStandaloneSourceModePanel(card, state);
 }

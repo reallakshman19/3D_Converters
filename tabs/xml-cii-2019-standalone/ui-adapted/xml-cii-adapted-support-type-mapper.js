@@ -53,12 +53,26 @@ function renderMapperKindSection(parent, state, kind) {
   parent.appendChild(section);
 }
 
+function renderConfidencePolicy(parent) {
+  const section = createElement('section', '', 'xml-cii-audit-panel');
+  section.appendChild(createElement('h3', 'Confidence / precedence policy'));
+  section.appendChild(createElement(
+    'p',
+    'Confidence is derived from the evidence, not manually assigned. Explicit semantics such as GUIDE, LINE STOP, AXIAL STOP, DIRECTIONAL ANCHOR and PIPE REST/REST are HIGH. Short/prefix codes such as GT, ST, PG and LS are LOW fallbacks. A stronger decision suppresses lower-confidence competing kinds for the same support occurrence; equal-strength conflicts remain review-required.',
+    'xml-cii-phase-help'
+  ));
+  parent.appendChild(section);
+}
+
 function renderTestInputSection(parent, state) {
   const section = createElement('section', '', 'xml-cii-audit-panel');
   section.appendChild(createElement('h3', 'Test Input / Save to Config'));
   const input = appendLabeledControl(section, 'Support / DTXR text to classify (one per line):', createElement('textarea'));
   input.value = state.supportTypeMapperTestInput || '';
   input.dataset.field = 'support-mapper-test-input';
+
+  const help = createElement('p', 'Use | between separate support occurrences. The audit keeps NAME=... occurrence identity so one support cannot acquire another support segment\'s kind.', 'xml-cii-phase-help');
+  section.appendChild(help);
 
   const actions = createElement('div', '', 'xml-cii-resolver-actions');
   const testBtn = createElement('button', state.supportTypeMapperRunning ? 'Testing…' : 'Test support mapper');
@@ -75,11 +89,11 @@ function renderTestInputSection(parent, state) {
 function renderPreviewSection(parent, state) {
   const result = state.supportTypeMapperResult;
   const section = createElement('section', '', 'xml-cii-audit-panel');
-  section.appendChild(createElement('h3', 'CII Support Kind Preview'));
+  section.appendChild(createElement('h3', 'CII Support Kind / Confidence Audit'));
   section.appendChild(table(
-    ['Source', 'Evidence', 'Support Kind', 'CII Kind', 'Status', 'Matched Aliases'],
+    ['Occurrence', 'Source', 'Evidence', 'Support Kind', 'CII Kind', 'Confidence', 'Score', 'Matched Alias', 'Match Mode', 'Suppressed Candidates', 'Status', 'Decision Basis'],
     result?.previewRows || [],
-    ['source', 'evidenceText', 'supportKind', 'ciiKind', 'status', 'matchedAliases'],
+    ['occurrenceName', 'source', 'evidenceText', 'supportKind', 'ciiKind', 'confidence', 'confidenceScore', 'matchedAlias', 'matchMode', 'suppressedCandidates', 'status', 'decisionReason'],
     'No preview rows yet. Enter text above and click Test support mapper.'
   ));
   parent.appendChild(section);
@@ -90,9 +104,9 @@ function renderDiagnosticsSection(parent, state) {
   const section = createElement('section', '', 'xml-cii-audit-panel');
   section.appendChild(createElement('h3', 'Mapper Diagnostics'));
   section.appendChild(table(
-    ['Level', 'Type', 'Message'],
+    ['Level', 'Type', 'Occurrence', 'Confidence', 'Message'],
     result?.diagnostics || [],
-    ['level', 'type', 'message'],
+    ['level', 'type', 'occurrenceName', 'confidence', 'message'],
     'No diagnostics yet.'
   ));
   parent.appendChild(section);
@@ -100,7 +114,7 @@ function renderDiagnosticsSection(parent, state) {
 
 function renderRawJsonSection(parent, state) {
   const details = createElement('details', '', 'xml-cii-raw-json');
-  details.appendChild(createElement('summary', 'Raw JSON advanced/debug'));
+  details.appendChild(createElement('summary', 'Raw JSON advanced/debug — auditable mapper result'));
   details.appendChild(createElement('pre', JSON.stringify(state.supportTypeMapperResult || {}, null, 2)));
   parent.appendChild(details);
 }
@@ -109,6 +123,7 @@ function renderRawJsonSection(parent, state) {
 // the numeric restraint-type-code table below: this classifies loose text evidence into a kind,
 // the unified table below maps a kind to CAESAR/CII restraint type codes.
 function renderSupportTypeClassifierPanel(card, state) {
+  renderConfidencePolicy(card);
   for (const kind of KINDS) renderMapperKindSection(card, state, kind);
   renderTestInputSection(card, state);
   renderPreviewSection(card, state);
@@ -140,7 +155,8 @@ function renderRestraintTypeCodeTable(card, stateRef, render) {
     container.innerHTML = `
       <div style="padding:16px;text-align:center;color:#ef4444;">
         Support mapping table unavailable: ${error?.message || String(error)}
-      </div>`;
+      </div>
+    `;
   }
 }
 

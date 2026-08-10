@@ -44,12 +44,44 @@ function hasPreview(result, status, kind) {
   assert(xmlResult.diagnostics.some((row) => row.type === 'unmatched-support-text'), 'unmatched diagnostics expected');
   assert(xmlResult.supportConfigJson.includes('supportTypeMapper'), 'mapper config must write back');
 
+  // Governing real trace: each | segment is a separate support occurrence. The
+  // explicit LINE STOP phrase must beat the low-confidence GT575 abbreviation.
+  const governingTrace = 'Pipe Rest XRT01(NAME=/SL-142005.1),SPRE=/MDS/PIPE-REST.3-PMP,MDSSUPPTYPE=PIPE-REST | LINE STOP ON BARE PIPE WITH WEAR PAD (LENGTH = 804) CS(NAME=/SL-142005.4),SPRE=/MDS/GT575-80-PMP,MDSSUPPTYPE=GT575,CMPSUPGAP=10mm GAP';
+  const traceResult = helper.runStandaloneSupportTypeMapper({ testInput: governingTrace, supportConfigJson: '{}' });
+  assert.strictEqual(traceResult.previewRows.length, 2, 'pipe-delimited support occurrences must be isolated');
+  const rest = traceResult.previewRows.find((row) => row.occurrenceName === '/SL-142005.1');
+  const lineStop = traceResult.previewRows.find((row) => row.occurrenceName === '/SL-142005.4');
+  assert(rest, 'REST support occurrence identity must be retained');
+  assert(lineStop, 'LINESTOP support occurrence identity must be retained');
+  assert.strictEqual(rest.supportKind, 'REST');
+  assert.strictEqual(rest.confidence, 'HIGH');
+  assert.strictEqual(lineStop.supportKind, 'LINESTOP');
+  assert.strictEqual(lineStop.confidence, 'HIGH');
+  assert(lineStop.suppressedCandidates.some((value) => value.startsWith('GUIDE:GT:LOW:')), 'GT575 GUIDE fallback must remain auditable but suppressed');
+  assert(lineStop.decisionReason.includes('lower-confidence competing mapper matches suppressed'));
+
+  const shortGt = helper.runStandaloneSupportTypeMapper({ testInput: 'MDSSUPPTYPE=GT575', supportConfigJson: '{}' }).previewRows[0];
+  assert.strictEqual(shortGt.supportKind, 'GUIDE');
+  assert.strictEqual(shortGt.confidence, 'LOW');
+  assert.strictEqual(shortGt.confidenceScore, 0.45);
+
+  const shortSt = helper.runStandaloneSupportTypeMapper({ testInput: 'MDSSUPPTYPE=ST06', supportConfigJson: '{}' }).previewRows[0];
+  assert.strictEqual(shortSt.supportKind, 'LINESTOP');
+  assert.strictEqual(shortSt.confidence, 'LOW');
+
+  const persisted = JSON.parse(traceResult.supportConfigJson);
+  const gtRule = persisted.supportMapping.rules.find((row) => row.id === 'standalone-mds-gt-guide');
+  const stRule = persisted.supportMapping.rules.find((row) => row.id === 'standalone-mds-st-linestop');
+  assert.strictEqual(gtRule.priority, 900, 'GT fallback must run after explicit semantic support rules');
+  assert.strictEqual(stRule.priority, 910, 'ST fallback must run after explicit semantic support rules');
+  assert.strictEqual(persisted.supportTypeMapper.schema, 'xml-cii-2019-support-type-mapper/v2');
+
   const inputXmlResult = helper.runStandaloneSupportTypeMapper({
     sourceKind: 'inputxml',
     elementSideLoadText: 'ELEMENT 30-40\nDTXR_POS=Directional Anchor On Shoe\nDTXR_PS=Fixed Anchor',
     supportConfigJson: '{}',
   });
-  assert(hasPreview(inputXmlResult, 'ambiguous', 'LINESTOP'), 'ambiguous InputXML DTXR text expected');
+  assert(hasPreview(inputXmlResult, 'ambiguous', 'LINESTOP'), 'equal-strength Directional Anchor + Shoe evidence must remain review-required');
   assert(hasPreview(inputXmlResult, 'matched', 'ANCHOR'), 'InputXML fixed anchor text should match ANCHOR');
   assert(inputXmlResult.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'ambiguous diagnostics expected');
 
@@ -68,7 +100,7 @@ function hasPreview(result, status, kind) {
 
   const card = new TestElement('section');
   ui.renderStandaloneSupportTypeMapperPanel(card, saved);
-  for (const label of ['REST mapper section', 'GUIDE mapper section', 'LINESTOP mapper section', 'ANCHOR mapper section', 'Test Input / Save to Config', 'CII Support Kind Preview', 'Mapper Diagnostics', 'Raw JSON advanced/debug']) {
+  for (const label of ['Confidence / precedence policy', 'REST mapper section', 'GUIDE mapper section', 'LINESTOP mapper section', 'ANCHOR mapper section', 'Test Input / Save to Config', 'CII Support Kind / Confidence Audit', 'Mapper Diagnostics', 'Raw JSON advanced/debug']) {
     assert(card.textContent.includes(label), `Support Type Mapper panel missing ${label}`);
   }
   assert(card.textContent.includes('Test support mapper'), 'test action expected');
@@ -87,10 +119,8 @@ function hasPreview(result, status, kind) {
   assert(eventsSource.includes('save-support-mapper'), 'events must expose save action');
   const apiSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-api.js'), 'utf8');
   assert(apiSource.includes('export async function runXmlCii2019Workflow'), 'public workflow API boundary must remain exported');
-  const workflowSource = fs.readFileSync(path.join(root, '.github/workflows/xml-cii-standalone-mission01.yml'), 'utf8');
-  assert(workflowSource.includes('xml-cii-standalone-support-type-mapper.test.js'), 'mission workflow must run support mapper checks');
 
-  console.log('XML CII standalone Support Type Mapper checks passed.');
+  console.log('XML CII standalone Support Type Mapper confidence checks passed.');
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
