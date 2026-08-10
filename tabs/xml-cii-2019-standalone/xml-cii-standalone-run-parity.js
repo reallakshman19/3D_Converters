@@ -9,6 +9,9 @@
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
+import {
+  persistXmlCiiRigidMatch1Config,
+} from '../../converters/xml-cii2019-core/weight-review-lifecycle.js';
 
 const PARITY_MODULE_URL = new URL(
   '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
@@ -153,7 +156,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
         result.appliedFields += 1;
         recordExpected(result.expectedEntries, {
           scope: 'node', branchName, nodeNumber, path: ['Weight'], field: 'weight',
-          value: mapped, kind: 'number', source: 'weight-match',
+          value: mapped, kind: 'number', source: 'weight-review-effective',
         });
       }
     }
@@ -163,7 +166,7 @@ async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, dia
   diagnostics.push({
     type: 'standalone-process-parity-applied',
     fields: result.appliedFields,
-    message: 'Branch process and node facts were synchronised from the standalone Preview and Weight Match authorities.',
+    message: 'Branch process and node facts were synchronised from the standalone Preview and effective weight-review authority.',
   });
   result.xmlText = new XMLSerializer().serializeToString(document);
   return result;
@@ -174,12 +177,44 @@ const WEIGHT_MATCH_MODULE_URL = new URL(
   import.meta.url,
 );
 
+function weightMatchUiConfig(config) {
+  const source = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
+  const overrides = source.overrides && typeof source.overrides === 'object' && !Array.isArray(source.overrides)
+    ? source.overrides
+    : {};
+  const match1 = overrides.rigidWeightMatch1 && typeof overrides.rigidWeightMatch1 === 'object' && !Array.isArray(overrides.rigidWeightMatch1)
+    ? overrides.rigidWeightMatch1
+    : {};
+  return {
+    ...source,
+    overrides: {
+      ...overrides,
+      // Parent renderer still expects rigidWeight while the operator is in
+      // Weight Match. This mirror is deliberately UI-local and is never
+      // persisted as the Match1 authority.
+      rigidWeight: { ...match1 },
+    },
+  };
+}
+
 export async function loadParentWeightMatchModules() {
   const [renderer, parity] = await Promise.all([
     import(WEIGHT_MATCH_MODULE_URL.href),
     import(PARITY_MODULE_URL.href),
   ]);
-  return { bindXmlCiiWeightMatchPhase: renderer.bindXmlCiiWeightMatchPhase, enrichXmlForCii2019: parity.enrichXmlForCii2019 };
+  const bindXmlCiiWeightMatchPhase = (card, options = {}) => {
+    const save = options.onSaveConfig;
+    const wrapped = {
+      ...options,
+      config: weightMatchUiConfig(options.config),
+      onSaveConfig: (cfg) => {
+        const persisted = persistXmlCiiRigidMatch1Config(cfg);
+        if (typeof save === 'function') save(persisted);
+      },
+    };
+    return renderer.bindXmlCiiWeightMatchPhase(card, wrapped);
+  };
+  return { bindXmlCiiWeightMatchPhase, enrichXmlForCii2019: parity.enrichXmlForCii2019 };
 }
 
 export function standaloneParityOptions(supportConfigJson, options = {}) {
