@@ -103,11 +103,46 @@ function splitOccurrenceSegments(row) {
   });
 }
 
+function resolverTraceEvidenceRows(input = {}) {
+  const trace = object(input.resolverJsonTraceResult || input.resolverJsonTraceJsonResult);
+  const rows = [];
+  const seen = new Set();
+  const push = (source, value) => {
+    const evidenceText = text(value);
+    if (!evidenceText) return;
+    const key = `${source}::${evidenceText}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push({ source, text: evidenceText });
+  };
+
+  for (const fact of array(trace.resolvedFacts)) {
+    const node = text(fact.xmlNodeNumber || fact.nodeNumber || fact.nodeKey || '?');
+    const branch = text(fact.xmlBranch || fact.branchName);
+    const baseSource = `resolver-json-trace${branch ? `:${branch}` : ''}:node=${node}`;
+    push(`${baseSource}:effective`, fact.effectiveDtxr);
+    push(`${baseSource}:DTXR_POS`, fact.dtxrPosValue);
+    push(`${baseSource}:DTXR_PS`, fact.dtxrPsValue);
+    for (const [memberIndex, member] of array(fact.positionMembers).entries()) {
+      push(`${baseSource}:member-${memberIndex + 1}`, member?.labeled || member?.description || member?.dtxr || member?.rawText);
+    }
+  }
+  return rows;
+}
+
 function evidenceRows(input = {}) {
   const direct = array(input.supportTexts).map((value, index) => ({ source: `supportTexts[${index}]`, text: value }));
   const blocks = [input.testInput, input.manualRestraintsText, input.manualText, input.elementSideLoadText, input.dtxrText];
-  return [...direct, ...blocks.flatMap(extractEvidenceLines)]
+  const combined = [...direct, ...blocks.flatMap(extractEvidenceLines), ...resolverTraceEvidenceRows(input)];
+  const seen = new Set();
+  return combined
     .filter((row) => text(row.text))
+    .filter((row) => {
+      const key = `${text(row.source)}::${text(row.text)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .flatMap(splitOccurrenceSegments);
 }
 
@@ -292,6 +327,9 @@ export function runStandaloneSupportTypeMapper(input = {}) {
     previewRows,
     diagnostics,
     supportConfigJson: serializeMapperConfig(input, mapperRows),
-    raw: { sourceKind: input.sourceKind || 'xml' },
+    raw: {
+      sourceKind: input.sourceKind || 'xml',
+      resolverTraceRows: resolverTraceEvidenceRows(input).length,
+    },
   };
 }
