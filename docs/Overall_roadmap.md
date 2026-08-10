@@ -1,551 +1,308 @@
 # Overall Roadmap — XML/InputXML → CII 2019 Exact-Head Closure
 
-Maintained by the Owner. Updated after every merged XML/InputXML → CII 2019
-Work Pack and after any material implementation/qualification event that
-changes the next authorized action. This is the single source of truth for
-**phase status, sequencing, and release authority** for this workstream.
+Maintained by the Owner. Updated **10 August 2026** after implementation of
+Work Packs X001–X005 and creation of the local-only X006 qualification harness.
 
-The detailed engineering mandate remains
-[`docs/InputxmltoCII2019Fixplan.md`](./InputxmltoCII2019Fixplan.md). That file
-contains the full defect narrative, evidence requirements, expert gate, and
-technical constraints. This roadmap does not replace it; it converts that
-mandate into an owner-controlled implementation and qualification sequence.
-
-Repository source is authoritative over prose. If this roadmap or any older
-planning document conflicts with the executable source, the exact source at
-the qualified commit must be inspected and the roadmap corrected. A claim is
-not accepted merely because it appears in a document, PR description, test
-name, UI label, or agent summary.
+The governing engineering mandate remains
+[`docs/InputxmltoCII2019Fixplan.md`](./InputxmltoCII2019Fixplan.md). This roadmap
+records implementation sequence, exact branch heads, qualification state, known
+limitations, and the next authorized action. Repository source outranks this
+prose if they conflict.
 
 ---
 
-## 1. Frozen baseline and current authority
+## 1. Frozen authority
 
-Roadmap baseline established on **10 August 2026**.
-
-| Item | Frozen authority |
+| Item | Authority |
 |---|---|
 | Repository | `reallaksh19/3D_Converters` |
-| Roadmap / mandate head | `152f0d18e4c9371c384f291799f7695a153d1755` |
-| Executable parent baseline | `b168cced3f5aaaada15de290d14ce64928a9a7a3` |
+| Current `main` checked during this update | `9bd60db7b013ff7e1aaaadf661bf84b977f42643` |
 | Governing fix plan | `docs/InputxmltoCII2019Fixplan.md` |
 | Governing benchmark | `Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml` |
-| Primary target | Standalone XML/InputXML → CII 2019 production workflow |
+| Primary production target | Standalone XML/InputXML → CII 2019 workflow |
 | Batch target | Mode A — multiple XML files, separate models, no model merge |
 
-Current qualification verdict at this baseline:
-
-```text
-SOURCE_CAPABILITY_PRESENT
-RUNTIME_UI_PROOF_INCOMPLETE
-BENCHMARK_NUMERICAL_PARITY_FAILED
-PRODUCTION_AUTHORIZATION_NOT_ESTABLISHED
-```
-
-Therefore **production release remains blocked**. Documentation, repository
-inspection, scoped implementation after Owner authorization, and qualification
-work are allowed. No future agent may convert source presence or a green unit
-test into a claim of browser/runtime activation or numerical correctness.
-
-### 1.1 Current X001 implementation record
-
-| Item | Current fact |
-|---|---|
-| Work Pack | `X001` — coordinate/topology custody |
-| Draft PR | `#417` — `fix(xml-cii): close X001 coordinate topology custody` |
-| Branch | `agent/xml-cii-x001-coordinate-topology` |
-| Base | `9bd60db7b013ff7e1aaaadf661bf84b977f42643` |
-| Final implementation/test head before this roadmap-only update | `e2d161aefe825976c39d6b30fd7d05dcfdadb21c` |
-| Latest targeted Actions run on that head | `31362586893` |
-| Actions result | **NOT EXECUTED** — GitHub did not start a runner because account payment/spending-limit state blocked the job before any step ran |
-| Qualification decision | **Not accepted yet** — no GLRD pass is claimed until the targeted commands actually execute |
-
-The Actions infrastructure result is not treated as a converter failure and is
-also not treated as evidence of success. X001 implementation is present for
-review, but P2 remains open until the real regression and negative controls
-execute against the exact PR head.
+Production release remains blocked until X007/X008 are qualified and the Owner
+explicitly authorizes release.
 
 ---
 
-## 2. Phase status
+## 2. Owner qualification policy — local only
 
-| Phase | Status | Governing output |
-|---|---|---|
-| P0 Baseline freeze + expert qualification gate | **Done** | Fix plan at `152f0d18…`; repository-specific expert gate answered |
-| P1 Runtime route / Mode A activation proof | **Incomplete** | Exact browser/deployed-module proof, not source-text proof only |
-| P2 Coordinate + topology custody | **Implemented in draft PR #417; qualification blocked** | X001 code isolated; targeted GLRD/negative-control run has not executed because GitHub Actions runner was blocked by billing/spending state |
-| P3 OD / bore / property authority | **Blocked on accepted P2 qualification** | Raw-vs-effective OD, unit-qualified bore authority, reducer/change-size rules |
-| P4 Rigid / valve / flange weight authority | **Blocked on P3 isolation** | Review-state separation, stable identity, mass conservation, explicit kg→N contract |
-| P5 Immutable Preview / Weight evidence | **Blocked on P4 data contracts** | `<preview>`, `<RigidMatch1>`, `<Rigidmatch2>` frozen snapshots + digests |
-| P6 Enriched XML ZIP package | **Blocked on P5** | Deterministic per-source evidence ZIP + manifest |
-| P7 Exact GLRD end-to-end qualification | **Blocked on P2–P6** | Coordinate, geometry, property, weight, restraint, provenance and CII parity evidence |
-| P8 Mode A multi-source browser qualification | **Blocked on P7 single-source closure** | Real browser multi-file proof; per-source isolation; no cross-file topology |
-| P9 Independent release review + Owner production authorization | **Not started** | Exact-head review, full checks, retained artifacts, explicit Owner release decision |
-
-A phase is not marked Done because code exists. It is Done only when its
-acceptance evidence has been produced from the real execution path and has
-survived the required negative controls.
-
----
-
-## 3. Work Pack log and mandated order
-
-Work Packs below are intentionally narrow. Coordinate, geometry, weight, and
-evidence mechanics must not be changed simultaneously because doing so makes
-root-cause attribution impossible.
-
-| Mission | Status | Scope | Exit gate |
-|---|---|---|---|
-| X001 | **Implemented in draft PR #417; qualification pending** | Coordinate/topology custody | Execute targeted GLRD seven-node regression + negative controls on exact PR head; no OD/weight changes |
-| X002 | Planned / blocked | OD/bore/property authority | Six 26.7-mm cases and `4 mm` bore failure closed with source provenance retained |
-| X003 | Planned | Weight identity, review lifecycle and conservation | Reported suspect weights trace to one accepted mass each; no stale/sibling duplication |
-| X004 | Planned | Immutable Preview / RigidMatch evidence + digest chain | Three snapshots frozen at correct lifecycle points; exact engine inputs hash-linked |
-| X005 | Planned | `Save Enriched XML ZIP` | Deterministic per-source ZIP with manifest and qualification artifacts |
-| X006 | Planned | GLRD exact-head regression and hostile negative controls | Governing benchmark passes all numerical/provenance gates |
-| X007 | Planned | Real browser Mode A qualification | Multi-file separate-model workflow proven in deployed/runtime route |
-| X008 | Planned | Independent exact-head release qualification | Owner-reviewed exact SHA with all gates green |
-
-**Mandatory sequence:**
+Effective **10 August 2026**, the Owner directed:
 
 ```text
-X001 coordinate/topology
-    ↓
-X002 OD/bore/property authority
-    ↓
-X003 weight authority/conservation
-    ↓
-X004 immutable evidence
-    ↓
-X005 ZIP packaging
-    ↓
-X006 GLRD exact-head regression
-    ↓
-X007 Mode A browser qualification
-    ↓
-X008 release qualification
+DO NOT USE GITHUB WORKFLOWS FOR GATES / CHECKING.
+CHECK LOCALLY AND PROCEED SEQUENTIALLY.
 ```
 
-A later mission may expose an earlier defect. If that happens, stop, reopen
-the earlier phase, fix it there, and re-run downstream qualification. Do not
-hide an upstream defect with a downstream formatting or mapping patch.
+Therefore:
 
----
+1. GitHub Actions status is **not** qualification evidence for this workstream.
+2. A workflow being green, red, queued, billing-blocked, or never started shall
+   not change a Work Pack status.
+3. The authoritative repository gate is a local command executed against the
+   exact checked-out SHA.
+4. The X001 qualification workflow has been removed from the X001 branch and
+   from the current stacked qualification branch.
+5. Browser/deployment qualification in X007 is still required, but it is a
+   runtime/browser proof, not a GitHub workflow gate.
 
-## 4. X001 — coordinate and topology custody
-
-### 4.1 Governing diagnosis
-
-The GLRD source contains valid non-zero absolute coordinates. Example:
-
-```text
-Node 10 source Position = 111369.76 108416.90 101088.18
-XML XYZ → CII X,Z,-Y
-Expected mapped coordinate = 111369.76, 101088.18, -108416.90
-```
-
-The current CII path represents geometry using element deltas plus the `COORDS`
-section. Connected-component/anchor logic currently relies too heavily on
-engineering `NodeNumber`, while PSI116 contains repeated node-number
-occurrences at branch boundaries. An engineering node number is not a safe
-occurrence identifier.
-
-The current Python position parser also has an unacceptable failure mode:
-malformed `Position` text can fall back to `(0,0,0)`. Coordinate uncertainty
-must never silently become the global origin.
-
-### 4.2 Required implementation contract
-
-Introduce or preserve an occurrence-level identity equivalent to:
-
-```text
-sourceId
-branchOccurrenceId
-nodeOccurrenceId
-engineeringNodeNumber
-componentRefNo
-endpoint
-sourcePosition
-```
-
-Edges and connected components shall be built from occurrence identity.
-Engineering node numbers may be reconciled only through an explicit junction
-rule. Before serialization, the converter must enforce:
-
-```text
-one final CII NodeNumber → one unique physical coordinate within tolerance
-```
-
-Conflicting coordinates for the same final node are blocking diagnostics.
-Missing/malformed/non-finite coordinates are blocking diagnostics. No origin
-fallback is allowed.
-
-### 4.3 Primary code areas
-
-At minimum inspect and qualify:
-
-- `converters/scripts/xml_to_cii2019.py`
-  - `_parse_position`
-  - `_parse_xml_document`
-  - `_build_edges`
-  - `_build_degree_map`
-  - `_coords_component_map`
-  - `_build_coords_payload`
-- any patched/directional wrapper that mutates the XML before
-  `_parse_xml_document`
-- topology cleanup / generated-node logic that changes occurrence identity
-
-### 4.4 GLRD acceptance set
-
-The reported origin nodes are mandatory retained regressions:
-
-```text
-10
-760
-1200
-1640
-2080
-2520
-2960
-```
-
-For each, retain:
-
-```text
-raw source occurrence
-raw Position
-branch occurrence
-post-enrichment Position
-engine-request Position
-converter-parse Position
-parsed XmlNode.position
-component/anchor identity
-COORDS record used
-final reconstructed CII coordinate
-```
-
-### 4.5 Negative controls
-
-- duplicate `NodeNumber` on two physically different branch occurrences;
-- malformed two-component `Position`;
-- non-numeric Position token;
-- repeated engineering node with coordinate mismatch beyond tolerance;
-- disconnected component requiring its own COORDS anchor.
-
-Each must fail or resolve for the intended, documented reason.
-
-### 4.6 What X001 does not authorize
-
-X001 must not change OD/bore rules, weight matching, mass conversion, weight
-propagation, evidence XML schema, or ZIP packaging except where a minimal
-identity contract is required by topology itself.
-
-### 4.7 Implementation and qualification record — draft PR #417
-
-The implementation intentionally reuses the repository's existing PSI116
-component-occurrence topology layer instead of creating a competing topology
-algorithm.
-
-Repository finding:
-
-```text
-general XML→CII route
-  -> xml_to_cii2019_contracted_direction.py
-
-standalone production route before X001
-  -> xml_to_cii2019_direction.py
-```
-
-Therefore the standalone path was not consuming the stronger contracted
-component-topology layer already present elsewhere in the repository.
-
-X001 implementation/test head `e2d161aefe825976c39d6b30fd7d05dcfdadb21c`
-contains the following non-roadmap files relative to base `9bd60db7…`:
-
-```text
-ADDED    converters/scripts/xml_to_cii2019_coordinate_custody.py
-MODIFIED converters/xml-cii-2019-standalone/invocation-builder.js
-MODIFIED converters/xml-cii-2019-standalone/engine.js
-ADDED    converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
-ADDED    tests/xml-cii-standalone-x001-coordinate-custody.test.js
-ADDED    .github/workflows/xml-cii-x001-coordinate-custody.yml
-```
-
-The patch does the following and no more:
-
-- composes `xml_to_cii2019_contracted_direction.py` in the standalone route;
-- blocks malformed/non-finite Position data instead of permitting an implicit
-  origin fallback;
-- validates that one final CII NodeNumber cannot own non-equivalent physical
-  positions beyond the existing 0.5 mm topology tolerance;
-- makes `coords-mode=first` emit an absolute anchor for the first retained node
-  of every serialized branch occurrence;
-- makes `coords-mode=all` deterministic over retained final node coordinates;
-- preserves explicit `coords-mode=none`;
-- does not modify OD, bore, rigid-weight, review lifecycle, evidence XML, or ZIP
-  code.
-
-The committed targeted regression is designed to execute the real frozen GLRD
-benchmark through the X001 Python entrypoint and verify Nodes
-`10, 760, 1200, 1640, 2080, 2520, 2960` against source-derived `(X,Z,-Y)`
-coordinates. Its fail-closed controls cover a nonnumeric Position, a
-two-component Position, a non-finite Position, and one reused CII NodeNumber
-mapped to two physically different coordinates.
-
-**Qualification state:** the latest targeted GitHub Actions run `31362586893`
-on implementation/test head `e2d161a…` did not start a runner. GitHub reported
-an account payment/spending-limit blocker before any workflow step executed.
-Consequently:
-
-```text
-IMPLEMENTATION_PRESENT
-TARGETED_TESTS_COMMITTED
-TARGETED_TESTS_NOT_EXECUTED
-GLRD_X001_PASS_NOT_CLAIMED
-P2_NOT_DONE
-X002_NOT_AUTHORIZED_YET
-```
-
-The exact commands that still require execution in a qualified environment are:
+The aggregate local command introduced by X006 is:
 
 ```bash
-node tests/xml-cii-standalone-x001-coordinate-custody.test.js
+node scripts/run-xml-cii-local-qualification.mjs \
+  --report=artifacts/xml-cii-local-qualification.json
+```
+
+It invokes repository tests directly with Node/Python and does not invoke
+GitHub or Actions.
+
+---
+
+## 3. Current phase status
+
+| Phase | Status | Current evidence / limitation |
+|---|---|---|
+| P0 Baseline + expert gate | **Done** | Governing fix plan and repository-specific qualification gate established |
+| P1 Runtime route / Mode A browser proof | **Open** | Source/runtime wiring exists; deployed-browser identity still not proven |
+| P2 Coordinate + topology custody | **Implemented; local critical gate passed; exact-checkout aggregate pending** | X001 wrapper active; malformed coordinates fail closed; full committed GLRD regression still needs execution from a materialized checkout |
+| P3 OD / bore / property authority | **Implemented; local unit gate passed; exact GLRD aggregate pending** | X002 code + real-GLRD regression committed; X002 standalone activation completed on later stacked head |
+| P4 Rigid / valve / flange weight authority | **Implemented; local unit gate passed; end-to-end GLRD weight provenance still open** | Review lifecycle separated and split mass conserved; branch::node persistence is safer but not yet a full component-occurrence identifier |
+| P5 Immutable Preview / Weight evidence | **Implemented; local digest/evidence gate passed; strict UI freeze-point review still open** | Required tags/digests exist in sidecar; snapshots are built from retained lifecycle state at run boundary, not yet proven as click-time immutable deep copies |
+| P6 Enriched XML ZIP | **Implemented; local ZIP + Mode A isolation gates passed** | Deterministic per-source and Mode A packaging exists; full run-produced package still needs exact-checkout execution |
+| P7 Exact GLRD end-to-end qualification | **Local harness implemented; not yet fully executed in this environment** | X006 runner aggregates X001–X005 tests; full browser-style GLRD weight/review trace remains a qualification requirement |
+| P8 Mode A real browser qualification | **Not started** | Requires actual browser/runtime proof with duplicate cross-file names/nodes |
+| P9 Independent release review / Owner authorization | **Not started** | Exact-head review + Owner release decision required |
+
+A phase is not marked Done merely because source exists or a synthetic test
+passes.
+
+---
+
+## 4. Work Pack stack and exact heads
+
+The implementation was deliberately kept as stacked branches so each mechanic
+could be reviewed separately.
+
+| Mission | Branch | Exact head recorded | Status |
+|---|---|---|---|
+| X001 | `agent/xml-cii-x001-coordinate-topology` | `2bdf96c5c15859a5b395d20f007e51ee4131a90f` | Implemented; workflow gate removed; local/exact-checkout qualification open |
+| X002 | `agent/xml-cii-x002-property-authority` | `9a387c4d2fe2a1b7c064a2e84e8286ab808415dd` | Implemented; local property gate passed |
+| X003 | `agent/xml-cii-x003-weight-authority` | `d4d4e0996f78f9f48d992dd2d6b4fcd3c45fba4d` | Implemented; local lifecycle/conservation gate passed |
+| X004 | `agent/xml-cii-x004-evidence-snapshots` | `95dbec9add6c3fe4c6cd1f56e062233fbf7dc8b8` | Implemented; local evidence/digest gate passed |
+| X005 | `agent/xml-cii-x005-evidence-zip` | `56f7f5bab68a44d5523ba40cc8af0a15c6d963f3` | Implemented; local ZIP and Mode A isolation gates passed |
+| X006 | `agent/xml-cii-x006-local-qualification` | `f0bcc0819fc3b61b12e5d96a26300163878f7647` before this roadmap commit | Local aggregate harness present; full aggregate execution pending |
+| X007 | — | — | Pending real browser qualification |
+| X008 | — | — | Pending independent exact-head release review |
+
+### Important stacked-head note
+
+During X005 custody tracing, a production-path activation gap was found:
+X002 staged-geometry/effective-OD authority and X003 split-weight conservation
+were not both being called by the standalone run-parity path. That gap was
+fixed on the stacked X005 lineage by activating:
+
+```text
+applyXmlCiiStagedGeometryAuthority
+applyXmlCiiOutsideDiameterResolver
+applyXmlCiiSplitRigidWeightPropagation
+```
+
+before engine release. Consequently, X002/X003 should be qualified on the
+current stacked X006 head, not by testing their isolated branch alone.
+
+---
+
+## 5. X001 — coordinate / topology custody
+
+### Implemented
+
+- Added `converters/scripts/xml_to_cii2019_coordinate_custody.py`.
+- Standalone invocation now uses the coordinate-custody wrapper rather than
+  bypassing the stronger contracted PSI116 topology layer.
+- Missing/malformed/non-finite `Position` values block conversion instead of
+  becoming `(0,0,0)`.
+- One final CII `NodeNumber` may not represent physically conflicting
+  coordinates beyond the existing 0.5 mm topology tolerance.
+- `coords-mode=first` writes deterministic absolute anchors for branch starts.
+- `coords-mode=all` is deterministic; `none` remains explicit.
+- Exact Python parser-input path/digest markers are also emitted for later
+  evidence packaging.
+
+### Mandatory GLRD regression
+
+```text
+10, 760, 1200, 1640, 2080, 2520, 2960
+```
+
+Node 10 authority remains:
+
+```text
+source Position = 111369.76 108416.90 101088.18
+CII mapping      = 111369.76, 101088.18, -108416.90
+```
+
+### Local evidence actually executed in this session
+
+A local critical-function gate confirmed:
+
+- the Node 10 `(X,Z,-Y)` mapping;
+- coincident reuse of Node 760 is allowed;
+- conflicting reuse of one CII node blocks with
+  `CII_NODE_POSITION_CONFLICT`;
+- nonnumeric, two-component, `nan`, and `inf` positions fail closed.
+
+The committed real-GLRD Python regression remains the stronger repository gate:
+
+```bash
 python converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
 ```
 
-After those pass on the exact PR head, inspect the emitted GLRD COORDS records
-and negative-control diagnostics before changing P2 to Done. Browser/runtime
-activation proof remains a separate P1/P7 requirement; passing these repository
-checks alone must not be described as deployed-browser qualification.
+It has **not** been represented here as executed because this environment could
+not materialize the complete repository checkout from the GitHub connector.
 
 ---
 
-## 5. X002 — OD, bore and property authority
+## 6. X002 — OD / bore / property authority
 
-### 5.1 Confirmed 26.7-mm source pattern
+### Implemented bore authority
 
-The six reported CII OD failures are:
+`converters/xml-cii2019-core/staged-geometry-authority.js` now distinguishes
+nominal-size semantics:
 
-```text
-596  → 598
-1036 → 1038
-1476 → 1478
-1916 → 1918
-2356 → 2358
-2796 → 2798
-```
+- naked staged `ABORE/LBORE/... = 4` is **not** interpreted as `4 mm`;
+- explicit `DN100` / `DN=100` is treated as nominal DN;
+- explicit millimetre units may supply millimetre nominal bore;
+- explicit/embedded NPS/inch values use a governed NPS→DN table, including
+  NPS 4 → DN100;
+- an unqualified naked value is rejected as ambiguous and XML
+  `OutsideDiameter→DN` remains authoritative.
 
-The frozen PSI116 source contains the characteristic flange endpoint pattern:
+### Implemented effective OD authority
 
-```text
-Endpoint 1 OutsideDiameter = 60.3 mm
-Endpoint 2 OutsideDiameter = 26.7 mm
-```
-
-The raw 26.7 value is therefore source evidence, but it is not automatically
-the effective pipe-section OD for the following CII element. Component
-endpoint metadata and effective connected-flow-path geometry must be separate
-concepts.
-
-### 5.2 Required authority model
-
-Internally distinguish at least:
+`converters/xml-cii2019-core/outside-diameter-resolver.js` now separates:
 
 ```text
-sourceOutsideDiameter
-effectiveOutsideDiameter
-nominalSize / BoreMm
-boreUnit / nominal-size semantic
-wallThickness
-corrosionAllowance
-authority source
-resolution reason
+SourceOutsideDiameter
+EffectiveOutsideDiameter
 ```
 
-For FLAN / VALV / RIGID endpoint discontinuities, preserve the raw endpoint
-value but resolve the effective CII OD from governed connectivity. A reducer,
-branch-size transition, or other legitimate size-changing component must
-remain able to change OD; therefore a blanket "take previous OD" rule is not
-acceptable.
+For passive FLAN / VALV / RIGID / INST endpoint discontinuities:
 
-### 5.3 `4 mm` bore failure
+- raw endpoint OD is retained as source evidence;
+- effective OD is corrected only when adjacent flow-path context gives one
+  unique continuity answer;
+- reducer boundaries stop inference;
+- if previous/next flow-path diameters disagree, the component is review
+  required rather than flattened.
 
-Reference-looking branch names such as:
+The six governing GLRD refs are retained in the real-source test:
 
 ```text
-=134234934/21706
-=134234934/21755
+134234934/19410
+134234934/21710
+134234934/21765
+134234934/21820
+134234934/21875
+134234934/21930
 ```
 
-exist in the raw PSI116 source and must be preserved as raw Branchname
-provenance. They must not be renamed merely to make line-list matching easier.
+Each source contains the 60.3 / 26.7 flange endpoint pattern. The test requires
+the raw 26.7 value to be retained as source evidence but the effective flow-path
+value to resolve to 60.3 when both adjacent sides establish 60.3.
 
-The staged-geometry path accepts values from fields such as `ABORE`, `LBORE`,
-`PBORE`, `HBORE`, `TBORE`, `BORE`, `DN`, and `NB`. A numeric staged value
-`4` must not become `BoreMm=4` unless its source contract explicitly says
-millimetres. If `4` means NPS 4, it is a nominal designation and requires a
-governed NPS→DN mapping; it is not `4 mm` and is not simply `4 × 25.4`.
+### Local evidence actually executed
 
-Unknown bore units are blocking or review-required. Staged data shall not
-silently override a qualified XML/connected-geometry value when its unit or
-semantic is unknown.
+Local pure/VM tests passed for:
 
-### 5.4 Primary code areas
+- naked `4` rejected as millimetres and OD 114.3 → DN100 fallback;
+- explicit DN100;
+- explicit/embedded NPS 4 → DN100;
+- six representative 26.7→60.3 pass-through contexts;
+- hostile 60.3→114.3 real transition remains unresolved/review-required.
 
-- `converters/xml-cii2019-core/staged-geometry-authority.js`
-- `converters/xml-cii2019-core/outside-diameter-resolver.js`
-- Preview / branch property resolution modules
-- `converters/scripts/xml_to_cii2019.py::_element_outside_diameter`
-- reducer / branch / split-component geometry handling
+The committed real GLRD test is:
 
-### 5.5 Exit evidence
-
-For all six 26.7-mm pairs retain:
-
-```text
-raw endpoint OD
-sibling endpoint OD
-adjacent connected OD
-component type/ref/endpoint
-size-change authority if any
-effective OD
-engine-input OD
-CII OD
-resolution rule
+```bash
+node tests/xml-cii-x002-property-authority.test.js
 ```
-
-Also retain at least one reference-named branch showing why a displayed
-nominal size is 50/80/100 mm (as applicable) and why no NPS/inch value has
-been misinterpreted as millimetres.
 
 ---
 
-## 6. X003 — rigid, valve and flange weight authority
+## 7. X003 — rigid / valve / flange weight authority
 
-### 6.1 Governing diagnosis
+### Implemented lifecycle separation
 
-Large CII weights already correlate with saved/mapped kilogram values before
-the CII writer. Example:
-
-```text
-478 → 480 CII = 1207.3401 N
-1207.3401 / current configured scale 10 = 120.73401 kg
-Weight Match RIGID 480 = Mapped (override) 120.734 kg
-visible suggestion on that row = 15 kg
-```
-
-Therefore the first defect to close is review-state/identity authority, not
-short-element physics. Changing the kg→N multiplier must not be used to hide
-an incorrect selected mass.
-
-### 6.2 Mandatory state separation
-
-The following are different facts and shall not share one mutable value:
+New `converters/xml-cii2019-core/weight-review-lifecycle.js` separates:
 
 ```text
-sourceWeightKg
-automaticCandidateKg
-RigidMatch1SelectedKg
-Rigidmatch2AcceptedKg
-finalAllocatedPhysicalComponentMassKg
-finalCiiChildMassKg
+RigidMatch1  -> overrides.rigidWeightMatch1
+Rigidmatch2  -> overrides.rigidWeightFinal
+runtime      -> overrides.rigidWeight (materialized effective authority only)
 ```
 
-`RigidMatch1` is the Weight Match decision. `Rigidmatch2` is the final popup
-decision after Finalise and Run. The latter may supersede the former for the
-run, but it must not rewrite history.
-
-A previously saved positive override must not make a component disappear from
-the final review simply because it has already been materialized into XML.
-Review eligibility and review history must be based on component identity and
-lifecycle state, not merely `Weight > 0`.
-
-### 6.3 Identity contract
-
-Do not use plain `NodeNumber` as a weight decision key. Use an occurrence /
-physical-component identity equivalent to:
+Precedence is:
 
 ```text
-sourceId
-branchOccurrenceId
-componentOccurrenceId
-physicalComponentGroupId
-ComponentRefNo
-Endpoint
+Rigidmatch2 final accepted value
+    > RigidMatch1 selected value
 ```
 
-Generated/split node numbers may be display/export identifiers; they are not
-sufficient authority for persisted component mass.
+Final review no longer rewrites Match1 history.
 
-### 6.4 Conservation contract
+Plain unscoped node-number keys such as `480` are rejected. Scoped keys such as
+`/B1::480` and `/B2::480` remain distinct.
 
-When a physical valve/flange/rigid component is represented by more than one
-CII child:
+### Implemented split-mass conservation
 
-```text
-selected physical component mass
-    = sum(final child masses assigned to that physical component)
-```
+`split-rigid-weight-propagation.js` no longer copies one full component mass to
+all zero siblings.
 
-Copying the full component mass to every zero-weight sibling is prohibited
-unless the source explicitly represents independent physical masses. Any split
-allocation must state its basis and prove conservation.
+Rules:
 
-### 6.5 Unit contract
+1. one positive child mass → keep it once; zero siblings remain zero;
+2. identical legacy positive duplicates → collapse duplicate copies to one
+   deterministic owner;
+3. different positive sibling masses → review required; no guessed allocation.
 
-The current standalone invocation uses a configured scale equivalent to
-`--weight-scale 10` when kg→N conversion is enabled. That compatibility choice
-must be explicit in evidence and tests. Any future change to `9.80665`, `10`,
-or another factor requires a separate Owner decision and benchmark impact
-review.
+The compatibility kg→N scale remains explicitly `10`. X003 does not change the
+scale to hide an incorrect selected mass.
 
-### 6.6 Mandatory GLRD traces
+### Local evidence actually executed
 
-All reported suspect rows remain regression data. At minimum the retained
-detailed traces shall include:
+Local gates passed for:
 
-```text
-48   → 50    2987.8701 N
-168  → 170   2760.8601 N
-478  → 480   1207.3401 N
-529  → 530   1288.9501 N
-888  → 890    978.67   N
-3460 → 3469   950      N
-```
+- Match1 retained at 120.734 kg while Final review may accept 15 kg;
+- `/B1::480` and `/B2::480` isolation;
+- rejection of plain `480` persisted key;
+- one 120.734 kg physical mass remains 120.734 kg;
+- duplicate 120.734 + 120.734 collapses from 241.468 kg to one 120.734 kg
+  owner;
+- 15 kg vs 120.734 kg siblings block for review;
+- `--weight-scale 10` remains active.
 
-`529 → 530` is especially important because the supplied Weight Match extract
-does not by itself establish where the implied `128.89501 kg` became final.
-`<Rigidmatch2>` must close that provenance gap.
+### Remaining X003 qualification limitations
 
-### 6.7 Primary code areas
-
-- `converters/xml-cii2019-core/weight-match-model.js`
-- `converters/xml-cii2019-core/split-rigid-weight-propagation.js`
-- standalone Weight Match UI/state
-- Finalise-and-Run rigid review popup/state
-- `tabs/model-converters/converters/xmltocii2019_runner.js`
-- `converters/xml-cii-2019-standalone/invocation-builder.js`
-- `converters/scripts/xml_to_cii2019.py::_rigid_weight_for_edge`
-- `converters/scripts/xml_to_cii2019.py::_build_rigid_payload`
-
-### 6.8 Negative controls
-
-- stale prior override disagrees with current suggestion;
-- duplicate engineering node numbers in different branches;
-- one physical component split into multiple generated children;
-- user presses `Use All Suggestions` at final popup;
-- user manually edits one final weight;
-- final review is skipped;
-- component has a legitimate large weight on a short rigid.
-
-The last case must remain valid: **large weight + short length is not itself a
-defect**. The defect is wrong ownership, mapping, unit interpretation, or
-conservation.
+- persisted decision identity is branch-scoped `branch::node`, which is safer
+  than plain NodeNumber but is not yet the full
+  `sourceId/branchOccurrence/componentOccurrence/physicalComponentGroupId`
+  identity originally specified;
+- the two UI review stages are separated in state, but strict proof that both
+  always display the exact same frozen geometry representation remains open;
+- the real GLRD final weight chain, especially `529→530`, still requires the
+  complete Finalise-and-Run evidence produced by an actual run.
 
 ---
 
-## 7. X004 — immutable Preview and weight evidence
+## 8. X004 — immutable evidence and digest chain
 
-The following XML element names are Owner-required and case-sensitive:
+### Implemented
+
+A schema-safe sidecar evidence document is generated; non-PSI116 evidence is
+not injected into the exact converter input XML.
+
+Required case-sensitive elements are present:
 
 ```xml
 <preview>...</preview>
@@ -553,171 +310,177 @@ The following XML element names are Owner-required and case-sensitive:
 <Rigidmatch2>...</Rigidmatch2>
 ```
 
-### 7.1 Freeze points
-
-| Evidence | Freeze point |
-|---|---|
-| `<preview>` | immediately after Phase 4 Preview is finalized |
-| `<RigidMatch1>` | immediately after Weight Match is finalized |
-| `<Rigidmatch2>` | immediately after Finalise-and-Run popup is accepted/skipped, before later mutation/conversion |
-
-A later stage may reference an earlier snapshot but shall never regenerate it
-from mutated state.
-
-### 7.2 Minimum Preview evidence
-
-Retain the operator-visible row plus machine-readable provenance for:
-
-```text
-sourceId
-branchOccurrenceId
-raw Branchname
-Line Key
-From / To
-Size / nominal bore
-Piping Class + method/confidence
-Material
-Rating
-Material Code
-P1 / design pressure
-Hydro/Test pressure
-T1 / T2 / T3
-Density
-Wall thickness
-Corrosion allowance
-field-by-field authority source
-```
-
-### 7.3 Minimum RigidMatch evidence
-
-For every reviewable physical component retain:
-
-```text
-componentOccurrenceId
-physicalComponentGroupId
-ComponentRefNo
-Endpoint
-component type
-node display + real occurrence identity
-bore/rating/length used for matching
-source XML weight
-pre-existing override, if any
-candidate list shown
-candidate method and score/basis
-selected value
-action taken
-final accepted value
-allocation to generated children
-```
-
-### 7.4 Digest chain
-
-At minimum retain distinct digests for:
+Distinct evidence digests include:
 
 ```text
 source XML
-branch selection
 staged JSON
-master/config
-preview evidence
-RigidMatch1 evidence
-Rigidmatch2 evidence
-JS engine-request XML
+support/master configuration
+preview snapshot
+RigidMatch1 snapshot
+Rigidmatch2 snapshot
+browser engine-request XML
 Python converter-parse XML
-post-run enriched evidence XML
 CII output
 ```
 
-**Important:** the JS input passed to Pyodide and the post-Python-enrichment
-XML handed to `_parse_xml_document` are not necessarily byte-identical. They
-require separate digests and, for qualification, separately retainable
-artifacts.
+The browser service retains the exact engine-request XML text and digest. The
+Python coordinate-custody wrapper emits the path/digest of the exact
+post-Python-enrichment XML file handed to `_parse_xml_document`, and the
+standalone engine retains that exact parser-input XML text.
 
-### 7.5 Schema safety
+### Local evidence actually executed
 
-Do not place non-PSI116 evidence elements inside the exact engine-input XML
-unless compatibility has been proven. The preferred qualification package is:
+- JS/Python FNV digest parity was checked (`abc` →
+  `fnv1a32:1a47e90b:3` in both implementations);
+- required evidence tag case was checked;
+- Match1 and Match2 retain different values when Final review supersedes
+  Match1;
+- engine-request and converter-parse digest fields are independent.
 
-```text
-schema-safe engine-input XML
-+
-hash-linked post-engine enriched-evidence XML containing ConversionEvidence
-```
+### Remaining strict-freeze limitation
 
-This preserves the requested enriched XML without contaminating the engine
-contract.
+The snapshots are built from retained Preview / Match1 / Match2 lifecycle state
+at the run boundary. This prevents regeneration from later enriched XML, but a
+separate UI proof is still required to establish that each object is a deep,
+immutable snapshot taken exactly at the Owner-specified click/finalization
+instant.
 
 ---
 
-## 8. X005 — Save Enriched XML ZIP
+## 9. X005 — Save Enriched XML ZIP
 
-Add a dedicated user action:
+### Single-source implementation
+
+The run phase exposes the exact action:
 
 ```text
 Save Enriched XML ZIP
 ```
 
-The button packages already-frozen evidence. It shall not recompute Preview,
-Weight Match, final popup decisions, or converter inputs after the run.
+The package is deterministic and dependency-free:
 
-### 8.1 Per-source package
+- classic ZIP `STORE` mode;
+- sorted file paths;
+- CRC32;
+- fixed DOS timestamp `1980-01-01 00:00:00`;
+- identical frozen inputs produce identical ZIP bytes.
 
-Recommended deterministic layout:
-
-```text
-<source-stem>/
-  <source-stem>.source.xml
-  <source-stem>.enriched-evidence.xml
-  <source-stem>.engine-input.xml
-  <source-stem>.converter-parse-input.xml
-  <source-stem>.cii
-  <source-stem>.diagnostics.json
-  <source-stem>.topology.json
-  <source-stem>.geometry-parity.json
-  <source-stem>.weight-conservation.json
-  <source-stem>.manifest.json
-```
-
-The manifest records filenames, byte sizes, digests, exact repository SHA,
-runtime/build identity when available, branch selection, and qualification
-status.
-
-### 8.2 Mode A package
-
-Mode A uses one directory per source plus one batch manifest:
+Per-source contents include:
 
 ```text
-batch/
-  source-A/...
-  source-B/...
-  source-C/...
-  batch-manifest.json
+<source>/
+  <source>.source.xml
+  <source>.enriched.xml
+  <source>.enriched-evidence.xml
+  <source>.engine-input.xml
+  <source>.converter-parse-input.xml
+  <source>.cii
+  <source>.diagnostics.json
+  <source>.topology.json
+  <source>.geometry-parity.json
+  <source>.weight-conservation.json
+  <source>.manifest.json
 ```
 
-No model merge, cross-file node offset, cross-file branch stitching, or
-cross-file physical-component grouping is permitted.
+Download is blocked when required frozen artifacts are missing.
+
+### Mode A implementation
+
+Mode A creates one isolated directory per source plus:
+
+```text
+batch/batch-manifest.json
+```
+
+The batch manifest explicitly states:
+
+```text
+crossFileTopology = false
+crossFileNodeRenumbering = false
+crossFilePhysicalComponentGrouping = false
+```
+
+Duplicate input filenames receive different source directories using source
+identity, so no file collision can combine two models.
+
+### Local evidence actually executed
+
+- deterministic ZIP bytes reproduced twice;
+- Python `zipfile` independently opened the generated local archive;
+- entry order, STORE mode, fixed timestamp, and exact contents were verified;
+- Mode A duplicate-filename isolation passed locally;
+- a failed/incomplete source makes the Mode A package `INCOMPLETE` instead of
+  silently disappearing.
 
 ---
 
-## 9. X006 — exact GLRD qualification matrix
+## 10. X006 — local exact-head qualification harness
 
-The GLRD benchmark is the governing acceptance case because it currently
-exposes all major failure classes in one real source.
+Implemented local command:
 
-### 9.1 Coordinate matrix
+```bash
+node scripts/run-xml-cii-local-qualification.mjs \
+  --report=artifacts/xml-cii-local-qualification.json
+```
 
-Mandatory nodes:
+The harness executes, in order:
+
+```text
+X001 standalone route activation
+X001 real GLRD coordinate converter regression
+X002 real GLRD property authority regression
+X003 weight lifecycle/conservation regression
+X004 evidence/digest regression
+X005 deterministic ZIP regression
+X005 Mode A ZIP isolation regression
+production-path activation assertions
+```
+
+It records:
+
+```text
+schema = xml-cii-local-qualification/v1
+executionPolicy = LOCAL_ONLY_NO_WORKFLOW
+repositoryHead = git rev-parse HEAD
+governingBenchmark = GLRD-1000-PI-01.xml
+per-test stdout/stderr/status
+final PASS/FAIL
+```
+
+### Current qualification state
+
+The harness script syntax was checked locally in this session. The entire
+harness has **not** been represented as executed against the repository because
+the available GitHub connector does not materialize a full checkout into this
+container and direct repository archive download was unavailable.
+
+Accordingly:
+
+```text
+X001_X005_IMPLEMENTATION_PRESENT
+LOCAL_COMPONENT_GATES_EXECUTED_AS_RECORDED_ABOVE
+X006_AGGREGATE_HARNESS_COMMITTED
+X006_EXACT_CHECKOUT_AGGREGATE_NOT_YET_EXECUTED
+DEPLOYED_BROWSER_PROOF_NOT_ESTABLISHED
+PRODUCTION_AUTHORIZATION_NOT_ESTABLISHED
+```
+
+---
+
+## 11. Governing GLRD final qualification matrix
+
+X006/X007 qualification must still retain the following end-to-end checks.
+
+### Coordinates
 
 ```text
 10, 760, 1200, 1640, 2080, 2520, 2960
 ```
 
-No node may land at origin unless the qualified source occurrence is actually
-at origin.
+No false origin is permitted.
 
-### 9.2 OD matrix
-
-Mandatory element pairs:
+### OD
 
 ```text
 596→598
@@ -728,207 +491,130 @@ Mandatory element pairs:
 2796→2798
 ```
 
-The output shall not contain 26.7 mm merely because a flange endpoint carries
-that raw source value. Any retained 26.7 must be justified by a real
-size-changing flow-path authority.
+A raw flange endpoint 26.7 mm is not an effective flow-path OD unless a real
+size-change authority justifies it.
 
-### 9.3 Bore/property matrix
+### Bore / property
 
-At least one `=134234934/...` raw Branchname must be traced end to end. Raw
-branch identity must survive even when process/piping-class authority is
-inherited from a connected engineering line. NPS/inch values must not appear
-as millimetres through unqualified staged data.
+At least one raw `=134234934/...` Branchname must be traced without rewriting
+source identity. Naked NPS/inch designations may not appear as millimetres.
 
-### 9.4 Weight matrix
+### Weight
 
-Every reported suspect weight in the governing fix plan shall have a final
-machine-readable trace:
+At minimum retain full machine-readable traces for:
+
+```text
+48   → 50    2987.8701 N
+168  → 170   2760.8601 N
+478  → 480   1207.3401 N
+529  → 530   1288.9501 N
+888  → 890    978.67   N
+3460 → 3469   950      N
+```
+
+Required chain:
 
 ```text
 source physical component
-→ review candidates
-→ RigidMatch1 selection
-→ Rigidmatch2 final action
-→ physical component final mass
-→ child allocation
-→ kg→N scale
+→ candidates
+→ RigidMatch1
+→ Rigidmatch2
+→ final physical mass
+→ child allocation / conservation
+→ kg→N factor
 → CII RIGID record
 ```
 
-Model-level and physical-component-level conservation shall both be reported.
+### Provenance
 
-### 9.5 Restraints and generated-node custody
-
-Qualification must also retain at least one real restraint trace and one
-synthetic/generated-node trace. Generated IDs must never become anonymous
-authority for source properties or component weight.
-
-### 9.6 Provenance parity
-
-The final qualification report shall identify the first divergent
-representation for every failed row. It is not sufficient to compare only raw
-XML and final CII.
+For any mismatch, identify the **first divergent representation**, not merely
+raw XML vs final CII.
 
 ---
 
-## 10. X007 — Mode A real browser qualification
+## 12. X007 — Mode A real browser qualification
 
-Source-level tests show Mode A capability exists, including multi-file input,
-branch selection, per-source state and separate-source execution. That does
-**not** yet prove the deployed browser is actually executing that route.
+Still required. Source-level and local package isolation are not equivalent to
+deployed-browser proof.
 
-Qualification requires runtime evidence including, as applicable:
+Runtime evidence must include:
 
 ```text
-repository SHA
-build/deploy identity
-loaded module URL and digest
-visible Mode A multi-source controls
-file input multiple=true
-source inventory state
-per-source branch selection state
-zero-branch run blocking
+repository/build identity
+loaded module URL/digest
+multi-file control visible and multiple=true
+source inventory
+per-source branch selection
+zero-branch blocking
 source-switch state restoration
-run loop source identity
-per-source outputs
-absence of mergedSourceText / cross-file graph construction
+per-source run identity
+per-source evidence ZIP content
+no mergedSourceText / cross-file graph
 ```
 
-Hostile tests must include duplicate Branchname and duplicate NodeNumber values
-across two different files. They are allowed as separate-model warnings but
-must not create cross-file connections.
+Hostile browser case:
 
-P1 is not closed by static regex/source tests alone.
+- two files with duplicate Branchname values;
+- two files with duplicate NodeNumber values;
+- both remain valid separate-model inputs;
+- no cross-file connection or physical-component grouping occurs.
 
 ---
 
-## 11. X008 — independent exact-head release qualification
+## 13. X008 — release qualification
 
 Before production authorization:
 
-1. Rebase/qualify against the exact current `main` head.
-2. Inspect the complete diff from the frozen executable baseline and from the
-   previous qualified Work Pack.
-3. Run the focused tests for every Work Pack.
-4. Run the aggregate XML/InputXML → CII 2019 regression suite.
-5. Run the GLRD benchmark through the real browser/runtime path.
-6. Retain the evidence ZIP and digest manifest.
-7. Independently spot-check at least:
-   - Node 10 coordinate;
-   - one repeated-node-number component;
-   - one 26.7-mm flange case;
-   - one reference-named branch bore/class case;
-   - `478→480` weight;
-   - `529→530` final popup provenance;
-   - one restraint;
-   - one Mode A two-source hostile case.
-8. Confirm no unrelated converter modes regressed.
-9. Record the exact qualified commit SHA.
-10. Obtain explicit Owner production authorization.
+1. rebase/compare the final stack against the exact current `main`;
+2. execute `scripts/run-xml-cii-local-qualification.mjs` on the exact candidate
+   SHA;
+3. run the governing GLRD through the actual browser/runtime path;
+4. save and inspect the evidence ZIP;
+5. independently spot-check Node 10, one repeated node, one 26.7-mm case,
+   one reference-named branch, `478→480`, `529→530`, one restraint, and one
+   two-source Mode A hostile case;
+6. confirm unrelated converters did not regress;
+7. record the exact qualified SHA;
+8. obtain explicit Owner production authorization.
 
-A PR merge, CI green state, or agent self-certification is not production
-authorization.
+A PR merge, local unit test, workflow state, or agent statement is not itself
+production authorization.
 
 ---
 
-## 12. Owner decisions already established
+## 14. Governing engineering decisions
 
-These are governing decisions unless the Owner explicitly changes them:
+Unless the Owner changes them explicitly:
 
-1. **Occurrence identity outranks engineering NodeNumber for internal custody.**
-2. **Raw source properties are evidence; effective CII properties require
-   component/flow-path authority.**
-3. **Raw reference-looking Branchname values are preserved.** Engineering
-   inheritance must not rewrite source identity.
-4. **Nominal-size units are explicit.** NPS/inch/DN/mm semantics may not be
-   inferred from a naked number without a declared rule.
-5. **Weight Review 1 and final popup Review 2 are separate immutable decisions.**
-6. **Physical-component mass is conserved across generated/split CII children.**
-7. **A large weight on a short rigid is not automatically wrong.** Mapping and
-   conservation must prove the defect.
-8. **Malformed/unknown engineering values fail closed.** Origin, zero OD, zero
-   wall, default class, or default mass cannot be silently manufactured merely
-   to keep conversion running.
-9. **Engine-request XML and converter-parse XML are separately hashable facts.**
-10. **Mode A is separate-model batch execution.** No cross-file merge or node
-    offset scheme is authorized.
-11. **Evidence snapshots are frozen at lifecycle boundaries and never
-    regenerated from later state.**
-12. **Do not change several mechanics at once.** Each Work Pack must retain
-    negative controls that prove which mechanism changed.
-
----
-
-## 13. Agent authority and takeover rules
-
-No new agent receives implementation or merge authority from a generic claim
-of XML, JavaScript, Python, CAESAR, or piping expertise.
-
-The mandatory expert qualification gate in
-`InputxmltoCII2019Fixplan.md` remains in force. Repository-specific answers
-must identify real files/functions, real GLRD traces, focused tests, negative
-controls, expected artifacts, and what the evidence still does not prove.
-
-Authority should progress conservatively:
-
-```text
-READ_ONLY_REPOSITORY_INSPECTION_ALLOWED
-→ REPOSITORY_TRACE_EXERCISES_ALLOWED
-→ LIMITED_WORK_PACK_IMPLEMENTATION_ALLOWED
-→ EXACT_HEAD_QUALIFICATION_ALLOWED
-→ OWNER_MERGE / PRODUCTION_AUTHORIZATION
-```
-
-Passing one Work Pack does not grant unrestricted authority over later phases.
-
----
-
-## 14. Status update rules
-
-Update this roadmap after every merged Work Pack, material implementation
-checkpoint, qualification result, or Owner decision.
-
-Every update should record:
-
-```text
-mission / issue / PR
-exact merged SHA, or exact unmerged implementation head when qualification is pending
-phase status change
-benchmark evidence produced or explicitly not produced
-newly discovered defects / infrastructure blockers
-known limitations still open
-next authorized mission or qualification action
-```
-
-Do not mark a phase Done based on:
-
-- code search showing a function exists;
-- source-text/regex tests alone;
-- a screenshot without build/SHA identity;
-- a hand reconstruction that did not execute the repository path;
-- a PR description saying a test passed;
-- a generated report that cannot be tied by digest to the exact engine input;
-- numerical agreement obtained by changing unrelated defaults or tolerances;
-- a workflow that was created but never received a runner.
+1. Occurrence identity outranks engineering NodeNumber internally.
+2. Raw source properties remain evidence; effective CII properties require
+   component/flow-path authority.
+3. Raw reference-looking Branchname values are preserved.
+4. Nominal-size units are explicit; naked numbers do not silently acquire mm
+   or inch semantics.
+5. `RigidMatch1` and `Rigidmatch2` are separate decisions.
+6. Physical-component mass is conserved across generated/split children.
+7. A large mass on a short rigid is not automatically wrong.
+8. Malformed/unknown engineering values fail closed.
+9. Engine-request XML and converter-parse XML are distinct retained facts.
+10. Mode A is separate-model batch execution; no cross-file merge/offset/stitch.
+11. Evidence is packaged from retained state; it is not reconstructed from
+    final CII after the fact.
+12. GitHub workflows are not qualification gates for this workstream.
 
 ---
 
 ## 15. Immediate next action
 
-**X001 implementation exists in draft PR #417, but X001 qualification is the
-next authorized action. X002 remains blocked.**
-
-Execute the two committed X001 checks against the exact current PR head in a
-qualified environment after GitHub Actions billing/spending state permits a
-runner (or in another exact-head repository checkout):
+Use a normal local checkout of the current stacked candidate and execute:
 
 ```bash
-node tests/xml-cii-standalone-x001-coordinate-custody.test.js
-python converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py
+git rev-parse HEAD
+node scripts/run-xml-cii-local-qualification.mjs \
+  --report=artifacts/xml-cii-local-qualification.json
 ```
 
-Then inspect the seven-node GLRD COORDS trace and all fail-closed coordinate
-negative controls. Only after that evidence is accepted may P2 be changed to
-Done and X002 begin. Do not start OD/bore or weight implementation in parallel
-while X001 remains unqualified; the sequence is intentionally designed to
-preserve root-cause attribution.
+If that aggregate passes, inspect the real GLRD artifacts and close any
+remaining X003/X004 provenance gaps before X007 browser qualification.
+
+Do **not** use GitHub Actions as a substitute for this local gate.
