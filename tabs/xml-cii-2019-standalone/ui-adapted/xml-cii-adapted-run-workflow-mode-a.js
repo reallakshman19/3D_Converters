@@ -24,6 +24,9 @@ function sourceManifest(source, result, scope) {
       enriched: !!result?.enrichedText,
       cii: !!result?.ciiText,
       diagnostics: !!result?.diagnostics,
+      enrichedEvidence: !!result?.enrichedEvidenceXml,
+      engineInput: !!result?.diagnostics?.engineRequestXmlText,
+      converterParseInput: !!result?.diagnostics?.converterParseXmlText,
     },
     ok: result?.ok === true,
     error: result?.error || null,
@@ -58,7 +61,7 @@ export async function runModeABatchFromUi(stateRef, render) {
 
   replaceModeAState(stateRef, { ...state, batchRunning: true, batchRunStatus: 'Running separate models...', batchRunResult: null });
   render();
-  state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
+  state = syncActiveModeASatchState(normalizeModeABatchState(stateRef.current));
   const enabled = state.sourceBatch.sources.filter((source) => source.enabled !== false);
   const rows = [];
   let sharedState = state;
@@ -80,6 +83,7 @@ export async function runModeABatchFromUi(stateRef, render) {
     const result = sourceState.result || null;
     const status = resultStatus(result, sourceState.outputRunReadinessReport);
     const scope = sourceState.branchScope;
+    const scopedSourceText = scope?.filteredSourceText || source.sourceText || '';
     const updatedSource = {
       ...source,
       supportConfigJson: sourceState.supportConfigJson || source.supportConfigJson,
@@ -94,6 +98,7 @@ export async function runModeABatchFromUi(stateRef, render) {
       sourceDigest: source.sourceDigest,
       fileName: source.fileName,
       alias: source.alias,
+      sourceText: scopedSourceText,
       selectedBranchCount: scope?.selectedBranchNames?.length || 0,
       status,
       error: result?.error || (status === 'BLOCKED' ? 'Run readiness blocked.' : (status === 'CANCELLED' ? 'Review cancelled.' : '')),
