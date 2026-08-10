@@ -1,0 +1,95 @@
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const root = path.resolve(__dirname, '..');
+
+function loadExports(relPath, exportNames) {
+  const file = path.join(root, relPath);
+  let source = fs.readFileSync(file, 'utf8')
+    .replace(/^import\s+[\s\S]*?;\s*$/gm, '')
+    .replace(/\bexport\s+(?=function|const|let|class)/g, '');
+  source += `\n;globalThis.__x003Exports = { ${exportNames.join(', ')} };`;
+  const context = vm.createContext({ console });
+  new vm.Script(source, { filename: file }).runInContext(context);
+  return context.__x003Exports;
+}
+
+const lifecycle = loadExports('converters/xml-cii2019-core/weight-review-lifecycle.js', [
+  'persistXmlCiiRigidMatch1Config',
+  'prepareXmlCiiRunWeightLifecycle',
+]);
+const conservation = loadExports('converters/xml-cii2019-core/split-rigid-weight-propagation.js', [
+  'buildXmlCiiSplitRigidWeightConservation',
+]);
+
+const match1 = lifecycle.persistXmlCiiRigidMatch1Config({
+  overrides: {
+    rigidWeight: {
+      '/B1::480': 120.734,
+      '/B2::480': 15,
+      '480': 999,
+    },
+  },
+});
+assert.strictEqual(match1.overrides.rigidWeight, undefined, 'RigidMatch1 persistence must not leave a final-review bucket behind.');
+assert.strictEqual(match1.overrides.rigidWeightMatch1['/B1::480'], 120.734);
+assert.strictEqual(match1.overrides.rigidWeightMatch1['/B2::480'], 15);
+assert(!Object.prototype.hasOwnProperty.call(match1.overrides.rigidWeightMatch1, '480'), 'Plain NodeNumber keys must be rejected.');
+assert(match1.weightReviewLifecycle.rejectedUnscopedKeys.some((row) => row.key === '480'));
+
+let runConfig = lifecycle.prepareXmlCiiRunWeightLifecycle(match1);
+assert.strictEqual(runConfig.weightReviewLifecycle.effectiveAuthority, 'RigidMatch1');
+assert.strictEqual(runConfig.overrides.rigidWeight['/B1::480'], 120.734);
+
+runConfig = lifecycle.prepareXmlCiiRunWeightLifecycle({
+  ...match1,
+  overrides: {
+    ...match1.overrides,
+    rigidWeight: { '/B1::480': 15 },
+  },
+});
+assert.strictEqual(runConfig.weightReviewLifecycle.effectiveAuthority, 'Rigidmatch2');
+assert.strictEqual(runConfig.overrides.rigidWeightFinal['/B1::480'], 15);
+assert.strictEqual(runConfig.overrides.rigidWeight['/B1::480'], 15);
+assert.strictEqual(runConfig.overrides.rigidWeightMatch1['/B1::480'], 120.734, 'Final review must not rewrite RigidMatch1 history.');
+
+function row({ weight, endpoint, rigid, nodeNumber, componentType = 'RIGID', sourceIndex = 0 }) {
+  return { ref: '134234934/TEST', branchName: '/B1', componentRefNo: '=134234934/TEST', componentType, weight, endpoint, rigid, nodeNumber, sourceIndex };
+}
+
+let ledger = conservation.buildXmlCiiSplitRigidWeightConservation([
+  row({ weight: 0, endpoint: 1, rigid: 1, nodeNumber: 478, componentType: 'FLAN', sourceIndex: 0 }),
+  row({ weight: 120.734, endpoint: 2, rigid: 2, nodeNumber: 480, sourceIndex: 1 }),
+]);
+assert.strictEqual(ledger.status, 'conserved-single-owner');
+assert.strictEqual(ledger.selectedPhysicalMassKg, 120.734);
+assert.strictEqual(ledger.childMassSumKg, 120.734);
+
+ledger = conservation.buildXmlCiiSplitRigidWeightConservation([
+  row({ weight: 120.734, endpoint: 1, rigid: 1, nodeNumber: 478, componentType: 'FLAN', sourceIndex: 0 }),
+  row({ weight: 120.734, endpoint: 2, rigid: 2, nodeNumber: 480, sourceIndex: 1 }),
+]);
+assert.strictEqual(ledger.status, 'legacy-duplicate-copies-collapsed');
+assert.strictEqual(ledger.childMassSumKg, 241.468);
+assert.strictEqual(ledger.correctedChildMassSumKg, 120.734);
+assert.strictEqual(ledger.owner.nodeNumber, 480);
+assert.strictEqual(ledger.corrections.length, 1);
+
+ledger = conservation.buildXmlCiiSplitRigidWeightConservation([
+  row({ weight: 15, endpoint: 1, rigid: 1, nodeNumber: 478, componentType: 'FLAN', sourceIndex: 0 }),
+  row({ weight: 120.734, endpoint: 2, rigid: 2, nodeNumber: 480, sourceIndex: 1 }),
+]);
+assert.strictEqual(ledger.status, 'review-required-different-positive-masses');
+
+const paritySource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js'), 'utf8');
+assert(paritySource.includes('persistXmlCiiRigidMatch1Config'), 'Parent Weight Match binding must persist RigidMatch1 separately.');
+assert(paritySource.includes('rigidWeight: { ...match1 }'), 'Weight Match may use only a transient legacy mirror.');
+const adapterSource = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js'), 'utf8');
+assert(adapterSource.includes('prepareXmlCiiRunWeightLifecycle(config)'), 'Run job must materialize Final > Match1 authority.');
+const invocationSource = fs.readFileSync(path.join(root, 'converters/xml-cii-2019-standalone/invocation-builder.js'), 'utf8');
+assert(invocationSource.includes("argv.push('--weight-scale', '10')"), 'X003 must retain the explicit kg→N compatibility scale 10.');
+
+assert.strictEqual(120.734 * 10, 1207.34);
+console.log('XML CII X003 weight-authority local regression passed.');
