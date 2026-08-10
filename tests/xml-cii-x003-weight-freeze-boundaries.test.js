@@ -13,6 +13,11 @@ assert(match1Ui.includes("match1Identity: 'physical-component'"));
 assert(match1Ui.includes('rigidWeightMatch1: migrated.accepted'));
 assert(match1Ui.includes('delete config.overrides.rigidWeight'));
 
+const identity = read('converters/xml-cii2019-core/weight-component-identity.js');
+assert(identity.includes('collectXmlCiiWeightIdentityRows'));
+assert(!identity.includes('endpointEligible'), 'Run-boundary compatibility materialization must include endpoint-1-only components.');
+assert(identity.includes('dedupeXmlCiiPhysicalWeightRows(decorated)'), 'Sibling compatibility keys must collapse back to one physical mass before authority lookup.');
+
 const finalAuthority = read('converters/xml-cii2019-core/final-weight-review-authority.js');
 assert(finalAuthority.includes('collectXmlCiiFinalWeightReviewRows'));
 assert(finalAuthority.includes('sourceIdentityRows'));
@@ -33,6 +38,15 @@ assert(finalUi.includes("finalReviewDisposition: result.noReviewRows ? 'no-revie
 assert(finalUi.includes("console.error('Standalone final rigid weight review blocked the run:'"));
 assert(finalUi.includes('Source XML ${source} kg · Final confirmation required'));
 assert(finalUi.includes('Length is candidate evidence only; it never exempts a weight-bearing component from Final review.'));
+
+const enrichmentCore = read('tabs/model-converters/converters/xmltocii2019_helper/enrichment-core.js');
+assert(enrichmentCore.includes('const manualRigidWeight = xmlCiiRigidWeightOverrideForNode(branchName, node, config, nodeIdx);'));
+assert(enrichmentCore.includes("xmlSetText(document, node, 'Weight', String(manualRigidWeight));"), 'Explicit reviewed weight must overwrite an existing positive source XML Weight before conversion.');
+
+const parity = read('tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js');
+const processIndex = parity.indexOf('const process = await applyStandaloneProcessParity');
+const conservationIndex = parity.indexOf('const splitWeight = applyXmlCiiSplitRigidWeightPropagation');
+assert(processIndex >= 0 && conservationIndex > processIndex, 'Compatibility/override enrichment must run before split physical-mass conservation.');
 
 const adapter = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js');
 assert(adapter.includes('sourceIdFromPhysicalWeightMap'));
