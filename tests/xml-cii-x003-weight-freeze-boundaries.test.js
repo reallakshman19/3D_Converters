@@ -13,16 +13,26 @@ assert(match1Ui.includes("match1Identity: 'physical-component'"));
 assert(match1Ui.includes('rigidWeightMatch1: migrated.accepted'));
 assert(match1Ui.includes('delete config.overrides.rigidWeight'));
 
+const finalAuthority = read('converters/xml-cii2019-core/final-weight-review-authority.js');
+assert(finalAuthority.includes('collectXmlCiiFinalWeightReviewRows'));
+assert(finalAuthority.includes('sourceIdentityRows'));
+assert(finalAuthority.includes('collectXmlCiiWeightMatchRows'));
+assert(finalAuthority.includes('return Number(record.rigid) === 2'));
+assert(!finalAuthority.includes('lengthMm <= 6'), 'Final authority must not use the old >6 mm exemption.');
+assert(!finalAuthority.includes('endpointEligible'), 'Final authority must not lose endpoint-1-only physical components.');
+assert(finalAuthority.includes("weightSource: numberOrNull(childText(node, 'Weight')) > 0 ? 'xml-weight' : 'unresolved'"));
+
 const finalUi = read('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js');
-assert(finalUi.includes('collectXmlCiiWeightMatchRows'));
+assert(finalUi.includes('collectXmlCiiFinalWeightReviewRows'));
 assert(!finalUi.includes('collectXmlCiiZeroRigidWeightIssues'));
-assert(finalUi.includes('dedupeXmlCiiPhysicalWeightRows'));
 assert(finalUi.includes("key.startsWith('WPC1::')"));
 assert(finalUi.includes('rigidWeightFinal = { ...(result.weightsByKey || {}) }'));
 assert(finalUi.includes('rigidWeightFinal = {}'));
 assert(finalUi.includes("finalReviewDisposition: 'explicit-final-accepted'"));
-assert(finalUi.includes("finalReviewDisposition: result.noReviewRows ? 'no-review-rows' : 'explicit-skip-use-match1'"));
+assert(finalUi.includes("finalReviewDisposition: result.noReviewRows ? 'no-review-rows' : 'explicit-skip-use-match1-or-source'"));
 assert(finalUi.includes("console.error('Standalone final rigid weight review blocked the run:'"));
+assert(finalUi.includes('Source XML ${source} kg · Final confirmation required'));
+assert(finalUi.includes('Length is candidate evidence only; it never exempts a weight-bearing component from Final review.'));
 
 const adapter = read('tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js');
 assert(adapter.includes('sourceIdFromPhysicalWeightMap'));
