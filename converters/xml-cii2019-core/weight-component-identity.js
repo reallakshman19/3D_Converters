@@ -201,9 +201,7 @@ function reviewEligible(record) {
   const type = text(record.componentType).toUpperCase();
   const rigid = Number(record.rigid) === 2;
   const connection = text(record.connectionType);
-  const endpoint = text(record.endpoint).toUpperCase();
-  const endpointEligible = !endpoint || endpoint === '0' || endpoint === '2' || endpoint === 'END2' || endpoint === 'ENDPOINT2';
-  return !connection && endpointEligible && (rigid || type === 'RIGID' || type.startsWith('FLAN') || type.startsWith('VALV') || type === 'VLV' || type.startsWith('INST'));
+  return !connection && (rigid || type === 'RIGID' || type.startsWith('FLAN') || type.startsWith('VALV') || type === 'VLV' || type.startsWith('INST'));
 }
 
 export function collectXmlCiiWeightIdentityRows(xmlText) {
