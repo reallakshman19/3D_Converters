@@ -1,12 +1,12 @@
 import {
   createEmpiricalWeightValidator,
   empiricalWeightValidationReportToCsv,
+  downloadEmpiricalWeightValidationEvidenceZip,
 } from '../../../converters/empirical-weight/index.js';
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function esc(value) { return text(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 function positive(value) { const n = Number(value); return Number.isFinite(n) && n > 0 ? n : null; }
-
 function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 
 function resolvedWeight(issue, config) {
@@ -129,6 +129,7 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
     <button type="button" data-ewv-build style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1d4ed8;color:white;cursor:pointer;">Build report</button>
     <button type="button" data-ewv-csv disabled style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;">Save abnormal CSV</button>
     <button type="button" data-ewv-json disabled style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;">Save audit JSON</button>
+    <button type="button" data-ewv-zip disabled style="padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;cursor:pointer;">Save validation evidence ZIP</button>
     <span data-ewv-status style="font-size:12px;color:#94a3b8;">Read-only validation; accepted weight is never modified.</span>
   </div>
   <div data-ewv-table style="margin-top:10px;"></div>`;
@@ -139,6 +140,7 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
   const table = section.querySelector('[data-ewv-table]');
   const csvBtn = section.querySelector('[data-ewv-csv]');
   const jsonBtn = section.querySelector('[data-ewv-json]');
+  const zipBtn = section.querySelector('[data-ewv-zip]');
 
   const buildFromResolved = (detail = {}) => {
     const masterRows = Array.isArray(detail.masterRows) ? detail.masterRows : [];
@@ -153,6 +155,7 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
     renderTable(table, report);
     csvBtn.disabled = false;
     jsonBtn.disabled = false;
+    zipBtn.disabled = false;
     if (status) status.textContent = `${report.summary.abnormalRows} abnormal of ${report.summary.inputRows} resolved component(s); A1 ${report.summary.approach1Abnormal}, A2 ${report.summary.approach2Abnormal}; ${scope.skipped.length} skipped/unresolved.`;
   };
 
@@ -173,5 +176,11 @@ export function appendEmpiricalWeightValidationReport(card, stateRef) {
   jsonBtn?.addEventListener('click', () => {
     if (!report) return;
     makeBlobDownload('empirical-weight-component-validation-report.json', `${JSON.stringify(report, null, 2)}\n`, 'application/json;charset=utf-8');
+  });
+  zipBtn?.addEventListener('click', () => {
+    if (!report) return;
+    const manifest = downloadEmpiricalWeightValidationEvidenceZip(report);
+    stateRef.current.empiricalWeightValidationEvidenceManifest = manifest;
+    if (status) status.textContent = `${report.summary.abnormalRows} abnormal row(s); deterministic validation evidence ZIP saved.`;
   });
 }
