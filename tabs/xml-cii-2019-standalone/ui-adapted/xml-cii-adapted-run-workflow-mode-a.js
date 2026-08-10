@@ -61,7 +61,7 @@ export async function runModeABatchFromUi(stateRef, render) {
 
   replaceModeAState(stateRef, { ...state, batchRunning: true, batchRunStatus: 'Running separate models...', batchRunResult: null });
   render();
-  state = syncActiveModeASatchState(normalizeModeABatchState(stateRef.current));
+  state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
   const enabled = state.sourceBatch.sources.filter((source) => source.enabled !== false);
   const rows = [];
   let sharedState = state;
