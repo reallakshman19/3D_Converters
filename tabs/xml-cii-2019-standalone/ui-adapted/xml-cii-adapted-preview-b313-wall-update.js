@@ -274,14 +274,12 @@ function reportHtml(report) {
 }
 
 function renderBasisEditor(host, config, rows, options) {
-  const actionBar = host?.querySelector?.('[data-mc-preview-build]')?.parentElement?.parentElement;
-  if (!actionBar) return;
+  const actionCard = host?.querySelector?.('[data-mc-preview-build]')?.parentElement?.parentElement;
+  if (!actionCard) return;
   let editor = host.querySelector('[data-mc-b313-basis-editor]');
+  if (editor) return;
   const groups = uniqueBasisGroups(rows);
-  if (!groups.length) {
-    editor?.remove();
-    return;
-  }
+  if (!groups.length) return;
   const cfg = ensureBasisConfig(config);
   const rowsHtml = groups.map((group) => {
     const basis = cfg.bases[group.key] || {};
@@ -300,10 +298,10 @@ function renderBasisEditor(host, config, rows, options) {
   const html = `<details data-mc-b313-basis-editor style="margin:8px 0;border:1px solid #475569;border-radius:6px;background:#0f172a;color:#e2e8f0;padding:8px;">
     <summary style="cursor:pointer;font-weight:700;">B31.3 Sec II / project design basis (${groups.length} material-temperature group${groups.length === 1 ? '' : 's'})</summary>
     <div style="font-size:11px;color:#fbbf24;margin:6px 0;">S, E, W and Y are caller-supplied controlled engineering inputs. No ASME Section II allowable-stress table is embedded. The A106 benchmark is not used as a default.</div>
+    <div style="font-size:10px;color:#94a3b8;margin:4px 0;">Basis edits are persisted without invalidating the currently rendered Preview; applying the wall update saves the resulting wall overrides and invalidates Preview for an explicit rebuild.</div>
     <div style="overflow:auto;"><table style="border-collapse:collapse;width:100%;font-size:11px;min-width:1100px;"><thead><tr><th>Material / T1</th><th>S</th><th>S unit</th><th>E</th><th>W</th><th>Y</th><th>P unit</th><th>Dimension std</th><th>Source reference</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
   </details>`;
-  if (editor) editor.outerHTML = html;
-  else actionBar.insertAdjacentHTML('afterend', html);
+  actionCard.insertAdjacentHTML('afterend', html);
   editor = host.querySelector('[data-mc-b313-basis-editor]');
   editor?.querySelectorAll?.('[data-b313-field]').forEach((input) => input.addEventListener('change', async () => {
     const rowEl = input.closest('[data-b313-key]');
@@ -313,7 +311,7 @@ function renderBasisEditor(host, config, rows, options) {
     const record = { ...(cfg.bases[key] || {}), material: group?.material || '', designTemperature: group?.designTemperature || '' };
     rowEl.querySelectorAll('[data-b313-field]').forEach((field) => { record[field.dataset.b313Field] = field.value; });
     cfg.bases[key] = record;
-    await options?.onSaveConfig?.(config);
+    await options?.onSaveConfigPreservePreview?.(config);
   }));
 }
 
