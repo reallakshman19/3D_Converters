@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "material": "CS - ASTM A106 Grade B",
+  "source": "user-supplied engineering benchmark table, 2026-08-10",
+  "purpose": "Validate unit-normalized P/S ratio arithmetic only. This file is not an ASME allowable-stress table authority and does not perform temperature interpolation.",
+  "pressureUnit": "barg",
+  "stressUnit": "ksi",
+  "ratioDefinition": "P/S after converting pressure and allowable stress to consistent stress units",
+  "roundingDigits": 4,
+  "cases": [
+    { "temperatureC": 0,   "allowableStressKsi": 20.00, "designPressureBarg": 51.1,  "expectedRatioRounded": 0.0371, "expectedRatioExact": 0.03705714199006846 },
+    { "temperatureC": 25,  "allowableStressKsi": 20.00, "designPressureBarg": 51.1,  "expectedRatioRounded": 0.0371, "expectedRatioExact": 0.03705714199006846 },
+    { "temperatureC": 50,  "allowableStressKsi": 20.00, "designPressureBarg": 50.1,  "expectedRatioRounded": 0.0363, "expectedRatioExact": 0.03633195330141741 },
+    { "temperatureC": 100, "allowableStressKsi": 20.00, "designPressureBarg": 46.6,  "expectedRatioRounded": 0.0338, "expectedRatioExact": 0.03379379289113875 },
+    { "temperatureC": 150, "allowableStressKsi": 20.00, "designPressureBarg": 45.1,  "expectedRatioRounded": 0.0327, "expectedRatioExact": 0.03270600985816218 },
+    { "temperatureC": 175, "allowableStressKsi": 19.95, "designPressureBarg": 44.45, "expectedRatioRounded": 0.0323, "expectedRatioExact": 0.03231542577497644 },
+    { "temperatureC": 230, "allowableStressKsi": 19.50, "designPressureBarg": 42.66, "expectedRatioRounded": 0.0317, "expectedRatioExact": 0.03172979431574731 },
+    { "temperatureC": 340, "allowableStressKsi": 17.40, "designPressureBarg": 37.6,  "expectedRatioRounded": 0.0313, "expectedRatioExact": 0.03134148815319464 }
+  ]
+}
