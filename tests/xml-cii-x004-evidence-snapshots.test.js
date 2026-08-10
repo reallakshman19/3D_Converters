@@ -23,19 +23,50 @@ const state = {
     matchedFacts: [{ field: 'rating', value: '150', source: 'preview' }],
   },
 };
+const physicalKey = 'WPC1::SRC-A::%2FB1::REF%3A134234934%2FTEST';
 const config = JSON.stringify({
+  weightIdentity: { sourceId: 'SRC-A' },
+  weightReviewLifecycle: {
+    finalReviewDisposition: 'explicit-final-accepted',
+    explicitFinalReview: true,
+  },
   overrides: {
-    rigidWeightMatch1: { '/B1::480': 120.734 },
-    rigidWeightFinal: { '/B1::480': 15 },
-    rigidWeight: { '/B1::480': 15 },
+    rigidWeightMatch1: { [physicalKey]: 120.734 },
+    rigidWeightFinal: { [physicalKey]: 15 },
+    // Compatibility materialization must not be allowed to masquerade as Final evidence.
+    rigidWeight: { '/B1::480': 999 },
   },
 });
 const evidence = evidenceApi.buildXmlCiiConversionEvidence(state, config);
 assert.strictEqual(evidence.snapshots.preview.name, 'preview');
 assert.strictEqual(evidence.snapshots.RigidMatch1.name, 'RigidMatch1');
 assert.strictEqual(evidence.snapshots.Rigidmatch2.name, 'Rigidmatch2');
-assert.strictEqual(JSON.parse(evidence.snapshots.RigidMatch1.canonicalJson).decisionsKgByKey['/B1::480'], 120.734);
-assert.strictEqual(JSON.parse(evidence.snapshots.Rigidmatch2.canonicalJson).decisionsKgByKey['/B1::480'], 15);
+const match1Payload = JSON.parse(evidence.snapshots.RigidMatch1.canonicalJson);
+const finalPayload = JSON.parse(evidence.snapshots.Rigidmatch2.canonicalJson);
+assert.strictEqual(match1Payload.decisionsKgByKey[physicalKey], 120.734);
+assert.strictEqual(match1Payload.identity, 'physical-component');
+assert.strictEqual(match1Payload.sourceId, 'SRC-A');
+assert.strictEqual(finalPayload.decisionsKgByKey[physicalKey], 15);
+assert.strictEqual(finalPayload.decisionsKgByKey['/B1::480'], undefined, 'Transient compatibility keys must not enter Rigidmatch2 evidence.');
+assert.strictEqual(finalPayload.action, 'explicit-final-accepted');
+assert.strictEqual(finalPayload.explicitFinalReview, true);
+
+const skipped = evidenceApi.buildXmlCiiConversionEvidence(state, JSON.stringify({
+  weightIdentity: { sourceId: 'SRC-A' },
+  weightReviewLifecycle: {
+    finalReviewDisposition: 'explicit-skip-use-match1',
+    explicitFinalReview: true,
+  },
+  overrides: {
+    rigidWeightMatch1: { [physicalKey]: 75 },
+    rigidWeightFinal: {},
+    rigidWeight: { '/B1::530': 128.89501 },
+  },
+}));
+const skippedFinal = JSON.parse(skipped.snapshots.Rigidmatch2.canonicalJson);
+assert.strictEqual(skippedFinal.decisionCount, 0);
+assert.strictEqual(skippedFinal.action, 'explicit-skip-use-match1');
+assert.deepStrictEqual(skippedFinal.decisionsKgByKey, {});
 
 const engineDigest = evidenceApi.digestXmlCiiEvidenceText('<engine/>');
 const parseDigest = evidenceApi.digestXmlCiiEvidenceText('<parse/>');
@@ -61,4 +92,4 @@ assert(apiSource.includes('converterParseDigestFromLogs'));
 assert(apiSource.includes('engineRequestXmlDigest'));
 assert(apiSource.includes('converterParseXmlDigest'));
 
-console.log('XML CII X004 immutable evidence local regression passed.');
+console.log('XML CII X004 immutable physical-weight evidence regression passed.');
