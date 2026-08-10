@@ -2,6 +2,7 @@ import { DEFAULT_WEIGHT_MASTER_ROWS } from '../../../converters/xml-cii2019-core
 import {
   collectXmlCiiWeightIdentityRows,
   migrateXmlCiiWeightDecisionMap,
+  xmlCiiWeightSourceId,
 } from '../../../converters/xml-cii2019-core/weight-component-identity.js';
 import {
   saveMasterContextToLocalStorage,
@@ -60,7 +61,16 @@ function migrateMatch1ToPhysicalIdentity(stateRef, config) {
   const state = stateRef.current || {};
   const sourceText = state.sourceText || '';
   const rows = collectXmlCiiWeightIdentityRows(sourceText);
-  const sourceId = state.sourceBatch?.activeSourceId || '';
+  const sourceId = xmlCiiWeightSourceId({
+    sourceText,
+    sourceId: state.sourceBatch?.activeSourceId || '',
+    config,
+  });
+  config.weightIdentity = {
+    ...(config.weightIdentity || {}),
+    schema: 'xml-cii-weight-source-identity/v1',
+    sourceId,
+  };
   const migrated = migrateXmlCiiWeightDecisionMap(
     config?.overrides?.rigidWeightMatch1 || {},
     rows,
@@ -72,6 +82,7 @@ function migrateMatch1ToPhysicalIdentity(stateRef, config) {
     ...(config.weightReviewLifecycle || {}),
     schema: 'xml-cii-weight-review-lifecycle/v2',
     match1Identity: 'physical-component',
+    match1SourceId: sourceId,
     match1PhysicalMigrationCount: migrated.migrations.length,
     unresolvedLegacyMatch1Keys: migrated.unmatched,
   };
