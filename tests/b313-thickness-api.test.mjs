@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 import {
+  calculateB313PressureStressRatios,
   calculateB313Thickness,
   createB313ThicknessCalculator,
   evaluateB313ProvidedWall,
@@ -14,6 +15,10 @@ import {
 
 const benchmark = JSON.parse(fs.readFileSync(
   new URL('../Benchmarks/B313Thickness/b313-thickness-benchmarks.json', import.meta.url),
+  'utf8',
+));
+const a106RatioBenchmark = JSON.parse(fs.readFileSync(
+  new URL('../Benchmarks/B313Thickness/a106-grb-ps-ratio-benchmark.json', import.meta.url),
   'utf8',
 ));
 
@@ -32,9 +37,25 @@ for (const entry of benchmark.cases) {
     close(result.applicability.pressureStressRatio, entry.expected.pressureStressRatio, benchmark.numericTolerance.dimensionless, `${entry.id} pressureStressRatio`);
     close(result.applicability.thicknessDiameterRatio, entry.expected.thicknessDiameterRatio, benchmark.numericTolerance.dimensionless, `${entry.id} thicknessDiameterRatio`);
     close(result.minimumAsManufacturedAtRequiredNominalMm, result.requiredMinimumThicknessMm, benchmark.numericTolerance.absoluteMm, `${entry.id} tolerance closure`);
+    close(result.applicability.pressureAllowableStressRatio, result.inputs.pressureMPa / result.inputs.allowableStressMPa, 1e-12, `${entry.id} P/S`);
     assert.equal(result.edition, '2024');
     assert.equal(result.paragraph, '304.1.2');
     assert.equal(result.equation, '3a');
+  });
+}
+
+for (const entry of a106RatioBenchmark.cases) {
+  test(`A106 Gr B P/S benchmark at ${entry.temperatureC} C`, () => {
+    const result = calculateB313PressureStressRatios({
+      designPressure: entry.designPressureBarg,
+      pressureUnit: 'barg',
+      allowableStress: entry.allowableStressKsi,
+      stressUnit: 'ksi',
+    });
+    assert.equal(result.ok, true, JSON.stringify(result));
+    close(result.pressureAllowableStressRatio, entry.expectedRatioExact, 1e-12, `A106 ${entry.temperatureC}C exact P/S`);
+    assert.equal(Number(result.pressureAllowableStressRatio.toFixed(a106RatioBenchmark.roundingDigits)), entry.expectedRatioRounded);
+    assert.equal(result.pressureEffectiveStressRatio, null);
   });
 }
 
@@ -45,6 +66,20 @@ for (const entry of benchmark.negativeCases) {
     assert.equal(result.code, entry.expectedCode);
   });
 }
+
+test('P/S and P/(S*E) are exposed as distinct ratios', () => {
+  const ratios = calculateB313PressureStressRatios({
+    designPressure: 5,
+    pressureUnit: 'MPa',
+    allowableStress: 120,
+    stressUnit: 'MPa',
+    qualityFactorE: 0.85,
+  });
+  assert.equal(ratios.ok, true);
+  close(ratios.pressureAllowableStressRatio, 5 / 120, 1e-12, 'P/S');
+  close(ratios.pressureEffectiveStressRatio, 5 / (120 * 0.85), 1e-12, 'P/(S*E)');
+  assert.notEqual(ratios.pressureAllowableStressRatio, ratios.pressureEffectiveStressRatio);
+});
 
 test('percent and absolute manufacturing tolerance use the same adequacy invariant', () => {
   const minimum = 10;
@@ -120,6 +155,8 @@ test('factory defaults are reusable across modules', () => {
     corrosionAllowance: 3,
   });
   close(result.requiredNominalThicknessMm, benchmark.cases[0].expected.requiredNominalThicknessMm, 1e-9, 'factory result');
+  const ratios = calculator.calculatePressureStressRatios({ designPressure: 10, allowableStress: 138 });
+  close(ratios.pressureAllowableStressRatio, 10 / 138, 1e-12, 'factory P/S');
 });
 
 function lcg(seed = 3132024) {
