@@ -6,11 +6,15 @@ Target edition: **ASME B31.3-2024**. Public edition status checked 2026-08-10. T
 
 Canonical routing families are `CS`, `LTCS`, `SS`, `DSS`, `SDSS`. `LT`, `LT CS`, and “low temperature carbon steel” normalize to `LTCS`. Initial project identities are A106 Gr B, A333 Gr 6, A312 TP304, A312 TP316, A790 UNS S31803, and A790 UNS S32760. Identity is sourced from existing project piping-class masters and is independent of factor qualification.
 
+A generic family routes the request but does not invent an exact grade. Where the current project catalog contains one candidate (CS, LTCS, DSS, SDSS), family routing can resolve that candidate. Generic `SS` is deliberately ambiguous because both TP304 and TP316 are present; callers must specify the exact stainless identity or a future explicit project-default record.
+
 ## Factor authority
 
 `S`, `E`, `W`, and `Y` are independently status-qualified. Default `strict` mode accepts only `VERIFIED` and `PROJECT_APPROVED`. `benchmark` additionally permits `BENCHMARK_ONLY`; `screening` can permit explicit `SCREENING` rows. No family-level numeric default is silently substituted.
 
 The initial A106 Gr B temperature `S` series supplied during this work is stored as `BENCHMARK_ONLY`. The supplied DN benchmark provides `E=1`, `W=1`, `Y=0.4` at 0 °C only, also `BENCHMARK_ONLY`. LTCS/SS/DSS/SDSS identities are wired but intentionally return `B313_FACTOR_DATA_INCOMPLETE` until controlled factor data is loaded or the caller supplies explicit overrides.
+
+Caller factor overrides use MPa for `S` / `allowableStressMPa`; `E`, `W`, and `Y` are dimensionless. Override provenance is returned as `CALLER_OVERRIDE` and is never written back into the master automatically.
 
 ## Public API
 
@@ -32,9 +36,9 @@ A106 Gr B, 0 °C, 51.1 barg, OD 273 mm, C=6 mm, `E=W=1`, `Y=.4`, and 12.5% negat
 
 ## Validation
 
-Local qualification during implementation:
+Implementation qualification:
 
-- material-factor resolver + full pipeline tests: **6/6 PASS** after consolidation;
+- material-factor resolver + full pipeline tests: **6/6 PASS** before publication; the final SS-safety change replaces implicit TP316 family selection with an explicit ambiguity assertion;
 - independent Python A106 arithmetic: **PASS**;
 - generator/master drift check: **PASS**;
 - exact B31.3 core is inherited from the separately developed thickness implementation and remains subject to its controlled-code engineering review gate.
