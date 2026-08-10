@@ -135,8 +135,9 @@ def _validate_node_number_coordinate_identity(document: base.XmlDocument) -> Non
 
 
 def _parse_xml_document_with_coordinate_custody(path: Path) -> base.XmlDocument:
-    # X004 provenance boundary: this is the exact post-Python-enrichment file
-    # handed to the parser. Emit its digest before any parser/model mutation.
+    # X004/X005 provenance boundary: this is the exact post-Python-enrichment
+    # file handed to the parser. Emit both path and digest before model mutation.
+    print(f"CONVERTER_PARSE_XML_PATH={path}")
     print(f"CONVERTER_PARSE_XML_DIGEST={_converter_parse_xml_digest(path)}")
     document = _CONTRACTED_PARSE_XML_DOCUMENT(path)
     _validate_node_number_coordinate_identity(document)
