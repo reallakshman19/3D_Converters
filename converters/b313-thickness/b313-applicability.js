@@ -68,6 +68,7 @@ export function postflightApplicability({ pressureMPa, allowableStressMPa, quali
     valid: failed.length === 0,
     pressureAllowableStressRatio,
     pressureEffectiveStressRatio,
+    pressureStressRatio: pressureEffectiveStressRatio,
     thicknessDiameterRatio,
     checks,
     failed,
