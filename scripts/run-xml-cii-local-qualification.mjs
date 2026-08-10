@@ -32,12 +32,21 @@ function assertLocalActivation() {
   const phase = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels.js'), 'utf8');
   const service = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js'), 'utf8');
   const modeA = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-mode-a.js'), 'utf8');
+  const finalReview = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js'), 'utf8');
+  const adapter = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js'), 'utf8');
+  const match1 = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js'), 'utf8');
+  const evidence = fs.readFileSync(path.join(root, 'tabs/xml-cii-2019-standalone/xml-cii-conversion-evidence.js'), 'utf8');
   const required = [
     ['X001 production wrapper', invocation.includes('xml_to_cii2019_coordinate_custody.py')],
     ['X002 staged geometry active', parity.includes('applyXmlCiiStagedGeometryAuthority')],
     ['X002 effective OD active', parity.includes('applyXmlCiiOutsideDiameterResolver')],
     ['X003 mass conservation active', parity.includes('applyXmlCiiSplitRigidWeightPropagation')],
     ['X003 conservation retained', service.includes('normalized.diagnostics.weightConservation')],
+    ['X003 Match1 physical identity', match1.includes('migrateMatch1ToPhysicalIdentity') && match1.includes("match1Identity: 'physical-component'")],
+    ['X003 Final all-component review', finalReview.includes('collectXmlCiiWeightMatchRows') && !finalReview.includes('collectXmlCiiZeroRigidWeightIssues')],
+    ['X003 Final physical keys', finalReview.includes("key.startsWith('WPC1::')") && finalReview.includes('rigidWeightFinal')],
+    ['X003 run-boundary legacy materialization', adapter.includes('materializeXmlCiiLegacyWeightCompatibility') && adapter.includes('sourceIdFromPhysicalWeightMap')],
+    ['X004 Final evidence isolated', evidence.includes("identity: 'physical-component'") && !evidence.includes('const transient = plainObject(config?.overrides?.rigidWeight)')],
     ['X005 ZIP control active', phase.includes('appendXmlCiiEvidenceZipControl(card, stateRef)')],
     ['X005 Mode A scoped source retained', modeA.includes('sourceText: scopedSourceText')],
   ];
@@ -50,6 +59,7 @@ const tests = [
   ['X001 real GLRD coordinate custody', 'python', ['converters/scripts/test_xml_to_cii2019_glrd_coordinate_custody.py']],
   ['X002 real GLRD property authority', 'node', ['tests/xml-cii-x002-property-authority.test.js']],
   ['X003 weight lifecycle/conservation', 'node', ['tests/xml-cii-x003-weight-authority.test.js']],
+  ['X003 weight freeze boundaries', 'node', ['tests/xml-cii-x003-weight-freeze-boundaries.test.js']],
   ['X004 immutable evidence/digests', 'node', ['tests/xml-cii-x004-evidence-snapshots.test.js']],
   ['X005 deterministic evidence ZIP', 'node', ['tests/xml-cii-x005-evidence-zip.test.js']],
   ['X005 Mode A isolated evidence ZIP', 'node', ['tests/xml-cii-x005-mode-a-evidence-zip.test.js']],
