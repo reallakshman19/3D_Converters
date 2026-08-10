@@ -6,6 +6,9 @@ import {
   prepareXmlCiiRunWeightLifecycle,
 } from '../../converters/xml-cii2019-core/weight-review-lifecycle.js';
 import {
+  materializeXmlCiiLegacyWeightCompatibility,
+} from '../../converters/xml-cii2019-core/weight-component-identity.js';
+import {
   buildXmlCiiConversionEvidence,
 } from './xml-cii-conversion-evidence.js';
 
@@ -102,7 +105,15 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
   const branchScope = branchScopeFromState(state, sourceText, stagedJsonText);
   if (branchScope.blocked) throw new Error('Select at least one source branch before running XML→CII.');
 
-  const supportConfig = enrichSupportConfigObject(state, branchScope);
+  let supportConfig = enrichSupportConfigObject(state, branchScope);
+  // Persisted authority remains source/branch/physical-component scoped. Only
+  // at this compatibility boundary do we materialize the legacy branch/node
+  // keys required by the existing XML mutator and Python conversion path.
+  supportConfig = materializeXmlCiiLegacyWeightCompatibility(
+    supportConfig,
+    branchScope.filteredSourceText,
+    { sourceId: state.sourceBatch?.activeSourceId || '' },
+  );
   const supportConfigBeforeEvidence = JSON.stringify(supportConfig, null, 2);
   const evidenceState = {
     ...state,
