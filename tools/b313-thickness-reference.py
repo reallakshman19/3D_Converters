@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Independent numerical oracle for the frozen B31.3 thickness benchmark set.
+"""Independent numerical oracle for the frozen B31.3 benchmark sets.
 
 This file intentionally does not import or execute the production JavaScript.
-It validates the benchmark arithmetic from the recorded inputs. It does not
-supply ASME material properties or replace engineering review of the licensed
-standard text.
+It validates benchmark arithmetic from recorded inputs. It does not supply ASME
+material properties or replace engineering review of the licensed standard text.
 """
 from __future__ import annotations
 
@@ -15,13 +14,16 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BENCHMARK = ROOT / "Benchmarks" / "B313Thickness" / "b313-thickness-benchmarks.json"
+RATIO_BENCHMARK = ROOT / "Benchmarks" / "B313Thickness" / "a106-grb-ps-ratio-benchmark.json"
 
 PRESSURE_TO_MPA = {
     "pa": 1e-6,
     "kpa": 1e-3,
     "mpa": 1.0,
     "bar": 0.1,
+    "barg": 0.1,
     "psi": 0.006894757293168361,
+    "psig": 0.006894757293168361,
     "ksi": 6.894757293168361,
 }
 LENGTH_TO_MM = {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4, "inch": 25.4, "inches": 25.4}
@@ -74,20 +76,35 @@ def calculate(case):
 
 def main():
     data = json.loads(BENCHMARK.read_text(encoding="utf-8"))
+    ratio_data = json.loads(RATIO_BENCHMARK.read_text(encoding="utf-8"))
     mm_tol = float(data["numericTolerance"]["absoluteMm"])
     dim_tol = float(data["numericTolerance"]["dimensionless"])
     failures = []
+
     for entry in data["cases"]:
         actual = calculate(entry["inputs"])
         for key, expected in entry["expected"].items():
             tolerance = dim_tol if key.endswith("Ratio") else mm_tol
             if not math.isclose(actual[key], float(expected), rel_tol=0.0, abs_tol=tolerance):
                 failures.append((entry["id"], key, actual[key], expected))
+
+    rounding_digits = int(ratio_data["roundingDigits"])
+    for entry in ratio_data["cases"]:
+        p_mpa = pressure(entry["designPressureBarg"], ratio_data["pressureUnit"])
+        s_mpa = pressure(entry["allowableStressKsi"], ratio_data["stressUnit"])
+        ratio = p_mpa / s_mpa
+        if not math.isclose(ratio, float(entry["expectedRatioExact"]), rel_tol=0.0, abs_tol=1e-12):
+            failures.append((f"A106-{entry['temperatureC']}C", "P/S exact", ratio, entry["expectedRatioExact"]))
+        if round(ratio, rounding_digits) != float(entry["expectedRatioRounded"]):
+            failures.append((f"A106-{entry['temperatureC']}C", "P/S rounded", round(ratio, rounding_digits), entry["expectedRatioRounded"]))
+
     if failures:
         for failure in failures:
             print("FAIL", *failure)
         return 1
-    print(f"B31.3 independent benchmark arithmetic passed: {len(data['cases'])}/{len(data['cases'])} valid cases")
+
+    print(f"B31.3 independent thickness arithmetic passed: {len(data['cases'])}/{len(data['cases'])} valid cases")
+    print(f"A106 Gr B independent P/S arithmetic passed: {len(ratio_data['cases'])}/{len(ratio_data['cases'])} cases")
     return 0
 
 
