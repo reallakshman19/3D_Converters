@@ -4,7 +4,9 @@
   const byId = (id) => document.getElementById(id);
   const tabs = [...document.querySelectorAll('[data-workflow-target]')];
   const panels = [...document.querySelectorAll('[data-workflow-panel]')];
-  const statusEls = new Map([...document.querySelectorAll('[data-workflow-status]')].map((el) => [el.dataset.workflowStatus, el]));
+  const statusEls = new Map(
+    [...document.querySelectorAll('[data-workflow-status]')].map((el) => [el.dataset.workflowStatus, el])
+  );
   const stageTitles = {
     design: 'Design Basis',
     static: 'Static Wall',
@@ -20,6 +22,11 @@
   function finitePositive(id) {
     const value = Number(byId(id)?.value);
     return Number.isFinite(value) && value > 0;
+  }
+
+  function year(value) {
+    const match = String(value || '').match(/\b(19|20)\d{2}\b/);
+    return match ? match[0] : '';
   }
 
   function setStatus(key, state, label) {
@@ -41,11 +48,23 @@
   }
 
   function stageDesign() {
-    const engineering = finitePositive('diameter') && finitePositive('designPressure') && finitePositive('allowableStress') &&
-      Number(byId('ci')?.value) >= 0 && Number(byId('co')?.value) >= 0 &&
-      Number(byId('tolerance')?.value) >= 0 && nonBlank('candidateWalls');
-    const identity = nonBlank('materialSpec') && nonBlank('materialGrade') && nonBlank('productSpec') && nonBlank('toleranceSource');
-    if (engineering && identity) return ['complete', 'Complete'];
+    const engineering =
+      finitePositive('diameter') &&
+      finitePositive('designPressure') &&
+      finitePositive('allowableStress') &&
+      Number(byId('ci')?.value) >= 0 &&
+      Number(byId('co')?.value) >= 0 &&
+      Number(byId('tolerance')?.value) >= 0 &&
+      nonBlank('candidateWalls');
+
+    const evidence =
+      nonBlank('viii3Edition') &&
+      nonBlank('materialSpec') &&
+      nonBlank('materialGrade') &&
+      nonBlank('productSpec') &&
+      nonBlank('toleranceSource');
+
+    if (engineering && evidence) return ['complete', 'Complete'];
     if (engineering) return ['pending', 'Evidence pending'];
     return ['pending', 'Pending'];
   }
@@ -54,8 +73,7 @@
     const rows = [...document.querySelectorAll('#staticBody tr')];
     if (!rows.length) return ['pending', 'Pending'];
     const passes = rows.filter((row) => row.querySelector('.badge.good')).length;
-    if (passes > 0) return ['complete', `${passes} pass`];
-    return ['special', 'Blocked'];
+    return passes > 0 ? ['complete', `${passes} pass`] : ['special', 'Blocked'];
   }
 
   function cycleRowsValid() {
@@ -68,49 +86,62 @@
       const tmax = Number(row.querySelector('.cycle-tmax')?.value);
       const syt = Number(row.querySelector('.cycle-syt')?.value);
       const n = Number(row.querySelector('.cycle-n')?.value);
-      return [pmin,pmax,tmin,tmax,syt,n].every(Number.isFinite) && pmin >= 0 && pmax >= pmin && tmax >= tmin && syt > 0 && n > 0;
+      return [pmin,pmax,tmin,tmax,syt,n].every(Number.isFinite) &&
+        pmin >= 0 && pmax >= pmin && tmax >= tmin && syt > 0 && n > 0;
     });
   }
 
   function stageCycles() {
     const rows = [...document.querySelectorAll('#cycleBody tr')];
     if (!rows.length) return ['pending', 'Pending'];
-    return cycleRowsValid() ? ['complete', `${rows.length} block${rows.length === 1 ? '' : 's'}`] : ['pending', 'Incomplete'];
+    return cycleRowsValid()
+      ? ['complete', `${rows.length} block${rows.length === 1 ? '' : 's'}`]
+      : ['pending', 'Incomplete'];
   }
 
   function kd2State() {
     if (!nonBlank('kd2Edition')) return ['blocked', 'Edition missing'];
-    if (byId('kd2AnalysisMethod')?.value === 'unassessed') return ['blocked', 'Route pending'];
-    if (['inelastic','special'].includes(byId('kd2AnalysisMethod')?.value)) return ['special', 'Special route'];
-    if (byId('kd2StressModel')?.value !== 'pressure-analytic' || byId('kd2Geometry')?.value !== 'uniform') return ['special', 'External model'];
+    const route = byId('kd2AnalysisMethod')?.value;
+    if (route === 'unassessed') return ['blocked', 'Route pending'];
+    if (route === 'inelastic' || route === 'special') return ['special', 'Special route'];
+    if (byId('kd2StressModel')?.value !== 'pressure-analytic') return ['special', 'External model'];
+    if (byId('kd2Geometry')?.value !== 'uniform') return ['special', 'Local geometry'];
     if (!nonBlank('kd2LimitCalcId')) return ['blocked', 'Limit check pending'];
     if (!byId('kd2Approved')?.checked) return ['blocked', 'Approval pending'];
     return ['complete', 'Approved'];
   }
 
-  function kd3Rows() {
-    return [...document.querySelectorAll('#fatigueBody tr')];
-  }
-
-  function normalizedEdition(value) {
-    return String(value || '').toLowerCase().replace(/[^0-9a-z]/g, '');
-  }
-
   function kd3SourceState() {
+    if (!nonBlank('viii3Edition')) return ['blocked', 'Project edition missing'];
     if (!nonBlank('kd3SourceEdition')) return ['blocked', 'Source edition missing'];
-    if (!byId('kd3SourceConfirmed')?.checked) return ['blocked', 'Source not verified'];
-    const project = normalizedEdition(byId('viii3Edition')?.value);
-    const source = normalizedEdition(byId('kd3SourceEdition')?.value);
-    if (project && source && project !== source) return ['special', 'Edition mismatch'];
+    if (!byId('kd3SourceConfirmed')?.checked) return ['blocked', 'Source verification pending'];
+    const projectYear = year(byId('viii3Edition')?.value);
+    const sourceYear = year(byId('kd3SourceEdition')?.value);
+    if (projectYear && sourceYear && projectYear !== sourceYear) {
+      return ['special', `Edition mismatch ${sourceYear}/${projectYear}`];
+    }
+    if (!byId('kd3CompatibilityConfirmed')?.checked) return ['blocked', 'Compatibility review pending'];
     return ['complete', 'Source verified'];
   }
 
-  function kd3State() {
-    const sourceState = kd3SourceState();
-    if (sourceState[0] !== 'complete') return sourceState;
-    const rows = kd3Rows();
+  function curveState() {
+    const mode = byId('fatigueCurveMode')?.value;
+    if (mode !== 'curve') return ['complete', 'Manual Ni'];
+    if (!nonBlank('fatigueCurveId')) return ['blocked', 'Curve ID missing'];
+    if (!nonBlank('fatigueCurveSourceRef')) return ['blocked', 'Curve source missing'];
+    if (!byId('fatigueInterpolationApproved')?.checked) return ['blocked', 'Interpolation unapproved'];
+    if (!byId('fatigueCurveApproved')?.checked) return ['blocked', 'Curve data unapproved'];
+    if (!nonBlank('fatigueCurveData')) return ['blocked', 'Curve points missing'];
+
+    const box = byId('curveStatusBox');
+    if (box?.classList.contains('error')) return ['blocked', 'Curve data invalid'];
+    if (box?.classList.contains('warning')) return ['special', 'Curve review'];
+    return ['complete', 'Curve ready'];
+  }
+
+  function kdRowsState() {
+    const rows = [...document.querySelectorAll('#fatigueBody tr')];
     if (!rows.length) return ['blocked', 'No results'];
-    if (!nonBlank('viii3Edition') || !nonBlank('kdRoute') || !nonBlank('fatigueCurveId')) return ['blocked', 'Authority missing'];
     const complete = rows.every((row) => {
       const seq = Number(row.querySelector('input[id^="seq-"]')?.value);
       const ni = Number(row.querySelector('input[id^="ni-"]')?.value);
@@ -118,7 +149,7 @@
       const approved = row.querySelector('input[id^="approved-"]')?.checked;
       return seq > 0 && ni > 0 && source && approved;
     });
-    return complete ? ['complete', 'Approved'] : ['blocked', 'Seq / Ni pending'];
+    return complete ? ['complete', 'Rows approved'] : ['blocked', 'Seq / Ni pending'];
   }
 
   function fractureState() {
@@ -130,11 +161,9 @@
   }
 
   function stageKd() {
-    const k2 = kd2State();
-    const k3 = kd3State();
-    const fm = fractureState();
-    if ([k2,k3,fm].some(([state]) => state === 'special')) return ['special', 'Special route'];
-    if ([k2,k3,fm].every(([state]) => state === 'complete')) return ['complete', 'Complete'];
+    const states = [kd2State(), kd3SourceState(), curveState(), kdRowsState(), fractureState()];
+    if (states.some(([state]) => state === 'special')) return ['special', 'Special route'];
+    if (states.every(([state]) => state === 'complete')) return ['complete', 'Complete'];
     return ['blocked', 'Blocked'];
   }
 
@@ -149,9 +178,10 @@
 
   function currentContext() {
     const D = byId('diameter')?.value || '—';
-    const walls = (byId('candidateWalls')?.value || '').split(',').map((value) => value.trim()).filter(Boolean);
+    const walls = (byId('candidateWalls')?.value || '').split(',').map((v) => v.trim()).filter(Boolean);
     const cycles = document.querySelectorAll('#cycleBody tr').length;
-    return `D ${D} mm · ${walls.length} candidate wall${walls.length === 1 ? '' : 's'} · ${cycles} pressure-cycle block${cycles === 1 ? '' : 's'}`;
+    const mode = byId('fatigueCurveMode')?.value === 'curve' ? 'curve Ni' : 'manual Ni';
+    return `D ${D} mm · ${walls.length} wall${walls.length === 1 ? '' : 's'} · ${cycles} cycle block${cycles === 1 ? '' : 's'} · ${mode}`;
   }
 
   function evidenceState(id, complete, good = 'Complete', bad = 'Missing') {
@@ -163,15 +193,22 @@
 
   function blockers() {
     const items = [];
-    if (!nonBlank('viii3Edition')) items.push('Confirm governing BPVC VIII-3 edition / addenda.');
+
+    if (!nonBlank('viii3Edition')) items.push('Confirm project BPVC VIII-3 edition / addenda.');
     if (!(nonBlank('materialSpec') && nonBlank('materialGrade'))) items.push('Complete material specification / grade identity.');
     if (!(nonBlank('productSpec') && nonBlank('toleranceSource'))) items.push('Complete product specification and dimensional tolerance source.');
 
     const k2 = kd2State();
     if (k2[0] !== 'complete') items.push(`KD-2: ${k2[1]}.`);
 
-    const k3 = kd3State();
-    if (k3[0] !== 'complete') items.push(`KD-3: ${k3[1]}.`);
+    const source = kd3SourceState();
+    if (source[0] !== 'complete') items.push(`KD-3 source: ${source[1]}.`);
+
+    const curve = curveState();
+    if (curve[0] !== 'complete') items.push(`Fatigue curve: ${curve[1]}.`);
+
+    const rows = kdRowsState();
+    if (rows[0] !== 'complete') items.push(`KD-3 rows: ${rows[1]}.`);
 
     const fm = fractureState();
     if (fm[0] !== 'complete') items.push(`Fracture / KD-4 gate: ${fm[1]}.`);
@@ -196,33 +233,54 @@
     Object.entries(states).forEach(([key,[state,label]]) => setStatus(key,state,label));
 
     const k2 = kd2State();
-    const k3 = kd3State();
+    const source = kd3SourceState();
+    const curve = curveState();
     const fm = fractureState();
+
     const kd2Chip = byId('kd2StatusChip');
-    if (kd2Chip) { kd2Chip.className = `status-chip ${k2[0]}`; kd2Chip.textContent = k2[1]; }
+    if (kd2Chip) {
+      kd2Chip.className = `status-chip ${k2[0]}`;
+      kd2Chip.textContent = k2[1];
+    }
     const kd3Chip = byId('kd3StatusChip');
-    if (kd3Chip) { kd3Chip.className = `status-chip ${k3[0]}`; kd3Chip.textContent = k3[1]; }
+    if (kd3Chip) {
+      const combined = source[0] === 'complete' ? curve : source;
+      kd3Chip.className = `status-chip ${combined[0]}`;
+      kd3Chip.textContent = combined[1];
+    }
     const fmChip = byId('fractureStatusChip');
-    if (fmChip) { fmChip.className = `status-chip ${fm[0]}`; fmChip.textContent = fm[1]; }
+    if (fmChip) {
+      fmChip.className = `status-chip ${fm[0]}`;
+      fmChip.textContent = fm[1];
+    }
 
     railState('rail-design', states.design[0], states.design[1]);
     railState('rail-static', states.static[0], states.static[1]);
     railState('rail-cycles', states.cycles[0], states.cycles[1]);
     railState('rail-kd2', k2[0], k2[1]);
-    railState('rail-kd3', k3[0], k3[1]);
+    railState('rail-kd3', source[0] === 'complete' ? curve[0] : source[0], source[0] === 'complete' ? curve[1] : source[1]);
     railState('rail-fracture', fm[0], fm[1]);
 
     evidenceState('evidence-viii3', nonBlank('viii3Edition'));
     evidenceState('evidence-material', nonBlank('materialSpec') && nonBlank('materialGrade') && nonBlank('productSpec') && nonBlank('toleranceSource'));
-    evidenceState('evidence-kd3', kd3SourceState()[0] === 'complete' && nonBlank('kdRoute') && nonBlank('fatigueCurveId'));
+    evidenceState('evidence-kd3source', source[0] === 'complete', 'Verified', 'Missing');
+    evidenceState(
+      'evidence-kd3',
+      nonBlank('kdRoute') &&
+        (byId('fatigueCurveMode')?.value === 'manual' ||
+          (nonBlank('fatigueCurveId') && nonBlank('fatigueCurveSourceRef') && byId('fatigueCurveApproved')?.checked)),
+      'Ready',
+      'Missing'
+    );
 
     const context = byId('railContext');
     if (context) context.textContent = currentContext();
 
-    const list = byId('blockingReasons');
-    const count = byId('blockerCount');
     const blockersNow = blockers();
-    if (count) count.textContent = blockersNow.length ? String(blockersNow.length) : '0';
+    const count = byId('blockerCount');
+    if (count) count.textContent = String(blockersNow.length);
+
+    const list = byId('blockingReasons');
     if (list) {
       list.innerHTML = blockersNow.length
         ? blockersNow.map((item) => `<li>${item}</li>`).join('')
@@ -253,9 +311,17 @@
   document.addEventListener('change', () => setTimeout(updateReviewUi, 0));
   document.addEventListener('click', () => setTimeout(updateReviewUi, 0));
 
-  ['staticBody','cycleBody','kd2Body','fatigueBody','summaryBody'].forEach((id) => {
+  ['staticBody','cycleBody','kd2Body','fatigueBody','summaryBody','curveStatusBox'].forEach((id) => {
     const target = byId(id);
-    if (target) new MutationObserver(() => updateReviewUi()).observe(target, { childList:true, subtree:true, characterData:true });
+    if (target) {
+      new MutationObserver(() => updateReviewUi()).observe(target, {
+        childList:true,
+        subtree:true,
+        characterData:true,
+        attributes:true,
+        attributeFilter:['class'],
+      });
+    }
   });
 
   const requested = location.hash.replace('#','');
