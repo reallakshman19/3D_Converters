@@ -4,74 +4,87 @@
 
 | Field | Current value |
 |---|---|
-| Mission | Maintain a dependency-free ASME B31.3-2024 Chapter IX piping-class standardization web tool with explicit engineering authority boundaries. |
+| Mission | Maintain a dependency-free ASME B31.3-2024 Chapter IX piping-class standardization web tool with explicit engineering authority boundaries and controlled BPVC VIII-3 handoffs. |
 | PR number | 437 |
 | Branch | `agent/hp-class-standardization-tool` |
 | Base commit | `4530b4a98c3b6d6713665228bf3ca8e953a95018` |
-| Stage 7 production HEAD before report closeout | `fceb9b941688987740ad7eae8e413e29cf0f9841` |
 | PR status | DRAFT / OPEN |
-| Current stage | Stage 7 — COMPLETE |
-| Engineering status | IMPLEMENTED and VALIDATED for static pressure design, multiple pressure-cycle blocks, K304.8.3 pressure-stress matrix, controlled KD placeholders and cumulative usage arithmetic. Licensed automatic `Seq/Ni` remains externally BLOCKED. |
-| Validation status | PASS for JavaScript syntax, DOM-ID smoke, original 13.49 mm numeric reference, cumulative-usage arithmetic, no-network dependency smoke, production blob integrity and final five-file PR ledger. |
-| Current blocker | Exact licensed BPVC VIII-3 KD-2/KD-3 equations/fatigue curves and final production material/product data are not available. |
-| Exact next action | Engineering review of draft PR #437; future automatic KD work starts only after controlled VIII-3 data are supplied and independently benchmarked. |
+| Current stage | Stage 8 - KD-2 source integration - IN PROGRESS |
+| Engineering status | B31.3 class-side calculations and multi-cycle usage framework implemented. KD-2 source artifact is now available and is being integrated as a controlled stress-analysis/evidence gate. Automatic KD-3 `Seq/Ni` remains externally blocked. |
+| Validation status | Existing Stage 7 validation remains PASS. KD-2 source identity is confirmed by GitHub; exact source edition/year is not yet decoded from the protected binary PDF and must remain an explicit controlled field. |
+| Current blocker | Exact KD-2 edition/year and exact KD-2 stress-category/limit provisions have not been machine-decoded from the supplied PDF; KD-3 equations/fatigue curves are still absent. |
+| Exact next action | Add the KD-2 source/evidence package and pressure-only analytical stress tensor to the app, validate against K304.8.3 pressure stress, then resync this report. |
 
 ## Handover in 60 Seconds
 
-- The app now supports **multiple pressure-cycle blocks** rather than one global cycle.
-- Each block stores `Pmin`, `Pmax`, `Tmin`, `Tmax`, cycle-average `Syt` and `n`.
-- Every candidate wall × cycle block gets K304.8.3 `Sp(Pmin)`, `Sp(Pmax)`, `Delta Sp`, half-range descriptor and `2*Syt` gate.
-- Licensed `Seq`, `Ni`, KD source/calculation ID and evidence approval remain explicit controlled inputs.
-- The app calculates `Ui = ni/Ni` and cumulative `U = ΣUi` only from complete approved `Ni` evidence.
-- Authority placeholders now capture VIII-3 edition, material/product/tolerance sources, KD route, fatigue-curve ID, evidence package and fracture-mechanics/KD-4 review status/evidence.
-- Missing authority/KD/fracture evidence or any inelastic block prevents class-release eligibility.
-- No automatic KD fatigue curve/equation is embedded.
+- Scope remains **piping-class standardization only**.
+- Stage 7 already supports multiple pressure-cycle blocks, wall x cycle K304.8.3 calculations, manual licensed `Seq/Ni`, cumulative usage and fracture-mechanics placeholders.
+- New controlled KD-2 source supplied by user:
+  - repo: `reallaksh19/Common`
+  - commit: `4dd651abbc86310077eaace6caa8b6788c1a6697`
+  - PDF blob SHA: `8f20cd0dab683d28359e02207f6f65b834144ec9`
+- GitHub can identify/fetch the binary artifact but cannot decode its protected PDF text in the connector. **Do not infer the edition/year from a mirror.**
+- Stage 8 will add:
+  1. KD-2 source edition/year placeholder;
+  2. KD-2 analysis-route, stress-model, geometry/discontinuity and residual/prestress controls;
+  3. KD-2 stress-category/limit-check evidence ID and approval gate;
+  4. analytical pressure-only closed-end straight-pipe stress tensors for each wall x cycle block;
+  5. a check that analytical pressure-only `Delta SI` matches K304.8.3 `Delta Sp` for the reference case.
+- Stage 8 will **not** claim that the analytical tensor alone completes Article KD-2.
+- Automatic KD-3 `Seq` and `Ni` remain blocked until a controlled KD-3 source is supplied.
 
 ## Mission and Engineering Intent
 
-Scope remains **piping-class standardization only**. No routed-system CAESAR analysis, support/thermal flexibility, local FEA, HCF or final system Code acceptance.
-
-### Implemented Stage 7 behavior
-
-1. Controlled placeholders for BPVC VIII-3 edition/addenda, material spec/grade/condition, product specification, dimension/tolerance source, KD route, fatigue-curve ID and evidence package ID.
-2. Editable multiple pressure-cycle blocks with per-block cycle-average `Syt`.
-3. K304.8.3 pressure stress for every candidate wall × cycle block.
-4. Manual licensed `Seq`, `Ni`, KD source/evidence and approval per wall × cycle block.
-5. `Ui = ni/Ni` and cumulative `U = ΣUi` only from complete approved `Ni` evidence.
-6. Static, inelastic/special-route, KD-evidence, authority-metadata and fracture-mechanics review gates.
-7. Qualification-matrix CSV export.
+The tool standardizes bounded pressure-fatigue capacity for piping classes without claiming final routed-system fatigue acceptance.
 
 ### Engineering invariants
 
-- Static pressure design and fatigue qualification are separate gates.
-- Guaranteed/minimum dimensions and actual product tolerances are controlled inputs.
-- Preserve `Pmin`, `Pmax`, temperatures, material, wall, geometry and cycles by block.
-- K304.8.3 provides pressure stress; K304.8.2 hands detailed fatigue processing to BPVC VIII-3 KD-2/KD-3.
-- Per-block `Syt` is controlled at the applicable cycle-average temperature.
-- Missing evidence remains blocked.
-- `Delta Sp/2` is not automatically `Seq`.
-- Cumulative usage automation is arithmetic only; the app does not derive `Ni`.
+1. Static pressure design and fatigue qualification remain separate gates.
+2. Guaranteed/minimum dimensions and actual purchase tolerances are controlled inputs.
+3. Preserve `Pmin`, `Pmax`, temperature, wall, material and cycles by block.
+4. K304.8.3 pressure stress is a B31.3 input to the referenced fatigue route; it is not the final fatigue life result.
+5. No hidden/default KD authority.
+6. Missing evidence remains blocked.
+7. `Delta Sp/2` is not silently set equal to final `Seq`.
+8. A pressure-only analytical tensor for uniform straight pipe is an input/benchmark package, not automatic KD-2 approval.
+9. The exact edition/year of the supplied KD-2 source must be confirmed from the controlled source, not inferred from third-party mirrors.
 
-### Source control
+## Source Control
 
-- B31.3-2024 source: `reallaksh19/Common` commit `00f47512e96780ebab10416dcc9354f719346457`, PDF blob `3395ececce7731053dd0f6317008b4cd77446b78`.
-- Reporting protocol: `CodingRules.md` commit `43eccc27967ecec7d67513c08255398b496be5ce`.
+### B31.3-2024
+
+- repo: `reallaksh19/Common`
+- commit: `00f47512e96780ebab10416dcc9354f719346457`
+- PDF blob: `3395ececce7731053dd0f6317008b4cd77446b78`
+
+### BPVC VIII-3 Article KD-2
+
+- repo: `reallaksh19/Common`
+- commit: `4dd651abbc86310077eaace6caa8b6788c1a6697`
+- PDF blob: `8f20cd0dab683d28359e02207f6f65b834144ec9`
+- connector state: exact binary artifact identified; PDF text not decoded by connector.
+
+### Reporting protocol
+
+- `CodingRules.md` commit: `43eccc27967ecec7d67513c08255398b496be5ce`
 
 ## Mission Status
 
 | Work item | Priority | Status |
 |---|---|---|
-| K304.1.2 / K304.1.1 static calculations | HIGH | VALIDATED |
-| Eq. (35a) rating QA | HIGH | VALIDATED |
+| K304.1.1 / K304.1.2 static calculations | HIGH | VALIDATED |
+| Eq. (35a) pressure-rating QA | HIGH | VALIDATED |
 | Multiple pressure-cycle blocks | HIGH | IMPLEMENTED / VALIDATED |
-| Per-block `Syt` / 2Syt gate | HIGH | IMPLEMENTED / VALIDATED |
-| Wall × cycle K304.8.3 matrix | HIGH | IMPLEMENTED / VALIDATED |
-| Authority/material/product/KD placeholders | HIGH | IMPLEMENTED |
+| K304.8.3 wall x cycle matrix | HIGH | IMPLEMENTED / VALIDATED |
+| Per-block `Syt` / `2*Syt` gate | HIGH | IMPLEMENTED / VALIDATED |
 | Cumulative usage from controlled `Ni` | HIGH | IMPLEMENTED / VALIDATED |
-| Fracture-mechanics/KD-4 review placeholder | HIGH | IMPLEMENTED |
-| Automatic licensed `Seq/Ni` | HIGH | BLOCKED — external licensed data |
-| Controlled material/product libraries | MEDIUM | PLACEHOLDER / future |
-| CAESAR benchmark | LOW | DEFERRED / not required for class scope |
+| KD-2 source identity | HIGH | VALIDATED |
+| KD-2 source edition/year | HIGH | BLOCKED - confirm from controlled PDF |
+| KD-2 analytical pressure-state package | HIGH | IN PROGRESS |
+| KD-2 review/evidence gate | HIGH | IN PROGRESS |
+| Automatic licensed KD-3 `Seq/Ni` | HIGH | BLOCKED - source not supplied |
+| Material/product libraries | MEDIUM | PLACEHOLDER / future |
+| CAESAR benchmark | LOW | DEFERRED / outside current need |
 
 ## Engineering Item Register
 
@@ -80,77 +93,79 @@ Scope remains **piping-class standardization only**. No routed-system CAESAR ana
 | RISK-001 | release risk | CRITICAL | BLOCKED | Unsupported KD equation/curve would invalidate fatigue release. |
 | RISK-002 | release risk | HIGH | ACCEPTED | `Delta Sp/2` must not silently become final `Seq`. |
 | RISK-003 | release risk | HIGH | ACCEPTED | Nominal dimensions/default tolerance may be wrong for production release. |
-| RISK-004 | release risk | HIGH | MITIGATED | Stage 7 moved `Syt` from one global value to each cycle block. |
-| DEC-001 | decision | HIGH | ACCEPTED | Scope stops at piping-class standardization/class release. |
+| RISK-004 | release risk | HIGH | MITIGATED | `Syt` is controlled per pressure-cycle block. |
+| RISK-005 | source risk | HIGH | MITIGATED | KD-2 edition/year will remain user-controlled until confirmed from the supplied PDF; no mirror inference. |
+| DEC-001 | decision | HIGH | ACCEPTED | Scope stops at piping-class standardization/class release review. |
 | DEC-004 | decision | HIGH | ACCEPTED | No embedded fatigue curve/default `Seq/Ni`. |
-| DEC-005 | decision | HIGH | ACCEPTED | Automate cumulative usage only from user-supplied approved `Ni`. |
-| QST-001 | question | HIGH | BLOCKED | Exact VIII-3 edition. |
+| DEC-005 | decision | HIGH | ACCEPTED | Cumulative usage is arithmetic only from approved `Ni`. |
+| DEC-006 | decision | HIGH | ACCEPTED | Analytical Lame pressure tensors may be generated as KD-2 inputs for uniform straight pipe but do not constitute KD-2 approval. |
+| QST-001 | question | HIGH | PARTIAL | VIII-3 KD-2 source artifact supplied; edition/year still to confirm. |
 | QST-002 | question | HIGH | BLOCKED | Exact production material/fatigue category. |
-| QST-003 | question | HIGH | BLOCKED | Exact KD equivalent-alternating-stress provisions/factors. |
-| QST-004 | question | HIGH | BLOCKED | Exact KD fatigue curve/data for `Ni`. |
+| QST-003 | question | HIGH | BLOCKED | Exact KD-3 equivalent-alternating-stress provisions/factors. |
+| QST-004 | question | HIGH | BLOCKED | Exact KD-3 fatigue curve/data for `Ni`. |
 | QST-005 | question | MEDIUM | BLOCKED | Actual purchase-spec dimensions/tolerances. |
-| IMP-003 | improvement | HIGH | DONE | Multiple cycle blocks and wall × cycle matrix. |
-| IMP-004 | improvement | HIGH | DONE | Authority/material/product/KD placeholders. |
-| IMP-005 | improvement | HIGH | DONE | Cumulative usage from approved per-block `Ni`. |
-| IMP-006 | improvement | HIGH | DONE | Fracture-mechanics/KD-4 review placeholder gate. |
-| IMP-007 | improvement | MEDIUM | PLACEHOLDER | Controlled material library. |
-| IMP-008 | improvement | MEDIUM | PLACEHOLDER | Controlled product dimension/tolerance library. |
+| IMP-009 | improvement | HIGH | IN PROGRESS | KD-2 controlled source / analysis / evidence package. |
+| IMP-010 | improvement | HIGH | IN PROGRESS | Pressure-only analytical stress tensors and `Delta SI` benchmark. |
 
 ## Stage Execution Log
 
-### Stages 1–6
+### Stages 1-7
 
-Source validation, initial static tool, focused validation, draft PR publication and five-file ledger comparison: COMPLETE.
+Source validation, B31.3-2024 static/fatigue class calculations, multiple pressure-cycle blocks, controlled KD placeholders, cumulative usage, draft PR publication and five-file ledger validation: COMPLETE.
 
-### Stage 7 — Placeholder Expansion + Multi-cycle Coding
+### Stage 8 - KD-2 Source Integration
 
-Implementation completed in the same four production files plus this work report.
+**Source validation completed before production edits:**
 
-Validation results:
+- User-supplied KD-2 GitHub path resolved to the exact binary at commit `4dd651abbc86310077eaace6caa8b6788c1a6697`.
+- GitHub blob SHA: `8f20cd0dab683d28359e02207f6f65b834144ec9`.
+- Connector cannot decode protected binary PDF text; edition/year remains NOT_VALIDATED and is not inferred from external mirrors.
 
-- `node --check app.js`: PASS.
-- Static DOM-ID smoke: PASS; all static `byId()` references resolve.
-- No external `fetch`/XHR/script dependency: PASS.
-- Original 13.49 mm reference remains PASS:
-  - `t = 7.7103934983 mm`
-  - `tm = 10.7103934983 mm`
-  - required nominal `= 12.2404497124 mm`
-  - Eq.35a rating `= 23.0861208520 MPa`
-  - `Sp(2) = 14.0665546246 MPa`
-  - `Sp(20) = 140.6655462456 MPa`
-  - `Delta Sp = 126.5989916210 MPa`
-- Two-block arithmetic check: `500/120000 + 20000/250000 = 0.0841666667`: PASS.
-- Production Git blob integrity: PASS:
-  - `index.html` `70c8c6629694ed414f5cc403a02ba1dfc8d9695a`
-  - `app.js` `5d174365742222ff6c9570a0342bf56fe2667c1f`
-  - `styles.css` `1cacd55343ec5338a6d5c1426c2bbbd3e8d7af14`
-  - `README.md` `c5d512b5714a7b895c65456c4d5eb8d0849fe622`
-- Final GitHub PR changed-file comparison: PASS — exactly five controlled paths, all listed below.
+**Planned implementation:**
 
-**Stage decision: COMPLETE.**
+- Add KD-2 source/evidence controls to `index.html` / `app.js`.
+- Compute pressure-only closed-end elastic stress tensors for the uniform straight-pipe class case.
+- Display endpoint principal stresses and component ranges per wall x cycle block.
+- Calculate pressure-only `Delta SI` as a mechanics cross-check.
+- Require explicit KD-2 limit-check calculation ID and approval before class-release review eligibility.
+- Export KD-2 metadata/stress states in CSV.
+
+**Stage decision:** IN PROGRESS.
 
 ## Changed-File Ledger
 
-| File | Purpose | Validation |
-|---|---|---|
-| `agents/PR437_workreport.md` | Mission control/handover | PASS after final sync |
-| `engineering/hp-class-standardization/README.md` | Engineering basis/limits | PASS — blob above |
-| `engineering/hp-class-standardization/app.js` | Calculation/data/status behavior | PASS — blob above |
-| `engineering/hp-class-standardization/index.html` | Static UI | PASS — blob above |
-| `engineering/hp-class-standardization/styles.css` | Responsive/print presentation | PASS — blob above |
+Current PR remains intentionally limited to five paths:
+
+| File | Purpose |
+|---|---|
+| `agents/PR437_workreport.md` | Mission control / evidence / handover |
+| `engineering/hp-class-standardization/README.md` | Engineering basis and authority boundary |
+| `engineering/hp-class-standardization/app.js` | Calculation, evidence and status logic |
+| `engineering/hp-class-standardization/index.html` | Static UI |
+| `engineering/hp-class-standardization/styles.css` | Presentation |
+
+Stage 8 intends to update the report plus `README.md`, `app.js`, and `index.html`; no new production path is planned.
 
 ## Validation and Evidence Ledger
 
-Validated: syntax, original numeric reference, multiple-cycle data model, cumulative arithmetic, no-network/static-host constraint, committed source integrity and final PR file ledger.
+Existing validated reference (13.49 mm candidate):
 
-Still explicitly **NOT VALIDATED / NOT AUTOMATED**: production Table K-1/K-1C values, production temperature-dependent `Syt`, purchase-spec dimensions/tolerances, exact VIII-3 KD equations/curve, automatic `Seq`, automatic `Ni`, final PQ-A release.
+- pressure wall `t = 7.7103934983 mm`
+- `tm = 10.7103934983 mm`
+- required nominal `= 12.2404497124 mm`
+- Eq. (35a) rating `= 23.0861208520 MPa`
+- `Sp(2) = 14.0665546246 MPa`
+- `Sp(20) = 140.6655462456 MPa`
+- `Delta Sp = 126.5989916210 MPa`
 
-# Appendix A — Next-Agent Handover
+Stage 8 acceptance target: analytical pressure-only `Delta SI` shall reproduce `Delta Sp` for the same uniform straight-pipe pressure cycle within numerical precision.
 
-PR #437 is ready for engineering review in its Stage 7 form. The next engineering-authority step is not more UI work; it is obtaining the exact licensed VIII-3 edition/material route and independently closing one `Seq -> Ni -> usage` reference case before any automatic KD implementation.
+# Appendix A - Next-Agent Handover
 
-Do not reintroduce actual-system analysis; do not revert to the older `1.155 P/S`; do not embed a generic fatigue curve; do not assume `Delta Sp/2 == Seq`; do not replace per-block `Syt` with one global default.
+Current work is Stage 8. The KD-2 source artifact is known, but its edition/year is not machine-validated. Do not infer it. Implement only source/evidence controls and analytical pressure-state inputs until exact KD-2 provisions are confirmed.
 
-# Appendix B — Handover Data Request
+Do not reintroduce actual-system analysis. Do not embed generic KD equations. Do not claim that Lame pressure tensors alone satisfy KD-2. Do not change the B31.3-2024 formulas or per-block `Syt` basis without source evidence.
 
-Future KD-authority extension requires: exact VIII-3 edition/addenda; material spec/grade/form/condition; approved Table K-1/K-1C and temperature-dependent `Syt`; purchase-spec maximum dimensions/wall tolerance; `ci/co`; every `Pmin/Pmax/Tmin/Tmax/n` block; applicable KD stress route/equations; associated mean/equivalent alternating-stress provisions; penalty/modulus/plasticity corrections; design-fatigue curve/data; interpolation/limits/cumulative rule; independent calculation/check/approval evidence.
+# Appendix B - Remaining Data Request
+
+Still required for automatic fatigue closure: exact VIII-3 edition/addenda; confirmed KD-2 edition/year; exact KD-2 stress-category/limit requirements; material spec/grade/form/condition; approved B31.3 material properties; purchase-spec dimensions/tolerances; exact KD-3 mean/equivalent stress provisions; fatigue curve/data/interpolation/limits; independent checker/approval evidence.
