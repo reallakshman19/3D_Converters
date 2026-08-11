@@ -9,19 +9,10 @@ The application is organized as an engineering qualification workflow instead of
 1. **Design Basis** — Code, material/product identity, dimensions, allowances and pressure-design inputs.
 2. **Static Wall** — K304.1.1/K304.1.2 pressure-wall requirement, Eq. (35a) rating QA and candidate-wall pass/fail.
 3. **Pressure Cycles** — editable `Pmin`, `Pmax`, `Tmin`, `Tmax`, cycle-average `Syt` and lifetime `n`.
-4. **KD Qualification** — KD-2 stress-analysis package plus controlled KD-3 `Seq`/`Ni` evidence and cumulative usage.
+4. **KD Qualification** — KD-2 stress-analysis package plus source-controlled KD-3 fatigue evidence and cumulative usage.
 5. **Class Envelope** — candidate-wall summary and bounded class-release review status.
 
 A persistent reviewer rail shows the current Code path, evidence completeness and exact release blockers.
-
-### Visual authority convention
-
-- **Calculated** results: normal/blue result cards.
-- **Engineer-controlled inputs**: amber input zones.
-- **Licensed / approval evidence**: purple evidence zones.
-- **Blocking / special routes**: grey, amber or red status indicators.
-
-This separation is deliberate: the application must never make an assumed value look like a Code-calculated result.
 
 ## Scope
 
@@ -31,21 +22,21 @@ Implemented:
 - K304.1.1 allowance addition and selected minimum-wall comparison.
 - Eq. (35a) inverse pressure-rating QA.
 - Multiple pressure-cycle blocks.
-- K304.8.3 Eq. (37) pressure stress for every candidate wall × cycle block.
+- K304.8.3 Eq. (37) pressure stress for every candidate wall x cycle block.
 - Per-block `2*Syt` elastic/inelastic gate.
 - Analytical closed-end pressure-only straight-pipe stress states (`sigma_z`, `sigma_theta`, `sigma_r`) for the controlled KD-2 package.
 - Pressure-only `Delta SI` mechanics benchmark.
 - Controlled KD-2 source/route/limit-check/approval fields.
+- Controlled KD-3 source identity, source-edition verification and project-edition compatibility gate.
 - Controlled KD-3 `Seq`, `Ni`, source/calculation ID and evidence approval fields.
-- `Ui = ni/Ni` and cumulative `U = ΣUi` arithmetic only from complete approved `Ni` evidence.
+- `Ui = ni/Ni` and cumulative `U = sum(Ui)` arithmetic only from complete approved `Ni` evidence.
 - Fracture-mechanics/KD-4 review/evidence gate.
 - Qualification CSV export and print.
-- Workflow navigation and dynamic evidence/release-blocker rail.
 
 Not implemented:
 
-- embedded licensed KD-3 mean-stress / equivalent alternating-stress equations;
-- embedded licensed design fatigue curves or automatic `Ni`;
+- automatic KD-3 mean-stress/equivalent alternating-stress equations;
+- embedded KD-3 design fatigue curves or automatic `Ni`;
 - automatic KD-2 edition-specific stress-category/limit logic;
 - routed-system/CAESAR analysis;
 - local FEA;
@@ -56,16 +47,7 @@ Not implemented:
 
 B31.3-2024 K304.8.2 sends detailed fatigue processing to BPVC Section VIII Division 3 KD-2/KD-3.
 
-The application therefore does **not**:
-
-- silently set `Delta Sp/2 = Seq`;
-- invent a KD-3 fatigue curve;
-- derive `Ni` from generic data;
-- infer the KD-2 edition/year from a third-party mirror;
-- treat analytical Lamé pressure tensors as automatic KD-2 approval;
-- automatically declare PQ-A or final Code acceptance.
-
-Missing evidence remains visibly blocked.
+The application therefore does **not** silently set `Delta Sp/2 = Seq`, invent a fatigue curve, derive `Ni` from generic data, infer a KD source edition from an unrelated mirror, or automatically declare class release.
 
 ## Controlled source identity
 
@@ -82,7 +64,17 @@ Missing evidence remains visibly blocked.
 - PDF blob SHA: `8f20cd0dab683d28359e02207f6f65b834144ec9`
 - edition/year remains an explicit controlled field until confirmed from the source.
 
-Exact licensed Code text and approved project data control.
+### BPVC VIII-3 Article KD-3
+
+- repository: `reallaksh19/Common`
+- commit: `f4d49f2a47d970ae0abf913b537193e324556177`
+- path: `kd-3.pdf`
+- PDF blob SHA: `e6abaddb7833eb0a61c9460ae39201e2252dc596`
+- size: `1179548` bytes
+
+The application requires the KD-3 source edition/year to be explicitly confirmed. If the confirmed KD-3 source edition does not match the entered project BPVC VIII-3 edition/addenda string, class-release review is blocked as an edition mismatch.
+
+This is deliberate: KD-3 has changed across Division 3 editions, so a source must not be silently applied to a different project edition.
 
 ## Equations currently implemented
 
@@ -154,9 +146,7 @@ Production calculations must replace all demonstration material/dimensional inpu
 
 ## Running
 
-No build step or package installation is required.
-
-Open `index.html` directly, or serve the directory using any static host / GitHub Pages. All assets are local:
+No build step or package installation is required. Open `index.html` directly, or serve the directory using a static host / GitHub Pages. All assets are local:
 
 ```text
 index.html
@@ -171,8 +161,16 @@ Minimum focused validation after any engineering or UI change:
 
 1. `node --check app.js`
 2. `node --check ui.js`
-3. Verify the Stage 8 reference values above.
-4. Verify blank KD-2/KD-3/fracture evidence remains visibly blocked.
-5. Verify navigation preserves all input/calculation state.
-6. Verify there are no external scripts, libraries, API calls, `fetch` or XHR dependencies.
-7. Verify CSV export remains available from the Class Envelope step.
+3. Verify the reference values above.
+4. Verify blank KD-2/KD-3/fracture evidence remains blocked.
+5. Verify an unconfirmed KD-3 source edition remains blocked.
+6. Verify a KD-3/project VIII-3 edition mismatch is a special/blocking route.
+7. Verify navigation preserves all input/calculation state.
+8. Verify no external scripts, libraries, API calls, `fetch` or XHR dependencies are introduced.
+9. Verify CSV export includes the controlled KD-3 commit/blob/source-edition fields.
+
+## Current KD-3 closure state
+
+The exact user-supplied KD-3 binary is now source-locked in the app, but its text was not decoded by the GitHub connector. A temporary GitHub Actions extraction attempt did not start in the repository environment, and the temporary workflow was removed afterward.
+
+Therefore automatic `Seq` and automatic fatigue-curve `Ni` remain disabled until the supplied source edition and the exact applicable KD-3 provisions/curve are independently verified for the selected project edition and material route.
