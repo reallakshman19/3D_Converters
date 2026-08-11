@@ -5,6 +5,12 @@ const KD2_SOURCE = Object.freeze({
   blob: '8f20cd0dab683d28359e02207f6f65b834144ec9',
 });
 
+const KD3_SOURCE = Object.freeze({
+  commit: 'f4d49f2a47d970ae0abf913b537193e324556177',
+  blob: 'e6abaddb7833eb0a61c9460ae39201e2252dc596',
+  size: 1179548,
+});
+
 const DEFAULTS = Object.freeze({
   diameter: 114.3,
   designPressure: 20,
@@ -100,6 +106,8 @@ function authorityState() {
     kdRoute: byId('kdRoute').value.trim(),
     fatigueCurveId: byId('fatigueCurveId').value.trim(),
     evidencePackage: byId('evidencePackage').value.trim(),
+    kd3SourceEdition: byId('kd3SourceEdition').value.trim(),
+    kd3SourceConfirmed: Boolean(byId('kd3SourceConfirmed').checked),
     fractureStatus: byId('fractureStatus').value,
     fractureEvidence: byId('fractureEvidence').value.trim(),
     kd2Edition: byId('kd2Edition').value.trim(),
@@ -131,6 +139,19 @@ function kd2Gate(authority) {
   if (!authority.kd2LimitCalcId) return { ok: false, label: 'KD-2 limit-check ID required', css: 'blocked' };
   if (!authority.kd2Approved) return { ok: false, label: 'KD-2 approval pending', css: 'blocked' };
   return { ok: true, label: 'KD-2 package approved', css: 'good' };
+}
+
+function normalizedEdition(value) {
+  return String(value || '').toLowerCase().replace(/[^0-9a-z]/g, '');
+}
+
+function kd3SourceGate(authority) {
+  if (!authority.kd3SourceEdition) return { ok: false, label: 'KD-3 source edition unconfirmed', css: 'blocked' };
+  if (!authority.kd3SourceConfirmed) return { ok: false, label: 'KD-3 source verification pending', css: 'blocked' };
+  const project = normalizedEdition(authority.viii3Edition);
+  const source = normalizedEdition(authority.kd3SourceEdition);
+  if (project && source && project !== source) return { ok: false, label: 'KD-3 / project VIII-3 edition mismatch', css: 'warn' };
+  return { ok: true, label: 'KD-3 source verified', css: 'good' };
 }
 
 function fractureGate(authority) {
@@ -339,6 +360,8 @@ function wallStatus(input, wall) {
   if (!wall.pass) return { label: 'Static fail', css: 'bad', cumulative: NaN, kdCount: 0, allKd: false, anyInelastic: false };
   const kd2 = kd2Gate(input.authority);
   if (!kd2.ok) return { label: kd2.label, css: kd2.css, cumulative: NaN, kdCount: 0, allKd: false, anyInelastic: false };
+  const kd3Source = kd3SourceGate(input.authority);
+  if (!kd3Source.ok) return { label: kd3Source.label, css: kd3Source.css, cumulative: NaN, kdCount: 0, allKd: false, anyInelastic: false };
 
   const results = currentMatrix.filter((row) => row.wall === wall.tNominal);
   const anyInelastic = results.some((row) => !row.elastic);
@@ -426,6 +449,8 @@ function loadReferenceExample() {
   byId('kdRoute').value = '';
   byId('fatigueCurveId').value = '';
   byId('evidencePackage').value = '';
+  byId('kd3SourceEdition').value = '';
+  byId('kd3SourceConfirmed').checked = false;
   byId('fractureStatus').value = 'unassessed';
   byId('fractureEvidence').value = '';
   byId('kd2Edition').value = '';
@@ -453,6 +478,7 @@ function downloadCsv() {
   const headers = [
     'b31_edition','viii3_edition','material_spec','material_grade','product_spec','tolerance_source',
     'kd2_source_commit','kd2_source_blob','kd2_source_edition','kd2_analysis_method','kd2_stress_model','kd2_geometry','kd2_residual','kd2_limit_calc_id','kd2_approved',
+    'kd3_source_commit','kd3_source_blob','kd3_source_size_bytes','kd3_source_edition','kd3_source_confirmed',
     'kd3_route','fatigue_curve_id','evidence_package','fracture_status','fracture_evidence',
     'nominal_wall_mm','minimum_T_mm','static_pass','cycle_id','cycle_name','Pmin_MPa','Pmax_MPa','Tmin_C','Tmax_C','avg_T_C','Syt_MPa','cycles_n',
     'effective_T_minus_c_mm','sigma_z_Pmin_MPa','sigma_z_Pmax_MPa','sigma_theta_Pmin_MPa','sigma_theta_Pmax_MPa','sigma_r_Pmin_MPa','sigma_r_Pmax_MPa',
@@ -468,6 +494,7 @@ function downloadCsv() {
     return [
       a.b31Edition,a.viii3Edition,a.materialSpec,a.materialGrade,a.productSpec,a.toleranceSource,
       KD2_SOURCE.commit,KD2_SOURCE.blob,a.kd2Edition,a.kd2AnalysisMethod,a.kd2StressModel,a.kd2Geometry,a.kd2Residual,a.kd2LimitCalcId,a.kd2Approved,
+      KD3_SOURCE.commit,KD3_SOURCE.blob,KD3_SOURCE.size,a.kd3SourceEdition,a.kd3SourceConfirmed,
       a.kdRoute,a.fatigueCurveId,a.evidencePackage,a.fractureStatus,a.fractureEvidence,
       result.wall,wall.T,wall.pass,cycle.id,cycle.name,cycle.pMin,cycle.pMax,cycle.tMin,cycle.tMax,result.averageT,result.syt,result.n,
       result.effective,result.stateMin.axial,result.stateMax.axial,result.stateMin.hoop,result.stateMax.hoop,result.stateMin.radial,result.stateMax.radial,
@@ -507,7 +534,7 @@ byId('fatigueBody').addEventListener('input', () => lastInput && updateUsageAndC
 byId('fatigueBody').addEventListener('change', () => lastInput && updateUsageAndClassSummary({ ...lastInput, authority: authorityState() }));
 [
   'viii3Edition','materialSpec','materialGrade','productSpec','toleranceSource','kdRoute','fatigueCurveId','evidencePackage',
-  'fractureStatus','fractureEvidence','kd2Edition','kd2AnalysisMethod','kd2StressModel','kd2Geometry','kd2Residual','kd2LimitCalcId','kd2Approved'
+  'kd3SourceEdition','kd3SourceConfirmed','fractureStatus','fractureEvidence','kd2Edition','kd2AnalysisMethod','kd2StressModel','kd2Geometry','kd2Residual','kd2LimitCalcId','kd2Approved'
 ].forEach((id) => {
   byId(id).addEventListener('input', () => {
     if (!lastInput) return;
