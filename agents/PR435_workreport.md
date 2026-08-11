@@ -9,28 +9,28 @@
 | PR number | #435 |
 | Branch | `agent/engineering-calc-core` |
 | Base commit | `7a05c78413592dade410595775a9b0f7dd104bf0` |
-| Current HEAD | report synchronization in progress; update after pending-file removal |
+| Current HEAD | report synchronization stage; permanent report exists, pending-path cleanup is next |
 | PR status | OPEN / DRAFT |
 | Current stage | Stage 3 — Changed-file / repository-state verification |
 | Last completed stage | Stage 2 — PR allocation + report synchronization |
 | Engineering status | Contract frozen; production core not yet changed |
 | Validation status | Contract/CodingRules inspection PASS; production tests NOT_RUN |
 | Current blocker | None for central core. Family kernels #428–#434 remain qualification-gated. |
-| Exact next action | Remove `PR_PENDING` report, reconcile the branch to one report file, inspect current domain API shapes/tests, then record Stage 3 before production implementation. |
+| Exact next action | Remove `agents/PR_PENDING_workreport.md`, verify PR changed files, inspect exact current domain APIs/tests, then implement Stage 4. |
 
 ### Handover in 60 Seconds
 
-**What is now true:** PR #435 exists from `agent/engineering-calc-core` to `main`. `engineering-calculation-contract/v1` is the frozen authority. No production file has been changed yet.
+**What is now true:** PR #435 exists from `agent/engineering-calc-core` to `main`; the permanent living report is `agents/PR435_workreport.md`; no production file has been changed.
 
-**What is being worked on:** changed-file baseline verification and report filename synchronization.
+**What is being worked on:** changed-file baseline verification and cleanup of the temporary pending report path.
 
-**What remains unfinished:** registry, engine, unit/validation/provenance/qualification helpers, B31.3 adapter, empirical-weight adapter, default registry/public API, batch/Sandbox, focused tests, final reconciliation.
+**What remains unfinished:** registry, engine, units, validation/provenance/qualification helpers, B31.3 adapter, empirical-weight adapter, default registry/API, batch/Sandbox, tests, final reconciliation.
 
-**What must not be assumed:** #428–#434 authorize numerical FIV/AIV/trunnion/etc. methods. They do not. A placeholder may only be explicitly unavailable and may never emit plausible zeros or PASS/FAIL.
+**What must not be assumed:** family issues #428–#434 authorize numerical methods. They do not. A placeholder may only be explicitly unavailable and may never emit plausible zeros or PASS/FAIL.
 
-**Highest-risk remaining item:** `RISK-001` — a central wrapper could accidentally reinterpret domain outputs or manufacture authority.
+**Highest-risk remaining item:** `RISK-001` — central orchestration could accidentally reinterpret domain outputs or manufacture engineering authority.
 
-**Exact next action:** finish Stage 3 repository/API verification, then implement registry/contract primitives.
+**Exact next action:** remove the pending report, verify the clean baseline, then inspect exact production API signatures/test patterns.
 
 ---
 
@@ -79,15 +79,15 @@ A caller should be able to invoke existing B31.3 or empirical weight through one
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---|---|
-| Work report initialized | P0 | DONE | 1 | Original `PR_PENDING` report |
-| PR allocation + report synchronization | P0 | DONE | 2 | PR #435 + this file |
-| Changed-file/API baseline verification | P0 | IN_PROGRESS | 3 | Pending reconciliation |
+| Work report initialized | P0 | DONE | 1 | `e298b3c...` |
+| PR allocation + permanent report | P0 | DONE | 2 | PR #435; `agents/PR435_workreport.md` |
+| Changed-file/API baseline verification | P0 | IN_PROGRESS | 3 | Pending-path cleanup and API inspection |
 | Registry + contract primitives | P0 | NOT_STARTED | 4 | Pending |
 | Engine + immutable result orchestration | P0 | NOT_STARTED | 5 | Pending |
 | B31.3 production adapter | P0 | NOT_STARTED | 6 | Pending |
 | Empirical-weight production adapter | P0 | NOT_STARTED | 6 | Pending |
 | Default API + batch/Sandbox | P0 | NOT_STARTED | 7 | Pending |
-| Qualification-pending catalogue placeholders | P1 | NOT_STARTED | 7 | Conditional; explicit unavailable only |
+| Qualification-pending catalogue placeholders | P1 | NOT_STARTED | 7 | Conditional; unavailable only |
 | Focused validation | P0 | NOT_STARTED | 8 | Pending |
 | Final reconciliation / closure state | P0 | NOT_STARTED | 9 | Pending |
 
@@ -98,17 +98,17 @@ A caller should be able to invoke existing B31.3 or empirical weight through one
 | ID | Type | Severity/Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
 | DEC-001 | Decision | P0 | ACCEPTED | Central engine contains orchestration only; formulas remain in domain APIs. | Yes |
-| DEC-002 | Decision | P0 | ACCEPTED | Existing B31.3 and empirical-weight APIs are the first real registry consumers. | Yes |
+| DEC-002 | Decision | P0 | ACCEPTED | Existing B31.3 and empirical-weight APIs are first real registry consumers. | Yes |
 | DEC-003 | Decision | P0 | ACCEPTED | Qualification-gated placeholders may only fail closed; no numerical placeholder outputs. | Conditional |
 | RISK-001 | Risk | High | ACCEPTED | Central result mapping could reinterpret domain outputs/authority. Use thin adapters + parity tests. | Yes |
-| RISK-002 | Risk | High | ACCEPTED | Generic unit conversion can corrupt gauge/absolute and unit-native empirical semantics. Use declared conversions and adapter-specific boundaries. | Yes |
-| RISK-003 | Risk | Medium | ACCEPTED | Hidden registry mutation can make construction nondeterministic. Use explicit construction/default registry factory. | Yes |
-| QST-001 | Question | P1 | INVESTIGATING | B31.3 central definition should preserve `PIPE.B313.THICKNESS` identity while optionally composing material factors/wall selection without creating a second formula. | Yes |
-| IMP-001 | Improvement | P1 | DEFERRED | Full Engineering Calculation Console UI should follow as separate PR. | No |
-| DEBT-001 | Debt | P2 | ACCEPTED | Unavailable family metadata may exist only if consumed by the default catalogue/API and clearly qualification-pending. | Conditional |
+| RISK-002 | Risk | High | ACCEPTED | Generic unit conversion can corrupt gauge/absolute or unit-native empirical semantics. Use declared conversions/adapter boundaries. | Yes |
+| RISK-003 | Risk | Medium | ACCEPTED | Hidden registry mutation can make construction nondeterministic. Use explicit registry construction/default factory. | Yes |
+| QST-001 | Question | P1 | INVESTIGATING | Preserve `PIPE.B313.THICKNESS` identity while optionally composing material-factor/wall-selection functionality without duplicating formula authority. | Yes |
+| IMP-001 | Improvement | P1 | DEFERRED | Full Engineering Calculation Console UI follows as a separate PR. | No |
+| DEBT-001 | Debt | P2 | ACCEPTED | Unavailable family metadata may exist only if consumed by catalogue/API and visibly qualification-pending. | Conditional |
 
 ### RISK-001 closure requirement
-Direct domain calls and central calls must match engineering outputs for retained reference cases. Central orchestration may add metadata/provenance but must not change the numerical kernel result or infer design authority from `ok`/PASS.
+Direct domain calls and central calls must match engineering outputs for retained reference cases. Central orchestration may add metadata/provenance but must not change numerical results or infer design authority from `ok`/PASS.
 
 ---
 
@@ -117,14 +117,14 @@ Direct domain calls and central calls must match engineering outputs for retaine
 | Stage | Status | Purpose | Primary Output | Commit |
 |---|---|---|---|---|
 | 1 | COMPLETE | Report initialization + technical findings | `agents/PR_PENDING_workreport.md` | `e298b3c...` |
-| 2 | COMPLETE | PR allocation + report synchronization | PR #435 + `agents/PR435_workreport.md` | synchronization commits |
-| 3 | IN_PROGRESS | Changed-file / repository-state verification | Clean report-only baseline + current domain API/test inventory | pending |
+| 2 | COMPLETE | PR allocation + report synchronization | PR #435 + permanent report | synchronization commits |
+| 3 | IN_PROGRESS | Changed-file / repository-state verification | Clean report-only baseline + current API/test inventory | pending |
 | 4 | NOT_STARTED | Contract primitives + deterministic registry | constants/errors/units/qualification/registry | pending |
-| 5 | NOT_STARTED | Central engine | canonical resolve/validate/calculate/result-freeze path | pending |
+| 5 | NOT_STARTED | Central engine | canonical resolve/validate/calculate/result-freeze | pending |
 | 6 | NOT_STARTED | Real production adapters | B31.3 + empirical-weight definitions | pending |
-| 7 | NOT_STARTED | Public default API + batch/Sandbox | complete v1 public surface | pending |
+| 7 | NOT_STARTED | Public default API + batch/Sandbox | complete v1 surface | pending |
 | 8 | NOT_STARTED | Focused tests/validation | contract/parity/failure/batch/immutability evidence | pending |
-| 9 | NOT_STARTED | Reconciliation + closure state | final report and GitHub file reconciliation | pending |
+| 9 | NOT_STARTED | Reconciliation + closure state | final report + GitHub file reconciliation | pending |
 
 ---
 
@@ -132,45 +132,45 @@ Direct domain calls and central calls must match engineering outputs for retaine
 
 ### Stage 1 — Report initialization + technical findings
 
-**Before stage:** v1 contract and roadmap were merged; no central runtime existed.  
-**Objective:** establish technical truth and implementation stages before production edits.  
-**Scope:** contract, coding rules, existing domain API boundaries, report only.  
-**Engineering rationale:** first central PR must have real production consumers and must not become speculative infrastructure.  
-**Planned validation:** confirm `main` SHA; inspect contract and Common CodingRules.
+**Before stage:** v1 contract/roadmap were merged; no central runtime existed.  
+**Objective:** establish technical truth/stages before production edits.  
+**Scope:** contract, coding rules, domain API boundaries, report only.  
+**Rationale:** the first central PR must have real consumers and cannot be speculative infrastructure.  
+**Validation plan:** confirm `main`; inspect contract/Common CodingRules.
 
 **After stage:**
-- Initialized living report before production edits.
-- Confirmed `main` at `7a05c78413592dade410595775a9b0f7dd104bf0`.
-- Inspected `engineering-calculation-contract/v1` and Common CodingRules.
-- Recorded DEC/RISK/QST/IMP/DEBT items.
-- Production code remained untouched.
-- **Decision:** COMPLETE.
+- Living report initialized before production edits.
+- `main` confirmed at `7a05c78413592dade410595775a9b0f7dd104bf0`.
+- Contract v1 and Common CodingRules inspected.
+- DEC/RISK/QST/IMP/DEBT items recorded.
+- Production untouched.
+- **Stage decision:** COMPLETE.
 
 ### Stage 2 — PR allocation + report synchronization
 
-**Before stage:** branch contained only `agents/PR_PENDING_workreport.md`; no PR number.  
-**Objective:** allocate PR and move the living report to its permanent filename.  
-**Scope:** GitHub PR metadata + report filename/content only.  
-**Engineering rationale:** handover must remain durable before implementation begins.  
-**Planned validation:** verify PR number/head/base and ensure no production file enters the diff.
+**Before stage:** branch had only the pending report; PR number absent.  
+**Objective:** allocate PR and establish permanent report path.  
+**Scope:** PR metadata + report only.  
+**Rationale:** handover must be durable before implementation.  
+**Validation plan:** verify PR/head/base and production remains untouched.
 
 **After stage:**
-- Draft PR #435 created from `agent/engineering-calc-core` to `main`.
-- Permanent report created as `agents/PR435_workreport.md`.
-- Old pending report removal is the first action of Stage 3 reconciliation.
-- **Decision:** COMPLETE.
+- Draft PR #435 created, base `main`, branch `agent/engineering-calc-core`.
+- Permanent report `agents/PR435_workreport.md` created.
+- Temporary pending report scheduled for removal as Stage 3's first reconciliation action.
+- **Stage decision:** COMPLETE.
 
 ### Stage 3 — Changed-file / repository-state verification
 
 **Before stage**
-- **Current truth:** no production changes; two report paths temporarily exist during rename.
-- **Objective:** remove pending report and inspect exact current B31.3/empirical APIs, test conventions, and module layout before designing implementation files.
-- **Expected scope/files:** report rename reconciliation; read-only inspection of `converters/b313-*`, `converters/empirical-weight/`, existing tests/package conventions.
-- **Engineering rationale:** adapters must map real current APIs, not remembered signatures.
-- **Planned implementation:** no production edits until this stage is recorded complete.
-- **Expected behavior:** branch returns to exactly one changed report file.
-- **Edge cases:** B31.3 material-design wrapper may have different qualification semantics than thickness-only; empirical exact lookup/A1/A2 final estimates must remain distinguishable.
-- **Planned validation:** GitHub changed-file comparison; inspect exact exports and test runner patterns.
+- **Current truth:** production untouched; permanent and pending report paths temporarily coexist.
+- **Objective:** remove pending report and inspect exact current B31.3/empirical APIs, test conventions, and module layout.
+- **Expected scope/files:** report rename cleanup; read-only inspection of `converters/b313-*`, `converters/empirical-weight/`, tests/package conventions.
+- **Engineering rationale:** adapters must map current APIs, not remembered signatures.
+- **Planned implementation:** no production edits until this stage completes.
+- **Expected behavior:** branch returns to one report-only changed file before Stage 4.
+- **Edge cases:** B31.3 material-design qualification differs from thickness-only; empirical exact/A1/A2/final estimates must remain distinguishable.
+- **Planned validation:** GitHub changed-file comparison; exact export/test inspection.
 - **Known risks:** stale assumptions from earlier PRs.
 
 ---
@@ -187,22 +187,20 @@ Direct domain calls and central calls must match engineering outputs for retaine
 ## 6. Engineering Decisions and Invariants
 
 ### DEC-001 — Orchestration is not engineering authority
-**Must remain true:** central engine contains no domain equations and does not reinterpret calculator outputs.  
-**Enforcement:** calculator definitions call domain APIs; engine only performs common orchestration.  
-**Validation:** source inspection + direct-vs-central parity.
+Central engine contains no domain equations and does not reinterpret calculator outputs. Registered definitions call domain APIs. Validate with source inspection + direct-vs-central parity.
 
 ### DEC-002 — Existing APIs remain first-class
-Direct B31.3 and empirical-weight APIs stay supported. Central execution reuses them.
+Direct B31.3 and empirical APIs remain supported. Central execution reuses them.
 
 ### DEC-003 — Placeholder means unavailable
-Pending family definitions, if registered, return stable `ENGINEERING_METHOD_NOT_QUALIFIED`/`ENGINEERING_METHOD_BLOCKED` errors, no plausible outputs, no PASS.
+Pending family definitions, if registered, return stable `ENGINEERING_METHOD_NOT_QUALIFIED`/`ENGINEERING_METHOD_BLOCKED`, no plausible outputs, no PASS.
 
 ### Additional invariants
 - Results are immutable snapshots.
-- Batch invokes the same single-execution path for each item.
+- Batch invokes the same single-execution path.
 - Sandbox invokes the same definition/kernel.
-- Input/context objects are not mutated.
-- `designAuthority` is explicit and never inferred from numerical success.
+- Caller input/context are not mutated.
+- `designAuthority` is explicit and never inferred from success.
 
 ---
 
@@ -214,9 +212,9 @@ Pending family definitions, if registered, return stable `ENGINEERING_METHOD_NOT
 |---|---|---|---|
 | Contract inspection | PASS | base `7a05c784...` | `docs/APIEngineeringCalcContracts.md` |
 | Common CodingRules inspection | PASS | `Common/main` | `CodingRules.md` |
-| PR allocation | PASS | `e298b3c...` | PR #435 created |
+| PR allocation | PASS | report-init head | PR #435 |
 | Branch changed-file baseline | NOT_RUN | current | Stage 3 pending |
-| Production tests | NOT_RUN | N/A | No production changes yet |
+| Production tests | NOT_RUN | N/A | No production changes |
 
 ### Engineering Validation
 
@@ -228,9 +226,7 @@ Pending family definitions, if registered, return stable `ENGINEERING_METHOD_NOT
 | Qualification fail-closed behavior | NOT_RUN | Await implementation |
 
 ### Explicitly Not Validated
-- FIV/AIV/trunnion/relief/equipment/flange/hazard numerical methods.
-- Any promotion of engineering authority.
-- Full Console UI.
+FIV/AIV/trunnion/relief/equipment/flange/hazard methods; any authority promotion; full Console UI.
 
 ---
 
@@ -238,48 +234,33 @@ Pending family definitions, if registered, return stable `ENGINEERING_METHOD_NOT
 
 Open risks: RISK-001/002/003. Open question: QST-001. Deferred UI: IMP-001.
 
-Recommended sequence after this PR: Engineering Calculation Console → resolve #428–#434 → implement selected vertical family calculators one at a time.
+Forward sequence after this PR: Engineering Calculation Console → resolve #428–#434 → implement selected qualified vertical family calculators.
 
 ---
 
 ## 9. Current State vs History
-
-Mission Control, status/register/roadmap/ledgers/handover are living sections. Stage Execution Log and closure evidence are historical.
-
----
+Living sections above are rewritten to latest truth; stage log/closure evidence are append-only.
 
 ## 10. Process Notes / Lessons Learned
-
-- A framework-only central registry violates the v1 freeze; B31.3 and empirical weight must execute through it in this PR.
-- Legacy/qualification-pending placeholders may advertise unavailability only; they cannot become pseudo-engineering kernels.
-
----
+- A framework-only registry violates v1; B31.3 and empirical must execute through it in this PR.
+- Qualification-pending placeholders may advertise unavailability only; never pseudo-engineering outputs.
 
 ## 11. Commit and PR Rules
-
-One PR; report updated before meaningful commits; no CI workflow additions; no merge without Owner instruction.
-
----
+One PR; report before meaningful commits; no CI workflow additions; no merge without Owner instruction.
 
 ## 12. Unexpected Findings / Stop Conditions
-
-Any finding requiring B31.3 equation changes, empirical algorithm changes, or unresolved family engineering-method changes is registered and deferred/blocked rather than silently broadened.
-
----
+Findings requiring changes to domain formulas or unresolved family methods are registered and deferred/blocked rather than silently broadened.
 
 ## 13. Coding Rules Applied
-
-Named exports; focused modules; no hidden globals/silent fallback data/unused abstractions/broad refactor/speculative production behavior; authority boundaries explicit.
-
----
+Named exports; focused modules; no hidden globals/silent fallback data/unused abstractions/broad refactor/speculative behavior; explicit authority boundaries.
 
 ## 14. Action-First Delivery Gate
 
 ```text
 central public API
 → deterministic registry/engine
-→ real B31.3 + empirical-weight adapters
-→ executable single/Sandbox/batch
+→ real B31.3 + empirical adapters
+→ single/Sandbox/batch
 → focused parity/failure tests
 ```
 
@@ -290,17 +271,17 @@ Framework-only metadata is not completion.
 ## Next-Agent Handover
 
 - **Current stopping point:** Stage 2 complete; Stage 3 active.
-- **PR / branch / HEAD:** #435 / `agent/engineering-calc-core` / report synchronization commits in progress.
+- **PR / branch / HEAD:** #435 / `agent/engineering-calc-core` / report synchronization in progress.
 - **Last completed stage:** Stage 2.
 - **Current active stage:** Stage 3.
-- **Start here:** remove `agents/PR_PENDING_workreport.md`, compare PR changed files, then inspect exact B31.3/empirical exports and current test conventions.
+- **Start here:** remove `agents/PR_PENDING_workreport.md`, compare PR changed files, inspect exact B31.3/empirical exports/test conventions.
 - **Do not redo:** contract/CodingRules baseline inspection or PR allocation.
 - **Do not assume:** #428–#434 authorize family kernels.
-- **Files currently involved:** two report paths only until rename cleanup.
+- **Files currently involved:** two report paths until cleanup.
 - **Known failing checks:** None known.
 - **Validation still required:** all production validation.
 - **Open engineering questions:** QST-001.
 - **Deferred improvements:** IMP-001.
 - **Highest-risk remaining item:** RISK-001.
-- **Exact next recommended action:** complete Stage 3 verification before any production edit.
-- **Required reading:** `docs/APIEngineeringCalcContracts.md`, `docs/APIEngineeringCalcRoadmap.md`, current `converters/b313-*`, `converters/empirical-weight/`, this report.
+- **Exact next recommended action:** complete Stage 3 verification before production edits.
+- **Required reading:** v1 contract, roadmap, current B31.3/empirical APIs, this report.
