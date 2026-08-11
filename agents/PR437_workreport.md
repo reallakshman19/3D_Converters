@@ -10,13 +10,10 @@
 | Branch | `agent/hp-class-standardization-tool` |
 | Base commit | `4530b4a98c3b6d6713665228bf3ca8e953a95018` |
 | Production validation HEAD | `fba109d5ed135580db3f200b5b76e3b80def20da` |
-| Last pre-final-report HEAD | `a0f663520d8cbc3dadc56d4d1fee497f88ab5eb8` |
-| Current HEAD | This report-finalization commit follows the SHA above; PR #437 live head is authoritative. |
 | PR status | DRAFT / OPEN |
 | Current stage | Stage 6 — COMPLETE |
-| Last completed stage | Stage 6 — draft PR publication + report/diff synchronization |
 | Engineering status | IMPLEMENTED and VALIDATED for bounded class-side calculations; licensed KD fatigue closure remains externally BLOCKED. |
-| Validation status | PASS for committed tool syntax, static/dependency checks, numeric reference and blob integrity; final `Seq`/`Ni` NOT_RUN. |
+| Validation status | PASS for committed tool syntax, static/dependency checks, numeric reference, blob integrity and final PR file-list comparison; final `Seq`/`Ni` NOT_RUN. |
 | Current blocker | Exact licensed BPVC VIII-3 KD-2/KD-3 equations/fatigue curves and final production material/tolerance data are not present. |
 | Exact next action | Review draft PR #437. Any future automatic KD extension must first supply and independently validate the governing VIII-3 material/fatigue route. |
 
@@ -83,7 +80,7 @@ Explicit non-goals: routed-system/CAESAR analysis, supports/thermal flexibility,
 | Focused validation | HIGH | VALIDATED | 5 | Syntax/static/numeric/blob checks PASS |
 | Draft PR | HIGH | DONE | 6 | PR #437 draft/open |
 | PR-number report allocation | HIGH | DONE | 6 | `agents/PR437_workreport.md` authoritative |
-| Changed-file ledger comparison | HIGH | VALIDATED | 6 | Six files explained below |
+| Changed-file ledger comparison | HIGH | VALIDATED | 6 | Five intentional PR files; no discrepancy |
 | Licensed KD `Seq`/`Ni` | HIGH | BLOCKED | External | Licensed data unavailable |
 | CAESAR benchmark | MEDIUM | DEFERRED | Future | Not required for class standardization |
 
@@ -109,7 +106,6 @@ Explicit non-goals: routed-system/CAESAR analysis, supports/thermal flexibility,
 | QST-005 | question | MEDIUM | BLOCKED | Actual purchase-spec dimensions/tolerances. | External |
 | IMP-001 | improvement | HIGH | DONE | Explicit KD source/evidence entry and blocked-release behavior. | YES |
 | IMP-002 | improvement | MEDIUM | DEFERRED | Optional CAESAR BM-01/BM-02 after independent KD authority. | Future |
-| DEBT-001 | technical debt | LOW | ACCEPTED | `agents/PR_PENDING_workreport.md` remains as a small superseded pointer because connector deletion was blocked; it explicitly redirects to this report and carries no competing state. | YES |
 
 ## Information Required to Close `Seq` and `Ni`
 
@@ -125,7 +121,7 @@ Created `agents/PR_PENDING_workreport.md` before production implementation; reco
 
 ### Stage 2 — PR Allocation + Report Synchronization
 
-PR #437 allocated; authoritative report created as `agents/PR437_workreport.md`. Connector blocked deletion of the pending report, so it was reduced to a superseded pointer with no engineering state. **Stage decision: COMPLETE with DEBT-001.**
+PR #437 allocated; authoritative report created as `agents/PR437_workreport.md`; the temporary pending-name report was removed after allocation. **Stage decision: COMPLETE.**
 
 ### Stage 3 — Repository-State Verification
 
@@ -146,20 +142,19 @@ Added `index.html`, `styles.css`, `app.js`, `README.md`. Dependency-free; no ser
 
 ### Stage 6 — Draft PR Publication + Final Synchronization
 
-Draft PR #437 opened. PR changed-file list compared to ledger. Six files are intentional: authoritative report, superseded pointer, and four production files. No unexplained changes. **Stage decision: COMPLETE.**
+Draft PR #437 opened. Final PR changed-file list compared to the ledger: one authoritative report plus four production files. No unexplained changes. **Stage decision: COMPLETE.**
 
 ## Changed-File Ledger
 
 | File | Purpose | Engineering-sensitive? | Validation |
 |---|---|---|---|
 | `agents/PR437_workreport.md` | Authoritative mission control/handover | YES | PASS |
-| `agents/PR_PENDING_workreport.md` | Superseded pointer only; DEBT-001 | NO | PASS — no competing engineering state |
 | `engineering/hp-class-standardization/README.md` | Engineering basis/limits/reference values | YES | PASS — blob `30ec0e724747a86761994efd2d0df6f88585396b` |
 | `engineering/hp-class-standardization/app.js` | Calculation/export/status behavior | YES | PASS — blob `785139fa09aeb67953be476462051029357d05be` |
 | `engineering/hp-class-standardization/index.html` | Static calculator UI | YES | PASS — blob `55193d1d8e87d0ebd53b451e381c581a2ec084ed` |
 | `engineering/hp-class-standardization/styles.css` | Responsive/print presentation | NO | PASS — blob `e9d1023d43734ece5a8e498fb2b35207741395e2` |
 
-GitHub PR file-list comparison: **PASS — all six files explained; no discrepancy.**
+GitHub PR file-list comparison: **PASS — all five files explained; no discrepancy.**
 
 ## Engineering Decisions and Invariants
 
@@ -181,7 +176,7 @@ GitHub PR file-list comparison: **PASS — all six files explained; no discrepan
 | Independent numeric reference | PASS | Stage 5 values |
 | Static/dependency smoke | PASS | local assets only; no network calls |
 | Production blob integrity | PASS | exact blob hashes listed above |
-| PR changed-file comparison | PASS | six intentional files, no unexplained change |
+| PR changed-file comparison | PASS | five intentional files, no unexplained change |
 
 ### Engineering Validation
 
@@ -203,7 +198,7 @@ Production Table K-1/K-1C values; production `Syt`; actual purchase-spec dimensi
 
 ## Known / Deferred Work and Recommended Forward Sequence
 
-Open risks: `RISK-001`–`RISK-003`. Open questions: `QST-001`–`QST-005`. Accepted debt: `DEBT-001`. Deferred improvement: `IMP-002`.
+Open risks: `RISK-001`–`RISK-003`. Open questions: `QST-001`–`QST-005`. Deferred improvement: `IMP-002`.
 
 Recommended sequence: review PR #437 -> obtain controlled VIII-3/material/tolerance data -> independently close one straight-pipe `Seq -> Ni -> usage` case -> only then extend automatic fatigue calculations -> optionally benchmark CAESAR afterward.
 
@@ -213,7 +208,6 @@ Recommended sequence: review PR #437 -> obtain controlled VIII-3/material/tolera
 - Referenced external Code content is an authority boundary, not a license to infer missing proprietary equations/curves.
 - Exact Git blob comparison caught a source-integrity discrepancy before PR publication.
 - Blocked/unvalidated engineering evidence is preferable to a false pass.
-- A superseded pointer is safer than retaining two competing work reports when deletion is unavailable.
 
 # Appendix A — Next-Agent Handover
 
@@ -227,7 +221,7 @@ Production tool is implemented, validated and published as draft PR #437. The on
 - Branch: `agent/hp-class-standardization-tool`
 - Base: `4530b4a98c3b6d6713665228bf3ca8e953a95018`
 - Production validation HEAD: `fba109d5ed135580db3f200b5b76e3b80def20da`
-- Pre-final-report sync HEAD: `a0f663520d8cbc3dadc56d4d1fee497f88ab5eb8`
+- Current PR head: use GitHub PR #437 as authoritative after this report-finalization commit.
 
 ## Last completed stage
 
@@ -251,7 +245,7 @@ Do not reintroduce actual-system analysis; do not revert to old `1.155 P/S`; do 
 
 ## Files currently involved
 
-The six files in the changed-file ledger above. `agents/PR437_workreport.md` is authoritative; `PR_PENDING` is only a redirect stub.
+The five files in the changed-file ledger above. `agents/PR437_workreport.md` is the sole work report in this PR.
 
 ## Known failing checks
 
