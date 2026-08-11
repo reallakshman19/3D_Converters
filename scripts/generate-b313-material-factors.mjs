@@ -18,7 +18,7 @@ function expandScreeningBasis(source) {
       temperatures.forEach((temperatureC, index) => {
         const common = { materialId, temperatureC, status: basis.status, sourceAuthority: basis.sourceAuthority, basisId };
         const s = material.Sksi?.[index];
-        if (Number.isFinite(Number(s))) factors.S.records.push({ ...common, value: Number(s), unit: 'ksi' });
+        if (s !== null && s !== undefined && s !== '' && Number.isFinite(Number(s))) factors.S.records.push({ ...common, value: Number(s), unit: 'ksi' });
         for (const [manufacturingRoute, value] of Object.entries(material.EByRoute || {})) {
           factors.E.records.push({ ...common, productForm: 'PIPE', manufacturingRoute, value: Number(value) });
         }
