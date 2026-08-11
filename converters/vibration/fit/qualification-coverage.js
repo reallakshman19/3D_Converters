@@ -25,8 +25,8 @@ const STANDARD_CORRELATION_EVIDENCE = Object.freeze({
     independentExampleCoverage: true,
   }),
   MEDIUM_SMALL: Object.freeze({
-    evidenceTypes: Object.freeze([EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY]),
-    evidenceIds: Object.freeze(['FIT-HAND-STANDARD-FAMILY-MEDIUM-SMALL', 'FIT-WORKBOOK-STANDARD-MEDIUM-SMALL']),
+    evidenceTypes: Object.freeze([EVIDENCE.RETAINED_WORKBOOK_PARITY, EVIDENCE.NO_INDEPENDENT_EXAMPLE]),
+    evidenceIds: Object.freeze(['FIT-WORKBOOK-STANDARD-MEDIUM-SMALL']),
     independentExampleCoverage: false,
   }),
   MEDIUM_LARGE: Object.freeze({
@@ -122,30 +122,49 @@ function standardCorrelationEvidence(calculation) {
 }
 
 function advancedCorrelationEvidence(calculation) {
+  const supportCategory = calculation.advanced?.correlation?.category ?? calculation.support?.category ?? null;
   if (!calculation.advanced) {
     return frozenEvidence({
       used: false,
-      supportCategory: calculation.support?.category ?? null,
+      supportCategory,
       evidenceTypes: [],
       evidenceIds: [],
       independentExampleCoverage: false,
     });
   }
+  if (supportCategory === 'FLEXIBLE_SMALL') {
+    return frozenEvidence({
+      used: true,
+      supportCategory,
+      evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY],
+      evidenceIds: [
+        'FIT-HAND-FLEX-SMALL-LOF-105-FN2',
+        'FIT-HAND-FLEX-SMALL-LOF-105-FN3',
+        'FIT-WORKBOOK-ADVANCED-FLEXIBLE-SMALL',
+      ],
+      independentExampleCoverage: false,
+    });
+  }
   return frozenEvidence({
     used: true,
-    supportCategory: calculation.advanced.correlation?.category ?? calculation.support?.category ?? null,
-    evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY],
-    evidenceIds: [
-      'FIT-HAND-FLEX-SMALL-LOF-105-FN2',
-      'FIT-HAND-FLEX-SMALL-LOF-105-FN3',
-      'FIT-WORKBOOK-ADVANCED-CORRELATION',
-    ],
+    supportCategory,
+    evidenceTypes: [EVIDENCE.RETAINED_WORKBOOK_PARITY, EVIDENCE.NO_INDEPENDENT_EXAMPLE],
+    evidenceIds: ['FIT-WORKBOOK-ADVANCED-FLEXIBLE-LARGE'],
     independentExampleCoverage: false,
   });
 }
 
 function referenceBandEvidence(calculation) {
+  if (calculation.advanced) {
+    return frozenEvidence({
+      evaluatedPath: 'ADVANCED_REFINED_LOF',
+      evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK],
+      evidenceIds: ['FIT-HAND-FLEX-SMALL-LOF-105-FN2', 'FIT-HAND-FLEX-SMALL-LOF-105-FN3'],
+      independentExampleCoverage: false,
+    });
+  }
   return frozenEvidence({
+    evaluatedPath: 'STANDARD_LOF',
     evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.INDEPENDENT_HAND_BENCHMARK],
     evidenceIds: [
       'EI-D2-FIT-RECYCLE-SUCTION-6IN',
@@ -155,7 +174,6 @@ function referenceBandEvidence(calculation) {
       'EI-D4-FIT-PRODUCED-WATER-10IN',
       'FIT-HAND-FLEX-SMALL-LOF-095',
       'FIT-HAND-FLEX-SMALL-LOF-100-FN1',
-      'FIT-HAND-FLEX-SMALL-LOF-105-FN2',
     ],
     independentExampleCoverage: true,
   });
@@ -173,7 +191,7 @@ export function evaluateFitQualificationCoverage(calculation = {}) {
     limitations: Object.freeze([
       'EVIDENCE_COVERAGE_DOES_NOT_GRANT_ENGINEERING_AUTHORITY',
       'EI_WORKED_EXAMPLES_COVER_ONLY_SPECIFIC_METHOD_POINTS',
-      'ADVANCED_CORRELATIONS_HAVE_NO_EI_APPENDIX_D_WORKED_EXAMPLE_POINT_IN_THIS QUALIFICATION_SET'.replace('THIS QUALIFICATION', 'THIS_QUALIFICATION'),
+      'ADVANCED_CORRELATIONS_HAVE_NO_EI_APPENDIX_D_WORKED_EXAMPLE_POINT_IN_THIS_QUALIFICATION_SET',
       'MANUAL_DIAMETER_GAP_219_1_TO_273_MM_REMAINS_FAIL_CLOSED',
     ]),
   });
