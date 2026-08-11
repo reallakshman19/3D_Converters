@@ -1,4 +1,8 @@
-import { FIT_REFERENCE_AUTHORITY, FIT_REFERENCE_LIMITS } from './method.js';
+import {
+  FIT_REFERENCE_AUTHORITY,
+  FIT_REFERENCE_LIMITS,
+  fitReferenceLofBand,
+} from './method.js';
 
 export function assessFit(calculation) {
   if (!calculation?.ok) {
@@ -6,6 +10,7 @@ export function assessFit(calculation) {
       status: 'NOT_ASSESSED',
       authority: FIT_REFERENCE_AUTHORITY,
       referenceThresholdExceeded: null,
+      referenceBand: null,
       reasons: Object.freeze(['CALCULATION_UNAVAILABLE']),
     });
   }
@@ -17,6 +22,7 @@ export function assessFit(calculation) {
       authority: FIT_REFERENCE_AUTHORITY,
       referenceThreshold: threshold,
       referenceThresholdExceeded: false,
+      referenceBand: fitReferenceLofBand(calculation.standard.lof),
       evaluatedLof: calculation.standard.lof,
       reasons: Object.freeze(['STANDARD_LOF_BELOW_1']),
     });
@@ -31,6 +37,7 @@ export function assessFit(calculation) {
       authority: FIT_REFERENCE_AUTHORITY,
       referenceThreshold: threshold,
       referenceThresholdExceeded: exceeded,
+      referenceBand: fitReferenceLofBand(calculation.advanced.lof),
       evaluatedLof: calculation.advanced.lof,
       reasons: Object.freeze(['ADVANCED_REFERENCE_LOF_EVALUATED']),
     });
@@ -41,6 +48,7 @@ export function assessFit(calculation) {
     authority: FIT_REFERENCE_AUTHORITY,
     referenceThreshold: threshold,
     referenceThresholdExceeded: true,
+    referenceBand: fitReferenceLofBand(calculation.standard.lof),
     evaluatedLof: calculation.standard.lof,
     reasons: Object.freeze([
       'STANDARD_LOF_AT_OR_ABOVE_1',
