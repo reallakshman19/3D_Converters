@@ -1,0 +1,139 @@
+{
+  "benchmarkSetId": "FIT-EI-WORKED-EXAMPLES-V1",
+  "authority": "EI_WORKED_EXAMPLE_BENCHMARK",
+  "engineeringAuthority": "BENCHMARK_ONLY",
+  "source": {
+    "repository": "reallaksh19/Common",
+    "commit": "aef163a5def3bfe04ca0ba860da05728a27daf42",
+    "path": "EI - AVIFF Guidelines 2nd Edition_Examples.pdf",
+    "gitBlob": "3e2517d0df527a051084fc02e69cb7afa31f8d47",
+    "edition": "2nd Edition, January 2008",
+    "technicalModule": "T2.2 Flow Induced Turbulence"
+  },
+  "roundingPolicy": {
+    "description": "Published Appendix D values are rounded. Benchmarks compare against the printed values with explicit tolerances rather than implying unavailable source precision.",
+    "relativeTolerance": 0.015
+  },
+  "cases": [
+    {
+      "id": "EI-D2-FIT-RECYCLE-SUCTION-6IN",
+      "sourceLocation": "Appendix D, Example D2, D.2.1 Steps 1-5",
+      "input": {
+        "phase": "GAS",
+        "outsideDiameterM": 0.1683,
+        "wallThicknessM": 0.00711,
+        "insideDiameterM": 0.1541,
+        "maximumUnsupportedSpanM": 6.4,
+        "massFlowKgS": 14.856111111111112,
+        "densityKgM3": 18,
+        "gasDynamicViscosityPaS": 0.00002
+      },
+      "published": {
+        "supportStiffness": "MEDIUM_STIFF",
+        "rhoV2Pa": 35294,
+        "fluidViscosityFactor": 0.141,
+        "standardFvPa": 18022,
+        "standardLof": 0.276,
+        "referenceBand": "LOF_LT_0_3"
+      }
+    },
+    {
+      "id": "EI-D2-FIT-RELIEF-UPSTREAM-4IN",
+      "sourceLocation": "Appendix D, Example D2, D.2.1 Steps 1-5",
+      "input": {
+        "phase": "GAS",
+        "outsideDiameterM": 0.1143,
+        "wallThicknessM": 0.0111,
+        "insideDiameterM": 0.0921,
+        "maximumUnsupportedSpanM": 5.2,
+        "massFlowKgS": 14.856111111111112,
+        "densityKgM3": 62,
+        "gasDynamicViscosityPaS": 0.00002
+      },
+      "published": {
+        "supportStiffness": "MEDIUM_STIFF",
+        "rhoV2Pa": 80203,
+        "fluidViscosityFactor": 0.141,
+        "standardFvPa": 33433,
+        "standardLof": 0.338,
+        "referenceBand": "LOF_0_3_TO_LT_0_5"
+      }
+    },
+    {
+      "id": "EI-D2-FIT-RELIEF-DOWNSTREAM-6IN",
+      "sourceLocation": "Appendix D, Example D2, D.2.1 Steps 1-5",
+      "input": {
+        "phase": "GAS",
+        "outsideDiameterM": 0.1683,
+        "wallThicknessM": 0.00711,
+        "insideDiameterM": 0.1541,
+        "maximumUnsupportedSpanM": 6.4,
+        "massFlowKgS": 14.856111111111112,
+        "densityKgM3": 4,
+        "gasDynamicViscosityPaS": 0.00001
+      },
+      "published": {
+        "supportStiffness": "MEDIUM_STIFF",
+        "rhoV2Pa": 158823,
+        "fluidViscosityFactor": 0.1,
+        "standardFvPa": 18022,
+        "standardLof": 0.881,
+        "referenceBand": "LOF_0_5_TO_LT_1"
+      }
+    },
+    {
+      "id": "EI-D4-FIT-SEPARATOR-INLET-20IN",
+      "sourceLocation": "Appendix D, Example D4, D.4.1 Steps 1-5",
+      "input": {
+        "phase": "MULTIPHASE",
+        "outsideDiameterM": 0.508,
+        "wallThicknessM": 0.009525,
+        "maximumUnsupportedSpanM": 5,
+        "densityKgM3": 136,
+        "fluidVelocityMS": 9.3
+      },
+      "published": {
+        "supportStiffness": "STIFF",
+        "rhoV2Pa": 11763,
+        "fluidViscosityFactor": 1,
+        "standardFvPa": 45175,
+        "standardLof": 0.26,
+        "referenceBand": "LOF_LT_0_3"
+      }
+    },
+    {
+      "id": "EI-D4-FIT-PRODUCED-WATER-10IN",
+      "sourceLocation": "Appendix D, Example D4, D.4.1 Steps 1-5",
+      "input": {
+        "phase": "LIQUID",
+        "outsideDiameterM": 0.273,
+        "wallThicknessM": 0.009271,
+        "maximumUnsupportedSpanM": 18,
+        "densityKgM3": 988,
+        "fluidVelocityMS": 2.9
+      },
+      "published": {
+        "supportStiffness": "FLEXIBLE",
+        "supportCategory": "FLEXIBLE_LARGE",
+        "rhoV2Pa": 8309,
+        "fluidViscosityFactor": 1,
+        "standardFvPa": 2636,
+        "standardLof": 3.15,
+        "referenceBand": "LOF_GE_1"
+      }
+    }
+  ],
+  "boundaryEvidence": {
+    "advancedNaturalFrequency": {
+      "source": "T2.2.4",
+      "rule": "1 Hz < fn <= 3 Hz",
+      "exactly1HzEligible": false,
+      "exactly3HzEligible": true
+    },
+    "largeFlexibleDiameter": {
+      "source": "Appendix D Example D4 / Table T2-2 application",
+      "diameterMm": 273,
+      "expectedCategory": "FLEXIBLE_LARGE"
+    }
+  }
+}
