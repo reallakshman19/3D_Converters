@@ -4,220 +4,220 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Implement centralized Engineering Calculation Platform core against `engineering-calculation-contract/v1`, with real B31.3 and empirical-weight consumers and fail-closed pending-family placeholders only where useful. |
+| Mission | Implement centralized Engineering Calculation Platform core against `engineering-calculation-contract/v1`, with real B31.3 and empirical-weight consumers plus explicit fail-closed pending-family placeholders. |
 | Source task / issue | Owner request 2026-08-11; frozen contract/roadmap; qualification issues #428–#434. |
 | PR number | #435 |
 | Branch | `agent/engineering-calc-core` |
 | Base commit | `7a05c78413592dade410595775a9b0f7dd104bf0` |
-| Current HEAD | Stage 5 production head `57e973b9b7a1a3a4c19d93345e9380db6416d362` plus this report update |
+| Current HEAD | Stage 6 production head `528bed7d6e24c732367a005c4d39448ad8f27133` plus this report update |
 | PR status | OPEN / DRAFT |
-| Current stage | Stage 6 — Real production adapters |
-| Last completed stage | Stage 5 — Central engine |
-| Engineering status | Registry + engine implemented; real domain adapters pending |
-| Validation status | Stage 4: 5/5 PASS; Stage 5: 5/5 PASS; full repo NOT_RUN |
-| Current blocker | None for B31.3/empirical adapters; family methods #428–#434 remain blocked by qualification. |
-| Exact next action | Add two B31.3 definitions and empirical-weight definition using existing domain APIs; validate output/failure mapping and authority without changing formulas. |
+| Current stage | Stage 7 — Default public API + blocked catalogue |
+| Last completed stage | Stage 6 — Real production adapters |
+| Engineering status | Core engine + 3 real definitions implemented; default public surface pending |
+| Validation status | Stage 4 5/5 PASS; Stage 5 5/5 PASS; Stage 6 4/4 PASS; full repo NOT_RUN |
+| Current blocker | None for core. Numerical family methods #428–#434 remain qualification-gated. |
+| Exact next action | Add default registry, frozen public API exports, and explicit blocked definitions for planned families; then run the combined focused suite. |
 
 ### Handover in 60 Seconds
 
-**Now true:** v1 common primitives, input resolution, deterministic registry, engine, immutable result envelopes and batch path exist on #435. Invalid/blocked requests fail before kernel invocation.
+**Now true:** central registry/engine are implemented. `PIPE.B313.THICKNESS`, `PIPE.B313.MATERIAL_DESIGN`, and `ESTIMATION.WEIGHT.EMPIRICAL` are thin production adapters over existing domain APIs. Domain formula files remain unchanged.
 
-**Working on:** real adapters for `PIPE.B313.THICKNESS`, `PIPE.B313.MATERIAL_DESIGN`, and `ESTIMATION.WEIGHT.EMPIRICAL`.
+**Working on:** default registry/public API and blocked catalogue entries for unresolved families.
 
-**Unfinished:** adapters, default registry/public exports, pending-family catalogue, final focused integration tests/reconciliation.
+**Unfinished:** public `index.js`, default registry, blocked definitions, consolidated branch tests, changed-file reconciliation/report closure.
 
-**Do not assume:** central success implies design authority; current B31.3 method still requires engineering code-text review and empirical weight remains empirical/benchmark-qualified.
+**Do not assume:** a blocked catalogue item has any numerical implementation; the engine must stop it before `calculate()`.
 
-**Highest risk:** `RISK-001` — adapter mapping could alter or overstate domain results.
+**Highest risk:** RISK-001, adapter parity/authority mapping; final integration evidence still required.
 
-**Next action:** implement thin adapters that mechanically map current domain outputs and retain raw domain evidence.
+**Next action:** build the default v1 surface and test real + blocked registration paths.
 
 ---
 
 ## 1. Mission and Engineering Intent
+Central platform owns orchestration only. Existing B31.3 and empirical APIs remain formula authority/direct APIs. The platform adds deterministic registration, canonical inputs/units, provenance, qualification, immutable results, Sandbox/batch and discovery. Pending family entries are discoverable only as blocked/unavailable placeholders with qualification issue references.
 
-Central platform owns orchestration only. Domain modules keep formula authority. Existing B31.3 and empirical APIs remain directly callable and become the first real central consumers. Failed calculations expose no plausible authoritative outputs; Sandbox/batch reuse the same definition/kernel; result authority is explicit and conservative.
-
-**In scope:** registry, units, qualification, input resolution, engine, B31.3 x2, empirical adapter, default registry/API, batch/Sandbox, explicit blocked catalogue, focused tests.  
-**Out of scope:** new vibration/support/relief/equipment/flange/hazard formulas, authority promotion, Console UI, CI workflows.
+**Out of scope:** new FIV/AIV/trunnion/relief/equipment/flange/hazard equations, authority promotion, full Console UI, CI changes.
 
 ---
 
 ## 2. Mission Status
 
-| Work Item | Priority | Status | Stage | Evidence |
-|---|---:|---|---|---|
-| Report / PR setup | P0 | DONE | 1–3 | #435 |
-| Contract primitives / registry | P0 | VALIDATED | 4 | 5/5 focused tests |
-| Input resolution / engine | P0 | VALIDATED | 5 | 5/5 focused tests |
-| B31.3 thickness adapter | P0 | IN_PROGRESS | 6 | Pending |
-| B31.3 material-design adapter | P0 | IN_PROGRESS | 6 | Pending |
-| Empirical-weight adapter | P0 | IN_PROGRESS | 6 | Pending |
-| Default API / Sandbox / batch | P0 | NOT_STARTED | 7 | Pending |
-| Blocked family catalogue | P1 | NOT_STARTED | 7 | Conditional but planned |
-| Integration/parity tests | P0 | NOT_STARTED | 8 | Pending |
-| Final reconciliation | P0 | NOT_STARTED | 9 | Pending |
+| Work Item | Status | Evidence |
+|---|---|---|
+| Report/PR/baseline | DONE | #435, Stage 1–3 |
+| Contract primitives/registry | VALIDATED | Stage 4, 5/5 |
+| Input resolution/engine | VALIDATED | Stage 5, 5/5 |
+| B31.3 thickness adapter | VALIDATED | Stage 6 mapping test |
+| B31.3 material-design adapter | VALIDATED | Stage 6 mapping test |
+| Empirical-weight adapter | VALIDATED | Stage 6 mapping tests |
+| Default registry/public API | IN_PROGRESS | Stage 7 |
+| Pending-family blocked catalogue | IN_PROGRESS | Stage 7 |
+| Consolidated integration/parity validation | NOT_STARTED | Stage 8 |
+| Final reconciliation | NOT_STARTED | Stage 9 |
 
 ---
 
 ## 3. Engineering Item Register
 
-| ID | Type | Priority | Status | Summary |
-|---|---|---|---|---|
-| DEC-001 | Decision | P0 | ACCEPTED | Engine owns orchestration only; no domain equations. |
-| DEC-002 | Decision | P0 | ACCEPTED | Existing B31.3/empirical APIs are first real consumers. |
-| DEC-003 | Decision | P0 | ACCEPTED | Pending placeholders are unavailable failures, never numerical stand-ins. |
-| DEC-004 | Decision | P0 | ACCEPTED | Separate B31.3 thickness and material-design IDs. |
-| RISK-001 | Risk | High | OPEN | Adapter/engine could reinterpret outputs/authority; parity tests required. |
-| RISK-002 | Risk | High | OPEN | Unit semantics, especially gauge/absolute and empirical native units. |
-| RISK-003 | Risk | Medium | MITIGATED | Explicit deterministic registry implemented. |
-| RISK-004 | Risk | Medium | OPEN | Full repo clone/test unavailable in container; do not claim it. |
-| IMP-001 | Improvement | P1 | DEFERRED | Full Engineering Calculation Console. |
+| ID | Type | Status | Summary |
+|---|---|---|---|
+| DEC-001 | Decision | ACCEPTED | Engine owns orchestration only; no domain equations. |
+| DEC-002 | Decision | ACCEPTED | Existing B31.3/empirical APIs are first real consumers. |
+| DEC-003 | Decision | ACCEPTED | Pending placeholders are blocked/unavailable; never numerical stand-ins. |
+| DEC-004 | Decision | ACCEPTED | Separate `PIPE.B313.THICKNESS` and `PIPE.B313.MATERIAL_DESIGN`. |
+| DEC-005 | Decision | ACCEPTED | Empirical candidate model/master injection is allowed only in Sandbox mode. |
+| RISK-001 | Risk | OPEN | Adapter/engine parity and authority mapping require final integration validation. |
+| RISK-002 | Risk | OPEN | Unit semantics, especially pressure reference and native empirical assumptions. |
+| RISK-003 | Risk | MITIGATED | Registry construction explicit/deterministic. |
+| RISK-004 | Risk | OPEN | Full repository clone/test unavailable in container; must remain NOT_RUN unless independently available. |
+| IMP-001 | Improvement | DEFERRED | Full Engineering Calculation Console UI follows core. |
 
 ---
 
 ## 4. Stage Roadmap
 
-| Stage | Status | Purpose | Output |
-|---|---|---|---|
-| 1 | COMPLETE | Initialize report | living report |
-| 2 | COMPLETE | Allocate PR | #435 |
-| 3 | COMPLETE | Verify baseline/APIs | clean report baseline + exact domain inspection |
-| 4 | COMPLETE | Common primitives/registry | 4 core modules |
-| 5 | COMPLETE | Input resolution/engine | 2 engine modules |
-| 6 | IN_PROGRESS | Real adapters | B31.3 x2 + empirical |
-| 7 | NOT_STARTED | Default API + blocked catalogue | v1 public surface |
-| 8 | NOT_STARTED | Focused integration validation | parity/failure/batch/Sandbox tests |
-| 9 | NOT_STARTED | Final reconciliation | final report/diff |
+| Stage | Status | Output |
+|---|---|---|
+| 1–3 | COMPLETE | report, PR, clean baseline/API inspection |
+| 4 | COMPLETE | contracts/units/qualification/registry |
+| 5 | COMPLETE | input resolution + engine |
+| 6 | COMPLETE | B31.3 x2 + empirical adapters |
+| 7 | IN_PROGRESS | default public API + blocked catalogue |
+| 8 | NOT_STARTED | consolidated tests/parity/failure/Sandbox/batch |
+| 9 | NOT_STARTED | final diff/report closure |
 
 ---
 
 ## Stage Execution Log
 
 ### Stages 1–3
-Report created before production code; PR #435 allocated; pending report removed; exact B31.3/empirical APIs/test patterns inspected; B31.3 paths split by DEC-004. Local GitHub clone unavailable due DNS/`gh`; full repo remains NOT_RUN. **COMPLETE.**
+Report created before production edits; PR #435 allocated; pending report removed; exact domain APIs inspected; local GitHub clone unavailable due DNS/`gh`. **COMPLETE.**
 
-### Stage 4 — Contract primitives + registry
-Added `contracts.js`, `units.js`, `qualification.js`, `registry.js`. Registration validates IDs/families/fields/units/duplicates and stores immutable definitions. Unit conversion covers frozen v1 quantities, affine temperature and gauge/absolute protection. Effective qualification is limited by weaker method/data authority. `node --check` PASS; focused suite 5/5 PASS. **COMPLETE.**
+### Stage 4
+Added `contracts.js`, `units.js`, `qualification.js`, `registry.js`. Focused tests: **5/5 PASS**. **COMPLETE.**
 
-### Stage 5 — Central engine
-
-**Before:** common primitives validated; objective was lookup → resolve → canonical units → validate → method gate → kernel → immutable envelope, with batch reuse and no formulas.
-
-**Implementation performed:**
-- Added `input-resolution.js` for declared fields, canonical units, ranges, provenance, engineering-default marking and custom resolver/validator hooks.
-- Added `engine.js` for contract/version lookup, non-executable method gating, kernel invocation, failure/success envelope assembly, evidence suppression option, immutable results and batch execution through the same single path.
-- Failed validation/blocked method paths do not invoke the kernel and do not contain `outputs`.
-- Kernel exceptions become machine-readable `CALCULATION_FAILED`-family errors; engine does not synthesize assessment.
-
-**Validation performed:**
-| Check | Result | Evidence |
-|---|---|---|
-| Stage 5 module syntax | PASS | local exact files |
-| canonical in→mm execution | PASS | engine focused test |
-| result/input immutability | PASS | engine focused test |
-| missing input blocks kernel | PASS | engine focused test |
-| blocked method blocks kernel | PASS | engine focused test |
-| batch reuses single engine | PASS | engine focused test |
-| unsupported request contract | PASS | engine focused test |
-| focused Stage 5 suite | PASS | 5/5 |
-| full repo suite | NOT_RUN | RISK-004 |
-
-**Stage decision:** COMPLETE.
+### Stage 5
+Added `input-resolution.js`, `engine.js`. Validation blocks kernels; results immutable; batch reuses single path; unsupported/blocked requests fail closed. Focused tests: **5/5 PASS**. **COMPLETE.**
 
 ### Stage 6 — Real production adapters
 
+**Before:** engine functional but no real domain definitions. Objective: reuse current domain APIs without formula duplication.
+
+**Implementation performed**
+- Added `adapters/b313.js` with two explicit definitions:
+  - `PIPE.B313.THICKNESS`: canonical pressure/length/stress inputs → existing thickness/provided-wall API; no formula recreation.
+  - `PIPE.B313.MATERIAL_DESIGN`: canonical material/temp/pressure inputs → existing material-factor/thickness/wall pipeline.
+- B31.3 method authority remains `IMPLEMENTED`; direct caller-factor data is `DRAFT`; material data preserves actual factor source status; central design authority remains false while method review is incomplete.
+- Added `adapters/empirical-weight.js`:
+  - `ESTIMATION.WEIGHT.EMPIRICAL` supports `FINAL`, `EXACT`, `A1`, `A2` via existing estimator functions.
+  - Normal model is `BENCHMARK_ONLY`; candidate model/master is `DRAFT` and accepted only under `executionMode:'sandbox'`.
+  - A2 predictions/configured/effective weights/support metadata are passed through rather than recomputed.
+
+**Changed files**
+| File | Purpose |
+|---|---|
+| `converters/engineering-calculations/adapters/b313.js` | B31.3 direct/material adapters |
+| `.../adapters/empirical-weight.js` | empirical estimator adapter |
+
+**Validation performed**
+| Check | Result | Notes |
+|---|---|---|
+| adapter syntax | PASS | exact local authored files |
+| B31.3 barg→MPa mapping / domain output preservation | PASS | focused adapter test |
+| B31.3 material SCREENING authority preservation | PASS | focused adapter test |
+| empirical A2 result preservation | PASS | focused adapter test |
+| candidate empirical data outside Sandbox | PASS | rejected fail-closed |
+| Stage 6 focused suite | PASS | 4/4 |
+| full repository suite | NOT_RUN | RISK-004 |
+
+**Stage decision:** COMPLETE.
+
+### Stage 7 — Default public API + blocked catalogue
+
 **Before stage**
-- **Current truth:** central engine is functional but has no real domain definitions yet.
-- **Objective:** register current B31.3 and empirical APIs without duplicating formulas.
-- **Scope:** adapter modules only; current domain modules read-only.
-- **Planned implementation:**
-  - `PIPE.B313.THICKNESS`: direct caller factors; optional provided-wall assessment.
-  - `PIPE.B313.MATERIAL_DESIGN`: existing material factor resolver + optional wall selection.
-  - `ESTIMATION.WEIGHT.EMPIRICAL`: exact/A1/A2/final modes using existing estimator; explicit candidate model/master injection in Sandbox options.
-- **Authority:** B31.3 method remains `IMPLEMENTED`/not design authority pending controlled review; empirical remains `BENCHMARK_ONLY`/non-design-authority.
-- **Validation:** adapter syntax, stubbed mapping tests locally, then final branch-level exact source checks; direct domain parity where execution can be materialized.
-- **Risks:** RISK-001/002.
+- Three real definitions exist but no default central entrypoint yet.
+- Objective: finish frozen v1 public functions and make planned families discoverable without pretending they are implemented.
+- Scope: `pending-definitions.js`, `default-registry.js`, `index.js`.
+- Planned behavior: default registry contains 3 real calculators plus explicit BLOCKED/CONCEPT descriptors for planned family calculators; engine rejects blocked entries before their placeholder function can execute.
+- Planned validation: list/family/definition/qualification functions; blocked call; real call through default engine using locally materialized dependencies where possible; batch/Sandbox public routing.
 
 ---
 
 ## 5. Changed-File Ledger
 
-| File | Stage | Purpose | Engineering-sensitive? | Validation |
-|---|---:|---|---|---|
-| `agents/PR435_workreport.md` | 1–6 | living state/handover | No | current |
-| `converters/engineering-calculations/contracts.js` | 4 | v1 constants/errors/snapshots | Yes | PASS |
-| `.../units.js` | 4 | canonical units | Yes | PASS |
-| `.../qualification.js` | 4 | authority composition | Yes | PASS |
-| `.../registry.js` | 4 | deterministic registry | Yes | PASS |
-| `.../input-resolution.js` | 5 | canonical input/provenance validation | Yes | PASS |
-| `.../engine.js` | 5 | orchestration/result/batch | Yes | PASS |
+| File | Stage | Purpose | Validation |
+|---|---:|---|---|
+| `agents/PR435_workreport.md` | 1–7 | living state/handover | current |
+| `converters/engineering-calculations/contracts.js` | 4 | v1 constants/errors/snapshots | PASS |
+| `.../units.js` | 4 | canonical units | PASS |
+| `.../qualification.js` | 4 | authority composition | PASS |
+| `.../registry.js` | 4 | deterministic registry | PASS |
+| `.../input-resolution.js` | 5 | input/provenance validation | PASS |
+| `.../engine.js` | 5 | orchestration/result/batch | PASS |
+| `.../adapters/b313.js` | 6 | B31.3 real definitions | 2 focused cases PASS |
+| `.../adapters/empirical-weight.js` | 6 | empirical real definition | 2 focused cases PASS |
 
-Temporary `agents/PR_PENDING_workreport.md` is deleted and must not appear in final diff.
+Temporary `agents/PR_PENDING_workreport.md` is deleted and is a final-diff blocker if it reappears.
 
 ---
 
 ## 6. Engineering Decisions and Invariants
-Engine has no domain equations; adapters call direct APIs; blocked placeholders never return numbers; B31.3 authority paths have separate IDs; results/input/context immutable; batch and Sandbox reuse production kernels; design authority is never inferred from numerical success.
+No domain equations in engine/adapters; direct APIs remain supported; blocked placeholder never executes; separate B31.3 IDs preserve authority; candidate empirical data Sandbox-only; inputs/context/results immutable; batch/Sandbox use same production definitions; design authority never inferred from numeric success.
 
 ---
 
 ## 7. Validation and Evidence Ledger
 
 ### Software
-| Validation | Status | Evidence |
-|---|---|---|
-| Stage 4 focused suite | PASS | 5/5 |
-| Stage 5 focused suite | PASS | 5/5 |
-| Adapter tests | NOT_RUN | Stage 6 active |
-| Full repository suite | NOT_RUN | RISK-004 |
+- Stage 4: **5/5 PASS**
+- Stage 5: **5/5 PASS**
+- Stage 6: **4/4 PASS**
+- Full repo: **NOT_RUN** (RISK-004)
 
 ### Engineering
-| Property | Status | Evidence |
-|---|---|---|
-| Core contains no domain formulas | PASS | source scope |
-| B31.3 parity | NOT_RUN | Stage 6/8 |
-| Empirical parity | NOT_RUN | Stage 6/8 |
-| Pending-method fail closed | PASS at engine level | blocked fake-definition test; real catalogue pending |
+- Core contains no domain formulas: **PASS by source boundary**
+- Adapter mapping behavior: **PASS focused/stubbed**
+- Exact live-domain parity on full branch: **NOT_RUN yet**
+- Pending-method fail closed: **PASS engine fake-definition; real catalogue Stage 7 pending**
 
 ### Explicitly not validated
-FIV/AIV/trunnion/relief/equipment/flange/hazard numerical methods; engineering-authority promotion; Console UI.
+FIV/AIV/trunnion/relief/equipment/flange/hazard numerical methods; engineering-authority promotion; full Console UI.
 
 ---
 
 ## 8. Known / Deferred Work + Forward Sequence
-Open risks: RISK-001/002/004. Deferred: IMP-001 Console. After core: Console → answer #428–#434 → one qualified vertical calculator at a time.
+Open: RISK-001/002/004. Deferred: IMP-001 Console. Sequence after core: Console → answer #428–#434 → one qualified vertical family calculator at a time.
 
 ## 9. Current State vs History
-Mission Control/status/register/roadmap/ledgers/handover are living; stage history is append-only.
+Mission Control/status/register/roadmap/ledgers/handover are living; Stage Execution Log is historical.
 
 ## 10. Process Notes / Lessons Learned
-- Separate B31.3 IDs preserve distinct provenance/authority.
-- Pressure conversion must guard gauge/absolute semantics.
-- Engine tests prove orchestration without needing domain formula dependencies.
-- Environment-limited full-repo checks remain NOT_RUN.
+- Thin adapters can preserve current numerical authority while centralizing execution semantics.
+- B31.3 material data status must be carried through; central API must not upgrade screening rows.
+- Candidate empirical model data needs an explicit Sandbox-only gate.
 
 ## 11. Commit and PR Rules
-One PR; report updated around stages; no CI workflow changes; no merge without Owner instruction.
+One PR; no CI workflow additions; no merge without Owner instruction.
 
 ## 12. Unexpected Findings / Stop Conditions
-Any need to change domain equations or unqualified family methods must be registered and deferred/blocked.
+Any need for new domain equations or qualification promotion is out of this PR and must be separately dispositioned.
 
 ## 13. Coding Rules Applied
-Named exports; focused modules; no hidden globals, silent fallback engineering data, unused abstractions or broad refactors.
+Named exports; focused modules (<300 lines); no silent engineering fallbacks, hidden singleton mutation, unused speculative abstractions or domain formula duplication.
 
 ## 14. Action-First Delivery Gate
-`central API → registry/engine → real B31.3+empirical adapters → single/Sandbox/batch → focused parity/failure tests`.
+`central API → registry/engine → real B31.3+empirical adapters → public single/Sandbox/batch → focused final validation`.
 
 ---
 
 ## Next-Agent Handover
-- **Stopping point:** Stage 5 complete; Stage 6 active.
-- **PR / branch / HEAD:** #435 / `agent/engineering-calc-core` / `57e973b...` plus report update.
-- **Start here:** implement thin adapter definitions; do not alter domain modules.
-- **Do not redo:** core primitives/engine.
-- **Do not assume:** successful B31.3/empirical output is design authority.
+- **Stopping point:** Stage 6 complete; Stage 7 active.
+- **PR/branch/head:** #435 / `agent/engineering-calc-core` / `528bed7...` plus report update.
+- **Start here:** add blocked catalogue, default registry, public `index.js`.
+- **Do not redo:** engine/adapters.
+- **Do not assume:** blocked catalogue items have formulas.
 - **Known failing checks:** none; full repo NOT_RUN.
-- **Validation required:** adapters, direct parity, default API, real pending catalogue, final diff.
+- **Validation required:** public API, real blocked entries, consolidated suite, final changed-file reconciliation.
 - **Highest risk:** RISK-001.
-- **Next action:** add `adapters/b313.js` and `adapters/empirical-weight.js`.
+- **Next action:** implement Stage 7 then immediately run Stage 8 focused validation.
