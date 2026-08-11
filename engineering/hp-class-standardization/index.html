@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HP Piping Class Standardization — B31.3-2024</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Engineering calculation aid</p>
+      <h1>High Pressure Piping Class Standardization</h1>
+      <p>ASME B31.3-2024 Chapter IX — straight-pipe class pressure design and pressure-fatigue inputs.</p>
+    </div>
+    <div class="scope-card">
+      <strong>Class boundary</strong>
+      <span>Stops at bounded class prequalification. No routed-system fatigue acceptance.</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="notice warning">
+      <strong>Controlled example values are preloaded for demonstration only.</strong>
+      Production use must replace material properties, dimensions, tolerances and KD results with approved project / licensed-Code data. The tool does not contain a proprietary KD fatigue curve.
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div><span class="step">1</span><h2>Design and material inputs</h2></div>
+        <p>K302.3 / K304.1.1 basis</p>
+      </div>
+      <div class="form-grid">
+        <label>Design diameter D (mm)<input id="diameter" type="number" step="any"></label>
+        <label>Design pressure P (MPa)<input id="designPressure" type="number" step="any"></label>
+        <label>Cycle Pmin (MPa)<input id="pMin" type="number" step="any"></label>
+        <label>Cycle Pmax (MPa)<input id="pMax" type="number" step="any"></label>
+        <label>Cycle Tmin (°C)<input id="tempMin" type="number" step="any"></label>
+        <label>Cycle Tmax (°C)<input id="tempMax" type="number" step="any"></label>
+        <label>Allowable stress S (MPa)<input id="allowableStress" type="number" step="any"><small>Table K-1/K-1C controlled input</small></label>
+        <label>Syt at cycle-average T (MPa)<input id="yieldStrength" type="number" step="any"><small>K302.3.2(b) controlled input</small></label>
+        <label>Internal allowance ci (mm)<input id="ci" type="number" step="any"></label>
+        <label>External allowance co (mm)<input id="co" type="number" step="any"></label>
+        <label>Purchase minus tolerance (%)<input id="tolerance" type="number" step="any"><small>Use actual product specification</small></label>
+        <label>Cycle count n<input id="cycles" type="number" step="1"></label>
+        <label class="span-2">Candidate nominal walls (mm, comma-separated)<input id="candidateWalls" type="text"></label>
+      </div>
+      <div class="actions">
+        <button id="calculateButton" class="primary">Calculate</button>
+        <button id="resetButton">Load reference example</button>
+        <button id="csvButton">Download CSV</button>
+        <button id="printButton">Print</button>
+      </div>
+      <div id="errorBox" class="notice error" hidden></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div><span class="step">2</span><h2>K304.1 static pressure wall</h2></div>
+        <p>2024 Eq. (34a) + K304.1.1 allowances</p>
+      </div>
+      <div class="metric-grid">
+        <article><span>Pressure wall t</span><strong id="requiredWall">—</strong><small>Eq. (34a): (D−2co)/2 × [1−exp(−P/S)]</small></article>
+        <article><span>Minimum wall tm</span><strong id="minimumWall">—</strong><small>tm = t + ci + co</small></article>
+        <article><span>Required nominal wall</span><strong id="nominalRequired">—</strong><small>Using entered minus tolerance</small></article>
+        <article><span>Cycle-average temperature</span><strong id="averageTemperature">—</strong><small>Check Syt basis against project material data</small></article>
+      </div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-heading">
+        <div><span class="step">3</span><h2>Candidate wall and pressure-fatigue screen</h2></div>
+        <p>K304.1.1 Eq. (35a) QA / K304.8.3 Eq. (37) / K304.8.2 KD handoff</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nominal wall<br>mm</th><th>Minimum T<br>mm</th><th>T−tm margin<br>mm</th><th>Rating<br>MPa</th>
+              <th>T−c<br>mm</th><th>Sp @ Pmin<br>MPa</th><th>Sp @ Pmax<br>MPa</th><th>ΔSp<br>MPa</th>
+              <th>ΔSp/2 descriptor<br>MPa</th><th>2Syt gate</th><th>Licensed Seq<br>MPa</th><th>Licensed Ni<br>cycles</th>
+              <th>KD source / calc ID</th><th>KD evidence<br>approved</th><th>n/Ni</th><th>Class status</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <div class="notice info">
+        <strong>Authority boundary:</strong> ΔSp/2 is displayed as a pressure-only alternating-stress descriptor; it is not silently promoted to final <code>Seq</code>. Enter <code>Seq</code> and <code>Ni</code> only from the controlled BPVC VIII-3 KD-2/KD-3 calculation and record the source/calculation ID.
+      </div>
+    </section>
+
+    <section class="panel two-column">
+      <div>
+        <h2>Implemented Code navigation</h2>
+        <ul>
+          <li><strong>K304.1.1</strong> — allowances, minimum selected wall, dimension control.</li>
+          <li><strong>K304.1.2 Eq. (34a)</strong> — 2024 OD/minimum-wall internal-pressure calculation.</li>
+          <li><strong>Eq. (35a)</strong> — inverse pressure-rating QA for selected minimum wall.</li>
+          <li><strong>K304.8.3 Eq. (37)</strong> — straight-pipe inside-surface pressure stress intensity.</li>
+          <li><strong>K304.8.3(c)</strong> — inelastic escalation when Eq. (37) S exceeds 2Syt.</li>
+          <li><strong>K304.8.2</strong> — handoff to BPVC VIII-3 KD-2/KD-3 for fatigue processing.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Not implemented as hidden authority</h2>
+        <ul>
+          <li>Licensed KD mean-stress / equivalent-alternating-stress equations.</li>
+          <li>Licensed design fatigue curves or curve interpolation.</li>
+          <li>Automatic PQ-A or final piping-system fatigue acceptance.</li>
+          <li>CAESAR II routing/support/thermal system analysis.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Source-control basis: B31.3-2024 reference supplied in reallaksh19/Common at commit 00f47512e96780ebab10416dcc9354f719346457. Exact licensed Code text and approved project data control.
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
