@@ -126,6 +126,13 @@ function authorityState() {
     kd3SourceConfirmed: Boolean(byId('kd3SourceConfirmed')?.checked),
     kd3CompatibilityConfirmed: Boolean(byId('kd3CompatibilityConfirmed')?.checked),
     kdRoute: byId('kdRoute')?.value.trim() || '',
+    seqMode: byId('seqMode')?.value || 'manual',
+    seqRouteSourceRef: byId('seqRouteSourceRef')?.value.trim() || '',
+    seqRouteApproved: Boolean(byId('seqRouteApproved')?.checked),
+    seqMeanBasis: byId('seqMeanBasis')?.value || 'elastic-average-nonnegative',
+    seqBeta: numberValue('seqBeta'),
+    seqReferenceCycles: numberValue('seqReferenceCycles'),
+    seqMeanTermLimit: numberValue('seqMeanTermLimit'),
     fatigueCurveId: byId('fatigueCurveId')?.value.trim() || '',
     fatigueCurveMode: byId('fatigueCurveMode')?.value || 'manual',
     fatigueCurveSourceRef: byId('fatigueCurveSourceRef')?.value.trim() || '',
@@ -275,6 +282,120 @@ function interpolateFatigueLife(seq, points) {
     }
   }
   return { ok: false, N: NaN, status: 'No valid interpolation segment found' };
+}
+
+/**
+ * Log-log interpolation of stress amplitude at a supplied cycle count.
+ * Used only as a mathematical helper for reviewer-approved Seq correction routes.
+ * No extrapolation is performed.
+ */
+function interpolateCurveStressAtCycles(referenceCycles, points) {
+  if (!(referenceCycles > 0) || !Number.isFinite(referenceCycles)) {
+    return { ok: false, Sa: NaN, status: 'Reference cycle count missing/invalid' };
+  }
+  if (!Array.isArray(points) || points.length < 2) {
+    return { ok: false, Sa: NaN, status: 'Curve points unavailable' };
+  }
+
+  for (const p of points) {
+    if (Math.abs(referenceCycles - p.N) <= Math.max(1e-12, Math.abs(p.N) * 1e-12)) {
+      return { ok: true, Sa: p.Sa, status: 'Exact curve point' };
+    }
+  }
+
+  const minN = points[0].N;
+  const maxN = points[points.length - 1].N;
+  if (referenceCycles < minN || referenceCycles > maxN) {
+    return { ok: false, Sa: NaN, status: `Reference cycles outside curve range ${minN}-${maxN}; no extrapolation` };
+  }
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const lowN = points[i];
+    const highN = points[i + 1];
+    if (referenceCycles > lowN.N && referenceCycles < highN.N) {
+      const logN1 = Math.log10(lowN.N);
+      const logN2 = Math.log10(highN.N);
+      const logS1 = Math.log10(lowN.Sa);
+      const logS2 = Math.log10(highN.Sa);
+      const fraction = (Math.log10(referenceCycles) - logN1) / (logN2 - logN1);
+      const Sa = 10 ** (logS1 + fraction * (logS2 - logS1));
+      return { ok: true, Sa, status: 'Log-log curve interpolation' };
+    }
+  }
+  return { ok: false, Sa: NaN, status: 'No valid reference-amplitude segment found' };
+}
+
+function seqGate(authority) {
+  if (authority.seqMode === 'manual') {
+    return { ok: true, label: 'Manual licensed Seq', css: 'good', mode: 'manual', saRef: NaN, points: [] };
+  }
+
+  const source = kd3SourceGate(authority);
+  if (!source.ok) return { ...source, mode: authority.seqMode, saRef: NaN, points: [] };
+  if (authority.kd2AnalysisMethod !== 'elastic' || authority.kd2StressModel !== 'pressure-analytic' || authority.kd2Geometry !== 'uniform') {
+    return { ok: false, label: 'Automatic Seq requires approved elastic pressure-only uniform-pipe route', css: 'warn', mode: authority.seqMode, saRef: NaN, points: [] };
+  }
+  if (authority.kd2Residual !== 'none') {
+    return { ok: false, label: 'Automatic Seq does not include credited residual/prestress effects', css: 'warn', mode: authority.seqMode, saRef: NaN, points: [] };
+  }
+  if (!authority.kdRoute) return { ok: false, label: 'KD-312 route/clause reference required', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+  if (!authority.seqRouteSourceRef) return { ok: false, label: 'Seq route source/calculation reference required', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+  if (!authority.seqRouteApproved) return { ok: false, label: 'Seq route review/approval pending', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+
+  if (authority.seqMode === 'mean-embedded') {
+    if (!authority.fatigueCurveId) {
+      return { ok: false, label: 'Fatigue curve ID required for mean-embedded Seq route', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+    }
+    return { ok: true, label: 'Mean-stress effects confirmed in selected curve', css: 'good', mode: authority.seqMode, saRef: NaN, points: [] };
+  }
+
+  if (authority.seqMode === 'explicit-mean') {
+    if (authority.seqMeanBasis !== 'elastic-average-nonnegative') {
+      return { ok: false, label: 'Unsupported associated-mean basis', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+    }
+    if (!(authority.seqBeta >= 0) || !Number.isFinite(authority.seqBeta)) {
+      return { ok: false, label: 'Mean-correction coefficient required', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+    }
+    if (!(authority.seqReferenceCycles > 0) || !Number.isFinite(authority.seqReferenceCycles)) {
+      return { ok: false, label: 'Reference cycle count required', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+    }
+    if (!(authority.seqMeanTermLimit >= 0 && authority.seqMeanTermLimit < 1) || !Number.isFinite(authority.seqMeanTermLimit)) {
+      return { ok: false, label: 'Mean-correction term limit must be >=0 and <1', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+    }
+    if (authority.fatigueCurveMode !== 'curve') {
+      return { ok: false, label: 'Explicit mean correction requires controlled curve-point mode', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+    }
+    const curve = curveGate(authority);
+    if (!curve.ok) return { ...curve, mode: authority.seqMode, saRef: NaN };
+    const ref = interpolateCurveStressAtCycles(authority.seqReferenceCycles, curve.points);
+    if (!ref.ok) return { ok: false, label: ref.status, css: 'blocked', mode: authority.seqMode, saRef: NaN, points: curve.points };
+    return {
+      ok: true,
+      label: `Explicit mean correction ready; Sa_ref=${fmt(ref.Sa, 3)} MPa`,
+      css: 'good',
+      mode: authority.seqMode,
+      saRef: ref.Sa,
+      points: curve.points,
+    };
+  }
+
+  return { ok: false, label: 'Unsupported automatic Seq mode', css: 'blocked', mode: authority.seqMode, saRef: NaN, points: [] };
+}
+
+function updateSeqStatus(authority) {
+  const box = byId('seqStatusBox');
+  if (!box) return;
+  const gate = seqGate(authority);
+  box.className = `notice ${gate.ok ? 'info' : gate.css === 'warn' ? 'warning' : 'error'}`;
+  if (authority.seqMode === 'manual') {
+    box.textContent = 'Manual Seq mode: each wall x cycle row requires a controlled licensed Seq value.';
+  } else if (gate.ok) {
+    box.textContent = authority.seqMode === 'mean-embedded'
+      ? 'Automatic Seq ready: the reviewer has confirmed that mean-stress effects are incorporated in the selected licensed fatigue curve; Seq is taken from the controlling Salt pair.'
+      : `Automatic Seq ready: explicit mean correction uses reviewer-controlled beta=${authority.seqBeta}, Nref=${authority.seqReferenceCycles}, term limit=${authority.seqMeanTermLimit}, Sa_ref=${fmt(gate.saRef, 3)} MPa.`;
+  } else {
+    box.textContent = `Automatic Seq blocked: ${gate.label}.`;
+  }
 }
 
 function curveGate(authority) {
@@ -427,6 +548,67 @@ function fatigueResult(input, wall, cycle) {
   };
 }
 
+function kd312PairMetrics(result) {
+  const min = [result.stateMin.hoop, result.stateMin.axial, result.stateMin.radial];
+  const max = [result.stateMax.hoop, result.stateMax.axial, result.stateMax.radial];
+  const defs = [
+    { id: '12', a: 0, b: 1, signA: 1, signB: -1 },
+    { id: '23', a: 1, b: 2, signA: 1, signB: -1 },
+    { id: '31', a: 2, b: 0, signA: 1, signB: -1 },
+  ];
+  return defs.map((def) => {
+    const diffMinState = def.signA * min[def.a] + def.signB * min[def.b];
+    const diffMaxState = def.signA * max[def.a] + def.signB * max[def.b];
+    const sMax = Math.max(diffMinState, diffMaxState);
+    const sMin = Math.min(diffMinState, diffMaxState);
+    const normalAtMinState = 0.5 * (min[def.a] + min[def.b]);
+    const normalAtMaxState = 0.5 * (max[def.a] + max[def.b]);
+    const normalMax = Math.max(normalAtMinState, normalAtMaxState);
+    const normalMin = Math.min(normalAtMinState, normalAtMaxState);
+    const meanElastic = Math.max(0, 0.5 * (normalMax + normalMin));
+    return {
+      id: def.id,
+      sAtPmin: diffMinState,
+      sAtPmax: diffMaxState,
+      sMax,
+      sMin,
+      salt: 0.5 * (sMax - sMin),
+      normalAtPmin: normalAtMinState,
+      normalAtPmax: normalAtMaxState,
+      normalMax,
+      normalMin,
+      meanElastic,
+    };
+  });
+}
+
+function calculateAutomaticSeq(result, authority) {
+  const gate = seqGate(authority);
+  const pairs = kd312PairMetrics(result);
+  if (!gate.ok) return { ok: false, seq: NaN, pair: '', basis: gate.label, pairs, saRef: gate.saRef };
+  if (authority.seqMode === 'manual') return { ok: false, seq: NaN, pair: '', basis: 'Manual licensed Seq', pairs, saRef: NaN };
+  if (!result.elastic) return { ok: false, seq: NaN, pair: '', basis: 'Inelastic/special route - automatic Seq disabled', pairs, saRef: gate.saRef };
+
+  const evaluated = pairs.map((pair) => {
+    if (authority.seqMode === 'mean-embedded') {
+      return { ...pair, seq: pair.salt, correctionTerm: 0 };
+    }
+    const rawTerm = gate.saRef > 0 ? authority.seqBeta * pair.meanElastic / gate.saRef : NaN;
+    if (!Number.isFinite(rawTerm)) return { ...pair, seq: NaN, correctionTerm: NaN };
+    const correctionTerm = Math.min(Math.max(rawTerm, 0), authority.seqMeanTermLimit);
+    const denominator = 1 - correctionTerm;
+    return { ...pair, seq: denominator > 0 ? pair.salt / denominator : NaN, correctionTerm };
+  });
+
+  const finite = evaluated.filter((pair) => pair.seq > 0 && Number.isFinite(pair.seq));
+  if (!finite.length) return { ok: false, seq: NaN, pair: '', basis: 'Automatic Seq calculation produced no valid pair', pairs: evaluated, saRef: gate.saRef };
+  const controlling = finite.reduce((best, pair) => pair.seq > best.seq ? pair : best, finite[0]);
+  const basis = authority.seqMode === 'mean-embedded'
+    ? `Auto mean-embedded; pair ${controlling.id}; Salt=${fmt(controlling.salt, 4)} MPa`
+    : `Auto explicit mean; pair ${controlling.id}; Salt=${fmt(controlling.salt, 4)} MPa; mean=${fmt(controlling.meanElastic, 4)} MPa; term=${fmt(controlling.correctionTerm, 5)}; Sa_ref=${fmt(gate.saRef, 4)} MPa`;
+  return { ok: true, seq: controlling.seq, pair: controlling.id, basis, pairs: evaluated, saRef: gate.saRef };
+}
+
 function rowKey(wall, cycleId) {
   return `${wall.toFixed(4)}-${cycleId}`;
 }
@@ -438,6 +620,7 @@ function readKdState(wall, cycleId) {
     ni: Number(byId(`ni-${key}`)?.value),
     source: (byId(`source-${key}`)?.value || '').trim(),
     approved: Boolean(byId(`approved-${key}`)?.checked),
+    seqBasis: byId(`seqbasis-${key}`)?.textContent || '',
     niBasis: byId(`nibasis-${key}`)?.textContent || '',
   };
 }
@@ -456,15 +639,21 @@ function kdComplete(kd) {
 
 function kdInputsHtml(result, previous, input) {
   const key = rowKey(result.wall, result.cycleId);
-  const seq = Number.isFinite(previous.seq) && previous.seq > 0 ? previous.seq : '';
-  const ni = Number.isFinite(previous.ni) && previous.ni > 0 ? previous.ni : '';
+  const isSeqAuto = input.authority.seqMode !== 'manual';
   const isCurve = input.authority.fatigueCurveMode === 'curve';
-  const defaultSource = isCurve
-    ? input.authority.fatigueCurveSourceRef
-    : input.authority.evidencePackage;
+  const priorManualSeq = String(previous.seqBasis || '').startsWith('Manual');
+  const priorManualNi = String(previous.niBasis || '').startsWith('Manual');
+  const seq = !isSeqAuto && priorManualSeq && Number.isFinite(previous.seq) && previous.seq > 0 ? previous.seq : '';
+  const ni = !isCurve && priorManualNi && Number.isFinite(previous.ni) && previous.ni > 0 ? previous.ni : '';
+  const defaultSource = isSeqAuto
+    ? input.authority.seqRouteSourceRef
+    : isCurve
+      ? input.authority.fatigueCurveSourceRef
+      : input.authority.evidencePackage;
   const source = previous.source || defaultSource || '';
   return `
-    <td><input id="seq-${key}" class="table-input" type="number" min="0" step="any" value="${seq}" placeholder="licensed Seq"></td>
+    <td><input id="seq-${key}" class="table-input" type="number" min="0" step="any" value="${seq}" placeholder="${isSeqAuto ? 'auto' : 'licensed Seq'}" ${isSeqAuto ? 'readonly' : ''}></td>
+    <td id="seqbasis-${key}" class="text-left">${isSeqAuto ? 'Awaiting Seq route' : 'Manual licensed Seq'}</td>
     <td><input id="ni-${key}" class="table-input" type="number" min="1" step="any" value="${isCurve ? '' : ni}" placeholder="${isCurve ? 'auto' : 'licensed Ni'}" ${isCurve ? 'readonly' : ''}></td>
     <td id="nibasis-${key}" class="text-left">${isCurve ? 'Awaiting curve/Seq' : 'Manual licensed Ni'}</td>
     <td><input id="source-${key}" class="table-input source-input" value="${escapeHtml(source)}" placeholder="KD-3 clause / calc ID"></td>
@@ -502,6 +691,34 @@ function renderKd2Table(input) {
     <td>${fmt(result.deltaSI, 2)}</td>
     <td><span class="badge ${gate.css}">${escapeHtml(gate.label)}</span></td>
   </tr>`).join('');
+}
+
+function refreshAutomaticSeq(input) {
+  const authority = input.authority;
+  updateSeqStatus(authority);
+  const isAuto = authority.seqMode !== 'manual';
+  if (!isAuto) return;
+
+  const gate = seqGate(authority);
+  for (const result of currentMatrix) {
+    const key = rowKey(result.wall, result.cycleId);
+    const seqInput = byId(`seq-${key}`);
+    const basis = byId(`seqbasis-${key}`);
+    if (!seqInput || !basis) continue;
+    if (!gate.ok) {
+      seqInput.value = '';
+      basis.textContent = gate.label;
+      continue;
+    }
+    const calc = calculateAutomaticSeq(result, authority);
+    if (!calc.ok) {
+      seqInput.value = '';
+      basis.textContent = calc.basis;
+      continue;
+    }
+    seqInput.value = String(calc.seq);
+    basis.textContent = calc.basis;
+  }
 }
 
 function refreshAutomaticNi(input) {
@@ -559,6 +776,7 @@ function renderFatigueMatrix(input) {
     </tr>`;
   }).join('');
 
+  refreshAutomaticSeq(input);
   refreshAutomaticNi(input);
   updateUsageAndClassSummary(input, false);
 }
@@ -571,6 +789,11 @@ function wallStatus(input, wall) {
 
   const kd3 = kd3SourceGate(input.authority);
   if (!kd3.ok) return { label: kd3.label, css: kd3.css, cumulative: NaN, kdCount: 0, anyInelastic: false };
+
+  if (input.authority.seqMode !== 'manual') {
+    const seqRoute = seqGate(input.authority);
+    if (!seqRoute.ok) return { label: seqRoute.label, css: seqRoute.css, cumulative: NaN, kdCount: 0, anyInelastic: false };
+  }
 
   if (input.authority.fatigueCurveMode === 'curve') {
     const curve = curveGate(input.authority);
@@ -598,9 +821,11 @@ function wallStatus(input, wall) {
 
   if (!allKd) {
     return {
-      label: input.authority.fatigueCurveMode === 'curve'
-        ? 'Seq / row evidence pending'
-        : 'KD-3 Seq / Ni evidence pending',
+      label: input.authority.seqMode !== 'manual'
+        ? 'Automatic Seq / row approval pending'
+        : input.authority.fatigueCurveMode === 'curve'
+          ? 'Seq / row evidence pending'
+          : 'KD-3 Seq / Ni evidence pending',
       css: 'blocked',
       cumulative: NaN,
       kdCount,
@@ -617,8 +842,11 @@ function wallStatus(input, wall) {
   return { label: 'Eligible for class-release review', css: 'good', cumulative, kdCount, anyInelastic };
 }
 
-function updateUsageAndClassSummary(input, refreshNi = true) {
-  if (refreshNi) refreshAutomaticNi(input);
+function updateUsageAndClassSummary(input, refreshFatigue = true) {
+  if (refreshFatigue) {
+    refreshAutomaticSeq(input);
+    refreshAutomaticNi(input);
+  }
 
   for (const result of currentMatrix) {
     const row = byId('fatigueBody').querySelector(`tr[data-key="${rowKey(result.wall, result.cycleId)}"]`);
@@ -677,8 +905,8 @@ function loadReferenceExample() {
 
   [
     'viii3Edition','materialSpec','materialGrade','productSpec','toleranceSource','evidencePackage',
-    'kd2Edition','kd2LimitCalcId','kd3SourceEdition','kdRoute','fatigueCurveId',
-    'fatigueCurveSourceRef','fatigueCurveData','fractureEvidence'
+    'kd2Edition','kd2LimitCalcId','kd3SourceEdition','kdRoute','seqRouteSourceRef','seqBeta',
+    'seqReferenceCycles','seqMeanTermLimit','fatigueCurveId','fatigueCurveSourceRef','fatigueCurveData','fractureEvidence'
   ].forEach((id) => { if (byId(id)) byId(id).value = ''; });
 
   byId('kd2AnalysisMethod').value = 'unassessed';
@@ -689,6 +917,9 @@ function loadReferenceExample() {
 
   byId('kd3SourceConfirmed').checked = false;
   byId('kd3CompatibilityConfirmed').checked = false;
+  byId('seqMode').value = 'manual';
+  byId('seqMeanBasis').value = 'elastic-average-nonnegative';
+  byId('seqRouteApproved').checked = false;
   byId('fatigueCurveMode').value = 'manual';
   byId('fatigueInterpolation').value = 'loglog';
   byId('fatigueInterpolationApproved').checked = false;
@@ -713,19 +944,21 @@ function downloadCsv() {
 
   const a = authorityState();
   lastInput = { ...lastInput, authority: a };
+  refreshAutomaticSeq(lastInput);
   refreshAutomaticNi(lastInput);
   const curve = parseFatigueCurvePoints(a.fatigueCurveData);
   const headers = [
     'b31_edition','viii3_edition','material_spec','material_grade','product_spec','tolerance_source','evidence_package',
     'kd2_source_commit','kd2_source_blob','kd2_source_edition','kd2_analysis_method','kd2_stress_model','kd2_geometry','kd2_residual','kd2_limit_calc_id','kd2_approved',
     'kd3_source_commit','kd3_source_blob','kd3_source_size_bytes','kd3_source_edition','kd3_source_confirmed','kd3_compatibility_confirmed',
-    'kd3_route','fatigue_curve_mode','fatigue_curve_id','fatigue_curve_source_ref','fatigue_interpolation','fatigue_interpolation_approved','fatigue_curve_approved','fatigue_curve_points','fatigue_curve_validation',
+    'kd3_route','seq_mode','seq_route_source_ref','seq_route_approved','seq_mean_basis','seq_beta','seq_reference_cycles','seq_mean_term_limit',
+    'fatigue_curve_mode','fatigue_curve_id','fatigue_curve_source_ref','fatigue_interpolation','fatigue_interpolation_approved','fatigue_curve_approved','fatigue_curve_points','fatigue_curve_validation',
     'fracture_status','fracture_evidence',
     'nominal_wall_mm','minimum_T_mm','static_pass','cycle_id','cycle_name','Pmin_MPa','Pmax_MPa','Tmin_C','Tmax_C','avg_T_C','Syt_MPa','cycles_n',
     'effective_T_minus_c_mm','sigma_z_Pmin_MPa','sigma_z_Pmax_MPa','sigma_theta_Pmin_MPa','sigma_theta_Pmax_MPa','sigma_r_Pmin_MPa','sigma_r_Pmax_MPa',
     'delta_sigma_z_MPa','delta_sigma_theta_MPa','delta_sigma_r_MPa','pressure_only_delta_SI_MPa',
     'Sp_Pmin_MPa','Sp_Pmax_MPa','delta_Sp_MPa','half_range_descriptor_MPa','elastic_gate',
-    'licensed_Seq_MPa','Ni_cycles','Ni_basis','KD3_source_calc_id','KD3_row_approved','usage_Ui','cumulative_U','class_status'
+    'Salt12_MPa','Salt23_MPa','Salt31_MPa','mean12_MPa','mean23_MPa','mean31_MPa','Seq_MPa','Seq_basis','Ni_cycles','Ni_basis','KD3_source_calc_id','KD3_row_approved','usage_Ui','cumulative_U','class_status'
   ];
 
   const rows = currentMatrix.map((result) => {
@@ -738,7 +971,8 @@ function downloadCsv() {
       a.b31Edition,a.viii3Edition,a.materialSpec,a.materialGrade,a.productSpec,a.toleranceSource,a.evidencePackage,
       KD2_SOURCE.commit,KD2_SOURCE.blob,a.kd2Edition,a.kd2AnalysisMethod,a.kd2StressModel,a.kd2Geometry,a.kd2Residual,a.kd2LimitCalcId,a.kd2Approved,
       KD3_SOURCE.commit,KD3_SOURCE.blob,KD3_SOURCE.size,a.kd3SourceEdition,a.kd3SourceConfirmed,a.kd3CompatibilityConfirmed,
-      a.kdRoute,a.fatigueCurveMode,a.fatigueCurveId,a.fatigueCurveSourceRef,a.fatigueInterpolation,a.fatigueInterpolationApproved,a.fatigueCurveApproved,
+      a.kdRoute,a.seqMode,a.seqRouteSourceRef,a.seqRouteApproved,a.seqMeanBasis,a.seqBeta,a.seqReferenceCycles,a.seqMeanTermLimit,
+      a.fatigueCurveMode,a.fatigueCurveId,a.fatigueCurveSourceRef,a.fatigueInterpolation,a.fatigueInterpolationApproved,a.fatigueCurveApproved,
       curve.ok ? curve.points.map((p) => `${p.N}:${p.Sa}`).join(';') : '',
       curve.ok ? 'VALID' : curve.error,
       a.fractureStatus,a.fractureEvidence,
@@ -746,7 +980,8 @@ function downloadCsv() {
       result.effective,result.stateMin.axial,result.stateMax.axial,result.stateMin.hoop,result.stateMax.hoop,result.stateMin.radial,result.stateMax.radial,
       result.delta.axial,result.delta.hoop,result.delta.radial,result.deltaSI,
       result.spMin,result.spMax,result.deltaSp,result.halfRange,result.elastic,
-      kd.seq > 0 ? kd.seq : '',kd.ni > 0 ? kd.ni : '',kd.niBasis,kd.source,kd.approved,usage,
+      ...(() => { const pairs = kd312PairMetrics(result); return [pairs[0].salt,pairs[1].salt,pairs[2].salt,pairs[0].meanElastic,pairs[1].meanElastic,pairs[2].meanElastic]; })(),
+      kd.seq > 0 ? kd.seq : '',kd.seqBasis,kd.ni > 0 ? kd.ni : '',kd.niBasis,kd.source,kd.approved,usage,
       Number.isFinite(summary.cumulative) ? summary.cumulative : '',summary.label
     ];
   });
@@ -794,6 +1029,7 @@ byId('fatigueBody').addEventListener('change', refreshAuthorityAndStatus);
   'viii3Edition','materialSpec','materialGrade','productSpec','toleranceSource','evidencePackage',
   'kd2Edition','kd2AnalysisMethod','kd2StressModel','kd2Geometry','kd2Residual','kd2LimitCalcId','kd2Approved',
   'kd3SourceEdition','kd3SourceConfirmed','kd3CompatibilityConfirmed','kdRoute',
+  'seqMode','seqRouteSourceRef','seqRouteApproved','seqMeanBasis','seqBeta','seqReferenceCycles','seqMeanTermLimit',
   'fatigueCurveMode','fatigueCurveId','fatigueCurveSourceRef','fatigueCurveData','fatigueInterpolation',
   'fatigueInterpolationApproved','fatigueCurveApproved',
   'fractureStatus','fractureEvidence'
@@ -802,14 +1038,19 @@ byId('fatigueBody').addEventListener('change', refreshAuthorityAndStatus);
   if (!element) return;
   element.addEventListener('input', refreshAuthorityAndStatus);
   element.addEventListener('change', () => {
-    if (id === 'fatigueCurveMode' && lastInput) renderFatigueMatrix({ ...lastInput, authority: authorityState() });
-    else refreshAuthorityAndStatus();
+    if ((id === 'fatigueCurveMode' || id === 'seqMode') && lastInput) {
+      lastInput = { ...lastInput, authority: authorityState() };
+      renderFatigueMatrix(lastInput);
+    } else refreshAuthorityAndStatus();
   });
 });
 
 window.HPClassApp = Object.freeze({
   parseFatigueCurvePoints,
   interpolateFatigueLife,
+  interpolateCurveStressAtCycles,
+  kd312PairMetrics,
+  calculateAutomaticSeq,
   requiredPressureWall,
   pressureRating,
   pressureStress,
