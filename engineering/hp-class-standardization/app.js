@@ -29,15 +29,19 @@ let cycleCounter = 1;
 let currentWalls = [];
 let currentMatrix = [];
 let lastInput = null;
-let lastStaticMinimum = NaN;
 
 function numberValue(id) {
-  const value = Number(byId(id).value);
+  const value = Number(byId(id)?.value);
   return Number.isFinite(value) ? value : NaN;
 }
 
 function parseWalls(value) {
-  return [...new Set(value.split(',').map((part) => Number(part.trim())).filter((n) => n > 0 && Number.isFinite(n)))];
+  return [...new Set(
+    String(value || '')
+      .split(',')
+      .map((part) => Number(part.trim()))
+      .filter((n) => n > 0 && Number.isFinite(n))
+  )];
 }
 
 function requiredPressureWall({ D, co, P, S }) {
@@ -95,36 +99,61 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function editionYear(value) {
+  const match = String(value || '').match(/\b(19|20)\d{2}\b/);
+  return match ? match[0] : '';
+}
+
 function authorityState() {
   return {
-    b31Edition: byId('b31Edition').value.trim(),
-    viii3Edition: byId('viii3Edition').value.trim(),
-    materialSpec: byId('materialSpec').value.trim(),
-    materialGrade: byId('materialGrade').value.trim(),
-    productSpec: byId('productSpec').value.trim(),
-    toleranceSource: byId('toleranceSource').value.trim(),
-    kdRoute: byId('kdRoute').value.trim(),
-    fatigueCurveId: byId('fatigueCurveId').value.trim(),
-    evidencePackage: byId('evidencePackage').value.trim(),
-    kd3SourceEdition: byId('kd3SourceEdition').value.trim(),
-    kd3SourceConfirmed: Boolean(byId('kd3SourceConfirmed').checked),
-    fractureStatus: byId('fractureStatus').value,
-    fractureEvidence: byId('fractureEvidence').value.trim(),
-    kd2Edition: byId('kd2Edition').value.trim(),
-    kd2AnalysisMethod: byId('kd2AnalysisMethod').value,
-    kd2StressModel: byId('kd2StressModel').value,
-    kd2Geometry: byId('kd2Geometry').value,
-    kd2Residual: byId('kd2Residual').value,
-    kd2LimitCalcId: byId('kd2LimitCalcId').value.trim(),
-    kd2Approved: Boolean(byId('kd2Approved').checked),
+    b31Edition: byId('b31Edition')?.value.trim() || '',
+    viii3Edition: byId('viii3Edition')?.value.trim() || '',
+    materialSpec: byId('materialSpec')?.value.trim() || '',
+    materialGrade: byId('materialGrade')?.value.trim() || '',
+    productSpec: byId('productSpec')?.value.trim() || '',
+    toleranceSource: byId('toleranceSource')?.value.trim() || '',
+    evidencePackage: byId('evidencePackage')?.value.trim() || '',
+
+    kd2Edition: byId('kd2Edition')?.value.trim() || '',
+    kd2AnalysisMethod: byId('kd2AnalysisMethod')?.value || 'unassessed',
+    kd2StressModel: byId('kd2StressModel')?.value || 'pressure-analytic',
+    kd2Geometry: byId('kd2Geometry')?.value || 'uniform',
+    kd2Residual: byId('kd2Residual')?.value || 'none',
+    kd2LimitCalcId: byId('kd2LimitCalcId')?.value.trim() || '',
+    kd2Approved: Boolean(byId('kd2Approved')?.checked),
+
+    kd3SourceEdition: byId('kd3SourceEdition')?.value.trim() || '',
+    kd3SourceConfirmed: Boolean(byId('kd3SourceConfirmed')?.checked),
+    kd3CompatibilityConfirmed: Boolean(byId('kd3CompatibilityConfirmed')?.checked),
+    kdRoute: byId('kdRoute')?.value.trim() || '',
+    fatigueCurveId: byId('fatigueCurveId')?.value.trim() || '',
+    fatigueCurveMode: byId('fatigueCurveMode')?.value || 'manual',
+    fatigueCurveSourceRef: byId('fatigueCurveSourceRef')?.value.trim() || '',
+    fatigueCurveData: byId('fatigueCurveData')?.value || '',
+    fatigueInterpolation: byId('fatigueInterpolation')?.value || 'loglog',
+    fatigueInterpolationApproved: Boolean(byId('fatigueInterpolationApproved')?.checked),
+    fatigueCurveApproved: Boolean(byId('fatigueCurveApproved')?.checked),
+
+    fractureStatus: byId('fractureStatus')?.value || 'unassessed',
+    fractureEvidence: byId('fractureEvidence')?.value.trim() || '',
   };
 }
 
 function authorityComplete(authority) {
-  return Boolean(
-    authority.viii3Edition && authority.materialSpec && authority.materialGrade && authority.productSpec &&
-    authority.toleranceSource && authority.kdRoute && authority.fatigueCurveId && authority.evidencePackage
+  const base = Boolean(
+    authority.viii3Edition &&
+    authority.materialSpec &&
+    authority.materialGrade &&
+    authority.productSpec &&
+    authority.toleranceSource &&
+    authority.evidencePackage &&
+    authority.kdRoute
   );
+  if (!base) return false;
+  if (authority.fatigueCurveMode === 'curve') {
+    return Boolean(authority.fatigueCurveId && authority.fatigueCurveSourceRef);
+  }
+  return true;
 }
 
 function kd2Gate(authority) {
@@ -135,23 +164,27 @@ function kd2Gate(authority) {
   }
   if (authority.kd2StressModel !== 'pressure-analytic') return { ok: false, label: 'External KD-2 model required', css: 'warn' };
   if (authority.kd2Geometry !== 'uniform') return { ok: false, label: 'Local/special geometry route', css: 'warn' };
-  if (authority.kd2Residual === 'evidence' && !authority.kd2LimitCalcId) return { ok: false, label: 'Residual/prestress evidence required', css: 'blocked' };
+  if (authority.kd2Residual === 'evidence' && !authority.kd2LimitCalcId) {
+    return { ok: false, label: 'Residual/prestress evidence required', css: 'blocked' };
+  }
   if (!authority.kd2LimitCalcId) return { ok: false, label: 'KD-2 limit-check ID required', css: 'blocked' };
   if (!authority.kd2Approved) return { ok: false, label: 'KD-2 approval pending', css: 'blocked' };
   return { ok: true, label: 'KD-2 package approved', css: 'good' };
 }
 
-function normalizedEdition(value) {
-  return String(value || '').toLowerCase().replace(/[^0-9a-z]/g, '');
-}
-
 function kd3SourceGate(authority) {
+  if (!authority.viii3Edition) return { ok: false, label: 'Project VIII-3 edition missing', css: 'blocked' };
   if (!authority.kd3SourceEdition) return { ok: false, label: 'KD-3 source edition unconfirmed', css: 'blocked' };
   if (!authority.kd3SourceConfirmed) return { ok: false, label: 'KD-3 source verification pending', css: 'blocked' };
-  const project = normalizedEdition(authority.viii3Edition);
-  const source = normalizedEdition(authority.kd3SourceEdition);
-  if (project && source && project !== source) return { ok: false, label: 'KD-3 / project VIII-3 edition mismatch', css: 'warn' };
-  return { ok: true, label: 'KD-3 source verified', css: 'good' };
+  const projectYear = editionYear(authority.viii3Edition);
+  const sourceYear = editionYear(authority.kd3SourceEdition);
+  if (projectYear && sourceYear && projectYear !== sourceYear) {
+    return { ok: false, label: `KD-3 / project edition mismatch (${sourceYear} vs ${projectYear})`, css: 'warn' };
+  }
+  if (!authority.kd3CompatibilityConfirmed) {
+    return { ok: false, label: 'KD-3 edition compatibility review pending', css: 'blocked' };
+  }
+  return { ok: true, label: 'KD-3 source / edition verified', css: 'good' };
 }
 
 function fractureGate(authority) {
@@ -160,6 +193,122 @@ function fractureGate(authority) {
   if (!authority.fractureEvidence) return { ok: false, label: 'Evidence ID required', css: 'blocked' };
   if (authority.fractureStatus === 'kd4-approved') return { ok: true, label: 'KD-4 evidence approved', css: 'good' };
   return { ok: true, label: 'Review cleared', css: 'good' };
+}
+
+/**
+ * Parse reviewer-entered fatigue curve points.
+ * Accepted lines: "N, Sa", "N Sa", or "N;Sa". Blank lines and # comments are ignored.
+ * No ASME curve values are embedded in this application.
+ */
+function parseFatigueCurvePoints(text) {
+  const points = [];
+  const errors = [];
+  String(text || '').split(/\r?\n/).forEach((raw, index) => {
+    const line = raw.replace(/#.*/, '').trim();
+    if (!line) return;
+    const parts = line.split(/[,\s;]+/).filter(Boolean);
+    if (parts.length !== 2) {
+      errors.push(`Line ${index + 1}: enter exactly N and Sa.`);
+      return;
+    }
+    const N = Number(parts[0]);
+    const Sa = Number(parts[1]);
+    if (!(N > 0) || !(Sa > 0) || !Number.isFinite(N) || !Number.isFinite(Sa)) {
+      errors.push(`Line ${index + 1}: N and Sa must be positive numbers.`);
+      return;
+    }
+    points.push({ N, Sa });
+  });
+
+  if (errors.length) return { ok: false, points: [], error: errors[0] };
+  if (points.length < 2) return { ok: false, points, error: 'At least two fatigue-curve points are required.' };
+
+  points.sort((a, b) => a.N - b.N);
+  const nValues = new Set();
+  const sValues = new Set();
+  for (const p of points) {
+    if (nValues.has(p.N)) return { ok: false, points, error: `Duplicate cycle value N=${p.N}.` };
+    if (sValues.has(p.Sa)) return { ok: false, points, error: `Duplicate stress amplitude Sa=${p.Sa}; automatic interpolation is ambiguous.` };
+    nValues.add(p.N);
+    sValues.add(p.Sa);
+  }
+  for (let i = 1; i < points.length; i += 1) {
+    if (!(points[i].Sa < points[i - 1].Sa)) {
+      return { ok: false, points, error: 'Sa must decrease strictly as N increases for automatic interpolation.' };
+    }
+  }
+  return { ok: true, points, error: '' };
+}
+
+/**
+ * Generic log-log interpolation of N at a supplied stress amplitude.
+ * This is mathematical tooling only. The reviewer must confirm that this interpolation basis
+ * is permitted for the selected licensed fatigue curve. Extrapolation is never performed.
+ */
+function interpolateFatigueLife(seq, points) {
+  if (!(seq > 0) || !Number.isFinite(seq)) return { ok: false, N: NaN, status: 'Seq missing/invalid' };
+  if (!Array.isArray(points) || points.length < 2) return { ok: false, N: NaN, status: 'Curve points unavailable' };
+
+  for (const p of points) {
+    if (Math.abs(seq - p.Sa) <= Math.max(1e-12, Math.abs(p.Sa) * 1e-12)) {
+      return { ok: true, N: p.N, status: 'Exact curve point' };
+    }
+  }
+
+  const maxSa = points[0].Sa;
+  const minSa = points[points.length - 1].Sa;
+  if (seq > maxSa || seq < minSa) {
+    return { ok: false, N: NaN, status: `Outside curve range ${minSa}–${maxSa} MPa; no extrapolation` };
+  }
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const high = points[i];
+    const low = points[i + 1];
+    if (seq < high.Sa && seq > low.Sa) {
+      const logN1 = Math.log10(high.N);
+      const logN2 = Math.log10(low.N);
+      const logS1 = Math.log10(high.Sa);
+      const logS2 = Math.log10(low.Sa);
+      const fraction = (Math.log10(seq) - logS1) / (logS2 - logS1);
+      const N = 10 ** (logN1 + fraction * (logN2 - logN1));
+      return { ok: true, N, status: 'Log-log interpolation' };
+    }
+  }
+  return { ok: false, N: NaN, status: 'No valid interpolation segment found' };
+}
+
+function curveGate(authority) {
+  if (authority.fatigueCurveMode !== 'curve') return { ok: true, label: 'Manual Ni mode', css: 'good', points: [] };
+  const source = kd3SourceGate(authority);
+  if (!source.ok) return { ...source, points: [] };
+  if (!authority.fatigueCurveId) return { ok: false, label: 'Fatigue curve ID required', css: 'blocked', points: [] };
+  if (!authority.fatigueCurveSourceRef) return { ok: false, label: 'Fatigue curve source reference required', css: 'blocked', points: [] };
+  if (authority.fatigueInterpolation !== 'loglog') {
+    return { ok: false, label: 'Unsupported interpolation method', css: 'blocked', points: [] };
+  }
+  if (!authority.fatigueInterpolationApproved) {
+    return { ok: false, label: 'Interpolation basis not approved', css: 'blocked', points: [] };
+  }
+  if (!authority.fatigueCurveApproved) {
+    return { ok: false, label: 'Fatigue curve transcription not approved', css: 'blocked', points: [] };
+  }
+  const parsed = parseFatigueCurvePoints(authority.fatigueCurveData);
+  if (!parsed.ok) return { ok: false, label: parsed.error, css: 'blocked', points: parsed.points };
+  return { ok: true, label: `${parsed.points.length} curve points approved`, css: 'good', points: parsed.points };
+}
+
+function updateCurveStatus(authority) {
+  const box = byId('curveStatusBox');
+  if (!box) return;
+  const gate = curveGate(authority);
+  box.className = `notice ${gate.ok ? 'info' : gate.css === 'warn' ? 'warning' : 'error'}`;
+  if (authority.fatigueCurveMode === 'manual') {
+    box.textContent = 'Manual Ni mode: each wall × cycle row requires a controlled licensed Ni value.';
+  } else {
+    box.textContent = gate.ok
+      ? `Controlled curve ready: ${gate.label}. Automatic Ni uses log-log interpolation with no extrapolation.`
+      : `Automatic Ni blocked: ${gate.label}.`;
+  }
 }
 
 function addCycleRow(data = {}) {
@@ -184,7 +333,9 @@ function addCycleRow(data = {}) {
 function refreshCycleAverage(row) {
   const tMin = Number(row.querySelector('.cycle-tmin').value);
   const tMax = Number(row.querySelector('.cycle-tmax').value);
-  row.querySelector('.cycle-avg').textContent = Number.isFinite(tMin) && Number.isFinite(tMax) ? fmt((tMin + tMax) / 2, 1) : '-';
+  row.querySelector('.cycle-avg').textContent = Number.isFinite(tMin) && Number.isFinite(tMax)
+    ? fmt((tMin + tMax) / 2, 1)
+    : '-';
 }
 
 function readCycles() {
@@ -211,7 +362,7 @@ function readInputs() {
     ci: numberValue('ci'),
     co: numberValue('co'),
     tolerance: numberValue('tolerance'),
-    walls: parseWalls(byId('candidateWalls').value),
+    walls: parseWalls(byId('candidateWalls')?.value),
     cycles: readCycles(),
     authority: authorityState(),
   };
@@ -220,14 +371,16 @@ function readInputs() {
 function validateInputs(input) {
   if (!(input.D > 0) || !(input.Pdesign > 0) || !(input.S > 0)) return 'D, design pressure and allowable stress S must be positive.';
   if (input.ci < 0 || input.co < 0) return 'ci and co cannot be negative.';
-  if (input.D <= 2 * input.co) return 'D must be greater than 2 x co.';
+  if (input.D <= 2 * input.co) return 'D must be greater than 2 × co.';
   if (!(input.tolerance >= 0 && input.tolerance < 100)) return 'Wall minus tolerance must be between 0% and 100%.';
   if (!input.walls.length) return 'Enter at least one positive candidate nominal wall.';
   if (!input.cycles.length) return 'Enter at least one pressure-cycle block.';
   for (const cycle of input.cycles) {
-    if (![cycle.pMin, cycle.pMax, cycle.tMin, cycle.tMax, cycle.syt, cycle.n].every(Number.isFinite)) return `Complete all numeric inputs for ${cycle.name}.`;
-    if (cycle.pMin < 0 || cycle.pMax < cycle.pMin) return `${cycle.name}: require 0 <= Pmin <= Pmax.`;
-    if (cycle.tMax < cycle.tMin) return `${cycle.name}: require Tmin <= Tmax.`;
+    if (![cycle.pMin, cycle.pMax, cycle.tMin, cycle.tMax, cycle.syt, cycle.n].every(Number.isFinite)) {
+      return `Complete all numeric inputs for ${cycle.name}.`;
+    }
+    if (cycle.pMin < 0 || cycle.pMax < cycle.pMin) return `${cycle.name}: require 0 ≤ Pmin ≤ Pmax.`;
+    if (cycle.tMax < cycle.tMin) return `${cycle.name}: require Tmin ≤ Tmax.`;
     if (!(cycle.syt > 0)) return `${cycle.name}: Syt at cycle-average temperature must be positive.`;
     if (!(cycle.n > 0)) return `${cycle.name}: cycle count n must be positive.`;
   }
@@ -254,7 +407,6 @@ function fatigueResult(input, wall, cycle) {
     hoop: stateMax.hoop - stateMin.hoop,
     radial: stateMax.radial - stateMin.radial,
   };
-  const deltaSI = stressIntensityFromPrincipal([delta.axial, delta.hoop, delta.radial]);
   return {
     wall: wall.tNominal,
     cycleId: cycle.id,
@@ -271,7 +423,7 @@ function fatigueResult(input, wall, cycle) {
     stateMin,
     stateMax,
     delta,
-    deltaSI,
+    deltaSI: stressIntensityFromPrincipal([delta.axial, delta.hoop, delta.radial]),
   };
 }
 
@@ -286,12 +438,15 @@ function readKdState(wall, cycleId) {
     ni: Number(byId(`ni-${key}`)?.value),
     source: (byId(`source-${key}`)?.value || '').trim(),
     approved: Boolean(byId(`approved-${key}`)?.checked),
+    niBasis: byId(`nibasis-${key}`)?.textContent || '',
   };
 }
 
 function captureKdStates() {
   const map = new Map();
-  for (const result of currentMatrix) map.set(rowKey(result.wall, result.cycleId), readKdState(result.wall, result.cycleId));
+  for (const result of currentMatrix) {
+    map.set(rowKey(result.wall, result.cycleId), readKdState(result.wall, result.cycleId));
+  }
   return map;
 }
 
@@ -299,15 +454,21 @@ function kdComplete(kd) {
   return kd.seq > 0 && kd.ni > 0 && Boolean(kd.source) && kd.approved;
 }
 
-function kdInputsHtml(result, previous, defaultSource) {
+function kdInputsHtml(result, previous, input) {
   const key = rowKey(result.wall, result.cycleId);
   const seq = Number.isFinite(previous.seq) && previous.seq > 0 ? previous.seq : '';
   const ni = Number.isFinite(previous.ni) && previous.ni > 0 ? previous.ni : '';
+  const isCurve = input.authority.fatigueCurveMode === 'curve';
+  const defaultSource = isCurve
+    ? input.authority.fatigueCurveSourceRef
+    : input.authority.evidencePackage;
   const source = previous.source || defaultSource || '';
-  return `<td><input id="seq-${key}" class="table-input" type="number" min="0" step="any" value="${seq}" placeholder="licensed"></td>
-    <td><input id="ni-${key}" class="table-input" type="number" min="1" step="1" value="${ni}" placeholder="licensed"></td>
+  return `
+    <td><input id="seq-${key}" class="table-input" type="number" min="0" step="any" value="${seq}" placeholder="licensed Seq"></td>
+    <td><input id="ni-${key}" class="table-input" type="number" min="1" step="any" value="${isCurve ? '' : ni}" placeholder="${isCurve ? 'auto' : 'licensed Ni'}" ${isCurve ? 'readonly' : ''}></td>
+    <td id="nibasis-${key}" class="text-left">${isCurve ? 'Awaiting curve/Seq' : 'Manual licensed Ni'}</td>
     <td><input id="source-${key}" class="table-input source-input" value="${escapeHtml(source)}" placeholder="KD-3 clause / calc ID"></td>
-    <td class="center"><input id="approved-${key}" type="checkbox" ${previous.approved ? 'checked' : ''} aria-label="Licensed KD-3 evidence approved"></td>`;
+    <td class="center"><input id="approved-${key}" type="checkbox" ${previous.approved ? 'checked' : ''} aria-label="KD-3 evidence approved"></td>`;
 }
 
 function renderSummaryMetrics(input, pressureWall, staticMinimum, nominalRequired) {
@@ -320,15 +481,20 @@ function renderSummaryMetrics(input, pressureWall, staticMinimum, nominalRequire
 function renderStaticTable(input, staticMinimum) {
   currentWalls = input.walls.map((wall) => staticWallResult(input, wall, staticMinimum));
   byId('staticBody').innerHTML = currentWalls.map((wall) => `<tr>
-    <td>${fmt(wall.tNominal, 2)}</td><td>${fmt(wall.T, 4)}</td><td>${fmt(wall.T - staticMinimum, 4)}</td>
-    <td>${fmt(wall.rating, 2)}</td><td><span class="badge ${wall.pass ? 'good' : 'bad'}">${wall.pass ? 'PASS' : 'FAIL'}</span></td>
+    <td>${fmt(wall.tNominal, 2)}</td>
+    <td>${fmt(wall.T, 4)}</td>
+    <td>${fmt(wall.T - staticMinimum, 4)}</td>
+    <td>${fmt(wall.rating, 2)}</td>
+    <td><span class="badge ${wall.pass ? 'good' : 'bad'}">${wall.pass ? 'PASS' : 'FAIL'}</span></td>
   </tr>`).join('');
 }
 
 function renderKd2Table(input) {
   const gate = kd2Gate(input.authority);
   byId('kd2Body').innerHTML = currentMatrix.map((result) => `<tr>
-    <td>${fmt(result.wall, 2)}</td><td class="text-left">${escapeHtml(result.cycleName)}</td><td>${fmt(result.effective, 4)}</td>
+    <td>${fmt(result.wall, 2)}</td>
+    <td class="text-left">${escapeHtml(result.cycleName)}</td>
+    <td>${fmt(result.effective, 4)}</td>
     <td>${fmt(result.stateMin.axial, 2)} / ${fmt(result.stateMax.axial, 2)}</td>
     <td>${fmt(result.stateMin.hoop, 2)} / ${fmt(result.stateMax.hoop, 2)}</td>
     <td>${fmt(result.stateMin.radial, 2)} / ${fmt(result.stateMax.radial, 2)}</td>
@@ -338,6 +504,34 @@ function renderKd2Table(input) {
   </tr>`).join('');
 }
 
+function refreshAutomaticNi(input) {
+  const authority = input.authority;
+  updateCurveStatus(authority);
+  if (authority.fatigueCurveMode !== 'curve') return;
+
+  const gate = curveGate(authority);
+  for (const result of currentMatrix) {
+    const key = rowKey(result.wall, result.cycleId);
+    const niInput = byId(`ni-${key}`);
+    const basis = byId(`nibasis-${key}`);
+    if (!niInput || !basis) continue;
+    if (!gate.ok) {
+      niInput.value = '';
+      basis.textContent = gate.label;
+      continue;
+    }
+    const seq = Number(byId(`seq-${key}`)?.value);
+    const life = interpolateFatigueLife(seq, gate.points);
+    if (!life.ok) {
+      niInput.value = '';
+      basis.textContent = life.status;
+      continue;
+    }
+    niInput.value = String(life.N);
+    basis.textContent = life.status;
+  }
+}
+
 function renderFatigueMatrix(input) {
   const oldKd = captureKdStates();
   currentMatrix = [];
@@ -345,27 +539,49 @@ function renderFatigueMatrix(input) {
     for (const cycle of input.cycles) currentMatrix.push(fatigueResult(input, wall, cycle));
   }
   renderKd2Table(input);
+
   byId('fatigueBody').innerHTML = currentMatrix.map((result) => {
-    const previous = oldKd.get(rowKey(result.wall, result.cycleId)) || { seq: NaN, ni: NaN, source: '', approved: false };
+    const previous = oldKd.get(rowKey(result.wall, result.cycleId)) || {
+      seq: NaN, ni: NaN, source: '', approved: false,
+    };
     return `<tr data-key="${rowKey(result.wall, result.cycleId)}">
-      <td>${fmt(result.wall, 2)}</td><td class="text-left">${escapeHtml(result.cycleName)}</td><td>${fmt(result.averageT, 1)}</td><td>${fmt(result.effective, 4)}</td>
-      <td>${fmt(result.spMin, 2)}</td><td>${fmt(result.spMax, 2)}</td><td>${fmt(result.deltaSp, 2)}</td><td>${fmt(result.halfRange, 2)}</td>
+      <td>${fmt(result.wall, 2)}</td>
+      <td class="text-left">${escapeHtml(result.cycleName)}</td>
+      <td>${fmt(result.averageT, 1)}</td>
+      <td>${fmt(result.effective, 4)}</td>
+      <td>${fmt(result.spMin, 2)}</td>
+      <td>${fmt(result.spMax, 2)}</td>
+      <td>${fmt(result.deltaSp, 2)}</td>
+      <td>${fmt(result.halfRange, 2)}</td>
       <td><span class="badge ${result.elastic ? 'good' : 'warn'}">${result.elastic ? 'Elastic route' : 'Inelastic required'}</span></td>
-      ${kdInputsHtml(result, previous, input.authority.evidencePackage)}<td class="usage">-</td></tr>`;
+      ${kdInputsHtml(result, previous, input)}
+      <td class="usage">-</td>
+    </tr>`;
   }).join('');
-  updateUsageAndClassSummary(input);
+
+  refreshAutomaticNi(input);
+  updateUsageAndClassSummary(input, false);
 }
 
 function wallStatus(input, wall) {
-  if (!wall.pass) return { label: 'Static fail', css: 'bad', cumulative: NaN, kdCount: 0, allKd: false, anyInelastic: false };
+  if (!wall.pass) return { label: 'Static fail', css: 'bad', cumulative: NaN, kdCount: 0, anyInelastic: false };
+
   const kd2 = kd2Gate(input.authority);
-  if (!kd2.ok) return { label: kd2.label, css: kd2.css, cumulative: NaN, kdCount: 0, allKd: false, anyInelastic: false };
-  const kd3Source = kd3SourceGate(input.authority);
-  if (!kd3Source.ok) return { label: kd3Source.label, css: kd3Source.css, cumulative: NaN, kdCount: 0, allKd: false, anyInelastic: false };
+  if (!kd2.ok) return { label: kd2.label, css: kd2.css, cumulative: NaN, kdCount: 0, anyInelastic: false };
+
+  const kd3 = kd3SourceGate(input.authority);
+  if (!kd3.ok) return { label: kd3.label, css: kd3.css, cumulative: NaN, kdCount: 0, anyInelastic: false };
+
+  if (input.authority.fatigueCurveMode === 'curve') {
+    const curve = curveGate(input.authority);
+    if (!curve.ok) return { label: curve.label, css: curve.css, cumulative: NaN, kdCount: 0, anyInelastic: false };
+  }
 
   const results = currentMatrix.filter((row) => row.wall === wall.tNominal);
   const anyInelastic = results.some((row) => !row.elastic);
-  if (anyInelastic) return { label: 'Inelastic / special route', css: 'warn', cumulative: NaN, kdCount: 0, allKd: false, anyInelastic };
+  if (anyInelastic) {
+    return { label: 'Inelastic / special route', css: 'warn', cumulative: NaN, kdCount: 0, anyInelastic };
+  }
 
   let cumulative = 0;
   let kdCount = 0;
@@ -379,16 +595,31 @@ function wallStatus(input, wall) {
     kdCount += 1;
     cumulative += result.n / kd.ni;
   }
-  const authority = input.authority;
-  const fracture = fractureGate(authority);
-  if (!allKd) return { label: 'KD-3 placeholders pending', css: 'blocked', cumulative: NaN, kdCount, allKd, anyInelastic };
-  if (!authorityComplete(authority)) return { label: 'Authority metadata incomplete', css: 'blocked', cumulative, kdCount, allKd, anyInelastic };
-  if (!fracture.ok) return { label: fracture.label, css: fracture.css, cumulative, kdCount, allKd, anyInelastic };
-  if (cumulative > 1) return { label: 'Cumulative fatigue usage > 1.0', css: 'bad', cumulative, kdCount, allKd, anyInelastic };
-  return { label: 'Eligible for class-release review', css: 'good', cumulative, kdCount, allKd, anyInelastic };
+
+  if (!allKd) {
+    return {
+      label: input.authority.fatigueCurveMode === 'curve'
+        ? 'Seq / row evidence pending'
+        : 'KD-3 Seq / Ni evidence pending',
+      css: 'blocked',
+      cumulative: NaN,
+      kdCount,
+      anyInelastic,
+    };
+  }
+  if (!authorityComplete(input.authority)) {
+    return { label: 'Authority metadata incomplete', css: 'blocked', cumulative, kdCount, anyInelastic };
+  }
+
+  const fracture = fractureGate(input.authority);
+  if (!fracture.ok) return { label: fracture.label, css: fracture.css, cumulative, kdCount, anyInelastic };
+  if (cumulative > 1) return { label: 'Cumulative fatigue usage > 1.0', css: 'bad', cumulative, kdCount, anyInelastic };
+  return { label: 'Eligible for class-release review', css: 'good', cumulative, kdCount, anyInelastic };
 }
 
-function updateUsageAndClassSummary(input) {
+function updateUsageAndClassSummary(input, refreshNi = true) {
+  if (refreshNi) refreshAutomaticNi(input);
+
   for (const result of currentMatrix) {
     const row = byId('fatigueBody').querySelector(`tr[data-key="${rowKey(result.wall, result.cycleId)}"]`);
     if (!row) continue;
@@ -399,12 +630,14 @@ function updateUsageAndClassSummary(input) {
 
   const fracture = fractureGate(input.authority);
   const kd2 = kd2Gate(input.authority);
+  const kd3 = kd3SourceGate(input.authority);
   byId('summaryBody').innerHTML = currentWalls.map((wall) => {
     const status = wallStatus(input, wall);
     return `<tr>
       <td>${fmt(wall.tNominal, 2)}</td>
       <td><span class="badge ${wall.pass ? 'good' : 'bad'}">${wall.pass ? 'PASS' : 'FAIL'}</span></td>
       <td><span class="badge ${kd2.css}">${escapeHtml(kd2.label)}</span></td>
+      <td><span class="badge ${kd3.css}">${escapeHtml(kd3.label)}</span></td>
       <td>${input.cycles.length}</td>
       <td>${status.kdCount}/${input.cycles.length} approved</td>
       <td>${status.anyInelastic ? 'YES' : 'NO'}</td>
@@ -426,8 +659,8 @@ function calculate() {
   const pressureWall = requiredPressureWall({ D: input.D, co: input.co, P: input.Pdesign, S: input.S });
   const staticMinimum = pressureWall + c;
   const nominalRequired = requiredNominalWall(staticMinimum, input.tolerance);
+
   lastInput = input;
-  lastStaticMinimum = staticMinimum;
   renderSummaryMetrics(input, pressureWall, staticMinimum, nominalRequired);
   renderStaticTable(input, staticMinimum);
   renderFatigueMatrix(input);
@@ -441,25 +674,28 @@ function loadReferenceExample() {
   byId('co').value = DEFAULTS.co;
   byId('tolerance').value = DEFAULTS.tolerance;
   byId('candidateWalls').value = DEFAULTS.walls;
-  byId('viii3Edition').value = '';
-  byId('materialSpec').value = '';
-  byId('materialGrade').value = '';
-  byId('productSpec').value = '';
-  byId('toleranceSource').value = '';
-  byId('kdRoute').value = '';
-  byId('fatigueCurveId').value = '';
-  byId('evidencePackage').value = '';
-  byId('kd3SourceEdition').value = '';
-  byId('kd3SourceConfirmed').checked = false;
-  byId('fractureStatus').value = 'unassessed';
-  byId('fractureEvidence').value = '';
-  byId('kd2Edition').value = '';
+
+  [
+    'viii3Edition','materialSpec','materialGrade','productSpec','toleranceSource','evidencePackage',
+    'kd2Edition','kd2LimitCalcId','kd3SourceEdition','kdRoute','fatigueCurveId',
+    'fatigueCurveSourceRef','fatigueCurveData','fractureEvidence'
+  ].forEach((id) => { if (byId(id)) byId(id).value = ''; });
+
   byId('kd2AnalysisMethod').value = 'unassessed';
   byId('kd2StressModel').value = 'pressure-analytic';
   byId('kd2Geometry').value = 'uniform';
   byId('kd2Residual').value = 'none';
-  byId('kd2LimitCalcId').value = '';
   byId('kd2Approved').checked = false;
+
+  byId('kd3SourceConfirmed').checked = false;
+  byId('kd3CompatibilityConfirmed').checked = false;
+  byId('fatigueCurveMode').value = 'manual';
+  byId('fatigueInterpolation').value = 'loglog';
+  byId('fatigueInterpolationApproved').checked = false;
+  byId('fatigueCurveApproved').checked = false;
+
+  byId('fractureStatus').value = 'unassessed';
+
   byId('cycleBody').innerHTML = '';
   cycleCounter = 0;
   DEFAULTS.cycles.forEach((cycle) => addCycleRow(cycle));
@@ -474,17 +710,24 @@ function csvCell(value) {
 function downloadCsv() {
   if (!lastInput || !currentMatrix.length) calculate();
   if (!lastInput || !currentMatrix.length) return;
-  const a = lastInput.authority;
+
+  const a = authorityState();
+  lastInput = { ...lastInput, authority: a };
+  refreshAutomaticNi(lastInput);
+  const curve = parseFatigueCurvePoints(a.fatigueCurveData);
   const headers = [
-    'b31_edition','viii3_edition','material_spec','material_grade','product_spec','tolerance_source',
+    'b31_edition','viii3_edition','material_spec','material_grade','product_spec','tolerance_source','evidence_package',
     'kd2_source_commit','kd2_source_blob','kd2_source_edition','kd2_analysis_method','kd2_stress_model','kd2_geometry','kd2_residual','kd2_limit_calc_id','kd2_approved',
-    'kd3_source_commit','kd3_source_blob','kd3_source_size_bytes','kd3_source_edition','kd3_source_confirmed',
-    'kd3_route','fatigue_curve_id','evidence_package','fracture_status','fracture_evidence',
+    'kd3_source_commit','kd3_source_blob','kd3_source_size_bytes','kd3_source_edition','kd3_source_confirmed','kd3_compatibility_confirmed',
+    'kd3_route','fatigue_curve_mode','fatigue_curve_id','fatigue_curve_source_ref','fatigue_interpolation','fatigue_interpolation_approved','fatigue_curve_approved','fatigue_curve_points','fatigue_curve_validation',
+    'fracture_status','fracture_evidence',
     'nominal_wall_mm','minimum_T_mm','static_pass','cycle_id','cycle_name','Pmin_MPa','Pmax_MPa','Tmin_C','Tmax_C','avg_T_C','Syt_MPa','cycles_n',
     'effective_T_minus_c_mm','sigma_z_Pmin_MPa','sigma_z_Pmax_MPa','sigma_theta_Pmin_MPa','sigma_theta_Pmax_MPa','sigma_r_Pmin_MPa','sigma_r_Pmax_MPa',
     'delta_sigma_z_MPa','delta_sigma_theta_MPa','delta_sigma_r_MPa','pressure_only_delta_SI_MPa',
-    'Sp_Pmin_MPa','Sp_Pmax_MPa','delta_Sp_MPa','half_range_descriptor_MPa','elastic_gate','licensed_Seq_MPa','licensed_Ni_cycles','KD3_source','KD3_approved','usage_Ui','cumulative_U','class_status'
+    'Sp_Pmin_MPa','Sp_Pmax_MPa','delta_Sp_MPa','half_range_descriptor_MPa','elastic_gate',
+    'licensed_Seq_MPa','Ni_cycles','Ni_basis','KD3_source_calc_id','KD3_row_approved','usage_Ui','cumulative_U','class_status'
   ];
+
   const rows = currentMatrix.map((result) => {
     const wall = currentWalls.find((w) => w.tNominal === result.wall);
     const cycle = lastInput.cycles.find((c) => c.id === result.cycleId);
@@ -492,16 +735,22 @@ function downloadCsv() {
     const usage = kdComplete(kd) ? result.n / kd.ni : '';
     const summary = wallStatus(lastInput, wall);
     return [
-      a.b31Edition,a.viii3Edition,a.materialSpec,a.materialGrade,a.productSpec,a.toleranceSource,
+      a.b31Edition,a.viii3Edition,a.materialSpec,a.materialGrade,a.productSpec,a.toleranceSource,a.evidencePackage,
       KD2_SOURCE.commit,KD2_SOURCE.blob,a.kd2Edition,a.kd2AnalysisMethod,a.kd2StressModel,a.kd2Geometry,a.kd2Residual,a.kd2LimitCalcId,a.kd2Approved,
-      KD3_SOURCE.commit,KD3_SOURCE.blob,KD3_SOURCE.size,a.kd3SourceEdition,a.kd3SourceConfirmed,
-      a.kdRoute,a.fatigueCurveId,a.evidencePackage,a.fractureStatus,a.fractureEvidence,
+      KD3_SOURCE.commit,KD3_SOURCE.blob,KD3_SOURCE.size,a.kd3SourceEdition,a.kd3SourceConfirmed,a.kd3CompatibilityConfirmed,
+      a.kdRoute,a.fatigueCurveMode,a.fatigueCurveId,a.fatigueCurveSourceRef,a.fatigueInterpolation,a.fatigueInterpolationApproved,a.fatigueCurveApproved,
+      curve.ok ? curve.points.map((p) => `${p.N}:${p.Sa}`).join(';') : '',
+      curve.ok ? 'VALID' : curve.error,
+      a.fractureStatus,a.fractureEvidence,
       result.wall,wall.T,wall.pass,cycle.id,cycle.name,cycle.pMin,cycle.pMax,cycle.tMin,cycle.tMax,result.averageT,result.syt,result.n,
       result.effective,result.stateMin.axial,result.stateMax.axial,result.stateMin.hoop,result.stateMax.hoop,result.stateMin.radial,result.stateMax.radial,
       result.delta.axial,result.delta.hoop,result.delta.radial,result.deltaSI,
-      result.spMin,result.spMax,result.deltaSp,result.halfRange,result.elastic,kd.seq>0?kd.seq:'',kd.ni>0?kd.ni:'',kd.source,kd.approved,usage,Number.isFinite(summary.cumulative)?summary.cumulative:'',summary.label
+      result.spMin,result.spMax,result.deltaSp,result.halfRange,result.elastic,
+      kd.seq > 0 ? kd.seq : '',kd.ni > 0 ? kd.ni : '',kd.niBasis,kd.source,kd.approved,usage,
+      Number.isFinite(summary.cumulative) ? summary.cumulative : '',summary.label
     ];
   });
+
   const csv = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
@@ -511,11 +760,18 @@ function downloadCsv() {
   URL.revokeObjectURL(url);
 }
 
+function refreshAuthorityAndStatus() {
+  if (!lastInput) return;
+  lastInput = { ...lastInput, authority: authorityState() };
+  updateUsageAndClassSummary(lastInput);
+}
+
 byId('calculateButton').addEventListener('click', calculate);
 byId('resetButton').addEventListener('click', loadReferenceExample);
 byId('csvButton').addEventListener('click', downloadCsv);
 byId('printButton').addEventListener('click', () => window.print());
 byId('addCycleButton').addEventListener('click', () => addCycleRow({ name: `Cycle ${cycleCounter + 1}` }));
+
 byId('cycleBody').addEventListener('input', (event) => {
   const row = event.target.closest('tr');
   if (row) refreshCycleAverage(row);
@@ -530,24 +786,33 @@ byId('cycleBody').addEventListener('click', (event) => {
   event.target.closest('tr').remove();
   calculate();
 });
-byId('fatigueBody').addEventListener('input', () => lastInput && updateUsageAndClassSummary({ ...lastInput, authority: authorityState() }));
-byId('fatigueBody').addEventListener('change', () => lastInput && updateUsageAndClassSummary({ ...lastInput, authority: authorityState() }));
+
+byId('fatigueBody').addEventListener('input', refreshAuthorityAndStatus);
+byId('fatigueBody').addEventListener('change', refreshAuthorityAndStatus);
+
 [
-  'viii3Edition','materialSpec','materialGrade','productSpec','toleranceSource','kdRoute','fatigueCurveId','evidencePackage',
-  'kd3SourceEdition','kd3SourceConfirmed','fractureStatus','fractureEvidence','kd2Edition','kd2AnalysisMethod','kd2StressModel','kd2Geometry','kd2Residual','kd2LimitCalcId','kd2Approved'
+  'viii3Edition','materialSpec','materialGrade','productSpec','toleranceSource','evidencePackage',
+  'kd2Edition','kd2AnalysisMethod','kd2StressModel','kd2Geometry','kd2Residual','kd2LimitCalcId','kd2Approved',
+  'kd3SourceEdition','kd3SourceConfirmed','kd3CompatibilityConfirmed','kdRoute',
+  'fatigueCurveMode','fatigueCurveId','fatigueCurveSourceRef','fatigueCurveData','fatigueInterpolation',
+  'fatigueInterpolationApproved','fatigueCurveApproved',
+  'fractureStatus','fractureEvidence'
 ].forEach((id) => {
-  byId(id).addEventListener('input', () => {
-    if (!lastInput) return;
-    lastInput = { ...lastInput, authority: authorityState() };
-    renderKd2Table(lastInput);
-    updateUsageAndClassSummary(lastInput);
+  const element = byId(id);
+  if (!element) return;
+  element.addEventListener('input', refreshAuthorityAndStatus);
+  element.addEventListener('change', () => {
+    if (id === 'fatigueCurveMode' && lastInput) renderFatigueMatrix({ ...lastInput, authority: authorityState() });
+    else refreshAuthorityAndStatus();
   });
-  byId(id).addEventListener('change', () => {
-    if (!lastInput) return;
-    lastInput = { ...lastInput, authority: authorityState() };
-    renderKd2Table(lastInput);
-    updateUsageAndClassSummary(lastInput);
-  });
+});
+
+window.HPClassApp = Object.freeze({
+  parseFatigueCurvePoints,
+  interpolateFatigueLife,
+  requiredPressureWall,
+  pressureRating,
+  pressureStress,
 });
 
 loadReferenceExample();
