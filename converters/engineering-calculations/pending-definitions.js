@@ -5,6 +5,9 @@ import {
 import { composeEngineeringQualification } from './qualification.js';
 
 const PENDING = Object.freeze([
+  ['PIPE.EXTERNAL_PRESSURE.CHECK', 'PIPE', 'External Pressure Check', 428],
+  ['PIPE.BRANCH.REINFORCEMENT', 'PIPE', 'Branch Reinforcement Assessment', 428],
+  ['PIPE.SHELL.LOCAL_LOADING', 'PIPE', 'Pipe Shell / Local Loading Assessment', 428],
   ['VIB.FIV.FLOW_TURBULENCE', 'VIB', 'Flow-Induced Vibration Screening', 429],
   ['VIB.AIV.ACOUSTIC', 'VIB', 'Acoustic-Induced Vibration Screening', 429],
   ['VIB.SBC.SMALL_BORE', 'VIB', 'Small-Bore Connection Vibration Screening', 429],
