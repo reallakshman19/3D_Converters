@@ -9,6 +9,7 @@
 | PR number | #438 |
 | Branch | `agent/fiv-fit-roadmap-foundation` |
 | Base commit | `37c37d770ba47ebb3152679265896de4a943c8b0` |
+| Current HEAD | `33733a234ef6c9bfacbd5b18f3a91586f0d15bfc` before this report-only synchronization commit |
 | Stage 8 implementation HEAD | `e993a7292547793dcb045ded416b770c3ab023dd` |
 | PR status | OPEN / DRAFT / mergeable |
 | Current stage | Stage 8 — COMPLETE: FIT physical preflight through central API/Console |
@@ -340,7 +341,8 @@ Any EI/AVIFF empirical equation, coefficient, lookup table, applicability criter
 ## Next-Agent Handover
 
 - **Current stopping point:** Stage 8 complete; real FIT physical preflight is available through central Validate/Resolve, while empirical execution remains blocked.
-- **PR / branch / Stage 8 implementation HEAD:** #438 / `agent/fiv-fit-roadmap-foundation` / `e993a7292547793dcb045ded416b770c3ab023dd` before this report-only closure commit.
+- **PR / branch / report-closure HEAD:** #438 / `agent/fiv-fit-roadmap-foundation` / `33733a234ef6c9bfacbd5b18f3a91586f0d15bfc` before this synchronization commit.
+- **Stage 8 implementation HEAD:** `e993a7292547793dcb045ded416b770c3ab023dd`.
 - **Last completed stage:** Stage 8.
 - **Current active stage:** none; external method/source gate is next.
 - **Start here:** obtain the exact pinned `d7d4c1...` workbook in a normal checkout and run `extract:fit-source`; then write the method specification from extracted evidence + licensed source.
