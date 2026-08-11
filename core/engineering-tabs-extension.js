@@ -4,6 +4,11 @@ import { emit, on } from './event-bus.js';
 const ACTIVE_TAB_STORAGE_KEY = 'format-converters.activeTabId';
 const ENGINEERING_TABS = Object.freeze([
   {
+    id: 'engineering-calculations',
+    label: 'Engineering Calculations',
+    load: () => import('../tabs/engineering-calculations-tab.js?v=engineering-console-1').then((module) => module.renderEngineeringCalculationsTab),
+  },
+  {
     id: 'b313-material-factors',
     label: 'B31.3 Material Factors',
     load: () => import('../tabs/b313-material-factors-tab.js?v=engineering-1').then((module) => module.renderB313MaterialFactorsTab),
