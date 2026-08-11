@@ -93,15 +93,23 @@ test('screening rows never leak into strict design authority', () => {
   assert.deepEqual(strict.details.missing, ['S', 'E', 'W', 'Y']);
 });
 
-test('route-specific E fails closed for an unsupported welded construction', () => {
-  const r = resolveB313DesignFactors({
+test('route-specific E requires an explicit matching manufacturing route', () => {
+  const noRoute = resolveB313DesignFactors({
+    material: { materialId: 'SS-A312-TP304' },
+    designTemperature: 20,
+    qualificationMode: 'screening',
+  });
+  assert.equal(noRoute.ok, false);
+  assert.deepEqual(noRoute.details.missing, ['E']);
+
+  const unsupported = resolveB313DesignFactors({
     material: { materialId: 'SS-A312-TP304' },
     designTemperature: 20,
     manufacturingRoute: 'UNQUALIFIED_WELD_ROUTE',
     qualificationMode: 'screening',
   });
-  assert.equal(r.ok, false);
-  assert.deepEqual(r.details.missing, ['E']);
+  assert.equal(unsupported.ok, false);
+  assert.deepEqual(unsupported.details.missing, ['E']);
 });
 
 test('duplex 420 C screening basis intentionally has no S value', () => {
