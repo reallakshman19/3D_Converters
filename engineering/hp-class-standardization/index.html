@@ -11,7 +11,7 @@
     <div>
       <p class="eyebrow">Engineering calculation aid</p>
       <h1>High Pressure Piping Class Standardization</h1>
-      <p>ASME B31.3-2024 Chapter IX — straight-pipe class pressure design and pressure-fatigue inputs.</p>
+      <p>ASME B31.3-2024 Chapter IX — straight-pipe class pressure design and bounded pressure-fatigue prequalification.</p>
     </div>
     <div class="scope-card">
       <strong>Class boundary</strong>
@@ -21,34 +21,53 @@
 
   <main>
     <section class="notice warning">
-      <strong>Controlled example values are preloaded for demonstration only.</strong>
-      Production use must replace material properties, dimensions, tolerances and KD results with approved project / licensed-Code data. The tool does not contain a proprietary KD fatigue curve.
+      <strong>Engineering authority boundary.</strong>
+      Material data, purchase tolerances, BPVC VIII-3 edition, KD route, <code>Seq</code>, fatigue-curve <code>Ni</code> and evidence IDs are controlled project inputs. This tool does not invent licensed KD equations or fatigue curves.
     </section>
 
     <section class="panel">
       <div class="section-heading">
-        <div><span class="step">1</span><h2>Design and material inputs</h2></div>
-        <p>K302.3 / K304.1.1 basis</p>
+        <div><span class="step">1</span><h2>Controlled authority and class inputs</h2></div>
+        <p>K302.3 / K304.1.1 design basis</p>
       </div>
+
+      <div class="subsection-title">Authority / evidence placeholders</div>
+      <div class="form-grid authority-grid">
+        <label>B31.3 edition<input id="b31Edition" type="text" value="2024" readonly></label>
+        <label>BPVC VIII-3 edition / addenda<input id="viii3Edition" type="text" placeholder="project-controlled"></label>
+        <label>Material specification<input id="materialSpec" type="text" placeholder="e.g. ASTM / ASME material spec"></label>
+        <label>Grade / condition<input id="materialGrade" type="text" placeholder="grade / heat treatment"></label>
+        <label>Product specification<input id="productSpec" type="text" placeholder="pipe product specification"></label>
+        <label>Dimension / tolerance source<input id="toleranceSource" type="text" placeholder="spec / table / clause"></label>
+        <label>KD route / clause reference<input id="kdRoute" type="text" placeholder="licensed KD-2/KD-3 route"></label>
+        <label>Design fatigue curve ID<input id="fatigueCurveId" type="text" placeholder="licensed curve identifier"></label>
+        <label class="span-2">Calculation / evidence package ID<input id="evidencePackage" type="text" placeholder="controlled calc / document / approval ID"></label>
+        <label>Fracture-mechanics review status
+          <select id="fractureStatus">
+            <option value="unassessed">Unassessed — release blocked</option>
+            <option value="cleared">Requirement reviewed — class route cleared</option>
+            <option value="kd4-approved">KD-4 evaluation completed / approved</option>
+            <option value="special">Outside automatic class qualification</option>
+          </select>
+        </label>
+        <label>Fracture-mechanics evidence ID<input id="fractureEvidence" type="text" placeholder="review / KD-4 evidence ID"></label>
+      </div>
+
+      <div class="subsection-title">Pressure-design inputs</div>
       <div class="form-grid">
         <label>Design diameter D (mm)<input id="diameter" type="number" step="any"></label>
         <label>Design pressure P (MPa)<input id="designPressure" type="number" step="any"></label>
-        <label>Cycle Pmin (MPa)<input id="pMin" type="number" step="any"></label>
-        <label>Cycle Pmax (MPa)<input id="pMax" type="number" step="any"></label>
-        <label>Cycle Tmin (°C)<input id="tempMin" type="number" step="any"></label>
-        <label>Cycle Tmax (°C)<input id="tempMax" type="number" step="any"></label>
-        <label>Allowable stress S (MPa)<input id="allowableStress" type="number" step="any"><small>Table K-1/K-1C controlled input</small></label>
-        <label>Syt at cycle-average T (MPa)<input id="yieldStrength" type="number" step="any"><small>K302.3.2(b) controlled input</small></label>
+        <label>Allowable stress S (MPa)<input id="allowableStress" type="number" step="any"><small>Table K-1/K-1C controlled input at design temperature</small></label>
         <label>Internal allowance ci (mm)<input id="ci" type="number" step="any"></label>
         <label>External allowance co (mm)<input id="co" type="number" step="any"></label>
         <label>Purchase minus tolerance (%)<input id="tolerance" type="number" step="any"><small>Use actual product specification</small></label>
-        <label>Cycle count n<input id="cycles" type="number" step="1"></label>
         <label class="span-2">Candidate nominal walls (mm, comma-separated)<input id="candidateWalls" type="text"></label>
       </div>
+
       <div class="actions">
-        <button id="calculateButton" class="primary">Calculate</button>
+        <button id="calculateButton" class="primary">Calculate / refresh</button>
         <button id="resetButton">Load reference example</button>
-        <button id="csvButton">Download CSV</button>
+        <button id="csvButton">Download qualification CSV</button>
         <button id="printButton">Print</button>
       </div>
       <div id="errorBox" class="notice error" hidden></div>
@@ -56,59 +75,103 @@
 
     <section class="panel">
       <div class="section-heading">
-        <div><span class="step">2</span><h2>K304.1 static pressure wall</h2></div>
+        <div><span class="step">2</span><h2>Pressure-cycle blocks</h2></div>
+        <p>K304.8 class pressure-fatigue spectrum</p>
+      </div>
+      <div class="notice info compact">
+        <strong>Per-block material check:</strong> enter <code>Syt</code> at the applicable cycle-average temperature. Do not reuse one value across all blocks unless independently justified.
+      </div>
+      <div class="table-wrap compact-table">
+        <table class="cycle-table">
+          <thead>
+            <tr>
+              <th>Block</th><th>Pmin<br>MPa</th><th>Pmax<br>MPa</th><th>Tmin<br>°C</th><th>Tmax<br>°C</th><th>Avg T<br>°C</th><th>Syt @ Avg T<br>MPa</th><th>Cycles n</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="cycleBody"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button id="addCycleButton">Add cycle block</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div><span class="step">3</span><h2>K304.1 static pressure wall</h2></div>
         <p>2024 Eq. (34a) + K304.1.1 allowances</p>
       </div>
       <div class="metric-grid">
         <article><span>Pressure wall t</span><strong id="requiredWall">—</strong><small>Eq. (34a): (D−2co)/2 × [1−exp(−P/S)]</small></article>
         <article><span>Minimum wall tm</span><strong id="minimumWall">—</strong><small>tm = t + ci + co</small></article>
-        <article><span>Required nominal wall</span><strong id="nominalRequired">—</strong><small>Using entered minus tolerance</small></article>
-        <article><span>Cycle-average temperature</span><strong id="averageTemperature">—</strong><small>Check Syt basis against project material data</small></article>
+        <article><span>Required nominal wall</span><strong id="nominalRequired">—</strong><small>Using entered purchase minus tolerance</small></article>
+        <article><span>Cycle blocks</span><strong id="cycleCountMetric">—</strong><small>Pressure-fatigue blocks currently entered</small></article>
+      </div>
+      <div class="table-wrap small-table">
+        <table class="static-table">
+          <thead><tr><th>Nominal wall<br>mm</th><th>Minimum T<br>mm</th><th>T−tm margin<br>mm</th><th>Eq. (35a) rating<br>MPa</th><th>Static gate</th></tr></thead>
+          <tbody id="staticBody"></tbody>
+        </table>
       </div>
     </section>
 
     <section class="panel wide-panel">
       <div class="section-heading">
-        <div><span class="step">3</span><h2>Candidate wall and pressure-fatigue screen</h2></div>
-        <p>K304.1.1 Eq. (35a) QA / K304.8.3 Eq. (37) / K304.8.2 KD handoff</p>
+        <div><span class="step">4</span><h2>Wall × cycle pressure-fatigue matrix</h2></div>
+        <p>K304.8.3 Eq. (37) / K304.8.2 licensed KD handoff</p>
       </div>
       <div class="table-wrap">
-        <table>
+        <table class="fatigue-table">
           <thead>
             <tr>
-              <th>Nominal wall<br>mm</th><th>Minimum T<br>mm</th><th>T−tm margin<br>mm</th><th>Rating<br>MPa</th>
-              <th>T−c<br>mm</th><th>Sp @ Pmin<br>MPa</th><th>Sp @ Pmax<br>MPa</th><th>ΔSp<br>MPa</th>
-              <th>ΔSp/2 descriptor<br>MPa</th><th>2Syt gate</th><th>Licensed Seq<br>MPa</th><th>Licensed Ni<br>cycles</th>
-              <th>KD source / calc ID</th><th>KD evidence<br>approved</th><th>n/Ni</th><th>Class status</th>
+              <th>Wall<br>mm</th><th>Cycle block</th><th>Avg T<br>°C</th><th>T−c<br>mm</th>
+              <th>Sp @ Pmin<br>MPa</th><th>Sp @ Pmax<br>MPa</th><th>ΔSp<br>MPa</th><th>ΔSp/2 descriptor<br>MPa</th>
+              <th>2Syt gate</th><th>Licensed Seq<br>MPa</th><th>Licensed Ni<br>cycles</th><th>KD source / calc ID</th>
+              <th>Evidence<br>approved</th><th>Ui = n/Ni</th>
             </tr>
           </thead>
-          <tbody id="resultsBody"></tbody>
+          <tbody id="fatigueBody"></tbody>
         </table>
       </div>
       <div class="notice info">
-        <strong>Authority boundary:</strong> ΔSp/2 is displayed as a pressure-only alternating-stress descriptor; it is not silently promoted to final <code>Seq</code>. Enter <code>Seq</code> and <code>Ni</code> only from the controlled BPVC VIII-3 KD-2/KD-3 calculation and record the source/calculation ID.
+        <strong>Authority boundary:</strong> the tool calculates pressure stress and arithmetic usage only. <code>Seq</code> and <code>Ni</code> remain explicit licensed-KD placeholders. Missing or unapproved evidence blocks class-release eligibility.
+      </div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-heading">
+        <div><span class="step">5</span><h2>Candidate-wall class summary</h2></div>
+        <p>Bounded class-release review status</p>
+      </div>
+      <div class="table-wrap small-table">
+        <table class="summary-table">
+          <thead><tr><th>Nominal wall<br>mm</th><th>Static gate</th><th>Cycle blocks</th><th>KD evidence</th><th>Inelastic / special route</th><th>Cumulative U</th><th>Fracture-mechanics gate</th><th>Class status</th></tr></thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
       </div>
     </section>
 
     <section class="panel two-column">
       <div>
-        <h2>Implemented Code navigation</h2>
+        <h2>Implemented now</h2>
         <ul>
-          <li><strong>K304.1.1</strong> — allowances, minimum selected wall, dimension control.</li>
-          <li><strong>K304.1.2 Eq. (34a)</strong> — 2024 OD/minimum-wall internal-pressure calculation.</li>
-          <li><strong>Eq. (35a)</strong> — inverse pressure-rating QA for selected minimum wall.</li>
-          <li><strong>K304.8.3 Eq. (37)</strong> — straight-pipe inside-surface pressure stress intensity.</li>
-          <li><strong>K304.8.3(c)</strong> — inelastic escalation when Eq. (37) S exceeds 2Syt.</li>
-          <li><strong>K304.8.2</strong> — handoff to BPVC VIII-3 KD-2/KD-3 for fatigue processing.</li>
+          <li>K304.1.1 allowances/minimum selected wall.</li>
+          <li>K304.1.2 Eq. (34a) 2024 OD/minimum-wall pressure design.</li>
+          <li>Eq. (35a) selected minimum-wall pressure-rating QA.</li>
+          <li>Multiple pressure-cycle blocks with per-block cycle-average <code>Syt</code>.</li>
+          <li>K304.8.3 Eq. (37) for every wall × cycle block.</li>
+          <li>Manual licensed <code>Seq</code>/<code>Ni</code> placeholders, <code>Ui=n/Ni</code> and cumulative usage.</li>
+          <li>Controlled fracture-mechanics/KD-4 review placeholder and evidence ID.</li>
         </ul>
       </div>
       <div>
-        <h2>Not implemented as hidden authority</h2>
+        <h2>Placeholders / future controlled libraries</h2>
         <ul>
-          <li>Licensed KD mean-stress / equivalent-alternating-stress equations.</li>
-          <li>Licensed design fatigue curves or curve interpolation.</li>
-          <li>Automatic PQ-A or final piping-system fatigue acceptance.</li>
-          <li>CAESAR II routing/support/thermal system analysis.</li>
+          <li><strong>Material library:</strong> Table K-1/K-1C and temperature-dependent properties.</li>
+          <li><strong>Product library:</strong> NPS/OD/wall and purchase tolerances.</li>
+          <li><strong>KD engine:</strong> licensed mean-stress / equivalent-alternating-stress equations.</li>
+          <li><strong>Fatigue curves:</strong> licensed curve data/interpolation for automatic <code>Ni</code>.</li>
+          <li><strong>Detailed special routes:</strong> inelastic/KD-4 outputs remain controlled external evidence.</li>
         </ul>
       </div>
     </section>
