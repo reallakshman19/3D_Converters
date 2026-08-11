@@ -1,32 +1,33 @@
 # FIT Qualification Dossier v1
 
-Status: **SOFTWARE QUALIFICATION ADVANCED — ENGINEERING SCREENING AUTHORITY NOT APPROVED**
+Status: **EI WORKED-EXAMPLE QUALIFICATION IN PROGRESS — SCREENING AUTHORITY NOT APPROVED**
 
 Calculation ID: `VIB.FIV.FLOW_TURBULENCE`  
 Mechanism: Flow-Induced Turbulence (FIT)  
 Qualification issue: #429  
-Controlled method specification: `docs/vibration/FIT-Engineering-Method-Specification-v1.md`
+Method specification: `docs/vibration/FIT-Engineering-Method-Specification-v1.md`  
+Reference implementation revision: `ei-aviff2-fit-reference-v2`
 
-## 1. Decision
+## 1. Authority decision
 
-The current FIT implementation remains:
+The implementation remains:
 
 ```text
-calculationState    = IMPLEMENTED
-qualificationState  = BENCHMARK_ONLY
-benchmarkAuthority  = WORKBOOK_REFERENCE_ONLY
+calculationState     = IMPLEMENTED
+qualificationState   = BENCHMARK_ONLY
+benchmarkAuthority   = WORKBOOK_REFERENCE_ONLY + EI_WORKED_EXAMPLE_BENCHMARK
 engineeringAuthority = NONE
-screeningAuthority  = NOT_AUTHORIZED
-designAuthority     = NOT_AUTHORIZED
+screeningAuthority   = NOT_AUTHORIZED
+designAuthority      = NOT_AUTHORIZED
 ```
 
-This dossier does **not** approve promotion to `SCREENING`.
+This dossier does **not** approve `SCREENING`.
 
-The software transcription is now supported by both retained-workbook parity cases and independent hand-derived numerical cases. However, the governing Energy Institute/project-method equations, tables, applicability rules and errata have not been independently reviewed from the licensed source by an authorized vibration engineer.
+The evidence set is now stronger than workbook parity alone: retained-workbook extraction, independent hand-derived software cases, and independent EI Appendix D worked examples are all controlled. Remaining method-domain review, full-checkout regression and independent engineering approval are still required.
 
-## 2. Source-control status
+## 2. Controlled evidence sources
 
-### 2.1 Retained workbook
+### 2.1 Retained FIT workbook
 
 ```text
 Repository: reallaksh19/CRF-4-1
@@ -34,157 +35,232 @@ Commit:     68dc8e1fa2ef67073c59b3afc56f1bf40953d535
 Path:       Extended calc2/AIV FIV/FIT.xlsm
 Git blob:   d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e
 Size:       493650 bytes
-Primary tab: Flow Induced Turbulence
-Worksheet:   xl/worksheets/sheet13.xml
+Worksheet:  Flow Induced Turbulence / sheet13.xml
 ```
 
-The duplicate KS-PR-CAL-0086 workbook path is the same Git blob and is not an independent source.
+The duplicate KS-PR-CAL-0086 path is the same blob and is not independent corroboration.
 
-### 2.2 Public Energy Institute verification
+### 2.2 EI worked examples supplied by the owner
 
-Public Energy Institute catalogue information was rechecked on **2026-08-11**.
+```text
+Repository: reallaksh19/Common
+Commit:     aef163a5def3bfe04ca0ba860da05728a27daf42
+Path:       EI - AVIFF Guidelines 2nd Edition_Examples.pdf
+Git blob:   3e2517d0df527a051084fc02e69cb7afa31f8d47
+Size:       3757439 bytes
+Relevant:   Appendix D Examples D2 and D4
+```
 
-The public catalogue identifies:
+Only the minimum benchmark inputs, published results and source references required for qualification are retained in:
 
-- `Guidelines for the avoidance of vibration induced fatigue failure in process pipework`;
-- publication date: **January 2008**;
-- edition: **2nd**;
-- REF/ISBN: **9780852934630**;
-- an errata affecting **pages 61 and 68**;
-- the catalogue states those errata changes are incorporated into the current PDF.
+`Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`
 
-This confirms edition/provenance metadata only. The public catalogue does not expose the complete licensed Technical Module T2.2 equations, empirical tables or project-adoption basis needed to independently qualify this implementation.
+The licensed PDF itself is not copied into this repository by this PR.
 
-### 2.3 Governing-source qualification status
+### 2.3 Publication metadata
 
-| Item | Status | Qualification consequence |
+The Energy Institute public catalogue was rechecked on 2026-08-11 and identifies the process-pipework guidance as 2nd Edition, January 2008, ISBN 9780852934630. It also identifies errata affecting pages 61 and 68 and states those changes are incorporated in the current PDF.
+
+This confirms publication metadata. It does not substitute for identified engineering review of the adopted licensed source/project basis.
+
+## 3. Evidence hierarchy
+
+| Evidence | Role | Current status |
 |---|---|---|
-| Exact retained workbook identity | PASS | migration source controlled |
-| Workbook formula extraction | PASS | transcription source controlled |
-| EI publication edition metadata | PASS | public catalogue corroboration |
-| EI errata metadata | PASS | pages 61/68 identified |
-| Exact T2.2 equation/table parity | BLOCKED | licensed source review required |
-| Exact project procedure/revision adoption | BLOCKED | project authority required |
-| Independent vibration-engineer approval | BLOCKED | screening authority unavailable |
+| Retained workbook source hash/formulas | migration provenance and parity | CONTROLLED |
+| Retained cached cases | migration comparison only | CONTROLLED WITH KNOWN DEFECTS |
+| Independent hand-derived cases | software arithmetic/transcription | IMPLEMENTED |
+| EI Appendix D worked examples | independent method/example benchmark | IMPLEMENTED; execution validation pending Stage 11 closure |
+| Full adopted EI/project method review | engineering authority | BLOCKED / reviewer required |
+| Full repository regression | release/software authority | NOT_RUN / Actions billing gate |
 
-## 3. Independent software benchmark set
+No single evidence source is allowed to silently promote engineering authority.
 
-Benchmark file:
+## 4. EI worked-example qualification set
 
-`Benchmarks/VibrationFIT/fit-independent-hand-benchmarks-v1.json`
+Dataset:
+
+`Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`
 
 Regression:
 
-`tests/vibration-fit-independent-benchmarks.test.mjs`
+`tests/vibration-fit-ei-worked-examples.test.mjs`
 
-Authority:
+Published values are rounded; the dataset therefore declares an explicit numerical tolerance instead of asserting false source precision.
+
+### 4.1 Example D2 — gas compression FIT
+
+Controlled cases cover published gas lines with:
+
+- medium-stiff support classification;
+- gas dynamic-viscosity factor;
+- `rho * v^2` excitation;
+- standard `Fv`;
+- standard LOF;
+- reference LOF bands below 0.3, 0.3–0.5 and 0.5–1.0.
+
+Representative benchmark IDs:
 
 ```text
-SOFTWARE_TRANSCRIPTION_BENCHMARK_ONLY
-engineeringAuthority = NONE
+EI-D2-FIT-RECYCLE-SUCTION-6IN
+EI-D2-FIT-RELIEF-UPSTREAM-4IN
+EI-D2-FIT-RELIEF-DOWNSTREAM-6IN
 ```
 
-Expected values in this dataset were hand-derived from the controlled equation register. They are **not copied from workbook cached outputs** and are **not generated by the production implementation**.
+### 4.2 Example D4 — separation system FIT
 
-### 3.1 Independent numerical cases
+Controlled cases cover:
 
-| ID | Coverage | Independent expectation |
-|---|---|---|
-| `FIT-HAND-LIQ-STIFF-001` | liquid / stiff | standard `Fv`, `rhoV2`, LOF |
-| `FIT-HAND-GAS-MEDIUM-STIFF-002` | gas / medium-stiff | viscosity factor, demand, `Fv`, LOF |
-| `FIT-HAND-MULTIPHASE-MEDIUM-003` | multiphase / medium-large | component flows, mixture density, velocity, `rhoV2`, `Fv`, LOF |
-| `FIT-HAND-FLEX-SMALL-LOF-095` | threshold lower side | LOF = 0.95 |
-| `FIT-HAND-FLEX-SMALL-LOF-100-FN1` | exact threshold / fn lower bound | advanced reference at 1 Hz |
-| `FIT-HAND-FLEX-SMALL-LOF-105-FN2` | threshold upper side | advanced reference at 2 Hz |
-| `FIT-HAND-FLEX-SMALL-LOF-105-FN3` | fn upper bound | advanced reference at 3 Hz |
-| `FIT-HAND-SUPPORT-BOUNDARY-004` | span boundaries | inclusive/exclusive support classification |
-| `FIT-HAND-GAS-UNIT-INVARIANCE-005` | central engine | equivalent SI / US inputs |
-| `FIT-HAND-GAP-FAIL-006` | applicability | unresolved OD family fails closed |
-| `FIT-HAND-FN4-NO-ADVANCED-007` | applicability | 4 Hz cannot enter advanced path |
+```text
+EI-D4-FIT-SEPARATOR-INLET-20IN
+  multiphase
+  effective density + effective velocity
+  508 mm OD
+  stiff
+  published LOF approximately 0.26
 
-### 3.2 What these cases prove
+EI-D4-FIT-PRODUCED-WATER-10IN
+  liquid
+  273 mm OD
+  flexible-large
+  published LOF approximately 3.15
+```
 
-They provide independent software evidence for arithmetic transcription of the controlled equation register, phase paths, gas viscosity, support boundaries, threshold behavior, advanced-frequency boundaries, central unit invariance and fail-closed known gaps.
+D4 is especially important because it independently exercises the aggregate-effective multiphase workflow and proves that 273 mm belongs to the large medium/flexible correlation family for this reference method.
 
-They do **not** prove that the controlled equations themselves are the correct licensed EI/project equations.
+## 5. Stage 11 engineering corrections
 
-## 4. Source inconsistency dispositions
+### ISS-012 — exactly 1 Hz advanced boundary
 
-### ISS-009 — 4 Hz cached advanced calculation
+**Finding:** earlier reference code accepted exactly 1 Hz.
 
-**Software:** `RESOLVED_FOR_REFERENCE_IMPLEMENTATION` by enforcing the explicit 1–3 Hz methodology text.
+**EI evidence:** controlled method boundary is:
 
-**Engineering:** `OPEN_PENDING_LICENSED_SOURCE_REVIEW` because the cached workbook conflict cannot establish production authority.
+```text
+1 Hz < fn <= 3 Hz
+```
 
-### ISS-010 — hidden support selector conflicts with span-derived stiffness
+**Resolution:** code now excludes exactly 1 Hz and includes exactly 3 Hz.
 
-**Software:** `RESOLVED_FOR_REFERENCE_IMPLEMENTATION`; support stiffness/category are derived deterministically from controlled span equations and diameter families.
+**Software status:** `FIXED_PENDING_STAGE11_REGRESSION`.
 
-**Engineering:** `OPEN_PENDING_LICENSED_SOURCE_REVIEW`; the inconsistent cached example is excluded from qualification evidence.
+### ISS-013 — 273 mm large-family lower boundary
 
-### QST-003 — manual OD family gap
+**Finding:** earlier reference code used 273.05 mm as the large-family minimum.
 
-**Software:** `FAIL_CLOSED_V1` for medium/flexible manual diameters in `219.1 mm < Dext < 273.05 mm`.
+**EI evidence:** Appendix D Example D4 evaluates a 273 mm flexible line using the large flexible correlation.
 
-**Engineering:** `OPEN_PENDING_LICENSED_SOURCE_OR_PROJECT_RULE`; no interpolation, nearest-size selection or hidden default is authorized.
+**Resolution:** large-family minimum changed to 273 mm.
 
-## 5. CI qualification status
+**Software status:** `FIXED_PENDING_STAGE11_REGRESSION`.
 
-GitHub Actions run `31517707062` (`Topology Edit Support Reprojection`) failed twice, including a clean rerun.
+### IMP-014 — multiphase effective input path
 
-The GitHub check annotation identifies the root cause: the job was not started because recent account payments failed or the Actions spending limit needs to be increased.
+**Finding:** EI D4 uses effective density/effective velocity, while earlier domain validation always required component gas/liquid mass/density inputs.
 
-Observed evidence:
+**Resolution:** deterministic dual resolution now exists:
+
+```text
+AGGREGATE_EFFECTIVE
+COMPONENT_DERIVED
+```
+
+Aggregate effective inputs are explicit and provenance-visible; component-derived resolution remains supported. No phase property is silently guessed.
+
+### IMP-015 — neutral EI LOF bands
+
+The reference result now records:
+
+```text
+LOF_LT_0_3
+LOF_0_3_TO_LT_0_5
+LOF_0_5_TO_LT_1
+LOF_GE_1
+```
+
+These are benchmark/workflow metadata only. They do not create a production `pass` boolean and are not described as probability-of-failure bands.
+
+## 6. Remaining source questions
+
+### ISS-009 — retained cached 4 Hz advanced calculation
+
+The EI boundary confirms 4 Hz is outside the advanced reference range. Code does not reproduce the cached 4 Hz behavior.
+
+Software disposition: `RESOLVED`.
+
+The cached inconsistency remains documented as evidence that workbook cache/UI state is not engineering authority.
+
+### ISS-010 — hidden selector versus span-derived support
+
+Code derives support class from controlled span equations and does not trust hidden workbook selector state.
+
+Software disposition: `RESOLVED`.
+
+### QST-003 — manual medium/flexible diameter gap
+
+After correcting the large-family start to 273 mm, the unresolved region is:
+
+```text
+219.1 mm < Dext < 273 mm
+```
+
+It remains fail-closed. Stage 11 does not interpolate or invent a nominal-size mapping.
+
+## 7. Independent hand-derived benchmark status
+
+`Benchmarks/VibrationFIT/fit-independent-hand-benchmarks-v1.json` remains the independent software-oracle set.
+
+The previous exactly-1-Hz case was corrected to reflect the EI-exclusive lower boundary:
+
+```text
+fn = 1.0 Hz
+advancedEligible = false
+```
+
+The 2 Hz and 3 Hz advanced cases remain positive qualification cases. The 4 Hz case remains a negative applicability case.
+
+## 8. CI/release status
+
+GitHub Actions run `31517707062` failed twice before runner allocation. GitHub annotation identified an account payment/spending-limit condition.
 
 ```text
 runner_id = 0
-steps     = []
-elapsed   ~= 2 seconds
+steps = []
 ```
 
-Therefore `ISS-011` is **not a FIT software defect**. No workflow/source test actually executed, no repository code change is justified, and CI remains externally blocked until the GitHub billing/spending condition is corrected.
+Therefore the failed workflow provides no evidence of a FIT or topology code defect. Actions remain externally blocked until the account condition is corrected.
 
-## 6. Full-checkout regression status
+A full authenticated checkout regression also remains required before PR readiness.
 
-A full authenticated repository checkout is not available in the current execution runtime, and GitHub Actions cannot start because of the account billing/spending gate.
-
-The following remain `NOT_RUN` from a normal complete checkout:
-
-- full `tests/engineering-calculation-core.test.mjs` regression;
-- committed Console tests from the full repository dependency graph;
-- `tests/vibration-fit-independent-benchmarks.test.mjs` against the complete branch checkout;
-- full retained-workbook extractor regression;
-- `extract:fit-source` using the normal repository command.
-
-## 7. Promotion checklist
-
-FIT cannot move from `BENCHMARK_ONLY` to `SCREENING` until every item below is closed.
+## 9. Promotion checklist
 
 | Gate | Status |
 |---|---|
-| Exact source hash / workbook extraction | PASS |
-| Controlled equation register | PASS for workbook reference |
-| Retained source parity cases | PASS |
-| Independent hand-derived software cases | IMPLEMENTED; full-checkout execution pending |
-| Liquid/gas/multiphase coverage | PASS at reference level |
-| LOF threshold boundary cases | IMPLEMENTED |
-| Support boundary cases | IMPLEMENTED |
-| SI/US equivalent full case | IMPLEMENTED |
-| Missing-data / fail-closed behavior | PASS at reference level |
-| Determinism | PASS at reference level |
-| GitHub CI | BLOCKED — account billing/spending |
+| Retained source identity/formula extraction | PASS |
+| Deterministic reference implementation | PASS at prior Stage 9 revision |
+| Retained reference parity | PASS |
+| Independent hand-derived benchmark set | IMPLEMENTED; full checkout NOT_RUN |
+| EI D2/D4 benchmark dataset | IMPLEMENTED |
+| EI D2/D4 focused regression | STAGE 11 PENDING |
+| 1 Hz exclusive advanced boundary | FIXED; regression pending |
+| 3 Hz inclusive advanced boundary | IMPLEMENTED; regression pending |
+| 273 mm large-family boundary | FIXED; regression pending |
+| Aggregate-effective multiphase path | IMPLEMENTED; regression pending |
+| Neutral EI LOF reference bands | IMPLEMENTED; regression pending |
+| Remaining manual-diameter gap | FAIL_CLOSED |
+| SI/US equivalent full case | IMPLEMENTED; full checkout NOT_RUN |
+| Missing-data/fail-closed behavior | IMPLEMENTED |
 | Full repository regression | NOT_RUN |
-| Licensed EI T2.2 equation/table review | BLOCKED |
-| Project procedure/revision review | BLOCKED |
-| ISS-009 engineering resolution | BLOCKED |
-| ISS-010 engineering resolution | BLOCKED |
-| QST-003 engineering resolution | BLOCKED |
-| Independent vibration-engineer approval | BLOCKED |
+| GitHub Actions | BLOCKED — account billing/spending |
+| Adopted EI/project method review beyond worked-example coverage | NOT_RUN / reviewer required |
+| Independent vibration-engineer approval | NOT_RUN |
+| Screening authority | NOT_AUTHORIZED |
+| Design authority | NOT_AUTHORIZED |
 
-## 8. Qualification conclusion
+## 10. Qualification conclusion
 
-The current code is suitable for workbook migration comparison, traceable calculation review, benchmark-mode API/Console execution and software-transcription qualification work.
+Stage 11 materially improves the evidence basis because EI worked examples now independently challenge the implementation and have already exposed two source-boundary defects plus a missing multiphase input mode.
 
-It is **not** suitable to claim EI compliance, project screening compliance, production FIT pass/fail authority or design authority.
+That is exactly why FIT must remain `BENCHMARK_ONLY` while qualification is active.
 
-The next authority-changing action must be an independent review using the licensed Energy Institute/project source and an identified vibration engineering reviewer. Until that evidence exists, `VIB.FIV.FLOW_TURBULENCE` must remain `BENCHMARK_ONLY`.
+If the EI worked-example regression and full software regression close cleanly, the remaining authority gate becomes narrower: identify and document the adopted EI/project method limits not covered by the worked examples, resolve/exclude QST-003, and obtain independent vibration-engineering approval under issue #429.
