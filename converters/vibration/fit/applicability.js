@@ -6,6 +6,18 @@ import {
   resolveFitSupportCategory,
 } from './method.js';
 
+export const FIT_MULTIPHASE_RESOLUTION_MODES = Object.freeze([
+  'AGGREGATE_EFFECTIVE',
+  'COMPONENT_DERIVED',
+]);
+
+const COMPONENT_FIELDS = Object.freeze([
+  'gasMassFlowKgS',
+  'gasDensityKgM3',
+  'liquidMassFlowKgS',
+  'liquidDensityKgM3',
+]);
+
 function error(code, field, message, details = {}) {
   return Object.freeze({ code, field, message, details: Object.freeze({ ...details }) });
 }
@@ -19,19 +31,74 @@ function finite(input, field, { positive = false, nonNegative = false } = {}) {
   return null;
 }
 
-export function usesAggregateMultiphaseInput(input = {}) {
-  return input.phase === 'MULTIPHASE'
-    && input.densityKgM3 !== undefined
-    && (input.fluidVelocityMS !== undefined || input.massFlowKgS !== undefined);
+function present(input, field) {
+  return input[field] !== undefined && input[field] !== null;
 }
 
-function requiredPhaseData(input) {
+export function resolveFitMultiphaseResolutionMode(input = {}) {
+  if (input.phase !== 'MULTIPHASE') {
+    return Object.freeze({
+      mode: null,
+      selection: 'NOT_APPLICABLE',
+      aggregateDataPresent: false,
+      componentDataPresent: false,
+      alternateModeDataPresent: false,
+    });
+  }
+
+  const aggregateDataPresent = present(input, 'densityKgM3') || present(input, 'massFlowKgS');
+  const componentDataPresent = COMPONENT_FIELDS.some((field) => present(input, field));
+  const explicit = input.multiphaseResolutionMode;
+
+  if (explicit !== undefined && explicit !== null) {
+    if (!FIT_MULTIPHASE_RESOLUTION_MODES.includes(explicit)) {
+      return Object.freeze({
+        mode: null,
+        selection: 'INVALID',
+        aggregateDataPresent,
+        componentDataPresent,
+        alternateModeDataPresent: false,
+      });
+    }
+    return Object.freeze({
+      mode: explicit,
+      selection: 'EXPLICIT',
+      aggregateDataPresent,
+      componentDataPresent,
+      alternateModeDataPresent: aggregateDataPresent && componentDataPresent,
+    });
+  }
+
+  if (aggregateDataPresent && componentDataPresent) {
+    return Object.freeze({
+      mode: null,
+      selection: 'AMBIGUOUS',
+      aggregateDataPresent,
+      componentDataPresent,
+      alternateModeDataPresent: true,
+    });
+  }
+
+  return Object.freeze({
+    mode: aggregateDataPresent ? 'AGGREGATE_EFFECTIVE' : 'COMPONENT_DERIVED',
+    selection: 'INFERRED',
+    aggregateDataPresent,
+    componentDataPresent,
+    alternateModeDataPresent: false,
+  });
+}
+
+export function usesAggregateMultiphaseInput(input = {}) {
+  return resolveFitMultiphaseResolutionMode(input).mode === 'AGGREGATE_EFFECTIVE';
+}
+
+function requiredPhaseData(input, multiphaseResolution) {
   if (input.phase === 'LIQUID' || input.phase === 'GAS') {
     const fields = [['densityKgM3', { positive: true }]];
     if (input.fluidVelocityMS === undefined) fields.unshift(['massFlowKgS', { nonNegative: true }]);
     return fields;
   }
-  if (usesAggregateMultiphaseInput(input)) {
+  if (multiphaseResolution?.mode === 'AGGREGATE_EFFECTIVE') {
     const fields = [['densityKgM3', { positive: true }]];
     if (input.fluidVelocityMS === undefined) fields.unshift(['massFlowKgS', { nonNegative: true }]);
     return fields;
@@ -44,14 +111,9 @@ function requiredPhaseData(input) {
   ];
 }
 
-function validateMultiphaseComponentFlow(input, errors) {
-  if (input.phase !== 'MULTIPHASE' || usesAggregateMultiphaseInput(input)) return;
-  const values = [
-    input.gasMassFlowKgS,
-    input.gasDensityKgM3,
-    input.liquidMassFlowKgS,
-    input.liquidDensityKgM3,
-  ];
+function validateMultiphaseComponentFlow(input, errors, multiphaseResolution) {
+  if (input.phase !== 'MULTIPHASE' || multiphaseResolution?.mode !== 'COMPONENT_DERIVED') return;
+  const values = COMPONENT_FIELDS.map((field) => input[field]);
   if (!values.every((value) => typeof value === 'number' && Number.isFinite(value))) return;
   const volumetricFlow = (input.gasMassFlowKgS / input.gasDensityKgM3)
     + (input.liquidMassFlowKgS / input.liquidDensityKgM3);
@@ -85,11 +147,33 @@ export function validateFitReferenceInput(input = {}) {
     const issue = finite(input, 'fluidVelocityMS', { nonNegative: true });
     if (issue) errors.push(issue);
   }
-  for (const [field, rule] of requiredPhaseData(input)) {
-    const issue = finite(input, field, rule);
-    if (issue) errors.push(issue);
+
+  const multiphaseResolution = resolveFitMultiphaseResolutionMode(input);
+  if (input.phase === 'MULTIPHASE' && multiphaseResolution.selection === 'INVALID') {
+    errors.push(error(
+      'FIT_INPUT_INVALID',
+      'multiphaseResolutionMode',
+      `multiphaseResolutionMode must be one of ${FIT_MULTIPHASE_RESOLUTION_MODES.join(', ')}.`,
+      { value: input.multiphaseResolutionMode },
+    ));
   }
-  validateMultiphaseComponentFlow(input, errors);
+  if (input.phase === 'MULTIPHASE' && multiphaseResolution.selection === 'AMBIGUOUS') {
+    errors.push(error(
+      'FIT_MULTIPHASE_INPUT_AMBIGUOUS',
+      'multiphaseResolutionMode',
+      'Both aggregate-effective and component multiphase data are present. Select multiphaseResolutionMode explicitly.',
+      { allowedModes: FIT_MULTIPHASE_RESOLUTION_MODES },
+    ));
+  }
+
+  if (!['INVALID', 'AMBIGUOUS'].includes(multiphaseResolution.selection)) {
+    for (const [field, rule] of requiredPhaseData(input, multiphaseResolution)) {
+      const issue = finite(input, field, rule);
+      if (issue) errors.push(issue);
+    }
+    validateMultiphaseComponentFlow(input, errors, multiphaseResolution);
+  }
+
   if (input.phase === 'GAS') {
     const issue = finite(input, 'gasDynamicViscosityPaS', { positive: true });
     if (issue) errors.push(issue);
