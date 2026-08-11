@@ -4,58 +4,61 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Implement the centralized Engineering Calculation Platform core against `engineering-calculation-contract/v1`, with real B31.3 and empirical-weight integrations plus explicit fail-closed future-family placeholders. |
-| Source task / issue | Owner request 2026-08-11; frozen `docs/APIEngineeringCalcContracts.md`; roadmap; qualification issues #428–#434. |
+| Mission | Implement the centralized Engineering Calculation Platform core against `engineering-calculation-contract/v1`, with real B31.3 and empirical-weight integrations and explicit fail-closed placeholders for unqualified planned methods. |
+| Source task / issue | Owner request 2026-08-11; `docs/APIEngineeringCalcContracts.md`; `docs/APIEngineeringCalcRoadmap.md`; qualification issues #428–#434. |
 | PR number | #435 |
 | Branch | `agent/engineering-calc-core` |
 | Base commit | `7a05c78413592dade410595775a9b0f7dd104bf0` |
-| Current HEAD | integration-test head `9de95388bcd32b7fafa32cca7904a49152305110` plus this report update |
+| Final production-code HEAD before this closure-report commit | `17392548abdac895edb82cc103583668ee0af70b` |
 | PR status | OPEN / DRAFT / mergeable |
-| Current stage | Stage 8 — Consolidated validation / defect correction |
-| Last completed stage | Stage 7 — Default public API + blocked catalogue |
-| Engineering status | Core runtime complete; one catalogue-coverage defect identified during validation |
-| Validation status | Stage 4 5/5 PASS; Stage 5 5/5 PASS; Stage 6 4/4 PASS; committed live-domain suite NOT_RUN locally; GitHub commit statuses empty |
-| Current blocker | `ISS-001`: blocked catalogue omits the #428 PIPE methods. |
-| Exact next action | Add #428 PIPE placeholders, update test expectations, then reconcile all changed files and close Stage 8/9. |
+| Current stage | Stage 9 — COMPLETE: reconciliation / handover |
+| Last completed stage | Stage 9 — Final reconciliation / closure state |
+| Engineering status | IMPLEMENTED — core production capability complete; no authority promotion |
+| Validation status | PARTIAL — executed focused core/adapter suites PASS; committed live-domain suite NOT_RUN in current runtime |
+| Current blocker | No coding blocker. Review/merge should account for the explicitly unexecuted repository integration suite. |
+| Exact next action | In a real checkout, run `node --test tests/engineering-calculation-core.test.mjs`; if green, review #435 for readiness/merge. |
 
 ### Handover in 60 Seconds
 
-**What is now true:** registry, units, qualification, input resolution, engine, B31.3 x2, empirical weight, Sandbox/batch, public v1 API and blocked catalogue are implemented. A focused repository integration test is committed. GitHub reports PR #435 mergeable with no commit statuses.
+**What is now true:** the central v1 Engineering Calculation API is implemented. The default catalogue contains **22 definitions: 3 executable + 19 qualification-blocked**. Executable definitions are `PIPE.B313.THICKNESS`, `PIPE.B313.MATERIAL_DESIGN`, and `ESTIMATION.WEIGHT.EMPIRICAL`. All issues #428–#434 are represented by explicit blocked future-method entries. Single, validate, resolve, Sandbox and batch routes share the same registry/engine.
 
-**What is being worked on:** `ISS-001` found during final catalogue reconciliation: #428 exists as a qualification gate, but its unimplemented PIPE methods are not yet discoverable as blocked placeholders.
+**What is currently being worked on:** no further coding in this PR. Closure/reporting is complete.
 
-**What remains unfinished:** add 3 #428 placeholders, update catalogue count tests, final changed-file reconciliation, final report/PR description.
+**What remains unfinished:** the committed repository-level live-domain test has not executed in this container because no repository checkout/GitHub DNS path is available. The full repository regression suite is also not run.
 
-**What must not be assumed:** the committed live-domain test executed in this container; it did not. FIV/AIV/trunnion/etc. placeholders contain no numerical implementation. B31.3 method authority is not being promoted.
+**What must not be assumed:** blocked FIV/AIV/trunnion/etc. definitions contain formulas; they do not. B31.3 execution is not design-authorized by this PR. Empirical results are not design authority. No family method qualification has been promoted.
 
-**Highest-risk remaining item:** `ISS-001` until fixed; then `RISK-001` remains limited by unavailable live-domain execution evidence.
+**Highest-risk remaining item:** `RISK-004` — final repository-level execution evidence remains unavailable in this runtime.
 
-**Exact next action:** patch only `pending-definitions.js` and the catalogue assertion in `tests/engineering-calculation-core.test.mjs`.
+**Exact next recommended action:** execute the focused test in a normal checkout, then mark the draft PR ready only if the result is acceptable.
 
 ---
 
 ## 1. Mission and Engineering Intent
 
 ### Mission
-Provide one deterministic, API-first engineering calculation platform while keeping engineering formula authority inside domain modules.
+Deliver a real centralized engineering API—not a metadata-only framework—while preserving domain formula authority and qualification boundaries.
 
 ### Engineering/user consequence
-Existing B31.3 and empirical-weight capabilities can now be discovered, validated, resolved, executed singly/in Sandbox/in batch, and returned with immutable provenance/qualification/evidence through one central API. Future methods appear as explicit unavailable catalogue entries until qualified.
+A caller can now discover calculators, validate/resolve declared inputs, normalize units, execute single/Sandbox/batch requests, inspect provenance/qualification/evidence, and retain immutable results through one public API. Existing B31.3 and empirical-weight APIs remain directly callable and are reused rather than duplicated.
 
-### Scope
-Central v1 contract runtime, registry, units, provenance/input validation, qualification composition, engine, two B31.3 adapters, empirical adapter, default registry, public API, batch/Sandbox, qualification-gated catalogue, focused tests.
+### Completed scope
+- contract/result/batch version constants and stable error helpers;
+- deterministic calculation registry;
+- quantity-aware canonical unit conversion including affine temperature and gauge/absolute pressure protection;
+- input resolution, range/type validation, engineering-default provenance, custom resolver/validator hooks;
+- method/data/effective qualification composition;
+- immutable central result/failure envelopes;
+- single execution and batch execution through one engine;
+- B31.3 direct-factor thickness/provided-wall adapter;
+- B31.3 governed material-factor + optional wall-selection adapter;
+- empirical FINAL/EXACT/A1/A2 adapter with Sandbox-only candidate model/master injection;
+- default registry and frozen public v1 entrypoints;
+- qualification-gated planned-method catalogue for #428–#434;
+- focused repository integration test.
 
-### Non-goals
-No new vibration/support/relief/equipment/flange/hazard/other PIPE equations; no authority promotion; no changes to current B31.3 or empirical formulas; no full Console UI; no CI workflows.
-
-### Governing principles
-- Central engine orchestrates only.
-- No silent engineering data fallback.
-- Engineering defaults are declared and surfaced in resolved provenance.
-- Units and gauge/absolute pressure reference are explicit.
-- Failed/blocked methods return no plausible outputs.
-- Sandbox and batch use the same production definition/kernel.
-- Results and registered definitions are immutable snapshots.
+### Explicit non-goals retained
+No new external-pressure, branch-reinforcement, shell-indentation, FIV, AIV, SBC, cavitation, surge, slug, relief, trunnion, shoe, API/NEMA, flange, GRE, or blast numerical methods; no B31.3/empirical formula changes; no authority promotion; no full Engineering Calculation Console; no CI workflow additions.
 
 ---
 
@@ -63,42 +66,35 @@ No new vibration/support/relief/equipment/flange/hazard/other PIPE equations; no
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---|---|
-| Report / PR / baseline | P0 | DONE | 1–3 | #435 |
-| Contract primitives / units / qualification / registry | P0 | VALIDATED | 4 | 5/5 focused |
-| Input resolution / engine | P0 | VALIDATED | 5 | 5/5 focused |
-| B31.3 direct/material adapters | P0 | VALIDATED | 6 | mapping tests |
-| Empirical adapter / Sandbox gate | P0 | VALIDATED | 6 | mapping tests |
-| Default public API | P0 | IMPLEMENTED | 7 | central `index.js` |
-| Blocked catalogue | P1 | PARTIAL | 7–8 | ISS-001: #428 missing |
-| Focused repository integration test | P0 | IMPLEMENTED | 8 | committed; execution NOT_RUN locally |
-| Final reconciliation | P0 | NOT_STARTED | 9 | pending ISS-001 fix |
+| Work report / PR / baseline | P0 | DONE | 1–3 | #435 |
+| Contract primitives / units / qualification / registry | P0 | VALIDATED | 4 | executed 5/5 focused suite |
+| Input resolution / engine | P0 | VALIDATED | 5 | executed 5/5 focused suite |
+| B31.3 adapters | P0 | VALIDATED | 6 | executed focused mapping tests |
+| Empirical adapter / Sandbox guard | P0 | VALIDATED | 6 | executed focused mapping tests |
+| Default registry / public API | P0 | IMPLEMENTED | 7 | source reconciliation |
+| Blocked qualification catalogue | P1 | DONE | 7–8 | 19 blocked entries covering #428–#434 |
+| Repository integration test authored | P0 | DONE | 8 | `tests/engineering-calculation-core.test.mjs` |
+| Repository integration test executed | P0 | NOT_RUN | 8 | environment limitation RISK-004 |
+| Changed-file reconciliation | P0 | DONE | 9 | 13 actual files = 13 ledger files |
+| Final handover | P0 | DONE | 9 | this report |
 
 ---
 
 ## 3. Engineering Item Register
 
-| ID | Type | Severity/Priority | Status | Summary | Current PR? |
+| ID | Type | Severity/Priority | Status | Summary | Closure evidence |
 |---|---|---|---|---|---|
-| ISS-001 | Defect | Medium/P0 | IN_PROGRESS | Pending catalogue covers #429–#434 but omits unimplemented #428 PIPE methods. Add external-pressure, branch-reinforcement and shell/local-loading blocked entries. | Yes |
-| DEC-001 | Decision | P0 | ACCEPTED | Central engine owns orchestration only; domain APIs own formulas. | Yes |
-| DEC-002 | Decision | P0 | ACCEPTED | Existing B31.3/empirical APIs remain direct and are first central consumers. | Yes |
-| DEC-003 | Decision | P0 | ACCEPTED | Placeholder means `BLOCKED`/unavailable, never numerical. | Yes |
-| DEC-004 | Decision | P0 | ACCEPTED | `PIPE.B313.THICKNESS` and `PIPE.B313.MATERIAL_DESIGN` remain separate authority paths. | Yes |
-| DEC-005 | Decision | P0 | ACCEPTED | Candidate empirical model/master injection is Sandbox-only. | Yes |
-| RISK-001 | Risk | High | ACCEPTED | Live-domain adapter parity test is committed but cannot execute in current container; earlier stubbed mapping tests pass. | Yes |
-| RISK-002 | Risk | High | MITIGATED | Gauge/absolute semantics protected by unit layer; canonical units passed to domain APIs. | Yes |
-| RISK-003 | Risk | Medium | MITIGATED | Default/explicit registry construction deterministic. | Yes |
-| RISK-004 | Risk | Medium | ACCEPTED | Container has no repo checkout, `gh`, or GitHub DNS clone access; full suite remains NOT_RUN. | Yes |
-| IMP-001 | Improvement | P1 | DEFERRED | Engineering Calculation Console follows in a separate PR. | No |
-
-### ISS-001 detail
-- **Stage discovered:** 8, final family/issue reconciliation.
-- **Affected:** `pending-definitions.js`, catalogue test/report.
-- **Observed:** all unimplemented families except PIPE #428 were represented.
-- **Consequence:** Console/API discovery would not expose external pressure/branch/local-loading as qualification-blocked planned calculations.
-- **Root cause:** Stage 7 catalogue was built around new MiscCalc families and overlooked the remaining PIPE qualification candidates.
-- **Resolution:** add three zero-input/output `BLOCKED` definitions tied to issue #428; engine continues to reject before kernel.
-- **Validation:** default total becomes 22 = 3 executable + 19 blocked; available remains 3; #428 entry must return `ENGINEERING_METHOD_BLOCKED` with no outputs.
+| ISS-001 | Defect | Medium/P0 | DONE | #428 PIPE candidates were initially omitted from blocked catalogue. | Added `PIPE.EXTERNAL_PRESSURE.CHECK`, `PIPE.BRANCH.REINFORCEMENT`, `PIPE.SHELL_INDENTATION`; identifiers reconciled to contract/roadmap. |
+| DEC-001 | Decision | P0 | ACCEPTED | Central engine owns orchestration only; domain APIs own formulas. | No domain formula file appears in PR diff. |
+| DEC-002 | Decision | P0 | ACCEPTED | Existing B31.3/empirical APIs remain direct and are reused. | Thin adapters import current APIs. |
+| DEC-003 | Decision | P0 | ACCEPTED | Placeholder means BLOCKED/unavailable, never numerical. | 19 blocked definitions have empty input/output contracts and engine rejects before kernel. |
+| DEC-004 | Decision | P0 | ACCEPTED | Separate `PIPE.B313.THICKNESS` and `PIPE.B313.MATERIAL_DESIGN`. | Both registered independently. |
+| DEC-005 | Decision | P0 | ACCEPTED | Candidate empirical model/master data is Sandbox-only. | Adapter returns `INPUT_INVALID` outside Sandbox. |
+| RISK-001 | Risk | High | ACCEPTED | Live-domain central/direct parity cannot be executed locally. | Repository test authored; prior stubbed adapter mapping tests PASS. |
+| RISK-002 | Risk | High | MITIGATED | Gauge/absolute/native-unit semantics can be corrupted centrally. | Explicit pressure-reference guard and canonical adapter boundaries. |
+| RISK-003 | Risk | Medium | MITIGATED | Hidden registry mutation/order could change authority. | Explicit deterministic registry/default construction. |
+| RISK-004 | Risk | Medium | ACCEPTED | Runtime cannot clone/materialize repository; `gh` absent and GitHub DNS clone path unavailable. | Final live-domain/full-repo runs recorded NOT_RUN; no unsupported PASS claim. |
+| IMP-001 | Improvement | P1 | DEFERRED | Engineering Calculation Console. | Follow-up roadmap item. |
 
 ---
 
@@ -106,157 +102,218 @@ No new vibration/support/relief/equipment/flange/hazard/other PIPE equations; no
 
 | Stage | Status | Purpose | Primary output |
 |---|---|---|---|
-| 1 | COMPLETE | Report initialization | living report |
-| 2 | COMPLETE | PR allocation/report rename | #435 |
-| 3 | COMPLETE | Baseline/current API verification | exact domain boundaries |
-| 4 | COMPLETE | Contract primitives/registry | common core |
-| 5 | COMPLETE | Input resolution/engine | orchestration |
-| 6 | COMPLETE | Real adapters | B31.3 x2 + empirical |
-| 7 | COMPLETE with Stage-8 correction | Default API/catalogue | public surface |
-| 8 | IN_PROGRESS | Consolidated tests/corrections | test + ISS-001 fix |
-| 9 | NOT_STARTED | Reconciliation/closure state | final report/diff |
+| 1 | COMPLETE | Report initialization / findings | living work report |
+| 2 | COMPLETE | PR allocation / report synchronization | PR #435 |
+| 3 | COMPLETE | Baseline + domain API verification | clean pre-code state |
+| 4 | COMPLETE | Contract primitives + deterministic registry | 4 core modules |
+| 5 | COMPLETE | Input resolution + central engine | 2 core modules |
+| 6 | COMPLETE | Real production adapters | B31.3 x2 + empirical |
+| 7 | COMPLETE | Default public API + blocked catalogue | v1 public surface |
+| 8 | PARTIAL | Consolidated validation / corrections | committed integration suite; ISS-001 fixed; live run NOT_RUN |
+| 9 | COMPLETE | Changed-file reconciliation / handover | final report |
 
 ---
 
 ## Stage Execution Log
 
-### Stages 1–3
-Report initialized before production edits, PR #435 allocated, pending report removed, exact B31.3/empirical APIs inspected, B31.3 authority paths split deliberately. **COMPLETE.**
+### Stages 1–3 — setup and source truth
+Report created before production edits; PR #435 allocated; temporary pending report removed; frozen contract/Common CodingRules/current B31.3/current empirical APIs inspected. B31.3 direct-factor and material-resolved paths intentionally split. **COMPLETE.**
 
-### Stage 4
-Added `contracts.js`, `units.js`, `qualification.js`, `registry.js`. Focused tests **5/5 PASS**. **COMPLETE.**
+### Stage 4 — common contract/registry
+Added `contracts.js`, `units.js`, `qualification.js`, `registry.js`. Includes immutable snapshots, unit conversions, pressure-reference protection, conservative effective qualification, validated deterministic definitions. Executed focused suite: **5/5 PASS**. **COMPLETE.**
 
-### Stage 5
-Added `input-resolution.js`, `engine.js`; validation precedes kernel, blocked methods fail before kernel, results immutable, batch reuses single path. Focused tests **5/5 PASS**. **COMPLETE.**
+### Stage 5 — input resolution/engine
+Added `input-resolution.js`, `engine.js`. Structural/range/unit validation happens before kernel; blocked methods do not invoke kernel; engine does not synthesize domain assessment; batch reuses single path; results immutable. Executed focused suite: **5/5 PASS**. **COMPLETE.**
 
-### Stage 6
-Added thin B31.3 and empirical adapters; no domain formulas changed/copied; screening/benchmark authority preserved; candidate empirical data Sandbox-only. Focused tests **4/4 PASS**. **COMPLETE.**
+### Stage 6 — real adapters
+Added `adapters/b313.js`, `adapters/empirical-weight.js`. Domain modules untouched. B31.3 central paths preserve non-design-authority status. Empirical FINAL/EXACT/A1/A2 maps existing estimator outputs; candidate data requires Sandbox. Executed mapping suite: **4/4 PASS**. **COMPLETE.**
 
-### Stage 7
-Added default registry/public v1 API and 16 `BLOCKED` placeholders for #429–#434. Source/API inspection PASS. Stage 8 found missing #428 coverage (`ISS-001`). **COMPLETE WITH CORRECTION REQUIRED.**
+### Stage 7 — public surface/catalogue
+Added `pending-definitions.js`, `default-registry.js`, `index.js`. Public functions match frozen v1: family/list/definition/qualification, validate/resolve, single/batch, registry/engine factories. Initially 16 blocked entries (#429–#434). **COMPLETE with Stage-8 correction.**
 
-### Stage 8 — Consolidated validation
+### Stage 8 — consolidated validation / correction
+Added `tests/engineering-calculation-core.test.mjs`. Test cases cover catalogue, retained B31.3 A106 benchmark, B31 provided-wall semantics, empirical direct-vs-central parity, Sandbox-only candidates, blocked FIV/PIPE entries, independent validate/resolve unit normalization, and mixed batch.
 
-**Before:** core coding complete. Planned committed tests: catalogue, retained B31.3 benchmark, direct-vs-central empirical parity, B31 provided wall, Sandbox gate, real blocked placeholder, independent validate/resolve, mixed batch.
+Final issue reconciliation found `ISS-001`; fixed catalogue by adding #428 PIPE entries. Governing ID reconciliation confirmed:
+- contract: `PIPE.EXTERNAL_PRESSURE.CHECK`;
+- contract: `PIPE.BRANCH.REINFORCEMENT`;
+- roadmap: `PIPE.SHELL_INDENTATION`.
 
-**Implementation/evidence so far**
-- Added `tests/engineering-calculation-core.test.mjs` with 8 focused tests covering the planned cases.
-- Inspected current B31.3 applicability: default pressure mode is internal; edition defaults to 2024; retained benchmark request is within implemented scope.
-- GitHub PR head `9de95388...` is mergeable and has **no commit status entries**.
-- Exact PR changed-file list contains only the work report, 11 production central modules, and the focused test; no domain formula or workflow file changed.
-- Local execution of the committed integration suite is **NOT_RUN** because the runtime cannot materialize a repository checkout. Earlier self-contained Stage 4–6 suites remain executed evidence.
-- Final issue-to-catalogue reconciliation found `ISS-001`.
+The repository integration test **could not be executed in this runtime**. GitHub combined-status lists are empty at the inspected implementation head; no CI result is available. **Stage decision: PARTIAL solely due missing execution evidence; coding/corrections complete.**
 
-**Before ISS-001 correction**
-- **Objective:** complete qualification-gate catalogue coverage without numerical logic.
-- **Scope:** `pending-definitions.js` and catalogue expectations in test.
-- **Rationale:** every planned method represented by #428–#434 should be discoverable and explicitly blocked.
-- **Planned entries:** `PIPE.EXTERNAL_PRESSURE.CHECK`, `PIPE.BRANCH.REINFORCEMENT`, `PIPE.SHELL.LOCAL_LOADING`, all tied to #428.
-- **Expected behavior:** catalogue total 22; available total 3; new PIPE entries cannot execute and return no outputs.
-- **Risk:** none to formulas because placeholders are blocked before kernel invocation.
+### Stage 9 — final reconciliation
+GitHub actual changed-file list reconciled exactly to the ledger: **13 files**, no unexplained file, no `.github/workflows/*`, no domain formula/master file, and no temporary `PR_PENDING` report. PR is open, draft, mergeable. **COMPLETE.**
 
 ---
 
 ## 5. Changed-File Ledger
 
-| File | Stage | Purpose | Validation |
-|---|---:|---|---|
-| `agents/PR435_workreport.md` | 1–9 | living report/handover | current |
-| `converters/engineering-calculations/contracts.js` | 4 | v1 constants/errors/snapshots | focused PASS |
-| `.../units.js` | 4 | unit normalization/reference guard | focused PASS |
-| `.../qualification.js` | 4 | authority composition | focused PASS |
-| `.../registry.js` | 4 | deterministic registry | focused PASS |
-| `.../input-resolution.js` | 5 | canonical input/provenance validation | focused PASS |
-| `.../engine.js` | 5 | orchestration/result/batch | focused PASS |
-| `.../adapters/b313.js` | 6 | real B31.3 definitions | focused mapping PASS |
-| `.../adapters/empirical-weight.js` | 6 | real empirical definition | focused mapping PASS |
-| `.../pending-definitions.js` | 7–8 | blocked planned-method catalogue | ISS-001 correction active |
-| `.../default-registry.js` | 7 | default definition set | source inspected |
-| `.../index.js` | 7 | frozen v1 public API | source inspected |
-| `tests/engineering-calculation-core.test.mjs` | 8 | final focused integration cases | committed; local run NOT_RUN |
+| File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
+|---|---:|---:|---|---|---|
+| `agents/PR435_workreport.md` | 1 | 9 | living work state/handover | No | reconciled |
+| `converters/engineering-calculations/contracts.js` | 4 | 4 | versions/errors/immutable snapshot primitives | Yes | focused PASS |
+| `converters/engineering-calculations/units.js` | 4 | 4 | canonical unit conversion/reference semantics | Yes | focused PASS |
+| `converters/engineering-calculations/qualification.js` | 4 | 4 | method/data/effective authority composition | Yes | focused PASS |
+| `converters/engineering-calculations/registry.js` | 4 | 4 | deterministic validated registry | Yes | focused PASS |
+| `converters/engineering-calculations/input-resolution.js` | 5 | 5 | input canonicalization/provenance/validation | Yes | focused PASS |
+| `converters/engineering-calculations/engine.js` | 5 | 5 | orchestration/result/batch | Yes | focused PASS |
+| `converters/engineering-calculations/adapters/b313.js` | 6 | 6 | real B31.3 definitions | Yes | mapping PASS; live test NOT_RUN |
+| `converters/engineering-calculations/adapters/empirical-weight.js` | 6 | 6 | real empirical definition | Yes | mapping PASS; live test NOT_RUN |
+| `converters/engineering-calculations/pending-definitions.js` | 7 | 8 | blocked planned-method catalogue | Yes | source/ID reconciliation PASS |
+| `converters/engineering-calculations/default-registry.js` | 7 | 7 | default 22-definition registry | Yes | source reconciliation |
+| `converters/engineering-calculations/index.js` | 7 | 7 | central v1 public API | Yes | contract-source reconciliation |
+| `tests/engineering-calculation-core.test.mjs` | 8 | 8 | retained integration/parity/fail-closed tests | No | authored; execution NOT_RUN |
 
-Final GitHub changed-file count before ISS-001 correction: **13**, exactly matching this ledger. `agents/PR_PENDING_workreport.md` is absent.
+**GitHub changed-file reconciliation:** PASS — exactly the 13 files above.  
+**Unexplained changed files:** none.  
+**Temporary report:** absent.  
+**Workflow changes:** none.
 
 ---
 
 ## 6. Engineering Decisions and Invariants
-- Central engine/adapters contain no replacement engineering equations.
-- Existing domain APIs remain directly callable.
-- Blocked placeholder has no engineering outputs/PASS state.
-- B31.3 direct-factor/material-resolved paths remain distinct.
-- Empirical candidate data is Sandbox-only.
-- Inputs/context/results are immutable snapshots.
-- Batch/Sandbox reuse the same production definitions.
-- `designAuthority` is explicit, conservative, and never inferred from numerical success.
+
+1. **Central orchestration is not engineering authority.** Enforced by adapter/domain separation; validated by PR diff.
+2. **Direct APIs remain valid.** Central adapters call them; no duplicate B31.3/empirical formulas exist in this PR.
+3. **No silent defaults.** Declared `engineeringDefault` values are represented as `ENGINEERING_DEFAULT` in resolved provenance.
+4. **Blocked means unavailable.** Planned methods have no numeric output contract and are stopped by method gate.
+5. **Pressure reference is not a scale conversion.** Gauge/absolute mismatch is rejected.
+6. **Sandbox does not create a second empirical algorithm.** Same definition/estimator is used with explicitly injected candidate model/master.
+7. **Batch uses single execution.** Each batch request calls the same `calculate()` path.
+8. **Results are immutable snapshots.** Later state/master changes do not mutate retained results.
+9. **Numerical success does not imply design authority.** Qualification object is explicit/conservative.
 
 ---
 
 ## 7. Validation and Evidence Ledger
 
 ### Software validation
-| Validation | Status | Evidence |
-|---|---|---|
-| Stage 4 focused suite | PASS | 5/5 |
-| Stage 5 focused suite | PASS | 5/5 |
-| Stage 6 focused suite | PASS | 4/4 |
-| Final test file committed | PASS | `tests/engineering-calculation-core.test.mjs` |
-| Final live-domain test execution | NOT_RUN | no local checkout / GitHub execution status |
-| GitHub commit statuses | NOT_RUN / none | status list empty at `9de95388...` |
-| Full repository regression suite | NOT_RUN | RISK-004 |
+
+| Validation | Status | Last relevant state | Evidence |
+|---|---|---|---|
+| Stage 4 common-core focused suite | PASS | Stage 4 exact files | 5/5 |
+| Stage 5 engine focused suite | PASS | Stage 5 exact files | 5/5 |
+| Stage 6 adapter mapping suite | PASS | Stage 6 exact adapters | 4/4 |
+| Final focused repository integration suite authored | PASS | implementation head | test file committed |
+| `node --test tests/engineering-calculation-core.test.mjs` | NOT_RUN | final branch | no local repo checkout/runtime path |
+| Full repository regression suite | NOT_RUN | final branch | RISK-004 |
+| GitHub status checks | NOT_RUN / none | implementation head `17392548...` | status list empty |
 
 ### Engineering validation
+
 | Property | Status | Evidence |
 |---|---|---|
-| No domain formula changes | PASS | changed-file reconciliation |
-| B31.3 benchmark central test authored | PASS | retained benchmark assertion committed |
-| B31.3 benchmark central test executed | NOT_RUN | environment limitation |
-| Empirical direct-vs-central parity test authored | PASS | committed |
-| Empirical parity executed live | NOT_RUN | environment limitation |
-| Pending method fail-closed | PASS | Stage 5 executed generic case; real catalogue source gate |
-| Authority promotion | NOT_APPLICABLE | none performed |
+| No new domain equations | PASS | changed-file reconciliation |
+| Existing domain APIs have real central consumers | PASS | adapter imports/default registry |
+| B31.3 retained benchmark assertion exists | PASS | focused repository test |
+| B31.3 retained benchmark executed through central API | NOT_RUN | runtime limitation |
+| Empirical direct-vs-central parity assertion exists | PASS | focused repository test |
+| Empirical live parity executed | NOT_RUN | runtime limitation |
+| Blocked families produce no numerical authority | PASS | engine method gate + definition source; generic blocked test executed in Stage 5 |
+| Method/data authority promotion | NOT_APPLICABLE | none performed |
 
 ### Explicitly not validated
-Numerical FIV/AIV/SBC/cavitation/surge/slug/relief/trunnion/shoe/equipment/flange/blast/external-pressure/branch/local-loading methods; full Console UI; full repo regression.
+Numerical methods for all blocked placeholders; full Engineering Calculation Console; project/code design authorization; full repository regression compatibility.
 
 ---
 
-## 8. Known / Deferred Work + Forward Sequence
-Open current-PR defect: ISS-001 only. Accepted validation limitation: RISK-004. After PR: implement Engineering Calculation Console; resolve family qualification issues; implement one qualified vertical calculator per issue/method.
+## 8. Known Issues, Improvements, and Deferred Scope
+
+### Open defects
+None known in the implemented source after ISS-001 closure.
+
+### Deferred improvements
+- IMP-001: Engineering Calculation Console driven by registry metadata.
+- Family method implementations after expert qualification issues #428–#434 are answered.
+
+### Open/accepted risks
+- RISK-004 / RISK-001 evidence limitation: live repository-level parity/regression must still run in a normal checkout.
+
+### Recommended Forward Sequence
+1. Run the focused test in a normal repo checkout. This is the immediate prerequisite to PR readiness.
+2. Review/merge #435 only after acceptable execution evidence.
+3. Build the Engineering Calculation Console against this API; do not add formulas to UI.
+4. Resolve #428–#434 qualification questions.
+5. Implement one vertical qualified calculator at a time, using blocked catalogue IDs as the activation targets.
+
+---
 
 ## 9. Current State vs History
-Mission Control/status/register/roadmap/ledger/validation/handover are living. Stage history and resolved closure evidence remain historical.
+Mission Control, status, item register, roadmap, file/validation ledgers, known work and handover reflect current truth. Stage Execution Log preserves history.
 
 ## 10. Process Notes / Lessons Learned
-- Qualification issues and catalogue entries need explicit reconciliation; family grouping alone can hide omitted planned methods.
-- Wrapper parity and independent engineering qualification are different evidence classes.
-- An unavailable calculator is safer as a visible `BLOCKED` definition than as a zero/placeholder formula.
-- Environment-limited tests remain `NOT_RUN`.
+- Contract IDs and roadmap UI IDs must be reconciled before creating catalogue entries.
+- Wrapper parity evidence and engineering-method qualification are distinct.
+- An explicit blocked catalogue is useful only when it never masquerades as calculation output.
+- Environment-limited validation is recorded as `NOT_RUN`, not inferred PASS.
+- Separate B31.3 central IDs preserve distinct data/authority paths.
 
 ## 11. Commit and PR Rules
-One PR; no CI workflow additions; no merge without Owner instruction.
+All assignment work is on #435. No CI workflow was added. PR must not be merged without Owner instruction.
 
 ## 12. Unexpected Findings / Stop Conditions
-No finding has required domain formula changes. ISS-001 is metadata/catalogue scope and can be corrected without changing engineering authority.
+ISS-001 was corrected without broadening into numerical PIPE methods. No finding justified changing domain formulas or unqualified methods.
 
 ## 13. Coding Rules Applied
-Named exports, focused modules, no silent engineering fallback, no hidden singleton authority, no numerical placeholders, no broad refactor, no workflow changes.
+Named exports; new JS modules remain under 300 physical lines; focused modules/functions; no hidden default mocks; no silent engineering fallback; no unused speculative framework; no broad refactor; no workflow change; no numerical placeholders.
 
 ## 14. Action-First Delivery Gate
-Real central API → registry/engine → B31.3/empirical production integrations → single/Sandbox/batch → blocked future catalogue → focused tests. Core capability exists; final work is validation/reconciliation.
+
+```text
+central public API
+→ deterministic registry/input/unit/qualification engine
+→ real B31.3 + empirical production consumers
+→ single + Sandbox + batch routes
+→ fail-closed future catalogue
+→ focused retained tests
+```
+
+The production capability is present. Final live integration execution remains an explicit evidence step, not a missing coding layer.
 
 ---
 
 ## Next-Agent Handover
-- **Stopping point:** Stage 8, before ISS-001 code correction.
-- **PR/branch/head:** #435 / `agent/engineering-calc-core` / `9de95388...` plus this report commit.
-- **Last completed:** Stage 7.
-- **Active:** Stage 8.
-- **Start here:** add the three #428 PIPE blocked definitions and update test count/assertion.
-- **Do not redo:** core engine/adapters.
-- **Do not assume:** committed live-domain suite ran; it did not.
-- **Known failing checks:** none executed; ISS-001 is a source-coverage defect, not a test failure.
-- **Validation still required:** final file reconciliation and report closure; live integration remains NOT_RUN unless environment changes.
-- **Open engineering questions:** none.
-- **Deferred:** IMP-001 Console.
-- **Highest-risk item:** ISS-001 until fixed, then RISK-004 evidence limitation.
-- **Exact next action:** patch pending catalogue/test only, reconcile GitHub 13-file list, update PR description and final report.
+
+- **Current stopping point:** source implementation and PR reconciliation complete.
+- **PR / branch:** #435 / `agent/engineering-calc-core`.
+- **Final production-code HEAD before closure report:** `17392548abdac895edb82cc103583668ee0af70b`.
+- **Last completed stage:** Stage 9.
+- **Current active stage:** none; review/validation handoff.
+- **Start here:** run `node --test tests/engineering-calculation-core.test.mjs` in a normal checkout of the current PR head.
+- **Do not redo:** registry/engine/adapters/catalogue architecture unless the test exposes a demonstrated defect.
+- **Do not assume:** B31.3 is design-authorized; empirical model is design authority; blocked calculators have formulas; live test passed.
+- **Files currently involved:** exactly the 13-file ledger above.
+- **Known failing checks:** none known; required live integration/full-repo checks are NOT_RUN.
+- **Validation still required:** focused live repository test; any broader regression expected by reviewer/release process.
+- **Open engineering questions:** none for core architecture.
+- **Deferred improvements:** IMP-001 Console; qualification-driven family implementations.
+- **Highest-risk remaining item:** RISK-004 execution-evidence limitation.
+- **Exact next recommended action:** execute focused test, record exact HEAD/output, then decide draft→ready/merge.
+- **Required reading:** this report, `docs/APIEngineeringCalcContracts.md`, `docs/APIEngineeringCalcRoadmap.md`, and the focused test.
+
+---
+
+## PR Closure Record
+
+| Closure Criterion | Result |
+|---|---|
+| Mission completed | YES — coding scope complete |
+| In-scope items dispositioned | YES |
+| Engineering Item Register synchronized | YES |
+| Changed files reconciled | YES — 13/13 |
+| Validation rerun at final HEAD | PARTIAL — live repo suite NOT_RUN |
+| Unexplained changes | NONE |
+| Deferred improvements recorded | YES |
+| Known limitations recorded | YES |
+| Handover current | YES |
+| New CI workflows added | NO |
+| Final production-code HEAD | `17392548abdac895edb82cc103583668ee0af70b` |
+
+### Final outcome
+A centralized, deterministic, API-first Engineering Calculation core now exists with real B31.3 and empirical consumers plus a fail-closed 19-item future-method catalogue.
+
+### Remaining known limitations
+Live repository integration/regression execution evidence is still required; blocked calculators remain intentionally unimplemented until their qualification issues are resolved.
+
+### Recommended next PR
+Engineering Calculation Console consuming only the central registry/API, after #435 obtains live execution evidence and is merged.
