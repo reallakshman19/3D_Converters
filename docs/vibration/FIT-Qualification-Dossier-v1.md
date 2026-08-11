@@ -1,16 +1,14 @@
 # FIT Qualification Dossier v1
 
-Status: **EI WORKED-EXAMPLE QUALIFICATION PASS — SCREENING AUTHORITY NOT APPROVED**
+Status: **EI EXAMPLE + INPUT-RESOLUTION QUALIFICATION PASS — SCREENING AUTHORITY NOT APPROVED**
 
 Calculation ID: `VIB.FIV.FLOW_TURBULENCE`  
 Mechanism: Flow-Induced Turbulence (FIT)  
 Qualification issue: #429  
 Method specification: `docs/vibration/FIT-Engineering-Method-Specification-v1.md`  
-Reference implementation revision: `ei-aviff2-fit-reference-v2`
+Engineering method revision: `ei-aviff2-fit-reference-v2`
 
 ## 1. Authority decision
-
-The implementation remains:
 
 ```text
 calculationState     = IMPLEMENTED
@@ -23,60 +21,34 @@ designAuthority      = NOT_AUTHORIZED
 
 This dossier does **not** approve `SCREENING`.
 
-The evidence set now includes retained-workbook extraction/parity, independent hand-derived software cases, and independent EI Appendix D worked-example cases. The EI worked-example regression is **PASS 8/8** in the Stage 11 branch-module fixture. Full repository regression, remaining method-domain review and independent engineering approval are still required.
+The current evidence set includes retained-workbook extraction/parity, independent hand-derived software cases, independent EI Appendix D worked examples, and explicit multiphase input-resolution qualification. Full repository regression, remaining adopted method/project review and independent engineering approval are still required.
 
-## 2. Controlled evidence sources
+## 2. Controlled evidence
 
-### 2.1 Retained FIT workbook
-
-```text
-Repository: reallaksh19/CRF-4-1
-Commit:     68dc8e1fa2ef67073c59b3afc56f1bf40953d535
-Path:       Extended calc2/AIV FIV/FIT.xlsm
-Git blob:   d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e
-Size:       493650 bytes
-Worksheet:  Flow Induced Turbulence / sheet13.xml
-```
-
-The duplicate KS-PR-CAL-0086 path is the same blob and is not independent corroboration.
-
-### 2.2 EI worked examples supplied by the owner
+### Retained workbook
 
 ```text
-Repository: reallaksh19/Common
-Commit:     aef163a5def3bfe04ca0ba860da05728a27daf42
-Path:       EI - AVIFF Guidelines 2nd Edition_Examples.pdf
-Git blob:   3e2517d0df527a051084fc02e69cb7afa31f8d47
-Size:       3757439 bytes
-Relevant:   Appendix D Examples D2 and D4
+reallaksh19/CRF-4-1
+commit 68dc8e1fa2ef67073c59b3afc56f1bf40953d535
+Extended calc2/AIV FIV/FIT.xlsm
+blob d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e
 ```
 
-Minimum qualification facts are pinned in:
+### EI worked examples
 
-`Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`
+```text
+reallaksh19/Common
+commit aef163a5def3bfe04ca0ba860da05728a27daf42
+EI - AVIFF Guidelines 2nd Edition_Examples.pdf
+blob 3e2517d0df527a051084fc02e69cb7afa31f8d47
+Appendix D Examples D2 and D4
+```
 
-The licensed PDF itself is not copied into this PR.
+### Publication metadata
 
-### 2.3 Publication metadata
+Energy Institute public metadata was rechecked on 2026-08-11: process-pipework guidance is 2nd Edition, January 2008, ISBN 9780852934630; errata affecting pages 61 and 68 are identified as incorporated in the current PDF.
 
-The Energy Institute public catalogue was rechecked on 2026-08-11 and identifies the process-pipework guidance as 2nd Edition, January 2008, ISBN 9780852934630, with errata affecting pages 61 and 68 incorporated in the current PDF.
-
-This confirms publication metadata; it does not replace engineering review of the adopted EI/project basis.
-
-## 3. Evidence hierarchy
-
-| Evidence | Role | Current status |
-|---|---|---|
-| Retained workbook source hash/formulas | migration provenance | CONTROLLED |
-| Retained cached cases | migration comparison | CONTROLLED WITH KNOWN CACHE DEFECTS |
-| Independent hand-derived cases | software arithmetic/transcription | IMPLEMENTED; pure-domain regression retained |
-| EI Appendix D worked examples | independent method/example benchmark | **PASS 8/8** |
-| Full adopted EI/project method review | engineering authority | NOT COMPLETE |
-| Full repository regression | release/software authority | NOT_RUN / Actions billing gate |
-
-No single evidence source silently promotes engineering authority.
-
-## 4. EI worked-example qualification
+## 3. EI worked-example qualification
 
 Dataset:
 
@@ -86,90 +58,53 @@ Regression:
 
 `tests/vibration-fit-ei-worked-examples.test.mjs`
 
-Validation result:
+Stage 11 result:
 
 ```text
-PASS 8/8
-Stage 11 branch-module fixture
+8/8 PASS
 ```
 
-The printed EI values are rounded, so the benchmark dataset declares a 1.5% relative comparison tolerance instead of implying unavailable source precision.
-
-### 4.1 D2 gas compression
-
-The regression reproduces published medium-stiff gas cases, gas viscosity factor, excitation term, `Fv`, LOF and reference band. Representative numerical results from the implementation versus the printed examples include:
+Stage 12 expanded result:
 
 ```text
-6 in recycle suction:
-  Fv  18016.64 vs 18022
-  LOF 0.27669 vs 0.276
-
-4 in relief upstream:
-  Fv  33433.74 vs 33433
-  LOF 0.33926 vs 0.338
-
-6 in relief downstream:
-  Fv  18016.64 vs 18022
-  LOF 0.88041 vs 0.881
+12/12 PASS
 ```
 
-### 4.2 D4 separation system
+The five published D2/D4 numerical cases remain unchanged after the Stage 12 input-resolution hardening.
+
+Representative comparisons:
 
 ```text
-20 in separator inlet:
-  support STIFF
-  rhoV2 11762.64 vs 11763
-  Fv 45174.61 vs 45175
-  LOF 0.26038 vs 0.26
-
-10 in produced water:
-  OD 273 mm
-  support FLEXIBLE_LARGE
-  rhoV2 8309.08 vs 8309
-  Fv 2636.17 vs 2636
-  LOF 3.15195 vs 3.15
+D2 6 in suction       LOF 0.27669 vs published 0.276
+D2 4 in relief up     LOF 0.33926 vs published 0.338
+D2 6 in relief down   LOF 0.88041 vs published 0.881
+D4 20 in separator    LOF 0.26038 vs published 0.26
+D4 10 in water        LOF 3.15195 vs published 3.15
 ```
 
-D4 independently validates the aggregate-effective multiphase path and the 273 mm large flexible family boundary.
-
-## 5. Stage 11 engineering corrections
+## 4. Stage 11 source corrections
 
 ### ISS-012 — exactly 1 Hz advanced boundary
 
-Earlier reference code accepted exactly 1 Hz. Controlled EI evidence requires:
+Resolved and benchmarked:
 
 ```text
 1 Hz < fn <= 3 Hz
 ```
 
-Resolution: exactly 1 Hz is now excluded and exactly 3 Hz remains included.
-
-Status: **SOFTWARE_RESOLVED / EI REGRESSION PASS**.
+Exactly 1 Hz is excluded; exactly 3 Hz is included.
 
 ### ISS-013 — 273 mm large-family lower boundary
 
-Earlier code started the large medium/flexible family at 273.05 mm. EI D4 uses 273 mm with the flexible-large correlation.
+Resolved and benchmarked. EI D4 confirms 273 mm can use the flexible-large family.
 
-Resolution: large-family minimum is now 273 mm.
+### IMP-014 — aggregate-effective multiphase
 
-Status: **SOFTWARE_RESOLVED / EI REGRESSION PASS**.
+Implemented and benchmarked. `AGGREGATE_EFFECTIVE` and `COMPONENT_DERIVED` converge for the same D4 physical case.
 
-### IMP-014 — multiphase effective input path
+### IMP-015 — neutral reference bands
 
-The method can now resolve multiphase input in two explicit modes:
-
-```text
-AGGREGATE_EFFECTIVE
-COMPONENT_DERIVED
-```
-
-The Stage 11 regression verifies the aggregate and component routes converge for the same D4 physical case. Resolution mode and density source are provenance-visible.
-
-Status: **IMPLEMENTED / REGRESSION PASS**.
-
-### IMP-015 — neutral EI LOF bands
-
-Reference results now preserve:
+Implemented and benchmarked:
 
 ```text
 LOF_LT_0_3
@@ -180,89 +115,128 @@ LOF_GE_1
 
 No production `pass` boolean is introduced.
 
-Status: **IMPLEMENTED / EI D2-D4 REGRESSION PASS**.
+## 5. Stage 12 input-resolution qualification
 
-## 6. Remaining source questions
+### ISS-016 — mixed multiphase data ambiguity
 
-### ISS-009 — retained cached 4 Hz advanced calculation
+**Problem:** an imported process dataset can contain both effective/aggregate properties and gas/liquid component properties. Earlier logic automatically preferred aggregate inputs. That was deterministic software but a silent engineering interpretation.
 
-The controlled EI boundary confirms 4 Hz is outside the advanced reference range. Code rejects cached 4 Hz advanced behavior.
+**Resolution:** optional explicit input:
 
-Status: **SOFTWARE_RESOLVED**. The retained inconsistency remains documented as evidence that workbook UI/cache state is not authority.
+```text
+multiphaseResolutionMode = AGGREGATE_EFFECTIVE | COMPONENT_DERIVED
+```
 
-### ISS-010 — hidden support selector mismatch
+Qualified rules:
 
-Support classification is deterministic from the controlled span equations; hidden stale selector state is ignored.
+```text
+only aggregate shape -> AGGREGATE_EFFECTIVE / INFERRED
+only component shape -> COMPONENT_DERIVED / INFERRED
+both shapes, no mode -> FIT_MULTIPHASE_INPUT_AMBIGUOUS
+both + aggregate mode -> AGGREGATE_EFFECTIVE / EXPLICIT
+both + component mode -> COMPONENT_DERIVED / EXPLICIT
+invalid mode -> FIT_INPUT_INVALID
+```
 
-Status: **SOFTWARE_RESOLVED**.
+When both data shapes coexist and an explicit mode is used, evidence records:
+
+```text
+selection = EXPLICIT
+alternateModeDataPresent = true
+```
+
+so the unused engineering data are not silently invisible in the audit trail.
+
+### Stage 12 focused result
+
+The expanded EI/domain regression is:
+
+```text
+12 tests
+12 PASS
+0 FAIL
+```
+
+Coverage includes the five EI numerical cases, frequency and 273 mm boundaries, inferred aggregate/component equivalence, ambiguous mixed-data rejection, explicit aggregate selection, explicit component selection and invalid-mode rejection.
+
+## 6. Preserved regression evidence
+
+After the EI corrections, prior reference behavior also remained clean:
+
+```text
+2 retained workbook-reference cases PASS
+6 standard Fv families PASS
+4 hand threshold/advanced cases PASS
+1 support-boundary set PASS
+module syntax PASS
+```
+
+The independent hand case at exactly 1 Hz is now correctly a negative advanced-path case.
+
+## 7. Remaining source/authority questions
+
+### ISS-009 — cached 4 Hz advanced result
+
+Software resolved: rejected by the EI frequency boundary. Retained cache inconsistency remains documented as provenance evidence.
+
+### ISS-010 — hidden workbook support selector
+
+Software resolved: deterministic span-derived classification is used.
 
 ### QST-003 — manual medium/flexible diameter gap
-
-After the 273 mm correction, the unresolved region is:
 
 ```text
 219.1 mm < Dext < 273 mm
 ```
 
-It remains fail-closed. No interpolation or implicit nominal-size mapping is authorized.
+remains fail-closed. No interpolation or implicit nominal-size mapping is authorized.
 
-Status: **OPEN / FAIL_CLOSED**.
+### QST-001 — remaining adopted method/project coverage
 
-## 7. Regression preservation
-
-After the Stage 11 corrections, an additional focused regression preserved prior reference behavior:
-
-```text
-retained workbook parity cases: 2
-standard Fv families:           6
-hand threshold cases:           4
-support-boundary case:          1
-result:                          PASS
-```
-
-The hand-derived exactly-1-Hz case was intentionally changed to `advancedEligible = false`; 2 Hz and 3 Hz remain positive advanced cases and 4 Hz remains negative.
+EI D2/D4 examples validate the slices they exercise, not the entire T2.2 applicability domain or the project adoption/revision. Independent review is still required for authority promotion.
 
 ## 8. CI/release status
 
-GitHub Actions run `31517707062` failed twice before runner allocation. GitHub identified an account payment/spending-limit condition:
+GitHub Actions run `31517707062` failed before runner allocation because of an account billing/spending condition:
 
 ```text
 runner_id = 0
 steps = []
 ```
 
-No test step executed, so this is not evidence of a FIT or topology defect. Actions remain externally blocked.
+No workflow test executed. The failure is external, not evidence of a FIT/topology defect.
 
-Full central API/Console/default-registry regression from a complete authenticated checkout remains `NOT_RUN` and is required before PR readiness.
+Full central API/default-registry/Console/batch regression from a complete authenticated checkout remains `NOT_RUN`.
 
 ## 9. Promotion checklist
 
 | Gate | Status |
 |---|---|
-| Retained source identity/formula extraction | PASS |
-| Retained reference parity | PASS |
+| Source identity/extraction | PASS |
+| Retained parity | PASS |
 | Six standard correlation families | PASS |
-| Independent hand-derived benchmark evidence | PASS in focused regression; full checkout NOT_RUN |
-| EI D2/D4 worked examples | **PASS 8/8** |
-| Advanced lower/upper frequency boundary | **PASS** |
-| 273 mm large-family boundary | **PASS** |
-| Aggregate/component multiphase equivalence | **PASS** |
-| Neutral EI reference bands | **PASS** |
-| Remaining manual-diameter gap | FAIL_CLOSED / OPEN |
+| Independent hand benchmark evidence | PASS in focused regression; full checkout NOT_RUN |
+| EI D2/D4 numerical cases | PASS |
+| 1 Hz / 3 Hz advanced boundary | PASS |
+| 273 mm large-family boundary | PASS |
+| Aggregate/component equivalence | PASS |
+| Mixed multiphase ambiguity fail-closed | PASS |
+| Explicit aggregate/component mode selection | PASS |
+| Input-resolution provenance | PASS |
+| Reference LOF bands | PASS |
+| Manual-diameter gap | OPEN / FAIL_CLOSED |
 | SI/US central-engine equivalence | IMPLEMENTED; full checkout NOT_RUN |
-| Missing-data/fail-closed behavior | IMPLEMENTED |
 | Full repository regression | NOT_RUN |
-| GitHub Actions | BLOCKED — account billing/spending |
-| Method/applicability review outside worked-example coverage | NOT COMPLETE |
-| Adopted project procedure/revision review | NOT COMPLETE |
+| GitHub Actions | BLOCKED — external account condition |
+| Remaining adopted EI/project method review | NOT COMPLETE |
 | Independent vibration-engineer approval | NOT_RUN |
 | Screening authority | NOT_AUTHORIZED |
 | Design authority | NOT_AUTHORIZED |
 
 ## 10. Qualification conclusion
 
-Stage 11 is a meaningful qualification advance. Independent EI worked examples challenged the reference kernel, exposed two boundary defects and an input-model gap, and now pass after source-backed corrections.
+The reference implementation has now passed independent EI worked-example checks and no longer silently chooses between competing multiphase engineering data shapes.
 
-The remaining engineering-authority work is narrower but still material: review method applicability and any equation/table regions not exercised by the D2/D4 examples, resolve or explicitly exclude QST-003, verify the adopted project basis/errata, execute the full repository regression, and obtain identified independent vibration-engineering approval.
+The remaining authority work is not more formula coding by default. It is to identify the exact bounded method/application scope not exercised by D2/D4, resolve or explicitly exclude QST-003, execute the complete repository regression, confirm the adopted project basis/errata, and obtain independent vibration-engineering approval.
 
 Until those gates close, `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`.
