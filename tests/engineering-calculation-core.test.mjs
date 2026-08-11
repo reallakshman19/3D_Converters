@@ -158,9 +158,13 @@ test('candidate empirical model is Sandbox-only and uses the same production def
   assert.equal(sandbox.qualification.designAuthority, false);
 });
 
-test('qualification-gated FIV placeholder fails before any numerical output is produced', () => {
+test('qualification-gated FIT/FIV placeholder preserves stable ID and fails before numerical output', () => {
   const definition = getEngineeringCalculationDefinition('VIB.FIV.FLOW_TURBULENCE');
   const qualification = getEngineeringCalculationQualification(definition.id);
+  assert.equal(definition.id, 'VIB.FIV.FLOW_TURBULENCE');
+  assert.equal(definition.name, 'Flow-Induced Turbulence (FIT) Screening');
+  assert.equal(definition.shortName, 'Flow-Induced Turbulence (FIT) Screening');
+  assert.equal(definition.methodRevision, 'pending-qualification');
   assert.equal(definition.authority.qualificationState, 'BLOCKED');
   assert.equal(definition.qualificationIssue, 429);
   assert.equal(qualification.qualificationIssue, 429);
