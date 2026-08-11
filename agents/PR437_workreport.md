@@ -12,7 +12,7 @@
 | PR status | DRAFT / OPEN |
 | Current stage | Stage 7 — COMPLETE |
 | Engineering status | IMPLEMENTED and VALIDATED for static pressure design, multiple pressure-cycle blocks, K304.8.3 pressure-stress matrix, controlled KD placeholders and cumulative usage arithmetic. Licensed automatic `Seq/Ni` remains externally BLOCKED. |
-| Validation status | PASS for JavaScript syntax, DOM-ID smoke, original 13.49 mm numeric reference, cumulative-usage arithmetic, no-network dependency smoke and production blob integrity. |
+| Validation status | PASS for JavaScript syntax, DOM-ID smoke, original 13.49 mm numeric reference, cumulative-usage arithmetic, no-network dependency smoke, production blob integrity and final five-file PR ledger. |
 | Current blocker | Exact licensed BPVC VIII-3 KD-2/KD-3 equations/fatigue curves and final production material/product data are not available. |
 | Exact next action | Engineering review of draft PR #437; future automatic KD work starts only after controlled VIII-3 data are supplied and independently benchmarked. |
 
@@ -125,6 +125,7 @@ Validation results:
   - `app.js` `5d174365742222ff6c9570a0342bf56fe2667c1f`
   - `styles.css` `1cacd55343ec5338a6d5c1426c2bbbd3e8d7af14`
   - `README.md` `c5d512b5714a7b895c65456c4d5eb8d0849fe622`
+- Final GitHub PR changed-file comparison: PASS — exactly five controlled paths, all listed below.
 
 **Stage decision: COMPLETE.**
 
@@ -140,7 +141,7 @@ Validation results:
 
 ## Validation and Evidence Ledger
 
-Validated: syntax, original numeric reference, multiple-cycle data model, cumulative arithmetic, no-network/static-host constraint, committed source integrity.
+Validated: syntax, original numeric reference, multiple-cycle data model, cumulative arithmetic, no-network/static-host constraint, committed source integrity and final PR file ledger.
 
 Still explicitly **NOT VALIDATED / NOT AUTOMATED**: production Table K-1/K-1C values, production temperature-dependent `Syt`, purchase-spec dimensions/tolerances, exact VIII-3 KD equations/curve, automatic `Seq`, automatic `Ni`, final PQ-A release.
 
