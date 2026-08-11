@@ -2,13 +2,20 @@
 
 Dependency-free static web application for the **piping-class standardization** portion of ASME B31.3-2024 Chapter IX.
 
+## Entry points
+
+- `authority-package.html` — recommended controlled production entry point. It wraps the merged calculator and adds versioned JSON authority-package import/export.
+- `index.html` — calculator-only view with no persistence layer.
+
+Serve the directory through GitHub Pages or another same-origin static HTTP host. The authority-package wrapper accesses `index.html` through a same-origin iframe; direct `file://` behavior is browser-dependent and is not the supported production path.
+
 ## Workflow
 
-1. **Design Basis** - Code/material/product identity, dimensions, allowances and pressure-design inputs.
-2. **Static Wall** - K304.1.1/K304.1.2 pressure wall, Eq. (35a) rating QA and candidate-wall pass/fail.
-3. **Pressure Cycles** - editable `Pmin`, `Pmax`, `Tmin`, `Tmax`, cycle-average `Syt` and lifetime count `n`.
-4. **KD Qualification** - controlled KD-2 pressure stress-state package, source-gated KD-312 `Seq`, approved fatigue-curve `Ni`, cumulative usage and fracture/KD-4 disposition.
-5. **Class Envelope** - bounded piping-class release review. The application stops here.
+1. **Design Basis** — Code/material/product identity, dimensions, allowances and pressure-design inputs.
+2. **Static Wall** — K304.1.1/K304.1.2 pressure wall, Eq. (35a) rating QA and candidate-wall pass/fail.
+3. **Pressure Cycles** — editable `Pmin`, `Pmax`, `Tmin`, `Tmax`, cycle-average `Syt` and lifetime count `n`.
+4. **KD Qualification** — controlled KD-2 pressure stress-state package, source-gated KD-312 `Seq`, approved fatigue-curve `Ni`, cumulative usage and fracture/KD-4 disposition.
+5. **Class Envelope** — bounded piping-class release review. The application stops here.
 
 ## Controlled sources
 
@@ -18,6 +25,40 @@ Dependency-free static web application for the **piping-class standardization** 
 
 The exact KD-3 binary is source-locked, but the application does not infer its edition or project applicability. Source edition, project VIII-3 edition and compatibility remain explicit reviewer gates.
 
+## Controlled authority package
+
+`authority-package.html` adds a transport layer around the unchanged calculator. The package schema is:
+
+`hp-piping-class-authority-package/v1`
+
+A package contains:
+
+- package ID, revision, project/class reference, preparer/checker and lifecycle;
+- exact B31.3/KD source manifest;
+- design/material/product inputs;
+- pressure-cycle spectrum;
+- KD-2/KD-3 route/evidence controls;
+- fatigue-curve data entered by an authorized reviewer;
+- fracture/KD-4 disposition;
+- row-level source/approval evidence;
+- an audit-only snapshot of displayed results.
+
+### Import authority boundary
+
+Import follows this sequence:
+
+1. Parse JSON.
+2. Validate schema and the exact B31.3/KD source manifest.
+3. Reject the package before calculator mutation if validation fails.
+4. Restore controlled engineering inputs/evidence and cycle rows.
+5. Run the merged calculator.
+6. Restore manual row values/source/approval only where the recalculated `wall.toFixed(4)-cycleId` key matches exactly.
+7. Run the merged calculator again so manual/automatic `Seq`/`Ni` combinations resolve through the current calculation engine.
+
+The exported `snapshot` is **audit-only**. It is not consumed by import and cannot override calculated values.
+
+For `approved-record` lifecycle, `Checked by` is required. The package mechanism does not provide cryptographic signing or external document-control approval.
+
 ## Implemented engineering calculations
 
 ### B31.3 class side
@@ -26,7 +67,7 @@ The exact KD-3 binary is source-locked, but the application does not infer its e
 - K304.1.1 allowances/minimum-wall comparison.
 - Eq. (35a) selected-wall pressure-rating QA.
 - Multiple pressure-cycle blocks.
-- K304.8.3 Eq. (37) pressure stress for every candidate wall x cycle block.
+- K304.8.3 Eq. (37) pressure stress for every candidate wall × cycle block.
 - Per-block `2*Syt` elastic/inelastic gate.
 
 ### KD-2 pressure-only package
@@ -41,51 +82,27 @@ It also reports the pressure-only stress-intensity range for comparison with K30
 
 ### Controlled automatic KD-312 `Seq`
 
-Stage 12 adds a pressure-only processor for the case where principal stress directions remain unchanged.
-
-For each wall x cycle block, the application calculates:
+For each wall × cycle block, the application calculates:
 
 - signed `S12`, `S23`, `S31` at both cycle endpoints;
-- `Salt_12`, `Salt_23`, `Salt_31` from the algebraic stress-difference ranges;
+- `Salt_12`, `Salt_23`, `Salt_31` from algebraic stress-difference ranges;
 - associated plane-normal stress at both endpoints;
 - a reviewer-selectable elastic average associated-mean descriptor, not less than zero;
 - the controlling `Seq` and stress pair when an approved automatic route is selected.
 
 Available `Seq` modes:
 
-1. **Manual licensed Seq** - reviewer enters the final checked value.
-2. **Mean-stress effects incorporated in selected fatigue curve** - automatic `Seq = Salt` for each pair, with the maximum pair controlling. This is enabled only after source/route/curve identification and explicit reviewer approval.
-3. **Explicit normalized mean-stress correction** - applies a generic reviewer-controlled form using the entered coefficient, reference-cycle count and correction-term limit. The reference amplitude is obtained from the approved fatigue-curve points by log-log interpolation. No Code-specific coefficient, reference count or limit is preloaded.
+1. **Manual licensed Seq** — reviewer enters the checked value.
+2. **Mean-stress effects incorporated in selected fatigue curve** — automatic `Seq = Salt` only after explicit source/route/curve approval.
+3. **Explicit normalized mean-stress correction** — generic reviewer-controlled coefficient, reference-cycle count and correction-term limit, using the approved curve for reference amplitude. No Code-specific coefficient is preloaded.
 
-Automatic `Seq` is deliberately blocked if:
-
-- the project/source VIII-3 edition gate is not closed;
-- the KD-2 route is not elastic pressure-only uniform straight pipe;
-- credited residual/prestress effects are present;
-- the selected route lacks a controlled source/reference or approval;
-- the explicit route lacks approved fatigue-curve data/parameters;
-- the K304.8.3 case requires an inelastic/special route.
-
-Changing-principal-axis KD-313 processing is not implemented.
+Automatic `Seq` is blocked when the approved pressure-only elastic/uniform route is not applicable. Changing-principal-axis KD-313 processing is not implemented.
 
 ### Controlled fatigue-curve `Ni`
 
-The reviewer may use:
+The reviewer may use manual licensed `Ni` or automatic `Ni` from controlled fatigue-curve points.
 
-- **Manual licensed Ni**, or
-- **Automatic Ni from controlled fatigue-curve points**.
-
-Automatic curve mode accepts reviewer-entered `N, Sa(MPa)` points and requires:
-
-- positive finite values;
-- at least two points;
-- unique `N` and `Sa` values;
-- strictly decreasing `Sa` as `N` increases;
-- curve ID/source reference;
-- approved transcription;
-- approved log-log interpolation basis.
-
-Exact curve points are returned directly. Intermediate points use log-log interpolation. **No extrapolation is performed.** No ASME fatigue-curve values are embedded in the repository.
+Automatic curve mode requires positive finite `N, Sa(MPa)` values, at least two points, unique values, strictly decreasing `Sa` with increasing `N`, source/curve identification, approved transcription and approved log-log interpolation. Exact points are honored and intermediate points use log-log interpolation. **No extrapolation is performed.** No ASME fatigue-curve values are embedded in the repository.
 
 ### Cumulative usage
 
@@ -93,23 +110,20 @@ For approved rows:
 
 `Ui = ni / Ni`
 
-and the class candidate summary reports:
-
-`U = sum(Ui)`
-
-along with all remaining release blockers.
+The candidate summary reports cumulative `U = sum(Ui)` and all remaining release blockers.
 
 ## Engineering authority boundary
 
 This application does not:
 
 - treat `Delta Sp/2` as automatically equal to final `Seq`;
-- infer a KD-312 material/mean-stress route from a material name;
+- infer a KD-312 route from a material name;
 - embed proprietary fatigue-curve values;
 - extrapolate fatigue life outside approved curve data;
 - perform changing-axis KD-313 processing;
 - perform inelastic/elastic-plastic KD analysis;
-- perform routed-system CAESAR, local FEA or vibration/HCF acceptance.
+- perform routed-system CAESAR, local FEA or vibration/HCF acceptance;
+- treat imported result snapshots as calculation authority.
 
 The intended release wording is bounded:
 
@@ -132,20 +146,6 @@ For the controlled NPS 4 reference case (`D=114.3 mm`, `Pdesign=20 MPa`, `S=138 
 - controlling elastic associated-mean descriptor `= 27.6830252 MPa`
 - mean-embedded automatic route: `Seq = 63.2994958 MPa`.
 
-## Validation
+## Validation baseline
 
-Local validation performed for Stage 12:
-
-- `node --check app.js`: PASS.
-- `node --check ui.js`: PASS.
-- static DOM-ID compatibility: PASS.
-- B31.3 reference regression: PASS.
-- `Salt` / associated-mean reference benchmark: PASS.
-- mean-embedded automatic `Seq` benchmark: PASS.
-- synthetic explicit-mean route benchmark: PASS.
-- reverse curve interpolation for reference amplitude: PASS.
-- no-extrapolation behavior: PASS.
-- project/source edition mismatch gate: PASS.
-- credited residual/prestress automatic-route block: PASS.
-
-Browser E2E is not available in the current execution environment because local/file navigation is administrator-blocked in the installed headless browser.
+Merged PR #437 established syntax/static validation and the engineering regression above. PR #439 deliberately leaves `app.js`, `index.html`, `ui.js` and `styles.css` unchanged and adds the authority-package transport layer around them.
