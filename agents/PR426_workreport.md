@@ -10,6 +10,7 @@
 | Branch | `agent/empirical-sandbox-material-db` |
 | Base commit | `bd58aa701f25bd3ddc100d19b38c94406e72f4e7` |
 | Final implementation HEAD | `853f224cfae672e51e47ed0c9cb87c649ce7e5e3` |
+| Report closure HEAD | `7447e60160e25c72cff45645a9c32a332bea2db3` (report-only closure commit before this metadata refresh) |
 | PR status | OPEN / DRAFT / MERGEABLE |
 | Current stage | Stage 8 — final review / handover |
 | Last completed stage | Stage 7 — screening factor ingestion + resolver authority fixes |
@@ -19,7 +20,7 @@
 | Exact next action | Review PR #426; if accepted, merge only when explicitly instructed. |
 
 ### Handover in 60 seconds
-- **Now true:** Empirical Weight Tuning has a Sandbox for Exact/A1/A2/final weights. B31.3 screening S/E/W/Y data now covers CS/LTCS/SS/DSS/SDSS at the supplied temperatures and E routes.
+- **Now true:** Empirical Weight Tuning has a Sandbox for Exact/A1/A2/final weights. B31.3 screening S/E/W/Y data covers CS/LTCS/SS/DSS/SDSS at the supplied temperatures and E routes.
 - **Currently being worked on:** No production implementation remains; final review only.
 - **Remains unfinished:** Controlled 2024 code review/promotion of screened factor rows to `PROJECT_APPROVED` or `VERIFIED`.
 - **Must not be assumed:** `SCREENING` means design authority. The supplied S basis was stated as 2016/2018 and may differ from 2024.
@@ -75,7 +76,7 @@
 ### ISS-002 closure
 **Root cause:** `Number(null) === 0` made a finite-number test insufficient for unavailable S slots.
 
-**Fix:** Runtime expansion now explicitly rejects `null`, `undefined`, and blank S slots before numeric conversion.
+**Fix:** Runtime expansion explicitly rejects `null`, `undefined`, and blank S slots before numeric conversion.
 
 **Closure evidence:** Focused checks prove no S record exists for S31803/S32760 at 420 °C and resolver returns `missing: ['S']`.
 
@@ -90,12 +91,12 @@
 | 5 | COMPLETE_AS_BLOCKED | Initial DB decision before basis supplied | fail-closed state |
 | 6 | COMPLETE | Sandbox reconciliation | clean Sandbox implementation |
 | 7 | COMPLETE | Screened factor basis + resolver authority fixes | data/generator/runtime/tests |
-| 8 | COMPLETE | Final reconciliation/handover | current report + PR metadata |
+| 8 | COMPLETE | Final reconciliation/handover | report + PR metadata |
 
 ## Stage Execution Log
 
 ### Stages 1–6 — summary
-Established report/PR, investigated source authority, implemented the Empirical Weight Sandbox, added tests, and preserved fail-closed B31.3 behavior while no numeric basis was available.
+Established report/PR, investigated B31.3 authority, implemented the Empirical Weight Sandbox, added tests, and preserved fail-closed B31.3 behavior while no numeric basis was available.
 
 ### Stage 7 — COMPLETE
 **Before:** Owner supplied S/E/W/Y values with a stated 2016/2018 basis and edition-drift caveat.
@@ -110,7 +111,7 @@ Established report/PR, investigated source authority, implemented the Empirical 
 - Fixed route matching (`ISS-001`) and null stress expansion (`ISS-002`).
 - Extended B31.3 factor tests for screened values, strict rejection, route controls, duplex 420 °C exclusion, and coverage.
 
-**Deviations from plan:** Compact basis + deterministic expansion was used instead of hundreds of repeated canonical rows. This retains the existing runtime/API record shape while keeping the editable master maintainable.
+**Deviations from plan:** Compact basis + deterministic expansion was used instead of hundreds of repeated canonical rows. This retains the runtime/API record shape while keeping the editable master maintainable.
 
 **Validation performed:**
 | Check | Result | Evidence / Notes |
@@ -218,6 +219,7 @@ No hidden engineering defaults, no silent factor fallback, no unrelated refactor
 ## Next-Agent Handover
 - **PR / branch:** #426 / `agent/empirical-sandbox-material-db`.
 - **Final implementation HEAD:** `853f224cfae672e51e47ed0c9cb87c649ce7e5e3`.
+- **Report closure HEAD:** `7447e60160e25c72cff45645a9c32a332bea2db3` before this metadata-only report refresh.
 - **Last completed stage:** Stage 8 final reconciliation/handover.
 - **Start here:** Review `docs/Masters/b313-material-factor-master.json` screening basis and `tests/b313-material-factors.test.mjs` qualification controls.
 - **Do not redo:** Sandbox implementation, route fix, null-S fix, or initial source investigation.
