@@ -56,27 +56,46 @@ const empiricalInput = Object.freeze({
   approach: 'FINAL',
 });
 
-const fitSiInput = Object.freeze({
-  outsideDiameter: 0.1683,
-  wallThickness: 0.00711,
-  massFlow: 11.8,
-  density: 37.4,
-  maximumUnsupportedSpan: 5.8,
-});
+function fitGasRequest(qualificationMode = 'benchmark') {
+  return {
+    calculationId: 'VIB.FIV.FLOW_TURBULENCE',
+    inputs: {
+      phase: 'GAS',
+      outsideDiameter: 168.3,
+      wallThickness: 21.9456,
+      insideDiameter: 124.3838,
+      maximumUnsupportedSpan: 4000,
+      density: 5,
+      massFlow: 20000,
+      gasDynamicViscosity: 0.02,
+    },
+    inputUnits: {
+      outsideDiameter: 'mm',
+      wallThickness: 'mm',
+      insideDiameter: 'mm',
+      maximumUnsupportedSpan: 'mm',
+      density: 'kg/m3',
+      massFlow: 'kg/h',
+      gasDynamicViscosity: 'cP',
+    },
+    options: { qualificationMode, includeEvidence: true },
+  };
+}
 
 function nearlyEqual(actual, expected, tolerance = 1e-12) {
   assert(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
 }
 
-test('default catalogue exposes 3 executable definitions and 19 qualification-blocked placeholders', () => {
+test('default catalogue exposes 4 executable definitions and 18 qualification-blocked placeholders', () => {
   const all = listEngineeringCalculations();
   const available = listEngineeringCalculations({ availableOnly: true });
   assert.equal(all.length, 22);
-  assert.equal(available.length, 3);
+  assert.equal(available.length, 4);
   assert.deepEqual(available.map((row) => row.id).sort(), [
     'ESTIMATION.WEIGHT.EMPIRICAL',
     'PIPE.B313.MATERIAL_DESIGN',
     'PIPE.B313.THICKNESS',
+    'VIB.FIV.FLOW_TURBULENCE',
   ]);
   const families = listEngineeringCalculationFamilies();
   assert.equal(families.reduce((sum, family) => sum + family.count, 0), 22);
@@ -132,10 +151,7 @@ test('direct B31.3 factor path preserves provided-wall assessment without claimi
 
 test('empirical documented sample has direct-domain parity through the centralized API', () => {
   const direct = estimateEmpiricalWeight(empiricalInput);
-  const central = calculateEngineering({
-    calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL',
-    inputs: empiricalInput,
-  });
+  const central = calculateEngineering({ calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL', inputs: empiricalInput });
   assert.equal(direct.ok, true, JSON.stringify(direct));
   assert.equal(central.ok, true, JSON.stringify(central));
   assert.equal(central.outputs.weightKg, direct.weightKg);
@@ -148,21 +164,15 @@ test('empirical documented sample has direct-domain parity through the centraliz
 
 test('candidate empirical model is Sandbox-only and uses the same production definition', () => {
   const rejected = calculateEngineering({
-    calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL',
-    inputs: empiricalInput,
+    calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL', inputs: empiricalInput,
     options: { candidateModel: EMPIRICAL_WEIGHT_MODEL },
   });
   assert.equal(rejected.ok, false);
   assert.equal(rejected.errors[0].code, 'INPUT_INVALID');
   assert.equal(Object.hasOwn(rejected, 'outputs'), false);
-
   const sandbox = calculateEngineering({
-    calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL',
-    inputs: empiricalInput,
-    options: {
-      executionMode: 'sandbox',
-      candidateModel: EMPIRICAL_WEIGHT_MODEL,
-    },
+    calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL', inputs: empiricalInput,
+    options: { executionMode: 'sandbox', candidateModel: EMPIRICAL_WEIGHT_MODEL },
   });
   assert.equal(sandbox.ok, true, JSON.stringify(sandbox));
   assert.equal(sandbox.provenance.candidate, true);
@@ -170,133 +180,89 @@ test('candidate empirical model is Sandbox-only and uses the same production def
   assert.equal(sandbox.qualification.designAuthority, false);
 });
 
-test('qualification-gated FIT/FIV definition exposes physical preflight but remains non-executable', () => {
+test('FIT is active only as benchmark-only workbook reference and retains issue #429', () => {
   const definition = getEngineeringCalculationDefinition('VIB.FIV.FLOW_TURBULENCE');
   const qualification = getEngineeringCalculationQualification(definition.id);
   assert.equal(definition.id, 'VIB.FIV.FLOW_TURBULENCE');
-  assert.equal(definition.name, 'Flow-Induced Turbulence (FIT) Screening');
-  assert.equal(definition.shortName, 'Flow-Induced Turbulence (FIT) Screening');
-  assert.equal(definition.methodRevision, 'pending-qualification');
-  assert.equal(definition.authority.qualificationState, 'BLOCKED');
+  assert.equal(definition.name, 'Flow-Induced Turbulence (FIT) — Workbook Reference');
+  assert.equal(definition.methodRevision, 'crf-fit-d7d4c1-reference-v1');
+  assert.equal(definition.authority.calculationState, 'IMPLEMENTED');
+  assert.equal(definition.authority.qualificationState, 'BENCHMARK_ONLY');
+  assert.equal(definition.authority.codeCompliance, false);
   assert.equal(definition.qualificationIssue, 429);
   assert.equal(qualification.qualificationIssue, 429);
-  assert.equal(definition.ui.preflightEnabled, true);
-  assert.deepEqual(definition.inputs.map((field) => field.key), [
-    'outsideDiameter',
-    'wallThickness',
-    'massFlow',
-    'density',
-    'maximumUnsupportedSpan',
-  ]);
+  assert.equal(definition.ui.requiredQualificationMode, 'benchmark');
   assert(definition.inputs.every((field) => field.engineeringDefault === undefined));
-
-  const validation = validateEngineeringCalculationInput(definition.id, fitSiInput, {
-    inputUnits: {
-      outsideDiameter: 'm', wallThickness: 'm', massFlow: 'kg/s', density: 'kg/m3', maximumUnsupportedSpan: 'm',
-    },
-  });
-  assert.equal(validation.ok, true, JSON.stringify(validation));
-  assert.equal(validation.preflight.authority, 'PHYSICAL_CONTEXT_ONLY');
-  assert.equal(validation.preflight.status, 'PHYSICAL_PREFLIGHT_ONLY');
-  assert.equal(validation.applicability.applicable, null);
-  assert.equal(validation.applicability.status, 'NOT_EVALUATED');
-
-  const result = calculateEngineering({ calculationId: definition.id, inputs: fitSiInput });
-  assert.equal(result.ok, false);
-  assert.equal(result.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
-  assert.equal(Object.hasOwn(result, 'outputs'), false);
-  assert.equal(result.qualification.effective, 'BLOCKED');
 });
 
-test('FIT central Resolve normalizes engineering units and returns deterministic physical context', () => {
+test('FIT strict and screening execution fail closed while benchmark mode reproduces retained gas reference', () => {
+  for (const mode of ['strict', 'screening']) {
+    const blocked = calculateEngineering(fitGasRequest(mode));
+    assert.equal(blocked.ok, false);
+    assert.equal(blocked.errors[0].code, 'ENGINEERING_METHOD_NOT_QUALIFIED');
+    assert.equal(blocked.qualification.effective, 'BENCHMARK_ONLY');
+    assert.equal(Object.hasOwn(blocked, 'outputs'), false);
+  }
+  const result = calculateEngineering(fitGasRequest('benchmark'));
+  assert.equal(result.ok, true, JSON.stringify(result));
+  nearlyEqual(result.outputs.standardLof, 0.06111973374777248, 1e-12);
+  nearlyEqual(result.outputs.standardFv, 96734.96621707715, 1e-8);
+  assert.equal(result.outputs.refinedLof, null);
+  assert.equal(result.assessment.status, 'REFERENCE_BELOW_THRESHOLD');
+  assert.equal(Object.hasOwn(result.assessment, 'pass'), false);
+  assert.equal(result.qualification.effective, 'BENCHMARK_ONLY');
+  assert.equal(result.qualification.designAuthority, false);
+  assert.equal(result.provenance.engineeringAuthority, 'WORKBOOK_REFERENCE_ONLY');
+  assert.equal(result.provenance.sourceWorkbook.gitBlob, 'd7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e');
+});
+
+test('FIT central Resolve normalizes native workbook units including dynamic viscosity', () => {
+  const request = fitGasRequest('benchmark');
   const resolved = resolveEngineeringCalculationInputs(
-    'VIB.FIV.FLOW_TURBULENCE',
-    {
-      outsideDiameter: 168.3,
-      wallThickness: 7.11,
-      massFlow: 42480,
-      density: 37.4,
-      maximumUnsupportedSpan: 5800,
-    },
-    {},
-    {
-      inputUnits: {
-        outsideDiameter: 'mm',
-        wallThickness: 'mm',
-        massFlow: 'kg/h',
-        density: 'kg/m3',
-        maximumUnsupportedSpan: 'mm',
-      },
-    },
+    request.calculationId, request.inputs, {},
+    { inputUnits: request.inputUnits, qualificationMode: 'benchmark' },
   );
   assert.equal(resolved.ok, true, JSON.stringify(resolved));
-  nearlyEqual(resolved.canonicalInput.outsideDiameter, fitSiInput.outsideDiameter);
-  nearlyEqual(resolved.canonicalInput.wallThickness, fitSiInput.wallThickness);
-  nearlyEqual(resolved.canonicalInput.massFlow, fitSiInput.massFlow);
-  nearlyEqual(resolved.canonicalInput.density, fitSiInput.density);
-  nearlyEqual(resolved.canonicalInput.maximumUnsupportedSpan, fitSiInput.maximumUnsupportedSpan);
-  assert.equal(resolved.resolvedInputs.outsideDiameter.transformation, 'mm->m');
+  nearlyEqual(resolved.canonicalInput.outsideDiameter, 0.1683);
+  nearlyEqual(resolved.canonicalInput.wallThickness, 0.0219456);
+  nearlyEqual(resolved.canonicalInput.insideDiameter, 0.1243838);
+  nearlyEqual(resolved.canonicalInput.maximumUnsupportedSpan, 4);
+  nearlyEqual(resolved.canonicalInput.massFlow, 20000 / 3600);
+  nearlyEqual(resolved.canonicalInput.gasDynamicViscosity, 0.00002);
   assert.equal(resolved.resolvedInputs.massFlow.transformation, 'kg/h->kg/s');
-  assert.equal(resolved.preflight.authority, 'PHYSICAL_CONTEXT_ONLY');
-  nearlyEqual(resolved.preflight.derived.insideDiameterM, 0.15408);
-  const expectedArea = Math.PI * 0.15408 ** 2 / 4;
-  nearlyEqual(resolved.preflight.derived.flowAreaM2, expectedArea);
-  nearlyEqual(resolved.preflight.derived.volumetricFlowM3S, 11.8 / 37.4);
-  nearlyEqual(resolved.preflight.derived.meanVelocityMS, (11.8 / 37.4) / expectedArea);
-  assert.deepEqual(resolved.preflight.evidence.map((row) => row.id), [
-    'FIT-PHYS-001', 'FIT-PHYS-002', 'FIT-PHYS-003', 'FIT-PHYS-004',
-  ]);
+  assert.equal(resolved.resolvedInputs.gasDynamicViscosity.transformation, 'cP->Pa*s');
 });
 
-test('FIT physical preflight is invariant for equivalent SI and US customary inputs', () => {
-  const si = resolveEngineeringCalculationInputs(
-    'VIB.FIV.FLOW_TURBULENCE',
-    fitSiInput,
-    {},
-    { inputUnits: {
-      outsideDiameter: 'm', wallThickness: 'm', massFlow: 'kg/s', density: 'kg/m3', maximumUnsupportedSpan: 'm',
-    } },
+test('FIT validation fails closed on missing gas viscosity and unresolved manual-diameter family', () => {
+  const missingViscosity = fitGasRequest('benchmark');
+  delete missingViscosity.inputs.gasDynamicViscosity;
+  delete missingViscosity.inputUnits.gasDynamicViscosity;
+  const missing = validateEngineeringCalculationInput(
+    missingViscosity.calculationId, missingViscosity.inputs,
+    { inputUnits: missingViscosity.inputUnits, qualificationMode: 'benchmark' },
   );
-  const us = resolveEngineeringCalculationInputs(
-    'VIB.FIV.FLOW_TURBULENCE',
-    {
-      outsideDiameter: fitSiInput.outsideDiameter / 0.0254,
-      wallThickness: fitSiInput.wallThickness / 0.0254,
-      massFlow: fitSiInput.massFlow / 0.45359237,
-      density: fitSiInput.density / 16.01846337396,
-      maximumUnsupportedSpan: fitSiInput.maximumUnsupportedSpan / 0.3048,
+  assert.equal(missing.ok, false);
+  assert(missing.errors.some((error) => error.field === 'gasDynamicViscosity'));
+
+  const gap = calculateEngineering({
+    calculationId: 'VIB.FIV.FLOW_TURBULENCE',
+    inputs: {
+      phase: 'LIQUID', outsideDiameter: 250, wallThickness: 10,
+      maximumUnsupportedSpan: 20, density: 900, massFlow: 36000,
     },
-    {},
-    { inputUnits: {
-      outsideDiameter: 'in', wallThickness: 'in', massFlow: 'lb/s', density: 'lb/ft3', maximumUnsupportedSpan: 'ft',
-    } },
-  );
-  assert.equal(si.ok, true, JSON.stringify(si));
-  assert.equal(us.ok, true, JSON.stringify(us));
-  nearlyEqual(us.canonicalInput.outsideDiameter, si.canonicalInput.outsideDiameter, 1e-12);
-  nearlyEqual(us.canonicalInput.wallThickness, si.canonicalInput.wallThickness, 1e-12);
-  nearlyEqual(us.canonicalInput.massFlow, si.canonicalInput.massFlow, 1e-12);
-  nearlyEqual(us.canonicalInput.density, si.canonicalInput.density, 1e-12);
-  nearlyEqual(us.preflight.derived.meanVelocityMS, si.preflight.derived.meanVelocityMS, 1e-12);
+    inputUnits: {
+      outsideDiameter: 'mm', wallThickness: 'mm', maximumUnsupportedSpan: 'm',
+      density: 'kg/m3', massFlow: 'kg/h',
+    },
+    options: { qualificationMode: 'benchmark' },
+  });
+  assert.equal(gap.ok, false);
+  assert.equal(gap.errors[0].code, 'INPUT_OUTSIDE_APPLICABILITY');
 });
 
-test('FIT physical preflight fails closed on impossible pipe geometry before method applicability', () => {
-  const validation = validateEngineeringCalculationInput(
-    'VIB.FIV.FLOW_TURBULENCE',
-    { ...fitSiInput, outsideDiameter: 0.1, wallThickness: 0.05 },
-    { inputUnits: {
-      outsideDiameter: 'm', wallThickness: 'm', massFlow: 'kg/s', density: 'kg/m3', maximumUnsupportedSpan: 'm',
-    } },
-  );
-  assert.equal(validation.ok, false);
-  assert(validation.errors.some((error) => error.code === 'INPUT_INVALID' && error.field === 'wallThickness'));
-  assert.equal(validation.preflight, null);
-});
-
-test('other qualification-gated placeholders remain discoverable and do not gain preflight', () => {
+test('other vibration mechanisms remain qualification-blocked', () => {
   const definition = getEngineeringCalculationDefinition('VIB.AIV.ACOUSTIC');
   assert.equal(definition.authority.qualificationState, 'BLOCKED');
-  assert.equal(definition.ui.preflightEnabled, undefined);
   assert.deepEqual(definition.inputs, []);
   const result = calculateEngineering({ calculationId: definition.id, inputs: {} });
   assert.equal(result.ok, false);
@@ -304,23 +270,17 @@ test('other qualification-gated placeholders remain discoverable and do not gain
   assert.equal(Object.hasOwn(result, 'outputs'), false);
 });
 
-test('validation and resolution are available independently of execution', () => {
+test('validation and resolution remain available independently of execution', () => {
   const invalid = validateEngineeringCalculationInput('PIPE.B313.THICKNESS', {});
   assert.equal(invalid.ok, false);
   assert(invalid.errors.some((error) => error.code === 'INPUT_REQUIRED'));
-
   const resolved = resolveEngineeringCalculationInputs(
     'PIPE.B313.THICKNESS',
     {
-      designPressure: 10,
-      outsideDiameter: 10,
-      allowableStress: 20,
-      qualityFactorE: 1,
-      weldStrengthReductionW: 1,
-      coefficientY: 0.4,
+      designPressure: 10, outsideDiameter: 10, allowableStress: 20,
+      qualityFactorE: 1, weldStrengthReductionW: 1, coefficientY: 0.4,
       negativeMillTolerance: { basis: 'percent', value: 12.5 },
-    },
-    {},
+    }, {},
     { inputUnits: { designPressure: 'barg', outsideDiameter: 'in', allowableStress: 'ksi' } },
   );
   assert.equal(resolved.ok, true, JSON.stringify(resolved));
@@ -329,19 +289,21 @@ test('validation and resolution are available independently of execution', () =>
   assert(Math.abs(resolved.canonicalInput.allowableStress - 137.89514586336722) < 1e-9);
 });
 
-test('mixed batch preserves successful and blocked item results independently', () => {
+test('mixed batch preserves benchmark FIT, successful empirical, and blocked AIV results independently', () => {
   const batch = calculateEngineeringBatch({
     contractVersion: 'engineering-calculation-batch/v1',
     requests: [
+      fitGasRequest('benchmark'),
       { calculationId: 'ESTIMATION.WEIGHT.EMPIRICAL', inputs: empiricalInput },
       { calculationId: 'VIB.AIV.ACOUSTIC', inputs: {} },
     ],
   });
   assert.equal(batch.ok, false);
-  assert.equal(batch.total, 2);
-  assert.equal(batch.succeeded, 1);
+  assert.equal(batch.total, 3);
+  assert.equal(batch.succeeded, 2);
   assert.equal(batch.failed, 1);
-  assert.equal(batch.results[0].ok, true);
-  assert.equal(batch.results[1].errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
+  assert.equal(batch.results[0].qualification.effective, 'BENCHMARK_ONLY');
+  assert.equal(batch.results[1].ok, true);
+  assert.equal(batch.results[2].errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
   assert(Object.isFrozen(batch));
 });
