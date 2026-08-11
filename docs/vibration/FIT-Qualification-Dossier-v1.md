@@ -104,16 +104,7 @@ Expected values in this dataset were hand-derived from the controlled equation r
 
 ### 3.2 What these cases prove
 
-They provide independent software evidence for:
-
-- arithmetic transcription of the controlled equation register;
-- liquid, gas and multiphase calculation paths;
-- gas dynamic-viscosity handling;
-- support-stiffness boundary implementation;
-- reference LOF threshold behavior;
-- advanced natural-frequency boundary behavior;
-- SI/US unit invariance through the central Engineering Calculation engine;
-- deterministic fail-closed behavior for known method gaps.
+They provide independent software evidence for arithmetic transcription of the controlled equation register, phase paths, gas viscosity, support boundaries, threshold behavior, advanced-frequency boundaries, central unit invariance and fail-closed known gaps.
 
 They do **not** prove that the controlled equations themselves are the correct licensed EI/project equations.
 
@@ -121,62 +112,29 @@ They do **not** prove that the controlled equations themselves are the correct l
 
 ### ISS-009 — 4 Hz cached advanced calculation
 
-**Source conflict:** workbook methodology text states advanced screening uses actual natural frequency between 1 and 3 Hz, while one cached workbook example evaluates an advanced correlation at 4 Hz.
+**Software:** `RESOLVED_FOR_REFERENCE_IMPLEMENTATION` by enforcing the explicit 1–3 Hz methodology text.
 
-**Software disposition:** `RESOLVED_FOR_REFERENCE_IMPLEMENTATION`.
-
-The implementation follows the explicit methodology text:
-
-```text
-1 Hz <= fn <= 3 Hz
-```
-
-At 4 Hz the advanced reference path is unavailable and the case remains at the standard-reference assessment level.
-
-**Engineering disposition:** `OPEN_PENDING_LICENSED_SOURCE_REVIEW`.
-
-The retained workbook conflict cannot establish which behavior is authoritative for production screening.
+**Engineering:** `OPEN_PENDING_LICENSED_SOURCE_REVIEW` because the cached workbook conflict cannot establish production authority.
 
 ### ISS-010 — hidden support selector conflicts with span-derived stiffness
 
-**Source conflict:** one cached example's hidden selector chooses a correlation family inconsistent with the worksheet's own span-derived support stiffness.
+**Software:** `RESOLVED_FOR_REFERENCE_IMPLEMENTATION`; support stiffness/category are derived deterministically from controlled span equations and diameter families.
 
-**Software disposition:** `RESOLVED_FOR_REFERENCE_IMPLEMENTATION`.
-
-Support stiffness is calculated deterministically from the controlled span-boundary equations. Hidden workbook selector state is never treated as engineering authority.
-
-**Engineering disposition:** `OPEN_PENDING_LICENSED_SOURCE_REVIEW`.
-
-The inconsistent cached example is excluded from independent qualification evidence.
+**Engineering:** `OPEN_PENDING_LICENSED_SOURCE_REVIEW`; the inconsistent cached example is excluded from qualification evidence.
 
 ### QST-003 — manual OD family gap
 
-**Source gap:** medium/flexible families split at approximately:
+**Software:** `FAIL_CLOSED_V1` for medium/flexible manual diameters in `219.1 mm < Dext < 273.05 mm`.
 
-```text
-small family <= 219.1 mm
-large family >= 273.05 mm
-```
-
-The retained source does not provide a deterministic rule for a manually supplied diameter strictly between those values without relying on workbook UI state.
-
-**Software disposition:** `FAIL_CLOSED_V1`.
-
-The reference implementation rejects that range for medium/flexible support categories.
-
-**Engineering disposition:** `OPEN_PENDING_LICENSED_SOURCE_OR_PROJECT_RULE`.
-
-No interpolation, nearest-size selection or hidden default is authorized.
+**Engineering:** `OPEN_PENDING_LICENSED_SOURCE_OR_PROJECT_RULE`; no interpolation, nearest-size selection or hidden default is authorized.
 
 ## 5. CI qualification status
 
 GitHub Actions run `31517707062` (`Topology Edit Support Reprojection`) failed twice, including a clean rerun.
 
-The GitHub check annotation identifies the root cause:
+The GitHub check annotation identifies the root cause: the job was not started because recent account payments failed or the Actions spending limit needs to be increased.
 
-> The job was not started because recent account payments have failed or the Actions spending limit needs to be increased.
-
-Observed job evidence:
+Observed evidence:
 
 ```text
 runner_id = 0
@@ -184,26 +142,19 @@ steps     = []
 elapsed   ~= 2 seconds
 ```
 
-Therefore:
-
-- `ISS-011` is **not a FIT software defect**;
-- no workflow/source test actually executed in the failed job;
-- no repository code change is justified to address that failure;
-- CI remains externally blocked until the GitHub billing/spending condition is corrected.
+Therefore `ISS-011` is **not a FIT software defect**. No workflow/source test actually executed, no repository code change is justified, and CI remains externally blocked until the GitHub billing/spending condition is corrected.
 
 ## 6. Full-checkout regression status
 
 A full authenticated repository checkout is not available in the current execution runtime, and GitHub Actions cannot start because of the account billing/spending gate.
 
-Therefore the following remain `NOT_RUN` from a normal complete checkout:
+The following remain `NOT_RUN` from a normal complete checkout:
 
 - full `tests/engineering-calculation-core.test.mjs` regression;
 - committed Console tests from the full repository dependency graph;
 - `tests/vibration-fit-independent-benchmarks.test.mjs` against the complete branch checkout;
 - full retained-workbook extractor regression;
 - `extract:fit-source` using the normal repository command.
-
-This limitation is software-release evidence only. It does not change the independent arithmetic derivation of the benchmark expected values.
 
 ## 7. Promotion checklist
 
@@ -232,18 +183,8 @@ FIT cannot move from `BENCHMARK_ONLY` to `SCREENING` until every item below is c
 
 ## 8. Qualification conclusion
 
-The current code is suitable for:
+The current code is suitable for workbook migration comparison, traceable calculation review, benchmark-mode API/Console execution and software-transcription qualification work.
 
-- workbook migration comparison;
-- traceable calculation review;
-- benchmark-mode API/Console execution;
-- software-transcription qualification work.
-
-It is **not** suitable to claim:
-
-- EI compliance;
-- project screening compliance;
-- production FIT pass/fail authority;
-- design authority.
+It is **not** suitable to claim EI compliance, project screening compliance, production FIT pass/fail authority or design authority.
 
 The next authority-changing action must be an independent review using the licensed Energy Institute/project source and an identified vibration engineering reviewer. Until that evidence exists, `VIB.FIV.FLOW_TURBULENCE` must remain `BENCHMARK_ONLY`.
