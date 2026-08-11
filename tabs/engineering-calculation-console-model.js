@@ -145,7 +145,7 @@ export function parseEngineeringBatchEditor(text) {
     return { ok: false, error: `Invalid batch JSON: ${error.message}` };
   }
   const requests = Array.isArray(parsed) ? parsed : parsed?.requests;
-  if (!Array.isArray(requests)) return { ok: false, error: 'Batch JSON must be an array or an object with requests[].';
+  if (!Array.isArray(requests)) return { ok: false, error: 'Batch JSON must be an array or an object with requests[].' };
   return { ok: true, batchRequest: { requests, ...(parsed?.options ? { options: parsed.options } : {}) } };
 }
 
