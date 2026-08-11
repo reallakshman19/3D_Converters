@@ -124,6 +124,7 @@ export function resolveEngineeringInputsForDefinition(definition, rawInput = {},
     errors: [...errors, ...customErrors],
     warnings: [...base.warnings, ...(custom.warnings ?? [])],
     applicability: custom.applicability ?? null,
+    preflight: cloneEngineeringValue(custom.preflight ?? null),
   };
 }
 
@@ -140,5 +141,6 @@ export function validateEngineeringInputsForDefinition(definition, input = {}, o
     errors: result.errors ?? [],
     warnings: result.warnings ?? [],
     applicability: result.applicability ?? null,
+    preflight: result.preflight ?? null,
   });
 }
