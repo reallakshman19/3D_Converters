@@ -9,28 +9,28 @@
 | PR number | #438 |
 | Branch | `agent/fiv-fit-roadmap-foundation` |
 | Base commit | `37c37d770ba47ebb3152679265896de4a943c8b0` |
-| Current HEAD | `61013f320614773e08f2370462b4578eeca25673` before this report synchronization commit |
+| Current HEAD | `7e20f672a6d91e6409763940620e677eab04fee5` before this stage-transition report commit |
 | PR status | OPEN / DRAFT |
-| Current stage | Stage 3 — Changed-file / repository-state verification |
-| Last completed stage | Stage 2 — PR allocation + report synchronization |
+| Current stage | Stage 4 — Production-safe FIT terminology/API compatibility |
+| Last completed stage | Stage 3 — Changed-file / repository-state verification |
 | Engineering status | ACCEPTED architecture / numerical FIT remains BLOCKED pending method qualification |
-| Validation status | Stage 1 source inspection PASS; changed-file baseline pending; production regression NOT_RUN |
+| Validation status | Baseline source inspection PASS; Stage 3 changed-file reconciliation PASS; production regression NOT_RUN |
 | Current blocker | Exact licensed FIT method specification/equation/table extraction is not yet available as a qualified numerical implementation basis. |
-| Exact next action | Reconcile PR #438 changed files against the expected docs-only baseline; if clean, update Stage 3 closure and open Stage 4 before production code. |
+| Exact next action | Change only the blocked production catalogue name for `VIB.FIV.FLOW_TURBULENCE` to explicit FIT terminology, strengthen the focused regression, then validate/reconcile. |
 
 ### Handover in 60 Seconds
 
-**What is now true:** `docs/FIVroadmap.md` exists on draft PR #438. The product boundary is table-first: no 3D viewer and no canvas. `Advanced_Analysis` 3D EDIT is upstream only and may provide certified tabular export. Public calculator ID `VIB.FIV.FLOW_TURBULENCE` is preserved; canonical mechanism terminology is FIT / Flow-Induced Turbulence.
+**What is now true:** `docs/FIVroadmap.md` exists on draft PR #438. Product boundary is table-first: no 3D viewer and no canvas. Stage 3 confirmed the PR contained only `docs/FIVroadmap.md` and `agents/PR438_workreport.md` before production code. The public calculator ID remains `VIB.FIV.FLOW_TURBULENCE` and the numerical method remains blocked by issue #429.
 
-**What is being worked on:** the mandatory changed-file baseline check before production code.
+**What is being worked on:** one production-safe terminology/API-compatibility change: visible catalogue name becomes Flow-Induced Turbulence (FIT) while ID, qualification issue, blocked state, catalogue counts, and no-output behavior remain unchanged.
 
-**What remains unfinished:** Stage 4 production-safe catalogue terminology/test change; licensed FIT method specification; empirical master extraction; qualified numerical kernel; table import; line/facility workspace; additional mechanisms.
+**What remains unfinished:** licensed FIT method specification, empirical master extraction, qualified numerical kernel/assessment, table import, line/facility workspace, additional mechanisms.
 
-**What must not be assumed:** any legacy workbook or CRF placeholder is engineering authority; the FIT calculator is executable; natural frequency/damping are global required inputs; plain CSV necessarily carries full upstream provenance.
+**What must not be assumed:** any legacy workbook or CRF placeholder is engineering authority; FIT is executable; natural frequency/damping are global required inputs; plain CSV necessarily carries full upstream provenance.
 
 **Highest-risk remaining item:** introducing empirical equations/thresholds before the exact licensed method, applicability, native-unit basis, masters, and independent qualification are controlled.
 
-**Exact next action:** verify the PR diff contains only `docs/FIVroadmap.md` and `agents/PR438_workreport.md`, then begin Stage 4 only after the report records that clean baseline.
+**Exact next action:** update `pending-definitions.js` and the focused core test only, then run/record the exact available validation and final changed-file reconciliation.
 
 ## 1. Mission and Engineering Intent
 
@@ -80,8 +80,8 @@ FIT is the reference vertical for later AIV, FIP, SBC, cavitation/flashing, surg
 | Living work report | P0 | DONE | 2 | `agents/PR438_workreport.md` |
 | Detailed FIV/FIT roadmap | P0 | DONE | 1 | `docs/FIVroadmap.md` |
 | PR allocation/report synchronization | P0 | DONE | 2 | Draft PR #438; pending report removed |
-| Changed-file baseline reconciliation | P0 | IN_PROGRESS | 3 | Pending GitHub changed-file check |
-| Canonical FIT terminology with stable public ID | P0 | NOT_STARTED | 4 | Pending production/test change |
+| Changed-file baseline reconciliation | P0 | VALIDATED | 3 | GitHub list: exactly roadmap + named report |
+| Canonical FIT terminology with stable public ID | P0 | IN_PROGRESS | 4 | Production/test change now authorized by stage protocol |
 | FIT method specification | P0 | DEFERRED | Forward | Requires controlled licensed source |
 | Qualified FIT kernel | P0 | BLOCKED | Forward | QST-001 |
 | 3D EDIT exchange contract | P1 | DEFERRED | Forward | Cross-repo `Advanced_Analysis` follow-up |
@@ -112,37 +112,40 @@ Created the required living report first, inspected source/research/current bloc
 
 ### Stage 2 — PR allocation + report synchronization — COMPLETE
 
-Draft PR #438 allocated. Correctly named `agents/PR438_workreport.md` created and `agents/PR_PENDING_workreport.md` removed.
+Draft PR #438 allocated. Correctly named report created; pending report removed.
 
-### Stage 3 — Changed-file / repository-state verification — IN PROGRESS
+### Stage 3 — Changed-file / repository-state verification — COMPLETE
 
-**Current truth:** no production code has been changed yet.
+**Validation:** GitHub changed-file listing returned exactly:
 
-**Objective:** confirm the PR contains only roadmap/report files before Stage 4.
+```text
+agents/PR438_workreport.md
+docs/FIVroadmap.md
+```
 
-**Expected scope/files:** `docs/FIVroadmap.md`, `agents/PR438_workreport.md`.
+No unexpected production/workflow/unrelated file existed before Stage 4.
 
-**Engineering rationale:** CodingRules requires unexplained changed files to block implementation/closure.
+**Stage decision: COMPLETE.**
 
-**Planned validation:** GitHub changed-file listing and patch/source reconciliation.
+### Stage 4 — Production-safe FIT terminology/API compatibility — IN PROGRESS
 
-**Known risks:** stale temporary report path or unrelated file unexpectedly present.
-
-### Stage 4 — Production-safe FIT terminology/API compatibility
+**Current truth:** public ID exists and is blocked; visible name is ambiguous generic "Flow-Induced Vibration Screening".
 
 **Objective:** expose canonical Flow-Induced Turbulence (FIT) terminology without changing ID or authority.
 
 **Expected files:** `converters/engineering-calculations/pending-definitions.js`, `tests/engineering-calculation-core.test.mjs`, this report.
 
-**Engineering rationale:** resolve terminology collision early while explicitly refusing to invent equations.
+**Engineering rationale:** resolve FIT/FIP terminology collision before equations, without creating fake numerical capability.
 
-**Expected behavior:** `getEngineeringCalculationDefinition('VIB.FIV.FLOW_TURBULENCE')` returns the same ID, an FIT-explicit name, issue #429, BLOCKED state; `calculateEngineering()` still returns `ENGINEERING_METHOD_BLOCKED` and no outputs.
+**Planned implementation:** change only the FIV/FIT pending catalogue display name; strengthen existing FIV blocked regression to assert stable ID/name/issue/blocked/no-output behavior.
 
-**Edge cases:** catalogue counts/available counts must not change; no other pending definitions change semantics.
+**Expected behavior:** catalogue counts and executable counts unchanged; same public calculation ID; same `BLOCKED` authority; same `ENGINEERING_METHOD_BLOCKED`; no outputs.
 
-**Planned validation:** `node --test tests/engineering-calculation-core.test.mjs` in an exact checkout if available; otherwise record NOT_RUN and use source/patch reconciliation only.
+**Edge cases:** no other placeholder naming/authority changes; no central engine changes.
 
-**Known risks:** accidental authority or catalogue count change.
+**Planned validation:** focused `node --test tests/engineering-calculation-core.test.mjs` if an exact checkout is available; source/patch reconciliation regardless.
+
+**Known risks:** accidental catalogue/authority change.
 
 ### Stage 5 — Reconciliation + handover
 
@@ -152,8 +155,10 @@ Compare actual changed-file list to ledger, refresh validation/current state, le
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---:|---:|---|---|---|
-| `agents/PR438_workreport.md` | 2 | 3 | Living PR handover and stage control | No | Current |
-| `docs/FIVroadmap.md` | 1 | 1 | Detailed implementation roadmap | Yes | Source reviewed; PR diff check pending |
+| `agents/PR438_workreport.md` | 2 | 4 | Living PR handover/stage control | No | Current |
+| `docs/FIVroadmap.md` | 1 | 1 | Detailed implementation roadmap | Yes | Stage 3 PR baseline reconciled |
+| `converters/engineering-calculations/pending-definitions.js` | 4 | 4 | FIT-explicit catalogue terminology while blocked | Yes | Planned |
+| `tests/engineering-calculation-core.test.mjs` | 4 | 4 | Stable ID/terminology/fail-closed regression | No | Planned |
 
 ## 6. Engineering Decisions and Invariants
 
@@ -179,8 +184,8 @@ No 3D viewer/canvas. Roadmap only; no cross-repo production integration in this 
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Baseline source inspection | PASS | `37c37d7` | Current core/placeholder/test/research and Advanced_Analysis export inspected. |
-| Stage 3 changed-file reconciliation | NOT_RUN | — | Active stage |
+| Baseline source inspection | PASS | `37c37d7` | Core/placeholder/test/research and Advanced_Analysis export inspected. |
+| Stage 3 changed-file reconciliation | PASS | `7e20f67` pre-transition | Exactly 2 expected docs files. |
 | Focused engineering calculation test | NOT_RUN | — | Stage 4 |
 | Final changed-file reconciliation | NOT_RUN | — | Stage 5 |
 
@@ -219,17 +224,21 @@ Any EI/AVIFF equation/table/threshold, screening authority, design authority, pr
 - Confirmed issue #429 blocked definition and existing regression.
 - Confirmed table-only owner constraint.
 - Inspected `Advanced_Analysis` certified export and CSV limitation.
-- Created branch `agent/fiv-fit-roadmap-foundation`.
-- Added initial report and `docs/FIVroadmap.md`.
-- Opened draft PR #438 after docs were committed.
+- Created branch and added report/roadmap.
+- Opened draft PR #438.
 - **Stage decision: COMPLETE.**
 
 ### Stage 2
 
 - Allocated PR #438.
-- Created `agents/PR438_workreport.md`.
-- Removed `agents/PR_PENDING_workreport.md`.
-- Refreshed Mission Control and handover to the real PR.
+- Created correctly named report and removed pending report.
+- **Stage decision: COMPLETE.**
+
+### Stage 3
+
+- GitHub changed-file listing matched exactly `agents/PR438_workreport.md` and `docs/FIVroadmap.md`.
+- No unexplained files.
+- **Validation: PASS.**
 - **Stage decision: COMPLETE.**
 
 ## 10. Process Notes / Lessons Learned
@@ -238,18 +247,18 @@ Any EI/AVIFF equation/table/threshold, screening authority, design authority, pr
 
 ## 11. Next-Agent Handover
 
-- **Current stopping point:** Stage 3 changed-file baseline verification.
-- **PR / branch / HEAD:** #438 / `agent/fiv-fit-roadmap-foundation` / `61013f3206...` before this report sync commit.
-- **Last completed stage:** Stage 2.
-- **Current active stage:** Stage 3.
-- **Start here:** inspect PR changed filenames; expected only roadmap + correctly named report.
+- **Current stopping point:** Stage 4 opened before production code.
+- **PR / branch / HEAD:** #438 / `agent/fiv-fit-roadmap-foundation` / `7e20f672...` before this transition commit.
+- **Last completed stage:** Stage 3.
+- **Current active stage:** Stage 4.
+- **Start here:** change only FIV/FIT pending display terminology and focused core regression.
 - **Do not redo:** deep research or 3D product planning; boundary is table-only.
 - **Do not assume:** FIT equations/legacy workbook are qualified.
-- **Files currently involved:** `docs/FIVroadmap.md`, `agents/PR438_workreport.md`.
-- **Known failing checks:** none known; production test not run yet.
-- **Validation still required:** Stage 3 file reconciliation; Stage 4 focused test; Stage 5 final reconciliation.
+- **Files currently involved:** roadmap, report; Stage 4 adds pending definition + core test.
+- **Known failing checks:** none known; production test not yet run.
+- **Validation still required:** Stage 4 focused test/source review; Stage 5 final reconciliation.
 - **Open QST-*:** QST-001, QST-002.
 - **Important deferred IMP-*:** IMP-001 machine-oriented exchange in Advanced_Analysis.
 - **Highest-risk remaining item:** unauthorized/inexact empirical method implementation.
-- **Exact next recommended action:** run changed-file reconciliation; if clean, update this report to Stage 4 and implement only the FIT terminology/test slice.
+- **Exact next recommended action:** implement the two-file production/test terminology slice, validate, and reconcile.
 - **Required reading:** `docs/FIVroadmap.md`, `docs/Vibration deep-research-report (2).md`, `docs/APIEngineeringCalcRoadmap.md`, `docs/APIEngineeringCalcContracts.md`, Common CodingRules, issue #429.
