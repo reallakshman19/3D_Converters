@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { calculateEngineering } from '../converters/engineering-calculations/index.js';
+import { VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION } from '../converters/engineering-calculations/adapters/vibration-fit.js';
+import { createEngineeringCalculationEngine } from '../converters/engineering-calculations/engine.js';
+import { createEngineeringCalculationRegistry } from '../converters/engineering-calculations/registry.js';
 import {
   assessFit,
   calculateFit,
@@ -13,6 +15,14 @@ const benchmarkSet = JSON.parse(fs.readFileSync(
   new URL('../Benchmarks/VibrationFIT/fit-independent-hand-benchmarks-v1.json', import.meta.url),
   'utf8',
 ));
+
+const FIT_ENGINE = createEngineeringCalculationEngine({
+  registry: createEngineeringCalculationRegistry({
+    definitions: [VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION],
+  }),
+  implementationRevision: 'fit-independent-benchmark-test',
+  clock: () => '2026-08-11T00:00:00.000Z',
+});
 
 function close(actual, expected, relativeTolerance = 1e-10, absoluteTolerance = 1e-12) {
   const tolerance = Math.max(absoluteTolerance, Math.abs(expected) * relativeTolerance);
@@ -85,7 +95,7 @@ test('FIT-HAND-SUPPORT-BOUNDARY-004: support boundary inclusivity matches contro
 
 test('FIT-HAND-GAS-UNIT-INVARIANCE-005: central benchmark execution is SI/US invariant', () => {
   const row = benchmarkSet.unitInvariantGasCase;
-  const run = (inputs, inputUnits) => calculateEngineering({
+  const run = (inputs, inputUnits) => FIT_ENGINE.calculate({
     calculationId: 'VIB.FIV.FLOW_TURBULENCE',
     inputs,
     inputUnits,
