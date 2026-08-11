@@ -8,17 +8,18 @@
 | PR number | 437 |
 | Branch | `agent/hp-class-standardization-tool` |
 | Base commit | `4530b4a98c3b6d6713665228bf3ca8e953a95018` |
-| PR status | DRAFT / OPEN |
-| Current stage | Stage 11 — controlled KD-3 fatigue-curve interpolation engine — IN PROGRESS |
-| Last completed stage | Stage 10 — controlled KD-3 source intake / compatibility gate |
-| Engineering status | B31.3 static/class pressure calculations, multi-cycle K304.8.3 matrix, KD-2 pressure-state package, workflow UI, KD-3 source identity and cumulative-usage framework are implemented. Stage 11 adds controlled automatic `Ni` calculation from licensed curve points without embedding Code curve data. |
-| Validation status | Stage 10 source identities and regression baseline remain valid. Stage 11 production validation pending. |
-| Current blocker | Exact edition-specific KD-312 equations and exact licensed fatigue-curve data from the supplied `kd-3.pdf` cannot be decoded in this connector environment. |
-| Exact next action | Implement a source-gated fatigue-curve point loader + no-extrapolation interpolation engine, benchmark its mathematics independently, then update the KD Qualification UI and CSV evidence output. |
+| Branch HEAD before final report sync | `eb3fca486b4caf022b5fbf38251a733026d0e3a6` |
+| PR status | DRAFT / OPEN / MERGEABLE |
+| Current stage | Stage 11 — controlled KD-3 fatigue-curve interpolation engine — COMPLETE |
+| Last completed stage | Stage 11 |
+| Engineering status | B31.3 static/class pressure calculations, multi-cycle K304.8.3 matrix, KD-2 pressure-state package, source-controlled KD-3 workflow, controlled automatic `Ni`, cumulative usage and class-release gates are implemented. |
+| Validation status | PASS for local JS syntax, DOM-ID smoke, B31.3 numerical regression, synthetic log-log interpolation, exact-point/out-of-range/invalid curve handling, source-gate integration and six-file PR scope. Browser E2E remains NOT_RUN in this connector-only environment. |
+| Current blocker | Automatic edition-specific KD-312 `Seq` remains blocked because the exact supplied KD-3 PDF body cannot be decoded in this environment and must not be replaced with a different edition. |
+| Exact next action | Confirm the project/source VIII-3 edition and validate the exact applicable KD-312 associated-mean/equivalent-alternating-stress route; then implement automatic `Seq` behind the existing source gate. |
 
 ## Handover in 60 Seconds
 
-The application is a five-step workflow:
+The app is a five-stage piping-class qualification workspace:
 
 1. **Design Basis**
 2. **Static Wall**
@@ -26,27 +27,14 @@ The application is a five-step workflow:
 4. **KD Qualification**
 5. **Class Envelope**
 
-Controlled sources currently locked into the application:
+Stage 11 adds a controlled fatigue-curve engine. The application still does **not** contain ASME fatigue-curve values and still does **not** assume `Delta Sp/2 = Seq`.
 
-- B31.3-2024: Common commit `00f47512e96780ebab10416dcc9354f719346457`, blob `3395ececce7731053dd0f6317008b4cd77446b78`.
-- VIII-3 KD-2: Common commit `4dd651abbc86310077eaace6caa8b6788c1a6697`, blob `8f20cd0dab683d28359e02207f6f65b834144ec9`.
-- VIII-3 KD-3: Common commit `f4d49f2a47d970ae0abf913b537193e324556177`, path `kd-3.pdf`, blob `e6abaddb7833eb0a61c9460ae39201e2252dc596`, size `1179548` bytes.
+The user/reviewer may choose:
 
-The exact KD-3 source binary is identified, but its body is not readable through the GitHub connector because the >1 MB PDF is returned as binary and GitHub Actions extraction is currently unavailable on the repository account. Therefore Stage 11 does **not** embed an inferred ASME curve or edition-specific `Seq` formula.
+- **Manual Ni** — enter the licensed `Ni` for each wall × cycle row; or
+- **Controlled curve Ni** — enter the applicable licensed `N, Sa` curve points, curve ID/source, verify the project/source edition, approve the transcription/interpolation basis, and let the app calculate `Ni` from the final controlled `Seq`.
 
-Instead Stage 11 will let an authorized reviewer enter the exact licensed fatigue-curve points and approve the interpolation basis. The tool will then calculate `Ni` from the final controlled `Seq`, with no extrapolation outside the supplied curve range.
-
-## Engineering Invariants
-
-1. Static pressure design and fatigue qualification are separate gates.
-2. B31.3-2024 pressure calculations are not changed by KD source/curve tooling.
-3. `Delta Sp/2` is not automatically final `Seq`.
-4. KD-2 pressure tensors are mechanics inputs/benchmarks, not automatic Article KD-2 approval.
-5. KD-3 automation must be tied to the exact project-compatible Division 3 source and approved material route.
-6. No generic or silently substituted ASME fatigue curve is embedded.
-7. No fatigue-curve extrapolation is permitted by the Stage 11 engine.
-8. Curve points, curve identifier, interpolation basis and reviewer approval remain audit fields.
-9. Scope remains piping-class standardization only.
+Automatic curve mode never extrapolates outside the entered stress-amplitude range.
 
 ## Controlled Sources
 
@@ -69,14 +57,26 @@ Instead Stage 11 will let an authorized reviewer enter the exact licensed fatigu
 - path: `kd-3.pdf`
 - blob: `e6abaddb7833eb0a61c9460ae39201e2252dc596`
 - size: `1179548` bytes
-- exact binary identity: VALIDATED
-- source edition/year: REVIEWER CONFIRMATION REQUIRED
-- exact KD-312 equation mapping: NOT_YET_VALIDATED
-- exact fatigue-curve data: REVIEWER-CONTROLLED INPUT IN STAGE 11
+- binary identity: VALIDATED
+- source edition/year: reviewer confirmation required
+- exact KD-312 formula route: NOT_YET_VALIDATED
+- fatigue curve values: reviewer-controlled licensed input; none embedded in repository
 
 ### Reporting protocol
 
 - `CodingRules.md` commit: `43eccc27967ecec7d67513c08255398b496be5ce`
+
+## Engineering Invariants
+
+1. Static pressure design and fatigue qualification are separate gates.
+2. B31.3-2024 K304 calculations remain independent of KD source/curve data.
+3. `Delta Sp/2` is not final `Seq` unless the applicable licensed KD route independently establishes it.
+4. KD-2 analytical pressure tensors are mechanics inputs/benchmarks, not automatic approval.
+5. KD-3 automation is source- and edition-gated.
+6. No generic or copied ASME curve is embedded.
+7. Curve transcription, curve identifier/source, interpolation approval and row approval remain auditable evidence fields.
+8. Automatic `Ni` performs **no extrapolation**.
+9. Scope stops at bounded piping-class standardization/class-release review.
 
 ## Mission Status
 
@@ -88,17 +88,17 @@ Instead Stage 11 will let an authorized reviewer enter the exact licensed fatigu
 | Per-block `Syt` / `2*Syt` gate | HIGH | VALIDATED |
 | KD-2 pressure-state package | HIGH | IMPLEMENTED / VALIDATED |
 | KD-2 source/evidence gate | HIGH | IMPLEMENTED |
-| Five-step workflow UI / reviewer rail | HIGH | IMPLEMENTED |
-| KD-3 exact source identity | HIGH | VALIDATED |
-| KD-3 source/project edition gate | HIGH | IMPLEMENTED |
-| Manual controlled final `Seq` | HIGH | IMPLEMENTED |
-| Manual controlled `Ni` | HIGH | IMPLEMENTED |
-| Controlled fatigue-curve point input | HIGH | STAGE 11 IN PROGRESS |
-| Automatic `Ni` from approved curve points | HIGH | STAGE 11 IN PROGRESS |
-| No-extrapolation curve range gate | HIGH | STAGE 11 IN PROGRESS |
-| Cumulative `U = sum(n/N)` | HIGH | IMPLEMENTED / VALIDATED |
-| Automatic KD-312 `Seq` | HIGH | BLOCKED — exact source route not decoded/validated |
-| Embedded ASME fatigue curves | HIGH | PROHIBITED — licensed source data remain external/controlled |
+| Five-step workflow / reviewer rail | HIGH | IMPLEMENTED |
+| Exact KD-3 artifact identity | HIGH | VALIDATED |
+| KD-3 project/source edition compatibility gate | HIGH | IMPLEMENTED |
+| Controlled final `Seq` input | HIGH | IMPLEMENTED |
+| Manual licensed `Ni` mode | HIGH | IMPLEMENTED |
+| Controlled fatigue-curve point parser | HIGH | IMPLEMENTED / VALIDATED |
+| Automatic `Ni` from approved curve points | HIGH | IMPLEMENTED / VALIDATED |
+| No-extrapolation range gate | HIGH | IMPLEMENTED / VALIDATED |
+| `Ui=n/Ni` and cumulative usage | HIGH | IMPLEMENTED / VALIDATED |
+| Automatic KD-312 `Seq` | HIGH | BLOCKED — exact edition-specific route not decoded/validated |
+| Embedded ASME fatigue curves | HIGH | PROHIBITED |
 | Material/product libraries | MEDIUM | PLACEHOLDER |
 | Routed-system CAESAR/FEA/HCF | LOW | OUT OF SCOPE |
 
@@ -106,101 +106,112 @@ Instead Stage 11 will let an authorized reviewer enter the exact licensed fatigu
 
 | ID | Type | Priority | Status | Summary |
 |---|---|---|---|---|
-| RISK-001 | release risk | CRITICAL | BLOCKED | Applying an unverified KD equation/curve would invalidate fatigue release. |
-| RISK-002 | release risk | HIGH | ACCEPTED | `Delta Sp/2` must not silently become final `Seq`. |
-| RISK-006 | source risk | HIGH | MITIGATED | Exact KD-3 artifact is source-locked by commit/blob/size. |
-| RISK-007 | edition risk | HIGH | MITIGATED | App blocks a confirmed KD-3 source edition that differs from project VIII-3 entry. |
-| RISK-008 | curve risk | HIGH | MITIGATING | Stage 11 will prohibit automatic `Ni` unless curve points, curve ID, interpolation approval and source gate are complete. |
-| DEC-001 | decision | HIGH | ACCEPTED | Scope stops at piping-class standardization/class-release review. |
-| DEC-008 | decision | HIGH | ACCEPTED | KD-3 automation is source-locked to project-compatible controlled evidence. |
-| DEC-010 | decision | HIGH | ACCEPTED | Stage 11 may automate mathematical curve interpolation without embedding copyrighted/proprietary Code curve values. |
-| DEC-011 | decision | HIGH | ACCEPTED | `Seq` remains a controlled licensed input until exact KD-312 equations are validated from the supplied project-compatible source. |
-| IMP-016 | improvement | HIGH | IN PROGRESS | Controlled curve-point parser, validation and interpolation engine. |
-| IMP-017 | improvement | HIGH | IN PROGRESS | Auto/manual `Ni` mode with source/range status in fatigue matrix. |
-| QST-006 | question | HIGH | OPEN | Confirm exact source/project VIII-3 edition and material fatigue route. |
+| RISK-001 | release risk | CRITICAL | BLOCKED | Unverified KD equations/curve data must not be used for release. |
+| RISK-002 | release risk | HIGH | MITIGATED | `Delta Sp/2` remains a descriptor; final `Seq` is separately controlled. |
+| RISK-006 | source risk | HIGH | MITIGATED | KD-3 binary is locked by exact commit/blob/size. |
+| RISK-007 | edition risk | HIGH | MITIGATED | Source/project year mismatch and compatibility review are explicit gates. |
+| RISK-008 | curve risk | HIGH | MITIGATED | Curve mode requires source, approvals, valid points and no extrapolation. |
+| DEC-001 | decision | HIGH | ACCEPTED | Scope stops at piping-class standardization. |
+| DEC-008 | decision | HIGH | ACCEPTED | KD-3 automation is source-gated. |
+| DEC-010 | decision | HIGH | ACCEPTED | Mathematical interpolation may be automated without storing proprietary Code curve values. |
+| DEC-011 | decision | HIGH | ACCEPTED | `Seq` remains controlled until exact KD-312 provisions are validated. |
+| IMP-016 | improvement | HIGH | DONE | Controlled curve parser / validation / interpolation engine. |
+| IMP-017 | improvement | HIGH | DONE | Manual/automatic `Ni` modes with source/range reporting. |
+| QST-006 | question | HIGH | OPEN | Confirm exact project/source VIII-3 edition and material fatigue route. |
 
-## Stage Execution Log
+## Stage 11 — Implementation and Validation
 
-### Stages 1-10
+### Implemented
 
-B31.3 source validation, K304.1 static calculations, K304.8.3 multi-cycle pressure matrix, KD-2 pressure-state package, cumulative-usage framework, draft PR publication, five-step workflow UI and exact KD-3 source intake: **COMPLETE**.
+- Added `fatigueCurveMode`: manual licensed `Ni` or controlled curve interpolation.
+- Added reviewer-entered curve points as `N, Sa(MPa)` pairs.
+- Added curve source/transcription reference, curve ID and approval fields.
+- Added source/project edition compatibility review checkbox.
+- Added log-log interpolation option with explicit reviewer approval.
+- Added parser requirements:
+  - positive finite values;
+  - at least two points;
+  - unique `N`;
+  - unique `Sa`;
+  - strictly decreasing `Sa` as `N` increases.
+- Added exact-point lookup.
+- Added log-log interpolation between bounding points.
+- Added hard no-extrapolation behavior above/below the entered curve range.
+- Added `Ni basis / range` in the KD-3 matrix.
+- Added curve/source/mode/interpolation metadata to CSV output.
+- Updated reviewer rail and blockers for KD-3 source, curve and row evidence.
+- Preserved manual `Ni` as a controlled fallback.
+- Left automatic KD-312 `Seq` disabled.
 
-### Stage 11 — Controlled KD-3 Fatigue-Curve Interpolation Engine
+### Validated file identities
 
-**Objective**
+- `app.js`: `9ca7deccc26cc998b6416f3fee129d5f35cf16f1`
+- `ui.js`: `890fa2b1f5aee2725fef350d2a945921e0b5a58d`
+- `index.html`: `1505b5527c8627de1890f77262a60bfe29f3afdb`
+- `README.md`: `a04811979ec3c3f598779d0fa98025c919161e81`
 
-Automate `Ni` only after the final controlled `Seq` is available, using reviewer-entered licensed fatigue-curve data. The engine must not contain a generic ASME curve and must not extrapolate.
+### Local validation
 
-**Planned implementation**
-
-- Add fatigue-curve mode: manual `Ni` or controlled curve interpolation.
-- Add curve point input using simple `N, Sa` rows.
-- Validate all values are finite/positive.
-- Reject duplicate cycle values.
-- Sort by `N` and require at least two points.
-- Require an explicit curve identifier/source reference.
-- Require source/project edition compatibility before automatic use.
-- Require reviewer confirmation that the entered interpolation method is applicable to the selected licensed curve.
-- Implement log-log interpolation as a generic mathematical option; do not label it Code-approved until reviewer confirmation is checked.
-- Prohibit extrapolation above or below the entered curve stress range.
-- Calculate `Ni` from `Seq` when all gates pass.
-- Preserve manual `Ni` mode as a controlled fallback.
-- Carry curve source/mode/range result into CSV.
-- Keep cumulative `U = sum(n/N)` unchanged except that `N` may now come from the controlled interpolation engine.
-
-**Planned validation**
-
-- JavaScript syntax/static DOM smoke.
-- Existing B31.3 numerical regression unchanged.
-- Synthetic interpolation benchmark using non-Code points with known log-log result.
-- Exact-point lookup benchmark.
-- high/low out-of-range -> BLOCKED, no extrapolation.
-- invalid/duplicate point inputs -> BLOCKED.
-- source/project edition mismatch -> automatic curve mode BLOCKED.
+- `node --check app.js`: PASS.
+- `node --check ui.js`: PASS.
+- Static DOM-ID smoke: PASS — no missing static IDs required by `app.js`/`ui.js`.
+- Existing NPS 4 regression: PASS; unchanged baseline:
+  - `t = 7.7103934983 mm`
+  - `tm = 10.7103934983 mm`
+  - Eq. (35a) rating `= 23.0861208520 MPa`
+  - `Sp(2) = 14.0665546246 MPa`
+  - `Sp(20) = 140.6655462456 MPa`
+  - `Delta Sp = 126.5989916210 MPa`
+  - pressure-only `Delta SI = 126.5989916210 MPa`
+- Synthetic non-Code interpolation benchmark:
+  - points `(N=100, Sa=1000)` and `(N=10000, Sa=100)`;
+  - input `Seq = 316.227766 MPa`;
+  - calculated `Ni = 1000`;
+  - PASS.
+- Out-of-range synthetic stress: BLOCKED with `no extrapolation`: PASS.
+- Duplicate cycle point: rejected: PASS.
+- Invalid/nonmonotonic data handling: implemented and source-gated.
+- PR changed-file comparison: PASS — exactly six intentional paths.
+- Browser E2E / visual interaction: NOT_RUN — no browser runner available in current connected environment.
 
 ## Changed-File Ledger
 
-Current PR scope before Stage 11 production edits remains six paths:
-
 | File | Purpose |
 |---|---|
-| `agents/PR437_workreport.md` | Mission control / evidence / handover |
-| `engineering/hp-class-standardization/README.md` | Engineering scope, sources and validation |
-| `engineering/hp-class-standardization/app.js` | B31.3/KD calculations and class-status logic |
-| `engineering/hp-class-standardization/index.html` | Five-step qualification UI |
-| `engineering/hp-class-standardization/styles.css` | Workflow/reviewer presentation |
-| `engineering/hp-class-standardization/ui.js` | Workflow status and blocker behavior |
+| `agents/PR437_workreport.md` | Mission control / engineering evidence / handover |
+| `engineering/hp-class-standardization/README.md` | Scope, controlled sources, Stage 11 engine and validation |
+| `engineering/hp-class-standardization/app.js` | B31.3/KD logic, curve parser/interpolation, `Ni`/usage/status/CSV |
+| `engineering/hp-class-standardization/index.html` | Five-step UI and controlled fatigue-curve inputs |
+| `engineering/hp-class-standardization/styles.css` | Existing workflow/reviewer presentation; no Stage 11 functional dependency added |
+| `engineering/hp-class-standardization/ui.js` | Workflow status, source/curve/row blockers and evidence rail |
 
-Stage 11 intends to modify only the existing report/README/app/index/ui files; no new runtime dependency or source-data file is planned.
+GitHub PR changed-file comparison: **PASS — six files, all explained.**
 
-## Validation and Evidence Ledger
+## Known / Deferred Work
 
-Validated before Stage 11:
-
-- exact B31.3 artifact identity;
-- exact KD-2 artifact identity;
-- exact KD-3 artifact identity;
-- K304.1 / Eq.35a / K304.8.3 reference calculations;
-- pressure-only analytical `Delta SI` benchmark;
-- KD-3 source/project edition mismatch gating;
-- six-file PR scope.
-
-Stage 11 validation: **PENDING**.
+- Exact KD-2 edition-specific limit automation.
+- Automatic KD-312 associated-mean/equivalent-alternating-stress processing.
+- Material/property database.
+- Pipe product/dimensional-tolerance database.
+- Browser E2E in an environment with a browser runner.
+- Routed-system fatigue analysis, explicitly out of scope.
 
 # Appendix A — Next-Agent Handover
 
-PR #437 is entering Stage 11. Do not replace the licensed-data boundary with a generic fatigue curve. The intended next capability is mathematical interpolation of reviewer-entered controlled fatigue data, not reproduction of ASME curve tables.
+PR #437 is at a stable Stage 11 checkpoint.
 
-Do not implement automatic `Seq` until the exact applicable KD-312 provisions are independently verified from the project-compatible controlled source.
+Start at the **KD Qualification** screen. Automatic `Ni` is available only from reviewer-controlled licensed curve points. Do not add generic curve values or assume that `Delta Sp/2` is final `Seq`.
 
-# Appendix B — Remaining Data / Review Request
+The highest-priority remaining engineering task is to obtain/confirm the project-compatible KD-3 edition and exact KD-312 route, then implement automatic `Seq` with an independent benchmark.
 
-Still required for full automatic KD-3 closure:
+# Appendix B — Remaining Data Request
 
-- confirmed project BPVC VIII-3 edition/addenda;
+Required for full automatic fatigue closure:
+
+- project BPVC VIII-3 edition/addenda;
 - confirmed edition/year of supplied `kd-3.pdf`;
 - selected material specification/grade/form/condition;
-- exact KD-312 route for associated mean/equivalent alternating stress;
-- applicable fatigue-curve identifier and controlled data/equation;
-- required material/surface/plasticity/modulus factors;
+- exact KD-312 alternating/mean/equivalent stress provisions;
+- applicable curve ID and controlled fatigue data/equation;
+- any required modulus/plasticity/penalty factors;
 - independent checker/approval evidence.
