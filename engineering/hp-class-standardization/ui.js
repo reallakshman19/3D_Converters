@@ -124,6 +124,30 @@
     return ['complete', 'Source verified'];
   }
 
+  function seqState() {
+    const mode = byId('seqMode')?.value || 'manual';
+    if (mode === 'manual') return ['complete', 'Manual Seq'];
+    const source = kd3SourceState();
+    if (source[0] !== 'complete') return source;
+    if (!nonBlank('kdRoute')) return ['blocked', 'KD-312 route missing'];
+    if (!nonBlank('seqRouteSourceRef')) return ['blocked', 'Seq source missing'];
+    if (!byId('seqRouteApproved')?.checked) return ['blocked', 'Seq route approval pending'];
+    if (mode === 'mean-embedded') return ['complete', 'Auto Seq ready'];
+    if (mode === 'explicit-mean') {
+      if (byId('fatigueCurveMode')?.value !== 'curve') return ['blocked', 'Curve mode required'];
+      if (!finitePositive('seqReferenceCycles')) return ['blocked', 'Nref missing'];
+      const beta = Number(byId('seqBeta')?.value);
+      const limit = Number(byId('seqMeanTermLimit')?.value);
+      if (!(Number.isFinite(beta) && beta >= 0)) return ['blocked', 'Beta missing'];
+      if (!(Number.isFinite(limit) && limit >= 0 && limit < 1)) return ['blocked', 'Term limit invalid'];
+      const box = byId('seqStatusBox');
+      if (box?.classList.contains('error')) return ['blocked', 'Seq route blocked'];
+      if (box?.classList.contains('warning')) return ['special', 'Seq route review'];
+      return ['complete', 'Auto Seq ready'];
+    }
+    return ['blocked', 'Unsupported Seq route'];
+  }
+
   function curveState() {
     const mode = byId('fatigueCurveMode')?.value;
     if (mode !== 'curve') return ['complete', 'Manual Ni'];
@@ -161,7 +185,7 @@
   }
 
   function stageKd() {
-    const states = [kd2State(), kd3SourceState(), curveState(), kdRowsState(), fractureState()];
+    const states = [kd2State(), kd3SourceState(), seqState(), curveState(), kdRowsState(), fractureState()];
     if (states.some(([state]) => state === 'special')) return ['special', 'Special route'];
     if (states.every(([state]) => state === 'complete')) return ['complete', 'Complete'];
     return ['blocked', 'Blocked'];
@@ -180,8 +204,9 @@
     const D = byId('diameter')?.value || '—';
     const walls = (byId('candidateWalls')?.value || '').split(',').map((v) => v.trim()).filter(Boolean);
     const cycles = document.querySelectorAll('#cycleBody tr').length;
-    const mode = byId('fatigueCurveMode')?.value === 'curve' ? 'curve Ni' : 'manual Ni';
-    return `D ${D} mm · ${walls.length} wall${walls.length === 1 ? '' : 's'} · ${cycles} cycle block${cycles === 1 ? '' : 's'} · ${mode}`;
+    const seqMode = byId('seqMode')?.value === 'manual' ? 'manual Seq' : 'auto Seq';
+    const niMode = byId('fatigueCurveMode')?.value === 'curve' ? 'curve Ni' : 'manual Ni';
+    return `D ${D} mm · ${walls.length} wall${walls.length === 1 ? '' : 's'} · ${cycles} cycle block${cycles === 1 ? '' : 's'} · ${seqMode} · ${niMode}`;
   }
 
   function evidenceState(id, complete, good = 'Complete', bad = 'Missing') {
@@ -203,6 +228,9 @@
 
     const source = kd3SourceState();
     if (source[0] !== 'complete') items.push(`KD-3 source: ${source[1]}.`);
+
+    const seq = seqState();
+    if (seq[0] !== 'complete') items.push(`Seq route: ${seq[1]}.`);
 
     const curve = curveState();
     if (curve[0] !== 'complete') items.push(`Fatigue curve: ${curve[1]}.`);
@@ -234,6 +262,7 @@
 
     const k2 = kd2State();
     const source = kd3SourceState();
+    const seq = seqState();
     const curve = curveState();
     const fm = fractureState();
 
@@ -244,7 +273,7 @@
     }
     const kd3Chip = byId('kd3StatusChip');
     if (kd3Chip) {
-      const combined = source[0] === 'complete' ? curve : source;
+      const combined = source[0] !== 'complete' ? source : seq[0] !== 'complete' ? seq : curve;
       kd3Chip.className = `status-chip ${combined[0]}`;
       kd3Chip.textContent = combined[1];
     }
@@ -258,7 +287,8 @@
     railState('rail-static', states.static[0], states.static[1]);
     railState('rail-cycles', states.cycles[0], states.cycles[1]);
     railState('rail-kd2', k2[0], k2[1]);
-    railState('rail-kd3', source[0] === 'complete' ? curve[0] : source[0], source[0] === 'complete' ? curve[1] : source[1]);
+    const kd3Combined = source[0] !== 'complete' ? source : seq[0] !== 'complete' ? seq : curve;
+    railState('rail-kd3', kd3Combined[0], kd3Combined[1]);
     railState('rail-fracture', fm[0], fm[1]);
 
     evidenceState('evidence-viii3', nonBlank('viii3Edition'));
@@ -267,6 +297,7 @@
     evidenceState(
       'evidence-kd3',
       nonBlank('kdRoute') &&
+        seqState()[0] === 'complete' &&
         (byId('fatigueCurveMode')?.value === 'manual' ||
           (nonBlank('fatigueCurveId') && nonBlank('fatigueCurveSourceRef') && byId('fatigueCurveApproved')?.checked)),
       'Ready',
@@ -311,7 +342,7 @@
   document.addEventListener('change', () => setTimeout(updateReviewUi, 0));
   document.addEventListener('click', () => setTimeout(updateReviewUi, 0));
 
-  ['staticBody','cycleBody','kd2Body','fatigueBody','summaryBody','curveStatusBox'].forEach((id) => {
+  ['staticBody','cycleBody','kd2Body','fatigueBody','summaryBody','seqStatusBox','curveStatusBox'].forEach((id) => {
     const target = byId(id);
     if (target) {
       new MutationObserver(() => updateReviewUi()).observe(target, {
