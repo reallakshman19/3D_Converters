@@ -9,28 +9,28 @@
 | PR number | #438 |
 | Branch | `agent/fiv-fit-roadmap-foundation` |
 | Base commit | `37c37d770ba47ebb3152679265896de4a943c8b0` |
-| Current HEAD | `7e20f672a6d91e6409763940620e677eab04fee5` before this stage-transition report commit |
-| PR status | OPEN / DRAFT |
-| Current stage | Stage 4 — Production-safe FIT terminology/API compatibility |
-| Last completed stage | Stage 3 — Changed-file / repository-state verification |
-| Engineering status | ACCEPTED architecture / numerical FIT remains BLOCKED pending method qualification |
-| Validation status | Baseline source inspection PASS; Stage 3 changed-file reconciliation PASS; production regression NOT_RUN |
-| Current blocker | Exact licensed FIT method specification/equation/table extraction is not yet available as a qualified numerical implementation basis. |
-| Exact next action | Change only the blocked production catalogue name for `VIB.FIV.FLOW_TURBULENCE` to explicit FIT terminology, strengthen the focused regression, then validate/reconcile. |
+| Current HEAD | `6677564f67c665d2389c038ed2f8a10a1aaaa177` production/test head before this report-only update |
+| PR status | OPEN / DRAFT / mergeable |
+| Current stage | Stage 5 — Reconciliation + handover |
+| Last completed stage | Stage 4 — Production-safe FIT terminology/API compatibility |
+| Engineering status | IMPLEMENTED terminology/API safeguard; numerical FIT remains BLOCKED pending method qualification |
+| Validation status | Source/patch reconciliation PASS; exact Node test NOT_RUN; no workflow runs on current production head |
+| Current blocker | Exact licensed FIT method specification/equation/table extraction remains unavailable as a qualified numerical implementation basis. |
+| Exact next action | Perform final changed-file reconciliation, refresh this report, leave PR #438 draft, and begin the next PR only with an exact licensed FIT method specification/source register. |
 
 ### Handover in 60 Seconds
 
-**What is now true:** `docs/FIVroadmap.md` exists on draft PR #438. Product boundary is table-first: no 3D viewer and no canvas. Stage 3 confirmed the PR contained only `docs/FIVroadmap.md` and `agents/PR438_workreport.md` before production code. The public calculator ID remains `VIB.FIV.FLOW_TURBULENCE` and the numerical method remains blocked by issue #429.
+**What is now true:** `docs/FIVroadmap.md` is committed on draft PR #438. The vibration product is explicitly table-first: no 3D viewer and no canvas. `Advanced_Analysis` 3D EDIT remains upstream authoring/export. `VIB.FIV.FLOW_TURBULENCE` keeps its public ID but now displays as **Flow-Induced Turbulence (FIT) Screening**. It remains `BLOCKED` under issue #429 and still produces no numerical output.
 
-**What is being worked on:** one production-safe terminology/API-compatibility change: visible catalogue name becomes Flow-Induced Turbulence (FIT) while ID, qualification issue, blocked state, catalogue counts, and no-output behavior remain unchanged.
+**What is being worked on:** final PR changed-file reconciliation and handover only.
 
-**What remains unfinished:** licensed FIT method specification, empirical master extraction, qualified numerical kernel/assessment, table import, line/facility workspace, additional mechanisms.
+**What remains unfinished:** exact FIT method specification, licensed source/master extraction, qualified equations, applicability, assessment, independent benchmarks, API activation, table import, line/facility workflow, additional mechanisms.
 
-**What must not be assumed:** any legacy workbook or CRF placeholder is engineering authority; FIT is executable; natural frequency/damping are global required inputs; plain CSV necessarily carries full upstream provenance.
+**What must not be assumed:** the terminology change qualifies FIT; any legacy workbook/CRF placeholder is authority; the focused Node test ran in this environment; natural frequency/damping are global FIT inputs; plain CSV carries the complete upstream certified export.
 
-**Highest-risk remaining item:** introducing empirical equations/thresholds before the exact licensed method, applicability, native-unit basis, masters, and independent qualification are controlled.
+**Highest-risk remaining item:** implementing empirical FIT equations/thresholds before the exact licensed method, native-unit basis, applicability, tables, errata, and independent qualification are controlled.
 
-**Exact next action:** update `pending-definitions.js` and the focused core test only, then run/record the exact available validation and final changed-file reconciliation.
+**Exact next action:** reconcile PR #438 to the expected four paths and leave draft. Next engineering implementation must start with the FIT Method Specification, not equations guessed from research/legacy placeholders.
 
 ## 1. Mission and Engineering Intent
 
@@ -40,25 +40,25 @@ Create a durable implementation roadmap for the first vibration vertical and beg
 
 ### Engineering consequence
 
-FIT is the reference vertical for later AIV, FIP, SBC, cavitation/flashing, surge/momentum, and slug/time-history. The first implementation must not spread ambiguous terminology, hidden defaults, non-reproducible masters, or a breaking API contract across the family.
+FIT is the reference vertical for later AIV, FIP, SBC, cavitation/flashing, surge/momentum, and slug/time-history. The first implementation must establish precise terminology and authority boundaries without creating false numerical capability.
 
-### Current PR scope
+### Current PR scope delivered
 
-- Add and maintain `docs/FIVroadmap.md`.
-- Preserve `VIB.FIV.FLOW_TURBULENCE` as the public calculation ID.
-- Make Flow-Induced Turbulence (FIT) the explicit production catalogue name without enabling numerical execution.
-- Keep issue #429 and `BLOCKED` authority unchanged.
-- Add focused regression for stable ID + FIT terminology + fail-closed execution.
-- Maintain this work report and handover.
+- Added `docs/FIVroadmap.md`.
+- Preserved public ID `VIB.FIV.FLOW_TURBULENCE`.
+- Changed the production catalogue display name to `Flow-Induced Turbulence (FIT) Screening`.
+- Kept issue #429, `BLOCKED` authority, pending method revision, catalogue counts, and no-output execution behavior unchanged.
+- Strengthened existing centralized-core regression to pin stable ID/name/method revision/qualification gate.
+- Added no 3D/no canvas and table-exchange direction to the roadmap.
 
-### Explicit non-goals
+### Explicit non-goals respected
 
 - No FIT equations, coefficients, thresholds, LOF, or empirical tables.
 - No authority promotion/unblocking.
 - No AIV/FIP/SBC numerical implementation.
 - No 3D viewer/canvas/geometry rendering.
 - No `.github/workflows/*` changes.
-- No speculative unused modules or microservices.
+- No speculative unused modules/microservices.
 - No natural-frequency/damping defaults.
 - No universal vibration score.
 
@@ -77,106 +77,128 @@ FIT is the reference vertical for later AIV, FIP, SBC, cavitation/flashing, surg
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---:|---|
-| Living work report | P0 | DONE | 2 | `agents/PR438_workreport.md` |
+| Living work report | P0 | DONE | 2–5 | `agents/PR438_workreport.md` |
 | Detailed FIV/FIT roadmap | P0 | DONE | 1 | `docs/FIVroadmap.md` |
 | PR allocation/report synchronization | P0 | DONE | 2 | Draft PR #438; pending report removed |
-| Changed-file baseline reconciliation | P0 | VALIDATED | 3 | GitHub list: exactly roadmap + named report |
-| Canonical FIT terminology with stable public ID | P0 | IN_PROGRESS | 4 | Production/test change now authorized by stage protocol |
-| FIT method specification | P0 | DEFERRED | Forward | Requires controlled licensed source |
+| Pre-code changed-file baseline | P0 | VALIDATED | 3 | Exactly report + roadmap |
+| FIT terminology with stable public ID | P0 | IMPLEMENTED | 4 | One-line production catalogue change |
+| Stable ID/blocked-authority regression | P0 | IMPLEMENTED | 4 | Existing FIV test strengthened |
+| Exact runtime test execution | P0 | BLOCKED | 4 | No local checkout/`gh`; no workflow runs for head |
+| Final changed-file reconciliation | P0 | IN_PROGRESS | 5 | Pending final listing |
+| FIT method specification | P0 | DEFERRED | Forward | Requires exact controlled licensed source |
 | Qualified FIT kernel | P0 | BLOCKED | Forward | QST-001 |
 | 3D EDIT exchange contract | P1 | DEFERRED | Forward | Cross-repo `Advanced_Analysis` follow-up |
-| Table-first Vibration Integrity Workspace | P1 | DEFERRED | Forward | Requires qualified production mechanism data |
+| Table-first Vibration Integrity Workspace | P1 | DEFERRED | Forward | Requires qualified mechanism + import path |
 
 ## 3. Engineering Item Register
 
 | ID | Type | Severity/Priority | Status | Summary | Current PR? |
 |---|---|---:|---|---|---|
-| DEC-001 | Decision | P0 | ACCEPTED | Preserve `VIB.FIV.FLOW_TURBULENCE`; use FIT as canonical mechanism terminology without breaking ID. | Yes |
+| DEC-001 | Decision | P0 | ACCEPTED | Preserve `VIB.FIV.FLOW_TURBULENCE`; use FIT terminology without breaking ID. | Yes |
 | DEC-002 | Decision | P0 | ACCEPTED | No 3D/canvas in vibration product; consume certified tables from `Advanced_Analysis`. | Roadmap |
 | DEC-003 | Decision | P0 | ACCEPTED | Preserve existing external Engineering Calculation request contract. | Roadmap |
 | DEC-004 | Decision | P0 | ACCEPTED | Validation/applicability/calculation/assessment/qualification/authority remain separate. | Roadmap |
 | DEC-005 | Decision | P0 | ACCEPTED | Keep FIT blocked until method specification + independent qualification. | Yes |
-| RISK-001 | Risk | Critical | ACCEPTED | Unqualified empirical equation implementation could create false authority. | Yes — mitigated by blocked state |
-| RISK-002 | Risk | High | ACCEPTED | Renaming frozen calculator ID could break consumers/historical results. | Yes — mitigated by DEC-001 |
-| RISK-003 | Risk | High | ACCEPTED | Plain 3D EDIT CSV exports Elements only, while richer export includes connectivity/source/catalogue/metadata. | Roadmap |
-| RISK-004 | Risk | High | ACCEPTED | Global hidden dynamic defaults could contaminate FIT and later mechanisms. | Roadmap |
-| QST-001 | Question | P0 | BLOCKED | Exact licensed FIT method revision/equations/tables/errata/redistribution constraints. | Forward prerequisite |
-| QST-002 | Question | P1 | INVESTIGATING | Final machine exchange: XLSX vs multi-CSV + manifest vs other versioned table package. | Forward cross-repo |
+| RISK-001 | Risk | Critical | ACCEPTED | Unqualified empirical equation implementation could create false authority. | Mitigated: no equations, remains blocked |
+| RISK-002 | Risk | High | DONE | Frozen calculator-ID break risk. | Mitigated and regression-pinned |
+| RISK-003 | Risk | High | ACCEPTED | Plain 3D EDIT CSV exports Elements only while richer export carries additional authority data. | Roadmap / future exchange PR |
+| RISK-004 | Risk | High | ACCEPTED | Global hidden dynamic defaults could contaminate FIT/later mechanisms. | Roadmap invariant |
+| QST-001 | Question | P0 | BLOCKED | Exact licensed FIT revision/equations/tables/errata/redistribution constraints. | Forward prerequisite |
+| QST-002 | Question | P1 | INVESTIGATING | Machine exchange: XLSX vs multi-CSV + manifest vs other versioned package. | Forward cross-repo |
 | IMP-001 | Improvement | P1 | DEFERRED | Machine-oriented certified 3D EDIT exchange preserving all authority tables. | `Advanced_Analysis` follow-up |
 
 ## 4. Stage Roadmap
 
 ### Stage 1 — Report initialization + technical findings — COMPLETE
 
-Created the required living report first, inspected source/research/current blocked FIV definition and `Advanced_Analysis` table export, and added `docs/FIVroadmap.md`.
+Read pinned CodingRules, inspected research/current FIV gate/upstream table export, created branch/report/roadmap.
 
 ### Stage 2 — PR allocation + report synchronization — COMPLETE
 
-Draft PR #438 allocated. Correctly named report created; pending report removed.
+Allocated draft PR #438, created correctly named report, removed pending report.
 
 ### Stage 3 — Changed-file / repository-state verification — COMPLETE
 
-**Validation:** GitHub changed-file listing returned exactly:
+GitHub changed-file listing before production code returned exactly:
 
 ```text
 agents/PR438_workreport.md
 docs/FIVroadmap.md
 ```
 
-No unexpected production/workflow/unrelated file existed before Stage 4.
+No unexplained files. **Validation: PASS. Stage decision: COMPLETE.**
 
-**Stage decision: COMPLETE.**
+### Stage 4 — Production-safe FIT terminology/API compatibility — COMPLETE WITH EXPLICIT VALIDATION LIMITATION
 
-### Stage 4 — Production-safe FIT terminology/API compatibility — IN PROGRESS
+**Implementation performed**
 
-**Current truth:** public ID exists and is blocked; visible name is ambiguous generic "Flow-Induced Vibration Screening".
+- `pending-definitions.js`: only `VIB.FIV.FLOW_TURBULENCE` visible name changed from generic `Flow-Induced Vibration Screening` to `Flow-Induced Turbulence (FIT) Screening`.
+- `engineering-calculation-core.test.mjs`: existing blocked FIV test renamed FIT/FIV and now asserts stable ID, exact FIT name/shortName, `pending-qualification`, issue #429, BLOCKED authority, `ENGINEERING_METHOD_BLOCKED`, and no outputs.
 
-**Objective:** expose canonical Flow-Induced Turbulence (FIT) terminology without changing ID or authority.
+**Changed files/reasons**
 
-**Expected files:** `converters/engineering-calculations/pending-definitions.js`, `tests/engineering-calculation-core.test.mjs`, this report.
+Exactly the two planned production/test files.
 
-**Engineering rationale:** resolve FIT/FIP terminology collision before equations, without creating fake numerical capability.
+**Deviations from plan**
 
-**Planned implementation:** change only the FIV/FIT pending catalogue display name; strengthen existing FIV blocked regression to assert stable ID/name/issue/blocked/no-output behavior.
+None in implementation. Exact local Node test could not be executed because the available environment has no `gh` executable/local repository checkout, and GitHub reports no workflow runs for production head `6677564f...`.
 
-**Expected behavior:** catalogue counts and executable counts unchanged; same public calculation ID; same `BLOCKED` authority; same `ENGINEERING_METHOD_BLOCKED`; no outputs.
+**Actual behavior / edge cases by source/patch inspection**
 
-**Edge cases:** no other placeholder naming/authority changes; no central engine changes.
+- public calculation ID unchanged;
+- only one string changed in production catalogue;
+- no engine/registry/authority code changed;
+- test continues to assert blocked/no-output behavior;
+- existing catalogue-count test remains unchanged.
 
-**Planned validation:** focused `node --test tests/engineering-calculation-core.test.mjs` if an exact checkout is available; source/patch reconciliation regardless.
+**Validation performed**
 
-**Known risks:** accidental catalogue/authority change.
+- Production patch inspection: **PASS** — one expected name line only.
+- Test patch inspection: **PASS** — four new metadata assertions plus test title, existing blocked assertions retained.
+- PR mergeability: **PASS** reported by GitHub at production head.
+- `node --test tests/engineering-calculation-core.test.mjs`: **NOT_RUN** — exact checkout unavailable in this environment.
+- GitHub workflow execution: **NOT_RUN** — no workflow runs associated with production head.
 
-### Stage 5 — Reconciliation + handover
+**New findings**
 
-Compare actual changed-file list to ledger, refresh validation/current state, leave PR draft, do not merge.
+None.
+
+**Remaining risks**
+
+Runtime regression remains unexecuted in this environment; PR stays draft. Numerical FIT remains deliberately blocked.
+
+**Stage decision: COMPLETE** for the deliberately narrow source change, with runtime validation explicitly NOT_RUN and no readiness/merge claim.
+
+### Stage 5 — Reconciliation + handover — IN PROGRESS
+
+Final changed-file listing must match the four ledger paths below. Leave draft; do not merge.
 
 ## 5. Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---:|---:|---|---|---|
-| `agents/PR438_workreport.md` | 2 | 4 | Living PR handover/stage control | No | Current |
-| `docs/FIVroadmap.md` | 1 | 1 | Detailed implementation roadmap | Yes | Stage 3 PR baseline reconciled |
-| `converters/engineering-calculations/pending-definitions.js` | 4 | 4 | FIT-explicit catalogue terminology while blocked | Yes | Planned |
-| `tests/engineering-calculation-core.test.mjs` | 4 | 4 | Stable ID/terminology/fail-closed regression | No | Planned |
+| `agents/PR438_workreport.md` | 2 | 5 | Living PR state/handover | No | Current |
+| `docs/FIVroadmap.md` | 1 | 1 | Detailed API-first/table-first FIT roadmap | Yes | Pre-code baseline PASS |
+| `converters/engineering-calculations/pending-definitions.js` | 4 | 4 | FIT-explicit blocked catalogue name | Yes | Patch inspection PASS; runtime NOT_RUN |
+| `tests/engineering-calculation-core.test.mjs` | 4 | 4 | Stable ID/name/blocked authority regression | No | Patch inspection PASS; runtime NOT_RUN |
 
 ## 6. Engineering Decisions and Invariants
 
 ### INV-001 — Public ID remains stable
 
-`VIB.FIV.FLOW_TURBULENCE` remains the public ID. Stage 4 test must assert it.
+`VIB.FIV.FLOW_TURBULENCE` remains the public ID. Test now explicitly pins it.
 
 ### INV-002 — FIT remains fail closed
 
-No numerical output before qualification. Existing engine/placeholder behavior and focused test enforce it.
+No numerical output before qualification. No authority code changed; existing blocked assertions remain.
 
 ### INV-003 — No UI authority
 
-UI/reporting never owns equations/thresholds/defaults. This PR does not change that boundary.
+UI/reporting never owns equations/thresholds/defaults. No UI production code changed.
 
 ### INV-004 — Table-only vibration product
 
-No 3D viewer/canvas. Roadmap only; no cross-repo production integration in this PR.
+No 3D viewer/canvas. Roadmap records `Advanced_Analysis` 3D EDIT as upstream table source only.
 
 ## 7. Validation and Evidence Ledger
 
@@ -184,81 +206,87 @@ No 3D viewer/canvas. Roadmap only; no cross-repo production integration in this 
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Baseline source inspection | PASS | `37c37d7` | Core/placeholder/test/research and Advanced_Analysis export inspected. |
-| Stage 3 changed-file reconciliation | PASS | `7e20f67` pre-transition | Exactly 2 expected docs files. |
-| Focused engineering calculation test | NOT_RUN | — | Stage 4 |
-| Final changed-file reconciliation | NOT_RUN | — | Stage 5 |
+| Baseline source inspection | PASS | `37c37d7` | Core/placeholder/test/research/upstream export inspected |
+| Pre-code changed-file reconciliation | PASS | `7e20f67` | Exactly 2 expected docs paths |
+| Production patch inspection | PASS | `6677564f` | One name-line change only |
+| Test patch inspection | PASS | `6677564f` | Stable ID/name/revision assertions; blocked assertions retained |
+| Exact `node --test tests/engineering-calculation-core.test.mjs` | NOT_RUN | `6677564f` | No local repo/`gh` in available execution environment |
+| GitHub workflow checks | NOT_RUN | `6677564f` | No workflow runs associated with head |
+| Final changed-file reconciliation | NOT_RUN | — | Active Stage 5 |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| Numerical FIT correctness | NOT_RUN | No numerical implementation in this PR. |
-| FIT applicability correctness | NOT_RUN | No qualified applicability spec in this PR. |
-| FIT assessment correctness | NOT_RUN | No assessment logic in this PR. |
-| Baseline placeholder fail-closed | PASS | Existing core test asserts blocked code/no outputs. |
-| Upstream certified table authority capability | PASS by source inspection | Advanced_Analysis exporter validates canonical authority; plain CSV serializes Elements only. |
+| Numerical FIT correctness | NOT_RUN | No numerical implementation in PR |
+| FIT applicability correctness | NOT_RUN | No applicability implementation in PR |
+| FIT assessment correctness | NOT_RUN | No assessment implementation in PR |
+| Fail-closed authority preserved | PASS by patch/source inspection | No authority/engine changes; blocked regression retained |
+| Stable public ID preserved | PASS by source/test inspection | Definition key unchanged and test pins ID |
+| Canonical visible terminology | PASS by source/test inspection | Exact name pinned to `Flow-Induced Turbulence (FIT) Screening` |
 
 ### Explicitly Not Validated
 
-Any EI/AVIFF equation/table/threshold, screening authority, design authority, production table import, facility performance, measurement/RCA, nonlinear dynamics.
+Any EI/AVIFF equation/table/threshold, screening/design authority, production table import, facility performance, measurements/RCA, nonlinear dynamics, runtime Node regression on this head.
 
-## 8. Known / Deferred Work and Forward Sequence
+## 8. Known / Deferred Work and Recommended Forward Sequence
 
-1. FIT Engineering Method Specification from exact licensed authority.
-2. Qualified method/master register.
-3. Pure FIT domain vertical with real production consumer.
-4. Independent qualification dossier.
-5. Activate existing central API ID only after explicit gate.
-6. Versioned 3D EDIT table exchange; no viewer/canvas.
-7. Table-first line/facility workflow.
-8. AIV → FIP → SBC → cavitation/flashing → surge → slug.
-9. Mitigation/MOC/verification; measurements/RCA later; nonlinear dynamics last.
+1. **FIT Engineering Method Specification** from exact legally controlled source; close QST-001 sufficiently for implementation.
+2. **Qualified method/master register** with source/native-unit/record hashes and independent transcription review.
+3. **Pure FIT domain vertical**: validation → resolution → applicability → calculation → assessment, with a real production consumer.
+4. **Independent qualification dossier**: references, boundaries, SI/US equivalence, fail-closed, determinism.
+5. **Central API activation** only after explicit qualification/authority approval.
+6. **Versioned 3D EDIT table exchange** with a real consumer; no viewer/canvas.
+7. **Table-first line/facility workflow**: data completeness, cases, Result → Why → Evidence, findings.
+8. **AIV → FIP → SBC → cavitation/flashing → surge → slug**, each separately governed.
+9. Mitigation/MOC/verification, then measurements/RCA, then advanced/nonlinear dynamics.
 
 ## 9. Stage Execution Log
 
 ### Stage 1
 
-- Read pinned Common CodingRules.
-- Confirmed repo/default branch/base commit.
-- Confirmed issue #429 blocked definition and existing regression.
-- Confirmed table-only owner constraint.
-- Inspected `Advanced_Analysis` certified export and CSV limitation.
-- Created branch and added report/roadmap.
-- Opened draft PR #438.
-- **Stage decision: COMPLETE.**
+- Pinned CodingRules read.
+- Baseline/research/FIV gate/upstream export inspected.
+- Branch/report/roadmap created.
+- Draft PR #438 opened.
+- **COMPLETE.**
 
 ### Stage 2
 
-- Allocated PR #438.
-- Created correctly named report and removed pending report.
-- **Stage decision: COMPLETE.**
+- PR allocated; report renamed/synchronized; pending report removed.
+- **COMPLETE.**
 
 ### Stage 3
 
-- GitHub changed-file listing matched exactly `agents/PR438_workreport.md` and `docs/FIVroadmap.md`.
-- No unexplained files.
-- **Validation: PASS.**
-- **Stage decision: COMPLETE.**
+- Pre-code diff exactly matched roadmap + report.
+- **PASS / COMPLETE.**
+
+### Stage 4
+
+- One-line FIT catalogue terminology change implemented.
+- Existing blocked regression strengthened.
+- Source/patch validation PASS; runtime test NOT_RUN due environment; no workflow run.
+- **COMPLETE with explicit validation limitation.**
 
 ## 10. Process Notes / Lessons Learned
 
-- Human CSV convenience and certified machine exchange are not automatically the same authority boundary. Preserve connectivity/source/catalogue/export metadata where the downstream method needs them.
+- Human CSV convenience and certified machine exchange are not automatically the same authority boundary; preserve authority metadata required by downstream engineering.
+- A terminology correction can be production-useful without weakening a qualification gate; changing the public ID would have been a larger authority/API decision than necessary.
 
 ## 11. Next-Agent Handover
 
-- **Current stopping point:** Stage 4 opened before production code.
-- **PR / branch / HEAD:** #438 / `agent/fiv-fit-roadmap-foundation` / `7e20f672...` before this transition commit.
-- **Last completed stage:** Stage 3.
-- **Current active stage:** Stage 4.
-- **Start here:** change only FIV/FIT pending display terminology and focused core regression.
-- **Do not redo:** deep research or 3D product planning; boundary is table-only.
-- **Do not assume:** FIT equations/legacy workbook are qualified.
-- **Files currently involved:** roadmap, report; Stage 4 adds pending definition + core test.
-- **Known failing checks:** none known; production test not yet run.
-- **Validation still required:** Stage 4 focused test/source review; Stage 5 final reconciliation.
+- **Current stopping point:** Stage 5 final reconciliation.
+- **PR / branch / HEAD:** #438 / `agent/fiv-fit-roadmap-foundation` / production/test head `6677564f67c665d2389c038ed2f8a10a1aaaa177` before report-only closure updates.
+- **Last completed stage:** Stage 4.
+- **Current active stage:** Stage 5.
+- **Start here:** final GitHub changed-file list; expected four paths in ledger.
+- **Do not redo:** broad research, 3D planning, or FIT terminology decision.
+- **Do not assume:** exact Node test passed; FIT equations/legacy workbook are qualified; screening authority exists.
+- **Files currently involved:** four ledger paths above.
+- **Known failing checks:** none known; exact test is NOT_RUN, not PASS.
+- **Validation still required:** final changed-file reconciliation; independent/local runtime test before readiness/merge.
 - **Open QST-*:** QST-001, QST-002.
-- **Important deferred IMP-*:** IMP-001 machine-oriented exchange in Advanced_Analysis.
+- **Important deferred IMP-*:** IMP-001 machine-oriented exchange in `Advanced_Analysis`.
 - **Highest-risk remaining item:** unauthorized/inexact empirical method implementation.
-- **Exact next recommended action:** implement the two-file production/test terminology slice, validate, and reconcile.
+- **Exact next recommended action:** complete final reconciliation; keep PR draft. Next implementation PR begins with exact FIT Method Specification/source register, not numerical coding from unqualified sources.
 - **Required reading:** `docs/FIVroadmap.md`, `docs/Vibration deep-research-report (2).md`, `docs/APIEngineeringCalcRoadmap.md`, `docs/APIEngineeringCalcContracts.md`, Common CodingRules, issue #429.
