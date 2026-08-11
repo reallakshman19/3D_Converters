@@ -22,6 +22,11 @@ export {
   validateFitReferenceInput,
 } from './applicability.js';
 
+export {
+  FIT_QUALIFICATION_EVIDENCE_TYPES,
+  evaluateFitQualificationCoverage,
+} from './qualification-coverage.js';
+
 export { calculateFit } from './calculate.js';
 export { assessFit } from './assess.js';
 export {
