@@ -9,11 +9,11 @@
 | Branch | `agent/hp-class-standardization-tool` |
 | Base commit | `4530b4a98c3b6d6713665228bf3ca8e953a95018` |
 | PR status | DRAFT / OPEN |
-| Current stage | Stage 8 - KD-2 source integration - IN PROGRESS |
-| Engineering status | B31.3 class-side calculations and multi-cycle usage framework implemented. KD-2 source artifact is now available and is being integrated as a controlled stress-analysis/evidence gate. Automatic KD-3 `Seq/Ni` remains externally blocked. |
-| Validation status | Existing Stage 7 validation remains PASS. KD-2 source identity is confirmed by GitHub; exact source edition/year is not yet decoded from the protected binary PDF and must remain an explicit controlled field. |
+| Current stage | Stage 8 - KD-2 source integration - COMPLETE |
+| Engineering status | B31.3 class-side calculations and multi-cycle usage framework implemented. KD-2 source artifact is integrated as a controlled stress-analysis/evidence gate. Pressure-only analytical stress tensors are implemented for uniform straight pipe. Automatic KD-3 `Seq/Ni` remains externally blocked. |
+| Validation status | PASS for Stage 7 plus Stage 8 JavaScript syntax, DOM-ID smoke, unchanged B31.3 reference values, analytical pressure-state benchmark, production blob integrity and PR file ledger. KD-2 source edition/year remains an explicit controlled field. |
 | Current blocker | Exact KD-2 edition/year and exact KD-2 stress-category/limit provisions have not been machine-decoded from the supplied PDF; KD-3 equations/fatigue curves are still absent. |
-| Exact next action | Add the KD-2 source/evidence package and pressure-only analytical stress tensor to the app, validate against K304.8.3 pressure stress, then resync this report. |
+| Exact next action | Obtain/confirm the KD-2 source edition/year and exact KD-2 stress-category/limit provisions from the controlled PDF; then supply KD-3 source data for automatic `Seq/Ni` work. |
 
 ## Handover in 60 Seconds
 
@@ -24,13 +24,13 @@
   - commit: `4dd651abbc86310077eaace6caa8b6788c1a6697`
   - PDF blob SHA: `8f20cd0dab683d28359e02207f6f65b834144ec9`
 - GitHub can identify/fetch the binary artifact but cannot decode its protected PDF text in the connector. **Do not infer the edition/year from a mirror.**
-- Stage 8 will add:
+- Stage 8 added:
   1. KD-2 source edition/year placeholder;
   2. KD-2 analysis-route, stress-model, geometry/discontinuity and residual/prestress controls;
   3. KD-2 stress-category/limit-check evidence ID and approval gate;
   4. analytical pressure-only closed-end straight-pipe stress tensors for each wall x cycle block;
   5. a check that analytical pressure-only `Delta SI` matches K304.8.3 `Delta Sp` for the reference case.
-- Stage 8 will **not** claim that the analytical tensor alone completes Article KD-2.
+- Stage 8 does **not** claim that the analytical tensor alone completes Article KD-2.
 - Automatic KD-3 `Seq` and `Ni` remain blocked until a controlled KD-3 source is supplied.
 
 ## Mission and Engineering Intent
@@ -80,8 +80,8 @@ The tool standardizes bounded pressure-fatigue capacity for piping classes witho
 | Cumulative usage from controlled `Ni` | HIGH | IMPLEMENTED / VALIDATED |
 | KD-2 source identity | HIGH | VALIDATED |
 | KD-2 source edition/year | HIGH | BLOCKED - confirm from controlled PDF |
-| KD-2 analytical pressure-state package | HIGH | IN PROGRESS |
-| KD-2 review/evidence gate | HIGH | IN PROGRESS |
+| KD-2 analytical pressure-state package | HIGH | IMPLEMENTED / VALIDATED |
+| KD-2 review/evidence gate | HIGH | IMPLEMENTED |
 | Automatic licensed KD-3 `Seq/Ni` | HIGH | BLOCKED - source not supplied |
 | Material/product libraries | MEDIUM | PLACEHOLDER / future |
 | CAESAR benchmark | LOW | DEFERRED / outside current need |
@@ -104,8 +104,8 @@ The tool standardizes bounded pressure-fatigue capacity for piping classes witho
 | QST-003 | question | HIGH | BLOCKED | Exact KD-3 equivalent-alternating-stress provisions/factors. |
 | QST-004 | question | HIGH | BLOCKED | Exact KD-3 fatigue curve/data for `Ni`. |
 | QST-005 | question | MEDIUM | BLOCKED | Actual purchase-spec dimensions/tolerances. |
-| IMP-009 | improvement | HIGH | IN PROGRESS | KD-2 controlled source / analysis / evidence package. |
-| IMP-010 | improvement | HIGH | IN PROGRESS | Pressure-only analytical stress tensors and `Delta SI` benchmark. |
+| IMP-009 | improvement | HIGH | DONE | KD-2 controlled source / analysis / evidence package. |
+| IMP-010 | improvement | HIGH | DONE | Pressure-only analytical stress tensors and `Delta SI` benchmark. |
 
 ## Stage Execution Log
 
@@ -121,16 +121,27 @@ Source validation, B31.3-2024 static/fatigue class calculations, multiple pressu
 - GitHub blob SHA: `8f20cd0dab683d28359e02207f6f65b834144ec9`.
 - Connector cannot decode protected binary PDF text; edition/year remains NOT_VALIDATED and is not inferred from external mirrors.
 
-**Planned implementation:**
+**Implementation completed:**
 
-- Add KD-2 source/evidence controls to `index.html` / `app.js`.
-- Compute pressure-only closed-end elastic stress tensors for the uniform straight-pipe class case.
-- Display endpoint principal stresses and component ranges per wall x cycle block.
-- Calculate pressure-only `Delta SI` as a mechanics cross-check.
-- Require explicit KD-2 limit-check calculation ID and approval before class-release review eligibility.
-- Export KD-2 metadata/stress states in CSV.
+- Added KD-2 source/evidence controls to `index.html` / `app.js`.
+- Added pressure-only closed-end elastic stress tensors for the uniform straight-pipe class case.
+- Added endpoint axial/hoop/radial stresses and component ranges per wall x cycle block.
+- Added pressure-only `Delta SI` mechanics cross-check.
+- Added explicit KD-2 limit-check calculation ID and approval gate before class-release review eligibility.
+- Added KD-2 source metadata and stress-state fields to CSV export.
 
-**Stage decision:** IN PROGRESS.
+**Focused validation:**
+
+- `node --check app.js`: PASS.
+- Static DOM-ID smoke: PASS.
+- Reference B31.3 values unchanged: PASS.
+- 13.49 mm / 2->20 MPa analytical pressure-only `Delta SI = 126.5989916210 MPa`, matching Eq. (37) `Delta Sp = 126.5989916210 MPa`: PASS.
+- Local validated Git blob hashes match committed production blobs:
+  - `index.html`: `2760d5d2a55c36286273b87072dd399b8ce405f9`
+  - `app.js`: `89f97d62a6438f08cf5231e55c233d4c9ff21cf3`
+  - `README.md`: `a24d869814260d78975343410cce33c96942c694`
+
+**Stage decision:** COMPLETE.
 
 ## Changed-File Ledger
 
@@ -144,7 +155,7 @@ Current PR remains intentionally limited to five paths:
 | `engineering/hp-class-standardization/index.html` | Static UI |
 | `engineering/hp-class-standardization/styles.css` | Presentation |
 
-Stage 8 intends to update the report plus `README.md`, `app.js`, and `index.html`; no new production path is planned.
+Stage 8 updated the report plus `README.md`, `app.js`, and `index.html`; no new production path was introduced.
 
 ## Validation and Evidence Ledger
 
@@ -158,11 +169,11 @@ Existing validated reference (13.49 mm candidate):
 - `Sp(20) = 140.6655462456 MPa`
 - `Delta Sp = 126.5989916210 MPa`
 
-Stage 8 acceptance target: analytical pressure-only `Delta SI` shall reproduce `Delta Sp` for the same uniform straight-pipe pressure cycle within numerical precision.
+Stage 8 acceptance result: analytical pressure-only `Delta SI = 126.5989916210 MPa` reproduces Eq. (37) `Delta Sp = 126.5989916210 MPa` for the 13.49 mm reference case within numerical precision: PASS.
 
 # Appendix A - Next-Agent Handover
 
-Current work is Stage 8. The KD-2 source artifact is known, but its edition/year is not machine-validated. Do not infer it. Implement only source/evidence controls and analytical pressure-state inputs until exact KD-2 provisions are confirmed.
+Stage 8 is complete. The KD-2 source artifact is integrated and analytical pressure-state inputs are implemented, but its edition/year and exact stress-category/limit provisions remain externally controlled. Do not infer them from mirrors.
 
 Do not reintroduce actual-system analysis. Do not embed generic KD equations. Do not claim that Lame pressure tensors alone satisfy KD-2. Do not change the B31.3-2024 formulas or per-block `Syt` basis without source evidence.
 
