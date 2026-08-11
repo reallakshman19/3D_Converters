@@ -92,7 +92,22 @@
     return [...document.querySelectorAll('#fatigueBody tr')];
   }
 
+  function normalizedEdition(value) {
+    return String(value || '').toLowerCase().replace(/[^0-9a-z]/g, '');
+  }
+
+  function kd3SourceState() {
+    if (!nonBlank('kd3SourceEdition')) return ['blocked', 'Source edition missing'];
+    if (!byId('kd3SourceConfirmed')?.checked) return ['blocked', 'Source not verified'];
+    const project = normalizedEdition(byId('viii3Edition')?.value);
+    const source = normalizedEdition(byId('kd3SourceEdition')?.value);
+    if (project && source && project !== source) return ['special', 'Edition mismatch'];
+    return ['complete', 'Source verified'];
+  }
+
   function kd3State() {
+    const sourceState = kd3SourceState();
+    if (sourceState[0] !== 'complete') return sourceState;
     const rows = kd3Rows();
     if (!rows.length) return ['blocked', 'No results'];
     if (!nonBlank('viii3Edition') || !nonBlank('kdRoute') || !nonBlank('fatigueCurveId')) return ['blocked', 'Authority missing'];
@@ -199,7 +214,7 @@
 
     evidenceState('evidence-viii3', nonBlank('viii3Edition'));
     evidenceState('evidence-material', nonBlank('materialSpec') && nonBlank('materialGrade') && nonBlank('productSpec') && nonBlank('toleranceSource'));
-    evidenceState('evidence-kd3', nonBlank('kdRoute') && nonBlank('fatigueCurveId'));
+    evidenceState('evidence-kd3', kd3SourceState()[0] === 'complete' && nonBlank('kdRoute') && nonBlank('fatigueCurveId'));
 
     const context = byId('railContext');
     if (context) context.textContent = currentContext();
