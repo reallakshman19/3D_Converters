@@ -4,6 +4,7 @@ import {
 } from '../contracts.js';
 import { composeEngineeringQualification } from '../qualification.js';
 import {
+  FIT_MULTIPHASE_RESOLUTION_MODES,
   FIT_REFERENCE_AUTHORITY,
   FIT_WORKBOOK_SOURCE,
   assessFit,
@@ -30,6 +31,7 @@ function benchmarkQualification() {
 function domainInput(input) {
   return {
     phase: input.phase,
+    ...(input.multiphaseResolutionMode !== undefined ? { multiphaseResolutionMode: input.multiphaseResolutionMode } : {}),
     outsideDiameterM: input.outsideDiameter,
     wallThicknessM: input.wallThickness,
     ...(input.insideDiameter !== undefined ? { insideDiameterM: input.insideDiameter } : {}),
@@ -125,9 +127,11 @@ function calculate(input, runtime = {}) {
       domainApi: 'calculateFit',
       engineeringAuthority: FIT_REFERENCE_AUTHORITY,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
+      inputResolution: result.evidence.inputResolution,
     },
     evidence: {
       equationIds: result.evidence.equationIds,
+      inputResolution: result.evidence.inputResolution,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       domainResult: result,
     },
@@ -140,6 +144,7 @@ function calculate(input, runtime = {}) {
 
 const inputs = Object.freeze([
   { key: 'phase', label: 'Fluid phase', type: 'enum', values: ['LIQUID', 'GAS', 'MULTIPHASE'], required: true },
+  { key: 'multiphaseResolutionMode', label: 'Multiphase resolution mode', type: 'enum', values: FIT_MULTIPHASE_RESOLUTION_MODES },
   { key: 'outsideDiameter', label: 'Outside diameter', type: 'number', quantity: 'length', canonicalUnit: 'm', required: true, minExclusive: 0 },
   { key: 'wallThickness', label: 'Wall thickness', type: 'number', quantity: 'length', canonicalUnit: 'm', required: true, minExclusive: 0 },
   { key: 'insideDiameter', label: 'Inside diameter', type: 'number', quantity: 'length', canonicalUnit: 'm', minExclusive: 0 },
@@ -161,7 +166,7 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   family: 'VIB',
   name: 'Flow-Induced Turbulence (FIT) — Workbook Reference',
   shortName: 'FIT Workbook Reference',
-  methodRevision: 'ei-aviff2-fit-reference-v2',
+  methodRevision: 'ei-aviff2-fit-reference-v3',
   purpose: 'Execute source-traceable FIT reference equations for qualification and benchmark review only.',
   authority: {
     calculationState: 'IMPLEMENTED',
@@ -175,6 +180,7 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
       'EI worked examples are qualification evidence but do not cover the complete method domain.',
       'Independent EI/project-method review remains required under issue #429.',
       'Manual OD support-family gap remains fail-closed.',
+      'Mixed aggregate/component multiphase data require an explicit resolution mode.',
     ],
   },
   inputs,
