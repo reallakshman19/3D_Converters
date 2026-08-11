@@ -170,7 +170,6 @@ export function createPendingEngineeringCalculationDefinition([id, family, name,
     inputs: [],
     outputs: [],
     qualificationIssue: issueNumber,
-    ui: { ...baseUi, ...(overrides.ui ?? {}) },
     ...overrides,
     ui: { ...baseUi, ...(overrides.ui ?? {}) },
     calculate() {
