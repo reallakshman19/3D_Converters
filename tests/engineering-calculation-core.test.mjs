@@ -56,6 +56,18 @@ const empiricalInput = Object.freeze({
   approach: 'FINAL',
 });
 
+const fitSiInput = Object.freeze({
+  outsideDiameter: 0.1683,
+  wallThickness: 0.00711,
+  massFlow: 11.8,
+  density: 37.4,
+  maximumUnsupportedSpan: 5.8,
+});
+
+function nearlyEqual(actual, expected, tolerance = 1e-12) {
+  assert(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
+}
+
 test('default catalogue exposes 3 executable definitions and 19 qualification-blocked placeholders', () => {
   const all = listEngineeringCalculations();
   const available = listEngineeringCalculations({ availableOnly: true });
@@ -158,7 +170,7 @@ test('candidate empirical model is Sandbox-only and uses the same production def
   assert.equal(sandbox.qualification.designAuthority, false);
 });
 
-test('qualification-gated FIT/FIV placeholder preserves stable ID and fails before numerical output', () => {
+test('qualification-gated FIT/FIV definition exposes physical preflight but remains non-executable', () => {
   const definition = getEngineeringCalculationDefinition('VIB.FIV.FLOW_TURBULENCE');
   const qualification = getEngineeringCalculationQualification(definition.id);
   assert.equal(definition.id, 'VIB.FIV.FLOW_TURBULENCE');
@@ -168,23 +180,128 @@ test('qualification-gated FIT/FIV placeholder preserves stable ID and fails befo
   assert.equal(definition.authority.qualificationState, 'BLOCKED');
   assert.equal(definition.qualificationIssue, 429);
   assert.equal(qualification.qualificationIssue, 429);
+  assert.equal(definition.ui.preflightEnabled, true);
+  assert.deepEqual(definition.inputs.map((field) => field.key), [
+    'outsideDiameter',
+    'wallThickness',
+    'massFlow',
+    'density',
+    'maximumUnsupportedSpan',
+  ]);
+  assert(definition.inputs.every((field) => field.engineeringDefault === undefined));
 
-  const result = calculateEngineering({ calculationId: definition.id, inputs: {} });
+  const validation = validateEngineeringCalculationInput(definition.id, fitSiInput, {
+    inputUnits: {
+      outsideDiameter: 'm', wallThickness: 'm', massFlow: 'kg/s', density: 'kg/m3', maximumUnsupportedSpan: 'm',
+    },
+  });
+  assert.equal(validation.ok, true, JSON.stringify(validation));
+  assert.equal(validation.preflight.authority, 'PHYSICAL_CONTEXT_ONLY');
+  assert.equal(validation.preflight.status, 'PHYSICAL_PREFLIGHT_ONLY');
+  assert.equal(validation.applicability.applicable, null);
+  assert.equal(validation.applicability.status, 'NOT_EVALUATED');
+
+  const result = calculateEngineering({ calculationId: definition.id, inputs: fitSiInput });
   assert.equal(result.ok, false);
   assert.equal(result.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
   assert.equal(Object.hasOwn(result, 'outputs'), false);
   assert.equal(result.qualification.effective, 'BLOCKED');
 });
 
-test('qualification-gated PIPE placeholder is discoverable but cannot execute', () => {
-  const result = calculateEngineering({
-    calculationId: 'PIPE.EXTERNAL_PRESSURE.CHECK',
-    inputs: {},
-  });
+test('FIT central Resolve normalizes engineering units and returns deterministic physical context', () => {
+  const resolved = resolveEngineeringCalculationInputs(
+    'VIB.FIV.FLOW_TURBULENCE',
+    {
+      outsideDiameter: 168.3,
+      wallThickness: 7.11,
+      massFlow: 42480,
+      density: 37.4,
+      maximumUnsupportedSpan: 5800,
+    },
+    {},
+    {
+      inputUnits: {
+        outsideDiameter: 'mm',
+        wallThickness: 'mm',
+        massFlow: 'kg/h',
+        density: 'kg/m3',
+        maximumUnsupportedSpan: 'mm',
+      },
+    },
+  );
+  assert.equal(resolved.ok, true, JSON.stringify(resolved));
+  nearlyEqual(resolved.canonicalInput.outsideDiameter, fitSiInput.outsideDiameter);
+  nearlyEqual(resolved.canonicalInput.wallThickness, fitSiInput.wallThickness);
+  nearlyEqual(resolved.canonicalInput.massFlow, fitSiInput.massFlow);
+  nearlyEqual(resolved.canonicalInput.density, fitSiInput.density);
+  nearlyEqual(resolved.canonicalInput.maximumUnsupportedSpan, fitSiInput.maximumUnsupportedSpan);
+  assert.equal(resolved.resolvedInputs.outsideDiameter.transformation, 'mm->m');
+  assert.equal(resolved.resolvedInputs.massFlow.transformation, 'kg/h->kg/s');
+  assert.equal(resolved.preflight.authority, 'PHYSICAL_CONTEXT_ONLY');
+  nearlyEqual(resolved.preflight.derived.insideDiameterM, 0.15408);
+  const expectedArea = Math.PI * 0.15408 ** 2 / 4;
+  nearlyEqual(resolved.preflight.derived.flowAreaM2, expectedArea);
+  nearlyEqual(resolved.preflight.derived.volumetricFlowM3S, 11.8 / 37.4);
+  nearlyEqual(resolved.preflight.derived.meanVelocityMS, (11.8 / 37.4) / expectedArea);
+  assert.deepEqual(resolved.preflight.evidence.map((row) => row.id), [
+    'FIT-PHYS-001', 'FIT-PHYS-002', 'FIT-PHYS-003', 'FIT-PHYS-004',
+  ]);
+});
+
+test('FIT physical preflight is invariant for equivalent SI and US customary inputs', () => {
+  const si = resolveEngineeringCalculationInputs(
+    'VIB.FIV.FLOW_TURBULENCE',
+    fitSiInput,
+    {},
+    { inputUnits: {
+      outsideDiameter: 'm', wallThickness: 'm', massFlow: 'kg/s', density: 'kg/m3', maximumUnsupportedSpan: 'm',
+    } },
+  );
+  const us = resolveEngineeringCalculationInputs(
+    'VIB.FIV.FLOW_TURBULENCE',
+    {
+      outsideDiameter: fitSiInput.outsideDiameter / 0.0254,
+      wallThickness: fitSiInput.wallThickness / 0.0254,
+      massFlow: fitSiInput.massFlow / 0.45359237,
+      density: fitSiInput.density / 16.01846337396,
+      maximumUnsupportedSpan: fitSiInput.maximumUnsupportedSpan / 0.3048,
+    },
+    {},
+    { inputUnits: {
+      outsideDiameter: 'in', wallThickness: 'in', massFlow: 'lb/s', density: 'lb/ft3', maximumUnsupportedSpan: 'ft',
+    } },
+  );
+  assert.equal(si.ok, true, JSON.stringify(si));
+  assert.equal(us.ok, true, JSON.stringify(us));
+  nearlyEqual(us.canonicalInput.outsideDiameter, si.canonicalInput.outsideDiameter, 1e-12);
+  nearlyEqual(us.canonicalInput.wallThickness, si.canonicalInput.wallThickness, 1e-12);
+  nearlyEqual(us.canonicalInput.massFlow, si.canonicalInput.massFlow, 1e-12);
+  nearlyEqual(us.canonicalInput.density, si.canonicalInput.density, 1e-12);
+  nearlyEqual(us.preflight.derived.meanVelocityMS, si.preflight.derived.meanVelocityMS, 1e-12);
+});
+
+test('FIT physical preflight fails closed on impossible pipe geometry before method applicability', () => {
+  const validation = validateEngineeringCalculationInput(
+    'VIB.FIV.FLOW_TURBULENCE',
+    { ...fitSiInput, outsideDiameter: 0.1, wallThickness: 0.05 },
+    { inputUnits: {
+      outsideDiameter: 'm', wallThickness: 'm', massFlow: 'kg/s', density: 'kg/m3', maximumUnsupportedSpan: 'm',
+    } },
+  );
+  assert.equal(validation.ok, false);
+  assert(validation.errors.some((error) => error.code === 'INPUT_INVALID' && error.field === 'wallThickness'));
+  assert.equal(validation.preflight, null);
+});
+
+test('other qualification-gated placeholders remain discoverable and do not gain preflight', () => {
+  const definition = getEngineeringCalculationDefinition('VIB.AIV.ACOUSTIC');
+  assert.equal(definition.authority.qualificationState, 'BLOCKED');
+  assert.equal(definition.ui.preflightEnabled, undefined);
+  assert.deepEqual(definition.inputs, []);
+  const result = calculateEngineering({ calculationId: definition.id, inputs: {} });
   assert.equal(result.ok, false);
   assert.equal(result.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
   assert.equal(Object.hasOwn(result, 'outputs'), false);
-  assert.equal(result.qualification.effective, 'BLOCKED');
 });
 
 test('validation and resolution are available independently of execution', () => {
