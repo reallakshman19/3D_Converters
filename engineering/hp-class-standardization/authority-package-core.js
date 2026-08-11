@@ -115,6 +115,31 @@
     return { ok: errors.length === 0, errors };
   }
 
+  function importPayload(pkg) {
+    const validation = validatePackage(pkg);
+    if (!validation.ok) return { ok: false, errors: validation.errors, payload: null };
+    return {
+      ok: true,
+      errors: [],
+      payload: {
+        metadata: plainClone(pkg.metadata),
+        inputs: plainClone(pkg.inputs),
+        rowEvidence: plainClone(pkg.rowEvidence || []),
+      },
+    };
+  }
+
+  function matchRowEvidence(rowEvidence, availableKeys) {
+    const available = new Set((availableKeys || []).map((key) => String(key || '')));
+    const matched = [];
+    const missing = [];
+    (rowEvidence || []).forEach((item) => {
+      if (available.has(String(item?.key || ''))) matched.push(plainClone(item));
+      else missing.push(String(item?.key || ''));
+    });
+    return { matched, missing };
+  }
+
   function createPackage({ metadata, inputs, rowEvidence = [], snapshot = {}, generatedAt } = {}) {
     return {
       schema: SCHEMA,
@@ -149,6 +174,8 @@
     SOURCES,
     createPackage,
     validatePackage,
+    importPayload,
+    matchRowEvidence,
     sourceErrors,
     rowKey,
     safeFilename,
