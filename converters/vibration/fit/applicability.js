@@ -19,8 +19,19 @@ function finite(input, field, { positive = false, nonNegative = false } = {}) {
   return null;
 }
 
+export function usesAggregateMultiphaseInput(input = {}) {
+  return input.phase === 'MULTIPHASE'
+    && input.densityKgM3 !== undefined
+    && (input.fluidVelocityMS !== undefined || input.massFlowKgS !== undefined);
+}
+
 function requiredPhaseData(input) {
   if (input.phase === 'LIQUID' || input.phase === 'GAS') {
+    const fields = [['densityKgM3', { positive: true }]];
+    if (input.fluidVelocityMS === undefined) fields.unshift(['massFlowKgS', { nonNegative: true }]);
+    return fields;
+  }
+  if (usesAggregateMultiphaseInput(input)) {
     const fields = [['densityKgM3', { positive: true }]];
     if (input.fluidVelocityMS === undefined) fields.unshift(['massFlowKgS', { nonNegative: true }]);
     return fields;
@@ -31,6 +42,26 @@ function requiredPhaseData(input) {
     ['liquidMassFlowKgS', { nonNegative: true }],
     ['liquidDensityKgM3', { positive: true }],
   ];
+}
+
+function validateMultiphaseComponentFlow(input, errors) {
+  if (input.phase !== 'MULTIPHASE' || usesAggregateMultiphaseInput(input)) return;
+  const values = [
+    input.gasMassFlowKgS,
+    input.gasDensityKgM3,
+    input.liquidMassFlowKgS,
+    input.liquidDensityKgM3,
+  ];
+  if (!values.every((value) => typeof value === 'number' && Number.isFinite(value))) return;
+  const volumetricFlow = (input.gasMassFlowKgS / input.gasDensityKgM3)
+    + (input.liquidMassFlowKgS / input.liquidDensityKgM3);
+  if (!(volumetricFlow > 0)) {
+    errors.push(error(
+      'FIT_INPUT_INVALID',
+      'gasMassFlowKgS',
+      'Component-derived multiphase input requires a positive total volumetric flow.',
+    ));
+  }
 }
 
 export function validateFitReferenceInput(input = {}) {
@@ -58,6 +89,7 @@ export function validateFitReferenceInput(input = {}) {
     const issue = finite(input, field, rule);
     if (issue) errors.push(issue);
   }
+  validateMultiphaseComponentFlow(input, errors);
   if (input.phase === 'GAS') {
     const issue = finite(input, 'gasDynamicViscosityPaS', { positive: true });
     if (issue) errors.push(issue);
@@ -100,7 +132,7 @@ export function evaluateFitApplicability(input = {}) {
     errors.push(error(
       'FIT_SUPPORT_SIZE_FAMILY_UNRESOLVED',
       'outsideDiameterM',
-      'Reference workbook does not define a deterministic medium/flexible diameter family for this manual diameter.',
+      'Reference method does not define a deterministic medium/flexible diameter family for this manual diameter.',
       { diameterMm, smallMaxMm: limits.smallFamilyMaxOutsideDiameterMm, largeMinMm: limits.largeFamilyMinOutsideDiameterMm },
     ));
   }
@@ -126,14 +158,16 @@ export function fitAdvancedEligibility(calculation) {
   }
   const fn = calculation.input?.naturalFrequencyHz;
   if (fn === undefined || fn === null) return Object.freeze({ eligible: false, reason: 'NATURAL_FREQUENCY_REQUIRED' });
-  if (fn < FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMinHz || fn > FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMaxHz) {
+  if (fn <= FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMinHz || fn > FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMaxHz) {
     return Object.freeze({
       eligible: false,
       reason: 'NATURAL_FREQUENCY_OUTSIDE_DECLARED_RANGE',
-      rangeHz: Object.freeze([
-        FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMinHz,
-        FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMaxHz,
-      ]),
+      rangeHz: Object.freeze({
+        min: FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMinHz,
+        minInclusive: FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMinInclusive,
+        max: FIT_REFERENCE_LIMITS.advancedNaturalFrequencyMaxHz,
+        maxInclusive: true,
+      }),
     });
   }
   return Object.freeze({ eligible: true, reason: 'ELIGIBLE' });
