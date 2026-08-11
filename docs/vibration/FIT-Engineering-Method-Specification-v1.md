@@ -6,110 +6,98 @@ Calculation family: Vibration & Dynamic Screening
 Stable public calculation ID: `VIB.FIV.FLOW_TURBULENCE`  
 Canonical mechanism: **Flow-Induced Turbulence (FIT)**  
 Qualification issue: #429  
-Reference implementation revision: `ei-aviff2-fit-reference-v2`
+Engineering method revision: `ei-aviff2-fit-reference-v2`
 
 ## 1. Purpose and authority
 
-This specification controls the deterministic FIT reference implementation used for migration, qualification and benchmark comparison. It combines:
-
-1. the retained CRF-4-1 FIT workbook and its extracted formula chain; and
-2. independent Energy Institute second-edition worked examples supplied in `reallaksh19/Common`.
+This specification controls the deterministic FIT reference implementation used for migration, qualification and benchmark comparison. It combines the retained CRF-4-1 workbook formula chain with independent Energy Institute second-edition worked examples supplied by the owner.
 
 It does **not** grant production screening or design authority. Execution remains `BENCHMARK_ONLY`; strict/screening execution must fail closed until issue #429 is independently approved.
-
-Authority labels:
 
 | Label | Meaning |
 |---|---|
 | `WORKBOOK_REFERENCE_ONLY` | retained-workbook migration provenance |
-| `EI_WORKED_EXAMPLE_BENCHMARK` | independent EI published example evidence |
+| `EI_WORKED_EXAMPLE_BENCHMARK` | independent EI example evidence |
 | `BENCHMARK_ONLY` | executable for qualification/comparison only |
-| `SCREENING` | not authorized by this specification |
+| `SCREENING` | not authorized |
 | `DESIGN` | not authorized |
 
 ## 2. Controlled sources
 
 ### 2.1 Retained workbook
 
-| Property | Value |
-|---|---|
-| Repository | `reallaksh19/CRF-4-1` |
-| Commit | `68dc8e1fa2ef67073c59b3afc56f1bf40953d535` |
-| Path | `Extended calc2/AIV FIV/FIT.xlsm` |
-| Duplicate path | `Enhanced stress report/extended calc/KS-PR-CAL-0086 Vibration Assessment - Flow Induced Turbulence Calculation.xlsm` |
-| Git blob | `d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e` |
-| Size | 493,650 bytes |
-| Calculation tab | `Flow Induced Turbulence` |
-| Worksheet XML | `xl/worksheets/sheet13.xml` |
-| Extracted XML | 114,139 bytes; 155 formula cells |
+```text
+Repository: reallaksh19/CRF-4-1
+Commit:     68dc8e1fa2ef67073c59b3afc56f1bf40953d535
+Path:       Extended calc2/AIV FIV/FIT.xlsm
+Git blob:   d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e
+Size:       493650 bytes
+Sheet:      Flow Induced Turbulence
+Worksheet:  xl/worksheets/sheet13.xml
+Extraction: 114139 XML bytes / 155 formula cells
+```
 
-The two paths are the same Git blob and therefore one source artifact.
+The duplicate KS-PR-CAL-0086 path is the same blob and therefore not an independent source.
 
-### 2.2 Energy Institute worked examples
+### 2.2 EI worked examples
 
-| Property | Value |
-|---|---|
-| Repository | `reallaksh19/Common` |
-| Commit | `aef163a5def3bfe04ca0ba860da05728a27daf42` |
-| Path | `EI - AVIFF Guidelines 2nd Edition_Examples.pdf` |
-| Git blob | `3e2517d0df527a051084fc02e69cb7afa31f8d47` |
-| Size | 3,757,439 bytes |
-| Edition | 2nd Edition, January 2008 |
-| Relevant worked examples | Appendix D, Examples D2 and D4 |
+```text
+Repository: reallaksh19/Common
+Commit:     aef163a5def3bfe04ca0ba860da05728a27daf42
+Path:       EI - AVIFF Guidelines 2nd Edition_Examples.pdf
+Git blob:   3e2517d0df527a051084fc02e69cb7afa31f8d47
+Size:       3757439 bytes
+Edition:    2nd Edition, January 2008
+Relevant:   Appendix D Examples D2 and D4
+```
 
-The repository stores only the minimum benchmark inputs/printed outputs needed for qualification in `Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`; it does not reproduce the licensed example document.
+Only minimum benchmark facts needed for qualification are stored in `Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`.
 
 ## 3. Method boundary
 
 ### FIT-APP-001 — mechanism
 
-Scope is main-line **Flow-Induced Turbulence**. This kernel must not be reused as empirical authority for FIP/dead-leg pulsation, AIV, SBC, cavitation/flashing, surge, slug/time-history, mechanical excitation or VIV.
+Scope is main-line **Flow-Induced Turbulence** only. Do not reuse this empirical authority for FIP/dead-leg pulsation, AIV, SBC, cavitation/flashing, surge, slug/time-history, mechanical excitation or VIV.
 
 ### FIT-APP-002 — outside-diameter envelope
-
-Reference implementation boundary:
 
 ```text
 60 mm <= Dext <= 762 mm
 ```
 
-The upper limit is stated by the retained method material. The lower boundary follows the controlled correlation families and remains subject to final engineering review.
+The upper limit is controlled source material; the lower boundary follows the controlled correlation families and remains subject to final engineering review.
 
 ### FIT-APP-003 — medium/flexible diameter families
-
-Controlled reference families:
 
 ```text
 SMALL: Dext <= 219.1 mm
 LARGE: Dext >= 273 mm
 ```
 
-EI worked Example D4 explicitly evaluates a 273 mm flexible line with the large flexible correlation; therefore 273 mm is included in the large family.
+EI D4 independently confirms the 273 mm flexible-large case.
 
-The unresolved manual-diameter region remains:
+The unresolved manual region:
 
 ```text
 219.1 mm < Dext < 273 mm
 ```
 
-and fails closed. No interpolation, nearest-size selection or hidden nominal-size assumption is authorized.
+fails closed. No interpolation, nearest-size choice or hidden nominal-size assumption is allowed.
 
-### FIT-APP-004 — advanced screening
+### FIT-APP-004 — advanced reference calculation
 
-Advanced reference calculation requires all of:
+All conditions are required:
 
 ```text
-support category is FLEXIBLE_SMALL or FLEXIBLE_LARGE
+support = FLEXIBLE_SMALL or FLEXIBLE_LARGE
 standard LOF >= 1
-actual natural frequency is supplied
+actual natural frequency supplied
 1 Hz < fn <= 3 Hz
 ```
 
-Exactly 1 Hz is **not eligible**. Exactly 3 Hz is eligible. A retained cached workbook example at 4 Hz is rejected as inconsistent with the controlled EI method boundary.
+Exactly 1 Hz is excluded; exactly 3 Hz is included. Cached 4 Hz workbook behavior is not reproduced.
 
-### FIT-APP-005 — phases and process resolution
-
-Reference phase values:
+### FIT-APP-005 — phases
 
 ```text
 LIQUID
@@ -117,28 +105,49 @@ GAS
 MULTIPHASE
 ```
 
-The method fundamentally consumes density and velocity. Mass-flow inputs are a deterministic resolver convenience, not a hidden method default.
+The FIT method consumes resolved density/velocity. Mass flow is a resolver input, not a hidden method requirement when authoritative velocity is supplied.
 
-Multiphase supports two explicit resolution modes:
+### FIT-APP-006 — multiphase resolution contract
 
-- `AGGREGATE_EFFECTIVE`: authoritative effective density plus effective velocity, or effective density plus aggregate mass flow from which velocity is derived;
-- `COMPONENT_DERIVED`: gas and liquid aggregate mass-flow/density pairs from which total volumetric flow, mixture density and velocity are derived.
+Supported modes:
 
-If valid aggregate effective density plus velocity/mass-flow inputs are supplied, `AGGREGATE_EFFECTIVE` is selected explicitly and provenance reports that mode. Otherwise the component-derived route is required. No silent phase-property approximation is permitted.
+```text
+AGGREGATE_EFFECTIVE
+COMPONENT_DERIVED
+```
+
+`AGGREGATE_EFFECTIVE` uses effective density plus effective velocity, or effective density plus aggregate mass flow to derive velocity.
+
+`COMPONENT_DERIVED` uses gas and liquid aggregate mass-flow/density pairs to derive component volumetric flows, total velocity and mixture density. An explicit velocity override may be used with component-derived density.
+
+Mode selection rules:
+
+```text
+only aggregate data shape present   -> AGGREGATE_EFFECTIVE / INFERRED
+only component data shape present   -> COMPONENT_DERIVED / INFERRED
+both shapes + no mode               -> FIT_MULTIPHASE_INPUT_AMBIGUOUS
+both + explicit aggregate mode      -> AGGREGATE_EFFECTIVE / EXPLICIT
+both + explicit component mode      -> COMPONENT_DERIVED / EXPLICIT
+invalid explicit mode               -> FIT_INPUT_INVALID
+explicit mode missing required data -> fail closed on required fields
+```
+
+This rule prevents merged HMB/table datasets from silently choosing one process interpretation.
 
 ## 4. Canonical domain inputs
 
-All external quantities are normalized to canonical SI by the central Engineering Calculation unit resolver before the empirical method executes.
+External quantities are normalized to canonical SI by the central Engineering Calculation unit resolver before the empirical correlation executes.
 
-| Field | Required | Canonical unit | Meaning |
+| Field | Required | Unit | Meaning |
 |---|---:|---|---|
 | `phase` | yes | enum | `LIQUID`, `GAS`, `MULTIPHASE` |
+| `multiphaseResolutionMode` | conditional | enum | explicit mode when both multiphase data shapes coexist |
 | `outsideDiameterM` | yes | m | external pipe diameter |
-| `wallThicknessM` | yes | m | wall thickness used in D/T correlations |
-| `insideDiameterM` | optional | m | authoritative ID; otherwise derived OD - 2T |
+| `wallThicknessM` | yes | m | wall thickness used by D/T correlation |
+| `insideDiameterM` | optional | m | authoritative ID; otherwise OD - 2T |
 | `maximumUnsupportedSpanM` | yes | m | maximum effective unsupported span |
-| `massFlowKgS` | conditional | kg/s | single-phase or aggregate mass flow when velocity is not supplied |
-| `densityKgM3` | conditional | kg/m3 | single-phase density or authoritative multiphase effective density |
+| `massFlowKgS` | conditional | kg/s | single-phase or aggregate mass flow if velocity not supplied |
+| `densityKgM3` | conditional | kg/m3 | single-phase density or effective multiphase density |
 | `gasDynamicViscosityPaS` | gas | Pa.s | gas dynamic viscosity |
 | `gasMassFlowKgS` | component multiphase | kg/s | gas mass flow |
 | `gasDensityKgM3` | component multiphase | kg/m3 | gas density |
@@ -149,9 +158,7 @@ All external quantities are normalized to canonical SI by the central Engineerin
 
 No engineering input has a default.
 
-## 5. Native empirical units
-
-The empirical coefficients retain their controlled native basis:
+## 5. Native empirical unit basis
 
 ```text
 Dext : mm
@@ -165,7 +172,7 @@ Fv   : Pa
 LOF  : dimensionless
 ```
 
-Do not rewrite coefficient values into another unit basis without a separately benchmarked method revision.
+Do not rewrite empirical coefficients into another unit basis without a separately qualified revision.
 
 ## 6. Equation register
 
@@ -181,7 +188,7 @@ A = pi * Dint^2 / 4
 Q = m_dot / rho
 ```
 
-For component-derived multiphase:
+Component multiphase:
 
 ```text
 Qtotal = Qgas + Qliquid
@@ -193,7 +200,7 @@ Qtotal = Qgas + Qliquid
 V = Q / A
 ```
 
-For `AGGREGATE_EFFECTIVE`, caller-supplied effective velocity may be used directly with provenance. If only aggregate mass flow and effective density are supplied, `Q = m_dot / rho_effective` and velocity is derived.
+An authoritative/effective velocity may be supplied directly. Provenance identifies caller override versus derived velocity.
 
 ### FIT-EQ-004 — single-phase / aggregate-effective excitation
 
@@ -201,7 +208,7 @@ For `AGGREGATE_EFFECTIVE`, caller-supplied effective velocity may be used direct
 rhoV2 = rho * V^2
 ```
 
-### FIT-EQ-005 — component-derived multiphase effective density
+### FIT-EQ-005 — component-derived multiphase density
 
 ```text
 rho_effective = (m_dot_g + m_dot_l) / (Qg + Ql)
@@ -219,11 +226,7 @@ rhoV2 = rho_effective * V^2
 FVF = sqrt(mu_gas / 0.001 Pa.s)
 ```
 
-For liquid and multiphase:
-
-```text
-FVF = 1
-```
+Liquid/multiphase use `FVF = 1`.
 
 ### FIT-EQ-008..010 — span/stiffness boundaries
 
@@ -235,16 +238,14 @@ L_medium_stiff = -0.000011886 D^2 + 0.025262 D + 3.3601
 L_medium       = -0.000015968 D^2 + 0.033583 D + 4.429
 ```
 
-Classification:
-
 ```text
-Lspan <= L_stiff                  -> STIFF
-L_stiff < Lspan <= L_medium_stiff -> MEDIUM_STIFF
+Lspan <= L_stiff                   -> STIFF
+L_stiff < Lspan <= L_medium_stiff  -> MEDIUM_STIFF
 L_medium_stiff < Lspan <= L_medium -> MEDIUM
-Lspan > L_medium                  -> FLEXIBLE
+Lspan > L_medium                   -> FLEXIBLE
 ```
 
-### FIT-EQ-011 — standard correlation coefficient families
+### FIT-EQ-011 — standard correlation families
 
 With `D = Dext_mm`:
 
@@ -276,13 +277,13 @@ FLEXIBLE_SMALL:
 
 ### FIT-EQ-012 — standard Fv
 
-Power-form families (`STIFF`, `MEDIUM_STIFF`, `MEDIUM_LARGE`, `FLEXIBLE_LARGE`):
+Power-form families:
 
 ```text
 Fv = a * (D/T)^b
 ```
 
-Exponential families (`MEDIUM_SMALL`, `FLEXIBLE_SMALL`):
+Small medium/flexible exponential families:
 
 ```text
 Fv = exp(a * (D/T)^b)
@@ -318,140 +319,105 @@ Fv_advanced = a * (D/T)^b
 LOF_refined = demand / Fv_advanced
 ```
 
-where `demand` is the same phase-adjusted numerator used by FIT-EQ-013.
-
-## 7. Constant and reference-band register
-
-### FIT-CONST-001 — gas viscosity reference
+## 7. Constants and reference bands
 
 ```text
-mu_ref = 0.001 Pa.s
+FIT-CONST-001: mu_ref = 0.001 Pa.s
+FIT-CONST-002: reference LOF threshold = 1
 ```
 
-### FIT-CONST-002 — advanced/reference threshold
+Neutral EI reference bands:
 
 ```text
-LOF_reference = 1
-```
-
-This threshold remains reference workflow information until bounded screening authority is approved.
-
-### FIT-CONST-003 — EI reference LOF bands
-
-Neutral benchmark bands retained from the EI worked-example workflow:
-
-```text
-LOF < 0.3        -> LOF_LT_0_3
+LOF < 0.3         -> LOF_LT_0_3
 0.3 <= LOF < 0.5 -> LOF_0_3_TO_LT_0_5
-0.5 <= LOF < 1.0 -> LOF_0_5_TO_LT_1
-LOF >= 1.0       -> LOF_GE_1
+0.5 <= LOF < 1   -> LOF_0_5_TO_LT_1
+LOF >= 1          -> LOF_GE_1
 ```
 
-These are workflow/reference bands, not a universal probability scale and not a production `pass` boolean.
+These are benchmark/workflow bands, not probabilities and not production pass/fail authority.
 
 ## 8. Assessment register
 
-Benchmark assessment output must never expose a production `pass` boolean.
-
-### FIT-ASS-001 — standard LOF below 1
+Benchmark assessments never contain a production `pass` boolean.
 
 ```text
-status = REFERENCE_BELOW_THRESHOLD
-referenceBand = band(LOF_standard)
+standard LOF < 1:
+  REFERENCE_BELOW_THRESHOLD
+
+valid advanced path and refined LOF < 1:
+  REFERENCE_BELOW_THRESHOLD_AFTER_ADVANCED
+
+standard/refined LOF >= 1 or no valid advanced path:
+  REFERENCE_FURTHER_ENGINEERING_ASSESSMENT_REQUIRED
 ```
 
-### FIT-ASS-002 — valid advanced reference path
+`referenceBand` is based on the LOF actually used by the assessment.
 
-```text
-LOF_refined < 1  -> REFERENCE_BELOW_THRESHOLD_AFTER_ADVANCED
-LOF_refined >= 1 -> REFERENCE_FURTHER_ENGINEERING_ASSESSMENT_REQUIRED
-referenceBand = band(LOF_refined)
-```
+## 9. Source/API dispositions
 
-### FIT-ASS-003 — standard threshold reached without a valid advanced path
+### ISS-009 / ISS-012 — frequency boundary
 
-```text
-LOF_standard >= 1
-AND advanced path unavailable/not applicable
--> REFERENCE_FURTHER_ENGINEERING_ASSESSMENT_REQUIRED
-```
+Resolved in software: `1 < fn <= 3`. Retained cached 4 Hz advanced behavior is rejected.
 
-All statuses retain reference-only authority.
+### ISS-010 — support selector mismatch
 
-## 9. Source inconsistency dispositions
+Resolved in software: support is derived from span equations; stale hidden selector state is not authority.
 
-### ISS-009 / ISS-012 — advanced-frequency boundary
+### ISS-013 — 273 mm boundary
 
-Retained cache behavior includes an advanced calculation at 4 Hz and the earlier reference implementation treated exactly 1 Hz as eligible. The controlled EI boundary is:
+Resolved in software and EI D4 regression: `Dext >= 273 mm` enters the large medium/flexible family.
 
-```text
-1 Hz < fn <= 3 Hz
-```
+### ISS-016 — mixed multiphase input ambiguity
 
-Software disposition: **resolved** by enforcing the exclusive lower and inclusive upper boundary. Cached 4 Hz behavior is not reproduced.
+Resolved in software: when aggregate and component multiphase data coexist, an explicit `multiphaseResolutionMode` is mandatory. Without it, validation returns `FIT_MULTIPHASE_INPUT_AMBIGUOUS`.
 
-### ISS-010 — hidden support selector mismatch
+### QST-003 — remaining diameter gap
 
-A retained cached example contains selector state inconsistent with its own span-derived stiffness.
-
-Software disposition: **resolved** by deriving stiffness deterministically from FIT-EQ-008..010 and deriving correlation family from stiffness plus the controlled diameter family. Hidden selector state is not authority.
-
-### ISS-013 — 273 mm large-family boundary
-
-Earlier code began the large medium/flexible family at 273.05 mm. EI worked Example D4 uses 273 mm and evaluates a flexible large line.
-
-Software disposition: **resolved** by including 273 mm in the large family.
-
-### QST-003 — remaining manual-diameter gap
-
-The region:
-
-```text
-219.1 mm < Dext < 273 mm
-```
-
-remains unresolved for manual medium/flexible inputs. It continues to fail closed pending an approved nominal-size mapping or governing-source rule.
+`219.1 < Dext < 273 mm` remains fail-closed pending an authoritative mapping/exclusion decision.
 
 ## 10. Benchmark register
 
-### 10.1 Retained-workbook parity
+- Retained workbook parity: migration/source-transcription evidence.
+- `fit-independent-hand-benchmarks-v1.json`: independent software arithmetic evidence.
+- `fit-ei-worked-examples-v1.json`: independent EI D2/D4 example evidence.
 
-Retained gas and multiphase cases remain migration/source-transcription evidence only because cached workbook state contains known inconsistencies.
+Current focused EI regression after Stage 12 hardening:
 
-### 10.2 Independent hand-derived software cases
+```text
+12 tests / 12 PASS
+```
 
-`Benchmarks/VibrationFIT/fit-independent-hand-benchmarks-v1.json` validates equation transcription, threshold behavior, units, deterministic support classification and fail-closed cases without using cached workbook outputs as its oracle.
+The five published EI D2/D4 numerical cases are unchanged by the resolution-contract hardening.
 
-### 10.3 EI worked examples
+## 11. API/result evidence requirements
 
-`Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json` pins the supplied EI example source and checks printed Appendix D values with explicit rounding tolerance. Coverage includes:
-
-- D2 gas compression: medium-stiff gas cases, viscosity factor, Fv and LOF;
-- D4 separation: 508 mm stiff multiphase line using effective density/velocity;
-- D4 produced water: 273 mm flexible-large line and LOF > 1;
-- exact 1 Hz / 3 Hz advanced boundary behavior.
-
-Worked examples validate the method slices they exercise. They do not by themselves prove the complete T2.2 applicability domain.
-
-## 11. API/result requirements
-
-A reference result keeps these concepts separate:
+Results keep these concepts separate:
 
 ```text
 applicability
-hydraulics / resolutionMode
-excitation / densitySource
+hydraulics
+excitation
 support
 standard correlation
-advanced eligibility
-advanced result
-assessment / referenceBand
+advanced eligibility/result
+assessment/referenceBand
 qualification
 provenance
 evidence
 ```
 
-Minimum authority:
+For multiphase results, evidence contains:
+
+```text
+inputResolution.multiphaseResolutionMode
+inputResolution.selection = INFERRED | EXPLICIT
+inputResolution.alternateModeDataPresent
+```
+
+When both data shapes are supplied with an explicit mode, `alternateModeDataPresent = true` records that non-selected engineering data were present but intentionally not used.
+
+Minimum authority remains:
 
 ```text
 qualificationState   = BENCHMARK_ONLY
@@ -461,27 +427,17 @@ designAuthority      = false
 qualificationIssue   = 429
 ```
 
-Strict/screening execution must return `ENGINEERING_METHOD_NOT_QUALIFIED` with no outputs.
+## 12. Gate for future SCREENING authority
 
-## 12. Qualification gate for future SCREENING authority
+Promotion is not permitted until:
 
-Promotion is not permitted until all applicable items are complete:
+1. EI worked-example regression remains PASS;
+2. independent hand benchmark regression passes in the complete checkout;
+3. full central API/Console/batch regression passes;
+4. mixed multiphase ambiguity/explicit-mode cases pass through the central API;
+5. every applicable method/application item is independently reviewed against the adopted EI/project basis and errata;
+6. QST-003 is authoritatively resolved or explicitly excluded from screening scope;
+7. missing-data, units, phase, threshold and support-boundary cases pass;
+8. an identified vibration engineer records approval and limitations under issue #429.
 
-1. EI worked-example regression passes for controlled D2/D4 cases;
-2. independent hand-derived benchmark regression passes;
-3. full central API/Console/batch regression passes from a complete checkout;
-4. every `FIT-APP-*`, `FIT-EQ-*`, `FIT-CONST-*`, and `FIT-ASS-*` item is reviewed against the licensed adopted EI/project basis and applicable errata;
-5. QST-003 is either resolved with an authoritative nominal-size rule or explicitly excluded from screening applicability;
-6. missing-data, unit-invariance, phase, threshold and support-boundary cases pass;
-7. an identified vibration engineer records independent approval and limitations;
-8. issue #429 records the resulting bounded authority decision.
-
-Until then:
-
-```text
-calculationState     = IMPLEMENTED
-qualificationState   = BENCHMARK_ONLY
-engineeringAuthority = NONE
-screeningAuthority   = NOT_AUTHORIZED
-designAuthority      = NOT_AUTHORIZED
-```
+Until then, FIT remains `BENCHMARK_ONLY`.
