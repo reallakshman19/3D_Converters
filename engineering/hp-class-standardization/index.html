@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HP Piping Class Standardization — B31.3-2024</title>
+  <title>HP Piping Class Standardization - B31.3-2024</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
     <div>
       <p class="eyebrow">Engineering calculation aid</p>
       <h1>High Pressure Piping Class Standardization</h1>
-      <p>ASME B31.3-2024 Chapter IX — straight-pipe class pressure design and bounded pressure-fatigue prequalification.</p>
+      <p>ASME B31.3-2024 Chapter IX - straight-pipe class pressure design and bounded pressure-fatigue prequalification.</p>
     </div>
     <div class="scope-card">
       <strong>Class boundary</strong>
@@ -22,7 +22,7 @@
   <main>
     <section class="notice warning">
       <strong>Engineering authority boundary.</strong>
-      Material data, purchase tolerances, BPVC VIII-3 edition, KD route, <code>Seq</code>, fatigue-curve <code>Ni</code> and evidence IDs are controlled project inputs. This tool does not invent licensed KD equations or fatigue curves.
+      B31.3 class calculations are implemented. BPVC VIII-3 KD-2/KD-3 approval remains controlled evidence. The app does not invent a KD edition, stress-limit approval, equivalent alternating stress equation, or fatigue curve.
     </section>
 
     <section class="panel">
@@ -39,18 +39,56 @@
         <label>Grade / condition<input id="materialGrade" type="text" placeholder="grade / heat treatment"></label>
         <label>Product specification<input id="productSpec" type="text" placeholder="pipe product specification"></label>
         <label>Dimension / tolerance source<input id="toleranceSource" type="text" placeholder="spec / table / clause"></label>
-        <label>KD route / clause reference<input id="kdRoute" type="text" placeholder="licensed KD-2/KD-3 route"></label>
+        <label>KD-3 route / clause reference<input id="kdRoute" type="text" placeholder="licensed KD-3 route"></label>
         <label>Design fatigue curve ID<input id="fatigueCurveId" type="text" placeholder="licensed curve identifier"></label>
         <label class="span-2">Calculation / evidence package ID<input id="evidencePackage" type="text" placeholder="controlled calc / document / approval ID"></label>
         <label>Fracture-mechanics review status
           <select id="fractureStatus">
-            <option value="unassessed">Unassessed — release blocked</option>
-            <option value="cleared">Requirement reviewed — class route cleared</option>
+            <option value="unassessed">Unassessed - release blocked</option>
+            <option value="cleared">Requirement reviewed - class route cleared</option>
             <option value="kd4-approved">KD-4 evaluation completed / approved</option>
             <option value="special">Outside automatic class qualification</option>
           </select>
         </label>
         <label>Fracture-mechanics evidence ID<input id="fractureEvidence" type="text" placeholder="review / KD-4 evidence ID"></label>
+      </div>
+
+      <div class="subsection-title">KD-2 controlled source and analysis package</div>
+      <div class="notice info compact">
+        <strong>Connected KD-2 source:</strong> `reallaksh19/Common`, commit <code>4dd651abbc86310077eaace6caa8b6788c1a6697</code>, PDF blob <code>8f20cd0dab683d28359e02207f6f65b834144ec9</code>. The source edition/year is intentionally not inferred from a mirror.
+      </div>
+      <div class="form-grid authority-grid">
+        <label>KD-2 source edition / year<input id="kd2Edition" type="text" placeholder="confirm from controlled PDF"></label>
+        <label>KD-2 analysis route
+          <select id="kd2AnalysisMethod">
+            <option value="unassessed">Unassessed - release blocked</option>
+            <option value="elastic">Elastic analysis</option>
+            <option value="inelastic">Inelastic / elastic-plastic analysis</option>
+            <option value="special">Other detailed / special route</option>
+          </select>
+        </label>
+        <label>Stress-model basis
+          <select id="kd2StressModel">
+            <option value="pressure-analytic">Analytical pressure-only straight pipe</option>
+            <option value="fea">Detailed FEA / numerical model</option>
+            <option value="other">Other controlled model</option>
+          </select>
+        </label>
+        <label>Geometry / discontinuity status
+          <select id="kd2Geometry">
+            <option value="uniform">Uniform straight pipe</option>
+            <option value="local">Local discontinuity present</option>
+            <option value="special">Special / nonstandard geometry</option>
+          </select>
+        </label>
+        <label>Residual / prestress treatment
+          <select id="kd2Residual">
+            <option value="none">Not included / not credited</option>
+            <option value="evidence">Included with controlled evidence</option>
+          </select>
+        </label>
+        <label class="span-2">KD-2 stress-category / limit-check calculation ID<input id="kd2LimitCalcId" type="text" placeholder="controlled KD-2 calculation / review ID"></label>
+        <label class="checkbox-label"><input id="kd2Approved" type="checkbox"> KD-2 analysis package reviewed / approved</label>
       </div>
 
       <div class="subsection-title">Pressure-design inputs</div>
@@ -84,16 +122,12 @@
       <div class="table-wrap compact-table">
         <table class="cycle-table">
           <thead>
-            <tr>
-              <th>Block</th><th>Pmin<br>MPa</th><th>Pmax<br>MPa</th><th>Tmin<br>°C</th><th>Tmax<br>°C</th><th>Avg T<br>°C</th><th>Syt @ Avg T<br>MPa</th><th>Cycles n</th><th></th>
-            </tr>
+            <tr><th>Block</th><th>Pmin<br>MPa</th><th>Pmax<br>MPa</th><th>Tmin<br>degC</th><th>Tmax<br>degC</th><th>Avg T<br>degC</th><th>Syt @ Avg T<br>MPa</th><th>Cycles n</th><th></th></tr>
           </thead>
           <tbody id="cycleBody"></tbody>
         </table>
       </div>
-      <div class="actions">
-        <button id="addCycleButton">Add cycle block</button>
-      </div>
+      <div class="actions"><button id="addCycleButton">Add cycle block</button></div>
     </section>
 
     <section class="panel">
@@ -102,14 +136,14 @@
         <p>2024 Eq. (34a) + K304.1.1 allowances</p>
       </div>
       <div class="metric-grid">
-        <article><span>Pressure wall t</span><strong id="requiredWall">—</strong><small>Eq. (34a): (D−2co)/2 × [1−exp(−P/S)]</small></article>
-        <article><span>Minimum wall tm</span><strong id="minimumWall">—</strong><small>tm = t + ci + co</small></article>
-        <article><span>Required nominal wall</span><strong id="nominalRequired">—</strong><small>Using entered purchase minus tolerance</small></article>
-        <article><span>Cycle blocks</span><strong id="cycleCountMetric">—</strong><small>Pressure-fatigue blocks currently entered</small></article>
+        <article><span>Pressure wall t</span><strong id="requiredWall">-</strong><small>Eq. (34a): (D-2co)/2 x [1-exp(-P/S)]</small></article>
+        <article><span>Minimum wall tm</span><strong id="minimumWall">-</strong><small>tm = t + ci + co</small></article>
+        <article><span>Required nominal wall</span><strong id="nominalRequired">-</strong><small>Using entered purchase minus tolerance</small></article>
+        <article><span>Cycle blocks</span><strong id="cycleCountMetric">-</strong><small>Pressure-fatigue blocks currently entered</small></article>
       </div>
       <div class="table-wrap small-table">
         <table class="static-table">
-          <thead><tr><th>Nominal wall<br>mm</th><th>Minimum T<br>mm</th><th>T−tm margin<br>mm</th><th>Eq. (35a) rating<br>MPa</th><th>Static gate</th></tr></thead>
+          <thead><tr><th>Nominal wall<br>mm</th><th>Minimum T<br>mm</th><th>T-tm margin<br>mm</th><th>Eq. (35a) rating<br>MPa</th><th>Static gate</th></tr></thead>
           <tbody id="staticBody"></tbody>
         </table>
       </div>
@@ -117,15 +151,37 @@
 
     <section class="panel wide-panel">
       <div class="section-heading">
-        <div><span class="step">4</span><h2>Wall × cycle pressure-fatigue matrix</h2></div>
-        <p>K304.8.3 Eq. (37) / K304.8.2 licensed KD handoff</p>
+        <div><span class="step">4</span><h2>KD-2 pressure-only stress-state package</h2></div>
+        <p>Analytical closed-end straight-pipe state for controlled KD-2 review</p>
+      </div>
+      <div class="table-wrap">
+        <table class="kd2-table">
+          <thead>
+            <tr>
+              <th>Wall<br>mm</th><th>Cycle block</th><th>Effective wall<br>mm</th>
+              <th>sigma-z @ Pmin / Pmax<br>MPa</th><th>sigma-theta @ Pmin / Pmax<br>MPa</th><th>sigma-r @ Pmin / Pmax<br>MPa</th>
+              <th>Delta sigma-z / theta / r<br>MPa</th><th>Pressure-only Delta SI<br>MPa</th><th>KD-2 package gate</th>
+            </tr>
+          </thead>
+          <tbody id="kd2Body"></tbody>
+        </table>
+      </div>
+      <div class="notice info">
+        <strong>Model boundary:</strong> these tensors are analytical closed-end elastic thick-cylinder pressure states for uniform straight pipe. They are useful KD-2 inputs for this pressure-only class case, but they do not replace required KD-2 stress categorization/limits, local-discontinuity analysis, inelastic analysis, or reviewer approval.
+      </div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-heading">
+        <div><span class="step">5</span><h2>Wall x cycle pressure-fatigue matrix</h2></div>
+        <p>K304.8.3 Eq. (37) / K304.8.2 licensed KD-3 handoff</p>
       </div>
       <div class="table-wrap">
         <table class="fatigue-table">
           <thead>
             <tr>
-              <th>Wall<br>mm</th><th>Cycle block</th><th>Avg T<br>°C</th><th>T−c<br>mm</th>
-              <th>Sp @ Pmin<br>MPa</th><th>Sp @ Pmax<br>MPa</th><th>ΔSp<br>MPa</th><th>ΔSp/2 descriptor<br>MPa</th>
+              <th>Wall<br>mm</th><th>Cycle block</th><th>Avg T<br>degC</th><th>T-c<br>mm</th>
+              <th>Sp @ Pmin<br>MPa</th><th>Sp @ Pmax<br>MPa</th><th>Delta Sp<br>MPa</th><th>Delta Sp/2 descriptor<br>MPa</th>
               <th>2Syt gate</th><th>Licensed Seq<br>MPa</th><th>Licensed Ni<br>cycles</th><th>KD source / calc ID</th>
               <th>Evidence<br>approved</th><th>Ui = n/Ni</th>
             </tr>
@@ -134,18 +190,18 @@
         </table>
       </div>
       <div class="notice info">
-        <strong>Authority boundary:</strong> the tool calculates pressure stress and arithmetic usage only. <code>Seq</code> and <code>Ni</code> remain explicit licensed-KD placeholders. Missing or unapproved evidence blocks class-release eligibility.
+        <strong>Authority boundary:</strong> the tool calculates pressure stress, pressure-only stress tensors and arithmetic usage only. <code>Seq</code> and <code>Ni</code> remain explicit licensed-KD-3 placeholders.
       </div>
     </section>
 
     <section class="panel wide-panel">
       <div class="section-heading">
-        <div><span class="step">5</span><h2>Candidate-wall class summary</h2></div>
+        <div><span class="step">6</span><h2>Candidate-wall class summary</h2></div>
         <p>Bounded class-release review status</p>
       </div>
       <div class="table-wrap small-table">
         <table class="summary-table">
-          <thead><tr><th>Nominal wall<br>mm</th><th>Static gate</th><th>Cycle blocks</th><th>KD evidence</th><th>Inelastic / special route</th><th>Cumulative U</th><th>Fracture-mechanics gate</th><th>Class status</th></tr></thead>
+          <thead><tr><th>Nominal wall<br>mm</th><th>Static gate</th><th>KD-2 gate</th><th>Cycle blocks</th><th>KD-3 evidence</th><th>Inelastic / special route</th><th>Cumulative U</th><th>Fracture-mechanics gate</th><th>Class status</th></tr></thead>
           <tbody id="summaryBody"></tbody>
         </table>
       </div>
@@ -159,26 +215,27 @@
           <li>K304.1.2 Eq. (34a) 2024 OD/minimum-wall pressure design.</li>
           <li>Eq. (35a) selected minimum-wall pressure-rating QA.</li>
           <li>Multiple pressure-cycle blocks with per-block cycle-average <code>Syt</code>.</li>
-          <li>K304.8.3 Eq. (37) for every wall × cycle block.</li>
-          <li>Manual licensed <code>Seq</code>/<code>Ni</code> placeholders, <code>Ui=n/Ni</code> and cumulative usage.</li>
-          <li>Controlled fracture-mechanics/KD-4 review placeholder and evidence ID.</li>
+          <li>K304.8.3 Eq. (37) for every wall x cycle block.</li>
+          <li>Analytical pressure-only closed-end stress tensors for the KD-2 package.</li>
+          <li>Controlled KD-2 source/route/evidence gate.</li>
+          <li>Manual licensed KD-3 <code>Seq</code>/<code>Ni</code>, <code>Ui=n/Ni</code> and cumulative usage.</li>
         </ul>
       </div>
       <div>
-        <h2>Placeholders / future controlled libraries</h2>
+        <h2>Still controlled / not automated</h2>
         <ul>
-          <li><strong>Material library:</strong> Table K-1/K-1C and temperature-dependent properties.</li>
-          <li><strong>Product library:</strong> NPS/OD/wall and purchase tolerances.</li>
-          <li><strong>KD engine:</strong> licensed mean-stress / equivalent-alternating-stress equations.</li>
+          <li><strong>KD-2:</strong> exact source edition/year, stress categories/limits, any inelastic/local analysis and approval.</li>
+          <li><strong>KD-3:</strong> licensed mean-stress / equivalent-alternating-stress equations.</li>
           <li><strong>Fatigue curves:</strong> licensed curve data/interpolation for automatic <code>Ni</code>.</li>
-          <li><strong>Detailed special routes:</strong> inelastic/KD-4 outputs remain controlled external evidence.</li>
+          <li><strong>Material/product libraries:</strong> controlled temperature properties and purchase tolerances.</li>
+          <li><strong>KD-4:</strong> fracture-mechanics output remains controlled external evidence where required.</li>
         </ul>
       </div>
     </section>
   </main>
 
   <footer>
-    Source-control basis: B31.3-2024 reference supplied in reallaksh19/Common at commit 00f47512e96780ebab10416dcc9354f719346457. Exact licensed Code text and approved project data control.
+    B31.3 source: Common commit 00f47512e96780ebab10416dcc9354f719346457. KD-2 source: Common commit 4dd651abbc86310077eaace6caa8b6788c1a6697, blob 8f20cd0dab683d28359e02207f6f65b834144ec9. Exact licensed Code text and approved project data control.
   </footer>
   <script src="app.js"></script>
 </body>
