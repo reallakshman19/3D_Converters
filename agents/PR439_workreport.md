@@ -9,216 +9,273 @@
 | PR number | 439 |
 | Branch | `agent/hp-class-authority-packages` |
 | Base commit | `fc222b80845273f2fb2bc83f401d8c29f52abb74` |
-| Current HEAD | report-allocation commit; refresh after Stage 3 |
+| Current HEAD | `b846b17724920cf5494012f76af830591a275802` before this report update |
 | PR status | DRAFT / OPEN |
-| Current stage | Stage 3 — changed-file / repository-state verification |
-| Last completed stage | Stage 2 — PR allocation + report synchronization |
-| Engineering status | Existing PR #437 straight-pipe class workflow is merged. This PR adds controlled transport/reproducibility of production inputs/evidence only. |
-| Validation status | Stage 1/2 protocol checks PASS. Production validation NOT_RUN. |
+| Current stage | Stage 4 — production authority package core |
+| Last completed stage | Stage 3 — changed-file / repository-state verification |
+| Engineering status | PR #437 calculations are frozen as baseline. PR #439 will add a separate production-consumed package wrapper rather than modifying solver/UI calculation files. |
+| Validation status | Stage 1–3 PASS. Production package validation NOT_RUN. |
 | Current blocker | No persistent controlled package exists to move approved project/material/product/KD inputs between sessions or reviewers. |
-| Exact next action | Verify branch/base and merged production files, then update this report before Stage 4 implementation. |
+| Exact next action | Implement `authority-package.html` + focused package core/UI scripts and document the production path; do not modify baseline `app.js`, `index.html`, or `ui.js`. |
 
 ## Handover in 60 Seconds
 
 **What is now true**
 
-- PR #437 merged as `fc222b80845273f2fb2bc83f401d8c29f52abb74`.
-- PR #439 is the only active continuation PR for production authority-package work.
-- No production file has been changed in PR #439 yet.
-- Existing calculation authority remains in the merged B31.3/KD engine.
+- PR #437 is merged as `fc222b80845273f2fb2bc83f401d8c29f52abb74`.
+- PR #439 is draft/open from that exact base.
+- GitHub changed-file list currently contains only `agents/PR439_workreport.md`.
+- Baseline engineering blobs are frozen:
+  - `app.js` = `6d99672f2e790ddfcaaa3759eef18e169afb6158`
+  - `index.html` = `9196edd0f89e892748c00dac249983b65effd47f`
+  - `ui.js` = `c3a027b2c70e11bff87546e15101b6866ad81933`
+  - `README.md` = `036369a37d702955f43b4e8d63d1a56b0e6170b2`
+- Production package work will be layered around the existing app, not inside its solver.
 
 **What is being worked on**
 
-- JSON authority-package export/import through the real static UI.
-- Source-lock validation and recalculate-on-import.
+A same-origin static wrapper that hosts the existing `index.html` in an iframe and adds controlled JSON package import/export around it.
 
 **What remains unfinished**
 
-- package metadata and schema;
-- export/import UI;
-- source compatibility checks;
-- deterministic row evidence restore;
-- audit-only result snapshot;
-- regression validation.
+- package schema/source manifest;
+- metadata UI;
+- export/import;
+- strict pre-mutation validation;
+- recalculation after import;
+- deterministic row evidence restoration;
+- audit-only snapshot;
+- README and validation.
 
 **What must not be assumed**
 
-- imported calculated outputs are authoritative;
-- source mismatches are acceptable;
-- missing material/KD/product data may be defaulted;
-- row approvals may be attached to a different wall/cycle.
+- imported snapshot values are solver inputs;
+- source mismatches are tolerable;
+- missing engineering values may be defaulted;
+- a row approval may be restored without exact wall/cycle key match.
 
 **Highest-risk remaining item**
 
-`RISK-013` — imported JSON accidentally becoming calculation authority.
+`RISK-013` — import bypassing the merged calculation authority.
 
 **Exact next action**
 
-Verify the PR baseline and production files, then implement Stage 4 after refreshing the report.
+Implement the wrapper/core after this report commit, then run pure-core and integration-oriented static tests.
 
 ## Mission and Engineering Intent
 
 ### Mission
 
-Make the existing piping-class qualification usable as a controlled handover workflow: configure → export → review/archive → import → recalculate → verify release state.
+Make the class qualification portable and auditable: configure → export JSON → review/archive → import → recalculate → restore matched evidence → verify release state.
 
 ### Engineering consequence
 
-Operators should no longer need to manually re-enter the full class basis and KD evidence. A package should be portable and auditable while never bypassing the calculation engine.
+A controlled package can move between reviewers/sessions without manual re-entry while preserving the merged calculator as the only solver authority.
 
-### In scope
+### Scope
+
+Included:
 
 - package metadata;
 - dependency-free JSON export/import;
-- engineering-input/evidence/cycle-spectrum serialization;
-- source-lock validation;
+- design/KD/cycle input transport;
+- exact B31.3/KD source manifest;
+- strict source/schema validation before mutation;
 - recalculation after import;
-- row-level evidence restoration after key matching;
+- row-level manual/evidence restoration by deterministic key;
 - audit-only calculated snapshot;
-- visible import/package status;
-- README and report updates.
+- visible package status;
+- documentation.
 
-### Explicit non-goals
+Excluded:
 
-- no licensed ASME dataset embedded;
-- no guessed VIII-3/material/product values;
-- no external database/service;
-- no cryptographic signing;
-- no routed-system fatigue;
-- no change to PR #437 engineering equations.
+- licensed ASME data embedding;
+- guessed material/edition/product values;
+- external database/network storage;
+- cryptographic signing;
+- routed-system analysis;
+- changes to PR #437 engineering equations.
 
 ### Governing principles
 
 1. Imported calculated outputs are never solver authority.
-2. Import restores controlled inputs/evidence, then recalculates.
-3. B31.3/KD source identities are compatibility invariants.
-4. Missing values remain visible blockers.
-5. Row evidence is keyed to deterministic wall/cycle identity.
-6. JSON remains human-readable and dependency-free.
+2. Source/schema validation occurs before any calculator DOM mutation.
+3. Import restores inputs/evidence, runs the existing calculator, restores matched row evidence, then runs the existing calculator again.
+4. B31.3/KD source identities must match exactly.
+5. Missing production values remain missing and blocked.
+6. Row evidence requires exact deterministic `wall.toFixed(4)-cycleId` matching.
+7. Package transport is human-readable JSON and dependency-free.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Report initialization | HIGH | DONE | 1 | `PR_PENDING` report created before code |
-| PR allocation | HIGH | DONE | 2 | Draft PR #439 |
-| Report rename | HIGH | DONE | 2 | `agents/PR439_workreport.md` |
-| Baseline verification | HIGH | IN_PROGRESS | 3 | pending production fetch/compare |
-| Package metadata UI | HIGH | NOT_STARTED | 4 | — |
-| JSON package export | HIGH | NOT_STARTED | 4 | — |
-| JSON package import | HIGH | NOT_STARTED | 4 | — |
-| Source-lock validation | HIGH | NOT_STARTED | 4 | — |
-| Recalculate-on-import | CRITICAL | NOT_STARTED | 4 | — |
+| Report initialization | HIGH | DONE | 1 | report created before code |
+| PR allocation / report rename | HIGH | DONE | 2 | PR #439 / current report |
+| Baseline verification | HIGH | DONE | 3 | source blob IDs + one-file PR list |
+| Preserve solver blobs | CRITICAL | ACCEPTED | 3 | wrapper architecture `DEC-017` |
+| Package wrapper UI | HIGH | IN_PROGRESS | 4 | pending |
+| JSON package core | HIGH | IN_PROGRESS | 4 | pending |
+| Source-lock validation | HIGH | IN_PROGRESS | 4 | pending |
+| Recalculate-on-import | CRITICAL | IN_PROGRESS | 4 | pending |
 | Row evidence restore | HIGH | NOT_STARTED | 5 | — |
 | Audit-only result snapshot | MEDIUM | NOT_STARTED | 5 | — |
 | Regression validation | HIGH | NOT_STARTED | 6 | — |
-| Final changed-file ledger check | HIGH | NOT_STARTED | 6 | — |
+| Final changed-file ledger | HIGH | NOT_STARTED | 6 | — |
 
 ## Engineering Item Register
 
 | ID | Type | Severity/Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
 | RISK-013 | engineering/release risk | CRITICAL | IN_PROGRESS | Imported calculated values must never become calculation authority. | YES |
-| RISK-014 | engineering/release risk | HIGH | IN_PROGRESS | Imported package may reference different B31.3/KD artifacts. | YES |
-| RISK-015 | engineering/release risk | HIGH | IN_PROGRESS | Row approvals can be restored to wrong wall/cycle if keying is unstable. | YES |
-| DEC-013 | deliberate decision | HIGH | ACCEPTED | Import restores inputs/evidence and recalculates; snapshot outputs are audit-only. | YES |
-| DEC-014 | deliberate decision | HIGH | ACCEPTED | Package format is versioned dependency-free JSON. | YES |
-| DEC-015 | deliberate decision | HIGH | ACCEPTED | No licensed Code datasets are added to source control. | YES |
-| DEC-016 | deliberate decision | HIGH | ACCEPTED | Source mismatch blocks package application rather than warning-only continuation. | YES |
-| IMP-020 | improvement opportunity | HIGH | IN_PROGRESS | Operator-visible authority package import/export. | YES |
-| IMP-021 | improvement opportunity | MEDIUM | NOT_STARTED | Downloadable audit snapshot/bundle. | YES |
-| QST-010 | unresolved question | MEDIUM | ACCEPTED | Cryptographic signing is explicitly out of scope. | YES |
+| RISK-014 | engineering/release risk | HIGH | IN_PROGRESS | Package may reference different B31.3/KD artifacts. | YES |
+| RISK-015 | engineering/release risk | HIGH | IN_PROGRESS | Row approvals may map to wrong wall/cycle. | YES |
+| RISK-016 | engineering/runtime risk | MEDIUM | ACCEPTED | Same-origin iframe access requires HTTP/static hosting; local `file://` behavior is browser-dependent. | YES |
+| DEC-013 | deliberate decision | HIGH | ACCEPTED | Import restores inputs/evidence and recalculates; snapshots are audit-only. | YES |
+| DEC-014 | deliberate decision | HIGH | ACCEPTED | Package is versioned dependency-free JSON. | YES |
+| DEC-015 | deliberate decision | HIGH | ACCEPTED | No licensed Code datasets are added. | YES |
+| DEC-016 | deliberate decision | HIGH | ACCEPTED | Source mismatch blocks application before mutation. | YES |
+| DEC-017 | deliberate decision | HIGH | ACCEPTED | Add package workflow as a same-origin wrapper so `app.js`, `index.html`, and `ui.js` remain byte-identical to merged PR #437. | YES |
+| IMP-020 | improvement opportunity | HIGH | IN_PROGRESS | Operator-visible package import/export. | YES |
+| IMP-021 | improvement opportunity | MEDIUM | IN_PROGRESS | Include audit-only qualification snapshot in export. | YES |
 
 ## Stage Roadmap
 
 ### Stage 1 — Report initialization + technical findings
 
-**Implementation performed:** created `agents/PR_PENDING_workreport.md` before production changes.
+Implementation: report created before production edits.
 
-**Validation:** protocol ordering PASS.
+Validation: ordering PASS.
 
-**Stage decision:** COMPLETE.
+Stage decision: COMPLETE.
 
 ### Stage 2 — PR allocation + report synchronization
 
-**Implementation performed:** created draft PR #439 and renamed the living report to `agents/PR439_workreport.md`.
+Implementation: draft PR #439 created; report renamed; pending predecessor deleted.
 
-**Validation:** PR allocated from expected branch/base; PASS.
+Validation: base/head/PR allocation PASS.
 
-**Stage decision:** COMPLETE.
+Stage decision: COMPLETE.
 
 ### Stage 3 — Changed-file / repository-state verification
 
-**Current truth:** branch is based on the squash merge of PR #437.
+**Implementation performed**
 
-**Objective:** confirm production baseline and isolate changed-file scope before editing.
+- Confirmed PR base `fc222b80845273f2fb2bc83f401d8c29f52abb74`.
+- Confirmed current PR file list contains only the living report.
+- Recorded baseline blobs listed in Mission Control/Handover.
 
-**Expected scope/files:** report only.
+**Engineering finding**
 
-**Engineering rationale:** persistence must be added without silently changing calculation equations.
+Direct edits to `app.js` would make it harder to prove PR #437 equations are unchanged. A same-origin wrapper can provide real production package capability while consuming the merged application unchanged.
 
-**Planned validation:** fetch current production files; compare PR changed files; record baseline blob IDs.
+**Decision**
 
-**Known risks:** `RISK-013`–`RISK-015`.
+`DEC-017` accepted.
+
+**Validation**
+
+- baseline branch/base: PASS;
+- changed-file isolation: PASS;
+- baseline blobs recorded: PASS.
+
+**Stage decision**: COMPLETE.
 
 ### Stage 4 — Production authority package core
 
-**Objective:** real operator-visible package export/import.
+**Current truth**
 
-**Planned implementation:**
+No package persistence exists; merged calculator is stable.
 
-- package metadata fields;
-- schema/version and embedded source identity manifest;
-- serialize design basis, cycle blocks, KD controls, curve data and fracture disposition;
-- download JSON;
-- import JSON from file;
-- strict package/source validation;
-- restore inputs then call existing calculation pipeline;
-- visible import status.
+**Objective**
 
-**Expected files:** `index.html`, `app.js` and preferably a focused `authority-package.js` module under 300 lines; README; report.
+Provide real export/import through `authority-package.html` using the unchanged calculator iframe.
 
-**Planned validation:** syntax; round trip; source mismatch block; missing/invalid package block; existing B31.3 reference unchanged.
+**Expected scope/files**
+
+- new `engineering/hp-class-standardization/authority-package.html`;
+- new `engineering/hp-class-standardization/authority-package-core.js` (<300 lines);
+- new `engineering/hp-class-standardization/authority-package-ui.js` (<300 lines target);
+- `README.md`;
+- work report.
+
+**Engineering rationale**
+
+Keep persistence authority separate from solver authority and avoid calculation churn.
+
+**Planned implementation**
+
+- schema `hp-piping-class-authority-package/v1`;
+- package ID/revision/project/preparer/checker/lifecycle metadata;
+- exact B31.3/KD source manifest;
+- collect design fields, cycle rows, KD controls and fracture evidence from iframe;
+- strict source/schema/cycle-ID validation before mutation;
+- JSON download and file import;
+- restore inputs and cycle rows;
+- invoke existing calculator via its public classic-script `calculate()` function/button.
+
+**Expected behavior**
+
+Invalid/mismatched packages make zero calculator mutations. Valid packages repopulate input/evidence state and recalculate.
+
+**Edge cases**
+
+- duplicate cycle IDs;
+- malformed JSON;
+- missing package metadata;
+- blank engineering fields in draft package;
+- iframe not yet loaded;
+- source mismatch.
+
+**Planned validation**
+
+- Node syntax for both new JS files;
+- pure schema/source validation tests;
+- round-trip object test;
+- source mismatch rejection;
+- existing solver blobs unchanged.
+
+**Known risks**
+
+`RISK-013`–`RISK-016`.
 
 ### Stage 5 — Row evidence + audit snapshot
 
-**Objective:** preserve row source/approval state without turning serialized results into solver authority.
-
-**Planned implementation:** restore row evidence after recalculation/key match; include result snapshot for audit only.
-
-**Validation:** mutate snapshot before import; calculated outputs must still reproduce from inputs.
+Restore row source/approval/manual values only after first recalculation and exact key match; run calculator again so automatic/manual combinations recompute correctly. Export snapshot is audit-only and ignored on import.
 
 ### Stage 6 — Final validation / ledger / handover
 
-Run focused validation, compare GitHub changed-file list to ledger, update PR body and handover.
+Run complete regression and PR ledger comparison; update report and PR body.
 
 ## Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---|---|---|---|---|
-| `agents/PR439_workreport.md` | 1 | 3 | Living mission control / evidence / handover | YES | PASS — created before production edits |
+| `agents/PR439_workreport.md` | 1 | 4 | Living mission control / evidence / handover | YES | PASS so far |
+| `engineering/hp-class-standardization/authority-package.html` | 4 | 4 | Production wrapper UI | YES | NOT_RUN |
+| `engineering/hp-class-standardization/authority-package-core.js` | 4 | 4 | Pure package schema/source validation | YES | NOT_RUN |
+| `engineering/hp-class-standardization/authority-package-ui.js` | 4 | 4 | Real iframe import/export integration | YES | NOT_RUN |
+| `engineering/hp-class-standardization/README.md` | 4 | 4 | Operator instructions / authority boundary | YES | NOT_RUN |
 
-Temporary predecessor `agents/PR_PENDING_workreport.md` must be deleted as part of Stage 2 synchronization and must not remain in final PR scope.
+`app.js`, `index.html`, `ui.js`, and `styles.css` are **not planned changes**.
 
 ## Engineering Decisions and Invariants
 
 ### DEC-013 — Recalculate on import
 
-**Invariant:** imported result snapshots never drive the solver.
-
-**Enforcement:** import pipeline applies only inputs/evidence, then invokes current calculation functions.
-
-**Validation:** deliberately alter snapshot outputs in a test package; imported calculated values must ignore the altered snapshot.
+Imported snapshot values must never affect calculations. Only controlled inputs/evidence are applied; the existing calculator is invoked afterward.
 
 ### DEC-016 — Source mismatch blocks application
 
-**Invariant:** package source manifest must match running B31.3/KD source identities before engineering fields are applied.
+Package source manifest must exactly match embedded source constants before any calculator field is touched.
 
-**Validation:** alter a source commit/blob in the package and confirm no engineering fields are mutated.
+### DEC-017 — Wrapper preserves solver
+
+The package layer consumes `index.html` through same-origin iframe. Calculation files remain byte-identical to merged baseline.
 
 ### Row identity invariant
 
-Wall/cycle row evidence may be restored only when both deterministic nominal-wall key and cycle ID match the recalculated model.
+Evidence restore requires an exact row `data-key` match generated by the merged calculator.
 
 ## Validation and Evidence Ledger
 
@@ -226,113 +283,104 @@ Wall/cycle row evidence may be restored only when both deterministic nominal-wal
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Report existed before production edits | PASS | Stage 1 | GitHub history |
-| PR allocation / correct base | PASS | `60aa651...` | PR #439 metadata |
-| Baseline file verification | NOT_RUN | — | Stage 3 |
-| JS syntax | NOT_RUN | — | Stage 4 |
-| Package round trip | NOT_RUN | — | Stage 4 |
+| Report before production edits | PASS | Stage 1 | GitHub history |
+| PR correct base | PASS | Stage 2 | PR #439 |
+| Baseline changed-file isolation | PASS | Stage 3 | only work report changed |
+| Baseline `app.js` blob | PASS | Stage 3 | `6d99672f...` |
+| Baseline `index.html` blob | PASS | Stage 3 | `9196edd0...` |
+| Baseline `ui.js` blob | PASS | Stage 3 | `c3a027b2...` |
+| New JS syntax | NOT_RUN | — | Stage 4 |
+| Package round trip | NOT_RUN | — | Stage 4/5 |
 | Source mismatch rejection | NOT_RUN | — | Stage 4 |
 | Snapshot non-authority | NOT_RUN | — | Stage 5 |
-| Existing numerical regression | NOT_RUN | — | Stage 4/6 |
-| Final PR file ledger | NOT_RUN | — | Stage 6 |
+| Row evidence restore | NOT_RUN | — | Stage 5 |
+| Final PR ledger | NOT_RUN | — | Stage 6 |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| PR #437 calculation equations unchanged | NOT_RUN | Stage 3/6 comparison |
-| Imported package cannot directly overwrite results | NOT_RUN | Stage 5 |
-| B31.3/KD source mismatch blocks application | NOT_RUN | Stage 4 |
-| Row evidence maps only to matching wall/cycle | NOT_RUN | Stage 5 |
+| PR #437 equations remain unchanged | PASS at Stage 3 baseline | solver blobs recorded; recheck Stage 6 |
+| Import cannot directly overwrite calculated outputs | NOT_RUN | Stage 5 |
+| Source mismatch causes zero calculator mutation | NOT_RUN | Stage 4 |
+| Row evidence maps only to exact row key | NOT_RUN | Stage 5 |
 
 ### Explicitly Not Validated
 
-- project-specific material values;
-- project-specific fatigue-curve values;
-- authenticity/signatures outside Git/source IDs;
-- external document-control approval;
+- project-specific values;
+- licensed data correctness;
+- cryptographic authenticity;
+- external document control;
+- `file://` iframe interoperability;
 - routed-system fatigue.
 
 ## Known / Deferred Work and Forward Sequence
 
-### Open risks
+Open risks: `RISK-013`–`RISK-016`.
 
-`RISK-013`, `RISK-014`, `RISK-015`.
+Deferred: managed material/product libraries, external document-control integration, cryptographic signing, server-side storage.
 
-### Deferred improvements
+Recommended sequence:
 
-- organization material/product libraries;
-- external document-control service;
-- cryptographic signing;
-- server-side project storage.
-
-### Recommended forward sequence
-
-1. Finish package transport/recalculation safeguards.
-2. Add deterministic evidence restoration and audit snapshot.
-3. Validate and merge this persistence layer.
-4. Only then consider controlled material/product libraries.
+1. Complete package transport safely.
+2. Close evidence/snapshot handling.
+3. Merge persistence layer.
+4. Then consider controlled material/product libraries as a separate PR.
 
 # Appendix A — Next-Agent Handover
 
 ## Current stopping point
 
-PR #439 allocated. Production implementation has not started.
+Stage 3 complete; no production files changed yet.
 
 ## PR / branch / HEAD
 
-- PR: #439
-- Branch: `agent/hp-class-authority-packages`
-- Base: `fc222b80845273f2fb2bc83f401d8c29f52abb74`
-- HEAD: refresh after report rename/delete operation
+- PR #439
+- branch `agent/hp-class-authority-packages`
+- base `fc222b80845273f2fb2bc83f401d8c29f52abb74`
 
 ## Last completed stage
 
-Stage 2 — PR allocation + report synchronization.
+Stage 3 — baseline verification.
 
 ## Current active stage
 
-Stage 3 — baseline verification.
+Stage 4 — production authority package core.
 
 ## Start here
 
-Fetch `engineering/hp-class-standardization/index.html`, `app.js`, `ui.js`, `README.md`, and the PR changed-file list. Record their baseline blob IDs before Stage 4.
+Create the three new package files listed in Stage 4. Do not edit `app.js`, `index.html`, or `ui.js`.
 
 ## Do not redo
 
-- PR #437 B31.3/KD calculations;
-- source artifact identification;
-- automatic pressure-only `Seq` framework;
-- controlled-curve `Ni` interpolation.
+PR #437 calculations/source work.
 
 ## Do not assume
 
-- imported outputs are solver inputs;
-- source mismatch is non-blocking;
-- approval evidence can be restored before recalculation/key matching.
+Snapshots are solver authority; source mismatch can proceed; row approvals can be attached without exact key matching.
 
 ## Files currently involved
 
-`agents/PR439_workreport.md` only after pending-report deletion.
+Living report only; planned package files + README next.
 
 ## Known failing checks
 
-None; production tests NOT_RUN.
+None; Stage 4 checks NOT_RUN.
 
 ## Validation still required
 
-Baseline verification; round trip; source mismatch; snapshot non-authority; row evidence restore; numerical regression; final file ledger.
+Syntax, schema/source validation, round trip, zero-mutation mismatch behavior, evidence restore, snapshot non-authority, final blob/PR ledger.
 
 ## Highest-risk remaining item
 
-`RISK-013` — import bypassing the current solver authority.
+`RISK-013` — import bypassing solver authority.
 
 ## Exact next recommended action
 
-Complete Stage 3, update this report with baseline blob IDs and Stage 4 pre-plan, then implement package export/import.
+Implement Stage 4 package wrapper/core and run pure tests before adding evidence restoration.
 
 ## Required reading
 
 - `CodingRules.md` commit `43eccc27967ecec7d67513c08255398b496be5ce`
 - merged `agents/PR437_workreport.md`
-- production app files under `engineering/hp-class-standardization/`
+- current `engineering/hp-class-standardization/README.md`
