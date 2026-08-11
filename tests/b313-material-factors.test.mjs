@@ -112,7 +112,7 @@ test('route-specific E requires an explicit matching manufacturing route', () =>
   assert.deepEqual(unsupported.details.missing, ['E']);
 });
 
-test('duplex 420 C screening basis intentionally has no S value', () => {
+test('duplex 420 C screening basis intentionally has no S value or generated S record', () => {
   for (const materialId of ['DSS-A790-S31803', 'SDSS-A790-S32760']) {
     const r = resolveB313DesignFactors({
       material: { materialId },
@@ -122,6 +122,7 @@ test('duplex 420 C screening basis intentionally has no S value', () => {
     });
     assert.equal(r.ok, false);
     assert.deepEqual(r.details.missing, ['S']);
+    assert.equal(B313_MATERIAL_FACTOR_MASTER.factors.S.records.some((row) => row.materialId === materialId && row.temperatureC === 420), false);
   }
 });
 
