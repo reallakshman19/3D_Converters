@@ -4,221 +4,174 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Establish a controlled API-first FIT vertical with source-traceable calculations and explicit engineering authority boundaries. |
+| Mission | Establish a controlled API-first FIT vertical with source-traceable calculations and explicit authority boundaries. |
 | Source task / issue | Owner requests 2026-08-11; issue #429; deep-research report; Common `CodingRules.md` pinned at `43eccc27967ecec7d67513c08255398b496be5ce`. |
 | PR number | #438 |
 | Branch | `agent/fiv-fit-roadmap-foundation` |
 | Base commit | `37c37d770ba47ebb3152679265896de4a943c8b0` |
-| Current HEAD before this report update | `02b9efa6f0bcaacd95514030c0b3680d8f1a52dd` |
-| PR status | OPEN / DRAFT / mergeable before report reconciliation |
-| Current stage | Stage 11 — **PARTIAL**: EI worked-example qualification PASS; full checkout / remaining authority review still open |
-| Last completed stage | Stage 10 — qualification dossier + independent hand-derived benchmarks |
-| Engineering status | `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`. EI D2/D4 examples now independently validate exercised method slices. Screening/design authority remain NOT AUTHORIZED. |
-| Validation status | Stage 11 EI regression PASS 8/8; retained/hand regression PASS; syntax PASS; full repository regression NOT_RUN; GitHub Actions externally blocked by account billing/spending. |
-| Current blocker | Full checkout regression, remaining T2.2/project applicability review outside example coverage, QST-003 disposition, and independent vibration-engineer approval. |
-| Exact next action | Begin Stage 12: reconcile remaining T2.2 applicability/equation domains against the supplied EI source, document supported/excluded scope, and build boundary tests without promoting to SCREENING. |
+| Current HEAD before Stage 12 production work | `263c49819a5a446afb936a95d7c4f1b35ae1ecba` |
+| PR status | OPEN / DRAFT / mergeable |
+| Current stage | Stage 12 — IN_PROGRESS: FIT method-domain ambiguity hardening and evidence contract |
+| Last stage | Stage 11 — PARTIAL: EI worked-example implementation PASS 8/8; full repo/authority gates still open |
+| Engineering status | FIT remains `BENCHMARK_ONLY`; D2/D4 EI examples pass. Screening/design authority are NOT AUTHORIZED. |
+| Validation status | EI regression PASS 8/8; prior retained/hand regression PASS; full repo NOT_RUN; Actions runner unavailable due account billing/spending. |
+| Current blocker | Stage 12 API ambiguity hardening; then remaining method/project scope review, full checkout and independent engineer approval. |
+| Exact next action | Make multiphase resolution explicit/fail-closed when aggregate and component data coexist, expose provenance, add central/API/domain tests, then reconcile authority coverage. |
 
 ### Handover in 60 Seconds
 
-**What is now true:** FIT has a deterministic domain kernel and central adapter at benchmark-only authority. The retained CRF workbook is source-pinned; independent hand benchmarks exist; supplied EI Appendix D worked examples now pass against the implementation.
+**What is true:** Stage 11 corrected the EI boundary defects (`1 < fn <= 3`, 273 mm large family), added aggregate-effective multiphase resolution and neutral LOF bands, and passed the EI D2/D4 regression 8/8.
 
-**Stage 11 evidence:** source `reallaksh19/Common@aef163a5def3bfe04ca0ba860da05728a27daf42`, `EI - AVIFF Guidelines 2nd Edition_Examples.pdf`, blob `3e2517d0df527a051084fc02e69cb7afa31f8d47`. The committed regression `tests/vibration-fit-ei-worked-examples.test.mjs` is PASS 8/8 in the branch-module fixture.
+**What is being worked on:** Stage 12 removes the remaining silent multiphase precedence. Today `density + velocity/mass` automatically selects `AGGREGATE_EFFECTIVE` even if gas/liquid component data are also supplied. That is deterministic software but an unacceptable hidden engineering selection.
 
-**Stage 11 corrections:**
-- ISS-012 fixed: advanced path now uses `1 Hz < fn <= 3 Hz`, so exactly 1 Hz is excluded;
-- ISS-013 fixed: large medium/flexible family now includes 273 mm;
-- IMP-014 implemented: multiphase supports explicit `AGGREGATE_EFFECTIVE` and `COMPONENT_DERIVED` resolution modes;
-- IMP-015 implemented: neutral reference bands at LOF 0.3 / 0.5 / 1.0, with no production `pass` boolean;
-- QST-003 narrowed to `219.1 mm < Dext < 273 mm` and remains fail-closed.
+**Stage 12 decision:** add an optional explicit domain/API field `multiphaseResolutionMode` with values `AGGREGATE_EFFECTIVE` and `COMPONENT_DERIVED`. When only one complete data shape exists, inference is allowed and recorded. When both data shapes coexist and no mode is supplied, fail closed with `FIT_MULTIPHASE_INPUT_AMBIGUOUS`. When a mode is explicit, use only that qualified path and report `resolutionModeSelection = EXPLICIT`.
 
-**What remains unfinished:** complete T2.2 applicability review outside D2/D4 coverage, project procedure/adoption review, full repo/API/Console regression, independent vibration-engineer approval.
+**What remains unfinished:** full checkout regression, remaining adopted EI/project method review outside worked-example coverage, QST-003 and independent approval.
 
-**What must not be assumed:** example parity proves the entire EI method; `BENCHMARK_ONLY` is screening authority; the unresolved manual-diameter gap can be interpolated; GitHub Actions failure indicates code failure.
+**What must not be assumed:** extra component/aggregate values may be silently ignored without provenance; benchmark-only is screening; examples cover all applicability.
 
-**Highest-risk remaining item:** promoting to screening before unsupported method regions and project authority are explicitly resolved/excluded.
+**Highest risk:** an upstream table import supplies both aggregate and phase-specific process columns and the engine silently chooses one engineering interpretation.
 
-**Exact next action:** Stage 12 method-domain reconciliation and boundary qualification; keep benchmark-only authority.
+**Exact next action:** implement Stage 12 domain + adapter + tests, preserve Stage 11 benchmark parity, then record coverage.
 
 ## Mission and Engineering Intent
 
-The FIT vertical is the reference architecture for later vibration mechanisms. The product is table-first: no 3D viewer and no canvas. The platform shares API/unit/provenance infrastructure, but empirical authority remains mechanism-specific.
+The FIT vertical is the reference pattern for later vibration mechanisms. Product boundary remains table-only; no 3D/canvas. Engineering calculation infrastructure is shared, empirical authority is not.
 
-### Governing principles
+### Principles
 
-1. Validation, resolution, applicability, calculation, assessment, qualification and authority are separate.
-2. No silent engineering defaults or hidden master fallback.
-3. Central API owns units/provenance; empirical coefficients retain controlled native units.
-4. EI worked examples outrank conflicting retained workbook cache/UI state for qualified reference behavior.
-5. Example parity validates only exercised method slices.
-6. Public ID remains `VIB.FIV.FLOW_TURBULENCE`.
-7. No screening/design authority without explicit issue #429 approval.
-8. No 3D/canvas and no workflow changes in this assignment.
+1. No silent engineering defaults or silent authority selection.
+2. Validation, resolution, applicability, calculation, assessment, qualification and authority are distinct.
+3. Input-resolution decisions must be explicit or safely inferable from an unambiguous data shape.
+4. Source/examples validate only the slices they exercise.
+5. Stable public ID remains `VIB.FIV.FLOW_TURBULENCE`.
+6. Screening/design remain blocked under #429.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---:|---|
-| FIT/FIV roadmap | P0 | DONE | 1 | `docs/FIVroadmap.md` |
-| Workbook source register/extractor | P0 | IMPLEMENTED | 6 | source hash + extractor |
-| Physical context | P0 | VALIDATED | 7 | focused 6/6 |
-| Retained workbook reference kernel | P0 | VALIDATED | 9 | source parity / six Fv families |
-| Central benchmark adapter/Console gate | P0 | VALIDATED | 9 | benchmark mode only |
-| Independent hand benchmark dataset | P0 | IMPLEMENTED | 10 | `fit-independent-hand-benchmarks-v1.json` |
-| Qualification dossier | P0 | IMPLEMENTED | 10–11 | current dossier |
-| CI investigation | P0 | DONE | 10 | external Actions billing/spending gate |
-| EI worked-example dataset | P0 | VALIDATED | 11 | controlled D2/D4 data |
-| EI worked-example regression | P0 | VALIDATED | 11 | PASS 8/8 |
-| Advanced 1 Hz boundary correction | P0 | VALIDATED | 11 | exact 1 excluded / 3 included |
-| 273 mm large-family correction | P0 | VALIDATED | 11 | D4 flexible-large PASS |
-| Aggregate multiphase input path | P0 | VALIDATED | 11 | aggregate/component equivalence PASS |
-| EI reference LOF bands | P1 | VALIDATED | 11 | D2/D4 bands PASS |
-| Remaining T2.2 domain review | P0 | INVESTIGATING | 12 | next stage |
-| Full repository regression | P0 | BLOCKED | Forward | Actions billing or authenticated checkout required |
-| Independent engineering approval | P0 | BLOCKED | Forward | identified reviewer required |
+| Roadmap/source/extractor | P0 | DONE | 1–6 | controlled docs/tooling |
+| FIT physical/reference kernel | P0 | VALIDATED | 7–9 | retained parity + focused suites |
+| Central benchmark API/Console | P0 | VALIDATED | 9 | benchmark-only execution |
+| Hand-derived benchmark set | P0 | IMPLEMENTED | 10 | independent software oracle |
+| EI D2/D4 benchmark set | P0 | VALIDATED | 11 | PASS 8/8 |
+| EI 1 Hz / 273 mm corrections | P0 | VALIDATED | 11 | boundary tests PASS |
+| Aggregate-effective multiphase | P0 | VALIDATED | 11 | D4 + equivalence PASS |
+| Explicit multiphase resolution contract | P0 | IN_PROGRESS | 12 | current stage |
+| Full repository regression | P0 | BLOCKED | Forward | Actions billing / checkout |
+| Remaining method/project review | P0 | INVESTIGATING | Forward | source + reviewer |
 | Screening authority | P0 | BLOCKED | Forward | issue #429 |
 
 ## Engineering Item Register
 
-| ID | Type | Priority | Status | Summary | Current PR? |
-|---|---|---:|---|---|---|
-| DEC-001 | Decision | P0 | ACCEPTED | Stable public ID remains `VIB.FIV.FLOW_TURBULENCE`; FIT terminology used internally/UI. | Yes |
-| DEC-002 | Decision | P0 | ACCEPTED | Table-only vibration product; no 3D/canvas. | Yes |
-| DEC-004 | Decision | P0 | ACCEPTED | Calculation/applicability/assessment/authority remain separate. | Yes |
-| DEC-012 | Decision | P0 | ACCEPTED | EI worked examples are independent benchmark evidence for exercised slices. | Yes |
-| RISK-001 | Risk | Critical | ACCEPTED | False engineering authority from unqualified correlation. | Mitigated by BENCHMARK_ONLY |
-| ISS-009 | Defect | High | DONE | Cached 4 Hz advanced result conflicts with EI boundary; code rejects 4 Hz. | Yes |
-| ISS-010 | Defect | High | DONE | Hidden workbook selector conflict; deterministic support classification used. | Yes |
-| ISS-011 | External CI | High | DONE | Actions cannot allocate runner due account billing/spending condition. | External |
-| ISS-012 | Defect | High | DONE | Exactly 1 Hz was incorrectly eligible; fixed to `1 < fn <= 3`. | Yes |
-| ISS-013 | Defect | High | DONE | 273 mm was incorrectly outside large family; fixed and D4 benchmark passes. | Yes |
-| IMP-014 | Improvement | P0 | DONE | Explicit aggregate-effective multiphase resolution added. | Yes |
-| IMP-015 | Improvement | P1 | DONE | Neutral EI LOF reference bands added without pass/fail authority. | Yes |
-| QST-001 | Question | P0 | INVESTIGATING | Remaining adopted T2.2/project method parity outside worked examples. | Stage 12 |
-| QST-002 | Question | P1 | DEFERRED | Final upstream table exchange. | Later |
-| QST-003 | Question | P0 | INVESTIGATING | `219.1 < Dext < 273 mm` medium/flexible manual-size family unresolved. | Fail-closed |
+| ID | Type | Priority | Status | Summary |
+|---|---|---:|---|---|
+| DEC-001 | Decision | P0 | ACCEPTED | Stable ID preserved; FIT terminology canonical. |
+| DEC-002 | Decision | P0 | ACCEPTED | Table-only product; no 3D/canvas. |
+| DEC-012 | Decision | P0 | ACCEPTED | EI examples are independent benchmark evidence for exercised slices. |
+| ISS-009 | Defect | High | DONE | Cached 4 Hz behavior rejected. |
+| ISS-010 | Defect | High | DONE | Hidden selector state replaced by deterministic support classification. |
+| ISS-011 | External CI | High | DONE | Actions blocked before runner allocation by account condition. |
+| ISS-012 | Defect | High | DONE | Exact 1 Hz advanced eligibility fixed. |
+| ISS-013 | Defect | High | DONE | 273 mm large-family boundary fixed. |
+| IMP-014 | Improvement | P0 | DONE | Aggregate-effective multiphase path. |
+| IMP-015 | Improvement | P1 | DONE | Neutral EI LOF bands. |
+| ISS-016 | Defect | High | CONFIRMED | Mixed aggregate/component multiphase inputs silently select aggregate path. |
+| DEC-017 | Decision | P0 | ACCEPTED | Mixed modes require explicit `multiphaseResolutionMode`; otherwise fail closed. |
+| QST-001 | Question | P0 | INVESTIGATING | Remaining adopted T2.2/project parity outside examples. |
+| QST-002 | Question | P1 | DEFERRED | Final table-exchange format. |
+| QST-003 | Question | P0 | INVESTIGATING | `219.1 < Dext < 273 mm` manual family gap; fail-closed. |
 
-## Stage Roadmap and Execution Log
+## Stage Roadmap
 
-### Stages 1–10 — COMPLETE/PARTIAL as previously recorded
-Roadmap/PR setup, source extraction, physical context, reference kernel, central benchmark API/Console, independent hand benchmarks and qualification dossier are implemented. Full-repository execution remains externally constrained.
+### Stages 1–10
+Roadmap, source extraction, reference kernel, benchmark API/Console, hand benchmarks, qualification dossier and CI investigation are established.
 
 ### Stage 11 — EI worked-example qualification — PARTIAL
 
-#### Objective
-
-Use supplied EI Appendix D worked examples to independently challenge the FIT reference implementation and correct source-backed defects without promoting authority.
-
-#### Implementation performed
-
-Changed/added:
+Implementation completed and focused validation PASS:
 
 ```text
-Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json
-tests/vibration-fit-ei-worked-examples.test.mjs
-converters/vibration/fit/method.js
+EI D2/D4 regression: 8/8 PASS
+retained reference cases: 2 PASS
+standard Fv families: 6 PASS
+threshold/advanced cases: 4 PASS
+support boundary: PASS
+syntax: PASS
+```
+
+Full repository/default-registry/Console execution remains NOT_RUN because Actions cannot allocate a runner and no full authenticated checkout is mounted.
+
+### Stage 12 — multiphase resolution/evidence hardening — IN_PROGRESS
+
+#### Current truth
+
+The domain supports aggregate-effective and component-derived multiphase calculations. If both complete input sets are present, current `usesAggregateMultiphaseInput()` selects aggregate mode automatically. This can occur naturally after merging line-list/HMB data and must not be a silent engineering interpretation.
+
+#### Objective
+
+Make multiphase resolution explicit when ambiguous, infer only when exactly one complete data mode is present, and preserve the selected mode/source in result evidence.
+
+#### Expected scope
+
+```text
 converters/vibration/fit/applicability.js
 converters/vibration/fit/calculate.js
-converters/vibration/fit/assess.js
 converters/vibration/fit/index.js
 converters/engineering-calculations/adapters/vibration-fit.js
-Benchmarks/VibrationFIT/fit-independent-hand-benchmarks-v1.json
-tests/engineering-calculation-core.test.mjs
+tests/vibration-fit-ei-worked-examples.test.mjs
+tests/vibration-fit-workbook-reference.test.mjs or new focused test
 docs/vibration/FIT-Engineering-Method-Specification-v1.md
 docs/vibration/FIT-Qualification-Dossier-v1.md
 agents/PR438_workreport.md
 ```
 
-Key behavior changes:
+#### Planned behavior
 
 ```text
-advanced: 1 Hz < fn <= 3 Hz
-large family: Dext >= 273 mm
-multiphase resolution: AGGREGATE_EFFECTIVE or COMPONENT_DERIVED
-reference bands: <0.3 / 0.3-<0.5 / 0.5-<1 / >=1
-methodRevision: ei-aviff2-fit-reference-v2
+Only aggregate shape present      -> infer AGGREGATE_EFFECTIVE / INFERRED
+Only component shape present      -> infer COMPONENT_DERIVED / INFERRED
+Both shapes + no explicit mode    -> FIT_MULTIPHASE_INPUT_AMBIGUOUS
+Both + explicit aggregate mode    -> AGGREGATE_EFFECTIVE / EXPLICIT
+Both + explicit component mode    -> COMPONENT_DERIVED / EXPLICIT
+Invalid explicit mode             -> FIT_INPUT_INVALID
+Explicit mode missing its data    -> fail closed on required fields
 ```
 
-Authority remains:
+#### Planned validation
 
-```text
-BENCHMARK_ONLY
-engineeringAuthority = NONE
-screeningAuthority = NOT_AUTHORIZED
-designAuthority = false
-```
+- Stage 11 EI 8/8 remains PASS;
+- both-shapes/no-mode fails closed;
+- explicit aggregate and explicit component both calculate and report selected mode;
+- invalid mode fails validation;
+- aggregate/component physical equivalence remains PASS;
+- no screening/design authority change.
 
-#### Validation performed
+#### Risks
 
-**PASS — exact committed EI regression in branch-module fixture:**
+- central UI must render the new enum without owning engineering logic;
+- automatic inference is permitted only for truly unambiguous input shapes;
+- extra unselected data must never change the calculation result.
 
-```text
-node --test tests/vibration-fit-ei-worked-examples.test.mjs
-8 tests / 8 passed / 0 failed
-```
+## Validation Ledger
 
-Published-value comparisons include:
-
-```text
-D2 6in suction       LOF 0.27669 vs 0.276
-D2 4in relief up     LOF 0.33926 vs 0.338
-D2 6in relief down   LOF 0.88041 vs 0.881
-D4 20in separator    LOF 0.26038 vs 0.26
-D4 10in water        LOF 3.15195 vs 3.15
-```
-
-**PASS — focused prior-reference regression:**
-
-```text
-2 retained reference cases
-6 standard correlation families
-4 threshold/advanced cases
-1 support-boundary set
-```
-
-**PASS — Stage 11 module syntax checks.**
-
-**NOT_RUN — full repository/default-registry/Console regression** because no full authenticated checkout exists in this runtime and GitHub Actions cannot allocate a runner due the external billing/spending gate.
-
-#### New findings / dispositions
-
-- ISS-012: fixed + benchmark validated.
-- ISS-013: fixed + D4 benchmark validated.
-- IMP-014: implemented + aggregate/component equivalence validated.
-- IMP-015: implemented + D2/D4 reference-band validation.
-- QST-003: narrowed, remains fail-closed.
-
-#### Stage decision
-
-**PARTIAL** — implementation and focused qualification are complete; release/full-repository and remaining engineering-authority gates are not.
-
-## Validation and Evidence Ledger
-
-| Validation | Status | Evidence |
-|---|---|---|
-| Retained source reconstruction | PASS | frozen workbook/blob + extracted worksheet |
-| Stage 9 focused reference/API tests | PASS | 16/16 prior fixture |
-| Stage 11 EI regression | PASS | 8/8 |
-| Stage 11 prior-reference regression | PASS | retained + 6 families + thresholds + boundaries |
-| Stage 11 syntax | PASS | method/applicability/calculate/assess |
-| Full repository test graph | NOT_RUN | checkout/Actions unavailable |
-| GitHub Actions | NOT_RUN | runner blocked before execution |
-| Remaining method-domain review | NOT_RUN | Stage 12 |
-| Screening authority | NOT_RUN | not authorized |
-| Design authority | NOT_APPLICABLE | not claimed |
+| Check | Status |
+|---|---|
+| Stage 11 EI regression | PASS 8/8 |
+| Prior retained/hand regression | PASS |
+| Stage 12 ambiguity tests | NOT_RUN |
+| Full repository regression | NOT_RUN |
+| GitHub Actions | NOT_RUN — external runner allocation block |
+| Screening authority | NOT_RUN / not authorized |
 
 ## Next-Agent Handover
 
-- **Current stopping point:** Stage 11 focused qualification passed; authority intentionally unchanged.
-- **PR / branch:** #438 / `agent/fiv-fit-roadmap-foundation`.
-- **Last completed stage:** Stage 11 implementation/benchmark work; stage decision PARTIAL due external/full-authority gates.
-- **Current active stage:** ready to open Stage 12.
-- **Start here:** remaining T2.2 applicability/equation-domain reconciliation and explicit supported/excluded scope.
-- **Do not redo:** workbook extraction, D2/D4 benchmark derivation, 1 Hz/273 mm corrections, CI billing investigation.
-- **Do not assume:** EI examples cover every method case; QST-003 can be filled by interpolation; benchmark-only is screening.
-- **Files currently involved:** 30-ish PR paths; reconcile with GitHub before Stage 12 closure.
-- **Known failing checks:** no known FIT focused test failure; Actions does not start.
-- **Validation still required:** full repo central tests + independent engineering approval.
-- **Open QST-*:** QST-001, QST-003; QST-002 deferred.
-- **Highest-risk remaining item:** unsupported method region accidentally entering screening scope.
-- **Exact next recommended action:** open Stage 12 in this report, reconcile remaining EI T2.2 scope, add fail-closed boundary tests, keep benchmark-only.
-- **Required reading:** method spec, qualification dossier, EI benchmark dataset, issue #429, CodingRules.
+- Current stopping point: Stage 12 opened before production changes.
+- PR/branch: #438 / `agent/fiv-fit-roadmap-foundation`.
+- Start here: `applicability.js` multiphase mode detection/validation.
+- Do not redo: EI D2/D4 extraction/benchmarks, CI root cause, Stage 11 corrections.
+- Do not assume: mixed multiphase datasets may choose an engineering interpretation implicitly.
+- Open questions: QST-001, QST-003; QST-002 deferred.
+- Highest risk: silent process-data interpretation.
+- Exact next action: implement explicit mode contract + focused tests; keep benchmark-only.
