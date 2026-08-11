@@ -8,7 +8,8 @@
 | PR number | 437 |
 | Branch | `agent/hp-class-standardization-tool` |
 | Base commit | `4530b4a98c3b6d6713665228bf3ca8e953a95018` |
-| PR status | DRAFT / OPEN |
+| Production head before final report sync | `c3ccdb037b43eabc22efdc62b1e39e81664654cb` |
+| PR status | DRAFT / OPEN / MERGEABLE |
 | Current stage | Stage 12 — controlled automatic KD-312 `Seq` processor — COMPLETE |
 | Last completed stage | Stage 12 |
 | Engineering status | B31.3 static/pressure calculations, multi-cycle K304.8.3, KD-2 pressure-state package, controlled KD-3 source/route gates, automatic/manual `Seq`, automatic/manual `Ni`, cumulative usage and bounded class-release review are implemented. |
@@ -189,6 +190,10 @@ The generic controlled form is parameterized by reviewer inputs rather than Code
 - `styles.css`: unchanged
 
 The published `Seq` gate, pair-processing, automatic `Seq`, matrix rendering and release-gate source were spot-checked through the connected GitHub file reader after publication.
+
+### PR scope check
+
+GitHub changed-file comparison: **PASS — exactly six controlled paths**.
 
 ### Not run
 
