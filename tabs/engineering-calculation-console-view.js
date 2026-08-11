@@ -29,7 +29,7 @@ function activeView(definition, state) {
   if (state.activeView === 'checks') return renderChecks(state.result);
   if (state.activeView === 'basis') return renderBasis(definition, state.resolution);
   if (state.activeView === 'evidence') return renderEvidence(state.result);
-  if (state.activeView === 'batch') return renderBatch(state);
+  if (state.activeView === 'batch') return renderBatch(state, definition);
   return renderResults(state.result, state.validation);
 }
 
