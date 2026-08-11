@@ -21,6 +21,20 @@ export function isEngineeringCalculationExecutable(definition) {
   return Boolean(definition?.id) && !NON_EXECUTABLE_STATES.has(stateOf(definition));
 }
 
+export function isEngineeringCalculationPreflightEnabled(definition) {
+  return Boolean(
+    definition?.id
+    && definition?.ui?.preflightEnabled === true
+    && Array.isArray(definition?.inputs)
+    && definition.inputs.length > 0,
+  );
+}
+
+export function canResolveEngineeringCalculation(definition) {
+  return isEngineeringCalculationExecutable(definition)
+    || isEngineeringCalculationPreflightEnabled(definition);
+}
+
 export function createEngineeringConsoleDraft(definition, seed = {}) {
   const values = {};
   const units = {};
@@ -131,7 +145,7 @@ export function parseEngineeringBatchEditor(text) {
     return { ok: false, error: `Invalid batch JSON: ${error.message}` };
   }
   const requests = Array.isArray(parsed) ? parsed : parsed?.requests;
-  if (!Array.isArray(requests)) return { ok: false, error: 'Batch JSON must be an array or an object with requests[].' };
+  if (!Array.isArray(requests)) return { ok: false, error: 'Batch JSON must be an array or an object with requests[].';
   return { ok: true, batchRequest: { requests, ...(parsed?.options ? { options: parsed.options } : {}) } };
 }
 
