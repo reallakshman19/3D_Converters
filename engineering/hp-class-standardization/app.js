@@ -132,7 +132,7 @@ function renderSummary(input, pressureWall, staticMinimum, nominalRequired) {
 }
 
 function escapeAttribute(value) {
-  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('\"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 function kdInputsHtml(result, previous) {
