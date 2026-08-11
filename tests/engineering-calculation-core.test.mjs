@@ -185,7 +185,7 @@ test('FIT is active only as benchmark-only workbook reference and retains issue 
   const qualification = getEngineeringCalculationQualification(definition.id);
   assert.equal(definition.id, 'VIB.FIV.FLOW_TURBULENCE');
   assert.equal(definition.name, 'Flow-Induced Turbulence (FIT) — Workbook Reference');
-  assert.equal(definition.methodRevision, 'crf-fit-d7d4c1-reference-v1');
+  assert.equal(definition.methodRevision, 'ei-aviff2-fit-reference-v2');
   assert.equal(definition.authority.calculationState, 'IMPLEMENTED');
   assert.equal(definition.authority.qualificationState, 'BENCHMARK_ONLY');
   assert.equal(definition.authority.codeCompliance, false);
@@ -208,6 +208,7 @@ test('FIT strict and screening execution fail closed while benchmark mode reprod
   nearlyEqual(result.outputs.standardLof, 0.06111973374777248, 1e-12);
   nearlyEqual(result.outputs.standardFv, 96734.96621707715, 1e-8);
   assert.equal(result.outputs.refinedLof, null);
+  assert.equal(result.outputs.referenceBand, 'LOF_LT_0_3');
   assert.equal(result.assessment.status, 'REFERENCE_BELOW_THRESHOLD');
   assert.equal(Object.hasOwn(result.assessment, 'pass'), false);
   assert.equal(result.qualification.effective, 'BENCHMARK_ONLY');
