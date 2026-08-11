@@ -102,7 +102,7 @@
     },
     {
       "id": "FIT-HAND-FLEX-SMALL-LOF-100-FN1",
-      "purpose": "Exact reference threshold with advanced lower-frequency boundary.",
+      "purpose": "Exact reference threshold at the EI-exclusive 1 Hz lower advanced boundary.",
       "input": {
         "phase": "LIQUID",
         "outsideDiameterM": 0.1683,
@@ -116,9 +116,7 @@
         "supportCategory": "FLEXIBLE_SMALL",
         "standardFvPa": 2621.0322382329437,
         "standardLof": 1.0,
-        "advancedEligible": true,
-        "advancedFvPa": 2608.365660193997,
-        "refinedLof": 1.004856135867854,
+        "advancedEligible": false,
         "assessmentStatus": "REFERENCE_FURTHER_ENGINEERING_ASSESSMENT_REQUIRED"
       }
     },
