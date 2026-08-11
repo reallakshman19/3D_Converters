@@ -1,7 +1,7 @@
 import {
+  canExecuteEngineeringCalculation,
   engineeringResultLabel,
   isEngineeringCalculationExecutable,
-  isEngineeringCalculationPreflightEnabled,
 } from './engineering-calculation-console-model.js';
 
 export function esc(value) {
@@ -23,20 +23,20 @@ function fieldControl(field, state) {
 }
 
 export function renderInputForm(definition, state) {
-  const executable = isEngineeringCalculationExecutable(definition);
-  const preflight = isEngineeringCalculationPreflightEnabled(definition);
-  if (!executable && !preflight) {
+  if (!isEngineeringCalculationExecutable(definition)) {
     return `<div class="engineering-console-banner bad"><strong>Execution blocked.</strong> No authorized numerical kernel is registered.${definition.qualificationIssue ? ` Qualification issue #${definition.qualificationIssue}.` : ''}</div>`;
   }
-  const preflightBanner = !executable
-    ? `<div class="engineering-console-banner warn"><strong>Physical preflight only.</strong> Validate and Resolve may inspect unit-normalized physical inputs and derived hydraulics. Method applicability, FIT screening and assessment remain blocked${definition.qualificationIssue ? ` under issue #${definition.qualificationIssue}` : ''}.</div>`
+  const authorityBanner = definition?.ui?.warning
+    ? `<div class="engineering-console-banner warn"><strong>Authority restriction.</strong> ${esc(definition.ui.warning)}</div>`
     : '';
   const fields = (definition.inputs||[]).map((field)=>{
     const errors = state.editorErrors.filter((item)=>item.field === field.key);
-    const unit = field.quantity && field.quantity !== 'dimensionless' ? `<input class="engineering-console-input engineering-console-unit" data-unit="${field.key}" value="${esc(state.draft.units[field.key] ?? '')}" aria-label="${esc(field.label || field.key)} unit">` : '';
+    const unit = field.quantity && field.quantity !== 'dimensionless'
+      ? `<input class="engineering-console-input engineering-console-unit" data-unit="${field.key}" value="${esc(state.draft.units[field.key] ?? '')}" aria-label="${esc(field.label || field.key)} unit">`
+      : '';
     return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}"><label>${esc(field.label || field.key)}${field.required ? ' *' : ''}</label><div class="engineering-console-control-row">${fieldControl(field,state)}${unit}</div><div class="engineering-console-field-meta">${field.engineeringDefault !== undefined ? `Declared default: ${esc(String(field.engineeringDefault))}` : 'No UI default'}${field.quantity ? ` · ${esc(field.quantity)}` : ''}</div>${errors.map((item)=>`<div class="engineering-console-field-error">${esc(item.message)}</div>`).join('')}</div>`;
   }).join('');
-  return `${preflightBanner}<div class="engineering-console-form-grid">${fields}</div>`;
+  return `${authorityBanner}<div class="engineering-console-form-grid">${fields}</div>`;
 }
 
 export function renderResults(result, validation) {
@@ -52,24 +52,8 @@ export function renderChecks(result) {
   return `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Check</th><th>Actual</th><th>Allowable</th><th>Utilization</th><th>Status</th><th>Authority</th></tr></thead><tbody>${checks.map((check)=>`<tr><td>${esc(check.label || check.id)}</td><td>${scalar(check.actual)}</td><td>${scalar(check.allowable)}</td><td>${scalar(check.utilization)}</td><td>${pill(check.status || '—', check.status === 'PASS' ? 'ok' : check.status === 'FAIL' ? 'bad' : '')}</td><td>${esc(check.authority || '—')}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
-function preflightRows(preflight) {
-  const derived = preflight?.derived ?? {};
-  return [
-    ['Inside diameter', derived.insideDiameterM, 'm'],
-    ['Internal flow area', derived.flowAreaM2, 'm²'],
-    ['Volumetric flow', derived.volumetricFlowM3S, 'm³/s'],
-    ['Mean velocity', derived.meanVelocityMS, 'm/s'],
-  ].filter(([, value]) => value !== undefined && value !== null);
-}
-
-function renderPreflight(preflight) {
-  if (!preflight) return '';
-  const rows = preflightRows(preflight);
-  return `<div class="engineering-console-card"><div class="engineering-console-section-heading"><h3>Physical preflight</h3>${pill(preflight.authority || 'PHYSICAL_CONTEXT_ONLY', 'warn')}</div><p>This is unit-normalized physical context only; it is not FIT applicability, LOF, screening or assessment authority.</p>${rows.length ? `<div class="engineering-console-table-wrap"><table class="engineering-console-table"><thead><tr><th>Derived quantity</th><th>Value</th><th>Unit</th></tr></thead><tbody>${rows.map(([label,value,unit])=>`<tr><td>${esc(label)}</td><td>${esc(value)}</td><td>${esc(unit)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>`;
-}
-
 export function renderBasis(definition, resolution) {
-  return `<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Calculation ID</small><strong>${esc(definition.id)}</strong></div><div class="engineering-console-card"><small>Method revision</small><strong>${esc(definition.methodRevision)}</strong></div><div class="engineering-console-card"><small>Method state</small><strong>${esc(definitionState(definition))}</strong></div><div class="engineering-console-card"><small>Qualification issue</small><strong>${esc(definition.qualificationIssue ?? '—')}</strong></div></div><div class="engineering-console-card"><h3>Purpose</h3><p>${esc(definition.purpose || '')}</p></div><div class="engineering-console-card"><h3>Applicability</h3><p>${esc(definition.applicability?.description || 'Not declared.')}</p><ul>${(definition.applicability?.limitations||[]).map((item)=>`<li>${esc(item)}</li>`).join('')}</ul></div>${renderPreflight(resolution?.preflight)}${resolution ? `<div class="engineering-console-card"><h3>Latest resolved inputs</h3><pre class="engineering-console-json">${esc(pretty(resolution))}</pre></div>` : ''}`;
+  return `<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Calculation ID</small><strong>${esc(definition.id)}</strong></div><div class="engineering-console-card"><small>Method revision</small><strong>${esc(definition.methodRevision)}</strong></div><div class="engineering-console-card"><small>Method state</small><strong>${esc(definitionState(definition))}</strong></div><div class="engineering-console-card"><small>Qualification issue</small><strong>${esc(definition.qualificationIssue ?? '—')}</strong></div></div><div class="engineering-console-card"><h3>Purpose</h3><p>${esc(definition.purpose || '')}</p></div><div class="engineering-console-card"><h3>Applicability</h3><p>${esc(definition.applicability?.description || 'Not declared.')}</p><ul>${(definition.applicability?.limitations||[]).map((item)=>`<li>${esc(item)}</li>`).join('')}</ul></div>${resolution ? `<div class="engineering-console-card"><h3>Latest resolved inputs</h3><pre class="engineering-console-json">${esc(pretty(resolution))}</pre></div>` : ''}`;
 }
 
 export function renderEvidence(result) {
@@ -79,9 +63,9 @@ export function renderEvidence(result) {
 
 export function renderBatch(state, definition) {
   const batch = state.batchResult;
-  const executable = isEngineeringCalculationExecutable(definition);
+  const executable = canExecuteEngineeringCalculation(definition, state.qualificationMode);
   const authorityBanner = executable
     ? 'Batch uses the central batch API; every item follows the same registered single-calculation path.'
-    : 'Current calculator is not executable and cannot be added to batch. Existing batch JSON may still contain other authorized calculators.';
+    : 'Current calculator is not executable in the selected qualification mode and cannot be added to batch.';
   return `<div class="engineering-console-banner ${executable ? '' : 'warn'}">${esc(authorityBanner)}</div><textarea class="engineering-console-input engineering-console-batch-editor" data-batch-editor spellcheck="false">${esc(state.batchText)}</textarea><div class="engineering-console-actions"><button class="engineering-console-btn" data-action="add-current-batch" ${executable ? '' : 'disabled'}>Add current request</button><button class="engineering-console-btn primary" data-action="run-batch">Run Batch</button></div>${state.batchError ? `<div class="engineering-console-banner bad">${esc(state.batchError)}</div>` : ''}${batch ? `<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Total</small><strong>${batch.total}</strong></div><div class="engineering-console-card"><small>Succeeded</small><strong>${batch.succeeded}</strong></div><div class="engineering-console-card"><small>Failed</small><strong>${batch.failed}</strong></div></div><pre class="engineering-console-json">${esc(pretty(batch))}</pre>` : ''}`;
 }
