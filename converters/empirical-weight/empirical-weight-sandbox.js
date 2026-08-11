@@ -18,10 +18,14 @@ function uniqueSortedText(values) {
     .sort((a, b) => a.localeCompare(b));
 }
 
-function availableTypes(model, masterRows) {
+function availableTypes(model, masterRows, target) {
   return uniqueSortedText([
-    ...(model.approach1?.models || []).map((row) => row.typeDesc),
-    ...masterRows.map((row) => row.TypeDesc),
+    ...(model.approach1?.models || [])
+      .filter((row) => row.target === target)
+      .map((row) => row.typeDesc),
+    ...masterRows
+      .filter((row) => finitePositive(row[target]))
+      .map((row) => row.TypeDesc),
   ]);
 }
 
@@ -66,7 +70,7 @@ export function listEmpiricalWeightSandboxOptions({
     masterRows.some((row) => finitePositive(row[name]))
   );
   const selectedTarget = targets.includes(target) ? target : targets[0] || 'RF/RTJ KG';
-  const types = availableTypes(model, masterRows);
+  const types = availableTypes(model, masterRows, selectedTarget);
   const selectedType = types.includes(typeDesc) ? typeDesc : types[0] || null;
   const ratings = selectedType ? ratingsFor(model, masterRows, selectedTarget, selectedType) : [];
   const numericRating = Number(rating);
