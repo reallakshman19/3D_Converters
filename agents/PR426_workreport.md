@@ -10,7 +10,7 @@
 | Branch | `agent/empirical-sandbox-material-db` |
 | Base commit | `bd58aa701f25bd3ddc100d19b38c94406e72f4e7` |
 | Final implementation HEAD | `853f224cfae672e51e47ed0c9cb87c649ce7e5e3` |
-| Report closure HEAD | `7447e60160e25c72cff45645a9c32a332bea2db3` (report-only closure commit before this metadata refresh) |
+| Latest report-only HEAD before this refresh | `d7e75f1e46bf924626e1cd760d4759ac5f17ce51` |
 | PR status | OPEN / DRAFT / MERGEABLE |
 | Current stage | Stage 8 — final review / handover |
 | Last completed stage | Stage 7 — screening factor ingestion + resolver authority fixes |
@@ -69,7 +69,7 @@
 ### ISS-001 closure
 **Root cause:** Existing `exact()` treated an absent discriminator as wildcard.
 
-**Fix:** Candidate records are now filtered so a supplied route prefers an exact route match, otherwise a route-agnostic record; an absent route may only match route-agnostic rows.
+**Fix:** Candidate records are filtered so a supplied route prefers an exact route match, otherwise a route-agnostic record; an absent route may only match route-agnostic rows.
 
 **Closure evidence:** Focused checks prove SS with no route or unknown route returns `missing: ['E']`; explicit routes resolve expected E.
 
@@ -219,7 +219,7 @@ No hidden engineering defaults, no silent factor fallback, no unrelated refactor
 ## Next-Agent Handover
 - **PR / branch:** #426 / `agent/empirical-sandbox-material-db`.
 - **Final implementation HEAD:** `853f224cfae672e51e47ed0c9cb87c649ce7e5e3`.
-- **Report closure HEAD:** `7447e60160e25c72cff45645a9c32a332bea2db3` before this metadata-only report refresh.
+- **Latest report-only HEAD before this refresh:** `d7e75f1e46bf924626e1cd760d4759ac5f17ce51`.
 - **Last completed stage:** Stage 8 final reconciliation/handover.
 - **Start here:** Review `docs/Masters/b313-material-factor-master.json` screening basis and `tests/b313-material-factors.test.mjs` qualification controls.
 - **Do not redo:** Sandbox implementation, route fix, null-S fix, or initial source investigation.
