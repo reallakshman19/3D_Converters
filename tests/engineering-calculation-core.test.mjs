@@ -56,10 +56,10 @@ const empiricalInput = Object.freeze({
   approach: 'FINAL',
 });
 
-test('default catalogue exposes 3 executable definitions and 16 explicitly blocked placeholders', () => {
+test('default catalogue exposes 3 executable definitions and 19 qualification-blocked placeholders', () => {
   const all = listEngineeringCalculations();
   const available = listEngineeringCalculations({ availableOnly: true });
-  assert.equal(all.length, 19);
+  assert.equal(all.length, 22);
   assert.equal(available.length, 3);
   assert.deepEqual(available.map((row) => row.id).sort(), [
     'ESTIMATION.WEIGHT.EMPIRICAL',
@@ -67,7 +67,10 @@ test('default catalogue exposes 3 executable definitions and 16 explicitly block
     'PIPE.B313.THICKNESS',
   ]);
   const families = listEngineeringCalculationFamilies();
-  assert.equal(families.reduce((sum, family) => sum + family.count, 0), 19);
+  assert.equal(families.reduce((sum, family) => sum + family.count, 0), 22);
+  const externalPressure = getEngineeringCalculationDefinition('PIPE.EXTERNAL_PRESSURE.CHECK');
+  assert.equal(externalPressure.authority.qualificationState, 'BLOCKED');
+  assert.equal(externalPressure.qualificationIssue, 428);
   assert(Object.isFrozen(all));
   assert(Object.isFrozen(getEngineeringCalculationDefinition('PIPE.B313.THICKNESS')));
 });
@@ -163,6 +166,17 @@ test('qualification-gated FIV placeholder fails before any numerical output is p
   assert.equal(qualification.qualificationIssue, 429);
 
   const result = calculateEngineering({ calculationId: definition.id, inputs: {} });
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
+  assert.equal(Object.hasOwn(result, 'outputs'), false);
+  assert.equal(result.qualification.effective, 'BLOCKED');
+});
+
+test('qualification-gated PIPE placeholder is discoverable but cannot execute', () => {
+  const result = calculateEngineering({
+    calculationId: 'PIPE.EXTERNAL_PRESSURE.CHECK',
+    inputs: {},
+  });
   assert.equal(result.ok, false);
   assert.equal(result.errors[0].code, 'ENGINEERING_METHOD_BLOCKED');
   assert.equal(Object.hasOwn(result, 'outputs'), false);
