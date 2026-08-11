@@ -14,8 +14,10 @@ export {
 } from './method.js';
 
 export {
+  FIT_MULTIPHASE_RESOLUTION_MODES,
   evaluateFitApplicability,
   fitAdvancedEligibility,
+  resolveFitMultiphaseResolutionMode,
   usesAggregateMultiphaseInput,
   validateFitReferenceInput,
 } from './applicability.js';
