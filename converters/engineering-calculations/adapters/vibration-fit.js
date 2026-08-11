@@ -166,7 +166,7 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   family: 'VIB',
   name: 'Flow-Induced Turbulence (FIT) — Workbook Reference',
   shortName: 'FIT Workbook Reference',
-  methodRevision: 'ei-aviff2-fit-reference-v3',
+  methodRevision: 'ei-aviff2-fit-reference-v2',
   purpose: 'Execute source-traceable FIT reference equations for qualification and benchmark review only.',
   authority: {
     calculationState: 'IMPLEMENTED',
