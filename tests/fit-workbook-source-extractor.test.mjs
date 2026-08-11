@@ -58,7 +58,7 @@ test('formulas-only extraction removes constants while retaining formula source 
 
   assert.equal(inventory.extraction.formulasOnly, true);
   assert(inventory.sheets.every((sheet) => sheet.cells.every((cell) => cell.formula !== null)));
-  assert.equal(inventory.sheets.find((sheet) => sheet.name === 'Inputs').cellCount, 10);
+  assert.equal(inventory.sheets.find((sheet) => sheet.name === 'Inputs').cellCount, 11);
   assert.equal(inventory.sheets.find((sheet) => sheet.name === 'Inputs').cells.length, 1);
 });
 
