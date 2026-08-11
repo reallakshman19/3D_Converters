@@ -22,7 +22,14 @@ export function resolveB313MaterialIdentity(input={}){
 }
 function acceptedStatuses(mode,explicit){if(Array.isArray(explicit)&&explicit.length)return new Set(explicit);if(mode==='benchmark')return new Set(['VERIFIED','PROJECT_APPROVED','BENCHMARK_ONLY']);if(mode==='screening')return new Set(['VERIFIED','PROJECT_APPROVED','BENCHMARK_ONLY','SCREENING']);return new Set(['VERIFIED','PROJECT_APPROVED']);}
 function tempC(input){const raw=input.designTemperature??input.temperature??input.temperatureC,n=Number(raw);if(!Number.isFinite(n))return null;const u=norm(input.temperatureUnit||(input.temperatureC!==undefined?'C':'C'));if(u==='C'||u==='CELSIUS')return n;if(u==='F'||u==='FAHRENHEIT')return(n-32)*5/9;return null;}
-function exact(records,id,t,statuses,extra={}){return(records||[]).find(r=>r.materialId===id&&Math.abs(Number(r.temperatureC)-t)<=1e-9&&statuses.has(r.status)&&Object.entries(extra).every(([k,v])=>!v||!r[k]||norm(r[k])===norm(v)));}
+function exact(records,id,t,statuses,extra={}){
+ let matches=(records||[]).filter(r=>r.materialId===id&&Math.abs(Number(r.temperatureC)-t)<=1e-9&&statuses.has(r.status));
+ for(const [key,value] of Object.entries(extra)){
+  if(value){const specific=matches.filter(r=>r[key]&&norm(r[key])===norm(value));matches=specific.length?specific:matches.filter(r=>!r[key]);}
+  else matches=matches.filter(r=>!r[key]);
+ }
+ return matches[0];
+}
 function stressMPa(record){if(!record)return null;const v=Number(record.value),u=norm(record.unit||'MPA');if(!(v>0))return null;return u==='KSI'?v*KSI_TO_MPA:u==='MPA'?v:null;}
 export function resolveB313DesignFactors(input={}){
  const identity=resolveB313MaterialIdentity(input);if(!identity.ok)return identity;const t=tempC(input);if(t==null)return fail('INVALID_DESIGN_TEMPERATURE','A finite design temperature in C or F is required.');
