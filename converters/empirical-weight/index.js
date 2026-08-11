@@ -12,6 +12,10 @@ export {
   createEmpiricalWeightTuningSession,
 } from './empirical-weight-tuning.js';
 export {
+  listEmpiricalWeightSandboxOptions,
+  evaluateEmpiricalWeightSandbox,
+} from './empirical-weight-sandbox.js';
+export {
   DEFAULT_EMPIRICAL_WEIGHT_ABNORMALITY_THRESHOLD_PCT,
   compareObservedWeightToEmpiricalEstimate,
   createEmpiricalWeightValidator,
