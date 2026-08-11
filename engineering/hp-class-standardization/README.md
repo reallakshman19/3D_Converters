@@ -4,30 +4,46 @@ A dependency-free static web calculator for the **piping-class standardization**
 
 ## Scope
 
-This tool intentionally stops at the class-release boundary. It calculates and records:
+This tool intentionally stops at the class-release boundary. It currently supports:
 
 - K304.1.2 Eq. (34a) straight-pipe pressure wall for the OD/minimum-wall route;
 - K304.1.1 allowance addition and minimum selected-wall comparison;
 - Eq. (35a) inverse pressure-rating QA for candidate minimum walls;
-- K304.8.3 Eq. (37) pressure stress at `Pmin` and `Pmax`;
-- pressure-stress range and half-range descriptor;
-- K304.8.3(c) `2*Syt` elastic/inelastic gate;
-- controlled entry of licensed BPVC VIII-3 `Seq`, `Ni`, source/calculation ID and evidence approval;
-- `n/Ni` usage when a positive controlled `Ni` is supplied;
+- multiple pressure-cycle blocks with `Pmin`, `Pmax`, `Tmin`, `Tmax`, cycle-average `Syt` and cycle count `n`;
+- K304.8.3 Eq. (37) pressure stress for every candidate-wall × cycle-block combination;
+- pressure-stress range and `Delta Sp / 2` descriptor;
+- K304.8.3(c) `2*Syt` elastic/inelastic gate per pressure-cycle block;
+- explicit placeholders for the governing BPVC VIII-3 edition, material/product sources, KD route, fatigue-curve ID and evidence package;
+- controlled entry of licensed `Seq`, `Ni`, KD source/calculation ID and evidence approval for each wall × cycle block;
+- `Ui = ni/Ni` and cumulative `U = sum(Ui)` when all required licensed `Ni` values are supplied and approved;
+- a controlled fracture-mechanics/KD-4 review-status placeholder and evidence ID;
 - CSV export and print.
 
-It does **not** perform routed-system fatigue, CAESAR system analysis, local FEA, vibration/HCF assessment, or final system Code acceptance.
+It does **not** perform routed-system fatigue, CAESAR system analysis, local FEA, vibration/HCF assessment, automatic licensed KD fatigue processing or final system Code acceptance.
 
 ## Engineering authority boundary
 
-B31.3-2024 K304.8.2 refers the alternating-stress fatigue calculation to BPVC Section VIII Division 3 Articles KD-2/KD-3. This repository does not contain a licensed KD fatigue equation/curve data set. Therefore:
+B31.3-2024 K304.8.2 refers the detailed alternating-stress fatigue calculation to BPVC Section VIII Division 3 Articles KD-2/KD-3. This repository does not contain a licensed KD equation/curve data set. Therefore:
 
-- `Delta Sp / 2` is displayed only as a pressure-only alternating-stress descriptor;
+- `Delta Sp / 2` is displayed only as a pressure-only descriptor;
 - the tool does not silently set it equal to final `Seq`;
 - no generic fatigue curve is embedded;
-- `Seq` and `Ni` must be entered from the controlled licensed KD calculation;
-- the result is shown as **KD blocked / not released** until `Seq`, `Ni`, a source reference and explicit evidence approval are present;
-- even with those inputs, the tool reports **Eligible for class-release review**, not automatic Code acceptance.
+- `Seq` and `Ni` remain controlled external inputs;
+- `Ui` and cumulative `U` are arithmetic only, based on user-supplied approved `Ni`;
+- missing KD evidence, an inelastic block, incomplete authority metadata or an unassessed fracture-mechanics gate prevents class-release eligibility;
+- even a complete set reports **Eligible for class-release review**, not automatic Code acceptance.
+
+## Stage 7 placeholders
+
+The UI now records placeholders for future controlled libraries/automation:
+
+1. **Material library** — Table K-1/K-1C and temperature-dependent properties.
+2. **Product library** — NPS/OD/wall and purchase tolerances.
+3. **KD engine** — licensed mean-stress / equivalent-alternating-stress equations.
+4. **Fatigue curve library** — licensed design-curve data/interpolation for automatic `Ni`.
+5. **Special-route evidence** — inelastic and KD-4 outputs remain external controlled evidence.
+
+These placeholders are intentionally visible so missing engineering authority cannot be mistaken for a completed calculation.
 
 ## Source control
 
@@ -44,23 +60,14 @@ Exact licensed Code text and approved project data control.
 
 ```text
 t = (D - 2 co) / 2 * [1 - exp(-P/S)]
-```
-
-Then:
-
-```text
 tm = t + ci + co
 ```
-
-The tool converts `tm` to a required nominal purchase wall using the **entered** minus tolerance. The tolerance is an explicit user input, not a universal default assumption.
 
 ### Eq. (35a) pressure-rating QA
 
 ```text
 P = S * ln[(D - 2 co) / (D - 2(T - ci))]
 ```
-
-`T` is the guaranteed/minimum wall derived from the entered candidate nominal wall and entered purchase minus tolerance.
 
 ### K304.8.3 Eq. (37)
 
@@ -69,28 +76,32 @@ Sp = P D^2 / { 2 (T - c) [D - (T - c)] }
 c = ci + co
 ```
 
-The tool evaluates this at `Pmin` and `Pmax` and reports `Delta Sp` plus `Delta Sp / 2` as a descriptor.
+For each cycle block the app evaluates `Sp(Pmin)`, `Sp(Pmax)`, `Delta Sp`, `Delta Sp/2`, and checks maximum `Sp` against the entered `2*Syt` threshold for that block.
 
-### K304.8.3(c) gate
+### Usage arithmetic
 
-The tool compares maximum Eq. (37) `Sp` with the entered `2*Syt` threshold and flags the inelastic route when exceeded.
+When licensed `Ni` is supplied and evidence is approved:
+
+```text
+Ui = ni / Ni
+Utotal = sum(Ui)
+```
+
+The app does not derive `Ni`.
 
 ## Reference example
 
-The **Load reference example** button visibly loads demonstration values only:
+The **Load reference example** button loads demonstration values only:
 
 - `D = 114.3 mm`
 - `Pdesign = 20 MPa`
-- `Pmin/Pmax = 2/20 MPa`
-- `Tmin/Tmax = 40/200 C`
-- `S = 138 MPa` — demonstration input only
-- `Syt = 225 MPa` — demonstration input only
+- `S = 138 MPa` demonstration input only
 - `ci = 3 mm`, `co = 0`
-- minus tolerance `12.5%` — demonstration input only
-- cycle count `500`
+- minus tolerance `12.5%` demonstration input only
 - candidate nominal walls `13.49, 17.12, 22.00 mm`
+- cycle `C1`: `Pmin/Pmax = 2/20 MPa`, `Tmin/Tmax = 40/200 C`, `Syt = 225 MPa`, `n = 500`
 
-Expected key results for the 13.49 mm candidate are approximately:
+Expected key results for the 13.49 mm candidate remain approximately:
 
 - Eq. (34a) `t = 7.7104 mm`
 - `tm = 10.7104 mm`
@@ -102,24 +113,19 @@ Expected key results for the 13.49 mm candidate are approximately:
 - `Delta Sp = 126.60 MPa`
 - half-range descriptor `= 63.30 MPa`
 
-Production calculations must replace all demonstration material/dimensional inputs with approved data.
-
-## Information needed to close `Seq` and `Ni`
-
-At minimum, the controlled fatigue package needs the governing BPVC VIII-3 edition, exact material/condition, full cycle endpoint stress state, associated mean-stress data required by the applicable KD route, any required SCF/penalty/modulus corrections, exact KD equation references, the applicable design fatigue curve identifier/data, interpolation/range rules and the actual cycle count.
+Production calculations must replace all demonstration values with approved data.
 
 ## Running the tool
 
-No build step or dependency installation is required.
+No build step or dependency installation is required. Open `index.html` directly in a browser or serve the folder from any static host/GitHub Pages.
 
-Open `index.html` directly in a browser or serve this folder from any static host. The files are compatible with GitHub Pages because all assets are relative and there are no server-side dependencies.
+## Validation expectations
 
-## Validation
-
-Focused validation should include:
-
-1. JavaScript syntax check.
-2. Independent comparison against the reference results above.
-3. Blank KD fields remain blocked/not released.
-4. Entering `Ni` calculates only `n/Ni`; no hidden fatigue curve is used.
-5. No external scripts, libraries, APIs or network dependencies.
+1. `node --check app.js` passes.
+2. The 13.49 mm reference values above are reproduced.
+3. Adding multiple cycle blocks creates one pressure-fatigue row per wall × block.
+4. Blank or unapproved KD fields keep the wall blocked.
+5. Entered `Ni` values produce only `n/Ni` and cumulative arithmetic.
+6. Any inelastic block prevents automatic class-release eligibility.
+7. Unassessed fracture-mechanics status prevents release eligibility.
+8. No external scripts, libraries, APIs or network dependencies are present.
