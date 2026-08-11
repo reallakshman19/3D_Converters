@@ -4,7 +4,11 @@ import {
   fitAdvancedCorrelation,
   fitStandardCorrelation,
 } from './method.js';
-import { evaluateFitApplicability, fitAdvancedEligibility } from './applicability.js';
+import {
+  evaluateFitApplicability,
+  fitAdvancedEligibility,
+  usesAggregateMultiphaseInput,
+} from './applicability.js';
 
 function gasViscosityFactor(input) {
   if (input.phase !== 'GAS') return 1;
@@ -15,6 +19,24 @@ function phaseHydraulics(input) {
   const derivedInsideDiameterM = input.outsideDiameterM - 2 * input.wallThicknessM;
   const insideDiameterM = input.insideDiameterM ?? derivedInsideDiameterM;
   const flowAreaM2 = Math.PI * insideDiameterM ** 2 / 4;
+
+  if (usesAggregateMultiphaseInput(input)) {
+    const aggregateVolumetricFlowM3S = input.fluidVelocityMS !== undefined
+      ? input.fluidVelocityMS * flowAreaM2
+      : input.massFlowKgS / input.densityKgM3;
+    return Object.freeze({
+      insideDiameterM,
+      insideDiameterSource: input.insideDiameterM !== undefined ? 'CALLER' : 'DERIVED_FROM_OD_AND_WALL',
+      flowAreaM2,
+      gasVolumetricFlowM3S: null,
+      liquidVolumetricFlowM3S: null,
+      aggregateVolumetricFlowM3S,
+      velocityMS: input.fluidVelocityMS ?? aggregateVolumetricFlowM3S / flowAreaM2,
+      velocitySource: input.fluidVelocityMS !== undefined ? 'CALLER_OVERRIDE' : 'DERIVED_FROM_AGGREGATE_MASS_AND_DENSITY',
+      resolutionMode: 'AGGREGATE_EFFECTIVE',
+    });
+  }
+
   const gasVolumetricFlowM3S = input.gasMassFlowKgS !== undefined
     ? input.gasMassFlowKgS / input.gasDensityKgM3
     : input.phase === 'GAS' && input.massFlowKgS !== undefined
@@ -25,27 +47,38 @@ function phaseHydraulics(input) {
     : input.phase === 'LIQUID' && input.massFlowKgS !== undefined
       ? input.massFlowKgS / input.densityKgM3
       : 0;
-  const derivedVelocity = (gasVolumetricFlowM3S + liquidVolumetricFlowM3S) / flowAreaM2;
+  const aggregateVolumetricFlowM3S = gasVolumetricFlowM3S + liquidVolumetricFlowM3S;
+  const derivedVelocity = aggregateVolumetricFlowM3S / flowAreaM2;
   return Object.freeze({
     insideDiameterM,
     insideDiameterSource: input.insideDiameterM !== undefined ? 'CALLER' : 'DERIVED_FROM_OD_AND_WALL',
     flowAreaM2,
     gasVolumetricFlowM3S,
     liquidVolumetricFlowM3S,
+    aggregateVolumetricFlowM3S,
     velocityMS: input.fluidVelocityMS ?? derivedVelocity,
     velocitySource: input.fluidVelocityMS !== undefined ? 'CALLER_OVERRIDE' : 'DERIVED',
+    resolutionMode: input.phase === 'MULTIPHASE' ? 'COMPONENT_DERIVED' : 'SINGLE_PHASE',
   });
 }
 
 function excitation(input, hydraulics) {
   const velocitySquared = hydraulics.velocityMS ** 2;
-  if (input.phase === 'LIQUID' || input.phase === 'GAS') {
-    return Object.freeze({ densityKgM3: input.densityKgM3, rhoV2: input.densityKgM3 * velocitySquared });
+  if (input.phase === 'LIQUID' || input.phase === 'GAS' || usesAggregateMultiphaseInput(input)) {
+    return Object.freeze({
+      densityKgM3: input.densityKgM3,
+      densitySource: input.phase === 'MULTIPHASE' ? 'CALLER_EFFECTIVE_DENSITY' : 'CALLER',
+      rhoV2: input.densityKgM3 * velocitySquared,
+    });
   }
   const totalMassFlow = input.gasMassFlowKgS + input.liquidMassFlowKgS;
   const totalVolumetricFlow = hydraulics.gasVolumetricFlowM3S + hydraulics.liquidVolumetricFlowM3S;
   const mixtureDensityKgM3 = totalMassFlow / totalVolumetricFlow;
-  return Object.freeze({ densityKgM3: mixtureDensityKgM3, rhoV2: mixtureDensityKgM3 * velocitySquared });
+  return Object.freeze({
+    densityKgM3: mixtureDensityKgM3,
+    densitySource: 'DERIVED_FROM_COMPONENTS',
+    rhoV2: mixtureDensityKgM3 * velocitySquared,
+  });
 }
 
 function formulaEvidence(advanced = false) {
