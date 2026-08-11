@@ -17,6 +17,27 @@ function closePublished(actual, expected, relativeTolerance = benchmarkSet.round
   assert(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected} within ${tolerance}`);
 }
 
+function d4EquivalentInputs() {
+  const gasMassFlowKgS = 27180 / 3600;
+  const liquidMassFlowKgS = 828796 / 3600;
+  const liquidVolumetricFlowM3S = (326 + 532) / 3600;
+  const liquidDensityKgM3 = liquidMassFlowKgS / liquidVolumetricFlowM3S;
+  const gasDensityKgM3 = 5;
+  const totalMassFlowKgS = gasMassFlowKgS + liquidMassFlowKgS;
+  const totalVolumetricFlowM3S = (5436 + 326 + 532) / 3600;
+  const effectiveDensityKgM3 = totalMassFlowKgS / totalVolumetricFlowM3S;
+  return {
+    common: {
+      phase: 'MULTIPHASE',
+      outsideDiameterM: 0.508,
+      wallThicknessM: 0.009525,
+      maximumUnsupportedSpanM: 5,
+    },
+    aggregate: { massFlowKgS: totalMassFlowKgS, densityKgM3: effectiveDensityKgM3 },
+    components: { gasMassFlowKgS, gasDensityKgM3, liquidMassFlowKgS, liquidDensityKgM3 },
+  };
+}
+
 for (const row of benchmarkSet.cases) {
   test(`${row.id}: reproduces published EI FIT worked-example result`, () => {
     const result = calculateFit(row.input);
@@ -62,40 +83,66 @@ test('EI D4 boundary: 273 mm flexible line resolves to FLEXIBLE_LARGE', () => {
   assert.equal(result.support.category, 'FLEXIBLE_LARGE');
 });
 
-test('multiphase aggregate effective inputs and component-derived inputs converge', () => {
-  const gasMassFlowKgS = 27180 / 3600;
-  const liquidMassFlowKgS = 828796 / 3600;
-  const liquidVolumetricFlowM3S = (326 + 532) / 3600;
-  const liquidDensityKgM3 = liquidMassFlowKgS / liquidVolumetricFlowM3S;
-  const gasDensityKgM3 = 5;
-  const totalMassFlowKgS = gasMassFlowKgS + liquidMassFlowKgS;
-  const totalVolumetricFlowM3S = (5436 + 326 + 532) / 3600;
-  const effectiveDensityKgM3 = totalMassFlowKgS / totalVolumetricFlowM3S;
-
-  const common = {
-    phase: 'MULTIPHASE',
-    outsideDiameterM: 0.508,
-    wallThicknessM: 0.009525,
-    maximumUnsupportedSpanM: 5,
-  };
-  const aggregate = calculateFit({
-    ...common,
-    massFlowKgS: totalMassFlowKgS,
-    densityKgM3: effectiveDensityKgM3,
-  });
-  const components = calculateFit({
-    ...common,
-    gasMassFlowKgS,
-    gasDensityKgM3,
-    liquidMassFlowKgS,
-    liquidDensityKgM3,
-  });
+test('multiphase aggregate effective inputs and component-derived inputs converge when each shape is unambiguous', () => {
+  const { common, aggregate: aggregateInput, components: componentInput } = d4EquivalentInputs();
+  const aggregate = calculateFit({ ...common, ...aggregateInput });
+  const components = calculateFit({ ...common, ...componentInput });
 
   assert.equal(aggregate.ok, true, JSON.stringify(aggregate));
   assert.equal(components.ok, true, JSON.stringify(components));
   assert.equal(aggregate.hydraulics.resolutionMode, 'AGGREGATE_EFFECTIVE');
+  assert.equal(aggregate.hydraulics.resolutionModeSelection, 'INFERRED');
   assert.equal(components.hydraulics.resolutionMode, 'COMPONENT_DERIVED');
+  assert.equal(components.hydraulics.resolutionModeSelection, 'INFERRED');
   closePublished(aggregate.hydraulics.velocityMS, components.hydraulics.velocityMS, 1e-12);
   closePublished(aggregate.excitation.densityKgM3, components.excitation.densityKgM3, 1e-12);
   closePublished(aggregate.standard.lof, components.standard.lof, 1e-12);
+});
+
+test('mixed multiphase input shapes fail closed without an explicit resolution mode', () => {
+  const { common, aggregate, components } = d4EquivalentInputs();
+  const result = calculateFit({ ...common, ...aggregate, ...components });
+  assert.equal(result.ok, false, JSON.stringify(result));
+  assert(result.errors.some((error) => error.code === 'FIT_MULTIPHASE_INPUT_AMBIGUOUS'));
+});
+
+test('explicit aggregate multiphase mode is deterministic when both data shapes are supplied', () => {
+  const { common, aggregate, components } = d4EquivalentInputs();
+  const result = calculateFit({
+    ...common,
+    ...aggregate,
+    ...components,
+    multiphaseResolutionMode: 'AGGREGATE_EFFECTIVE',
+  });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.hydraulics.resolutionMode, 'AGGREGATE_EFFECTIVE');
+  assert.equal(result.hydraulics.resolutionModeSelection, 'EXPLICIT');
+  assert.equal(result.hydraulics.alternateModeDataPresent, true);
+  assert.equal(result.evidence.inputResolution.selection, 'EXPLICIT');
+});
+
+test('explicit component multiphase mode is deterministic when both data shapes are supplied', () => {
+  const { common, aggregate, components } = d4EquivalentInputs();
+  const result = calculateFit({
+    ...common,
+    ...aggregate,
+    ...components,
+    multiphaseResolutionMode: 'COMPONENT_DERIVED',
+  });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.hydraulics.resolutionMode, 'COMPONENT_DERIVED');
+  assert.equal(result.hydraulics.resolutionModeSelection, 'EXPLICIT');
+  assert.equal(result.hydraulics.alternateModeDataPresent, true);
+  assert.equal(result.evidence.inputResolution.selection, 'EXPLICIT');
+});
+
+test('invalid explicit multiphase mode fails validation', () => {
+  const { common, aggregate } = d4EquivalentInputs();
+  const result = calculateFit({
+    ...common,
+    ...aggregate,
+    multiphaseResolutionMode: 'AUTO',
+  });
+  assert.equal(result.ok, false, JSON.stringify(result));
+  assert(result.errors.some((error) => error.code === 'FIT_INPUT_INVALID' && error.field === 'multiphaseResolutionMode'));
 });
