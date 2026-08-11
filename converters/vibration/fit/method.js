@@ -23,12 +23,27 @@ export const FIT_SUPPORT_CATEGORIES = Object.freeze([
 export const FIT_REFERENCE_LIMITS = Object.freeze({
   minOutsideDiameterMm: 60,
   smallFamilyMaxOutsideDiameterMm: 219.1,
-  largeFamilyMinOutsideDiameterMm: 273.05,
+  largeFamilyMinOutsideDiameterMm: 273,
   maxOutsideDiameterMm: 762,
   advancedNaturalFrequencyMinHz: 1,
+  advancedNaturalFrequencyMinInclusive: false,
   advancedNaturalFrequencyMaxHz: 3,
   referenceLofThreshold: 1,
 });
+
+export const FIT_REFERENCE_ACTION_BANDS = Object.freeze({
+  visualSurveyOnlyMaxExclusive: 0.3,
+  sbcAndVisualReviewMaxExclusive: 0.5,
+  detailedReviewMaxExclusive: 1,
+});
+
+export function fitReferenceLofBand(lof) {
+  if (!Number.isFinite(lof)) return null;
+  if (lof < FIT_REFERENCE_ACTION_BANDS.visualSurveyOnlyMaxExclusive) return 'LOF_LT_0_3';
+  if (lof < FIT_REFERENCE_ACTION_BANDS.sbcAndVisualReviewMaxExclusive) return 'LOF_0_3_TO_LT_0_5';
+  if (lof < FIT_REFERENCE_ACTION_BANDS.detailedReviewMaxExclusive) return 'LOF_0_5_TO_LT_1';
+  return 'LOF_GE_1';
+}
 
 export function fitSpanBoundaries(diameterMm) {
   return Object.freeze({
