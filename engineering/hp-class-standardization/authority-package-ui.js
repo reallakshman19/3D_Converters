@@ -212,24 +212,22 @@
     else doc.getElementById('calculateButton')?.click();
   }
 
-  function restoreRowEvidence(doc, pkg) {
+  function restoreRowEvidence(doc, payload) {
     const rows = [...doc.querySelectorAll('#fatigueBody tr')];
     const byKey = new Map(rows.map((row) => [row.dataset.key, row]));
-    let restored = 0;
-    pkg.rowEvidence.forEach((item) => {
+    const match = Core.matchRowEvidence(payload.rowEvidence, [...byKey.keys()]);
+    match.matched.forEach((item) => {
       const row = byKey.get(item.key);
-      if (!row) return;
       const seq = row.querySelector('input[id^="seq-"]');
       const ni = row.querySelector('input[id^="ni-"]');
-      if (pkg.inputs.authority.seqMode === 'manual' && item.seq > 0 && seq) seq.value = item.seq;
-      if (pkg.inputs.authority.fatigueCurveMode === 'manual' && item.ni > 0 && ni) ni.value = item.ni;
+      if (payload.inputs.authority.seqMode === 'manual' && item.seq > 0 && seq) seq.value = item.seq;
+      if (payload.inputs.authority.fatigueCurveMode === 'manual' && item.ni > 0 && ni) ni.value = item.ni;
       const source = row.querySelector('input[id^="source-"]');
       const approved = row.querySelector('input[id^="approved-"]');
       if (source) source.value = item.source || '';
       if (approved) approved.checked = Boolean(item.approved);
-      restored += 1;
     });
-    return { restored, expected: pkg.rowEvidence.length };
+    return { restored: match.matched.length, expected: payload.rowEvidence.length, missing: match.missing };
   }
 
   function applyMetadata(pkg) {
@@ -242,13 +240,14 @@
   }
 
   function applyPackage(pkg) {
-    const validation = Core.validatePackage(pkg);
-    if (!validation.ok) throw new Error(validation.errors.join(' '));
+    const imported = Core.importPayload(pkg);
+    if (!imported.ok) throw new Error(imported.errors.join(' '));
+    const payload = imported.payload;
     const doc = appDocument();
-    applyMetadata(pkg);
-    applyInputs(doc, pkg.inputs);
+    applyMetadata({ metadata: payload.metadata });
+    applyInputs(doc, payload.inputs);
     runCalculator(doc);
-    const restored = restoreRowEvidence(doc, pkg);
+    const restored = restoreRowEvidence(doc, payload);
     runCalculator(doc);
     return restored;
   }
