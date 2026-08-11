@@ -7,7 +7,7 @@ import {
 import {
   evaluateFitApplicability,
   fitAdvancedEligibility,
-  usesAggregateMultiphaseInput,
+  resolveFitMultiphaseResolutionMode,
 } from './applicability.js';
 
 function gasViscosityFactor(input) {
@@ -19,8 +19,9 @@ function phaseHydraulics(input) {
   const derivedInsideDiameterM = input.outsideDiameterM - 2 * input.wallThicknessM;
   const insideDiameterM = input.insideDiameterM ?? derivedInsideDiameterM;
   const flowAreaM2 = Math.PI * insideDiameterM ** 2 / 4;
+  const resolution = resolveFitMultiphaseResolutionMode(input);
 
-  if (usesAggregateMultiphaseInput(input)) {
+  if (input.phase === 'MULTIPHASE' && resolution.mode === 'AGGREGATE_EFFECTIVE') {
     const aggregateVolumetricFlowM3S = input.fluidVelocityMS !== undefined
       ? input.fluidVelocityMS * flowAreaM2
       : input.massFlowKgS / input.densityKgM3;
@@ -33,7 +34,9 @@ function phaseHydraulics(input) {
       aggregateVolumetricFlowM3S,
       velocityMS: input.fluidVelocityMS ?? aggregateVolumetricFlowM3S / flowAreaM2,
       velocitySource: input.fluidVelocityMS !== undefined ? 'CALLER_OVERRIDE' : 'DERIVED_FROM_AGGREGATE_MASS_AND_DENSITY',
-      resolutionMode: 'AGGREGATE_EFFECTIVE',
+      resolutionMode: resolution.mode,
+      resolutionModeSelection: resolution.selection,
+      alternateModeDataPresent: resolution.alternateModeDataPresent,
     });
   }
 
@@ -58,13 +61,16 @@ function phaseHydraulics(input) {
     aggregateVolumetricFlowM3S,
     velocityMS: input.fluidVelocityMS ?? derivedVelocity,
     velocitySource: input.fluidVelocityMS !== undefined ? 'CALLER_OVERRIDE' : 'DERIVED',
-    resolutionMode: input.phase === 'MULTIPHASE' ? 'COMPONENT_DERIVED' : 'SINGLE_PHASE',
+    resolutionMode: input.phase === 'MULTIPHASE' ? resolution.mode : 'SINGLE_PHASE',
+    resolutionModeSelection: input.phase === 'MULTIPHASE' ? resolution.selection : 'NOT_APPLICABLE',
+    alternateModeDataPresent: input.phase === 'MULTIPHASE' ? resolution.alternateModeDataPresent : false,
   });
 }
 
 function excitation(input, hydraulics) {
   const velocitySquared = hydraulics.velocityMS ** 2;
-  if (input.phase === 'LIQUID' || input.phase === 'GAS' || usesAggregateMultiphaseInput(input)) {
+  if (input.phase === 'LIQUID' || input.phase === 'GAS'
+      || (input.phase === 'MULTIPHASE' && hydraulics.resolutionMode === 'AGGREGATE_EFFECTIVE')) {
     return Object.freeze({
       densityKgM3: input.densityKgM3,
       densitySource: input.phase === 'MULTIPHASE' ? 'CALLER_EFFECTIVE_DENSITY' : 'CALLER',
@@ -161,6 +167,13 @@ export function calculateFit(input = {}) {
       ]),
     }),
     provenance: Object.freeze({ source: FIT_WORKBOOK_SOURCE }),
-    evidence: Object.freeze({ equationIds: formulaEvidence(Boolean(advanced)) }),
+    evidence: Object.freeze({
+      equationIds: formulaEvidence(Boolean(advanced)),
+      inputResolution: Object.freeze({
+        multiphaseResolutionMode: hydraulics.resolutionMode,
+        selection: hydraulics.resolutionModeSelection,
+        alternateModeDataPresent: hydraulics.alternateModeDataPresent,
+      }),
+    }),
   });
 }
