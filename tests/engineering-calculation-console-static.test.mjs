@@ -55,8 +55,8 @@ test('legacy engineering deep links route to the main tab subtabs', () => {
 
 test('stable two-segment pending calculation IDs are accepted by registry grammar', () => {
   assert.match(pending, /PIPE\.SHELL_INDENTATION/);
-  assert.match(registry, /\(\\\.[A-Z]\[A-Z0-9_\]\*\)\{1,\}/);
-  assert.doesNotMatch(registry, /\(\\\.[A-Z]\[A-Z0-9_\]\*\)\{2,\}/);
+  assert.match(registry, /CALCULATION_ID_PATTERN = .*\{1,\}/);
+  assert.doesNotMatch(registry, /CALCULATION_ID_PATTERN = .*\{2,\}/);
 });
 
 test('blocked definition is visibly non-executable and issue-qualified', () => {
