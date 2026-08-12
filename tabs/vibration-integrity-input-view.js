@@ -123,9 +123,18 @@ function editableTable(title, table, description) {
   </section>`;
 }
 
+function fallbackTable(kind) {
+  return { kind, header: [], rows: [], sourceName: null, sourceKind: 'WORKING_TABLE', dirty: false };
+}
+
 export function renderVibrationIntegrityInputArea(state) {
-  const tables = state.tables;
-  return `${benchmarkPanel(state)}${importPanel(state)}
+  const tables = state.tables ?? {
+    topology: fallbackTable('topology'),
+    operating: fallbackTable('operating'),
+    enrichment: fallbackTable('enrichment'),
+  };
+  const inputState = state.tables ? state : { ...state, tables };
+  return `${benchmarkPanel(inputState)}${importPanel(inputState)}
     ${editableTable('Topology · Elements working table', tables.topology, 'Certified XLSX is preserved only while these topology cells remain unedited. Any edit becomes a local Elements-only override.')}
     ${editableTable('Operating cases', tables.operating, 'Process quantities and units. Imported CSV remains editable before readiness or execution.')}
     ${editableTable('Vibration enrichment', tables.enrichment, 'Assessment-point and FIT geometry evidence keyed by Canonical ID. Imported CSV remains editable.')}`;
