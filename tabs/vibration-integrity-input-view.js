@@ -105,7 +105,7 @@ function importPanel(state) {
       <button type="button" class="vi-btn primary" data-vi-action="run"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${running ? 'Running…' : 'Run FIT benchmark'}</button>
       <button type="button" class="vi-btn" data-vi-action="export"${state.envelope ? '' : ' disabled'}>Export register CSV</button>
     </div>
-    ${topologyLimited ? '<div class="vi-banner warn"><strong>Limited / locally edited topology.</strong><span>Execution uses the visible Elements working table. Connections, Source Mapping, Catalogue Evidence and Export Metadata are not claimed for this edited input.</span></div>' : ''}
+    ${topologyLimited ? '<div class="vi-banner warn"><strong>Limited topology input.</strong><span>Execution uses the visible Elements working table. Complete provenance requires the five-sheet XLSX export; Connections, Source Mapping, Catalogue Evidence and Export Metadata are not claimed for this edited or CSV input.</span></div>' : ''}
   </section>`;
 }
 
