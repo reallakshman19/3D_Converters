@@ -10,6 +10,7 @@ import {
   resolveFitMultiphaseResolutionMode,
 } from './applicability.js';
 import { evaluateFitQualificationCoverage } from './qualification-coverage.js';
+import { evaluateFitScreeningCandidateScope } from './screening-candidate.js';
 
 function gasViscosityFactor(input) {
   if (input.phase !== 'GAS') return 1;
@@ -157,10 +158,15 @@ export function calculateFit(input = {}) {
     governingReferenceLof: advanced?.lof ?? standard.lof,
   };
   const qualificationCoverage = evaluateFitQualificationCoverage(calculated);
+  const screeningCandidate = evaluateFitScreeningCandidateScope({
+    ...calculated,
+    qualificationCoverage,
+  });
 
   return Object.freeze({
     ...calculated,
     qualificationCoverage,
+    screeningCandidate,
     authority: FIT_REFERENCE_AUTHORITY,
     qualification: Object.freeze({
       method: 'BENCHMARK_ONLY',
@@ -176,6 +182,7 @@ export function calculateFit(input = {}) {
     provenance: Object.freeze({
       source: FIT_WORKBOOK_SOURCE,
       qualificationCoverageId: qualificationCoverage.coverageId,
+      screeningCandidateScopeId: screeningCandidate.scopeId,
     }),
     evidence: Object.freeze({
       equationIds: formulaEvidence(Boolean(advanced)),
@@ -185,6 +192,7 @@ export function calculateFit(input = {}) {
         alternateModeDataPresent: hydraulics.alternateModeDataPresent,
       }),
       qualificationCoverage,
+      screeningCandidate,
     }),
   });
 }
