@@ -10,6 +10,7 @@ on:
       - 'tests/vibration-aiv-*'
       - 'tests/vibration-module-boundaries.test.mjs'
       - 'scripts/extract-aiv-ei-t27-source.mjs'
+      - 'scripts/extract-aiv-ei-d23-source.mjs'
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'docs/vibration/AIV-*'
       - 'package.json'
@@ -22,6 +23,7 @@ on:
       - 'converters/vibration/topology/graph.js'
       - 'tests/vibration-aiv-*'
       - 'scripts/extract-aiv-ei-t27-source.mjs'
+      - 'scripts/extract-aiv-ei-d23-source.mjs'
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - '.github/workflows/vibration-aiv-controlled-source.yml'
   workflow_dispatch:
@@ -37,12 +39,20 @@ jobs:
       - name: Checkout 3D Converters
         uses: actions/checkout@v6
 
-      - name: Checkout pinned Common engineering source
+      - name: Checkout pinned Common main-guidance source
         uses: actions/checkout@v6
         with:
           repository: reallaksh19/Common
           ref: aef163a5def3bfe04ca0ba860da05728a27daf42
           path: Common
+          fetch-depth: 1
+
+      - name: Checkout pinned Common worked-example PDF source
+        uses: actions/checkout@v6
+        with:
+          repository: reallaksh19/Common
+          ref: fb549185b9b27edc2379734240320a85c5bef9f6
+          path: CommonExamples
           fetch-depth: 1
 
       - name: Setup Node
@@ -78,6 +88,27 @@ jobs:
           console.log(JSON.stringify(manifest, null, 2));
           NODE
 
+      - name: Verify exact EI examples PDF and extract D.2.3 evidence hashes
+        shell: bash
+        run: |
+          node scripts/extract-aiv-ei-d23-source.mjs \
+            'CommonExamples/EI examples.pdf' \
+            --out "$RUNNER_TEMP/aiv-d23-source-manifest.json" \
+            --section-text-out "$RUNNER_TEMP/aiv-d23-private-review.txt"
+          node - "$RUNNER_TEMP/aiv-d23-source-manifest.json" <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (manifest.schema !== 'AivD23ExamplesSourceExtraction.v1') throw new Error('Unexpected D.2.3 extraction schema.');
+          if (manifest.source.gitBlobSha1 !== 'sha1:1ddef94f81bd30570d1b1f86b1d3e2acdcc17dec') throw new Error('EI examples PDF blob mismatch.');
+          if (manifest.source.sizeBytes !== 1602640) throw new Error('EI examples PDF byte-size mismatch.');
+          if (!manifest.publishedAnchors.every((anchor) => anchor.observed === true)) throw new Error('D.2.3 published anchor missing.');
+          if (manifest.qualification.directPinnedPdfExtractionComplete !== true) throw new Error('Pinned D.2.3 PDF extraction did not complete.');
+          if (manifest.qualification.publishedFinalLofObserved !== true) throw new Error('Published final LOF=0.29 was not observed in the pinned PDF section.');
+          if (manifest.qualification.publishedFlm1ArithmeticReconciliationRequired !== true) throw new Error('FLM1 arithmetic reconciliation gate must remain open.');
+          if (manifest.qualification.productionEquationAuthorized !== false) throw new Error('D.2.3 extraction cannot authorize production equations.');
+          console.log(JSON.stringify(manifest, null, 2));
+          NODE
+
       - name: Generate page-hash-bound human reconciliation template
         shell: bash
         run: |
@@ -98,6 +129,8 @@ jobs:
       - name: Run focused AIV qualification regressions
         run: |
           node --experimental-default-type=module --test tests/vibration-aiv-source-extraction-contract.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-d23-source-extraction-contract.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-d23-pdf-revalidation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-t27-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-errata-benchmark.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-qualification-evidence.test.mjs
