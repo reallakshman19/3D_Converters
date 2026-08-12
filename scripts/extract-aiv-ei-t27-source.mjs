@@ -44,7 +44,7 @@ export function splitExtractedPdfPages(textInput, firstPage = AIV_T27_PAGE_RANGE
   const expectedCount = lastPage - firstPage + 1;
   const normalized = String(textInput ?? '').replace(/\r\n?/gu, '\n');
   const chunks = normalized.split('\f');
-  if (chunks.at(-1) === '') chunks.pop();
+  if (chunks.length && chunks.at(-1).trim() === '') chunks.pop();
   if (chunks.length !== expectedCount) {
     throw new Error(`AIV_T27_PAGE_COUNT_MISMATCH: expected ${expectedCount} extracted pages, received ${chunks.length}.`);
   }
