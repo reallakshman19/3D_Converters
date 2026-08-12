@@ -11,10 +11,10 @@
 | Base | `main@e37a9e3a3991c5cbc839dd37a5bd7c6f84c8392f` at implementation start; re-check before publication. |
 | PR | **#448 — OPEN / DRAFT** |
 | Roadmap stage | **Stage 5 — Generic mechanism qualification framework** |
-| Current stage | **Stage 2 — PR ALLOCATION / EXACT-DIFF VERIFICATION** |
-| Stage decision | **PARTIAL** — framework/FIT-consumer focused tests PASS locally; full 39-file repository release gate and browser acceptance remain NOT_RUN. |
+| Current stage | **Stage 2 — PR ALLOCATION / EXACT-DIFF VERIFICATION — COMPLETE** |
+| Stage decision | **PARTIAL** — focused tests PASS and final PR scope is 19/19 expected paths; exact-head GitHub automation is NOT_RUN; full 39-file release/browser acceptance remain NOT_RUN. |
 | Authority | FIT remains `BENCHMARK_ONLY`; engineering authority `NONE`; non-FIT numerical mechanisms remain `NOT_IMPLEMENTED`. |
-| Exact next action | Rename this report to `PR448`, verify the exact final diff and exact-head automation state, then continue under the Owner's AUTO MODE policy when Stage-5 gates permit. |
+| Exact next action | Run the full 39-file release command and real-browser Stage-5 acceptance in a complete checkout; record outcomes, then AUTO MODE advances to Stage 6 when the gates permit. |
 
 ## Handover in 60 Seconds
 
@@ -118,6 +118,28 @@ Implemented:
   - delegates comparison lifecycle to the FIT mechanism adapter.
 - controlled release manifest expanded 36 -> 39 tests.
 
+### Stage 2 — PR allocation / exact-head verification
+
+**COMPLETE / PARTIAL VALIDATION.** Draft PR #448 is allocated from `agent/vibration-mechanism-qualification-framework` to `main`.
+
+Final PR scope is exactly **19/19 expected paths**. `agents/PR_PENDING_workreport.md` is absent and `agents/PR448_workreport.md` is present. No AIV, package, workflow, FIT numerical-kernel or unrelated file is in the final diff.
+
+Exact head observed after report allocation and AUTO MODE roadmap update:
+
+```text
+f7a835e45b5b0dde92fc4930abd97e9b04b17295
+```
+
+GitHub automation for that head:
+
+```text
+pull-request workflow runs = 0
+commit status contexts      = 0
+check runs                  = 0
+```
+
+Therefore exact-head automation is **NOT_RUN**, not PASS. PR #448 is open, draft and mergeable.
+
 ## Focused Validation
 
 PASS locally:
@@ -203,6 +225,6 @@ Final intended diff remains 19 paths after replacing the temporary pending repor
 
 ## Next-Agent Handover
 
-Use this PR-numbered work report as the single source of truth. Verify the exact 19-file diff and current-head automation state. Run the full release command only in a complete checkout and record its actual outcome.
+Use this PR-numbered work report as the single source of truth. Final scope is already verified at 19/19 expected paths and exact-head GitHub automation is NOT_RUN. Run the full release command only in a complete checkout and record its actual outcome.
 
 AUTO MODE: once Stage-5 release/browser evidence is acceptable, proceed directly into Stage 6 source/method reconciliation without another `ok`. If Stage 6 is blocked by missing controlled engineering basis, record `BLOCKED`/`DEFERRED` and continue only where the roadmap safely permits. Merge still requires explicit Owner authorization.
