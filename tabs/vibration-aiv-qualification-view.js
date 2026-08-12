@@ -1,3 +1,8 @@
+import {
+  AIV_D23_BENCHMARK_CASES,
+  AIV_EI_D23_SOURCE,
+  AIV_METHOD_TRACE_FOUNDATION,
+} from '../converters/vibration/aiv/aiv-qualification-evidence.js';
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
 import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
 
@@ -9,29 +14,37 @@ function esc(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
-
-const COVERAGE = Object.freeze([
-  ['AIV-SRC-EI-D2-3-PRESSURE', 'Pressure basis', 'EI D.2.3', 'COVERED', 'Worked example converts gauge conditions to absolute P1/P2 for T2.7.'],
-  ['AIV-SRC-EI-D2-3-NONSONIC', 'Non-sonic source branch', 'EI D.2.3', 'COVERED', 'Published relief and recycle cases use SFF = 0.'],
-  ['AIV-SRC-EI-D2-3-TRIM', 'Low-noise trim', 'EI D.2.3', 'COVERED', 'Recycle-valve example applies manufacturer noise reduction.'],
-  ['AIV-SRC-EI-D2-3-155DB', '155 dB source branch', 'EI D.2.3', 'COVERED', 'Worked example exercises source-level screening branch behavior.'],
-  ['AIV-SRC-EI-D2-3-ATTENUATION', 'Downstream discontinuity attenuation', 'EI D.2.3', 'COVERED', 'Relief case evaluates a downstream weldolet after source attenuation.'],
-  ['AIV-SRC-EI-D2-3-T2-6', 'T2-6 weldolet assessment chain', 'EI D.2.3', 'COVERED', 'Published geometry/intermediate chain is available for qualification.'],
-  ['AIV-SRC-GAP-SONIC-SFF6', 'Sonic SFF = 6 branch', 'Independent benchmark required', 'GAP', 'The controlled D.2.3 cases do not exercise the sonic branch.'],
-  ['AIV-SRC-GAP-MULTI-SOURCE', 'Multiple simultaneous sources', 'Independent benchmark required', 'GAP', 'Must be qualified separately before production behavior is adopted.'],
-]);
-
+function cell(value) {
+  return value === null || value === undefined || value === '' ? '<span class="aivq-empty">—</span>' : esc(value);
+}
+function evidenceKind(state) {
+  return /REQUIRED|PARTIAL|GAP/u.test(state) ? 'gap' : 'ok';
+}
 function coverageRows() {
-  return COVERAGE.map(([traceId, item, evidence, status, note]) => `<tr><td><code>${esc(traceId)}</code></td><td>${esc(item)}</td><td>${esc(evidence)}</td><td><span class="aivq-status ${status === 'COVERED' ? 'ok' : 'gap'}">${esc(status)}</span></td><td>${esc(note)}</td></tr>`).join('');
+  return AIV_METHOD_TRACE_FOUNDATION.map((item) => `<tr>
+    <td><code>${esc(item.traceId)}</code></td><td>${esc(item.subject)}</td>
+    <td>${item.sourceId ? 'EI D.2.3' : '<span class="aivq-empty">Main guidance not frozen</span>'}</td>
+    <td><span class="aivq-status ${evidenceKind(item.qualificationState)}">${esc(item.qualificationState)}</span></td>
+    <td>${item.gaps?.length ? esc(item.gaps.join('; ')) : item.benchmarkIds?.length ? esc(item.benchmarkIds.join('; ')) : '<span class="aivq-empty">—</span>'}</td>
+  </tr>`).join('');
+}
+function benchmarkRows() {
+  return AIV_D23_BENCHMARK_CASES.map((item) => `<tr>
+    <td><code>${esc(item.benchmarkId)}</code></td><td>${esc(item.caseLabel)}</td>
+    <td>${cell(item.publishedOutputs?.sourcePwlDb)}</td>
+    <td>${cell(item.publishedIntermediates?.assessmentPwlDb)}</td>
+    <td>${esc(item.evidenceState)}</td>
+    <td>${item.qualificationGap ? `<code>${esc(item.qualificationGap)}</code>` : '<span class="aivq-empty">—</span>'}</td>
+  </tr>`).join('');
 }
 
 export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
     <header class="aivq-header"><div><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>BLOCKED</strong><span>NOT SCREENING / NOT DESIGN AUTHORITY</span></div></header>
-    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Non-numerical data readiness is available. Benchmark execution, screening and all AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
+    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Non-numerical data readiness and controlled published-reference evidence are available. Benchmark execution, screening and production AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
     <section class="aivq-card"><h4>Controlled source set</h4><div class="aivq-grid">
       <div><small>Qualification issue</small><strong>#441</strong></div>
-      <div><small>EI worked-example source</small><strong>Energy-Institute-AVIFF---Worked-Examples.doc.docx</strong><span>Common @ fb549185b9b27edc2379734240320a85c5bef9f6 · blob ceee15ed5f7f320045d5f3979024e2e8664613f2</span></div>
+      <div><small>EI worked-example source</small><strong>${esc(AIV_EI_D23_SOURCE.path)}</strong><span>${esc(AIV_EI_D23_SOURCE.repository)} @ ${esc(AIV_EI_D23_SOURCE.commit)} · blob ${esc(AIV_EI_D23_SOURCE.gitBlob)} · ${esc(AIV_EI_D23_SOURCE.locator)}</span></div>
       <div><small>Advanced_Analysis visual lineage</small><strong>Sequential engineering SVG symbols</strong><span>Advanced_Analysis @ 6463b39866f68eb6476bfa41764538eb19f8b9f9</span></div>
       <div><small>Topology authority</small><strong>TopologyEditTableHumanExport.v1</strong><span>Elements + Connections + Source Mapping + Catalogue Evidence + Export Metadata</span></div>
     </div></section>
@@ -43,9 +56,12 @@ export function renderAivQualificationWorkspaceHtml(state = {}) {
         <tr><td>${renderAivInlineSymbol({ type: 'OLET', role: 'ASSESSMENT' })}</td><td>Assessment point</td><td>Weldolet / welded discontinuity</td><td>Source identity and assessment identity remain distinct canonical records.</td></tr>
       </tbody></table></div>
     </section>
-    <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 qualification coverage</h4><p>Coverage is evidence classification, not screening authority or a confidence score.</p></div></div>
-      <div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence</th><th>Coverage</th><th>Consequence</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
+    <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 published benchmark evidence</h4><p>These are pinned published-reference values, not outputs from the production AIV calculator.</p></div></div>
+      <div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Case</th><th>Published source PWL (dB)</th><th>Published point PWL (dB)</th><th>Evidence state</th><th>Open gap</th></tr></thead><tbody>${benchmarkRows()}</tbody></table></div>
     </section>
-    <section class="aivq-card"><h4>Permanent UI boundary</h4><ul class="aivq-list"><li>Advanced_Analysis remains topology/model author.</li><li>AIV consumes certified table exchange and separate process/enrichment authorities.</li><li>No 3D viewer, free-form topology canvas, geometry editor or click-on-model calculation workflow is added.</li><li>No AIV PWL, attenuation, LOF, threshold or pass/safe logic is implemented in UI code.</li><li>Missing or ambiguous source-to-assessment mappings fail closed and remain non-numerical.</li></ul></section>
+    <section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV qualification trace register</h4><p>Trace state comes directly from the immutable qualification evidence module; it is not a confidence score or screening classification.</p></div></div>
+      <div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence</th><th>Qualification state</th><th>Benchmark / gap</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
+    </section>
+    <section class="aivq-card"><h4>Permanent UI boundary</h4><ul class="aivq-list"><li>Advanced_Analysis remains topology/model author.</li><li>AIV consumes certified table exchange and separate process/device authorities.</li><li>No 3D viewer, free-form topology canvas, geometry editor or click-on-model calculation workflow is added.</li><li>No AIV PWL equation, attenuation equation, LOF equation, threshold assessment or pass/safe logic is implemented in UI code.</li><li>Missing or ambiguous source-to-assessment mappings fail closed and remain non-numerical.</li></ul></section>
   </div>`;
 }
