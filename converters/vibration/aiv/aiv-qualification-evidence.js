@@ -6,6 +6,24 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+export const AIV_EI_MAIN_GUIDANCE_SOURCE = deepFreeze({
+  sourceId: 'AIV-SRC-EI-AVIFF2-T2-7',
+  repository: 'reallaksh19/Common',
+  commit: 'aef163a5def3bfe04ca0ba860da05728a27daf42',
+  path: 'EI - AVIFF Guidelines 2nd Edition.pdf',
+  gitBlob: '9d3eccc56429411e17c07a579bdebbd13cb0bdc5',
+  edition: '2nd',
+  published: 'January 2008',
+  locator: 'T2.7 High Frequency Acoustic Excitation, pages 59-62',
+  officialErrata: {
+    pages: [61, 68],
+    aivRelevantPage: 61,
+    officialStatement: 'Energy Institute states the errata changes are incorporated into the main PDF.',
+  },
+  controlledContentExtractionState: 'PINNED_BLOB_CONTENT_RECONCILIATION_REQUIRED',
+  productionAuthority: false,
+});
+
 export const AIV_EI_D23_SOURCE = deepFreeze({
   sourceId: 'AIV-SRC-EI-D2-3',
   repository: 'reallaksh19/Common',
@@ -108,56 +126,98 @@ export const AIV_D23_BENCHMARK_CASES = deepFreeze([
   },
 ]);
 
+const MAIN_LOCATION_STATE = 'SOURCE_LOCATION_IDENTIFIED_CONTROLLED_EXTRACTION_REQUIRED';
+
 export const AIV_METHOD_TRACE_FOUNDATION = deepFreeze([
   {
+    traceId: 'AIV-APP-T2-7-EXTENT-001', namespace: 'AIV-APP', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'T2.7.1, page 59',
+    subject: 'Excitation extent, downstream boundary, welded discontinuities and pressure-reducing source classes',
+    qualificationState: MAIN_LOCATION_STATE, benchmarkIds: [],
+  },
+  {
+    traceId: 'AIV-UNIT-T2-7-INPUTS-001', namespace: 'AIV-UNIT', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'T2.7.2, page 59',
+    subject: 'T2.7 native input symbols and units including P1/P2 absolute pressure, Te, Mw, W, Dext/dext/Dint/T/t/Ldis',
+    qualificationState: MAIN_LOCATION_STATE, benchmarkIds: [],
+  },
+  {
+    traceId: 'AIV-EQ-SOURCE-PWL-001', namespace: 'AIV-EQ', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'T2.7.3 / Flowchart T2-5, page 60', subject: 'Source sound-power-level equation',
+    qualificationState: MAIN_LOCATION_STATE,
+    benchmarkIds: ['AIV-EI-D2-3-RELIEF-SOURCE', 'AIV-EI-D2-3-RECYCLE-SOURCE'],
+  },
+  {
+    traceId: 'AIV-CONST-SFF-001', namespace: 'AIV-CONST', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'T2.7.3, page 60', subject: 'Sonic-flow correction factor branch',
+    qualificationState: MAIN_LOCATION_STATE, benchmarkIds: ['AIV-EI-D2-3-RELIEF-SOURCE', 'AIV-EI-D2-3-RECYCLE-SOURCE'],
+  },
+  {
+    traceId: 'AIV-ASS-155DB-001', namespace: 'AIV-ASS', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'Flowchart T2-5, page 60', subject: '155 dB source/discontinuity branch behavior and 0.29 reference branch',
+    qualificationState: MAIN_LOCATION_STATE, benchmarkIds: ['AIV-EI-D2-3-RELIEF-SOURCE', 'AIV-EI-D2-3-RECYCLE-SOURCE'],
+  },
+  {
+    traceId: 'AIV-EQ-ATTENUATION-001', namespace: 'AIV-EQ', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'Flowchart T2-5, page 60', subject: 'Source-to-discontinuity acoustic attenuation equation',
+    qualificationState: MAIN_LOCATION_STATE, benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
+  },
+  {
+    traceId: 'AIV-EQ-MULTI-SOURCE-001', namespace: 'AIV-EQ', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'Flowchart T2-5, page 60', subject: 'Multiple-source PWL combination equation',
+    qualificationState: MAIN_LOCATION_STATE, benchmarkIds: [],
+  },
+  {
+    traceId: 'AIV-ASS-LOW-NOISE-TRIM-001', namespace: 'AIV-ASS', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'Note 1 / T2.7.3, page 61', subject: 'Low-noise-trim manufacturer reduction rule and prohibition on substituting vendor source PWL',
+    qualificationState: MAIN_LOCATION_STATE, benchmarkIds: ['AIV-EI-D2-3-RECYCLE-SOURCE'],
+  },
+  {
+    traceId: 'AIV-EQ-T2-6-001', namespace: 'AIV-EQ', sourceId: AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId,
+    locator: 'Flowchart T2-6, page 61', subject: 'Individual welded-discontinuity fatigue/LOF chain',
+    qualificationState: 'ERRATA_PAGE_61_CONTROLLED_CONTENT_RECONCILIATION_REQUIRED',
+    benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
+    gaps: ['OFFICIAL_ERRATA_PAGE_61_APPLIES'],
+  },
+  {
     traceId: 'AIV-SRC-EI-D2-3-PRESSURE', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator,
-    subject: 'Worked-example P1/P2 pressure basis and gauge-to-absolute treatment',
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Worked-example P1/P2 pressure basis and gauge-to-absolute treatment',
     qualificationState: 'WORKED_EXAMPLE_EVIDENCE_CAPTURED',
     benchmarkIds: ['AIV-EI-D2-3-RELIEF-SOURCE', 'AIV-EI-D2-3-RECYCLE-SOURCE'],
   },
   {
     traceId: 'AIV-SRC-EI-D2-3-NONSONIC', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator,
-    subject: 'Published D.2.3 cases use non-sonic branch with SFF = 0',
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Published D.2.3 cases use non-sonic branch with SFF = 0',
     qualificationState: 'WORKED_EXAMPLE_EVIDENCE_CAPTURED',
     benchmarkIds: ['AIV-EI-D2-3-RELIEF-SOURCE', 'AIV-EI-D2-3-RECYCLE-SOURCE'],
   },
   {
     traceId: 'AIV-SRC-EI-D2-3-TRIM', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator,
-    subject: 'Manufacturer low-noise-trim reduction in recycle-valve example',
-    qualificationState: 'WORKED_EXAMPLE_EVIDENCE_CAPTURED',
-    benchmarkIds: ['AIV-EI-D2-3-RECYCLE-SOURCE'],
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Manufacturer low-noise-trim reduction in recycle-valve example',
+    qualificationState: 'WORKED_EXAMPLE_EVIDENCE_CAPTURED', benchmarkIds: ['AIV-EI-D2-3-RECYCLE-SOURCE'],
   },
   {
     traceId: 'AIV-SRC-EI-D2-3-SOURCE-PWL', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator,
-    subject: 'Published source-PWL benchmark outputs',
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Published source-PWL benchmark outputs',
     qualificationState: 'WORKED_EXAMPLE_OUTPUT_CAPTURED',
     benchmarkIds: ['AIV-EI-D2-3-RELIEF-SOURCE', 'AIV-EI-D2-3-RECYCLE-SOURCE'],
   },
   {
     traceId: 'AIV-SRC-EI-D2-3-155DB', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator,
-    subject: 'Worked-example behavior around the 155 dB source-level branch',
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Worked-example behavior around the 155 dB source-level branch',
     qualificationState: 'WORKED_EXAMPLE_BRANCH_EVIDENCE_ONLY',
     benchmarkIds: ['AIV-EI-D2-3-RELIEF-SOURCE', 'AIV-EI-D2-3-RECYCLE-SOURCE'],
     gaps: ['PRODUCTION_THRESHOLD_RULE_REQUIRES_MAIN_GUIDANCE_TRACE'],
   },
   {
     traceId: 'AIV-SRC-EI-D2-3-ATTENUATION', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator,
-    subject: 'Published relief-source downstream attenuation example',
-    qualificationState: 'WORKED_EXAMPLE_EVIDENCE_CAPTURED',
-    benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Published relief-source downstream attenuation example',
+    qualificationState: 'WORKED_EXAMPLE_EVIDENCE_CAPTURED', benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
   },
   {
     traceId: 'AIV-SRC-EI-D2-3-T2-6', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator,
-    subject: 'Published T2-6 weldolet intermediate chain',
-    qualificationState: 'PARTIAL_WORKED_EXAMPLE_CHAIN_CAPTURED',
-    benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Published T2-6 weldolet intermediate chain',
+    qualificationState: 'PARTIAL_WORKED_EXAMPLE_CHAIN_CAPTURED', benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
     gaps: ['FINAL_T2_6_LOF_NOT_YET_CAPTURED_FROM_CONTROLLED_SOURCE'],
   },
   {
@@ -170,11 +230,6 @@ export const AIV_METHOD_TRACE_FOUNDATION = deepFreeze([
     locator: AIV_EI_D23_SOURCE.locator, subject: 'Multiple simultaneous acoustic sources',
     qualificationState: 'INDEPENDENT_BENCHMARK_REQUIRED', benchmarkIds: [],
   },
-  {
-    traceId: 'AIV-EQ-GAP-MAIN-GUIDANCE', namespace: 'AIV-EQ', sourceId: null, locator: null,
-    subject: 'Production equation chain and corrected EI main-guidance/errata source locations',
-    qualificationState: 'SOURCE_LOCATION_AND_ERRATA_FREEZE_REQUIRED', benchmarkIds: [],
-  },
 ]);
 
 export const AIV_QUALIFICATION_EVIDENCE = deepFreeze({
@@ -184,7 +239,7 @@ export const AIV_QUALIFICATION_EVIDENCE = deepFreeze({
     calculationState: 'BLOCKED', qualificationState: 'BLOCKED',
     screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false,
   },
-  sources: [AIV_EI_D23_SOURCE],
+  sources: [AIV_EI_MAIN_GUIDANCE_SOURCE, AIV_EI_D23_SOURCE],
   traceItems: AIV_METHOD_TRACE_FOUNDATION,
   benchmarks: AIV_D23_BENCHMARK_CASES,
   productionEquationAuthorized: false,
