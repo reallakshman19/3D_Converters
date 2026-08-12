@@ -39,7 +39,7 @@ function validatedBenchmarkHtml() {
   const t = a.t26Intermediates;
   const sourceRows = record.sourceResults.map((row) => `<tr><td><code>${esc(row.sourceCanonicalId)}</code></td><td>${esc(row.caseId)}</td><td>${esc(row.rawSourcePwlDb)}</td><td>${esc(row.sonicFlowFactorDb)}</td><td>${esc(row.trimReductionDb)}</td><td>${esc(row.effectiveSourcePwlDb)}</td><td><span class="aivq-status ok">VALIDATED</span></td></tr>`).join('');
   return `<section class="aivq-card aivq-results-card">
-    <div class="aivq-section-head"><div><h4>Validated EI D.2.3 benchmark results</h4><p>These values come from the committed 10-stage validation record and are shown only while the controlled benchmark inputs remain unchanged.</p></div><button type="button" class="engineering-console-btn" data-aiv-action="export-d23-validation">Export validation package</button></div>
+    <div class="aivq-section-head"><div><h4>Validated EI D.2.3 benchmark results</h4><p>These values come from the committed 10-stage validation record and are shown only while both the controlled benchmark tables and validated assumption profile remain unchanged.</p></div><button type="button" class="engineering-console-btn" data-aiv-action="export-d23-validation">Export validation package</button></div>
     <div class="aivq-result-summary"><span>Validation <strong>${esc(record.status)}</strong></span><span>Checks <strong>${esc(record.counts.passed)}/${esc(record.counts.checks)}</strong></span><span>Stages <strong>${esc(record.completeKernelStageCount)}/10</strong></span><span>Human evidence <strong>false</strong></span><span>Screening authority <strong>${esc(record.screeningAuthority)}</strong></span></div>
     <h5>Source Results · <code>AivSourceResult.v1</code></h5>
     <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Case</th><th>Raw PWL</th><th>SFF</th><th>Trim</th><th>Effective PWL</th><th>Status</th></tr></thead><tbody>${sourceRows}</tbody></table></div>
@@ -49,17 +49,17 @@ function validatedBenchmarkHtml() {
     <div class="aivq-example-table"><table><thead><tr><th>A</th><th>S</th><th>B</th><th>log10(N)</th><th>N</th><th>Dext/dext</th><th>FLM1</th><th>FLM1 recalculated</th><th>FLM2</th><th>N after FLM2</th><th>Lf</th></tr></thead><tbody><tr><td>${esc(t.A)}</td><td>${esc(t.S)}</td><td>${esc(t.B)}</td><td>${esc(t.log10N)}</td><td>${esc(t.N)}</td><td>${esc(t.diameterRatio)}</td><td>${esc(t.FLM1)}</td><td>${esc(t.calculatedFLM1FromGeometry)}</td><td>${esc(t.FLM2)}</td><td>${esc(t.NAfterFLM2)}</td><td>${esc(t.Lf)}</td></tr></tbody></table></div>
     <h5>Line / Case Summary · <code>AivLineCaseSummary.v1</code></h5>
     <div class="aivq-example-table"><table><thead><tr><th>Line</th><th>Case</th><th>Line LOF</th><th>Basis</th><th>Scope rule</th></tr></thead><tbody><tr><td>${esc(record.lineResult.line)}</td><td>${esc(record.lineResult.caseId)}</td><td>${esc(record.lineResult.lof)}</td><td>${esc(record.lineResult.aggregationBasis)}</td><td>Line 1.48 is separate from assessment 0.29</td></tr></tbody></table></div>
-    <div class="aivq-readiness-note">Validation artifact: <code>${esc(record.path)}</code> · blob <code>${esc(record.gitBlob)}</code>. A/S/B and the line-scope LOF remain explicit configurable assumptions; no universal operating/design classification is produced.</div>
+    <div class="aivq-readiness-note">Validation artifact: <code>${esc(record.path)}</code> · blob <code>${esc(record.gitBlob)}</code>. A/S/B and the line-scope LOF remain explicit configurable assumptions; changing them invalidates this committed parity record.</div>
   </section>`;
 }
 
 export function renderAivResultShellsHtml(state = {}) {
-  if (state.benchmark?.loaded && !state.benchmark.loaded.modified) return validatedBenchmarkHtml();
+  const validationModified = Boolean(state.benchmark?.loaded?.modified || state.assumptionProfileModified);
+  if (state.benchmark?.loaded && !validationModified) return validatedBenchmarkHtml();
   const resultSet = state.resultSet ?? null;
-  const modified = state.benchmark?.loaded?.modified;
   const summary = resultSet
     ? `<div class="aivq-result-summary"><span>Source shells <strong>${esc(resultSet.counts.sources)}</strong></span><span>Assessment shells <strong>${esc(resultSet.counts.assessments)}</strong></span><span>Line/case shells <strong>${esc(resultSet.counts.lineCaseSummaries)}</strong></span><span>Engineering authority <strong>${esc(resultSet.authority.engineeringAuthority)}</strong></span></div>`
-    : `<div class="aivq-readiness-note">${modified ? 'Benchmark inputs were modified, so the committed validation result is not applicable. Check readiness for the edited working inputs.' : 'Check AIV readiness to instantiate the frozen result scopes from the current visible working inputs.'}</div>`;
+    : `<div class="aivq-readiness-note">${validationModified ? 'Benchmark inputs or assumptions were modified, so the committed validation result is not applicable. Check readiness for the edited working inputs.' : 'Check AIV readiness to instantiate the frozen result scopes from the current visible working inputs.'}</div>`;
   return `<section class="aivq-card aivq-results-card">
     <div class="aivq-section-head"><div><h4>AIV result scopes</h4><p>Source Result, Assessment Result and Line / Case Summary remain separate contracts. Modified or project inputs do not inherit the committed D.2.3 validation result.</p></div></div>
     ${summary}
