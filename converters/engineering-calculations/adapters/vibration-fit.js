@@ -129,11 +129,13 @@ function calculate(input, runtime = {}) {
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       inputResolution: result.evidence.inputResolution,
       qualificationCoverageId: result.qualificationCoverage.coverageId,
+      screeningCandidateScopeId: result.screeningCandidate.scopeId,
     },
     evidence: {
       equationIds: result.evidence.equationIds,
       inputResolution: result.evidence.inputResolution,
       qualificationCoverage: result.qualificationCoverage,
+      screeningCandidate: result.screeningCandidate,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       domainResult: result,
     },
