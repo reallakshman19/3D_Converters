@@ -51,11 +51,22 @@ test('stages 8–10 can still be explicitly marked incomplete for regression and
   assert.equal(plan.nextAction, 'IMPLEMENT_STAGES_8_TO_10');
 });
 
-test('after product-path parity AUTO mode advances to result UI/export', () => {
+test('product-path parity plus wired result/export advances AUTO to exact-head validation', () => {
   const plan = buildAivAutoStagePlan({ productPathBenchmarkParity: productPathPass() });
   assert.equal(plan.stages.find((stage) => stage.stageId === '17').status, AIV_AUTO_STAGE_STATUS.COMPLETE);
+  assert.equal(plan.stages.find((stage) => stage.stageId === '18').status, AIV_AUTO_STAGE_STATUS.COMPLETE);
+  assert.equal(plan.nextStageId, '19');
+  assert.equal(plan.nextAction, 'RUN_EXACT_HEAD_NODE_AND_BROWSER_VALIDATION');
+});
+
+test('result/export wiring can be explicitly rolled back and blocks Stage 19', () => {
+  const plan = buildAivAutoStagePlan({
+    productPathBenchmarkParity: productPathPass(),
+    resultExportWired: false,
+  });
+  assert.equal(plan.stages.find((stage) => stage.stageId === '18').status, AIV_AUTO_STAGE_STATUS.NEXT);
+  assert.equal(plan.stages.find((stage) => stage.stageId === '19').status, AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE);
   assert.equal(plan.nextStageId, '18');
-  assert.equal(plan.nextAction, 'WIRE_BENCHMARK_RESULT_UI_AND_EXPORT');
 });
 
 test('exact-head pass makes BENCHMARK_ONLY authority transition ready without human recommendation', () => {
