@@ -9,29 +9,14 @@
 | PR / branch | #438 / `agent/fiv-fit-roadmap-foundation` |
 | Current base | `main` at `bb747fa55be4490a4aada6f9dadf22d4b33e9e92` after explicit mainline merge reconciliation. |
 | PR state | OPEN / DRAFT / **MERGEABLE** at latest check. |
-| Current stage | **Stage 30 — IN_PROGRESS: current-head validation / PR hardening** |
-| Last stage | **Stage 29 — COMPLETE FOR IMPLEMENTATION / SOURCE RECONCILIATION PASS** |
+| Current stage | **Stage 31 — IN_PROGRESS: issue #429 engineering review package** |
+| Last stage | **Stage 30 — COMPLETE FOR SOURCE/METADATA HARDENING; current-head execution NOT_RUN** |
 | Engineering state | `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`; `engineeringAuthority=NONE`; screening/design NOT AUTHORIZED. |
 | Product boundary | Vibration consumes table exports from Advanced_Analysis 3D EDIT only. No 3D viewer, canvas, geometry rendering, heatmap or embedded model runtime. |
 
 ## Handover in 60 Seconds
 
-Numerical/data path:
-
-```text
-3D EDIT table export
- -> VibrationTableExchange.v1
- -> VibrationIntegrityDataset.v1
- -> VibrationFacilityFitPlan.v1
- -> optional VibrationFacilityFitPreflight.v1 (no calculation)
- -> central calculateEngineeringBatch() only after explicit Run
- -> VibrationFacilityFitResult.v1
- -> VibrationFacilityFitRegister.v1
- -> VibrationWorkspaceModel.v1
- -> FIT table workspace / CSV export
-```
-
-Visible product entry is now exactly the owner-corrected route:
+Current visible entry:
 
 ```text
 Engineering
@@ -49,7 +34,24 @@ Engineering
     HP Piping Class
 ```
 
-There is **no fifth Vibrations subtab** and no standalone Vibration Integrity navigation item.
+There is no fifth Vibrations subtab and no standalone Vibration Integrity navigation item.
+
+Numerical/data path:
+
+```text
+3D EDIT table export
+ -> VibrationTableExchange.v1
+ -> VibrationIntegrityDataset.v1
+ -> VibrationFacilityFitPlan.v1
+ -> optional VibrationFacilityFitPreflight.v1 (no calculation)
+ -> central calculateEngineeringBatch() only after explicit Run
+ -> VibrationFacilityFitResult.v1
+ -> VibrationFacilityFitRegister.v1
+ -> VibrationWorkspaceModel.v1
+ -> FIT table workspace / CSV export
+```
+
+Stage 31 will create one controlled engineering review package answering issue #429's five qualification questions from the evidence already implemented/extracted. It must not promote authority or invent missing project-method data.
 
 ## Mission / Engineering Intent
 
@@ -66,8 +68,9 @@ There is **no fifth Vibrations subtab** and no standalone Vibration Integrity na
 11. UI renders registered/API artifacts only; it does not reproduce engineering equations or authority logic.
 12. Preserve current-main Engineering Calculations four-subtab hierarchy.
 13. Existing `Vibration & Dynamic Screening` family is the product landing surface; no duplicate navigation.
-14. Family landing status comes from registered calculation definitions.
+14. Family landing state/actions derive from registered definitions, not hard-coded mechanism authority.
 15. Selecting FIT reuses the registered FIT definition/product surface; blocked VIB mechanisms remain non-executable.
+16. Issue #429 review evidence must distinguish source transcription, benchmark parity, engineering-method qualification and production authority.
 
 ## Mission Status
 
@@ -79,12 +82,12 @@ There is **no fifth Vibrations subtab** and no standalone Vibration Integrity na
 | Exchange/dataset/facility workflow | P0 | IMPLEMENTED | Stages 15–22 |
 | CSV templates/register export | P0 | FOCUSED PASS | Stage 23 |
 | Workspace read model | P0 | FOCUSED PASS 6/6 | Stage 24 |
-| Visible FIT table workspace | P0 | IMPLEMENTED / source-reviewed | Stages 25–27 |
-| Readiness preflight | P0 | IMPLEMENTED / source-boundary PASS | Stage 26 |
-| Existing VIB-family landing | P0 | IMPLEMENTED / source-reviewed | Stage 29 |
+| FIT table workspace/readiness/detail | P0 | IMPLEMENTED / source-reviewed | Stages 25–27 |
+| Existing VIB-family landing | P0 | IMPLEMENTED / source-reviewed | Stages 29–30 |
 | Duplicate fifth-subtab work | P0 | REMOVED | owner correction |
-| Mainline HP/Engineering reconciliation | P0 | PASS | two-parent merge commit `5b9ba918...`; PR mergeable |
+| Mainline HP/Engineering reconciliation | P0 | PASS | merge commit `5b9ba918...`; PR mergeable |
 | Mainline stable ID grammar | P0 | PRESERVED | `PIPE.SHELL_INDENTATION` + `{1,}` registry grammar |
+| Issue #429 engineering review package | P0 | IN_PROGRESS | Stage 31 |
 | Full current-head regression | P0 | NOT_RUN | normal checkout unavailable in this runtime |
 | Full method/project authority review | P0 | BLOCKED | licensed/adopted source + independent engineer |
 | Screening authority | P0 | BLOCKED | issue #429 |
@@ -110,6 +113,7 @@ There is **no fifth Vibrations subtab** and no standalone Vibration Integrity na
 | DEC-045 | Decision | ACCEPTED | Existing `Vibration & Dynamic Screening` family is the vibration landing entry. |
 | DEC-046 | Decision | ACCEPTED | FIT landing action selects the registered FIT definition and mounts its table workspace. |
 | DEC-047 | Decision | ACCEPTED | Mainline HP/Engineering changes are incorporated by merge parent, not duplicated in vibration scope. |
+| DEC-048 | Decision | ACCEPTED | VIB landing actions derive from registered executability/product surface, so future qualification changes do not require hard-coded UI authority edits. |
 | RISK-001 | Risk | MITIGATED | Unqualified empirical method remains benchmark gated. |
 | RISK-024 | Risk | MITIGATED | Incomplete/failed rows stay explicit and blank numerically. |
 | RISK-032 | Risk | MITIGATED | UI visibly distinguishes complete XLSX vs limited CSV. |
@@ -118,13 +122,15 @@ There is **no fifth Vibrations subtab** and no standalone Vibration Integrity na
 | RISK-036 | Risk | MITIGATED | Stale core test expected obsolete placeholder inventory/FIT name; updated to current registry. |
 | QST-001 | Question | BLOCKED | Complete licensed/adopted T2.2/project review. |
 | QST-003 | Question | FAIL_CLOSED | Manual OD family gap remains unresolved by authority. |
+| ISS-009 | Defect | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Advanced range corrected to `1 < fn <= 3 Hz`; licensed/project authority review remains required. |
+| ISS-010 | Defect | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Deterministic span support classification avoids inconsistent cached selector; authority review remains required. |
 | ISS-011 | External CI | ROOT_CAUSE_CONFIRMED | GitHub Actions runner blocked by billing/spending condition. |
 
 ## Stage History
 
 ### Stages 1–14 — FIT benchmark engineering vertical
 
-Roadmap/source extraction, workbook reference kernel, central benchmark-only adapter, EI Appendix D D2/D4 examples, hand benchmarks, ambiguity hardening, evidence coverage and non-authorizing candidate metadata. Focused EI/domain suite reached 12/12 PASS. Screening remained blocked.
+Roadmap/source extraction, workbook reference kernel, central benchmark-only adapter, EI Appendix D D2/D4 examples, independent hand benchmarks, ambiguity hardening, evidence coverage and non-authorizing candidate metadata. Focused EI/domain suite reached 12/12 PASS. Screening remained blocked.
 
 ### Stages 15–23 — table workflow
 
@@ -138,46 +144,29 @@ Calculation-free read model with deterministic non-numerical sort/filter, exact 
 
 Implemented table imports/templates, separate Check readiness and Run FIT benchmark, facility register, filters, CSV export and structured identity/inputs/case/evidence/source/diagnostic detail. Benchmark execution is lazy-loaded only on explicit Run. No direct UI-side engineering calculation, 3D/canvas, pass/safe/score, or authority synthesis.
 
-### Stage 28 — current-head validation/hardening — PARTIAL
+### Stage 28 — source/current-head hardening — PARTIAL
 
-Source/import boundary, HTML escaping, authority language and changed-file scope were reviewed. Prior full-checkout evidence remains valid for the earlier branch head, but newer workspace/UI changes still require current-head checkout regression.
+Source/import boundary, HTML escaping, authority language and changed-file scope were reviewed. Prior full-checkout evidence remains valid for the earlier branch head; newer workspace/UI changes still require current-head checkout regression.
 
-### Stage 29 — existing VIB-family landing — COMPLETE FOR IMPLEMENTATION
+### Stage 29 — existing VIB-family landing — COMPLETE
 
-Owner corrected the initial interpretation and required reuse of the existing `Vibration & Dynamic Screening (6)` placeholder family.
+Owner corrected the initial navigation interpretation. Temporary fifth-subtab files were deleted. `tabs/engineering-calculation-vibration-family.js` now renders the six registered VIB mechanisms under the existing Calculations family entry. FIT opens the existing table workspace; five siblings remain blocked.
 
-Delivered:
+Mainline PR #439 was merged into the branch as a second parent. HP/Engineering implementation remains main-owned and outside the PR diff. PR mergeability was restored.
 
-```text
-tabs/engineering-calculation-vibration-family.js
-updates to tabs/engineering-calculation-console-view.js
-updates to tabs/engineering-calculations-tab.js
-updates to tabs/engineering-calculations.css
-focused Console/VIB tests
-docs/vibration/VibrationIntegrityTab-v1.md
-```
+### Stage 30 — current-head source/metadata hardening — COMPLETE FOR SOURCE
 
-Behavior:
+Completed:
 
-- selecting the VIB family renders a six-mechanism landing page;
-- the landing is populated from registered VIB definitions;
-- FIT is `BENCHMARK_ONLY` and exposes **Open FIT workspace**;
-- selecting FIT reuses `VIB.FIV.FLOW_TURBULENCE` and the pre-existing `productSurface='VIBRATION_INTEGRITY_TABLE_WORKSPACE'` route;
-- the five remaining VIB methods remain `BLOCKED` and expose qualification basis only;
-- no new Engineering subtab/top-level route;
-- no equations/calculation calls in the family landing;
-- no 3D/canvas/score.
+- PR title/body corrected to `feat(vibration): add FIT benchmark under VIB screening family` and the actual family-entry route;
+- PR comparison confirms current main is the merge base, branch is ahead only, and main-owned Engineering/HP implementation is not in the vibration diff;
+- final FIT/VIB controller/view patches inspected for product lifecycle and authority boundaries;
+- stale registry/core-test assumptions corrected, including stable `PIPE.SHELL_INDENTATION` support;
+- family actions hardened to derive from registered executability/product-surface state;
+- temporary fifth-subtab files verified absent;
+- PR remains OPEN / DRAFT / MERGEABLE.
 
-Temporary `tabs/vibrations-landing-tab.js`, `tabs/vibrations-landing.css` and their fifth-subtab test were deleted.
-
-Mainline reconciliation:
-
-- current main `bb747fa...` was merged as a second parent using resolved tree commit `5b9ba918bd1fb1447887a3e612efb020014d9cd8`;
-- HP engineering tree/docs/tab and PR437/PR439 reports were preserved from main;
-- `core/engineering-tabs-extension.js`, `tabs/engineering-workspace-tab.js`, and `converters/engineering-calculations/registry.js` are byte-aligned with main and no longer appear in PR diff;
-- PR mergeability restored to `true`.
-
-During reconciliation, the core regression was corrected to preserve main's stable `PIPE.SHELL_INDENTATION` contract and use the current 18 blocked definitions plus the benchmark-only FIT definition.
+Current-head executable tests remain NOT_RUN because the execution container cannot resolve GitHub for a normal checkout and GitHub Actions runners are externally blocked.
 
 ## Validation Ledger
 
@@ -199,34 +188,51 @@ These are prior-head evidence only.
 | Stage 24 workspace fixture | PASS 6/6 |
 | Stage 25–27 source/security review | PASS |
 | VIB family source inventory | PASS: six definitions = FIT + five blocked placeholders |
-| VIB family landing authority review | PASS: registered states, no authority synthesis |
-| Mainline Engineering/HP reconciliation | PASS: PR mergeable; main-owned files removed from diff |
+| VIB family landing authority review | PASS: registered states/actions, no authority synthesis |
+| Mainline Engineering/HP reconciliation | PASS: current main is merge base; PR mergeable |
 | Stable `PIPE.SHELL_INDENTATION` registry grammar | PASS by source reconciliation |
 | Corrected Console/core tests | IMPLEMENTED / NOT_RUN at current head |
 | Full current-head `npm test` | NOT_RUN |
 | Current-head real XLSX path | NOT_RUN |
 | Current-head browser navigation | NOT_RUN |
-| GitHub Actions | BLOCKED_EXTERNAL / no statuses at latest head |
+| GitHub Actions | BLOCKED_EXTERNAL |
 | Screening/design authority | NOT_AUTHORIZED |
 
 ## Changed-File Ledger / Scope
 
-Latest GitHub reconciliation reports **101 changed files**. Current-main HP/Engineering workspace implementation files are no longer in the PR diff after the merge reconciliation.
+Latest comparison against current main reports **101 changed files**. They are assignment-related: FIT benchmark evidence/domain/adapter, vibration table exchange/dataset/facility/tabular/workspace modules, vibration docs/tests, FIT Console product-surface changes, and the VIB family landing.
 
-The remaining changed paths are assignment-related: FIT benchmark evidence/domain/adapter, vibration table exchange/dataset/facility/tabular/workspace modules, vibration docs/tests, FIT Console product-surface changes, and the VIB family landing.
+Main-owned HP/Engineering implementation files do not appear in the PR diff after reconciliation.
 
 No `.github/workflows/*`, no vibration 3D/canvas/viewer implementation, and no numerical AIV/SBC/cavitation/surge/slug kernels are included.
 
-## Stage 30 — current-head validation / PR hardening — IN_PROGRESS
+## Stage 31 — issue #429 engineering review package — IN_PROGRESS
 
-Priorities:
+Target artifact:
 
-1. reconcile PR title/body with the corrected family-entry product path;
-2. inspect final FIT/VIB Console patches for authority and lifecycle errors;
-3. verify no temporary fifth-subtab files remain in the diff;
-4. verify main-owned Engineering/HP files remain outside the diff;
-5. keep current-head test execution status explicit as NOT_RUN where this environment cannot execute it;
-6. keep PR draft until full current-head checkout/browser/XLSX regression and engineering authority review are complete.
+```text
+docs/vibration/FIT-Issue429-Engineering-Review-Package.md
+```
+
+The package must answer the five issue questions using current controlled evidence:
+
+1. Method boundary and VIB mechanism separation.
+2. Canonical contract and mechanism-specific semantics.
+3. Data/master authority and fail-closed provenance requirements.
+4. Independent validation coverage, EI D2/D4 evidence, hand cases and uncovered domains.
+5. Production activation sequence and exact gates before any `SCREENING` promotion.
+
+It must also include:
+
+- all six stable calculator IDs;
+- current source/master inventory and source hashes where controlled;
+- table-only product/data route;
+- exact current qualification states;
+- unresolved ISS/QST items;
+- reviewer checklist and explicit go/no-go decision record;
+- ordered next-mechanism sequence without implying shared empirical authority.
+
+No numerical method change or authority promotion is permitted in Stage 31.
 
 ## Known / Deferred Work
 
@@ -237,17 +243,18 @@ Priorities:
 
 ## Forward Sequence
 
-1. Complete Stage 30 metadata/source validation and final changed-file reconciliation.
+1. Complete Stage 31 issue #429 engineering review package.
 2. Run current-head tests in a normal checkout when available.
-3. Prepare issue #429 engineering review package.
+3. Submit/review the package with an identified vibration engineer.
 4. Only after explicit authority approval consider bounded `SCREENING` activation.
 
 ## Next-Agent Handover
 
-- Current stage: Stage 30.
+- Current stage: Stage 31.
 - Product entry is `Engineering Calculations > Calculations > Vibration & Dynamic Screening (6)`.
 - Do not create a fifth Engineering subtab or standalone vibration nav.
 - Preserve current-main HP/Engineering workspace changes.
 - Preserve table-only/no-3D and benchmark-only authority boundaries.
 - Do not add numerical method scope.
+- Treat EI worked examples as point evidence, not full-domain authority.
 - Preserve prior-validation versus current-head-validation chronology exactly.
