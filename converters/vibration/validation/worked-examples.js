@@ -98,9 +98,20 @@ function validateExternalAiv(caseData) {
   if (p.rawPwlDb !== undefined) {
     steps.push(numericStep('rawPwlDb', p.rawPwlDb, external.observedRawPwlDb, 0.001, 'EXTERNAL_ACTIVE_PR'));
   }
-  steps.push(sourceStep('lof', p.lof ?? p.lineCaseLof,
-    `AIV LOF product-path implementation remains owned by active PR #${external.pr}; this record does not duplicate it.`));
-  return result(caseData, steps, undefined, { externalPr: external.pr, externalHead: external.head });
+  steps.push(exactStep('externalValidationReceipt', 'PASS', external.validationReceiptStatus, 'EXTERNAL_ACTIVE_PR'));
+  const expectedLof = p.lof ?? p.lineCaseLof;
+  if (external.observedLineCaseLof !== undefined) {
+    steps.push(numericStep('lof', expectedLof, external.observedLineCaseLof, 0.001, 'EXTERNAL_ACTIVE_PR'));
+  } else {
+    steps.push(sourceStep('lof', expectedLof,
+      `AIV LOF product-path evidence for this exact line/case is not present in the pinned #${external.pr} receipt.`));
+  }
+  return result(caseData, steps, undefined, {
+    externalPr: external.pr,
+    externalHead: external.head,
+    validatedCodeCommit: external.validatedCodeCommit ?? null,
+    validationRecordBlob: external.validationRecordBlob ?? null,
+  });
 }
 
 function validateDryGasTransient(caseData) {

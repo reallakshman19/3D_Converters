@@ -27,7 +27,7 @@ test('multi-mechanism record is deterministic and distinguishes pass/partial/rev
   const record = buildVibrationWorkedExampleValidationRecord(catalogue, { calculateFit: fitOracleFromPublished });
   assert.equal(record.schema, VIBRATION_WORKED_EXAMPLE_VALIDATION_SCHEMA);
   assert.equal(record.summary.totalCases, 25);
-  assert.deepEqual(record.summary.statusCounts, { PASS: 13, PARTIAL: 6, REVIEW_REQUIRED: 1, DEFERRED: 5 });
+  assert.deepEqual(record.summary.statusCounts, { PASS: 14, PARTIAL: 5, REVIEW_REQUIRED: 1, DEFERRED: 5 });
   assert.equal(record.authority.engineeringAuthority, 'NONE');
   assert.equal(record.authority.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(record.authority.designAuthority, false);
@@ -47,9 +47,10 @@ test('AIV is pinned to active PR evidence and does not claim LOF execution', () 
   const record = buildVibrationWorkedExampleValidationRecord(catalogue, { calculateFit: fitOracleFromPublished });
   const aiv = record.cases.filter((item) => item.mechanism === 'AIV');
   assert.equal(aiv.length, 3);
-  assert(aiv.every((item) => item.status === 'PARTIAL'));
+  assert.deepEqual(aiv.map((item) => item.status), ['PARTIAL', 'PARTIAL', 'PASS']);
   assert(aiv.every((item) => item.externalPr === 446));
-  assert(aiv.every((item) => item.steps.some((step) => step.id === 'lof' && step.status === 'NOT_RUN')));
+  assert.equal(aiv.filter((item) => item.steps.some((step) => step.id === 'lof' && step.status === 'NOT_RUN')).length, 2);
+  assert.equal(aiv.find((item) => item.caseId === 'EI-D2-AIV-RELIEF').steps.find((step) => step.id === 'lof').status, 'PASS');
 });
 
 test('mechanisms with no populated retained example are DEFERRED, never PASS', () => {
