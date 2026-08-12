@@ -157,6 +157,7 @@ export function assertAivD23Flm1ReconciliationComplete(manifestInput, reconcilia
     productionEquationAuthorized: false,
     remainingPromotionGates: [
       'CONTROLLED_T2_7_HUMAN_RECONCILIATION',
+      'RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE',
       'INDEPENDENT_SONIC_SFF6_BENCHMARK',
       'INDEPENDENT_MULTI_SOURCE_BENCHMARK',
       'RETAINED_WORKBOOK_RECONCILIATION',
