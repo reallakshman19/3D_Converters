@@ -38,7 +38,7 @@ function artifactOf(value) {
   }
   return {
     verification: value,
-    artifactSha256: value.artifactSha256 ?? value.evidenceSha256 ?? null,
+    artifactSha256: null,
   };
 }
 
