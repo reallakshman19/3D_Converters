@@ -1,4 +1,5 @@
 import { createAivAssessmentCsvTemplate } from '../converters/vibration/aiv/assessment-csv.js';
+import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
 import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
 import {
@@ -16,7 +17,7 @@ function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-4';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-5';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -45,6 +46,7 @@ function initialState() {
     },
     benchmark: { loaded: null },
     readinessEnvelope: null,
+    resultSet: null,
     selectedRowKey: null,
     busy: false,
     error: null,
@@ -62,6 +64,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function clearReadiness() {
     state.readinessEnvelope = null;
+    state.resultSet = null;
     state.selectedRowKey = null;
   }
 
@@ -158,10 +161,12 @@ export function renderAivQualificationWorkspace(container) {
         assessmentCsv: serializeAivInputTable(state.tables.assessments),
         sourceAssessmentCsv: serializeAivInputTable(state.tables.relationships),
       });
+      state.resultSet = buildAivBlockedResultSet(state.readinessEnvelope);
       state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
     } catch (error) {
       if (state.destroyed) return;
       state.readinessEnvelope = null;
+      state.resultSet = null;
       state.selectedRowKey = null;
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally {
