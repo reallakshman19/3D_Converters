@@ -7,7 +7,9 @@ import { createEngineeringConsoleDraft } from '../tabs/engineering-calculation-c
 const tab = fs.readFileSync(new URL('../tabs/engineering-calculations-tab.js', import.meta.url), 'utf8');
 const view = fs.readFileSync(new URL('../tabs/engineering-calculation-console-view.js', import.meta.url), 'utf8');
 const sections = fs.readFileSync(new URL('../tabs/engineering-calculation-console-sections.js', import.meta.url), 'utf8');
+const vibrationFamily = fs.readFileSync(new URL('../tabs/engineering-calculation-vibration-family.js', import.meta.url), 'utf8');
 const extension = fs.readFileSync(new URL('../core/engineering-tabs-extension.js', import.meta.url), 'utf8');
+const workspace = fs.readFileSync(new URL('../tabs/engineering-workspace-tab.js', import.meta.url), 'utf8');
 
 test('Console production wiring uses the central Engineering Calculation API only', () => {
   assert.match(tab, /converters\/engineering-calculations\/index\.js/);
@@ -24,27 +26,51 @@ test('Console production wiring uses the central Engineering Calculation API onl
     'empirical-weight/index',
     'calculateB313',
     'estimateEmpiricalWeight',
-  ]) assert.doesNotMatch(tab + view + sections, new RegExp(forbidden));
+  ]) assert.doesNotMatch(tab + view + sections + vibrationFamily, new RegExp(forbidden));
 });
 
-test('Engineering extension exposes the lazy Console tab', () => {
+test('Engineering navigation preserves current-main four-subtab workspace with no duplicate Vibrations subtab', () => {
   assert.match(extension, /id: 'engineering-calculations'/);
-  assert.match(extension, /renderEngineeringCalculationsTab/);
+  assert.match(extension, /renderEngineeringWorkspaceTab/);
+  assert.doesNotMatch(extension, /label: 'Vibration Integrity'/);
+  for (const id of ['calculations', 'b313-material-factors', 'empirical-weight-tuning', 'hp-piping-class']) {
+    assert.match(workspace, new RegExp(`id: '${id}'`));
+  }
+  assert.doesNotMatch(workspace, /id: 'vibrations'/);
+});
+
+test('existing VIB family is the vibration landing entry and contains no engineering kernel or canvas', () => {
+  assert.match(vibrationFamily, /Vibration &amp; Dynamic Screening/);
+  assert.match(vibrationFamily, /VIB\.FIV\.FLOW_TURBULENCE/);
+  assert.match(vibrationFamily, /Open FIT workspace/);
+  assert.match(vibrationFamily, /TABLE DATA ONLY/);
+  assert.doesNotMatch(vibrationFamily, /calculateFit\s*\(/);
+  assert.doesNotMatch(vibrationFamily, /calculateEngineering(?:Batch)?\s*\(/);
+  assert.doesNotMatch(vibrationFamily, /<canvas|createElement\(['"]canvas/iu);
+  assert.doesNotMatch(vibrationFamily, /riskScore|Risk Score|Facility Score|Vibration Score/u);
+});
+
+test('VIB family click opens family landing before selecting a specific mechanism', () => {
+  assert.match(tab, /VIBRATION_FAMILY_ID = 'VIB'/);
+  assert.match(tab, /openFamilyLanding\(familyId\)/);
+  assert.match(view, /state\.familyLanding === 'VIB'/);
+  assert.match(view, /renderVibrationFamilyLanding\(definitions\)/);
 });
 
 test('blocked definition is visibly non-executable and issue-qualified', () => {
   const blocked = {
-    id: 'VIB.FIV.FLOW_TURBULENCE', family: 'VIB', name: 'FIV', shortName: 'FIV',
+    id: 'VIB.AIV.ACOUSTIC', family: 'VIB', name: 'AIV', shortName: 'AIV',
     methodRevision: 'pending', purpose: 'Pending', qualificationIssue: 429,
     authority: { qualificationState: 'BLOCKED' }, applicability: { limitations: [] }, inputs: [],
   };
   const state = {
-    selectedFamily: 'VIB', selectedId: blocked.id, draft: createEngineeringConsoleDraft(blocked),
+    selectedFamily: 'VIB', selectedId: blocked.id, familyLanding: null,
+    draft: createEngineeringConsoleDraft(blocked),
     mode: 'single', qualificationMode: 'strict', activeView: 'basis', editorErrors: [],
     validation: null, resolution: null, result: null, batchText: '[]', batchResult: null, batchError: null,
   };
   const html = renderEngineeringCalculationConsoleHtml({
-    definitions: [blocked], families: [{ id: 'VIB', label: 'Vibration', count: 1 }],
+    definitions: [blocked], families: [{ id: 'VIB', label: 'Vibration & Dynamic Screening', count: 1 }],
     definition: blocked, state,
   });
   assert.match(html, /Execution blocked/);
@@ -60,7 +86,8 @@ test('required enum shows an explicit unselected state', () => {
     inputs: [{ key: 'target', label: 'Target', type: 'enum', required: true, values: ['RF/RTJ KG', 'BW KG'] }],
   };
   const state = {
-    selectedFamily: 'ESTIMATION', selectedId: definition.id, draft: createEngineeringConsoleDraft(definition),
+    selectedFamily: 'ESTIMATION', selectedId: definition.id, familyLanding: null,
+    draft: createEngineeringConsoleDraft(definition),
     mode: 'single', qualificationMode: 'strict', activeView: 'results', editorErrors: [],
     validation: null, resolution: null, result: null, batchText: '[]', batchResult: null, batchError: null,
   };
