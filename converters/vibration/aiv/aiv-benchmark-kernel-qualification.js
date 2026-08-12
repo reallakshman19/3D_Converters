@@ -1,8 +1,10 @@
-export const AIV_BENCHMARK_KERNEL_QUALIFICATION_SCHEMA = 'AivBenchmarkKernelQualification.v1';
+import { AIV_DEFAULT_ASSUMPTION_PROFILE } from './aiv-assumption-profile.js';
+import { buildAivPostDiscontinuityEvidenceGate } from './aiv-post-discontinuity-evidence-gate.js';
+import { buildAivDiscontinuityStage8EvidenceGate } from './aiv-stage8-evidence-gate.js';
+
+export const AIV_BENCHMARK_KERNEL_QUALIFICATION_SCHEMA = 'AivBenchmarkKernelQualification.v2';
 export const AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS = Object.freeze({
   NOT_READY: 'NOT_READY',
-  PARTIAL_STAGES_1_TO_7: 'PARTIAL_STAGES_1_TO_7',
-  READY_FOR_STAGE_8_IMPLEMENTATION: 'READY_FOR_STAGE_8_IMPLEMENTATION',
   READY_FOR_STAGES_8_TO_10_IMPLEMENTATION: 'READY_FOR_STAGES_8_TO_10_IMPLEMENTATION',
   INVALID_EVIDENCE: 'INVALID_EVIDENCE',
   PASS: 'PASS',
@@ -50,39 +52,6 @@ function validateCandidateParity(artifact) {
     && doc.counts?.failed === 0
     && Array.isArray(doc.candidateStatus?.implementedStages)
     && doc.candidateStatus.implementedStages.length === 7
-    && Array.isArray(doc.blockedStages)
-    && doc.blockedStages.length === 3
-    && doc.authority?.productionEquationAuthorized === false
-    && doc.authority?.screeningAuthority === 'NOT_AUTHORIZED'
-    && doc.authority?.designAuthority === false;
-}
-
-function validateStage8Gate(artifact) {
-  const doc = artifact?.document;
-  return sha256Value(artifact?.artifactSha256)
-    && doc?.schema === 'AivDiscontinuityStage8EvidenceGate.v1'
-    && doc.methodId === 'VIB.AIV.ACOUSTIC'
-    && doc.stageId === 'CALCULATE_DISCONTINUITY_RESULT'
-    && doc.status === 'READY_FOR_CANDIDATE_IMPLEMENTATION'
-    && doc.readyForCandidateImplementation === true
-    && doc.authority?.productionEquationAuthorized === false
-    && doc.authority?.screeningAuthority === 'NOT_AUTHORIZED'
-    && doc.authority?.designAuthority === false;
-}
-
-function validatePostDiscontinuityGate(artifact) {
-  const doc = artifact?.document;
-  return sha256Value(artifact?.artifactSha256)
-    && doc?.schema === 'AivPostDiscontinuityEvidenceGate.v1'
-    && doc.methodId === 'VIB.AIV.ACOUSTIC'
-    && Array.isArray(doc.stageIds)
-    && doc.stageIds.length === 2
-    && doc.stageIds[0] === 'AGGREGATE_LINE_CASE_RESULT'
-    && doc.stageIds[1] === 'ASSESS_RESULT'
-    && doc.status === 'READY_FOR_POST_DISCONTINUITY_CANDIDATE_IMPLEMENTATION'
-    && doc.readyForCandidateImplementation === true
-    && doc.scopeBoundary?.valuesAreNotInterchangeable === true
-    && doc.scopeBoundary?.aggregationMustNotBeInferredFromSingleFirstDiscontinuity === true
     && doc.authority?.productionEquationAuthorized === false
     && doc.authority?.screeningAuthority === 'NOT_AUTHORIZED'
     && doc.authority?.designAuthority === false;
@@ -103,30 +72,19 @@ function validateCompleteProductPath(artifact) {
     && doc.designAuthority === false;
 }
 
-function evidenceRow(id, artifact, validator) {
-  if (!artifact) return { evidenceId: id, status: 'PENDING', artifactSha256: null, observedSchema: null };
-  const valid = validator(artifact);
-  return {
-    evidenceId: id,
-    status: valid ? 'SATISFIED' : 'INVALID_EVIDENCE',
-    artifactSha256: artifact.artifactSha256 ?? null,
-    observedSchema: artifact.document?.schema ?? null,
-  };
-}
-
-function stageRows(candidateParityValid, stage8GateValid, postGateValid, completeProductPathValid) {
+function stageRows(candidateParityValid, stage8Ready, postReady, completeProductPathValid) {
   return ALL_STAGES.map((stageId, index) => {
     let status = 'PENDING';
     let basis = null;
     if (index < 7 && candidateParityValid) {
       status = 'QUALIFICATION_PARITY_PASS';
       basis = 'AivKernelCandidateParity.v1';
-    } else if (index === 7 && stage8GateValid) {
+    } else if (index === 7 && stage8Ready) {
       status = 'READY_FOR_CANDIDATE_IMPLEMENTATION';
-      basis = 'AivDiscontinuityStage8EvidenceGate.v1';
-    } else if (index >= 8 && postGateValid) {
+      basis = 'AivDiscontinuityStage8EvidenceGate.v2';
+    } else if (index >= 8 && postReady) {
       status = 'READY_FOR_CANDIDATE_IMPLEMENTATION';
-      basis = 'AivPostDiscontinuityEvidenceGate.v1';
+      basis = 'AivPostDiscontinuityEvidenceGate.v2';
     }
     if (completeProductPathValid) {
       status = 'PRODUCT_PATH_PARITY_PASS';
@@ -136,44 +94,57 @@ function stageRows(candidateParityValid, stage8GateValid, postGateValid, complet
   });
 }
 
-export function buildAivBenchmarkKernelQualification({ evidence = {} } = {}) {
-  const candidateParity = artifactOf(evidence.candidateParity);
-  const stage8Gate = artifactOf(evidence.stage8EvidenceGate);
-  const postGate = artifactOf(evidence.postDiscontinuityEvidenceGate);
-  const completeProductPath = artifactOf(evidence.productPathBenchmarkParity);
-
-  const rows = [
-    evidenceRow('CANDIDATE_STAGES_1_TO_7_PARITY', candidateParity, validateCandidateParity),
-    evidenceRow('STAGE_8_HUMAN_EVIDENCE_GATE', stage8Gate, validateStage8Gate),
-    evidenceRow('STAGES_9_10_HUMAN_EVIDENCE_GATE', postGate, validatePostDiscontinuityGate),
-    evidenceRow('COMPLETE_PRODUCT_PATH_BENCHMARK_PARITY', completeProductPath, validateCompleteProductPath),
-  ];
-  const invalid = rows.some((row) => row.status === 'INVALID_EVIDENCE');
-  const candidateParityValid = rows[0].status === 'SATISFIED';
-  const stage8GateValid = rows[1].status === 'SATISFIED';
-  const postGateValid = rows[2].status === 'SATISFIED';
-  const completeProductPathValid = rows[3].status === 'SATISFIED';
+export function buildAivBenchmarkKernelQualification({
+  candidateParity: candidateParityInput = null,
+  productPathBenchmarkParity: productPathInput = null,
+  assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE,
+} = {}) {
+  const candidateParity = artifactOf(candidateParityInput);
+  const productPath = artifactOf(productPathInput);
+  const candidateParityValid = validateCandidateParity(candidateParity);
+  const stage8Gate = buildAivDiscontinuityStage8EvidenceGate({ assumptionProfile });
+  const postGate = buildAivPostDiscontinuityEvidenceGate({ assumptionProfile });
+  const stage8Ready = stage8Gate.readyForCandidateImplementation === true;
+  const postReady = postGate.readyForCandidateImplementation === true;
+  const productPathValid = productPath ? validateCompleteProductPath(productPath) : false;
+  const invalidEvidence = Boolean(candidateParityInput && !candidateParityValid)
+    || Boolean(productPathInput && !productPathValid)
+    || !stage8Ready
+    || !postReady;
 
   let status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.NOT_READY;
-  if (invalid) status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.INVALID_EVIDENCE;
-  else if (completeProductPathValid && candidateParityValid && stage8GateValid && postGateValid) {
-    status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.PASS;
-  } else if (candidateParityValid && stage8GateValid && postGateValid) {
+  if (invalidEvidence) status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.INVALID_EVIDENCE;
+  else if (candidateParityValid && productPathValid) status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.PASS;
+  else if (candidateParityValid && stage8Ready && postReady) {
     status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.READY_FOR_STAGES_8_TO_10_IMPLEMENTATION;
-  } else if (candidateParityValid && stage8GateValid) {
-    status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.READY_FOR_STAGE_8_IMPLEMENTATION;
-  } else if (candidateParityValid) {
-    status = AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.PARTIAL_STAGES_1_TO_7;
   }
 
-  const stages = stageRows(candidateParityValid, stage8GateValid, postGateValid, completeProductPathValid);
+  const stages = stageRows(candidateParityValid, stage8Ready, postReady, productPathValid);
   return deepFreeze({
     schema: AIV_BENCHMARK_KERNEL_QUALIFICATION_SCHEMA,
     methodId: 'VIB.AIV.ACOUSTIC',
     releaseTarget: 'BENCHMARK_ONLY',
     status,
+    humanEvidenceRequired: false,
     releaseGateSatisfied: status === AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.PASS,
-    evidence: rows,
+    evidence: {
+      candidateParity: candidateParity ? {
+        status: candidateParityValid ? 'SATISFIED' : 'INVALID_EVIDENCE',
+        artifactSha256: candidateParity.artifactSha256,
+        observedSchema: candidateParity.document?.schema ?? null,
+      } : { status: 'PENDING', artifactSha256: null, observedSchema: null },
+      assumptionProfile: {
+        status: stage8Ready && postReady ? 'SATISFIED' : 'INVALID_EVIDENCE',
+        schema: assumptionProfile?.schema ?? null,
+        stage8Status: stage8Gate.status,
+        postDiscontinuityStatus: postGate.status,
+      },
+      productPathBenchmarkParity: productPath ? {
+        status: productPathValid ? 'SATISFIED' : 'INVALID_EVIDENCE',
+        artifactSha256: productPath.artifactSha256,
+        observedSchema: productPath.document?.schema ?? null,
+      } : { status: 'PENDING', artifactSha256: null, observedSchema: null },
+    },
     stages,
     counts: {
       totalStages: stages.length,
@@ -181,6 +152,10 @@ export function buildAivBenchmarkKernelQualification({ evidence = {} } = {}) {
       candidateParityStages: stages.filter((row) => row.status === 'QUALIFICATION_PARITY_PASS').length,
       readyForImplementationStages: stages.filter((row) => row.status === 'READY_FOR_CANDIDATE_IMPLEMENTATION').length,
       pendingStages: stages.filter((row) => row.status === 'PENDING').length,
+    },
+    configuredAssumptions: {
+      stage8: stage8Gate.configuredBenchmarkModel,
+      postDiscontinuity: stage8Ready ? postGate.scopeBoundary : null,
     },
     authority: {
       authorityTransitionApplied: false,
@@ -192,18 +167,14 @@ export function buildAivBenchmarkKernelQualification({ evidence = {} } = {}) {
       designAuthority: false,
     },
     nextAction: status === AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.PASS
-      ? 'USE_AS_RELEASE_READINESS_EVIDENCE_ONLY'
+      ? 'USE_AS_BENCHMARK_RELEASE_EVIDENCE_ONLY'
       : status === AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.READY_FOR_STAGES_8_TO_10_IMPLEMENTATION
-        ? 'IMPLEMENT_AND_QUALIFY_STAGES_8_TO_10_WITH_REVIEWED_EVIDENCE'
-        : status === AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.READY_FOR_STAGE_8_IMPLEMENTATION
-          ? 'IMPLEMENT_STAGE_8_AND_COMPLETE_STAGES_9_10_HUMAN_EVIDENCE_GATE'
-          : status === AIV_BENCHMARK_KERNEL_QUALIFICATION_STATUS.PARTIAL_STAGES_1_TO_7
-            ? 'COMPLETE_STAGE_8_HUMAN_EVIDENCE_GATE'
-            : 'REPAIR_OR_COMPLETE_REQUIRED_EVIDENCE',
+        ? 'IMPLEMENT_STAGES_8_TO_10_FROM_CONFIGURED_BENCHMARK_ASSUMPTIONS_AND_QUALIFY_PRODUCT_PATH'
+        : candidateParityInput ? 'REPAIR_INVALID_MACHINE_OR_ASSUMPTION_EVIDENCE' : 'PRODUCE_CANDIDATE_STAGES_1_TO_7_PARITY_ARTIFACT',
     notes: [
-      'Candidate arithmetic parity for stages 1–7 is necessary but not sufficient for BENCHMARK_ONLY release.',
-      'Stage 8 and stages 9–10 each have distinct human-evidence gates before candidate implementation readiness.',
-      'A complete AivProductPathBenchmarkParityReceipt.v1 is required before this qualification can PASS.',
+      'Human review artifacts are not prerequisites.',
+      'Missing engineering inputs are resolved by the user-configurable AIV assumption profile and must remain visible/exported.',
+      'A complete AivProductPathBenchmarkParityReceipt.v1 is still required before BENCHMARK_ONLY kernel qualification can PASS.',
       'This qualification object never registers the kernel, enables UI execution, or changes engineering authority.',
     ],
   });
