@@ -10,7 +10,7 @@
 | Branch | `agent/fit-vibration-release-gate` |
 | PR | #440 — `test(vibration): add FIT/VIB release verification gate` |
 | PR state | OPEN / DRAFT |
-| Current stage | **Stage 2 — PR ALLOCATION / SYNC** |
+| Current stage | **Stage 4 — IMPLEMENTATION** |
 | Engineering authority | FIT remains `BENCHMARK_ONLY`; screening/design authority remains NOT AUTHORIZED. |
 | Product boundary | Table-only vibration product; no 3D/canvas/model runtime. |
 
@@ -48,9 +48,9 @@ Engineering Calculations
 | Inspect current package/release-script conventions | DONE |
 | Define exact FIT/VIB release test manifest | DONE |
 | Allocate draft PR #440 | DONE |
-| Rename report to PR number | IN_PROGRESS |
-| Pre-code changed-file verification | NOT_STARTED |
-| Add release verification script | NOT_STARTED |
+| Rename report to PR number | DONE |
+| Pre-code changed-file verification | PASS |
+| Add release verification script | IN_PROGRESS |
 | Add package command | NOT_STARTED |
 | Add release-gate contract test | NOT_STARTED |
 | Run release gate in this environment | BLOCKED_ENVIRONMENT |
@@ -126,20 +126,26 @@ Decision: implement a local release runner only; do not add workflow infrastruct
 
 ### Stage 2 — PR allocation / sync
 
-Status: IN_PROGRESS.
+Status: COMPLETE.
 
 - Draft PR #440 created from merged main `5f5f78e...`.
-- Report is being renamed from `PR_PENDING` to `PR440`.
+- `agents/PR_PENDING_workreport.md` renamed to `agents/PR440_workreport.md` and pending report removed.
 
 ### Stage 3 — changed-file verification
 
-Status: NOT_STARTED.
+Status: COMPLETE / PASS.
 
-Expected pre-code diff after report rename: exactly `agents/PR440_workreport.md`.
+Pre-code PR diff was exactly:
+
+```text
+agents/PR440_workreport.md
+```
+
+No production or unrelated files were present before implementation.
 
 ### Stage 4 — implementation
 
-Status: NOT_STARTED.
+Status: IN_PROGRESS.
 
 Planned files:
 
@@ -167,7 +173,7 @@ No production vibration kernel files are planned.
 | Check | Status |
 |---|---|
 | Source review of package/release-script convention | PASS |
-| Pre-code changed-file reconciliation | NOT_RUN |
+| Pre-code changed-file reconciliation | PASS |
 | Release-gate contract test source review | NOT_RUN |
 | Release runner source review | NOT_RUN |
 | `npm run verify:vibration-fit-release` | NOT_RUN / environment cannot checkout private repo |
@@ -182,11 +188,10 @@ No production vibration kernel files are planned.
 
 ## Forward Sequence
 
-1. Complete report rename and delete `PR_PENDING`.
-2. Reconcile pre-code diff.
-3. Implement one-command release gate, package command and self-contract.
-4. Source-review final diff and keep runtime status explicit.
-5. Leave PR draft until actual current-head execution evidence is attached, unless owner explicitly directs otherwise.
+1. Implement one-command release gate, package command and self-contract.
+2. Reconcile final changed files.
+3. Source-review final diff and keep runtime status explicit.
+4. Leave PR draft until actual current-head execution evidence is attached, unless owner explicitly directs otherwise.
 
 ## Next-Agent Handover
 
