@@ -29,6 +29,11 @@ export const AIV_SOURCE_CASE_CSV_HEADER = Object.freeze([
   'Upstream Temperature Unit',
   'Molecular Weight',
   'Molecular Weight Unit',
+  'Low Noise Trim State',
+  'Low Noise Trim Reduction',
+  'Low Noise Trim Unit',
+  'Low Noise Trim Source',
+  'Low Noise Trim Source Revision',
   'Sonic State',
   'Source',
   'Source Revision',
@@ -46,6 +51,7 @@ export const AIV_SOURCE_DEVICE_TYPES = Object.freeze([
 export const AIV_SOURCE_STATES = Object.freeze(['OPEN', 'RELIEVING', 'ACTIVE', 'CLOSED']);
 export const AIV_SOURCE_PHASES = Object.freeze(['GAS', 'WET_GAS', 'TWO_PHASE', 'LIQUID']);
 export const AIV_PRESSURE_BASES = Object.freeze(['ABSOLUTE', 'GAUGE']);
+export const AIV_TRIM_STATES = Object.freeze(['NONE', 'MANUFACTURER_REDUCTION', 'UNRESOLVED']);
 export const AIV_SONIC_STATES = Object.freeze(['NON_SONIC', 'SONIC', 'UNRESOLVED']);
 
 function text(value) {
@@ -110,6 +116,19 @@ function pressure(row, rowNumber, valueIndex, unitIndex, basisIndex, field) {
   });
 }
 
+function trimEvidence(row, rowNumber) {
+  const state = enumValue(row[20], 'Low Noise Trim State', AIV_TRIM_STATES, rowNumber);
+  const reduction = quantity(row, rowNumber, 21, 22, 'Low Noise Trim Reduction', { optional: true });
+  const source = optionalText(row[23]);
+  const sourceRevision = optionalText(row[24]);
+  return Object.freeze({
+    state,
+    ...(reduction ? { reduction } : {}),
+    ...(source ? { source } : {}),
+    ...(sourceRevision ? { sourceRevision } : {}),
+  });
+}
+
 function parseRow(row, index) {
   const rowNumber = index + 2;
   if (row.length !== AIV_SOURCE_CASE_CSV_HEADER.length) {
@@ -131,13 +150,14 @@ function parseRow(row, index) {
     downstreamPressure: pressure(row, rowNumber, 11, 12, 13, 'Downstream Pressure'),
     upstreamTemperature: quantity(row, rowNumber, 16, 17, 'Upstream Temperature'),
     molecularWeight: quantity(row, rowNumber, 18, 19, 'Molecular Weight'),
-    sonicState: enumValue(row[20], 'Sonic State', AIV_SONIC_STATES, rowNumber),
-    source: requiredText(row[21], 'Source', rowNumber),
+    lowNoiseTrim: trimEvidence(row, rowNumber),
+    sonicState: enumValue(row[25], 'Sonic State', AIV_SONIC_STATES, rowNumber),
+    source: requiredText(row[26], 'Source', rowNumber),
   };
   const referencePressure = quantity(row, rowNumber, 14, 15, 'Reference Pressure', { optional: true });
   if (referencePressure) result.referencePressure = referencePressure;
   for (const [field, column] of [
-    ['sourceRevision', 22], ['recordId', 23], ['status', 24], ['reviewer', 25],
+    ['sourceRevision', 27], ['recordId', 28], ['status', 29], ['reviewer', 30],
   ]) {
     const value = optionalText(row[column]);
     if (value !== undefined) result[field] = value;
