@@ -32,6 +32,7 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/aiv/aiv-readiness-tables.js',
   'converters/vibration/aiv/aiv-topology-view-model.js',
   'converters/vibration/aiv/aiv-qualification-evidence.js',
+  'converters/vibration/aiv/aiv-d23-pdf-revalidation.js',
   'converters/vibration/aiv/aiv-errata-evidence.js',
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
@@ -80,6 +81,8 @@ test('exchange, dataset and AIV qualification facades preserve stable APIs after
     'buildAivReadinessFromTables',
     'AIV_QUALIFICATION_EVIDENCE',
     'AIV_D23_BENCHMARK_CASES',
+    'AIV_D23_PDF_REVALIDATION',
+    'AIV_EI_EXAMPLES_PDF_SOURCE',
     'AIV_EI_OFFICIAL_ERRATA_SOURCE',
     'AIV_T2_6_ERRATA_FEED_EQUATION',
   ]) assert.match(aivIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
@@ -105,6 +108,7 @@ test('AIV topology/readiness/evidence remain read-only and separated from produc
     source('converters/vibration/aiv/aiv-readiness-tables.js'),
     source('converters/vibration/aiv/aiv-topology-view-model.js'),
     source('converters/vibration/aiv/aiv-qualification-evidence.js'),
+    source('converters/vibration/aiv/aiv-d23-pdf-revalidation.js'),
     source('converters/vibration/aiv/aiv-errata-evidence.js'),
     source('tabs/vibration-aiv-inline-symbols.js'),
     source('tabs/vibration-aiv-path-view.js'),
@@ -115,7 +119,18 @@ test('AIV topology/readiness/evidence remain read-only and separated from produc
   assert.doesNotMatch(combined, /project3DPoint|SequentialCommandGateway|WorkspaceState|EventBus/u);
   assert.doesNotMatch(combined, /calculateEngineering|calculateAiv|calculateFit\s*\(/u);
   assert.doesNotMatch(combined, /<canvas|createElement\(['"]canvas/iu);
-  assert.doesNotMatch(combined, /PWL\s*=|LOF\s*=/u);
+});
+
+test('AIV UI contains no engineering equations even when evidence text includes published values', () => {
+  const ui = [
+    source('tabs/vibration-aiv-inline-symbols.js'),
+    source('tabs/vibration-aiv-path-view.js'),
+    source('tabs/vibration-aiv-readiness-view.js'),
+    source('tabs/vibration-aiv-qualification-view.js'),
+    source('tabs/vibration-aiv-qualification-tab.js'),
+  ].join('\n');
+  assert.doesNotMatch(ui, /Math\.(?:log10|log|tanh|pow)|\*\*/u);
+  assert.doesNotMatch(ui, /PWL\s*=|LOF\s*=/u);
 });
 
 test('exchange parser facade contains no workbook parsing implementation', () => {
