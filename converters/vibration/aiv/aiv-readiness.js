@@ -91,6 +91,11 @@ function buildRelationshipTrace(row) {
   };
 }
 
+function validateRecordProvenance(row, prefix, missing) {
+  if (!row?.sourceRevision) missing.push(issue(`AIV_${prefix}_SOURCE_REVISION_REQUIRED`, `${prefix.toLowerCase()}.sourceRevision`, `${prefix} evidence requires an explicit source revision.`));
+  if (!row?.recordId) missing.push(issue(`AIV_${prefix}_RECORD_ID_REQUIRED`, `${prefix.toLowerCase()}.recordId`, `${prefix} evidence requires a stable record ID.`));
+}
+
 function validateTrim(row, missing, invalid) {
   const trim = row?.lowNoiseTrim;
   if (!trim || trim.state === 'UNRESOLVED') {
@@ -117,6 +122,7 @@ function validateSource(row, missing, invalid, methodGaps, warnings) {
     missing.push(issue('AIV_SOURCE_JOIN_REQUIRED', 'source', 'Relationship does not resolve to an AIV source for the same operating case.'));
     return;
   }
+  validateRecordProvenance(row, 'SOURCE', missing);
   if (row.phase !== 'GAS') methodGaps.push(issue('AIV_PHASE_OUTSIDE_CURRENT_QUALIFICATION_ENVELOPE', 'source.phase', 'Current controlled T2.7 qualification envelope is gas only.'));
   if (!(row.massFlow.value > 0)) invalid.push(issue('AIV_MASS_FLOW_NOT_POSITIVE', 'source.massFlow', 'Active AIV source mass flow must be greater than zero.'));
   if (!(row.molecularWeight.value > 0)) invalid.push(issue('AIV_MOLECULAR_WEIGHT_NOT_POSITIVE', 'source.molecularWeight', 'Molecular weight must be greater than zero.'));
@@ -140,6 +146,7 @@ function validateAssessment(row, missing, invalid) {
     missing.push(issue('AIV_ASSESSMENT_JOIN_REQUIRED', 'assessment', 'Relationship does not resolve to an AIV assessment record.'));
     return;
   }
+  validateRecordProvenance(row, 'ASSESSMENT', missing);
   for (const [field, quantity] of [
     ['mainOutsideDiameter', row.mainOutsideDiameter],
     ['mainInsideDiameter', row.mainInsideDiameter],
@@ -157,6 +164,7 @@ function validateAssessment(row, missing, invalid) {
 }
 
 function validateRelationship(row, topology, missing, invalid) {
+  validateRecordProvenance(row, 'RELATIONSHIP', missing);
   if (row.applicabilityDisposition === 'UNRESOLVED') {
     missing.push(issue('AIV_APPLICABILITY_UNRESOLVED', 'relationship.applicabilityDisposition', 'Source-to-assessment applicability is unresolved.'));
     return;
