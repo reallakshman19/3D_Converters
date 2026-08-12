@@ -28,6 +28,11 @@ export {
   evaluateFitQualificationCoverage,
 } from './qualification-coverage.js';
 
+export {
+  FIT_SCREENING_CANDIDATE_SCOPE_ID,
+  evaluateFitScreeningCandidateScope,
+} from './screening-candidate.js';
+
 export { calculateFit } from './calculate.js';
 export { assessFit } from './assess.js';
 export {
