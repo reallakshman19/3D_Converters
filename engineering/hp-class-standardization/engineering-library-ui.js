@@ -105,8 +105,10 @@
 
   function cycleTargets(calcDoc) {
     return [...calcDoc.querySelectorAll('#cycleBody tr')].map((row) => {
-      const tMin = Number(row.querySelector('.cycle-tmin')?.value);
-      const tMax = Number(row.querySelector('.cycle-tmax')?.value);
+      const tMinRaw = row.querySelector('.cycle-tmin')?.value?.trim() || '';
+      const tMaxRaw = row.querySelector('.cycle-tmax')?.value?.trim() || '';
+      const tMin = tMinRaw ? Number(tMinRaw) : NaN;
+      const tMax = tMaxRaw ? Number(tMaxRaw) : NaN;
       return { row, name: row.querySelector('.cycle-name')?.value || row.dataset.cycleId, averageT: (tMin + tMax) / 2 };
     });
   }
@@ -119,7 +121,11 @@
     try {
       const rows = materialRows();
       const key = byId('materialSelection').value;
-      const designT = Number(byId('materialDesignTemperature').value);
+      const designRaw = byId('materialDesignTemperature').value.trim();
+      if (!designRaw) throw new Error('Design temperature for S is required.');
+      const designT = Number(designRaw);
+      const meta = metadata();
+      if (!meta.materialSourceRef || !meta.materialVersion) throw new Error('Material source reference and version are required.');
       const design = Core.evaluateMaterial(rows, key, designT);
       if (!design.ok) throw new Error(design.error);
       const { calcDoc } = calculatorDocument();
@@ -136,7 +142,7 @@
       calcDoc.getElementById('allowableStress').value = design.allowableStressMpa;
       cycleValues.forEach(({ row, evaluated }) => { row.querySelector('.cycle-syt').value = evaluated.yieldStrengthMpa; });
       triggerCalculate(calcDoc);
-      status(`Applied ${sample.materialSpec} ${sample.grade}: S=${design.allowableStressMpa.toFixed(3)} MPa at ${designT}°C (${design.basis}); Syt evaluated for ${cycleValues.length} cycle block(s).`);
+      status(`Applied ${sample.materialSpec} ${sample.grade}: S=${design.allowableStressMpa.toFixed(3)} MPa at ${designT}°C (${design.basis}); Syt evaluated for ${cycleValues.length} cycle block(s). Source: ${meta.materialSourceRef} / ${meta.materialVersion}.`);
     } catch (error) { status(`Material application blocked: ${error.message}`, 'error'); }
   }
 
@@ -147,16 +153,14 @@
       const result = Core.productByIndex(rows, selected);
       if (!result.ok) throw new Error(result.error);
       const row = result.row;
+      const meta = metadata();
+      if (!meta.productSourceRef || !meta.productVersion) throw new Error('Product source reference and version are required.');
       const { calcDoc } = calculatorDocument();
       calcDoc.getElementById('diameter').value = row.designDiameterMm;
       calcDoc.getElementById('productSpec').value = row.productSpec;
       calcDoc.getElementById('tolerance').value = row.minusTolerancePct;
-      const meta = metadata();
       calcDoc.getElementById('toleranceSource').value = [meta.productSourceRef, meta.productVersion, row.sourceRef].filter(Boolean).join(' | ');
-      const walls = (calcDoc.getElementById('candidateWalls').value || '').split(',').map((v) => Number(v.trim())).filter((v) => v > 0);
-      const wall = Number(row.nominalWallMm);
-      if (!walls.some((value) => Math.abs(value - wall) < 1e-9)) walls.push(wall);
-      calcDoc.getElementById('candidateWalls').value = walls.join(', ');
+      calcDoc.getElementById('candidateWalls').value = String(row.nominalWallMm);
       triggerCalculate(calcDoc);
       status(`Applied product ${row.tag}: D=${row.designDiameterMm} mm, wall=${row.nominalWallMm} mm, minus tolerance=${row.minusTolerancePct}%.`);
     } catch (error) { status(`Product application blocked: ${error.message}`, 'error'); }
