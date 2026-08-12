@@ -4,301 +4,262 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Deliver a controlled API-first FIT benchmark vertical and a table-only facility vibration workflow without granting unqualified screening/design authority. |
+| Mission | Deliver a controlled API-first FIT benchmark vertical and table-only Vibration Integrity product without granting unqualified screening/design authority. |
 | Source task / issue | Owner requests 2026-08-11/12; issue #429; Common `CodingRules.md` pinned at `43eccc27967ecec7d67513c08255398b496be5ce`. |
-| PR number | #438 |
-| Branch | `agent/fiv-fit-roadmap-foundation` |
-| Base commit | `37c37d770ba47ebb3152679265896de4a943c8b0` |
-| PR state | OPEN / DRAFT / mergeable at last GitHub check. |
-| Current stage | Stage 24 — IN_PROGRESS: table-workspace read model/API. |
-| Last completed stage | Stage 23 — COMPLETE FOR IMPLEMENTATION / FOCUSED VALIDATION PASS. |
-| Engineering state | `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`; engineering authority `NONE`; screening/design NOT AUTHORIZED. |
-| Product boundary | Vibration consumes table exports from Advanced_Analysis 3D EDIT only. No 3D viewer, canvas, geometry rendering or embedded model runtime. |
-| Main blockers | Full repository regression; real `xlsx@0.18.5` regression; complete licensed/adopted T2.2/project review; independent vibration-engineer approval; GitHub Actions billing/spending gate. |
+| PR | #438 — `agent/fiv-fit-roadmap-foundation` -> `main` |
+| Base | `37c37d770ba47ebb3152679265896de4a943c8b0` |
+| PR state | OPEN / DRAFT / mergeable at last check. |
+| Current stage | **Stage 25 — IN_PROGRESS: visible Vibration Integrity table workspace tab** |
+| Last stage | **Stage 24 — COMPLETE / FOCUSED PASS 6/6** |
+| Engineering state | `VIB.FIV.FLOW_TURBULENCE` = `BENCHMARK_ONLY`; `engineeringAuthority=NONE`; screening/design NOT AUTHORIZED. |
+| Product boundary | Advanced_Analysis owns 3D/model editing. Vibration consumes table exports only. No 3D, canvas, geometry renderer, model heatmap or embedded model runtime. |
+| Validation boundary | Focused source/fixture tests have passed; complete branch/full repo and real XLSX tests remain NOT_RUN. |
 
 ## Handover in 60 Seconds
 
-The controlled backend path now exists end-to-end:
+Implemented backend:
 
 ```text
-Advanced_Analysis 3D EDIT table export
-  -> VibrationTableExchange.v1
-  -> VibrationIntegrityDataset.v1
-  -> VibrationFacilityFitPlan.v1
-  -> calculateEngineeringBatch()
-  -> VibrationFacilityFitResult.v1
-  -> VibrationFacilityFitRegister.v1
-  -> deterministic CSV export
+3D EDIT table export
+ -> VibrationTableExchange.v1
+ -> VibrationIntegrityDataset.v1
+ -> VibrationFacilityFitPlan.v1
+ -> central calculateEngineeringBatch()
+ -> VibrationFacilityFitResult.v1
+ -> VibrationFacilityFitRegister.v1
+ -> VibrationWorkspaceModel.v1
 ```
 
-`runVibrationFacilityFitBenchmark()` composes parsed exchange -> dataset -> plan -> central execution -> register and returns every intermediate artifact. `runVibrationFacilityFitBenchmarkFromTables()` additionally parses topology/process/enrichment table inputs. None of these APIs can promote FIT beyond benchmark mode.
+Tabular imports, safe CSV templates, deterministic register export and one-call benchmark workflows exist. The new Stage 24 read model is calculation-free and supports explicit facility filtering/sorting/detail while rejecting score-like filtering/LOF ranking and authority mutation.
 
-Stage 23 added safe header-only templates, optional unmistakable sample rows, deterministic CSV serialization and facility-register CSV export. A dependency-free exact-source fixture passed the Stage 23 serializer/template/register-export checks. This is a focused PASS, not a full-repository PASS.
+Stage 25 adds the first visible product consumer in the existing Engineering navigation: **Vibration Integrity**. The tab must import the existing table contracts, run only the benchmark workflow, build the Stage 24 read model and render facility table + detail panels. No numerical FIT logic belongs in the tab.
 
-Stage 24 now adds a pure workspace/read model over existing artifacts. It must not calculate, infer engineering data, add authority, or depend on 3D/canvas. It should support facility summary, deterministic filtering/sorting, row detail, inputs/cases/evidence/source views and explicit completeness/qualification states.
+## Engineering / Product Invariants
 
-## Mission / Engineering Intent
-
-1. Keep the stable public calculation ID `VIB.FIV.FLOW_TURBULENCE` while using FIT as canonical terminology.
-2. Preserve separation of validation, resolution, applicability, calculation, assessment, evidence, qualification and engineering authority.
-3. Use the central Engineering Calculation API as the only numerical execution path.
-4. Fail closed on missing, ambiguous or unsupported engineering data; never substitute zero/default/nearest-size authority.
-5. Preserve table identities and provenance from 3D EDIT; `Canonical ID` is element identity and Line is the v1 operating-case join identity.
-6. Make non-calculated states visible as `NOT_READY`, `NOT_ASSESSED_DATA_INCOMPLETE` or `CALCULATION_FAILED`; never display them as LOF=0 or safe.
-7. Keep evidence coverage and candidate-for-review status separate from screening authority.
-8. Do not create a universal vibration score, facility score or generic pass/fail.
-9. Keep vibration product table-only: no viewer, canvas, 3D heatmap or geometry interaction.
+1. Central Engineering Calculation API is the only FIT numerical execution path.
+2. FIT remains benchmark-only until issue #429 qualification gates close.
+3. Missing/failed/not-ready rows are never rendered as LOF 0, safe or pass.
+4. No silent process, geometry, support, damping or method defaults.
+5. `Canonical ID` is element identity; Line + Operating Case are explicit table identities.
+6. Evidence strength, completeness, candidate-for-review and qualification remain separate dimensions.
+7. No universal vibration/facility score and no hidden severity ranking.
+8. Vibration product is table-only; no 3D/canvas/viewer.
+9. UI may orchestrate public vibration APIs only; it may not reproduce FIT equations or authority logic.
+10. The Actions billing/spending problem must not be worked around with unrelated workflow changes.
 
 ## Mission Status
 
-| Work item | Priority | Status | Stage / evidence |
-|---|---:|---|---|
-| FIT/FIV roadmap | P0 | DONE | Stage 1; `docs/FIVroadmap.md` |
-| Source inventory/extractor | P0 | IMPLEMENTED | Stages 6–9 |
-| FIT benchmark kernel | P0 | FOCUSED_VALIDATED | Stages 9–12; workbook + EI + hand cases |
-| Central benchmark adapter/Console | P0 | IMPLEMENTED | benchmark mode only |
-| EI Appendix D D2/D4 qualification points | P0 | PASS | source-backed example parity |
-| Evidence coverage / candidate metadata | P0 | IMPLEMENTED | Stages 13–14; non-authorizing |
-| Table exchange | P0 | IMPLEMENTED | Stage 15 |
-| Vibration integrity dataset | P0 | IMPLEMENTED | Stage 16 |
-| Facility plan / central execution / register | P0 | IMPLEMENTED | Stages 17–19 |
-| Parsed-data / tabular workflows | P0 | IMPLEMENTED | Stages 20–22 |
-| Strict process/enrichment CSV inputs | P0 | FOCUSED_VALIDATED | Stage 21 |
-| Templates + register CSV export | P0 | FOCUSED_VALIDATED | Stage 23 |
-| Workspace read model | P0 | IN_PROGRESS | Stage 24 |
-| Full repository regression | P0 | BLOCKED | no checkout; Actions external gate |
-| Full method/project authority review | P0 | BLOCKED | licensed/adopted source + reviewer |
-| Screening authority | P0 | BLOCKED | issue #429 |
+| Work item | Status | Evidence |
+|---|---|---|
+| FIT roadmap/source/kernel | IMPLEMENTED / focused validated | workbook + EI D2/D4 + hand cases |
+| Central FIT adapter/Console | IMPLEMENTED | benchmark-only execution |
+| Evidence coverage/candidate gate | IMPLEMENTED | non-authorizing |
+| Table exchange/dataset | IMPLEMENTED | Stages 15–16 |
+| Facility plan/execution/register | IMPLEMENTED | Stages 17–19 |
+| Parsed/tabular workflows | IMPLEMENTED | Stages 20–22 |
+| CSV templates/register export | FOCUSED PASS | Stage 23 fixture |
+| Workspace read model | FOCUSED PASS 6/6 | Stage 24 fixture |
+| Visible Vibration Integrity tab | IN_PROGRESS | Stage 25 |
+| Full repo regression | BLOCKED / NOT_RUN | no checkout; external Actions gate |
+| Licensed/adopted method review | BLOCKED | direct source + independent reviewer |
+| Screening authority | BLOCKED | issue #429 |
 
 ## Engineering Item Register
 
-| ID | Type | Priority | Status | Summary |
-|---|---|---:|---|---|
-| DEC-001 | Decision | P0 | ACCEPTED | Stable public FIT ID retained. |
-| DEC-012 | Decision | P0 | ACCEPTED | EI worked examples qualify only exercised points/slices. |
-| DEC-017 | Decision | P0 | ACCEPTED | Mixed multiphase aggregate/component data require explicit or unambiguous resolution. |
-| DEC-018 | Decision | P0 | ACCEPTED | Evidence coverage never grants engineering authority. |
-| DEC-021 | Decision | P0 | ACCEPTED | Advanced_Analysis owns model editing; vibration integration is table-only. |
-| DEC-022 | Decision | P0 | ACCEPTED | Current five-sheet XLSX is complete exchange; current CSV is Elements-only limited input. |
-| DEC-023 | Decision | P0 | ACCEPTED | Canonical ID is element join authority; Line is v1 process-case identity. |
-| DEC-024 | Decision | P0 | ACCEPTED | Process quantities require explicit value/unit/source. |
-| DEC-028 | Decision | P0 | ACCEPTED | Facility READY requests execute unchanged through central batch API. |
-| DEC-030 | Decision | P0 | ACCEPTED | Facility register is read projection only. |
-| DEC-032 | Decision | P0 | ACCEPTED | Operating-case CSV exact v1 header; no aliases. |
-| DEC-033 | Decision | P0 | ACCEPTED | Enrichment scalar type is explicit NUMBER/STRING/BOOLEAN. |
-| DEC-036 | Decision | P0 | ACCEPTED | Templates/export reuse shared deterministic CSV serializer. |
-| DEC-037 | Decision | P0 | ACCEPTED | Templates are header-only by default; examples require explicit opt-in and carry `SAMPLE_*_DO_NOT_USE`. |
-| DEC-038 | Decision | P0 | ACCEPTED | Workspace is a pure table/read model over existing workflow artifacts; no calculation or authority. |
-| RISK-001 | Risk | Critical | MITIGATED | Unqualified empirical method remains benchmark-gated. |
-| RISK-020 | Risk | High | ACCEPTED | Upstream human XLSX export hash declared but not cryptographically reverified downstream in v1. |
-| RISK-021 | Risk | High | ACCEPTED | Elements CSV omits provenance sheets and stays explicitly incomplete. |
-| RISK-024 | Risk | Critical | MITIGATED | Missing/failed facility rows never appear as safe/zero. |
-| RISK-031 | Risk | High | OPEN | Workspace filtering/sorting could hide incomplete rows or imply authority if statuses/evidence are collapsed. |
-| DEBT-001 | Debt | P1 | DEFERRED | Consolidate exchange private CSV tokenizer with shared tokenizer after real XLSX/exchange suite is runnable. |
-| QST-001 | Question | P0 | BLOCKED | Complete licensed/adopted T2.2/project coverage requires direct source review. |
-| QST-003 | Question | P0 | FAIL_CLOSED | Manual medium/flexible OD family gap stays fail-closed. |
-| QST-004 | Question | P1 | OPEN | Future machine package: multi-CSV+manifest vs dedicated machine XLSX/JSON. |
-| ISS-009 | Defect | High | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Advanced range corrected to `1 < fn <= 3 Hz`; authority review remains. |
-| ISS-010 | Defect | High | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Deterministic span support classification replaces stale selector; authority review remains. |
-| ISS-011 | External CI | High | ROOT_CAUSE_CONFIRMED | Actions runner allocation blocked by account billing/spending condition. |
+| ID | Type | Status | Summary |
+|---|---|---|---|
+| DEC-001 | Decision | ACCEPTED | Stable public ID retained; FIT canonical terminology. |
+| DEC-012 | Decision | ACCEPTED | EI worked examples qualify only exercised slices. |
+| DEC-017 | Decision | ACCEPTED | Mixed multiphase data require explicit/unambiguous resolution. |
+| DEC-018 | Decision | ACCEPTED | Evidence coverage cannot grant authority. |
+| DEC-021 | Decision | ACCEPTED | Vibration integration is table-only from Advanced_Analysis 3D EDIT. |
+| DEC-022 | Decision | ACCEPTED | Five-sheet XLSX is current complete exchange; CSV is Elements-only limited input. |
+| DEC-023 | Decision | ACCEPTED | Canonical ID / Line identities are explicit join authority in v1. |
+| DEC-024 | Decision | ACCEPTED | Process quantities require explicit value/unit/source. |
+| DEC-028 | Decision | ACCEPTED | READY facility requests run unchanged through central batch API. |
+| DEC-030 | Decision | ACCEPTED | Facility register is a read projection only. |
+| DEC-037 | Decision | ACCEPTED | CSV templates are header-only by default; examples are explicit DO_NOT_USE. |
+| DEC-038 | Decision | ACCEPTED | Workspace model is calculation-free read model and rejects authority mutation/LOF ranking. |
+| DEC-039 | Decision | ACCEPTED | Visible tab consumes public workflow/workspace APIs; no UI-side engineering kernel. |
+| RISK-001 | Risk | MITIGATED | Unqualified empirical method remains benchmark gated. |
+| RISK-024 | Risk | MITIGATED | Missing/failed rows remain explicit, never safe/zero. |
+| RISK-031 | Risk | MITIGATED | Workspace filters/sorts are presentation-only and non-numerical. |
+| RISK-032 | Risk | OPEN | UI import affordances could imply certified provenance for limited CSV; XLSX/CSV integrity status must remain visible. |
+| DEBT-001 | Debt | DEFERRED | Exchange private CSV tokenizer consolidation waits for runnable real-XLSX suite. |
+| QST-001 | Question | BLOCKED | Complete licensed/adopted T2.2/project review. |
+| QST-003 | Question | FAIL_CLOSED | Manual OD family gap remains unresolved by authority. |
+| ISS-009 | Defect | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Advanced range is `1 < fn <= 3 Hz`. |
+| ISS-010 | Defect | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Span-derived support classification replaces inconsistent selector. |
+| ISS-011 | External CI | ROOT_CAUSE_CONFIRMED | GitHub Actions runner blocked by billing/spending condition. |
 
-## Stage Protocol / History
+## Stage Log
 
-### Stages 1–14 — FIT engineering benchmark vertical
+### Stages 1–14 — FIT benchmark engineering vertical
 
-Implemented roadmap, source extraction, physical context, retained-workbook reference equations, central benchmark-only adapter, EI D2/D4 examples, independent hand benchmarks, multiphase ambiguity hardening, machine-readable evidence coverage and non-authorizing screening-candidate metadata.
+Roadmap, source extraction, retained-workbook equations, central adapter, EI D2/D4 examples, hand benchmarks, ambiguity hardening, evidence coverage and non-authorizing screening-candidate metadata. Focused EI/domain suite reached 12/12 PASS. Screening remains blocked.
 
-Source-backed corrections include:
+### Stages 15–23 — table data and facility workflow
+
+Implemented:
 
 ```text
-advanced natural frequency: 1 Hz < fn <= 3 Hz
-EI D4 273 mm case resolves FLEXIBLE_LARGE
-D4 aggregate-effective multiphase path supported
-```
-
-Focused EI/domain regression reached 12/12 PASS. Screening remained blocked.
-
-### Stage 15 — `VibrationTableExchange.v1`
-
-Ingests current `TopologyEditTableHumanExport.v1` five-sheet XLSX. Current Elements-only CSV remains explicit `LIMITED_ELEMENTS_ONLY`. Header/metadata/reference integrity fails closed. No downstream claim of cryptographic re-verification of the upstream semantic hash.
-
-Focused SheetJS-compatible fixture: PASS. Actual repository `xlsx@0.18.5` test: NOT_RUN.
-
-### Stage 16 — `VibrationIntegrityDataset.v1`
-
-Combines parsed exchange + operating cases + Canonical-ID enrichment with deterministic ordering and strict orphan/duplicate/mismatch rejection. `authority=DATA_ASSEMBLY_ONLY`, `screeningAuthorized=false`.
-
-### Stage 17 — `VibrationFacilityFitPlan.v1`
-
-Only explicit `FIT_ASSESSMENT_POINT=true` elements enter planning. OD/wall/span/process evidence must be explicit. No NPS/schedule lookup. READY emits a benchmark central request; NOT_READY emits no request.
-
-### Stage 18 — `VibrationFacilityFitResult.v1`
-
-READY items execute only through `calculateEngineeringBatch()`. NOT_READY never enters the numerical engine. Central failure/evidence/qualification is preserved.
-
-### Stage 19 — `VibrationFacilityFitRegister.v1`
-
-Pure table read projection. Keeps completeness, benchmark qualification, evidence strengths and candidate-review state separate. No pass/safe/risk score.
-
-### Stage 20 — `VibrationFacilityFitWorkflow.v1`
-
-One-call composition of dataset -> plan -> central execution -> register. Returns all intermediate artifacts. Authority-option injection rejected.
-
-### Stage 21 — strict process/enrichment table input
-
-Dependency-free strict CSV tokenizer plus exact operating-case and enrichment contracts. Focused local parser smoke PASS. Exchange private tokenizer consolidation deferred as DEBT-001.
-
-### Stage 22 — tabular workflow façade
-
-Accepts parsed exchange / XLSX / limited Elements CSV plus process/enrichment CSV and delegates to Stage 20. Limited topology CSV still requires explicit opt-in. XLSX runtime path implemented but NOT_RUN with real dependency here.
-
-### Stage 23 — CSV templates + register export — COMPLETE / FOCUSED PASS
-
-Delivered:
-
-```text
-converters/vibration/tabular/csv.js
-converters/vibration/tabular/templates.js
-converters/vibration/tabular/index.js
-converters/vibration/facility/fit-register-export.js
-converters/vibration/facility/index.js
-tests/vibration-csv-export.test.mjs
-docs/vibration/VibrationCsvTemplatesAndRegisterExport-v1.md
-```
-
-Behavior:
-
-- deterministic CRLF CSV serializer;
-- correct comma/quote/CR/LF escaping;
-- finite number and scalar-only enforcement;
-- templates are header-only by default;
-- optional examples are explicitly `SAMPLE_*_DO_NOT_USE` / `SAMPLE_ONLY_NOT_PROJECT_DATA`;
-- register CSV preserves benchmark/evidence/authority columns;
-- incomplete/failed numerical cells are blank, never zero;
-- no pass/safe/riskScore/facilityScore fields.
-
-Focused dependency-free exact-source fixture executed locally on 2026-08-12:
-
-```text
-CSV serialize/parse round trip                  PASS
-header-only templates                           PASS
-sample-only opt-in templates                    PASS
-facility register CSV / blank incomplete LOF    PASS
-forbidden score/authority labels                PASS
-```
-
-The committed Stage 23 test file exists as `tests/vibration-csv-export.test.mjs`; full branch execution remains NOT_RUN.
-
-### Stage 24 — `VibrationWorkspaceModel.v1` — IN_PROGRESS
-
-#### Objective
-
-Create the table-only workspace/read model consumed by a future UI without adding UI-specific engineering logic.
-
-Planned input:
-
-```text
+VibrationTableExchange.v1
+VibrationIntegrityDataset.v1
+VibrationFacilityFitPlan.v1
+VibrationFacilityFitResult.v1
+VibrationFacilityFitRegister.v1
 VibrationFacilityFitWorkflow.v1
-or
-VibrationFacilityFitRegister.v1 + optional dataset/plan/result artifacts
+VibrationFacilityFitTabularWorkflow.v1
+strict operating-case/enrichment CSV v1
+safe CSV templates + register export
 ```
 
-Planned output:
+Current complete upstream exchange is the existing five-sheet 3D EDIT XLSX. Current CSV is explicitly limited Elements-only and requires opt-in where completeness is required.
+
+Focused Stage 23 dependency-free checks:
 
 ```text
-schema: VibrationWorkspaceModel.v1
-authority: READ_MODEL_ONLY
-screeningAuthorized: false
-summary
-rows
-filters
-selection/detail
-warnings
+serializer round trip / quoting                 PASS
+header-only templates                           PASS
+explicit sample-only templates                  PASS
+register export / blank incomplete LOF cells    PASS
+no pass/safe/risk-score labels                  PASS
 ```
 
-Planned row capabilities:
+### Stage 24 — `VibrationWorkspaceModel.v1` — COMPLETE / FOCUSED PASS
 
-- deterministic sort by Line / Case / Canonical ID;
-- filter by line, case, status/completeness, reference band, qualification, evidence strength and candidate-review state;
-- preserve null numerical cells for non-calculated rows;
-- expose explicit benchmark-only/evidence/completeness state;
-- never compute a new LOF, pass/fail, universal risk score or hidden ranking.
-
-Planned detail model for a selected row:
+Production files:
 
 ```text
-Summary
-Inputs
-Operating Case
-Evidence / Qualification
-Source Trace
-Errors / Missing / Invalid
-```
-
-The detail model may reference dataset/plan/result records but must not mutate them and must not infer missing data.
-
-Planned files:
-
-```text
+converters/vibration/workspace/query.js
+converters/vibration/workspace/detail.js
 converters/vibration/workspace/model.js
 converters/vibration/workspace/index.js
 converters/vibration/index.js
 tests/vibration-workspace-model.test.mjs
 docs/vibration/VibrationWorkspaceModel-v1.md
+```
+
+Behavior:
+
+- accepts only `VibrationFacilityFitWorkflow.v1` with benchmark/none-authority state;
+- source workflow/register contracts validated without loading calculation engine;
+- deterministic Line / Case / Canonical ID presentation ordering;
+- exact filters for completeness/status/reference band/qualification/evidence/candidate review;
+- only non-numerical presentation sort fields; LOF ranking sort rejected;
+- selected detail joins exact Line + Case + Canonical ID to dataset/plan/result;
+- detail sections: Summary, Inputs, Operating Case, Enrichment, Evidence/Qualification, Source Trace, Diagnostics;
+- unknown selection stays null with explicit warning; no nearest/first fallback;
+- output is deep-frozen, `READ_MODEL_ONLY`, `screeningAuthorized=false`.
+
+Focused isolated execution on 2026-08-12:
+
+```text
+deterministic rows / summary             PASS
+filters preserve authority/evidence       PASS
+exact selected-row detail join            PASS
+unknown selection fail-explicit           PASS
+authority + score/ranking rejection       PASS
+presentation sort                         PASS
+TOTAL                                      6/6 PASS
+```
+
+### Stage 25 — visible Vibration Integrity tab — IN_PROGRESS
+
+#### Objective
+
+Add a real table-only product surface to the existing Engineering navigation and consume the production APIs delivered in Stages 15–24.
+
+#### Planned surface
+
+Navigation:
+
+```text
+Engineering
+  Engineering Calculations
+  Vibration Integrity
+  B31.3 Material Factors
+  Empirical Weight Tuning
+```
+
+Import area:
+
+```text
+3D EDIT export: XLSX preferred; Elements CSV visibly limited
+Operating cases: strict CSV v1
+Vibration enrichment: strict CSV v1
+Download operating-case template
+Download enrichment template
+Run FIT benchmark
+```
+
+Workspace:
+
+```text
+summary counts
+filter controls
+facility table
+selected-row detail
+  Summary
+  Inputs
+  Case
+  Evidence
+  Source
+  Diagnostics
+export register CSV
+```
+
+#### UI authority rules
+
+- tab always displays `BENCHMARK ONLY / NOT SCREENING AUTHORITY`;
+- no qualification-mode selector in this product tab;
+- workflow invocation fixes benchmark authority through the public API;
+- limited Elements CSV warning/integrity state visible;
+- no pass/safe label or traffic-light claim;
+- table numerical blanks remain blank for incomplete/failed rows;
+- no UI-side calculation or unit conversion;
+- no 3D/canvas/viewer.
+
+#### Planned files
+
+```text
+core/engineering-tabs-extension.js
+tabs/vibration-integrity-tab.js
+tabs/vibration-integrity-view.js
+tabs/vibration-integrity.css
+tests/vibration-integrity-tab-static.test.mjs
+docs/vibration/VibrationIntegrityTab-v1.md
 agents/PR438_workreport.md
 ```
 
-## Changed-File Ledger / Reconciliation
+## Changed-File Reconciliation
 
-At Stage 23 reconciliation GitHub reports 71 changed paths in the assignment. Categories:
-
-```text
-2 benchmark datasets
-1 living work report
-5 central engineering API/registry/unit files + FIT adapter
-FIT domain modules
-vibration exchange/dataset/facility/tabular public APIs
-vibration engineering/product documentation
-focused vibration/core tests
-package source-extraction script declaration
-existing Engineering Calculation Console benchmark gating
-```
-
-No `.github/workflows/*`, no 3D/canvas/viewer files, no AIV/SBC/cavitation/surge/slug numerical implementation and no unrelated product family have been added.
+Before Stage 25 production work, all changed paths remain inside the FIT/table-vibration assignment. No `.github/workflows/*`, no 3D/canvas/viewer files and no numerical AIV/SBC/cavitation/surge/slug implementation are included.
 
 ## Validation Ledger
 
 | Check | Status |
 |---|---|
-| EI/domain focused qualification | PASS |
-| EI D2/D4 example parity | PASS |
+| EI/domain focused | PASS |
+| EI D2/D4 examples | PASS |
 | Stage 15 SheetJS-compatible exchange fixture | PASS |
-| Stage 21 strict CSV/process/enrichment focused smoke | PASS |
-| Stage 23 CSV/template/register-export focused fixture | PASS |
-| Stage 16–22 full committed regressions | NOT_RUN |
-| Actual `xlsx@0.18.5` exchange regression | NOT_RUN |
-| Full repository regression | NOT_RUN |
-| GitHub Actions | BLOCKED_EXTERNAL — runner not allocated due billing/spending condition |
-| Full licensed/adopted method review | NOT_RUN / BLOCKED |
-| Independent vibration-engineer approval | NOT_RUN / BLOCKED |
+| Stage 21 parser smoke | PASS |
+| Stage 23 CSV/export fixture | PASS |
+| Stage 24 workspace fixture | PASS 6/6 |
+| Stage 16–22 committed full tests | NOT_RUN |
+| Real `xlsx@0.18.5` branch test | NOT_RUN |
+| Stage 25 visible tab tests | NOT_RUN |
+| Full repository | NOT_RUN |
+| GitHub Actions | BLOCKED_EXTERNAL |
 | Screening authority | NOT_AUTHORIZED |
-
-## Known / Deferred Work
-
-- DEBT-001: consolidate duplicate exchange CSV tokenizer only after actual exchange/XLSX regression can run.
-- Full licensed EI T2.2/project procedure reconciliation and applicable errata review.
-- Resolve/approve the manual OD family gap rather than guessing/interpolating.
-- Full checkout/regression and CI once runner/checkout is available.
-- No mechanism expansion (AIV/FIP/SBC/etc.) until FIT boundaries and reusable table workflow are stable.
 
 ## Next-Agent Handover
 
-- PR/branch: #438 / `agent/fiv-fit-roadmap-foundation`.
-- Current stage: Stage 24.
-- Implement a pure workspace/read model, not DOM/UI rendering first.
-- Preserve the register row as source of table truth; do not calculate or rank in the workspace model.
-- Filters/sorts may change presentation order/visibility only; they must never alter evidence or authority.
-- A selected-row detail may join existing dataset/plan/result records using exact Line / Case / Canonical ID identity only.
-- No 3D/canvas/viewer.
-- No pass/safe/universal score.
-- Update this report before and after Stage 24, then reconcile the PR and refresh the stale PR description.
+- Current stage: Stage 25.
+- Inspect existing Engineering tab shell/styles before writing UI.
+- UI must call `runVibrationFacilityFitBenchmarkFromTables()` and `buildVibrationWorkspaceModel()`; no direct FIT math.
+- Prefer XLSX, visibly label Elements-only CSV as limited provenance.
+- Keep import state and table/detail state explicit; no inferred defaults.
+- Use existing app tab registration and dedicated stylesheet.
+- No 3D/canvas/viewer and no universal risk score.
+- Close Stage 25 with static/runtime validation and refresh the PR description afterward.
