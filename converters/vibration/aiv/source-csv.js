@@ -100,8 +100,6 @@ function parseRow(row, index) {
     lowNoiseTrim: trimEvidence(row, rowNumber),
     sonicState: aivEnumValue(row[26], 'Sonic State', AIV_SONIC_STATES_V2, rowNumber),
     source: requiredAivText(row[27], 'Source', rowNumber),
-    sourceRevision: requiredAivText(row[28], 'Source Revision', rowNumber),
-    recordId: requiredAivText(row[29], 'Record ID', rowNumber),
   };
   const referencePressure = aivQuantity(row, rowNumber, 13, 14, 'Reference Pressure', { optional: true });
   if (referencePressure) result.referencePressure = referencePressure;
@@ -109,7 +107,9 @@ function parseRow(row, index) {
   const referencePressureSourceRevision = optionalAivText(row[16]);
   if (referencePressureSource) result.referencePressureSource = referencePressureSource;
   if (referencePressureSourceRevision) result.referencePressureSourceRevision = referencePressureSourceRevision;
-  addOptionalAivTraceFields(result, row, [['status', 30], ['reviewer', 31]]);
+  addOptionalAivTraceFields(result, row, [
+    ['sourceRevision', 28], ['recordId', 29], ['status', 30], ['reviewer', 31],
+  ]);
   return Object.freeze(result);
 }
 
