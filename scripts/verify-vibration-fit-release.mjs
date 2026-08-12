@@ -29,6 +29,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-fit-screening-candidate.test.mjs',
       'tests/vibration-fit-ui-benchmarks.test.mjs',
       'tests/vibration-fit-correlation-trace.test.mjs',
+      'tests/vibration-fit-mechanism-contract.test.mjs',
     ]),
   }),
   Object.freeze({
@@ -59,6 +60,8 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-integrity-run-snapshot.test.mjs',
       'tests/vibration-integrity-engineering-basis.test.mjs',
       'tests/vibration-integrity-fit-mechanism.test.mjs',
+      'tests/vibration-mechanism-contract.test.mjs',
+      'tests/vibration-integrity-mechanism-context.test.mjs',
       'tests/vibration-integrity-input-model.test.mjs',
       'tests/vibration-integrity-input-runtime.test.mjs',
       'tests/vibration-integrity-editable-input-static.test.mjs',

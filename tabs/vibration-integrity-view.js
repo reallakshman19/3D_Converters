@@ -3,6 +3,7 @@ import {
   renderVibrationIntegrityDetailTabs,
 } from './vibration-integrity-detail-view.js';
 import { renderVibrationIntegrityInputArea } from './vibration-integrity-input-view.js';
+import { buildSelectedFitMechanismAssessmentSet } from './vibration-integrity-mechanism-context.js';
 import {
   VIBRATION_INTEGRITY_MECHANISMS,
   buildVibrationMechanismMatrixRow,
@@ -106,7 +107,10 @@ function mechanismCell(assessment) {
   const band = assessment.referenceBand
     ? `<small class="vi-mono">${esc(assessment.referenceBand)}</small>`
     : '';
-  return `<strong>${esc(assessment.lof)}</strong>${band}`;
+  const currency = assessment.resultState === 'STALE_RESULT'
+    ? '<small class="vi-mono">STALE_RESULT</small>'
+    : '';
+  return `<strong>${esc(assessment.lof)}</strong>${band}${currency}`;
 }
 
 function mechanismHeaders() {
@@ -115,13 +119,13 @@ function mechanismHeaders() {
   )).join('');
 }
 
-function tableRows(workspace) {
+function tableRows(workspace, resultState) {
   const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 7;
   if (!workspace?.rows?.length) {
     return `<tr><td colspan="${colspan}" class="vi-table-empty">No rows match the current table filters.</td></tr>`;
   }
   return workspace.rows.map((row) => {
-    const matrix = buildVibrationMechanismMatrixRow(row);
+    const matrix = buildVibrationMechanismMatrixRow(row, { resultState });
     const governing = matrix.implementedGoverning;
     return `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
       <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
@@ -151,14 +155,15 @@ function workspaceTable(state) {
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
       <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Implemented governing</th><th>Qualification</th><th>Review</th>
-    </tr></thead><tbody>${tableRows(state.workspace)}</tbody></table></div>
+    </tr></thead><tbody>${tableRows(state.workspace, state.resultState)}</tbody></table></div>
   </section>`;
 }
 
 function detailPanel(state) {
   const detail = state.workspace?.detail;
   if (!detail) return '';
-  return `<section class="vi-card vi-detail-card"><div class="vi-section-head"><div><h3>${esc(detail.summary.line)} · ${esc(detail.summary.caseId)}</h3><p class="vi-mono">${esc(detail.summary.canonicalId)}</p></div></div><div class="vi-detail-tabs">${renderVibrationIntegrityDetailTabs(state.detailTab)}</div><div class="vi-detail-body">${renderVibrationIntegrityDetailBody(detail, state.detailTab)}</div></section>`;
+  const mechanismAssessmentSet = buildSelectedFitMechanismAssessmentSet(state);
+  return `<section class="vi-card vi-detail-card"><div class="vi-section-head"><div><h3>${esc(detail.summary.line)} · ${esc(detail.summary.caseId)}</h3><p class="vi-mono">${esc(detail.summary.canonicalId)}</p></div></div><div class="vi-detail-tabs">${renderVibrationIntegrityDetailTabs(state.detailTab)}</div><div class="vi-detail-body">${renderVibrationIntegrityDetailBody(detail, state.detailTab, { mechanismAssessmentSet })}</div></section>`;
 }
 
 function importFacts(state) {

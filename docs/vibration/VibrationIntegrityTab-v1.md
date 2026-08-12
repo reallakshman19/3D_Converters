@@ -161,6 +161,16 @@ FIT.ADV.FLEXIBLE_LARGE.v1
 
 See `docs/vibration/VibrationIntegrity-FIT-Mechanism-v1.md`.
 
+### Generic mechanism assessment contract
+
+Stage 5 wraps the existing FIT result in `VibrationMechanismAssessmentItem.v1` / `VibrationMechanismAssessmentSet.v1` without changing the FIT numerical path. FIT currently has one `mainline` child item; each non-FIT mechanism has zero items and remains `NOT_IMPLEMENTED`.
+
+Summary exposes set/item identity, child cardinality, implementation/assessment/result currency, benchmark state and input-trace completeness. Inputs exposes exact Stage-3 working-cell/source anchors where real backing pointers exist. Missing pointers are never synthesized.
+
+A stale FIT result remains inspectable evidence but is excluded from current `Implemented governing`. Only `CURRENT_RESULT` may be current governing or benchmark PASS/FAIL.
+
+See `docs/vibration/VibrationMechanismQualificationFramework-v1.md`.
+
 ## Run snapshot
 
 Successful execution records `FitRunSnapshot.v1` with SHA-256 over the authoritative working-input/evidence state before execution.
@@ -175,7 +185,7 @@ Controlled release command:
 npm run verify:vibration-fit-release
 ```
 
-The Stage-4 manifest contains 36 controlled test files.
+The Stage-5 manifest contains 39 controlled test files.
 
 Exact-head browser checks remain required for source navigation, editing/revert, stale/current transition, wide mechanism matrix and Calculation detail before merge/authority closure.
 
@@ -186,6 +196,6 @@ Exact-head browser checks remain required for source navigation, editing/revert,
 - no UI-side engineering calculation;
 - no local topology re-certification;
 - no universal score / safe / pass claim;
-- no FIT numerical-method change in Stage 4;
+- no FIT numerical-method change in Stages 4–5;
 - no non-FIT solver;
 - no screening/design authority promotion.

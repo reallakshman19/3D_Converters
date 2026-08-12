@@ -36,7 +36,35 @@ function dataTable(headers, rows, emptyMessage) {
   return `<div class="vi-detail-table-wrap"><table class="vi-detail-table">${head}<tbody>${body}</tbody></table></div>`;
 }
 
-function summaryView(detail) {
+function mechanismContract(context = {}) {
+  const set = context.mechanismAssessmentSet;
+  const item = set?.items?.[0];
+  if (!set || !item) return '';
+  return section('Mechanism assessment contract', keyValueTable([
+    ['Assessment set ID', set.setId], ['Mechanism item ID', item.itemId],
+    ['Child cardinality', set.cardinality?.kind], ['Child count', set.cardinality?.count],
+    ['Implementation state', item.implementationState], ['Assessment state', item.assessmentState],
+    ['Result currency', item.resultState], ['Benchmark state', item.benchmark?.status],
+    ['Input trace state', item.trace?.inputTrace?.status], ['Screening authority', false],
+  ]));
+}
+
+function mechanismWorkingTrace(context = {}) {
+  const item = context.mechanismAssessmentSet?.items?.[0];
+  const cells = item?.trace?.inputTrace?.workingCells ?? {};
+  const rows = Object.entries(cells).map(([input, trace]) => [
+    input, trace?.sourceAnchorId, trace?.valueRef?.kind, trace?.valueRef?.rowId,
+    trace?.valueRef?.header, trace?.unitRef?.header,
+  ]);
+  if (!item) return '';
+  return section('Mechanism working-input trace', dataTable(
+    ['Input', 'Source anchor', 'Table', 'Row ID', 'Value field', 'Unit field'],
+    rows,
+    'No exact working-cell pointers are available for this mechanism item.',
+  ));
+}
+
+function summaryView(detail, context = {}) {
   const row = detail.summary ?? {};
   return `<div class="vi-detail-grid">
     ${section('Identity', keyValueTable([
@@ -55,6 +83,7 @@ function summaryView(detail) {
       ['Engineering review candidate', row.candidateForEngineeringReview],
       ['Candidate status', row.screeningCandidateStatus], ['Continuation required', row.continuationRequired],
     ]))}
+    ${mechanismContract(context)}
   </div>`;
 }
 
@@ -74,7 +103,7 @@ function inputSource(detail, key) {
   return null;
 }
 
-function inputsView(detail) {
+function inputsView(detail, context = {}) {
   if (!detail.inputs) return '<p class="vi-empty">No executable request exists for this row.</p>';
   const values = detail.inputs.values ?? {};
   const units = detail.inputs.units ?? {};
@@ -84,7 +113,7 @@ function inputsView(detail) {
   ))}${section('Execution boundary', keyValueTable([
     ['Qualification mode', detail.inputs.qualificationMode],
     ['Screening authority', false],
-  ]))}`;
+  ]))}${mechanismWorkingTrace(context)}`;
 }
 
 function operatingCaseQuantityRows(operatingCase) {
@@ -200,13 +229,13 @@ export function renderVibrationIntegrityDetailTabs(active) {
   return VIBRATION_INTEGRITY_DETAIL_TABS.map((tab) => `<button type="button" class="vi-detail-tab${tab === active ? ' is-active' : ''}" data-vi-detail="${tab}">${esc(tab[0].toUpperCase() + tab.slice(1))}</button>`).join('');
 }
 
-export function renderVibrationIntegrityDetailBody(detail, tab) {
+export function renderVibrationIntegrityDetailBody(detail, tab, context = {}) {
   if (!detail) return '';
-  if (tab === 'inputs') return inputsView(detail);
+  if (tab === 'inputs') return inputsView(detail, context);
   if (tab === 'calculation') return renderVibrationIntegrityFitCalculation(detail);
   if (tab === 'case') return caseView(detail);
   if (tab === 'evidence') return evidenceView(detail);
   if (tab === 'source') return sourceView(detail);
   if (tab === 'diagnostics') return diagnosticsView(detail);
-  return summaryView(detail);
+  return summaryView(detail, context);
 }

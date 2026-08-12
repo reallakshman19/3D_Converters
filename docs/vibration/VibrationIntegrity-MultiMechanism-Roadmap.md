@@ -303,25 +303,42 @@ docs/vibration/VibrationIntegrity-FIT-Mechanism-v1.md
 
 ### Stage 5 — Generic mechanism qualification framework
 
-Status: **NEXT**
+Status: **IMPLEMENTED / FULL RELEASE+BROWSER GATE PENDING**
 
-Goal: establish reusable mechanism contracts only after FIT is an explicit production consumer.
+Delivered:
 
-Required:
+- `VibrationMechanismAssessmentItem.v1` with deterministic mechanism/line/case/canonical/child identity;
+- `VibrationMechanismAssessmentSet.v1` with explicit `ZERO` / `ONE` / `MANY` child cardinality;
+- independent implementation, assessment/readiness, result-currency and benchmark state dimensions;
+- normalized request/execution/result, qualification and evidence slots;
+- equation/rule/correlation trace dimensions;
+- `UNAVAILABLE` / `SOURCE_AND_NORMALIZED_ONLY` / `COMPLETE_WORKING_TRACE` input-trace states;
+- FIT as the immediate production consumer through a non-numerical adapter;
+- exact Stage-3 working-cell/source anchors where real backing pointers exist;
+- mechanism-specific FIT benchmark comparison with modified/stale/current semantics;
+- stale FIT retained for evidence but excluded from current `Implemented governing`;
+- non-FIT mechanisms represented as `NOT_IMPLEMENTED` with zero child items, never synthetic `NOT_APPLICABLE`;
+- no second numerical mechanism and no authority change.
 
-- stable mechanism item identity and child-item cardinality;
-- applicability/readiness envelope;
-- normalized request/execution envelope;
-- current/stale result semantics;
-- mechanism-specific benchmark comparison;
-- equation/rule/correlation trace;
-- evidence/qualification envelope;
-- source-to-working-to-normalized trace;
-- no speculative abstractions without FIT production consumption.
+Permanent regressions:
 
-Do not implement a second numerical mechanism in this stage unless its own method/source qualification is separately controlled.
+```text
+tests/vibration-mechanism-contract.test.mjs
+tests/vibration-fit-mechanism-contract.test.mjs
+tests/vibration-integrity-mechanism-context.test.mjs
+tests/vibration-integrity-mechanism-matrix.test.mjs
+tests/vibration-integrity-detail-view.test.mjs
+```
+
+Detailed contract:
+
+```text
+docs/vibration/VibrationMechanismQualificationFramework-v1.md
+```
 
 ### Stage 6 — Mechanical excitation
+
+Status: **NEXT AFTER STAGE-5 RELEASE/BROWSER EVIDENCE**
 
 Use retained records 3, 4, 5 and 7 only after adopted rules/equations, equipment-item cardinality, governing semantics, independent examples and unit invariance are controlled. Authority starts benchmark-only.
 
@@ -388,6 +405,6 @@ Controlled command:
 npm run verify:vibration-fit-release
 ```
 
-After Stage 4 the manifest contains **36 controlled test files**.
+After Stage 5 the manifest contains **39 controlled test files**.
 
-Focused Stage-4 validation is PASS. Full exact-head release execution, real-browser interaction and independent vibration-engineering review remain required before closure/merge.
+Focused Stage-5 framework validation is PASS. Full exact-head release execution, real-browser interaction and independent vibration-engineering review remain required before authority closure.
