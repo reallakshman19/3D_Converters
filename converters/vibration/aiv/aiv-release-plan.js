@@ -18,6 +18,7 @@ export const AIV_BLOCKED_AUTHORITY = Object.freeze({
 
 const BENCHMARK_GATES = Object.freeze([
   Object.freeze({ gateId: 'QUALIFICATION_MACHINE_PARITY', evidenceKey: 'qualificationParityManifest', schema: 'AivQualificationParityManifest.v1' }),
+  Object.freeze({ gateId: 'BENCHMARK_KERNEL_QUALIFICATION', evidenceKey: 'benchmarkKernelQualification', schema: 'AivBenchmarkKernelQualification.v1' }),
   Object.freeze({ gateId: 'QUALIFICATION_PREREQUISITES', evidenceKey: 'promotionReadiness', schema: 'AivQualificationPromotionReadiness.v1' }),
   Object.freeze({ gateId: 'INDEPENDENT_ENGINEER_BENCHMARK_RECOMMENDATION', evidenceKey: 'independentPromotionReview', schema: 'AivIndependentVibrationEngineerPromotionReviewVerification.v1' }),
   Object.freeze({ gateId: 'EXACT_HEAD_RELEASE_VALIDATION', evidenceKey: 'releaseValidation', schema: 'AivReleaseValidationReceipt.v1' }),
@@ -65,6 +66,18 @@ function benchmarkEvidenceValid(gate, artifact) {
       && doc.productionEquationAuthorized === false
       && doc.screeningAuthority === 'NOT_AUTHORIZED'
       && doc.designAuthority === false;
+  }
+  if (gate.gateId === 'BENCHMARK_KERNEL_QUALIFICATION') {
+    return doc.methodId === 'VIB.AIV.ACOUSTIC'
+      && doc.releaseTarget === 'BENCHMARK_ONLY'
+      && doc.status === 'PASS'
+      && doc.releaseGateSatisfied === true
+      && doc.counts?.totalStages === 10
+      && doc.counts?.productPathQualifiedStages === 10
+      && doc.authority?.authorityTransitionApplied === false
+      && doc.authority?.productionEquationAuthorized === false
+      && doc.authority?.screeningAuthority === 'NOT_AUTHORIZED'
+      && doc.authority?.designAuthority === false;
   }
   if (gate.gateId === 'QUALIFICATION_PREREQUISITES') {
     return doc.status === 'READY_FOR_INDEPENDENT_AUTHORITY_REVIEW'
@@ -254,6 +267,7 @@ export function buildAivReleasePlan({
     authorityTransitionApplied: false,
     notes: [
       'This plan evaluates release readiness only; it never mutates the Engineering Calculation registry.',
+      'BENCHMARK_ONLY requires complete real product-path kernel qualification in addition to isolated machine parity.',
       'BENCHMARK_ONLY is the first releasable AIV state and does not grant screening or design authority.',
       'SCREENING requires a second independent release program after the real product-path kernel is qualified.',
       'AIV design authority is explicitly out of scope for this release plan.',
