@@ -20,6 +20,19 @@ function roleLabel(role) {
   return 'Propagation path';
 }
 
+function diagnosticMessage(path) {
+  if (path.status === 'IDENTITY_NOT_FOUND') {
+    return `Source or assessment identity is absent from the certified topology: ${(path.missingCanonicalIds ?? []).join(', ')}.`;
+  }
+  if (path.status === 'AMBIGUOUS_SHORTEST_PATH') {
+    return `More than one equally short certified topology path exists (${path.shortestPathCount}). AIV source-to-assessment mapping must be resolved explicitly.`;
+  }
+  if (path.status === 'AMBIGUOUS_TOPOLOGY_PATH') {
+    return 'More than one certified topology route connects the selected source and assessment identities. Readiness will not choose a route by hop count or presentation geometry.';
+  }
+  return 'No certified topology path connects the selected source and assessment identities.';
+}
+
 export function buildAivTopologyViewModel(exchange, input = {}) {
   const graph = buildVibrationTopologyGraph(exchange);
   const path = resolveVibrationTopologyPath(graph, {
@@ -58,17 +71,14 @@ export function buildAivTopologyViewModel(exchange, input = {}) {
     pathStatus: path.status,
     shortestPathCount: path.shortestPathCount ?? null,
     shortestHopCount: path.shortestHopCount ?? null,
+    alternateRouteDetected: path.alternateRouteDetected ?? false,
     physicalDistanceMm: null,
     distanceStatus: path.distanceStatus,
     rows,
     topologyAuthority: path.authority,
     diagnostics: path.status === 'RESOLVED' ? [] : [{
       code: `AIV_TOPOLOGY_${path.status}`,
-      message: path.status === 'IDENTITY_NOT_FOUND'
-        ? `Source or assessment identity is absent from the certified topology: ${(path.missingCanonicalIds ?? []).join(', ')}.`
-        : path.status === 'AMBIGUOUS_SHORTEST_PATH'
-          ? `More than one equally short certified topology path exists (${path.shortestPathCount}). AIV source-to-assessment mapping must be resolved explicitly.`
-          : 'No certified topology path connects the selected source and assessment identities.',
+      message: diagnosticMessage(path),
     }],
     notes: [
       'This model is a read-only table projection; it is not geometry or design authority.',
