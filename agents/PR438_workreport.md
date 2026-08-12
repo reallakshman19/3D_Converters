@@ -33,7 +33,7 @@ Current production path:
 
 The visible tab now has separate **Check readiness** and **Run FIT benchmark** actions. The benchmark execution module is lazy-loaded only on explicit Run. Row details are structured engineering tables rather than raw JSON and expose exact units, source context, qualification/evidence IDs, review-candidate limits and diagnostics.
 
-Stage 28 should now validate the current head as far as the environment permits, inspect changed-path/module-size/scope consistency, and only make defect/hardening changes supported by evidence. Do not expand numerical method scope.
+Stage 28 is validation/hardening only. Do not expand numerical method scope.
 
 ## Mission / Engineering Intent
 
@@ -138,29 +138,7 @@ tests/vibration-integrity-detail-view.test.mjs
 docs/vibration/VibrationIntegrityTab-v1.md
 ```
 
-Detail sections now render structured tables:
-
-```text
-Summary
-  identity / completeness
-  FIT reference result
-  qualification / evidence state
-Inputs
-  input | value | unit | source context
-Case
-  operating-case metadata
-  process quantities
-  enrichment property/value/unit/source/reviewer
-Evidence
-  qualification
-  phase/standard/advanced/reference evidence strength + IDs
-  non-authorizing engineering-review candidate fields
-  equation IDs / input-resolution evidence
-Source
-  assessment-point / operating-case / geometry trace
-Diagnostics
-  missing / invalid / codes / central errors
-```
+Detail sections now render structured tables for identity/result, prepared inputs/units/source context, operating-case quantities, enrichment provenance, qualification/evidence IDs, engineering-review-candidate boundaries, source trace and diagnostics.
 
 Safety/product properties:
 
@@ -182,9 +160,9 @@ focused FIT/vibration/engineering suite: 67 / 67 PASS
 full npm test:                            235 / 235 PASS
 ```
 
-The PR metadata also records `npm run build` failing at `UNBOUND_IDENTIFIER insertText`, reproduced on clean `main`, and Actions failing before runner allocation due billing/spending.
+PR metadata also records `npm run build` failing at `UNBOUND_IDENTIFIER insertText`, reproduced on clean `main`, and Actions failing before runner allocation due billing/spending.
 
-These remain prior validation evidence. The later Stage 24–27 workspace/UI/preflight/detail delta is not covered by that earlier full-suite claim in this runtime.
+These remain prior validation evidence. Stage 24–27 additions are newer and not covered by that earlier full-suite claim in this runtime.
 
 ### Current-head evidence
 
@@ -212,21 +190,17 @@ No `.github/workflows/*`, no vibration 3D/canvas/viewer implementation, and no n
 
 ## Stage 28 — current-head validation and product hardening — IN_PROGRESS
 
-### Objective
-
-Validate the latest Stage 24–27 delta and make only evidence-backed hardening changes.
-
 Priority checks:
 
 1. syntax/static execution for workspace/preflight/detail/UI tests where dependency-free;
 2. source/import graph confirms Check readiness does not load benchmark execution;
 3. module-size/consumption check for newly added JS;
-4. changed-file ledger still exactly assignment-related;
+4. changed-file ledger still assignment-related;
 5. public export compatibility after `fit-tables` / `fit-preflight-tabular` split;
 6. HTML escaping and null handling for detail/readiness views;
-7. current PR title/body accurately state authority and validation chronology.
+7. PR title/body accurately state visible product, authority and validation chronology.
 
-If a normal full checkout becomes available:
+If normal checkout becomes available:
 
 ```text
 node --test tests/vibration-workspace-model.test.mjs
@@ -256,7 +230,7 @@ npm run build
 
 - Current stage: Stage 28.
 - Do not add numerical method scope.
-- Prefer validation/hardening over more feature breadth.
+- Prefer validation/hardening over feature breadth.
 - Preserve table-only/no-3D boundary.
 - Preserve prior-validation vs current-head-validation chronology exactly.
 - Never promote candidate/evidence metadata into screening authority.
