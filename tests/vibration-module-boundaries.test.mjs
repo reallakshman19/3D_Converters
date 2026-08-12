@@ -34,6 +34,7 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/aiv/aiv-qualification-evidence.js',
   'converters/vibration/aiv/aiv-d23-pdf-revalidation.js',
   'converters/vibration/aiv/aiv-errata-evidence.js',
+  'converters/vibration/aiv/aiv-independent-benchmark-evidence.js',
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
   'tabs/vibration-integrity-detail-view.js',
@@ -85,6 +86,8 @@ test('exchange, dataset and AIV qualification facades preserve stable APIs after
     'AIV_EI_EXAMPLES_PDF_SOURCE',
     'AIV_EI_OFFICIAL_ERRATA_SOURCE',
     'AIV_T2_6_ERRATA_FEED_EQUATION',
+    'AIV_INDEPENDENT_BENCHMARKS',
+    'AIV_INDEPENDENT_BENCHMARK_EVIDENCE',
   ]) assert.match(aivIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
 });
 
@@ -110,6 +113,7 @@ test('AIV topology/readiness/evidence remain read-only and separated from produc
     source('converters/vibration/aiv/aiv-qualification-evidence.js'),
     source('converters/vibration/aiv/aiv-d23-pdf-revalidation.js'),
     source('converters/vibration/aiv/aiv-errata-evidence.js'),
+    source('converters/vibration/aiv/aiv-independent-benchmark-evidence.js'),
     source('tabs/vibration-aiv-inline-symbols.js'),
     source('tabs/vibration-aiv-path-view.js'),
     source('tabs/vibration-aiv-readiness-view.js'),
