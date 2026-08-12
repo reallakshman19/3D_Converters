@@ -1,4 +1,5 @@
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
+import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -24,16 +25,17 @@ function coverageRows() {
   return COVERAGE.map(([traceId, item, evidence, status, note]) => `<tr><td><code>${esc(traceId)}</code></td><td>${esc(item)}</td><td>${esc(evidence)}</td><td><span class="aivq-status ${status === 'COVERED' ? 'ok' : 'gap'}">${esc(status)}</span></td><td>${esc(note)}</td></tr>`).join('');
 }
 
-export function renderAivQualificationWorkspaceHtml() {
+export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
     <header class="aivq-header"><div><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>BLOCKED</strong><span>NOT SCREENING / NOT DESIGN AUTHORITY</span></div></header>
-    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>No numerical AIV kernel is exposed from this surface. Readiness, benchmark execution and screening remain unavailable until issue #441 gates are closed.</span></section>
+    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Non-numerical data readiness is available. Benchmark execution, screening and all AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
     <section class="aivq-card"><h4>Controlled source set</h4><div class="aivq-grid">
       <div><small>Qualification issue</small><strong>#441</strong></div>
       <div><small>EI worked-example source</small><strong>Energy-Institute-AVIFF---Worked-Examples.doc.docx</strong><span>Common @ fb549185b9b27edc2379734240320a85c5bef9f6 · blob ceee15ed5f7f320045d5f3979024e2e8664613f2</span></div>
       <div><small>Advanced_Analysis visual lineage</small><strong>Sequential engineering SVG symbols</strong><span>Advanced_Analysis @ 6463b39866f68eb6476bfa41764538eb19f8b9f9</span></div>
       <div><small>Topology authority</small><strong>TopologyEditTableHumanExport.v1</strong><span>Elements + Connections + Source Mapping + Catalogue Evidence + Export Metadata</span></div>
     </div></section>
+    ${renderAivReadinessPanelHtml(state)}
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>Table-first SVG adaptation</h4><p>SVG is limited to inline engineering glyphs. It does not project coordinates or render plant/model geometry.</p></div></div>
       <div class="aivq-example-table"><table><thead><tr><th>Symbol</th><th>Role</th><th>Example</th><th>Engineering meaning</th></tr></thead><tbody>
         <tr><td>${renderAivInlineSymbol({ type: 'RELIEF_VALVE', role: 'SOURCE' })}</td><td>Acoustic source</td><td>Relief/control/restriction device</td><td>Identity only; process/source calculation remains in the qualified AIV kernel.</td></tr>
