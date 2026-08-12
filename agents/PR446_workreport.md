@@ -3,23 +3,22 @@
 ## Mission Control
 
 ```text
-Mission               Freeze production-shaped AIV kernel boundaries without numerical promotion
+Mission               Prepare AIV production-shaped boundaries and a controlled release path
 Issue                  #441
 PR                     #446
 Branch                 agent/aiv-kernel-contract-scaffold
 Base                   90d504f74f872f232378836f72c2544297dea8c8
 Predecessor            PR #444 merged as 90d504f74f872f232378836f72c2544297dea8c8
-Current stage          Stage 16B preparation — contract scaffold only
+Current stage          Stage 16B preparation + release-readiness architecture
 Source implementation IMPLEMENTED
-Isolated validation    PASS
-Repository CI          PENDING / subject to Actions budget availability
+Focused execution      kernel/comparison harness PASS; release-plan 5/5 PASS; release-validation 6/6 PASS
+Repository CI          NOT_RUN: Actions budget creates runner_id=0 / zero-step jobs
 Engineering authority BLOCKED / NONE / NOT_AUTHORIZED
-Exact next action      Complete human evidence gates before any numerical implementation of these stages
+Release target         BENCHMARK_ONLY first; SCREENING only as a second release program
+Exact next action      Complete Release-1 evidence + product-kernel candidate behind the blocked gate; do not transition authority automatically
 ```
 
 ## Pre-work cleanup requested by user
-
-Before this branch was created, open agent PRs were reconciled:
 
 ```text
 #442  merged to main (squash) 5855c541b48436717b8e33df8821ecd231ec11d4
@@ -27,9 +26,9 @@ Before this branch was created, open agent PRs were reconciled:
 #311  closed as already-integrated/superseded stale stack
 ```
 
-PR #311 was not force-merged because current `main` already contains its Agent E foundation and newer versions of shared FBX/topology modules. Reintroducing the old divergent stack would have risked regression.
+PR #311 was not force-merged because current `main` already contains its Agent E foundation and newer shared FBX/topology revisions.
 
-## Authority invariant
+## Current authority invariant
 
 ```text
 calculationState      = BLOCKED
@@ -40,16 +39,16 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-This PR contains no authority transition mechanism.
+No module in this PR mutates those values.
 
-## New kernel contract
+## Stage 16B kernel contract scaffold
 
 ```text
 converters/vibration/aiv/aiv-kernel-contract.js
 AivKernelContract.v1
 ```
 
-Frozen stage order:
+Frozen order:
 
 ```text
 1  VALIDATE_INPUT
@@ -64,29 +63,16 @@ Frozen stage order:
 10 ASSESS_RESULT
 ```
 
-Every stage is:
+Every stage remains `CONTRACT_ONLY` with `numericalExecutionAuthorized=false`.
 
-```text
-implementationState = CONTRACT_ONLY
-numericalExecutionAuthorized = false
-```
+`assertAivKernelExecutionAuthorized()` always throws `AIV_KERNEL_EXECUTION_NOT_AUTHORIZED`.
 
-The contract binds the existing input/result architecture but contains no engineering equations.
-
-`assertAivKernelExecutionAuthorized()` always throws:
-
-```text
-AIV_KERNEL_EXECUTION_NOT_AUTHORIZED
-```
-
-## New benchmark comparison contract
+## Benchmark comparison contract
 
 ```text
 converters/vibration/aiv/aiv-benchmark-comparison.js
 AivBenchmarkComparison.v1
 ```
-
-This compares externally supplied qualification results to controlled expected values/tolerances only.
 
 Statuses:
 
@@ -97,85 +83,176 @@ REVIEW_REQUIRED
 NOT_APPLICABLE_INPUTS_MODIFIED
 ```
 
-Important semantics:
+The D.2.3 FLM1 variance is represented as `REVIEW_REQUIRED`; modified benchmark inputs invalidate official parity.
 
-- the D.2.3 FLM1 variance is `REVIEW_REQUIRED`, not PASS;
-- a normal metric outside tolerance is FAIL;
-- edited benchmark working tables make official parity `NOT_APPLICABLE_INPUTS_MODIFIED`;
-- no result is interpreted as safe/pass/design authority.
+## Release plan
 
-## Isolation boundary
-
-Neither new module is exported from:
+Durable plan:
 
 ```text
-converters/vibration/aiv/index.js
+docs/vibration/AIV-Release-Plan-v1.md
+converters/vibration/aiv/aiv-release-plan.js
+AivReleasePlan.v1
 ```
 
-Neither is imported by:
+Allowed progression only:
 
 ```text
-tabs/vibration-aiv-qualification-tab.js
-tabs/vibration-aiv-qualification-view.js
-converters/engineering-calculations/default-registry.js
+BLOCKED
+  ↓
+BENCHMARK_ONLY
+  ↓
+SCREENING
 ```
 
-Therefore no AIV Run/Calculate path exists as a result of this PR.
+Direct `BLOCKED → SCREENING` is forbidden. `PROJECT_APPROVED`, `VERIFIED`, `PRODUCTION_AUTHORIZED`, and `designAuthority=true` are outside this release program.
 
-## Tests
+### Release 1 — BENCHMARK_ONLY
+
+Required SHA-bound evidence:
 
 ```text
-tests/vibration-aiv-kernel-contract.test.mjs
-tests/vibration-aiv-benchmark-comparison.test.mjs
+AivQualificationParityManifest.v1
+AivQualificationPromotionReadiness.v1
+AivIndependentVibrationEngineerPromotionReviewVerification.v1
+AivReleaseValidationReceipt.v1
 ```
 
-`package.json` adds both files to:
+Only when all four are valid does the planner return:
+
+```text
+ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION
+```
+
+The planner itself still returns `authorityTransitionApplied=false` and exposes no transition operation.
+
+Release-1 execution boundary:
+
+```text
+CONTROLLED_BENCHMARK_EXECUTION_ONLY
+screeningAuthority = NOT_AUTHORIZED
+designAuthority = false
+```
+
+### Release 2 — SCREENING
+
+Reserved release evidence:
+
+```text
+AivProductKernelQualificationReceipt.v1
+AivProductPathBenchmarkParityReceipt.v1
+AivLineAggregationQualificationReceipt.v1
+AivSingleBatchParityReceipt.v1
+AivScreeningDomainCoverageReceipt.v1
+AivScreeningEngineeringReviewVerification.v1
+AivReleaseValidationReceipt.v1
+```
+
+SCREENING remains blocked while the current phase is BLOCKED and cannot be reviewed before BENCHMARK_ONLY release.
+
+## Exact-head release validation
+
+```text
+converters/vibration/aiv/aiv-release-validation.js
+docs/vibration/AIV-Release-Validation-v1.md
+AivReleaseValidationRecord.v1
+AivReleaseValidationReceipt.v1
+```
+
+Allowed execution sources:
+
+```text
+LOCAL_CONTROLLED_CHECKOUT
+CI_RUNNER
+```
+
+A CI receipt requires a positive runner id and nonblank runner name. `runner_id=0`, zero executed steps, or `actualExecution=false` is rejected as `NOT_RUN`.
+
+BENCHMARK_ONLY requires exactly:
+
+```text
+AIV_FOCUSED_NODE_TESTS
+AIV_CONTROLLED_BENCHMARK_PARITY
+AIV_BROWSER_WORKSPACE_SMOKE
+AIV_MODULE_BOUNDARY_CHECK
+```
+
+SCREENING adds:
+
+```text
+AIV_REAL_PRODUCT_PATH_PARITY
+AIV_SINGLE_BATCH_PARITY
+AIV_PROJECT_INPUT_BROWSER_FLOW
+AIV_EXPORT_PROVENANCE
+```
+
+Every validation group requires status PASS, exit code 0, the executed command, and SHA-256 log/output evidence.
+
+A validation receipt never mutates authority.
+
+## Focused execution performed in this session
+
+```text
+kernel contract / comparison isolated harness   PASS
+release-plan tests                              5 pass / 0 fail
+release-validation tests                        6 pass / 0 fail
+```
+
+The focused repository command now includes the new regressions:
 
 ```bash
 npm run verify:aiv-input-model
 ```
 
-## Executed isolated validation
+This does not replace a real exact-head repository/browser release run.
 
-A local isolated Node harness reproduced the new module behavior:
+## Repository CI limitation
+
+The current GitHub AIV workflow still creates jobs with:
 
 ```text
-module syntax                         PASS
-10-stage contract                     PASS
-execution fail-closed guard           PASS
-controlled comparison/review rollup   PASS
-modified-input parity invalidation    PASS
+runner_id = 0
+steps     = []
 ```
 
-This is not a whole-repository test-suite claim.
+and GitHub annotates that the job was not started because the Actions budget prevents further use.
+
+This is recorded as `NOT_RUN`, never PASS.
 
 ## Numerical boundary
 
-The previous qualification-only arithmetic remains under `scripts/` from merged PR #444. This PR does not copy source-PWL, attenuation, dB combination, errata, FLM1/FLM2, fatigue or LOF equations into the production converter layer.
+The qualification equations remain isolated under `scripts/` from merged PR #444. PR #446 has not copied them into the registered Engineering Calculation API or enabled AIV Run/Calculate UI execution.
 
-Human gates remain required before numerical implementation:
+Human gates still required for Release 1 include the completed T2.7 reconciliation, D.2.3 FLM1 disposition, worked-example result-scope review, independent benchmark review, retained-workbook review, and independent vibration-engineer BENCHMARK_ONLY recommendation.
 
-```text
-AivT27Reconciliation.v1
-AivD23Flm1Reconciliation.v1
-AivWorkedExampleResultScopeReview.v1
-AivIndependentBenchmarkReview.v1
-AivWorkbookReconciliation.v1
-AivIndependentVibrationEngineerPromotionReview.v1
-```
-
-## Changed-file scope
+## Changed-file focus
 
 ```text
 converters/vibration/aiv/aiv-kernel-contract.js
 converters/vibration/aiv/aiv-benchmark-comparison.js
+converters/vibration/aiv/aiv-release-plan.js
+converters/vibration/aiv/aiv-release-validation.js
 tests/vibration-aiv-kernel-contract.test.mjs
 tests/vibration-aiv-benchmark-comparison.test.mjs
+tests/vibration-aiv-release-plan.test.mjs
+tests/vibration-aiv-release-validation.test.mjs
 docs/vibration/AIV-Kernel-Contract-Scaffold-v1.md
+docs/vibration/AIV-Release-Plan-v1.md
+docs/vibration/AIV-Release-Validation-v1.md
 package.json
 agents/PR446_workreport.md
 ```
 
-## Next safe implementation
+## Next implementation sequence
 
-Until human authority evidence is completed, the next code may improve non-numerical review/trace integration around this contract, but must not implement the stage equations in `converters/`, register a numerical AIV calculator, or add a UI Run button.
+```text
+1. Keep current authority BLOCKED.
+2. Build the production-shaped numerical candidate against the frozen stage contract, but keep it unregistered/unreachable until Release-1 authority evidence is complete.
+3. Drive EI D.2.3 through AivSourceResult/AivAssessmentResult/AivLineCaseSummary using the candidate path.
+4. Produce real product-path parity evidence.
+5. Complete named human qualification artifacts.
+6. Execute exact-head node + browser release validation and issue AivReleaseValidationReceipt.v1.
+7. Independent vibration engineer reviews the complete package and may recommend BENCHMARK_ONLY.
+8. Only then create a separate reviewed authority-transition PR.
+9. SCREENING is a later second release program; design authority remains false.
+```
