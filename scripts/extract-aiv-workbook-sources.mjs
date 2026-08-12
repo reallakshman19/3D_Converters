@@ -109,6 +109,7 @@ export function buildAivWorkbookInventory(bytesInput, source, options = {}) {
     sheets: sheetDetails,
     definedNames: names,
   };
+  const privateDetailsSha256 = `sha256:${sha256Hex(Buffer.from(JSON.stringify(details), 'utf8'))}`;
   return {
     summary: {
       workbookId: source.workbookId,
@@ -123,6 +124,7 @@ export function buildAivWorkbookInventory(bytesInput, source, options = {}) {
       hiddenSheetCount: publicSheets.filter((sheet) => sheet.visibility !== 'VISIBLE').length,
       definedNameCount: names.length,
       definedNamesSha256: `sha256:${sha256Hex(Buffer.from(JSON.stringify(names), 'utf8'))}`,
+      privateDetailsSha256,
       sheets: publicSheets,
       migrationEvidenceOnly: true,
       productionAuthority: false,
@@ -130,12 +132,12 @@ export function buildAivWorkbookInventory(bytesInput, source, options = {}) {
       eiReconciliationRequired: true,
     },
     details,
-    detailsSha256: `sha256:${sha256Hex(Buffer.from(JSON.stringify(details), 'utf8'))}`,
+    detailsSha256: privateDetailsSha256,
     fileName: options.fileName || basename(source.path),
   };
 }
 
-export function buildAivWorkbookSourceInventory(rootDir, options = {}) {
+export function buildAivWorkbookSourceInventory(rootDir) {
   const results = AIV_RETAINED_WORKBOOKS.map((source) => {
     const filePath = resolve(rootDir, source.path);
     const bytes = readFileSync(filePath);
