@@ -9,6 +9,11 @@ const ENGINEERING_TABS = Object.freeze([
     load: () => import('../tabs/engineering-calculations-tab.js?v=engineering-console-1').then((module) => module.renderEngineeringCalculationsTab),
   },
   {
+    id: 'vibration-integrity',
+    label: 'Vibration Integrity',
+    load: () => import('../tabs/vibration-integrity-tab.js?v=vibration-integrity-1').then((module) => module.renderVibrationIntegrityTab),
+  },
+  {
     id: 'b313-material-factors',
     label: 'B31.3 Material Factors',
     load: () => import('../tabs/b313-material-factors-tab.js?v=engineering-1').then((module) => module.renderB313MaterialFactorsTab),
