@@ -19,6 +19,8 @@ export const VIBRATION_INTEGRITY_INPUT_TABLE = Object.freeze({
   ENRICHMENT: 'enrichment',
 });
 
+export const VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS = 'LOCAL_EDITED_UNVERIFIED';
+
 const TABLE_CONFIG = Object.freeze({
   topology: Object.freeze({
     header: VIBRATION_TABLE_EXCHANGE_SHEETS.Elements,
@@ -72,6 +74,27 @@ function tableState(kind, rows, metadata = {}) {
     sourceKind: metadata.sourceKind ?? 'WORKING_TABLE',
     originalCertifiedExchange: metadata.originalCertifiedExchange === true,
     dirty: metadata.dirty === true,
+  });
+}
+
+function topologyMutationRows(table, rows) {
+  if (table.kind !== 'topology') return rows;
+  const sourceStatusIndex = table.header.indexOf('Source Status');
+  return rows.map((row) => {
+    const next = [...row];
+    const hasWorkingData = next.some((value, index) => (
+      index !== sourceStatusIndex && text(value).trim() !== ''
+    ));
+    next[sourceStatusIndex] = hasWorkingData ? VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS : '';
+    return next;
+  });
+}
+
+function mutationState(table, rows) {
+  return tableState(table.kind, topologyMutationRows(table, rows), {
+    ...table,
+    sourceKind: table.kind === 'topology' ? 'LOCAL_ELEMENTS_OVERRIDE' : table.sourceKind,
+    dirty: true,
   });
 }
 
@@ -146,14 +169,14 @@ export function updateVibrationIntegrityInputCell(table, rowIndex, columnIndex, 
   }
   const rows = table.rows.map((row) => [...row]);
   rows[rowIndex][columnIndex] = text(value);
-  return tableState(table.kind, rows, { ...table, dirty: true });
+  return mutationState(table, rows);
 }
 
 export function addVibrationIntegrityInputRow(table) {
   const config = configFor(table?.kind);
   const rows = table.rows.map((row) => [...row]);
   rows.push(Array(config.header.length).fill(''));
-  return tableState(table.kind, rows, { ...table, dirty: true });
+  return mutationState(table, rows);
 }
 
 export function deleteVibrationIntegrityInputRow(table, rowIndex) {
@@ -161,5 +184,5 @@ export function deleteVibrationIntegrityInputRow(table, rowIndex) {
     throw new RangeError(`Editable input row ${rowIndex} is out of range.`);
   }
   const rows = table.rows.filter((_, index) => index !== rowIndex).map((row) => [...row]);
-  return tableState(table.kind, rows, { ...table, dirty: true });
+  return mutationState(table, rows);
 }
