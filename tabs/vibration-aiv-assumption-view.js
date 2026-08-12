@@ -45,7 +45,7 @@ export function renderAivAssumptionProfileHtml(state = {}) {
       ${input('source.referencePressure', 'Reference pressure', profile.source.referencePressure, 'number')}${input('source.referencePressureUnit', 'Reference unit', profile.source.referencePressureUnit)}
       ${input('source.upstreamTemperature', 'Temperature', profile.source.upstreamTemperature, 'number')}${input('source.upstreamTemperatureUnit', 'Temperature unit', profile.source.upstreamTemperatureUnit)}
       ${input('source.molecularWeight', 'Molecular weight', profile.source.molecularWeight, 'number')}${input('source.molecularWeightUnit', 'MW unit', profile.source.molecularWeightUnit)}
-      ${select('source.lowNoiseTrimState', 'Trim state', profile.source.lowNoiseTrimState, ['NONE','MANUFACTURER_REDUCTION','UNRESOLVED'])}${input('source.lowNoiseTrimReduction', 'Trim reduction', profile.source.lowNoiseTrimReduction, 'number')}${input('source.lowNoiseTrimUnit', 'Trim unit', profile.source.lowNoiseTrimUnit)}
+      ${select('source.lowNoiseTrimState', 'Trim state', profile.source.lowNoiseTrimState, ['NONE','MANUFACTURER_REDUCTION','UNRESOLVED'])}${input('source.lowNoiseTrimReduction', 'Trim reduction when used', profile.source.lowNoiseTrimReduction, 'number')}${input('source.lowNoiseTrimUnit', 'Trim unit', profile.source.lowNoiseTrimUnit)}
       ${select('source.sonicState', 'Sonic state', profile.source.sonicState, ['NON_SONIC','SONIC','UNRESOLVED'])}
     </div></details>
     <details><summary>Assessment defaults</summary><div class="aivq-assumption-grid">
@@ -60,14 +60,14 @@ export function renderAivAssumptionProfileHtml(state = {}) {
     <details><summary>Relationship + identity defaults</summary><div class="aivq-assumption-grid">
       ${input('relationship.physicalDistance', 'Physical distance', profile.relationship.physicalDistance, 'number')}${input('relationship.physicalDistanceUnit', 'Distance unit', profile.relationship.physicalDistanceUnit)}
       ${input('relationship.simultaneousSourceGroup', 'Simultaneous group', profile.relationship.simultaneousSourceGroup)}${select('relationship.applicabilityDisposition', 'Applicability', profile.relationship.applicabilityDisposition, ['APPLICABLE','NOT_APPLICABLE','UNRESOLVED'])}
-      ${input('identity.sourceIdPrefix', 'Source ID prefix', profile.identity.sourceIdPrefix)}${input('identity.assessmentIdPrefix', 'Assessment ID prefix', profile.identity.assessmentIdPrefix)}${input('identity.caseIdPrefix', 'Case ID prefix', profile.identity.caseIdPrefix)}
+      ${input('identity.sourceIdPrefix', 'Source ID prefix', profile.identity.sourceIdPrefix)}${input('identity.assessmentIdPrefix', 'Assessment ID prefix', profile.identity.assessmentIdPrefix)}${input('identity.relationshipIdPrefix', 'Relationship record prefix', profile.identity.relationshipIdPrefix)}${input('identity.caseIdPrefix', 'Case ID prefix', profile.identity.caseIdPrefix)}
       ${input('identity.provenanceSource', 'Assumption provenance', profile.identity.provenanceSource)}${input('identity.provenanceRevision', 'Assumption revision', profile.identity.provenanceRevision)}
     </div></details>
     <details><summary>Benchmark / stages 8–10 defaults</summary><div class="aivq-assumption-grid">
       ${select('benchmark.stage8Model', 'Stage-8 model', profile.benchmark.stage8Model, ['CONFIGURED_D23_INTERMEDIATES'])}
       ${input('benchmark.publishedA', 'A', profile.benchmark.publishedA, 'number')}${input('benchmark.publishedS', 'S', profile.benchmark.publishedS, 'number')}${input('benchmark.publishedB', 'B', profile.benchmark.publishedB, 'number')}
       ${select('benchmark.flm1Mode', 'FLM1 mode', profile.benchmark.flm1Mode, ['PUBLISHED','RECALCULATED'])}${input('benchmark.flm1Published', 'FLM1 published', profile.benchmark.flm1Published, 'number')}${input('benchmark.flm1Recalculated', 'FLM1 recalculated', profile.benchmark.flm1Recalculated, 'number')}${input('benchmark.flm1ToleranceAbs', 'FLM1 tolerance', profile.benchmark.flm1ToleranceAbs, 'number')}
-      ${input('benchmark.flm2', 'FLM2', profile.benchmark.flm2, 'number')}${input('benchmark.lossFactor', 'Loss factor Lf', profile.benchmark.lossFactor, 'number')}
+      ${input('benchmark.flm2', 'FLM2', profile.benchmark.flm2, 'number')}${input('benchmark.lossFactor', 'Loss factor Lf', profile.benchmark.lossFactor, 'number')}${input('benchmark.lofToleranceAbs', 'LOF comparison tolerance', profile.benchmark.lofToleranceAbs, 'number')}
       ${input('benchmark.d23FirstDiscontinuityLof', 'D.2.3 assessment LOF ref', profile.benchmark.d23FirstDiscontinuityLof, 'number')}${input('benchmark.workedExampleReliefLineLof', 'Worked-example line LOF ref', profile.benchmark.workedExampleReliefLineLof, 'number')}
       ${select('benchmark.lineAggregationMode', 'Line aggregation mode', profile.benchmark.lineAggregationMode, ['SEPARATE_RESULT_SCOPES'])}${select('benchmark.assessmentMode', 'Assessment mode', profile.benchmark.assessmentMode, ['BENCHMARK_COMPARE_ONLY'])}
     </div></details>
