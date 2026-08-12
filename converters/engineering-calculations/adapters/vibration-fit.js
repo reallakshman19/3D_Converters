@@ -8,6 +8,7 @@ import {
   FIT_REFERENCE_AUTHORITY,
   FIT_WORKBOOK_SOURCE,
   assessFit,
+  buildFitCorrelationTrace,
   calculateFit,
   evaluateFitApplicability,
 } from '../../vibration/fit/index.js';
@@ -95,6 +96,33 @@ function outputValues(calculation, assessment) {
   };
 }
 
+function fitIntermediates(result) {
+  return {
+    hydraulics: result.hydraulics,
+    excitation: result.excitation,
+    support: result.support,
+    standard: {
+      fluidViscosityFactor: result.standard.fluidViscosityFactor,
+      demand: result.standard.demand,
+      lof: result.standard.lof,
+    },
+    standardCorrelation: buildFitCorrelationTrace(result.standard.correlation, 'STANDARD'),
+    advancedEligibility: result.advancedEligibility,
+    advanced: result.advanced ? {
+      lof: result.advanced.lof,
+      naturalFrequencyHz: result.advanced.naturalFrequencyHz,
+    } : null,
+    advancedCorrelation: buildFitCorrelationTrace(result.advanced?.correlation ?? null, 'ADVANCED'),
+  };
+}
+
+function correlationIds(intermediates) {
+  return [
+    intermediates.standardCorrelation?.correlationId,
+    intermediates.advancedCorrelation?.correlationId,
+  ].filter(Boolean);
+}
+
 function calculate(input, runtime = {}) {
   if (runtime.options?.qualificationMode !== 'benchmark') return blockedByMode();
   const result = calculateFit(domainInput(input));
@@ -109,16 +137,11 @@ function calculate(input, runtime = {}) {
     };
   }
   const assessment = assessFit(result);
+  const intermediates = fitIntermediates(result);
   return {
     ok: true,
     outputs: outputValues(result, assessment),
-    intermediates: {
-      hydraulics: result.hydraulics,
-      excitation: result.excitation,
-      support: result.support,
-      standardCorrelation: result.standard.correlation,
-      advancedCorrelation: result.advanced?.correlation ?? null,
-    },
+    intermediates,
     checks: [],
     assessment,
     qualification,
@@ -133,6 +156,7 @@ function calculate(input, runtime = {}) {
     },
     evidence: {
       equationIds: result.evidence.equationIds,
+      correlationIds: correlationIds(intermediates),
       inputResolution: result.evidence.inputResolution,
       qualificationCoverage: result.qualificationCoverage,
       screeningCandidate: result.screeningCandidate,

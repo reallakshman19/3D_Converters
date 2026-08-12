@@ -24,6 +24,18 @@ function detail() {
       units: { outsideDiameter: 'mm', density: 'kg/m3', gasDynamicViscosity: 'cP' },
       qualificationMode: 'benchmark',
     },
+    fitMechanism: {
+      mechanismId: 'FIT', calculationId: 'VIB.FIV.FLOW_TURBULENCE', methodRevision: 'ei-aviff2-fit-reference-v2',
+      resolvedInputs: {}, outputs: { standardLof: 0.276, governingReferenceLof: 0.276, referenceBand: 'LOF_LT_0_3' },
+      intermediates: {
+        hydraulics: {}, excitation: { rhoV2: 35164.8 }, support: { stiffness: 'MEDIUM_STIFF', category: 'MEDIUM_STIFF' },
+        standard: {}, standardCorrelation: { correlationId: 'FIT.STD.MEDIUM_STIFF.v1', category: 'MEDIUM_STIFF' },
+        advancedEligibility: { eligible: false, reason: 'STANDARD_LOF_BELOW_REFERENCE_THRESHOLD' },
+      },
+      assessment: { status: 'REFERENCE_BELOW_THRESHOLD' }, qualification: { effective: 'BENCHMARK_ONLY' },
+      provenance: { engineeringAuthority: 'WORKBOOK_REFERENCE_ONLY' },
+      equationIds: ['FIT-EQ-001', 'FIT-EQ-013'], correlationIds: ['FIT.STD.MEDIUM_STIFF.v1'],
+    },
     operatingCase: {
       line: 'L-100', caseId: 'NORMAL', label: 'Normal', phase: 'GAS', source: 'HMB-1',
       sourceRevision: 'R2', recordId: 'ROW-7',
@@ -72,7 +84,7 @@ function detail() {
         reasons: ['CANDIDATE_STATUS_IS_FOR_ENGINEERING_REVIEW_ONLY'],
       },
       evidence: {
-        equationIds: ['FIT-EQ-001', 'FIT-EQ-013'],
+        correlationIds: ['FIT.STD.MEDIUM_STIFF.v1'], equationIds: ['FIT-EQ-001', 'FIT-EQ-013'],
         inputResolution: {
           multiphaseResolutionMode: 'SINGLE_PHASE', selection: 'NOT_APPLICABLE', alternateModeDataPresent: false,
         },
@@ -90,11 +102,15 @@ function detail() {
   };
 }
 
-test('detail tabs expose the six engineering review sections', () => {
-  assert.deepEqual(VIBRATION_INTEGRITY_DETAIL_TABS, ['summary', 'inputs', 'case', 'evidence', 'source', 'diagnostics']);
-  const html = renderVibrationIntegrityDetailTabs('evidence');
-  for (const label of ['Summary', 'Inputs', 'Case', 'Evidence', 'Source', 'Diagnostics']) assert.match(html, new RegExp(label, 'u'));
-  assert.match(html, /data-vi-detail="evidence"[^>]*>Evidence/u);
+test('detail tabs expose Calculation as a separate backend-trace section', () => {
+  assert.deepEqual(VIBRATION_INTEGRITY_DETAIL_TABS, [
+    'summary', 'inputs', 'calculation', 'case', 'evidence', 'source', 'diagnostics',
+  ]);
+  const html = renderVibrationIntegrityDetailTabs('calculation');
+  for (const label of ['Summary', 'Inputs', 'Calculation', 'Case', 'Evidence', 'Source', 'Diagnostics']) {
+    assert.match(html, new RegExp(label, 'u'));
+  }
+  assert.match(html, /data-vi-detail="calculation"[^>]*>Calculation/u);
 });
 
 test('summary separates reference result, qualification and evidence dimensions', () => {
@@ -106,6 +122,14 @@ test('summary separates reference result, qualification and evidence dimensions'
   assert.match(html, /EI_PUBLISHED_EXAMPLE/u);
   assert.match(html, /Engineering review candidate/u);
   assert.doesNotMatch(html, /Risk Score|Facility Score|\bSafe\b|\bPass\b/u);
+});
+
+test('calculation tab delegates to the FIT mechanism backend trace', () => {
+  const html = renderVibrationIntegrityDetailBody(detail(), 'calculation');
+  assert.match(html, /FIT mechanism execution/u);
+  assert.match(html, /FIT\.STD\.MEDIUM_STIFF\.v1/u);
+  assert.match(html, /35164\.8/u);
+  assert.match(html, /FIT-EQ-001/u);
 });
 
 test('inputs and case views preserve units and source context without recomputing values', () => {
@@ -136,6 +160,7 @@ test('evidence view exposes real evidence IDs and non-authorizing candidate fact
   const html = renderVibrationIntegrityDetailBody(detail(), 'evidence');
   assert.match(html, /EI-D2-FIT-RECYCLE-SUCTION-6IN/u);
   assert.match(html, /MEDIUM_STIFF/u);
+  assert.match(html, /FIT\.STD\.MEDIUM_STIFF\.v1/u);
   assert.match(html, /FIT-EQ-001/u);
   assert.match(html, /Point coverage only/u);
   assert.match(html, /Domain coverage established/u);

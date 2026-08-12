@@ -14,6 +14,11 @@ export {
 } from './method.js';
 
 export {
+  FIT_CORRELATION_IDS,
+  buildFitCorrelationTrace,
+} from './trace.js';
+
+export {
   FIT_MULTIPHASE_RESOLUTION_MODES,
   evaluateFitApplicability,
   fitAdvancedEligibility,

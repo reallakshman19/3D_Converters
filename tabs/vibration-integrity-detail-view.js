@@ -1,5 +1,7 @@
+import { renderVibrationIntegrityFitCalculation } from './vibration-integrity-fit-detail-view.js';
+
 export const VIBRATION_INTEGRITY_DETAIL_TABS = Object.freeze([
-  'summary', 'inputs', 'case', 'evidence', 'source', 'diagnostics',
+  'summary', 'inputs', 'calculation', 'case', 'evidence', 'source', 'diagnostics',
 ]);
 
 function esc(value) {
@@ -154,7 +156,7 @@ function evidenceView(detail) {
     ['Screening authorized', candidate.screeningAuthorized], ['Engineering authority', candidate.engineeringAuthority],
     ['Reasons', candidate.reasons],
   ]))}${section('Calculation evidence', keyValueTable([
-    ['Equation IDs', evidence.equationIds],
+    ['Correlation IDs', evidence.correlationIds], ['Equation IDs', evidence.equationIds],
     ['Multiphase resolution mode', evidence.inputResolution?.multiphaseResolutionMode],
     ['Resolution selection', evidence.inputResolution?.selection],
     ['Alternate mode data present', evidence.inputResolution?.alternateModeDataPresent],
@@ -201,6 +203,7 @@ export function renderVibrationIntegrityDetailTabs(active) {
 export function renderVibrationIntegrityDetailBody(detail, tab) {
   if (!detail) return '';
   if (tab === 'inputs') return inputsView(detail);
+  if (tab === 'calculation') return renderVibrationIntegrityFitCalculation(detail);
   if (tab === 'case') return caseView(detail);
   if (tab === 'evidence') return evidenceView(detail);
   if (tab === 'source') return sourceView(detail);
