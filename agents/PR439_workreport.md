@@ -4,344 +4,234 @@
 
 | Field | Current value |
 |---|---|
-| Mission | Provide a controlled HP piping-class workspace with authority-package transport plus editable material/property and pipe-product libraries. |
-| Source task / issue | Owner instruction: create configurable material/property and pipe-product tables editable via UI. |
+| Mission | Provide a controlled HP piping-class workspace with authority-package transport, editable engineering libraries, and docs-backed CSV loading. |
+| Source task / issue | Owner instruction: link reusable libraries to CSV formats, dynamically fetch them from `docs/...`, and create a blank material file where applicable. |
 | PR number | 439 |
 | Branch | `agent/hp-class-authority-packages` |
 | Base commit | `fc222b80845273f2fb2bc83f401d8c29f52abb74` |
-| Current HEAD before final report sync | `c1394cb865ffd4ec006c0cccf4b0575daf9c11b9` |
+| Current HEAD before Stage 8 | `1e2db4cc5265252c53851d1516d33a4c62d799c4` |
 | PR status | DRAFT / OPEN / MERGEABLE |
-| Current stage | Stage 7 — configurable engineering libraries — COMPLETE |
-| Last completed stage | Stage 7 |
-| Engineering status | Authority-package workflow plus empty-by-default editable material/property and pipe-product libraries are implemented without changing the merged calculator engine. |
-| Validation status | PASS for library syntax, exact lookup, bounded interpolation, no-extrapolation, duplicate validation, exact selected-product validation, empty-default UI, JSON round trip, published blob identity, and solver blob preservation. Browser E2E remains NOT_RUN. |
-| Current blocker | No software blocker in current scope. Engineering correctness still depends on controlled values/source references entered by the project engineer. |
-| Exact next action | Review PR #439. Use `engineering-library.html` as the full controlled workspace and populate only approved engineering datasets. |
+| Current stage | Stage 8 — docs-backed CSV libraries — IN_PROGRESS |
+| Last completed stage | Stage 7 — configurable engineering libraries |
+| Engineering status | JSON-backed authority packages and editable UI libraries are validated. Stage 8 will add runtime loading from governed `docs/Masters/...` files without changing calculator equations. |
+| Validation status | Stage 7 PASS. Stage 8 validation NOT_RUN until implementation. |
+| Current blocker | Existing pipe geometry/wall master is TSV and lacks purchase-spec/minus-tolerance authority; material `S/Syt` data suitable for this Chapter IX workflow is not available as a controlled docs CSV. |
+| Exact next action | Add a CSV catalog, header-only material CSV, product overlay CSV, and a fetch/parser adapter that combines the product overlay with the existing canonical pipe master. |
 
 ## Handover in 60 Seconds
 
-**What is now true**
+### What is now true
 
-- PR #437 merged the B31.3/KD calculator.
-- PR #439 already had `authority-package.html` for controlled class-record JSON transport.
-- Stage 7 adds `engineering-library.html`, which wraps the authority-package workspace and adds editable material/property and pipe-product tables.
-- Both tables start empty; the repository ships no material values, pipe dimensions, wall tolerances or proprietary Code tables.
-- Material application uses an exact entered temperature point or bounded linear interpolation only.
-- Material extrapolation is blocked.
-- Applying a material computes design `S` and every cycle-block `Syt` before mutating calculator fields; any out-of-range/incomplete cycle blocks the whole action.
-- Applying a product requires one exact selected row and explicitly replaces `D`, product spec, wall tolerance/source and candidate wall.
-- Libraries can be exported/imported with `hp-piping-engineering-libraries/v1` JSON.
-- Existing authority-package v1 and merged calculator files remain unchanged.
+- PR #437 merged the B31.3/KD calculation engine.
+- PR #439 adds authority-package JSON transport and editable material/product UI libraries.
+- `docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv` is an existing governed pipe geometry/wall source at blob `7e83f7283b4ca9f35a86a45c008ca0b52a053fcc`.
+- That TSV supplies NPS/OD/schedule/wall geometry but not purchase product specification or negative wall tolerance.
+- `docs/Masters/b313-material-factor-master.json` exists for other B31.3 factor workflows, but it is not adopted here as the Chapter IX `S/Syt` production source.
 
-**What remains unfinished**
+### What is being worked on
 
-- Browser E2E in a real static-host environment.
-- Optional future organization-managed/signed library distribution.
-- Actual project data population and engineering approval.
+- A docs-backed CSV catalog under `docs/Masters/HP_Piping_Class/`.
+- A blank/header-only material-property CSV.
+- A product overlay CSV for purchase-specific data.
+- Runtime same-origin fetch from the docs catalog and source files.
+- CSV import/export through the editable UI.
 
-**What must not be assumed**
+### What remains unfinished
 
-- 12.5% wall tolerance is universal.
-- interpolation beyond the entered material temperature range is acceptable.
-- a row is approved merely because it exists in the UI.
-- library source/version metadata validates the technical correctness of the entered values.
+- CSV files and parser/fetch module.
+- Product-master TSV adapter and overlay merge.
+- Fetch/reload controls in `engineering-library.html`.
+- CSV validation/regression and documentation.
 
-**Highest-risk remaining item**
+### What must not be assumed
 
-`RISK-017` — user-entered libraries must remain controlled inputs and never become hidden defaults.
+- The existing pipe master provides purchase tolerance.
+- ASME B36 dimension-standard rows are equivalent to a pipe purchase specification.
+- Missing CSV values may be defaulted.
+- Material values in another project master are automatically valid for Chapter IX `S/Syt` use.
 
-**Exact next action**
+### Highest-risk remaining item
 
-Review the Stage 7 library workflow and populate a controlled test dataset through the real hosted UI.
+`RISK-019` — dynamically loaded docs data must not become engineering authority unless all required purchase/material fields are explicitly complete and source-traceable.
+
+### Exact next action
+
+Implement the catalog + blank material CSV + product overlay + canonical TSV adapter, then validate fail-closed behavior.
 
 ## Mission and Engineering Intent
 
-### Mission
+The operator should be able to maintain controlled engineering tables as ordinary repository CSV files under `docs/Masters/HP_Piping_Class/`, refresh them in the browser without rebuilding JavaScript, edit them in the UI, and download updated CSVs for reviewed repository publication.
 
-Reduce repeated manual transcription of class-standardization inputs while preserving traceable engineering authority.
+The implementation must preserve these invariants:
 
-### User / engineering consequence
-
-A reviewer can enter or import a controlled material property table and pipe-product table, apply those values explicitly to the calculator, and export the tables for reuse without embedding unverified values in source code.
-
-### Scope
-
-Implemented:
-
-- material table columns: material specification, grade, condition, temperature, `S`, `Syt`, row source;
-- product table columns: NPS/tag, product specification, design D/max OD, nominal wall, minus tolerance, row source;
-- library ID/revision/preparer and separate material/product source-version fields;
-- add/remove editable rows;
-- material-group selection and design-temperature input;
-- exact-point or bounded linear interpolation;
-- no extrapolation;
-- cycle-average `Syt` application;
-- exact product selection/application;
-- library JSON import/export;
-- dedicated operator documentation;
-- unchanged solver and authority-package implementation.
-
-Explicit non-goals:
-
-- no preloaded ASME material/fatigue data;
-- no product schedule database;
-- no nearest-size inference;
-- no silent wall-tolerance default;
-- no external database/service;
-- no routed-system analysis.
+1. Calculator equations remain unchanged.
+2. Docs data are loaded only from explicit catalog entries.
+3. Material CSV may be empty/header-only and must remain a visible blocker until populated.
+4. Canonical pipe geometry/wall comes from the existing project master rather than duplicated values.
+5. Purchase-spec and wall-tolerance fields are an overlay and remain blank until controlled data are supplied.
+6. No extrapolation of material properties.
+7. No silent `-12.5%` tolerance.
+8. Applying library data remains an explicit user action.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Authority-package transport | HIGH | VALIDATED | 4–6 | existing package test suite |
-| Editable material table | HIGH | VALIDATED | 7 | `engineering-library.html` / UI |
-| Exact/bounded S interpolation | CRITICAL | VALIDATED | 7 | Node pure tests |
-| Exact/bounded Syt interpolation | CRITICAL | VALIDATED | 7 | Node pure tests |
-| No-extrapolation gate | CRITICAL | VALIDATED | 7 | out-of-range test |
-| Editable product table | HIGH | VALIDATED | 7 | workspace UI |
-| Product-specific tolerance | HIGH | VALIDATED | 7 | exact-row application logic |
-| Explicit Apply actions | HIGH | VALIDATED | 7 | UI integration/static review |
-| Empty-by-default tables | CRITICAL | VALIDATED | 7 | HTML DOM test |
-| Library JSON import/export | HIGH | VALIDATED | 7 | core JSON round trip |
-| Library source/version metadata | HIGH | VALIDATED | 7 | metadata validation |
-| Solver blob preservation | CRITICAL | VALIDATED | 7 | exact GitHub hashes |
-| Browser E2E | MEDIUM | NOT_RUN | 7 | runner unavailable |
+| Authority-package transport | HIGH | VALIDATED | 4–6 | prior stage |
+| Editable UI libraries | HIGH | VALIDATED | 7 | prior stage |
+| CSV catalog under docs | HIGH | IN_PROGRESS | 8 | pending |
+| Blank material CSV template | HIGH | IN_PROGRESS | 8 | pending |
+| Product overlay CSV | HIGH | IN_PROGRESS | 8 | pending |
+| Canonical TSV runtime adapter | HIGH | IN_PROGRESS | 8 | pending |
+| Dynamic same-origin docs fetch | HIGH | IN_PROGRESS | 8 | pending |
+| CSV material parser | HIGH | IN_PROGRESS | 8 | pending |
+| CSV product overlay parser/merge | HIGH | IN_PROGRESS | 8 | pending |
+| CSV export from UI | MEDIUM | IN_PROGRESS | 8 | pending |
+| No-default / no-extrapolation gates | CRITICAL | IN_PROGRESS | 8 | pending |
+| Solver blob preservation | CRITICAL | VALIDATED | 7 | exact hashes |
+| Browser E2E | MEDIUM | NOT_RUN | 8 | environment unavailable |
 
 ## Engineering Item Register
 
-| ID | Type | Severity/Priority | Status | Summary | Current PR? |
+| ID | Type | Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
-| RISK-013 | release risk | CRITICAL | MITIGATED | Authority-package snapshots remain audit-only. | YES |
-| RISK-014 | source risk | HIGH | MITIGATED | B31.3/KD source mismatch blocks package import. | YES |
-| RISK-015 | evidence risk | HIGH | MITIGATED | Package row evidence uses exact recalculated keys. | YES |
-| RISK-017 | engineering-data risk | CRITICAL | MITIGATED | Library tables are empty by default, require explicit sources, and require explicit Apply actions. | YES |
-| RISK-018 | product-data risk | HIGH | MITIGATED | Minus tolerance comes from the selected controlled product row/source; no universal default is introduced. | YES |
-| DEC-018 | decision | HIGH | ACCEPTED | Libraries ship empty and contain no hidden engineering defaults. | YES |
-| DEC-019 | decision | HIGH | ACCEPTED | Material values use exact points or bounded linear interpolation only; extrapolation is prohibited. | YES |
-| DEC-020 | decision | HIGH | ACCEPTED | Library values reach the calculator only through explicit Apply actions. | YES |
-| DEC-021 | decision | HIGH | ACCEPTED | Reusable libraries use their own `hp-piping-engineering-libraries/v1` JSON instead of silently changing authority-package v1. | YES |
-| DEC-022 | decision | HIGH | ACCEPTED | Applying a product replaces the candidate-wall list with the selected row to prevent old-family wall carryover. | YES |
-| IMP-022 | improvement | HIGH | DONE | Controlled material/property and pipe-product libraries. | YES |
+| RISK-017 | engineering-data risk | CRITICAL | MITIGATED | UI libraries are explicit and empty by default. | YES |
+| RISK-018 | product-data risk | HIGH | MITIGATED | Product tolerance has no universal fallback. | YES |
+| RISK-019 | docs-data risk | CRITICAL | IN_PROGRESS | Fetched docs rows must remain incomplete/blocking where purchase/material authority is missing. | YES |
+| RISK-020 | drift risk | HIGH | IN_PROGRESS | Do not duplicate the governed NPS/OD/schedule/wall table into an independent competing CSV. | YES |
+| DEC-018 | decision | HIGH | ACCEPTED | No hidden engineering defaults. | YES |
+| DEC-019 | decision | HIGH | ACCEPTED | Material interpolation is bounded; no extrapolation. | YES |
+| DEC-020 | decision | HIGH | ACCEPTED | Apply remains explicit. | YES |
+| DEC-021 | decision | HIGH | ACCEPTED | Reusable library storage remains separate from class-record package v1. | YES |
+| DEC-023 | decision | HIGH | ACCEPTED | Stage 8 uses a docs CSV catalog; geometry/wall continues to come from the existing canonical TSV. | YES |
+| DEC-024 | decision | HIGH | ACCEPTED | Material CSV is header-only until controlled Chapter IX `S/Syt` data are supplied. | YES |
+| DEC-025 | decision | HIGH | ACCEPTED | Product CSV is an overlay for purchase-specific fields; blank overlay values remain blockers. | YES |
+| IMP-023 | improvement | HIGH | IN_PROGRESS | Docs-backed dynamic CSV library loading. | YES |
 
 ## Stage Execution Log
 
 ### Stages 1–6 — authority-package workflow
 
-COMPLETE. Key invariants remain:
-
-- source/schema validation before package mutation;
-- calculator recalculation after import;
-- snapshots audit-only;
-- exact row-evidence matching;
-- merged solver/UI blobs unchanged.
+COMPLETE. Schema/source validation precedes mutation; result snapshots are audit-only; recalculation and exact row-evidence matching are preserved.
 
 ### Stage 7 — configurable engineering libraries
 
-**Before stage**
+COMPLETE. Added editable material/property and pipe-product tables, exact/bounded material interpolation, no extrapolation, exact product selection, separate library JSON and explicit Apply actions.
 
-- tables did not exist;
-- production data were manually re-entered;
-- no managed interpolation/range guard existed.
+### Stage 8 — docs-backed CSV libraries
 
-**Implementation performed**
+#### Current truth
 
-Added:
+- UI tables currently load only from manual entry or library JSON.
+- Existing governed pipe master: `docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv`, blob `7e83f7283b4ca9f35a86a45c008ca0b52a053fcc`.
+- The existing master has NPS, OD, bore and schedule wall values.
+- It does not provide product purchase specification or negative tolerance.
+- No approved Chapter IX material `S/Syt` CSV exists in the requested format.
 
-- `engineering-library-core.js` — pure validation/interpolation/selection module;
-- `engineering-library-ui.js` — editable table UI, import/export and explicit apply integration;
-- `engineering-library.html` — full controlled workspace wrapping `authority-package.html`;
-- `ENGINEERING_LIBRARIES.md` — operator/authority documentation.
+#### Objective
 
-Material workflow:
+Make repository docs files the reusable editable data source without copying governed geometry into JavaScript.
 
-1. enter/import controlled rows;
-2. select material spec/grade/condition;
-3. enter design temperature for `S`;
-4. evaluate `S` and each cycle-average `Syt`;
-5. block the entire action if any required point is missing/outside range;
-6. apply values and trigger normal calculator recalculation.
+#### Planned files
 
-Product workflow:
+- `docs/Masters/HP_Piping_Class/library-catalog.csv`
+- `docs/Masters/HP_Piping_Class/material-properties.csv` — header-only
+- `docs/Masters/HP_Piping_Class/pipe-product-overrides.csv` — header-only purchase overlay
+- `engineering/hp-class-standardization/engineering-library-csv.js`
+- `engineering/hp-class-standardization/engineering-library-ui.js`
+- `engineering/hp-class-standardization/engineering-library.html`
+- `engineering/hp-class-standardization/ENGINEERING_LIBRARIES.md`
+- this work report
 
-1. enter/import product rows;
-2. select one exact row;
-3. require product source/version;
-4. set D, product specification, minus tolerance and source;
-5. replace candidate-wall list with the selected nominal wall;
-6. trigger normal calculator recalculation.
+#### Planned behavior
 
-**Deviation from initial Stage 7 plan**
+1. Fetch `library-catalog.csv` from docs via relative same-origin URL.
+2. Fetch the header-only material CSV and populate zero rows when it contains no data.
+3. Fetch canonical NPS/OD/schedule/wall TSV.
+4. Expand canonical schedule cells into product candidate rows.
+5. Fetch the product overlay CSV and merge purchase-specific `productSpec`, `minusTolerancePct`, and source metadata by `nps + schedule` key.
+6. Display incomplete product rows but keep Apply blocked until purchase-specific fields are complete.
+7. Allow UI download of material/product CSV in the governed formats.
+8. Keep JSON import/export for full working-copy portability.
 
-The initial pre-plan proposed storing libraries inside authority-package v1. Implementation instead uses a separate versioned library JSON schema. Rationale: keep the already validated authority-package v1 schema backward-compatible, keep reusable datasets separate from one class-calculation record, and avoid broadening package authority semantics. This is recorded as `DEC-021`.
+#### Planned validation
 
-**Edge-case corrections during implementation**
+- parser syntax;
+- CSV quoting/blank-field handling;
+- material header-only file produces zero rows;
+- canonical TSV row expansion matches known NPS 4 values;
+- overlay merge does not invent tolerance/product spec;
+- missing overlay remains non-applicable;
+- same-origin fetch paths resolve from the engineering workspace;
+- solver/UI baseline hashes unchanged;
+- GitHub changed-file ledger reconciled.
 
-- unrelated unfinished draft rows no longer block application of a completed selected material group/product row;
-- export still validates every stored row, so incomplete rows cannot be archived as a valid library;
-- blank design/cycle temperature fields are not interpreted as `0°C`;
-- product source/version are mandatory before apply;
-- material source/version are mandatory before apply;
-- product application replaces candidate walls instead of appending across product families.
-
-**Validation performed**
-
-PASS:
-
-- `node --check engineering-library-core.js`;
-- `node --check engineering-library-ui.js`;
-- required top-level DOM IDs present and unique;
-- material table starts with 0 rows;
-- product table starts with 0 rows;
-- valid library schema/metadata/row validation;
-- exact material lookup;
-- linear interpolation benchmark: `100°C: S=150/Syt=250`, `200°C: S=130/Syt=210`, `150°C -> S=140/Syt=230`;
-- `250°C` request blocked as no-extrapolation;
-- duplicate material temperature rejected;
-- completed selected material group remains usable with unrelated draft row;
-- exact selected product valid with unrelated draft row;
-- invalid selected product blocked;
-- library JSON serialize/parse round trip;
-- module size: core 216 lines, UI 205 lines;
-- published Git blob identity matches locally tested files;
-- merged calculator blobs unchanged.
-
-Browser E2E: NOT_RUN — unavailable in current environment. The workspace is intended for same-origin static HTTP hosting.
-
-Stage decision: COMPLETE.
+Stage decision: IN_PROGRESS.
 
 ## Changed-File Ledger
 
-| File | Purpose | Engineering-sensitive? | Validation |
-|---|---|---|---|
-| `agents/PR439_workreport.md` | Mission control / evidence / handover | YES | PASS |
-| `engineering/hp-class-standardization/README.md` | Existing authority-package documentation from Stages 4–6 | YES | PASS prior stage |
-| `engineering/hp-class-standardization/authority-package.html` | Existing controlled-package wrapper | YES | PASS prior stage |
-| `engineering/hp-class-standardization/authority-package-core.js` | Existing package authority logic | YES | PASS prior stage |
-| `engineering/hp-class-standardization/authority-package-ui.js` | Existing package integration | YES | PASS prior stage |
-| `engineering/hp-class-standardization/engineering-library.html` | New full library + package workspace | YES | PASS static/blob |
-| `engineering/hp-class-standardization/engineering-library-core.js` | Pure library validation/interpolation | YES | PASS Node tests |
-| `engineering/hp-class-standardization/engineering-library-ui.js` | Editable tables/apply/import-export integration | YES | PASS syntax/static review |
-| `engineering/hp-class-standardization/ENGINEERING_LIBRARIES.md` | Operator/authority documentation | YES | PASS review |
+Current PR paths before Stage 8 production changes:
 
-GitHub actual changed-file list: **PASS — exactly nine explained paths**.
+1. `agents/PR439_workreport.md`
+2. `engineering/hp-class-standardization/README.md`
+3. `engineering/hp-class-standardization/authority-package.html`
+4. `engineering/hp-class-standardization/authority-package-core.js`
+5. `engineering/hp-class-standardization/authority-package-ui.js`
+6. `engineering/hp-class-standardization/engineering-library.html`
+7. `engineering/hp-class-standardization/engineering-library-core.js`
+8. `engineering/hp-class-standardization/engineering-library-ui.js`
+9. `engineering/hp-class-standardization/ENGINEERING_LIBRARIES.md`
+
+Stage 8 expected additions are listed in the Stage 8 plan above. Any unexplained file blocks closure.
 
 ## Engineering Decisions and Invariants
 
 ### Solver authority invariant
 
-Stage 7 does not modify the merged solver/UI files.
-
-Final verified hashes:
+Do not modify the calculation engine while adding repository-backed data transport. Baseline hashes:
 
 - `app.js` `6d99672f2e790ddfcaaa3759eef18e169afb6158`
 - `index.html` `9196edd0f89e892748c00dac249983b65effd47f`
 - `ui.js` `c3a027b2c70e11bff87546e15101b6866ad81933`
 - `styles.css` `0df7b10776acfa0bc1cbb33738a2ad0683695d80`
 
-### Material-library invariant
+### Docs source invariant
 
-A material application must be one material spec/grade/condition group. Exact entered points are used directly; otherwise both lower and upper controlled points are required. No extrapolation.
+The canonical NPS/OD/schedule/wall geometry remains owned by `docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv`; Stage 8 must reference/parse it, not fork its numeric content.
 
-### Product-library invariant
+### Material authority invariant
 
-Only one exact selected product row may apply. No nearest-size lookup, schedule inference or inherited candidate walls.
+The new material CSV starts blank. No `S` or `Syt` is inferred from another master or generic material family.
 
-### Empty-default invariant
+### Product authority invariant
 
-No engineering rows are created on page load. Users must add/import them.
+Geometry may come from the canonical pipe master; purchase specification and minus tolerance must come from the explicit product overlay or user edit before Apply.
 
 ## Validation and Evidence Ledger
 
-### Software Validation
-
 | Validation | Status | Evidence |
 |---|---|---|
-| Authority-package Stage 6 suite | PASS | prior stage |
-| Library core syntax | PASS | Node |
-| Library UI syntax | PASS | Node |
-| Library HTML IDs / empty rows | PASS | HTML parser |
-| Exact material point | PASS | pure test |
-| Bounded interpolation | PASS | pure test |
-| No extrapolation | PASS | pure test |
-| Duplicate material temperature | PASS | pure test |
-| Selected product validation | PASS | pure test |
-| Library JSON round trip | PASS | pure test |
-| Published/local library blobs | PASS | Git SHA comparison |
-| Solver blob preservation | PASS | GitHub hashes |
-| Final PR changed-file ledger | PASS | GitHub list |
+| Stage 7 library suite | PASS | prior stage |
+| Existing pipe master identity | PASS | blob `7e83f728...` |
+| Stage 8 CSV syntax/parsers | NOT_RUN | pending implementation |
+| Header-only material behavior | NOT_RUN | pending implementation |
+| Canonical TSV expansion | NOT_RUN | pending implementation |
+| Overlay fail-closed behavior | NOT_RUN | pending implementation |
+| Solver blob preservation | PASS before Stage 8 | baseline hashes |
 | Browser E2E | NOT_RUN | runner unavailable |
-
-### Engineering Validation
-
-| Property | Status | Evidence |
-|---|---|---|
-| No silent material/product defaults | PASS | empty table DOM + no source data constants |
-| No material extrapolation | PASS | explicit range guard/test |
-| Product tolerance remains source-specific | PASS | selected row + source/version requirement |
-| Application is explicit | PASS | Apply buttons only; no auto-apply event |
-| Existing B31.3/KD equations unchanged | PASS | exact solver blobs |
-| Correctness of user-entered engineering data | NOT_RUN | remains project engineering authority |
 
 ### Explicitly Not Validated
 
-- correctness/licensing of user-entered material values;
-- correctness of user-entered pipe dimensions/tolerances;
-- external document-control approval/signature;
+- correctness/licensing of future material CSV values;
+- purchase tolerances until populated by project/product authority;
+- external document-control signatures;
 - browser E2E;
 - routed-system fatigue.
 
 ## Known / Deferred Work and Forward Sequence
 
-No known software defect remains in Stage 7 scope.
-
-Possible future work:
-
-1. organization-managed signed library bundles;
-2. version-diff/review UI for library changes;
-3. optional curated non-proprietary product tables where licensing permits;
-4. external document-control integration.
-
-Any future managed library must preserve source/version metadata, empty/no-silent-default behavior for unknown data, and no extrapolation.
+After Stage 8, a future organization-controlled workflow may publish reviewed CSV revisions through normal repository review. Cryptographic signing and external document-control integration remain out of scope.
 
 # Appendix A — Next-Agent Handover
 
-## Current stopping point
-
-PR #439 now contains both the controlled authority-package workflow and the configurable engineering-library workspace.
-
-## PR / branch
-
-- PR: #439
-- Branch: `agent/hp-class-authority-packages`
-- Base: `fc222b80845273f2fb2bc83f401d8c29f52abb74`
-- Stage 7 production head before this final report-only sync: `c1394cb865ffd4ec006c0cccf4b0575daf9c11b9`
-
-## Start here
-
-Open `engineering/hp-class-standardization/engineering-library.html` on a same-origin static host.
-
-## Do not redo
-
-- B31.3/KD calculations;
-- authority-package import order/snapshot isolation;
-- Stage 7 interpolation/product selection core.
-
-## Do not assume
-
-- libraries contain approved project data;
-- wall tolerance is universally 12.5%;
-- extrapolation is permissible;
-- a UI row is equivalent to an approved engineering record.
-
-## Known failing checks
-
-None. Browser E2E is NOT_RUN, not failing.
-
-## Highest-risk remaining item
-
-Future organization-managed libraries must not introduce hidden defaults or data whose source/version cannot be audited.
-
-## Exact next recommended action
-
-Review PR #439 in a hosted browser with one controlled test material table and one product row, then decide whether to merge or add organization-managed library distribution in a later PR.
+PR #439 is actively implementing Stage 8. Start at `engineering-library.html` / `engineering-library-ui.js` and the new docs catalog. Do not alter B31.3/KD equations. Do not populate the blank material CSV with guessed/benchmark values. Do not add a default wall tolerance. Validate the NPS 4 canonical expansion against `docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv` before closing the stage.
