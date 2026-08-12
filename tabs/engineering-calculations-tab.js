@@ -17,6 +17,7 @@ import {
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
+const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
 const VIBRATION_FAMILY_ID = 'VIB';
 
 function ensureStylesheet() {
@@ -73,19 +74,36 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   }
 
   async function mountProductSurface() {
-    if (state.familyLanding || definition.id !== FIT_CALCULATION_ID) return;
-    const host = container.querySelector('[data-fit-workspace-host]');
-    if (!host) return;
+    if (state.familyLanding) return;
     const token = ++productToken;
     try {
-      const module = await import('./vibration-integrity-tab.js?v=vibration-integrity-fit-placeholder-1');
-      if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID || state.familyLanding) return;
-      host.innerHTML = '';
-      const maybeDestroy = module.renderVibrationIntegrityTab(host);
-      productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
+      if (definition.id === FIT_CALCULATION_ID) {
+        const host = container.querySelector('[data-fit-workspace-host]');
+        if (!host) return;
+        const module = await import('./vibration-integrity-tab.js?v=vibration-integrity-fit-placeholder-1');
+        if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID || state.familyLanding) return;
+        host.innerHTML = '';
+        const maybeDestroy = module.renderVibrationIntegrityTab(host);
+        productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
+        return;
+      }
+      if (definition.id === AIV_CALCULATION_ID) {
+        const host = container.querySelector('[data-aiv-qualification-host]');
+        if (!host) return;
+        const module = await import('./vibration-aiv-qualification-tab.js?v=aiv-qualification-1');
+        if (destroyed || token !== productToken || definition.id !== AIV_CALCULATION_ID || state.familyLanding) return;
+        host.innerHTML = '';
+        const maybeDestroy = module.renderAivQualificationWorkspace(host);
+        productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
+      }
     } catch (error) {
       if (destroyed || token !== productToken) return;
-      host.innerHTML = `<div class="tab-error"><h3>Could not load Flow-Induced Vibration Screening</h3><pre>${String(error?.message || error)}</pre></div>`;
+      const host = definition.id === FIT_CALCULATION_ID
+        ? container.querySelector('[data-fit-workspace-host]')
+        : container.querySelector('[data-aiv-qualification-host]');
+      if (!host) return;
+      const name = definition.id === FIT_CALCULATION_ID ? 'Flow-Induced Vibration Screening' : 'Acoustic-Induced Vibration qualification';
+      host.innerHTML = `<div class="tab-error"><h3>Could not load ${name}</h3><pre>${String(error?.message || error)}</pre></div>`;
     }
   }
 
