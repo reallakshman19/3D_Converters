@@ -8,25 +8,14 @@ Issue                  #441
 PR                     #446
 Branch                 agent/aiv-kernel-contract-scaffold
 Base                   90d504f74f872f232378836f72c2544297dea8c8
-Predecessor            PR #444 merged as 90d504f74f872f232378836f72c2544297dea8c8
-Current stage          Stage 16B candidate stages 1–7 + release-readiness architecture
-Source implementation IMPLEMENTED for stages 1–7; stages 8–10 BLOCKED
-Focused execution      kernel candidate 6/6 PASS; release-plan 5/5 PASS; release-validation 6/6 PASS
-Repository CI          NOT_RUN: Actions budget creates runner_id=0 / zero-step jobs
+Current stage          Stage 16B candidate stages 1–7 + stage-8 evidence gate + release qualification
+Candidate implementation stages 1–7 IMPLEMENTED; stages 8–10 BLOCKED
+Focused execution      candidate 6/6 PASS; stage-8 gate 4/4 PASS; kernel qualification 4/4 PASS; release plan 6/6 PASS; release validation 6/6 PASS
+Repository CI          NOT_RUN: Actions budget still creates runner_id=0 / zero-step jobs
 Engineering authority BLOCKED / NONE / NOT_AUTHORIZED
 Release target         BENCHMARK_ONLY first; SCREENING only as a second release program
-Exact next action      Reconcile/implement T2-6 discontinuity stage 8, then line aggregation/assessment stages 9–10; do not register or release yet
+Exact next action      Obtain real T2.7/T2-6 + FLM1 human verification, then implement stage 8 from reviewed evidence; no authority transition yet
 ```
-
-## Pre-work cleanup requested by user
-
-```text
-#442  merged to main (squash) 5855c541b48436717b8e33df8821ecd231ec11d4
-#444  merged to main (squash) 90d504f74f872f232378836f72c2544297dea8c8
-#311  closed as already-integrated/superseded stale stack
-```
-
-PR #311 was not force-merged because current `main` already contains its Agent E foundation and newer shared FBX/topology revisions.
 
 ## Current authority invariant
 
@@ -39,14 +28,9 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-No module in this PR mutates those values. No AIV Run/Calculate UI or Engineering Calculation registration exists.
+No module in this PR mutates these values. There is still no AIV Run/Calculate UI action and no candidate registration in the Engineering Calculation API.
 
-## Frozen kernel contract
-
-```text
-converters/vibration/aiv/aiv-kernel-contract.js
-AivKernelContract.v1
-```
+## Kernel architecture
 
 Frozen order:
 
@@ -63,75 +47,13 @@ Frozen order:
 10 ASSESS_RESULT
 ```
 
-The public contract remains `CONTRACT_ONLY`; `assertAivKernelExecutionAuthorized()` always throws `AIV_KERNEL_EXECUTION_NOT_AUTHORIZED`.
+The public `AivKernelContract.v1` remains contract-only. `assertAivKernelExecutionAuthorized()` always fails closed.
 
-## Production-shaped candidate — stages 1–7
+## Internal candidate — stages 1–7
 
-```text
-converters/vibration/aiv/aiv-kernel-candidate.js
-AivKernelCandidate.v1
-```
+`converters/vibration/aiv/aiv-kernel-candidate.js` independently implements the production-shaped source/attenuation path while remaining unexported/unregistered.
 
-Candidate authority:
-
-```text
-implementationState          = CANDIDATE_NOT_AUTHORIZED
-registeredInEngineeringApi   = false
-uiExecutionAuthorized        = false
-benchmarkExecutionAuthorized = false
-screeningExecutionAuthorized = false
-productionEquationAuthorized = false
-screeningAuthority           = NOT_AUTHORIZED
-designAuthority              = false
-```
-
-Implemented candidate stages:
-
-```text
-VALIDATE_INPUT
-RESOLVE_INPUT
-EVALUATE_APPLICABILITY
-CALCULATE_SOURCE_PWL
-APPLY_SOURCE_MODIFIERS
-CALCULATE_POINT_ATTENUATION
-COMBINE_SIMULTANEOUS_SOURCES
-```
-
-Blocked candidate stages:
-
-```text
-CALCULATE_DISCONTINUITY_RESULT
-AGGREGATE_LINE_CASE_RESULT
-ASSESS_RESULT
-```
-
-### Input/trace behavior
-
-The candidate consumes the existing split AIV source/assessment/relationship records.
-
-It fails closed on:
-
-```text
-missing Source Canonical ID / Operating Case
-unsupported units
-P1abs <= P2abs
-GAUGE pressure without explicit reference pressure + source + revision
-UNRESOLVED sonic state
-UNRESOLVED trim state
-manufacturer trim without positive reduction + provenance
-non-APPLICABLE relationship
-source/case/assessment identity mismatch
-missing physical distance + distance provenance
-missing/invalid main inside diameter
-```
-
-No sonic-state detection is implemented. Explicit `SONIC` maps to the controlled SFF=6 candidate branch; `NON_SONIC` maps to SFF=0; `UNRESOLVED` fails.
-
-Physical AIV distance remains relationship-owned engineering evidence and is never derived from topology pixels/geometry.
-
-### Candidate numerical parity executed
-
-Focused isolated candidate regression:
+Focused isolated parity:
 
 ```text
 Relief raw source PWL       164.6851759525391 dB
@@ -144,131 +66,119 @@ Explicit sonic vector       162.72433464037815 dB
 160 + 150 dB                160.41392685158226 dB
 ```
 
-```text
-tests/vibration-aiv-kernel-candidate.test.mjs
-6 pass / 0 fail
-```
+`tests/vibration-aiv-kernel-candidate.test.mjs`: 6/6 PASS in isolated execution.
 
-The test also asserts the candidate is absent from `converters/vibration/aiv/index.js`.
+Candidate fail-closed behavior includes explicit gauge-reference provenance, explicit sonic state, trim provenance, supported units, P1abs>P2abs, relationship applicability/identity, physical engineering distance provenance and assessment inside diameter.
 
-## Candidate-vs-qualification parity manifest
+No sonic-state inference and no pixel/topology-derived physical distance are implemented.
+
+## Candidate parity manifest
 
 ```text
 scripts/build-aiv-kernel-candidate-parity.mjs
 AivKernelCandidateParity.v1
 ```
 
-The builder compares the independently implemented candidate stages 1–7 against the isolated qualification solves for eight checks:
+Eight planned candidate-vs-qualification checks cover relief/recycle source PWL, effective PWL, attenuation, point PWL, sonic SFF=6 and both simultaneous-source vectors.
+
+The builder/test are wired into the focused repository command. Full repository execution of this builder remains pending because the connected environment cannot clone GitHub and hosted Actions still do not start.
+
+## Stage-8 evidence gate
 
 ```text
-RELIEF_RAW_SOURCE_PWL
-RECYCLE_RAW_SOURCE_PWL
-RECYCLE_EFFECTIVE_SOURCE_PWL
-RELIEF_ATTENUATION
-RELIEF_POINT_PWL
-SONIC_SFF6_PWL
-MULTI_SOURCE_EQUAL
-MULTI_SOURCE_ASYMMETRIC
+converters/vibration/aiv/aiv-stage8-evidence-gate.js
+AivDiscontinuityStage8EvidenceGate.v1
 ```
 
-It retains controlled Markdown/PDF source identities and blocked authority. It does not claim T2-6/LOF, aggregation, screening or design parity.
-
-Package command:
-
-```bash
-npm run build:aiv-kernel-candidate-parity
-```
-
-The candidate module regression was executed in isolation. The full candidate-parity builder remains subject to the focused repository/exact-head release run because the repository checkout/CI runner is not available in this environment.
-
-## Benchmark comparison contract
+Required SHA-bound verification artifacts:
 
 ```text
-converters/vibration/aiv/aiv-benchmark-comparison.js
-AivBenchmarkComparison.v1
+AivT27ReconciliationVerification.v1
+AivD23Flm1ReconciliationVerification.v1
 ```
 
-Statuses:
+Gate states:
 
 ```text
+BLOCKED_PENDING_T2_6_RECONCILIATION
+BLOCKED_INVALID_EVIDENCE
+READY_FOR_CANDIDATE_IMPLEMENTATION
+```
+
+`READY_FOR_CANDIDATE_IMPLEMENTATION` is implementation readiness only; it grants no numerical/product authority.
+
+Published D.2.3 values `A=0.93989`, `S=68.229`, `B=152.207` remain benchmark expectations only and cannot become generic defaults. The gate explicitly forbids silently choosing published versus recalculated FLM1 and carries the reviewed FLM1 benchmark value/tolerance when human evidence is complete.
+
+`tests/vibration-aiv-stage8-evidence-gate.test.mjs`: 4/4 PASS in isolated execution.
+
+## Benchmark kernel qualification
+
+```text
+converters/vibration/aiv/aiv-benchmark-kernel-qualification.js
+AivBenchmarkKernelQualification.v1
+```
+
+Progress states:
+
+```text
+NOT_READY
+PARTIAL_STAGES_1_TO_7
+READY_FOR_STAGES_8_TO_10_IMPLEMENTATION
+INVALID_EVIDENCE
 PASS
-FAIL
-REVIEW_REQUIRED
-NOT_APPLICABLE_INPUTS_MODIFIED
 ```
 
-The D.2.3 FLM1 variance is `REVIEW_REQUIRED`, not silently normalized.
+Semantics:
+
+```text
+stages 1–7 candidate parity only
+  -> PARTIAL_STAGES_1_TO_7
+
++ reviewed stage-8 evidence gate
+  -> READY_FOR_STAGES_8_TO_10_IMPLEMENTATION
+
++ complete AivProductPathBenchmarkParityReceipt.v1 for all 10 stages
+  -> PASS
+```
+
+Only `PASS` satisfies the BENCHMARK_ONLY kernel release gate.
+
+`tests/vibration-aiv-benchmark-kernel-qualification.test.mjs`: 4/4 PASS in isolated execution.
 
 ## Release plan
 
 ```text
-docs/vibration/AIV-Release-Plan-v1.md
-converters/vibration/aiv/aiv-release-plan.js
 AivReleasePlan.v1
+BLOCKED -> BENCHMARK_ONLY -> SCREENING
 ```
 
-Allowed progression only:
+Direct BLOCKED→SCREENING is forbidden. Design authority remains outside this release program.
+
+### BENCHMARK_ONLY now requires five SHA-bound artifacts
 
 ```text
-BLOCKED
-  ↓
-BENCHMARK_ONLY
-  ↓
-SCREENING
+1. AivQualificationParityManifest.v1
+2. AivBenchmarkKernelQualification.v1              PASS / all 10 product-path stages
+3. AivQualificationPromotionReadiness.v1
+4. AivIndependentVibrationEngineerPromotionReviewVerification.v1
+5. AivReleaseValidationReceipt.v1
 ```
 
-Direct `BLOCKED → SCREENING` is forbidden. `PROJECT_APPROVED`, `VERIFIED`, `PRODUCTION_AUTHORIZED`, and `designAuthority=true` are outside this release program.
+This deliberately prevents isolated script parity from being used as release authority.
 
-### Release 1 — BENCHMARK_ONLY
+Updated isolated release-plan regression: 6/6 PASS.
 
-Required SHA-bound evidence:
+### SCREENING remains a second release program
 
-```text
-AivQualificationParityManifest.v1
-AivQualificationPromotionReadiness.v1
-AivIndependentVibrationEngineerPromotionReviewVerification.v1
-AivReleaseValidationReceipt.v1
-```
+Reserved evidence still includes full product-kernel qualification, real-path parity, line aggregation, single/batch parity, screening-domain coverage, independent screening review and exact-head screening validation.
 
-Only all valid may produce `ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION`. The planner itself applies no transition.
-
-Release boundary remains controlled benchmark execution only; screening/design stay unauthorized.
-
-### Release 2 — SCREENING
-
-Reserved evidence:
-
-```text
-AivProductKernelQualificationReceipt.v1
-AivProductPathBenchmarkParityReceipt.v1
-AivLineAggregationQualificationReceipt.v1
-AivSingleBatchParityReceipt.v1
-AivScreeningDomainCoverageReceipt.v1
-AivScreeningEngineeringReviewVerification.v1
-AivReleaseValidationReceipt.v1
-```
-
-SCREENING cannot be reviewed while current phase is BLOCKED.
+`designAuthority=false` remains permanent for this release plan.
 
 ## Exact-head release validation
 
-```text
-converters/vibration/aiv/aiv-release-validation.js
-docs/vibration/AIV-Release-Validation-v1.md
-AivReleaseValidationRecord.v1
-AivReleaseValidationReceipt.v1
-```
+`AivReleaseValidationReceipt.v1` requires actual execution against the exact candidate SHA. `runner_id=0`, zero executed steps, NOT_RUN, missing commands, nonzero exit codes or missing SHA-256 log evidence cannot pass.
 
-Allowed sources:
-
-```text
-LOCAL_CONTROLLED_CHECKOUT
-CI_RUNNER
-```
-
-A CI receipt requires a positive runner id and nonblank runner name. `runner_id=0`, zero steps, or `actualExecution=false` is rejected as NOT_RUN.
-
-BENCHMARK_ONLY requires:
+BENCHMARK_ONLY validation groups:
 
 ```text
 AIV_FOCUSED_NODE_TESTS
@@ -277,39 +187,9 @@ AIV_BROWSER_WORKSPACE_SMOKE
 AIV_MODULE_BOUNDARY_CHECK
 ```
 
-SCREENING adds real-product-path parity, single/batch parity, project-input browser flow and export/provenance validation.
+Release-validation contract tests remain 6/6 PASS in isolated execution.
 
-Every group needs PASS, exit code 0, executed command and SHA-256 output/log evidence.
-
-## Focused execution in this session
-
-```text
-kernel contract / comparison isolated harness   PASS
-release-plan tests                              5 pass / 0 fail
-release-validation tests                        6 pass / 0 fail
-kernel candidate stages 1–7 tests               6 pass / 0 fail
-```
-
-The focused repository command includes all new regressions:
-
-```bash
-npm run verify:aiv-input-model
-```
-
-This does not replace exact-head repository/browser release validation.
-
-## Repository CI limitation
-
-Current GitHub AIV workflow jobs still present as:
-
-```text
-runner_id = 0
-steps     = []
-```
-
-with the Actions-budget no-start annotation. This remains `NOT_RUN`, never PASS.
-
-## Human gates still required for Release 1
+## Human gates still required
 
 ```text
 AivT27Reconciliation.v1
@@ -320,27 +200,35 @@ AivWorkbookReconciliation.v1
 AivIndependentVibrationEngineerPromotionReview.v1
 ```
 
-The candidate arithmetic does not self-complete any of these human records.
+No machine calculation or synthetic test may self-complete these records.
+
+## Repository CI limitation
+
+Current GitHub AIV workflow jobs continue to receive no runner and no steps because the repository Actions budget prevents execution. This is infrastructure `NOT_RUN`, never a product/test PASS or a code-failure finding.
 
 ## Durable docs
 
 ```text
 docs/vibration/AIV-Kernel-Contract-Scaffold-v1.md
 docs/vibration/AIV-Kernel-Candidate-Stages1-7-v1.md
+docs/vibration/AIV-Stage8-Evidence-Gate-v1.md
 docs/vibration/AIV-Release-Plan-v1.md
 docs/vibration/AIV-Release-Validation-v1.md
 ```
 
-## Exact next implementation
+## Next legitimate implementation sequence
 
 ```text
-1. Keep current authority BLOCKED.
-2. Complete controlled/human reconciliation needed to implement T2-6 stage 8 without guessing A/S/B/FLM1 authority.
-3. Implement candidate stage 8 only after that evidence is usable; preserve published-vs-recalculated FLM1 disposition explicitly.
-4. Implement stages 9–10 after line/case result-scope aggregation is reconciled.
-5. Drive EI D.2.3 through the complete candidate result path.
-6. Run candidate parity + focused node + browser workspace validation against one exact candidate head.
-7. Complete independent vibration-engineer BENCHMARK_ONLY review.
-8. Only then create a separate reviewed authority-transition PR.
-9. SCREENING is a later release program; design authority remains false.
+1. Keep authority BLOCKED.
+2. Obtain completed hash-bound T2.7/T2-6 and FLM1 human verification.
+3. Stage-8 gate becomes READY_FOR_CANDIDATE_IMPLEMENTATION.
+4. Implement stage 8 strictly from reviewed trace evidence; no guessed A/S/B chain and no silent FLM1 choice.
+5. Complete worked-example line/result-scope reconciliation.
+6. Implement stages 9–10 from the reviewed aggregation/assessment rules.
+7. Drive EI D.2.3 through Source / Assessment / Line result contracts and produce AivProductPathBenchmarkParityReceipt.v1.
+8. AivBenchmarkKernelQualification.v1 must reach PASS.
+9. Run exact-head node + browser release validation.
+10. Independent vibration engineer may recommend BENCHMARK_ONLY.
+11. Only then create a separate reviewed authority-transition PR.
+12. SCREENING is a later independent release program; design authority stays false.
 ```
