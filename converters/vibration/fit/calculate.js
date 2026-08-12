@@ -9,6 +9,7 @@ import {
   fitAdvancedEligibility,
   resolveFitMultiphaseResolutionMode,
 } from './applicability.js';
+import { evaluateFitQualificationCoverage } from './qualification-coverage.js';
 
 function gasViscosityFactor(input) {
   if (input.phase !== 'GAS') return 1;
@@ -149,11 +150,17 @@ export function calculateFit(input = {}) {
     });
   }
 
-  return Object.freeze({
+  const calculated = {
     ...partial,
     advancedEligibility: eligibility,
     advanced,
     governingReferenceLof: advanced?.lof ?? standard.lof,
+  };
+  const qualificationCoverage = evaluateFitQualificationCoverage(calculated);
+
+  return Object.freeze({
+    ...calculated,
+    qualificationCoverage,
     authority: FIT_REFERENCE_AUTHORITY,
     qualification: Object.freeze({
       method: 'BENCHMARK_ONLY',
@@ -166,7 +173,10 @@ export function calculateFit(input = {}) {
         'ISS_010_CACHED_SUPPORT_SELECTOR_INCONSISTENCY',
       ]),
     }),
-    provenance: Object.freeze({ source: FIT_WORKBOOK_SOURCE }),
+    provenance: Object.freeze({
+      source: FIT_WORKBOOK_SOURCE,
+      qualificationCoverageId: qualificationCoverage.coverageId,
+    }),
     evidence: Object.freeze({
       equationIds: formulaEvidence(Boolean(advanced)),
       inputResolution: Object.freeze({
@@ -174,6 +184,7 @@ export function calculateFit(input = {}) {
         selection: hydraulics.resolutionModeSelection,
         alternateModeDataPresent: hydraulics.alternateModeDataPresent,
       }),
+      qualificationCoverage,
     }),
   });
 }
