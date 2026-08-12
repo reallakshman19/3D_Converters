@@ -1,8 +1,9 @@
 import {
   VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT,
+} from '../converters/vibration/facility/fit-tables.js';
+import {
   buildVibrationFacilityFitPreflightFromTables,
-  runVibrationFacilityFitBenchmarkFromTables,
-} from '../converters/vibration/facility/fit-workflow-tabular.js';
+} from '../converters/vibration/facility/fit-preflight-tabular.js';
 import { serializeVibrationFacilityFitRegisterCsv } from '../converters/vibration/facility/fit-register-export.js';
 import {
   createVibrationEnrichmentCsvTemplate,
@@ -161,13 +162,17 @@ export function renderVibrationIntegrityTab(container) {
     }
   }
 
-  function runBenchmark() {
+  async function runBenchmark() {
     if (!state.files.topology) return;
     state.busy = true;
     state.busyAction = 'benchmark';
     state.error = null;
     render();
     try {
+      const { runVibrationFacilityFitBenchmarkFromTables } = await import(
+        '../converters/vibration/facility/fit-workflow-tabular.js'
+      );
+      if (state.destroyed) return;
       state.envelope = runVibrationFacilityFitBenchmarkFromTables(tableInput(state), {
         allowLimitedExchange: state.allowLimitedExchange,
       });
@@ -175,6 +180,7 @@ export function renderVibrationIntegrityTab(container) {
       state.detailTab = 'summary';
       rebuildWorkspace(state);
     } catch (error) {
+      if (state.destroyed) return;
       state.envelope = null;
       state.workspace = null;
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
