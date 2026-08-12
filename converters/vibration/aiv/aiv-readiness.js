@@ -103,18 +103,25 @@ function validateTrim(row, missing, invalid) {
     return;
   }
   if (trim.state === 'NONE') {
-    if (trim.reduction || trim.source || trim.sourceRevision) {
-      invalid.push(issue('AIV_LOW_NOISE_TRIM_NONE_CONFLICT', 'source.lowNoiseTrim', 'Low-noise-trim state NONE conflicts with supplied trim reduction/vendor evidence.'));
-    }
+    if (trim.reduction || trim.source || trim.sourceRevision) invalid.push(issue('AIV_LOW_NOISE_TRIM_NONE_CONFLICT', 'source.lowNoiseTrim', 'Low-noise-trim state NONE conflicts with supplied trim reduction/vendor evidence.'));
     return;
   }
-  if (!trim.reduction) {
-    missing.push(issue('AIV_LOW_NOISE_TRIM_REDUCTION_REQUIRED', 'source.lowNoiseTrim.reduction', 'Manufacturer-reduction trim requires an explicit reduction quantity.'));
-  } else if (!(trim.reduction.value > 0) || trim.reduction.unit.trim().toLowerCase() !== 'db') {
-    invalid.push(issue('AIV_LOW_NOISE_TRIM_REDUCTION_INVALID', 'source.lowNoiseTrim.reduction', 'Manufacturer trim reduction must be positive and use unit dB.'));
-  }
+  if (!trim.reduction) missing.push(issue('AIV_LOW_NOISE_TRIM_REDUCTION_REQUIRED', 'source.lowNoiseTrim.reduction', 'Manufacturer-reduction trim requires an explicit reduction quantity.'));
+  else if (!(trim.reduction.value > 0) || trim.reduction.unit.trim().toLowerCase() !== 'db') invalid.push(issue('AIV_LOW_NOISE_TRIM_REDUCTION_INVALID', 'source.lowNoiseTrim.reduction', 'Manufacturer trim reduction must be positive and use unit dB.'));
   if (!trim.source) missing.push(issue('AIV_LOW_NOISE_TRIM_SOURCE_REQUIRED', 'source.lowNoiseTrim.source', 'Manufacturer trim requires explicit vendor/manufacturer provenance.'));
   if (!trim.sourceRevision) missing.push(issue('AIV_LOW_NOISE_TRIM_SOURCE_REVISION_REQUIRED', 'source.lowNoiseTrim.sourceRevision', 'Manufacturer trim requires the reviewed vendor source revision.'));
+}
+
+function validatePressureEvidence(row, missing, invalid, warnings) {
+  for (const [name, pressure] of [['upstream', row.upstreamPressure], ['downstream', row.downstreamPressure]]) {
+    if (pressure.basis === 'ABSOLUTE' && !(pressure.value > 0)) invalid.push(issue(`AIV_${name.toUpperCase()}_ABSOLUTE_PRESSURE_NOT_POSITIVE`, `source.${name}Pressure`, `Absolute ${name} pressure must be greater than zero.`));
+  }
+  const gaugePresent = row.upstreamPressure.basis === 'GAUGE' || row.downstreamPressure.basis === 'GAUGE';
+  if (gaugePresent && !row.referencePressure) missing.push(issue('AIV_REFERENCE_PRESSURE_REQUIRED', 'source.referencePressure', 'Gauge pressure requires an explicit reference pressure.'));
+  if (gaugePresent && !row.referencePressureSource) missing.push(issue('AIV_REFERENCE_PRESSURE_SOURCE_REQUIRED', 'source.referencePressureSource', 'Gauge pressure conversion requires controlled reference-pressure provenance.'));
+  if (gaugePresent && !row.referencePressureSourceRevision) missing.push(issue('AIV_REFERENCE_PRESSURE_SOURCE_REVISION_REQUIRED', 'source.referencePressureSourceRevision', 'Gauge pressure conversion requires the reference-pressure source revision.'));
+  if (row.referencePressure && !(row.referencePressure.value > 0)) invalid.push(issue('AIV_REFERENCE_PRESSURE_NOT_POSITIVE', 'source.referencePressure', 'Reference pressure must be greater than zero.'));
+  if (!gaugePresent && row.referencePressure) warnings.push(issue('AIV_REFERENCE_PRESSURE_NOT_REQUIRED', 'source.referencePressure', 'Both source pressures are absolute; supplied reference pressure is retained only as provenance.'));
 }
 
 function validateSource(row, missing, invalid, methodGaps, warnings) {
@@ -126,19 +133,16 @@ function validateSource(row, missing, invalid, methodGaps, warnings) {
   if (row.phase !== 'GAS') methodGaps.push(issue('AIV_PHASE_OUTSIDE_CURRENT_QUALIFICATION_ENVELOPE', 'source.phase', 'Current controlled T2.7 qualification envelope is gas only.'));
   if (!(row.massFlow.value > 0)) invalid.push(issue('AIV_MASS_FLOW_NOT_POSITIVE', 'source.massFlow', 'Active AIV source mass flow must be greater than zero.'));
   if (!(row.molecularWeight.value > 0)) invalid.push(issue('AIV_MOLECULAR_WEIGHT_NOT_POSITIVE', 'source.molecularWeight', 'Molecular weight must be greater than zero.'));
-  for (const [name, pressure] of [['upstream', row.upstreamPressure], ['downstream', row.downstreamPressure]]) {
-    if (pressure.basis === 'ABSOLUTE' && !(pressure.value > 0)) invalid.push(issue(`AIV_${name.toUpperCase()}_ABSOLUTE_PRESSURE_NOT_POSITIVE`, `source.${name}Pressure`, `Absolute ${name} pressure must be greater than zero.`));
-  }
-  const gaugePresent = row.upstreamPressure.basis === 'GAUGE' || row.downstreamPressure.basis === 'GAUGE';
-  if (gaugePresent && !row.referencePressure) missing.push(issue('AIV_REFERENCE_PRESSURE_REQUIRED', 'source.referencePressure', 'Gauge pressure requires an explicit reference pressure.'));
-  if (gaugePresent && !row.referencePressureSource) missing.push(issue('AIV_REFERENCE_PRESSURE_SOURCE_REQUIRED', 'source.referencePressureSource', 'Gauge pressure conversion requires controlled reference-pressure provenance.'));
-  if (gaugePresent && !row.referencePressureSourceRevision) missing.push(issue('AIV_REFERENCE_PRESSURE_SOURCE_REVISION_REQUIRED', 'source.referencePressureSourceRevision', 'Gauge pressure conversion requires the reference-pressure source revision.'));
-  if (row.referencePressure && !(row.referencePressure.value > 0)) invalid.push(issue('AIV_REFERENCE_PRESSURE_NOT_POSITIVE', 'source.referencePressure', 'Reference pressure must be greater than zero.'));
-  if (!gaugePresent && row.referencePressure) warnings.push(issue('AIV_REFERENCE_PRESSURE_NOT_REQUIRED', 'source.referencePressure', 'Both source pressures are absolute; supplied reference pressure is retained only as provenance.'));
+  validatePressureEvidence(row, missing, invalid, warnings);
   validateTrim(row, missing, invalid);
   if (row.sourceState === 'CLOSED') methodGaps.push(issue('AIV_CLOSED_SOURCE_OUTSIDE_CURRENT_ACTIVE_SOURCE_ENVELOPE', 'source.sourceState', 'Closed-source behavior requires separate method disposition.'));
   if (row.sonicState === 'UNRESOLVED') missing.push(issue('AIV_SONIC_STATE_UNRESOLVED', 'source.sonicState', 'Sonic/non-sonic branch selection is unresolved.'));
   if (row.sonicState === 'SONIC') methodGaps.push(issue('AIV_SONIC_SFF6_BRANCH_UNQUALIFIED', 'source.sonicState', 'The sonic SFF=6 branch requires human benchmark acceptance before numerical promotion.'));
+}
+
+function sameUnit(...quantities) {
+  const units = quantities.map((quantity) => quantity?.unit?.trim().toLowerCase()).filter(Boolean);
+  return units.length > 0 && units.every((unit) => unit === units[0]);
 }
 
 function validateAssessment(row, missing, invalid) {
@@ -147,24 +151,20 @@ function validateAssessment(row, missing, invalid) {
     return;
   }
   validateRecordProvenance(row, 'ASSESSMENT', missing);
-  for (const [field, quantity] of [
-    ['mainOutsideDiameter', row.mainOutsideDiameter],
-    ['mainInsideDiameter', row.mainInsideDiameter],
-    ['mainWallThickness', row.mainWallThickness],
-  ]) {
+  const mainDimensions = [row.mainOutsideDiameter, row.mainInsideDiameter, row.mainWallThickness];
+  for (const [field, quantity] of [['mainOutsideDiameter', mainDimensions[0]], ['mainInsideDiameter', mainDimensions[1]], ['mainWallThickness', mainDimensions[2]]]) {
     if (!(quantity?.value > 0)) invalid.push(issue('AIV_ASSESSMENT_DIMENSION_NOT_POSITIVE', `assessment.${field}`, `${field} must be greater than zero.`));
   }
-  if (row.mainInsideDiameter.value >= row.mainOutsideDiameter.value) {
-    invalid.push(issue('AIV_ASSESSMENT_MAIN_DIAMETER_CONFLICT', 'assessment.mainInsideDiameter', 'Main inside diameter must be less than main outside diameter.'));
-  }
-  if (['WELDOLET', 'WELDED_TEE'].includes(row.assessmentType) && !(row.branchOutsideDiameter?.value > 0)) {
-    missing.push(issue('AIV_ASSESSMENT_BRANCH_OD_REQUIRED', 'assessment.branchOutsideDiameter', `${row.assessmentType} requires explicit branch outside diameter evidence.`));
-  }
+  const comparableMainUnits = sameUnit(...mainDimensions);
+  if (!comparableMainUnits) invalid.push(issue('AIV_ASSESSMENT_MAIN_DIMENSION_UNITS_MIXED', 'assessment', 'Main OD, ID and wall thickness must use one explicit unit before readiness compares dimensions.'));
+  if (comparableMainUnits && row.mainInsideDiameter.value >= row.mainOutsideDiameter.value) invalid.push(issue('AIV_ASSESSMENT_MAIN_DIAMETER_CONFLICT', 'assessment.mainInsideDiameter', 'Main inside diameter must be less than main outside diameter.'));
+  if (['WELDOLET', 'WELDED_TEE'].includes(row.assessmentType) && !(row.branchOutsideDiameter?.value > 0)) missing.push(issue('AIV_ASSESSMENT_BRANCH_OD_REQUIRED', 'assessment.branchOutsideDiameter', `${row.assessmentType} requires explicit branch outside diameter evidence.`));
   if (row.duplexState === 'UNRESOLVED') missing.push(issue('AIV_ASSESSMENT_DUPLEX_STATE_UNRESOLVED', 'assessment.duplexState', 'Duplex/material branch disposition is unresolved.'));
 }
 
 function validateRelationship(row, topology, missing, invalid) {
   validateRecordProvenance(row, 'RELATIONSHIP', missing);
+  if (topology.pathStatus === 'IDENTITY_NOT_FOUND') invalid.push(issue('AIV_TOPOLOGY_IDENTITY_NOT_FOUND', 'topologyPath', topology.diagnostics[0]?.message ?? 'Source or assessment Canonical ID is absent from certified topology.'));
   if (row.applicabilityDisposition === 'UNRESOLVED') {
     missing.push(issue('AIV_APPLICABILITY_UNRESOLVED', 'relationship.applicabilityDisposition', 'Source-to-assessment applicability is unresolved.'));
     return;
