@@ -34,6 +34,7 @@ export {
 export {
   AIV_D23_PDF_REVALIDATION_SCHEMA,
   AIV_EI_EXAMPLES_PDF_SOURCE,
+  AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE,
   AIV_D23_PDF_REVALIDATION,
 } from './aiv-d23-pdf-revalidation.js';
 export {
