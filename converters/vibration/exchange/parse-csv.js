@@ -77,7 +77,7 @@ export function parseVibrationTableExchangeCsv(csvText, options = {}) {
     schema: VIBRATION_TABLE_EXCHANGE_SCHEMA,
     sourceSchema: null,
     sourceFormat: VIBRATION_TABLE_EXCHANGE_FORMAT.CSV_ELEMENTS_ONLY,
-    sourceSystem: 'Advanced_Analysis.3D_EDIT',
+    sourceSystem: 'UNVERIFIED_ELEMENTS_CSV',
     completeExchange: false,
     integrityStatus: VIBRATION_TABLE_EXCHANGE_INTEGRITY.LIMITED_ELEMENTS_ONLY,
     authority: {
@@ -99,8 +99,12 @@ export function parseVibrationTableExchangeCsv(csvText, options = {}) {
     metadata: {},
     warnings: [
       {
+        code: 'UNVERIFIED_ELEMENTS_CSV_SOURCE',
+        message: 'Elements CSV header compatibility does not establish certified Advanced_Analysis 3D EDIT source provenance.',
+      },
+      {
         code: 'LIMITED_ELEMENTS_ONLY',
-        message: 'Current 3D EDIT CSV contains only the Elements sheet and is not a complete certified machine exchange.',
+        message: 'Elements CSV contains only the Elements sheet and is not a complete certified machine exchange.',
       },
       ...COMPLETE_ONLY_EXCHANGE_SHEETS.map((sheet) => ({
         code: 'MISSING_EXCHANGE_SHEET',

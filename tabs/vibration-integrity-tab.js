@@ -1,35 +1,19 @@
-import {
-  VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT,
-} from '../converters/vibration/facility/fit-tables.js';
-import {
-  buildVibrationFacilityFitPreflightFromTables,
-} from '../converters/vibration/facility/fit-preflight-tabular.js';
+import { buildVibrationFacilityFitPreflightFromTables } from '../converters/vibration/facility/fit-preflight-tabular.js';
 import { serializeVibrationFacilityFitRegisterCsv } from '../converters/vibration/facility/fit-register-export.js';
-import {
-  createVibrationEnrichmentCsvTemplate,
-  createVibrationOperatingCaseCsvTemplate,
-} from '../converters/vibration/tabular/templates.js';
-import {
-  buildVibrationWorkspaceModel,
-} from '../converters/vibration/workspace/model.js';
+import { createVibrationEnrichmentCsvTemplate, createVibrationOperatingCaseCsvTemplate } from '../converters/vibration/tabular/templates.js';
+import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/model.js';
+import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
+import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile, vibrationIntegrityTopologyExecutionInput } from './vibration-integrity-input-runtime.js';
+import { buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
-
 function ensureStylesheet() {
   if (document.querySelector('link[data-vibration-integrity-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-integrity.css?v=vibration-integrity-1';
+  link.href = './tabs/vibration-integrity.css?v=vibration-integrity-2';
   link.dataset.vibrationIntegrityStyle = 'true';
   document.head.appendChild(link);
 }
-
-function topologyFormat(name) {
-  const lower = String(name || '').toLowerCase();
-  if (lower.endsWith('.xlsx')) return VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX;
-  if (lower.endsWith('.csv')) return VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.CSV_ELEMENTS_ONLY;
-  throw new Error('3D EDIT table export must be .xlsx or .csv.');
-}
-
 function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
@@ -42,7 +26,6 @@ function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
   anchor.remove();
   URL.revokeObjectURL(url);
 }
-
 function workspaceOptions(state) {
   const filters = {};
   if (state.filters.line) filters.lines = [state.filters.line];
@@ -56,55 +39,14 @@ function workspaceOptions(state) {
     ...(state.selectedRowKey ? { selectedRowKey: state.selectedRowKey } : {}),
   };
 }
-
-function tableInput(state) {
+function initialState() {
   return {
-    topology: {
-      format: state.files.topology.format,
-      data: state.files.topology.data,
-      sourceFileName: state.files.topology.name,
-    },
-    operatingCaseCsv: state.files.operating?.text ?? '',
-    enrichmentCsv: state.files.enrichment?.text ?? '',
-  };
-}
-
-function rebuildWorkspace(state) {
-  if (!state.envelope?.workflow) {
-    state.workspace = null;
-    return;
-  }
-  state.workspace = buildVibrationWorkspaceModel(state.envelope.workflow, workspaceOptions(state));
-  if (state.selectedRowKey && !state.workspace.selectedRowKey) state.selectedRowKey = null;
-}
-
-async function readTopologyFile(file) {
-  const format = topologyFormat(file.name);
-  const data = format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX
-    ? await file.arrayBuffer()
-    : await file.text();
-  return {
-    name: file.name,
-    format,
-    data,
-    kind: format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX
-      ? 'Complete five-sheet XLSX expected'
-      : 'Elements-only CSV · limited provenance',
-  };
-}
-
-async function readCsvFile(file, kind) {
-  return { name: file.name, text: await file.text(), kind };
-}
-
-export function renderVibrationIntegrityTab(container) {
-  ensureStylesheet();
-  const state = {
-    files: { topology: null, operating: null, enrichment: null },
-    allowLimitedExchange: false,
+    ...createVibrationIntegrityInputRuntimeState(),
     preflight: null,
     envelope: null,
     workspace: null,
+    resultState: 'UNRUN',
+    runSnapshot: null,
     filters: { line: '', completeness: '', band: '', candidate: '' },
     sort: { field: 'line', direction: 'asc' },
     selectedRowKey: null,
@@ -114,44 +56,91 @@ export function renderVibrationIntegrityTab(container) {
     error: null,
     destroyed: false,
   };
-
+}
+export function renderVibrationIntegrityTab(container) {
+  ensureStylesheet();
+  const state = initialState();
   function render() {
     if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
   }
-
-  function clearCalculatedState() {
+  function discardCalculatedState() {
     state.preflight = null;
     state.envelope = null;
     state.workspace = null;
     state.selectedRowKey = null;
+    state.resultState = 'UNRUN';
+    state.runSnapshot = null;
   }
-
+  function staleCalculatedState() {
+    state.preflight = null;
+    state.resultState = state.envelope?.workflow ? 'STALE_RESULT' : 'UNRUN';
+  }
+  function syncBenchmarkModified() {
+    const loaded = state.benchmark.loaded;
+    if (!loaded) return;
+    const modified = state.benchmark.detachedFromSource
+      || Object.values(state.tables).some((table) => table.dirty);
+    if (loaded.modified === modified) return;
+    state.benchmark.loaded = Object.freeze({ ...loaded, modified });
+  }
+  function rebuildWorkspace() {
+    if (!state.envelope?.workflow) {
+      state.workspace = null;
+      return;
+    }
+    state.workspace = buildVibrationWorkspaceModel(state.envelope.workflow, workspaceOptions(state));
+    if (state.selectedRowKey && !state.workspace.selectedRowKey) state.selectedRowKey = null;
+  }
+  function applyTableMutation(kind, table) {
+    state.tables[kind] = table;
+    if (kind === 'topology') state.allowLimitedExchange = true;
+    syncBenchmarkModified();
+    staleCalculatedState();
+    state.error = null;
+    render();
+  }
   async function loadFile(target, file) {
     state.error = null;
     try {
-      const loaded = target === 'topology'
-        ? await readTopologyFile(file)
-        : await readCsvFile(file, target === 'operating' ? 'VibrationOperatingCaseCsv.v1' : 'VibrationEnrichmentCsv.v1');
+      const loaded = await readVibrationIntegrityInputFile(target, file);
       if (state.destroyed) return;
-      state.files[target] = loaded;
-      clearCalculatedState();
+      state.files[target] = loaded.file;
+      state.tables[target] = loaded.table;
+      if (state.benchmark.loaded) state.benchmark.detachedFromSource = true;
+      syncBenchmarkModified();
+      staleCalculatedState();
     } catch (error) {
       if (state.destroyed) return;
       state.error = String(error?.message || error);
     }
     render();
   }
-
+  function loadBenchmark() {
+    try {
+      const benchmark = buildLoadedVibrationIntegrityBenchmark(state.benchmark.selectedId);
+      state.benchmark.loaded = benchmark.loaded;
+      state.benchmark.detachedFromSource = false;
+      state.tables = benchmark.tables;
+      state.files = benchmark.files;
+      state.allowLimitedExchange = benchmark.allowLimitedExchange;
+      discardCalculatedState();
+      state.error = null;
+    } catch (error) {
+      state.error = String(error?.message || error);
+    }
+    render();
+  }
   function checkReadiness() {
-    if (!state.files.topology) return;
+    if (!vibrationIntegrityTopologyExecutionInput(state)) return;
     state.busy = true;
     state.busyAction = 'preflight';
     state.error = null;
     render();
     try {
-      state.preflight = buildVibrationFacilityFitPreflightFromTables(tableInput(state), {
-        allowLimitedExchange: state.allowLimitedExchange,
-      });
+      state.preflight = buildVibrationFacilityFitPreflightFromTables(
+        buildVibrationIntegrityFacilityTableInput(state),
+        { allowLimitedExchange: state.allowLimitedExchange },
+      );
     } catch (error) {
       state.preflight = null;
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
@@ -161,28 +150,32 @@ export function renderVibrationIntegrityTab(container) {
       render();
     }
   }
-
   async function runBenchmark() {
-    if (!state.files.topology) return;
+    if (!vibrationIntegrityTopologyExecutionInput(state)) return;
     state.busy = true;
     state.busyAction = 'benchmark';
+    state.resultState = 'RUNNING';
     state.error = null;
     render();
     try {
-      const { runVibrationFacilityFitBenchmarkFromTables } = await import(
-        '../converters/vibration/facility/fit-workflow-tabular.js'
-      );
+      const snapshot = await buildVibrationIntegrityRunSnapshot(state);
+      const { runVibrationFacilityFitBenchmarkFromTables } = await import('../converters/vibration/facility/fit-workflow-tabular.js');
       if (state.destroyed) return;
-      state.envelope = runVibrationFacilityFitBenchmarkFromTables(tableInput(state), {
-        allowLimitedExchange: state.allowLimitedExchange,
+      state.envelope = runVibrationFacilityFitBenchmarkFromTables(
+        buildVibrationIntegrityFacilityTableInput(state),
+        { allowLimitedExchange: state.allowLimitedExchange },
+      );
+      state.runSnapshot = Object.freeze({
+        ...snapshot,
+        runId: `FIT-RUN-${new Date().toISOString()}`,
       });
+      state.resultState = 'CURRENT_RESULT';
       state.selectedRowKey = null;
       state.detailTab = 'summary';
-      rebuildWorkspace(state);
+      rebuildWorkspace();
     } catch (error) {
       if (state.destroyed) return;
-      state.envelope = null;
-      state.workspace = null;
+      state.resultState = state.envelope?.workflow ? 'STALE_RESULT' : 'INVALID_INPUT';
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally {
       state.busy = false;
@@ -190,54 +183,80 @@ export function renderVibrationIntegrityTab(container) {
       render();
     }
   }
-
   function exportRegister() {
-    if (!state.envelope?.workflow?.register) return;
+    if (state.resultState !== 'CURRENT_RESULT' || !state.envelope?.workflow?.register) return;
     try {
-      const csv = serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register);
-      downloadText(csv, 'vibration-fit-benchmark-register.csv');
+      downloadText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
     } catch (error) {
       state.error = String(error?.message || error);
       render();
     }
   }
-
   function applyPresentationChange() {
     try {
-      rebuildWorkspace(state);
+      rebuildWorkspace();
       state.error = null;
     } catch (error) {
       state.error = String(error?.message || error);
     }
     render();
   }
-
+  function handleTableClick(event) {
+    const addKind = event.target.closest('[data-vi-table-add]')?.dataset.viTableAdd;
+    if (addKind) {
+      applyTableMutation(addKind, addVibrationIntegrityInputRow(state.tables[addKind]));
+      return true;
+    }
+    const revertTableKind = event.target.closest('[data-vi-table-revert]')?.dataset.viTableRevert;
+    if (revertTableKind) {
+      applyTableMutation(revertTableKind, revertVibrationIntegrityInputTable(state.tables[revertTableKind]));
+      return true;
+    }
+    const revertCell = event.target.closest('[data-vi-cell-revert]');
+    if (revertCell) {
+      const kind = revertCell.dataset.viCellRevert;
+      applyTableMutation(kind, revertVibrationIntegrityInputCell(
+        state.tables[kind], Number(revertCell.dataset.viEditRow), Number(revertCell.dataset.viEditColumn),
+      ));
+      return true;
+    }
+    const button = event.target.closest('[data-vi-table-delete]');
+    if (!button) return false;
+    const kind = button.dataset.viTableDelete;
+    applyTableMutation(kind, deleteVibrationIntegrityInputRow(state.tables[kind], Number(button.dataset.viEditRow)));
+    return true;
+  }
   function onClick(event) {
+    if (handleTableClick(event)) return;
     const row = event.target.closest('[data-vi-row]');
     if (row) {
       state.selectedRowKey = row.dataset.viRow;
       state.detailTab = 'summary';
-      applyPresentationChange();
-      return;
+      return applyPresentationChange();
     }
     const detail = event.target.closest('[data-vi-detail]');
     if (detail) {
       state.detailTab = detail.dataset.viDetail;
-      render();
-      return;
+      return render();
     }
     const action = event.target.closest('[data-vi-action]')?.dataset.viAction;
+    if (action === 'load-benchmark') loadBenchmark();
     if (action === 'preflight') checkReadiness();
     if (action === 'run') runBenchmark();
     if (action === 'export') exportRegister();
-    if (action === 'operating-template') {
-      downloadText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
-    }
-    if (action === 'enrichment-template') {
-      downloadText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
-    }
+    if (action === 'operating-template') downloadText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
+    if (action === 'enrichment-template') downloadText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
   }
-
+  function handleTableChange(event) {
+    const kind = event.target.dataset.viTableCell;
+    if (!kind) return false;
+    const table = updateVibrationIntegrityInputCell(
+      state.tables[kind], Number(event.target.dataset.viEditRow),
+      Number(event.target.dataset.viEditColumn), event.target.value,
+    );
+    applyTableMutation(kind, table);
+    return true;
+  }
   function onChange(event) {
     const fileTarget = event.target.dataset.viFile;
     if (fileTarget) {
@@ -245,17 +264,20 @@ export function renderVibrationIntegrityTab(container) {
       if (file) loadFile(fileTarget, file);
       return;
     }
+    if (event.target.matches('[data-vi-benchmark-select]')) {
+      state.benchmark.selectedId = event.target.value;
+      return render();
+    }
     if (event.target.matches('[data-vi-limited]')) {
       state.allowLimitedExchange = event.target.checked;
-      clearCalculatedState();
-      render();
-      return;
+      staleCalculatedState();
+      return render();
     }
+    if (handleTableChange(event)) return;
     const filter = event.target.dataset.viFilter;
     if (filter) {
       state.filters[filter] = event.target.value;
-      applyPresentationChange();
-      return;
+      return applyPresentationChange();
     }
     const sort = event.target.dataset.viSort;
     if (sort) {
@@ -263,11 +285,9 @@ export function renderVibrationIntegrityTab(container) {
       applyPresentationChange();
     }
   }
-
   container.addEventListener('click', onClick);
   container.addEventListener('change', onChange);
   render();
-
   return () => {
     state.destroyed = true;
     container.removeEventListener('click', onClick);
