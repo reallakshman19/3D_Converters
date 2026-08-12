@@ -16,6 +16,17 @@ export {
 } from './fit-register.js';
 
 export {
+  VIBRATION_FACILITY_FIT_REGISTER_CSV_HEADER,
+  serializeVibrationFacilityFitRegisterCsv,
+} from './fit-register-export.js';
+
+export {
   VIBRATION_FACILITY_FIT_WORKFLOW_SCHEMA,
   runVibrationFacilityFitBenchmark,
 } from './fit-workflow.js';
+
+export {
+  VIBRATION_FACILITY_FIT_TABULAR_WORKFLOW_SCHEMA,
+  VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT,
+  runVibrationFacilityFitBenchmarkFromTables,
+} from './fit-workflow-tabular.js';
