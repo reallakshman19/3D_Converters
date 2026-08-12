@@ -188,8 +188,8 @@ export function assertAivT27ReconciliationComplete(manifestInput, reconciliation
     reviewedTraceCount: AIV_T27_REQUIRED_RECONCILIATION_ITEMS.length,
     productionEquationAuthorized: false,
     remainingPromotionGates: [
-      'DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF',
       'RECONCILE_D2_3_PUBLISHED_FLM1_ARITHMETIC',
+      'RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE',
       'INDEPENDENT_SONIC_SFF6_BENCHMARK',
       'INDEPENDENT_MULTI_SOURCE_BENCHMARK',
       'RETAINED_WORKBOOK_RECONCILIATION',
