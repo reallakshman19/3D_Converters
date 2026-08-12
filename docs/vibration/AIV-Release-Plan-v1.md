@@ -1,22 +1,16 @@
-# AIV Release Plan v2 — AUTO Machine Gates
+# AIV Release Plan v2 — AUTO
 
-## Purpose
-
-This document defines how `VIB.AIV.ACOUSTIC` moves from the current blocked workspace into releasable product states.
+## Release sequence
 
 ```text
 BLOCKED
-  ↓
-BENCHMARK_ONLY
-  ↓
-SCREENING
+  -> BENCHMARK_ONLY
+  -> SCREENING
 ```
 
-Direct `BLOCKED → SCREENING` remains forbidden.
+Human evidence is not a release prerequisite. Missing engineering inputs are explicit, visible and user-configurable through `AivAssumptionProfile.v1`.
 
-`PROJECT_APPROVED`, `VERIFIED`, `PRODUCTION_AUTHORIZED`, and `designAuthority=true` are outside this release plan.
-
-## Current state
+Current authority:
 
 ```text
 calculationState      = BLOCKED
@@ -27,255 +21,130 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-## AUTO policy
-
-Human evidence is not required for implementation, qualification, or release.
+## Current implementation state
 
 ```text
-humanEvidenceRequired = false
-missing engineering data = visible user-configurable assumptions
-explicit user table value = higher priority than assumption
+stages 1–7   IMPLEMENTED
+stages 8–10  IMPLEMENTED in controlled AUTO benchmark adapter
+D.2.3 full product path PASS — 22 / 22 checks
+Stage 18     NEXT — result detail / assumptions / export
+Stage 19     exact-head BENCHMARK_ONLY validation after Stage 18
 ```
 
-AUTO stops only for invalid configuration or machine validation failure.
-
-## Current implementation
-
-Stages 1–7 are already implemented in the internal production-shaped candidate:
+Validation record:
 
 ```text
-VALIDATE_INPUT
-RESOLVE_INPUT
-EVALUATE_APPLICABILITY
-CALCULATE_SOURCE_PWL
-APPLY_SOURCE_MODIFIERS
-CALCULATE_POINT_ATTENUATION
-COMBINE_SIMULTANEOUS_SOURCES
-```
-
-Stages 8–10 are now configuration-ready from `AivAssumptionProfile.v1`:
-
-```text
-CALCULATE_DISCONTINUITY_RESULT
-AGGREGATE_LINE_CASE_RESULT
-ASSESS_RESULT
-```
-
-`AivDiscontinuityStage8EvidenceGate.v2` and `AivPostDiscontinuityEvidenceGate.v2` validate the configured benchmark assumptions. They do not request human review artifacts.
-
-Default configuration makes all three stages ready for candidate implementation.
-
-## Automatic stage progression
-
-`AivAutoStagePlan.v1` controls upcoming work:
-
-```text
-16B.1 stages 1–7 candidate                         COMPLETE
-16B.2 assumptions + stages 8–10 configuration      COMPLETE
-16B.3 implement stages 8–10                        NEXT
-17     complete D.2.3 product-path parity           BLOCKED_BY_PREVIOUS_STAGE
-18     result detail / assumption trace / export    BLOCKED_BY_PREVIOUS_STAGE
-19     exact-head validation + BENCHMARK_ONLY       BLOCKED_BY_PREVIOUS_STAGE
-20     SCREENING machine qualification              FUTURE
-```
-
-Default next action:
-
-```text
-IMPLEMENT_STAGES_8_TO_10
+docs/vibration/validation/AIV-D2.3-Product-Path-Validation-v1.json
+blob 6d3cd2f7d71ab47d2825d802628f18c0782ffdc7
+validated code commit 64485a51ffe78102ba3b966d43ba68e13f511130
 ```
 
 ## Release 1 — BENCHMARK_ONLY
 
-### Product intent
+Purpose: run the controlled benchmark through the real AIV input/result workflow and expose calculation detail without granting project screening authority.
 
-Run the real AIV product path for controlled benchmark execution:
-
-```text
-Load EI D.2.3
-→ resolve missing values from visible assumptions
-→ check readiness
-→ Run benchmark
-→ Source Results
-→ Assessment Results
-→ Line/Case Summary
-→ reference vs calculated comparison
-→ assumptions / calculation detail / provenance / export
-```
-
-Project screening remains unavailable.
-
-### Release boundary
+Target boundary:
 
 ```text
-qualificationState = BENCHMARK_ONLY
-engineeringAuthority = REFERENCE_ONLY
-screeningAuthority = NOT_AUTHORIZED
-designAuthority = false
-executionBoundary = CONTROLLED_BENCHMARK_EXECUTION_ONLY
+calculationState      = IMPLEMENTED
+qualificationState    = BENCHMARK_ONLY
+engineeringAuthority  = REFERENCE_ONLY
+screeningAuthority    = NOT_AUTHORIZED
+designAuthority       = false
 ```
 
-### Required evidence
-
-`AivReleasePlan.v2` requires four SHA-bound artifacts:
-
-1. `AivQualificationParityManifest.v1` — isolated qualification machine parity.
-2. `AivAssumptionProfileValidation.v1` — visible/editable assumption profile is valid.
-3. `AivBenchmarkKernelQualification.v2` — all 10 product stages pass through the real benchmark path.
-4. `AivReleaseValidationReceipt.v1` — exact-head node/browser validation actually executed and passed.
-
-There is no independent-engineer or human-review release gate.
-
-### BENCHMARK_ONLY acceptance criteria
+Required release evidence in `AivReleasePlan.v2`:
 
 ```text
-controlled source identities                    exact / traceable
-hidden engineering defaults                     0
-untracked assumed cells                         0
-UI-side AIV equations                           0
-source/assessment/result-scope ambiguity        0
-D.2.3 machine parity                            PASS
-sonic SFF=6 parity                              PASS
-multi-source parity                             PASS
-stages 1–7 candidate-vs-qualification parity    PASS
-stages 8–10 configured benchmark path           PASS
-complete 10-stage real product-path parity      PASS
-assumption profile validation                   PASS
-exact-head focused tests                        PASS
-browser operator-flow validation                PASS
+1. AivQualificationParityManifest.v1
+2. AivAssumptionProfileValidation.v1
+3. AivBenchmarkKernelQualification.v2
+4. AivReleaseValidationReceipt.v1
 ```
 
-FLM1 is an explicit configuration choice:
+The benchmark-kernel qualification requires complete 10-stage product-path parity. That product-path receipt now exists and passes.
+
+Remaining BENCHMARK_ONLY work:
+
+1. Stage 18: display/export calculated Source / Assessment / Line results plus assumptions and validation metadata.
+2. Run the exact candidate head through the focused Node suite and browser operator flow on a real controlled checkout/runner.
+3. Produce `AivReleaseValidationReceipt.v1` with actual execution metadata.
+4. Evaluate all four `AivReleasePlan.v2` gates.
+5. Apply BENCHMARK_ONLY in a separate explicit transition change only when those machine gates pass.
+
+A GitHub Actions job with no assigned runner and zero steps is `NOT_RUN`, not a release PASS.
+
+## D.2.3 benchmark acceptance already achieved
 
 ```text
-PUBLISHED     1.2133
-RECALCULATED  1.2109758194311824
+relief raw PWL         164.6851759525391 dB
+recycle raw PWL        159.36481554007995 dB
+recycle effective PWL  129.36481554007995 dB
+attenuation              0.3116883116883117 dB
+first-point PWL        164.3734876408508 dB
+log10(N)                 9.902567870507482
+N                        7.990388037921443E9
+FLM1 selected            1.2133
+FLM1 recalculated        1.2109758194311824
+FLM2                     0.2009306328510857
+Lf                       0.31287602368755874
+assessment LOF           0.29
+configured line LOF      1.48
 ```
 
-The selected branch and tolerance are exported with the result.
+All declared validation tolerances pass. The FLM1 displayed-input variance is explicitly accepted by the configurable benchmark tolerance `0.0024`; it is not hidden.
 
-A GitHub Actions job with `runner_id=0` and zero executed steps is `NOT_RUN`, never PASS.
-
-## Stage 8 boundary
-
-Stage 8 uses explicit benchmark configuration:
-
-```text
-stage8Model = CONFIGURED_D23_INTERMEDIATES
-A = 0.93989
-S = 68.229
-B = 152.207
-FLM1 mode/value/tolerance = configurable
-FLM2 = configurable
-loss factor = configurable
-D.2.3 assessment LOF reference = configurable
-```
-
-This permits complete benchmark-path implementation without claiming that every generic T2-6 screening rule has been reconstructed.
-
-No configured parameter may be hidden from the UI or result trace.
-
-## Stages 9–10 boundary
-
-The product keeps separate result scopes:
-
-```text
-D.2.3 first-discontinuity LOF 0.29 = ASSESSMENT benchmark
-worked-example relief-line LOF 1.48 = LINE_CASE_SUMMARY benchmark
-```
-
-They are not interchangeable.
-
-Stage 10 mode is initially:
-
-```text
-BENCHMARK_COMPARE_ONLY
-```
-
-It reports calculated/reference/delta/tolerance and must not emit generic `SAFE`, `PASS`, design approval, or universal screening classification.
+`A`, `S`, `B`, and the line-scope `LOF=1.48` remain visible assumptions because the worked example does not expose enough information to derive them generically. User changes are permitted and traceable.
 
 ## Release 2 — SCREENING
 
-SCREENING is a separate machine-qualification program after BENCHMARK_ONLY proves the real product path.
+SCREENING begins only after BENCHMARK_ONLY is released and operated through the real product path.
 
-Required evidence remains machine/configuration based:
-
-```text
-AivProductKernelQualificationReceipt.v1
-AivProductPathBenchmarkParityReceipt.v1
-AivLineAggregationQualificationReceipt.v1
-AivSingleBatchParityReceipt.v1
-AivScreeningDomainCoverageReceipt.v1
-AivAssumptionProfileValidation.v1
-AivReleaseValidationReceipt.v1
-```
-
-Minimum requirements:
-
-- same numerical kernel for benchmark, single-case, and batch execution;
-- applicability/domain coverage is machine-tested;
-- missing values continue to use explicit configurable assumptions;
-- source combination, sonic state, trim, pressure basis, material/geometry and distance behavior are exercised in tests;
-- result scopes stay distinct;
-- exact-head automated + browser validation executes and passes;
-- `designAuthority=false`.
-
-## Release artifacts are evidence, not toggles
-
-Every machine release artifact must bind to exact bytes by SHA-256 where applicable. Bare claims such as:
+Machine qualification must cover at minimum:
 
 ```text
-parity=true
-ciPassed=true
+project source/process ranges
+pressure basis conversions
+sonic/non-sonic behavior
+trim behavior
+source-to-assessment mapping
+multi-source combination
+assessment geometry/material ranges
+line/case behavior
+single/batch parity
+assumption/export trace
+exact-head node/browser validation
 ```
 
-are not sufficient release evidence.
-
-The release planner evaluates readiness; it does not silently mutate the calculation registry.
-
-## Missing-data behavior
-
-No missing engineering value silently becomes zero or a hidden default.
-
-Instead:
+Target boundary:
 
 ```text
-blank input
-→ resolve from AivAssumptionProfile.v1
-→ record table/row/column/profilePath/assumedValue
-→ show it in UI
-→ include it in result/export provenance
+qualificationState  = SCREENING
+screeningAuthority  = AUTHORIZED_WITHIN_APPLICABILITY
+designAuthority     = false
 ```
 
-If the assumption profile itself is invalid, AUTO stops with `INVALID_ASSUMPTION_PROFILE`.
+SCREENING must remain distinct from design authority.
 
-## Immediate AUTO implementation sequence
+## AUTO stop conditions
 
 ```text
-1. Release-readiness contract                                  DONE
-2. Candidate stages 1–7                                       DONE
-3. Visible configurable assumption profile                     DONE
-4. Stage 8 benchmark configuration gate                        DONE
-5. Stages 9–10 scope/configuration gate                        DONE
-6. AUTO stage planner                                          DONE
-7. Implement candidate stages 8–10                             NEXT
-8. Drive EI D.2.3 through complete product result contracts    AUTO NEXT
-9. Produce AivProductPathBenchmarkParityReceipt.v1             AUTO NEXT
-10. AivBenchmarkKernelQualification.v2 PASS                    AUTO NEXT
-11. Wire result detail / assumptions / export                  AUTO NEXT
-12. Execute exact-head node + browser validation               AUTO NEXT
-13. Apply BENCHMARK_ONLY authority transition                  when four release gates PASS
-14. Run separate SCREENING qualification program               after BENCHMARK_ONLY
+INVALID_ASSUMPTION_PROFILE
+MACHINE_BENCHMARK_PARITY_FAILURE
+PRODUCT_PATH_BENCHMARK_PARITY_FAILURE
+EXACT_HEAD_VALIDATION_FAILURE
 ```
 
-## Permanent boundary
+There is no human-review stop condition.
+
+## Permanent product boundary
 
 ```text
 Advanced_Analysis:
-AUTHOR → EDIT → VALIDATE → CERTIFY → EXPORT
+AUTHOR -> EDIT -> VALIDATE -> CERTIFY -> EXPORT
 
 3D_Converters / AIV:
-IMPORT → VERIFY → JOIN → ASSESS → EXPLAIN
+IMPORT -> VERIFY -> JOIN -> ASSESS -> EXPLAIN
 ```
 
-No geometry authoring, pixel-derived distance, 3D click-to-calculate workflow, or geometry writeback is introduced by release.
+No geometry authoring, pixel-derived distance, 3D click-to-calculate flow, or geometry writeback is introduced by release.
