@@ -32,23 +32,7 @@ designAuthority       = false
 
 The validation record does not itself apply an authority transition.
 
-## AUTO implementation
-
-Stages 1–7 remain in `converters/vibration/aiv/aiv-kernel-candidate.js`.
-
-Stages 8–10 are now executed by:
-
-```text
-scripts/aiv-auto-product-path.mjs
-```
-
-using the already-controlled qualification numerical helpers in:
-
-```text
-scripts/aiv-qualification-math.mjs
-```
-
-The adapter executes the frozen 10-stage order:
+## Full 10-stage AUTO benchmark path
 
 ```text
 VALIDATE_INPUT
@@ -63,33 +47,22 @@ AGGREGATE_LINE_CASE_RESULT
 ASSESS_RESULT
 ```
 
-Stage 8 calculates the errata `log10(N)` chain, N, diameter ratio, FLM1 branch, FLM2, N modifiers, Lf and assessment LOF. `A`, `S`, and `B` remain explicit user-configurable benchmark assumptions because their generic derivation is not reconstructed from the worked example.
+Stages 1–7 remain in `converters/vibration/aiv/aiv-kernel-candidate.js`.
 
-Stage 9 keeps the configured worked-example line result separate from the first-discontinuity result:
+Stages 8–10 are executed by `scripts/aiv-auto-product-path.mjs` using the controlled numerical helpers in `scripts/aiv-qualification-math.mjs`.
 
-```text
-first weldolet LOF 0.29 -> ASSESSMENT
-relief line LOF    1.48 -> LINE_CASE_SUMMARY
-```
+Stage 8 calculates the errata fatigue-life chain from configured A/S/B and selected FLM1 mode. Stage 9 keeps the configured worked-example line result separate from the first-discontinuity assessment result. Stage 10 is benchmark comparison only and does not emit a universal operating/design classification.
 
-The line value is a visible assumption and is not falsely derived from the first discontinuity.
+## D.2.3 validation
 
-Stage 10 is benchmark comparison only. No universal operating/design classification is emitted.
-
-## D.2.3 validation runner
+Runner:
 
 ```text
 npm run run:aiv-d23-product-path-validation
 scripts/run-aiv-d23-product-path-validation.mjs
 ```
 
-It loads the same controlled D.2.3 working tables as the UI, parses them through `AivSourceCsv.v2`, `AivAssessmentCsv.v1`, and `AivSourceAssessmentCsv.v1`, executes all 10 stages, and returns:
-
-```text
-AivProductPathBenchmarkParityReceipt.v1
-```
-
-Machine-readable record:
+Machine-readable receipt:
 
 ```text
 docs/vibration/validation/AIV-D2.3-Product-Path-Validation-v1.json
@@ -97,24 +70,26 @@ blob 6d3cd2f7d71ab47d2825d802628f18c0782ffdc7
 validated code commit 64485a51ffe78102ba3b966d43ba68e13f511130
 ```
 
-Readable step-by-step record:
+Readable record:
 
 ```text
 docs/vibration/AIV-D2.3-Product-Path-Validation-v1.md
 ```
 
-Validation summary:
+Result:
 
 ```text
+AivProductPathBenchmarkParityReceipt.v1
+status = PASS
 22 checks
-22 PASS
-0 FAIL
+22 passed
+0 failed
 completeKernelStageCount = 10
 resultContractsValidated = true
 sourceAssessmentLineScopesValidated = true
 ```
 
-Representative actuals:
+Representative values:
 
 ```text
 Relief raw PWL           164.6851759525391 dB
@@ -127,6 +102,7 @@ N                          7.990388037921443E9
 Dext/dext                  2.7910447761194033
 FLM1 selected              1.2133
 FLM1 recalculated          1.2109758194311824
+FLM1 variance              0.0023241805688176687 <= 0.0024
 FLM2                       0.2009306328510857
 N after FLM1               9.694737806410088E9
 N after FLM2               1.9479698027673252E9
@@ -135,13 +111,20 @@ Assessment LOF             0.29
 Configured line LOF        1.48
 ```
 
-The FLM1 arithmetic difference is `0.0023241805688176687`, within the configured benchmark tolerance `0.0024`.
+Important scope rule:
+
+```text
+first weldolet LOF 0.29 -> ASSESSMENT
+relief line LOF    1.48 -> LINE_CASE_SUMMARY
+```
+
+The line value is a visible assumption, not a false derivation from the first discontinuity.
 
 ## AUTO stage state
 
 ```text
 16B.1 stages 1–7 candidate                         COMPLETE
-16B.2 assumptions + stages 8–10 config             COMPLETE
+16B.2 assumptions + stages 8–10 configuration      COMPLETE
 16B.3 stages 8–10 implementation                   COMPLETE
 17     D.2.3 Source/Assessment/Line validation      COMPLETE / PASS
 18     result detail / assumptions / export         NEXT
@@ -149,18 +132,18 @@ The FLM1 arithmetic difference is `0.0023241805688176687`, within the configured
 20     SCREENING machine qualification              FUTURE
 ```
 
-`tabs/vibration-aiv-validation-records.js` binds the AUTO UI to the committed validation artifact, so the workspace now advances to Stage 18.
+The AIV workspace is bound to the committed validation metadata through `tabs/vibration-aiv-validation-records.js`, so AUTO now reports Stage 18 as next.
 
-## Remaining release work
+## Remaining BENCHMARK_ONLY release work
 
-1. Wire the calculated benchmark Source / Assessment / Line results into the operator view.
-2. Export result details, assumptions and the validation receipt together.
-3. Run the focused repository command and browser workflow on an exact controlled checkout/runner.
-4. Create `AivReleaseValidationReceipt.v1` for that exact head.
-5. Evaluate `AivReleasePlan.v2` for BENCHMARK_ONLY transition eligibility.
-6. Apply any BENCHMARK_ONLY transition in a separate explicit code change.
+1. Wire calculated Source / Assessment / Line results into the operator view.
+2. Export result detail, assumptions and the validation receipt together.
+3. Execute the focused Node suite and browser operator workflow on an exact controlled checkout/runner.
+4. Produce `AivReleaseValidationReceipt.v1` for that exact head.
+5. Evaluate all four `AivReleasePlan.v2` machine gates.
+6. Apply any BENCHMARK_ONLY authority transition in a separate explicit code change.
 7. SCREENING remains a later machine-qualification program.
 
 ## Validation limitation
 
-A local controlled Node arithmetic cross-check was executed for the numerical chain and all declared tolerances passed. GitHub Actions has still not executed repository tests because the jobs receive no runner/steps under the repository Actions-budget condition. Therefore repository CI remains `NOT_RUN`, not PASS and not a code-failure finding.
+A local controlled Node arithmetic cross-check was executed and every declared benchmark tolerance passed. GitHub Actions has still not executed repository tests because jobs receive no runner/steps under the repository Actions-budget condition. Repository CI is therefore `NOT_RUN`, not PASS and not a code-failure finding.
