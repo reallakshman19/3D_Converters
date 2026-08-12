@@ -1,5 +1,3 @@
-import { VIBRATION_FACILITY_FIT_WORKFLOW_SCHEMA } from '../facility/fit-workflow.js';
-import { VIBRATION_FACILITY_FIT_REGISTER_SCHEMA } from '../facility/fit-register.js';
 import { buildVibrationWorkspaceDetail } from './detail.js';
 import {
   buildWorkspaceQuery,
@@ -11,6 +9,8 @@ import {
 } from './query.js';
 
 export const VIBRATION_WORKSPACE_MODEL_SCHEMA = 'VibrationWorkspaceModel.v1';
+const SOURCE_WORKFLOW_SCHEMA = 'VibrationFacilityFitWorkflow.v1';
+const SOURCE_REGISTER_SCHEMA = 'VibrationFacilityFitRegister.v1';
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -19,18 +19,17 @@ function deepFreeze(value) {
 }
 
 function assertWorkflow(workflow) {
-  if (workflow?.schema !== VIBRATION_FACILITY_FIT_WORKFLOW_SCHEMA) {
+  if (workflow?.schema !== SOURCE_WORKFLOW_SCHEMA) {
     throw workspaceQueryError(
       'VIBRATION_WORKSPACE_WORKFLOW_SCHEMA_MISMATCH',
-      `Workspace requires ${VIBRATION_FACILITY_FIT_WORKFLOW_SCHEMA}.`,
+      `Workspace requires ${SOURCE_WORKFLOW_SCHEMA}.`,
       { actual: workflow?.schema ?? null },
     );
   }
-  if (workflow.register?.schema !== VIBRATION_FACILITY_FIT_REGISTER_SCHEMA
-      || !Array.isArray(workflow.register.rows)) {
+  if (workflow.register?.schema !== SOURCE_REGISTER_SCHEMA || !Array.isArray(workflow.register.rows)) {
     throw workspaceQueryError(
       'VIBRATION_WORKSPACE_REGISTER_INVALID',
-      `Workspace requires ${VIBRATION_FACILITY_FIT_REGISTER_SCHEMA} rows.`,
+      `Workspace requires ${SOURCE_REGISTER_SCHEMA} rows.`,
     );
   }
   if (workflow.qualificationMode !== 'benchmark'
