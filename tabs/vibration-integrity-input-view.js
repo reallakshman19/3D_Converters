@@ -1,5 +1,7 @@
 import { vibrationIntegrityInputCellState } from './vibration-integrity-input-model.js';
 import { VIBRATION_FIT_UI_BENCHMARK_CASES, VIBRATION_FIT_UI_BENCHMARK_SOURCE } from './vibration-integrity-benchmarks.js';
+import { renderVibrationEngineeringBasis } from './vibration-integrity-engineering-basis-view.js';
+import { vibrationEngineeringBasisSourceCellId } from './vibration-integrity-engineering-basis.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -62,7 +64,7 @@ function benchmarkPanel(state) {
   const comparison = benchmarkComparison(state);
   const delta = comparison?.delta;
   return `<section class="vi-card vi-benchmark-card">
-    <div class="vi-section-head"><div><h3>FIT validation benchmark</h3><p>Load a controlled EI worked example into the editable tables, then run the normal FIT benchmark workflow.</p></div></div>
+    <div class="vi-section-head"><div><h3>FIT validation benchmark</h3><p>Load a controlled EI worked example into the authoritative working state, then run the normal FIT benchmark workflow.</p></div></div>
     <div class="vi-benchmark-controls"><label>Benchmark case<select data-vi-benchmark-select>${VIBRATION_FIT_UI_BENCHMARK_CASES.map((entry) => option(entry.id, selected, entry.label)).join('')}</select></label><button type="button" class="vi-btn primary" data-vi-action="load-benchmark"${state.busy ? ' disabled' : ''}>Load BENCHMARK</button></div>
     ${loaded ? `<div class="vi-benchmark-facts">
       <span>Source: <strong>${esc(loaded.sourceLocation)}</strong></span><span>Target standard LOF: <strong>${esc(loaded.published.standardLof)}</strong></span><span>Target band: <strong>${esc(loaded.published.referenceBand)}</strong></span><span>Published support: <strong>${esc(loaded.published.supportStiffness)}</strong></span>
@@ -84,7 +86,7 @@ function importPanel(state) {
   const checking = state.busy && state.busyAction === 'preflight';
   const running = state.busy && state.busyAction === 'benchmark';
   return `<section class="vi-card vi-import-card">
-    <div class="vi-section-head"><div><h3>Working table inputs</h3><p>Files load into original/working table state. Execution consumes the current working cells; source values remain available for exact revert.</p></div></div>
+    <div class="vi-section-head"><div><h3>Source / working state</h3><p>Imports create the single original/working state. The Engineering basis below is only a joined projection of these same cells.</p></div></div>
     <div class="vi-import-grid">
       <label class="vi-file-field"><span>3D EDIT table export</span><input type="file" data-vi-file="topology" accept=".xlsx,.csv"><span class="vi-file-status">${fileStatus(state.files.topology, topology, 'XLSX preferred · CSV is Elements-only')}</span></label>
       <label class="vi-file-field"><span>Operating cases</span><input type="file" data-vi-file="operating" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.operating, state.tables?.operating, 'VibrationOperatingCaseCsv.v1')}</span></label>
@@ -95,12 +97,17 @@ function importPanel(state) {
   </section>`;
 }
 
+function sourceCellRef(table, rowIndex, columnIndex) {
+  return { kind: table.kind, rowIndex, rowId: table.rowIds?.[rowIndex] ?? null, columnIndex };
+}
+
 function editableCell(table, rowIndex, columnIndex, value) {
   const state = vibrationIntegrityInputCellState(table, rowIndex, columnIndex);
   const canRevert = state.edited && state.originalValue !== null;
   const editedClass = state.edited ? ' is-edited' : '';
   const original = state.originalValue === null ? 'Local row' : `Original: ${state.originalValue}`;
-  return `<td class="vi-working-cell${editedClass}" title="${esc(original)}"><input class="vi-cell-input" data-vi-table-cell="${esc(table.kind)}" data-vi-edit-row="${rowIndex}" data-vi-edit-column="${columnIndex}" data-vi-row-id="${esc(state.rowId)}" value="${esc(value)}" aria-label="${esc(table.header[columnIndex])} row ${rowIndex + 1}">${canRevert ? `<button type="button" class="vi-btn vi-cell-revert" data-vi-cell-revert="${esc(table.kind)}" data-vi-edit-row="${rowIndex}" data-vi-edit-column="${columnIndex}" title="Revert to ${esc(state.originalValue)}">↶</button>` : ''}</td>`;
+  const sourceId = vibrationEngineeringBasisSourceCellId(sourceCellRef(table, rowIndex, columnIndex));
+  return `<td class="vi-working-cell${editedClass}" title="${esc(original)}"><input id="${esc(sourceId)}" class="vi-cell-input" data-vi-table-cell="${esc(table.kind)}" data-vi-edit-row="${rowIndex}" data-vi-edit-column="${columnIndex}" data-vi-row-id="${esc(state.rowId)}" value="${esc(value)}" aria-label="${esc(table.header[columnIndex])} row ${rowIndex + 1}">${canRevert ? `<button type="button" class="vi-btn vi-cell-revert" data-vi-cell-revert="${esc(table.kind)}" data-vi-edit-row="${rowIndex}" data-vi-edit-column="${columnIndex}" title="Revert to ${esc(state.originalValue)}">↶</button>` : ''}</td>`;
 }
 
 function editableRows(table) {
@@ -111,7 +118,15 @@ function editableRows(table) {
 function editableTable(title, table, description) {
   const authorityNote = table.kind === 'topology' && table.authorityDowngraded && !table.dirty
     ? '<small>Values match original; topology authority remains downgraded until reload.</small>' : '';
-  return `<section class="vi-card vi-input-table-card"><div class="vi-section-head"><div><h3>${esc(title)}</h3><p>${esc(description)}</p>${authorityNote}</div><div class="vi-actions">${table.dirty ? `<button type="button" class="vi-btn" data-vi-table-revert="${esc(table.kind)}">Revert table</button>` : ''}<button type="button" class="vi-btn" data-vi-table-add="${esc(table.kind)}">Add row</button></div></div><div class="vi-table-wrap vi-input-table-wrap"><table class="vi-table vi-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table)}</tbody></table></div></section>`;
+  return `<section class="vi-card vi-input-table-card vi-source-table"><div class="vi-section-head"><div><h4>${esc(title)}</h4><p>${esc(description)}</p><small>${table.rows.length} visible rows · ${table.editCount ?? 0} edits</small>${authorityNote}</div><div class="vi-actions">${table.dirty ? `<button type="button" class="vi-btn" data-vi-table-revert="${esc(table.kind)}">Revert table</button>` : ''}<button type="button" class="vi-btn" data-vi-table-add="${esc(table.kind)}">Add row</button></div></div><div class="vi-table-wrap vi-input-table-wrap"><table class="vi-table vi-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table)}</tbody></table></div></section>`;
+}
+
+function sourceDataArea(tables) {
+  return `<section class="vi-source-data"><div class="vi-section-head"><div><h3>Source Data</h3><p>Raw import/storage contracts remain authoritative. Open a table to inspect, add or delete source rows; Engineering-basis source links navigate to the exact backing cell.</p></div></div>
+    ${editableTable('Topology · Elements working table', tables.topology, 'Certified XLSX is preserved only until the first topology mutation. Revert restores values but does not restore complete-exchange authority.')}
+    ${editableTable('Operating cases', tables.operating, 'Process quantities preserve original and working values. Unit-only edits convert the numeric value through the central engineering unit layer when quantity semantics are known.')}
+    ${editableTable('Vibration enrichment', tables.enrichment, 'Assessment-point and mechanism evidence keyed by Canonical ID. Known numeric engineering properties use central unit conversion; unknown property semantics are never guessed.')}
+  </section>`;
 }
 
 function fallbackTable(kind) {
@@ -121,5 +136,5 @@ function fallbackTable(kind) {
 export function renderVibrationIntegrityInputArea(state) {
   const tables = state.tables ?? { topology: fallbackTable('topology'), operating: fallbackTable('operating'), enrichment: fallbackTable('enrichment') };
   const inputState = state.tables ? state : { ...state, tables };
-  return `${benchmarkPanel(inputState)}${importPanel(inputState)}${editableTable('Topology · Elements working table', tables.topology, 'Certified XLSX is preserved only until the first topology mutation. Revert restores values but does not restore complete-exchange authority.')}${editableTable('Operating cases', tables.operating, 'Process quantities preserve original and working values. Unit-only edits convert the numeric value through the central engineering unit layer when quantity semantics are known.')}${editableTable('Vibration enrichment', tables.enrichment, 'Assessment-point and FIT geometry evidence keyed by Canonical ID. Known numeric engineering properties use central unit conversion; unknown property semantics are never guessed.')}`;
+  return `${benchmarkPanel(inputState)}${importPanel(inputState)}${renderVibrationEngineeringBasis(inputState)}${sourceDataArea(tables)}`;
 }

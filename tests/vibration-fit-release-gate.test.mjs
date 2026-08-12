@@ -21,6 +21,7 @@ const REQUIRED_TESTS = Object.freeze([
   'tests/vibration-integrity-tab-static.test.mjs',
   'tests/vibration-integrity-working-state.test.mjs',
   'tests/vibration-integrity-run-snapshot.test.mjs',
+  'tests/vibration-integrity-engineering-basis.test.mjs',
   'tests/vibration-integrity-input-model.test.mjs',
   'tests/vibration-integrity-input-runtime.test.mjs',
   'tests/vibration-integrity-editable-input-static.test.mjs',
@@ -42,7 +43,7 @@ test('FIT/VIB release manifest keeps four reviewable product-layer groups', () =
 
 test('FIT/VIB release manifest has no duplicates and retains critical seams', () => {
   const tests = listVibrationFitReleaseTests();
-  assert.equal(tests.length, 33);
+  assert.equal(tests.length, 34);
   assert.equal(new Set(tests).size, tests.length);
   for (const required of REQUIRED_TESTS) assert(tests.includes(required), `missing ${required}`);
 });
