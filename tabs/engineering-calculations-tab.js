@@ -17,6 +17,7 @@ import {
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
+const VIBRATION_FAMILY_ID = 'VIB';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-engineering-console-style="true"]')) return;
@@ -52,9 +53,11 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     return () => {};
   }
 
+  const initialFamilyLanding = !context?.calculationId && context?.familyId === VIBRATION_FAMILY_ID;
   const state = {
-    selectedFamily: definition.family,
-    selectedId: definition.id,
+    selectedFamily: initialFamilyLanding ? VIBRATION_FAMILY_ID : definition.family,
+    selectedId: initialFamilyLanding ? null : definition.id,
+    familyLanding: initialFamilyLanding ? VIBRATION_FAMILY_ID : null,
     draft: createEngineeringConsoleDraft(definition, context?.inputs ?? {}),
     mode: context?.executionMode === 'sandbox' ? 'sandbox' : 'single',
     qualificationMode: context?.qualificationMode || 'strict',
@@ -70,13 +73,13 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   }
 
   async function mountProductSurface() {
-    if (definition.id !== FIT_CALCULATION_ID) return;
+    if (state.familyLanding || definition.id !== FIT_CALCULATION_ID) return;
     const host = container.querySelector('[data-fit-workspace-host]');
     if (!host) return;
     const token = ++productToken;
     try {
       const module = await import('./vibration-integrity-tab.js?v=vibration-integrity-fit-placeholder-1');
-      if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID) return;
+      if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID || state.familyLanding) return;
       host.innerHTML = '';
       const maybeDestroy = module.renderVibrationIntegrityTab(host);
       productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
@@ -94,12 +97,22 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
 
   function resetForDefinition(next) {
     definition = next;
+    state.familyLanding = null;
     state.selectedId = next.id;
     state.selectedFamily = next.family;
     state.draft = createEngineeringConsoleDraft(next, context?.calculationId === next.id ? context?.inputs ?? {} : {});
     state.editorErrors = [];
     invalidateEngineeringConsoleExecution(state);
     state.activeView = isEngineeringCalculationExecutable(next) ? 'results' : 'basis';
+    render();
+  }
+
+  function openFamilyLanding(familyId) {
+    state.selectedFamily = familyId;
+    state.selectedId = null;
+    state.familyLanding = familyId;
+    state.editorErrors = [];
+    invalidateEngineeringConsoleExecution(state);
     render();
   }
 
@@ -182,9 +195,15 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     }
     const family = event.target.closest('[data-family-id]');
     if (family) {
-      state.selectedFamily = family.dataset.familyId;
-      const next = definitions.find((row) => row.family === state.selectedFamily && isEngineeringCalculationExecutable(row))
-        ?? definitions.find((row) => row.family === state.selectedFamily);
+      const familyId = family.dataset.familyId;
+      if (familyId === VIBRATION_FAMILY_ID) {
+        openFamilyLanding(familyId);
+        return;
+      }
+      state.familyLanding = null;
+      state.selectedFamily = familyId;
+      const next = definitions.find((row) => row.family === familyId && isEngineeringCalculationExecutable(row))
+        ?? definitions.find((row) => row.family === familyId);
       if (next) resetForDefinition(next); else render();
       return;
     }
