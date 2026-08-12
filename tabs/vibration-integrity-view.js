@@ -1,3 +1,8 @@
+import {
+  renderVibrationIntegrityDetailBody,
+  renderVibrationIntegrityDetailTabs,
+} from './vibration-integrity-detail-view.js';
+
 function esc(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -5,10 +10,6 @@ function esc(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-}
-
-function json(value) {
-  return esc(JSON.stringify(value ?? null, null, 2));
 }
 
 function cell(value) {
@@ -72,10 +73,8 @@ function preflightPanel(state) {
   const preflight = wrapper.preflight;
   const cards = [
     ['Topology integrity', wrapper.imports.exchangeIntegrityStatus ?? 'UNKNOWN'],
-    ['Assessment points', preflight.counts.assessmentPoints],
-    ['Plan rows', preflight.counts.rows],
-    ['Ready', preflight.counts.ready],
-    ['Not ready', preflight.counts.notReady],
+    ['Assessment points', preflight.counts.assessmentPoints], ['Plan rows', preflight.counts.rows],
+    ['Ready', preflight.counts.ready], ['Not ready', preflight.counts.notReady],
   ];
   return `<section class="vi-card vi-preflight-card">
     <div class="vi-section-head"><div><h3>FIT readiness</h3><p>Input-contract and completeness check only. No FIT calculation is executed by this readiness check.</p></div></div>
@@ -90,11 +89,8 @@ function summaryCards(workspace) {
   if (!workspace) return '';
   const s = workspace.summary;
   const cards = [
-    ['Rows', s.totalRows],
-    ['Visible', s.visibleRows],
-    ['Calculated benchmark', s.calculatedRows],
-    ['Data incomplete', s.incompleteRows],
-    ['Calculation failed', s.calculationFailedRows],
+    ['Rows', s.totalRows], ['Visible', s.visibleRows], ['Calculated benchmark', s.calculatedRows],
+    ['Data incomplete', s.incompleteRows], ['Calculation failed', s.calculationFailedRows],
     ['Review candidates', s.candidateForEngineeringReviewRows],
   ];
   return `<div class="vi-summary">${cards.map(([label, value]) => `<div class="vi-metric"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div>`;
@@ -135,23 +131,10 @@ function workspaceTable(state) {
   </section>`;
 }
 
-function detailTabs(active) {
-  return ['summary','inputs','case','evidence','source','diagnostics'].map((tab) => `<button type="button" class="vi-detail-tab${tab === active ? ' is-active' : ''}" data-vi-detail="${tab}">${esc(tab[0].toUpperCase() + tab.slice(1))}</button>`).join('');
-}
-
-function detailBody(detail, tab) {
-  if (tab === 'summary') return `<pre>${json(detail.summary)}</pre>`;
-  if (tab === 'inputs') return detail.inputs ? `<pre>${json(detail.inputs)}</pre>` : '<p class="vi-empty">No executable request exists for this row.</p>';
-  if (tab === 'case') return `<pre>${json({ operatingCase: detail.operatingCase, enrichment: detail.enrichment })}</pre>`;
-  if (tab === 'evidence') return detail.evidenceQualification ? `<pre>${json(detail.evidenceQualification)}</pre>` : '<p class="vi-empty">No central calculation evidence exists for this row.</p>';
-  if (tab === 'source') return `<pre>${json(detail.sourceTrace)}</pre>`;
-  return `<pre>${json(detail.diagnostics)}</pre>`;
-}
-
 function detailPanel(state) {
   const detail = state.workspace?.detail;
   if (!detail) return '';
-  return `<section class="vi-card vi-detail-card"><div class="vi-section-head"><div><h3>${esc(detail.summary.line)} · ${esc(detail.summary.caseId)}</h3><p class="vi-mono">${esc(detail.summary.canonicalId)}</p></div></div><div class="vi-detail-tabs">${detailTabs(state.detailTab)}</div><div class="vi-detail-body">${detailBody(detail, state.detailTab)}</div></section>`;
+  return `<section class="vi-card vi-detail-card"><div class="vi-section-head"><div><h3>${esc(detail.summary.line)} · ${esc(detail.summary.caseId)}</h3><p class="vi-mono">${esc(detail.summary.canonicalId)}</p></div></div><div class="vi-detail-tabs">${renderVibrationIntegrityDetailTabs(state.detailTab)}</div><div class="vi-detail-body">${renderVibrationIntegrityDetailBody(detail, state.detailTab)}</div></section>`;
 }
 
 function importFacts(state) {
