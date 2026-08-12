@@ -16,6 +16,8 @@ import {
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 
+const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
+
 function ensureStylesheet() {
   if (document.querySelector('link[data-engineering-console-style="true"]')) return;
   const link = document.createElement('link');
@@ -42,6 +44,9 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   const definitions = listEngineeringCalculations();
   const families = listEngineeringCalculationFamilies();
   let definition = initialDefinition(definitions, context);
+  let productDestroy = null;
+  let productToken = 0;
+  let destroyed = false;
   if (!definition) {
     container.innerHTML = '<div class="tab-error"><h2>No engineering calculations registered</h2></div>';
     return () => {};
@@ -58,8 +63,33 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     batchText: '[]', batchResult: null, batchError: null,
   };
 
+  function cleanupProduct() {
+    productToken += 1;
+    try { productDestroy?.(); } catch (error) { console.warn('Engineering product cleanup failed', error); }
+    productDestroy = null;
+  }
+
+  async function mountProductSurface() {
+    if (definition.id !== FIT_CALCULATION_ID) return;
+    const host = container.querySelector('[data-fit-workspace-host]');
+    if (!host) return;
+    const token = ++productToken;
+    try {
+      const module = await import('./vibration-integrity-tab.js?v=vibration-integrity-fit-placeholder-1');
+      if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID) return;
+      host.innerHTML = '';
+      const maybeDestroy = module.renderVibrationIntegrityTab(host);
+      productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
+    } catch (error) {
+      if (destroyed || token !== productToken) return;
+      host.innerHTML = `<div class="tab-error"><h3>Could not load Flow-Induced Vibration Screening</h3><pre>${String(error?.message || error)}</pre></div>`;
+    }
+  }
+
   function render() {
+    cleanupProduct();
     container.innerHTML = renderEngineeringCalculationConsoleHtml({ definitions, families, definition, state });
+    mountProductSurface();
   }
 
   function resetForDefinition(next) {
@@ -201,6 +231,8 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   render();
 
   return () => {
+    destroyed = true;
+    cleanupProduct();
     container.removeEventListener('click', onClick);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);
