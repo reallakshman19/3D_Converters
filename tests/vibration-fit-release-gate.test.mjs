@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
-import { VIBRATION_FIT_RELEASE_TEST_GROUPS, listVibrationFitReleaseTests } from '../scripts/verify-vibration-fit-release.mjs';
+import {
+  VIBRATION_FIT_RELEASE_TEST_GROUPS,
+  listVibrationFitReleaseTests,
+} from '../scripts/verify-vibration-fit-release.mjs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
@@ -19,6 +22,7 @@ const REQUIRED_TESTS = Object.freeze([
   'tests/vibration-integrity-input-model.test.mjs',
   'tests/vibration-integrity-input-runtime.test.mjs',
   'tests/vibration-integrity-editable-input-static.test.mjs',
+  'tests/vibration-integrity-mechanism-matrix.test.mjs',
   'tests/vibration-module-boundaries.test.mjs',
 ]);
 
@@ -44,7 +48,7 @@ test('FIT/VIB release manifest keeps four reviewable product-layer groups', () =
 
 test('FIT/VIB release manifest has no duplicates and retains critical seams', () => {
   const tests = listVibrationFitReleaseTests();
-  assert.equal(tests.length, 30);
+  assert.equal(tests.length, 31);
   assert.equal(new Set(tests).size, tests.length);
   for (const required of REQUIRED_TESTS) assert(tests.includes(required), `missing ${required}`);
 });

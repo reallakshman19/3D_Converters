@@ -3,6 +3,10 @@ import {
   renderVibrationIntegrityDetailTabs,
 } from './vibration-integrity-detail-view.js';
 import { renderVibrationIntegrityInputArea } from './vibration-integrity-input-view.js';
+import {
+  VIBRATION_INTEGRITY_MECHANISMS,
+  buildVibrationMechanismMatrixRow,
+} from './vibration-integrity-mechanisms.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -14,11 +18,15 @@ function esc(value) {
 }
 
 function cell(value) {
-  return value === null || value === undefined || value === '' ? '<span class="vi-empty">—</span>' : esc(value);
+  return value === null || value === undefined || value === ''
+    ? '<span class="vi-empty">—</span>'
+    : esc(value);
 }
 
 function listCell(values) {
-  return Array.isArray(values) && values.length ? esc(values.join('; ')) : '<span class="vi-empty">—</span>';
+  return Array.isArray(values) && values.length
+    ? esc(values.join('; '))
+    : '<span class="vi-empty">—</span>';
 }
 
 function option(value, selected, label = value) {
@@ -26,12 +34,15 @@ function option(value, selected, label = value) {
 }
 
 function unique(rows, field) {
-  return [...new Set(rows.map((row) => row[field]).filter((value) => value !== null && value !== undefined && value !== ''))]
-    .sort((a, b) => String(a).localeCompare(String(b)));
+  return [...new Set(rows.map((row) => row[field]).filter((value) => (
+    value !== null && value !== undefined && value !== ''
+  )))].sort((a, b) => String(a).localeCompare(String(b)));
 }
 
 function preflightRows(preflight) {
-  if (!preflight.rows.length) return '<tr><td colspan="8" class="vi-table-empty">No FIT assessment points are defined in the enrichment table.</td></tr>';
+  if (!preflight.rows.length) {
+    return '<tr><td colspan="8" class="vi-table-empty">No FIT assessment points are defined in the enrichment table.</td></tr>';
+  }
   return preflight.rows.map((row) => `<tr>
     <td>${cell(row.line)}</td><td>${cell(row.caseId)}</td><td class="vi-mono">${cell(row.canonicalId)}</td>
     <td>${cell(row.status)}</td><td>${listCell(row.missing)}</td><td>${listCell(row.invalid)}</td>
@@ -45,8 +56,10 @@ function preflightPanel(state) {
   const preflight = wrapper.preflight;
   const cards = [
     ['Topology integrity', wrapper.imports.exchangeIntegrityStatus ?? 'UNKNOWN'],
-    ['Assessment points', preflight.counts.assessmentPoints], ['Plan rows', preflight.counts.rows],
-    ['Ready', preflight.counts.ready], ['Not ready', preflight.counts.notReady],
+    ['Assessment points', preflight.counts.assessmentPoints],
+    ['Plan rows', preflight.counts.rows],
+    ['Ready', preflight.counts.ready],
+    ['Not ready', preflight.counts.notReady],
   ];
   return `<section class="vi-card vi-preflight-card">
     <div class="vi-section-head"><div><h3>FIT readiness</h3><p>Input-contract and completeness check only. No FIT calculation is executed by this readiness check.</p></div></div>
@@ -59,11 +72,14 @@ function preflightPanel(state) {
 
 function summaryCards(workspace) {
   if (!workspace) return '';
-  const s = workspace.summary;
+  const summary = workspace.summary;
   const cards = [
-    ['Rows', s.totalRows], ['Visible', s.visibleRows], ['Calculated benchmark', s.calculatedRows],
-    ['Data incomplete', s.incompleteRows], ['Calculation failed', s.calculationFailedRows],
-    ['Review candidates', s.candidateForEngineeringReviewRows],
+    ['Rows', summary.totalRows],
+    ['Visible', summary.visibleRows],
+    ['FIT calculated', summary.calculatedRows],
+    ['Data incomplete', summary.incompleteRows],
+    ['Calculation failed', summary.calculationFailedRows],
+    ['Review candidates', summary.candidateForEngineeringReviewRows],
   ];
   return `<div class="vi-summary">${cards.map(([label, value]) => `<div class="vi-metric"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div>`;
 }
@@ -73,32 +89,62 @@ function filters(state) {
   return `<div class="vi-filterbar">
     <label>Line<select data-vi-filter="line"><option value="">All lines</option>${unique(sourceRows, 'line').map((value) => option(value, state.filters.line)).join('')}</select></label>
     <label>Completeness<select data-vi-filter="completeness"><option value="">All states</option>${unique(sourceRows, 'completenessStatus').map((value) => option(value, state.filters.completeness)).join('')}</select></label>
-    <label>Reference band<select data-vi-filter="band"><option value="">All bands</option>${unique(sourceRows, 'referenceBand').map((value) => option(value, state.filters.band)).join('')}</select></label>
+    <label>FIT reference band<select data-vi-filter="band"><option value="">All bands</option>${unique(sourceRows, 'referenceBand').map((value) => option(value, state.filters.band)).join('')}</select></label>
     <label>Review candidate<select data-vi-filter="candidate">${option('', state.filters.candidate, 'All')}${option('true', state.filters.candidate, 'Yes')}${option('false', state.filters.candidate, 'No')}</select></label>
     <label>Sort<select data-vi-sort="field">${['line','caseId','canonicalId','status','completenessStatus','referenceBand'].map((value) => option(value, state.sort.field, value)).join('')}</select></label>
     <label>Direction<select data-vi-sort="direction">${option('asc', state.sort.direction, 'Ascending')}${option('desc', state.sort.direction, 'Descending')}</select></label>
   </div>`;
 }
 
+function mechanismCell(assessment) {
+  if (!assessment.calculated) {
+    const reason = assessment.assessmentState === 'NOT_IMPLEMENTED'
+      ? 'Not implemented; no mechanism calculation was performed.'
+      : 'No current FIT calculation.';
+    return `<span class="vi-empty" title="${esc(reason)}">—</span>`;
+  }
+  const band = assessment.referenceBand
+    ? `<small class="vi-mono">${esc(assessment.referenceBand)}</small>`
+    : '';
+  return `<strong>${esc(assessment.lof)}</strong>${band}`;
+}
+
+function mechanismHeaders() {
+  return VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => (
+    `<th title="${esc(`${mechanism.title} · ${mechanism.sourceSection}`)}">${esc(mechanism.label)}</th>`
+  )).join('');
+}
+
 function tableRows(workspace) {
-  if (!workspace?.rows?.length) return '<tr><td colspan="12" class="vi-table-empty">No rows match the current table filters.</td></tr>';
-  return workspace.rows.map((row) => `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
-    <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
-    <td>${cell(row.caseId)}</td><td class="vi-mono">${cell(row.canonicalId)}</td>
-    <td>${cell(row.completenessStatus)}</td><td>${cell(row.standardLof)}</td><td>${cell(row.refinedLof)}</td>
-    <td>${cell(row.governingReferenceLof)}</td><td>${cell(row.referenceBand)}</td><td>${cell(row.qualificationState)}</td>
-    <td>${cell(row.phaseEvidenceStrength)}</td><td>${cell(row.correlationEvidenceStrength)}</td>
-    <td>${row.candidateForEngineeringReview ? 'Review candidate' : '<span class="vi-empty">—</span>'}</td>
-  </tr>`).join('');
+  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 7;
+  if (!workspace?.rows?.length) {
+    return `<tr><td colspan="${colspan}" class="vi-table-empty">No rows match the current table filters.</td></tr>`;
+  }
+  return workspace.rows.map((row) => {
+    const matrix = buildVibrationMechanismMatrixRow(row);
+    const governing = matrix.implementedGoverning;
+    return `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
+      <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
+      <td>${cell(row.caseId)}</td><td class="vi-mono">${cell(row.canonicalId)}</td>
+      <td>${cell(row.completenessStatus)}</td>
+      ${matrix.assessments.map(mechanismCell).map((value) => `<td>${value}</td>`).join('')}
+      <td>${governing ? `${esc(governing.mechanism.label)} · ${esc(governing.lof)}` : '<span class="vi-empty">—</span>'}</td>
+      <td>${cell(row.qualificationState)}</td>
+      <td>${row.candidateForEngineeringReview ? 'Review candidate' : '<span class="vi-empty">—</span>'}</td>
+    </tr>`;
+  }).join('');
 }
 
 function workspaceTable(state) {
-  if (!state.workspace) return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
+  if (!state.workspace) {
+    return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
+  }
   return `<section class="vi-card vi-workspace-card">
-    <div class="vi-section-head"><div><h3>Facility FIT register</h3><p>Table values are benchmark/reference results. Incomplete and failed rows remain explicit.</p></div></div>
+    <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>Line-centric mechanism matrix aligned to the EI worked-example report. Only FIT is currently executable; blank non-FIT mechanism cells are architecture placeholders and do not imply assessment or applicability.</p></div></div>
+    <div class="vi-banner warn"><strong>Mechanism authority boundary.</strong><span>FIT remains BENCHMARK ONLY. Mechanical excitation, pulsation, AIV, transients, cavitation/flashing, thermowells and SBC are NOT IMPLEMENTED in this workspace.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
-      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th><th>Standard LOF</th><th>Refined LOF</th><th>Governing ref. LOF</th><th>Reference band</th><th>Qualification</th><th>Phase evidence</th><th>Correlation evidence</th><th>Review</th>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Implemented governing</th><th>Qualification</th><th>Review</th>
     </tr></thead><tbody>${tableRows(state.workspace)}</tbody></table></div>
   </section>`;
 }
@@ -117,7 +163,7 @@ function importFacts(state) {
 
 export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
-    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Table-first FIT integrity workspace using 3D EDIT table exports and explicit operating/enrichment data.</p></div><div class="vi-authority"><strong>BENCHMARK ONLY</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric vibration integrity workspace with shared source data and a mechanism screening matrix. FIT is currently benchmark-only.</p></div><div class="vi-authority"><strong>BENCHMARK ONLY</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${renderVibrationIntegrityInputArea(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;
