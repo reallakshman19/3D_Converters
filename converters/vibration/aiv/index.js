@@ -46,6 +46,14 @@ export {
   buildAivReadinessFromTables,
 } from './aiv-readiness-tables.js';
 export {
+  AIV_SOURCE_RESULT_SCHEMA,
+  AIV_ASSESSMENT_RESULT_SCHEMA,
+  AIV_LINE_CASE_SUMMARY_SCHEMA,
+  AIV_RESULT_SET_SCHEMA,
+  AIV_RESULT_STATUS,
+  buildAivBlockedResultSet,
+} from './aiv-result-contracts.js';
+export {
   AIV_TOPOLOGY_VIEW_MODEL_SCHEMA,
   assertAivTopologyViewModel,
   buildAivTopologyViewModel,
