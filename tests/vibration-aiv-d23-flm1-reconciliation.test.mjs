@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
   AIV_D23_FLM1_RECONCILIATION_SCHEMA,
   assertAivD23Flm1ReconciliationComplete,
   createAivD23Flm1ReconciliationTemplate,
 } from '../scripts/verify-aiv-d23-flm1-reconciliation.mjs';
+
+const ROOT = new URL('../', import.meta.url);
 
 function extractionManifest() {
   return {
@@ -89,4 +92,9 @@ test('review cannot silently change authority', () => {
     () => assertAivD23Flm1ReconciliationComplete(manifest, reconciliation, { extractionManifestSha256: 'sha256:' + 'b'.repeat(64) }),
     /AIV_D23_FLM1_AUTHORITY_INVALID/u,
   );
+});
+
+test('package exposes the FLM1 reconciliation verifier command', () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL('package.json', ROOT), 'utf8'));
+  assert.equal(pkg.scripts['verify:aiv-d23-flm1-reconciliation'], 'node scripts/verify-aiv-d23-flm1-reconciliation.mjs');
 });
