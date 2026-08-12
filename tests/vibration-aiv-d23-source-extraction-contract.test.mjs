@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
   AIV_D23_EXPECTED_GIT_BLOB,
@@ -12,6 +13,7 @@ import {
   verifyD23PublishedAnchors,
 } from '../scripts/extract-aiv-ei-d23-source.mjs';
 
+const ROOT = new URL('../', import.meta.url);
 const D23 = `D.2.3 High Frequency Acoustic Excitation (see T2.7)
 Recycle temperature 136.7 deg C
 Relief PWL 164.7 dB
@@ -87,4 +89,9 @@ test('manifest is hash-only evidence and never promotes AIV numerical authority'
   assert(/^sha256:[0-9a-f]{64}$/u.test(manifest.extraction.sectionTextSha256));
   assert(!JSON.stringify(manifest).includes('High Frequency Acoustic Excitation'));
   assert(!Object.hasOwn(manifest, 'text'));
+});
+
+test('package exposes the controlled D2.3 extraction command', () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL('package.json', ROOT), 'utf8'));
+  assert.equal(pkg.scripts['extract:aiv-ei-d23-source'], 'node scripts/extract-aiv-ei-d23-source.mjs');
 });
