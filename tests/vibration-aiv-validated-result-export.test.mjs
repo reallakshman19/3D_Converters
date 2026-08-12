@@ -29,7 +29,7 @@ test('validated export package includes assumptions and retains no screening/des
   assert.equal(payload.designAuthority, false);
 });
 
-test('modified benchmark export is explicitly not applicable', () => {
+test('modified benchmark or assumption identity is explicitly not applicable to the committed receipt', () => {
   const payload = buildAivD23ValidatedExportPackage({
     assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
     benchmarkModified: true,
@@ -38,14 +38,27 @@ test('modified benchmark export is explicitly not applicable', () => {
   assert.equal(payload.benchmarkInputsModified, true);
 });
 
-test('result view shows validated values only for an unmodified controlled benchmark', () => {
-  const validated = renderAivResultShellsHtml({ benchmark: { loaded: { modified: false } } });
+test('result view shows validated values only for unchanged controlled benchmark and assumptions', () => {
+  const validated = renderAivResultShellsHtml({
+    benchmark: { loaded: { modified: false } },
+    assumptionProfileModified: false,
+  });
   assert.match(validated, /Validated EI D\.2\.3 benchmark results/u);
   assert.match(validated, /164\.6851759525391/u);
   assert.match(validated, /1\.48/u);
   assert.match(validated, /Export validation package/u);
 
-  const modified = renderAivResultShellsHtml({ benchmark: { loaded: { modified: true } } });
-  assert.doesNotMatch(modified, /Validated EI D\.2\.3 benchmark results/u);
-  assert.match(modified, /validation result is not applicable/u);
+  const tableModified = renderAivResultShellsHtml({
+    benchmark: { loaded: { modified: true } },
+    assumptionProfileModified: false,
+  });
+  assert.doesNotMatch(tableModified, /Validated EI D\.2\.3 benchmark results/u);
+  assert.match(tableModified, /validation result is not applicable/u);
+
+  const assumptionsModified = renderAivResultShellsHtml({
+    benchmark: { loaded: { modified: false } },
+    assumptionProfileModified: true,
+  });
+  assert.doesNotMatch(assumptionsModified, /Validated EI D\.2\.3 benchmark results/u);
+  assert.match(assumptionsModified, /inputs or assumptions were modified/u);
 });
