@@ -9,76 +9,77 @@
 | Base | `main` at `5f5f78e080596ccf70f7f19c03fbd4050e6993ab` |
 | Branch | `agent/fit-vibration-release-gate` |
 | PR | #440 — `test(vibration): add FIT/VIB release verification gate` |
-| PR state | OPEN / DRAFT |
-| Current stage | **Stage 4 — IMPLEMENTATION** |
+| PR state | OPEN / DRAFT / MERGEABLE at latest check |
+| Current stage | **Stage 5 — PARTIAL: implementation/source validation complete; repository execution NOT_RUN** |
 | Engineering authority | FIT remains `BENCHMARK_ONLY`; screening/design authority remains NOT AUTHORIZED. |
 | Product boundary | Table-only vibration product; no 3D/canvas/model runtime. |
 
 ## Handover in 60 Seconds
 
-PR #438 is merged. PR #440 makes the complete merged FIT/VIB regression runnable from a normal checkout with one fail-fast command and a controlled list of existing tests. This environment cannot execute the private checkout because normal GitHub network access is unavailable, so this PR must not claim runtime PASS evidence it cannot produce.
-
-Product path remains:
+PR #438 is merged. PR #440 adds one command for the complete merged FIT/VIB regression:
 
 ```text
-Engineering Calculations
-  -> Calculations
-     -> Vibration & Dynamic Screening (6)
-        -> FIT benchmark workspace
+npm run verify:vibration-fit-release
 ```
+
+The command executes 25 controlled test files in four fail-fast groups covering central Engineering API/Console, FIT source/method evidence, table/facility workflow, and workspace/UI/architecture boundaries.
+
+This runtime cannot obtain the private repository over normal network access. Therefore the release command itself remains `NOT_RUN`; no prior-head PASS result is relabeled as current-head evidence.
 
 ## Mission / Engineering Intent
 
-1. Provide one deterministic command for the merged FIT/VIB release regression.
-2. Run existing tests only; do not create a second numerical path.
-3. Stop later test groups after the first failed group.
-4. Include central Engineering API/core and Console/VIB-family tests because the product surface depends on them.
-5. Include source extraction/reference/EI/hand benchmark evidence tests.
-6. Include exchange/dataset/facility/tabular/workspace/UI tests required by the merged product.
-7. Keep the test manifest explicit and reviewable in source.
-8. Do not modify FIT equations, coefficients, applicability, LOF semantics or authority state.
-9. Do not add AIV/SBC/cavitation/surge/slug numerical code.
-10. Do not add or modify GitHub Actions; external runner/billing limitations are not solved by workflow churn.
-11. Preserve evidence chronology: older full/focused runs remain prior-head evidence, not current-head PASS.
+1. One deterministic command for merged FIT/VIB release regression.
+2. Existing tests only; no second numerical path.
+3. Later test groups do not run after a failed group.
+4. Central Engineering API/core and Console/VIB-family seams are included.
+5. FIT source extraction/reference/EI/hand-benchmark evidence is included.
+6. Exchange/dataset/facility/tabular/workspace/UI seams are included.
+7. Test manifest is explicit and self-checked.
+8. No FIT equation/coefficient/applicability/LOF/authority changes.
+9. No AIV/SBC/cavitation/surge/slug numerical code.
+10. No GitHub Actions/workflow changes.
+11. Prior validation chronology remains explicit.
 
 ## Mission Status
 
 | Work item | Status |
 |---|---|
-| Inspect current package/release-script conventions | DONE |
-| Define exact FIT/VIB release test manifest | DONE |
-| Allocate draft PR #440 | DONE |
-| Rename report to PR number | DONE |
-| Pre-code changed-file verification | PASS |
-| Add release verification script | IN_PROGRESS |
-| Add package command | NOT_STARTED |
-| Add release-gate contract test | NOT_STARTED |
-| Run release gate in this environment | BLOCKED_ENVIRONMENT |
-| Full current-head execution in normal checkout | NOT_RUN |
+| Release test manifest | DONE — 25 files / 4 groups |
+| Release verification runner | IMPLEMENTED |
+| Package command | IMPLEMENTED |
+| Release-gate contract test | IMPLEMENTED |
+| Pre-code changed-file reconciliation | PASS |
+| Final changed-file reconciliation | PASS |
+| Runner source review | PASS |
+| Contract-test source review | PASS |
+| Local syntax-only check of new JS | PASS — Node v22.16.0 |
+| `npm run verify:vibration-fit-release` | NOT_RUN — private checkout unavailable |
+| GitHub Actions execution | BLOCKED_EXTERNAL_PRE_RUN |
 | Engineering authority review / approval | BLOCKED_EXTERNAL_REVIEW |
 
 ## Engineering Item Register
 
 | ID | Type | Status | Summary |
 |---|---|---|---|
-| DEC-001 | Decision | ACCEPTED | Use a repository-local fail-fast Node runner, consistent with `verify:inputxml-release`. |
-| DEC-002 | Decision | ACCEPTED | No workflow/CI infrastructure change in this assignment. |
-| DEC-003 | Decision | ACCEPTED | Release gate runs existing tests and never promotes engineering authority. |
-| DEC-004 | Decision | ACCEPTED | Group tests into core/Console, FIT engineering evidence, facility/tabular, and workspace/UI seams. |
-| DEC-005 | Decision | ACCEPTED | Release-gate contract test imports the manifest without executing the runner and verifies critical coverage/no duplicates/existing files. |
-| RISK-001 | Risk | MITIGATING | Explicit manifest + contract test prevents accidental duplicate/missing critical seams. |
-| RISK-002 | Risk | ACTIVE | This environment cannot execute the private repository checkout; validation must remain `NOT_RUN`. |
+| DEC-001 | Decision | ACCEPTED | Repository-local Node release runner follows existing `verify:inputxml-release` pattern. |
+| DEC-002 | Decision | ACCEPTED | No workflow/CI infrastructure change. |
+| DEC-003 | Decision | ACCEPTED | Release gate runs tests only and cannot promote engineering authority. |
+| DEC-004 | Decision | ACCEPTED | Four groups: core/Console, FIT evidence, facility/tabular, workspace/UI. |
+| DEC-005 | Decision | ACCEPTED | Self-contract locks command, group IDs, critical seams, duplicate-free manifest and real test paths. |
+| RISK-001 | Risk | MITIGATED | Critical seam omissions/duplicates are guarded by `vibration-fit-release-gate.test.mjs`. |
+| RISK-002 | Risk | ACTIVE | Full current-head repository execution has not occurred. |
+| ISS-001 | External CI | BLOCKED_EXTERNAL_PRE_RUN | Actions run `31565347518` created a job with `runner_id=0` and `steps=[]`; no test step executed. |
 | QST-001 | Question | BLOCKED_EXTERNAL | Independent vibration-engineering approval remains outside software self-approval. |
 
 ## Exact Release Test Manifest
 
-### Group A — central API / Console / product entry
+### Group A — Engineering API / Console / product entry
 
 - `tests/engineering-calculation-core.test.mjs`
 - `tests/engineering-calculation-console-static.test.mjs`
 - `tests/engineering-calculation-console-fit-preflight.test.mjs`
 
-### Group B — FIT method/source/evidence
+### Group B — FIT source / method / evidence
 
 - `tests/fit-workbook-source-extractor.test.mjs`
 - `tests/vibration-fit-workbook-reference.test.mjs`
@@ -88,7 +89,7 @@ Engineering Calculations
 - `tests/vibration-fit-qualification-coverage.test.mjs`
 - `tests/vibration-fit-screening-candidate.test.mjs`
 
-### Group C — table exchange / dataset / facility execution
+### Group C — table / dataset / facility workflow
 
 - `tests/vibration-table-exchange.test.mjs`
 - `tests/vibration-tabular-input.test.mjs`
@@ -107,95 +108,114 @@ Engineering Calculations
 - `tests/vibration-integrity-detail-view.test.mjs`
 - `tests/vibration-integrity-tab-static.test.mjs`
 - `tests/vibration-module-boundaries.test.mjs`
-- `tests/vibration-fit-release-gate.test.mjs` (new self-contract)
+- `tests/vibration-fit-release-gate.test.mjs`
 
 ## Stage Protocol
 
-### Stage 1 — Report / findings
+### Stage 1 — report / findings
 
-Status: COMPLETE.
-
-Findings:
-
-- `package.json` has no FIT/VIB verification command.
-- `scripts/verify-inputxml-release.mjs` establishes the repository pattern for a fail-fast release command.
-- PR #438 merged all product layers and the tests listed above.
-- Normal network access from this runtime fails, so execution evidence cannot be generated here.
-
-Decision: implement a local release runner only; do not add workflow infrastructure or authority changes.
+Decision: add a local release runner only. `package.json` had no FIT/VIB release command; existing InputXML release verification established the repository pattern. COMPLETE.
 
 ### Stage 2 — PR allocation / sync
 
-Status: COMPLETE.
-
-- Draft PR #440 created from merged main `5f5f78e...`.
-- `agents/PR_PENDING_workreport.md` renamed to `agents/PR440_workreport.md` and pending report removed.
+Draft PR #440 created from merged main. `PR_PENDING` report renamed to `PR440` and removed. COMPLETE.
 
 ### Stage 3 — changed-file verification
 
-Status: COMPLETE / PASS.
-
-Pre-code PR diff was exactly:
+Pre-code diff was exactly:
 
 ```text
 agents/PR440_workreport.md
 ```
 
-No production or unrelated files were present before implementation.
+COMPLETE / PASS.
 
 ### Stage 4 — implementation
 
-Status: IN_PROGRESS.
+Implemented:
 
-Planned files:
+```text
+scripts/verify-vibration-fit-release.mjs
+package.json -> verify:vibration-fit-release
+tests/vibration-fit-release-gate.test.mjs
+```
 
-- `scripts/verify-vibration-fit-release.mjs`
-- `package.json`
-- `tests/vibration-fit-release-gate.test.mjs`
+Runner behavior:
+
+- validates all manifest paths exist;
+- rejects duplicate paths;
+- invokes Node test runner by product-layer group;
+- stops before later groups after a failed group;
+- prints PASS only after all four groups return zero;
+- can be imported by the self-contract without executing itself.
+
+COMPLETE.
 
 ### Stage 5 — validation / closure
 
-Status: NOT_STARTED.
+Decision: **PARTIAL**.
+
+Completed evidence:
+
+- final diff contains only four assignment files;
+- package change is one release command;
+- runner source is validation-only;
+- contract test locks 25-file manifest and critical seams;
+- exact new runner/test contents pass `node --check` under Node v22.16.0;
+- PR is mergeable at latest check.
+
+Not completed:
+
+- repository-level execution of `npm run verify:vibration-fit-release`;
+- real XLSX/browser current-head integration run;
+- independent engineering authority approval.
+
+The GitHub Actions failure is not classified as a test failure because run `31565347518` allocated no runner and executed zero steps.
 
 ## Changed-File Ledger
 
-Expected final assignment-only files:
+Final PR paths:
 
-- `agents/PR440_workreport.md`;
-- `scripts/verify-vibration-fit-release.mjs`;
-- `package.json`;
-- `tests/vibration-fit-release-gate.test.mjs`.
+```text
+agents/PR440_workreport.md
+package.json
+scripts/verify-vibration-fit-release.mjs
+tests/vibration-fit-release-gate.test.mjs
+```
 
-No production vibration kernel files are planned.
+No production vibration kernel, UI product behavior, table contract, workflow or engineering authority file changed.
 
 ## Validation Ledger
 
 | Check | Status |
 |---|---|
-| Source review of package/release-script convention | PASS |
 | Pre-code changed-file reconciliation | PASS |
-| Release-gate contract test source review | NOT_RUN |
-| Release runner source review | NOT_RUN |
-| `npm run verify:vibration-fit-release` | NOT_RUN / environment cannot checkout private repo |
-| Full current-head browser/XLSX integration | NOT_RUN |
-| Engineering screening authority | NOT_AUTHORIZED |
+| Final changed-file reconciliation | PASS |
+| Release runner source review | PASS |
+| Release-gate contract source review | PASS |
+| Exact new JS syntax under Node v22.16.0 | PASS |
+| `npm run verify:vibration-fit-release` | NOT_RUN |
+| Current-head real XLSX/browser integration | NOT_RUN |
+| Actions run `31565347518` | BLOCKED_EXTERNAL_PRE_RUN — `runner_id=0`, `steps=[]` |
+| Screening/design authority | NOT_AUTHORIZED |
 
 ## Known / Deferred Work
 
-- Execute the new release command in a normal authenticated checkout with Node/dependencies available.
-- Record exact PASS/FAIL output in this report/PR when available.
-- Complete adopted EI/project method review and independent vibration-engineer approval before any authority promotion.
+- Run `npm run verify:vibration-fit-release` in a normal authenticated checkout with dependencies installed.
+- Attach exact output and test count to PR #440 / this report.
+- Complete adopted EI/project method review and independent vibration-engineer approval before any `SCREENING` promotion.
 
 ## Forward Sequence
 
-1. Implement one-command release gate, package command and self-contract.
-2. Reconcile final changed files.
-3. Source-review final diff and keep runtime status explicit.
-4. Leave PR draft until actual current-head execution evidence is attached, unless owner explicitly directs otherwise.
+1. Obtain real current-head release-gate execution evidence.
+2. If PASS, update this report/PR and merge PR #440.
+3. Continue issue #429 authority review; do not self-promote FIT.
+4. After FIT software gate is clean, the next independent mechanism qualification track may begin (AIV first per the existing roadmap) while remaining BLOCKED until its own source/method evidence closes.
 
 ## Next-Agent Handover
 
-- PR #440 is validation-only.
-- Do not change FIT engineering authority.
-- Do not add workflow infrastructure or unrelated tests.
-- Keep the gate deterministic and reviewable.
+- PR #440 is validation-only and currently draft.
+- Exact command: `npm run verify:vibration-fit-release`.
+- Do not merge based only on syntax/source review unless owner explicitly directs it.
+- Do not change FIT engineering authority in this PR.
+- Preserve table-only/no-3D boundary.
