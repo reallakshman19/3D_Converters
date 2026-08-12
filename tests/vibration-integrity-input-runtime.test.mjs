@@ -9,6 +9,7 @@ import {
 import {
   createTopologyInputTableFromExchange,
   updateVibrationIntegrityInputCell,
+  VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS,
 } from '../tabs/vibration-integrity-input-model.js';
 
 function certifiedExchange() {
@@ -44,7 +45,10 @@ test('first topology edit downgrades certified XLSX to a visible local Elements 
   const input = vibrationIntegrityTopologyExecutionInput(state);
   assert.equal(input.format, 'CSV_ELEMENTS_ONLY');
   assert.equal(input.sourceFileName, 'plant-certified.edited-elements.csv');
+  assert.equal(state.tables.topology.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
   assert.match(input.data, /L-1-EDITED/u);
+  assert.match(input.data, new RegExp(VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS, 'u'));
+  assert.doesNotMatch(input.data, /,CERTIFIED,/u);
   assert.doesNotMatch(input.sourceFileName, /\.xlsx$/iu);
 });
 
