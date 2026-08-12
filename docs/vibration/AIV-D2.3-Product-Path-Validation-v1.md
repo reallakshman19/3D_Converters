@@ -16,18 +16,16 @@ human evidence required  false
 
 Machine-readable receipt: `docs/vibration/validation/AIV-D2.3-Product-Path-Validation-v1.json`.
 
-The validation uses the same controlled D.2.3 Source / Assessment / Source→Assessment working-table values used by the AIV UI benchmark loader. Stages 1–7 use the existing production-shaped candidate. Stages 8–10 are executed by `scripts/aiv-auto-product-path.mjs` using the already-controlled qualification math helpers.
+The validation uses the same controlled D.2.3 Source / Assessment / Source→Assessment working-table values used by the AIV UI benchmark loader. Stages 1–7 use the production-shaped candidate. Stages 8–10 are executed by `scripts/aiv-auto-product-path.mjs` using the controlled qualification math helpers.
 
 ## Scope rule
-
-Two published results are intentionally kept separate:
 
 ```text
 first weldolet assessment LOF = 0.29   -> ASSESSMENT
 relief-line report LOF        = 1.48   -> LINE_CASE_SUMMARY
 ```
 
-The line value is a visible configurable assumption (`benchmark.workedExampleReliefLineLof`). It is **not** derived from the first-discontinuity LOF because the worked example does not expose enough line aggregation detail to reconstruct that derivation.
+The line value is a visible configurable assumption (`benchmark.workedExampleReliefLineLof`). It is not derived from the first-discontinuity LOF because the worked example does not expose enough line aggregation detail to reconstruct that derivation.
 
 ## Step-by-step validation
 
@@ -94,21 +92,31 @@ Separate line/case scope
 configured relief-line LOF -> 1.48
 ```
 
+## Validated result/export behavior
+
+The unchanged controlled benchmark now exposes validated `AivSourceResult.v1`, `AivAssessmentResult.v1`, T2-6 detail and `AivLineCaseSummary.v1`, and can export `AivValidatedBenchmarkExportPackage.v1`.
+
+The validation identity fails closed:
+
+```text
+edit table cell             -> committed validation not applicable
+edit benchmark assumption   -> committed validation not applicable
+reload EI D.2.3              -> restores controlled inputs/default assumptions
+```
+
 ## AUTO stage result
 
 ```text
 16B.1  stages 1–7 candidate                         COMPLETE
 16B.2  assumption/configuration model               COMPLETE
 16B.3  stages 8–10 benchmark implementation         COMPLETE
-17     D.2.3 product-path parity                    PASS / validation record created
-18     benchmark result detail + assumptions/export NEXT
-19     exact-head BENCHMARK_ONLY validation         after Stage 18
+17     D.2.3 product-path parity                    COMPLETE / PASS
+18     benchmark result detail + assumptions/export COMPLETE
+19     exact-head BENCHMARK_ONLY validation         NEXT
 20     SCREENING qualification                      later
 ```
 
 ## Authority after validation
-
-This record is benchmark-validation evidence. It does not itself change the current registry state:
 
 ```text
 calculationState      = BLOCKED
@@ -118,4 +126,4 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-The next AUTO implementation stage is Stage 18: wire the calculated benchmark Source / Assessment / Line results, assumptions and validation/export detail into the operator workspace. After that, run exact-head validation and evaluate the BENCHMARK_ONLY release transition.
+Stage 19 requires an actual exact-head Node/browser execution and a passing `AivReleaseValidationReceipt.v1`. The current GitHub Actions budget condition produces zero-step jobs, so it remains `NOT_RUN` rather than being treated as release evidence.
