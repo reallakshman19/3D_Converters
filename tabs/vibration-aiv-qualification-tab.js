@@ -17,6 +17,7 @@ import {
 } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
+import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
@@ -192,6 +193,23 @@ export function renderAivQualificationWorkspace(container) {
     }
   }
 
+  function exportValidatedBenchmark() {
+    if (!state.benchmark.loaded || state.benchmark.loaded.modified) {
+      state.error = 'AIV_D23_VALIDATION_NOT_APPLICABLE: Reload the controlled EI D.2.3 benchmark before exporting its validated result package.';
+      render();
+      return;
+    }
+    const payload = buildAivD23ValidatedExportPackage({
+      assumptionProfile: state.assumptionProfile,
+      benchmarkModified: false,
+    });
+    downloadText(
+      `${JSON.stringify(payload, null, 2)}\n`,
+      'aiv-d23-validated-benchmark-package.json',
+      'application/json;charset=utf-8',
+    );
+  }
+
   function handleTableClick(event) {
     const addKind = event.target.closest('[data-aiv-table-add]')?.dataset.aivTableAdd;
     if (addKind) {
@@ -219,6 +237,7 @@ export function renderAivQualificationWorkspace(container) {
     if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
     if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
     if (action === 'check-readiness') checkReadiness();
+    if (action === 'export-d23-validation') exportValidatedBenchmark();
     if (action === 'reset-assumptions') {
       state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
       clearReadiness();
