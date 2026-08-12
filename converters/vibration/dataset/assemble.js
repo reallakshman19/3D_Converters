@@ -1,4 +1,4 @@
-import { assertVibrationTableExchange } from '../exchange/index.js';
+import { assertVibrationTableExchangeShape } from '../exchange/schema.js';
 import {
   VIBRATION_INTEGRITY_DATASET_AUTHORITY,
   VIBRATION_INTEGRITY_DATASET_SCHEMA,
@@ -293,7 +293,7 @@ function datasetWarnings(exchange, lines, unassignedElementCanonicalIds) {
 }
 
 export function assembleVibrationIntegrityDataset(input = {}, options = {}) {
-  const exchange = assertVibrationTableExchange(input.exchange, {
+  const exchange = assertVibrationTableExchangeShape(input.exchange, {
     requireCompleteExchange: options.allowLimitedExchange !== true,
   });
   const lines = knownLines(exchange);
