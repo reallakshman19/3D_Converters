@@ -2,113 +2,198 @@
 
 ## Purpose
 
-The **FIT Vibration Integrity workspace** is the first visible table-only product surface for the FIT benchmark workflow. It is reached from the existing **Vibration & Dynamic Screening** calculation family rather than through a standalone navigation item or a new Engineering subtab.
-
-It consumes public vibration APIs. It does not contain FIT equations, method constants, unit conversions, applicability logic or engineering-authority decisions.
-
-## Navigation
+The **FIT Vibration Integrity workspace** is the table-only product surface for the FIT benchmark workflow. It is reached through the existing calculation family:
 
 ```text
-Engineering
-  Engineering Calculations
-    Calculations
-      Vibration & Dynamic Screening (6)
-        Acoustic-Induced Vibration Screening          BLOCKED
-        Cavitation / Flashing Screening               BLOCKED
-        Flow-Induced Vibration Screening              BENCHMARK_ONLY -> FIT workspace
-        Small-Bore Connection Vibration Screening     BLOCKED
-        Slug Load / Time-History Assessment           BLOCKED
-        Surge / Momentum Load Screening               BLOCKED
-    B31.3 Material Factors
-    Empirical Weight Tuning
-    HP Piping Class
+Engineering Calculations
+  -> Calculations
+     -> Vibration & Dynamic Screening (6)
+        -> Flow-Induced Vibration Screening
+           -> Open FIT workspace
 ```
 
-`core/engineering-tabs-extension.js` and `tabs/engineering-workspace-tab.js` retain the current-main Engineering workspace hierarchy. No new Vibrations subtab is added.
+There is no standalone Vibration Integrity navigation item and no additional Engineering Vibrations subtab.
 
-Inside `tabs/engineering-calculations-tab.js`, selecting the registered VIB family opens the family landing surface rendered by `tabs/engineering-calculation-vibration-family.js`. Selecting FIT uses the existing registered `VIB.FIV.FLOW_TURBULENCE` definition and dynamically mounts `tabs/vibration-integrity-tab.js` in the Console product host.
+The workspace contains no FIT equations, constants, applicability decisions or engineering-authority logic. Numerical execution remains in the central Engineering Calculation API.
 
-## Vibration family landing
-
-The family landing is a mechanism selector backed directly by registered calculation definitions. Authority/status badges therefore come from each definition rather than UI hard-coding.
-
-Current family:
-
-```text
-Vibration & Dynamic Screening
-6 mechanisms
-```
-
-FIT is the only mechanism with an implemented benchmark/reference path. The other five mechanisms retain their registered `BLOCKED` state under issue #429.
-
-The family landing contains:
-
-- the mechanism name and stable calculation ID;
-- registered qualification state;
-- qualification issue reference;
-- declared applicability/limitations;
-- explicit `Design authority: NO`;
-- **Open FIT workspace** only for `VIB.FIV.FLOW_TURBULENCE`;
-- **View qualification basis** for blocked mechanisms.
-
-The landing layer contains no `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` call and no 3D/canvas behavior.
-
-## Product boundary
-
-The vibration product contains no 3D viewer or canvas.
+## Permanent product boundary
 
 ```text
 Advanced_Analysis 3D EDIT
         |
-        | table export only
+        | certified table export only
         v
-Engineering Calculations / Vibration & Dynamic Screening
+FIT Vibration Integrity
         |
-        v
-FIT Vibration Integrity workspace
+        +--> editable working tables
+        +--> readiness
+        +--> benchmark execution
+        +--> evidence / register
 ```
 
-The phrase “3D EDIT” identifies the upstream source product; no model renderer or geometry interaction is embedded downstream.
+No 3D viewer, canvas, geometry renderer, model picker or embedded Advanced_Analysis runtime is part of the vibration product.
 
-## Authority banner
+## Engineering authority
 
-The FIT workspace always displays:
+The workspace always displays:
 
 ```text
 BENCHMARK ONLY
 NOT SCREENING / DESIGN AUTHORITY
 ```
 
-There is no qualification-mode selector in the table workspace.
+There is no qualification-mode selector and no `Pass`, `Safe`, universal vibration score, risk score or confidence score.
 
-## Imports
+## Load BENCHMARK
 
-### 3D EDIT table export
-
-Accepted:
+The workspace exposes a **Load BENCHMARK** action backed by the controlled EI worked-example set:
 
 ```text
-.xlsx  -> complete five-sheet exchange expected
-.csv   -> Elements-only limited exchange
+FIT-EI-WORKED-EXAMPLES-V1
+Energy Institute / AVIFF 2nd Edition
+Appendix D D2 / D4
 ```
 
-XLSX is preferred because the current five-sheet export preserves Connections, Source Mapping, Catalogue Evidence and Export Metadata.
+Available cases are the same five cases controlled in:
 
-When CSV is selected the workspace displays a limited-provenance warning. Readiness/benchmark work still requires the explicit **Allow limited Elements-only CSV** opt-in where a complete exchange would otherwise be required.
+```text
+Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json
+```
+
+The UI case catalogue is regression-bound to that source file; it does not invent separate demonstration values.
+
+Loading a benchmark populates the same three working tables used for project data:
+
+```text
+Topology · Elements working table
+Operating cases
+Vibration enrichment
+```
+
+The user can inspect every input before running the normal benchmark workflow.
+
+### Published target versus actual
+
+For an untouched controlled case the benchmark card shows:
+
+- EI source/example location;
+- published standard LOF;
+- published reference band;
+- published support category/stiffness where available;
+- calculated standard LOF;
+- calculated reference band;
+- relative LOF delta;
+- benchmark parity status.
+
+The controlled relative tolerance remains the tolerance in the benchmark evidence dataset.
+
+Benchmark parity is **validation evidence only**. It is not FIT screening/design acceptance.
+
+### Modified benchmark behavior
+
+The first edit to any loaded benchmark working table marks that benchmark as modified and clears stale readiness/results.
+
+The original published target remains visible only as a reference to the original EI case. The UI then reports:
+
+```text
+Not applicable · inputs modified
+```
+
+It must not display an official benchmark parity PASS/FAIL for changed inputs. Reload **Load BENCHMARK** to restore the exact controlled case.
+
+## Editable working tables
+
+All visible FIT input data is represented in editable raw-contract tables before readiness/execution.
+
+### Topology · Elements
+
+Columns are exactly the `TopologyEditTableHumanExport.v1` Elements columns.
+
+The table supports:
+
+- cell editing;
+- add row;
+- delete row;
+- Elements CSV import;
+- Elements view populated from a complete five-sheet XLSX.
 
 ### Operating cases
 
-Strict `VibrationOperatingCaseCsv.v1` input. The workspace offers a header-only template download.
+Columns are exactly `VibrationOperatingCaseCsv.v1`.
+
+CSV import first populates the visible table. The current table cells—not hidden original upload bytes—are serialized through the existing strict parser contract for readiness/execution.
 
 ### Vibration enrichment
 
-Strict `VibrationEnrichmentCsv.v1` input. The workspace offers a header-only template download.
+Columns are exactly `VibrationEnrichmentCsv.v1`.
 
-The workspace does not infer missing tables, units, geometry values or process values.
+The same rule applies: CSV import populates editable rows and the current rows become the execution input.
 
-## Readiness versus numerical execution
+The workspace does not infer missing units, geometry, process quantities or enrichment values.
 
-The visible workflow deliberately separates:
+## Topology provenance and editing
+
+### Unedited certified XLSX
+
+A valid complete five-sheet XLSX is parsed to display its Elements rows, but while the Elements working table remains unmodified the numerical workflow still consumes the original XLSX exchange. This preserves the richer declared exchange evidence:
+
+```text
+Elements
+Connections
+Source Mapping
+Catalogue Evidence
+Export Metadata
+```
+
+### First topology edit
+
+The first topology cell edit, row addition or row deletion intentionally breaks the link to certified topology authority for execution.
+
+The workflow switches to a serialized local Elements-only working file named like:
+
+```text
+plant-certified.edited-elements.csv
+```
+
+The UI automatically treats this as limited input and displays a warning that Connections, Source Mapping, Catalogue Evidence and Export Metadata are not claimed for the edited working copy.
+
+The vibration product does **not** re-certify edited topology.
+
+### Generic Elements CSV
+
+A header-compatible Elements CSV is parsed with:
+
+```text
+sourceSystem = UNVERIFIED_ELEMENTS_CSV
+completeExchange = false
+integrityStatus = LIMITED_ELEMENTS_ONLY
+```
+
+Header compatibility alone does not establish that the CSV was produced by certified Advanced_Analysis 3D EDIT. Authority hashes remain null and an explicit unverified-source warning is retained.
+
+## Import behavior
+
+Accepted topology inputs:
+
+```text
+.xlsx  -> complete five-sheet exchange expected
+.csv   -> Elements-only limited/unverified exchange
+```
+
+The user may also load:
+
+```text
+VibrationOperatingCaseCsv.v1
+VibrationEnrichmentCsv.v1
+```
+
+Both CSVs become editable working tables immediately after load.
+
+Header-only template downloads remain available.
+
+## Readiness versus execution
+
+The workflow remains deliberately separated:
 
 ```text
 Check readiness
@@ -117,11 +202,9 @@ Run FIT benchmark
 
 ### Check readiness
 
-`buildVibrationFacilityFitPreflightFromTables()` parses the same topology/process/enrichment tables, assembles `VibrationIntegrityDataset.v1`, builds `VibrationFacilityFitPlan.v1`, and stops.
+`buildVibrationFacilityFitPreflightFromTables()` consumes the **current working tables**, assembles the dataset/plan and stops before numerical execution.
 
-It does not execute the central Engineering Calculation API.
-
-Visible readiness columns:
+Visible readiness fields remain:
 
 ```text
 Line
@@ -134,19 +217,38 @@ Reasons
 Request prepared
 ```
 
-The readiness panel contains no LOF or reference-result columns.
+No LOF fields are shown in readiness.
 
 ### Run FIT benchmark
 
-The full benchmark workflow is dynamically imported only after the operator explicitly selects **Run FIT benchmark**.
+The numerical benchmark workflow is dynamically imported only after the explicit **Run FIT benchmark** action.
 
-The controller then calls `runVibrationFacilityFitBenchmarkFromTables()`, which remains benchmark-only and delegates numerical execution to the central Engineering Calculation API.
+The controller calls `runVibrationFacilityFitBenchmarkFromTables()` with the current working table data. That workflow delegates numerical execution to the central Engineering Calculation API.
 
-The FIT workspace UI does not call `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` directly.
+The FIT UI never calls:
 
-## Facility table
+```text
+calculateFit()
+calculateEngineering()
+calculateEngineeringBatch()
+```
 
-Columns:
+directly.
+
+## Mutation semantics
+
+Any working-table mutation:
+
+1. marks that table dirty;
+2. clears stale readiness/result/workspace state;
+3. marks an active benchmark modified;
+4. for topology mutation, enables limited-exchange behavior and uses local Elements CSV on the next run.
+
+This prevents results from remaining visible against inputs that no longer produced them.
+
+## Facility register
+
+The existing facility register remains unchanged in engineering semantics. It displays benchmark/reference outputs such as:
 
 ```text
 Line
@@ -163,43 +265,11 @@ Correlation evidence
 Review candidate
 ```
 
-A row that was not calculated retains blank numerical cells and an explicit completeness state. The table never substitutes zero.
+Non-calculated rows retain blank numerical cells; zero is never substituted.
 
-The workspace intentionally has no `Pass`, `Safe`, `Risk Score`, `Facility Score` or `Vibration Score` field.
+## Structured detail
 
-## Summary
-
-The visible summary keeps independent dimensions:
-
-```text
-Rows
-Visible
-Calculated benchmark
-Data incomplete
-Calculation failed
-Review candidates
-```
-
-These counts are workflow/read-model facts, not engineering risk aggregation.
-
-## Filters and sort
-
-Presentation controls:
-
-```text
-Line
-Completeness
-Reference band
-Review candidate
-Sort field
-Sort direction
-```
-
-The underlying workspace model permits only non-numerical presentation sorts. Governing LOF ranking is not a v1 workspace feature.
-
-## Structured row detail
-
-Selecting a row exposes:
+Selecting a result row retains the existing structured views:
 
 ```text
 Summary
@@ -210,84 +280,30 @@ Source
 Diagnostics
 ```
 
-The detail renderer is `tabs/vibration-integrity-detail-view.js`. It consumes only `VibrationWorkspaceModel.v1` detail data and does not calculate or resolve values.
-
-### Summary
-
-Keeps identity, reference-result values and qualification/evidence dimensions visibly separate.
-
-### Inputs
-
-Displays the prepared benchmark request as:
-
-```text
-Input | Value | Unit | Source context
-```
-
-No prepared request means no fabricated Inputs table.
-
-### Case
-
-Shows operating-case identity/provenance, process quantity value/unit/reference rows, and exact Canonical-ID enrichment rows:
-
-```text
-Property | Case scope | Value | Unit | Source | Revision | Status | Reviewer
-```
-
-### Evidence
-
-Shows the actual qualification model and evidence coverage rather than a synthesized confidence score:
-
-```text
-Qualification
-Phase / hydraulic-path evidence
-Standard-correlation evidence
-Advanced-correlation evidence
-Reference-band evidence
-Engineering-review candidate metadata
-Calculation equation IDs / input resolution
-```
-
-The view explicitly retains:
-
-```text
-pointCoverageOnly
-domainCoverageEstablished
-screeningAuthorized
-engineeringAuthority
-```
-
-so an EI-worked-example review candidate cannot appear to be authorized screening.
-
-### Source
-
-Displays assessment-point, operating-case and geometry/vibration source trace with revisions/record IDs/status/reviewer/selection where available.
-
-### Diagnostics
-
-Displays missing, invalid, error-code and central-error information. No error is converted to a numerical result.
-
-All imported/source strings are HTML-escaped by the renderer.
+Evidence dimensions remain separate; the UI does not collapse them into a confidence/risk score.
 
 ## Register export
 
-The workspace exports the existing `VibrationFacilityFitRegister.v1` through `serializeVibrationFacilityFitRegisterCsv()`.
+`VibrationFacilityFitRegister.v1` can still be exported through `serializeVibrationFacilityFitRegisterCsv()`.
 
-The exported CSV preserves benchmark/evidence/authority fields and blank non-calculated numerical cells.
+## Validation / release gate
 
-## Styling
+The one-command release gate remains:
 
-The family landing uses `tabs/engineering-calculations.css`, preserving the existing Console visual language. `tabs/vibration-integrity.css` owns the table workspace presentation. Benchmark limitation is highlighted, but calculated rows are not colored as “safe” or “pass.” Structured detail uses tables rather than raw JSON-heavy panels.
+```bash
+npm run verify:vibration-fit-release
+```
+
+It includes the editable-table, UI benchmark mapping, topology-provenance and working-input runtime regressions in addition to the existing FIT engineering/workflow/UI tests.
 
 ## Non-goals
 
-- no new Engineering Vibrations subtab;
-- no standalone Vibration Integrity navigation item;
-- no 3D or canvas;
-- no geometry rendering;
-- no direct engineering calculation in the family landing or FIT workspace UI;
-- no method qualification promotion;
-- no pass/safe claim;
-- no universal risk/confidence score;
+- no new Engineering navigation item;
+- no 3D/canvas/model editing;
+- no FIT equation or method-authority change;
+- no screening/design promotion;
+- no UI-side calculation;
+- no local topology re-certification;
+- no universal score or safe/pass claim;
 - no hidden engineering defaults;
-- no issue #429 closure.
+- no AIV implementation in this workspace change.
