@@ -126,7 +126,7 @@ function importFacts(state) {
 
 export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
-    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Table-first FIT integrity workspace using certified 3D EDIT exports and explicit operating/enrichment data.</p></div><div class="vi-authority"><strong>BENCHMARK ONLY</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Table-first FIT integrity workspace using 3D EDIT table exports and explicit operating/enrichment data.</p></div><div class="vi-authority"><strong>BENCHMARK ONLY</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${importPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;
