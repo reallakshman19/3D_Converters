@@ -21,6 +21,16 @@ export function isEngineeringCalculationExecutable(definition) {
   return Boolean(definition?.id) && !NON_EXECUTABLE_STATES.has(stateOf(definition));
 }
 
+export function canResolveEngineeringCalculation(definition) {
+  return isEngineeringCalculationExecutable(definition);
+}
+
+export function canExecuteEngineeringCalculation(definition, qualificationMode = 'strict') {
+  if (!isEngineeringCalculationExecutable(definition)) return false;
+  const required = definition?.ui?.requiredQualificationMode;
+  return !required || required === qualificationMode;
+}
+
 export function createEngineeringConsoleDraft(definition, seed = {}) {
   const values = {};
   const units = {};
@@ -65,7 +75,6 @@ export function parseEngineeringConsoleField(field, raw) {
   const blank = raw === '' || raw === undefined || raw === null;
   if (blank && !field.required) return { included: false, value: undefined };
   if (blank) throw new TypeError(`${field.label ?? field.key} is required`);
-
   if (field.type === 'number' || !field.type) {
     const value = Number(raw);
     if (!Number.isFinite(value)) throw new TypeError('must be a finite number');
@@ -131,7 +140,9 @@ export function parseEngineeringBatchEditor(text) {
     return { ok: false, error: `Invalid batch JSON: ${error.message}` };
   }
   const requests = Array.isArray(parsed) ? parsed : parsed?.requests;
-  if (!Array.isArray(requests)) return { ok: false, error: 'Batch JSON must be an array or an object with requests[].' };
+  if (!Array.isArray(requests)) {
+    return { ok: false, error: 'Batch JSON must be an array or an object with requests[].' };
+  }
   return { ok: true, batchRequest: { requests, ...(parsed?.options ? { options: parsed.options } : {}) } };
 }
 

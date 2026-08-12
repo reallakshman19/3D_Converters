@@ -4,7 +4,8 @@
     "vendor:inputxml-pyodide": "node scripts/vendor-inputxml-pyodide-packages.mjs",
     "build:inputxml-runtime-manifest": "node scripts/build-inputxml-runtime-manifest.mjs",
     "build:inputxml-contract-bundle": "node scripts/build-inputxml-contract-bundle.mjs",
-    "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs"
+    "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
+    "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs"
   },
   "dependencies": {
     "pyodide": "^0.27.2",

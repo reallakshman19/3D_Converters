@@ -16,6 +16,7 @@ const LINEAR_UNITS = Object.freeze({
   mass_flow: { 'kg/s': 1, 'kg/h': 1 / 3600, 'lb/s': 0.45359237, 'lb/hr': 0.45359237 / 3600 },
   volumetric_flow: { 'm3/s': 1, 'm3/h': 1 / 3600, 'L/s': 1e-3, gpm: 6.30901964e-5 },
   density: { 'kg/m3': 1, 'g/cm3': 1e3, 'lb/ft3': 16.01846337396 },
+  dynamic_viscosity: { 'Pa*s': 1, 'mPa*s': 1e-3, cP: 1e-3 },
   velocity: { 'm/s': 1, 'mm/s': 1e-3, 'ft/s': 0.3048, mph: 0.44704 },
   acceleration: { 'm/s2': 1, 'mm/s2': 1e-3, 'ft/s2': 0.3048, g: 9.80665 },
   frequency: { Hz: 1, kHz: 1e3, rpm: 1 / 60 },
@@ -28,7 +29,8 @@ const UNIT_ALIASES = new Map([
   ['M²', 'm2'], ['MM²', 'mm2'], ['CM²', 'cm2'], ['IN²', 'in2'], ['FT²', 'ft2'],
   ['M³', 'm3'], ['MM³', 'mm3'], ['IN³', 'in3'], ['FT³', 'ft3'],
   ['LB/HR', 'lb/hr'], ['LB/H', 'lb/hr'], ['KG/H', 'kg/h'], ['M³/H', 'm3/h'],
-  ['KG/M³', 'kg/m3'], ['LB/FT³', 'lb/ft3'], ['N.MM', 'N*mm'], ['N.M', 'N*m'],
+  ['KG/M³', 'kg/m3'], ['LB/FT³', 'lb/ft3'], ['PA.S', 'Pa*s'], ['MPA.S', 'mPa*s'],
+  ['N.MM', 'N*mm'], ['N.M', 'N*m'],
   ['KN.M', 'kN*m'], ['LBF.FT', 'lbf*ft'], ['LBF.IN', 'lbf*in'],
 ]);
 

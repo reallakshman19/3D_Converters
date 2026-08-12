@@ -16,6 +16,9 @@ import {
 } from './engineering-calculation-console-model.js';
 import { renderEngineeringCalculationConsoleHtml } from './engineering-calculation-console-view.js';
 
+const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
+const VIBRATION_FAMILY_ID = 'VIB';
+
 function ensureStylesheet() {
   if (document.querySelector('link[data-engineering-console-style="true"]')) return;
   const link = document.createElement('link');
@@ -42,14 +45,19 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   const definitions = listEngineeringCalculations();
   const families = listEngineeringCalculationFamilies();
   let definition = initialDefinition(definitions, context);
+  let productDestroy = null;
+  let productToken = 0;
+  let destroyed = false;
   if (!definition) {
     container.innerHTML = '<div class="tab-error"><h2>No engineering calculations registered</h2></div>';
     return () => {};
   }
 
+  const initialFamilyLanding = !context?.calculationId && context?.familyId === VIBRATION_FAMILY_ID;
   const state = {
-    selectedFamily: definition.family,
-    selectedId: definition.id,
+    selectedFamily: initialFamilyLanding ? VIBRATION_FAMILY_ID : definition.family,
+    selectedId: initialFamilyLanding ? null : definition.id,
+    familyLanding: initialFamilyLanding ? VIBRATION_FAMILY_ID : null,
     draft: createEngineeringConsoleDraft(definition, context?.inputs ?? {}),
     mode: context?.executionMode === 'sandbox' ? 'sandbox' : 'single',
     qualificationMode: context?.qualificationMode || 'strict',
@@ -58,18 +66,53 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     batchText: '[]', batchResult: null, batchError: null,
   };
 
+  function cleanupProduct() {
+    productToken += 1;
+    try { productDestroy?.(); } catch (error) { console.warn('Engineering product cleanup failed', error); }
+    productDestroy = null;
+  }
+
+  async function mountProductSurface() {
+    if (state.familyLanding || definition.id !== FIT_CALCULATION_ID) return;
+    const host = container.querySelector('[data-fit-workspace-host]');
+    if (!host) return;
+    const token = ++productToken;
+    try {
+      const module = await import('./vibration-integrity-tab.js?v=vibration-integrity-fit-placeholder-1');
+      if (destroyed || token !== productToken || definition.id !== FIT_CALCULATION_ID || state.familyLanding) return;
+      host.innerHTML = '';
+      const maybeDestroy = module.renderVibrationIntegrityTab(host);
+      productDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
+    } catch (error) {
+      if (destroyed || token !== productToken) return;
+      host.innerHTML = `<div class="tab-error"><h3>Could not load Flow-Induced Vibration Screening</h3><pre>${String(error?.message || error)}</pre></div>`;
+    }
+  }
+
   function render() {
+    cleanupProduct();
     container.innerHTML = renderEngineeringCalculationConsoleHtml({ definitions, families, definition, state });
+    mountProductSurface();
   }
 
   function resetForDefinition(next) {
     definition = next;
+    state.familyLanding = null;
     state.selectedId = next.id;
     state.selectedFamily = next.family;
     state.draft = createEngineeringConsoleDraft(next, context?.calculationId === next.id ? context?.inputs ?? {} : {});
     state.editorErrors = [];
     invalidateEngineeringConsoleExecution(state);
     state.activeView = isEngineeringCalculationExecutable(next) ? 'results' : 'basis';
+    render();
+  }
+
+  function openFamilyLanding(familyId) {
+    state.selectedFamily = familyId;
+    state.selectedId = null;
+    state.familyLanding = familyId;
+    state.editorErrors = [];
+    invalidateEngineeringConsoleExecution(state);
     render();
   }
 
@@ -152,9 +195,15 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
     }
     const family = event.target.closest('[data-family-id]');
     if (family) {
-      state.selectedFamily = family.dataset.familyId;
-      const next = definitions.find((row) => row.family === state.selectedFamily && isEngineeringCalculationExecutable(row))
-        ?? definitions.find((row) => row.family === state.selectedFamily);
+      const familyId = family.dataset.familyId;
+      if (familyId === VIBRATION_FAMILY_ID) {
+        openFamilyLanding(familyId);
+        return;
+      }
+      state.familyLanding = null;
+      state.selectedFamily = familyId;
+      const next = definitions.find((row) => row.family === familyId && isEngineeringCalculationExecutable(row))
+        ?? definitions.find((row) => row.family === familyId);
       if (next) resetForDefinition(next); else render();
       return;
     }
@@ -201,6 +250,8 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
   render();
 
   return () => {
+    destroyed = true;
+    cleanupProduct();
     container.removeEventListener('click', onClick);
     container.removeEventListener('input', onInput);
     container.removeEventListener('change', onChange);

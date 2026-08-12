@@ -1,4 +1,8 @@
-import { engineeringResultLabel, isEngineeringCalculationExecutable } from './engineering-calculation-console-model.js';
+import {
+  canExecuteEngineeringCalculation,
+  engineeringResultLabel,
+  isEngineeringCalculationExecutable,
+} from './engineering-calculation-console-model.js';
 
 export function esc(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
@@ -19,12 +23,20 @@ function fieldControl(field, state) {
 }
 
 export function renderInputForm(definition, state) {
-  if (!isEngineeringCalculationExecutable(definition)) return `<div class="engineering-console-banner bad"><strong>Execution blocked.</strong> No authorized numerical kernel is registered.${definition.qualificationIssue ? ` Qualification issue #${definition.qualificationIssue}.` : ''}</div>`;
-  return `<div class="engineering-console-form-grid">${(definition.inputs||[]).map((field)=>{
+  if (!isEngineeringCalculationExecutable(definition)) {
+    return `<div class="engineering-console-banner bad"><strong>Execution blocked.</strong> No authorized numerical kernel is registered.${definition.qualificationIssue ? ` Qualification issue #${definition.qualificationIssue}.` : ''}</div>`;
+  }
+  const authorityBanner = definition?.ui?.warning
+    ? `<div class="engineering-console-banner warn"><strong>Authority restriction.</strong> ${esc(definition.ui.warning)}</div>`
+    : '';
+  const fields = (definition.inputs||[]).map((field)=>{
     const errors = state.editorErrors.filter((item)=>item.field === field.key);
-    const unit = field.quantity && field.quantity !== 'dimensionless' ? `<input class="engineering-console-input engineering-console-unit" data-unit="${field.key}" value="${esc(state.draft.units[field.key] ?? '')}" aria-label="${esc(field.label || field.key)} unit">` : '';
+    const unit = field.quantity && field.quantity !== 'dimensionless'
+      ? `<input class="engineering-console-input engineering-console-unit" data-unit="${field.key}" value="${esc(state.draft.units[field.key] ?? '')}" aria-label="${esc(field.label || field.key)} unit">`
+      : '';
     return `<div class="engineering-console-field ${errors.length ? 'has-error' : ''}"><label>${esc(field.label || field.key)}${field.required ? ' *' : ''}</label><div class="engineering-console-control-row">${fieldControl(field,state)}${unit}</div><div class="engineering-console-field-meta">${field.engineeringDefault !== undefined ? `Declared default: ${esc(String(field.engineeringDefault))}` : 'No UI default'}${field.quantity ? ` · ${esc(field.quantity)}` : ''}</div>${errors.map((item)=>`<div class="engineering-console-field-error">${esc(item.message)}</div>`).join('')}</div>`;
-  }).join('')}</div>`;
+  }).join('');
+  return `${authorityBanner}<div class="engineering-console-form-grid">${fields}</div>`;
 }
 
 export function renderResults(result, validation) {
@@ -49,7 +61,11 @@ export function renderEvidence(result) {
   return `<div class="engineering-console-preview-grid"><div class="engineering-console-card"><h3>Qualification</h3><pre class="engineering-console-json">${esc(pretty(result.qualification))}</pre></div><div class="engineering-console-card"><h3>Provenance</h3><pre class="engineering-console-json">${esc(pretty(result.provenance))}</pre></div></div><div class="engineering-console-card"><h3>Evidence</h3><pre class="engineering-console-json">${esc(pretty(result.evidence))}</pre></div>`;
 }
 
-export function renderBatch(state) {
+export function renderBatch(state, definition) {
   const batch = state.batchResult;
-  return `<div class="engineering-console-banner">Batch uses the central batch API; every item follows the same registered single-calculation path.</div><textarea class="engineering-console-input engineering-console-batch-editor" data-batch-editor spellcheck="false">${esc(state.batchText)}</textarea><div class="engineering-console-actions"><button class="engineering-console-btn" data-action="add-current-batch">Add current request</button><button class="engineering-console-btn primary" data-action="run-batch">Run Batch</button></div>${state.batchError ? `<div class="engineering-console-banner bad">${esc(state.batchError)}</div>` : ''}${batch ? `<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Total</small><strong>${batch.total}</strong></div><div class="engineering-console-card"><small>Succeeded</small><strong>${batch.succeeded}</strong></div><div class="engineering-console-card"><small>Failed</small><strong>${batch.failed}</strong></div></div><pre class="engineering-console-json">${esc(pretty(batch))}</pre>` : ''}`;
+  const executable = canExecuteEngineeringCalculation(definition, state.qualificationMode);
+  const authorityBanner = executable
+    ? 'Batch uses the central batch API; every item follows the same registered single-calculation path.'
+    : 'Current calculator is not executable in the selected qualification mode and cannot be added to batch.';
+  return `<div class="engineering-console-banner ${executable ? '' : 'warn'}">${esc(authorityBanner)}</div><textarea class="engineering-console-input engineering-console-batch-editor" data-batch-editor spellcheck="false">${esc(state.batchText)}</textarea><div class="engineering-console-actions"><button class="engineering-console-btn" data-action="add-current-batch" ${executable ? '' : 'disabled'}>Add current request</button><button class="engineering-console-btn primary" data-action="run-batch">Run Batch</button></div>${state.batchError ? `<div class="engineering-console-banner bad">${esc(state.batchError)}</div>` : ''}${batch ? `<div class="engineering-console-metrics"><div class="engineering-console-card"><small>Total</small><strong>${batch.total}</strong></div><div class="engineering-console-card"><small>Succeeded</small><strong>${batch.succeeded}</strong></div><div class="engineering-console-card"><small>Failed</small><strong>${batch.failed}</strong></div></div><pre class="engineering-console-json">${esc(pretty(batch))}</pre>` : ''}`;
 }
