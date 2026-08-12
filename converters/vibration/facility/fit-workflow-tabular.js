@@ -9,9 +9,11 @@ import {
   parseVibrationEnrichmentCsv,
   parseVibrationOperatingCaseCsv,
 } from '../tabular/index.js';
+import { buildVibrationFacilityFitPreflight } from './fit-preflight.js';
 import { runVibrationFacilityFitBenchmark } from './fit-workflow.js';
 
 export const VIBRATION_FACILITY_FIT_TABULAR_WORKFLOW_SCHEMA = 'VibrationFacilityFitTabularWorkflow.v1';
+export const VIBRATION_FACILITY_FIT_TABULAR_PREFLIGHT_SCHEMA = 'VibrationFacilityFitTabularPreflight.v1';
 
 export const VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT = Object.freeze({
   PARSED_EXCHANGE: 'PARSED_EXCHANGE',
@@ -64,15 +66,46 @@ function parseOptionalCsv(value, parser) {
   return parser(value);
 }
 
-export function runVibrationFacilityFitBenchmarkFromTables(input = {}, options = {}) {
+function importSummary(input, exchange, operatingCases, enrichment) {
+  return {
+    topologyFormat: input.topology.format,
+    topologySourceFileName: exchange.sourceFileName ?? input.topology.sourceFileName ?? null,
+    exchangeSchema: exchange.schema,
+    exchangeIntegrityStatus: exchange.integrityStatus ?? null,
+    operatingCaseCount: operatingCases.length,
+    enrichmentCount: enrichment.length,
+  };
+}
+
+export function parseVibrationFacilityFitTables(input = {}) {
   const exchange = parseTopology(input.topology);
   const operatingCases = parseOptionalCsv(input.operatingCaseCsv, parseVibrationOperatingCaseCsv);
   const enrichment = parseOptionalCsv(input.enrichmentCsv, parseVibrationEnrichmentCsv);
-  const workflow = runVibrationFacilityFitBenchmark({
+  return deepFreeze({
     exchange,
     operatingCases,
     enrichment,
-  }, options);
+    imports: importSummary(input, exchange, operatingCases, enrichment),
+  });
+}
+
+export function buildVibrationFacilityFitPreflightFromTables(input = {}, options = {}) {
+  const parsed = parseVibrationFacilityFitTables(input);
+  const preflight = buildVibrationFacilityFitPreflight(parsed, options);
+  return deepFreeze({
+    schema: VIBRATION_FACILITY_FIT_TABULAR_PREFLIGHT_SCHEMA,
+    authority: 'TABULAR_PREFLIGHT_ONLY',
+    engineeringAuthority: 'NONE',
+    screeningAuthorized: false,
+    qualificationMode: 'benchmark',
+    imports: parsed.imports,
+    preflight,
+  });
+}
+
+export function runVibrationFacilityFitBenchmarkFromTables(input = {}, options = {}) {
+  const parsed = parseVibrationFacilityFitTables(input);
+  const workflow = runVibrationFacilityFitBenchmark(parsed, options);
 
   return deepFreeze({
     schema: VIBRATION_FACILITY_FIT_TABULAR_WORKFLOW_SCHEMA,
@@ -80,14 +113,7 @@ export function runVibrationFacilityFitBenchmarkFromTables(input = {}, options =
     engineeringAuthority: 'NONE',
     screeningAuthorized: false,
     qualificationMode: 'benchmark',
-    imports: {
-      topologyFormat: input.topology.format,
-      topologySourceFileName: exchange.sourceFileName ?? input.topology.sourceFileName ?? null,
-      exchangeSchema: exchange.schema,
-      exchangeIntegrityStatus: exchange.integrityStatus ?? null,
-      operatingCaseCount: operatingCases.length,
-      enrichmentCount: enrichment.length,
-    },
+    imports: parsed.imports,
     workflow,
   });
 }
