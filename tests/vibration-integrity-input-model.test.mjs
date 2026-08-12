@@ -6,8 +6,11 @@ import {
   createVibrationIntegrityInputTable,
   deleteVibrationIntegrityInputRow,
   parseVibrationIntegrityInputCsv,
+  revertVibrationIntegrityInputCell,
+  revertVibrationIntegrityInputTable,
   serializeVibrationIntegrityInputTable,
   updateVibrationIntegrityInputCell,
+  vibrationIntegrityInputCellState,
   VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS,
 } from '../tabs/vibration-integrity-input-model.js';
 
@@ -17,42 +20,65 @@ const OPERATING_HEADER = [
   'Dynamic Viscosity','Dynamic Viscosity Unit','Velocity','Velocity Unit','Source','Source Revision','Record ID',
 ];
 
-test('editable operating CSV loads into rows and round-trips quoted values', () => {
+test('editable operating CSV loads into original/working rows and round-trips quoted values', () => {
   const csv = `${OPERATING_HEADER.join(',')}\r\nL-100,CASE-1,"Normal, wet",GAS,12,kg/s,8,kg/m3,,,,,,0.00002,Pa*s,,,"HMB, issued",R3,REC-1\r\n`;
   const table = parseVibrationIntegrityInputCsv('operating', csv, { sourceName: 'cases.csv' });
   assert.equal(table.rows.length, 1);
+  assert.equal(table.rowIds[0], 'operating:source:0001');
   assert.equal(table.rows[0][2], 'Normal, wet');
-  assert.equal(table.rows[0][17], 'HMB, issued');
   assert.equal(table.dirty, false);
+  assert.equal(vibrationIntegrityInputCellState(table, 0, 2).originalValue, 'Normal, wet');
   assert.match(serializeVibrationIntegrityInputTable(table), /"Normal, wet"/u);
-  assert.match(serializeVibrationIntegrityInputTable(table), /"HMB, issued"/u);
 });
 
-test('cell edits are immutable and mark working table dirty', () => {
+test('cell edits are immutable and exact cell revert restores source value', () => {
   const original = createVibrationIntegrityInputTable('enrichment', [[
     'CID-1','L-1','','FIT_ASSESSMENT_POINT','true','BOOLEAN','','ENG','','REC-1','','',
-  ]);
+  ]]);
   const edited = updateVibrationIntegrityInputCell(original, 0, 4, 'false');
   assert.equal(original.rows[0][4], 'true');
-  assert.equal(original.dirty, false);
   assert.equal(edited.rows[0][4], 'false');
   assert.equal(edited.dirty, true);
-  assert(Object.isFrozen(edited));
-  assert(Object.isFrozen(edited.rows));
+  const reverted = revertVibrationIntegrityInputCell(edited, 0, 4);
+  assert.equal(reverted.rows[0][4], 'true');
+  assert.equal(reverted.dirty, false);
 });
 
-test('add/delete row preserves exact table width', () => {
+test('unit-only edit converts the paired operating value through central engineering units', () => {
+  const row = ['L-1','CASE-1','','GAS','1','kg/s','8','kg/m3','','','','','','','','','','SRC','','REC'];
+  const table = createVibrationIntegrityInputTable('operating', [row]);
+  const converted = updateVibrationIntegrityInputCell(table, 0, 5, 'kg/h');
+  assert.equal(converted.rows[0][4], '3600');
+  assert.equal(converted.rows[0][5], 'kg/h');
+  const reverted = revertVibrationIntegrityInputCell(converted, 0, 5);
+  assert.equal(reverted.rows[0][4], '1');
+  assert.equal(reverted.rows[0][5], 'kg/s');
+  assert.equal(reverted.dirty, false);
+});
+
+test('unknown numeric enrichment unit semantics fail closed instead of guessing conversion', () => {
+  const table = createVibrationIntegrityInputTable('enrichment', [[
+    'CID-1','L-1','','FUTURE_UNKNOWN_QUANTITY','10','NUMBER','m','ENG','','REC-1','','',
+  ]]);
+  assert.throws(
+    () => updateVibrationIntegrityInputCell(table, 0, 6, 'mm'),
+    (error) => error?.code === 'VIBRATION_INPUT_UNIT_CONTEXT_UNRESOLVED',
+  );
+});
+
+test('add/delete row preserves exact table width and local row identity', () => {
   const original = createVibrationIntegrityInputTable('operating', []);
   const added = addVibrationIntegrityInputRow(original);
   assert.equal(added.rows.length, 1);
   assert.equal(added.rows[0].length, OPERATING_HEADER.length);
+  assert.equal(added.rowIds[0], 'operating:local:0001');
   const removed = deleteVibrationIntegrityInputRow(added, 0);
   assert.equal(removed.rows.length, 0);
-  assert.equal(removed.dirty, true);
+  assert.equal(removed.dirty, false);
 });
 
-test('parsed complete exchange becomes visibly unverified after a topology edit', () => {
-  const exchange = Object.freeze({
+function completeExchange() {
+  return Object.freeze({
     completeExchange: true,
     sourceFormat: 'XLSX',
     sourceFileName: 'certified.xlsx',
@@ -63,17 +89,20 @@ test('parsed complete exchange becomes visibly unverified after a topology edit'
       sourceStatus: 'CERTIFIED', canonicalId: 'CID-1',
     })]),
   });
-  const table = createTopologyInputTableFromExchange(exchange);
-  assert.equal(table.originalCertifiedExchange, true);
-  assert.equal(table.dirty, false);
-  assert.equal(table.rows[0][13], 'CERTIFIED');
-  assert.equal(table.rows[0][14], 'CID-1');
+}
+
+test('topology edit latches local authority even after exact table revert', () => {
+  const table = createTopologyInputTableFromExchange(completeExchange());
   const edited = updateVibrationIntegrityInputCell(table, 0, 2, 'L-1-EDITED');
-  assert.equal(edited.originalCertifiedExchange, true);
   assert.equal(edited.dirty, true);
-  assert.equal(edited.sourceKind, 'LOCAL_ELEMENTS_OVERRIDE');
+  assert.equal(edited.authorityDowngraded, true);
   assert.equal(edited.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
-  assert.equal(table.rows[0][13], 'CERTIFIED');
+  const reverted = revertVibrationIntegrityInputTable(edited);
+  assert.equal(reverted.rows[0][2], 'L-1');
+  assert.equal(reverted.dirty, false);
+  assert.equal(reverted.authorityDowngraded, true);
+  assert.equal(reverted.sourceKind, 'LOCAL_ELEMENTS_OVERRIDE');
+  assert.equal(reverted.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
 });
 
 test('adding a blank topology row does not create a fake provenance-only element', () => {

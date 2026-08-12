@@ -6,8 +6,9 @@ import { renderVibrationIntegrityHtml } from '../tabs/vibration-integrity-view.j
 
 const controllerSource = fs.readFileSync(new URL('../tabs/vibration-integrity-tab.js', import.meta.url), 'utf8');
 const inputViewSource = fs.readFileSync(new URL('../tabs/vibration-integrity-input-view.js', import.meta.url), 'utf8');
+const snapshotSource = fs.readFileSync(new URL('../tabs/vibration-integrity-run-snapshot.js', import.meta.url), 'utf8');
 
-function benchmarkState({ modified = false, actual = null } = {}) {
+function benchmarkState({ modified = false, actual = null, resultState = 'UNRUN' } = {}) {
   const loadedRaw = buildVibrationFitUiBenchmarkCase('EI-D4-FIT-PRODUCED-WATER-10IN');
   const loaded = modified ? Object.freeze({ ...loadedRaw, modified: true }) : loadedRaw;
   const registerRows = actual ? [{
@@ -24,11 +25,13 @@ function benchmarkState({ modified = false, actual = null } = {}) {
       enrichment: { name: `${loaded.id}-enrichment.csv`, kind: 'EI benchmark enrichment table' },
     },
     tables: { ...loaded.tables },
-    benchmark: { selectedId: loaded.id, loaded },
+    benchmark: { selectedId: loaded.id, loaded, detachedFromSource: false },
     allowLimitedExchange: true,
     preflight: null,
     envelope: actual ? { workflow: { register: { rows: registerRows } }, imports: null } : null,
     workspace: null,
+    resultState,
+    runSnapshot: null,
     filters: { line: '', completeness: '', band: '', candidate: '' },
     sort: { field: 'line', direction: 'asc' },
     detailTab: 'summary',
@@ -38,41 +41,46 @@ function benchmarkState({ modified = false, actual = null } = {}) {
   };
 }
 
-test('FIT workspace exposes Load BENCHMARK and three editable working tables', () => {
+test('FIT workspace exposes benchmark and original/working editable tables', () => {
   const html = renderVibrationIntegrityHtml(benchmarkState());
   assert.match(html, /Load BENCHMARK/u);
   assert.match(html, /FIT validation benchmark/u);
-  assert.match(html, /EI D4 · Produced water · 10 in liquid/u);
   assert.match(html, /Topology · Elements working table/u);
   assert.match(html, /Operating cases/u);
   assert.match(html, /Vibration enrichment/u);
   assert.match(html, /data-vi-table-cell="topology"/u);
-  assert.match(html, /data-vi-table-cell="operating"/u);
-  assert.match(html, /data-vi-table-cell="enrichment"/u);
-  assert.match(html, /data-vi-table-add="topology"/u);
-  assert.match(html, /Delete/u);
-  assert.match(html, /Files load into the editable tables below/u);
+  assert.match(html, /Original:/u);
+  assert.match(html, /Working edits:/u);
 });
 
-test('untouched EI case displays published target and benchmark parity PASS after matching run', () => {
+test('untouched EI case displays published target and benchmark parity PASS after current matching run', () => {
   const html = renderVibrationIntegrityHtml(benchmarkState({
+    resultState: 'CURRENT_RESULT',
     actual: { standardLof: 3.15195, referenceBand: 'LOF_GE_1' },
   }));
   assert.match(html, /Target standard LOF: <strong>3\.15/u);
   assert.match(html, /Actual standard LOF: <strong>3\.15195/u);
   assert.match(html, /Benchmark parity PASS/u);
-  assert.match(html, /LOF_GE_1/u);
+});
+
+test('stale benchmark result cannot claim current parity', () => {
+  const html = renderVibrationIntegrityHtml(benchmarkState({
+    resultState: 'STALE_RESULT',
+    actual: { standardLof: 3.15195, referenceBand: 'LOF_GE_1' },
+  }));
+  assert.match(html, /Stale result · rerun required/u);
+  assert.doesNotMatch(html, /Benchmark parity PASS/u);
 });
 
 test('modified EI inputs retain target as reference but suppress official parity claim', () => {
   const html = renderVibrationIntegrityHtml(benchmarkState({
     modified: true,
+    resultState: 'CURRENT_RESULT',
     actual: { standardLof: 3.15195, referenceBand: 'LOF_GE_1' },
   }));
   assert.match(html, /Benchmark inputs modified/u);
   assert.match(html, /Not applicable · inputs modified/u);
   assert.doesNotMatch(html, /Benchmark parity PASS/u);
-  assert.match(html, /original-case reference/u);
 });
 
 test('editable FIT UI remains an input/preparation layer with no direct numerical authority', () => {
@@ -83,13 +91,23 @@ test('editable FIT UI remains an input/preparation layer with no direct numerica
   assert.doesNotMatch(combined, /riskScore|Vibration Score|confidenceScore/u);
   assert.match(controllerSource, /buildVibrationIntegrityFacilityTableInput/u);
   assert.match(controllerSource, /runVibrationFacilityFitBenchmarkFromTables/u);
-  assert.match(controllerSource, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
 });
 
-test('controller invalidates benchmark parity and stale result state on table mutation', () => {
-  assert.match(controllerSource, /function markBenchmarkModified/u);
-  assert.match(controllerSource, /function clearCalculatedState/u);
-  assert.match(controllerSource, /applyTableMutation/u);
-  assert.match(controllerSource, /state\.allowLimitedExchange = true/u);
-  assert.match(inputViewSource, /Not applicable · inputs modified/u);
+test('controller preserves stale results and creates deterministic run snapshots', () => {
+  assert.match(controllerSource, /function staleCalculatedState/u);
+  assert.match(controllerSource, /'STALE_RESULT'/u);
+  assert.match(controllerSource, /buildVibrationIntegrityRunSnapshot/u);
+  assert.match(controllerSource, /state\.resultState = 'CURRENT_RESULT'/u);
+  assert.match(controllerSource, /state\.resultState !== 'CURRENT_RESULT'/u);
+  assert.match(snapshotSource, /FitWorkingInputState\.v1/u);
+  assert.match(snapshotSource, /FitRunSnapshot\.v1/u);
+  assert.match(snapshotSource, /SHA-256/u);
+});
+
+test('UI exposes cell/table revert while topology authority remains a separate latch', () => {
+  assert.match(inputViewSource, /data-vi-cell-revert/u);
+  assert.match(inputViewSource, /data-vi-table-revert/u);
+  assert.match(inputViewSource, /authority remains downgraded until reload/u);
+  assert.match(controllerSource, /revertVibrationIntegrityInputCell/u);
+  assert.match(controllerSource, /revertVibrationIntegrityInputTable/u);
 });

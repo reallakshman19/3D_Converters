@@ -135,12 +135,18 @@ function tableRows(workspace) {
   }).join('');
 }
 
+function resultCurrencyBanner(state) {
+  if (state.resultState !== 'STALE_RESULT') return '';
+  return '<div class="vi-banner warn"><strong>STALE RESULT · rerun required.</strong><span>The register below is retained for inspection only and is not current for the working inputs. Export is disabled until a successful rerun.</span></div>';
+}
+
 function workspaceTable(state) {
   if (!state.workspace) {
     return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
   }
   return `<section class="vi-card vi-workspace-card">
     <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>Line-centric mechanism matrix aligned to the EI worked-example report. Only FIT is currently executable; blank non-FIT mechanism cells are architecture placeholders and do not imply assessment or applicability.</p></div></div>
+    ${resultCurrencyBanner(state)}
     <div class="vi-banner warn"><strong>Mechanism authority boundary.</strong><span>FIT remains BENCHMARK ONLY. Mechanical excitation, pulsation, AIV, transients, cavitation/flashing, thermowells and SBC are NOT IMPLEMENTED in this workspace.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
@@ -158,7 +164,8 @@ function detailPanel(state) {
 function importFacts(state) {
   const imports = state.envelope?.imports;
   if (!imports) return '';
-  return `<div class="vi-import-facts"><span>Topology: <strong>${esc(imports.topologyFormat)}</strong></span><span>Integrity: <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Operating cases: <strong>${esc(imports.operatingCaseCount)}</strong></span><span>Enrichment rows: <strong>${esc(imports.enrichmentCount)}</strong></span></div>`;
+  const snapshot = state.runSnapshot?.snapshotHash;
+  return `<div class="vi-import-facts"><span>Topology: <strong>${esc(imports.topologyFormat)}</strong></span><span>Integrity: <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Operating cases: <strong>${esc(imports.operatingCaseCount)}</strong></span><span>Enrichment rows: <strong>${esc(imports.enrichmentCount)}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span>${snapshot ? `<span>Run snapshot: <strong class="vi-mono">${esc(snapshot)}</strong></span>` : ''}</div>`;
 }
 
 export function renderVibrationIntegrityHtml(state) {

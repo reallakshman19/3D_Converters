@@ -1,11 +1,6 @@
 import { parseVibrationTableExchangeXlsx } from '../converters/vibration/exchange/parse.js';
-import {
-  VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT,
-} from '../converters/vibration/facility/fit-tables.js';
-import {
-  buildVibrationFitUiBenchmarkCase,
-  VIBRATION_FIT_UI_BENCHMARK_CASES,
-} from './vibration-integrity-benchmarks.js';
+import { VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT } from '../converters/vibration/facility/fit-tables.js';
+import { buildVibrationFitUiBenchmarkCase, VIBRATION_FIT_UI_BENCHMARK_CASES } from './vibration-integrity-benchmarks.js';
 import {
   createEmptyVibrationIntegrityInputTable,
   createTopologyInputTableFromExchange,
@@ -28,7 +23,11 @@ export function createVibrationIntegrityInputRuntimeState() {
       operating: createEmptyVibrationIntegrityInputTable('operating'),
       enrichment: createEmptyVibrationIntegrityInputTable('enrichment'),
     },
-    benchmark: { selectedId: VIBRATION_FIT_UI_BENCHMARK_CASES[0]?.id ?? '', loaded: null },
+    benchmark: {
+      selectedId: VIBRATION_FIT_UI_BENCHMARK_CASES[0]?.id ?? '',
+      loaded: null,
+      detachedFromSource: false,
+    },
     allowLimitedExchange: false,
   };
 }
@@ -51,7 +50,7 @@ export function vibrationIntegrityTopologyExecutionInput(state) {
   const file = state.files.topology;
   const table = state.tables.topology;
   if (!table.rows.length) return null;
-  if (file?.format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX && !table.dirty) {
+  if (file?.format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX && !table.authorityDowngraded) {
     return { format: file.format, data: file.data, sourceFileName: file.name };
   }
   return {
