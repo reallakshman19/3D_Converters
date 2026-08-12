@@ -26,17 +26,17 @@ function exactHeadPass() {
   };
 }
 
-test('AUTO mode advances directly to stages 8–10 implementation with default benchmark assumptions', () => {
+test('AUTO mode advances to full product-path validation after stages 8–10 implementation', () => {
   const plan = buildAivAutoStagePlan();
   assert.equal(plan.mode, 'AUTO');
   assert.equal(plan.humanEvidenceRequired, false);
   assert.equal(plan.configuration.status, 'PASS');
-  assert.equal(plan.nextStageId, '16B.3');
-  assert.equal(plan.nextAction, 'IMPLEMENT_STAGES_8_TO_10');
-  assert.equal(plan.stages.find((stage) => stage.stageId === '16B.2').status, AIV_AUTO_STAGE_STATUS.COMPLETE);
+  assert.equal(plan.stages.find((stage) => stage.stageId === '16B.3').status, AIV_AUTO_STAGE_STATUS.COMPLETE);
+  assert.equal(plan.nextStageId, '17');
+  assert.equal(plan.nextAction, 'BUILD_PRODUCT_PATH_BENCHMARK_PARITY_RECEIPT');
 });
 
-test('invalid assumption configuration is the only configuration stop, not missing human evidence', () => {
+test('invalid assumption configuration blocks AUTO progression instead of waiting for human evidence', () => {
   const profile = updateAivAssumptionProfile(AIV_DEFAULT_ASSUMPTION_PROFILE, 'benchmark.publishedB', 'invalid');
   const plan = buildAivAutoStagePlan({ assumptionProfile: profile });
   assert.equal(plan.configuration.status, 'INVALID_ASSUMPTION_PROFILE');
@@ -45,17 +45,14 @@ test('invalid assumption configuration is the only configuration stop, not missi
   assert.equal(plan.stopConditions.includes('HUMAN_REVIEW_REQUIRED'), false);
 });
 
-test('after stages 8–10 implementation AUTO mode advances to full product-path benchmark parity', () => {
-  const plan = buildAivAutoStagePlan({ stages8To10Implemented: true });
-  assert.equal(plan.nextStageId, '17');
-  assert.equal(plan.nextAction, 'BUILD_PRODUCT_PATH_BENCHMARK_PARITY_RECEIPT');
+test('stages 8–10 can still be explicitly marked incomplete for regression and rollback checks', () => {
+  const plan = buildAivAutoStagePlan({ stages8To10Implemented: false });
+  assert.equal(plan.nextStageId, '16B.3');
+  assert.equal(plan.nextAction, 'IMPLEMENT_STAGES_8_TO_10');
 });
 
-test('after product-path parity AUTO mode advances to result UI/export and exact-head validation', () => {
-  const plan = buildAivAutoStagePlan({
-    stages8To10Implemented: true,
-    productPathBenchmarkParity: productPathPass(),
-  });
+test('after product-path parity AUTO mode advances to result UI/export', () => {
+  const plan = buildAivAutoStagePlan({ productPathBenchmarkParity: productPathPass() });
   assert.equal(plan.stages.find((stage) => stage.stageId === '17').status, AIV_AUTO_STAGE_STATUS.COMPLETE);
   assert.equal(plan.nextStageId, '18');
   assert.equal(plan.nextAction, 'WIRE_BENCHMARK_RESULT_UI_AND_EXPORT');
@@ -63,7 +60,6 @@ test('after product-path parity AUTO mode advances to result UI/export and exact
 
 test('exact-head pass makes BENCHMARK_ONLY authority transition ready without human recommendation', () => {
   const plan = buildAivAutoStagePlan({
-    stages8To10Implemented: true,
     productPathBenchmarkParity: productPathPass(),
     exactHeadReleaseValidation: exactHeadPass(),
   });
