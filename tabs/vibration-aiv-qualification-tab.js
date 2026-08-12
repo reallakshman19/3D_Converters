@@ -52,6 +52,7 @@ function initialState() {
     },
     benchmark: { loaded: null },
     assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
+    assumptionProfileModified: false,
     assumptionResolution: null,
     readinessEnvelope: null,
     resultSet: null,
@@ -88,6 +89,8 @@ export function renderAivQualificationWorkspace(container) {
       state.benchmark.loaded = loaded.benchmark;
       state.tables = { ...loaded.tables };
       state.files = { ...loaded.files };
+      state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
+      state.assumptionProfileModified = false;
       state.topologyInput = {
         format: 'PARSED_EXCHANGE',
         data: loaded.topology,
@@ -193,15 +196,19 @@ export function renderAivQualificationWorkspace(container) {
     }
   }
 
+  function validationModified() {
+    return Boolean(state.benchmark.loaded?.modified || state.assumptionProfileModified);
+  }
+
   function exportValidatedBenchmark() {
-    if (!state.benchmark.loaded || state.benchmark.loaded.modified) {
-      state.error = 'AIV_D23_VALIDATION_NOT_APPLICABLE: Reload the controlled EI D.2.3 benchmark before exporting its validated result package.';
+    if (!state.benchmark.loaded || validationModified()) {
+      state.error = 'AIV_D23_VALIDATION_NOT_APPLICABLE: Reload the controlled EI D.2.3 benchmark/default assumptions before exporting its validated result package.';
       render();
       return;
     }
     const payload = buildAivD23ValidatedExportPackage({
       assumptionProfile: state.assumptionProfile,
-      benchmarkModified: false,
+      benchmarkModified: validationModified(),
     });
     downloadText(
       `${JSON.stringify(payload, null, 2)}\n`,
@@ -240,6 +247,7 @@ export function renderAivQualificationWorkspace(container) {
     if (action === 'export-d23-validation') exportValidatedBenchmark();
     if (action === 'reset-assumptions') {
       state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
+      state.assumptionProfileModified = false;
       clearReadiness();
       state.error = null;
       render();
@@ -267,6 +275,7 @@ export function renderAivQualificationWorkspace(container) {
           assumptionPath,
           event.target.value,
         );
+        state.assumptionProfileModified = true;
         clearReadiness();
         state.error = null;
       } catch (error) {
