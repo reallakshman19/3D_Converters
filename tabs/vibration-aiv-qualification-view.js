@@ -5,6 +5,7 @@ import {
   AIV_METHOD_TRACE_FOUNDATION,
 } from '../converters/vibration/aiv/aiv-qualification-evidence.js';
 import { AIV_EI_EXAMPLES_PDF_SOURCE } from '../converters/vibration/aiv/aiv-d23-pdf-revalidation.js';
+import { AIV_INDEPENDENT_BENCHMARKS } from '../converters/vibration/aiv/aiv-independent-benchmark-evidence.js';
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
 import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
 
@@ -49,6 +50,20 @@ function benchmarkRows() {
     <td>${benchmarkGap(item) ? `<code>${esc(benchmarkGap(item))}</code>` : '<span class="aivq-empty">—</span>'}</td>
   </tr>`).join('');
 }
+function independentExpected(item) {
+  if (item.expected?.sonicPwlDb !== undefined) return `${item.expected.sonicPwlDb} dB`;
+  if (item.expected?.combinedPwlDb !== undefined) return `${item.expected.combinedPwlDb} dB`;
+  return null;
+}
+function independentBenchmarkRows() {
+  return AIV_INDEPENDENT_BENCHMARKS.map((item) => `<tr>
+    <td><code>${esc(item.benchmarkId)}</code></td>
+    <td>${esc(item.purpose)}</td>
+    <td>${cell(independentExpected(item))}</td>
+    <td>${esc(item.requiredTraceIds.join('; '))}</td>
+    <td><span class="aivq-status gap">${esc(item.reviewState)}</span></td>
+  </tr>`).join('');
+}
 
 export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
@@ -72,6 +87,9 @@ export function renderAivQualificationWorkspaceHtml(state = {}) {
     </section>
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 published benchmark evidence</h4><p>These are pinned published-reference values, not outputs from the production AIV calculator. The final relief-weldolet LOF is published as 0.29; FLM1 arithmetic reconciliation remains open.</p></div></div>
       <div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Case</th><th>Published source PWL (dB)</th><th>Published point PWL (dB)</th><th>Published final LOF</th><th>Evidence state</th><th>Open gap</th></tr></thead><tbody>${benchmarkRows()}</tbody></table></div>
+    </section>
+    <section class="aivq-card"><div class="aivq-section-head"><div><h4>Independent analytical benchmark vectors</h4><p>Qualification-only vectors cover the sonic SFF=6 branch and simultaneous-source logarithmic combination. Values remain pending named human acceptance against reviewed EI traces.</p></div></div>
+      <div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Purpose</th><th>Expected analytical result</th><th>Required EI traces</th><th>Review state</th></tr></thead><tbody>${independentBenchmarkRows()}</tbody></table></div>
     </section>
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV qualification trace register</h4><p>Page/flowchart locations are visible even while controlled content extraction remains blocked. Trace state is not a confidence score or screening classification.</p></div></div>
       <div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence / locator</th><th>Qualification state</th><th>Benchmark / gap</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
