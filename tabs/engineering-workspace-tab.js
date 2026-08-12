@@ -19,11 +19,6 @@ const SUBTABS = Object.freeze([
     label: 'HP Piping Class',
     load: () => import('./hp-piping-class-tab.js?v=engineering-2').then((module) => module.renderHpPipingClassTab),
   },
-  {
-    id: 'vibrations',
-    label: 'Vibrations',
-    load: () => import('./vibrations-landing-tab.js?v=vibrations-landing-1').then((module) => module.renderVibrationsLandingTab),
-  },
 ]);
 const SUBTAB_IDS = new Set(SUBTABS.map((tab) => tab.id));
 const STORAGE_KEY = 'format-converters.engineeringCalculationsSubtab';
@@ -45,7 +40,6 @@ function initialSubtab(context) {
   const requested = String(context?.subtabId || '').trim();
   if (SUBTAB_IDS.has(requested)) return requested;
   if (context?.calculationId) return 'calculations';
-  if (context?.vibrationPage || context?.mechanismId) return 'vibrations';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (SUBTAB_IDS.has(stored)) return stored;
@@ -95,8 +89,7 @@ export function renderEngineeringWorkspaceTab(container, { context = null, emit,
       const renderer = await tab.load();
       if (token !== renderToken || activeId !== tab.id) return;
       panel.innerHTML = '';
-      const childContext = nextContext
-        ?? (context?.subtabId === tab.id ? context : (tab.id === 'calculations' ? context : null));
+      const childContext = nextContext ?? (context?.subtabId === tab.id ? context : (tab.id === 'calculations' ? context : null));
       const maybeDestroy = renderer(panel, { context: childContext, emit, on, setActiveTab });
       activeDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
     } catch (error) {
