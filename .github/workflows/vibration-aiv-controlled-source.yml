@@ -14,6 +14,7 @@ on:
       - 'scripts/extract-aiv-workbook-sources.mjs'
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'scripts/verify-aiv-d23-flm1-reconciliation.mjs'
+      - 'scripts/verify-aiv-workbook-reconciliation.mjs'
       - 'docs/vibration/AIV-*'
       - 'package.json'
       - 'package-lock.json'
@@ -30,6 +31,7 @@ on:
       - 'scripts/extract-aiv-workbook-sources.mjs'
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'scripts/verify-aiv-d23-flm1-reconciliation.mjs'
+      - 'scripts/verify-aiv-workbook-reconciliation.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/vibration-aiv-controlled-source.yml'
@@ -145,6 +147,7 @@ jobs:
           if (inventory.workbooks.length !== 3) throw new Error('Expected exactly three retained AIV workbooks.');
           for (const workbook of inventory.workbooks) {
             if (expected.get(workbook.workbookId) !== workbook.gitBlobSha1) throw new Error(`Retained workbook blob mismatch for ${workbook.workbookId}.`);
+            if (!/^sha256:[0-9a-f]{64}$/.test(workbook.privateDetailsSha256)) throw new Error(`Private workbook detail hash missing for ${workbook.workbookId}.`);
             if (workbook.migrationEvidenceOnly !== true || workbook.productionAuthority !== false || workbook.formulaImplementationAuthorized !== false || workbook.eiReconciliationRequired !== true) throw new Error(`Workbook authority boundary invalid for ${workbook.workbookId}.`);
             if (!Array.isArray(workbook.sheets) || workbook.sheetCount !== workbook.sheets.length) throw new Error(`Workbook sheet inventory incomplete for ${workbook.workbookId}.`);
           }
@@ -186,6 +189,22 @@ jobs:
           if (template.authority.productionEquationAuthorized !== false) throw new Error('FLM1 template cannot authorize production equations.');
           NODE
 
+      - name: Generate retained-workbook human reconciliation template
+        shell: bash
+        run: |
+          node scripts/verify-aiv-workbook-reconciliation.mjs \
+            "$RUNNER_TEMP/aiv-workbook-source-inventory.json" \
+            --template-out "$RUNNER_TEMP/aiv-workbook-reconciliation-template.json"
+          node - "$RUNNER_TEMP/aiv-workbook-reconciliation-template.json" <<'NODE'
+          const fs = require('node:fs');
+          const template = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (template.schema !== 'AivWorkbookReconciliation.v1') throw new Error('Unexpected workbook reconciliation schema.');
+          if (template.records.length !== 3) throw new Error('Expected one workbook review record for each retained source.');
+          if (!template.records.every((record) => record.reviewState === 'PENDING')) throw new Error('CI must never auto-complete retained workbook review.');
+          if (!template.records.every((record) => /^sha256:[0-9a-f]{64}$/.test(record.privateDetailsSha256))) throw new Error('Workbook review must bind the private formula-detail hashes.');
+          if (template.authority.productionEquationAuthorized !== false) throw new Error('Workbook reconciliation template cannot authorize production equations.');
+          NODE
+
       - name: Run focused AIV qualification regressions
         run: |
           node --experimental-default-type=module --test tests/vibration-aiv-source-extraction-contract.test.mjs
@@ -193,6 +212,7 @@ jobs:
           node --experimental-default-type=module --test tests/vibration-aiv-d23-pdf-revalidation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-d23-flm1-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-workbook-source-inventory.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-workbook-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-t27-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-errata-benchmark.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-qualification-evidence.test.mjs
