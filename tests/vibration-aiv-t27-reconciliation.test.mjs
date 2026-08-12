@@ -67,8 +67,11 @@ test('complete named human-engineer reconciliation closes the source-review gate
   assert.equal(result.reconciliationComplete, true);
   assert.equal(result.reviewedTraceCount, 9);
   assert.equal(result.productionEquationAuthorized, false);
+  assert(result.remainingPromotionGates.includes('DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF'));
+  assert(result.remainingPromotionGates.includes('RECONCILE_D2_3_PUBLISHED_FLM1_ARITHMETIC'));
   assert(result.remainingPromotionGates.includes('INDEPENDENT_SONIC_SFF6_BENCHMARK'));
   assert(result.remainingPromotionGates.includes('INDEPENDENT_VIBRATION_ENGINEER_PROMOTION_REVIEW'));
+  assert(!result.remainingPromotionGates.includes('COMPLETE_D2_3_FINAL_T2_6_ENDPOINT'));
 });
 
 test('page-61 T2-6 record must explicitly reconcile the official errata trace', () => {
