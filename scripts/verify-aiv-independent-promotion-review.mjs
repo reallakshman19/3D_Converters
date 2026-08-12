@@ -44,9 +44,15 @@ export function runAivIndependentPromotionReview(argv = process.argv.slice(2)) {
     return { template, outputPath, promotionReadinessArtifactSha256 };
   }
 
-  const review = JSON.parse(readFileSync(resolve(args.verify), 'utf8'));
-  const verification = assertAivIndependentPromotionReviewComplete(readiness, review, {
+  const reviewBytes = readFileSync(resolve(args.verify));
+  const review = JSON.parse(reviewBytes.toString('utf8'));
+  const verified = assertAivIndependentPromotionReviewComplete(readiness, review, {
     promotionReadinessArtifactSha256,
+  });
+  const verification = Object.freeze({
+    ...verified,
+    promotionReadinessArtifactSha256,
+    reviewArtifactSha256: sha256Artifact(reviewBytes),
   });
   process.stdout.write(`${JSON.stringify(verification, null, 2)}\n`);
   return verification;
