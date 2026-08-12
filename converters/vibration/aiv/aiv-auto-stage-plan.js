@@ -31,6 +31,7 @@ export function buildAivAutoStagePlan({
   stages1To7Implemented = true,
   stages8To10Implemented = true,
   productPathBenchmarkParity = null,
+  resultExportWired = true,
   exactHeadReleaseValidation = null,
   benchmarkOnlyReleased = false,
 } = {}) {
@@ -83,13 +84,15 @@ export function buildAivAutoStagePlan({
     label: 'Enable benchmark result detail, assumptions and export',
     status: !productPathPass
       ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
-      : AIV_AUTO_STAGE_STATUS.NEXT,
+      : resultExportWired
+        ? AIV_AUTO_STAGE_STATUS.COMPLETE
+        : AIV_AUTO_STAGE_STATUS.NEXT,
     autoAction: 'WIRE_BENCHMARK_RESULT_UI_AND_EXPORT',
   });
   stages.push({
     stageId: '19',
     label: 'Exact-head BENCHMARK_ONLY release validation and transition',
-    status: !productPathPass
+    status: !productPathPass || !resultExportWired
       ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
       : benchmarkOnlyReleased
         ? AIV_AUTO_STAGE_STATUS.COMPLETE
