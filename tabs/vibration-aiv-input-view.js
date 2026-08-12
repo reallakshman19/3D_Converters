@@ -44,7 +44,7 @@ function benchmarkPanel(state) {
 
 function importPanel(state) {
   return `<section class="aivq-card">
-    <div class="aivq-section-head"><div><h4>Working input imports</h4><p>Imported CSVs become editable working tables. Readiness always consumes the current visible cells, not the original uploaded bytes.</p></div></div>
+    <div class="aivq-section-head"><div><h4>AIV working evidence</h4><p>Imported CSVs become editable working tables. Readiness always consumes the current visible cells, not the original uploaded bytes.</p></div></div>
     <div class="aivq-import-grid">
       <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, null, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX required')}</span></label>
       <label class="aivq-file-field"><span>AIV Sources</span><input type="file" data-aiv-file="sources" accept=".csv,text/csv"><span>${fileStatus(state.files?.sources, state.tables?.sources, 'AivSourceCsv.v2')}</span></label>
