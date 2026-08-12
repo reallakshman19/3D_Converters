@@ -74,8 +74,8 @@ export function renderAivQualificationWorkspace(container) {
     try {
       const loaded = buildLoadedAivD23Benchmark();
       state.benchmark.loaded = loaded.benchmark;
-      state.tables = loaded.tables;
-      state.files = loaded.files;
+      state.tables = { ...loaded.tables };
+      state.files = { ...loaded.files };
       state.topologyInput = {
         format: 'PARSED_EXCHANGE',
         data: loaded.topology,
