@@ -30,8 +30,8 @@ test('Git blob verification is byte-exact and fails closed on a different source
   );
 });
 
-test('page splitter requires exactly four page-separated T2.7 pages', () => {
-  const pages = splitExtractedPdfPages('page59\fpage60\fpage61\fpage62\f');
+test('page splitter requires exactly four page-separated T2.7 pages and ignores trailing break whitespace', () => {
+  const pages = splitExtractedPdfPages('page59\fpage60\fpage61\fpage62\f\n');
   assert.deepEqual(pages.map((page) => page.pageNumber), [59, 60, 61, 62]);
   assert.deepEqual(pages.map((page) => page.text), ['page59', 'page60', 'page61', 'page62']);
   assert.throws(() => splitExtractedPdfPages('page59\fpage60\f'), /AIV_T27_PAGE_COUNT_MISMATCH/u);
