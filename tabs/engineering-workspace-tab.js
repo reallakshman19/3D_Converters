@@ -47,7 +47,7 @@ function initialSubtab(context) {
   return 'calculations';
 }
 
-export function renderEngineeringWorkspaceTab(container, { context = null } = {}) {
+export function renderEngineeringWorkspaceTab(container, { context = null, emit, on, setActiveTab } = {}) {
   ensureStylesheet();
   let activeId = initialSubtab(context);
   let activeDestroy = null;
@@ -90,7 +90,7 @@ export function renderEngineeringWorkspaceTab(container, { context = null } = {}
       if (token !== renderToken || activeId !== tab.id) return;
       panel.innerHTML = '';
       const childContext = nextContext ?? (context?.subtabId === tab.id ? context : (tab.id === 'calculations' ? context : null));
-      const maybeDestroy = renderer(panel, { context: childContext });
+      const maybeDestroy = renderer(panel, { context: childContext, emit, on, setActiveTab });
       activeDestroy = typeof maybeDestroy === 'function' ? maybeDestroy : null;
     } catch (error) {
       if (token !== renderToken) return;
