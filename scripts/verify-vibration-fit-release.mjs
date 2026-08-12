@@ -70,6 +70,16 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-fit-release-gate.test.mjs',
     ]),
   }),
+  Object.freeze({
+    id: 'vibration-multimechanism-validation',
+    label: 'EI multi-mechanism worked-example validation',
+    tests: Object.freeze([
+      'tests/vibration-mechanical-ei-worked-examples.test.mjs',
+      'tests/vibration-deadleg-ei-worked-examples.test.mjs',
+      'tests/vibration-transient-ei-worked-examples.test.mjs',
+      'tests/vibration-multimechanism-validation-record.test.mjs',
+    ]),
+  }),
 ]);
 
 export function listVibrationFitReleaseTests() {
