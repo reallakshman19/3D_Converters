@@ -60,6 +60,14 @@ export {
   buildAivQualificationPromotionReadiness,
 } from './aiv-promotion-readiness.js';
 export {
+  AIV_INDEPENDENT_PROMOTION_REVIEW_SCHEMA,
+  AIV_INDEPENDENT_PROMOTION_REVIEW_VERIFICATION_SCHEMA,
+  AIV_INDEPENDENT_PROMOTION_RECOMMENDATIONS,
+  assertAivPromotionReadinessForIndependentReview,
+  createAivIndependentPromotionReviewTemplate,
+  assertAivIndependentPromotionReviewComplete,
+} from './aiv-independent-promotion-review.js';
+export {
   AIV_TOPOLOGY_VIEW_MODEL_SCHEMA,
   assertAivTopologyViewModel,
   buildAivTopologyViewModel,
