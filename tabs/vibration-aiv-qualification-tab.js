@@ -12,6 +12,7 @@ import {
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
+import { buildAivIndependentReviewPackage } from './vibration-aiv-independent-review-package.js';
 import {
   promotionEvidenceFromLoadedArtifacts,
   readAivPromotionVerificationFile,
@@ -22,7 +23,7 @@ function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-6';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-7';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -143,6 +144,18 @@ export function renderAivQualificationWorkspace(container) {
     render();
   }
 
+  async function exportIndependentReviewPackage() {
+    state.promotionError = null;
+    try {
+      const reviewPackage = await buildAivIndependentReviewPackage(state.promotionReadiness);
+      downloadText(reviewPackage.promotionReadiness.text, reviewPackage.promotionReadiness.fileName, 'application/json;charset=utf-8');
+      downloadText(reviewPackage.independentReviewTemplate.text, reviewPackage.independentReviewTemplate.fileName, 'application/json;charset=utf-8');
+    } catch (error) {
+      state.promotionError = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+      render();
+    }
+  }
+
   function applyTableMutation(kind, table) {
     state.tables[kind] = table;
     markBenchmarkModified();
@@ -224,6 +237,7 @@ export function renderAivQualificationWorkspace(container) {
     if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
     if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
     if (action === 'check-readiness') checkReadiness();
+    if (action === 'export-independent-review-package') exportIndependentReviewPackage();
   }
 
   function handleTableChange(event) {
