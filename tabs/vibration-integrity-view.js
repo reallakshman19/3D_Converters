@@ -2,6 +2,7 @@ import {
   renderVibrationIntegrityDetailBody,
   renderVibrationIntegrityDetailTabs,
 } from './vibration-integrity-detail-view.js';
+import { renderVibrationIntegrityInputArea } from './vibration-integrity-input-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -20,12 +21,6 @@ function listCell(values) {
   return Array.isArray(values) && values.length ? esc(values.join('; ')) : '<span class="vi-empty">—</span>';
 }
 
-function fileStatus(file, fallback) {
-  return file
-    ? `<strong>${esc(file.name)}</strong><small>${esc(file.kind || fallback)}</small>`
-    : `<span class="vi-empty">${esc(fallback)}</span>`;
-}
-
 function option(value, selected, label = value) {
   return `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`;
 }
@@ -33,29 +28,6 @@ function option(value, selected, label = value) {
 function unique(rows, field) {
   return [...new Set(rows.map((row) => row[field]).filter((value) => value !== null && value !== undefined && value !== ''))]
     .sort((a, b) => String(a).localeCompare(String(b)));
-}
-
-function importPanel(state) {
-  const topologyLimited = state.files.topology?.format === 'CSV_ELEMENTS_ONLY';
-  const checking = state.busy && state.busyAction === 'preflight';
-  const running = state.busy && state.busyAction === 'benchmark';
-  return `<section class="vi-card vi-import-card">
-    <div class="vi-section-head"><div><h3>Table inputs</h3><p>3D EDIT supplies topology identity; process and vibration data stay separate.</p></div></div>
-    <div class="vi-import-grid">
-      <label class="vi-file-field"><span>3D EDIT table export</span><input type="file" data-vi-file="topology" accept=".xlsx,.csv"><span class="vi-file-status">${fileStatus(state.files.topology, 'XLSX preferred · CSV is Elements-only')}</span></label>
-      <label class="vi-file-field"><span>Operating cases</span><input type="file" data-vi-file="operating" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.operating, 'VibrationOperatingCaseCsv.v1')}</span></label>
-      <label class="vi-file-field"><span>Vibration enrichment</span><input type="file" data-vi-file="enrichment" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.enrichment, 'VibrationEnrichmentCsv.v1')}</span></label>
-    </div>
-    <div class="vi-actions">
-      <button type="button" class="vi-btn" data-vi-action="operating-template">Operating-case template</button>
-      <button type="button" class="vi-btn" data-vi-action="enrichment-template">Enrichment template</button>
-      <label class="vi-check"><input type="checkbox" data-vi-limited${state.allowLimitedExchange ? ' checked' : ''}> Allow limited Elements-only CSV</label>
-      <button type="button" class="vi-btn" data-vi-action="preflight"${!state.files.topology || state.busy ? ' disabled' : ''}>${checking ? 'Checking…' : 'Check readiness'}</button>
-      <button type="button" class="vi-btn primary" data-vi-action="run"${!state.files.topology || state.busy ? ' disabled' : ''}>${running ? 'Running…' : 'Run FIT benchmark'}</button>
-      <button type="button" class="vi-btn" data-vi-action="export"${state.envelope ? '' : ' disabled'}>Export register CSV</button>
-    </div>
-    ${topologyLimited ? '<div class="vi-banner warn"><strong>Limited topology input.</strong> Elements CSV does not carry Connections, Source Mapping, Catalogue Evidence or Export Metadata. Complete provenance requires the five-sheet XLSX export.</div>' : ''}
-  </section>`;
 }
 
 function preflightRows(preflight) {
@@ -121,7 +93,7 @@ function tableRows(workspace) {
 }
 
 function workspaceTable(state) {
-  if (!state.workspace) return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Check readiness first if desired, then run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
+  if (!state.workspace) return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
   return `<section class="vi-card vi-workspace-card">
     <div class="vi-section-head"><div><h3>Facility FIT register</h3><p>Table values are benchmark/reference results. Incomplete and failed rows remain explicit.</p></div></div>
     ${summaryCards(state.workspace)}${filters(state)}
@@ -147,6 +119,6 @@ export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
     <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Table-first FIT integrity workspace using 3D EDIT table exports and explicit operating/enrichment data.</p></div><div class="vi-authority"><strong>BENCHMARK ONLY</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
-    ${importPanel(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
+    ${renderVibrationIntegrityInputArea(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;
 }
