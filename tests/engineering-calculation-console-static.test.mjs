@@ -10,6 +10,9 @@ const sections = fs.readFileSync(new URL('../tabs/engineering-calculation-consol
 const vibrationFamily = fs.readFileSync(new URL('../tabs/engineering-calculation-vibration-family.js', import.meta.url), 'utf8');
 const extension = fs.readFileSync(new URL('../core/engineering-tabs-extension.js', import.meta.url), 'utf8');
 const workspace = fs.readFileSync(new URL('../tabs/engineering-workspace-tab.js', import.meta.url), 'utf8');
+const hpPipingClass = fs.readFileSync(new URL('../tabs/hp-piping-class-tab.js', import.meta.url), 'utf8');
+const registry = fs.readFileSync(new URL('../converters/engineering-calculations/registry.js', import.meta.url), 'utf8');
+const pending = fs.readFileSync(new URL('../converters/engineering-calculations/pending-definitions.js', import.meta.url), 'utf8');
 
 test('Console production wiring uses the central Engineering Calculation API only', () => {
   assert.match(tab, /converters\/engineering-calculations\/index\.js/);
@@ -33,10 +36,29 @@ test('Engineering navigation preserves current-main four-subtab workspace with n
   assert.match(extension, /id: 'engineering-calculations'/);
   assert.match(extension, /renderEngineeringWorkspaceTab/);
   assert.doesNotMatch(extension, /label: 'Vibration Integrity'/);
+  assert.doesNotMatch(extension, /id: 'b313-material-factors'/);
+  assert.doesNotMatch(extension, /id: 'empirical-weight-tuning'/);
+  assert.doesNotMatch(extension, /id: 'hp-piping-class'/);
   for (const id of ['calculations', 'b313-material-factors', 'empirical-weight-tuning', 'hp-piping-class']) {
     assert.match(workspace, new RegExp(`id: '${id}'`));
   }
+  assert.match(workspace, /B31\.3 Material Factors/);
+  assert.match(workspace, /Empirical Weight Tuning/);
+  assert.match(workspace, /HP Piping Class/);
   assert.doesNotMatch(workspace, /id: 'vibrations'/);
+  assert.match(hpPipingClass, /engineering\/hp-class-standardization\/engineering-library\.html/);
+});
+
+test('legacy Engineering subtab deep links still route through the main Engineering Calculations tab', () => {
+  assert.match(extension, /ENGINEERING_SUBTAB_IDS/);
+  assert.match(extension, /subtabId: requestedId/);
+  assert.match(extension, /tabId = 'engineering-calculations'/);
+});
+
+test('stable two-segment pending calculation IDs remain accepted by registry grammar', () => {
+  assert.match(pending, /PIPE\.SHELL_INDENTATION/);
+  assert.match(registry, /CALCULATION_ID_PATTERN = .*\{1,\}/);
+  assert.doesNotMatch(registry, /CALCULATION_ID_PATTERN = .*\{2,\}/);
 });
 
 test('existing VIB family is the vibration landing entry and contains no engineering kernel or canvas', () => {
