@@ -1,11 +1,13 @@
-import { createAivSourceCaseCsvTemplate } from '../converters/vibration/aiv/source-case-csv.js';
+import { createAivAssessmentCsvTemplate } from '../converters/vibration/aiv/assessment-csv.js';
+import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
+import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-2';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-3';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -26,7 +28,7 @@ function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
 export function renderAivQualificationWorkspace(container) {
   ensureStylesheet();
   const state = {
-    files: { topology: null, sourceCases: null },
+    files: { topology: null, sources: null, assessments: null, relationships: null },
     readinessEnvelope: null,
     selectedRowKey: null,
     busy: false,
@@ -49,7 +51,9 @@ export function renderAivQualificationWorkspace(container) {
     try {
       state.files[target] = target === 'topology'
         ? { name: file.name, data: await file.arrayBuffer(), kind: 'Complete five-sheet XLSX' }
-        : { name: file.name, text: await file.text(), kind: 'AivSourceCaseCsv.v1' };
+        : { name: file.name, text: await file.text(), kind: target === 'sources'
+          ? 'AivSourceCsv.v2'
+          : target === 'assessments' ? 'AivAssessmentCsv.v1' : 'AivSourceAssessmentCsv.v1' };
     } catch (error) {
       state.files[target] = null;
       state.error = String(error?.message || error);
@@ -58,13 +62,14 @@ export function renderAivQualificationWorkspace(container) {
   }
 
   async function checkReadiness() {
-    if (!state.files.topology || !state.files.sourceCases || state.busy) return;
+    const required = ['topology', 'sources', 'assessments', 'relationships'];
+    if (state.busy || !required.every((key) => state.files[key])) return;
     state.busy = true;
     state.error = null;
     render();
     try {
       const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
-        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-1'
+        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-2'
       );
       if (state.destroyed) return;
       state.readinessEnvelope = buildAivReadinessFromTables({
@@ -73,7 +78,9 @@ export function renderAivQualificationWorkspace(container) {
           data: state.files.topology.data,
           sourceFileName: state.files.topology.name,
         },
-        sourceCaseCsv: state.files.sourceCases.text,
+        sourceCsv: state.files.sources.text,
+        assessmentCsv: state.files.assessments.text,
+        sourceAssessmentCsv: state.files.relationships.text,
       });
       state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
     } catch (error) {
@@ -95,11 +102,10 @@ export function renderAivQualificationWorkspace(container) {
       return;
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
-    if (action === 'source-case-template') {
-      downloadText(createAivSourceCaseCsvTemplate(), 'aiv-source-cases-v1.csv');
-    } else if (action === 'check-readiness') {
-      checkReadiness();
-    }
+    if (action === 'source-template') downloadText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
+    if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
+    if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
+    if (action === 'check-readiness') checkReadiness();
   }
 
   function onChange(event) {
