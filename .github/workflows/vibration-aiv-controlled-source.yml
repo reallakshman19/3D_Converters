@@ -1,0 +1,89 @@
+name: Vibration AIV Controlled Source Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'converters/engineering-calculations/pending-definitions.js'
+      - 'converters/vibration/aiv/**'
+      - 'converters/vibration/topology/graph.js'
+      - 'tabs/vibration-aiv-*'
+      - 'tests/vibration-aiv-*'
+      - 'tests/vibration-module-boundaries.test.mjs'
+      - 'scripts/extract-aiv-ei-t27-source.mjs'
+      - 'docs/vibration/AIV-*'
+      - 'package.json'
+      - '.github/workflows/vibration-aiv-controlled-source.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'converters/vibration/aiv/**'
+      - 'converters/vibration/topology/graph.js'
+      - 'tests/vibration-aiv-*'
+      - 'scripts/extract-aiv-ei-t27-source.mjs'
+      - '.github/workflows/vibration-aiv-controlled-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-source-qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout 3D Converters
+        uses: actions/checkout@v6
+
+      - name: Checkout pinned Common engineering source
+        uses: actions/checkout@v6
+        with:
+          repository: reallaksh19/Common
+          ref: aef163a5def3bfe04ca0ba860da05728a27daf42
+          path: Common
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install PDF text extractor
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+          pdftotext -v
+
+      - name: Verify exact controlled EI PDF and extract T2.7 page hashes
+        shell: bash
+        run: |
+          node scripts/extract-aiv-ei-t27-source.mjs \
+            'Common/EI - AVIFF Guidelines 2nd Edition.pdf' \
+            --out "$RUNNER_TEMP/aiv-t27-source-manifest.json"
+          node - "$RUNNER_TEMP/aiv-t27-source-manifest.json" <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const expectedBlob = 'sha1:9d3eccc56429411e17c07a579bdebbd13cb0bdc5';
+          if (manifest.schema !== 'AivT27SourceExtraction.v1') throw new Error('Unexpected extraction schema.');
+          if (manifest.source.gitBlobSha1 !== expectedBlob) throw new Error(`Controlled source mismatch: ${manifest.source.gitBlobSha1}`);
+          if (manifest.extraction.firstPage !== 59 || manifest.extraction.lastPage !== 62 || manifest.extraction.pageCount !== 4) {
+            throw new Error('T2.7 extraction must contain exactly pages 59-62.');
+          }
+          if (manifest.qualification.productionEquationAuthorized !== false) throw new Error('Extraction must not authorize production equations.');
+          if (manifest.qualification.humanEquationReconciliationRequired !== true) throw new Error('Human equation reconciliation must remain required.');
+          if (manifest.qualification.page61OfficialErrataReconciliationRequired !== true) throw new Error('Page-61 errata reconciliation must remain required.');
+          console.log(JSON.stringify(manifest, null, 2));
+          NODE
+
+      - name: Run focused AIV qualification regressions
+        run: |
+          node --experimental-default-type=module --test tests/vibration-aiv-source-extraction-contract.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-errata-benchmark.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-qualification-evidence.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-readiness.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-topology-view.test.mjs
+          node --experimental-default-type=module --test tests/vibration-module-boundaries.test.mjs
+
+      - name: Diff hygiene
+        run: git diff --check
