@@ -4,10 +4,24 @@ Dependency-free static web application for the **piping-class standardization** 
 
 ## Entry points
 
-- `authority-package.html` — recommended controlled production entry point. It wraps the merged calculator and adds versioned JSON authority-package import/export.
-- `index.html` — calculator-only view with no persistence layer.
+Recommended application route:
 
-Serve the directory through GitHub Pages or another same-origin static HTTP host. The authority-package wrapper accesses `index.html` through a same-origin iframe; direct `file://` behavior is browser-dependent and is not the supported production path.
+**Engineering → Engineering Calculations → HP Piping Class**
+
+The main Engineering navigation now exposes one top-level **Engineering Calculations** tab with internal subtabs for:
+
+- Calculations
+- B31.3 Material Factors
+- Empirical Weight Tuning
+- HP Piping Class
+
+Direct technical entry points remain available:
+
+- `engineering-library.html` — full HP class workspace with docs-backed engineering libraries and authority-package wrapper.
+- `authority-package.html` — controlled class-record JSON transport around the calculator.
+- `index.html` — calculator-only view with no persistence/data-library wrapper.
+
+Serve the repository through GitHub Pages or another same-origin static HTTP host. The HP workspace dynamically fetches governed files under `docs/Masters/HP_Piping_Class/` and embeds same-origin frames; direct `file://` behavior is not the supported production path.
 
 ## Workflow
 
@@ -25,6 +39,22 @@ Serve the directory through GitHub Pages or another same-origin static HTTP host
 
 The exact KD-3 binary is source-locked, but the application does not infer its edition or project applicability. Source edition, project VIII-3 edition and compatibility remain explicit reviewer gates.
 
+## Docs-backed engineering libraries
+
+The reusable data discovery file is:
+
+`docs/Masters/HP_Piping_Class/library-catalog.csv`
+
+Current governed files include:
+
+- `material-properties.csv` — intentionally header-only until controlled Chapter IX `S/Syt` values are published;
+- `pipe-product-overrides.csv` — purchase-specific product specification, maximum permitted/design `D`, negative wall tolerance and source evidence;
+- dependency `docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv` — existing project NPS/OD/schedule/wall geometry master.
+
+Reference OD from the geometry master is not treated as K304.1.1 maximum permitted purchase `D`. The product overlay must explicitly supply `design_d_max_mm` before a product row can apply.
+
+No material extrapolation is permitted. No universal `-12.5%` wall tolerance is assumed.
+
 ## Controlled authority package
 
 `authority-package.html` adds a transport layer around the unchanged calculator. The package schema is:
@@ -38,114 +68,14 @@ A package contains:
 - design/material/product inputs;
 - pressure-cycle spectrum;
 - KD-2/KD-3 route/evidence controls;
-- fatigue-curve data entered by an authorized reviewer;
-- fracture/KD-4 disposition;
-- row-level source/approval evidence;
-- an audit-only snapshot of displayed results.
+- fatigue-curve points and approvals;
+- row-level Seq/Ni/evidence values;
+- recalculated audit snapshot.
 
-### Import authority boundary
+Import validates the source/schema package before mutating the calculator, recalculates after input restore, restores row evidence only against exact recalculated keys, and recalculates again. Snapshot values are audit-only and never solver authority.
 
-Import follows this sequence:
+## Authority boundary
 
-1. Parse JSON.
-2. Validate schema and the exact B31.3/KD source manifest.
-3. Reject the package before calculator mutation if validation fails.
-4. Restore controlled engineering inputs/evidence and cycle rows.
-5. Run the merged calculator.
-6. Restore manual row values/source/approval only where the recalculated `wall.toFixed(4)-cycleId` key matches exactly.
-7. Run the merged calculator again so manual/automatic `Seq`/`Ni` combinations resolve through the current calculation engine.
+The application supports a bounded straight-pipe pressure-fatigue class-standardization route. It does not claim universal fatigue qualification for all components or actual routed piping systems.
 
-The exported `snapshot` is **audit-only**. It is not consumed by import and cannot override calculated values.
-
-For `approved-record` lifecycle, `Checked by` is required. The package mechanism does not provide cryptographic signing or external document-control approval.
-
-## Implemented engineering calculations
-
-### B31.3 class side
-
-- K304.1.2 Eq. (34a) straight-pipe pressure wall for the 2024 OD/minimum-wall route.
-- K304.1.1 allowances/minimum-wall comparison.
-- Eq. (35a) selected-wall pressure-rating QA.
-- Multiple pressure-cycle blocks.
-- K304.8.3 Eq. (37) pressure stress for every candidate wall × cycle block.
-- Per-block `2*Syt` elastic/inelastic gate.
-
-### KD-2 pressure-only package
-
-For the uniform straight-pipe pressure-only model, the app derives closed-end elastic principal stresses at each cycle endpoint:
-
-- circumferential/hoop stress;
-- axial stress;
-- radial stress.
-
-It also reports the pressure-only stress-intensity range for comparison with K304.8.3. KD-2 edition, route, model, limit-check calculation ID and approval remain controlled evidence fields.
-
-### Controlled automatic KD-312 `Seq`
-
-For each wall × cycle block, the application calculates:
-
-- signed `S12`, `S23`, `S31` at both cycle endpoints;
-- `Salt_12`, `Salt_23`, `Salt_31` from algebraic stress-difference ranges;
-- associated plane-normal stress at both endpoints;
-- a reviewer-selectable elastic average associated-mean descriptor, not less than zero;
-- the controlling `Seq` and stress pair when an approved automatic route is selected.
-
-Available `Seq` modes:
-
-1. **Manual licensed Seq** — reviewer enters the checked value.
-2. **Mean-stress effects incorporated in selected fatigue curve** — automatic `Seq = Salt` only after explicit source/route/curve approval.
-3. **Explicit normalized mean-stress correction** — generic reviewer-controlled coefficient, reference-cycle count and correction-term limit, using the approved curve for reference amplitude. No Code-specific coefficient is preloaded.
-
-Automatic `Seq` is blocked when the approved pressure-only elastic/uniform route is not applicable. Changing-principal-axis KD-313 processing is not implemented.
-
-### Controlled fatigue-curve `Ni`
-
-The reviewer may use manual licensed `Ni` or automatic `Ni` from controlled fatigue-curve points.
-
-Automatic curve mode requires positive finite `N, Sa(MPa)` values, at least two points, unique values, strictly decreasing `Sa` with increasing `N`, source/curve identification, approved transcription and approved log-log interpolation. Exact points are honored and intermediate points use log-log interpolation. **No extrapolation is performed.** No ASME fatigue-curve values are embedded in the repository.
-
-### Cumulative usage
-
-For approved rows:
-
-`Ui = ni / Ni`
-
-The candidate summary reports cumulative `U = sum(Ui)` and all remaining release blockers.
-
-## Engineering authority boundary
-
-This application does not:
-
-- treat `Delta Sp/2` as automatically equal to final `Seq`;
-- infer a KD-312 route from a material name;
-- embed proprietary fatigue-curve values;
-- extrapolate fatigue life outside approved curve data;
-- perform changing-axis KD-313 processing;
-- perform inelastic/elastic-plastic KD analysis;
-- perform routed-system CAESAR, local FEA or vibration/HCF acceptance;
-- treat imported result snapshots as calculation authority.
-
-The intended release wording is bounded:
-
-> Pressure-fatigue prequalified within the stated pressure, temperature, cycle, minimum-wall and component envelope.
-
-Do not represent the result as a universally fatigue-qualified piping class.
-
-## Reference regression
-
-For the controlled NPS 4 reference case (`D=114.3 mm`, `Pdesign=20 MPa`, `S=138 MPa`, `ci=3 mm`, `co=0`, `-12.5%` illustrative purchase tolerance, candidate wall `13.49 mm`, pressure cycle `2 -> 20 MPa`):
-
-- `t = 7.7103935 mm`
-- `tm = 10.7103935 mm`
-- Eq. (35a) rating `= 23.0861209 MPa`
-- `Sp(2 MPa) = 14.0665546 MPa`
-- `Sp(20 MPa) = 140.6655462 MPa`
-- `Delta Sp = 126.5989916 MPa`
-- pressure-only `Delta SI = 126.5989916 MPa`
-- controlling pressure-only `Salt = 63.2994958 MPa`
-- controlling elastic associated-mean descriptor `= 27.6830252 MPa`
-- mean-embedded automatic route: `Seq = 63.2994958 MPa`.
-
-## Validation baseline
-
-Merged PR #437 established syntax/static validation and the engineering regression above. PR #439 deliberately leaves `app.js`, `index.html`, `ui.js` and `styles.css` unchanged and adds the authority-package transport layer around them.
+Controlled engineering data, Code source applicability and reviewer evidence remain explicit release gates.
