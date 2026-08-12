@@ -168,8 +168,8 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   contractVersion: ENGINEERING_CALCULATION_CONTRACT_VERSION,
   id: 'VIB.FIV.FLOW_TURBULENCE',
   family: 'VIB',
-  name: 'Flow-Induced Turbulence (FIT) — Workbook Reference',
-  shortName: 'FIT Workbook Reference',
+  name: 'Flow-Induced Vibration Screening — FIT Workbook Reference',
+  shortName: 'Flow-Induced Vibration Screening',
   methodRevision: 'ei-aviff2-fit-reference-v2',
   purpose: 'Execute source-traceable FIT reference equations for qualification and benchmark review only.',
   authority: {
@@ -201,6 +201,7 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
     executionModes: ['single', 'sandbox', 'batch'],
     minimumQualificationToShow: 'BENCHMARK_ONLY',
     requiredQualificationMode: 'benchmark',
+    productSurface: 'VIBRATION_INTEGRITY_TABLE_WORKSPACE',
     warning: 'Benchmark reference only — not screening/design authority.',
   },
   validateInput,
