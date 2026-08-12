@@ -44,12 +44,16 @@ function gateRows(plan) {
 
 export function renderAivPromotionReadinessHtml(state = {}) {
   const plan = state.promotionReadiness ?? buildAivQualificationPromotionReadiness({});
+  const exportAction = plan.eligibleForAuthorityReview
+    ? '<div class="aivq-actions"><button type="button" data-aiv-action="export-independent-review-package">Export independent engineer review files</button></div>'
+    : '<div class="aivq-readiness-note">Independent review export remains unavailable until all six prerequisite gates are SATISFIED.</div>';
   return `<section class="aivq-card aivq-promotion-card">
     <div class="aivq-section-head"><div><h4>Method promotion readiness</h4><p>This is a qualification gate checklist, not an operating-case result. Load completed verification JSON artifacts; the browser hashes the actual file bytes with SHA-256 before the planner evaluates them.</p></div></div>
     <div class="aivq-import-grid aivq-promotion-imports">${artifactInputs(state)}</div>
-    ${state.promotionError ? `<div class="aivq-error"><strong>Promotion artifact load failed.</strong><span>${esc(state.promotionError)}</span></div>` : ''}
+    ${state.promotionError ? `<div class="aivq-error"><strong>Promotion artifact operation failed.</strong><span>${esc(state.promotionError)}</span></div>` : ''}
     <div class="aivq-result-summary"><span>Prerequisites <strong>${esc(plan.counts.prerequisiteGates)}</strong></span><span>Satisfied <strong>${esc(plan.counts.satisfied)}</strong></span><span>Unsatisfied <strong>${esc(plan.counts.unsatisfied)}</strong></span><span>Invalid evidence <strong>${esc(plan.counts.invalidEvidence)}</strong></span><span>Eligible for independent authority review <strong>${esc(plan.eligibleForAuthorityReview)}</strong></span></div>
     <div class="aivq-example-table"><table><thead><tr><th>Gate</th><th>Required verification</th><th>Status</th><th>Artifact SHA-256</th><th>Issue / next evidence</th></tr></thead><tbody>${gateRows(plan)}</tbody></table></div>
-    <div class="aivq-readiness-note">The final independent vibration-engineer promotion decision is deliberately not uploadable here. Even when all six prerequisites are satisfied, this planner keeps productionEquationAuthorized=false, screeningAuthority=NOT_AUTHORIZED, designAuthority=false and authorityPromotionAuthorized=false.</div>
+    ${exportAction}
+    <div class="aivq-readiness-note">Export creates the exact promotion-readiness JSON plus a SHA-bound PENDING `AivIndependentVibrationEngineerPromotionReview.v1` template. The final human decision is not consumed as a prerequisite and cannot mutate authority here.</div>
   </section>`;
 }
