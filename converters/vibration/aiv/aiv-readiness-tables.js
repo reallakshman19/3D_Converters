@@ -1,7 +1,12 @@
 import { assertVibrationTableExchangeShape } from '../exchange/schema.js';
 import { parseVibrationTableExchangeXlsx } from '../exchange/parse.js';
+import { parseAivAssessmentCsv, AIV_ASSESSMENT_CSV_SCHEMA } from './assessment-csv.js';
 import { buildAivReadiness } from './aiv-readiness.js';
-import { parseAivSourceCaseCsv } from './source-case-csv.js';
+import { parseAivSourceCsv, AIV_SOURCE_CSV_SCHEMA } from './source-csv.js';
+import {
+  AIV_SOURCE_ASSESSMENT_CSV_SCHEMA,
+  parseAivSourceAssessmentCsv,
+} from './source-assessment-csv.js';
 
 export const AIV_TOPOLOGY_INPUT_FORMAT = Object.freeze({
   PARSED_EXCHANGE: 'PARSED_EXCHANGE',
@@ -52,20 +57,28 @@ function parseTopology(topology) {
 
 export function buildAivReadinessFromTables(input = {}) {
   const exchange = parseTopology(input.topology);
-  const sourceCases = parseAivSourceCaseCsv(input.sourceCaseCsv ?? '');
-  const readiness = buildAivReadiness(exchange, sourceCases);
+  const sources = parseAivSourceCsv(input.sourceCsv ?? '');
+  const assessments = parseAivAssessmentCsv(input.assessmentCsv ?? '');
+  const sourceAssessments = parseAivSourceAssessmentCsv(input.sourceAssessmentCsv ?? '');
+  const readiness = buildAivReadiness(exchange, sources, assessments, sourceAssessments);
   return deepFreeze({
-    schema: 'AivReadinessTableEnvelope.v1',
+    schema: 'AivReadinessTableEnvelope.v2',
     imports: {
       topologyFormat: input.topology.format,
       topologySourceFileName: exchange.sourceFileName ?? input.topology.sourceFileName ?? null,
       exchangeSchema: exchange.schema,
       exchangeIntegrityStatus: exchange.integrityStatus ?? null,
-      sourceCaseSchema: 'AivSourceCaseCsv.v1',
-      sourceCaseCount: sourceCases.length,
+      sourceSchema: AIV_SOURCE_CSV_SCHEMA,
+      sourceCount: sources.length,
+      assessmentSchema: AIV_ASSESSMENT_CSV_SCHEMA,
+      assessmentCount: assessments.length,
+      sourceAssessmentSchema: AIV_SOURCE_ASSESSMENT_CSV_SCHEMA,
+      sourceAssessmentCount: sourceAssessments.length,
     },
     exchange,
-    sourceCases,
+    sources,
+    assessments,
+    sourceAssessments,
     readiness,
   });
 }
