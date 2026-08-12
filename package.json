@@ -12,7 +12,8 @@
     "extract:aiv-workbook-sources": "node scripts/extract-aiv-workbook-sources.mjs",
     "verify:aiv-t27-reconciliation": "node scripts/verify-aiv-t27-reconciliation.mjs",
     "verify:aiv-d23-flm1-reconciliation": "node scripts/verify-aiv-d23-flm1-reconciliation.mjs",
-    "verify:aiv-workbook-reconciliation": "node scripts/verify-aiv-workbook-reconciliation.mjs"
+    "verify:aiv-workbook-reconciliation": "node scripts/verify-aiv-workbook-reconciliation.mjs",
+    "verify:aiv-independent-benchmarks": "node scripts/verify-aiv-independent-benchmarks.mjs"
   },
   "dependencies": {
     "pyodide": "^0.27.2",
