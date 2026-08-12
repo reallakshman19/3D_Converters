@@ -64,7 +64,7 @@
   }
 
   function materialRowsFromCsv(text) {
-    return parseCsv(text).filter((row) => Object.values(row).some((v) => String(v).trim())).map((row) => ({
+    const rows = parseCsv(text).filter((row) => Object.values(row).some((v) => String(v).trim())).map((row) => ({
       materialSpec: String(row.material_spec || '').trim(),
       grade: String(row.grade || '').trim(),
       condition: String(row.condition || '').trim(),
@@ -73,10 +73,13 @@
       yieldStrengthMpa: String(row.yield_strength_mpa || '').trim(),
       sourceRef: String(row.source_ref || '').trim(),
     }));
+    const errors = validateMaterialCsvRows(rows);
+    if (errors.length) throw new Error(errors[0]);
+    return rows;
   }
 
   function overlayRowsFromCsv(text) {
-    return parseCsv(text).filter((row) => Object.values(row).some((v) => String(v).trim())).map((row) => ({
+    const rows = parseCsv(text).filter((row) => Object.values(row).some((v) => String(v).trim())).map((row) => ({
       nps: String(row.nps || '').trim(),
       schedule: String(row.schedule || '').trim().toUpperCase(),
       productSpec: String(row.product_spec || '').trim(),
@@ -84,6 +87,9 @@
       minusTolerancePct: String(row.minus_tolerance_pct || '').trim(),
       sourceRef: String(row.source_ref || '').trim(),
     }));
+    const errors = validateProductOverlayRows(rows.map((row) => ({ tag: row.nps, ...row })));
+    if (errors.length) throw new Error(errors[0]);
+    return rows;
   }
 
   function dimensionStandard(schedule) {
@@ -126,11 +132,34 @@
     });
   }
 
+
+
+  function validateMaterialCsvRows(rows) {
+    const errors = [];
+    const seen = new Set();
+    rows.forEach((row, index) => {
+      const prefix = `Material CSV row ${index + 1}`;
+      const temperature = Number(row.temperatureC);
+      const S = Number(row.allowableStressMpa);
+      const Syt = Number(row.yieldStrengthMpa);
+      if (!String(row.materialSpec || '').trim()) errors.push(`${prefix}: material specification is required.`);
+      if (!String(row.grade || '').trim()) errors.push(`${prefix}: grade is required.`);
+      if (!Number.isFinite(temperature)) errors.push(`${prefix}: temperature must be numeric.`);
+      if (!(S > 0)) errors.push(`${prefix}: allowable stress S must be > 0.`);
+      if (!(Syt > 0)) errors.push(`${prefix}: Syt must be > 0.`);
+      if (!String(row.sourceRef || '').trim()) errors.push(`${prefix}: source reference is required.`);
+      const key = `${String(row.materialSpec || '').trim()}|${String(row.grade || '').trim()}|${String(row.condition || '').trim()}|${temperature}`;
+      if (seen.has(key)) errors.push(`${prefix}: duplicate material/grade/condition/temperature point.`);
+      seen.add(key);
+    });
+    return errors;
+  }
+
   function validateProductOverlayRows(rows) {
     const errors = [];
     const seen = new Set();
     rows.forEach((row, index) => {
-      const hasOverlay = String(row.productSpec || '').trim() || String(row.minusTolerancePct || '').trim() || String(row.sourceRef || '').trim();
+      const hasOverlay = String(row.productSpec || '').trim() || String(row.designDiameterMm || '').trim() || String(row.minusTolerancePct || '').trim() || String(row.sourceRef || '').trim();
       if (!hasOverlay) return;
       const nps = Number(row.tag);
       const schedule = String(row.schedule || '').trim().toUpperCase();
@@ -161,7 +190,7 @@
 
   function productOverlayCsv(rows) {
     const headers = ['nps','schedule','product_spec','design_d_max_mm','minus_tolerance_pct','source_ref'];
-    const overlays = rows.filter((row) => String(row.productSpec || '').trim() || String(row.minusTolerancePct || '').trim() || String(row.sourceRef || '').trim());
+    const overlays = rows.filter((row) => String(row.productSpec || '').trim() || String(row.designDiameterMm || '').trim() || String(row.minusTolerancePct || '').trim() || String(row.sourceRef || '').trim());
     return serializeCsv(headers, overlays.map((row) => ({
       nps: row.tag, schedule: row.schedule, product_spec: row.productSpec, design_d_max_mm: row.designDiameterMm,
       minus_tolerance_pct: row.minusTolerancePct, source_ref: row.sourceRef,
@@ -172,6 +201,6 @@
 
   return Object.freeze({
     CATALOG_PATH, parseDelimited, parseCsv, parseTsv, parseCatalog, materialRowsFromCsv, overlayRowsFromCsv,
-    pipeRowsFromMaster, mergeProductOverlay, validateProductOverlayRows, materialCsv, productOverlayCsv, resolveUrl,
+    pipeRowsFromMaster, mergeProductOverlay, validateMaterialCsvRows, validateProductOverlayRows, materialCsv, productOverlayCsv, resolveUrl,
   });
 });
