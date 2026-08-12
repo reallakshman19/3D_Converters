@@ -54,6 +54,12 @@ export {
   buildAivBlockedResultSet,
 } from './aiv-result-contracts.js';
 export {
+  AIV_PROMOTION_READINESS_SCHEMA,
+  AIV_PROMOTION_GATE_STATUS,
+  AIV_PROMOTION_GATE_DEFINITIONS,
+  buildAivQualificationPromotionReadiness,
+} from './aiv-promotion-readiness.js';
+export {
   AIV_TOPOLOGY_VIEW_MODEL_SCHEMA,
   assertAivTopologyViewModel,
   buildAivTopologyViewModel,
