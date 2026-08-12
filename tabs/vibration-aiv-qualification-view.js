@@ -12,6 +12,7 @@ import { AIV_INDEPENDENT_BENCHMARKS } from '../converters/vibration/aiv/aiv-inde
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
 import { renderAivInputWorkspaceHtml } from './vibration-aiv-input-view.js';
 import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
+import { renderAivResultShellsHtml } from './vibration-aiv-result-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -72,9 +73,10 @@ function independentBenchmarkRows() {
 export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
     <header class="aivq-header"><div><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>BLOCKED</strong><span>NOT SCREENING / NOT DESIGN AUTHORITY</span></div></header>
-    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Controlled benchmark inputs, editable working tables, non-numerical readiness and published-reference evidence are available. Benchmark calculation, screening and production AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
+    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Controlled benchmark inputs, editable working tables, non-numerical readiness and frozen result scopes are available. Benchmark calculation, screening and production AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
     ${renderAivInputWorkspaceHtml(state)}
     ${renderAivReadinessPanelHtml(state)}
+    ${renderAivResultShellsHtml(state)}
     <section class="aivq-card"><h4>Controlled source set</h4><div class="aivq-grid">
       <div><small>Qualification issue</small><strong>#441</strong></div>
       <div><small>EI T2.7 main guidance</small><strong>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.path)}</strong><span>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.repository)} @ ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.commit)} · blob ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.gitBlob)} · ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.locator)}</span><span>Page ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.officialErrata.aivRelevantPage)} errata reconciliation required before equation transcription.</span></div>
