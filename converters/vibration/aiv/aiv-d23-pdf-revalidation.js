@@ -17,7 +17,30 @@ export const AIV_EI_EXAMPLES_PDF_SOURCE = deepFreeze({
   evidenceClass: 'EI_WORKED_EXAMPLE_PDF_REVALIDATION',
   sourceExtractionSchema: 'AivD23ExamplesSourceExtraction.v1',
   sourceExtractionCommand: 'extract:aiv-ei-d23-source',
-  directBinaryExtractionState: 'CONTROLLED_EXTRACTION_GATE_IMPLEMENTED_EXECUTION_PENDING',
+  directBinaryExtractionState: 'CORROBORATING_BINARY_REFERENCE_RETAINED',
+  productionAuthority: false,
+});
+
+export const AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE = deepFreeze({
+  sourceId: 'AIV-SRC-EI-WORKED-EXAMPLES-MARKDOWN',
+  repository: 'reallaksh19/3D_Converters',
+  commit: '8f243592d73ccf4790d9e308a311003ce7d8f5bb',
+  path: 'docs/Energy-Institute-AVIFF---Worked-Examples.md',
+  gitBlob: '9f22d92eba8bdf3b67adc25a4c77a7f7d7211da8',
+  lineCount: 268,
+  evidenceClass: 'CONTROLLED_DOCX_MARKDOWN_TRANSCRIPTION',
+  derivedFrom: {
+    repository: 'reallaksh19/Common',
+    commit: 'fb549185b9b27edc2379734240320a85c5bef9f6',
+    path: 'Energy-Institute-AVIFF---Worked-Examples.doc.docx',
+    gitBlob: 'ceee15ed5f7f320045d5f3979024e2e8664613f2',
+    wordDocumentXmlBytes: 2695121,
+    wordDocumentXmlCrc32: '0x71cd38d8',
+    nonEmptyWordTextNodesCovered: 3089,
+    nonEmptyWordTextNodesTotal: 3089,
+    validation: 'PR445_SOURCE_ORDER_TRANSCRIPTION_AND_GITHUB_ROUND_TRIP_VALIDATED',
+  },
+  readableContentState: 'CONTROLLED_TRANSCRIPTION_AVAILABLE',
   productionAuthority: false,
 });
 
@@ -25,7 +48,8 @@ export const AIV_D23_PDF_REVALIDATION = deepFreeze({
   schema: AIV_D23_PDF_REVALIDATION_SCHEMA,
   methodId: 'VIB.AIV.ACOUSTIC',
   source: AIV_EI_EXAMPLES_PDF_SOURCE,
-  validationState: 'PUBLISHED_CHAIN_REVALIDATED_DIRECT_BLOB_EXTRACTION_GATE_IMPLEMENTED',
+  readableWorkedExampleSource: AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE,
+  validationState: 'PUBLISHED_CHAIN_REVALIDATED_CONTROLLED_MARKDOWN_TRANSCRIPTION_AVAILABLE',
   sourceCases: {
     relief: {
       upstreamPressure: { value: 98, unit: 'barg' },
@@ -52,6 +76,36 @@ export const AIV_D23_PDF_REVALIDATION = deepFreeze({
         consequence: 'REDUCED_SOURCE_PWL_BELOW_155_DB_AND_MAIN_LINE_LOF_SET_TO_0_29',
       },
     },
+  },
+  controlledMarkdownAivRows: {
+    recycleCompressorDischarge: {
+      upstreamPressureBara: 88,
+      downstreamPressureBara: 26,
+      upstreamTemperatureDegC: 136.7,
+      molecularWeightGPerMol: 21.75,
+      lowNoiseTrimDb: 30,
+      reportedPwlDb: 129.36,
+      reportedLof: 0.29,
+    },
+    recycleCompressorSuction: {
+      upstreamPressureBara: 88,
+      downstreamPressureBara: 26,
+      upstreamTemperatureDegC: 136.7,
+      molecularWeightGPerMol: 23.22,
+      lowNoiseTrimDb: 30,
+      reportedPwlDb: 129.02,
+      reportedLof: 0.29,
+    },
+    reliefDownstreamLine: {
+      upstreamPressureBara: 99,
+      downstreamPressureBara: 1,
+      upstreamTemperatureDegC: 137,
+      molecularWeightGPerMol: 21.75,
+      lowNoiseTrimDb: 0,
+      reportedPwlDb: 164.69,
+      reportedLof: 1.48,
+    },
+    interpretation: 'DERIVED_SCREENING_REPORT_ROWS_ARE_NOT_INTERCHANGEABLE_WITH_D2_3_FIRST_DISCONTINUITY_RESULT_OBJECTS',
   },
   reliefFirstDiscontinuity: {
     assessmentDescription: '2-inch bypass weldolet',
@@ -90,8 +144,8 @@ export const AIV_D23_PDF_REVALIDATION = deepFreeze({
     },
   },
   remainingQualificationGates: [
-    'DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF',
     'RECONCILE_D2_3_PUBLISHED_FLM1_ARITHMETIC',
+    'RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE',
     'CONTROLLED_T2_7_HUMAN_RECONCILIATION',
     'INDEPENDENT_SONIC_SFF6_BENCHMARK',
     'INDEPENDENT_MULTI_SOURCE_BENCHMARK',
