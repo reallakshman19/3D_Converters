@@ -2,7 +2,9 @@ import { isEngineeringCalculationExecutable } from './engineering-calculation-co
 import { definitionState, esc, pill } from './engineering-calculation-console-sections.js';
 
 const FIT_ID = 'VIB.FIV.FLOW_TURBULENCE';
+const AIV_ID = 'VIB.AIV.ACOUSTIC';
 const FIT_PRODUCT_SURFACE = 'VIBRATION_INTEGRITY_TABLE_WORKSPACE';
+const AIV_QUALIFICATION_SURFACE = 'VIBRATION_AIV_QUALIFICATION_WORKSPACE';
 
 function statusKind(definition) {
   const state = definitionState(definition);
@@ -15,11 +17,15 @@ function mechanismAction(definition) {
   const fitWorkspace = definition.id === FIT_ID
     && executable
     && definition.ui?.productSurface === FIT_PRODUCT_SURFACE;
+  const aivQualification = definition.id === AIV_ID
+    && definition.ui?.productSurface === AIV_QUALIFICATION_SURFACE;
   const label = fitWorkspace
     ? 'Open FIT workspace'
-    : executable
-      ? 'Open calculation'
-      : 'View qualification basis';
+    : aivQualification
+      ? 'Open AIV qualification workspace'
+      : executable
+        ? 'Open calculation'
+        : 'View qualification basis';
   return `<button type="button" class="engineering-console-btn ${fitWorkspace ? 'primary' : ''}" data-calc-id="${esc(definition.id)}">${label}</button>`;
 }
 
@@ -58,4 +64,4 @@ export function renderVibrationFamilyLanding(definitions = []) {
   </section>`;
 }
 
-export { FIT_ID as VIBRATION_FIT_CALCULATION_ID };
+export { FIT_ID as VIBRATION_FIT_CALCULATION_ID, AIV_ID as VIBRATION_AIV_CALCULATION_ID };
