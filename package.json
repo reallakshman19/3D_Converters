@@ -6,6 +6,7 @@
     "build:inputxml-contract-bundle": "node scripts/build-inputxml-contract-bundle.mjs",
     "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
     "verify:vibration-fit-release": "node scripts/verify-vibration-fit-release.mjs",
+    "verify:aiv-input-model": "node --test tests/vibration-aiv-readiness.test.mjs tests/vibration-aiv-topology-view.test.mjs",
     "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs",
     "extract:aiv-ei-t27-source": "node scripts/extract-aiv-ei-t27-source.mjs",
     "extract:aiv-ei-d23-source": "node scripts/extract-aiv-ei-d23-source.mjs",
