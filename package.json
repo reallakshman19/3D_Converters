@@ -5,6 +5,7 @@
     "build:inputxml-runtime-manifest": "node scripts/build-inputxml-runtime-manifest.mjs",
     "build:inputxml-contract-bundle": "node scripts/build-inputxml-contract-bundle.mjs",
     "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
+    "verify:vibration-fit-release": "node scripts/verify-vibration-fit-release.mjs",
     "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs"
   },
   "dependencies": {
