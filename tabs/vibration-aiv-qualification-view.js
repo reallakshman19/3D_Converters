@@ -10,18 +10,18 @@ function esc(value) {
 }
 
 const COVERAGE = Object.freeze([
-  ['Pressure basis', 'EI D.2.3', 'COVERED', 'Worked example converts gauge conditions to absolute P1/P2 for T2.7.'],
-  ['Non-sonic source branch', 'EI D.2.3', 'COVERED', 'Published relief and recycle cases use SFF = 0.'],
-  ['Low-noise trim', 'EI D.2.3', 'COVERED', 'Recycle-valve example applies manufacturer noise reduction.'],
-  ['155 dB source branch', 'EI D.2.3', 'COVERED', 'Worked example exercises source-level screening branch behavior.'],
-  ['Downstream discontinuity attenuation', 'EI D.2.3', 'COVERED', 'Relief case evaluates a downstream weldolet after source attenuation.'],
-  ['T2-6 weldolet assessment chain', 'EI D.2.3', 'COVERED', 'Published geometry/intermediate chain is available for qualification.'],
-  ['Sonic SFF = 6 branch', 'Independent benchmark required', 'GAP', 'The controlled D.2.3 cases do not exercise the sonic branch.'],
-  ['Multiple simultaneous sources', 'Independent benchmark required', 'GAP', 'Must be qualified separately before production behavior is adopted.'],
+  ['AIV-SRC-EI-D2-3-PRESSURE', 'Pressure basis', 'EI D.2.3', 'COVERED', 'Worked example converts gauge conditions to absolute P1/P2 for T2.7.'],
+  ['AIV-SRC-EI-D2-3-NONSONIC', 'Non-sonic source branch', 'EI D.2.3', 'COVERED', 'Published relief and recycle cases use SFF = 0.'],
+  ['AIV-SRC-EI-D2-3-TRIM', 'Low-noise trim', 'EI D.2.3', 'COVERED', 'Recycle-valve example applies manufacturer noise reduction.'],
+  ['AIV-SRC-EI-D2-3-155DB', '155 dB source branch', 'EI D.2.3', 'COVERED', 'Worked example exercises source-level screening branch behavior.'],
+  ['AIV-SRC-EI-D2-3-ATTENUATION', 'Downstream discontinuity attenuation', 'EI D.2.3', 'COVERED', 'Relief case evaluates a downstream weldolet after source attenuation.'],
+  ['AIV-SRC-EI-D2-3-T2-6', 'T2-6 weldolet assessment chain', 'EI D.2.3', 'COVERED', 'Published geometry/intermediate chain is available for qualification.'],
+  ['AIV-SRC-GAP-SONIC-SFF6', 'Sonic SFF = 6 branch', 'Independent benchmark required', 'GAP', 'The controlled D.2.3 cases do not exercise the sonic branch.'],
+  ['AIV-SRC-GAP-MULTI-SOURCE', 'Multiple simultaneous sources', 'Independent benchmark required', 'GAP', 'Must be qualified separately before production behavior is adopted.'],
 ]);
 
 function coverageRows() {
-  return COVERAGE.map(([item, evidence, status, note]) => `<tr><td>${esc(item)}</td><td>${esc(evidence)}</td><td><span class="aivq-status ${status === 'COVERED' ? 'ok' : 'gap'}">${esc(status)}</span></td><td>${esc(note)}</td></tr>`).join('');
+  return COVERAGE.map(([traceId, item, evidence, status, note]) => `<tr><td><code>${esc(traceId)}</code></td><td>${esc(item)}</td><td>${esc(evidence)}</td><td><span class="aivq-status ${status === 'COVERED' ? 'ok' : 'gap'}">${esc(status)}</span></td><td>${esc(note)}</td></tr>`).join('');
 }
 
 export function renderAivQualificationWorkspaceHtml() {
@@ -42,7 +42,7 @@ export function renderAivQualificationWorkspaceHtml() {
       </tbody></table></div>
     </section>
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 qualification coverage</h4><p>Coverage is evidence classification, not screening authority or a confidence score.</p></div></div>
-      <div class="aivq-example-table"><table><thead><tr><th>Method item</th><th>Evidence</th><th>Coverage</th><th>Consequence</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
+      <div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence</th><th>Coverage</th><th>Consequence</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
     </section>
     <section class="aivq-card"><h4>Permanent UI boundary</h4><ul class="aivq-list"><li>Advanced_Analysis remains topology/model author.</li><li>AIV consumes certified table exchange and separate process/enrichment authorities.</li><li>No 3D viewer, free-form topology canvas, geometry editor or click-on-model calculation workflow is added.</li><li>No AIV PWL, attenuation, LOF, threshold or pass/safe logic is implemented in UI code.</li><li>Missing or ambiguous source-to-assessment mappings fail closed and remain non-numerical.</li></ul></section>
   </div>`;
