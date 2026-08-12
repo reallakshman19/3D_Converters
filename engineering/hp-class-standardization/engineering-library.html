@@ -6,64 +6,70 @@
   <title>HP Piping Class — Engineering Library Workspace</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    body{margin:0;background:var(--bg)} .lib-shell{max-width:1500px;margin:0 auto;padding:20px 24px 0}
-    .lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.lib-table input{min-width:90px}
+    body{margin:0;background:var(--bg)} .lib-shell{max-width:1650px;margin:0 auto;padding:20px 24px 0}
+    .lib-grid{display:grid;grid-template-columns:1fr;gap:18px}.lib-table input{min-width:88px}
     .lib-table .wide{min-width:150px}.lib-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
     .lib-actions input[type=file]{display:none}.apply-grid{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end}
     #packageFrame{display:block;width:100%;height:1150px;border:0;background:white;margin-top:18px}
     .source-note{font-size:.9rem;color:var(--muted);margin:8px 0 0}.library-section{margin-bottom:18px}
-    @media(max-width:1100px){.lib-grid{grid-template-columns:1fr}.apply-grid{grid-template-columns:1fr}}
+    .docs-path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86rem}
+    @media(max-width:1100px){.apply-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <div class="lib-shell">
   <section class="control-group evidence-input library-section">
     <div class="group-heading">
-      <div><p class="step-kicker">Controlled engineering data</p><h1 style="margin:0">Material & Pipe-Product Libraries</h1><p>Editable tables with explicit sources, bounded interpolation, no extrapolation and explicit calculator application.</p></div>
-      <span class="group-type">Library JSON v1</span>
+      <div><p class="step-kicker">Controlled engineering data</p><h1 style="margin:0">Material & Pipe-Product Libraries</h1><p>Editable tables backed by repository docs files, explicit sources, bounded interpolation, no extrapolation and explicit calculator application.</p></div>
+      <span class="group-type">Docs CSV + JSON</span>
     </div>
     <div class="form-grid">
       <label>Library ID<input id="libraryId" placeholder="e.g. HP-LIB-001"></label>
       <label>Revision<input id="libraryRevision" placeholder="e.g. A"></label>
       <label>Prepared by<input id="libraryPreparedBy" placeholder="name / role"></label>
-      <label>Material source reference<input id="materialSourceRef" placeholder="controlled table / document ID"></label>
-      <label>Material source version<input id="materialVersion" placeholder="edition / revision"></label>
-      <label>Product source reference<input id="productSourceRef" placeholder="product standard / vendor data ID"></label>
-      <label>Product source version<input id="productVersion" placeholder="edition / revision"></label>
+      <label>Material source reference<input id="materialSourceRef" placeholder="docs source path"></label>
+      <label>Material source version<input id="materialVersion" placeholder="revision / version"></label>
+      <label>Product geometry source<input id="productSourceRef" placeholder="governed pipe master path"></label>
+      <label>Product geometry version<input id="productVersion" placeholder="blob / revision"></label>
     </div>
     <div class="lib-actions page-actions">
-      <button id="exportLibraryButton" class="primary" type="button">Export libraries JSON</button>
-      <button id="importLibraryButton" type="button">Import libraries JSON</button>
+      <button id="reloadDocsButton" class="primary" type="button">Reload docs CSVs</button>
+      <button id="exportMaterialCsvButton" type="button">Download material CSV</button>
+      <button id="exportProductCsvButton" type="button">Download product overlay CSV</button>
+      <button id="exportLibraryButton" type="button">Export working-copy JSON</button>
+      <button id="importLibraryButton" type="button">Import working-copy JSON</button>
       <input id="libraryFile" type="file" accept="application/json,.json">
       <button id="addMaterialButton" type="button">+ Material row</button>
       <button id="addProductButton" type="button">+ Product row</button>
     </div>
-    <div id="libraryStatusBox" class="notice info">Tables start empty. Enter only controlled engineering data.</div>
+    <div id="libraryStatusBox" class="notice info">Loading repository docs catalog. Missing material and purchase-specific data remain blockers.</div>
+    <p class="source-note">Catalog: <span class="docs-path">docs/Masters/HP_Piping_Class/library-catalog.csv</span>. Material CSV is intentionally header-only until controlled Chapter IX values are published.</p>
   </section>
 
   <div class="lib-grid">
     <section class="control-group user-input library-section">
-      <div class="group-heading"><div><h2>Material / Property Table</h2><p>One row per controlled temperature point.</p></div><span class="group-type">S / Syt</span></div>
+      <div class="group-heading"><div><h2>Material / Property Table</h2><p>Runtime source: docs CSV. One row per controlled temperature point.</p></div><span class="group-type">S / Syt</span></div>
       <div class="table-wrap"><table class="lib-table"><thead><tr><th>Material spec</th><th>Grade</th><th>Condition</th><th>T °C</th><th>S MPa</th><th>Syt MPa</th><th>Row source</th><th></th></tr></thead><tbody id="materialBody"></tbody></table></div>
       <div class="apply-grid">
         <label>Material / grade / condition<select id="materialSelection"><option value="">Select controlled material</option></select></label>
         <label>Design temperature for S (°C)<input id="materialDesignTemperature" type="number" step="any"></label>
         <button id="applyMaterialButton" class="primary" type="button">Apply material to calculator</button>
       </div>
-      <p class="source-note">Applying material evaluates S at the entered design temperature and Syt at every cycle-average temperature. All required temperatures must be within the controlled table range.</p>
+      <p class="source-note">Exact points are used directly. Interpolation is linear only between bracketing controlled points. No extrapolation.</p>
     </section>
 
     <section class="control-group user-input library-section">
-      <div class="group-heading"><div><h2>Pipe-Product / Dimension Table</h2><p>Use the actual product specification and its dimensional tolerance.</p></div><span class="group-type">D / wall / tolerance</span></div>
-      <div class="table-wrap"><table class="lib-table"><thead><tr><th>Use</th><th>NPS / tag</th><th>Product spec</th><th>Design D / max OD mm</th><th>Nominal wall mm</th><th>Minus tol. %</th><th>Row source</th><th></th></tr></thead><tbody id="productBody"></tbody></table></div>
+      <div class="group-heading"><div><h2>Pipe-Product / Dimension Table</h2><p>Geometry/walls load dynamically from the governed docs pipe master. Purchase specification and wall tolerance come only from the CSV overlay or explicit user edit.</p></div><span class="group-type">D / wall / tolerance</span></div>
+      <div class="table-wrap"><table class="lib-table"><thead><tr><th>Use</th><th>NPS</th><th>Schedule</th><th>Dimension std</th><th>Purchase product spec</th><th>Reference OD mm</th><th>Design D / max permitted OD mm</th><th>Nominal wall mm</th><th>Minus tol. %</th><th>Geometry source</th><th>Purchase/tolerance source</th><th></th></tr></thead><tbody id="productBody"></tbody></table></div>
       <div class="page-actions"><button id="applyProductButton" class="primary" type="button">Apply selected product row to calculator</button></div>
-      <p class="source-note">The selected exact row sets D, product specification, minus tolerance and replaces the candidate-wall list with that selected wall. No prior-wall carryover, nearest-size or schedule inference is performed.</p>
+      <p class="source-note">Canonical geometry comes from <span class="docs-path">docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv</span>. Rows remain non-applicable until purchase product specification, design D / maximum permitted OD, minus tolerance and purchase/tolerance source are complete.</p>
     </section>
   </div>
 </div>
 
 <iframe id="packageFrame" src="authority-package.html" title="HP piping class controlled authority package"></iframe>
 <script src="engineering-library-core.js"></script>
+<script src="engineering-library-csv.js"></script>
 <script src="engineering-library-ui.js"></script>
 </body>
 </html>
