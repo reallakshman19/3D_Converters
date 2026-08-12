@@ -1,3 +1,4 @@
+import { buildVibrationWorkspaceFitDetail } from './fit-detail.js';
 import { vibrationWorkspaceRowKey } from './query.js';
 
 function exactIdentity(row, target) {
@@ -47,6 +48,7 @@ export function buildVibrationWorkspaceDetail(workflow, selectedRow) {
     rowKey: vibrationWorkspaceRowKey(selectedRow),
     summary: selectedRow,
     inputs: inputDetail(planItem),
+    fitMechanism: buildVibrationWorkspaceFitDetail(resultRow),
     operatingCase: matchingOperatingCase(workflow, selectedRow),
     enrichment: matchingEnrichment(workflow, selectedRow),
     evidenceQualification: evidenceDetail(resultRow),
