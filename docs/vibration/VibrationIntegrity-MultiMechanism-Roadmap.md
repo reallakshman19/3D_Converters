@@ -195,6 +195,27 @@ FIT Stage 4 now exposes stable correlation IDs, equation IDs, normalized central
 
 ## 10. Roadmap stages
 
+### Auto-mode execution policy
+
+Owner directive (2026-08-12): **upcoming implementation stages run in AUTO MODE**.
+
+AUTO MODE means:
+
+- once the current stage reaches its defined implementation/validation handoff, proceed to the next roadmap stage without asking for another “ok”;
+- automatically perform source reconciliation, bounded implementation, focused validation, CodingRules reporting and draft-PR publication when the stage prerequisites are actually available;
+- if a prerequisite is missing, source authority is ambiguous, or another active PR owns overlapping files, mark the stage `BLOCKED`/`DEFERRED`, preserve the evidence, and continue only where the roadmap permits without overwriting that workstream;
+- every new numerical mechanism begins no higher than `BENCHMARK_ONLY` and must satisfy its own controlled method/source/evidence gates.
+
+AUTO MODE does **not** authorize:
+
+- merging a PR;
+- changing engineering, screening or design authority;
+- bypassing a failed validation/evidence gate;
+- inventing a method, coefficient, benchmark target or applicability rule;
+- overwriting unrelated active PR work.
+
+Stage 12 remains a manual engineering-governance event and is excluded from automatic authority transition.
+
 ### Stage 0 — Authority freeze
 
 Status: **ACTIVE / PERMANENT UNTIL EXPLICIT GOVERNANCE CHANGE**
@@ -338,27 +359,37 @@ docs/vibration/VibrationMechanismQualificationFramework-v1.md
 
 ### Stage 6 — Mechanical excitation
 
-Status: **NEXT AFTER STAGE-5 RELEASE/BROWSER EVIDENCE**
+Status: **AUTO MODE · QUEUED AFTER STAGE-5 RELEASE/BROWSER EVIDENCE**
 
 Use retained records 3, 4, 5 and 7 only after adopted rules/equations, equipment-item cardinality, governing semantics, independent examples and unit invariance are controlled. Authority starts benchmark-only.
 
 ### Stage 7 — Deadleg pulsation
 
+Status: **AUTO MODE · QUEUED AFTER STAGE 6**
+
 Use retained records 4, 7 and 8. Control branch geometry, standard/advanced paths, unavailable advanced results, branch-mainline trace, independent checks and boundaries.
 
 ### Stage 8 — AIV
+
+Status: **AUTO MODE · COORDINATE WITH ACTIVE AIV WORKSTREAM; DO NOT OVERWRITE #446**
 
 Use retained records 5, 6 and 8. Control valve/noise source contract, PWL, low-noise trim, pressure/flow resolution and independent qualification separately from FIT.
 
 ### Stage 9 — Valve transients
 
+Status: **AUTO MODE · QUEUED AFTER PREDECESSOR GATES**
+
 Use retained records 7, 8 and 12. Control mechanism taxonomy, valve/pump context, closure/opening forces, pressure rise, opening/closing LOF and source ambiguity.
 
 ### Stage 10 — Thermowell / SBC
 
+Status: **AUTO MODE · QUEUED AFTER PREDECESSOR GATES**
+
 Treat both as child-item mechanisms. Thermowell requires ASME PTC 19.3 TW qualification. SBC requires mainline dependency plus fitting/location/geometry evidence.
 
 ### Stage 11 — Mechanisms with no retained populated examples
+
+Status: **AUTO MODE · EVIDENCE-GATED; EXPECT BLOCK/DEFER WHEN METHOD SOURCES ARE ABSENT**
 
 Do not implement from empty headings:
 
@@ -371,6 +402,8 @@ Do not implement from empty headings:
 Each needs an adopted method source plus independent qualification evidence.
 
 ### Stage 12 — Screening-authority review
+
+Status: **MANUAL GOVERNANCE ONLY · EXCLUDED FROM AUTO AUTHORITY TRANSITION**
 
 Separate engineering-governance event requiring adopted screening scope, mechanism-specific independent validation, boundary/domain coverage, unit invariance, source/run trace, exact-head release/browser validation, independent vibration-engineer approval and explicit Owner authority transition.
 
