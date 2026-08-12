@@ -21,11 +21,21 @@ function benchmarkEvidence() {
       screeningAuthority: 'NOT_AUTHORIZED',
       designAuthority: false,
     }),
+    assumptionProfileValidation: wrapped({
+      schema: 'AivAssumptionProfileValidation.v1',
+      methodId: 'VIB.AIV.ACOUSTIC',
+      status: 'PASS',
+      valid: true,
+      humanEvidenceRequired: false,
+      assumptionsVisibleAndEditableRequired: true,
+      designAuthority: false,
+    }),
     benchmarkKernelQualification: wrapped({
-      schema: 'AivBenchmarkKernelQualification.v1',
+      schema: 'AivBenchmarkKernelQualification.v2',
       methodId: 'VIB.AIV.ACOUSTIC',
       releaseTarget: 'BENCHMARK_ONLY',
       status: 'PASS',
+      humanEvidenceRequired: false,
       releaseGateSatisfied: true,
       counts: {
         totalStages: 10,
@@ -38,21 +48,6 @@ function benchmarkEvidence() {
         designAuthority: false,
       },
     }),
-    promotionReadiness: wrapped({
-      schema: 'AivQualificationPromotionReadiness.v1',
-      status: 'READY_FOR_INDEPENDENT_AUTHORITY_REVIEW',
-      eligibleForAuthorityReview: true,
-      authorityPromotionAuthorized: false,
-    }),
-    independentPromotionReview: wrapped({
-      schema: 'AivIndependentVibrationEngineerPromotionReviewVerification.v1',
-      reviewComplete: true,
-      recommendation: 'RECOMMEND_BENCHMARK_ONLY_PROMOTION',
-      recommendedAuthorityTarget: 'BENCHMARK_ONLY',
-      authorityTransitionApplied: false,
-      screeningAuthority: 'NOT_AUTHORIZED',
-      designAuthority: false,
-    }),
     releaseValidation: wrapped({
       schema: 'AivReleaseValidationReceipt.v1',
       methodId: 'VIB.AIV.ACOUSTIC',
@@ -63,39 +58,60 @@ function benchmarkEvidence() {
   };
 }
 
-test('AIV release plan defaults to BLOCKED and forbids direct screening release', () => {
+test('AIV release plan defaults to BLOCKED, AUTO assumptions, and forbids direct screening release', () => {
   const plan = buildAivReleasePlan();
   assert.equal(plan.schema, AIV_RELEASE_PLAN_SCHEMA);
   assert.equal(plan.currentPhase, 'BLOCKED');
   assert.equal(plan.nextTarget, 'BENCHMARK_ONLY');
   assert.equal(plan.releasePolicy.directBlockedToScreeningForbidden, true);
+  assert.equal(plan.releasePolicy.humanEvidenceRequired, false);
+  assert.equal(plan.releasePolicy.missingEngineeringDataPolicy, 'ASSUME_FROM_VISIBLE_USER_CONFIGURABLE_PROFILE');
   assert.equal(plan.releasePolicy.designAuthorityTarget, false);
   assert.equal(plan.benchmarkOnly.status, 'NOT_READY');
-  assert.equal(plan.benchmarkOnly.counts.pending, 5);
+  assert.equal(plan.benchmarkOnly.counts.pending, 4);
   assert.equal(plan.screening.status, 'BLOCKED_BY_PREVIOUS_PHASE');
   assert.equal(plan.screening.counts.blockedByPreviousPhase, 7);
   assert.equal(plan.authorityTransitionApplied, false);
 });
 
-test('all five benchmark release evidence artifacts make only BENCHMARK_ONLY eligible for transition review', () => {
+test('four machine/configuration artifacts make BENCHMARK_ONLY eligible for authority transition', () => {
   const plan = buildAivReleasePlan({ evidence: benchmarkEvidence() });
-  assert.equal(plan.benchmarkOnly.status, 'ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION');
-  assert.equal(plan.benchmarkOnly.eligibleForTransitionReview, true);
-  assert.equal(plan.benchmarkOnly.counts.satisfied, 5);
+  assert.equal(plan.benchmarkOnly.status, 'ELIGIBLE_FOR_AUTHORITY_TRANSITION');
+  assert.equal(plan.benchmarkOnly.eligibleForTransition, true);
+  assert.equal(plan.benchmarkOnly.counts.satisfied, 4);
   assert.equal(plan.screening.status, 'BLOCKED_BY_PREVIOUS_PHASE');
   assert.equal(plan.authorityTransitionApplied, false);
   assert.equal(plan.benchmarkOnly.targetAuthority.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(plan.benchmarkOnly.targetAuthority.designAuthority, false);
+  assert.equal(plan.benchmarkOnly.gates.some((gate) => /ENGINEER|HUMAN/u.test(gate.gateId)), false);
 });
 
-test('isolated qualification parity is not enough when real product-kernel qualification is missing', () => {
+test('machine parity is not enough when complete product-kernel qualification is missing', () => {
   const evidence = benchmarkEvidence();
   delete evidence.benchmarkKernelQualification;
   const plan = buildAivReleasePlan({ evidence });
   const kernelGate = plan.benchmarkOnly.gates.find((gate) => gate.gateId === 'BENCHMARK_KERNEL_QUALIFICATION');
   assert.equal(kernelGate.status, 'PENDING');
   assert.equal(plan.benchmarkOnly.status, 'NOT_READY');
-  assert.equal(plan.benchmarkOnly.eligibleForTransitionReview, false);
+  assert.equal(plan.benchmarkOnly.eligibleForTransition, false);
+});
+
+test('invalid assumption validation blocks release without introducing a human-review gate', () => {
+  const evidence = benchmarkEvidence();
+  evidence.assumptionProfileValidation = wrapped({
+    schema: 'AivAssumptionProfileValidation.v1',
+    methodId: 'VIB.AIV.ACOUSTIC',
+    status: 'INVALID_ASSUMPTION_PROFILE',
+    valid: false,
+    humanEvidenceRequired: false,
+    assumptionsVisibleAndEditableRequired: true,
+    designAuthority: false,
+  });
+  const plan = buildAivReleasePlan({ evidence });
+  const gate = plan.benchmarkOnly.gates.find((item) => item.gateId === 'ASSUMPTION_PROFILE_VALIDATION');
+  assert.equal(gate.status, 'INVALID_EVIDENCE');
+  assert.equal(plan.benchmarkOnly.status, 'INVALID_EVIDENCE');
+  assert.equal(plan.releasePolicy.humanEvidenceRequired, false);
 });
 
 test('bare or malformed evidence cannot satisfy a release gate', () => {
@@ -113,13 +129,13 @@ test('bare or malformed evidence cannot satisfy a release gate', () => {
   assert.equal(plan.benchmarkOnly.status, 'INVALID_EVIDENCE');
 });
 
-test('SCREENING remains a second release program after BENCHMARK_ONLY', () => {
+test('SCREENING remains a second machine qualification program after BENCHMARK_ONLY', () => {
   const plan = buildAivReleasePlan({ currentPhase: 'BENCHMARK_ONLY' });
   assert.equal(plan.nextTarget, 'SCREENING');
   assert.equal(plan.benchmarkOnly.status, 'RELEASED');
   assert.equal(plan.screening.status, 'NOT_READY');
   assert.equal(plan.screening.counts.pending, 7);
-  assert.equal(plan.screening.eligibleForTransitionReview, false);
+  assert.equal(plan.screening.eligibleForTransition, false);
   assert.equal(plan.screening.targetAuthority.designAuthority, false);
 });
 
