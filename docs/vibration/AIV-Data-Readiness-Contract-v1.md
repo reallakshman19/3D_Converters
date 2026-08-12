@@ -71,6 +71,8 @@ Downstream Pressure Unit
 Downstream Pressure Basis
 Reference Pressure
 Reference Pressure Unit
+Reference Pressure Source
+Reference Pressure Source Revision
 Upstream Temperature
 Upstream Temperature Unit
 Molecular Weight
@@ -89,6 +91,8 @@ Reviewer
 ```
 
 The parser is exact-header and fail-closed. It performs no header aliases and inserts no engineering defaults.
+
+`READY_FOR_QUALIFICATION` additionally requires the source-case `Source Revision` and `Record ID`; a row with numeric values but no stable record/revision is not treated as traceable readiness.
 
 ## 4. Explicit branch/state values
 
@@ -148,9 +152,18 @@ These values make ambiguity visible; they do not themselves authorize the corres
 
 Readiness does not convert pressure.
 
-If either `P1` or `P2` is declared `GAUGE`, an explicit `Reference Pressure` value and unit are required. No atmospheric pressure is hard-coded.
+If either `P1` or `P2` is declared `GAUGE`, all of the following are required:
 
-The future qualified AIV resolver must perform the actual conversion and preserve the transformation in central resolved-input provenance.
+```text
+Reference Pressure
+Reference Pressure Unit
+Reference Pressure Source
+Reference Pressure Source Revision
+```
+
+No atmospheric pressure is hard-coded and the process/source-case record is not silently reused as the authority for a separate reference-pressure value.
+
+The future qualified AIV resolver must perform the actual conversion and preserve the transformation and reference-pressure provenance in central resolved-input evidence.
 
 If both pressures are already absolute, a supplied reference pressure is retained but is not selected by readiness.
 
@@ -162,6 +175,7 @@ If both pressures are already absolute, a supplied reference pressure is retaine
 Low Noise Trim Reduction
 Low Noise Trim Unit = dB
 Low Noise Trim Source
+Low Noise Trim Source Revision
 ```
 
 The source is deliberately separate from the process/source-case record because the EI example uses manufacturer noise-reduction evidence.
@@ -195,9 +209,10 @@ RESOLVED
 IDENTITY_NOT_FOUND
 NO_PATH
 AMBIGUOUS_SHORTEST_PATH
+AMBIGUOUS_TOPOLOGY_PATH
 ```
 
-Ambiguous paths fail closed.
+Ambiguous paths fail closed. `AMBIGUOUS_TOPOLOGY_PATH` also rejects a case where one route is shorter but a second certified route exists; readiness never chooses a path merely by minimum hop count.
 
 ## 8. Distance boundary
 
@@ -222,7 +237,7 @@ NOT_READY
 
 ### READY_FOR_QUALIFICATION
 
-All currently required source-case evidence and an unambiguous certified topology path are present for the controlled non-sonic gas qualification envelope.
+All currently required source-case evidence, field-level provenance and a single unambiguous certified topology route are present for the controlled non-sonic gas qualification envelope.
 
 This state explicitly sets:
 
@@ -248,11 +263,17 @@ AIV_CLOSED_SOURCE_OUTSIDE_CURRENT_ACTIVE_SOURCE_ENVELOPE
 Required evidence is missing/invalid or topology identity/path resolution fails. Examples include:
 
 ```text
+AIV_SOURCE_REVISION_REQUIRED
+AIV_SOURCE_RECORD_ID_REQUIRED
 AIV_REFERENCE_PRESSURE_REQUIRED
+AIV_REFERENCE_PRESSURE_SOURCE_REQUIRED
+AIV_REFERENCE_PRESSURE_SOURCE_REVISION_REQUIRED
 AIV_LOW_NOISE_TRIM_STATE_UNRESOLVED
 AIV_LOW_NOISE_TRIM_SOURCE_REQUIRED
+AIV_LOW_NOISE_TRIM_SOURCE_REVISION_REQUIRED
 AIV_SONIC_STATE_UNRESOLVED
 AIV_TOPOLOGY_AMBIGUOUS_SHORTEST_PATH
+AIV_TOPOLOGY_AMBIGUOUS_TOPOLOGY_PATH
 ```
 
 ## 10. UI behavior
