@@ -45,8 +45,8 @@ function row(overrides = {}) {
     massFlow: '53482', massFlowUnit: 'kg/h',
     p1: '98', p1Unit: 'bar', p1Basis: 'GAUGE',
     p2: '0', p2Unit: 'bar', p2Basis: 'GAUGE',
-    pref: '1', prefUnit: 'bar', temperature: '137', temperatureUnit: 'degC',
-    mw: '21.75', mwUnit: 'g/mol',
+    pref: '1', prefUnit: 'bar', prefSource: 'Project pressure basis', prefSourceRevision: 'PB-1',
+    temperature: '137', temperatureUnit: 'degC', mw: '21.75', mwUnit: 'g/mol',
     trimState: 'NONE', trimReduction: '', trimUnit: '', trimSource: '', trimSourceRevision: '',
     sonic: 'NON_SONIC', source: 'EI D.2.3',
     sourceRevision: 'fb549185', recordId: 'D2.3-RELIEF', status: 'CONTROLLED', reviewer: 'QUALIFICATION',
@@ -58,7 +58,7 @@ function row(overrides = {}) {
     values.massFlow, values.massFlowUnit,
     values.p1, values.p1Unit, values.p1Basis,
     values.p2, values.p2Unit, values.p2Basis,
-    values.pref, values.prefUnit,
+    values.pref, values.prefUnit, values.prefSource, values.prefSourceRevision,
     values.temperature, values.temperatureUnit,
     values.mw, values.mwUnit,
     values.trimState, values.trimReduction, values.trimUnit, values.trimSource, values.trimSourceRevision,
@@ -70,24 +70,26 @@ function parseOne(overrides = {}) {
   return parseAivSourceCaseCsv(serializeVibrationCsvRows([AIV_SOURCE_CASE_CSV_HEADER, row(overrides)]))[0];
 }
 
-test('AivSourceCaseCsv.v1 template is exact and contains explicit P1/P2, trim and branch-state fields', () => {
+test('AivSourceCaseCsv.v1 template exposes explicit P1/P2, reference-source, trim and branch-state fields', () => {
   const template = createAivSourceCaseCsvTemplate();
   assert.match(template, /Upstream Pressure Basis/u);
   assert.match(template, /Downstream Pressure Basis/u);
-  assert.match(template, /Reference Pressure/u);
+  assert.match(template, /Reference Pressure Source Revision/u);
   assert.match(template, /Low Noise Trim State/u);
-  assert.match(template, /Low Noise Trim Source/u);
+  assert.match(template, /Low Noise Trim Source Revision/u);
   assert.match(template, /Sonic State/u);
   assert.equal(template.split(/\r?\n/u)[0].split(',').length, AIV_SOURCE_CASE_CSV_HEADER.length);
 });
 
-test('source-case parser preserves source/assessment identity and pressure provenance without conversion', () => {
+test('source-case parser preserves pressure values and field-level provenance without conversion', () => {
   const parsed = parseOne();
   assert.equal(parsed.sourceCanonicalId, 'CAN-PSV-1');
   assert.equal(parsed.assessmentCanonicalId, 'CAN-WO-1');
   assert.deepEqual(parsed.upstreamPressure, { value: 98, unit: 'bar', basis: 'GAUGE' });
   assert.deepEqual(parsed.downstreamPressure, { value: 0, unit: 'bar', basis: 'GAUGE' });
   assert.deepEqual(parsed.referencePressure, { value: 1, unit: 'bar' });
+  assert.equal(parsed.referencePressureSource, 'Project pressure basis');
+  assert.equal(parsed.referencePressureSourceRevision, 'PB-1');
   assert.deepEqual(parsed.lowNoiseTrim, { state: 'NONE' });
   assert.equal(parsed.sonicState, 'NON_SONIC');
 });
@@ -100,46 +102,68 @@ test('complete non-sonic gas evidence is READY_FOR_QUALIFICATION but never prepa
   assert.equal(item.numericalExecutionAuthorized, false);
   assert.equal(item.topology.pathStatus, 'RESOLVED');
   assert.equal(item.topology.physicalDistanceMm, null);
+  assert.deepEqual(item.sourceTrace.referencePressure, {
+    value: 1, unit: 'bar', source: 'Project pressure basis', sourceRevision: 'PB-1',
+  });
   assert.equal(readiness.authority.calculationState, 'BLOCKED');
 });
 
-test('gauge pressure without explicit reference pressure is NOT_READY', () => {
-  const readiness = buildAivReadiness(exchange(), [parseOne({ pref: '', prefUnit: '' })]);
-  const item = readiness.rows[0];
-  assert.equal(item.status, 'NOT_READY');
-  assert(item.missing.some((entry) => entry.code === 'AIV_REFERENCE_PRESSURE_REQUIRED'));
+test('gauge pressure requires reference quantity plus controlled source and revision', () => {
+  const missingPressure = buildAivReadiness(exchange(), [parseOne({ pref: '', prefUnit: '' })]).rows[0];
+  assert.equal(missingPressure.status, 'NOT_READY');
+  assert(missingPressure.missing.some((entry) => entry.code === 'AIV_REFERENCE_PRESSURE_REQUIRED'));
+
+  const missingSource = buildAivReadiness(exchange(), [parseOne({ prefSource: '' })]).rows[0];
+  assert.equal(missingSource.status, 'NOT_READY');
+  assert(missingSource.missing.some((entry) => entry.code === 'AIV_REFERENCE_PRESSURE_SOURCE_REQUIRED'));
+
+  const missingRevision = buildAivReadiness(exchange(), [parseOne({ prefSourceRevision: '' })]).rows[0];
+  assert.equal(missingRevision.status, 'NOT_READY');
+  assert(missingRevision.missing.some((entry) => entry.code === 'AIV_REFERENCE_PRESSURE_SOURCE_REVISION_REQUIRED'));
 });
 
-test('manufacturer trim requires dB reduction and vendor provenance', () => {
+test('source-case record revision and stable record ID are readiness requirements', () => {
+  const missingRevision = buildAivReadiness(exchange(), [parseOne({ sourceRevision: '' })]).rows[0];
+  assert.equal(missingRevision.status, 'NOT_READY');
+  assert(missingRevision.missing.some((entry) => entry.code === 'AIV_SOURCE_REVISION_REQUIRED'));
+  const missingRecord = buildAivReadiness(exchange(), [parseOne({ recordId: '' })]).rows[0];
+  assert.equal(missingRecord.status, 'NOT_READY');
+  assert(missingRecord.missing.some((entry) => entry.code === 'AIV_SOURCE_RECORD_ID_REQUIRED'));
+});
+
+test('manufacturer trim requires dB reduction plus vendor source and source revision', () => {
   const ready = buildAivReadiness(exchange(), [parseOne({
     trimState: 'MANUFACTURER_REDUCTION', trimReduction: '30', trimUnit: 'dB',
     trimSource: 'Valve manufacturer', trimSourceRevision: 'datasheet-7',
   })]);
   assert.equal(ready.rows[0].status, 'READY_FOR_QUALIFICATION');
   assert.deepEqual(ready.rows[0].sourceTrace.lowNoiseTrim, {
-    state: 'MANUFACTURER_REDUCTION',
-    reduction: { value: 30, unit: 'dB' },
-    source: 'Valve manufacturer',
-    sourceRevision: 'datasheet-7',
+    state: 'MANUFACTURER_REDUCTION', reduction: { value: 30, unit: 'dB' },
+    source: 'Valve manufacturer', sourceRevision: 'datasheet-7',
   });
 
   const missingVendor = buildAivReadiness(exchange(), [parseOne({
     trimState: 'MANUFACTURER_REDUCTION', trimReduction: '30', trimUnit: 'dB', trimSource: '',
-  })]);
-  assert.equal(missingVendor.rows[0].status, 'NOT_READY');
-  assert(missingVendor.rows[0].missing.some((entry) => entry.code === 'AIV_LOW_NOISE_TRIM_SOURCE_REQUIRED'));
+  })]).rows[0];
+  assert.equal(missingVendor.status, 'NOT_READY');
+  assert(missingVendor.missing.some((entry) => entry.code === 'AIV_LOW_NOISE_TRIM_SOURCE_REQUIRED'));
+
+  const missingRevision = buildAivReadiness(exchange(), [parseOne({
+    trimState: 'MANUFACTURER_REDUCTION', trimReduction: '30', trimUnit: 'dB',
+    trimSource: 'Valve manufacturer', trimSourceRevision: '',
+  })]).rows[0];
+  assert.equal(missingRevision.status, 'NOT_READY');
+  assert(missingRevision.missing.some((entry) => entry.code === 'AIV_LOW_NOISE_TRIM_SOURCE_REVISION_REQUIRED'));
 });
 
 test('sonic evidence remains METHOD_GAP because D.2.3 does not exercise SFF = 6', () => {
-  const readiness = buildAivReadiness(exchange(), [parseOne({ sonic: 'SONIC' })]);
-  const item = readiness.rows[0];
+  const item = buildAivReadiness(exchange(), [parseOne({ sonic: 'SONIC' })]).rows[0];
   assert.equal(item.status, 'METHOD_GAP');
   assert(item.methodGaps.some((entry) => entry.code === 'AIV_SONIC_SFF6_BRANCH_UNQUALIFIED'));
 });
 
 test('non-gas phase remains a method gap rather than being silently calculated', () => {
-  const readiness = buildAivReadiness(exchange(), [parseOne({ phase: 'TWO_PHASE' })]);
-  const item = readiness.rows[0];
+  const item = buildAivReadiness(exchange(), [parseOne({ phase: 'TWO_PHASE' })]).rows[0];
   assert.equal(item.status, 'METHOD_GAP');
   assert(item.methodGaps.some((entry) => entry.code === 'AIV_PHASE_OUTSIDE_CURRENT_QUALIFICATION_ENVELOPE'));
 });
