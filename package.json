@@ -9,7 +9,8 @@
     "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs",
     "extract:aiv-ei-t27-source": "node scripts/extract-aiv-ei-t27-source.mjs",
     "extract:aiv-ei-d23-source": "node scripts/extract-aiv-ei-d23-source.mjs",
-    "verify:aiv-t27-reconciliation": "node scripts/verify-aiv-t27-reconciliation.mjs"
+    "verify:aiv-t27-reconciliation": "node scripts/verify-aiv-t27-reconciliation.mjs",
+    "verify:aiv-d23-flm1-reconciliation": "node scripts/verify-aiv-d23-flm1-reconciliation.mjs"
   },
   "dependencies": {
     "pyodide": "^0.27.2",
