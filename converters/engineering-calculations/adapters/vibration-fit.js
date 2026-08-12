@@ -128,10 +128,12 @@ function calculate(input, runtime = {}) {
       engineeringAuthority: FIT_REFERENCE_AUTHORITY,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       inputResolution: result.evidence.inputResolution,
+      qualificationCoverageId: result.qualificationCoverage.coverageId,
     },
     evidence: {
       equationIds: result.evidence.equationIds,
       inputResolution: result.evidence.inputResolution,
+      qualificationCoverage: result.qualificationCoverage,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       domainResult: result,
     },
