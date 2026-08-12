@@ -53,8 +53,6 @@ function parseRow(row, index) {
       rowNumber,
     ),
     source: requiredAivText(row[9], 'Source', rowNumber),
-    sourceRevision: requiredAivText(row[10], 'Source Revision', rowNumber),
-    recordId: requiredAivText(row[11], 'Record ID', rowNumber),
   };
   const physicalDistance = aivQuantity(row, rowNumber, 3, 4, 'Physical Distance', { optional: true });
   if (physicalDistance) result.physicalDistance = physicalDistance;
@@ -64,7 +62,9 @@ function parseRow(row, index) {
   if (distanceSource) result.distanceSource = distanceSource;
   if (distanceSourceRevision) result.distanceSourceRevision = distanceSourceRevision;
   if (simultaneousSourceGroup) result.simultaneousSourceGroup = simultaneousSourceGroup;
-  addOptionalAivTraceFields(result, row, [['status', 12], ['reviewer', 13]]);
+  addOptionalAivTraceFields(result, row, [
+    ['sourceRevision', 10], ['recordId', 11], ['status', 12], ['reviewer', 13],
+  ]);
   return Object.freeze(result);
 }
 
