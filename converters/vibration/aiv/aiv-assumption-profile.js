@@ -5,6 +5,7 @@ const DEFAULTS = {
   identity: {
     sourceIdPrefix: 'AIV-ASSUMED-SRC',
     assessmentIdPrefix: 'AIV-ASSUMED-ASSESS',
+    relationshipIdPrefix: 'AIV-ASSUMED-REL',
     caseIdPrefix: 'AIV-ASSUMED-CASE',
     provenanceSource: 'USER_CONFIGURABLE_ASSUMPTION',
     provenanceRevision: 'AivAssumptionProfile.v1',
@@ -28,7 +29,7 @@ const DEFAULTS = {
     molecularWeight: '20',
     molecularWeightUnit: 'g/mol',
     lowNoiseTrimState: 'NONE',
-    lowNoiseTrimReduction: '0',
+    lowNoiseTrimReduction: '30',
     lowNoiseTrimUnit: 'dB',
     sonicState: 'NON_SONIC',
   },
@@ -64,6 +65,7 @@ const DEFAULTS = {
     flm1ToleranceAbs: '0.0024',
     flm2: '0.2009',
     lossFactor: '0.31',
+    lofToleranceAbs: '0.01',
     d23FirstDiscontinuityLof: '0.29',
     workedExampleReliefLineLof: '1.48',
     lineAggregationMode: 'SEPARATE_RESULT_SCOPES',
@@ -92,10 +94,6 @@ const SOURCE_COLUMNS = Object.freeze({
   'Molecular Weight': ['source', 'molecularWeight'],
   'Molecular Weight Unit': ['source', 'molecularWeightUnit'],
   'Low Noise Trim State': ['source', 'lowNoiseTrimState'],
-  'Low Noise Trim Reduction': ['source', 'lowNoiseTrimReduction'],
-  'Low Noise Trim Unit': ['source', 'lowNoiseTrimUnit'],
-  'Low Noise Trim Source': ['identity', 'provenanceSource'],
-  'Low Noise Trim Source Revision': ['identity', 'provenanceRevision'],
   'Sonic State': ['source', 'sonicState'],
   Source: ['identity', 'provenanceSource'],
   'Source Revision': ['identity', 'provenanceRevision'],
@@ -201,6 +199,17 @@ function setBlankByColumn(table, rowIndex, columnName, value, assumptions, profi
   });
 }
 
+function fillTrimAssumptions(sources, profile, assumptions) {
+  const stateIndex = sources.header.indexOf('Low Noise Trim State');
+  sources.rows.forEach((row, rowIndex) => {
+    if (row[stateIndex] !== 'MANUFACTURER_REDUCTION') return;
+    setBlankByColumn(sources, rowIndex, 'Low Noise Trim Reduction', profile.source.lowNoiseTrimReduction, assumptions, 'source.lowNoiseTrimReduction');
+    setBlankByColumn(sources, rowIndex, 'Low Noise Trim Unit', profile.source.lowNoiseTrimUnit, assumptions, 'source.lowNoiseTrimUnit');
+    setBlankByColumn(sources, rowIndex, 'Low Noise Trim Source', profile.identity.provenanceSource, assumptions, 'identity.provenanceSource');
+    setBlankByColumn(sources, rowIndex, 'Low Noise Trim Source Revision', profile.identity.provenanceRevision, assumptions, 'identity.provenanceRevision');
+  });
+}
+
 export function createAivAssumptionProfile(overrides = {}) {
   const profile = clone(DEFAULTS);
   for (const section of Object.keys(profile)) {
@@ -244,13 +253,18 @@ export function resolveAivWorkingTablesWithAssumptions(tables, profileInput = AI
   const sources = fillMappedColumns(tables.sources, SOURCE_COLUMNS, profile, assumptions);
   const assessments = fillMappedColumns(tables.assessments, ASSESSMENT_COLUMNS, profile, assumptions);
   const relationships = fillMappedColumns(tables.relationships, RELATIONSHIP_COLUMNS, profile, assumptions);
+  fillTrimAssumptions(sources, profile, assumptions);
 
   sources.rows.forEach((_, rowIndex) => {
-    setBlankByColumn(sources, rowIndex, 'Source Canonical ID', numbered(profile.identity.sourceIdPrefix, rowIndex), assumptions, 'identity.sourceIdPrefix');
+    const sourceId = numbered(profile.identity.sourceIdPrefix, rowIndex);
+    setBlankByColumn(sources, rowIndex, 'Source Canonical ID', sourceId, assumptions, 'identity.sourceIdPrefix');
     setBlankByColumn(sources, rowIndex, 'Operating Case', numbered(profile.identity.caseIdPrefix, rowIndex), assumptions, 'identity.caseIdPrefix');
+    setBlankByColumn(sources, rowIndex, 'Record ID', `${sourceId}-REC`, assumptions, 'identity.sourceIdPrefix');
   });
   assessments.rows.forEach((_, rowIndex) => {
-    setBlankByColumn(assessments, rowIndex, 'Assessment Canonical ID', numbered(profile.identity.assessmentIdPrefix, rowIndex), assumptions, 'identity.assessmentIdPrefix');
+    const assessmentId = numbered(profile.identity.assessmentIdPrefix, rowIndex);
+    setBlankByColumn(assessments, rowIndex, 'Assessment Canonical ID', assessmentId, assumptions, 'identity.assessmentIdPrefix');
+    setBlankByColumn(assessments, rowIndex, 'Record ID', `${assessmentId}-REC`, assumptions, 'identity.assessmentIdPrefix');
   });
   relationships.rows.forEach((_, rowIndex) => {
     const sourceIndex = Math.min(rowIndex, Math.max(0, sources.rows.length - 1));
@@ -264,6 +278,7 @@ export function resolveAivWorkingTablesWithAssumptions(tables, profileInput = AI
     setBlankByColumn(relationships, rowIndex, 'Source Canonical ID', sourceId, assumptions, 'identity.sourceIdPrefix');
     setBlankByColumn(relationships, rowIndex, 'Assessment Canonical ID', assessmentId, assumptions, 'identity.assessmentIdPrefix');
     setBlankByColumn(relationships, rowIndex, 'Operating Case', caseId, assumptions, 'identity.caseIdPrefix');
+    setBlankByColumn(relationships, rowIndex, 'Record ID', numbered(profile.identity.relationshipIdPrefix, rowIndex), assumptions, 'identity.relationshipIdPrefix');
   });
 
   return deepFreeze({
@@ -284,6 +299,7 @@ export function validateAivAssumptionProfile(profileInput) {
   const required = [
     ['identity.sourceIdPrefix', profile.identity.sourceIdPrefix],
     ['identity.assessmentIdPrefix', profile.identity.assessmentIdPrefix],
+    ['identity.relationshipIdPrefix', profile.identity.relationshipIdPrefix],
     ['identity.caseIdPrefix', profile.identity.caseIdPrefix],
     ['source.massFlow', profile.source.massFlow],
     ['source.upstreamPressure', profile.source.upstreamPressure],
@@ -299,6 +315,7 @@ export function validateAivAssumptionProfile(profileInput) {
     ['benchmark.publishedB', profile.benchmark.publishedB],
     ['benchmark.flm2', profile.benchmark.flm2],
     ['benchmark.lossFactor', profile.benchmark.lossFactor],
+    ['benchmark.lofToleranceAbs', profile.benchmark.lofToleranceAbs],
   ];
   const missing = required.filter(([, value]) => !nonBlank(value)).map(([path]) => path);
   const numericPaths = required.filter(([path]) => !path.startsWith('identity.'));
