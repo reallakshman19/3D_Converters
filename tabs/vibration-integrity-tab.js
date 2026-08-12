@@ -1,5 +1,6 @@
 import {
   VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT,
+  buildVibrationFacilityFitPreflightFromTables,
   runVibrationFacilityFitBenchmarkFromTables,
 } from '../converters/vibration/facility/fit-workflow-tabular.js';
 import { serializeVibrationFacilityFitRegisterCsv } from '../converters/vibration/facility/fit-register-export.js';
@@ -55,6 +56,18 @@ function workspaceOptions(state) {
   };
 }
 
+function tableInput(state) {
+  return {
+    topology: {
+      format: state.files.topology.format,
+      data: state.files.topology.data,
+      sourceFileName: state.files.topology.name,
+    },
+    operatingCaseCsv: state.files.operating?.text ?? '',
+    enrichmentCsv: state.files.enrichment?.text ?? '',
+  };
+}
+
 function rebuildWorkspace(state) {
   if (!state.envelope?.workflow) {
     state.workspace = null;
@@ -88,6 +101,7 @@ export function renderVibrationIntegrityTab(container) {
   const state = {
     files: { topology: null, operating: null, enrichment: null },
     allowLimitedExchange: false,
+    preflight: null,
     envelope: null,
     workspace: null,
     filters: { line: '', completeness: '', band: '', candidate: '' },
@@ -95,12 +109,20 @@ export function renderVibrationIntegrityTab(container) {
     selectedRowKey: null,
     detailTab: 'summary',
     busy: false,
+    busyAction: null,
     error: null,
     destroyed: false,
   };
 
   function render() {
     if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
+  }
+
+  function clearCalculatedState() {
+    state.preflight = null;
+    state.envelope = null;
+    state.workspace = null;
+    state.selectedRowKey = null;
   }
 
   async function loadFile(target, file) {
@@ -111,9 +133,7 @@ export function renderVibrationIntegrityTab(container) {
         : await readCsvFile(file, target === 'operating' ? 'VibrationOperatingCaseCsv.v1' : 'VibrationEnrichmentCsv.v1');
       if (state.destroyed) return;
       state.files[target] = loaded;
-      state.envelope = null;
-      state.workspace = null;
-      state.selectedRowKey = null;
+      clearCalculatedState();
     } catch (error) {
       if (state.destroyed) return;
       state.error = String(error?.message || error);
@@ -121,21 +141,34 @@ export function renderVibrationIntegrityTab(container) {
     render();
   }
 
-  function runBenchmark() {
+  function checkReadiness() {
     if (!state.files.topology) return;
     state.busy = true;
+    state.busyAction = 'preflight';
     state.error = null;
     render();
     try {
-      state.envelope = runVibrationFacilityFitBenchmarkFromTables({
-        topology: {
-          format: state.files.topology.format,
-          data: state.files.topology.data,
-          sourceFileName: state.files.topology.name,
-        },
-        operatingCaseCsv: state.files.operating?.text ?? '',
-        enrichmentCsv: state.files.enrichment?.text ?? '',
-      }, {
+      state.preflight = buildVibrationFacilityFitPreflightFromTables(tableInput(state), {
+        allowLimitedExchange: state.allowLimitedExchange,
+      });
+    } catch (error) {
+      state.preflight = null;
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    } finally {
+      state.busy = false;
+      state.busyAction = null;
+      render();
+    }
+  }
+
+  function runBenchmark() {
+    if (!state.files.topology) return;
+    state.busy = true;
+    state.busyAction = 'benchmark';
+    state.error = null;
+    render();
+    try {
+      state.envelope = runVibrationFacilityFitBenchmarkFromTables(tableInput(state), {
         allowLimitedExchange: state.allowLimitedExchange,
       });
       state.selectedRowKey = null;
@@ -147,6 +180,7 @@ export function renderVibrationIntegrityTab(container) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally {
       state.busy = false;
+      state.busyAction = null;
       render();
     }
   }
@@ -187,6 +221,7 @@ export function renderVibrationIntegrityTab(container) {
       return;
     }
     const action = event.target.closest('[data-vi-action]')?.dataset.viAction;
+    if (action === 'preflight') checkReadiness();
     if (action === 'run') runBenchmark();
     if (action === 'export') exportRegister();
     if (action === 'operating-template') {
@@ -206,6 +241,8 @@ export function renderVibrationIntegrityTab(container) {
     }
     if (event.target.matches('[data-vi-limited]')) {
       state.allowLimitedExchange = event.target.checked;
+      clearCalculatedState();
+      render();
       return;
     }
     const filter = event.target.dataset.viFilter;
