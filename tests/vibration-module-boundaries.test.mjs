@@ -26,9 +26,15 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/workspace/model.js',
   'converters/vibration/workspace/query.js',
   'converters/vibration/workspace/detail.js',
+  'converters/vibration/topology/graph.js',
+  'converters/vibration/aiv/aiv-topology-view-model.js',
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
   'tabs/vibration-integrity-detail-view.js',
+  'tabs/vibration-aiv-inline-symbols.js',
+  'tabs/vibration-aiv-path-view.js',
+  'tabs/vibration-aiv-qualification-view.js',
+  'tabs/vibration-aiv-qualification-tab.js',
 ]);
 
 test('new vibration production modules stay below the normal 300-line module target', () => {
@@ -71,6 +77,19 @@ test('readiness and visible tab remain separated from direct numerical execution
   assert.doesNotMatch(preflightTabular, /fit-workflow\.js|fit-workflow-tabular\.js/u);
   assert.doesNotMatch(tab, /calculateEngineering(?:Batch)?\s*\(|calculateFit\s*\(/u);
   assert.match(tab, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
+});
+
+test('AIV topology presentation is read-only and does not import model-authoring or calculation runtime', () => {
+  const combined = [
+    source('converters/vibration/topology/graph.js'),
+    source('converters/vibration/aiv/aiv-topology-view-model.js'),
+    source('tabs/vibration-aiv-inline-symbols.js'),
+    source('tabs/vibration-aiv-path-view.js'),
+    source('tabs/vibration-aiv-qualification-view.js'),
+  ].join('\n');
+  assert.doesNotMatch(combined, /project3DPoint|SequentialCommandGateway|WorkspaceState|EventBus/u);
+  assert.doesNotMatch(combined, /calculateEngineering|calculateAiv|calculateFit\s*\(/u);
+  assert.doesNotMatch(combined, /<canvas|createElement\(['"]canvas/iu);
 });
 
 test('exchange parser facade contains no workbook parsing implementation', () => {
