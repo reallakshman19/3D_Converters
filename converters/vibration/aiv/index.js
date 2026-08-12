@@ -23,3 +23,10 @@ export {
   assertAivTopologyViewModel,
   buildAivTopologyViewModel,
 } from './aiv-topology-view-model.js';
+export {
+  AIV_QUALIFICATION_EVIDENCE_SCHEMA,
+  AIV_EI_D23_SOURCE,
+  AIV_D23_BENCHMARK_CASES,
+  AIV_METHOD_TRACE_FOUNDATION,
+  AIV_QUALIFICATION_EVIDENCE,
+} from './aiv-qualification-evidence.js';
