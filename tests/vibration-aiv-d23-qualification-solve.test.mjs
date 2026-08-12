@@ -20,6 +20,18 @@ test('D2.3 qualification solve reproduces relief and recycle source PWL referenc
   close(result.sourceResults.recycle.calculatedEffectiveSourcePwlDb, 129.36, 0.01, 'recycle effective source PWL');
 });
 
+test('controlled Markdown AIV rows reproduce at source/effective-source PWL scope only', () => {
+  const rows = solveAivD23QualificationExample().controlledMarkdownSourceRowParity;
+  close(rows.recycleCompressorDischarge.calculatedReportedPwlDb, 129.36, 0.01, 'recycle discharge report PWL');
+  close(rows.recycleCompressorSuction.calculatedReportedPwlDb, 129.02, 0.01, 'recycle suction report PWL');
+  close(rows.reliefDownstreamLine.calculatedReportedPwlDb, 164.69, 0.01, 'relief report PWL');
+  assert.equal(rows.recycleCompressorDischarge.controlledMarkdownReportedLof, 0.29);
+  assert.equal(rows.recycleCompressorSuction.controlledMarkdownReportedLof, 0.29);
+  assert.equal(rows.reliefDownstreamLine.controlledMarkdownReportedLof, 1.48);
+  assert.equal(rows.reliefDownstreamLine.lofReproduced, false);
+  assert.match(rows.scopeNote, /line LOF values are not rederived/u);
+});
+
 test('D2.3 relief first-discontinuity solve reproduces attenuation, point PWL and errata feed', () => {
   const item = solveAivD23QualificationExample().reliefFirstDiscontinuity;
   close(item.calculatedAttenuationDb, 0.312, 0.001, 'attenuation');
