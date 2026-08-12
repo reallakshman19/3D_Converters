@@ -34,6 +34,7 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/aiv/aiv-readiness.js',
   'converters/vibration/aiv/aiv-readiness-tables.js',
   'converters/vibration/aiv/aiv-result-contracts.js',
+  'converters/vibration/aiv/aiv-promotion-readiness.js',
   'converters/vibration/aiv/aiv-topology-view-model.js',
   'converters/vibration/aiv/aiv-qualification-evidence.js',
   'converters/vibration/aiv/aiv-d23-pdf-revalidation.js',
@@ -49,6 +50,7 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'tabs/vibration-aiv-path-view.js',
   'tabs/vibration-aiv-readiness-view.js',
   'tabs/vibration-aiv-result-view.js',
+  'tabs/vibration-aiv-promotion-view.js',
   'tabs/vibration-aiv-qualification-view.js',
   'tabs/vibration-aiv-qualification-tab.js',
 ]);
@@ -95,6 +97,8 @@ test('exchange, dataset and AIV qualification facades preserve stable APIs after
     'AIV_SOURCE_RESULT_SCHEMA',
     'AIV_ASSESSMENT_RESULT_SCHEMA',
     'AIV_LINE_CASE_SUMMARY_SCHEMA',
+    'buildAivQualificationPromotionReadiness',
+    'AIV_PROMOTION_GATE_DEFINITIONS',
     'AIV_QUALIFICATION_EVIDENCE',
     'AIV_D23_BENCHMARK_CASES',
     'AIV_D23_PDF_REVALIDATION',
@@ -118,7 +122,7 @@ test('readiness and visible tab remain separated from direct numerical execution
   assert.match(tab, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
 });
 
-test('AIV topology/readiness/result/evidence modules remain read-only and separated from production numerical execution', () => {
+test('AIV topology/readiness/result/promotion/evidence modules remain read-only and separated from production numerical execution', () => {
   const combined = [
     source('converters/vibration/topology/graph.js'),
     source('converters/vibration/aiv/source-case-csv.js'),
@@ -128,6 +132,7 @@ test('AIV topology/readiness/result/evidence modules remain read-only and separa
     source('converters/vibration/aiv/aiv-readiness.js'),
     source('converters/vibration/aiv/aiv-readiness-tables.js'),
     source('converters/vibration/aiv/aiv-result-contracts.js'),
+    source('converters/vibration/aiv/aiv-promotion-readiness.js'),
     source('converters/vibration/aiv/aiv-topology-view-model.js'),
     source('converters/vibration/aiv/aiv-qualification-evidence.js'),
     source('converters/vibration/aiv/aiv-d23-pdf-revalidation.js'),
@@ -140,6 +145,7 @@ test('AIV topology/readiness/result/evidence modules remain read-only and separa
     source('tabs/vibration-aiv-path-view.js'),
     source('tabs/vibration-aiv-readiness-view.js'),
     source('tabs/vibration-aiv-result-view.js'),
+    source('tabs/vibration-aiv-promotion-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
     source('tabs/vibration-aiv-qualification-tab.js'),
   ].join('\n');
@@ -155,6 +161,7 @@ test('AIV UI contains no engineering equations even when evidence text includes 
     source('tabs/vibration-aiv-path-view.js'),
     source('tabs/vibration-aiv-readiness-view.js'),
     source('tabs/vibration-aiv-result-view.js'),
+    source('tabs/vibration-aiv-promotion-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
     source('tabs/vibration-aiv-qualification-tab.js'),
   ].join('\n');
