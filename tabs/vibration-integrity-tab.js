@@ -96,22 +96,26 @@ export function renderVibrationIntegrityTab(container) {
     detailTab: 'summary',
     busy: false,
     error: null,
+    destroyed: false,
   };
 
   function render() {
-    container.innerHTML = renderVibrationIntegrityHtml(state);
+    if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
   }
 
   async function loadFile(target, file) {
     state.error = null;
     try {
-      if (target === 'topology') state.files.topology = await readTopologyFile(file);
-      if (target === 'operating') state.files.operating = await readCsvFile(file, 'VibrationOperatingCaseCsv.v1');
-      if (target === 'enrichment') state.files.enrichment = await readCsvFile(file, 'VibrationEnrichmentCsv.v1');
+      const loaded = target === 'topology'
+        ? await readTopologyFile(file)
+        : await readCsvFile(file, target === 'operating' ? 'VibrationOperatingCaseCsv.v1' : 'VibrationEnrichmentCsv.v1');
+      if (state.destroyed) return;
+      state.files[target] = loaded;
       state.envelope = null;
       state.workspace = null;
       state.selectedRowKey = null;
     } catch (error) {
+      if (state.destroyed) return;
       state.error = String(error?.message || error);
     }
     render();
@@ -222,6 +226,7 @@ export function renderVibrationIntegrityTab(container) {
   render();
 
   return () => {
+    state.destroyed = true;
     container.removeEventListener('click', onClick);
     container.removeEventListener('change', onChange);
   };
