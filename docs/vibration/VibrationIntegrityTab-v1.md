@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The **FIT Vibration Integrity workspace** is the first visible table-only product surface for the FIT benchmark workflow. It is reached through the Engineering Calculations **Vibrations** landing page rather than a standalone application navigation item.
+The **FIT Vibration Integrity workspace** is the first visible table-only product surface for the FIT benchmark workflow. It is reached from the existing **Vibration & Dynamic Screening** calculation family rather than through a standalone navigation item or a new Engineering subtab.
 
 It consumes public vibration APIs. It does not contain FIT equations, method constants, unit conversions, applicability logic or engineering-authority decisions.
 
@@ -11,31 +11,45 @@ It consumes public vibration APIs. It does not contain FIT equations, method con
 ```text
 Engineering
   Engineering Calculations
-    1. Calculations
-    2. B31.3 Material Factors
-    3. Empirical Weight Tuning
-    4. HP Piping Class
-    5. Vibrations
-         -> FIT
+    Calculations
+      Vibration & Dynamic Screening (6)
+        Acoustic-Induced Vibration Screening          BLOCKED
+        Cavitation / Flashing Screening               BLOCKED
+        Flow-Induced Vibration Screening              BENCHMARK_ONLY -> FIT workspace
+        Small-Bore Connection Vibration Screening     BLOCKED
+        Slug Load / Time-History Assessment           BLOCKED
+        Surge / Momentum Load Screening               BLOCKED
+    B31.3 Material Factors
+    Empirical Weight Tuning
+    HP Piping Class
 ```
 
-`core/engineering-tabs-extension.js` exposes the single top-level **Engineering Calculations** entry. `tabs/engineering-workspace-tab.js` owns the five ordered sub-tabs. `tabs/vibrations-landing-tab.js` owns the Vibrations landing page, and selecting **FIT** dynamically loads `tabs/vibration-integrity-tab.js` inside that hierarchy.
+`core/engineering-tabs-extension.js` and `tabs/engineering-workspace-tab.js` retain the current-main Engineering workspace hierarchy. No new Vibrations subtab is added.
 
-Legacy app-switch requests for `vibration-integrity` are migrated to `Engineering Calculations > Vibrations > FIT` so existing deep links do not recreate a standalone navigation item.
+Inside `tabs/engineering-calculations-tab.js`, selecting the registered VIB family opens the family landing surface rendered by `tabs/engineering-calculation-vibration-family.js`. Selecting FIT uses the existing registered `VIB.FIV.FLOW_TURBULENCE` definition and dynamically mounts `tabs/vibration-integrity-tab.js` in the Console product host.
 
-## Vibrations landing page
+## Vibration family landing
 
-The Vibrations landing page is a mechanism selector, not an engineering kernel.
+The family landing is a mechanism selector backed directly by registered calculation definitions. Authority/status badges therefore come from each definition rather than UI hard-coding.
 
-Current active mechanism:
+Current family:
 
 ```text
-Flow-Induced Turbulence (FIT)
-VIB.FIV.FLOW_TURBULENCE
-BENCHMARK ONLY
+Vibration & Dynamic Screening
+6 mechanisms
 ```
 
-The FIT card advertises table ingestion, readiness, facility register and evidence review. It does not expose screening/design authority. Opening FIT renders the existing Vibration Integrity workspace; the toolbar provides a **← Vibrations** path back to the landing page.
+FIT is the only mechanism with an implemented benchmark/reference path. The other five mechanisms retain their registered `BLOCKED` state under issue #429.
+
+The family landing contains:
+
+- the mechanism name and stable calculation ID;
+- registered qualification state;
+- qualification issue reference;
+- declared applicability/limitations;
+- explicit `Design authority: NO`;
+- **Open FIT workspace** only for `VIB.FIV.FLOW_TURBULENCE`;
+- **View qualification basis** for blocked mechanisms.
 
 The landing layer contains no `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` call and no 3D/canvas behavior.
 
@@ -48,7 +62,7 @@ Advanced_Analysis 3D EDIT
         |
         | table export only
         v
-Vibrations landing
+Engineering Calculations / Vibration & Dynamic Screening
         |
         v
 FIT Vibration Integrity workspace
@@ -65,7 +79,7 @@ BENCHMARK ONLY
 NOT SCREENING / DESIGN AUTHORITY
 ```
 
-There is no qualification-mode selector.
+There is no qualification-mode selector in the table workspace.
 
 ## Imports
 
@@ -128,7 +142,7 @@ The full benchmark workflow is dynamically imported only after the operator expl
 
 The controller then calls `runVibrationFacilityFitBenchmarkFromTables()`, which remains benchmark-only and delegates numerical execution to the central Engineering Calculation API.
 
-The UI does not call `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` directly.
+The FIT workspace UI does not call `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` directly.
 
 ## Facility table
 
@@ -263,13 +277,15 @@ The exported CSV preserves benchmark/evidence/authority fields and blank non-cal
 
 ## Styling
 
-`tabs/vibrations-landing.css` owns the mechanism landing/breadcrumb presentation. `tabs/vibration-integrity.css` uses a neutral/dark table workspace presentation. Benchmark limitation is highlighted, but calculated rows are not colored as “safe” or “pass.” Structured detail uses tables rather than raw JSON-heavy panels.
+The family landing uses `tabs/engineering-calculations.css`, preserving the existing Console visual language. `tabs/vibration-integrity.css` owns the table workspace presentation. Benchmark limitation is highlighted, but calculated rows are not colored as “safe” or “pass.” Structured detail uses tables rather than raw JSON-heavy panels.
 
 ## Non-goals
 
+- no new Engineering Vibrations subtab;
+- no standalone Vibration Integrity navigation item;
 - no 3D or canvas;
 - no geometry rendering;
-- no direct engineering calculation in UI or landing page;
+- no direct engineering calculation in the family landing or FIT workspace UI;
 - no method qualification promotion;
 - no pass/safe claim;
 - no universal risk/confidence score;
