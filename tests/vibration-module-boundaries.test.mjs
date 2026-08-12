@@ -27,12 +27,16 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/workspace/query.js',
   'converters/vibration/workspace/detail.js',
   'converters/vibration/topology/graph.js',
+  'converters/vibration/aiv/source-case-csv.js',
+  'converters/vibration/aiv/aiv-readiness.js',
+  'converters/vibration/aiv/aiv-readiness-tables.js',
   'converters/vibration/aiv/aiv-topology-view-model.js',
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
   'tabs/vibration-integrity-detail-view.js',
   'tabs/vibration-aiv-inline-symbols.js',
   'tabs/vibration-aiv-path-view.js',
+  'tabs/vibration-aiv-readiness-view.js',
   'tabs/vibration-aiv-qualification-view.js',
   'tabs/vibration-aiv-qualification-tab.js',
 ]);
@@ -46,7 +50,7 @@ test('new vibration production modules stay below the normal 300-line module tar
   }
 });
 
-test('exchange and dataset public facades preserve stable APIs after structural split', () => {
+test('exchange, dataset and AIV readiness facades preserve stable APIs after structural split', () => {
   const exchangeIndex = source('converters/vibration/exchange/index.js');
   for (const symbol of [
     'assertVibrationTableExchange',
@@ -65,6 +69,14 @@ test('exchange and dataset public facades preserve stable APIs after structural 
     'buildVibrationFacilityFitPreflightFromTables',
     'runVibrationFacilityFitBenchmarkFromTables',
   ]) assert.match(facilityIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
+
+  const aivIndex = source('converters/vibration/aiv/index.js');
+  for (const symbol of [
+    'parseAivSourceCaseCsv',
+    'createAivSourceCaseCsvTemplate',
+    'buildAivReadiness',
+    'buildAivReadinessFromTables',
+  ]) assert.match(aivIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
 });
 
 test('readiness and visible tab remain separated from direct numerical execution', () => {
@@ -79,17 +91,23 @@ test('readiness and visible tab remain separated from direct numerical execution
   assert.match(tab, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
 });
 
-test('AIV topology presentation is read-only and does not import model-authoring or calculation runtime', () => {
+test('AIV topology and readiness presentation remain read-only and non-numerical', () => {
   const combined = [
     source('converters/vibration/topology/graph.js'),
+    source('converters/vibration/aiv/source-case-csv.js'),
+    source('converters/vibration/aiv/aiv-readiness.js'),
+    source('converters/vibration/aiv/aiv-readiness-tables.js'),
     source('converters/vibration/aiv/aiv-topology-view-model.js'),
     source('tabs/vibration-aiv-inline-symbols.js'),
     source('tabs/vibration-aiv-path-view.js'),
+    source('tabs/vibration-aiv-readiness-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
+    source('tabs/vibration-aiv-qualification-tab.js'),
   ].join('\n');
   assert.doesNotMatch(combined, /project3DPoint|SequentialCommandGateway|WorkspaceState|EventBus/u);
   assert.doesNotMatch(combined, /calculateEngineering|calculateAiv|calculateFit\s*\(/u);
   assert.doesNotMatch(combined, /<canvas|createElement\(['"]canvas/iu);
+  assert.doesNotMatch(combined, /PWL\s*=|LOF\s*=/u);
 });
 
 test('exchange parser facade contains no workbook parsing implementation', () => {
