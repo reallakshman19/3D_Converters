@@ -1,38 +1,19 @@
 # PR444 Work Report
 
-## PR Mission Control
+## Mission Control
 
 ```text
-Mission              Deliver a traceable, example-driven AIV product architecture for VIB.AIV.ACOUSTIC
-Source task / issue  #441
-PR number            #444
-Branch               agent/aiv-traceable-table-ui-foundation
-Base commit          243042fba24915ae7b2734556cf2d28c1b5425b7
-PR status            DRAFT / OPEN
-Current stage        Stage 15 — human reconciliation + promotion-readiness orchestration
-Stage 15 source      IMPLEMENTED
+Mission               Traceable, example-driven AIV product architecture for VIB.AIV.ACOUSTIC
+Issue                  #441
+PR                     #444
+Branch                 agent/aiv-traceable-table-ui-foundation
+Base                   243042fba24915ae7b2734556cf2d28c1b5425b7
+Current stage          Stage 15 — human reconciliation + promotion readiness
+Source implementation IMPLEMENTED
 Executable validation NOT_RUN in this environment
-Engineering status   BLOCKED authority; no numerical AIV execution
-Exact next action    Complete named human review artifacts; do not implement equations until authority review permits it
+Engineering authority BLOCKED / NONE / NOT_AUTHORIZED
+Exact next action      Complete named human review artifacts; no AIV equations yet
 ```
-
-## Handover in 60 Seconds
-
-### What is now true
-
-- `VIB.AIV.ACOUSTIC` remains fully BLOCKED with no screening/design authority.
-- Product roadmap: `docs/vibration/AIV-Product-Roadmap-v2.md`.
-- Controlled D.2.3 working fixture: `docs/vibration/AIV-D2.3-Working-Table-Benchmark-v1.md`.
-- Frozen result contracts: `docs/vibration/AIV-Result-Contracts-v1.md`.
-- Promotion orchestration contract: `docs/vibration/AIV-Promotion-Readiness-v1.md`.
-- Working inputs remain split into Sources, Assessments and Source→Assessment evidence.
-- `Load EI D.2.3` populates the same editable working tables used by project data.
-- Readiness consumes current visible cells.
-- Frozen Source / Assessment / Line-Case result shells remain `NOT_CALCULATED` with null numerical fields.
-- Stage 15 now has a fail-closed promotion prerequisite planner plus a human-only worked-example result-scope reconciliation contract.
-- Bare booleans cannot close promotion gates.
-- Even all satisfied prerequisites produce only `READY_FOR_INDEPENDENT_AUTHORITY_REVIEW`; authority transition remains separate and human.
-- No Run/Calculate AIV path exists.
 
 ## Authority invariant
 
@@ -45,9 +26,9 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-No source/reconciliation/promotion planner in this PR may change those values.
+No result shell, benchmark fixture, verification artifact, or promotion checklist changes these values.
 
-## Permanent product boundary
+## Product boundary
 
 ```text
 Advanced_Analysis:
@@ -57,25 +38,38 @@ AUTHOR → EDIT → VALIDATE → CERTIFY → EXPORT
 IMPORT → VERIFY → JOIN → ASSESS → EXPLAIN
 ```
 
-No 3D viewer, geometry runtime, free-form topology authoring, pixel-derived engineering distance, geometry writeback, or click-on-model AIV calculation flow.
+No 3D viewer, geometry authoring/writeback, pixel-derived AIV distance, click-on-model calculation, or UI equations.
 
-## Stage 12 — split input/readiness model
+## Durable product documents
 
-Production-consumed working contracts:
+```text
+docs/vibration/AIV-Product-Roadmap-v2.md
+docs/vibration/AIV-D2.3-Working-Table-Benchmark-v1.md
+docs/vibration/AIV-Result-Contracts-v1.md
+docs/vibration/AIV-Promotion-Readiness-v1.md
+```
+
+## Current operator architecture
+
+### Split working inputs
 
 ```text
 AivSourceCsv.v2
+  Source Canonical ID + Operating Case
+  process/device/source evidence
+
 AivAssessmentCsv.v1
+  Assessment Canonical ID
+  welded discontinuity geometry/material evidence
+
 AivSourceAssessmentCsv.v1
+  Source + Assessment + Operating Case
+  applicability + engineering distance/provenance + simultaneous-source grouping
 ```
 
-Readiness explicitly joins the three datasets and fails closed on missing joins, identity/path ambiguity, unresolved applicability, missing physical-distance evidence, incompatible geometry units, unresolved trim/sonic/material evidence, and provenance gaps.
+`AivSourceCaseCsv.v1` is migration/transitional only.
 
-`AivSourceCaseCsv.v1` remains transitional/migration-only.
-
-## Stage 13 — editable operator tables + controlled D.2.3 loader
-
-Operator flow:
+### Controlled D.2.3 workflow
 
 ```text
 Load EI D.2.3
@@ -83,19 +77,21 @@ Load EI D.2.3
 → edit Assessments
 → edit Source → Assessment evidence
 → Check AIV readiness
+→ frozen result shells
+→ method-promotion evidence
 ```
 
-Controlled fixture intentionally contains:
+Fixture intentionally contains:
 
 ```text
-Sources:       Relief + Recycle
-Assessments:   first 2-inch bypass weldolet only
-Relationships: Relief → first weldolet, 0.8 m with explicit provenance
+Sources       Relief + Recycle
+Assessments   first 2-inch bypass weldolet only
+Relationship  Relief → first weldolet, physical distance 0.8 m
 ```
 
 No fictitious recycle assessment is created.
 
-Published values are reference evidence only:
+Published values are benchmark references only:
 
 ```text
 Relief raw source PWL          164.7 dB
@@ -107,11 +103,9 @@ Published FLM1                 1.2133
 FLM1 reconciliation            OPEN
 ```
 
-Any visible table edit/add/delete/replacement import changes controlled benchmark input identity to `NOT_APPLICABLE_MODIFIED_INPUTS` and clears readiness/result shells.
+Any visible table edit/add/delete/replacement import invalidates exact controlled-input identity and clears readiness/result shells.
 
-## Stage 14 — frozen result scopes
-
-Schemas:
+## Frozen result contracts
 
 ```text
 AivSourceResult.v1
@@ -120,7 +114,9 @@ AivLineCaseSummary.v1
 AivResultSet.v1
 ```
 
-Source Result numerical fields remain null:
+All blocked numerical fields are `null` with `status=NOT_CALCULATED`.
+
+Source result keeps distinct fields:
 
 ```text
 rawSourcePwlDb
@@ -130,89 +126,57 @@ effectiveSourcePwlDb
 thresholdBranch
 ```
 
-Assessment Result retains relationship/path/distance/geometry evidence but keeps:
+Assessment result retains source/relationship/path/distance/geometry evidence but keeps point PWL, combined point PWL, T2-6 intermediates and LOF null.
+
+Line/case result retains assessment/source identities and counts but keeps LOF and controlling identities unset with:
 
 ```text
-pointPwlDb         = null
-combinedPointPwlDb = null
-t26Intermediates   = null
-lof                = null
+aggregationState = NOT_PERFORMED_AUTHORITY_BLOCKED
 ```
 
-Line / Case Summary retains IDs/counts but keeps:
+Published benchmark values never populate blocked result fields.
 
-```text
-lof                              = null
-controllingAssessmentCanonicalId = null
-controllingSourceCanonicalIds    = []
-aggregationState                  = NOT_PERFORMED_AUTHORITY_BLOCKED
-```
+## Stage 15 — human interpretation and promotion readiness
 
-Published benchmark references never populate these blocked result fields.
-
-## Stage 15 — result-scope reconciliation + promotion readiness
-
-### Human worked-example result-scope review
-
-New contract/script:
+### Worked-example result-scope review
 
 ```text
 scripts/verify-aiv-worked-example-result-scope.mjs
 AivWorkedExampleResultScopeReview.v1
 ```
 
-It binds the controlled Markdown worked-example evidence:
-
-```text
-relief downstream line report
-  PWL 164.69 dB
-  LOF 1.48
-  proposed scope LINE_CASE_SUMMARY
-
-D.2.3 first discontinuity
-  source PWL 164.7 dB
-  point PWL 164.4 dB
-  LOF 0.29
-  proposed scope ASSESSMENT
-```
-
 A named `HUMAN_ENGINEER` must explicitly accept:
 
 ```text
 raw/effective source PWL → SOURCE result
-first-discontinuity point PWL + LOF → ASSESSMENT result
+D.2.3 first-discontinuity point PWL + LOF → ASSESSMENT result
 derived line-report LOF → LINE_CASE_SUMMARY
 line aggregation is NOT derived from one first-discontinuity result
 Source / Assessment / Line scopes remain separate
 ```
 
-Even completed review returns:
+Controlled evidence bound by the template includes:
+
+```text
+relief downstream line report: PWL 164.69 dB, LOF 1.48
+D.2.3 first discontinuity: point PWL 164.4 dB, LOF 0.29
+```
+
+Completed review still returns:
 
 ```text
 productionEquationAuthorized = false
 lineAggregationImplementationAuthorized = false
 ```
 
-The gate resolves result interpretation only; it does not authorize an aggregation equation/rule.
-
 ### Promotion prerequisite planner
-
-New module/schema:
 
 ```text
 converters/vibration/aiv/aiv-promotion-readiness.js
 AivQualificationPromotionReadiness.v1
 ```
 
-Gate statuses:
-
-```text
-SATISFIED
-UNSATISFIED
-INVALID_EVIDENCE
-```
-
-Prerequisite gates:
+Prerequisites:
 
 ```text
 CONTROLLED_T2_7_HUMAN_RECONCILIATION
@@ -229,23 +193,17 @@ Separate final authority gate:
 INDEPENDENT_VIBRATION_ENGINEER_PROMOTION_REVIEW
 ```
 
-Evidence input shape:
+Gate states:
 
-```js
-{
-  artifactSha256: 'sha256:<64 hex>',
-  verification: {
-    schema: '<exact verification schema>',
-    methodId: 'VIB.AIV.ACOUSTIC',
-    productionEquationAuthorized: false,
-    // gate-specific completion fields
-  }
-}
+```text
+SATISFIED
+UNSATISFIED
+INVALID_EVIDENCE
 ```
 
-Bare booleans, missing hashes, wrong schemas, wrong method IDs, incomplete completion fields, or authority-tainted verification artifacts are `INVALID_EVIDENCE`.
+Each prerequisite requires a structured verification artifact plus its SHA-256 identity. Bare booleans cannot close gates.
 
-Only all six prerequisite gates satisfied can produce:
+Only all six prerequisites satisfied can produce:
 
 ```text
 READY_FOR_INDEPENDENT_AUTHORITY_REVIEW
@@ -262,68 +220,82 @@ screeningAuthority = NOT_AUTHORIZED
 designAuthority = false
 ```
 
-### Promotion UI
+### Functional verification-artifact ingestion
 
-`tabs/vibration-aiv-promotion-view.js` renders the method gate checklist independently of operating-case readiness/results. Current expected UI state is six prerequisite gates `UNSATISFIED` plus the separate independent-engineer gate, because no named human review artifacts have been completed in this branch.
+```text
+tabs/vibration-aiv-promotion-artifacts.js
+tabs/vibration-aiv-promotion-view.js
+```
 
-### Gate-list cleanup
+The UI accepts exactly five prerequisite verification JSON files:
 
-Human-facing `remainingPromotionGates` outputs were aligned with the current plan:
+```text
+AivT27ReconciliationVerification.v1
+AivD23Flm1ReconciliationVerification.v1
+AivWorkedExampleResultScopeReviewVerification.v1
+AivIndependentBenchmarkReviewVerification.v1
+AivWorkbookReconciliationVerification.v1
+```
+
+The browser reads the actual JSON bytes and computes SHA-256 with Web Crypto before creating planner evidence records. The user does not type the hash.
+
+The independent benchmark artifact closes two prerequisites only if both reviewed acceptance flags are present.
+
+The final independent vibration-engineer promotion decision is deliberately **not uploadable** through this prerequisite UI. It remains a separate authority transition.
+
+### Gate-list consistency
+
+Human-facing verifier outputs were aligned with the current gate set:
 
 - retired `DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF` removed;
-- `RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE` added to T2.7, FLM1, workbook and independent-benchmark verifier outputs where relevant.
+- `RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE` added to T2.7, FLM1, workbook and independent-benchmark remaining-gate lists.
 
-The controlled DOCX→Markdown source remains the readable worked-example content authority; the PDF remains corroborating binary evidence.
+The controlled DOCX→Markdown transcription remains the readable worked-example content authority; the PDF remains corroborating binary evidence.
 
 ## Stage status
 
-| Stage | Work item | Status |
+| Stage | Work | Status |
 |---:|---|---|
-| 1–2 | Authority freeze, qualification UI, topology/readiness foundation | IMPLEMENTED |
-| 3–6 | EI T2.7 trace, errata, extraction + human reconciliation contracts | IMPLEMENTED / HUMAN REVIEW PENDING |
-| 7–8 | D.2.3 chain + FLM1 human-disposition gate | IMPLEMENTED / HUMAN REVIEW PENDING |
-| 9 | Retained workbook inventory/reconciliation | IMPLEMENTED / HUMAN REVIEW PENDING |
-| 10 | Sonic + simultaneous-source benchmark vectors | IMPLEMENTED / HUMAN ACCEPTANCE PENDING |
-| 11 | Controlled worked-example Markdown | ACCEPTED |
-| 12 | Split Sources / Assessments / Relationships + joined readiness | IMPLEMENTED / TEST RUN PENDING |
-| 13 | Editable working tables + Load EI D.2.3 | IMPLEMENTED / TEST RUN PENDING |
-| 14 | Source/Assessment/Line result-contract freeze | IMPLEMENTED / TEST RUN PENDING |
-| 15 | Result-scope human gate + promotion readiness | IMPLEMENTED / HUMAN ARTIFACTS PENDING / TEST RUN PENDING |
-| 16 | Qualification-only numerical kernel | NOT AUTHORIZED |
+| 1–11 | authority/source/trace/errata/benchmark/workbook qualification foundation | IMPLEMENTED; human reviews pending where applicable |
+| 12 | split Sources / Assessments / Relationships + joined readiness | IMPLEMENTED / TEST RUN PENDING |
+| 13 | editable tables + controlled D.2.3 loader | IMPLEMENTED / TEST RUN PENDING |
+| 14 | Source / Assessment / Line result-contract freeze | IMPLEMENTED / TEST RUN PENDING |
+| 15 | result-scope human gate + promotion planner + hashed artifact ingestion | IMPLEMENTED / HUMAN ARTIFACTS PENDING / TEST RUN PENDING |
+| 16 | qualification-only numerical kernel | NOT AUTHORIZED |
 | 17 | BENCHMARK_ONLY real-path execution | NOT AUTHORIZED |
-| 18 | Result register/detail/export | NOT_STARTED |
-| 19 | Independent vibration-engineer promotion decision | PENDING |
+| 18 | result register/detail/export | NOT_STARTED |
+| 19 | independent vibration-engineer promotion decision | PENDING |
 
-## Stage 15 changed-file ledger
+## Stage 15 files
 
-| File | Purpose |
-|---|---|
-| `scripts/verify-aiv-worked-example-result-scope.mjs` | human-only result-scope interpretation gate |
-| `converters/vibration/aiv/aiv-promotion-readiness.js` | fail-closed prerequisite evidence orchestration |
-| `converters/vibration/aiv/index.js` | exports promotion APIs |
-| `tabs/vibration-aiv-promotion-view.js` | method promotion checklist UI |
-| `tabs/vibration-aiv-qualification-view.js` | inserts promotion checklist after result shells |
-| `tests/vibration-aiv-result-scope-review.test.mjs` | human/tamper/scope regressions |
-| `tests/vibration-aiv-promotion-readiness.test.mjs` | prerequisite/invalid-evidence/authority regressions |
-| `tests/vibration-module-boundaries.test.mjs` | promotion modules stay read-only/no equations |
-| `package.json` | focused verification includes Stage 15 tests + result-scope CLI |
-| `docs/vibration/AIV-Promotion-Readiness-v1.md` | promotion artifact/gate contract |
-| `scripts/verify-aiv-t27-reconciliation.mjs` | current gate list cleanup |
-| `scripts/verify-aiv-d23-flm1-reconciliation.mjs` | current gate list cleanup |
-| `scripts/verify-aiv-workbook-reconciliation.mjs` | current gate list cleanup |
-| `scripts/verify-aiv-independent-benchmarks.mjs` | current gate list cleanup |
-| `agents/PR444_workreport.md` | durable handoff |
+```text
+scripts/verify-aiv-worked-example-result-scope.mjs
+converters/vibration/aiv/aiv-promotion-readiness.js
+converters/vibration/aiv/index.js
+tabs/vibration-aiv-promotion-artifacts.js
+tabs/vibration-aiv-promotion-view.js
+tabs/vibration-aiv-qualification-tab.js
+tabs/vibration-aiv-qualification-view.js
+tests/vibration-aiv-result-scope-review.test.mjs
+tests/vibration-aiv-promotion-readiness.test.mjs
+tests/vibration-aiv-promotion-artifacts.test.mjs
+tests/vibration-module-boundaries.test.mjs
+docs/vibration/AIV-Promotion-Readiness-v1.md
+package.json
+```
 
-## Validation ledger
+Gate-list cleanup also modifies the existing T2.7 / FLM1 / workbook / independent-benchmark verifier scripts.
 
-### Focused executable command
+## Validation
+
+Focused command:
 
 ```bash
 npm install
 npm run verify:aiv-input-model
 ```
 
-Current focused suite includes:
+Current suite includes:
 
 ```text
 tests/vibration-aiv-readiness.test.mjs
@@ -331,21 +303,24 @@ tests/vibration-aiv-input-workspace.test.mjs
 tests/vibration-aiv-result-contracts.test.mjs
 tests/vibration-aiv-result-scope-review.test.mjs
 tests/vibration-aiv-promotion-readiness.test.mjs
+tests/vibration-aiv-promotion-artifacts.test.mjs
 tests/vibration-aiv-topology-view.test.mjs
 tests/vibration-module-boundaries.test.mjs
 ```
 
-### Executable status
+Source-level boundary check: `tabs/vibration-aiv-qualification-tab.js` remains below the repository's 300-line module target; promotion artifact parsing/hashing was split into its own module.
+
+Executable status:
 
 ```text
 NOT_RUN
 ```
 
-GitHub Actions has repeatedly accepted the AIV workflow but assigned no runner because the repository Actions budget prevents further use. No PASS is inferred.
+GitHub Actions has repeatedly accepted the AIV workflow but assigned no runner because the repository Actions budget prevents further use. Do not infer PASS or a code/test failure from a zero-step job.
 
-## Human work now required before numerical coding
+## Human work required before numerical coding
 
-The code-side qualification scaffolding is now sufficient to identify what must be supplied by humans. The next actual engineering work is to complete and verify the named artifacts:
+Complete and verify:
 
 ```text
 1. AivT27Reconciliation.v1
@@ -356,4 +331,4 @@ The code-side qualification scaffolding is now sufficient to identify what must 
 6. independent vibration-engineer promotion review after prerequisites are satisfied
 ```
 
-Do not implement the AIV numerical kernel merely because the templates and planner exist. Numerical implementation remains blocked until the prerequisite evidence is genuinely completed and an explicit authority decision permits the next phase.
+Do **not** implement the AIV numerical kernel merely because the templates, UI imports and promotion planner now exist. Numerical work remains blocked until the prerequisite evidence is genuinely completed and an explicit authority decision permits the next phase.
