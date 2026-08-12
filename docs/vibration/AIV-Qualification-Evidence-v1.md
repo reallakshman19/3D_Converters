@@ -1,6 +1,6 @@
 # AIV Qualification Evidence v1
 
-Status: **CONTROLLED SOURCE LOCATIONS + WORKED-EXAMPLE EVIDENCE — PRODUCTION EQUATION NOT AUTHORIZED**
+Status: **CONTROLLED SOURCE LOCATIONS + REVALIDATED WORKED-EXAMPLE EVIDENCE — PRODUCTION EQUATION NOT AUTHORIZED**
 
 Method ID:
 
@@ -32,18 +32,9 @@ edition: 2nd
 published: January 2008
 ```
 
-The official Energy Institute publication record identifies errata affecting pages 61 and 68 and states that the changes are incorporated into the main PDF. Page 61 is AIV-relevant because it contains Flowchart T2-6 / T2.7 material.
+The official Energy Institute errata affects pages 61 and 68. Page 61 is AIV-relevant because it contains the T2-6 feed from Flowchart T2-5. The branch therefore keeps controlled extraction and errata reconciliation as explicit qualification gates.
 
-For this branch, that is encoded as a **location/errata gate only**:
-
-```text
-controlledContentExtractionState = PINNED_BLOB_CONTENT_RECONCILIATION_REQUIRED
-productionAuthority              = false
-```
-
-No equation or coefficient is transcribed into production code merely from an external text rendering, memory, or workbook.
-
-### EI worked examples
+### Worked-example DOCX
 
 ```text
 repository: reallaksh19/Common
@@ -53,126 +44,80 @@ blob: ceee15ed5f7f320045d5f3979024e2e8664613f2
 locator: Appendix D / D.2.3 High Frequency Acoustic Excitation (T2.7)
 ```
 
-Both source pins are encoded in `converters/vibration/aiv/aiv-qualification-evidence.js` with `productionAuthority = false`.
-
-## 2. Main T2.7 trace locations frozen
-
-The branch now records the following source locations without yet transcribing production equations:
+### Revalidation PDF
 
 ```text
-AIV-APP-T2-7-EXTENT-001
-  T2.7.1, page 59
-  excitation extent / downstream boundary / welded discontinuities / source classes
-
-AIV-UNIT-T2-7-INPUTS-001
-  T2.7.2, page 59
-  native input symbols and units
-
-AIV-EQ-SOURCE-PWL-001
-  T2.7.3 / Flowchart T2-5, page 60
-  source PWL equation location
-
-AIV-CONST-SFF-001
-  T2.7.3, page 60
-  sonic-flow correction-factor branch location
-
-AIV-ASS-155DB-001
-  Flowchart T2-5, page 60
-  155 dB branch location
-
-AIV-EQ-ATTENUATION-001
-  Flowchart T2-5, page 60
-  source-to-discontinuity attenuation equation location
-
-AIV-EQ-MULTI-SOURCE-001
-  Flowchart T2-5, page 60
-  multiple-source combination equation location
-
-AIV-ASS-LOW-NOISE-TRIM-001
-  Note 1 / T2.7.3, page 61
-  low-noise-trim manufacturer-reduction rule location
-
-AIV-EQ-T2-6-001
-  Flowchart T2-6, page 61
-  welded-discontinuity fatigue/LOF chain location
+repository: reallaksh19/Common
+commit: fb549185b9b27edc2379734240320a85c5bef9f6
+file: EI examples.pdf
+blob: 1ddef94f81bd30570d1b1f86b1d3e2acdcc17dec
+size: 1,602,640 bytes
+locator: Appendix D / D.2.3, printed pages 183-185
 ```
 
-All except the page-61 T2-6 item remain:
+The exact GitHub PDF blob is pinned in `aiv-d23-pdf-revalidation.js`. Direct binary extraction of that GitHub blob remains a separate gate because the current connector does not expose its PDF bytes/text. Revalidation values are therefore retained as qualification evidence only and cannot authorize production equations.
+
+## 2. Main T2.7 trace locations
 
 ```text
-SOURCE_LOCATION_IDENTIFIED_CONTROLLED_EXTRACTION_REQUIRED
+AIV-APP-T2-7-EXTENT-001         T2.7.1, page 59
+AIV-UNIT-T2-7-INPUTS-001       T2.7.2, page 59
+AIV-EQ-SOURCE-PWL-001           T2.7.3 / T2-5, page 60
+AIV-CONST-SFF-001               T2.7.3, page 60
+AIV-ASS-155DB-001               T2-5, page 60
+AIV-EQ-ATTENUATION-001          T2-5, page 60
+AIV-EQ-MULTI-SOURCE-001         T2-5, page 60
+AIV-ASS-LOW-NOISE-TRIM-001     Note 1 / T2.7.3, page 61
+AIV-EQ-T2-6-001                 T2-6, page 61
 ```
 
-The page-61 item is stricter:
+No production equation is authorized merely because its source location is known.
+
+## 3. D.2.3 source cases revalidated
+
+### Relief valve
 
 ```text
-ERRATA_PAGE_61_CONTROLLED_CONTENT_RECONCILIATION_REQUIRED
-OFFICIAL_ERRATA_PAGE_61_APPLIES
-```
-
-This means the source map is becoming complete while the production numerical transcription remains deliberately blocked.
-
-## 3. Benchmark evidence captured
-
-### AIV-EI-D2-3-RELIEF-SOURCE
-
-Published worked-example inputs captured:
-
-```text
-source type               RELIEF_VALVE
-upstream pressure         98 barg
-published absolute P1     9.9 MPa abs
-downstream pressure       0 barg
-published absolute P2     0.1 MPa abs
+P1 gauge                  98 barg
+P2 gauge                  0 barg
+published P1 absolute     9.9 MPa abs
+published P2 absolute     0.1 MPa abs
 mass flow                 53,482 kg/h
-published normalized flow 14.86 kg/s
+normalized mass flow      14.86 kg/s
 upstream temperature      137 degC
 published temperature     410 K
 molecular weight          21.75 g/mol
 sonic state               NON_SONIC
 SFF                       0 dB
+published source PWL      164.7 dB
 ```
 
-Published source PWL reference:
+### Recycle valve
+
+The PDF revalidation corrects the raw temperature retained in the earlier fixture:
 
 ```text
-164.7 dB
-```
-
-The stored source-PWL comparison tolerance is `±0.05 dB` solely because the published result is displayed to one decimal place. This is not a general AIV tolerance.
-
-### AIV-EI-D2-3-RECYCLE-SOURCE
-
-Published worked-example inputs captured:
-
-```text
-source type               CONTROL_VALVE
-upstream pressure         87 barg
-published absolute P1     8.8 MPa abs
-downstream pressure       25 barg
-published absolute P2     2.6 MPa abs
+P1 gauge                  87 barg
+P2 gauge                  25 barg
+published P1 absolute     8.8 MPa abs
+published P2 absolute     2.6 MPa abs
 mass flow                 53,482 kg/h
-upstream temperature      137 degC
+upstream temperature      136.7 degC
+published temperature     410 K
 molecular weight          21.75 g/mol
 sonic state               NON_SONIC
 SFF                       0 dB
+published source PWL      159.4 dB
 manufacturer trim         approximately 30 dB reduction
 ```
 
-Published source PWL reference:
+The example states that applying the manufacturer reduction takes the recycle source below the 155 dB branch and sets the recycle-line high-frequency-acoustic main-line LOF to `0.29`.
+
+## 4. Relief first welded discontinuity - full published chain
+
+The first evaluated discontinuity downstream of the relief source is the 2-inch bypass weldolet.
 
 ```text
-159.4 dB
-```
-
-The fixture does not convert the approximate trim statement into an exact production engineering default.
-
-### AIV-EI-D2-3-RELIEF-DISCONTINUITY
-
-Captured worked-example evidence includes:
-
-```text
-assessment description        2-inch bypass weldolet
 source-to-assessment distance 0.8 m
 main pipe ID                  154 mm
 main pipe OD                  168.3 mm
@@ -185,74 +130,98 @@ A                             0.93989
 S                             68.229
 B                             152.207
 log10(N)                      9.9026
-N                             7.99e9
+N                             7.99E9
 Dext/dext                     2.791
+published FLM1                1.2133
+published N after FLM1        9.70E9
+published FLM2                0.2009
+published N after FLM2        1.95E9
+material duplex               no
+published Lf                  0.31
+published final LOF           0.29
 ```
 
-The fixture intentionally records:
+The previously recorded gap:
 
 ```text
-publishedFinal = null
-qualificationGap = FINAL_T2_6_LOF_NOT_YET_CAPTURED_FROM_CONTROLLED_SOURCE
-```
-
-No final LOF is invented to make the fixture look complete.
-
-## 4. Worked-example trace states
-
-```text
-AIV-SRC-EI-D2-3-PRESSURE
-AIV-SRC-EI-D2-3-NONSONIC
-AIV-SRC-EI-D2-3-TRIM
-AIV-SRC-EI-D2-3-SOURCE-PWL
-AIV-SRC-EI-D2-3-155DB
-AIV-SRC-EI-D2-3-ATTENUATION
-AIV-SRC-EI-D2-3-T2-6
-```
-
-`AIV-SRC-EI-D2-3-155DB` remains **worked-example branch evidence only**. Production threshold authority must come from the controlled main-guidance trace, not from example behavior alone.
-
-## 5. Explicit qualification gaps
-
-```text
-AIV-SRC-GAP-SONIC-SFF6
-  INDEPENDENT_BENCHMARK_REQUIRED
-
-AIV-SRC-GAP-MULTI-SOURCE
-  INDEPENDENT_BENCHMARK_REQUIRED
-
-AIV-EQ-T2-6-001
-  ERRATA_PAGE_61_CONTROLLED_CONTENT_RECONCILIATION_REQUIRED
-
 FINAL_T2_6_LOF_NOT_YET_CAPTURED_FROM_CONTROLLED_SOURCE
 ```
 
-These gaps block numerical promotion.
+is closed. The published example explicitly states `Lf < 0.5`, therefore `LOF = 0.29`.
 
-## 6. Production separation
+## 5. New arithmetic reconciliation gap
 
-The evidence module:
+Independent evaluation of the printed T2-6 FLM1 equation using the displayed ratio:
 
-- contains no AIV calculation function;
-- contains no logarithmic/power equation implementation;
-- is not imported by the pending Engineering Calculation definition;
-- is immutable/frozen;
-- has `productionEquationAuthorized = false`.
+```text
+Dext/dext = 168.3 / 60.3 = 2.791044776...
+```
 
-The qualification UI renders published values and trace states from this same immutable evidence module. Those values remain reference evidence, not production calculator outputs.
+gives approximately:
 
-## 7. Next gate
+```text
+FLM1 = 1.2109758194
+```
 
-Before a production AIV kernel is written, qualification still requires at least:
+while the worked example publishes:
 
-1. controlled extraction/reconciliation of the pinned Common T2.7 pages 59-62;
-2. explicit reconciliation of the page-61 official erratum with the controlled Common PDF;
-3. complete equation/table/constant records with native units, branch predicates and rounding rules;
-4. complete T2-6 final D.2.3 worked-example endpoint;
-5. independent hand-derived sonic `SFF = 6` benchmark;
-6. independent multiple-source benchmark;
-7. justified branch/boundary tolerances;
-8. retained-workbook extraction/reconciliation as migration evidence;
-9. independent vibration-engineer review.
+```text
+FLM1 = 1.2133
+```
 
-Until those are complete, `VIB.AIV.ACOUSTIC` remains BLOCKED and no central numerical execution path is authorized.
+The absolute difference is approximately `0.00232418` (~0.19%). This could arise from undisplayed source precision, a worked-example arithmetic issue, or another source detail that still requires reconciliation. The software must not silently choose either value.
+
+Using the printed equation with displayed inputs still produces approximately:
+
+```text
+FLM2      0.20095
+Lf        0.313
+final LOF 0.29
+```
+
+so the final worked-example branch disposition does not change.
+
+This is now encoded as:
+
+```text
+PUBLISHED_FLM1_ARITHMETIC_RECONCILIATION_REQUIRED
+```
+
+## 6. Official page-61 errata cross-check
+
+The official Energy Institute correction for the T2-6 feed equation is stored separately as `AIV-EQ-T2-6-FEED-ERRATA-001` with `implementationAuthorized = false`.
+
+At the worked-example `B = 152.207`, that corrected feed reproduces the displayed:
+
+```text
+log10(N) = 9.9026
+N        = 7.99E9
+```
+
+This strengthens the T2-6 evidence but does not authorize the production chain.
+
+## 7. Remaining qualification gaps
+
+```text
+DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF
+RECONCILE_D2_3_PUBLISHED_FLM1_ARITHMETIC
+INDEPENDENT_SONIC_SFF6_BENCHMARK
+INDEPENDENT_MULTI_SOURCE_BENCHMARK
+CONTROLLED_T2_7_HUMAN_RECONCILIATION
+RETAINED_WORKBOOK_RECONCILIATION
+INDEPENDENT_VIBRATION_ENGINEER_PROMOTION_REVIEW
+```
+
+The earlier final-D.2.3-endpoint gap is no longer present.
+
+## 8. Production separation
+
+The evidence/revalidation modules:
+
+- do not expose a production AIV calculator;
+- are not imported by the pending Engineering Calculation definition;
+- do not authorize PWL, attenuation, FLM, Lf or LOF execution;
+- keep `productionEquationAuthorized = false`;
+- preserve BLOCKED / NOT_AUTHORIZED / no-design-authority state.
+
+Until the remaining source, arithmetic, benchmark, workbook and independent-review gates close, `VIB.AIV.ACOUSTIC` remains BLOCKED.
