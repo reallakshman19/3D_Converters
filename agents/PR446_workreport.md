@@ -9,12 +9,12 @@ PR                     #446
 Branch                 agent/aiv-kernel-contract-scaffold
 Mode                   AUTO
 Human evidence         NOT REQUIRED
-Stages 1–7             IMPLEMENTED
-Stages 8–10            IMPLEMENTED in controlled benchmark adapter
+Stages 1–10            IMPLEMENTED for controlled benchmark path
 D.2.3 product path     PASS — 22 / 22 validation checks
-Current AUTO stage     18
-Exact next action      WIRE_BENCHMARK_RESULT_UI_AND_EXPORT
-Repository CI          NOT_RUN: Actions budget still creates zero-step jobs
+Result/detail/export   COMPLETE with validation invalidation on table/assumption edits
+Current AUTO stage     19
+Exact next action      RUN_EXACT_HEAD_NODE_AND_BROWSER_VALIDATION
+Repository CI          NOT_RUN: Actions budget creates zero-step jobs
 Release target         BENCHMARK_ONLY first; SCREENING later
 Design authority       false
 ```
@@ -30,9 +30,9 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-The validation record does not itself apply an authority transition.
+The validation record and UI wiring do not themselves apply an authority transition.
 
-## Full 10-stage AUTO benchmark path
+## Full 10-stage benchmark path
 
 ```text
 VALIDATE_INPUT
@@ -47,11 +47,9 @@ AGGREGATE_LINE_CASE_RESULT
 ASSESS_RESULT
 ```
 
-Stages 1–7 remain in `converters/vibration/aiv/aiv-kernel-candidate.js`.
+Stages 1–7 are in `converters/vibration/aiv/aiv-kernel-candidate.js`. Stages 8–10 run through `scripts/aiv-auto-product-path.mjs` using the controlled qualification numerical helpers.
 
-Stages 8–10 are executed by `scripts/aiv-auto-product-path.mjs` using the controlled numerical helpers in `scripts/aiv-qualification-math.mjs`.
-
-Stage 8 calculates the errata fatigue-life chain from configured A/S/B and selected FLM1 mode. Stage 9 keeps the configured worked-example line result separate from the first-discontinuity assessment result. Stage 10 is benchmark comparison only and does not emit a universal operating/design classification.
+Stage 8 calculates the errata fatigue-life chain from configured A/S/B and FLM1 mode. Stage 9 preserves line and assessment result scopes separately. Stage 10 performs benchmark comparison only and emits no universal operating/design classification.
 
 ## D.2.3 validation
 
@@ -59,7 +57,6 @@ Runner:
 
 ```text
 npm run run:aiv-d23-product-path-validation
-scripts/run-aiv-d23-product-path-validation.mjs
 ```
 
 Machine-readable receipt:
@@ -111,14 +108,44 @@ Assessment LOF             0.29
 Configured line LOF        1.48
 ```
 
-Important scope rule:
+Scope rule:
 
 ```text
 first weldolet LOF 0.29 -> ASSESSMENT
 relief line LOF    1.48 -> LINE_CASE_SUMMARY
 ```
 
-The line value is a visible assumption, not a false derivation from the first discontinuity.
+The line value remains a visible configurable assumption, not a false derivation from the first discontinuity.
+
+## Stage 18 — complete
+
+The controlled unmodified EI D.2.3 workspace now displays:
+
+```text
+AivSourceResult.v1 values
+AivAssessmentResult.v1 values
+T2-6 calculation detail
+AivLineCaseSummary.v1 values
+validation path/blob
+assumption context
+Export validation package
+```
+
+Export schema:
+
+```text
+AivValidatedBenchmarkExportPackage.v1
+```
+
+Validation identity rules:
+
+```text
+edit benchmark table      -> committed validation NOT APPLICABLE
+edit benchmark assumption -> committed validation NOT APPLICABLE
+reload EI D.2.3            -> restores controlled tables + validated default assumptions
+```
+
+New regressions cover result contract snapshots, export authority, table-edit invalidation, assumption-edit invalidation, and AUTO Stage 18→19 progression.
 
 ## AUTO stage state
 
@@ -127,23 +154,34 @@ The line value is a visible assumption, not a false derivation from the first di
 16B.2 assumptions + stages 8–10 configuration      COMPLETE
 16B.3 stages 8–10 implementation                   COMPLETE
 17     D.2.3 Source/Assessment/Line validation      COMPLETE / PASS
-18     result detail / assumptions / export         NEXT
-19     exact-head validation + BENCHMARK_ONLY       BLOCKED_BY_STAGE_18
+18     result detail / assumptions / export         COMPLETE
+19     exact-head validation + BENCHMARK_ONLY       NEXT
 20     SCREENING machine qualification              FUTURE
 ```
 
-The AIV workspace is bound to the committed validation metadata through `tabs/vibration-aiv-validation-records.js`, so AUTO now reports Stage 18 as next.
+## Stage 19 exact-head protocol
 
-## Remaining BENCHMARK_ONLY release work
+Required exact candidate-head execution:
 
-1. Wire calculated Source / Assessment / Line results into the operator view.
-2. Export result detail, assumptions and the validation receipt together.
-3. Execute the focused Node suite and browser operator workflow on an exact controlled checkout/runner.
-4. Produce `AivReleaseValidationReceipt.v1` for that exact head.
-5. Evaluate all four `AivReleasePlan.v2` machine gates.
-6. Apply any BENCHMARK_ONLY authority transition in a separate explicit code change.
-7. SCREENING remains a later machine-qualification program.
+```text
+npm run verify:aiv-input-model
+npm run run:aiv-d23-product-path-validation
+```
 
-## Validation limitation
+Browser workflow:
 
-A local controlled Node arithmetic cross-check was executed and every declared benchmark tolerance passed. GitHub Actions has still not executed repository tests because jobs receive no runner/steps under the repository Actions-budget condition. Repository CI is therefore `NOT_RUN`, not PASS and not a code-failure finding.
+```text
+Load EI D.2.3
+verify validated Source / Assessment / Line detail
+edit a table cell -> committed validation disappears
+reload EI D.2.3
+edit an assumption -> committed validation disappears
+reload EI D.2.3
+export validation package
+```
+
+The execution must be recorded as `AivReleaseValidationReceipt.v1` for the exact head before BENCHMARK_ONLY transition eligibility can be claimed.
+
+## CI limitation
+
+A local controlled Node arithmetic cross-check passed every declared benchmark tolerance. Repository GitHub Actions jobs still receive no runner/steps under the Actions-budget condition. Therefore repository CI is `NOT_RUN`, not PASS and not a code-failure finding.
