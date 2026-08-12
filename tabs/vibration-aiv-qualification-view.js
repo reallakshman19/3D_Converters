@@ -4,6 +4,7 @@ import {
   AIV_EI_MAIN_GUIDANCE_SOURCE,
   AIV_METHOD_TRACE_FOUNDATION,
 } from '../converters/vibration/aiv/aiv-qualification-evidence.js';
+import { AIV_EI_EXAMPLES_PDF_SOURCE } from '../converters/vibration/aiv/aiv-d23-pdf-revalidation.js';
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
 import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
 
@@ -19,7 +20,7 @@ function cell(value) {
   return value === null || value === undefined || value === '' ? '<span class="aivq-empty">—</span>' : esc(value);
 }
 function evidenceKind(state) {
-  return /REQUIRED|PARTIAL|GAP|ERRATA/u.test(state) ? 'gap' : 'ok';
+  return /REQUIRED|PARTIAL|GAP|ERRATA|RECONCILIATION_OPEN/u.test(state) ? 'gap' : 'ok';
 }
 function sourceLabel(sourceId) {
   if (sourceId === AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId) return 'EI T2.7 main guidance';
@@ -34,13 +35,18 @@ function coverageRows() {
     <td>${item.gaps?.length ? esc(item.gaps.join('; ')) : item.benchmarkIds?.length ? esc(item.benchmarkIds.join('; ')) : '<span class="aivq-empty">—</span>'}</td>
   </tr>`).join('');
 }
+function benchmarkGap(item) {
+  if (item.arithmeticReconciliation?.state === 'OPEN') return 'PUBLISHED_FLM1_ARITHMETIC_RECONCILIATION_REQUIRED';
+  return item.qualificationGap ?? null;
+}
 function benchmarkRows() {
   return AIV_D23_BENCHMARK_CASES.map((item) => `<tr>
     <td><code>${esc(item.benchmarkId)}</code></td><td>${esc(item.caseLabel)}</td>
     <td>${cell(item.publishedOutputs?.sourcePwlDb)}</td>
     <td>${cell(item.publishedIntermediates?.assessmentPwlDb)}</td>
+    <td>${cell(item.publishedFinal?.LOF)}</td>
     <td>${esc(item.evidenceState)}</td>
-    <td>${item.qualificationGap ? `<code>${esc(item.qualificationGap)}</code>` : '<span class="aivq-empty">—</span>'}</td>
+    <td>${benchmarkGap(item) ? `<code>${esc(benchmarkGap(item))}</code>` : '<span class="aivq-empty">—</span>'}</td>
   </tr>`).join('');
 }
 
@@ -52,6 +58,7 @@ export function renderAivQualificationWorkspaceHtml(state = {}) {
       <div><small>Qualification issue</small><strong>#441</strong></div>
       <div><small>EI T2.7 main guidance</small><strong>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.path)}</strong><span>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.repository)} @ ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.commit)} · blob ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.gitBlob)} · ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.locator)}</span><span>Page ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.officialErrata.aivRelevantPage)} errata reconciliation required before equation transcription.</span></div>
       <div><small>EI worked-example source</small><strong>${esc(AIV_EI_D23_SOURCE.path)}</strong><span>${esc(AIV_EI_D23_SOURCE.repository)} @ ${esc(AIV_EI_D23_SOURCE.commit)} · blob ${esc(AIV_EI_D23_SOURCE.gitBlob)} · ${esc(AIV_EI_D23_SOURCE.locator)}</span></div>
+      <div><small>EI examples PDF revalidation</small><strong>${esc(AIV_EI_EXAMPLES_PDF_SOURCE.path)}</strong><span>${esc(AIV_EI_EXAMPLES_PDF_SOURCE.repository)} @ ${esc(AIV_EI_EXAMPLES_PDF_SOURCE.commit)} · blob ${esc(AIV_EI_EXAMPLES_PDF_SOURCE.gitBlob)}</span><span>Direct GitHub binary extraction remains pending; published chain is evidence only.</span></div>
       <div><small>Advanced_Analysis visual lineage</small><strong>Sequential engineering SVG symbols</strong><span>Advanced_Analysis @ 6463b39866f68eb6476bfa41764538eb19f8b9f9</span></div>
       <div><small>Topology authority</small><strong>TopologyEditTableHumanExport.v1</strong><span>Elements + Connections + Source Mapping + Catalogue Evidence + Export Metadata</span></div>
     </div></section>
@@ -63,8 +70,8 @@ export function renderAivQualificationWorkspaceHtml(state = {}) {
         <tr><td>${renderAivInlineSymbol({ type: 'OLET', role: 'ASSESSMENT' })}</td><td>Assessment point</td><td>Weldolet / welded discontinuity</td><td>Source identity and assessment identity remain distinct canonical records.</td></tr>
       </tbody></table></div>
     </section>
-    <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 published benchmark evidence</h4><p>These are pinned published-reference values, not outputs from the production AIV calculator.</p></div></div>
-      <div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Case</th><th>Published source PWL (dB)</th><th>Published point PWL (dB)</th><th>Evidence state</th><th>Open gap</th></tr></thead><tbody>${benchmarkRows()}</tbody></table></div>
+    <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 published benchmark evidence</h4><p>These are pinned published-reference values, not outputs from the production AIV calculator. The final relief-weldolet LOF is published as 0.29; FLM1 arithmetic reconciliation remains open.</p></div></div>
+      <div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Case</th><th>Published source PWL (dB)</th><th>Published point PWL (dB)</th><th>Published final LOF</th><th>Evidence state</th><th>Open gap</th></tr></thead><tbody>${benchmarkRows()}</tbody></table></div>
     </section>
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV qualification trace register</h4><p>Page/flowchart locations are visible even while controlled content extraction remains blocked. Trace state is not a confidence score or screening classification.</p></div></div>
       <div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence / locator</th><th>Qualification state</th><th>Benchmark / gap</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
