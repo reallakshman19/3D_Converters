@@ -117,6 +117,36 @@ function unresolved(graph, sourceCanonicalId, assessmentCanonicalId, status, det
   });
 }
 
+function edgeKey(a, b) {
+  return a < b ? `${a}\u0000${b}` : `${b}\u0000${a}`;
+}
+
+function reachableWithoutEdge(graph, sourceCanonicalId, assessmentCanonicalId, blockedEdge) {
+  const queue = [sourceCanonicalId];
+  const visited = new Set(queue);
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const current = queue[cursor];
+    for (const neighbor of graph.adjacency[current] ?? []) {
+      if (edgeKey(current, neighbor) === blockedEdge || visited.has(neighbor)) continue;
+      if (neighbor === assessmentCanonicalId) return true;
+      visited.add(neighbor);
+      queue.push(neighbor);
+    }
+  }
+  return sourceCanonicalId === assessmentCanonicalId;
+}
+
+function alternateRouteExists(graph, orderedCanonicalIds) {
+  if (orderedCanonicalIds.length < 2) return false;
+  const sourceCanonicalId = orderedCanonicalIds[0];
+  const assessmentCanonicalId = orderedCanonicalIds.at(-1);
+  for (let index = 0; index < orderedCanonicalIds.length - 1; index += 1) {
+    const blockedEdge = edgeKey(orderedCanonicalIds[index], orderedCanonicalIds[index + 1]);
+    if (reachableWithoutEdge(graph, sourceCanonicalId, assessmentCanonicalId, blockedEdge)) return true;
+  }
+  return false;
+}
+
 export function resolveVibrationTopologyPath(graphInput, input = {}) {
   const graph = assertGraph(graphInput);
   const sourceCanonicalId = text(input.sourceCanonicalId, 'sourceCanonicalId');
@@ -139,6 +169,7 @@ export function resolveVibrationTopologyPath(graphInput, input = {}) {
       physicalDistanceMm: null,
       distanceStatus: 'NOT_DERIVED_BY_TOPOLOGY_VIEW',
       shortestPathCount: 1,
+      alternateRouteDetected: false,
       authority: graph.authority,
     });
   }
@@ -179,6 +210,14 @@ export function resolveVibrationTopologyPath(graphInput, input = {}) {
     if (cursor === sourceCanonicalId) break;
   }
   orderedCanonicalIds.reverse();
+  if (alternateRouteExists(graph, orderedCanonicalIds)) {
+    return unresolved(graph, sourceCanonicalId, assessmentCanonicalId, 'AMBIGUOUS_TOPOLOGY_PATH', {
+      shortestPathCount,
+      shortestHopCount: distance.get(assessmentCanonicalId),
+      alternateRouteDetected: true,
+    });
+  }
+
   const elements = orderedCanonicalIds.map((canonicalId, index) => ({
     ...elementById.get(canonicalId),
     role: index === 0 ? 'SOURCE' : index === orderedCanonicalIds.length - 1 ? 'ASSESSMENT' : 'PROPAGATION_PATH',
@@ -195,6 +234,7 @@ export function resolveVibrationTopologyPath(graphInput, input = {}) {
     distanceStatus: 'NOT_DERIVED_BY_TOPOLOGY_VIEW',
     shortestPathCount,
     shortestHopCount: distance.get(assessmentCanonicalId),
+    alternateRouteDetected: false,
     authority: graph.authority,
   });
 }
