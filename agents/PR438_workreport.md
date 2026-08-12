@@ -10,129 +10,84 @@
 | Branch | `agent/fiv-fit-roadmap-foundation` |
 | Base commit | `37c37d770ba47ebb3152679265896de4a943c8b0` |
 | PR status | OPEN / DRAFT / mergeable at last check |
-| Current stage | Stage 20 — IN_PROGRESS: single API-first facility FIT benchmark workflow composition |
-| Last completed stage | Stage 19 — COMPLETE FOR IMPLEMENTATION / PARTIAL FOR EXECUTION VALIDATION |
-| Engineering status | FIT remains `BENCHMARK_ONLY`; screening/design NOT AUTHORIZED. All facility layers are data/orchestration/read-model only. |
-| Validation status | EI/domain focused PASS; table parser fixture PASS; exact later committed regressions NOT_RUN because no full checkout/raw GitHub DNS. |
-| Current blocker | Full repository regression, real `xlsx@0.18.5` parser regression, full licensed T2.2 page review, independent vibration-engineer approval. |
-| Exact next action | Add one workflow API that composes already-separated stages and returns dataset, plan, result and register without swallowing intermediate evidence/errors or changing authority. |
+| Current stage | Stage 21 — IN_PROGRESS: strict CSV contracts for operating cases and vibration enrichment |
+| Last completed stage | Stage 20 — COMPLETE FOR IMPLEMENTATION / PARTIAL FOR EXECUTION VALIDATION |
+| Engineering status | FIT remains `BENCHMARK_ONLY`; screening/design NOT AUTHORIZED. Workflow is benchmark orchestration only. |
+| Validation status | EI/domain focused PASS; parser fixture PASS; exact later committed regressions NOT_RUN due missing full checkout/raw GitHub access. |
+| Current blocker | Full repository regression, real `xlsx@0.18.5` regression, full licensed T2.2 review and independent vibration-engineer approval. |
+| Exact next action | Add shared strict vibration CSV parsing plus exact process-case/enrichment CSV contracts that produce dataset-compatible records with no header aliases, defaults or ambiguous value typing. |
 
 ### Handover in 60 Seconds
 
-Implemented table-first layers:
+Backend table-first FIT workflow is implemented end-to-end:
 
 ```text
 VibrationTableExchange.v1
-VibrationIntegrityDataset.v1
-VibrationFacilityFitPlan.v1
-VibrationFacilityFitResult.v1
-VibrationFacilityFitRegister.v1
+  -> VibrationIntegrityDataset.v1
+  -> VibrationFacilityFitPlan.v1
+  -> central calculateEngineeringBatch()
+  -> VibrationFacilityFitResult.v1
+  -> VibrationFacilityFitRegister.v1
 ```
 
-The numerical path remains:
+A one-call `runVibrationFacilityFitBenchmark()` composes those public APIs and returns all intermediate artifacts; benchmark mode is fixed and unsupported authority options are rejected.
 
-```text
-READY facility request
-  -> calculateEngineeringBatch()
-  -> VIB.FIV.FLOW_TURBULENCE central adapter
-  -> same FIT domain kernel as Console/single execution
-```
-
-`NOT_READY` never enters the central engine. Central failures never become zero LOF. The register has no pass/fail/universal risk score.
-
-Stage 19 register exposes explicit completeness, benchmark qualification, central evidence strengths and candidate-review metadata. It preserves row order and never re-ranks by LOF.
+Stage 21 addresses the remaining manual-object gap: operators should be able to load operating cases and engineering enrichment as tables/CSV without UI code inventing parsing semantics.
 
 ## Governing Principles
 
-1. Workflow composition may connect stages but must not merge their authority semantics.
-2. Every intermediate artifact remains available for audit/evidence.
-3. One high-level API must use the same lower-level APIs; no duplicate transformation/calculation logic.
-4. Benchmark mode is fixed; screening mode remains unavailable.
-5. No universal facility pass/fail or vibration score.
-6. No 3D/canvas/viewer integration.
+1. Table import is data parsing only; no engineering defaults or calculation.
+2. CSV headers are versioned contracts; no silent aliases in v1.
+3. Quantity value and unit must appear together when an operating-case quantity is supplied.
+4. Enrichment value type must be explicit so `"1"`, `1`, `true` and `"true"` are not confused.
+5. Shared quoted-field/BOM/newline parsing should be identical for exchange/process/enrichment CSVs.
+6. Imported records feed the existing dataset assembler, which remains the join/authority gate.
+7. No 3D/canvas/viewer integration.
 
 ## Mission Status
 
-| Work Item | Priority | Status | Stage | Evidence |
-|---|---:|---|---:|---|
-| FIT kernel / central benchmark path | P0 | VALIDATED | 1–12 | retained + EI/hand evidence |
-| Evidence/candidate metadata | P0 | IMPLEMENTED | 13–14 | non-authorizing metadata |
-| Table exchange parser | P0 | IMPLEMENTED | 15 | XLSX/CSV contract |
-| Vibration integrity dataset | P0 | IMPLEMENTED | 16 | strict data assembly |
-| Facility FIT plan | P0 | IMPLEMENTED | 17 | READY/NOT_READY requests |
-| Facility FIT benchmark executor | P0 | IMPLEMENTED | 18 | central batch API |
-| Facility FIT register | P0 | IMPLEMENTED | 19 | table read model |
-| Facility FIT workflow API | P0 | IN_PROGRESS | 20 | current stage |
-| Full repository regression | P0 | BLOCKED | Forward | Actions billing / no checkout |
-| Full method authority review | P0 | BLOCKED | Forward | direct source + reviewer |
-| Screening authority | P0 | BLOCKED | Forward | issue #429 |
+| Work Item | Priority | Status | Stage |
+|---|---:|---|---:|
+| FIT kernel / qualification evidence | P0 | VALIDATED/IMPLEMENTED | 1–14 |
+| Table exchange | P0 | IMPLEMENTED | 15 |
+| Dataset / facility plan / execution / register | P0 | IMPLEMENTED | 16–19 |
+| One-call benchmark workflow | P0 | IMPLEMENTED | 20 |
+| Shared strict CSV parser | P0 | IN_PROGRESS | 21 |
+| Operating-case CSV contract | P0 | IN_PROGRESS | 21 |
+| Enrichment CSV contract | P0 | IN_PROGRESS | 21 |
+| Full repository regression | P0 | BLOCKED | Forward |
+| Screening authority | P0 | BLOCKED | Forward |
 
 ## Engineering Item Register
 
 | ID | Type | Priority | Status | Summary |
 |---|---|---:|---|---|
-| DEC-021 | Decision | P0 | ACCEPTED | Table-only integration; Advanced_Analysis owns model editing. |
-| DEC-028 | Decision | P0 | ACCEPTED | Facility calculations use central batch API unchanged. |
-| DEC-030 | Decision | P0 | ACCEPTED | Facility register is read projection only. |
-| DEC-031 | Decision | P0 | ACCEPTED | High-level workflow returns all intermediate artifacts rather than hiding evidence stages. |
-| RISK-024 | Risk | Critical | ACCEPTED | Missing/failed rows must never appear safe. |
-| RISK-026 | Risk | High | ACCEPTED | Read projection must keep benchmark/incomplete state visible. |
-| RISK-027 | Risk | High | ACCEPTED | Convenience workflow could otherwise become a parallel hidden business-logic path. |
-| ISS-011 | External CI | High | ROOT_CAUSE_CONFIRMED | GitHub Actions billing/spending blocks runner allocation. |
+| DEC-032 | Decision | P0 | ACCEPTED | Operating cases use an exact v1 CSV header and explicit value/unit pairs. |
+| DEC-033 | Decision | P0 | ACCEPTED | Enrichment CSV includes explicit Value Type (`NUMBER`, `STRING`, `BOOLEAN`). |
+| DEC-034 | Decision | P0 | ACCEPTED | One shared strict CSV parser serves vibration table inputs. |
+| RISK-028 | Risk | High | ACCEPTED | Header aliasing can map process fields incorrectly; fail closed instead. |
+| RISK-029 | Risk | High | ACCEPTED | Automatic scalar type guessing can turn IDs/flags/numbers into wrong engineering values. |
+| RISK-030 | Risk | High | ACCEPTED | Value without unit can create implicit-unit assumptions in process data. |
+| ISS-011 | External CI | High | ROOT_CAUSE_CONFIRMED | Actions billing/spending blocks runner allocation. |
 
 ## Stage Log
 
-### Stages 1–18
+### Stages 1–19
 
-FIT source/kernel/evidence plus table exchange, dataset, facility plan and central benchmark execution implemented. No screening authority.
+FIT source/kernel/evidence and table-first exchange/dataset/plan/execution/register layers implemented. No screening authority.
 
-### Stage 19 — `VibrationFacilityFitRegister.v1` — COMPLETE FOR IMPLEMENTATION / PARTIAL VALIDATION
+### Stage 20 — `VibrationFacilityFitWorkflow.v1` — COMPLETE FOR IMPLEMENTATION / PARTIAL VALIDATION
 
 Delivered:
 
 ```text
-converters/vibration/facility/fit-register.js
+converters/vibration/facility/fit-workflow.js
 converters/vibration/facility/index.js
-tests/vibration-facility-fit-register.test.mjs
-docs/vibration/FIT-Facility-Register-v1.md
+tests/vibration-facility-fit-workflow.test.mjs
+docs/vibration/FIT-Facility-Workflow-v1.md
 ```
 
-Register rows expose:
-
-```text
-identity/status/completeness
-standard/refined/governing reference LOF
-reference band
-benchmark qualification/source authority
-phase/correlation/advanced evidence strength
-candidate-for-engineering-review metadata
-missing/invalid/error codes
-high-signal source labels
-```
-
-Non-calculated rows use `null` only as read-model absence paired with `DATA_INCOMPLETE` or `CALCULATION_FAILED`; no numerical default exists.
-
-Summary contains counts and reference-band distribution, but no passCount/safeCount/riskScore/universal score.
-
-Validation:
-
-```text
-source-level projection review       PASS
-committed register regression        NOT_RUN
-full repository                      NOT_RUN
-```
-
-### Stage 20 — `VibrationFacilityFitWorkflow.v1` — IN_PROGRESS
-
-#### Objective
-
-Expose one API for table-first consumers while preserving all stage artifacts:
-
-```text
-runVibrationFacilityFitBenchmark({ exchange, operatingCases, enrichment }, options)
-```
-
-#### Required composition
+Workflow calls only:
 
 ```text
 assembleVibrationIntegrityDataset()
@@ -141,54 +96,129 @@ executeVibrationFacilityFitPlan()
 buildVibrationFacilityFitRegister()
 ```
 
-No transformation/calculation logic may be duplicated in the workflow function.
+It returns dataset/plan/result/register/summary plus stage-separated warnings. Only `allowLimitedExchange` is accepted as an option; authority/qualification option injection is rejected.
 
-#### Result
-
-```text
-schema = VibrationFacilityFitWorkflow.v1
-authority = WORKFLOW_ORCHESTRATION_ONLY
-engineeringAuthority = NONE
-screeningAuthorized = false
-qualificationMode = benchmark
-
-dataset
-plan
-result
-register
-summary = register.summary
-warnings grouped by stage
-```
-
-#### Options
-
-Only orchestration/data-ingestion options are allowed in v1:
+Validation:
 
 ```text
-allowLimitedExchange = false by default
+source-level composition review     PASS
+committed workflow regression       NOT_RUN
+full repository                     NOT_RUN
 ```
 
-No qualificationMode option is accepted; benchmark mode is fixed by the FIT plan.
+### Stage 21 — Tabular process/enrichment input — IN_PROGRESS
+
+#### Shared CSV parser
+
+Create strict parser supporting:
+
+```text
+RFC-style quoted fields / escaped quotes
+CRLF / LF / CR
+UTF-8 BOM on first header cell
+empty cells
+trailing blank rows
+```
+
+Malformed unmatched quoting fails closed.
+
+#### Operating-case CSV v1
+
+Exact columns:
+
+```text
+Line
+Operating Case
+Label
+Phase
+Mass Flow
+Mass Flow Unit
+Density
+Density Unit
+Pressure
+Pressure Unit
+Pressure Reference
+Temperature
+Temperature Unit
+Dynamic Viscosity
+Dynamic Viscosity Unit
+Velocity
+Velocity Unit
+Source
+Source Revision
+Record ID
+```
+
+Rules:
+
+- Line, Operating Case and Source required;
+- quantity value/unit are both blank or both populated;
+- populated numeric values must be finite;
+- Phase is preserved as text and later planner validates supported FIT phases;
+- no unit conversion at import;
+- no process defaults.
+
+Output records match `VibrationIntegrityDataset.v1` operating-case input objects.
+
+#### Enrichment CSV v1
+
+Exact columns:
+
+```text
+Canonical ID
+Line
+Operating Case
+Property
+Value
+Value Type
+Unit
+Source
+Source Revision
+Record ID
+Status
+Reviewer
+```
+
+Rules:
+
+- Canonical ID, Property, Value Type, Source required;
+- Value Type is exactly `NUMBER`, `STRING` or `BOOLEAN`;
+- NUMBER requires finite numeric text;
+- BOOLEAN accepts only case-insensitive `true` or `false`;
+- STRING preserves text exactly;
+- Unit is optional at parser level because boolean/string/dimensionless properties exist; later FIT planning requires units for its quantity properties;
+- no case/line identity inference.
+
+Output records match dataset enrichment input objects.
+
+#### Refactor
+
+Move the exchange CSV parser to the shared CSV tokenizer instead of maintaining duplicate quoted-field logic.
 
 #### Planned files
 
 ```text
-converters/vibration/facility/fit-workflow.js
-converters/vibration/facility/index.js
-tests/vibration-facility-fit-workflow.test.mjs
-docs/vibration/FIT-Facility-Workflow-v1.md
+converters/vibration/tabular/csv.js
+converters/vibration/tabular/operating-cases.js
+converters/vibration/tabular/enrichment.js
+converters/vibration/tabular/index.js
+converters/vibration/exchange/parse.js
+converters/vibration/index.js
+tests/vibration-tabular-input.test.mjs
+docs/vibration/VibrationTabularInput-v1.md
 agents/PR438_workreport.md
 ```
 
 #### Planned validation
 
-- workflow intermediate artifacts match direct lower-level calls;
-- complete dataset produces calculated register row through real central engine;
-- missing span produces NOT_ASSESSED row without central numeric result;
-- limited exchange rejected by default and accepted only by explicit option;
-- workflow has no qualificationMode override;
-- screening/design authority remains false;
-- warnings remain grouped by originating stage.
+- quoted comma/escaped quote/BOM/CRLF parsing;
+- malformed quote rejection;
+- exact header enforcement;
+- value/unit pair enforcement;
+- finite numeric enforcement;
+- explicit enrichment scalar typing;
+- imported records accepted by dataset assembler;
+- exchange Elements CSV behavior unchanged after parser refactor.
 
 ## Validation Ledger
 
@@ -196,17 +226,16 @@ agents/PR438_workreport.md
 |---|---|
 | EI/domain focused | PASS |
 | Stage 15 parser fixture | PASS |
-| Stage 16–19 exact committed regressions | NOT_RUN |
-| Stage 20 workflow regression | NOT_RUN |
+| Stage 16–20 exact committed regressions | NOT_RUN |
+| Stage 21 tabular regression | NOT_RUN |
 | Full repository | NOT_RUN |
 | Screening authority | NOT_AUTHORIZED |
 
 ## Next-Agent Handover
 
-- Current stage: Stage 20.
-- Compose existing public functions only; no duplicate input resolution or FIT equations.
-- Return all intermediates for auditability.
-- Do not add qualificationMode option; benchmark is fixed.
-- Preserve limited-exchange opt-in semantics from dataset assembly.
-- No UI code in this stage.
-- Highest risk: high-level convenience API obscuring incomplete data or evidence boundaries.
+- Current stage: Stage 21.
+- Build shared CSV tokenizer first, then two exact schemas.
+- Do not guess units or scalar types.
+- Do not add header aliases.
+- Refactor exchange CSV to shared tokenizer without changing its incomplete/provenance semantics.
+- Highest risk: parsing convenience silently changing engineering meaning.
