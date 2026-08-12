@@ -7,7 +7,8 @@
     "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
     "verify:vibration-fit-release": "node scripts/verify-vibration-fit-release.mjs",
     "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs",
-    "extract:aiv-ei-t27-source": "node scripts/extract-aiv-ei-t27-source.mjs"
+    "extract:aiv-ei-t27-source": "node scripts/extract-aiv-ei-t27-source.mjs",
+    "verify:aiv-t27-reconciliation": "node scripts/verify-aiv-t27-reconciliation.mjs"
   },
   "dependencies": {
     "pyodide": "^0.27.2",
