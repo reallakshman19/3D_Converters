@@ -3,18 +3,20 @@
 ## Mission Control
 
 ```text
-Mission               Prepare AIV product-kernel candidate and controlled release path
+Mission               Prepare AIV product-kernel candidate and AUTO release path
 Issue                  #441
 PR                     #446
 Branch                 agent/aiv-kernel-contract-scaffold
 Base                   90d504f74f872f232378836f72c2544297dea8c8
-Current stage          Stage 16B candidate stages 1–7 + explicit human gates for stages 8–10
-Candidate implementation stages 1–7 IMPLEMENTED; stages 8–10 BLOCKED
-Focused execution      candidate 6/6 PASS; stage8 gate 4/4 PASS; post-discontinuity gate 4/4 PASS; kernel rollup 5/5 PASS; release plan 6/6 PASS; release validation 6/6 PASS
-Repository CI          NOT_RUN: Actions budget creates runner_id=0 / zero-step jobs
-Engineering authority BLOCKED / NONE / NOT_AUTHORIZED
-Release target         BENCHMARK_ONLY first; SCREENING later; design authority stays false
-Exact next action      Obtain genuine human verification artifacts; only then implement stages 8–10 from reviewed evidence
+Mode                   AUTO
+Human evidence         NOT REQUIRED
+Candidate stages 1–7   IMPLEMENTED
+Stages 8–10 config     READY from visible user assumptions
+Current AUTO stage     16B.3
+Exact next action      IMPLEMENT_STAGES_8_TO_10
+Repository CI          NOT_RUN: Actions budget still creates zero-step jobs
+Engineering authority  BLOCKED / NONE / NOT_AUTHORIZED
+Release target         BENCHMARK_ONLY first; SCREENING later; designAuthority=false
 ```
 
 ## Authority invariant
@@ -28,30 +30,45 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-No module in PR #446 mutates these values. The candidate is not registered in the Engineering Calculation API and the UI has no Run/Calculate AIV action.
+No current PR module applies the BENCHMARK_ONLY transition yet.
 
-## Kernel stage state
+## AUTO missing-data policy
 
 ```text
-1  VALIDATE_INPUT                     candidate implemented
-2  RESOLVE_INPUT                      candidate implemented
-3  EVALUATE_APPLICABILITY             candidate implemented
-4  CALCULATE_SOURCE_PWL               candidate implemented
-5  APPLY_SOURCE_MODIFIERS             candidate implemented
-6  CALCULATE_POINT_ATTENUATION        candidate implemented
-7  COMBINE_SIMULTANEOUS_SOURCES       candidate implemented
-8  CALCULATE_DISCONTINUITY_RESULT     BLOCKED by T2-6/FLM1 human evidence
-9  AGGREGATE_LINE_CASE_RESULT         BLOCKED by result-scope human evidence
-10 ASSESS_RESULT                      BLOCKED by independent benchmark human evidence
+blank engineering cell
+  -> resolve from AivAssumptionProfile.v1
+  -> record table/row/column/value/profilePath
+  -> show assumption in UI
+  -> user may edit it
+explicit table value always wins
 ```
 
-The public kernel contract remains non-executable and fails closed.
+AUTO stop conditions:
+
+```text
+INVALID_ASSUMPTION_PROFILE
+MACHINE_BENCHMARK_PARITY_FAILURE
+PRODUCT_PATH_BENCHMARK_PARITY_FAILURE
+EXACT_HEAD_VALIDATION_FAILURE
+```
+
+There is no human-review stop condition.
 
 ## Candidate stages 1–7
 
-`converters/vibration/aiv/aiv-kernel-candidate.js` remains internal/unexported/unregistered.
+```text
+VALIDATE_INPUT
+RESOLVE_INPUT
+EVALUATE_APPLICABILITY
+CALCULATE_SOURCE_PWL
+APPLY_SOURCE_MODIFIERS
+CALCULATE_POINT_ATTENUATION
+COMBINE_SIMULTANEOUS_SOURCES
+```
 
-Executed isolated candidate parity:
+Previously executed isolated candidate tests: 6/6 PASS.
+
+Representative values:
 
 ```text
 Relief raw source PWL       164.6851759525391 dB
@@ -64,142 +81,162 @@ Explicit sonic vector       162.72433464037815 dB
 160 + 150 dB                160.41392685158226 dB
 ```
 
-`tests/vibration-aiv-kernel-candidate.test.mjs`: 6/6 PASS in isolated execution.
+## Configurable assumption profile
 
-## Stage 8 evidence gate
+Added:
 
 ```text
-AivDiscontinuityStage8EvidenceGate.v1
+converters/vibration/aiv/aiv-assumption-profile.js
+AivAssumptionProfile.v1
+AivAssumptionResolution.v1
 ```
 
-Requires SHA-256 of the actual verification artifact bytes plus completed:
+Visible assumptions cover source/process values, assessment geometry/material, source→assessment distance/applicability, identity/provenance and stages 8–10 benchmark parameters.
+
+Deterministic IDs/record IDs are generated when missing. Trim assumptions are conditional: reduction/vendor provenance is only injected when trim mode is `MANUFACTURER_REDUCTION`.
+
+## Stage 8 configuration
 
 ```text
-AivT27ReconciliationVerification.v1
-AivD23Flm1ReconciliationVerification.v1
+AivDiscontinuityStage8EvidenceGate.v2
+humanEvidenceRequired = false
 ```
 
-States:
+Default benchmark configuration:
 
 ```text
-BLOCKED_PENDING_T2_6_RECONCILIATION
-BLOCKED_INVALID_EVIDENCE
-READY_FOR_CANDIDATE_IMPLEMENTATION
+stage8Model = CONFIGURED_D23_INTERMEDIATES
+A = 0.93989
+S = 68.229
+B = 152.207
+FLM1 mode = PUBLISHED | RECALCULATED
+FLM1 published = 1.2133
+FLM1 recalculated = 1.2109758194311824
+FLM2 = 0.2009
+loss factor = 0.31
+D.2.3 assessment LOF reference = 0.29
 ```
 
-Published D.2.3 values `A=0.93989`, `S=68.229`, `B=152.207` remain benchmark evidence, never generic defaults. Published vs recalculated FLM1 may not be silently chosen; the reviewed disposition/value/tolerance must be carried explicitly.
+The user can edit every value in the AIV UI.
 
-Isolated stage-8 gate tests: 4/4 PASS.
-
-## Stages 9–10 evidence gate
+## Stages 9–10 configuration
 
 ```text
-AivPostDiscontinuityEvidenceGate.v1
+AivPostDiscontinuityEvidenceGate.v2
+humanEvidenceRequired = false
 ```
 
-Requires SHA-256 of the actual verification artifact bytes plus completed:
+Pinned scope behavior:
 
 ```text
-AivWorkedExampleResultScopeReviewVerification.v1
-AivIndependentBenchmarkReviewVerification.v1
-```
-
-This gate pins:
-
-```text
-D.2.3 first-discontinuity LOF 0.29 -> ASSESSMENT result
-worked-example relief line LOF 1.48 -> LINE_CASE_SUMMARY result
+D.2.3 first-discontinuity LOF 0.29 = ASSESSMENT reference
+worked-example relief-line LOF 1.48 = LINE_CASE_SUMMARY reference
 valuesAreNotInterchangeable = true
-aggregationMustNotBeInferredFromSingleFirstDiscontinuity = true
+lineAggregationMode = SEPARATE_RESULT_SCOPES
+assessmentMode = BENCHMARK_COMPARE_ONLY
 ```
 
-It also requires human acceptance of the sonic SFF=6 and simultaneous-source analytical benchmarks before assessment-stage implementation readiness.
+No generic SAFE/PASS/design classification is introduced.
 
-Isolated post-discontinuity gate tests: 4/4 PASS.
+## AUTO stage planner
 
-## Artifact-byte hash correction
+```text
+converters/vibration/aiv/aiv-auto-stage-plan.js
+AivAutoStagePlan.v1
+mode = AUTO
+```
 
-During isolated execution, a regression exposed that a bare scope-verification object could reuse its internal controlled-source `evidenceSha256` as though it were the hash of the verification artifact itself.
+Current plan:
 
-The new stage-specific gates and kernel qualification were corrected so an explicit wrapper `artifactSha256` for the actual verification artifact bytes is required. Internal source/evidence hashes cannot substitute for artifact identity.
+```text
+16B.1 stages 1–7 candidate                         COMPLETE
+16B.2 assumptions + stages 8–10 config             COMPLETE
+16B.3 implement stages 8–10                        NEXT
+17     complete D.2.3 product-path parity           BLOCKED_BY_PREVIOUS_STAGE
+18     result detail / assumption trace / export    BLOCKED_BY_PREVIOUS_STAGE
+19     exact-head validation + BENCHMARK_ONLY       BLOCKED_BY_PREVIOUS_STAGE
+20     SCREENING machine qualification              FUTURE
+```
 
 ## Benchmark kernel qualification
 
 ```text
-AivBenchmarkKernelQualification.v1
+AivBenchmarkKernelQualification.v2
+humanEvidenceRequired = false
 ```
 
-Progression:
+It consumes:
 
 ```text
-stages 1–7 parity
-  -> PARTIAL_STAGES_1_TO_7
-
-+ stage-8 T2-6/FLM1 human gate
-  -> READY_FOR_STAGE_8_IMPLEMENTATION
-
-+ stages 9–10 scope/benchmark human gate
-  -> READY_FOR_STAGES_8_TO_10_IMPLEMENTATION
-
-+ complete 10-stage AivProductPathBenchmarkParityReceipt.v1
-  -> PASS
+stages 1–7 machine parity
+valid assumption profile
+complete AivProductPathBenchmarkParityReceipt.v1
 ```
 
-Only `PASS` satisfies the BENCHMARK_ONLY kernel release gate. Updated isolated rollup tests: 5/5 PASS.
+Only complete 10-stage real product-path parity can make it PASS.
 
-## Release 1 — BENCHMARK_ONLY
-
-Allowed progression only:
+## BENCHMARK_ONLY release
 
 ```text
+AivReleasePlan.v2
 BLOCKED -> BENCHMARK_ONLY -> SCREENING
 ```
 
-Direct BLOCKED→SCREENING is forbidden.
-
-BENCHMARK_ONLY requires five SHA-bound release artifacts:
+Four SHA-bound gates only:
 
 ```text
 1. AivQualificationParityManifest.v1
-2. AivBenchmarkKernelQualification.v1 — PASS / all 10 product-path stages
-3. AivQualificationPromotionReadiness.v1
-4. AivIndependentVibrationEngineerPromotionReviewVerification.v1
-5. AivReleaseValidationReceipt.v1
+2. AivAssumptionProfileValidation.v1
+3. AivBenchmarkKernelQualification.v2
+4. AivReleaseValidationReceipt.v1
 ```
 
-Updated isolated release-plan tests: 6/6 PASS.
+No engineer/reviewer artifact is required.
 
-`AivReleaseValidationReceipt.v1` also rejects runner_id=0, zero executed steps, NOT_RUN, nonzero exit codes or missing SHA-256 log evidence. Release-validation tests remain 6/6 PASS.
+## UI
 
-## Human records still genuinely required
+The workspace now exposes:
 
 ```text
-AivT27Reconciliation.v1
-AivD23Flm1Reconciliation.v1
-AivWorkedExampleResultScopeReview.v1
-AivIndependentBenchmarkReview.v1
-AivWorkbookReconciliation.v1
-AivIndependentVibrationEngineerPromotionReview.v1
+missing-data assumption editor
+assumed-cell trace
+FLM1 branch selection
+stages 8–10 benchmark parameters
+AUTO upcoming-stage table
+next AUTO action
+machine release readiness
 ```
 
-No test, script, AI review or machine parity output may self-complete these records.
+No numerical AIV equations are in UI code.
 
-## Repository CI limitation
+## Focused tests
 
-GitHub AIV workflow jobs still receive no runner and no steps because the repository Actions budget prevents execution. Treat as `NOT_RUN`, never PASS and never a code-failure finding.
-
-## Exact next sequence
+`verify:aiv-input-model` now targets the AUTO release path and includes:
 
 ```text
-1. Keep authority BLOCKED.
-2. Complete real T2.7/T2-6 + FLM1 human verification -> stage 8 gate READY.
-3. Complete real result-scope + independent-benchmark human verification -> stages 9–10 gate READY.
-4. Implement stages 8–10 strictly from those reviewed artifacts.
-5. Drive EI D.2.3 through SourceResult / AssessmentResult / LineCaseSummary using the complete candidate path.
-6. Produce AivProductPathBenchmarkParityReceipt.v1.
-7. AivBenchmarkKernelQualification.v1 must reach PASS.
-8. Execute exact-head node + browser release validation.
-9. Independent vibration engineer may recommend BENCHMARK_ONLY.
-10. Only then create a separate reviewed authority-transition PR.
-11. SCREENING is a later release program; designAuthority remains false.
+assumption-profile tests
+stage-8 assumption gate tests
+stages-9/10 assumption gate tests
+benchmark-kernel qualification tests
+AUTO stage-plan tests
+release-plan tests
+```
+
+Legacy human-promotion tests are not part of the release-focused command.
+
+New AUTO-path changes have not yet received full repository CI execution because the Actions budget still prevents jobs from starting. Do not treat zero-step jobs as PASS.
+
+## Exact next AUTO sequence
+
+```text
+1. Implement stage 8 from configured benchmark parameters.
+2. Implement stage 9 with strict ASSESSMENT vs LINE_CASE_SUMMARY separation.
+3. Implement stage 10 in BENCHMARK_COMPARE_ONLY mode.
+4. Drive EI D.2.3 through AivSourceResult.v1 / AivAssessmentResult.v1 / AivLineCaseSummary.v1.
+5. Produce AivProductPathBenchmarkParityReceipt.v1.
+6. Make AivBenchmarkKernelQualification.v2 PASS.
+7. Wire assumption-aware result detail/export.
+8. Execute exact-head node + browser validation.
+9. Apply BENCHMARK_ONLY transition when all four release gates PASS.
+10. Start separate SCREENING machine-qualification program.
 ```
