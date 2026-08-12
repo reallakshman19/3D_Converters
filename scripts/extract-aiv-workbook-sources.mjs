@@ -38,10 +38,6 @@ export function gitBlobSha1Hex(bytesInput) {
   return createHash('sha1').update(header).update(bytes).digest('hex');
 }
 
-function stableJson(value) {
-  return JSON.stringify(value, Object.keys(value).sort());
-}
-
 function formulaCells(sheet) {
   return Object.keys(sheet)
     .filter((address) => !address.startsWith('!') && sheet[address]?.f)
