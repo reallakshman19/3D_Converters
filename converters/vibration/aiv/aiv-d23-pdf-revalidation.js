@@ -15,7 +15,9 @@ export const AIV_EI_EXAMPLES_PDF_SOURCE = deepFreeze({
   sizeBytes: 1602640,
   locator: 'Appendix D / D.2.3 High Frequency Acoustic Excitation, printed pages 183-185',
   evidenceClass: 'EI_WORKED_EXAMPLE_PDF_REVALIDATION',
-  directBinaryExtractionState: 'PINNED_GITHUB_BLOB_BINARY_EXTRACTION_PENDING',
+  sourceExtractionSchema: 'AivD23ExamplesSourceExtraction.v1',
+  sourceExtractionCommand: 'extract:aiv-ei-d23-source',
+  directBinaryExtractionState: 'CONTROLLED_EXTRACTION_GATE_IMPLEMENTED_EXECUTION_PENDING',
   productionAuthority: false,
 });
 
@@ -23,7 +25,7 @@ export const AIV_D23_PDF_REVALIDATION = deepFreeze({
   schema: AIV_D23_PDF_REVALIDATION_SCHEMA,
   methodId: 'VIB.AIV.ACOUSTIC',
   source: AIV_EI_EXAMPLES_PDF_SOURCE,
-  validationState: 'PUBLISHED_CHAIN_REVALIDATED_DIRECT_BLOB_EXTRACTION_PENDING',
+  validationState: 'PUBLISHED_CHAIN_REVALIDATED_DIRECT_BLOB_EXTRACTION_GATE_IMPLEMENTED',
   sourceCases: {
     relief: {
       upstreamPressure: { value: 98, unit: 'barg' },
@@ -82,10 +84,20 @@ export const AIV_D23_PDF_REVALIDATION = deepFreeze({
       equationRecalculatedFromDisplayedInputs: 1.2109758194311824,
       publishedValue: 1.2133,
       absoluteDifference: 0.002324180568817627,
+      relativeDifferenceFraction: 0.001915\,
       consequence: 'FINAL_LOF_UNCHANGED_AT_0_29',
       requiredDisposition: 'RECONCILE_PRINTED_EQUATION_DISPLAYED_INPUTS_AND_PUBLISHED_FLM1_BEFORE_PRODUCTION_TRANSCRIPTION',
     },
   },
+  remainingQualificationGates: [
+    'DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF',
+    'RECONCILE_D2_3_PUBLISHED_FLM1_ARITHMETIC',
+    'CONTROLLED_T2_7_HUMAN_RECONCILIATION',
+    'INDEPENDENT_SONIC_SFF6_BENCHMARK',
+    'INDEPENDENT_MULTI_SOURCE_BENCHMARK',
+    'RETAINED_WORKBOOK_RECONCILIATION',
+    'INDEPENDENT_VIBRATION_ENGINEER_PROMOTION_REVIEW',
+  ],
   authority: {
     calculationState: 'BLOCKED',
     qualificationState: 'BLOCKED',
