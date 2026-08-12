@@ -35,7 +35,7 @@ function artifactOf(value) {
   if (value.verification && typeof value.verification === 'object') {
     return { verification: value.verification, artifactSha256: value.artifactSha256 ?? null };
   }
-  return { verification: value, artifactSha256: value.artifactSha256 ?? value.evidenceSha256 ?? null };
+  return { verification: value, artifactSha256: null };
 }
 
 function validateResultScope(doc) {
