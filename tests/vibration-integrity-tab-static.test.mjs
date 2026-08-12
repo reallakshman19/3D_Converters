@@ -17,10 +17,12 @@ function state() {
     },
     allowLimitedExchange: false,
     busy: false,
+    busyAction: null,
     error: null,
     filters: { line: '', completeness: '', band: '', candidate: '' },
     sort: { field: 'line', direction: 'asc' },
     detailTab: 'summary',
+    preflight: null,
     envelope: {
       imports: {
         topologyFormat: 'XLSX', exchangeIntegrityStatus: 'DECLARED_NOT_REVERIFIED',
@@ -68,6 +70,31 @@ function state() {
   };
 }
 
+function preflightState() {
+  const base = state();
+  return {
+    ...base,
+    envelope: null,
+    workspace: null,
+    preflight: {
+      imports: { exchangeIntegrityStatus: 'DECLARED_NOT_REVERIFIED' },
+      preflight: {
+        counts: { assessmentPoints: 2, rows: 2, ready: 1, notReady: 1 },
+        rows: [
+          {
+            line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1', status: 'READY',
+            missing: [], invalid: [], reasons: ['REQUIRED_INPUT_EVIDENCE_AVAILABLE'], requestPrepared: true,
+          },
+          {
+            line: 'L-200', caseId: 'DESIGN', canonicalId: 'CAN-2', status: 'NOT_READY',
+            missing: ['maximumUnsupportedSpan'], invalid: [], reasons: ['FIT_REQUEST_INPUT_INCOMPLETE'], requestPrepared: false,
+          },
+        ],
+      },
+    },
+  };
+}
+
 test('Vibration Integrity renders benchmark-only table workspace with explicit provenance state', () => {
   const html = renderVibrationIntegrityHtml(state());
   assert.match(html, /Vibration Integrity/u);
@@ -80,6 +107,20 @@ test('Vibration Integrity renders benchmark-only table workspace with explicit p
   assert.match(html, /BENCHMARK_ONLY/u);
   assert.match(html, /EI_PUBLISHED_EXAMPLE/u);
   assert.match(html, /Review candidate/u);
+});
+
+test('readiness panel shows READY/NOT_READY evidence only and contains no LOF fields', () => {
+  const html = renderVibrationIntegrityHtml(preflightState());
+  const panel = html.match(/<section class="vi-card vi-preflight-card">[\s\S]*?<\/section>/u)?.[0] ?? '';
+  assert.match(panel, /FIT readiness/u);
+  assert.match(panel, /No FIT calculation is executed/u);
+  assert.match(panel, /DECLARED_NOT_REVERIFIED/u);
+  assert.match(panel, /CAN-1/u);
+  assert.match(panel, /READY/u);
+  assert.match(panel, /CAN-2/u);
+  assert.match(panel, /NOT_READY/u);
+  assert.match(panel, /maximumUnsupportedSpan/u);
+  assert.doesNotMatch(panel, /LOF|Reference band|Assessment Status/u);
 });
 
 test('non-calculated table cells remain blank-state markers rather than synthetic zeroes', () => {
@@ -96,9 +137,22 @@ test('visible vibration product has no canvas, universal score, pass or direct e
   assert.doesNotMatch(combined, /riskScore|Risk Score|Facility Score|Vibration Score/u);
   assert.doesNotMatch(controllerSource, /calculateFit\s*\(/u);
   assert.doesNotMatch(controllerSource, /calculateEngineering(?:Batch)?\s*\(/u);
+  assert.match(controllerSource, /buildVibrationFacilityFitPreflightFromTables/u);
   assert.match(controllerSource, /runVibrationFacilityFitBenchmarkFromTables/u);
   assert.match(controllerSource, /buildVibrationWorkspaceModel/u);
   assert.match(controllerSource, /serializeVibrationFacilityFitRegisterCsv/u);
+});
+
+test('benchmark workflow is lazy-loaded only by the explicit Run action', () => {
+  assert.doesNotMatch(
+    controllerSource,
+    /import\s*\{[^}]*runVibrationFacilityFitBenchmarkFromTables[^}]*\}\s*from/u,
+  );
+  assert.match(
+    controllerSource,
+    /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u,
+  );
+  assert.match(controllerSource, /data-vi-action="preflight"|action === 'preflight'/u);
 });
 
 test('Engineering navigation registers the dedicated table workspace tab', () => {
@@ -114,5 +168,6 @@ test('tab exposes XLSX preferred and limited CSV handling without qualification-
   assert.match(html, /Limited topology input/u);
   assert.match(html, /five-sheet XLSX export/u);
   assert.match(html, /Allow limited Elements-only CSV/u);
+  assert.match(html, /Check readiness/u);
   assert.doesNotMatch(html, /qualification-mode|screening mode|design mode/iu);
 });
