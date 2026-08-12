@@ -133,8 +133,8 @@ export function assertAivIndependentBenchmarkReviewComplete(review) {
     multiSourceBenchmarksAccepted: true,
     productionEquationAuthorized: false,
     remainingPromotionGates: [
-      'DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF',
       'RECONCILE_D2_3_PUBLISHED_FLM1_ARITHMETIC',
+      'RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE',
       'CONTROLLED_T2_7_HUMAN_RECONCILIATION',
       'RETAINED_WORKBOOK_RECONCILIATION',
       'INDEPENDENT_VIBRATION_ENGINEER_PROMOTION_REVIEW',
