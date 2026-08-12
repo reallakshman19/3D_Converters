@@ -25,6 +25,8 @@ export const AIV_SOURCE_CASE_CSV_HEADER = Object.freeze([
   'Downstream Pressure Basis',
   'Reference Pressure',
   'Reference Pressure Unit',
+  'Reference Pressure Source',
+  'Reference Pressure Source Revision',
   'Upstream Temperature',
   'Upstream Temperature Unit',
   'Molecular Weight',
@@ -117,10 +119,10 @@ function pressure(row, rowNumber, valueIndex, unitIndex, basisIndex, field) {
 }
 
 function trimEvidence(row, rowNumber) {
-  const state = enumValue(row[20], 'Low Noise Trim State', AIV_TRIM_STATES, rowNumber);
-  const reduction = quantity(row, rowNumber, 21, 22, 'Low Noise Trim Reduction', { optional: true });
-  const source = optionalText(row[23]);
-  const sourceRevision = optionalText(row[24]);
+  const state = enumValue(row[22], 'Low Noise Trim State', AIV_TRIM_STATES, rowNumber);
+  const reduction = quantity(row, rowNumber, 23, 24, 'Low Noise Trim Reduction', { optional: true });
+  const source = optionalText(row[25]);
+  const sourceRevision = optionalText(row[26]);
   return Object.freeze({
     state,
     ...(reduction ? { reduction } : {}),
@@ -148,16 +150,20 @@ function parseRow(row, index) {
     massFlow: quantity(row, rowNumber, 6, 7, 'Mass Flow'),
     upstreamPressure: pressure(row, rowNumber, 8, 9, 10, 'Upstream Pressure'),
     downstreamPressure: pressure(row, rowNumber, 11, 12, 13, 'Downstream Pressure'),
-    upstreamTemperature: quantity(row, rowNumber, 16, 17, 'Upstream Temperature'),
-    molecularWeight: quantity(row, rowNumber, 18, 19, 'Molecular Weight'),
+    upstreamTemperature: quantity(row, rowNumber, 18, 19, 'Upstream Temperature'),
+    molecularWeight: quantity(row, rowNumber, 20, 21, 'Molecular Weight'),
     lowNoiseTrim: trimEvidence(row, rowNumber),
-    sonicState: enumValue(row[25], 'Sonic State', AIV_SONIC_STATES, rowNumber),
-    source: requiredText(row[26], 'Source', rowNumber),
+    sonicState: enumValue(row[27], 'Sonic State', AIV_SONIC_STATES, rowNumber),
+    source: requiredText(row[28], 'Source', rowNumber),
   };
   const referencePressure = quantity(row, rowNumber, 14, 15, 'Reference Pressure', { optional: true });
   if (referencePressure) result.referencePressure = referencePressure;
+  const referencePressureSource = optionalText(row[16]);
+  const referencePressureSourceRevision = optionalText(row[17]);
+  if (referencePressureSource !== undefined) result.referencePressureSource = referencePressureSource;
+  if (referencePressureSourceRevision !== undefined) result.referencePressureSourceRevision = referencePressureSourceRevision;
   for (const [field, column] of [
-    ['sourceRevision', 27], ['recordId', 28], ['status', 29], ['reviewer', 30],
+    ['sourceRevision', 29], ['recordId', 30], ['status', 31], ['reviewer', 32],
   ]) {
     const value = optionalText(row[column]);
     if (value !== undefined) result[field] = value;
