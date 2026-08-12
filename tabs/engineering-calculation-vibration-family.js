@@ -10,10 +10,10 @@ function statusKind(definition) {
 }
 
 function mechanismAction(definition) {
-  if (definition.id === FIT_ID && definitionState(definition) === 'BENCHMARK_ONLY') {
-    return '<button type="button" class="engineering-console-btn primary" data-vibration-workspace="fit">Open FIT workspace</button>';
-  }
-  return `<button type="button" class="engineering-console-btn" data-calc-id="${esc(definition.id)}">View qualification basis</button>`;
+  const label = definition.id === FIT_ID && definitionState(definition) === 'BENCHMARK_ONLY'
+    ? 'Open FIT workspace'
+    : 'View qualification basis';
+  return `<button type="button" class="engineering-console-btn ${definition.id === FIT_ID ? 'primary' : ''}" data-calc-id="${esc(definition.id)}">${label}</button>`;
 }
 
 function mechanismCard(definition) {
