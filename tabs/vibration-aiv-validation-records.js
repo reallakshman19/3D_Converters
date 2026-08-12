@@ -1,0 +1,17 @@
+export const AIV_D23_PRODUCT_PATH_VALIDATION = Object.freeze({
+  schema: 'AivProductPathBenchmarkParityReceipt.v1',
+  methodId: 'VIB.AIV.ACOUSTIC',
+  benchmarkId: 'EI-D2.3-AIV',
+  status: 'PASS',
+  validatedCodeCommit: '64485a51ffe78102ba3b966d43ba68e13f511130',
+  path: 'docs/vibration/validation/AIV-D2.3-Product-Path-Validation-v1.json',
+  gitBlob: '6d3cd2f7d71ab47d2825d802628f18c0782ffdc7',
+  counts: Object.freeze({ checks: 22, passed: 22, failed: 0 }),
+  completeKernelStageCount: 10,
+  resultContractsValidated: true,
+  sourceAssessmentLineScopesValidated: true,
+  humanEvidenceRequired: false,
+  authorityTransitionApplied: false,
+  screeningAuthority: 'NOT_AUTHORIZED',
+  designAuthority: false,
+});
