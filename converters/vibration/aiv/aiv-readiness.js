@@ -27,6 +27,16 @@ function quantityTrace(quantity, record) {
   return { value: quantity.value, unit: quantity.unit, ...record };
 }
 
+function trimTrace(row) {
+  const trim = row.lowNoiseTrim;
+  return {
+    state: trim.state,
+    reduction: trim.reduction ? { value: trim.reduction.value, unit: trim.reduction.unit } : null,
+    source: trim.source ?? null,
+    sourceRevision: trim.sourceRevision ?? null,
+  };
+}
+
 function buildSourceTrace(row) {
   const record = recordTrace(row);
   return {
@@ -38,6 +48,7 @@ function buildSourceTrace(row) {
     sourceState: row.sourceState,
     phase: row.phase,
     sonicState: row.sonicState,
+    lowNoiseTrim: trimTrace(row),
     massFlow: quantityTrace(row.massFlow, record),
     upstreamPressure: { ...quantityTrace(row.upstreamPressure, record), basis: row.upstreamPressure.basis },
     downstreamPressure: { ...quantityTrace(row.downstreamPressure, record), basis: row.downstreamPressure.basis },
@@ -45,6 +56,57 @@ function buildSourceTrace(row) {
     upstreamTemperature: quantityTrace(row.upstreamTemperature, record),
     molecularWeight: quantityTrace(row.molecularWeight, record),
   };
+}
+
+function validateTrim(row, missing, invalid) {
+  const trim = row.lowNoiseTrim;
+  if (trim.state === 'UNRESOLVED') {
+    missing.push(issue(
+      'AIV_LOW_NOISE_TRIM_STATE_UNRESOLVED',
+      'lowNoiseTrim',
+      'Low-noise-trim state is unresolved; readiness will not assume that trim is absent.',
+    ));
+    return;
+  }
+  if (trim.state === 'NONE') {
+    if (trim.reduction || trim.source || trim.sourceRevision) {
+      invalid.push(issue(
+        'AIV_LOW_NOISE_TRIM_NONE_CONFLICT',
+        'lowNoiseTrim',
+        'Low-noise-trim state NONE conflicts with supplied trim reduction/vendor evidence.',
+      ));
+    }
+    return;
+  }
+  if (!trim.reduction) {
+    missing.push(issue(
+      'AIV_LOW_NOISE_TRIM_REDUCTION_REQUIRED',
+      'lowNoiseTrim.reduction',
+      'Manufacturer-reduction trim requires an explicit reduction quantity.',
+    ));
+  } else {
+    if (!(trim.reduction.value > 0)) {
+      invalid.push(issue(
+        'AIV_LOW_NOISE_TRIM_REDUCTION_NOT_POSITIVE',
+        'lowNoiseTrim.reduction',
+        'Manufacturer low-noise-trim reduction must be greater than zero.',
+      ));
+    }
+    if (trim.reduction.unit.trim().toLowerCase() !== 'db') {
+      invalid.push(issue(
+        'AIV_LOW_NOISE_TRIM_UNIT_UNSUPPORTED',
+        'lowNoiseTrim.reduction',
+        'The controlled EI worked-example trim reduction is a dB reduction; readiness requires unit dB.',
+      ));
+    }
+  }
+  if (!trim.source) {
+    missing.push(issue(
+      'AIV_LOW_NOISE_TRIM_SOURCE_REQUIRED',
+      'lowNoiseTrim.source',
+      'Manufacturer-reduction trim requires explicit vendor/manufacturer source provenance.',
+    ));
+  }
 }
 
 function validateEvidence(row, exchange, topology) {
@@ -111,6 +173,7 @@ function validateEvidence(row, exchange, topology) {
       'Both process pressures are already absolute; the supplied reference pressure is retained as provenance but is not selected by readiness.',
     ));
   }
+  validateTrim(row, missing, invalid);
   if (row.sourceState === 'CLOSED') {
     methodGaps.push(issue(
       'AIV_CLOSED_SOURCE_OUTSIDE_CURRENT_ACTIVE_SOURCE_ENVELOPE',
@@ -165,6 +228,7 @@ function buildRow(exchange, row) {
     sourceState: row.sourceState,
     phase: row.phase,
     sonicState: row.sonicState,
+    lowNoiseTrimState: row.lowNoiseTrim.state,
     missing: groups.missing,
     invalid: groups.invalid,
     methodGaps: groups.methodGaps,
@@ -198,7 +262,7 @@ export function buildAivReadiness(exchange, sourceCases = []) {
     counts,
     rows,
     notes: [
-      'Readiness validates controlled identities, process evidence and topology only.',
+      'Readiness validates controlled identities, process/device evidence and topology only.',
       'READY_FOR_QUALIFICATION does not mean benchmark/screening execution is authorized.',
       'No AIV source power, attenuation, LOF or assessment result is calculated by this plan.',
     ],
