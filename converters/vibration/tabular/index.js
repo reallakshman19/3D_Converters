@@ -2,6 +2,7 @@ export {
   assertExactVibrationCsvHeader,
   nonBlankVibrationCsvRows,
   parseStrictVibrationCsvRows,
+  serializeVibrationCsvRows,
   vibrationTabularInputError,
 } from './csv.js';
 
@@ -16,3 +17,8 @@ export {
   VIBRATION_ENRICHMENT_CSV_SCHEMA,
   parseVibrationEnrichmentCsv,
 } from './enrichment.js';
+
+export {
+  createVibrationEnrichmentCsvTemplate,
+  createVibrationOperatingCaseCsvTemplate,
+} from './templates.js';
