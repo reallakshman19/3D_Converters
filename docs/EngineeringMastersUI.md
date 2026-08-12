@@ -2,16 +2,30 @@
 
 ## Navigation
 
-The standalone FormatConverters shell is extended with an `Engineering` group containing:
+The standalone FormatConverters shell exposes one top-level Engineering entry:
 
+- `Engineering Calculations`
+
+Inside that main tab, the Engineering workspace provides these subtabs:
+
+- `Calculations`
 - `B31.3 Material Factors`
 - `Empirical Weight Tuning`
+- `HP Piping Class`
+
+This keeps engineering tools grouped under one primary navigation item while preserving separate working surfaces and authority boundaries.
 
 The extension is installed by `core/app.js` after the normal standalone runtime initializes. It deliberately avoids changing the frozen core tab registry.
 
+## Calculations
+
+The `Calculations` subtab hosts the centralized Engineering Calculation Console. It uses the central Engineering Calculation API and includes executable and qualification-blocked catalogue entries.
+
+Published/roadmap calculation IDs are preserved. In particular, `PIPE.SHELL_INDENTATION` remains the stable blocked ID; the registry accepts two-or-more dot-separated identifier segments.
+
 ## B31.3 Material Factors
 
-The tab is a governed working-copy editor for the material identity and `S`, `E`, `W`, and `Y` master exposed by `converters/b313-material-factors`.
+The subtab is a governed working-copy editor for the material identity and `S`, `E`, `W`, and `Y` master exposed by `converters/b313-material-factors`.
 
 Features:
 
@@ -26,7 +40,7 @@ Candidate edits never replace the active resolver. Publishing controlled enginee
 
 ## Empirical Weight Tuning
 
-The tab exposes the existing empirical model as a candidate working copy:
+The subtab exposes the existing empirical model as a candidate working copy:
 
 - Approach 1 size-band coefficients;
 - Approach 2 constants;
@@ -37,9 +51,34 @@ The tab exposes the existing empirical model as a candidate working copy:
 
 `createEmpiricalWeightEstimator({ model: candidate })` is used for previews, so candidate edits do not mutate the default exported estimator.
 
-## Triggers
+## HP Piping Class
 
-Users can open either Engineering tab from the left navigation. Other modules can deep-link by dispatching:
+The subtab embeds:
+
+`engineering/hp-class-standardization/engineering-library.html`
+
+This workspace contains the B31.3 Chapter IX straight-pipe class-standardization workflow, controlled KD evidence package, authority-package transport, and docs-backed material/product engineering libraries.
+
+The embedded library dynamically fetches its same-origin docs catalog from:
+
+`docs/Masters/HP_Piping_Class/library-catalog.csv`
+
+Material/property values and purchase-specific product data remain explicit controlled inputs. Blank governed fields remain blockers.
+
+## Deep Links
+
+The main tab can be opened directly:
+
+```js
+window.dispatchEvent(new CustomEvent('app:switch-tab', {
+  detail: {
+    tabId: 'engineering-calculations',
+    context: { subtabId: 'hp-piping-class' }
+  }
+}));
+```
+
+Legacy/existing engineering deep links remain supported. Requests such as:
 
 ```js
 window.dispatchEvent(new CustomEvent('app:switch-tab', {
@@ -61,15 +100,17 @@ window.dispatchEvent(new CustomEvent('app:switch-tab', {
 }));
 ```
 
-The engineering extension persists the selected Engineering tab using the app's existing active-tab storage key.
+are redirected into the `Engineering Calculations` main tab with the requested subtab active.
+
+The active Engineering subtab is persisted separately from the application top-level tab ID.
 
 ## Governance
 
 The UI separates four states conceptually:
 
-1. active/published model or factor master;
+1. active/published model, factor master, or controlled docs data;
 2. editable candidate working copy;
-3. locally saved draft;
+3. locally saved/imported draft;
 4. repository publication after validation/review.
 
-This first implementation intentionally does not let a cell edit or draft save activate production engineering data.
+A cell edit, local draft, fetched docs row, or UI selection never activates engineering authority by itself.
