@@ -1,3 +1,5 @@
+import { AIV_EI_EXAMPLES_PDF_SOURCE } from './aiv-d23-pdf-revalidation.js';
+
 export const AIV_QUALIFICATION_EVIDENCE_SCHEMA = 'AivQualificationEvidence.v1';
 
 function deepFreeze(value) {
@@ -77,7 +79,8 @@ export const AIV_D23_BENCHMARK_CASES = deepFreeze([
       publishedUpstreamPressureAbsolute: { value: 8.8, unit: 'MPa abs' },
       publishedDownstreamPressureAbsolute: { value: 2.6, unit: 'MPa abs' },
       massFlow: { value: 53482, unit: 'kg/h' },
-      upstreamTemperature: { value: 137, unit: 'degC' },
+      upstreamTemperature: { value: 136.7, unit: 'degC' },
+      publishedTemperatureAbsolute: { value: 410, unit: 'K' },
       molecularWeight: { value: 21.75, unit: 'g/mol' },
       sonicState: 'NON_SONIC',
       sonicFlowFactorDb: 0,
@@ -100,7 +103,7 @@ export const AIV_D23_BENCHMARK_CASES = deepFreeze([
     benchmarkId: 'AIV-EI-D2-3-RELIEF-DISCONTINUITY',
     sourceId: AIV_EI_D23_SOURCE.sourceId,
     caseLabel: 'Relief source to first evaluated bypass weldolet',
-    evidenceState: 'PUBLISHED_VALUES_CAPTURED_PARTIAL_CHAIN',
+    evidenceState: 'PUBLISHED_VALUES_CAPTURED_FULL_CHAIN_ARITHMETIC_RECONCILIATION_OPEN',
     publishedInputs: {
       assessmentDescription: '2-inch bypass weldolet',
       sourceToAssessmentDistance: { value: 0.8, unit: 'm' },
@@ -119,9 +122,24 @@ export const AIV_D23_BENCHMARK_CASES = deepFreeze([
       log10N: 9.9026,
       N: 7.99e9,
       diameterRatioDextOverDextBranch: 2.791,
+      FLM1: 1.2133,
+      NAfterFLM1: 9.70e9,
+      FLM2: 0.2009,
+      NAfterFLM2: 1.95e9,
+      materialDuplex: false,
+      Lf: 0.31,
     },
-    publishedFinal: null,
-    qualificationGap: 'FINAL_T2_6_LOF_NOT_YET_CAPTURED_FROM_CONTROLLED_SOURCE',
+    publishedFinal: {
+      LOF: 0.29,
+      rule: 'Lf < 0.5 therefore LOF = 0.29',
+    },
+    arithmeticReconciliation: {
+      state: 'OPEN',
+      item: 'FLM1',
+      equationRecalculatedFromDisplayedInputs: 1.2109758194311824,
+      publishedValue: 1.2133,
+      consequence: 'FINAL_LOF_UNCHANGED_AT_0_29',
+    },
     traceIds: ['AIV-SRC-EI-D2-3-ATTENUATION', 'AIV-SRC-EI-D2-3-T2-6'],
   },
 ]);
@@ -216,9 +234,10 @@ export const AIV_METHOD_TRACE_FOUNDATION = deepFreeze([
   },
   {
     traceId: 'AIV-SRC-EI-D2-3-T2-6', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
-    locator: AIV_EI_D23_SOURCE.locator, subject: 'Published T2-6 weldolet intermediate chain',
-    qualificationState: 'PARTIAL_WORKED_EXAMPLE_CHAIN_CAPTURED', benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
-    gaps: ['FINAL_T2_6_LOF_NOT_YET_CAPTURED_FROM_CONTROLLED_SOURCE'],
+    locator: AIV_EI_D23_SOURCE.locator, subject: 'Published T2-6 weldolet full chain through final LOF',
+    qualificationState: 'WORKED_EXAMPLE_FULL_CHAIN_CAPTURED_ARITHMETIC_RECONCILIATION_OPEN',
+    benchmarkIds: ['AIV-EI-D2-3-RELIEF-DISCONTINUITY'],
+    gaps: ['PUBLISHED_FLM1_ARITHMETIC_RECONCILIATION_REQUIRED'],
   },
   {
     traceId: 'AIV-SRC-GAP-SONIC-SFF6', namespace: 'AIV-SRC', sourceId: AIV_EI_D23_SOURCE.sourceId,
@@ -239,7 +258,7 @@ export const AIV_QUALIFICATION_EVIDENCE = deepFreeze({
     calculationState: 'BLOCKED', qualificationState: 'BLOCKED',
     screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false,
   },
-  sources: [AIV_EI_MAIN_GUIDANCE_SOURCE, AIV_EI_D23_SOURCE],
+  sources: [AIV_EI_MAIN_GUIDANCE_SOURCE, AIV_EI_D23_SOURCE, AIV_EI_EXAMPLES_PDF_SOURCE],
   traceItems: AIV_METHOD_TRACE_FOUNDATION,
   benchmarks: AIV_D23_BENCHMARK_CASES,
   productionEquationAuthorized: false,
