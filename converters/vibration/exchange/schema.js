@@ -49,6 +49,30 @@ export function vibrationTableExchangeError(code, message, details = {}) {
   return error;
 }
 
+export function assertVibrationTableExchangeShape(value, options = {}) {
+  if (value?.schema !== VIBRATION_TABLE_EXCHANGE_SCHEMA) {
+    throw vibrationTableExchangeError(
+      'VIBRATION_TABLE_EXCHANGE_SCHEMA_MISMATCH',
+      `Exchange must use ${VIBRATION_TABLE_EXCHANGE_SCHEMA}.`,
+      { actual: value?.schema ?? null },
+    );
+  }
+  if (!Array.isArray(value.elements)) {
+    throw vibrationTableExchangeError(
+      'VIBRATION_TABLE_EXCHANGE_INVALID',
+      'Exchange elements must be an array.',
+    );
+  }
+  if (options.requireCompleteExchange === true && value.completeExchange !== true) {
+    throw vibrationTableExchangeError(
+      'VIBRATION_TABLE_EXCHANGE_INCOMPLETE',
+      'A complete multi-sheet vibration exchange is required for this operation.',
+      { sourceFormat: value.sourceFormat, integrityStatus: value.integrityStatus },
+    );
+  }
+  return value;
+}
+
 export function deepFreezeVibrationExchange(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreezeVibrationExchange(child);
