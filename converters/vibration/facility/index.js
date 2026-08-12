@@ -11,6 +11,16 @@ export {
 } from './fit-preflight.js';
 
 export {
+  VIBRATION_FACILITY_FIT_TABULAR_PREFLIGHT_SCHEMA,
+  buildVibrationFacilityFitPreflightFromTables,
+} from './fit-preflight-tabular.js';
+
+export {
+  VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT,
+  parseVibrationFacilityFitTables,
+} from './fit-tables.js';
+
+export {
   VIBRATION_FACILITY_FIT_RESULT_SCHEMA,
   executeVibrationFacilityFitPlan,
 } from './fit-execute.js';
@@ -31,10 +41,6 @@ export {
 } from './fit-workflow.js';
 
 export {
-  VIBRATION_FACILITY_FIT_TABULAR_PREFLIGHT_SCHEMA,
   VIBRATION_FACILITY_FIT_TABULAR_WORKFLOW_SCHEMA,
-  VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT,
-  buildVibrationFacilityFitPreflightFromTables,
-  parseVibrationFacilityFitTables,
   runVibrationFacilityFitBenchmarkFromTables,
 } from './fit-workflow-tabular.js';
