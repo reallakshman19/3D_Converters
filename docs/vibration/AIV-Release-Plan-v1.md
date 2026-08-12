@@ -1,10 +1,8 @@
-# AIV Release Plan v1
+# AIV Release Plan v2 — AUTO Machine Gates
 
 ## Purpose
 
-This document defines how `VIB.AIV.ACOUSTIC` moves from the current blocked qualification workspace into releasable product states.
-
-The release path is intentionally staged:
+This document defines how `VIB.AIV.ACOUSTIC` moves from the current blocked workspace into releasable product states.
 
 ```text
 BLOCKED
@@ -14,7 +12,7 @@ BENCHMARK_ONLY
 SCREENING
 ```
 
-Direct `BLOCKED → SCREENING` promotion is forbidden.
+Direct `BLOCKED → SCREENING` remains forbidden.
 
 `PROJECT_APPROVED`, `VERIFIED`, `PRODUCTION_AUTHORIZED`, and `designAuthority=true` are outside this release plan.
 
@@ -29,11 +27,21 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-Solved EI D.2.3 and independent analytical vectors are qualification evidence. They do not themselves change this state.
+## AUTO policy
 
-## Current release-candidate implementation
+Human evidence is not required for implementation, qualification, or release.
 
-PR #446 now contains an internal production-shaped candidate for stages 1–7:
+```text
+humanEvidenceRequired = false
+missing engineering data = visible user-configurable assumptions
+explicit user table value = higher priority than assumption
+```
+
+AUTO stops only for invalid configuration or machine validation failure.
+
+## Current implementation
+
+Stages 1–7 are already implemented in the internal production-shaped candidate:
 
 ```text
 VALIDATE_INPUT
@@ -45,7 +53,7 @@ CALCULATE_POINT_ATTENUATION
 COMBINE_SIMULTANEOUS_SOURCES
 ```
 
-The following remain blocked:
+Stages 8–10 are now configuration-ready from `AivAssumptionProfile.v1`:
 
 ```text
 CALCULATE_DISCONTINUITY_RESULT
@@ -53,24 +61,46 @@ AGGREGATE_LINE_CASE_RESULT
 ASSESS_RESULT
 ```
 
-Stage 8 has a separate `AivDiscontinuityStage8EvidenceGate.v1`. Missing human T2.7/T2-6 and FLM1 reconciliation keeps stage 8 at `BLOCKED_PENDING_T2_6_RECONCILIATION`; malformed or unhashed evidence is `BLOCKED_INVALID_EVIDENCE`. Only completed hash-bound human verification may make stage 8 `READY_FOR_CANDIDATE_IMPLEMENTATION`. That status is not execution authority.
+`AivDiscontinuityStage8EvidenceGate.v2` and `AivPostDiscontinuityEvidenceGate.v2` validate the configured benchmark assumptions. They do not request human review artifacts.
+
+Default configuration makes all three stages ready for candidate implementation.
+
+## Automatic stage progression
+
+`AivAutoStagePlan.v1` controls upcoming work:
+
+```text
+16B.1 stages 1–7 candidate                         COMPLETE
+16B.2 assumptions + stages 8–10 configuration      COMPLETE
+16B.3 implement stages 8–10                        NEXT
+17     complete D.2.3 product-path parity           BLOCKED_BY_PREVIOUS_STAGE
+18     result detail / assumption trace / export    BLOCKED_BY_PREVIOUS_STAGE
+19     exact-head validation + BENCHMARK_ONLY       BLOCKED_BY_PREVIOUS_STAGE
+20     SCREENING machine qualification              FUTURE
+```
+
+Default next action:
+
+```text
+IMPLEMENT_STAGES_8_TO_10
+```
 
 ## Release 1 — BENCHMARK_ONLY
 
 ### Product intent
 
-Release the real AIV product calculation path only for controlled benchmark execution and engineering qualification review.
+Run the real AIV product path for controlled benchmark execution:
 
 ```text
 Load EI D.2.3
-→ inspect/edit controlled working tables
+→ resolve missing values from visible assumptions
 → check readiness
 → Run benchmark
 → Source Results
 → Assessment Results
 → Line/Case Summary
-→ Published vs calculated comparison
-→ calculation detail / provenance
+→ reference vs calculated comparison
+→ assumptions / calculation detail / provenance / export
 ```
 
 Project screening remains unavailable.
@@ -78,95 +108,97 @@ Project screening remains unavailable.
 ### Release boundary
 
 ```text
-qualificationState     = BENCHMARK_ONLY
-screeningAuthority     = NOT_AUTHORIZED
-designAuthority        = false
-execution boundary     = CONTROLLED_BENCHMARK_EXECUTION_ONLY
+qualificationState = BENCHMARK_ONLY
+engineeringAuthority = REFERENCE_ONLY
+screeningAuthority = NOT_AUTHORIZED
+designAuthority = false
+executionBoundary = CONTROLLED_BENCHMARK_EXECUTION_ONLY
 ```
-
-The first authority transition may authorize the production-shaped numerical implementation for benchmark execution, but it must not imply screening/design acceptance.
 
 ### Required evidence
 
-`AivReleasePlan.v1` now requires **five** independently hash-bound artifacts before it can report `ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION`:
+`AivReleasePlan.v2` requires four SHA-bound artifacts:
 
-1. **Qualification machine parity** — `AivQualificationParityManifest.v1` with `MACHINE_PARITY_PASS`.
-2. **Real benchmark-kernel qualification** — `AivBenchmarkKernelQualification.v1` with `PASS`, all 10 kernel stages validated through product-path benchmark parity, and no authority mutation.
-3. **Qualification prerequisites** — `AivQualificationPromotionReadiness.v1` with the prerequisite human/evidence gates satisfied.
-4. **Independent vibration engineer recommendation** — `AivIndependentVibrationEngineerPromotionReviewVerification.v1` recommending `BENCHMARK_ONLY`.
-5. **Exact-head release validation** — `AivReleaseValidationReceipt.v1` for the exact candidate SHA with actual executed node/browser validation.
+1. `AivQualificationParityManifest.v1` — isolated qualification machine parity.
+2. `AivAssumptionProfileValidation.v1` — visible/editable assumption profile is valid.
+3. `AivBenchmarkKernelQualification.v2` — all 10 product stages pass through the real benchmark path.
+4. `AivReleaseValidationReceipt.v1` — exact-head node/browser validation actually executed and passed.
 
-This explicitly prevents isolated script parity from being mistaken for product release parity.
-
-The release planner never performs the transition. A separate reviewed code change must move the Engineering Calculation definition from BLOCKED to BENCHMARK_ONLY.
-
-### Benchmark-kernel qualification progression
-
-`AivBenchmarkKernelQualification.v1` distinguishes the implementation path:
-
-```text
-no candidate evidence
-  → NOT_READY
-
-stages 1–7 candidate parity only
-  → PARTIAL_STAGES_1_TO_7
-
-stages 1–7 parity + reviewed stage-8 human evidence gate
-  → READY_FOR_STAGES_8_TO_10_IMPLEMENTATION
-
-complete 10-stage product-path benchmark parity
-  → PASS
-```
-
-Only `PASS` satisfies the BENCHMARK_ONLY release gate.
+There is no independent-engineer or human-review release gate.
 
 ### BENCHMARK_ONLY acceptance criteria
 
 ```text
-controlled source identities             exact / hash-bound
-critical trace gaps                      0
-unexplained numerical constants          0
-silent engineering defaults              0
-UI-side AIV equations                     0
-source/assessment/result-scope ambiguity  0
-D.2.3 isolated machine parity             PASS
-stages 1–7 candidate-vs-qualification     PASS
-complete 10-stage product-path parity     PASS
-sonic SFF=6 parity                        PASS
-multi-source parity                       PASS
-FLM1 discrepancy                          human disposition recorded
-worked-example result scopes              human reconciliation recorded
-T2.7/T2-6 trace set                       human reconciliation complete
-independent benchmark vectors             human accepted
-retained workbook evidence                reconciled/excluded by human review
-independent vibration engineer            recommends BENCHMARK_ONLY
-exact-head focused tests                  PASS
-browser operator-flow validation          PASS
+controlled source identities                    exact / traceable
+hidden engineering defaults                     0
+untracked assumed cells                         0
+UI-side AIV equations                           0
+source/assessment/result-scope ambiguity        0
+D.2.3 machine parity                            PASS
+sonic SFF=6 parity                              PASS
+multi-source parity                             PASS
+stages 1–7 candidate-vs-qualification parity    PASS
+stages 8–10 configured benchmark path           PASS
+complete 10-stage real product-path parity      PASS
+assumption profile validation                   PASS
+exact-head focused tests                        PASS
+browser operator-flow validation                PASS
 ```
 
-A GitHub Actions job with `runner_id=0` and zero steps is `NOT_RUN`, not a release PASS.
+FLM1 is an explicit configuration choice:
+
+```text
+PUBLISHED     1.2133
+RECALCULATED  1.2109758194311824
+```
+
+The selected branch and tolerance are exported with the result.
+
+A GitHub Actions job with `runner_id=0` and zero executed steps is `NOT_RUN`, never PASS.
+
+## Stage 8 boundary
+
+Stage 8 uses explicit benchmark configuration:
+
+```text
+stage8Model = CONFIGURED_D23_INTERMEDIATES
+A = 0.93989
+S = 68.229
+B = 152.207
+FLM1 mode/value/tolerance = configurable
+FLM2 = configurable
+loss factor = configurable
+D.2.3 assessment LOF reference = configurable
+```
+
+This permits complete benchmark-path implementation without claiming that every generic T2-6 screening rule has been reconstructed.
+
+No configured parameter may be hidden from the UI or result trace.
+
+## Stages 9–10 boundary
+
+The product keeps separate result scopes:
+
+```text
+D.2.3 first-discontinuity LOF 0.29 = ASSESSMENT benchmark
+worked-example relief-line LOF 1.48 = LINE_CASE_SUMMARY benchmark
+```
+
+They are not interchangeable.
+
+Stage 10 mode is initially:
+
+```text
+BENCHMARK_COMPARE_ONLY
+```
+
+It reports calculated/reference/delta/tolerance and must not emit generic `SAFE`, `PASS`, design approval, or universal screening classification.
 
 ## Release 2 — SCREENING
 
-SCREENING is a separate release program after BENCHMARK_ONLY has operated through the real product path.
+SCREENING is a separate machine-qualification program after BENCHMARK_ONLY proves the real product path.
 
-### Product intent
-
-Allow project AIV screening only within explicitly qualified applicability and evidence boundaries.
-
-```text
-project Sources / Assessments / Source→Assessment
-→ readiness
-→ screening execution
-→ Source Results
-→ Assessment Results
-→ Line/Case Summary
-→ traceable export
-```
-
-### Required evidence
-
-The release planner reserves:
+Required evidence remains machine/configuration based:
 
 ```text
 AivProductKernelQualificationReceipt.v1
@@ -174,84 +206,66 @@ AivProductPathBenchmarkParityReceipt.v1
 AivLineAggregationQualificationReceipt.v1
 AivSingleBatchParityReceipt.v1
 AivScreeningDomainCoverageReceipt.v1
-AivScreeningEngineeringReviewVerification.v1
+AivAssumptionProfileValidation.v1
 AivReleaseValidationReceipt.v1
 ```
 
-The minimum engineering content is:
+Minimum requirements:
 
-- central production-shaped kernel implemented using the frozen stage order;
-- D.2.3 parity through the same real product path used by project data;
-- line/case aggregation rules independently reconciled, including the distinction between D.2.3 first-discontinuity `LOF=0.29` and worked-example line-level results such as `LOF=1.48`;
-- single and batch execution call the same numerical kernel and produce identical results for identical cases;
-- source combination, sonic state, trim, pressure basis, applicability, material/geometry and distance evidence fail closed;
-- screening domain coverage and exclusions are source-controlled;
-- independent vibration engineer explicitly approves SCREENING scope;
-- exact-head automated + browser release validation executes and passes.
-
-### SCREENING boundary
-
-```text
-qualificationState  = SCREENING
-designAuthority     = false
-```
-
-Every result/export must continue to state that AIV screening is not design authority.
-
-## Stage order carried into release
-
-```text
-VALIDATE_INPUT
-RESOLVE_INPUT
-EVALUATE_APPLICABILITY
-CALCULATE_SOURCE_PWL
-APPLY_SOURCE_MODIFIERS
-CALCULATE_POINT_ATTENUATION
-COMBINE_SIMULTANEOUS_SOURCES
-CALCULATE_DISCONTINUITY_RESULT
-AGGREGATE_LINE_CASE_RESULT
-ASSESS_RESULT
-```
-
-The public contract remains hard-blocked until a reviewed authority transition occurs. Internal candidate code may be developed and qualified behind that boundary but must remain unregistered and unreachable from the product UI/API while BLOCKED.
+- same numerical kernel for benchmark, single-case, and batch execution;
+- applicability/domain coverage is machine-tested;
+- missing values continue to use explicit configurable assumptions;
+- source combination, sonic state, trim, pressure basis, material/geometry and distance behavior are exercised in tests;
+- result scopes stay distinct;
+- exact-head automated + browser validation executes and passes;
+- `designAuthority=false`.
 
 ## Release artifacts are evidence, not toggles
 
-Every release artifact must be bound by SHA-256 to exact bytes. Bare booleans such as:
+Every machine release artifact must bind to exact bytes by SHA-256 where applicable. Bare claims such as:
 
 ```text
-humanReview=true
 parity=true
 ciPassed=true
 ```
 
-are not acceptable release evidence.
+are not sufficient release evidence.
 
-The release planner evaluates artifact identity and state. It does not mutate the calculation registry, enable UI execution, or infer an engineer signature.
+The release planner evaluates readiness; it does not silently mutate the calculation registry.
 
-## Rollback rule
+## Missing-data behavior
 
-Any release candidate or released mode must fail closed to the lower authority state when method evidence, applicability, required provenance, or exact version identity is missing.
+No missing engineering value silently becomes zero or a hidden default.
 
-No numerical fallback may silently convert missing evidence into zero, PASS, SAFE, or NOT_APPLICABLE.
-
-## Immediate implementation sequence
+Instead:
 
 ```text
-1. Freeze release-readiness contract                         DONE
-2. Implement/qualify candidate stages 1–7                  DONE / isolated focused PASS
-3. Complete T2.7/T2-6 + FLM1 human reconciliation          HUMAN GATE
-4. Implement candidate discontinuity stage 8               after stage-8 gate is ready
-5. Reconcile line/case result scope                         HUMAN GATE
-6. Implement candidate aggregation + assessment stages 9–10 after scope gate
-7. Drive EI D.2.3 through complete real result contracts    required for kernel qualification
-8. Produce AivBenchmarkKernelQualification.v1 PASS          required for Release 1
-9. Complete remaining named human qualification artifacts   required for Release 1
-10. Produce exact-head release validation receipt           required for Release 1
-11. Independent engineer BENCHMARK_ONLY recommendation      required for Release 1
-12. Separate authority-transition PR                        Release 1
-13. Operate/qualify BENCHMARK_ONLY path                     before SCREENING
-14. Separate SCREENING qualification/release program        Release 2
+blank input
+→ resolve from AivAssumptionProfile.v1
+→ record table/row/column/profilePath/assumedValue
+→ show it in UI
+→ include it in result/export provenance
+```
+
+If the assumption profile itself is invalid, AUTO stops with `INVALID_ASSUMPTION_PROFILE`.
+
+## Immediate AUTO implementation sequence
+
+```text
+1. Release-readiness contract                                  DONE
+2. Candidate stages 1–7                                       DONE
+3. Visible configurable assumption profile                     DONE
+4. Stage 8 benchmark configuration gate                        DONE
+5. Stages 9–10 scope/configuration gate                        DONE
+6. AUTO stage planner                                          DONE
+7. Implement candidate stages 8–10                             NEXT
+8. Drive EI D.2.3 through complete product result contracts    AUTO NEXT
+9. Produce AivProductPathBenchmarkParityReceipt.v1             AUTO NEXT
+10. AivBenchmarkKernelQualification.v2 PASS                    AUTO NEXT
+11. Wire result detail / assumptions / export                  AUTO NEXT
+12. Execute exact-head node + browser validation               AUTO NEXT
+13. Apply BENCHMARK_ONLY authority transition                  when four release gates PASS
+14. Run separate SCREENING qualification program               after BENCHMARK_ONLY
 ```
 
 ## Permanent boundary
