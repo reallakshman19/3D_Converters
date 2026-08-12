@@ -4,207 +4,235 @@
 
 | Field | Current value |
 |---|---|
-| Mission | Extend the HP piping class standardization tool with controlled authority-package transport plus editable material/property and pipe-product libraries. |
+| Mission | Provide a controlled HP piping-class workspace with authority-package transport plus editable material/property and pipe-product libraries. |
 | Source task / issue | Owner instruction: create configurable material/property and pipe-product tables editable via UI. |
 | PR number | 439 |
 | Branch | `agent/hp-class-authority-packages` |
 | Base commit | `fc222b80845273f2fb2bc83f401d8c29f52abb74` |
-| Current HEAD | `b49cbcd5e691596a33b1eacd12eae4d392ab72bc` before Stage 7 pre-plan update |
+| Current HEAD before final report sync | `c1394cb865ffd4ec006c0cccf4b0575daf9c11b9` |
 | PR status | DRAFT / OPEN / MERGEABLE |
-| Current stage | Stage 7 — configurable engineering libraries — IN_PROGRESS |
-| Last completed stage | Stage 6 — authority-package validation / handover |
-| Engineering status | Package import/export is validated. Stage 7 adds user-editable controlled material/property and pipe-product datasets without changing the merged calculation engine. |
-| Validation status | Stage 6 PASS. Stage 7 validation NOT_RUN until implementation. |
-| Current blocker | No reusable controlled UI tables currently exist for S/Syt versus temperature or product dimensions/tolerances. |
-| Exact next action | Implement empty-by-default editable material/property and product tables in the package wrapper, add bounded interpolation and explicit apply actions, persist them through authority-package JSON, then run focused regression checks. |
+| Current stage | Stage 7 — configurable engineering libraries — COMPLETE |
+| Last completed stage | Stage 7 |
+| Engineering status | Authority-package workflow plus empty-by-default editable material/property and pipe-product libraries are implemented without changing the merged calculator engine. |
+| Validation status | PASS for library syntax, exact lookup, bounded interpolation, no-extrapolation, duplicate validation, exact selected-product validation, empty-default UI, JSON round trip, published blob identity, and solver blob preservation. Browser E2E remains NOT_RUN. |
+| Current blocker | No software blocker in current scope. Engineering correctness still depends on controlled values/source references entered by the project engineer. |
+| Exact next action | Review PR #439. Use `engineering-library.html` as the full controlled workspace and populate only approved engineering datasets. |
 
 ## Handover in 60 Seconds
 
 **What is now true**
 
-- PR #437 merged the B31.3/KD straight-pipe calculator.
-- PR #439 already adds versioned JSON authority-package import/export around the unchanged calculator.
-- Stage 7 is authorized to add configurable engineering tables inside the same wrapper PR.
-
-**What is being worked on**
-
-- Material/property table: material spec, grade/condition, temperature, S, Syt, source/version.
-- Pipe-product table: NPS/product spec, OD basis, nominal wall, minus tolerance, source/version.
-- Explicit UI actions to apply selected controlled values to the calculator.
-- Bounded interpolation with no extrapolation.
-- JSON package persistence of the editable tables.
+- PR #437 merged the B31.3/KD calculator.
+- PR #439 already had `authority-package.html` for controlled class-record JSON transport.
+- Stage 7 adds `engineering-library.html`, which wraps the authority-package workspace and adds editable material/property and pipe-product tables.
+- Both tables start empty; the repository ships no material values, pipe dimensions, wall tolerances or proprietary Code tables.
+- Material application uses an exact entered temperature point or bounded linear interpolation only.
+- Material extrapolation is blocked.
+- Applying a material computes design `S` and every cycle-block `Syt` before mutating calculator fields; any out-of-range/incomplete cycle blocks the whole action.
+- Applying a product requires one exact selected row and explicitly replaces `D`, product spec, wall tolerance/source and candidate wall.
+- Libraries can be exported/imported with `hp-piping-engineering-libraries/v1` JSON.
+- Existing authority-package v1 and merged calculator files remain unchanged.
 
 **What remains unfinished**
 
-- Production implementation and validation of Stage 7.
-- Browser E2E remains unavailable in this environment.
+- Browser E2E in a real static-host environment.
+- Optional future organization-managed/signed library distribution.
+- Actual project data population and engineering approval.
 
 **What must not be assumed**
 
-- No material/property or product values may be silently defaulted.
-- Interpolation outside a controlled temperature range is prohibited.
-- Product tolerance is not universally 12.5%.
-- Selecting a library row does not constitute engineering approval; source/version metadata remains required.
+- 12.5% wall tolerance is universal.
+- interpolation beyond the entered material temperature range is acceptable.
+- a row is approved merely because it exists in the UI.
+- library source/version metadata validates the technical correctness of the entered values.
 
 **Highest-risk remaining item**
 
-`RISK-017` — configurable libraries could become hidden engineering defaults or permit uncontrolled extrapolation.
+`RISK-017` — user-entered libraries must remain controlled inputs and never become hidden defaults.
 
 **Exact next action**
 
-Add a focused library core module and wrapper UI, integrate package persistence, then validate interpolation/range/application behavior while confirming solver blobs remain unchanged.
+Review the Stage 7 library workflow and populate a controlled test dataset through the real hosted UI.
 
 ## Mission and Engineering Intent
 
 ### Mission
 
-Make controlled production data reusable through editable UI tables while preserving explicit engineering authority and auditability.
+Reduce repeated manual transcription of class-standardization inputs while preserving traceable engineering authority.
 
-### Engineering consequence
+### User / engineering consequence
 
-An engineer should be able to enter an approved material property dataset and product dimension dataset once, use them across class candidates, export them with the authority package, and re-import them without manual re-entry or hidden defaults.
+A reviewer can enter or import a controlled material property table and pipe-product table, apply those values explicitly to the calculator, and export the tables for reuse without embedding unverified values in source code.
 
-### Stage 7 scope
+### Scope
 
-Included:
+Implemented:
 
-- editable material/property rows;
-- editable pipe-product rows;
-- table source ID/version fields;
-- add/remove rows;
-- material/grade selection and target-temperature evaluation;
-- exact-point or bounded linear interpolation for S and Syt only when bracketed;
-- hard no-extrapolation behavior;
-- explicit apply-to-calculator actions;
-- product row application to D, candidate wall, product spec and minus tolerance;
-- authority-package JSON persistence;
-- visible validation/status messages;
-- README/report updates.
+- material table columns: material specification, grade, condition, temperature, `S`, `Syt`, row source;
+- product table columns: NPS/tag, product specification, design D/max OD, nominal wall, minus tolerance, row source;
+- library ID/revision/preparer and separate material/product source-version fields;
+- add/remove editable rows;
+- material-group selection and design-temperature input;
+- exact-point or bounded linear interpolation;
+- no extrapolation;
+- cycle-average `Syt` application;
+- exact product selection/application;
+- library JSON import/export;
+- dedicated operator documentation;
+- unchanged solver and authority-package implementation.
 
-Excluded:
+Explicit non-goals:
 
-- preloaded ASME proprietary material values;
-- automatic web/database lookup;
-- silent product/material defaults;
-- changing the merged `app.js` equations;
-- routed-system fatigue.
+- no preloaded ASME material/fatigue data;
+- no product schedule database;
+- no nearest-size inference;
+- no silent wall-tolerance default;
+- no external database/service;
+- no routed-system analysis.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Authority-package transport | HIGH | VALIDATED | 4–6 | existing package tests |
-| Editable material table | HIGH | IN_PROGRESS | 7 | pending implementation |
-| S/Syt bounded interpolation | CRITICAL | IN_PROGRESS | 7 | pending pure tests |
-| No-extrapolation gate | CRITICAL | IN_PROGRESS | 7 | pending pure tests |
-| Editable product table | HIGH | IN_PROGRESS | 7 | pending implementation |
-| Explicit apply actions | HIGH | IN_PROGRESS | 7 | pending integration |
-| Table source/version metadata | HIGH | IN_PROGRESS | 7 | pending implementation |
-| JSON persistence of tables | HIGH | IN_PROGRESS | 7 | pending round-trip test |
-| Solver blob preservation | CRITICAL | VALIDATED / MUST REMAIN | 3/6/7 | app/index/ui/styles baseline hashes |
+| Authority-package transport | HIGH | VALIDATED | 4–6 | existing package test suite |
+| Editable material table | HIGH | VALIDATED | 7 | `engineering-library.html` / UI |
+| Exact/bounded S interpolation | CRITICAL | VALIDATED | 7 | Node pure tests |
+| Exact/bounded Syt interpolation | CRITICAL | VALIDATED | 7 | Node pure tests |
+| No-extrapolation gate | CRITICAL | VALIDATED | 7 | out-of-range test |
+| Editable product table | HIGH | VALIDATED | 7 | workspace UI |
+| Product-specific tolerance | HIGH | VALIDATED | 7 | exact-row application logic |
+| Explicit Apply actions | HIGH | VALIDATED | 7 | UI integration/static review |
+| Empty-by-default tables | CRITICAL | VALIDATED | 7 | HTML DOM test |
+| Library JSON import/export | HIGH | VALIDATED | 7 | core JSON round trip |
+| Library source/version metadata | HIGH | VALIDATED | 7 | metadata validation |
+| Solver blob preservation | CRITICAL | VALIDATED | 7 | exact GitHub hashes |
 | Browser E2E | MEDIUM | NOT_RUN | 7 | runner unavailable |
 
 ## Engineering Item Register
 
 | ID | Type | Severity/Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
-| RISK-013 | release risk | CRITICAL | MITIGATED | Imported snapshots never become solver authority. | YES |
-| RISK-014 | source risk | HIGH | MITIGATED | B31.3/KD source mismatch blocks package application. | YES |
-| RISK-015 | evidence risk | HIGH | MITIGATED | Row evidence restore uses exact recalculated keys. | YES |
-| RISK-017 | engineering-data risk | CRITICAL | IN_PROGRESS | Library values must not become silent defaults or allow extrapolation. | YES |
-| RISK-018 | product-data risk | HIGH | IN_PROGRESS | Product minus tolerance must remain source-specific, not assumed universal. | YES |
-| DEC-013 | decision | HIGH | ACCEPTED | Imported result snapshots are audit-only; calculator recalculates. | YES |
-| DEC-017 | decision | HIGH | ACCEPTED | Wrapper architecture preserves merged solver blobs. | YES |
-| DEC-018 | decision | HIGH | ACCEPTED | Libraries are empty by default and populated only by user-controlled data. | YES |
-| DEC-019 | decision | HIGH | ACCEPTED | Material evaluation uses exact point or bounded linear interpolation; no extrapolation. | YES |
-| DEC-020 | decision | HIGH | ACCEPTED | Applying library values to calculator fields requires an explicit user action. | YES |
-| IMP-022 | improvement | HIGH | IN_PROGRESS | Controlled material/property and pipe-product libraries. | YES |
+| RISK-013 | release risk | CRITICAL | MITIGATED | Authority-package snapshots remain audit-only. | YES |
+| RISK-014 | source risk | HIGH | MITIGATED | B31.3/KD source mismatch blocks package import. | YES |
+| RISK-015 | evidence risk | HIGH | MITIGATED | Package row evidence uses exact recalculated keys. | YES |
+| RISK-017 | engineering-data risk | CRITICAL | MITIGATED | Library tables are empty by default, require explicit sources, and require explicit Apply actions. | YES |
+| RISK-018 | product-data risk | HIGH | MITIGATED | Minus tolerance comes from the selected controlled product row/source; no universal default is introduced. | YES |
+| DEC-018 | decision | HIGH | ACCEPTED | Libraries ship empty and contain no hidden engineering defaults. | YES |
+| DEC-019 | decision | HIGH | ACCEPTED | Material values use exact points or bounded linear interpolation only; extrapolation is prohibited. | YES |
+| DEC-020 | decision | HIGH | ACCEPTED | Library values reach the calculator only through explicit Apply actions. | YES |
+| DEC-021 | decision | HIGH | ACCEPTED | Reusable libraries use their own `hp-piping-engineering-libraries/v1` JSON instead of silently changing authority-package v1. | YES |
+| DEC-022 | decision | HIGH | ACCEPTED | Applying a product replaces the candidate-wall list with the selected row to prevent old-family wall carryover. | YES |
+| IMP-022 | improvement | HIGH | DONE | Controlled material/property and pipe-product libraries. | YES |
 
-## Stage Roadmap
+## Stage Execution Log
 
 ### Stages 1–6 — authority-package workflow
 
-COMPLETE. See Git history and prior report revisions for implementation history. Final Stage 6 invariants remain active:
+COMPLETE. Key invariants remain:
 
-- source/schema validation before mutation;
-- input restoration then recalculation;
-- exact row-evidence matching;
+- source/schema validation before package mutation;
+- calculator recalculation after import;
 - snapshots audit-only;
+- exact row-evidence matching;
 - merged solver/UI blobs unchanged.
 
 ### Stage 7 — configurable engineering libraries
 
-**Current truth**: wrapper has package metadata/import/export but no reusable engineering datasets.
+**Before stage**
 
-**Objective**: create usable editable tables and explicit calculator application without embedding Code data.
+- tables did not exist;
+- production data were manually re-entered;
+- no managed interpolation/range guard existed.
 
-**Expected files**:
+**Implementation performed**
 
-- `engineering/hp-class-standardization/engineering-library-core.js` — new pure validation/interpolation helpers;
-- `engineering/hp-class-standardization/authority-package.html` — table UI and controls;
-- `engineering/hp-class-standardization/authority-package-ui.js` — UI editing/apply/persistence integration;
-- `engineering/hp-class-standardization/authority-package-core.js` — package library validation/persistence support;
-- `engineering/hp-class-standardization/README.md`;
-- this report.
+Added:
 
-**Engineering rationale**: reusable production datasets reduce manual transcription while source/version fields and bounded interpolation preserve authority.
+- `engineering-library-core.js` — pure validation/interpolation/selection module;
+- `engineering-library-ui.js` — editable table UI, import/export and explicit apply integration;
+- `engineering-library.html` — full controlled workspace wrapping `authority-package.html`;
+- `ENGINEERING_LIBRARIES.md` — operator/authority documentation.
 
-**Planned behavior**:
+Material workflow:
 
-1. Tables start empty.
-2. Operator enters dataset source ID/version.
-3. Material rows carry material spec, grade/condition, temperature, S and Syt.
-4. Product rows carry NPS/tag, product spec, OD, nominal wall and minus tolerance.
-5. Material evaluation groups exact material/grade and finds exact or bracketing temperatures.
-6. Extrapolation is rejected.
-7. Product application uses the selected exact row only.
-8. Applying values updates calculator inputs but still requires normal calculator validation/recalculation.
-9. Tables are exported/imported through the authority package.
+1. enter/import controlled rows;
+2. select material spec/grade/condition;
+3. enter design temperature for `S`;
+4. evaluate `S` and each cycle-average `Syt`;
+5. block the entire action if any required point is missing/outside range;
+6. apply values and trigger normal calculator recalculation.
 
-**Edge cases**:
+Product workflow:
 
-- duplicate material temperature for same material/grade;
-- incomplete numeric cells;
-- target temperature outside dataset;
-- only one material point and nonexact temperature;
-- product row missing tolerance/source;
-- duplicate product identity;
-- package created before Stage 7 with no libraries;
-- corrupted package libraries.
+1. enter/import product rows;
+2. select one exact row;
+3. require product source/version;
+4. set D, product specification, minus tolerance and source;
+5. replace candidate-wall list with the selected nominal wall;
+6. trigger normal calculator recalculation.
 
-**Planned validation**:
+**Deviation from initial Stage 7 plan**
 
-- JS syntax;
-- exact-point material lookup;
-- bounded interpolation;
-- no extrapolation;
-- duplicate/incomplete-row rejection;
-- exact product row application mapping;
-- package round trip with libraries;
-- backward compatibility for v1 packages with no `libraries` member;
-- merged solver blob preservation;
-- final changed-file ledger.
+The initial pre-plan proposed storing libraries inside authority-package v1. Implementation instead uses a separate versioned library JSON schema. Rationale: keep the already validated authority-package v1 schema backward-compatible, keep reusable datasets separate from one class-calculation record, and avoid broadening package authority semantics. This is recorded as `DEC-021`.
 
-**Stage decision**: IN_PROGRESS.
+**Edge-case corrections during implementation**
+
+- unrelated unfinished draft rows no longer block application of a completed selected material group/product row;
+- export still validates every stored row, so incomplete rows cannot be archived as a valid library;
+- blank design/cycle temperature fields are not interpreted as `0°C`;
+- product source/version are mandatory before apply;
+- material source/version are mandatory before apply;
+- product application replaces candidate walls instead of appending across product families.
+
+**Validation performed**
+
+PASS:
+
+- `node --check engineering-library-core.js`;
+- `node --check engineering-library-ui.js`;
+- required top-level DOM IDs present and unique;
+- material table starts with 0 rows;
+- product table starts with 0 rows;
+- valid library schema/metadata/row validation;
+- exact material lookup;
+- linear interpolation benchmark: `100°C: S=150/Syt=250`, `200°C: S=130/Syt=210`, `150°C -> S=140/Syt=230`;
+- `250°C` request blocked as no-extrapolation;
+- duplicate material temperature rejected;
+- completed selected material group remains usable with unrelated draft row;
+- exact selected product valid with unrelated draft row;
+- invalid selected product blocked;
+- library JSON serialize/parse round trip;
+- module size: core 216 lines, UI 205 lines;
+- published Git blob identity matches locally tested files;
+- merged calculator blobs unchanged.
+
+Browser E2E: NOT_RUN — unavailable in current environment. The workspace is intended for same-origin static HTTP hosting.
+
+Stage decision: COMPLETE.
 
 ## Changed-File Ledger
 
-| File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
-|---|---|---|---|---|---|
-| `agents/PR439_workreport.md` | 1 | 7 | Mission control / evidence / handover | YES | Stage 7 pre-plan recorded |
-| `engineering/hp-class-standardization/README.md` | 4 | 7 planned | Operator/package/library documentation | YES | pending |
-| `engineering/hp-class-standardization/authority-package.html` | 4 | 7 planned | Production package + library UI | YES | pending |
-| `engineering/hp-class-standardization/authority-package-core.js` | 4 | 7 planned | Package validation/import authority | YES | pending |
-| `engineering/hp-class-standardization/authority-package-ui.js` | 4 | 7 planned | Package/library production integration | YES | pending |
-| `engineering/hp-class-standardization/engineering-library-core.js` | 7 planned | 7 planned | Pure controlled table validation/interpolation | YES | pending |
+| File | Purpose | Engineering-sensitive? | Validation |
+|---|---|---|---|
+| `agents/PR439_workreport.md` | Mission control / evidence / handover | YES | PASS |
+| `engineering/hp-class-standardization/README.md` | Existing authority-package documentation from Stages 4–6 | YES | PASS prior stage |
+| `engineering/hp-class-standardization/authority-package.html` | Existing controlled-package wrapper | YES | PASS prior stage |
+| `engineering/hp-class-standardization/authority-package-core.js` | Existing package authority logic | YES | PASS prior stage |
+| `engineering/hp-class-standardization/authority-package-ui.js` | Existing package integration | YES | PASS prior stage |
+| `engineering/hp-class-standardization/engineering-library.html` | New full library + package workspace | YES | PASS static/blob |
+| `engineering/hp-class-standardization/engineering-library-core.js` | Pure library validation/interpolation | YES | PASS Node tests |
+| `engineering/hp-class-standardization/engineering-library-ui.js` | Editable tables/apply/import-export integration | YES | PASS syntax/static review |
+| `engineering/hp-class-standardization/ENGINEERING_LIBRARIES.md` | Operator/authority documentation | YES | PASS review |
+
+GitHub actual changed-file list: **PASS — exactly nine explained paths**.
 
 ## Engineering Decisions and Invariants
 
 ### Solver authority invariant
 
-`app.js`, `index.html`, `ui.js`, and `styles.css` remain calculator authority and are not to be modified for Stage 7.
+Stage 7 does not modify the merged solver/UI files.
 
-Baseline blobs:
+Final verified hashes:
 
 - `app.js` `6d99672f2e790ddfcaaa3759eef18e169afb6158`
 - `index.html` `9196edd0f89e892748c00dac249983b65effd47f`
@@ -213,82 +241,107 @@ Baseline blobs:
 
 ### Material-library invariant
 
-No result is returned outside the entered temperature range. Exact points are used directly; otherwise interpolation requires valid lower/upper points for the same material specification and grade/condition.
+A material application must be one material spec/grade/condition group. Exact entered points are used directly; otherwise both lower and upper controlled points are required. No extrapolation.
 
 ### Product-library invariant
 
-Only an explicitly selected product row may populate calculator dimension/tolerance inputs. No nearest-size or schedule guessing is allowed.
+Only one exact selected product row may apply. No nearest-size lookup, schedule inference or inherited candidate walls.
 
-### Package invariant
+### Empty-default invariant
 
-Library data are controlled inputs transported by the package. They are not calculated output snapshots.
+No engineering rows are created on page load. Users must add/import them.
 
 ## Validation and Evidence Ledger
 
 ### Software Validation
 
-| Validation | Status | Last HEAD | Evidence |
-|---|---|---|---|
-| Stage 6 package suite | PASS | prior Stage 6 | report/history |
-| Library core syntax | NOT_RUN | — | Stage 7 |
-| Material exact lookup | NOT_RUN | — | Stage 7 |
-| Material interpolation | NOT_RUN | — | Stage 7 |
-| No extrapolation | NOT_RUN | — | Stage 7 |
-| Product row validation | NOT_RUN | — | Stage 7 |
-| Package library round trip | NOT_RUN | — | Stage 7 |
-| Solver blob preservation | NOT_RUN | — | Stage 7 final |
-| Browser E2E | NOT_RUN | — | runner unavailable |
+| Validation | Status | Evidence |
+|---|---|---|
+| Authority-package Stage 6 suite | PASS | prior stage |
+| Library core syntax | PASS | Node |
+| Library UI syntax | PASS | Node |
+| Library HTML IDs / empty rows | PASS | HTML parser |
+| Exact material point | PASS | pure test |
+| Bounded interpolation | PASS | pure test |
+| No extrapolation | PASS | pure test |
+| Duplicate material temperature | PASS | pure test |
+| Selected product validation | PASS | pure test |
+| Library JSON round trip | PASS | pure test |
+| Published/local library blobs | PASS | Git SHA comparison |
+| Solver blob preservation | PASS | GitHub hashes |
+| Final PR changed-file ledger | PASS | GitHub list |
+| Browser E2E | NOT_RUN | runner unavailable |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| No silent material defaults | NOT_RUN | Stage 7 UI/core inspection |
-| No material extrapolation | NOT_RUN | pure tests |
-| Product tolerance remains row/source-specific | NOT_RUN | UI/core tests |
-| Applying library data remains explicit | NOT_RUN | UI integration inspection |
-| Existing B31.3/KD equations unchanged | PASS baseline / recheck required | blob comparison |
+| No silent material/product defaults | PASS | empty table DOM + no source data constants |
+| No material extrapolation | PASS | explicit range guard/test |
+| Product tolerance remains source-specific | PASS | selected row + source/version requirement |
+| Application is explicit | PASS | Apply buttons only; no auto-apply event |
+| Existing B31.3/KD equations unchanged | PASS | exact solver blobs |
+| Correctness of user-entered engineering data | NOT_RUN | remains project engineering authority |
 
 ### Explicitly Not Validated
 
-- correctness of user-entered material/property data;
-- correctness of user-entered product dimensions/tolerances;
-- licensed-table provenance beyond entered source/version metadata;
-- routed-system fatigue;
-- browser E2E.
+- correctness/licensing of user-entered material values;
+- correctness of user-entered pipe dimensions/tolerances;
+- external document-control approval/signature;
+- browser E2E;
+- routed-system fatigue.
 
 ## Known / Deferred Work and Forward Sequence
 
-After Stage 7, possible later work includes organization-managed library files, signed document-control records, and server-side storage. Those must not replace explicit source/version authority or introduce hidden defaults.
+No known software defect remains in Stage 7 scope.
+
+Possible future work:
+
+1. organization-managed signed library bundles;
+2. version-diff/review UI for library changes;
+3. optional curated non-proprietary product tables where licensing permits;
+4. external document-control integration.
+
+Any future managed library must preserve source/version metadata, empty/no-silent-default behavior for unknown data, and no extrapolation.
 
 # Appendix A — Next-Agent Handover
 
 ## Current stopping point
 
-PR #439 has a validated authority-package workflow and an approved Stage 7 plan for editable engineering libraries. Production Stage 7 code has not yet been committed at this report revision.
+PR #439 now contains both the controlled authority-package workflow and the configurable engineering-library workspace.
+
+## PR / branch
+
+- PR: #439
+- Branch: `agent/hp-class-authority-packages`
+- Base: `fc222b80845273f2fb2bc83f401d8c29f52abb74`
+- Stage 7 production head before this final report-only sync: `c1394cb865ffd4ec006c0cccf4b0575daf9c11b9`
 
 ## Start here
 
-Implement `engineering-library-core.js`, then connect it only through `authority-package.html` / `authority-package-ui.js`. Preserve the four solver/UI baseline blobs exactly.
+Open `engineering/hp-class-standardization/engineering-library.html` on a same-origin static host.
 
 ## Do not redo
 
 - B31.3/KD calculations;
-- JSON package authority ordering;
-- snapshot exclusion;
-- row-evidence exact matching.
+- authority-package import order/snapshot isolation;
+- Stage 7 interpolation/product selection core.
 
 ## Do not assume
 
-- 12.5% tolerance is universal;
-- interpolation outside the entered material range is acceptable;
-- a library row is approved merely because it exists;
-- tables may ship with hidden default engineering data.
+- libraries contain approved project data;
+- wall tolerance is universally 12.5%;
+- extrapolation is permissible;
+- a UI row is equivalent to an approved engineering record.
+
+## Known failing checks
+
+None. Browser E2E is NOT_RUN, not failing.
 
 ## Highest-risk remaining item
 
-`RISK-017` — configurable tables becoming an uncontrolled default database.
+Future organization-managed libraries must not introduce hidden defaults or data whose source/version cannot be audited.
 
 ## Exact next recommended action
 
-Add pure library validation/interpolation helpers with tests first, then UI editing/apply/persistence integration.
+Review PR #439 in a hosted browser with one controlled test material table and one product row, then decide whether to merge or add organization-managed library distribution in a later PR.
