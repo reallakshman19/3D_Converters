@@ -9,14 +9,14 @@
 | PR / branch | #438 / `agent/fiv-fit-roadmap-foundation` |
 | Current base | `main` at `bb747fa55be4490a4aada6f9dadf22d4b33e9e92` after explicit mainline merge reconciliation. |
 | PR state | OPEN / DRAFT / **MERGEABLE** at latest check. |
-| Current stage | **Stage 31 — IN_PROGRESS: issue #429 engineering review package** |
+| Current stage | **Stage 31 — COMPLETE FOR REVIEW PACKAGE / engineering authority remains blocked** |
 | Last stage | **Stage 30 — COMPLETE FOR SOURCE/METADATA HARDENING; current-head execution NOT_RUN** |
 | Engineering state | `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`; `engineeringAuthority=NONE`; screening/design NOT AUTHORIZED. |
 | Product boundary | Vibration consumes table exports from Advanced_Analysis 3D EDIT only. No 3D viewer, canvas, geometry rendering, heatmap or embedded model runtime. |
 
 ## Handover in 60 Seconds
 
-Current visible entry:
+Visible product route:
 
 ```text
 Engineering
@@ -51,7 +51,13 @@ Numerical/data path:
  -> FIT table workspace / CSV export
 ```
 
-Stage 31 will create one controlled engineering review package answering issue #429's five qualification questions from the evidence already implemented/extracted. It must not promote authority or invent missing project-method data.
+Issue #429 now has a repository review package at:
+
+```text
+docs/vibration/FIT-Issue429-Engineering-Review-Package.md
+```
+
+The package answers all five issue questions at the current evidence level and explicitly recommends `GO` only for FIT benchmark/qualification use and `NO-GO` for screening/design/other VIB activation.
 
 ## Mission / Engineering Intent
 
@@ -70,7 +76,7 @@ Stage 31 will create one controlled engineering review package answering issue #
 13. Existing `Vibration & Dynamic Screening` family is the product landing surface; no duplicate navigation.
 14. Family landing state/actions derive from registered definitions, not hard-coded mechanism authority.
 15. Selecting FIT reuses the registered FIT definition/product surface; blocked VIB mechanisms remain non-executable.
-16. Issue #429 review evidence must distinguish source transcription, benchmark parity, engineering-method qualification and production authority.
+16. Issue #429 evidence must distinguish source transcription, benchmark parity, engineering-method qualification and production authority.
 
 ## Mission Status
 
@@ -87,7 +93,8 @@ Stage 31 will create one controlled engineering review package answering issue #
 | Duplicate fifth-subtab work | P0 | REMOVED | owner correction |
 | Mainline HP/Engineering reconciliation | P0 | PASS | merge commit `5b9ba918...`; PR mergeable |
 | Mainline stable ID grammar | P0 | PRESERVED | `PIPE.SHELL_INDENTATION` + `{1,}` registry grammar |
-| Issue #429 engineering review package | P0 | IN_PROGRESS | Stage 31 |
+| Issue #429 engineering review package | P0 | COMPLETE | Stage 31 |
+| Current upstream 3D EDIT contract recheck | P0 | PASS | `TopologyEditTableHumanExport.v1`; five XLSX sheets; CSV Elements-only |
 | Full current-head regression | P0 | NOT_RUN | normal checkout unavailable in this runtime |
 | Full method/project authority review | P0 | BLOCKED | licensed/adopted source + independent engineer |
 | Screening authority | P0 | BLOCKED | issue #429 |
@@ -113,7 +120,8 @@ Stage 31 will create one controlled engineering review package answering issue #
 | DEC-045 | Decision | ACCEPTED | Existing `Vibration & Dynamic Screening` family is the vibration landing entry. |
 | DEC-046 | Decision | ACCEPTED | FIT landing action selects the registered FIT definition and mounts its table workspace. |
 | DEC-047 | Decision | ACCEPTED | Mainline HP/Engineering changes are incorporated by merge parent, not duplicated in vibration scope. |
-| DEC-048 | Decision | ACCEPTED | VIB landing actions derive from registered executability/product surface, so future qualification changes do not require hard-coded UI authority edits. |
+| DEC-048 | Decision | ACCEPTED | VIB landing actions derive from registered executability/product surface. |
+| DEC-049 | Decision | ACCEPTED | Issue #429 review package recommends benchmark-only GO and screening/design NO-GO until explicit authority gates close. |
 | RISK-001 | Risk | MITIGATED | Unqualified empirical method remains benchmark gated. |
 | RISK-024 | Risk | MITIGATED | Incomplete/failed rows stay explicit and blank numerically. |
 | RISK-032 | Risk | MITIGATED | UI visibly distinguishes complete XLSX vs limited CSV. |
@@ -122,7 +130,7 @@ Stage 31 will create one controlled engineering review package answering issue #
 | RISK-036 | Risk | MITIGATED | Stale core test expected obsolete placeholder inventory/FIT name; updated to current registry. |
 | QST-001 | Question | BLOCKED | Complete licensed/adopted T2.2/project review. |
 | QST-003 | Question | FAIL_CLOSED | Manual OD family gap remains unresolved by authority. |
-| ISS-009 | Defect | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Advanced range corrected to `1 < fn <= 3 Hz`; licensed/project authority review remains required. |
+| ISS-009 | Defect | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Advanced range corrected to `1 < fn <= 3 Hz`; adopted-method review remains required. |
 | ISS-010 | Defect | SOFTWARE_RESOLVED / AUTHORITY_OPEN | Deterministic span support classification avoids inconsistent cached selector; authority review remains required. |
 | ISS-011 | External CI | ROOT_CAUSE_CONFIRMED | GitHub Actions runner blocked by billing/spending condition. |
 
@@ -150,7 +158,7 @@ Source/import boundary, HTML escaping, authority language and changed-file scope
 
 ### Stage 29 — existing VIB-family landing — COMPLETE
 
-Owner corrected the initial navigation interpretation. Temporary fifth-subtab files were deleted. `tabs/engineering-calculation-vibration-family.js` now renders the six registered VIB mechanisms under the existing Calculations family entry. FIT opens the existing table workspace; five siblings remain blocked.
+Owner corrected the initial navigation interpretation. Temporary fifth-subtab files were deleted. `tabs/engineering-calculation-vibration-family.js` renders the six registered VIB mechanisms under the existing Calculations family entry. FIT opens the existing table workspace; five siblings remain blocked.
 
 Mainline PR #439 was merged into the branch as a second parent. HP/Engineering implementation remains main-owned and outside the PR diff. PR mergeability was restored.
 
@@ -158,15 +166,55 @@ Mainline PR #439 was merged into the branch as a second parent. HP/Engineering i
 
 Completed:
 
-- PR title/body corrected to `feat(vibration): add FIT benchmark under VIB screening family` and the actual family-entry route;
-- PR comparison confirms current main is the merge base, branch is ahead only, and main-owned Engineering/HP implementation is not in the vibration diff;
-- final FIT/VIB controller/view patches inspected for product lifecycle and authority boundaries;
+- PR title/body corrected to `feat(vibration): add FIT benchmark under VIB screening family` and actual family-entry route;
+- main/branch comparison confirms current main is the merge base and branch is ahead only;
+- FIT/VIB controller/view patches inspected for lifecycle and authority boundaries;
 - stale registry/core-test assumptions corrected, including stable `PIPE.SHELL_INDENTATION` support;
-- family actions hardened to derive from registered executability/product-surface state;
+- VIB landing actions derive from registered executability/product-surface state;
 - temporary fifth-subtab files verified absent;
-- PR remains OPEN / DRAFT / MERGEABLE.
+- PR OPEN / DRAFT / MERGEABLE.
 
-Current-head executable tests remain NOT_RUN because the execution container cannot resolve GitHub for a normal checkout and GitHub Actions runners are externally blocked.
+Current-head executable tests remain NOT_RUN because this execution container cannot resolve GitHub for a normal checkout and GitHub Actions runners are externally blocked.
+
+### Stage 31 — issue #429 engineering review package — COMPLETE
+
+Delivered:
+
+```text
+docs/vibration/FIT-Issue429-Engineering-Review-Package.md
+```
+
+The package contains:
+
+- the six stable VIB calculator IDs and current qualification states;
+- method-boundary separation and FIT exclusions;
+- shared canonical context vs mechanism-owned inputs/outputs;
+- exact CRF retained-artifact hashes for FIT, AIV, SBC, cavitation/flashing, surge/momentum and slug/time-history;
+- exact Common EI full-source and examples PDF identities;
+- data/master authority and no-default/no-fallback rules;
+- EI D2/D4 and independent-hand validation evidence;
+- current uncovered domains and authority gaps;
+- production activation gates;
+- later-mechanism order and permitted infrastructure reuse;
+- reviewer checklist and explicit GO/NO-GO record.
+
+Current upstream recheck against `reallaksh19/Advanced_Analysis/main` confirms:
+
+```text
+schema: TopologyEditTableHumanExport.v1
+XLSX sheets:
+  Elements
+  Connections
+  Source Mapping
+  Catalogue Evidence
+  Export Metadata
+CSV serialization:
+  Elements only
+source file blob:
+  3714458da3638b0daf6422a35f01cdf3e7699411
+```
+
+No authority state changed as a result of the package or upstream recheck.
 
 ## Validation Ledger
 
@@ -191,6 +239,8 @@ These are prior-head evidence only.
 | VIB family landing authority review | PASS: registered states/actions, no authority synthesis |
 | Mainline Engineering/HP reconciliation | PASS: current main is merge base; PR mergeable |
 | Stable `PIPE.SHELL_INDENTATION` registry grammar | PASS by source reconciliation |
+| Issue #429 source/artifact inventory | PASS by connected GitHub source inspection |
+| Current Advanced_Analysis export contract | PASS by source recheck |
 | Corrected Console/core tests | IMPLEMENTED / NOT_RUN at current head |
 | Full current-head `npm test` | NOT_RUN |
 | Current-head real XLSX path | NOT_RUN |
@@ -200,39 +250,11 @@ These are prior-head evidence only.
 
 ## Changed-File Ledger / Scope
 
-Latest comparison against current main reports **101 changed files**. They are assignment-related: FIT benchmark evidence/domain/adapter, vibration table exchange/dataset/facility/tabular/workspace modules, vibration docs/tests, FIT Console product-surface changes, and the VIB family landing.
+Latest PR metadata reports **102 changed files**. They are assignment-related: FIT benchmark evidence/domain/adapter, vibration table exchange/dataset/facility/tabular/workspace modules, vibration docs/tests, FIT Console product-surface changes, the VIB family landing and the issue #429 review package.
 
 Main-owned HP/Engineering implementation files do not appear in the PR diff after reconciliation.
 
 No `.github/workflows/*`, no vibration 3D/canvas/viewer implementation, and no numerical AIV/SBC/cavitation/surge/slug kernels are included.
-
-## Stage 31 — issue #429 engineering review package — IN_PROGRESS
-
-Target artifact:
-
-```text
-docs/vibration/FIT-Issue429-Engineering-Review-Package.md
-```
-
-The package must answer the five issue questions using current controlled evidence:
-
-1. Method boundary and VIB mechanism separation.
-2. Canonical contract and mechanism-specific semantics.
-3. Data/master authority and fail-closed provenance requirements.
-4. Independent validation coverage, EI D2/D4 evidence, hand cases and uncovered domains.
-5. Production activation sequence and exact gates before any `SCREENING` promotion.
-
-It must also include:
-
-- all six stable calculator IDs;
-- current source/master inventory and source hashes where controlled;
-- table-only product/data route;
-- exact current qualification states;
-- unresolved ISS/QST items;
-- reviewer checklist and explicit go/no-go decision record;
-- ordered next-mechanism sequence without implying shared empirical authority.
-
-No numerical method change or authority promotion is permitted in Stage 31.
 
 ## Known / Deferred Work
 
@@ -243,18 +265,18 @@ No numerical method change or authority promotion is permitted in Stage 31.
 
 ## Forward Sequence
 
-1. Complete Stage 31 issue #429 engineering review package.
-2. Run current-head tests in a normal checkout when available.
-3. Submit/review the package with an identified vibration engineer.
+1. Run current-head tests in a normal checkout when available.
+2. Review `FIT-Issue429-Engineering-Review-Package.md` with an identified vibration engineer.
+3. Record reviewer disposition and bounded adopted method/project scope.
 4. Only after explicit authority approval consider bounded `SCREENING` activation.
 
 ## Next-Agent Handover
 
-- Current stage: Stage 31.
+- Stage 31 is complete.
 - Product entry is `Engineering Calculations > Calculations > Vibration & Dynamic Screening (6)`.
 - Do not create a fifth Engineering subtab or standalone vibration nav.
 - Preserve current-main HP/Engineering workspace changes.
 - Preserve table-only/no-3D and benchmark-only authority boundaries.
-- Do not add numerical method scope.
+- Do not add numerical method scope without new controlled evidence.
 - Treat EI worked examples as point evidence, not full-domain authority.
 - Preserve prior-validation versus current-head-validation chronology exactly.
