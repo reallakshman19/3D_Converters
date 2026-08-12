@@ -4,7 +4,7 @@
 
 The **Vibration Integrity** engineering tab is the first visible table-only product surface for the FIT benchmark workflow.
 
-It consumes the public vibration APIs already implemented in this PR. It does not contain FIT equations, method constants, unit conversions, applicability logic or engineering-authority decisions.
+It consumes public vibration APIs. It does not contain FIT equations, method constants, unit conversions, applicability logic or engineering-authority decisions.
 
 ## Navigation
 
@@ -30,7 +30,7 @@ Advanced_Analysis 3D EDIT
 Vibration Integrity
 ```
 
-The phrase “3D EDIT” in the import control identifies the upstream source product; no model renderer or geometry interaction is embedded downstream.
+The phrase “3D EDIT” identifies the upstream source product; no model renderer or geometry interaction is embedded downstream.
 
 ## Authority banner
 
@@ -41,7 +41,7 @@ BENCHMARK ONLY
 NOT SCREENING / DESIGN AUTHORITY
 ```
 
-There is no qualification-mode selector. The controller calls `runVibrationFacilityFitBenchmarkFromTables()`, whose public workflow fixes FIT execution to benchmark authority.
+There is no qualification-mode selector.
 
 ## Imports
 
@@ -56,7 +56,7 @@ Accepted:
 
 XLSX is preferred because the current five-sheet export preserves Connections, Source Mapping, Catalogue Evidence and Export Metadata.
 
-When CSV is selected the tab displays a limited-provenance warning. Execution still requires the explicit **Allow limited Elements-only CSV** opt-in.
+When CSV is selected the tab displays a limited-provenance warning. Readiness/benchmark work still requires the explicit **Allow limited Elements-only CSV** opt-in where a complete exchange would otherwise be required.
 
 ### Operating cases
 
@@ -68,19 +68,43 @@ Strict `VibrationEnrichmentCsv.v1` input. The tab offers a header-only template 
 
 The tab does not infer missing tables, units, geometry values or process values.
 
-## Run path
+## Readiness versus numerical execution
 
-The UI calls only public orchestration/read APIs:
+The visible workflow deliberately separates:
 
 ```text
-runVibrationFacilityFitBenchmarkFromTables()
-buildVibrationWorkspaceModel()
-serializeVibrationFacilityFitRegisterCsv()
+Check readiness
+Run FIT benchmark
 ```
 
-The controller does not call `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` directly.
+### Check readiness
 
-Numerical execution remains inside the central workflow/Engineering Calculation API.
+`buildVibrationFacilityFitPreflightFromTables()` parses the same topology/process/enrichment tables, assembles `VibrationIntegrityDataset.v1`, builds `VibrationFacilityFitPlan.v1`, and stops.
+
+It does not execute the central Engineering Calculation API.
+
+Visible readiness columns:
+
+```text
+Line
+Case
+Canonical ID
+Readiness
+Missing
+Invalid
+Reasons
+Request prepared
+```
+
+The readiness panel contains no LOF or reference-result columns.
+
+### Run FIT benchmark
+
+The full benchmark workflow is dynamically imported only after the operator explicitly selects **Run FIT benchmark**.
+
+The controller then calls `runVibrationFacilityFitBenchmarkFromTables()`, which remains benchmark-only and delegates numerical execution to the central Engineering Calculation API.
+
+The UI does not call `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` directly.
 
 ## Facility table
 
@@ -122,7 +146,7 @@ These counts are workflow/read-model facts, not engineering risk aggregation.
 
 ## Filters and sort
 
-Presentation controls are provided for:
+Presentation controls:
 
 ```text
 Line
@@ -135,7 +159,7 @@ Sort direction
 
 The underlying workspace model permits only non-numerical presentation sorts. Governing LOF ranking is not a v1 workspace feature.
 
-## Row detail
+## Structured row detail
 
 Selecting a row exposes:
 
@@ -148,17 +172,74 @@ Source
 Diagnostics
 ```
 
-The data comes from `VibrationWorkspaceModel.v1` exact joins. The UI does not create or amend detail evidence.
+The detail renderer is `tabs/vibration-integrity-detail-view.js`. It consumes only `VibrationWorkspaceModel.v1` detail data and does not calculate or resolve values.
+
+### Summary
+
+Keeps identity, reference-result values and qualification/evidence dimensions visibly separate.
+
+### Inputs
+
+Displays the prepared benchmark request as:
+
+```text
+Input | Value | Unit | Source context
+```
+
+No prepared request means no fabricated Inputs table.
+
+### Case
+
+Shows operating-case identity/provenance, process quantity value/unit/reference rows, and exact Canonical-ID enrichment rows:
+
+```text
+Property | Case scope | Value | Unit | Source | Revision | Status | Reviewer
+```
+
+### Evidence
+
+Shows the actual qualification model and evidence coverage rather than a synthesized confidence score:
+
+```text
+Qualification
+Phase / hydraulic-path evidence
+Standard-correlation evidence
+Advanced-correlation evidence
+Reference-band evidence
+Engineering-review candidate metadata
+Calculation equation IDs / input resolution
+```
+
+The view explicitly retains:
+
+```text
+pointCoverageOnly
+domainCoverageEstablished
+screeningAuthorized
+engineeringAuthority
+```
+
+so an EI-worked-example review candidate cannot appear to be authorized screening.
+
+### Source
+
+Displays assessment-point, operating-case and geometry/vibration source trace with revisions/record IDs/status/reviewer/selection where available.
+
+### Diagnostics
+
+Displays missing, invalid, error-code and central-error information. No error is converted to a numerical result.
+
+All imported/source strings are HTML-escaped by the renderer.
 
 ## Register export
 
-The tab can export the existing `VibrationFacilityFitRegister.v1` through `serializeVibrationFacilityFitRegisterCsv()`.
+The tab exports the existing `VibrationFacilityFitRegister.v1` through `serializeVibrationFacilityFitRegisterCsv()`.
 
 The exported CSV preserves benchmark/evidence/authority fields and blank non-calculated numerical cells.
 
 ## Styling
 
-`tabs/vibration-integrity.css` uses a neutral/dark table workspace presentation. Benchmark limitation is highlighted, but calculated rows are not colored as “safe” or “pass.”
+`tabs/vibration-integrity.css` uses a neutral/dark table workspace presentation. Benchmark limitation is highlighted, but calculated rows are not colored as “safe” or “pass.” Structured detail uses tables rather than raw JSON-heavy panels.
 
 ## Non-goals
 
@@ -167,6 +248,6 @@ The exported CSV preserves benchmark/evidence/authority fields and blank non-cal
 - no direct engineering calculation in UI;
 - no method qualification promotion;
 - no pass/safe claim;
-- no universal risk score;
+- no universal risk/confidence score;
 - no hidden engineering defaults;
 - no issue #429 closure.
