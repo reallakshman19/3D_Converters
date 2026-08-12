@@ -4,25 +4,43 @@ Production entry point:
 
 `engineering/hp-class-standardization/engineering-library.html`
 
-This page wraps the controlled authority-package workspace and adds two editable engineering-data tables. Both tables start empty. The repository contains **no preloaded material properties, pipe dimensions, wall tolerances, or proprietary Code data**.
+The workspace dynamically loads reusable engineering data from repository files under:
 
-## Material / Property Table
+`docs/Masters/HP_Piping_Class/`
 
-Each row contains:
+It then wraps the controlled authority-package calculator. Library data never changes calculator equations and reaches the calculator only through explicit **Apply** actions.
 
-- material specification;
-- grade;
-- condition;
-- temperature, °C;
-- allowable stress `S`, MPa;
-- yield strength `Syt`, MPa;
-- row source/reference.
+## Runtime catalog
 
-The library also requires a material source reference and source version.
+The fixed discovery entry point is:
+
+`docs/Masters/HP_Piping_Class/library-catalog.csv`
+
+Current catalog entries point to:
+
+- `material-properties.csv`
+- `pipe-product-overrides.csv`
+- dependency: `../NPS_OD_BORE_SCHEDULE_MASTER.tsv`
+
+The browser resolves these paths relative to the catalog and fetches them through the same-origin static site. **Reload docs CSVs** re-fetches the current repository files without rebuilding JavaScript.
+
+## Material CSV
+
+Path:
+
+`docs/Masters/HP_Piping_Class/material-properties.csv`
+
+The repository intentionally ships this file **header-only**:
+
+```csv
+material_spec,grade,condition,temperature_c,allowable_stress_mpa,yield_strength_mpa,source_ref
+```
+
+No Chapter IX `S` or `Syt` value is inferred from another project master or from a generic material family. Populate this CSV only with controlled values applicable to the selected B31.3/VIII-3 project basis.
 
 ### Applying material data
 
-1. Enter/import the controlled temperature points.
+1. Reload the docs CSVs or edit rows in the UI.
 2. Select one material/grade/condition group.
 3. Enter the design temperature used for `S`.
 4. Click **Apply material to calculator**.
@@ -32,62 +50,73 @@ The workspace evaluates:
 - `S` at the entered design temperature;
 - `Syt` at the average temperature of every pressure-cycle block.
 
-An exact table point is used directly. Otherwise the workspace performs linear interpolation only between two bracketing controlled temperature points for the same material/grade/condition.
+An exact table point is used directly. Otherwise the workspace performs linear interpolation only between two bracketing controlled points for the same material/grade/condition.
 
-**Extrapolation is prohibited.** If the design temperature or any cycle-average temperature falls outside the entered range, no material values are applied.
+**Extrapolation is prohibited.** If the design temperature or any cycle-average temperature falls outside the controlled range, no material values are applied.
 
-## Pipe-Product / Dimension Table
+Use **Download material CSV** to export the current material table in the same governed format for review/publication back under `docs/Masters/HP_Piping_Class/`.
 
-Each row contains:
+## Pipe geometry + product overlay
 
-- NPS / product tag;
-- product specification;
-- design diameter / maximum OD basis, mm;
-- nominal wall, mm;
-- product-specific minus wall tolerance, %;
-- row source/reference.
+Canonical project pipe geometry/wall source:
 
-The library also requires a product source reference and source version.
+`docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv`
 
-### Applying product data
+Governed blob at Stage 8 implementation:
 
-Select one exact row and click **Apply selected product row to calculator**.
+`7e83f7283b4ca9f35a86a45c008ca0b52a053fcc`
 
-The selected row explicitly sets:
+The workspace expands its NPS/schedule cells at runtime into reference product rows. It uses the same project convention already used by the existing Pipe Wall Master: `5S`, `10S`, `40S`, and `80S` are identified with the B36.19M schedule namespace; other schedule names use B36.10M.
 
-- calculator `D`;
-- product specification;
-- minus wall tolerance;
-- tolerance source string;
-- candidate-wall list, replaced with the selected nominal wall.
+The canonical TSV provides **reference OD and nominal wall geometry only** for this workflow. It does not establish the K304.1.1 maximum permitted purchase OD, a pipe purchase specification, or negative wall tolerance.
 
-No nearest-size lookup, schedule inference, universal `-12.5%` assumption, or prior-wall carryover is performed.
+### Product overlay CSV
 
-## Library JSON
+Path:
 
-Schema:
+`docs/Masters/HP_Piping_Class/pipe-product-overrides.csv`
+
+The repository ships it header-only:
+
+```csv
+nps,schedule,product_spec,design_d_max_mm,minus_tolerance_pct,source_ref
+```
+
+The overlay is merged by exact `NPS + schedule` key with the canonical pipe-master rows.
+
+A fetched product row remains **non-applicable** until all purchase-specific fields are supplied:
+
+- `product_spec`
+- `design_d_max_mm` — project/purchase-spec maximum permitted `D` used for the Chapter IX calculation
+- `minus_tolerance_pct`
+- `source_ref` — purchase/tolerance source evidence
+
+This prevents nominal/reference OD from being silently promoted to the Chapter IX maximum permitted OD.
+
+Use **Download product overlay CSV** to export only rows that contain purchase-specific overlay data. Canonical NPS/OD/schedule/wall values are not duplicated into that CSV.
+
+## Working-copy JSON
+
+The existing reusable working-copy schema remains:
 
 `hp-piping-engineering-libraries/v1`
 
-Use **Export libraries JSON** and **Import libraries JSON** to move the editable tables between sessions/reviewers.
+JSON import/export is retained for session/reviewer handover. The docs CSVs are the repository-editable data format; JSON is a portable working copy.
 
-Export requires all stored rows to be valid and requires:
-
-- library ID;
-- revision;
-- preparer;
-- material source/version;
-- product source/version.
-
-The engineering-library JSON is intentionally separate from `hp-piping-class-authority-package/v1`. This preserves the already validated authority-package schema and keeps reusable engineering datasets distinct from one class-calculation record.
+When the docs-backed product table contains hundreds of canonical rows, working-copy JSON export includes only product rows whose purchase-specific fields are complete.
 
 ## Authority Boundary
 
-The library workspace is an input convenience layer only.
-
-- It does not change the B31.3/KD calculation equations.
-- It does not approve user-entered data.
-- It does not embed ASME tables.
-- It does not extrapolate material properties.
-- Values reach the calculator only after an explicit **Apply** action.
+- No proprietary ASME material table is embedded in JavaScript.
+- The material CSV starts blank/header-only.
+- The pipe geometry master is referenced, not copied into a competing CSV.
+- Reference/nominal OD is not treated as maximum permitted purchase OD.
+- No universal `-12.5%` wall tolerance is introduced.
+- No material extrapolation is performed.
+- A fetched row is not engineering approval.
+- Values reach the calculator only after explicit Apply.
 - Normal calculator validation/recalculation still governs the class result.
+
+## Deployment
+
+Use same-origin static HTTP hosting such as GitHub Pages. The workspace dynamically fetches relative `docs/...` files and embeds the authority-package/calculator frames; direct `file://` operation is not the supported production path.
