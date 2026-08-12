@@ -1,4 +1,5 @@
 import { AIV_UI_BENCHMARK_SOURCE } from './vibration-aiv-benchmarks.js';
+import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -25,7 +26,7 @@ function benchmarkPanel(state) {
     ? 'NOT_LOADED'
     : loaded.modified ? 'NOT_APPLICABLE_MODIFIED_INPUTS' : 'CONTROLLED_INPUT_REFERENCE';
   return `<section class="aivq-card aivq-benchmark-card">
-    <div class="aivq-section-head"><div><h4>Controlled EI benchmark</h4><p>Load EI D.2.3 into the same editable split tables used by project data. This loads controlled inputs and published reference values only; no AIV numerical execution is enabled.</p></div></div>
+    <div class="aivq-section-head"><div><h4>Controlled EI benchmark</h4><p>Load EI D.2.3 into the same editable split tables used by project data. Published references remain comparison targets; missing cells may be resolved from the visible assumption profile.</p></div></div>
     <div class="aivq-actions"><button type="button" class="engineering-console-btn primary" data-aiv-action="load-d23-benchmark"${state.busy ? ' disabled' : ''}>Load EI D.2.3</button></div>
     ${loaded ? `<div class="aivq-benchmark-facts">
       <span>Input reference <strong>${esc(status)}</strong></span>
@@ -35,7 +36,7 @@ function benchmarkPanel(state) {
       <span>Relief first-discontinuity point PWL <strong>${esc(reference.reliefPointPwlDb)} dB</strong></span>
       <span>Relief first-discontinuity LOF <strong>${esc(reference.reliefFirstDiscontinuityLof)}</strong></span>
       <span>FLM1 published <strong>${esc(reference.publishedFlm1)}</strong></span>
-      <span>FLM1 reconciliation <strong>${esc(reference.flm1ReconciliationState)}</strong></span>
+      <span>FLM1 alternative <strong>1.2109758194311824</strong></span>
     </div>
     ${loaded.modified ? '<div class="aivq-banner aivq-benchmark-warning"><strong>Benchmark inputs modified.</strong><span>Published values remain visible only as the original controlled-case reference. Reload EI D.2.3 to restore exact benchmark-input identity.</span></div>' : ''}
     <div class="aivq-benchmark-source">${esc(AIV_UI_BENCHMARK_SOURCE.benchmarkSetId)} · ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.path)} · blob ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.gitBlob)}</div>` : ''}
@@ -44,12 +45,12 @@ function benchmarkPanel(state) {
 
 function importPanel(state) {
   return `<section class="aivq-card">
-    <div class="aivq-section-head"><div><h4>AIV working evidence</h4><p>Imported CSVs become editable working tables. Readiness always consumes the current visible cells, not the original uploaded bytes.</p></div></div>
+    <div class="aivq-section-head"><div><h4>AIV working inputs</h4><p>Imported CSVs become editable working tables. Blank cells are resolved from the visible assumption profile before readiness/calculation; explicit table values always take precedence.</p></div></div>
     <div class="aivq-import-grid">
       <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, null, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX required')}</span></label>
       <label class="aivq-file-field"><span>AIV Sources</span><input type="file" data-aiv-file="sources" accept=".csv,text/csv"><span>${fileStatus(state.files?.sources, state.tables?.sources, 'AivSourceCsv.v2')}</span></label>
       <label class="aivq-file-field"><span>AIV Assessments</span><input type="file" data-aiv-file="assessments" accept=".csv,text/csv"><span>${fileStatus(state.files?.assessments, state.tables?.assessments, 'AivAssessmentCsv.v1')}</span></label>
-      <label class="aivq-file-field"><span>Source → Assessment evidence</span><input type="file" data-aiv-file="relationships" accept=".csv,text/csv"><span>${fileStatus(state.files?.relationships, state.tables?.relationships, 'AivSourceAssessmentCsv.v1')}</span></label>
+      <label class="aivq-file-field"><span>Source → Assessment</span><input type="file" data-aiv-file="relationships" accept=".csv,text/csv"><span>${fileStatus(state.files?.relationships, state.tables?.relationships, 'AivSourceAssessmentCsv.v1')}</span></label>
     </div>
     <div class="aivq-actions">
       <button type="button" class="engineering-console-btn" data-aiv-action="source-template">Sources template</button>
@@ -83,8 +84,8 @@ export function renderAivInputWorkspaceHtml(state = {}) {
     assessments: fallbackTable('assessments'),
     relationships: fallbackTable('relationships'),
   };
-  return `${benchmarkPanel(state)}${importPanel({ ...state, tables })}
-    ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device evidence. Assessment identity and geometry do not belong in this table.')}
-    ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material evidence keyed by Assessment Canonical ID.')}
-    ${editableTable('Source → Assessment evidence', tables.relationships, 'Applicability, engineering physical distance/provenance and simultaneous-source grouping. Topology connectivity never supplies physical distance.')}`;
+  return `${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
+    ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells are assumed from the configured profile at execution time.')}
+    ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID. Missing engineering cells use configured assumptions.')}
+    ${editableTable('Source → Assessment', tables.relationships, 'Applicability, engineering physical distance and simultaneous-source grouping. Missing cells use configured assumptions; topology pixels never supply distance.')}`;
 }
