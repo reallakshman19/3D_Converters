@@ -8,6 +8,10 @@ const tab = fs.readFileSync(new URL('../tabs/engineering-calculations-tab.js', i
 const view = fs.readFileSync(new URL('../tabs/engineering-calculation-console-view.js', import.meta.url), 'utf8');
 const sections = fs.readFileSync(new URL('../tabs/engineering-calculation-console-sections.js', import.meta.url), 'utf8');
 const extension = fs.readFileSync(new URL('../core/engineering-tabs-extension.js', import.meta.url), 'utf8');
+const workspace = fs.readFileSync(new URL('../tabs/engineering-workspace-tab.js', import.meta.url), 'utf8');
+const hpPipingClass = fs.readFileSync(new URL('../tabs/hp-piping-class-tab.js', import.meta.url), 'utf8');
+const registry = fs.readFileSync(new URL('../converters/engineering-calculations/registry.js', import.meta.url), 'utf8');
+const pending = fs.readFileSync(new URL('../converters/engineering-calculations/pending-definitions.js', import.meta.url), 'utf8');
 
 test('Console production wiring uses the central Engineering Calculation API only', () => {
   assert.match(tab, /converters\/engineering-calculations\/index\.js/);
@@ -27,9 +31,32 @@ test('Console production wiring uses the central Engineering Calculation API onl
   ]) assert.doesNotMatch(tab + view + sections, new RegExp(forbidden));
 });
 
-test('Engineering extension exposes the lazy Console tab', () => {
+test('Engineering navigation exposes one main tab with governed subtabs', () => {
   assert.match(extension, /id: 'engineering-calculations'/);
-  assert.match(extension, /renderEngineeringCalculationsTab/);
+  assert.match(extension, /renderEngineeringWorkspaceTab/);
+  assert.doesNotMatch(extension, /id: 'b313-material-factors'/);
+  assert.doesNotMatch(extension, /id: 'empirical-weight-tuning'/);
+  assert.doesNotMatch(extension, /id: 'hp-piping-class'/);
+
+  for (const id of ['calculations', 'b313-material-factors', 'empirical-weight-tuning', 'hp-piping-class']) {
+    assert.match(workspace, new RegExp(`id: '${id}'`));
+  }
+  assert.match(workspace, /B31\.3 Material Factors/);
+  assert.match(workspace, /Empirical Weight Tuning/);
+  assert.match(workspace, /HP Piping Class/);
+  assert.match(hpPipingClass, /engineering\/hp-class-standardization\/engineering-library\.html/);
+});
+
+test('legacy engineering deep links route to the main tab subtabs', () => {
+  assert.match(extension, /ENGINEERING_SUBTAB_IDS/);
+  assert.match(extension, /subtabId: requestedId/);
+  assert.match(extension, /tabId = 'engineering-calculations'/);
+});
+
+test('stable two-segment pending calculation IDs are accepted by registry grammar', () => {
+  assert.match(pending, /PIPE\.SHELL_INDENTATION/);
+  assert.match(registry, /CALCULATION_ID_PATTERN = .*\{1,\}/);
+  assert.doesNotMatch(registry, /CALCULATION_ID_PATTERN = .*\{2,\}/);
 });
 
 test('blocked definition is visibly non-executable and issue-qualified', () => {

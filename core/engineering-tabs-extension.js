@@ -6,20 +6,15 @@ const ENGINEERING_TABS = Object.freeze([
   {
     id: 'engineering-calculations',
     label: 'Engineering Calculations',
-    load: () => import('../tabs/engineering-calculations-tab.js?v=engineering-console-1').then((module) => module.renderEngineeringCalculationsTab),
-  },
-  {
-    id: 'b313-material-factors',
-    label: 'B31.3 Material Factors',
-    load: () => import('../tabs/b313-material-factors-tab.js?v=engineering-1').then((module) => module.renderB313MaterialFactorsTab),
-  },
-  {
-    id: 'empirical-weight-tuning',
-    label: 'Empirical Weight Tuning',
-    load: () => import('../tabs/empirical-weight-tuning-tab.js?v=engineering-1').then((module) => module.renderEmpiricalWeightTuningTab),
+    load: () => import('../tabs/engineering-workspace-tab.js?v=engineering-workspace-1').then((module) => module.renderEngineeringWorkspaceTab),
   },
 ]);
 const TAB_IDS = new Set(ENGINEERING_TABS.map((tab) => tab.id));
+const ENGINEERING_SUBTAB_IDS = new Set([
+  'b313-material-factors',
+  'empirical-weight-tuning',
+  'hp-piping-class',
+]);
 
 function gearIcon() {
   const span = document.createElement('span');
@@ -118,9 +113,15 @@ export function installEngineeringTabs(root) {
   });
 
   const onWindowSwitch = (event) => {
-    const tabId = String(event?.detail?.tabId || event?.detail?.id || '');
+    const requestedId = String(event?.detail?.tabId || event?.detail?.id || '');
+    const detailContext = event?.detail?.context || event?.detail || null;
+    let tabId = requestedId;
+    let context = detailContext;
+    if (ENGINEERING_SUBTAB_IDS.has(requestedId)) {
+      tabId = 'engineering-calculations';
+      context = { ...(detailContext && typeof detailContext === 'object' ? detailContext : {}), subtabId: requestedId };
+    }
     if (!TAB_IDS.has(tabId)) return;
-    const context = event?.detail?.context || event?.detail || null;
     pendingExternalSwitch = { tabId, context };
     setTimeout(() => renderEngineeringTab(tabId, context), 0);
   };
@@ -128,7 +129,9 @@ export function installEngineeringTabs(root) {
 
   try {
     const persisted = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
-    if (TAB_IDS.has(persisted)) setTimeout(() => renderEngineeringTab(persisted), 0);
+    if (ENGINEERING_SUBTAB_IDS.has(persisted)) {
+      setTimeout(() => renderEngineeringTab('engineering-calculations', { subtabId: persisted }), 0);
+    } else if (TAB_IDS.has(persisted)) setTimeout(() => renderEngineeringTab(persisted), 0);
   } catch {}
 
   return () => {

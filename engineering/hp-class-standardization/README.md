@@ -2,13 +2,34 @@
 
 Dependency-free static web application for the **piping-class standardization** portion of ASME B31.3-2024 Chapter IX.
 
+## Entry points
+
+Recommended application route:
+
+**Engineering → Engineering Calculations → HP Piping Class**
+
+The main Engineering navigation now exposes one top-level **Engineering Calculations** tab with internal subtabs for:
+
+- Calculations
+- B31.3 Material Factors
+- Empirical Weight Tuning
+- HP Piping Class
+
+Direct technical entry points remain available:
+
+- `engineering-library.html` — full HP class workspace with docs-backed engineering libraries and authority-package wrapper.
+- `authority-package.html` — controlled class-record JSON transport around the calculator.
+- `index.html` — calculator-only view with no persistence/data-library wrapper.
+
+Serve the repository through GitHub Pages or another same-origin static HTTP host. The HP workspace dynamically fetches governed files under `docs/Masters/HP_Piping_Class/` and embeds same-origin frames; direct `file://` behavior is not the supported production path.
+
 ## Workflow
 
-1. **Design Basis** - Code/material/product identity, dimensions, allowances and pressure-design inputs.
-2. **Static Wall** - K304.1.1/K304.1.2 pressure wall, Eq. (35a) rating QA and candidate-wall pass/fail.
-3. **Pressure Cycles** - editable `Pmin`, `Pmax`, `Tmin`, `Tmax`, cycle-average `Syt` and lifetime count `n`.
-4. **KD Qualification** - controlled KD-2 pressure stress-state package, source-gated KD-312 `Seq`, approved fatigue-curve `Ni`, cumulative usage and fracture/KD-4 disposition.
-5. **Class Envelope** - bounded piping-class release review. The application stops here.
+1. **Design Basis** — Code/material/product identity, dimensions, allowances and pressure-design inputs.
+2. **Static Wall** — K304.1.1/K304.1.2 pressure wall, Eq. (35a) rating QA and candidate-wall pass/fail.
+3. **Pressure Cycles** — editable `Pmin`, `Pmax`, `Tmin`, `Tmax`, cycle-average `Syt` and lifetime count `n`.
+4. **KD Qualification** — controlled KD-2 pressure stress-state package, source-gated KD-312 `Seq`, approved fatigue-curve `Ni`, cumulative usage and fracture/KD-4 disposition.
+5. **Class Envelope** — bounded piping-class release review. The application stops here.
 
 ## Controlled sources
 
@@ -18,134 +39,43 @@ Dependency-free static web application for the **piping-class standardization** 
 
 The exact KD-3 binary is source-locked, but the application does not infer its edition or project applicability. Source edition, project VIII-3 edition and compatibility remain explicit reviewer gates.
 
-## Implemented engineering calculations
+## Docs-backed engineering libraries
 
-### B31.3 class side
+The reusable data discovery file is:
 
-- K304.1.2 Eq. (34a) straight-pipe pressure wall for the 2024 OD/minimum-wall route.
-- K304.1.1 allowances/minimum-wall comparison.
-- Eq. (35a) selected-wall pressure-rating QA.
-- Multiple pressure-cycle blocks.
-- K304.8.3 Eq. (37) pressure stress for every candidate wall x cycle block.
-- Per-block `2*Syt` elastic/inelastic gate.
+`docs/Masters/HP_Piping_Class/library-catalog.csv`
 
-### KD-2 pressure-only package
+Current governed files include:
 
-For the uniform straight-pipe pressure-only model, the app derives closed-end elastic principal stresses at each cycle endpoint:
+- `material-properties.csv` — intentionally header-only until controlled Chapter IX `S/Syt` values are published;
+- `pipe-product-overrides.csv` — purchase-specific product specification, maximum permitted/design `D`, negative wall tolerance and source evidence;
+- dependency `docs/Masters/NPS_OD_BORE_SCHEDULE_MASTER.tsv` — existing project NPS/OD/schedule/wall geometry master.
 
-- circumferential/hoop stress;
-- axial stress;
-- radial stress.
+Reference OD from the geometry master is not treated as K304.1.1 maximum permitted purchase `D`. The product overlay must explicitly supply `design_d_max_mm` before a product row can apply.
 
-It also reports the pressure-only stress-intensity range for comparison with K304.8.3. KD-2 edition, route, model, limit-check calculation ID and approval remain controlled evidence fields.
+No material extrapolation is permitted. No universal `-12.5%` wall tolerance is assumed.
 
-### Controlled automatic KD-312 `Seq`
+## Controlled authority package
 
-Stage 12 adds a pressure-only processor for the case where principal stress directions remain unchanged.
+`authority-package.html` adds a transport layer around the unchanged calculator. The package schema is:
 
-For each wall x cycle block, the application calculates:
+`hp-piping-class-authority-package/v1`
 
-- signed `S12`, `S23`, `S31` at both cycle endpoints;
-- `Salt_12`, `Salt_23`, `Salt_31` from the algebraic stress-difference ranges;
-- associated plane-normal stress at both endpoints;
-- a reviewer-selectable elastic average associated-mean descriptor, not less than zero;
-- the controlling `Seq` and stress pair when an approved automatic route is selected.
+A package contains:
 
-Available `Seq` modes:
+- package ID, revision, project/class reference, preparer/checker and lifecycle;
+- exact B31.3/KD source manifest;
+- design/material/product inputs;
+- pressure-cycle spectrum;
+- KD-2/KD-3 route/evidence controls;
+- fatigue-curve points and approvals;
+- row-level Seq/Ni/evidence values;
+- recalculated audit snapshot.
 
-1. **Manual licensed Seq** - reviewer enters the final checked value.
-2. **Mean-stress effects incorporated in selected fatigue curve** - automatic `Seq = Salt` for each pair, with the maximum pair controlling. This is enabled only after source/route/curve identification and explicit reviewer approval.
-3. **Explicit normalized mean-stress correction** - applies a generic reviewer-controlled form using the entered coefficient, reference-cycle count and correction-term limit. The reference amplitude is obtained from the approved fatigue-curve points by log-log interpolation. No Code-specific coefficient, reference count or limit is preloaded.
+Import validates the source/schema package before mutating the calculator, recalculates after input restore, restores row evidence only against exact recalculated keys, and recalculates again. Snapshot values are audit-only and never solver authority.
 
-Automatic `Seq` is deliberately blocked if:
+## Authority boundary
 
-- the project/source VIII-3 edition gate is not closed;
-- the KD-2 route is not elastic pressure-only uniform straight pipe;
-- credited residual/prestress effects are present;
-- the selected route lacks a controlled source/reference or approval;
-- the explicit route lacks approved fatigue-curve data/parameters;
-- the K304.8.3 case requires an inelastic/special route.
+The application supports a bounded straight-pipe pressure-fatigue class-standardization route. It does not claim universal fatigue qualification for all components or actual routed piping systems.
 
-Changing-principal-axis KD-313 processing is not implemented.
-
-### Controlled fatigue-curve `Ni`
-
-The reviewer may use:
-
-- **Manual licensed Ni**, or
-- **Automatic Ni from controlled fatigue-curve points**.
-
-Automatic curve mode accepts reviewer-entered `N, Sa(MPa)` points and requires:
-
-- positive finite values;
-- at least two points;
-- unique `N` and `Sa` values;
-- strictly decreasing `Sa` as `N` increases;
-- curve ID/source reference;
-- approved transcription;
-- approved log-log interpolation basis.
-
-Exact curve points are returned directly. Intermediate points use log-log interpolation. **No extrapolation is performed.** No ASME fatigue-curve values are embedded in the repository.
-
-### Cumulative usage
-
-For approved rows:
-
-`Ui = ni / Ni`
-
-and the class candidate summary reports:
-
-`U = sum(Ui)`
-
-along with all remaining release blockers.
-
-## Engineering authority boundary
-
-This application does not:
-
-- treat `Delta Sp/2` as automatically equal to final `Seq`;
-- infer a KD-312 material/mean-stress route from a material name;
-- embed proprietary fatigue-curve values;
-- extrapolate fatigue life outside approved curve data;
-- perform changing-axis KD-313 processing;
-- perform inelastic/elastic-plastic KD analysis;
-- perform routed-system CAESAR, local FEA or vibration/HCF acceptance.
-
-The intended release wording is bounded:
-
-> Pressure-fatigue prequalified within the stated pressure, temperature, cycle, minimum-wall and component envelope.
-
-Do not represent the result as a universally fatigue-qualified piping class.
-
-## Reference regression
-
-For the controlled NPS 4 reference case (`D=114.3 mm`, `Pdesign=20 MPa`, `S=138 MPa`, `ci=3 mm`, `co=0`, `-12.5%` illustrative purchase tolerance, candidate wall `13.49 mm`, pressure cycle `2 -> 20 MPa`):
-
-- `t = 7.7103935 mm`
-- `tm = 10.7103935 mm`
-- Eq. (35a) rating `= 23.0861209 MPa`
-- `Sp(2 MPa) = 14.0665546 MPa`
-- `Sp(20 MPa) = 140.6655462 MPa`
-- `Delta Sp = 126.5989916 MPa`
-- pressure-only `Delta SI = 126.5989916 MPa`
-- controlling pressure-only `Salt = 63.2994958 MPa`
-- controlling elastic associated-mean descriptor `= 27.6830252 MPa`
-- mean-embedded automatic route: `Seq = 63.2994958 MPa`.
-
-## Validation
-
-Local validation performed for Stage 12:
-
-- `node --check app.js`: PASS.
-- `node --check ui.js`: PASS.
-- static DOM-ID compatibility: PASS.
-- B31.3 reference regression: PASS.
-- `Salt` / associated-mean reference benchmark: PASS.
-- mean-embedded automatic `Seq` benchmark: PASS.
-- synthetic explicit-mean route benchmark: PASS.
-- reverse curve interpolation for reference amplitude: PASS.
-- no-extrapolation behavior: PASS.
-- project/source edition mismatch gate: PASS.
-- credited residual/prestress automatic-route block: PASS.
-
-Browser E2E is not available in the current execution environment because local/file navigation is administrator-blocked in the installed headless browser.
+Controlled engineering data, Code source applicability and reviewer evidence remain explicit release gates.

@@ -10,7 +10,7 @@ const REQUIRED_FIELDS = Object.freeze([
   'contractVersion', 'id', 'family', 'name', 'methodRevision', 'purpose',
   'authority', 'applicability', 'inputs', 'outputs', 'calculate',
 ]);
-const CALCULATION_ID_PATTERN = /^[A-Z][A-Z0-9_]*(\.[A-Z][A-Z0-9_]*){2,}$/;
+const CALCULATION_ID_PATTERN = /^[A-Z][A-Z0-9_]*(\.[A-Z][A-Z0-9_]*){1,}$/;
 const FIELD_TYPES = new Set(['number', 'integer', 'boolean', 'string', 'enum', 'vector3', 'table', 'object']);
 
 function definitionError(code, message, details = {}) {
@@ -28,7 +28,7 @@ function validateFieldList(fields, kind, calculationId) {
     if (keys.has(field.key)) throw definitionError('INVALID_CALCULATION_DEFINITION', `Duplicate ${kind} field: ${field.key}`, { calculationId });
     if (!FIELD_TYPES.has(field.type ?? 'number')) throw definitionError('INVALID_CALCULATION_DEFINITION', `Unsupported field type: ${field.type}`, { calculationId, field: field.key });
     if (['number', 'integer'].includes(field.type ?? 'number') && field.quantity && field.quantity !== 'dimensionless' && !field.canonicalUnit) {
-      throw definitionError('INVALID_CALCULATION_DEFINITION', `Numeric engineering field ${field.key} requires canonicalUnit.`, { calculationId });
+      throw definitionError('INVALID_CALCULATION_DEFINITION', `Numeric engineering field ${field.key} requires canonicalUnit.`, { calculationId, field: field.key });
     }
     keys.add(field.key);
   }
