@@ -9,58 +9,65 @@
 | PR number | #438 |
 | Branch | `agent/fiv-fit-roadmap-foundation` |
 | Base commit | `37c37d770ba47ebb3152679265896de4a943c8b0` |
-| PR status | OPEN / DRAFT / mergeable at last check |
-| Current stage | Stage 18 — IN_PROGRESS: facility FIT benchmark execution through centralized Engineering Calculation batch API |
-| Last completed stage | Stage 17 — COMPLETE FOR IMPLEMENTATION / PARTIAL FOR EXECUTION VALIDATION |
-| Engineering status | FIT remains `BENCHMARK_ONLY`; screening/design NOT AUTHORIZED. Facility planner/executor are orchestration only. |
-| Validation status | EI/domain focused PASS; Stage 15 parser fixture PASS; Stage 16/17 exact committed Node regressions NOT_RUN in this runtime because no full checkout/raw GitHub DNS. |
-| Current blocker | Full repository regression, actual `xlsx@0.18.5` parser regression, full licensed T2.2 page review, independent vibration-engineer approval. |
-| Exact next action | Execute only READY `VibrationFacilityFitPlan.v1` requests through `calculateEngineeringBatch()`, retain NOT_READY rows without numerical substitution, return table-oriented facility result with central qualification/evidence unchanged. |
+| Current HEAD before Stage 19 | `e4a2da92bb5bc1dec03fb7517167a9dec4aa48d6` |
+| PR status | OPEN / DRAFT / mergeable; 52 changed paths at last reconciliation |
+| Current stage | Stage 19 — IN_PROGRESS: table-first facility FIT register projection |
+| Last completed stage | Stage 18 — COMPLETE FOR IMPLEMENTATION / PARTIAL FOR EXECUTION VALIDATION |
+| Engineering status | FIT remains `BENCHMARK_ONLY`; screening/design NOT AUTHORIZED. Facility result is orchestration-only. |
+| Validation status | EI/domain focused PASS; parser fixture PASS; later exact committed regressions NOT_RUN because this runtime lacks a complete checkout/raw GitHub access. |
+| Current blocker | Full repository regression, actual `xlsx@0.18.5` parser test, full licensed T2.2 page review and independent vibration-engineer approval. |
+| Exact next action | Build a pure facility register projection from `VibrationFacilityFitResult.v1` for table UI/API consumption: status, completeness, reference bands/evidence; no authority reinterpretation. |
 
 ### Handover in 60 Seconds
 
-**FIT state:** stable public ID `VIB.FIV.FLOW_TURBULENCE`; benchmark-only; retained workbook + EI Appendix D D2/D4 reference parity; strict/screening execution blocked centrally.
-
-**Table pipeline:**
+**End-to-end table-first path now implemented:**
 
 ```text
 Advanced_Analysis 3D EDIT
   -> VibrationTableExchange.v1
   -> VibrationIntegrityDataset.v1
   -> VibrationFacilityFitPlan.v1
-  -> Stage 18 central benchmark execution
+  -> calculateEngineeringBatch()
+  -> VibrationFacilityFitResult.v1
 ```
 
-No 3D viewer, canvas, geometry renderer or embedded upstream runtime exists in the vibration product.
+No 3D viewer/canvas/geometry runtime exists in vibration.
 
-**Stage 17 behavior:** only global `FIT_ASSESSMENT_POINT=true` elements enter the plan. READY requires explicit `OUTSIDE_DIAMETER`, `WALL_THICKNESS`, `MAX_UNSUPPORTED_SPAN` enrichment plus phase/density and mass-flow-or-velocity operating data; GAS also requires viscosity. No NPS/schedule lookup/default exists. Multiphase facility planning v1 is aggregate-effective only.
+**Stage 18 executor:** batches only READY requests through the centralized Engineering Calculation engine. NOT_READY plan items never enter the central batch and become `NOT_ASSESSED_DATA_INCOMPLETE` with no numerical LOF properties. Central calculation failures become `CALCULATION_FAILED`, also with no synthetic LOF. Successful rows retain central immutable result, qualification, evidence coverage and screening-candidate metadata.
 
-Generated READY requests use the central public ID and `qualificationMode='benchmark'`. If velocity and mass flow are both present, velocity is deliberately selected, mass flow is omitted from the generated request, and that selection is recorded in source trace. Case-specific natural frequency overrides global frequency with explicit provenance.
+**Authority invariants:**
 
-NOT_READY rows contain missing/invalid evidence and `request=null`.
+```text
+FIT qualification = BENCHMARK_ONLY
+facility authority = ORCHESTRATION_ONLY
+engineeringAuthority = NONE
+screeningAuthorized = false
+```
+
+**Current PR scope:** 52 paths at last reconciliation, including FIT method/evidence, exchange, dataset, facility plan/execution, docs and regressions.
 
 ## Governing Principles
 
-1. Central Engineering Calculation API owns execution; facility code contains no FIT equations.
-2. READY means data-complete request only, not engineering acceptance.
-3. NOT_READY is not zero LOF and must remain non-numerical.
-4. Central benchmark qualification/evidence/result objects are preserved verbatim in facility results.
-5. No screening-mode mutation or design-authority mutation is permitted.
-6. Batch execution must use the same central kernel as single/Console execution.
-7. Table result identity is `(canonicalId, line, caseId)`.
-8. No 3D/canvas/viewer dependency.
+1. Central Engineering Calculation API is the only FIT numerical execution path.
+2. Table pipeline layers never duplicate empirical equations.
+3. NOT_READY / NOT_ASSESSED is never represented as LOF zero.
+4. CALCULATION_FAILED is never represented as low risk.
+5. Facility projections may summarize central results but must retain identity/evidence references and never upgrade authority.
+6. UI-facing tables should distinguish data completeness, central calculation status, reference LOF band and qualification state.
+7. No universal vibration score; later mechanisms remain independent columns/results.
+8. No 3D/canvas/viewer integration.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---:|---|
-| FIT kernel / central benchmark path | P0 | VALIDATED | 1–12 | source + EI/hand cases |
-| Evidence/candidate metadata | P0 | IMPLEMENTED | 13–14 | non-authorizing evidence |
+| FIT kernel / central benchmark path | P0 | VALIDATED | 1–12 | retained + EI/hand evidence |
+| Evidence/candidate metadata | P0 | IMPLEMENTED | 13–14 | non-authorizing metadata |
 | Table exchange parser | P0 | IMPLEMENTED | 15 | XLSX/CSV contract |
 | Vibration integrity dataset | P0 | IMPLEMENTED | 16 | strict data assembly |
-| Facility FIT request plan | P0 | IMPLEMENTED | 17 | READY/NOT_READY plan |
-| Facility FIT benchmark executor | P0 | IN_PROGRESS | 18 | current stage |
-| Facility table result model | P0 | IN_PROGRESS | 18 | same stage |
+| Facility FIT plan | P0 | IMPLEMENTED | 17 | READY/NOT_READY central requests |
+| Facility central benchmark executor | P0 | IMPLEMENTED | 18 | same central batch kernel |
+| Facility FIT register projection | P0 | IN_PROGRESS | 19 | current stage |
 | Full repository regression | P0 | BLOCKED | Forward | Actions billing / no checkout |
 | Full method authority review | P0 | BLOCKED | Forward | direct source + reviewer |
 | Screening authority | P0 | BLOCKED | Forward | issue #429 |
@@ -69,150 +76,120 @@ NOT_READY rows contain missing/invalid evidence and `request=null`.
 
 | ID | Type | Priority | Status | Summary |
 |---|---|---:|---|---|
-| DEC-021 | Decision | P0 | ACCEPTED | Advanced_Analysis owns model editing; integration is table-only. |
-| DEC-023 | Decision | P0 | ACCEPTED | Canonical ID is element identity; Line is process-case join identity. |
+| DEC-021 | Decision | P0 | ACCEPTED | Integration is table-only; Advanced_Analysis owns model editing. |
 | DEC-024 | Decision | P0 | ACCEPTED | Explicit value/unit/source only; no defaults. |
-| DEC-026 | Decision | P0 | ACCEPTED | FIT assessment locations require explicit enrichment marker. |
-| DEC-027 | Decision | P0 | ACCEPTED | Incomplete plan rows remain NOT_READY and never emit requests. |
-| DEC-028 | Decision | P0 | ACCEPTED | Facility execution batches READY requests through central `calculateEngineeringBatch()` unchanged. |
-| DEC-029 | Decision | P0 | ACCEPTED | Facility result rows preserve planner identity/source trace and central result/qualification/evidence separately. |
-| RISK-023 | Risk | Critical | ACCEPTED | Hidden geometry/process inference could fabricate executable requests. |
-| RISK-024 | Risk | Critical | ACCEPTED | Treating NOT_READY as zero/low risk would create false facility safety signal. |
-| RISK-025 | Risk | High | ACCEPTED | Reimplementing batch/kernel behavior in facility layer could diverge from Console/API. |
-| ISS-011 | External CI | High | ROOT_CAUSE_CONFIRMED | Actions runner blocked by account billing/spending. |
+| DEC-026 | Decision | P0 | ACCEPTED | Explicit FIT assessment marker required. |
+| DEC-028 | Decision | P0 | ACCEPTED | Facility READY requests execute unchanged through central batch API. |
+| DEC-029 | Decision | P0 | ACCEPTED | Facility rows preserve central result/evidence separately from convenience fields. |
+| DEC-030 | Decision | P0 | ACCEPTED | Facility register is a read projection, not an engineering authority or result kernel. |
+| RISK-024 | Risk | Critical | ACCEPTED | NOT_ASSESSED must never look safe. |
+| RISK-025 | Risk | High | ACCEPTED | Facility execution must not diverge from Console/single kernel. |
+| RISK-026 | Risk | High | ACCEPTED | Table projection could hide benchmark-only status or source completeness. |
+| ISS-011 | External CI | High | ROOT_CAUSE_CONFIRMED | Actions billing/spending prevents runner allocation. |
 
 ## Stage Log
 
-### Stages 1–16
+### Stages 1–17
 
-FIT source/kernel, EI/hand qualification evidence, table exchange parser and deterministic integrity dataset implemented. FIT remains benchmark-only. Stage 15 parser fixture passed; Stage 16 exact committed regression remains NOT_RUN because the execution runtime cannot materialize the branch checkout.
+FIT source/kernel/evidence, table exchange, dataset assembly and request planning implemented. FIT remains benchmark-only. The plan uses explicit FIT assessment points and no geometry/process defaults.
 
-### Stage 17 — `VibrationFacilityFitPlan.v1` — COMPLETE FOR IMPLEMENTATION / PARTIAL VALIDATION
+### Stage 18 — `VibrationFacilityFitResult.v1` — COMPLETE FOR IMPLEMENTATION / PARTIAL VALIDATION
 
 Delivered:
-
-```text
-converters/vibration/facility/fit-plan.js
-converters/vibration/facility/index.js
-converters/vibration/index.js
-tests/vibration-facility-fit-plan.test.mjs
-docs/vibration/FIT-Facility-Plan-v1.md
-```
-
-Key behavior:
-
-```text
-FIT_ASSESSMENT_POINT=true required
-READY -> central benchmark request emitted
-NOT_READY -> request=null
-no OD/wall derivation from DN/schedule
-GAS -> viscosity required
-MULTIPHASE -> AGGREGATE_EFFECTIVE only in v1
-velocity present -> VELOCITY_OVERRIDE selected and massFlow omitted
-case-specific naturalFrequency -> selected over global with provenance
-screeningAuthorized=false
-engineeringAuthority=NONE
-```
-
-Validation:
-
-```text
-source-level architecture review           PASS
-committed exact Node regression            NOT_RUN
-full repository                            NOT_RUN
-```
-
-### Stage 18 — Facility FIT benchmark execution — IN_PROGRESS
-
-#### Objective
-
-Execute a `VibrationFacilityFitPlan.v1` without introducing a second calculation path.
-
-#### Execution rule
-
-```text
-READY plan items
-  -> take item.request unchanged
-  -> calculateEngineeringBatch({ requests })
-  -> map batch results back by READY-item order
-
-NOT_READY plan items
-  -> no central request
-  -> preserve as NOT_ASSESSED / DATA_INCOMPLETE row
-```
-
-#### Planned facility result schema
-
-```text
-VibrationFacilityFitResult.v1
-authority = ORCHESTRATION_ONLY
-engineeringAuthority = NONE
-screeningAuthorized = false
-calculationId = VIB.FIV.FLOW_TURBULENCE
-qualificationMode = benchmark
-rows[]
-counts
-```
-
-READY/central-success row:
-
-```text
-status = CALCULATED_BENCHMARK
-canonicalId
-line
-caseId
-standardLof
-refinedLof
-governingReferenceLof
-referenceBand
-assessmentStatus
-qualification
-qualificationCoverage
-screeningCandidate
-centralResult
-sourceTrace
-```
-
-READY/central-failure row:
-
-```text
-status = CALCULATION_FAILED
-errors = centralResult.errors
-centralResult
-```
-
-Planner NOT_READY row:
-
-```text
-status = NOT_ASSESSED_DATA_INCOMPLETE
-missing[]
-invalid[]
-centralResult = null
-```
-
-No row may expose a synthetic LOF of zero.
-
-#### Planned files
 
 ```text
 converters/vibration/facility/fit-execute.js
 converters/vibration/facility/index.js
 tests/vibration-facility-fit-execute.test.mjs
 docs/vibration/FIT-Facility-Result-v1.md
+```
+
+Execution contract:
+
+```text
+READY -> calculateEngineeringBatch() using request unchanged
+NOT_READY -> NOT_ASSESSED_DATA_INCOMPLETE, centralResult=null
+central failure -> CALCULATION_FAILED
+central success -> CALCULATED_BENCHMARK + central result/evidence
+```
+
+Plan/request guards reject non-FIT IDs, non-benchmark qualification mode, and executable requests attached to non-READY rows.
+
+Facility result contains counts for total/plannedReady/calculated/calculationFailed/notAssessed and a separate central batch summary.
+
+`complete=true` means orchestration/data completeness only; it is not a safety/engineering conclusion.
+
+Validation:
+
+```text
+source-level central-kernel review        PASS
+committed executor regression             NOT_RUN
+full repository                           NOT_RUN
+```
+
+### Stage 19 — Facility FIT register projection — IN_PROGRESS
+
+#### Objective
+
+Create a pure read model for table UI/API consumption from `VibrationFacilityFitResult.v1` without changing any result semantics.
+
+#### Planned row fields
+
+```text
+canonicalId
+line
+caseId
+status
+completenessStatus
+standardLof
+refinedLof
+governingReferenceLof
+referenceBand
+assessmentStatus
+qualificationState
+engineeringAuthority
+screeningAuthorized
+evidenceStrength
+screeningCandidateStatus
+sourceStatus
+```
+
+Absent numerical values remain `null` in the read projection only and must be accompanied by non-calculated status; source result remains authoritative.
+
+#### Planned facility summary
+
+```text
+totalRows
+calculatedRows
+notAssessedRows
+failedRows
+referenceBandCounts
+candidateForEngineeringReviewCount
+benchmarkOnlyCount
+```
+
+No “safe count,” no universal score and no facility PASS/FAIL.
+
+#### Planned files
+
+```text
+converters/vibration/facility/fit-register.js
+converters/vibration/facility/index.js
+tests/vibration-facility-fit-register.test.mjs
+docs/vibration/FIT-Facility-Register-v1.md
 agents/PR438_workreport.md
 ```
 
 #### Planned validation
 
-- READY request passes unchanged into injected/central batch request;
-- result ordering maps exactly to plan READY ordering while final rows retain plan order;
-- central successful benchmark outputs/evidence copied without reinterpretation;
-- central failure remains CALCULATION_FAILED;
-- NOT_READY remains non-numerical and never enters batch;
-- empty READY set does not call batch executor unnecessarily;
-- central strict/screening mutation is rejected by plan/schema guard;
-- executor rejects a plan containing READY request with calculation ID/mode inconsistent with FIT benchmark contract;
-- facility authority remains orchestration-only.
+- CALCULATED row projects benchmark/evidence values correctly;
+- NOT_ASSESSED projects null numerical values plus `DATA_INCOMPLETE` completeness;
+- CALCULATION_FAILED projects null numerical values plus `CALCULATION_FAILED` completeness;
+- benchmark-only qualification remains visible;
+- evidence strength is taken from central qualification coverage, not recomputed;
+- candidate count uses central screeningCandidate metadata, not LOF heuristic;
+- no pass/fail/universal score field exists;
+- deterministic row order preserved.
 
 ## Validation Ledger
 
@@ -223,15 +200,16 @@ agents/PR438_workreport.md
 | Stage 16 dataset regression | NOT_RUN |
 | Stage 17 plan regression | NOT_RUN |
 | Stage 18 executor regression | NOT_RUN |
+| Stage 19 register regression | NOT_RUN |
 | Full repository | NOT_RUN |
 | Screening authority | NOT_AUTHORIZED |
 
 ## Next-Agent Handover
 
-- Current stage: Stage 18.
-- Use central batch API; do not import/call `calculateFit()` directly in executor.
-- Do not alter READY request inputs/units/options.
-- Validate plan request ID and benchmark mode before executing.
-- NOT_READY rows never enter batch and never receive numeric defaults.
-- Preserve central evidence/qualification objects.
-- Highest risk: facility table showing a numerical “safe” result for missing or failed data.
+- Current stage: Stage 19.
+- Build a pure read projection only; do not call calculation APIs.
+- Keep benchmark-only/evidence status visible on every calculated row.
+- Null is acceptable only as display/read-model absence paired with non-calculated status; never reinterpret null as zero.
+- Do not create facility pass/fail or a generic vibration score.
+- Preserve row ordering and central result linkage.
+- Highest risk: a polished table hiding incomplete or unqualified engineering state.
