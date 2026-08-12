@@ -46,6 +46,7 @@ test('certified Connections produce a deterministic source-to-assessment row pat
   assert.equal(path.status, 'RESOLVED');
   assert.deepEqual(path.orderedCanonicalIds, ['CAN-PSV-1', 'CAN-P-1', 'CAN-WO-1']);
   assert.deepEqual(path.elements.map((row) => row.role), ['SOURCE', 'PROPAGATION_PATH', 'ASSESSMENT']);
+  assert.equal(path.alternateRouteDetected, false);
   assert.equal(path.authority.canonicalHash, 'canonical-1');
 });
 
@@ -60,7 +61,7 @@ test('topology visualization never invents physical AIV distance from component 
   assert(model.notes.some((note) => /not derived/u.test(note)));
 });
 
-test('ambiguous certified paths fail closed instead of choosing a convenient branch', () => {
+test('equally short ambiguous certified paths fail closed instead of choosing a convenient branch', () => {
   const input = exchange([
     { canonicalId: 'S', type: 'VALVE' }, { canonicalId: 'P1', type: 'PIPE' },
     { canonicalId: 'P2', type: 'PIPE' }, { canonicalId: 'A', type: 'OLET' },
@@ -74,6 +75,25 @@ test('ambiguous certified paths fail closed instead of choosing a convenient bra
   assert.equal(model.shortestPathCount, 2);
   assert.equal(model.rows.length, 0);
   assert.match(model.diagnostics[0].code, /AMBIGUOUS_SHORTEST_PATH/u);
+});
+
+test('a longer alternate certified route also fails closed instead of selecting the shortest hop path', () => {
+  const input = exchange([
+    { canonicalId: 'S', type: 'VALVE' }, { canonicalId: 'P1', type: 'PIPE' },
+    { canonicalId: 'P2', type: 'PIPE' }, { canonicalId: 'P3', type: 'PIPE' },
+    { canonicalId: 'A', type: 'OLET' },
+  ], [
+    { canonicalId: 'S', nodeId: 'N0' }, { canonicalId: 'P1', nodeId: 'N0' },
+    { canonicalId: 'P1', nodeId: 'N1' }, { canonicalId: 'A', nodeId: 'N1' },
+    { canonicalId: 'S', nodeId: 'N2' }, { canonicalId: 'P2', nodeId: 'N2' },
+    { canonicalId: 'P2', nodeId: 'N3' }, { canonicalId: 'P3', nodeId: 'N3' },
+    { canonicalId: 'P3', nodeId: 'N4' }, { canonicalId: 'A', nodeId: 'N4' },
+  ]);
+  const model = buildAivTopologyViewModel(input, { sourceCanonicalId: 'S', assessmentCanonicalId: 'A' });
+  assert.equal(model.pathStatus, 'AMBIGUOUS_TOPOLOGY_PATH');
+  assert.equal(model.alternateRouteDetected, true);
+  assert.equal(model.rows.length, 0);
+  assert.match(model.diagnostics[0].message, /will not choose a route/u);
 });
 
 test('AIV path UI uses inline SVG table glyphs without becoming a geometry/model viewer', () => {
