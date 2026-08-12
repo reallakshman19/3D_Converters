@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   AIV_D23_BENCHMARK_CASES,
   AIV_EI_D23_SOURCE,
+  AIV_EI_MAIN_GUIDANCE_SOURCE,
   AIV_METHOD_TRACE_FOUNDATION,
   AIV_QUALIFICATION_EVIDENCE,
 } from '../converters/vibration/aiv/aiv-qualification-evidence.js';
@@ -14,6 +15,18 @@ const source = (path) => fs.readFileSync(new URL(path, ROOT), 'utf8');
 function benchmark(id) {
   return AIV_D23_BENCHMARK_CASES.find((row) => row.benchmarkId === id);
 }
+
+test('main EI T2.7 authority is source-pinned but controlled formula extraction remains gated', () => {
+  assert.equal(AIV_EI_MAIN_GUIDANCE_SOURCE.repository, 'reallaksh19/Common');
+  assert.equal(AIV_EI_MAIN_GUIDANCE_SOURCE.commit, 'aef163a5def3bfe04ca0ba860da05728a27daf42');
+  assert.equal(AIV_EI_MAIN_GUIDANCE_SOURCE.path, 'EI - AVIFF Guidelines 2nd Edition.pdf');
+  assert.equal(AIV_EI_MAIN_GUIDANCE_SOURCE.gitBlob, '9d3eccc56429411e17c07a579bdebbd13cb0bdc5');
+  assert.match(AIV_EI_MAIN_GUIDANCE_SOURCE.locator, /pages 59-62/u);
+  assert.equal(AIV_EI_MAIN_GUIDANCE_SOURCE.officialErrata.aivRelevantPage, 61);
+  assert.deepEqual(AIV_EI_MAIN_GUIDANCE_SOURCE.officialErrata.pages, [61, 68]);
+  assert.equal(AIV_EI_MAIN_GUIDANCE_SOURCE.controlledContentExtractionState, 'PINNED_BLOB_CONTENT_RECONCILIATION_REQUIRED');
+  assert.equal(AIV_EI_MAIN_GUIDANCE_SOURCE.productionAuthority, false);
+});
 
 test('D.2.3 evidence is pinned to the controlled Common commit and blob', () => {
   assert.equal(AIV_EI_D23_SOURCE.repository, 'reallaksh19/Common');
@@ -57,11 +70,14 @@ test('relief discontinuity fixture captures verified intermediate chain but refu
   assert.equal(item.qualificationGap, 'FINAL_T2_6_LOF_NOT_YET_CAPTURED_FROM_CONTROLLED_SOURCE');
 });
 
-test('trace foundation keeps unqualified branches and production-equation source freeze explicit', () => {
+test('trace foundation freezes page locations while retaining errata and independent-benchmark gates', () => {
   const byId = new Map(AIV_METHOD_TRACE_FOUNDATION.map((row) => [row.traceId, row]));
+  assert.equal(byId.get('AIV-APP-T2-7-EXTENT-001').locator, 'T2.7.1, page 59');
+  assert.equal(byId.get('AIV-EQ-SOURCE-PWL-001').qualificationState, 'SOURCE_LOCATION_IDENTIFIED_CONTROLLED_EXTRACTION_REQUIRED');
+  assert.equal(byId.get('AIV-EQ-T2-6-001').qualificationState, 'ERRATA_PAGE_61_CONTROLLED_CONTENT_RECONCILIATION_REQUIRED');
+  assert(byId.get('AIV-EQ-T2-6-001').gaps.includes('OFFICIAL_ERRATA_PAGE_61_APPLIES'));
   assert.equal(byId.get('AIV-SRC-GAP-SONIC-SFF6').qualificationState, 'INDEPENDENT_BENCHMARK_REQUIRED');
   assert.equal(byId.get('AIV-SRC-GAP-MULTI-SOURCE').qualificationState, 'INDEPENDENT_BENCHMARK_REQUIRED');
-  assert.equal(byId.get('AIV-EQ-GAP-MAIN-GUIDANCE').qualificationState, 'SOURCE_LOCATION_AND_ERRATA_FREEZE_REQUIRED');
   assert.equal(AIV_QUALIFICATION_EVIDENCE.productionEquationAuthorized, false);
   assert.equal(AIV_QUALIFICATION_EVIDENCE.authority.calculationState, 'BLOCKED');
 });
