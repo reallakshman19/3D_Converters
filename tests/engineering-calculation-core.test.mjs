@@ -113,9 +113,14 @@ test('default catalogue exposes 4 executable definitions and 18 qualification-bl
   ]);
   const families = listEngineeringCalculationFamilies();
   assert.equal(families.reduce((sum, family) => sum + family.count, 0), 22);
+  assert.equal(families.find((family) => family.id === 'VIB')?.count, 6);
   const externalPressure = getEngineeringCalculationDefinition('PIPE.EXTERNAL_PRESSURE.CHECK');
   assert.equal(externalPressure.authority.qualificationState, 'BLOCKED');
   assert.equal(externalPressure.qualificationIssue, 428);
+  const shellIndentation = getEngineeringCalculationDefinition('PIPE.SHELL_INDENTATION');
+  assert.equal(shellIndentation.id, 'PIPE.SHELL_INDENTATION');
+  assert.equal(shellIndentation.authority.qualificationState, 'BLOCKED');
+  assert.equal(shellIndentation.qualificationIssue, 428);
   assert(Object.isFrozen(all));
   assert(Object.isFrozen(getEngineeringCalculationDefinition('PIPE.B313.THICKNESS')));
 });
@@ -154,25 +159,28 @@ test('empirical documented sample remains available through the centralized API'
 });
 
 test('qualification-gated placeholder definitions keep the frozen calculation IDs in order', () => {
-  assert.deepEqual(listEngineeringCalculations({ qualificationState: 'BLOCKED' }).map((row) => row.id), [
-    'PIPE.EXTERNAL_PRESSURE.CHECK',
-    'PIPE.FLANGE.LEAKAGE',
+  const blocked = listEngineeringCalculations().filter((row) => (
+    row.authority?.qualificationState ?? row.authority?.calculationState
+  ) === 'BLOCKED');
+  assert.deepEqual(blocked.map((row) => row.id), [
+    'EQUIP.API610.NOZZLE_LOADS',
+    'EQUIP.API617.LOAD_CHECK',
+    'EQUIP.NEMA_SM23.LOAD_CHECK',
+    'FLANGE.GRE.CHECK',
+    'FLANGE.LEAKAGE.CHECK',
+    'HAZARD.BLAST.SCREENING',
     'PIPE.BRANCH.REINFORCEMENT',
-    'PIPE.MITER.BEND',
-    'PIPE.BLANK.BLIND',
-    'PIPE.SUPPORT.LOAD',
+    'PIPE.EXTERNAL_PRESSURE.CHECK',
+    'PIPE.SHELL_INDENTATION',
+    'RELIEF.GAS.REACTION_FORCE',
+    'RELIEF.LIQUID.REACTION_FORCE',
+    'SUPPORT.TRUNNION.LOCAL_STRESS',
+    'SUPPORT.WELDED_SHOE.CHECK',
     'VIB.AIV.ACOUSTIC',
-    'VIB.SBC.SMALL_BORE',
     'VIB.CAVITATION.FLASHING',
-    'VIB.SURGE.MOMENTUM',
+    'VIB.SBC.SMALL_BORE',
     'VIB.SLUG.TIME_HISTORY',
-    'PRESSURE_VESSEL.WALL_THICKNESS',
-    'PRESSURE_VESSEL.NOZZLE_LOCAL_STRESS',
-    'HEAT_EXCHANGER.TEMA',
-    'PIPE.ROUTING.NOZZLE_LOAD',
-    'HYDRAULICS.COMPRESSOR.DISCHARGE',
-    'HYDRAULICS.PUMP.DISCHARGE',
-    'HYDRAULICS.PSV.SIZING',
+    'VIB.SURGE.MOMENTUM',
   ]);
 });
 
@@ -226,7 +234,8 @@ test('FIT is active only as benchmark-only workbook reference and retains issue 
   const definition = getEngineeringCalculationDefinition('VIB.FIV.FLOW_TURBULENCE');
   const qualification = getEngineeringCalculationQualification(definition.id);
   assert.equal(definition.id, 'VIB.FIV.FLOW_TURBULENCE');
-  assert.equal(definition.name, 'Flow-Induced Turbulence (FIT) — Workbook Reference');
+  assert.equal(definition.name, 'Flow-Induced Vibration Screening — FIT Workbook Reference');
+  assert.equal(definition.shortName, 'Flow-Induced Vibration Screening');
   assert.equal(definition.methodRevision, 'ei-aviff2-fit-reference-v2');
   assert.equal(definition.authority.calculationState, 'IMPLEMENTED');
   assert.equal(definition.authority.qualificationState, 'BENCHMARK_ONLY');
@@ -234,6 +243,7 @@ test('FIT is active only as benchmark-only workbook reference and retains issue 
   assert.equal(definition.qualificationIssue, 429);
   assert.equal(qualification.qualificationIssue, 429);
   assert.equal(definition.ui.requiredQualificationMode, 'benchmark');
+  assert.equal(definition.ui.productSurface, 'VIBRATION_INTEGRITY_TABLE_WORKSPACE');
   assert(definition.inputs.every((field) => field.engineeringDefault === undefined));
 });
 
