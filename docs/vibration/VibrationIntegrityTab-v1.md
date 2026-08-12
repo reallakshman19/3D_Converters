@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The **Vibration Integrity** engineering tab is the first visible table-only product surface for the FIT benchmark workflow.
+The **FIT Vibration Integrity workspace** is the first visible table-only product surface for the FIT benchmark workflow. It is reached through the Engineering Calculations **Vibrations** landing page rather than a standalone application navigation item.
 
 It consumes public vibration APIs. It does not contain FIT equations, method constants, unit conversions, applicability logic or engineering-authority decisions.
 
@@ -11,12 +11,33 @@ It consumes public vibration APIs. It does not contain FIT equations, method con
 ```text
 Engineering
   Engineering Calculations
-  Vibration Integrity
-  B31.3 Material Factors
-  Empirical Weight Tuning
+    1. Calculations
+    2. B31.3 Material Factors
+    3. Empirical Weight Tuning
+    4. HP Piping Class
+    5. Vibrations
+         -> FIT
 ```
 
-The tab is registered through `core/engineering-tabs-extension.js` and lazy-loads `tabs/vibration-integrity-tab.js`.
+`core/engineering-tabs-extension.js` exposes the single top-level **Engineering Calculations** entry. `tabs/engineering-workspace-tab.js` owns the five ordered sub-tabs. `tabs/vibrations-landing-tab.js` owns the Vibrations landing page, and selecting **FIT** dynamically loads `tabs/vibration-integrity-tab.js` inside that hierarchy.
+
+Legacy app-switch requests for `vibration-integrity` are migrated to `Engineering Calculations > Vibrations > FIT` so existing deep links do not recreate a standalone navigation item.
+
+## Vibrations landing page
+
+The Vibrations landing page is a mechanism selector, not an engineering kernel.
+
+Current active mechanism:
+
+```text
+Flow-Induced Turbulence (FIT)
+VIB.FIV.FLOW_TURBULENCE
+BENCHMARK ONLY
+```
+
+The FIT card advertises table ingestion, readiness, facility register and evidence review. It does not expose screening/design authority. Opening FIT renders the existing Vibration Integrity workspace; the toolbar provides a **← Vibrations** path back to the landing page.
+
+The landing layer contains no `calculateFit()`, `calculateEngineering()` or `calculateEngineeringBatch()` call and no 3D/canvas behavior.
 
 ## Product boundary
 
@@ -27,14 +48,17 @@ Advanced_Analysis 3D EDIT
         |
         | table export only
         v
-Vibration Integrity
+Vibrations landing
+        |
+        v
+FIT Vibration Integrity workspace
 ```
 
 The phrase “3D EDIT” identifies the upstream source product; no model renderer or geometry interaction is embedded downstream.
 
 ## Authority banner
 
-The tab always displays:
+The FIT workspace always displays:
 
 ```text
 BENCHMARK ONLY
@@ -56,17 +80,17 @@ Accepted:
 
 XLSX is preferred because the current five-sheet export preserves Connections, Source Mapping, Catalogue Evidence and Export Metadata.
 
-When CSV is selected the tab displays a limited-provenance warning. Readiness/benchmark work still requires the explicit **Allow limited Elements-only CSV** opt-in where a complete exchange would otherwise be required.
+When CSV is selected the workspace displays a limited-provenance warning. Readiness/benchmark work still requires the explicit **Allow limited Elements-only CSV** opt-in where a complete exchange would otherwise be required.
 
 ### Operating cases
 
-Strict `VibrationOperatingCaseCsv.v1` input. The tab offers a header-only template download.
+Strict `VibrationOperatingCaseCsv.v1` input. The workspace offers a header-only template download.
 
 ### Vibration enrichment
 
-Strict `VibrationEnrichmentCsv.v1` input. The tab offers a header-only template download.
+Strict `VibrationEnrichmentCsv.v1` input. The workspace offers a header-only template download.
 
-The tab does not infer missing tables, units, geometry values or process values.
+The workspace does not infer missing tables, units, geometry values or process values.
 
 ## Readiness versus numerical execution
 
@@ -127,7 +151,7 @@ Review candidate
 
 A row that was not calculated retains blank numerical cells and an explicit completeness state. The table never substitutes zero.
 
-The tab intentionally has no `Pass`, `Safe`, `Risk Score`, `Facility Score` or `Vibration Score` field.
+The workspace intentionally has no `Pass`, `Safe`, `Risk Score`, `Facility Score` or `Vibration Score` field.
 
 ## Summary
 
@@ -233,19 +257,19 @@ All imported/source strings are HTML-escaped by the renderer.
 
 ## Register export
 
-The tab exports the existing `VibrationFacilityFitRegister.v1` through `serializeVibrationFacilityFitRegisterCsv()`.
+The workspace exports the existing `VibrationFacilityFitRegister.v1` through `serializeVibrationFacilityFitRegisterCsv()`.
 
 The exported CSV preserves benchmark/evidence/authority fields and blank non-calculated numerical cells.
 
 ## Styling
 
-`tabs/vibration-integrity.css` uses a neutral/dark table workspace presentation. Benchmark limitation is highlighted, but calculated rows are not colored as “safe” or “pass.” Structured detail uses tables rather than raw JSON-heavy panels.
+`tabs/vibrations-landing.css` owns the mechanism landing/breadcrumb presentation. `tabs/vibration-integrity.css` uses a neutral/dark table workspace presentation. Benchmark limitation is highlighted, but calculated rows are not colored as “safe” or “pass.” Structured detail uses tables rather than raw JSON-heavy panels.
 
 ## Non-goals
 
 - no 3D or canvas;
 - no geometry rendering;
-- no direct engineering calculation in UI;
+- no direct engineering calculation in UI or landing page;
 - no method qualification promotion;
 - no pass/safe claim;
 - no universal risk/confidence score;
