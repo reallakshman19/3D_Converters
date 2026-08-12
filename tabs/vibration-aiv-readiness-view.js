@@ -23,7 +23,7 @@ function issueList(groups) {
 
 function readinessRows(state) {
   const rows = state.readinessEnvelope?.readiness?.rows ?? [];
-  if (!rows.length) return '<tr><td colspan="9" class="aivq-empty-row">No AIV source-case rows have been checked.</td></tr>';
+  if (!rows.length) return '<tr><td colspan="10" class="aivq-empty-row">No AIV source-case rows have been checked.</td></tr>';
   return rows.map((row) => `<tr${state.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
     <td><button type="button" class="aivq-row-link" data-aiv-row="${esc(row.rowKey)}">${esc(row.sourceTag || row.sourceCanonicalId)}</button></td>
     <td>${esc(row.assessmentTag || row.assessmentCanonicalId)}</td>
@@ -31,6 +31,7 @@ function readinessRows(state) {
     <td>${esc(row.sourceDeviceType)}</td>
     <td>${esc(row.sourceState)}</td>
     <td>${esc(row.phase)}</td>
+    <td>${esc(row.lowNoiseTrimState)}</td>
     <td>${esc(row.sonicState)}</td>
     <td><span class="aivq-status ${row.status === 'READY_FOR_QUALIFICATION' ? 'ok' : row.status === 'METHOD_GAP' ? 'gap' : 'bad'}">${esc(row.status)}</span></td>
     <td>${issueList([row.missing, row.invalid, row.methodGaps, row.warnings])}</td>
@@ -61,7 +62,7 @@ export function renderAivReadinessPanelHtml(state = {}) {
   const canCheck = Boolean(state.files?.topology && state.files?.sourceCases && !checking);
   const imports = state.readinessEnvelope?.imports;
   return `<section class="aivq-card">
-    <div class="aivq-section-head"><div><h4>AIV data readiness</h4><p>Identity, process evidence and certified topology only. This action never calculates PWL, attenuation or LOF.</p></div></div>
+    <div class="aivq-section-head"><div><h4>AIV data readiness</h4><p>Identity, process/device evidence and certified topology only. This action never calculates PWL, attenuation or LOF.</p></div></div>
     <div class="aivq-import-grid">
       <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX required')}</span></label>
       <label class="aivq-file-field"><span>AIV source cases</span><input type="file" data-aiv-file="sourceCases" accept=".csv,text/csv"><span>${fileStatus(state.files?.sourceCases, 'AivSourceCaseCsv.v1')}</span></label>
@@ -73,7 +74,7 @@ export function renderAivReadinessPanelHtml(state = {}) {
     ${state.error ? `<div class="aivq-error"><strong>Readiness check failed.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${imports ? `<div class="aivq-import-facts"><span>Topology integrity <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Source cases <strong>${esc(imports.sourceCaseCount)}</strong></span></div>` : ''}
     ${summary(state)}
-    <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Assessment</th><th>Case</th><th>Device type</th><th>State</th><th>Phase</th><th>Sonic</th><th>Readiness</th><th>Issues / gaps</th></tr></thead><tbody>${readinessRows(state)}</tbody></table></div>
+    <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Assessment</th><th>Case</th><th>Device type</th><th>State</th><th>Phase</th><th>Trim</th><th>Sonic</th><th>Readiness</th><th>Issues / gaps</th></tr></thead><tbody>${readinessRows(state)}</tbody></table></div>
     <div class="aivq-readiness-note">READY_FOR_QUALIFICATION means the evidence row is structurally ready for continued method qualification only. Numerical execution remains blocked.</div>
   </section>${selectedPath(state)}`;
 }
