@@ -29,15 +29,37 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-The solved EI D.2.3 and independent analytical vectors are qualification evidence. They do not themselves change this state.
+Solved EI D.2.3 and independent analytical vectors are qualification evidence. They do not themselves change this state.
+
+## Current release-candidate implementation
+
+PR #446 now contains an internal production-shaped candidate for stages 1–7:
+
+```text
+VALIDATE_INPUT
+RESOLVE_INPUT
+EVALUATE_APPLICABILITY
+CALCULATE_SOURCE_PWL
+APPLY_SOURCE_MODIFIERS
+CALCULATE_POINT_ATTENUATION
+COMBINE_SIMULTANEOUS_SOURCES
+```
+
+The following remain blocked:
+
+```text
+CALCULATE_DISCONTINUITY_RESULT
+AGGREGATE_LINE_CASE_RESULT
+ASSESS_RESULT
+```
+
+Stage 8 has a separate `AivDiscontinuityStage8EvidenceGate.v1`. Missing human T2.7/T2-6 and FLM1 reconciliation keeps stage 8 at `BLOCKED_PENDING_T2_6_RECONCILIATION`; malformed or unhashed evidence is `BLOCKED_INVALID_EVIDENCE`. Only completed hash-bound human verification may make stage 8 `READY_FOR_CANDIDATE_IMPLEMENTATION`. That status is not execution authority.
 
 ## Release 1 — BENCHMARK_ONLY
 
 ### Product intent
 
 Release the real AIV product calculation path only for controlled benchmark execution and engineering qualification review.
-
-The operator workflow becomes:
 
 ```text
 Load EI D.2.3
@@ -46,7 +68,7 @@ Load EI D.2.3
 → Run benchmark
 → Source Results
 → Assessment Results
-→ Line/Case Summary where qualified
+→ Line/Case Summary
 → Published vs calculated comparison
 → calculation detail / provenance
 ```
@@ -66,14 +88,37 @@ The first authority transition may authorize the production-shaped numerical imp
 
 ### Required evidence
 
-`AivReleasePlan.v1` requires four independently bound artifacts before it can report `ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION`:
+`AivReleasePlan.v1` now requires **five** independently hash-bound artifacts before it can report `ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION`:
 
 1. **Qualification machine parity** — `AivQualificationParityManifest.v1` with `MACHINE_PARITY_PASS`.
-2. **Qualification prerequisites** — `AivQualificationPromotionReadiness.v1` with all six prerequisite human/evidence gates satisfied.
-3. **Independent vibration engineer recommendation** — `AivIndependentVibrationEngineerPromotionReviewVerification.v1` recommending `BENCHMARK_ONLY`.
-4. **Exact-head release validation** — `AivReleaseValidationReceipt.v1` for the exact candidate SHA with actual executed tests/browser validation.
+2. **Real benchmark-kernel qualification** — `AivBenchmarkKernelQualification.v1` with `PASS`, all 10 kernel stages validated through product-path benchmark parity, and no authority mutation.
+3. **Qualification prerequisites** — `AivQualificationPromotionReadiness.v1` with the prerequisite human/evidence gates satisfied.
+4. **Independent vibration engineer recommendation** — `AivIndependentVibrationEngineerPromotionReviewVerification.v1` recommending `BENCHMARK_ONLY`.
+5. **Exact-head release validation** — `AivReleaseValidationReceipt.v1` for the exact candidate SHA with actual executed node/browser validation.
+
+This explicitly prevents isolated script parity from being mistaken for product release parity.
 
 The release planner never performs the transition. A separate reviewed code change must move the Engineering Calculation definition from BLOCKED to BENCHMARK_ONLY.
+
+### Benchmark-kernel qualification progression
+
+`AivBenchmarkKernelQualification.v1` distinguishes the implementation path:
+
+```text
+no candidate evidence
+  → NOT_READY
+
+stages 1–7 candidate parity only
+  → PARTIAL_STAGES_1_TO_7
+
+stages 1–7 parity + reviewed stage-8 human evidence gate
+  → READY_FOR_STAGES_8_TO_10_IMPLEMENTATION
+
+complete 10-stage product-path benchmark parity
+  → PASS
+```
+
+Only `PASS` satisfies the BENCHMARK_ONLY release gate.
 
 ### BENCHMARK_ONLY acceptance criteria
 
@@ -84,12 +129,14 @@ unexplained numerical constants          0
 silent engineering defaults              0
 UI-side AIV equations                     0
 source/assessment/result-scope ambiguity  0
-D.2.3 machine parity                      PASS
-sonic SFF=6 machine parity                PASS
-multi-source machine parity               PASS
+D.2.3 isolated machine parity             PASS
+stages 1–7 candidate-vs-qualification     PASS
+complete 10-stage product-path parity     PASS
+sonic SFF=6 parity                        PASS
+multi-source parity                       PASS
 FLM1 discrepancy                          human disposition recorded
 worked-example result scopes              human reconciliation recorded
-T2.7 trace set                            human reconciliation complete
+T2.7/T2-6 trace set                       human reconciliation complete
 independent benchmark vectors             human accepted
 retained workbook evidence                reconciled/excluded by human review
 independent vibration engineer            recommends BENCHMARK_ONLY
@@ -119,7 +166,7 @@ project Sources / Assessments / Source→Assessment
 
 ### Required evidence
 
-The release planner reserves the following required artifacts:
+The release planner reserves:
 
 ```text
 AivProductKernelQualificationReceipt.v1
@@ -153,8 +200,6 @@ Every result/export must continue to state that AIV screening is not design auth
 
 ## Stage order carried into release
 
-The product kernel contract is frozen as:
-
 ```text
 VALIDATE_INPUT
 RESOLVE_INPUT
@@ -168,11 +213,11 @@ AGGREGATE_LINE_CASE_RESULT
 ASSESS_RESULT
 ```
 
-The current Stage 16B scaffold keeps all stages `CONTRACT_ONLY` and hard-blocks execution until a reviewed authority transition occurs.
+The public contract remains hard-blocked until a reviewed authority transition occurs. Internal candidate code may be developed and qualified behind that boundary but must remain unregistered and unreachable from the product UI/API while BLOCKED.
 
 ## Release artifacts are evidence, not toggles
 
-A release artifact must be bound by SHA-256 to the exact file bytes. Bare booleans such as:
+Every release artifact must be bound by SHA-256 to exact bytes. Bare booleans such as:
 
 ```text
 humanReview=true
@@ -192,19 +237,21 @@ No numerical fallback may silently convert missing evidence into zero, PASS, SAF
 
 ## Immediate implementation sequence
 
-From the current codebase:
-
 ```text
-1. Freeze release-readiness contract                     DONE in PR #446
-2. Complete Stage 16B product kernel implementation      NEXT, execution still gated
-3. Drive EI D.2.3 through real result contracts          NEXT
-4. Produce product-path parity receipt                   after kernel
-5. Complete named human qualification artifacts          required for Release 1
-6. Produce exact-head release validation receipt          required for Release 1
-7. Independent engineer BENCHMARK_ONLY recommendation    required for Release 1
-8. Separate authority-transition PR                      Release 1
-9. Operate/qualify BENCHMARK_ONLY path                   before SCREENING
-10. Separate SCREENING qualification/release program      Release 2
+1. Freeze release-readiness contract                         DONE
+2. Implement/qualify candidate stages 1–7                  DONE / isolated focused PASS
+3. Complete T2.7/T2-6 + FLM1 human reconciliation          HUMAN GATE
+4. Implement candidate discontinuity stage 8               after stage-8 gate is ready
+5. Reconcile line/case result scope                         HUMAN GATE
+6. Implement candidate aggregation + assessment stages 9–10 after scope gate
+7. Drive EI D.2.3 through complete real result contracts    required for kernel qualification
+8. Produce AivBenchmarkKernelQualification.v1 PASS          required for Release 1
+9. Complete remaining named human qualification artifacts   required for Release 1
+10. Produce exact-head release validation receipt           required for Release 1
+11. Independent engineer BENCHMARK_ONLY recommendation      required for Release 1
+12. Separate authority-transition PR                        Release 1
+13. Operate/qualify BENCHMARK_ONLY path                     before SCREENING
+14. Separate SCREENING qualification/release program        Release 2
 ```
 
 ## Permanent boundary
