@@ -35,6 +35,7 @@ test('D.2.3 evidence is pinned to the controlled Common commit and blob', () => 
   assert.equal(AIV_EI_D23_SOURCE.gitBlob, 'ceee15ed5f7f320045d5f3979024e2e8664613f2');
   assert.match(AIV_EI_D23_SOURCE.locator, /D\.2\.3 High Frequency Acoustic Excitation \(T2\.7\)/u);
   assert.equal(AIV_EI_D23_SOURCE.productionAuthority, false);
+  assert(AIV_QUALIFICATION_EVIDENCE.sources.some((item) => item.gitBlob === '1ddef94f81bd30570d1b1f86b1d3e2acdcc17dec'));
 });
 
 test('published relief source benchmark captures pressure basis, non-sonic SFF and source PWL', () => {
@@ -49,25 +50,33 @@ test('published relief source benchmark captures pressure basis, non-sonic SFF a
   assert.equal(item.tolerance.sourcePwlDb, 0.05);
 });
 
-test('published recycle benchmark records manufacturer trim as evidence rather than an engineering default', () => {
+test('published recycle benchmark preserves 136.7 degC and manufacturer trim evidence', () => {
   const item = benchmark('AIV-EI-D2-3-RECYCLE-SOURCE');
   assert.deepEqual(item.publishedInputs.upstreamPressure, { value: 87, unit: 'barg' });
   assert.deepEqual(item.publishedInputs.downstreamPressure, { value: 25, unit: 'barg' });
+  assert.deepEqual(item.publishedInputs.upstreamTemperature, { value: 136.7, unit: 'degC' });
   assert.equal(item.publishedOutputs.sourcePwlDb, 159.4);
   assert.deepEqual(item.publishedInputs.lowNoiseTrim.reduction, {
     value: 30, unit: 'dB', qualifier: 'approximately',
   });
 });
 
-test('relief discontinuity fixture captures verified intermediate chain but refuses to invent final LOF', () => {
+test('relief discontinuity fixture captures the published full chain and keeps FLM1 reconciliation open', () => {
   const item = benchmark('AIV-EI-D2-3-RELIEF-DISCONTINUITY');
   assert.deepEqual(item.publishedInputs.sourceToAssessmentDistance, { value: 0.8, unit: 'm' });
   assert.equal(item.publishedIntermediates.attenuationDb, 0.312);
   assert.equal(item.publishedIntermediates.assessmentPwlDb, 164.4);
   assert.equal(item.publishedIntermediates.log10N, 9.9026);
   assert.equal(item.publishedIntermediates.N, 7.99e9);
-  assert.equal(item.publishedFinal, null);
-  assert.equal(item.qualificationGap, 'FINAL_T2_6_LOF_NOT_YET_CAPTURED_FROM_CONTROLLED_SOURCE');
+  assert.equal(item.publishedIntermediates.FLM1, 1.2133);
+  assert.equal(item.publishedIntermediates.NAfterFLM1, 9.70e9);
+  assert.equal(item.publishedIntermediates.FLM2, 0.2009);
+  assert.equal(item.publishedIntermediates.NAfterFLM2, 1.95e9);
+  assert.equal(item.publishedIntermediates.Lf, 0.31);
+  assert.deepEqual(item.publishedFinal, { LOF: 0.29, rule: 'Lf < 0.5 therefore LOF = 0.29' });
+  assert.equal(item.arithmeticReconciliation.state, 'OPEN');
+  assert.equal(item.arithmeticReconciliation.item, 'FLM1');
+  assert.equal(item.arithmeticReconciliation.consequence, 'FINAL_LOF_UNCHANGED_AT_0_29');
 });
 
 test('trace foundation freezes page locations while retaining errata and independent-benchmark gates', () => {
@@ -76,6 +85,11 @@ test('trace foundation freezes page locations while retaining errata and indepen
   assert.equal(byId.get('AIV-EQ-SOURCE-PWL-001').qualificationState, 'SOURCE_LOCATION_IDENTIFIED_CONTROLLED_EXTRACTION_REQUIRED');
   assert.equal(byId.get('AIV-EQ-T2-6-001').qualificationState, 'ERRATA_PAGE_61_CONTROLLED_CONTENT_RECONCILIATION_REQUIRED');
   assert(byId.get('AIV-EQ-T2-6-001').gaps.includes('OFFICIAL_ERRATA_PAGE_61_APPLIES'));
+  assert.equal(
+    byId.get('AIV-SRC-EI-D2-3-T2-6').qualificationState,
+    'WORKED_EXAMPLE_FULL_CHAIN_CAPTURED_ARITHMETIC_RECONCILIATION_OPEN',
+  );
+  assert(byId.get('AIV-SRC-EI-D2-3-T2-6').gaps.includes('PUBLISHED_FLM1_ARITHMETIC_RECONCILIATION_REQUIRED'));
   assert.equal(byId.get('AIV-SRC-GAP-SONIC-SFF6').qualificationState, 'INDEPENDENT_BENCHMARK_REQUIRED');
   assert.equal(byId.get('AIV-SRC-GAP-MULTI-SOURCE').qualificationState, 'INDEPENDENT_BENCHMARK_REQUIRED');
   assert.equal(AIV_QUALIFICATION_EVIDENCE.productionEquationAuthorized, false);
