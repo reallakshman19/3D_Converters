@@ -2,7 +2,7 @@
 
 ## Current state
 
-`VIB.AIV.ACOUSTIC` now follows an AUTO, benchmark-driven implementation path.
+`VIB.AIV.ACOUSTIC` follows an AUTO, benchmark-driven implementation path.
 
 ```text
 humanEvidenceRequired = false
@@ -34,11 +34,9 @@ docs/Energy-Institute-AVIFF---Worked-Examples.md
 blob 9f22d92eba8bdf3b67adc25a4c77a7f7d7211da8
 ```
 
-Corroborating worked-example PDF remains pinned in `reallaksh19/Common`.
-
 ## Product model
 
-Three result scopes remain mandatory:
+Three result scopes are mandatory:
 
 ```text
 SOURCE
@@ -55,49 +53,17 @@ ASSESSMENT
 
 LINE_CASE_SUMMARY
   line/case result
-  controlling context when derivable
 ```
 
 D.2.3 first-discontinuity `LOF=0.29` and worked-example relief-line `LOF=1.48` are different result scopes.
 
-## Split input ownership
-
-```text
-AivSourceCsv.v2
-AivAssessmentCsv.v1
-AivSourceAssessmentCsv.v1
-```
-
-Topology proves identity/connectivity only. AIV physical distance is an explicit relationship input or visible assumption; it is never derived from SVG pixels.
-
 ## Missing-data assumptions
 
-`AivAssumptionProfile.v1` supplies visible, editable defaults for:
+`AivAssumptionProfile.v1` supplies visible, editable defaults for source/process data, geometry/material, distance/applicability, identity/provenance and benchmark parameters. Every assumed cell is recorded. Explicit user input wins.
 
-- source/process values;
-- assessment geometry/material;
-- source→assessment distance/applicability;
-- deterministic identity/provenance where missing;
-- stages 8–10 benchmark parameters.
+Changing either a controlled benchmark table cell **or a benchmark assumption** invalidates the committed D.2.3 parity record. Reloading EI D.2.3 restores the validated default-input identity.
 
-Every assumed table cell is recorded. Explicit user input wins over the profile.
-
-Default D.2.3-oriented benchmark assumptions include:
-
-```text
-A = 0.93989
-S = 68.229
-B = 152.207
-FLM1 mode = PUBLISHED | RECALCULATED
-FLM1 published = 1.2133
-FLM1 recalculated = 1.2109758194311824
-D.2.3 assessment LOF reference = 0.29
-worked-example relief-line LOF reference = 1.48
-lineAggregationMode = SEPARATE_RESULT_SCOPES
-assessmentMode = BENCHMARK_COMPARE_ONLY
-```
-
-## Ten-stage AUTO kernel path
+## Ten-stage AUTO path
 
 ```text
 1  VALIDATE_INPUT
@@ -112,9 +78,7 @@ assessmentMode = BENCHMARK_COMPARE_ONLY
 10 ASSESS_RESULT
 ```
 
-Stages 1–7 are implemented in the production-shaped candidate. Stages 8–10 are implemented in the controlled AUTO benchmark adapter using the already-controlled qualification math helpers.
-
-Stage 8 calculates the errata fatigue-life chain from configured A/S/B and the selected FLM1 branch. Stage 9 keeps the line result separate when the worked example does not expose enough information to derive it from a single discontinuity. Stage 10 is benchmark-comparison-only and emits no universal operating/design classification.
+Stages 1–7 use the production-shaped candidate. Stages 8–10 use the controlled AUTO benchmark adapter and existing qualification math helpers.
 
 ## D.2.3 full product-path validation
 
@@ -166,7 +130,23 @@ Assessment LOF             0.29
 Configured line LOF        1.48
 ```
 
-The displayed-input FLM1 variance is `0.0023241805688176687`, within the configurable benchmark tolerance `0.0024`.
+The displayed-input FLM1 variance is `0.0023241805688176687`, within configurable tolerance `0.0024`.
+
+## Stage 18 — completed
+
+The operator workspace now provides, for an unchanged controlled D.2.3 benchmark:
+
+```text
+validated Source Results
+validated Assessment Result
+T2-6 calculation detail
+validated Line / Case Summary
+assumption context
+validation artifact identity
+Export validation package
+```
+
+The export schema is `AivValidatedBenchmarkExportPackage.v1` and contains the validation record plus the active assumption profile. Modified table inputs or assumptions cannot reuse the committed validation result.
 
 ## AUTO stage plan
 
@@ -175,12 +155,12 @@ The displayed-input FLM1 variance is `0.0023241805688176687`, within the configu
 16B.2 assumptions + stages 8–10 configuration      COMPLETE
 16B.3 stages 8–10 implementation                   COMPLETE
 17     D.2.3 Source/Assessment/Line validation      COMPLETE / PASS
-18     benchmark result detail + assumptions/export NEXT
-19     exact-head validation + BENCHMARK_ONLY       BLOCKED_BY_STAGE_18
+18     result detail / assumptions / export         COMPLETE
+19     exact-head validation + BENCHMARK_ONLY       NEXT
 20     SCREENING machine qualification              FUTURE
 ```
 
-`AivAutoStagePlan.v1` drives the sequence. AUTO stops only on:
+AUTO stops only on:
 
 ```text
 INVALID_ASSUMPTION_PROFILE
@@ -189,42 +169,41 @@ PRODUCT_PATH_BENCHMARK_PARITY_FAILURE
 EXACT_HEAD_VALIDATION_FAILURE
 ```
 
-## Stage 18 — next
+## Stage 19 — next
 
-Wire the validated calculated benchmark data into the operator workspace:
+Run the exact PR head through:
 
 ```text
-Source Results
-Assessment Results
-Line / Case Summary
-Calculation detail
-Assumption trace
-Validation receipt
-Export package
+npm run verify:aiv-input-model
+npm run run:aiv-d23-product-path-validation
+browser operator workflow:
+  Load EI D.2.3
+  inspect validated Source / Assessment / Line results
+  edit a table value -> committed validation disappears
+  reload benchmark
+  edit an assumption -> committed validation disappears
+  reload benchmark
+  export validation package
 ```
 
-The UI must remain equation-free; it displays kernel outputs and assumptions only.
+A real exact-head execution produces `AivReleaseValidationReceipt.v1`. GitHub Actions jobs with no runner/steps remain `NOT_RUN` and do not count.
 
-## Stage 19 — BENCHMARK_ONLY release
+## BENCHMARK_ONLY release gates
 
-`AivReleasePlan.v2` requires four machine/configuration artifacts:
+`AivReleasePlan.v2` requires:
 
 ```text
 1. AivQualificationParityManifest.v1
 2. AivAssumptionProfileValidation.v1
-3. AivBenchmarkKernelQualification.v2 — PASS / 10-stage product path
-4. AivReleaseValidationReceipt.v1 — exact-head node/browser execution PASS
+3. AivBenchmarkKernelQualification.v2 — PASS
+4. AivReleaseValidationReceipt.v1 — exact-head execution PASS
 ```
 
-No human reviewer artifact is required.
-
-Repository Actions jobs that receive no runner/steps remain `NOT_RUN`; they are not release validation receipts.
-
-When the four gates pass, a separate explicit transition may change the method to BENCHMARK_ONLY. That transition does not grant SCREENING or design authority.
+No human reviewer artifact is required. A separate explicit code change applies the BENCHMARK_ONLY transition after these gates pass.
 
 ## Stage 20 — SCREENING
 
-SCREENING is a later independent machine-qualification program. It must cover project input domains, single/batch parity, line/case behavior, applicability boundaries, result/export behavior and exact-head validation.
+SCREENING is a later machine-qualification program covering project input domains, single/batch parity, line/case behavior, applicability boundaries, result/export behavior and exact-head validation.
 
 `designAuthority=false` remains the product boundary.
 
