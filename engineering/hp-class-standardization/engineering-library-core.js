@@ -142,11 +142,11 @@
   function evaluateMaterial(rows, key, targetTemperatureC) {
     const target = number(targetTemperatureC);
     if (!Number.isFinite(target)) return { ok: false, error: 'Target temperature must be numeric.' };
-    const errors = validateMaterialRows(rows);
-    if (errors.length) return { ok: false, error: errors[0] };
     const selected = rows.filter((row) => materialKey(row) === key)
       .sort((a, b) => number(a.temperatureC) - number(b.temperatureC));
     if (!selected.length) return { ok: false, error: 'Selected material/grade/condition is not available.' };
+    const errors = validateMaterialRows(selected);
+    if (errors.length) return { ok: false, error: errors[0] };
 
     const exact = selected.find((row) => Math.abs(number(row.temperatureC) - target) <= EPS);
     if (exact) {
@@ -187,11 +187,12 @@
   }
 
   function productByIndex(rows, index) {
-    const errors = validateProductRows(rows);
-    if (errors.length) return { ok: false, error: errors[0] };
     const i = Number(index);
     if (!Number.isInteger(i) || i < 0 || i >= rows.length) return { ok: false, error: 'Select one exact product row.' };
-    return { ok: true, row: clone(rows[i]), key: productKey(rows[i]) };
+    const selected = rows[i];
+    const errors = validateProductRows([selected]);
+    if (errors.length) return { ok: false, error: errors[0].replace('Product row 1:', 'Selected product:') };
+    return { ok: true, row: clone(selected), key: productKey(selected) };
   }
 
   function safeFilename(libraryId, revision) {
