@@ -1,6 +1,7 @@
 import {
   AIV_D23_BENCHMARK_CASES,
   AIV_EI_D23_SOURCE,
+  AIV_EI_MAIN_GUIDANCE_SOURCE,
   AIV_METHOD_TRACE_FOUNDATION,
 } from '../converters/vibration/aiv/aiv-qualification-evidence.js';
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
@@ -18,12 +19,17 @@ function cell(value) {
   return value === null || value === undefined || value === '' ? '<span class="aivq-empty">—</span>' : esc(value);
 }
 function evidenceKind(state) {
-  return /REQUIRED|PARTIAL|GAP/u.test(state) ? 'gap' : 'ok';
+  return /REQUIRED|PARTIAL|GAP|ERRATA/u.test(state) ? 'gap' : 'ok';
+}
+function sourceLabel(sourceId) {
+  if (sourceId === AIV_EI_MAIN_GUIDANCE_SOURCE.sourceId) return 'EI T2.7 main guidance';
+  if (sourceId === AIV_EI_D23_SOURCE.sourceId) return 'EI D.2.3 worked example';
+  return 'Unresolved source';
 }
 function coverageRows() {
   return AIV_METHOD_TRACE_FOUNDATION.map((item) => `<tr>
     <td><code>${esc(item.traceId)}</code></td><td>${esc(item.subject)}</td>
-    <td>${item.sourceId ? 'EI D.2.3' : '<span class="aivq-empty">Main guidance not frozen</span>'}</td>
+    <td>${esc(sourceLabel(item.sourceId))}<br><small>${cell(item.locator)}</small></td>
     <td><span class="aivq-status ${evidenceKind(item.qualificationState)}">${esc(item.qualificationState)}</span></td>
     <td>${item.gaps?.length ? esc(item.gaps.join('; ')) : item.benchmarkIds?.length ? esc(item.benchmarkIds.join('; ')) : '<span class="aivq-empty">—</span>'}</td>
   </tr>`).join('');
@@ -44,6 +50,7 @@ export function renderAivQualificationWorkspaceHtml(state = {}) {
     <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Non-numerical data readiness and controlled published-reference evidence are available. Benchmark execution, screening and production AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
     <section class="aivq-card"><h4>Controlled source set</h4><div class="aivq-grid">
       <div><small>Qualification issue</small><strong>#441</strong></div>
+      <div><small>EI T2.7 main guidance</small><strong>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.path)}</strong><span>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.repository)} @ ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.commit)} · blob ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.gitBlob)} · ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.locator)}</span><span>Page ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.officialErrata.aivRelevantPage)} errata reconciliation required before equation transcription.</span></div>
       <div><small>EI worked-example source</small><strong>${esc(AIV_EI_D23_SOURCE.path)}</strong><span>${esc(AIV_EI_D23_SOURCE.repository)} @ ${esc(AIV_EI_D23_SOURCE.commit)} · blob ${esc(AIV_EI_D23_SOURCE.gitBlob)} · ${esc(AIV_EI_D23_SOURCE.locator)}</span></div>
       <div><small>Advanced_Analysis visual lineage</small><strong>Sequential engineering SVG symbols</strong><span>Advanced_Analysis @ 6463b39866f68eb6476bfa41764538eb19f8b9f9</span></div>
       <div><small>Topology authority</small><strong>TopologyEditTableHumanExport.v1</strong><span>Elements + Connections + Source Mapping + Catalogue Evidence + Export Metadata</span></div>
@@ -59,8 +66,8 @@ export function renderAivQualificationWorkspaceHtml(state = {}) {
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>EI D.2.3 published benchmark evidence</h4><p>These are pinned published-reference values, not outputs from the production AIV calculator.</p></div></div>
       <div class="aivq-example-table"><table><thead><tr><th>Benchmark</th><th>Case</th><th>Published source PWL (dB)</th><th>Published point PWL (dB)</th><th>Evidence state</th><th>Open gap</th></tr></thead><tbody>${benchmarkRows()}</tbody></table></div>
     </section>
-    <section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV qualification trace register</h4><p>Trace state comes directly from the immutable qualification evidence module; it is not a confidence score or screening classification.</p></div></div>
-      <div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence</th><th>Qualification state</th><th>Benchmark / gap</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
+    <section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV qualification trace register</h4><p>Page/flowchart locations are visible even while controlled content extraction remains blocked. Trace state is not a confidence score or screening classification.</p></div></div>
+      <div class="aivq-example-table"><table><thead><tr><th>Trace ID</th><th>Method item</th><th>Evidence / locator</th><th>Qualification state</th><th>Benchmark / gap</th></tr></thead><tbody>${coverageRows()}</tbody></table></div>
     </section>
     <section class="aivq-card"><h4>Permanent UI boundary</h4><ul class="aivq-list"><li>Advanced_Analysis remains topology/model author.</li><li>AIV consumes certified table exchange and separate process/device authorities.</li><li>No 3D viewer, free-form topology canvas, geometry editor or click-on-model calculation workflow is added.</li><li>No AIV PWL equation, attenuation equation, LOF equation, threshold assessment or pass/safe logic is implemented in UI code.</li><li>Missing or ambiguous source-to-assessment mappings fail closed and remain non-numerical.</li></ul></section>
   </div>`;
