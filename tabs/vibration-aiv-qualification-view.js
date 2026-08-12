@@ -73,8 +73,8 @@ function independentBenchmarkRows() {
 
 export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
-    <header class="aivq-header"><div><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>BLOCKED</strong><span>BENCHMARK IMPLEMENTATION IN PROGRESS · NOT DESIGN AUTHORITY</span></div></header>
-    <section class="aivq-card aivq-banner"><strong>Benchmark qualification workspace.</strong><span>Controlled examples, editable working tables, user-configurable assumptions, readiness and frozen result scopes are available. Human evidence is not a release prerequisite. Product numerical execution remains blocked until the complete 10-stage benchmark path and exact-head validation are implemented.</span></section>
+    <header class="aivq-header"><div><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>BLOCKED</strong><span>D.2.3 PRODUCT PATH 22/22 PASS · BENCHMARK_ONLY RELEASE PREP</span></div></header>
+    <section class="aivq-card aivq-banner"><strong>Benchmark product path validated.</strong><span>All 10 D.2.3 stages now execute in the controlled AUTO benchmark path and the committed validation record passes 22/22 checks. Missing engineering data remains visible and user-configurable. The next AUTO stage is result detail/assumption/export wiring, followed by exact-head release validation before any BENCHMARK_ONLY authority transition.</span></section>
     ${renderAivInputWorkspaceHtml(state)}
     ${renderAivReadinessPanelHtml(state)}
     ${renderAivResultShellsHtml(state)}
