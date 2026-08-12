@@ -240,10 +240,21 @@ tests/vibration-aiv-topology-view.test.mjs
 ### Executable status
 
 ```text
-NOT_RUN in this environment
+NOT_RUN
 ```
 
-Reason: no usable local GitHub checkout/network in the current execution environment, and repository GitHub Actions capacity/budget has previously prevented AIV jobs from starting. Do not reinterpret this as PASS or FAIL.
+Latest current-head AIV workflow snapshot:
+
+```text
+head SHA    9f37616c111ce2015e06083995e34874e8f9d310
+run         31607658552
+job         94150664794
+runner_id   0
+steps       []
+annotation  The job was not started because an Actions budget is preventing further use.
+```
+
+This is an infrastructure/capacity no-start. It is not an executed test failure and not a PASS.
 
 ## Remaining engineering promotion gates
 
