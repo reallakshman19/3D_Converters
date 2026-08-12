@@ -2,6 +2,7 @@ import { isEngineeringCalculationExecutable } from './engineering-calculation-co
 import { definitionState, esc, pill } from './engineering-calculation-console-sections.js';
 
 const FIT_ID = 'VIB.FIV.FLOW_TURBULENCE';
+const FIT_PRODUCT_SURFACE = 'VIBRATION_INTEGRITY_TABLE_WORKSPACE';
 
 function statusKind(definition) {
   const state = definitionState(definition);
@@ -10,10 +11,16 @@ function statusKind(definition) {
 }
 
 function mechanismAction(definition) {
-  const label = definition.id === FIT_ID && definitionState(definition) === 'BENCHMARK_ONLY'
+  const executable = isEngineeringCalculationExecutable(definition);
+  const fitWorkspace = definition.id === FIT_ID
+    && executable
+    && definition.ui?.productSurface === FIT_PRODUCT_SURFACE;
+  const label = fitWorkspace
     ? 'Open FIT workspace'
-    : 'View qualification basis';
-  return `<button type="button" class="engineering-console-btn ${definition.id === FIT_ID ? 'primary' : ''}" data-calc-id="${esc(definition.id)}">${label}</button>`;
+    : executable
+      ? 'Open calculation'
+      : 'View qualification basis';
+  return `<button type="button" class="engineering-console-btn ${fitWorkspace ? 'primary' : ''}" data-calc-id="${esc(definition.id)}">${label}</button>`;
 }
 
 function mechanismCard(definition) {
@@ -36,13 +43,14 @@ function mechanismCard(definition) {
 
 export function renderVibrationFamilyLanding(definitions = []) {
   const rows = definitions.filter((definition) => definition.family === 'VIB');
+  const blocked = rows.filter((definition) => !isEngineeringCalculationExecutable(definition)).length;
   return `<section class="engineering-vibration-landing">
     <header class="engineering-vibration-header">
       <div>
         <h2>Vibration &amp; Dynamic Screening</h2>
-        <p>Mechanism-specific vibration integrity. FIT is available only as a benchmark/reference workflow; every other vibration mechanism remains qualification-blocked.</p>
+        <p>Mechanism-specific vibration integrity. Registered qualification states and available product surfaces are shown without promoting evidence into screening authority.</p>
       </div>
-      <div class="engineering-vibration-count">${rows.length} mechanisms</div>
+      <div class="engineering-vibration-count">${rows.length} mechanisms · ${blocked} blocked</div>
     </header>
     <div class="engineering-console-banner warn"><strong>Authority boundary.</strong> No mechanism on this page has screening or design authority. Evidence/benchmark capability does not imply production qualification.</div>
     <div class="engineering-vibration-boundary"><strong>TABLE DATA ONLY</strong><span>Vibration consumes 3D EDIT table exports. No 3D viewer or canvas is embedded here.</span></div>
