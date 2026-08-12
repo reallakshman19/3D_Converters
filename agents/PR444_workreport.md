@@ -8,14 +8,14 @@ Source task / issue  #441
 PR number            #444
 Branch               agent/aiv-traceable-table-ui-foundation
 Base commit          243042fba24915ae7b2734556cf2d28c1b5425b7
-Current HEAD         39cf0a89780c66274c5e9e65ebc9f3b8e73c53ac at report creation
-PR status            DRAFT / OPEN
-Current stage        Stage 12 — example-driven product/input-model pivot
+Current HEAD         f4511cc88faa4e8c1f32dd447fee95d1e333f62e at Stage-12 source completion
+PR status            DRAFT / OPEN / MERGEABLE
+Current stage        Stage 12 — source implementation complete; executable validation pending
 Last completed stage Stage 11 — controlled worked-example Markdown integration
-Engineering status   BLOCKED authority; qualification-first infrastructure present; product-model pivot in progress
-Validation status    Source review performed; executable current-head CI unavailable because Actions budget prevents job start
-Current blocker      Human EI T2.7/FLM1/result-scope/benchmark/workbook reconciliation before numerical promotion
-Exact next action    Split AIV source, assessment, and source→assessment contracts and rewire readiness/UI
+Engineering status   Authority remains BLOCKED; example-driven input model is now implemented at source level
+Validation status    PARTIAL: focused tests committed, but not executed in this environment
+Current blocker      No executable current-head validation plus required human EI/FLM1/result-scope/benchmark/workbook reconciliation
+Exact next action    Run `npm run verify:aiv-input-model` in a normal checkout, then begin Stage 13 editable working tables + controlled D.2.3 loader
 ```
 
 ## Handover in 60 Seconds
@@ -23,129 +23,119 @@ Exact next action    Split AIV source, assessment, and source→assessment contr
 ### What is now true
 
 - `VIB.AIV.ACOUSTIC` remains fully BLOCKED with no screening/design authority.
-- PR #444 has substantial topology/readiness/source/errata/benchmark/workbook qualification infrastructure.
-- The controlled worked-example Markdown is available on main from PR #445 and is pinned in the AIV evidence layer.
-- The worked examples demonstrate three distinct result scopes: Source Result, Assessment Result, Line/Case Summary.
-- `docs/vibration/AIV-Product-Roadmap-v2.md` is now the target product roadmap.
+- `docs/vibration/AIV-Product-Roadmap-v2.md` is the target UI/logic/workflow roadmap.
+- The target input model is no longer one combined source+assessment row.
+- Production-consumed split contracts now exist:
+  - `AivSourceCsv.v2` — Source + Operating Case process/device evidence;
+  - `AivAssessmentCsv.v1` — welded assessment geometry/material evidence;
+  - `AivSourceAssessmentCsv.v1` — applicability, physical distance, simultaneous-source group and relationship provenance.
+- Readiness joins those contracts explicitly and fails closed on missing joins, missing distance provenance, unresolved applicability, topology identity/path ambiguity, mixed main-dimension units, unresolved trim/sonic/material evidence, and other controlled gaps.
+- One source can map to multiple assessments without duplicating process data.
+- Multiple sources can map to one assessment through an explicit simultaneous-source group.
+- Certified topology still provides identity/connectivity only; `topology.physicalDistanceMm` remains non-authoritative/null.
+- The UI now imports topology + Sources + Assessments + Source→Assessment files and exposes three templates.
+- `AivSourceCaseCsv.v1` remains only as a transitional/migration contract; it is no longer the target readiness workflow.
 
 ### What is being worked on
 
-Stage 12 replaces the combined source+assessment source-case product model with separate Sources, Assessments, and Source→Assessment relationship inputs.
+Stage 12 is source-complete but not executable-validated. Stage 13 should implement the real editable operator tables and controlled D.2.3 loader using the split contracts.
 
 ### What remains unfinished
 
-- split input contracts and UI wiring;
-- controlled benchmark loader and editable working tables;
-- result-contract freeze;
+- execute Stage-12 focused tests in a normal checkout;
+- editable Sources / Assessments / Source→Assessment working tables;
+- controlled `Load EI D.2.3` workflow and benchmark-modified invalidation;
+- Source Result / Assessment Result / Line Summary contract freeze;
 - human engineering reconciliation gates;
 - qualification-only numerical kernel;
-- BENCHMARK_ONLY execution and result workspace;
+- BENCHMARK_ONLY real-path execution;
+- facility result register/detail/export;
 - independent vibration-engineer promotion review.
 
 ### What must not be assumed
 
 - no production AIV equation is authorized;
-- no numerical benchmark execution is currently authorized;
+- no benchmark/screening numerical execution is currently authorized;
 - no legacy workbook formula is EI authority;
 - topology connectivity does not provide physical AIV distance;
-- line-level report LOF and a specific discontinuity LOF are not interchangeable;
-- GitHub workflow failure currently reflects Actions budget/no-start, not executed-test failure.
+- line-report LOF and specific discontinuity LOF are not interchangeable;
+- committed tests have not run in this environment;
+- GitHub Actions failures seen on this PR are no-start budget/capacity conditions, not executed-test failures.
 
 ### Highest-risk remaining item
 
-Engineering scope/reconciliation of the complete T2.7/T2-6 chain, especially FLM1 and the distinction between derived line-report results and D.2.3 first-discontinuity results.
+Human engineering reconciliation of the complete T2.7/T2-6 method and result-scope semantics, especially the D.2.3 FLM1 discrepancy and line-summary aggregation interpretation.
 
 ### Exact next action
 
-Implement separate source/assessment/relationship CSV contracts and make readiness fail closed on missing joins and physical-distance provenance.
+In a normal repository checkout run:
+
+```bash
+npm install
+npm run verify:aiv-input-model
+```
+
+Fix any source/test regressions before starting Stage 13.
 
 ## Mission and Engineering Intent
 
-### Mission
+Build AIV as a defensible downstream engineering assessment product using controlled Energy Institute guidance/worked examples, certified topology identity, explicit process/device/geometry/relationship evidence, and central numerical execution only after qualification.
 
-Build AIV as a defensible downstream engineering assessment product using controlled Energy Institute guidance/worked examples, certified topology identity, explicit process/device/geometry evidence, and central numerical execution only after qualification.
+Permanent product boundary:
 
-### User / engineering consequence
+```text
+Advanced_Analysis:
+AUTHOR → EDIT → VALIDATE → CERTIFY → EXPORT
 
-An operator should eventually be able to load a controlled EI benchmark or project evidence, inspect/edit tabular inputs, understand readiness failures, execute an authorized benchmark/screening calculation through the central kernel, inspect source/assessment/line results, and export traceable evidence without confusing different AIV result scopes.
+3D_Converters / AIV:
+IMPORT → VERIFY → JOIN → ASSESS → EXPLAIN
+```
 
-### Scope
-
-- AIV data contracts;
-- readiness and provenance;
-- worked-example benchmark evidence;
-- table-first operator UI;
-- qualification evidence and promotion gates;
-- future central calculation/result integration.
-
-### Governing principles
-
-- EI main guidance is engineering method authority after controlled reconciliation.
-- Worked examples are benchmark/interpretation evidence, not a substitute for method authority.
-- Source Result, Assessment Result, and Line Summary are distinct scopes.
-- No silent engineering defaults.
-- Explicit units and pressure basis.
-- Physical AIV distance requires engineering provenance.
-- No UI-side AIV equations.
-- Single/batch execution must share the same future kernel.
-- Qualification and numerical result authority are separate.
-
-### Explicit non-goals
-
-- 3D viewer/canvas/model editor;
-- geometry authoring/writeback;
-- pixel-derived distance;
-- universal risk/confidence/vibration scores;
-- pass/safe claims without assessment authority;
-- adoption of workbook formulas as method authority.
+Explicit non-goals: 3D/model authoring, free-form topology canvas, pixel-derived distance, geometry writeback, universal risk/confidence scores, pass/safe claims without authority, or workbook-formula authority.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---:|---|
-| Authority freeze / issue #441 routing | P0 | DONE | 1 | pending-definitions + PR authority block |
-| Table-first qualification UI foundation | P0 | IMPLEMENTED | 1–2 | AIV qualification tab/views |
-| Certified topology path evidence | P0 | IMPLEMENTED | 1–2 | vibration topology graph/path modules |
-| Combined v1 AIV source-case readiness | P0 | IMPLEMENTED | 2 | AivSourceCaseCsv.v1 + readiness |
-| EI T2.7 trace registry | P0 | IMPLEMENTED | 3 | qualification evidence |
-| Official page-61 errata evidence | P0 | IMPLEMENTED | 4 | errata evidence + benchmark |
-| Controlled T2.7 extraction/reconciliation gate | P0 | IMPLEMENTED | 5–6 | scripts/contracts; execution capacity blocked |
-| D.2.3 revalidation + final LOF evidence | P0 | IMPLEMENTED | 7–8 | D.2.3 evidence/FLM1 review |
-| Retained workbook inventory/reconciliation | P1 | IMPLEMENTED | 9 | migration evidence only |
-| Sonic/multi-source qualification vectors | P1 | IMPLEMENTED | 10 | independent benchmark evidence |
-| Controlled Markdown worked-example source | P0 | ACCEPTED | 11 | PR #445 / blob 9f22d92... |
-| Example-driven roadmap | P0 | DONE | 12 | docs/vibration/AIV-Product-Roadmap-v2.md |
-| Split Sources / Assessments / Relationships | P0 | IN_PROGRESS | 12 | current stage |
-| Controlled benchmark loader / editable working tables | P0 | NOT_STARTED | 13 | roadmap stage 2 |
-| Result-contract freeze | P0 | NOT_STARTED | 14 | roadmap stage 3 |
+| Authority freeze / issue #441 routing | P0 | DONE | 1 | pending-definitions / PR authority |
+| Qualification UI + topology evidence | P0 | IMPLEMENTED | 1–2 | AIV tab/views + topology graph |
+| Legacy combined `AivSourceCaseCsv.v1` | P1 | DEFERRED | 2 | retained for migration only |
+| EI T2.7 trace + official errata evidence | P0 | IMPLEMENTED | 3–6 | controlled trace/reconciliation assets |
+| D.2.3 benchmark / FLM1 evidence | P0 | IMPLEMENTED | 7–8 | published chain + human disposition gate |
+| Retained workbook migration evidence | P1 | IMPLEMENTED | 9 | formula inventory/reconciliation gate |
+| Sonic/multi-source qualification vectors | P1 | IMPLEMENTED | 10 | human acceptance pending |
+| Controlled worked-example Markdown | P0 | ACCEPTED | 11 | PR #445 / blob `9f22d92...` |
+| Example-driven roadmap | P0 | DONE | 12 | `AIV-Product-Roadmap-v2.md` |
+| Split Sources / Assessments / Relationships | P0 | IMPLEMENTED | 12 | v2/v1 split contracts + readiness/UI |
+| Stage-12 executable validation | P0 | BLOCKED | 12 | no local checkout/network; Actions budget prevents workflow start |
+| Editable working tables + D.2.3 loader | P0 | NOT_STARTED | 13 | roadmap Stage 2 |
+| Result-contract freeze | P0 | NOT_STARTED | 14 | roadmap Stage 3 |
 | Human engineering reconciliation closure | P0 | BLOCKED | 15 | named engineer required |
 | Numerical AIV kernel | P0 | BLOCKED | 16 | qualification prerequisite |
-| BENCHMARK_ONLY real-path execution | P0 | BLOCKED | 17 | numerical kernel + promotion prerequisite |
-| Facility results / export | P1 | NOT_STARTED | 18 | roadmap stage 7 |
+| BENCHMARK_ONLY real-path execution | P0 | BLOCKED | 17 | kernel + promotion prerequisite |
+| Facility results / export | P1 | NOT_STARTED | 18 | roadmap Stage 7 |
 | Independent promotion review | P0 | BLOCKED | 19 | human vibration engineer |
 
 ## Engineering Item Register
 
-| ID | Type | Severity/Priority | Status | Summary | Current PR? |
-|---|---|---|---|---|---|
-| DEC-001 | Decision | P0 | ACCEPTED | Keep AIV authority BLOCKED until qualification/promotion review | Yes |
-| DEC-002 | Decision | P0 | ACCEPTED | Advanced_Analysis is author; 3D_Converters is downstream assessor | Yes |
-| DEC-003 | Decision | P0 | ACCEPTED | Source, Assessment, Line Summary are distinct result scopes | Yes |
-| ISS-001 | Defect | P0 | IN_PROGRESS | Combined v1 source+assessment row duplicates source data and cannot model many-to-many source/assessment cleanly | Yes |
-| RISK-001 | Risk | P0 | OPEN | Published D.2.3 FLM1 does not exactly reproduce from displayed dimensions/equation | Yes |
-| RISK-002 | Risk | P0 | OPEN | Worked-example line report LOF can be confused with first-discontinuity D.2.3 LOF | Yes |
-| RISK-003 | Risk | P1 | OPEN | Actions budget prevents workflow execution; no CI PASS may be inferred | Yes |
-| QST-001 | Question | P0 | OPEN | Final human disposition for FLM1 benchmark value/tolerance | Yes |
-| QST-002 | Question | P0 | OPEN | Exact engineering aggregation semantics from assessment LOFs to line-level report LOF | Yes |
-| IMP-001 | Improvement | P0 | IN_PROGRESS | Split source/assessment/relationship inputs and readiness | Yes |
-| IMP-002 | Improvement | P0 | NOT_STARTED | Load EI D.2.3 into same visible working tables used by project data | Yes |
-| IMP-003 | Improvement | P1 | NOT_STARTED | Move qualification matrices behind Evidence tab/detail rather than primary operator flow | Yes |
+| ID | Type | Priority | Status | Summary | Current PR? |
+|---|---|---:|---|---|---|
+| DEC-001 | Decision | P0 | ACCEPTED | Keep authority BLOCKED until explicit independent promotion | Yes |
+| DEC-002 | Decision | P0 | ACCEPTED | Advanced_Analysis authors; 3D_Converters assesses downstream | Yes |
+| DEC-003 | Decision | P0 | ACCEPTED | Source Result, Assessment Result and Line Summary are distinct scopes | Yes |
+| ISS-001 | Defect | P0 | IMPLEMENTED | Combined source+assessment target model replaced by split ownership | Yes |
+| RISK-001 | Risk | P0 | OPEN | Published D.2.3 FLM1 differs from displayed-input recalculation | Yes |
+| RISK-002 | Risk | P0 | OPEN | Worked-example line LOF can be confused with discontinuity LOF | Yes |
+| RISK-003 | Risk | P1 | OPEN | Current-head tests cannot execute here; Actions budget blocks workflow start | Yes |
+| QST-001 | Question | P0 | OPEN | Final FLM1 benchmark disposition/tolerance | Yes |
+| QST-002 | Question | P0 | OPEN | Exact assessment→line aggregation semantics | Yes |
+| IMP-001 | Improvement | P0 | IMPLEMENTED | Split source/assessment/relationship input and readiness model | Yes |
+| IMP-002 | Improvement | P0 | NOT_STARTED | Load D.2.3 into same visible working tables as project data | Yes |
+| IMP-003 | Improvement | P1 | NOT_STARTED | Move qualification matrices behind Evidence/detail workflow | Yes |
 
 ## Engineering Decisions and Invariants
 
-### DEC-001 — authority protection
-
-What must remain true:
+### Authority invariant
 
 ```text
 calculationState      = BLOCKED
@@ -155,79 +145,135 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-Until an explicit independent promotion decision changes it.
+### Result-scope invariant
 
-### DEC-003 — result-scope separation
+- raw/effective source PWL → Source Result;
+- point/combined PWL + T2-6 LOF → Assessment Result;
+- line-level LOF → Line/Case Summary with controlling assessment/source identity.
 
-What must remain true:
+### Input-ownership invariant
 
-- raw/effective source PWL belongs to a Source Result;
-- point/combined PWL and T2-6 LOF belong to an Assessment Result;
-- line-level LOF is an aggregation/summary result with controlling-assessment identity;
-- fields must not use unqualified generic names that make scopes interchangeable.
+- Source input owns process/device evidence only;
+- Assessment input owns geometry/material evidence only;
+- Relationship input owns applicability, physical distance and simultaneous-source grouping;
+- no table may silently borrow engineering authority from another scope.
 
 ### Physical-distance invariant
 
-Certified topology proves connectivity/path identity. AIV physical distance must come from engineering evidence and must never be inferred from SVG/pixel presentation.
+Certified topology verifies Canonical IDs and connectivity/path evidence. Physical AIV distance must have explicit engineering value/unit/source/revision and is never inferred from SVG or presentation geometry.
 
 ### UI numerical invariant
 
-No AIV equation, coefficient, threshold, pressure conversion, attenuation, dB combination, T2-6 calculation, pass/safe classification, or engineering default belongs in UI/controller code.
+No AIV equation, coefficient, threshold, pressure conversion, attenuation, logarithmic source combination, T2-6 calculation, line aggregation, or pass/safe classification belongs in UI/controller code.
 
-## Stage Roadmap
+## Stage 12 — Example-Driven Product/Input-Model Pivot
 
-### Stage 12 — Example-driven product/input-model pivot
+### Current truth before stage
 
-Current truth:
+`AivSourceCaseCsv.v1` repeated source process data for every source/assessment relationship and made many-to-many engineering relationships awkward.
 
-- combined `AivSourceCaseCsv.v1` contains both source and assessment identity;
-- readiness rows are created directly from those combined records;
-- worked examples demonstrate one source can affect multiple downstream result objects and line summaries are separate from specific discontinuity results.
+### Objective
 
-Objective:
+Split source, assessment and relationship ownership; make readiness join them explicitly; expose the split in the real AIV UI without adding numerical authority.
 
-Split the input model into Sources, Assessments, and Source→Assessment evidence and rewire readiness/UI accordingly.
+### Implementation performed
 
-Expected scope/files:
+Added:
 
-- new AIV tabular parser modules;
-- `aiv-readiness.js`;
-- `aiv-readiness-tables.js`;
-- AIV qualification/readiness UI;
-- focused tests;
-- roadmap/work report.
+```text
+converters/vibration/aiv/aiv-tabular-common.js
+converters/vibration/aiv/source-csv.js
+converters/vibration/aiv/assessment-csv.js
+converters/vibration/aiv/source-assessment-csv.js
+docs/vibration/AIV-Product-Roadmap-v2.md
+agents/PR444_workreport.md
+```
 
-Engineering rationale:
+Updated:
 
-The split removes process-data duplication, supports many-to-many source/assessment relationships, gives physical distance explicit authority, and makes future source/assessment result contracts natural.
+```text
+converters/vibration/aiv/aiv-readiness.js
+converters/vibration/aiv/aiv-readiness-tables.js
+converters/vibration/aiv/index.js
+tabs/vibration-aiv-readiness-view.js
+tabs/vibration-aiv-qualification-tab.js
+tests/vibration-aiv-readiness.test.mjs
+package.json
+```
 
-Planned validation:
+Behavior now enforced:
 
-- exact-header parser tests;
-- join failure tests;
-- one-source/multiple-assessment test;
-- multiple-source/one-assessment test;
-- physical-distance provenance test;
-- UI static test confirming separate imports/templates and no Run path while BLOCKED;
-- source scan confirming no numerical equations in readiness/UI.
+- exact-header split parsers;
+- duplicate source/case, assessment, and relationship keys rejected;
+- source process data is not duplicated per assessment;
+- assessment geometry/material is independent of source process evidence;
+- relationship owns physical distance and provenance;
+- one source → multiple assessments supported;
+- multiple sources → one assessment supported;
+- missing source/assessment joins fail closed;
+- applicable relationship requires physical distance + source/revision;
+- `NOT_APPLICABLE` is explicit and does not require distance, but Canonical IDs must still exist in certified topology;
+- mixed main assessment dimension units fail closed before numeric comparison;
+- source/assessment/relationship record revision/ID gaps surface as readiness issues;
+- sonic/non-gas/closed-source qualification boundaries remain method gaps;
+- numerical execution remains false.
 
-Known risks:
+### Deviations from plan
 
-- transitional v1 code remains in branch until deliberately removed/migrated;
-- no executable CI while Actions budget is blocked.
+No editable working-table runtime or D.2.3 loader was added in Stage 12; those remain Stage 13 so the input ownership model is frozen first.
 
-Stage decision: IN_PROGRESS.
+### Validation performed
 
-## Changed-File Ledger
+```text
+GitHub connector source inspection             PASS
+Exact branch file round-trip inspection        PASS
+Local clone / node test execution              NOT_RUN
+npm run verify:aiv-input-model                 NOT_RUN
+GitHub Actions current-head execution          NOT_RUN
+```
 
-This ledger is being reconstructed because the PR predates adoption of the repository CodingRules. Current-stage entries are authoritative; earlier-stage entries are represented at workstream level in Mission Status until full changed-file reconciliation is performed.
+Local clone reason: this container cannot resolve `github.com`, so a real checkout could not be obtained. GitHub Actions reason: repository Actions budget prevents job start.
 
-| File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
-|---|---:|---:|---|---|---|
-| docs/vibration/AIV-Product-Roadmap-v2.md | 12 | 12 | Example-driven target product architecture and implementation sequence | Yes | source review |
-| agents/PR444_workreport.md | 12 | 12 | Durable PR mission control / handoff | Yes | source review |
+Focused test assets committed for:
 
-Any unexplained changed file blocks final closure. A complete GitHub changed-file comparison is required before PR completion.
+- split template ownership;
+- source parser independence from assessment;
+- assessment geometry independence from source process data;
+- physical-distance/applicability/simultaneous-source relationship ownership;
+- ready split evidence with no numerical authorization;
+- one source → multiple assessments;
+- multiple sources → one assessment;
+- distance provenance failures;
+- missing join failures;
+- gauge reference-pressure requirements;
+- sonic method gap;
+- explicit `NOT_APPLICABLE`;
+- UI split imports/no Run path;
+- no central numerical execution in readiness/UI.
+
+### Stage decision
+
+`PARTIAL` — source implementation and focused regression assets are complete; executable validation remains unavailable.
+
+## Changed-File Ledger — Stage 12
+
+| File | Purpose | Engineering-sensitive? | Validation |
+|---|---|---|---|
+| `docs/vibration/AIV-Product-Roadmap-v2.md` | Target UI/logic/workflow roadmap | Yes | source review |
+| `agents/PR444_workreport.md` | Durable PR handoff | Yes | source review |
+| `aiv-tabular-common.js` | Shared strict tabular helpers | Yes | source review; test pending |
+| `source-csv.js` | Source+case process/device contract | Yes | focused test pending |
+| `assessment-csv.js` | Assessment geometry/material contract | Yes | focused test pending |
+| `source-assessment-csv.js` | Relationship/distance/applicability contract | Yes | focused test pending |
+| `aiv-readiness.js` | Explicit joins and fail-closed readiness | Yes | focused test pending |
+| `aiv-readiness-tables.js` | Split-table import envelope | Yes | focused test pending |
+| `index.js` | Public AIV exports | No numerical authority | source review |
+| `vibration-aiv-readiness-view.js` | Split input/readiness UI | Yes | static test pending |
+| `vibration-aiv-qualification-tab.js` | Split import/template controller | Yes | static test pending |
+| `vibration-aiv-readiness.test.mjs` | Stage-12 regression assets | Test | NOT_RUN |
+| `package.json` | `verify:aiv-input-model` command | Build/test | NOT_RUN |
+
+A full PR-wide changed-file reconciliation is still required before closure because the PR predates this work report.
 
 ## Validation and Evidence Ledger
 
@@ -235,85 +281,107 @@ Any unexplained changed file blocks final closure. A complete GitHub changed-fil
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| GitHub Actions controlled-source qualification | NOT_RUN | current branch | job accepted but did not start because Actions budget prevents use |
-| Stage-12 parser/readiness tests | NOT_RUN | pending implementation | not yet written/executed |
-| Full repository tests | NOT_RUN | current branch | no local checkout/dependency execution available in this session |
+| Connector source/file inspection | PASS | Stage-12 head | fetched current files from branch |
+| `npm run verify:aiv-input-model` | NOT_RUN | Stage-12 head | checkout unavailable |
+| Full repository tests | NOT_RUN | Stage-12 head | checkout/dependencies unavailable |
+| Controlled-source GitHub workflow | NOT_RUN | prior/current heads | jobs do not start because Actions budget prevents use |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| D.2.3 source/raw PWL evidence | ACCEPTED_AS_BENCHMARK_EVIDENCE | controlled worked-example sources |
-| D.2.3 final first-discontinuity LOF 0.29 | ACCEPTED_AS_PUBLISHED_BENCHMARK | qualification evidence |
-| FLM1 exact arithmetic parity | OPEN | published 1.2133 vs displayed-input recalculation |
-| Worked-example line-level vs assessment-level scope | OPEN / ARCHITECTURE SEPARATED | roadmap DEC-003; human method interpretation still required |
+| D.2.3 published source/result evidence | ACCEPTED_AS_BENCHMARK_EVIDENCE | controlled worked-example sources |
+| Three result scopes | ARCHITECTURE_ACCEPTED | roadmap DEC-003 |
+| Split input ownership | SOURCE_IMPLEMENTED | Stage-12 contracts/readiness |
+| Physical-distance authority | SOURCE_IMPLEMENTED | relationship contract + topology null-distance invariant |
+| FLM1 arithmetic parity | OPEN | published 1.2133 vs recalculation |
+| Line-summary aggregation semantics | OPEN | human method interpretation required |
 | Sonic SFF=6 benchmark | HUMAN_ACCEPTANCE_REQUIRED | independent vector exists |
 | Multi-source benchmark | HUMAN_ACCEPTANCE_REQUIRED | independent vectors exist |
 | Legacy workbook formula authority | REJECTED | migration evidence only |
 
 ### Explicitly Not Validated
 
-- production AIV numerical equations;
+- runtime execution of Stage-12 tests;
+- production AIV equations;
 - automatic sonic-state determination;
-- final assessment-to-line aggregation semantics;
-- screening thresholds/authority;
-- design acceptance;
-- current-head executable CI.
+- assessment-to-line numerical aggregation;
+- benchmark/screening numerical workflow;
+- screening/design authority.
 
-## Known / Deferred Work and Forward Sequence
+## Known / Deferred Work and Recommended Forward Sequence
 
-1. Complete Stage 12 split inputs/readiness.
-2. Stage 13: real editable operator tables and controlled D.2.3 loader.
-3. Stage 14: freeze Source/Assessment/Line result contracts.
-4. Close named human engineering reconciliation gates.
-5. Implement qualification-only central numerical kernel.
-6. Validate exact D.2.3 parity through real production path.
-7. Implement result workspace/export.
-8. Independent vibration-engineer promotion review.
-9. Consider later SCREENING authority only as a separate explicit decision.
+1. **Execute Stage-12 tests** — prerequisite for trusting the split contract implementation.
+2. **Stage 13: editable working tables + controlled D.2.3 loader** — turns the new model into an operator-visible workflow.
+3. **Stage 14: freeze Source/Assessment/Line result contracts** — prevents numerical code from recreating result-scope ambiguity.
+4. **Close human engineering reconciliation** — prerequisite for equation transcription.
+5. **Qualification-only central kernel** — no UI equations; same kernel for benchmark/project/batch.
+6. **BENCHMARK_ONLY real-path parity** — exact D.2.3 through production path, intermediate-by-intermediate comparison.
+7. **Facility result workspace/export** — Source Results, Assessment Results, Line Summary, drill-down evidence.
+8. **Independent vibration-engineer promotion review** — only then consider BENCHMARK_ONLY; SCREENING is a later separate decision.
+
+## Stage Execution Log
+
+### Stage 12 — 2026-08-12
+
+- Roadmap created.
+- Missing PR work report corrected.
+- Split contracts implemented and wired to readiness/UI.
+- Fail-closed unit/identity/provenance seams hardened during source review.
+- Focused regression assets and package verification command added.
+- Local clone attempt failed because outbound DNS to GitHub is unavailable.
+- Stage recorded PARTIAL rather than falsely claiming executable PASS.
 
 ## Process Notes / Lessons Learned
 
-- A worked-example report may contain several legitimate result scopes with the same label (`LOF`); result scope must be explicit in both data contracts and UI.
-- Combining process/source evidence with assessment identity makes many-to-many AIV relationships awkward and duplicates controlled process data.
-- Source accessibility and engineering interpretation are separate qualification problems; a complete Markdown transcription can solve reviewability without automatically solving method interpretation.
+- Worked examples can contain several legitimate `LOF` scopes; result scope must be explicit in both contracts and UI.
+- Source process evidence and assessment geometry have different authorities and should not share one record.
+- Many-to-many source/assessment relationships need a first-class relationship object, not duplicated source rows.
+- Physical distance is relationship evidence, not topology presentation metadata.
+- Parser errors should be reserved for malformed structure/types; reviewable provenance gaps are more useful as readiness issues.
 
 ## Next-Agent Handover
 
 ```text
 Current stopping point
-  Stage 12 input-model pivot started; roadmap and work report created.
+  Stage 12 source implementation complete; executable validation pending.
 
-PR / branch
-  #444 / agent/aiv-traceable-table-ui-foundation
+PR / branch / HEAD
+  #444 / agent/aiv-traceable-table-ui-foundation / f4511cc88faa4e8c1f32dd447fee95d1e333f62e
 
 Start here
   docs/vibration/AIV-Product-Roadmap-v2.md
-  converters/vibration/aiv/source-case-csv.js
+  converters/vibration/aiv/source-csv.js
+  converters/vibration/aiv/assessment-csv.js
+  converters/vibration/aiv/source-assessment-csv.js
   converters/vibration/aiv/aiv-readiness.js
-  converters/vibration/aiv/aiv-readiness-tables.js
-  tabs/vibration-aiv-readiness-view.js
-  tabs/vibration-aiv-qualification-tab.js
+  tests/vibration-aiv-readiness.test.mjs
 
 Do not redo
-  EI source pins, errata evidence, D.2.3 evidence, workbook inventory, sonic/multi-source evidence, topology graph foundation.
+  EI source pins, errata evidence, D.2.3 evidence, workbook inventory, sonic/multi-source evidence, topology graph foundation, split input-model design.
 
 Do not assume
-  numerical authority, FLM1 reconciliation, line aggregation semantics, CI success, physical distance from topology.
+  tests passed, numerical authority, FLM1 reconciliation, line aggregation semantics, physical distance from topology.
 
 Known failing checks
-  none established by executed tests; GitHub jobs currently do not start due Actions budget.
+  none established by executed tests; current environment cannot run them.
 
 Validation still required
-  all Stage-12 focused tests and later full-repo/browser validation.
+  npm install
+  npm run verify:aiv-input-model
+  later full-repo/browser validation
 
-Open questions
+Open QST items
   QST-001 FLM1 disposition
   QST-002 assessment→line aggregation semantics
+
+Important deferred improvements
+  IMP-002 controlled D.2.3 loader / editable tables
+  IMP-003 Evidence-tab UI demotion of qualification matrices
 
 Highest-risk remaining item
   human engineering reconciliation before numerical transcription.
 
 Exact next recommended action
-  implement the three split CSV contracts and change readiness from combined rows to explicit joins.
+  Run Stage-12 tests in a normal checkout. If green, implement Stage 13 using the split contracts; do not add numerical equations yet.
 ```
