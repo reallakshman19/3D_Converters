@@ -32,6 +32,11 @@ export {
   AIV_QUALIFICATION_EVIDENCE,
 } from './aiv-qualification-evidence.js';
 export {
+  AIV_D23_PDF_REVALIDATION_SCHEMA,
+  AIV_EI_EXAMPLES_PDF_SOURCE,
+  AIV_D23_PDF_REVALIDATION,
+} from './aiv-d23-pdf-revalidation.js';
+export {
   AIV_EI_ERRATA_EVIDENCE_SCHEMA,
   AIV_EI_OFFICIAL_ERRATA_SOURCE,
   AIV_T2_6_ERRATA_FEED_EQUATION,
