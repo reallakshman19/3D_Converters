@@ -1,4 +1,4 @@
-export const AIV_RELEASE_PLAN_SCHEMA = 'AivReleasePlan.v1';
+export const AIV_RELEASE_PLAN_SCHEMA = 'AivReleasePlan.v2';
 export const AIV_RELEASE_PHASES = Object.freeze(['BLOCKED', 'BENCHMARK_ONLY', 'SCREENING']);
 export const AIV_RELEASE_GATE_STATUS = Object.freeze({
   SATISFIED: 'SATISFIED',
@@ -18,9 +18,8 @@ export const AIV_BLOCKED_AUTHORITY = Object.freeze({
 
 const BENCHMARK_GATES = Object.freeze([
   Object.freeze({ gateId: 'QUALIFICATION_MACHINE_PARITY', evidenceKey: 'qualificationParityManifest', schema: 'AivQualificationParityManifest.v1' }),
-  Object.freeze({ gateId: 'BENCHMARK_KERNEL_QUALIFICATION', evidenceKey: 'benchmarkKernelQualification', schema: 'AivBenchmarkKernelQualification.v1' }),
-  Object.freeze({ gateId: 'QUALIFICATION_PREREQUISITES', evidenceKey: 'promotionReadiness', schema: 'AivQualificationPromotionReadiness.v1' }),
-  Object.freeze({ gateId: 'INDEPENDENT_ENGINEER_BENCHMARK_RECOMMENDATION', evidenceKey: 'independentPromotionReview', schema: 'AivIndependentVibrationEngineerPromotionReviewVerification.v1' }),
+  Object.freeze({ gateId: 'ASSUMPTION_PROFILE_VALIDATION', evidenceKey: 'assumptionProfileValidation', schema: 'AivAssumptionProfileValidation.v1' }),
+  Object.freeze({ gateId: 'BENCHMARK_KERNEL_QUALIFICATION', evidenceKey: 'benchmarkKernelQualification', schema: 'AivBenchmarkKernelQualification.v2' }),
   Object.freeze({ gateId: 'EXACT_HEAD_RELEASE_VALIDATION', evidenceKey: 'releaseValidation', schema: 'AivReleaseValidationReceipt.v1' }),
 ]);
 
@@ -30,7 +29,7 @@ const SCREENING_GATES = Object.freeze([
   Object.freeze({ gateId: 'LINE_CASE_AGGREGATION_QUALIFICATION', evidenceKey: 'lineAggregationQualification', schema: 'AivLineAggregationQualificationReceipt.v1' }),
   Object.freeze({ gateId: 'SINGLE_BATCH_PARITY', evidenceKey: 'singleBatchParity', schema: 'AivSingleBatchParityReceipt.v1' }),
   Object.freeze({ gateId: 'SCREENING_DOMAIN_COVERAGE', evidenceKey: 'screeningDomainCoverage', schema: 'AivScreeningDomainCoverageReceipt.v1' }),
-  Object.freeze({ gateId: 'INDEPENDENT_ENGINEER_SCREENING_APPROVAL', evidenceKey: 'screeningEngineeringReview', schema: 'AivScreeningEngineeringReviewVerification.v1' }),
+  Object.freeze({ gateId: 'ASSUMPTION_POLICY_VALIDATION', evidenceKey: 'assumptionProfileValidation', schema: 'AivAssumptionProfileValidation.v1' }),
   Object.freeze({ gateId: 'EXACT_HEAD_SCREENING_RELEASE_VALIDATION', evidenceKey: 'screeningReleaseValidation', schema: 'AivReleaseValidationReceipt.v1' }),
 ]);
 
@@ -54,8 +53,18 @@ function evidenceArtifact(input) {
   }
   return {
     document: input,
-    artifactSha256: input.artifactSha256 ?? input.evidenceSha256 ?? null,
+    artifactSha256: input.artifactSha256 ?? null,
   };
+}
+
+function assumptionValidationValid(doc) {
+  return doc?.schema === 'AivAssumptionProfileValidation.v1'
+    && doc.methodId === 'VIB.AIV.ACOUSTIC'
+    && doc.status === 'PASS'
+    && doc.valid === true
+    && doc.humanEvidenceRequired === false
+    && doc.assumptionsVisibleAndEditableRequired === true
+    && doc.designAuthority === false;
 }
 
 function benchmarkEvidenceValid(gate, artifact) {
@@ -67,30 +76,21 @@ function benchmarkEvidenceValid(gate, artifact) {
       && doc.screeningAuthority === 'NOT_AUTHORIZED'
       && doc.designAuthority === false;
   }
+  if (gate.gateId === 'ASSUMPTION_PROFILE_VALIDATION') {
+    return assumptionValidationValid(doc);
+  }
   if (gate.gateId === 'BENCHMARK_KERNEL_QUALIFICATION') {
     return doc.methodId === 'VIB.AIV.ACOUSTIC'
       && doc.releaseTarget === 'BENCHMARK_ONLY'
       && doc.status === 'PASS'
       && doc.releaseGateSatisfied === true
+      && doc.humanEvidenceRequired === false
       && doc.counts?.totalStages === 10
       && doc.counts?.productPathQualifiedStages === 10
       && doc.authority?.authorityTransitionApplied === false
       && doc.authority?.productionEquationAuthorized === false
       && doc.authority?.screeningAuthority === 'NOT_AUTHORIZED'
       && doc.authority?.designAuthority === false;
-  }
-  if (gate.gateId === 'QUALIFICATION_PREREQUISITES') {
-    return doc.status === 'READY_FOR_INDEPENDENT_AUTHORITY_REVIEW'
-      && doc.eligibleForAuthorityReview === true
-      && doc.authorityPromotionAuthorized === false;
-  }
-  if (gate.gateId === 'INDEPENDENT_ENGINEER_BENCHMARK_RECOMMENDATION') {
-    return doc.reviewComplete === true
-      && doc.recommendation === 'RECOMMEND_BENCHMARK_ONLY_PROMOTION'
-      && doc.recommendedAuthorityTarget === 'BENCHMARK_ONLY'
-      && doc.authorityTransitionApplied === false
-      && doc.screeningAuthority === 'NOT_AUTHORIZED'
-      && doc.designAuthority === false;
   }
   if (gate.gateId === 'EXACT_HEAD_RELEASE_VALIDATION') {
     return doc.methodId === 'VIB.AIV.ACOUSTIC'
@@ -104,17 +104,12 @@ function benchmarkEvidenceValid(gate, artifact) {
 function screeningEvidenceValid(gate, artifact) {
   const doc = artifact?.document;
   if (doc?.schema !== gate.schema || !sha256Value(artifact?.artifactSha256)) return false;
+  if (gate.gateId === 'ASSUMPTION_POLICY_VALIDATION') return assumptionValidationValid(doc);
   if (gate.gateId === 'EXACT_HEAD_SCREENING_RELEASE_VALIDATION') {
     return doc.methodId === 'VIB.AIV.ACOUSTIC'
       && doc.releaseTarget === 'SCREENING'
       && doc.status === 'PASS'
       && doc.exactHeadValidated === true;
-  }
-  if (gate.gateId === 'INDEPENDENT_ENGINEER_SCREENING_APPROVAL') {
-    return doc.methodId === 'VIB.AIV.ACOUSTIC'
-      && doc.reviewComplete === true
-      && doc.recommendedAuthorityTarget === 'SCREENING'
-      && doc.designAuthority === false;
   }
   return doc.methodId === 'VIB.AIV.ACOUSTIC'
     && doc.status === 'PASS'
@@ -151,7 +146,7 @@ function releaseGate(definition, evidence, validator, blockedByPreviousPhase = f
 function phaseStatus(gates, blockedByPreviousPhase = false) {
   if (blockedByPreviousPhase) return 'BLOCKED_BY_PREVIOUS_PHASE';
   if (gates.some((gate) => gate.status === AIV_RELEASE_GATE_STATUS.INVALID_EVIDENCE)) return 'INVALID_EVIDENCE';
-  if (gates.every((gate) => gate.status === AIV_RELEASE_GATE_STATUS.SATISFIED)) return 'ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION';
+  if (gates.every((gate) => gate.status === AIV_RELEASE_GATE_STATUS.SATISFIED)) return 'ELIGIBLE_FOR_AUTHORITY_TRANSITION';
   return 'NOT_READY';
 }
 
@@ -224,7 +219,9 @@ export function buildAivReleasePlan({
         ['BENCHMARK_ONLY', 'SCREENING'],
       ],
       directBlockedToScreeningForbidden: true,
-      authorityTransitionMustBeSeparateReviewedCodeChange: true,
+      humanEvidenceRequired: false,
+      missingEngineeringDataPolicy: 'ASSUME_FROM_VISIBLE_USER_CONFIGURABLE_PROFILE',
+      authorityTransitionMustBeSeparateCodeChange: true,
       designAuthorityTarget: false,
       projectApprovedTarget: false,
       verifiedTarget: false,
@@ -241,8 +238,8 @@ export function buildAivReleasePlan({
       },
       executionBoundary: 'CONTROLLED_BENCHMARK_EXECUTION_ONLY',
       status: benchmarkStatus,
-      eligibleForTransitionReview: phase === 'BLOCKED'
-        && benchmarkStatus === 'ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION',
+      eligibleForTransition: phase === 'BLOCKED'
+        && benchmarkStatus === 'ELIGIBLE_FOR_AUTHORITY_TRANSITION',
       counts: countStatuses(benchmarkGates),
       gates: benchmarkGates,
     },
@@ -257,8 +254,8 @@ export function buildAivReleasePlan({
       },
       executionBoundary: 'SCREENING_WITHIN_QUALIFIED_APPLICABILITY_ONLY',
       status: screeningStatus,
-      eligibleForTransitionReview: phase === 'BENCHMARK_ONLY'
-        && screeningStatus === 'ELIGIBLE_FOR_REVIEWED_AUTHORITY_TRANSITION',
+      eligibleForTransition: phase === 'BENCHMARK_ONLY'
+        && screeningStatus === 'ELIGIBLE_FOR_AUTHORITY_TRANSITION',
       counts: countStatuses(screeningGates),
       gates: screeningGates,
     },
@@ -266,11 +263,10 @@ export function buildAivReleasePlan({
     currentAuthority: phase === 'BLOCKED' ? AIV_BLOCKED_AUTHORITY : null,
     authorityTransitionApplied: false,
     notes: [
-      'This plan evaluates release readiness only; it never mutates the Engineering Calculation registry.',
-      'BENCHMARK_ONLY requires complete real product-path kernel qualification in addition to isolated machine parity.',
-      'BENCHMARK_ONLY is the first releasable AIV state and does not grant screening or design authority.',
-      'SCREENING requires a second independent release program after the real product-path kernel is qualified.',
-      'AIV design authority is explicitly out of scope for this release plan.',
+      'Human evidence is never a release prerequisite.',
+      'Missing engineering values are supplied by an explicit user-configurable assumption profile and must remain visible/exported.',
+      'BENCHMARK_ONLY still requires complete 10-stage product-path parity plus exact-head execution evidence.',
+      'SCREENING is a later machine-qualification phase; AIV design authority remains out of scope.',
     ],
   });
 }
