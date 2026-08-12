@@ -8,6 +8,7 @@ import {
   parseVibrationIntegrityInputCsv,
   serializeVibrationIntegrityInputTable,
   updateVibrationIntegrityInputCell,
+  VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS,
 } from '../tabs/vibration-integrity-input-model.js';
 
 const OPERATING_HEADER = [
@@ -50,7 +51,7 @@ test('add/delete row preserves exact table width', () => {
   assert.equal(removed.dirty, true);
 });
 
-test('parsed complete exchange can populate an editable topology view without mutating authority', () => {
+test('parsed complete exchange becomes visibly unverified after a topology edit', () => {
   const exchange = Object.freeze({
     completeExchange: true,
     sourceFormat: 'XLSX',
@@ -65,10 +66,24 @@ test('parsed complete exchange can populate an editable topology view without mu
   const table = createTopologyInputTableFromExchange(exchange);
   assert.equal(table.originalCertifiedExchange, true);
   assert.equal(table.dirty, false);
+  assert.equal(table.rows[0][13], 'CERTIFIED');
   assert.equal(table.rows[0][14], 'CID-1');
   const edited = updateVibrationIntegrityInputCell(table, 0, 2, 'L-1-EDITED');
   assert.equal(edited.originalCertifiedExchange, true);
   assert.equal(edited.dirty, true);
+  assert.equal(edited.sourceKind, 'LOCAL_ELEMENTS_OVERRIDE');
+  assert.equal(edited.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
+  assert.equal(table.rows[0][13], 'CERTIFIED');
+});
+
+test('adding a blank topology row does not create a fake provenance-only element', () => {
+  const original = createVibrationIntegrityInputTable('topology', [[
+    'P-1','PIPE','L-1','','','','','','','','','','','CERTIFIED','CID-1',
+  ]]);
+  const added = addVibrationIntegrityInputRow(original);
+  assert.equal(added.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
+  assert.equal(added.rows[1][13], '');
+  assert(added.rows[1].every((value) => value === ''));
 });
 
 test('table constructor fails closed on wrong column count', () => {
