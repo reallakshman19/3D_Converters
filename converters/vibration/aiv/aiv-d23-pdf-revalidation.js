@@ -84,7 +84,7 @@ export const AIV_D23_PDF_REVALIDATION = deepFreeze({
       equationRecalculatedFromDisplayedInputs: 1.2109758194311824,
       publishedValue: 1.2133,
       absoluteDifference: 0.002324180568817627,
-      relativeDifferenceFraction: 0.001915\,
+      relativeDifferenceFraction: 0.001915586061829413,
       consequence: 'FINAL_LOF_UNCHANGED_AT_0_29',
       requiredDisposition: 'RECONCILE_PRINTED_EQUATION_DISPLAYED_INPUTS_AND_PUBLISHED_FLM1_BEFORE_PRODUCTION_TRANSCRIPTION',
     },
