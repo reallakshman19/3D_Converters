@@ -10,6 +10,7 @@ on:
       - 'tests/vibration-aiv-*'
       - 'tests/vibration-module-boundaries.test.mjs'
       - 'scripts/extract-aiv-ei-t27-source.mjs'
+      - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'docs/vibration/AIV-*'
       - 'package.json'
       - '.github/workflows/vibration-aiv-controlled-source.yml'
@@ -21,6 +22,7 @@ on:
       - 'converters/vibration/topology/graph.js'
       - 'tests/vibration-aiv-*'
       - 'scripts/extract-aiv-ei-t27-source.mjs'
+      - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - '.github/workflows/vibration-aiv-controlled-source.yml'
   workflow_dispatch:
 
@@ -76,9 +78,27 @@ jobs:
           console.log(JSON.stringify(manifest, null, 2));
           NODE
 
+      - name: Generate page-hash-bound human reconciliation template
+        shell: bash
+        run: |
+          node scripts/verify-aiv-t27-reconciliation.mjs \
+            "$RUNNER_TEMP/aiv-t27-source-manifest.json" \
+            --template-out "$RUNNER_TEMP/aiv-t27-reconciliation-template.json"
+          node - "$RUNNER_TEMP/aiv-t27-reconciliation-template.json" <<'NODE'
+          const fs = require('node:fs');
+          const template = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (template.schema !== 'AivT27Reconciliation.v1') throw new Error('Unexpected reconciliation schema.');
+          if (template.records.length !== 9) throw new Error('Expected complete nine-item T2.7 trace template.');
+          if (!template.records.every((record) => record.reviewState === 'PENDING')) throw new Error('CI must never auto-complete human review.');
+          if (template.authority.productionEquationAuthorized !== false) throw new Error('Reconciliation template must not authorize production equations.');
+          const t26 = template.records.find((record) => record.traceId === 'AIV-EQ-T2-6-001');
+          if (!t26 || t26.sourcePage !== 61 || t26.errataDisposition !== 'PENDING') throw new Error('T2-6 page-61 errata review must remain pending.');
+          NODE
+
       - name: Run focused AIV qualification regressions
         run: |
           node --experimental-default-type=module --test tests/vibration-aiv-source-extraction-contract.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-t27-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-errata-benchmark.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-qualification-evidence.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-readiness.test.mjs
