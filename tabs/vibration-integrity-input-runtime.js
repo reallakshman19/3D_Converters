@@ -37,6 +37,16 @@ function serializeOptionalTable(table) {
   return table.rows.length ? serializeVibrationIntegrityInputTable(table) : '';
 }
 
+function editedTopologyFileName(file, table) {
+  if (file?.format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX) {
+    const base = String(file.name || 'vibration-topology').replace(/\.xlsx$/iu, '');
+    return `${base}.edited-elements.csv`;
+  }
+  if (file?.name) return file.name;
+  if (table.sourceName) return table.sourceName;
+  return 'vibration-elements-working.csv';
+}
+
 export function vibrationIntegrityTopologyExecutionInput(state) {
   const file = state.files.topology;
   const table = state.tables.topology;
@@ -47,7 +57,7 @@ export function vibrationIntegrityTopologyExecutionInput(state) {
   return {
     format: VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.CSV_ELEMENTS_ONLY,
     data: serializeVibrationIntegrityInputTable(table),
-    sourceFileName: table.sourceName ?? file?.name ?? 'vibration-elements-working.csv',
+    sourceFileName: editedTopologyFileName(file, table),
   };
 }
 
