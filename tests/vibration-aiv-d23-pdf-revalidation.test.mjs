@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   AIV_D23_PDF_REVALIDATION,
   AIV_EI_EXAMPLES_PDF_SOURCE,
+  AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE,
 } from '../converters/vibration/aiv/aiv-d23-pdf-revalidation.js';
 
 function sourcePwl({ p1PaAbs, p2PaAbs, massFlowKgS, temperatureK, molecularWeight, sffDb = 0 }) {
@@ -25,13 +26,40 @@ function flm2(pwlDb) {
   return 0.29 + 0.09 * Math.tanh((pwlDb - 172) / 2.9);
 }
 
-test('EI examples PDF source identity is pinned exactly', () => {
+test('EI examples PDF source identity remains pinned as corroborating binary evidence', () => {
   assert.equal(AIV_EI_EXAMPLES_PDF_SOURCE.repository, 'reallaksh19/Common');
   assert.equal(AIV_EI_EXAMPLES_PDF_SOURCE.commit, 'fb549185b9b27edc2379734240320a85c5bef9f6');
   assert.equal(AIV_EI_EXAMPLES_PDF_SOURCE.path, 'EI examples.pdf');
   assert.equal(AIV_EI_EXAMPLES_PDF_SOURCE.gitBlob, '1ddef94f81bd30570d1b1f86b1d3e2acdcc17dec');
   assert.equal(AIV_EI_EXAMPLES_PDF_SOURCE.sizeBytes, 1602640);
   assert.equal(AIV_EI_EXAMPLES_PDF_SOURCE.productionAuthority, false);
+});
+
+test('controlled Markdown source is pinned to the validated PR445 DOCX transcription', () => {
+  const source = AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE;
+  assert.equal(source.repository, 'reallaksh19/3D_Converters');
+  assert.equal(source.commit, '8f243592d73ccf4790d9e308a311003ce7d8f5bb');
+  assert.equal(source.path, 'docs/Energy-Institute-AVIFF---Worked-Examples.md');
+  assert.equal(source.gitBlob, '9f22d92eba8bdf3b67adc25a4c77a7f7d7211da8');
+  assert.equal(source.lineCount, 268);
+  assert.equal(source.derivedFrom.gitBlob, 'ceee15ed5f7f320045d5f3979024e2e8664613f2');
+  assert.equal(source.derivedFrom.nonEmptyWordTextNodesCovered, 3089);
+  assert.equal(source.derivedFrom.nonEmptyWordTextNodesTotal, 3089);
+  assert.equal(source.productionAuthority, false);
+  assert(!AIV_D23_PDF_REVALIDATION.remainingQualificationGates.includes('DIRECT_EXTRACT_PINNED_EI_EXAMPLES_PDF'));
+});
+
+test('controlled Markdown report rows stay distinct from D2.3 first-discontinuity result scope', () => {
+  const rows = AIV_D23_PDF_REVALIDATION.controlledMarkdownAivRows;
+  assert.equal(rows.recycleCompressorDischarge.reportedPwlDb, 129.36);
+  assert.equal(rows.recycleCompressorDischarge.reportedLof, 0.29);
+  assert.equal(rows.reliefDownstreamLine.reportedPwlDb, 164.69);
+  assert.equal(rows.reliefDownstreamLine.reportedLof, 1.48);
+  assert.equal(
+    rows.interpretation,
+    'DERIVED_SCREENING_REPORT_ROWS_ARE_NOT_INTERCHANGEABLE_WITH_D2_3_FIRST_DISCONTINUITY_RESULT_OBJECTS',
+  );
+  assert(AIV_D23_PDF_REVALIDATION.remainingQualificationGates.includes('RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE'));
 });
 
 test('relief and recycle published source PWL values reproduce from the displayed inputs', () => {
