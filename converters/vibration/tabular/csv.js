@@ -99,6 +99,59 @@ export function parseStrictVibrationCsvRows(csvText) {
   return result;
 }
 
+function csvScalar(value, rowIndex, columnIndex) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw vibrationTabularInputError(
+        'VIBRATION_CSV_INVALID_SCALAR',
+        'CSV numeric cells must be finite.',
+        { row: rowIndex, column: columnIndex, value },
+      );
+    }
+    return String(value);
+  }
+  throw vibrationTabularInputError(
+    'VIBRATION_CSV_INVALID_SCALAR',
+    'CSV cells must be string, finite number, boolean, null or undefined.',
+    { row: rowIndex, column: columnIndex, valueType: typeof value },
+  );
+}
+
+function quoteCsvCell(value) {
+  return /[",\r\n]/u.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+}
+
+export function serializeVibrationCsvRows(rows, options = {}) {
+  if (!Array.isArray(rows)) {
+    throw vibrationTabularInputError(
+      'VIBRATION_CSV_ROWS_INVALID',
+      'CSV rows must be an array of arrays.',
+    );
+  }
+  const lineEnding = options.lineEnding ?? '\r\n';
+  if (lineEnding !== '\r\n' && lineEnding !== '\n') {
+    throw vibrationTabularInputError(
+      'VIBRATION_CSV_LINE_ENDING_UNSUPPORTED',
+      'CSV lineEnding must be CRLF or LF.',
+      { lineEnding },
+    );
+  }
+  const serialized = rows.map((row, rowIndex) => {
+    if (!Array.isArray(row)) {
+      throw vibrationTabularInputError(
+        'VIBRATION_CSV_ROWS_INVALID',
+        'Every CSV row must be an array.',
+        { row: rowIndex },
+      );
+    }
+    return row.map((value, columnIndex) => quoteCsvCell(csvScalar(value, rowIndex, columnIndex))).join(',');
+  });
+  return `${serialized.join(lineEnding)}${serialized.length ? lineEnding : ''}`;
+}
+
 export function assertExactVibrationCsvHeader(rows, expectedHeader, contractName) {
   if (!Array.isArray(rows) || !rows.length) {
     throw vibrationTabularInputError(
