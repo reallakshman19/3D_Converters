@@ -1,4 +1,4 @@
-# PR_PENDING — FIT Mechanism Extraction Work Report
+# PR447 — FIT Mechanism Extraction Work Report
 
 ## PR Mission Control
 
@@ -9,13 +9,13 @@
 | Repository | `reallaksh19/3D_Converters` |
 | Branch | `agent/fit-mechanism-extraction` |
 | Base | `main@90d504f74f872f232378836f72c2544297dea8c8` after merged PRs #442 and #444 |
-| PR | PENDING allocation |
+| PR | **#447** — OPEN / DRAFT |
 | Roadmap stage | **Stage 4 — FIT mechanism extraction** |
-| Current stage | **Stage 1 — IMPLEMENTATION / FOCUSED VALIDATION** |
+| Current stage | **Stage 2 — PR ALLOCATION / EXACT-DIFF VERIFICATION** |
 | Stage decision | **PARTIAL** — focused model/view tests PASS locally; exact-head full repository/browser validation remains NOT_RUN. |
 | FIT authority | `BENCHMARK_ONLY` / engineering authority `NONE` |
 | Non-FIT scope | No numerical implementation or authority change. |
-| Exact next action | Publish the bounded Stage-4 diff, allocate draft PR, rename this report, then verify exact PR diff and automation status. |
+| Exact next action | Verify the final 16-file PR diff and exact-head automation status; then record executable/browser evidence before any Stage-5 work. |
 
 ## Handover in 60 Seconds
 
@@ -155,6 +155,9 @@ Implemented:
 - docs/roadmap updated for Stage-4 completion state and Stage-5 next state.
 - controlled FIT/VIB release manifest expanded from 34 to 36 test files.
 
+### Stage 2 — PR allocation / publication
+**IN_PROGRESS.** Draft PR #447 allocated from `agent/fit-mechanism-extraction` to `main`. The initial commit contains exactly the intended 16 paths with the temporary pending report. This follow-up publication commit renames the living report to `agents/PR447_workreport.md`; no production code changes are added by the rename.
+
 ## Focused Validation
 
 PASS:
@@ -197,7 +200,7 @@ independent vibration-engineering review
 
 ## Exact Intended Changed-File Ledger — 16 paths
 
-1. `agents/PR_PENDING_workreport.md` — temporary living CodingRules report; rename after PR allocation.
+1. `agents/PR447_workreport.md` — living CodingRules work report.
 2. `converters/engineering-calculations/adapters/vibration-fit.js` — attach backend FIT trace/intermediate evidence.
 3. `converters/vibration/fit/index.js` — export FIT trace contract.
 4. `converters/vibration/fit/trace.js` — NEW stable correlation trace IDs; non-numerical.
@@ -214,7 +217,7 @@ independent vibration-engineering review
 15. `tests/vibration-integrity-detail-view.test.mjs` — seven-tab/Calculation/evidence regression.
 16. `tests/vibration-integrity-fit-mechanism.test.mjs` — NEW FIT detail-model/renderer boundary regression.
 
-After PR allocation, path 1 is replaced by `agents/PR<NUMBER>_workreport.md`; final PR diff remains 16 paths.
+Final PR diff remains exactly 16 paths.
 
 ## Engineering Invariants
 
@@ -231,7 +234,7 @@ After PR allocation, path 1 is replaced by `agents/PR<NUMBER>_workreport.md`; fi
 
 ## Next-Agent Handover
 
-After PR allocation, use the PR-specific work report as the single source of truth. Verify the final 16-file diff, current-head automation status, then run in a normal checkout:
+Use this PR-specific work report as the single source of truth. Verify the final 16-file diff and current-head automation status, then run in a normal checkout:
 
 ```bash
 npm install
