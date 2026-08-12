@@ -36,7 +36,7 @@ function artifactOf(value) {
   if (value.document && typeof value.document === 'object') {
     return { document: value.document, artifactSha256: value.artifactSha256 ?? null };
   }
-  return { document: value, artifactSha256: value.artifactSha256 ?? value.evidenceSha256 ?? null };
+  return { document: value, artifactSha256: null };
 }
 
 function validateCandidateParity(artifact) {
