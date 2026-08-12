@@ -155,13 +155,11 @@ test('benchmark workflow is lazy-loaded only by the explicit Run action', () => 
   assert.match(controllerSource, /data-vi-action="preflight"|action === 'preflight'/u);
 });
 
-test('Engineering navigation nests legacy vibration route under Engineering Calculations > Vibrations > FIT', () => {
+test('FIT workspace is not exposed as a standalone Engineering navigation item', () => {
   assert.match(extensionSource, /id: 'engineering-calculations'/u);
   assert.match(extensionSource, /label: 'Engineering Calculations'/u);
   assert.doesNotMatch(extensionSource, /label: 'Vibration Integrity'/u);
-  assert.match(extensionSource, /LEGACY_VIBRATION_TAB_ID = 'vibration-integrity'/u);
-  assert.match(extensionSource, /subtabId: 'vibrations'/u);
-  assert.match(extensionSource, /vibrationPage: 'fit'/u);
+  assert.doesNotMatch(extensionSource, /id: 'vibration-integrity'/u);
 });
 
 test('tab exposes XLSX preferred and limited CSV handling without qualification-mode controls', () => {
