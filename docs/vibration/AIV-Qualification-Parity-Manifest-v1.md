@@ -4,14 +4,7 @@
 
 `AivQualificationParityManifest.v1` consolidates machine-reproducible AIV benchmark evidence into one deterministic review artifact.
 
-It binds:
-
-- the pinned EI T2.7 main-guidance source;
-- the pinned worked-example DOCX;
-- the corroborating worked-example PDF;
-- the controlled DOCX→Markdown transcription;
-- the D.2.3 qualification solve;
-- the independent sonic and simultaneous-source qualification solve.
+It binds the pinned EI T2.7 main guidance, worked-example DOCX/PDF/Markdown sources, the D.2.3 qualification solve, and the independent sonic/simultaneous-source solve.
 
 Implementation:
 
@@ -43,18 +36,23 @@ Controlled Markdown
 
 ## Solve identity
 
-The manifest computes canonical SHA-256 identities for the complete machine solve objects:
+The manifest recursively sorts object keys before hashing while preserving array order. It therefore produces deterministic SHA-256 identities for the complete machine solve objects.
+
+Executed isolated manifest generation produced:
 
 ```text
-D.2.3 solve
-Independent sonic / simultaneous-source solve
+D.2.3 solve canonical SHA-256
+sha256:f63da47f4a1f4c26a648f21349d380d2dfac235dd7c3763d1acba1fec41e6550
+
+Independent-vector solve canonical SHA-256
+sha256:850764761dc4a591f1df15150389af18ae3a006fd4c0464a791b87312d385f6c
 ```
 
-Object keys are sorted recursively before hashing; array order is preserved. The hashes therefore bind the numerical values, evidence state, unresolved items and blocked-authority metadata carried by those solve objects.
+These hashes bind the current solve values, evidence state, unresolved items, and blocked-authority metadata. A future solve change must produce a different identity.
 
 ## Explicit parity checks
 
-The current manifest contains 16 checks:
+The manifest contains 16 checks:
 
 ```text
 D23_RELIEF_RAW_SOURCE_PWL
@@ -75,43 +73,38 @@ MULTI_SOURCE_EQUAL
 MULTI_SOURCE_ASYMMETRIC
 ```
 
-Each check records:
+Each records `actual`, `expected`, `toleranceAbs`, `absoluteDifference`, and `PASS|FAIL`.
+
+## Executed machine parity
+
+The isolated manifest was actually generated after the D.2.3 and independent-vector harnesses were made green:
 
 ```text
-actual
-expected
-toleranceAbs
-absoluteDifference
-status = PASS | FAIL
+status  MACHINE_PARITY_PASS
+total   16
+passed  16
+failed  0
 ```
 
-The overall machine state is:
-
-```text
-MACHINE_PARITY_PASS
-```
-
-only when every check is inside its explicit tolerance.
+This is additional focused execution evidence. It is not repository-wide CI.
 
 ## What a PASS means
 
-`MACHINE_PARITY_PASS` means the isolated qualification arithmetic reproduces the controlled displayed/reference benchmark values represented by the manifest.
+`MACHINE_PARITY_PASS` means the isolated qualification arithmetic reproduces the controlled displayed/reference benchmark values represented by the manifest within explicit tolerances.
 
 It does **not** mean:
 
 - T2.7 transcription has been human reconciled;
 - the FLM1 discrepancy has been dispositioned;
-- the relief-line `LOF=1.48` aggregation/scope has been reproduced;
+- relief-line `LOF=1.48` aggregation/scope has been reproduced;
 - sonic or simultaneous-source vectors have received named human acceptance;
 - retained workbooks have been reconciled;
 - an independent vibration engineer has recommended promotion;
-- production, screening or design authority has changed.
+- production, screening, or design authority has changed.
 
 Those unresolved items are carried in the manifest itself.
 
 ## Authority invariant
-
-Every manifest retains:
 
 ```text
 calculationState      = BLOCKED
@@ -125,7 +118,7 @@ authorityTransitionApplied = false
 
 ## Isolation
 
-The parity manifest builder remains under `scripts/` and is not imported by:
+The builder remains under `scripts/` and is not imported by:
 
 ```text
 converters/vibration/aiv/index.js
@@ -133,11 +126,9 @@ tabs/vibration-aiv-qualification-tab.js
 tabs/vibration-aiv-qualification-view.js
 ```
 
-This keeps machine qualification arithmetic separate from product numerical execution while the method is blocked.
-
 ## Reviewer workflow
 
-Recommended human review package:
+Recommended review package:
 
 ```text
 1. Controlled source/reconciliation artifacts
@@ -147,16 +138,11 @@ Recommended human review package:
 5. named reconciliation/review records
 ```
 
-The machine manifest reduces arithmetic checking burden; it does not fill reviewer names, dates, dispositions, trace transcription hashes or engineering rationale.
+The manifest reduces arithmetic checking burden; it does not supply reviewer names, dates, dispositions, transcription hashes, or engineering rationale.
 
-## Command
+## Commands
 
 ```bash
 npm run build:aiv-qualification-parity-manifest > aiv-qualification-parity-manifest.json
-```
-
-Focused regressions are included in:
-
-```bash
 npm run verify:aiv-input-model
 ```
