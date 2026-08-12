@@ -9,3 +9,8 @@ export {
   VIBRATION_FACILITY_FIT_RESULT_SCHEMA,
   executeVibrationFacilityFitPlan,
 } from './fit-execute.js';
+
+export {
+  VIBRATION_FACILITY_FIT_REGISTER_SCHEMA,
+  buildVibrationFacilityFitRegister,
+} from './fit-register.js';
