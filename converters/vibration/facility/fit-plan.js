@@ -110,6 +110,12 @@ function optionalQuantityEvidence(row, field, invalid) {
   return row;
 }
 
+function processFlowSelection(row) {
+  if (row.velocity) return 'VELOCITY_OVERRIDE';
+  if (row.massFlow) return 'MASS_FLOW';
+  return 'MISSING';
+}
+
 function operatingCaseTrace(row) {
   return {
     caseId: row.caseId,
@@ -117,6 +123,8 @@ function operatingCaseTrace(row) {
     source: row.source,
     sourceRevision: row.sourceRevision ?? null,
     recordId: row.recordId ?? null,
+    flowSelection: processFlowSelection(row),
+    alternateMassFlowPresent: Boolean(row.velocity && row.massFlow),
   };
 }
 
@@ -194,13 +202,12 @@ function requestFromEvidence({
     inputs.insideDiameter = insideDiameter.value;
     inputUnits.insideDiameter = insideDiameter.unit;
   }
-  if (operatingCase.massFlow) {
-    inputs.massFlow = operatingCase.massFlow.value;
-    inputUnits.massFlow = operatingCase.massFlow.unit;
-  }
   if (operatingCase.velocity) {
     inputs.fluidVelocity = operatingCase.velocity.value;
     inputUnits.fluidVelocity = operatingCase.velocity.unit;
+  } else if (operatingCase.massFlow) {
+    inputs.massFlow = operatingCase.massFlow.value;
+    inputUnits.massFlow = operatingCase.massFlow.unit;
   }
   if (phase === 'GAS') {
     inputs.gasDynamicViscosity = operatingCase.dynamicViscosity.value;
