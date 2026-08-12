@@ -6,6 +6,7 @@ export {
   VIBRATION_TABLE_EXCHANGE_REQUIRED_METADATA,
   VIBRATION_TABLE_EXCHANGE_SCHEMA,
   VIBRATION_TABLE_EXCHANGE_SHEETS,
+  assertVibrationTableExchangeShape,
   deepFreezeVibrationExchange,
   vibrationTableExchangeError,
 } from './schema.js';
