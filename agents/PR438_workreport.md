@@ -8,15 +8,15 @@
 | Source task / issue | Owner requests 2026-08-11/12; issue #429; Common `CodingRules.md` pinned at `43eccc27967ecec7d67513c08255398b496be5ce`. |
 | PR / branch | #438 / `agent/fiv-fit-roadmap-foundation` |
 | Base | `37c37d770ba47ebb3152679265896de4a943c8b0` |
-| PR state | OPEN / DRAFT / mergeable at latest check. |
-| Current stage | **Stage 29 — IN_PROGRESS: Engineering Calculations hierarchy + Vibrations landing page** |
+| PR state | OPEN / DRAFT; current branch requires reconciliation with newer mainline Engineering workspace work. |
+| Current stage | **Stage 29 — IN_PROGRESS: existing VIB-family landing -> FIT workspace** |
 | Prior stage | **Stage 28 — PARTIAL: current-head hardening/source validation; full current-head checkout regression still NOT_RUN** |
 | Engineering state | `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`; `engineeringAuthority=NONE`; screening/design NOT AUTHORIZED. |
 | Product boundary | Vibration consumes table exports from Advanced_Analysis 3D EDIT only. No 3D viewer, canvas, geometry rendering, heatmap or embedded model runtime. |
 
 ## Handover in 60 Seconds
 
-Current engineering path:
+Numerical/data path:
 
 ```text
 3D EDIT table export
@@ -31,21 +31,21 @@ Current engineering path:
  -> visible FIT table workspace / CSV export
 ```
 
-Owner has now explicitly changed the visible navigation scope. Required hierarchy is:
+Owner corrected the Stage 29 navigation request. **Do not add a fifth Engineering subtab.** Reuse the existing centralized calculation family already visible in **Engineering Calculations > Calculations**:
 
 ```text
-Engineering Calculations
-  1. Calculations
-  2. B31.3 Material Factors
-  3. Empirical Weight Tuning
-  4. HP Piping Class
-  5. Vibrations
-       -> landing page
-          -> FIT
-             -> existing table-first FIT workspace
+Vibration & Dynamic Screening (6)
+  Acoustic-Induced Vibration Screening            BLOCKED
+  Cavitation / Flashing Screening                 BLOCKED
+  Flow-Induced Turbulence (FIT)                   BENCHMARK_ONLY
+  Small-Bore Connection Vibration Screening       BLOCKED
+  Slug Load / Time-History Assessment             BLOCKED
+  Surge / Momentum Load Screening                 BLOCKED
 ```
 
-Current `main` already contains the four-item Engineering Calculations workspace shell and HP Piping Class integration. This PR branch predates that shell and still has older direct engineering tabs. Stage 29 therefore aligns to current-main architecture and adds Vibrations as item 5 instead of creating a competing navigation model.
+Clicking the existing VIB family becomes the vibration landing page. FIT is the only mechanism that may open the existing table-first FIT workspace. The other five remain qualification-blocked and visible.
+
+Current `main` already owns the four Engineering Calculations subtabs: Calculations / B31.3 Material Factors / Empirical Weight Tuning / HP Piping Class. PR #438 must preserve that mainline hierarchy unchanged.
 
 ## Mission / Engineering Intent
 
@@ -60,9 +60,10 @@ Current `main` already contains the four-item Engineering Calculations workspace
 9. Canonical ID / Line / Operating Case identity and provenance remain explicit.
 10. No 3D/canvas/viewer in vibration.
 11. UI renders existing artifacts only; it does not reproduce equations or authority logic.
-12. Engineering navigation must reuse the current-main Engineering Calculations workspace architecture.
-13. Vibrations is a landing page, not a direct numerical execution tab; FIT is entered from that landing page.
-14. Existing deep links to the prior `vibration-integrity` route should be migrated/aliased to `Engineering Calculations > Vibrations > FIT` where practical.
+12. Preserve current-main Engineering Calculations four-subtab hierarchy.
+13. Existing `Vibration & Dynamic Screening` family is the product landing surface; no duplicate Vibrations nav/subtab.
+14. Family landing status comes from registered definition authority, not UI hard-coding.
+15. FIT table workspace is entered from the family landing; blocked mechanisms remain non-executable.
 
 ## Mission Status
 
@@ -76,8 +77,9 @@ Current `main` already contains the four-item Engineering Calculations workspace
 | Workspace read model | P0 | FOCUSED PASS 6/6 | Stage 24 |
 | Visible FIT table workspace | P0 | IMPLEMENTED / source-reviewed | Stages 25–27 |
 | Readiness preflight | P0 | IMPLEMENTED / source-boundary PASS | Stage 26 |
-| Engineering Calculations 5-item hierarchy | P0 | IN_PROGRESS | Stage 29 |
-| Vibrations landing page -> FIT | P0 | IN_PROGRESS | Stage 29 |
+| VIB family landing in Calculations | P0 | IN_PROGRESS | Stage 29 corrected scope |
+| Remove duplicate Stage-29 Vibrations subtab work | P0 | IN_PROGRESS | owner correction |
+| Mainline Engineering workspace reconciliation | P0 | IN_PROGRESS | main advanced via #439 |
 | Full current-head regression | P0 | NOT_RUN | normal checkout unavailable in this runtime |
 | Full method/project authority review | P0 | BLOCKED | licensed/adopted source + independent engineer |
 | Screening authority | P0 | BLOCKED | issue #429 |
@@ -91,24 +93,22 @@ Current `main` already contains the four-item Engineering Calculations workspace
 | DEC-018 | Decision | ACCEPTED | Evidence coverage cannot grant engineering authority. |
 | DEC-021 | Decision | ACCEPTED | Advanced_Analysis owns model editing; integration is table-only. |
 | DEC-022 | Decision | ACCEPTED | Five-sheet XLSX is current complete exchange; CSV is Elements-only limited input. |
-| DEC-023 | Decision | ACCEPTED | Canonical ID / Line / Case are explicit v1 identities. |
-| DEC-024 | Decision | ACCEPTED | Process quantities require explicit value/unit/source. |
 | DEC-028 | Decision | ACCEPTED | READY requests execute unchanged through central batch API. |
 | DEC-030 | Decision | ACCEPTED | Register/workspace are read projections. |
 | DEC-038 | Decision | ACCEPTED | Workspace is calculation-free; numerical LOF ranking sort rejected. |
-| DEC-039 | Decision | ACCEPTED | Visible FIT tab contains no direct engineering kernel call. |
+| DEC-039 | Decision | ACCEPTED | Visible FIT workspace contains no direct engineering kernel call. |
 | DEC-040 | Decision | ACCEPTED | Preflight stops at dataset + plan. |
 | DEC-041 | Decision | ACCEPTED | Full benchmark workflow lazy-loads only on explicit Run. |
 | DEC-042 | Decision | ACCEPTED | Structured detail renders exact evidence/provenance without score synthesis. |
-| DEC-043 | Decision | ACCEPTED | Adopt current-main `Engineering Calculations` workspace shell rather than old direct-tab navigation. |
-| DEC-044 | Decision | ACCEPTED | `Vibrations` is Engineering Calculations item 5 and opens a landing page; `FIT` launches the existing FIT workspace. |
+| DEC-043 | Decision | ACCEPTED | Preserve current-main four-subtab Engineering Calculations workspace. |
+| DEC-044 | Decision | SUPERSEDED | Prior temporary decision to add Vibrations as subtab 5 was explicitly withdrawn by owner. |
+| DEC-045 | Decision | ACCEPTED | Existing `Vibration & Dynamic Screening` family row is the vibration landing-page entry. |
+| DEC-046 | Decision | ACCEPTED | FIT family-card action opens the existing table-first FIT workspace; other VIB definitions retain registered blocked state. |
 | RISK-001 | Risk | MITIGATED | Unqualified empirical method remains benchmark gated. |
-| RISK-020 | Risk | ACCEPTED | Upstream XLSX semantic hash declared but not reverified downstream in v1. |
 | RISK-024 | Risk | MITIGATED | Incomplete/failed rows stay explicit and blank numerically. |
 | RISK-032 | Risk | MITIGATED | UI visibly distinguishes complete XLSX vs limited CSV. |
 | RISK-033 | Risk | MITIGATED | Readiness exposes missing/invalid evidence before numerical Run. |
-| RISK-035 | Risk | ACTIVE | Branch predates current-main Engineering workspace/HP integration; Stage 29 must avoid duplicating unrelated HP implementation or creating merge drift. |
-| DEBT-001 | Debt | DEFERRED | Consolidate exchange private CSV tokenizer after real XLSX suite is runnable. |
+| RISK-035 | Risk | ACTIVE | Branch predates current-main Engineering workspace/HP integration; reconcile shared shell/test changes without regressing mainline work. |
 | QST-001 | Question | BLOCKED | Complete licensed/adopted T2.2/project review. |
 | QST-003 | Question | FAIL_CLOSED | Manual OD family gap remains unresolved by authority. |
 | ISS-011 | External CI | ROOT_CAUSE_CONFIRMED | GitHub Actions runner blocked by billing/spending condition. |
@@ -121,11 +121,9 @@ Roadmap/source extraction, workbook reference kernel, central benchmark-only ada
 
 ### Stages 15–23 — table workflow
 
-Implemented exchange, dataset, plan, central execution, register, parsed/tabular workflow, strict process/enrichment CSV contracts, safe templates and register export. Current complete topology source is five-sheet XLSX; current CSV stays explicit Elements-only/limited.
+Implemented exchange, dataset, plan, central execution, register, parsed/tabular workflow, strict process/enrichment CSV contracts, safe templates and register export.
 
-Stage 23 dependency-free serializer/template/register-export fixture: PASS.
-
-### Stage 24 — `VibrationWorkspaceModel.v1`
+### Stage 24 — workspace read model
 
 Calculation-free read model with deterministic non-numerical sort/filter, exact detail joins, summary dimensions and authority/ranking rejection. Focused isolated fixture PASS 6/6.
 
@@ -137,6 +135,25 @@ Implemented table imports/templates, separate Check readiness and Run FIT benchm
 
 Source/import boundary, HTML escaping, authority language and changed-file scope were reviewed. Prior full-checkout evidence remains valid for the earlier branch head, but newer workspace/UI changes still require current-head checkout regression.
 
+### Stage 29 — existing VIB-family landing — IN_PROGRESS / OWNER SCOPE CORRECTED
+
+Initial implementation mistakenly interpreted the request as a new fifth Engineering subtab. Owner clarified at 2026-08-12T04:30Z to use the already-available `Vibration & Dynamic Screening (6)` placeholder family. The temporary `Vibrations` subtab/landing files are to be removed and the family catalogue becomes the landing surface instead.
+
+Target behavior:
+
+```text
+Engineering Calculations
+  Calculations
+    Vibration & Dynamic Screening (6)
+      -> family landing
+          FIT -> table-first FIT workspace
+          AIV -> BLOCKED
+          Cavitation / Flashing -> BLOCKED
+          SBC -> BLOCKED
+          Slug / Time-History -> BLOCKED
+          Surge / Momentum -> BLOCKED
+```
+
 ## Validation Ledger
 
 ### Prior full-checkout evidence recorded in PR metadata
@@ -146,11 +163,9 @@ focused FIT/vibration/engineering suite: 67 / 67 PASS
 full npm test:                            235 / 235 PASS
 ```
 
-PR metadata also records `npm run build` failing at `UNBOUND_IDENTIFIER insertText`, reproduced on clean `main`, and Actions failing before runner allocation due billing/spending.
+Those are prior-head evidence. Newer workspace/UI/family-landing work requires current-head revalidation.
 
-These remain prior validation evidence only; later workspace/UI/navigation work is not covered by that earlier full-suite run.
-
-### Current-head evidence before Stage 29 code
+### Current-head evidence before corrected Stage 29 completion
 
 | Check | Status |
 |---|---|
@@ -158,6 +173,7 @@ These remain prior validation evidence only; later workspace/UI/navigation work 
 | Stage 23 export fixture | PASS |
 | Stage 24 workspace fixture | PASS 6/6 |
 | Stage 25–27 source/security review | PASS |
+| Current-main VIB family label/count | PASS by source inspection: `Vibration & Dynamic Screening`, six VIB definitions after FIT promotion |
 | Full current-head `npm test` | NOT_RUN |
 | Current-head real XLSX path | NOT_RUN |
 | Current-head browser navigation | NOT_RUN |
@@ -166,67 +182,47 @@ These remain prior validation evidence only; later workspace/UI/navigation work 
 
 ## Changed-File Ledger / Scope
 
-Last reconciliation before Stage 29 reported 90 changed paths, all within the FIT/table-vibration assignment. Stage 29 may additionally touch only the Engineering workspace/navigation shell, Vibrations landing page, focused tests/docs and this report. It must not copy the unrelated HP implementation package from `main` into this PR.
+Last reconciliation before the owner correction reported 102 changed files on the stale-base PR. Stage 29 correction may touch only:
 
-No `.github/workflows/*`, no vibration 3D/canvas/viewer implementation, and no numerical AIV/SBC/cavitation/surge/slug kernels are allowed.
+- `agents/PR438_workreport.md`;
+- Engineering Calculations console controller/view/styles or a consumed vibration-family view module;
+- current-main Engineering shell files only as needed to reconcile/remove the mistaken fifth-subtab delta;
+- focused vibration family/static tests;
+- vibration product documentation;
+- deletion of temporary `tabs/vibrations-landing-*` files and their dedicated test.
 
-## Stage 29 — Engineering Calculations hierarchy + Vibrations landing page — IN_PROGRESS
+No `.github/workflows/*`, no vibration 3D/canvas/viewer implementation, and no numerical AIV/SBC/cavitation/surge/slug kernels.
 
-### Owner-visible target
+## Stage 29 Validation Targets
 
-```text
-Engineering Calculations
-  Calculations
-  B31.3 Material Factors
-  Empirical Weight Tuning
-  HP Piping Class
-  Vibrations
-    FIT
-```
-
-### Implementation plan
-
-1. Replace this branch's old direct engineering-tab registry with the current-main Engineering Calculations workspace-shell pattern.
-2. Add `Vibrations` as subtab item 5.
-3. Add a new `Vibrations` landing page with a FIT entry.
-4. FIT entry renders the existing `renderVibrationIntegrityTab` workspace inside the Vibrations subtab with a clear back-to-Vibrations control.
-5. Do not create top-level `Vibration Integrity` navigation.
-6. Preserve/migrate legacy `vibration-integrity` app-switch requests to the new hierarchy when practical.
-7. Do not duplicate HP Piping Class production files already present on current `main`; Stage 29 references the current-main subtab contract only.
-8. Add focused static tests for exact five-item ordering and landing-page routing.
-
-### Validation targets
-
-- exact five-item ordering and labels;
-- top-level Engineering entry remains `Engineering Calculations`;
-- no standalone `Vibration Integrity` nav entry;
-- Vibrations landing page contains FIT;
-- FIT child dynamically loads existing table-first workspace;
-- no canvas/3D/direct engineering kernel in landing page;
-- legacy `vibration-integrity` route maps to Vibrations/FIT;
-- current-head full regression remains NOT_RUN unless a normal checkout becomes available.
+- current-main Engineering subtabs remain exactly Calculations / B31.3 Material Factors / Empirical Weight Tuning / HP Piping Class;
+- `Vibration & Dynamic Screening` remains the existing VIB family and reports six definitions;
+- selecting that family shows a mechanism landing, not an invented fifth subtab;
+- FIT shows registered `BENCHMARK_ONLY` authority and opens the existing FIT table workspace;
+- AIV/cavitation/SBC/slug/surge remain BLOCKED from registered definitions;
+- landing layer does not call calculation kernels and contains no canvas/3D/universal score;
+- full current-head regression remains NOT_RUN unless a normal checkout becomes available.
 
 ## Known / Deferred Work
 
 - complete current-head checkout/XLSX/browser validation;
 - complete licensed/adopted EI/project method review and independent engineer approval;
 - authority resolution for manual OD family gap;
-- DEBT-001 exchange tokenizer consolidation after real XLSX suite available;
 - AIV/FIP/SBC/cavitation/surge/slug remain separate future qualification tracks.
 
 ## Forward Sequence
 
-1. Complete Stage 29 navigation/landing integration and focused source tests.
-2. Reconcile changed files and PR metadata.
-3. Keep PR draft until current-head regressions and engineering authority review are complete.
-4. Prepare issue #429 engineering review package.
-5. Only after explicit authority approval consider bounded `SCREENING` activation.
+1. Remove mistaken fifth-subtab landing implementation.
+2. Implement VIB-family landing inside Calculations and route FIT to existing table workspace.
+3. Reconcile shared Engineering shell/test changes with current main.
+4. Reconcile changed files and PR metadata.
+5. Keep PR draft until current-head regressions and engineering authority review are complete.
 
 ## Next-Agent Handover
 
-- Current stage: Stage 29.
-- User explicitly requires Vibrations as item 5 under Engineering Calculations, with a Vibrations landing page and FIT beneath it.
-- Reuse current-main Engineering workspace architecture; do not create a parallel nav model.
+- Current stage: Stage 29 corrected scope.
+- Use the existing `Vibration & Dynamic Screening (6)` family as the landing page.
+- Do not create a fifth Engineering subtab.
+- Preserve current-main HP/Engineering workspace changes.
 - Preserve table-only/no-3D and benchmark-only authority boundaries.
 - Do not add numerical method scope.
-- Preserve prior-validation vs current-head-validation chronology exactly.
