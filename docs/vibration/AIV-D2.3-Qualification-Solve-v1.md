@@ -73,6 +73,26 @@ Controlled Markdown report  129.36 dB
 
 This demonstrates that the controlled report's recycle `129.36 dB` value is consistent with the D.2.3 raw source PWL followed by the manufacturer low-noise-trim reduction. Raw source PWL and effective source PWL therefore remain separate product fields.
 
+## Controlled Markdown AIV row parity
+
+The same qualification solver reproduces the three controlled Markdown AIV **PWL** rows at source/effective-source scope:
+
+```text
+Recycle compressor discharge
+  calculated  129.3648155401 dB
+  report      129.36 dB
+
+Recycle compressor suction
+  calculated  129.0239800907 dB
+  report      129.02 dB
+
+Relief downstream line
+  calculated  164.6851759525 dB
+  report      164.69 dB
+```
+
+The associated Markdown LOF values (`0.29`, `0.29`, `1.48`) are retained as controlled report values but are **not** claimed as reproduced by this source-PWL solve. In particular, the relief line `LOF=1.48` requires the still-unreconciled line/case result-scope and aggregation rule.
+
 ## Relief first-discontinuity reproduction
 
 ### Attenuation and point PWL
@@ -168,6 +188,22 @@ That line/case summary is not interchangeable with the D.2.3 first-discontinuity
 
 The isolated D.2.3 solver does not attempt to reconstruct `LOF = 1.48`, because the line/case aggregation rule remains inside the human result-scope / method reconciliation gate.
 
+## Executed isolated validation
+
+A local isolated Node harness was executed against the branch solver logic and the exact controlled evidence fields used by the solver.
+
+```text
+node --test tests/vibration-aiv-d23-qualification-solve.test.mjs
+
+5 tests
+5 pass
+0 fail
+```
+
+The CLI solve was also executed and produced the values recorded above.
+
+This is a real focused execution of the qualification solver, but it is **not** a substitute for repository-wide CI. GitHub Actions remains separately blocked by repository Actions budget/capacity.
+
 ## What this solve closes
 
 Machine-reproducible qualification evidence now demonstrates:
@@ -175,6 +211,8 @@ Machine-reproducible qualification evidence now demonstrates:
 - relief source PWL parity;
 - recycle raw source PWL parity;
 - recycle post-trim PWL parity with the controlled Markdown report;
+- recycle suction controlled-report PWL parity;
+- relief controlled-report PWL parity;
 - relief attenuation parity;
 - relief first-discontinuity point-PWL parity;
 - official errata `log10(N)` and `N` parity;
