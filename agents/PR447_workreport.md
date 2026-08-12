@@ -11,11 +11,11 @@
 | Base | `main@90d504f74f872f232378836f72c2544297dea8c8` after merged PRs #442 and #444 |
 | PR | **#447** — OPEN / DRAFT |
 | Roadmap stage | **Stage 4 — FIT mechanism extraction** |
-| Current stage | **Stage 2 — PR ALLOCATION / EXACT-DIFF VERIFICATION** |
+| Current stage | **Stage 2 — PR ALLOCATION / EXACT-DIFF VERIFICATION — COMPLETE** |
 | Stage decision | **PARTIAL** — focused model/view tests PASS locally; exact-head full repository/browser validation remains NOT_RUN. |
 | FIT authority | `BENCHMARK_ONLY` / engineering authority `NONE` |
 | Non-FIT scope | No numerical implementation or authority change. |
-| Exact next action | Verify the final 16-file PR diff and exact-head automation status; then record executable/browser evidence before any Stage-5 work. |
+| Exact next action | Run the actual 36-file release gate and real browser FIT Calculation/source/stale-current flows; keep Stage 5 blocked until that evidence is recorded. |
 
 ## Handover in 60 Seconds
 
@@ -156,7 +156,16 @@ Implemented:
 - controlled FIT/VIB release manifest expanded from 34 to 36 test files.
 
 ### Stage 2 — PR allocation / publication
-**IN_PROGRESS.** Draft PR #447 allocated from `agent/fit-mechanism-extraction` to `main`. The initial commit contains exactly the intended 16 paths with the temporary pending report. This follow-up publication commit renames the living report to `agents/PR447_workreport.md`; no production code changes are added by the rename.
+**COMPLETE / PARTIAL VALIDATION.** Draft PR #447 is allocated from `agent/fit-mechanism-extraction` to `main`. Final changed-file verification is exactly 16/16 expected paths and contains no AIV files, FIT numerical kernel files, workflow files or unrelated modules. PR is open, draft and mergeable.
+
+GitHub automation on publication head `cb554e2d545b6e2e0ac1d98253941e4a5433952c`:
+
+```text
+workflow runs = none
+status checks = none
+```
+
+Therefore exact-head automated validation is `NOT_RUN`, not PASS. The report rename is the only follow-up publication change after the Stage-4 production commit.
 
 ## Focused Validation
 
@@ -218,6 +227,25 @@ independent vibration-engineering review
 16. `tests/vibration-integrity-fit-mechanism.test.mjs` — NEW FIT detail-model/renderer boundary regression.
 
 Final PR diff remains exactly 16 paths.
+
+## Publication Evidence
+
+PASS:
+
+- final PR changed-file ledger = **16/16 expected paths**;
+- `agents/PR_PENDING_workreport.md` absent from final diff;
+- `agents/PR447_workreport.md` present;
+- no AIV paths;
+- no `converters/vibration/fit/method.js`;
+- no `converters/vibration/fit/calculate.js`;
+- PR #447 is open / draft / mergeable.
+
+NOT_RUN:
+
+- GitHub workflow execution;
+- GitHub status checks;
+- actual 36-file release command;
+- browser acceptance.
 
 ## Engineering Invariants
 
