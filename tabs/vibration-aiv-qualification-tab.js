@@ -1,4 +1,5 @@
 import { createAivAssessmentCsvTemplate } from '../converters/vibration/aiv/assessment-csv.js';
+import { buildAivQualificationPromotionReadiness } from '../converters/vibration/aiv/aiv-promotion-readiness.js';
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
 import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
@@ -11,13 +12,17 @@ import {
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
+import {
+  promotionEvidenceFromLoadedArtifacts,
+  readAivPromotionVerificationFile,
+} from './vibration-aiv-promotion-artifacts.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-5';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-6';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -47,6 +52,9 @@ function initialState() {
     benchmark: { loaded: null },
     readinessEnvelope: null,
     resultSet: null,
+    promotionArtifacts: {},
+    promotionReadiness: buildAivQualificationPromotionReadiness({}),
+    promotionError: null,
     selectedRowKey: null,
     busy: false,
     error: null,
@@ -109,14 +117,28 @@ export function renderAivQualificationWorkspace(container) {
           sourceName: file.name,
           sourceKind: 'CSV',
         });
-        state.files[target] = {
-          name: file.name,
-          kind: state.tables[target].contract,
-        };
+        state.files[target] = { name: file.name, kind: state.tables[target].contract };
       }
       markBenchmarkModified();
     } catch (error) {
       state.error = String(error?.message || error);
+    }
+    render();
+  }
+
+  async function loadPromotionArtifact(key, file) {
+    state.promotionError = null;
+    try {
+      state.promotionArtifacts[key] = await readAivPromotionVerificationFile(key, file);
+      state.promotionReadiness = buildAivQualificationPromotionReadiness(
+        promotionEvidenceFromLoadedArtifacts(state.promotionArtifacts),
+      );
+    } catch (error) {
+      delete state.promotionArtifacts[key];
+      state.promotionReadiness = buildAivQualificationPromotionReadiness(
+        promotionEvidenceFromLoadedArtifacts(state.promotionArtifacts),
+      );
+      state.promotionError = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     }
     render();
   }
@@ -217,6 +239,12 @@ export function renderAivQualificationWorkspace(container) {
   }
 
   function onChange(event) {
+    const promotionKey = event.target.dataset.aivPromotionFile;
+    if (promotionKey) {
+      const file = event.target.files?.[0];
+      if (file) loadPromotionArtifact(promotionKey, file);
+      return;
+    }
     const target = event.target.dataset.aivFile;
     if (target) {
       const file = event.target.files?.[0];
