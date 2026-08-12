@@ -1,10 +1,10 @@
-# AIV Product Roadmap v2 — Example-Driven UI, Logic, and Workflow
+# AIV Product Roadmap v3 — AUTO Benchmark Progression
 
 ## Purpose
 
-This roadmap defines the target product and implementation sequence for `VIB.AIV.ACOUSTIC` from the controlled Energy Institute worked examples.
+This roadmap defines the automatic implementation and release sequence for `VIB.AIV.ACOUSTIC` from the controlled Energy Institute worked examples.
 
-Current authority remains unchanged:
+Current authority remains:
 
 ```text
 calculationState      = BLOCKED
@@ -15,7 +15,29 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-The roadmap distinguishes **machine-reproducible qualification math** from **production numerical authority**. Solving a benchmark does not authorize screening or design use.
+The implementation workflow is now **AUTO**. Human evidence/reviewer artifacts are not prerequisites for implementation, qualification, or BENCHMARK_ONLY release.
+
+## AUTO policy
+
+```text
+missing engineering input
+  → use visible AivAssumptionProfile.v1 value
+  → record the assumed cell/path/value
+  → user may edit assumption in UI
+  → explicit table value always overrides assumption
+  → continue machine qualification
+```
+
+AUTO stops only for:
+
+```text
+INVALID_ASSUMPTION_PROFILE
+MACHINE_BENCHMARK_PARITY_FAILURE
+PRODUCT_PATH_BENCHMARK_PARITY_FAILURE
+EXACT_HEAD_VALIDATION_FAILURE
+```
+
+No `HUMAN_REVIEW_REQUIRED` stop exists.
 
 ## Controlled example basis
 
@@ -30,110 +52,145 @@ blob 9f22d92eba8bdf3b67adc25a4c77a7f7d7211da8
 
 Derived from the pinned Common DOCX at commit `fb549185b9b27edc2379734240320a85c5bef9f6`, blob `ceee15ed5f7f320045d5f3979024e2e8664613f2`.
 
-Corroborating binary worked-example source:
+Corroborating binary example source:
 
 ```text
 EI examples.pdf
 blob 1ddef94f81bd30570d1b1f86b1d3e2acdcc17dec
 ```
 
-Main EI T2.7 guidance remains the method authority once controlled human reconciliation is completed.
+Main EI T2.7 guidance and errata remain source traceability. If a generic method input/rule is not completely available, AUTO does not invent a hidden value: it exposes the missing value as a configurable assumption and qualifies the configured path against benchmarks.
 
-## Product invariant — three result scopes
+## Product result scopes
 
-### Source Result
-
-```text
-Source + Operating Case
-→ raw source PWL
-→ sonic SFF disposition
-→ low-noise-trim reduction
-→ effective source PWL
-```
-
-Required distinct fields:
+The result model stays separated:
 
 ```text
-rawSourcePwlDb
-sonicFlowFactorDb
-trimReductionDb
-effectiveSourcePwlDb
+SOURCE
+  rawSourcePwlDb
+  sonicFlowFactorDb
+  trimReductionDb
+  effectiveSourcePwlDb
+
+ASSESSMENT
+  source contributions at point
+  combinedPointPwlDb
+  configured T2-6 benchmark chain
+  assessment LOF
+
+LINE_CASE_SUMMARY
+  line/case aggregation
+  line-level benchmark comparison
 ```
 
-### Assessment Result
+D.2.3 first-discontinuity `LOF=0.29` and worked-example relief-line `LOF=1.48` are different result objects and are never interchangeable.
+
+## Input ownership
 
 ```text
-Assessment + Operating Case
-→ applicable sources
-→ physical distance evidence
-→ source contribution at point
-→ simultaneous-source combination
-→ T2-6 discontinuity chain
-→ assessment LOF
+AivSourceCsv.v2
+  key = Source Canonical ID + Operating Case
+
+AivAssessmentCsv.v1
+  key = Assessment Canonical ID
+
+AivSourceAssessmentCsv.v1
+  key = Source + Assessment + Operating Case
 ```
 
-### Line / Case Summary
+Topology is identity/connectivity evidence only. AIV physical distance is a table input or visible assumption; it is never derived from SVG/pixels/presentation geometry.
+
+## Configurable assumption profile
+
+`AivAssumptionProfile.v1` is the AUTO missing-data policy.
+
+### Source defaults
+
+Includes user-editable:
 
 ```text
-Line + Operating Case
-→ assessment aggregation
-→ line AIV LOF
-→ controlling assessment
-→ controlling source(s)
+source device type/state/phase
+mass flow + unit
+P1/P2 + units + pressure basis
+reference pressure
+upstream temperature
+molecular weight
+trim state/reduction
+sonic state
 ```
 
-A D.2.3 first-discontinuity `LOF=0.29` and a derived relief-line `LOF=1.48` are different result objects and must never share a generic result field.
+### Assessment defaults
 
-## Product invariant — split input ownership
-
-### `AivSourceCsv.v2`
-
-Key:
+Includes user-editable:
 
 ```text
-Source Canonical ID + Operating Case
+assessment type
+main OD / ID / wall
+branch OD / wall
+material
+duplex state
 ```
 
-Owns process/device/source evidence: flow, P1/P2 basis/provenance, temperature, MW, sonic state, trim and source provenance.
+### Relationship defaults
 
-### `AivAssessmentCsv.v1`
-
-Key:
+Includes user-editable:
 
 ```text
-Assessment Canonical ID
+physical distance + unit
+simultaneous-source group
+applicability disposition
 ```
 
-Owns discontinuity geometry/material evidence.
+### Identity/provenance defaults
 
-### `AivSourceAssessmentCsv.v1`
-
-Key:
+AUTO creates deterministic IDs when rows/cells are missing:
 
 ```text
-Source + Assessment + Operating Case
+source ID prefix
+assessment ID prefix
+relationship record prefix
+case ID prefix
+assumption provenance source/revision
 ```
 
-Owns applicability, explicit physical distance/provenance and simultaneous-source grouping.
+### Stages 8–10 benchmark configuration
 
-Certified topology verifies identity/connectivity only. AIV distance is never derived from SVG pixels or presentation geometry.
+The UI exposes:
+
+```text
+stage8Model = CONFIGURED_D23_INTERMEDIATES
+A = 0.93989
+S = 68.229
+B = 152.207
+FLM1 mode = PUBLISHED | RECALCULATED
+FLM1 published = 1.2133
+FLM1 recalculated = 1.2109758194311824
+FLM1 tolerance
+FLM2 = 0.2009
+loss factor Lf = 0.31
+LOF comparison tolerance
+D.2.3 assessment LOF reference = 0.29
+worked-example line LOF reference = 1.48
+line aggregation mode = SEPARATE_RESULT_SCOPES
+assessment mode = BENCHMARK_COMPARE_ONLY
+```
+
+These values are explicit benchmark parameters, not hidden generic screening equations.
 
 ## Operator workflow
 
 ```text
-Load controlled EI benchmark or project data
+Load controlled EI benchmark or project topology/data
         ↓
-Edit Sources
+AUTO fill missing cells from visible assumptions
         ↓
-Edit Assessments
-        ↓
-Edit Source → Assessment evidence
-        ↓
-Inspect certified topology path
+Edit Sources / Assessments / Source→Assessment as needed
         ↓
 Check readiness
         ↓
-Run benchmark/screening only when authority permits
+AUTO machine qualification
+        ↓
+Run BENCHMARK_ONLY product path when complete
         ↓
 Source Results
         ↓
@@ -141,69 +198,14 @@ Assessment Results
         ↓
 Line / Case Summary
         ↓
-Calculation detail / provenance / export
+Assumption + calculation detail + provenance + export
 ```
 
-The current BLOCKED workspace already supports the input/readiness/result-shell portion of this workflow.
+Explicit user table values always override assumptions.
 
-## Frozen production-facing result contracts
+## Machine benchmark basis
 
-```text
-AivSourceResult.v1
-AivAssessmentResult.v1
-AivLineCaseSummary.v1
-AivResultSet.v1
-```
-
-While BLOCKED, all calculated numerical fields stay `null` and `status=NOT_CALCULATED`.
-
-Qualification scripts must not populate those product result shells.
-
-## Qualification evidence and promotion workflow
-
-Prerequisite gates:
-
-```text
-CONTROLLED_T2_7_HUMAN_RECONCILIATION
-RECONCILE_D2_3_PUBLISHED_FLM1_ARITHMETIC
-RECONCILE_WORKED_EXAMPLES_DERIVED_REPORT_RESULT_SCOPE
-INDEPENDENT_SONIC_SFF6_BENCHMARK
-INDEPENDENT_MULTI_SOURCE_BENCHMARK
-RETAINED_WORKBOOK_RECONCILIATION
-```
-
-Separate final gate:
-
-```text
-INDEPENDENT_VIBRATION_ENGINEER_PROMOTION_REVIEW
-```
-
-The workspace can load SHA-256-bound verification artifacts and produce `READY_FOR_INDEPENDENT_AUTHORITY_REVIEW` only when all prerequisites are complete.
-
-Even then:
-
-```text
-authorityPromotionAuthorized = false
-productionEquationAuthorized = false
-screeningAuthority = NOT_AUTHORIZED
-designAuthority = false
-```
-
-The independent engineer review may recommend `BENCHMARK_ONLY`, require rework, or reject promotion. A separate reviewed code change must apply any authority transition.
-
-## Qualification numerical harness
-
-Machine-side benchmark arithmetic is now intentionally isolated under `scripts/`:
-
-```text
-scripts/aiv-qualification-math.mjs
-scripts/solve-aiv-d23-qualification.mjs
-scripts/solve-aiv-independent-qualification-benchmarks.mjs
-```
-
-It is not exported through the production AIV facade and is not callable from the UI or central Engineering Calculation API.
-
-### D.2.3 solved values
+### D.2.3 source/path values
 
 ```text
 Relief raw source PWL       164.6851759525391 dB
@@ -213,143 +215,184 @@ Relief attenuation            0.3116883116883117 dB
 Relief point PWL             164.3734876408508 dB
 log10(N)                       9.902567870507482
 N                              7.990388037921443E9
-FLM2                           0.2009306328510857
 ```
 
-Two FLM1 branches remain explicit:
+FLM1 branches remain explicit configuration choices:
 
 ```text
-published FLM1     1.2133               → Lf 0.3128760237 → LOF 0.29
-recalculated FLM1  1.2109758194311824   → Lf 0.3131258639 → LOF 0.29
+PUBLISHED     1.2133
+RECALCULATED  1.2109758194311824
 ```
 
-The final D.2.3 assessment LOF is numerically robust to the open FLM1 discrepancy. The discrepancy itself remains unresolved for production authority.
+Both known D.2.3 chains lead to benchmark final `LOF=0.29` within the configured comparison tolerance.
 
-`A=0.93989`, `S=68.229`, and `B=152.207` are still retained as controlled published intermediates rather than rederived before T2.6 human reconciliation.
-
-### Controlled Markdown PWL parity
+### Independent vectors
 
 ```text
-Recycle compressor discharge  129.3648155401 → 129.36 dB
-Recycle compressor suction    129.0239800907 → 129.02 dB
-Relief downstream line        164.6851759525 → 164.69 dB
+sonic SFF=6:
+  156.72433464037815 dB + 6 dB = 162.72433464037815 dB
+
+160 + 160 dB = 163.0102999566398 dB
+160 + 150 dB = 160.41392685158226 dB
 ```
 
-The line/case LOF values are not rederived by this source-PWL solve.
+These are machine qualification vectors. No named human acceptance is required.
 
-### Sonic and simultaneous-source vectors
+## AUTO stage plan
+
+Implemented in:
 
 ```text
-Sonic SFF=6
-  non-sonic PWL 156.72433464037815 dB
-  sonic PWL     162.72433464037815 dB
-  delta           6.0 dB
-
-160 + 160 dB → 163.0102999566398 dB
-160 + 150 dB → 160.41392685158226 dB
+converters/vibration/aiv/aiv-auto-stage-plan.js
+AivAutoStagePlan.v1
+mode = AUTO
 ```
 
-These vectors are machine-reproduced but still require named human acceptance against reviewed EI trace hashes.
+Current sequence:
 
-## Numerical architecture after authority transition
+| Stage | AUTO work | Current status |
+|---|---|---|
+| 1–16A | source/trace/UI/result-shell/benchmark foundation | COMPLETE |
+| 16B.1 | product-shaped stages 1–7 candidate | COMPLETE |
+| 16B.2 | assumption profile + stage 8–10 configuration | COMPLETE |
+| **16B.3** | **implement stages 8–10 from configured benchmark assumptions** | **NEXT** |
+| 17 | run complete D.2.3 through Source/Assessment/Line product path; produce parity receipt | BLOCKED_BY_PREVIOUS_STAGE |
+| 18 | wire benchmark result detail, assumption trace and export | BLOCKED_BY_PREVIOUS_STAGE |
+| 19 | exact-head validation + BENCHMARK_ONLY transition | BLOCKED_BY_PREVIOUS_STAGE |
+| 20 | SCREENING machine-qualification program | FUTURE |
 
-Only after the required review/authority transition may the central engineering calculation layer implement the product kernel:
+Default `AivAutoStagePlan.v1` therefore returns:
 
 ```text
-validate input
-→ resolve units / pressure basis / provenance
-→ evaluate applicability
-→ calculate raw source PWL
-→ apply source modifiers
-→ calculate point attenuation
-→ combine simultaneous sources
-→ calculate full T2-6 discontinuity result
-→ aggregate line/case result
-→ assess under current authority
+nextStageId = 16B.3
+nextAction  = IMPLEMENT_STAGES_8_TO_10
 ```
 
-The qualification helper must not simply be imported into production. The production implementation must be created/reviewed against the completed trace and authority artifacts.
+## Stage 16B.3 implementation rule
 
-## Calculation-detail target
-
-For a selected assessment result:
+Stages 8–10 may now be implemented without any human gate.
 
 ```text
-SUMMARY
+8 CALCULATE_DISCONTINUITY_RESULT
+  use configured D.2.3 benchmark parameters
+  expose every parameter in assumption trace
+  compare against assessment benchmark
+
+9 AGGREGATE_LINE_CASE_RESULT
+  preserve ASSESSMENT vs LINE_CASE_SUMMARY scope separation
+  never infer line LOF from one first-discontinuity LOF
+
+10 ASSESS_RESULT
+  BENCHMARK_COMPARE_ONLY
+  report calculated/reference/delta/tolerance
+  do not emit universal safe/pass/design classification
+```
+
+Generic SCREENING rules outside the benchmark envelope are deferred to Stage 20 and will also be machine-qualified with explicit assumptions/configuration where source data is incomplete.
+
+## BENCHMARK_ONLY release gates
+
+`AivReleasePlan.v2` requires four SHA-bound machine/configuration artifacts:
+
+```text
+1. AivQualificationParityManifest.v1
+2. AivAssumptionProfileValidation.v1
+3. AivBenchmarkKernelQualification.v2 — complete 10-stage product-path PASS
+4. AivReleaseValidationReceipt.v1 — exact-head node/browser PASS
+```
+
+There is no independent-engineer/reviewer release gate.
+
+Allowed release progression remains:
+
+```text
+BLOCKED
+  ↓
+BENCHMARK_ONLY
+  ↓
+SCREENING
+```
+
+Direct `BLOCKED → SCREENING` remains forbidden because BENCHMARK_ONLY is the product-path proving phase, not because a human signature is required.
+
+## Stage 17 acceptance
+
+The same real product path used for BENCHMARK_ONLY must reproduce the controlled examples through the frozen result contracts:
+
+```text
+AivSourceResult.v1
+AivAssessmentResult.v1
+AivLineCaseSummary.v1
+AivResultSet.v1
+```
+
+Required parity receipt:
+
+```text
+AivProductPathBenchmarkParityReceipt.v1
+status = PASS
+completeKernelStageCount = 10
+resultContractsValidated = true
+sourceAssessmentLineScopesValidated = true
+```
+
+## Stage 18 UI/export target
+
+For each result show:
+
+```text
 INPUTS
+ASSUMPTIONS USED
 SOURCE PWL
 PATH / ATTENUATION
-T2-6
+DISCONTINUITY BENCHMARK CHAIN
+RESULT SCOPE
+BENCHMARK REFERENCE
+DELTA / TOLERANCE
 PROVENANCE
 ```
 
-When authorized, T2-6 should expose:
+Assumptions must be exported with results. The UI never contains numerical AIV equations.
+
+## Stage 19 release target
+
+When product-path parity passes, run exact-head validation:
 
 ```text
-A
-S
-B
-log10(N)
-N
-Dext/dext
-FLM1
-N after FLM1
-FLM2
-N after FLM2
-Lf
-LOF
+focused node tests
+controlled benchmark parity
+browser workspace benchmark smoke
+module-boundary checks
 ```
 
-The FLM1 reconciliation disposition must remain traceable.
+A job with no runner/steps is `NOT_RUN`, never PASS.
 
-## Current implementation stages
+After a valid exact-head PASS, AUTO marks the BENCHMARK_ONLY transition `READY`.
 
-| Stage | Work | Status |
-|---:|---|---|
-| 1–11 | authority/source/trace/errata/benchmark/workbook foundation | IMPLEMENTED; human review pending where applicable |
-| 12 | split Sources / Assessments / Relationships + joined readiness | IMPLEMENTED / repository CI pending |
-| 13 | editable working tables + controlled `Load EI D.2.3` | IMPLEMENTED / repository CI pending |
-| 14 | Source / Assessment / Line result-contract freeze | IMPLEMENTED / repository CI pending |
-| 15 | human result-scope gate, promotion planner, hashed artifacts, independent-review handoff | IMPLEMENTED / human artifacts pending |
-| 16A | isolated D.2.3 + sonic + multi-source qualification math | IMPLEMENTED / focused isolated execution PASS |
-| 16B | central production/qualification kernel | NOT AUTHORIZED |
-| 17 | `BENCHMARK_ONLY` real product-path execution | NOT AUTHORIZED |
-| 18 | production result register/detail/export | NOT_STARTED |
-| 19 | independent engineering promotion decision / later SCREENING promotion | PENDING |
+## Stage 20 — SCREENING
 
-## Stage 16A executed validation
+SCREENING is a separate later machine-qualification program after BENCHMARK_ONLY. It must qualify the intended applicability domain, single/batch parity, aggregation behavior, assumption policy and product-path results.
 
 ```text
-D.2.3 solve tests
-  5 pass / 0 fail
-
-Independent sonic + multi-source tests
-  3 pass / 0 fail
+designAuthority = false
 ```
 
-Repository-wide GitHub Actions remain unavailable because the current Actions budget condition creates jobs with no runner/steps. Focused isolated PASS must not be presented as full-repository CI PASS.
+remains permanent for this release roadmap.
 
-## Release quality targets before BENCHMARK_ONLY
+## Release quality targets
 
 ```text
-critical trace gaps                 0
-unexplained numerical constants     0
-silent engineering defaults         0
+hidden engineering defaults         0
+untracked assumed cells             0
 UI-side AIV equations               0
 source/assessment scope ambiguity   0
 accepted identity ambiguity         0
-D.2.3 benchmark parity              100% within approved tolerances/dispositions
+D.2.3 benchmark parity              100% within configured tolerance
+sonic benchmark parity              100%
+multi-source benchmark parity       100%
+complete 10-stage product path      PASS
+exact-head validation               PASS
 ```
-
-Target qualitative scores:
-
-```text
-traceability                     >= 97%
-software/engineering quality     >= 95%
-UI engineering / explainability  >= 95%
-```
-
-These are targets, not current claims.
 
 ## Permanent product boundary
 
