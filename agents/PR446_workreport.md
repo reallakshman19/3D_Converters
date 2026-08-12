@@ -3,23 +3,23 @@
 ## Mission Control
 
 ```text
-Mission               Prepare AIV product-kernel candidate and AUTO release path
+Mission               Complete AIV AUTO benchmark implementation and release validation path
 Issue                  #441
 PR                     #446
 Branch                 agent/aiv-kernel-contract-scaffold
-Base                   90d504f74f872f232378836f72c2544297dea8c8
 Mode                   AUTO
 Human evidence         NOT REQUIRED
-Candidate stages 1–7   IMPLEMENTED
-Stages 8–10 config     READY from visible user assumptions
-Current AUTO stage     16B.3
-Exact next action      IMPLEMENT_STAGES_8_TO_10
+Stages 1–7             IMPLEMENTED
+Stages 8–10            IMPLEMENTED in controlled benchmark adapter
+D.2.3 product path     PASS — 22 / 22 validation checks
+Current AUTO stage     18
+Exact next action      WIRE_BENCHMARK_RESULT_UI_AND_EXPORT
 Repository CI          NOT_RUN: Actions budget still creates zero-step jobs
-Engineering authority  BLOCKED / NONE / NOT_AUTHORIZED
-Release target         BENCHMARK_ONLY first; SCREENING later; designAuthority=false
+Release target         BENCHMARK_ONLY first; SCREENING later
+Design authority       false
 ```
 
-## Authority invariant
+## Current authority
 
 ```text
 calculationState      = BLOCKED
@@ -30,31 +30,25 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-No current PR module applies the BENCHMARK_ONLY transition yet.
+The validation record does not itself apply an authority transition.
 
-## AUTO missing-data policy
+## AUTO implementation
 
-```text
-blank engineering cell
-  -> resolve from AivAssumptionProfile.v1
-  -> record table/row/column/value/profilePath
-  -> show assumption in UI
-  -> user may edit it
-explicit table value always wins
-```
+Stages 1–7 remain in `converters/vibration/aiv/aiv-kernel-candidate.js`.
 
-AUTO stop conditions:
+Stages 8–10 are now executed by:
 
 ```text
-INVALID_ASSUMPTION_PROFILE
-MACHINE_BENCHMARK_PARITY_FAILURE
-PRODUCT_PATH_BENCHMARK_PARITY_FAILURE
-EXACT_HEAD_VALIDATION_FAILURE
+scripts/aiv-auto-product-path.mjs
 ```
 
-There is no human-review stop condition.
+using the already-controlled qualification numerical helpers in:
 
-## Candidate stages 1–7
+```text
+scripts/aiv-qualification-math.mjs
+```
+
+The adapter executes the frozen 10-stage order:
 
 ```text
 VALIDATE_INPUT
@@ -64,179 +58,109 @@ CALCULATE_SOURCE_PWL
 APPLY_SOURCE_MODIFIERS
 CALCULATE_POINT_ATTENUATION
 COMBINE_SIMULTANEOUS_SOURCES
+CALCULATE_DISCONTINUITY_RESULT
+AGGREGATE_LINE_CASE_RESULT
+ASSESS_RESULT
 ```
 
-Previously executed isolated candidate tests: 6/6 PASS.
+Stage 8 calculates the errata `log10(N)` chain, N, diameter ratio, FLM1 branch, FLM2, N modifiers, Lf and assessment LOF. `A`, `S`, and `B` remain explicit user-configurable benchmark assumptions because their generic derivation is not reconstructed from the worked example.
 
-Representative values:
+Stage 9 keeps the configured worked-example line result separate from the first-discontinuity result:
 
 ```text
-Relief raw source PWL       164.6851759525391 dB
-Recycle raw source PWL      159.36481554007995 dB
-Recycle effective PWL       129.36481554007995 dB
-Relief attenuation            0.3116883116883117 dB
-Relief first-point PWL       164.3734876408508 dB
-Explicit sonic vector       162.72433464037815 dB
-160 + 160 dB                163.0102999566398 dB
-160 + 150 dB                160.41392685158226 dB
+first weldolet LOF 0.29 -> ASSESSMENT
+relief line LOF    1.48 -> LINE_CASE_SUMMARY
 ```
 
-## Configurable assumption profile
+The line value is a visible assumption and is not falsely derived from the first discontinuity.
 
-Added:
+Stage 10 is benchmark comparison only. No universal operating/design classification is emitted.
+
+## D.2.3 validation runner
 
 ```text
-converters/vibration/aiv/aiv-assumption-profile.js
-AivAssumptionProfile.v1
-AivAssumptionResolution.v1
+npm run run:aiv-d23-product-path-validation
+scripts/run-aiv-d23-product-path-validation.mjs
 ```
 
-Visible assumptions cover source/process values, assessment geometry/material, source→assessment distance/applicability, identity/provenance and stages 8–10 benchmark parameters.
-
-Deterministic IDs/record IDs are generated when missing. Trim assumptions are conditional: reduction/vendor provenance is only injected when trim mode is `MANUFACTURER_REDUCTION`.
-
-## Stage 8 configuration
+It loads the same controlled D.2.3 working tables as the UI, parses them through `AivSourceCsv.v2`, `AivAssessmentCsv.v1`, and `AivSourceAssessmentCsv.v1`, executes all 10 stages, and returns:
 
 ```text
-AivDiscontinuityStage8EvidenceGate.v2
-humanEvidenceRequired = false
+AivProductPathBenchmarkParityReceipt.v1
 ```
 
-Default benchmark configuration:
+Machine-readable record:
 
 ```text
-stage8Model = CONFIGURED_D23_INTERMEDIATES
-A = 0.93989
-S = 68.229
-B = 152.207
-FLM1 mode = PUBLISHED | RECALCULATED
-FLM1 published = 1.2133
-FLM1 recalculated = 1.2109758194311824
-FLM2 = 0.2009
-loss factor = 0.31
-D.2.3 assessment LOF reference = 0.29
+docs/vibration/validation/AIV-D2.3-Product-Path-Validation-v1.json
+blob 6d3cd2f7d71ab47d2825d802628f18c0782ffdc7
+validated code commit 64485a51ffe78102ba3b966d43ba68e13f511130
 ```
 
-The user can edit every value in the AIV UI.
-
-## Stages 9–10 configuration
+Readable step-by-step record:
 
 ```text
-AivPostDiscontinuityEvidenceGate.v2
-humanEvidenceRequired = false
+docs/vibration/AIV-D2.3-Product-Path-Validation-v1.md
 ```
 
-Pinned scope behavior:
+Validation summary:
 
 ```text
-D.2.3 first-discontinuity LOF 0.29 = ASSESSMENT reference
-worked-example relief-line LOF 1.48 = LINE_CASE_SUMMARY reference
-valuesAreNotInterchangeable = true
-lineAggregationMode = SEPARATE_RESULT_SCOPES
-assessmentMode = BENCHMARK_COMPARE_ONLY
+22 checks
+22 PASS
+0 FAIL
+completeKernelStageCount = 10
+resultContractsValidated = true
+sourceAssessmentLineScopesValidated = true
 ```
 
-No generic SAFE/PASS/design classification is introduced.
-
-## AUTO stage planner
+Representative actuals:
 
 ```text
-converters/vibration/aiv/aiv-auto-stage-plan.js
-AivAutoStagePlan.v1
-mode = AUTO
+Relief raw PWL           164.6851759525391 dB
+Recycle raw PWL          159.36481554007995 dB
+Recycle effective PWL    129.36481554007995 dB
+Attenuation                0.3116883116883117 dB
+First-point PWL          164.3734876408508 dB
+log10(N)                   9.902567870507482
+N                          7.990388037921443E9
+Dext/dext                  2.7910447761194033
+FLM1 selected              1.2133
+FLM1 recalculated          1.2109758194311824
+FLM2                       0.2009306328510857
+N after FLM1               9.694737806410088E9
+N after FLM2               1.9479698027673252E9
+Lf                         0.31287602368755874
+Assessment LOF             0.29
+Configured line LOF        1.48
 ```
 
-Current plan:
+The FLM1 arithmetic difference is `0.0023241805688176687`, within the configured benchmark tolerance `0.0024`.
+
+## AUTO stage state
 
 ```text
 16B.1 stages 1–7 candidate                         COMPLETE
 16B.2 assumptions + stages 8–10 config             COMPLETE
-16B.3 implement stages 8–10                        NEXT
-17     complete D.2.3 product-path parity           BLOCKED_BY_PREVIOUS_STAGE
-18     result detail / assumption trace / export    BLOCKED_BY_PREVIOUS_STAGE
-19     exact-head validation + BENCHMARK_ONLY       BLOCKED_BY_PREVIOUS_STAGE
+16B.3 stages 8–10 implementation                   COMPLETE
+17     D.2.3 Source/Assessment/Line validation      COMPLETE / PASS
+18     result detail / assumptions / export         NEXT
+19     exact-head validation + BENCHMARK_ONLY       BLOCKED_BY_STAGE_18
 20     SCREENING machine qualification              FUTURE
 ```
 
-## Benchmark kernel qualification
+`tabs/vibration-aiv-validation-records.js` binds the AUTO UI to the committed validation artifact, so the workspace now advances to Stage 18.
 
-```text
-AivBenchmarkKernelQualification.v2
-humanEvidenceRequired = false
-```
+## Remaining release work
 
-It consumes:
+1. Wire the calculated benchmark Source / Assessment / Line results into the operator view.
+2. Export result details, assumptions and the validation receipt together.
+3. Run the focused repository command and browser workflow on an exact controlled checkout/runner.
+4. Create `AivReleaseValidationReceipt.v1` for that exact head.
+5. Evaluate `AivReleasePlan.v2` for BENCHMARK_ONLY transition eligibility.
+6. Apply any BENCHMARK_ONLY transition in a separate explicit code change.
+7. SCREENING remains a later machine-qualification program.
 
-```text
-stages 1–7 machine parity
-valid assumption profile
-complete AivProductPathBenchmarkParityReceipt.v1
-```
+## Validation limitation
 
-Only complete 10-stage real product-path parity can make it PASS.
-
-## BENCHMARK_ONLY release
-
-```text
-AivReleasePlan.v2
-BLOCKED -> BENCHMARK_ONLY -> SCREENING
-```
-
-Four SHA-bound gates only:
-
-```text
-1. AivQualificationParityManifest.v1
-2. AivAssumptionProfileValidation.v1
-3. AivBenchmarkKernelQualification.v2
-4. AivReleaseValidationReceipt.v1
-```
-
-No engineer/reviewer artifact is required.
-
-## UI
-
-The workspace now exposes:
-
-```text
-missing-data assumption editor
-assumed-cell trace
-FLM1 branch selection
-stages 8–10 benchmark parameters
-AUTO upcoming-stage table
-next AUTO action
-machine release readiness
-```
-
-No numerical AIV equations are in UI code.
-
-## Focused tests
-
-`verify:aiv-input-model` now targets the AUTO release path and includes:
-
-```text
-assumption-profile tests
-stage-8 assumption gate tests
-stages-9/10 assumption gate tests
-benchmark-kernel qualification tests
-AUTO stage-plan tests
-release-plan tests
-```
-
-Legacy human-promotion tests are not part of the release-focused command.
-
-New AUTO-path changes have not yet received full repository CI execution because the Actions budget still prevents jobs from starting. Do not treat zero-step jobs as PASS.
-
-## Exact next AUTO sequence
-
-```text
-1. Implement stage 8 from configured benchmark parameters.
-2. Implement stage 9 with strict ASSESSMENT vs LINE_CASE_SUMMARY separation.
-3. Implement stage 10 in BENCHMARK_COMPARE_ONLY mode.
-4. Drive EI D.2.3 through AivSourceResult.v1 / AivAssessmentResult.v1 / AivLineCaseSummary.v1.
-5. Produce AivProductPathBenchmarkParityReceipt.v1.
-6. Make AivBenchmarkKernelQualification.v2 PASS.
-7. Wire assumption-aware result detail/export.
-8. Execute exact-head node + browser validation.
-9. Apply BENCHMARK_ONLY transition when all four release gates PASS.
-10. Start separate SCREENING machine-qualification program.
-```
+A local controlled Node arithmetic cross-check was executed for the numerical chain and all declared tolerances passed. GitHub Actions has still not executed repository tests because the jobs receive no runner/steps under the repository Actions-budget condition. Therefore repository CI remains `NOT_RUN`, not PASS and not a code-failure finding.
