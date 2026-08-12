@@ -15,6 +15,7 @@ on:
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'scripts/verify-aiv-d23-flm1-reconciliation.mjs'
       - 'scripts/verify-aiv-workbook-reconciliation.mjs'
+      - 'scripts/verify-aiv-independent-benchmarks.mjs'
       - 'docs/vibration/AIV-*'
       - 'package.json'
       - 'package-lock.json'
@@ -32,6 +33,7 @@ on:
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'scripts/verify-aiv-d23-flm1-reconciliation.mjs'
       - 'scripts/verify-aiv-workbook-reconciliation.mjs'
+      - 'scripts/verify-aiv-independent-benchmarks.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/vibration-aiv-controlled-source.yml'
@@ -205,6 +207,21 @@ jobs:
           if (template.authority.productionEquationAuthorized !== false) throw new Error('Workbook reconciliation template cannot authorize production equations.');
           NODE
 
+      - name: Generate independent sonic/multi-source benchmark review template
+        shell: bash
+        run: |
+          node scripts/verify-aiv-independent-benchmarks.mjs \
+            --template-out "$RUNNER_TEMP/aiv-independent-benchmark-review-template.json"
+          node - "$RUNNER_TEMP/aiv-independent-benchmark-review-template.json" <<'NODE'
+          const fs = require('node:fs');
+          const template = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (template.schema !== 'AivIndependentBenchmarkReview.v1') throw new Error('Unexpected independent benchmark review schema.');
+          if (template.records.length !== 3) throw new Error('Expected sonic plus two multi-source analytical vectors.');
+          if (!template.records.every((record) => record.reviewState === 'PENDING')) throw new Error('CI must never auto-accept independent benchmarks.');
+          if (!template.records.every((record) => Object.values(record.traceTranscriptionSha256).every((value) => value === null))) throw new Error('CI cannot invent reviewed EI trace hashes.');
+          if (template.authority.productionEquationAuthorized !== false) throw new Error('Benchmark review template cannot authorize production equations.');
+          NODE
+
       - name: Run focused AIV qualification regressions
         run: |
           node --experimental-default-type=module --test tests/vibration-aiv-source-extraction-contract.test.mjs
@@ -213,6 +230,8 @@ jobs:
           node --experimental-default-type=module --test tests/vibration-aiv-d23-flm1-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-workbook-source-inventory.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-workbook-reconciliation.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-independent-benchmarks.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-independent-benchmark-review.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-t27-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-errata-benchmark.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-qualification-evidence.test.mjs
