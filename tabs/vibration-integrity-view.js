@@ -15,6 +15,10 @@ function cell(value) {
   return value === null || value === undefined || value === '' ? '<span class="vi-empty">—</span>' : esc(value);
 }
 
+function listCell(values) {
+  return Array.isArray(values) && values.length ? esc(values.join('; ')) : '<span class="vi-empty">—</span>';
+}
+
 function fileStatus(file, fallback) {
   return file
     ? `<strong>${esc(file.name)}</strong><small>${esc(file.kind || fallback)}</small>`
@@ -32,6 +36,8 @@ function unique(rows, field) {
 
 function importPanel(state) {
   const topologyLimited = state.files.topology?.format === 'CSV_ELEMENTS_ONLY';
+  const checking = state.busy && state.busyAction === 'preflight';
+  const running = state.busy && state.busyAction === 'benchmark';
   return `<section class="vi-card vi-import-card">
     <div class="vi-section-head"><div><h3>Table inputs</h3><p>3D EDIT supplies topology identity; process and vibration data stay separate.</p></div></div>
     <div class="vi-import-grid">
@@ -43,10 +49,40 @@ function importPanel(state) {
       <button type="button" class="vi-btn" data-vi-action="operating-template">Operating-case template</button>
       <button type="button" class="vi-btn" data-vi-action="enrichment-template">Enrichment template</button>
       <label class="vi-check"><input type="checkbox" data-vi-limited${state.allowLimitedExchange ? ' checked' : ''}> Allow limited Elements-only CSV</label>
-      <button type="button" class="vi-btn primary" data-vi-action="run"${!state.files.topology || state.busy ? ' disabled' : ''}>${state.busy ? 'Running…' : 'Run FIT benchmark'}</button>
+      <button type="button" class="vi-btn" data-vi-action="preflight"${!state.files.topology || state.busy ? ' disabled' : ''}>${checking ? 'Checking…' : 'Check readiness'}</button>
+      <button type="button" class="vi-btn primary" data-vi-action="run"${!state.files.topology || state.busy ? ' disabled' : ''}>${running ? 'Running…' : 'Run FIT benchmark'}</button>
       <button type="button" class="vi-btn" data-vi-action="export"${state.envelope ? '' : ' disabled'}>Export register CSV</button>
     </div>
     ${topologyLimited ? '<div class="vi-banner warn"><strong>Limited topology input.</strong> Elements CSV does not carry Connections, Source Mapping, Catalogue Evidence or Export Metadata. Complete provenance requires the five-sheet XLSX export.</div>' : ''}
+  </section>`;
+}
+
+function preflightRows(preflight) {
+  if (!preflight.rows.length) return '<tr><td colspan="8" class="vi-table-empty">No FIT assessment points are defined in the enrichment table.</td></tr>';
+  return preflight.rows.map((row) => `<tr>
+    <td>${cell(row.line)}</td><td>${cell(row.caseId)}</td><td class="vi-mono">${cell(row.canonicalId)}</td>
+    <td>${cell(row.status)}</td><td>${listCell(row.missing)}</td><td>${listCell(row.invalid)}</td>
+    <td>${listCell(row.reasons)}</td><td>${row.requestPrepared ? 'Prepared' : '<span class="vi-empty">—</span>'}</td>
+  </tr>`).join('');
+}
+
+function preflightPanel(state) {
+  const wrapper = state.preflight;
+  if (!wrapper?.preflight) return '';
+  const preflight = wrapper.preflight;
+  const cards = [
+    ['Topology integrity', wrapper.imports.exchangeIntegrityStatus ?? 'UNKNOWN'],
+    ['Assessment points', preflight.counts.assessmentPoints],
+    ['Plan rows', preflight.counts.rows],
+    ['Ready', preflight.counts.ready],
+    ['Not ready', preflight.counts.notReady],
+  ];
+  return `<section class="vi-card vi-preflight-card">
+    <div class="vi-section-head"><div><h3>FIT readiness</h3><p>Input-contract and completeness check only. No FIT calculation is executed by this readiness check.</p></div></div>
+    <div class="vi-summary vi-preflight-summary">${cards.map(([label, value]) => `<div class="vi-metric"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div>
+    <div class="vi-table-wrap"><table class="vi-table vi-preflight-table"><thead><tr>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Readiness</th><th>Missing</th><th>Invalid</th><th>Reasons</th><th>Request</th>
+    </tr></thead><tbody>${preflightRows(preflight)}</tbody></table></div>
   </section>`;
 }
 
@@ -89,7 +125,7 @@ function tableRows(workspace) {
 }
 
 function workspaceTable(state) {
-  if (!state.workspace) return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Load the table inputs and run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
+  if (!state.workspace) return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Check readiness first if desired, then run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
   return `<section class="vi-card vi-workspace-card">
     <div class="vi-section-head"><div><h3>Facility FIT register</h3><p>Table values are benchmark/reference results. Incomplete and failed rows remain explicit.</p></div></div>
     ${summaryCards(state.workspace)}${filters(state)}
@@ -128,6 +164,6 @@ export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
     <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Table-first FIT integrity workspace using 3D EDIT table exports and explicit operating/enrichment data.</p></div><div class="vi-authority"><strong>BENCHMARK ONLY</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
-    ${importPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
+    ${importPanel(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;
 }
