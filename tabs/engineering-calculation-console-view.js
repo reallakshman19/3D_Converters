@@ -17,6 +17,9 @@ import {
 import { renderVibrationFamilyLanding } from './engineering-calculation-vibration-family.js';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
+const AIV_CALCULATION_ID = 'VIB.AIV.ACOUSTIC';
+const FIT_PRODUCT_SURFACE = 'VIBRATION_INTEGRITY_TABLE_WORKSPACE';
+const AIV_QUALIFICATION_SURFACE = 'VIBRATION_AIV_QUALIFICATION_WORKSPACE';
 
 function authorityPillKind(definition) {
   const state = definitionState(definition);
@@ -25,8 +28,11 @@ function authorityPillKind(definition) {
 }
 
 function isFitWorkspace(definition) {
-  return definition.id === FIT_CALCULATION_ID
-    && definition.ui?.productSurface === 'VIBRATION_INTEGRITY_TABLE_WORKSPACE';
+  return definition.id === FIT_CALCULATION_ID && definition.ui?.productSurface === FIT_PRODUCT_SURFACE;
+}
+
+function isAivQualificationWorkspace(definition) {
+  return definition.id === AIV_CALCULATION_ID && definition.ui?.productSurface === AIV_QUALIFICATION_SURFACE;
 }
 
 function renderCatalog(definitions, families, state) {
@@ -51,12 +57,18 @@ function renderConsoleActions(definition, state) {
   if (isFitWorkspace(definition)) {
     return `<div class="engineering-console-actions">${pill('TABLE WORKSPACE', 'warn')} ${pill('BENCHMARK ONLY', 'warn')}</div>`;
   }
+  if (isAivQualificationWorkspace(definition)) {
+    return `<div class="engineering-console-actions">${pill('QUALIFICATION WORKSPACE', 'warn')} ${pill('BLOCKED', 'bad')}</div>`;
+  }
   return `<div class="engineering-console-actions"><label>Mode <select class="engineering-console-input" data-console-mode><option value="single" ${state.mode === 'single' ? 'selected' : ''}>Single</option><option value="sandbox" ${state.mode === 'sandbox' ? 'selected' : ''}>Sandbox</option></select></label><label>Qualification <select class="engineering-console-input" data-qualification-mode>${['strict','benchmark','screening'].map((item) => `<option value="${item}" ${state.qualificationMode === item ? 'selected' : ''}>${item}</option>`).join('')}</select></label></div>`;
 }
 
 function renderDefinitionBody(definition, state) {
   if (isFitWorkspace(definition)) {
     return `<section class="engineering-console-card engineering-console-product-card"><div data-fit-workspace-host><div class="tab-loading">Loading Flow-Induced Vibration Screening workspace...</div></div></section>`;
+  }
+  if (isAivQualificationWorkspace(definition)) {
+    return `<section class="engineering-console-card engineering-console-product-card"><div data-aiv-qualification-host><div class="tab-loading">Loading Acoustic-Induced Vibration qualification workspace...</div></div></section>`;
   }
   const executable = canExecuteEngineeringCalculation(definition, state.qualificationMode);
   const resolvable = canResolveEngineeringCalculation(definition);

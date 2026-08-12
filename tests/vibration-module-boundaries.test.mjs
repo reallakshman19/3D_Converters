@@ -26,9 +26,36 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/workspace/model.js',
   'converters/vibration/workspace/query.js',
   'converters/vibration/workspace/detail.js',
+  'converters/vibration/topology/graph.js',
+  'converters/vibration/aiv/source-case-csv.js',
+  'converters/vibration/aiv/source-csv.js',
+  'converters/vibration/aiv/assessment-csv.js',
+  'converters/vibration/aiv/source-assessment-csv.js',
+  'converters/vibration/aiv/aiv-readiness.js',
+  'converters/vibration/aiv/aiv-readiness-tables.js',
+  'converters/vibration/aiv/aiv-result-contracts.js',
+  'converters/vibration/aiv/aiv-promotion-readiness.js',
+  'converters/vibration/aiv/aiv-independent-promotion-review.js',
+  'converters/vibration/aiv/aiv-topology-view-model.js',
+  'converters/vibration/aiv/aiv-qualification-evidence.js',
+  'converters/vibration/aiv/aiv-d23-pdf-revalidation.js',
+  'converters/vibration/aiv/aiv-errata-evidence.js',
+  'converters/vibration/aiv/aiv-independent-benchmark-evidence.js',
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
   'tabs/vibration-integrity-detail-view.js',
+  'tabs/vibration-aiv-input-model.js',
+  'tabs/vibration-aiv-benchmarks.js',
+  'tabs/vibration-aiv-input-view.js',
+  'tabs/vibration-aiv-inline-symbols.js',
+  'tabs/vibration-aiv-path-view.js',
+  'tabs/vibration-aiv-readiness-view.js',
+  'tabs/vibration-aiv-result-view.js',
+  'tabs/vibration-aiv-promotion-artifacts.js',
+  'tabs/vibration-aiv-independent-review-package.js',
+  'tabs/vibration-aiv-promotion-view.js',
+  'tabs/vibration-aiv-qualification-view.js',
+  'tabs/vibration-aiv-qualification-tab.js',
 ]);
 
 test('new vibration production modules stay below the normal 300-line module target', () => {
@@ -40,7 +67,7 @@ test('new vibration production modules stay below the normal 300-line module tar
   }
 });
 
-test('exchange and dataset public facades preserve stable APIs after structural split', () => {
+test('exchange, dataset and AIV qualification facades preserve stable APIs after structural split', () => {
   const exchangeIndex = source('converters/vibration/exchange/index.js');
   for (const symbol of [
     'assertVibrationTableExchange',
@@ -59,6 +86,34 @@ test('exchange and dataset public facades preserve stable APIs after structural 
     'buildVibrationFacilityFitPreflightFromTables',
     'runVibrationFacilityFitBenchmarkFromTables',
   ]) assert.match(facilityIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
+
+  const aivIndex = source('converters/vibration/aiv/index.js');
+  for (const symbol of [
+    'parseAivSourceCaseCsv',
+    'createAivSourceCaseCsvTemplate',
+    'parseAivSourceCsv',
+    'parseAivAssessmentCsv',
+    'parseAivSourceAssessmentCsv',
+    'buildAivReadiness',
+    'buildAivReadinessFromTables',
+    'buildAivBlockedResultSet',
+    'AIV_SOURCE_RESULT_SCHEMA',
+    'AIV_ASSESSMENT_RESULT_SCHEMA',
+    'AIV_LINE_CASE_SUMMARY_SCHEMA',
+    'buildAivQualificationPromotionReadiness',
+    'AIV_PROMOTION_GATE_DEFINITIONS',
+    'AIV_INDEPENDENT_PROMOTION_REVIEW_SCHEMA',
+    'createAivIndependentPromotionReviewTemplate',
+    'assertAivIndependentPromotionReviewComplete',
+    'AIV_QUALIFICATION_EVIDENCE',
+    'AIV_D23_BENCHMARK_CASES',
+    'AIV_D23_PDF_REVALIDATION',
+    'AIV_EI_EXAMPLES_PDF_SOURCE',
+    'AIV_EI_OFFICIAL_ERRATA_SOURCE',
+    'AIV_T2_6_ERRATA_FEED_EQUATION',
+    'AIV_INDEPENDENT_BENCHMARKS',
+    'AIV_INDEPENDENT_BENCHMARK_EVIDENCE',
+  ]) assert.match(aivIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
 });
 
 test('readiness and visible tab remain separated from direct numerical execution', () => {
@@ -71,6 +126,66 @@ test('readiness and visible tab remain separated from direct numerical execution
   assert.doesNotMatch(preflightTabular, /fit-workflow\.js|fit-workflow-tabular\.js/u);
   assert.doesNotMatch(tab, /calculateEngineering(?:Batch)?\s*\(|calculateFit\s*\(/u);
   assert.match(tab, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
+});
+
+test('AIV topology/readiness/result/promotion/evidence modules remain read-only and separated from production numerical execution', () => {
+  const combined = [
+    source('converters/vibration/topology/graph.js'),
+    source('converters/vibration/aiv/source-case-csv.js'),
+    source('converters/vibration/aiv/source-csv.js'),
+    source('converters/vibration/aiv/assessment-csv.js'),
+    source('converters/vibration/aiv/source-assessment-csv.js'),
+    source('converters/vibration/aiv/aiv-readiness.js'),
+    source('converters/vibration/aiv/aiv-readiness-tables.js'),
+    source('converters/vibration/aiv/aiv-result-contracts.js'),
+    source('converters/vibration/aiv/aiv-promotion-readiness.js'),
+    source('converters/vibration/aiv/aiv-independent-promotion-review.js'),
+    source('converters/vibration/aiv/aiv-topology-view-model.js'),
+    source('converters/vibration/aiv/aiv-qualification-evidence.js'),
+    source('converters/vibration/aiv/aiv-d23-pdf-revalidation.js'),
+    source('converters/vibration/aiv/aiv-errata-evidence.js'),
+    source('converters/vibration/aiv/aiv-independent-benchmark-evidence.js'),
+    source('tabs/vibration-aiv-input-model.js'),
+    source('tabs/vibration-aiv-benchmarks.js'),
+    source('tabs/vibration-aiv-input-view.js'),
+    source('tabs/vibration-aiv-inline-symbols.js'),
+    source('tabs/vibration-aiv-path-view.js'),
+    source('tabs/vibration-aiv-readiness-view.js'),
+    source('tabs/vibration-aiv-result-view.js'),
+    source('tabs/vibration-aiv-promotion-artifacts.js'),
+    source('tabs/vibration-aiv-independent-review-package.js'),
+    source('tabs/vibration-aiv-promotion-view.js'),
+    source('tabs/vibration-aiv-qualification-view.js'),
+    source('tabs/vibration-aiv-qualification-tab.js'),
+  ].join('\n');
+  assert.doesNotMatch(combined, /project3DPoint|SequentialCommandGateway|WorkspaceState|EventBus/u);
+  assert.doesNotMatch(combined, /calculateEngineering|calculateAiv|calculateFit\s*\(/u);
+  assert.doesNotMatch(combined, /<canvas|createElement\(['"]canvas/iu);
+});
+
+test('AIV UI contains no engineering equations even when evidence text includes published values', () => {
+  const ui = [
+    source('tabs/vibration-aiv-input-view.js'),
+    source('tabs/vibration-aiv-inline-symbols.js'),
+    source('tabs/vibration-aiv-path-view.js'),
+    source('tabs/vibration-aiv-readiness-view.js'),
+    source('tabs/vibration-aiv-result-view.js'),
+    source('tabs/vibration-aiv-promotion-artifacts.js'),
+    source('tabs/vibration-aiv-independent-review-package.js'),
+    source('tabs/vibration-aiv-promotion-view.js'),
+    source('tabs/vibration-aiv-qualification-view.js'),
+    source('tabs/vibration-aiv-qualification-tab.js'),
+  ].join('\n');
+  assert.doesNotMatch(ui, /Math\.(?:log10|log|tanh|pow)|\*\*/u);
+  assert.doesNotMatch(ui, /PWL\s*=|LOF\s*=/u);
+});
+
+test('independent AIV review is advisory and cannot self-apply authority', () => {
+  const review = source('converters/vibration/aiv/aiv-independent-promotion-review.js');
+  assert.match(review, /authorityTransitionApplied:\s*false/u);
+  assert.match(review, /SEPARATE_REVIEWED_AUTHORITY_TRANSITION_CHANGE_REQUIRED/u);
+  assert.doesNotMatch(review, /authorityTransitionApplied:\s*true/u);
+  assert.doesNotMatch(review, /screeningAuthority:\s*['"]SCREENING['"]/u);
 });
 
 test('exchange parser facade contains no workbook parsing implementation', () => {

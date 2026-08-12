@@ -8,7 +8,7 @@ const PENDING = Object.freeze([
   ['PIPE.EXTERNAL_PRESSURE.CHECK', 'PIPE', 'External Pressure Check', 428],
   ['PIPE.BRANCH.REINFORCEMENT', 'PIPE', 'Branch Reinforcement Assessment', 428],
   ['PIPE.SHELL_INDENTATION', 'PIPE', 'Pipe Shell / Local Loading Assessment', 428],
-  ['VIB.AIV.ACOUSTIC', 'VIB', 'Acoustic-Induced Vibration Screening', 429],
+  ['VIB.AIV.ACOUSTIC', 'VIB', 'Acoustic-Induced Vibration Screening', 441],
   ['VIB.SBC.SMALL_BORE', 'VIB', 'Small-Bore Connection Vibration Screening', 429],
   ['VIB.CAVITATION.FLASHING', 'VIB', 'Cavitation / Flashing Screening', 429],
   ['VIB.SURGE.MOMENTUM', 'VIB', 'Surge / Momentum Load Screening', 429],
@@ -43,6 +43,7 @@ function blockedCalculation(id, issueNumber) {
 }
 
 export function createPendingEngineeringCalculationDefinition([id, family, name, issueNumber]) {
+  const aiv = id === 'VIB.AIV.ACOUSTIC';
   return {
     contractVersion: ENGINEERING_CALCULATION_CONTRACT_VERSION,
     id,
@@ -71,6 +72,7 @@ export function createPendingEngineeringCalculationDefinition([id, family, name,
       executionModes: [],
       minimumQualificationToShow: 'IMPLEMENTED',
       blockedReason: `Pending qualification issue #${issueNumber}`,
+      ...(aiv ? { productSurface: 'VIBRATION_AIV_QUALIFICATION_WORKSPACE' } : {}),
     },
     calculate() {
       return blockedCalculation(id, issueNumber);
