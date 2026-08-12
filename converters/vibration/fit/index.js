@@ -23,6 +23,7 @@ export {
 } from './applicability.js';
 
 export {
+  FIT_QUALIFICATION_EVIDENCE_STRENGTH,
   FIT_QUALIFICATION_EVIDENCE_TYPES,
   evaluateFitQualificationCoverage,
 } from './qualification-coverage.js';
