@@ -28,8 +28,12 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/workspace/detail.js',
   'converters/vibration/topology/graph.js',
   'converters/vibration/aiv/source-case-csv.js',
+  'converters/vibration/aiv/source-csv.js',
+  'converters/vibration/aiv/assessment-csv.js',
+  'converters/vibration/aiv/source-assessment-csv.js',
   'converters/vibration/aiv/aiv-readiness.js',
   'converters/vibration/aiv/aiv-readiness-tables.js',
+  'converters/vibration/aiv/aiv-result-contracts.js',
   'converters/vibration/aiv/aiv-topology-view-model.js',
   'converters/vibration/aiv/aiv-qualification-evidence.js',
   'converters/vibration/aiv/aiv-d23-pdf-revalidation.js',
@@ -38,9 +42,13 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
   'tabs/vibration-integrity-detail-view.js',
+  'tabs/vibration-aiv-input-model.js',
+  'tabs/vibration-aiv-benchmarks.js',
+  'tabs/vibration-aiv-input-view.js',
   'tabs/vibration-aiv-inline-symbols.js',
   'tabs/vibration-aiv-path-view.js',
   'tabs/vibration-aiv-readiness-view.js',
+  'tabs/vibration-aiv-result-view.js',
   'tabs/vibration-aiv-qualification-view.js',
   'tabs/vibration-aiv-qualification-tab.js',
 ]);
@@ -78,8 +86,15 @@ test('exchange, dataset and AIV qualification facades preserve stable APIs after
   for (const symbol of [
     'parseAivSourceCaseCsv',
     'createAivSourceCaseCsvTemplate',
+    'parseAivSourceCsv',
+    'parseAivAssessmentCsv',
+    'parseAivSourceAssessmentCsv',
     'buildAivReadiness',
     'buildAivReadinessFromTables',
+    'buildAivBlockedResultSet',
+    'AIV_SOURCE_RESULT_SCHEMA',
+    'AIV_ASSESSMENT_RESULT_SCHEMA',
+    'AIV_LINE_CASE_SUMMARY_SCHEMA',
     'AIV_QUALIFICATION_EVIDENCE',
     'AIV_D23_BENCHMARK_CASES',
     'AIV_D23_PDF_REVALIDATION',
@@ -103,20 +118,28 @@ test('readiness and visible tab remain separated from direct numerical execution
   assert.match(tab, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
 });
 
-test('AIV topology/readiness/evidence remain read-only and separated from production numerical execution', () => {
+test('AIV topology/readiness/result/evidence modules remain read-only and separated from production numerical execution', () => {
   const combined = [
     source('converters/vibration/topology/graph.js'),
     source('converters/vibration/aiv/source-case-csv.js'),
+    source('converters/vibration/aiv/source-csv.js'),
+    source('converters/vibration/aiv/assessment-csv.js'),
+    source('converters/vibration/aiv/source-assessment-csv.js'),
     source('converters/vibration/aiv/aiv-readiness.js'),
     source('converters/vibration/aiv/aiv-readiness-tables.js'),
+    source('converters/vibration/aiv/aiv-result-contracts.js'),
     source('converters/vibration/aiv/aiv-topology-view-model.js'),
     source('converters/vibration/aiv/aiv-qualification-evidence.js'),
     source('converters/vibration/aiv/aiv-d23-pdf-revalidation.js'),
     source('converters/vibration/aiv/aiv-errata-evidence.js'),
     source('converters/vibration/aiv/aiv-independent-benchmark-evidence.js'),
+    source('tabs/vibration-aiv-input-model.js'),
+    source('tabs/vibration-aiv-benchmarks.js'),
+    source('tabs/vibration-aiv-input-view.js'),
     source('tabs/vibration-aiv-inline-symbols.js'),
     source('tabs/vibration-aiv-path-view.js'),
     source('tabs/vibration-aiv-readiness-view.js'),
+    source('tabs/vibration-aiv-result-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
     source('tabs/vibration-aiv-qualification-tab.js'),
   ].join('\n');
@@ -127,9 +150,11 @@ test('AIV topology/readiness/evidence remain read-only and separated from produc
 
 test('AIV UI contains no engineering equations even when evidence text includes published values', () => {
   const ui = [
+    source('tabs/vibration-aiv-input-view.js'),
     source('tabs/vibration-aiv-inline-symbols.js'),
     source('tabs/vibration-aiv-path-view.js'),
     source('tabs/vibration-aiv-readiness-view.js'),
+    source('tabs/vibration-aiv-result-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
     source('tabs/vibration-aiv-qualification-tab.js'),
   ].join('\n');
