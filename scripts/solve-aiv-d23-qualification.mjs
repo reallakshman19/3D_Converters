@@ -62,7 +62,7 @@ function solveModifierChain({ N, FLM1, FLM2 }) {
   return { FLM1, NAfterFLM1: nAfterFlm1, FLM2, NAfterFLM2: nAfterFlm2, Lf, LOF: finalLofFromLf(Lf) };
 }
 
-function solveMarkdownSourceRow(row, { massFlowKgH = 53482, trimReductionDb = row.lowNoiseTrimDb }) {
+function solveMarkdownSourceRow(row, { massFlowKgH = 53482, trimReductionDb = row.lowNoiseTrimDb } = {}) {
   const rawSourcePwlDb = sourcePwlDb({
     p1PaAbs: row.upstreamPressureBara * 1e5,
     p2PaAbs: row.downstreamPressureBara * 1e5,
