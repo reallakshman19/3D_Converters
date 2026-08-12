@@ -1,13 +1,22 @@
 import { createAivAssessmentCsvTemplate } from '../converters/vibration/aiv/assessment-csv.js';
 import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
+import {
+  addAivInputRow,
+  createEmptyAivInputTable,
+  deleteAivInputRow,
+  parseAivInputCsv,
+  serializeAivInputTable,
+  updateAivInputCell,
+} from './vibration-aiv-input-model.js';
+import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-3';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-4';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -25,16 +34,27 @@ function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
   URL.revokeObjectURL(url);
 }
 
-export function renderAivQualificationWorkspace(container) {
-  ensureStylesheet();
-  const state = {
+function initialState() {
+  return {
     files: { topology: null, sources: null, assessments: null, relationships: null },
+    topologyInput: null,
+    tables: {
+      sources: createEmptyAivInputTable('sources'),
+      assessments: createEmptyAivInputTable('assessments'),
+      relationships: createEmptyAivInputTable('relationships'),
+    },
+    benchmark: { loaded: null },
     readinessEnvelope: null,
     selectedRowKey: null,
     busy: false,
     error: null,
     destroyed: false,
   };
+}
+
+export function renderAivQualificationWorkspace(container) {
+  ensureStylesheet();
+  const state = initialState();
 
   function render() {
     if (!state.destroyed) container.innerHTML = renderAivQualificationWorkspaceHtml(state);
@@ -43,44 +63,100 @@ export function renderAivQualificationWorkspace(container) {
   function clearReadiness() {
     state.readinessEnvelope = null;
     state.selectedRowKey = null;
-    state.error = null;
   }
 
-  async function loadFile(target, file) {
-    clearReadiness();
+  function markBenchmarkModified() {
+    if (!state.benchmark.loaded || state.benchmark.loaded.modified) return;
+    state.benchmark.loaded = Object.freeze({ ...state.benchmark.loaded, modified: true });
+  }
+
+  function loadBenchmark() {
     try {
-      state.files[target] = target === 'topology'
-        ? { name: file.name, data: await file.arrayBuffer(), kind: 'Complete five-sheet XLSX' }
-        : { name: file.name, text: await file.text(), kind: target === 'sources'
-          ? 'AivSourceCsv.v2'
-          : target === 'assessments' ? 'AivAssessmentCsv.v1' : 'AivSourceAssessmentCsv.v1' };
+      const loaded = buildLoadedAivD23Benchmark();
+      state.benchmark.loaded = loaded.benchmark;
+      state.tables = loaded.tables;
+      state.files = loaded.files;
+      state.topologyInput = {
+        format: 'PARSED_EXCHANGE',
+        data: loaded.topology,
+        sourceFileName: loaded.topology.sourceFileName,
+      };
+      clearReadiness();
+      state.error = null;
     } catch (error) {
-      state.files[target] = null;
       state.error = String(error?.message || error);
     }
     render();
   }
 
+  async function loadFile(target, file) {
+    clearReadiness();
+    state.error = null;
+    try {
+      if (target === 'topology') {
+        state.files.topology = { name: file.name, kind: 'Complete five-sheet XLSX' };
+        state.topologyInput = {
+          format: 'XLSX',
+          data: await file.arrayBuffer(),
+          sourceFileName: file.name,
+        };
+      } else {
+        const text = await file.text();
+        state.tables[target] = parseAivInputCsv(target, text, {
+          sourceName: file.name,
+          sourceKind: 'CSV',
+        });
+        state.files[target] = {
+          name: file.name,
+          kind: state.tables[target].contract,
+        };
+      }
+      markBenchmarkModified();
+    } catch (error) {
+      state.error = String(error?.message || error);
+    }
+    render();
+  }
+
+  function applyTableMutation(kind, table) {
+    state.tables[kind] = table;
+    markBenchmarkModified();
+    clearReadiness();
+    state.error = null;
+    render();
+  }
+
+  function readinessInputAvailable() {
+    return Boolean(
+      state.topologyInput
+      && state.tables.sources.rows.length
+      && state.tables.assessments.rows.length
+      && state.tables.relationships.rows.length,
+    );
+  }
+
   async function checkReadiness() {
-    const required = ['topology', 'sources', 'assessments', 'relationships'];
-    if (state.busy || !required.every((key) => state.files[key])) return;
+    if (state.busy || !readinessInputAvailable()) return;
     state.busy = true;
     state.error = null;
     render();
     try {
       const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
-        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-2'
+        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-3'
       );
       if (state.destroyed) return;
+      const format = state.topologyInput.format === 'PARSED_EXCHANGE'
+        ? AIV_TOPOLOGY_INPUT_FORMAT.PARSED_EXCHANGE
+        : AIV_TOPOLOGY_INPUT_FORMAT.XLSX;
       state.readinessEnvelope = buildAivReadinessFromTables({
         topology: {
-          format: AIV_TOPOLOGY_INPUT_FORMAT.XLSX,
-          data: state.files.topology.data,
-          sourceFileName: state.files.topology.name,
+          format,
+          data: state.topologyInput.data,
+          sourceFileName: state.topologyInput.sourceFileName,
         },
-        sourceCsv: state.files.sources.text,
-        assessmentCsv: state.files.assessments.text,
-        sourceAssessmentCsv: state.files.relationships.text,
+        sourceCsv: serializeAivInputTable(state.tables.sources),
+        assessmentCsv: serializeAivInputTable(state.tables.assessments),
+        sourceAssessmentCsv: serializeAivInputTable(state.tables.relationships),
       });
       state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
     } catch (error) {
@@ -94,7 +170,21 @@ export function renderAivQualificationWorkspace(container) {
     }
   }
 
+  function handleTableClick(event) {
+    const addKind = event.target.closest('[data-aiv-table-add]')?.dataset.aivTableAdd;
+    if (addKind) {
+      applyTableMutation(addKind, addAivInputRow(state.tables[addKind]));
+      return true;
+    }
+    const button = event.target.closest('[data-aiv-table-delete]');
+    if (!button) return false;
+    const kind = button.dataset.aivTableDelete;
+    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], Number(button.dataset.aivEditRow)));
+    return true;
+  }
+
   function onClick(event) {
+    if (handleTableClick(event)) return;
     const row = event.target.closest('[data-aiv-row]');
     if (row) {
       state.selectedRowKey = row.dataset.aivRow;
@@ -102,17 +192,33 @@ export function renderAivQualificationWorkspace(container) {
       return;
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
+    if (action === 'load-d23-benchmark') loadBenchmark();
     if (action === 'source-template') downloadText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
     if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
     if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
     if (action === 'check-readiness') checkReadiness();
   }
 
+  function handleTableChange(event) {
+    const kind = event.target.dataset.aivTableCell;
+    if (!kind) return false;
+    applyTableMutation(kind, updateAivInputCell(
+      state.tables[kind],
+      Number(event.target.dataset.aivEditRow),
+      Number(event.target.dataset.aivEditColumn),
+      event.target.value,
+    ));
+    return true;
+  }
+
   function onChange(event) {
     const target = event.target.dataset.aivFile;
-    if (!target) return;
-    const file = event.target.files?.[0];
-    if (file) loadFile(target, file);
+    if (target) {
+      const file = event.target.files?.[0];
+      if (file) loadFile(target, file);
+      return;
+    }
+    handleTableChange(event);
   }
 
   container.addEventListener('click', onClick);
