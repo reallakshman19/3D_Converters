@@ -1,3 +1,5 @@
+import { AIV_D23_PRODUCT_PATH_VALIDATION } from './vibration-aiv-validation-records.js';
+
 function esc(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -13,69 +15,56 @@ function empty(value) {
     : esc(value);
 }
 
-function sourceRows(resultSet) {
+function blockedSourceRows(resultSet) {
   const rows = resultSet?.sourceResults ?? [];
   if (!rows.length) return '<tr><td colspan="10" class="aivq-empty-row">No Source Result shells available. Check readiness after loading working inputs.</td></tr>';
-  return rows.map((row) => `<tr>
-    <td><code>${esc(row.sourceCanonicalId)}</code></td>
-    <td>${esc(row.caseId)}</td>
-    <td>${esc(row.sourceDeviceType)}</td>
-    <td>${empty(row.rawSourcePwlDb)}</td>
-    <td>${empty(row.sonicFlowFactorDb)}</td>
-    <td>${empty(row.trimReductionDb)}</td>
-    <td>${empty(row.effectiveSourcePwlDb)}</td>
-    <td>${empty(row.thresholdBranch)}</td>
-    <td><span class="aivq-status gap">${esc(row.status)}</span></td>
-    <td>${esc(row.readiness.relationshipCount)}</td>
-  </tr>`).join('');
+  return rows.map((row) => `<tr><td><code>${esc(row.sourceCanonicalId)}</code></td><td>${esc(row.caseId)}</td><td>${esc(row.sourceDeviceType)}</td><td>${empty(row.rawSourcePwlDb)}</td><td>${empty(row.sonicFlowFactorDb)}</td><td>${empty(row.trimReductionDb)}</td><td>${empty(row.effectiveSourcePwlDb)}</td><td>${empty(row.thresholdBranch)}</td><td><span class="aivq-status gap">${esc(row.status)}</span></td><td>${esc(row.readiness.relationshipCount)}</td></tr>`).join('');
 }
 
-function assessmentRows(resultSet) {
+function blockedAssessmentRows(resultSet) {
   const rows = resultSet?.assessmentResults ?? [];
-  if (!rows.length) return '<tr><td colspan="10" class="aivq-empty-row">No Assessment Result shells available. Assessment results require at least one Source → Assessment relationship.</td></tr>';
-  return rows.map((row) => `<tr>
-    <td><code>${esc(row.assessmentCanonicalId)}</code></td>
-    <td>${esc(row.line ?? '—')}</td>
-    <td>${esc(row.caseId)}</td>
-    <td>${esc(row.assessmentType ?? '—')}</td>
-    <td>${esc(row.contributingSourceCanonicalIds.join(', '))}</td>
-    <td>${empty(row.combinedPointPwlDb)}</td>
-    <td>${row.t26Intermediates === null ? '<span class="aivq-empty">NOT_CALCULATED</span>' : esc('AVAILABLE')}</td>
-    <td>${empty(row.lof)}</td>
-    <td><span class="aivq-status gap">${esc(row.status)}</span></td>
-    <td>${esc(row.readiness.statuses.join(', ') || '—')}</td>
-  </tr>`).join('');
+  if (!rows.length) return '<tr><td colspan="10" class="aivq-empty-row">No Assessment Result shells available.</td></tr>';
+  return rows.map((row) => `<tr><td><code>${esc(row.assessmentCanonicalId)}</code></td><td>${esc(row.line ?? '—')}</td><td>${esc(row.caseId)}</td><td>${esc(row.assessmentType ?? '—')}</td><td>${esc(row.contributingSourceCanonicalIds.join(', '))}</td><td>${empty(row.combinedPointPwlDb)}</td><td>${row.t26Intermediates === null ? '<span class="aivq-empty">NOT_CALCULATED</span>' : esc('AVAILABLE')}</td><td>${empty(row.lof)}</td><td><span class="aivq-status gap">${esc(row.status)}</span></td><td>${esc(row.readiness.statuses.join(', ') || '—')}</td></tr>`).join('');
 }
 
-function lineRows(resultSet) {
+function blockedLineRows(resultSet) {
   const rows = resultSet?.lineCaseSummaries ?? [];
   if (!rows.length) return '<tr><td colspan="9" class="aivq-empty-row">No Line / Case Summary shells available.</td></tr>';
-  return rows.map((row) => `<tr>
-    <td>${esc(row.line ?? '—')}</td>
-    <td>${esc(row.caseId)}</td>
-    <td>${esc(row.assessmentCount)}</td>
-    <td>${esc(row.assessmentCanonicalIds.join(', '))}</td>
-    <td>${esc(row.sourceCanonicalIds.join(', '))}</td>
-    <td>${empty(row.lof)}</td>
-    <td>${empty(row.controllingAssessmentCanonicalId)}</td>
-    <td>${row.controllingSourceCanonicalIds.length ? esc(row.controllingSourceCanonicalIds.join(', ')) : '<span class="aivq-empty">NOT_CALCULATED</span>'}</td>
-    <td><span class="aivq-status gap">${esc(row.status)}</span></td>
-  </tr>`).join('');
+  return rows.map((row) => `<tr><td>${esc(row.line ?? '—')}</td><td>${esc(row.caseId)}</td><td>${esc(row.assessmentCount)}</td><td>${esc(row.assessmentCanonicalIds.join(', '))}</td><td>${esc(row.sourceCanonicalIds.join(', '))}</td><td>${empty(row.lof)}</td><td>${empty(row.controllingAssessmentCanonicalId)}</td><td>${row.controllingSourceCanonicalIds.length ? esc(row.controllingSourceCanonicalIds.join(', ')) : '<span class="aivq-empty">NOT_CALCULATED</span>'}</td><td><span class="aivq-status gap">${esc(row.status)}</span></td></tr>`).join('');
+}
+
+function validatedBenchmarkHtml() {
+  const record = AIV_D23_PRODUCT_PATH_VALIDATION;
+  const a = record.assessmentResult;
+  const t = a.t26Intermediates;
+  const sourceRows = record.sourceResults.map((row) => `<tr><td><code>${esc(row.sourceCanonicalId)}</code></td><td>${esc(row.caseId)}</td><td>${esc(row.rawSourcePwlDb)}</td><td>${esc(row.sonicFlowFactorDb)}</td><td>${esc(row.trimReductionDb)}</td><td>${esc(row.effectiveSourcePwlDb)}</td><td><span class="aivq-status ok">VALIDATED</span></td></tr>`).join('');
+  return `<section class="aivq-card aivq-results-card">
+    <div class="aivq-section-head"><div><h4>Validated EI D.2.3 benchmark results</h4><p>These values come from the committed 10-stage validation record and are shown only while the controlled benchmark inputs remain unchanged.</p></div><button type="button" class="engineering-console-btn" data-aiv-action="export-d23-validation">Export validation package</button></div>
+    <div class="aivq-result-summary"><span>Validation <strong>${esc(record.status)}</strong></span><span>Checks <strong>${esc(record.counts.passed)}/${esc(record.counts.checks)}</strong></span><span>Stages <strong>${esc(record.completeKernelStageCount)}/10</strong></span><span>Human evidence <strong>false</strong></span><span>Screening authority <strong>${esc(record.screeningAuthority)}</strong></span></div>
+    <h5>Source Results · <code>AivSourceResult.v1</code></h5>
+    <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Case</th><th>Raw PWL</th><th>SFF</th><th>Trim</th><th>Effective PWL</th><th>Status</th></tr></thead><tbody>${sourceRows}</tbody></table></div>
+    <h5>Assessment Result · <code>AivAssessmentResult.v1</code></h5>
+    <div class="aivq-example-table"><table><thead><tr><th>Assessment</th><th>Line</th><th>Case</th><th>Point PWL</th><th>Attenuation</th><th>LOF</th><th>Status</th></tr></thead><tbody><tr><td><code>${esc(a.assessmentCanonicalId)}</code></td><td>${esc(a.line)}</td><td>${esc(a.caseId)}</td><td>${esc(a.combinedPointPwlDb)}</td><td>${esc(a.attenuationDb)}</td><td>${esc(a.lof)}</td><td><span class="aivq-status ok">VALIDATED</span></td></tr></tbody></table></div>
+    <h5>T2-6 calculation detail</h5>
+    <div class="aivq-example-table"><table><thead><tr><th>A</th><th>S</th><th>B</th><th>log10(N)</th><th>N</th><th>Dext/dext</th><th>FLM1</th><th>FLM1 recalculated</th><th>FLM2</th><th>N after FLM2</th><th>Lf</th></tr></thead><tbody><tr><td>${esc(t.A)}</td><td>${esc(t.S)}</td><td>${esc(t.B)}</td><td>${esc(t.log10N)}</td><td>${esc(t.N)}</td><td>${esc(t.diameterRatio)}</td><td>${esc(t.FLM1)}</td><td>${esc(t.calculatedFLM1FromGeometry)}</td><td>${esc(t.FLM2)}</td><td>${esc(t.NAfterFLM2)}</td><td>${esc(t.Lf)}</td></tr></tbody></table></div>
+    <h5>Line / Case Summary · <code>AivLineCaseSummary.v1</code></h5>
+    <div class="aivq-example-table"><table><thead><tr><th>Line</th><th>Case</th><th>Line LOF</th><th>Basis</th><th>Scope rule</th></tr></thead><tbody><tr><td>${esc(record.lineResult.line)}</td><td>${esc(record.lineResult.caseId)}</td><td>${esc(record.lineResult.lof)}</td><td>${esc(record.lineResult.aggregationBasis)}</td><td>Line 1.48 is separate from assessment 0.29</td></tr></tbody></table></div>
+    <div class="aivq-readiness-note">Validation artifact: <code>${esc(record.path)}</code> · blob <code>${esc(record.gitBlob)}</code>. A/S/B and the line-scope LOF remain explicit configurable assumptions; no universal operating/design classification is produced.</div>
+  </section>`;
 }
 
 export function renderAivResultShellsHtml(state = {}) {
+  if (state.benchmark?.loaded && !state.benchmark.loaded.modified) return validatedBenchmarkHtml();
   const resultSet = state.resultSet ?? null;
+  const modified = state.benchmark?.loaded?.modified;
   const summary = resultSet
     ? `<div class="aivq-result-summary"><span>Source shells <strong>${esc(resultSet.counts.sources)}</strong></span><span>Assessment shells <strong>${esc(resultSet.counts.assessments)}</strong></span><span>Line/case shells <strong>${esc(resultSet.counts.lineCaseSummaries)}</strong></span><span>Engineering authority <strong>${esc(resultSet.authority.engineeringAuthority)}</strong></span></div>`
-    : '<div class="aivq-readiness-note">Check AIV readiness to instantiate the frozen result scopes from the current visible working inputs.</div>';
+    : `<div class="aivq-readiness-note">${modified ? 'Benchmark inputs were modified, so the committed validation result is not applicable. Check readiness for the edited working inputs.' : 'Check AIV readiness to instantiate the frozen result scopes from the current visible working inputs.'}</div>`;
   return `<section class="aivq-card aivq-results-card">
-    <div class="aivq-section-head"><div><h4>Frozen AIV result scopes</h4><p>Source Result, Assessment Result and Line / Case Summary are separate contracts. While authority is BLOCKED every numerical field is explicitly NOT_CALCULATED—not zero, pass, safe, or screening output.</p></div></div>
+    <div class="aivq-section-head"><div><h4>AIV result scopes</h4><p>Source Result, Assessment Result and Line / Case Summary remain separate contracts. Modified or project inputs do not inherit the committed D.2.3 validation result.</p></div></div>
     ${summary}
-    <h5>Source Results · <code>AivSourceResult.v1</code></h5>
-    <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Case</th><th>Device</th><th>Raw source PWL</th><th>SFF</th><th>Trim</th><th>Effective source PWL</th><th>Threshold branch</th><th>Status</th><th>Relationships</th></tr></thead><tbody>${sourceRows(resultSet)}</tbody></table></div>
-    <h5>Assessment Results · <code>AivAssessmentResult.v1</code></h5>
-    <div class="aivq-example-table"><table><thead><tr><th>Assessment</th><th>Line</th><th>Case</th><th>Type</th><th>Contributing sources</th><th>Combined point PWL</th><th>T2-6</th><th>LOF</th><th>Status</th><th>Readiness</th></tr></thead><tbody>${assessmentRows(resultSet)}</tbody></table></div>
-    <h5>Line / Case Summary · <code>AivLineCaseSummary.v1</code></h5>
-    <div class="aivq-example-table"><table><thead><tr><th>Line</th><th>Case</th><th>Assessments</th><th>Assessment IDs</th><th>Source IDs</th><th>Line LOF</th><th>Controlling assessment</th><th>Controlling sources</th><th>Status</th></tr></thead><tbody>${lineRows(resultSet)}</tbody></table></div>
+    <h5>Source Results · <code>AivSourceResult.v1</code></h5><div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Case</th><th>Device</th><th>Raw source PWL</th><th>SFF</th><th>Trim</th><th>Effective source PWL</th><th>Threshold branch</th><th>Status</th><th>Relationships</th></tr></thead><tbody>${blockedSourceRows(resultSet)}</tbody></table></div>
+    <h5>Assessment Results · <code>AivAssessmentResult.v1</code></h5><div class="aivq-example-table"><table><thead><tr><th>Assessment</th><th>Line</th><th>Case</th><th>Type</th><th>Contributing sources</th><th>Combined point PWL</th><th>T2-6</th><th>LOF</th><th>Status</th><th>Readiness</th></tr></thead><tbody>${blockedAssessmentRows(resultSet)}</tbody></table></div>
+    <h5>Line / Case Summary · <code>AivLineCaseSummary.v1</code></h5><div class="aivq-example-table"><table><thead><tr><th>Line</th><th>Case</th><th>Assessments</th><th>Assessment IDs</th><th>Source IDs</th><th>Line LOF</th><th>Controlling assessment</th><th>Controlling sources</th><th>Status</th></tr></thead><tbody>${blockedLineRows(resultSet)}</tbody></table></div>
   </section>`;
 }
