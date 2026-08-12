@@ -3,9 +3,7 @@
 ## Release sequence
 
 ```text
-BLOCKED
-  -> BENCHMARK_ONLY
-  -> SCREENING
+BLOCKED -> BENCHMARK_ONLY -> SCREENING
 ```
 
 Human evidence is not a release prerequisite. Missing engineering inputs are explicit, visible and user-configurable through `AivAssumptionProfile.v1`.
@@ -24,11 +22,10 @@ designAuthority       = false
 ## Current implementation state
 
 ```text
-stages 1–7   IMPLEMENTED
-stages 8–10  IMPLEMENTED in controlled AUTO benchmark adapter
-D.2.3 full product path PASS — 22 / 22 checks
-Stage 18     NEXT — result detail / assumptions / export
-Stage 19     exact-head BENCHMARK_ONLY validation after Stage 18
+stages 1–10                IMPLEMENTED for controlled benchmark path
+D.2.3 full product path    PASS — 22 / 22 checks
+result/detail/export       COMPLETE
+exact-head release test    NEXT
 ```
 
 Validation record:
@@ -39,11 +36,7 @@ blob 6d3cd2f7d71ab47d2825d802628f18c0782ffdc7
 validated code commit 64485a51ffe78102ba3b966d43ba68e13f511130
 ```
 
-## Release 1 — BENCHMARK_ONLY
-
-Purpose: run the controlled benchmark through the real AIV input/result workflow and expose calculation detail without granting project screening authority.
-
-Target boundary:
+## BENCHMARK_ONLY target
 
 ```text
 calculationState      = IMPLEMENTED
@@ -53,78 +46,75 @@ screeningAuthority    = NOT_AUTHORIZED
 designAuthority       = false
 ```
 
-Required release evidence in `AivReleasePlan.v2`:
+`AivReleasePlan.v2` requires four machine/configuration artifacts:
 
 ```text
 1. AivQualificationParityManifest.v1
 2. AivAssumptionProfileValidation.v1
-3. AivBenchmarkKernelQualification.v2
-4. AivReleaseValidationReceipt.v1
+3. AivBenchmarkKernelQualification.v2 — PASS / complete 10-stage product path
+4. AivReleaseValidationReceipt.v1 — exact-head node/browser execution PASS
 ```
 
-The benchmark-kernel qualification requires complete 10-stage product-path parity. That product-path receipt now exists and passes.
+No engineer/reviewer artifact is required.
 
-Remaining BENCHMARK_ONLY work:
-
-1. Stage 18: display/export calculated Source / Assessment / Line results plus assumptions and validation metadata.
-2. Run the exact candidate head through the focused Node suite and browser operator flow on a real controlled checkout/runner.
-3. Produce `AivReleaseValidationReceipt.v1` with actual execution metadata.
-4. Evaluate all four `AivReleasePlan.v2` gates.
-5. Apply BENCHMARK_ONLY in a separate explicit transition change only when those machine gates pass.
-
-A GitHub Actions job with no assigned runner and zero steps is `NOT_RUN`, not a release PASS.
-
-## D.2.3 benchmark acceptance already achieved
+## Completed benchmark acceptance
 
 ```text
-relief raw PWL         164.6851759525391 dB
-recycle raw PWL        159.36481554007995 dB
-recycle effective PWL  129.36481554007995 dB
-attenuation              0.3116883116883117 dB
-first-point PWL        164.3734876408508 dB
-log10(N)                 9.902567870507482
-N                        7.990388037921443E9
-FLM1 selected            1.2133
-FLM1 recalculated        1.2109758194311824
-FLM2                     0.2009306328510857
-Lf                       0.31287602368755874
-assessment LOF           0.29
-configured line LOF      1.48
+Relief raw PWL           164.6851759525391 dB
+Recycle raw PWL          159.36481554007995 dB
+Recycle effective PWL    129.36481554007995 dB
+Attenuation                0.3116883116883117 dB
+First-point PWL          164.3734876408508 dB
+log10(N)                   9.902567870507482
+N                          7.990388037921443E9
+FLM1 selected              1.2133
+FLM1 recalculated          1.2109758194311824
+FLM2                       0.2009306328510857
+Lf                         0.31287602368755874
+Assessment LOF             0.29
+Configured line LOF        1.48
 ```
 
-All declared validation tolerances pass. The FLM1 displayed-input variance is explicitly accepted by the configurable benchmark tolerance `0.0024`; it is not hidden.
+All 22 declared validation checks pass. The FLM1 displayed-input variance is explicit and within configurable tolerance `0.0024`.
 
-`A`, `S`, `B`, and the line-scope `LOF=1.48` remain visible assumptions because the worked example does not expose enough information to derive them generically. User changes are permitted and traceable.
+`A`, `S`, `B`, and line-scope `LOF=1.48` remain visible assumptions because the worked example does not expose enough information to derive them generically.
 
-## Release 2 — SCREENING
+## Result/export behavior — complete
 
-SCREENING begins only after BENCHMARK_ONLY is released and operated through the real product path.
+For the unchanged controlled EI D.2.3 benchmark, the workspace shows validated Source, Assessment, T2-6 and Line/Case detail and exports `AivValidatedBenchmarkExportPackage.v1` with the active assumption profile and validation record.
 
-Machine qualification must cover at minimum:
+Validation identity fails closed:
 
 ```text
-project source/process ranges
-pressure basis conversions
-sonic/non-sonic behavior
-trim behavior
-source-to-assessment mapping
-multi-source combination
-assessment geometry/material ranges
-line/case behavior
-single/batch parity
-assumption/export trace
-exact-head node/browser validation
+change table input       -> NOT_APPLICABLE_MODIFIED_INPUTS
+change benchmark assumption -> validation not applicable
+reload controlled benchmark -> restores validated default identity
 ```
 
-Target boundary:
+## Exact-head release validation — next
+
+Required commands on the exact candidate head:
 
 ```text
-qualificationState  = SCREENING
-screeningAuthority  = AUTHORIZED_WITHIN_APPLICABILITY
-designAuthority     = false
+npm run verify:aiv-input-model
+npm run run:aiv-d23-product-path-validation
 ```
 
-SCREENING must remain distinct from design authority.
+Required browser sequence:
+
+```text
+Load EI D.2.3
+confirm validated Source / Assessment / Line results
+edit table -> committed validation disappears
+reload benchmark
+edit assumption -> committed validation disappears
+reload benchmark
+export validation package
+```
+
+Record successful execution as `AivReleaseValidationReceipt.v1` with the exact candidate SHA and actual execution/log identity.
+
+A GitHub Actions job with `runner_id=0` or zero steps is `NOT_RUN`, not release evidence.
 
 ## AUTO stop conditions
 
@@ -137,7 +127,19 @@ EXACT_HEAD_VALIDATION_FAILURE
 
 There is no human-review stop condition.
 
-## Permanent product boundary
+## SCREENING — later
+
+SCREENING begins only after BENCHMARK_ONLY is released. Machine qualification must cover project source/process ranges, pressure bases, sonic and trim behavior, source mapping, multi-source combination, geometry/material ranges, line/case behavior, single/batch parity, assumptions/export trace and exact-head validation.
+
+```text
+qualificationState  = SCREENING
+screeningAuthority  = AUTHORIZED_WITHIN_APPLICABILITY
+designAuthority     = false
+```
+
+SCREENING remains distinct from design authority.
+
+## Permanent boundary
 
 ```text
 Advanced_Analysis:
