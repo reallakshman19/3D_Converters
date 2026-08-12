@@ -61,6 +61,7 @@ test('workbook inventory records formulas, hidden sheets and defined names witho
   assert.equal(result.summary.formulaImplementationAuthorized, false);
   assert.equal(result.summary.eiReconciliationRequired, true);
   assert(/^sha256:[0-9a-f]{64}$/u.test(result.detailsSha256));
+  assert.equal(result.summary.privateDetailsSha256, result.detailsSha256);
   assert.equal(result.details.sheets.find((sheet) => sheet.name === 'HiddenCalc').visibility, 'HIDDEN');
   assert.equal(result.details.sheets.flatMap((sheet) => sheet.formulas).length, 2);
 });
