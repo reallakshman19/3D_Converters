@@ -11,10 +11,12 @@ on:
       - 'tests/vibration-module-boundaries.test.mjs'
       - 'scripts/extract-aiv-ei-t27-source.mjs'
       - 'scripts/extract-aiv-ei-d23-source.mjs'
+      - 'scripts/extract-aiv-workbook-sources.mjs'
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'scripts/verify-aiv-d23-flm1-reconciliation.mjs'
       - 'docs/vibration/AIV-*'
       - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/vibration-aiv-controlled-source.yml'
   push:
     branches:
@@ -25,8 +27,11 @@ on:
       - 'tests/vibration-aiv-*'
       - 'scripts/extract-aiv-ei-t27-source.mjs'
       - 'scripts/extract-aiv-ei-d23-source.mjs'
+      - 'scripts/extract-aiv-workbook-sources.mjs'
       - 'scripts/verify-aiv-t27-reconciliation.mjs'
       - 'scripts/verify-aiv-d23-flm1-reconciliation.mjs'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/vibration-aiv-controlled-source.yml'
   workflow_dispatch:
 
@@ -57,10 +62,21 @@ jobs:
           path: CommonExamples
           fetch-depth: 1
 
+      - name: Checkout pinned CRF retained-workbook migration source
+        uses: actions/checkout@v6
+        with:
+          repository: reallaksh19/CRF-4-1
+          ref: 68dc8e1fa2ef67073c59b3afc56f1bf40953d535
+          path: CRF-4-1
+          fetch-depth: 1
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '22'
+
+      - name: Install repository dependencies
+        run: npm ci --ignore-scripts
 
       - name: Install PDF text extractor
         shell: bash
@@ -109,6 +125,33 @@ jobs:
           console.log(JSON.stringify(manifest, null, 2));
           NODE
 
+      - name: Inventory exact retained AIV workbook migration sources
+        shell: bash
+        run: |
+          node scripts/extract-aiv-workbook-sources.mjs \
+            'CRF-4-1' \
+            --out "$RUNNER_TEMP/aiv-workbook-source-inventory.json" \
+            --details-dir "$RUNNER_TEMP/aiv-workbook-private-details"
+          node - "$RUNNER_TEMP/aiv-workbook-source-inventory.json" <<'NODE'
+          const fs = require('node:fs');
+          const inventory = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const expected = new Map([
+            ['AIV-WB-KS-PR-CAL-0087', 'sha1:2566d41c02768a2345513ed42d270b123fe5087c'],
+            ['AIV-WB-AIV-FIV', 'sha1:048332ed93abd258ffced6b83af0ae343dfcbc9d'],
+            ['AIV-WB-CLOSED-RV', 'sha1:83eeb40d9b224ddd5020c26410a659e01bcea991'],
+          ]);
+          if (inventory.schema !== 'AivWorkbookSourceInventory.v1') throw new Error('Unexpected AIV workbook source inventory schema.');
+          if (inventory.baseline.repository !== 'reallaksh19/CRF-4-1' || inventory.baseline.commit !== '68dc8e1fa2ef67073c59b3afc56f1bf40953d535') throw new Error('Retained workbook baseline changed unexpectedly.');
+          if (inventory.workbooks.length !== 3) throw new Error('Expected exactly three retained AIV workbooks.');
+          for (const workbook of inventory.workbooks) {
+            if (expected.get(workbook.workbookId) !== workbook.gitBlobSha1) throw new Error(`Retained workbook blob mismatch for ${workbook.workbookId}.`);
+            if (workbook.migrationEvidenceOnly !== true || workbook.productionAuthority !== false || workbook.formulaImplementationAuthorized !== false || workbook.eiReconciliationRequired !== true) throw new Error(`Workbook authority boundary invalid for ${workbook.workbookId}.`);
+            if (!Array.isArray(workbook.sheets) || workbook.sheetCount !== workbook.sheets.length) throw new Error(`Workbook sheet inventory incomplete for ${workbook.workbookId}.`);
+          }
+          if (inventory.authority.evidenceClass !== 'MIGRATION_REFERENCE_ONLY' || inventory.authority.productionEquationAuthorized !== false) throw new Error('Workbook inventory cannot promote AIV production authority.');
+          console.log(JSON.stringify(inventory, null, 2));
+          NODE
+
       - name: Generate page-hash-bound human T2.7 reconciliation template
         shell: bash
         run: |
@@ -149,6 +192,7 @@ jobs:
           node --experimental-default-type=module --test tests/vibration-aiv-d23-source-extraction-contract.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-d23-pdf-revalidation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-d23-flm1-reconciliation.test.mjs
+          node --experimental-default-type=module --test tests/vibration-aiv-workbook-source-inventory.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-t27-reconciliation.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-errata-benchmark.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-qualification-evidence.test.mjs
