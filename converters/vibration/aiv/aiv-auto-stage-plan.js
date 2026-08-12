@@ -29,7 +29,7 @@ function completedArtifact(input, schema) {
 export function buildAivAutoStagePlan({
   assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE,
   stages1To7Implemented = true,
-  stages8To10Implemented = false,
+  stages8To10Implemented = true,
   productPathBenchmarkParity = null,
   exactHeadReleaseValidation = null,
   benchmarkOnlyReleased = false,
@@ -60,7 +60,7 @@ export function buildAivAutoStagePlan({
   });
   stages.push({
     stageId: '16B.3',
-    label: 'Implement stages 8–10 from configured benchmark assumptions',
+    label: 'Stages 8–10 AUTO benchmark implementation',
     status: !configurationValid
       ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
       : stages8To10Implemented
@@ -116,6 +116,7 @@ export function buildAivAutoStagePlan({
     mode: 'AUTO',
     humanEvidenceRequired: false,
     missingDataPolicy: 'ASSUME_FROM_VISIBLE_USER_CONFIGURABLE_PROFILE',
+    implementationMode: 'CONTROLLED_QUALIFICATION_MATH_ADAPTER',
     configuration: {
       status: configurationValid ? 'PASS' : 'INVALID_ASSUMPTION_PROFILE',
       profileValidation,
