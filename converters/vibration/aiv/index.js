@@ -5,6 +5,7 @@ export {
   AIV_SOURCE_PHASES,
   AIV_SOURCE_STATES,
   AIV_PRESSURE_BASES,
+  AIV_TRIM_STATES,
   AIV_SONIC_STATES,
   createAivSourceCaseCsvTemplate,
   parseAivSourceCaseCsv,
