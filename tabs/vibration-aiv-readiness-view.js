@@ -9,12 +9,6 @@ function esc(value) {
     .replaceAll("'", '&#39;');
 }
 
-function fileStatus(file, fallback) {
-  return file
-    ? `<strong>${esc(file.name)}</strong><small>${esc(file.kind || fallback)}</small>`
-    : `<span class="aivq-empty">${esc(fallback)}</span>`;
-}
-
 function issueList(groups) {
   const items = groups.flatMap((group) => Array.isArray(group) ? group : []);
   if (!items.length) return '<span class="aivq-empty">—</span>';
@@ -75,25 +69,21 @@ function selectedPath(state) {
     ${renderAivTopologyPathHtml(row.topology)}</section>`;
 }
 
+function hasWorkingInput(state) {
+  return Boolean(
+    state.topologyInput
+    && state.tables?.sources?.rows?.length
+    && state.tables?.assessments?.rows?.length
+    && state.tables?.relationships?.rows?.length,
+  );
+}
+
 export function renderAivReadinessPanelHtml(state = {}) {
   const checking = state.busy === true;
-  const requiredFiles = ['topology', 'sources', 'assessments', 'relationships'];
-  const canCheck = !checking && requiredFiles.every((key) => Boolean(state.files?.[key]));
   const imports = state.readinessEnvelope?.imports;
   return `<section class="aivq-card">
-    <div class="aivq-section-head"><div><h4>AIV working evidence</h4><p>Sources, welded assessments and source→assessment relationships are separate controlled inputs. Topology verifies identity/connectivity; physical AIV distance comes from the relationship evidence.</p></div></div>
-    <div class="aivq-import-grid">
-      <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX required')}</span></label>
-      <label class="aivq-file-field"><span>AIV Sources</span><input type="file" data-aiv-file="sources" accept=".csv,text/csv"><span>${fileStatus(state.files?.sources, 'AivSourceCsv.v2')}</span></label>
-      <label class="aivq-file-field"><span>AIV Assessments</span><input type="file" data-aiv-file="assessments" accept=".csv,text/csv"><span>${fileStatus(state.files?.assessments, 'AivAssessmentCsv.v1')}</span></label>
-      <label class="aivq-file-field"><span>Source → Assessment evidence</span><input type="file" data-aiv-file="relationships" accept=".csv,text/csv"><span>${fileStatus(state.files?.relationships, 'AivSourceAssessmentCsv.v1')}</span></label>
-    </div>
-    <div class="aivq-actions">
-      <button type="button" class="engineering-console-btn" data-aiv-action="source-template">Sources template</button>
-      <button type="button" class="engineering-console-btn" data-aiv-action="assessment-template">Assessments template</button>
-      <button type="button" class="engineering-console-btn" data-aiv-action="relationship-template">Source→Assessment template</button>
-      <button type="button" class="engineering-console-btn primary" data-aiv-action="check-readiness"${canCheck ? '' : ' disabled'}>${checking ? 'Checking…' : 'Check AIV readiness'}</button>
-    </div>
+    <div class="aivq-section-head"><div><h4>AIV readiness</h4><p>Readiness joins the current visible Sources, Assessments and Source→Assessment tables to the current topology input. It validates identity, process/device evidence, assessment evidence, engineering distance and method gaps only.</p></div></div>
+    <div class="aivq-actions"><button type="button" class="engineering-console-btn primary" data-aiv-action="check-readiness"${!checking && hasWorkingInput(state) ? '' : ' disabled'}>${checking ? 'Checking…' : 'Check AIV readiness'}</button></div>
     ${state.error ? `<div class="aivq-error"><strong>Readiness check failed.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${imports ? `<div class="aivq-import-facts"><span>Topology integrity <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Sources <strong>${esc(imports.sourceCount)}</strong></span><span>Assessments <strong>${esc(imports.assessmentCount)}</strong></span><span>Relationships <strong>${esc(imports.sourceAssessmentCount)}</strong></span></div>` : ''}
     ${summary(state)}
