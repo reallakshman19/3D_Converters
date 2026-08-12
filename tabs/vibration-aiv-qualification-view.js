@@ -10,6 +10,7 @@ import {
 } from '../converters/vibration/aiv/aiv-d23-pdf-revalidation.js';
 import { AIV_INDEPENDENT_BENCHMARKS } from '../converters/vibration/aiv/aiv-independent-benchmark-evidence.js';
 import { renderAivInlineSymbol } from './vibration-aiv-inline-symbols.js';
+import { renderAivInputWorkspaceHtml } from './vibration-aiv-input-view.js';
 import { renderAivReadinessPanelHtml } from './vibration-aiv-readiness-view.js';
 
 function esc(value) {
@@ -71,17 +72,18 @@ function independentBenchmarkRows() {
 export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
     <header class="aivq-header"><div><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>BLOCKED</strong><span>NOT SCREENING / NOT DESIGN AUTHORITY</span></div></header>
-    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Non-numerical data readiness and controlled published-reference evidence are available. Benchmark execution, screening and production AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
+    <section class="aivq-card aivq-banner"><strong>Qualification workspace only.</strong><span>Controlled benchmark inputs, editable working tables, non-numerical readiness and published-reference evidence are available. Benchmark calculation, screening and production AIV numerical results remain unavailable until issue #441 gates are closed.</span></section>
+    ${renderAivInputWorkspaceHtml(state)}
+    ${renderAivReadinessPanelHtml(state)}
     <section class="aivq-card"><h4>Controlled source set</h4><div class="aivq-grid">
       <div><small>Qualification issue</small><strong>#441</strong></div>
       <div><small>EI T2.7 main guidance</small><strong>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.path)}</strong><span>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.repository)} @ ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.commit)} · blob ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.gitBlob)} · ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.locator)}</span><span>Page ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.officialErrata.aivRelevantPage)} errata reconciliation required before equation transcription.</span></div>
       <div><small>EI worked-example DOCX</small><strong>${esc(AIV_EI_D23_SOURCE.path)}</strong><span>${esc(AIV_EI_D23_SOURCE.repository)} @ ${esc(AIV_EI_D23_SOURCE.commit)} · blob ${esc(AIV_EI_D23_SOURCE.gitBlob)} · ${esc(AIV_EI_D23_SOURCE.locator)}</span></div>
       <div><small>Controlled worked-example Markdown</small><strong>${esc(AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE.path)}</strong><span>${esc(AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE.repository)} @ ${esc(AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE.commit)} · blob ${esc(AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE.gitBlob)} · ${esc(AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE.lineCount)} lines</span><span>Validated PR #445 transcription of all ${esc(AIV_EI_WORKED_EXAMPLES_MARKDOWN_SOURCE.derivedFrom.nonEmptyWordTextNodesTotal)} non-empty DOCX text nodes.</span></div>
-      <div><small>EI examples PDF corroboration</small><strong>${esc(AIV_EI_EXAMPLES_PDF_SOURCE.path)}</strong><span>${esc(AIV_EI_EXAMPLES_PDF_SOURCE.repository)} @ ${esc(AIV_EI_EXAMPLES_PDF_SOURCE.commit)} · blob ${esc(AIV_EI_EXAMPLES_PDF_SOURCE.gitBlob)}</span><span>Retained as binary corroborating evidence; readable content authority is now provided by the validated DOCX→Markdown transcription.</span></div>
+      <div><small>EI examples PDF corroboration</small><strong>${esc(AIV_EI_EXAMPLES_PDF_SOURCE.path)}</strong><span>${esc(AIV_EI_EXAMPLES_PDF_SOURCE.repository)} @ ${esc(AIV_EI_EXAMPLES_PDF_SOURCE.commit)} · blob ${esc(AIV_EI_EXAMPLES_PDF_SOURCE.gitBlob)}</span><span>Retained as binary corroborating evidence; readable content authority is provided by the validated DOCX→Markdown transcription.</span></div>
       <div><small>Advanced_Analysis visual lineage</small><strong>Sequential engineering SVG symbols</strong><span>Advanced_Analysis @ 6463b39866f68eb6476bfa41764538eb19f8b9f9</span></div>
       <div><small>Topology authority</small><strong>TopologyEditTableHumanExport.v1</strong><span>Elements + Connections + Source Mapping + Catalogue Evidence + Export Metadata</span></div>
     </div></section>
-    ${renderAivReadinessPanelHtml(state)}
     <section class="aivq-card"><div class="aivq-section-head"><div><h4>Table-first SVG adaptation</h4><p>SVG is limited to inline engineering glyphs. It does not project coordinates or render plant/model geometry.</p></div></div>
       <div class="aivq-example-table"><table><thead><tr><th>Symbol</th><th>Role</th><th>Example</th><th>Engineering meaning</th></tr></thead><tbody>
         <tr><td>${renderAivInlineSymbol({ type: 'RELIEF_VALVE', role: 'SOURCE' })}</td><td>Acoustic source</td><td>Relief/control/restriction device</td><td>Identity only; process/source calculation remains in the qualified AIV kernel.</td></tr>
