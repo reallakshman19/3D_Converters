@@ -1,230 +1,189 @@
-# PR448 — Generic Vibration Mechanism Qualification Framework Work Report
+# PR448 — Multi-Mechanism Qualification + Worked-Example Validation Work Report
 
 ## PR Mission Control
 
 | Field | Current state |
 |---|---|
-| Mission | Implement Roadmap Stage 5: a reusable vibration mechanism assessment/qualification envelope with FIT as the immediate production consumer and no second numerical mechanism. |
-| Source request | Owner instructed proceeding to Stage 5 after explicitly merging this assistant's prior PR #447. |
+| Mission | Complete Roadmap Stages 5–11 as far as controlled evidence permits, then create an executable worked-example validation record with step-by-step evidence. |
+| Source request | Owner instructed AUTO MODE completion followed by per-example step-by-step validation. |
 | Repository | `reallaksh19/3D_Converters` |
 | Branch | `agent/vibration-mechanism-qualification-framework` |
-| Base | `main@e37a9e3a3991c5cbc839dd37a5bd7c6f84c8392f` at implementation start; re-check before publication. |
+| Base | `main@e37a9e3a3991c5cbc839dd37a5bd7c6f84c8392f` |
 | PR | **#448 — OPEN / DRAFT** |
-| Roadmap stage | **Stage 5 — Generic mechanism qualification framework** |
-| Current stage | **Stage 2 — PR ALLOCATION / EXACT-DIFF VERIFICATION — COMPLETE** |
-| Stage decision | **PARTIAL** — focused tests PASS and final PR scope is 19/19 expected paths; exact-head GitHub automation is NOT_RUN; full 39-file release/browser acceptance remain NOT_RUN. |
-| Authority | FIT remains `BENCHMARK_ONLY`; engineering authority `NONE`; non-FIT numerical mechanisms remain `NOT_IMPLEMENTED`. |
-| Exact next action | Run the full 39-file release command and real-browser Stage-5 acceptance in a complete checkout; record outcomes, then AUTO MODE advances to Stage 6 when the gates permit. |
+| Current stage | **Stage 3 — Stages 6–11 source reconciliation + validation design — IN_PROGRESS** |
+| Last completed stage | Stage 2 — Stage-5 PR allocation / exact-diff verification |
+| Engineering status | FIT benchmark-only framework implemented. Mechanical and standard deadleg have enough controlled method detail for benchmark-only calculation validation. AIV remains owned by PR #446. Other mechanisms are evidence-gated. |
+| Validation status | Stage-5 focused tests PASS. New Stages 6–11 validation NOT_RUN until implementation below is published/executed. |
+| Current blocker | Full EI PDF is a binary pinned source and cannot be directly decoded by the GitHub text connector; formula recovery is cross-checked against text mirrors, while source identity remains the pinned Common blob. |
+| Exact next action | Implement bounded Mechanical + standard Deadleg + dry-gas transient calculators and a multi-mechanism worked-example validation runner; record source replay/discrepancies for AIV/Thermowell/SBC/unsupported mechanisms. |
 
 ## Handover in 60 Seconds
 
-PR #447 was explicitly Owner-authorized and squash-merged to `main` as `e37a9e3a3991c5cbc839dd37a5bd7c6f84c8392f` before Stage 5 began. Unrelated open AIV PR #446 remains untouched.
+Stage 5 already provides generic item/set identity, cardinality, result currency, benchmark state and trace slots. The Owner has now expanded the same PR to finish the AUTO-mode roadmap as far as controlled evidence permits and to produce a durable validation record.
 
-Stage 5 standardizes mechanism assessment state without creating another solver:
+The validation hierarchy is frozen:
 
 ```text
-existing FIT workflow / central result
-  -> VibrationWorkspaceFitDetail.v1
-  -> FIT mechanism adapter
-  -> VibrationMechanismAssessmentItem.v1
-  -> VibrationMechanismAssessmentSet.v1
-  -> existing mechanism matrix / selected-row detail
+CALCULATION_PARITY
+  = an implemented calculation is independently recomputed and compared with controlled published evidence
+
+STEP_ARITHMETIC_PARITY
+  = published intermediate steps are independently recomputed where the governing equation is controlled
+
+SOURCE_REPLAY
+  = controlled source values are parsed/replayed and consistency-checked, but the full governing method is not implemented
+
+EXTERNAL_ACTIVE_PR
+  = implementation is owned by another active PR and is validated/referenced without overwriting it
+
+BLOCKED_NO_CONTROLLED_METHOD
+  = no adopted method/equation/example basis sufficient for implementation
 ```
 
-The generic layer owns identity, child cardinality, lifecycle/result currency, benchmark state and trace/evidence envelope only. FIT engineering equations remain in the existing FIT kernel.
+A `SOURCE_REPLAY` PASS is never calculator qualification.
 
 ## Authority Freeze
 
 ```text
-FIT calculationState      = IMPLEMENTED
-FIT qualificationState    = BENCHMARK_ONLY
-engineeringAuthority      = NONE
-screeningAuthority        = NOT_AUTHORIZED
-designAuthority           = false
+FIT                         IMPLEMENTED / BENCHMARK_ONLY
+Mechanical excitation       may advance to IMPLEMENTED_BENCHMARK_ONLY only after focused parity
+Deadleg standard T2.6       may advance to IMPLEMENTED_BENCHMARK_ONLY only after focused parity
+AIV                         owned by PR #446; authority remains whatever #446 records
+Valve transient             only controlled sub-paths may be calculator-qualified
+Thermowell / SBC            remain source-replay unless full adopted method is implemented
+No-example mechanisms       NOT_IMPLEMENTED / DEFERRED
 
-all non-FIT numerical mechanisms = NOT_IMPLEMENTED
+engineeringAuthority        = NONE
+screeningAuthority          = NOT_AUTHORIZED
+designAuthority             = false
 ```
 
-No generic state value may be interpreted as an authority transition.
+Stage 12 remains a separate manual governance event and is not authorized by AUTO MODE.
 
 ## Owner AUTO MODE Directive
 
-Owner directive (2026-08-12): upcoming implementation stages operate in **AUTO MODE**. After a stage reaches its defined implementation/validation handoff, continue to the next roadmap stage without asking for another “ok”. Missing controlled sources, failed validation, ambiguous authority, or overlapping active PR ownership remain blockers and must be recorded rather than bypassed.
+AUTO MODE authorizes source reconciliation, bounded implementation, focused validation, report/roadmap updates and draft-PR publication without another `ok`.
 
-AUTO MODE authorizes automatic source reconciliation, bounded implementation, focused validation, work-report updates and draft-PR publication. It does **not** authorize PR merge, engineering/screening/design authority promotion, invented engineering rules/targets, failed-gate bypass, or overwriting unrelated active work. Stage 12 remains manual governance.
+AUTO MODE does **not** authorize:
+
+- PR merge;
+- screening/design/engineering authority promotion;
+- invented engineering formulas or targets;
+- hiding source discrepancies;
+- failed-gate bypass;
+- overwriting unrelated active work (especially AIV PR #446).
 
 ## Engineering Item Register
 
 | ID | Type | Status | Summary |
 |---|---|---|---|
-| IMP-001 | Improvement | IMPLEMENTED | Add deterministic mechanism assessment item/set contracts with explicit child cardinality. |
-| IMP-002 | Improvement | IMPLEMENTED | Make FIT the first production consumer of the generic mechanism contract. |
-| IMP-003 | Improvement | IMPLEMENTED | Standardize implementation, applicability/readiness, result-currency and benchmark state dimensions. |
-| IMP-004 | Improvement | IMPLEMENTED | Carry equation/rule/correlation, normalized-input, working-cell and source trace slots. |
-| IMP-005 | Improvement | IMPLEMENTED | Reuse Stage-3 exact backing-cell/source anchors for selected FIT detail. |
-| IMP-006 | Improvement | IMPLEMENTED | Exclude stale FIT evidence from current implemented governing while retaining it for inspection. |
-| RISK-001 | Risk | MITIGATED | Generic abstraction could become speculative; FIT consumes it in production in the same change. |
-| RISK-002 | Risk | MITIGATED | Generic layer could become solver authority; no engineering formula/coefficient/calculator call exists in generic contract/context modules. |
-| RISK-003 | Risk | MITIGATED | Missing working-cell links could be invented; trace downgrades to `SOURCE_AND_NORMALIZED_ONLY` instead. |
-| RISK-004 | Risk | MITIGATED | `NOT_IMPLEMENTED` could be confused with `NOT_APPLICABLE`; non-FIT sets have zero children and preserve `NOT_IMPLEMENTED`. |
-| RISK-005 | Risk | MITIGATED | Stale outputs could remain current governing; matrix current governing now requires `CURRENT_RESULT`. |
-| RISK-006 | Risk | MITIGATED | Unrelated AIV PR #446 overlap; checked changed paths and Stage-5 candidate does not touch its AIV/package files. |
-| DEC-001 | Decision | ACCEPTED | Generic item identity is a JSON tuple over mechanism/line/case/canonical/child key. |
-| DEC-002 | Decision | ACCEPTED | Set cardinality is explicit `ZERO` / `ONE` / `MANY`. |
-| DEC-003 | Decision | ACCEPTED | FIT uses child key `mainline`; no second numerical mechanism is implemented. |
-| DEC-004 | Decision | ACCEPTED | Benchmark parity is mechanism-specific adapter logic, separate from engineering calculation. |
-| DEC-005 | Decision | ACCEPTED | Full trace completeness requires real backing value pointers for every normalized input. |
-| QST-001 | Qualification | OPEN | Actual 39-test `npm run verify:vibration-fit-release` against a full exact-head checkout remains required. |
-| QST-002 | Qualification | OPEN | Real-browser mechanism metadata, source-anchor and stale/current governing flows remain required. |
+| IMP-001 | Improvement | IMPLEMENTED | Generic mechanism assessment item/set contracts from Stage 5. |
+| IMP-002 | Improvement | IN_PROGRESS | Add executable worked-example validation record and runner. |
+| IMP-003 | Improvement | IN_PROGRESS | Add benchmark-only Mechanical T2.3 lookup calculation. |
+| IMP-004 | Improvement | IN_PROGRESS | Add standard Deadleg/FIP T2.6 calculation. |
+| IMP-005 | Improvement | IN_PROGRESS | Add dry-gas rapid-valve-opening T2.8 calculation. |
+| RISK-001 | Risk | MITIGATED | Source replay must not masquerade as calculator qualification; validation modes are explicit. |
+| RISK-002 | Risk | ACTIVE | Public text mirrors are used only to recover formula text that the connector cannot decode from the pinned binary PDF. Pinned Common blob remains source identity/precedence. |
+| RISK-003 | Risk | ACTIVE | AIV is concurrently owned by PR #446; PR #448 must not modify its AIV files. |
+| RISK-004 | Risk | ACTIVE | Thermowell evidence mixes EI 2008 TM-04 worked-example context with a retained ASME PTC 19.3 TW-2016 result; do not silently treat them as one method. |
+| ISS-001 | Defect/source discrepancy | ACCEPTED | Produced-water transient is `0.06` in retained DOCX line listing but `0.70` in the governing EI D.4.2 worked example. Preserve both and mark `SOURCE_DISCREPANCY`. |
+| QST-001 | Qualification | OPEN | Actual 39-test `npm run verify:vibration-fit-release` against a full exact-head checkout. |
+| QST-002 | Qualification | OPEN | Real-browser mechanism metadata, source-anchor and stale/current governing flows. |
+| QST-003 | Qualification | OPEN | Exact liquid/multiphase closure formula transcription must be unambiguous before production implementation beyond published step replay. |
+| QST-004 | Qualification | OPEN | Full ASME PTC 19.3 TW-2016 implementation is outside current controlled method basis. |
+| DEC-001 | Decision | ACCEPTED | Mechanical T2.3 uses explicit source-backed category table; unsupported/ambiguous machinery fails closed. |
+| DEC-002 | Decision | ACCEPTED | Deadleg standard method implements only EI T2.6 simplified screening; advanced deadleg values remain source evidence, not implemented outputs. |
+| DEC-003 | Decision | ACCEPTED | Valve transient implementation is limited to dry-gas rapid opening until the liquid-closure equation is unambiguously controlled. |
+| DEC-004 | Decision | ACCEPTED | AIV validation in this PR is `EXTERNAL_ACTIVE_PR` and references/tests PR #446 without modifying its files. |
+| DEC-005 | Decision | ACCEPTED | No-populated-example mechanisms remain DEFERRED; empty report headings are not qualification evidence. |
 
-## Stage Execution Log
+## Stage Roadmap
 
-### Stage 0 — Prior PR merge / main reconciliation
+### Stage 0 — prior merge / main reconciliation
+**COMPLETE / PASS.** Stage-4 PR #447 merged by explicit Owner instruction. Current main baseline remains `e37a9e3a...`.
 
-**COMPLETE / PASS.** Owner instructed merging only this assistant's open PRs before Stage 5. PR #447 was the only identified open PR from this workstream and was squash-merged. #446 and older unrelated PRs were left untouched.
+### Stage 1 — generic mechanism framework
+**COMPLETE / PARTIAL VALIDATION.** Stage-5 production framework implemented. Focused tests 27/27 PASS; full release/browser gate NOT_RUN.
 
-Implementation started from `main@e37a9e3a3991c5cbc839dd37a5bd7c6f84c8392f`.
+### Stage 2 — PR allocation / exact-diff verification
+**COMPLETE / PARTIAL VALIDATION.** PR #448 allocated and verified. GitHub exact-head automation had zero workflow/status/check runs.
 
-### Stage 1 — Generic mechanism framework + FIT consumer
+### Stage 3 — Stages 6–11 source reconciliation + validation design
+**IN_PROGRESS.**
 
-**PARTIAL.** Production code, focused validation and draft PR publication are complete. Exact-head diff/automation verification and full release/browser validation remain pending.
+Current truth:
+- retained examples exist for Mechanical, Deadleg, AIV, Valve Transients, Thermowell and SBC;
+- no populated retained examples exist for Recip/PD, Rotating Stall, Corrugation, Slug Flow or Cavitation/Flashing;
+- the retained worked-example transcription does not itself contain every governing equation;
+- pinned full EI source is binary and connector text decoding is unavailable.
 
-Implemented:
+Objective:
+1. implement only source-backed, independently testable numerical sub-paths;
+2. create a machine-readable benchmark set and executable validation runner;
+3. generate a durable validation record with every retained example and every step status;
+4. preserve discrepancies/blockers explicitly.
 
-- `converters/vibration/mechanisms/contracts.js`
-  - item/set v1 schemas;
-  - deterministic identities;
-  - zero/one/many cardinality;
-  - fail-closed state enums and duplicate/scope validation;
-  - no engineering math.
-- `converters/vibration/mechanisms/fit.js`
-  - adapts existing FIT row/detail into generic item/set;
-  - FIT benchmark comparison lifecycle;
-  - current/stale result semantics;
-  - normalized/source/working trace completeness;
-  - no FIT solver invocation.
-- `tabs/vibration-integrity-mechanism-context.js`
-  - joins selected FIT detail to Stage-3 engineering-basis backing pointers;
-  - carries stable raw source anchors;
-  - never fabricates a missing cell pointer.
-- mechanism matrix
-  - FIT consumes generic contract;
-  - non-FIT remains zero-item `NOT_IMPLEMENTED`;
-  - stale FIT retained but not current implemented governing.
-- existing detail UI
-  - exposes generic assessment identity/cardinality/lifecycle/benchmark/trace metadata;
-  - Inputs exposes exact available working-cell trace.
-- existing benchmark panel
-  - delegates comparison lifecycle to the FIT mechanism adapter.
-- controlled release manifest expanded 36 -> 39 tests.
+Expected new/updated files:
+- `converters/vibration/mechanical/*`
+- `converters/vibration/deadleg/*`
+- `converters/vibration/transients/*` (dry-gas path only unless liquid equation becomes unambiguous)
+- `converters/vibration/validation/worked-examples.js`
+- `Benchmarks/VibrationIntegrity/ei-aviff-multimechanism-worked-examples-v1.json`
+- `scripts/validate-vibration-worked-examples.mjs`
+- focused tests for each independent seam
+- `docs/vibration/VibrationIntegrity-Worked-Example-Validation-v1.md`
+- roadmap/release-manifest/work-report updates.
 
-### Stage 2 — PR allocation / exact-head verification
+Planned validation:
+- exact arithmetic against published Mechanical/Deadleg/dry-gas transient worked examples;
+- source-record consistency for AIV/Thermowell/SBC;
+- explicit source-discrepancy test for produced-water transient;
+- explicit deferred/no-example tests;
+- runner output schema and deterministic ordering;
+- JS syntax/module size;
+- no UI-side engineering formula;
+- no AIV-file overlap with #446.
 
-**COMPLETE / PARTIAL VALIDATION.** Draft PR #448 is allocated from `agent/vibration-mechanism-qualification-framework` to `main`.
+Stage decision: **PARTIAL until code + focused execution are complete.**
 
-Final PR scope is exactly **19/19 expected paths**. `agents/PR_PENDING_workreport.md` is absent and `agents/PR448_workreport.md` is present. No AIV, package, workflow, FIT numerical-kernel or unrelated file is in the final diff.
+## Existing Stage-5 Focused Validation
 
-Exact head observed after report allocation and AUTO MODE roadmap update:
-
-```text
-f7a835e45b5b0dde92fc4930abd97e9b04b17295
-```
-
-GitHub automation for that head:
+PASS locally before this expansion:
 
 ```text
-pull-request workflow runs = 0
-commit status contexts      = 0
-check runs                  = 0
+27 / 27 generic mechanism/FIT tests
+5 / 5 release-manifest shape tests
+changed-JS syntax checks PASS
 ```
-
-Therefore exact-head automation is **NOT_RUN**, not PASS. PR #448 is open, draft and mergeable.
-
-## Focused Validation
-
-PASS locally:
-
-```text
-node --test \
-  tests/vibration-mechanism-contract.test.mjs \
-  tests/vibration-fit-mechanism-contract.test.mjs \
-  tests/vibration-integrity-mechanism-context.test.mjs \
-  tests/vibration-integrity-mechanism-matrix.test.mjs \
-  tests/vibration-integrity-fit-mechanism.test.mjs \
-  tests/vibration-integrity-detail-view.test.mjs
-
-27 tests / 27 PASS
-```
-
-Release-manifest shape/path regression:
-
-```text
-node --test tests/vibration-fit-release-gate.test.mjs
-5 tests / 5 PASS
-```
-
-This validates the intended 39-path controlled manifest in the local reconstructed fixture. It is **not** evidence that the full 39-test repository suite passed.
-
-PASS:
-
-- changed Stage-5 JavaScript syntax (`node --check`);
-- new/modified production JS remains below the repository's normal 300-line module guideline;
-- generic contract/context modules contain no FIT/Engineering Calculation solver call;
-- no `converters/vibration/fit/method.js` or `converters/vibration/fit/calculate.js` change;
-- no AIV production file change;
-- no workflow file change.
 
 NOT_RUN:
 
 ```text
 npm run verify:vibration-fit-release
 whole-repository integration suite
-real browser generic mechanism metadata/detail
-real browser exact working-cell source-anchor navigation
-real browser CURRENT_RESULT -> STALE_RESULT governing behavior
-all five controlled FIT cases through exact publication head
+real browser acceptance
 independent vibration-engineering review
 ```
 
-## Intended Changed-File Ledger
-
-1. `agents/PR448_workreport.md` — living CodingRules work report.
-2. `converters/vibration/mechanisms/contracts.js` — NEW generic assessment item/set schemas and lifecycle states.
-3. `converters/vibration/mechanisms/fit.js` — NEW FIT production adapter + benchmark comparison lifecycle.
-4. `converters/vibration/mechanisms/index.js` — NEW bounded exports.
-5. `tabs/vibration-integrity-mechanism-context.js` — NEW Stage-3 backing-cell/source trace bridge.
-6. `tabs/vibration-integrity-mechanisms.js` — matrix consumes generic assessment sets; stale governing fix.
-7. `tabs/vibration-integrity-view.js` — result currency into matrix; selected generic context into detail.
-8. `tabs/vibration-integrity-input-view.js` — use FIT mechanism benchmark comparison lifecycle.
-9. `tabs/vibration-integrity-detail-view.js` — generic assessment/working-trace metadata.
-10. `tests/vibration-mechanism-contract.test.mjs` — NEW generic contract regressions.
-11. `tests/vibration-fit-mechanism-contract.test.mjs` — NEW FIT adapter/benchmark/trace regressions.
-12. `tests/vibration-integrity-mechanism-context.test.mjs` — NEW exact backing pointer regressions.
-13. `tests/vibration-integrity-mechanism-matrix.test.mjs` — generic FIT consumer + stale governing regressions.
-14. `tests/vibration-integrity-detail-view.test.mjs` — visible generic contract/trace regression.
-15. `scripts/verify-vibration-fit-release.mjs` — controlled manifest 36 -> 39.
-16. `tests/vibration-fit-release-gate.test.mjs` — pin 39-test manifest.
-17. `docs/vibration/VibrationMechanismQualificationFramework-v1.md` — NEW Stage-5 contract.
-18. `docs/vibration/VibrationIntegrity-MultiMechanism-Roadmap.md` — Stage 5 implemented; upcoming stages marked AUTO MODE with explicit merge/authority exclusions.
-19. `docs/vibration/VibrationIntegrityTab-v1.md` — generic contract/stale-governing product semantics.
-
-Final intended diff remains 19 paths after replacing the temporary pending report with `agents/PR448_workreport.md`.
-
 ## Engineering Invariants
 
-- **INV-001:** FIT numerical execution remains facility workflow -> central Engineering Calculation API -> existing FIT kernel.
-- **INV-002:** generic mechanism contracts contain no engineering formulas or coefficients.
-- **INV-003:** FIT is the only numerical consumer introduced/used in Stage 5.
-- **INV-004:** non-FIT `NOT_IMPLEMENTED` never becomes synthetic `NOT_APPLICABLE`.
-- **INV-005:** stale results are retained evidence, not current implemented governing.
-- **INV-006:** benchmark PASS/FAIL requires `CURRENT_RESULT`; stale/modified inputs cannot claim parity.
-- **INV-007:** input trace completeness is evidence-based; missing working pointers are never guessed.
-- **INV-008:** item/set identity is deterministic and child-cardinality aware.
-- **INV-009:** qualification/evidence metadata does not promote engineering/screening/design authority.
-- **INV-010:** AIV PR #446 remains outside this Stage-5 scope.
+- **INV-001:** controlled-source identity remains the pinned Common commit/blob even if a public text mirror is used to recover unreadable PDF formula text.
+- **INV-002:** expected worked-example targets never come from production output.
+- **INV-003:** source replay and calculation parity are distinct validation modes.
+- **INV-004:** advanced deadleg outputs are not inferred from the simplified standard method.
+- **INV-005:** PR #448 does not modify AIV implementation owned by #446.
+- **INV-006:** a source discrepancy is a first-class validation result, not normalized away.
+- **INV-007:** no empty retained section authorizes a mechanism implementation.
+- **INV-008:** Stage 12 authority remains manual and outside AUTO MODE.
+- **INV-009:** current/stale result semantics from Stage 5 remain unchanged.
+- **INV-010:** any implemented mechanism starts benchmark-only with engineering authority NONE.
+
+## Changed-File Ledger
+
+Stage-5 ledger remains as already verified (19 files). Stage-3 expansion entries will be appended after implementation and compared with GitHub’s final changed-file list.
 
 ## Next-Agent Handover
 
-Use this PR-numbered work report as the single source of truth. Final scope is already verified at 19/19 expected paths and exact-head GitHub automation is NOT_RUN. Run the full release command only in a complete checkout and record its actual outcome.
+Start with this report and the multi-mechanism worked-example validation runner. Do not redo Stage-5 generic contracts. Do not edit AIV files from #446. Do not assume DOCX and governing PDF outputs are interchangeable.
 
-AUTO MODE: once Stage-5 release/browser evidence is acceptable, proceed directly into Stage 6 source/method reconciliation without another `ok`. If Stage 6 is blocked by missing controlled engineering basis, record `BLOCKED`/`DEFERRED` and continue only where the roadmap safely permits. Merge still requires explicit Owner authorization.
+Exact next action: implement Mechanical T2.3, standard Deadleg T2.6 and dry-gas rapid opening T2.8 pure modules plus their independently sourced worked-example tests; then build the consolidated validation runner/record.
