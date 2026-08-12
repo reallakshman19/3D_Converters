@@ -57,14 +57,14 @@ function parseRow(row, index) {
     material: requiredAivText(row[12], 'Material', rowNumber),
     duplexState: aivEnumValue(row[13], 'Duplex State', AIV_DUPLEX_STATES, rowNumber),
     source: requiredAivText(row[14], 'Source', rowNumber),
-    sourceRevision: requiredAivText(row[15], 'Source Revision', rowNumber),
-    recordId: requiredAivText(row[16], 'Record ID', rowNumber),
   };
   const branchOutsideDiameter = aivQuantity(row, rowNumber, 8, 9, 'Branch Outside Diameter', { optional: true });
   const branchWallThickness = aivQuantity(row, rowNumber, 10, 11, 'Branch Wall Thickness', { optional: true });
   if (branchOutsideDiameter) result.branchOutsideDiameter = branchOutsideDiameter;
   if (branchWallThickness) result.branchWallThickness = branchWallThickness;
-  addOptionalAivTraceFields(result, row, [['status', 17], ['reviewer', 18]]);
+  addOptionalAivTraceFields(result, row, [
+    ['sourceRevision', 15], ['recordId', 16], ['status', 17], ['reviewer', 18],
+  ]);
   return Object.freeze(result);
 }
 
