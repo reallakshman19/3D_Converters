@@ -59,13 +59,27 @@ function solveModifierChain({ N, FLM1, FLM2 }) {
   const nAfterFlm1 = N * FLM1;
   const nAfterFlm2 = nAfterFlm1 * FLM2;
   const Lf = fatigueFactor(nAfterFlm2);
+  return { FLM1, NAfterFLM1: nAfterFlm1, FLM2, NAfterFLM2: nAfterFlm2, Lf, LOF: finalLofFromLf(Lf) };
+}
+
+function solveMarkdownSourceRow(row, { massFlowKgH = 53482, trimReductionDb = row.lowNoiseTrimDb }) {
+  const rawSourcePwlDb = sourcePwlDb({
+    p1PaAbs: row.upstreamPressureBara * 1e5,
+    p2PaAbs: row.downstreamPressureBara * 1e5,
+    massFlowKgS: massFlowKgH / 3600,
+    temperatureK: row.upstreamTemperatureDegC + 273.15,
+    molecularWeightGPerMol: row.molecularWeightGPerMol,
+    sffDb: 0,
+  });
+  const effectiveSourcePwlDb = rawSourcePwlDb - trimReductionDb;
   return {
-    FLM1,
-    NAfterFLM1: nAfterFlm1,
-    FLM2,
-    NAfterFLM2: nAfterFlm2,
-    Lf,
-    LOF: finalLofFromLf(Lf),
+    calculatedRawSourcePwlDb: rawSourcePwlDb,
+    trimReductionDb,
+    calculatedReportedPwlDb: effectiveSourcePwlDb,
+    controlledMarkdownReportedPwlDb: row.reportedPwlDb,
+    absoluteDifferenceDb: absoluteDifference(effectiveSourcePwlDb, row.reportedPwlDb),
+    controlledMarkdownReportedLof: row.reportedLof,
+    lofReproduced: false,
   };
 }
 
@@ -101,7 +115,6 @@ export function solveAivD23QualificationExample() {
     insideDiameterMm: assessmentEvidence.mainPipeInsideDiameter.value,
   });
   const pointPwlDb = reliefRawPwlDb - calculatedAttenuationDb;
-
   const log10N = errataLog10N(published.B);
   const N = 10 ** log10N;
   const diameterRatio = assessmentEvidence.mainPipeOutsideDiameter.value / assessmentEvidence.branchOutsideDiameter.value;
@@ -140,6 +153,12 @@ export function solveAivD23QualificationExample() {
         controlledMarkdownReportedPwlDb: evidence.controlledMarkdownAivRows.recycleCompressorDischarge.reportedPwlDb,
       },
     },
+    controlledMarkdownSourceRowParity: {
+      recycleCompressorDischarge: solveMarkdownSourceRow(evidence.controlledMarkdownAivRows.recycleCompressorDischarge),
+      recycleCompressorSuction: solveMarkdownSourceRow(evidence.controlledMarkdownAivRows.recycleCompressorSuction),
+      reliefDownstreamLine: solveMarkdownSourceRow(evidence.controlledMarkdownAivRows.reliefDownstreamLine),
+      scopeNote: 'PWL is reproduced at source/effective-source scope only. Markdown line LOF values are not rederived here.',
+    },
     reliefFirstDiscontinuity: {
       sourceToAssessmentDistanceM: assessmentEvidence.sourceToAssessmentDistance.value,
       mainPipeInsideDiameterMm: assessmentEvidence.mainPipeInsideDiameter.value,
@@ -160,10 +179,7 @@ export function solveAivD23QualificationExample() {
         calculatedN: N,
         publishedN: published.N,
       },
-      diameterRatio: {
-        calculated: diameterRatio,
-        published: published.diameterRatio,
-      },
+      diameterRatio: { calculated: diameterRatio, published: published.diameterRatio },
       FLM1: {
         calculatedFromDisplayedInputs: recalculatedFlm1,
         published: published.FLM1,
