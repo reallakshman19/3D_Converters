@@ -31,6 +31,7 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/aiv/aiv-readiness.js',
   'converters/vibration/aiv/aiv-readiness-tables.js',
   'converters/vibration/aiv/aiv-topology-view-model.js',
+  'converters/vibration/aiv/aiv-qualification-evidence.js',
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
   'tabs/vibration-integrity-detail-view.js',
@@ -50,7 +51,7 @@ test('new vibration production modules stay below the normal 300-line module tar
   }
 });
 
-test('exchange, dataset and AIV readiness facades preserve stable APIs after structural split', () => {
+test('exchange, dataset and AIV qualification facades preserve stable APIs after structural split', () => {
   const exchangeIndex = source('converters/vibration/exchange/index.js');
   for (const symbol of [
     'assertVibrationTableExchange',
@@ -76,6 +77,8 @@ test('exchange, dataset and AIV readiness facades preserve stable APIs after str
     'createAivSourceCaseCsvTemplate',
     'buildAivReadiness',
     'buildAivReadinessFromTables',
+    'AIV_QUALIFICATION_EVIDENCE',
+    'AIV_D23_BENCHMARK_CASES',
   ]) assert.match(aivIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
 });
 
@@ -91,13 +94,14 @@ test('readiness and visible tab remain separated from direct numerical execution
   assert.match(tab, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
 });
 
-test('AIV topology and readiness presentation remain read-only and non-numerical', () => {
+test('AIV topology/readiness/evidence remain read-only and separated from production numerical execution', () => {
   const combined = [
     source('converters/vibration/topology/graph.js'),
     source('converters/vibration/aiv/source-case-csv.js'),
     source('converters/vibration/aiv/aiv-readiness.js'),
     source('converters/vibration/aiv/aiv-readiness-tables.js'),
     source('converters/vibration/aiv/aiv-topology-view-model.js'),
+    source('converters/vibration/aiv/aiv-qualification-evidence.js'),
     source('tabs/vibration-aiv-inline-symbols.js'),
     source('tabs/vibration-aiv-path-view.js'),
     source('tabs/vibration-aiv-readiness-view.js'),
