@@ -6,7 +6,8 @@
     "build:inputxml-contract-bundle": "node scripts/build-inputxml-contract-bundle.mjs",
     "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
     "verify:vibration-fit-release": "node scripts/verify-vibration-fit-release.mjs",
-    "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs"
+    "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs",
+    "extract:aiv-ei-t27-source": "node scripts/extract-aiv-ei-t27-source.mjs"
   },
   "dependencies": {
     "pyodide": "^0.27.2",
