@@ -9,215 +9,182 @@
 | PR number | #442 |
 | Branch | `agent/fit-editable-benchmark-inputs` |
 | Base commit | `243042fba24915ae7b2734556cf2d28c1b5425b7` |
-| PR status | OPEN / DRAFT |
-| Current stage | **Stage 6 — VALIDATION / DOCS / CLOSURE** |
-| Last completed stage | Stage 5 — real workspace integration / authority hardening |
+| PR status | OPEN / DRAFT / MERGEABLE |
+| Current stage | **Stage 6 — VALIDATION / CLOSURE** |
+| Stage decision | **PARTIAL** — implementation/source validation complete; executable current-head browser/release evidence is NOT_RUN in this environment. |
 | Engineering status | FIT remains `BENCHMARK_ONLY`; no numerical method or authority promotion. |
-| Validation status | Source/contract review PASS; focused tests committed; runtime/full release execution still pending. |
-| Current blocker | Full private-repo/browser execution is unavailable in this agent runtime. |
-| Exact next action | Complete source/static validation, reconcile all changed files, check PR/workflow state, and close report with PASS/NOT_RUN evidence. |
+| Current blocker | Runtime lacks the repo checkout/dependencies (`xlsx` is not installed); GitHub has no workflow run on current head. |
+| Exact next action | In a normal checkout run `npm run verify:vibration-fit-release`, exercise real XLSX/CSV edit flows in browser, then update/merge PR #442 if clean. |
 
 ## Handover in 60 Seconds
 
-**Now true:** PR #442 implements the requested product capability. Users can select any of five controlled EI D2/D4 cases, click **Load BENCHMARK**, inspect/edit topology/operating/enrichment tables, import CSV into those tables, add/delete/edit rows, run readiness, and run the normal FIT benchmark workflow. Untouched benchmark results show target-vs-actual parity; any edit clears stale results and changes parity to not applicable.
+PR #442 implements the requested capability end-to-end at source level:
 
-**Provenance now true:** unedited complete XLSX can remain the execution input; first topology edit becomes `*.edited-elements.csv`. Generic Elements CSV now reports `sourceSystem=UNVERIFIED_ELEMENTS_CSV`, `completeExchange=false`, `LIMITED_ELEMENTS_ONLY`, null authority hashes and an explicit warning.
+- choose any of five controlled EI D2/D4 cases;
+- click **Load BENCHMARK**;
+- see published target output immediately;
+- inspect/edit topology Elements, operating-case and enrichment tables;
+- import CSV into those visible tables and continue editing;
+- add/delete rows;
+- run readiness from current table cells;
+- run the existing FIT benchmark workflow from current table cells;
+- compare untouched official case target vs actual LOF/reference band;
+- after any edit, clear stale outputs and mark benchmark parity not applicable until reload.
 
-**Unfinished:** executable current-head regression and real-browser XLSX/CSV interaction cannot be performed in this runtime. PR stays draft unless owner directs otherwise.
+Topology authority is explicit:
 
-**Must not be assumed:** local CSV is certified 3D EDIT output; modified benchmark is still an official parity case; parity is screening/design acceptance.
+- untouched complete XLSX continues to execute as the complete exchange;
+- first topology edit becomes `*.edited-elements.csv`;
+- populated edited rows show `Source Status = LOCAL_EDITED_UNVERIFIED`;
+- generic Elements CSV reports `sourceSystem=UNVERIFIED_ELEMENTS_CSV`, `completeExchange=false`, `LIMITED_ELEMENTS_ONLY`, null authority hashes, and an explicit warning.
 
-**Highest remaining risk:** browser/runtime behavior has not been exercised on a real checkout even though source-level authority boundaries and tests are in place.
-
-**Exact next action:** final diff/release-manifest/CI reconciliation, then handoff.
-
-## Mission / Engineering Intent
-
-### Implemented scope
-- Five controlled EI worked examples selectable and loadable.
-- Three editable raw-contract working tables: Elements, operating cases, enrichment.
-- CSV import populates editable rows; current rows are the workflow input.
-- Add/delete/cell edit controls.
-- Unedited complete XLSX preserves complete exchange for execution.
-- First topology edit switches to local Elements-only CSV and visibly downgrades provenance.
-- Published target/actual LOF + reference-band comparison for untouched benchmark cases.
-- Any benchmark/table mutation clears stale result/preflight and suppresses official parity claim.
-- FIT execution remains the existing facility workflow → central Engineering Calculation API.
-
-### Non-goals
-No FIT equation/correlation/applicability/LOF changes; no screening/design authority; no AIV work; no 3D/canvas/model editing; no local re-certification.
+No FIT equation, coefficient, applicability rule, LOF definition or engineering authority changed.
 
 ## Mission Status
 
-| Work Item | Priority | Status | Stage | Evidence |
-|---|---|---|---|---|
-| Source/import/benchmark inspection | P0 | DONE | 1 | source review |
-| PR allocation/report sync | P0 | DONE | 2 | PR #442 |
-| Pre-code changed-file verification | P0 | DONE | 3 | report-only diff |
-| Editable table model | P0 | IMPLEMENTED | 4 | production module |
-| Controlled EI benchmark cases | P0 | IMPLEMENTED | 4 | source-bound module |
-| Visible editor/controller integration | P0 | IMPLEMENTED | 5 | real workspace path |
-| CSV provenance hardening | P0 | IMPLEMENTED | 5 | ISS-001 fix |
-| Focused/static/runtime tests | P0 | IMPLEMENTED | 4-6 | new tests committed |
-| FIT release-gate update | P0 | IMPLEMENTED | 6 | 30 controlled tests |
-| Workspace documentation | P0 | IMPLEMENTED | 6 | doc updated |
-| Executable full release gate | P0 | NOT_STARTED | 6 | runtime limitation |
-| Real browser/XLSX interaction | P1 | NOT_STARTED | 6 | runtime limitation |
+| Work item | Status | Evidence |
+|---|---|---|
+| Findings / source inspection | COMPLETE | current FIT/import/benchmark contracts inspected |
+| PR allocation/report sync | COMPLETE | PR #442 |
+| Pre-code changed-file verification | PASS | exactly report-only |
+| Editable table model | COMPLETE | production-consumed module |
+| Controlled EI benchmark loader | COMPLETE | five source-bound cases |
+| Visible benchmark/input UI | COMPLETE | real FIT workspace path |
+| XLSX/CSV provenance hardening | COMPLETE | ISS-001 / ISS-002 fixes |
+| Focused regressions | IMPLEMENTED / NOT_RUN | committed tests |
+| FIT release-gate manifest | COMPLETE | 30 controlled tests |
+| Workspace documentation | COMPLETE | updated v1 doc |
+| Full release command | NOT_RUN | normal checkout required |
+| Real browser/XLSX/CSV interaction | NOT_RUN | normal checkout required |
 
 ## Engineering Item Register
 
-| ID | Type | Priority | Status | Summary | Current PR? |
-|---|---|---:|---|---|---|
-| IMP-001 | Improvement | P0 | IMPLEMENTED | CSV input is visible/editable working table state. | YES |
-| IMP-002 | Improvement | P0 | IMPLEMENTED | Controlled EI cases load and expose target/actual validation. | YES |
-| ISS-001 | Defect | HIGH | IMPLEMENTED | Generic Elements CSV no longer claims certified `Advanced_Analysis.3D_EDIT` provenance from header shape. | YES |
-| RISK-001 | Risk | HIGH | MITIGATED | Dirty certified XLSX executes as explicit `.edited-elements.csv`. | YES |
-| RISK-002 | Risk | HIGH | MITIGATED | Any benchmark table mutation invalidates parity/stale result state. | YES |
-| DEC-001 | Decision | P0 | ACCEPTED | First topology mutation executes serialized `CSV_ELEMENTS_ONLY` local override. | YES |
-| DEC-002 | Decision | P0 | ACCEPTED | Operating/enrichment editors round-trip through existing v1 CSV contracts. | YES |
-| DEC-003 | Decision | P0 | ACCEPTED | Benchmark parity only while all loaded benchmark tables remain untouched. | YES |
-| DEC-004 | Decision | P0 | ACCEPTED | Use all five controlled EI D2/D4 cases; no invented numerical demo. | YES |
-| DEC-005 | Decision | P0 | ACCEPTED | Modified benchmark target stays original-case reference; parity becomes not applicable. | YES |
-| DEC-006 | Decision | P0 | ACCEPTED | Header-compatible Elements CSV is explicitly unverified; complete XLSX is the richer declared upstream-authority path. | YES |
+| ID | Type | Status | Summary |
+|---|---|---|---|
+| IMP-001 | Improvement | COMPLETE | CSV loads into visible/editable raw-contract tables. |
+| IMP-002 | Improvement | COMPLETE | All five controlled EI cases can be loaded and compared to actual benchmark output. |
+| ISS-001 | Defect | COMPLETE | Generic Elements CSV no longer claims `Advanced_Analysis.3D_EDIT` provenance from header shape. |
+| ISS-002 | Defect | COMPLETE | Edited certified topology rows no longer display/carry `CERTIFIED`; populated rows become `LOCAL_EDITED_UNVERIFIED`. |
+| RISK-001 | Risk | MITIGATED | Dirty certified XLSX executes as local `.edited-elements.csv`. |
+| RISK-002 | Risk | MITIGATED | Any benchmark mutation invalidates official parity/stale results. |
+| DEC-001 | Decision | ACCEPTED | First topology mutation uses serialized `CSV_ELEMENTS_ONLY` working override. |
+| DEC-002 | Decision | ACCEPTED | Operating/enrichment rows round-trip through existing v1 CSV contracts. |
+| DEC-003 | Decision | ACCEPTED | Official benchmark parity only for untouched controlled case inputs. |
+| DEC-004 | Decision | ACCEPTED | Use existing five EI D2/D4 cases; no invented demo case. |
+| DEC-005 | Decision | ACCEPTED | Modified-case target stays informational; parity becomes not applicable. |
+| DEC-006 | Decision | ACCEPTED | Header-compatible CSV is unverified; richer upstream authority exists only on complete XLSX path. |
 
-### ISS-001 closure evidence
-
-Root cause: `parseVibrationTableExchangeCsv()` previously set `sourceSystem='Advanced_Analysis.3D_EDIT'` for any exact Elements header.
-
-Resolution:
-```text
-sourceSystem = UNVERIFIED_ELEMENTS_CSV
-completeExchange = false
-integrityStatus = LIMITED_ELEMENTS_ONLY
-authority hashes = null
-warning = UNVERIFIED_ELEMENTS_CSV_SOURCE
-```
-
-A dedicated regression now pins this behavior. Complete workbook parsing remains separate and unchanged.
-
-## Stage Roadmap / Execution Log
+## Stage Execution Log
 
 ### Stage 1 — Findings
-Decision: **COMPLETE**. Existing UI hid raw table content; strict CSV utility and five controlled EI cases already existed.
+**COMPLETE.** Existing FIT UI loaded files but did not expose editable raw tables. Strict CSV helpers and five controlled EI cases already existed.
 
 ### Stage 2 — PR allocation
-Decision: **COMPLETE**. Draft PR #442 allocated; pending report renamed/deleted.
+**COMPLETE.** Draft PR #442 allocated; pending report renamed/deleted.
 
 ### Stage 3 — Changed-file verification
-Decision: **COMPLETE**. Pre-production diff exactly `agents/PR442_workreport.md`.
+**COMPLETE / PASS.** Pre-production diff was exactly `agents/PR442_workreport.md`.
 
-### Stage 4 — Core production behavior
-Decision: **COMPLETE**.
+### Stage 4 — Core behavior
+**COMPLETE.** Added:
+- `tabs/vibration-integrity-input-model.js`;
+- `tabs/vibration-integrity-benchmarks.js`;
+- source-bound/editor tests.
 
-Implemented:
-- `tabs/vibration-integrity-input-model.js`: exact production headers, strict CSV load/serialize, immutable editable row state.
-- `tabs/vibration-integrity-benchmarks.js`: all five controlled EI cases mapped to project-shaped working tables.
-- tests bind case IDs/source commit/blob/inputs/targets to `fit-ei-worked-examples-v1.json` and production parsers.
+The benchmark catalogue is tied to `Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`; generated tables use existing production CSV contracts.
 
-### Stage 5 — Real workspace integration / authority hardening
-Decision: **COMPLETE**.
+### Stage 5 — Workspace integration / authority hardening
+**COMPLETE.** Added benchmark selector/button, editable tables, CSV/XLSX table load, add/delete/edit, current-table readiness/run, parity display/invalidation, and CSS. Split file/input runtime from the existing controller to keep responsibilities bounded.
 
-Implemented:
-- `tabs/vibration-integrity-input-view.js`: benchmark picker, Load BENCHMARK, target/actual panel, three editable tables, add/delete controls, import/readiness/run controls.
-- `tabs/vibration-integrity-input-runtime.js`: file parsing, untouched-XLSX execution, dirty-XLSX local CSV selection, benchmark table setup.
-- `tabs/vibration-integrity-tab.js`: state/events; any mutation clears stale results; numerical workflow remains lazy-loaded on Run.
-- `tabs/vibration-integrity-view.js` composes input and output surfaces.
-- CSS for table editors/benchmark panel.
-- ISS-001 source-provenance fix in `parse-csv.js`.
-- Dirty XLSX working filename becomes `*.edited-elements.csv`.
-
-Deviations: controller initially exceeded the normal module-size guideline and was split with the production-consumed input-runtime module.
+Authority fixes:
+- Elements CSV source identity is `UNVERIFIED_ELEMENTS_CSV`;
+- dirty XLSX file identity is `*.edited-elements.csv`;
+- populated topology rows on mutation are visibly `LOCAL_EDITED_UNVERIFIED`;
+- blank newly-added topology rows remain fully blank until data is entered.
 
 ### Stage 6 — Validation / docs / closure
+**PARTIAL.** Source-level validation and scope reconciliation are complete; executable repository/browser validation remains NOT_RUN.
 
-**Current truth:** implementation is feature-complete; 17 paths are currently changed.
+## Exact Changed-File Ledger — 17/17 explained
 
-**Objective:** prove scope/authority/static contracts, update release gate/docs, and record executable limitations without false PASS claims.
+1. `agents/PR442_workreport.md` — CodingRules report.
+2. `converters/vibration/exchange/parse-csv.js` — unverified Elements CSV provenance.
+3. `docs/vibration/VibrationIntegrityTab-v1.md` — editable/benchmark/provenance UX contract.
+4. `scripts/verify-vibration-fit-release.mjs` — release gate expanded to 30 tests.
+5. `tabs/vibration-integrity-benchmarks.js` — five controlled EI UI benchmark cases.
+6. `tabs/vibration-integrity-input-model.js` — editable table state and local topology status downgrade.
+7. `tabs/vibration-integrity-input-runtime.js` — file parsing and current-table execution input selection.
+8. `tabs/vibration-integrity-input-view.js` — benchmark panel / editable input tables.
+9. `tabs/vibration-integrity-tab.js` — controller/event integration; existing numerical workflow only.
+10. `tabs/vibration-integrity-view.js` — compose input and result views.
+11. `tabs/vibration-integrity.css` — benchmark/editor presentation.
+12. `tests/vibration-elements-csv-provenance.test.mjs` — CSV authority regression.
+13. `tests/vibration-fit-release-gate.test.mjs` — 30-file gate contract.
+14. `tests/vibration-fit-ui-benchmarks.test.mjs` — UI benchmark ↔ controlled EI dataset parity.
+15. `tests/vibration-integrity-editable-input-static.test.mjs` — visible behavior / no-authority-leak checks.
+16. `tests/vibration-integrity-input-model.test.mjs` — edit/dirty/local-source-status regression.
+17. `tests/vibration-integrity-input-runtime.test.mjs` — untouched XLSX vs edited CSV execution boundary.
 
-**Planned validation:**
-- changed-file reconciliation;
-- source scan: no direct calculation/canvas/universal-score behavior;
-- benchmark catalogue parity source review;
-- Elements CSV provenance source review;
-- controller module-size/source review;
-- PR mergeability/workflow allocation;
-- runtime tests / full release gate: NOT_RUN if environment still unavailable.
-
-Status: IN_PROGRESS.
-
-## Changed-File Ledger
-
-| File | Stage | Purpose | Engineering-sensitive? | Validation |
-|---|---:|---|---|---|
-| `agents/PR442_workreport.md` | 1-6 | living report | YES | reconciliation pending final |
-| `converters/vibration/exchange/parse-csv.js` | 5 | unverified Elements CSV provenance | YES | dedicated test committed |
-| `docs/vibration/VibrationIntegrityTab-v1.md` | 6 | product/authority behavior | YES | source review |
-| `scripts/verify-vibration-fit-release.mjs` | 6 | include new regressions | NO | self-contract updated |
-| `tabs/vibration-integrity-benchmarks.js` | 4 | controlled EI cases | YES | source-parity test committed |
-| `tabs/vibration-integrity-input-model.js` | 4 | editable table state | YES | focused test committed |
-| `tabs/vibration-integrity-input-runtime.js` | 5 | input/file execution boundary | YES | runtime test committed |
-| `tabs/vibration-integrity-input-view.js` | 5 | visible editor/benchmark UI | YES | static test committed |
-| `tabs/vibration-integrity-tab.js` | 5 | controller integration | YES | static test committed |
-| `tabs/vibration-integrity-view.js` | 5 | compose input/output UI | NO | existing/static tests |
-| `tabs/vibration-integrity.css` | 5 | editor/benchmark styling | NO | browser NOT_RUN |
-| `tests/vibration-elements-csv-provenance.test.mjs` | 5 | source-authority regression | YES | NOT_RUN |
-| `tests/vibration-fit-release-gate.test.mjs` | 6 | pin 30-file release manifest | NO | NOT_RUN |
-| `tests/vibration-fit-ui-benchmarks.test.mjs` | 4 | controlled EI mapping/parser regression | YES | NOT_RUN |
-| `tests/vibration-integrity-editable-input-static.test.mjs` | 6 | visible behavior/authority regression | YES | NOT_RUN |
-| `tests/vibration-integrity-input-model.test.mjs` | 4 | table-state regression | NO | NOT_RUN |
-| `tests/vibration-integrity-input-runtime.test.mjs` | 6 | XLSX→edited CSV boundary regression | YES | NOT_RUN |
+No workflow, FIT kernel, AIV, 3D/canvas or unrelated file is changed.
 
 ## Engineering Invariants
 
-- **INV-001 one numerical path:** UI prepares table data only; execution remains existing facility workflow → central Engineering Calculation API.
-- **INV-002 edited topology is not certified:** any topology mutation executes local Elements-only CSV.
-- **INV-003 benchmark parity exact-case-only:** any mutation clears stale results and makes official parity not applicable.
-- **INV-004 authority unchanged:** FIT remains `BENCHMARK_ONLY`; no safe/pass screening semantics.
-- **INV-005 uploaded CSV is visible input:** current table rows, not hidden original CSV bytes, are execution input.
-- **INV-006 source identity follows evidence:** CSV header compatibility never establishes certified 3D EDIT provenance.
+- **INV-001:** one numerical path only: table UI → existing facility workflow → central Engineering Calculation API.
+- **INV-002:** edited topology is never represented as certified topology.
+- **INV-003:** official benchmark parity is exact-input evidence only.
+- **INV-004:** FIT remains `BENCHMARK_ONLY`; no safe/pass screening semantics.
+- **INV-005:** uploaded CSV becomes visible table state; current cells are execution input.
+- **INV-006:** source identity follows evidence; CSV header compatibility is not upstream certification.
+- **INV-007:** table mutation clears stale preflight/results before the next run.
 
 ## Validation / Evidence Ledger
 
-### Software Validation
-| Validation | Status | Evidence |
-|---|---|---|
-| Source/import architecture review | PASS | Stage 1 |
-| Pre-code changed-file reconciliation | PASS | report only |
-| Stage 4 source/contract review | PASS | exact production headers/parsers reused |
-| Stage 5 authority source review | PASS | ISS-001 + dirty-XLSX behavior implemented |
-| Focused test files | NOT_RUN | committed; current environment lacks full checkout |
-| `npm run verify:vibration-fit-release` | NOT_RUN | requires normal checkout/dependencies |
-| Real XLSX/browser interaction | NOT_RUN | environment limitation |
+### PASS
+- source/import architecture review;
+- pre-code changed-file reconciliation;
+- final 17-file reconciliation;
+- PR mergeability;
+- controlled benchmark ID/source/target mapping review;
+- production CSV/parser contract reuse review;
+- Elements CSV provenance source review;
+- complete XLSX source path remains `Advanced_Analysis.3D_EDIT` and unchanged;
+- source scan of controller found no `calculateFit`, `calculateEngineering`, or canvas call;
+- release manifest source review: 30 unique controlled test paths;
+- current-head GitHub workflow query: no workflow run allocated.
 
-### Engineering Validation
-| Property | Status | Evidence |
-|---|---|---|
-| EI benchmark mapping/targets | PASS | controlled JSON source identity and direct test mapping |
-| FIT numerical method | NOT_APPLICABLE | unchanged |
-| Edited topology certification | NOT_APPLICABLE | intentionally downgraded |
-| Screening/design authority | NOT_APPLICABLE | unchanged/not authorized |
+### NOT_RUN
+- `tests/vibration-integrity-input-model.test.mjs`;
+- `tests/vibration-fit-ui-benchmarks.test.mjs`;
+- `tests/vibration-elements-csv-provenance.test.mjs`;
+- `tests/vibration-integrity-input-runtime.test.mjs`;
+- `tests/vibration-integrity-editable-input-static.test.mjs`;
+- full `npm run verify:vibration-fit-release`;
+- real-browser XLSX / CSV interaction.
 
-## Known / Deferred Work / Forward Sequence
+Reason: this execution container has Node v22.16.0 but does not have the repository checkout/dependency tree; `xlsx` is not installed. No PASS is inferred from source review.
 
-1. Finish Stage 6 reconciliation and keep PR draft pending executable evidence unless owner directs merge.
-2. Run `npm run verify:vibration-fit-release` and real browser XLSX/CSV interactions in a normal checkout.
-3. Keep AIV implementation isolated under issue #441.
-4. Scenario persistence/version history remains deferred; CSV is the explicit user interchange.
+### NOT_APPLICABLE
+- FIT method/equation qualification — no numerical method changed.
+- screening/design authority — remains not authorized.
+
+## Known / Deferred Work
+
+- Run the 30-file release gate from a normal checkout.
+- Exercise: untouched certified XLSX, edited XLSX downgrade, Elements CSV import/edit, operating/enrichment CSV import/edit, all five benchmark cases, benchmark mutation/reload.
+- Scenario persistence/versioning remains out of scope; CSV is the explicit interchange.
+- AIV remains isolated under issue #441.
 
 ## Next-Agent Handover
 
-Current stopping point: Stage 6 validation/closure.
+PR/branch: **#442 / `agent/fit-editable-benchmark-inputs`**.
 
-PR / branch: #442 / `agent/fit-editable-benchmark-inputs`.
+Implementation is complete. Do not add more product scope before executing the release/browser checks.
 
-Start here: final changed-file/source/PR checks; do not add more product scope.
+Exact next commands in a normal checkout:
 
-Do not redo: benchmark catalogue, editable table model, UI integration, provenance fix.
+```bash
+npm install
+npm run verify:vibration-fit-release
+```
 
-Do not assume: current-head runtime suite has passed; it has not been executed here.
-
-Known failing checks: none known; executable checks NOT_RUN.
-
-Highest-risk remaining item: real-browser/runtime validation against actual XLSX/CSV files.
-
-Exact next action: final source reconciliation + PR status/workflow inspection, then handoff.
+Then manually open FIT workspace and verify the file/edit/benchmark interactions listed above. If clean, update this report/PR validation evidence and merge only with owner authorization.
