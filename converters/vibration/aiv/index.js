@@ -42,3 +42,8 @@ export {
   AIV_T2_6_ERRATA_FEED_EQUATION,
   AIV_EI_ERRATA_EVIDENCE,
 } from './aiv-errata-evidence.js';
+export {
+  AIV_INDEPENDENT_BENCHMARK_SCHEMA,
+  AIV_INDEPENDENT_BENCHMARKS,
+  AIV_INDEPENDENT_BENCHMARK_EVIDENCE,
+} from './aiv-independent-benchmark-evidence.js';
