@@ -3,8 +3,12 @@ import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas
 import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
 
 function esc(value) {
-  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function canvasStyle() {
@@ -21,16 +25,37 @@ function topology(state) {
 
 function canvasProjection(state) {
   return buildAivCanvasProjection({
-    tables: state.tables, assumptionResolution: state.assumptionResolution,
-    readinessEnvelope: state.readinessEnvelope, screeningResult: state.screeningResult, topology: topology(state),
+    tables: state.tables,
+    assumptionResolution: state.assumptionResolution,
+    readinessEnvelope: state.readinessEnvelope,
+    screeningResult: state.screeningResult,
+    topology: topology(state),
   });
 }
 
-function badge(value, kind = '') { return value ? `<span class="aiv-canvas-badge ${esc(kind)}">${esc(value)}</span>` : ''; }
-function sourceGlyph() { return '<circle r="24" class="aiv-canvas-node-shape"></circle><path d="M-11 0 L0 -10 L11 0 L0 10 Z" class="aiv-canvas-node-detail"></path>'; }
-function assessmentGlyph() { return '<rect x="-22" y="-22" width="44" height="44" rx="6" class="aiv-canvas-node-shape"></rect><path d="M-12 0 H12 M0 -12 V12" class="aiv-canvas-node-detail"></path>'; }
-function pathGlyph(boundary) { return boundary ? '<rect x="-27" y="-20" width="54" height="40" rx="12" class="aiv-canvas-node-shape"></rect>' : '<rect x="-24" y="-9" width="48" height="18" rx="9" class="aiv-canvas-node-shape"></rect>'; }
-function nodeGlyph(node) { return node.nodeKind === 'SOURCE' ? sourceGlyph() : node.nodeKind === 'ASSESSMENT' ? assessmentGlyph() : pathGlyph(node.nodeKind === 'BOUNDARY'); }
+function badge(text, kind = '') {
+  return text ? `<span class="aiv-canvas-badge ${esc(kind)}">${esc(text)}</span>` : '';
+}
+
+function sourceGlyph() {
+  return '<circle r="24" class="aiv-canvas-node-shape"></circle><path d="M-11 0 L0 -10 L11 0 L0 10 Z" class="aiv-canvas-node-detail"></path>';
+}
+
+function assessmentGlyph() {
+  return '<rect x="-22" y="-22" width="44" height="44" rx="6" class="aiv-canvas-node-shape"></rect><path d="M-12 0 H12 M0 -12 V12" class="aiv-canvas-node-detail"></path>';
+}
+
+function pathGlyph(boundary) {
+  return boundary
+    ? '<rect x="-27" y="-20" width="54" height="40" rx="12" class="aiv-canvas-node-shape"></rect>'
+    : '<rect x="-24" y="-9" width="48" height="18" rx="9" class="aiv-canvas-node-shape"></rect>';
+}
+
+function nodeGlyph(node) {
+  if (node.nodeKind === 'SOURCE') return sourceGlyph();
+  if (node.nodeKind === 'ASSESSMENT') return assessmentGlyph();
+  return pathGlyph(node.nodeKind === 'BOUNDARY');
+}
 
 function resultText(node) {
   const summary = node.resultSummary;
@@ -44,7 +69,11 @@ function statusText(item) {
   return [item.assumptionCount ? `[A] ${item.assumptionCount}` : '', item.readinessStatus ?? ''].filter(Boolean).join(' · ');
 }
 
-function nodeTableKind(node) { return node.nodeKind === 'SOURCE' ? 'sources' : node.nodeKind === 'ASSESSMENT' ? 'assessments' : ''; }
+function nodeTableKind(node) {
+  if (node.nodeKind === 'SOURCE') return 'sources';
+  if (node.nodeKind === 'ASSESSMENT') return 'assessments';
+  return '';
+}
 
 function nodeHtml(node, position) {
   const caseText = node.caseId ? ` · ${node.caseId}` : '';
@@ -62,7 +91,8 @@ function nodeHtml(node, position) {
 
 function relationshipLabel(relationship) {
   const distance = relationship.physicalDistance && relationship.physicalDistanceUnit
-    ? `${relationship.physicalDistance} ${relationship.physicalDistanceUnit}` : 'distance unresolved';
+    ? `${relationship.physicalDistance} ${relationship.physicalDistanceUnit}`
+    : 'distance unresolved';
   return [relationship.caseId, distance, statusText(relationship)].filter(Boolean).join(' · ');
 }
 
@@ -72,12 +102,15 @@ function relationshipHtml(relationship, positions) {
   const source = positions.get(sourceKey);
   const assessment = positions.get(assessmentKey);
   if (!source || !assessment) return '';
+  const x1 = source.x + 30;
+  const x2 = assessment.x - 30;
   const midX = (source.x + assessment.x) / 2;
   const midY = (source.y + assessment.y) / 2;
   const kind = relationship.applicabilityDisposition === 'APPLICABLE' ? 'applicable' : 'inactive';
   const aria = `${relationship.sourceCanonicalId} to ${relationship.assessmentCanonicalId} · ${relationshipLabel(relationship)}`;
   return `<g class="aiv-canvas-relationship is-${kind}" data-aiv-canvas-relationship="${esc(relationship.rowKey)}" data-aiv-selection-key="${esc(relationship.selectionKey)}" data-aiv-table-kind="relationships" data-aiv-source-canonical-id="${esc(relationship.sourceCanonicalId)}" data-aiv-assessment-canonical-id="${esc(relationship.assessmentCanonicalId)}" data-aiv-case-id="${esc(relationship.caseId)}" data-aiv-canvas-source-node="${esc(sourceKey)}" data-aiv-canvas-assessment-node="${esc(assessmentKey)}" role="button" tabindex="0" aria-selected="false" aria-label="${esc(aria)}">
-    <title>${esc(aria)}</title><line x1="${source.x + 30}" y1="${source.y}" x2="${assessment.x - 30}" y2="${assessment.y}" marker-end="url(#aiv-canvas-arrow)"></line>
+    <title>${esc(aria)}</title>
+    <line x1="${x1}" y1="${source.y}" x2="${x2}" y2="${assessment.y}" marker-end="url(#aiv-canvas-arrow)"></line>
     <text x="${midX}" y="${midY - 8}" text-anchor="middle">${esc(relationshipLabel(relationship))}</text>
   </g>`;
 }
@@ -98,7 +131,11 @@ function assumptionDetail(selectionKey, label, item) {
 
 function detailsHtml(projection) {
   const nodes = projection.nodes.map((node) => assumptionDetail(node.nodeKey, `${node.nodeKind} ${node.tag}`, node));
-  const relationships = projection.relationships.map((item) => assumptionDetail(item.selectionKey, `${item.sourceCanonicalId} → ${item.assessmentCanonicalId} · ${item.caseId}`, item));
+  const relationships = projection.relationships.map((item) => assumptionDetail(
+    item.selectionKey,
+    `${item.sourceCanonicalId} → ${item.assessmentCanonicalId} · ${item.caseId}`,
+    item,
+  ));
   return [...nodes, ...relationships].join('');
 }
 
@@ -108,27 +145,47 @@ function lineSummaryNotice(projection) {
   return `<div class="aiv-canvas-line-summary"><strong>Line/Case trace only — NON-AUTHORITATIVE FOR SCREENING</strong><span>${esc(scopes)}</span></div>`;
 }
 
+function emptyCanvas() {
+  return '<div class="aiv-canvas-empty">Load AIV records with canonical IDs to populate the relationship canvas. Blank editable identities are not invented by the canvas.</div>';
+}
+
+function canvasHeight(layout) {
+  const maxY = Math.max(0, ...layout.nodes.map((node) => node.y));
+  return Math.max(260, maxY + 125);
+}
+
 function canvasControls() {
-  return `<div class="aiv-canvas-controls" role="group" aria-label="AIV canvas zoom controls"><button type="button" class="engineering-console-btn" data-aiv-canvas-action="zoom-out">−</button><button type="button" class="engineering-console-btn" data-aiv-canvas-action="reset-view">Reset view</button><button type="button" class="engineering-console-btn" data-aiv-canvas-action="zoom-in">+</button></div>`;
+  return `<div class="aiv-canvas-controls" role="group" aria-label="AIV canvas zoom controls">
+    <button type="button" class="engineering-console-btn" data-aiv-canvas-action="zoom-out" aria-label="Zoom out">−</button>
+    <button type="button" class="engineering-console-btn" data-aiv-canvas-action="reset-view">Reset view</button>
+    <button type="button" class="engineering-console-btn" data-aiv-canvas-action="zoom-in" aria-label="Zoom in">+</button>
+  </div>`;
 }
 
 function relationshipControls() {
-  return `<div class="aiv-canvas-mode-controls" role="group" aria-label="AIV canvas mode controls"><button type="button" class="engineering-console-btn" data-aiv-canvas-mode="NAVIGATE" aria-pressed="true">Navigate</button><button type="button" class="engineering-console-btn" data-aiv-canvas-mode="RELATIONSHIPS" aria-pressed="false">Relationships</button><button type="button" class="engineering-console-btn" data-aiv-canvas-action="delete-relationship" disabled>Delete relationship</button></div>`;
+  return `<div class="aiv-canvas-mode-controls" role="group" aria-label="AIV canvas mode controls">
+    <button type="button" class="engineering-console-btn" data-aiv-canvas-mode="NAVIGATE" aria-pressed="true">Navigate</button>
+    <button type="button" class="engineering-console-btn" data-aiv-canvas-mode="RELATIONSHIPS" aria-pressed="false">Relationships</button>
+    <button type="button" class="engineering-console-btn" data-aiv-canvas-action="delete-relationship" disabled>Delete relationship</button>
+  </div>`;
 }
 
 export function renderAivCanvasWorkspaceHtml(state = {}) {
   const projection = canvasProjection(state);
   const layout = buildDeterministicAivCanvasLayout(projection, state.canvasLayout ?? null);
   const positions = new Map(layout.nodes.map((node) => [node.nodeKey, node]));
-  const height = Math.max(260, Math.max(0, ...layout.nodes.map((node) => node.y)) + 125);
+  const height = canvasHeight(layout);
   const relationships = projection.relationships.map((item) => relationshipHtml(item, positions)).join('');
   const nodes = projection.nodes.map((item) => nodeHtml(item, positions.get(item.nodeKey))).join('');
   const badges = `${badge(`${projection.nodes.length} nodes`)}${badge(`${projection.relationships.length} relationships`)}${badge('presentation-only', 'authority')}`;
   const vp = layout.viewport;
-  const empty = '<div class="aiv-canvas-empty">Load AIV records with canonical IDs to populate the relationship canvas. Blank editable identities are not invented by the canvas.</div>';
   return `${canvasStyle()}<section class="aivq-card aiv-canvas-card">
     <div class="aivq-section-head"><div><h4>AIV relationship canvas</h4><p>Assumption/readiness labels are projected from current resolution/readiness records. Tables remain engineering authority; connector geometry never supplies physical distance.</p></div><div class="aiv-canvas-head-actions"><div class="aiv-canvas-badges">${badges}</div>${relationshipControls()}${canvasControls()}</div></div>
-    ${projection.nodes.length ? `<div class="aiv-canvas-frame"><svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-canvas-viewport-x="${vp.x}" data-aiv-canvas-viewport-y="${vp.y}" data-aiv-canvas-viewport-zoom="${vp.zoom}" role="img" aria-label="AIV source to assessment relationship canvas" viewBox="0 0 760 ${height}" preserveAspectRatio="xMidYMin meet"><defs><marker id="aiv-canvas-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z"></path></marker></defs><g data-aiv-canvas-scene="true" transform="translate(${vp.x} ${vp.y}) scale(${vp.zoom})"><g>${relationships}</g><g>${nodes}</g></g></svg></div>` : empty}
-    ${detailsHtml(projection)}${lineSummaryNotice(projection)}
+    ${projection.nodes.length ? `<div class="aiv-canvas-frame"><svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-canvas-viewport-x="${vp.x}" data-aiv-canvas-viewport-y="${vp.y}" data-aiv-canvas-viewport-zoom="${vp.zoom}" role="img" aria-label="AIV source to assessment relationship canvas" viewBox="0 0 760 ${height}" preserveAspectRatio="xMidYMin meet">
+      <defs><marker id="aiv-canvas-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z"></path></marker></defs>
+      <g data-aiv-canvas-scene="true" transform="translate(${vp.x} ${vp.y}) scale(${vp.zoom})"><g class="aiv-canvas-relationships">${relationships}</g><g class="aiv-canvas-nodes">${nodes}</g></g>
+    </svg></div>` : emptyCanvas()}
+    ${detailsHtml(projection)}
+    ${lineSummaryNotice(projection)}
   </section>`;
 }
