@@ -1,4 +1,5 @@
 import { createAivCanvasLayout, moveAivCanvasLayoutNode } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
+import { activateAivCanvasDetailTab } from './vibration-aiv-canvas-detail.js';
 import { focusAivCanvasField } from './vibration-aiv-canvas-field.js';
 import { createAivCanvasFilterController } from './vibration-aiv-canvas-filter.js';
 import { aivCanvasSelectionFromElement, applyAivCanvasSelection, revealAivCanvasSelection } from './vibration-aiv-canvas-selection.js';
@@ -18,10 +19,7 @@ function finite(value, fallback = 0) {
 }
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
-
-function viewport(value = {}) {
-  return Object.freeze({ x: finite(value.x), y: finite(value.y), zoom: clamp(finite(value.zoom, 1), AIV_CANVAS_ZOOM_MIN, AIV_CANVAS_ZOOM_MAX) });
-}
+function viewport(value = {}) { return Object.freeze({ x: finite(value.x), y: finite(value.y), zoom: clamp(finite(value.zoom, 1), AIV_CANVAS_ZOOM_MIN, AIV_CANVAS_ZOOM_MAX) }); }
 
 export function panAivCanvasViewport(current, dx, dy) {
   const value = viewport(current);
@@ -62,16 +60,11 @@ function layoutFromSvg(svg) {
   const nodes = [...svg.querySelectorAll('[data-aiv-canvas-node]')].map((element, index) => nodeFromElement(element, index));
   return createAivCanvasLayout({
     nodes,
-    viewport: {
-      x: finite(svg.dataset.aivCanvasViewportX), y: finite(svg.dataset.aivCanvasViewportY),
-      zoom: finite(svg.dataset.aivCanvasViewportZoom, 1),
-    },
+    viewport: { x: finite(svg.dataset.aivCanvasViewportX), y: finite(svg.dataset.aivCanvasViewportY), zoom: finite(svg.dataset.aivCanvasViewportZoom, 1) },
   });
 }
 
-function elementMap(svg) {
-  return new Map([...svg.querySelectorAll('[data-aiv-canvas-node]')].map((element) => [element.dataset.aivCanvasNode, element]));
-}
+function elementMap(svg) { return new Map([...svg.querySelectorAll('[data-aiv-canvas-node]')].map((element) => [element.dataset.aivCanvasNode, element])); }
 
 function redrawRelationships(svg, layout) {
   const positions = new Map(layout.nodes.map((node) => [node.nodeKey, node]));
@@ -114,9 +107,7 @@ function svgDelta(svg, clientDx, clientDy, zoom = 1) {
   return { x: clientDx * (viewBox.width / rect.width) / zoom, y: clientDy * (viewBox.height / rect.height) / zoom };
 }
 
-function canvasTarget(event) {
-  return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship]') ?? null;
-}
+function canvasTarget(event) { return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship]') ?? null; }
 
 function updateDeleteControl(runtime, canvasElement) {
   const button = runtime.container.querySelector('[data-aiv-canvas-action="delete-relationship"]');
@@ -211,10 +202,7 @@ function movePointer(runtime, event) {
     runtime.layout = moveAivCanvasLayoutNode(runtime.layout, active.nodeKey, active.startX + delta.x, active.startY + delta.y);
   } else {
     const delta = svgDelta(svg, dx, dy, 1);
-    runtime.layout = createAivCanvasLayout({
-      nodes: runtime.layout.nodes,
-      viewport: panAivCanvasViewport({ ...runtime.layout.viewport, x: active.startX, y: active.startY }, delta.x, delta.y),
-    });
+    runtime.layout = createAivCanvasLayout({ nodes: runtime.layout.nodes, viewport: panAivCanvasViewport({ ...runtime.layout.viewport, x: active.startX, y: active.startY }, delta.x, delta.y) });
   }
   applyLayout(svg, runtime.layout);
   event.preventDefault?.();
@@ -235,22 +223,9 @@ function wheel(runtime, event) {
   event.preventDefault();
 }
 
-function activateDetailTab(button) {
-  const detail = button?.closest?.('[data-aiv-canvas-assumption-detail]');
-  const tab = button?.dataset?.aivDetailTab;
-  if (!detail || !tab) return false;
-  for (const item of detail.querySelectorAll('[data-aiv-detail-tab]')) {
-    item.setAttribute('aria-selected', item.dataset.aivDetailTab === tab ? 'true' : 'false');
-  }
-  for (const panel of detail.querySelectorAll('[data-aiv-detail-panel]')) {
-    panel.hidden = panel.dataset.aivDetailPanel !== tab;
-  }
-  return true;
-}
-
 function click(runtime, event) {
   const detailTab = event.target?.closest?.('[data-aiv-detail-tab]');
-  if (detailTab && activateDetailTab(detailTab)) return;
+  if (detailTab && activateAivCanvasDetailTab(detailTab)) return;
   const fieldKey = event.target?.closest?.('[data-aiv-assumption-field-key]')?.dataset.aivAssumptionFieldKey;
   if (fieldKey) { focusAivCanvasField(runtime.container, fieldKey); return; }
   const mode = event.target?.closest?.('[data-aiv-canvas-mode]')?.dataset.aivCanvasMode;
@@ -275,7 +250,7 @@ function keydown(runtime, event) {
   if (event.key === 'Escape') { setRelationshipMode(runtime, AIV_CANVAS_MODE.NAVIGATE); return; }
   if (!['Enter', ' '].includes(event.key)) return;
   const tab = event.target?.closest?.('[data-aiv-detail-tab]');
-  if (tab) { activateDetailTab(tab); event.preventDefault(); return; }
+  if (tab) { activateAivCanvasDetailTab(tab); event.preventDefault(); return; }
   const target = canvasTarget(event);
   if (!target) return;
   if (!activateRelationshipEndpoint(runtime, target)) selectTarget(runtime, target, 'canvas');
