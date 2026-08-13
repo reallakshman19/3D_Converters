@@ -21,10 +21,12 @@ function createNode(editor, network) {
   const caseId = value(editor, '[data-aiv-network-new-node-case]');
   const line = value(editor, '[data-aiv-network-new-node-line]');
   const tag = value(editor, '[data-aiv-network-new-node-tag]');
+  const sourceDeviceType = value(editor, '[data-aiv-network-new-source-device]');
+  const assessmentType = value(editor, '[data-aiv-network-new-assessment-type]');
   return addAivFlareNetworkNode(network, {
     canonicalId, kind, line, tag, presentation: defaultPosition(network),
-    ...(kind === 'SOURCE' ? { sourceInput: { caseId } } : {}),
-    ...(kind === 'ASSESSMENT' ? { assessmentInput: {} } : {}),
+    ...(kind === 'SOURCE' ? { sourceInput: { caseId, ...(sourceDeviceType ? { sourceDeviceType } : {}) } } : {}),
+    ...(kind === 'ASSESSMENT' ? { assessmentInput: assessmentType ? { assessmentType } : {} } : {}),
   });
 }
 
