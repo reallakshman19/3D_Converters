@@ -139,21 +139,23 @@ function clearFilteredSelection(runtime) {
   updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, null).canvasElement);
 }
 
+function setRelationshipMode(runtime, mode) {
+  runtime.relationship = setAivCanvasRelationshipMode(runtime.relationship, mode);
+  runtime.container.dataset.aivCanvasActiveMode = runtime.relationship.mode;
+  for (const button of runtime.container.querySelectorAll('[data-aiv-canvas-mode]')) {
+    button.setAttribute('aria-pressed', button.dataset.aivCanvasMode === runtime.relationship.mode ? 'true' : 'false');
+  }
+}
+
 function syncRuntime(runtime) {
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
-  runtime.relationship = createAivCanvasRelationshipState();
+  runtime.relationship = createAivCanvasRelationshipState({ mode: runtime.relationship?.mode ?? AIV_CANVAS_MODE.NAVIGATE });
+  runtime.container.dataset.aivCanvasActiveMode = runtime.relationship.mode;
   if (!svg) return;
   runtime.layout = reconcileAivCanvasPresentationLayout(layoutFromSvg(svg), runtime.layout);
   applyLayout(svg, runtime.layout);
   updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, runtime.selection).canvasElement);
   runtime.filterController.sync();
-}
-
-function setRelationshipMode(runtime, mode) {
-  runtime.relationship = setAivCanvasRelationshipMode(runtime.relationship, mode);
-  for (const button of runtime.container.querySelectorAll('[data-aiv-canvas-mode]')) {
-    button.setAttribute('aria-pressed', button.dataset.aivCanvasMode === runtime.relationship.mode ? 'true' : 'false');
-  }
 }
 
 function activateRelationshipEndpoint(runtime, target) {
@@ -233,7 +235,22 @@ function wheel(runtime, event) {
   event.preventDefault();
 }
 
+function activateDetailTab(button) {
+  const detail = button?.closest?.('[data-aiv-canvas-assumption-detail]');
+  const tab = button?.dataset?.aivDetailTab;
+  if (!detail || !tab) return false;
+  for (const item of detail.querySelectorAll('[data-aiv-detail-tab]')) {
+    item.setAttribute('aria-selected', item.dataset.aivDetailTab === tab ? 'true' : 'false');
+  }
+  for (const panel of detail.querySelectorAll('[data-aiv-detail-panel]')) {
+    panel.hidden = panel.dataset.aivDetailPanel !== tab;
+  }
+  return true;
+}
+
 function click(runtime, event) {
+  const detailTab = event.target?.closest?.('[data-aiv-detail-tab]');
+  if (detailTab && activateDetailTab(detailTab)) return;
   const fieldKey = event.target?.closest?.('[data-aiv-assumption-field-key]')?.dataset.aivAssumptionFieldKey;
   if (fieldKey) { focusAivCanvasField(runtime.container, fieldKey); return; }
   const mode = event.target?.closest?.('[data-aiv-canvas-mode]')?.dataset.aivCanvasMode;
@@ -257,6 +274,8 @@ function click(runtime, event) {
 function keydown(runtime, event) {
   if (event.key === 'Escape') { setRelationshipMode(runtime, AIV_CANVAS_MODE.NAVIGATE); return; }
   if (!['Enter', ' '].includes(event.key)) return;
+  const tab = event.target?.closest?.('[data-aiv-detail-tab]');
+  if (tab) { activateDetailTab(tab); event.preventDefault(); return; }
   const target = canvasTarget(event);
   if (!target) return;
   if (!activateRelationshipEndpoint(runtime, target)) selectTarget(runtime, target, 'canvas');
