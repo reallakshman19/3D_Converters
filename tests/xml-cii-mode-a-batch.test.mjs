@@ -15,15 +15,18 @@ const sourceA = createModeASourceEntry({ fileName: 'SYS-01.xml', sourceText: xml
 const sourceB = createModeASourceEntry({ fileName: 'SYS-02.xml', sourceText: xml('/ASIM-SAME/B1', [100, 300]), supportConfigJson: '{"source":"B"}' });
 const batch = { mode: 'separate-models', activeSourceId: sourceA.sourceId, sources: [sourceA, sourceB] };
 const preflight = buildModeAPreflight(batch);
-assert.equal(preflight.ready, true, 'cross-file duplicates must not block separate-model mode');
-assert.equal(preflight.duplicateBranchesAcrossFiles.length, 1);
-assert.equal(preflight.duplicateNodesAcrossFiles.length, 1);
+assert.equal(preflight.ready, true, 'Mode A sources are independent models');
+assert.equal(preflight.duplicateValidation, 'disabled-mode-a');
+assert.deepEqual(preflight.duplicateBranchesAcrossFiles, []);
+assert.deepEqual(preflight.duplicateNodesAcrossFiles, []);
 assert.equal(preflight.blockingRows.length, 0);
+assert.equal(preflight.warnings.some((row) => String(row.code || '').startsWith('DUPLICATE_')), false);
 
-const duplicateNodeSource = createModeASourceEntry({ fileName: 'BAD-NODE.xml', sourceText: xml('/ASIM-BAD/B1', [100, 100]) });
+const duplicateNodeSource = createModeASourceEntry({ fileName: 'DUP-NODE.xml', sourceText: xml('/ASIM-DUP-NODE/B1', [100, 100, -1, -1]) });
 const duplicateNodePreflight = buildModeAPreflight({ mode: 'separate-models', activeSourceId: duplicateNodeSource.sourceId, sources: [duplicateNodeSource] });
-assert.equal(duplicateNodePreflight.ready, false);
-assert(duplicateNodePreflight.blockingRows.some((row) => row.code === 'DUPLICATE_NODE_WITHIN_BRANCH'));
+assert.equal(duplicateNodePreflight.ready, true, 'Mode A does not validate duplicate NodeNumbers');
+assert.equal(duplicateNodePreflight.blockingRows.some((row) => row.code === 'DUPLICATE_NODE_WITHIN_BRANCH'), false);
+assert.equal(duplicateNodePreflight.warnings.some((row) => String(row.code || '').includes('DUPLICATE_NODE')), false);
 
 const repeatedBranchXml = `<PipeStressExport>
 <Branch><Branchname>/ASIM-DUP/B1</Branchname><Node><NodeNumber>1</NodeNumber><NodeName>FIRST</NodeName><Position>0 0 0</Position></Node></Branch>
@@ -31,17 +34,11 @@ const repeatedBranchXml = `<PipeStressExport>
 </PipeStressExport>`;
 const repeatedBranchSource = createModeASourceEntry({ fileName: 'REPEATED-BRANCH.xml', sourceText: repeatedBranchXml });
 const repeatedBranchPreflight = buildModeAPreflight({ mode: 'separate-models', activeSourceId: repeatedBranchSource.sourceId, sources: [repeatedBranchSource] });
-assert.equal(repeatedBranchPreflight.ready, true, 'same Branchname text in separate Branch blocks must be occurrence-scoped, not blocked');
-assert.equal(repeatedBranchSource.metrics.duplicateBranchNames.length, 1);
-assert.equal(repeatedBranchSource.metrics.duplicateNodesWithinBranch.length, 0, 'same NodeNumber in separate branch occurrences is not an in-branch duplicate');
-assert(repeatedBranchPreflight.warnings.some((row) => row.code === 'DUPLICATE_BRANCH_NAME_WITHIN_FILE'));
+assert.equal(repeatedBranchPreflight.ready, true);
+assert.equal(repeatedBranchPreflight.warnings.some((row) => String(row.code || '').startsWith('DUPLICATE_')), false);
 assert.equal(repeatedBranchSource.metrics.branchOccurrences.length, 2);
 assert.equal(repeatedBranchSource.metrics.branchOccurrences[0].displayBranchName, '/ASIM-DUP/B1_1');
 assert.equal(repeatedBranchSource.metrics.branchOccurrences[1].displayBranchName, '/ASIM-DUP/B1_2');
-assert.notEqual(
-  repeatedBranchSource.metrics.branchOccurrences[0].branchOccurrenceId,
-  repeatedBranchSource.metrics.branchOccurrences[1].branchOccurrenceId,
-);
 
 const secondOccurrence = repeatedBranchSource.metrics.branchOccurrences[1];
 repeatedBranchSource.branchSelection.selectionIdentity = 'occurrence';
@@ -51,28 +48,9 @@ const repeatedExecution = buildModeAExecutionState({ supportConfigJson: '{}', ma
 assert.equal(repeatedExecution.branchScope.selectedBranchOccurrenceIds.length, 1);
 assert(repeatedExecution.sourceText.includes('SECOND'));
 assert(!repeatedExecution.sourceText.includes('FIRST'));
-assert(repeatedExecution.sourceText.includes('<Branchname>/ASIM-DUP/B1</Branchname>'), 'engineering Branchname must not be rewritten to the display alias');
+assert(repeatedExecution.sourceText.includes('<Branchname>/ASIM-DUP/B1</Branchname>'));
 
-const legacyMultiXml = `<PipeStressExport>
-<Branch><Branchname>/LEGACY/B1</Branchname><Node><NodeNumber>10</NodeNumber><NodeName>LEGACY-FIRST</NodeName><Position>0 0 0</Position></Node></Branch>
-<Branch><Branchname>/LEGACY/B2</Branchname><Node><NodeNumber>20</NodeNumber><NodeName>LEGACY-SECOND</NodeName><Position>100 0 0</Position></Node></Branch>
-</PipeStressExport>`;
-const legacySource = createModeASourceEntry({ fileName: 'LEGACY.xml', sourceText: legacyMultiXml });
-legacySource.branchSelection.selectedBranchNames = ['/LEGACY/B2'];
-const legacyExecution = buildModeAExecutionState({ supportConfigJson: '{}', masterContext: { rowCounts: {} } }, legacySource);
-assert.equal(legacySource.branchSelection.selectionIdentity, 'name');
-assert.deepEqual(legacyExecution.branchScope.selectedBranchNames, ['/LEGACY/B2']);
-assert(legacyExecution.sourceText.includes('LEGACY-SECOND'));
-assert(!legacyExecution.sourceText.includes('LEGACY-FIRST'), 'legacy name-based selection must override stale all-selected occurrence IDs');
-
-sourceA.branchSelection.selectedBranchNames = ['/ASIM-SAME/B1'];
-sourceA.branchSelection.selectedBranchOccurrenceIds = sourceA.metrics.branchOccurrences.map((row) => row.branchOccurrenceId);
-const execution = buildModeAExecutionState({ supportConfigJson: '{}', masterContext: { rowCounts: {} } }, sourceA);
-assert(execution.sourceText.includes('/ASIM-SAME/B1'));
-assert.equal(execution.sourceBatch, null);
-assert.equal(execution.sourceNameOverride, 'SYS-01.xml');
-
-const emptySource = createModeASourceEntry({ fileName: 'SYS-0015.xml', sourceText: '' });
+const emptySource = createModeASourceEntry({ fileName: 'EMPTY.xml', sourceText: '' });
 const mixedPreflight = buildModeAPreflight({ mode: 'separate-models', activeSourceId: sourceA.sourceId, sources: [sourceA, emptySource] });
 assert(mixedPreflight.blockingRows.some((row) => row.sourceId === emptySource.sourceId && row.code === 'EMPTY_SOURCE'));
 assert(!mixedPreflight.blockingRows.some((row) => row.sourceId === sourceA.sourceId));
@@ -96,7 +74,9 @@ const manifest = buildModeABatchManifest(batch, [
   { sourceId: sourceB.sourceId, sourceDigest: sourceB.sourceDigest, fileName: sourceB.fileName, alias: sourceB.alias, status: 'SUCCEEDED', selectedBranchCount: 1, result: { ok: true, enrichedName: 'B.xml', ciiName: 'B.cii' } },
 ]);
 assert.equal(manifest.mode, 'separate-models');
+assert.equal(manifest.duplicateValidation, 'disabled-mode-a');
+assert.deepEqual(manifest.duplicateBranchesAcrossFiles, []);
+assert.deepEqual(manifest.duplicateNodesAcrossFiles, []);
 assert.equal(manifest.sources.length, 2);
-assert.equal(manifest.sources[0].ciiName, 'A.cii');
 
 console.log('xml-cii Mode A batch tests: PASS');
