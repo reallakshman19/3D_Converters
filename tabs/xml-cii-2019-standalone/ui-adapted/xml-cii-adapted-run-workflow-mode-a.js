@@ -9,7 +9,7 @@ import {
 } from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
 import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260804-mode-a-v1';
 
-function sourceManifest(source, result, scope) {
+function sourceManifest(source, result, scope, error = '') {
   return {
     schema: 'xml-cii-mode-a-source-manifest/v1',
     mode: 'separate-model',
@@ -26,7 +26,7 @@ function sourceManifest(source, result, scope) {
       diagnostics: !!result?.diagnostics,
     },
     ok: result?.ok === true,
-    error: result?.error || null,
+    error: error || result?.error || null,
   };
 }
 
@@ -103,7 +103,7 @@ export async function runModeABatchFromUi(stateRef, render) {
         status: 'BLOCKED',
         error,
         result: null,
-        sourceManifest: sourceManifest(source, null, scope),
+        sourceManifest: sourceManifest(source, null, scope, error),
       });
       continue;
     }
@@ -152,9 +152,8 @@ export async function runModeABatchFromUi(stateRef, render) {
   const cancelled = rows.filter((row) => row.status === 'CANCELLED').length;
   const manifest = buildModeABatchManifest(sharedState.sourceBatch, rows);
   const restoredActive = activateModeASource(sharedState, sharedState.sourceBatch.activeSourceId);
-  const activeResult = rows.find((row) => row.sourceId === sharedState.sourceBatch.activeSourceId)?.result
-    || restoredActive.result
-    || null;
+  const activeRow = rows.find((row) => row.sourceId === sharedState.sourceBatch.activeSourceId);
+  const activeResult = activeRow ? activeRow.result : (restoredActive.result || null);
   replaceModeAState(stateRef, {
     ...restoredActive,
     result: activeResult,
