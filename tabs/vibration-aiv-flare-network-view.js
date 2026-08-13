@@ -8,6 +8,12 @@ function esc(value) {
 
 function option(value, label = value) { return `<option value="${esc(value)}">${esc(label)}</option>`; }
 
+function networkStyle() {
+  return `<style>
+    .aiv-network-editor{display:flex;flex-direction:column;gap:10px;border-color:#0e7490}.aiv-network-authoring-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aiv-network-authoring-grid fieldset{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;border:1px solid #334155;border-radius:6px}.aiv-network-authoring-grid legend{color:#7dd3fc;font-weight:700}.aiv-network-authoring-grid label{display:flex;flex-direction:column;gap:4px;color:#94a3b8;font-size:11px}.aiv-network-authoring-grid input,.aiv-network-authoring-grid select,.aiv-network-table-wrap input,.aiv-network-table-wrap select{border:1px solid #334155;border-radius:4px;background:#0b1220;color:#e5e7eb;padding:5px}.aiv-network-svg-frame{overflow:auto;border:1px solid #1e293b;border-radius:8px}.aiv-network-table-wrap{overflow:auto}.aiv-network-table-wrap h5{margin:4px 0 6px}.aiv-network-mode{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid #334155;border-radius:6px;color:#94a3b8}.aiv-network-mode strong{color:#e5e7eb}.aiv-network-mode.is-active{border-color:#15803d;background:#09261b}.aiv-network-mode.is-manual{border-color:#92400e;background:#2b1b08}@media(max-width:900px){.aiv-network-authoring-grid{grid-template-columns:1fr}.aiv-network-authoring-grid fieldset{grid-template-columns:1fr}}
+  </style>`;
+}
+
 function nodeRows(network) {
   if (!network.nodes.length) return '<tr><td colspan="6">No flare-network nodes yet.</td></tr>';
   return network.nodes.map((node) => `<tr>
@@ -29,17 +35,25 @@ function segmentRows(network) {
 
 function generatedSummary(state) {
   const generated = state.generatedInputSet;
-  if (!generated) return '<span>Generated tables: not built</span>';
+  if (!generated) return '<span>Generated tables <strong>inactive</strong></span>';
   const unresolved = generated.pathEvidence.filter((item) => item.status !== 'RESOLVED').length;
   return `<span>Sources <strong>${generated.tables.sources.rows.length}</strong></span><span>Assessments <strong>${generated.tables.assessments.rows.length}</strong></span><span>Relationships <strong>${generated.tables.relationships.rows.length}</strong></span><span>Unresolved paths <strong>${unresolved}</strong></span>`;
+}
+
+function modeNotice(state) {
+  if (state.flareNetworkActive) {
+    return '<div class="aiv-network-mode is-active"><strong>AUTO-GENERATED TABLE MODE ACTIVE</strong><span>Network edits regenerate Sources / Assessments / Source→Assessment tables and invalidate stale readiness/results.</span></div>';
+  }
+  return '<div class="aiv-network-mode is-manual"><strong>TABLE/IMPORT MODE ACTIVE</strong><span>The graph is retained for editing, but current AIV tables are manual/imported. The next graph edit intentionally regenerates all three tables from the network.</span></div>';
 }
 
 export function renderAivFlareNetworkAuthoringHtml(state = {}) {
   const network = state.flareNetwork;
   if (!network) return '';
   const nodeOptions = network.nodes.map((node) => option(node.canonicalId, `${node.canonicalId} · ${node.kind}`)).join('');
-  return `<section class="aivq-card aiv-network-editor" data-aiv-network-editor="true">
-    <div class="aivq-section-head"><div><h4>Flare network authoring</h4><p>Draw engineering connectivity here. Pipe length is an explicit segment property; SVG geometry never becomes metres. AIV working tables regenerate automatically after every network edit.</p></div><div class="aiv-canvas-badges"><span class="aiv-canvas-badge authority">graph-authoritative connectivity</span><span class="aiv-canvas-badge authority">explicit segment length</span></div></div>
+  return `${networkStyle()}<section class="aivq-card aiv-network-editor" data-aiv-network-editor="true">
+    <div class="aivq-section-head"><div><h4>Flare network authoring</h4><p>Draw engineering connectivity here. Pipe length is an explicit segment property; dragging/stretching SVG presentation never changes metres. AIV working tables regenerate automatically after every network edit.</p></div><div class="aiv-canvas-badges"><span class="aiv-canvas-badge authority">graph-authoritative connectivity</span><span class="aiv-canvas-badge authority">explicit segment length</span></div></div>
+    ${modeNotice(state)}
     <div class="aivq-benchmark-facts">${generatedSummary(state)}</div>
     <div class="aiv-network-authoring-grid">
       <fieldset><legend>Add network node</legend>
