@@ -36,6 +36,27 @@ test('inventory source identity is pinned to issue 450 controlled EI PDF', () =>
   assert.equal(VIBRATION_MASTER_EXPECTED_SIZE_BYTES, 10348594);
 });
 
+test('T3 printed-page navigation hints match reconciled source navigation without changing locator state', () => {
+  const hints = Object.fromEntries(VIBRATION_MASTER_SOURCE_TARGETS.map((entry) => [entry.masterId, entry.printedPageHint]));
+  assert.deepEqual({
+    fitting: hints['EI_AVIFF.T3.SBC.FITTING_SPAN_FACTORS.v1'],
+    firstSpan: hints['EI_AVIFF.T3.SBC.FIRST_SPAN_LIMITS.v1'],
+    betweenMainLines: hints['EI_AVIFF.T3.SBC.BETWEEN_MAIN_LINES_LIMITS.v1'],
+    figureT31: hints['EI_AVIFF.T3.SBC.FIGURE_T3_1.v1'],
+    figureT32: hints['EI_AVIFF.T3.SBC.FIGURE_T3_2.v1'],
+    figureT33: hints['EI_AVIFF.T3.SBC.FIGURE_T3_3.v1'],
+    figureT34: hints['EI_AVIFF.T3.SBC.FIGURE_T3_4.v1'],
+  }, {
+    fitting: '81',
+    firstSpan: '81',
+    betweenMainLines: '82',
+    figureT31: '82',
+    figureT32: '83',
+    figureT33: '83',
+    figureT34: '84',
+  });
+});
+
 test('source identity fails closed on wrong blob and wrong size', () => {
   const bytes = Buffer.from('fixture', 'utf8');
   const blob = gitBlobSha1Hex(bytes);
