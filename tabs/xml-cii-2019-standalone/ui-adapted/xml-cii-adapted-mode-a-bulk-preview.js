@@ -34,7 +34,7 @@ export function modeAPreviewFieldSource(row, field) {
   if (field === 'materialCode') return row?.materialCodeNeedsReview ? 'review' : (row?.materialCodeMethod || '');
   return row?.[`${field}Source`] || '';
 }
-function safeSource(value) {
+function needsReviewSource(value) {
   const source = text(value).toLowerCase();
   return !source || /(^|-)default($|-)|default-zero|config-default|none|missing|unresolved|review|approx|fuzzy/.test(source);
 }
@@ -42,14 +42,15 @@ export function modeAPreviewSafeFillTarget(row, field, sourceValue) {
   const current = text(row?.[field]);
   if (!validSourceValue(field, sourceValue) || current === text(sourceValue)) return false;
   if (!current || current === '—') return true;
-  return safeSource(modeAPreviewFieldSource(row, field));
+  return needsReviewSource(modeAPreviewFieldSource(row, field));
 }
 export function buildModeAPreviewFillPlan(rows = [], sourceRow = {}, field = '') {
   const rule = modeAPreviewFillRule(field);
   const value = text(sourceRow?.[field]);
   const groupKey = modeAPreviewFillGroupKey(sourceRow, field);
   const invalidSourceValue = Boolean(rule && value && !validSourceValue(field, value));
-  if (!rule || !validSourceValue(field, value) || !groupKey) return { rule, value, groupKey, changes: [], skipped: [], invalidSourceValue };
+  const sourceNeedsReview = Boolean(rule && needsReviewSource(modeAPreviewFieldSource(sourceRow, field)));
+  if (!rule || !validSourceValue(field, value) || !groupKey || sourceNeedsReview) return { rule, value, groupKey, changes: [], skipped: [], invalidSourceValue, sourceNeedsReview };
   const changes = [], skipped = [];
   for (const row of rows || []) {
     if (row?.sourceId === sourceRow?.sourceId && row?.branchName === sourceRow?.branchName) continue;
@@ -64,7 +65,7 @@ export function buildModeAPreviewFillPlan(rows = [], sourceRow = {}, field = '')
       corrosionKey: row.corrosionKey || classKey(row) || row.lineKey || row.branchName,
     });
   }
-  return { rule, value, groupKey, changes, skipped, invalidSourceValue: false };
+  return { rule, value, groupKey, changes, skipped, invalidSourceValue: false, sourceNeedsReview: false };
 }
 export function buildModeAProjectDataMatchPlan(rows = [], sourceLineKeys = {}, resolver) {
   const changes = [], ambiguous = [], unmatched = [], seen = new Set();
