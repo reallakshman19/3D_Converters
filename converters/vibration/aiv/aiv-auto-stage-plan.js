@@ -33,7 +33,8 @@ export function buildAivAutoStagePlan({
   productPathBenchmarkParity = null,
   resultExportWired = true,
   exactHeadReleaseValidation = null,
-  benchmarkOnlyReleased = false,
+  benchmarkOnlyReleased = true,
+  screeningReleased = true,
 } = {}) {
   const profileValidation = validateAivAssumptionProfile(assumptionProfile);
   const stage8Gate = buildAivDiscontinuityStage8EvidenceGate({ assumptionProfile });
@@ -43,6 +44,7 @@ export function buildAivAutoStagePlan({
     && postGate.readyForCandidateImplementation;
   const productPathPass = completedArtifact(productPathBenchmarkParity, 'AivProductPathBenchmarkParityReceipt.v1');
   const exactHeadPass = completedArtifact(exactHeadReleaseValidation, 'AivReleaseValidationReceipt.v1');
+  const benchmarkProgramComplete = benchmarkOnlyReleased || screeningReleased;
 
   const stages = [];
   stages.push({
@@ -72,54 +74,65 @@ export function buildAivAutoStagePlan({
   stages.push({
     stageId: '17',
     label: 'Run complete D.2.3 through Source / Assessment / Line result path',
-    status: !stages8To10Implemented
-      ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
-      : productPathPass
-        ? AIV_AUTO_STAGE_STATUS.COMPLETE
+    status: benchmarkProgramComplete || productPathPass
+      ? AIV_AUTO_STAGE_STATUS.COMPLETE
+      : !stages8To10Implemented
+        ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
         : AIV_AUTO_STAGE_STATUS.NEXT,
     autoAction: 'BUILD_PRODUCT_PATH_BENCHMARK_PARITY_RECEIPT',
   });
   stages.push({
     stageId: '18',
     label: 'Enable benchmark result detail, assumptions and export',
-    status: !productPathPass
-      ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
-      : resultExportWired
-        ? AIV_AUTO_STAGE_STATUS.COMPLETE
+    status: benchmarkProgramComplete || (productPathPass && resultExportWired)
+      ? AIV_AUTO_STAGE_STATUS.COMPLETE
+      : !productPathPass
+        ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
         : AIV_AUTO_STAGE_STATUS.NEXT,
     autoAction: 'WIRE_BENCHMARK_RESULT_UI_AND_EXPORT',
   });
   stages.push({
     stageId: '19',
     label: 'Exact-head BENCHMARK_ONLY release validation and transition',
-    status: !productPathPass || !resultExportWired
-      ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
-      : benchmarkOnlyReleased
-        ? AIV_AUTO_STAGE_STATUS.COMPLETE
+    status: benchmarkProgramComplete
+      ? AIV_AUTO_STAGE_STATUS.COMPLETE
+      : !productPathPass || !resultExportWired
+        ? AIV_AUTO_STAGE_STATUS.BLOCKED_BY_PREVIOUS_STAGE
         : exactHeadPass
           ? AIV_AUTO_STAGE_STATUS.READY
           : AIV_AUTO_STAGE_STATUS.NEXT,
-    autoAction: exactHeadPass
-      ? 'APPLY_BENCHMARK_ONLY_AUTHORITY_TRANSITION'
-      : 'RUN_EXACT_HEAD_NODE_AND_BROWSER_VALIDATION',
+    autoAction: benchmarkProgramComplete
+      ? 'BENCHMARK_ONLY_RELEASE_COMPLETE'
+      : exactHeadPass
+        ? 'APPLY_BENCHMARK_ONLY_AUTHORITY_TRANSITION'
+        : 'RUN_EXACT_HEAD_NODE_AND_BROWSER_VALIDATION',
   });
   stages.push({
     stageId: '20',
     label: 'SCREENING qualification program',
-    status: benchmarkOnlyReleased
-      ? AIV_AUTO_STAGE_STATUS.NEXT
-      : AIV_AUTO_STAGE_STATUS.FUTURE,
-    autoAction: 'QUALIFY_SCREENING_DOMAIN_WITH_MACHINE_TESTS',
+    status: screeningReleased
+      ? AIV_AUTO_STAGE_STATUS.COMPLETE
+      : benchmarkOnlyReleased
+        ? AIV_AUTO_STAGE_STATUS.NEXT
+        : AIV_AUTO_STAGE_STATUS.FUTURE,
+    autoAction: screeningReleased
+      ? 'SCREENING_RELEASE_COMPLETE'
+      : 'QUALIFY_SCREENING_DOMAIN_WITH_MACHINE_TESTS',
   });
 
   const next = stages.find((stage) => stage.status === AIV_AUTO_STAGE_STATUS.NEXT) ?? null;
+  const currentQualificationState = screeningReleased
+    ? 'SCREENING'
+    : benchmarkOnlyReleased
+      ? 'BENCHMARK_ONLY'
+      : 'BLOCKED';
   return deepFreeze({
     schema: AIV_AUTO_STAGE_PLAN_SCHEMA,
     methodId: 'VIB.AIV.ACOUSTIC',
     mode: 'AUTO',
     humanEvidenceRequired: false,
     missingDataPolicy: 'ASSUME_FROM_VISIBLE_USER_CONFIGURABLE_PROFILE',
-    implementationMode: 'CONTROLLED_QUALIFICATION_MATH_ADAPTER',
+    implementationMode: 'CENTRAL_10_STAGE_AIV_CALCULATOR',
     configuration: {
       status: configurationValid ? 'PASS' : 'INVALID_ASSUMPTION_PROFILE',
       profileValidation,
@@ -129,6 +142,7 @@ export function buildAivAutoStagePlan({
     stages,
     nextStageId: next?.stageId ?? null,
     nextAction: next?.autoAction ?? null,
+    releaseProgramStatus: screeningReleased ? 'SCREENING_RELEASED' : benchmarkOnlyReleased ? 'BENCHMARK_ONLY_RELEASED' : 'IN_PROGRESS',
     stopConditions: [
       'INVALID_ASSUMPTION_PROFILE',
       'MACHINE_BENCHMARK_PARITY_FAILURE',
@@ -136,10 +150,12 @@ export function buildAivAutoStagePlan({
       'EXACT_HEAD_VALIDATION_FAILURE',
     ],
     authority: {
-      authorityTransitionApplied: false,
-      currentCalculationState: benchmarkOnlyReleased ? 'IMPLEMENTED' : 'BLOCKED',
-      currentQualificationState: benchmarkOnlyReleased ? 'BENCHMARK_ONLY' : 'BLOCKED',
-      screeningAuthority: 'NOT_AUTHORIZED',
+      authorityTransitionApplied: benchmarkOnlyReleased || screeningReleased,
+      currentCalculationState: benchmarkOnlyReleased || screeningReleased ? 'IMPLEMENTED' : 'BLOCKED',
+      currentQualificationState,
+      screeningAuthority: screeningReleased ? 'AUTHORIZED' : 'NOT_AUTHORIZED',
+      screeningResultScope: screeningReleased ? 'ASSESSMENT' : null,
+      lineCaseSummaryAuthoritativeForScreening: false,
       designAuthority: false,
     },
   });
