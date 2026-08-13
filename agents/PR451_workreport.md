@@ -10,61 +10,60 @@
 | Branch | `agent/aiv-svg-canvas` |
 | Base commit | `main@c8aa2786e08a7669b913d0a055ad4c15c6d36b0e` |
 | Last fully validated implementation HEAD | `7a26a8e23d261d19672dd868cd3730eb8a67a8a6` — Stage 6 |
-| Stage-10 inspected implementation HEAD | `ba1bfe3f16b35892b905b2abfe512e422edc19dd` |
+| Stage-11 inspected implementation HEAD | `2f2363540588b475b1d7e842caf7e1a39eff9222` |
 | PR status | DRAFT / OPEN / mergeable |
-| Current stage | Stage 11 — Canvas-aware export / trace |
+| Current stage | Stage 12 — Accessibility / performance / release hardening |
 | Last fully completed stage | Stage 6 |
-| Stages 7–10 decision | PARTIAL — implementation + exact inspection complete; executable tests NOT_RUN |
-| Engineering status | Stages 4–6 VALIDATED; Stages 7–10 IMPLEMENTED/PARTIAL; Stage 11 PLANNED |
-| Validation status | Stage-10 exact eight-file diff / 24-file PR ledger / canvas module-size inspection PASS; current focused command NOT_RUN |
-| Current blocker | `QST-001`: run current `npm run verify:aiv-canvas` in a repository-capable Node environment; NOT_RUN may not be represented as PASS |
-| Exact next action | Implement an additive `AivCanvasScreeningExportPackage.v1` wrapper around the existing authoritative screening export, with optional presentation layout/projection/SVG snapshot that can be removed without losing engineering interpretation. |
+| Stages 7–11 decision | PARTIAL — implementation + exact inspection complete; executable focused suite NOT_RUN |
+| Engineering status | Stages 4–6 VALIDATED; Stages 7–11 IMPLEMENTED/PARTIAL; Stage 12 PLANNED |
+| Validation status | Stage-11 exact five-file diff / 27-file PR ledger / module-size inspection PASS; existing AIV Actions workflow fails a base-stale authority gate and does not run `verify:aiv-canvas` |
+| Current blocker | `QST-001`: focused canvas suite still lacks an authorized executable lane; CodingRules explicitly forbid `.github/workflows/*` changes without Owner authorization |
+| Exact next action | Optimize canvas readiness lookup for 500-relationship scale, add hardening/accessibility/boundary/performance regressions, inspect full PR ledger, and keep executable validation status explicit. |
 
 ## Handover in 60 Seconds
 
-**Now true:** the live AIV canvas supports table-synchronized navigation, relationship editing through `AivSourceAssessmentCsv.v1`, assumption/readiness trace, selected kernel-result explanation, Current/All operating-case and line presentation filters, and a simultaneous-source contribution table sourced only from returned result contributions.
+**Now true:** the live AIV canvas provides table-synchronized navigation, presentation layout, relationship editing through the authoritative table, assumption/readiness trace, kernel-result explanation, case/line filtering, returned simultaneous-source contributions, and an additive downloadable `AivCanvasScreeningExportPackage.v1` whose engineering child package is standalone.
 
-**Active work:** add canvas-aware export/trace without changing the existing numerical screening package or making layout required for interpretation.
+**Active work:** final hardening — performance indexing, accessibility/boundary regressions, 100/300/500 relationship fixture, final ledger reconciliation and validation classification.
 
-**Still unfinished:** executable Stage-7+ focused validation, real-browser acceptance, performance/accessibility hardening and final release gates.
+**Still unfinished:** executable Stage-7+ focused validation and real-browser performance/accessibility acceptance.
 
-**Do not assume:** visible/filter-selected relationships are contributors; the UI can derive combined dB; Line/Case LOF is Assessment screening authority; canvas layout belongs in engineering state; Stage-7+ tests passed.
+**Do not assume:** current focused canvas suite passed; the failing legacy AIV workflow proves a canvas defect; workflow files may be changed without Owner authorization; full workspace DOM rerender is equivalent to engineering recalculation.
 
-**Highest current risk:** an export wrapper could accidentally make presentation state required to interpret the engineering result. Stage 11 therefore keeps the existing `AivScreeningExportPackage` intact as a self-contained child payload and marks every canvas attachment as optional/presentation-only.
+**Highest current risk:** 500-relationship projects currently perform repeated readiness scans inside projection building; hardening should index readiness identity once without changing projection semantics.
 
 ## Mission and Engineering Intent
 
-Tables remain engineering source of truth. The registered Engineering Calculation API / central AIV kernel remains numerical authority. Canvas-owned state is limited to presentation layout, viewport, selection, relationship-mode and filter state. Canvas rendering/export may pass through engineering values/results but cannot derive or recompute them.
+Tables remain engineering source of truth. The registered Engineering Calculation API / central AIV kernel remains numerical authority. Canvas state is presentation-only except that explicit visual relationship authoring mutates only `AivSourceAssessmentCsv.v1` through the existing table mutation boundary.
 
 ### Permanent invariants
 
-1. `TABLES = engineering source of truth`.
-2. `SVG CANVAS = visual navigation / relationship editing / result explanation`.
-3. SVG geometry never supplies physical distance, attenuation, diameter, thickness, topology authority or numerical AIV input.
-4. Screening remains registered `calculateEngineering('VIB.AIV.ACOUSTIC', ...)` → central AIV kernel.
-5. Assessment result scope remains separate from non-authoritative `LINE_CASE_SUMMARY` trace scope.
-6. Canonical IDs + Operating Case remain engineering identity.
+1. Tables remain engineering source of truth.
+2. SVG remains navigation / relationship editing / result explanation only.
+3. SVG geometry never supplies physical distance or any numerical AIV input.
+4. Registered `calculateEngineering('VIB.AIV.ACOUSTIC', ...)` remains the numerical screening path.
+5. Assessment screening scope remains separate from `LINE_CASE_SUMMARY` traceability scope.
+6. Canonical IDs + Operating Case remain identity.
 7. Canvas/UI contains no AIV equations, attenuation formula, dB combination or LOF calculation.
-8. Relationship mutation resolves through `AivSourceAssessmentCsv.v1` table state only.
-9. Assumption indicators come only from exact `AivAssumptionResolution.v1` entries.
-10. Assessment contribution rows come only from returned `sourceContributionsAtPoint`; combined PWL remains the returned Assessment result.
-11. Case/line/show filters are presentation-only and never invalidate/recalculate engineering state.
-12. Removing every canvas-specific export attachment must leave a complete, interpretable engineering screening package.
+8. Assumption UX consumes exact resolution provenance only.
+9. Filters/layout/viewport/selection/export attachments are presentation-only.
+10. Existing `AivScreeningExportPackage.v1` remains complete without canvas attachments.
+11. Workflow changes require explicit Owner authorization under CodingRules.
 
 ## Mission Status
 
 | Work item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Report / PR / repository setup | P0 | DONE | 1–3 | complete |
-| Projection + deterministic layout + live SVG | P0 | VALIDATED | 4 | 12/12 PASS |
-| Pan / zoom / selection / presentation drag | P0 | VALIDATED | 5 | 17/17 PASS |
-| Bidirectional table/canvas synchronization | P0 | VALIDATED | 6 | 21/21 PASS |
+| Setup/report/PR | P0 | DONE | 1–3 | complete |
+| Projection/layout/live SVG | P0 | VALIDATED | 4 | 12/12 PASS |
+| Pan/zoom/select/presentation drag | P0 | VALIDATED | 5 | 17/17 PASS |
+| Bidirectional table/canvas selection | P0 | VALIDATED | 6 | 21/21 PASS |
 | Relationship authoring/deletion | P0 | IMPLEMENTED | 7 | exact inspected; execution NOT_RUN |
 | Assumption/readiness visualization | P0 | IMPLEMENTED | 8 | exact inspected; execution NOT_RUN |
 | Screening overlays/result detail | P0 | IMPLEMENTED | 9 | exact inspected; execution NOT_RUN |
 | Multi-source/case/line UX | P1 | IMPLEMENTED | 10 | exact inspected; execution NOT_RUN |
-| Canvas-aware export/trace | P1 | IN_PROGRESS | 11 | protocol below |
-| Accessibility/performance/release hardening | P0 | NOT_STARTED | 12 | pending |
+| Canvas-aware export/trace | P1 | IMPLEMENTED | 11 | exact inspected; execution NOT_RUN |
+| Accessibility/performance/release hardening | P0 | IN_PROGRESS | 12 | protocol below |
 
 ## Engineering Item Register
 
@@ -74,119 +73,101 @@ Tables remain engineering source of truth. The registered Engineering Calculatio
 | DEC-002 | Decision | P0 | VALIDATED | Layout never derives engineering distance. |
 | DEC-004 | Decision | P0 | ACCEPTED | Registered Engineering Calculation API remains screening authority. |
 | DEC-008 | Decision | P0 | VALIDATED | Canonical source/assessment/case keys synchronize views. |
-| DEC-009 | Decision | P0 | INSPECTED_STAGE7 | Relationship create/delete uses authoritative relationship table + existing invalidation. |
-| DEC-011 | Decision | P0 | INSPECTED_STAGE8 | Assumption UX consumes exact resolution entries only. |
-| DEC-013 | Decision | P0 | INSPECTED_STAGE9 | Selected result detail is result-object pass-through only. |
-| DEC-016 | Decision | P0 | INSPECTED_STAGE10 | Case/line/show filters own presentation visibility only. |
-| DEC-017 | Decision | P0 | INSPECTED_STAGE10 | Assessment contribution table is direct returned contribution rendering; no UI dB combination. |
-| DEC-019 | Decision | P0 | ACCEPTED_STAGE11 | Canvas export is additive: existing authoritative screening export remains self-contained and unchanged in meaning. |
-| DEC-020 | Decision | P0 | ACCEPTED_STAGE11 | `canvasLayout`, `canvasProjection`, `canvasFilters` and SVG snapshot are optional presentation attachments, never engineering inputs. |
-| RISK-006 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Relationship mutation regressions not executed. |
-| RISK-007 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Assumption provenance regressions not executed. |
-| RISK-008 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Result scope/no-recalculation regressions not executed. |
-| RISK-009 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Filter/multi-source regressions not executed. |
-| RISK-010 | Risk | High | OPEN_STAGE11 | Presentation attachments could accidentally be treated as required engineering evidence; export-independence regression is mandatory. |
+| DEC-009 | Decision | P0 | IMPLEMENTED | Relationship create/delete uses authoritative relationship table + existing invalidation. |
+| DEC-011 | Decision | P0 | IMPLEMENTED | Assumption UX consumes exact resolution entries only. |
+| DEC-013 | Decision | P0 | IMPLEMENTED | Selected result detail is result-object pass-through only. |
+| DEC-016 | Decision | P0 | IMPLEMENTED | Case/line/show filters own presentation visibility only. |
+| DEC-017 | Decision | P0 | IMPLEMENTED | Contribution table renders returned contributions; no UI dB combination. |
+| DEC-019 | Decision | P0 | IMPLEMENTED | Canvas export wraps the existing standalone engineering screening package. |
+| DEC-020 | Decision | P0 | IMPLEMENTED | Layout/filter/projection/SVG export attachments are optional presentation state. |
+| RISK-011 | Risk | High | OPEN_STAGE12 | Repeated readiness scans can make projection unnecessarily superlinear at 500 relationships. |
 | ISS-001 | Base debt | Medium | OPEN / CLASSIFIED | Broad boundary oracle conflicts with required registered screening path. |
-| ISS-002 | Base debt | Medium | OPEN / CLASSIFIED | Qualification controller exceeds normal 300-line target on base; new canvas responsibilities remain split. |
-| QST-001 | Validation | P0 | OPEN | Run current `npm run verify:aiv-canvas` in repository-capable Node environment. |
+| ISS-002 | Base debt | Medium | OPEN / CLASSIFIED | Qualification controller exceeds normal 300-line target on base; canvas responsibilities remain split. |
+| ISS-003 | Base CI debt | High | OPEN / OWNER_AUTH_REQUIRED | `.github/workflows/vibration-aiv-controlled-source.yml` is byte-identical to PR base and still asserts pre-screening `productionEquationAuthorized=false` / human-review gates. Current workflow run fails, but CodingRules prohibit workflow modification without explicit Owner authorization. |
+| QST-001 | Validation | P0 | OPEN | Run current `npm run verify:aiv-canvas` in a repository-capable/authorized execution environment. |
 
 ## Stage Roadmap and Execution Log
 
 ### Stages 1–6 — COMPLETE / VALIDATED
 
-Stages 4–6 focused suites executed and exact heads were inspected: 12/12, 17/17 and 21/21 PASS respectively.
+Stages 4–6 executed and exact-inspected: 12/12, 17/17 and 21/21 PASS.
 
 ### Stage 7 — Relationship authoring/deletion — PARTIAL
 
-Identity-only `UNRESOLVED` creation, blank distance/evidence, exact duplicate prevention, other-case allowance, relationship-only deletion and existing table invalidation implemented. Exact inspection PASS; executable suite NOT_RUN.
+Implemented exact identity/case relationship creation, blank distance/evidence, duplicate rejection, relationship-only deletion and existing invalidation. Exact inspection PASS; executable suite NOT_RUN.
 
 ### Stage 8 — Assumption/readiness visualization — PARTIAL
 
-Exact resolution records are projected; assumed fields and textual `[A]`/readiness indicators are visible; exact field navigation is focus/scroll only. Exact inspection PASS; executable suite NOT_RUN.
+Implemented exact assumption provenance, textual readiness/assumption indicators and exact-field navigation. Exact inspection PASS; executable suite NOT_RUN.
 
 ### Stage 9 — Screening overlays/result detail — PARTIAL
 
-Focused result renderer passes through Source PWL chain, relationship contribution data, Assessment combined PWL/contributors/LOF/T2-6/authority; missing contribution produces no inferred attenuation/PWL; Line/Case remains `NON-AUTHORITATIVE FOR SCREENING`. Exact inspection PASS; executable suite NOT_RUN.
+Implemented returned Source/contribution/Assessment result rendering, no-inference behavior and strict Assessment vs Line/Case scope labeling. Exact inspection PASS; executable suite NOT_RUN.
 
 ### Stage 10 — Multi-source / operating-case / line UX — PARTIAL
 
-**Implemented:** focused result indexing; case metadata before screening; focused presentation filter controller; Operating Case / Line / Current-vs-All controls; filter persistence; filtered-selection clearing; returned contribution table; explicit no-UI-recombination statement; focused multi-source/filter regressions.
+Implemented focused case/line/current/all presentation filters, relationship-table case metadata before screening, returned contribution table and filter persistence. Exact inspection PASS; executable suite NOT_RUN.
 
-**Exact inspection:** net Stage-10 scope from `fbea130c…` to `ba1bfe3f…` is exactly eight files: projection, result-projection, package command, interaction controller, filter module, result renderer, view, and multi-source test. PR ledger is exactly 24 files. Requests for lines 295–305 returned empty for projection, result-projection, controller, filter, result renderer and view, confirming each changed/new canvas production module is below 295 physical lines. **Inspection PASS.**
+### Stage 11 — Canvas-aware export / trace — PARTIAL
 
-**Execution:** current focused command remains **NOT_RUN** due `QST-001`.
+**Implementation performed:**
 
-**Stage decision:** **PARTIAL**, not validated.
+- Added `converters/vibration/aiv/aiv-canvas-export.js` with `AivCanvasScreeningExportPackage.v1`.
+- Wrapper requires an existing `AivScreeningExportPackage.v1`; it does not calculate or reinterpret engineering values.
+- `engineeringScreeningPackage` is embedded unchanged in meaning and is explicitly named as engineering authority source.
+- Optional `canvasPresentation` can contain layout, filters, read-only projection and serialized SVG; markers state `presentationOnly=true` and `requiredForEngineeringInterpretation=false`.
+- Added focused `tabs/vibration-aiv-canvas-export-controller.js` which injects an `Export canvas package` button only when screening exists, builds the existing engineering export first, reads layout/filter/SVG presentation state, builds read-only projection metadata, and downloads JSON.
+- Existing `Export screening result` function/path remains unchanged.
+- Qualification controller gained exactly seven lifecycle lines: one import, controller creation, sync and destroy.
+- Added `tests/vibration-aiv-canvas-export.test.mjs` and extended `verify:aiv-canvas`.
 
-### Stage 11 — Canvas-aware export / trace — IN_PROGRESS
+**Exact inspection:** Stage-11 net scope from planning head `6cb2d641…` to `2f236354…` is exactly five files. PR ledger is exactly 27 files. New export modules return no content at lines 295–305, confirming they are below 295 physical lines. Qualification controller changed +7/−0 only. **PASS.**
+
+**Execution:** focused suite **NOT_RUN**.
+
+**Stage decision:** **PARTIAL**.
+
+### Stage 12 — Accessibility / performance / release hardening — IN_PROGRESS
+
+#### Current truth
+
+Keyboard selection, textual case/readiness/assumption labels, native filter labels, focusable SVG nodes/relationships, export capability and module-boundary regressions already exist. Projection still performs repeated readiness scans, and Stage-7+ tests remain unexecuted.
 
 #### Objective
 
-Provide a reviewable/exportable package tying the current authoritative screening package to optional canvas explanation state while proving that engineering interpretation does not depend on presentation state.
+Close remaining code-level hardening gaps without changing engineering authority or broadening into unrelated UI/framework refactors.
 
-#### Planned contract
+#### Expected scope
 
-`AivCanvasScreeningExportPackage.v1` will contain:
+- focused readiness-index helper under `converters/vibration/aiv/` consumed by canvas projection;
+- `aiv-canvas-projection.js` switch from repeated readiness scans to keyed lookups;
+- `tests/vibration-aiv-canvas-hardening.test.mjs` with 100/300/500 relationship fixtures, keyboard/non-color/static boundary checks and dependency-direction checks;
+- `package.json` focused command update;
+- this report.
 
-- schema / method / authority markers;
-- `engineeringScreeningPackage`: the existing `buildAivScreeningExportPackage(...)` output unchanged in meaning and complete by itself;
-- optional `canvasPresentation` object containing only:
-  - `layout: AivCanvasLayout.v1` snapshot;
-  - `filters` current presentation filter state;
-  - `projection` optional read-only presentation projection or compact projection metadata;
-  - `svgSnapshot` optional serialized SVG string;
-- explicit `presentationOnly: true` and `requiredForEngineeringInterpretation: false` markers.
+No `.github/workflows/*` changes without explicit Owner authorization. No unrelated controller refactor.
 
-#### Expected production scope
+#### Planned behavior
 
-- `converters/vibration/aiv/aiv-canvas-export.js` — pure wrapper/normalizer; no calculation imports.
-- `tabs/vibration-aiv-canvas-controller.js` or a focused export bridge — expose a presentation snapshot getter only; no engineering state storage.
-- `tabs/vibration-aiv-canvas-filter.js` — expose current filter snapshot if required by export.
-- `tabs/vibration-aiv-canvas-view.js` — add explicit Canvas package export control if needed.
-- `tabs/vibration-aiv-qualification-tab.js` — build existing screening export first, then wrap it with the presentation snapshot; preserve existing `Export screening result` behavior.
-- `tests/vibration-aiv-canvas-export.test.mjs` — independence/authority/snapshot regressions.
-- `package.json` + this report.
+- identical projection semantics and deterministic ordering;
+- readiness relationship lookup keyed by source+assessment+case;
+- source readiness keyed by source+case;
+- assessment readiness aggregated once by assessment ID;
+- 100/300/500 fixtures produce exact node/relationship counts and deterministic projection/layout;
+- accessibility evidence remains textual/ARIA/keyboard, not color-only;
+- no canvas module imports numerical kernel internals or writes physical distance from geometry.
 
-#### Mandatory regressions
+#### Planned validation
 
-1. Removing `canvasPresentation` leaves `engineeringScreeningPackage` complete and unchanged.
-2. Mutating layout/viewport/filter values does not alter any engineering screening value/hash-equivalent structure.
-3. SVG snapshot is optional and never parsed back into engineering inputs.
-4. No pixel/path length becomes physical distance in export.
-5. Existing standalone screening export remains available and semantically unchanged.
-6. Canvas export contains canonical/case/result/provenance trace sufficient to explain selected relationships without requiring the SVG file itself.
-7. Canvas export module contains no `calculateEngineering`, AIV kernel import or numerical formula.
+Exact diff/ledger/blob/module-size inspection; focused suite remains NOT_RUN unless an authorized executable path becomes available. GitHub Actions failure is classified under `ISS-003`, not as a canvas PASS/FAIL oracle.
 
-#### Validation plan
+### Closure gate
 
-Exact diff/ledger/blob inspection and module-size boundary checks in this environment; `npm run verify:aiv-canvas` remains NOT_RUN until `QST-001` is resolved. Do not call Stage 11 validated without executable evidence.
-
-### Stage 12 — Accessibility/performance/release hardening — NOT_STARTED
-
-Keyboard/focus/non-color acceptance, representative 100/300/500 fixture, current focused/full release execution, final changed-file reconciliation and debt disposition.
+PR must remain draft and unmerged. Final report must reconcile changed-file ledger, identify all NOT_RUN validation, and explicitly state whether issue #449 DoD is fully evidenced or code-complete-but-validation-blocked.
 
 ## Changed-File Ledger
 
-| File | First stage | Latest stage | Purpose | Validation |
-|---|---:|---:|---|---|
-| `agents/PR451_workreport.md` | 2 | 11 | living report | current |
-| `converters/vibration/aiv/aiv-canvas-layout-contract.js` | 4 | 5 | presentation layout | PASS |
-| `converters/vibration/aiv/aiv-canvas-result-projection.js` | 10 | 10 | result indexing/Assessment summary | exact inspected |
-| `converters/vibration/aiv/aiv-canvas-projection.js` | 4 | 10 | canonical projection/filter metadata | exact inspected after Stage 6 |
-| `tabs/vibration-aiv-canvas-field.js` | 8 | 8 | exact field navigation | exact inspected |
-| `tabs/vibration-aiv-canvas-filter.js` | 10 | 11 | presentation filter state; Stage-11 snapshot getter planned | exact inspected / pending |
-| `tabs/vibration-aiv-canvas-results.js` | 9 | 10 | selected result + returned contributions | exact inspected |
-| `tabs/vibration-aiv-canvas-view.js` | 4 | 11 | SVG/details/filter/export controls | pending Stage 11 |
-| `tabs/vibration-aiv-canvas-controller.js` | 5 | 11 | presentation runtime/export snapshot bridge | pending Stage 11 |
-| `tabs/vibration-aiv-canvas-selection.js` | 6 | 8 | canonical selection/detail visibility | Stage-6 PASS / exact inspected |
-| `tabs/vibration-aiv-canvas-relationship.js` | 7 | 7 | relationship mode | exact inspected |
-| `tabs/vibration-aiv-input-model.js` | 7 | 7 | relationship helpers | exact inspected |
-| `tabs/vibration-aiv-input-view.js` | 4 | 8 | authoritative tables/assumption markers | exact inspected |
-| `tabs/vibration-aiv-qualification-tab.js` | 5 | 11 | lifecycle/relationship/export callbacks | pending Stage 11 |
-| `tests/vibration-aiv-canvas-*.test.mjs` | 4 | 11 | focused regressions | Stages 4–6 PASS; later tests NOT_RUN |
-| `package.json` | 4 | 11 | focused verification command | current command NOT_RUN after Stage 6 |
-
-No `.github/workflows/*`, dependency versions or unrelated generated data are intentionally changed.
+Current PR has 27 changed files at Stage-11 head. All are assignment-scoped: living report; canvas projection/layout/result/export modules; AIV canvas/input/qualification UI integration; focused canvas tests; package verification command. No workflow, dependency-version or unrelated generated-data changes are present.
 
 ## Validation and Evidence Ledger
 
@@ -198,41 +179,53 @@ No `.github/workflows/*`, dependency versions or unrelated generated data are in
 | Stage-7 exact inspection | PASS | executable NOT_RUN |
 | Stage-8 exact inspection | PASS | executable NOT_RUN |
 | Stage-9 exact inspection | PASS | executable NOT_RUN |
-| Stage-10 exact inspection | PASS | eight-file scope, 24-file ledger, module-size checks |
-| Current focused suite | NOT_RUN | `QST-001` |
+| Stage-10 exact inspection | PASS | executable NOT_RUN |
+| Stage-11 exact inspection | PASS | executable NOT_RUN |
+| Current `verify:aiv-canvas` | NOT_RUN | `QST-001` |
+| Current legacy AIV Actions workflow | FAIL | `ISS-003`; workflow blob identical to base and stale authority gates; not a canvas-specific oracle |
 | Browser acceptance | NOT_RUN | Stage 12 |
-| Full AIV screening release | NOT_RUN | Stage 12 |
 
 ## Known / Deferred Work and Forward Sequence
 
-- `QST-001`: current execution gap; Stages 7+ remain PARTIAL until focused command runs.
-- `ISS-001`: reconcile broad boundary oracle during hardening without weakening registered screening path.
-- `ISS-002`: keep new canvas responsibilities out of oversized qualification controller.
-- Forward sequence: Stage 11 additive export/trace → Stage 12 accessibility/performance/executable release validation.
+- `QST-001`: focused execution remains required before claiming Stages 7–12 VALIDATED.
+- `ISS-003`: Owner authorization required before any workflow change; do not silently edit `.github/workflows/*`.
+- `ISS-001` / `ISS-002`: existing boundary/size debt remain classified.
+- Forward sequence: Stage-12 code hardening → exact full-PR reconciliation → final draft handover. No merge without explicit instruction.
 
 ## Process Notes / Lessons Learned
 
-- Presentation state persists across rerenders without entering engineering state.
-- Connector geometry and physical distance remain separate operations.
-- Safe visual mutation resolves through authoritative tables.
-- Assumption UX projects existing provenance only.
-- Result/multi-source UX renders returned result objects; it never reconstructs results.
-- Case metadata must exist before screening, so relationship-table cases feed Assessment presentation metadata.
-- New responsibilities are split before crossing the normal module-size target.
+- Presentation state can persist and export without becoming engineering state.
+- Connector geometry and engineering distance remain separate.
+- Exact canonical identity enables safe table synchronization and relationship mutation.
+- Result UX must render returned result contracts, never reconstruct them.
+- Export independence is stronger when the pre-existing engineering package is embedded as a standalone child.
+- CodingRules workflow authorization constraint is a real release condition; failing stale CI cannot be "fixed" by silently broadening scope.
 - Validation unavailable is `NOT_RUN`, never PASS.
 
 ## Next-Agent Handover
 
-**Current stopping point:** Stage 10 exact-inspected/PARTIAL; Stage 11 protocol recorded before production changes.
+**Current stopping point:** Stage 11 exact-inspected/PARTIAL; Stage 12 protocol recorded before production changes.
 
-**PR / branch / head before Stage-11 production:** #451 / `agent/aiv-svg-canvas` / `ba1bfe3f16b35892b905b2abfe512e422edc19dd` plus this report-only planning commit.
+**PR / branch / implementation HEAD:** #451 / `agent/aiv-svg-canvas` / `2f2363540588b475b1d7e842caf7e1a39eff9222` plus this report-only planning commit.
 
-**Start here:** inspect existing `aiv-screening-export.js` and current export callback, then add an additive canvas export wrapper that leaves the existing engineering package standalone.
+**Last completed stage:** Stage 6 fully validated; Stage 11 latest implemented/PARTIAL.
 
-**Do not redo:** Stages 4–10 design unless inspection finds a mismatch.
+**Current active stage:** Stage 12.
 
-**Do not assume:** Stage-7+ focused tests passed; canvas layout/projection is required engineering evidence; SVG content can be parsed into engineering input.
+**Start here:** add readiness indexes to eliminate repeated scans in `aiv-canvas-projection.js`, then add 100/300/500/accessibility/boundary hardening tests.
 
-**Open QST items:** `QST-001` executable focused validation.
+**Do not redo:** Stages 4–11 design unless inspection finds a regression.
 
-**Highest-risk remaining item:** export independence — the engineering package must remain complete if every canvas attachment is deleted.
+**Do not assume:** Stage-7+ tests passed; legacy AIV workflow failure is caused by canvas code; workflow editing is authorized.
+
+**Files currently involved:** projection/result-projection; canvas UI modules; canvas tests; package; this report.
+
+**Known failing checks:** legacy AIV Actions workflow under `ISS-003`.
+
+**Validation still required:** current `npm run verify:aiv-canvas`, browser accessibility/performance, final full-PR check.
+
+**Open QST items:** `QST-001`.
+
+**Highest-risk remaining item:** unexecuted current focused regressions plus projection scale inefficiency.
+
+**Exact next recommended action:** implement Stage-12 readiness indexing and focused hardening tests, exact-inspect, then stop at draft handover unless Owner supplies workflow authorization or merge instruction.
