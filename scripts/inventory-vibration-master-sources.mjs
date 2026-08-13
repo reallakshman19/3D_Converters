@@ -197,6 +197,7 @@ export function runVibrationMasterSourceInventory(argv = process.argv.slice(2)) 
   const args = parseArguments(argv);
   const inputPath = resolve(args.input);
   const bytes = readFileSync(inputPath);
+  assertExpectedVibrationMasterSource(bytes);
   const extraction = extractVibrationMasterPdfText(inputPath, { binary: args.binary });
   const inventory = buildVibrationMasterSourceInventory(bytes, extraction, { fileName: basename(inputPath) });
   const json = `${JSON.stringify(inventory, null, 2)}\n`;

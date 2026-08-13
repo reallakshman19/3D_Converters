@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import {
   VIBRATION_MASTER_EXPECTED_GIT_BLOB,
@@ -8,6 +10,7 @@ import {
   assertExpectedVibrationMasterSource,
   buildVibrationMasterSourceInventory,
   gitBlobSha1Hex,
+  runVibrationMasterSourceInventory,
   splitPdfTextPages,
 } from '../scripts/inventory-vibration-master-sources.mjs';
 
@@ -40,6 +43,22 @@ test('source identity fails closed on wrong blob and wrong size', () => {
   });
   assert.throws(() => assertExpectedVibrationMasterSource(Buffer.from('wrong'), { expectedGitBlob: blob, expectedSizeBytes: bytes.length }), /SOURCE_MISMATCH/u);
   assert.throws(() => assertExpectedVibrationMasterSource(bytes, { expectedGitBlob: blob, expectedSizeBytes: bytes.length + 1 }), /SOURCE_SIZE_MISMATCH/u);
+});
+
+test('CLI verifies source bytes before launching pdftotext', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibration-master-inventory-'));
+  const input = path.join(dir, 'wrong.pdf');
+  const marker = path.join(dir, 'binary-was-called');
+  const fakeBinary = path.join(dir, 'fake-pdftotext.sh');
+  fs.writeFileSync(input, 'definitely-not-the-controlled-pdf');
+  fs.writeFileSync(fakeBinary, `#!/bin/sh\ntouch "${marker}"\nexit 0\n`);
+  fs.chmodSync(fakeBinary, 0o755);
+  try {
+    assert.throws(() => runVibrationMasterSourceInventory([input, '--pdftotext', fakeBinary]), /SOURCE_MISMATCH/u);
+    assert.equal(fs.existsSync(marker), false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('PDF splitter preserves page identity and ignores a trailing form-feed page', () => {
