@@ -3,8 +3,8 @@ import {
   createModeASourceEntry,
   normalizeModeABatchState,
   syncActiveModeASource,
-} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-1';
-import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260813-mode-a-full-propagation-1';
+} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
+import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260813-mode-a-full-propagation-2';
 
 const MODE_A_SOURCE_CACHE_KEYS = Object.freeze([
   'xml-cii-wm-cache-v1',
