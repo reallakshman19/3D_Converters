@@ -133,14 +133,14 @@ function clearFilteredSelection(runtime) {
 function applyModePresentation(runtime) {
   const card = runtime.container.querySelector('.aiv-canvas-card');
   if (card) card.dataset.aivCanvasActiveMode = runtime.relationship.mode;
+  for (const button of runtime.container.querySelectorAll('[data-aiv-canvas-mode]')) {
+    button.setAttribute('aria-pressed', button.dataset.aivCanvasMode === runtime.relationship.mode ? 'true' : 'false');
+  }
 }
 
 function setRelationshipMode(runtime, mode) {
   runtime.relationship = setAivCanvasRelationshipMode(runtime.relationship, mode);
   applyModePresentation(runtime);
-  for (const button of runtime.container.querySelectorAll('[data-aiv-canvas-mode]')) {
-    button.setAttribute('aria-pressed', button.dataset.aivCanvasMode === runtime.relationship.mode ? 'true' : 'false');
-  }
 }
 
 function syncRuntime(runtime) {
