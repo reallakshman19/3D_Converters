@@ -44,6 +44,7 @@ assert.notEqual(
 );
 
 const secondOccurrence = repeatedBranchSource.metrics.branchOccurrences[1];
+repeatedBranchSource.branchSelection.selectionIdentity = 'occurrence';
 repeatedBranchSource.branchSelection.selectedBranchOccurrenceIds = [secondOccurrence.branchOccurrenceId];
 repeatedBranchSource.branchSelection.selectedBranchNames = [secondOccurrence.branchName];
 const repeatedExecution = buildModeAExecutionState({ supportConfigJson: '{}', masterContext: { rowCounts: {} } }, repeatedBranchSource);
