@@ -26,6 +26,20 @@ function screeningReady(state) {
   return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
 }
 
+function screeningPackageInput(state) {
+  return {
+    result: state.screeningResult.evidence.domainResult,
+    sources: state.readinessEnvelope.sources,
+    assessments: state.readinessEnvelope.assessments,
+    relationships: state.readinessEnvelope.sourceAssessments,
+    topology: state.readinessEnvelope.exchange,
+    assumptionProfile: state.assumptionProfile,
+    assumptionResolution: state.assumptionResolution,
+    flareNetwork: state.flareNetworkActive ? state.flareNetwork : null,
+    generatedInputSet: state.flareNetworkActive ? state.generatedInputSet : null,
+  };
+}
+
 export function createAivExecutionActions({ state, render, downloadText }) {
   function clearReadiness() {
     state.readinessEnvelope = null;
@@ -124,22 +138,40 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     downloadText(`${JSON.stringify(payload, null, 2)}\n`, 'aiv-d23-validated-benchmark-package.json', 'application/json;charset=utf-8');
   }
 
-  async function exportScreeningResult() {
-    if (!state.screeningResult?.ok || !state.readinessEnvelope) return;
+  async function buildScreeningPackage() {
+    if (!state.screeningResult?.ok || !state.readinessEnvelope) return null;
     const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-1');
-    const payload = buildAivScreeningExportPackage({
-      result: state.screeningResult.evidence.domainResult,
-      sources: state.readinessEnvelope.sources,
-      assessments: state.readinessEnvelope.assessments,
-      relationships: state.readinessEnvelope.sourceAssessments,
-      topology: state.readinessEnvelope.exchange,
-      assumptionProfile: state.assumptionProfile,
-      assumptionResolution: state.assumptionResolution,
-      flareNetwork: state.flareNetworkActive ? state.flareNetwork : null,
-      generatedInputSet: state.flareNetworkActive ? state.generatedInputSet : null,
-    });
+    return buildAivScreeningExportPackage(screeningPackageInput(state));
+  }
+
+  async function exportScreeningResult() {
+    const payload = await buildScreeningPackage();
+    if (!payload) return;
     downloadText(`${JSON.stringify(payload, null, 2)}\n`, 'aiv-screening-result.json', 'application/json;charset=utf-8');
   }
 
-  return Object.freeze({ clearReadiness, checkReadiness, runScreening, exportValidatedBenchmark, exportScreeningResult });
+  async function exportEit() {
+    const screeningPackage = await buildScreeningPackage();
+    if (!screeningPackage) return;
+    try {
+      const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-eit-export-1');
+      const title = state.flareNetworkActive
+        ? (state.flareNetwork?.networkId || 'AIV Flare Network')
+        : (state.topologyInput?.sourceFileName || 'AIV Screening Export');
+      const text = serializeAivEitExport({ screeningPackage, title });
+      downloadText(text, 'aiv-screening-result.eit', 'application/json;charset=utf-8');
+    } catch (error) {
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+      render();
+    }
+  }
+
+  return Object.freeze({
+    clearReadiness,
+    checkReadiness,
+    runScreening,
+    exportValidatedBenchmark,
+    exportScreeningResult,
+    exportEit,
+  });
 }
