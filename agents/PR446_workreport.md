@@ -10,14 +10,14 @@ Branch                 agent/aiv-kernel-contract-scaffold
 Mode                   AUTO
 Human evidence         NOT REQUIRED
 Central kernel         10-stage calculateAiv
-D.2.3 product path     PASS — 22 / 22 checks
+D.2.3 product path     PASS — 22 / 22 validation checks
 Stage 19               COMPLETE — BENCHMARK_ONLY exact-source local validation PASS
 Stage 20               COMPLETE — SCREENING 8 / 8 machine groups PASS
 Current authority      IMPLEMENTED / SCREENING
 Screening scope        ASSESSMENT
 Line summary authority NON-AUTHORITATIVE
 Design authority       false
-Repository Actions     NOT_RUN — hosted jobs still receive no runner/steps due budget
+Repository CI          NOT_RUN: Actions budget creates runner_id=0 / zero-step jobs
 ```
 
 ## Current product authority
@@ -34,15 +34,15 @@ designAuthority       = false
 
 The configured line/case summary does not carry screening authority.
 
-## Central kernel
+## Central kernel and registry
 
-Created:
+Created the central numerical path:
 
 ```text
 converters/vibration/aiv/aiv-calculator.js
 ```
 
-The complete method path is:
+Stage order:
 
 ```text
 VALIDATE_INPUT
@@ -57,30 +57,20 @@ AGGREGATE_LINE_CASE_RESULT
 ASSESS_RESULT
 ```
 
-The D.2.3 validation wrapper now delegates to this calculator. Same-kernel batch execution is provided by:
+The D.2.3 validation wrapper delegates to this calculator. Same-kernel batch execution is provided by `converters/vibration/aiv/aiv-batch.js`. Screening export is `AivScreeningExportPackage.v1` from `converters/vibration/aiv/aiv-screening-export.js`.
 
-```text
-converters/vibration/aiv/aiv-batch.js
-```
+The AIV pending placeholder was removed. `VIB.AIV.ACOUSTIC` is registered in the Engineering Calculation API with `qualificationState=SCREENING`.
 
-Screening exports are produced by:
-
-```text
-converters/vibration/aiv/aiv-screening-export.js
-AivScreeningExportPackage.v1
-```
-
-## D.2.3 benchmark result
-
-Machine-readable parity:
+## D.2.3 validation
 
 ```text
 docs/vibration/validation/AIV-D2.3-Product-Path-Validation-v1.json
 status PASS
 22 / 22 checks
+completeKernelStageCount = 10
 ```
 
-Representative numerical chain:
+Representative chain:
 
 ```text
 Relief raw PWL           164.6851759525391 dB
@@ -105,15 +95,15 @@ Configured line LOF        1.48
 Scope invariant:
 
 ```text
-0.29 -> ASSESSMENT screening candidate/result
+0.29 -> ASSESSMENT screening result
 1.48 -> LINE_CASE_SUMMARY configured reference only
 ```
 
-## Stage 19 — BENCHMARK_ONLY
+## Stage 19 — BENCHMARK_ONLY complete
 
-Normal networked `git clone` is unavailable in the execution container because GitHub DNS is unavailable. The local validation therefore reconstructed the required AIV source bundle from GitHub connector contents and verified every executed/scanned repository file against its exact Git blob SHA-1 before execution.
+The container cannot perform a normal networked GitHub clone, so exact-source validation reconstructed the required AIV source bundle from GitHub connector contents and verified executed/scanned files against exact Git blob SHA-1 identities before execution.
 
-Post-registration candidate head validated:
+Post-registration candidate validated:
 
 ```text
 32a0c4962d74940b9cded8709eb2b83a68c006ad
@@ -126,7 +116,7 @@ docs/vibration/validation/AIV-BENCHMARK-ONLY-ReleaseValidationRecord-v1.json
 docs/vibration/validation/AIV-BENCHMARK-ONLY-ReleaseValidationReceipt-v1.json
 ```
 
-Four groups passed:
+Groups:
 
 ```text
 AIV_FOCUSED_NODE_TESTS              PASS
@@ -135,11 +125,9 @@ AIV_BROWSER_WORKSPACE_SMOKE         PASS
 AIV_MODULE_BOUNDARY_CHECK           PASS
 ```
 
-The AIV placeholder was removed from pending definitions and a dedicated Engineering Calculation adapter was registered.
+## Stage 20 — SCREENING complete
 
-## Stage 20 — SCREENING
-
-Screening candidate exact head validated:
+Screening candidate validated:
 
 ```text
 613e1ec48335db3794e5208b0c3435d387683b04
@@ -152,7 +140,7 @@ docs/vibration/validation/AIV-SCREENING-ReleaseValidationRecord-v1.json
 docs/vibration/validation/AIV-SCREENING-ReleaseValidationReceipt-v1.json
 ```
 
-All eight required groups passed locally:
+All eight groups passed:
 
 ```text
 AIV_FOCUSED_NODE_TESTS                  PASS
@@ -165,93 +153,58 @@ AIV_PROJECT_INPUT_BROWSER_FLOW          PASS
 AIV_EXPORT_PROVENANCE                   PASS
 ```
 
-Latest rerun summary remained PASS with:
+Latest local rerun remained PASS:
 
 ```text
-benchmark checks         22 / 22
-screening scope          ASSESSMENT
-line summary authority   false
+benchmark checks          22 / 22
+screening scope           ASSESSMENT
+line summary authority    false
 blank-project assumptions 56
-same-kernel batch        true
-designAuthority          false
+same-kernel batch         true
+designAuthority           false
 ```
 
-Local Stage-20 summary log SHA-256:
+Stage-20 summary log SHA-256:
 
 ```text
 5e4bd1dea51df13b7444d8147f71498fc238cb200fe9739458dcc8fe55eef76f
 ```
 
-## Project-input defect found and fixed
+## Defect found during qualification
 
-The blank-project screening qualification found that optional Branch Wall Thickness could receive an assumed unit without a value. The strict parser correctly rejected the orphan unit.
+Blank-project qualification found an optional Branch Wall Thickness pair defect: a unit could be assumed without a value, which the strict parser rejected. Fixed by keeping the optional default value/unit pair blank together. All eight groups passed after the correction.
 
-Fix:
+## Screening workspace
 
-```text
-assessment.branchWallThicknessUnit default
-'mm' -> ''
-```
-
-Optional value/unit now stay blank together. The complete eight-group suite passed after the fix.
-
-## Screening authority transition
-
-After the screening receipt was generated, a separate code change updated the Engineering Calculation adapter to:
+The operator workflow is now:
 
 ```text
-calculationState = IMPLEMENTED
-qualificationState = SCREENING
-requiredQualificationMode = screening
-```
-
-The adapter permits explicit `benchmark` and `screening` execution modes. Screening results declare:
-
-```text
-resultScope = ASSESSMENT_SCREENING
-screeningAuthority = AUTHORIZED
-lineCaseSummaryAuthoritativeForScreening = false
-designAuthority = false
-```
-
-## Operator workspace
-
-The workspace now provides:
-
-```text
-Load/import working inputs
-Visible/editable assumption profile
+Load/import inputs
+Edit visible assumptions
 Check AIV readiness
 Run AIV screening
-Source results
-Assessment screening results
-Non-authoritative line/case summary
-Export screening result with provenance/assumption trace
+Inspect Source results
+Inspect Assessment screening results
+Inspect non-authoritative Line/Case summary
+Export screening result + input/assumption provenance
 ```
 
-UI screening execution routes through `calculateEngineering({ calculationId: 'VIB.AIV.ACOUSTIC', ... })`; equations are not duplicated in UI code.
+The UI calls the registered `calculateEngineering` API with `qualificationMode=screening`; equations are not duplicated in UI code.
 
-Explicit SONIC is now accepted by readiness because the SFF=6 branch is machine-qualified. `UNRESOLVED` sonic state remains fail-closed.
+Readiness now accepts explicit `SONIC` because the SFF=6 branch is machine-qualified. `UNRESOLVED` sonic state remains fail-closed. Gas phase remains the current envelope, and CLOSED sources remain outside the active-source envelope.
 
 ## Regression coverage
 
-Added:
+Added/updated:
 
 ```text
 tests/vibration-aiv-screening-release.test.mjs
+tests/vibration-aiv-readiness.test.mjs
+tests/vibration-aiv-auto-stage-plan.test.mjs
 npm run verify:aiv-screening-release
 ```
 
-Coverage locks:
-- AIV is active `SCREENING`, not pending;
-- D.2.3 assessment result remains 0.29;
-- line 1.48 is non-authoritative for screening;
-- same-kernel single/batch parity;
-- blank project assumption resolution;
-- explicit override precedence;
-- export provenance;
-- SONIC readiness / unresolved fail-closed behavior;
-- UI routes through Engineering Calculation API.
+Coverage locks registry state, result scope, line non-authority, single/batch parity, project assumptions, explicit overrides, export provenance, SONIC readiness, UI API routing and completed AUTO stage state.
 
 ## AUTO stage state
 
@@ -265,19 +218,19 @@ Coverage locks:
 20     COMPLETE
 ```
 
-There is no remaining AUTO release stage in this program.
+There is no remaining AUTO release stage.
 
-## CI status
+## GitHub Actions
 
-GitHub Actions is still infrastructure-blocked. Hosted jobs report zero steps / runner_id=0 with the platform annotation:
+Hosted Actions remains infrastructure-blocked. Jobs continue to report `runner_id=0`, zero steps and:
 
 ```text
 The job was not started because an Actions budget is preventing further use.
 ```
 
-Treat GitHub Actions as `NOT_RUN`; do not reinterpret it as a code test failure or PASS.
+Treat as `NOT_RUN`, never PASS or a code failure.
 
-## Remaining boundaries
+## Permanent release boundary
 
 ```text
 screeningAuthority = AUTHORIZED for ASSESSMENT results only
