@@ -13,7 +13,13 @@ const SOURCE_REPOSITORY = 'reallaksh19/Common';
 const SOURCE_PATH = 'EI - AVIFF Guidelines 2nd Edition.pdf';
 
 const target = (masterId, dataType, locator, printedPageHint, anchors, options = {}) => Object.freeze({
-  masterId, dataType, locator, printedPageHint, anchors: Object.freeze(anchors), ...options,
+  masterId,
+  dataType,
+  locator,
+  printedPageHint,
+  anchors: Object.freeze(anchors),
+  ...options,
+  endAnchors: options.endAnchors ? Object.freeze(options.endAnchors) : undefined,
 });
 
 export const VIBRATION_MASTER_SOURCE_TARGETS = Object.freeze([
@@ -43,10 +49,16 @@ export const VIBRATION_MASTER_SOURCE_TARGETS = Object.freeze([
     ['Table\\s+T4-1', 'Wall\\s+thickness\\s+modifier'], { mechanismId: 'thermowells' }),
   target('EI_AVIFF.T4.GEOMETRY_TYPES.v1', 'RULE_SCHEMA', 'Figure T4-1 — thermowell geometry taxonomy', '85',
     ['Figure\\s+T4-1', 'Geometr(?:y|ies)\\s+of\\s+Thermowell'], { mechanismId: 'thermowells' }),
-  target('EI_AVIFF.T2.4.RECIP_PD_DECISION_FLOW.v1', 'RULE', 'T2.4 / Flowchart T2-2', null,
+  target('EI_AVIFF.T2.4.RECIP_PD_DECISION_FLOW.v1', 'RULE', 'T2.4 / Flowchart T2-2', '55',
     ['T2\\.4', 'Reciprocating.*Positive\\s+Displacement', 'Flowchart\\s+T2-2'], { mechanismId: 'reciprocatingPd' }),
-  target('EI_AVIFF.T2.5.ROTATING_STALL_DECISION_FLOW.v1', 'RULE', 'T2.5 / Flowchart T2-3', null,
+  target('EI_AVIFF.T2.5.ROTATING_STALL_DECISION_FLOW.v1', 'RULE', 'T2.5 / Flowchart T2-3', '56',
     ['T2\\.5', 'Rotating\\s+Stall', 'Flowchart\\s+T2-3'], { mechanismId: 'rotatingStall' }),
+  target('EI_AVIFF.APPENDIX_B.FLUID_PROPERTY_DEFAULTS.v1', 'TABLE_SECTION', 'Appendix B — Sample Parameters', '155-161',
+    ['Appendix\\s+B', 'SAMPLE\\s+PARAMETERS', 'data\\s+contained\\s+within\\s+this\\s+Appendix'], {
+      mechanismId: 'sharedAssumptions',
+      applicability: 'OPTIONAL_ASSUMPTION_LIBRARY',
+      endAnchors: ['Appendix\\s+C', 'SBC\\s+LOF\\s+ASSESSMENT\\s+GUIDANCE'],
+    }),
   target('ADVANCED_DEADLEG.COMPLETE_METHOD.v1', 'METHOD_TABLE', 'Advanced deadleg resonant/non-resonant method', null, [],
     { mechanismId: 'deadlegPulsation', fixedState: 'BLOCKED_SOURCE' }),
   target('SUBSEA_AVIFF.E4.3.CORRUGATION.v1', 'METHOD_CURVE', 'Adopted Subsea AVIFF E4.3 method', null, [],
@@ -110,12 +122,13 @@ export function extractVibrationMasterPdfText(pdfPath, options = {}) {
   return { binary, version: toolVersion(binary), pages: splitPdfTextPages(result.stdout) };
 }
 
-function matchingPages(pages, sourceTarget) {
-  const patterns = sourceTarget.anchors.map((source) => new RegExp(source, 'iu'));
-  return pages.filter((page) => {
-    const text = normalizeText(page.text);
-    return patterns.every((pattern) => pattern.test(text));
-  });
+function pageMatchesAnchors(page, anchors) {
+  const text = normalizeText(page.text);
+  return anchors.map((source) => new RegExp(source, 'iu')).every((pattern) => pattern.test(text));
+}
+
+function matchingPages(pages, anchors) {
+  return pages.filter((page) => pageMatchesAnchors(page, anchors));
 }
 
 function recoveryAction(sourceTarget, state) {
@@ -125,18 +138,81 @@ function recoveryAction(sourceTarget, state) {
   return 'EXTRACTION_RECONCILIATION_REQUIRED';
 }
 
-function targetRecord(pages, sourceTarget) {
-  if (sourceTarget.fixedState) {
-    return { ...sourceTarget, anchors: undefined, sourceState: sourceTarget.fixedState, matchCount: 0,
-      pdfPage: null, pageTextSha256: null, recoveryAction: recoveryAction(sourceTarget, sourceTarget.fixedState) };
-  }
-  const matches = matchingPages(pages, sourceTarget);
+function hashPage(page) {
+  return {
+    pdfPage: page.pdfPageNumber,
+    textSha256: `sha256:${sha256Hex(Buffer.from(page.text, 'utf8'))}`,
+  };
+}
+
+function rangeResolution(pages, sourceTarget) {
+  const starts = matchingPages(pages, sourceTarget.anchors);
+  const ends = matchingPages(pages, sourceTarget.endAnchors);
+  if (starts.length === 0 || ends.length === 0) return { state: 'SOURCE_NOT_LOCATED', starts, ends, pages: [] };
+  if (starts.length !== 1 || ends.length !== 1) return { state: 'RECONCILIATION_REQUIRED', starts, ends, pages: [] };
+  const startIndex = pages.indexOf(starts[0]);
+  const endIndex = pages.indexOf(ends[0]);
+  if (startIndex < 0 || endIndex <= startIndex) return { state: 'RECONCILIATION_REQUIRED', starts, ends, pages: [] };
+  return { state: 'SOURCE_PINNED', starts, ends, pages: pages.slice(startIndex, endIndex) };
+}
+
+function rangeTargetRecord(pages, sourceTarget) {
+  const resolution = rangeResolution(pages, sourceTarget);
+  const pageHashes = resolution.pages.map(hashPage);
+  return {
+    ...sourceTarget,
+    anchors: undefined,
+    endAnchors: undefined,
+    sourceState: resolution.state,
+    matchCount: pageHashes.length,
+    startMatchCount: resolution.starts.length,
+    endMatchCount: resolution.ends.length,
+    pdfPage: pageHashes[0]?.pdfPage ?? null,
+    pdfPageEnd: pageHashes.at(-1)?.pdfPage ?? null,
+    pdfPages: pageHashes.map((page) => page.pdfPage),
+    pageTextSha256: pageHashes[0]?.textSha256 ?? null,
+    pageTextSha256s: pageHashes.map((page) => page.textSha256),
+    recoveryAction: recoveryAction(sourceTarget, resolution.state),
+  };
+}
+
+function singlePageTargetRecord(pages, sourceTarget) {
+  const matches = matchingPages(pages, sourceTarget.anchors);
   const sourceState = matches.length === 1 ? 'SOURCE_PINNED' : matches.length === 0 ? 'SOURCE_NOT_LOCATED' : 'RECONCILIATION_REQUIRED';
   const page = matches.length === 1 ? matches[0] : null;
-  return { ...sourceTarget, anchors: undefined, sourceState, matchCount: matches.length,
-    pdfPage: page?.pdfPageNumber ?? null,
-    pageTextSha256: page ? `sha256:${sha256Hex(Buffer.from(page.text, 'utf8'))}` : null,
-    recoveryAction: recoveryAction(sourceTarget, sourceState) };
+  const pageHash = page ? hashPage(page) : null;
+  return {
+    ...sourceTarget,
+    anchors: undefined,
+    sourceState,
+    matchCount: matches.length,
+    pdfPage: pageHash?.pdfPage ?? null,
+    pdfPageEnd: pageHash?.pdfPage ?? null,
+    pdfPages: pageHash ? [pageHash.pdfPage] : [],
+    pageTextSha256: pageHash?.textSha256 ?? null,
+    pageTextSha256s: pageHash ? [pageHash.textSha256] : [],
+    recoveryAction: recoveryAction(sourceTarget, sourceState),
+  };
+}
+
+function targetRecord(pages, sourceTarget) {
+  if (sourceTarget.fixedState) {
+    return {
+      ...sourceTarget,
+      anchors: undefined,
+      endAnchors: undefined,
+      sourceState: sourceTarget.fixedState,
+      matchCount: 0,
+      pdfPage: null,
+      pdfPageEnd: null,
+      pdfPages: [],
+      pageTextSha256: null,
+      pageTextSha256s: [],
+      recoveryAction: recoveryAction(sourceTarget, sourceTarget.fixedState),
+    };
+  }
+  if (sourceTarget.endAnchors?.length) return rangeTargetRecord(pages, sourceTarget);
+  return singlePageTargetRecord(pages, sourceTarget);
 }
 
 function buildSummary(records) {
@@ -163,13 +239,19 @@ export function buildVibrationMasterSourceInventory(bytesInput, extraction, opti
   return {
     schema: VIBRATION_MASTER_SOURCE_INVENTORY_SCHEMA,
     source: {
-      repository: SOURCE_REPOSITORY, commit: VIBRATION_MASTER_SOURCE_COMMIT,
-      path: options.fileName || SOURCE_PATH, gitBlobSha1: `sha1:${source.gitBlobSha1}`,
-      sizeBytes: source.sizeBytes, sha256: `sha256:${sha256Hex(bytes)}`, edition: 'Second edition, January 2008',
+      repository: SOURCE_REPOSITORY,
+      commit: VIBRATION_MASTER_SOURCE_COMMIT,
+      path: options.fileName || SOURCE_PATH,
+      gitBlobSha1: `sha1:${source.gitBlobSha1}`,
+      sizeBytes: source.sizeBytes,
+      sha256: `sha256:${sha256Hex(bytes)}`,
+      edition: 'Second edition, January 2008',
     },
     extraction: {
-      tool: extraction.binary, toolVersion: extraction.version,
-      totalPdfPageCount: extraction.pages.length, layoutPreserved: true,
+      tool: extraction.binary,
+      toolVersion: extraction.version,
+      totalPdfPageCount: extraction.pages.length,
+      layoutPreserved: true,
     },
     summary: buildSummary(records),
     targets: records,
