@@ -12,60 +12,61 @@
 | Last fully validated implementation HEAD | `7a26a8e23d261d19672dd868cd3730eb8a67a8a6` |
 | Stage-7 inspected implementation HEAD | `9870ee701131f69c6796129daa59ae83774fc7b3` |
 | Stage-8 inspected implementation HEAD | `216fa4703a6f5e9e6d20a1ffd7a077f3a19550fa` |
-| Current parent before Stage-9 implementation | `42d50f0c9f7f8b3a191d548562dd299aeab7ef6d` |
-| PR status | DRAFT / OPEN |
-| Current stage | Stage 9 — Full screening overlays/result detail |
+| Stage-9 inspected implementation HEAD | `d15603f188a0a7d2b5a473d1e273b91d6d8ccf6b` |
+| PR status | DRAFT / OPEN / mergeable |
+| Current stage | Stage 10 — Multi-source / operating-case / line UX |
 | Last fully completed stage | Stage 6 |
 | Stage 7 decision | PARTIAL — exact inspection complete; executable tests NOT_RUN |
 | Stage 8 decision | PARTIAL — exact inspection complete; executable tests NOT_RUN |
-| Engineering status | Stage 9 IMPLEMENTED in prepared tree; publish/exact-head inspection pending |
-| Validation status | Stage-9 focused result-scope regression added; executable command NOT_RUN in current environment |
-| Current blocker | `QST-001`: repository-capable Node execution unavailable; Stages 7+ remain PARTIAL until focused suite runs |
-| Exact next action | Publish Stage-9 projection/view/result-renderer/test/report tree, inspect exact net diff and blobs, then plan Stage 10 without claiming executable PASS. |
+| Stage 9 decision | PARTIAL — exact inspection complete; executable tests NOT_RUN |
+| Engineering status | Stages 4–6 VALIDATED; Stages 7–9 IMPLEMENTED/PARTIAL; Stage 10 IN_PROGRESS |
+| Validation status | Stage-9 exact six-file diff/blob/21-file PR ledger PASS; current focused command NOT_RUN due execution environment |
+| Current blocker | `QST-001`: run current `npm run verify:aiv-canvas` in repository-capable Node environment; no later stage may silently convert NOT_RUN to PASS |
+| Exact next action | Add presentation-only Operating Case / Line / Current-vs-All filters and Assessment contribution table from returned `sourceContributionsAtPoint`; preserve all case labels and kernel-owned combined PWL. |
 
 ## Handover in 60 Seconds
 
-**What is now true:** the canvas is table-synchronized, presentation-only, can author/delete relationships through the authoritative table, exposes exact assumption/readiness provenance, and Stage-9 prepared content explains selected Source, relationship contribution and Assessment screening results directly from existing result objects.
+**What is now true:** live canvas supports table-synchronized navigation, relationship editing through the authoritative table, exact assumption/readiness provenance, and selected Source/relationship/Assessment screening result explanation. Result UI consumes existing result objects only; Line/Case remains separately labeled non-authoritative.
 
-**What is being worked on:** publishing and exact-head inspecting Stage 9.
+**What is being worked on:** presentation filtering and simultaneous-source explanation.
 
-**What remains unfinished:** executable Stage-7+ validation, simultaneous-source/case/line filters, canvas-aware export, accessibility/performance/full release hardening.
+**What remains unfinished:** executable Stage-7+ focused validation, canvas-aware export, accessibility/performance/full release hardening.
 
-**What must not be assumed:** current focused suite passed; UI may calculate attenuation/dB combination/LOF; visible arrows imply contribution; Line/Case LOF is an Assessment screening result.
+**What must not be assumed:** current focused suite passed; a filtered/visible connector is a kernel contributor; UI can recombine dB; cases may be collapsed into one unscoped Assessment result.
 
-**Highest-risk remaining item:** scope conflation or hidden UI-side recalculation.
+**Highest-risk remaining item:** filters could hide case identity or result UX could reconstruct simultaneous-source combination from rendered relationships rather than returned contribution lists.
 
-**Exact next action:** commit only Stage-9 projection/view/result renderer/test/package/report changes, inspect net semantic diff, preserve `NON-AUTHORITATIVE FOR SCREENING` Line/Case labeling.
+**Exact next action:** add a focused filter module consumed by the mounted canvas controller, render filter metadata/options, pass through Assessment contribution arrays, and hide/show presentation elements only.
 
 ## Mission and Engineering Intent
 
-Tables remain engineering source of truth. The registered Engineering Calculation API and central AIV kernel remain numerical authority. The SVG/controller layer projects identities, relationships, assumptions, readiness and returned result values; it never calculates engineering values.
+Tables remain engineering source of truth. The registered Engineering Calculation API and central AIV kernel remain numerical authority. Canvas state may own only presentation layout, viewport, selection, interaction mode and filters. Filters do not mutate engineering data or trigger calculations.
 
 ### Permanent invariants
 
 1. `TABLES = engineering source of truth`.
 2. `SVG CANVAS = visual navigation / relationship editing / result explanation`.
-3. SVG geometry never supplies physical distance or attenuation.
+3. SVG geometry never supplies engineering quantities.
 4. Screening remains registered `calculateEngineering` → central AIV kernel.
 5. Assessment screening scope remains separate from non-authoritative Line/Case trace scope.
 6. Canonical IDs + Operating Case remain identity.
 7. Canvas/UI contains no AIV equations, attenuation formula, dB combination or LOF calculation.
-8. Source/relationship/Assessment result detail is direct pass-through from current screening result objects.
-9. A rendered relationship without a contribution object cannot produce contribution detail.
-10. `designAuthority=false` remains visible in returned authority detail.
+8. Simultaneous-source contribution rows come only from returned `sourceContributionsAtPoint`.
+9. Combined point PWL is displayed from the Assessment result object, never reconstructed in UI.
+10. Case/line filtering is presentation-only and preserves explicit case labels in all-case mode.
 
 ## Mission Status
 
 | Work item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Setup/report/repository verification | P0 | DONE | 1–3 | complete |
-| Projection/layout/live SVG | P0 | VALIDATED | 4 | `2a41528d…`, 12/12 PASS |
+| Setup/report/repository verification | P0 | DONE | 1–3 | completed before production changes |
+| Projection + deterministic layout + live consumer | P0 | VALIDATED | 4 | `2a41528d…`, 12/12 PASS |
 | Pan/zoom/select/presentation drag | P0 | VALIDATED | 5 | `eb6238d4…`, 17/17 PASS |
 | Bidirectional table/canvas selection | P0 | VALIDATED | 6 | `7a26a8e2…`, 21/21 PASS |
 | Relationship authoring/deletion | P0 | IMPLEMENTED | 7 | `9870ee70…`; exact inspection PASS; tests NOT_RUN |
 | Assumption/readiness visualization | P0 | IMPLEMENTED | 8 | `216fa470…`; exact inspection PASS; tests NOT_RUN |
-| Full screening overlays/result detail | P0 | IMPLEMENTED | 9 | prepared tree; focused test added; execution NOT_RUN |
-| Multi-source/case/line UX | P1 | NOT_STARTED | 10 | pending |
+| Screening overlays/result detail | P0 | IMPLEMENTED | 9 | `d15603f1…`; exact inspection PASS; tests NOT_RUN |
+| Multi-source/case/line UX | P1 | IN_PROGRESS | 10 | protocol below |
 | Canvas-aware export/trace | P1 | NOT_STARTED | 11 | pending |
 | Accessibility/performance/release hardening | P0 | NOT_STARTED | 12 | pending |
 
@@ -79,14 +80,15 @@ Tables remain engineering source of truth. The registered Engineering Calculatio
 | DEC-008 | Decision | P0 | VALIDATED | Canonical source/assessment/case keys synchronize views. |
 | DEC-009 | Decision | P0 | INSPECTED_STAGE7 | Relationship mutation uses authoritative relationship table/invalidation. |
 | DEC-011 | Decision | P0 | INSPECTED_STAGE8 | Assumption UX consumes exact resolution entries only. |
-| DEC-013 | Decision | P0 | IMPLEMENTED_STAGE9 | Source detail passes raw PWL/SFF/trim/effective PWL/status/authority/trace from Source result. |
-| DEC-014 | Decision | P0 | IMPLEMENTED_STAGE9 | Relationship detail shows explicit relationship distance/provenance plus kernel contribution attenuation/point PWL only when contribution object exists. |
-| DEC-015 | Decision | P0 | IMPLEMENTED_STAGE9 | Assessment detail passes combined point PWL, contributing Source IDs, Assessment LOF, T2-6 returned values and authority by case. |
+| DEC-013 | Decision | P0 | INSPECTED_STAGE9 | Source/relationship/Assessment result detail is direct result-object pass-through. |
+| DEC-016 | Decision | P0 | ACCEPTED_STAGE10 | Case/line/show filters live in mounted canvas presentation state and only hide/reveal rendered objects/result-case sections. |
+| DEC-017 | Decision | P0 | ACCEPTED_STAGE10 | Assessment contribution table is rendered from returned `sourceContributionsAtPoint`; combined PWL remains the returned Assessment value. |
 | RISK-006 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Stage-7 mutation regressions not executed. |
 | RISK-007 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Stage-8 assumption regressions not executed. |
-| RISK-008 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Stage-9 source is equation-free by inspection; focused execution still required. |
+| RISK-008 | Risk | High | IMPLEMENTED_NOT_EXECUTED | Stage-9 no-recalculation/scope regressions not executed. |
+| RISK-009 | Risk | High | IN_PROGRESS | Presentation filters could collapse case identity or accidentally infer contribution from visibility. |
 | ISS-001 | Base debt | Medium | OPEN / CLASSIFIED | Broad boundary oracle conflicts with required registered screening path. |
-| ISS-002 | Base debt | Medium | OPEN / CLASSIFIED | Qualification controller exceeds normal 300-line target on base; canvas responsibilities remain split. |
+| ISS-002 | Base debt | Medium | OPEN / CLASSIFIED | Qualification controller exceeds normal 300-line target on base; new canvas responsibilities remain split. |
 | QST-001 | Validation | P0 | OPEN | Run current `npm run verify:aiv-canvas` in repository-capable Node environment. |
 
 ## Stage Roadmap and Execution Log
@@ -95,104 +97,101 @@ Tables remain engineering source of truth. The registered Engineering Calculatio
 Protocol/repository setup complete; Stage 4 **12/12 PASS**, Stage 5 **17/17 PASS**, Stage 6 **21/21 PASS**.
 
 ### Stage 7 — Relationship authoring/deletion — PARTIAL
-Exact-head inspected at `9870ee70…`: visual relationship create/delete uses authoritative relationship table; new row is `UNRESOLVED` with blank distance/evidence; exact duplicates rejected; other cases allowed; deletion is relationship-only. Executable focused suite NOT_RUN.
+Exact-head inspected at `9870ee70…`: table-authoritative identity-only creation/deletion, blank distance/evidence, duplicate prevention and no cascade by implementation. Executable focused suite NOT_RUN.
 
 ### Stage 8 — Assumption/readiness visualization — PARTIAL
-Exact-head inspected at `216fa470…`: exact assumption-resolution entries projected; assumed table fields visibly marked; textual `[A]`/readiness labels; selection-scoped provenance; exact input focus/scroll. Stage-8 initial formatting churn was corrected before inspection. Executable focused suite NOT_RUN.
+Exact-head inspected at `216fa470…`: exact resolution provenance, visible assumed cells, textual readiness/assumption indicators and focus-only exact-field navigation. Executable focused suite NOT_RUN.
 
-### Stage 9 — Full screening overlays/result detail — IMPLEMENTED / VALIDATION PENDING
+### Stage 9 — Full screening overlays/result detail — PARTIAL
 
-#### Implementation performed
+**Implementation:** projection retains Source raw/SFF/trim/effective/status/scope/authority/trace; Assessment case summaries retain combined point PWL, contributing Source IDs, T2-6 returned intermediates, Assessment LOF and authority; focused `vibration-aiv-canvas-results.js` renders selected result detail; relationship contribution is rendered only from returned contribution object; missing contribution explicitly states no attenuation/point PWL is inferred; Line/Case notice remains separately `NON-AUTHORITATIVE FOR SCREENING`.
 
-- Extended `AivCanvasProjection.v1` Source result summary to retain direct returned values:
-  - status / result scope;
-  - raw source PWL;
-  - SFF;
-  - trim reduction;
-  - effective source PWL;
-  - authority;
-  - available trace.
-- Extended Assessment result summary per operating case to retain:
-  - status / result scope;
-  - combined point PWL;
-  - contributing Source Canonical IDs;
-  - T2-6 returned intermediates;
-  - Assessment LOF;
-  - authority.
-- Existing relationship projection continues to carry the exact returned `screeningContribution` object plus explicit relationship distance/provenance.
-- Added focused production renderer `tabs/vibration-aiv-canvas-results.js`:
-  - Source result detail renders raw/SFF/trim/effective values, scope, status, authority and trace IDs;
-  - relationship detail renders explicit relationship distance/provenance and returned contribution effective PWL/attenuation/point PWL/simultaneous group;
-  - when no contribution object exists, it explicitly states no attenuation or point PWL is inferred from connector rendering;
-  - Assessment detail renders each result case separately with combined point PWL, contributing Source IDs, Assessment LOF, T2-6 FLM1/FLM2/Lf, status/scope and authority.
-- Main canvas view consumes the focused result renderer inside the existing selection-scoped detail section. No numerical implementation was added to the view.
-- Persistent Line/Case notice remains separate and labeled `NON-AUTHORITATIVE FOR SCREENING`.
-- Added `tests/vibration-aiv-canvas-results.test.mjs` with D.2.3-style result-scope values and static no-equation assertions.
-- Expanded `verify:aiv-canvas` to include the result test.
+**Exact-head evidence:**
+```text
+Stage-9 head                                  d15603f188a0a7d2b5a473d1e273b91d6d8ccf6b PASS
+Stage-9 compare vs 42d50f0...                 1 commit / exactly 6 files PASS
+PR changed-file ledger                        21 exact files PASS
+projection blob                               ba01519c6474f001f483aee4acb1bdcdadb2a6b0 PASS
+result-renderer blob                          939e42cb7af02ba4fa247b27534f4e22a3d2c4c1 PASS (<100 lines)
+canvas-view blob                              d6d4bba0e9cb6310d50e1839f029fbe708bc7acd PASS (<295 lines)
+result-test blob                              f0ffe985b75a3782b82cef44a8fbaedbf6e15a13 PASS
+focused-command blob                          2ac5fe6762b402985a6b8e30e4f79c89605bfba7 PASS
+```
+Net Stage-9 production diff is focused: projection `+10`, new result renderer `98 lines`, view `+19/-6`. No formatting churn. Executable command remains **NOT_RUN** due `QST-001`. **Stage decision: PARTIAL.**
 
-#### Required safety behavior encoded
+### Stage 10 — Multi-source / operating-case / line UX — IN_PROGRESS
 
-- Source values are exact pass-through.
-- Relationship contribution exists only when a kernel contribution object exists.
-- Explicit relationship distance remains table/resolution data, not contribution geometry.
-- Assessment `0.29` remains labeled Assessment LOF.
-- Line/Case `1.48` remains in separate non-authoritative trace UI.
-- UI result modules contain no `calculateAiv`, kernel-candidate imports, logarithmic/tanh/power engineering expressions, attenuation assignment or LOF calculation.
+#### Objective
 
-#### Validation performed
+Make simultaneous-source contributions and operating-case/line context easy to understand without changing engineering state or reconstructing numerical results.
 
-- Source-level/static review of prepared Stage-9 modules: equation/kernel import boundary **PASS by inspection**.
-- Focused regression file implemented.
-- `npm run verify:aiv-canvas`: **NOT_RUN** due `QST-001`.
-- Stage decision: **PARTIAL** until executable focused tests run.
+#### Expected scope
 
-### Stage 10 — Multi-source/case/line UX — NEXT / NOT_STARTED
+- new focused `tabs/vibration-aiv-canvas-filter.js` for pure presentation filter state/DOM visibility;
+- `converters/vibration/aiv/aiv-canvas-projection.js` adds presentation metadata needed for filters and passes returned Assessment contribution arrays per case;
+- `tabs/vibration-aiv-canvas-view.js` renders Case/Line/Show controls and filter metadata on SVG/detail elements;
+- `tabs/vibration-aiv-canvas-controller.js` owns/persists filter state, handles filter changes and clears selection deterministically when filtered out;
+- `tabs/vibration-aiv-canvas-results.js` renders per-case contribution table directly from returned contribution rows;
+- focused multi-source/filter tests and command expansion;
+- this report.
 
-Planned behavior:
-- current-case vs all-case control with explicit case labels;
-- line filter;
-- selected Assessment contribution table built only from `sourceContributionsAtPoint` returned by the current Assessment result;
-- simultaneous-source group remains visible;
-- no UI-side dB combination;
-- NOT_APPLICABLE visible relationship never appears in returned contribution list unless kernel result contains it;
-- deterministic selection reset/re-resolution when filtered out.
+#### Planned behavior
+
+Controls:
+```text
+Operating Case [case]
+Line           [line / All lines]
+Show           [Current case | All cases]
+```
+
+- filter state is presentation-only; no table mutation, readiness invalidation or calculation call;
+- current-case mode hides unrelated Source/relationship/result-case presentation objects;
+- all-case mode keeps explicit case labels on Source/relationship/result-case sections;
+- line filter hides unrelated line presentation objects;
+- selected object filtered out → selection clears deterministically rather than retargeting;
+- Assessment contribution table rows come only from the selected Assessment result case's returned `sourceContributionsAtPoint`;
+- each contribution shows Source Canonical ID, effective PWL, attenuation, point contribution and simultaneous-source group;
+- combined point PWL displayed separately from the returned Assessment result; UI contains no combination formula;
+- NOT_APPLICABLE visible relationship cannot become a contribution simply because it is rendered.
+
+#### Planned validation
+
+- filter state/clamping/reconciliation with available options;
+- case/line filtering does not change projection engineering fields;
+- all-case mode preserves case labels;
+- current-case mode hides other cases and clears filtered selection;
+- contribution table exactly matches returned contribution objects, including equal/asymmetric fixtures where values are supplied by result object;
+- static no dB combination/formula/kernel import checks;
+- exact-head diff/blob/ledger inspection;
+- executable command remains subject to `QST-001` and must stay NOT_RUN if unavailable.
 
 ### Stage 11 — Canvas-aware export/trace — NOT_STARTED
 Optional presentation layout/projection/SVG snapshot while numerical screening export remains interpretable without layout.
 
 ### Stage 12 — Accessibility/performance/release hardening — NOT_STARTED
-Keyboard/focus/non-color acceptance, 100/300/500 fixture, current focused/full release execution, final changed-file reconciliation and debt disposition.
+Keyboard/focus/non-color acceptance, representative 100/300/500 fixture, current focused/full release execution, final changed-file reconciliation and debt disposition.
 
 ## Changed-File Ledger
 
 | File | First stage | Latest stage | Purpose | Validation |
 |---|---:|---:|---|---|
-| `agents/PR451_workreport.md` | 2 | 9 | living report | current |
-| `converters/vibration/aiv/aiv-canvas-projection.js` | 4 | 9 | projection + result pass-through | static reviewed; execution pending |
+| `agents/PR451_workreport.md` | 2 | 10 | living report | current |
+| `converters/vibration/aiv/aiv-canvas-projection.js` | 4 | 10 | projection/result/filter metadata | Stage-9 exact PASS; Stage-10 active |
 | `converters/vibration/aiv/aiv-canvas-layout-contract.js` | 4 | 5 | presentation layout | PASS |
-| `tabs/vibration-aiv-canvas-field.js` | 8 | 8 | exact field navigation | Stage-8 exact inspected |
-| `tabs/vibration-aiv-canvas-results.js` | 9 | 9 | focused selected result rendering | static reviewed; execution pending |
-| `tabs/vibration-aiv-canvas-view.js` | 4 | 9 | SVG + selection-scoped assumption/result detail | static reviewed; execution pending |
-| `tabs/vibration-aiv-canvas-controller.js` | 5 | 8 | presentation runtime | Stage-8 exact inspected |
-| `tabs/vibration-aiv-canvas-selection.js` | 6 | 8 | selection/detail visibility | Stage-8 exact inspected |
-| `tabs/vibration-aiv-canvas-relationship.js` | 7 | 7 | relationship-mode state | Stage-7 exact inspected |
-| `tabs/vibration-aiv-input-view.js` | 4 | 8 | authoritative tables/assumed markers | Stage-8 exact inspected |
-| `tabs/vibration-aiv-input-model.js` | 7 | 7 | relationship helpers | Stage-7 exact inspected |
-| `tabs/vibration-aiv-qualification-tab.js` | 5 | 7 | lifecycle/relationship callbacks | Stage-7 exact inspected |
-| `tests/vibration-aiv-canvas-*.test.mjs` | 4 | 9 | focused regressions | Stages 4–6 executed PASS; current command NOT_RUN |
-| `package.json` | 4 | 9 | focused command | Stage-9 test added; execution NOT_RUN |
+| `tabs/vibration-aiv-canvas-field.js` | 8 | 8 | exact field navigation | Stage-8 exact PASS |
+| `tabs/vibration-aiv-canvas-filter.js` | 10 | 10 | presentation filter state/visibility | pending |
+| `tabs/vibration-aiv-canvas-results.js` | 9 | 10 | selected result/contribution rendering | Stage-9 exact PASS; Stage-10 active |
+| `tabs/vibration-aiv-canvas-view.js` | 4 | 10 | SVG/details/filter controls | Stage-9 exact PASS; Stage-10 active |
+| `tabs/vibration-aiv-canvas-controller.js` | 5 | 10 | presentation runtime/filter state | Stage-8 exact PASS; Stage-10 active |
+| `tabs/vibration-aiv-canvas-selection.js` | 6 | 8 | selection/detail visibility | Stage-8 exact PASS |
+| `tabs/vibration-aiv-canvas-relationship.js` | 7 | 7 | relationship mode | Stage-7 exact PASS |
+| `tabs/vibration-aiv-input-view.js` | 4 | 8 | authoritative tables | Stage-8 exact PASS |
+| `tabs/vibration-aiv-input-model.js` | 7 | 7 | relationship helpers | Stage-7 exact PASS |
+| `tabs/vibration-aiv-qualification-tab.js` | 5 | 7 | lifecycle/relationship callbacks | Stage-7 exact PASS |
+| `tests/vibration-aiv-canvas-*.test.mjs` | 4 | 10 | focused regressions | Stages 4–6 executed PASS; current command NOT_RUN |
+| `package.json` | 4 | 10 | focused command | current command NOT_RUN after Stage 6 |
 
 No `.github/workflows/*`, dependency versions or unrelated generated data are changed.
-
-## Engineering Decisions and Invariants
-
-| Invariant | Enforcement | Current evidence |
-|---|---|---|
-| Layout cannot become engineering distance | layout/projection/table separation | Stage-4 PASS |
-| Canvas cannot calculate AIV results | dedicated result formatter consumes projected values only | Stage-9 source/test content |
-| Relationship contribution requires returned contribution object | result renderer explicit null branch | Stage-9 source/test content |
-| Assessment and Line/Case scopes stay separate | selected Assessment detail + separate persistent Line/Case notice | Stage-9 source/test content |
-| Assumptions remain provenance, not canvas data | resolution projection/focus-only navigation | Stage-8 exact inspection |
 
 ## Validation and Evidence Ledger
 
@@ -205,7 +204,8 @@ No `.github/workflows/*`, dependency versions or unrelated generated data are ch
 | Stage-6 focused/exact | PASS | 21/21; `7a26a8e2…` |
 | Stage-7 exact inspection | PASS | `9870ee70…` |
 | Stage-8 exact inspection | PASS | `216fa470…` |
-| Stage-9 focused execution | NOT_RUN | `QST-001` |
+| Stage-9 exact inspection | PASS | `d15603f1…` |
+| Current Stage-7+ focused execution | NOT_RUN | `QST-001` |
 | Browser acceptance | NOT_RUN | Stage 12 |
 | Full AIV screening release | NOT_RUN | Stage 12 |
 
@@ -218,45 +218,45 @@ No `.github/workflows/*`, dependency versions or unrelated generated data are ch
 | Relationship mutation integrity | IMPLEMENTED_NOT_EXECUTED | Stage 7 |
 | Assumption provenance/navigation | IMPLEMENTED_NOT_EXECUTED | Stage 8 |
 | Result scope/pass-through/no-recalculation | IMPLEMENTED_NOT_EXECUTED | Stage 9 |
+| Multi-source/filter presentation isolation | NOT_RUN | Stage 10 active |
 
 ### Explicitly Not Validated
 
-Current focused suite after Stage 6; real-browser relationship/assumption/result flows; multi-source filtering; large-project performance; full accessibility; full AIV screening release on PR head.
+Current focused suite after Stage 6; real-browser relationship/assumption/result/filter flows; large-project performance; full accessibility; full AIV release on PR head.
 
 ## Known / Deferred Work and Forward Sequence
 
-- `QST-001`: immediate execution gap; Stages 7+ remain PARTIAL until current focused suite runs.
-- `ISS-001`: boundary-oracle inconsistency to reconcile during hardening without weakening registered screening path.
+- `QST-001`: current execution gap; Stages 7+ remain PARTIAL until focused command runs.
+- `ISS-001`: reconcile boundary-oracle inconsistency during hardening without weakening registered screening path.
 - `ISS-002`: keep new canvas responsibilities out of oversized qualification controller.
-- Forward sequence: publish/exact inspect Stage 9 → Stage 10 filters/simultaneous contributions → Stage 11 export/trace → Stage 12 executable validation/accessibility/performance/release.
+- Forward sequence: Stage 10 filters/multi-source → Stage 11 export/trace → Stage 12 executable validation/accessibility/performance/release.
 
 ## Process Notes / Lessons Learned
 
 - Presentation state can persist across rerenders without becoming engineering state.
 - Connector geometry and physical distance remain separate operations.
-- Safe visual mutation still resolves through authoritative tables.
+- Safe visual mutation resolves through authoritative tables.
 - Assumption UX projects existing provenance only.
-- Result UX should format result contracts in a focused module rather than add numerical logic to SVG rendering.
+- Result UX formats result contracts in a focused module and never reconstructs results.
+- Net stage diff must be checked for formatting churn.
 - Validation unavailable is `NOT_RUN`, never PASS.
 
 ## Next-Agent Handover
 
-**Current stopping point:** Stage-9 production/test/report tree prepared; publish and exact-head inspection pending; executable tests unavailable.
+**Current stopping point:** Stage 9 exact-head inspected/PARTIAL; Stage 10 protocol active before production changes.
 
-**PR / branch:** #451 / `agent/aiv-svg-canvas`.
+**PR / branch / current inspected implementation:** #451 / `agent/aiv-svg-canvas` / `d15603f188a0a7d2b5a473d1e273b91d6d8ccf6b`.
 
-**Parent before Stage-9 implementation:** `42d50f0c9f7f8b3a191d548562dd299aeab7ef6d`.
+**Start here:** implement presentation-only filter module, projection filter metadata + returned contribution arrays, controls, controller filter handling and contribution table.
 
-**Start here:** publish Stage-9 projection/result renderer/view/test/package/report, compare exact net diff, verify critical blobs and PR ledger, keep Stage 9 PARTIAL, then refresh report before Stage 10.
+**Do not redo:** Stages 4–9 engineering design/inspection.
 
-**Do not redo:** Stages 4–9 engineering design unless exact-head inspection finds a mismatch.
-
-**Do not assume:** current focused tests passed; UI may recompute AIV values; Line/Case summary is screening authority.
+**Do not assume:** current focused suite passed; filtered connector implies contribution; combined PWL can be rebuilt in UI.
 
 **Open QST items:** `QST-001` executable focused validation.
 
-**Highest-risk remaining item:** unexecuted Stage-9 result-scope/no-recalculation regressions.
+**Highest-risk remaining item:** `RISK-009` case identity/contribution inference under filtering.
 
-**Exact next recommended action:** publish Stage 9, exact-head inspect, then implement Stage 10 using returned Assessment contribution lists only.
+**Exact next recommended action:** implement Stage 10 in focused presentation modules, publish atomically, inspect exact net diff, retain NOT_RUN status if execution remains unavailable.
 
-**Required reading:** issue #449, PR #446 authority boundary, `CodingRules.md`, this report, `aiv-calculator.js`, result contracts, canvas projection/view/results modules.
+**Required reading:** issue #449, PR #446 authority boundary, `CodingRules.md`, this report, current projection/results/view/controller and AIV result contracts.
