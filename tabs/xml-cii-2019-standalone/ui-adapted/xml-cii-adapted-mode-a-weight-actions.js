@@ -4,11 +4,18 @@ import { createModeASourceProcessingRef, modeARawRef, modeARawState } from './xm
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
 function parseConfig(value) { try { const out = JSON.parse(String(value || '{}')); return out && typeof out === 'object' && !Array.isArray(out) ? out : {}; } catch { return {}; } }
 function object(parent, key) { if (!parent[key] || typeof parent[key] !== 'object' || Array.isArray(parent[key])) parent[key] = {}; return parent[key]; }
+function clone(value) { try { return JSON.parse(JSON.stringify(value)); } catch { return null; } }
 
 function snapshots(stateRef, sourceIds) {
   return [...new Set(sourceIds)].map((sourceId) => {
     const ref = createModeASourceProcessingRef(stateRef, sourceId);
-    return { sourceId, supportConfigJson: ref.current.supportConfigJson || '{}' };
+    const config = parseConfig(ref.current.supportConfigJson);
+    const rigidWeight = config?.overrides?.rigidWeight;
+    return {
+      sourceId,
+      hadRigidWeight: Boolean(rigidWeight && typeof rigidWeight === 'object' && !Array.isArray(rigidWeight)),
+      rigidWeight: clone(rigidWeight || {}),
+    };
   });
 }
 
@@ -41,7 +48,11 @@ export function undoModeAWeightChanges(stateRef) {
   for (const snapshot of undo.snapshots) {
     const ref = createModeASourceProcessingRef(stateRef, snapshot.sourceId);
     const current = ref.current;
-    ref.current = { ...current, supportConfigJson: snapshot.supportConfigJson || '{}' };
+    const config = parseConfig(current.supportConfigJson);
+    const overrides = object(config, 'overrides');
+    if (snapshot.hadRigidWeight) overrides.rigidWeight = clone(snapshot.rigidWeight || {}) || {};
+    else delete overrides.rigidWeight;
+    ref.current = { ...current, supportConfigJson: JSON.stringify(config, null, 2) };
   }
   const latest = modeARawState(stateRef);
   replaceModeAState(modeARawRef(stateRef), { ...latest, modeAConsolidatedWeightUndo: null });
