@@ -34,5 +34,10 @@ export function renderModeASourceInventory(parent, stateRef, render) {
   const panels = parent.querySelectorAll?.('[data-mode-a-panel="source-inventory"]') || [];
   cleanInventoryPanel(panels[panels.length - 1] || null, state);
   replaceModeAActiveHierarchyWithBatch(parent, state);
-  renderModeABatchBranchSelector(parent, stateRef, render);
+
+  const refreshBatchSelector = typeof render === 'function' ? render : () => {
+    parent.querySelector?.('.xml-cii-mode-a-batch-scope-panel')?.remove?.();
+    renderModeABatchBranchSelector(parent, stateRef, refreshBatchSelector);
+  };
+  renderModeABatchBranchSelector(parent, stateRef, refreshBatchSelector);
 }
