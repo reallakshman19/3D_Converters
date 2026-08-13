@@ -1,6 +1,6 @@
 const LINE_FIELDS = new Set(['p1', 't1', 't2', 't3', 'density']);
-const CLASS_FIELDS = new Set(['hydroPressure', 'material', 'rating', 'materialCode', 'corrosion']);
-const CLASS_SIZE_FIELDS = new Set(['wallThickness']);
+const CLASS_FIELDS = new Set(['hydroPressure', 'material', 'rating', 'corrosion']);
+const CLASS_SIZE_FIELDS = new Set(['materialCode', 'wallThickness']);
 const NUMERIC_FIELDS = new Set(['p1', 'hydroPressure', 't1', 't2', 't3', 'density', 'wallThickness', 'corrosion']);
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
@@ -60,7 +60,7 @@ export function buildModeAPreviewFillPlan(rows = [], sourceRow = {}, field = '')
       sourceId: row.sourceId, fileName: row.fileName, branchName: row.branchName, lineKey: row.lineKey,
       field, value, groupKey,
       ratingKey: row.ratingKey || classKey(row) || row.lineKey || row.branchName,
-      materialCodeKey: row.materialCodeKey || classKey(row) || row.lineKey || row.branchName,
+      materialCodeKey: row.materialCodeKey || classSizeKey(row) || row.lineKey || row.branchName,
       wallThicknessKey: row.wallThicknessKey || classSizeKey(row) || row.lineKey || row.branchName,
       corrosionKey: row.corrosionKey || classKey(row) || row.lineKey || row.branchName,
     });
