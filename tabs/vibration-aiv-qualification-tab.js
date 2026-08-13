@@ -228,6 +228,7 @@ export function renderAivQualificationWorkspace(container) {
     if (action === 'run-screening') execution.runScreening();
     if (action === 'export-d23-validation') execution.exportValidatedBenchmark();
     if (action === 'export-screening-result') execution.exportScreeningResult();
+    if (action === 'export-eit') execution.exportEit();
     if (action === 'reset-assumptions') resetAssumptions();
   }
 
