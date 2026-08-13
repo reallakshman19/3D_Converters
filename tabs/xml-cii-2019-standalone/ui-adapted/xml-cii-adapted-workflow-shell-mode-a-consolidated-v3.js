@@ -1,9 +1,9 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-consolidated-1';
 import {
-  createStateRef,
   renderHeader,
   renderPhaseRail,
 } from './xml-cii-adapted-workflow-shell-mode-a-core.js?v=20260813-mode-a-consolidated-shell-1';
+import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20260813-mode-a-consolidated-1';
 import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20260813-mode-a-consolidated-1';
 import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20260813-mode-a-consolidated-1';
 import {
@@ -14,17 +14,20 @@ import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=2
 import { installRigidReviewActionsEnhancement } from './xml-cii-adapted-rigid-review-actions-ui.js?v=20260813-mode-a-consolidated-1';
 import { installJsonTraceFieldUiEnhancement } from './xml-cii-adapted-json-trace-field-ui.js?v=20260813-mode-a-consolidated-1';
 
+let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
+
 installRigidReviewActionsEnhancement();
 installJsonTraceFieldUiEnhancement();
 
 export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
   installRigidReviewActionsEnhancement();
   installJsonTraceFieldUiEnhancement();
-  const baseRef = createStateRef(initialState);
+  const baseRef = { current: initialState || activeWorkflowState };
   const stateRef = createXmlCiiModeAStateRef(baseRef);
 
   const render = () => {
     ensureXmlCiiBranchSelectionInRef(stateRef);
+    activeWorkflowState = stateRef.current;
     const scrollStates = [];
     container.querySelectorAll('.xml-cii-main-workspace, .model-converters-left, .xml-cii-standalone-output pre, .xml-cii-standalone-card pre').forEach((el, idx) => {
       const cls = '.' + Array.from(el.classList).join('.');
