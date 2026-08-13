@@ -47,11 +47,81 @@ export function commonModeASupportConfig(sourceJson = '{}') {
   return JSON.stringify(config, null, 2);
 }
 
-export function buildModeAExecutionState(baseState = {}, source = {}) {
-  const next = core.buildModeAExecutionState(baseState, source);
+export function modeASharedSupportConfig(state = {}) {
+  const stored = String(state.sourceBatch?.sharedSupportConfigJson || '').trim();
+  return stored || commonModeASupportConfig(state.supportConfigJson || '{}');
+}
+
+export function normalizeModeABatchState(state = {}) {
+  const next = core.normalizeModeABatchState(state);
+  if (!next.sourceBatch?.sources?.length) return next;
+  const sharedSupportConfigJson = modeASharedSupportConfig(next);
+  if (next.sourceBatch.sharedSupportConfigJson === sharedSupportConfigJson) return next;
   return {
     ...next,
-    supportConfigJson: composeModeASupportConfig(baseState.supportConfigJson || '{}', source.supportConfigJson || '{}'),
+    sourceBatch: {
+      ...next.sourceBatch,
+      sharedSupportConfigJson,
+    },
+  };
+}
+
+export function syncActiveModeASource(state = {}) {
+  const normalized = normalizeModeABatchState(state);
+  const next = core.syncActiveModeASource(normalized);
+  if (!next.sourceBatch?.sources?.length) return next;
+
+  // The UI state represents the active source. Its common configuration is the
+  // latest shared authority, while branch mappings / manual overrides / final
+  // weight matches remain source-local and are stripped by this projection.
+  const sharedSupportConfigJson = commonModeASupportConfig(
+    next.supportConfigJson || normalized.sourceBatch.sharedSupportConfigJson || '{}',
+  );
+
+  return {
+    ...next,
+    sourceBatch: {
+      ...next.sourceBatch,
+      sharedSupportConfigJson,
+    },
+  };
+}
+
+export function activateModeASource(state = {}, sourceId) {
+  const synced = syncActiveModeASource(state);
+  const sharedSupportConfigJson = modeASharedSupportConfig(synced);
+  const activated = core.activateModeASource(synced, sourceId);
+  const target = activated.sourceBatch?.sources?.find((source) => source.sourceId === sourceId);
+  if (!target) return activated;
+
+  const effectiveSupportConfigJson = composeModeASupportConfig(
+    sharedSupportConfigJson,
+    target.supportConfigJson || '{}',
+  );
+  const sources = activated.sourceBatch.sources.map((source) => source.sourceId === sourceId
+    ? { ...source, supportConfigJson: effectiveSupportConfigJson }
+    : source);
+
+  return {
+    ...activated,
+    supportConfigJson: effectiveSupportConfigJson,
+    sourceBatch: {
+      ...activated.sourceBatch,
+      sources,
+      sharedSupportConfigJson,
+    },
+  };
+}
+
+export function buildModeAExecutionState(baseState = {}, source = {}) {
+  const normalized = normalizeModeABatchState(baseState);
+  const next = core.buildModeAExecutionState(normalized, source);
+  return {
+    ...next,
+    supportConfigJson: composeModeASupportConfig(
+      modeASharedSupportConfig(normalized),
+      source.supportConfigJson || '{}',
+    ),
   };
 }
 
