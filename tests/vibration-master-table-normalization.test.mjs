@@ -1,3 +1,13 @@
+import assert from 'node:assert/strict';
 import test from 'node:test';
-
-test('table semantic normalization scaffold', () => {});
+import { VIBRATION_MASTER_TABLE_MAPPING_SCHEMA as MAP, VIBRATION_MASTER_TABLE_NORMALIZED_SCHEMA as OUT, normalizeVibrationMasterTables as normalize } from '../scripts/normalize-vibration-master-tables.mjs';
+const B='9d3eccc56429411e17c07a579bdebbd13cb0bdc5';
+const A={engineeringAuthority:'NONE',screeningAuthority:'NOT_AUTHORIZED',designAuthority:false};
+const auth=()=>({...A});
+function c(id='EI_AVIFF.T3.SBC.FITTING_SPAN_FACTORS.v1'){return{schema:'VibrationMasterTableCandidates.v1',authority:auth(),candidates:[{selectionId:'table-a',masterId:id,sourceState:'TABLE_CANDIDATE_RECOVERED',recoveryAction:'SEMANTIC_RECONCILIATION_REQUIRED',pageRange:{start:81,end:81},sourceGitBlobSha:B,sourceSha256:`sha256:${'a'.repeat(64)}`,markdownSha256:`sha256:${'b'.repeat(64)}`,tableBlockId:'pdf:p81:t1',sourcePage:81,renderer:'records',valuesPreservedAsSourceStrings:true,semanticNormalizationApplied:false,authority:auth(),rows:[{row:1,cells:[{coordinate:'C1',value:'Kind'},{coordinate:'C2',value:'Factor'}]},{row:2,cells:[{coordinate:'C1',value:'Alpha'},{coordinate:'C2',value:'1.25'}]}]}]};}
+function m(id='EI_AVIFF.T3.SBC.FITTING_SPAN_FACTORS.v1'){return{schema:MAP,mappings:[{selectionId:'table-a',masterId:id,tableBlockId:'pdf:p81:t1',reviewStatus:'REVIEWED',sourceGitBlobSha:B,markdownSha256:`sha256:${'b'.repeat(64)}`,pageRange:{start:81,end:81},fields:[{coordinate:'C1',field:'kind',valueType:'enum',unit:null,allowedValues:['Alpha','Beta']},{coordinate:'C2',field:'factor',valueType:'decimal',unit:'ratio'}],rowRules:[{row:1,disposition:'header',expectedCells:[{coordinate:'C1',equals:'Kind'},{coordinate:'C2',equals:'Factor'}]},{row:2,disposition:'data'}]}]};}
+const run=(x=c(),y=m())=>normalize({candidatesDocument:x,mappingDocument:y});
+test('reviewed exact mapping creates typed candidate and preserves source strings',()=>{const r=run();assert.equal(r.schema,OUT);assert.equal(r.candidates[0].sourceState,'TABLE_MASTER_CANDIDATE_NORMALIZED');assert.equal(r.candidates[0].recoveryAction,'QUALIFICATION_REQUIRED');assert.equal(r.candidates[0].rows[0].values.factor.value,1.25);assert.equal(r.candidates[0].rows[0].values.factor.rawSource,'1.25');assert.deepEqual(r.authority,A);});
+test('mapping review, hash and page-range drift fail closed',()=>{const a=m();a.mappings[0].reviewStatus='DRAFT';assert.throws(()=>run(c(),a),/MAPPING_NOT_REVIEWED/);const b=m();b.mappings[0].markdownSha256=`sha256:${'c'.repeat(64)}`;assert.throws(()=>run(c(),b),/SOURCE_BINDING_MISMATCH/);const d=m();d.mappings[0].pageRange.end=82;assert.throws(()=>run(c(),d),/PAGE_RANGE_MISMATCH/);});
+test('candidate state and authority drift fail closed',()=>{const a=c();a.candidates[0].sourceState='RECONCILIATION_REQUIRED';assert.throws(()=>run(a),/CANDIDATE_NOT_RECOVERED/);const b=c();b.authority.screeningAuthority='DRIFTED';assert.throws(()=>run(b),/AUTHORITY_MISMATCH/);});
+export { c as candidate, m as mapping, run };
