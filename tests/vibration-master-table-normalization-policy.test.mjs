@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import { candidate, mapping, run } from './support/vibration-master-table-normalization-fixtures.mjs';
+test('all rows need disposition and mapped cells must exist',()=>{const a=mapping();a.mappings[0].rowRules.pop();assert.throws(()=>run(candidate(),a),/ROW_COVERAGE_MISMATCH/);const b=candidate();b.candidates[0].rows[1].cells.pop();assert.throws(()=>run(b),/SOURCE_CELL_MISSING/);});
+test('header literals are exact, not inferred',()=>{const c=candidate();c.candidates[0].rows[0].cells[0].value='KIND';assert.throws(()=>run(c),/LITERAL_MISMATCH/);});
+test('decimal typing does not clean source text',()=>{for(const raw of ['1,25','1.25 m','1/4','1e3','Infinity']){const c=candidate();c.candidates[0].rows[1].cells[1].value=raw;assert.throws(()=>run(c),/DECIMAL_INVALID/);}});
+test('enum typing uses exact explicit allow-list',()=>{const c=candidate();c.candidates[0].rows[1].cells[0].value='alpha';assert.throws(()=>run(c),/ENUM_VALUE_REJECTED/);});
+test('Appendix B stays optional assumption library',()=>{const id='EI_AVIFF.APPENDIX_B.FLUID_PROPERTY_DEFAULTS.v1';const r=run(candidate(id),mapping(id));assert.equal(r.candidates[0].libraryRole,'OPTIONAL_ASSUMPTION_LIBRARY');assert.equal(r.candidates[0].qualificationStatus,'NOT_QUALIFIED');});
+test('units and enum lists are explicit',()=>{const a=mapping();delete a.mappings[0].fields[0].unit;assert.throws(()=>run(candidate(),a),/UNIT_REQUIRED/);const b=mapping();b.mappings[0].fields[0].allowedValues=['Alpha','Alpha'];assert.throws(()=>run(candidate(),b),/ENUM_VALUES_INVALID/);});
+test('unused or duplicate semantic bindings reject',()=>{const a=mapping();a.mappings.push({...a.mappings[0],selectionId:'other'});assert.throws(()=>run(candidate(),a),/MAPPING_UNUSED/);const b=mapping();b.mappings[0].fields[1].coordinate='C1';assert.throws(()=>run(candidate(),b),/FIELD_DUPLICATE/);});
+test('source has no interpolation or unit-conversion fallback',()=>{const s=readFileSync(new URL('../scripts/normalize-vibration-master-tables.mjs',import.meta.url),'utf8');assert.doesNotMatch(s,/nearest|interpolat|convertUnit|defaultValue/iu);assert.match(s,/QUALIFICATION_REQUIRED/u);assert.match(s,/NOT_AUTHORIZED/u);});
