@@ -1,3 +1,4 @@
+import { buildAivCanvasReadinessIndex } from './aiv-canvas-readiness-projection.js';
 import {
   buildAivCanvasAssessmentResultSummary,
   buildAivCanvasResultIndex,
@@ -43,16 +44,6 @@ function assumptionsByRow(resolution) {
 }
 
 function rowAssumptions(context, tableKind, rowIndex) { return context.assumptions.get(`${tableKind}:${rowIndex}`) ?? []; }
-function readinessRows(envelope) { return Array.isArray(envelope?.readiness?.rows) ? envelope.readiness.rows : []; }
-
-function readinessFor(rows, predicate) {
-  const statuses = rows.filter(predicate).map((row) => text(row.status)).filter(Boolean);
-  if (!statuses.length) return null;
-  if (statuses.includes('NOT_READY')) return 'NOT_READY';
-  if (statuses.includes('METHOD_GAP')) return 'METHOD_GAP';
-  if (statuses.every((status) => status === 'NOT_APPLICABLE')) return 'NOT_APPLICABLE';
-  return statuses.includes('READY_FOR_QUALIFICATION') ? 'READY_FOR_QUALIFICATION' : statuses[0];
-}
 
 function sourceIcon(type) {
   return ({
@@ -83,7 +74,7 @@ function relationshipCasesByAssessment(records) {
 function assessmentCaseIds(context, canonicalId, results) {
   const ids = [
     ...results.map((item) => text(item.caseId)),
-    ...context.readiness.filter((row) => text(row.assessmentCanonicalId) === canonicalId).map((row) => text(row.caseId)),
+    ...(context.readiness.assessmentCaseIds.get(canonicalId) ?? []),
     ...(context.relationshipCases.get(canonicalId) ?? []),
   ].filter(Boolean);
   return [...new Set(ids)].sort((a, b) => a.localeCompare(b));
@@ -100,7 +91,7 @@ function sourceNodes(records, context) {
     return [{
       nodeKey: `SOURCE:${canonicalId}:${caseId}`, canonicalId, caseId, caseIds: [caseId], nodeKind: 'SOURCE',
       iconType: sourceIcon(values['Source Device Type']), tag: text(topo.tag) || canonicalId, line: text(topo.line) || null,
-      readinessStatus: readinessFor(context.readiness, (row) => text(row.sourceCanonicalId) === canonicalId && text(row.caseId) === caseId),
+      readinessStatus: context.readiness.sourceStatus.get(`${canonicalId}\u0000${caseId}`) ?? null,
       assumptionCount: assumptions.length, assumptions,
       screeningStatus: result ? text(result.status) || 'AVAILABLE' : null,
       resultSummary: result ? {
@@ -125,7 +116,7 @@ function assessmentNodes(records, context) {
       nodeKey: `ASSESSMENT:${canonicalId}`, canonicalId, caseId: null,
       caseIds: assessmentCaseIds(context, canonicalId, results), nodeKind: 'ASSESSMENT',
       iconType: assessmentIcon(values['Assessment Type']), tag: text(topo.tag) || canonicalId, line: text(topo.line) || null,
-      readinessStatus: readinessFor(context.readiness, (row) => text(row.assessmentCanonicalId) === canonicalId),
+      readinessStatus: context.readiness.assessmentStatus.get(canonicalId) ?? null,
       assumptionCount: assumptions.length, assumptions, screeningStatus: results.length ? 'AVAILABLE' : null,
       resultSummary: buildAivCanvasAssessmentResultSummary(results), tableRowIndex: rowIndex,
     }];
@@ -161,8 +152,7 @@ function relationshipRows(records, context) {
     if (!sourceCanonicalId || !assessmentCanonicalId || !caseId) return [];
     const key = `${sourceCanonicalId}\u0000${assessmentCanonicalId}\u0000${caseId}`;
     const selectionKey = `REL:${sourceCanonicalId}:${assessmentCanonicalId}:${caseId}`;
-    const ready = context.readiness.find((row) => text(row.sourceCanonicalId) === sourceCanonicalId
-      && text(row.assessmentCanonicalId) === assessmentCanonicalId && text(row.caseId) === caseId);
+    const ready = context.readiness.relationship.get(key) ?? null;
     const assumptions = rowAssumptions(context, 'relationships', rowIndex);
     const assessmentLine = text(context.topology.get(assessmentCanonicalId)?.line);
     const sourceLine = text(context.topology.get(sourceCanonicalId)?.line);
@@ -197,7 +187,7 @@ export function buildAivCanvasProjection(input = {}) {
   const relationshipsInput = tableRecords(tables.relationships);
   const resultIndex = buildAivCanvasResultIndex(input.screeningResult);
   const context = {
-    topology: topologyById(input.topology), readiness: readinessRows(input.readinessEnvelope),
+    topology: topologyById(input.topology), readiness: buildAivCanvasReadinessIndex(input.readinessEnvelope),
     assumptions: assumptionsByRow(input.assumptionResolution), relationshipCases: relationshipCasesByAssessment(relationshipsInput),
     sourceResults: resultIndex.sourceResults, assessmentResults: resultIndex.assessmentResults,
     contributions: resultIndex.contributions,
