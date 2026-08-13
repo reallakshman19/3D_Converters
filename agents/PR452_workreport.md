@@ -4,33 +4,27 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Implement issue #450's controlled vibration-master source inventory as the first executable recovery gate. |
+| Mission | Implement issue #450's controlled vibration-master source inventory as the first executable recovery gate, including exact page/range evidence for every pending master family. |
 | Source task / issue | `reallaksh19/3D_Converters#450` |
 | PR number | `452` |
 | Branch | `agent/vibration-master-source-inventory` |
 | Base commit | `main@c8aa2786e08a7669b913d0a055ad4c15c6d36b0e` |
-| Current HEAD | `c3c535acb491c44470b115ea30c7188198e7531a` before this report commit |
+| Current HEAD | `b861621786d3e1bd91823104cc5960b5cc832e59` before this report commit |
 | PR status | DRAFT / OPEN |
-| Current stage | Stage 6 — Closure / handover |
+| Current stage | Stage 5A — Exact-source execution + inventory coverage/range hardening |
 | Last completed stage | Stage 4 — Controlled source inventory implementation |
-| Engineering status | IMPLEMENTED / EXACT-SOURCE EXECUTION BLOCKED |
-| Validation status | Focused regression **7/7 PASS**; exact controlled-PDF run **NOT_RUN**; two GitHub Actions workflows **FAIL with logs unavailable** |
-| Current blocker | This execution environment cannot obtain the 10,348,594-byte controlled EI PDF; no mirror or alternate bytes may substitute for it. |
-| Exact next action | In an environment with `Common@fb549185…/EI - AVIFF Guidelines 2nd Edition.pdf`, run the new inventory command to `ValidationRecords/VibrationMasters/source-inventory-v1.json`, review any `SOURCE_NOT_LOCATED` / `RECONCILIATION_REQUIRED` entries, then continue the master-recovery sequence. |
+| Engineering status | IMPLEMENTED / EXACT-SOURCE EXECUTION BLOCKED / RANGE HARDENING IN_PROGRESS |
+| Validation status | Focused regression 7/7 PASS at prior implementation; Stage 5A changes not yet validated |
+| Current blocker | Exact controlled EI PDF bytes cannot be retrieved in this execution environment. No mirror or alternate bytes may substitute for the pinned source. |
+| Exact next action | Add bounded multi-page section support and Appendix-B coverage, validate synthetically, then keep exact-source execution blocked until the pinned binary is available. |
 
 ## Handover in 60 Seconds
 
 ### What is now true
 
-PR #452 implements the issue #450 source-inventory gate:
+PR #452 has a fail-closed inventory CLI that verifies the exact Git blob and byte size before invoking `pdftotext -layout`. Wrong bytes never reach extraction. Single-page source targets can be uniquely located, hashed and classified without publishing source text or numerical master values.
 
-```text
-scripts/inventory-vibration-master-sources.mjs
-tests/vibration-master-source-inventory.test.mjs
-npm run inventory:vibration-master-sources -- <controlled-pdf> --out <inventory.json>
-```
-
-The CLI pins and checks the exact governing source before launching `pdftotext`:
+The exact controlled source remains:
 
 ```text
 repository: reallaksh19/Common
@@ -40,32 +34,29 @@ Git blob: 9d3eccc56429411e17c07a579bdebbd13cb0bdc5
 size: 10,348,594 bytes
 ```
 
-It classifies source targets for SBC T3 tables/rules/figures, T2.8, T2.9, T4, T2.4/T2.5 and explicitly source-blocked advanced/specialist mechanisms. It records source/page hashes and locator states but never publishes extracted source text or numerical master values.
-
 ### What is being worked on
 
-Closure and handover only. Production implementation is complete for the inventory capability.
+A Stage-1/Stage-5A coverage defect was found during the approved plan execution: the current locator model can pin only one page, while issue #450 requires page ranges and its Appendix-B defaults span a bounded multi-page section. Stage 5A will add explicit start/end section boundaries and page-level hashes for the full bounded range.
 
 ### What remains unfinished
 
-The exact controlled PDF has not been executed in this environment, therefore:
-
-- `ValidationRecords/VibrationMasters/source-inventory-v1.json` is not committed;
-- exact PDF page numbers/hashes remain unproven;
-- locator anchors have not yet been reconciled against the pinned binary;
-- no numerical master extraction/digitization has begun.
+- exact controlled-PDF execution;
+- `ValidationRecords/VibrationMasters/source-inventory-v1.json` from the real source;
+- real-source anchor reconciliation;
+- numerical table extraction or chart digitization;
+- all downstream source-register/master-runtime stages.
 
 ### What must not be assumed
 
-Navigation hints are not controlled-source evidence. A synthetic regression PASS is not exact-source extraction PASS. This PR grants no engineering/screening/design authority.
+Navigation mirrors are not source authority. Printed-page hints derived from navigation are hints only until the exact pinned binary is executed. Synthetic range tests are not exact-source extraction PASS.
 
 ### Highest-risk remaining item
 
-Exact-source locator reconciliation: the first real run may expose missing or duplicated target anchors, and those must remain fail-closed rather than being weakened to force a PASS.
+Weakening source locators to force a PASS. Any missing, duplicate, reversed or otherwise ambiguous start/end boundary must remain fail-closed.
 
 ### Exact next action
 
-Run:
+Implement and validate bounded section ranges and Appendix-B inventory coverage; then attempt the exact command only when the exact controlled bytes are available:
 
 ```bash
 npm run inventory:vibration-master-sources -- \
@@ -73,36 +64,30 @@ npm run inventory:vibration-master-sources -- \
   --out ValidationRecords/VibrationMasters/source-inventory-v1.json
 ```
 
-Only use the file if its Git blob and byte size match the pinned values above.
-
 ## Mission and Engineering Intent
 
 ### Mission
 
-Provide a reproducible inventory that answers which #450 master sources are present, where exact extraction locates them, which are text/table/rule/curve sources, and which mechanisms remain source-blocked.
+Provide a reproducible source inventory that answers which #450 master sources are present, their exact source page/page-range evidence, which require table/rule extraction versus figure digitization, and which remain source-blocked.
 
 ### Engineering consequence
 
-The capability creates an executable anti-drift gate before any recovered table, rule, equation or curve can enter a production engineering calculation.
+This gate prevents uncontrolled, ambiguous, or benchmark-derived data from entering vibration engineering calculations.
 
-### Scope delivered
+### Current PR scope
 
-- exact Git-blob and byte-size validation;
-- validation before any extraction process launch;
-- deterministic `pdftotext -layout` extraction;
-- form-feed PDF page identity;
-- stable source-target catalogue;
-- unique/missing/ambiguous locator states;
-- page text SHA-256 evidence without source-text publication;
-- curve digitization classification;
+- exact Git-blob and byte-size validation before extraction;
+- deterministic layout-preserved text extraction;
+- single-page and bounded-section source locating;
+- page-level hashes with no extracted source text publication;
+- explicit curve digitization classification;
 - explicit source-blocked mechanisms;
-- frozen authority metadata;
-- operator npm command;
-- focused test and FIT/VIB release-manifest integration.
+- all pending #450 master families, including optional Appendix-B defaults;
+- focused regressions and existing FIT/VIB release-manifest integration.
 
-### Explicit non-goals preserved
+### Explicit non-goals
 
-No numerical master values, no digitized curve points, no mechanism solver, no generic master resolver, no workflow modifications, and no authority transition.
+No recovered numerical master values, no curve point digitization, no production mechanism solver changes, no speculative master resolver, no `.github/workflows/*` changes, and no authority transition.
 
 ## Authority Freeze
 
@@ -116,150 +101,147 @@ designAuthority      = false
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Living work report | P0 | DONE | 1–6 | `agents/PR452_workreport.md` |
+| Living work report | P0 | IN_PROGRESS | 1–6 | `agents/PR452_workreport.md` |
 | Draft PR allocation / synchronization | P0 | DONE | 2 | PR #452 |
 | Baseline repository verification | P0 | DONE | 3 | base/head compare |
 | Controlled source inventory CLI | P0 | IMPLEMENTED | 4 | `scripts/inventory-vibration-master-sources.mjs` |
-| Focused source-inventory tests | P0 | VALIDATED | 4 | 7/7 PASS |
-| Package command integration | P0 | VALIDATED | 4 | package assertion in focused test |
-| FIT/VIB release-manifest integration | P0 | IMPLEMENTED | 4 | one test-path addition |
-| Exact controlled-PDF execution | P0 | BLOCKED | 5 | exact source bytes unavailable to execution environment |
-| Source inventory validation record | P0 | BLOCKED | 5 | must be generated by exact-source run |
-| Authority promotion | P0 | REJECTED | all | out of scope; authority frozen |
+| Exact-byte-before-extraction invariant | P0 | VALIDATED | 4 | focused fake-binary regression |
+| Single-page locator/hashing | P0 | VALIDATED | 4 | focused fixture |
+| Bounded multi-page section locator | P0 | IN_PROGRESS | 5A | required by #450 page-range evidence |
+| Appendix-B defaults source target | P2 | IN_PROGRESS | 5A | missing from initial catalogue |
+| Exact controlled-PDF execution | P0 | BLOCKED | 5 | exact source bytes unavailable |
+| Source inventory validation record | P0 | BLOCKED | 5 | requires exact-source run |
+| Downstream master recovery | P0/P1/P2 | NOT_STARTED | after 5 | blocked by exact-source gate |
+| Authority promotion | P0 | REJECTED | all | separate governance event |
 
 ## Engineering Item Register
 
 | ID | Type | Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
-| ISS-001 | Defect | P0 | RESOLVED | Initial Stage-4 CLI ordering launched `pdftotext` before top-level exact-byte assertion. Fixed by asserting blob/size first; regression proves fake extractor is never launched for wrong bytes. | YES |
+| ISS-001 | Defect | P0 | RESOLVED | Initial CLI launched `pdftotext` before top-level exact-byte assertion; fixed and regression-tested. | YES |
+| ISS-002 | Defect | P0 | IN_PROGRESS | Locator model records only one source page; #450 requires page ranges and page hashes for bounded multi-page source sections. | YES |
+| IMP-001 | Improvement | P2 | IN_PROGRESS | Add explicit Appendix-B sample-parameter/defaults source coverage to complete the issue's pending-master catalogue. | YES |
 | RISK-001 | Risk | P0 | MITIGATED | Same-name/re-exported PDF rejected by Git blob + byte-size checks. | YES |
-| RISK-002 | Risk | P0 | MITIGATED | Inventory publishes hashes/locators only; mirror text is not consumed. | YES |
-| RISK-003 | Risk | P0 | MITIGATED | T3 curves resolve to `FIGURE_DIGITIZATION_REQUIRED`, not generated numerical data. | YES |
-| RISK-004 | Risk | P1 | ACTIVE | Full FIT/VIB release has known baseline failures from prior evidence; this PR's focused test is independently validated. | YES |
-| RISK-005 | Risk | P0 | ACTIVE | Exact controlled binary cannot be downloaded/read through this execution environment, blocking Stage 5. | YES |
-| RISK-006 | Risk | P1 | ACTIVE | Two GitHub Actions workflows fail on current head; Actions log blobs are unavailable (`BlobNotFound`), so root cause is not established. | YES |
-| DEC-001 | Decision | P0 | ACCEPTED | Inventory is source-readiness evidence only; authority remains frozen. | YES |
-| DEC-002 | Decision | P0 | ACCEPTED | Governing source identity is Common `fb549185…`, blob `9d3e…bdc5`, size 10,348,594. | YES |
-| DEC-003 | Decision | P0 | ACCEPTED | Reuse AIV fail-closed principles without refactoring AIV or creating speculative shared infrastructure. | YES |
-| DEC-004 | Decision | P0 | ACCEPTED | Printed-page values in the catalogue are navigation hints; exact PDF page/hash evidence comes only from the pinned binary. | YES |
-| QST-001 | Question | P0 | OPEN | Exact PDF page offsets remain pending exact-source execution. | YES |
+| RISK-002 | Risk | P0 | MITIGATED | Published inventory excludes extracted source text and master values. | YES |
+| RISK-003 | Risk | P0 | MITIGATED | Curve targets resolve to digitization-required, not generated data. | YES |
+| RISK-004 | Risk | P1 | ACTIVE | Broader FIT/VIB baseline has known red checks; this PR must distinguish its focused regressions. | YES |
+| RISK-005 | Risk | P0 | ACTIVE | Exact controlled binary unavailable in this environment. | YES |
+| RISK-006 | Risk | P1 | ACTIVE | Current-head GitHub Actions jobs fail with unavailable logs/artifacts. | YES |
+| DEC-001 | Decision | P0 | ACCEPTED | Inventory is source-readiness evidence only; authority stays frozen. | YES |
+| DEC-002 | Decision | P0 | ACCEPTED | Exact controlled source is Common `fb549185…`, blob `9d3e…bdc5`, 10,348,594 bytes. | YES |
+| DEC-003 | Decision | P0 | ACCEPTED | Navigation mirrors may inform locator hints only; they cannot close controlled-source gates. | YES |
+| DEC-004 | Decision | P0 | ACCEPTED | Multi-page source ranges use explicit unique start and end boundaries; end-page belongs to the next section and is excluded. | YES |
+| QST-001 | Question | P0 | OPEN | Exact PDF-page offsets remain pending exact-source execution. | YES |
 | QST-002 | Question | P1 | OPEN | T2.8/T2.9 anchor adequacy remains pending exact-source execution. | YES |
 
 ## Stage Roadmap / Decisions
 
-### Stage 1 — Report initialization + technical findings
-
-**COMPLETE.** Living report created before production changes.
+### Stage 1 — Report initialization + findings
+**COMPLETE.**
 
 ### Stage 2 — PR allocation + report synchronization
+**COMPLETE.** Draft PR #452.
 
-**COMPLETE.** Draft PR #452 created and report renamed before production implementation.
-
-### Stage 3 — Changed-file / repository-state verification
-
-**COMPLETE.** Existing AIV source extractors/tests, package command seam and FIT/VIB release manifest were inspected. Pre-implementation diff was report-only.
+### Stage 3 — Repository-state verification
+**COMPLETE.** Existing AIV source extraction and release seams inspected; branch was report-only before implementation.
 
 ### Stage 4 — Controlled source inventory implementation
+**COMPLETE.** CLI, exact byte checks, single-page locators, hashes, authority freeze, package command and focused test delivered. Prior focused result: 7/7 PASS.
 
-**COMPLETE.** Delivered operator-facing CLI, focused test, package command and release-manifest integration.
+### Stage 5 — Exact controlled-source execution
+**BLOCKED / NOT_RUN.** Exact bytes cannot be obtained in this runner.
 
-#### Stage 4 implementation performed
+Retrieval attempts now include:
 
-- added exact source constants;
-- added Git blob SHA-1 + byte-size validation;
-- added `pdftotext -layout` full-document extraction and page splitting;
-- added target locator catalogue for #450 source families;
-- added fail-closed `SOURCE_PINNED`, `SOURCE_NOT_LOCATED`, `RECONCILIATION_REQUIRED`, `BLOCKED_SOURCE` states;
-- added page hashes and source summary without extracted source text;
-- added explicit `FIGURE_DIGITIZATION_REQUIRED` classification;
-- added frozen authority object;
-- added npm command;
-- added regression to existing VIB release manifest.
+- GitHub Contents/base64 path: metadata available, binary unavailable at this size;
+- GitHub Git-blob API: connector rejects non-UTF-8 binary content;
+- raw GitHub/web download path: bytes not retrievable;
+- local DNS/network: unavailable;
+- direct raw GitHub IP attempts: connection blocked;
+- current GitHub Actions controlled-source run: no reusable artifacts; steps/logs unavailable.
 
-#### Stage 4 defect / correction
+No mirror is used as source authority and no inventory JSON is manufactured.
 
-During Stage-5 preparation, `ISS-001` showed that `runVibrationMasterSourceInventory()` read bytes and launched `pdftotext` before the builder's exact-source assertion. The implementation was corrected to assert source identity immediately after reading bytes and before extraction. A fake-binary regression proves wrong bytes do not launch `pdftotext`.
+### Stage 5A — Inventory coverage/range hardening
 
-#### Stage 4 validation
+**Current truth**
+
+The issue requires page ranges and lists Appendix-B defaults as a pending master family. The current CLI lacks bounded-range records and Appendix-B coverage.
+
+**Objective**
+
+Support deterministic bounded sections with per-page hashes and add the missing Appendix-B source target without publishing any values.
+
+**Expected scope/files**
 
 ```text
-node --test tests/vibration-master-source-inventory.test.mjs
-7 tests / 7 PASS / 0 FAIL
+scripts/inventory-vibration-master-sources.mjs
+tests/vibration-master-source-inventory.test.mjs
+agents/PR452_workreport.md
 ```
 
-Exact validated Git blob identities:
+**Engineering rationale**
 
-```text
-scripts/inventory-vibration-master-sources.mjs   034f8c3512c5895a407c72fc007d60ff469feb9a
-tests/vibration-master-source-inventory.test.mjs e868930620620c2eb3ae3871bcccf8b831e80080
-package.json                                      2c9c3b53583c4bc65b0a916995280fc6ee15c415
-scripts/verify-vibration-fit-release.mjs          3cad8f4c04ac5aec430d4a78dda896745d65265f
-```
+A source inventory that cannot represent a multi-page source section cannot satisfy #450's locator anti-drift contract.
 
-The GitHub tree contains those same blobs.
+**Planned implementation**
 
-**Stage decision: COMPLETE.**
+- allow a target to define unique `endAnchors`;
+- find exactly one start boundary and exactly one end boundary;
+- fail closed on missing/duplicate/reversed boundaries;
+- record `pdfPages`, first/last page and one SHA-256 per included page;
+- preserve current single-page fields for current consumers;
+- add `EI_AVIFF.APPENDIX_B.FLUID_PROPERTY_DEFAULTS.v1` as a bounded section target using navigation-only printed-page hints `155-161`;
+- add focused synthetic tests.
 
-### Stage 5 — Exact controlled-source execution + evidence
+**Expected behavior**
 
-**BLOCKED / NOT_RUN.**
+A bounded section starts on the unique start-anchor page and ends immediately before the unique next-section boundary. No source text is emitted.
 
-Attempts made:
+**Edge cases**
 
-- GitHub connector source metadata and base64 file fetch: metadata available, binary content unavailable at this file size;
-- public raw GitHub URL through available web/download path: source bytes not retrievable;
-- local `git ls-remote` / network: `Could not resolve host: github.com`.
+Missing start/end, duplicate start/end and an end before/equal to the start are fail-closed `SOURCE_NOT_LOCATED` or `RECONCILIATION_REQUIRED` states.
 
-Because source bytes could not be obtained, no `pdftotext` extraction against the governing file was run and no inventory JSON was committed. This is intentionally not converted to PASS using a mirror.
+**Planned validation**
 
-**Stage decision: BLOCKED.**
+Focused Node tests for successful multi-page range, page hashes, ambiguity/reversal failure, catalogue coverage, unchanged authority, and existing single-page behavior.
+
+**Known risks**
+
+Actual exact-source anchors may still require reconciliation after the real binary can be run; synthetic PASS will not be promoted to exact-source PASS.
 
 ### Stage 6 — Closure / handover
 
-Current stage. Keep PR draft. The implementation is usable once the exact source file is supplied; exact-source evidence remains the blocker to master-recovery continuation.
+After Stage 5A validation, reconcile the changed-file ledger and keep the PR draft with Stage 5 blocked until exact bytes are available.
 
 ## Changed-File Ledger
 
-GitHub base→head comparison at implementation head `c3c535ac…`:
-
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---|---|---|---|---|
-| `agents/PR452_workreport.md` | 1 | 6 | Living mission/engineering/validation handover. | YES | current-state reconciliation |
-| `package.json` | 4 | 4 | Adds operator inventory command only. | NO | focused test PASS; diff +1 line |
-| `scripts/inventory-vibration-master-sources.mjs` | 4 | 4 | Controlled source-inventory CLI. | YES | focused test 7/7 PASS |
-| `scripts/verify-vibration-fit-release.mjs` | 4 | 4 | Adds inventory regression to existing release manifest. | NO | focused test PASS; diff +1 line |
-| `tests/vibration-master-source-inventory.test.mjs` | 4 | 4 | Anti-drift/source-state/authority regressions. | YES | 7/7 PASS |
+| `agents/PR452_workreport.md` | 1 | 5A | Living mission/engineering/validation handover. | YES | continuous |
+| `package.json` | 4 | 4 | Operator inventory command only. | NO | prior focused PASS |
+| `scripts/inventory-vibration-master-sources.mjs` | 4 | 5A | Controlled source inventory; range hardening pending. | YES | Stage 5A pending |
+| `scripts/verify-vibration-fit-release.mjs` | 4 | 4 | Existing release-manifest test-path addition only. | NO | prior focused PASS |
+| `tests/vibration-master-source-inventory.test.mjs` | 4 | 5A | Source anti-drift/range/authority regressions. | YES | Stage 5A pending |
 
-No unexplained changed files exist. No `.github/workflows/*` files are changed.
+No `.github/workflows/*` file is in scope.
 
 ## Engineering Decisions and Invariants
 
-### Invariant — source bytes before extraction
+### Source bytes before extraction
+Wrong source bytes must never reach `pdftotext`. Enforced by top-level source assertion and fake-binary regression. This PR does not change the invariant.
 
-- **Must remain true:** wrong source bytes never reach `pdftotext`.
-- **Enforced in:** `runVibrationMasterSourceInventory()` + `assertExpectedVibrationMasterSource()`.
-- **Validated by:** fake extraction binary remains uncalled on wrong bytes.
-- **Authority change:** none.
+### Hash-only published inventory
+Inventory output may contain source identity, locators, states and hashes, but not extracted EI page text or recovered values.
 
-### Invariant — no source-text publication
+### Page-range anti-drift
+Every successfully bounded multi-page source must expose the exact included PDF page numbers and one hash per page. Boundary ambiguity fails closed.
 
-- **Must remain true:** committed/operator JSON contains hashes/locators/states, not extracted EI source text.
-- **Enforced in:** inventory builder target records.
-- **Validated by:** focused hash-only regression.
+### Curves remain digitization work
+Locating T3 figures cannot generate numerical curve points.
 
-### Invariant — curves are not reverse-engineered
-
-- **Must remain true:** a located T3 curve only unlocks digitization/reconciliation work.
-- **Enforced in:** `FIGURE_DIGITIZATION_REQUIRED` recovery action.
-- **Validated by:** focused curve classification regression.
-
-### Invariant — authority remains frozen
-
-Validated inventory authority is always:
-
-```text
-NONE / NOT_AUTHORIZED / false
-```
+### Authority remains frozen
+Every inventory result remains `NONE / NOT_AUTHORIZED / false`.
 
 ## Validation and Evidence Ledger
 
@@ -267,93 +249,63 @@ NONE / NOT_AUTHORIZED / false
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Pre-implementation changed-file check | PASS | `65027ac…` | report only |
-| Focused inventory regression | PASS | exact implementation blobs at `c3c535ac…` | 7/7 PASS |
-| Blob identity comparison local ↔ GitHub | PASS | `c3c535ac…` | four hashes above |
-| Final implementation changed-file scope | PASS | `c3c535ac…` | expected five logical files including report |
-| Full `verify:vibration-fit-release` | NOT_RUN | n/a | full private checkout unavailable; prior baseline known to fail independently |
-| GitHub workflow: Topology Edit Support Reprojection | FAIL / LOGS_UNAVAILABLE | `c3c535ac…` | run `31665438824`; log endpoint `BlobNotFound` |
-| GitHub workflow: Vibration AIV Controlled Source Qualification | FAIL / LOGS_UNAVAILABLE | `c3c535ac…` | run `31665438893`; log endpoint `BlobNotFound` |
-| Exact controlled-PDF inventory execution | NOT_RUN / BLOCKED | n/a | source bytes unavailable |
+| Prior focused inventory regression | PASS | `c3c535ac…` implementation | 7/7 PASS |
+| Stage 5A focused regression | NOT_RUN | n/a | pending implementation |
+| Exact controlled-PDF inventory | NOT_RUN / BLOCKED | n/a | exact bytes unavailable |
+| Current GitHub Actions | FAIL / LOGS_UNAVAILABLE | `b861621…` | no reusable source artifact |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| Source repository/commit/path pinned | PASS | #450 + Common metadata |
-| Git blob + byte size pinned | PASS | constants + focused regression |
-| Wrong bytes fail before extraction | PASS | fake-binary regression |
-| Missing target fails closed | PASS | focused fixture |
-| Ambiguous target fails closed | PASS | focused fixture |
-| Curves require digitization | PASS | focused fixture |
-| Hash-only output | PASS | focused fixture |
+| Source repository/commit/path | PASS | issue #450 + Common metadata |
+| Git blob + byte size | PASS | constants + regression |
+| Wrong bytes before extraction | PASS | fake binary not launched |
+| Single-page locator/hash | PASS | focused fixture |
+| Multi-page locator/hash | NOT_RUN | Stage 5A pending |
+| Appendix-B target coverage | NOT_RUN | Stage 5A pending |
+| Exact real-source locators | NOT_RUN / BLOCKED | exact binary required |
 | Authority freeze | PASS | focused fixture |
-| Exact T3/T2.8/T2.9/T4 locator results | NOT_RUN | exact source required |
 
 ### Explicitly Not Validated
 
-- exact source PDF page count;
-- exact target PDF page numbers and page SHA-256 hashes;
-- adequacy of every real-source regex anchor;
-- any extracted table row/value;
-- any digitized curve point/tolerance;
-- full release gate on this head;
-- cause of the two red GitHub Actions jobs;
-- screening/design authority.
+Exact PDF page count/offsets, real-source regex adequacy, any table row/value, any curve point/tolerance, downstream mechanism qualification, screening/design authority.
 
 ## Known / Deferred Work and Forward Sequence
 
-### Open risks/questions
-
-- `RISK-004`: broader baseline release failures;
-- `RISK-005`: exact source execution environment;
-- `RISK-006`: Actions failures without retrievable logs;
-- `QST-001`: exact PDF page offsets;
-- `QST-002`: T2.8/T2.9 anchor adequacy.
-
-### Recommended Forward Sequence
-
-1. Supply exact controlled EI PDF bytes and run this inventory command.
-2. Review/repair locator anchors only against the exact pinned binary; never weaken them based on a mirror.
-3. Commit `ValidationRecords/VibrationMasters/source-inventory-v1.json` only after exact-source execution.
-4. Recover/reconcile SBC T3 tables/rules first.
-5. Independently digitize T3-1…T3-4 with recorded engineering/pixel tolerance and reconciliation.
-6. Recover T2.8 valve closure, T2.9 `FL`, and T4 masters from exact pinned locators.
-7. Only then integrate governed masters into production mechanism calculations; authority remains a separate governance decision.
+1. Complete Stage 5A range/catalogue hardening.
+2. Obtain exact controlled EI PDF bytes and execute the inventory.
+3. Reconcile real locator anchors without weakening fail-closed behavior.
+4. Commit `ValidationRecords/VibrationMasters/source-inventory-v1.json` only from the exact source.
+5. Only then start source-register and SBC master recovery.
+6. Continue T3 digitization, T2.8/T2.9/T4 recovery, master runtime and mechanism qualification per issue #450.
 
 ## Next-Agent Handover
 
 | Item | Current state |
 |---|---|
-| Current stopping point | Inventory capability implemented; exact-source evidence blocked. |
-| PR / branch / implementation HEAD | #452 / `agent/vibration-master-source-inventory` / `c3c535acb491c44470b115ea30c7188198e7531a` |
+| Current stopping point | Stage 5A opened; exact-source Stage 5 remains blocked. |
+| PR / branch / pre-stage HEAD | #452 / `agent/vibration-master-source-inventory` / `b861621786d3e1bd91823104cc5960b5cc832e59` |
 | Last completed stage | Stage 4 |
-| Current active stage | Stage 6 closure; Stage 5 blocked |
-| Start here | Obtain exact Common PDF bytes and run the command above. |
-| Do not redo | CLI/test/package/release implementation or source identity discovery. |
-| Do not assume | exact locator anchors passed; CI failure root causes are known; mirror pages are authority. |
-| Files currently involved | five ledger files above |
-| Known failing checks | two Actions workflows FAIL; logs unavailable |
-| Validation still required | exact source run, inventory review, broader release validation |
-| Open QST-* items | QST-001, QST-002 |
-| Important deferred items | downstream master recovery and calculator qualification from #450 |
-| Highest-risk remaining item | exact-source locator reconciliation |
-| Exact next recommended action | run inventory against exact blob `9d3e…bdc5`, review states, commit evidence |
-| Required reading | issue #450; pinned CodingRules; this report; new inventory script/test |
+| Current active stage | Stage 5A |
+| Start here | `scripts/inventory-vibration-master-sources.mjs`: add bounded section support and Appendix-B target. |
+| Do not redo | Exact-byte ordering fix and prior 7/7 single-page regression. |
+| Do not assume | Mirror page hints are controlled evidence or exact source has run. |
+| Files currently involved | inventory script, focused test, this report |
+| Known failing checks | two unrelated/unexplained Actions jobs; logs unavailable |
+| Validation still required | Stage 5A focused test; exact controlled-source execution |
+| Open QST-* | QST-001, QST-002 |
+| Highest-risk item | boundary ambiguity being weakened to force location |
+| Exact next recommended action | implement bounded range helper and tests, then reconcile diff |
+| Required reading | #450; pinned CodingRules; this report; inventory script/test |
 
 ## Stage Execution Log
 
-### Stage 1
-Living report initialized before production changes. **COMPLETE.**
-
-### Stage 2
-Draft PR #452 allocated and report synchronized. **COMPLETE.**
-
-### Stage 3
-Baseline extraction/test/package/release seams verified; pre-implementation diff report-only. **COMPLETE.**
-
-### Stage 4
-CLI/test/integration implemented; `ISS-001` found and fixed; focused validation 7/7 PASS. **COMPLETE.**
+### Stages 1–4
+Report/PR/baseline setup and controlled source inventory implementation completed. Stage-4 focused validation recorded 7/7 PASS. ISS-001 exact-byte ordering defect was found and fixed before closure.
 
 ### Stage 5
-Exact-source retrieval/execution attempted but binary unavailable; no mirror substitution. **BLOCKED.**
+Exact-source execution attempted through all available controlled retrieval paths and remains BLOCKED / NOT_RUN. No substitute bytes or mirror-derived evidence were accepted.
+
+### Stage 5A
+Opened after catalogue audit found ISS-002 (no multi-page ranges) and IMP-001 (Appendix-B coverage absent). Implementation has not started at this report commit.
