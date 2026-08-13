@@ -24,10 +24,42 @@ function installStrictLineAuthorityUi(card) {
   card.__xmlCiiStrictLineObserver = observer;
 }
 
+// The branch-scoped state ref used by processing phases returns a fresh
+// processing-state object from its getter. Legacy Regex UI code frequently
+// performs direct writes such as `stateRef.current.format1SelectedSample = x`.
+// Without a write-through adapter those writes land on the temporary object
+// and disappear immediately, leaving selectedSample empty and therefore
+// rendering zero token cards. This adapter preserves the existing Regex UI
+// contract while committing every top-level property write through the real
+// state-ref setter.
+function createRegexWriteThroughRef(stateRef) {
+  if (!stateRef) return stateRef;
+  return {
+    modeABaseRef: stateRef.modeABaseRef,
+    get current() {
+      const snapshot = stateRef.current;
+      if (!snapshot || typeof snapshot !== 'object' || typeof Proxy === 'undefined') return snapshot;
+      return new Proxy(snapshot, {
+        set(target, property, value) {
+          target[property] = value;
+          const latest = stateRef.current || {};
+          stateRef.current = { ...latest, [property]: value };
+          return true;
+        },
+      });
+    },
+    set current(next) {
+      stateRef.current = next;
+    },
+  };
+}
+
 export function renderActivePhase(root, stateRef, render) {
-  renderBaseActivePhase(root, stateRef, render);
-  const phaseId = stateRef?.current?.activePhaseId;
+  const phaseIdBeforeRender = stateRef?.current?.activePhaseId;
+  const effectiveRef = phaseIdBeforeRender === 'regex' ? createRegexWriteThroughRef(stateRef) : stateRef;
+  renderBaseActivePhase(root, effectiveRef, render);
+  const phaseId = effectiveRef?.current?.activePhaseId;
   const card = root.querySelector(`[data-active-phase="${phaseId}"]`) || root;
-  if (phaseId === 'regex') enhanceRegexSmartWorkbench(card, stateRef.current, stateRef, render);
+  if (phaseId === 'regex') enhanceRegexSmartWorkbench(card, effectiveRef.current, effectiveRef, render);
   if (phaseId === 'preview') installStrictLineAuthorityUi(card);
 }
