@@ -1,6 +1,7 @@
 import { AIV_UI_BENCHMARK_SOURCE } from './vibration-aiv-benchmarks.js';
 import { renderAivCanvasWorkspaceHtml } from './vibration-aiv-canvas-view.js';
 import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
+import { renderAivFlareNetworkAuthoringHtml } from './vibration-aiv-flare-network-view.js';
 import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
 
 function esc(value) {
@@ -35,7 +36,7 @@ function benchmarkPanel(state) {
 }
 
 function importPanel(state) {
-  return `<section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV working inputs</h4><p>Imported CSVs become editable working tables. Blank cells are resolved from the visible assumption profile before readiness/calculation; explicit table values always take precedence.</p></div></div><div class="aivq-import-grid">
+  return `<section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV working inputs</h4><p>Imported CSVs become editable working tables. A drawn flare network can also generate all three tables automatically. Blank cells are resolved from the visible assumption profile before readiness/calculation; explicit table values always take precedence.</p></div></div><div class="aivq-import-grid">
       <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, null, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX required')}</span></label>
       <label class="aivq-file-field"><span>AIV Sources</span><input type="file" data-aiv-file="sources" accept=".csv,text/csv"><span>${fileStatus(state.files?.sources, state.tables?.sources, 'AivSourceCsv.v2')}</span></label>
       <label class="aivq-file-field"><span>AIV Assessments</span><input type="file" data-aiv-file="assessments" accept=".csv,text/csv"><span>${fileStatus(state.files?.assessments, state.tables?.assessments, 'AivAssessmentCsv.v1')}</span></label>
@@ -147,8 +148,8 @@ export function renderAivInputWorkspaceHtml(state = {}) {
   const assumptions = assumptionMap(state);
   const canvasState = { ...state, tables };
   const filterContext = tableFilterContext(state, tables);
-  return `${renderAivCanvasWorkspaceHtml(canvasState)}${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
-    ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells are assumed from the configured profile at execution time.', assumptions, filterContext)}
-    ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID. Missing engineering cells use configured assumptions.', assumptions, filterContext)}
-    ${editableTable('Source → Assessment', tables.relationships, 'Applicability, engineering physical distance and simultaneous-source grouping. Missing cells use configured assumptions; topology pixels never supply distance.', assumptions, filterContext)}`;
+  return `${renderAivFlareNetworkAuthoringHtml(state)}${renderAivCanvasWorkspaceHtml(canvasState)}${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
+    ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Drawn Source nodes generate identities/cases automatically; blank engineering cells are assumed from the configured profile at execution time.', assumptions, filterContext)}
+    ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID. Drawn Assessment nodes generate rows automatically; missing engineering cells use configured assumptions.', assumptions, filterContext)}
+    ${editableTable('Source → Assessment', tables.relationships, 'Generated from flare-network reachability. Physical Distance is the sum of explicit engineering segment lengths on one resolved graph path; SVG pixels never supply distance.', assumptions, filterContext)}`;
 }
