@@ -40,15 +40,19 @@ function sourceRow(source, activeId) {
   const meta = createElement('div', `${source.fileName} · ${source.sourceId}`, 'xml-cii-phase-help');
   sourceCell.append(name, meta);
 
-  const branchCell = createElement('td', `${source.branchSelection?.selectedBranchNames?.length || 0}/${source.metrics?.branchCount || 0}`);
+  const selectedBranchCount = source.branchSelection?.selectedBranchOccurrenceIds?.length
+    ?? source.branchSelection?.selectedBranchNames?.length
+    ?? 0;
+  const branchCell = createElement('td', `${selectedBranchCount}/${source.metrics?.branchCount || 0}`);
   const nodeCell = createElement('td', String(source.metrics?.nodeCount || 0));
   const stagedCell = createElement('td', source.stagedJsonText ? 'Paired' : 'Not paired');
   const conflictCell = createElement('td');
   const conflicts = [];
-  if (source.metrics?.duplicateBranchNames?.length) conflicts.push(`${source.metrics.duplicateBranchNames.length} duplicate branch name(s)`);
-  if (source.metrics?.duplicateNodesWithinBranch?.length) conflicts.push(`${source.metrics.duplicateNodesWithinBranch.length} duplicate node-in-branch`);
+  if (source.metrics?.duplicateBranchNames?.length) conflicts.push(`${source.metrics.duplicateBranchNames.length} repeated branch name(s) aliased by occurrence`);
+  if (source.metrics?.duplicateNodesWithinBranch?.length) conflicts.push(`${source.metrics.duplicateNodesWithinBranch.length} duplicate node-in-branch occurrence`);
   if (source.metrics?.duplicateNodeNumbers?.length) conflicts.push(`${source.metrics.duplicateNodeNumbers.length} repeated node number(s)`);
-  conflictCell.appendChild(badge(conflicts.length ? conflicts.join(' · ') : 'None', conflicts.some((item) => item.includes('in-branch') || item.includes('branch name')) ? 'bad' : (conflicts.length ? 'warn' : 'info')));
+  const hasBlockingConflict = source.metrics?.duplicateNodesWithinBranch?.length > 0;
+  conflictCell.appendChild(badge(conflicts.length ? conflicts.join(' · ') : 'None', hasBlockingConflict ? 'bad' : (conflicts.length ? 'warn' : 'info')));
 
   const actions = createElement('td');
   const select = button(source.sourceId === activeId ? 'Active' : 'Open', 'activate', source.sourceId);
@@ -72,7 +76,7 @@ export function renderModeASourceInventory(parent, stateRef) {
   if (panel.style) Object.assign(panel.style, { marginTop: '12px', padding: '12px', border: '1px solid #334155', borderRadius: '8px' });
   panel.append(
     createElement('div', 'Multiple XML — Separate Models (Mode A)', 'model-converters-workflow-section-title'),
-    createElement('div', 'Each enabled XML is processed independently. Node numbers and branch names are never merged across files.', 'model-converters-workflow-detail-note'),
+    createElement('div', 'Each enabled XML is processed independently. Repeated Branchname text is isolated by branch occurrence; original engineering names are preserved.', 'model-converters-workflow-detail-note'),
   );
   const input = parent.querySelector?.('[data-field="source-file"]');
   if (input) {
@@ -106,7 +110,7 @@ export function renderModeASourceInventory(parent, stateRef) {
   const preflight = buildModeAPreflight(batch);
   const summary = createElement('div', '', 'model-converters-workflow-detail-note');
   summary.append(
-    document.createTextNode(`${preflight.enabledSourceCount}/${preflight.sourceCount} files enabled · ${preflight.branchCount} branches · ${preflight.nodeCount} nodes · `),
+    document.createTextNode(`${preflight.enabledSourceCount}/${preflight.sourceCount} files enabled · ${preflight.branchCount} branch occurrences · ${preflight.nodeCount} nodes · `),
     badge(`${preflight.duplicateBranchesAcrossFiles.length} duplicate branch names across files`, preflight.duplicateBranchesAcrossFiles.length ? 'warn' : 'info'),
     document.createTextNode(' '),
     badge(`${preflight.duplicateNodesAcrossFiles.length} duplicate node numbers across files`, preflight.duplicateNodesAcrossFiles.length ? 'warn' : 'info'),
@@ -138,7 +142,7 @@ export function renderModeABatchResults(parent, state = {}) {
   const panel = createElement('section', '', 'xml-cii-weight-panel');
   panel.dataset.modeAPanel = 'batch-results';
   panel.appendChild(createElement('h3', 'Mode A Batch Results — Separate Models'));
-  panel.appendChild(createElement('div', `${batchResult.summary?.succeeded || 0} succeeded · ${batchResult.summary?.failed || 0} failed · ${batchResult.sources.length} processed`, 'model-converters-workflow-detail-note'));
+  panel.appendChild(createElement('div', `${batchResult.summary?.succeeded || 0} succeeded · ${batchResult.summary?.failed || 0} failed · ${batchResult.summary?.blocked || 0} blocked · ${batchResult.sources.length} inspected`, 'model-converters-workflow-detail-note'));
   const downloadManifest = button('Download Batch Manifest', 'download-batch-manifest');
   panel.appendChild(downloadManifest);
   const table = createElement('table');
