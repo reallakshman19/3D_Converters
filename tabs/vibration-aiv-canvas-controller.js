@@ -130,9 +130,14 @@ function clearFilteredSelection(runtime) {
   updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, null).canvasElement);
 }
 
+function applyModePresentation(runtime) {
+  const card = runtime.container.querySelector('.aiv-canvas-card');
+  if (card) card.dataset.aivCanvasActiveMode = runtime.relationship.mode;
+}
+
 function setRelationshipMode(runtime, mode) {
   runtime.relationship = setAivCanvasRelationshipMode(runtime.relationship, mode);
-  runtime.container.dataset.aivCanvasActiveMode = runtime.relationship.mode;
+  applyModePresentation(runtime);
   for (const button of runtime.container.querySelectorAll('[data-aiv-canvas-mode]')) {
     button.setAttribute('aria-pressed', button.dataset.aivCanvasMode === runtime.relationship.mode ? 'true' : 'false');
   }
@@ -141,7 +146,7 @@ function setRelationshipMode(runtime, mode) {
 function syncRuntime(runtime) {
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
   runtime.relationship = createAivCanvasRelationshipState({ mode: runtime.relationship?.mode ?? AIV_CANVAS_MODE.NAVIGATE });
-  runtime.container.dataset.aivCanvasActiveMode = runtime.relationship.mode;
+  applyModePresentation(runtime);
   if (!svg) return;
   runtime.layout = reconcileAivCanvasPresentationLayout(layoutFromSvg(svg), runtime.layout);
   applyLayout(svg, runtime.layout);
