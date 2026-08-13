@@ -9,20 +9,32 @@
 | PR number | `452` |
 | Branch | `agent/vibration-master-source-inventory` |
 | Base commit | `main@c8aa2786e08a7669b913d0a055ad4c15c6d36b0e` |
-| Current HEAD | `343ce0aa2ca32f191ac67ad857086f722518afb3` before this synchronization commit |
+| Current HEAD | `65027ac545f4ecdfa62c47ac754342137a17eef9` before this stage-opening commit |
 | PR status | DRAFT / OPEN |
-| Current stage | Stage 3 — Changed-file / repository-state verification |
-| Last completed stage | Stage 2 — PR allocation + report synchronization |
-| Engineering status | INVESTIGATING |
-| Validation status | NOT_RUN |
-| Current blocker | Exact controlled EI PDF bytes are external to this repository; authoritative extraction must require the supplied pinned binary and fail closed on mismatch. |
-| Exact next action | Verify baseline extraction/test/release patterns and PR changed files, then update this report for Stage 4 before production implementation. |
+| Current stage | Stage 4 — Controlled source inventory implementation |
+| Last completed stage | Stage 3 — Changed-file / repository-state verification |
+| Engineering status | IN_PROGRESS |
+| Validation status | NOT_RUN for implementation |
+| Current blocker | Exact pinned EI PDF bytes are external to this repository; exact-source execution remains a separate Stage-5 gate. |
+| Exact next action | Implement the bounded CLI + focused regression + package/release integration described below; then run the focused tests locally from reconstructed files before committing evidence. |
 
 ## Handover in 60 Seconds
 
 ### What is now true
 
-Draft PR #452 exists and this is its single living report. Issue #450 requires `scripts/inventory-vibration-master-sources.mjs` plus `ValidationRecords/VibrationMasters/source-inventory-v1.json` as the immediate first action. The controlled governing PDF is pinned at:
+Draft PR #452 is cleanly based on `c8aa2786…` and, before Stage 4, differs from main only by this living report. Existing controlled-source patterns were verified in:
+
+```text
+scripts/extract-aiv-ei-t27-source.mjs
+tests/vibration-aiv-source-extraction-contract.test.mjs
+scripts/extract-aiv-ei-d23-source.mjs
+package.json
+scripts/verify-vibration-fit-release.mjs
+```
+
+The new inventory will reuse those fail-closed principles without modifying AIV behavior.
+
+Controlled governing source:
 
 ```text
 repository: reallaksh19/Common
@@ -35,66 +47,61 @@ edition: Second edition, January 2008
 
 ### What is being worked on
 
-Repository-state verification before implementing deterministic source-byte verification, `pdftotext -layout` discovery, locator classification, page/section hashing and fail-closed inventory output.
+A CLI that accepts the controlled PDF path, verifies Git blob + size, runs `pdftotext -layout`, discovers required source anchors uniquely, records PDF page/hash evidence, classifies recovery as text/rule/table/curve/project evidence, and emits a hash/source-locator inventory with frozen authority.
 
 ### What remains unfinished
 
-No production code has been changed. No exact controlled-PDF extraction has been executed in this PR. No master values or curves have been published.
+No inventory code exists yet. Exact controlled-PDF execution and committed inventory evidence are Stage 5. No numerical master values are being recovered in Stage 4.
 
 ### What must not be assumed
 
-Public-mirror text is navigation assistance only. It is not source authority. Worked-example targets are not master-generation input. Source discovery does not authorize screening/design use.
+Public-mirror navigation is not source authority. Printed-page hints are expectations only until the exact pinned binary confirms the anchors. Worked-example targets are never equation/master inputs.
 
 ### Highest-risk remaining item
 
-A same-name/re-exported PDF or ambiguous heading must not be accepted as the governing source.
+Ambiguous source anchors or accidental acceptance of wrong PDF bytes.
 
 ### Exact next action
 
-Inspect existing AIV controlled-source scripts/tests, package/release conventions and PR changed-file list; record Stage 3 result; then begin Stage 4 implementation only after updating this report.
+Implement Stage 4's four-file production/test integration plus this report, validate wrong-byte/missing/ambiguous-anchor paths, then record Stage 4 results.
 
 ## Mission and Engineering Intent
 
 ### Mission
 
-Provide a reproducible inventory that answers which #450 master sources are present in the pinned EI guidance, where they are located, whether they are text/table/rule/curve sources, and which recovery stages remain source-blocked.
+Provide a reproducible source inventory answering which #450 master sources are present, where controlled extraction locates them, and whether each requires table/rule extraction, figure digitization, equation reconciliation, or project/OEM evidence.
 
 ### User / engineering consequence
 
-This prevents production masters from being built from uncontrolled copies, memory or retained benchmark outputs. It establishes the source-identity and locator anti-drift gate before any numerical recovery.
+The inventory becomes the gate that decides which recovery work can begin and which paths remain `BLOCKED_SOURCE`, preventing uncontrolled data from entering production engineering calculations.
 
 ### Scope
 
-- exact Git blob + byte-size validation for the governing EI PDF;
-- deterministic layout-preserved text extraction;
-- unique source-section/table/figure discovery for #450 master families;
-- text/table/rule versus figure/image classification;
-- page/section hash evidence;
-- focused anti-drift tests;
-- usable package command and inventory record;
-- work-report and PR evidence updates.
+- exact source Git blob + size validation;
+- deterministic layout-preserved PDF text extraction;
+- unique source target discovery;
+- page and bounded-section hashing;
+- target classification and fail-closed state;
+- focused tests;
+- package command and FIT/VIB release-manifest integration;
+- work report and later source-inventory validation record.
 
-### Governing engineering principles
+### Governing principles
 
-- exact controlled bytes first;
-- ambiguity and missing anchors fail closed;
+- exact controlled bytes before authoritative extraction;
+- missing/ambiguous anchors fail closed;
 - no silent fallback/fuzzy matching;
-- no reverse engineering from benchmark targets;
-- public mirrors only for navigation/reconciliation assistance;
-- inventory/extraction never promotes authority.
+- public mirrors only for navigation/reconciliation;
+- no reverse engineering from benchmarks;
+- source inventory never grants numerical/screening/design authority.
 
 ### Explicit non-goals
 
-- no numerical master publication;
-- no curve digitization points;
-- no new mechanism calculator;
-- no generic master resolver unless a recovered master is production-consumed;
-- no `.github/workflows/*` changes;
-- no authority transition.
+No master values, curve points, mechanism solver, generic resolver, workflow file, screening promotion or design authority change.
 
-### Important constraints
+### Coding constraints
 
-Governing protocol: `reallaksh19/Common@43eccc27967ecec7d67513c08255398b496be5ce/CodingRules.md`. New JS modules should normally stay below 300 physical lines and functions below 40 logical lines. New unused production modules must remain zero.
+Follow `Common@43eccc27967ecec7d67513c08255398b496be5ce/CodingRules.md`. New JS modules normally <300 physical lines; functions normally <40 logical lines; new unused production modules = 0.
 
 ## Authority Freeze
 
@@ -109,111 +116,155 @@ designAuthority      = false
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
 | Living work report | P0 | ACCEPTED | 1 | `agents/PR452_workreport.md` |
-| Draft PR allocation / report synchronization | P0 | DONE | 2 | PR #452 |
-| Baseline changed-file/repository verification | P0 | IN_PROGRESS | 3 | current stage |
-| Controlled source inventory script | P0 | NOT_STARTED | 4 | issue #450 immediate action |
-| Focused source-inventory tests | P0 | NOT_STARTED | 4 | pending |
-| Source inventory evidence record | P0 | NOT_STARTED | 5 | planned path |
-| Exact controlled-PDF execution | P0 | NOT_STARTED | 5 | requires pinned PDF bytes |
-| Release/authority review | P1 | NOT_STARTED | 6 | authority frozen |
+| Draft PR allocation / synchronization | P0 | DONE | 2 | PR #452 |
+| Baseline repository verification | P0 | DONE | 3 | compare base→head + baseline files |
+| Controlled source inventory CLI | P0 | IN_PROGRESS | 4 | planned script |
+| Focused source-inventory tests | P0 | IN_PROGRESS | 4 | planned test |
+| Package/release integration | P0 | IN_PROGRESS | 4 | planned existing seams |
+| Source inventory evidence record | P0 | NOT_STARTED | 5 | planned JSON |
+| Exact controlled-PDF execution | P0 | NOT_STARTED | 5 | external pinned bytes required |
+| Closure / authority review | P1 | NOT_STARTED | 6 | authority frozen |
 
 ## Engineering Item Register
 
-| ID | Type | Severity/Priority | Status | Summary | Current PR? |
+| ID | Type | Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
 | RISK-001 | Risk | P0 | ACTIVE | Same-name/re-exported EI PDF must never pass source identity. | YES |
 | RISK-002 | Risk | P0 | ACTIVE | Mirror-derived text must never become source authority. | YES |
-| RISK-003 | Risk | P0 | ACTIVE | T3-1…T3-4 require image/curve recovery; text extraction alone is insufficient. | YES |
-| DEC-001 | Decision | P0 | ACCEPTED | Inventory output is evidence/readiness only; authority remains frozen. | YES |
-| DEC-002 | Decision | P0 | ACCEPTED | Governing PDF identity is Common `fb549185…`, blob `9d3e…bdc5`, 10,348,594 bytes. | YES |
-| DEC-003 | Decision | P0 | ACCEPTED | Public mirror may seed expected anchors only; controlled extraction must independently confirm them. | YES |
-| QST-001 | Question | P0 | INVESTIGATING | Exact PDF page offsets versus printed pages must come from the pinned binary. | YES |
-| QST-002 | Question | P1 | INVESTIGATING | Exact controlled T2.8/T2.9 locator boundaries need binary confirmation before recovery. | YES |
+| RISK-003 | Risk | P0 | ACTIVE | T3-1…T3-4 require image/curve digitization; text is insufficient. | YES |
+| RISK-004 | Risk | P1 | ACTIVE | Existing full FIT/VIB release gate has known baseline failures from PR448 evidence; focused new test must be separable from unrelated failures. | YES |
+| DEC-001 | Decision | P0 | ACCEPTED | Inventory is evidence/readiness only; authority stays frozen. | YES |
+| DEC-002 | Decision | P0 | ACCEPTED | Exact governing source identity is Common `fb549185…`, blob `9d3e…bdc5`, 10,348,594 bytes. | YES |
+| DEC-003 | Decision | P0 | ACCEPTED | Reuse AIV byte/hash extraction principles but do not refactor AIV or create speculative shared infrastructure. | YES |
+| DEC-004 | Decision | P0 | ACCEPTED | Locator expectations may include printed-page hints, but PDF page numbers and hashes are discovered from exact extracted bytes. | YES |
+| QST-001 | Question | P0 | OPEN | Exact PDF-page offsets remain unknown until controlled binary execution. | YES |
+| QST-002 | Question | P1 | OPEN | T2.8/T2.9 exact boundaries remain pending controlled extraction. | YES |
 
 ## Stage Roadmap
 
 ### Stage 1 — Report initialization + technical findings
 
-**Decision: COMPLETE.** The living work report was created before production code and captured mission, source identity, authority freeze, risks and staged implementation plan.
+**COMPLETE.** Living report created before production code.
 
 ### Stage 2 — PR allocation + report synchronization
 
-**Decision: COMPLETE.** Draft PR #452 was created from `agent/vibration-master-source-inventory`; the report was renamed from `PR_PENDING` to `PR452` before production changes.
+**COMPLETE.** Draft PR #452 allocated; report renamed/synchronized.
 
 ### Stage 3 — Changed-file / repository-state verification
 
-**Current truth**
+**Current truth / result**
 
-- PR #452 is report-only.
-- Base is `c8aa2786e…`.
-- Existing AIV source extractors already implement exact Git-blob verification, `pdftotext -layout`, source/page hashing and private-review separation.
-- `package.json` has explicit extractor/verification scripts; no issue-450 inventory command exists yet.
+- `compare_commits(c8aa2786…, agent/vibration-master-source-inventory)` showed only `agents/PR452_workreport.md` changed before Stage 4.
+- `extract-aiv-ei-t27-source.mjs` provides exact Git-blob verification, `pdftotext -layout`, page splitting and hash-only manifest conventions.
+- `extract-aiv-ei-d23-source.mjs` additionally verifies byte size and unique heading/anchor discovery.
+- `vibration-aiv-source-extraction-contract.test.mjs` demonstrates byte-exact synthetic source tests without embedding controlled source text.
+- `package.json` is the operator-facing command seam.
+- `verify-vibration-fit-release.mjs` is the existing VIB regression manifest; this PR may add the focused test path but will not alter workflows.
 
-**Objective**
+**Validation performed**
 
-Confirm reusable implementation seams and ensure no unrelated file ownership/conflict before production changes.
+```text
+PR base/head verification                    PASS
+pre-implementation changed-file comparison  PASS — report only
+baseline source-extractor seam inspection    PASS
+package/release integration seam inspection PASS
+```
 
-**Expected scope/files**
+**New findings**
 
-Read-only inspection of package scripts, AIV source extractors/tests, release script and current PR diff.
+- Existing AIV T2.7 uses a different pinned Common commit; issue #450 must use its own explicit source identity without changing that path.
+- Full FIT/VIB gate is known from PR448 evidence to contain unrelated failures, so Stage 4 validation will report the focused inventory test independently.
 
-**Engineering rationale**
-
-Reuse proven fail-closed patterns rather than invent parallel source-authority semantics.
-
-**Planned implementation**
-
-Inspect exact baseline files; compare PR base/head; identify smallest production-consumed script/test/package/evidence change set.
-
-**Expected behavior**
-
-Stage 4 begins with a bounded file list and no overlapping active implementation seam.
-
-**Edge cases**
-
-Existing AIV extractor constants use a different Common commit for T2.7; issue #450's inventory must use the explicitly pinned `fb549185…` source identity without changing AIV behavior.
-
-**Planned validation**
-
-GitHub compare base→head; baseline file SHA checks; no production file changed before Stage 4.
-
-**Known risks**
-
-Unintended duplication of AIV helpers or creation of speculative generic infrastructure.
+**Stage decision: COMPLETE.**
 
 ### Stage 4 — Controlled source inventory implementation
 
-Before implementation this report will be updated with exact file scope. Planned capability: require one controlled PDF path, verify exact blob + size, run `pdftotext -layout`, locate required masters/figures with unique anchors, classify recovery mode, hash pages/sections and emit fail-closed inventory JSON. Focused tests will cover wrong bytes, wrong size, missing/ambiguous anchors and authority freeze.
+**Current truth**
+
+No inventory CLI exists. Required target types include T3 tables/rules/curves, T2.8/T2.9 sources, T4 table/geometry, T2.4/T2.5 rules, advanced deadleg and evidence-gated mechanisms.
+
+**Objective**
+
+Deliver a directly usable CLI, not speculative infrastructure.
+
+**Expected scope/files**
+
+```text
+scripts/inventory-vibration-master-sources.mjs
+tests/vibration-master-source-inventory.test.mjs
+package.json
+scripts/verify-vibration-fit-release.mjs
+agents/PR452_workreport.md
+```
+
+**Engineering rationale**
+
+This is issue #450's explicit first action and provides a measurable source-readiness result without publishing engineering data.
+
+**Planned implementation**
+
+1. Pin expected repository/commit/path/blob/size constants.
+2. Verify supplied bytes before extraction.
+3. Run `pdftotext -layout` once for the full document and split form-feed pages.
+4. Use a frozen target catalogue with stable `masterId`, type, locator label, expected printed-page hint and anchor regexes.
+5. Require unique anchor-page resolution per target; missing/ambiguous anchors fail that target closed.
+6. Hash page text and a bounded target section; never publish source text.
+7. Emit summary answers required by #450 and unchanged authority.
+8. Expose `npm run inventory:vibration-master-sources -- <pdf> --out ...`.
+9. Add focused regression to the existing VIB release manifest.
+
+**Expected behavior**
+
+Exact source + unique anchors → `SOURCE_PINNED`/locator evidence; missing or ambiguous target → explicit blocked state; wrong blob/size → hard process failure. Curves are flagged `FIGURE_DIGITIZATION_REQUIRED` rather than numerically extracted.
+
+**Edge cases**
+
+- repeated section headings across TOC/body;
+- multiple target labels on one page;
+- Unicode punctuation/ligatures from `pdftotext`;
+- missing `pdftotext` binary;
+- same-name wrong PDF;
+- target whose source is project/OEM evidence rather than the EI master.
+
+**Planned validation**
+
+Synthetic byte identity, wrong source, size mismatch, unique/missing/ambiguous anchor pages, hash-only output, curve classification, authority freeze, package command and release-manifest inclusion.
+
+**Known risks**
+
+RISK-001 through RISK-004.
 
 ### Stage 5 — Inventory execution + evidence
 
-Run against exact pinned source when available. If exact bytes cannot be supplied in the execution environment, record `NOT_RUN`; never convert mirror navigation into extraction PASS.
+Run against exact pinned PDF if accessible. Otherwise exact execution remains `NOT_RUN` and committed evidence must not claim extraction PASS.
 
 ### Stage 6 — Closure / handover
 
-Reconcile changed-file ledger against PR, run focused checks, document exact validation and leave PR draft unless explicitly told otherwise.
+Reconcile PR changed files, run focused checks, record known baseline full-gate failures separately and leave draft PR open.
 
 ## Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---|---|---|---|---|
-| `agents/PR452_workreport.md` | 1 | 3 | Living work report and staged engineering handover. | YES | PR allocation verified |
+| `agents/PR452_workreport.md` | 1 | 4 | Living engineering report. | YES | current-state synchronization |
+| `scripts/inventory-vibration-master-sources.mjs` | 4 | 4 | Controlled source-inventory CLI. | YES | planned focused tests |
+| `tests/vibration-master-source-inventory.test.mjs` | 4 | 4 | Fail-closed inventory regressions. | YES | planned node test |
+| `package.json` | 4 | 4 | Operator command exposure. | NO | planned test assertion |
+| `scripts/verify-vibration-fit-release.mjs` | 4 | 4 | Include focused regression in existing VIB release manifest. | NO | planned manifest test/static inspection |
 
-## Engineering Decisions and Invariants
+## Decisions and Invariants
 
 ### DEC-001 — Inventory is not authority
 
-- **Must remain true:** source readiness cannot grant calculation/screening/design authority.
-- **Enforced in:** planned inventory qualification fields + report authority freeze.
-- **Validation:** focused tests will assert frozen authority.
-- **Changed by PR:** No.
+Must remain `engineeringAuthority=NONE`, `screeningAuthority=NOT_AUTHORIZED`, `designAuthority=false`; tests will assert these fields.
 
-### DEC-002 — Exact source bytes before authoritative extraction
+### DEC-002 — Exact bytes first
 
-- **Must remain true:** expected Git blob and expected byte size must both match supplied bytes before controlled extraction.
-- **Enforced in:** planned source identity assertion.
-- **Validation:** mismatch regression cases.
-- **Changed by PR:** Adds enforcement only for the new inventory path.
+Both expected Git blob and byte size must match before extraction. Tests cover both mismatches.
+
+### DEC-003 — No speculative shared abstraction
+
+The inventory remains a bounded production CLI following existing patterns; AIV extractors are not refactored.
 
 ## Validation and Evidence Ledger
 
@@ -221,82 +272,61 @@ Reconcile changed-file ledger against PR, run focused checks, document exact val
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Draft PR allocation | PASS | `343ce0aa…` | PR #452 open/draft |
-| Branch/base verification | PASS | `343ce0aa…` | PR base `c8aa2786…`, head branch verified |
-| PR report-only scope | PASS | `343ce0aa…` | one logical changed file after rename |
+| PR allocation/base/head | PASS | `65027ac…` | PR #452 |
+| Pre-implementation diff | PASS | `65027ac…` | report only |
 | Focused inventory tests | NOT_RUN | n/a | Stage 4 |
-| Exact controlled-PDF inventory execution | NOT_RUN | n/a | Stage 5 |
+| Full FIT/VIB release | NOT_RUN in this PR | n/a | known baseline failures documented in PR448; rerun later if environment permits |
+| Exact controlled-PDF execution | NOT_RUN | n/a | Stage 5 |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| Controlled source repository/commit/path identified | PASS | issue #450 + Common metadata |
-| Controlled source Git blob identified | PASS | `9d3eccc56429411e17c07a579bdebbd13cb0bdc5` |
-| Controlled source byte size identified | PASS | `10,348,594` bytes |
-| T3 source family navigation location | PASS_NAVIGATION_ONLY | 2nd-edition mirror shows T3 printed pages 70–84 |
-| T3-1…T3-4 figure classification | PASS_NAVIGATION_ONLY | mirror shows figures on printed pages 81–84; exact hashes pending |
-| T4/T4-1 navigation location | PASS_NAVIGATION_ONLY | mirror shows T4 printed pages 85–88, Table T4-1 on 87 |
-| Exact controlled page hashes / PDF offsets | NOT_RUN | requires pinned binary |
+| Controlled source identity | PASS | Common metadata + #450 |
+| T3 printed pages 70–84 navigation | PASS_NAVIGATION_ONLY | public mirror; non-authoritative |
+| T3 figures printed pages 81–84 navigation | PASS_NAVIGATION_ONLY | public mirror |
+| T4 printed pages 85–88 / Table T4-1 page 87 navigation | PASS_NAVIGATION_ONLY | public mirror |
+| Exact PDF page offsets/hashes | NOT_RUN | pinned binary required |
+| Numerical master reconciliation | NOT_RUN | outside Stage 4 |
 
 ### Explicitly Not Validated
 
-- exact page hashes and PDF-page offsets for pending masters;
-- exact controlled T2.8/T2.9 source boundaries;
-- recovered numerical table values;
-- curve digitization points;
-- any screening/design authority.
+Exact source-page hashes, exact T2.8/T2.9 boundaries, any numerical master row/curve point, screening/design authority.
 
 ## Known / Deferred Work and Forward Sequence
 
-### Open risks
+Open risks: RISK-001 through RISK-004. Open questions: QST-001, QST-002.
 
-`RISK-001`, `RISK-002`, `RISK-003` remain active.
-
-### Open engineering questions
-
-`QST-001` and `QST-002` remain open until controlled extraction.
-
-### Recommended Forward Sequence
-
-1. Finish source inventory gate.
-2. Recover/reconcile SBC text tables.
-3. Independently digitize T3-1…T3-4 with recorded tolerance.
-4. Recover T2.8 closure characteristic, T2.9 `FL`, and T4-1 `FM` only from exact pinned locators.
-5. Add generic master resolver only when a recovered master is production-consumed in the same PR/stage.
+Recommended sequence: finish inventory → recover/reconcile SBC text masters → independently digitize T3 curves → recover T2.8/T2.9/T4 masters → only then integrate governed masters into production calculators.
 
 ## Next-Agent Handover
 
 | Item | Current state |
 |---|---|
-| Current stopping point | Draft PR allocated; report-only branch; Stage 3 verification active. |
-| PR / branch / HEAD | #452 / `agent/vibration-master-source-inventory` / `343ce0aa…` before current report commit |
-| Last completed stage | Stage 2 |
-| Current active stage | Stage 3 |
-| Start here | Inspect baseline extractor/test/package/release seams and compare PR base→head. |
-| Do not redo | PR allocation and controlled-source identity discovery. |
-| Do not assume | mirror is authoritative; exact page mapping is known; extraction has run. |
-| Files currently involved | `agents/PR452_workreport.md` only |
-| Known failing checks | none; implementation checks not run yet |
-| Validation still required | Stages 3–6 |
+| Current stopping point | Stage 4 opened; no production change committed yet. |
+| PR / branch / HEAD | #452 / `agent/vibration-master-source-inventory` / `65027ac…` before current report commit |
+| Last completed stage | Stage 3 |
+| Current active stage | Stage 4 |
+| Start here | Implement the exact five-file scope above. |
+| Do not redo | baseline verification/AIV seam inspection |
+| Do not assume | mirror is authoritative or exact extraction has run |
+| Known failing checks | none new; full baseline release known separately to have failures |
+| Validation still required | Stage 4 focused test + Stage 5 exact source run |
 | Open QST-* items | QST-001, QST-002 |
-| Important deferred IMP-* items | none yet |
-| Highest-risk remaining item | source-byte/locator anti-drift |
-| Exact next recommended action | complete Stage 3, update report for Stage 4, then implement bounded source inventory |
-| Required reading | #450; pinned CodingRules; AIV T2.7/D2.3 extractor patterns |
+| Highest-risk remaining item | byte/locator anti-drift |
+| Exact next recommended action | implement CLI/test/package/release changes, then run focused tests |
+| Required reading | #450; pinned CodingRules; existing AIV extractors/tests |
 
 ## Stage Execution Log
 
-### Stage 1 — Report initialization + technical findings
+### Stage 1
 
-- **Implementation performed:** created living report before production code.
-- **Changed files:** report only.
-- **Validation:** controlled-source metadata cross-check.
-- **Stage decision:** COMPLETE.
+Report created before production code. **COMPLETE.**
 
-### Stage 2 — PR allocation + report synchronization
+### Stage 2
 
-- **Implementation performed:** created draft PR #452; renamed report to `agents/PR452_workreport.md` using the same blob; synchronized mission control.
-- **Changed files:** report rename/state only.
-- **Validation:** PR base/head/branch verified.
-- **Stage decision:** COMPLETE.
+Draft PR #452 allocated and report renamed. **COMPLETE.**
+
+### Stage 3
+
+Baseline source-extractor, test, package and release seams inspected; PR diff verified report-only. **COMPLETE.**
