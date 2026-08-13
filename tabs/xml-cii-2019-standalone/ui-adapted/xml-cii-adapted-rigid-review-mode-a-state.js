@@ -58,5 +58,10 @@ export function applyModeAConsolidatedRigidReviewUpdates(state = {}, updates = {
     }
     return { ...source, supportConfigJson: JSON.stringify(config, null, 2) };
   });
-  return { ...state, sourceBatch: { ...batch, sources } };
+  const active = sources.find((source) => source.sourceId === batch.activeSourceId) || null;
+  return {
+    ...state,
+    supportConfigJson: active?.supportConfigJson || state.supportConfigJson,
+    sourceBatch: { ...batch, sources },
+  };
 }
