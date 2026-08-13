@@ -245,6 +245,7 @@ export function buildModeAPreflight(batch = {}) {
       stagedJsonText: source.stagedJsonText,
       selectedBranchNames: source.branchSelection?.selectedBranchNames,
       selectedBranchOccurrenceIds: source.branchSelection?.selectedBranchOccurrenceIds,
+      selectionIdentity: source.branchSelection?.selectionIdentity || 'name',
       sourceKind: 'xml',
     });
     if (scope.blocked) blockingRows.push({ sourceId: source.sourceId, code: 'NO_BRANCH_SELECTED', message: `${source.fileName} has no selected branches.` });
@@ -276,6 +277,7 @@ export function buildModeAExecutionState(baseState = {}, source = {}) {
     stagedJsonText: source.stagedJsonText,
     selectedBranchNames: source.branchSelection?.selectedBranchNames,
     selectedBranchOccurrenceIds: source.branchSelection?.selectedBranchOccurrenceIds,
+    selectionIdentity: source.branchSelection?.selectionIdentity || 'name',
     sourceKind: 'xml',
   });
   return {
