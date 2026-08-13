@@ -1,6 +1,6 @@
 import { AIV_EIT_VERSION, assertAivEitV5Document } from './aiv-eit-contract.js';
 import { buildAivEitPipe } from './aiv-eit-geometry.js';
-import { buildAivEitSourceDetail } from './aiv-eit-records.js';
+import { buildAivEitSourceDetail } from './aiv-eit-source-detail.js';
 import { buildAivEitStream } from './aiv-eit-stream-record.js';
 
 const skey = (sourceId, caseId) => `${sourceId}\u0000${caseId}`;
