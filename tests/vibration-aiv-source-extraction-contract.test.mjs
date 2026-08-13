@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   AIV_T27_EXPECTED_GIT_BLOB,
   AIV_T27_PAGE_RANGE,
@@ -10,9 +14,33 @@ import {
   gitBlobSha1Hex,
   splitExtractedPdfPages,
 } from '../scripts/extract-aiv-ei-t27-source.mjs';
+import {
+  VIBRATION_MASTER_RETRIEVAL_COMMIT,
+  VIBRATION_MASTER_SOURCE_MATERIALIZATION_SCHEMA,
+} from '../scripts/materialize-vibration-master-source.mjs';
+import {
+  VIBRATION_MASTER_EXPECTED_GIT_BLOB,
+  VIBRATION_MASTER_EXPECTED_SIZE_BYTES,
+  VIBRATION_MASTER_SOURCE_COMMIT,
+} from '../scripts/inventory-vibration-master-sources.mjs';
 
 const ROOT = new URL('../', import.meta.url);
-const source = (path) => fs.readFileSync(new URL(path, ROOT), 'utf8');
+const ROOT_PATH = fileURLToPath(ROOT);
+const COMMON_CHECKOUT = path.join(ROOT_PATH, 'Common');
+const source = (filePath) => fs.readFileSync(new URL(filePath, ROOT), 'utf8');
+
+function executableAvailable(binary) {
+  const result = spawnSync(binary, ['-v'], { encoding: 'utf8' });
+  return !result.error && result.status === 0;
+}
+
+function runCommand(command, args) {
+  const result = spawnSync(command, args, {
+    cwd: ROOT_PATH, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+  });
+  assert.equal(result.status, 0, `${command} ${args.join(' ')}\n${result.stderr || result.stdout}`);
+  return result;
+}
 
 test('AIV T2.7 extraction contract is pinned to the controlled Common PDF blob and pages 59-62', () => {
   assert.equal(AIV_T27_EXPECTED_GIT_BLOB, '9d3eccc56429411e17c07a579bdebbd13cb0bdc5');
@@ -57,4 +85,40 @@ test('manifest records hashes only and cannot authorize production equations', (
 test('package exposes the controlled T2.7 extraction command', () => {
   const pkg = JSON.parse(source('package.json'));
   assert.equal(pkg.scripts['extract:aiv-ei-t27-source'], 'node scripts/extract-aiv-ei-t27-source.mjs');
+});
+
+const exactSourceUnavailable = !fs.existsSync(path.join(COMMON_CHECKOUT, '.git')) || !executableAvailable('pdftotext');
+test('controlled-source runner materializes exact vibration master PDF and runs the issue 450 inventory', {
+  skip: exactSourceUnavailable ? 'requires controlled Common checkout and pdftotext' : false,
+}, () => {
+  const directory = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'vibration-master-exact-'));
+  const pdfPath = path.join(directory, 'EI - AVIFF Guidelines 2nd Edition.pdf');
+  const receiptPath = path.join(directory, 'materialization-v1.json');
+  const inventoryPath = path.join(directory, 'source-inventory-v1.json');
+  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  try {
+    runCommand(npm, ['run', 'materialize:vibration-master-source', '--',
+      '--repository', 'Common', '--retrieval-commit', VIBRATION_MASTER_RETRIEVAL_COMMIT,
+      '--out', pdfPath, '--receipt', receiptPath, '--fetch']);
+    const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+    assert.equal(receipt.schema, VIBRATION_MASTER_SOURCE_MATERIALIZATION_SCHEMA);
+    assert.equal(receipt.adoptedSource.commit, VIBRATION_MASTER_SOURCE_COMMIT);
+    assert.equal(receipt.retrieval.commit, VIBRATION_MASTER_RETRIEVAL_COMMIT);
+    assert.equal(receipt.retrieval.identicalToAdoptedSource, true);
+    assert.equal(receipt.materialized.sizeBytes, VIBRATION_MASTER_EXPECTED_SIZE_BYTES);
+    assert.equal(receipt.materialized.gitBlobSha1, `sha1:${VIBRATION_MASTER_EXPECTED_GIT_BLOB}`);
+
+    runCommand(npm, ['run', 'inventory:vibration-master-sources', '--', pdfPath, '--out', inventoryPath]);
+    const inventory = JSON.parse(fs.readFileSync(inventoryPath, 'utf8'));
+    assert.equal(inventory.source.commit, VIBRATION_MASTER_SOURCE_COMMIT);
+    assert.equal(inventory.source.sizeBytes, VIBRATION_MASTER_EXPECTED_SIZE_BYTES);
+    assert.equal(inventory.source.gitBlobSha1, `sha1:${VIBRATION_MASTER_EXPECTED_GIT_BLOB}`);
+    assert.deepEqual(inventory.authority, {
+      engineeringAuthority: 'NONE', screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false,
+    });
+    console.log(`VIBRATION_MASTER_SOURCE_MATERIALIZATION_RECEIPT=${JSON.stringify(receipt)}`);
+    console.log(`VIBRATION_MASTER_SOURCE_INVENTORY=${JSON.stringify(inventory)}`);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
