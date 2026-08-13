@@ -11,6 +11,7 @@ import {
 export const AIV_TOPOLOGY_INPUT_FORMAT = Object.freeze({
   PARSED_EXCHANGE: 'PARSED_EXCHANGE',
   XLSX: 'XLSX',
+  FLARE_NETWORK: 'FLARE_NETWORK',
 });
 
 function deepFreeze(value) {
@@ -27,6 +28,17 @@ function tableError(code, message, details = {}) {
   return error;
 }
 
+function assertFlareNetworkExchange(value) {
+  if (value?.schema !== 'AivFlareNetworkTopologyExchange.v1'
+    || !Array.isArray(value.elements) || !Array.isArray(value.segments)) {
+    throw tableError(
+      'AIV_FLARE_NETWORK_TOPOLOGY_INVALID',
+      'AIV flare-network readiness requires AivFlareNetworkTopologyExchange.v1 with elements and segments.',
+    );
+  }
+  return value;
+}
+
 function parseTopology(topology) {
   if (!topology || typeof topology !== 'object' || Array.isArray(topology)) {
     throw tableError('AIV_TOPOLOGY_INPUT_REQUIRED', 'AIV readiness requires a topology input object.');
@@ -38,17 +50,19 @@ function parseTopology(topology) {
     exchange = parseVibrationTableExchangeXlsx(topology.data, {
       sourceFileName: topology.sourceFileName === undefined ? undefined : String(topology.sourceFileName),
     });
+  } else if (topology.format === AIV_TOPOLOGY_INPUT_FORMAT.FLARE_NETWORK) {
+    exchange = assertFlareNetworkExchange(topology.data);
   } else {
     throw tableError(
       'AIV_TOPOLOGY_FORMAT_UNSUPPORTED',
-      'AIV readiness requires the complete five-sheet XLSX topology exchange; Elements-only CSV is not sufficient.',
+      'AIV readiness requires either complete five-sheet topology evidence or an explicit authored flare-network graph.',
       { format: topology.format ?? null },
     );
   }
-  if (exchange.completeExchange !== true) {
+  if (topology.format !== AIV_TOPOLOGY_INPUT_FORMAT.FLARE_NETWORK && exchange.completeExchange !== true) {
     throw tableError(
       'AIV_COMPLETE_TOPOLOGY_REQUIRED',
-      'AIV readiness requires Connections, Source Mapping, Catalogue Evidence and Export Metadata in addition to Elements.',
+      'Imported AIV topology requires Connections, Source Mapping, Catalogue Evidence and Export Metadata in addition to Elements.',
       { sourceFormat: exchange.sourceFormat ?? null, integrityStatus: exchange.integrityStatus ?? null },
     );
   }

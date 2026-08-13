@@ -193,13 +193,16 @@ test('explicit SONIC source is within readiness envelope; unresolved sonic state
   assert.equal(unresolved.rows[0].missing.some((item) => item.code === 'AIV_SONIC_STATE_UNRESOLVED'), true);
 });
 
-test('workspace routes screening through Engineering Calculation API and exposes no UI equation implementation', async () => {
+test('workspace routes screening through isolated Engineering Calculation API bridge and exposes no UI equation implementation', async () => {
   const controller = await readFile(new URL('../tabs/vibration-aiv-qualification-tab.js', import.meta.url), 'utf8');
+  const execution = await readFile(new URL('../tabs/vibration-aiv-execution.js', import.meta.url), 'utf8');
   const readinessView = await readFile(new URL('../tabs/vibration-aiv-readiness-view.js', import.meta.url), 'utf8');
   const resultView = await readFile(new URL('../tabs/vibration-aiv-result-view.js', import.meta.url), 'utf8');
-  assert.match(controller, /calculateEngineering/u);
-  assert.match(controller, /qualificationMode:\s*'screening'/u);
-  assert.doesNotMatch(controller, /Math\.log10|Math\.tanh|470711\.5155|126\.1/u);
+  assert.match(controller, /createAivExecutionActions/u);
+  assert.doesNotMatch(controller, /calculateEngineering\s*\(/u);
+  assert.match(execution, /calculateEngineering\s*\(/u);
+  assert.match(execution, /qualificationMode:\s*'screening'/u);
+  assert.doesNotMatch(`${controller}\n${execution}`, /Math\.log10|Math\.tanh|470711\.5155|126\.1/u);
   assert.match(readinessView, /data-aiv-action="run-screening"/u);
   assert.match(resultView, /Assessment Screening Results/u);
   assert.match(resultView, /NON-AUTHORITATIVE/u);

@@ -41,6 +41,10 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/aiv/aiv-d23-pdf-revalidation.js',
   'converters/vibration/aiv/aiv-errata-evidence.js',
   'converters/vibration/aiv/aiv-independent-benchmark-evidence.js',
+  'converters/vibration/aiv/aiv-flare-network.js',
+  'converters/vibration/aiv/aiv-flare-network-mutations.js',
+  'converters/vibration/aiv/aiv-flare-network-table-generator.js',
+  'converters/vibration/aiv/aiv-flare-network-topology.js',
   'tabs/vibration-integrity-tab.js',
   'tabs/vibration-integrity-view.js',
   'tabs/vibration-integrity-detail-view.js',
@@ -56,6 +60,12 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'tabs/vibration-aiv-promotion-view.js',
   'tabs/vibration-aiv-qualification-view.js',
   'tabs/vibration-aiv-qualification-tab.js',
+  'tabs/vibration-aiv-execution.js',
+  'tabs/vibration-aiv-state.js',
+  'tabs/vibration-aiv-flare-network-controller.js',
+  'tabs/vibration-aiv-flare-network-state.js',
+  'tabs/vibration-aiv-flare-network-svg.js',
+  'tabs/vibration-aiv-flare-network-view.js',
 ]);
 
 test('new vibration production modules stay below the normal 300-line module target', () => {
@@ -94,6 +104,10 @@ test('exchange, dataset and AIV qualification facades preserve stable APIs after
     'parseAivSourceCsv',
     'parseAivAssessmentCsv',
     'parseAivSourceAssessmentCsv',
+    'AIV_FLARE_NETWORK_SCHEMA',
+    'createAivFlareNetwork',
+    'generateAivInputTablesFromFlareNetwork',
+    'buildAivFlareNetworkTopologyExchange',
     'buildAivReadiness',
     'buildAivReadinessFromTables',
     'buildAivBlockedResultSet',
@@ -116,7 +130,7 @@ test('exchange, dataset and AIV qualification facades preserve stable APIs after
   ]) assert.match(aivIndex, new RegExp(`\\b${symbol}\\b`, 'u'));
 });
 
-test('readiness and visible tab remain separated from direct numerical execution', () => {
+test('FIT readiness and visible tab remain separated from direct numerical execution', () => {
   const preflight = source('converters/vibration/facility/fit-preflight.js');
   const preflightTabular = source('converters/vibration/facility/fit-preflight-tabular.js');
   const tab = source('tabs/vibration-integrity-tab.js');
@@ -128,7 +142,7 @@ test('readiness and visible tab remain separated from direct numerical execution
   assert.match(tab, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
 });
 
-test('AIV topology/readiness/result/promotion/evidence modules remain read-only and separated from production numerical execution', () => {
+test('AIV evidence readiness topology and flare-network input modules do not execute numerical engineering calculations', () => {
   const combined = [
     source('converters/vibration/topology/graph.js'),
     source('converters/vibration/aiv/source-case-csv.js'),
@@ -145,6 +159,10 @@ test('AIV topology/readiness/result/promotion/evidence modules remain read-only 
     source('converters/vibration/aiv/aiv-d23-pdf-revalidation.js'),
     source('converters/vibration/aiv/aiv-errata-evidence.js'),
     source('converters/vibration/aiv/aiv-independent-benchmark-evidence.js'),
+    source('converters/vibration/aiv/aiv-flare-network.js'),
+    source('converters/vibration/aiv/aiv-flare-network-mutations.js'),
+    source('converters/vibration/aiv/aiv-flare-network-table-generator.js'),
+    source('converters/vibration/aiv/aiv-flare-network-topology.js'),
     source('tabs/vibration-aiv-input-model.js'),
     source('tabs/vibration-aiv-benchmarks.js'),
     source('tabs/vibration-aiv-input-view.js'),
@@ -157,13 +175,29 @@ test('AIV topology/readiness/result/promotion/evidence modules remain read-only 
     source('tabs/vibration-aiv-promotion-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
     source('tabs/vibration-aiv-qualification-tab.js'),
+    source('tabs/vibration-aiv-state.js'),
+    source('tabs/vibration-aiv-flare-network-controller.js'),
+    source('tabs/vibration-aiv-flare-network-state.js'),
+    source('tabs/vibration-aiv-flare-network-svg.js'),
+    source('tabs/vibration-aiv-flare-network-view.js'),
   ].join('\n');
   assert.doesNotMatch(combined, /project3DPoint|SequentialCommandGateway|WorkspaceState|EventBus/u);
-  assert.doesNotMatch(combined, /calculateEngineering|calculateAiv|calculateFit\s*\(/u);
+  assert.doesNotMatch(combined, /calculateEngineering(?:Batch)?\s*\(|calculateAiv\s*\(|calculateFit\s*\(/u);
   assert.doesNotMatch(combined, /<canvas|createElement\(['"]canvas/iu);
 });
 
-test('AIV UI contains no engineering equations even when evidence text includes published values', () => {
+test('AIV screening execution is isolated to the registered Engineering Calculation API bridge', () => {
+  const execution = source('tabs/vibration-aiv-execution.js');
+  const tab = source('tabs/vibration-aiv-qualification-tab.js');
+  assert.match(execution, /await import\(['"]\.\.\/converters\/engineering-calculations\/index\.js\?v=aiv-screening-1['"]\)/u);
+  assert.match(execution, /calculateEngineering\s*\(\s*\{/u);
+  assert.match(execution, /calculationId:\s*['"]VIB\.AIV\.ACOUSTIC['"]/u);
+  assert.match(execution, /qualificationMode:\s*['"]screening['"]/u);
+  assert.doesNotMatch(tab, /calculateEngineering(?:Batch)?\s*\(|calculateAiv\s*\(/u);
+  assert.doesNotMatch(execution, /Math\.(?:log10|log|tanh|pow)|\*\*/u);
+});
+
+test('AIV UI and flare-network editor contain no engineering equations', () => {
   const ui = [
     source('tabs/vibration-aiv-input-view.js'),
     source('tabs/vibration-aiv-inline-symbols.js'),
@@ -175,9 +209,26 @@ test('AIV UI contains no engineering equations even when evidence text includes 
     source('tabs/vibration-aiv-promotion-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
     source('tabs/vibration-aiv-qualification-tab.js'),
+    source('tabs/vibration-aiv-execution.js'),
+    source('tabs/vibration-aiv-state.js'),
+    source('tabs/vibration-aiv-flare-network-controller.js'),
+    source('tabs/vibration-aiv-flare-network-state.js'),
+    source('tabs/vibration-aiv-flare-network-svg.js'),
+    source('tabs/vibration-aiv-flare-network-view.js'),
   ].join('\n');
   assert.doesNotMatch(ui, /Math\.(?:log10|log|tanh|pow)|\*\*/u);
   assert.doesNotMatch(ui, /PWL\s*=|LOF\s*=/u);
+});
+
+test('flare-network presentation cannot become an implicit physical-distance authority', () => {
+  const graph = source('converters/vibration/aiv/aiv-flare-network.js');
+  const generator = source('converters/vibration/aiv/aiv-flare-network-table-generator.js');
+  const controller = source('tabs/vibration-aiv-flare-network-controller.js');
+  const svg = source('tabs/vibration-aiv-flare-network-svg.js');
+  assert.match(graph, /svgPixelsAuthoritativeForDistance:\s*false/u);
+  assert.match(generator, /EXPLICIT_SEGMENT_ENGINEERING_LENGTH_SUM/u);
+  assert.doesNotMatch(controller, /physicalLength\s*=\s*(?:dx|dy)|getBoundingClientRect[^\n]*physicalLength/iu);
+  assert.doesNotMatch(svg, /calculateAiv|calculateEngineering|Math\.(?:log10|log|tanh|pow)/u);
 });
 
 test('independent AIV review is advisory and cannot self-apply authority', () => {

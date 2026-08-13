@@ -6,6 +6,28 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+function networkEvidence(flareNetwork, generatedInputSet) {
+  if (!flareNetwork || generatedInputSet?.schema !== 'AivGeneratedInputSet.v1') return null;
+  return {
+    networkSchema: flareNetwork.schema ?? null,
+    networkId: flareNetwork.networkId ?? null,
+    networkRevision: flareNetwork.revision ?? null,
+    source: flareNetwork.source ?? null,
+    sourceRevision: flareNetwork.sourceRevision ?? null,
+    pathEvidence: (generatedInputSet.pathEvidence ?? []).map((item) => ({
+      sourceCanonicalId: item.sourceCanonicalId,
+      assessmentCanonicalId: item.assessmentCanonicalId,
+      caseId: item.caseId,
+      status: item.status,
+      segmentIds: [...(item.segmentIds ?? [])],
+      unresolvedSegmentIds: [...(item.unresolvedSegmentIds ?? [])],
+      physicalDistanceM: item.physicalDistanceM ?? null,
+      distanceAuthority: item.distanceAuthority ?? null,
+    })),
+    svgPixelsAuthoritativeForDistance: false,
+  };
+}
+
 export function buildAivScreeningExportPackage({
   result,
   sources,
@@ -15,6 +37,8 @@ export function buildAivScreeningExportPackage({
   assumptionProfile,
   assumptionResolution = null,
   releaseReceipt = null,
+  flareNetwork = null,
+  generatedInputSet = null,
 } = {}) {
   if (result?.schema !== 'AivCalculatorResult.v1' || result.qualificationMode !== 'screening') {
     throw new TypeError('AIV screening export requires an AivCalculatorResult.v1 screening result.');
@@ -36,6 +60,7 @@ export function buildAivScreeningExportPackage({
       assumedCells: assumptionResolution?.assumptions ?? [],
       assumptionCount: assumptionResolution?.assumptionCount ?? 0,
     },
+    flareNetworkEvidence: networkEvidence(flareNetwork, generatedInputSet),
     releaseEvidence: releaseReceipt ? {
       schema: releaseReceipt.schema ?? null,
       releaseTarget: releaseReceipt.releaseTarget ?? null,

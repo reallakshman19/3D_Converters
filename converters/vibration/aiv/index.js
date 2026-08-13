@@ -38,6 +38,30 @@ export {
   parseAivSourceAssessmentCsv,
 } from './source-assessment-csv.js';
 export {
+  AIV_FLARE_NETWORK_SCHEMA,
+  AIV_FLARE_NETWORK_NODE_KINDS,
+  AIV_FLARE_NETWORK_LENGTH_UNITS,
+  createAivFlareNetwork,
+  aivFlareNetworkLengthMetres,
+  findAivFlareNetworkDirectedPaths,
+  resolveAivFlareNetworkPath,
+  moveAivFlareNetworkNodePresentation,
+} from './aiv-flare-network.js';
+export {
+  addAivFlareNetworkNode,
+  updateAivFlareNetworkNode,
+  deleteAivFlareNetworkNode,
+  addAivFlareNetworkSegment,
+  updateAivFlareNetworkSegment,
+  setAivFlareNetworkSegmentLength,
+  deleteAivFlareNetworkSegment,
+} from './aiv-flare-network-mutations.js';
+export {
+  AIV_GENERATED_INPUT_SET_SCHEMA,
+  generateAivInputTablesFromFlareNetwork,
+} from './aiv-flare-network-table-generator.js';
+export { buildAivFlareNetworkTopologyExchange } from './aiv-flare-network-topology.js';
+export {
   AIV_READINESS_SCHEMA,
   buildAivReadiness,
 } from './aiv-readiness.js';
