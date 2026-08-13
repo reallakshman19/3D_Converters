@@ -48,10 +48,12 @@ New production modules:
 - `converters/vibration/aiv/aiv-eit-units.js`
 - `converters/vibration/aiv/aiv-eit-geometry.js`
 - `converters/vibration/aiv/aiv-eit-stream-record.js`
-- `converters/vibration/aiv/aiv-eit-records.js`
+- `converters/vibration/aiv/aiv-eit-source-detail.js`
 - `converters/vibration/aiv/aiv-eit-authority.js`
 - `converters/vibration/aiv/aiv-eit-document.js`
 - `converters/vibration/aiv/aiv-eit-export.js`
+
+Each record type has one production-consumed mapper; the superseded combined record mapper was removed before handoff.
 
 New verifier:
 
@@ -125,7 +127,7 @@ node --test tests/vibration-aiv-eit-export.test.mjs \
 12 tests / 12 PASS
 ```
 
-Syntax checks PASS for the normalized stream/geometry/document modules and all earlier changed/new JS modules were syntax-checked during implementation.
+The suite was rerun after the final source-detail/stream/geometry mapper split and remained 12/12 PASS. Syntax checks PASS for those normalized production modules.
 
 Permanent focused seams include:
 
@@ -146,7 +148,7 @@ Permanent focused seams include:
 
 ## Exact-head GitHub Actions evidence
 
-GitHub created two workflows on PR #464. Both concluded `failure`, but inspection of the jobs/check annotations proves **zero workflow steps started**. GitHub reported:
+GitHub created the expected workflows on PR #464. Their runs concluded `failure`, but inspection of job/check annotations proves **zero workflow steps started**. GitHub reported:
 
 ```text
 The job was not started because an Actions budget is preventing further use.
