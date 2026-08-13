@@ -21,6 +21,10 @@ import {
   modeAExecutionRows,
   modeARawState,
 } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-full-propagation-2';
+import {
+  renderModeAConsolidatedPreviewPanel,
+  renderModeAConsolidatedWeightPanel,
+} from './xml-cii-adapted-mode-a-consolidated.js?v=20260813-mode-a-consolidated-1';
 
 const BATCH_CUSTOM_PHASES = new Set([
   'regex',
@@ -76,9 +80,9 @@ function addBatchStatus(card, state) {
   card.prepend(note);
 }
 
-function sourceDetails(source, stateRef, titleSuffix = '') {
+function sourceDetails(source, stateRef, titleSuffix = '', open = true) {
   const details = createElement('details');
-  details.open = true;
+  details.open = open;
   details.dataset.modeASourcePhase = source.sourceId;
   Object.assign(details.style, {
     margin: '10px 0',
@@ -105,6 +109,25 @@ function sourceDetails(source, stateRef, titleSuffix = '') {
   Object.assign(body.style, { padding: '0 12px 12px' });
   details.append(summary, body);
   return { details, body, sourceRef, sourceState };
+}
+
+function individualHeading(card, label, count) {
+  const heading = createElement('div', `${label} — ${count} source-specific section${count === 1 ? '' : 's'}`, 'model-converters-workflow-section-title');
+  Object.assign(heading.style, { margin: '16px 0 8px' });
+  card.appendChild(heading);
+}
+
+function lazyRender(details, body, loader, label) {
+  let loaded = false;
+  const load = () => {
+    if (loaded || !details.open) return;
+    loaded = true;
+    body.innerHTML = '';
+    loader();
+  };
+  body.appendChild(createElement('div', `Expand this source to load the individual ${label} workbench.`, 'xml-cii-phase-help'));
+  details.addEventListener('toggle', load);
+  if (details.open) load();
 }
 
 function renderRegexBatch(root, stateRef, render) {
@@ -145,11 +168,17 @@ function renderResolverBatch(root, stateRef, render) {
 function renderPreviewBatch(root, stateRef, render) {
   const card = createPhaseCard(root, 'preview');
   const state = modeARawState(stateRef);
+  const executions = modeAExecutionRows(stateRef);
+  const multi = executions.length > 1;
   prependBatchScope(card, state, 'Review is fan-out/per-file: values and overrides never share a branch or node namespace across XML files.');
-  for (const { source } of modeAExecutionRows(stateRef)) {
-    const { details, body, sourceRef } = sourceDetails(source, stateRef, 'Preview / Review');
+  if (multi) renderModeAConsolidatedPreviewPanel(card, stateRef, render);
+  individualHeading(card, 'Individual Preview / Review', executions.length);
+  for (const { source } of executions) {
+    const { details, body, sourceRef } = sourceDetails(source, stateRef, 'Preview / Review', !multi);
     card.appendChild(details);
-    void renderStandalonePreviewReportPanel(body, sourceRef, render);
+    const load = () => { void renderStandalonePreviewReportPanel(body, sourceRef, render); };
+    if (multi) lazyRender(details, body, load, 'Preview / Review');
+    else load();
   }
 }
 
@@ -172,14 +201,20 @@ function renderMatchedAuditBatch(root, stateRef, render) {
   }
 }
 
-function renderWeightBatch(root, stateRef) {
+function renderWeightBatch(root, stateRef, render) {
   const card = createPhaseCard(root, 'weight-match');
   const state = modeARawState(stateRef);
+  const executions = modeAExecutionRows(stateRef);
+  const multi = executions.length > 1;
   prependBatchScope(card, state, 'Weight Match is source-local; finalized matches remain attached only to the XML file where they were reviewed.');
-  for (const { source } of modeAExecutionRows(stateRef)) {
-    const { details, body, sourceRef } = sourceDetails(source, stateRef, 'Weight Match');
+  if (multi) renderModeAConsolidatedWeightPanel(card, stateRef, render);
+  individualHeading(card, 'Individual Weight Match', executions.length);
+  for (const { source } of executions) {
+    const { details, body, sourceRef } = sourceDetails(source, stateRef, 'Weight Match', !multi);
     card.appendChild(details);
-    renderAdaptedWeightMatchPanelV2(body, sourceRef);
+    const load = () => renderAdaptedWeightMatchPanelV2(body, sourceRef);
+    if (multi) lazyRender(details, body, load, 'Weight Match');
+    else load();
   }
 }
 
@@ -248,7 +283,7 @@ function renderCustomBatchPhase(root, stateRef, render, phaseId) {
   if (phaseId === 'preview') return renderPreviewBatch(root, stateRef, render);
   if (phaseId === 'diagnostics') return renderDiagnosticsBatch(root, stateRef);
   if (phaseId === 'matched-audit') return renderMatchedAuditBatch(root, stateRef, render);
-  if (phaseId === 'weight-match') return renderWeightBatch(root, stateRef);
+  if (phaseId === 'weight-match') return renderWeightBatch(root, stateRef, render);
 }
 
 export function renderActivePhase(root, stateRef, render) {
