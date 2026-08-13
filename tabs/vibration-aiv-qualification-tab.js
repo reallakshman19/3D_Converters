@@ -20,6 +20,11 @@ import {
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
+import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
+import {
+  createEmptyAivFlareNetworkWorkspace,
+  projectAivFlareNetworkIntoWorkspace,
+} from './vibration-aiv-flare-network-state.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
@@ -27,7 +32,7 @@ function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-9';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-10';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -54,6 +59,9 @@ function initialState() {
       assessments: createEmptyAivInputTable('assessments'),
       relationships: createEmptyAivInputTable('relationships'),
     },
+    flareNetwork: createEmptyAivFlareNetworkWorkspace(),
+    flareNetworkActive: false,
+    generatedInputSet: null,
     benchmark: { loaded: null },
     assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
     assumptionProfileModified: false,
@@ -79,6 +87,11 @@ export function renderAivQualificationWorkspace(container) {
     getState: () => state,
     getLayout: () => canvasController.getLayout(),
   });
+  const flareNetworkController = createAivFlareNetworkAuthoringController(container, {
+    getNetwork: () => state.flareNetwork,
+    onNetworkChange: applyFlareNetwork,
+    onError: (error) => { state.error = String(error?.message || error); render(); },
+  });
 
   function render() {
     if (state.destroyed) return;
@@ -95,6 +108,29 @@ export function renderAivQualificationWorkspace(container) {
     state.assumptionResolution = null;
   }
 
+  function deactivateFlareNetworkGeneration() {
+    state.flareNetworkActive = false;
+    state.generatedInputSet = null;
+  }
+
+  function applyFlareNetwork(network) {
+    try {
+      const projected = projectAivFlareNetworkIntoWorkspace(network);
+      state.flareNetwork = projected.flareNetwork;
+      state.generatedInputSet = projected.generatedInputSet;
+      state.tables = projected.tables;
+      state.topologyInput = projected.topologyInput;
+      state.files = projected.files;
+      state.flareNetworkActive = true;
+      state.benchmark.loaded = null;
+      clearReadiness();
+      state.error = null;
+    } catch (error) {
+      state.error = String(error?.message || error);
+    }
+    render();
+  }
+
   function markBenchmarkModified() {
     if (!state.benchmark.loaded || state.benchmark.loaded.modified) return;
     state.benchmark.loaded = Object.freeze({ ...state.benchmark.loaded, modified: true });
@@ -103,6 +139,7 @@ export function renderAivQualificationWorkspace(container) {
   function loadBenchmark() {
     try {
       const loaded = buildLoadedAivD23Benchmark();
+      deactivateFlareNetworkGeneration();
       state.benchmark.loaded = loaded.benchmark;
       state.tables = { ...loaded.tables };
       state.files = { ...loaded.files };
@@ -123,6 +160,7 @@ export function renderAivQualificationWorkspace(container) {
 
   async function loadFile(target, file) {
     clearReadiness();
+    deactivateFlareNetworkGeneration();
     state.error = null;
     try {
       if (target === 'topology') {
@@ -149,6 +187,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function applyTableMutation(kind, table) {
     state.tables[kind] = table;
+    if (state.flareNetworkActive) state.flareNetworkActive = false;
     markBenchmarkModified();
     clearReadiness();
     state.error = null;
@@ -336,6 +375,7 @@ export function renderAivQualificationWorkspace(container) {
   }
 
   function onClick(event) {
+    if (event.target.closest('[data-aiv-network-editor]')) return;
     if (handleTableClick(event)) return;
     const row = event.target.closest('[data-aiv-row]');
     if (row) {
@@ -374,6 +414,7 @@ export function renderAivQualificationWorkspace(container) {
   }
 
   function onChange(event) {
+    if (event.target.closest('[data-aiv-network-editor]')) return;
     const assumptionPath = event.target.dataset.aivAssumption;
     if (assumptionPath) {
       try {
@@ -402,6 +443,7 @@ export function renderAivQualificationWorkspace(container) {
 
   return () => {
     state.destroyed = true;
+    flareNetworkController.destroy();
     canvasExportController.destroy();
     canvasController.destroy();
     container.removeEventListener('click', onClick);
