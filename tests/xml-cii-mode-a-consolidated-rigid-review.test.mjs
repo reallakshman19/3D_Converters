@@ -37,7 +37,9 @@ assert.notEqual(flat[0].reviewId, flat[1].reviewId, 'same engineering key in dif
 assert.equal(flat[0].reviewId, modeARigidReviewIdentity('SRC-A', '/SAME/B1::100'));
 
 const state = {
+  supportConfigJson: JSON.stringify({ stale: true }),
   sourceBatch: {
+    activeSourceId: 'SRC-A',
     sources: [
       { sourceId: 'SRC-A', supportConfigJson: JSON.stringify({ overrides: { other: { keep: 1 } } }) },
       { sourceId: 'SRC-B', supportConfigJson: '{}' },
@@ -55,5 +57,6 @@ assert.equal(configB.overrides.rigidWeight['/SAME/B1::100'], 31.7);
 assert.equal(configA.overrides.rating['/SAME/B1::100'], '900');
 assert.equal(configB.overrides.rating['/SAME/B1::100'], '600');
 assert.equal(configA.overrides.other.keep, 1, 'unrelated source-local config must be preserved');
+assert.deepEqual(JSON.parse(updated.supportConfigJson), configA, 'root active-source config must align with reviewed active XML before Mode A sync');
 
 console.log('xml-cii Mode A consolidated rigid review tests: PASS');
