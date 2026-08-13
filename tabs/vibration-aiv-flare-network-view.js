@@ -14,10 +14,16 @@ function networkStyle() {
   </style>`;
 }
 
+function engineeringType(node) {
+  return node.kind === 'SOURCE'
+    ? node.sourceInput?.sourceDeviceType ?? ''
+    : node.kind === 'ASSESSMENT' ? node.assessmentInput?.assessmentType ?? '' : '';
+}
+
 function nodeRows(network) {
-  if (!network.nodes.length) return '<tr><td colspan="6">No flare-network nodes yet.</td></tr>';
+  if (!network.nodes.length) return '<tr><td colspan="7">No flare-network nodes yet.</td></tr>';
   return network.nodes.map((node) => `<tr>
-    <td>${esc(node.canonicalId)}</td><td>${esc(node.kind)}</td><td>${esc(node.tag)}</td><td>${esc(node.line ?? '')}</td>
+    <td>${esc(node.canonicalId)}</td><td>${esc(node.kind)}</td><td>${esc(engineeringType(node))}</td><td>${esc(node.tag)}</td><td>${esc(node.line ?? '')}</td>
     <td>${esc(node.sourceInput?.caseId ?? '')}</td>
     <td><button type="button" class="engineering-console-btn" data-aiv-network-delete-node="${esc(node.canonicalId)}">Delete</button></td>
   </tr>`).join('');
@@ -47,6 +53,26 @@ function modeNotice(state) {
   return '<div class="aiv-network-mode is-manual"><strong>TABLE/IMPORT MODE ACTIVE</strong><span>The graph is retained for editing, but current AIV tables are manual/imported. The next graph edit intentionally regenerates all three tables from the network.</span></div>';
 }
 
+function sourceDeviceOptions() {
+  return [
+    ['', 'Use assumption/default'],
+    ['RELIEF_VALVE', 'Relief / PSV'],
+    ['CONTROL_VALVE', 'Control valve'],
+    ['RESTRICTION_ORIFICE', 'Restriction orifice'],
+    ['PRESSURE_REDUCING_BRANCH_CONNECTION', 'Pressure-reducing device'],
+  ].map(([value, label]) => option(value, label)).join('');
+}
+
+function assessmentTypeOptions() {
+  return [
+    ['', 'Use assumption/default'],
+    ['WELDOLET', 'Weldolet'],
+    ['WELDED_TEE', 'Welded tee'],
+    ['WELDED_SUPPORT', 'Welded support'],
+    ['OTHER_WELDED_DISCONTINUITY', 'Other welded discontinuity'],
+  ].map(([value, label]) => option(value, label)).join('');
+}
+
 export function renderAivFlareNetworkAuthoringHtml(state = {}) {
   const network = state.flareNetwork;
   if (!network) return '';
@@ -59,6 +85,8 @@ export function renderAivFlareNetworkAuthoringHtml(state = {}) {
       <fieldset><legend>Add network node</legend>
         <label>Canonical ID <input data-aiv-network-new-node-id placeholder="PSV-101 / J-101 / WO-101"></label>
         <label>Kind <select data-aiv-network-new-node-kind>${['SOURCE', 'ASSESSMENT', 'JUNCTION', 'CONNECTION', 'BOUNDARY', 'OFF_PAGE'].map((item) => option(item)).join('')}</select></label>
+        <label>Source device type <select data-aiv-network-new-source-device>${sourceDeviceOptions()}</select></label>
+        <label>Assessment type <select data-aiv-network-new-assessment-type>${assessmentTypeOptions()}</select></label>
         <label>Operating Case <input data-aiv-network-new-node-case placeholder="required for Source"></label>
         <label>Line <input data-aiv-network-new-node-line placeholder="flare line ID"></label>
         <label>Tag <input data-aiv-network-new-node-tag placeholder="display tag"></label>
@@ -75,7 +103,7 @@ export function renderAivFlareNetworkAuthoringHtml(state = {}) {
       </fieldset>
     </div>
     <div class="aiv-network-svg-frame">${renderAivFlareNetworkSvg(network)}</div>
-    <div class="aiv-network-table-wrap"><h5>Network nodes</h5><table class="aivq-input-table"><thead><tr><th>Canonical ID</th><th>Kind</th><th>Tag</th><th>Line</th><th>Case</th><th>Action</th></tr></thead><tbody>${nodeRows(network)}</tbody></table></div>
+    <div class="aiv-network-table-wrap"><h5>Network nodes</h5><table class="aivq-input-table"><thead><tr><th>Canonical ID</th><th>Kind</th><th>Engineering type</th><th>Tag</th><th>Line</th><th>Case</th><th>Action</th></tr></thead><tbody>${nodeRows(network)}</tbody></table></div>
     <div class="aiv-network-table-wrap"><h5>Pipe segments</h5><table class="aivq-input-table"><thead><tr><th>Segment</th><th>From</th><th>To</th><th>Line</th><th>Engineering length</th><th>Unit</th><th>Action</th></tr></thead><tbody>${segmentRows(network)}</tbody></table></div>
   </section>`;
 }
