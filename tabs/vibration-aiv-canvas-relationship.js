@@ -1,6 +1,7 @@
 export const AIV_CANVAS_MODE = Object.freeze({
   NAVIGATE: 'NAVIGATE',
   RELATIONSHIPS: 'RELATIONSHIPS',
+  RESULTS: 'RESULTS',
 });
 
 function text(value) {
