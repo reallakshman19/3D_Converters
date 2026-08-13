@@ -63,20 +63,18 @@ AivCalculatorResult.v1
 aiv-eit-contract.js
              ↓
 aiv-eit-units.js
-        ↙            ↘
-aiv-eit-geometry.js   aiv-eit-stream-record.js
-        ↘            ↙
-      aiv-eit-records.js   (source detail/trace)
-             ↓
-aiv-eit-authority.js
-             ↓
-aiv-eit-document.js
-             ↓
-aiv-eit-export.js
-             ↓
-EnergyInstituteEit.v5 document
-             ↓
-aiv-screening-result.eit
+        ↙            ↓                 ↘
+aiv-eit-geometry.js  aiv-eit-source-detail.js  aiv-eit-stream-record.js
+        ↘            ↓                 ↙
+             aiv-eit-document.js
+                     ↓
+             aiv-eit-authority.js
+                     ↓
+               aiv-eit-export.js
+                     ↓
+         EnergyInstituteEit.v5 document
+                     ↓
+         aiv-screening-result.eit
 ```
 
 UI modules dispatch export only. They contain no EIT engineering conversion equations.
