@@ -19,6 +19,7 @@ import {
 } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
+import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
@@ -74,11 +75,16 @@ export function renderAivQualificationWorkspace(container) {
     onCreateRelationship: createCanvasRelationship,
     onDeleteRelationship: deleteCanvasRelationship,
   });
+  const canvasExportController = createAivCanvasExportController(container, {
+    getState: () => state,
+    getLayout: () => canvasController.getLayout(),
+  });
 
   function render() {
     if (state.destroyed) return;
     container.innerHTML = renderAivQualificationWorkspaceHtml(state);
     canvasController.sync();
+    canvasExportController.sync();
   }
 
   function clearReadiness() {
@@ -396,6 +402,7 @@ export function renderAivQualificationWorkspace(container) {
 
   return () => {
     state.destroyed = true;
+    canvasExportController.destroy();
     canvasController.destroy();
     container.removeEventListener('click', onClick);
     container.removeEventListener('change', onChange);
