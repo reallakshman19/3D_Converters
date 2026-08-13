@@ -136,13 +136,18 @@ export function buildXmlCiiBranchOccurrenceGroups(occurrences = []) {
 function selectedOccurrences(occurrences, selection, sourceDigest) {
   const sameSource = text(selection?.sourceDigest) === sourceDigest;
   if (!sameSource) return [...occurrences];
-  if (Array.isArray(selection?.selectedBranchOccurrenceIds)) {
+  const identity = selection?.selectionIdentity === 'occurrence' ? 'occurrence' : 'name';
+  if (identity === 'occurrence' && Array.isArray(selection?.selectedBranchOccurrenceIds)) {
     const wanted = new Set(selection.selectedBranchOccurrenceIds.map(text).filter(Boolean));
     return occurrences.filter((row) => wanted.has(row.branchOccurrenceId));
   }
   if (Array.isArray(selection?.selectedBranchNames)) {
     const wanted = new Set(selection.selectedBranchNames.map(normalize).filter(Boolean));
     return occurrences.filter((row) => wanted.has(normalize(row.branchName)));
+  }
+  if (Array.isArray(selection?.selectedBranchOccurrenceIds)) {
+    const wanted = new Set(selection.selectedBranchOccurrenceIds.map(text).filter(Boolean));
+    return occurrences.filter((row) => wanted.has(row.branchOccurrenceId));
   }
   return [...occurrences];
 }
@@ -220,6 +225,7 @@ export function normalizeXmlCiiBranchSelection(sourceText, selection = {}) {
   const selected = selectedOccurrences(occurrences, selection, sourceDigest);
   return {
     sourceDigest,
+    selectionIdentity: selection?.selectionIdentity === 'occurrence' ? 'occurrence' : 'name',
     selectedBranchOccurrenceIds: selected.map((row) => row.branchOccurrenceId),
     selectedBranchNames: selected.map((row) => row.branchName),
     search: text(selection?.sourceDigest) === sourceDigest ? text(selection.search) : '',
@@ -232,6 +238,7 @@ export function buildSelectedBranchScope({
   stagedJsonText = '',
   selectedBranchNames,
   selectedBranchOccurrenceIds,
+  selectionIdentity = 'name',
   sourceKind = 'xml',
 } = {}) {
   const source = String(sourceText ?? '');
@@ -241,6 +248,7 @@ export function buildSelectedBranchScope({
     sourceDigest,
     selectedBranchNames,
     selectedBranchOccurrenceIds,
+    selectionIdentity,
   });
   const selectedIds = new Set(selection.selectedBranchOccurrenceIds);
   const selectedOccurrencesList = sourceBranchOccurrences.filter((row) => selectedIds.has(row.branchOccurrenceId));
@@ -315,6 +323,7 @@ export function xmlCiiBranchScopeFromState(state = {}) {
     stagedJsonText: state.stagedJsonText || '',
     selectedBranchNames: selection.selectedBranchNames,
     selectedBranchOccurrenceIds: selection.selectedBranchOccurrenceIds,
+    selectionIdentity: selection.selectionIdentity,
     sourceKind: state.sourceKind || 'auto',
   });
 }
