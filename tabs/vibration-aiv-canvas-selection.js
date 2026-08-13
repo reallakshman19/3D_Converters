@@ -1,8 +1,6 @@
 import { createAivCanvasLayout } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 
-function text(value) {
-  return String(value ?? '').trim();
-}
+function text(value) { return String(value ?? '').trim(); }
 
 export function aivCanvasSelectionFromElement(element) {
   const selectionKey = text(element?.dataset?.aivSelectionKey);
@@ -32,6 +30,9 @@ export function applyAivCanvasSelection(container, selection) {
     setSelected(row, selected);
     if (selected) tableRow = row;
   }
+  for (const detail of container.querySelectorAll('[data-aiv-canvas-assumption-detail]')) {
+    detail.hidden = !(key && detail.dataset.aivCanvasAssumptionDetail === key);
+  }
   return Object.freeze({ canvasElement, tableRow });
 }
 
@@ -45,9 +46,7 @@ function selectionPoint(layout, canvasElement) {
   const assessmentKey = text(canvasElement?.dataset?.aivCanvasAssessmentNode);
   const source = layout.nodes.find((item) => item.nodeKey === sourceKey);
   const assessment = layout.nodes.find((item) => item.nodeKey === assessmentKey);
-  return source && assessment
-    ? { x: (source.x + assessment.x) / 2, y: (source.y + assessment.y) / 2 }
-    : null;
+  return source && assessment ? { x: (source.x + assessment.x) / 2, y: (source.y + assessment.y) / 2 } : null;
 }
 
 export function centerAivCanvasLayoutOnElement(svg, layoutInput, canvasElement) {
@@ -58,11 +57,7 @@ export function centerAivCanvasLayoutOnElement(svg, layoutInput, canvasElement) 
   const zoom = layout.viewport.zoom;
   return createAivCanvasLayout({
     nodes: layout.nodes,
-    viewport: {
-      x: box.width / 2 - point.x * zoom,
-      y: box.height / 2 - point.y * zoom,
-      zoom,
-    },
+    viewport: { x: box.width / 2 - point.x * zoom, y: box.height / 2 - point.y * zoom, zoom },
   });
 }
 
@@ -74,4 +69,3 @@ export function revealAivCanvasSelection(container, svg, layout, selection, orig
     : createAivCanvasLayout(layout);
   return Object.freeze({ ...applied, layout: nextLayout });
 }
-

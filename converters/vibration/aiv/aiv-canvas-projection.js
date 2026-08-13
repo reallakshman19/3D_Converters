@@ -6,9 +6,7 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function text(value) {
-  return String(value ?? '').trim();
-}
+function text(value) { return String(value ?? '').trim(); }
 
 function tableRecords(table) {
   if (!Array.isArray(table?.header) || !Array.isArray(table?.rows)) return [];
@@ -18,34 +16,40 @@ function tableRecords(table) {
   }));
 }
 
-function workingTables(input) {
-  return input.assumptionResolution?.tables ?? input.tables ?? {};
-}
+function workingTables(input) { return input.assumptionResolution?.tables ?? input.tables ?? {}; }
+function topologyElements(topology) { return Array.isArray(topology?.elements) ? topology.elements : []; }
+function topologyById(topology) { return new Map(topologyElements(topology).map((item) => [text(item.canonicalId), item])); }
 
-function topologyElements(topology) {
-  return Array.isArray(topology?.elements) ? topology.elements : [];
-}
-
-function topologyById(topology) {
-  return new Map(topologyElements(topology).map((item) => [text(item.canonicalId), item]));
-}
-
-function assumptionCounts(resolution) {
-  const counts = new Map();
+function assumptionsByRow(resolution) {
+  const map = new Map();
   for (const item of resolution?.assumptions ?? []) {
-    const key = `${text(item.tableKind)}:${Number(item.rowIndex)}`;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const tableKind = text(item.tableKind);
+    const rowIndex = Number(item.rowIndex);
+    if (!tableKind || !Number.isInteger(rowIndex) || rowIndex < 0) continue;
+    const key = `${tableKind}:${rowIndex}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push({
+      tableKind,
+      rowIndex,
+      column: text(item.column),
+      assumedValue: text(item.assumedValue),
+      profilePath: text(item.profilePath),
+      reason: text(item.reason),
+    });
   }
-  return counts;
+  for (const rows of map.values()) rows.sort((a, b) => a.column.localeCompare(b.column));
+  return map;
+}
+
+function rowAssumptions(context, tableKind, rowIndex) {
+  return context.assumptions.get(`${tableKind}:${rowIndex}`) ?? [];
 }
 
 function domainResult(screeningResult) {
   return screeningResult?.outputs ?? screeningResult?.evidence?.domainResult ?? screeningResult ?? {};
 }
 
-function readinessRows(envelope) {
-  return Array.isArray(envelope?.readiness?.rows) ? envelope.readiness.rows : [];
-}
+function readinessRows(envelope) { return Array.isArray(envelope?.readiness?.rows) ? envelope.readiness.rows : []; }
 
 function readinessFor(rows, predicate) {
   const statuses = rows.filter(predicate).map((row) => text(row.status)).filter(Boolean);
@@ -58,18 +62,14 @@ function readinessFor(rows, predicate) {
 
 function sourceIcon(type) {
   return ({
-    RELIEF_VALVE: 'RELIEF_VALVE',
-    CONTROL_VALVE: 'CONTROL_VALVE',
-    RESTRICTION_ORIFICE: 'RESTRICTION_ORIFICE',
-    PRESSURE_REDUCING_BRANCH_CONNECTION: 'PRESSURE_REDUCING_DEVICE',
+    RELIEF_VALVE: 'RELIEF_VALVE', CONTROL_VALVE: 'CONTROL_VALVE',
+    RESTRICTION_ORIFICE: 'RESTRICTION_ORIFICE', PRESSURE_REDUCING_BRANCH_CONNECTION: 'PRESSURE_REDUCING_DEVICE',
   })[text(type)] ?? 'UNKNOWN_SOURCE';
 }
 
 function assessmentIcon(type) {
   return ({
-    WELDOLET: 'WELDOLET',
-    WELDED_TEE: 'WELDED_TEE',
-    WELDED_SUPPORT: 'WELDED_SUPPORT',
+    WELDOLET: 'WELDOLET', WELDED_TEE: 'WELDED_TEE', WELDED_SUPPORT: 'WELDED_SUPPORT',
     OTHER_WELDED_DISCONTINUITY: 'OTHER_WELDED_DISCONTINUITY',
   })[text(type)] ?? 'UNKNOWN_ASSESSMENT';
 }
@@ -101,10 +101,8 @@ function contributionMap(result) {
 
 function assessmentSummary(results) {
   const cases = results.map((item) => ({
-    caseId: text(item.caseId),
-    combinedPointPwlDb: item.combinedPointPwlDb ?? null,
-    lof: item.lof ?? null,
-    resultScope: text(item.resultScope) || 'ASSESSMENT',
+    caseId: text(item.caseId), combinedPointPwlDb: item.combinedPointPwlDb ?? null,
+    lof: item.lof ?? null, resultScope: text(item.resultScope) || 'ASSESSMENT',
   })).sort((a, b) => a.caseId.localeCompare(b.caseId));
   if (!cases.length) return null;
   return cases.length === 1 ? cases[0] : { caseCount: cases.length, cases };
@@ -117,21 +115,15 @@ function sourceNodes(records, context) {
     if (!canonicalId || !caseId) return [];
     const topo = context.topology.get(canonicalId) ?? {};
     const result = context.sourceResults.get(`${canonicalId}\u0000${caseId}`) ?? null;
+    const assumptions = rowAssumptions(context, 'sources', rowIndex);
     return [{
-      nodeKey: `SOURCE:${canonicalId}:${caseId}`,
-      canonicalId,
-      caseId,
-      nodeKind: 'SOURCE',
-      iconType: sourceIcon(values['Source Device Type']),
-      tag: text(topo.tag) || canonicalId,
+      nodeKey: `SOURCE:${canonicalId}:${caseId}`, canonicalId, caseId, nodeKind: 'SOURCE',
+      iconType: sourceIcon(values['Source Device Type']), tag: text(topo.tag) || canonicalId,
       line: text(topo.line) || null,
       readinessStatus: readinessFor(context.readiness, (row) => text(row.sourceCanonicalId) === canonicalId && text(row.caseId) === caseId),
-      assumptionCount: context.assumptions.get(`sources:${rowIndex}`) ?? 0,
+      assumptionCount: assumptions.length, assumptions,
       screeningStatus: result ? text(result.status) || 'AVAILABLE' : null,
-      resultSummary: result ? {
-        rawSourcePwlDb: result.rawSourcePwlDb ?? null,
-        effectiveSourcePwlDb: result.effectiveSourcePwlDb ?? null,
-      } : null,
+      resultSummary: result ? { rawSourcePwlDb: result.rawSourcePwlDb ?? null, effectiveSourcePwlDb: result.effectiveSourcePwlDb ?? null } : null,
       tableRowIndex: rowIndex,
     }];
   });
@@ -143,19 +135,15 @@ function assessmentNodes(records, context) {
     if (!canonicalId) return [];
     const topo = context.topology.get(canonicalId) ?? {};
     const results = context.assessmentResults.get(canonicalId) ?? [];
+    const assumptions = rowAssumptions(context, 'assessments', rowIndex);
     return [{
-      nodeKey: `ASSESSMENT:${canonicalId}`,
-      canonicalId,
-      caseId: null,
-      nodeKind: 'ASSESSMENT',
-      iconType: assessmentIcon(values['Assessment Type']),
-      tag: text(topo.tag) || canonicalId,
+      nodeKey: `ASSESSMENT:${canonicalId}`, canonicalId, caseId: null, nodeKind: 'ASSESSMENT',
+      iconType: assessmentIcon(values['Assessment Type']), tag: text(topo.tag) || canonicalId,
       line: text(topo.line) || null,
       readinessStatus: readinessFor(context.readiness, (row) => text(row.assessmentCanonicalId) === canonicalId),
-      assumptionCount: context.assumptions.get(`assessments:${rowIndex}`) ?? 0,
+      assumptionCount: assumptions.length, assumptions,
       screeningStatus: results.length ? 'AVAILABLE' : null,
-      resultSummary: assessmentSummary(results),
-      tableRowIndex: rowIndex,
+      resultSummary: assessmentSummary(results), tableRowIndex: rowIndex,
     }];
   });
 }
@@ -173,18 +161,10 @@ function pathNodes(topology, excludedIds) {
     const nodeKind = pathKind(element);
     if (!canonicalId || !nodeKind || excludedIds.has(canonicalId)) return [];
     return [{
-      nodeKey: `${nodeKind}:${canonicalId}`,
-      canonicalId,
-      caseId: null,
-      nodeKind,
-      iconType: nodeKind === 'BOUNDARY' ? 'BOUNDARY' : 'PIPE_PATH',
-      tag: text(element.tag) || canonicalId,
-      line: text(element.line) || null,
-      readinessStatus: null,
-      assumptionCount: 0,
-      screeningStatus: null,
-      resultSummary: null,
-      tableRowIndex: null,
+      nodeKey: `${nodeKind}:${canonicalId}`, canonicalId, caseId: null, nodeKind,
+      iconType: nodeKind === 'BOUNDARY' ? 'BOUNDARY' : 'PIPE_PATH', tag: text(element.tag) || canonicalId,
+      line: text(element.line) || null, readinessStatus: null, assumptionCount: 0, assumptions: [],
+      screeningStatus: null, resultSummary: null, tableRowIndex: null,
     }];
   });
 }
@@ -199,22 +179,18 @@ function relationshipRows(records, context) {
     const selectionKey = `REL:${sourceCanonicalId}:${assessmentCanonicalId}:${caseId}`;
     const ready = context.readiness.find((row) => text(row.sourceCanonicalId) === sourceCanonicalId
       && text(row.assessmentCanonicalId) === assessmentCanonicalId && text(row.caseId) === caseId);
+    const assumptions = rowAssumptions(context, 'relationships', rowIndex);
     return [{
-      rowKey: text(ready?.rowKey) || selectionKey,
-      selectionKey,
-      sourceCanonicalId,
-      assessmentCanonicalId,
-      caseId,
+      rowKey: text(ready?.rowKey) || selectionKey, selectionKey, sourceCanonicalId, assessmentCanonicalId, caseId,
       applicabilityDisposition: text(values['Applicability Disposition']) || 'UNRESOLVED',
       physicalDistance: text(values['Physical Distance']) || null,
       physicalDistanceUnit: text(values['Physical Distance Unit']) || null,
       distanceSource: text(values['Distance Source']) || null,
       distanceSourceRevision: text(values['Distance Source Revision']) || null,
       simultaneousSourceGroup: text(values['Simultaneous Source Group']) || null,
-      assumptionCount: context.assumptions.get(`relationships:${rowIndex}`) ?? 0,
+      assumptionCount: assumptions.length, assumptions,
       screeningContribution: context.contributions.get(key) ?? null,
-      readinessStatus: text(ready?.status) || null,
-      tableRowIndex: rowIndex,
+      readinessStatus: text(ready?.status) || null, tableRowIndex: rowIndex,
     }];
   });
 }
@@ -233,12 +209,9 @@ export function buildAivCanvasProjection(input = {}) {
   const tables = workingTables(input);
   const result = domainResult(input.screeningResult);
   const context = {
-    topology: topologyById(input.topology),
-    readiness: readinessRows(input.readinessEnvelope),
-    assumptions: assumptionCounts(input.assumptionResolution),
-    sourceResults: sourceResultMap(result),
-    assessmentResults: assessmentResultsMap(result),
-    contributions: contributionMap(result),
+    topology: topologyById(input.topology), readiness: readinessRows(input.readinessEnvelope),
+    assumptions: assumptionsByRow(input.assumptionResolution), sourceResults: sourceResultMap(result),
+    assessmentResults: assessmentResultsMap(result), contributions: contributionMap(result),
   };
   const sources = sourceNodes(tableRecords(tables.sources), context);
   const assessments = assessmentNodes(tableRecords(tables.assessments), context);
@@ -246,11 +219,8 @@ export function buildAivCanvasProjection(input = {}) {
   const nodes = [...sources, ...pathNodes(input.topology, excluded), ...assessments].sort(sortNodes);
   const relationships = relationshipRows(tableRecords(tables.relationships), context).sort(sortRelationships);
   return deepFreeze({
-    schema: AIV_CANVAS_PROJECTION_SCHEMA,
-    methodId: 'VIB.AIV.ACOUSTIC',
-    presentationOnly: true,
-    nodes,
-    relationships,
+    schema: AIV_CANVAS_PROJECTION_SCHEMA, methodId: 'VIB.AIV.ACOUSTIC', presentationOnly: true,
+    nodes, relationships,
     lineCaseSummaries: deepFreeze((result.lineCaseSummaries ?? []).map((item) => ({ ...item }))),
   });
 }
