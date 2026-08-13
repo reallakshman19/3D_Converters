@@ -18,6 +18,10 @@ async function sourceRows(files, state) {
   for (const file of files) {
     try {
       const sourceText = await file.text();
+      if (!String(sourceText || '').trim()) {
+        rejected.push(`${file.name} is empty; no XML text was read (${Number(file.size || 0)} bytes reported by browser).`);
+        continue;
+      }
       const kind = detectXmlCiiWorkflowSourceKind(sourceText, 'xml');
       if (kind !== 'xml') {
         rejected.push(`${file.name} is ${kind}; Mode A multi-file import accepts PSI116 XML only.`);
