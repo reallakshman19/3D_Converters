@@ -16,6 +16,7 @@ export function projectAivFlareNetworkIntoWorkspace(network) {
     flareNetwork: network,
     generatedInputSet,
     tables: generatedInputSet.tables,
+    topology: exchange,
     topologyInput: Object.freeze({
       format: 'FLARE_NETWORK',
       data: exchange,
