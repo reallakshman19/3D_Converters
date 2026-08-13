@@ -32,6 +32,15 @@ function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
 
+function parseSupportConfig(value) {
+  try {
+    const parsed = JSON.parse(String(value || '{}'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function ensureObject(parent, key) {
   if (!parent[key] || typeof parent[key] !== 'object' || Array.isArray(parent[key])) parent[key] = {};
   return parent[key];
@@ -83,12 +92,11 @@ function sourceSnapshots(stateRef, sourceIds) {
 function persistSourceConfig(stateRef, sourceId, mutate) {
   const ref = createModeASourceProcessingRef(stateRef, sourceId);
   const current = ref.current;
-  const config = xmlCiiEnrichedConfigFromState(current);
+  const config = parseSupportConfig(current.supportConfigJson);
   mutate(config);
   ref.current = {
     ...current,
     supportConfigJson: JSON.stringify(config, null, 2),
-    masterContext: { ...(current.masterContext || {}), config },
   };
 }
 
@@ -108,12 +116,9 @@ function restoreUndo(stateRef) {
   for (const snapshot of undo.snapshots) {
     const ref = createModeASourceProcessingRef(stateRef, snapshot.sourceId);
     const current = ref.current;
-    let config = {};
-    try { config = JSON.parse(snapshot.supportConfigJson || '{}'); } catch {}
     ref.current = {
       ...current,
       supportConfigJson: snapshot.supportConfigJson || '{}',
-      masterContext: { ...(current.masterContext || {}), config },
     };
   }
   const latest = modeARawState(stateRef);
@@ -250,8 +255,7 @@ function makeToolbar(panel, result, stateRef) {
   });
 
   match.addEventListener('click', () => {
-    const existing = toolbar.querySelector('[data-project-match-preview]');
-    existing?.remove();
+    toolbar.querySelectorAll('[data-project-match-preview], [data-project-match-apply]').forEach((node) => node.remove());
     const plan = buildModeAProjectDataMatchPlan(result.rows || [], projectLineKeys(stateRef), resolveBranchLineKeySuggestion);
     const preview = document.createElement('span');
     preview.dataset.projectMatchPreview = 'true';
@@ -261,6 +265,7 @@ function makeToolbar(panel, result, stateRef) {
     if (plan.changes.length) {
       const apply = document.createElement('button');
       apply.type = 'button';
+      apply.dataset.projectMatchApply = 'true';
       apply.textContent = `Apply ${plan.changes.length} Safe Matches`;
       styleSmallButton(apply, true);
       apply.addEventListener('click', () => applyProjectPlan(panel, stateRef, plan));
