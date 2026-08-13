@@ -1,4 +1,5 @@
 import { AIV_UI_BENCHMARK_SOURCE } from './vibration-aiv-benchmarks.js';
+import { renderAivCanvasWorkspaceHtml } from './vibration-aiv-canvas-view.js';
 import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
 
 function esc(value) {
@@ -84,7 +85,8 @@ export function renderAivInputWorkspaceHtml(state = {}) {
     assessments: fallbackTable('assessments'),
     relationships: fallbackTable('relationships'),
   };
-  return `${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
+  const canvasState = { ...state, tables };
+  return `${renderAivCanvasWorkspaceHtml(canvasState)}${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
     ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells are assumed from the configured profile at execution time.')}
     ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID. Missing engineering cells use configured assumptions.')}
     ${editableTable('Source → Assessment', tables.relationships, 'Applicability, engineering physical distance and simultaneous-source grouping. Missing cells use configured assumptions; topology pixels never supply distance.')}`;

@@ -9,62 +9,62 @@
 | PR number | `#451` |
 | Branch | `agent/aiv-svg-canvas` |
 | Base commit | `main@c8aa2786e08a7669b913d0a055ad4c15c6d36b0e` |
-| Current HEAD | `b7ef44c7aaa2f996d7333f7d8a27846b34a83c61` before this Stage-4 planning refresh |
+| Current HEAD | `f15bcb665b709d23cdf23d612023736bdad477bc` before the Stage-4 implementation commit |
 | PR status | DRAFT / OPEN |
 | Current stage | Stage 4 — Projection + deterministic layout + live production consumer |
 | Last completed stage | Stage 3 — Changed-file / repository-state verification |
-| Engineering status | Stage-4 implementation authorized by inspected current source |
-| Validation status | Protocol/branch-state PASS; production canvas NOT_RUN |
-| Current blocker | None. `ISS-001` is a pre-existing test-contract inconsistency and is not a blocker to focused Stage-4 implementation. |
-| Exact next action | Add the pure projection/layout modules, static production SVG consumer, qualification-view integration, focused tests and `verify:aiv-canvas` foundation command; then validate the exact changed head. |
+| Engineering status | Stage-4 production behavior IMPLEMENTED locally; publish/exact-head verification pending |
+| Validation status | Focused Stage-4 suite 12/12 PASS locally; repository exact-head validation pending |
+| Current blocker | None. `ISS-001` remains a pre-existing broad boundary-test oracle inconsistency. |
+| Exact next action | Commit the Stage-4 production/test/report tree, verify PR changed files and exact GitHub file contents, then update this report with the committed HEAD before beginning Stage 5. |
 
 ## Handover in 60 Seconds
 
-**What is now true:** PR #451 contained only `agents/PR451_workreport.md` at Stage-3 verification. The live AIV qualification controller already owns table mutations, assumption resolution, readiness and screening. The live qualification view is the correct first canvas consumer. Result view confirms screening values are exposed through Engineering Calculation outputs, with assessment and line/case scopes already separated.
+**What is now true:** the Stage-4 implementation exists and has a real production consumer. `AivCanvasProjection.v1` projects current/resolved table records, topology and screening outputs; `AivCanvasLayout.v1` is presentation-only and supports deterministic layout plus pure movement; the live AIV input workspace renders a dedicated SVG source→assessment canvas.
 
-**What is being worked on:** a real visible SVG projection of current table-backed AIV identities/relationships, backed by deterministic presentation-only layout.
+**What is being worked on:** publishing the stage-aligned implementation commit and verifying the exact repository head.
 
-**What remains unfinished:** interaction controller, pan/zoom/drag, bidirectional selection, relationship editing, assumption/readiness drilldown, richer result overlays/filtering/export/accessibility/performance.
+**What remains unfinished:** pan/zoom/drag interaction controller, bidirectional table selection, relationship authoring/deletion, assumption/readiness drilldown, richer result overlays/filtering/export, accessibility and performance hardening.
 
-**What must not be assumed:** SVG coordinates are engineering coordinates; visible arrows are kernel contributors; Line/Case LOF is assessment LOF; pre-existing `vibration-module-boundaries.test.mjs` currently provides a clean AIV boundary PASS.
+**What must not be assumed:** the canvas is interactive yet; SVG geometry has engineering meaning; visible NOT_APPLICABLE arrows are contributions; line/case LOF is assessment screening authority; broad module-boundary validation is a clean base oracle (`ISS-001`).
 
-**Highest-risk remaining item:** accidentally allowing projection/layout helpers to invent engineering identity or distance.
+**Highest-risk remaining item:** Stage-5 interaction state accidentally mutating engineering table values instead of presentation layout only.
 
-**Exact next action:** implement Stage 4 exactly as scoped below, run focused local syntax/pure-module checks where possible, publish the stage, then run connector-visible diff verification.
+**Exact next action:** publish/verify Stage 4, then update this report before Stage 5.
 
 ## Mission and Engineering Intent
 
-The operator needs a dedicated 2D AIV workspace for navigating/editing Source→Assessment relationships and explaining assessment screening results. This PR improves operability and traceability while preserving PR #446's assessment-only SCREENING authority and `designAuthority=false`.
+The operator needs a dedicated 2D AIV workspace for understanding source→assessment relationships and screening results. This PR improves operability/traceability while preserving PR #446's assessment-only SCREENING authority and `designAuthority=false`.
 
 ### Governing principles
 
 - `TABLES = engineering source of truth`.
 - `SVG CANVAS = visual navigation / relationship editing / result explanation`.
-- Canvas layout stores presentation state only.
+- Layout coordinates and viewport are presentation state only.
 - Physical distance comes from Source→Assessment records / visible assumptions only.
 - Screening execution stays in registered `calculateEngineering('VIB.AIV.ACOUSTIC', ...)`.
-- Canvas result overlays consume returned contracts; no UI equations or local dB combination.
-- Assessment screening scope remains distinct from non-authoritative Line/Case summaries.
+- Canvas result display consumes returned result objects; no UI equations/local dB combination.
+- Assessment result scope stays separate from non-authoritative Line/Case summary.
 - Engineering identity uses canonical IDs + operating case where applicable; never DOM IDs/tags/position.
 
 ### Scope / non-goals
 
 In scope: production-integrated projection/layout, SVG workspace, selection sync, relationship editing, assumptions/readiness/results, case/multi-source UX, export/trace, accessibility/performance/regression hardening.
 
-Out of scope: CAD/3D authoring, geometry writeback, pixel-derived engineering quantities, hidden assumptions, design-authority promotion, unrelated refactors/dependencies/workflows.
+Out of scope: CAD/3D authoring, geometry writeback, pixel-derived engineering quantities, hidden assumptions, design-authority promotion, unrelated dependencies/refactors/workflows.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
 | Work report + PR allocation | P0 | DONE | 1–2 | PR #451 + allocated report |
-| Repository-state verification | P0 | DONE | 3 | PR changed filenames = report only |
-| Projection + deterministic layout + live consumer | P0 | IN_PROGRESS | 4 | Exact scope below |
-| Dedicated SVG navigation workspace | P0 | NOT_STARTED | 5 | Pending interaction layer |
+| Repository-state verification | P0 | DONE | 3 | Report-only branch verified before production edits |
+| Projection + deterministic layout + live consumer | P0 | IMPLEMENTED | 4 | Local Stage-4 tree + 12/12 focused PASS |
+| Dedicated SVG navigation workspace | P0 | IN_PROGRESS | 4–5 | Static dedicated SVG implemented; interaction pending |
 | Bidirectional selection | P0 | NOT_STARTED | 6 | Pending |
 | Relationship authoring/deletion | P0 | NOT_STARTED | 7 | Pending |
-| Assumption/readiness visualization | P0 | NOT_STARTED | 8 | Pending |
-| Screening overlays/result scopes | P0 | NOT_STARTED | 9 | Pending |
+| Assumption/readiness visualization | P0 | NOT_STARTED | 8 | Projection carries counts/status; drilldown UI pending |
+| Screening overlays/result scopes | P0 | IN_PROGRESS | 4/9 | Basic result summaries + line-scope warning implemented; full detail pending |
 | Multi-source/case/line UX | P1 | NOT_STARTED | 10 | Pending |
 | Canvas-aware export/trace | P1 | NOT_STARTED | 11 | Pending |
 | Accessibility/performance/release hardening | P0 | NOT_STARTED | 12 | Pending |
@@ -74,121 +74,135 @@ Out of scope: CAD/3D authoring, geometry writeback, pixel-derived engineering qu
 | ID | Type | Severity/Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
 | DEC-001 | Decision | P0 | ACCEPTED | Canvas consumes existing AIV controller/table state; no parallel engineering store. | Yes |
-| DEC-002 | Decision | P0 | ACCEPTED | Projection may pass through explicit table-backed distance; layout cannot derive engineering distance. | Yes |
-| DEC-003 | Decision | P0 | ACCEPTED | New projection/layout abstractions get an immediate live qualification-workspace consumer. | Yes |
+| DEC-002 | Decision | P0 | ACCEPTED | Projection passes explicit table-backed distance unchanged; layout never derives distance. | Yes |
+| DEC-003 | Decision | P0 | VALIDATED_STAGE4 | Projection/layout have a real live AIV workspace consumer in the same stage. | Yes |
 | DEC-004 | Decision | P0 | ACCEPTED | Registered `calculateEngineering` remains the only screening execution path. | Yes |
-| DEC-005 | Decision | P0 | ACCEPTED | Stage 4 renders only records with usable canonical identity; it does not invent canonical IDs for blank editable rows. | Yes |
-| RISK-001 | Risk | High | IN_PROGRESS | Canvas could become a hidden second engineering authority. | Yes |
-| RISK-002 | Risk | High | IN_PROGRESS | Visible all-case connectors could be mistaken for active kernel contributors. | Yes |
-| RISK-003 | Risk | Medium | MITIGATED | Existing controller is large; Stage 4 adds focused modules and only a small integration import/call. | Yes |
-| ISS-001 | Validation inconsistency | Medium | ACCEPTED / DEFERRED_TO_BOUNDARY_STAGE | `vibration-module-boundaries.test.mjs` forbids `calculateEngineering` in a combined set containing `vibration-aiv-qualification-tab.js`, while `vibration-aiv-screening-release.test.mjs` requires that controller to route through `calculateEngineering`. This appears pre-existing on base and prevents claiming the broad boundary test as a clean oracle until reconciled. | Yes |
-| QST-001 | Question | P1 | ACCEPTED_FOR_STAGE4 | Projection keys source nodes by canonical ID + case and assessment nodes by canonical ID; relationship key is canonical source+assessment+case tuple/readiness row key. Interaction refinement remains Stage 6. | Yes |
-| QST-002 | Question | P1 | RESOLVED | Screening outputs expose `sourceResults`, `assessmentResults[].sourceContributionsAtPoint`, `combinedPointPwlDb`, `lof`, and separate `lineCaseSummaries`. | Yes |
+| DEC-005 | Decision | P0 | VALIDATED_STAGE4 | Blank canonical IDs/case IDs are omitted rather than synthesized by the canvas. | Yes |
+| DEC-006 | Decision | P1 | ACCEPTED | Stage-4 live integration is through `vibration-aiv-input-view.js`, immediately adjacent to synchronized tables; controller remains unchanged. | Yes |
+| RISK-001 | Risk | High | MITIGATED_STAGE4 | Projection is pure/read-only and layout is a separate presentation contract. | Yes |
+| RISK-002 | Risk | High | MITIGATED_STAGE4 | NOT_APPLICABLE relationships may render but contribution is populated only from screening result contribution objects. | Yes |
+| RISK-003 | Risk | Medium | MITIGATED | New modules remain below 300 physical lines; controller is not enlarged. | Yes |
+| ISS-001 | Validation inconsistency | Medium | ACCEPTED / DEFERRED_TO_BOUNDARY_STAGE | Base `vibration-module-boundaries.test.mjs` forbids `calculateEngineering` in a set containing the controller while screening-release requires that controller route through it. Broad boundary PASS is not claimed until reconciled. | Yes |
+| QST-001 | Question | P1 | RESOLVED_FOR_FOUNDATION | Source projection key = canonical ID + case; assessment = canonical ID; relationship = readiness row key or canonical source+assessment+case tuple. | Yes |
+| QST-002 | Question | P1 | RESOLVED | Current screening outputs provide source results, assessment contribution lists, combined point PWL, assessment LOF and separate line summaries. | Yes |
 
 ## Stage Roadmap / Stage Protocol
 
 ### Stage 1 — Report initialization + technical findings — COMPLETE
-Created living report before production changes. Source identity, relationship uniqueness and assumption precedence inspected. **PASS / COMPLETE.**
+Report created before production changes; current AIV authority/state paths inspected. **PASS / COMPLETE.**
 
 ### Stage 2 — PR allocation + report synchronization — COMPLETE
-Created draft PR #451 and allocated report path; removed pending path. **PASS / COMPLETE.**
+Draft PR #451 allocated; report renamed; pending path removed. **PASS / COMPLETE.**
 
 ### Stage 3 — Changed-file / repository-state verification — COMPLETE
+PR diff was report-only before production changes. Live controller/view/input/result/test surfaces inspected. `ISS-001` recorded. **PASS / COMPLETE.**
 
-**Implementation/inspection performed:**
+### Stage 4 — Projection + deterministic layout + live production consumer — IMPLEMENTED / PUBLISH VERIFICATION PENDING
 
-- PR #451 changed filenames returned exactly `agents/PR451_workreport.md` before production edits.
-- inspected current `vibration-aiv-qualification-tab.js`, `vibration-aiv-qualification-view.js`, `vibration-aiv-input-model.js`, `vibration-aiv-result-view.js`, AIV source/assessment/relationship contracts, central calculator contribution/result shape, CSS, screening-release test and module-boundary test.
-- confirmed the live qualification view is the narrowest production consumer and that the controller should not gain a parallel canvas engineering store.
+**Current truth:** local Stage-4 implementation is complete and focused tests pass. No claim is yet made about the exact GitHub committed head until this tree is committed and fetched back.
 
-**New finding:** `ISS-001` pre-existing AIV module-boundary test inconsistency.
+**Objective:** first usable dedicated SVG surface rendering current canonical source/assessment/relationship records while proving layout is non-authoritative.
 
-**Validation:** branch changed-file state PASS; source inspection PASS; no production tests run.
+**Implementation performed:**
 
-**Stage decision:** COMPLETE.
+- added `AivCanvasProjection.v1` pure projection of table records, optional assumption resolution, readiness, topology and screening outputs;
+- source nodes remain case-qualified; duplicate displayed tags do not affect identity;
+- blank identities are omitted and never invented;
+- Source→Assessment records carry explicit physical distance/unit/provenance unchanged;
+- relationship screening contribution is taken only from `assessmentResults[].sourceContributionsAtPoint`;
+- added `AivCanvasLayout.v1` with `nodeKey`, canonical/case trace, presentation `x/y`, viewport, deterministic conceptual lanes and pure `moveAivCanvasLayoutNode`;
+- added live dedicated SVG renderer with distinct Source/Assessment/Path shapes, relationship arrows, explicit case/distance labels, basic screening summaries and persistent `NON-AUTHORITATIVE FOR SCREENING` Line/Case trace warning;
+- integrated the canvas into `renderAivInputWorkspaceHtml`, immediately adjacent to the authoritative editable tables;
+- added initial `npm run verify:aiv-canvas` focused command.
 
-### Stage 4 — Projection + deterministic layout + live production consumer — IN_PROGRESS
+**Changed files and reasons:**
 
-**Current truth:** no canvas production module exists. Live view currently contains only a small inline-symbol adaptation example; issue #449 requires a dedicated canvas.
-
-**Objective:** deliver the first usable dedicated SVG surface that visibly renders current canonical source/assessment/relationship records while proving presentation layout is separate from engineering values.
-
-**Expected scope/files:**
-
-- `converters/vibration/aiv/aiv-canvas-projection.js` — pure table/result/topology projection;
-- `converters/vibration/aiv/aiv-canvas-layout-contract.js` — presentation-only layout contract + deterministic auto-layout + pure move helper;
-- `tabs/vibration-aiv-canvas-view.js` — static dedicated SVG production view using projection/layout;
-- `tabs/vibration-aiv-qualification-view.js` — import/render the new canvas in the live AIV workspace;
-- `tabs/vibration-aiv-qualification.css` — canvas presentation styles only;
-- `tests/vibration-aiv-canvas-projection.test.mjs`;
-- `tests/vibration-aiv-canvas-layout.test.mjs`;
-- `tests/vibration-aiv-canvas-view.test.mjs`;
-- `package.json` — initial focused `verify:aiv-canvas` command;
+- `converters/vibration/aiv/aiv-canvas-projection.js` — pure projection boundary;
+- `converters/vibration/aiv/aiv-canvas-layout-contract.js` — presentation-only layout contract/helper;
+- `tabs/vibration-aiv-canvas-view.js` — real SVG production consumer;
+- `tabs/vibration-aiv-input-view.js` — live workspace integration;
+- `tests/vibration-aiv-canvas-projection.test.mjs` — identity/distance/contribution/result-scope projection regressions;
+- `tests/vibration-aiv-canvas-layout.test.mjs` — deterministic/non-authority/module-size/equation-boundary regressions;
+- `tests/vibration-aiv-canvas-view.test.mjs` — SVG/result-scope/blank-identity/live-consumer regressions;
+- `package.json` — focused canvas verification command;
 - this report.
 
-**Engineering rationale:** issue #449 requires a projection layer between engineering records and SVG. The action-first gate requires immediate real production consumption, so projection/layout and visible SVG land together.
+**Deviations from plan:** integration is through `vibration-aiv-input-view.js` rather than `vibration-aiv-qualification-view.js`, which keeps the dedicated canvas physically and architecturally adjacent to synchronized tables. Canvas styles are scoped in the canvas renderer rather than expanding the already dense shared qualification stylesheet. No engineering behavior changed because of this deviation.
 
-**Planned implementation:**
+**Actual behavior / edge cases:**
 
-1. project resolved working tables when available, otherwise explicit current working table values;
-2. never create nodes for blank canonical IDs/case IDs and never synthesize engineering identity;
-3. carry explicit distance value/unit and provenance only from relationship rows;
-4. consume screening outputs for display summaries/contributions without recomputation;
-5. generate deterministic lane layout (`SOURCE → PATH/BOUNDARY → ASSESSMENT`) keyed by projection node key;
-6. preserve any supplied valid presentation layout coordinates without interpreting them as engineering data;
-7. render a visible SVG card in the live qualification workspace, including case labels and persistent non-authoritative Line/Case trace labeling;
-8. add focused tests for same-source multi-case separation, duplicate tag independence, explicit-distance pass-through, non-applicable contribution exclusion, deterministic layout and layout-mutation non-authority.
+- same canonical source under different cases produces separate source projection nodes;
+- two canonical sources may share the same displayed tag without collision;
+- blank canonical identity rows render no engineering node;
+- missing screening outputs render no invented result values;
+- NOT_APPLICABLE relationships can remain visible but receive no contribution unless present in the kernel result contribution list;
+- assessment results across multiple cases remain a case-labelled result collection rather than one unscoped LOF;
+- layout move changes only layout coordinates; projection stays byte-equivalent in focused regression.
 
-**Expected behavior:** operator can load/resolve existing AIV records and immediately see canonical sources, assessments and Source→Assessment arrows on a dedicated SVG surface. No editing interaction is claimed yet.
+**Validation performed:**
 
-**Edge cases:** blank/unresolved identity rows are omitted rather than invented; multiple cases for the same source remain separate projection nodes; multiple assessment result cases are not collapsed into one unscoped value; missing screening result leaves engineering-result fields blank; visible NOT_APPLICABLE relationships remain visually distinct and never gain a contribution unless a kernel result contains one.
+```text
+node --check aiv-canvas-layout-contract.js   PASS
+node --check aiv-canvas-projection.js        PASS
+node --check vibration-aiv-canvas-view.js    PASS
+node --check vibration-aiv-input-view.js     PASS
+npm run verify:aiv-canvas                    PASS — 12/12
+```
 
-**Planned validation:**
+The focused suite also asserts all new foundation modules stay below 300 physical lines and contain no `Math.log*`, `Math.tanh`, `calculateAiv` or kernel-candidate imports.
 
-- `node --test tests/vibration-aiv-canvas-projection.test.mjs tests/vibration-aiv-canvas-layout.test.mjs tests/vibration-aiv-canvas-view.test.mjs` when executable environment is available;
-- `npm run verify:aiv-canvas` same focused set;
-- syntax checks for every new/modified JS file;
-- static assertions: no `Math.log*`, `Math.tanh`, `calculateAiv`, kernel-candidate imports or geometry-to-distance conversion in canvas/UI modules;
-- changed-file ledger reconciliation after publish.
+**New findings:** none beyond `ISS-001` already recorded.
 
-**Known risks:** RISK-001/RISK-002; browser interaction is intentionally Stage 5+ and is not claimed here.
+**Remaining risks:** browser/runtime rendering is not yet exercised; interaction behavior is Stage 5+; broad existing boundary test remains an unreliable oracle until `ISS-001` is reconciled.
 
-### Stages 5–12
+**Stage decision:** PARTIAL until the stage-aligned Git commit is published and exact-head contents/diff are verified. Production behavior itself is IMPLEMENTED locally.
 
-5. SVG interaction controller: pan/zoom/select/presentation-only drag + base icon inventory.
+### Stage 5 — SVG interaction controller — NOT_STARTED
+
+Before Stage 5 begins this report must be refreshed after exact-head Stage-4 verification. Planned scope: pan/zoom/select/presentation-only drag and the fuller engineering icon inventory; no table mutation yet.
+
+### Stages 6–12
+
 6. Bidirectional table/canvas selection.
 7. Relationship authoring/deletion.
-8. Assumption/readiness visualization.
-9. Screening overlays + result-scope detail.
-10. Multi-source/case/line UX.
+8. Assumption/readiness drilldown.
+9. Full screening overlays/detail and D.2.3 scope acceptance.
+10. Multi-source/case/line filtering UX.
 11. Canvas-aware export/trace.
-12. Accessibility/performance/release hardening and `ISS-001` boundary-test reconciliation.
+12. Accessibility/performance/release hardening and `ISS-001` boundary reconciliation.
 
 ## Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---:|---:|---|---|---|
-| `agents/PR451_workreport.md` | 2 | 4 | Living engineering work report | No | Current-state refresh |
-| Stage-4 production/test files listed above | 4 | 4 | Planned first canvas slice | Yes where projection/integration | NOT_RUN |
+| `agents/PR451_workreport.md` | 2 | 4 | Living engineering work report | No | Updated with Stage-4 evidence |
+| `converters/vibration/aiv/aiv-canvas-projection.js` | 4 | 4 | Table/result/topology → read-only canvas projection | Yes | Focused tests PASS |
+| `converters/vibration/aiv/aiv-canvas-layout-contract.js` | 4 | 4 | Presentation layout contract + deterministic layout/move | Boundary-sensitive | Focused tests PASS |
+| `tabs/vibration-aiv-canvas-view.js` | 4 | 4 | Dedicated SVG production surface | Boundary-sensitive | Focused tests PASS |
+| `tabs/vibration-aiv-input-view.js` | 4 | 4 | Real synchronized workspace consumer | Yes | Static live-consumer test PASS; syntax PASS |
+| `tests/vibration-aiv-canvas-projection.test.mjs` | 4 | 4 | Projection authority regressions | No | PASS |
+| `tests/vibration-aiv-canvas-layout.test.mjs` | 4 | 4 | Layout/boundary regressions | No | PASS |
+| `tests/vibration-aiv-canvas-view.test.mjs` | 4 | 4 | Visible scope/integration regressions | No | PASS |
+| `package.json` | 4 | 4 | `verify:aiv-canvas` command | No | Command PASS locally |
 
-`agents/PR_PENDING_workreport.md` was temporary Stage-1 setup and is absent from the final PR diff after allocation.
+No `.github/workflows/*`, dependency versions, generated data or unrelated files are changed.
 
 ## Engineering Decisions and Invariants
 
 ### INV-001 — Table authority
-Canvas presentation cannot become source of engineering values. Projection is one-way from existing records/results. **PR changes invariant: No.**
+Canvas projection is one-way from existing state; canvas owns no engineering values. **Enforced:** projection module + live consumer. **Validated:** pure projection tests. **PR changes authority:** No.
 
 ### INV-002 — Explicit physical distance
-Relationship physical distance comes from table/assumption data, never SVG path length. No geometry-to-distance API. **PR changes invariant: No.**
+Distance value/unit/provenance pass directly from relationship rows. Layout has no distance API. **Validated:** explicit-distance and layout-mutation tests. **PR changes authority:** No.
 
 ### INV-003 — Calculation authority
-Registered Engineering Calculation API / central AIV kernel remains numerical authority. Canvas only consumes returned results. **PR changes invariant: No.**
+Canvas consumes screening outputs only and imports no calculator/kernel helpers. **Validated:** focused static equation/import assertions. **PR changes authority:** No.
 
 ### INV-004 — Result scope
-Assessment LOF remains screening scope; Line/Case summary remains traceability-only and labeled. **PR changes invariant: No.**
+Assessment summaries remain case-scoped; Line/Case trace is visibly `NON-AUTHORITATIVE FOR SCREENING`. **Validated:** view/projection tests. **PR changes authority:** No.
 
 ### INV-005 — Presentation identity
-A projection `nodeKey`/layout key is a UI instance key, not a new engineering identity. Canonical ID + case remain the engineering lookup fields. **PR changes invariant: adds explicit enforcement only.**
+`nodeKey` is a projection/layout instance key, not engineering authority. Canonical ID + case remain explicit fields. **Validated:** duplicate-tag/multi-case tests.
 
 ## Validation and Evidence Ledger
 
@@ -196,30 +210,40 @@ A projection `nodeKey`/layout key is a UI instance key, not a new engineering id
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Work-report initialization | PASS | `2de80ee…` | Before production edits |
-| PR allocation/report path | PASS | `6aae34c…` | Draft PR #451, allocated path |
-| Stage-3 changed-file verification | PASS | `b7ef44c…` | PR list contained only work report |
-| Stage-4 focused canvas tests | NOT_RUN | — | Implementation pending |
-| Existing AIV screening release | NOT_RUN | — | Required after production stages |
-| Broad vibration module-boundary test | NOT_RUN / ORACLE ISSUE | base | `ISS-001` recorded |
+| Work-report initialization | PASS | `2de80ee…` | Before production changes |
+| PR allocation/report path | PASS | `6aae34c…` | Draft PR #451 |
+| Stage-3 changed-file verification | PASS | `b7ef44c…` | Report-only PR diff |
+| Stage-4 JS syntax checks | PASS | local Stage-4 tree | Four production JS files parsed |
+| `npm run verify:aiv-canvas` | PASS | local Stage-4 tree | 12/12 focused tests |
+| Exact GitHub Stage-4 head verification | NOT_RUN | — | Pending stage commit |
+| Existing `verify:aiv-screening-release` | NOT_RUN | — | Must run in repository-capable validation environment |
+| Broad vibration module-boundary test | NOT_RUN / ORACLE ISSUE | base | `ISS-001` |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| Canvas layout cannot alter engineering data/results | NOT_RUN | Stage-4 regression planned |
-| Canonical/case identity preserved | NOT_RUN | Stage-4 regression planned |
-| UI contains no AIV equations | NOT_RUN | Stage-4 static regression planned |
-| Assessment/line result scopes separated | NOT_RUN | Stage-4 view regression + later D.2.3 detail |
+| Layout move cannot alter projected engineering values | PASS | focused layout mutation test |
+| Canonical/case identity preserved | PASS | multi-case + duplicate-tag projection test |
+| Explicit distance is table pass-through | PASS | relationship projection test |
+| NOT_APPLICABLE arrow cannot invent contribution | PASS | projection contribution test |
+| UI contains no AIV equations/kernel imports | PASS | focused static test |
+| Assessment/line scopes visibly separated | PASS_FOUNDATION | projection + view tests; full D.2.3 later |
 
 ### Explicitly Not Validated
 
-No interaction, relationship mutation, browser acceptance, accessibility, performance or canvas-aware export is claimed in Stage 4.
+- Browser rendering/interaction is NOT_RUN.
+- Pan/zoom/drag/selection editing does not exist yet.
+- Relationship mutation does not exist yet.
+- Accessibility/performance acceptance is NOT_RUN.
+- Existing full AIV release suite has not been rerun on the new committed head.
 
 ## Known / Deferred Work and Recommended Forward Sequence
 
-- `ISS-001`: reconcile the pre-existing AIV module-boundary test contract in Stage 12 or sooner if it blocks required validation; do not hide it by weakening numerical/UI separation.
-- Continue Stage 4→12 in order so visual capability grows without moving engineering authority.
+- `ISS-001`: reconcile the base AIV module-boundary test in the boundary/release hardening stage without weakening UI/kernel separation.
+- Stage 5 next only after exact-head Stage-4 verification.
+- Stage 6 selection before Stage 7 relationship editing, so mutations have a stable identity model.
+- Stage 8 assumptions/readiness before Stage 9 full result detail, so all displayed engineering values retain traceability.
 
 ## Stage Execution Log
 
@@ -232,40 +256,44 @@ Draft PR #451 allocated; report synchronized. **COMPLETE.**
 ### Stage 3
 Changed-file state verified clean; live integration/test surfaces inspected; `ISS-001` recorded. **COMPLETE.**
 
+### Stage 4
+Production projection/layout/static SVG/live consumer implemented locally. Syntax PASS; focused `verify:aiv-canvas` 12/12 PASS. Publish/exact-head verification pending. **PARTIAL pending commit verification.**
+
 ## Process Notes / Lessons Learned
 
-- Existing controller/table state is the correct engineering-state boundary; canvas state should remain presentation/interaction only.
-- Action-first protocol is satisfied by landing projection/layout with a visible live SVG consumer, not by landing unused schemas.
-- The base branch contains an AIV boundary-test contradiction; validation reports must distinguish that pre-existing oracle problem from new canvas regressions.
+- The correct first consumer is the existing table workspace itself; this avoids a second AIV state/store.
+- Omitting blank identities is safer than generating presentation IDs that could later be mistaken for canonical engineering identity.
+- A rendered relationship and a kernel contribution are deliberately separate concepts; contribution visibility must come from the result object.
+- Existing validation oracles can be internally inconsistent; record the inconsistency instead of weakening authority tests or claiming a false PASS.
 
 ## Next-Agent Handover
 
-**Current stopping point:** Stage 4 is fully planned; production edits are the next action.
+**Current stopping point:** Stage-4 tree is ready to commit; focused local validation is PASS.
 
-**PR / branch / HEAD:** #451 / `agent/aiv-svg-canvas` / `b7ef44c…` before this report refresh.
+**PR / branch / HEAD:** #451 / `agent/aiv-svg-canvas` / `f15bcb6…` before Stage-4 commit.
 
 **Last completed stage:** Stage 3.
 
-**Current active stage:** Stage 4.
+**Current active stage:** Stage 4 publish verification.
 
-**Start here:** implement the exact Stage-4 file list and behavior above. Do not add interaction state or relationship mutation yet.
+**Start here:** commit the exact Stage-4 tree, move the branch ref, fetch PR changed filenames and changed file contents, verify the focused command definition/consumer, then update this report with exact committed HEAD.
 
-**Do not redo:** branch-state verification and current view/result-contract inspection.
+**Do not redo:** Stage-4 implementation or local focused tests unless committed content differs.
 
-**Do not assume:** broad module-boundary test is a clean base oracle (`ISS-001`).
+**Do not assume:** browser interaction or full release validation is complete.
 
-**Files currently involved:** work report; Stage-4 files listed above next.
+**Files currently involved:** exactly the Changed-File Ledger above.
 
-**Known failing checks:** none executed in this PR; `ISS-001` documents a base test-contract inconsistency.
+**Known failing checks:** none in the focused canvas suite; `ISS-001` is a pre-existing broad-oracle inconsistency.
 
-**Validation still required:** all Stage-4 focused tests and later release/browser gates.
+**Validation still required:** exact-head Stage-4 verification, later screening release/browser/accessibility/performance gates.
 
-**Open QST-*:** none blocking Stage 4.
+**Open QST-*:** none blocking Stage 5.
 
-**Important deferred items:** `ISS-001` boundary reconciliation; interaction stages 5+.
+**Important deferred items:** `ISS-001`; interaction/editing/result-detail stages 5–12.
 
-**Highest-risk remaining item:** RISK-001 — hidden second engineering authority.
+**Highest-risk remaining item:** keeping Stage-5 drag/viewport state presentation-only.
 
-**Exact next recommended action:** implement/publish Stage 4, then validate exact head and update this report before Stage 5.
+**Exact next recommended action:** publish Stage 4 atomically and verify exact GitHub head before beginning Stage 5.
 
-**Required reading:** issue #449; PR #446; CodingRules.md; current AIV qualification controller/view/input-model/result/calculator contracts; this report.
+**Required reading:** issue #449; PR #446; pinned CodingRules.md; this report; new Stage-4 modules/tests.
