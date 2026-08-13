@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
@@ -61,6 +62,13 @@ test('canvas has explicit RESULTS mode in addition to navigate and relationships
   assert.equal(AIV_CANVAS_MODE.NAVIGATE, 'NAVIGATE');
   assert.equal(AIV_CANVAS_MODE.RELATIONSHIPS, 'RELATIONSHIPS');
   assert.equal(AIV_CANVAS_MODE.RESULTS, 'RESULTS');
+  const controller = readFileSync(new URL('../tabs/vibration-aiv-canvas-controller.js', import.meta.url), 'utf8');
+  const view = readFileSync(new URL('../tabs/vibration-aiv-canvas-view.js', import.meta.url), 'utf8');
+  assert.match(controller, /querySelector\('\.aiv-canvas-card'\)/u);
+  assert.match(controller, /card\.dataset\.aivCanvasActiveMode = runtime\.relationship\.mode/u);
+  assert.match(controller, /button\.setAttribute\('aria-pressed'/u);
+  assert.match(view, /data-aiv-canvas-mode="RESULTS"/u);
+  assert.match(view, /data-aiv-canvas-active-mode="RESULTS"/u);
 });
 
 test('projection and renderer expose engineering-specific source assessment and infrastructure icons', () => {
