@@ -63,19 +63,33 @@ export function importModeASources(state = {}, rows = []) {
   const sources = [...existing, ...added];
   if (!sources.length) return { state: current, added, duplicates };
   const activeSourceId = added[0]?.sourceId || current.sourceBatch?.activeSourceId || sources[0].sourceId;
-  const next = activateModeASource({
+  const activeSource = sources.find((source) => source.sourceId === activeSourceId) || sources[0];
+  const batch = {
+    mode: 'separate-models',
+    activeSourceId,
+    sources,
+    importStatus: duplicates.length
+      ? `${added.length} source(s) added; skipped duplicate content: ${duplicates.join(', ')}`
+      : `${added.length} source(s) added.`,
+  };
+
+  // Seed the UI-facing source fields from the newly selected active source
+  // before activateModeASource() performs its sync. Without this, an initial
+  // multi-file import starting from an empty UI state can overwrite the first
+  // imported source with the previous empty sourceText.
+  const seeded = {
     ...current,
     sourceKind: 'xml',
-    sourceBatch: {
-      mode: 'separate-models',
-      activeSourceId,
-      sources,
-      importStatus: duplicates.length
-        ? `${added.length} source(s) added; skipped duplicate content: ${duplicates.join(', ')}`
-        : `${added.length} source(s) added.`,
-    },
+    sourceFile: activeSource.sourceFile || null,
+    sourceText: activeSource.sourceText || '',
+    stagedJsonFile: activeSource.stagedJsonFile || null,
+    stagedJsonText: activeSource.stagedJsonText || '',
+    branchSelection: activeSource.branchSelection || {},
+    supportConfigJson: activeSource.supportConfigJson || current.supportConfigJson,
+    sourceBatch: batch,
     batchRunResult: null,
-  }, activeSourceId);
+  };
+  const next = activateModeASource(seeded, activeSourceId);
   return { state: next, added, duplicates };
 }
 
