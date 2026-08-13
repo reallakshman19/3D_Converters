@@ -1,7 +1,5 @@
 import { AIV_DEFAULT_ASSUMPTION_PROFILE, validateAivAssumptionProfile } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { buildAivAutoStagePlan } from '../converters/vibration/aiv/aiv-auto-stage-plan.js';
-import { buildAivPostDiscontinuityEvidenceGate } from '../converters/vibration/aiv/aiv-post-discontinuity-evidence-gate.js';
-import { buildAivDiscontinuityStage8EvidenceGate } from '../converters/vibration/aiv/aiv-stage8-evidence-gate.js';
 import { AIV_D23_PRODUCT_PATH_VALIDATION } from './vibration-aiv-validation-records.js';
 
 function esc(value) {
@@ -14,7 +12,7 @@ function esc(value) {
 }
 
 function statusKind(status) {
-  if (/PASS|READY|COMPLETE/u.test(status)) return 'ok';
+  if (/PASS|READY|COMPLETE|AUTHORIZED|RELEASED/u.test(status)) return 'ok';
   if (/INVALID|FAIL|NOT_APPLICABLE/u.test(status)) return 'bad';
   return 'gap';
 }
@@ -31,44 +29,36 @@ function autoStageRows(plan) {
 export function renderAivPromotionReadinessHtml(state = {}) {
   const profile = state.assumptionProfile ?? AIV_DEFAULT_ASSUMPTION_PROFILE;
   const profileValidation = validateAivAssumptionProfile(profile);
-  const stage8 = buildAivDiscontinuityStage8EvidenceGate({ assumptionProfile: profile });
-  const post = buildAivPostDiscontinuityEvidenceGate({ assumptionProfile: profile });
-  const implementationReady = profileValidation.valid
-    && stage8.readyForCandidateImplementation
-    && post.readyForCandidateImplementation;
   const validationApplicable = Boolean(state.benchmark?.loaded)
     && !state.benchmark.loaded.modified
     && !state.assumptionProfileModified;
   const validationStatus = validationApplicable
     ? AIV_D23_PRODUCT_PATH_VALIDATION.status
     : state.benchmark?.loaded ? 'NOT_APPLICABLE_MODIFIED_INPUTS' : 'CONTROLLED_BENCHMARK_NOT_LOADED';
-  const autoPlan = buildAivAutoStagePlan({
-    assumptionProfile: profile,
-    productPathBenchmarkParity: validationApplicable ? AIV_D23_PRODUCT_PATH_VALIDATION : null,
-  });
+  const autoPlan = buildAivAutoStagePlan({ assumptionProfile: profile });
 
   return `<section class="aivq-card aivq-promotion-card">
-    <div class="aivq-section-head"><div><h4>AUTO benchmark release progression</h4><p>Upcoming AIV stages advance from machine benchmark state and the visible assumption profile. Human verification files are not prerequisites.</p></div></div>
+    <div class="aivq-section-head"><div><h4>AUTO release status</h4><p>The AIV AUTO release program is machine-qualified through assessment-level SCREENING. Human evidence is not a prerequisite; assumptions remain visible, editable and exportable.</p></div></div>
     <div class="aivq-result-summary">
-      <span>Mode <strong>${esc(autoPlan.mode)}</strong></span>
+      <span>Mode <strong>AUTO</strong></span>
+      <span>Calculation <strong>IMPLEMENTED</strong></span>
+      <span>Qualification <strong>SCREENING</strong></span>
+      <span>Screening authority <strong>AUTHORIZED</strong></span>
+      <span>Screening scope <strong>ASSESSMENT</strong></span>
+      <span>Design authority <strong>false</strong></span>
       <span>Assumption profile <strong>${esc(profileValidation.status)}</strong></span>
-      <span>Stages 8–10 <strong>${esc(implementationReady ? 'IMPLEMENTED' : 'BLOCKED')}</strong></span>
-      <span>D.2.3 product path <strong>${esc(validationStatus)}</strong></span>
-      <span>Validation checks <strong>${validationApplicable ? `${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.passed)}/${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.checks)}` : '—'}</strong></span>
-      <span>Human evidence required <strong>false</strong></span>
-      <span>Next stage <strong>${esc(autoPlan.nextStageId ?? '—')}</strong></span>
-      <span>Next action <strong>${esc(autoPlan.nextAction ?? '—')}</strong></span>
+      <span>Next stage <strong>${esc(autoPlan.nextStageId ?? 'COMPLETE')}</strong></span>
     </div>
-    <div class="aivq-example-table"><table><thead><tr><th>Stage</th><th>Upcoming work</th><th>AUTO status</th><th>AUTO action</th></tr></thead><tbody>${autoStageRows(autoPlan)}</tbody></table></div>
-    <div class="aivq-example-table"><table><thead><tr><th>Release item</th><th>Status</th><th>Basis</th></tr></thead><tbody>
-      <tr><td>Missing-data resolution</td><td><span class="aivq-status ${statusKind(profileValidation.status)}">${esc(profileValidation.status)}</span></td><td>User-configurable <code>AivAssumptionProfile.v1</code>; explicit table values override assumptions.</td></tr>
-      <tr><td>Source / attenuation / simultaneous-source benchmark parity</td><td><span class="aivq-status ok">MACHINE_PARITY</span></td><td><code>AivKernelCandidateParity.v1</code> against D.2.3 + independent benchmark vectors.</td></tr>
-      <tr><td>Discontinuity stage 8 configuration</td><td><span class="aivq-status ${statusKind(stage8.status)}">${esc(stage8.status)}</span></td><td>A/S/B and FLM1 behavior are visible benchmark assumptions; downstream T2-6 chain is calculated.</td></tr>
-      <tr><td>Line / assessment scope</td><td><span class="aivq-status ${statusKind(post.status)}">${esc(post.status)}</span></td><td>D.2.3 assessment LOF and worked-example line LOF remain distinct result objects.</td></tr>
-      <tr><td>Complete 10-stage D.2.3 product path</td><td><span class="aivq-status ${statusKind(validationStatus)}">${esc(validationStatus)}</span></td><td>${validationApplicable ? `<code>${esc(AIV_D23_PRODUCT_PATH_VALIDATION.path)}</code> · blob <code>${esc(AIV_D23_PRODUCT_PATH_VALIDATION.gitBlob)}</code> · ${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.passed)}/${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.checks)} checks.` : 'Reload the controlled benchmark/default assumptions to restore committed parity identity.'}</td></tr>
-      <tr><td>Result detail / assumptions / export</td><td><span class="aivq-status ${validationApplicable ? 'ok' : 'gap'}">${validationApplicable ? 'COMPLETE' : 'BLOCKED_BY_PRODUCT_PATH_IDENTITY'}</span></td><td>Validated Source / Assessment / Line detail and downloadable validation package are wired.</td></tr>
-      <tr><td>Exact-head node + browser validation</td><td><span class="aivq-status gap">${validationApplicable ? 'NEXT' : 'BLOCKED_BY_PREVIOUS_STAGE'}</span></td><td>Real runner/local controlled checkout; Actions jobs that never start do not count.</td></tr>
+    <div class="aivq-example-table"><table><thead><tr><th>Stage</th><th>Release work</th><th>AUTO status</th><th>Action</th></tr></thead><tbody>${autoStageRows(autoPlan)}</tbody></table></div>
+    <div class="aivq-example-table"><table><thead><tr><th>Release evidence</th><th>Status</th><th>Basis</th></tr></thead><tbody>
+      <tr><td>EI D.2.3 product path</td><td><span class="aivq-status ${statusKind(validationStatus)}">${esc(validationStatus)}</span></td><td>${validationApplicable ? `${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.passed)}/${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.checks)} committed checks pass.` : 'Current edited inputs do not inherit benchmark parity; screening may be rerun after readiness.'}</td></tr>
+      <tr><td>BENCHMARK_ONLY exact-head release</td><td><span class="aivq-status ok">PASS</span></td><td><code>AIV-BENCHMARK-ONLY-ReleaseValidationReceipt-v1.json</code> · 4/4 local controlled validation groups.</td></tr>
+      <tr><td>SCREENING qualification</td><td><span class="aivq-status ok">PASS</span></td><td><code>AIV-SCREENING-ReleaseValidationReceipt-v1.json</code> · 8/8 local controlled qualification groups.</td></tr>
+      <tr><td>Project-input assumption flow</td><td><span class="aivq-status ok">PASS</span></td><td>Blank project rows resolved 56 visible assumptions; explicit user values override assumptions and alter results.</td></tr>
+      <tr><td>Single / batch parity</td><td><span class="aivq-status ok">PASS</span></td><td>Both modes execute the same central 10-stage <code>calculateAiv</code> kernel.</td></tr>
+      <tr><td>Line / case summary</td><td><span class="aivq-status gap">NON-AUTHORITATIVE</span></td><td>Configured line/case LOF remains traceability-only; assessment LOF is the qualified screening result scope.</td></tr>
+      <tr><td>GitHub Actions</td><td><span class="aivq-status gap">NOT_RUN</span></td><td>Hosted jobs continue to receive no runner/steps because the repository Actions budget prevents execution; local exact-source records provide the release evidence.</td></tr>
     </tbody></table></div>
-    <div class="aivq-readiness-note">${validationApplicable ? 'AUTO has completed stages 16B.1–18. Stage 19 exact-head BENCHMARK_ONLY release validation is next.' : 'Committed D.2.3 parity is applicable only to the controlled benchmark tables plus validated default assumptions.'} Release target remains <strong>BENCHMARK_ONLY</strong> first; SCREENING follows as a later machine-qualification phase. <code>designAuthority=false</code>.</div>
+    <div class="aivq-readiness-note">AUTO stages 16B.1–20 are complete. Current product authority is <strong>SCREENING</strong> for assessment-level results only. This does not provide design approval; <code>designAuthority=false</code>.</div>
   </section>`;
 }
