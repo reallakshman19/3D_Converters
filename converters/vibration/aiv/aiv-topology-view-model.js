@@ -28,17 +28,98 @@ function diagnosticMessage(path) {
     return `More than one equally short certified topology path exists (${path.shortestPathCount}). AIV source-to-assessment mapping must be resolved explicitly.`;
   }
   if (path.status === 'AMBIGUOUS_TOPOLOGY_PATH') {
-    return 'More than one certified topology route connects the selected source and assessment identities. Readiness will not choose a route by hop count or presentation geometry.';
+    return 'More than one topology route connects the selected source and assessment identities. AIV readiness will not choose a route by hop count or SVG presentation geometry.';
   }
-  return 'No certified topology path connects the selected source and assessment identities.';
+  return 'No topology path connects the selected source and assessment identities.';
 }
 
-export function buildAivTopologyViewModel(exchange, input = {}) {
+function flareNetworkPaths(exchange, sourceCanonicalId, assessmentCanonicalId, maxPaths = 2) {
+  const outgoing = new Map();
+  for (const segment of exchange.segments ?? []) {
+    if (!outgoing.has(segment.fromNodeId)) outgoing.set(segment.fromNodeId, []);
+    outgoing.get(segment.fromNodeId).push(segment);
+  }
+  for (const rows of outgoing.values()) rows.sort((a, b) => String(a.segmentId).localeCompare(String(b.segmentId)));
+  const paths = [];
+  const visit = (nodeId, visited, nodeIds) => {
+    if (paths.length >= maxPaths) return;
+    for (const segment of outgoing.get(nodeId) ?? []) {
+      if (visited.has(segment.toNodeId)) continue;
+      const nextIds = [...nodeIds, segment.toNodeId];
+      if (segment.toNodeId === assessmentCanonicalId) {
+        paths.push(nextIds);
+        if (paths.length >= maxPaths) return;
+        continue;
+      }
+      const nextVisited = new Set(visited);
+      nextVisited.add(segment.toNodeId);
+      visit(segment.toNodeId, nextVisited, nextIds);
+      if (paths.length >= maxPaths) return;
+    }
+  };
+  visit(sourceCanonicalId, new Set([sourceCanonicalId]), [sourceCanonicalId]);
+  return paths;
+}
+
+function flareNetworkPath(exchange, input) {
+  const sourceCanonicalId = String(input.sourceCanonicalId ?? '').trim();
+  const assessmentCanonicalId = String(input.assessmentCanonicalId ?? '').trim();
+  const byId = new Map((exchange.elements ?? []).map((item) => [String(item.canonicalId ?? '').trim(), item]));
+  const missingCanonicalIds = [sourceCanonicalId, assessmentCanonicalId].filter((id) => !byId.has(id));
+  if (missingCanonicalIds.length) {
+    return {
+      status: 'IDENTITY_NOT_FOUND', sourceCanonicalId, assessmentCanonicalId, missingCanonicalIds,
+      elements: [], distanceStatus: 'NOT_DERIVED_FROM_PRESENTATION', authority: { source: 'AivFlareNetworkTopologyExchange.v1' },
+    };
+  }
+  const paths = flareNetworkPaths(exchange, sourceCanonicalId, assessmentCanonicalId, 2);
+  if (!paths.length) {
+    return {
+      status: 'NO_TOPOLOGY_PATH', sourceCanonicalId, assessmentCanonicalId, elements: [],
+      distanceStatus: 'NOT_DERIVED_FROM_PRESENTATION', authority: { source: 'AivFlareNetworkTopologyExchange.v1' },
+    };
+  }
+  if (paths.length > 1) {
+    return {
+      status: 'AMBIGUOUS_TOPOLOGY_PATH', sourceCanonicalId, assessmentCanonicalId, elements: [],
+      shortestPathCount: paths.length, alternateRouteDetected: true,
+      distanceStatus: 'NOT_DERIVED_FROM_PRESENTATION', authority: { source: 'AivFlareNetworkTopologyExchange.v1' },
+    };
+  }
+  const ids = paths[0];
+  return {
+    status: 'RESOLVED', sourceCanonicalId, assessmentCanonicalId,
+    shortestPathCount: 1, shortestHopCount: ids.length - 1, alternateRouteDetected: false,
+    distanceStatus: 'EXPLICIT_NETWORK_ENGINEERING_DISTANCE_SEPARATE',
+    authority: {
+      source: 'AivFlareNetworkTopologyExchange.v1',
+      connectivityAuthority: 'AUTHORED_FLARE_NETWORK_GRAPH',
+      svgPixelsAuthoritativeForDistance: false,
+    },
+    elements: ids.map((id, index) => {
+      const element = byId.get(id);
+      return {
+        ...element,
+        role: index === 0 ? 'SOURCE' : index === ids.length - 1 ? 'ASSESSMENT' : 'PATH',
+        sourceStatus: 'AIV_FLARE_NETWORK_AUTHORED',
+        catalogueAuthority: null,
+        lengthMm: null,
+      };
+    }),
+  };
+}
+
+function resolveTopologyPath(exchange, input) {
+  if (exchange?.schema === 'AivFlareNetworkTopologyExchange.v1') return flareNetworkPath(exchange, input);
   const graph = buildVibrationTopologyGraph(exchange);
-  const path = resolveVibrationTopologyPath(graph, {
+  return resolveVibrationTopologyPath(graph, {
     sourceCanonicalId: input.sourceCanonicalId,
     assessmentCanonicalId: input.assessmentCanonicalId,
   });
+}
+
+export function buildAivTopologyViewModel(exchange, input = {}) {
+  const path = resolveTopologyPath(exchange, input);
 
   const rows = path.status === 'RESOLVED'
     ? path.elements.map((element, index) => ({
@@ -59,12 +140,12 @@ export function buildAivTopologyViewModel(exchange, input = {}) {
     schema: AIV_TOPOLOGY_VIEW_MODEL_SCHEMA,
     methodId: 'VIB.AIV.ACOUSTIC',
     authority: {
-      calculationState: 'BLOCKED',
-      qualificationState: 'BLOCKED',
-      screeningAuthority: 'NOT_AUTHORIZED',
-      engineeringAuthority: 'NONE',
+      calculationState: 'IMPLEMENTED',
+      qualificationState: 'SCREENING',
+      screeningAuthority: 'AUTHORIZED',
+      engineeringAuthority: 'SCREENING',
       designAuthority: false,
-      visualizationAuthority: 'READ_ONLY_TOPOLOGY_EVIDENCE',
+      visualizationAuthority: 'TOPOLOGY_EVIDENCE_ONLY',
     },
     sourceCanonicalId: path.sourceCanonicalId,
     assessmentCanonicalId: path.assessmentCanonicalId,
@@ -81,9 +162,10 @@ export function buildAivTopologyViewModel(exchange, input = {}) {
       message: diagnosticMessage(path),
     }],
     notes: [
-      'This model is a read-only table projection; it is not geometry or design authority.',
-      'Physical AIV source-to-assessment distance is intentionally not derived by this visualization layer.',
-      'No AIV equation, PWL, attenuation, LOF or assessment threshold is evaluated here.',
+      'Topology connectivity may come from certified imported topology or the explicit AIV flare-network graph.',
+      'Physical AIV source-to-assessment distance is never derived by this visualization layer or from SVG pixels.',
+      'For authored flare networks, generated distance evidence is the sum of explicit segment engineering lengths on one resolved graph path.',
+      'No AIV PWL, attenuation, LOF or assessment threshold is evaluated here.',
     ],
   });
 }
