@@ -1,4 +1,5 @@
 import { AIV_FLARE_NETWORK_SCHEMA, createAivFlareNetwork } from '../converters/vibration/aiv/aiv-flare-network.js';
+import { renderAivCanvasNodeGlyph } from './vibration-aiv-canvas-icons.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -7,12 +8,21 @@ function esc(value) {
 }
 function network(value) { return value?.schema === AIV_FLARE_NETWORK_SCHEMA ? value : createAivFlareNetwork(value); }
 
-function nodeShape(node) {
-  if (node.kind === 'SOURCE') return '<path d="M-22 -18 L18 -18 L28 0 L18 18 L-22 18 Z"></path>';
-  if (node.kind === 'ASSESSMENT') return '<path d="M-22 0 L0 -22 L22 0 L0 22 Z"></path>';
-  if (node.kind === 'BOUNDARY') return '<rect x="-24" y="-20" width="48" height="40" rx="4"></rect>';
-  if (node.kind === 'OFF_PAGE') return '<path d="M-25 -16 L10 -16 L25 0 L10 16 L-25 16 Z"></path>';
-  return '<circle cx="0" cy="0" r="14"></circle>';
+function iconType(node) {
+  if (node.kind === 'SOURCE') {
+    return ({
+      RELIEF_VALVE: 'RELIEF_VALVE',
+      CONTROL_VALVE: 'CONTROL_VALVE',
+      RESTRICTION_ORIFICE: 'RESTRICTION_ORIFICE',
+      PRESSURE_REDUCING_BRANCH_CONNECTION: 'PRESSURE_REDUCING_DEVICE',
+    })[node.sourceInput?.sourceDeviceType] ?? 'UNKNOWN_SOURCE';
+  }
+  if (node.kind === 'ASSESSMENT') return node.assessmentInput?.assessmentType ?? 'UNKNOWN_ASSESSMENT';
+  if (node.kind === 'JUNCTION') return 'JUNCTION';
+  if (node.kind === 'CONNECTION') return 'CONNECTION_NODE';
+  if (node.kind === 'OFF_PAGE') return 'OFF_PAGE';
+  if (node.kind === 'BOUNDARY') return 'BOUNDARY';
+  return 'PIPE_PATH';
 }
 
 function segmentLabel(segment) {
@@ -36,8 +46,9 @@ function segmentHtml(segment, positions) {
 
 function nodeHtml(node) {
   const position = node.presentation;
-  return `<g class="aiv-network-node is-${esc(node.kind.toLowerCase())}" transform="translate(${position.x} ${position.y})" data-aiv-network-node="${esc(node.canonicalId)}" data-aiv-network-node-kind="${esc(node.kind)}" data-aiv-network-x="${position.x}" data-aiv-network-y="${position.y}" tabindex="0" role="button" aria-label="${esc(node.kind)} ${esc(node.tag)}">
-    ${nodeShape(node)}<text class="aiv-network-node-title" x="0" y="36" text-anchor="middle">${esc(node.tag)}</text>
+  const icon = iconType(node);
+  return `<g class="aiv-network-node is-${esc(node.kind.toLowerCase())}" transform="translate(${position.x} ${position.y})" data-aiv-network-node="${esc(node.canonicalId)}" data-aiv-network-node-kind="${esc(node.kind)}" data-aiv-network-icon-type="${esc(icon)}" data-aiv-network-x="${position.x}" data-aiv-network-y="${position.y}" tabindex="0" role="button" aria-label="${esc(node.kind)} ${esc(node.tag)}">
+    ${renderAivCanvasNodeGlyph({ nodeKind: node.kind, iconType: icon })}<text class="aiv-network-node-title" x="0" y="36" text-anchor="middle">${esc(node.tag)}</text>
     <text class="aiv-network-node-subtitle" x="0" y="49" text-anchor="middle">${esc(node.canonicalId)}</text>
   </g>`;
 }
@@ -49,7 +60,7 @@ export function renderAivFlareNetworkSvg(networkInput, { width = 900, height = 5
   const nodes = value.nodes.map(nodeHtml).join('');
   return `<svg class="aiv-flare-network-svg" data-aiv-flare-network-svg="true" data-aiv-network-id="${esc(value.networkId)}" data-aiv-network-revision="${esc(value.revision)}" viewBox="0 0 ${Number(width)} ${Number(height)}" role="img" aria-label="AIV flare network ${esc(value.networkId)}">
     <style>
-      .aiv-flare-network-svg{width:100%;min-height:360px;background:#08111f}.aiv-network-segment line{stroke:#64748b;stroke-width:4}.aiv-network-segment text{fill:#cbd5e1;font-size:10px}.aiv-network-segment.is-unresolved line{stroke:#f59e0b;stroke-dasharray:8 6}.aiv-network-node{fill:#0f172a;stroke:#7dd3fc;stroke-width:2;cursor:move}.aiv-network-node.is-assessment{stroke:#c4b5fd}.aiv-network-node.is-boundary,.aiv-network-node.is-off_page{stroke:#94a3b8}.aiv-network-node-title{fill:#e5e7eb;font-size:11px;font-weight:700;stroke:none}.aiv-network-node-subtitle{fill:#94a3b8;font-size:9px;stroke:none}.aiv-network-node:focus,.aiv-network-segment:focus{outline:none;filter:drop-shadow(0 0 4px #38bdf8)}
+      .aiv-flare-network-svg{width:100%;min-height:360px;background:#08111f}.aiv-network-segment line{stroke:#64748b;stroke-width:4}.aiv-network-segment text{fill:#cbd5e1;font-size:10px}.aiv-network-segment.is-unresolved line{stroke:#f59e0b;stroke-dasharray:8 6}.aiv-network-node{cursor:move}.aiv-network-node .aiv-canvas-node-shape{fill:#0f172a;stroke:#7dd3fc;stroke-width:2}.aiv-network-node.is-assessment .aiv-canvas-node-shape{stroke:#c4b5fd}.aiv-network-node .aiv-canvas-node-detail{fill:none;stroke:#e2e8f0;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.aiv-network-node .aiv-canvas-node-glyph-text{fill:#e2e8f0;font-size:14px}.aiv-network-node-title{fill:#e5e7eb;font-size:11px;font-weight:700;stroke:none}.aiv-network-node-subtitle{fill:#94a3b8;font-size:9px;stroke:none}.aiv-network-node:focus,.aiv-network-segment:focus{outline:none;filter:drop-shadow(0 0 4px #38bdf8)}
     </style>
     <g class="aiv-network-segments">${segments}</g><g class="aiv-network-nodes">${nodes}</g>
   </svg>`;
