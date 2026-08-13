@@ -17,7 +17,7 @@ export function projectAivFlareNetworkIntoWorkspace(network) {
     generatedInputSet,
     tables: generatedInputSet.tables,
     topologyInput: Object.freeze({
-      format: 'PARSED_EXCHANGE',
+      format: 'FLARE_NETWORK',
       data: exchange,
       sourceFileName: exchange.sourceFileName,
     }),
