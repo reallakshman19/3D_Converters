@@ -81,6 +81,8 @@ function branchScopeFromState(state, sourceText, stagedJsonText) {
     sourceText,
     stagedJsonText,
     selectedBranchNames: selection.selectedBranchNames,
+    selectedBranchOccurrenceIds: selection.selectedBranchOccurrenceIds,
+    selectionIdentity: selection.selectionIdentity,
     sourceKind: state.sourceKind || 'auto',
   });
 }
