@@ -53,6 +53,18 @@ assert(repeatedExecution.sourceText.includes('SECOND'));
 assert(!repeatedExecution.sourceText.includes('FIRST'));
 assert(repeatedExecution.sourceText.includes('<Branchname>/ASIM-DUP/B1</Branchname>'), 'engineering Branchname must not be rewritten to the display alias');
 
+const legacyMultiXml = `<PipeStressExport>
+<Branch><Branchname>/LEGACY/B1</Branchname><Node><NodeNumber>10</NodeNumber><NodeName>LEGACY-FIRST</NodeName><Position>0 0 0</Position></Node></Branch>
+<Branch><Branchname>/LEGACY/B2</Branchname><Node><NodeNumber>20</NodeNumber><NodeName>LEGACY-SECOND</NodeName><Position>100 0 0</Position></Node></Branch>
+</PipeStressExport>`;
+const legacySource = createModeASourceEntry({ fileName: 'LEGACY.xml', sourceText: legacyMultiXml });
+legacySource.branchSelection.selectedBranchNames = ['/LEGACY/B2'];
+const legacyExecution = buildModeAExecutionState({ supportConfigJson: '{}', masterContext: { rowCounts: {} } }, legacySource);
+assert.equal(legacySource.branchSelection.selectionIdentity, 'name');
+assert.deepEqual(legacyExecution.branchScope.selectedBranchNames, ['/LEGACY/B2']);
+assert(legacyExecution.sourceText.includes('LEGACY-SECOND'));
+assert(!legacyExecution.sourceText.includes('LEGACY-FIRST'), 'legacy name-based selection must override stale all-selected occurrence IDs');
+
 sourceA.branchSelection.selectedBranchNames = ['/ASIM-SAME/B1'];
 sourceA.branchSelection.selectedBranchOccurrenceIds = sourceA.metrics.branchOccurrences.map((row) => row.branchOccurrenceId);
 const execution = buildModeAExecutionState({ supportConfigJson: '{}', masterContext: { rowCounts: {} } }, sourceA);
