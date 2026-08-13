@@ -2,25 +2,29 @@ import {
   buildModeAExecutionState,
   commonModeASupportConfig,
   composeModeASupportConfig,
+  modeASharedSupportConfig,
   modeASourceWorkflowSnapshot,
   normalizeModeABatchState,
   syncActiveModeASource,
-} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-1';
-import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260813-mode-a-full-propagation-1';
-import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js?v=20260813-mode-a-full-propagation-1';
-import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js?v=20260813-mode-a-full-propagation-1';
-import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-1';
+} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
+import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js?v=20260813-mode-a-full-propagation-2';
+import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js?v=20260813-mode-a-full-propagation-2';
+import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js?v=20260813-mode-a-full-propagation-2';
+import {
+  applyStandaloneRegexTesterResult,
+} from './xml-cii-adapted-state.js?v=20260813-mode-a-full-propagation-2';
+import { replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-2';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
 }
 
-function rawRef(stateRef) {
+export function modeARawRef(stateRef) {
   return stateRef?.modeABaseRef || stateRef;
 }
 
-function rawState(stateRef) {
-  const ref = rawRef(stateRef);
+export function modeARawState(stateRef) {
+  const ref = modeARawRef(stateRef);
   return syncActiveModeASource(normalizeModeABatchState(ref?.current || {}));
 }
 
@@ -47,7 +51,7 @@ export function modeABatchTotals(state = {}) {
 
 export function modeAExecutionRows(stateOrRef = {}) {
   const state = stateOrRef?.current !== undefined || stateOrRef?.modeABaseRef
-    ? rawState(stateOrRef)
+    ? modeARawState(stateOrRef)
     : syncActiveModeASource(normalizeModeABatchState(stateOrRef));
   return modeAEnabledSources(state).map((source) => ({
     source,
@@ -197,9 +201,109 @@ export function buildModeADiagnosticsAggregate(stateOrRef = {}) {
   };
 }
 
+function activeSourceFrom(current, sources = current.sourceBatch?.sources || []) {
+  return sources.find((source) => source.sourceId === current.sourceBatch?.activeSourceId) || sources[0] || null;
+}
+
+function effectiveActiveSupportConfig(current, sources, sharedSupportConfigJson) {
+  const active = activeSourceFrom(current, sources);
+  return composeModeASupportConfig(sharedSupportConfigJson, active?.supportConfigJson || '{}');
+}
+
+function commitSharedState(writeRef, current, next = {}) {
+  const protectedFields = new Set([
+    'sourceBatch', 'sourceText', 'sourceFile', 'stagedJsonText', 'stagedJsonFile', 'branchSelection',
+    'sourceKind', 'sourceNameOverride', 'branchScope',
+  ]);
+  const merged = { ...current };
+  for (const [key, value] of Object.entries(next || {})) {
+    if (!protectedFields.has(key)) merged[key] = value;
+  }
+
+  let sharedSupportConfigJson = modeASharedSupportConfig(current);
+  if (text(next?.supportConfigJson)) sharedSupportConfigJson = commonModeASupportConfig(next.supportConfigJson);
+  const sources = current.sourceBatch?.sources || [];
+  merged.sourceBatch = { ...current.sourceBatch, sources, sharedSupportConfigJson };
+  merged.supportConfigJson = effectiveActiveSupportConfig(current, sources, sharedSupportConfigJson);
+  replaceModeAState(writeRef, merged);
+  return merged;
+}
+
+export function createModeABatchSharedRef(stateRef, phaseId = '') {
+  const writeRef = modeARawRef(stateRef);
+  return {
+    modeABaseRef: writeRef,
+    get current() {
+      const current = modeARawState(writeRef);
+      if (phaseId === 'regex') return { ...current, regexTesterResult: buildModeARegexAggregate(current) };
+      if (phaseId === 'json-trace') {
+        const resolver = buildModeAResolverAggregate(current);
+        return resolver ? { ...current, resolverJsonTraceResult: resolver, resolverJsonTraceJsonResult: resolver } : current;
+      }
+      if (phaseId === 'diagnostics') return { ...current, previewDiagnosticsAuditReport: buildModeADiagnosticsAggregate(current) };
+      return current;
+    },
+    set current(next) {
+      const current = modeARawState(writeRef);
+      commitSharedState(writeRef, current, next);
+    },
+  };
+}
+
+export function createModeARegexProcessingRef(stateRef) {
+  const sharedRef = createModeABatchSharedRef(stateRef, 'regex');
+  return {
+    modeABaseRef: sharedRef.modeABaseRef,
+    get current() {
+      const snapshot = sharedRef.current;
+      if (!snapshot || typeof snapshot !== 'object' || typeof Proxy === 'undefined') return snapshot;
+      return new Proxy(snapshot, {
+        set(target, property, value) {
+          target[property] = value;
+          const latest = sharedRef.current || {};
+          sharedRef.current = { ...latest, [property]: value };
+          return true;
+        },
+      });
+    },
+    set current(next) {
+      const current = modeARawState(sharedRef.modeABaseRef);
+      const committed = commitSharedState(sharedRef.modeABaseRef, current, next);
+      const aggregate = buildModeARegexAggregate(committed);
+      replaceModeAState(sharedRef.modeABaseRef, { ...committed, regexTesterResult: aggregate });
+    },
+  };
+}
+
+export function runModeARegexBatch(stateRef, { save = false } = {}) {
+  const writeRef = modeARawRef(stateRef);
+  const current = modeARawState(writeRef);
+  const aggregate = buildModeARegexAggregate(current);
+  let next = {
+    ...current,
+    regexTesterResult: aggregate,
+    regexTesterRunning: false,
+  };
+
+  if (save) {
+    next = applyStandaloneRegexTesterResult(next, aggregate);
+    const sharedSupportConfigJson = commonModeASupportConfig(next.supportConfigJson || modeASharedSupportConfig(current));
+    const sources = current.sourceBatch?.sources || [];
+    next = {
+      ...next,
+      supportConfigJson: effectiveActiveSupportConfig(current, sources, sharedSupportConfigJson),
+      sourceBatch: { ...current.sourceBatch, sources, sharedSupportConfigJson },
+      regexTesterWriteBackStatus: `Regex rules saved for ${modeAEnabledSources(current).length} independent XML models.`,
+    };
+  }
+
+  replaceModeAState(writeRef, next);
+  return next;
+}
+
 export function prepareModeAAggregatePhaseState(stateRef, phaseId) {
-  const writeRef = rawRef(stateRef);
-  const current = rawState(stateRef);
+  const writeRef = modeARawRef(stateRef);
+  const current = modeARawState(stateRef);
   let patch = null;
   if (phaseId === 'regex') patch = { regexTesterResult: buildModeARegexAggregate(current) };
   else if (phaseId === 'json-trace') {
@@ -213,11 +317,11 @@ export function prepareModeAAggregatePhaseState(stateRef, phaseId) {
 }
 
 export function createModeASourceProcessingRef(stateRef, sourceId) {
-  const writeRef = rawRef(stateRef);
+  const writeRef = modeARawRef(stateRef);
   return {
     modeABaseRef: writeRef,
     get current() {
-      const current = rawState(writeRef);
+      const current = modeARawState(writeRef);
       const source = current.sourceBatch?.sources?.find((row) => row.sourceId === sourceId);
       if (!source) return current;
       return {
@@ -230,23 +334,20 @@ export function createModeASourceProcessingRef(stateRef, sourceId) {
       };
     },
     set current(next) {
-      const current = rawState(writeRef);
-      const before = this.current;
+      const current = modeARawState(writeRef);
+      let sharedSupportConfigJson = modeASharedSupportConfig(current);
+      if (text(next?.supportConfigJson)) sharedSupportConfigJson = commonModeASupportConfig(next.supportConfigJson);
+
       const sources = (current.sourceBatch?.sources || []).map((source) => source.sourceId !== sourceId ? source : {
         ...source,
         supportConfigJson: next?.supportConfigJson || source.supportConfigJson,
         workflow: modeASourceWorkflowSnapshot(next || {}),
       });
-      let sharedSupportConfigJson = current.supportConfigJson;
-      if (text(next?.supportConfigJson) && next.supportConfigJson !== before.supportConfigJson) {
-        sharedSupportConfigJson = composeModeASupportConfig(
-          commonModeASupportConfig(next.supportConfigJson),
-          current.supportConfigJson,
-        );
-      }
+      const activeSupportConfigJson = effectiveActiveSupportConfig(current, sources, sharedSupportConfigJson);
+
       replaceModeAState(writeRef, {
         ...current,
-        supportConfigJson: sharedSupportConfigJson,
+        supportConfigJson: activeSupportConfigJson,
         masterContext: next?.masterContext || current.masterContext,
         regexTesterConfig: next?.regexTesterConfig || current.regexTesterConfig,
         resolverJsonTraceConfig: next?.resolverJsonTraceConfig || current.resolverJsonTraceConfig,
@@ -254,15 +355,15 @@ export function createModeASourceProcessingRef(stateRef, sourceId) {
         supportTypeMapperConfig: next?.supportTypeMapperConfig || current.supportTypeMapperConfig,
         weightMatchOverridesJson: next?.weightMatchOverridesJson ?? current.weightMatchOverridesJson,
         options: next?.options || current.options,
-        sourceBatch: { ...current.sourceBatch, sources },
+        sourceBatch: { ...current.sourceBatch, sources, sharedSupportConfigJson },
       });
     },
   };
 }
 
 export function runModeAResolverBatch(stateRef, { save = false } = {}) {
-  const writeRef = rawRef(stateRef);
-  const current = rawState(stateRef);
+  const writeRef = modeARawRef(stateRef);
+  const current = modeARawState(stateRef);
   const perSource = new Map();
   for (const { source, state } of modeAExecutionRows(current)) {
     const result = runStandaloneResolverJsonTrace({
@@ -286,24 +387,20 @@ export function runModeAResolverBatch(stateRef, { save = false } = {}) {
   });
   const intermediate = { ...current, sourceBatch: { ...current.sourceBatch, sources } };
   const aggregate = buildModeAResolverAggregate(intermediate);
-  let supportConfigJson = current.supportConfigJson;
+  let sharedSupportConfigJson = modeASharedSupportConfig(current);
   if (save) {
     const first = [...perSource.values()][0];
-    if (first?.supportConfigJson) {
-      supportConfigJson = composeModeASupportConfig(
-        commonModeASupportConfig(first.supportConfigJson),
-        current.supportConfigJson,
-      );
-    }
+    if (first?.supportConfigJson) sharedSupportConfigJson = commonModeASupportConfig(first.supportConfigJson);
   }
   const next = {
     ...intermediate,
-    supportConfigJson,
+    supportConfigJson: effectiveActiveSupportConfig(current, sources, sharedSupportConfigJson),
+    sourceBatch: { ...intermediate.sourceBatch, sharedSupportConfigJson },
     resolverJsonTraceResult: aggregate,
     resolverJsonTraceJsonResult: aggregate,
     resolverJsonTraceRunning: false,
     resolverJsonTraceWriteBackStatus: aggregate
-      ? `Resolver index built across ${modeAEnabledSources(intermediate).length} XML files: ${aggregate.resolvedFacts.length} facts processed.`
+      ? `${save ? 'Resolver config saved and index built' : 'Resolver index built'} across ${modeAEnabledSources(intermediate).length} XML files: ${aggregate.resolvedFacts.length} facts processed.`
       : 'Resolver index produced no batch facts.',
   };
   replaceModeAState(writeRef, next);
