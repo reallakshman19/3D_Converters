@@ -44,7 +44,7 @@ const DEFAULTS = {
     branchOutsideDiameter: '60.3',
     branchOutsideDiameterUnit: 'mm',
     branchWallThickness: '',
-    branchWallThicknessUnit: 'mm',
+    branchWallThicknessUnit: '',
     material: 'CARBON_STEEL_ASSUMED',
     duplexState: 'NO',
   },
