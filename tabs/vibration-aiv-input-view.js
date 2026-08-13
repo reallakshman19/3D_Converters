@@ -1,4 +1,6 @@
 import { AIV_UI_BENCHMARK_SOURCE } from './vibration-aiv-benchmarks.js';
+import { renderAivCanvasWorkspaceHtml } from './vibration-aiv-canvas-view.js';
+import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
 import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
 
 function esc(value) {
@@ -39,7 +41,7 @@ function benchmarkPanel(state) {
       <span>FLM1 alternative <strong>1.2109758194311824</strong></span>
     </div>
     ${loaded.modified ? '<div class="aivq-banner aivq-benchmark-warning"><strong>Benchmark inputs modified.</strong><span>Published values remain visible only as the original controlled-case reference. Reload EI D.2.3 to restore exact benchmark-input identity.</span></div>' : ''}
-    <div class="aivq-benchmark-source">${esc(AIV_UI_BENCHMARK_SOURCE.benchmarkSetId)} · ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.path)} · blob ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.gitBlob)}</div>` : ''}
+    <div class="aivq-benchmark-source">${esc(AIV_UI_BENCHMARK_SOURCE.benchmarkSetId)} · ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.path)} · blob ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.gitBlob)} · ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.locator)}</div>` : ''}
   </section>`;
 }
 
@@ -60,17 +62,63 @@ function importPanel(state) {
   </section>`;
 }
 
-function editableRows(table) {
-  if (!table.rows.length) {
-    return `<tr><td colspan="${table.header.length + 1}" class="aivq-empty-row">No rows loaded. Add a row or import a controlled CSV.</td></tr>`;
-  }
-  return table.rows.map((row, rowIndex) => `<tr>${row.map((value, columnIndex) => `<td><input class="aivq-cell-input" data-aiv-table-cell="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}" value="${esc(value)}" aria-label="${esc(table.header[columnIndex])} row ${rowIndex + 1}"></td>`).join('')}<td><button type="button" class="engineering-console-btn aivq-row-delete" data-aiv-table-delete="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}">Delete</button></td></tr>`).join('');
+function tableValue(table, row, column) {
+  const index = table.header.indexOf(column);
+  return index < 0 ? '' : String(row[index] ?? '').trim();
 }
 
-function editableTable(title, table, description) {
+function tableSelectionKey(table, row) {
+  if (table.kind === 'sources') {
+    const id = tableValue(table, row, 'Source Canonical ID');
+    const caseId = tableValue(table, row, 'Operating Case');
+    return id && caseId ? `SOURCE:${id}:${caseId}` : '';
+  }
+  if (table.kind === 'assessments') {
+    const id = tableValue(table, row, 'Assessment Canonical ID');
+    return id ? `ASSESSMENT:${id}` : '';
+  }
+  const sourceId = tableValue(table, row, 'Source Canonical ID');
+  const assessmentId = tableValue(table, row, 'Assessment Canonical ID');
+  const caseId = tableValue(table, row, 'Operating Case');
+  return sourceId && assessmentId && caseId ? `REL:${sourceId}:${assessmentId}:${caseId}` : '';
+}
+
+function assumptionMap(state) {
+  const map = new Map();
+  for (const item of state.assumptionResolution?.assumptions ?? []) {
+    const key = aivCanvasFieldKey(item.tableKind, item.rowIndex, item.column);
+    if (key) map.set(key, item);
+  }
+  return map;
+}
+
+function editableCell(table, rowIndex, columnIndex, value, assumptions) {
+  const column = table.header[columnIndex];
+  const fieldKey = aivCanvasFieldKey(table.kind, rowIndex, column);
+  const assumption = assumptions.get(fieldKey);
+  const assumedAttr = assumption ? ' data-aiv-assumed="true"' : '';
+  const assumedBadge = assumption
+    ? `<small class="aivq-assumed-cell" title="${esc(`${assumption.profilePath} · ${assumption.reason}`)}">[A] ${esc(assumption.assumedValue)}</small>`
+    : '';
+  return `<td${assumption ? ' class="is-assumed"' : ''}><input class="aivq-cell-input" data-aiv-table-cell="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}" data-aiv-field-key="${esc(fieldKey)}"${assumedAttr} value="${esc(value)}" aria-label="${esc(column)} row ${rowIndex + 1}">${assumedBadge}</td>`;
+}
+
+function editableRow(table, row, rowIndex, assumptions) {
+  const selectionKey = tableSelectionKey(table, row);
+  const selectionAttr = selectionKey ? ` data-aiv-selection-key="${esc(selectionKey)}"` : '';
+  const cells = row.map((value, columnIndex) => editableCell(table, rowIndex, columnIndex, value, assumptions)).join('');
+  return `<tr data-aiv-table-row-kind="${esc(table.kind)}" data-aiv-table-row-index="${rowIndex}"${selectionAttr} aria-selected="false">${cells}<td><button type="button" class="engineering-console-btn aivq-row-delete" data-aiv-table-delete="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}">Delete</button></td></tr>`;
+}
+
+function editableRows(table, assumptions) {
+  if (!table.rows.length) return `<tr><td colspan="${table.header.length + 1}" class="aivq-empty-row">No rows loaded. Add a row or import a controlled CSV.</td></tr>`;
+  return table.rows.map((row, rowIndex) => editableRow(table, row, rowIndex, assumptions)).join('');
+}
+
+function editableTable(title, table, description, assumptions) {
   return `<section class="aivq-card aivq-input-table-card">
     <div class="aivq-section-head"><div><h4>${esc(title)}</h4><p>${esc(description)}</p></div><button type="button" class="engineering-console-btn" data-aiv-table-add="${esc(table.kind)}">Add row</button></div>
-    <div class="aivq-input-table-wrap"><table class="aivq-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table)}</tbody></table></div>
+    <div class="aivq-input-table-wrap"><table class="aivq-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table, assumptions)}</tbody></table></div>
   </section>`;
 }
 
@@ -80,12 +128,12 @@ function fallbackTable(kind) {
 
 export function renderAivInputWorkspaceHtml(state = {}) {
   const tables = state.tables ?? {
-    sources: fallbackTable('sources'),
-    assessments: fallbackTable('assessments'),
-    relationships: fallbackTable('relationships'),
+    sources: fallbackTable('sources'), assessments: fallbackTable('assessments'), relationships: fallbackTable('relationships'),
   };
-  return `${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
-    ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells are assumed from the configured profile at execution time.')}
-    ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID. Missing engineering cells use configured assumptions.')}
-    ${editableTable('Source → Assessment', tables.relationships, 'Applicability, engineering physical distance and simultaneous-source grouping. Missing cells use configured assumptions; topology pixels never supply distance.')}`;
+  const assumptions = assumptionMap(state);
+  const canvasState = { ...state, tables };
+  return `${renderAivCanvasWorkspaceHtml(canvasState)}${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
+    ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells are assumed from the configured profile at execution time.', assumptions)}
+    ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID. Missing engineering cells use configured assumptions.', assumptions)}
+    ${editableTable('Source → Assessment', tables.relationships, 'Applicability, engineering physical distance and simultaneous-source grouping. Missing cells use configured assumptions; topology pixels never supply distance.', assumptions)}`;
 }

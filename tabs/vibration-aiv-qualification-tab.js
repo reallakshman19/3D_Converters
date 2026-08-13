@@ -9,13 +9,17 @@ import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-c
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
 import {
   addAivInputRow,
+  addAivRelationshipInputRow,
   createEmptyAivInputTable,
   deleteAivInputRow,
+  findAivRelationshipInputRowIndex,
   parseAivInputCsv,
   serializeAivInputTable,
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
+import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
+import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
@@ -67,9 +71,20 @@ function initialState() {
 export function renderAivQualificationWorkspace(container) {
   ensureStylesheet();
   const state = initialState();
+  const canvasController = createAivCanvasInteractionController(container, {
+    onCreateRelationship: createCanvasRelationship,
+    onDeleteRelationship: deleteCanvasRelationship,
+  });
+  const canvasExportController = createAivCanvasExportController(container, {
+    getState: () => state,
+    getLayout: () => canvasController.getLayout(),
+  });
 
   function render() {
-    if (!state.destroyed) container.innerHTML = renderAivQualificationWorkspaceHtml(state);
+    if (state.destroyed) return;
+    container.innerHTML = renderAivQualificationWorkspaceHtml(state);
+    canvasController.sync();
+    canvasExportController.sync();
   }
 
   function clearReadiness() {
@@ -138,6 +153,37 @@ export function renderAivQualificationWorkspace(container) {
     clearReadiness();
     state.error = null;
     render();
+  }
+
+  function effectiveRelationshipTable() {
+    return state.assumptionResolution?.tables?.relationships ?? state.tables.relationships;
+  }
+
+  function createCanvasRelationship(input) {
+    try {
+      if (findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input) >= 0) {
+        throw new Error('AIV_INPUT_RELATIONSHIP_DUPLICATE: Relationship already exists for the selected source, assessment and operating case.');
+      }
+      applyTableMutation('relationships', addAivRelationshipInputRow(state.tables.relationships, input));
+      return true;
+    } catch (error) {
+      state.error = String(error?.message || error);
+      render();
+      return false;
+    }
+  }
+
+  function deleteCanvasRelationship(input) {
+    try {
+      const rowIndex = findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input);
+      if (rowIndex < 0) throw new Error('AIV_INPUT_RELATIONSHIP_NOT_FOUND: Selected relationship no longer exists.');
+      applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex));
+      return true;
+    } catch (error) {
+      state.error = String(error?.message || error);
+      render();
+      return false;
+    }
   }
 
   function ensureAssumableRows(tables) {
@@ -356,6 +402,8 @@ export function renderAivQualificationWorkspace(container) {
 
   return () => {
     state.destroyed = true;
+    canvasExportController.destroy();
+    canvasController.destroy();
     container.removeEventListener('click', onClick);
     container.removeEventListener('change', onChange);
   };
