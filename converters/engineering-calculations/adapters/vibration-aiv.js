@@ -9,18 +9,22 @@ import {
 } from '../../vibration/aiv/aiv-assumption-profile.js';
 import { calculateAiv } from '../../vibration/aiv/aiv-calculator.js';
 
-const BENCHMARK_REASONS = Object.freeze([
+const SCREENING_REASONS = Object.freeze([
   'EI_D2_3_PRODUCT_PATH_22_OF_22_PASS',
-  'EXACT_HEAD_LOCAL_RELEASE_VALIDATION_PASS',
-  'SCREENING_QUALIFICATION_NOT_YET_APPLIED',
+  'BENCHMARK_ONLY_EXACT_HEAD_RELEASE_VALIDATION_PASS',
+  'SCREENING_EIGHT_GROUP_MACHINE_QUALIFICATION_PASS',
+  'VISIBLE_USER_CONFIGURABLE_ASSUMPTIONS',
+  'ASSESSMENT_SCOPE_SCREENING_ONLY',
+  'DESIGN_AUTHORITY_FALSE',
 ]);
 
-function benchmarkQualification() {
+function qualification(mode) {
+  const screening = mode === 'screening';
   return composeEngineeringQualification({
-    method: 'BENCHMARK_ONLY',
-    data: 'BENCHMARK_ONLY',
+    method: screening ? 'SCREENING' : 'BENCHMARK_ONLY',
+    data: screening ? 'SCREENING' : 'BENCHMARK_ONLY',
     designAuthority: false,
-    reasons: BENCHMARK_REASONS,
+    reasons: SCREENING_REASONS,
   });
 }
 
@@ -54,8 +58,9 @@ function validateInput(input) {
     applicability: {
       applicable: errors.length === 0,
       limitations: [
-        'BENCHMARK_ONLY execution is currently authorized.',
-        'Assessment-level LOF is the numerical screening candidate scope; configured line/case LOF is not authoritative for screening.',
+        'Assessment-level LOF is the qualified screening result scope.',
+        'Configured line/case LOF is retained for traceability but is not authoritative for screening.',
+        'Missing engineering inputs may be filled only by the visible/exported user-configurable assumption profile.',
         'designAuthority=false.',
       ],
     },
@@ -63,15 +68,16 @@ function validateInput(input) {
 }
 
 function calculate(input, runtime = {}) {
-  if (runtime.options?.qualificationMode !== 'benchmark') {
+  const mode = runtime.options?.qualificationMode;
+  if (!['benchmark', 'screening'].includes(mode)) {
     return {
       ok: false,
       errors: [createEngineeringCalculationError(
         'ENGINEERING_METHOD_NOT_QUALIFIED',
-        'AIV is currently executable only in benchmark qualification mode.',
-        { requiredQualificationMode: 'benchmark', qualificationIssue: 441 },
+        'AIV execution requires explicit qualificationMode=benchmark or qualificationMode=screening.',
+        { allowedQualificationModes: ['benchmark', 'screening'], qualificationIssue: 441 },
       )],
-      qualification: benchmarkQualification(),
+      qualification: qualification('screening'),
     };
   }
   const result = calculateAiv({
@@ -80,8 +86,9 @@ function calculate(input, runtime = {}) {
     relationships: input.relationships,
     exchange: input.topology,
     assumptionProfile: input.assumptionProfile ?? AIV_DEFAULT_ASSUMPTION_PROFILE,
-    qualificationMode: 'benchmark',
+    qualificationMode: mode,
   });
+  const screening = mode === 'screening';
   return {
     ok: true,
     outputs: {
@@ -97,17 +104,18 @@ function calculate(input, runtime = {}) {
     },
     checks: [],
     assessment: {
-      resultScope: 'BENCHMARK',
-      benchmarkOnly: true,
-      screeningAuthority: 'NOT_AUTHORIZED',
+      resultScope: screening ? 'ASSESSMENT_SCREENING' : 'BENCHMARK',
+      screeningAuthority: screening ? 'AUTHORIZED' : 'NOT_AUTHORIZED',
+      lineCaseSummaryAuthoritativeForScreening: false,
       designAuthority: false,
     },
-    qualification: benchmarkQualification(),
+    qualification: qualification(mode),
     applicability: {
       applicable: true,
       limitations: [
-        'Benchmark execution only.',
-        'Line/case summary is a configured scope reference and is not authoritative for screening.',
+        screening ? 'Assessment-level screening authority only.' : 'Benchmark execution only.',
+        'Line/case summary remains a configured reference and is not authoritative for screening.',
+        'Result does not provide design approval.',
       ],
     },
     provenance: {
@@ -115,14 +123,18 @@ function calculate(input, runtime = {}) {
       methodId: 'VIB.AIV.ACOUSTIC',
       assumptionProfileSchema: result.assumptionProfile.schema,
       humanEvidenceRequired: false,
+      screeningQualificationReceipt: 'AIV-SCREENING-ReleaseValidationReceipt-v1.json',
     },
     evidence: {
       domainResult: result,
       stageOrder: result.stageOrder,
     },
-    warnings: [{
+    warnings: screening ? [{
+      code: 'SCREENING_ONLY_NOT_DESIGN_AUTHORITY',
+      message: 'AIV assessment result is qualified for screening only; design authority remains false and the configured line summary is not a screening result.',
+    }] : [{
       code: 'BENCHMARK_REFERENCE_ONLY',
-      message: 'AIV benchmark result is not yet screening or design authority.',
+      message: 'AIV result is running in benchmark mode and does not carry screening authority.',
     }],
   };
 }
@@ -139,40 +151,40 @@ export const VIBRATION_AIV_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   contractVersion: ENGINEERING_CALCULATION_CONTRACT_VERSION,
   id: 'VIB.AIV.ACOUSTIC',
   family: 'VIB',
-  name: 'Acoustic-Induced Vibration Screening — EI Benchmark',
+  name: 'Acoustic-Induced Vibration Screening',
   shortName: 'Acoustic-Induced Vibration',
-  methodRevision: 'ei-aviff2-aiv-auto-v1',
-  purpose: 'Execute the traceable 10-stage AIV method in BENCHMARK_ONLY qualification mode before screening promotion.',
+  methodRevision: 'ei-aviff2-aiv-auto-screening-v1',
+  purpose: 'Execute the traceable 10-stage AIV method for assessment-level screening with visible user-configurable assumptions.',
   authority: {
     calculationState: 'IMPLEMENTED',
-    qualificationState: 'BENCHMARK_ONLY',
+    qualificationState: 'SCREENING',
     codeCompliance: false,
   },
   applicability: {
-    description: 'Gas-phase pressure-reducing AIV source-to-welded-discontinuity benchmark and configured-assumption domain.',
+    description: 'Gas-phase pressure-reducing AIV source-to-welded-discontinuity assessment screening with explicit source/path/geometry evidence and visible assumptions.',
     limitations: [
-      'Not design authority.',
-      'Screening authority is not yet enabled.',
-      'Line/case LOF is a configured reference and not an assessment-level screening result.',
+      'Assessment-level screening authority only; no design authority.',
+      'Configured line/case LOF is non-authoritative for screening.',
       'All assumed values must remain visible, editable and exported.',
+      'Project application outside the qualified input/model envelope remains the user’s responsibility to review.',
     ],
   },
   inputs,
   outputs: [
     { key: 'sourceResults', label: 'Source results', type: 'table' },
-    { key: 'assessmentResults', label: 'Assessment results', type: 'table' },
-    { key: 'lineCaseSummaries', label: 'Line / case summaries', type: 'table' },
-    { key: 'screeningResultScope', label: 'Screening candidate scope', type: 'string' },
+    { key: 'assessmentResults', label: 'Assessment screening results', type: 'table' },
+    { key: 'lineCaseSummaries', label: 'Non-authoritative line / case summaries', type: 'table' },
+    { key: 'screeningResultScope', label: 'Screening result scope', type: 'string' },
     { key: 'completeKernelStageCount', label: 'Kernel stage count', type: 'integer', quantity: 'dimensionless', canonicalUnit: null },
   ],
   qualificationIssue: 441,
   ui: {
     visible: true,
     executionModes: ['single', 'sandbox', 'batch'],
-    minimumQualificationToShow: 'BENCHMARK_ONLY',
-    requiredQualificationMode: 'benchmark',
+    minimumQualificationToShow: 'SCREENING',
+    requiredQualificationMode: 'screening',
     productSurface: 'VIBRATION_AIV_QUALIFICATION_WORKSPACE',
-    warning: 'BENCHMARK_ONLY — screening/design authority not yet enabled.',
+    warning: 'SCREENING ONLY — assessment scope; not design authority.',
   },
   validateInput,
   calculate,
