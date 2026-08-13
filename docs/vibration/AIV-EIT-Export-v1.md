@@ -63,8 +63,10 @@ AivCalculatorResult.v1
 aiv-eit-contract.js
              ↓
 aiv-eit-units.js
-             ↓
-aiv-eit-records.js
+        ↙            ↘
+aiv-eit-geometry.js   aiv-eit-stream-record.js
+        ↘            ↙
+      aiv-eit-records.js   (source detail/trace)
              ↓
 aiv-eit-authority.js
              ↓
@@ -84,7 +86,7 @@ UI modules dispatch export only. They contain no EIT engineering conversion equa
 | Current AIV | `.eit` v5 |
 |---|---|
 | Assessment / line case | `lines[]` |
-| Assessment main geometry | `pipes[]` |
+| Assessment main geometry | `pipes[]`, normalized to mm |
 | Source process basis | `streams[]` |
 | max contributing effective source PWL | legacy `pwl` |
 | authoritative Assessment LOF | `aiv` |
@@ -93,6 +95,7 @@ UI modules dispatch export only. They contain no EIT engineering conversion equa
 | upstream pressure | `usp` in bar absolute |
 | downstream pressure | `dsp` in bar absolute |
 | upstream temperature | `ust` in °C |
+| molecular weight | `mw` in g/mol-equivalent (`kg/kmol` has the same numerical value) |
 | low-noise trim reduction | `lnt` in dB |
 | explicit physical distance | additive `distance` / `distanceUnit` |
 | simultaneous-source group | additive `simultaneousSourceGroup` |
@@ -100,10 +103,18 @@ UI modules dispatch export only. They contain no EIT engineering conversion equa
 
 `aiv_data` remains a JSON-stringified array for compatibility with the controlled v5 reference.
 
-## Pressure policy
+## Unit policy
 
-Absolute source pressure is converted directly to bar absolute.
-Gauge pressure is exportable only when the source also carries explicit reference-pressure value, source, and source revision; otherwise export fails closed.
+Compatibility normalization is converter-only and uses the central Engineering Calculation unit converter where that quantity is supported:
+
+- mass flow → kg/h;
+- pressure → bar absolute;
+- temperature → °C;
+- pipe OD / ID / wall thickness → mm;
+- molecular weight → g/mol-equivalent;
+- low-noise trim → dB.
+
+Gauge pressure is exportable only when the source also carries explicit reference-pressure value, source, and source revision; otherwise export fails closed. No fallback atmospheric pressure is invented.
 
 ## Flare-network distance policy
 
@@ -141,6 +152,8 @@ Focused command:
 npm run verify:aiv-eit-export
 ```
 
+Current focused candidate evidence: **12 / 12 PASS**.
+
 Coverage includes:
 
 - assessment-authority export;
@@ -148,8 +161,11 @@ Coverage includes:
 - multi-source flare trace;
 - stringified `aiv_data`;
 - kg/h, bar absolute and °C conversions;
+- pipe geometry normalization to mm;
+- molecular-weight normalization;
+- gauge pressure fail-closed without explicit reference evidence;
 - canonical IDs retained additively;
 - controlled v5 reference identity/count anchors;
 - reference drift failures.
 
-The UI displays both `Export screening result JSON` and `Export EI .eit`, and routes `.eit` generation through the execution controller. Full AIV release/browser validation remains independent from focused adapter tests.
+The UI displays both `Export screening result JSON` and `Export EI .eit`, and routes `.eit` generation through the execution controller. Full AIV release/browser validation remains independent from focused adapter tests. GitHub Actions runs that were created for the current PR were not started because the repository Actions budget was exhausted; those runs are environment-blocked rather than test failures.
