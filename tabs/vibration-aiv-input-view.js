@@ -61,11 +61,39 @@ function importPanel(state) {
   </section>`;
 }
 
+function tableValue(table, row, column) {
+  const index = table.header.indexOf(column);
+  return index < 0 ? '' : String(row[index] ?? '').trim();
+}
+
+function tableSelectionKey(table, row) {
+  if (table.kind === 'sources') {
+    const id = tableValue(table, row, 'Source Canonical ID');
+    const caseId = tableValue(table, row, 'Operating Case');
+    return id && caseId ? `SOURCE:${id}:${caseId}` : '';
+  }
+  if (table.kind === 'assessments') {
+    const id = tableValue(table, row, 'Assessment Canonical ID');
+    return id ? `ASSESSMENT:${id}` : '';
+  }
+  const sourceId = tableValue(table, row, 'Source Canonical ID');
+  const assessmentId = tableValue(table, row, 'Assessment Canonical ID');
+  const caseId = tableValue(table, row, 'Operating Case');
+  return sourceId && assessmentId && caseId ? `REL:${sourceId}:${assessmentId}:${caseId}` : '';
+}
+
+function editableRow(table, row, rowIndex) {
+  const selectionKey = tableSelectionKey(table, row);
+  const selectionAttr = selectionKey ? ` data-aiv-selection-key="${esc(selectionKey)}"` : '';
+  const cells = row.map((value, columnIndex) => `<td><input class="aivq-cell-input" data-aiv-table-cell="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}" value="${esc(value)}" aria-label="${esc(table.header[columnIndex])} row ${rowIndex + 1}"></td>`).join('');
+  return `<tr data-aiv-table-row-kind="${esc(table.kind)}" data-aiv-table-row-index="${rowIndex}"${selectionAttr} aria-selected="false">${cells}<td><button type="button" class="engineering-console-btn aivq-row-delete" data-aiv-table-delete="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}">Delete</button></td></tr>`;
+}
+
 function editableRows(table) {
   if (!table.rows.length) {
     return `<tr><td colspan="${table.header.length + 1}" class="aivq-empty-row">No rows loaded. Add a row or import a controlled CSV.</td></tr>`;
   }
-  return table.rows.map((row, rowIndex) => `<tr>${row.map((value, columnIndex) => `<td><input class="aivq-cell-input" data-aiv-table-cell="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}" value="${esc(value)}" aria-label="${esc(table.header[columnIndex])} row ${rowIndex + 1}"></td>`).join('')}<td><button type="button" class="engineering-console-btn aivq-row-delete" data-aiv-table-delete="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}">Delete</button></td></tr>`).join('');
+  return table.rows.map((row, rowIndex) => editableRow(table, row, rowIndex)).join('');
 }
 
 function editableTable(title, table, description) {

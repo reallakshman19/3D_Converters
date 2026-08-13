@@ -196,10 +196,12 @@ function relationshipRows(records, context) {
     const caseId = text(values['Operating Case']);
     if (!sourceCanonicalId || !assessmentCanonicalId || !caseId) return [];
     const key = `${sourceCanonicalId}\u0000${assessmentCanonicalId}\u0000${caseId}`;
+    const selectionKey = `REL:${sourceCanonicalId}:${assessmentCanonicalId}:${caseId}`;
     const ready = context.readiness.find((row) => text(row.sourceCanonicalId) === sourceCanonicalId
       && text(row.assessmentCanonicalId) === assessmentCanonicalId && text(row.caseId) === caseId);
     return [{
-      rowKey: text(ready?.rowKey) || `REL:${sourceCanonicalId}:${assessmentCanonicalId}:${caseId}`,
+      rowKey: text(ready?.rowKey) || selectionKey,
+      selectionKey,
       sourceCanonicalId,
       assessmentCanonicalId,
       caseId,

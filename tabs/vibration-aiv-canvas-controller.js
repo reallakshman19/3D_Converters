@@ -2,6 +2,11 @@ import {
   createAivCanvasLayout,
   moveAivCanvasLayoutNode,
 } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
+import {
+  aivCanvasSelectionFromElement,
+  applyAivCanvasSelection,
+  revealAivCanvasSelection,
+} from './vibration-aiv-canvas-selection.js';
 
 export const AIV_CANVAS_ZOOM_MIN = 0.4;
 export const AIV_CANVAS_ZOOM_MAX = 2.5;
@@ -127,29 +132,18 @@ function svgDelta(svg, clientDx, clientDy, zoom = 1) {
   };
 }
 
-function setSelection(runtime, target) {
-  for (const item of runtime.container.querySelectorAll('[data-aiv-canvas-node],[data-aiv-canvas-relationship]')) {
-    const selected = item === target;
-    item.classList.toggle('is-selected', selected);
-    item.setAttribute('aria-selected', selected ? 'true' : 'false');
-  }
-  runtime.selectedKind = target.hasAttribute('data-aiv-canvas-node') ? 'node' : 'relationship';
-  runtime.selectedKey = runtime.selectedKind === 'node'
-    ? target.dataset.aivCanvasNode
-    : target.dataset.aivCanvasRelationship;
-}
-
 function canvasTarget(event) {
   return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship]') ?? null;
 }
 
-function restoreSelection(runtime, svg) {
-  if (!runtime.selectedKey) return;
-  const attribute = runtime.selectedKind === 'node' ? 'aivCanvasNode' : 'aivCanvasRelationship';
-  const selector = runtime.selectedKind === 'node' ? '[data-aiv-canvas-node]' : '[data-aiv-canvas-relationship]';
-  const selected = [...svg.querySelectorAll(selector)]
-    .find((item) => item.dataset[attribute] === runtime.selectedKey);
-  if (selected) setSelection(runtime, selected);
+function selectTarget(runtime, target, origin) {
+  const selection = aivCanvasSelectionFromElement(target);
+  if (!selection || !runtime.layout) return;
+  runtime.selection = selection;
+  const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
+  const revealed = revealAivCanvasSelection(runtime.container, svg, runtime.layout, selection, origin);
+  runtime.layout = revealed.layout;
+  if (origin === 'table' && svg) applyLayout(svg, runtime.layout);
 }
 
 function syncRuntime(runtime) {
@@ -157,14 +151,14 @@ function syncRuntime(runtime) {
   if (!svg) return;
   runtime.layout = reconcileAivCanvasPresentationLayout(layoutFromSvg(svg), runtime.layout);
   applyLayout(svg, runtime.layout);
-  restoreSelection(runtime, svg);
+  applyAivCanvasSelection(runtime.container, runtime.selection);
 }
 
 function startPointer(runtime, event) {
   const svg = event.target?.closest?.('[data-aiv-canvas-svg]');
   if (!svg || event.target?.closest?.('[data-aiv-canvas-action]')) return;
   const target = canvasTarget(event);
-  if (target) setSelection(runtime, target);
+  if (target) selectTarget(runtime, target, 'canvas');
   if (target?.hasAttribute('data-aiv-canvas-relationship')) return;
   const nodeKey = target?.dataset?.aivCanvasNode ?? null;
   const node = nodeKey ? runtime.layout?.nodes.find((item) => item.nodeKey === nodeKey) : null;
@@ -223,26 +217,30 @@ function wheel(runtime, event) {
 
 function click(runtime, event) {
   const action = event.target?.closest?.('[data-aiv-canvas-action]')?.dataset.aivCanvasAction;
-  if (!action || !runtime.layout) return;
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
-  if (!svg) return;
-  let next = viewport({ x: 0, y: 0, zoom: 1 });
-  if (action === 'zoom-in') next = zoomAivCanvasViewport(runtime.layout.viewport, ZOOM_STEP);
-  if (action === 'zoom-out') next = zoomAivCanvasViewport(runtime.layout.viewport, 1 / ZOOM_STEP);
-  runtime.layout = createAivCanvasLayout({ nodes: runtime.layout.nodes, viewport: next });
-  applyLayout(svg, runtime.layout);
+  if (action && runtime.layout && svg) {
+    let next = viewport({ x: 0, y: 0, zoom: 1 });
+    if (action === 'zoom-in') next = zoomAivCanvasViewport(runtime.layout.viewport, ZOOM_STEP);
+    if (action === 'zoom-out') next = zoomAivCanvasViewport(runtime.layout.viewport, 1 / ZOOM_STEP);
+    runtime.layout = createAivCanvasLayout({ nodes: runtime.layout.nodes, viewport: next });
+    applyLayout(svg, runtime.layout);
+    return;
+  }
+  if (event.target?.closest?.('[data-aiv-table-add],[data-aiv-table-delete]')) return;
+  const row = event.target?.closest?.('[data-aiv-table-row-kind]');
+  if (row) selectTarget(runtime, row, 'table');
 }
 
 function keydown(runtime, event) {
   if (!['Enter', ' '].includes(event.key)) return;
   const target = canvasTarget(event);
   if (!target) return;
-  setSelection(runtime, target);
+  selectTarget(runtime, target, 'canvas');
   event.preventDefault();
 }
 
 export function createAivCanvasInteractionController(container) {
-  const runtime = { container, layout: null, pointer: null, selectedKey: null, selectedKind: null };
+  const runtime = { container, layout: null, pointer: null, selection: null };
   const handlers = {
     pointerdown: (event) => startPointer(runtime, event),
     pointermove: (event) => movePointer(runtime, event),

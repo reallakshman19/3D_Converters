@@ -12,7 +12,7 @@ function esc(value) {
 
 function canvasStyle() {
   return `<style>
-    .aiv-canvas-card{overflow:hidden}.aiv-canvas-head-actions{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;justify-content:flex-end}.aiv-canvas-controls{display:flex;gap:5px}.aiv-canvas-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.aiv-canvas-badge{border:1px solid #334155;border-radius:999px;padding:3px 7px;color:#cbd5e1;font-size:10px}.aiv-canvas-badge.authority{border-color:#0369a1;color:#7dd3fc}.aiv-canvas-frame{overflow:hidden;border:1px solid #1e293b;border-radius:8px;background:#08111f;touch-action:none}.aiv-canvas-svg{display:block;width:100%;min-width:720px;min-height:260px;cursor:grab;user-select:none}.aiv-canvas-svg:active{cursor:grabbing}.aiv-canvas-node{cursor:move;outline:none}.aiv-canvas-node-shape{fill:#0f172a;stroke:#7dd3fc;stroke-width:2}.aiv-canvas-node.is-assessment .aiv-canvas-node-shape{stroke:#c4b5fd}.aiv-canvas-node.is-path .aiv-canvas-node-shape,.aiv-canvas-node.is-boundary .aiv-canvas-node-shape{stroke:#94a3b8}.aiv-canvas-node-detail{fill:none;stroke:#e2e8f0;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.aiv-canvas-node-title{fill:#e5e7eb;font-size:11px;font-weight:700}.aiv-canvas-node-subtitle,.aiv-canvas-node-result{fill:#94a3b8;font-size:9px}.aiv-canvas-relationship{cursor:pointer;outline:none}.aiv-canvas-relationship line{stroke:#38bdf8;stroke-width:2}.aiv-canvas-relationship text{fill:#cbd5e1;font-size:9px}.aiv-canvas-relationship.is-inactive line{stroke:#64748b;stroke-dasharray:6 5}.aiv-canvas-node.is-selected .aiv-canvas-node-shape,.aiv-canvas-node:focus .aiv-canvas-node-shape{stroke-width:4}.aiv-canvas-relationship.is-selected line,.aiv-canvas-relationship:focus line{stroke-width:4}.aiv-canvas-svg marker path{fill:#38bdf8}.aiv-canvas-empty{padding:22px;border:1px dashed #334155;border-radius:8px;color:#94a3b8;text-align:center}.aiv-canvas-line-summary{display:flex;flex-direction:column;gap:3px;margin-top:8px;padding:8px;border:1px solid #7c2d12;border-radius:6px;color:#fdba74}.aiv-canvas-line-summary span{font-size:10px;color:#94a3b8}
+    .aiv-canvas-card{overflow:hidden}.aiv-canvas-head-actions{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;justify-content:flex-end}.aiv-canvas-controls{display:flex;gap:5px}.aiv-canvas-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.aiv-canvas-badge{border:1px solid #334155;border-radius:999px;padding:3px 7px;color:#cbd5e1;font-size:10px}.aiv-canvas-badge.authority{border-color:#0369a1;color:#7dd3fc}.aiv-canvas-frame{overflow:hidden;border:1px solid #1e293b;border-radius:8px;background:#08111f;touch-action:none}.aiv-canvas-svg{display:block;width:100%;min-width:720px;min-height:260px;cursor:grab;user-select:none}.aiv-canvas-svg:active{cursor:grabbing}.aiv-canvas-node{cursor:move;outline:none}.aiv-canvas-node-shape{fill:#0f172a;stroke:#7dd3fc;stroke-width:2}.aiv-canvas-node.is-assessment .aiv-canvas-node-shape{stroke:#c4b5fd}.aiv-canvas-node.is-path .aiv-canvas-node-shape,.aiv-canvas-node.is-boundary .aiv-canvas-node-shape{stroke:#94a3b8}.aiv-canvas-node-detail{fill:none;stroke:#e2e8f0;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.aiv-canvas-node-title{fill:#e5e7eb;font-size:11px;font-weight:700}.aiv-canvas-node-subtitle,.aiv-canvas-node-result{fill:#94a3b8;font-size:9px}.aiv-canvas-relationship{cursor:pointer;outline:none}.aiv-canvas-relationship line{stroke:#38bdf8;stroke-width:2}.aiv-canvas-relationship text{fill:#cbd5e1;font-size:9px}.aiv-canvas-relationship.is-inactive line{stroke:#64748b;stroke-dasharray:6 5}.aiv-canvas-node.is-selected .aiv-canvas-node-shape,.aiv-canvas-node:focus .aiv-canvas-node-shape{stroke-width:4}.aiv-canvas-relationship.is-selected line,.aiv-canvas-relationship:focus line{stroke-width:4}.aivq-input-table tr.is-selected>td{box-shadow:inset 0 0 0 1px #38bdf8;background:#0b1f33}.aiv-canvas-svg marker path{fill:#38bdf8}.aiv-canvas-empty{padding:22px;border:1px dashed #334155;border-radius:8px;color:#94a3b8;text-align:center}.aiv-canvas-line-summary{display:flex;flex-direction:column;gap:3px;margin-top:8px;padding:8px;border:1px solid #7c2d12;border-radius:6px;color:#fdba74}.aiv-canvas-line-summary span{font-size:10px;color:#94a3b8}
   </style>`;
 }
 
@@ -64,10 +64,19 @@ function resultText(node) {
   return summary.lof == null ? '' : `LOF ${summary.lof} · ${summary.caseId}`;
 }
 
+
+function nodeTableKind(node) {
+  if (node.nodeKind === 'SOURCE') return 'sources';
+  if (node.nodeKind === 'ASSESSMENT') return 'assessments';
+  return '';
+}
+
 function nodeHtml(node, position) {
   const caseText = node.caseId ? ` · ${node.caseId}` : '';
   const aria = `${node.nodeKind} ${node.tag}${caseText}`;
-  return `<g class="aiv-canvas-node is-${esc(node.nodeKind.toLowerCase())}" transform="translate(${position.x} ${position.y})" data-aiv-canvas-node="${esc(node.nodeKey)}" data-aiv-canvas-canonical-id="${esc(node.canonicalId)}" data-aiv-canvas-case-id="${esc(node.caseId ?? '')}" data-aiv-canvas-node-kind="${esc(node.nodeKind)}" data-aiv-canvas-x="${position.x}" data-aiv-canvas-y="${position.y}" role="button" tabindex="0" aria-selected="false" aria-label="${esc(aria)}">
+  const tableKind = nodeTableKind(node);
+  const tableAttr = tableKind ? ` data-aiv-table-kind="${tableKind}"` : '';
+  return `<g class="aiv-canvas-node is-${esc(node.nodeKind.toLowerCase())}" transform="translate(${position.x} ${position.y})" data-aiv-canvas-node="${esc(node.nodeKey)}" data-aiv-selection-key="${esc(node.nodeKey)}"${tableAttr} data-aiv-canvas-canonical-id="${esc(node.canonicalId)}" data-aiv-canvas-case-id="${esc(node.caseId ?? '')}" data-aiv-canvas-node-kind="${esc(node.nodeKind)}" data-aiv-canvas-x="${position.x}" data-aiv-canvas-y="${position.y}" role="button" tabindex="0" aria-selected="false" aria-label="${esc(aria)}">
     <title>${esc(aria)}</title>${nodeGlyph(node)}
     <text class="aiv-canvas-node-title" x="0" y="40" text-anchor="middle">${esc(node.tag)}</text>
     <text class="aiv-canvas-node-subtitle" x="0" y="55" text-anchor="middle">${esc(node.canonicalId)}${esc(caseText)}</text>
@@ -94,7 +103,7 @@ function relationshipHtml(relationship, positions) {
   const midY = (source.y + assessment.y) / 2;
   const kind = relationship.applicabilityDisposition === 'APPLICABLE' ? 'applicable' : 'inactive';
   const aria = `${relationship.sourceCanonicalId} to ${relationship.assessmentCanonicalId} · ${relationshipLabel(relationship)}`;
-  return `<g class="aiv-canvas-relationship is-${kind}" data-aiv-canvas-relationship="${esc(relationship.rowKey)}" data-aiv-canvas-source-node="${esc(sourceKey)}" data-aiv-canvas-assessment-node="${esc(assessmentKey)}" role="button" tabindex="0" aria-selected="false" aria-label="${esc(aria)}">
+  return `<g class="aiv-canvas-relationship is-${kind}" data-aiv-canvas-relationship="${esc(relationship.rowKey)}" data-aiv-selection-key="${esc(relationship.selectionKey)}" data-aiv-table-kind="relationships" data-aiv-canvas-source-node="${esc(sourceKey)}" data-aiv-canvas-assessment-node="${esc(assessmentKey)}" role="button" tabindex="0" aria-selected="false" aria-label="${esc(aria)}">
     <title>${esc(aria)}</title>
     <line x1="${x1}" y1="${source.y}" x2="${x2}" y2="${assessment.y}" marker-end="url(#aiv-canvas-arrow)"></line>
     <text x="${midX}" y="${midY - 8}" text-anchor="middle">${esc(relationshipLabel(relationship))}</text>
