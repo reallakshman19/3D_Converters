@@ -7,6 +7,7 @@ import {
   VIBRATION_MASTER_EXPECTED_GIT_BLOB,
   VIBRATION_MASTER_EXPECTED_SIZE_BYTES,
   VIBRATION_MASTER_SOURCE_INVENTORY_SCHEMA,
+  VIBRATION_MASTER_SOURCE_TARGETS,
   assertExpectedVibrationMasterSource,
   buildVibrationMasterSourceInventory,
   gitBlobSha1Hex,
@@ -80,12 +81,46 @@ test('inventory resolves unique pages, fails ambiguous/missing targets closed, a
   ], targets);
   const byId = Object.fromEntries(inventory.targets.map((entry) => [entry.masterId, entry]));
   assert.equal(byId['TABLE.ONE'].sourceState, 'SOURCE_PINNED');
-  assert.equal(byId['TABLE.ONE'].pdfPage, 1);
+  assert.deepEqual(byId['TABLE.ONE'].pdfPages, [1]);
   assert.equal(byId['CURVE.ONE'].recoveryAction, 'FIGURE_DIGITIZATION_REQUIRED');
   assert.equal(byId['AMBIGUOUS.ONE'].sourceState, 'RECONCILIATION_REQUIRED');
   assert.equal(byId['MISSING.ONE'].sourceState, 'SOURCE_NOT_LOCATED');
   assert.equal(byId['EXTERNAL.ONE'].sourceState, 'BLOCKED_SOURCE');
   assert.deepEqual(inventory.summary.figureDigitizationRequired, [{ masterId: 'CURVE.ONE', pdfPage: 2 }]);
+});
+
+test('bounded section locator records every included page and page hash', () => {
+  const target = makeTarget('SECTION.ONE', 'TABLE_SECTION', ['Section\\s+Start', 'unique\\s+intro'], {
+    endAnchors: ['Section\\s+Next', 'unique\\s+next'],
+  });
+  const inventory = fixtureBuild([
+    'Section Start unique intro', 'middle page one', 'middle page two', 'Section Next unique next',
+  ], [target]);
+  const record = inventory.targets[0];
+  assert.equal(record.sourceState, 'SOURCE_PINNED');
+  assert.equal(record.pdfPage, 1);
+  assert.equal(record.pdfPageEnd, 3);
+  assert.deepEqual(record.pdfPages, [1, 2, 3]);
+  assert.equal(record.pageTextSha256s.length, 3);
+  assert(record.pageTextSha256s.every((value) => /^sha256:[0-9a-f]{64}$/u.test(value)));
+  assert.equal(record.recoveryAction, 'EXTRACTION_RECONCILIATION_REQUIRED');
+  assert.equal(Object.hasOwn(record, 'text'), false);
+});
+
+test('bounded section locator fails closed on duplicate, missing, or reversed boundaries', () => {
+  const target = makeTarget('SECTION.ONE', 'TABLE_SECTION', ['Start'], { endAnchors: ['End'] });
+  assert.equal(fixtureBuild(['Start', 'Start', 'middle', 'End'], [target]).targets[0].sourceState, 'RECONCILIATION_REQUIRED');
+  assert.equal(fixtureBuild(['Start', 'middle'], [target]).targets[0].sourceState, 'SOURCE_NOT_LOCATED');
+  assert.equal(fixtureBuild(['End', 'middle', 'Start'], [target]).targets[0].sourceState, 'RECONCILIATION_REQUIRED');
+});
+
+test('catalogue covers Appendix-B optional defaults as a bounded source section', () => {
+  const target = VIBRATION_MASTER_SOURCE_TARGETS.find((entry) => entry.masterId === 'EI_AVIFF.APPENDIX_B.FLUID_PROPERTY_DEFAULTS.v1');
+  assert(target);
+  assert.equal(target.dataType, 'TABLE_SECTION');
+  assert.equal(target.printedPageHint, '155-161');
+  assert.equal(target.applicability, 'OPTIONAL_ASSUMPTION_LIBRARY');
+  assert.deepEqual(target.endAnchors, ['Appendix\\s+C', 'SBC\\s+LOF\\s+ASSESSMENT\\s+GUIDANCE']);
 });
 
 test('inventory publishes hashes and locators but no extracted source text or authority promotion', () => {
