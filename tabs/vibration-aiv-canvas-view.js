@@ -1,6 +1,11 @@
 import { buildDeterministicAivCanvasLayout } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
 import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
+import {
+  renderAivCanvasAssessmentResultHtml,
+  renderAivCanvasRelationshipResultHtml,
+  renderAivCanvasSourceResultHtml,
+} from './vibration-aiv-canvas-results.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -13,7 +18,7 @@ function esc(value) {
 
 function canvasStyle() {
   return `<style>
-    .aiv-canvas-card{overflow:hidden}.aiv-canvas-head-actions{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;justify-content:flex-end}.aiv-canvas-controls,.aiv-canvas-mode-controls{display:flex;gap:5px}.aiv-canvas-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.aiv-canvas-badge{border:1px solid #334155;border-radius:999px;padding:3px 7px;color:#cbd5e1;font-size:10px}.aiv-canvas-badge.authority{border-color:#0369a1;color:#7dd3fc}.aiv-canvas-frame{overflow:hidden;border:1px solid #1e293b;border-radius:8px;background:#08111f;touch-action:none}.aiv-canvas-svg{display:block;width:100%;min-width:720px;min-height:260px;cursor:grab;user-select:none}.aiv-canvas-svg:active{cursor:grabbing}.aiv-canvas-node{cursor:move;outline:none}.aiv-canvas-node-shape{fill:#0f172a;stroke:#7dd3fc;stroke-width:2}.aiv-canvas-node.is-assessment .aiv-canvas-node-shape{stroke:#c4b5fd}.aiv-canvas-node.is-path .aiv-canvas-node-shape,.aiv-canvas-node.is-boundary .aiv-canvas-node-shape{stroke:#94a3b8}.aiv-canvas-node-detail{fill:none;stroke:#e2e8f0;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.aiv-canvas-node-title{fill:#e5e7eb;font-size:11px;font-weight:700}.aiv-canvas-node-subtitle,.aiv-canvas-node-result,.aiv-canvas-node-status{fill:#94a3b8;font-size:9px}.aiv-canvas-node-status{fill:#fbbf24}.aiv-canvas-relationship{cursor:pointer;outline:none}.aiv-canvas-relationship line{stroke:#38bdf8;stroke-width:2}.aiv-canvas-relationship text{fill:#cbd5e1;font-size:9px}.aiv-canvas-relationship.is-inactive line{stroke:#64748b;stroke-dasharray:6 5}.aiv-canvas-node.is-selected .aiv-canvas-node-shape,.aiv-canvas-node:focus .aiv-canvas-node-shape{stroke-width:4}.aiv-canvas-relationship.is-selected line,.aiv-canvas-relationship:focus line{stroke-width:4}.aivq-input-table tr.is-selected>td{box-shadow:inset 0 0 0 1px #38bdf8;background:#0b1f33}.aivq-input-table td.is-assumed{background:#261c08}.aivq-assumed-cell{display:block;margin-top:3px;color:#fbbf24}.aiv-canvas-svg marker path{fill:#38bdf8}.aiv-canvas-empty{padding:22px;border:1px dashed #334155;border-radius:8px;color:#94a3b8;text-align:center}.aiv-canvas-line-summary,.aiv-canvas-assumption-detail{display:flex;flex-direction:column;gap:5px;margin-top:8px;padding:8px;border:1px solid #7c2d12;border-radius:6px}.aiv-canvas-line-summary{color:#fdba74}.aiv-canvas-line-summary span,.aiv-canvas-assumption-detail small{font-size:10px;color:#94a3b8}.aiv-canvas-assumption-detail[hidden]{display:none}.aiv-canvas-assumption-list{display:flex;flex-wrap:wrap;gap:6px}.aiv-canvas-assumption-action{text-align:left}
+    .aiv-canvas-card{overflow:hidden}.aiv-canvas-head-actions{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;justify-content:flex-end}.aiv-canvas-controls,.aiv-canvas-mode-controls{display:flex;gap:5px}.aiv-canvas-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.aiv-canvas-badge{border:1px solid #334155;border-radius:999px;padding:3px 7px;color:#cbd5e1;font-size:10px}.aiv-canvas-badge.authority{border-color:#0369a1;color:#7dd3fc}.aiv-canvas-frame{overflow:hidden;border:1px solid #1e293b;border-radius:8px;background:#08111f;touch-action:none}.aiv-canvas-svg{display:block;width:100%;min-width:720px;min-height:260px;cursor:grab;user-select:none}.aiv-canvas-svg:active{cursor:grabbing}.aiv-canvas-node{cursor:move;outline:none}.aiv-canvas-node-shape{fill:#0f172a;stroke:#7dd3fc;stroke-width:2}.aiv-canvas-node.is-assessment .aiv-canvas-node-shape{stroke:#c4b5fd}.aiv-canvas-node.is-path .aiv-canvas-node-shape,.aiv-canvas-node.is-boundary .aiv-canvas-node-shape{stroke:#94a3b8}.aiv-canvas-node-detail{fill:none;stroke:#e2e8f0;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.aiv-canvas-node-title{fill:#e5e7eb;font-size:11px;font-weight:700}.aiv-canvas-node-subtitle,.aiv-canvas-node-result,.aiv-canvas-node-status{fill:#94a3b8;font-size:9px}.aiv-canvas-node-status{fill:#fbbf24}.aiv-canvas-relationship{cursor:pointer;outline:none}.aiv-canvas-relationship line{stroke:#38bdf8;stroke-width:2}.aiv-canvas-relationship text{fill:#cbd5e1;font-size:9px}.aiv-canvas-relationship.is-inactive line{stroke:#64748b;stroke-dasharray:6 5}.aiv-canvas-node.is-selected .aiv-canvas-node-shape,.aiv-canvas-node:focus .aiv-canvas-node-shape{stroke-width:4}.aiv-canvas-relationship.is-selected line,.aiv-canvas-relationship:focus line{stroke-width:4}.aivq-input-table tr.is-selected>td{box-shadow:inset 0 0 0 1px #38bdf8;background:#0b1f33}.aivq-input-table td.is-assumed{background:#261c08}.aivq-assumed-cell{display:block;margin-top:3px;color:#fbbf24}.aiv-canvas-svg marker path{fill:#38bdf8}.aiv-canvas-empty{padding:22px;border:1px dashed #334155;border-radius:8px;color:#94a3b8;text-align:center}.aiv-canvas-line-summary,.aiv-canvas-assumption-detail{display:flex;flex-direction:column;gap:5px;margin-top:8px;padding:8px;border:1px solid #7c2d12;border-radius:6px}.aiv-canvas-line-summary{color:#fdba74}.aiv-canvas-line-summary span,.aiv-canvas-assumption-detail small{font-size:10px;color:#94a3b8}.aiv-canvas-assumption-detail[hidden]{display:none}.aiv-canvas-assumption-list{display:flex;flex-wrap:wrap;gap:6px}.aiv-canvas-assumption-action{text-align:left}.aiv-canvas-result-detail,.aiv-canvas-result-case{display:flex;flex-direction:column;gap:6px}.aiv-canvas-result-case+.aiv-canvas-result-case{border-top:1px solid #334155;padding-top:8px}.aiv-canvas-result-grid,.aiv-canvas-result-authority{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}.aiv-canvas-result-grid span,.aiv-canvas-result-authority span{display:flex;flex-direction:column;gap:2px;border:1px solid #1e293b;border-radius:5px;padding:6px}.aiv-canvas-result-grid small,.aiv-canvas-result-authority small{color:#94a3b8}
   </style>`;
 }
 
@@ -120,21 +125,29 @@ function assumptionAction(item) {
   return `<button type="button" class="engineering-console-btn aiv-canvas-assumption-action" data-aiv-assumption-field-key="${esc(key)}"><strong>[A] ${esc(item.column)}</strong><br><small>${esc(item.assumedValue)} · ${esc(item.profilePath)} · ${esc(item.reason)}</small></button>`;
 }
 
-function assumptionDetail(selectionKey, label, item) {
-  if (!item.assumptionCount && !item.readinessStatus) return '';
+function selectedDetail(selectionKey, label, item, resultHtml = '') {
+  if (!item.assumptionCount && !item.readinessStatus && !resultHtml) return '';
   const assumptions = item.assumptions?.map(assumptionAction).join('') ?? '';
   return `<section class="aiv-canvas-assumption-detail" data-aiv-canvas-assumption-detail="${esc(selectionKey)}" hidden>
     <strong>${esc(label)}</strong><small>Readiness: ${esc(item.readinessStatus ?? 'NOT_CHECKED')} · Assumptions: ${item.assumptionCount}</small>
+    ${resultHtml}
     ${assumptions ? `<div class="aiv-canvas-assumption-list">${assumptions}</div>` : '<small>No resolved assumptions for this item.</small>'}
   </section>`;
 }
 
 function detailsHtml(projection) {
-  const nodes = projection.nodes.map((node) => assumptionDetail(node.nodeKey, `${node.nodeKind} ${node.tag}`, node));
-  const relationships = projection.relationships.map((item) => assumptionDetail(
+  const nodes = projection.nodes.map((node) => selectedDetail(
+    node.nodeKey,
+    `${node.nodeKind} ${node.tag}`,
+    node,
+    node.nodeKind === 'SOURCE' ? renderAivCanvasSourceResultHtml(node)
+      : node.nodeKind === 'ASSESSMENT' ? renderAivCanvasAssessmentResultHtml(node) : '',
+  ));
+  const relationships = projection.relationships.map((item) => selectedDetail(
     item.selectionKey,
     `${item.sourceCanonicalId} → ${item.assessmentCanonicalId} · ${item.caseId}`,
     item,
+    renderAivCanvasRelationshipResultHtml(item),
   ));
   return [...nodes, ...relationships].join('');
 }
@@ -180,7 +193,7 @@ export function renderAivCanvasWorkspaceHtml(state = {}) {
   const badges = `${badge(`${projection.nodes.length} nodes`)}${badge(`${projection.relationships.length} relationships`)}${badge('presentation-only', 'authority')}`;
   const vp = layout.viewport;
   return `${canvasStyle()}<section class="aivq-card aiv-canvas-card">
-    <div class="aivq-section-head"><div><h4>AIV relationship canvas</h4><p>Assumption/readiness labels are projected from current resolution/readiness records. Tables remain engineering authority; connector geometry never supplies physical distance.</p></div><div class="aiv-canvas-head-actions"><div class="aiv-canvas-badges">${badges}</div>${relationshipControls()}${canvasControls()}</div></div>
+    <div class="aivq-section-head"><div><h4>AIV relationship canvas</h4><p>Selected result detail is consumed from current screening contracts. Tables remain engineering authority; connector geometry never supplies physical distance.</p></div><div class="aiv-canvas-head-actions"><div class="aiv-canvas-badges">${badges}</div>${relationshipControls()}${canvasControls()}</div></div>
     ${projection.nodes.length ? `<div class="aiv-canvas-frame"><svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-canvas-viewport-x="${vp.x}" data-aiv-canvas-viewport-y="${vp.y}" data-aiv-canvas-viewport-zoom="${vp.zoom}" role="img" aria-label="AIV source to assessment relationship canvas" viewBox="0 0 760 ${height}" preserveAspectRatio="xMidYMin meet">
       <defs><marker id="aiv-canvas-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z"></path></marker></defs>
       <g data-aiv-canvas-scene="true" transform="translate(${vp.x} ${vp.y}) scale(${vp.zoom})"><g class="aiv-canvas-relationships">${relationships}</g><g class="aiv-canvas-nodes">${nodes}</g></g>

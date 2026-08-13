@@ -118,9 +118,13 @@ function contributionMap(result) {
 function assessmentSummary(results) {
   const cases = results.map((item) => ({
     caseId: text(item.caseId),
+    status: text(item.status) || null,
     combinedPointPwlDb: item.combinedPointPwlDb ?? null,
+    contributingSourceCanonicalIds: [...(item.contributingSourceCanonicalIds ?? [])],
+    t26Intermediates: item.t26Intermediates ? { ...item.t26Intermediates } : null,
     lof: item.lof ?? null,
     resultScope: text(item.resultScope) || 'ASSESSMENT',
+    authority: item.authority ? { ...item.authority } : null,
   })).sort((a, b) => a.caseId.localeCompare(b.caseId));
   if (!cases.length) return null;
   return cases.length === 1 ? cases[0] : { caseCount: cases.length, cases };
@@ -147,8 +151,14 @@ function sourceNodes(records, context) {
       assumptions,
       screeningStatus: result ? text(result.status) || 'AVAILABLE' : null,
       resultSummary: result ? {
+        status: text(result.status) || null,
+        resultScope: text(result.resultScope) || 'SOURCE',
         rawSourcePwlDb: result.rawSourcePwlDb ?? null,
+        sonicFlowFactorDb: result.sonicFlowFactorDb ?? null,
+        trimReductionDb: result.trimReductionDb ?? null,
         effectiveSourcePwlDb: result.effectiveSourcePwlDb ?? null,
+        authority: result.authority ? { ...result.authority } : null,
+        trace: result.trace ? { ...result.trace } : null,
       } : null,
       tableRowIndex: rowIndex,
     }];
