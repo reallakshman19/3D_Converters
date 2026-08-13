@@ -1,3 +1,4 @@
+import { moveAivFlareNetworkNodePresentation } from '../converters/vibration/aiv/aiv-flare-network.js';
 import {
   addAivFlareNetworkNode,
   addAivFlareNetworkSegment,
@@ -7,6 +8,7 @@ import {
 } from '../converters/vibration/aiv/aiv-flare-network-mutations.js';
 
 function value(editor, selector) { return String(editor.querySelector(selector)?.value ?? '').trim(); }
+function number(value, fallback = 0) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : fallback; }
 
 function defaultPosition(network) {
   const index = network.nodes.length;
@@ -39,7 +41,39 @@ function createSegment(editor, network) {
   });
 }
 
+function svgDelta(svg, dx, dy) {
+  const rect = svg.getBoundingClientRect?.();
+  const viewBox = svg.viewBox?.baseVal;
+  if (!rect || !viewBox || !(rect.width > 0) || !(rect.height > 0)) return { x: dx, y: dy };
+  return { x: dx * (viewBox.width / rect.width), y: dy * (viewBox.height / rect.height) };
+}
+
+function redrawConnectedSegments(svg, nodeId, x, y) {
+  for (const segment of svg.querySelectorAll('[data-aiv-network-segment]')) {
+    const fromId = segment.dataset.aivNetworkFrom;
+    const toId = segment.dataset.aivNetworkTo;
+    if (fromId !== nodeId && toId !== nodeId) continue;
+    const otherId = fromId === nodeId ? toId : fromId;
+    const other = svg.querySelector(`[data-aiv-network-node="${CSS.escape(otherId)}"]`);
+    if (!other) continue;
+    const otherX = number(other.dataset.aivNetworkX);
+    const otherY = number(other.dataset.aivNetworkY);
+    const line = segment.querySelector('line');
+    const label = segment.querySelector('text');
+    const x1 = fromId === nodeId ? x : otherX;
+    const y1 = fromId === nodeId ? y : otherY;
+    const x2 = toId === nodeId ? x : otherX;
+    const y2 = toId === nodeId ? y : otherY;
+    line?.setAttribute('x1', String(x1)); line?.setAttribute('y1', String(y1));
+    line?.setAttribute('x2', String(x2)); line?.setAttribute('y2', String(y2));
+    label?.setAttribute('x', String((x1 + x2) / 2));
+    label?.setAttribute('y', String((y1 + y2) / 2 - 7));
+  }
+}
+
 export function createAivFlareNetworkAuthoringController(container, callbacks = {}) {
+  let drag = null;
+
   function apply(editor, mutator) {
     try {
       const current = callbacks.getNetwork?.();
@@ -74,7 +108,70 @@ export function createAivFlareNetworkAuthoringController(container, callbacks = 
     apply(editor, (_, network) => setAivFlareNetworkSegmentLength(network, segmentId, length ? Number(length) : null, unit));
   }
 
+  function pointerdown(event) {
+    const node = event.target.closest('[data-aiv-network-node]');
+    const svg = event.target.closest('[data-aiv-flare-network-svg]');
+    if (!node || !svg || !event.target.closest('[data-aiv-network-editor]')) return;
+    drag = {
+      pointerId: event.pointerId,
+      nodeId: node.dataset.aivNetworkNode,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: number(node.dataset.aivNetworkX),
+      startY: number(node.dataset.aivNetworkY),
+      node,
+      svg,
+    };
+    svg.setPointerCapture?.(event.pointerId);
+    event.preventDefault?.();
+  }
+
+  function pointermove(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const delta = svgDelta(drag.svg, event.clientX - drag.startClientX, event.clientY - drag.startClientY);
+    const x = drag.startX + delta.x;
+    const y = drag.startY + delta.y;
+    drag.node.setAttribute('transform', `translate(${x} ${y})`);
+    drag.node.dataset.aivNetworkX = String(x);
+    drag.node.dataset.aivNetworkY = String(y);
+    redrawConnectedSegments(drag.svg, drag.nodeId, x, y);
+    event.preventDefault?.();
+  }
+
+  function pointerup(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const completed = drag;
+    drag = null;
+    completed.svg.releasePointerCapture?.(event.pointerId);
+    try {
+      const current = callbacks.getNetwork?.();
+      if (!current) return;
+      callbacks.onNetworkChange?.(moveAivFlareNetworkNodePresentation(
+        current,
+        completed.nodeId,
+        number(completed.node.dataset.aivNetworkX, completed.startX),
+        number(completed.node.dataset.aivNetworkY, completed.startY),
+      ));
+    } catch (error) {
+      callbacks.onError?.(error);
+    }
+  }
+
   container.addEventListener('click', click);
   container.addEventListener('change', change);
-  return Object.freeze({ destroy() { container.removeEventListener('click', click); container.removeEventListener('change', change); } });
+  container.addEventListener('pointerdown', pointerdown);
+  container.addEventListener('pointermove', pointermove);
+  container.addEventListener('pointerup', pointerup);
+  container.addEventListener('pointercancel', pointerup);
+  return Object.freeze({
+    destroy() {
+      drag = null;
+      container.removeEventListener('click', click);
+      container.removeEventListener('change', change);
+      container.removeEventListener('pointerdown', pointerdown);
+      container.removeEventListener('pointermove', pointermove);
+      container.removeEventListener('pointerup', pointerup);
+      container.removeEventListener('pointercancel', pointerup);
+    },
+  });
 }
