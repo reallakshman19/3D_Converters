@@ -23,7 +23,7 @@ function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-8';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-9';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -56,6 +56,7 @@ function initialState() {
     assumptionResolution: null,
     readinessEnvelope: null,
     resultSet: null,
+    screeningResult: null,
     selectedRowKey: null,
     busy: false,
     error: null,
@@ -74,6 +75,7 @@ export function renderAivQualificationWorkspace(container) {
   function clearReadiness() {
     state.readinessEnvelope = null;
     state.resultSet = null;
+    state.screeningResult = null;
     state.selectedRowKey = null;
     state.assumptionResolution = null;
   }
@@ -150,14 +152,20 @@ export function renderAivQualificationWorkspace(container) {
     return Boolean(state.topologyInput);
   }
 
+  function screeningReady() {
+    const counts = state.readinessEnvelope?.readiness?.counts;
+    return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
+  }
+
   async function checkReadiness() {
     if (state.busy || !readinessInputAvailable()) return;
     state.busy = true;
     state.error = null;
+    state.screeningResult = null;
     render();
     try {
       const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
-        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-4'
+        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-5'
       );
       if (state.destroyed) return;
       const format = state.topologyInput.format === 'PARSED_EXCHANGE'
@@ -188,8 +196,48 @@ export function renderAivQualificationWorkspace(container) {
       if (state.destroyed) return;
       state.readinessEnvelope = null;
       state.resultSet = null;
+      state.screeningResult = null;
       state.selectedRowKey = null;
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    } finally {
+      state.busy = false;
+      render();
+    }
+  }
+
+  async function runScreening() {
+    if (state.busy || !screeningReady()) return;
+    state.busy = true;
+    state.error = null;
+    render();
+    try {
+      const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-1');
+      if (state.destroyed) return;
+      const envelope = state.readinessEnvelope;
+      const result = calculateEngineering({
+        calculationId: 'VIB.AIV.ACOUSTIC',
+        inputs: {
+          sources: envelope.sources,
+          assessments: envelope.assessments,
+          relationships: envelope.sourceAssessments,
+          topology: envelope.exchange,
+          assumptionProfile: state.assumptionProfile,
+        },
+        options: {
+          qualificationMode: 'screening',
+          includeEvidence: true,
+        },
+      });
+      if (!result.ok) {
+        const message = result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ') || 'AIV screening calculation failed.';
+        throw new Error(message);
+      }
+      state.screeningResult = result;
+    } catch (error) {
+      if (!state.destroyed) {
+        state.screeningResult = null;
+        state.error = String(error?.message || error);
+      }
     } finally {
       state.busy = false;
       render();
@@ -210,11 +258,22 @@ export function renderAivQualificationWorkspace(container) {
       assumptionProfile: state.assumptionProfile,
       benchmarkModified: validationModified(),
     });
-    downloadText(
-      `${JSON.stringify(payload, null, 2)}\n`,
-      'aiv-d23-validated-benchmark-package.json',
-      'application/json;charset=utf-8',
-    );
+    downloadText(`${JSON.stringify(payload, null, 2)}\n`, 'aiv-d23-validated-benchmark-package.json', 'application/json;charset=utf-8');
+  }
+
+  async function exportScreeningResult() {
+    if (!state.screeningResult?.ok || !state.readinessEnvelope) return;
+    const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-1');
+    const payload = buildAivScreeningExportPackage({
+      result: state.screeningResult.evidence.domainResult,
+      sources: state.readinessEnvelope.sources,
+      assessments: state.readinessEnvelope.assessments,
+      relationships: state.readinessEnvelope.sourceAssessments,
+      topology: state.readinessEnvelope.exchange,
+      assumptionProfile: state.assumptionProfile,
+      assumptionResolution: state.assumptionResolution,
+    });
+    downloadText(`${JSON.stringify(payload, null, 2)}\n`, 'aiv-screening-result.json', 'application/json;charset=utf-8');
   }
 
   function handleTableClick(event) {
@@ -244,7 +303,9 @@ export function renderAivQualificationWorkspace(container) {
     if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
     if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
     if (action === 'check-readiness') checkReadiness();
+    if (action === 'run-screening') runScreening();
     if (action === 'export-d23-validation') exportValidatedBenchmark();
+    if (action === 'export-screening-result') exportScreeningResult();
     if (action === 'reset-assumptions') {
       state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
       state.assumptionProfileModified = false;
@@ -270,11 +331,7 @@ export function renderAivQualificationWorkspace(container) {
     const assumptionPath = event.target.dataset.aivAssumption;
     if (assumptionPath) {
       try {
-        state.assumptionProfile = updateAivAssumptionProfile(
-          state.assumptionProfile,
-          assumptionPath,
-          event.target.value,
-        );
+        state.assumptionProfile = updateAivAssumptionProfile(state.assumptionProfile, assumptionPath, event.target.value);
         state.assumptionProfileModified = true;
         clearReadiness();
         state.error = null;
