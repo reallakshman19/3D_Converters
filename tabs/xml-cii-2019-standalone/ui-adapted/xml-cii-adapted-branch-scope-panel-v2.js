@@ -41,6 +41,7 @@ function commitSelection(stateRef, occurrenceIds, render) {
   const selectedOccurrences = scope.sourceBranchOccurrences.filter((row) => wanted.has(row.branchOccurrenceId));
   const selection = {
     ...stateRef.current.branchSelection,
+    selectionIdentity: 'occurrence',
     selectedBranchOccurrenceIds: selectedOccurrences.map((row) => row.branchOccurrenceId),
     selectedBranchNames: selectedOccurrences.map((row) => row.branchName),
   };
