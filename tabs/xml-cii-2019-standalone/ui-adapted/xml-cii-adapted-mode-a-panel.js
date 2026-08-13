@@ -1,11 +1,11 @@
-import * as core from './xml-cii-adapted-mode-a-panel-core.js';
-import { buildModeAPreflight, normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-no-duplicate-validation-1';
+import * as core from './xml-cii-adapted-mode-a-panel-core.js?v=20260813-mode-a-full-propagation-2';
+import { buildModeAPreflight, normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
 import {
   renderModeABatchBranchSelector,
   replaceModeAActiveHierarchyWithBatch,
-} from './xml-cii-adapted-mode-a-batch-scope-panel.js?v=20260813-mode-a-batch-selector-1';
+} from './xml-cii-adapted-mode-a-batch-scope-panel.js?v=20260813-mode-a-full-propagation-2';
 
-export * from './xml-cii-adapted-mode-a-panel-core.js';
+export * from './xml-cii-adapted-mode-a-panel-core.js?v=20260813-mode-a-full-propagation-2';
 
 function cleanInventoryPanel(panel, state) {
   if (!panel) return;

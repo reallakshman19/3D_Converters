@@ -1,16 +1,16 @@
-import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260804-mode-a-v1';
-import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260804-mode-a-v1';
-import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20260804-mode-a-v1';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20260804-mode-a-v1';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20260804-mode-a-v1';
-import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260804-mode-a-v1';
+import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
+import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
+import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20260813-mode-a-full-propagation-2';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20260813-mode-a-full-propagation-2';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20260813-mode-a-full-propagation-2';
+import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260813-mode-a-full-propagation-2';
 import {
   createXmlCiiBranchScopedStateRef,
   ensureXmlCiiBranchSelectionInRef,
-} from './xml-cii-adapted-branch-scope-state.js?v=20260804-mode-a-v1';
-import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20260804-mode-a-v1';
-import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260804-mode-a-v1';
-import { normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
+} from './xml-cii-adapted-branch-scope-state.js?v=20260813-mode-a-full-propagation-2';
+import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-2';
+import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260813-mode-a-full-propagation-2';
+import { normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 
@@ -96,7 +96,28 @@ function createBatchBadge(state) {
   return createBadge(`Separate Models: ${enabled}/${sources.length}`, enabled ? '#8be28b' : '#fca5a5', enabled ? '#2f855a' : '#ef4444');
 }
 
+function selectedBranchesForSource(source) {
+  const ids = source?.branchSelection?.selectedBranchOccurrenceIds;
+  if (Array.isArray(ids)) return ids.length;
+  const names = source?.branchSelection?.selectedBranchNames;
+  if (Array.isArray(names)) return names.length;
+  return Number(source?.metrics?.branchCount || 0);
+}
+
 function createBranchBadge(state) {
+  const batch = normalizeModeABatchState(state).sourceBatch;
+  const enabled = (batch?.sources || []).filter((source) => source.enabled !== false);
+  if (enabled.length > 1) {
+    const total = enabled.reduce((sum, source) => sum + Number(source.metrics?.branchCount || 0), 0);
+    const selected = enabled.reduce((sum, source) => sum + selectedBranchesForSource(source), 0);
+    const blocked = selected === 0;
+    return createBadge(
+      `Branches (batch): ${selected}/${total}`,
+      blocked ? '#fca5a5' : '#8be28b',
+      blocked ? '#ef4444' : '#2f855a',
+    );
+  }
+
   const scope = xmlCiiBranchScopeFromState(state);
   if (!scope.applicable) return createBadge('Branches: n/a', '#94a3b8', 'rgba(148,163,184,.45)');
   const blocked = scope.blocked;

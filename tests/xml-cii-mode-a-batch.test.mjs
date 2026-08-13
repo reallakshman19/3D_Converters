@@ -4,7 +4,10 @@ import {
   buildModeABatchManifest,
   buildModeAExecutionState,
   buildModeAPreflight,
+  commonModeASupportConfig,
+  composeModeASupportConfig,
   createModeASourceEntry,
+  normalizeModeABatchState,
 } from '../tabs/xml-cii-2019-standalone/xml-cii-mode-a-batch.js';
 
 function xml(branchName, nodeNumbers) {
@@ -55,6 +58,60 @@ const mixedPreflight = buildModeAPreflight({ mode: 'separate-models', activeSour
 assert(mixedPreflight.blockingRows.some((row) => row.sourceId === emptySource.sourceId && row.code === 'EMPTY_SOURCE'));
 assert(!mixedPreflight.blockingRows.some((row) => row.sourceId === sourceA.sourceId));
 
+// Shared/common config must propagate to every file, while branch mappings,
+// manual overrides, and finalized weights remain source-local.
+const sharedConfig = JSON.stringify({
+  regexTester: { activeFormatIndex: 1 },
+  linelist: { masterRows: [{ lineKey: 'COMMON' }] },
+  weight: { masterRows: [{ id: 'COMMON-WEIGHT' }] },
+});
+const localA = JSON.stringify({
+  overrides: { rating: { '/A/B1': '900' } },
+  linelist: { branchLineKeyMap: { '/A/B1': 'LINE-A' } },
+  weight: { finalizedMatches: [{ issueId: 'A-1', weight: 25 }] },
+});
+const localB = JSON.stringify({
+  overrides: { rating: { '/B/B1': '600' } },
+  linelist: { branchLineKeyMap: { '/B/B1': 'LINE-B' } },
+  weight: { finalizedMatches: [{ issueId: 'B-1', weight: 30 }] },
+});
+const effectiveA = JSON.parse(composeModeASupportConfig(sharedConfig, localA));
+const effectiveB = JSON.parse(composeModeASupportConfig(sharedConfig, localB));
+assert.equal(effectiveA.regexTester.activeFormatIndex, 1);
+assert.equal(effectiveB.regexTester.activeFormatIndex, 1);
+assert.equal(effectiveA.linelist.branchLineKeyMap['/A/B1'], 'LINE-A');
+assert.equal(effectiveB.linelist.branchLineKeyMap['/B/B1'], 'LINE-B');
+assert.equal(effectiveA.linelist.branchLineKeyMap['/B/B1'], undefined, 'source B branch mapping must not leak into source A');
+assert.equal(effectiveB.overrides.rating['/A/B1'], undefined, 'source A override must not leak into source B');
+assert.equal(effectiveA.weight.finalizedMatches[0].issueId, 'A-1');
+assert.equal(effectiveB.weight.finalizedMatches[0].issueId, 'B-1');
+const commonOnly = JSON.parse(commonModeASupportConfig(effectiveA));
+assert.equal(commonOnly.overrides, undefined);
+assert.equal(commonOnly.linelist.branchLineKeyMap, undefined);
+assert.equal(commonOnly.weight.finalizedMatches, undefined);
+assert.equal(commonOnly.regexTester.activeFormatIndex, 1);
+
+const configSourceA = createModeASourceEntry({ fileName: 'CFG-A.xml', sourceText: xml('/CFG-A/B1', [10, 20]), supportConfigJson: localA });
+const configSourceB = createModeASourceEntry({ fileName: 'CFG-B.xml', sourceText: xml('/CFG-B/B1', [10, 30]), supportConfigJson: localB });
+let configState = normalizeModeABatchState({
+  sourceBatch: {
+    mode: 'separate-models',
+    activeSourceId: configSourceA.sourceId,
+    sources: [configSourceA, configSourceB],
+    sharedSupportConfigJson: sharedConfig,
+  },
+  sourceText: configSourceA.sourceText,
+  sourceFile: null,
+  stagedJsonText: '',
+  branchSelection: configSourceA.branchSelection,
+  supportConfigJson: composeModeASupportConfig(sharedConfig, localA),
+});
+configState = activateModeASource(configState, configSourceB.sourceId);
+const activatedBConfig = JSON.parse(configState.supportConfigJson);
+assert.equal(activatedBConfig.regexTester.activeFormatIndex, 1, 'latest shared config follows activation');
+assert.equal(activatedBConfig.linelist.branchLineKeyMap['/B/B1'], 'LINE-B');
+assert.equal(activatedBConfig.linelist.branchLineKeyMap['/A/B1'], undefined);
+
 const state = {
   sourceBatch: batch,
   sourceFile: sourceA.sourceFile,
@@ -66,7 +123,7 @@ const state = {
 };
 const activated = activateModeASource(state, sourceB.sourceId);
 assert.equal(activated.sourceText, sourceB.sourceText);
-assert.equal(activated.supportConfigJson, sourceB.supportConfigJson);
+assert.equal(JSON.parse(activated.supportConfigJson).source, 'A', 'common config follows the batch authority instead of restoring stale inactive config');
 assert.equal(activated.sourceBatch.sources[0].workflow.result.ciiName, 'SYS-01.cii');
 
 const manifest = buildModeABatchManifest(batch, [

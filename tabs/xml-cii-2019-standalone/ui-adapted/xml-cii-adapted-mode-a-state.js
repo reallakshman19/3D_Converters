@@ -3,8 +3,8 @@ import {
   createModeASourceEntry,
   normalizeModeABatchState,
   syncActiveModeASource,
-} from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
-import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260804-mode-a-v1';
+} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
+import { clearPreviewCachesV7 } from './xml-cii-adapted-preview-cache-v7.js?v=20260813-mode-a-full-propagation-2';
 
 const MODE_A_SOURCE_CACHE_KEYS = Object.freeze([
   'xml-cii-wm-cache-v1',
@@ -73,10 +73,6 @@ export function importModeASources(state = {}, rows = []) {
       : `${added.length} source(s) added.`,
   };
 
-  // Seed the UI-facing source fields from the newly selected active source
-  // before activateModeASource() performs its sync. Without this, an initial
-  // multi-file import starting from an empty UI state can overwrite the first
-  // imported source with the previous empty sourceText.
   const seeded = {
     ...current,
     sourceKind: 'xml',
