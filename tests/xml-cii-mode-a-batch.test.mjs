@@ -25,16 +25,44 @@ const duplicateNodePreflight = buildModeAPreflight({ mode: 'separate-models', ac
 assert.equal(duplicateNodePreflight.ready, false);
 assert(duplicateNodePreflight.blockingRows.some((row) => row.code === 'DUPLICATE_NODE_WITHIN_BRANCH'));
 
-const duplicateBranchXml = `<PipeStressExport><Branch><Branchname>/ASIM-DUP/B1</Branchname><Node><NodeNumber>1</NodeNumber></Node></Branch><Branch><Branchname>/ASIM-DUP/B1</Branchname><Node><NodeNumber>2</NodeNumber></Node></Branch></PipeStressExport>`;
-const duplicateBranchSource = createModeASourceEntry({ fileName: 'BAD-BRANCH.xml', sourceText: duplicateBranchXml });
-const duplicateBranchPreflight = buildModeAPreflight({ mode: 'separate-models', activeSourceId: duplicateBranchSource.sourceId, sources: [duplicateBranchSource] });
-assert(duplicateBranchPreflight.blockingRows.some((row) => row.code === 'DUPLICATE_BRANCH_WITHIN_FILE'));
+const repeatedBranchXml = `<PipeStressExport>
+<Branch><Branchname>/ASIM-DUP/B1</Branchname><Node><NodeNumber>1</NodeNumber><NodeName>FIRST</NodeName><Position>0 0 0</Position></Node></Branch>
+<Branch><Branchname>/ASIM-DUP/B1</Branchname><Node><NodeNumber>1</NodeNumber><NodeName>SECOND</NodeName><Position>100 0 0</Position></Node></Branch>
+</PipeStressExport>`;
+const repeatedBranchSource = createModeASourceEntry({ fileName: 'REPEATED-BRANCH.xml', sourceText: repeatedBranchXml });
+const repeatedBranchPreflight = buildModeAPreflight({ mode: 'separate-models', activeSourceId: repeatedBranchSource.sourceId, sources: [repeatedBranchSource] });
+assert.equal(repeatedBranchPreflight.ready, true, 'same Branchname text in separate Branch blocks must be occurrence-scoped, not blocked');
+assert.equal(repeatedBranchSource.metrics.duplicateBranchNames.length, 1);
+assert.equal(repeatedBranchSource.metrics.duplicateNodesWithinBranch.length, 0, 'same NodeNumber in separate branch occurrences is not an in-branch duplicate');
+assert(repeatedBranchPreflight.warnings.some((row) => row.code === 'DUPLICATE_BRANCH_NAME_WITHIN_FILE'));
+assert.equal(repeatedBranchSource.metrics.branchOccurrences.length, 2);
+assert.equal(repeatedBranchSource.metrics.branchOccurrences[0].displayBranchName, '/ASIM-DUP/B1_1');
+assert.equal(repeatedBranchSource.metrics.branchOccurrences[1].displayBranchName, '/ASIM-DUP/B1_2');
+assert.notEqual(
+  repeatedBranchSource.metrics.branchOccurrences[0].branchOccurrenceId,
+  repeatedBranchSource.metrics.branchOccurrences[1].branchOccurrenceId,
+);
+
+const secondOccurrence = repeatedBranchSource.metrics.branchOccurrences[1];
+repeatedBranchSource.branchSelection.selectedBranchOccurrenceIds = [secondOccurrence.branchOccurrenceId];
+repeatedBranchSource.branchSelection.selectedBranchNames = [secondOccurrence.branchName];
+const repeatedExecution = buildModeAExecutionState({ supportConfigJson: '{}', masterContext: { rowCounts: {} } }, repeatedBranchSource);
+assert.equal(repeatedExecution.branchScope.selectedBranchOccurrenceIds.length, 1);
+assert(repeatedExecution.sourceText.includes('SECOND'));
+assert(!repeatedExecution.sourceText.includes('FIRST'));
+assert(repeatedExecution.sourceText.includes('<Branchname>/ASIM-DUP/B1</Branchname>'), 'engineering Branchname must not be rewritten to the display alias');
 
 sourceA.branchSelection.selectedBranchNames = ['/ASIM-SAME/B1'];
+sourceA.branchSelection.selectedBranchOccurrenceIds = sourceA.metrics.branchOccurrences.map((row) => row.branchOccurrenceId);
 const execution = buildModeAExecutionState({ supportConfigJson: '{}', masterContext: { rowCounts: {} } }, sourceA);
 assert(execution.sourceText.includes('/ASIM-SAME/B1'));
 assert.equal(execution.sourceBatch, null);
 assert.equal(execution.sourceNameOverride, 'SYS-01.xml');
+
+const emptySource = createModeASourceEntry({ fileName: 'SYS-0015.xml', sourceText: '' });
+const mixedPreflight = buildModeAPreflight({ mode: 'separate-models', activeSourceId: sourceA.sourceId, sources: [sourceA, emptySource] });
+assert(mixedPreflight.blockingRows.some((row) => row.sourceId === emptySource.sourceId && row.code === 'EMPTY_SOURCE'));
+assert(!mixedPreflight.blockingRows.some((row) => row.sourceId === sourceA.sourceId));
 
 const state = {
   sourceBatch: batch,
