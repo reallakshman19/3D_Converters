@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAivEitExport, serializeAivEitExport } from '../converters/vibration/aiv/aiv-eit-export.js';
+import {
+  aivEitLengthMm,
+  aivEitMolecularWeightGPerMol,
+  aivEitPressureBarAbsolute,
+} from '../converters/vibration/aiv/aiv-eit-units.js';
 
 const authority = Object.freeze({ screeningAuthority: 'AUTHORIZED', designAuthority: false });
 
@@ -116,4 +121,21 @@ test('fails closed if line/case summary is incorrectly authoritative', () => {
   const value = fixture();
   value.result.lineCaseSummaryAuthoritativeForScreening = true;
   assert.throws(() => buildAivEitExport({ screeningPackage: value }), /AIV_EIT_AUTHORITY_SCOPE_INVALID/);
+});
+
+test('compatibility geometry and molecular weight normalize to mm and g/mol', () => {
+  assert.ok(Math.abs(aivEitLengthMm({ value: 0.2191, unit: 'm' }) - 219.1) < 1e-12);
+  assert.equal(aivEitMolecularWeightGPerMol({ value: 20, unit: 'g/mol' }), 20);
+  assert.equal(aivEitMolecularWeightGPerMol({ value: 20, unit: 'kg/kmol' }), 20);
+  assert.equal(aivEitMolecularWeightGPerMol({ value: 0.02, unit: 'kg/mol' }), 20);
+});
+
+test('gauge pressure fails closed without explicit reference-pressure evidence', () => {
+  const source = fixture().inputs.sources[0];
+  source.upstreamPressure = { value: 4, unit: 'MPa', basis: 'GAUGE' };
+  assert.throws(() => aivEitPressureBarAbsolute(source, 'upstreamPressure'), /reference-pressure evidence/);
+  source.referencePressure = { value: 1, unit: 'bar' };
+  source.referencePressureSource = 'Project ambient basis';
+  source.referencePressureSourceRevision = '1';
+  assert.equal(aivEitPressureBarAbsolute(source, 'upstreamPressure'), 41);
 });
