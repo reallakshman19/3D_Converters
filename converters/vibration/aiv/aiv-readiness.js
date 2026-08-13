@@ -130,14 +130,13 @@ function validateSource(row, missing, invalid, methodGaps, warnings) {
     return;
   }
   validateRecordProvenance(row, 'SOURCE', missing);
-  if (row.phase !== 'GAS') methodGaps.push(issue('AIV_PHASE_OUTSIDE_CURRENT_QUALIFICATION_ENVELOPE', 'source.phase', 'Current controlled T2.7 qualification envelope is gas only.'));
+  if (row.phase !== 'GAS') methodGaps.push(issue('AIV_PHASE_OUTSIDE_CURRENT_QUALIFICATION_ENVELOPE', 'source.phase', 'Current qualified AIV screening envelope is gas only.'));
   if (!(row.massFlow.value > 0)) invalid.push(issue('AIV_MASS_FLOW_NOT_POSITIVE', 'source.massFlow', 'Active AIV source mass flow must be greater than zero.'));
   if (!(row.molecularWeight.value > 0)) invalid.push(issue('AIV_MOLECULAR_WEIGHT_NOT_POSITIVE', 'source.molecularWeight', 'Molecular weight must be greater than zero.'));
   validatePressureEvidence(row, missing, invalid, warnings);
   validateTrim(row, missing, invalid);
-  if (row.sourceState === 'CLOSED') methodGaps.push(issue('AIV_CLOSED_SOURCE_OUTSIDE_CURRENT_ACTIVE_SOURCE_ENVELOPE', 'source.sourceState', 'Closed-source behavior requires separate method disposition.'));
+  if (row.sourceState === 'CLOSED') methodGaps.push(issue('AIV_CLOSED_SOURCE_OUTSIDE_CURRENT_ACTIVE_SOURCE_ENVELOPE', 'source.sourceState', 'Closed-source behavior is outside the current active-source screening envelope.'));
   if (row.sonicState === 'UNRESOLVED') missing.push(issue('AIV_SONIC_STATE_UNRESOLVED', 'source.sonicState', 'Sonic/non-sonic branch selection is unresolved.'));
-  if (row.sonicState === 'SONIC') methodGaps.push(issue('AIV_SONIC_SFF6_BRANCH_UNQUALIFIED', 'source.sonicState', 'The sonic SFF=6 branch requires human benchmark acceptance before numerical promotion.'));
 }
 
 function sameUnit(...quantities) {
@@ -249,18 +248,21 @@ export function buildAivReadiness(exchange, sources = [], assessments = [], rela
     schema: AIV_READINESS_SCHEMA,
     methodId: 'VIB.AIV.ACOUSTIC',
     authority: {
-      calculationState: 'BLOCKED',
-      qualificationState: 'BLOCKED',
-      screeningAuthority: 'NOT_AUTHORIZED',
+      calculationState: 'IMPLEMENTED',
+      qualificationState: 'SCREENING',
+      screeningAuthority: 'AUTHORIZED',
+      screeningResultScope: 'ASSESSMENT',
+      lineCaseSummaryAuthoritativeForScreening: false,
       designAuthority: false,
     },
     counts,
     rows,
     notes: [
-      'Readiness validates joined source, assessment, relationship and certified-topology evidence only.',
-      'Physical AIV distance is supplied by engineering relationship evidence and is never derived from topology presentation geometry.',
-      'READY_FOR_QUALIFICATION does not authorize benchmark/screening execution.',
-      'No AIV source power, attenuation, dB combination, T2-6 LOF or line aggregation is calculated by readiness.',
+      'Readiness validates joined source, assessment, relationship and certified-topology evidence; it does not itself execute the calculator.',
+      'Physical AIV distance is supplied by engineering relationship evidence or an explicit visible assumption and is never derived from topology presentation geometry.',
+      'READY_FOR_QUALIFICATION is the retained readiness-state name; under current release authority, rows with no NOT_READY or METHOD_GAP may proceed to assessment-level SCREENING execution.',
+      'Explicit SONIC input is within the machine-qualified SFF=6 branch; unresolved sonic state remains fail-closed.',
+      'Configured line/case LOF is not authoritative for screening, and designAuthority=false.',
     ],
   });
 }

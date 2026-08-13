@@ -51,7 +51,7 @@ function summary(state) {
   if (!readiness) return '';
   const cards = [
     ['Relationships', readiness.counts.rows],
-    ['Ready for qualification', readiness.counts.readyForQualification],
+    ['Ready', readiness.counts.readyForQualification],
     ['Method gap', readiness.counts.methodGap],
     ['Not ready', readiness.counts.notReady],
     ['Not applicable', readiness.counts.notApplicable],
@@ -70,24 +70,27 @@ function selectedPath(state) {
 }
 
 function hasWorkingInput(state) {
-  return Boolean(
-    state.topologyInput
-    && state.tables?.sources?.rows?.length
-    && state.tables?.assessments?.rows?.length
-    && state.tables?.relationships?.rows?.length,
-  );
+  return Boolean(state.topologyInput && state.tables?.sources?.rows?.length && state.tables?.assessments?.rows?.length && state.tables?.relationships?.rows?.length);
+}
+
+function screeningReady(state) {
+  const counts = state.readinessEnvelope?.readiness?.counts;
+  return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
 }
 
 export function renderAivReadinessPanelHtml(state = {}) {
-  const checking = state.busy === true;
+  const busy = state.busy === true;
   const imports = state.readinessEnvelope?.imports;
   return `<section class="aivq-card">
-    <div class="aivq-section-head"><div><h4>AIV readiness</h4><p>Readiness joins the current visible Sources, Assessments and Source→Assessment tables to the current topology input. It validates identity, process/device evidence, assessment evidence, engineering distance and method gaps only.</p></div></div>
-    <div class="aivq-actions"><button type="button" class="engineering-console-btn primary" data-aiv-action="check-readiness"${!checking && hasWorkingInput(state) ? '' : ' disabled'}>${checking ? 'Checking…' : 'Check AIV readiness'}</button></div>
-    ${state.error ? `<div class="aivq-error"><strong>Readiness check failed.</strong><span>${esc(state.error)}</span></div>` : ''}
+    <div class="aivq-section-head"><div><h4>AIV readiness & screening</h4><p>Readiness joins the current visible Sources, Assessments and Source→Assessment tables to topology. When the joined evidence has no NOT_READY or METHOD_GAP rows, the same normalized inputs can execute the qualified assessment-level AIV screening kernel.</p></div></div>
+    <div class="aivq-actions">
+      <button type="button" class="engineering-console-btn" data-aiv-action="check-readiness"${!busy && hasWorkingInput(state) ? '' : ' disabled'}>${busy ? 'Working…' : 'Check AIV readiness'}</button>
+      <button type="button" class="engineering-console-btn primary" data-aiv-action="run-screening"${!busy && screeningReady(state) ? '' : ' disabled'}>Run AIV screening</button>
+    </div>
+    ${state.error ? `<div class="aivq-error"><strong>AIV action failed.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${imports ? `<div class="aivq-import-facts"><span>Topology integrity <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Sources <strong>${esc(imports.sourceCount)}</strong></span><span>Assessments <strong>${esc(imports.assessmentCount)}</strong></span><span>Relationships <strong>${esc(imports.sourceAssessmentCount)}</strong></span></div>` : ''}
     ${summary(state)}
     <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Assessment</th><th>Case</th><th>Device</th><th>Source state</th><th>Assessment type</th><th>Applicability</th><th>Physical distance</th><th>Simultaneous group</th><th>Phase</th><th>Trim</th><th>Readiness</th><th>Issues / gaps</th></tr></thead><tbody>${readinessRows(state)}</tbody></table></div>
-    <div class="aivq-readiness-note">READY_FOR_QUALIFICATION means the joined evidence is structurally ready for continued method qualification only. Numerical execution remains blocked.</div>
+    <div class="aivq-readiness-note"><strong>SCREENING authority:</strong> assessment-level LOF only. Missing values may come from the visible/exported assumption profile. The configured line/case summary is not an authoritative screening result, and <code>designAuthority=false</code>.</div>
   </section>${selectedPath(state)}`;
 }

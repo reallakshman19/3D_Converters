@@ -1,5 +1,9 @@
 import { createAivAssessmentCsvTemplate } from '../converters/vibration/aiv/assessment-csv.js';
-import { buildAivQualificationPromotionReadiness } from '../converters/vibration/aiv/aiv-promotion-readiness.js';
+import {
+  AIV_DEFAULT_ASSUMPTION_PROFILE,
+  resolveAivWorkingTablesWithAssumptions,
+  updateAivAssumptionProfile,
+} from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
 import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
@@ -12,18 +16,14 @@ import {
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
-import { buildAivIndependentReviewPackage } from './vibration-aiv-independent-review-package.js';
-import {
-  promotionEvidenceFromLoadedArtifacts,
-  readAivPromotionVerificationFile,
-} from './vibration-aiv-promotion-artifacts.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
+import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-7';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-9';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -51,11 +51,12 @@ function initialState() {
       relationships: createEmptyAivInputTable('relationships'),
     },
     benchmark: { loaded: null },
+    assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
+    assumptionProfileModified: false,
+    assumptionResolution: null,
     readinessEnvelope: null,
     resultSet: null,
-    promotionArtifacts: {},
-    promotionReadiness: buildAivQualificationPromotionReadiness({}),
-    promotionError: null,
+    screeningResult: null,
     selectedRowKey: null,
     busy: false,
     error: null,
@@ -74,7 +75,9 @@ export function renderAivQualificationWorkspace(container) {
   function clearReadiness() {
     state.readinessEnvelope = null;
     state.resultSet = null;
+    state.screeningResult = null;
     state.selectedRowKey = null;
+    state.assumptionResolution = null;
   }
 
   function markBenchmarkModified() {
@@ -88,6 +91,8 @@ export function renderAivQualificationWorkspace(container) {
       state.benchmark.loaded = loaded.benchmark;
       state.tables = { ...loaded.tables };
       state.files = { ...loaded.files };
+      state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
+      state.assumptionProfileModified = false;
       state.topologyInput = {
         format: 'PARSED_EXCHANGE',
         data: loaded.topology,
@@ -127,35 +132,6 @@ export function renderAivQualificationWorkspace(container) {
     render();
   }
 
-  async function loadPromotionArtifact(key, file) {
-    state.promotionError = null;
-    try {
-      state.promotionArtifacts[key] = await readAivPromotionVerificationFile(key, file);
-      state.promotionReadiness = buildAivQualificationPromotionReadiness(
-        promotionEvidenceFromLoadedArtifacts(state.promotionArtifacts),
-      );
-    } catch (error) {
-      delete state.promotionArtifacts[key];
-      state.promotionReadiness = buildAivQualificationPromotionReadiness(
-        promotionEvidenceFromLoadedArtifacts(state.promotionArtifacts),
-      );
-      state.promotionError = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-    }
-    render();
-  }
-
-  async function exportIndependentReviewPackage() {
-    state.promotionError = null;
-    try {
-      const reviewPackage = await buildAivIndependentReviewPackage(state.promotionReadiness);
-      downloadText(reviewPackage.promotionReadiness.text, reviewPackage.promotionReadiness.fileName, 'application/json;charset=utf-8');
-      downloadText(reviewPackage.independentReviewTemplate.text, reviewPackage.independentReviewTemplate.fileName, 'application/json;charset=utf-8');
-    } catch (error) {
-      state.promotionError = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-      render();
-    }
-  }
-
   function applyTableMutation(kind, table) {
     state.tables[kind] = table;
     markBenchmarkModified();
@@ -164,37 +140,55 @@ export function renderAivQualificationWorkspace(container) {
     render();
   }
 
+  function ensureAssumableRows(tables) {
+    return {
+      sources: tables.sources.rows.length ? tables.sources : addAivInputRow(tables.sources),
+      assessments: tables.assessments.rows.length ? tables.assessments : addAivInputRow(tables.assessments),
+      relationships: tables.relationships.rows.length ? tables.relationships : addAivInputRow(tables.relationships),
+    };
+  }
+
   function readinessInputAvailable() {
-    return Boolean(
-      state.topologyInput
-      && state.tables.sources.rows.length
-      && state.tables.assessments.rows.length
-      && state.tables.relationships.rows.length,
-    );
+    return Boolean(state.topologyInput);
+  }
+
+  function screeningReady() {
+    const counts = state.readinessEnvelope?.readiness?.counts;
+    return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
   }
 
   async function checkReadiness() {
     if (state.busy || !readinessInputAvailable()) return;
     state.busy = true;
     state.error = null;
+    state.screeningResult = null;
     render();
     try {
       const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
-        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-3'
+        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-5'
       );
       if (state.destroyed) return;
       const format = state.topologyInput.format === 'PARSED_EXCHANGE'
         ? AIV_TOPOLOGY_INPUT_FORMAT.PARSED_EXCHANGE
         : AIV_TOPOLOGY_INPUT_FORMAT.XLSX;
+      const assumableTables = ensureAssumableRows(state.tables);
+      state.assumptionResolution = resolveAivWorkingTablesWithAssumptions(
+        assumableTables,
+        state.assumptionProfile,
+      );
       state.readinessEnvelope = buildAivReadinessFromTables({
         topology: {
           format,
           data: state.topologyInput.data,
           sourceFileName: state.topologyInput.sourceFileName,
         },
-        sourceCsv: serializeAivInputTable(state.tables.sources),
-        assessmentCsv: serializeAivInputTable(state.tables.assessments),
-        sourceAssessmentCsv: serializeAivInputTable(state.tables.relationships),
+        sourceCsv: serializeAivInputTable(state.assumptionResolution.tables.sources),
+        assessmentCsv: serializeAivInputTable(state.assumptionResolution.tables.assessments),
+        sourceAssessmentCsv: serializeAivInputTable(state.assumptionResolution.tables.relationships),
+      });
+      state.readinessEnvelope = Object.freeze({
+        ...state.readinessEnvelope,
+        assumptionResolution: state.assumptionResolution,
       });
       state.resultSet = buildAivBlockedResultSet(state.readinessEnvelope);
       state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
@@ -202,12 +196,84 @@ export function renderAivQualificationWorkspace(container) {
       if (state.destroyed) return;
       state.readinessEnvelope = null;
       state.resultSet = null;
+      state.screeningResult = null;
       state.selectedRowKey = null;
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally {
       state.busy = false;
       render();
     }
+  }
+
+  async function runScreening() {
+    if (state.busy || !screeningReady()) return;
+    state.busy = true;
+    state.error = null;
+    render();
+    try {
+      const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-1');
+      if (state.destroyed) return;
+      const envelope = state.readinessEnvelope;
+      const result = calculateEngineering({
+        calculationId: 'VIB.AIV.ACOUSTIC',
+        inputs: {
+          sources: envelope.sources,
+          assessments: envelope.assessments,
+          relationships: envelope.sourceAssessments,
+          topology: envelope.exchange,
+          assumptionProfile: state.assumptionProfile,
+        },
+        options: {
+          qualificationMode: 'screening',
+          includeEvidence: true,
+        },
+      });
+      if (!result.ok) {
+        const message = result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ') || 'AIV screening calculation failed.';
+        throw new Error(message);
+      }
+      state.screeningResult = result;
+    } catch (error) {
+      if (!state.destroyed) {
+        state.screeningResult = null;
+        state.error = String(error?.message || error);
+      }
+    } finally {
+      state.busy = false;
+      render();
+    }
+  }
+
+  function validationModified() {
+    return Boolean(state.benchmark.loaded?.modified || state.assumptionProfileModified);
+  }
+
+  function exportValidatedBenchmark() {
+    if (!state.benchmark.loaded || validationModified()) {
+      state.error = 'AIV_D23_VALIDATION_NOT_APPLICABLE: Reload the controlled EI D.2.3 benchmark/default assumptions before exporting its validated result package.';
+      render();
+      return;
+    }
+    const payload = buildAivD23ValidatedExportPackage({
+      assumptionProfile: state.assumptionProfile,
+      benchmarkModified: validationModified(),
+    });
+    downloadText(`${JSON.stringify(payload, null, 2)}\n`, 'aiv-d23-validated-benchmark-package.json', 'application/json;charset=utf-8');
+  }
+
+  async function exportScreeningResult() {
+    if (!state.screeningResult?.ok || !state.readinessEnvelope) return;
+    const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-1');
+    const payload = buildAivScreeningExportPackage({
+      result: state.screeningResult.evidence.domainResult,
+      sources: state.readinessEnvelope.sources,
+      assessments: state.readinessEnvelope.assessments,
+      relationships: state.readinessEnvelope.sourceAssessments,
+      topology: state.readinessEnvelope.exchange,
+      assumptionProfile: state.assumptionProfile,
+      assumptionResolution: state.assumptionResolution,
+    });
+    downloadText(`${JSON.stringify(payload, null, 2)}\n`, 'aiv-screening-result.json', 'application/json;charset=utf-8');
   }
 
   function handleTableClick(event) {
@@ -237,7 +303,16 @@ export function renderAivQualificationWorkspace(container) {
     if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
     if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
     if (action === 'check-readiness') checkReadiness();
-    if (action === 'export-independent-review-package') exportIndependentReviewPackage();
+    if (action === 'run-screening') runScreening();
+    if (action === 'export-d23-validation') exportValidatedBenchmark();
+    if (action === 'export-screening-result') exportScreeningResult();
+    if (action === 'reset-assumptions') {
+      state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
+      state.assumptionProfileModified = false;
+      clearReadiness();
+      state.error = null;
+      render();
+    }
   }
 
   function handleTableChange(event) {
@@ -253,10 +328,17 @@ export function renderAivQualificationWorkspace(container) {
   }
 
   function onChange(event) {
-    const promotionKey = event.target.dataset.aivPromotionFile;
-    if (promotionKey) {
-      const file = event.target.files?.[0];
-      if (file) loadPromotionArtifact(promotionKey, file);
+    const assumptionPath = event.target.dataset.aivAssumption;
+    if (assumptionPath) {
+      try {
+        state.assumptionProfile = updateAivAssumptionProfile(state.assumptionProfile, assumptionPath, event.target.value);
+        state.assumptionProfileModified = true;
+        clearReadiness();
+        state.error = null;
+      } catch (error) {
+        state.error = String(error?.message || error);
+      }
+      render();
       return;
     }
     const target = event.target.dataset.aivFile;

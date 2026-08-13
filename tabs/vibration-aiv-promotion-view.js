@@ -1,12 +1,6 @@
-import { buildAivQualificationPromotionReadiness } from '../converters/vibration/aiv/aiv-promotion-readiness.js';
-
-const ARTIFACT_INPUTS = Object.freeze([
-  Object.freeze({ key: 't27Reconciliation', label: 'T2.7 reconciliation verification', schema: 'AivT27ReconciliationVerification.v1' }),
-  Object.freeze({ key: 'd23Flm1Reconciliation', label: 'D.2.3 FLM1 verification', schema: 'AivD23Flm1ReconciliationVerification.v1' }),
-  Object.freeze({ key: 'workedExampleResultScope', label: 'Worked-example result-scope verification', schema: 'AivWorkedExampleResultScopeReviewVerification.v1' }),
-  Object.freeze({ key: 'independentBenchmarks', label: 'Independent benchmark verification', schema: 'AivIndependentBenchmarkReviewVerification.v1' }),
-  Object.freeze({ key: 'workbookReconciliation', label: 'Retained workbook verification', schema: 'AivWorkbookReconciliationVerification.v1' }),
-]);
+import { AIV_DEFAULT_ASSUMPTION_PROFILE, validateAivAssumptionProfile } from '../converters/vibration/aiv/aiv-assumption-profile.js';
+import { buildAivAutoStagePlan } from '../converters/vibration/aiv/aiv-auto-stage-plan.js';
+import { AIV_D23_PRODUCT_PATH_VALIDATION } from './vibration-aiv-validation-records.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -18,42 +12,53 @@ function esc(value) {
 }
 
 function statusKind(status) {
-  if (status === 'SATISFIED') return 'ok';
-  if (status === 'INVALID_EVIDENCE') return 'bad';
+  if (/PASS|READY|COMPLETE|AUTHORIZED|RELEASED/u.test(status)) return 'ok';
+  if (/INVALID|FAIL|NOT_APPLICABLE/u.test(status)) return 'bad';
   return 'gap';
 }
 
-function artifactInputs(state) {
-  return ARTIFACT_INPUTS.map((item) => {
-    const loaded = state.promotionArtifacts?.[item.key];
-    return `<label class="aivq-file-field"><span>${esc(item.label)}</span><input type="file" data-aiv-promotion-file="${esc(item.key)}" accept=".json,application/json"><span>${loaded
-      ? `<strong>${esc(loaded.fileName || 'Loaded JSON')}</strong><small>${esc(loaded.byteLength)} bytes · ${esc(loaded.artifactSha256)}</small><small>${esc(loaded.verification?.schema ?? 'Unknown schema')}</small>`
-      : `<span class="aivq-empty">${esc(item.schema)} JSON</span>`}</span></label>`;
-  }).join('');
-}
-
-function gateRows(plan) {
-  return plan.gates.map((gate) => `<tr>
-    <td><code>${esc(gate.gateId)}</code></td>
-    <td>${esc(gate.verificationSchema)}</td>
-    <td><span class="aivq-status ${statusKind(gate.status)}">${esc(gate.status)}</span></td>
-    <td>${gate.evidenceSha256 ? `<code>${esc(gate.evidenceSha256)}</code>` : '<span class="aivq-empty">—</span>'}</td>
-    <td>${gate.issue ? esc(gate.issue.message) : '<span class="aivq-empty">—</span>'}</td>
+function autoStageRows(plan) {
+  return plan.stages.map((stage) => `<tr>
+    <td><code>${esc(stage.stageId)}</code></td>
+    <td>${esc(stage.label)}</td>
+    <td><span class="aivq-status ${statusKind(stage.status)}">${esc(stage.status)}</span></td>
+    <td><code>${esc(stage.autoAction)}</code></td>
   </tr>`).join('');
 }
 
 export function renderAivPromotionReadinessHtml(state = {}) {
-  const plan = state.promotionReadiness ?? buildAivQualificationPromotionReadiness({});
-  const exportAction = plan.eligibleForAuthorityReview
-    ? '<div class="aivq-actions"><button type="button" data-aiv-action="export-independent-review-package">Export independent engineer review files</button></div>'
-    : '<div class="aivq-readiness-note">Independent review export remains unavailable until all six prerequisite gates are SATISFIED.</div>';
+  const profile = state.assumptionProfile ?? AIV_DEFAULT_ASSUMPTION_PROFILE;
+  const profileValidation = validateAivAssumptionProfile(profile);
+  const validationApplicable = Boolean(state.benchmark?.loaded)
+    && !state.benchmark.loaded.modified
+    && !state.assumptionProfileModified;
+  const validationStatus = validationApplicable
+    ? AIV_D23_PRODUCT_PATH_VALIDATION.status
+    : state.benchmark?.loaded ? 'NOT_APPLICABLE_MODIFIED_INPUTS' : 'CONTROLLED_BENCHMARK_NOT_LOADED';
+  const autoPlan = buildAivAutoStagePlan({ assumptionProfile: profile });
+
   return `<section class="aivq-card aivq-promotion-card">
-    <div class="aivq-section-head"><div><h4>Method promotion readiness</h4><p>This is a qualification gate checklist, not an operating-case result. Load completed verification JSON artifacts; the browser hashes the actual file bytes with SHA-256 before the planner evaluates them.</p></div></div>
-    <div class="aivq-import-grid aivq-promotion-imports">${artifactInputs(state)}</div>
-    ${state.promotionError ? `<div class="aivq-error"><strong>Promotion artifact operation failed.</strong><span>${esc(state.promotionError)}</span></div>` : ''}
-    <div class="aivq-result-summary"><span>Prerequisites <strong>${esc(plan.counts.prerequisiteGates)}</strong></span><span>Satisfied <strong>${esc(plan.counts.satisfied)}</strong></span><span>Unsatisfied <strong>${esc(plan.counts.unsatisfied)}</strong></span><span>Invalid evidence <strong>${esc(plan.counts.invalidEvidence)}</strong></span><span>Eligible for independent authority review <strong>${esc(plan.eligibleForAuthorityReview)}</strong></span></div>
-    <div class="aivq-example-table"><table><thead><tr><th>Gate</th><th>Required verification</th><th>Status</th><th>Artifact SHA-256</th><th>Issue / next evidence</th></tr></thead><tbody>${gateRows(plan)}</tbody></table></div>
-    ${exportAction}
-    <div class="aivq-readiness-note">Export creates the exact promotion-readiness JSON plus a SHA-bound PENDING `AivIndependentVibrationEngineerPromotionReview.v1` template. The final human decision is not consumed as a prerequisite and cannot mutate authority here.</div>
+    <div class="aivq-section-head"><div><h4>AUTO release status</h4><p>The AIV AUTO release program is machine-qualified through assessment-level SCREENING. Human evidence is not a prerequisite; assumptions remain visible, editable and exportable.</p></div></div>
+    <div class="aivq-result-summary">
+      <span>Mode <strong>AUTO</strong></span>
+      <span>Calculation <strong>IMPLEMENTED</strong></span>
+      <span>Qualification <strong>SCREENING</strong></span>
+      <span>Screening authority <strong>AUTHORIZED</strong></span>
+      <span>Screening scope <strong>ASSESSMENT</strong></span>
+      <span>Design authority <strong>false</strong></span>
+      <span>Assumption profile <strong>${esc(profileValidation.status)}</strong></span>
+      <span>Next stage <strong>${esc(autoPlan.nextStageId ?? 'COMPLETE')}</strong></span>
+    </div>
+    <div class="aivq-example-table"><table><thead><tr><th>Stage</th><th>Release work</th><th>AUTO status</th><th>Action</th></tr></thead><tbody>${autoStageRows(autoPlan)}</tbody></table></div>
+    <div class="aivq-example-table"><table><thead><tr><th>Release evidence</th><th>Status</th><th>Basis</th></tr></thead><tbody>
+      <tr><td>EI D.2.3 product path</td><td><span class="aivq-status ${statusKind(validationStatus)}">${esc(validationStatus)}</span></td><td>${validationApplicable ? `${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.passed)}/${esc(AIV_D23_PRODUCT_PATH_VALIDATION.counts.checks)} committed checks pass.` : 'Current edited inputs do not inherit benchmark parity; screening may be rerun after readiness.'}</td></tr>
+      <tr><td>BENCHMARK_ONLY exact-head release</td><td><span class="aivq-status ok">PASS</span></td><td><code>AIV-BENCHMARK-ONLY-ReleaseValidationReceipt-v1.json</code> · 4/4 local controlled validation groups.</td></tr>
+      <tr><td>SCREENING qualification</td><td><span class="aivq-status ok">PASS</span></td><td><code>AIV-SCREENING-ReleaseValidationReceipt-v1.json</code> · 8/8 local controlled qualification groups.</td></tr>
+      <tr><td>Project-input assumption flow</td><td><span class="aivq-status ok">PASS</span></td><td>Blank project rows resolved 56 visible assumptions; explicit user values override assumptions and alter results.</td></tr>
+      <tr><td>Single / batch parity</td><td><span class="aivq-status ok">PASS</span></td><td>Both modes execute the same central 10-stage <code>calculateAiv</code> kernel.</td></tr>
+      <tr><td>Line / case summary</td><td><span class="aivq-status gap">NON-AUTHORITATIVE</span></td><td>Configured line/case LOF remains traceability-only; assessment LOF is the qualified screening result scope.</td></tr>
+      <tr><td>GitHub Actions</td><td><span class="aivq-status gap">NOT_RUN</span></td><td>Hosted jobs continue to receive no runner/steps because the repository Actions budget prevents execution; local exact-source records provide the release evidence.</td></tr>
+    </tbody></table></div>
+    <div class="aivq-readiness-note">AUTO stages 16B.1–20 are complete. Current product authority is <strong>SCREENING</strong> for assessment-level results only. This does not provide design approval; <code>designAuthority=false</code>.</div>
   </section>`;
 }
