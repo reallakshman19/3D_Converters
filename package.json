@@ -16,6 +16,7 @@
     "materialize:vibration-master-source": "node scripts/materialize-vibration-master-source.mjs",
     "recover:vibration-master-sources-via-api": "node scripts/fetch-vibration-master-sections-via-api.mjs",
     "reconcile:vibration-master-tables": "node scripts/reconcile-vibration-master-tables.mjs",
+    "normalize:vibration-master-tables": "node scripts/normalize-vibration-master-tables.mjs",
     "solve:aiv-d23-qualification": "node scripts/solve-aiv-d23-qualification.mjs",
     "solve:aiv-independent-qualification-benchmarks": "node scripts/solve-aiv-independent-qualification-benchmarks.mjs",
     "run:aiv-d23-product-path-validation": "node scripts/run-aiv-d23-product-path-validation.mjs",
