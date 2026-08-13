@@ -4,94 +4,89 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Close issue #450's exact controlled-source inventory gate, reconcile real-source locators without weakening fail-closed behavior, then hand off only source families proven ready for governed recovery. |
+| Mission | Close issue #450's exact controlled-source inventory gate and reconcile real-source locators without weakening fail-closed behavior. |
 | Source task / issue | `reallaksh19/3D_Converters#450` |
 | PR number | `452` |
 | Branch | `agent/vibration-master-source-inventory` |
 | Original base | `main@c8aa2786e08a7669b913d0a055ad4c15c6d36b0e` |
-| Current upstream main | `23d06cf52ba362a3895651f631b79429c493fef8` — two commits ahead of original base; changes are AIV canvas work and currently do not overlap the inventory implementation except `package.json`. |
-| Current HEAD | `0a5079862510adf4b6911e31a048904ec0ba8d18` before this report commit |
+| Current upstream main | `23d06cf52ba362a3895651f631b79429c493fef8` — two AIV-canvas commits ahead of the original base. |
+| Current HEAD | `8ef9fbb4742ce0f969c7b5e2737105ed0b86f81c` before this report commit |
 | PR status | DRAFT / OPEN / MERGE NOT AUTHORIZED |
 | Current stage | **Stage 5B — Exact-source materialization + real-source locator reconciliation** |
 | Last completed stage | Stage 5A — Inventory coverage/range hardening |
-| Engineering status | IN_PROGRESS |
-| Validation status | Prior focused inventory regression **10/10 PASS**; exact source run pending this stage |
-| Current blocker | Local runner cannot reach GitHub directly; Stage 5B will use the repository's existing controlled-source Actions checkout path as the execution environment, without modifying `.github/workflows/*`. |
-| Exact next action | Materialize `EI - AVIFF Guidelines 2nd Edition.pdf` from `reallaksh19/Common@9e11e1b4ab1ee55f1ad5fd24a8e82994a5442872`, verify size/blob, run `inventory:vibration-master-sources`, inspect every real locator state, and repair only evidence-backed anchors. |
+| Engineering status | PARTIAL — source identity/equivalence proven; exact extraction execution environment blocked |
+| Validation status | Inventory regression **10/10 PASS** from Stage 5A; source-materializer focused suite **4/4 PASS** locally; exact-source inventory **NOT_RUN** |
+| Current blocker | GitHub Actions did not start the controlled-source job because the repository Actions budget prevents further use. Local runner still has no direct GitHub egress and connector binary APIs do not expose the PDF bytes. |
+| Exact next action | Correct navigation-only T3 printed-page hints that are independently reconciled, preserve all locator regexes unchanged, rerun focused tests, then resume exact inventory as soon as an execution path can materialize blob `9d3e…bdc5`. |
 
 ## Handover in 60 Seconds
 
 ### What is now true
 
-The controlled main-guidance object is unchanged:
+The controlled PDF identity is established at both the reachable retrieval commit and the adopted historical source commit:
 
 ```text
+repository: reallaksh19/Common
 path: EI - AVIFF Guidelines 2nd Edition.pdf
 Git blob: 9d3eccc56429411e17c07a579bdebbd13cb0bdc5
 byte length: 10,348,594
+
+retrieval commit:
+  9e11e1b4ab1ee55f1ad5fd24a8e82994a5442872
+
+adopted historical source commit:
+  fb549185b9b27edc2379734240320a85c5bef9f6
 ```
 
-Two commit identities have different roles and must not be conflated:
+GitHub repository metadata resolves the same source path at both commits to that identical blob and size. Retrieval reachability therefore does not rewrite the adopted engineering-source provenance.
 
-```text
-retrieval/materialization commit:
-  reallaksh19/Common@9e11e1b4ab1ee55f1ad5fd24a8e82994a5442872
+Stage 5B added an explicit materialization helper and regression. The helper validates repository identity, resolves the source object at both commits, requires exact blob/size equality, materializes with `git cat-file blob`, independently recomputes Git blob identity from the bytes, and emits a hash-only receipt with frozen authority.
 
-adopted historical source commit retained in governed provenance:
-  reallaksh19/Common@fb549185b9b27edc2379734240320a85c5bef9f6
-```
-
-The same source path at the adopted historical commit resolves to the identical Git blob, so retrieval from the newer reachable commit does not revise the adopted engineering-source provenance.
+The controlled-source workflow was invoked twice for Stage 5B. GitHub check annotations show the job never started because the repository Actions budget is preventing further use. This is an environment/budget blocker, not a locator or source-byte failure.
 
 ### What is being worked on
 
-Run the already-implemented inventory against exact bytes, then reconcile real-source locator failures/ambiguities. No source-derived numerical values will be created in this stage.
+Only evidence-safe locator reconciliation that does not require inventing source content. Same-edition navigation review identified stale printed-page hints for the T3 tables/figures. Printed-page hints are navigation metadata only; correcting them does not mark a target `SOURCE_PINNED` and does not change any fail-closed locator regex.
 
 ### What remains unfinished
 
-- exact-source inventory record;
-- real T3/T2.4/T2.5/T2.8/T2.9/T4/Appendix-B locator reconciliation;
-- source register;
-- master table/rule extraction;
-- curve digitization;
-- master runtime/calculator qualification;
+- materialize the exact 10,348,594-byte binary in an execution environment;
+- run the actual `inventory:vibration-master-sources` command against those bytes;
+- inspect real exact-source `pdftotext -layout` target states and hashes;
+- reconcile geometry/T2.9 and any other missing/ambiguous locator from exact extraction evidence;
+- commit `ValidationRecords/VibrationMasters/source-inventory-v1.json` from the exact run;
+- source register/master recovery/digitization/calculator qualification;
 - separate authority review.
 
 ### What must not be assumed
 
-A same-edition mirror is not source authority. A page hint is not a locator PASS. A successful source inventory is not numerical qualification. Existing AIV authority is independent. Newly recovered vibration masters remain `NONE / NOT_AUTHORIZED / false` unless separately governed.
+A same-edition mirror is navigation-only. It cannot supply authoritative page hashes, source text, master values, or a `SOURCE_PINNED` state. A red Actions check that never acquired a runner is not a source failure. A successful materializer fixture is not the real controlled-source execution.
 
 ### Highest-risk remaining item
 
-Making a locator pass by broadening or weakening anchors rather than matching the exact controlled source. Any missing, duplicate, reversed-range or image-only target stays fail-closed until evidence supports a precise locator.
+Weakening a locator to force a PASS without exact `pdftotext` evidence. Geometry and T2.9 anchors remain deliberately untouched because navigation text suggests they may be image/text-extraction-sensitive, but that observation is insufficient to rewrite authoritative locators.
 
 ### Exact next action
 
-```bash
-npm run inventory:vibration-master-sources -- \
-  <materialized-exact-controlled-pdf> \
-  --out ValidationRecords/VibrationMasters/source-inventory-v1.json
-```
+Apply only the verified T3 `printedPageHint` corrections, rerun the focused inventory/materialization suites, and preserve Stage 5B as `PARTIAL / EXACT_EXECUTION_BLOCKED` until the exact binary can be executed.
 
 ## Mission and Engineering Intent
 
-The source inventory is an anti-drift gate. It must establish exact source identity, deterministic text extraction, source page/range identity, and figure-vs-text recovery classification before any governed engineering master values are published.
+The source inventory is an anti-drift gate. It must establish exact source identity, deterministic extraction, exact source page/range identity and figure-vs-text recovery classification before any engineering master values are published.
 
-### Stage 5B scope
+### Scope in Stage 5B
 
-- prove `Common@9e11e1b4…` path resolves to blob `9d3e…bdc5` and size `10,348,594`;
-- materialize those exact bytes in a controlled execution environment;
-- run the operator command, not a hand-built substitute;
-- inspect real source locator outcomes;
-- refine only locators demonstrated by exact-source text structure;
-- preserve range/page hashes and hash-only public output;
-- commit `ValidationRecords/VibrationMasters/source-inventory-v1.json` only after an exact-source run;
-- keep source-blocked mechanisms blocked;
-- update the report/evidence ledger.
+- distinguish retrieval commit from adopted source provenance;
+- prove both commits resolve the same exact blob/size;
+- provide deterministic exact-byte materialization from a controlled Common checkout;
+- run the existing inventory command when an execution environment is available;
+- reconcile only evidence-backed locator metadata/anchors;
+- publish only hashes/locators/states, never licensed source text or engineering values;
+- keep all new authority frozen.
 
-### Non-goals
+### Explicit non-goals
 
-No master values, curve points, solver equations, source-register promotion, master runtime, authority promotion, unrelated refactor, dependency upgrade, or workflow modification.
+No master values, curve points, solver equations, generic master resolver, source-register promotion, authority transition, unrelated refactor, dependency upgrade or `.github/workflows/*` changes.
 
 ## Authority Freeze
 
@@ -101,184 +96,253 @@ screeningAuthority   = NOT_AUTHORIZED
 designAuthority      = false
 ```
 
+Existing AIV authority remains independent.
+
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
 | Living work report | P0 | IN_PROGRESS | 1–5B | this file |
-| Source inventory CLI | P0 | VALIDATED | 4–5A | prior 10/10 focused PASS |
-| Exact byte-before-extraction invariant | P0 | VALIDATED | 4 | fake extractor remains uncalled on wrong bytes |
-| Bounded page-range anti-drift | P0 | VALIDATED | 5A | missing/duplicate/reversed boundaries fail closed |
-| Retrieval-commit equivalence | P0 | INVESTIGATING | 5B | `9e11e1b4…` metadata resolves requested path to blob `9d3e…bdc5`; byte materialization/size execution pending |
-| Exact controlled-source inventory | P0 | IN_PROGRESS | 5B | operator run pending |
-| Real-source locator reconciliation | P0 | NOT_STARTED | 5B | follows first exact-source inventory result |
-| `source-inventory-v1.json` | P0 | NOT_STARTED | 5B | commit only from exact run |
-| Source register/master recovery | P0/P1/P2 | NOT_STARTED | after 5B | prohibited until inventory evidence reviewed |
+| Source inventory CLI | P0 | VALIDATED | 4–5A | focused 10/10 PASS |
+| Source materialization helper | P0 | VALIDATED | 5B | synthetic Git fixture 4/4 PASS |
+| Retrieval path → expected blob/size | P0 | VALIDATED | 5B | GitHub metadata at `9e11e1b4…` |
+| Adopted path → identical blob/size | P0 | VALIDATED | 5B | GitHub metadata at `fb549185…` |
+| Controlled runner execution | P0 | BLOCKED | 5B | Actions annotation: job not started due budget |
+| Exact controlled-source inventory | P0 | BLOCKED | 5B | binary not materialized in an executing runner |
+| T3 printed-page navigation hints | P1 | IN_PROGRESS | 5B | navigation reconciliation only; locator regex unchanged |
+| Real-source locator reconciliation | P0 | BLOCKED | 5B | exact `pdftotext` output required for authority-grade locator result |
+| `source-inventory-v1.json` | P0 | NOT_STARTED | 5B | must come from exact operator run |
+| Source register/master recovery | P0/P1/P2 | NOT_STARTED | after 5B | exact inventory gate not closed |
 | Authority promotion | P0 | REJECTED | all | separate governance event |
 
 ## Engineering Item Register
 
 | ID | Type | Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
-| ISS-001 | Defect | P0 | RESOLVED | Initial CLI extraction order was wrong; exact source assertion now runs before `pdftotext`. | YES |
-| ISS-002 | Defect | P0 | RESOLVED | Initial locator model could not represent bounded multi-page sections; Stage 5A added range evidence and fail-closed boundaries. | YES |
-| IMP-001 | Improvement | P2 | VALIDATED | Appendix-B optional defaults included as source inventory only, never automatic engineering defaults. | YES |
-| RISK-001 | Risk | P0 | MITIGATED | Same-name/re-exported bytes rejected by Git blob + size. | YES |
-| RISK-002 | Risk | P0 | MITIGATED | Public inventory contains hashes/locators/states, not licensed source text. | YES |
-| RISK-003 | Risk | P0 | MITIGATED | Curve targets yield digitization work, never inferred points. | YES |
-| RISK-004 | Risk | P1 | ACTIVE | Upstream `main` advanced by two AIV-canvas commits while PR #452 remained open; final integration must recheck `package.json` and release behavior. | YES |
-| RISK-005 | Risk | P0 | ACTIVE | Local runner has no direct GitHub egress; exact run depends on controlled CI checkout/execution. | YES |
-| RISK-006 | Risk | P1 | ACTIVE | Prior unrelated Actions jobs were red; current Stage 5B evidence must distinguish inventory failures from unrelated CI failures. | YES |
-| DEC-001 | Decision | P0 | ACCEPTED | Inventory is source-readiness evidence only; no authority transition. | YES |
-| DEC-002 | Decision | P0 | ACCEPTED | Retain `fb549185…` as adopted historical source commit even when bytes are materialized from `9e11e1b4…`, because the exact path resolves to the identical Git blob. | YES |
-| DEC-003 | Decision | P0 | ACCEPTED | Do not modify `.github/workflows/*`; use existing controlled-source checkout/execution paths. | YES |
-| DEC-004 | Decision | P0 | ACCEPTED | Locator repair requires exact-source confirmation; mirror text may assist navigation only. | YES |
-| QST-001 | Question | P0 | OPEN | Which current catalogue anchors are unique against the exact source? | YES |
-| QST-002 | Question | P1 | OPEN | What precise source range is required for T2.8/T2.9 and Appendix-B without over-broad matching? | YES |
+| ISS-001 | Defect | P0 | RESOLVED | Initial CLI extraction order allowed `pdftotext` before exact-byte assertion; fixed and regression-tested. | YES |
+| ISS-002 | Defect | P0 | RESOLVED | Initial locator model could not represent bounded multi-page sections; Stage 5A added ranges and per-page hashes. | YES |
+| ISS-003 | Defect | P1 | IN_PROGRESS | T3 printed-page hints for Tables T3-1…T3-3 and Figures T3-1…T3-4 are stale/off by one; correction is navigation metadata only and must not affect source state. | YES |
+| IMP-001 | Improvement | P2 | VALIDATED | Appendix-B optional defaults included as inventory-only source family, never automatic defaults. | YES |
+| RISK-001 | Risk | P0 | MITIGATED | Same-name/re-exported bytes rejected by exact Git blob + size checks. | YES |
+| RISK-002 | Risk | P0 | MITIGATED | Public inventory is hash/locator/state only; no extracted EI text or master values. | YES |
+| RISK-003 | Risk | P0 | MITIGATED | Curve targets remain digitization work; no inferred points. | YES |
+| RISK-004 | Risk | P1 | ACTIVE | Upstream main advanced by two AIV-canvas commits; final integration must reconcile package/release seams. | YES |
+| RISK-005 | Risk | P0 | ACTIVE | Local runner has no GitHub egress and connector cannot decode the large binary. | YES |
+| RISK-006 | Risk | P0 | ACTIVE | GitHub Actions controlled-source job cannot start because repository Actions budget is exhausted. | YES |
+| DEC-001 | Decision | P0 | ACCEPTED | Inventory/materialization are source-readiness evidence only; authority remains frozen. | YES |
+| DEC-002 | Decision | P0 | ACCEPTED | Preserve `fb549185…` as adopted source provenance; `9e11e1b4…` is retrieval/materialization only because both resolve the identical blob. | YES |
+| DEC-003 | Decision | P0 | ACCEPTED | Do not modify `.github/workflows/*`; Stage 5B attempted the existing controlled-source workflow and recorded its budget blocker. | YES |
+| DEC-004 | Decision | P0 | ACCEPTED | Navigation-only page-hint corrections are allowed; locator regex changes require exact-source extraction evidence. | YES |
+| QST-001 | Question | P0 | OPEN | Which catalogue anchors are unique under exact `pdftotext -layout`? |
+| QST-002 | Question | P0 | OPEN | Does T3 geometry require visual rule extraction because its current text anchors may not co-occur in exact PDF text? |
+| QST-003 | Question | P0 | OPEN | Where exactly is the T2.9 `FL` evidence represented in the exact source text/image layer? |
 
-## Stage Roadmap / Decisions
+## Stage Roadmap and Decisions
 
 ### Stages 1–4 — Setup + source-inventory implementation
 
-**COMPLETE.** Work report, PR allocation, baseline inspection and exact-source inventory CLI delivered. Exact-byte sequencing defect was fixed before closure. Focused result after Stage 4: **7/7 PASS**.
+**COMPLETE.** Work report, PR allocation, baseline inspection and inventory CLI delivered. Exact-byte sequencing defect fixed. Focused result after Stage 4: **7/7 PASS**.
 
 ### Stage 5 — Exact controlled-source execution
 
-Previously **BLOCKED / NOT_RUN** because the local execution environment could not obtain the controlled binary.
+Originally **BLOCKED / NOT_RUN** due binary transport limitations.
 
 ### Stage 5A — Inventory range/coverage hardening
 
-**COMPLETE.** Added bounded multi-page section support, per-page hashes, fail-closed boundary handling, and Appendix-B catalogue coverage. Focused result: **10/10 PASS**.
+**COMPLETE.** Bounded multi-page sections, per-page hashes, fail-closed boundaries and Appendix-B coverage. Focused result: **10/10 PASS**.
 
 ### Stage 5B — Exact-source materialization + real-source reconciliation
 
-**IN_PROGRESS.**
+**PARTIAL / IN_PROGRESS.**
 
 #### Current truth
 
-- User supplied retrieval commit `Common@9e11e1b4ab1ee55f1ad5fd24a8e82994a5442872`.
-- GitHub metadata resolves the exact PDF path there to blob `9d3eccc56429411e17c07a579bdebbd13cb0bdc5`.
-- Required byte length remains `10,348,594`.
-- Adopted provenance remains `Common@fb549185b9b27edc2379734240320a85c5bef9f6` because its same path has the identical blob.
-- Local network remains blocked.
-- Existing repository CI already has a sanctioned controlled-source checkout of `reallaksh19/Common` and `pdftotext`; Stage 5B will reuse that execution environment without editing workflows.
+- Retrieval commit `9e11e1b4ab1ee55f1ad5fd24a8e82994a5442872` and adopted commit `fb549185b9b27edc2379734240320a85c5bef9f6` both resolve the controlled path to blob `9d3eccc56429411e17c07a579bdebbd13cb0bdc5`, size `10,348,594`.
+- Stage 5B candidate `8ef9fbb4742ce0f969c7b5e2737105ed0b86f81c` adds the materializer, focused materialization test, npm command, release-manifest entry and CI-only exact-source bridge in the already-existing AIV controlled-source test seam.
+- No workflow file changed.
+- Controlled-source Actions run `31688950726`, attempts 1 and 2, did not acquire a runner. Check annotation states: `The job was not started because an Actions budget is preventing further use.`
+- Therefore the exact binary was not materialized by Actions and the real inventory command has not executed.
+- Same-edition navigation review identified stale printed-page hints for T3 tables/figures; authoritative anchor/state changes remain prohibited pending exact extraction.
 
-#### Objective
-
-Produce and reconcile the first real exact-source inventory evidence.
-
-#### Expected files
-
-Potential Stage 5B changes are limited to:
+#### Stage 5B implementation performed so far
 
 ```text
-agents/PR452_workreport.md
-ValidationRecords/VibrationMasters/source-inventory-v1.json
-scripts/inventory-vibration-master-sources.mjs       # only if exact-source anchors prove defects
-tests/vibration-master-source-inventory.test.mjs     # focused regression for any locator correction
-one existing controlled-source test seam only if needed to execute the exact operator command in sanctioned CI
+scripts/materialize-vibration-master-source.mjs
+tests/vibration-master-source-materialization.test.mjs
+tests/vibration-aiv-source-extraction-contract.test.mjs
+package.json
+scripts/verify-vibration-fit-release.mjs
 ```
 
-No `.github/workflows/*` changes.
+The materializer:
 
-#### Planned validation
+1. verifies the checkout origin is `reallaksh19/Common`;
+2. resolves retrieval and adopted commit/path objects;
+3. requires both to be exact blob `9d3e…bdc5` and size `10,348,594`;
+4. materializes via `git cat-file blob`;
+5. independently recomputes Git blob identity from the bytes;
+6. emits a hash-only receipt with adopted and retrieval provenance separated;
+7. preserves authority `NONE / NOT_AUTHORIZED / false`.
 
-1. Git path → blob identity at retrieval commit.
-2. Materialized bytes: exactly `10,348,594` and Git blob `9d3e…bdc5`.
-3. Exact `npm run inventory:vibration-master-sources` invocation.
-4. Review all target states and hashes.
-5. For each locator correction: fail-first exact evidence → minimal anchor correction → focused synthetic regression → exact-source rerun.
-6. Verify public JSON contains no extracted source text or numerical master values.
-7. Verify authority remains frozen.
+#### Validation performed
+
+```text
+synthetic materialization regression: 4 / 4 PASS
+Stage 5A inventory regression:        10 / 10 PASS (prior exact implementation blobs)
+GitHub source metadata equivalence:    PASS
+Actions exact execution:              NOT_RUN / ENVIRONMENT_BLOCKED
+```
+
+#### Planned next change
+
+Correct only these navigation metadata hints; no anchors change:
+
+```text
+Table T3-1  -> printed page 81
+Table T3-2  -> printed page 81
+Table T3-3  -> printed page 82
+Figure T3-1 -> printed page 82
+Figure T3-2 -> printed page 83
+Figure T3-3 -> printed page 83
+Figure T3-4 -> printed page 84
+```
+
+Then run focused inventory/materialization regressions and keep exact-source state blocked until the real PDF executes.
 
 #### Stage decision
 
-Pending exact execution.
+**PARTIAL.** Source identity/equivalence and deterministic materialization logic are validated; exact source execution remains environment-blocked.
 
 ## Changed-File Ledger
 
-Current PR diff before Stage 5B production/test changes:
+Current PR files before the navigation-hint correction:
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---|---|---|---|---|
 | `agents/PR452_workreport.md` | 1 | 5B | Living mission/engineering/validation handover. | YES | current-state update |
-| `package.json` | 4 | 4 | Operator inventory command. | NO | prior focused PASS; upstream integration recheck pending |
-| `scripts/inventory-vibration-master-sources.mjs` | 4 | 5A | Exact-source inventory + bounded locator anti-drift. | YES | prior focused 10/10 PASS |
-| `scripts/verify-vibration-fit-release.mjs` | 4 | 4 | Adds inventory test to FIT/VIB release manifest. | NO | prior focused assertion PASS |
-| `tests/vibration-master-source-inventory.test.mjs` | 4 | 5A | Source identity, locator/range, authority regressions. | YES | prior focused 10/10 PASS |
+| `package.json` | 4 | 5B | Inventory + materialization operator commands. | NO | focused assertions/local materializer test |
+| `scripts/inventory-vibration-master-sources.mjs` | 4 | 5A | Exact source inventory and locator anti-drift. | YES | Stage 5A 10/10 PASS; navigation hint update pending |
+| `scripts/materialize-vibration-master-source.mjs` | 5B | 5B | Exact Common git-object materialization and provenance receipt. | YES | materialization 4/4 PASS |
+| `scripts/verify-vibration-fit-release.mjs` | 4 | 5B | Adds inventory/materialization regressions to existing release manifest. | NO | manifest seam verified locally |
+| `tests/vibration-master-source-inventory.test.mjs` | 4 | 5A | Inventory anti-drift tests. | YES | 10/10 PASS prior to hint update |
+| `tests/vibration-master-source-materialization.test.mjs` | 5B | 5B | Retrieval/adopted blob equivalence + drift regressions. | YES | 4/4 PASS |
+| `tests/vibration-aiv-source-extraction-contract.test.mjs` | 5B | 5B | Existing controlled-source runner bridge for exact inventory; skips outside controlled environment. | YES | syntax/local skip path; Actions environment blocked |
 
-## Engineering Invariants
+No `.github/workflows/*` file is changed.
 
-- **Exact bytes before extraction:** wrong blob/size never launches `pdftotext`.
+## Engineering Decisions and Invariants
+
+- **Exact bytes before extraction:** wrong source bytes never reach `pdftotext`.
 - **Historical provenance stability:** retrieval reachability does not rewrite adopted source provenance when blob identity is unchanged.
-- **Locator fail-closed:** zero or multiple matches never become `SOURCE_PINNED`.
+- **Materialization anti-drift:** retrieval and adopted commit/path objects must both equal the expected blob/size before bytes are written.
+- **Locator fail-closed:** zero/multiple matches never become `SOURCE_PINNED`.
 - **Range fail-closed:** missing/duplicate/reversed boundaries block the target.
-- **Hash-only publication:** no extracted EI source text is committed by the inventory.
-- **No reverse engineering:** benchmark outputs do not generate master values/equations.
-- **Curves stay curves:** locating T3 figures only unlocks later independent digitization.
-- **Authority freeze:** `NONE / NOT_AUTHORIZED / false` for this program.
+- **Navigation metadata is not authority:** `printedPageHint` changes cannot change source state.
+- **Hash-only publication:** no extracted EI source text is committed by inventory/materialization evidence.
+- **No reverse engineering:** benchmark outputs do not generate masters/equations.
+- **Curves stay curves:** locating a T3 figure only unlocks independent digitization.
+- **Authority freeze:** `NONE / NOT_AUTHORIZED / false`.
 
 ## Validation and Evidence Ledger
 
 ### Software Validation
 
-| Validation | Status | Evidence |
+| Validation | Status | Last HEAD / Evidence |
 |---|---|---|
-| Focused inventory regression before Stage 5B | PASS | 10/10 |
-| Retrieval commit path → expected blob metadata | PASS | GitHub controlled repository metadata |
-| Exact materialized byte length | NOT_RUN | Stage 5B |
-| Exact materialized Git blob | NOT_RUN | Stage 5B operator environment |
-| Exact-source inventory command | NOT_RUN | Stage 5B |
-| Real-source locator reconciliation | NOT_RUN | Stage 5B |
-| Upstream-main integration check | NOT_RUN | after Stage 5B evidence |
+| Stage 5A inventory regression | PASS | 10/10 prior focused suite |
+| Stage 5B materializer regression | PASS | 4/4 local synthetic Git fixture |
+| Materializer + test syntax | PASS | Stage 5B candidate blobs |
+| Retrieval path metadata | PASS | `Common@9e11e1b4…` → blob/size expected |
+| Adopted path metadata | PASS | `Common@fb549185…` → identical blob/size |
+| Controlled Actions execution | NOT_RUN / BLOCKED | run `31688950726`; budget annotation, runner never started |
+| Exact controlled-source inventory | NOT_RUN / BLOCKED | no executing environment has materialized the binary |
+| Real locator states/page hashes | NOT_RUN / BLOCKED | exact `pdftotext` required |
+| Upstream-main integration | NOT_RUN | required before closure |
+
+### Engineering Validation
+
+| Property | Status | Evidence |
+|---|---|---|
+| Controlled source identity | PASS | exact path/blob/size at retrieval and adopted commits |
+| Historical provenance retained | PASS | materializer receipt contract + source constant remains `fb549185…` |
+| Wrong retrieval/adopted blob fails closed | PASS | materializer regression |
+| Source verification before `pdftotext` | PASS | inventory fake-binary regression |
+| Missing/ambiguous/range locators fail closed | PASS | Stage 5A fixtures |
+| No source text/master values published | PASS | inventory/materializer output contracts |
+| Real exact-source locator adequacy | NOT_RUN | exact execution blocked |
+| Authority freeze | PASS | regression/contracts |
 
 ### Explicitly Not Validated
 
-No numerical master row/value, curve point, interpolation tolerance, downstream calculator, screening promotion or design authority is validated by source inventory work.
+- exact PDF page hashes from the governing binary;
+- any real `SOURCE_PINNED` target generated by the new inventory;
+- any numerical table/rule value;
+- any curve point/digitization tolerance;
+- source register/master runtime/calculation qualification;
+- screening/design authority.
 
-## Recommended Forward Sequence
+## Known / Deferred Work and Forward Sequence
 
-1. Complete Stage 5B exact-source inventory and locator reconciliation.
-2. Commit the exact-source inventory record.
-3. Create the governed source register from proven inventory evidence.
-4. Recover/reconcile SBC text tables/rules.
-5. Independently digitize T3-1…T3-4.
-6. Recover T2.8/T2.9/T4 and other source-ready masters.
-7. Add production master resolver only with a real recovered master consumer.
-8. Complete mechanism qualification and independent validation.
+### Open blockers/risks/questions
+
+- `RISK-004`: upstream integration drift;
+- `RISK-005`: no local binary transport;
+- `RISK-006`: Actions budget prevents controlled runner execution;
+- `QST-001`: exact anchor uniqueness;
+- `QST-002`: T3 geometry exact text/image representation;
+- `QST-003`: T2.9 `FL` exact source representation.
+
+### Recommended Forward Sequence
+
+1. Correct navigation-only T3 page hints and rerun focused tests.
+2. Obtain an execution path capable of materializing exact blob `9d3e…bdc5`.
+3. Run the operator inventory and commit `source-inventory-v1.json` only from that exact run.
+4. Reconcile any exact-source missing/duplicate locator without weakening fail-closed behavior.
+5. Only then create the governed source register and begin SBC table/rule recovery.
+6. Independently digitize T3-1…T3-4.
+7. Recover T2.8/T2.9/T4 source-ready masters.
+8. Add a master runtime only with real production-consumed recovered masters.
 9. Keep authority review separate.
 
 ## Next-Agent Handover
 
 | Item | Current state |
 |---|---|
-| Current stopping point | Stage 5B reopened with new retrieval commit; exact execution not yet run. |
-| PR / branch | #452 / `agent/vibration-master-source-inventory` |
-| Last completed stage | 5A |
-| Current active stage | 5B |
-| Start here | Materialize exact PDF from `Common@9e11e1b4…`, verify bytes/blob, run operator inventory. |
-| Do not redo | Stage 4/5A synthetic anti-drift implementation and 10/10 regression. |
-| Do not assume | retrieval commit replaces adopted source commit; mirror text proves a locator; source inventory grants authority. |
-| Known failing checks | prior CI failures exist; Stage 5B must collect fresh evidence. |
-| Open QST-* | QST-001, QST-002 |
+| Current stopping point | Stage 5B candidate exists; exact Actions execution blocked by budget; navigation-only T3 hint correction next. |
+| PR / branch / implementation HEAD | #452 / `agent/vibration-master-source-inventory` / `8ef9fbb4742ce0f969c7b5e2737105ed0b86f81c` before this report commit |
+| Last completed stage | Stage 5A |
+| Current active stage | Stage 5B |
+| Start here | Correct only T3 printed-page hints listed in Stage 5B; do not alter anchors. |
+| Do not redo | source identity discovery, range hardening, materializer implementation, Actions-budget diagnosis |
+| Do not assume | red Actions job ran; navigation mirror is source authority; geometry/T2.9 anchors should be weakened |
+| Files currently involved | ledger above |
+| Known failing checks | controlled Actions and topology jobs are budget-blocked/non-started on current candidate; exact inventory not executed |
+| Validation still required | focused tests after hint update; exact inventory; real locator reconciliation; upstream integration |
+| Open QST-* | QST-001, QST-002, QST-003 |
 | Highest-risk remaining item | exact-source locator reconciliation without anchor weakening |
-| Exact next recommended action | execute exact inventory in sanctioned controlled-source environment and inspect its raw states |
-| Required reading | issue #450; `Common@43eccc…/CodingRules.md`; this report; inventory script/test |
+| Exact next recommended action | update navigation hints only, validate, then preserve exact-execution blocker until bytes can be run |
+| Required reading | issue #450; `Common@43eccc…/CodingRules.md`; this report; inventory/materializer scripts/tests |
 
 ## Stage Execution Log
 
 ### Stages 1–4
 
-Report/PR/baseline setup and inventory implementation completed; ISS-001 extraction-order defect corrected. Focused validation reached **7/7 PASS**.
+Report/PR/baseline setup and inventory implementation completed; ISS-001 exact-byte ordering fixed. Focused inventory validation reached **7/7 PASS**.
 
 ### Stage 5
 
-Previously blocked because exact bytes could not be materialized locally; no substitute source accepted.
+Exact-source execution initially blocked by binary transport. No substitute source accepted.
 
 ### Stage 5A
 
-Bounded ranges, per-page hashes and Appendix-B target added. Focused validation reached **10/10 PASS**. Stage decision **COMPLETE**.
+Bounded ranges, per-page hashes and Appendix-B target added. Focused inventory validation reached **10/10 PASS**. **COMPLETE.**
 
-### Stage 5B
+### Stage 5B — ongoing
 
-Reopened after the Owner supplied retrieval commit `9e11e1b4…` and instructed immediate exact-source reconciliation. Report updated before implementation/execution. Stage decision pending.
+- Reopened after Owner supplied retrieval commit `9e11e1b4…`.
+- Proven retrieval/adopted path metadata resolve identical blob `9d3e…bdc5`, size `10,348,594`.
+- Added exact-source materializer and 4/4 synthetic regression.
+- Added CI-only bridge to existing controlled-source test seam without workflow modification.
+- Controlled-source Actions attempt and rerun never started; GitHub annotation reports Actions budget exhaustion.
+- Navigation-only reconciliation found stale T3 printed-page hints; anchor corrections remain prohibited pending exact source execution.
+- Current stage decision: **PARTIAL / EXACT_EXECUTION_BLOCKED**.
