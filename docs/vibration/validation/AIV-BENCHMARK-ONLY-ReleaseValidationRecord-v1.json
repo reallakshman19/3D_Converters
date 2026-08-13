@@ -1,0 +1,54 @@
+{
+  "schema": "AivReleaseValidationRecord.v1",
+  "methodId": "VIB.AIV.ACOUSTIC",
+  "repository": "reallaksh19/3D_Converters",
+  "releaseTarget": "BENCHMARK_ONLY",
+  "exactHeadSha": "92720d93da0d34fe817302c1f2b00187676c6c08",
+  "execution": {
+    "source": "LOCAL_CONTROLLED_CHECKOUT",
+    "actualExecution": true,
+    "runnerId": null,
+    "runnerName": null,
+    "environment": "OpenAI container Node v22.16.0; networkless sparse exact-head AIV checkout reconstructed from GitHub file API; every executed/scanned repository file verified against its exact git blob SHA-1 at the candidate head",
+    "startedAt": "2026-08-13T01:29:56Z",
+    "completedAt": "2026-08-13T01:33:05Z"
+  },
+  "checks": [
+    {
+      "groupId": "AIV_FOCUSED_NODE_TESTS",
+      "status": "PASS",
+      "command": "node tests/stage19-local-validation.mjs",
+      "exitCode": 0,
+      "outputSha256": "sha256:3e675274ae69b9a853a0ef6fe6ae472bc6aaf0c5f393c41d2809897daaf1c86c",
+      "notes": "Exact-source sparse bundle; all executed/scanned repository files matched candidate-head git blob SHA-1 values."
+    },
+    {
+      "groupId": "AIV_CONTROLLED_BENCHMARK_PARITY",
+      "status": "PASS",
+      "command": "node scripts/run-aiv-d23-product-path-validation.mjs",
+      "exitCode": 0,
+      "outputSha256": "sha256:b63293aec97da2ec01651c1351eed75a42b3c11fe1f697b08da34ce7679c4b2f",
+      "notes": "EI D.2.3 product path: 22/22 checks PASS, complete 10-stage Source/Assessment/Line path."
+    },
+    {
+      "groupId": "AIV_BROWSER_WORKSPACE_SMOKE",
+      "status": "PASS",
+      "command": "node tests/stage19-local-validation.mjs --group browser",
+      "exitCode": 0,
+      "outputSha256": "sha256:3e675274ae69b9a853a0ef6fe6ae472bc6aaf0c5f393c41d2809897daaf1c86c",
+      "notes": "Validated-result rendering, table-edit invalidation, assumption-edit invalidation and export action verified from exact-head UI modules."
+    },
+    {
+      "groupId": "AIV_MODULE_BOUNDARY_CHECK",
+      "status": "PASS",
+      "command": "node tests/stage19-local-validation.mjs --group boundaries",
+      "exitCode": 0,
+      "outputSha256": "sha256:3e675274ae69b9a853a0ef6fe6ae472bc6aaf0c5f393c41d2809897daaf1c86c",
+      "notes": "AIV facade does not export candidate kernel; UI does not invoke runAivAutoProductPath directly."
+    }
+  ],
+  "authority": {
+    "authorityTransitionApplied": false,
+    "designAuthority": false
+  }
+}
