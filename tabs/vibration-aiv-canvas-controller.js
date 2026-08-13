@@ -1,5 +1,6 @@
 import { createAivCanvasLayout, moveAivCanvasLayoutNode } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 import { focusAivCanvasField } from './vibration-aiv-canvas-field.js';
+import { createAivCanvasFilterController } from './vibration-aiv-canvas-filter.js';
 import { aivCanvasSelectionFromElement, applyAivCanvasSelection, revealAivCanvasSelection } from './vibration-aiv-canvas-selection.js';
 import {
   AIV_CANVAS_MODE, advanceAivCanvasRelationshipState, aivCanvasRelationshipEndpoint,
@@ -133,6 +134,11 @@ function selectTarget(runtime, target, origin) {
   if (origin === 'table' && svg) applyLayout(svg, runtime.layout);
 }
 
+function clearFilteredSelection(runtime) {
+  runtime.selection = null;
+  updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, null).canvasElement);
+}
+
 function syncRuntime(runtime) {
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
   runtime.relationship = createAivCanvasRelationshipState();
@@ -140,6 +146,7 @@ function syncRuntime(runtime) {
   runtime.layout = reconcileAivCanvasPresentationLayout(layoutFromSvg(svg), runtime.layout);
   applyLayout(svg, runtime.layout);
   updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, runtime.selection).canvasElement);
+  runtime.filterController.sync();
 }
 
 function setRelationshipMode(runtime, mode) {
@@ -257,7 +264,8 @@ function keydown(runtime, event) {
 }
 
 export function createAivCanvasInteractionController(container, callbacks = {}) {
-  const runtime = { container, callbacks, layout: null, pointer: null, selection: null, relationship: createAivCanvasRelationshipState() };
+  const runtime = { container, callbacks, layout: null, pointer: null, selection: null, filterController: null, relationship: createAivCanvasRelationshipState() };
+  runtime.filterController = createAivCanvasFilterController(container, { onSelectionFiltered: () => clearFilteredSelection(runtime) });
   const handlers = {
     pointerdown: (event) => startPointer(runtime, event), pointermove: (event) => movePointer(runtime, event),
     pointerup: (event) => endPointer(runtime, event), pointercancel: (event) => endPointer(runtime, event),
@@ -267,6 +275,7 @@ export function createAivCanvasInteractionController(container, callbacks = {}) 
   return Object.freeze({
     sync: () => syncRuntime(runtime), getLayout: () => runtime.layout,
     destroy: () => {
+      runtime.filterController.destroy();
       for (const [type, handler] of Object.entries(handlers)) container.removeEventListener(type, handler);
       runtime.pointer = null;
       runtime.layout = null;
