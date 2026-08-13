@@ -1,6 +1,6 @@
 const LINE_FIELDS = new Set(['p1', 't1', 't2', 't3', 'density']);
-const CLASS_FIELDS = new Set(['hydroPressure', 'material', 'rating', 'corrosion']);
-const CLASS_SIZE_FIELDS = new Set(['materialCode', 'wallThickness']);
+const CLASS_FIELDS = new Set(['hydroPressure', 'material', 'rating', 'materialCode', 'corrosion']);
+const CLASS_SIZE_FIELDS = new Set(['wallThickness']);
 const NUMERIC_FIELDS = new Set(['p1', 'hydroPressure', 't1', 't2', 't3', 'density', 'wallThickness', 'corrosion']);
 
 function text(value) { return value === undefined || value === null ? '' : String(value).trim(); }
