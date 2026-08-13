@@ -29,6 +29,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-fit-screening-candidate.test.mjs',
       'tests/vibration-fit-ui-benchmarks.test.mjs',
       'tests/vibration-fit-correlation-trace.test.mjs',
+      'tests/vibration-fit-mechanism-contract.test.mjs',
     ]),
   }),
   Object.freeze({
@@ -59,12 +60,24 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-integrity-run-snapshot.test.mjs',
       'tests/vibration-integrity-engineering-basis.test.mjs',
       'tests/vibration-integrity-fit-mechanism.test.mjs',
+      'tests/vibration-mechanism-contract.test.mjs',
+      'tests/vibration-integrity-mechanism-context.test.mjs',
       'tests/vibration-integrity-input-model.test.mjs',
       'tests/vibration-integrity-input-runtime.test.mjs',
       'tests/vibration-integrity-editable-input-static.test.mjs',
       'tests/vibration-integrity-mechanism-matrix.test.mjs',
       'tests/vibration-module-boundaries.test.mjs',
       'tests/vibration-fit-release-gate.test.mjs',
+    ]),
+  }),
+  Object.freeze({
+    id: 'vibration-multimechanism-validation',
+    label: 'EI multi-mechanism worked-example validation',
+    tests: Object.freeze([
+      'tests/vibration-mechanical-ei-worked-examples.test.mjs',
+      'tests/vibration-deadleg-ei-worked-examples.test.mjs',
+      'tests/vibration-transient-ei-worked-examples.test.mjs',
+      'tests/vibration-multimechanism-validation-record.test.mjs',
     ]),
   }),
 ]);

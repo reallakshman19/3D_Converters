@@ -188,3 +188,40 @@ test('source and diagnostics views remain explicit for review and failure cases'
   assert.match(diagnostics, /INPUT_INVALID/u);
   assert.match(diagnostics, /Density is invalid/u);
 });
+
+test('generic mechanism contract exposes identity, currency, benchmark and exact working trace', () => {
+  const value = detail();
+  const context = {
+    mechanismAssessmentSet: {
+      setId: '["fit","L-100","NORMAL","CAN-1"]',
+      cardinality: { count: 1, kind: 'ONE' },
+      items: [{
+        itemId: '["fit","L-100","NORMAL","CAN-1","mainline"]',
+        implementationState: 'IMPLEMENTED_BENCHMARK_ONLY',
+        assessmentState: 'CALCULATED', resultState: 'STALE_RESULT',
+        benchmark: { status: 'STALE_RESULT' },
+        trace: {
+          inputTrace: {
+            status: 'COMPLETE_WORKING_TRACE',
+            workingCells: {
+              outsideDiameter: {
+                sourceAnchorId: 'vi-source-enrichment-EN-1-4',
+                valueRef: { kind: 'enrichment', rowId: 'EN-1', header: 'Value' },
+                unitRef: { kind: 'enrichment', rowId: 'EN-1', header: 'Unit' },
+              },
+            },
+          },
+        },
+      }],
+    },
+  };
+  const summary = renderVibrationIntegrityDetailBody(value, 'summary', context);
+  for (const token of [
+    'Mechanism assessment contract', 'mainline', 'ONE', 'IMPLEMENTED_BENCHMARK_ONLY',
+    'STALE_RESULT', 'COMPLETE_WORKING_TRACE',
+  ]) assert.match(summary, new RegExp(token, 'u'));
+  const inputs = renderVibrationIntegrityDetailBody(value, 'inputs', context);
+  assert.match(inputs, /Mechanism working-input trace/u);
+  assert.match(inputs, /vi-source-enrichment-EN-1-4/u);
+  assert.match(inputs, /EN-1/u);
+});

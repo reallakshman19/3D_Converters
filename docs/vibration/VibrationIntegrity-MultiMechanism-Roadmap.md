@@ -195,6 +195,27 @@ FIT Stage 4 now exposes stable correlation IDs, equation IDs, normalized central
 
 ## 10. Roadmap stages
 
+### Auto-mode execution policy
+
+Owner directive (2026-08-12): **upcoming implementation stages run in AUTO MODE**.
+
+AUTO MODE means:
+
+- once the current stage reaches its defined implementation/validation handoff, proceed to the next roadmap stage without asking for another “ok”;
+- automatically perform source reconciliation, bounded implementation, focused validation, CodingRules reporting and draft-PR publication when the stage prerequisites are actually available;
+- if a prerequisite is missing, source authority is ambiguous, or another active PR owns overlapping files, mark the stage `BLOCKED`/`DEFERRED`, preserve the evidence, and continue only where the roadmap permits without overwriting that workstream;
+- every new numerical mechanism begins no higher than `BENCHMARK_ONLY` and must satisfy its own controlled method/source/evidence gates.
+
+AUTO MODE does **not** authorize:
+
+- merging a PR;
+- changing engineering, screening or design authority;
+- bypassing a failed validation/evidence gate;
+- inventing a method, coefficient, benchmark target or applicability rule;
+- overwriting unrelated active PR work.
+
+Stage 12 remains a manual engineering-governance event and is excluded from automatic authority transition.
+
 ### Stage 0 — Authority freeze
 
 Status: **ACTIVE / PERMANENT UNTIL EXPLICIT GOVERNANCE CHANGE**
@@ -303,45 +324,72 @@ docs/vibration/VibrationIntegrity-FIT-Mechanism-v1.md
 
 ### Stage 5 — Generic mechanism qualification framework
 
-Status: **NEXT**
+Status: **IMPLEMENTED / FULL RELEASE+BROWSER GATE PENDING**
 
-Goal: establish reusable mechanism contracts only after FIT is an explicit production consumer.
+Delivered:
 
-Required:
+- `VibrationMechanismAssessmentItem.v1` with deterministic mechanism/line/case/canonical/child identity;
+- `VibrationMechanismAssessmentSet.v1` with explicit `ZERO` / `ONE` / `MANY` child cardinality;
+- independent implementation, assessment/readiness, result-currency and benchmark state dimensions;
+- normalized request/execution/result, qualification and evidence slots;
+- equation/rule/correlation trace dimensions;
+- `UNAVAILABLE` / `SOURCE_AND_NORMALIZED_ONLY` / `COMPLETE_WORKING_TRACE` input-trace states;
+- FIT as the immediate production consumer through a non-numerical adapter;
+- exact Stage-3 working-cell/source anchors where real backing pointers exist;
+- mechanism-specific FIT benchmark comparison with modified/stale/current semantics;
+- stale FIT retained for evidence but excluded from current `Implemented governing`;
+- non-FIT mechanisms represented as `NOT_IMPLEMENTED` with zero child items, never synthetic `NOT_APPLICABLE`;
+- no second numerical mechanism and no authority change.
 
-- stable mechanism item identity and child-item cardinality;
-- applicability/readiness envelope;
-- normalized request/execution envelope;
-- current/stale result semantics;
-- mechanism-specific benchmark comparison;
-- equation/rule/correlation trace;
-- evidence/qualification envelope;
-- source-to-working-to-normalized trace;
-- no speculative abstractions without FIT production consumption.
+Permanent regressions:
 
-Do not implement a second numerical mechanism in this stage unless its own method/source qualification is separately controlled.
+```text
+tests/vibration-mechanism-contract.test.mjs
+tests/vibration-fit-mechanism-contract.test.mjs
+tests/vibration-integrity-mechanism-context.test.mjs
+tests/vibration-integrity-mechanism-matrix.test.mjs
+tests/vibration-integrity-detail-view.test.mjs
+```
+
+Detailed contract:
+
+```text
+docs/vibration/VibrationMechanismQualificationFramework-v1.md
+```
 
 ### Stage 6 — Mechanical excitation
+
+Status: **AUTO MODE · QUEUED AFTER STAGE-5 RELEASE/BROWSER EVIDENCE**
 
 Use retained records 3, 4, 5 and 7 only after adopted rules/equations, equipment-item cardinality, governing semantics, independent examples and unit invariance are controlled. Authority starts benchmark-only.
 
 ### Stage 7 — Deadleg pulsation
 
+Status: **AUTO MODE · QUEUED AFTER STAGE 6**
+
 Use retained records 4, 7 and 8. Control branch geometry, standard/advanced paths, unavailable advanced results, branch-mainline trace, independent checks and boundaries.
 
 ### Stage 8 — AIV
+
+Status: **AUTO MODE · COORDINATE WITH ACTIVE AIV WORKSTREAM; DO NOT OVERWRITE #446**
 
 Use retained records 5, 6 and 8. Control valve/noise source contract, PWL, low-noise trim, pressure/flow resolution and independent qualification separately from FIT.
 
 ### Stage 9 — Valve transients
 
+Status: **AUTO MODE · QUEUED AFTER PREDECESSOR GATES**
+
 Use retained records 7, 8 and 12. Control mechanism taxonomy, valve/pump context, closure/opening forces, pressure rise, opening/closing LOF and source ambiguity.
 
 ### Stage 10 — Thermowell / SBC
 
+Status: **AUTO MODE · QUEUED AFTER PREDECESSOR GATES**
+
 Treat both as child-item mechanisms. Thermowell requires ASME PTC 19.3 TW qualification. SBC requires mainline dependency plus fitting/location/geometry evidence.
 
 ### Stage 11 — Mechanisms with no retained populated examples
+
+Status: **AUTO MODE · EVIDENCE-GATED; EXPECT BLOCK/DEFER WHEN METHOD SOURCES ARE ABSENT**
 
 Do not implement from empty headings:
 
@@ -354,6 +402,8 @@ Do not implement from empty headings:
 Each needs an adopted method source plus independent qualification evidence.
 
 ### Stage 12 — Screening-authority review
+
+Status: **MANUAL GOVERNANCE ONLY · EXCLUDED FROM AUTO AUTHORITY TRANSITION**
 
 Separate engineering-governance event requiring adopted screening scope, mechanism-specific independent validation, boundary/domain coverage, unit invariance, source/run trace, exact-head release/browser validation, independent vibration-engineer approval and explicit Owner authority transition.
 
@@ -388,6 +438,6 @@ Controlled command:
 npm run verify:vibration-fit-release
 ```
 
-After Stage 4 the manifest contains **36 controlled test files**.
+After Stage 5 the manifest contains **39 controlled test files**.
 
-Focused Stage-4 validation is PASS. Full exact-head release execution, real-browser interaction and independent vibration-engineering review remain required before closure/merge.
+Focused Stage-5 framework validation is PASS. Full exact-head release execution, real-browser interaction and independent vibration-engineering review remain required before authority closure.
