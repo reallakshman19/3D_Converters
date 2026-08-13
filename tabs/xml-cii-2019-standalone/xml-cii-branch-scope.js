@@ -80,6 +80,37 @@ export function extractXmlCiiBranchRecords(sourceText) {
   return records.length ? records : branchRecordsFromText(source);
 }
 
+function branchOccurrenceId(sourceDigest, index) {
+  return `${sourceDigest}::BR-${String(Number(index) + 1).padStart(4, '0')}`;
+}
+
+export function buildXmlCiiBranchOccurrences(sourceText) {
+  const source = String(sourceText ?? '');
+  const sourceDigest = xmlCiiSourceDigest(source);
+  const records = extractXmlCiiBranchRecords(source);
+  const counts = new Map();
+  for (const record of records) {
+    const key = normalize(record.branchName);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const seen = new Map();
+  return records.map((record) => {
+    const key = normalize(record.branchName);
+    const duplicateCount = counts.get(key) || 1;
+    const duplicateOrdinal = (seen.get(key) || 0) + 1;
+    seen.set(key, duplicateOrdinal);
+    return {
+      ...record,
+      branchIndex: record.index,
+      branchOccurrenceId: branchOccurrenceId(sourceDigest, record.index),
+      originalBranchName: record.branchName,
+      displayBranchName: duplicateCount > 1 ? `${record.branchName}_${duplicateOrdinal}` : record.branchName,
+      duplicateOrdinal,
+      duplicateCount,
+    };
+  });
+}
+
 export function buildXmlCiiBranchGroups(branchNames = []) {
   const groups = new Map();
   for (const branchName of branchNames.map(text).filter(Boolean)) {
@@ -90,9 +121,30 @@ export function buildXmlCiiBranchGroups(branchNames = []) {
   return [...groups.values()];
 }
 
-function orderedSelection(sourceBranches, selectedBranchNames) {
-  const selected = new Set((Array.isArray(selectedBranchNames) ? selectedBranchNames : []).map(normalize));
-  return sourceBranches.filter((name) => selected.has(normalize(name)));
+export function buildXmlCiiBranchOccurrenceGroups(occurrences = []) {
+  const groups = new Map();
+  for (const occurrence of occurrences || []) {
+    const branchName = text(occurrence?.branchName || occurrence?.originalBranchName);
+    if (!branchName) continue;
+    const groupName = xmlCiiBranchGroupName(branchName);
+    if (!groups.has(groupName)) groups.set(groupName, { groupName, branchOccurrences: [] });
+    groups.get(groupName).branchOccurrences.push(occurrence);
+  }
+  return [...groups.values()];
+}
+
+function selectedOccurrences(occurrences, selection, sourceDigest) {
+  const sameSource = text(selection?.sourceDigest) === sourceDigest;
+  if (!sameSource) return [...occurrences];
+  if (Array.isArray(selection?.selectedBranchOccurrenceIds)) {
+    const wanted = new Set(selection.selectedBranchOccurrenceIds.map(text).filter(Boolean));
+    return occurrences.filter((row) => wanted.has(row.branchOccurrenceId));
+  }
+  if (Array.isArray(selection?.selectedBranchNames)) {
+    const wanted = new Set(selection.selectedBranchNames.map(normalize).filter(Boolean));
+    return occurrences.filter((row) => wanted.has(normalize(row.branchName)));
+  }
+  return [...occurrences];
 }
 
 function stagedSelection(branchNames) {
@@ -110,25 +162,29 @@ function branchCompatible(branchName, selection) {
   return selection.roots.has(normalized) || selection.roots.has(root);
 }
 
-function filterXmlWithDom(source, selectedSet) {
+function filterXmlWithDom(source, selectedOccurrenceIds) {
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return '';
   try {
     const document = new DOMParser().parseFromString(source, 'application/xml');
     if (document.querySelector?.('parsererror') || document.getElementsByTagName?.('parsererror')?.length) return '';
-    for (const branch of [...document.getElementsByTagName('Branch')]) {
-      if (!selectedSet.has(normalize(childText(branch, 'Branchname')))) branch.parentNode?.removeChild?.(branch);
-    }
+    const sourceDigest = xmlCiiSourceDigest(source);
+    [...document.getElementsByTagName('Branch')].forEach((branch, index) => {
+      if (!selectedOccurrenceIds.has(branchOccurrenceId(sourceDigest, index))) branch.parentNode?.removeChild?.(branch);
+    });
     return new XMLSerializer().serializeToString(document);
   } catch {
     return '';
   }
 }
 
-function filterXmlWithText(source, selectedSet) {
+function filterXmlWithText(source, selectedOccurrenceIds) {
+  const sourceDigest = xmlCiiSourceDigest(source);
   const pattern = /<\s*(?:[A-Za-z_][\w.-]*:)?Branch\b[^>]*>[\s\S]*?<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?Branch\s*>/gi;
+  let index = 0;
   return source.replace(pattern, (block) => {
-    const name = block.match(/<\s*(?:[A-Za-z_][\w.-]*:)?Branchname\b[^>]*>([\s\S]*?)<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?Branchname\s*>/i)?.[1] || '';
-    return selectedSet.has(normalize(decodeXml(name))) ? block : '';
+    const keep = selectedOccurrenceIds.has(branchOccurrenceId(sourceDigest, index));
+    index += 1;
+    return keep ? block : '';
   });
 }
 
@@ -158,34 +214,46 @@ export function filterXmlCiiStagedJsonByBranches(stagedJsonText, selectedBranchN
 }
 
 export function normalizeXmlCiiBranchSelection(sourceText, selection = {}) {
-  const sourceBranches = extractXmlCiiBranchRecords(sourceText).map((row) => row.branchName);
-  const sourceDigest = xmlCiiSourceDigest(sourceText);
-  const sameSource = text(selection.sourceDigest) === sourceDigest;
-  const selectedBranchNames = sameSource && Array.isArray(selection.selectedBranchNames)
-    ? orderedSelection(sourceBranches, selection.selectedBranchNames)
-    : [...sourceBranches];
+  const source = String(sourceText ?? '');
+  const sourceDigest = xmlCiiSourceDigest(source);
+  const occurrences = buildXmlCiiBranchOccurrences(source);
+  const selected = selectedOccurrences(occurrences, selection, sourceDigest);
   return {
     sourceDigest,
-    selectedBranchNames,
-    search: sameSource ? text(selection.search) : '',
+    selectedBranchOccurrenceIds: selected.map((row) => row.branchOccurrenceId),
+    selectedBranchNames: selected.map((row) => row.branchName),
+    search: text(selection?.sourceDigest) === sourceDigest ? text(selection.search) : '',
     initialized: true,
   };
 }
 
-export function buildSelectedBranchScope({ sourceText = '', stagedJsonText = '', selectedBranchNames, sourceKind = 'xml' } = {}) {
+export function buildSelectedBranchScope({
+  sourceText = '',
+  stagedJsonText = '',
+  selectedBranchNames,
+  selectedBranchOccurrenceIds,
+  sourceKind = 'xml',
+} = {}) {
   const source = String(sourceText ?? '');
-  const sourceBranches = extractXmlCiiBranchRecords(source).map((row) => row.branchName);
-  const applicable = sourceKind !== 'inputxml' && sourceBranches.length > 0;
-  const selected = Array.isArray(selectedBranchNames)
-    ? orderedSelection(sourceBranches, selectedBranchNames)
-    : [...sourceBranches];
-  const selectedSet = new Set(selected.map(normalize));
-  const excluded = sourceBranches.filter((name) => !selectedSet.has(normalize(name)));
-  const allSelected = selected.length === sourceBranches.length;
-  const blocked = applicable && selected.length === 0;
+  const sourceDigest = xmlCiiSourceDigest(source);
+  const sourceBranchOccurrences = buildXmlCiiBranchOccurrences(source);
+  const selection = normalizeXmlCiiBranchSelection(source, {
+    sourceDigest,
+    selectedBranchNames,
+    selectedBranchOccurrenceIds,
+  });
+  const selectedIds = new Set(selection.selectedBranchOccurrenceIds);
+  const selectedOccurrencesList = sourceBranchOccurrences.filter((row) => selectedIds.has(row.branchOccurrenceId));
+  const excludedOccurrences = sourceBranchOccurrences.filter((row) => !selectedIds.has(row.branchOccurrenceId));
+  const sourceBranches = sourceBranchOccurrences.map((row) => row.branchName);
+  const selected = selectedOccurrencesList.map((row) => row.branchName);
+  const excluded = excludedOccurrences.map((row) => row.branchName);
+  const applicable = sourceKind !== 'inputxml' && sourceBranchOccurrences.length > 0;
+  const allSelected = selectedOccurrencesList.length === sourceBranchOccurrences.length;
+  const blocked = applicable && selectedOccurrencesList.length === 0;
   const filteredSourceText = !applicable || allSelected
     ? source
-    : (blocked ? '' : (filterXmlWithDom(source, selectedSet) || filterXmlWithText(source, selectedSet)));
+    : (blocked ? '' : (filterXmlWithDom(source, selectedIds) || filterXmlWithText(source, selectedIds)));
   const filteredStagedJsonText = !applicable || allSelected
     ? String(stagedJsonText ?? '')
     : (blocked ? '' : filterXmlCiiStagedJsonByBranches(stagedJsonText, selected));
@@ -194,14 +262,22 @@ export function buildSelectedBranchScope({ sourceText = '', stagedJsonText = '',
   const mode = !applicable ? 'not-applicable' : (blocked ? 'empty-selection' : (allSelected ? 'all' : 'explicit-selection'));
   const manifest = {
     mode,
-    sourceBranchCount: sourceBranches.length,
-    selectedBranchCount: selected.length,
-    excludedBranchCount: excluded.length,
+    sourceBranchCount: sourceBranchOccurrences.length,
+    selectedBranchCount: selectedOccurrencesList.length,
+    excludedBranchCount: excludedOccurrences.length,
     selectedGroupCount: selectedGroups.length,
     selectedBranches: selected,
     excludedBranches: excluded,
-    sourceDigest: xmlCiiSourceDigest(source),
-    selectionDigest: xmlCiiSourceDigest(selected.join('\n')),
+    selectedBranchOccurrenceIds: selectedOccurrencesList.map((row) => row.branchOccurrenceId),
+    excludedBranchOccurrenceIds: excludedOccurrences.map((row) => row.branchOccurrenceId),
+    branchOccurrences: sourceBranchOccurrences.map((row) => ({
+      branchOccurrenceId: row.branchOccurrenceId,
+      branchIndex: row.branchIndex,
+      branchName: row.branchName,
+      displayBranchName: row.displayBranchName,
+    })),
+    sourceDigest,
+    selectionDigest: xmlCiiSourceDigest(selectedOccurrencesList.map((row) => row.branchOccurrenceId).join('\n')),
   };
   return {
     ok: !blocked,
@@ -209,8 +285,13 @@ export function buildSelectedBranchScope({ sourceText = '', stagedJsonText = '',
     applicable,
     mode,
     sourceBranches,
+    sourceBranchOccurrences,
     selectedBranchNames: selected,
+    selectedBranchOccurrenceIds: selectedOccurrencesList.map((row) => row.branchOccurrenceId),
+    selectedBranchOccurrences: selectedOccurrencesList,
     excludedBranchNames: excluded,
+    excludedBranchOccurrenceIds: excludedOccurrences.map((row) => row.branchOccurrenceId),
+    excludedBranchOccurrences: excludedOccurrences,
     groups,
     selectedGroups,
     filteredSourceText,
@@ -221,7 +302,7 @@ export function buildSelectedBranchScope({ sourceText = '', stagedJsonText = '',
       level: blocked ? 'error' : 'info',
       message: blocked
         ? 'No branches are selected for processing.'
-        : `${selected.length} of ${sourceBranches.length} source branches selected for processing.`,
+        : `${selectedOccurrencesList.length} of ${sourceBranchOccurrences.length} source branch occurrences selected for processing.`,
       ...manifest,
     }],
   };
@@ -233,6 +314,7 @@ export function xmlCiiBranchScopeFromState(state = {}) {
     sourceText: state.sourceText || '',
     stagedJsonText: state.stagedJsonText || '',
     selectedBranchNames: selection.selectedBranchNames,
+    selectedBranchOccurrenceIds: selection.selectedBranchOccurrenceIds,
     sourceKind: state.sourceKind || 'auto',
   });
 }
