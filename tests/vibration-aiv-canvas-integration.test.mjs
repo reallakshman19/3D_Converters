@@ -14,6 +14,8 @@ import { buildLoadedAivD23Benchmark } from '../tabs/vibration-aiv-benchmarks.js'
 import { renderAivCanvasAssessmentResultHtml } from '../tabs/vibration-aiv-canvas-results.js';
 import { serializeAivInputTable } from '../tabs/vibration-aiv-input-model.js';
 
+const RELIEF_SOURCE_ID = 'AIV-D23-RELIEF-SOURCE';
+
 function parsedD23() {
   const loaded = buildLoadedAivD23Benchmark();
   return {
@@ -53,12 +55,9 @@ test('controlled EI D.2.3 single Engineering API, batch API and canvas projectio
   assert.deepEqual(batch.results[0].outputs.sourceResults, single.outputs.sourceResults);
   assert.deepEqual(batch.results[0].outputs.assessmentResults, single.outputs.assessmentResults);
 
-  const projection = buildAivCanvasProjection({
-    tables: fixture.loaded.tables,
-    topology: fixture.loaded.topology,
-    screeningResult: single,
-  });
-  const reliefSource = single.outputs.sourceResults.find((item) => item.sourceCanonicalId === 'D23-RELIEF-SOURCE');
+  const projection = buildAivCanvasProjection({ tables: fixture.loaded.tables, topology: fixture.loaded.topology, screeningResult: single });
+  const reliefSource = single.outputs.sourceResults.find((item) => item.sourceCanonicalId === RELIEF_SOURCE_ID);
+  assert.ok(reliefSource);
   const sourceNode = projection.nodes.find((item) => item.nodeKey === `SOURCE:${reliefSource.sourceCanonicalId}:${reliefSource.caseId}`);
   const assessmentResult = single.outputs.assessmentResults[0];
   const assessmentNode = projection.nodes.find((item) => item.nodeKey === `ASSESSMENT:${assessmentResult.assessmentCanonicalId}`);
@@ -74,7 +73,7 @@ const RAW_RELIEF_PWL = 164.6851759525391;
 
 function simultaneousFixture(targets) {
   const fixture = parsedD23();
-  const base = fixture.sources.find((item) => item.sourceCanonicalId === 'D23-RELIEF-SOURCE') ?? fixture.sources[0];
+  const base = fixture.sources.find((item) => item.sourceCanonicalId === RELIEF_SOURCE_ID) ?? fixture.sources[0];
   const assessment = fixture.assessments[0];
   const caseId = base.caseId;
   const sources = targets.map((target, index) => ({
@@ -126,7 +125,7 @@ function simultaneousFixture(targets) {
       rows: relationships.map((item) => [item.sourceCanonicalId, item.assessmentCanonicalId, item.caseId, '0', 'm', item.distanceSource, item.distanceSourceRevision, item.simultaneousSourceGroup, item.applicabilityDisposition, item.source, item.sourceRevision, item.recordId]),
     },
   };
-  return { inputs: { sources, assessments: [assessment], relationships, topology, assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE }, tables, topology, assessment, caseId };
+  return { inputs: { sources, assessments: [assessment], relationships, topology, assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE }, tables, topology, assessment };
 }
 
 function runSimultaneous(targets, expected) {
