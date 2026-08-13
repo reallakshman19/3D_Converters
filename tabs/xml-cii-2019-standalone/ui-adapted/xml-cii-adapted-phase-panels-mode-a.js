@@ -117,6 +117,19 @@ function individualHeading(card, label, count) {
   card.appendChild(heading);
 }
 
+function lazyRender(details, body, loader, label) {
+  let loaded = false;
+  const load = () => {
+    if (loaded || !details.open) return;
+    loaded = true;
+    body.innerHTML = '';
+    loader();
+  };
+  body.appendChild(createElement('div', `Expand this source to load the individual ${label} workbench.`, 'xml-cii-phase-help'));
+  details.addEventListener('toggle', load);
+  if (details.open) load();
+}
+
 function renderRegexBatch(root, stateRef, render) {
   const card = createPhaseCard(root, 'regex');
   const regexRef = createModeARegexProcessingRef(stateRef);
@@ -163,7 +176,9 @@ function renderPreviewBatch(root, stateRef, render) {
   for (const { source } of executions) {
     const { details, body, sourceRef } = sourceDetails(source, stateRef, 'Preview / Review', !multi);
     card.appendChild(details);
-    void renderStandalonePreviewReportPanel(body, sourceRef, render);
+    const load = () => { void renderStandalonePreviewReportPanel(body, sourceRef, render); };
+    if (multi) lazyRender(details, body, load, 'Preview / Review');
+    else load();
   }
 }
 
@@ -197,7 +212,9 @@ function renderWeightBatch(root, stateRef, render) {
   for (const { source } of executions) {
     const { details, body, sourceRef } = sourceDetails(source, stateRef, 'Weight Match', !multi);
     card.appendChild(details);
-    renderAdaptedWeightMatchPanelV2(body, sourceRef);
+    const load = () => renderAdaptedWeightMatchPanelV2(body, sourceRef);
+    if (multi) lazyRender(details, body, load, 'Weight Match');
+    else load();
   }
 }
 
