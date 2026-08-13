@@ -5,7 +5,7 @@
 - PR: #464
 - Branch: `agent/aiv-eit-export-rebased`
 - Base: `main` at `07622243f143696c123c3643c7467ab928cc94c1`
-- State: DRAFT
+- State: DRAFT / focused implementation validation PASS; full release/browser/consumer gates pending
 - Merge: NOT REQUESTED / NOT PERFORMED
 - Numerical kernel changes: NONE
 - Screening/design authority changes: NONE
@@ -46,6 +46,8 @@ New production modules:
 
 - `converters/vibration/aiv/aiv-eit-contract.js`
 - `converters/vibration/aiv/aiv-eit-units.js`
+- `converters/vibration/aiv/aiv-eit-geometry.js`
+- `converters/vibration/aiv/aiv-eit-stream-record.js`
 - `converters/vibration/aiv/aiv-eit-records.js`
 - `converters/vibration/aiv/aiv-eit-authority.js`
 - `converters/vibration/aiv/aiv-eit-document.js`
@@ -106,22 +108,24 @@ Converter-only normalization:
 - mass flow → kg/h;
 - pressure → bar absolute;
 - temperature → °C;
+- pipe OD / ID / wall thickness → mm;
+- molecular weight → g/mol-equivalent;
 - low-noise trim → dB.
 
 Gauge pressure requires explicit reference-pressure value and source/revision evidence. No fallback atmospheric value is invented.
 
 ## Focused validation
 
-Local pre-publication execution after the final serializer split:
+Post-publication local reconstruction uses the same final converter/test bytes as the PR candidate for the focused seams:
 
 ```text
 node --test tests/vibration-aiv-eit-export.test.mjs \
   tests/vibration-aiv-eit-reference.test.mjs
 
-10 tests / 10 PASS
+12 tests / 12 PASS
 ```
 
-Syntax checks PASS for all new/modified JS modules.
+Syntax checks PASS for the normalized stream/geometry/document modules and all earlier changed/new JS modules were syntax-checked during implementation.
 
 Permanent focused seams include:
 
@@ -132,18 +136,35 @@ Permanent focused seams include:
 5. path lengths `38 m` and `41 m` retained;
 6. `aiv_data` remains stringified;
 7. kg/h, bar abs, °C conversion behavior;
-8. controlled Common reference identity pinned;
-9. v5 collection counts pinned;
-10. historical `0.29` / `1.48` reference anchors and drift failures pinned.
+8. pipe geometry normalizes to mm;
+9. molecular weight normalizes to g/mol-equivalent;
+10. gauge pressure fails closed without explicit reference-pressure evidence;
+11. controlled Common reference identity/counts are pinned;
+12. historical `0.29` / `1.48` reference anchors and drift failures are pinned.
 
 `package.json` adds `verify:aiv-eit-export` and includes it in `verify:aiv-canvas-release`.
 
+## Exact-head GitHub Actions evidence
+
+GitHub created two workflows on PR #464. Both concluded `failure`, but inspection of the jobs/check annotations proves **zero workflow steps started**. GitHub reported:
+
+```text
+The job was not started because an Actions budget is preventing further use.
+```
+
+Affected workflow names:
+
+- `Vibration AIV Controlled Source Qualification`
+- `Topology Edit Support Reprojection`
+
+Classification: `ENVIRONMENT_BLOCKED / NOT_RUN`, not a test/code FAIL and not PASS.
+
 ## Not run / remaining gates
 
-- full `npm run verify:aiv-canvas-release`: NOT_RUN in the partial local reconstruction;
-- exact controlled `.eit` verifier against a mounted Common checkout: NOT_RUN locally; connector source identity/blob/size were fetched and pinned;
+- full `npm run verify:aiv-canvas-release`: NOT_RUN as an exact-repository package run in this runtime;
+- exact controlled `.eit` verifier against a mounted Common checkout: NOT_RUN locally; connector source identity/blob/size were independently fetched and pinned;
 - real-browser click/download acceptance: NOT_RUN;
-- external consumer import/round-trip of emitted `.eit`: NOT_RUN.
+- external EI consumer import/round-trip of emitted `.eit`: NOT_RUN.
 
 These remain explicit release evidence gaps and do not alter AIV screening authority.
 
@@ -155,7 +176,8 @@ These remain explicit release evidence gaps and do not alter AIV screening autho
 - changed reference shape fails tests;
 - `aiv_data` string contract pinned;
 - non-authoritative line/case promotion hard-fails;
-- unit conversion uses the central engineering unit converter outside UI code;
+- geometry/process unit normalization is outside UI code and uses central units where applicable;
+- gauge pressure has no silent atmospheric fallback;
 - exporter consumes the existing screening package/domain result only.
 
 ## Scope exclusions
