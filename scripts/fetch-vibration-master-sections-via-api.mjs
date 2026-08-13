@@ -121,6 +121,7 @@ function assertConversionIdentity(result, selection) {
 export function sanitizeConversionResult(selection, result) {
   assertConversionIdentity(result, selection);
   return {
+    selectionId: selection.selectionId ?? null,
     masterId: selection.masterId,
     pageRange: result.pageRange,
     sourceSha256: result.source.sha256,
@@ -190,6 +191,9 @@ function validateSelection(selection) {
   if (!Number.isInteger(selection.start) || !Number.isInteger(selection.end) || selection.start < 1 || selection.end < selection.start) {
     throw new TypeError(`VIBRATION_MASTER_API_SELECTION_INVALID_RANGE: ${selection.masterId}`);
   }
+  if (selection.selectionId !== undefined && !/^[A-Za-z0-9._-]+$/u.test(selection.selectionId)) {
+    throw new TypeError(`VIBRATION_MASTER_API_SELECTION_ID_INVALID: ${selection.selectionId}`);
+  }
   return { ...selection, dataType: targetById(selection.masterId).dataType };
 }
 
@@ -201,8 +205,8 @@ export async function convertVibrationMasterSelections(options = {}) {
     const manifest = sanitizeConversionResult(selection, result);
     const reviewDir = resolve(options.reviewDir);
     mkdirSync(reviewDir, { recursive: true });
-    const stem = selection.masterId.replace(/[^A-Za-z0-9._-]+/gu, '_');
-    writeFileSync(resolve(reviewDir, `${stem}.md`), `${result.markdown || ''}\n`, 'utf8');
+    const stem = (selection.selectionId || selection.masterId).replace(/[^A-Za-z0-9._-]+/gu, '_');
+    writeFileSync(resolve(reviewDir, `${stem}.md`), result.markdown || '', 'utf8');
     writeFileSync(resolve(reviewDir, `${stem}.evidence.json`), `${JSON.stringify(result.evidence, null, 2)}\n`, 'utf8');
     manifests.push(manifest);
   }

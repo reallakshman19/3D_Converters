@@ -81,6 +81,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-master-source-inventory.test.mjs',
       'tests/vibration-master-source-materialization.test.mjs',
       'tests/vibration-master-api-recovery.test.mjs',
+      'tests/vibration-master-table-reconciliation.test.mjs',
     ]),
   }),
 ]);
