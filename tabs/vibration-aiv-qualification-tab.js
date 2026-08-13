@@ -8,7 +8,6 @@ import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/ai
 import {
   addAivInputRow,
   addAivRelationshipInputRow,
-  createEmptyAivInputTable,
   deleteAivInputRow,
   findAivRelationshipInputRowIndex,
   parseAivInputCsv,
@@ -19,11 +18,9 @@ import { createAivCanvasInteractionController } from './vibration-aiv-canvas-con
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
-import {
-  createEmptyAivFlareNetworkWorkspace,
-  projectAivFlareNetworkIntoWorkspace,
-} from './vibration-aiv-flare-network-state.js';
+import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-network-state.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
+import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
@@ -47,36 +44,9 @@ function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
   URL.revokeObjectURL(url);
 }
 
-function initialState() {
-  return {
-    files: { topology: null, sources: null, assessments: null, relationships: null },
-    topologyInput: null,
-    topology: null,
-    tables: {
-      sources: createEmptyAivInputTable('sources'),
-      assessments: createEmptyAivInputTable('assessments'),
-      relationships: createEmptyAivInputTable('relationships'),
-    },
-    flareNetwork: createEmptyAivFlareNetworkWorkspace(),
-    flareNetworkActive: false,
-    generatedInputSet: null,
-    benchmark: { loaded: null },
-    assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
-    assumptionProfileModified: false,
-    assumptionResolution: null,
-    readinessEnvelope: null,
-    resultSet: null,
-    screeningResult: null,
-    selectedRowKey: null,
-    busy: false,
-    error: null,
-    destroyed: false,
-  };
-}
-
 export function renderAivQualificationWorkspace(container) {
   ensureStylesheet();
-  const state = initialState();
+  const state = createInitialAivQualificationState();
   const canvasController = createAivCanvasInteractionController(container, {
     onCreateRelationship: createCanvasRelationship,
     onDeleteRelationship: deleteCanvasRelationship,
