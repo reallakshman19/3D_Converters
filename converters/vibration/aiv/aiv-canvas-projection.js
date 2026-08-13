@@ -59,6 +59,50 @@ function assessmentIcon(type) {
   })[text(type)] ?? 'UNKNOWN_ASSESSMENT';
 }
 
+function readinessGlyphs(status) {
+  const value = text(status);
+  if (['NOT_READY', 'METHOD_GAP'].includes(value)) return ['WARNING', 'INPUT_INCOMPLETE'];
+  return [];
+}
+
+function sourceStatusGlyphs(values, result, assumptions, readinessStatus) {
+  const glyphs = [];
+  const state = text(values['Source State']);
+  if (state === 'CLOSED') glyphs.push('CLOSED');
+  else if (state) glyphs.push('ACTIVE');
+  const sonic = text(values['Sonic State']);
+  if (sonic === 'SONIC') glyphs.push('SONIC');
+  else if (sonic === 'NON_SONIC') glyphs.push('NON_SONIC');
+  if (text(values['Low Noise Trim State']) === 'MANUFACTURER_REDUCTION') glyphs.push('TRIMMED');
+  if (assumptions.length) glyphs.push('ASSUMPTION');
+  glyphs.push(...readinessGlyphs(readinessStatus));
+  if (result) glyphs.push('RESULT_AVAILABLE');
+  if (text(values.Source) || text(values['Source Revision']) || text(values['Record ID'])) glyphs.push('TRACE_AVAILABLE');
+  return [...new Set(glyphs)];
+}
+
+function assessmentStatusGlyphs(values, results, assumptions, readinessStatus) {
+  const glyphs = [];
+  if (assumptions.length) glyphs.push('ASSUMPTION');
+  glyphs.push(...readinessGlyphs(readinessStatus));
+  if (results.length) glyphs.push('RESULT_AVAILABLE');
+  if (text(values.Source) || text(values['Source Revision']) || text(values['Record ID'])) glyphs.push('TRACE_AVAILABLE');
+  return [...new Set(glyphs)];
+}
+
+function relationshipStatusGlyphs(values, contribution, assumptions, readinessStatus) {
+  const glyphs = [];
+  const applicability = text(values['Applicability Disposition']);
+  if (applicability === 'APPLICABLE') glyphs.push('APPLICABLE');
+  else if (applicability === 'NOT_APPLICABLE') glyphs.push('NOT_APPLICABLE');
+  else glyphs.push('UNRESOLVED');
+  if (assumptions.length) glyphs.push('ASSUMPTION');
+  glyphs.push(...readinessGlyphs(readinessStatus));
+  if (contribution) glyphs.push('RESULT_AVAILABLE');
+  if (text(values['Distance Source']) || text(values.Source) || text(values['Record ID'])) glyphs.push('TRACE_AVAILABLE');
+  return [...new Set(glyphs)];
+}
+
 function relationshipCasesByAssessment(records) {
   const map = new Map();
   for (const { values } of records) {
@@ -88,11 +132,14 @@ function sourceNodes(records, context) {
     const topo = context.topology.get(canonicalId) ?? {};
     const result = context.sourceResults.get(`${canonicalId}\u0000${caseId}`) ?? null;
     const assumptions = rowAssumptions(context, 'sources', rowIndex);
+    const readinessStatus = context.readiness.sourceStatus.get(`${canonicalId}\u0000${caseId}`) ?? null;
     return [{
       nodeKey: `SOURCE:${canonicalId}:${caseId}`, canonicalId, caseId, caseIds: [caseId], nodeKind: 'SOURCE',
       iconType: sourceIcon(values['Source Device Type']), tag: text(topo.tag) || canonicalId, line: text(topo.line) || null,
-      readinessStatus: context.readiness.sourceStatus.get(`${canonicalId}\u0000${caseId}`) ?? null,
-      assumptionCount: assumptions.length, assumptions,
+      sourceState: text(values['Source State']) || null, sonicState: text(values['Sonic State']) || null,
+      trimState: text(values['Low Noise Trim State']) || null, readinessStatus,
+      assumptionCount: assumptions.length, assumptions, inputValues: { ...values },
+      statusGlyphs: sourceStatusGlyphs(values, result, assumptions, readinessStatus),
       screeningStatus: result ? text(result.status) || 'AVAILABLE' : null,
       resultSummary: result ? {
         status: text(result.status) || null, resultScope: text(result.resultScope) || 'SOURCE',
@@ -112,12 +159,14 @@ function assessmentNodes(records, context) {
     const topo = context.topology.get(canonicalId) ?? {};
     const results = context.assessmentResults.get(canonicalId) ?? [];
     const assumptions = rowAssumptions(context, 'assessments', rowIndex);
+    const readinessStatus = context.readiness.assessmentStatus.get(canonicalId) ?? null;
     return [{
       nodeKey: `ASSESSMENT:${canonicalId}`, canonicalId, caseId: null,
       caseIds: assessmentCaseIds(context, canonicalId, results), nodeKind: 'ASSESSMENT',
       iconType: assessmentIcon(values['Assessment Type']), tag: text(topo.tag) || canonicalId, line: text(topo.line) || null,
-      readinessStatus: context.readiness.assessmentStatus.get(canonicalId) ?? null,
-      assumptionCount: assumptions.length, assumptions, screeningStatus: results.length ? 'AVAILABLE' : null,
+      readinessStatus, assumptionCount: assumptions.length, assumptions, inputValues: { ...values },
+      statusGlyphs: assessmentStatusGlyphs(values, results, assumptions, readinessStatus),
+      screeningStatus: results.length ? 'AVAILABLE' : null,
       resultSummary: buildAivCanvasAssessmentResultSummary(results), tableRowIndex: rowIndex,
     }];
   });
@@ -130,6 +179,15 @@ function pathKind(element) {
   return null;
 }
 
+function pathIcon(element, nodeKind) {
+  if (nodeKind === 'BOUNDARY') return 'BOUNDARY';
+  const type = text(element?.type).toUpperCase();
+  if (/OFF.?PAGE/u.test(type)) return 'OFF_PAGE';
+  if (/BRANCH|JUNCTION/u.test(type)) return 'JUNCTION';
+  if (/CONNECTION|NODE/u.test(type)) return 'CONNECTION_NODE';
+  return 'PIPE_PATH';
+}
+
 function pathNodes(topology, excludedIds) {
   return topologyElements(topology).flatMap((element) => {
     const canonicalId = text(element.canonicalId);
@@ -137,9 +195,9 @@ function pathNodes(topology, excludedIds) {
     if (!canonicalId || !nodeKind || excludedIds.has(canonicalId)) return [];
     return [{
       nodeKey: `${nodeKind}:${canonicalId}`, canonicalId, caseId: null, caseIds: [], nodeKind,
-      iconType: nodeKind === 'BOUNDARY' ? 'BOUNDARY' : 'PIPE_PATH', tag: text(element.tag) || canonicalId,
+      iconType: pathIcon(element, nodeKind), tag: text(element.tag) || canonicalId,
       line: text(element.line) || null, readinessStatus: null, assumptionCount: 0, assumptions: [],
-      screeningStatus: null, resultSummary: null, tableRowIndex: null,
+      statusGlyphs: [], inputValues: {}, screeningStatus: null, resultSummary: null, tableRowIndex: null,
     }];
   });
 }
@@ -156,6 +214,8 @@ function relationshipRows(records, context) {
     const assumptions = rowAssumptions(context, 'relationships', rowIndex);
     const assessmentLine = text(context.topology.get(assessmentCanonicalId)?.line);
     const sourceLine = text(context.topology.get(sourceCanonicalId)?.line);
+    const contribution = context.contributions.get(key) ?? null;
+    const readinessStatus = text(ready?.status) || null;
     return [{
       rowKey: text(ready?.rowKey) || selectionKey, selectionKey, sourceCanonicalId, assessmentCanonicalId,
       caseId, caseIds: [caseId], line: assessmentLine || sourceLine || null,
@@ -165,9 +225,9 @@ function relationshipRows(records, context) {
       distanceSource: text(values['Distance Source']) || null,
       distanceSourceRevision: text(values['Distance Source Revision']) || null,
       simultaneousSourceGroup: text(values['Simultaneous Source Group']) || null,
-      assumptionCount: assumptions.length, assumptions,
-      screeningContribution: context.contributions.get(key) ?? null,
-      readinessStatus: text(ready?.status) || null, tableRowIndex: rowIndex,
+      assumptionCount: assumptions.length, assumptions, inputValues: { ...values },
+      screeningContribution: contribution, readinessStatus, tableRowIndex: rowIndex,
+      statusGlyphs: relationshipStatusGlyphs(values, contribution, assumptions, readinessStatus),
     }];
   });
 }
