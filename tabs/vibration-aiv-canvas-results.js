@@ -76,9 +76,18 @@ function t26Html(t26) {
   </div>`;
 }
 
-function assessmentCaseHtml(result) {
+function contributionRows(rows = []) {
+  if (!rows.length) return '<tr><td colspan="5">No returned source contributions.</td></tr>';
+  return rows.map((item) => `<tr><td><code>${esc(item.sourceCanonicalId)}</code></td><td>${value(item.effectiveSourcePwlDb, ' dB')}</td><td>${value(item.attenuationDb, ' dB')}</td><td>${value(item.pointPwlDb, ' dB')}</td><td>${value(item.simultaneousSourceGroup)}</td></tr>`).join('');
+}
+
+function contributionTable(result) {
+  return `<div class="aiv-canvas-contribution-table"><strong>Returned source contributions</strong><table><thead><tr><th>Source</th><th>Effective PWL</th><th>Attenuation</th><th>Point contribution</th><th>Simultaneous group</th></tr></thead><tbody>${contributionRows(result.sourceContributionsAtPoint)}</tbody></table><small>Combined point PWL above is the returned Assessment result; it is not recomputed from this table in UI code.</small></div>`;
+}
+
+function assessmentCaseHtml(result, line) {
   const sources = result.contributingSourceCanonicalIds?.join(', ') || '—';
-  return `<div class="aiv-canvas-result-case">
+  return `<div class="aiv-canvas-result-case" data-aiv-filterable="true" data-aiv-canvas-cases="${esc(result.caseId)}" data-aiv-canvas-line="${esc(line ?? '')}">
     <strong>Assessment screening result · ${esc(result.caseId)}</strong>
     <div class="aiv-canvas-result-grid">
       ${metric('Combined point PWL', result.combinedPointPwlDb, ' dB')}
@@ -86,7 +95,7 @@ function assessmentCaseHtml(result) {
       ${metric('Assessment LOF', result.lof)}
       ${metric('Status', result.status)}
       ${metric('Scope', result.resultScope)}
-    </div>${t26Html(result.t26Intermediates)}${authorityHtml(result.authority)}
+    </div>${contributionTable(result)}${t26Html(result.t26Intermediates)}${authorityHtml(result.authority)}
   </div>`;
 }
 
@@ -94,5 +103,5 @@ export function renderAivCanvasAssessmentResultHtml(node) {
   const summary = node?.resultSummary;
   if (!summary) return '<small>No Assessment screening result is available.</small>';
   const cases = summary.caseCount ? summary.cases : [summary];
-  return `<div class="aiv-canvas-result-detail">${cases.map(assessmentCaseHtml).join('')}</div>`;
+  return `<div class="aiv-canvas-result-detail">${cases.map((item) => assessmentCaseHtml(item, node.line)).join('')}</div>`;
 }
