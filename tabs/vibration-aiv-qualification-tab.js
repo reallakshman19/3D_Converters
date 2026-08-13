@@ -54,6 +54,7 @@ function initialState() {
   return {
     files: { topology: null, sources: null, assessments: null, relationships: null },
     topologyInput: null,
+    topology: null,
     tables: {
       sources: createEmptyAivInputTable('sources'),
       assessments: createEmptyAivInputTable('assessments'),
@@ -119,6 +120,7 @@ export function renderAivQualificationWorkspace(container) {
       state.flareNetwork = projected.flareNetwork;
       state.generatedInputSet = projected.generatedInputSet;
       state.tables = projected.tables;
+      state.topology = projected.topology;
       state.topologyInput = projected.topologyInput;
       state.files = projected.files;
       state.flareNetworkActive = true;
@@ -145,6 +147,7 @@ export function renderAivQualificationWorkspace(container) {
       state.files = { ...loaded.files };
       state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
       state.assumptionProfileModified = false;
+      state.topology = loaded.topology;
       state.topologyInput = {
         format: 'PARSED_EXCHANGE',
         data: loaded.topology,
@@ -165,6 +168,7 @@ export function renderAivQualificationWorkspace(container) {
     try {
       if (target === 'topology') {
         state.files.topology = { name: file.name, kind: 'Complete five-sheet XLSX' };
+        state.topology = null;
         state.topologyInput = {
           format: 'XLSX',
           data: await file.arrayBuffer(),
