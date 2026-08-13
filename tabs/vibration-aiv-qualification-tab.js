@@ -9,8 +9,10 @@ import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-c
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
 import {
   addAivInputRow,
+  addAivRelationshipInputRow,
   createEmptyAivInputTable,
   deleteAivInputRow,
+  findAivRelationshipInputRowIndex,
   parseAivInputCsv,
   serializeAivInputTable,
   updateAivInputCell,
@@ -68,7 +70,10 @@ function initialState() {
 export function renderAivQualificationWorkspace(container) {
   ensureStylesheet();
   const state = initialState();
-  const canvasController = createAivCanvasInteractionController(container);
+  const canvasController = createAivCanvasInteractionController(container, {
+    onCreateRelationship: createCanvasRelationship,
+    onDeleteRelationship: deleteCanvasRelationship,
+  });
 
   function render() {
     if (state.destroyed) return;
@@ -142,6 +147,37 @@ export function renderAivQualificationWorkspace(container) {
     clearReadiness();
     state.error = null;
     render();
+  }
+
+  function effectiveRelationshipTable() {
+    return state.assumptionResolution?.tables?.relationships ?? state.tables.relationships;
+  }
+
+  function createCanvasRelationship(input) {
+    try {
+      if (findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input) >= 0) {
+        throw new Error('AIV_INPUT_RELATIONSHIP_DUPLICATE: Relationship already exists for the selected source, assessment and operating case.');
+      }
+      applyTableMutation('relationships', addAivRelationshipInputRow(state.tables.relationships, input));
+      return true;
+    } catch (error) {
+      state.error = String(error?.message || error);
+      render();
+      return false;
+    }
+  }
+
+  function deleteCanvasRelationship(input) {
+    try {
+      const rowIndex = findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input);
+      if (rowIndex < 0) throw new Error('AIV_INPUT_RELATIONSHIP_NOT_FOUND: Selected relationship no longer exists.');
+      applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex));
+      return true;
+    } catch (error) {
+      state.error = String(error?.message || error);
+      render();
+      return false;
+    }
   }
 
   function ensureAssumableRows(tables) {

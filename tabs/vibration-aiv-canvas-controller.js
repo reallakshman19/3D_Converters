@@ -1,12 +1,10 @@
+import { createAivCanvasLayout, moveAivCanvasLayoutNode } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
+import { aivCanvasSelectionFromElement, applyAivCanvasSelection, revealAivCanvasSelection } from './vibration-aiv-canvas-selection.js';
 import {
-  createAivCanvasLayout,
-  moveAivCanvasLayoutNode,
-} from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
-import {
-  aivCanvasSelectionFromElement,
-  applyAivCanvasSelection,
-  revealAivCanvasSelection,
-} from './vibration-aiv-canvas-selection.js';
+  AIV_CANVAS_MODE, advanceAivCanvasRelationshipState, aivCanvasRelationshipEndpoint,
+  aivCanvasRelationshipIdentityFromElement, aivCanvasRelationshipSelectionKey,
+  createAivCanvasRelationshipState, setAivCanvasRelationshipMode,
+} from './vibration-aiv-canvas-relationship.js';
 
 export const AIV_CANVAS_ZOOM_MIN = 0.4;
 export const AIV_CANVAS_ZOOM_MAX = 2.5;
@@ -17,16 +15,10 @@ function finite(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
+function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
 function viewport(value = {}) {
-  return Object.freeze({
-    x: finite(value.x),
-    y: finite(value.y),
-    zoom: clamp(finite(value.zoom, 1), AIV_CANVAS_ZOOM_MIN, AIV_CANVAS_ZOOM_MAX),
-  });
+  return Object.freeze({ x: finite(value.x), y: finite(value.y), zoom: clamp(finite(value.zoom, 1), AIV_CANVAS_ZOOM_MIN, AIV_CANVAS_ZOOM_MAX) });
 }
 
 export function panAivCanvasViewport(current, dx, dy) {
@@ -36,8 +28,7 @@ export function panAivCanvasViewport(current, dx, dy) {
 
 export function zoomAivCanvasViewport(current, factor) {
   const value = viewport(current);
-  const next = value.zoom * finite(factor, 1);
-  return Object.freeze({ ...value, zoom: clamp(next, AIV_CANVAS_ZOOM_MIN, AIV_CANVAS_ZOOM_MAX) });
+  return Object.freeze({ ...value, zoom: clamp(value.zoom * finite(factor, 1), AIV_CANVAS_ZOOM_MIN, AIV_CANVAS_ZOOM_MAX) });
 }
 
 export function reconcileAivCanvasPresentationLayout(freshInput, persistedInput = null) {
@@ -60,29 +51,24 @@ function nodeFromElement(element, displayOrder) {
     canonicalId: element.dataset.aivCanvasCanonicalId,
     caseId: element.dataset.aivCanvasCaseId || null,
     nodeKind: element.dataset.aivCanvasNodeKind || null,
-    x: finite(element.dataset.aivCanvasX),
-    y: finite(element.dataset.aivCanvasY),
-    displayOrder,
-    collapsed: false,
+    x: finite(element.dataset.aivCanvasX), y: finite(element.dataset.aivCanvasY),
+    displayOrder, collapsed: false,
   };
 }
 
 function layoutFromSvg(svg) {
-  const nodes = [...svg.querySelectorAll('[data-aiv-canvas-node]')]
-    .map((element, index) => nodeFromElement(element, index));
+  const nodes = [...svg.querySelectorAll('[data-aiv-canvas-node]')].map((element, index) => nodeFromElement(element, index));
   return createAivCanvasLayout({
     nodes,
     viewport: {
-      x: finite(svg.dataset.aivCanvasViewportX),
-      y: finite(svg.dataset.aivCanvasViewportY),
+      x: finite(svg.dataset.aivCanvasViewportX), y: finite(svg.dataset.aivCanvasViewportY),
       zoom: finite(svg.dataset.aivCanvasViewportZoom, 1),
     },
   });
 }
 
 function elementMap(svg) {
-  return new Map([...svg.querySelectorAll('[data-aiv-canvas-node]')]
-    .map((element) => [element.dataset.aivCanvasNode, element]));
+  return new Map([...svg.querySelectorAll('[data-aiv-canvas-node]')].map((element) => [element.dataset.aivCanvasNode, element]));
 }
 
 function redrawRelationships(svg, layout) {
@@ -104,8 +90,7 @@ function redrawRelationships(svg, layout) {
 
 function applyLayout(svg, layout) {
   const value = layout.viewport;
-  svg.querySelector('[data-aiv-canvas-scene]')
-    ?.setAttribute('transform', `translate(${value.x} ${value.y}) scale(${value.zoom})`);
+  svg.querySelector('[data-aiv-canvas-scene]')?.setAttribute('transform', `translate(${value.x} ${value.y}) scale(${value.zoom})`);
   svg.dataset.aivCanvasViewportX = String(value.x);
   svg.dataset.aivCanvasViewportY = String(value.y);
   svg.dataset.aivCanvasViewportZoom = String(value.zoom);
@@ -123,17 +108,17 @@ function applyLayout(svg, layout) {
 function svgDelta(svg, clientDx, clientDy, zoom = 1) {
   const rect = svg.getBoundingClientRect?.();
   const viewBox = svg.viewBox?.baseVal;
-  if (!rect || !viewBox || !(rect.width > 0) || !(rect.height > 0)) {
-    return { x: clientDx / zoom, y: clientDy / zoom };
-  }
-  return {
-    x: clientDx * (viewBox.width / rect.width) / zoom,
-    y: clientDy * (viewBox.height / rect.height) / zoom,
-  };
+  if (!rect || !viewBox || !(rect.width > 0) || !(rect.height > 0)) return { x: clientDx / zoom, y: clientDy / zoom };
+  return { x: clientDx * (viewBox.width / rect.width) / zoom, y: clientDy * (viewBox.height / rect.height) / zoom };
 }
 
 function canvasTarget(event) {
   return event.target?.closest?.('[data-aiv-canvas-node],[data-aiv-canvas-relationship]') ?? null;
+}
+
+function updateDeleteControl(runtime, canvasElement) {
+  const button = runtime.container.querySelector('[data-aiv-canvas-action="delete-relationship"]');
+  if (button) button.disabled = !canvasElement?.hasAttribute?.('data-aiv-canvas-relationship');
 }
 
 function selectTarget(runtime, target, origin) {
@@ -143,21 +128,54 @@ function selectTarget(runtime, target, origin) {
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
   const revealed = revealAivCanvasSelection(runtime.container, svg, runtime.layout, selection, origin);
   runtime.layout = revealed.layout;
+  updateDeleteControl(runtime, revealed.canvasElement);
   if (origin === 'table' && svg) applyLayout(svg, runtime.layout);
 }
 
 function syncRuntime(runtime) {
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
+  runtime.relationship = createAivCanvasRelationshipState();
   if (!svg) return;
   runtime.layout = reconcileAivCanvasPresentationLayout(layoutFromSvg(svg), runtime.layout);
   applyLayout(svg, runtime.layout);
-  applyAivCanvasSelection(runtime.container, runtime.selection);
+  updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, runtime.selection).canvasElement);
+}
+
+function setRelationshipMode(runtime, mode) {
+  runtime.relationship = setAivCanvasRelationshipMode(runtime.relationship, mode);
+  for (const button of runtime.container.querySelectorAll('[data-aiv-canvas-mode]')) {
+    button.setAttribute('aria-pressed', button.dataset.aivCanvasMode === runtime.relationship.mode ? 'true' : 'false');
+  }
+}
+
+function activateRelationshipEndpoint(runtime, target) {
+  if (runtime.relationship.mode !== AIV_CANVAS_MODE.RELATIONSHIPS) return false;
+  const endpoint = aivCanvasRelationshipEndpoint(target);
+  if (!endpoint) return false;
+  selectTarget(runtime, target, 'canvas');
+  const planned = advanceAivCanvasRelationshipState(runtime.relationship, endpoint);
+  runtime.relationship = planned.state;
+  if (!planned.createRequest) return true;
+  const created = runtime.callbacks.onCreateRelationship?.(planned.createRequest);
+  setRelationshipMode(runtime, AIV_CANVAS_MODE.NAVIGATE);
+  if (created) runtime.selection = { selectionKey: aivCanvasRelationshipSelectionKey(planned.createRequest), tableKind: 'relationships' };
+  syncRuntime(runtime);
+  return true;
+}
+
+function deleteSelectedRelationship(runtime) {
+  const element = runtime.container.querySelector('[data-aiv-canvas-relationship].is-selected');
+  const identity = aivCanvasRelationshipIdentityFromElement(element);
+  if (!identity || !runtime.callbacks.onDeleteRelationship?.(identity)) return;
+  runtime.selection = null;
+  syncRuntime(runtime);
 }
 
 function startPointer(runtime, event) {
   const svg = event.target?.closest?.('[data-aiv-canvas-svg]');
   if (!svg || event.target?.closest?.('[data-aiv-canvas-action]')) return;
   const target = canvasTarget(event);
+  if (target && activateRelationshipEndpoint(runtime, target)) { event.preventDefault?.(); return; }
   if (target) selectTarget(runtime, target, 'canvas');
   if (target?.hasAttribute('data-aiv-canvas-relationship')) return;
   const nodeKey = target?.dataset?.aivCanvasNode ?? null;
@@ -165,8 +183,7 @@ function startPointer(runtime, event) {
   runtime.pointer = {
     type: node ? 'NODE' : 'PAN', pointerId: event.pointerId,
     startClientX: event.clientX, startClientY: event.clientY, nodeKey,
-    startX: node?.x ?? runtime.layout?.viewport.x ?? 0,
-    startY: node?.y ?? runtime.layout?.viewport.y ?? 0,
+    startX: node?.x ?? runtime.layout?.viewport.x ?? 0, startY: node?.y ?? runtime.layout?.viewport.y ?? 0,
   };
   svg.setPointerCapture?.(event.pointerId);
   event.preventDefault?.();
@@ -186,11 +203,7 @@ function movePointer(runtime, event) {
     const delta = svgDelta(svg, dx, dy, 1);
     runtime.layout = createAivCanvasLayout({
       nodes: runtime.layout.nodes,
-      viewport: panAivCanvasViewport(
-        { ...runtime.layout.viewport, x: active.startX, y: active.startY },
-        delta.x,
-        delta.y,
-      ),
+      viewport: panAivCanvasViewport({ ...runtime.layout.viewport, x: active.startX, y: active.startY }, delta.x, delta.y),
     });
   }
   applyLayout(svg, runtime.layout);
@@ -207,16 +220,16 @@ function wheel(runtime, event) {
   const svg = event.target?.closest?.('[data-aiv-canvas-svg]');
   if (!svg || !runtime.layout) return;
   const factor = event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
-  runtime.layout = createAivCanvasLayout({
-    nodes: runtime.layout.nodes,
-    viewport: zoomAivCanvasViewport(runtime.layout.viewport, factor),
-  });
+  runtime.layout = createAivCanvasLayout({ nodes: runtime.layout.nodes, viewport: zoomAivCanvasViewport(runtime.layout.viewport, factor) });
   applyLayout(svg, runtime.layout);
   event.preventDefault();
 }
 
 function click(runtime, event) {
+  const mode = event.target?.closest?.('[data-aiv-canvas-mode]')?.dataset.aivCanvasMode;
+  if (mode) { setRelationshipMode(runtime, mode); return; }
   const action = event.target?.closest?.('[data-aiv-canvas-action]')?.dataset.aivCanvasAction;
+  if (action === 'delete-relationship') { deleteSelectedRelationship(runtime); return; }
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
   if (action && runtime.layout && svg) {
     let next = viewport({ x: 0, y: 0, zoom: 1 });
@@ -232,30 +245,24 @@ function click(runtime, event) {
 }
 
 function keydown(runtime, event) {
+  if (event.key === 'Escape') { setRelationshipMode(runtime, AIV_CANVAS_MODE.NAVIGATE); return; }
   if (!['Enter', ' '].includes(event.key)) return;
   const target = canvasTarget(event);
   if (!target) return;
-  selectTarget(runtime, target, 'canvas');
+  if (!activateRelationshipEndpoint(runtime, target)) selectTarget(runtime, target, 'canvas');
   event.preventDefault();
 }
 
-export function createAivCanvasInteractionController(container) {
-  const runtime = { container, layout: null, pointer: null, selection: null };
+export function createAivCanvasInteractionController(container, callbacks = {}) {
+  const runtime = { container, callbacks, layout: null, pointer: null, selection: null, relationship: createAivCanvasRelationshipState() };
   const handlers = {
-    pointerdown: (event) => startPointer(runtime, event),
-    pointermove: (event) => movePointer(runtime, event),
-    pointerup: (event) => endPointer(runtime, event),
-    pointercancel: (event) => endPointer(runtime, event),
-    wheel: (event) => wheel(runtime, event),
-    click: (event) => click(runtime, event),
-    keydown: (event) => keydown(runtime, event),
+    pointerdown: (event) => startPointer(runtime, event), pointermove: (event) => movePointer(runtime, event),
+    pointerup: (event) => endPointer(runtime, event), pointercancel: (event) => endPointer(runtime, event),
+    wheel: (event) => wheel(runtime, event), click: (event) => click(runtime, event), keydown: (event) => keydown(runtime, event),
   };
-  for (const [type, handler] of Object.entries(handlers)) {
-    container.addEventListener(type, handler, type === 'wheel' ? { passive: false } : undefined);
-  }
+  for (const [type, handler] of Object.entries(handlers)) container.addEventListener(type, handler, type === 'wheel' ? { passive: false } : undefined);
   return Object.freeze({
-    sync: () => syncRuntime(runtime),
-    getLayout: () => runtime.layout,
+    sync: () => syncRuntime(runtime), getLayout: () => runtime.layout,
     destroy: () => {
       for (const [type, handler] of Object.entries(handlers)) container.removeEventListener(type, handler);
       runtime.pointer = null;
