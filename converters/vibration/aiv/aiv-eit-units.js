@@ -15,6 +15,18 @@ function canonicalTemperatureUnit(unit) {
   return key;
 }
 
+export function aivEitLengthMm(input, field = 'Length') {
+  const q = quantity(input, field);
+  return convertEngineeringUnit(q.value, 'length', q.unit, 'mm');
+}
+
+export function aivEitMolecularWeightGPerMol(input) {
+  const q = quantity(input, 'Molecular Weight');
+  if (q.unit === 'g/mol' || q.unit === 'kg/kmol') return q.value;
+  if (q.unit === 'kg/mol') return q.value * 1000;
+  throw new TypeError(`AIV .eit export does not support molecular-weight unit ${q.unit}.`);
+}
+
 export function aivEitMassFlowKgH(input) {
   const q = quantity(input, 'Mass Flow');
   return convertEngineeringUnit(q.value, 'mass_flow', q.unit, 'kg/h');
