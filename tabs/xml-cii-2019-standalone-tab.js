@@ -1,5 +1,4 @@
-import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a.js?v=20260813-mode-a-no-duplicate-validation-1';
-
+import { renderXmlCiiAdaptedWorkflowShell } from './xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a.js?v=20260813-mode-a-full-propagation-2';
 
 export const XML_CII_STANDALONE_UI_SMOKE_LABELS = Object.freeze([
   'Source type',
