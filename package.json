@@ -12,6 +12,7 @@
     "extract:aiv-ei-t27-source": "node scripts/extract-aiv-ei-t27-source.mjs",
     "extract:aiv-ei-d23-source": "node scripts/extract-aiv-ei-d23-source.mjs",
     "extract:aiv-workbook-sources": "node scripts/extract-aiv-workbook-sources.mjs",
+    "inventory:vibration-master-sources": "node scripts/inventory-vibration-master-sources.mjs",
     "solve:aiv-d23-qualification": "node scripts/solve-aiv-d23-qualification.mjs",
     "solve:aiv-independent-qualification-benchmarks": "node scripts/solve-aiv-independent-qualification-benchmarks.mjs",
     "run:aiv-d23-product-path-validation": "node scripts/run-aiv-d23-product-path-validation.mjs",
