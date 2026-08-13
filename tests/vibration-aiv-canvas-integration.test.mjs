@@ -15,6 +15,12 @@ import { renderAivCanvasAssessmentResultHtml } from '../tabs/vibration-aiv-canva
 import { serializeAivInputTable } from '../tabs/vibration-aiv-input-model.js';
 
 const RELIEF_SOURCE_ID = 'AIV-D23-RELIEF-SOURCE';
+const D23 = Object.freeze({
+  reliefRawSourcePwlDb: 164.6851759525391,
+  reliefPointPwlDb: 164.3734876408508,
+  assessmentLof: 0.29,
+  lineLof: 1.48,
+});
 
 function parsedD23() {
   const loaded = buildLoadedAivD23Benchmark();
@@ -61,15 +67,19 @@ test('controlled EI D.2.3 single Engineering API, batch API and canvas projectio
   const sourceNode = projection.nodes.find((item) => item.nodeKey === `SOURCE:${reliefSource.sourceCanonicalId}:${reliefSource.caseId}`);
   const assessmentResult = single.outputs.assessmentResults[0];
   const assessmentNode = projection.nodes.find((item) => item.nodeKey === `ASSESSMENT:${assessmentResult.assessmentCanonicalId}`);
+  assertNear(reliefSource.rawSourcePwlDb, D23.reliefRawSourcePwlDb);
+  assertNear(assessmentResult.combinedPointPwlDb, D23.reliefPointPwlDb);
   assertNear(sourceNode.resultSummary.rawSourcePwlDb, reliefSource.rawSourcePwlDb);
   assertNear(sourceNode.resultSummary.effectiveSourcePwlDb, reliefSource.effectiveSourcePwlDb);
   assertNear(assessmentNode.resultSummary.combinedPointPwlDb, assessmentResult.combinedPointPwlDb);
+  assertNear(assessmentNode.resultSummary.combinedPointPwlDb, D23.reliefPointPwlDb);
   assertNear(assessmentNode.resultSummary.lof, assessmentResult.lof);
-  assert.equal(assessmentNode.resultSummary.lof, 0.29);
+  assert.equal(assessmentNode.resultSummary.lof, D23.assessmentLof);
+  assert.equal(single.outputs.lineCaseSummaries[0].lof, D23.lineLof);
   assert.equal(single.outputs.lineCaseSummaries[0].authoritativeForScreening, false);
 });
 
-const RAW_RELIEF_PWL = 164.6851759525391;
+const RAW_RELIEF_PWL = D23.reliefRawSourcePwlDb;
 
 function simultaneousFixture(targets) {
   const fixture = parsedD23();
