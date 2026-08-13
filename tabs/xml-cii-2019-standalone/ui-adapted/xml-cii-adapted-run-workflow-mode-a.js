@@ -9,7 +9,7 @@ import {
 } from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
 import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260804-mode-a-v1';
 
-function sourceManifest(source, result, scope) {
+function sourceManifest(source, result, scope, error = '') {
   return {
     schema: 'xml-cii-mode-a-source-manifest/v1',
     mode: 'separate-model',
@@ -26,7 +26,7 @@ function sourceManifest(source, result, scope) {
       diagnostics: !!result?.diagnostics,
     },
     ok: result?.ok === true,
-    error: result?.error || null,
+    error: error || result?.error || null,
   };
 }
 
@@ -37,20 +37,37 @@ function resultStatus(result, readiness) {
   return 'CANCELLED';
 }
 
+function sourceBlockingRows(preflight, sourceId) {
+  return (preflight?.blockingRows || []).filter((row) => row.sourceId === sourceId);
+}
+
+function globalBlockingRows(preflight) {
+  return (preflight?.blockingRows || []).filter((row) => !row.sourceId);
+}
+
+function selectedBranchCount(scope, source) {
+  return scope?.selectedBranchOccurrenceIds?.length
+    ?? scope?.selectedBranchNames?.length
+    ?? source?.branchSelection?.selectedBranchOccurrenceIds?.length
+    ?? source?.branchSelection?.selectedBranchNames?.length
+    ?? 0;
+}
+
 export async function runModeABatchFromUi(stateRef, render) {
   let state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
   if (state.batchRunning || state.running) return;
   const preflight = buildModeAPreflight(state.sourceBatch);
-  if (!preflight.ready) {
+  const globalBlocks = globalBlockingRows(preflight);
+  if (globalBlocks.length) {
     replaceModeAState(stateRef, {
       ...state,
       batchRunResult: {
-        summary: { succeeded: 0, failed: 0, blocked: preflight.blockingRows.length },
+        summary: { succeeded: 0, failed: 0, blocked: globalBlocks.length, cancelled: 0, processed: 0 },
         preflight,
         manifest: buildModeABatchManifest(state.sourceBatch, []),
         sources: [],
       },
-      batchRunStatus: preflight.blockingRows.map((row) => row.message).join(' | '),
+      batchRunStatus: globalBlocks.map((row) => row.message).join(' | '),
     });
     render();
     return;
@@ -71,6 +88,25 @@ export async function runModeABatchFromUi(stateRef, render) {
       batchRunStatus: `Processing ${index + 1}/${enabled.length}: ${source.fileName}`,
     });
     render();
+
+    const sourceBlocks = sourceBlockingRows(preflight, source.sourceId);
+    if (sourceBlocks.length) {
+      const execution = buildModeAExecutionState(sharedState, source);
+      const scope = execution.branchScope;
+      const error = sourceBlocks.map((row) => row.message).join(' | ');
+      rows.push({
+        sourceId: source.sourceId,
+        sourceDigest: source.sourceDigest,
+        fileName: source.fileName,
+        alias: source.alias,
+        selectedBranchCount: selectedBranchCount(scope, source),
+        status: 'BLOCKED',
+        error,
+        result: null,
+        sourceManifest: sourceManifest(source, null, scope, error),
+      });
+      continue;
+    }
 
     clearModeASourceCaches();
     const execution = buildModeAExecutionState(sharedState, source);
@@ -94,7 +130,7 @@ export async function runModeABatchFromUi(stateRef, render) {
       sourceDigest: source.sourceDigest,
       fileName: source.fileName,
       alias: source.alias,
-      selectedBranchCount: scope?.selectedBranchNames?.length || 0,
+      selectedBranchCount: selectedBranchCount(scope, source),
       status,
       error: result?.error || (status === 'BLOCKED' ? 'Run readiness blocked.' : (status === 'CANCELLED' ? 'Review cancelled.' : '')),
       result,
@@ -116,9 +152,8 @@ export async function runModeABatchFromUi(stateRef, render) {
   const cancelled = rows.filter((row) => row.status === 'CANCELLED').length;
   const manifest = buildModeABatchManifest(sharedState.sourceBatch, rows);
   const restoredActive = activateModeASource(sharedState, sharedState.sourceBatch.activeSourceId);
-  const activeResult = rows.find((row) => row.sourceId === sharedState.sourceBatch.activeSourceId)?.result
-    || restoredActive.result
-    || null;
+  const activeRow = rows.find((row) => row.sourceId === sharedState.sourceBatch.activeSourceId);
+  const activeResult = activeRow ? activeRow.result : (restoredActive.result || null);
   replaceModeAState(stateRef, {
     ...restoredActive,
     result: activeResult,

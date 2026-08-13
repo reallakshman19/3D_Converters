@@ -1,6 +1,6 @@
 import {
   buildSelectedBranchScope,
-  extractXmlCiiBranchRecords,
+  buildXmlCiiBranchOccurrences,
   normalizeXmlCiiBranchSelection,
   xmlCiiSourceDigest,
 } from './xml-cii-branch-scope.js';
@@ -20,18 +20,26 @@ function fileAlias(fileName) {
 function nodeRowsByBranch(sourceText) {
   const source = String(sourceText ?? '');
   const rows = [];
+  const occurrences = buildXmlCiiBranchOccurrences(source);
   const branchPattern = /<\s*(?:[A-Za-z_][\w.-]*:)?Branch\b[^>]*>[\s\S]*?<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?Branch\s*>/gi;
   let branchMatch;
+  let branchIndex = 0;
   while ((branchMatch = branchPattern.exec(source))) {
     const block = branchMatch[0];
+    const occurrence = occurrences[branchIndex] || null;
     const name = block.match(/<\s*(?:[A-Za-z_][\w.-]*:)?Branchname\b[^>]*>([\s\S]*?)<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?Branchname\s*>/i)?.[1] || '';
-    const branchName = text(name.replace(/&quot;/gi, '"').replace(/&amp;/gi, '&'));
+    const branchName = occurrence?.branchName || text(name.replace(/&quot;/gi, '"').replace(/&amp;/gi, '&'));
+    const branchOccurrenceId = occurrence?.branchOccurrenceId || `BR-${branchIndex + 1}`;
+    const displayBranchName = occurrence?.displayBranchName || branchName;
     const nodePattern = /<\s*(?:[A-Za-z_][\w.-]*:)?Node\b[^>]*>([\s\S]*?)<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?Node\s*>/gi;
     let nodeMatch;
+    let nodeOrdinal = 0;
     while ((nodeMatch = nodePattern.exec(block))) {
       const nodeNumber = text(nodeMatch[1].match(/<\s*(?:[A-Za-z_][\w.-]*:)?NodeNumber\b[^>]*>([\s\S]*?)<\s*\/\s*(?:[A-Za-z_][\w.-]*:)?NodeNumber\s*>/i)?.[1]);
-      rows.push({ branchName, nodeNumber, branchOrdinal: rows.length + 1 });
+      rows.push({ branchName, branchOccurrenceId, displayBranchName, branchIndex, nodeNumber, nodeOrdinal });
+      nodeOrdinal += 1;
     }
+    branchIndex += 1;
   }
   return rows;
 }
@@ -43,24 +51,35 @@ function duplicateValues(values) {
 }
 
 export function analyzeModeASource(sourceText) {
-  const branches = extractXmlCiiBranchRecords(sourceText).map((row) => row.branchName);
+  const branchOccurrences = buildXmlCiiBranchOccurrences(sourceText);
+  const branches = branchOccurrences.map((row) => row.branchName);
   const nodes = nodeRowsByBranch(sourceText);
   const duplicateBranchNames = duplicateValues(branches);
   const duplicateNodeNumbers = duplicateValues(nodes.map((row) => row.nodeNumber));
   const duplicateNodesWithinBranch = [];
-  const byBranch = new Map();
+  const byOccurrence = new Map();
   for (const node of nodes) {
-    const key = canonical(node.branchName);
-    if (!byBranch.has(key)) byBranch.set(key, []);
-    byBranch.get(key).push(node.nodeNumber);
+    const key = node.branchOccurrenceId;
+    if (!byOccurrence.has(key)) byOccurrence.set(key, { occurrence: node, numbers: [] });
+    byOccurrence.get(key).numbers.push(node.nodeNumber);
   }
-  for (const [branchName, numbers] of byBranch.entries()) {
-    for (const duplicate of duplicateValues(numbers)) duplicateNodesWithinBranch.push({ branchName, nodeNumber: duplicate.value, count: duplicate.count });
+  for (const { occurrence, numbers } of byOccurrence.values()) {
+    for (const duplicate of duplicateValues(numbers)) {
+      duplicateNodesWithinBranch.push({
+        branchName: occurrence.branchName,
+        displayBranchName: occurrence.displayBranchName,
+        branchOccurrenceId: occurrence.branchOccurrenceId,
+        branchIndex: occurrence.branchIndex,
+        nodeNumber: duplicate.value,
+        count: duplicate.count,
+      });
+    }
   }
   return {
-    branchCount: branches.length,
+    branchCount: branchOccurrences.length,
     nodeCount: nodes.length,
     branchNames: branches,
+    branchOccurrences,
     nodeNumbers: nodes.map((row) => row.nodeNumber).filter(Boolean),
     duplicateBranchNames,
     duplicateNodeNumbers,
@@ -202,20 +221,41 @@ export function buildModeAPreflight(batch = {}) {
   const duplicateBranchesAcrossFiles = occurrencesAcrossSources(enabled, 'branchNames');
   const duplicateNodesAcrossFiles = occurrencesAcrossSources(enabled, 'nodeNumbers');
   const blockingRows = [];
+  const warnings = [];
   for (const source of enabled) {
     if (!text(source.sourceText)) blockingRows.push({ sourceId: source.sourceId, code: 'EMPTY_SOURCE', message: `${source.fileName} has no XML text.` });
-    if (source.metrics?.duplicateBranchNames?.length) blockingRows.push({ sourceId: source.sourceId, code: 'DUPLICATE_BRANCH_WITHIN_FILE', message: `${source.fileName} contains duplicate Branchname occurrences.` });
-    if (source.metrics?.duplicateNodesWithinBranch?.length) blockingRows.push({ sourceId: source.sourceId, code: 'DUPLICATE_NODE_WITHIN_BRANCH', message: `${source.fileName} repeats a NodeNumber inside the same branch.` });
+    if (source.metrics?.duplicateBranchNames?.length) {
+      warnings.push({
+        sourceId: source.sourceId,
+        code: 'DUPLICATE_BRANCH_NAME_WITHIN_FILE',
+        count: source.metrics.duplicateBranchNames.length,
+        message: `${source.fileName} contains repeated Branchname text; occurrences are isolated and shown with _1, _2 aliases.`,
+      });
+    }
+    if (source.metrics?.duplicateNodesWithinBranch?.length) {
+      blockingRows.push({
+        sourceId: source.sourceId,
+        code: 'DUPLICATE_NODE_WITHIN_BRANCH',
+        message: `${source.fileName} repeats a NodeNumber inside the same branch occurrence.`,
+        occurrences: source.metrics.duplicateNodesWithinBranch,
+      });
+    }
     const scope = buildSelectedBranchScope({
       sourceText: source.sourceText,
       stagedJsonText: source.stagedJsonText,
       selectedBranchNames: source.branchSelection?.selectedBranchNames,
+      selectedBranchOccurrenceIds: source.branchSelection?.selectedBranchOccurrenceIds,
+      selectionIdentity: source.branchSelection?.selectionIdentity || 'name',
       sourceKind: 'xml',
     });
     if (scope.blocked) blockingRows.push({ sourceId: source.sourceId, code: 'NO_BRANCH_SELECTED', message: `${source.fileName} has no selected branches.` });
   }
   if (!enabled.length) blockingRows.push({ sourceId: '', code: 'NO_ENABLED_SOURCES', message: 'Enable at least one XML source.' });
   if (duplicateDigests.length) blockingRows.push({ sourceId: '', code: 'DUPLICATE_FILE_DIGEST', message: 'The same XML content is loaded more than once.' });
+  warnings.push(
+    ...duplicateBranchesAcrossFiles.map((row) => ({ code: 'DUPLICATE_BRANCH_ACROSS_FILES', ...row })),
+    ...duplicateNodesAcrossFiles.map((row) => ({ code: 'DUPLICATE_NODE_ACROSS_FILES', ...row })),
+  );
   return {
     mode: 'separate-models',
     ready: blockingRows.length === 0,
@@ -227,10 +267,7 @@ export function buildModeAPreflight(batch = {}) {
     duplicateBranchesAcrossFiles,
     duplicateNodesAcrossFiles,
     blockingRows,
-    warnings: [
-      ...duplicateBranchesAcrossFiles.map((row) => ({ code: 'DUPLICATE_BRANCH_ACROSS_FILES', ...row })),
-      ...duplicateNodesAcrossFiles.map((row) => ({ code: 'DUPLICATE_NODE_ACROSS_FILES', ...row })),
-    ],
+    warnings,
   };
 }
 
@@ -239,6 +276,8 @@ export function buildModeAExecutionState(baseState = {}, source = {}) {
     sourceText: source.sourceText,
     stagedJsonText: source.stagedJsonText,
     selectedBranchNames: source.branchSelection?.selectedBranchNames,
+    selectedBranchOccurrenceIds: source.branchSelection?.selectedBranchOccurrenceIds,
+    selectionIdentity: source.branchSelection?.selectionIdentity || 'name',
     sourceKind: 'xml',
   });
   return {
