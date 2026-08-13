@@ -1,4 +1,4 @@
-import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20260804-mode-a-v1';
+import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20260813-mode-a-full-propagation-2';
 import {
   activateModeASource,
   buildModeABatchManifest,
@@ -6,8 +6,8 @@ import {
   buildModeAPreflight,
   normalizeModeABatchState,
   syncActiveModeASource,
-} from '../xml-cii-mode-a-batch.js?v=20260804-mode-a-v1';
-import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260804-mode-a-v1';
+} from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
+import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-full-propagation-2';
 
 function sourceManifest(source, result, scope, error = '') {
   return {
@@ -53,6 +53,18 @@ function selectedBranchCount(scope, source) {
     ?? 0;
 }
 
+function executionState(sharedState, source) {
+  return {
+    ...buildModeAExecutionState(sharedState, source),
+    ...(source.workflow || {}),
+    sourceBatch: null,
+    batchRunResult: null,
+    result: null,
+    outputRunReadinessReport: null,
+    running: false,
+  };
+}
+
 export async function runModeABatchFromUi(stateRef, render) {
   let state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
   if (state.batchRunning || state.running) return;
@@ -91,7 +103,7 @@ export async function runModeABatchFromUi(stateRef, render) {
 
     const sourceBlocks = sourceBlockingRows(preflight, source.sourceId);
     if (sourceBlocks.length) {
-      const execution = buildModeAExecutionState(sharedState, source);
+      const execution = executionState(sharedState, source);
       const scope = execution.branchScope;
       const error = sourceBlocks.map((row) => row.message).join(' | ');
       rows.push({
@@ -109,7 +121,7 @@ export async function runModeABatchFromUi(stateRef, render) {
     }
 
     clearModeASourceCaches();
-    const execution = buildModeAExecutionState(sharedState, source);
+    const execution = executionState(sharedState, source);
     const isolatedRef = { current: execution };
     await runSingleWorkflow(isolatedRef, () => {});
     const sourceState = isolatedRef.current;
@@ -121,6 +133,15 @@ export async function runModeABatchFromUi(stateRef, render) {
       supportConfigJson: sourceState.supportConfigJson || source.supportConfigJson,
       workflow: {
         ...(source.workflow || {}),
+        ...Object.fromEntries(Object.entries(sourceState).filter(([key]) => [
+          'regexTesterResult',
+          'resolverJsonTraceResult',
+          'resolverJsonTraceJsonResult',
+          'manualElementSideloadResult',
+          'previewDiagnosticsAuditReport',
+          'weightMatchResult',
+          'supportTypeMapperResult',
+        ].includes(key))),
         outputRunReadinessReport: sourceState.outputRunReadinessReport || null,
         result,
       },
