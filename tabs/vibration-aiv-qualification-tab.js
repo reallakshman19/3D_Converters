@@ -16,6 +16,7 @@ import {
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
+import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
@@ -67,9 +68,12 @@ function initialState() {
 export function renderAivQualificationWorkspace(container) {
   ensureStylesheet();
   const state = initialState();
+  const canvasController = createAivCanvasInteractionController(container);
 
   function render() {
-    if (!state.destroyed) container.innerHTML = renderAivQualificationWorkspaceHtml(state);
+    if (state.destroyed) return;
+    container.innerHTML = renderAivQualificationWorkspaceHtml(state);
+    canvasController.sync();
   }
 
   function clearReadiness() {
@@ -356,6 +360,7 @@ export function renderAivQualificationWorkspace(container) {
 
   return () => {
     state.destroyed = true;
+    canvasController.destroy();
     container.removeEventListener('click', onClick);
     container.removeEventListener('change', onChange);
   };
