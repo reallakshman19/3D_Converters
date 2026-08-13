@@ -1,63 +1,46 @@
-# AIV Release Plan v2 — AUTO
+# AIV Release Plan v2 — AUTO COMPLETE
 
-## Release sequence
+## Released sequence
 
 ```text
 BLOCKED -> BENCHMARK_ONLY -> SCREENING
 ```
 
-Human evidence is not a release prerequisite. Missing engineering inputs are explicit, visible and user-configurable through `AivAssumptionProfile.v1`.
+Human evidence is not a release prerequisite. Missing engineering inputs are explicit, visible and user-configurable through `AivAssumptionProfile.v1`; explicit user values override assumptions.
 
 Current authority:
 
 ```text
-calculationState      = BLOCKED
-qualificationState    = BLOCKED
-engineeringAuthority  = NONE
-productionEquationAuthorized = false
-screeningAuthority    = NOT_AUTHORIZED
+calculationState      = IMPLEMENTED
+qualificationState    = SCREENING
+engineeringAuthority  = SCREENING
+productionEquationAuthorized = true
+screeningAuthority    = AUTHORIZED
+screeningResultScope  = ASSESSMENT
 designAuthority       = false
 ```
 
-## Current implementation state
+Configured line/case summaries are retained for traceability but are not authoritative screening outputs.
+
+## Benchmark qualification — complete
+
+EI D.2.3 complete product path:
 
 ```text
-stages 1–10                IMPLEMENTED for controlled benchmark path
-D.2.3 full product path    PASS — 22 / 22 checks
-result/detail/export       COMPLETE
-exact-head release test    NEXT
+22 / 22 checks PASS
+10 / 10 stages
+Assessment LOF = 0.29
+Configured line LOF = 1.48, separate scope
 ```
 
-Validation record:
+Records:
 
 ```text
 docs/vibration/validation/AIV-D2.3-Product-Path-Validation-v1.json
-blob 6d3cd2f7d71ab47d2825d802628f18c0782ffdc7
-validated code commit 64485a51ffe78102ba3b966d43ba68e13f511130
+docs/vibration/AIV-D2.3-Product-Path-Validation-v1.md
 ```
 
-## BENCHMARK_ONLY target
-
-```text
-calculationState      = IMPLEMENTED
-qualificationState    = BENCHMARK_ONLY
-engineeringAuthority  = REFERENCE_ONLY
-screeningAuthority    = NOT_AUTHORIZED
-designAuthority       = false
-```
-
-`AivReleasePlan.v2` requires four machine/configuration artifacts:
-
-```text
-1. AivQualificationParityManifest.v1
-2. AivAssumptionProfileValidation.v1
-3. AivBenchmarkKernelQualification.v2 — PASS / complete 10-stage product path
-4. AivReleaseValidationReceipt.v1 — exact-head node/browser execution PASS
-```
-
-No engineer/reviewer artifact is required.
-
-## Completed benchmark acceptance
+Representative chain:
 
 ```text
 Relief raw PWL           164.6851759525391 dB
@@ -69,75 +52,142 @@ log10(N)                   9.902567870507482
 N                          7.990388037921443E9
 FLM1 selected              1.2133
 FLM1 recalculated          1.2109758194311824
+FLM1 variance              0.0023241805688176687 <= 0.0024
 FLM2                       0.2009306328510857
 Lf                         0.31287602368755874
 Assessment LOF             0.29
 Configured line LOF        1.48
 ```
 
-All 22 declared validation checks pass. The FLM1 displayed-input variance is explicit and within configurable tolerance `0.0024`.
+## Stage 19 — BENCHMARK_ONLY release complete
 
-`A`, `S`, `B`, and line-scope `LOF=1.48` remain visible assumptions because the worked example does not expose enough information to derive them generically.
-
-## Result/export behavior — complete
-
-For the unchanged controlled EI D.2.3 benchmark, the workspace shows validated Source, Assessment, T2-6 and Line/Case detail and exports `AivValidatedBenchmarkExportPackage.v1` with the active assumption profile and validation record.
-
-Validation identity fails closed:
+Exact-source local release evidence:
 
 ```text
-change table input       -> NOT_APPLICABLE_MODIFIED_INPUTS
-change benchmark assumption -> validation not applicable
-reload controlled benchmark -> restores validated default identity
+docs/vibration/validation/AIV-BENCHMARK-ONLY-ReleaseValidationRecord-v1.json
+docs/vibration/validation/AIV-BENCHMARK-ONLY-ReleaseValidationReceipt-v1.json
 ```
 
-## Exact-head release validation — next
-
-Required commands on the exact candidate head:
+Validated post-registration candidate:
 
 ```text
-npm run verify:aiv-input-model
-npm run run:aiv-d23-product-path-validation
+32a0c4962d74940b9cded8709eb2b83a68c006ad
 ```
 
-Required browser sequence:
+Groups:
 
 ```text
-Load EI D.2.3
-confirm validated Source / Assessment / Line results
-edit table -> committed validation disappears
-reload benchmark
-edit assumption -> committed validation disappears
-reload benchmark
-export validation package
+AIV_FOCUSED_NODE_TESTS              PASS
+AIV_CONTROLLED_BENCHMARK_PARITY     PASS
+AIV_BROWSER_WORKSPACE_SMOKE         PASS
+AIV_MODULE_BOUNDARY_CHECK           PASS
 ```
 
-Record successful execution as `AivReleaseValidationReceipt.v1` with the exact candidate SHA and actual execution/log identity.
+The AIV placeholder was removed from pending definitions and the dedicated Engineering Calculation definition was activated before screening qualification.
 
-A GitHub Actions job with `runner_id=0` or zero steps is `NOT_RUN`, not release evidence.
+## Stage 20 — SCREENING release complete
 
-## AUTO stop conditions
+Screening candidate validated at:
 
 ```text
-INVALID_ASSUMPTION_PROFILE
-MACHINE_BENCHMARK_PARITY_FAILURE
-PRODUCT_PATH_BENCHMARK_PARITY_FAILURE
-EXACT_HEAD_VALIDATION_FAILURE
+613e1ec48335db3794e5208b0c3435d387683b04
 ```
 
-There is no human-review stop condition.
-
-## SCREENING — later
-
-SCREENING begins only after BENCHMARK_ONLY is released. Machine qualification must cover project source/process ranges, pressure bases, sonic and trim behavior, source mapping, multi-source combination, geometry/material ranges, line/case behavior, single/batch parity, assumptions/export trace and exact-head validation.
+Records:
 
 ```text
-qualificationState  = SCREENING
-screeningAuthority  = AUTHORIZED_WITHIN_APPLICABILITY
-designAuthority     = false
+docs/vibration/validation/AIV-SCREENING-ReleaseValidationRecord-v1.json
+docs/vibration/validation/AIV-SCREENING-ReleaseValidationReceipt-v1.json
 ```
 
-SCREENING remains distinct from design authority.
+Eight qualification groups:
+
+```text
+AIV_FOCUSED_NODE_TESTS                  PASS
+AIV_CONTROLLED_BENCHMARK_PARITY         PASS
+AIV_BROWSER_WORKSPACE_SMOKE             PASS
+AIV_MODULE_BOUNDARY_CHECK               PASS
+AIV_REAL_PRODUCT_PATH_PARITY            PASS
+AIV_SINGLE_BATCH_PARITY                 PASS
+AIV_PROJECT_INPUT_BROWSER_FLOW          PASS
+AIV_EXPORT_PROVENANCE                   PASS
+```
+
+The Stage-20 rerun remained PASS with 22/22 benchmark checks, same-kernel batch parity, 56 visible assumptions for the blank-project qualification fixture, and `designAuthority=false`.
+
+After receipt creation, a separate code change applied the `SCREENING` registry transition.
+
+## Qualified screening envelope
+
+The release authorizes **assessment-level screening**, not design approval.
+
+```text
+qualified result scope       ASSESSMENT
+line/case summary authority  false
+gas phase                    qualified current envelope
+SONIC / NON_SONIC            explicit branches qualified
+UNRESOLVED sonic state       fail closed
+closed source                outside active-source envelope
+missing inputs               visible/exported assumptions allowed
+physical distance            relationship evidence or visible assumption only
+designAuthority              false
+```
+
+The line/case value `1.48` remains a configured/reporting reference; it cannot replace the assessment result `0.29` or become an authoritative screening decision.
+
+## Product execution
+
+The central kernel is:
+
+```text
+converters/vibration/aiv/aiv-calculator.js
+```
+
+Single and batch execution use the same `calculateAiv` implementation. The Engineering Calculation adapter supports explicit modes:
+
+```text
+qualificationMode=benchmark
+qualificationMode=screening
+```
+
+The operator workflow is:
+
+```text
+IMPORT / LOAD
+EDIT INPUTS + ASSUMPTIONS
+CHECK READINESS
+RUN AIV SCREENING
+INSPECT SOURCE RESULTS
+INSPECT ASSESSMENT SCREENING RESULTS
+INSPECT NON-AUTHORITATIVE LINE SUMMARY
+EXPORT RESULT + INPUT / ASSUMPTION PROVENANCE
+```
+
+The UI contains no AIV equations; it invokes the registered Engineering Calculation API.
+
+## GitHub Actions status
+
+Hosted Actions is still infrastructure-blocked. Jobs continue to receive `runner_id=0` and zero steps with the platform annotation:
+
+```text
+The job was not started because an Actions budget is preventing further use.
+```
+
+This is `NOT_RUN`, not a code failure and not release evidence. Local controlled exact-source validation records are the release evidence for this AUTO program.
+
+## AUTO release status
+
+```text
+16B.1 COMPLETE
+16B.2 COMPLETE
+16B.3 COMPLETE
+17     COMPLETE / PASS
+18     COMPLETE
+19     COMPLETE
+20     COMPLETE
+```
+
+There is no remaining AUTO release gate.
 
 ## Permanent boundary
 
@@ -149,4 +199,4 @@ AUTHOR -> EDIT -> VALIDATE -> CERTIFY -> EXPORT
 IMPORT -> VERIFY -> JOIN -> ASSESS -> EXPLAIN
 ```
 
-No geometry authoring, pixel-derived distance, 3D click-to-calculate flow, or geometry writeback is introduced by release.
+No geometry authoring, pixel-derived distance, 3D click-to-calculate flow, or geometry writeback is introduced by release. `designAuthority=false` remains the boundary.
