@@ -140,11 +140,16 @@ function renderRestraintTypeCodeTable(card, stateRef, render) {
 
   const onSaveConfig = (nextConfig) => {
     const nextJson = JSON.stringify(nextConfig, null, 2);
-    stateRef.current.supportConfigJson = nextJson;
-    if (stateRef.current.masterContext) {
-      stateRef.current.masterContext.config = nextConfig;
-      saveMasterContextToLocalStorage(stateRef.current.masterContext);
-    }
+    const current = stateRef.current || {};
+    const masterContext = current.masterContext
+      ? { ...current.masterContext, config: nextConfig }
+      : current.masterContext;
+    stateRef.current = {
+      ...current,
+      supportConfigJson: nextJson,
+      masterContext,
+    };
+    if (masterContext) saveMasterContextToLocalStorage(masterContext);
     if (typeof render === 'function') render();
   };
 
