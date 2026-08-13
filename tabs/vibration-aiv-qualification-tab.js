@@ -187,7 +187,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function applyTableMutation(kind, table) {
     state.tables[kind] = table;
-    if (state.flareNetworkActive) state.flareNetworkActive = false;
+    if (state.flareNetworkActive) deactivateFlareNetworkGeneration();
     markBenchmarkModified();
     clearReadiness();
     state.error = null;
@@ -242,6 +242,12 @@ export function renderAivQualificationWorkspace(container) {
     return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
   }
 
+  function topologyFormat(AIV_TOPOLOGY_INPUT_FORMAT) {
+    if (state.topologyInput.format === 'FLARE_NETWORK') return AIV_TOPOLOGY_INPUT_FORMAT.FLARE_NETWORK;
+    if (state.topologyInput.format === 'PARSED_EXCHANGE') return AIV_TOPOLOGY_INPUT_FORMAT.PARSED_EXCHANGE;
+    return AIV_TOPOLOGY_INPUT_FORMAT.XLSX;
+  }
+
   async function checkReadiness() {
     if (state.busy || !readinessInputAvailable()) return;
     state.busy = true;
@@ -250,12 +256,9 @@ export function renderAivQualificationWorkspace(container) {
     render();
     try {
       const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
-        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-5'
+        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-6'
       );
       if (state.destroyed) return;
-      const format = state.topologyInput.format === 'PARSED_EXCHANGE'
-        ? AIV_TOPOLOGY_INPUT_FORMAT.PARSED_EXCHANGE
-        : AIV_TOPOLOGY_INPUT_FORMAT.XLSX;
       const assumableTables = ensureAssumableRows(state.tables);
       state.assumptionResolution = resolveAivWorkingTablesWithAssumptions(
         assumableTables,
@@ -263,7 +266,7 @@ export function renderAivQualificationWorkspace(container) {
       );
       state.readinessEnvelope = buildAivReadinessFromTables({
         topology: {
-          format,
+          format: topologyFormat(AIV_TOPOLOGY_INPUT_FORMAT),
           data: state.topologyInput.data,
           sourceFileName: state.topologyInput.sourceFileName,
         },
