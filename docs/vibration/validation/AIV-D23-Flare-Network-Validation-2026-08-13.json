@@ -1,0 +1,194 @@
+{
+  "schema": "AivFlareNetworkValidationRecord.v1",
+  "recordId": "AIV-D23-FLARE-NETWORK-VALIDATION-2026-08-13",
+  "validationDate": "2026-08-13",
+  "scope": "EI D.2.3 relief-source to first-weldolet flare-network graph, generated AIV tables, and screening benchmark",
+  "implementation": {
+    "repository": "reallaksh19/3D_Converters",
+    "pullRequest": 456,
+    "mergedCommit": "fbe7f1a4ec27087997df0ef717a62faf7bbb2f8e",
+    "reviewedHead": "a29a6578fca38c4b910ac0cf4996c25f92c100ea",
+    "calculationId": "VIB.AIV.ACOUSTIC",
+    "qualificationMode": "screening",
+    "screeningResultScope": "ASSESSMENT",
+    "designAuthority": false
+  },
+  "controlledEvidence": {
+    "mainGuidance": {
+      "repository": "reallaksh19/Common",
+      "path": "EI - AVIFF Guidelines 2nd Edition.pdf",
+      "blob": "9d3eccc56429411e17c07a579bdebbd13cb0bdc5",
+      "edition": "2nd Edition, January 2008"
+    },
+    "workedExamplePdf": {
+      "repository": "reallaksh19/Common",
+      "path": "EI examples.pdf",
+      "blob": "1ddef94f81bd30570d1b1f86b1d3e2acdcc17dec",
+      "locator": "D.2.3, printed pages 183-185"
+    },
+    "workedExampleMarkdown": {
+      "repository": "reallaksh19/3D_Converters",
+      "path": "docs/Energy-Institute-AVIFF---Worked-Examples.md",
+      "blob": "9f22d92eba8bdf3b67adc25a4c77a7f7d7211da8"
+    }
+  },
+  "network": {
+    "schema": "AivFlareNetwork.v1",
+    "networkId": "EI-D23-RELIEF-FIRST-DISCONTINUITY",
+    "revision": "VALIDATION-1",
+    "nodes": [
+      {
+        "canonicalId": "AIV-D23-RELIEF-SOURCE",
+        "kind": "SOURCE",
+        "sourceDeviceType": "RELIEF_VALVE",
+        "operatingCase": "D2.3-RELIEF"
+      },
+      {
+        "canonicalId": "AIV-D23-WELDOLET-01",
+        "kind": "ASSESSMENT",
+        "assessmentType": "WELDOLET"
+      }
+    ],
+    "segments": [
+      {
+        "segmentId": "D23-PATH-001",
+        "fromNodeId": "AIV-D23-RELIEF-SOURCE",
+        "toNodeId": "AIV-D23-WELDOLET-01",
+        "physicalLength": {
+          "value": 0.8,
+          "unit": "m"
+        },
+        "distanceAuthority": "EXPLICIT_SEGMENT_ENGINEERING_LENGTH"
+      }
+    ],
+    "resolvedPath": {
+      "status": "RESOLVED",
+      "segmentIds": [
+        "D23-PATH-001"
+      ],
+      "physicalDistance": {
+        "value": 0.8,
+        "unit": "m"
+      },
+      "rule": "sum explicit engineering segment lengths; SVG coordinates are presentation-only"
+    }
+  },
+  "generatedTables": {
+    "sourceContract": "AivSourceCsv.v2",
+    "assessmentContract": "AivAssessmentCsv.v1",
+    "relationshipContract": "AivSourceAssessmentCsv.v1",
+    "expectedRows": {
+      "sources": 1,
+      "assessments": 1,
+      "relationships": 1
+    },
+    "relationship": {
+      "sourceCanonicalId": "AIV-D23-RELIEF-SOURCE",
+      "assessmentCanonicalId": "AIV-D23-WELDOLET-01",
+      "operatingCase": "D2.3-RELIEF",
+      "applicabilityDisposition": "APPLICABLE",
+      "physicalDistance": {
+        "value": 0.8,
+        "unit": "m"
+      },
+      "pathSegmentIds": [
+        "D23-PATH-001"
+      ]
+    }
+  },
+  "benchmark": {
+    "reliefRawSourcePwlDb": 164.6851759525391,
+    "attenuationDb": 0.3116883116883117,
+    "firstPointPwlDb": 164.3734876408508,
+    "assessmentLof": 0.29,
+    "lineCaseTraceLof": 1.48,
+    "lineCaseTraceAuthoritativeForScreening": false,
+    "independentMultiSource": [
+      {
+        "inputsDb": [
+          160,
+          160
+        ],
+        "combinedDb": 163.0102999566398
+      },
+      {
+        "inputsDb": [
+          160,
+          150
+        ],
+        "combinedDb": 160.41392685158226
+      }
+    ]
+  },
+  "checks": [
+    {
+      "id": "MERGED_IMPLEMENTATION_PIN",
+      "status": "PASS",
+      "evidence": "fbe7f1a4ec27087997df0ef717a62faf7bbb2f8e"
+    },
+    {
+      "id": "UNIQUE_PATH_EXPLICIT_LENGTH",
+      "status": "PASS",
+      "evidence": "D23-PATH-001 = 0.8 m"
+    },
+    {
+      "id": "SVG_PRESENTATION_NOT_DISTANCE",
+      "status": "PASS",
+      "evidence": "presentation coordinates and physicalLength are separate authorities"
+    },
+    {
+      "id": "GRAPH_TO_GENERATED_TABLES",
+      "status": "PASS_ISOLATED",
+      "evidence": "focused graph/generator smoke and merged regression definitions"
+    },
+    {
+      "id": "D23_SCREENING_BENCHMARK",
+      "status": "PASS_ISOLATED",
+      "evidence": "exact D.2.3 pinned values reproduced by the merged regression path"
+    },
+    {
+      "id": "TRUE_MULTI_SOURCE_BENCHMARK",
+      "status": "PASS_ISOLATED",
+      "evidence": "160+160 and 160+150 targets pinned with both source identities"
+    },
+    {
+      "id": "NATIVE_VERIFY_AIV_FLARE_NETWORK",
+      "status": "NOT_RUN",
+      "reason": "no mounted native repository checkout in agent runtime"
+    },
+    {
+      "id": "NATIVE_VERIFY_AIV_CANVAS_RELEASE",
+      "status": "NOT_RUN",
+      "reason": "no mounted native repository checkout in agent runtime"
+    },
+    {
+      "id": "REAL_BROWSER_AUTHORING_ACCEPTANCE",
+      "status": "NOT_RUN",
+      "reason": "no real-browser harness available in agent runtime"
+    },
+    {
+      "id": "LATEST_PR_HEAD_GITHUB_ACTIONS",
+      "status": "NOT_RUN_BUDGET",
+      "evidence": "run 31688717233 / job 94410821368: Actions budget prevented startup"
+    },
+    {
+      "id": "POST_MERGE_PR_TRIGGERED_RUN_QUERY",
+      "status": "NO_RUNS_RETURNED",
+      "evidence": "connector returned no pull-request-triggered runs for merge commit"
+    }
+  ],
+  "conclusion": {
+    "status": "PASS_WITH_ENVIRONMENTAL_GAPS",
+    "validated": [
+      "explicit engineering distance model",
+      "graph-to-table generation contract",
+      "D.2.3 numerical benchmark",
+      "multi-source benchmark targets",
+      "assessment-level screening boundary"
+    ],
+    "notValidated": [
+      "native package commands on merged main",
+      "real-browser authoring and download behavior"
+    ]
+  }
+}
