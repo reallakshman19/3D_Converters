@@ -1,5 +1,5 @@
 import { createElement } from './xml-cii-adapted-dom.js';
-import { buildXmlCiiBranchGroups, xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js';
+import { buildXmlCiiBranchOccurrenceGroups, xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js';
 import { ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js';
 
 function text(value) {
@@ -7,7 +7,7 @@ function text(value) {
 }
 
 function selectedSet(stateRef) {
-  return new Set(stateRef.current.branchSelection?.selectedBranchNames || []);
+  return new Set(stateRef.current.branchSelection?.selectedBranchOccurrenceIds || []);
 }
 
 function persistSelection(selection) {
@@ -35,13 +35,14 @@ function clearDownstream(state) {
   };
 }
 
-function commitSelection(stateRef, values, render) {
-  const sourceOrder = xmlCiiBranchScopeFromState(stateRef.current).sourceBranches;
-  const wanted = new Set(values);
-  const selectedBranchNames = sourceOrder.filter((name) => wanted.has(name));
+function commitSelection(stateRef, occurrenceIds, render) {
+  const scope = xmlCiiBranchScopeFromState(stateRef.current);
+  const wanted = new Set(occurrenceIds);
+  const selectedOccurrences = scope.sourceBranchOccurrences.filter((row) => wanted.has(row.branchOccurrenceId));
   const selection = {
     ...stateRef.current.branchSelection,
-    selectedBranchNames,
+    selectedBranchOccurrenceIds: selectedOccurrences.map((row) => row.branchOccurrenceId),
+    selectedBranchNames: selectedOccurrences.map((row) => row.branchName),
   };
   persistSelection(selection);
   stateRef.current = clearDownstream({ ...stateRef.current, branchSelection: selection });
@@ -59,49 +60,56 @@ function button(label, action) {
   return control;
 }
 
-function branchRow(branchName, checked, stateRef, render) {
+function branchRow(occurrence, checked, stateRef, render) {
   const row = createElement('label', '', 'xml-cii-branch-scope-row');
   Object.assign(row.style, { display: 'flex', gap: '8px', alignItems: 'center', padding: '3px 0' });
   const input = createElement('input');
   input.type = 'checkbox';
   input.checked = checked;
-  input.dataset.branchScopeBranch = branchName;
-  const suffix = branchName.match(/\/B\d+$/i)?.[0]?.slice(1) || branchName;
+  input.dataset.branchScopeBranchOccurrence = occurrence.branchOccurrenceId;
+  const originalSuffix = occurrence.branchName.match(/\/B\d+$/i)?.[0]?.slice(1) || occurrence.branchName;
+  const aliasSuffix = occurrence.displayBranchName.match(/\/([^/]+)$/)?.[1] || occurrence.displayBranchName;
+  const label = occurrence.displayBranchName === occurrence.branchName
+    ? `${originalSuffix}   ${occurrence.branchName}`
+    : `${aliasSuffix}   ${occurrence.branchName}`;
   input.addEventListener('change', () => {
     const next = selectedSet(stateRef);
-    if (input.checked) next.add(branchName); else next.delete(branchName);
+    if (input.checked) next.add(occurrence.branchOccurrenceId); else next.delete(occurrence.branchOccurrenceId);
     commitSelection(stateRef, next, render);
   });
-  row.append(input, createElement('span', `${suffix}   ${branchName}`));
+  row.append(input, createElement('span', label));
   return row;
 }
 
 function groupBlock(group, selected, stateRef, render) {
   const details = createElement('details');
   details.open = true;
-  details.dataset.branchScopeSearchText = `${group.groupName} ${group.branchNames.join(' ')}`.toUpperCase();
+  const searchText = group.branchOccurrences
+    .flatMap((row) => [row.branchName, row.displayBranchName])
+    .join(' ');
+  details.dataset.branchScopeSearchText = `${group.groupName} ${searchText}`.toUpperCase();
   const summary = createElement('summary');
   Object.assign(summary.style, { cursor: 'pointer', padding: '5px 0', color: '#cbd5e1' });
   const parent = createElement('input');
   parent.type = 'checkbox';
-  const count = group.branchNames.filter((name) => selected.has(name)).length;
-  parent.checked = count === group.branchNames.length;
-  parent.indeterminate = count > 0 && count < group.branchNames.length;
+  const count = group.branchOccurrences.filter((row) => selected.has(row.branchOccurrenceId)).length;
+  parent.checked = count === group.branchOccurrences.length;
+  parent.indeterminate = count > 0 && count < group.branchOccurrences.length;
   parent.dataset.branchScopeGroup = group.groupName;
   parent.addEventListener('click', (event) => event.stopPropagation());
   parent.addEventListener('change', () => {
     const next = selectedSet(stateRef);
-    for (const branchName of group.branchNames) {
-      if (parent.checked) next.add(branchName); else next.delete(branchName);
+    for (const occurrence of group.branchOccurrences) {
+      if (parent.checked) next.add(occurrence.branchOccurrenceId); else next.delete(occurrence.branchOccurrenceId);
     }
     commitSelection(stateRef, next, render);
   });
-  summary.append(parent, document.createTextNode(` ${group.groupName} [${count}/${group.branchNames.length}]`));
+  summary.append(parent, document.createTextNode(` ${group.groupName} [${count}/${group.branchOccurrences.length}]`));
   details.appendChild(summary);
   const children = createElement('div');
   Object.assign(children.style, { marginLeft: '22px', borderLeft: '1px solid #334155', paddingLeft: '10px' });
-  for (const branchName of group.branchNames) {
-    children.appendChild(branchRow(branchName, selected.has(branchName), stateRef, render));
+  for (const occurrence of group.branchOccurrences) {
+    children.appendChild(branchRow(occurrence, selected.has(occurrence.branchOccurrenceId), stateRef, render));
   }
   details.appendChild(children);
   return details;
@@ -119,21 +127,21 @@ function applySearch(list, search) {
 }
 
 function visibleBranches(list) {
-  const names = [];
+  const ids = [];
   for (const details of list.querySelectorAll('details[data-branch-scope-search-text]')) {
     if (details.hidden) continue;
-    for (const input of details.querySelectorAll('[data-branch-scope-branch]')) {
-      names.push(input.dataset.branchScopeBranch);
+    for (const input of details.querySelectorAll('[data-branch-scope-branch-occurrence]')) {
+      ids.push(input.dataset.branchScopeBranchOccurrence);
     }
   }
-  return names;
+  return ids;
 }
 
 export function renderXmlCiiBranchSelectionPanelV2(parent, stateRef, render) {
   ensureXmlCiiBranchSelectionInRef(stateRef);
   const state = stateRef.current;
   const scope = xmlCiiBranchScopeFromState(state);
-  if (!scope.applicable && !scope.sourceBranches.length) return;
+  if (!scope.applicable && !scope.sourceBranchOccurrences.length) return;
   const selected = selectedSet(stateRef);
   const panel = createElement('section', '', 'model-converters-workflow-master-card xml-cii-branch-scope-panel');
   Object.assign(panel.style, { marginTop: '12px', border: '1px solid #334155', borderRadius: '8px', padding: '12px' });
@@ -141,7 +149,7 @@ export function renderXmlCiiBranchSelectionPanelV2(parent, stateRef, render) {
   Object.assign(header.style, { display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' });
   header.append(
     createElement('strong', 'Branches to Process'),
-    createElement('span', `${scope.sourceBranches.length} detected · ${selected.size} selected`, 'xml-cii-phase-help'),
+    createElement('span', `${scope.sourceBranchOccurrences.length} detected · ${selected.size} selected`, 'xml-cii-phase-help'),
   );
   panel.appendChild(header);
 
@@ -160,17 +168,17 @@ export function renderXmlCiiBranchSelectionPanelV2(parent, stateRef, render) {
 
   const list = createElement('div');
   Object.assign(list.style, { maxHeight: '340px', overflow: 'auto', padding: '4px 8px', background: '#0b1220', border: '1px solid #273449', borderRadius: '6px' });
-  for (const group of buildXmlCiiBranchGroups(scope.sourceBranches)) {
-    list.appendChild(groupBlock(group, selected, stateRef, render));
-  }
+  const groups = buildXmlCiiBranchOccurrenceGroups(scope.sourceBranchOccurrences);
+  for (const group of groups) list.appendChild(groupBlock(group, selected, stateRef, render));
   const empty = createElement('div', 'No branch names match the search.', 'xml-cii-phase-help');
   empty.dataset.branchScopeEmpty = 'true';
   empty.hidden = true;
   list.appendChild(empty);
   panel.appendChild(list);
 
+  const selectedOccurrences = scope.sourceBranchOccurrences.filter((row) => selected.has(row.branchOccurrenceId));
   panel.appendChild(createElement('div', selected.size
-    ? `Processing scope: ${selected.size} selected branches, ${buildXmlCiiBranchGroups([...selected]).length} branch groups.`
+    ? `Processing scope: ${selected.size} selected branch occurrences, ${buildXmlCiiBranchOccurrenceGroups(selectedOccurrences).length} branch groups.`
     : 'No branches selected. Preview, JSON Trace, Weight Match, and Run are blocked.', 'model-converters-workflow-detail-note'));
 
   search.addEventListener('input', () => {
@@ -185,9 +193,10 @@ export function renderXmlCiiBranchSelectionPanelV2(parent, stateRef, render) {
   actions.querySelectorAll('[data-branch-scope-action]').forEach((control) => control.addEventListener('click', () => {
     const action = control.dataset.branchScopeAction;
     const current = selectedSet(stateRef);
-    if (action === 'all') commitSelection(stateRef, scope.sourceBranches, render);
+    const allIds = scope.sourceBranchOccurrences.map((row) => row.branchOccurrenceId);
+    if (action === 'all') commitSelection(stateRef, allIds, render);
     else if (action === 'clear') commitSelection(stateRef, [], render);
-    else if (action === 'invert') commitSelection(stateRef, scope.sourceBranches.filter((name) => !current.has(name)), render);
+    else if (action === 'invert') commitSelection(stateRef, allIds.filter((id) => !current.has(id)), render);
     else commitSelection(stateRef, new Set([...current, ...visibleBranches(list)]), render);
   }));
   parent.appendChild(panel);
