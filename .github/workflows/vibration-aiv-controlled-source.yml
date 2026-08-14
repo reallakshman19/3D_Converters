@@ -26,6 +26,7 @@ on:
     paths:
       - 'converters/vibration/aiv/**'
       - 'converters/vibration/topology/graph.js'
+      - 'tabs/vibration-aiv-*'
       - 'tests/vibration-aiv-*'
       - 'scripts/extract-aiv-ei-t27-source.mjs'
       - 'scripts/extract-aiv-ei-d23-source.mjs'
@@ -238,6 +239,9 @@ jobs:
           node --experimental-default-type=module --test tests/vibration-aiv-readiness.test.mjs
           node --experimental-default-type=module --test tests/vibration-aiv-topology-view.test.mjs
           node --experimental-default-type=module --test tests/vibration-module-boundaries.test.mjs
+
+      - name: Run AIV canvas release suite
+        run: npm run verify:aiv-canvas-release
 
       - name: Diff hygiene
         run: git diff --check
