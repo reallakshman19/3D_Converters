@@ -13,7 +13,8 @@ function maps(screeningPackage) {
   const relationships = new Map((screeningPackage.inputs?.relationships ?? []).map((x) => [rkey(x.sourceCanonicalId, x.assessmentCanonicalId, x.caseId), x]));
   const sourceResults = new Map((result.sourceResults ?? []).map((x) => [skey(x.sourceCanonicalId, x.caseId), x]));
   const paths = new Map((screeningPackage.flareNetworkEvidence?.pathEvidence ?? []).map((x) => [rkey(x.sourceCanonicalId, x.assessmentCanonicalId, x.caseId), x]));
-  return { result, sources, assessments, relationships, sourceResults, paths };
+  const importedDetails = new Map((screeningPackage.eitImportEvidence?.detailEvidence ?? []).map((x) => [x.key, x]));
+  return { result, sources, assessments, relationships, sourceResults, paths, importedDetails };
 }
 
 function lineRecord(assessmentResult, index, refs) {
@@ -24,9 +25,18 @@ function lineRecord(assessmentResult, index, refs) {
     const source = refs.sources.get(sourceKey);
     const sourceResult = refs.sourceResults.get(sourceKey);
     if (!source || !sourceResult) throw new Error(`AIV_EIT_SOURCE_RESULT_MISSING: ${sourceKey}`);
-    return buildAivEitSourceDetail({ source, sourceResult, assessmentResult, relationship: refs.relationships.get(relationshipKey), pathEvidence: refs.paths.get(relationshipKey) });
+    return buildAivEitSourceDetail({
+      source,
+      sourceResult,
+      assessmentResult,
+      relationship: refs.relationships.get(relationshipKey),
+      pathEvidence: refs.paths.get(relationshipKey),
+      importedDetail: refs.importedDetails.get(relationshipKey)?.originalDetail ?? null,
+    });
   });
   const trace = (refs.result.lineCaseSummaries ?? []).find((x) => x.caseId === assessmentResult.caseId && x.assessmentCanonicalIds?.includes(assessmentResult.assessmentCanonicalId));
+  const importedEvidence = [...refs.importedDetails.values()].find((item) => item.assessmentCanonicalId === assessmentResult.assessmentCanonicalId);
+  const importedLine = importedEvidence ? refs.importedOriginal?.lines?.[importedEvidence.lineIndex] : null;
   const pwls = sourceIds.map((id) => refs.sourceResults.get(skey(id, assessmentResult.caseId))?.effectiveSourcePwlDb).filter(Number.isFinite);
   const lof = Number(assessmentResult.lof);
   return {
@@ -38,13 +48,61 @@ function lineRecord(assessmentResult, index, refs) {
     modules: 'aiv', aiv: String(lof), pwl: pwls.length ? String(Math.max(...pwls)) : '',
     aiv_data: JSON.stringify(details), maxLof: String(lof), aivAuthorityScope: 'ASSESSMENT',
     aivAssessmentCanonicalId: assessmentResult.assessmentCanonicalId,
-    aivConfiguredLineCaseTraceLof: trace?.lof ?? null,
+    aivConfiguredLineCaseTraceLof: trace?.lof ?? importedLine?.aivConfiguredLineCaseTraceLof ?? null,
     aivConfiguredLineCaseTraceAuthoritative: false,
   };
 }
 
+function moduleSet(line) {
+  return String(line?.modules ?? '').split(',').map((item) => item.trim()).filter(Boolean);
+}
+
+function hasUnrelatedModules(document) {
+  return (document?.lines ?? []).some((line) => moduleSet(line).some((module) => module !== 'aiv'));
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function mergeIntoImportedDocument(fresh, refs, title) {
+  const original = clone(refs.importedOriginal);
+  original.options = { ...(original.options ?? {}), title: String(title || original.options?.title || ''), version: AIV_EIT_VERSION };
+  const evidenceByAssessment = new Map();
+  for (const item of refs.importedDetails.values()) {
+    if (!evidenceByAssessment.has(item.assessmentCanonicalId)) evidenceByAssessment.set(item.assessmentCanonicalId, item);
+  }
+
+  for (const current of fresh.lines) {
+    const evidence = evidenceByAssessment.get(current.aivAssessmentCanonicalId);
+    if (!evidence || !original.lines[evidence.lineIndex]) {
+      original.lines.push(current);
+      continue;
+    }
+    const prior = original.lines[evidence.lineIndex];
+    const priorModules = moduleSet(prior);
+    const modules = priorModules.includes('aiv') ? priorModules.join(',') : [...priorModules, 'aiv'].join(',');
+    const mixedModuleLine = priorModules.some((module) => module !== 'aiv');
+    original.lines[evidence.lineIndex] = {
+      ...prior,
+      ...current,
+      rid: prior.rid ?? current.rid,
+      pnid: prior.pnid ?? current.pnid,
+      lref: prior.lref ?? current.lref,
+      ldesc: prior.ldesc ?? current.ldesc,
+      pi: prior.pi ?? current.pi,
+      si: prior.si ?? current.si,
+      modules,
+      maxLof: mixedModuleLine ? prior.maxLof : current.maxLof,
+      ...(mixedModuleLine ? { aivMaxAuthoritativeAssessmentLof: current.aiv } : {}),
+    };
+  }
+  return assertAivEitV5Document(original);
+}
+
 export function buildAivEitV5Document(screeningPackage, title, options = {}) {
   const refs = maps(screeningPackage);
+  refs.importedOriginal = screeningPackage.eitImportEvidence?.originalDocument ?? null;
   const assessmentIds = [...new Set((refs.result.assessmentResults ?? []).map((x) => x.assessmentCanonicalId))].sort();
   refs.pipeIds = new Map(assessmentIds.map((id, i) => [id, i + 1]));
   const pipes = assessmentIds.map((id) => buildAivEitPipe(refs.assessments.get(id), refs.pipeIds.get(id)));
@@ -56,5 +114,9 @@ export function buildAivEitV5Document(screeningPackage, title, options = {}) {
     options: { title: String(title), version: AIV_EIT_VERSION, id: Number(options.id ?? 0), project: Number(options.project ?? 0), advancedFip: '0', debug: String(options.debug ?? '0'), 'ignore-vib': Number(options['ignore-vib'] ?? 0) },
     lines, pipes, streams, mats: [],
   };
-  return assertAivEitV5Document(document);
+  const fresh = assertAivEitV5Document(document);
+  if (refs.importedOriginal && hasUnrelatedModules(refs.importedOriginal)) {
+    return mergeIntoImportedDocument(fresh, refs, title);
+  }
+  return fresh;
 }
