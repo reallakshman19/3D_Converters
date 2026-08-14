@@ -145,7 +145,7 @@ function sourceRow({ line, detail, stream, detailIndex, sourceName }) {
       'Downstream Pressure Unit': 'bar',
       'Downstream Pressure Basis': 'ABSOLUTE',
       'Upstream Temperature': finite(detail.ust ?? stream?.t) ?? '',
-      'Upstream Temperature Unit': 'C',
+      'Upstream Temperature Unit': 'degC',
       'Molecular Weight': finite(detail.molecularWeight ?? stream?.mw) ?? '',
       'Molecular Weight Unit': 'g/mol',
       'Low Noise Trim State': trimEvidence.state,

@@ -141,6 +141,7 @@ test('imports modern AIV-only EIT into canonical working rows without promoting 
   assert.equal(imported.importedResults[0].importedResultKind, 'PRIOR_ASSESSMENT_SCREENING_TRACE');
   assert.equal(value(imported.tables.sources[0], AIV_SOURCE_CSV_HEADER, 'Source Canonical ID'), 'RV-101');
   assert.equal(value(imported.tables.sources[0], AIV_SOURCE_CSV_HEADER, 'Sonic State'), 'SONIC');
+  assert.equal(value(imported.tables.sources[0], AIV_SOURCE_CSV_HEADER, 'Upstream Temperature Unit'), 'degC');
   assert.equal(value(imported.tables.assessments[0], AIV_ASSESSMENT_CSV_HEADER, 'Branch Outside Diameter'), '114.3');
   assert.deepEqual(imported.evidence.detailEvidence[0].segmentIds, ['RV101-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN']);
 });
