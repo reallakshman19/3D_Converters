@@ -87,14 +87,15 @@ test('modified EI inputs retain target as reference but suppress official parity
   assert.doesNotMatch(html, /Benchmark parity PASS/u);
 });
 
-test('editable FIT UI remains an input/preparation layer with no direct numerical authority', () => {
+test('editable FIT UI remains an input/preparation layer with lazy numerical workflow loading', () => {
   const combined = `${controllerSource}\n${runControllerSource}\n${inputViewSource}`;
   assert.doesNotMatch(combined, /calculateFit\s*\(/u);
   assert.doesNotMatch(combined, /calculateEngineering(?:Batch)?\s*\(/u);
   assert.doesNotMatch(combined, /<canvas|createElement\(['"]canvas/iu);
   assert.doesNotMatch(combined, /riskScore|Vibration Score|confidenceScore/u);
   assert.match(controllerSource, /captureVibrationIntegrityExecutionState/u);
-  assert.match(runControllerSource, /runVibrationFacilityFitBenchmarkFromTables/u);
+  assert.match(controllerSource, /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u);
+  assert.doesNotMatch(runControllerSource, /from ['"]\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js['"]/u);
 });
 
 test('controller preserves stale results and run controller owns deterministic dual identity binding', () => {
