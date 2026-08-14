@@ -62,8 +62,9 @@ test('consolidated rigid review restores DTXR and all-suggestion helpers but not
 test('multi-file Preview Weight and Run use compact detail presentation', () => {
   const source = read('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-compact-ui.js');
   assert.match(source, /Consolidated only \(fastest\)/u);
-  assert.match(source, /Individual .*open one XML only when needed/u);
-  assert.match(source, /Show .*per-file readiness/u);
-  assert.match(source, /Show .*per-file results/u);
+  assert.match(source, /open one XML only when needed/u);
+  assert.match(source, /toggle\.textContent = `Show \$\{label\}`/u);
+  assert.match(source, /'per-file readiness'/u);
+  assert.match(source, /'per-file results'/u);
   assert.match(source, /detail\.style\.display = 'none'/u);
 });
