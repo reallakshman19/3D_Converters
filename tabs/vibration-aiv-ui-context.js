@@ -87,7 +87,9 @@ function restoreDetailTab(container, context) {
   );
   if (!detail || detail.hidden === true) return;
   for (const tab of detail.querySelectorAll?.('[data-aiv-detail-tab]') ?? []) {
-    tab.setAttribute?.('aria-selected', text(tab.dataset?.aivDetailTab) === state.tabId ? 'true' : 'false');
+    const selected = text(tab.dataset?.aivDetailTab) === state.tabId;
+    tab.setAttribute?.('aria-selected', selected ? 'true' : 'false');
+    tab.setAttribute?.('tabindex', selected ? '0' : '-1');
   }
   for (const panel of detail.querySelectorAll?.('[data-aiv-detail-panel]') ?? []) {
     panel.hidden = text(panel.dataset?.aivDetailPanel) !== state.tabId;
