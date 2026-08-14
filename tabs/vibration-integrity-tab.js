@@ -4,6 +4,7 @@ import { createVibrationEnrichmentCsvTemplate, createVibrationOperatingCaseCsvTe
 import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/model.js';
 import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
 import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile, vibrationIntegrityTopologyExecutionInput } from './vibration-integrity-input-runtime.js';
+import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
 import { buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
 function ensureStylesheet() {
@@ -192,6 +193,19 @@ export function renderVibrationIntegrityTab(container) {
       render();
     }
   }
+  function exportRunEvidence() {
+    if (state.resultState !== 'CURRENT_RESULT') return;
+    try {
+      downloadText(
+        serializeVibrationIntegrityRunEvidence(state),
+        'vibration-fit-run-evidence.json',
+        'application/json;charset=utf-8',
+      );
+    } catch (error) {
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+      render();
+    }
+  }
   function applyPresentationChange() {
     try {
       rebuildWorkspace();
@@ -244,6 +258,7 @@ export function renderVibrationIntegrityTab(container) {
     if (action === 'preflight') checkReadiness();
     if (action === 'run') runBenchmark();
     if (action === 'export') exportRegister();
+    if (action === 'export-evidence') exportRunEvidence();
     if (action === 'operating-template') downloadText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
     if (action === 'enrichment-template') downloadText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
   }
