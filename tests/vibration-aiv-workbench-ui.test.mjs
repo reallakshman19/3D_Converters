@@ -1,8 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {
+  createAivAssumptionAcceptance,
+  isAivAssumptionAcceptanceCurrent,
+} from '../tabs/vibration-aiv-assumption-acceptance.js';
 import { buildLoadedAivD23Benchmark } from '../tabs/vibration-aiv-benchmarks.js';
-import { renderAivQualificationWorkspaceHtml } from '../tabs/vibration-aiv-qualification-view.js';
 import { renderAivFlareNetworkAuthoringHtml } from '../tabs/vibration-aiv-flare-network-view.js';
+import { renderAivQualificationWorkspaceHtml } from '../tabs/vibration-aiv-qualification-view.js';
+import { renderAivReadinessPanelHtml } from '../tabs/vibration-aiv-readiness-view.js';
 import { createInitialAivQualificationState } from '../tabs/vibration-aiv-state.js';
 import {
   aivUiFocusKey,
@@ -22,6 +27,16 @@ function benchmarkState() {
     sourceFileName: loaded.topology.sourceFileName,
   };
   return state;
+}
+
+function assumptionResolution(value = '10') {
+  return {
+    assumptionCount: 1,
+    assumptions: [{
+      tableKind: 'sources', rowIndex: 0, column: 'Mass Flow', assumedValue: value,
+      profilePath: 'source.massFlow', reason: 'MISSING_INPUT_DEFAULTED',
+    }],
+  };
 }
 
 function fakeContainer(groups, members = []) {
@@ -48,10 +63,13 @@ function fakeDetail(key, tabs = [], panels = []) {
   };
 }
 
-test('AIV workbench presents import/readiness/results before secondary qualification evidence', () => {
+test('AIV workbench presents bounded screening authority before secondary qualification evidence', () => {
   const html = renderAivQualificationWorkspaceHtml(createInitialAivQualificationState());
   assert.match(html, /EI AVIFF · screening workbench/);
   assert.match(html, /SCREENING QUALIFIED/);
+  assert.match(html, /Authority scope: Assessment LOF only/);
+  assert.match(html, /bounded release envelope/);
+  assert.match(html, /not design approval/);
   assert.match(html, /aivq-banner is-qualified/);
   assert.match(html, /data-aiv-file="eit"/);
   assert.match(html, /Import EI \.eit/);
@@ -77,7 +95,35 @@ test('secondary engineering tools are progressive disclosures rather than equal-
   assert.match(html, /data-aiv-disclosure-key="benchmark-assumptions"/);
   assert.match(html, /data-aiv-disclosure-key="working-data-tables"/);
   assert.match(html, /data-aiv-disclosure-key="advanced-imports"/);
-  assert.match(html, /<details class="aivq-disclosure aivq-evidence-disclosure">/);
+  assert.match(html, /data-aiv-disclosure-key="qualification-evidence"/);
+});
+
+test('assumption acceptance is bound to the exact resolved assumption set', () => {
+  const resolution = assumptionResolution('10');
+  const acceptance = createAivAssumptionAcceptance(resolution);
+  assert.equal(acceptance.assumptionCount, 1);
+  assert.match(acceptance.fingerprint, /^fnv1a32:/u);
+  assert.equal(isAivAssumptionAcceptanceCurrent(resolution, acceptance), true);
+  assert.equal(isAivAssumptionAcceptanceCurrent(assumptionResolution('11'), acceptance), false);
+  assert.equal(isAivAssumptionAcceptanceCurrent({ assumptionCount: 0, assumptions: [] }, null), true);
+});
+
+test('screening stays disabled until current resolved assumptions are explicitly accepted', () => {
+  const state = createInitialAivQualificationState();
+  state.readinessEnvelope = {
+    readiness: { counts: { rows: 1, readyForQualification: 1, methodGap: 0, notReady: 0, notApplicable: 0 }, rows: [] },
+  };
+  state.assumptionResolution = assumptionResolution();
+  let html = renderAivReadinessPanelHtml(state);
+  assert.match(html, /Assumption review required before screening/u);
+  assert.match(html, /data-aiv-action="accept-assumptions"/u);
+  assert.match(html, /data-aiv-action="run-screening" disabled/u);
+
+  state.assumptionAcceptance = createAivAssumptionAcceptance(state.assumptionResolution);
+  html = renderAivReadinessPanelHtml(state);
+  assert.match(html, /Assumptions accepted for this run/u);
+  assert.match(html, /ACCEPTED/u);
+  assert.match(html, /data-aiv-action="run-screening">Run AIV screening/u);
 });
 
 test('UI context preserves disclosure, table scroll, detail tab and edit focus', () => {
