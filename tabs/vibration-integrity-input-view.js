@@ -8,6 +8,23 @@ import { VIBRATION_FIT_UI_BENCHMARK_CASES, VIBRATION_FIT_UI_BENCHMARK_SOURCE } f
 import { renderVibrationEngineeringBasis } from './vibration-integrity-engineering-basis-view.js';
 import { vibrationEngineeringBasisSourceCellId } from './vibration-integrity-engineering-basis.js';
 
+const BLOCKER_INPUT_HINTS = Object.freeze({
+  outsideDiameter: 'OUTSIDE_DIAMETER',
+  wallThickness: 'WALL_THICKNESS',
+  insideDiameter: 'INSIDE_DIAMETER',
+  maximumUnsupportedSpan: 'MAX_UNSUPPORTED_SPAN',
+  naturalFrequency: 'NATURAL_FREQUENCY',
+  phase: 'PHASE',
+  density: 'DENSITY',
+  dynamicViscosity: 'DYNAMIC_VISCOSITY',
+  massFlowOrVelocity: 'MASS_FLOW or VELOCITY',
+  aggregateMultiphaseInputs: 'DENSITY + MASS_FLOW or VELOCITY',
+  componentMultiphaseInputs: 'GAS_MASS_FLOW + GAS_DENSITY + LIQUID_MASS_FLOW + LIQUID_DENSITY',
+  multiphaseInputShape: 'Choose aggregate or component data shape; use MULTIPHASE_RESOLUTION_MODE when both exist',
+  operatingCase: 'Enter Line + Operating Case scope in Data Blockers or Operating cases',
+  line: 'Line identity must be corrected in Source Data topology',
+});
+
 function esc(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -131,11 +148,27 @@ function sourceDataArea(tables) {
   </section>`;
 }
 
+function blockerHint(field) {
+  return BLOCKER_INPUT_HINTS[field] ?? field;
+}
+
+function blockerReadinessRows(state) {
+  const rows = state.preflight?.preflight?.rows ?? [];
+  const blocked = rows.filter((row) => row.status !== 'READY' && ((row.missing?.length ?? 0) || (row.invalid?.length ?? 0)));
+  if (!state.preflight) return '<div class="vi-banner"><strong>Readiness not checked.</strong><span>Run Check readiness to list unresolved data fields by line/case before entering manual values.</span></div>';
+  if (!blocked.length) return '<div class="vi-banner"><strong>No unresolved readiness data.</strong><span>The latest readiness check has no missing or invalid FIT input fields.</span></div>';
+  return `<section class="vi-card"><div class="vi-section-head"><div><h3>Current unresolved input blockers</h3><p>These are the latest readiness findings. Enter only verified missing data below; method/domain blockers remain non-overridable.</p></div></div><div class="vi-table-wrap"><table class="vi-table"><thead><tr><th>Line</th><th>Case</th><th>Canonical ID</th><th>Missing / invalid</th><th>User-input field / action</th></tr></thead><tbody>${blocked.map((row) => {
+    const fields = [...new Set([...(row.missing ?? []), ...(row.invalid ?? [])])];
+    return `<tr><td>${esc(row.line ?? '—')}</td><td>${esc(row.caseId ?? '—')}</td><td class="vi-mono">${esc(row.canonicalId ?? '—')}</td><td>${esc(fields.join(', '))}</td><td>${esc(fields.map(blockerHint).join(' · '))}</td></tr>`;
+  }).join('')}</tbody></table></div></section>`;
+}
+
 function dataBlockerArea(state, tables) {
   const supported = Object.keys(VIBRATION_FIT_DATA_BLOCKER_FIELDS).join(', ');
   return `<section class="vi-source-data"><div class="vi-section-head"><div><h3>Data Blockers</h3><p>Enter missing engineering data here instead of relying on hidden defaults. ACTIVE rows may fill missing source fields; HOLD and RESOLVED rows are audit-only. Existing source values always win and a collision fails closed.</p></div></div>
-    <section class="vi-card vi-import-card"><div class="vi-import-grid"><label class="vi-file-field"><span>FIT data blocker CSV</span><input type="file" data-vi-file="dataBlockers" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files?.dataBlockers, tables.dataBlockers, 'VibrationFitDataBlockerCsv.v1 · optional manual gap data')}</span></label></div><div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="data-blocker-template">Data-blocker template</button></div><div class="vi-banner warn"><strong>Manual data is evidence, not authority.</strong><span>Every ACTIVE value requires Canonical ID, field, source and status; numeric values require units. QST-003 remains a method/domain exclusion and cannot be bypassed by this table.</span></div><small>Supported fields: ${esc(supported)}</small></section>
-    ${editableTable('FIT manual data gaps', tables.dataBlockers, 'One row per unresolved input. Use ACTIVE only when the value and provenance are ready to participate in the benchmark workflow.')}
+    ${blockerReadinessRows(state)}
+    <section class="vi-card vi-import-card"><div class="vi-import-grid"><label class="vi-file-field"><span>FIT data blocker CSV</span><input type="file" data-vi-file="dataBlockers" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files?.dataBlockers, tables.dataBlockers, 'VibrationFitDataBlockerCsv.v1 · optional manual gap data')}</span></label></div><div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="data-blocker-template">Data-blocker template</button></div><div class="vi-banner warn"><strong>Manual data is evidence, not authority.</strong><span>ACTIVE rows require Canonical ID, field, source, value and status; numeric ACTIVE values require units. HOLD/RESOLVED rows may retain a pending blank value. QST-003 remains a method/domain exclusion and cannot be bypassed by this table.</span></div><small>Supported fields: ${esc(supported)}</small></section>
+    ${editableTable('FIT manual data gaps', tables.dataBlockers, 'One row per unresolved input. Keep a pending row on HOLD; change to ACTIVE only when value, unit and provenance are ready to participate in the benchmark workflow.')}
   </section>`;
 }
 
