@@ -26,6 +26,13 @@ function exchange() {
   });
 }
 
+function operatingCsv({ phase = '', density = '', densityUnit = '' } = {}) {
+  const row = Array.from({ length: VIBRATION_OPERATING_CASE_CSV_HEADER.length }, () => '');
+  row[0] = 'L-100'; row[1] = 'NORMAL'; row[3] = phase;
+  row[6] = density; row[7] = densityUnit; row[17] = 'SOURCE';
+  return [VIBRATION_OPERATING_CASE_CSV_HEADER.join(','), row.join(',')].join('\n');
+}
+
 function enrichmentCsv({ outsideDiameter = 168.3 } = {}) {
   return [
     VIBRATION_ENRICHMENT_CSV_HEADER.join(','),
@@ -45,25 +52,21 @@ function topology() {
 }
 
 test('ACTIVE blocker rows fill missing process data without overwriting source tables', () => {
-  const operating = [
-    VIBRATION_OPERATING_CASE_CSV_HEADER.join(','),
-    'L-100,NORMAL,,,,,,,,,,,,,,,,SOURCE,,,',
-  ].join('\n');
   const dataBlockerCsv = blockerCsv([
     'CANON-001,L-100,NORMAL,PHASE,LIQUID,,USER-INPUT,,B-1,ACTIVE,eng-a,missing phase',
     'CANON-001,L-100,NORMAL,DENSITY,1000,kg/m3,USER-INPUT,,B-2,ACTIVE,eng-a,missing density',
     'CANON-001,L-100,NORMAL,VELOCITY,1,m/s,USER-INPUT,,B-3,ACTIVE,eng-a,missing velocity',
   ]);
   const preflight = buildVibrationFacilityFitPreflightFromTables({
-    topology: topology(), operatingCaseCsv: operating, enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
+    topology: topology(), operatingCaseCsv: operatingCsv(), enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
   });
   assert.equal(preflight.imports.dataBlockerCount, 3);
   assert.equal(preflight.imports.activeDataBlockerCount, 3);
   assert.equal(preflight.preflight.counts.ready, 1);
-  const request = preflight.preflight.rows[0].sourceTrace;
-  assert.equal(request.process.phase.selection, 'DATA_BLOCKER');
-  assert.equal(request.process.density.selection, 'DATA_BLOCKER');
-  assert.equal(request.process.velocity.selection, 'DATA_BLOCKER');
+  const trace = preflight.preflight.rows[0].sourceTrace;
+  assert.equal(trace.process.phase.selection, 'DATA_BLOCKER');
+  assert.equal(trace.process.density.selection, 'DATA_BLOCKER');
+  assert.equal(trace.process.velocity.selection, 'DATA_BLOCKER');
 });
 
 test('component-derived multiphase can be supplied entirely through the separate blocker table', () => {
@@ -87,32 +90,26 @@ test('component-derived multiphase can be supplied entirely through the separate
 });
 
 test('manual blocker input fails closed when it collides with an existing source value', () => {
-  const operating = [
-    VIBRATION_OPERATING_CASE_CSV_HEADER.join(','),
-    'L-100,NORMAL,,LIQUID,,,900,kg/m3,,,,,,,,,SOURCE,,,',
-  ].join('\n');
   const dataBlockerCsv = blockerCsv([
     'CANON-001,L-100,NORMAL,DENSITY,1000,kg/m3,USER-INPUT,,B-1,ACTIVE,eng-a,',
   ]);
   assert.throws(
     () => buildVibrationFacilityFitPreflightFromTables({
-      topology: topology(), operatingCaseCsv: operating, enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
+      topology: topology(), operatingCaseCsv: operatingCsv({ phase: 'LIQUID', density: '900', densityUnit: 'kg/m3' }),
+      enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
     }),
     (error) => error.code === 'FIT_DATA_BLOCKER_SOURCE_COLLISION',
   );
 });
 
 test('HOLD blocker rows remain audit-only and do not satisfy readiness', () => {
-  const operating = [
-    VIBRATION_OPERATING_CASE_CSV_HEADER.join(','),
-    'L-100,NORMAL,,LIQUID,,,,,,,,,,,,,,SOURCE,,,',
-  ].join('\n');
   const dataBlockerCsv = blockerCsv([
     'CANON-001,L-100,NORMAL,DENSITY,1000,kg/m3,USER-INPUT,,B-1,HOLD,eng-a,awaiting confirmation',
     'CANON-001,L-100,NORMAL,VELOCITY,1,m/s,USER-INPUT,,B-2,HOLD,eng-a,awaiting confirmation',
   ]);
   const preflight = buildVibrationFacilityFitPreflightFromTables({
-    topology: topology(), operatingCaseCsv: operating, enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
+    topology: topology(), operatingCaseCsv: operatingCsv({ phase: 'LIQUID' }),
+    enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
   });
   assert.equal(preflight.imports.dataBlockerCount, 2);
   assert.equal(preflight.imports.activeDataBlockerCount, 0);
