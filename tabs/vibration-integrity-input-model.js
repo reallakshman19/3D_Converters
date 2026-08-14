@@ -1,6 +1,7 @@
 import { convertEngineeringUnit } from '../converters/engineering-calculations/units.js';
 import { VIBRATION_TABLE_EXCHANGE_SHEETS } from '../converters/vibration/exchange/schema.js';
 import { VIBRATION_ENRICHMENT_CSV_HEADER } from '../converters/vibration/tabular/enrichment.js';
+import { VIBRATION_FIT_DATA_BLOCKER_CSV_HEADER } from '../converters/vibration/tabular/fit-data-blockers.js';
 import { VIBRATION_OPERATING_CASE_CSV_HEADER } from '../converters/vibration/tabular/operating-cases.js';
 import {
   assertExactVibrationCsvHeader,
@@ -27,7 +28,7 @@ import {
 } from './vibration-integrity-working-state.js';
 
 export const VIBRATION_INTEGRITY_INPUT_TABLE = Object.freeze({
-  TOPOLOGY: 'topology', OPERATING: 'operating', ENRICHMENT: 'enrichment',
+  TOPOLOGY: 'topology', OPERATING: 'operating', ENRICHMENT: 'enrichment', DATA_BLOCKERS: 'dataBlockers',
 });
 export const VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS = 'LOCAL_EDITED_UNVERIFIED';
 
@@ -35,6 +36,7 @@ const TABLE_CONFIG = Object.freeze({
   topology: Object.freeze({ header: VIBRATION_TABLE_EXCHANGE_SHEETS.Elements, contract: 'TopologyEditTableHumanExport.Elements' }),
   operating: Object.freeze({ header: VIBRATION_OPERATING_CASE_CSV_HEADER, contract: 'VibrationOperatingCaseCsv.v1' }),
   enrichment: Object.freeze({ header: VIBRATION_ENRICHMENT_CSV_HEADER, contract: 'VibrationEnrichmentCsv.v1' }),
+  dataBlockers: Object.freeze({ header: VIBRATION_FIT_DATA_BLOCKER_CSV_HEADER, contract: 'VibrationFitDataBlockerCsv.v1' }),
 });
 
 const OPERATING_QUANTITIES = Object.freeze([
