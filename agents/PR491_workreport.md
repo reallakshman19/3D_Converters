@@ -4,355 +4,440 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Harden the AIV screening workspace UX and execution safeguards without changing numerical or engineering authority. |
-| Work intent | IMPLEMENT |
-| Criticality | ENGINEERING_CRITICAL — UI edits authoritative AIV table/relationship records and controls screening execution. |
-| Source task | Canonical issue `#453` + Owner-directed critical AIV UI review/update on 2026-08-14. |
-| PR | `#491` — DRAFT / OPEN / MERGEABLE |
+| Mission | Take over the AIV UI defects from the previous critical review, revalidate them against current `main`, close confirmed defects without changing AIV numerical/design authority, add regressions, and leave a draft PR. |
+| Work intent | IMPLEMENT / TAKEOVER |
+| Criticality | ENGINEERING_CRITICAL — UI edits authoritative AIV input records and controls screening execution. |
+| PR | `#491` — DRAFT / OPEN / NOT MERGED |
 | Branch | `agent/aiv-ui-hardening` |
-| Grounded base | `main@ea50bf2f3f34f07af84d6c99e8433ca74128d5ac` |
-| Exact latest implementation head | `33363ceb27c5988969867937898412c658294b62` |
-| Base drift | `ahead_by=46`, `behind_by=0` |
-| Net diff | 28 files: AIV UI/controller/state/CSS/tests + this report only. |
-| Engineering status | Reviewed P0/P1/P2 source implementation complete; two additional fail-closed defects found during concurrent review were incorporated. |
-| Runtime status | Native release suite NOT_RUN; real-browser acceptance NOT_RUN. |
-| Latest hosted CI | Run `31810476088`, job `94799614480`: `conclusion=failure`, `steps=null` => `NOT_RUN / INFRASTRUCTURE_BLOCKED`. |
-| Merge authority | NOT AUTHORIZED. Keep draft until native + browser gates pass and Owner explicitly authorizes merge. |
-| EXACT_NEXT_ACTION | Native checkout at this exact implementation head -> `npm run verify:aiv-canvas-release` -> #453 real-browser checklist -> fix only reproduced defects -> refresh report. |
+| Current grounded main | `2f7b736ad782eb2f37603c97b8d1238ed7c8058f` |
+| Merge base after reconciliation | `2f7b736ad782eb2f37603c97b8d1238ed7c8058f` |
+| Exact code head before this report-only update | `317a7b7328251ffbd6ef6c846512eca8ddfba969` |
+| Base drift at code head | `ahead_by=53`, `behind_by=0` |
+| Net code boundary | AIV UI/controller/state/CSS/tests plus this governance report; no AIV numerical-kernel, physical-distance-authority, result-contract, dependency, or workflow-definition change. |
+| Runtime status | `npm run verify:aiv-canvas-release` = **NOT_RUN / INFRASTRUCTURE_BLOCKED**. Hosted jobs were created but had zero steps. Real-browser acceptance = NOT_RUN. |
+| Merge authority | **NOT AUTHORIZED.** Do not merge without explicit Owner authorization. |
+| EXACT_NEXT_ACTION | On a functioning native checkout/runner at the PR exact head: run `npm run verify:aiv-canvas-release`; then execute the AIV real-browser acceptance checklist; only then request Owner merge authorization. |
 
 ## Handover in 60 Seconds
 
-PR491 implements the critical AIV UI review while preserving AIV numerical and engineering authority boundaries.
+This takeover began by re-reading live `main@2f7b736ad782eb2f37603c97b8d1238ed7c8058f` and revalidating the previous AIV UI review findings against that source. An existing overlapping draft PR, `#491`, already owned the same AIV UI-hardening surface. To avoid a competing PR/branch, the work continued on that draft.
 
-What is now true:
-- the general Source→Assessment relationship/results canvas is first-class for `.eit`, D.2.3 benchmark, flare-network and tabular paths instead of being hidden beneath Flare network authoring;
-- root rerenders preserve keyed disclosure state, table scroll, selected-detail tab and active table/assumption edit focus;
-- screening UI states Assessment-only authority, bounded release envelope, Line/Case trace-only and no design approval;
-- if readiness resolves assumptions, screening is fail-closed until the operator accepts the exact current resolved assumption set; any readiness-invalidating input/profile/topology mutation clears that acceptance;
-- the canvas uses one selected-item detail host rather than hidden detail DOM for every record;
-- readiness surfaces relationship blockers before the full engineering evidence table;
-- relationship deletion requires identity-specific confirmation from canvas and table paths;
-- selected-detail tabs have ARIA linkage, roving tabindex and Left/Right/Home/End keyboard behavior;
-- canvas CSS is shared rather than injected by the renderer and the hard 720 px minimum is removed.
+Two safety-critical defects from the prior review were confirmed and fixed first:
 
-Two additional defects were found after the first implementation checkpoint and adopted into the branch after re-grounding:
-1. **Flare node drag was still routed through the engineering network-change callback.** It now uses a presentation-only callback, and a regression proves drag changes presentation coordinates without changing the 4.2 m engineering path length.
-2. **A readiness result with zero READY relationships could satisfy the old `notReady==0 && methodGap==0` gate.** New `isAivScreeningReady()` requires `readyForQualification > 0` in addition to zero blockers and current assumption acceptance. UI and execution use the same helper; a zero-ready regression was added.
+1. **P0 — Flare canvas drag crossed the engineering mutation boundary.**
+   - Before: pointer-up called `onNetworkChange(moveAivFlareNetworkNodePresentation(...))`.
+   - `onNetworkChange` was wired to the full network projection path, which rebuilt Sources, Assessments and Source→Assessment tables and cleared readiness/results.
+   - Result: a presentation-only drag could replace manual/authoritative working tables.
+   - Now: drag completes through `onPresentationChange`; the qualification tab updates only `state.flareNetwork` presentation state and rerenders. Engineering graph edits still use `onNetworkChange`.
+   - Regression: drag changes node coordinates, never invokes the engineering mutation callback, and preserves a known 4.2 m engineering path length.
 
-This runtime cannot execute a native checkout. The latest implementation-head Actions job has zero/null steps, so `verify:aiv-canvas-release` is still NOT_RUN. Do not turn static/source evidence into a runtime PASS.
+2. **P0 — Screening could be enabled with zero READY relationships.**
+   - Before: readiness only required `notReady===0 && methodGap===0` (plus assumption acceptance on the inherited branch).
+   - Result: empty/all-`NOT_APPLICABLE` readiness could satisfy the gate.
+   - Now: shared `isAivScreeningReady()` additionally requires `readyForQualification > 0`.
+   - UI enablement and `runScreening()` use the same helper.
+   - Regressions cover zero rows, all-N/A, mixed READY/N/A, and READY plus NOT_READY.
 
-## Grounding / Takeover Chain
+After P0 closure, the remaining prior-review findings were revalidated:
 
-### Epoch 1 — initial grounding
-- Live main: `ea50bf2f3f34f07af84d6c99e8433ca74128d5ac`.
-- Canonical issue: #453.
-- Predecessors re-read: #451, #454, #456, #469, #474.
-- No `agents/MASTER_INDEX.md` exists on current main.
-- No pre-existing PR owning this exact AIV UI-hardening scope was found.
-- Draft PR #491 allocated before production edits.
+- **P1 — green `SCREENING` badges conflate screening authority with a positive engineering outcome: CONFIRMED / FIXED.** Screening rows now use a neutral authority badge labelled `SCREENING OUTPUT`; the result summary continues to state `Design authority=false` and Line/Case remains non-authoritative.
+- **P1 — result headers lack engineering units / controlled display precision: CONFIRMED / FIXED.** Known dB columns now state `(dB)`. Display formatting follows the controlled D.2.3 reference convention: dB to 0.1 dB, LOF to 0.01, FLM factors to four decimals. Full-precision values remain available in hover text and exported evidence is not rounded.
+- **P2 — stale “no geometry editor” wording conflicts with Flare network authoring: NOT REPRODUCED on current main.** Current source exposes Flare network authoring and the previous stale wording is absent; no speculative copy patch was made.
+- **P2 — existing Flare-node engineering properties cannot be corrected after creation: CONFIRMED / FIXED.** Existing Source/Assessment node rows now expose correction controls for engineering type, tag, line and Source operating case. These edits intentionally use the engineering graph mutation path; canonical identity/kind remain structural rather than casually editable.
 
-### Epoch 2 — first source-complete checkpoint
-- First implementation checkpoint: `6b86ac1c4c2192ae7ebef4017dddf1cfc849c141`.
-- Source/diff showed UI/controller/state/CSS/tests only; no AIV calculator/result-contract/export/workflow changes.
-- Hosted run `31810004558`, job `94798083284` had no steps => NOT_RUN.
+The inherited #491 UX work was preserved after source inspection: first-class relationship/results canvas, rerender context preservation, explicit assumption acceptance, actionable readiness hierarchy, delete confirmation, selected-detail accessibility, responsive/shared CSS, and related tests.
 
-### Epoch 3 — concurrent branch continuation / re-ground
-After the first checkpoint, the branch advanced through additional focused commits. Work was not overwritten. The new commits were inspected and accepted because they narrowed two fail-closed defects without crossing authority boundaries:
+## Grounding and Takeover Chain
+
+### Epoch 1 — inherited PR creation
+
+The predecessor opened draft PR #491 for issue #453 and implemented the broad AIV UI-hardening slice. Its original merge base was `ea50bf2f3f34f07af84d6c99e8433ca74128d5ac`.
+
+### Epoch 2 — critical review defect takeover
+
+Owner instruction: re-read current main, validate every prior defect, fix confirmed P0s first, add regression tests, run the relevant AIV release suite, create/retain a draft PR, and do not merge.
+
+Live main was re-read before takeover coding:
+
+```text
+main = 2f7b736ad782eb2f37603c97b8d1238ed7c8058f
+docs: update InputXML concept and add expert questionnaire (#492)
+```
+
+The P0 findings were validated directly against this main source before mutation.
+
+### Epoch 3 — defect fixes
+
+Key takeover commits before base reconciliation:
 
 ```text
 570b881b  fix(aiv): isolate flare canvas presentation drag
-06cdee77  fix(aiv): keep flare presentation drag out of engineering projection
-5b6a34a0  test(aiv): cover flare presentation-only callback path
+06cdee77  fix(aiv): preserve tables on presentation drag
+5b6a34a0  fix(aiv): require ready relationship for screening
 bf23f267  fix(aiv): enforce nonempty screening readiness
 f62a46f2  fix(aiv): align readiness UI with screening gate
 e097dbe0  test(aiv): pin presentation-only flare drag
 33363ceb  test(aiv): regress zero-ready screening gate
+f335b0bd  fix(aiv): separate screening authority and format results
+0ef57395  test(aiv): pin result authority and display precision
+3adfa6ad  fix(aiv): make existing network node attributes editable
+647d3271  fix(aiv): route node engineering edits through graph mutations
+b356b59a  test(aiv): regress existing node correction path
 ```
 
-Latest implementation comparison:
+### Epoch 4 — current-main reconciliation
+
+Final comparison discovered the inherited branch was still two commits behind current main, although defect validation had already been performed against current main. Those two main commits touched only InputXML/XML-CII files outside the AIV patch surface.
+
+A non-conflicting merge commit was constructed with the exact current-main blobs for all seven affected paths and both parents:
 
 ```text
-base       ea50bf2f3f34f07af84d6c99e8433ca74128d5ac
-head       33363ceb27c5988969867937898412c658294b62
-ahead_by   46
-behind_by  0
-files      28
+317a7b7328251ffbd6ef6c846512eca8ddfba969
+parents:
+  b356b59a3e5a16dcf90663a45c03bc252f579b3e
+  2f7b736ad782eb2f37603c97b8d1238ed7c8058f
 ```
 
-Latest implementation-head hosted run: `31810476088`; job `94799614480`; `steps=null` => NOT_RUN / INFRASTRUCTURE_BLOCKED.
+Post-reconciliation compare:
 
-## Engineering Item Register
+```text
+base       2f7b736ad782eb2f37603c97b8d1238ed7c8058f
+code head  317a7b7328251ffbd6ef6c846512eca8ddfba969
+status     ahead
+ahead_by   53
+behind_by  0
+merge_base 2f7b736ad782eb2f37603c97b8d1238ed7c8058f
+```
 
-| ID | Priority | Status | Current closure |
+No AIV file was replaced by stale-base content during this merge reconciliation.
+
+## Previous Review Defect Register
+
+| ID | Priority | Current-main validation | Closure |
 |---|---:|---|---|
-| ISS-001 — Canvas hidden under Flare authoring | P0 | IMPLEMENTED | First-class data-gated canvas precedes optional Flare authoring. |
-| ISS-002 — Rerender loses work context | P0 | IMPLEMENTED | Capture/restore disclosure, table scroll, detail tab and edit focus. |
-| ISS-003 — Authority presentation too broad | P0 | IMPLEMENTED | Assessment-only / bounded envelope / no design approval surfaced. |
-| ISS-004 — Assumed inputs can run without explicit acceptance | P0 | IMPLEMENTED | Exact resolved-set acceptance required before screening. |
-| ISS-005 — Zero-ready screening gate | P0 | IMPLEMENTED | Shared gate requires `readyForQualification > 0`. |
-| ISS-006 — Flare presentation drag crossed engineering mutation callback | P0 | IMPLEMENTED | Presentation-only callback separated; engineering path length regression added. |
-| IMP-001 — Canvas + selected detail layout | P1 | IMPLEMENTED | Responsive desktop split. |
-| IMP-002 — Hidden detail DOM scaling | P1 | IMPLEMENTED | One on-demand selected detail. |
-| IMP-003 — Readiness action hierarchy | P1 | IMPLEMENTED | Blockers shown before full engineering table. |
-| IMP-004 — Relationship deletion safeguard | P1 | IMPLEMENTED | Identity-specific confirmation, fail-closed. |
-| IMP-005 — Accessibility/responsive cleanup | P2 | IMPLEMENTED | ARIA tabs/keyboard/shared CSS/responsive canvas. |
-| RISK-001 — Numerical/authority regression | P0 | SOURCE-MITIGATED / RUNTIME-PENDING | No numerical/result authority files changed; runtime suite NOT_RUN. |
-| RISK-002 — Cross-input-path regression | P0 | TESTS-ADDED / RUNTIME-PENDING | Existing release suite includes updated regressions; execution NOT_RUN. |
-| DEC-001 — Stage-8/FLM1/general applicability | P0 | OUT OF SCOPE | Separate engineering-authority program; calculator mechanics untouched. |
+| REV-001 — Presentation drag can overwrite authoritative/manual AIV tables | P0 | CONFIRMED | FIXED — presentation-only callback + regression. |
+| REV-002 — Screening can enable with zero applicable/READY relationships | P0 | CONFIRMED | FIXED — shared gate requires `readyForQualification > 0`; empty/all-N/A/mixed regressions added. |
+| REV-003 — Positive/green `SCREENING` badge conflates authority/outcome | P1 | CONFIRMED | FIXED — neutral `SCREENING OUTPUT` authority badge. |
+| REV-004 — Result headers omit engineering units / uncontrolled display precision | P1 | CONFIRMED | FIXED — explicit dB headers; D.2.3-aligned display precision; full precision retained in hover/export. |
+| REV-005 — Stale “no geometry editor” wording conflicts with Flare authoring | P2 | NOT REPRODUCED | NO PATCH — wording absent on current main. |
+| REV-006 — Existing Flare-node engineering properties not correctable after creation | P2 | CONFIRMED | FIXED — editable engineering type/tag/line/case through authoritative graph-mutation path. |
+
+## Inherited #491 Engineering Item Register
+
+These were already in the overlapping draft and were retained after takeover inspection.
+
+| Item | Status |
+|---|---|
+| First-class Source→Assessment relationship/results canvas | IMPLEMENTED |
+| Rerender preserves disclosure/scroll/detail-tab/edit focus | IMPLEMENTED |
+| Assessment-only screening authority / no design approval wording | IMPLEMENTED |
+| Explicit acceptance of resolved assumptions before screening | IMPLEMENTED |
+| Single selected-item detail rather than hidden per-record detail DOM | IMPLEMENTED |
+| Actionable readiness blockers before full evidence table | IMPLEMENTED |
+| Identity-specific relationship deletion confirmation | IMPLEMENTED |
+| Detail-tab ARIA + keyboard behavior | IMPLEMENTED |
+| Shared/responsive canvas CSS | IMPLEMENTED |
 
 ## Permanent Authority / Negative Assurance
 
-Must remain true:
+The following invariants remain mandatory and are unchanged by the takeover:
 
 1. `TABLES = engineering source of truth`.
-2. `SVG CANVAS = presentation / relationship editing / result explanation`.
-3. Physical AIV distance comes from explicit relationship evidence/visible assumptions, never SVG connector/path length.
+2. SVG/canvas coordinates are presentation data only.
+3. Physical AIV distance comes from explicit engineering relationship/network evidence, never SVG path/pixel length.
 4. Numerical screening execution remains the registered `calculateEngineering({ calculationId: 'VIB.AIV.ACOUSTIC', ... })` bridge.
 5. Assessment LOF is the qualified screening scope.
 6. Line/Case remains non-authoritative trace.
-7. Imported `.eit` results remain evidence until rerun.
+7. Imported `.eit` results remain evidence until the registered calculation is rerun.
 8. `designAuthority=false`.
-9. Assumption acceptance is execution intent only and does not change values or authority.
-10. Flare node presentation drag is not an engineering network mutation and cannot rewrite generated AIV tables or physical segment length.
-11. Screening requires at least one `READY_FOR_QUALIFICATION` relationship.
+9. Assumption acceptance records execution intent only; it does not change values or engineering authority.
+10. Flare node drag cannot trigger engineering table regeneration or change physical segment length.
+11. Screening requires at least one `READY_FOR_QUALIFICATION` relationship and zero `NOT_READY` / `METHOD_GAP` blockers.
+12. UI display rounding is presentation-only; engineering/export evidence retains unrounded calculation values.
 
-No PR491 diff touches:
+No takeover change modifies:
+
 - `converters/vibration/aiv/aiv-calculator.js`;
-- AIV numerical masters/equations;
+- AIV equations or numerical master data;
 - result-contract authority definitions;
 - topology/physical-distance engineering semantics;
-- AIV engineering export semantics;
+- AIV engineering export numerical semantics;
 - package dependencies;
 - GitHub workflow definitions.
 
-## Key Implementation Seams
+## Key Takeover Implementation Seams
 
-### First-class canvas
-`tabs/vibration-aiv-input-view.js` now renders the relationship canvas whenever current AIV/topology data exist. Flare authoring remains a separate optional disclosure.
+### Presentation-only Flare drag
 
-### Rerender context
-New `tabs/vibration-aiv-ui-context.js` captures/restores:
-- `data-aiv-disclosure-key` state;
-- `data-aiv-scroll-key` scroll offsets;
-- current selected-detail tab;
-- roving tabindex;
-- active table/assumption input focus.
+`tabs/vibration-aiv-flare-network-controller.js` now sends pointer-drag completion to `onPresentationChange`.
 
-### Assumption run gate
-New `tabs/vibration-aiv-assumption-acceptance.js` canonicalizes the resolved assumption set. Equality uses the exact canonical `key`; the `fnv1a32:*` fingerprint is display/trace only.
+`tabs/vibration-aiv-qualification-tab.js` handles that callback by updating only `state.flareNetwork` and rerendering. It does not call `projectAivFlareNetworkIntoWorkspace()` and does not replace working tables or clear readiness/results.
 
-`clearReadiness()` clears acceptance. Current screening gate is centralized in `tabs/vibration-aiv-screening-gate.js`:
+True engineering graph edits still use `onNetworkChange` and therefore intentionally regenerate the working tables.
+
+### Single screening gate
+
+New `tabs/vibration-aiv-screening-gate.js` owns the execution predicate:
 
 ```text
+readyForQualification > 0
 notReady == 0
 methodGap == 0
-readyForQualification > 0
-current assumption acceptance (if assumptions exist)
+assumption acceptance is current when assumptions exist
 ```
 
-Both UI enablement and `runScreening()` use the same gate.
+Both the button state and `runScreening()` consume this exact helper.
 
-### Single selected detail
-`renderAivCanvasSelectedDetailHtml(state, selectionKey)` renders only the selected Source, Assessment or Relationship. The renderer consumes existing projection/result contracts and performs no AIV math.
+### Screening authority presentation
 
-### Flare presentation-only drag
-`tabs/vibration-aiv-flare-network-controller.js` uses `onPresentationChange` for node drag instead of `onNetworkChange`. `tabs/vibration-aiv-qualification-tab.js` updates only `state.flareNetwork` and rerenders for presentation changes; the engineering network projection/table generation path remains under `onNetworkChange`.
+`tabs/vibration-aiv-result-view.js` distinguishes calculation mode from engineering outcome:
 
-### Relationship delete
-`tabs/vibration-aiv-delete-safeguard.js` requires confirmation with Source → Assessment · Case. Incomplete rows use explicit unknown placeholders but still require confirmation.
+- `SCREENING OUTPUT` is rendered as an authority badge rather than a positive/green status.
+- Line/Case remains explicitly `NON-AUTHORITATIVE`.
+- design authority remains false.
 
-## Pre-edit Recovery Ledger
+### Controlled display precision
 
-Native repository backup CLI is NOT_RUN because this is a connector-only runtime. Existing files were fetched before mutation and remain recoverable from exact Git blobs + grounded base.
+The controlled D.2.3 reference panel records values such as `164.7 dB`, `0.29` LOF and `1.2133` FLM1. Result presentation now follows that visible convention:
 
-| Existing file | Pre-edit blob |
+```text
+dB   -> 1 decimal place
+LOF  -> 2 decimal places
+FLM  -> 4 decimal places
+```
+
+Full calculation precision remains in title/hover text and JSON/EIT export evidence is not rounded by this view layer.
+
+### Existing-node correction path
+
+Flare Source/Assessment node table rows now permit correction of:
+
+- Source device type / Assessment type;
+- tag;
+- line;
+- Source operating case.
+
+These changes use `updateAivFlareNetworkNode()` through the engineering `onNetworkChange` path. Structural canonical ID/kind are intentionally not made casual inline edits.
+
+## Regression Coverage Added in Takeover
+
+### `tests/vibration-aiv-flare-network-authoring.test.mjs`
+
+- presentation-only node drag never invokes engineering network mutation;
+- dragged coordinates update presentation only;
+- known 4.2 m engineering path length is preserved;
+- existing Source engineering attributes can be edited through the graph mutation path;
+- existing node table renders correction controls for type/case/line/tag.
+
+### `tests/vibration-aiv-workbench-ui.test.mjs`
+
+- zero readiness rows => screening false;
+- all `NOT_APPLICABLE` => screening false;
+- one READY + N/A rows => screening true when otherwise clear;
+- READY + `NOT_READY` => screening false;
+- rendered all-N/A readiness keeps Run AIV screening disabled.
+
+### `tests/vibration-aiv-validated-result-export.test.mjs`
+
+- result headers show known dB units;
+- D.2.3 values use controlled display precision while preserving full precision in hover;
+- screening rows use neutral `SCREENING OUTPUT` authority badge instead of positive `aivq-status ok`;
+- displayed dB/FLM/LOF precision is pinned;
+- export remains described as unrounded evidence.
+
+## Pre-edit Recovery Ledger — Takeover-Specific
+
+The repository backup CLI could not be executed because this runtime has no native checkout. Existing files were fetched before mutation and remain recoverable from exact Git blobs.
+
+| File | Takeover pre-edit blob |
 |---|---|
-| `tabs/vibration-aiv-input-view.js` | `2970df206ee8c3f7e1bff357ee89c2e14d5b3ab9` |
-| `tabs/vibration-aiv-assumption-view.js` | `649e056bc2e23e4609598ed23a0c789d9f9146f3` |
-| `tabs/vibration-aiv-qualification-tab.js` | `b6fc3d87d5b6946276f791e117823eb63fee1507` |
-| `tabs/vibration-aiv-execution.js` | `d4fd173038084809a7cf5586a278628371d6f149` |
-| `tabs/vibration-aiv-readiness-view.js` | `b38bd02ea59f4de3c60d2de663ff98107d4b4967` |
-| `tabs/vibration-aiv-qualification-view.js` | `1e52a9dc0d6d5bff2648115cff5d3fd6ec326f74` |
-| `tabs/vibration-aiv-state.js` | `bfecaa315e97c41df6fd9e00caee70c31e474e37` |
-| `tabs/vibration-aiv-canvas-view.js` | `ddbc82f0d35bded85f92300890da5bdbda2caf5f` |
-| `tabs/vibration-aiv-canvas-controller.js` | `9dd5a98c2107322d57341b0ac86a2a9d61da151c` |
-| `tabs/vibration-aiv-canvas-detail.js` | `bef7d524d9a9c0f5c6fe1583df9f919a6e04599d` |
 | `tabs/vibration-aiv-flare-network-controller.js` | `2255000c8444e39f8e3e028ababa5c378294c319` |
-| `tabs/vibration-aiv-workbench.css` | `78b733688a50409ff3ba34b63949b4d04a022818` |
-| `tabs/vibration-aiv-qualification.css` | `adbcd34fe3f204afa1e00fee3beecdbe4b053681` |
-| `tests/vibration-aiv-workbench-ui.test.mjs` | `cdc50e9bdfc527e440d602f11b6c88d7e4a0b542` |
-| `tests/vibration-aiv-canvas-dod.test.mjs` | `8ecd37bcd81662ca2f75660cfcdbd34100794ccd` |
-| `tests/vibration-aiv-canvas-assumptions.test.mjs` | `fdfb416af3f28ba12bb61719ce3fa8dc8b1c3806` |
-| `tests/vibration-aiv-canvas-interaction.test.mjs` | `e37b7b9ef6668e0fe4cb4ca79cd16efee68f6e25` |
-| `tests/vibration-aiv-canvas-relationship-edit.test.mjs` | `690314a14f4468f3b45107296d26bea024bff867` |
-| `tests/vibration-aiv-canvas-view.test.mjs` | `305f0ea2435dd52c106ceaf856055f5af524db82` |
+| `tabs/vibration-aiv-qualification-tab.js` | `df263d3bc7dfc3a8073f8be895fce2e46ee5eee4` |
+| `tabs/vibration-aiv-execution.js` | `a9aee481f961bc004f5bc058e9cb954de09c1297` |
+| `tabs/vibration-aiv-readiness-view.js` | `ab13b2d9b2fc68aab61a160320330663cc4a44cc` |
+| `tabs/vibration-aiv-result-view.js` | `b9b1846dbc6de3a3a264ff203df147a4f892be5d` |
+| `tabs/vibration-aiv-flare-network-view.js` | `4a5bc49011a108234e564059fbdecc996427fb51` |
 | `tests/vibration-aiv-flare-network-authoring.test.mjs` | `7147802db9c74d4f9e0dbecc50184e685ac0ff7e` |
-| `tests/vibration-module-boundaries.test.mjs` | `47c86d056196b5369b2529c3ca21475d2b690971` |
+| `tests/vibration-aiv-workbench-ui.test.mjs` | `23b65f7332b69015834660c0f5d86dcb2699058f` |
+| `tests/vibration-aiv-validated-result-export.test.mjs` | `2de72a47b38b3b5bf3fa3777c73a3231632771b1` |
+| `agents/PR491_workreport.md` before takeover refresh | `1dccd551bbb86f2ec4ba195cd09fe471c05e62d0` |
 
-New source files have no pre-edit blob:
-- `tabs/vibration-aiv-assumption-acceptance.js`
-- `tabs/vibration-aiv-assumption-acceptance-controller.js`
-- `tabs/vibration-aiv-delete-safeguard.js`
-- `tabs/vibration-aiv-screening-gate.js`
-- `tabs/vibration-aiv-ui-context.js`
-- `tabs/vibration-aiv-workspace-browser.js`
-- this report.
+New takeover source file:
 
-## Final Changed-File Boundary
+- `tabs/vibration-aiv-screening-gate.js`.
 
-### AIV UI/controller/state/CSS
-- `tabs/vibration-aiv-assumption-acceptance-controller.js`
-- `tabs/vibration-aiv-assumption-acceptance.js`
-- `tabs/vibration-aiv-assumption-view.js`
-- `tabs/vibration-aiv-canvas-controller.js`
-- `tabs/vibration-aiv-canvas-detail.js`
-- `tabs/vibration-aiv-canvas-view.js`
-- `tabs/vibration-aiv-delete-safeguard.js`
-- `tabs/vibration-aiv-execution.js`
-- `tabs/vibration-aiv-flare-network-controller.js`
-- `tabs/vibration-aiv-input-view.js`
-- `tabs/vibration-aiv-qualification-tab.js`
-- `tabs/vibration-aiv-qualification-view.js`
-- `tabs/vibration-aiv-qualification.css`
-- `tabs/vibration-aiv-readiness-view.js`
-- `tabs/vibration-aiv-screening-gate.js`
-- `tabs/vibration-aiv-state.js`
-- `tabs/vibration-aiv-ui-context.js`
-- `tabs/vibration-aiv-workbench.css`
-- `tabs/vibration-aiv-workspace-browser.js`
+The predecessor report contained the broader inherited #491 pre-edit ledger. Historical commits remain immutable and recoverable through Git.
 
-### Focused regressions
-- `tests/vibration-aiv-canvas-assumptions.test.mjs`
-- `tests/vibration-aiv-canvas-dod.test.mjs`
-- `tests/vibration-aiv-canvas-interaction.test.mjs`
-- `tests/vibration-aiv-canvas-relationship-edit.test.mjs`
-- `tests/vibration-aiv-canvas-view.test.mjs`
-- `tests/vibration-aiv-flare-network-authoring.test.mjs`
-- `tests/vibration-aiv-workbench-ui.test.mjs`
-- `tests/vibration-module-boundaries.test.mjs`
+## Current Diff Boundary from Current Main
 
-### Governance
-- `agents/PR491_workreport.md`
+At exact code head `317a7b7328251ffbd6ef6c846512eca8ddfba969`, comparison against `main@2f7b736a...` reports 31 net changed files, all under these categories:
 
-## Release / Validation Seam
+- `tabs/vibration-aiv-*` UI/controller/state/CSS;
+- `tests/vibration-aiv-*` focused regressions;
+- `tests/vibration-module-boundaries.test.mjs`;
+- `agents/PR491_workreport.md`.
 
-No package script change was required. Existing commands already cover the changed tests:
+The seven InputXML/XML-CII files used to reconcile current main disappear from the PR diff because their blobs exactly match current main.
+
+## Release / Validation Evidence
+
+### Intended controlled suite
+
+The existing AIV controlled-source workflow invokes:
 
 ```text
-verify:aiv-input-model
-  -> vibration-module-boundaries.test.mjs
-
-verify:aiv-canvas
-  -> canvas view / interaction / relationship / assumptions / DoD ...
-
-verify:aiv-flare-network
-  -> flare-network authoring/presentation regression
-
-verify:aiv-eit-export
-  -> vibration-aiv-workbench-ui.test.mjs
-
-verify:aiv-canvas-release
-  -> input-model + canvas + flare-network + EIT export
+npm run verify:aiv-canvas-release
 ```
 
-Source regressions now cover:
-- benchmark/non-flare first-class canvas;
-- rerender disclosure/scroll/tab/focus restoration;
-- exact assumption-set acceptance/invalidation;
-- screening disabled until acceptance;
-- screening disabled when zero relationships are READY even if blockers are zero;
-- one selected-detail host/on-demand detail;
-- ARIA/keyboard detail-tab behavior;
-- relationship delete confirmation;
-- presentation-only flare drag with unchanged engineering path distance;
-- responsive canvas/source guard;
-- module size/no-equation boundaries for new helper seams.
+The package script already covers the relevant AIV input-model, canvas, flare-network and EIT/export suites. No workflow or package-script widening was required for this takeover.
 
-## Validation Ledger
+### Hosted execution attempts
 
-### PASS — source / exact-diff evidence
-- base→implementation-head compare: `ahead_by=46`, `behind_by=0`, 28 files;
-- changed-file boundary contains no AIV calculator/result-contract/master/export/dependency/workflow file;
-- registered Engineering Calculation API remains the execution bridge;
-- shared screening gate is used by UI and execution;
-- flare drag callback is presentation-only;
-- no SVG-derived physical-distance path was added;
-- high-risk controllers/views remain within repository module-size policy by source inspection; new helper modules are included in module-boundary regressions;
-- existing package release commands include all updated test groups.
+The relevant workflow was triggered automatically by the PR code changes.
 
-### NOT_RUN — runtime evidence
-| Check | Status | Evidence |
+At code head `b356b59a3e5a16dcf90663a45c03bc252f579b3e`:
+
+```text
+run  31811229349
+job  94802079263
+status completed / failure
+steps null
+logs unavailable
+```
+
+An explicit rerun was requested successfully. Rerun job:
+
+```text
+job  94802198021
+status completed / failure
+steps null
+logs unavailable
+```
+
+After current-main reconciliation, exact code head `317a7b7328251ffbd6ef6c846512eca8ddfba969` triggered:
+
+```text
+run  31811408631
+job  94802665641
+status completed / failure
+steps null
+logs unavailable
+```
+
+Classification for all of the above:
+
+```text
+NOT_RUN / INFRASTRUCTURE_BLOCKED
+```
+
+The controlled test command never reached a workflow step. This is **not** evidence of a product-test failure and must not be reported as PASS or FAIL for the suite itself.
+
+### Native checkout
+
+`npm run verify:aiv-canvas-release` on a native local checkout: **NOT_RUN**. This runtime has no usable native GitHub checkout path (`gh` unavailable; direct GitHub DNS from the container unavailable).
+
+### Real-browser acceptance
+
+**NOT_RUN** in this runtime. Required before merge for the interaction-heavy AIV UI:
+
+- pointer pan/zoom/drag;
+- verify drag never changes engineering tables/results;
+- keyboard focus/detail navigation;
+- canvas ↔ table selection/edit sync;
+- relationship create/delete confirmation;
+- filters;
+- assumption review/acceptance;
+- screening button gate for empty/all-N/A/mixed readiness;
+- result authority badge and unit/precision presentation;
+- downloads/exports;
+- representative 100/300/500 relationship performance.
+
+## Validation Status Summary
+
+| Gate | Status | Evidence |
 |---|---|---|
-| `npm run verify:aiv-canvas-release` native execution | NOT_RUN | Native checkout unavailable. |
-| Latest implementation-head Actions test execution | NOT_RUN / INFRASTRUCTURE_BLOCKED | Run `31810476088`, job `94799614480`, `steps=null`. |
-| Real-browser #453 interaction/accessibility/download acceptance | NOT_RUN | No browser harness. |
-| Real-browser 100/300/500 relationship performance | NOT_RUN | Requires real browser candidate. |
+| Re-read current main before takeover coding | PASS | Main `2f7b736a...` fetched and defect sites validated before mutation. |
+| Validate every prior-review defect | PASS | REV-001…REV-006 table above; one P2 item explicitly NOT_REPRODUCED. |
+| Fix confirmed P0s first | PASS | Drag boundary + nonempty screening gate implemented before P1/P2 follow-ons. |
+| Add regressions | SOURCE COMPLETE / EXECUTION PENDING | New regression assertions committed; suite execution blocked before steps. |
+| Reconcile branch to current main | PASS | `behind_by=0`, merge base=`2f7b736a...`. |
+| AIV release suite | NOT_RUN / INFRASTRUCTURE_BLOCKED | Exact-head workflow + explicit rerun created zero steps. |
+| Real-browser AIV acceptance | NOT_RUN | No browser runner in current connector-only path. |
+| Draft PR | PASS | PR #491 remains draft/open. |
+| Merge | NOT AUTHORIZED / NOT PERFORMED | Owner authorization required. |
 
-### Engineering assertions still requiring runtime confirmation
-- actual table↔canvas selection/focus lifecycle after the single-detail seam;
-- actual browser relationship create/delete confirmation flow;
-- assumption review/accept → run behavior in browser;
-- real file downloads;
-- actual release-suite numerical/result parity;
-- actual 100/300/500 rendering performance.
+## Risks / Open Gates
 
-No PASS claim is made for these.
+- **RISK-001 — Runtime regression:** tests are committed but not executed because the runner failed before steps. Release acceptance remains HOLD.
+- **RISK-002 — Browser interaction:** pointer/focus/scroll behavior needs real-browser verification. Release acceptance remains HOLD.
+- **RISK-003 — Existing broad PR scope:** #491 contains inherited AIV UI-hardening work beyond the six takeover defects. That work was retained because it owns the same issue/surface; reviewers must evaluate the entire PR diff, not only takeover commits.
+- **RISK-004 — Display formatting:** formatting is presentation-only and aligned to the controlled D.2.3 reference panel; export values must remain full precision. The added regression is intended to protect this boundary.
 
-## Recovery / Isolation Map
+## Owner / Merge Gate
 
-If a runtime regression appears, isolate before editing:
+Current recommendation:
 
 ```text
-canvas discoverability       -> vibration-aiv-input-view.js
-rerender context             -> vibration-aiv-ui-context.js + qualification-tab
-assumption acceptance        -> assumption-acceptance* + screening-gate + execution
-zero-ready gate              -> vibration-aiv-screening-gate.js
-selected detail              -> canvas-view/controller/detail + state
-relationship deletion        -> delete-safeguard + qualification-tab
-flare presentation drag      -> flare-network-controller + qualification-tab presentation callback
-readiness presentation       -> readiness-view
-responsive styling           -> workbench.css / qualification.css cache seam
+PR status            DRAFT
+production acceptance HOLD
+merge                 DO NOT MERGE
 ```
 
-Do **not** modify `aiv-calculator.js` merely to make a UI regression pass.
+Merge should be reconsidered only after:
 
-## Next-Agent Handover
+1. exact-head `npm run verify:aiv-canvas-release` executes and passes on a functioning runner;
+2. real-browser AIV acceptance is completed, with special attention to presentation drag vs engineering mutation and screening readiness gating;
+3. any failures are fixed and revalidated;
+4. the Owner explicitly authorizes merge.
 
-**Stopping point:** source implementation and source-level hardening complete; native/browser evidence still open.
+## Appendix A — Expert Takeover Gate for the Next Agent
 
-**Branch / PR:** `agent/aiv-ui-hardening` / #491.
+A successor must answer these from current source before receiving implementation/merge authority. Generic answers are insufficient.
 
-**Implementation head:** `33363ceb27c5988969867937898412c658294b62`.
+### Q1 — Presentation vs engineering authority
 
-**Highest-risk remaining item:** first real native/browser run may reveal integration/focus/performance defects not observable through source inspection.
+Trace a Flare node pointer drag from DOM event to final state mutation. Identify the exact callback used on pointer-up and prove why that path cannot regenerate Sources/Assessments/Relationships or change physical distance. Then identify one true engineering node edit and show why it *must* use the engineering network projection path.
 
-**Start here:** checkout exact candidate -> `npm run verify:aiv-canvas-release` -> execute #453 browser checklist on same commit -> fix only reproduced defects -> update report with exact observations.
+Minimum acceptable answer: name `createAivFlareNetworkAuthoringController`, `onPresentationChange`, `onNetworkChange`, `applyAivFlareNetworkPresentationState`/presentation handler, `applyFlareNetwork`, and the table projection seam; include a falsifier test.
 
-**Do not redo:** first-class canvas, context preservation, assumption acceptance, shared nonempty screening gate, single selected detail, blocker summary, delete confirmation, presentation-only flare drag, tab accessibility, CSS centralization.
+### Q2 — Screening fail-closed predicate
 
-**Do not touch without separate authorization:** AIV equations/FLM/Stage-8 mechanics/master data/result authority/topology authority/physical-distance semantics/engineering export/workflow gates.
+State the complete current predicate for enabling/executing AIV screening and identify the single helper that owns it. Explain outcomes for: zero rows; all N/A; one READY + two N/A; one READY + one NOT_READY; READY with stale assumption acceptance.
 
-**Merge:** NOT AUTHORIZED.
+Minimum acceptable answer: `readyForQualification > 0`, `notReady===0`, `methodGap===0`, current assumption acceptance, and proof that UI + execution use the same helper.
 
-## Appendix A — Implementation Takeover Qualification
+### Q3 — Result authority and precision
 
-Incoming agents must answer from live PR491 source/diff. Recommended threshold: >=92/100 overall and >=17/20 each.
+Explain why `SCREENING OUTPUT` is not a pass/safe classification, why Line/Case remains non-authoritative, and why UI formatting must not round exported evidence. Identify the controlled D.2.3 display convention and the full-precision retention mechanism.
 
-### A1 — Production trace — 20
-Trace `.eit`, D.2.3 benchmark, Flare authoring and XLSX/CSV separately through authoritative tables, canvas projection, readiness, assumption resolution/acceptance, shared screening gate, registered calculation execution and result projection. Prove why canvas presentation state cannot become a second engineering-data authority.
+Minimum acceptable answer: Assessment-only screening scope, `designAuthority=false`, dB/LOF/FLM display convention, hover/full precision, and export boundary.
 
-### A2 — Rerender/state isolation — 20
-For one Source table-cell edit, predict the exact effect on disclosure state, table scroll, selected canvas identity, active detail tab, edit focus, readiness, screening result and prior assumption acceptance. Name a browser test that falsifies the prediction.
+### Q4 — Validation evidence discipline
 
-### A3 — Assumption + screening gate safety — 20
-Explain why the display fingerprint is not the acceptance oracle, what exact canonical content is compared, why `readyForQualification > 0` is mandatory, and which mutations invalidate acceptance. Prove neither acceptance nor readiness can promote design authority.
+Given a GitHub Actions job with `conclusion=failure`, `steps=null`, and no logs, classify the release suite correctly and explain what evidence would be required to call it a product-test PASS or FAIL.
 
-### A4 — Visual-versus-engineering mutation boundary — 20
-Trace both relationship creation/deletion and Flare node drag. Show where canonical identity is used, where confirmation occurs, why drag cannot alter segment engineering length or generated AIV tables, and why no SVG distance is inferred.
+Minimum acceptable answer: `NOT_RUN / INFRASTRUCTURE_BLOCKED`; never convert workflow conclusion alone into executed-test evidence; require actual command step/log/exit status or equivalent controlled native execution.
 
-### A5 — Native validation / minimal-fix discipline — 20
-Give the exact final validation sequence. If a check fails, isolate projection, UI-context, selection/detail, acceptance/screening gate, deletion, Flare presentation, styling or pre-existing numerical behavior before editing. A proposal to change the numerical kernel solely to satisfy a UI failure fails this gate.
+### Q5 — Exact-head takeover and rollback
 
-## Exact Continuation State
+Show the current main SHA, current PR head, merge base/behind state, net changed-file boundary, takeover pre-edit blobs, and rollback strategy. Explain why this PR must remain draft even if static inspection looks correct.
 
-`EXACT_NEXT_ACTION = checkout PR491 at implementation head 33363ceb27c5988969867937898412c658294b62 -> npm run verify:aiv-canvas-release -> real-browser #453 acceptance on same candidate -> fix only reproduced defects -> update this report with executable evidence -> request Owner review; do not merge without explicit authorization.`
+Minimum acceptable answer: current repository facts, immutable Git recovery points, runtime/browser gates, and explicit Owner merge authorization requirement.
+
+### Recommended scoring
+
+```text
+Q1  20 marks
+Q2  20 marks
+Q3  20 marks
+Q4  20 marks
+Q5  20 marks
+
+Minimum total: 92/100
+Minimum each: 17/20
+Safety-critical false claim: immediate failure
+```
+
+## Final Handoff Rule
+
+Another qualified engineer/agent must be able to continue from this report and the PR without private chat context. If repository head, workflow evidence, or defect state changes, re-ground before acting and update this same living report. Do not merge without explicit Owner authorization.
