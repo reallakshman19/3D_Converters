@@ -5,12 +5,7 @@ import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/
 import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
 import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile, vibrationIntegrityTopologyExecutionInput } from './vibration-integrity-input-runtime.js';
 import { buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
-import {
-  createVibrationUserDataUiState,
-  handleVibrationUserDataChange,
-  handleVibrationUserDataClick,
-  renderVibrationIntegrityWithUserData,
-} from './vibration-integrity-user-data-shell.js';
+import { createVibrationUserDataUiState, handleVibrationUserDataChange, handleVibrationUserDataClick, renderVibrationIntegrityWithUserData } from './vibration-integrity-user-data-shell.js';
 function ensureStylesheet() {
   if (document.querySelector('link[data-vibration-integrity-style="true"]')) return;
   const link = document.createElement('link');
