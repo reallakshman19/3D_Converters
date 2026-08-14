@@ -5,210 +5,177 @@
 | Field | Current state |
 |---|---|
 | Mission | Close the remaining acceptance, parity, browser, and workspace gaps left after #449 / PR #451 without changing AIV engineering authority. |
-| Source task / issue | `reallaksh19/3D_Converters#473` (follow-up to #449 / PR #451) |
+| Source task / issue | `#473` (follow-up to #449 / PR #451) |
 | PR number | `#474` |
 | Branch | `agent/aiv-canvas-completion` |
 | Base commit | `main@e65090bdc8f19cfdfd4d1e26de63e2747488f356` |
-| Current HEAD | `c36d658fe194c757b1e7d9965623ca576d4c0e27` before report-allocation commit |
+| Current HEAD | `62321b1aee66ef0b1d4e02d3698b5eb62be367a5` before this report commit |
 | PR status | DRAFT / OPEN |
-| Current stage | Stage 2 — PR allocation + report synchronization |
-| Last completed stage | Stage 1 — report initialization + technical findings |
-| Engineering status | Merged canvas is usable but original #449 Definition of Done is not fully proven/implemented. |
-| Validation status | Prior PR has native Stage 4–6 evidence and reconstructed Node evidence; literal current `npm run verify:aiv-canvas`, real-browser acceptance, complete parity fixtures, and final release suite remain open. |
-| Current blocker | Agent runtime cannot resolve `github.com` for a native clone and has no `gh`; browser harness is unavailable. Connector-backed source inspection and writes remain available. |
-| Exact next action | Complete report rename, verify current-main canvas files and changed-file baseline, then implement Stage 4 parity/integration regressions before UI expansion. |
+| Current stage | Stage 3 — current-main repository verification |
+| Last completed stage | Stage 2 — PR allocation + report synchronization |
+| Engineering status | No follow-up production changes yet. Core canvas is merged; remaining #449 acceptance/product gaps are tracked here. |
+| Validation status | Native clone FAILS in this runtime due DNS. Connector inspection is available. Literal `npm run verify:aiv-canvas`, browser acceptance, complete parity fixtures, and final release suite remain open. |
+| Current blocker | No native checkout / `gh` / browser harness in this runtime. |
+| Exact next action | Verify current-main canvas/parity APIs and PR baseline, record Stage-3 findings, then define Stage 4 before adding tests. |
 
 ## Handover in 60 Seconds
 
-**What is now true:** PR #451 is squash-merged; issue #473 tracks the remaining acceptance/product gaps; draft PR #474 is allocated from current `main@e65090bd…`. No production code has changed in this follow-up.
+**What is now true:** issue #473 and draft PR #474 exist from current main. `agents/PR474_workreport.md` is the living report. No production code has changed.
 
-**What is being worked on:** synchronize the required living report, then re-verify current-main implementation before production edits.
+**What is being worked on:** re-reading current-main canvas, test, and calculation APIs after intervening merges so the completion plan is based on current source rather than PR #451 memory.
 
-**What remains unfinished:** native full canvas command, browser acceptance, D.2.3 end-to-end canvas integration, true two-source simultaneous-source fixtures, single/batch/canvas parity, synchronized table filtering, explicit RESULTS mode, richer selected-item information architecture, engineering-specific icon/status inventory, CI investigation, and final handover cleanup.
+**What remains unfinished:** D.2.3/two-source/single-batch-canvas parity coverage; synchronized table filters; explicit RESULTS mode; complete selected-item detail; engineering-specific icons/status; native/browser/release validation; CI investigation; final handover.
 
-**What must not be assumed:** prior reconstructed Node checks equal a native checkout run; current GitHub Action failures are caused by the canvas; workflow edits are required; optional PNG export is required for completion.
+**What must not be assumed:** reconstructed Node checks equal native/browser acceptance; current Actions failures are canvas regressions; PNG export is required.
 
-**Highest-risk remaining item:** closing visible UI gaps without accidentally creating a second engineering authority or adding local numerical logic.
+**Highest-risk remaining item:** UI completion accidentally introducing a second engineering/numerical authority.
 
-**Exact next action:** Stage 2 report rename → Stage 3 repository-state verification → Stage 4 parity/integration coverage.
+**Exact next action:** finish Stage 3 inspection, then implement Stage 4 parity/integration regressions first.
 
 ## Mission and Engineering Intent
 
-### Mission
-Finish the first-release AIV canvas experience and acceptance evidence described by #449 after the core capability merged in PR #451.
-
-### User / engineering consequence
-Operators should get a coherent, table-synchronized explanatory workspace whose filters, modes, icons, detail surfaces, and result views are complete enough to operate without ambiguity. The registered AIV calculation path and tables remain the only engineering authority.
+Operators need a coherent table-synchronized AIV explanatory workspace. Tables and the registered Engineering Calculation API remain authoritative. Canvas geometry, filters, modes, selection, layout, icons, and detail presentation remain presentation-only.
 
 ### Scope
-- acceptance/parity coverage missing from #451;
+- missing acceptance/parity coverage;
 - table-filter synchronization;
 - explicit RESULTS presentation mode;
 - selected-item detail completion;
-- engineering-specific source/assessment/path/status icon treatment;
-- browser/native validation where executable evidence is available;
-- CI failure investigation and documented debt resolution;
-- final report/issue/PR state synchronization.
+- engineering-specific icon/status treatment;
+- executable validation and CI investigation;
+- final report/issue/PR synchronization.
 
 ### Non-goals
-- no 3D/CAD authoring;
-- no geometry writeback;
-- no pixel/connector-derived engineering values;
-- no local AIV equations or dB combination;
-- no unrelated qualification-controller refactor;
-- PNG export remains optional unless it becomes a low-risk, production-consumed follow-up.
+No CAD/3D authoring, geometry writeback, pixel-derived engineering inputs, UI AIV equations, unrelated controller refactor, or mandatory PNG export.
 
 ### Permanent invariants
 1. `TABLES = engineering source of truth`.
 2. `SVG CANVAS = visual navigation / relationship editing / result explanation`.
-3. Registered `calculateEngineering('VIB.AIV.ACOUSTIC', ...)` remains numerical authority.
-4. Assessment screening remains separate from non-authoritative Line/Case summary.
-5. Canvas/layout/filter/mode/selection state is presentation-only.
-6. Source/Assessment/Relationship identity is canonical-ID + Operating Case as applicable.
-7. UI consumes returned result contracts; it never reconstructs combined PWL/LOF.
-8. Workflow files change only if Owner authorization is explicit and the change is necessary/evidenced.
+3. `calculateEngineering('VIB.AIV.ACOUSTIC', ...)` remains numerical authority.
+4. Assessment screening stays separate from non-authoritative Line/Case summary.
+5. UI never reconstructs combined PWL/LOF.
+6. Canonical IDs + Operating Case govern identity.
+7. Workflow changes require explicit Owner authorization and evidence.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Report initialization / findings | P0 | DONE | 1 | report initialized before production changes |
-| PR allocation / report synchronization | P0 | IN_PROGRESS | 2 | draft PR #474 allocated |
-| Current-main repository verification | P0 | NOT_STARTED | 3 | pending |
+| Report initialization / findings | P0 | DONE | 1 | created before production changes |
+| PR allocation / report synchronization | P0 | DONE | 2 | PR #474 allocated; pending path removed |
+| Current-main repository verification | P0 | IN_PROGRESS | 3 | connector inspection underway |
 | D.2.3 + two-source + single/batch/canvas parity coverage | P0 | NOT_STARTED | 4 | pending |
 | Table-filter synchronization + RESULTS mode + selected detail | P0 | NOT_STARTED | 5 | pending |
 | Engineering-specific icons and non-color status inventory | P1 | NOT_STARTED | 6 | pending |
 | Native/browser/release validation + CI investigation | P0 | NOT_STARTED | 7 | environment-constrained |
 | Final ledger / documentation / issue handover | P0 | NOT_STARTED | 8 | pending |
-| PNG screenshot export | P2 | DEFERRED | optional | #449 marks PNG optional |
+| PNG screenshot export | P2 | DEFERRED | optional | optional in #449 |
 
 ## Engineering Item Register
 
-| ID | Type | Severity/Priority | Status | Summary | Current PR? |
+| ID | Type | Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
-| ISS-001 | Defect/gap | P0 | ACCEPTED | Case/line/current-all filters currently hide canvas/result elements but not synchronized authoritative table rows. | Yes |
-| ISS-002 | Product gap | P1 | ACCEPTED | Renderer does not expose the full engineering-specific source/assessment/path icon inventory requested by #449. | Yes |
-| ISS-003 | Product gap | P1 | ACCEPTED | Canvas mode contract has NAVIGATE/RELATIONSHIPS only; explicit RESULTS mode from #449 is absent. | Yes |
-| ISS-004 | Product gap | P1 | ACCEPTED | Selected-item detail is contextual sections, not the planned complete Source/Assessment/Relationship information architecture; objects without readiness/result/assumptions can have little/no detail. | Yes |
-| ISS-005 | Validation gap | P0 | ACCEPTED | True two-applicable-source 160+160 and 160+150 canvas integration fixtures are not fully proven by current canvas tests. | Yes |
-| ISS-006 | Validation gap | P0 | ACCEPTED | Explicit single API == batch API == canvas projection parity is not covered by current `verify:aiv-canvas`. | Yes |
-| ISS-007 | Validation gap | P0 | ACCEPTED | Full native current `npm run verify:aiv-canvas`, D.2.3 canvas integration, browser acceptance and full release suite remain unexecuted on final merged state. | Yes |
-| RISK-001 | Risk | High | ACCEPTED | UI completion could accidentally introduce engineering calculations or geometry-derived values; boundary tests must remain strict. | Yes |
-| RISK-002 | Risk | High | ACCEPTED | Current runtime cannot provide native/browser evidence; reconstructed/connector evidence must not be mislabeled PASS for those gates. | Yes |
-| DEBT-001 | Debt | Medium | ACCEPTED | Existing qualification controller exceeds normal 300-line target; avoid broad refactor unless directly necessary. | No |
-| DEBT-002 | Debt | Medium | ACCEPTED | Existing broad AIV/module boundary assertions may reflect older authority assumptions; investigate independently from canvas feature work. | No |
-| QST-001 | Question | High | OPEN | Exact current root cause of AIV Controlled Source / Topology Edit Support Reprojection failures; investigate with available Actions evidence before any workflow change. | Yes |
-| DEC-001 | Decision | P0 | ACCEPTED | Optional PNG screenshot export remains deferred unless it can be added without new dependencies/authority risk. | Yes |
+| ISS-001 | Defect/gap | P0 | ACCEPTED | Case/line/current-all filters do not currently synchronize visible authoritative table rows. | Yes |
+| ISS-002 | Product gap | P1 | ACCEPTED | Full engineering-specific source/assessment/path icon inventory is absent. | Yes |
+| ISS-003 | Product gap | P1 | ACCEPTED | Explicit RESULTS mode is absent. | Yes |
+| ISS-004 | Product gap | P1 | ACCEPTED | Selected-item detail is incomplete; objects without readiness/result/assumptions can lack useful detail. | Yes |
+| ISS-005 | Validation gap | P0 | ACCEPTED | True two-applicable-source 160+160 and 160+150 canvas integration coverage is incomplete. | Yes |
+| ISS-006 | Validation gap | P0 | ACCEPTED | Explicit single API == batch API == canvas projection parity is absent from current canvas suite. | Yes |
+| ISS-007 | Validation gap | P0 | ACCEPTED | Native full canvas command, D.2.3 integration, browser acceptance, and full release suite remain unexecuted on final merged state. | Yes |
+| RISK-001 | Risk | P0 | ACCEPTED | UI completion must not introduce calculations or geometry-derived values. | Yes |
+| RISK-002 | Risk | P0 | ACCEPTED | Environment-constrained validation must remain labeled NOT_RUN where appropriate. | Yes |
+| DEBT-001 | Debt | P2 | ACCEPTED | Qualification controller is pre-existing >300-line debt; no broad refactor. | No |
+| DEBT-002 | Debt | P2 | ACCEPTED | Older broad AIV/module boundary assumptions may conflict with screening-era authority; investigate separately. | No |
+| QST-001 | Question | P0 | OPEN | Exact cause/current relevance of AIV Controlled Source and Topology Edit Support Reprojection failures. | Yes |
+| DEC-001 | Decision | P2 | ACCEPTED | PNG screenshot export stays deferred unless low-risk and production-consumed. | Yes |
 
-## Stage Roadmap and Stage Protocol
+## Stage Roadmap and Execution Log
 
-### Stage 1 — Report initialization + technical findings
-**Implementation performed:** issue #473 created; branch `agent/aiv-canvas-completion` created from current main; required work report created before production changes.
-**Validation performed:** connector branch/report creation PASS; native clone FAIL due DNS.
-**Stage decision:** COMPLETE.
+### Stage 1 — Report initialization + findings — COMPLETE
+Issue #473, branch, and pre-allocation report created before production changes. Native clone attempt FAIL due DNS; connector access PASS.
 
-### Stage 2 — PR allocation + report synchronization
-**Current truth:** draft PR #474 exists with only the report change.
-**Objective:** rename report to `agents/PR474_workreport.md`, delete `PR_PENDING`, refresh Mission Control, and keep production untouched.
-**Expected scope/files:** report rename only.
-**Planned validation:** fetch final report path and PR changed-file list.
-**Known risks:** none beyond temporary two-file rename state during connector commits.
+### Stage 2 — PR allocation + report synchronization — COMPLETE
+Draft PR #474 allocated. Report renamed to `agents/PR474_workreport.md`; temporary `PR_PENDING` path deleted. No production changes.
 
-### Stage 3 — Changed-file / repository-state verification
-Inspect current-main canvas/controller/view/filter/results/package/parity APIs and existing tests. Confirm no intervening `main` changes invalidate the planned fixes. Establish exact PR changed-file baseline.
+### Stage 3 — Current-main repository verification — IN_PROGRESS
+**Current truth:** current `main` is `e65090bd…`, newer than the #451 merge because unrelated work landed afterward.
+**Objective:** verify current canvas/controller/filter/view/results/export/tests/package and discover existing single/batch calculation APIs/fixtures.
+**Expected scope/files:** no production changes; report only after inspection.
+**Engineering rationale:** Stage 4 must reuse real current calculation/result contracts and avoid duplicate numerical implementations.
+**Planned implementation:** connector-fetch current files; inspect current PR changed-file list; search for D.2.3 fixture, batch API, simultaneous-source parity tests, and current Actions evidence.
+**Expected behavior:** confirm or revise ISS-001..007 against current source.
+**Edge cases:** intervening merges may already have changed relevant AIV modules; do not overwrite unrelated changes.
+**Planned validation:** exact source blobs and PR changed-file baseline.
+**Known risks:** source search may reveal architecture differences requiring roadmap changes; record before production edits.
 
 ### Stage 4 — Parity and integration regressions
-**Objective:** close the highest-confidence acceptance gaps before UI expansion.
-**Expected scope:** focused tests and, only if exposed by tests, minimal projection/result bridge fixes.
-**Planned coverage:** D.2.3 returned values through canvas projection; 160+160 and 160+150 two-applicable-source contribution identity/result pass-through; single API/batch API/canvas projection parity; no local numerical recombination.
+Planned after Stage 3. Add D.2.3 result-through-projection, two-applicable-source 160+160/160+150, and single/batch/canvas parity coverage. Production fixes only if tests expose a concrete defect.
 
 ### Stage 5 — Filter synchronization / RESULTS mode / selected detail
-**Objective:** make canvas and tables behave as two presentation views of the same records and complete the planned mode/detail interaction.
-**Expected behavior:** filters hide/reveal corresponding table rows without mutation; RESULTS mode changes presentation only; every selectable source/assessment/relationship exposes useful summary/input information; table-backed edits remain authoritative.
+Presentation-only table-row filtering; explicit RESULTS mode; useful Source/Assessment/Relationship details without creating a parallel engineering store.
 
 ### Stage 6 — Engineering-specific icons and status inventory
-**Objective:** distinguish required source/assessment/path concepts and non-color states without changing identity or engineering data.
-**Expected behavior:** icon choice follows projection `iconType`/topology semantics only; accessible labels/text remain present; status does not rely on color alone.
+Distinct required source/assessment/path concepts and non-color status cues using projection/topology semantics only.
 
 ### Stage 7 — Native/browser/release validation + CI investigation
-Attempt available focused/full suites, inspect GitHub Actions failures, and perform browser acceptance only if a real browser harness becomes available. Workflow changes require explicit necessity and documented Owner authorization.
+Run every executable suite available; inspect Actions with evidence; browser acceptance only with a real harness. Workflow edits only if necessary and explicitly authorized.
 
 ### Stage 8 — Final ledger / documentation / handover
-Reconcile exact changed-file list, validation truth, deferred debt, issue/PR state, and follow-up recommendations. Do not merge without explicit Owner instruction.
+Reconcile changed-file list, validation truth, issue/PR status, remaining debt, and next actions. Do not merge without explicit Owner instruction.
 
 ## Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---:|---:|---|---|---|
-| `agents/PR474_workreport.md` | 1 | 2 | living report | Yes | pending final rename verification |
-| `agents/PR_PENDING_workreport.md` | 1 | 2 | temporary pre-allocation report path; must be deleted | Yes | pending deletion |
+| `agents/PR474_workreport.md` | 1 | 3 | living engineering report | Yes | current |
 
 ## Validation and Evidence Ledger
 
 ### Software Validation
-
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Native clone/current checkout | FAIL | environment | `git clone` cannot resolve `github.com` |
-| GitHub connector source access | PASS | `main@e65090bd…` | branch metadata and files accessible |
-| Literal `npm run verify:aiv-canvas` on follow-up | NOT_RUN | n/a | native checkout unavailable |
-| Browser acceptance | NOT_RUN | n/a | no real browser harness |
+| Native clone/current checkout | FAIL | environment | DNS cannot resolve `github.com` |
+| GitHub connector source access | PASS | `main@e65090bd…` | branch/files accessible |
+| Literal `npm run verify:aiv-canvas` | NOT_RUN | n/a | native checkout unavailable |
+| Browser acceptance | NOT_RUN | n/a | browser harness unavailable |
 
 ### Engineering Validation
-
 | Property | Status | Evidence |
 |---|---|---|
-| Authority boundary preserved by planned scope | NOT_RUN | implementation not started |
+| Authority boundary on follow-up changes | NOT_RUN | no production changes yet |
 | Numerical parity | NOT_RUN | Stage 4 |
 | Table/canvas filter synchronization | NOT_RUN | Stage 5 |
 | Icon/status completeness | NOT_RUN | Stage 6 |
 
 ### Explicitly Not Validated
-Native repository import graph, real browser DOM/event behavior, download behavior, final CI/release state.
+Native import graph, real browser events/DOM/downloads, final release suite, current CI root causes.
 
 ## Known / Deferred Work and Recommended Forward Sequence
-
-1. Complete PR/report synchronization.
-2. Verify current-main implementation after intervening merges.
-3. Add parity/integration coverage first; fix only reproduced defects.
-4. Complete table-filter / RESULTS / selected-detail product gaps.
-5. Complete icon/status inventory.
-6. Run all executable validation; investigate CI with evidence.
-7. Reconcile report and leave optional PNG/debt explicit.
+1. Finish Stage 3 verification.
+2. Implement parity/integration tests first; fix only reproduced defects.
+3. Complete filter/RESULTS/detail UX.
+4. Complete icon/status inventory.
+5. Run executable validation and investigate CI.
+6. Reconcile final report; keep PNG and unrelated debt explicit.
 
 ## Process Notes / Lessons Learned
-
-- A merged feature can still have Definition-of-Done gaps; follow-up tracking must distinguish implemented core capability from unproven acceptance.
-- Reconstructed Node evidence is useful but cannot be relabeled as native/browser acceptance.
+- A merged feature can still have Definition-of-Done gaps; follow-up tracking must separate implementation from proven acceptance.
+- Reconstructed evidence is not native/browser evidence.
 
 ## Next-Agent Handover
 
-**Current stopping point:** Stage 2 report synchronization in progress; no production changes.
-
-**PR / branch / HEAD:** `#474` / `agent/aiv-canvas-completion` / `c36d658fe194c757b1e7d9965623ca576d4c0e27` before report-allocation commit.
-
-**Last completed stage:** Stage 1.
-
-**Current active stage:** Stage 2.
-
-**Start here:** finish report rename/delete, then inspect current-main canvas files and tests before editing production code.
-
-**Do not redo:** #451 core projection/layout/interaction/export implementation unless new tests expose a concrete defect.
-
-**Do not assume:** browser/native checks passed; CI failures are canvas regressions; PNG is required.
-
-**Files currently involved:** report paths only.
-
-**Known failing checks:** native clone fails DNS in this agent runtime; historic AIV/topology Actions failures require fresh current-main investigation.
-
-**Validation still required:** all Stage 4–7 items.
-
-**Open QST-* items:** QST-001 CI root cause.
-
-**Important deferred IMP-* items:** none yet; PNG is DEC-001 deferred optional work.
-
-**Highest-risk remaining item:** preserving engineering authority while completing richer UI behavior.
-
-**Exact next recommended action:** Stage-2 rename closure then Stage-3 current-main verification.
-
-**Required reading:** issue #473; issue #449; merged PR #451; Common `CodingRules.md@43eccc…`; current canvas projection/view/controller/filter/results/export modules.
+**Current stopping point:** Stage 3 source verification active; no production changes.
+**PR / branch / HEAD:** `#474` / `agent/aiv-canvas-completion` / `62321b1a…` before current report commit.
+**Last completed stage:** Stage 2.
+**Current active stage:** Stage 3.
+**Start here:** inspect current-main AIV canvas and calculation/parity APIs; record findings before Stage 4.
+**Do not redo:** #451 core implementation unless a new focused regression proves a defect.
+**Do not assume:** native/browser checks passed; CI failure cause known; PNG required.
+**Files currently involved:** report only.
+**Known failing checks:** native clone DNS failure; QST-001 Actions failures need current evidence.
+**Validation still required:** Stages 4–7.
+**Open QST-* items:** QST-001.
+**Important deferred IMP-* items:** none; PNG is DEC-001 deferred optional.
+**Highest-risk remaining item:** preserving engineering authority while completing UX.
+**Exact next recommended action:** finish Stage 3 then Stage 4 parity tests.
+**Required reading:** #473, #449, PR #451, Common CodingRules, current canvas projection/view/controller/filter/results/export modules and AIV calculation API/tests.
