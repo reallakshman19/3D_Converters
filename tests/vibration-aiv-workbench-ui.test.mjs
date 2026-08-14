@@ -8,6 +8,7 @@ import { buildLoadedAivD23Benchmark } from '../tabs/vibration-aiv-benchmarks.js'
 import { renderAivFlareNetworkAuthoringHtml } from '../tabs/vibration-aiv-flare-network-view.js';
 import { renderAivQualificationWorkspaceHtml } from '../tabs/vibration-aiv-qualification-view.js';
 import { renderAivReadinessPanelHtml } from '../tabs/vibration-aiv-readiness-view.js';
+import { isAivScreeningReady } from '../tabs/vibration-aiv-screening-gate.js';
 import { createInitialAivQualificationState } from '../tabs/vibration-aiv-state.js';
 import {
   aivUiFocusKey,
@@ -36,6 +37,14 @@ function assumptionResolution(value = '10') {
       tableKind: 'sources', rowIndex: 0, column: 'Mass Flow', assumedValue: value,
       profilePath: 'source.massFlow', reason: 'MISSING_INPUT_DEFAULTED',
     }],
+  };
+}
+
+function readinessState(counts) {
+  return {
+    readinessEnvelope: { readiness: { counts, rows: [] } },
+    assumptionResolution: { assumptionCount: 0, assumptions: [] },
+    assumptionAcceptance: null,
   };
 }
 
@@ -106,6 +115,36 @@ test('assumption acceptance is bound to the exact resolved assumption set', () =
   assert.equal(isAivAssumptionAcceptanceCurrent(resolution, acceptance), true);
   assert.equal(isAivAssumptionAcceptanceCurrent(assumptionResolution('11'), acceptance), false);
   assert.equal(isAivAssumptionAcceptanceCurrent({ assumptionCount: 0, assumptions: [] }, null), true);
+});
+
+test('screening gate requires at least one READY relationship and rejects empty or all-N/A envelopes', () => {
+  assert.equal(isAivScreeningReady(readinessState({
+    rows: 0, readyForQualification: 0, methodGap: 0, notReady: 0, notApplicable: 0,
+  })), false);
+  assert.equal(isAivScreeningReady(readinessState({
+    rows: 2, readyForQualification: 0, methodGap: 0, notReady: 0, notApplicable: 2,
+  })), false);
+  assert.equal(isAivScreeningReady(readinessState({
+    rows: 3, readyForQualification: 1, methodGap: 0, notReady: 0, notApplicable: 2,
+  })), true);
+  assert.equal(isAivScreeningReady(readinessState({
+    rows: 2, readyForQualification: 1, methodGap: 0, notReady: 1, notApplicable: 0,
+  })), false);
+});
+
+test('readiness UI keeps Run AIV screening disabled for all-N/A relationships', () => {
+  const state = createInitialAivQualificationState();
+  state.readinessEnvelope = {
+    readiness: {
+      counts: { rows: 2, readyForQualification: 0, methodGap: 0, notReady: 0, notApplicable: 2 },
+      rows: [
+        { status: 'NOT_APPLICABLE', rowKey: 'R1' },
+        { status: 'NOT_APPLICABLE', rowKey: 'R2' },
+      ],
+    },
+  };
+  const html = renderAivReadinessPanelHtml(state);
+  assert.match(html, /data-aiv-action="run-screening" disabled/u);
 });
 
 test('screening stays disabled until current resolved assumptions are explicitly accepted', () => {
