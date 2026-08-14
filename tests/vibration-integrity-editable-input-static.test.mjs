@@ -5,6 +5,7 @@ import { buildVibrationFitUiBenchmarkCase } from '../tabs/vibration-integrity-be
 import { renderVibrationIntegrityHtml } from '../tabs/vibration-integrity-view.js';
 
 const controllerSource = fs.readFileSync(new URL('../tabs/vibration-integrity-tab.js', import.meta.url), 'utf8');
+const runControllerSource = fs.readFileSync(new URL('../tabs/vibration-integrity-run-controller.js', import.meta.url), 'utf8');
 const inputViewSource = fs.readFileSync(new URL('../tabs/vibration-integrity-input-view.js', import.meta.url), 'utf8');
 const snapshotSource = fs.readFileSync(new URL('../tabs/vibration-integrity-run-snapshot.js', import.meta.url), 'utf8');
 const evidenceSource = fs.readFileSync(new URL('../tabs/vibration-integrity-run-evidence.js', import.meta.url), 'utf8');
@@ -87,25 +88,27 @@ test('modified EI inputs retain target as reference but suppress official parity
 });
 
 test('editable FIT UI remains an input/preparation layer with no direct numerical authority', () => {
-  const combined = `${controllerSource}\n${inputViewSource}`;
+  const combined = `${controllerSource}\n${runControllerSource}\n${inputViewSource}`;
   assert.doesNotMatch(combined, /calculateFit\s*\(/u);
   assert.doesNotMatch(combined, /calculateEngineering(?:Batch)?\s*\(/u);
   assert.doesNotMatch(combined, /<canvas|createElement\(['"]canvas/iu);
   assert.doesNotMatch(combined, /riskScore|Vibration Score|confidenceScore/u);
-  assert.match(controllerSource, /buildVibrationIntegrityFacilityTableInput/u);
-  assert.match(controllerSource, /runVibrationFacilityFitBenchmarkFromTables/u);
+  assert.match(controllerSource, /captureVibrationIntegrityExecutionState/u);
+  assert.match(runControllerSource, /runVibrationFacilityFitBenchmarkFromTables/u);
 });
 
-test('controller preserves stale results and binds deterministic audit plus engineering run identities', () => {
+test('controller preserves stale results and run controller owns deterministic dual identity binding', () => {
   assert.match(controllerSource, /function staleCalculatedState/u);
   assert.match(controllerSource, /'STALE_RESULT'/u);
-  assert.match(controllerSource, /buildVibrationIntegrityRunSnapshot/u);
-  assert.match(controllerSource, /bindVibrationIntegrityEngineeringIdentity/u);
-  assert.match(controllerSource, /state\.resultState = 'CURRENT_RESULT'/u);
+  assert.match(controllerSource, /vibrationIntegrityRunInputDrifted/u);
+  assert.match(controllerSource, /drifted \? 'STALE_RESULT' : 'CURRENT_RESULT'/u);
   assert.match(controllerSource, /state\.resultState !== 'CURRENT_RESULT'/u);
+  assert.match(runControllerSource, /buildVibrationIntegrityRunSnapshot/u);
+  assert.match(runControllerSource, /bindVibrationIntegrityEngineeringIdentity/u);
   assert.match(snapshotSource, /FitWorkingInputState\.v1/u);
   assert.match(snapshotSource, /FitRunSnapshot\.v1/u);
   assert.match(snapshotSource, /FitEngineeringInputIdentity\.v1/u);
+  assert.match(snapshotSource, /fileHash/u);
   assert.match(snapshotSource, /SHA-256/u);
 });
 
@@ -124,6 +127,7 @@ test('run evidence export remains dual-hash reproducibility evidence only', () =
   assert.match(controllerSource, /serializeVibrationIntegrityRunEvidence/u);
   assert.match(evidenceSource, /REPRODUCIBILITY_EVIDENCE_ONLY/u);
   assert.match(evidenceSource, /engineeringInputHash/u);
+  assert.match(evidenceSource, /fileHash/u);
   assert.match(evidenceSource, /FIT_RUN_EVIDENCE_HASH_MISMATCH/u);
   assert.doesNotMatch(evidenceSource, /screeningAuthorized:\s*true/u);
 });
