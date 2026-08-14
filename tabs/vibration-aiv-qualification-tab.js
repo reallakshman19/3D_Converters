@@ -28,6 +28,12 @@ import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
 
+export function applyAivFlareNetworkPresentationState(state, network) {
+  state.flareNetwork = network;
+  state.error = null;
+  return state;
+}
+
 export function renderAivQualificationWorkspace(container) {
   ensureAivQualificationStylesheet();
   const state = createInitialAivQualificationState();
@@ -43,6 +49,7 @@ export function renderAivQualificationWorkspace(container) {
   const flareNetworkController = createAivFlareNetworkAuthoringController(container, {
     getNetwork: () => state.flareNetwork,
     onNetworkChange: applyFlareNetwork,
+    onPresentationChange: applyFlareNetworkPresentation,
     onError: (error) => { state.error = String(error?.message || error); render(); },
   });
   const execution = createAivExecutionActions({ state, render, downloadText: downloadAivText });
@@ -66,6 +73,11 @@ export function renderAivQualificationWorkspace(container) {
   function deactivateFlareNetworkGeneration() {
     state.flareNetworkActive = false;
     state.generatedInputSet = null;
+  }
+
+  function applyFlareNetworkPresentation(network) {
+    applyAivFlareNetworkPresentationState(state, network);
+    render();
   }
 
   function applyFlareNetwork(network) {
