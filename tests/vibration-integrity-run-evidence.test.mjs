@@ -1,21 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runVibrationFacilityFitBenchmarkFromTables } from '../converters/vibration/facility/fit-workflow-tabular.js';
+import { VIBRATION_FIT_UI_BENCHMARK_CASES } from '../tabs/vibration-integrity-benchmarks.js';
 import {
   buildLoadedVibrationIntegrityBenchmark,
-  buildVibrationIntegrityFacilityTableInput,
+  captureVibrationIntegrityExecutionState,
   createVibrationIntegrityInputRuntimeState,
 } from '../tabs/vibration-integrity-input-runtime.js';
-import { VIBRATION_FIT_UI_BENCHMARK_CASES } from '../tabs/vibration-integrity-benchmarks.js';
+import { executeVibrationIntegrityBenchmarkRun } from '../tabs/vibration-integrity-run-controller.js';
 import {
   FIT_RUN_EVIDENCE_SCHEMA,
   buildVibrationIntegrityRunEvidence,
   serializeVibrationIntegrityRunEvidence,
 } from '../tabs/vibration-integrity-run-evidence.js';
-import {
-  bindVibrationIntegrityEngineeringIdentity,
-  buildVibrationIntegrityRunSnapshot,
-} from '../tabs/vibration-integrity-run-snapshot.js';
 
 async function currentBenchmarkState() {
   const id = VIBRATION_FIT_UI_BENCHMARK_CASES[0].id;
@@ -27,18 +24,16 @@ async function currentBenchmarkState() {
     files: loaded.files,
     allowLimitedExchange: loaded.allowLimitedExchange,
   };
-  const snapshot = await buildVibrationIntegrityRunSnapshot(state);
-  const tableInput = await buildVibrationIntegrityFacilityTableInput(state);
-  const envelope = runVibrationFacilityFitBenchmarkFromTables(
-    tableInput,
-    { allowLimitedExchange: state.allowLimitedExchange },
+  const captured = captureVibrationIntegrityExecutionState(state);
+  const executed = await executeVibrationIntegrityBenchmarkRun(
+    captured,
+    runVibrationFacilityFitBenchmarkFromTables,
   );
-  const identified = await bindVibrationIntegrityEngineeringIdentity(snapshot, envelope);
   return {
     ...state,
     resultState: 'CURRENT_RESULT',
-    runSnapshot: Object.freeze({ ...identified, runId: 'FIT-RUN-TEST-001' }),
-    envelope,
+    runSnapshot: Object.freeze({ ...executed.runSnapshot, runId: 'FIT-RUN-TEST-001' }),
+    envelope: executed.envelope,
   };
 }
 
