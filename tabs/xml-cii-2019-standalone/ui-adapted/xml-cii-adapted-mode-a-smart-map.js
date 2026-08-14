@@ -91,13 +91,14 @@ function branchLabel(branchName) {
 function buildGroup(rows, keys, groupKey) {
   const sourceId = text(rows[0]?.sourceId);
   const fileName = text(rows[0]?.fileName);
+  const allowedKeys = unique(keys);
   const existingMappings = unique(rows.filter((row) => row?.lineMiss !== true).map((row) => row?.lineKey));
   const hints = derivedHints(rows);
   const exact = unique([
-    ...exactSuggestions(rows, keys),
-    ...hints.filter((hint) => unique(keys).includes(text(hint))),
+    ...exactSuggestions(rows, allowedKeys),
+    ...hints.filter((hint) => allowedKeys.includes(text(hint))),
   ]);
-  const fuzzy = rankSimilar(hints, keys);
+  const fuzzy = rankSimilar(hints, allowedKeys);
   let status = 'unresolved';
   let recommended = '';
   let reason = 'No credible project Line Key suggestion.';
@@ -118,7 +119,7 @@ function buildGroup(rows, keys, groupKey) {
   } else if (existingMappings.length > 1) {
     status = 'conflict';
     reason = `Sibling branches already use different mappings: ${existingMappings.join(', ')}.`;
-  } else if (existingMappings.length === 1 && unique(keys).includes(existingMappings[0])) {
+  } else if (existingMappings.length === 1 && allowedKeys.includes(existingMappings[0])) {
     status = 'similar';
     recommended = existingMappings[0];
     reason = `Adopt existing sibling mapping ${recommended}; engineer review required.`;
@@ -131,7 +132,7 @@ function buildGroup(rows, keys, groupKey) {
   const candidates = [];
   for (const key of exact) candidates.push({ key, basis: 'exact', score: 1 });
   for (const key of existingMappings) {
-    if (unique(keys).includes(key) && !candidates.some((item) => item.key === key)) {
+    if (allowedKeys.includes(key) && !candidates.some((item) => item.key === key)) {
       candidates.push({ key, basis: 'existing-sibling', score: null });
     }
   }
@@ -198,14 +199,18 @@ export function buildModeASmartMapChanges(group = {}, lineKey = '', projectLineK
   if (!sourceId || !key || !allowed.has(key)) {
     return { valid: false, reason: key ? 'Selected key is not in this source project Line List.' : 'No project Line Key selected.', changes: [] };
   }
-  const changes = unique(group?.branchNames || []).map((branchName) => ({
-    sourceId,
-    fileName: text(group?.fileName),
-    groupKey: text(group?.groupKey),
-    branchName,
-    lineKey: key,
-  }));
-  return { valid: Boolean(changes.length), reason: changes.length ? '' : 'No branch occurrences found.', changes };
+  const changes = (group?.rows || [])
+    .filter((row) => row?.lineMiss === true || text(row?.lineKey) !== key)
+    .map((row) => ({
+      sourceId,
+      fileName: text(group?.fileName),
+      groupKey: text(group?.groupKey),
+      branchName: text(row?.branchName),
+      lineKey: key,
+    }))
+    .filter((change) => change.branchName);
+  const deduped = [...new Map(changes.map((change) => [change.branchName, change])).values()];
+  return { valid: true, reason: '', changes: deduped };
 }
 
 export function modeASmartMapSummary(groups = []) {
