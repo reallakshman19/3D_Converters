@@ -2,7 +2,7 @@ export function ensureAivQualificationStylesheet(documentRef = globalThis.docume
   if (!documentRef || documentRef.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = documentRef.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-13';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-14';
   link.dataset.aivQualificationStyle = 'true';
   documentRef.head.appendChild(link);
 }
