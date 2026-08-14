@@ -12,6 +12,7 @@ import {
 } from '../converters/vibration/aiv/aiv-flare-network-mutations.js';
 import { generateAivInputTablesFromFlareNetwork } from '../converters/vibration/aiv/aiv-flare-network-table-generator.js';
 import { createAivFlareNetworkAuthoringController } from '../tabs/vibration-aiv-flare-network-controller.js';
+import { renderAivFlareNetworkAuthoringHtml } from '../tabs/vibration-aiv-flare-network-view.js';
 
 function empty() {
   return createAivFlareNetwork({ networkId: 'DRAWN', revision: '1', nodes: [], segments: [] });
@@ -26,6 +27,29 @@ function draggableTarget(node, svg, editor) {
       return null;
     },
   };
+}
+
+function editableTarget(editor, nodeId, field, value) {
+  return {
+    dataset: { aivNetworkNodeId: nodeId, aivNetworkNodeField: field },
+    value,
+    closest(selector) { return selector === '[data-aiv-network-editor]' ? editor : null; },
+  };
+}
+
+function controllerHarness(graphInput) {
+  const handlers = new Map();
+  const editor = { querySelector: () => null };
+  let graph = graphInput;
+  const container = {
+    addEventListener: (type, handler) => handlers.set(type, handler),
+    removeEventListener: (type) => handlers.delete(type),
+  };
+  const controller = createAivFlareNetworkAuthoringController(container, {
+    getNetwork: () => graph,
+    onNetworkChange: (next) => { graph = next; },
+  });
+  return { handlers, editor, controller, graph: () => graph };
 }
 
 test('authoring mutations place nodes connect segment and generate relationship only after engineering length exists', () => {
@@ -65,6 +89,44 @@ test('dragging presentation and editing node properties do not mutate segment en
   graph = updateAivFlareNetworkNode(graph, 'SRC-1', { tag: 'PSV-101' });
   assert.equal(resolveAivFlareNetworkPath(graph, 'SRC-1', 'A-1').physicalDistanceM, 4.2);
   assert.equal(graph.nodes.find((item) => item.canonicalId === 'SRC-1').tag, 'PSV-101');
+});
+
+test('existing source engineering attributes are editable through graph mutation path', () => {
+  const graph = createAivFlareNetwork({
+    networkId: 'DRAWN', revision: '1',
+    nodes: [
+      { canonicalId: 'SRC-1', kind: 'SOURCE', tag: 'PSV-101', line: 'FL-1', sourceInput: { caseId: 'CASE-1', sourceDeviceType: 'RELIEF_VALVE' } },
+      { canonicalId: 'A-1', kind: 'ASSESSMENT', assessmentInput: { assessmentType: 'WELDOLET' } },
+    ],
+    segments: [{ segmentId: 'PIPE-1', fromNodeId: 'SRC-1', toNodeId: 'A-1', physicalLength: { value: 4.2, unit: 'm' } }],
+  });
+  const harness = controllerHarness(graph);
+  harness.handlers.get('change')({ target: editableTarget(harness.editor, 'SRC-1', 'sourceDeviceType', 'CONTROL_VALVE') });
+  harness.handlers.get('change')({ target: editableTarget(harness.editor, 'SRC-1', 'caseId', 'CASE-2') });
+  harness.handlers.get('change')({ target: editableTarget(harness.editor, 'SRC-1', 'tag', 'CV-101') });
+  const source = harness.graph().nodes.find((item) => item.canonicalId === 'SRC-1');
+  assert.equal(source.sourceInput.sourceDeviceType, 'CONTROL_VALVE');
+  assert.equal(source.sourceInput.caseId, 'CASE-2');
+  assert.equal(source.tag, 'CV-101');
+  assert.equal(resolveAivFlareNetworkPath(harness.graph(), 'SRC-1', 'A-1').physicalDistanceM, 4.2);
+  harness.controller.destroy();
+});
+
+test('existing node table renders correction controls for engineering attributes', () => {
+  const graph = createAivFlareNetwork({
+    networkId: 'DRAWN', revision: '1',
+    nodes: [
+      { canonicalId: 'SRC-1', kind: 'SOURCE', tag: 'PSV-101', line: 'FL-1', sourceInput: { caseId: 'CASE-1', sourceDeviceType: 'RELIEF_VALVE' } },
+      { canonicalId: 'A-1', kind: 'ASSESSMENT', assessmentInput: { assessmentType: 'WELDOLET' } },
+    ],
+    segments: [],
+  });
+  const html = renderAivFlareNetworkAuthoringHtml({ flareNetwork: graph, flareNetworkActive: true, generatedInputSet: null });
+  assert.match(html, /data-aiv-network-node-field="sourceDeviceType"/u);
+  assert.match(html, /data-aiv-network-node-field="assessmentType"/u);
+  assert.match(html, /data-aiv-network-node-field="caseId"/u);
+  assert.match(html, /data-aiv-network-node-field="line"/u);
+  assert.match(html, /data-aiv-network-node-field="tag"/u);
 });
 
 test('node drag commits presentation only and never invokes engineering network mutation callback', () => {
