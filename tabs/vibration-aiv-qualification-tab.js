@@ -22,6 +22,7 @@ import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-
 import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-network-state.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
+import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
 
 function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
@@ -65,9 +66,11 @@ export function renderAivQualificationWorkspace(container) {
 
   function render() {
     if (state.destroyed) return;
+    const uiContext = captureAivUiContext(container);
     container.innerHTML = renderAivQualificationWorkspaceHtml(state);
     canvasController.sync();
     canvasExportController.sync();
+    restoreAivUiContext(container, uiContext);
   }
 
   function deactivateFlareNetworkGeneration() {
