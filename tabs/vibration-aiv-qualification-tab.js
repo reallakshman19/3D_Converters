@@ -17,6 +17,7 @@ import {
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
+import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
 import { importAivEitFileIntoState } from './vibration-aiv-eit-import-controller.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
@@ -53,6 +54,7 @@ export function renderAivQualificationWorkspace(container) {
   const canvasController = createAivCanvasInteractionController(container, {
     onCreateRelationship: createCanvasRelationship,
     onDeleteRelationship: deleteCanvasRelationship,
+    onSelectionChange: updateCanvasSelectionDetail,
   });
   const canvasExportController = createAivCanvasExportController(container, {
     getState: () => state,
@@ -73,6 +75,12 @@ export function renderAivQualificationWorkspace(container) {
     canvasController.sync();
     canvasExportController.sync();
     restoreAivUiContext(container, uiContext);
+  }
+
+  function updateCanvasSelectionDetail(selection) {
+    state.selectedCanvasKey = selection?.selectionKey ?? null;
+    const host = container.querySelector('[data-aiv-canvas-selected-detail-host]');
+    if (host) host.innerHTML = renderAivCanvasSelectedDetailHtml(state, state.selectedCanvasKey);
   }
 
   function deactivateFlareNetworkGeneration() {
