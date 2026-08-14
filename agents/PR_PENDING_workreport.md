@@ -4,33 +4,32 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Revalidate prior FIT UI review findings against current main, fix only confirmed defects with P0 first, add regression coverage, run FIT/AIV release validation, and deliver a draft PR without merging. |
+| Mission | Revalidate prior FIT UI review findings against current main, fix only confirmed defects with P0 first, add regression coverage, attempt FIT/AIV release validation, and deliver a draft PR without merging. |
 | Source task / issue | Owner task 2026-08-14; `docs/vibration/VibrationIntegrity-Release-Browser-Validation-v1.md`; issue #443. |
 | PR number | PENDING |
 | Branch | `agent/fit-ui-post-review-defects` |
-| Base commit | `4fce8d2b8fc2790058f9b0f348fa135a5eda5704` |
-| Current HEAD | `2a0f10784683632f80ab83f183870beedac2ace0` before this report update |
+| Initial base commit | `4fce8d2b8fc2790058f9b0f348fa135a5eda5704` |
+| Latest reconciled main | `2f7b736ad782eb2f37603c97b8d1238ed7c8058f` |
+| Current HEAD | `e0c5c8c9cca62e2cf94a89014a37e9cb40bf0490` before this report update |
 | PR status | NOT CREATED |
-| Current stage | Stage 5 — validation + final changed-file reconciliation |
-| Last completed stage | Stage 4 — remaining confirmed visible-contract repair |
-| Engineering status | All four current-main-reproducible FIT UI defects implemented; FIT authority unchanged. |
-| Validation status | Source/diff checks PASS; executable tests/releases NOT_RUN yet. |
-| Current blocker | Agent runtime has no `gh` CLI and cannot resolve `github.com` for a checkout; full local Node suites cannot run without repository files. |
-| Exact next action | Attempt exact FIT and AIV release commands in the runtime, record environment result, then use available GitHub exact-head checks/evidence and reconcile final diff. |
+| Current stage | Stage 6 — draft PR allocation + report synchronization |
+| Last completed stage | Stage 5 — validation attempt + final changed-file reconciliation |
+| Engineering status | Four current-main-reproducible FIT UI defects implemented; FIT authority unchanged. |
+| Validation status | Source/diff validation PASS. Requested FIT and AIV release commands attempted but NOT_RUN / ENVIRONMENT_BLOCKED because no repository checkout exists in this runtime. |
+| Current blocker | Local runner cannot clone/resolve `github.com`; `gh` is absent. Repository AIV report PR474 also records hosted Actions zero-step/budget blocking, so no native AIV release PASS can be claimed. |
+| Exact next action | Create draft PR, rename this report to `agents/PR<NUMBER>_workreport.md`, inspect PR-head checks, and leave unmerged. |
 
 ## Handover in 60 Seconds
 
-What is now true: current main was re-read at `4fce8d2b...`; four prior FIT UI defects reproduced and are implemented. P0 joined Engineering basis and exact source navigation are restored. Visible evidence strength and explicit complete five-sheet XLSX wording are restored. One new render-level regression pins exact source `href`/`id` symmetry and ordering. Historical synthetic-zero/parser-size failures were already fixed on main; historical AIV UI-math finding was not reproduced.
+What is now true: current main was re-read before coding at `4fce8d2b...`; it advanced once during work to `2f7b736...` via an unrelated InputXML documentation-only commit, which was merged into this branch. The branch is ahead of latest main with zero behind commits. Four prior FIT UI defects reproduced and were repaired: joined Engineering basis, exact source anchors/navigation, visible evidence-strength provenance, and explicit complete five-sheet XLSX wording. One new rendered regression pins exact basis-link/backing-input identity and ordering.
 
-What is being worked on: exact-head validation and evidence classification.
+What remains unfinished: PR allocation/report rename and any future native/browser validation once infrastructure is available.
 
-What remains unfinished: executable release evidence, final report reconciliation, draft PR allocation/rename, hosted check inspection.
+What must not be assumed: `npm run verify:vibration-fit-release` did not execute; `npm run verify:aiv-canvas-release` did not execute; browser acceptance did not execute. No PASS is claimed for these gates.
 
-Must not be assumed: no executable suite is green until actually observed; browser acceptance is still unexecuted; no authority transition occurred.
+Highest-risk remaining item: native/browser execution may still expose integration issues. Open draft PR #479 overlaps `tabs/vibration-integrity-input-view.js`; future reconciliation should preserve this PR’s source-navigation contract and #479’s separate run-evidence scope deliberately.
 
-Highest-risk remaining item: validation coverage under the constrained runtime, plus documented overlap with open draft PR #479 on input-view.
-
-Exact next action: attempt `npm run verify:vibration-fit-release` and `npm run verify:aiv-canvas-release` against any available checkout; if unavailable, record NOT_RUN/ENVIRONMENT_BLOCKED rather than synthesizing PASS.
+Exact next action: open the draft PR and inspect exact PR-head status without merging.
 
 ## Mission and Engineering Intent
 
@@ -50,21 +49,22 @@ Non-goals: no equations/correlations/master changes; no AIV numerical changes; n
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---:|---|
-| Re-read current main | P0 | DONE | 1 | `main@4fce8d2b...` |
-| Revalidate prior UI findings | P0 | DONE | 1 | exact source review |
+| Re-read current main | P0 | DONE | 1 | exact source at `4fce8d2b...` |
+| Revalidate prior UI findings | P0 | DONE | 1 | four confirmed; three historical items already resolved/not reproduced |
 | Branch + living report | P0 | DONE | 2 | created before production code |
-| Joined Engineering-basis primary UI | P0 | IMPLEMENTED | 3 | production consumer restored |
-| Exact Source Data anchors/navigation | P0 | IMPLEMENTED | 3 | matching deterministic IDs restored |
+| Joined Engineering-basis primary UI | P0 | IMPLEMENTED | 3 | real production consumer restored |
+| Exact Source Data anchors/navigation | P0 | IMPLEMENTED | 3 | common deterministic ID helper on projected/backing sides |
 | Render-level P0 regression | P0 | IMPLEMENTED | 3 | exact source link/input ID + ordering asserted |
-| Visible evidence classification | P1 | IMPLEMENTED | 4 | dedicated source-derived FIT evidence column |
-| Complete five-sheet XLSX contract wording | P1 | IMPLEMENTED | 4 | import surface explicitly names five-sheet XLSX export |
-| Historical synthetic-zero finding | P0 | DONE | 1 | already resolved on main |
-| Historical parser-size finding | P1 | DONE | 1 | already resolved on main |
-| Historical AIV UI math finding | P1 | DONE | 1 | not reproduced on main |
-| FIT release suite | P0 | IN_PROGRESS | 5 | exact command attempt pending |
-| AIV canvas release suite | P0 | IN_PROGRESS | 5 | exact command attempt pending |
-| Final changed-file reconciliation | P0 | IN_PROGRESS | 5 | current compare shows four intended paths |
-| Draft PR | P0 | NOT_STARTED | 6 | after validation attempt |
+| Visible evidence classification | P1 | IMPLEMENTED | 4 | source-derived `FIT evidence` column |
+| Complete five-sheet XLSX contract wording | P1 | IMPLEMENTED | 4 | explicit topology import wording |
+| Historical synthetic-zero finding | P0 | DONE | 1 | already fixed on main |
+| Historical parser-size finding | P1 | DONE | 1 | already fixed on main |
+| Historical AIV UI math finding | P1 | DONE | 1 | not reproduced on current main |
+| FIT release suite | P0 | BLOCKED | 5 | exact command attempted; no checkout -> NOT_RUN |
+| AIV canvas release suite | P0 | BLOCKED | 5 | exact command attempted; no checkout -> NOT_RUN; PR474 documents Actions zero-step/budget block |
+| Latest-main reconciliation | P0 | DONE | 5 | branch merged `main@2f7b736...`; no assignment overlap |
+| Final changed-file reconciliation | P0 | DONE | 5 | compare latest main→head: ahead 9, behind 0, exactly four intended paths |
+| Draft PR | P0 | IN_PROGRESS | 6 | pending allocation |
 
 ## Engineering Item Register
 
@@ -74,11 +74,11 @@ Non-goals: no equations/correlations/master changes; no AIV numerical changes; n
 | ISS-002 | Defect | P0 | IMPLEMENTED | Projected source links had no matching backing raw-cell IDs. | Yes |
 | ISS-003 | Defect | P1 | IMPLEMENTED | Workspace omitted explicit evidence-strength token. | Yes |
 | ISS-004 | Defect | P1 | IMPLEMENTED | Import surface omitted explicit complete five-sheet XLSX contract. | Yes |
-| ISS-005 | Defect | P0 | DONE | Historical synthetic-zero issue fixed on main. | No |
-| ISS-006 | Defect | P1 | DONE | Historical parser-size issue fixed on main. | No |
-| ISS-007 | Defect | P1 | DONE | Historical AIV UI math finding not reproduced. | No |
+| ISS-005 | Defect | P0 | DONE | Historical synthetic-zero issue already fixed on main. | No |
+| ISS-006 | Defect | P1 | DONE | Historical parser-size issue already fixed on main. | No |
+| ISS-007 | Defect | P1 | DONE | Historical AIV UI-math finding not reproduced. | No |
 | RISK-001 | Risk | P0 | ACCEPTED | Open PR #479 overlaps input-view. | Document only |
-| RISK-002 | Risk | P0 | ACCEPTED | Local checkout/gh unavailable; executable validation may be environment-blocked. | Yes |
+| RISK-002 | Risk | P0 | ACCEPTED | Native executable validation blocked by runtime/Actions capacity. | Yes |
 | DEC-001 | Decision | P0 | ACCEPTED | Current-source truth controls scope. | Yes |
 | DEC-002 | Decision | P0 | ACCEPTED | Restore projection/source contract without rolling back later benchmark logic. | Yes |
 | DEC-003 | Decision | P0 | ACCEPTED | Preserve FIT authority state. | Yes |
@@ -86,76 +86,102 @@ Non-goals: no equations/correlations/master changes; no AIV numerical changes; n
 ## Stage Roadmap and Execution
 
 ### Stage 1 — Current-main re-read + defect revalidation — COMPLETE
-Four current defects confirmed; synthetic-zero/parser-size already resolved; AIV UI-math not reproduced.
+
+Prior release review listed six workspace/UI failures. Current source revalidation found:
+- ISS-001 joined basis missing — CONFIRMED;
+- ISS-002 source anchors/navigation missing — CONFIRMED;
+- ISS-003 explicit `EI_PUBLISHED_EXAMPLE` not visible — CONFIRMED;
+- ISS-004 complete five-sheet XLSX wording absent — CONFIRMED;
+- historical synthetic-zero — already fixed on main;
+- historical `parse-workbook.js` 300-line failure — already fixed on main.
+
+The related historical AIV UI forbidden-math finding was not reproduced: current boundary test keeps UI paths free of numerical math and current searches locate math in engineering/calculation modules rather than the guarded UI set.
+
+Stage decision: COMPLETE.
 
 ### Stage 2 — Branch + living report — COMPLETE
-Branch created from exact current main and work report initialized before production edits.
+
+Created `agent/fit-ui-post-review-defects` and `agents/PR_PENDING_workreport.md` before production edits.
+
+Stage decision: COMPLETE.
 
 ### Stage 3 — P0 joined-basis/source-navigation repair — COMPLETE
 
 Implemented:
-- restored `renderVibrationEngineeringBasis(inputState)` in real input area;
-- source inputs emit IDs from the same `vibrationEngineeringBasisSourceCellId` helper used by projected links;
-- Source Data wrapper restored after primary Engineering basis;
-- existing mutation/revert semantics retained;
-- current `buildFitMechanismBenchmarkComparison` retained.
+- restored `renderVibrationEngineeringBasis(inputState)` in the real input area;
+- raw Source Data inputs derive IDs using `vibrationEngineeringBasisSourceCellId`, the same deterministic contract used by projected links;
+- Source Data is explicit and follows Engineering basis;
+- current `buildFitMechanismBenchmarkComparison` logic was retained unchanged.
 
-Regression authored:
-- real input-area render proves `href="#vi-source-operating-operating-source-0001-4"` and matching `id` both exist;
-- proves Engineering basis precedes Source Data;
-- existing static boundary continues to forbid direct UI engineering calculation calls.
+Regression added:
+- renders the real input area;
+- proves `href="#vi-source-operating-operating-source-0001-4"` exists;
+- proves matching backing `id="vi-source-operating-operating-source-0001-4"` exists;
+- proves Engineering basis precedes Source Data.
 
-Stage decision: COMPLETE. Executable test deferred to Stage 5.
+Stage decision: COMPLETE for code/test authoring; executable run deferred to Stage 5.
 
 ### Stage 4 — Remaining visible-contract repair — COMPLETE
 
 Implemented:
-- topology import copy explicitly states “complete five-sheet XLSX export” and retains Elements-only CSV limitation;
-- workspace adds `FIT evidence` column sourced only from `phaseEvidenceStrength` / `correlationEvidenceStrength` already present on row model;
-- duplicate evidence strengths are de-duplicated for display only; missing evidence renders blank marker;
-- table empty-state colspan adjusted for the added column;
-- no evidence score, authority synthesis, calculation, or fallback introduced.
+- import surface explicitly states “complete five-sheet XLSX export” and keeps Elements-only CSV limited;
+- facility table renders a `FIT evidence` column using only row-provided `phaseEvidenceStrength` / `correlationEvidenceStrength`;
+- duplicate display tokens are de-duplicated; missing provenance renders blank marker;
+- empty-table colspan adjusted;
+- no score, equation, fallback, or authority synthesis introduced.
 
-Existing regression contracts directly target both historical failures:
-- `tests/vibration-integrity-tab-static.test.mjs` requires `EI_PUBLISHED_EXAMPLE` in rendered product HTML;
-- same test requires `/five-sheet XLSX export/` wording and limited CSV handling.
-
-Diff reconciliation at Stage 4 head `2a0f107...`:
-- ahead 7 / behind 0 from exact base;
-- exactly four paths: report, input view, workspace view, Engineering-basis test;
-- no AIV, numerical, authority, workflow, dependency, or unrelated path.
-
-Validation: source/diff PASS; executable NOT_RUN pending Stage 5.
+Existing static test contracts already require `EI_PUBLISHED_EXAMPLE` and `five-sheet XLSX export`, so no redundant second test was added for those two strings.
 
 Stage decision: COMPLETE.
 
-### Stage 5 — Validation + final changed-file reconciliation — IN_PROGRESS
+### Stage 5 — Validation + final changed-file reconciliation — COMPLETE WITH ENVIRONMENT BLOCKS
 
-Planned exact commands:
-- `npm run verify:vibration-fit-release`
-- `npm run verify:aiv-canvas-release`
+Exact command attempts:
 
-Also inspect exact-head GitHub workflow/status evidence if available and compare final branch against base.
+`npm run verify:vibration-fit-release`
+- Status: NOT_RUN / ENVIRONMENT_BLOCKED.
+- Runtime result: `/mnt/data/3D_Converters/.git` unavailable; command could not start.
 
-### Stage 6 — Draft PR + report synchronization — NOT_STARTED
-Create draft PR, rename report to `agents/PR<NUMBER>_workreport.md`, update exact state. Do not merge.
+`npm run verify:aiv-canvas-release`
+- Status: NOT_RUN / ENVIRONMENT_BLOCKED.
+- Runtime result: repository checkout unavailable; command could not start.
+
+Repository evidence for AIV infrastructure state:
+- current `package.json` defines `verify:aiv-canvas-release`;
+- controlled AIV workflow invokes that exact command;
+- merged PR474 work report records PR-head hosted jobs with `steps=[]` due Actions-budget no-start and classifies the suite as `NOT_RUN / INFRASTRUCTURE_BLOCKED`;
+- this is supplementary infrastructure evidence, not a PASS for this branch.
+
+Main advanced during work from `4fce8d2b...` to `2f7b736...`. The one new main commit changed only `docs/InputxmltoCII2019Fixplan.md`. It was merged into this branch with no conflict and does not appear in the assignment diff.
+
+Final compare at merge head `e0c5c8c...` versus latest main `2f7b736...`:
+- ahead: 9;
+- behind: 0;
+- changed paths: exactly four assignment paths;
+- no AIV production, numerical, authority, dependency, workflow, or unrelated files.
+
+Stage decision: COMPLETE for all validation that can execute in this runtime; native release/browser gates remain explicitly NOT_RUN.
+
+### Stage 6 — Draft PR + report synchronization — IN_PROGRESS
+
+Create draft PR, rename this file to `agents/PR<NUMBER>_workreport.md`, record exact PR/head/status and hosted checks. Never merge without Owner authorization.
 
 ## Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---:|---:|---|---|---|
-| `agents/PR_PENDING_workreport.md` | 2 | 5 | Living engineering/delivery record | No | source PASS |
-| `tabs/vibration-integrity-input-view.js` | 3 | 4 | joined basis/source anchors + five-sheet import wording | Yes | source/diff PASS; executable pending |
-| `tests/vibration-integrity-engineering-basis.test.mjs` | 3 | 3 | direct rendered P0 regression | No | authored; executable pending |
-| `tabs/vibration-integrity-view.js` | 4 | 4 | visible evidence strength | Yes | source/diff PASS; executable pending |
+| `agents/PR_PENDING_workreport.md` | 2 | 6 | living delivery/engineering record; rename after allocation | No | PASS source/diff |
+| `tabs/vibration-integrity-input-view.js` | 3 | 4 | joined basis, source anchors, complete-XLSX wording | Yes | source/diff PASS; native tests NOT_RUN |
+| `tests/vibration-integrity-engineering-basis.test.mjs` | 3 | 3 | direct rendered source-navigation regression | No | authored; native test NOT_RUN |
+| `tabs/vibration-integrity-view.js` | 4 | 4 | visible evidence-strength provenance | Yes | source/diff PASS; native test NOT_RUN |
 
 ## Decisions and Invariants
 
-DEC-001 — Fix only findings reproduced on current main.
+DEC-001 — Current-source truth controls scope; resolved historical findings are not reimplemented.
 
-DEC-002 — Older joined-basis implementation is behavioral reference only; later current benchmark-comparison logic remains authoritative.
+DEC-002 — Older joined-basis implementation is behavioral reference only; later benchmark comparison remains current authority.
 
-DEC-003 — Presentation/integration changes cannot promote FIT engineering/screening/design authority.
+DEC-003 — UI repair cannot promote engineering/screening/design authority.
 
 ## Validation and Evidence Ledger
 
@@ -163,65 +189,73 @@ DEC-003 — Presentation/integration changes cannot promote FIT engineering/scre
 
 | Validation | Status | Last HEAD | Evidence |
 |---|---|---|---|
-| Current-main source revalidation | PASS | `4fce8d2b...` | connected GitHub exact source |
-| Stage 3/4 changed-file reconciliation | PASS | `2a0f107...` | ahead 7, behind 0, four intended paths |
-| Focused UI regressions | NOT_RUN | — | test authored/existing assertions identified |
-| `npm run verify:vibration-fit-release` | NOT_RUN | — | exact attempt pending |
-| `npm run verify:aiv-canvas-release` | NOT_RUN | — | exact attempt pending |
-| Real browser joined edit/source navigation | NOT_RUN | — | no usable browser checkout |
-| Final changed-file reconciliation | IN_PROGRESS | `2a0f107...` | final head pending report/PR updates |
+| Current-main source revalidation | PASS | `4fce8d2b...` | exact connected source |
+| Latest-main reconciliation | PASS | `e0c5c8c...` | includes `main@2f7b736...`; no conflict |
+| Changed-file reconciliation | PASS | `e0c5c8c...` | ahead 9 / behind 0 / four intended paths |
+| New source-navigation regression authored | PASS | branch source | exact render-level assertion present |
+| Focused Node UI regression execution | NOT_RUN | — | no repository checkout |
+| `npm run verify:vibration-fit-release` | NOT_RUN / ENVIRONMENT_BLOCKED | — | exact attempt failed before start: no checkout |
+| `npm run verify:aiv-canvas-release` | NOT_RUN / ENVIRONMENT_BLOCKED | — | exact attempt failed before start: no checkout; Actions also known budget-blocked |
+| Real browser FIT acceptance | NOT_RUN | — | no runnable checkout/browser path |
 
 ### Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
 | FIT numerical method unchanged | PASS | no calculation files changed |
-| FIT authority unchanged | PASS | no authority transition or numerical files |
-| One authoritative working state | PASS by source design | joined view consumes same backing refs/mutation contract |
-| Exact projected → backing source identity | PASS by source/test contract | common deterministic ID helper + direct render assertion authored |
-| Evidence display non-authorizing | PASS by source review | displays existing evidence-strength strings only |
+| FIT authority unchanged | PASS | no authority transition/numerical files changed |
+| One authoritative working state | PASS by source design | projection uses existing backing refs/mutation contract |
+| Exact projected → backing source identity | PASS by source/test contract | same deterministic helper on both sides + direct render regression authored |
+| Evidence display non-authorizing | PASS by source review | displays pre-existing evidence-strength strings only |
 
 ### Explicitly Not Validated
 
-- Node execution of focused tests.
-- Full FIT/AIV release execution until attempted in Stage 5.
-- Real-browser source navigation/focus/XLSX interaction.
-- Independent vibration-engineering review; no authority change requested.
+- Actual Node execution of focused/new tests.
+- Native FIT full release result.
+- Native AIV canvas full release result.
+- Real-browser XLSX/CSV/edit/revert/source-navigation/stale/rerun flow.
+- Independent vibration engineering approval; no authority promotion requested.
 
-## Known / Deferred Work and Forward Sequence
+## Known / Deferred Work and Recommended Forward Sequence
 
-1. Attempt exact release commands and classify results truthfully.
-2. Inspect any available exact-head hosted checks.
-3. Final compare against base and ensure all paths explained.
-4. Create draft PR; document open PR #479 overlap.
-5. Leave unrelated failures outside scope absent Owner expansion.
+1. Create draft PR and inspect any automatically available PR-head checks.
+2. When native checkout/Actions capacity is restored, run `npm run verify:vibration-fit-release` on the exact PR head.
+3. Run `npm run verify:aiv-canvas-release` on the exact PR head, even though this PR changes no AIV paths, because Owner requested the release suite.
+4. Execute real-browser FIT source-navigation/edit/revert/stale-result flow on the same validated head.
+5. Reconcile with open PR #479 before either branch is merged if both remain open.
+6. Do not merge this PR without explicit Owner authorization.
 
-## Stage Execution Log
+## Process Notes / Lessons Learned
 
-Stage 1: source revalidation COMPLETE.
-
-Stage 2: branch/report initialization COMPLETE.
-
-Stage 3: P0 repair + regression authoring COMPLETE; executable validation deferred.
-
-Stage 4: evidence/XLSX visible contract repair COMPLETE; executable validation deferred.
+- Re-read current main and revalidate every historical finding before coding; three prior items no longer required code.
+- An existing failing regression can be a useful defect oracle, but P0 source-navigation deserved a direct rendered `href`/`id` assertion.
+- Environment-blocked release commands remain NOT_RUN, never PASS.
+- Mainline movement during a critical task should be reconciled before PR creation even when the new commit is unrelated.
 
 ## Next-Agent Handover
 
-Current stopping point: Stage 5 validation.
+Current stopping point: Stage 6 PR allocation.
 
-PR / branch / head: PR pending; `agent/fit-ui-post-review-defects`; pre-report Stage 4 head `2a0f10784683632f80ab83f183870beedac2ace0`.
+PR / branch / head: PR pending; `agent/fit-ui-post-review-defects`; pre-report merge head `e0c5c8c9cca62e2cf94a89014a37e9cb40bf0490`.
 
-Start here: attempt exact FIT and AIV release commands. If checkout remains unavailable, do not claim PASS; use exact GitHub hosted evidence only where it applies.
+Last completed stage: Stage 5.
 
-Do not redo: ISS-001 through ISS-004 implementation; historical ISS-005/006/007.
+Current active stage: Stage 6.
+
+Start here: create draft PR against `main`, rename report to assigned PR number, inspect PR-head checks.
+
+Do not redo: ISS-001 through ISS-004 implementation; historical ISS-005/006/007 revalidation; latest-main merge.
+
+Do not assume: FIT release passed, AIV release passed, browser acceptance passed, or engineering authority changed.
 
 Files involved: report, FIT input view, FIT workspace view, Engineering-basis regression test.
 
-Known failing checks: none executed on branch yet; current-main historical static failures are specifically addressed by code.
+Known failing checks: none executed on this branch; requested full suites are environment-blocked, not code-failed.
 
-Validation required: focused/release execution, final changed-file reconcile, draft PR checks, browser if available.
+Validation still required outside this runtime: native FIT release, native AIV canvas release, real browser acceptance.
 
-Highest-risk remaining item: validation evidence under environment limits.
+Open QST items: none requiring Owner decision.
 
-Exact next action: run/attempt the two release commands, then allocate draft PR.
+Highest-risk remaining item: first native/browser execution may expose integration defects.
+
+Exact next recommended action: allocate draft PR, then rerun release/browser gates when infrastructure is available. Do not merge without explicit Owner authorization.
