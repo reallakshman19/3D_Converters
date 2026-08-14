@@ -3,6 +3,7 @@ import {
   resolveAivWorkingTablesWithAssumptions,
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
+import { isAivAssumptionAcceptanceCurrent } from './vibration-aiv-assumption-acceptance.js';
 import { addAivInputRow, serializeAivInputTable } from './vibration-aiv-input-model.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
@@ -23,7 +24,10 @@ function topologyFormat(state, formats) {
 
 function screeningReady(state) {
   const counts = state.readinessEnvelope?.readiness?.counts;
-  return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
+  return Boolean(counts
+    && counts.notReady === 0
+    && counts.methodGap === 0
+    && isAivAssumptionAcceptanceCurrent(state.assumptionResolution, state.assumptionAcceptance));
 }
 
 function screeningPackageInput(state) {
@@ -48,6 +52,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     state.screeningResult = null;
     state.selectedRowKey = null;
     state.assumptionResolution = null;
+    state.assumptionAcceptance = null;
   }
 
   async function checkReadiness() {
