@@ -1,5 +1,5 @@
 import { createAivCanvasLayout, moveAivCanvasLayoutNode } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
-import { activateAivCanvasDetailTab } from './vibration-aiv-canvas-detail.js';
+import { activateAivCanvasDetailTab, moveAivCanvasDetailTab } from './vibration-aiv-canvas-detail.js';
 import { focusAivCanvasField } from './vibration-aiv-canvas-field.js';
 import { createAivCanvasFilterController } from './vibration-aiv-canvas-filter.js';
 import { aivCanvasSelectionFromElement, applyAivCanvasSelection, revealAivCanvasSelection } from './vibration-aiv-canvas-selection.js';
@@ -114,6 +114,10 @@ function updateDeleteControl(runtime, canvasElement) {
   if (button) button.disabled = !canvasElement?.hasAttribute?.('data-aiv-canvas-relationship');
 }
 
+function publishSelection(runtime) {
+  runtime.callbacks.onSelectionChange?.(runtime.selection);
+}
+
 function selectTarget(runtime, target, origin) {
   const selection = aivCanvasSelectionFromElement(target);
   if (!selection || !runtime.layout) return;
@@ -123,11 +127,13 @@ function selectTarget(runtime, target, origin) {
   runtime.layout = revealed.layout;
   updateDeleteControl(runtime, revealed.canvasElement);
   if (origin === 'table' && svg) applyLayout(svg, runtime.layout);
+  publishSelection(runtime);
 }
 
 function clearFilteredSelection(runtime) {
   runtime.selection = null;
   updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, null).canvasElement);
+  publishSelection(runtime);
 }
 
 function applyModePresentation(runtime) {
@@ -147,11 +153,12 @@ function syncRuntime(runtime) {
   const svg = runtime.container.querySelector('[data-aiv-canvas-svg]');
   runtime.relationship = createAivCanvasRelationshipState({ mode: runtime.relationship?.mode ?? AIV_CANVAS_MODE.NAVIGATE });
   applyModePresentation(runtime);
-  if (!svg) return;
+  if (!svg) { publishSelection(runtime); return; }
   runtime.layout = reconcileAivCanvasPresentationLayout(layoutFromSvg(svg), runtime.layout);
   applyLayout(svg, runtime.layout);
   updateDeleteControl(runtime, applyAivCanvasSelection(runtime.container, runtime.selection).canvasElement);
   runtime.filterController.sync();
+  publishSelection(runtime);
 }
 
 function activateRelationshipEndpoint(runtime, target) {
@@ -253,9 +260,10 @@ function click(runtime, event) {
 
 function keydown(runtime, event) {
   if (event.key === 'Escape') { setRelationshipMode(runtime, AIV_CANVAS_MODE.NAVIGATE); return; }
-  if (!['Enter', ' '].includes(event.key)) return;
   const tab = event.target?.closest?.('[data-aiv-detail-tab]');
-  if (tab) { activateAivCanvasDetailTab(tab); event.preventDefault(); return; }
+  if (tab && moveAivCanvasDetailTab(tab, event.key)) { event.preventDefault(); return; }
+  if (!['Enter', ' '].includes(event.key)) return;
+  if (tab) { activateAivCanvasDetailTab(tab, true); event.preventDefault(); return; }
   const target = canvasTarget(event);
   if (!target) return;
   if (!activateRelationshipEndpoint(runtime, target)) selectTarget(runtime, target, 'canvas');

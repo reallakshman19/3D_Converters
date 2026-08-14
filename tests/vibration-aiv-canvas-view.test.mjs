@@ -72,8 +72,10 @@ test('blank canonical identities are not invented by the canvas', () => {
   assert.match(html, /Blank editable identities are not invented/u);
 });
 
-test('live AIV input workspace consumes the dedicated canvas renderer', () => {
+test('live AIV input workspace consumes the dedicated canvas renderer as a first-class data-gated surface', () => {
   const source = readFileSync(new URL('../tabs/vibration-aiv-input-view.js', import.meta.url), 'utf8');
   assert.match(source, /renderAivCanvasWorkspaceHtml/u);
-  assert.match(source, /return `\$\{renderAivCanvasWorkspaceHtml\(canvasState\)\}/u);
+  assert.match(source, /hasCanvasWorkspaceData/u);
+  assert.match(source, /const canvas = hasCanvasWorkspaceData\(state, tables\) \? renderAivCanvasWorkspaceHtml\(canvasState\) : ''/u);
+  assert.match(source, /\$\{eitSummary\(state\)\}\$\{canvas\}/u);
 });

@@ -12,6 +12,17 @@ function physicalLines(path) {
   return source(path).split(/\r?\n/u).length;
 }
 
+const AIV_HARDENING_UI_MODULES = Object.freeze([
+  'tabs/vibration-aiv-assumption-acceptance.js',
+  'tabs/vibration-aiv-assumption-acceptance-controller.js',
+  'tabs/vibration-aiv-canvas-controller.js',
+  'tabs/vibration-aiv-canvas-detail.js',
+  'tabs/vibration-aiv-canvas-view.js',
+  'tabs/vibration-aiv-delete-safeguard.js',
+  'tabs/vibration-aiv-ui-context.js',
+  'tabs/vibration-aiv-workspace-browser.js',
+]);
+
 const SIZE_GUARDED_MODULES = Object.freeze([
   'converters/vibration/facility/fit-plan.js',
   'converters/vibration/facility/fit-plan-contract.js',
@@ -66,6 +77,7 @@ const SIZE_GUARDED_MODULES = Object.freeze([
   'tabs/vibration-aiv-flare-network-state.js',
   'tabs/vibration-aiv-flare-network-svg.js',
   'tabs/vibration-aiv-flare-network-view.js',
+  ...AIV_HARDENING_UI_MODULES,
 ]);
 
 test('new vibration production modules stay below the normal 300-line module target', () => {
@@ -175,11 +187,13 @@ test('AIV evidence readiness topology and flare-network input modules do not exe
     source('tabs/vibration-aiv-promotion-view.js'),
     source('tabs/vibration-aiv-qualification-view.js'),
     source('tabs/vibration-aiv-qualification-tab.js'),
+    source('tabs/vibration-aiv-execution.js'),
     source('tabs/vibration-aiv-state.js'),
     source('tabs/vibration-aiv-flare-network-controller.js'),
     source('tabs/vibration-aiv-flare-network-state.js'),
     source('tabs/vibration-aiv-flare-network-svg.js'),
     source('tabs/vibration-aiv-flare-network-view.js'),
+    ...AIV_HARDENING_UI_MODULES.map(source),
   ].join('\n');
   assert.doesNotMatch(combined, /project3DPoint|SequentialCommandGateway|WorkspaceState|EventBus/u);
   assert.doesNotMatch(combined, /calculateEngineering(?:Batch)?\s*\(|calculateAiv\s*\(|calculateFit\s*\(/u);
@@ -215,6 +229,7 @@ test('AIV UI and flare-network editor contain no engineering equations', () => {
     source('tabs/vibration-aiv-flare-network-state.js'),
     source('tabs/vibration-aiv-flare-network-svg.js'),
     source('tabs/vibration-aiv-flare-network-view.js'),
+    ...AIV_HARDENING_UI_MODULES.map(source),
   ].join('\n');
   assert.doesNotMatch(ui, /Math\.(?:log10|log|tanh|pow)|\*\*/u);
   assert.doesNotMatch(ui, /PWL\s*=|LOF\s*=/u);

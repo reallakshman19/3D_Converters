@@ -4,6 +4,7 @@ import {
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
 import { addAivInputRow, serializeAivInputTable } from './vibration-aiv-input-model.js';
+import { isAivScreeningReady } from './vibration-aiv-screening-gate.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
 function ensureAssumableRows(state) {
@@ -19,11 +20,6 @@ function topologyFormat(state, formats) {
   if (state.topologyInput.format === 'FLARE_NETWORK') return formats.FLARE_NETWORK;
   if (state.topologyInput.format === 'PARSED_EXCHANGE') return formats.PARSED_EXCHANGE;
   return formats.XLSX;
-}
-
-function screeningReady(state) {
-  const counts = state.readinessEnvelope?.readiness?.counts;
-  return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
 }
 
 function screeningPackageInput(state) {
@@ -48,6 +44,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     state.screeningResult = null;
     state.selectedRowKey = null;
     state.assumptionResolution = null;
+    state.assumptionAcceptance = null;
   }
 
   async function checkReadiness() {
@@ -90,7 +87,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
   }
 
   async function runScreening() {
-    if (state.busy || !screeningReady(state)) return;
+    if (state.busy || !isAivScreeningReady(state)) return;
     state.busy = true;
     state.error = null;
     render();

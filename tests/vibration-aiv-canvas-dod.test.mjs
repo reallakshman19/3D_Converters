@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
 import { AIV_CANVAS_MODE } from '../tabs/vibration-aiv-canvas-relationship.js';
-import { renderAivCanvasWorkspaceHtml } from '../tabs/vibration-aiv-canvas-view.js';
+import { renderAivCanvasSelectedDetailHtml, renderAivCanvasWorkspaceHtml } from '../tabs/vibration-aiv-canvas-view.js';
 import { renderAivInputWorkspaceHtml } from '../tabs/vibration-aiv-input-view.js';
 
 function tables() {
@@ -110,15 +110,30 @@ test('source and relationship status glyphs expose active closed sonic trim appl
   assert(unresolved.statusGlyphs.includes('UNRESOLVED'));
 });
 
-test('selected Source Assessment and Relationship always render useful tabbed detail before readiness or results', () => {
-  const html = renderAivCanvasWorkspaceHtml({ tables: tables(), topology });
-  assert.match(html, /data-aiv-canvas-assumption-detail="SOURCE:PSV-1:CASE-A"/u);
-  assert.match(html, /data-aiv-canvas-assumption-detail="ASSESSMENT:WO-1"/u);
-  assert.match(html, /data-aiv-canvas-assumption-detail="REL:PSV-1:WO-1:CASE-A"/u);
-  for (const tab of ['Summary', 'Inputs', 'Calculation', 'Contributions', 'T2-6', 'Assumptions', 'Provenance']) {
-    assert.match(html, new RegExp(`>${tab}<`, 'u'));
+test('workspace renders one selected-detail host and selected records render on demand', () => {
+  const state = { tables: tables(), topology };
+  const workspace = renderAivCanvasWorkspaceHtml(state);
+  assert.match(workspace, /data-aiv-canvas-selected-detail-host/u);
+  assert.doesNotMatch(workspace, /data-aiv-canvas-assumption-detail="SOURCE:PSV-1:CASE-A"/u);
+
+  const source = renderAivCanvasSelectedDetailHtml(state, 'SOURCE:PSV-1:CASE-A');
+  const assessment = renderAivCanvasSelectedDetailHtml(state, 'ASSESSMENT:WO-1');
+  const relationship = renderAivCanvasSelectedDetailHtml(state, 'REL:PSV-1:WO-1:CASE-A');
+  assert.match(source, /data-aiv-canvas-assumption-detail="SOURCE:PSV-1:CASE-A"/u);
+  assert.match(assessment, /data-aiv-canvas-assumption-detail="ASSESSMENT:WO-1"/u);
+  assert.match(relationship, /data-aiv-canvas-assumption-detail="REL:PSV-1:WO-1:CASE-A"/u);
+  for (const html of [source, assessment, relationship]) {
+    assert.match(html, />Summary</u);
+    assert.match(html, />Inputs</u);
+    assert.match(html, />Assumptions</u);
+    assert.match(html, />Provenance</u);
+    assert.match(html, /aria-controls=/u);
+    assert.match(html, /aria-labelledby=/u);
+    assert.match(html, /No screening result is available yet/u);
   }
-  assert.match(html, /No screening result is available yet/u);
+  assert.match(assessment, />Contributions</u);
+  assert.match(assessment, />T2-6</u);
+  assert.match(relationship, />Contribution</u);
 });
 
 test('editable engineering table rows carry the same case and line filter metadata as canvas records', () => {

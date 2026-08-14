@@ -44,8 +44,12 @@ test('result view shows validated values only for unchanged controlled benchmark
     assumptionProfileModified: false,
   });
   assert.match(validated, /Validated EI D\.2\.3 benchmark results/u);
-  assert.match(validated, /164\.6851759525391/u);
-  assert.match(validated, /1\.48/u);
+  assert.match(validated, /164\.7/u);
+  assert.match(validated, /Full precision: 164\.6851759525391/u);
+  assert.match(validated, /Raw PWL \(dB\)/u);
+  assert.match(validated, /Line LOF/u);
+  assert.match(validated, />1\.48</u);
+  assert.match(validated, /Display precision:/u);
   assert.match(validated, /Export validation package/u);
 
   const tableModified = renderAivResultShellsHtml({
@@ -61,4 +65,33 @@ test('result view shows validated values only for unchanged controlled benchmark
   });
   assert.doesNotMatch(assumptionsModified, /Validated EI D\.2\.3 benchmark results/u);
   assert.match(assumptionsModified, /inputs or assumptions were modified/u);
+});
+
+test('screening results use neutral authority badges and controlled engineering display precision', () => {
+  const html = renderAivResultShellsHtml({
+    screeningResult: {
+      ok: true,
+      outputs: {
+        screeningResultScope: 'ASSESSMENT',
+        completeKernelStageCount: 10,
+        sourceResults: [{
+          sourceCanonicalId: 'SRC-1', caseId: 'CASE-1', rawSourcePwlDb: 164.6851759525391,
+          sonicFlowFactorDb: 0.04321, trimReductionDb: 30, effectiveSourcePwlDb: 134.6851759525391,
+        }],
+        assessmentResults: [{
+          assessmentCanonicalId: 'A-1', line: 'L-1', caseId: 'CASE-1', combinedPointPwlDb: 164.4123,
+          t26Intermediates: { FLM1: 1.2133456, FLM2: 0.8765432 }, lof: 0.29456,
+        }],
+        lineCaseSummaries: [{ line: 'L-1', caseId: 'CASE-1', lof: 1.475, maxAssessmentLof: 0.29456, aggregationBasis: 'TRACE_ONLY' }],
+      },
+      evidence: { domainResult: { assumptionProfile: { policy: { assumptionsMustBeVisible: true } } } },
+    },
+  });
+  assert.match(html, /SCREENING OUTPUT/u);
+  assert.doesNotMatch(html, /aivq-status ok">SCREENING</u);
+  assert.match(html, /Raw PWL \(dB\)/u);
+  assert.match(html, />164\.7</u);
+  assert.match(html, />1\.2133</u);
+  assert.match(html, />0\.29</u);
+  assert.match(html, /Exported evidence remains unrounded/u);
 });

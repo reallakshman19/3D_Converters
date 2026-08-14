@@ -35,7 +35,7 @@ export function renderAivAssumptionProfileHtml(state = {}) {
   return `<section class="aivq-card aivq-assumption-card">
     <div class="aivq-section-head"><div><h4>Missing-data assumptions</h4><p>Blank AIV cells are filled from this profile before readiness/calculation. Every assumed value remains visible, editable and traceable; values entered directly in the tables always win.</p></div><button type="button" class="engineering-console-btn" data-aiv-action="reset-assumptions">Reset benchmark defaults</button></div>
     <div class="aivq-banner"><strong>No human evidence gate.</strong><span>Release qualification is benchmark- and machine-parity-driven. Assumptions are explicit inputs, not hidden engineering defaults.</span></div>
-    <details open><summary>Source defaults</summary><div class="aivq-assumption-grid">
+    <details open data-aiv-disclosure-key="assumption-source-defaults"><summary>Source defaults</summary><div class="aivq-assumption-grid">
       ${select('source.sourceDeviceType', 'Device type', profile.source.sourceDeviceType, ['RELIEF_VALVE','CONTROL_VALVE','RESTRICTION_ORIFICE','PRESSURE_REDUCING_BRANCH_CONNECTION'])}
       ${select('source.sourceState', 'Source state', profile.source.sourceState, ['ACTIVE','OPEN','RELIEVING','CLOSED'])}
       ${select('source.phase', 'Phase', profile.source.phase, ['GAS','WET_GAS','TWO_PHASE','LIQUID'])}
@@ -48,7 +48,7 @@ export function renderAivAssumptionProfileHtml(state = {}) {
       ${select('source.lowNoiseTrimState', 'Trim state', profile.source.lowNoiseTrimState, ['NONE','MANUFACTURER_REDUCTION','UNRESOLVED'])}${input('source.lowNoiseTrimReduction', 'Trim reduction when used', profile.source.lowNoiseTrimReduction, 'number')}${input('source.lowNoiseTrimUnit', 'Trim unit', profile.source.lowNoiseTrimUnit)}
       ${select('source.sonicState', 'Sonic state', profile.source.sonicState, ['NON_SONIC','SONIC','UNRESOLVED'])}
     </div></details>
-    <details><summary>Assessment defaults</summary><div class="aivq-assumption-grid">
+    <details data-aiv-disclosure-key="assumption-assessment-defaults"><summary>Assessment defaults</summary><div class="aivq-assumption-grid">
       ${select('assessment.assessmentType', 'Assessment type', profile.assessment.assessmentType, ['WELDOLET','WELDED_TEE','WELDED_SUPPORT','OTHER_WELDED_DISCONTINUITY'])}
       ${input('assessment.mainOutsideDiameter', 'Main OD', profile.assessment.mainOutsideDiameter, 'number')}${input('assessment.mainOutsideDiameterUnit', 'Main OD unit', profile.assessment.mainOutsideDiameterUnit)}
       ${input('assessment.mainInsideDiameter', 'Main ID', profile.assessment.mainInsideDiameter, 'number')}${input('assessment.mainInsideDiameterUnit', 'Main ID unit', profile.assessment.mainInsideDiameterUnit)}
@@ -57,13 +57,13 @@ export function renderAivAssumptionProfileHtml(state = {}) {
       ${input('assessment.branchWallThickness', 'Branch wall', profile.assessment.branchWallThickness, 'number')}${input('assessment.branchWallThicknessUnit', 'Branch wall unit', profile.assessment.branchWallThicknessUnit)}
       ${input('assessment.material', 'Material', profile.assessment.material)}${select('assessment.duplexState', 'Duplex state', profile.assessment.duplexState, ['NO','YES','UNRESOLVED'])}
     </div></details>
-    <details><summary>Relationship + identity defaults</summary><div class="aivq-assumption-grid">
+    <details data-aiv-disclosure-key="assumption-relationship-defaults"><summary>Relationship + identity defaults</summary><div class="aivq-assumption-grid">
       ${input('relationship.physicalDistance', 'Physical distance', profile.relationship.physicalDistance, 'number')}${input('relationship.physicalDistanceUnit', 'Distance unit', profile.relationship.physicalDistanceUnit)}
       ${input('relationship.simultaneousSourceGroup', 'Simultaneous group', profile.relationship.simultaneousSourceGroup)}${select('relationship.applicabilityDisposition', 'Applicability', profile.relationship.applicabilityDisposition, ['APPLICABLE','NOT_APPLICABLE','UNRESOLVED'])}
       ${input('identity.sourceIdPrefix', 'Source ID prefix', profile.identity.sourceIdPrefix)}${input('identity.assessmentIdPrefix', 'Assessment ID prefix', profile.identity.assessmentIdPrefix)}${input('identity.relationshipIdPrefix', 'Relationship record prefix', profile.identity.relationshipIdPrefix)}${input('identity.caseIdPrefix', 'Case ID prefix', profile.identity.caseIdPrefix)}
       ${input('identity.provenanceSource', 'Assumption provenance', profile.identity.provenanceSource)}${input('identity.provenanceRevision', 'Assumption revision', profile.identity.provenanceRevision)}
     </div></details>
-    <details><summary>Benchmark / stages 8–10 defaults</summary><div class="aivq-assumption-grid">
+    <details data-aiv-disclosure-key="assumption-benchmark-defaults"><summary>Benchmark / stages 8–10 defaults</summary><div class="aivq-assumption-grid">
       ${select('benchmark.stage8Model', 'Stage-8 model', profile.benchmark.stage8Model, ['CONFIGURED_D23_INTERMEDIATES'])}
       ${input('benchmark.publishedA', 'A', profile.benchmark.publishedA, 'number')}${input('benchmark.publishedS', 'S', profile.benchmark.publishedS, 'number')}${input('benchmark.publishedB', 'B', profile.benchmark.publishedB, 'number')}
       ${select('benchmark.flm1Mode', 'FLM1 mode', profile.benchmark.flm1Mode, ['PUBLISHED','RECALCULATED'])}${input('benchmark.flm1Published', 'FLM1 published', profile.benchmark.flm1Published, 'number')}${input('benchmark.flm1Recalculated', 'FLM1 recalculated', profile.benchmark.flm1Recalculated, 'number')}${input('benchmark.flm1ToleranceAbs', 'FLM1 tolerance', profile.benchmark.flm1ToleranceAbs, 'number')}
