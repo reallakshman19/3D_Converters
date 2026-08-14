@@ -18,6 +18,7 @@ import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
+import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
 import { importAivEitFileIntoState } from './vibration-aiv-eit-import-controller.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
@@ -179,6 +180,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function deleteCanvasRelationship(input) {
     try {
+      if (!confirmAivRelationshipDelete(input)) return false;
       const rowIndex = findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input);
       if (rowIndex < 0) throw new Error('AIV_INPUT_RELATIONSHIP_NOT_FOUND: Selected relationship no longer exists.');
       applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex));
@@ -199,7 +201,9 @@ export function renderAivQualificationWorkspace(container) {
     const button = event.target.closest('[data-aiv-table-delete]');
     if (!button) return false;
     const kind = button.dataset.aivTableDelete;
-    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], Number(button.dataset.aivEditRow)));
+    const rowIndex = Number(button.dataset.aivEditRow);
+    if (kind === 'relationships' && !confirmAivRelationshipDelete(aivRelationshipIdentityFromTableRow(state.tables.relationships, rowIndex))) return true;
+    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], rowIndex));
     return true;
   }
 
