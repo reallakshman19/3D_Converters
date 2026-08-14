@@ -22,3 +22,11 @@ export async function vibrationIntegrityRunInputDrifted(runSnapshot, liveState) 
   const current = await buildVibrationIntegrityRunSnapshot(liveState);
   return current.snapshotHash !== runSnapshot.snapshotHash;
 }
+
+export async function vibrationIntegrityCapturedInputDrifted(capturedState, liveState) {
+  const [captured, current] = await Promise.all([
+    buildVibrationIntegrityRunSnapshot(capturedState),
+    buildVibrationIntegrityRunSnapshot(liveState),
+  ]);
+  return captured.snapshotHash !== current.snapshotHash;
+}
