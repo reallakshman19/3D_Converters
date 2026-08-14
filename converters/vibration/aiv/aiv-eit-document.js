@@ -57,33 +57,74 @@ function moduleSet(line) {
   return String(line?.modules ?? '').split(',').map((item) => item.trim()).filter(Boolean);
 }
 
-function hasUnrelatedModules(document) {
-  return (document?.lines ?? []).some((line) => moduleSet(line).some((module) => module !== 'aiv'));
-}
-
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function mergeIntoImportedDocument(fresh, refs, title) {
-  const original = clone(refs.importedOriginal);
-  original.options = { ...(original.options ?? {}), title: String(title || original.options?.title || ''), version: AIV_EIT_VERSION };
-  const evidenceByAssessment = new Map();
+function evidenceByAssessment(refs) {
+  const map = new Map();
   for (const item of refs.importedDetails.values()) {
-    if (!evidenceByAssessment.has(item.assessmentCanonicalId)) evidenceByAssessment.set(item.assessmentCanonicalId, item);
+    if (!map.has(item.assessmentCanonicalId)) map.set(item.assessmentCanonicalId, item);
   }
+  return map;
+}
 
-  for (const current of fresh.lines) {
-    const evidence = evidenceByAssessment.get(current.aivAssessmentCanonicalId);
-    if (!evidence || !original.lines[evidence.lineIndex]) {
-      original.lines.push(current);
+function evidenceBySource(refs) {
+  return new Map([...refs.importedDetails.values()].map((item) => [skey(item.sourceCanonicalId, item.caseId), item]));
+}
+
+function mergePipes(original, freshPipes, refs) {
+  const evidence = evidenceByAssessment(refs);
+  for (const current of freshPipes) {
+    let index = original.findIndex((item) => item.assessmentCanonicalId === current.assessmentCanonicalId);
+    if (index < 0) {
+      const trace = evidence.get(current.assessmentCanonicalId);
+      const originalPi = trace == null ? null : refs.importedOriginal.lines?.[trace.lineIndex]?.pi;
+      if (originalPi != null) index = original.findIndex((item) => String(item.pi) === String(originalPi));
+    }
+    if (index < 0) {
+      original.push(current);
       continue;
     }
-    const prior = original.lines[evidence.lineIndex];
+    const prior = original[index];
+    original[index] = { ...prior, ...current, pi: prior.pi ?? current.pi };
+  }
+}
+
+function mergeStreams(original, freshStreams, refs) {
+  const evidence = evidenceBySource(refs);
+  for (const current of freshStreams) {
+    let index = original.findIndex((item) => item.sourceCanonicalId === current.sourceCanonicalId && item.caseId === current.caseId);
+    if (index < 0) {
+      const trace = evidence.get(skey(current.sourceCanonicalId, current.caseId));
+      const originalSi = trace == null ? null : refs.importedOriginal.lines?.[trace.lineIndex]?.si;
+      const lineDetailCount = trace == null
+        ? 0
+        : [...refs.importedDetails.values()].filter((item) => item.lineIndex === trace.lineIndex).length;
+      if (originalSi != null && lineDetailCount === 1) index = original.findIndex((item) => String(item.si) === String(originalSi));
+    }
+    if (index < 0) {
+      original.push(current);
+      continue;
+    }
+    const prior = original[index];
+    original[index] = { ...prior, ...current, si: prior.si ?? current.si };
+  }
+}
+
+function mergeLines(original, freshLines, refs) {
+  const byAssessment = evidenceByAssessment(refs);
+  for (const current of freshLines) {
+    const trace = byAssessment.get(current.aivAssessmentCanonicalId);
+    if (!trace || !original[trace.lineIndex]) {
+      original.push(current);
+      continue;
+    }
+    const prior = original[trace.lineIndex];
     const priorModules = moduleSet(prior);
-    const modules = priorModules.includes('aiv') ? priorModules.join(',') : [...priorModules, 'aiv'].join(',');
     const mixedModuleLine = priorModules.some((module) => module !== 'aiv');
-    original.lines[evidence.lineIndex] = {
+    const modules = priorModules.includes('aiv') ? priorModules.join(',') : [...priorModules, 'aiv'].join(',');
+    original[trace.lineIndex] = {
       ...prior,
       ...current,
       rid: prior.rid ?? current.rid,
@@ -97,6 +138,23 @@ function mergeIntoImportedDocument(fresh, refs, title) {
       ...(mixedModuleLine ? { aivMaxAuthoritativeAssessmentLof: current.aiv } : {}),
     };
   }
+}
+
+function mergeIntoImportedDocument(fresh, refs, title) {
+  const original = clone(refs.importedOriginal);
+  original.options = {
+    ...(original.options ?? {}),
+    ...fresh.options,
+    title: String(title || original.options?.title || ''),
+    version: AIV_EIT_VERSION,
+  };
+  original.lines = Array.isArray(original.lines) ? original.lines : [];
+  original.pipes = Array.isArray(original.pipes) ? original.pipes : [];
+  original.streams = Array.isArray(original.streams) ? original.streams : [];
+  original.mats = Array.isArray(original.mats) ? original.mats : [];
+  mergePipes(original.pipes, fresh.pipes, refs);
+  mergeStreams(original.streams, fresh.streams, refs);
+  mergeLines(original.lines, fresh.lines, refs);
   return assertAivEitV5Document(original);
 }
 
@@ -115,8 +173,5 @@ export function buildAivEitV5Document(screeningPackage, title, options = {}) {
     lines, pipes, streams, mats: [],
   };
   const fresh = assertAivEitV5Document(document);
-  if (refs.importedOriginal && hasUnrelatedModules(refs.importedOriginal)) {
-    return mergeIntoImportedDocument(fresh, refs, title);
-  }
-  return fresh;
+  return refs.importedOriginal ? mergeIntoImportedDocument(fresh, refs, title) : fresh;
 }
