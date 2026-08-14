@@ -148,7 +148,7 @@ export function createAivFlareNetworkAuthoringController(container, callbacks = 
     try {
       const current = callbacks.getNetwork?.();
       if (!current) return;
-      callbacks.onNetworkChange?.(moveAivFlareNetworkNodePresentation(
+      callbacks.onPresentationChange?.(moveAivFlareNetworkNodePresentation(
         current,
         completed.nodeId,
         number(completed.node.dataset.aivNetworkX, completed.startX),
