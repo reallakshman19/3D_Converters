@@ -49,13 +49,15 @@ function state() {
           completenessStatus: 'CALCULATED', standardLof: 0.276, refinedLof: null,
           governingReferenceLof: 0.276, referenceBand: 'LOF_LT_0_3',
           qualificationState: 'BENCHMARK_ONLY', phaseEvidenceStrength: 'EI_PUBLISHED_EXAMPLE',
-          correlationEvidenceStrength: 'EI_PUBLISHED_EXAMPLE', candidateForEngineeringReview: true,
+          correlationEvidenceStrength: 'INDEPENDENT_HAND_BENCHMARK',
+          advancedEvidenceStrength: 'RETAINED_PARITY_ONLY', candidateForEngineeringReview: true,
         },
         {
           rowKey: '["L-200","DESIGN","CAN-2"]', line: 'L-200', caseId: 'DESIGN', canonicalId: 'CAN-2',
           completenessStatus: 'DATA_INCOMPLETE', standardLof: null, refinedLof: null,
           governingReferenceLof: null, referenceBand: null, qualificationState: null,
-          phaseEvidenceStrength: null, correlationEvidenceStrength: null, candidateForEngineeringReview: false,
+          phaseEvidenceStrength: null, correlationEvidenceStrength: null,
+          advancedEvidenceStrength: null, candidateForEngineeringReview: false,
         },
       ],
       detail: {
@@ -105,7 +107,9 @@ test('Vibration Integrity renders benchmark-only table workspace with explicit p
   assert.match(html, /CAN-1/u);
   assert.match(html, /DATA_INCOMPLETE/u);
   assert.match(html, /BENCHMARK_ONLY/u);
-  assert.match(html, /EI_PUBLISHED_EXAMPLE/u);
+  assert.match(html, /Phase: EI_PUBLISHED_EXAMPLE/u);
+  assert.match(html, /Standard: INDEPENDENT_HAND_BENCHMARK/u);
+  assert.match(html, /Advanced: RETAINED_PARITY_ONLY/u);
   assert.match(html, /Review candidate/u);
 });
 
