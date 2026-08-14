@@ -38,6 +38,7 @@ test('consolidated Weight Match restores native controls and keeps bulk preferre
   assert.match(source, /score\(best\) !== '100%'/u);
   assert.match(source, /isUnsafeBulk\(best\)/u);
   assert.match(source, /does not write DTXR Rating into Preview/u);
+  assert.match(source, /delete row\._modeAWeightDtxrBest/u);
 });
 
 test('simple consolidated Weight Match acceptance persists in place instead of rebuilding all XMLs', () => {
