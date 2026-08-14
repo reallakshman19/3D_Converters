@@ -1,28 +1,58 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildVibrationIntegrityRunSnapshot } from '../tabs/vibration-integrity-run-snapshot.js';
+import {
+  FIT_ENGINEERING_INPUT_IDENTITY_SCHEMA,
+  bindVibrationIntegrityEngineeringIdentity,
+  buildVibrationIntegrityRunSnapshot,
+} from '../tabs/vibration-integrity-run-snapshot.js';
 
-function table(kind, rows) {
+function table(kind, rows, sourceName = `${kind}.csv`) {
   return {
     kind,
     contract: `${kind}.v1`,
     header: ['A', 'B'],
     rowIds: rows.map((_, index) => `${kind}:source:${index + 1}`),
     rows,
-    sourceName: `${kind}.csv`,
+    sourceName,
     sourceKind: 'CSV',
     authorityDowngraded: false,
   };
 }
 
-function state(value = '1') {
+function state(value = '1', sourceSuffix = '') {
   return {
     allowLimitedExchange: true,
     benchmark: { loaded: { id: 'CASE-1', modified: false } },
+    files: {
+      topology: { name: `topology${sourceSuffix}.csv`, format: 'CSV_ELEMENTS_ONLY', kind: 'Elements' },
+      operating: { name: `operating${sourceSuffix}.csv`, kind: 'Operating' },
+      enrichment: { name: `enrichment${sourceSuffix}.csv`, kind: 'Enrichment' },
+    },
     tables: {
-      topology: table('topology', [['P', value]]),
-      operating: table('operating', [['O', '2']]),
-      enrichment: table('enrichment', [['E', '3']]),
+      topology: table('topology', [['P', value]], `topology${sourceSuffix}.csv`),
+      operating: table('operating', [['O', '2']], `operating${sourceSuffix}.csv`),
+      enrichment: table('enrichment', [['E', '3']], `enrichment${sourceSuffix}.csv`),
+    },
+  };
+}
+
+function envelope(outsideDiameter = 0.1683) {
+  return {
+    qualificationMode: 'benchmark',
+    workflow: {
+      result: {
+        rows: [{
+          canonicalId: 'CAN-1', line: 'L-1', caseId: 'NORMAL',
+          centralResult: {
+            calculationId: 'VIB.FIV.FLOW_TURBULENCE',
+            methodRevision: 'ei-aviff2-fit-reference-v2',
+            resolvedInputs: {
+              outsideDiameter: { canonicalValue: outsideDiameter, canonicalUnit: 'm' },
+              density: { canonicalValue: 18, canonicalUnit: 'kg/m3' },
+            },
+          },
+        }],
+      },
     },
   };
 }
@@ -37,8 +67,29 @@ test('run snapshot is deterministic and SHA-256-addressed', async () => {
   assert.equal(first.canonicalInput, second.canonicalInput);
 });
 
-test('engineering-working input changes alter the snapshot hash', async () => {
+test('engineering-working input changes alter the audit snapshot hash', async () => {
   const first = await buildVibrationIntegrityRunSnapshot(state('1'));
   const changed = await buildVibrationIntegrityRunSnapshot(state('1.1'));
   assert.notEqual(first.snapshotHash, changed.snapshotHash);
+});
+
+test('source identity changes audit hash without changing normalized engineering-input hash', async () => {
+  const first = await bindVibrationIntegrityEngineeringIdentity(
+    await buildVibrationIntegrityRunSnapshot(state('1', '-A')), envelope(),
+  );
+  const renamed = await bindVibrationIntegrityEngineeringIdentity(
+    await buildVibrationIntegrityRunSnapshot(state('1', '-B')), envelope(),
+  );
+  assert.notEqual(first.snapshotHash, renamed.snapshotHash);
+  assert.equal(first.engineeringInputSchema, FIT_ENGINEERING_INPUT_IDENTITY_SCHEMA);
+  assert.match(first.engineeringInputHash, /^[0-9a-f]{64}$/u);
+  assert.equal(first.engineeringInputHash, renamed.engineeringInputHash);
+  assert.equal(first.engineeringCanonicalInput, renamed.engineeringCanonicalInput);
+});
+
+test('normalized engineering-input changes alter engineering identity', async () => {
+  const snapshot = await buildVibrationIntegrityRunSnapshot(state());
+  const first = await bindVibrationIntegrityEngineeringIdentity(snapshot, envelope(0.1683));
+  const changed = await bindVibrationIntegrityEngineeringIdentity(snapshot, envelope(0.2191));
+  assert.notEqual(first.engineeringInputHash, changed.engineeringInputHash);
 });
