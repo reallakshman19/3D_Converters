@@ -180,7 +180,7 @@ test('selection document binds source hash and rejects duplicate selection IDs',
   );
 });
 
-test('controlled EI source path and byte size are domain-gated', () => {
+test('controlled EI source path, byte size and reported Git identity are domain-gated', () => {
   const controlled = source({
     logicalPath: CONTROLLED_EI_SOURCE.apiSourcePath,
     sizeBytes: CONTROLLED_EI_SOURCE.sizeBytes,
@@ -188,6 +188,17 @@ test('controlled EI source path and byte size are domain-gated', () => {
   assert.equal(assertControlledEiSource(controlled).sizeBytes, 10_348_594);
   assert.throws(
     () => assertControlledEiSource({ ...controlled, sizeBytes: controlled.sizeBytes - 1 }),
+    /CONTROLLED_SOURCE_IDENTITY_MISMATCH/u,
+  );
+  assert.throws(
+    () => assertControlledEiSource({
+      ...controlled,
+      git: {
+        repository: CONTROLLED_EI_SOURCE.repository,
+        commit: CONTROLLED_EI_SOURCE.commit,
+        blobSha1: 'sha1:0000000000000000000000000000000000000000',
+      },
+    }),
     /CONTROLLED_SOURCE_IDENTITY_MISMATCH/u,
   );
 });
