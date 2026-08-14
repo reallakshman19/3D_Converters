@@ -1,0 +1,13 @@
+/* The engineering workspace is the first bounded child of .app-content.
+ * Own viewport scrolling here so nested product surfaces (including AIV)
+ * can grow naturally without being clipped by .app-content overflow:hidden.
+ */
+.app-content > .engineering-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
