@@ -7,24 +7,21 @@ function rowIsVisible(row) {
 }
 
 export function selectAllModeASmartMapRows(dialog) {
-  if (!dialog) return { selected: 0, skippedWithoutTarget: 0 };
+  if (!dialog) return { selected: 0, withoutTarget: 0 };
   let selected = 0;
-  let skippedWithoutTarget = 0;
+  let withoutTarget = 0;
   for (const checkbox of dialog.querySelectorAll('[data-smart-map-use]')) {
     const row = checkbox.closest('tr');
     if (!rowIsVisible(row)) continue;
     const target = row?.querySelector('[data-smart-map-value]');
-    if (!text(target?.value)) {
-      skippedWithoutTarget += 1;
-      continue;
-    }
+    if (!text(target?.value)) withoutTarget += 1;
     if (!checkbox.checked) {
       checkbox.checked = true;
       checkbox.dispatchEvent(new Event('change', { bubbles: true }));
     }
     selected += 1;
   }
-  return { selected, skippedWithoutTarget };
+  return { selected, withoutTarget };
 }
 
 function enhanceDialog(dialog) {
@@ -38,7 +35,7 @@ function enhanceDialog(dialog) {
   const selectAll = document.createElement('button');
   selectAll.type = 'button';
   selectAll.textContent = 'Select All';
-  selectAll.title = 'Select all currently visible Smart Map rows that already have a Map To value. Unresolved rows without a target remain unselected.';
+  selectAll.title = 'Select all currently visible Smart Map rows. This does not invent Map To values; selected unresolved rows must still be assigned before Apply.';
   Object.assign(selectAll.style, {
     padding: '5px 9px', border: '1px solid #475569', borderRadius: '5px',
     background: '#172033', color: '#e2e8f0', cursor: 'pointer', fontSize: '11px', whiteSpace: 'nowrap',
