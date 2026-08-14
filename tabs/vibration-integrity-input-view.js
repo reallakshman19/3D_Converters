@@ -75,9 +75,9 @@ function importPanel(state) {
   const checking = state.busy && state.busyAction === 'preflight';
   const running = state.busy && state.busyAction === 'benchmark';
   return `<section class="vi-card vi-import-card">
-    <div class="vi-section-head"><div><h3>Working table inputs</h3><p>Files load into original/working table state. Execution consumes the current working cells; source values remain available for exact revert.</p></div></div>
+    <div class="vi-section-head"><div><h3>Working table inputs</h3><p>The complete topology contract is the five-sheet XLSX export. Files load into original/working state; limited Elements-only CSV remains explicit and source values stay available for exact revert.</p></div></div>
     <div class="vi-import-grid">
-      <label class="vi-file-field"><span>3D EDIT table export</span><input type="file" data-vi-file="topology" accept=".xlsx,.csv"><span class="vi-file-status">${fileStatus(state.files.topology, topology, 'XLSX preferred · CSV is Elements-only')}</span></label>
+      <label class="vi-file-field"><span>3D EDIT table export</span><input type="file" data-vi-file="topology" accept=".xlsx,.csv"><span class="vi-file-status">${fileStatus(state.files.topology, topology, 'Complete five-sheet XLSX export preferred · CSV is Elements-only')}</span></label>
       <label class="vi-file-field"><span>Operating cases</span><input type="file" data-vi-file="operating" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.operating, state.tables?.operating, 'VibrationOperatingCaseCsv.v1')}</span></label>
       <label class="vi-file-field"><span>Vibration enrichment</span><input type="file" data-vi-file="enrichment" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.enrichment, state.tables?.enrichment, 'VibrationEnrichmentCsv.v1')}</span></label>
     </div>${inputStateFacts(state)}
