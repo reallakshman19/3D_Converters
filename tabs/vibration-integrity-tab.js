@@ -4,29 +4,11 @@ import { createVibrationEnrichmentCsvTemplate, createVibrationOperatingCaseCsvTe
 import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/model.js';
 import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputRow, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
 import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
+import { downloadVibrationIntegrityText, ensureVibrationIntegrityStylesheet } from './vibration-integrity-dom.js';
 import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
 import { bindVibrationIntegrityEngineeringIdentity, buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
-function ensureStylesheet() {
-  if (document.querySelector('link[data-vibration-integrity-style="true"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = './tabs/vibration-integrity.css?v=vibration-integrity-2';
-  link.dataset.vibrationIntegrityStyle = 'true';
-  document.head.appendChild(link);
-}
-function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
-  const blob = new Blob([text], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.hidden = true;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
+
 function workspaceOptions(state) {
   const filters = {};
   if (state.filters.line) filters.lines = [state.filters.line];
@@ -59,7 +41,7 @@ function initialState() {
   };
 }
 export function renderVibrationIntegrityTab(container) {
-  ensureStylesheet();
+  ensureVibrationIntegrityStylesheet();
   const state = initialState();
   function render() {
     if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
@@ -185,7 +167,7 @@ export function renderVibrationIntegrityTab(container) {
   function exportRegister() {
     if (state.resultState !== 'CURRENT_RESULT' || !state.envelope?.workflow?.register) return;
     try {
-      downloadText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
+      downloadVibrationIntegrityText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
     } catch (error) {
       state.error = String(error?.message || error);
       render();
@@ -195,7 +177,7 @@ export function renderVibrationIntegrityTab(container) {
     if (state.resultState !== 'CURRENT_RESULT') return;
     try {
       const payload = await serializeVibrationIntegrityRunEvidence(state);
-      downloadText(payload, 'vibration-fit-run-evidence.json', 'application/json;charset=utf-8');
+      downloadVibrationIntegrityText(payload, 'vibration-fit-run-evidence.json', 'application/json;charset=utf-8');
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       render();
@@ -260,8 +242,8 @@ export function renderVibrationIntegrityTab(container) {
     if (action === 'run') runBenchmark();
     if (action === 'export') exportRegister();
     if (action === 'export-evidence') exportRunEvidence();
-    if (action === 'operating-template') downloadText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
-    if (action === 'enrichment-template') downloadText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
+    if (action === 'operating-template') downloadVibrationIntegrityText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
+    if (action === 'enrichment-template') downloadVibrationIntegrityText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
   }
   function handleTableChange(event) {
     const kind = event.target.dataset.viTableCell;
