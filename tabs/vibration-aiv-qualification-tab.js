@@ -23,6 +23,7 @@ import { importAivEitFileIntoState } from './vibration-aiv-eit-import-controller
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
 import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-network-state.js';
+import { createAivSmallFlareMockNetwork } from './vibration-aiv-mock-flare-network.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
@@ -238,6 +239,11 @@ export function renderAivQualificationWorkspace(container) {
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
     if (assumptionAcceptanceController.handleAction(action)) return;
+    if (action === 'load-mock-flare-network') {
+      state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
+      state.assumptionProfileModified = false;
+      applyFlareNetwork(createAivSmallFlareMockNetwork());
+    }
     if (action === 'load-d23-benchmark') loadBenchmark();
     if (action === 'source-template') downloadAivText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
     if (action === 'assessment-template') downloadAivText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
