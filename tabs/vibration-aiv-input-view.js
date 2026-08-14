@@ -54,7 +54,7 @@ function startPanel(state) {
       <label class="aivq-file-field aivq-file-field-primary"><span>Import EI .eit</span><input type="file" data-aiv-file="eit" accept=".eit,.json,application/json"><span>${fileStatus(state.files?.eit, null, 'EnergyInstituteEit.v5 JSON')}</span></label>
       <div class="aivq-start-action"><strong>Controlled benchmark</strong><span>EI D.2.3 · exact known reference inputs</span><button type="button" class="engineering-console-btn primary" data-aiv-action="load-d23-benchmark"${state.busy ? ' disabled' : ''}>Load EI D.2.3</button></div>
     </div>
-    <details class="aivq-inline-disclosure"><summary>Advanced XLSX / CSV imports</summary><div class="aivq-import-grid">
+    <details class="aivq-inline-disclosure" data-aiv-disclosure-key="advanced-imports"><summary>Advanced XLSX / CSV imports</summary><div class="aivq-import-grid">
       <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, null, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX')}</span></label>
       <label class="aivq-file-field"><span>AIV Sources</span><input type="file" data-aiv-file="sources" accept=".csv,text/csv"><span>${fileStatus(state.files?.sources, state.tables?.sources, 'AivSourceCsv.v2')}</span></label>
       <label class="aivq-file-field"><span>AIV Assessments</span><input type="file" data-aiv-file="assessments" accept=".csv,text/csv"><span>${fileStatus(state.files?.assessments, state.tables?.assessments, 'AivAssessmentCsv.v1')}</span></label>
@@ -155,11 +155,18 @@ function editableRows(table, assumptions, filterContext) {
 }
 
 function editableTable(title, table, description, assumptions, filterContext) {
-  return `<section class="aivq-card aivq-input-table-card"><div class="aivq-section-head"><div><h4>${esc(title)}</h4><p>${esc(description)}</p></div><button type="button" class="engineering-console-btn" data-aiv-table-add="${esc(table.kind)}">Add row</button></div><div class="aivq-input-table-wrap"><table class="aivq-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table, assumptions, filterContext)}</tbody></table></div></section>`;
+  return `<section class="aivq-card aivq-input-table-card"><div class="aivq-section-head"><div><h4>${esc(title)}</h4><p>${esc(description)}</p></div><button type="button" class="engineering-console-btn" data-aiv-table-add="${esc(table.kind)}">Add row</button></div><div class="aivq-input-table-wrap" data-aiv-scroll-key="table-${esc(table.kind)}"><table class="aivq-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table, assumptions, filterContext)}</tbody></table></div></section>`;
 }
 
 function fallbackTable(kind) {
   return { kind, header: [], rows: [], sourceName: null, sourceKind: 'WORKING_TABLE', dirty: false };
+}
+
+function hasCanvasWorkspaceData(state, tables) {
+  return Boolean(state.topologyInput
+    || tables.sources.rows.length
+    || tables.assessments.rows.length
+    || tables.relationships.rows.length);
 }
 
 export function renderAivInputWorkspaceHtml(state = {}) {
@@ -168,10 +175,11 @@ export function renderAivInputWorkspaceHtml(state = {}) {
   const canvasState = { ...state, tables };
   const filterContext = tableFilterContext(state, tables);
   const networkOpen = state.flareNetworkActive || Boolean(state.flareNetwork?.nodes?.length);
-  return `${startPanel({ ...state, tables })}${eitSummary(state)}
-    <details class="aivq-disclosure"${networkOpen ? ' open' : ''}><summary><span>Flare network authoring</span><small>Graph connectivity + explicit engineering lengths</small></summary><div class="aivq-disclosure-body">${renderAivFlareNetworkAuthoringHtml(state)}${renderAivCanvasWorkspaceHtml(canvasState)}</div></details>
-    <details class="aivq-disclosure"><summary><span>Controlled benchmark & assumptions</span><small>Reference case and configurable engineering assumptions</small></summary><div class="aivq-disclosure-body">${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}</div></details>
-    <details class="aivq-disclosure"><summary><span>Working data tables</span><small>Advanced editable Source / Assessment / Relationship records</small></summary><div class="aivq-disclosure-body">
+  const canvas = hasCanvasWorkspaceData(state, tables) ? renderAivCanvasWorkspaceHtml(canvasState) : '';
+  return `${startPanel({ ...state, tables })}${eitSummary(state)}${canvas}
+    <details class="aivq-disclosure" data-aiv-disclosure-key="flare-network-authoring"${networkOpen ? ' open' : ''}><summary><span>Flare network authoring</span><small>Optional graph authoring · connectivity + explicit engineering lengths</small></summary><div class="aivq-disclosure-body">${renderAivFlareNetworkAuthoringHtml(state)}</div></details>
+    <details class="aivq-disclosure" data-aiv-disclosure-key="benchmark-assumptions"><summary><span>Controlled benchmark & assumptions</span><small>Reference case and configurable engineering assumptions</small></summary><div class="aivq-disclosure-body">${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}</div></details>
+    <details class="aivq-disclosure" data-aiv-disclosure-key="working-data-tables"><summary><span>Working data tables</span><small>Advanced editable Source / Assessment / Relationship records</small></summary><div class="aivq-disclosure-body">
       ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells may resolve from the configured profile at execution time.', assumptions, filterContext)}
       ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID.', assumptions, filterContext)}
       ${editableTable('Source → Assessment', tables.relationships, 'Physical distance is explicit engineering evidence. SVG pixels never supply distance.', assumptions, filterContext)}

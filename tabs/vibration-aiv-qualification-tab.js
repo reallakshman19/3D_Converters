@@ -5,6 +5,7 @@ import {
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
+import { createAivAssumptionAcceptanceController } from './vibration-aiv-assumption-acceptance-controller.js';
 import {
   addAivInputRow,
   addAivRelationshipInputRow,
@@ -16,41 +17,30 @@ import {
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
+import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
+import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
 import { importAivEitFileIntoState } from './vibration-aiv-eit-import-controller.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
 import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-network-state.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
+import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
+import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
 
-function ensureStylesheet() {
-  if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-11';
-  link.dataset.aivQualificationStyle = 'true';
-  document.head.appendChild(link);
-}
-
-function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
-  const blob = new Blob([text], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.hidden = true;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+export function applyAivFlareNetworkPresentationState(state, network) {
+  state.flareNetwork = network;
+  state.error = null;
+  return state;
 }
 
 export function renderAivQualificationWorkspace(container) {
-  ensureStylesheet();
+  ensureAivQualificationStylesheet();
   const state = createInitialAivQualificationState();
   const canvasController = createAivCanvasInteractionController(container, {
     onCreateRelationship: createCanvasRelationship,
     onDeleteRelationship: deleteCanvasRelationship,
+    onSelectionChange: updateCanvasSelectionDetail,
   });
   const canvasExportController = createAivCanvasExportController(container, {
     getState: () => state,
@@ -59,20 +49,35 @@ export function renderAivQualificationWorkspace(container) {
   const flareNetworkController = createAivFlareNetworkAuthoringController(container, {
     getNetwork: () => state.flareNetwork,
     onNetworkChange: applyFlareNetwork,
+    onPresentationChange: applyFlareNetworkPresentation,
     onError: (error) => { state.error = String(error?.message || error); render(); },
   });
-  const execution = createAivExecutionActions({ state, render, downloadText });
+  const execution = createAivExecutionActions({ state, render, downloadText: downloadAivText });
+  const assumptionAcceptanceController = createAivAssumptionAcceptanceController({ state, render, container });
 
   function render() {
     if (state.destroyed) return;
+    const uiContext = captureAivUiContext(container);
     container.innerHTML = renderAivQualificationWorkspaceHtml(state);
     canvasController.sync();
     canvasExportController.sync();
+    restoreAivUiContext(container, uiContext);
+  }
+
+  function updateCanvasSelectionDetail(selection) {
+    state.selectedCanvasKey = selection?.selectionKey ?? null;
+    const host = container.querySelector('[data-aiv-canvas-selected-detail-host]');
+    if (host) host.innerHTML = renderAivCanvasSelectedDetailHtml(state, state.selectedCanvasKey);
   }
 
   function deactivateFlareNetworkGeneration() {
     state.flareNetworkActive = false;
     state.generatedInputSet = null;
+  }
+
+  function applyFlareNetworkPresentation(network) {
+    applyAivFlareNetworkPresentationState(state, network);
+    render();
   }
 
   function applyFlareNetwork(network) {
@@ -187,6 +192,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function deleteCanvasRelationship(input) {
     try {
+      if (!confirmAivRelationshipDelete(input)) return false;
       const rowIndex = findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input);
       if (rowIndex < 0) throw new Error('AIV_INPUT_RELATIONSHIP_NOT_FOUND: Selected relationship no longer exists.');
       applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex));
@@ -207,7 +213,9 @@ export function renderAivQualificationWorkspace(container) {
     const button = event.target.closest('[data-aiv-table-delete]');
     if (!button) return false;
     const kind = button.dataset.aivTableDelete;
-    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], Number(button.dataset.aivEditRow)));
+    const rowIndex = Number(button.dataset.aivEditRow);
+    if (kind === 'relationships' && !confirmAivRelationshipDelete(aivRelationshipIdentityFromTableRow(state.tables.relationships, rowIndex))) return true;
+    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], rowIndex));
     return true;
   }
 
@@ -229,10 +237,11 @@ export function renderAivQualificationWorkspace(container) {
       return;
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
+    if (assumptionAcceptanceController.handleAction(action)) return;
     if (action === 'load-d23-benchmark') loadBenchmark();
-    if (action === 'source-template') downloadText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
-    if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
-    if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
+    if (action === 'source-template') downloadAivText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
+    if (action === 'assessment-template') downloadAivText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
+    if (action === 'relationship-template') downloadAivText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
     if (action === 'check-readiness') execution.checkReadiness();
     if (action === 'run-screening') execution.runScreening();
     if (action === 'export-d23-validation') execution.exportValidatedBenchmark();

@@ -10,6 +10,7 @@ import {
   reconcileAivCanvasPresentationLayout,
   zoomAivCanvasViewport,
 } from '../tabs/vibration-aiv-canvas-controller.js';
+import { moveAivCanvasDetailTab } from '../tabs/vibration-aiv-canvas-detail.js';
 
 function layout(nodes, viewport = { x: 0, y: 0, zoom: 1 }) {
   return createAivCanvasLayout({ nodes, viewport });
@@ -23,6 +24,22 @@ const NODE_B = Object.freeze({
   nodeKey: 'ASSESSMENT:A-1', canonicalId: 'A-1', caseId: null, nodeKind: 'ASSESSMENT',
   x: 620, y: 90, displayOrder: 1, collapsed: false,
 });
+
+function detailFixture() {
+  const panels = ['summary', 'inputs', 'calculation'].map((id, index) => ({ dataset: { aivDetailPanel: id }, hidden: index !== 0 }));
+  const detail = { querySelectorAll: (selector) => selector === '[data-aiv-detail-tab]' ? tabs : panels };
+  const tabs = ['summary', 'inputs', 'calculation'].map((id, index) => {
+    const attrs = new Map([['aria-selected', index === 0 ? 'true' : 'false'], ['tabindex', index === 0 ? '0' : '-1']]);
+    return {
+      dataset: { aivDetailTab: id }, focused: false,
+      closest: () => detail,
+      setAttribute: (name, value) => attrs.set(name, value),
+      getAttribute: (name) => attrs.get(name),
+      focus() { this.focused = true; },
+    };
+  });
+  return { tabs, panels };
+}
 
 test('pan and zoom helpers mutate viewport presentation state only and clamp zoom', () => {
   const start = Object.freeze({ x: 10, y: 20, zoom: 1 });
@@ -46,6 +63,20 @@ test('presentation reconciliation retains moved positions, drops stale nodes and
   );
   const withoutA = reconcileAivCanvasPresentationLayout(layout([NODE_B]), reconciled);
   assert.deepEqual(withoutA.nodes.map((node) => node.nodeKey), [NODE_B.nodeKey]);
+});
+
+test('selected-detail tabs support Arrow/Home/End keyboard navigation and roving tabindex', () => {
+  const { tabs, panels } = detailFixture();
+  assert.equal(moveAivCanvasDetailTab(tabs[0], 'ArrowRight'), true);
+  assert.equal(tabs[1].getAttribute('aria-selected'), 'true');
+  assert.equal(tabs[1].getAttribute('tabindex'), '0');
+  assert.equal(tabs[1].focused, true);
+  assert.equal(panels[1].hidden, false);
+  assert.equal(moveAivCanvasDetailTab(tabs[1], 'End'), true);
+  assert.equal(tabs[2].getAttribute('aria-selected'), 'true');
+  assert.equal(moveAivCanvasDetailTab(tabs[2], 'Home'), true);
+  assert.equal(tabs[0].getAttribute('aria-selected'), 'true');
+  assert.equal(moveAivCanvasDetailTab(tabs[0], 'Escape'), false);
 });
 
 test('interaction runtime is an explicit presentation boundary with no engineering mutation or calculation path', () => {
@@ -78,4 +109,6 @@ test('canvas view exposes bounded zoom controls, presentation scene and keyboard
   assert.match(source, /aria-selected="false"/u);
   assert.match(source, /data-aiv-canvas-source-node/u);
   assert.match(source, /data-aiv-canvas-assessment-node/u);
+  assert.match(source, /data-aiv-canvas-selected-detail-host/u);
+  assert.doesNotMatch(source, /min-width:720px/u);
 });

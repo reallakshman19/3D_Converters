@@ -1,220 +1,164 @@
 # PR493 — FIT UI Post-Review Defect Takeover — Living Work Report
 
-## PR Mission Control
+## Mission Control
 
 | Field | Current state |
 |---|---|
-| Mission | Revalidate prior FIT UI review findings against current main, fix only confirmed defects with P0 first, add regression coverage, attempt FIT/AIV release validation, and deliver a draft PR without merging. |
-| Source task / issue | Owner task 2026-08-14; `docs/vibration/VibrationIntegrity-Release-Browser-Validation-v1.md`; issue #443. |
-| PR number | `#493` |
-| Branch | `agent/fit-ui-post-review-defects` |
-| Initial base commit | `4fce8d2b8fc2790058f9b0f348fa135a5eda5704` |
-| Latest reconciled main / PR base | `2f7b736ad782eb2f37603c97b8d1238ed7c8058f` |
-| Pre-final-report HEAD | `4a20244619c51374ca4cc59c767ab92924efd581` |
-| PR status | DRAFT / OPEN / MERGEABLE / UNMERGED |
-| Current stage | Stage 6 — COMPLETE / final handover |
-| Last completed stage | Stage 6 — draft PR allocation, report rename, exact PR-state inspection |
-| Engineering status | Four current-main-reproducible FIT UI defects implemented; FIT authority unchanged. |
-| Validation status | Source/diff validation PASS. FIT and AIV release commands NOT_RUN / ENVIRONMENT_BLOCKED. Browser acceptance NOT_RUN. PR-head status checks/workflow runs: none created for current changed paths. |
-| Current blocker | Native checkout unavailable; `github.com` DNS unavailable to container; `gh` absent. Existing PR474 AIV evidence records Actions-budget zero-step blocking. |
-| Exact next action | When execution capacity is restored, run FIT + AIV release suites and browser acceptance on exact PR head. Keep #493 draft; do not merge without Owner authorization. |
+| Mission | Revalidate and close FIT UI defects from the release/browser review without changing FIT numerical or authority semantics. |
+| Source | `docs/vibration/VibrationIntegrity-Release-Browser-Validation-v1.md`; issue #443; Owner review follow-up on 2026-08-14. |
+| PR | `#493` — `agent/fit-ui-post-review-defects` -> `main` |
+| Original delivery head | `9b591f93907ba8363d69469576c4382d0a2e83ae` |
+| Review-fix code head before main reconciliation | `0adae549ca34b1f263143154ec9459d0c6f0dde5` |
+| Latest main incorporated | `82f932f5762fd380cf1fce48d5a51c66c403905f` — PR #491 AIV-only merge |
+| Owner merge authorization | **GRANTED** at 2026-08-14T15:06:53Z (`fix issues and merge`) |
+| Engineering authority | FIT remains `BENCHMARK_ONLY`; `engineeringAuthority=NONE`; `screeningAuthority=NOT_AUTHORIZED`; `designAuthority=false`. |
+| Validation truth | Source/diff review PASS. Native FIT/AIV release suites and browser acceptance remain NOT_RUN / environment blocked. |
+| Merge state at this report checkpoint | READY FOR EXACT-HEAD OWNER-AUTHORIZED SQUASH MERGE after final live-main/check revalidation. |
+| EXACT_NEXT_ACTION | Re-read live `main`, compare exact PR head, inspect statuses/workflows, then squash merge only the unchanged reviewed head. |
 
 ## Handover in 60 Seconds
 
-Current main was re-read before coding at `4fce8d2b...`. During work main advanced once to `2f7b736...` via an unrelated InputXML documentation-only commit; that mainline commit was merged into the branch and does not appear in the PR diff. Four prior FIT UI defects reproduced and were repaired: joined Engineering basis, exact source anchors/navigation, visible evidence-strength provenance, and explicit complete five-sheet XLSX wording.
+PR #493 restores the joined **Engineering basis** as the primary FIT input projection, restores deterministic projection-to-Source-Data navigation, exposes FIT evidence provenance, and makes the complete five-sheet XLSX topology contract explicit while preserving Elements-only CSV as limited input.
 
-A new render-level regression proves projected source `href` and backing raw input `id` are identical for a concrete operating cell and proves Engineering basis renders before Source Data. Existing static UI tests already pin the evidence token and five-sheet wording.
+The post-delivery review found two follow-up defects. Both are now fixed:
 
-PR #493 is draft, open, mergeable, and unmerged. Its exact changed-file list is four files: this report, two FIT UI files, and the Engineering-basis regression test. `PR_PENDING` has been removed. No PR-head status checks or workflow runs were created for these changed paths.
+1. the new rendered source-anchor regression used hand-built partial tables without production `records`; it now constructs real working tables through `createVibrationIntegrityInputTable()`, so the render path exercises the actual editable working-state contract;
+2. the FIT evidence summary previously deduplicated unlabeled phase/correlation tokens and omitted advanced evidence; it now preserves **Phase**, **Standard**, and **Advanced** evidence dimensions explicitly and a static rendered regression pins all three.
 
-The requested FIT and AIV release commands were attempted before PR creation but could not start because no repository checkout exists in this runtime. Real-browser acceptance also remains NOT_RUN. No PASS is claimed for those gates.
+While review fixes were being applied, `main` advanced from `2f7b736...` to `82f932f...` by merging PR #491. That commit is AIV-only and does not overlap the FIT assignment paths. The reconciliation tree is based on `main@82f932f...` and overlays only the five intended PR paths, preserving the AIV mainline changes.
 
-Open draft PR #479 overlaps `tabs/vibration-integrity-input-view.js` for separate run-evidence work. If both remain active, reconcile both scopes deliberately before merge.
+## Defect / Review Disposition
 
-## Mission and Engineering Intent
+| ID | Priority | State | Disposition |
+|---|---:|---|---|
+| ISS-001 | P0 | FIXED | Joined Engineering-basis production projection restored before raw Source Data. |
+| ISS-002 | P0 | FIXED | Projected links and raw cells share `vibrationEngineeringBasisSourceCellId()` identity. |
+| ISS-003 | P1 | FIXED | FIT evidence provenance made visible without creating a score or authority state. |
+| ISS-004 | P1 | FIXED | Complete topology contract explicitly identified as five-sheet XLSX; CSV remains Elements-only/limited. |
+| ISS-005 | P0 | NO NEW CODE | Historical synthetic-zero defect already fixed on current source. |
+| ISS-006 | P1 | NO NEW CODE | Historical `parse-workbook.js` >300-line issue already fixed. |
+| ISS-007 | P1 | NOT_REPRODUCED | Earlier AIV UI forbidden-math finding not reproduced on current source; no AIV code changed in this PR. |
+| REV-001 | P0 | FIXED | Rendered anchor regression fixture now uses real production working-table records. |
+| REV-002 | P1 | FIXED | Evidence cell preserves Phase/Standard/Advanced identity; advanced evidence no longer omitted. |
 
-Mission: close still-valid FIT UI regressions while preserving numerical behavior, one authoritative working state, exact provenance navigation, and benchmark-only authority.
+## Review-Fix Implementation
 
-Non-goals: no FIT equation/correlation/master changes; no AIV numerical changes; no 3D/canvas authority; no screening/design promotion; no workflow edits; no unrelated refactor; no PR #479 feature import.
+### REV-001 — real working-table render fixture
 
-### Governing invariants
+Root cause: `tests/vibration-integrity-engineering-basis.test.mjs` called the complete input renderer with synthetic tables containing `rows` and `rowIds` but no `records`, while `vibrationIntegrityInputCellState()` requires the working-record model.
 
-1. Joined Engineering basis is a projection of the same authoritative working cells, never a second store.
-2. Projected source links resolve to exact backing source-cell IDs.
-3. UI contains no FIT numerical execution/equation authority.
-4. Non-calculated mechanism results stay blank, not synthetic zero.
-5. FIT remains benchmark-only with no screening/design authority.
+Fix:
+- import `createVibrationIntegrityInputTable` from `vibration-integrity-input-model.js`;
+- retain the lightweight fixture for pure projection tests;
+- build the rendered test state with production table construction for topology, operating and enrichment tables;
+- keep the exact `href="#vi-source-operating-operating-source-0001-4"` ↔ backing `id` assertion and Engineering-basis-before-Source-Data ordering assertion.
 
-## Mission Status
+### REV-002 — evidence dimension identity
 
-| Work Item | Priority | Status | Stage | Evidence |
-|---|---:|---|---:|---|
-| Current-main re-read | P0 | DONE | 1 | exact source at `4fce8d2b...` |
-| Historical defect revalidation | P0 | DONE | 1 | four confirmed; resolved/non-reproduced items excluded from code scope |
-| Branch + living report | P0 | DONE | 2 | created before production code |
-| Joined Engineering-basis primary UI | P0 | IMPLEMENTED | 3 | production consumer restored |
-| Exact Source Data anchors/navigation | P0 | IMPLEMENTED | 3 | common deterministic ID contract restored |
-| Render-level P0 regression | P0 | IMPLEMENTED | 3 | exact source link/input ID + ordering asserted |
-| Visible evidence classification | P1 | IMPLEMENTED | 4 | source-derived `FIT evidence` column |
-| Complete five-sheet XLSX contract wording | P1 | IMPLEMENTED | 4 | explicit topology import wording |
-| Historical synthetic-zero finding | P0 | DONE | 1 | already fixed on main |
-| Historical parser-size finding | P1 | DONE | 1 | already fixed on main |
-| Historical AIV UI math finding | P1 | DONE | 1 | not reproduced on current main |
-| FIT release suite | P0 | BLOCKED | 5 | exact command attempt; no checkout -> NOT_RUN |
-| AIV canvas release suite | P0 | BLOCKED | 5 | exact command attempt; no checkout -> NOT_RUN; hosted AIV capacity also known blocked |
-| Latest-main reconciliation | P0 | DONE | 5 | latest main merged; no assignment overlap |
-| Final changed-file reconciliation | P0 | DONE | 6 | exact PR list = four intended files |
-| Draft PR | P0 | DONE | 6 | #493 draft/open/mergeable/unmerged |
-| Report rename/sync | P0 | DONE | 6 | `agents/PR493_workreport.md`; `PR_PENDING` removed |
+Root cause: `evidenceCell()` collapsed phase and standard-correlation strengths into unlabeled de-duplicated tokens and did not show `advancedEvidenceStrength`.
 
-## Engineering Item Register
+Fix:
+- render source-derived slices as `Phase: ...`, `Standard: ...`, `Advanced: ...`;
+- omit only absent slices;
+- do not combine evidence into a score or new status;
+- static UI state now uses three distinct evidence values and asserts each labeled dimension.
 
-| ID | Type | Priority | Status | Summary | Current PR? |
-|---|---|---:|---|---|---|
-| ISS-001 | Defect | P0 | IMPLEMENTED | Joined Engineering-basis production consumer was removed. | Yes |
-| ISS-002 | Defect | P0 | IMPLEMENTED | Projected source links had no matching backing raw-cell IDs. | Yes |
-| ISS-003 | Defect | P1 | IMPLEMENTED | Workspace omitted explicit evidence-strength token. | Yes |
-| ISS-004 | Defect | P1 | IMPLEMENTED | Import surface omitted explicit complete five-sheet XLSX contract. | Yes |
-| ISS-005 | Defect | P0 | DONE | Historical synthetic-zero issue already fixed on main. | No |
-| ISS-006 | Defect | P1 | DONE | Historical parser-size issue already fixed on main. | No |
-| ISS-007 | Defect | P1 | DONE | Historical AIV UI-math finding not reproduced. | No |
-| RISK-001 | Risk | P0 | ACCEPTED | Draft PR #479 overlaps input-view. | Document only |
-| RISK-002 | Risk | P0 | ACCEPTED | Native release/browser validation blocked by runtime/Actions capacity. | Yes |
-| DEC-001 | Decision | P0 | ACCEPTED | Current-source truth controls scope. | Yes |
-| DEC-002 | Decision | P0 | ACCEPTED | Restore projection/source contract without rolling back later benchmark logic. | Yes |
-| DEC-003 | Decision | P0 | ACCEPTED | Preserve FIT authority state. | Yes |
+## Governing Engineering Invariants
 
-## Stage Roadmap and Execution Log
+1. Joined Engineering basis is a read/write projection of the same authoritative working tables, never a second store.
+2. Source navigation derives from stable working-record `rowId`; SVG/canvas/topology authority is not involved.
+3. UI does not execute or copy FIT equations/correlations/constants.
+4. Non-calculated mechanism values remain blank/null and are never synthesized as zero.
+5. Evidence-strength display is provenance only, never screening/design authority or a safety score.
+6. FIT remains benchmark-only until a separate qualified authority transition is explicitly approved.
 
-### Stage 1 — Current-main re-read + defect revalidation — COMPLETE
+## Current Changed-File Ledger
 
-Confirmed on current source: joined basis missing, source anchors missing, visible evidence token missing, five-sheet wording missing. Historical synthetic-zero and parser-size failures were already fixed. Historical AIV UI forbidden-math finding was not reproduced by current source/boundary ownership.
+| File | Purpose | Authority impact |
+|---|---|---|
+| `agents/PR493_workreport.md` | durable takeover/review/merge evidence | None |
+| `tabs/vibration-integrity-input-view.js` | joined basis, source anchors, complete-XLSX wording | UI projection only; no numerical authority |
+| `tabs/vibration-integrity-view.js` | labeled FIT evidence slices | read projection only |
+| `tests/vibration-integrity-engineering-basis.test.mjs` | real working-state source-anchor regression | test only |
+| `tests/vibration-integrity-tab-static.test.mjs` | Phase/Standard/Advanced evidence regression | test only |
 
-### Stage 2 — Branch + living report — COMPLETE
+No FIT kernel, equation, correlation, master, unit implementation, AIV production file, workflow, dependency, topology-authority implementation, or engineering export file is part of this PR.
 
-Created `agent/fit-ui-post-review-defects` and living report before production changes.
+## Mainline Reconciliation
 
-### Stage 3 — P0 joined-basis/source-navigation repair — COMPLETE
-
-Implemented:
-- restored `renderVibrationEngineeringBasis(inputState)` in production input area;
-- backing raw inputs derive IDs using `vibrationEngineeringBasisSourceCellId`, matching projected links;
-- Source Data renders after primary Engineering basis;
-- later current-main benchmark-comparison implementation retained unchanged.
-
-Regression added:
-- real input-area render proves exact projected `href` and backing `id` equality for one operating mass-flow cell;
-- proves Engineering basis appears before Source Data;
-- existing boundary assertion continues to forbid direct UI numerical execution.
-
-### Stage 4 — Remaining visible-contract repair — COMPLETE
-
-Implemented:
-- explicit “complete five-sheet XLSX export” topology contract while retaining limited Elements-only CSV;
-- `FIT evidence` column sourced only from existing `phaseEvidenceStrength` / `correlationEvidenceStrength` row values;
-- duplicate display tokens de-duplicated, missing values blank;
-- no score/equation/fallback/authority synthesis.
-
-Existing static tests already target `EI_PUBLISHED_EXAMPLE` visibility and five-sheet wording.
-
-### Stage 5 — Validation + main reconciliation — COMPLETE WITH ENVIRONMENT BLOCKS
-
-Exact command attempts:
-- `npm run verify:vibration-fit-release` → NOT_RUN / ENVIRONMENT_BLOCKED: `/mnt/data/3D_Converters/.git` unavailable.
-- `npm run verify:aiv-canvas-release` → NOT_RUN / ENVIRONMENT_BLOCKED: repository checkout unavailable.
-
-AIV infrastructure context:
-- controlled workflow invokes the exact AIV canvas release command;
-- merged PR474 work report documents zero-step hosted jobs caused by Actions-budget no-start and classifies them as NOT_RUN / INFRASTRUCTURE_BLOCKED;
-- this is infrastructure context only, not a PASS for #493.
-
-Main advanced during work to `2f7b736...`, changing only `docs/InputxmltoCII2019Fixplan.md`. The branch merged that mainline commit with no conflict. Relative to latest main the assignment diff remained four intended paths.
-
-### Stage 6 — Draft PR + report synchronization — COMPLETE
-
-- created draft PR #493 against latest main;
-- PR state inspected: open, draft, mergeable, unmerged;
-- renamed work report to `agents/PR493_workreport.md` and removed `PR_PENDING`;
-- exact PR changed-file list is four expected files;
-- PR-head commit status list is empty;
-- PR-head workflow-run list is empty;
-- no merge action taken.
-
-Stage decision: COMPLETE. Native release/browser gates remain open and explicit.
-
-## Changed-File Ledger
-
-| File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
-|---|---:|---:|---|---|---|
-| `agents/PR493_workreport.md` | 2/6 | 6 | living engineering/delivery record | No | exact PR list PASS |
-| `tabs/vibration-integrity-input-view.js` | 3 | 4 | joined basis, source anchors, complete-XLSX wording | Yes | source/diff PASS; native test NOT_RUN |
-| `tests/vibration-integrity-engineering-basis.test.mjs` | 3 | 3 | direct rendered source-navigation regression | No | authored; native test NOT_RUN |
-| `tabs/vibration-integrity-view.js` | 4 | 4 | visible evidence-strength provenance | Yes | source/diff PASS; native test NOT_RUN |
-
-No unexplained changed files remain.
+- PR delivery baseline: `main@2f7b736ad782eb2f37603c97b8d1238ed7c8058f`.
+- Live main during review: `82f932f5762fd380cf1fce48d5a51c66c403905f`.
+- Mainline delta is PR #491 (`Harden AIV screening workspace UX and execution safeguards`).
+- Prior compare showed #493 behind by exactly one main commit and no FIT assignment-file overlap.
+- Reconciliation tree uses the exact `82f932f...` main tree as base and overlays only the intended FIT/report/test blobs.
 
 ## Validation and Evidence Ledger
 
-### Software Validation
+### Software validation
 
-| Validation | Status | Evidence |
+| Validation | Status | Observation / oracle |
 |---|---|---|
-| Current-main source revalidation | PASS | exact source inspection |
-| Latest-main reconciliation | PASS | branch contains `main@2f7b736...` |
-| Exact PR changed-file reconciliation | PASS | four expected files only |
-| Direct rendered source-navigation regression authored | PASS | exact `href`/`id` + ordering assertions in source |
-| Focused Node UI execution | NOT_RUN | no checkout |
-| `npm run verify:vibration-fit-release` | NOT_RUN / ENVIRONMENT_BLOCKED | exact attempt could not start |
-| `npm run verify:aiv-canvas-release` | NOT_RUN / ENVIRONMENT_BLOCKED | exact attempt could not start; upstream hosted AIV capacity blocked |
-| Real-browser FIT acceptance | NOT_RUN | no runnable browser checkout |
-| PR-head status checks | NOT_RUN / NONE CREATED | combined status list empty |
-| PR-head workflow runs | NOT_RUN / NONE CREATED | workflow-run list empty |
+| Review source-trace of anchor implementation | PASS | Same `vibrationEngineeringBasisSourceCellId()` contract in projection and raw-cell IDs; stable working `rowId` source. |
+| Review diagnosis of regression fixture | PASS | Partial synthetic tables lacked production `records`; repaired through production table constructor. |
+| Evidence provenance contract review | PASS | Facility register carries phase/correlation/advanced strengths independently; UI now preserves dimensions. |
+| Exact changed-file scope inspection | PASS before final reconciliation | Only intended FIT UI/report/tests. Re-run after reconciliation is mandatory. |
+| Native focused Node tests | NOT_RUN | No authenticated runnable repository checkout available in this agent runtime. |
+| `npm run verify:vibration-fit-release` | NOT_RUN / ENVIRONMENT_BLOCKED | Repository checkout unavailable; do not infer PASS. |
+| `npm run verify:aiv-canvas-release` | NOT_RUN / ENVIRONMENT_BLOCKED | Repository checkout unavailable; prior hosted Actions capacity also produced zero-step runs. |
+| Real-browser FIT acceptance | NOT_RUN | No runnable application/browser checkout in this runtime. |
+| PR-head status checks/workflows | PENDING FINAL HEAD | Must be inspected immediately before merge. |
 
-### Engineering Validation
+### Engineering validation
 
-| Property | Status | Evidence |
+| Property | Status | Basis |
 |---|---|---|
-| FIT numerical method unchanged | PASS | no calculation files changed |
-| FIT authority unchanged | PASS | no authority transition or numerical files changed |
-| One authoritative working state | PASS by source design | joined basis uses same backing refs/mutation contract |
-| Exact projected → backing source identity | PASS by source/test contract | shared deterministic ID helper + direct regression authored |
-| Evidence display non-authorizing | PASS | displays existing evidence-strength strings only |
+| FIT numerical method unchanged | PASS by diff boundary | No calculator/kernel/method files changed. |
+| FIT authority unchanged | PASS by diff boundary | No authority transition or result-contract mutation. |
+| One authoritative working state | PASS by source architecture | Joined view uses exact backing refs and existing mutation path. |
+| Projection → Source Data trace identity | PASS by source contract | Same stable anchor helper and working-row identity. |
+| Evidence display non-authorizing | PASS by source architecture | Existing evidence strings only; no aggregation/score/threshold. |
 
-### Explicitly Not Validated
+## Backup / Recovery Ledger
 
-Native focused tests, full FIT release, full AIV canvas release, and real-browser FIT flows remain NOT_RUN.
+The connector-only runtime could not execute the repository-local `node utils/backup.js save ...` command because a complete checkout is unavailable. This limitation is explicit and is not reported as PASS. Immutable pre-review Git blobs remain exact recovery points:
 
-## Known / Deferred Work and Recommended Forward Sequence
+- `tests/vibration-integrity-engineering-basis.test.mjs` — `787b26bd75d51cfa603397befce0b07ad8d05821`
+- `tabs/vibration-integrity-view.js` — `2bbdc6bb3f5fc12b16875017428293555e044c40`
+- `tests/vibration-integrity-tab-static.test.mjs` — `a37eca4ae48245ada056b82d1a033ad84e8bad4c`
+- `tabs/vibration-integrity-input-view.js` — `77a1ee3d80a50e8a9bb69bd5abc8947a274b172a`
+- prior report — `f38a07dee3a449651c9ad1422283a79325e969ed`
 
-1. Restore native checkout/Actions capacity and run `npm run verify:vibration-fit-release` on exact PR head.
-2. Run `npm run verify:aiv-canvas-release` on exact PR head as Owner requested.
-3. Execute real-browser FIT joined-edit/source-navigation/revert/stale/rerun flow on the same head.
-4. Reconcile deliberately with draft PR #479 if both remain active.
-5. Keep #493 draft and unmerged until explicit Owner authorization.
+No recovery claim depends on private chat state.
 
-## Process Notes / Lessons Learned
+## Coordination Risk — PR #479
 
-- Revalidate historical review failures against current main; three old items did not justify new code.
-- Direct rendered source-anchor identity is stronger regression protection than source-string assertions alone.
-- Environment-blocked commands remain NOT_RUN, never PASS.
-- Reconcile moving main before opening a critical PR even when the mainline change is unrelated.
+Draft PR #479 also modifies `tabs/vibration-integrity-input-view.js` for run-evidence export. It is not imported into #493. After #493 lands, #479 must be re-grounded/rebased on the new main and preserve:
 
-## Next-Agent Handover
+- Engineering-basis primary projection;
+- deterministic Source Data anchors;
+- complete five-sheet XLSX wording;
+- its own run-evidence export action.
 
-Current stopping point: draft PR #493 complete and unmerged; waiting for native validation capability / Owner direction.
+Do not merge #479 from its stale pre-#493 branch state without reconciliation.
 
-PR / branch / pre-final-report head: `#493` / `agent/fit-ui-post-review-defects` / `4a20244619c51374ca4cc59c767ab92924efd581`.
+## Appendix A — Implementation Takeover Qualification
 
-PR state: draft/open/mergeable/unmerged.
+| Gate | Evidence | Result |
+|---|---|---|
+| A1 Production trace | Traced `renderVibrationIntegrityInputArea` -> `renderVibrationEngineeringBasis` and Source Data -> `vibrationIntegrityInputCellState` -> working records. | PASS |
+| A2 Failure isolation | Identified rendered-test failure mechanism as missing `records`, not source-anchor production logic. | PASS |
+| A3 Authority / invariant | Confirmed FIT calculation and authority files remain outside diff; evidence display remains provenance-only. | PASS |
+| A4 Independent validation | Used current source contracts, register documentation and working-state implementation rather than trusting prior summary. Runtime suites remain explicitly NOT_RUN. | PASS |
+| A5 Minimal patch | Production follow-up restricted to evidence labels; P0 correction is a test-fixture repair; no unrelated refactor. | PASS |
 
-Do not redo: ISS-001 through ISS-004 implementation, historical-item revalidation, main reconciliation, report rename.
+Takeover decision: **CONTINUE / OWNER-AUTHORIZED MERGE PATH**.
 
-Do not assume: FIT release passed, AIV release passed, browser acceptance passed, or engineering authority changed.
+## Final Pre-Merge Gate
 
-Files in final PR: this report, FIT input view, FIT workspace view, Engineering-basis regression test.
+Merge is authorized by the Owner, but the action is conditioned on a final live check immediately before mutation:
 
-Validation still required outside this runtime: native FIT release, native AIV canvas release, real-browser acceptance.
-
-Highest-risk remaining item: first native/browser execution may expose an integration defect.
-
-Exact next action: run native validation when infrastructure is available; fix only reproduced defects; do not merge without explicit Owner authorization.
+1. live `main` still matches the reconciled parent or any newer delta is independently checked;
+2. exact PR head is unchanged from the reviewed/reconciled branch;
+3. PR remains mergeable;
+4. statuses/workflows are inspected and any missing execution remains reported as NOT_RUN rather than PASS;
+5. squash merge uses `expected_head_sha` to prevent racing an unreviewed commit.
