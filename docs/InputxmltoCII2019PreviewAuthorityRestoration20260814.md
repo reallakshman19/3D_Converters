@@ -84,6 +84,7 @@ The native single-source Weight Match exposes Build, DTXR Rating, preferred-cand
 Authority boundaries:
 
 - DTXR Rating in consolidated Weight Match is an **ephemeral rerank mode**. It does not silently write DTXR Rating into Preview or source configuration.
+- Leaving DTXR mode restores the original Preview-Rating candidate display and clears the transient DTXR best-candidate object; subsequent bulk acceptance cannot accidentally use a stale DTXR-reranked candidate.
 - Bulk preferred acceptance is deliberately stricter than the legacy single-source label: only preferred **100% direct** candidates are eligible. Interpolated, extrapolated, inferred, factor and fallback candidates remain Review.
 - The inch-to-mm option remains shared Weight Match configuration and therefore triggers a real consolidated rebuild.
 - A simple `Use` or exact fill only writes the source-local `overrides.rigidWeight` value and updates the visible consolidated row in place; it no longer recomputes every XML just to display the persisted weight.
