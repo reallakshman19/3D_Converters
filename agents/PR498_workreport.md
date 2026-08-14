@@ -17,13 +17,13 @@
 | Coordination | SAFE WITH PATH AVOIDANCE — open #497 is assumption-layout only; avoid its `package.json`, qualification CSS, workspace-browser paths |
 | Merge authority | NOT AUTHORIZED |
 | Runtime | Connector-only; native backup CLI/tests/browser unavailable unless hosted jobs execute |
-| EXACT_NEXT_ACTION | Add pure `vibration-aiv-mock-flare-network.js`; wire `load-mock-flare-network` through input view + qualification controller; add in-suite regressions for graph paths, registered calculation outputs and EI `.eit` serialization. |
+| EXACT_NEXT_ACTION | Extend existing module-boundary regression over the two new production helpers, then reconcile exact diff/head and hosted validation state. |
 
 ## Handover in 60 Seconds
 
-The existing application already has an EI `.eit` v5 exporter. `tabs/vibration-aiv-result-view.js` exposes **Export EI .eit** after a successful registered screening run, and `tabs/vibration-aiv-execution.js` serializes through `converters/vibration/aiv/aiv-eit-export.js`. Do **not** create a second writer.
+The existing application already has an EI `.eit` v5 exporter. `tabs/vibration-aiv-result-view.js` exposes **Export EI .eit** after a successful registered screening run, and `tabs/vibration-aiv-execution.js` serializes through `converters/vibration/aiv/aiv-eit-export.js`. No second writer is being created.
 
-Missing product capability: the controlled two-relief-valve small flare example exists only as external SVG/validation evidence and internal EIT tests; current AIV UI has no **Load mock flare network** action. Implement a production fixture that creates an `AivFlareNetwork.v1` graph using the historical engineering values, project it through the existing graph → tables/topology path, then use the existing readiness/screening/export route.
+Implemented on this PR branch: a controlled `AivFlareNetwork.v1` mock carries RV-101/RV-102, the 6 m and 9 m source branches, 12 m subheader, 20 m header and welded-tee assessment. The start panel exposes **Load mock flare network** and a fail-closed **Export current EI .eit** action. Loading the mock resets the controlled assumption profile and routes through the existing `projectAivFlareNetworkIntoWorkspace()` graph → generated tables/topology path. Export still routes through readiness → registered screening → existing `.eit` writer.
 
 Controlled example:
 
@@ -40,7 +40,7 @@ case = RELIEF-COMBINED
 assessment = AIV-ASSESS-HDR-001 / WELDED_TEE / 8IN-FLARE-HEADER
 ```
 
-Important qualification boundary retained from Common PR #3 / repository validation record: this is an **integration mock**, not independent arbitrary-geometry Stage-8 qualification; the configured-vs-geometry FLM1 mismatch remains visible evidence and is not to be “fixed” in this PR.
+Important qualification boundary retained from Common PR #3 / repository validation record: this is an **integration mock**, not independent arbitrary-geometry Stage-8 qualification; the configured-vs-geometry FLM1 mismatch remains visible evidence and is not changed in this PR.
 
 ## Scope / Acceptance
 
@@ -79,7 +79,7 @@ designAuthority                = false
 
 - Open PR #497: presentation-only Missing-data assumptions layout.
 - It touches `package.json`, `tabs/vibration-aiv-qualification.css`, `tabs/vibration-aiv-workspace-browser.js`, new assumptions CSS/test.
-- This work will avoid those paths and use tests already included in existing AIV verification scripts.
+- This work avoids those paths and uses tests already included in existing AIV verification scripts.
 - Open PR #483 is vibration master-governance framework and does not overlap this UI/mock/export wiring.
 
 ## Pre-edit / Recovery Control
@@ -93,6 +93,7 @@ Repository policy requests `node utils/backup.js save <file> ...` before edits. 
 | `tests/vibration-aiv-flare-network-multisource.test.mjs` | `32a57d6be5eee16166efa53891c95e190fe84376` |
 | `tests/vibration-aiv-eit-export.test.mjs` | `31aeec3741a1cf8066a7ad9cb560d147b472f42b` |
 | `tests/vibration-aiv-workbench-ui.test.mjs` | `10f4867fa0a39381fd95ca908995b0ae87406a77` |
+| `tests/vibration-module-boundaries.test.mjs` | `e9a53b270dcb77ca0dbf06e4e65062afe15b0ac1` |
 
 Local backup CLI: `NOT_RUN / connector-only runtime`.
 
@@ -103,6 +104,9 @@ Local backup CLI: `NOT_RUN / connector-only runtime`.
 | Live base grounding | PASS | SOURCE_INSPECTION | NONE | `main@ffbbecda…` |
 | Existing EIT exporter presence | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | Reuse PR464/469 implementation; result UI already has Export EI `.eit`. |
 | Controlled 2-RV example recovery | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | Common PR #3 + `aiv-small-flare-eit-roundtrip-v1.json`. |
+| Production mock inputs | IMPLEMENTED | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | Inputs only; expected LOF/PWL remain tests/oracles. |
+| Mock graph → calculator regression | ADDED / NOT_RUN | NOT_OBSERVED | AUTHORITATIVE_REFERENCE | Pins 38/41 m and external PR3 expected integration outputs. |
+| Mock → production EIT writer regression | ADDED / NOT_RUN | NOT_OBSERVED | AUTHORITATIVE_REFERENCE | Pins Assessment LOF/IDs/distances/segment identity in serialized `.eit`. |
 | Native focused tests | NOT_RUN | NOT_OBSERVED | IMPLEMENTATION_COUPLED | Connector-only runtime. |
 | Full AIV release | NOT_RUN | NOT_OBSERVED | IMPLEMENTATION_COUPLED | Pending. |
 | Real-browser mock-load/export | NOT_RUN | NOT_OBSERVED | NONE | Pending. |
