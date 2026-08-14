@@ -32,6 +32,8 @@ function canonicalFile(file) {
     kind: file.kind ?? null,
     projectionSchema: file.projectionSchema ?? null,
     projectionHash: file.projectionHash ?? null,
+    fileHashSchema: file.fileHashSchema ?? null,
+    fileHash: file.fileHash ?? null,
   };
 }
 
