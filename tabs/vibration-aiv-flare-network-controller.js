@@ -5,10 +5,12 @@ import {
   deleteAivFlareNetworkNode,
   deleteAivFlareNetworkSegment,
   setAivFlareNetworkSegmentLength,
+  updateAivFlareNetworkNode,
 } from '../converters/vibration/aiv/aiv-flare-network-mutations.js';
 
 function value(editor, selector) { return String(editor.querySelector(selector)?.value ?? '').trim(); }
 function number(value, fallback = 0) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : fallback; }
+function text(value) { return String(value ?? '').trim(); }
 
 function defaultPosition(network) {
   const index = network.nodes.length;
@@ -41,6 +43,22 @@ function createSegment(editor, network) {
     segmentId, fromNodeId, toNodeId, line,
     physicalLength: length ? { value: Number(length), unit } : null,
   });
+}
+
+function updateNodeEngineeringField(network, target) {
+  const nodeId = text(target.dataset.aivNetworkNodeId);
+  const field = text(target.dataset.aivNetworkNodeField);
+  const node = network.nodes.find((item) => item.canonicalId === nodeId);
+  if (!node) throw new RangeError(`Unknown AIV flare-network node ${nodeId}.`);
+  const next = text(target.value);
+  if (field === 'tag' || field === 'line') return updateAivFlareNetworkNode(network, nodeId, { [field]: next });
+  if (field === 'caseId' || field === 'sourceDeviceType') {
+    return updateAivFlareNetworkNode(network, nodeId, { sourceInput: { ...(node.sourceInput ?? {}), [field]: next } });
+  }
+  if (field === 'assessmentType') {
+    return updateAivFlareNetworkNode(network, nodeId, { assessmentInput: { ...(node.assessmentInput ?? {}), assessmentType: next } });
+  }
+  throw new RangeError(`Unsupported AIV flare-network node field ${field}.`);
 }
 
 function svgDelta(svg, dx, dy) {
@@ -101,12 +119,16 @@ export function createAivFlareNetworkAuthoringController(container, callbacks = 
   function change(event) {
     const editor = event.target.closest('[data-aiv-network-editor]');
     if (!editor) return;
+    if (event.target.dataset.aivNetworkNodeField) {
+      apply(editor, (_, network) => updateNodeEngineeringField(network, event.target));
+      return;
+    }
     const segmentId = event.target.dataset.aivNetworkSegmentLength || event.target.dataset.aivNetworkSegmentUnit;
     if (!segmentId) return;
     const lengthInput = editor.querySelector(`[data-aiv-network-segment-length="${CSS.escape(segmentId)}"]`);
     const unitInput = editor.querySelector(`[data-aiv-network-segment-unit="${CSS.escape(segmentId)}"]`);
-    const length = String(lengthInput?.value ?? '').trim();
-    const unit = String(unitInput?.value ?? 'm').trim();
+    const length = text(lengthInput?.value);
+    const unit = text(unitInput?.value) || 'm';
     apply(editor, (_, network) => setAivFlareNetworkSegmentLength(network, segmentId, length ? Number(length) : null, unit));
   }
 
