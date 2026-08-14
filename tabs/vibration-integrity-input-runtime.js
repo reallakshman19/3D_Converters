@@ -20,6 +20,19 @@ function topologyFormat(name) {
   throw new Error('3D EDIT table export must be .xlsx or .csv.');
 }
 
+function cloneBinary(data) {
+  if (data instanceof ArrayBuffer) return data.slice(0);
+  if (ArrayBuffer.isView(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice();
+  }
+  return data;
+}
+
+function cloneFile(file) {
+  if (!file) return null;
+  return Object.freeze({ ...file, ...(file.data === undefined ? {} : { data: cloneBinary(file.data) }) });
+}
+
 export function createVibrationIntegrityInputRuntimeState() {
   return {
     files: { topology: null, operating: null, enrichment: null },
@@ -35,6 +48,23 @@ export function createVibrationIntegrityInputRuntimeState() {
     },
     allowLimitedExchange: false,
   };
+}
+
+export function captureVibrationIntegrityExecutionState(state) {
+  return Object.freeze({
+    files: Object.freeze({
+      topology: cloneFile(state.files?.topology),
+      operating: cloneFile(state.files?.operating),
+      enrichment: cloneFile(state.files?.enrichment),
+    }),
+    tables: Object.freeze({ ...state.tables }),
+    benchmark: Object.freeze({
+      selectedId: state.benchmark?.selectedId ?? '',
+      loaded: state.benchmark?.loaded ?? null,
+      detachedFromSource: state.benchmark?.detachedFromSource === true,
+    }),
+    allowLimitedExchange: state.allowLimitedExchange === true,
+  });
 }
 
 function serializeOptionalTable(table) {
