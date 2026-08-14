@@ -4,6 +4,7 @@ import {
   isAivAssumptionAcceptanceCurrent,
 } from './vibration-aiv-assumption-acceptance.js';
 import { renderAivTopologyPathHtml } from './vibration-aiv-path-view.js';
+import { isAivScreeningReady } from './vibration-aiv-screening-gate.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -112,22 +113,14 @@ function hasWorkingInput(state) {
   return Boolean(state.topologyInput && state.tables?.sources?.rows?.length && state.tables?.assessments?.rows?.length && state.tables?.relationships?.rows?.length);
 }
 
-function screeningReady(state) {
-  const counts = state.readinessEnvelope?.readiness?.counts;
-  return Boolean(counts
-    && counts.notReady === 0
-    && counts.methodGap === 0
-    && isAivAssumptionAcceptanceCurrent(state.assumptionResolution, state.assumptionAcceptance));
-}
-
 export function renderAivReadinessPanelHtml(state = {}) {
   const busy = state.busy === true;
   const imports = state.readinessEnvelope?.imports;
   return `<section class="aivq-card">
-    <div class="aivq-section-head"><div><h4>AIV readiness & screening</h4><p>Readiness joins the current visible Sources, Assessments and Source→Assessment tables to topology. When the joined evidence has no NOT_READY or METHOD_GAP rows, the same normalized inputs can execute the qualified assessment-level AIV screening kernel.</p></div></div>
+    <div class="aivq-section-head"><div><h4>AIV readiness & screening</h4><p>Readiness joins the current visible Sources, Assessments and Source→Assessment tables to topology. Screening requires at least one READY_FOR_QUALIFICATION relationship and no NOT_READY or METHOD_GAP blockers.</p></div></div>
     <div class="aivq-actions">
       <button type="button" class="engineering-console-btn" data-aiv-action="check-readiness"${!busy && hasWorkingInput(state) ? '' : ' disabled'}>${busy ? 'Working…' : 'Check AIV readiness'}</button>
-      <button type="button" class="engineering-console-btn primary" data-aiv-action="run-screening"${!busy && screeningReady(state) ? '' : ' disabled'}>Run AIV screening</button>
+      <button type="button" class="engineering-console-btn primary" data-aiv-action="run-screening"${!busy && isAivScreeningReady(state) ? '' : ' disabled'}>Run AIV screening</button>
     </div>
     ${state.error ? `<div class="aivq-error"><strong>AIV action failed.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${imports ? `<div class="aivq-import-facts"><span>Topology integrity <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Sources <strong>${esc(imports.sourceCount)}</strong></span><span>Assessments <strong>${esc(imports.assessmentCount)}</strong></span><span>Relationships <strong>${esc(imports.sourceAssessmentCount)}</strong></span></div>` : ''}
