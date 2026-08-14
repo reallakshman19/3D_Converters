@@ -114,12 +114,13 @@ function mechanismCell(assessment) {
 }
 
 function evidenceCell(row) {
-  const strengths = [...new Set([
-    row.phaseEvidenceStrength,
-    row.correlationEvidenceStrength,
-  ].filter((value) => value !== null && value !== undefined && value !== ''))];
-  return strengths.length
-    ? strengths.map((value) => `<span class="vi-mono">${esc(value)}</span>`).join('<br>')
+  const slices = [
+    ['Phase', row.phaseEvidenceStrength],
+    ['Standard', row.correlationEvidenceStrength],
+    ['Advanced', row.advancedEvidenceStrength],
+  ].filter(([, value]) => value !== null && value !== undefined && value !== '');
+  return slices.length
+    ? slices.map(([label, value]) => `<span class="vi-mono">${esc(label)}: ${esc(value)}</span>`).join('<br>')
     : '<span class="vi-empty">—</span>';
 }
 
