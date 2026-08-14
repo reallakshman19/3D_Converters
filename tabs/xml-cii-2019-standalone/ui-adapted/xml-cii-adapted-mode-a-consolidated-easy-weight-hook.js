@@ -1,4 +1,4 @@
-import { installModeAConsolidatedWeightEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js?v=20260813-mode-a-easy-weight-1';
+import { installModeAConsolidatedWeightEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js?v=20260814-weight-clarity-1';
 import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-easy-weight-1';
 
 export function installModeAConsolidatedWeightEasyUiFromWorkspace(workspace,stateRef) {
