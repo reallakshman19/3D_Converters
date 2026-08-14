@@ -7,6 +7,7 @@ import { renderVibrationIntegrityHtml } from '../tabs/vibration-integrity-view.j
 const controllerSource = fs.readFileSync(new URL('../tabs/vibration-integrity-tab.js', import.meta.url), 'utf8');
 const inputViewSource = fs.readFileSync(new URL('../tabs/vibration-integrity-input-view.js', import.meta.url), 'utf8');
 const snapshotSource = fs.readFileSync(new URL('../tabs/vibration-integrity-run-snapshot.js', import.meta.url), 'utf8');
+const evidenceSource = fs.readFileSync(new URL('../tabs/vibration-integrity-run-evidence.js', import.meta.url), 'utf8');
 
 function benchmarkState({ modified = false, actual = null, resultState = 'UNRUN' } = {}) {
   const loadedRaw = buildVibrationFitUiBenchmarkCase('EI-D4-FIT-PRODUCED-WATER-10IN');
@@ -45,6 +46,7 @@ test('FIT workspace exposes benchmark and original/working editable tables', () 
   const html = renderVibrationIntegrityHtml(benchmarkState());
   assert.match(html, /Load BENCHMARK/u);
   assert.match(html, /FIT validation benchmark/u);
+  assert.match(html, /LOF tolerance: <strong>±0\.007/u);
   assert.match(html, /Topology · Elements working table/u);
   assert.match(html, /Operating cases/u);
   assert.match(html, /Vibration enrichment/u);
@@ -61,6 +63,7 @@ test('untouched EI case displays published target and benchmark parity PASS afte
   assert.match(html, /Target standard LOF: <strong>3\.15/u);
   assert.match(html, /Actual standard LOF: <strong>3\.15195/u);
   assert.match(html, /Benchmark parity PASS/u);
+  assert.match(html, /Export run evidence JSON/u);
 });
 
 test('stale benchmark result cannot claim current parity', () => {
@@ -93,21 +96,34 @@ test('editable FIT UI remains an input/preparation layer with no direct numerica
   assert.match(controllerSource, /runVibrationFacilityFitBenchmarkFromTables/u);
 });
 
-test('controller preserves stale results and creates deterministic run snapshots', () => {
+test('controller preserves stale results and binds deterministic audit plus engineering run identities', () => {
   assert.match(controllerSource, /function staleCalculatedState/u);
   assert.match(controllerSource, /'STALE_RESULT'/u);
   assert.match(controllerSource, /buildVibrationIntegrityRunSnapshot/u);
+  assert.match(controllerSource, /bindVibrationIntegrityEngineeringIdentity/u);
   assert.match(controllerSource, /state\.resultState = 'CURRENT_RESULT'/u);
   assert.match(controllerSource, /state\.resultState !== 'CURRENT_RESULT'/u);
   assert.match(snapshotSource, /FitWorkingInputState\.v1/u);
   assert.match(snapshotSource, /FitRunSnapshot\.v1/u);
+  assert.match(snapshotSource, /FitEngineeringInputIdentity\.v1/u);
   assert.match(snapshotSource, /SHA-256/u);
 });
 
-test('UI exposes cell/table revert while topology authority remains a separate latch', () => {
+test('UI exposes cell/row/table revert while topology authority remains a separate latch', () => {
   assert.match(inputViewSource, /data-vi-cell-revert/u);
+  assert.match(inputViewSource, /data-vi-row-revert/u);
   assert.match(inputViewSource, /data-vi-table-revert/u);
   assert.match(inputViewSource, /authority remains downgraded until reload/u);
   assert.match(controllerSource, /revertVibrationIntegrityInputCell/u);
+  assert.match(controllerSource, /revertVibrationIntegrityInputRow/u);
   assert.match(controllerSource, /revertVibrationIntegrityInputTable/u);
+});
+
+test('run evidence export remains dual-hash reproducibility evidence only', () => {
+  assert.match(inputViewSource, /data-vi-action="export-evidence"/u);
+  assert.match(controllerSource, /serializeVibrationIntegrityRunEvidence/u);
+  assert.match(evidenceSource, /REPRODUCIBILITY_EVIDENCE_ONLY/u);
+  assert.match(evidenceSource, /engineeringInputHash/u);
+  assert.match(evidenceSource, /FIT_RUN_EVIDENCE_HASH_MISMATCH/u);
+  assert.doesNotMatch(evidenceSource, /screeningAuthorized:\s*true/u);
 });
