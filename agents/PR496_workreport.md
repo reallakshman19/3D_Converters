@@ -40,9 +40,16 @@ Engineering modules use the same `.app-content` container through `engineering-t
 
 No product-specific vertical viewport owner is required.
 
-### Generic behavior
+### Generic behavior and CSS cascade
 
-`styles/app-content-scroll.css` is loaded immediately after `styles/tabs.css` and overrides the base `overflow:hidden` only for vertical overflow:
+The base shell intentionally contains two clipping declarations:
+
+- `styles/tabs.css`: `.app-content { overflow:hidden; }`
+- `styles/app-shell-header-fix.css`: `body .app-content { overflow:hidden; }`
+
+The second selector is more specific than the first repair draft. Therefore `styles/app-content-scroll.css` now deliberately uses the equal-specificity selector `body .app-content` and is loaded **after all existing global/tab styles** from `index.html` (`?v=2`). This ensures the intended vertical override actually wins the cascade instead of being silently defeated.
+
+Final generic scroll contract:
 
 - `min-height:0`;
 - `overflow-x:hidden`;
@@ -56,6 +63,9 @@ Legacy persistent `[data-tab-panel]` surfaces receive the same default rule.
 
 The generic regression pins:
 
+- both base clipping declarations, including the later/higher-specificity `body .app-content` rule;
+- generic stylesheet load order after `app-shell-header-fix.css`;
+- equal-specificity `body .app-content` override;
 - all standard standalone renderers receive the same `content` (`.app-content`) container;
 - Engineering extension resolves `.app-content` as its content host;
 - `data-fit-workspace-host` exists below the Engineering Console;
@@ -67,16 +77,14 @@ The generic regression pins:
 
 | Path | Change | Purpose | Authority impact |
 |---|---|---|---|
-| `styles/app-content-scroll.css` | added | Generic shell vertical-scroll contract | None |
-| `index.html` | modified | Load generic scroll layer after base tab CSS | None |
+| `styles/app-content-scroll.css` | added | Generic shell vertical-scroll contract with cascade-safe specificity | None |
+| `index.html` | modified | Load generic scroll layer last and cache-bust with `v=2` | None |
 | `tabs/vibration-aiv-scroll.css` | modified | Remove ineffective nested AIV vertical-scroll ownership | None |
-| `tests/app-content-scroll-layout.test.mjs` | added | Generic scroll architecture regression including FIT + AIV | Test only |
+| `tests/app-content-scroll-layout.test.mjs` | added | Generic scroll architecture/cascade regression including FIT + AIV | Test only |
 | `tests/vibration-aiv-scroll-layout.test.mjs` | removed | Retire false-positive AIV-only regression | Test only |
 | `package.json` | modified | Wire generic regression into AIV release suite | Test wiring only |
 | `scripts/verify-vibration-fit-release.mjs` | modified | Wire generic regression into FIT release suite | Test wiring only |
 | `agents/PR496_workreport.md` | added | Recovery / validation / handoff record | None |
-
-The temporary `agents/WIP-aiv-scroll-fix2_workreport.md` is removed after PR promotion.
 
 ## Authority / negative assurance
 
@@ -100,6 +108,7 @@ This PR changes only viewport/layout overflow ownership and regression wiring.
 | User validation of PR494 | FAIL | Vertical scrolling did not work in real UI | USER_SUPPLIED |
 | PR494 root-cause source trace | PASS | Nested `.aivq-root` was not a bounded scroll box | SOURCE_INSPECTION |
 | Generic shell source architecture | PASS | `.app-content` is bounded and shared by normal standalone modules; Engineering extension uses same host | SOURCE_INSPECTION |
+| CSS cascade reconciliation | PASS | Later `body .app-content { overflow:hidden }` found; generic rule now has equal specificity and later load order | SOURCE_INSPECTION |
 | FIT path source trace | PASS | FIT product host and exact workbook-reference definition are pinned by generic regression | SOURCE_INSPECTION |
 | AIV path source trace | PASS | AIV product host is pinned; local competing vertical owner removed | SOURCE_INSPECTION |
 | Generic regression wired to AIV release suite | PASS | `package.json` includes `tests/app-content-scroll-layout.test.mjs` | SOURCE_INSPECTION |
@@ -112,6 +121,7 @@ This PR changes only viewport/layout overflow ownership and regression wiring.
 ## Active items
 
 - `ISS-001` CLOSED IN SOURCE — failed nested AIV scroll ownership removed.
+- `ISS-002` CLOSED IN SOURCE — later higher-specificity shell clipping override identified and defeated correctly.
 - `IMP-001` IMPLEMENTED — generic `.app-content` vertical scroll owner added.
 - `IMP-002` IMPLEMENTED — FIT and AIV both pinned to generic contract.
 - `IMP-003` IMPLEMENTED — generic regression wired into AIV and FIT release suites.
