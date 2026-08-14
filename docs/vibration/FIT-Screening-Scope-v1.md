@@ -133,6 +133,40 @@ The future screening route must remain fail-closed for at least:
 - stale or uncertified topology authority represented as complete exchange;
 - source/method revision outside the qualified release package.
 
+### 7.1 Explicit manual data blockers
+
+A missing engineering **datum** may be supplied by the engineer through the separate `VibrationFitDataBlockerCsv.v1` table instead of through a hidden default.
+
+The user-facing workspace presents this as a dedicated **Data Blockers** tab. Every manual row carries scope, field, value, unit where dimensional, source, revision/record metadata, status and optional reviewer/notes.
+
+Status semantics are:
+
+```text
+ACTIVE    may fill a missing engineering datum
+HOLD      audit-only; does not satisfy readiness
+RESOLVED  audit-only; does not satisfy readiness
+```
+
+The table is strictly fill-only:
+
+```text
+manual ACTIVE value + existing source value
+    -> collision
+    -> fail closed
+```
+
+Source operating/enrichment data are never silently overwritten.
+
+Manual blocker data participate in the working-state snapshot, stale-result detection and reproducibility evidence.
+
+### 7.2 Data blockers do not override method blockers
+
+A correlation-family ambiguity, equation uncertainty, applicability boundary or authority decision is not a user-enterable datum.
+
+Therefore the blocker table cannot supply `SUPPORT_SIZE_FAMILY`, correlation ID, screening authority, design authority or another value that would bypass a method/domain gate.
+
+The QST-003 interval `219.1 < Dext < 273 mm` remains excluded even if a user attempts to provide a preferred family manually.
+
 ## 8. Topology/data authority
 
 The production candidate remains table-first. A complete upstream XLSX is the five-sheet exchange:
@@ -173,7 +207,7 @@ FitEngineeringInputIdentity.v1
   = normalized central FIT request identity
 ```
 
-The audit snapshot includes file/source descriptors, full XLSX hash where applicable, Elements projection hash, working rows/row IDs, benchmark identity and authority-downgrade state. The engineering identity excludes source filenames and uses the normalized `resolvedInputs`, calculation ID, method revision and scope.
+The audit snapshot includes file/source descriptors, full XLSX hash where applicable, Elements projection hash, working rows/row IDs, data-blocker table/file, benchmark identity and authority-downgrade state. The engineering identity excludes source filenames and uses the normalized `resolvedInputs`, calculation ID, method revision and scope.
 
 `FitRunEvidencePackage.v1` must re-verify both canonical payloads and both SHA-256 hashes before export. Evidence export is reproducibility evidence only; it cannot confer screening or design authority.
 
@@ -198,15 +232,16 @@ A dedicated authority transition is prohibited until all of these are recorded a
 2. QST-003 retained as the explicit scope exclusion above or separately source-resolved;
 3. every included standard and advanced family has independent non-self-referential evidence;
 4. all diameter/span/frequency/LOF boundaries are independently exercised;
-5. accepted engineering quantity families pass SI/US unit invariance through the central API;
-6. DOCX/PDF/JSON/workbook discrepancies inside the candidate scope are dispositioned;
-7. cell/row/table working-state revert and topology authority-latch regressions pass;
-8. Elements-projection and complete-XLSX byte-stream anti-bypass regressions pass;
-9. audit/engineering dual-hash and run-evidence reproducibility regressions pass;
-10. `npm run verify:vibration-fit-release` passes from a clean full checkout;
-11. real-browser five-sheet XLSX/CSV/edit/revert/stale/export acceptance passes;
-12. an identified independent vibration engineer approves this exact bounded scope and exclusions;
-13. the Owner explicitly approves the separate authority PR.
+5. accepted engineering quantity families and both multiphase representations pass SI/US unit invariance through the central API;
+6. explicit data-blocker parse/fill-only/collision/status/component-multiphase/QST-003-bypass regressions pass;
+7. DOCX/PDF/JSON/workbook discrepancies inside the candidate scope are dispositioned;
+8. cell/row/table working-state revert and topology authority-latch regressions pass;
+9. Elements-projection and complete-XLSX byte-stream anti-bypass regressions pass;
+10. audit/engineering dual-hash, manual-data snapshot binding and run-evidence reproducibility regressions pass;
+11. `npm run verify:vibration-fit-release` passes from a clean full checkout;
+12. real-browser five-sheet XLSX/CSV/edit/revert/data-blocker/stale/export acceptance passes;
+13. an identified independent vibration engineer approves this exact bounded scope, manual-data policy and exclusions;
+14. the Owner explicitly approves the separate authority PR.
 
 ## 12. Authority transition rule
 
