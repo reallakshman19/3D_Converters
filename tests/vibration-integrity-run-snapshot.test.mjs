@@ -41,13 +41,22 @@ function state(value = '1', sourceSuffix = '', sourceHash = null) {
       topology: topologyFile(sourceSuffix, sourceHash),
       operating: { name: `operating${sourceSuffix}.csv`, kind: 'Operating' },
       enrichment: { name: `enrichment${sourceSuffix}.csv`, kind: 'Enrichment' },
+      dataBlockers: null,
     },
     tables: {
       topology: table('topology', [['P', value]], `topology${sourceSuffix}.csv`),
       operating: table('operating', [['O', '2']], `operating${sourceSuffix}.csv`),
       enrichment: table('enrichment', [['E', '3']], `enrichment${sourceSuffix}.csv`),
+      dataBlockers: table('dataBlockers', []),
     },
   };
+}
+
+function withBlocker(value) {
+  const next = state();
+  next.files.dataBlockers = { name: 'fit-data-blockers.csv', kind: 'VibrationFitDataBlockerCsv.v1' };
+  next.tables.dataBlockers = table('dataBlockers', [['DENSITY', value]], 'fit-data-blockers.csv');
+  return next;
 }
 
 function envelope(outsideDiameter = 0.1683) {
@@ -85,6 +94,16 @@ test('engineering-working input changes alter the audit snapshot hash', async ()
   const first = await buildVibrationIntegrityRunSnapshot(state('1'));
   const changed = await buildVibrationIntegrityRunSnapshot(state('1.1'));
   assert.notEqual(first.snapshotHash, changed.snapshotHash);
+});
+
+test('manual data-blocker changes alter audit identity and participate in drift detection', async () => {
+  const firstState = withBlocker('1000');
+  const changedState = withBlocker('950');
+  const first = await buildVibrationIntegrityRunSnapshot(firstState);
+  const changed = await buildVibrationIntegrityRunSnapshot(changedState);
+  assert.notEqual(first.snapshotHash, changed.snapshotHash);
+  assert.equal(first.input.tables.dataBlockers.rows[0][1], '1000');
+  assert.equal(await vibrationIntegrityRunInputDrifted(first, changedState), true);
 });
 
 test('in-flight working-state changes invalidate captured run and readiness identities', async () => {
