@@ -3,12 +3,12 @@ import { createVibrationIntegrityInputTable } from './vibration-integrity-input-
 export const VIBRATION_FIT_UI_BENCHMARK_SOURCE = Object.freeze({
   benchmarkSetId: 'FIT-EI-WORKED-EXAMPLES-V1',
   repository: 'reallaksh19/Common',
-  commit: 'aef163a5def3bfe04ca0ba860da05728a27daf42',
+  commit: 'fb549185b9b27edc2379734240320a85c5bef9f6',
   path: 'EI - AVIFF Guidelines 2nd Edition_Examples.pdf',
   gitBlob: '3e2517d0df527a051084fc02e69cb7afa31f8d47',
   edition: '2nd Edition, January 2008',
   technicalModule: 'T2.2 Flow Induced Turbulence',
-  relativeTolerance: 0.015,
+  tolerancePolicyId: 'FIT-EI-PUBLISHED-RECONCILIATION-V1',
 });
 
 const CASES = Object.freeze([
@@ -17,35 +17,35 @@ const CASES = Object.freeze([
     label: 'EI D2 · Recycle suction · 6 in gas',
     sourceLocation: 'Appendix D, Example D2, D.2.1 Steps 1-5',
     input: Object.freeze({ phase: 'GAS', od: 0.1683, wt: 0.00711, id: 0.1541, span: 6.4, massFlow: 14.856111111111112, density: 18, viscosity: 0.00002 }),
-    published: Object.freeze({ supportStiffness: 'MEDIUM_STIFF', standardLof: 0.276, referenceBand: 'LOF_LT_0_3', standardFvPa: 18022 }),
+    published: Object.freeze({ supportStiffness: 'MEDIUM_STIFF', standardLof: 0.276, standardLofTolerance: 0.0012, referenceBand: 'LOF_LT_0_3', standardFvPa: 18022 }),
   }),
   Object.freeze({
     id: 'EI-D2-FIT-RELIEF-UPSTREAM-4IN',
     label: 'EI D2 · Relief upstream · 4 in gas',
     sourceLocation: 'Appendix D, Example D2, D.2.1 Steps 1-5',
     input: Object.freeze({ phase: 'GAS', od: 0.1143, wt: 0.0111, id: 0.0921, span: 5.2, massFlow: 14.856111111111112, density: 62, viscosity: 0.00002 }),
-    published: Object.freeze({ supportStiffness: 'MEDIUM_STIFF', standardLof: 0.338, referenceBand: 'LOF_0_3_TO_LT_0_5', standardFvPa: 33433 }),
+    published: Object.freeze({ supportStiffness: 'MEDIUM_STIFF', standardLof: 0.338, standardLofTolerance: 0.0018, referenceBand: 'LOF_0_3_TO_LT_0_5', standardFvPa: 33433 }),
   }),
   Object.freeze({
     id: 'EI-D2-FIT-RELIEF-DOWNSTREAM-6IN',
     label: 'EI D2 · Relief downstream · 6 in gas',
     sourceLocation: 'Appendix D, Example D2, D.2.1 Steps 1-5',
     input: Object.freeze({ phase: 'GAS', od: 0.1683, wt: 0.00711, id: 0.1541, span: 6.4, massFlow: 14.856111111111112, density: 4, viscosity: 0.00001 }),
-    published: Object.freeze({ supportStiffness: 'MEDIUM_STIFF', standardLof: 0.881, referenceBand: 'LOF_0_5_TO_LT_1', standardFvPa: 18022 }),
+    published: Object.freeze({ supportStiffness: 'MEDIUM_STIFF', standardLof: 0.881, standardLofTolerance: 0.0011, referenceBand: 'LOF_0_5_TO_LT_1', standardFvPa: 18022 }),
   }),
   Object.freeze({
     id: 'EI-D4-FIT-SEPARATOR-INLET-20IN',
     label: 'EI D4 · Separator inlet · 20 in multiphase',
     sourceLocation: 'Appendix D, Example D4, D.4.1 Steps 1-5',
     input: Object.freeze({ phase: 'MULTIPHASE', od: 0.508, wt: 0.009525, span: 5, density: 136, velocity: 9.3 }),
-    published: Object.freeze({ supportStiffness: 'STIFF', standardLof: 0.26, referenceBand: 'LOF_LT_0_3', standardFvPa: 45175 }),
+    published: Object.freeze({ supportStiffness: 'STIFF', standardLof: 0.26, standardLofTolerance: 0.0054, referenceBand: 'LOF_LT_0_3', standardFvPa: 45175 }),
   }),
   Object.freeze({
     id: 'EI-D4-FIT-PRODUCED-WATER-10IN',
     label: 'EI D4 · Produced water · 10 in liquid',
     sourceLocation: 'Appendix D, Example D4, D.4.1 Steps 1-5',
     input: Object.freeze({ phase: 'LIQUID', od: 0.273, wt: 0.009271, span: 18, density: 988, velocity: 2.9 }),
-    published: Object.freeze({ supportStiffness: 'FLEXIBLE', supportCategory: 'FLEXIBLE_LARGE', standardLof: 3.15, referenceBand: 'LOF_GE_1', standardFvPa: 2636 }),
+    published: Object.freeze({ supportStiffness: 'FLEXIBLE', supportCategory: 'FLEXIBLE_LARGE', standardLof: 3.15, standardLofTolerance: 0.007, referenceBand: 'LOF_GE_1', standardFvPa: 2636 }),
   }),
 ]);
 

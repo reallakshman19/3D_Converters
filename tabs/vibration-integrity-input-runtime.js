@@ -2,6 +2,10 @@ import { parseVibrationTableExchangeXlsx } from '../converters/vibration/exchang
 import { VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT } from '../converters/vibration/facility/fit-tables.js';
 import { buildVibrationFitUiBenchmarkCase, VIBRATION_FIT_UI_BENCHMARK_CASES } from './vibration-integrity-benchmarks.js';
 import {
+  assertVibrationTopologyProjectionIntegrity,
+  buildVibrationTopologyProjectionFingerprint,
+} from './vibration-integrity-input-integrity.js';
+import {
   createEmptyVibrationIntegrityInputTable,
   createTopologyInputTableFromExchange,
   parseVibrationIntegrityInputCsv,
@@ -46,13 +50,19 @@ function editedTopologyFileName(file, table) {
   return 'vibration-elements-working.csv';
 }
 
-export function vibrationIntegrityTopologyExecutionInput(state) {
+async function preservedXlsxInput(file, table) {
+  await assertVibrationTopologyProjectionIntegrity(file, table);
+  return { format: file.format, data: file.data, sourceFileName: file.name };
+}
+
+export async function vibrationIntegrityTopologyExecutionInput(state) {
   const file = state.files.topology;
   const table = state.tables.topology;
   if (!table.rows.length) return null;
-  if (file?.format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX && !table.authorityDowngraded) {
-    return { format: file.format, data: file.data, sourceFileName: file.name };
-  }
+  const canUsePreservedXlsx = file?.format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX
+    && table.originalCertifiedExchange === true
+    && !table.authorityDowngraded;
+  if (canUsePreservedXlsx) return preservedXlsxInput(file, table);
   return {
     format: VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.CSV_ELEMENTS_ONLY,
     data: serializeVibrationIntegrityInputTable(table),
@@ -60,9 +70,9 @@ export function vibrationIntegrityTopologyExecutionInput(state) {
   };
 }
 
-export function buildVibrationIntegrityFacilityTableInput(state) {
+export async function buildVibrationIntegrityFacilityTableInput(state) {
   return {
-    topology: vibrationIntegrityTopologyExecutionInput(state),
+    topology: await vibrationIntegrityTopologyExecutionInput(state),
     operatingCaseCsv: serializeOptionalTable(state.tables.operating),
     enrichmentCsv: serializeOptionalTable(state.tables.enrichment),
   };
@@ -73,9 +83,18 @@ async function readTopologyFile(file) {
   if (format === VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.XLSX) {
     const data = await file.arrayBuffer();
     const exchange = parseVibrationTableExchangeXlsx(data, { sourceFileName: file.name });
+    const table = createTopologyInputTableFromExchange(exchange, { sourceName: file.name });
+    const fingerprint = await buildVibrationTopologyProjectionFingerprint(table);
     return {
-      file: { name: file.name, format, data, kind: 'Complete five-sheet XLSX · editable Elements view' },
-      table: createTopologyInputTableFromExchange(exchange, { sourceName: file.name }),
+      file: {
+        name: file.name,
+        format,
+        data,
+        kind: 'Complete five-sheet XLSX · editable Elements view',
+        projectionSchema: fingerprint.schema,
+        projectionHash: fingerprint.projectionHash,
+      },
+      table,
     };
   }
   const text = await file.text();

@@ -105,7 +105,7 @@ export function buildFitMechanismBenchmarkComparison({
   if (!benchmark) return deepFreeze({ status: 'NOT_CONFIGURED' });
   const targetLof = finiteNumber(benchmark.published?.standardLof);
   const actualLof = finiteNumber(actual?.standardLof);
-  const tolerance = finiteNumber(benchmark.source?.relativeTolerance);
+  const tolerance = finiteNumber(benchmark.published?.standardLofTolerance);
   const targetBand = benchmark.published?.referenceBand ?? null;
   const actualBand = actual?.referenceBand ?? null;
 
@@ -117,25 +117,30 @@ export function buildFitMechanismBenchmarkComparison({
       targetBand,
       actualLof,
       actualBand,
+      absoluteDelta: null,
       relativeDelta: null,
       tolerance,
+      toleranceUnit: 'ABSOLUTE_LOF',
     });
   }
   if (resultState === 'STALE_RESULT') {
     return deepFreeze({
       status: 'STALE_RESULT', benchmarkId: benchmark.id ?? null,
-      targetLof, targetBand, actualLof, actualBand, relativeDelta: null, tolerance,
+      targetLof, targetBand, actualLof, actualBand,
+      absoluteDelta: null, relativeDelta: null, tolerance, toleranceUnit: 'ABSOLUTE_LOF',
     });
   }
   if (resultState !== 'CURRENT_RESULT' || targetLof === null || actualLof === null || tolerance === null) {
     return deepFreeze({
       status: 'NOT_RUN', benchmarkId: benchmark.id ?? null,
-      targetLof, targetBand, actualLof, actualBand, relativeDelta: null, tolerance,
+      targetLof, targetBand, actualLof, actualBand,
+      absoluteDelta: null, relativeDelta: null, tolerance, toleranceUnit: 'ABSOLUTE_LOF',
     });
   }
 
-  const relativeDelta = Math.abs(actualLof - targetLof) / Math.max(Math.abs(targetLof), Number.EPSILON);
-  const pass = relativeDelta <= tolerance && actualBand === targetBand;
+  const absoluteDelta = Math.abs(actualLof - targetLof);
+  const relativeDelta = absoluteDelta / Math.max(Math.abs(targetLof), Number.EPSILON);
+  const pass = absoluteDelta <= tolerance && actualBand === targetBand;
   return deepFreeze({
     status: pass ? 'PASS' : 'FAIL',
     benchmarkId: benchmark.id ?? null,
@@ -143,8 +148,10 @@ export function buildFitMechanismBenchmarkComparison({
     targetBand,
     actualLof,
     actualBand,
+    absoluteDelta,
     relativeDelta,
     tolerance,
+    toleranceUnit: 'ABSOLUTE_LOF',
   });
 }
 

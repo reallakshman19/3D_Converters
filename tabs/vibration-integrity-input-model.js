@@ -15,11 +15,13 @@ import {
   deleteVibrationWorkingRow,
   replaceVisibleVibrationWorkingRows,
   revertVibrationWorkingCell,
+  revertVibrationWorkingRow,
   revertVibrationWorkingTable,
   updateVibrationWorkingCell,
   vibrationWorkingCellState,
   vibrationWorkingEditCount,
   vibrationWorkingRecordsDirty,
+  vibrationWorkingRowState,
   visibleVibrationWorkingRowIds,
   visibleVibrationWorkingRows,
 } from './vibration-integrity-working-state.js';
@@ -222,6 +224,13 @@ function assertCell(table, rowIndex, columnIndex) {
   }
 }
 
+function assertRow(table, rowIndex) {
+  configFor(table?.kind);
+  if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= table.rows.length) {
+    throw new RangeError(`Editable input row ${rowIndex} is out of range.`);
+  }
+}
+
 export function updateVibrationIntegrityInputCell(table, rowIndex, columnIndex, value) {
   assertCell(table, rowIndex, columnIndex);
   return mutationState(table, updateRecordsForCell(table, rowIndex, columnIndex, value));
@@ -230,6 +239,11 @@ export function updateVibrationIntegrityInputCell(table, rowIndex, columnIndex, 
 export function revertVibrationIntegrityInputCell(table, rowIndex, columnIndex) {
   assertCell(table, rowIndex, columnIndex);
   return mutationState(table, revertRecordsForCell(table, rowIndex, columnIndex));
+}
+
+export function revertVibrationIntegrityInputRow(table, rowIndex) {
+  assertRow(table, rowIndex);
+  return mutationState(table, revertVibrationWorkingRow(table.records, rowIndex));
 }
 
 export function revertVibrationIntegrityInputTable(table) {
@@ -245,6 +259,13 @@ export function vibrationIntegrityInputCellState(table, rowIndex, columnIndex) {
   return vibrationWorkingCellState(table.records, rowIndex, columnIndex);
 }
 
+export function vibrationIntegrityInputRowState(table, rowIndex) {
+  assertRow(table, rowIndex);
+  return vibrationWorkingRowState(table.records, rowIndex, {
+    ignoredColumns: ignoredDirtyColumns(table.kind, table.header),
+  });
+}
+
 export function addVibrationIntegrityInputRow(table) {
   const config = configFor(table?.kind);
   const added = addVibrationWorkingRow(table.records, table.kind, config.header.length, table.nextLocalRowSequence);
@@ -252,8 +273,6 @@ export function addVibrationIntegrityInputRow(table) {
 }
 
 export function deleteVibrationIntegrityInputRow(table, rowIndex) {
-  if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= table.rows.length) {
-    throw new RangeError(`Editable input row ${rowIndex} is out of range.`);
-  }
+  assertRow(table, rowIndex);
   return mutationState(table, deleteVibrationWorkingRow(table.records, rowIndex));
 }

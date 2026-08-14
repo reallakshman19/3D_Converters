@@ -2,30 +2,13 @@ import { buildVibrationFacilityFitPreflightFromTables } from '../converters/vibr
 import { serializeVibrationFacilityFitRegisterCsv } from '../converters/vibration/facility/fit-register-export.js';
 import { createVibrationEnrichmentCsvTemplate, createVibrationOperatingCaseCsvTemplate } from '../converters/vibration/tabular/templates.js';
 import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/model.js';
-import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
-import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile, vibrationIntegrityTopologyExecutionInput } from './vibration-integrity-input-runtime.js';
-import { buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
+import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputRow, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
+import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
+import { downloadVibrationIntegrityText, ensureVibrationIntegrityStylesheet } from './vibration-integrity-dom.js';
+import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
+import { bindVibrationIntegrityEngineeringIdentity, buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
-function ensureStylesheet() {
-  if (document.querySelector('link[data-vibration-integrity-style="true"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = './tabs/vibration-integrity.css?v=vibration-integrity-2';
-  link.dataset.vibrationIntegrityStyle = 'true';
-  document.head.appendChild(link);
-}
-function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
-  const blob = new Blob([text], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.hidden = true;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
+
 function workspaceOptions(state) {
   const filters = {};
   if (state.filters.line) filters.lines = [state.filters.line];
@@ -58,7 +41,7 @@ function initialState() {
   };
 }
 export function renderVibrationIntegrityTab(container) {
-  ensureStylesheet();
+  ensureVibrationIntegrityStylesheet();
   const state = initialState();
   function render() {
     if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
@@ -130,16 +113,16 @@ export function renderVibrationIntegrityTab(container) {
     }
     render();
   }
-  function checkReadiness() {
-    if (!vibrationIntegrityTopologyExecutionInput(state)) return;
+  async function checkReadiness() {
+    if (!state.tables.topology.rows.length) return;
     state.busy = true;
     state.busyAction = 'preflight';
     state.error = null;
     render();
     try {
+      const tableInput = await buildVibrationIntegrityFacilityTableInput(state);
       state.preflight = buildVibrationFacilityFitPreflightFromTables(
-        buildVibrationIntegrityFacilityTableInput(state),
-        { allowLimitedExchange: state.allowLimitedExchange },
+        tableInput, { allowLimitedExchange: state.allowLimitedExchange },
       );
     } catch (error) {
       state.preflight = null;
@@ -151,7 +134,7 @@ export function renderVibrationIntegrityTab(container) {
     }
   }
   async function runBenchmark() {
-    if (!vibrationIntegrityTopologyExecutionInput(state)) return;
+    if (!state.tables.topology.rows.length) return;
     state.busy = true;
     state.busyAction = 'benchmark';
     state.resultState = 'RUNNING';
@@ -159,16 +142,14 @@ export function renderVibrationIntegrityTab(container) {
     render();
     try {
       const snapshot = await buildVibrationIntegrityRunSnapshot(state);
+      const tableInput = await buildVibrationIntegrityFacilityTableInput(state);
       const { runVibrationFacilityFitBenchmarkFromTables } = await import('../converters/vibration/facility/fit-workflow-tabular.js');
       if (state.destroyed) return;
       state.envelope = runVibrationFacilityFitBenchmarkFromTables(
-        buildVibrationIntegrityFacilityTableInput(state),
-        { allowLimitedExchange: state.allowLimitedExchange },
+        tableInput, { allowLimitedExchange: state.allowLimitedExchange },
       );
-      state.runSnapshot = Object.freeze({
-        ...snapshot,
-        runId: `FIT-RUN-${new Date().toISOString()}`,
-      });
+      const identified = await bindVibrationIntegrityEngineeringIdentity(snapshot, state.envelope);
+      state.runSnapshot = Object.freeze({ ...identified, runId: `FIT-RUN-${new Date().toISOString()}` });
       state.resultState = 'CURRENT_RESULT';
       state.selectedRowKey = null;
       state.detailTab = 'summary';
@@ -186,9 +167,19 @@ export function renderVibrationIntegrityTab(container) {
   function exportRegister() {
     if (state.resultState !== 'CURRENT_RESULT' || !state.envelope?.workflow?.register) return;
     try {
-      downloadText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
+      downloadVibrationIntegrityText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
     } catch (error) {
       state.error = String(error?.message || error);
+      render();
+    }
+  }
+  async function exportRunEvidence() {
+    if (state.resultState !== 'CURRENT_RESULT') return;
+    try {
+      const payload = await serializeVibrationIntegrityRunEvidence(state);
+      downloadVibrationIntegrityText(payload, 'vibration-fit-run-evidence.json', 'application/json;charset=utf-8');
+    } catch (error) {
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       render();
     }
   }
@@ -220,6 +211,12 @@ export function renderVibrationIntegrityTab(container) {
       ));
       return true;
     }
+    const revertRow = event.target.closest('[data-vi-row-revert]');
+    if (revertRow) {
+      const kind = revertRow.dataset.viRowRevert;
+      applyTableMutation(kind, revertVibrationIntegrityInputRow(state.tables[kind], Number(revertRow.dataset.viEditRow)));
+      return true;
+    }
     const button = event.target.closest('[data-vi-table-delete]');
     if (!button) return false;
     const kind = button.dataset.viTableDelete;
@@ -244,8 +241,9 @@ export function renderVibrationIntegrityTab(container) {
     if (action === 'preflight') checkReadiness();
     if (action === 'run') runBenchmark();
     if (action === 'export') exportRegister();
-    if (action === 'operating-template') downloadText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
-    if (action === 'enrichment-template') downloadText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
+    if (action === 'export-evidence') exportRunEvidence();
+    if (action === 'operating-template') downloadVibrationIntegrityText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
+    if (action === 'enrichment-template') downloadVibrationIntegrityText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
   }
   function handleTableChange(event) {
     const kind = event.target.dataset.viTableCell;

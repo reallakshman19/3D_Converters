@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { buildVibrationTopologyProjectionFingerprint } from '../tabs/vibration-integrity-input-integrity.js';
 import {
   buildLoadedVibrationIntegrityBenchmark,
   buildVibrationIntegrityFacilityTableInput,
@@ -13,13 +14,13 @@ import {
   VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS,
 } from '../tabs/vibration-integrity-input-model.js';
 
-function certifiedExchange() {
+function certifiedExchange(line = 'L-1') {
   return Object.freeze({
     completeExchange: true,
     sourceFormat: 'XLSX',
     sourceFileName: 'plant-certified.xlsx',
     elements: Object.freeze([Object.freeze({
-      tag: 'P-1', type: 'PIPE', line: 'L-1', connectFrom: null, connectTo: null,
+      tag: 'P-1', type: 'PIPE', line, connectFrom: null, connectTo: null,
       dnInMm: 273, dnOutMm: 273, lengthMm: 1000, schedule: '40', material: 'CS',
       pipingClass: 'PC-1', pressureClass: '300', catalogueAuthority: 'CAT',
       sourceStatus: 'CERTIFIED', canonicalId: 'CID-1',
@@ -27,42 +28,68 @@ function certifiedExchange() {
   });
 }
 
-test('untouched certified XLSX remains the topology execution input', () => {
+async function stateWithCertifiedXlsx() {
   const state = createVibrationIntegrityInputRuntimeState();
-  const bytes = new Uint8Array([1, 2, 3]);
-  state.files.topology = { name: 'plant-certified.xlsx', format: 'XLSX', data: bytes };
-  state.tables.topology = createTopologyInputTableFromExchange(certifiedExchange());
-  const input = vibrationIntegrityTopologyExecutionInput(state);
+  const table = createTopologyInputTableFromExchange(certifiedExchange());
+  const fingerprint = await buildVibrationTopologyProjectionFingerprint(table);
+  state.files.topology = {
+    name: 'plant-certified.xlsx', format: 'XLSX', data: new Uint8Array([1, 2, 3]),
+    projectionSchema: fingerprint.schema, projectionHash: fingerprint.projectionHash,
+  };
+  state.tables.topology = table;
+  return state;
+}
+
+test('untouched certified XLSX remains the topology execution input only with matching projection fingerprint', async () => {
+  const state = await stateWithCertifiedXlsx();
+  const input = await vibrationIntegrityTopologyExecutionInput(state);
   assert.equal(input.format, 'XLSX');
-  assert.equal(input.data, bytes);
+  assert.equal(input.data, state.files.topology.data);
 });
 
-test('first topology edit downgrades certified XLSX to visible local Elements CSV', () => {
+test('preserved XLSX fails closed when its projection fingerprint is missing', async () => {
   const state = createVibrationIntegrityInputRuntimeState();
   state.files.topology = { name: 'plant-certified.xlsx', format: 'XLSX', data: new Uint8Array([1]) };
-  const table = createTopologyInputTableFromExchange(certifiedExchange());
-  state.tables.topology = updateVibrationIntegrityInputCell(table, 0, 2, 'L-1-EDITED');
-  const input = vibrationIntegrityTopologyExecutionInput(state);
+  state.tables.topology = createTopologyInputTableFromExchange(certifiedExchange());
+  await assert.rejects(
+    () => vibrationIntegrityTopologyExecutionInput(state),
+    (error) => error?.code === 'VIBRATION_TOPOLOGY_PROJECTION_FINGERPRINT_MISSING',
+  );
+});
+
+test('stale preserved XLSX cannot execute after working projection is replaced without downgrade metadata', async () => {
+  const state = await stateWithCertifiedXlsx();
+  state.tables.topology = createTopologyInputTableFromExchange(certifiedExchange('L-POISONED'));
+  assert.equal(state.tables.topology.authorityDowngraded, false);
+  await assert.rejects(
+    () => vibrationIntegrityTopologyExecutionInput(state),
+    (error) => error?.code === 'VIBRATION_TOPOLOGY_PROJECTION_INTEGRITY_MISMATCH',
+  );
+});
+
+test('first topology edit downgrades certified XLSX to visible local Elements CSV', async () => {
+  const state = await stateWithCertifiedXlsx();
+  state.tables.topology = updateVibrationIntegrityInputCell(state.tables.topology, 0, 2, 'L-1-EDITED');
+  const input = await vibrationIntegrityTopologyExecutionInput(state);
   assert.equal(input.format, 'CSV_ELEMENTS_ONLY');
   assert.equal(input.sourceFileName, 'plant-certified.edited-elements.csv');
   assert.equal(state.tables.topology.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
   assert.match(input.data, /L-1-EDITED/u);
 });
 
-test('reverting topology values does not regain complete XLSX execution authority', () => {
-  const state = createVibrationIntegrityInputRuntimeState();
-  state.files.topology = { name: 'plant-certified.xlsx', format: 'XLSX', data: new Uint8Array([1]) };
-  const edited = updateVibrationIntegrityInputCell(createTopologyInputTableFromExchange(certifiedExchange()), 0, 2, 'EDITED');
+test('reverting topology values does not regain complete XLSX execution authority', async () => {
+  const state = await stateWithCertifiedXlsx();
+  const edited = updateVibrationIntegrityInputCell(state.tables.topology, 0, 2, 'EDITED');
   state.tables.topology = revertVibrationIntegrityInputTable(edited);
   assert.equal(state.tables.topology.dirty, false);
   assert.equal(state.tables.topology.authorityDowngraded, true);
-  const input = vibrationIntegrityTopologyExecutionInput(state);
+  const input = await vibrationIntegrityTopologyExecutionInput(state);
   assert.equal(input.format, 'CSV_ELEMENTS_ONLY');
   assert.equal(input.sourceFileName, 'plant-certified.edited-elements.csv');
   assert.doesNotMatch(input.data, /,CERTIFIED,/u);
 });
 
-test('loaded EI benchmark uses the same limited table workflow input contract', () => {
+test('loaded EI benchmark uses the same limited table workflow input contract', async () => {
   const benchmark = buildLoadedVibrationIntegrityBenchmark('EI-D4-FIT-PRODUCED-WATER-10IN');
   const state = {
     ...createVibrationIntegrityInputRuntimeState(),
@@ -71,7 +98,7 @@ test('loaded EI benchmark uses the same limited table workflow input contract', 
     benchmark: { selectedId: benchmark.loaded.id, loaded: benchmark.loaded, detachedFromSource: false },
     allowLimitedExchange: benchmark.allowLimitedExchange,
   };
-  const input = buildVibrationIntegrityFacilityTableInput(state);
+  const input = await buildVibrationIntegrityFacilityTableInput(state);
   assert.equal(input.topology.format, 'CSV_ELEMENTS_ONLY');
   assert.match(input.operatingCaseCsv, /EI-REFERENCE/u);
   assert.match(input.enrichmentCsv, /FIT_ASSESSMENT_POINT/u);

@@ -54,22 +54,27 @@ test('EI D4 aggregate multiphase and flexible-large liquid slices retain publish
   assert.equal(water.qualificationCoverage.standardCorrelation.eiPublishedExampleCoverage, true);
 });
 
-test('standard correlation families with weaker evidence are explicit rather than promoted', () => {
+test('medium-small standard correlation now has explicit independent hand-benchmark coverage', () => {
   const mediumSmall = calculateFit({
     phase: 'LIQUID',
     outsideDiameterM: 0.1683,
     wallThicknessM: 0.00711,
-    maximumUnsupportedSpanM: 8,
+    maximumUnsupportedSpanM: 8.5,
     densityKgM3: 1000,
-    fluidVelocityMS: 1,
+    fluidVelocityMS: 1.2,
   });
   assert.equal(mediumSmall.ok, true, JSON.stringify(mediumSmall));
   assert.equal(mediumSmall.support.category, 'MEDIUM_SMALL');
-  assert.equal(mediumSmall.qualificationCoverage.standardCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.RETAINED_PARITY_ONLY);
-  assert.equal(mediumSmall.qualificationCoverage.standardCorrelation.eiPublishedExampleCoverage, false);
-  assert.equal(mediumSmall.qualificationCoverage.standardCorrelation.independentHandBenchmarkCoverage, false);
-  assert.equal(mediumSmall.qualificationCoverage.standardCorrelation.noIndependentExample, true);
+  const evidence = mediumSmall.qualificationCoverage.standardCorrelation;
+  assert.equal(evidence.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
+  assert.equal(evidence.eiPublishedExampleCoverage, false);
+  assert.equal(evidence.independentHandBenchmarkCoverage, true);
+  assert.equal(evidence.noIndependentExample, false);
+  assert(evidence.evidenceIds.includes('FIT-HAND-LIQ-MEDIUM-SMALL-008'));
+  assertNoAuthority(mediumSmall.qualificationCoverage);
+});
 
+test('medium-large standard correlation retains independent hand-benchmark coverage', () => {
   const mediumLarge = calculateFit({
     phase: 'LIQUID',
     outsideDiameterM: 0.508,
@@ -83,9 +88,10 @@ test('standard correlation families with weaker evidence are explicit rather tha
   assert.equal(mediumLarge.qualificationCoverage.standardCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
   assert.equal(mediumLarge.qualificationCoverage.standardCorrelation.eiPublishedExampleCoverage, false);
   assert.equal(mediumLarge.qualificationCoverage.standardCorrelation.independentHandBenchmarkCoverage, true);
+  assertNoAuthority(mediumLarge.qualificationCoverage);
 });
 
-test('advanced flexible-small and flexible-large evidence strengths remain distinct', () => {
+test('advanced flexible-small and flexible-large both have independent benchmark evidence without authority', () => {
   const small = calculateFit({
     phase: 'LIQUID',
     outsideDiameterM: 0.1683,
@@ -101,22 +107,27 @@ test('advanced flexible-small and flexible-large evidence strengths remain disti
   assert.equal(small.qualificationCoverage.advancedCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
   assert.equal(small.qualificationCoverage.advancedCorrelation.eiPublishedExampleCoverage, false);
   assert.equal(small.qualificationCoverage.referenceBand.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
+  assert(small.qualificationCoverage.referenceBand.evidenceIds.includes('FIT-HAND-FLEX-SMALL-LOF-105-FN2'));
+  assertNoAuthority(small.qualificationCoverage);
 
   const large = calculateFit({
     phase: 'LIQUID',
-    outsideDiameterM: 0.508,
-    wallThicknessM: 0.009525,
-    maximumUnsupportedSpanM: 20,
+    outsideDiameterM: 0.3239,
+    wallThicknessM: 0.00953,
+    maximumUnsupportedSpanM: 15,
     densityKgM3: 1000,
-    fluidVelocityMS: 2,
+    fluidVelocityMS: 1.7348455398663403,
     naturalFrequencyHz: 2,
   });
   assert.equal(large.ok, true, JSON.stringify(large));
   assert(large.advanced);
   assert.equal(large.support.category, 'FLEXIBLE_LARGE');
-  assert.equal(large.qualificationCoverage.advancedCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.RETAINED_PARITY_ONLY);
-  assert.equal(large.qualificationCoverage.advancedCorrelation.independentHandBenchmarkCoverage, false);
-  assert.equal(large.qualificationCoverage.advancedCorrelation.noIndependentExample, true);
+  assert.equal(large.qualificationCoverage.advancedCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
+  assert.equal(large.qualificationCoverage.advancedCorrelation.independentHandBenchmarkCoverage, true);
+  assert.equal(large.qualificationCoverage.advancedCorrelation.noIndependentExample, false);
+  assert(large.qualificationCoverage.advancedCorrelation.evidenceIds.includes('FIT-HAND-FLEX-LARGE-LOF-120-FN2-009'));
+  assert(large.qualificationCoverage.referenceBand.evidenceIds.includes('FIT-HAND-FLEX-LARGE-LOF-120-FN2-009'));
+  assertNoAuthority(large.qualificationCoverage);
 });
 
 test('central FIT adapter carries coverage in evidence while remaining benchmark-only', () => {

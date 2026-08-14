@@ -39,19 +39,43 @@ Extraction: 114139 XML bytes / 155 formula cells
 
 The duplicate KS-PR-CAL-0086 path is the same blob and therefore not an independent source.
 
-### 2.2 EI worked examples
+### 2.2 Controlled EI source set
+
+Current controlled project pin:
 
 ```text
 Repository: reallaksh19/Common
-Commit:     aef163a5def3bfe04ca0ba860da05728a27daf42
+Commit:     fb549185b9b27edc2379734240320a85c5bef9f6
+```
+
+Governing method source:
+
+```text
+Path:       EI - AVIFF Guidelines 2nd Edition.pdf
+Git blob:   9d3eccc56429411e17c07a579bdebbd13cb0bdc5
+Edition:    2nd Edition, January 2008
+Relevant:   Technical Module T2.2
+```
+
+Published worked examples:
+
+```text
 Path:       EI - AVIFF Guidelines 2nd Edition_Examples.pdf
 Git blob:   3e2517d0df527a051084fc02e69cb7afa31f8d47
-Size:       3757439 bytes
-Edition:    2nd Edition, January 2008
 Relevant:   Appendix D Examples D2 and D4
 ```
 
-Only minimum benchmark facts needed for qualification are stored in `Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`.
+Corroborating worked-example DOCX:
+
+```text
+Path:       Energy-Institute-AVIFF---Worked-Examples.doc.docx
+Git blob:   ceee15ed5f7f320045d5f3979024e2e8664613f2
+Role:       corroborating/project-scenario evidence only
+```
+
+The earlier source state `aef163a5def3bfe04ca0ba860da05728a27daf42` is the direct parent of the controlled project pin. The governing worked-example PDF blob is unchanged across that transition; the later pin additionally binds the controlled DOCX evidence. Current live qualification metadata uses `fb549185...`.
+
+Only minimum benchmark facts needed for qualification are stored in `Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`. Source precedence and observed DOCX/PDF differences are controlled by `docs/vibration/FIT-EI-Worked-Example-Traceability-v1.md`.
 
 ## 3. Method boundary
 
@@ -82,7 +106,7 @@ The unresolved manual region:
 219.1 mm < Dext < 273 mm
 ```
 
-fails closed. No interpolation, nearest-size choice or hidden nominal-size assumption is allowed.
+fails closed. No interpolation, nearest-size choice or hidden nominal-size assumption is allowed. `FIT-Screening-Scope-v1.md` freezes this region as an explicit future production exclusion unless later authoritative evidence resolves it.
 
 ### FIT-APP-004 — advanced reference calculation
 
@@ -374,21 +398,21 @@ Resolved in software: when aggregate and component multiphase data coexist, an e
 
 ### QST-003 — remaining diameter gap
 
-`219.1 < Dext < 273 mm` remains fail-closed pending an authoritative mapping/exclusion decision.
+`219.1 < Dext < 273 mm` remains fail-closed and is explicitly outside the bounded future screening scope pending an authoritative mapping/exclusion decision.
 
 ## 10. Benchmark register
 
 - Retained workbook parity: migration/source-transcription evidence.
-- `fit-independent-hand-benchmarks-v1.json`: independent software arithmetic evidence.
-- `fit-ei-worked-examples-v1.json`: independent EI D2/D4 example evidence.
+- `fit-independent-hand-benchmarks-v1.json`: independent software arithmetic evidence, including independent `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` vectors.
+- `fit-ei-worked-examples-v1.json`: independent EI D2/D4 published-example evidence.
 
-Current focused EI regression after Stage 12 hardening:
+Published EI values use controlled tolerance policy:
 
 ```text
-12 tests / 12 PASS
+FIT-EI-PUBLISHED-RECONCILIATION-V1
 ```
 
-The five published EI D2/D4 numerical cases are unchanged by the resolution-contract hardening.
+The former blanket `1.5%` relative tolerance is removed. Each controlled published field has a case-specific absolute tolerance derived from independent equation-register recalculation of the published input vector plus half of the field's least displayed output increment. The derivation is recorded in `FIT-EI-Worked-Example-Traceability-v1.md`; tolerances may not be tuned to production output.
 
 ## 11. API/result evidence requirements
 
@@ -431,13 +455,15 @@ qualificationIssue   = 429
 
 Promotion is not permitted until:
 
-1. EI worked-example regression remains PASS;
+1. EI worked-example regression remains PASS under the controlled per-case tolerance policy;
 2. independent hand benchmark regression passes in the complete checkout;
 3. full central API/Console/batch regression passes;
 4. mixed multiphase ambiguity/explicit-mode cases pass through the central API;
 5. every applicable method/application item is independently reviewed against the adopted EI/project basis and errata;
-6. QST-003 is authoritatively resolved or explicitly excluded from screening scope;
+6. QST-003 remains authoritatively excluded or is separately source-resolved;
 7. missing-data, units, phase, threshold and support-boundary cases pass;
-8. an identified vibration engineer records approval and limitations under issue #429.
+8. working-state/source-to-result and dual-hash reproducibility gates pass;
+9. real-browser five-sheet XLSX/CSV/edit/revert/export acceptance passes;
+10. an identified vibration engineer records approval and limitations under issue #429.
 
 Until then, FIT remains `BENCHMARK_ONLY`.

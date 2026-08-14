@@ -34,15 +34,22 @@ function fitDetail() {
 function benchmark(modified = false) {
   return {
     id: 'EI-D2-FIT-RECYCLE-SUCTION-6IN', modified,
-    published: { standardLof: 0.276, referenceBand: 'LOF_LT_0_3' },
-    source: { relativeTolerance: 0.015 },
+    published: {
+      standardLof: 0.276,
+      standardLofTolerance: 0.0012,
+      referenceBand: 'LOF_LT_0_3',
+    },
+    source: { tolerancePolicyId: 'FIT-EI-PUBLISHED-RECONCILIATION-V1' },
   };
 }
 
 test('FIT benchmark comparison has explicit current, stale and modified-input states', () => {
   const pass = buildFitMechanismBenchmarkComparison({ benchmark: benchmark(), actual: row(), resultState: 'CURRENT_RESULT' });
   assert.equal(pass.status, 'PASS');
+  assert.equal(pass.absoluteDelta, 0);
   assert.equal(pass.relativeDelta, 0);
+  assert.equal(pass.tolerance, 0.0012);
+  assert.equal(pass.toleranceUnit, 'ABSOLUTE_LOF');
   assert.equal(buildFitMechanismBenchmarkComparison({ benchmark: benchmark(), actual: row(), resultState: 'STALE_RESULT' }).status, 'STALE_RESULT');
   assert.equal(buildFitMechanismBenchmarkComparison({ benchmark: benchmark(true), actual: row(), resultState: 'CURRENT_RESULT' }).status, 'NOT_APPLICABLE_MODIFIED_INPUTS');
 });
@@ -51,7 +58,7 @@ test('FIT benchmark comparison fails parity on value or reference-band mismatch'
   const actual = { ...row(), standardLof: 0.31, referenceBand: 'LOF_0_3_TO_LT_0_5' };
   const result = buildFitMechanismBenchmarkComparison({ benchmark: benchmark(), actual, resultState: 'CURRENT_RESULT' });
   assert.equal(result.status, 'FAIL');
-  assert(result.relativeDelta > result.tolerance);
+  assert(result.absoluteDelta > result.tolerance);
 });
 
 test('FIT generic item carries request, execution, benchmark, trace and qualification without UI math', () => {

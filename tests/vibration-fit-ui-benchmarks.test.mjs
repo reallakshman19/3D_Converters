@@ -11,10 +11,15 @@ import {
 } from '../tabs/vibration-integrity-benchmarks.js';
 import { serializeVibrationIntegrityInputTable } from '../tabs/vibration-integrity-input-model.js';
 
+const CONTROLLED_COMMON_PIN = 'fb549185b9b27edc2379734240320a85c5bef9f6';
+const HISTORICAL_COMMON_PARENT = 'aef163a5def3bfe04ca0ba860da05728a27daf42';
+const CONTROLLED_EXAMPLES_BLOB = '3e2517d0df527a051084fc02e69cb7afa31f8d47';
 const controlled = JSON.parse(readFileSync(
   new URL('../Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json', import.meta.url),
   'utf8',
 ));
+const methodSpec = readFileSync(new URL('../docs/vibration/FIT-Engineering-Method-Specification-v1.md', import.meta.url), 'utf8');
+const dossier = readFileSync(new URL('../docs/vibration/FIT-Qualification-Dossier-v1.md', import.meta.url), 'utf8');
 
 function enrichmentMap(rows) {
   return new Map(rows.map((row) => [row.property, row]));
@@ -48,10 +53,23 @@ test('UI benchmark catalogue exactly covers the controlled five EI worked cases'
     VIBRATION_FIT_UI_BENCHMARK_CASES.map((entry) => entry.id),
     controlled.cases.map((entry) => entry.id),
   );
+  assert.equal(controlled.source.commit, CONTROLLED_COMMON_PIN);
+  assert.equal(controlled.source.gitBlob, CONTROLLED_EXAMPLES_BLOB);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.benchmarkSetId, controlled.benchmarkSetId);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.commit, controlled.source.commit);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.gitBlob, controlled.source.gitBlob);
-  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.relativeTolerance, controlled.roundingPolicy.relativeTolerance);
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.tolerancePolicyId, controlled.tolerancePolicy.id);
+  assert.equal(controlled.tolerancePolicy.screeningPromotionState, 'RECONCILED_FOR_BENCHMARK_USE');
+});
+
+test('active FIT method and dossier metadata use the controlled Common pin', () => {
+  for (const source of [methodSpec, dossier]) {
+    assert.match(source, new RegExp(CONTROLLED_COMMON_PIN, 'u'));
+  }
+  assert.doesNotMatch(methodSpec, new RegExp(`Commit:\\s+${HISTORICAL_COMMON_PARENT}`, 'u'));
+  assert.doesNotMatch(dossier, new RegExp(`controlled pin\\s+${HISTORICAL_COMMON_PARENT}`, 'iu'));
+  assert.match(methodSpec, /historical|earlier source state/iu);
+  assert.match(dossier, /historical parent state/iu);
 });
 
 test('every UI benchmark builds production-parseable topology, operating and enrichment tables', () => {
@@ -69,10 +87,11 @@ test('every UI benchmark builds production-parseable topology, operating and enr
   }
 });
 
-test('published UI targets are identical to controlled EI target values', () => {
+test('published UI targets and LOF tolerances are identical to the controlled EI benchmark record', () => {
   for (const controlledCase of controlled.cases) {
     const uiCase = buildVibrationFitUiBenchmarkCase(controlledCase.id);
     assert.equal(uiCase.published.standardLof, controlledCase.published.standardLof);
+    assert.equal(uiCase.published.standardLofTolerance, controlledCase.tolerance.standardLof);
     assert.equal(uiCase.published.referenceBand, controlledCase.published.referenceBand);
     assert.equal(uiCase.published.standardFvPa, controlledCase.published.standardFvPa);
     assert.equal(uiCase.published.supportStiffness, controlledCase.published.supportStiffness);

@@ -1,5 +1,8 @@
 import { buildFitMechanismBenchmarkComparison } from '../converters/vibration/mechanisms/index.js';
-import { vibrationIntegrityInputCellState } from './vibration-integrity-input-model.js';
+import {
+  vibrationIntegrityInputCellState,
+  vibrationIntegrityInputRowState,
+} from './vibration-integrity-input-model.js';
 import { VIBRATION_FIT_UI_BENCHMARK_CASES, VIBRATION_FIT_UI_BENCHMARK_SOURCE } from './vibration-integrity-benchmarks.js';
 import { renderVibrationEngineeringBasis } from './vibration-integrity-engineering-basis-view.js';
 import { vibrationEngineeringBasisSourceCellId } from './vibration-integrity-engineering-basis.js';
@@ -56,17 +59,18 @@ function benchmarkPanel(state) {
     <div class="vi-section-head"><div><h3>FIT validation benchmark</h3><p>Load a controlled EI worked example into the editable tables, then run the normal FIT benchmark workflow.</p></div></div>
     <div class="vi-benchmark-controls"><label>Benchmark case<select data-vi-benchmark-select>${VIBRATION_FIT_UI_BENCHMARK_CASES.map((entry) => option(entry.id, selected, entry.label)).join('')}</select></label><button type="button" class="vi-btn primary" data-vi-action="load-benchmark"${state.busy ? ' disabled' : ''}>Load BENCHMARK</button></div>
     ${loaded ? `<div class="vi-benchmark-facts">
-      <span>Source: <strong>${esc(loaded.sourceLocation)}</strong></span><span>Target standard LOF: <strong>${esc(loaded.published.standardLof)}</strong></span><span>Target band: <strong>${esc(loaded.published.referenceBand)}</strong></span><span>Published support: <strong>${esc(loaded.published.supportStiffness)}</strong></span>
+      <span>Source: <strong>${esc(loaded.sourceLocation)}</strong></span><span>Target standard LOF: <strong>${esc(loaded.published.standardLof)}</strong></span><span>LOF tolerance: <strong>±${esc(loaded.published.standardLofTolerance)}</strong></span><span>Target band: <strong>${esc(loaded.published.referenceBand)}</strong></span><span>Published support: <strong>${esc(loaded.published.supportStiffness)}</strong></span>
       <span>Actual standard LOF: <strong>${comparison?.actualLof ?? '—'}</strong></span><span>Actual band: <strong>${comparison?.actualBand ?? '—'}</strong></span><span>Relative delta: <strong>${delta === null ? '—' : `${(delta * 100).toFixed(3)}%`}</strong></span><span>Comparison: <strong>${esc(comparisonLabel(comparison?.status))}</strong></span>
     </div>${loaded.modified ? '<div class="vi-banner warn"><strong>Benchmark inputs modified.</strong><span>The published target remains visible only as the original-case reference. Revert all working edits or reload the benchmark before claiming parity.</span></div>' : ''}
-    <div class="vi-benchmark-source">${esc(VIBRATION_FIT_UI_BENCHMARK_SOURCE.benchmarkSetId)} · ${esc(VIBRATION_FIT_UI_BENCHMARK_SOURCE.edition)} · tolerance ${esc(VIBRATION_FIT_UI_BENCHMARK_SOURCE.relativeTolerance * 100)}%</div>` : ''}
+    <div class="vi-benchmark-source">${esc(VIBRATION_FIT_UI_BENCHMARK_SOURCE.benchmarkSetId)} · ${esc(VIBRATION_FIT_UI_BENCHMARK_SOURCE.edition)} · ${esc(VIBRATION_FIT_UI_BENCHMARK_SOURCE.tolerancePolicyId)}</div>` : ''}
   </section>`;
 }
 
 function inputStateFacts(state) {
   const edits = Object.values(state.tables ?? {}).reduce((sum, table) => sum + (table.editCount ?? 0), 0);
   const snapshot = state.runSnapshot?.snapshotHash;
-  return `<div class="vi-import-facts"><span>Working edits: <strong>${esc(edits)}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span>${snapshot ? `<span>Snapshot: <strong class="vi-mono">${esc(snapshot.slice(0, 16))}…</strong></span>` : ''}</div>`;
+  const engineering = state.runSnapshot?.engineeringInputHash;
+  return `<div class="vi-import-facts"><span>Working edits: <strong>${esc(edits)}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span>${snapshot ? `<span>Audit snapshot: <strong class="vi-mono">${esc(snapshot.slice(0, 16))}…</strong></span>` : ''}${engineering ? `<span>Engineering input: <strong class="vi-mono">${esc(engineering.slice(0, 16))}…</strong></span>` : ''}</div>`;
 }
 
 function importPanel(state) {
@@ -81,7 +85,7 @@ function importPanel(state) {
       <label class="vi-file-field"><span>Operating cases</span><input type="file" data-vi-file="operating" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.operating, state.tables?.operating, 'VibrationOperatingCaseCsv.v1')}</span></label>
       <label class="vi-file-field"><span>Vibration enrichment</span><input type="file" data-vi-file="enrichment" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.enrichment, state.tables?.enrichment, 'VibrationEnrichmentCsv.v1')}</span></label>
     </div>${inputStateFacts(state)}
-    <div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="operating-template">Operating-case template</button><button type="button" class="vi-btn" data-vi-action="enrichment-template">Enrichment template</button><label class="vi-check"><input type="checkbox" data-vi-limited${state.allowLimitedExchange ? ' checked' : ''}> Allow limited Elements-only CSV</label><button type="button" class="vi-btn" data-vi-action="preflight"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${checking ? 'Checking…' : 'Check readiness'}</button><button type="button" class="vi-btn primary" data-vi-action="run"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${running ? 'Running…' : 'Run FIT benchmark'}</button><button type="button" class="vi-btn" data-vi-action="export"${state.resultState === 'CURRENT_RESULT' ? '' : ' disabled'}>Export register CSV</button></div>
+    <div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="operating-template">Operating-case template</button><button type="button" class="vi-btn" data-vi-action="enrichment-template">Enrichment template</button><label class="vi-check"><input type="checkbox" data-vi-limited${state.allowLimitedExchange ? ' checked' : ''}> Allow limited Elements-only CSV</label><button type="button" class="vi-btn" data-vi-action="preflight"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${checking ? 'Checking…' : 'Check readiness'}</button><button type="button" class="vi-btn primary" data-vi-action="run"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${running ? 'Running…' : 'Run FIT benchmark'}</button><button type="button" class="vi-btn" data-vi-action="export"${state.resultState === 'CURRENT_RESULT' ? '' : ' disabled'}>Export register CSV</button><button type="button" class="vi-btn" data-vi-action="export-evidence"${state.resultState === 'CURRENT_RESULT' ? '' : ' disabled'}>Export run evidence JSON</button></div>
     ${topologyLimited ? '<div class="vi-banner warn"><strong>Limited topology input.</strong><span>Execution uses the visible Elements working table. Once a certified XLSX is edited, complete-exchange authority remains downgraded until the source is explicitly reloaded, even if values are reverted.</span></div>' : ''}
   </section>`;
 }
@@ -99,9 +103,17 @@ function editableCell(table, rowIndex, columnIndex, value) {
   return `<td class="vi-working-cell${editedClass}" title="${esc(original)}"><input id="${esc(sourceId)}" class="vi-cell-input" data-vi-table-cell="${esc(table.kind)}" data-vi-edit-row="${rowIndex}" data-vi-edit-column="${columnIndex}" data-vi-row-id="${esc(state.rowId)}" value="${esc(value)}" aria-label="${esc(table.header[columnIndex])} row ${rowIndex + 1}">${canRevert ? `<button type="button" class="vi-btn vi-cell-revert" data-vi-cell-revert="${esc(table.kind)}" data-vi-edit-row="${rowIndex}" data-vi-edit-column="${columnIndex}" title="Revert to ${esc(state.originalValue)}">↶</button>` : ''}</td>`;
 }
 
+function rowActions(table, rowIndex) {
+  const state = vibrationIntegrityInputRowState(table, rowIndex);
+  const revert = state.edited
+    ? `<button type="button" class="vi-btn" data-vi-row-revert="${esc(table.kind)}" data-vi-edit-row="${rowIndex}">Revert row</button>`
+    : '';
+  return `${revert}<button type="button" class="vi-btn vi-row-delete" data-vi-table-delete="${esc(table.kind)}" data-vi-edit-row="${rowIndex}">Delete</button>`;
+}
+
 function editableRows(table) {
   if (!table.rows.length) return `<tr><td colspan="${table.header.length + 1}" class="vi-table-empty">No rows loaded. Add a row or import CSV.</td></tr>`;
-  return table.rows.map((row, rowIndex) => `<tr>${row.map((value, columnIndex) => editableCell(table, rowIndex, columnIndex, value)).join('')}<td><button type="button" class="vi-btn vi-row-delete" data-vi-table-delete="${esc(table.kind)}" data-vi-edit-row="${rowIndex}">Delete</button></td></tr>`).join('');
+  return table.rows.map((row, rowIndex) => `<tr>${row.map((value, columnIndex) => editableCell(table, rowIndex, columnIndex, value)).join('')}<td><div class="vi-actions">${rowActions(table, rowIndex)}</div></td></tr>`).join('');
 }
 
 function editableTable(title, table, description) {
@@ -111,8 +123,8 @@ function editableTable(title, table, description) {
 }
 
 function sourceDataArea(tables) {
-  return `<section class="vi-source-data"><div class="vi-section-head"><div><h3>Source Data</h3><p>Raw import/storage contracts remain authoritative. Engineering-basis source links navigate to exact backing cells; row add/delete and whole-table revert remain owned here.</p></div></div>
-    ${editableTable('Topology · Elements working table', tables.topology, 'Certified XLSX is preserved only until the first topology mutation. Revert restores values but does not restore complete-exchange authority.')}
+  return `<section class="vi-source-data"><div class="vi-section-head"><div><h3>Source Data</h3><p>Raw import/storage contracts remain authoritative. Engineering-basis source links navigate to exact backing cells; cell, row and whole-table revert operate on the same working records.</p></div></div>
+    ${editableTable('Topology · Elements working table', tables.topology, 'Certified XLSX is preserved only while its captured Elements projection fingerprint still matches and no topology mutation has occurred. Revert restores values but does not restore complete-exchange authority.')}
     ${editableTable('Operating cases', tables.operating, 'Process quantities preserve original and working values. Unit-only edits convert the numeric value through the central engineering unit layer when quantity semantics are known.')}
     ${editableTable('Vibration enrichment', tables.enrichment, 'Assessment-point and FIT geometry evidence keyed by Canonical ID. Known numeric engineering properties use central unit conversion; unknown property semantics are never guessed.')}
   </section>`;
