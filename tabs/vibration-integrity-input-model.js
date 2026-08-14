@@ -53,6 +53,14 @@ const ENRICHMENT_QUANTITIES = Object.freeze({
   MAX_UNSUPPORTED_SPAN: 'length', NATURAL_FREQUENCY: 'frequency',
 });
 
+const DATA_BLOCKER_QUANTITIES = Object.freeze({
+  OUTSIDE_DIAMETER: 'length', WALL_THICKNESS: 'length', INSIDE_DIAMETER: 'length',
+  MAX_UNSUPPORTED_SPAN: 'length', NATURAL_FREQUENCY: 'frequency',
+  MASS_FLOW: 'mass_flow', GAS_MASS_FLOW: 'mass_flow', LIQUID_MASS_FLOW: 'mass_flow',
+  DENSITY: 'density', GAS_DENSITY: 'density', LIQUID_DENSITY: 'density',
+  DYNAMIC_VISCOSITY: 'dynamic_viscosity', VELOCITY: 'velocity',
+});
+
 function configFor(kind) {
   const config = TABLE_CONFIG[kind];
   if (config) return config;
@@ -124,11 +132,16 @@ function pairForColumn(table, rowIndex, columnIndex) {
   if (table.kind === 'operating') {
     return OPERATING_QUANTITIES.find((pair) => pair.value === columnIndex || pair.unit === columnIndex) ?? null;
   }
-  if (table.kind !== 'enrichment' || ![4, 6].includes(columnIndex)) return null;
   const row = table.rows[rowIndex];
-  if (row?.[5] !== 'NUMBER') return null;
-  const quantity = ENRICHMENT_QUANTITIES[row[3]];
-  return quantity ? { value: 4, unit: 6, quantity } : null;
+  if (table.kind === 'enrichment' && [4, 6].includes(columnIndex) && row?.[5] === 'NUMBER') {
+    const quantity = ENRICHMENT_QUANTITIES[row[3]];
+    return quantity ? { value: 4, unit: 6, quantity } : null;
+  }
+  if (table.kind === 'dataBlockers' && [4, 5].includes(columnIndex)) {
+    const quantity = DATA_BLOCKER_QUANTITIES[text(row?.[3]).trim().toUpperCase()];
+    return quantity ? { value: 4, unit: 5, quantity } : null;
+  }
+  return null;
 }
 
 function pressureOptions(row, pair) {
@@ -141,17 +154,26 @@ function convertedText(value) {
   return String(Number(value.toPrecision(15)));
 }
 
+function unresolvedUnitEdit(table, row, columnIndex, pair) {
+  if (pair || !['enrichment', 'dataBlockers'].includes(table.kind)) return false;
+  const expectedUnitColumn = table.kind === 'enrichment' ? 6 : 5;
+  if (columnIndex !== expectedUnitColumn) return false;
+  const valueColumn = 4;
+  return text(row?.[valueColumn]).trim() !== '' && text(row?.[expectedUnitColumn]).trim() !== '';
+}
+
 function updateRecordsForCell(table, rowIndex, columnIndex, value) {
   const pair = pairForColumn(table, rowIndex, columnIndex);
   const row = table.rows[rowIndex];
-  if (!pair && table.kind === 'enrichment' && columnIndex === 6 && row?.[5] === 'NUMBER') {
-    const oldUnit = text(row[6]).trim();
+  if (unresolvedUnitEdit(table, row, columnIndex, pair)) {
+    const oldUnit = text(row[columnIndex]).trim();
     const nextUnit = text(value).trim();
-    if (text(row[4]).trim() && oldUnit && nextUnit && oldUnit !== nextUnit) {
+    if (nextUnit && oldUnit !== nextUnit) {
+      const property = row[3];
       throw vibrationTabularInputError(
         'VIBRATION_INPUT_UNIT_CONTEXT_UNRESOLVED',
-        `Cannot convert unit for enrichment property ${row[3]} without a known engineering quantity.`,
-        { property: row[3], fromUnit: oldUnit, toUnit: nextUnit },
+        `Cannot convert unit for ${table.kind} property ${property} without a known engineering quantity.`,
+        { property, fromUnit: oldUnit, toUnit: nextUnit },
       );
     }
   }
