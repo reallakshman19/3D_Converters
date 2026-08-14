@@ -39,6 +39,7 @@ export function buildAivScreeningExportPackage({
   releaseReceipt = null,
   flareNetwork = null,
   generatedInputSet = null,
+  eitImportEvidence = null,
 } = {}) {
   if (result?.schema !== 'AivCalculatorResult.v1' || result.qualificationMode !== 'screening') {
     throw new TypeError('AIV screening export requires an AivCalculatorResult.v1 screening result.');
@@ -61,6 +62,7 @@ export function buildAivScreeningExportPackage({
       assumptionCount: assumptionResolution?.assumptionCount ?? 0,
     },
     flareNetworkEvidence: networkEvidence(flareNetwork, generatedInputSet),
+    eitImportEvidence: eitImportEvidence ?? null,
     releaseEvidence: releaseReceipt ? {
       schema: releaseReceipt.schema ?? null,
       releaseTarget: releaseReceipt.releaseTarget ?? null,
@@ -73,6 +75,7 @@ export function buildAivScreeningExportPackage({
       completeKernelStageCount: result.implementedStageCount,
       sourceTrace: result.sourceResults.map((row) => row.trace ?? null),
       lineCaseSummaryAuthoritativeForScreening: false,
+      importedEitResultsAuthoritativeForCurrentScreening: false,
       humanEvidenceRequired: false,
     },
     screeningAuthority: result.authority.screeningAuthority,
