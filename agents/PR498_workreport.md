@@ -12,8 +12,7 @@
 | PR | `#498` — OPEN / MERGEABLE at pre-merge checkpoint |
 | Branch | `agent/aiv-mock-flare-eit` |
 | Current base | `main@b72cdb8a7d79a8b5541250ff00a1580aee3a7e96` |
-| REPORT_BASIS_HEAD | `b3da1dc70835c2cf5a1946240f95a1c95266fbe7` |
-| Base drift at checkpoint | `ahead_by=19`, `behind_by=0` |
+| REPORT_BASIS_HEAD | `aa07330bb2186b4e0a1f7ada1283a8a6e711c73a` |
 | Net diff | 9 files; AIV UI/mock-loader/tests + this report only. |
 | External controlled example | `reallaksh19/Common` PR #3 — `SMALL-FLARE-2RV-SUBHEADER-001`. |
 | Repository validation reference | `ValidationRecords/VibrationIntegrity/aiv-small-flare-eit-roundtrip-v1.json`. |
@@ -50,7 +49,7 @@ The requested product flow is wired.
 4. Loading the mock resets to the controlled default AIV assumption profile and uses the existing `projectAivFlareNetworkIntoWorkspace()` path; it does not manufacture parallel tables or bypass readiness.
 5. The start panel also exposes **Export current EI .eit**. It is disabled until the current registered screening result succeeds.
 6. Export reuses the existing PR464/469 path: `VIB.AIV.ACOUSTIC` → screening package → `aiv-eit-export.js`. No second writer or format fork was introduced.
-7. Regressions pin the Common PR #3 integration expectations, serialize the calculated mock through the production `.eit` writer, and now re-import that exported `.eit` through the production importer to detect round-trip drift.
+7. Regressions pin the Common PR #3 integration expectations, serialize the calculated mock through the production `.eit` writer, and re-import that exported `.eit` through the production importer to detect round-trip drift.
 
 This example remains an **integration mock**, not arbitrary-geometry Stage-8 qualification. The historical FLM1 geometry/configuration mismatch remains a known qualification boundary and was not altered.
 
@@ -161,10 +160,11 @@ Expected values are confined to regression tests; the production mock contains e
 - Regression commit: `6844e861475653a159021835d7ae5d359e1a8b6f`.
 
 ### Epoch 4 — final pre-merge reconciliation
-- Exact report-basis head before this report commit: `b3da1dc70835c2cf5a1946240f95a1c95266fbe7`.
+- Exact checkpoint before final report-only commit: `b3da1dc70835c2cf5a1946240f95a1c95266fbe7`.
 - Compare against live `main`: `ahead_by=19`, `behind_by=0`.
 - Net diff remains exactly 9 files.
 - PR reported `mergeable=true`.
+- This final report update is documentation-only; merge must use the new exact head shown in PR metadata after this commit.
 
 ## Pre-edit / Recovery Control
 
