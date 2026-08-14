@@ -1,4 +1,5 @@
 import { installModeAConsolidatedWeightEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-weight-ui.js?v=20260814-weight-clarity-1';
+import { installModeAConsolidatedWeightTools } from './xml-cii-adapted-mode-a-weight-tools.js?v=20260814-weight-tools-1';
 import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-easy-weight-1';
 
 export function installModeAConsolidatedWeightEasyUiFromWorkspace(workspace,stateRef) {
@@ -12,5 +13,7 @@ export function installModeAConsolidatedWeightEasyUiFromWorkspace(workspace,stat
   if(body) body.dataset.modeAWeightConsolidatedBody='true';
   const build=[...panel.querySelectorAll('button')].find((button)=>/Consolidated Weight Match/i.test(button.textContent||''));
   if(build) build.dataset.modeAConsolidatedBuild='weight';
-  return installModeAConsolidatedWeightEasyUi(panel,result,stateRef);
+  const installed=installModeAConsolidatedWeightEasyUi(panel,result,stateRef);
+  installModeAConsolidatedWeightTools(panel,result,stateRef);
+  return installed;
 }
