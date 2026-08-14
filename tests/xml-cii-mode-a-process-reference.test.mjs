@@ -26,6 +26,7 @@ assert.equal(targets.length, 1);
 assert.equal(targets[0].lineKey, 'S8810347');
 assert.equal(targets[0].sources.length, 2, 'same target Line Key in different XML files must remain source-distinct');
 assert.equal(targets[0].branchCount, 3);
+assert.deepEqual(modeAProcessReferenceTargetGroups(rows, { ...rows[0], lineMiss: true }), [], 'unmapped source rows cannot become process references');
 
 const plan = buildModeAProcessReferencePlan(
   rows,
@@ -39,6 +40,11 @@ assert.equal(plan.changes[0].sourceId, 'SRC15');
 assert.equal(plan.affectedBranchCount, 2);
 assert.deepEqual(plan.values, { p1: '4140', t1: '260', t2: '151', t3: '5', density: '983' });
 assert.deepEqual(plan.invalidFields.map((item) => item.field), ['hydroPressure']);
+
+const emptyTargetPlan = buildModeAProcessReferencePlan(rows, rows[0], 'S8810347', [], ['p1']);
+assert.equal(emptyTargetPlan.changes.length, 0, 'empty target XML selection must apply nowhere');
+const unmappedSourcePlan = buildModeAProcessReferencePlan(rows, { ...rows[0], lineMiss: true }, 'S8810347', ['SRC15'], ['p1']);
+assert.equal(unmappedSourcePlan.changes.length, 0, 'source Line Key must be mapped before reference copying');
 
 const config = {
   linelist: { branchLineKeyMap: { '/ASIM-S8810347/B1': 'S8810347' } },
