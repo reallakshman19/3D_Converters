@@ -5,7 +5,7 @@ import test from 'node:test';
 import { buildAivCanvasProjection } from '../converters/vibration/aiv/aiv-canvas-projection.js';
 import { aivCanvasFieldKey, focusAivCanvasField } from '../tabs/vibration-aiv-canvas-field.js';
 import { applyAivCanvasSelection } from '../tabs/vibration-aiv-canvas-selection.js';
-import { renderAivCanvasWorkspaceHtml } from '../tabs/vibration-aiv-canvas-view.js';
+import { renderAivCanvasSelectedDetailHtml, renderAivCanvasWorkspaceHtml } from '../tabs/vibration-aiv-canvas-view.js';
 
 function tables(sourceFlow = '') {
   return {
@@ -108,12 +108,14 @@ test('selection shows only the matching assumption/readiness detail panel', () =
   assert.equal(otherDetail.hidden, true);
 });
 
-test('rendered canvas and tables expose non-color assumption/readiness provenance with no assumption write path', () => {
-  const html = renderAivCanvasWorkspaceHtml({ tables: tables(), assumptionResolution: resolution(), readinessEnvelope: readiness });
+test('rendered canvas and selected detail expose non-color assumption/readiness provenance with no assumption write path', () => {
+  const state = { tables: tables(), assumptionResolution: resolution(), readinessEnvelope: readiness };
+  const html = renderAivCanvasWorkspaceHtml(state);
+  const detail = renderAivCanvasSelectedDetailHtml(state, 'SOURCE:SRC-1:CASE-A');
   assert.match(html, /\[A\] 1/u);
   assert.match(html, /READY_FOR_QUALIFICATION/u);
-  assert.match(html, /source\.massFlow/u);
-  assert.match(html, /data-aiv-assumption-field-key/u);
+  assert.match(detail, /source\.massFlow/u);
+  assert.match(detail, /data-aiv-assumption-field-key/u);
   const inputView = readFileSync(new URL('../tabs/vibration-aiv-input-view.js', import.meta.url), 'utf8');
   const field = readFileSync(new URL('../tabs/vibration-aiv-canvas-field.js', import.meta.url), 'utf8');
   assert.match(inputView, /data-aiv-field-key/u);
