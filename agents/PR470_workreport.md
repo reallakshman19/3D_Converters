@@ -5,152 +5,159 @@ Source task / issue: #450
 PR number: #470
 Branch: `agent/document-evidence-stage5c`
 Base commit: `994f43521b5aa6e4dd397efd9300ce21943d056d`
-PR status: OPEN / DRAFT
-Current stage: Stage 8 — final validation and handover
-Last completed stage: Stage 7 — controlled-source execution disposition
-Engineering status: production evidence consumer COMPLETE; controlled EI table recovery NOT EXECUTED because exact PDF bytes are unavailable to this runtime
-Validation status: software gates PASS; controlled-source execution BLOCKED_ENVIRONMENT
-Current blocker: exact 10,348,594-byte controlled PDF cannot be materialized through the connected GitHub binary interface or direct network from this runtime
-Exact next action: final changed-file/status audit; leave PR draft and unmerged until a runtime can execute the exact controlled PDF through the XML service
+PR status: OPEN / DRAFT / NOT MERGED
+Current stage: Stage 8 — COMPLETE software handover
+Last completed stage: Stage 8 — final validation and GitHub audit
+Engineering status: production evidence consumer COMPLETE; controlled EI table extraction NOT EXECUTED
+Validation status: local task gates PASS; GitHub Actions INFRASTRUCTURE_BLOCKED; controlled-source execution BLOCKED_ENVIRONMENT
+Current blocker: exact controlled PDF bytes cannot be materialized in this runtime; GitHub Actions jobs cannot start because an Actions budget is preventing further use
+Exact next action: when both resources are available, run the exact controlled PDF through XML discovery/extraction and let repository workflows execute; do not merge #470 as a completed recovery release before that
 
 ## Handover in 60 Seconds
 
-### Implemented and validated
+### Implemented
 - XML contract pinned to `reallaksh19/XML_Compare_Utilities@e7a394fd7f35c34cda5cad13df55cae2dd37bca2`, OpenAPI 1.4.1.
-- Controlled EI source Git identity verified independently: `reallaksh19/Common@fb549185b9b27edc2379734240320a85c5bef9f6`, path `EI - AVIFF Guidelines 2nd Edition.pdf`, blob `9d3eccc56429411e17c07a579bdebbd13cb0bdc5`, size 10,348,594 bytes. Current Common main still carries the same blob and size.
-- Production v2 client calls only `/v2/tables/discover` and `/v2/tables/extract`.
-- Discovery is advisory only; extraction requires exact source SHA-256 and explicit positive unique pages.
-- SourceIdentity and returned page set are bound back to the request.
-- Domain target profile has no PDF page defaults and no engineering values.
-- Supported table-capable targets are SBC fitting span factors, first-span limits, between-main-lines limits, T2.8 valve closure characteristics, T2.9 valve recovery factors, and T4 wall modifier.
-- SBC geometry/location score targets are rejected from the table path as `NON_TABLE_RULE_EVIDENCE_REQUIRED`.
-- Figures T3-1…T3-4 are rejected from this PR as curve/chart work.
-- Evidence receipt kernel requires `Observation.v1` plus complete `TablePass.v1` source/surface/candidate/cell lineage.
-- Accepted evidence becomes only `publicationState=CANDIDATE`; review/blocked/not-found becomes `publicationState=BLOCKED`.
-- Every receipt fixes `engineeringAuthority=NONE`, `screeningAuthority=NOT_AUTHORIZED`, `designAuthority=false`, `masterValuesPublished=false`.
-- Numeric disagreement such as `10.0` versus `100` remains `review_required`; confidence cannot resolve it.
-- Multiple unselected candidates remain review-required; missing requested candidates, malformed lineage, option drift and generic authority leakage fail closed.
+- Controlled EI source Git identity independently verified: `reallaksh19/Common@fb549185b9b27edc2379734240320a85c5bef9f6`, `EI - AVIFF Guidelines 2nd Edition.pdf`, blob `9d3eccc56429411e17c07a579bdebbd13cb0bdc5`, size 10,348,594 bytes. Current Common main still carries the same blob/size.
+- Production v2 client: advisory `/v2/tables/discover` and explicit-page `/v2/tables/extract` only.
+- Exact source SHA-256, SourceIdentity, page-set, OCR option and generic-authority boundaries are fail-closed.
+- Semantic target profile contains no PDF page defaults or engineering values.
+- Table-capable target set: SBC fitting span factors, first-span limits, between-main-lines limits, T2.8 valve closure characteristics, T2.9 valve recovery factors, T4 wall modifier.
+- SBC geometry/location score targets explicitly require non-table rule evidence.
+- Figures T3-1…T3-4 explicitly rejected from this table path.
+- Receipt kernel requires `Observation.v1` plus complete `TablePass.v1` source/surface/candidate/cell lineage.
+- Evidence state, publication state and engineering authority are separate.
+- `accepted` can produce only `publicationState=CANDIDATE`; it never publishes master values or authority.
+- Numeric disagreement remains review-required; confidence does not choose a value.
+- Multiple candidates without explicit selection remain review-required; missing candidates/malformed lineage/option drift/authority leakage fail closed.
 - Operator commands:
   - `npm run recover:vibration-stage5c-evidence -- discover --api <url> --out <json>`
   - `npm run recover:vibration-stage5c-evidence -- extract --api <url> --selection <json> --out <json>`
   - `npm run verify:vibration-stage5c-evidence`
 
+### Final software validation
+- combined Node regression suite: **PASS 17/17**;
+- provider-reported controlled Git identity checks: **PASS 2/2**;
+- real localhost HTTP round-trip through CLI discovery: **PASS**;
+- `node --check` for all four production modules: **PASS**;
+- production file physical lines: client 159, targets 159, receipt 190, CLI 136; all <300;
+- largest audited function: 38 logical lines; within the Common <40 practical guideline.
+
 ### Controlled-source execution disposition
-Stage 7 did **not** execute the EI PDF. The exact Git object is verified, but byte materialization failed through every available path:
-1. Connected GitHub repository-file access exposes the large PDF object metadata but omits its body for this >1 MB binary.
-2. Direct Git probe failed before authentication/data transfer: `Could not resolve host: github.com`.
-3. Direct raw-HTTP probe failed with name-resolution error.
+`BLOCKED_ENVIRONMENT`, not failed and not simulated.
+
+Available evidence:
+- exact controlled Git commit/blob/path/size: PASS;
+- connected GitHub binary interface: large PDF metadata visible, body unavailable;
+- direct Git materialization probe: failed with `Could not resolve host: github.com`;
+- direct raw HTTP materialization probe: failed with name-resolution error.
 
 Therefore:
-- `controlledSourceGitIdentity = PASS`
-- `controlledSourceBytesExecuted = false`
-- `stage5cPdfDiscovery = NOT_RUN`
-- `stage5cPdfExtraction = NOT_RUN`
-- exact Stage 5C PDF pages/locators/values remain **UNVALIDATED**
-- no historical #452 page hint or fixture output is substituted.
+```text
+controlledSourceGitIdentity = PASS
+controlledSourceBytesExecuted = false
+stage5cPdfDiscovery = NOT_RUN
+stage5cPdfExtraction = NOT_RUN
+exactStage5cPages = UNVALIDATED
+exactStage5cValues = UNVALIDATED
+```
+Historical #452 page hints and local fixtures are not substituted.
 
-### Software validation at final implementation state
-- combined Stage 4–6 Node tests: **PASS 17/17**;
-- provider-reported controlled Git identity assertions: **PASS 2/2**;
-- localhost HTTP CLI discovery round-trip: **PASS**;
-- `node --check` on all four production modules: **PASS**;
-- physical file-size audit: client 159, targets 159, receipt 190, CLI 136 lines; all <300;
-- logical function-size audit: maximum 38 lines; within the Common <40 practical guideline.
+### GitHub workflow disposition
+Two workflows were associated with the final audited implementation head:
+- `Vibration AIV Controlled Source Qualification`
+- `Topology Edit Support Reprojection`
 
-## Authority / publication state
+Both were reported as failures by GitHub, but their jobs contained no executed steps. The check annotations state: `The job was not started because an Actions budget is preventing further use.`
+
+Therefore the PR does **not** claim repository CI success and no gate is weakened to force a merge.
+
+# Authority / publication freeze
 
 ```text
-source extraction evidence accepted != engineering authority
-publicationState=CANDIDATE        != RECONCILED / APPROVED_SCREENING
-a worked fixture PASS             != controlled EI source execution
-chart digitization PASS           != design authority
+source extraction PASS      != calculation qualification
+accepted evidence            != master publication
+publicationState=CANDIDATE  != RECONCILED / APPROVED_SCREENING
+worked fixture PASS          != controlled EI execution
+chart digitization PASS      != design authority
 ```
 
-No master rows or engineering values are published by #470.
+Every #470 receipt fixes:
+```text
+engineeringAuthority = NONE
+screeningAuthority   = NOT_AUTHORIZED
+designAuthority      = false
+masterValuesPublished = false
+```
 
 # Mission Status
 
-| Work item | Status | Evidence |
+| Work item | Final status | Evidence |
 |---|---|---|
 | XML shared DocumentEvidence baseline | COMPLETE | XML main `e7a394fd...` |
-| #452 reuse classification | COMPLETE | ADAPT / REJECT / DEFER matrix |
+| stale #452 classification | COMPLETE | ADAPT / REJECT / DEFER matrix |
 | controlled source Git identity | PASS | pinned/current Common trees agree |
-| production v2 transport | PASS | focused suite |
-| semantic Stage 5C table target gate | PASS | focused suite |
-| source-target receipt kernel + CLI | PASS | focused suite + localhost HTTP |
-| exact controlled EI API execution | BLOCKED_ENVIRONMENT | binary unavailable |
+| v2 transport consumer | PASS | focused tests |
+| semantic Stage 5C table target gate | PASS | focused tests |
+| evidence receipt kernel + CLI | PASS | tests + localhost HTTP |
+| controlled EI API execution | BLOCKED_ENVIRONMENT | exact bytes unavailable |
+| repository GitHub Actions | INFRASTRUCTURE_BLOCKED | Actions budget prevented job start |
 | master normalization/publication | DEFERRED | separate reviewed PR required |
-| Figures T3-1…T3-4 digitization | DEFERRED | separate chart qualification |
+| T3-1…T3-4 digitization | DEFERRED | separate chart qualification |
 
 # Reuse / Adapt / Reject Matrix
 
 | Historical #452 module | Classification | Reason |
 |---|---|---|
-| `fetch-vibration-master-sections-via-api.mjs` | ADAPT | v1 search/convert replaced by v2 explicit-page table evidence |
-| `inventory-vibration-master-sources.mjs` | ADAPT | source constants useful; historical page hints are navigation only |
+| `fetch-vibration-master-sections-via-api.mjs` | ADAPT | obsolete v1 search/convert replaced by v2 explicit-page evidence |
+| `inventory-vibration-master-sources.mjs` | ADAPT | provenance constants useful; page hints are navigation only |
 | `reconcile-vibration-master-tables.mjs` | REJECT primary path | v2 provides stronger structured observations/passes/decisions |
-| `normalize-vibration-master-tables.mjs` | DEFER | belongs after independent source-target review in future publication slice |
-| curve targets | REJECT from #470 | chart calibration/digitization is a separate qualified process |
+| `normalize-vibration-master-tables.mjs` | DEFER | belongs after independent source-target review |
+| curve targets | REJECT from #470 | chart calibration/digitization is separate |
 
-# Stage Execution
+# Stage Execution Record
 
-## Stage 1 — Report initialization
-COMPLETE. Living report existed before production code; authority freeze recorded.
-
-## Stage 2 — PR allocation
-COMPLETE. Draft PR #470 allocated and report renamed.
-
-## Stage 3 — Repository/source verification
-COMPLETE. #452 classified and exact controlled source Git object refreshed.
-
-## Stage 4 — DocumentEvidence v2 transport
-COMPLETE. Exact routes/source/pages and generic authority rejection implemented.
-
-## Stage 5 — Semantic target profile
-COMPLETE. Table-capable allowlist, explicit reviewer locator/page input, non-table/curve rejection implemented.
-
-## Stage 6 — Evidence receipt kernel + CLI
-COMPLETE. Complete evidence lineage validation, state aggregation, authority/publication separation and operator command path implemented.
-
-## Stage 7 — Controlled-source execution
-DISPOSITION: `BLOCKED_ENVIRONMENT`.
-The exact source object is verified but its bytes cannot be materialized in this runtime. No controlled PDF discovery/extraction result is claimed.
-
-## Stage 8 — Final validation/handover
-IN_PROGRESS. Final GitHub changed-file/head/check audit remains; no additional production feature work is planned in this PR.
+1. **Stage 1 COMPLETE** — living report created before production code; authority freeze recorded.
+2. **Stage 2 COMPLETE** — draft PR #470 allocated; report renamed.
+3. **Stage 3 COMPLETE** — #452 classified; controlled source Git object refreshed.
+4. **Stage 4 COMPLETE** — v2 transport/source/page/authority boundaries implemented and tested.
+5. **Stage 5 COMPLETE** — semantic table target gate implemented; non-table and curve targets fail closed.
+6. **Stage 6 COMPLETE** — evidence receipt kernel + operator CLI implemented; focused suite/HTTP smoke passed.
+7. **Stage 7 COMPLETE WITH BLOCKER** — exact source execution attempted but environment cannot materialize controlled bytes; no values/pages claimed.
+8. **Stage 8 COMPLETE** — changed-file set, final head, local gates and GitHub workflow disposition audited.
 
 # Changed-File Ledger
 
+Expected and final PR file set is exactly eight files:
+
 | File | Purpose | Validation |
 |---|---|---|
-| `agents/PR470_workreport.md` | living engineering handover | protocol/current-state audit |
-| `scripts/vibration-stage5c-document-evidence-client.mjs` | fail-closed v2 transport | PASS |
-| `scripts/vibration-stage5c-targets.mjs` | controlled source + semantic target gate | PASS |
-| `scripts/vibration-stage5c-evidence-receipt.mjs` | lineage + source-target decision kernel | PASS |
+| `agents/PR470_workreport.md` | living engineering handover | current |
+| `package.json` | recover/verify operator commands | equivalent command path tested |
 | `scripts/recover-vibration-stage5c-via-document-evidence.mjs` | operator CLI/orchestrator | PASS localhost HTTP |
+| `scripts/vibration-stage5c-document-evidence-client.mjs` | fail-closed v2 transport | PASS |
+| `scripts/vibration-stage5c-evidence-receipt.mjs` | source-target decision/lineage kernel | PASS |
+| `scripts/vibration-stage5c-targets.mjs` | controlled-source/domain target gate | PASS |
 | `tests/vibration-stage5c-document-evidence.test.mjs` | transport/target/source regressions | PASS |
 | `tests/vibration-stage5c-recovery.test.mjs` | receipt/CLI regressions | PASS |
-| `package.json` | recovery/verification commands | command path exercised by equivalent Node invocation |
 
 # Explicitly Not Validated / Not Published
-- exact Stage 5C PDF pages or printed-page mapping;
+- exact Stage 5C PDF page or printed-page mapping;
 - any EI table value or normalized master row;
-- SBC geometry/location scoring rules;
-- Figures T3-1…T3-4 axes/curves/points/interpolation;
-- any calculation, screening or design authority.
+- SBC geometry/location score rules;
+- Figures T3-1…T3-4 axes/curve points/interpolation;
+- calculation, screening or design authority.
 
-# Deferred Sequence
+# Forward Sequence
 
-1. In a runtime with exact controlled PDF bytes and the XML service, execute `discover` against the pinned bytes.
-2. Reviewer explicitly selects exact pages, locator and candidate IDs; then execute `extract` and retain the evidence receipt.
-3. Separate PR: independent semantic row normalization/reconciliation and candidate-master publication.
-4. Separate PR/program: T3-1…T3-4 calibration/digitization/overlay/error/review.
+1. Restore/enable GitHub Actions budget so repository jobs can actually execute.
+2. In a runtime with the exact controlled PDF bytes and XML service, run `discover` against the pinned bytes.
+3. Reviewer explicitly selects exact pages, locator and candidate IDs; then run `extract` and retain the evidence receipt.
+4. Separate future PR: independent semantic row normalization/reconciliation and candidate-master publication.
+5. Separate chart program: T3-1…T3-4 calibration/digitization/overlay/error/review.
 
 # Next-Agent Handover
 
-Current stage: Stage 8 final audit.
-Software implementation: COMPLETE.
-Controlled-source execution: BLOCKED_ENVIRONMENT / NOT_RUN.
-Do not merge #470 as a completed Stage 5C recovery release while the exact controlled PDF has not been executed.
-Do not infer any source page/value from historical hints or test fixtures.
-Exact next action: verify the final GitHub head/change list/check state and leave PR draft with the execution blocker visible.
+Software implementation in #470 is complete and locally validated.
+Do **not** merge #470 as a completed Stage 5C recovery release while exact controlled-source execution and repository workflows remain blocked.
+Do **not** infer pages/values from historical hints or fixtures.
+Resume from the two external prerequisites only: Actions execution and exact PDF byte materialization.
