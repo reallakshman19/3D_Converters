@@ -46,7 +46,7 @@ function legacyDocument() {
   };
 }
 
-function screeningPackage(imported) {
+function legacyScreeningPackage(imported) {
   return {
     schema: 'AivScreeningExportPackage.v1',
     result: {
@@ -84,6 +84,54 @@ function screeningPackage(imported) {
   };
 }
 
+function modernScreeningPackage(imported) {
+  const commonSource = {
+    caseId: 'RELIEF-COMBINED', sourceDeviceType: 'RELIEF_VALVE', sourceState: 'RELIEVING', phase: 'GAS', sonicState: 'SONIC',
+    upstreamPressure: { value: 50, unit: 'bar', basis: 'ABSOLUTE' }, downstreamPressure: { value: 10, unit: 'bar', basis: 'ABSOLUTE' },
+    upstreamTemperature: { value: 26.85, unit: 'C' }, molecularWeight: { value: 20, unit: 'g/mol' }, lowNoiseTrim: { state: 'NONE' },
+  };
+  return {
+    schema: 'AivScreeningExportPackage.v1',
+    result: {
+      schema: 'AivCalculatorResult.v1', qualificationMode: 'screening', screeningResultScope: 'ASSESSMENT',
+      lineCaseSummaryAuthoritativeForScreening: false,
+      authority: { screeningAuthority: 'AUTHORIZED', designAuthority: false },
+      sourceResults: [
+        { sourceCanonicalId: 'RV-101', caseId: 'RELIEF-COMBINED', effectiveSourcePwlDb: 160 },
+        { sourceCanonicalId: 'RV-102', caseId: 'RELIEF-COMBINED', effectiveSourcePwlDb: 154 },
+      ],
+      assessmentResults: [{
+        assessmentCanonicalId: 'AIV-ASSESS-HDR-001', line: '8IN-FLARE-HEADER', caseId: 'RELIEF-COMBINED',
+        contributingSourceCanonicalIds: ['RV-101', 'RV-102'], combinedPointPwlDb: 149.5630257285,
+        sourceContributionsAtPoint: [
+          { sourceCanonicalId: 'RV-101', pointPwlDb: 148.7540692513 },
+          { sourceCanonicalId: 'RV-102', pointPwlDb: 141.8662326132 },
+        ],
+        lof: 0.29,
+      }],
+      lineCaseSummaries: [{ caseId: 'RELIEF-COMBINED', assessmentCanonicalIds: ['AIV-ASSESS-HDR-001'], lof: 1.48, authoritativeForScreening: false }],
+    },
+    inputs: {
+      sources: [
+        { ...commonSource, sourceCanonicalId: 'RV-101', massFlow: { value: 26307.874944, unit: 'kg/h' } },
+        { ...commonSource, sourceCanonicalId: 'RV-102', massFlow: { value: 13185.171066, unit: 'kg/h' } },
+      ],
+      assessments: [{
+        assessmentCanonicalId: 'AIV-ASSESS-HDR-001', assessmentType: 'WELDED_TEE',
+        mainOutsideDiameter: { value: 219.1, unit: 'mm' }, mainInsideDiameter: { value: 202.74, unit: 'mm' }, mainWallThickness: { value: 8.18, unit: 'mm' },
+        branchOutsideDiameter: { value: 114.3, unit: 'mm' }, branchWallThickness: { value: 6.02, unit: 'mm' }, material: 'Carbon Steel', duplexState: 'NO',
+      }],
+      relationships: [
+        { sourceCanonicalId: 'RV-101', assessmentCanonicalId: 'AIV-ASSESS-HDR-001', caseId: 'RELIEF-COMBINED', physicalDistance: { value: 38, unit: 'm' }, distanceSource: 'EXPLICIT_SEGMENT_ENGINEERING_LENGTH_SUM', distanceSourceRevision: '1', simultaneousSourceGroup: 'FLARE-GROUP-1', applicabilityDisposition: 'APPLICABLE' },
+        { sourceCanonicalId: 'RV-102', assessmentCanonicalId: 'AIV-ASSESS-HDR-001', caseId: 'RELIEF-COMBINED', physicalDistance: { value: 41, unit: 'm' }, distanceSource: 'EXPLICIT_SEGMENT_ENGINEERING_LENGTH_SUM', distanceSourceRevision: '1', simultaneousSourceGroup: 'FLARE-GROUP-1', applicabilityDisposition: 'APPLICABLE' },
+      ],
+      topology: imported.topology,
+    },
+    flareNetworkEvidence: null,
+    eitImportEvidence: imported.evidence,
+  };
+}
+
 test('imports modern AIV-only EIT into canonical working rows without promoting prior result authority', () => {
   const imported = parseAivEitImport(JSON.stringify(modernDocument()), { sourceName: 'small-flare.eit' });
   assert.equal(imported.schema, 'AivEitImportPackage.v1');
@@ -95,6 +143,17 @@ test('imports modern AIV-only EIT into canonical working rows without promoting 
   assert.equal(value(imported.tables.sources[0], AIV_SOURCE_CSV_HEADER, 'Sonic State'), 'SONIC');
   assert.equal(value(imported.tables.assessments[0], AIV_ASSESSMENT_CSV_HEADER, 'Branch Outside Diameter'), '114.3');
   assert.deepEqual(imported.evidence.detailEvidence[0].segmentIds, ['RV101-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN']);
+});
+
+test('multi-source import resolves additive stream identity before the legacy line si pointer', () => {
+  const document = modernDocument();
+  const details = JSON.parse(document.lines[0].aiv_data);
+  delete details[1].mfr;
+  document.lines[0].aiv_data = JSON.stringify(details);
+  document.streams[1].mfr = '22222';
+  const imported = parseAivEitImport(JSON.stringify(document));
+  const rv102 = imported.tables.sources.find((row) => value(row, AIV_SOURCE_CSV_HEADER, 'Source Canonical ID') === 'RV-102');
+  assert.equal(value(rv102, AIV_SOURCE_CSV_HEADER, 'Mass Flow'), '22222');
 });
 
 test('legacy EI AIV line stays review-required and derives only missing main ID from explicit OD/WT', () => {
@@ -123,7 +182,7 @@ test('invalid EIT version fails closed before creating working state', () => {
 
 test('re-export of imported mixed-module legacy file preserves unrelated content and replaces only AIV authority fields', () => {
   const imported = parseAivEitImport(JSON.stringify(legacyDocument()), { sourceName: 'worked-examples.eit' });
-  const built = buildAivEitExport({ screeningPackage: screeningPackage(imported), title: imported.title });
+  const built = buildAivEitExport({ screeningPackage: legacyScreeningPackage(imported), title: imported.title });
   const line = built.document.lines[0];
   assert.equal(line.modules, 'fit,fip,aiv,tra');
   assert.equal(line.customLegacy, 'keep-me');
@@ -132,4 +191,31 @@ test('re-export of imported mixed-module legacy file preserves unrelated content
   assert.equal(line.aivMaxAuthoritativeAssessmentLof, '0.29');
   assert.equal(line.aivConfiguredLineCaseTraceAuthoritative, false);
   assert.deepEqual(built.document.mats, [{ id: 'legacy-material' }]);
+});
+
+test('AIV-only re-export preserves unknown options, line, pipe, stream and material fields', () => {
+  const document = modernDocument();
+  document.options.customOption = 'keep-option';
+  document.lines[0].customAivOnly = 'keep-line';
+  document.pipes[0].customPipe = 'keep-pipe';
+  document.streams[0].customStream = 'keep-stream';
+  document.mats = [{ customMaterial: 'keep-material' }];
+  const imported = parseAivEitImport(JSON.stringify(document));
+  const built = buildAivEitExport({ screeningPackage: modernScreeningPackage(imported), title: imported.title });
+  assert.equal(built.document.options.customOption, 'keep-option');
+  assert.equal(built.document.lines[0].customAivOnly, 'keep-line');
+  assert.equal(built.document.pipes[0].customPipe, 'keep-pipe');
+  assert.equal(built.document.streams[0].customStream, 'keep-stream');
+  assert.deepEqual(built.document.mats, [{ customMaterial: 'keep-material' }]);
+  assert.equal(built.document.lines[0].aiv, '0.29');
+});
+
+test('round-trip export fails closed if imported source/assessment/case identity drifts', () => {
+  const imported = parseAivEitImport(JSON.stringify(legacyDocument()));
+  const screening = legacyScreeningPackage(imported);
+  screening.result.assessmentResults[0].assessmentCanonicalId = 'CHANGED-ASSESSMENT';
+  assert.throws(
+    () => buildAivEitExport({ screeningPackage: screening }),
+    /AIV_EIT_ROUND_TRIP_IDENTITY_CHANGED/,
+  );
 });
