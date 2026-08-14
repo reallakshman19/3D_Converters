@@ -15,7 +15,7 @@ This file is the repo-level coordination dashboard. It is not the authority for 
 
 | PR/WIP | Workstream | Mission | Recovery | Handover | Qualification | Coordination | Recommended action |
 |---|---|---|---|---|---|---|---|
-| #476 | repository/agent-governance | continuous handover + expert takeover protocol v2 | HEALTHY | READY | CURRENT | COORDINATED | continue PR migration / skill packaging |
+| #476 | repository/agent-governance | continuous handover + expert takeover protocol v2 | HEALTHY | READY | NOT_REQUIRED | COORDINATED | owner review; no merge without authorization |
 | #474 | vibration/AIV CI | controlled AIV canvas release validation | UNMIGRATED | UNKNOWN | UNKNOWN | RECHECK | re-ground before takeover |
 | #471 | vibration/master-data | T2.8 valve-closure candidate recovery | UNMIGRATED | report exists | UNKNOWN | RECHECK | re-ground before takeover |
 | #457 | vibration/AIV evidence | post-merge validation record | UNMIGRATED | UNKNOWN | UNKNOWN | RECHECK | re-ground before takeover |

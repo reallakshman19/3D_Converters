@@ -17,4 +17,5 @@ claim_modes:
 prohibited_overlap:
   - production converter/calculation logic
   - .github/workflows/
-last_verified_head: a9ab229955047976a0e6e163baea56412f7e447b
+last_verified_head: 2e3692133482877ff31716089ee4ab917216dafb
+note: Technical scope is complete; claim remains active while PR is open to warn concurrent governance edits.

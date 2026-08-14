@@ -7,103 +7,204 @@
 ```text
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: HEALTHY
-TAKEOVER_AUTHORITY: WRITE_ALLOWED
+TAKEOVER_AUTHORITY: READ_ONLY
 
 REPOSITORY: reallaksh19/3D_Converters
 SOURCE_TASK: Owner instruction to update core agent documents/structure and create ChatGPT Skills
 PR_OR_WIP: PR476
 BRANCH: agent/continuous-handover-protocol-v2
 
-PR_HEAD_OBSERVED: a9ab229955047976a0e6e163baea56412f7e447b
-REPORT_BASIS_HEAD: a9ab229955047976a0e6e163baea56412f7e447b
+PR_HEAD_OBSERVED: 2e3692133482877ff31716089ee4ab917216dafb
+REPORT_BASIS_HEAD: 2e3692133482877ff31716089ee4ab917216dafb
 MAIN_HEAD_LAST_CHECKED: c41f2e14a72954297e173c09b240c1714959db93
 MERGE_BASE: c41f2e14a72954297e173c09b240c1714959db93
 REPORT_SYNC: CURRENT
 
-APPENDIX_A_STATUS: CURRENT
-GROUNDING_EPOCH: GE-001
+APPENDIX_A_STATUS: NOT_REQUIRED
+GROUNDING_EPOCH: GE-002
 CURRENT_TAKEOVER: TKO-001 / initial work
 
-CURRENT_STAGE: PR allocation and recovery-record migration
-LAST_COMPLETED_STAGE: Core protocol implementation checkpoint
+CURRENT_STAGE: Technical protocol implementation complete / waiting owner review
+LAST_COMPLETED_STAGE: PR scope reconciliation and ChatGPT Skill packaging
 CURRENT_BLOCKER: NONE
-HIGHEST_RISK: Creating policy duplication or a master-index conflict hotspot
-LAST_DURABLE_CHECKPOINT: core protocol commit a9ab229955047976a0e6e163baea56412f7e447b
+HIGHEST_RISK: Existing historical PRs are not yet migrated into status/claim records and must still be re-grounded individually
+LAST_DURABLE_CHECKPOINT: protocol/content head 2e3692133482877ff31716089ee4ab917216dafb
 
-EXACT_NEXT_ACTION: Complete PR476 record migration, verify exact changed-file scope, then build the revised ChatGPT Skill package.
+EXACT_NEXT_ACTION: Owner review PR #476. Do not merge without explicit Owner authorization. If technical changes are requested, restore Appendix A to CURRENT and re-ground before modification.
 ```
 
 ## 2. Handover in 60 Seconds
 
-The owner wants every PR recoverable even when an agent disappears or becomes incapable, and wants the next agent to prove repository-specific expertise rather than answer generic chatbot questions.
+PR #476 introduces the repository-wide continuous-recovery protocol requested by the owner.
 
-This branch adds a concise `.agents/AGENTS.md` entrypoint plus detailed continuous-handover, takeover-qualification, multi-agent coordination, recovery/salvage, master-index, status/claim, and work-report template contracts. It deliberately avoids one shared `PR_PENDING_workreport.md`; pre-PR work uses unique WIP IDs.
+The core rule is that an active agent may disappear, lose context, or become incapable at any meaningful point. Current state, engineering evidence, authority boundaries, partial work, and the exact continuation action must therefore live in durable repository artifacts rather than chat history.
 
-No production engineering code is in scope.
+The protocol now includes:
 
-## 3. Ground Truth
+- continuous handover at durable checkpoints;
+- live GitHub grounding epochs and takeover chain;
+- current-state-first PR work reports;
+- repository-specific Appendix A implementation qualification rather than textbook/chatbot questions;
+- read-only takeover until engineering-critical qualification passes;
+- repo-level master index;
+- per-PR/WIP status and claims;
+- exact-file, prefix, authority, dependency, and base-drift overlap checks;
+- quarantine, salvage, supersession, and abandonment as valid recovery outcomes;
+- unique WIP identifiers before PR allocation;
+- a corrected non-self-referential `REPORT_BASIS_HEAD` freshness model.
 
-- `main@c41f2e14a72954297e173c09b240c1714959db93` observed before branch creation.
-- Existing `.agents/AGENTS.md` contains lightweight coding constraints only.
-- Existing `agents/` contains many PR work reports but no repo master index/status/claim coordination layer.
-- Multiple open PRs exist across vibration, XML→CII, and FBX workstreams.
+No production converter, calculation, benchmark, test, or workflow code is changed by this PR.
 
-## 4. Mission / Scope
+The revised ChatGPT Skill package `engineering-pr-delivery-v2.zip` has also been created and structurally validated outside this repository. The current GitHub connector scope for this work exposes `3D_Converters`, so synchronization of that Skill package back into the separate `Common` repository remains a separate repository-write action.
+
+## 3. Repository Ground Truth
+
+Grounding epoch `GE-002`:
+
+```text
+base/main observed: c41f2e14a72954297e173c09b240c1714959db93
+PR: #476
+PR branch: agent/continuous-handover-protocol-v2
+content/report basis head: 2e3692133482877ff31716089ee4ab917216dafb
+merge base: c41f2e14a72954297e173c09b240c1714959db93
+commits ahead: 2
+commits behind: 0
+changed files: 13
+PR state: OPEN / DRAFT
+merge: NOT AUTHORIZED
+```
+
+Changed-file reconciliation from `main@c41f2e14...` to `2e369213...` found only:
+
+```text
+.agents/AGENTS.md
+agents/MASTER_INDEX.md
+agents/PR476_workreport.md
+agents/claims/PR476.yaml
+agents/claims/README.md
+agents/protocol/README.md
+agents/protocol/continuous-handover.md
+agents/protocol/multi-agent-coordination.md
+agents/protocol/recovery-salvage.md
+agents/protocol/takeover-qualification.md
+agents/status/PR476.yaml
+agents/status/README.md
+agents/templates/workreport-template.md
+```
+
+No `.github/workflows/*` files and no production engineering modules are in the diff.
+
+## 4. Mission / Scope / Acceptance
 
 Mission: establish a recoverable, qualification-gated, multi-agent execution protocol that treats agent failure and PR supersession as normal controlled states.
 
-In scope: policy/docs/templates/coordination structure only.
+Acceptance for this PR:
 
-Out of scope: production converter/calculation changes, workflow files, automatic migration of historical PR reports, merge.
+- every new PR/WIP can remain handover-ready through durable checkpoints;
+- takeover is grounded to live repository state;
+- Appendix A tests actual implementation competence, not subject trivia;
+- simultaneous PRs can declare status/claims and detect authority overlap;
+- damaged PRs can be quarantined, salvaged, or superseded without losing validated evidence;
+- work-report current truth is separated from historical record;
+- pre-PR work does not collide through one shared pending filename.
 
-## 5. Active Items
+Explicit non-goals:
+
+- no production converter/calculation change;
+- no workflow change;
+- no automatic retrofit of every existing historical PR report in this PR;
+- no merge without owner instruction.
+
+## 5. Active Engineering Item Register
 
 | ID | Type | Status | Summary |
 |---|---|---|---|
 | DEC-001 | Decision | ACCEPTED | Durable identity is PR/WIP, not chat session. |
-| DEC-002 | Decision | ACCEPTED | Incoming engineering-critical agents are read-only until live re-grounding + Appendix A PASS. |
-| DEC-003 | Decision | ACCEPTED | Master index is coordination snapshot; live GitHub remains mutable-state authority. |
-| DEC-004 | Decision | ACCEPTED | Existing PR may be quarantined/salvaged/superseded instead of preserved at all costs. |
-| DEC-005 | Decision | ACCEPTED | Pre-PR work uses unique WIP IDs, not one shared PR_PENDING report. |
-| RISK-001 | Risk | MITIGATED | Master index becoming shared-edit conflict hotspot; per-PR status/claim records are intended ownership. |
-| RISK-002 | Risk | MITIGATED | Textbook takeover questions; qualification quality gate requires repository/evidence/falsifier/minimal-patch content. |
-| DEC-006 | Decision | ACCEPTED | Report freshness uses `REPORT_BASIS_HEAD`; metadata-only sync commits may follow without impossible self-SHA recursion. |
+| DEC-002 | Decision | ACCEPTED | Incoming engineering-critical agents start read-only until live re-grounding and repository-specific qualification. |
+| DEC-003 | Decision | ACCEPTED | Master index is a coordination snapshot; live GitHub remains mutable-state authority. |
+| DEC-004 | Decision | ACCEPTED | Existing PRs may be quarantined/salvaged/superseded instead of preserved through sunk-cost bias. |
+| DEC-005 | Decision | ACCEPTED | Pre-PR work uses unique WIP IDs, not one shared `PR_PENDING_workreport.md`. |
+| DEC-006 | Decision | ACCEPTED | Freshness uses `REPORT_BASIS_HEAD`; metadata-only sync commits may follow without impossible self-SHA recursion. |
+| RISK-001 | Risk | MITIGATED | Master index conflict hotspot avoided by per-PR status/claim ownership. |
+| RISK-002 | Risk | MITIGATED | Textbook takeover questions blocked by repository/evidence/falsifier/minimal-patch quality gate. |
+| RISK-003 | Risk | OPEN | Historical open PRs predate this structure and require individual migration/re-grounding rather than blanket trust. |
 
-## 6. Validation
+## 6. Validation and Evidence
 
-Current work is policy-only. Structural validation after commit must verify:
-- intended paths only;
-- no production modules;
-- no `.github/workflows/*`;
-- no existing PR work reports modified;
-- branch remains based on observed main unless main advances.
+### Repository structural validation
 
-## 7. Continuation State
+PASS by live GitHub comparison:
 
-PR #476 is allocated. Next:
-1. complete WIP-to-PR476 report/status/claim migration;
-2. reconcile exact changed-file scope;
-3. package the same protocol as the revised `engineering-pr-delivery` ChatGPT Skill.
+- base `c41f2e14...`;
+- content head `2e369213...`;
+- 2 commits ahead / 0 behind;
+- exactly 13 changed files;
+- only `.agents/` and `agents/` protocol/recovery paths;
+- no production engineering modules;
+- no workflow files.
+
+### ChatGPT Skill package validation
+
+PASS:
+
+```text
+skill: engineering-pr-delivery
+SKILL.md: 328 lines
+references: 13
+scripts: 5
+frontmatter: only name + description
+referenced resources: present
+bundled Python scripts: syntax compilation PASS
+ZIP: engineering-pr-delivery-v2.zip
+```
+
+The Skill uses progressive disclosure: core execution workflow in `SKILL.md`; detailed handover, takeover, coordination, recovery/salvage, validation, authority, coding, anti-gaming, and closure rules in references.
+
+## 7. Changed-File Ledger
+
+| File | Purpose | Sensitive? | Validation |
+|---|---|---:|---|
+| `.agents/AGENTS.md` | short governing entrypoint | yes | diff reviewed |
+| `agents/MASTER_INDEX.md` | repo coordination dashboard | yes | live open-PR bootstrap |
+| `agents/PR476_workreport.md` | living recovery artifact | yes | current |
+| `agents/status/PR476.yaml` | per-PR machine-readable status | yes | current |
+| `agents/claims/PR476.yaml` | coordination/authority claims | yes | current |
+| `agents/status/README.md` | status registry contract | no | source inspection |
+| `agents/claims/README.md` | claim registry contract | no | source inspection |
+| `agents/protocol/README.md` | protocol navigation | no | source inspection |
+| `agents/protocol/continuous-handover.md` | handover/grounding/freshness | yes | source inspection |
+| `agents/protocol/takeover-qualification.md` | expert implementation gate | yes | source inspection |
+| `agents/protocol/multi-agent-coordination.md` | overlap/dependency/base drift | yes | source inspection |
+| `agents/protocol/recovery-salvage.md` | quarantine/salvage/supersession | yes | source inspection |
+| `agents/templates/workreport-template.md` | canonical recovery-first template | yes | source inspection |
+
+Unexplained files: 0.
+
+## 8. Continuation State
+
+No technical implementation remains in current approved scope.
+
+If the owner requests changes:
+
+1. fetch live PR #476 and current `main`;
+2. create a new grounding epoch;
+3. set `APPENDIX_A_STATUS=CURRENT`;
+4. update Appendix A to test the requested upcoming change;
+5. only then modify protocol content.
+
+If no changes are requested, the next action is owner review/merge authorization.
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
 
-Qualification basis: policy implementation only; no engineering-critical production mutation.
+```text
+APPENDIX_A_STATUS: NOT_REQUIRED
+Reason: Current technical implementation scope is complete. No further implementation authority is presently required. If review creates new technical work, Appendix A must be regenerated before mutation.
+```
 
-### A1 — Recovery invariant
-Trace how a newly arriving agent would move from `MASTER_INDEX.md` to live GitHub, the PR work report, grounding epoch, Appendix A, and only then to write authority. Identify any point where stale Markdown could incorrectly override live PR state.
+# HISTORICAL RECORD — NOT CURRENT AUTHORITY
 
-### A2 — Qualification quality
-Using the new protocol, construct one invalid generic question and one valid repository-bound takeover challenge for an unresolved engineering PR. Show why the valid one cannot be answered without repository evidence and a falsifiable experiment.
-
-### A3 — Multi-agent collision
-Given two active PRs with no exact-file overlap but both modifying one engineering authority, show how claims/overlap classification prevents silent concurrent authority changes.
-
-### A4 — Damaged PR recovery
-Given a stale report, unexplained production files, modified benchmark expected values, and a newer main, identify the evidence required to decide CONTINUE vs SALVAGE_PARTIAL vs SUPERSEDE.
-
-### A5 — Minimal next change
-Identify the smallest safe next change for this WIP after the initial protocol commit. It must not touch production converter/calculation code or workflow files.
-
-# HISTORICAL RECORD
-
-GE-001: branch created from current observed main and core structure inspected.
+- GE-001: branch created from `main@c41f2e14...`; existing agent structure inspected.
+- Commit `a9ab229...`: initial continuous-handover protocol checkpoint.
+- PR #476 allocated as draft.
+- Commit `2e369213...`: WIP records migrated to PR476 and freshness model corrected to `REPORT_BASIS_HEAD`.
+- GE-002: exact PR scope reconciled; ChatGPT Skill package created and validated.
