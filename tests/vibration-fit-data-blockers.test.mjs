@@ -26,10 +26,13 @@ function exchange() {
   });
 }
 
-function operatingCsv({ phase = '', density = '', densityUnit = '' } = {}) {
+function operatingCsv({
+  phase = '', density = '', densityUnit = '', massFlow = '', massFlowUnit = '', velocity = '', velocityUnit = '',
+} = {}) {
   const row = Array.from({ length: VIBRATION_OPERATING_CASE_CSV_HEADER.length }, () => '');
   row[0] = 'L-100'; row[1] = 'NORMAL'; row[3] = phase;
-  row[6] = density; row[7] = densityUnit; row[17] = 'SOURCE';
+  row[4] = massFlow; row[5] = massFlowUnit; row[6] = density; row[7] = densityUnit;
+  row[15] = velocity; row[16] = velocityUnit; row[17] = 'SOURCE';
   return [VIBRATION_OPERATING_CASE_CSV_HEADER.join(','), row.join(',')].join('\n');
 }
 
@@ -96,6 +99,22 @@ test('manual blocker input fails closed when it collides with an existing source
   assert.throws(
     () => buildVibrationFacilityFitPreflightFromTables({
       topology: topology(), operatingCaseCsv: operatingCsv({ phase: 'LIQUID', density: '900', densityUnit: 'kg/m3' }),
+      enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
+    }),
+    (error) => error.code === 'FIT_DATA_BLOCKER_SOURCE_COLLISION',
+  );
+});
+
+test('manual velocity cannot supersede an existing source mass-flow representation', () => {
+  const dataBlockerCsv = blockerCsv([
+    'CANON-001,L-100,NORMAL,VELOCITY,1,m/s,USER-INPUT,,B-1,ACTIVE,eng-a,alternate flow representation',
+  ]);
+  assert.throws(
+    () => buildVibrationFacilityFitPreflightFromTables({
+      topology: topology(),
+      operatingCaseCsv: operatingCsv({
+        phase: 'LIQUID', density: '1000', densityUnit: 'kg/m3', massFlow: '5', massFlowUnit: 'kg/s',
+      }),
       enrichmentCsv: enrichmentCsv(), dataBlockerCsv,
     }),
     (error) => error.code === 'FIT_DATA_BLOCKER_SOURCE_COLLISION',
