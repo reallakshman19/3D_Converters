@@ -160,3 +160,33 @@ Preserve known-good commits, benchmarks, independent evidence, decisions, invari
 - Do not modify workflow files unless explicitly authorized.
 - Keep the PR handover-ready while waiting for review/merge.
 - **Never merge without explicit owner authorization.**
+
+## 11. AUTO MODE — autonomous phase execution
+
+The exact owner keyword `AUTO MODE` sets:
+
+```text
+EXECUTION_MODE = AUTO
+AUTO_STATE = RUNNING
+SCOPE_AUTHORITY = LOCKED_TO_APPROVED_MISSION
+PHASE_PROGRESSION = AUTO
+MERGE_AUTHORITY = OWNER_ONLY
+```
+
+AUTO MODE authorizes automatic phase progression through the approved plan. It does not authorize scope expansion, protected authority changes, weakening validation, destructive actions, or merge.
+
+After each phase the agent must validate, synchronize the work report/status/claims/Appendix A as needed, reconcile changed files, create a durable checkpoint, evaluate hard stops, and continue automatically when none applies. Routine phase completion is not a reason to ask for confirmation.
+
+In addition to universal hard stops, stop AUTO when continuing requires an unapproved change to vibration/FIV/AIV/FIT numerical authority, engineering master data, XML/CII semantics, topology/geometry authority, support/classification authority, runtime/writer/canvas ownership, engineering export semantics, units, numerical recovery, or result-publication authority.
+
+Bounded diagnosis and repairs inside approved scope are allowed. If repeated attempts do not narrow uncertainty, or the agent cannot state a concrete hypothesis, falsifier, next isolating experiment, and protected invariants, stop production mutation and set:
+
+```text
+PR_RECOVERY_STATE = TAKEOVER_REQUIRED
+TAKEOVER_AUTHORITY = READ_ONLY
+AUTO_STATE = TAKEOVER_REQUIRED
+```
+
+Refresh the work report and Appendix A for immediate takeover.
+
+`AUTO MODE` never implies `AUTO MERGE`; merge remains owner-only unless separately and explicitly authorized.
