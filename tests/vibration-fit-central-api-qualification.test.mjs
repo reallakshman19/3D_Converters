@@ -12,9 +12,7 @@ const engine = createEngineeringCalculationEngine({
 
 function run(inputs, inputUnits) {
   return engine.calculate({
-    calculationId: 'VIB.FIV.FLOW_TURBULENCE',
-    inputs,
-    inputUnits,
+    calculationId: 'VIB.FIV.FLOW_TURBULENCE', inputs, inputUnits,
     options: { qualificationMode: 'benchmark', includeEvidence: true },
   });
 }
@@ -136,8 +134,8 @@ test('MULTIPHASE aggregate-effective central path is SI/US invariant', () => {
   assert.equal(us.ok, true, JSON.stringify(us));
   close(us.outputs.standardFv, si.outputs.standardFv);
   close(us.outputs.standardLof, si.outputs.standardLof);
-  assert.equal(si.provenance.inputResolution.mode, 'AGGREGATE_EFFECTIVE');
-  assert.equal(us.provenance.inputResolution.mode, 'AGGREGATE_EFFECTIVE');
+  assert.equal(si.provenance.inputResolution.multiphaseResolutionMode, 'AGGREGATE_EFFECTIVE');
+  assert.equal(us.provenance.inputResolution.multiphaseResolutionMode, 'AGGREGATE_EFFECTIVE');
 });
 
 test('FIT central API fails closed on unsupported engineering units', () => {
