@@ -4,7 +4,9 @@ import {
   parseVibrationTableExchangeXlsx,
 } from '../exchange/parse.js';
 import {
+  applyVibrationFitDataBlockers,
   parseVibrationEnrichmentCsv,
+  parseVibrationFitDataBlockerCsv,
   parseVibrationOperatingCaseCsv,
 } from '../tabular/index.js';
 
@@ -61,19 +63,28 @@ function parseOptionalCsv(value, parser) {
 
 export function parseVibrationFacilityFitTables(input = {}) {
   const exchange = parseTopology(input.topology);
-  const operatingCases = parseOptionalCsv(input.operatingCaseCsv, parseVibrationOperatingCaseCsv);
-  const enrichment = parseOptionalCsv(input.enrichmentCsv, parseVibrationEnrichmentCsv);
+  const sourceOperatingCases = parseOptionalCsv(input.operatingCaseCsv, parseVibrationOperatingCaseCsv);
+  const sourceEnrichment = parseOptionalCsv(input.enrichmentCsv, parseVibrationEnrichmentCsv);
+  const dataBlockers = parseOptionalCsv(input.dataBlockerCsv, parseVibrationFitDataBlockerCsv);
+  const applied = applyVibrationFitDataBlockers({
+    operatingCases: sourceOperatingCases,
+    enrichment: sourceEnrichment,
+    blockers: dataBlockers,
+  });
   return deepFreeze({
     exchange,
-    operatingCases,
-    enrichment,
+    operatingCases: applied.operatingCases,
+    enrichment: applied.enrichment,
+    dataBlockers,
     imports: {
       topologyFormat: input.topology.format,
       topologySourceFileName: exchange.sourceFileName ?? input.topology.sourceFileName ?? null,
       exchangeSchema: exchange.schema,
       exchangeIntegrityStatus: exchange.integrityStatus ?? null,
-      operatingCaseCount: operatingCases.length,
-      enrichmentCount: enrichment.length,
+      operatingCaseCount: sourceOperatingCases.length,
+      enrichmentCount: sourceEnrichment.length,
+      dataBlockerCount: dataBlockers.length,
+      activeDataBlockerCount: applied.appliedCount,
     },
   });
 }
