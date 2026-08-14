@@ -41,9 +41,9 @@ function independentBenchmarkRows() {
   return AIV_INDEPENDENT_BENCHMARKS.map((item) => `<tr><td><code>${esc(item.benchmarkId)}</code></td><td>${esc(item.purpose)}</td><td>${cell(independentExpected(item))}</td><td>${esc(item.requiredTraceIds.join('; '))}</td><td><span class="aivq-status ok">MACHINE_BENCHMARK</span></td></tr>`).join('');
 }
 
-function evidenceHtml() {
+function evidenceHtml(state) {
   return `<details class="aivq-disclosure aivq-evidence-disclosure"><summary><span>Qualification evidence & method trace</span><small>Controlled sources, benchmark vectors, promotion evidence and permanent authority boundaries</small></summary><div class="aivq-disclosure-body">
-    ${renderAivPromotionReadinessHtml({})}
+    ${renderAivPromotionReadinessHtml(state)}
     <section class="aivq-card"><h4>Controlled source set</h4><div class="aivq-grid">
       <div><small>Qualification issue</small><strong>#441</strong></div>
       <div><small>EI T2.7 main guidance</small><strong>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.path)}</strong><span>${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.repository)} @ ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.commit)} · blob ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.gitBlob)} · ${esc(AIV_EI_MAIN_GUIDANCE_SOURCE.locator)}</span><span>Errata-aware trace retained; unresolved method values are visible configurable assumptions.</span></div>
@@ -73,6 +73,6 @@ export function renderAivQualificationWorkspaceHtml(state = {}) {
       ${renderAivReadinessPanelHtml(state)}
       ${renderAivResultShellsHtml(state)}
     </main>
-    ${evidenceHtml().replace('${renderAivPromotionReadinessHtml({})}', renderAivPromotionReadinessHtml(state))}
+    ${evidenceHtml(state)}
   </div>`;
 }
