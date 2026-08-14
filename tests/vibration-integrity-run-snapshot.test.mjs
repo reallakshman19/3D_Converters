@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { vibrationIntegrityRunInputDrifted } from '../tabs/vibration-integrity-run-controller.js';
+import {
+  vibrationIntegrityCapturedInputDrifted,
+  vibrationIntegrityRunInputDrifted,
+} from '../tabs/vibration-integrity-run-controller.js';
 import {
   FIT_ENGINEERING_INPUT_IDENTITY_SCHEMA,
   bindVibrationIntegrityEngineeringIdentity,
@@ -84,10 +87,13 @@ test('engineering-working input changes alter the audit snapshot hash', async ()
   assert.notEqual(first.snapshotHash, changed.snapshotHash);
 });
 
-test('in-flight working-state changes invalidate the captured run identity', async () => {
-  const captured = await buildVibrationIntegrityRunSnapshot(state('1'));
-  assert.equal(await vibrationIntegrityRunInputDrifted(captured, state('1')), false);
-  assert.equal(await vibrationIntegrityRunInputDrifted(captured, state('1.1')), true);
+test('in-flight working-state changes invalidate captured run and readiness identities', async () => {
+  const capturedState = state('1');
+  const capturedRun = await buildVibrationIntegrityRunSnapshot(capturedState);
+  assert.equal(await vibrationIntegrityRunInputDrifted(capturedRun, state('1')), false);
+  assert.equal(await vibrationIntegrityRunInputDrifted(capturedRun, state('1.1')), true);
+  assert.equal(await vibrationIntegrityCapturedInputDrifted(capturedState, state('1')), false);
+  assert.equal(await vibrationIntegrityCapturedInputDrifted(capturedState, state('1.1')), true);
 });
 
 test('source identity changes audit hash without changing normalized engineering-input hash', async () => {
