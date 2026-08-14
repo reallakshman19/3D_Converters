@@ -39,19 +39,28 @@ function candidateId(table) {
   return id;
 }
 
-function assertTablePass(tablePass, sourceHash) {
+function assertTableCell(cell) {
+  const valid = typeof cell?.cellId === 'string'
+    && Number.isInteger(cell?.rowIndex) && cell.rowIndex >= 0
+    && Number.isInteger(cell?.columnIndex) && cell.columnIndex >= 0
+    && cell?.geometry && typeof cell.geometry === 'object'
+    && Array.isArray(cell?.observationHashes) && cell.observationHashes.length > 0
+    && cell.observationHashes.every((hash) => SHA256.test(String(hash || '')));
+  if (!valid) throw new Error('VIBRATION_STAGE5C_TABLE_PASS_CELL_EVIDENCE_INVALID');
+}
+
+function assertTablePass(tablePass, table, sourceHash) {
   const valid = tablePass?.schema === 'TablePass.v1'
     && tablePass?.sourceHash === sourceHash
+    && tablePass?.tableCandidateId === candidateId(table)
     && SHA256.test(String(tablePass?.tablePassHash || ''))
+    && SHA256.test(String(tablePass?.surfaceHash || ''))
     && typeof tablePass?.tablePassId === 'string'
+    && typeof tablePass?.passId === 'string'
+    && typeof tablePass?.surfaceId === 'string'
     && Array.isArray(tablePass?.cells);
   if (!valid) throw new Error('VIBRATION_STAGE5C_TABLE_PASS_INVALID');
-  for (const cell of tablePass.cells) {
-    if (!Array.isArray(cell?.observationHashes) || cell.observationHashes.length === 0
-      || cell.observationHashes.some((hash) => !SHA256.test(String(hash || '')))) {
-      throw new Error('VIBRATION_STAGE5C_TABLE_PASS_CELL_EVIDENCE_INVALID');
-    }
-  }
+  tablePass.cells.forEach(assertTableCell);
 }
 
 function assertTableEvidence(table, sourceHash) {
@@ -59,10 +68,13 @@ function assertTableEvidence(table, sourceHash) {
   if (!Array.isArray(table?.observations) || !Array.isArray(table?.cellDecisions)) {
     throw new Error('VIBRATION_STAGE5C_TABLE_EVIDENCE_INVALID');
   }
-  if (table.observations.some((item) => !SHA256.test(String(item?.observationHash || '')))) {
-    throw new Error('VIBRATION_STAGE5C_TABLE_OBSERVATION_INVALID');
-  }
-  assertTablePass(table.tablePass, sourceHash);
+  const invalidObservation = table.observations.some((item) => (
+    item?.schema !== 'Observation.v1'
+    || item?.sourceHash !== sourceHash
+    || !SHA256.test(String(item?.observationHash || ''))
+  ));
+  if (invalidObservation) throw new Error('VIBRATION_STAGE5C_TABLE_OBSERVATION_INVALID');
+  assertTablePass(table.tablePass, table, sourceHash);
 }
 
 function chooseCandidateEvidence(selection, tables) {
