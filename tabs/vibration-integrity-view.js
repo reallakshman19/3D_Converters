@@ -61,6 +61,7 @@ function preflightPanel(state) {
     ['Plan rows', preflight.counts.rows],
     ['Ready', preflight.counts.ready],
     ['Not ready', preflight.counts.notReady],
+    ['Active manual inputs', wrapper.imports.activeDataBlockerCount ?? 0],
   ];
   return `<section class="vi-card vi-preflight-card">
     <div class="vi-section-head"><div><h3>FIT readiness</h3><p>Input-contract and completeness check only. No FIT calculation is executed by this readiness check.</p></div></div>
@@ -182,7 +183,7 @@ function importFacts(state) {
   const imports = state.envelope?.imports;
   if (!imports) return '';
   const snapshot = state.runSnapshot?.snapshotHash;
-  return `<div class="vi-import-facts"><span>Topology: <strong>${esc(imports.topologyFormat)}</strong></span><span>Integrity: <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Operating cases: <strong>${esc(imports.operatingCaseCount)}</strong></span><span>Enrichment rows: <strong>${esc(imports.enrichmentCount)}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span>${snapshot ? `<span>Run snapshot: <strong class="vi-mono">${esc(snapshot)}</strong></span>` : ''}</div>`;
+  return `<div class="vi-import-facts"><span>Topology: <strong>${esc(imports.topologyFormat)}</strong></span><span>Integrity: <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Operating cases: <strong>${esc(imports.operatingCaseCount)}</strong></span><span>Enrichment rows: <strong>${esc(imports.enrichmentCount)}</strong></span><span>Data blockers: <strong>${esc(imports.dataBlockerCount ?? 0)}</strong></span><span>Active manual inputs: <strong>${esc(imports.activeDataBlockerCount ?? 0)}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span>${snapshot ? `<span>Run snapshot: <strong class="vi-mono">${esc(snapshot)}</strong></span>` : ''}</div>`;
 }
 
 export function renderVibrationIntegrityHtml(state) {
