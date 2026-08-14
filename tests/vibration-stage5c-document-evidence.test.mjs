@@ -6,10 +6,17 @@ import {
   extractDocumentEvidenceTables,
   normalizeExplicitPages,
 } from '../scripts/vibration-stage5c-document-evidence-client.mjs';
+import {
+  CONTROLLED_EI_SOURCE,
+  VIBRATION_STAGE5C_SELECTION_SCHEMA,
+  assertControlledEiSource,
+  validateStage5cSelection,
+  validateStage5cSelectionDocument,
+} from '../scripts/vibration-stage5c-targets.mjs';
 
 const SOURCE_HASH = `sha256:${'a'.repeat(64)}`;
 
-function source() {
+function source(overrides = {}) {
   return {
     schema: 'SourceIdentity.v1',
     sourceId: 'source:fixture',
@@ -17,6 +24,7 @@ function source() {
     mediaType: 'application/pdf',
     sizeBytes: 123,
     logicalPath: '/Common/controlled.pdf',
+    ...overrides,
   };
 }
 
@@ -83,28 +91,23 @@ test('extraction sends exact source hash and explicit sorted pages', async () =>
 test('source or page drift fails closed', async () => {
   await assert.rejects(
     extractDocumentEvidenceTables({
-      sourcePath: '/Common/controlled.pdf',
-      sourceHash: SOURCE_HASH,
-      pages: [2],
+      sourcePath: '/Common/controlled.pdf', sourceHash: SOURCE_HASH, pages: [2],
       fetchImpl: async () => response({
         schema: 'DocumentEvidenceTableExtraction.v1',
         sourceHash: `sha256:${'b'.repeat(64)}`,
-        source: source(),
-        pages: [2], tables: [], diagnostics: [], options: { ocr: 'never', ocrLanguage: 'eng' },
+        source: source(), pages: [2], tables: [], diagnostics: [],
+        options: { ocr: 'never', ocrLanguage: 'eng' },
       }),
     }),
     /SOURCE_SHA256_MISMATCH/u,
   );
   await assert.rejects(
     extractDocumentEvidenceTables({
-      sourcePath: '/Common/controlled.pdf',
-      sourceHash: SOURCE_HASH,
-      pages: [2],
+      sourcePath: '/Common/controlled.pdf', sourceHash: SOURCE_HASH, pages: [2],
       fetchImpl: async () => response({
         schema: 'DocumentEvidenceTableExtraction.v1',
-        sourceHash: SOURCE_HASH,
-        source: source(),
-        pages: [3], tables: [], diagnostics: [], options: { ocr: 'never', ocrLanguage: 'eng' },
+        sourceHash: SOURCE_HASH, source: source(), pages: [3], tables: [], diagnostics: [],
+        options: { ocr: 'never', ocrLanguage: 'eng' },
       }),
     }),
     /PAGE_MISMATCH/u,
@@ -117,12 +120,74 @@ test('generic evidence authority leakage is rejected', async () => {
       sourcePath: '/Common/controlled.pdf',
       fetchImpl: async () => response({
         schema: 'DocumentEvidenceTableDiscovery.v1',
-        sourceHash: SOURCE_HASH,
-        source: source(),
-        candidates: [], diagnostics: [],
+        sourceHash: SOURCE_HASH, source: source(), candidates: [], diagnostics: [],
         engineeringAuthority: 'SCREENING',
       }),
     }),
     /GENERIC_AUTHORITY_FIELD_FORBIDDEN/u,
+  );
+});
+
+test('Stage 5C table selection requires semantic target, explicit pages and reviewer locator', () => {
+  const selection = validateStage5cSelection({
+    masterId: 'EI_AVIFF.T3.SBC.FITTING_SPAN_FACTORS.v1',
+    pages: [81],
+    sourceLocator: { locator: 'reviewed table locator', printedPage: '81' },
+    candidateIds: ['candidate-1'],
+  });
+  assert.equal(selection.masterId, 'EI_AVIFF.T3.SBC.FITTING_SPAN_FACTORS.v1');
+  assert.deepEqual(selection.pages, [81]);
+  assert.equal(selection.sourceLocator.selectionBasis, 'EXPLICIT_REVIEWER_SELECTION');
+  assert.throws(
+    () => validateStage5cSelection({
+      masterId: selection.masterId, pages: [81], sourceLocator: {},
+    }),
+    /SOURCE_LOCATOR_REQUIRED/u,
+  );
+});
+
+test('curve and non-table rule targets cannot enter the table evidence path', () => {
+  assert.throws(
+    () => validateStage5cSelection({
+      masterId: 'EI_AVIFF.T3.SBC.FIGURE_T3_1.v1', pages: [82],
+      sourceLocator: { locator: 'Figure T3-1' },
+    }),
+    /CURVE_TARGET_OUT_OF_SCOPE/u,
+  );
+  assert.throws(
+    () => validateStage5cSelection({
+      masterId: 'EI_AVIFF.T3.SBC.GEOMETRY_SCORES.v1', pages: [75],
+      sourceLocator: { locator: 'Geometry methodology' },
+    }),
+    /REQUIRES_NON_TABLE_EVIDENCE/u,
+  );
+});
+
+test('selection document binds source hash and rejects duplicate selection IDs', () => {
+  const raw = {
+    schema: VIBRATION_STAGE5C_SELECTION_SCHEMA,
+    sourceHash: SOURCE_HASH,
+    selections: [{
+      selectionId: 'span-factor',
+      masterId: 'EI_AVIFF.T3.SBC.FITTING_SPAN_FACTORS.v1',
+      pages: [81], sourceLocator: { locator: 'reviewed table locator' },
+    }],
+  };
+  assert.equal(validateStage5cSelectionDocument(raw).sourceHash, SOURCE_HASH);
+  assert.throws(
+    () => validateStage5cSelectionDocument({ ...raw, selections: [raw.selections[0], raw.selections[0]] }),
+    /SELECTION_DUPLICATE/u,
+  );
+});
+
+test('controlled EI source path and byte size are domain-gated', () => {
+  const controlled = source({
+    logicalPath: CONTROLLED_EI_SOURCE.apiSourcePath,
+    sizeBytes: CONTROLLED_EI_SOURCE.sizeBytes,
+  });
+  assert.equal(assertControlledEiSource(controlled).sizeBytes, 10_348_594);
+  assert.throws(
+    () => assertControlledEiSource({ ...controlled, sizeBytes: controlled.sizeBytes - 1 }),
+    /CONTROLLED_SOURCE_IDENTITY_MISMATCH/u,
   );
 });
