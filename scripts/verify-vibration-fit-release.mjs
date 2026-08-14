@@ -24,6 +24,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-fit-workbook-reference.test.mjs',
       'tests/vibration-fit-ei-worked-examples.test.mjs',
       'tests/vibration-fit-independent-benchmarks.test.mjs',
+      'tests/vibration-fit-central-api-qualification.test.mjs',
       'tests/vibration-fit-physical-context.test.mjs',
       'tests/vibration-fit-qualification-coverage.test.mjs',
       'tests/vibration-fit-screening-candidate.test.mjs',
@@ -47,6 +48,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-facility-fit-register.test.mjs',
       'tests/vibration-facility-fit-workflow.test.mjs',
       'tests/vibration-facility-fit-tabular-workflow.test.mjs',
+      'tests/vibration-fit-data-blockers.test.mjs',
     ]),
   }),
   Object.freeze({
