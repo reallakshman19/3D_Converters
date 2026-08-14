@@ -22,7 +22,7 @@ designAuthority      = NOT_AUTHORIZED
 
 This dossier does **not** approve `SCREENING`.
 
-The production-gate work now includes retained-workbook extraction/parity, independent hand-derived software cases, published EI Appendix D worked examples, explicit multiphase input resolution, bounded future screening scope, case-specific published-value tolerances, working-state provenance, an XLSX Elements-projection anti-bypass contract, and dual audit/engineering run identities. Exact-head release execution, browser acceptance, page-level method/errata review and independent vibration-engineer approval are still required.
+The production-gate work now covers retained-workbook parity, independent hand-derived cases, published EI D2/D4 examples, explicit multiphase resolution, bounded future screening scope, case-specific published-value tolerances, working-state provenance, dual topology anti-bypass fingerprints, separate audit/engineering hashes, and governed run-evidence export. Exact-head release execution, real-browser acceptance, page-level adopted-method/errata review and independent vibration-engineer approval remain mandatory.
 
 ## 2. Controlled evidence
 
@@ -64,43 +64,33 @@ Energy-Institute-AVIFF---Worked-Examples.doc.docx
 blob ceee15ed5f7f320045d5f3979024e2e8664613f2
 ```
 
-The former pin `aef163a5def3bfe04ca0ba860da05728a27daf42` is retained only as the historical parent state from which the published-example PDF was first qualified. Live FIT qualification metadata uses `fb549185...`; the PDF blob is unchanged.
+The earlier `aef163a5def3bfe04ca0ba860da05728a27daf42` state is historical parent provenance only. Live method, dossier, benchmark and UI source metadata use `fb549185...`. Source precedence and PDF/DOCX differences are recorded in `FIT-EI-Worked-Example-Traceability-v1.md`.
 
-Source precedence and observed PDF/DOCX differences are recorded in `FIT-EI-Worked-Example-Traceability-v1.md`.
+## 3. Published EI qualification and tolerances
 
-## 3. Published EI qualification
-
-Dataset:
+Controlled benchmark dataset:
 
 ```text
 Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json
 ```
 
-Regression:
+Published numerical targets:
 
 ```text
-tests/vibration-fit-ei-worked-examples.test.mjs
+D2 6 in suction       LOF 0.276
+D2 4 in relief up     LOF 0.338
+D2 6 in relief down   LOF 0.881
+D4 20 in separator    LOF 0.26
+D4 10 in water        LOF 3.15
 ```
 
-Published numerical points:
-
-```text
-D2 6 in suction       LOF target 0.276
-D2 4 in relief up     LOF target 0.338
-D2 6 in relief down   LOF target 0.881
-D4 20 in separator    LOF target 0.26
-D4 10 in water        LOF target 3.15
-```
-
-The previous blanket `1.5%` relative tolerance has been removed. Published-value comparison now uses controlled policy:
+The former blanket `1.5%` tolerance is removed. Controlled policy:
 
 ```text
 FIT-EI-PUBLISHED-RECONCILIATION-V1
 ```
 
-Each case stores absolute tolerances for `rho*v^2`, viscosity factor, `Fv` and standard LOF. The tolerances are derived from independent equation-register recalculation of the published input vector plus half the least displayed output increment; they are not tuned against production output.
-
-Controlled standard-LOF tolerances:
+Each case stores absolute tolerances for `rho*v^2`, viscosity factor, `Fv` and LOF. They are derived from independent equation-register recalculation of the published input vector plus half the least displayed output increment; they are not tuned to production output.
 
 | Case | Absolute LOF tolerance |
 |---|---:|
@@ -118,64 +108,42 @@ Independent benchmark dataset:
 Benchmarks/VibrationFIT/fit-independent-hand-benchmarks-v1.json
 ```
 
-Existing evidence includes liquid, gas and multiphase standard cases, reference-threshold cases, support boundaries, SI/US invariance and fail-closed cases.
-
-Production Gate 1 adds independent coverage for the two former evidence holes:
+Production Gate 1 closes the two former evidence holes with:
 
 ```text
 FIT-HAND-LIQ-MEDIUM-SMALL-008
 FIT-HAND-FLEX-LARGE-LOF-120-FN2-009
 ```
 
-The qualification evidence registry now classifies standard `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` with `INDEPENDENT_HAND_BENCHMARK + RETAINED_WORKBOOK_PARITY`. Evidence strength remains provenance only and grants no authority.
+The evidence registry now classifies standard `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` with `INDEPENDENT_HAND_BENCHMARK + RETAINED_WORKBOOK_PARITY`. This is provenance evidence only; `screeningQualified=false` and `engineeringAuthority=NONE` remain unchanged.
 
 ## 5. Resolved method/input issues
 
-### Advanced natural-frequency boundary
+Advanced frequency boundary:
 
 ```text
 1 Hz < fn <= 3 Hz
 ```
 
-Exactly 1 Hz is excluded; exactly 3 Hz is included. Cached 4 Hz workbook behavior is rejected.
+Exactly 1 Hz is excluded; exactly 3 Hz is included. Cached 4 Hz behavior is rejected.
 
-### 273 mm large-family lower boundary
+Large-family boundary: EI D4 confirms `273 mm` as `FLEXIBLE_LARGE` where stiffness is flexible.
 
-EI D4 confirms the 273 mm flexible-large case.
-
-### Multiphase resolution
+Multiphase resolution remains explicit/fail-closed:
 
 ```text
-only aggregate shape -> AGGREGATE_EFFECTIVE / INFERRED
-only component shape -> COMPONENT_DERIVED / INFERRED
-both shapes, no mode -> FIT_MULTIPHASE_INPUT_AMBIGUOUS
+aggregate only -> AGGREGATE_EFFECTIVE / INFERRED
+components only -> COMPONENT_DERIVED / INFERRED
+both + no mode -> FIT_MULTIPHASE_INPUT_AMBIGUOUS
 both + aggregate mode -> AGGREGATE_EFFECTIVE / EXPLICIT
 both + component mode -> COMPONENT_DERIVED / EXPLICIT
-invalid mode -> FIT_INPUT_INVALID
 ```
 
-When both shapes coexist with an explicit choice, `alternateModeDataPresent=true` remains visible in evidence.
-
-### Neutral reference bands
-
-```text
-LOF_LT_0_3
-LOF_0_3_TO_LT_0_5
-LOF_0_5_TO_LT_1
-LOF_GE_1
-```
-
-No production `pass` boolean is introduced.
+Neutral reference bands remain benchmark/workflow semantics only; no production `pass` boolean is introduced.
 
 ## 6. Bounded future screening scope
 
-Controlled scope freeze:
-
-```text
-docs/vibration/FIT-Screening-Scope-v1.md
-```
-
-Candidate diameter envelope:
+Controlled by `docs/vibration/FIT-Screening-Scope-v1.md`:
 
 ```text
 60 mm <= Dext <= 219.1 mm      candidate after all gates
@@ -183,118 +151,115 @@ Candidate diameter envelope:
 273 mm <= Dext <= 762 mm       candidate after all gates
 ```
 
-The QST-003 diameter gap is therefore resolved for the first production target by **explicit exclusion**, not by inventing an interpolation or nominal-size mapping. A later source-backed revision may separately reconsider the excluded interval.
+QST-003 is therefore resolved for the first production target by explicit exclusion, not by interpolation or nominal-size inference.
 
-## 7. Working-state and topology authority hardening
+## 7. Working-state and complete-XLSX authority
 
-The FIT workspace maintains original and working rows with stable row identity and supports cell, row and table revert.
+The workspace keeps original and working rows with stable row IDs and supports cell, row and whole-table revert. Revert restores values; it does not silently restore complete-exchange authority after a topology mutation.
 
-For complete certified XLSX input, preserved XLSX bytes may execute only while all of these remain true:
+Preserved certified XLSX bytes may execute only while all of these remain true:
 
 ```text
 input format                 XLSX
 originalCertifiedExchange    true
 authorityDowngraded          false
-captured Elements hash       present
-current Elements hash        == captured Elements hash
+Elements projection hash     present and matches
+complete XLSX file hash      present and matches
 ```
 
-The captured hash uses SHA-256 over canonical `FitTopologyElementsProjection.v1`. A missing or mismatched fingerprint fails closed. The first normal topology mutation still irreversibly downgrades the session to Elements-only limited exchange until explicit source reload, even after exact value revert.
+Two SHA-256 identities are required:
 
-This closes the stale/hidden-source bypass class in which preserved XLSX bytes could otherwise be consumed after the visible working projection was replaced without matching downgrade metadata.
+```text
+FitTopologyElementsProjection.v1
+  -> canonical visible Elements projection
 
-## 8. Reproducibility identities
+FitSourceFileSha256.v1
+  -> complete XLSX byte stream
+```
 
-Two identities are intentionally separate:
+The first detects working/visible projection substitution. The second detects hidden/non-Elements sheet or other XLSX byte-stream substitution even if Elements is unchanged. Missing or mismatched fingerprints fail closed. The first normal topology edit downgrades the session to Elements-only limited exchange until explicit source reload.
 
-### Audit snapshot
+## 8. Reproducibility identities and evidence
+
+### Audit identity
 
 ```text
 FitRunSnapshot.v1
 snapshotHash
 ```
 
-The audit identity includes working tables, row IDs, source names/kinds, file descriptors, topology projection fingerprint, limited-exchange state and benchmark identity/modification state.
+Includes working tables, row IDs, source descriptors, complete-XLSX hash where applicable, Elements projection hash, limited-exchange state and benchmark identity/modification state.
 
-### Engineering input identity
+### Engineering identity
 
 ```text
 FitEngineeringInputIdentity.v1
 engineeringInputHash
 ```
 
-The engineering identity is derived from sorted central FIT request scopes, calculation ID, method revision and normalized `resolvedInputs`. Source filenames do not affect this hash; a change to normalized engineering input does.
+Derived from sorted central request scope, calculation ID, method revision and normalized `resolvedInputs`. Source filename changes do not change this hash; normalized engineering-input changes do.
 
-Run evidence export uses:
+### Export package
 
 ```text
 FitRunEvidencePackage.v1
 ```
 
-and cryptographically re-verifies both hashes against their canonical payloads before serialization. The package is explicitly `REPRODUCIBILITY_EVIDENCE_ONLY`, with `engineeringAuthority=NONE`, `screeningAuthorized=false`, and `designAuthority=false`.
+The export re-verifies both canonical payloads and both SHA-256 hashes before serialization and carries the source descriptors plus exact benchmark workflow envelope. Authority remains:
+
+```text
+engineeringAuthority = NONE
+screeningAuthorized  = false
+designAuthority      = false
+purpose              = REPRODUCIBILITY_EVIDENCE_ONLY
+```
 
 ## 9. Remaining source/authority questions
 
-### Cached 4 Hz result
+- Exact page/table/equation adoption and official errata applicability are not fully independently reviewed.
+- D2 span differences and D4 revised DOCX scenario values remain explicit provenance differences; the published-example PDF retains benchmark precedence.
+- The historical `FIT-Issue429-Engineering-Review-Package.md` contains older qualification/source-pin snapshots and is not the live source-authority record for PR499.
+- Full unit/boundary/release/browser evidence must be executed on one exact candidate SHA.
 
-Software resolved: rejected by the EI frequency boundary. Retained cache inconsistency remains provenance evidence.
+## 10. Current release state
 
-### Hidden workbook support selector
+The controlled FIT/VIB manifest now contains **45** test files after adding the dual-hash run-evidence regression.
 
-Software resolved: deterministic span-derived classification is used.
+For the current PR499 candidate:
 
-### QST-003 diameter gap
+```text
+native FIT/VIB release suite   NOT_RUN / ENVIRONMENT_BLOCKED
+real-browser acceptance        NOT_RUN
+independent engineer approval  NOT_RUN
+```
 
-Resolved for bounded production scope by explicit exclusion. It remains unsupported rather than interpolated.
-
-### Remaining adopted-method/project coverage
-
-EI D2/D4 examples validate the slices they exercise, not the complete T2.2 applicability domain. Exact page/table/equation adoption, official errata applicability and project basis remain subject to independent review.
-
-### PDF/DOCX project-scenario differences
-
-D2 span differences and D4 revised line-list values remain visible in the traceability record. The published-example PDF retains benchmark precedence; no disagreement is silently normalized.
-
-## 10. CI/release status
-
-The latest historical hosted run recorded in the prior dossier failed before runner allocation because of an account billing/spending condition (`runner_id=0`, `steps=[]`). That run is not a software PASS or FAIL.
-
-For the current PR499 candidate, exact-head native release execution and browser acceptance remain `NOT_RUN` until performed against the final candidate SHA in a complete qualification environment.
-
-The controlled FIT/VIB release manifest now includes 44 test files, including dual-hash run-evidence qualification.
+Hosted status/workflow state must be checked again on the final exact head. A workflow that allocates no runner or executes no steps remains `NOT_RUN`, not PASS.
 
 ## 11. Promotion checklist
 
 | Gate | Status |
 |---|---|
-| Source identity/extraction | PASS for controlled object identity |
-| Controlled Common pin reconciliation | PASS for active benchmark/method/dossier metadata |
-| Source precedence / discrepancy record | PASS; scenario differences remain documented limitations |
-| Retained workbook parity | PASS in recorded focused evidence |
-| Six standard correlation families | IMPLEMENTED; independent evidence registry strengthened |
-| Independent `MEDIUM_SMALL` | IMPLEMENTED / exact-head runtime NOT_RUN |
-| Independent advanced `FLEXIBLE_LARGE` | IMPLEMENTED / exact-head runtime NOT_RUN |
-| EI D2/D4 published examples | IMPLEMENTED; exact-head runtime NOT_RUN |
-| Published-value tolerance reconciliation | PASS by independent arithmetic/source-precision policy |
-| 1 Hz / 3 Hz advanced boundary | IMPLEMENTED |
-| 273 mm large-family boundary | IMPLEMENTED |
-| Aggregate/component equivalence | IMPLEMENTED |
-| Mixed multiphase ambiguity fail-closed | IMPLEMENTED |
-| QST-003 | EXCLUDED / FAIL_CLOSED in bounded target scope |
-| Working row revert | IMPLEMENTED / exact-head runtime NOT_RUN |
-| XLSX projection anti-bypass | IMPLEMENTED / exact-head runtime NOT_RUN |
-| Audit vs engineering hash separation | IMPLEMENTED / exact-head runtime NOT_RUN |
-| Reproducibility evidence export | IMPLEMENTED / exact-head runtime NOT_RUN |
-| Full repository regression | NOT_RUN |
-| GitHub Actions exact-head execution | NOT_RUN |
+| Source object identity | PASS by controlled repository/blob inspection |
+| Live Common pin reconciliation | PASS |
+| Source precedence/discrepancy record | PASS; documented scenario differences remain limitations |
+| Published-value tolerance reconciliation | PASS by independent arithmetic policy |
+| Independent MEDIUM_SMALL | IMPLEMENTED / runtime NOT_RUN |
+| Independent advanced FLEXIBLE_LARGE | IMPLEMENTED / runtime NOT_RUN |
+| QST-003 | EXCLUDED / FAIL_CLOSED |
+| Cell/row/table revert | IMPLEMENTED / runtime NOT_RUN |
+| Elements projection anti-bypass | IMPLEMENTED / runtime NOT_RUN |
+| Complete XLSX byte-stream anti-bypass | IMPLEMENTED / runtime NOT_RUN |
+| Audit vs engineering hash separation | IMPLEMENTED / runtime NOT_RUN |
+| Reproducibility evidence export | IMPLEMENTED / runtime NOT_RUN |
+| 45-file exact-head release regression | NOT_RUN |
 | Real-browser XLSX/CSV acceptance | NOT_RUN |
-| Remaining page-level EI/project/errata review | NOT COMPLETE |
+| Page-level EI/project/errata review | NOT COMPLETE |
 | Independent vibration-engineer approval | NOT_RUN |
 | Screening authority | NOT_AUTHORIZED |
 | Design authority | NOT_AUTHORIZED |
 
 ## 12. Qualification conclusion
 
-The production-gate implementation has materially reduced the remaining FIT blockers without altering any empirical FIT equation or enabling screening. The remaining blockers are now dominated by exact-head execution evidence, browser/file acceptance, page-level adopted-method/errata review, and independent engineering approval.
+The remaining blockers are now dominated by exact-head executable validation, real-browser/real-file acceptance, page-level adopted-method/errata review, and independent vibration-engineer approval rather than missing UI or evidence plumbing.
 
-Until those gates close in one controlled candidate, `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`.
+Until those gates close on one controlled candidate and a separate owner-authorized authority PR is approved, `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`.
