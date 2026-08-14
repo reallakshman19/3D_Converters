@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildVibrationTopologyProjectionFingerprint } from '../tabs/vibration-integrity-input-integrity.js';
+import {
+  buildVibrationSourceFileFingerprint,
+  buildVibrationTopologyProjectionFingerprint,
+} from '../tabs/vibration-integrity-input-integrity.js';
 import {
   buildLoadedVibrationIntegrityBenchmark,
   buildVibrationIntegrityFacilityTableInput,
@@ -31,16 +34,21 @@ function certifiedExchange(line = 'L-1') {
 async function stateWithCertifiedXlsx() {
   const state = createVibrationIntegrityInputRuntimeState();
   const table = createTopologyInputTableFromExchange(certifiedExchange());
-  const fingerprint = await buildVibrationTopologyProjectionFingerprint(table);
+  const data = new Uint8Array([1, 2, 3]);
+  const [projection, sourceFile] = await Promise.all([
+    buildVibrationTopologyProjectionFingerprint(table),
+    buildVibrationSourceFileFingerprint(data),
+  ]);
   state.files.topology = {
-    name: 'plant-certified.xlsx', format: 'XLSX', data: new Uint8Array([1, 2, 3]),
-    projectionSchema: fingerprint.schema, projectionHash: fingerprint.projectionHash,
+    name: 'plant-certified.xlsx', format: 'XLSX', data,
+    projectionSchema: projection.schema, projectionHash: projection.projectionHash,
+    fileHashSchema: sourceFile.schema, fileHash: sourceFile.fileHash,
   };
   state.tables.topology = table;
   return state;
 }
 
-test('untouched certified XLSX remains the topology execution input only with matching projection fingerprint', async () => {
+test('untouched certified XLSX executes only with matching projection and full-file fingerprints', async () => {
   const state = await stateWithCertifiedXlsx();
   const input = await vibrationIntegrityTopologyExecutionInput(state);
   assert.equal(input.format, 'XLSX');
@@ -48,12 +56,20 @@ test('untouched certified XLSX remains the topology execution input only with ma
 });
 
 test('preserved XLSX fails closed when its projection fingerprint is missing', async () => {
-  const state = createVibrationIntegrityInputRuntimeState();
-  state.files.topology = { name: 'plant-certified.xlsx', format: 'XLSX', data: new Uint8Array([1]) };
-  state.tables.topology = createTopologyInputTableFromExchange(certifiedExchange());
+  const state = await stateWithCertifiedXlsx();
+  delete state.files.topology.projectionHash;
   await assert.rejects(
     () => vibrationIntegrityTopologyExecutionInput(state),
     (error) => error?.code === 'VIBRATION_TOPOLOGY_PROJECTION_FINGERPRINT_MISSING',
+  );
+});
+
+test('preserved XLSX fails closed when its full-file fingerprint is missing', async () => {
+  const state = await stateWithCertifiedXlsx();
+  delete state.files.topology.fileHash;
+  await assert.rejects(
+    () => vibrationIntegrityTopologyExecutionInput(state),
+    (error) => error?.code === 'VIBRATION_TOPOLOGY_SOURCE_FILE_FINGERPRINT_MISSING',
   );
 });
 
@@ -64,6 +80,15 @@ test('stale preserved XLSX cannot execute after working projection is replaced w
   await assert.rejects(
     () => vibrationIntegrityTopologyExecutionInput(state),
     (error) => error?.code === 'VIBRATION_TOPOLOGY_PROJECTION_INTEGRITY_MISMATCH',
+  );
+});
+
+test('preserved XLSX cannot execute when hidden/non-Elements source bytes are swapped', async () => {
+  const state = await stateWithCertifiedXlsx();
+  state.files.topology.data = new Uint8Array([1, 2, 4]);
+  await assert.rejects(
+    () => vibrationIntegrityTopologyExecutionInput(state),
+    (error) => error?.code === 'VIBRATION_TOPOLOGY_SOURCE_FILE_INTEGRITY_MISMATCH',
   );
 });
 
