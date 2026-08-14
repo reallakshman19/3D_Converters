@@ -5,6 +5,7 @@ import {
 } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { createAivSourceCsvTemplate } from '../converters/vibration/aiv/source-csv.js';
 import { createAivSourceAssessmentCsvTemplate } from '../converters/vibration/aiv/source-assessment-csv.js';
+import { createAivAssumptionAcceptanceController } from './vibration-aiv-assumption-acceptance-controller.js';
 import {
   addAivInputRow,
   addAivRelationshipInputRow,
@@ -63,6 +64,7 @@ export function renderAivQualificationWorkspace(container) {
     onError: (error) => { state.error = String(error?.message || error); render(); },
   });
   const execution = createAivExecutionActions({ state, render, downloadText });
+  const assumptionAcceptanceController = createAivAssumptionAcceptanceController({ state, render, container });
 
   function render() {
     if (state.destroyed) return;
@@ -232,6 +234,7 @@ export function renderAivQualificationWorkspace(container) {
       return;
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
+    if (assumptionAcceptanceController.handleAction(action)) return;
     if (action === 'load-d23-benchmark') loadBenchmark();
     if (action === 'source-template') downloadText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
     if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
