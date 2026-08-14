@@ -1,3 +1,8 @@
+import {
+  aivAssumptionAcceptanceRequired,
+  aivAssumptionResolutionFingerprint,
+  isAivAssumptionAcceptanceCurrent,
+} from './vibration-aiv-assumption-acceptance.js';
 import { renderAivTopologyPathHtml } from './vibration-aiv-path-view.js';
 
 function esc(value) {
@@ -59,6 +64,19 @@ function summary(state) {
   return `<div class="aivq-readiness-summary">${cards.map(([label, value]) => `<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div>`;
 }
 
+function assumptionReview(state) {
+  const resolution = state.assumptionResolution;
+  if (!aivAssumptionAcceptanceRequired(resolution)) return '';
+  const accepted = isAivAssumptionAcceptanceCurrent(resolution, state.assumptionAcceptance);
+  const count = Number(resolution?.assumptionCount ?? resolution?.assumptions?.length ?? 0);
+  const fingerprint = aivAssumptionResolutionFingerprint(resolution);
+  return `<div class="aivq-banner ${accepted ? 'is-qualified' : 'is-warning'} aivq-assumption-review">
+    <strong>${accepted ? 'Assumptions accepted for this run' : 'Assumption review required before screening'}</strong>
+    <span>${esc(count)} resolved assumptions are part of the current screening inputs · set ${esc(fingerprint)}. Acceptance is an execution safeguard only; it does not change screening or design authority.</span>
+    <div class="aivq-actions"><button type="button" class="engineering-console-btn" data-aiv-action="review-assumptions">Review assumptions</button>${accepted ? '<span class="aivq-status ok">ACCEPTED</span>' : `<button type="button" class="engineering-console-btn primary" data-aiv-action="accept-assumptions">Accept ${esc(count)} assumptions for this run</button>`}</div>
+  </div>`;
+}
+
 function selectedPath(state) {
   const rows = state.readinessEnvelope?.readiness?.rows ?? [];
   const row = rows.find((item) => item.rowKey === state.selectedRowKey);
@@ -75,7 +93,10 @@ function hasWorkingInput(state) {
 
 function screeningReady(state) {
   const counts = state.readinessEnvelope?.readiness?.counts;
-  return Boolean(counts && counts.notReady === 0 && counts.methodGap === 0);
+  return Boolean(counts
+    && counts.notReady === 0
+    && counts.methodGap === 0
+    && isAivAssumptionAcceptanceCurrent(state.assumptionResolution, state.assumptionAcceptance));
 }
 
 export function renderAivReadinessPanelHtml(state = {}) {
@@ -89,7 +110,7 @@ export function renderAivReadinessPanelHtml(state = {}) {
     </div>
     ${state.error ? `<div class="aivq-error"><strong>AIV action failed.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${imports ? `<div class="aivq-import-facts"><span>Topology integrity <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Sources <strong>${esc(imports.sourceCount)}</strong></span><span>Assessments <strong>${esc(imports.assessmentCount)}</strong></span><span>Relationships <strong>${esc(imports.sourceAssessmentCount)}</strong></span></div>` : ''}
-    ${summary(state)}
+    ${summary(state)}${assumptionReview(state)}
     <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Assessment</th><th>Case</th><th>Device</th><th>Source state</th><th>Assessment type</th><th>Applicability</th><th>Physical distance</th><th>Simultaneous group</th><th>Phase</th><th>Trim</th><th>Readiness</th><th>Issues / gaps</th></tr></thead><tbody>${readinessRows(state)}</tbody></table></div>
     <div class="aivq-readiness-note"><strong>SCREENING authority:</strong> assessment-level LOF only. Missing values may come from the visible/exported assumption profile. The configured line/case summary is not an authoritative screening result, and <code>designAuthority=false</code>.</div>
   </section>${selectedPath(state)}`;
