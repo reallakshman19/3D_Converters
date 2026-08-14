@@ -1,13 +1,13 @@
 # FIT EI Worked-Example Traceability v1
 
-Status: **SOURCE RECONCILIATION — SCREENING AUTHORITY NOT APPROVED**
+Status: **SOURCE + BENCHMARK-TOLERANCE RECONCILIATION — SCREENING AUTHORITY NOT APPROVED**
 
 Calculation ID: `VIB.FIV.FLOW_TURBULENCE`  
 Controlled Common pin: `fb549185b9b27edc2379734240320a85c5bef9f6`
 
 ## 1. Purpose
 
-This record reconciles the five controlled FIT benchmark cases against the currently controlled EI evidence set and the retained worked-example DOCX/line-list transcription. It is a traceability artifact, not an authority grant.
+This record reconciles the five controlled FIT benchmark cases against the controlled EI evidence set and the retained worked-example DOCX/line-list transcription. It also records how published-value tolerances are derived. This is a traceability artifact, not an authority grant.
 
 ## 2. Controlled source identities
 
@@ -19,7 +19,7 @@ This record reconciles the five controlled FIT benchmark cases against the curre
 | Repository transcription of DOCX | `3D_Converters` current branch | `docs/Energy-Institute-AVIFF---Worked-Examples.md` | repository-controlled text | Review/navigation aid; not a substitute for source binary identity |
 | Retained workbook | `reallaksh19/CRF-4-1@68dc8e1fa2ef67073c59b3afc56f1bf40953d535` | `Extended calc2/AIV FIV/FIT.xlsm` | `d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e` | Migration/parity evidence only |
 
-The controlled Common pin is a direct descendant of the earlier `aef163a5...` source state. The FIT source metadata is being moved to the later project pin while retaining the exact governing worked-example PDF blob identity.
+The controlled Common pin is a direct descendant of the earlier `aef163a5def3bfe04ca0ba860da05728a27daf42` state. The worked-example PDF blob itself is unchanged; the later pin additionally binds the controlled DOCX evidence.
 
 ## 3. Source precedence
 
@@ -40,11 +40,9 @@ A lower-ranked source may not silently override a higher-ranked source. Every ex
 Benchmark: `EI-D2-FIT-RECYCLE-SUCTION-6IN`  
 Published source locator: `Appendix D, Example D2, D.2.1 Steps 1-5`
 
-DOCX/line-list mapping:
+DOCX/line-list observation:
 
 ```text
-Record ID             6
-Line reference         Recycle line (compressor suction)
 OD                     168.275 mm
 WT                     7.112 mm
 Mass flow              53482 kg/h
@@ -57,13 +55,13 @@ Stiffness               medium-stiff
 FIT                     0.28
 ```
 
-Controlled JSON/PDF benchmark:
+Controlled PDF/JSON benchmark:
 
 ```text
 OD                     168.3 mm
 WT                     7.11 mm
 ID                     154.1 mm
-Mass flow              14.856111111111112 kg/s = 53482 kg/h
+Mass flow              14.856111111111112 kg/s
 Density                 18 kg/m3
 Dynamic viscosity       0.00002 Pa.s
 Max unsupported span    6.4 m
@@ -71,25 +69,17 @@ Published rho*v^2       35294 Pa
 Published standard LOF  0.276
 ```
 
-Disposition:
-
-- OD/WT differences are source rounding/transcription-scale differences and do not change identity of the case.
-- mass flow, density, viscosity and `rho*v^2` corroborate the benchmark.
-- DOCX span `7 m` differs from benchmark span `6.4 m`; benchmark execution retains the EI worked-example PDF/controlled JSON value pending page-level source review.
-- DOCX FIT `0.28` is consistent with the more precise published benchmark `0.276` at displayed precision.
+Disposition: geometry/process identity is corroborated. DOCX span `7 m` versus benchmark `6.4 m` remains visible. DOCX FIT `0.28` is consistent with the published benchmark `0.276` at its displayed precision.
 
 Reconciliation state: **PARTIAL — SPAN DIFFERENCE RETAINED**.
 
 ### 4.2 D2 — relief upstream, 4 in gas
 
-Benchmark: `EI-D2-FIT-RELIEF-UPSTREAM-4IN`  
-Published source locator: `Appendix D, Example D2, D.2.1 Steps 1-5`
+Benchmark: `EI-D2-FIT-RELIEF-UPSTREAM-4IN`
 
-DOCX/line-list mapping:
+DOCX/line-list observation:
 
 ```text
-Record ID             7
-Line reference         Relief line (upstream of PSV)
 OD                     114.3 mm
 WT                     11.125 mm
 Mass flow              53482 kg/h
@@ -102,13 +92,13 @@ Stiffness               medium-stiff
 FIT                     0.34
 ```
 
-Controlled JSON/PDF benchmark:
+Controlled PDF/JSON benchmark:
 
 ```text
 OD                     114.3 mm
 WT                     11.1 mm
 ID                     92.1 mm
-Mass flow              14.856111111111112 kg/s = 53482 kg/h
+Mass flow              14.856111111111112 kg/s
 Density                 62 kg/m3
 Dynamic viscosity       0.00002 Pa.s
 Max unsupported span    5.2 m
@@ -116,25 +106,17 @@ Published rho*v^2       80203 Pa
 Published standard LOF  0.338
 ```
 
-Disposition:
-
-- geometry/process identity is corroborated.
-- DOCX span `6 m` differs from benchmark `5.2 m`.
-- DOCX `rho*v^2=80379` differs slightly from benchmark `80203`; retain both as separate source observations.
-- DOCX FIT `0.34` is consistent with published `0.338` at displayed precision.
+Disposition: DOCX span `6 m` versus `5.2 m` and `rho*v^2=80379` versus `80203` remain separate source observations. The PDF benchmark retains precedence.
 
 Reconciliation state: **PARTIAL — SPAN / RHO-V2 DIFFERENCES RETAINED**.
 
 ### 4.3 D2 — relief downstream, 6 in gas
 
-Benchmark: `EI-D2-FIT-RELIEF-DOWNSTREAM-6IN`  
-Published source locator: `Appendix D, Example D2, D.2.1 Steps 1-5`
+Benchmark: `EI-D2-FIT-RELIEF-DOWNSTREAM-6IN`
 
-DOCX/line-list mapping:
+DOCX/line-list observation:
 
 ```text
-Record ID             8
-Line reference         Relief line (downstream of PSV)
 OD                     168.275 mm
 WT                     7.112 mm
 Mass flow              53482 kg/h
@@ -147,55 +129,30 @@ Stiffness               medium-stiff
 FIT                     0.88
 ```
 
-Controlled JSON/PDF benchmark:
-
-```text
-OD                     168.3 mm
-WT                     7.11 mm
-ID                     154.1 mm
-Mass flow              14.856111111111112 kg/s = 53482 kg/h
-Density                 4 kg/m3
-Dynamic viscosity       0.00001 Pa.s
-Max unsupported span    6.4 m
-Published rho*v^2       158823 Pa
-Published standard LOF  0.881
-```
-
-Disposition:
-
-- process and energy evidence corroborate exactly at displayed precision.
-- DOCX span `7 m` differs from benchmark `6.4 m`.
-- FIT `0.88` is consistent with published `0.881` at displayed precision.
+Controlled PDF/JSON benchmark uses span `6.4 m`, published `rho*v^2=158823 Pa`, and standard LOF `0.881`. Process and energy evidence corroborate at displayed precision; the span difference remains visible.
 
 Reconciliation state: **PARTIAL — SPAN DIFFERENCE RETAINED**.
 
 ### 4.4 D4 — separator inlet, 20 in multiphase
 
-Benchmark: `EI-D4-FIT-SEPARATOR-INLET-20IN`  
-Published source locator: `Appendix D, Example D4, D.4.1 Steps 1-5`
+Benchmark: `EI-D4-FIT-SEPARATOR-INLET-20IN`
 
-DOCX/line-list mapping:
+DOCX revised line-list observation:
 
 ```text
-Record ID             9
-Line reference         Stream 1 / From production header
 OD                     508 mm
 WT                     9.525 mm
-Phase                  multiphase
 Density                 136 kg/m3
-Flow velocity           9.0 m/s
+Velocity                9.0 m/s
 Energy rho*v^2          11791 Pa
 Max span                9 m
 Stiffness               stiff
 FIT                     0.26
 ```
 
-Controlled JSON/PDF benchmark:
+Controlled PDF/JSON benchmark:
 
 ```text
-OD                     508 mm
-WT                     9.525 mm
-Phase                  MULTIPHASE
 Density                 136 kg/m3
 Velocity                9.3 m/s
 Max unsupported span    5 m
@@ -203,38 +160,29 @@ Published rho*v^2       11763 Pa
 Published standard LOF  0.26
 ```
 
-Disposition:
-
-- case/geometry/FIT identity is corroborated.
-- DOCX velocity `9.0 m/s`, energy `11791 Pa`, and span `9 m` do not reproduce the governing benchmark vector `9.3 m/s`, `11763 Pa`, `5 m`.
-- the line-list values are therefore retained as a distinct revised/corroborating project record and are not substituted into the EI benchmark.
+Disposition: the DOCX values are retained as a distinct revised/corroborating project record and are not substituted into the EI benchmark.
 
 Reconciliation state: **OPEN SOURCE DIFFERENCE — BENCHMARK PDF PRECEDENCE**.
 
 ### 4.5 D4 — produced water, 10 in liquid
 
-Benchmark: `EI-D4-FIT-PRODUCED-WATER-10IN`  
-Published source locator: `Appendix D, Example D4, D.4.1 Steps 1-5`
+Benchmark: `EI-D4-FIT-PRODUCED-WATER-10IN`
 
-DOCX/line-list mapping:
+DOCX revised line-list observation:
 
 ```text
-Record ID             12
-Line reference         Stream 4 / Produced water
 OD                     273.05 mm
 WT                     9.271 mm
-Phase                  liquid
 Density                 1000 kg/m3
-Flow velocity           3.0 m/s
+Velocity                3.0 m/s
 Energy rho*v^2          8237 Pa
 Max span                19 m
-Stiffness               flexible
 FIT                     3.12
 ```
 
-The same DOCX stream listing also contains an `original` produced-water stream with density `988 kg/m3`, demonstrating that the DOCX contains revised project scenarios rather than one immutable benchmark vector.
+The same DOCX also contains an `original` produced-water stream with density `988 kg/m3`, showing that the document contains revised project scenarios rather than one immutable benchmark vector.
 
-Controlled JSON/PDF benchmark:
+Controlled PDF/JSON benchmark:
 
 ```text
 OD                     273 mm
@@ -247,15 +195,43 @@ Published standard LOF  3.15
 Support category        FLEXIBLE_LARGE
 ```
 
-Disposition:
-
-- OD/WT and flexible-family identity are corroborated.
-- density, velocity, energy, span and FIT differ between the revised DOCX line-list row and the governing benchmark vector.
-- the benchmark continues to use the EI worked-example PDF/controlled JSON values; the revised DOCX row is retained as a separate provenance record.
+Disposition: the benchmark continues to use the published PDF vector; the revised DOCX row is separate provenance evidence.
 
 Reconciliation state: **OPEN REVISED-SCENARIO DIFFERENCE — BENCHMARK PDF PRECEDENCE**.
 
-## 5. Reconciliation summary
+## 5. Published-value tolerance reconciliation
+
+The former blanket `1.5%` relative tolerance is removed. It is not an acceptable production-qualification oracle because different printed fields have different rounding histories and several D2 differences arise from rounded input/intermediate values rather than final-output rounding alone.
+
+Controlled policy ID:
+
+```text
+FIT-EI-PUBLISHED-RECONCILIATION-V1
+```
+
+Derivation rule:
+
+```text
+absolute tolerance
+  = |independent equation-register recalculation - published target|
+    + half of the target's least displayed output increment
+```
+
+The independent recalculation uses the documented FIT equation register and the published benchmark input vector. It does not call the production FIT implementation. Tolerances are then rounded outward, never inward, to a practical decimal representation.
+
+| Case | Independent LOF | Published LOF | Absolute LOF tolerance |
+|---|---:|---:|---:|
+| D2 recycle suction 6 in | 0.2766868808 | 0.276 | 0.0012 |
+| D2 relief upstream 4 in | 0.3392581696 | 0.338 | 0.0018 |
+| D2 relief downstream 6 in | 0.8804122637 | 0.881 | 0.0011 |
+| D4 separator inlet 20 in | 0.2603816838 | 0.26 | 0.0054 |
+| D4 produced water 10 in | 3.1519468988 | 3.15 | 0.0070 |
+
+The controlled JSON also records per-case absolute allowances for `rho*v^2`, viscosity factor and `Fv`, together with the independent recalculated values. These are benchmark-reconciliation tolerances only. They do not create screening or design authority and may not be relaxed to make a future implementation pass.
+
+Tolerance state: **RECONCILED FOR BENCHMARK USE**.
+
+## 6. Reconciliation summary
 
 | Benchmark | Case identity | Major process values | Span | Published LOF | State |
 |---|---|---|---|---|---|
@@ -265,19 +241,19 @@ Reconciliation state: **OPEN REVISED-SCENARIO DIFFERENCE — BENCHMARK PDF PRECE
 | D4 separator inlet 20 in | corroborated | revised/different | DOCX 9 vs benchmark 5 | 0.26 vs 0.26 | OPEN DIFFERENCE |
 | D4 produced water 10 in | corroborated | revised/different | DOCX 19 vs benchmark 18 | 3.12 vs 3.15 | OPEN DIFFERENCE |
 
-These differences do not invalidate the five benchmark vectors because the DOCX is not the governing published-example authority. They do prevent a claim that the DOCX, PDF and JSON are byte-for-byte or value-for-value equivalent.
+These source differences do not invalidate the five benchmark vectors because the DOCX is not the governing published-example authority. They do prevent a claim that the DOCX, PDF and JSON are value-for-value equivalent.
 
-## 6. Remaining source-review gates
+## 7. Remaining source-review gates
 
 Before production screening activation:
 
 1. record exact printed/PDF pages for every adopted T2.2 equation/table/applicability item;
 2. confirm applicable official errata and project adoption basis;
-3. disposition whether the D2 span differences are merely richer line-list/project geometry versus the specific published calculation span;
+3. disposition the D2 span differences as benchmark-versus-project geometry observations;
 4. disposition the D4 revised-scenario differences as project variants rather than benchmark replacements;
-5. replace the current blanket benchmark tolerance with field/case tolerances justified from published precision and propagated source rounding;
+5. retain the case-specific tolerance policy unchanged unless new controlled source evidence justifies a separately reviewed revision;
 6. retain QST-003 (`219.1 < Dext < 273 mm`) as a fail-closed production exclusion unless an authoritative source-backed rule is approved.
 
-## 7. Authority conclusion
+## 8. Authority conclusion
 
-Source identity and source precedence are now explicit, but page-level adopted-method review and several DOCX/PDF differences remain open. FIT therefore remains `BENCHMARK_ONLY`, `screeningAuthority=NOT_AUTHORIZED`, and `designAuthority=false`.
+Source identity, source precedence and published-value tolerance derivation are explicit. Page-level adopted-method/errata review and the documented DOCX/PDF scenario differences remain open. FIT therefore remains `BENCHMARK_ONLY`, `screeningAuthority=NOT_AUTHORIZED`, and `designAuthority=false`.
