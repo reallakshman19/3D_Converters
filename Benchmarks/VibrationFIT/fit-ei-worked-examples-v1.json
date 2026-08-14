@@ -4,15 +4,16 @@
   "engineeringAuthority": "BENCHMARK_ONLY",
   "source": {
     "repository": "reallaksh19/Common",
-    "commit": "aef163a5def3bfe04ca0ba860da05728a27daf42",
+    "commit": "fb549185b9b27edc2379734240320a85c5bef9f6",
     "path": "EI - AVIFF Guidelines 2nd Edition_Examples.pdf",
     "gitBlob": "3e2517d0df527a051084fc02e69cb7afa31f8d47",
     "edition": "2nd Edition, January 2008",
     "technicalModule": "T2.2 Flow Induced Turbulence"
   },
   "roundingPolicy": {
-    "description": "Published Appendix D values are rounded. Benchmarks compare against the printed values with explicit tolerances rather than implying unavailable source precision.",
-    "relativeTolerance": 0.015
+    "description": "Published Appendix D values are rounded. Benchmarks compare against the printed values with explicit tolerances rather than implying unavailable source precision. The current 1.5% relative tolerance remains an interim benchmark convenience and must be replaced by field/case source-precision tolerances before screening promotion.",
+    "relativeTolerance": 0.015,
+    "screeningPromotionState": "FIELD_CASE_TOLERANCE_RECONCILIATION_REQUIRED"
   },
   "cases": [
     {
