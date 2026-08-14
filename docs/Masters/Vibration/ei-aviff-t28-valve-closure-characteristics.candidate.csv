@@ -1,0 +1,6 @@
+rowId,valveType,sourceFormulaMatchLiteral,coefficientA,coefficientB,equationForm,valveClosingTimeUnit,phiUnit,validClosingTimeMax_s,upstreamPipeLengthMax_m,maximumForceMin_kN,sourceFormulaCells,publicationState,engineeringAuthority,screeningAuthority,designAuthority,masterValuesPublished
+T28-VALVE-001,full bore ball,full bore ball,1.281,0.27,phi=-(A/t)-B,s,1/s,30,100,1,T43|Z43|AF43,CANDIDATE,NONE,NOT_AUTHORIZED,false,false
+T28-VALVE-002,reduced bore ball,Reduced bore ball,1.268,0.362,phi=-(A/t)-B,s,1/s,30,100,1,T43|Z43|AF43,CANDIDATE,NONE,NOT_AUTHORIZED,false,false
+T28-VALVE-003,Butterfly,Butterfly,2.877,0.275,phi=-(A/t)-B,s,1/s,30,100,1,T43|Z43|AF43,CANDIDATE,NONE,NOT_AUTHORIZED,false,false
+T28-VALVE-004,Globe,Globe,2.266,0.32,phi=-(A/t)-B,s,1/s,30,100,1,T43|Z43|AF43,CANDIDATE,NONE,NOT_AUTHORIZED,false,false
+T28-VALVE-005,Gate,Gate,3.41,0.315,phi=-(A/t)-B,s,1/s,30,100,1,T43|Z43|AF43,CANDIDATE,NONE,NOT_AUTHORIZED,false,false

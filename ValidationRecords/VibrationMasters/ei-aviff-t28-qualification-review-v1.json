@@ -1,0 +1,70 @@
+{
+  "schema": "VibrationMasterQualificationReview.v1",
+  "masterId": "EI_AVIFF.T2.8.VALVE_CLOSURE_CHARACTERISTICS.v1",
+  "candidate": {
+    "path": "docs/Masters/Vibration/ei-aviff-t28-valve-closure-characteristics.candidate.csv",
+    "gitBlobSha1": "sha1:be7f6d488addf98d6ede181fc522177b4e4e1f5c"
+  },
+  "provenanceReceipt": {
+    "path": "ValidationRecords/VibrationMasters/ei-aviff-t28-valve-closure-workbook-candidate-v1.json",
+    "gitBlobSha1": "sha1:8e62c502ce42897b45b27559977de4b8b8e01bb7"
+  },
+  "qualificationTest": {
+    "path": "tests/vibration-t28-workbook-candidate.test.mjs",
+    "gitBlobSha1": "sha1:5ccd88913348d605bd88e0e3fc146a7f2f00a3b7",
+    "tests": 9,
+    "passed": 9,
+    "failed": 0,
+    "status": "PASS"
+  },
+  "independentSourceCorroboration": {
+    "status": "PASS",
+    "publication": "Guidelines for the Avoidance of Vibration Induced Fatigue Failure in Process Pipework, 2nd edition",
+    "section": "T2.8.3.2",
+    "printedPage": 67,
+    "independentCopiesChecked": 3,
+    "confirmed": [
+      "five valve-type phi functions",
+      "closure-time validity through 30 seconds",
+      "unknown valve type and/or closing-time assumption",
+      "Lup greater than 100 m disposition",
+      "Fmax less than 1 kN disposition",
+      "sudden-closure strict less-than criterion"
+    ],
+    "role": "SECONDARY_PUBLICATION_CORROBORATION_NOT_CONTROLLED_GIT_OBJECT"
+  },
+  "calculationQualification": {
+    "status": "PASS",
+    "coverage": [
+      "all five valve coefficient rows",
+      "three workbook cached-value replays",
+      "inclusive t=30 s boundary",
+      "t>30 s outside-validity rejection",
+      "unknown-type assumption",
+      "unknown-closing-time assumption",
+      "Lup=100 m and Lup>100 m boundary",
+      "Fmax=1 kN and Fmax<1 kN boundary",
+      "strict Tclose < 2*Lup/c criterion"
+    ]
+  },
+  "controlledSourceReconciliation": {
+    "status": "BLOCKED_ENVIRONMENT",
+    "requiredSource": {
+      "repository": "reallaksh19/Common",
+      "path": "EI - AVIFF Guidelines 2nd Edition.pdf",
+      "gitBlobSha1": "sha1:9d3eccc56429411e17c07a579bdebbd13cb0bdc5",
+      "sizeBytes": 10348594
+    },
+    "reason": "The exact controlled PDF body cannot be materialized and the DocumentEvidence endpoint is not reachable in this runtime.",
+    "satisfiedByPublicCopies": false
+  },
+  "qualificationStatus": "NOT_QUALIFIED",
+  "qualificationBlocker": "CONTROLLED_SOURCE_RECONCILIATION_REQUIRED",
+  "publicationState": "CANDIDATE",
+  "masterValuesPublished": false,
+  "authority": {
+    "engineeringAuthority": "NONE",
+    "screeningAuthority": "NOT_AUTHORIZED",
+    "designAuthority": false
+  }
+}

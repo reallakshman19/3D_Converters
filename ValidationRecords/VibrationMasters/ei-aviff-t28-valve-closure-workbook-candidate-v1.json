@@ -1,0 +1,79 @@
+{
+  "schema": "VibrationMasterWorkbookCandidate.v1",
+  "masterId": "EI_AVIFF.T2.8.VALVE_CLOSURE_CHARACTERISTICS.v1",
+  "candidateFile": "docs/Masters/Vibration/ei-aviff-t28-valve-closure-characteristics.candidate.csv",
+  "sourceRole": "PROJECT_WORKBOOK_TRANSCRIPTION_REFERENCE",
+  "source": {
+    "repository": "reallaksh19/CRF-4-1",
+    "commit": "68dc8e1fa2ef67073c59b3afc56f1bf40953d535",
+    "path": "Extended calc2/FIV.xlsx",
+    "gitBlobSha1": "sha1:bc0aedbefac54c1a2e5d643e76c047cb890bf14d",
+    "sizeBytes": 154500
+  },
+  "workbookEvidence": {
+    "worksheetPart": "xl/worksheets/sheet4.xml",
+    "appendixTitle": "APPENDIX - B Liquid Multiphase Valve Closure",
+    "labelCells": {
+      "closingTime": "C24",
+      "upstreamPipeLength": "C28",
+      "valveType": "C29",
+      "maximumForce": "C42",
+      "phi": "C43"
+    },
+    "formulaCells": ["T43", "Z43", "AF43"],
+    "equation": "phi=-(A/t)-B",
+    "formulaLiteralT43": "IF(T35=\"Inputs Ok\",(IF(T28>100,\"-\",IF(T42<1,\"-\",IF(T29=\"full bore ball\",((-1.281/T24)-0.27),IF(T29=\"Reduced bore ball\",((-1.268/T24)-0.362),IF(T29=\"Butterfly\",((-2.877/T24)-0.275),IF(T29=\"Globe\",((-2.266/T24)-0.32),IF(T29=\"Gate\",((-3.41/T24)-0.315),0)))))))),\"-\")",
+    "cachedReplayChecks": [
+      {"valveType": "Butterfly", "closingTime_s": 8, "sourceCell": "T43", "sourceCachedPhi_per_s": -0.634625},
+      {"valveType": "Gate", "closingTime_s": 8, "sourceCell": "Z43", "sourceCachedPhi_per_s": -0.74125},
+      {"valveType": "Globe", "closingTime_s": 8, "sourceCell": "AF43", "sourceCachedPhi_per_s": -0.60325}
+    ]
+  },
+  "independentEiCorroboration": {
+    "publication": "Guidelines for the Avoidance of Vibration Induced Fatigue Failure in Process Pipework, 2nd edition",
+    "section": "T2.8.3.2",
+    "printedPage": 67,
+    "copiesChecked": 3,
+    "status": "PASS",
+    "findings": {
+      "fiveValveFunctionsMatch": true,
+      "validClosingTimeMax_s": 30,
+      "unknownInputAssumption": {
+        "trigger": "valve type and/or closing time not known",
+        "assumedValveType": "Globe",
+        "closingTimeSecondsPerPipeDiameterInch": 1
+      },
+      "suddenClosureCriterion": "Tclose < 2*Lup/c",
+      "flowchartDispositions": {
+        "upstreamPipeLengthGreaterThan100m": {
+          "lof": 1.0,
+          "action": "DETAILED_PRESSURE_SURGE_ANALYSIS"
+        },
+        "maximumForceLessThan1kN": {
+          "lof": 0.0,
+          "action": "STOP_WITH_ZERO_LOF"
+        }
+      }
+    }
+  },
+  "coefficientSemantics": {
+    "A": "SOURCE_FORMULA_COEFFICIENT_UNIT_NOT_SEPARATELY_STATED",
+    "B": "SOURCE_FORMULA_COEFFICIENT_UNIT_NOT_SEPARATELY_STATED",
+    "closingTimeUnit": "s",
+    "phiUnit": "1/s"
+  },
+  "reconciliation": {
+    "controlledEiSource": "NOT_RUN",
+    "status": "CONTROLLED_SOURCE_RECONCILIATION_REQUIRED",
+    "reason": "Exact controlled Git-object DocumentEvidence provider/source is not reachable in this runtime."
+  },
+  "publicationState": "CANDIDATE",
+  "calculationQualificationStatus": "PASS",
+  "qualificationStatus": "NOT_QUALIFIED",
+  "masterValuesPublished": false,
+  "authority": {
+    "engineeringAuthority": "NONE",
+    "screeningAuthority": "NOT_AUTHORIZED",
+    "designAuthority": false
+  }
+}
