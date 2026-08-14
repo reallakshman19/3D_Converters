@@ -7,15 +7,16 @@
 | Mission | Replace the failed AIV-local vertical-scroll fix with one generic app-shell scroll contract covering all modules, explicitly including AIV and FIT. |
 | Work intent | IMPLEMENT / DEFECT REPAIR |
 | Criticality | STANDARD — presentation/layout only. |
-| PR | `#496` — DRAFT / OPEN / NOT MERGED |
+| PR | `#496` — OPEN / OWNER-AUTHORIZED / NOT MERGED at this checkpoint |
 | Branch | `agent/generic-module-vertical-scroll` |
 | Grounded base | `main@fd573ad8033c13bcd646eacaa807b4e45700de35` |
 | User-observed result | Merged PR494 vertical scroll fix FAILED in actual UI. |
 | FIT requirement | Include `Flow-Induced Vibration Screening — FIT Workbook Reference`. |
 | Generic requirement | Apply scrolling through the shared app shell rather than per-product CSS. |
 | Authority impact | NONE — layout only. |
-| Merge authority | NOT AUTHORIZED for PR496. |
-| EXACT_NEXT_ACTION | Reconcile exact PR head against live `main`, inspect hosted checks, and obtain real-browser wheel/trackpad acceptance before claiming UI PASS. |
+| Merge authority | **AUTHORIZED** by Owner at 2026-08-14T16:51:16Z (`merge`). |
+| Exact-head hosted workflows | AIV, Topology, and FBX Live UI all completed with `steps=[]`, `runner_id=0`; classified `NOT_RUN / INFRASTRUCTURE_BLOCKED`. |
+| EXACT_NEXT_ACTION | Re-read live `main`, verify exact PR head remains unchanged and mergeable, then squash merge with `expected_head_sha`; do not relabel blocked runtime/browser gates as PASS. |
 
 ## Failure analysis — PR494
 
@@ -113,6 +114,9 @@ This PR changes only viewport/layout overflow ownership and regression wiring.
 | AIV path source trace | PASS | AIV product host is pinned; local competing vertical owner removed | SOURCE_INSPECTION |
 | Generic regression wired to AIV release suite | PASS | `package.json` includes `tests/app-content-scroll-layout.test.mjs` | SOURCE_INSPECTION |
 | Generic regression wired to FIT release suite | PASS | `verify-vibration-fit-release.mjs` includes the same test | SOURCE_INSPECTION |
+| Hosted AIV workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | run `31820765486`, job `94833174230`, `steps=[]`, `runner_id=0` | IMPLEMENTATION_COUPLED |
+| Hosted topology workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | run `31820765604`, job `94833174654`, `steps=[]`, `runner_id=0` | IMPLEMENTATION_COUPLED |
+| Hosted FBX Live UI workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | run `31820765570`, job `94833174554`, `steps=[]`, `runner_id=0` | IMPLEMENTATION_COUPLED |
 | Native `node --test tests/app-content-scroll-layout.test.mjs` | NOT_RUN | No native authenticated checkout in connector-only runtime | IMPLEMENTATION_COUPLED |
 | Native `npm run verify:aiv-canvas-release` | NOT_RUN | No native authenticated checkout in connector-only runtime | IMPLEMENTATION_COUPLED |
 | Native `npm run verify:vibration-fit-release` | NOT_RUN | No native authenticated checkout in connector-only runtime | IMPLEMENTATION_COUPLED |
@@ -126,7 +130,7 @@ This PR changes only viewport/layout overflow ownership and regression wiring.
 - `IMP-002` IMPLEMENTED — FIT and AIV both pinned to generic contract.
 - `IMP-003` IMPLEMENTED — generic regression wired into AIV and FIT release suites.
 - `RISK-001` OPEN — real browser acceptance is still required before claiming interaction PASS.
-- `RISK-002` OPEN — hosted Actions may remain infrastructure-blocked; zero-step jobs must not be classified as product failure or PASS.
+- `RISK-002` CONTROLLED — exact-head hosted Actions are infrastructure-blocked; zero-step jobs remain `NOT_RUN`, not product FAIL or PASS.
 
 ## Appendix A
 
