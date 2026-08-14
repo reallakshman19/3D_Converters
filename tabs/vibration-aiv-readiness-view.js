@@ -14,6 +14,11 @@ function esc(value) {
     .replaceAll("'", '&#39;');
 }
 
+function issueItems(row, includeWarnings = true) {
+  return [row.missing, row.invalid, row.methodGaps, includeWarnings ? row.warnings : null]
+    .flatMap((group) => Array.isArray(group) ? group : []);
+}
+
 function issueList(groups) {
   const items = groups.flatMap((group) => Array.isArray(group) ? group : []);
   if (!items.length) return '<span class="aivq-empty">—</span>';
@@ -64,6 +69,22 @@ function summary(state) {
   return `<div class="aivq-readiness-summary">${cards.map(([label, value]) => `<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div>`;
 }
 
+function blockerSummary(state) {
+  const readiness = state.readinessEnvelope?.readiness;
+  if (!readiness) return '';
+  const blockers = (readiness.rows ?? []).filter((row) => !['READY_FOR_QUALIFICATION', 'NOT_APPLICABLE'].includes(row.status));
+  if (!blockers.length) {
+    return '<div class="aivq-banner is-qualified"><strong>Readiness clear</strong><span>No relationship-level NOT_READY or METHOD_GAP blocker remains. Review any resolved assumptions below before screening.</span></div>';
+  }
+  const rows = blockers.slice(0, 6).map((row) => {
+    const issue = issueItems(row, false)[0];
+    const label = `${row.sourceTag || row.sourceCanonicalId} → ${row.assessmentTag || row.assessmentCanonicalId} · ${row.caseId}`;
+    return `<li><button type="button" class="aivq-row-link" data-aiv-row="${esc(row.rowKey)}">${esc(label)}</button><span> · ${esc(row.status)}${issue ? ` · ${esc(issue.code)} — ${esc(issue.message)}` : ''}</span></li>`;
+  }).join('');
+  const more = blockers.length > 6 ? `<li>${esc(blockers.length - 6)} additional blocking relationships are listed in Engineering details below.</li>` : '';
+  return `<div class="aivq-banner is-warning"><strong>${esc(blockers.length)} relationship${blockers.length === 1 ? '' : 's'} need engineering input</strong><span>Resolve these blockers before screening. Select a relationship to inspect its evidence path.</span><ol class="aivq-list">${rows}${more}</ol></div>`;
+}
+
 function assumptionReview(state) {
   const resolution = state.assumptionResolution;
   if (!aivAssumptionAcceptanceRequired(resolution)) return '';
@@ -110,8 +131,8 @@ export function renderAivReadinessPanelHtml(state = {}) {
     </div>
     ${state.error ? `<div class="aivq-error"><strong>AIV action failed.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${imports ? `<div class="aivq-import-facts"><span>Topology integrity <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Sources <strong>${esc(imports.sourceCount)}</strong></span><span>Assessments <strong>${esc(imports.assessmentCount)}</strong></span><span>Relationships <strong>${esc(imports.sourceAssessmentCount)}</strong></span></div>` : ''}
-    ${summary(state)}${assumptionReview(state)}
-    <div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Assessment</th><th>Case</th><th>Device</th><th>Source state</th><th>Assessment type</th><th>Applicability</th><th>Physical distance</th><th>Simultaneous group</th><th>Phase</th><th>Trim</th><th>Readiness</th><th>Issues / gaps</th></tr></thead><tbody>${readinessRows(state)}</tbody></table></div>
+    ${summary(state)}${blockerSummary(state)}${assumptionReview(state)}
+    <details class="aivq-inline-disclosure" data-aiv-disclosure-key="readiness-engineering-details"><summary>Engineering details</summary><div class="aivq-example-table"><table><thead><tr><th>Source</th><th>Assessment</th><th>Case</th><th>Device</th><th>Source state</th><th>Assessment type</th><th>Applicability</th><th>Physical distance</th><th>Simultaneous group</th><th>Phase</th><th>Trim</th><th>Readiness</th><th>Issues / gaps</th></tr></thead><tbody>${readinessRows(state)}</tbody></table></div></details>
     <div class="aivq-readiness-note"><strong>SCREENING authority:</strong> assessment-level LOF only. Missing values may come from the visible/exported assumption profile. The configured line/case summary is not an authoritative screening result, and <code>designAuthority=false</code>.</div>
   </section>${selectedPath(state)}`;
 }
