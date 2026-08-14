@@ -7,7 +7,7 @@ import { createXmlCiiBranchScopedStateRef, ensureXmlCiiBranchSelectionInRef } fr
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20260813-mode-a-consolidated-1';
 import { installRigidReviewActionsEnhancement } from './xml-cii-adapted-rigid-review-actions-ui.js?v=20260813-mode-a-consolidated-1';
 import { installJsonTraceFieldUiEnhancement } from './xml-cii-adapted-json-trace-field-ui.js?v=20260813-mode-a-consolidated-1';
-import { installModeAConsolidatedPreviewEasyUiFromWorkspace } from './xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js?v=20260813-mode-a-easy-bulk-1';
+import { installModeAConsolidatedPreviewEasyUiFromWorkspace } from './xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js?v=20260814-smart-map-1';
 import { installModeAConsolidatedWeightEasyUiFromWorkspace } from './xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js?v=20260813-mode-a-easy-weight-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
