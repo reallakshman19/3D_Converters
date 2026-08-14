@@ -1,171 +1,161 @@
 # PR Mission Control
 
-Mission: integrate the merged XML_Compare_Utilities DocumentEvidence v1 table-evidence API as the governed Stage 5C source-evidence path for vibration master recovery.
+Mission: integrate XML_Compare_Utilities DocumentEvidence v1 as the governed Stage 5C source-evidence path for vibration master recovery.
 Source task / issue: #450
 PR number: #470
 Branch: `agent/document-evidence-stage5c`
 Base commit: `994f43521b5aa6e4dd397efd9300ce21943d056d`
-Current HEAD: Stage 3 verification complete
 PR status: OPEN / DRAFT
-Current stage: Stage 4 — production DocumentEvidence client
-Last completed stage: Stage 3 — changed-file / repository-state verification
-Engineering status: evidence-consumer integration only; no master publication or calculation authority
-Validation status: source Git identity PASS; production validation NOT_RUN
-Current blocker: exact controlled PDF bytes cannot be materialized from the connected GitHub binary interface in this runtime; Stage 7 live source execution is therefore currently BLOCKED_ENVIRONMENT
-Exact next action: implement the operator-usable v2 discover/extract client and focused fail-closed tests
+Current stage: Stage 5 — Stage 5C semantic target profile
+Last completed stage: Stage 4 — production DocumentEvidence client
+Engineering status: transport evidence consumer implemented; no master publication/calculation authority
+Validation status: Stage 4 focused validation PASS
+Current blocker: Stage 7 exact PDF execution remains BLOCKED_ENVIRONMENT because the connected GitHub interface exposes the verified large PDF object metadata but not its bytes
+Exact next action: add the fail-closed semantic Stage 5C target allowlist and selection contract without source-page defaults
 
 ## Handover in 60 Seconds
 
 ### What is now true
-- XML_Compare_Utilities DocumentEvidence v1 is on `main`; contract baseline is `e7a394fd7f35c34cda5cad13df55cae2dd37bca2`, OpenAPI 1.4.1.
-- `/v2/tables/discover` is advisory and returns `SourceIdentity.v1`.
-- `/v2/tables/extract` requires exact `sourceHash` plus explicit 1-based pages and returns structured observations/table passes/cell decisions.
-- Controlled EI source at issue-pinned Common commit `fb549185b9b27edc2379734240320a85c5bef9f6` is exact blob `9d3eccc56429411e17c07a579bdebbd13cb0bdc5`, 10,348,594 bytes.
-- Current Common `main` still contains that exact blob and byte size, so source-byte Git identity has not drifted.
-- The connector can verify the large binary object metadata but does not materialize its bytes; actual Stage 7 API execution is not currently possible here.
-- Existing PR #452 remains historical evidence only.
+- XML contract baseline: `reallaksh19/XML_Compare_Utilities@e7a394fd7f35c34cda5cad13df55cae2dd37bca2`, OpenAPI 1.4.1.
+- Controlled EI source identity is verified at Common commit `fb549185b9b27edc2379734240320a85c5bef9f6`: blob `9d3eccc56429411e17c07a579bdebbd13cb0bdc5`, size 10,348,594; current Common main still has the same blob/size.
+- `scripts/vibration-stage5c-document-evidence-client.mjs` now calls `/v2/tables/discover` and `/v2/tables/extract`.
+- Discovery remains advisory; extraction requires exact source SHA and explicit positive unique pages.
+- Returned SourceIdentity and pages are checked against the request.
+- Generic evidence payloads containing engineering/screening/design/publication authority fields fail closed.
+- Stage 4 published-module executable assertions: 7/7 PASS.
 
 ### What is being worked on
-Stage 4: a real Node CLI/library that calls XML v2 discover/extract, requires explicit caller page selection, checks returned source/page identity, and writes governed evidence receipts.
+Stage 5 semantic target profile: stable domain target IDs only, with curves excluded and source locator/page evidence supplied explicitly by the caller/reviewer.
 
 ### What remains unfinished
-- Stage 4 client + CLI;
-- Stage 5 semantic target profile;
-- Stage 6 candidate/reconciliation receipt behavior;
-- Stage 7 controlled source execution if binary materialization becomes available;
-- Stage 8 targeted validation, changed-file reconciliation, final authority audit.
+- Stage 5 target allowlist/selection validation;
+- Stage 6 candidate/reconciliation receipts + operator CLI;
+- Stage 7 controlled EI API execution if exact bytes become materializable;
+- Stage 8 final validation/changed-file audit/handover.
 
 ### What must not be assumed
-- extraction `accepted` is not engineering approval;
-- no Stage 5C value is authoritative merely because it was extracted;
-- historical printed-page hints from #452 are not source locators;
-- exact T3 semantic tables are not Figures T3-1…T3-4;
-- chart digitization is not part of this PR.
+- `accepted` extraction is not engineering approval;
+- historical #452 page hints are not locators;
+- a semantic target ID does not prove where it occurs in the PDF;
+- T3 table targets are distinct from Figures T3-1…T3-4;
+- no recovered value is a published master.
 
-Highest-risk remaining item: Stage 7 exact-source execution is environment-blocked; no table page/locator/value may be guessed to compensate.
-Exact next action: implement Stage 4 against the already merged v2 contract.
+Highest-risk remaining item: source execution remains environment-blocked; no source locator/value can be invented to compensate.
+Exact next action: implement Stage 5 target profile and tests.
 
 # Mission and Engineering Intent
 
-## Mission
-Provide a real production path in 3D_Converters that consumes shared DocumentEvidence v1 for Stage 5C table recovery and preserves source/evidence lineage through domain review receipts.
-
 ## Scope
-- thin Node client for XML `/v2/tables/discover` and `/v2/tables/extract`;
-- exact source SHA/page-response binding;
-- stable semantic Stage 5C target identifiers separate from source locators;
-- extraction-evidence review receipts and candidate-master handoff data;
-- operator-usable CLI against a running XML service;
-- focused regression tests.
+- thin Node v2 evidence client;
+- exact source/page binding;
+- stable semantic Stage 5C target IDs separate from source locators;
+- source-target review receipts;
+- operator CLI;
+- focused Node tests.
 
-## Explicit non-goals
-- no Figures T3-1…T3-4 digitization/calibration/interpolation;
-- no automatic master activation/publication;
-- no engineering/screening/design authority promotion;
-- no reverse engineering from worked-example targets;
-- no unrelated vibration calculator/UI changes.
+## Non-goals
+- T3 curve digitization/calibration/interpolation;
+- automatic master activation/publication;
+- engineering/screening/design authority promotion;
+- reverse engineering from worked examples;
+- unrelated calculator/UI changes.
 
 ## Governing invariants
-1. `accepted` extraction means source evidence resolved only.
-2. Newly recovered candidates remain `engineeringAuthority = NONE`, `screeningAuthority = NOT_AUTHORIZED`, `designAuthority = false`.
-3. Discovery never selects governed extraction pages.
-4. Extraction requires exact source hash and explicit pages.
-5. Semantic master IDs remain distinct from source locators and T3 figure IDs.
-6. Unknown locator/value/unit/conflict stays blocked/review-required; no nearest/default/extrapolated fallback.
+1. extraction acceptance is evidence-only;
+2. authority stays `NONE / NOT_AUTHORIZED / false`;
+3. discovery does not choose extraction pages;
+4. extraction requires exact source hash + explicit pages;
+5. semantic target IDs and source locators are distinct;
+6. unknown target/locator/value/conflict fails closed.
 
 # Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---:|---|---|---|
-| Shared XML DocumentEvidence baseline | P0 | ACCEPTED | 1 | XML main `e7a394fd...` |
-| #452 reuse classification | P0 | DONE | 3 | classification below |
-| Controlled source Git identity | P0 | VALIDATED | 3 | Common pinned/current trees agree on blob + size |
-| Production v2 table evidence client | P0 | IN_PROGRESS | 4 | planned files below |
-| Stage 5C semantic target profile | P0 | NOT_STARTED | 5 | — |
-| Candidate/reconciliation receipt | P0 | NOT_STARTED | 6 | — |
-| Controlled EI API execution | P0 | BLOCKED | 7 | large binary not materializable through connector |
-| Chart digitization | P0 | DEFERRED | out of scope | #450 separate curve program |
+| XML DocumentEvidence baseline | P0 | ACCEPTED | 1 | XML main `e7a394fd...` |
+| #452 classification | P0 | DONE | 3 | matrix below |
+| Controlled source Git identity | P0 | VALIDATED | 3 | pinned/current Common trees agree |
+| Production v2 client | P0 | VALIDATED | 4 | 7/7 focused assertions |
+| Semantic target profile | P0 | IN_PROGRESS | 5 | — |
+| Candidate/reconciliation receipt + CLI | P0 | NOT_STARTED | 6 | — |
+| Controlled EI API execution | P0 | BLOCKED | 7 | binary materialization unavailable |
+| Chart digitization | P0 | DEFERRED | out of scope | separate #450 sequence |
 
 # Engineering Item Register
 
-| ID | Type | Priority | Status | Summary | Current PR? |
-|---|---|---:|---|---|---|
-| DEC-001 | Decision | P0 | ACCEPTED | Consume XML via HTTP/schema boundary; do not import/copy XML runtime | yes |
-| DEC-002 | Decision | P0 | ACCEPTED | Use semantic Stage 5C master IDs; source locators stay separate/reviewer supplied | yes |
-| DEC-003 | Decision | P0 | ACCEPTED | v2 structured cell evidence replaces old Markdown parsing as the primary reconciliation input | yes |
-| RISK-001 | Risk | P0 | BLOCKED_ENVIRONMENT | Exact PDF binary cannot be materialized in this runtime although Git identity is verified | yes |
-| RISK-002 | Risk | P0 | CLOSED | #452 is stale; useful pieces were classified rather than copied | yes |
-| QST-001 | Question | P0 | RESOLVED | Issue-controlled source commit/blob/size refreshed and current Common main still carries same blob | yes |
+| ID | Type | Priority | Status | Summary |
+|---|---|---:|---|---|
+| DEC-001 | Decision | P0 | ACCEPTED | HTTP/schema boundary; no XML runtime copy/import |
+| DEC-002 | Decision | P0 | ACCEPTED | semantic master IDs never double as unverified PDF locators |
+| DEC-003 | Decision | P0 | ACCEPTED | v2 structured evidence replaces Markdown parsing as primary input |
+| DEC-004 | Decision | P0 | ACCEPTED | generic evidence payload authority fields are rejected by 3D client |
+| RISK-001 | Risk | P0 | BLOCKED_ENVIRONMENT | exact PDF bytes unavailable through connected binary interface |
+| RISK-002 | Risk | P0 | CLOSED | stale #452 classified rather than copied |
+| QST-001 | Question | P0 | RESOLVED | controlled source commit/blob/size refreshed |
 
 # Stage 3 Reuse / Adapt / Reject Matrix
 
-| Module / path | Current role | Classification | Reason / compatibility risk |
-|---|---|---|---|
-| #452 `fetch-vibration-master-sections-via-api.mjs` | `/v1/search` + `/v1/convert` bridge | ADAPT | useful fail-closed HTTP/source patterns, but wrong v1 evidence model and included curve targets |
-| #452 `inventory-vibration-master-sources.mjs` | source identity + locator search | ADAPT | blob/size and semantic IDs are useful; printed-page hints are historical navigation only, not authority |
-| #452 `reconcile-vibration-master-tables.mjs` | parse converted Markdown record tables | REJECT for primary path | v2 returns structured observations/table passes/cell decisions; Markdown parsing would duplicate/degrade evidence |
-| #452 `normalize-vibration-master-tables.mjs` | reviewed semantic mapping to typed rows | DEFER | belongs after reviewed source-target evidence, in a future master-publication/qualification slice |
-| #452 curve targets | Figures T3-1…T3-4 | REJECT from #470 | chart digitization is a separate qualified process |
+| Module / path | Classification | Reason |
+|---|---|---|
+| #452 `fetch-vibration-master-sections-via-api.mjs` | ADAPT | good source/HTTP patterns; obsolete v1 search/convert and curve scope |
+| #452 `inventory-vibration-master-sources.mjs` | ADAPT | blob/size + semantic IDs useful; page hints not authoritative |
+| #452 `reconcile-vibration-master-tables.mjs` | REJECT primary path | v2 already supplies structured observations/passes/decisions |
+| #452 `normalize-vibration-master-tables.mjs` | DEFER | belongs after reviewed candidate evidence in future publication slice |
+| #452 curve targets | REJECT from #470 | chart digitization separate |
 
 # Stage Roadmap
 
-## Stage 1 — Report initialization + technical findings
-Implementation: report created before production code; authority freeze recorded.
-Validation: Common CodingRules structure review.
-Decision: COMPLETE.
+## Stage 1 — Report initialization
+Decision: COMPLETE. Report existed before production code; authority freeze recorded.
 
-## Stage 2 — PR allocation + report synchronization
-Implementation: draft PR #470 opened; report renamed and pending predecessor removed.
-Validation: GitHub PR metadata.
-Decision: COMPLETE.
+## Stage 2 — PR allocation
+Decision: COMPLETE. Draft PR #470 allocated; report renamed.
 
-## Stage 3 — Changed-file / repository-state verification
-Implementation: inspected #452 bridge/inventory/reconciliation/normalization; refreshed Common source commit/tree and current-main tree.
-Validation: issue-pinned and current Common trees both show PDF blob `9d3eccc...`, size 10,348,594.
-Finding: GitHub connector exposes large binary metadata but not bytes, so live Stage 7 extraction is environment-blocked.
-Decision: COMPLETE.
+## Stage 3 — Repository/source verification
+Decision: COMPLETE. #452 classified; controlled source Git object refreshed; binary runtime blocker recorded.
 
 ## Stage 4 — Production DocumentEvidence client
-Current truth: no production #470 module exists yet.
-Objective: operator-usable `discover` and `extract` command path over v2 APIs.
-Expected files:
-- `scripts/vibration-stage5c-document-evidence.mjs`
-- `scripts/recover-vibration-stage5c-via-document-evidence.mjs`
-- `tests/vibration-stage5c-document-evidence.test.mjs`
-- `package.json`
-Engineering rationale: make the real shared evidence API consumable without copying XML runtime.
-Planned implementation: strict payload/response validation, explicit pages, exact source binding, JSON receipt output.
-Expected behavior: discovery remains advisory; extraction is only attempted from a caller selection document.
-Edge cases: empty/duplicate/invalid pages, source mismatch, page mismatch, unknown/curve target, missing candidate ID, authority leakage, nonaccepted cell decisions.
-Planned validation: Node built-in test runner + CLI smoke with deterministic local HTTP fixture.
-Known risks: no controlled PDF execution in this environment.
+Implementation:
+- added `scripts/vibration-stage5c-document-evidence-client.mjs`;
+- added focused transport tests;
+- v2 discovery/extraction routes; explicit page sorting; SHA/source/page response checks; bounded OCR mode contract; generic authority leakage rejection.
+Validation: executable assertions against published module: PASS 7/7.
+Deviations: none; controlled PDF execution intentionally not simulated.
+Decision: COMPLETE.
 
 ## Stage 5 — Stage 5C semantic target profile
-Objective: support only SBC geometry/location/span tables, T2.8 closure, T2.9 FL, T4-1 FM; source locators never inferred.
+Current truth: transport is available but has no domain target IDs.
+Objective: allow only the current Stage 5C table/rule targets; reject curve IDs and unknown IDs; require reviewer/caller pages and source locator rather than supplying historical defaults.
+Expected file: `scripts/vibration-stage5c-targets.mjs` plus extension of focused test file.
+Engineering rationale: domain identity belongs in 3D_Converters, while source evidence remains owned by XML service.
+Edge cases: curve target, unknown target, missing/empty locator, missing pages, duplicate selection ID.
+Planned validation: Node built-in tests.
 
-## Stage 6 — Candidate/reconciliation evidence
-Objective: create `CANDIDATE` source-target receipts from v2 evidence without activating masters or authority.
+## Stage 6 — Candidate/reconciliation evidence + CLI
+Objective: produce governed source-target receipts with separate evidenceDecision/publicationState/authority and no master activation.
 
 ## Stage 7 — Controlled-source execution
-Status: BLOCKED_ENVIRONMENT unless exact PDF bytes can be materialized. No simulated run may be represented as controlled-source validation.
+Status: BLOCKED_ENVIRONMENT unless exact PDF bytes become materializable. Simulated/local fixture calls cannot be represented as controlled-source execution.
 
-## Stage 8 — Validation + handover
-Objective: targeted tests, changed-file reconciliation, authority audit, final report state.
+## Stage 8 — Final validation/handover
+Objective: targeted suite, CLI HTTP smoke, file ledger reconciliation, final authority audit.
 
 # Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---:|---:|---|---|---|
-| `agents/PR470_workreport.md` | 1 | 4 | living engineering handover | yes | protocol PASS |
+| `agents/PR470_workreport.md` | 1 | 5 | living engineering handover | yes | protocol PASS |
+| `scripts/vibration-stage5c-document-evidence-client.mjs` | 4 | 4 | fail-closed v2 transport | yes | PASS 7 assertions |
+| `tests/vibration-stage5c-document-evidence.test.mjs` | 4 | 5 | focused transport/domain tests | yes | Stage 4 PASS; Stage 5 pending |
 
 # Decision / Invariant Status
 
-| Invariant | Where enforced | Validation | PR changes it? |
-|---|---|---|---|
-| extraction != engineering authority | report; planned receipt builder/tests | report PASS | no |
-| explicit pages required | planned client request validator | NOT_RUN | no |
-| exact source hash required | planned request/response binding | NOT_RUN | no |
-| chart digitization separate | scope/target allowlist | report PASS | no |
+| Invariant | Enforcement | Validation |
+|---|---|---|
+| extraction != engineering authority | client rejects generic authority fields; receipts planned | Stage 4 PASS |
+| explicit pages required | `normalizeExplicitPages` | PASS |
+| exact source hash/page response required | client response validation | PASS |
+| chart digitization separate | target profile planned | report PASS; code pending |
 
 # Validation and Evidence Ledger
 
@@ -173,52 +163,51 @@ Objective: targeted tests, changed-file reconciliation, authority audit, final r
 
 | Validation | Status | Evidence |
 |---|---|---|
-| report protocol initialization / rename | PASS | report existed before production code; PR #470 allocated |
-| source Git-object verification | PASS | pinned/current Common trees agree on blob/size |
-| Stage 4 tests | NOT_RUN | implementation not yet written |
+| report protocol / PR allocation | PASS | report precedes production code; #470 |
+| source Git-object verification | PASS | Common pinned/current trees |
+| Stage 4 published transport assertions | PASS | 7/7 |
+| Stage 5 tests | NOT_RUN | pending implementation |
 
 ## Engineering Validation
 
 | Property | Status | Evidence |
 |---|---|---|
-| authority freeze preserved | PASS | mission/invariants |
-| exact EI source Git object | PASS | commit/blob/size verified |
-| exact EI table pages/values | NOT_RUN | controlled binary execution blocked |
-| screening/design authority | NOT_APPLICABLE | explicitly excluded |
+| authority freeze | PASS | report + generic authority rejection |
+| exact EI source Git object | PASS | commit/blob/size |
+| exact table pages/values | NOT_RUN | controlled binary execution blocked |
+| T3 curve data | NOT_APPLICABLE | excluded |
 
 ## Explicitly Not Validated
-- exact PDF page locators for Stage 5C targets;
-- any engineering table value or normalized master row;
-- any T3 curve point;
-- calculation/screening/design authority.
+- exact Stage 5C PDF page locators;
+- any engineering table value / normalized master row;
+- any chart point;
+- screening/design authority.
 
 # Known / Deferred Work and Forward Sequence
 
-1. Complete the operator-facing v2 evidence consumer and tests.
-2. Preserve semantic target IDs but require reviewer-supplied source locator/page selection.
-3. When exact PDF bytes/service runtime are available, perform controlled discover -> explicit selection -> extract and retain the resulting evidence receipt.
-4. Only after independent reconciliation should a separate PR normalize/publish candidate master rows.
-5. Figures T3-1…T3-4 remain in the later chart qualification sequence.
+1. Add semantic target allowlist with no page defaults.
+2. Add source-target receipt/CLI using the Stage 4 client.
+3. When exact bytes/service are available, execute discover -> human explicit selection -> extract and retain receipt.
+4. Later PR: independent semantic row normalization/reconciliation/master publication.
+5. Later chart sequence: T3-1…T3-4 calibration/digitization/review.
 
 # Stage Execution Log
 
-- Stage 1: report initialized before production code; authority freeze recorded.
-- Stage 2: draft PR #470 allocated; report moved to PR-numbered path.
-- Stage 3: #452 classified; issue-controlled and current Common source Git identity verified; live binary execution blocker recorded.
+- Stage 1: living report initialized before code.
+- Stage 2: PR #470 allocated and report renamed.
+- Stage 3: stale #452 classified; exact source Git object verified; runtime binary blocker recorded.
+- Stage 4: v2 transport client implemented; published-module assertions PASS 7/7.
 
 # Next-Agent Handover
 
-Current stopping point: Stage 4 implementation start.
+Current stopping point: Stage 5 start.
 PR / branch: #470 / `agent/document-evidence-stage5c`.
-Last completed stage: Stage 3.
-Current active stage: Stage 4.
-Start here: implement the two Stage 4 scripts and focused Node tests listed above.
-Do not redo: XML platform/JCS/schema work or #452 Markdown reconciliation.
-Do not assume: historical printed page hints, any table value, or any authority.
-Known failing checks: none; Stage 4 tests not yet run.
-Validation still required: Node tests/CLI smoke and controlled-source execution when environment permits.
-Open QST items: none; RISK-001 remains environment-blocked.
-Important deferred work: semantic normalization/publication and all T3 curve digitization.
-Highest-risk remaining item: exact source execution cannot be claimed from metadata alone.
-Exact next recommended action: implement Stage 4 then update this report before Stage 5.
-Required reading: issue #450, Common `CodingRules.md`, XML DocumentEvidence OpenAPI 1.4.1, this report.
+Last completed stage: Stage 4.
+Start here: add `scripts/vibration-stage5c-targets.mjs` and extend focused tests.
+Do not redo: XML work, v1 bridge, Markdown table parser.
+Do not assume: page hints, source locators, table values, authority.
+Known failing checks: none.
+Validation still required: Stage 5/6 tests, CLI smoke, controlled execution when environment permits.
+Open QST: none; RISK-001 environment-blocked.
+Highest-risk item: source execution unavailable from metadata alone.
+Exact next action: Stage 5 semantic target implementation and tests.
