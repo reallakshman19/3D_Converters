@@ -1,5 +1,5 @@
 schema: AgentClaim.v1
-pr_or_wip: WIP-continuous-handover-protocol-v2
+pr_or_wip: PR476
 claim_state: ACTIVE
 files:
   exact:
@@ -17,4 +17,4 @@ claim_modes:
 prohibited_overlap:
   - production converter/calculation logic
   - .github/workflows/
-last_verified_head: c41f2e14a72954297e173c09b240c1714959db93
+last_verified_head: a9ab229955047976a0e6e163baea56412f7e447b

@@ -63,8 +63,8 @@ HANDOVER_READINESS: READY | DEGRADED | NOT_READY
 PR_RECOVERY_STATE: HEALTHY | RECOVERABLE | DEGRADED | TAKEOVER_REQUIRED | QUARANTINED | SALVAGE_ONLY | SUPERSEDE_RECOMMENDED | SUPERSEDED | TERMINAL
 TAKEOVER_AUTHORITY: READ_ONLY | QUALIFICATION_PENDING | WRITE_ALLOWED | RESTRICTED | REVOKED
 
-PR_HEAD:
-REPORT_HEAD:
+PR_HEAD_OBSERVED:
+REPORT_BASIS_HEAD:
 MAIN_HEAD_LAST_CHECKED:
 MERGE_BASE:
 REPORT_SYNC: CURRENT | STALE
@@ -113,8 +113,10 @@ Agent identity is not the durable work identity. PR/WIP ID, branch, mission, and
 
 ## 6. Freshness rules
 
-- `REPORT_HEAD` must match the report's claimed current PR HEAD for `REPORT_SYNC=CURRENT`.
-- Validation remains historical PASS if HEAD moves; current applicability must be re-established.
+- `REPORT_BASIS_HEAD` is the latest implementation/content HEAD whose state the report describes. It need not equal the commit containing the report because that would create an impossible self-reference.
+- `REPORT_SYNC=CURRENT` only when live PR HEAD equals `REPORT_BASIS_HEAD`, or every later commit contains only allowed recovery metadata (`workreport`, `status`, `claim`, master-index synchronization) and no production/test/authority change.
+- Any production, test, benchmark, configuration, authority, or scope-changing commit after `REPORT_BASIS_HEAD` makes the report `STALE` until reconciled.
+- Validation remains historical PASS if the applicable implementation HEAD moves; current applicability must be re-established.
 - Decisions may carry forward unless superseded.
 - Observations require freshness checks.
 - Hypotheses must be re-evaluated.
