@@ -1,5 +1,5 @@
 import { installModeAConsolidatedPreviewEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-ui.js?v=20260814-preview-tools-1';
-import { installModeASmartMapUi } from './xml-cii-adapted-mode-a-smart-map-ui.js?v=20260814-smart-map-1';
+import { installModeASmartMapUiV2 } from './xml-cii-adapted-mode-a-smart-map-ui-v2.js?v=20260814-smart-map-service-class-1';
 import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-easy-bulk-1';
 
 export function installModeAConsolidatedPreviewEasyUiFromWorkspace(workspace, stateRef) {
@@ -14,6 +14,6 @@ export function installModeAConsolidatedPreviewEasyUiFromWorkspace(workspace, st
   const build = [...panel.querySelectorAll('button')].find((button) => /Consolidated Preview/i.test(button.textContent || ''));
   if (build) build.dataset.modeAConsolidatedBuild = 'preview';
   const installed = installModeAConsolidatedPreviewEasyUi(panel, result, stateRef);
-  installModeASmartMapUi(panel, result, stateRef);
+  installModeASmartMapUiV2(panel, result, stateRef);
   return installed;
 }
