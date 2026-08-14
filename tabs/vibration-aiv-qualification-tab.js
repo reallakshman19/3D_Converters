@@ -16,6 +16,7 @@ import {
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
+import { importAivEitFileIntoState } from './vibration-aiv-eit-import-controller.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
 import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-network-state.js';
@@ -26,7 +27,7 @@ function ensureStylesheet() {
   if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-10';
+  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-11';
   link.dataset.aivQualificationStyle = 'true';
   document.head.appendChild(link);
 }
@@ -82,7 +83,8 @@ export function renderAivQualificationWorkspace(container) {
       state.tables = projected.tables;
       state.topology = projected.topology;
       state.topologyInput = projected.topologyInput;
-      state.files = projected.files;
+      state.files = { eit: null, ...projected.files };
+      state.eitImport = null;
       state.flareNetworkActive = true;
       state.benchmark.loaded = null;
       execution.clearReadiness();
@@ -102,9 +104,10 @@ export function renderAivQualificationWorkspace(container) {
     try {
       const loaded = buildLoadedAivD23Benchmark();
       deactivateFlareNetworkGeneration();
+      state.eitImport = null;
       state.benchmark.loaded = loaded.benchmark;
       state.tables = { ...loaded.tables };
-      state.files = { ...loaded.files };
+      state.files = { eit: null, ...loaded.files };
       state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
       state.assumptionProfileModified = false;
       state.topology = loaded.topology;
@@ -126,7 +129,11 @@ export function renderAivQualificationWorkspace(container) {
     deactivateFlareNetworkGeneration();
     state.error = null;
     try {
-      if (target === 'topology') {
+      if (target === 'eit') {
+        await importAivEitFileIntoState(state, file, execution.clearReadiness);
+      } else if (target === 'topology') {
+        state.eitImport = null;
+        state.files.eit = null;
         state.files.topology = { name: file.name, kind: 'Complete five-sheet XLSX' };
         state.topology = null;
         state.topologyInput = {
@@ -135,6 +142,8 @@ export function renderAivQualificationWorkspace(container) {
           sourceFileName: file.name,
         };
       } else {
+        state.eitImport = null;
+        state.files.eit = null;
         const text = await file.text();
         state.tables[target] = parseAivInputCsv(target, text, {
           sourceName: file.name,
@@ -144,7 +153,7 @@ export function renderAivQualificationWorkspace(container) {
       }
       markBenchmarkModified();
     } catch (error) {
-      state.error = String(error?.message || error);
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     }
     render();
   }

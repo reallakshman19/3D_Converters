@@ -13,9 +13,12 @@ function numberText(value) {
   return String(n);
 }
 
-export function buildAivEitSourceDetail({ source, sourceResult, assessmentResult, relationship, pathEvidence = null }) {
+export function buildAivEitSourceDetail({ source, sourceResult, assessmentResult, relationship, pathEvidence = null, importedDetail = null }) {
   const contribution = (assessmentResult.sourceContributionsAtPoint ?? []).find((item) => item.sourceCanonicalId === source.sourceCanonicalId);
   const trimDb = aivEitTrimReductionDb(source);
+  const preservedSegments = pathEvidence?.segmentIds?.length
+    ? pathEvidence.segmentIds
+    : importedDetail?.segmentIds ?? [];
   return {
     vt: DEVICE_LABEL[source.sourceDeviceType] ?? source.sourceDeviceType,
     mfr: numberText(aivEitMassFlowKgH(source.massFlow)),
@@ -27,13 +30,20 @@ export function buildAivEitSourceDetail({ source, sourceResult, assessmentResult
     sourceCanonicalId: source.sourceCanonicalId,
     assessmentCanonicalId: assessmentResult.assessmentCanonicalId,
     caseId: assessmentResult.caseId,
+    sourceDeviceType: source.sourceDeviceType,
+    sourceState: source.sourceState,
+    phase: source.phase,
+    sonicState: source.sonicState,
+    lowNoiseTrimState: source.lowNoiseTrim?.state ?? null,
+    lowNoiseTrimSource: source.lowNoiseTrim?.source ?? null,
+    lowNoiseTrimSourceRevision: source.lowNoiseTrim?.sourceRevision ?? null,
     sourcePwl: Number(sourceResult.effectiveSourcePwlDb),
     pointPwl: contribution ? Number(contribution.pointPwlDb) : null,
     combinedPointPwl: Number(assessmentResult.combinedPointPwlDb),
-    distance: relationship?.physicalDistance?.value ?? pathEvidence?.physicalDistanceM ?? null,
-    distanceUnit: relationship?.physicalDistance?.unit ?? (pathEvidence?.physicalDistanceM != null ? 'm' : null),
-    distanceAuthority: pathEvidence?.distanceAuthority ?? relationship?.distanceSource ?? null,
-    simultaneousSourceGroup: relationship?.simultaneousSourceGroup ?? null,
-    segmentIds: [...(pathEvidence?.segmentIds ?? [])],
+    distance: relationship?.physicalDistance?.value ?? pathEvidence?.physicalDistanceM ?? importedDetail?.distance ?? null,
+    distanceUnit: relationship?.physicalDistance?.unit ?? (pathEvidence?.physicalDistanceM != null ? 'm' : importedDetail?.distanceUnit ?? null),
+    distanceAuthority: pathEvidence?.distanceAuthority ?? relationship?.distanceSource ?? importedDetail?.distanceAuthority ?? null,
+    simultaneousSourceGroup: relationship?.simultaneousSourceGroup ?? importedDetail?.simultaneousSourceGroup ?? null,
+    segmentIds: [...preservedSegments],
   };
 }
