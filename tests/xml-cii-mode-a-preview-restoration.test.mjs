@@ -4,13 +4,14 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test('Smart Map Unmapped Lines exposes Select All without inventing unresolved targets', () => {
+test('Smart Map Unmapped Lines exposes literal Select All without inventing Map To values', () => {
   const source = read('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-smart-map-select-all.js');
   assert.match(source, /Smart Map — Unmapped Lines/u);
   assert.match(source, /textContent = 'Select All'/u);
   assert.match(source, /data-smart-map-use/u);
   assert.match(source, /data-smart-map-value/u);
-  assert.match(source, /if \(!text\(target\?\.value\)\)/u);
+  assert.match(source, /withoutTarget/u);
+  assert.match(source, /does not invent Map To values/u);
   assert.match(source, /rowIsVisible/u);
 });
 
@@ -34,6 +35,7 @@ test('individual Mode A Preview auto-build exposes native DTXR and B31.3 actions
   assert.match(source, /details\.open/u);
   assert.match(source, /Preview\\s\*\\\/\\s\*Review/u);
   assert.match(source, /\^Build Preview\$/u);
+  assert.match(source, /MutationObserver/u);
   assert.match(renderer, /Update Wall thickness based on DTXR/u);
   assert.match(rendererV7, /Fetch Rating as per DTXR/u);
   assert.match(b313, /Update wall thickness as per B31\.3 Sec II/u);
