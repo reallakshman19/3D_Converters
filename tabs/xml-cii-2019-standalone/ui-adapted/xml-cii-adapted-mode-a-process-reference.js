@@ -50,7 +50,7 @@ export function modeAProcessReferenceTargetGroups(rows = [], sourceRow = {}) {
   for (const row of rows || []) {
     const lineKey = text(row?.lineKey);
     const sourceId = text(row?.sourceId);
-    if (!lineKey || !sourceId || lineKey === sourceLineKey) continue;
+    if (!lineKey || !sourceId || lineKey === sourceLineKey || row?.lineMiss === true) continue;
     if (!groups.has(lineKey)) groups.set(lineKey, new Map());
     const bySource = groups.get(lineKey);
     if (!bySource.has(sourceId)) {
@@ -95,11 +95,13 @@ export function buildModeAProcessReferencePlan(
   }
 
   const wantedSources = new Set(unique(targetSourceIds));
-  const targetRows = (rows || []).filter((row) => (
-    text(row?.lineKey) === targetKey
-    && text(row?.sourceId)
-    && (!wantedSources.size || wantedSources.has(text(row.sourceId)))
-  ));
+  const targetRows = wantedSources.size && targetKey && targetKey !== sourceLineKey
+    ? (rows || []).filter((row) => (
+      text(row?.lineKey) === targetKey
+      && row?.lineMiss !== true
+      && wantedSources.has(text(row?.sourceId))
+    ))
+    : [];
   const targetSources = new Map();
   for (const row of targetRows) {
     const sourceId = text(row.sourceId);
@@ -144,10 +146,14 @@ export function applyModeAProcessReferenceToConfig(config = {}, change = {}, cre
   const overrides = ensureObject(config, 'overrides');
   const processData = ensureObject(overrides, 'processData');
   const row = ensureObject(processData, targetLineKey);
+  const appliedFields = [];
   for (const field of fields) {
     const value = numericValue(change?.values?.[field]);
-    if (value !== null) row[field] = value;
+    if (value === null) continue;
+    row[field] = value;
+    appliedFields.push(field);
   }
+  if (!appliedFields.length) return config;
   const source = ensureObject(row, '__source');
   source.processReference = {
     sourceLineKey: text(change.sourceLineKey),
@@ -155,7 +161,7 @@ export function applyModeAProcessReferenceToConfig(config = {}, change = {}, cre
     sourceFileName: text(change.sourceFileName),
     sourceBranchName: text(change.sourceBranchName),
     targetLineKey,
-    fields: fields.filter((field) => numericValue(change?.values?.[field]) !== null),
+    fields: appliedFields,
     createdAt: text(createdAt),
   };
   return config;
