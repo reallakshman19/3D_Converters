@@ -3,6 +3,7 @@ import { VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT } from '../converters/vibratio
 import { buildVibrationFitUiBenchmarkCase, VIBRATION_FIT_UI_BENCHMARK_CASES } from './vibration-integrity-benchmarks.js';
 import {
   assertVibrationTopologyProjectionIntegrity,
+  buildVibrationSourceFileFingerprint,
   buildVibrationTopologyProjectionFingerprint,
 } from './vibration-integrity-input-integrity.js';
 import {
@@ -84,15 +85,20 @@ async function readTopologyFile(file) {
     const data = await file.arrayBuffer();
     const exchange = parseVibrationTableExchangeXlsx(data, { sourceFileName: file.name });
     const table = createTopologyInputTableFromExchange(exchange, { sourceName: file.name });
-    const fingerprint = await buildVibrationTopologyProjectionFingerprint(table);
+    const [projection, sourceFile] = await Promise.all([
+      buildVibrationTopologyProjectionFingerprint(table),
+      buildVibrationSourceFileFingerprint(data),
+    ]);
     return {
       file: {
         name: file.name,
         format,
         data,
         kind: 'Complete five-sheet XLSX · editable Elements view',
-        projectionSchema: fingerprint.schema,
-        projectionHash: fingerprint.projectionHash,
+        projectionSchema: projection.schema,
+        projectionHash: projection.projectionHash,
+        fileHashSchema: sourceFile.schema,
+        fileHash: sourceFile.fileHash,
       },
       table,
     };
