@@ -45,6 +45,7 @@ export function modeAProcessReferenceFields(row = {}) {
 }
 
 export function modeAProcessReferenceTargetGroups(rows = [], sourceRow = {}) {
+  if (sourceRow?.lineMiss === true) return [];
   const sourceLineKey = text(sourceRow.lineKey);
   const groups = new Map();
   for (const row of rows || []) {
@@ -95,7 +96,7 @@ export function buildModeAProcessReferencePlan(
   }
 
   const wantedSources = new Set(unique(targetSourceIds));
-  const targetRows = wantedSources.size && targetKey && targetKey !== sourceLineKey
+  const targetRows = sourceRow?.lineMiss !== true && wantedSources.size && targetKey && targetKey !== sourceLineKey
     ? (rows || []).filter((row) => (
       text(row?.lineKey) === targetKey
       && row?.lineMiss !== true
