@@ -7,15 +7,36 @@ function styleButton(button, primary = false, warning = false) {
   Object.assign(button.style, { padding:'4px 8px', border:`1px solid ${warning?'#d97706':(primary?'#2563eb':'#475569')}`, borderRadius:'5px', background:warning?'#3a240f':(primary?'#1d4ed8':'#172033'), color:warning?'#fde68a':'#e2e8f0', cursor:'pointer', fontSize:'10px', whiteSpace:'nowrap' });
 }
 function rebuild(panel) { panel.querySelector('[data-mode-a-consolidated-build="weight"]')?.click(); }
-function apply(panel,stateRef,changes,label) { if(!applyModeAWeightChanges(stateRef,changes,label)) return false; rebuild(panel); return true; }
 function rowClass(row) { return row?.mapped?'mapped':(modeAQualifiedExactWeightRow(row)?'exact':'review'); }
+
+function markAppliedRows(panel,result,changes=[]) {
+  const byIdentity=new Map(changes.map((change)=>[`${change.sourceId}::${change.key}`,change]));
+  for(const row of result.rows||[]){
+    const change=byIdentity.get(`${row.sourceId}::${row.key}`); if(!change) continue;
+    row.mapped=true; row.weight=Number(change.weight); row.weightSource='override';
+    const tr=panel.querySelector(`[data-mode-a-weight-consolidated-row][data-source-id="${CSS?.escape?CSS.escape(String(row.sourceId||'')):String(row.sourceId||'')}"][data-issue-key="${CSS?.escape?CSS.escape(String(row.key||'')):String(row.key||'')}"]`)
+      || [...panel.querySelectorAll('[data-mode-a-weight-consolidated-row]')].find((item)=>item.dataset.sourceId===String(row.sourceId||'')&&item.dataset.issueKey===String(row.key||''));
+    if(!tr) continue;
+    tr.dataset.weightClass='mapped';
+    if(tr.children[9]) tr.children[9].textContent=`${Number(change.weight)} kg`;
+    if(tr.children[10]) tr.children[10].textContent='override';
+    if(tr.children[11]) tr.children[11].textContent='MAPPED';
+    tr.children[12]?.querySelectorAll('button')?.forEach((button)=>button.remove());
+  }
+}
+
+function apply(panel,result,stateRef,changes,label) {
+  if(!applyModeAWeightChanges(stateRef,changes,label)) return false;
+  markAppliedRows(panel,result,changes);
+  return true;
+}
 
 function addRowActions(panel,result,stateRef) {
   const body=panel.querySelector('[data-mode-a-weight-consolidated-body]');
   const trs=[...(body?.querySelectorAll('tr')||[])];
   (result.rows||[]).forEach((row,index)=>{
     const tr=trs[index]; if(!tr) return;
-    tr.dataset.modeAWeightConsolidatedRow='true'; tr.dataset.sourceId=row.sourceId||''; tr.dataset.weightClass=rowClass(row);
+    tr.dataset.modeAWeightConsolidatedRow='true'; tr.dataset.sourceId=row.sourceId||''; tr.dataset.issueKey=row.key||''; tr.dataset.weightClass=rowClass(row);
     tr.dataset.searchText=[row.fileName,row.branchName,row.nodeNumberDisplay,row.componentType,row.componentRefNo,row.rating,row.bestDescription].map((v)=>text(v).toLowerCase()).join(' ');
     if(row.mapped) return;
     const cell=tr.children[12]; if(!cell) return;
@@ -25,7 +46,7 @@ function addRowActions(panel,result,stateRef) {
       use.title=usePlan.qualifiedExact?`Use qualified 100% Project Data weight ${usePlan.change.weight} kg.`:`Engineer review: ${row.bestScore||'no score'} · ${row.bestDescription||'suggestion'}.`;
       use.addEventListener('click',()=>{
         if(usePlan.requiresReview&&typeof confirm==='function'&&!confirm(`Candidate requires review.\n\n${row.bestScore||'No score'} · ${row.bestDescription||'Suggestion'}\nWeight: ${usePlan.change.weight} kg\n\nApply this single engineer override?`)) return;
-        apply(panel,stateRef,[usePlan.change],`Use Weight Match ${usePlan.change.weight} kg`);
+        apply(panel,result,stateRef,[usePlan.change],`Use Weight Match ${usePlan.change.weight} kg`);
       });
       cell.appendChild(use);
     }
@@ -35,7 +56,7 @@ function addRowActions(panel,result,stateRef) {
       fill.addEventListener('click',()=>{
         const own=buildModeAWeightUsePlan(row)?.change; const changes=[own,...fillPlan.changes].filter(Boolean);
         if(typeof confirm==='function'&&!confirm(`Apply qualified 100% Project Data weights to ${changes.length} equivalent component(s)?\n\nMapped/manual rows will not change.`)) return;
-        apply(panel,stateRef,changes,`Fill similar exact weights (${changes.length})`);
+        apply(panel,result,stateRef,changes,`Fill similar exact weights (${changes.length})`);
       });
       cell.appendChild(fill);
     }
@@ -58,7 +79,7 @@ function makeToolbar(panel,result,stateRef) {
   match.addEventListener('click',()=>{
     bar.querySelectorAll('[data-weight-project-preview],[data-weight-project-apply]').forEach((n)=>n.remove());
     const plan=buildModeAWeightProjectMatchPlan(result.rows||[]); const preview=document.createElement('span'); preview.dataset.weightProjectPreview='true'; preview.className='xml-cii-phase-help'; preview.textContent=`${plan.changes.length} exact 100% · ${plan.review.length} review · ${plan.mapped.length} already mapped.`; bar.appendChild(preview);
-    if(plan.changes.length){const applyBtn=document.createElement('button'); applyBtn.type='button'; applyBtn.dataset.weightProjectApply='true'; applyBtn.textContent=`Apply ${plan.changes.length} Exact Weights`; styleButton(applyBtn,true); applyBtn.addEventListener('click',()=>apply(panel,stateRef,plan.changes,`Project Data exact weights (${plan.changes.length})`)); bar.appendChild(applyBtn);}
+    if(plan.changes.length){const applyBtn=document.createElement('button'); applyBtn.type='button'; applyBtn.dataset.weightProjectApply='true'; applyBtn.textContent=`Apply ${plan.changes.length} Exact Weights`; styleButton(applyBtn,true); applyBtn.addEventListener('click',()=>{if(apply(panel,result,stateRef,plan.changes,`Project Data exact weights (${plan.changes.length})`)){applyBtn.remove(); preview.textContent=`Applied ${plan.changes.length} exact 100% weight(s).`;}}); bar.appendChild(applyBtn);}
   });
 }
 
