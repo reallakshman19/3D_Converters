@@ -25,6 +25,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-fit-ei-worked-examples.test.mjs',
       'tests/vibration-fit-independent-benchmarks.test.mjs',
       'tests/vibration-fit-central-api-qualification.test.mjs',
+      'tests/vibration-fit-independent-screening-review.test.mjs',
       'tests/vibration-fit-physical-context.test.mjs',
       'tests/vibration-fit-qualification-coverage.test.mjs',
       'tests/vibration-fit-screening-candidate.test.mjs',
@@ -92,23 +93,17 @@ export function listVibrationFitReleaseTests() {
 
 async function assertReleaseManifest() {
   const tests = listVibrationFitReleaseTests();
-  if (new Set(tests).size !== tests.length) {
-    throw new Error('FIT/VIB release manifest contains duplicate test paths.');
-  }
+  if (new Set(tests).size !== tests.length) throw new Error('FIT/VIB release manifest contains duplicate test paths.');
   await Promise.all(tests.map((testPath) => access(resolve(ROOT, testPath))));
 }
 
 function runGroup(group) {
   console.log(`\n[vibration-fit-release] ${group.label}`);
   const result = spawnSync(process.execPath, ['--test', ...group.tests], {
-    cwd: ROOT,
-    stdio: 'inherit',
-    shell: false,
+    cwd: ROOT, stdio: 'inherit', shell: false,
   });
   if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(`${group.id} failed with exit code ${result.status}.`);
-  }
+  if (result.status !== 0) throw new Error(`${group.id} failed with exit code ${result.status}.`);
 }
 
 export async function verifyVibrationFitRelease() {
