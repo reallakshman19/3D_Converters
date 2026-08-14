@@ -9,6 +9,7 @@ import {
   VIBRATION_ENRICHMENT_CSV_HEADER,
   VIBRATION_FIT_DATA_BLOCKER_CSV_HEADER,
   VIBRATION_OPERATING_CASE_CSV_HEADER,
+  parseVibrationFitDataBlockerCsv,
 } from '../converters/vibration/tabular/index.js';
 import {
   VIBRATION_TABLE_EXCHANGE_INTEGRITY,
@@ -53,6 +54,30 @@ function blockerCsv(rows) {
 function topology() {
   return { format: VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT.PARSED_EXCHANGE, data: exchange() };
 }
+
+test('pending HOLD numeric blocker stays null and can never become a synthetic zero', () => {
+  const parsed = parseVibrationFitDataBlockerCsv(blockerCsv([
+    'CANON-001,L-100,NORMAL,DENSITY,,,USER-INPUT,,B-PENDING,HOLD,eng-a,awaiting data',
+  ]));
+  assert.equal(parsed[0].value, null);
+  assert.equal(parsed[0].unit, null);
+  assert.equal(parsed[0].status, 'HOLD');
+});
+
+test('ACTIVE blocker requires an explicit value and numeric unit', () => {
+  assert.throws(
+    () => parseVibrationFitDataBlockerCsv(blockerCsv([
+      'CANON-001,L-100,NORMAL,DENSITY,,,USER-INPUT,,B-1,ACTIVE,eng-a,',
+    ])),
+    (error) => error.code === 'FIT_DATA_BLOCKER_VALUE_REQUIRED',
+  );
+  assert.throws(
+    () => parseVibrationFitDataBlockerCsv(blockerCsv([
+      'CANON-001,L-100,NORMAL,DENSITY,1000,,USER-INPUT,,B-1,ACTIVE,eng-a,',
+    ])),
+    (error) => error.code === 'FIT_DATA_BLOCKER_UNIT_REQUIRED',
+  );
+});
 
 test('ACTIVE blocker rows fill missing process data without overwriting source tables', () => {
   const dataBlockerCsv = blockerCsv([
