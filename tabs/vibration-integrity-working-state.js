@@ -148,14 +148,15 @@ export function vibrationWorkingCellState(records, rowIndex, columnIndex) {
   });
 }
 
-export function vibrationWorkingRowState(records, rowIndex) {
+export function vibrationWorkingRowState(records, rowIndex, options = {}) {
   const record = recordAtVisibleIndex(records, rowIndex);
+  const ignoredColumns = new Set(options.ignoredColumns ?? []);
   return Object.freeze({
     rowId: record.rowId,
     added: record.added,
     originalRow: record.originalRow,
     workingRow: record.workingRow,
-    edited: record.added || !sameRow(record.originalRow, record.workingRow, new Set()),
+    edited: record.added || !sameRow(record.originalRow, record.workingRow, ignoredColumns),
   });
 }
 
