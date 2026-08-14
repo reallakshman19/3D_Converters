@@ -11,6 +11,7 @@ It accepts:
 - a 3D EDIT topology/table source;
 - optional operating-case CSV;
 - optional vibration-enrichment CSV;
+- optional explicit FIT data-blocker CSV for missing engineering data.
 
 and delegates immediately to the existing `VibrationFacilityFitWorkflow.v1`.
 
@@ -27,6 +28,7 @@ runVibrationFacilityFitBenchmarkFromTables({
   },
   operatingCaseCsv,
   enrichmentCsv,
+  dataBlockerCsv,
 }, {
   allowLimitedExchange: false,
 })
@@ -46,6 +48,8 @@ qualificationMode = benchmark
 The façade cannot change FIT qualification mode.
 
 Unsupported options such as `qualificationMode` or `designAuthority` are rejected by the underlying workflow option contract.
+
+Manual data-blocker values are evidence-bearing user inputs. Their presence never grants screening or design authority.
 
 ## 4. Topology input formats
 
@@ -77,7 +81,7 @@ parseVibrationTableExchangeXlsx()
 
 The existing five-sheet `TopologyEditTableHumanExport.v1` contract applies.
 
-This path is implemented but cannot be executed in the current agent runtime because the complete repo `xlsx@0.18.5` dependency tree is unavailable there. It must be covered by the repository parser suite when normal checkout/CI is restored.
+For the editable FIT workspace, preserved complete-XLSX execution additionally requires the captured Elements projection fingerprint and complete workbook-byte fingerprint to remain unchanged.
 
 ### CSV_ELEMENTS_ONLY
 
@@ -114,7 +118,7 @@ When it is absent/null/empty string:
 operatingCases = []
 ```
 
-No default process case is created.
+No default process case is created by the source-table parser.
 
 ## 6. Enrichment input
 
@@ -132,7 +136,112 @@ enrichment = []
 
 No default FIT assessment point or geometry enrichment is created.
 
-## 7. Returned import metadata
+## 7. Explicit data-blocker input
+
+Missing engineering data may be supplied through the separately governed:
+
+```text
+VibrationFitDataBlockerCsv.v1
+```
+
+This is a manual gap-resolution layer, not a fallback-default layer.
+
+Each row records:
+
+```text
+Canonical ID
+Line
+Operating Case
+Field
+Value
+Unit
+Source
+Source Revision
+Record ID
+Status
+Reviewer
+Notes
+```
+
+Supported statuses are:
+
+```text
+ACTIVE    participates in benchmark input preparation
+HOLD      retained for audit only; does not satisfy readiness
+RESOLVED  retained for audit only; does not satisfy readiness
+```
+
+Numeric ACTIVE values require an explicit engineering unit. Every row requires explicit source provenance.
+
+Supported data fields cover the current FIT engineering-input gaps:
+
+```text
+ASSESSMENT_POINT
+OUTSIDE_DIAMETER
+WALL_THICKNESS
+INSIDE_DIAMETER
+MAX_UNSUPPORTED_SPAN
+NATURAL_FREQUENCY
+PHASE
+MASS_FLOW
+DENSITY
+DYNAMIC_VISCOSITY
+VELOCITY
+MULTIPHASE_RESOLUTION_MODE
+GAS_MASS_FLOW
+GAS_DENSITY
+LIQUID_MASS_FLOW
+LIQUID_DENSITY
+```
+
+### Fill-only authority rule
+
+The blocker table may fill a missing value only.
+
+```text
+existing source value + ACTIVE blocker value
+    -> FIT_DATA_BLOCKER_SOURCE_COLLISION
+    -> fail closed
+```
+
+The manual table never silently overwrites operating-case or enrichment data.
+
+### Case creation
+
+When a valid case-scoped ACTIVE blocker row names a Line + Operating Case that is not otherwise present, the tabular compiler may create a minimal case identity record so the explicit blocker values can be joined. It does not invent phase, flow, density, viscosity or other engineering values.
+
+### Multiphase data
+
+The manual table supports both governed FIT multiphase representations:
+
+```text
+AGGREGATE_EFFECTIVE
+  density + (mass flow or velocity)
+
+COMPONENT_DERIVED
+  gas mass flow + gas density
+  liquid mass flow + liquid density
+```
+
+If both shapes are present, `MULTIPHASE_RESOLUTION_MODE` must explicitly select the intended representation. No automatic preference is introduced.
+
+## 8. Data blocker versus method/domain blocker
+
+Only missing **data** may be resolved by user input.
+
+Method, correlation and applicability uncertainty cannot be overridden through the blocker table.
+
+In particular:
+
+```text
+219.1 mm < Dext < 273 mm
+```
+
+remains the QST-003 method/domain exclusion for the bounded production candidate. A field such as `SUPPORT_SIZE_FAMILY` is not accepted by `VibrationFitDataBlockerCsv.v1`; attempting to use manual data to bypass the unresolved method mapping fails closed.
+
+The same principle applies to any future unresolved equation, correlation, code interpretation or authority decision: it must be qualified or explicitly excluded, not converted into a user-entered engineering datum.
+
+## 9. Returned import metadata
 
 The façade returns:
 
@@ -143,9 +252,13 @@ imports.exchangeSchema
 imports.exchangeIntegrityStatus
 imports.operatingCaseCount
 imports.enrichmentCount
+imports.dataBlockerCount
+imports.activeDataBlockerCount
 ```
 
 These are ingestion facts only.
+
+`operatingCaseCount` and `enrichmentCount` describe the original source tables. `dataBlockerCount` and `activeDataBlockerCount` make manual-input dependency explicit.
 
 The complete underlying workflow is returned as:
 
@@ -153,7 +266,7 @@ The complete underlying workflow is returned as:
 workflow
 ```
 
-## 8. Error ordering
+## 10. Error ordering
 
 The façade fails as early as possible:
 
@@ -164,7 +277,10 @@ unsupported topology format
 malformed topology table
   -> fail before dataset assembly
 
-malformed operating/enrichment CSV
+malformed operating/enrichment/data-blocker CSV
+  -> fail before dataset assembly/calculation
+
+manual/source collision
   -> fail before dataset assembly/calculation
 
 invalid joins/data completeness
@@ -176,39 +292,55 @@ FIT applicability/calculation error
 
 This ordering keeps syntax/import defects separate from engineering applicability defects.
 
-## 9. No default behavior
+## 11. No hidden default behavior
 
-If topology is valid but no process/enrichment tables are supplied:
+If topology is valid but no process/enrichment/data-blocker tables are supplied:
 
 ```text
 exchange -> parsed
 operating cases -> []
 enrichment -> []
+data blockers -> []
 dataset -> valid topology dataset
 plan -> zero FIT assessment points
 result/register -> zero rows
 warning -> NO_FIT_ASSESSMENT_POINTS
 ```
 
-The system does not assume operating conditions or FIT locations merely because a topology file exists.
+The system does not assume operating conditions, FIT locations, process properties, geometry or correlation-family data merely because a topology file exists.
 
-## 10. Intended UI use
+## 12. Intended UI use
 
-A table-only workspace upload sequence can map directly to this façade:
+The FIT workspace maps the contract to three user-facing input tabs:
+
+```text
+Engineering Basis
+Source Data
+Data Blockers
+```
+
+A typical sequence is:
 
 ```text
 1. Upload 3D EDIT XLSX
 2. Upload HMB operating-case CSV
 3. Upload vibration-enrichment CSV
-4. Run benchmark preflight/workflow
-5. Display register + data-quality warnings
+4. Check readiness
+5. Inspect missing/invalid fields
+6. Enter genuinely missing data in the Data Blockers table with value/unit/source/status
+7. Recheck readiness
+8. Run benchmark workflow
+9. Display register + data-quality/manual-input facts
+10. Export register and reproducibility evidence
 ```
 
-A UI may also keep the parsed exchange in memory and use `PARSED_EXCHANGE` after the first upload.
+The Data Blockers tab also supports CSV import, direct table editing, add/delete, cell/row/table revert and a template export.
+
+Engineering Basis source links switch to the separate Source Data tab before focusing the exact backing cell, preserving source traceability after the tab split.
 
 No 3D model viewer is needed.
 
-## 11. Provenance and evidence
+## 13. Provenance and evidence
 
 The tabular façade does not flatten provenance.
 
@@ -221,11 +353,15 @@ workflow.result
 workflow.register
 ```
 
+Manual blocker provenance is retained in plan/source traces. The editable workspace also binds the blocker table and file descriptor into `FitRunSnapshot.v1`; changing manual data invalidates the audit identity and any current result becomes stale until rerun.
+
+`FitRunEvidencePackage.v1` retains the blocker source-file descriptor alongside the other source files.
+
 This preserves the same RESULT -> WHY -> EVIDENCE workflow as the lower-level APIs.
 
-## 12. Qualification boundary
+## 14. Qualification boundary
 
-Even a complete and successfully calculated tabular workflow remains:
+Even a complete and successfully calculated tabular workflow, including explicitly supplied manual data, remains:
 
 ```text
 FIT = BENCHMARK_ONLY
@@ -233,4 +369,4 @@ screeningAuthorized = false
 designAuthority = false
 ```
 
-Promotion to production screening remains governed by issue #429, full method/project review, full regression and independent engineering approval.
+Promotion to bounded production screening requires the independent source/method review, exact release regression, browser/file acceptance, bounded central API qualification and independent engineering approval defined by the FIT production qualification programme.
