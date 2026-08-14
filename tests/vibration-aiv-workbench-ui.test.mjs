@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   createAivAssumptionAcceptance,
   isAivAssumptionAcceptanceCurrent,
 } from '../tabs/vibration-aiv-assumption-acceptance.js';
 import { buildLoadedAivD23Benchmark } from '../tabs/vibration-aiv-benchmarks.js';
 import { renderAivFlareNetworkAuthoringHtml } from '../tabs/vibration-aiv-flare-network-view.js';
+import { renderAivInputWorkspaceHtml } from '../tabs/vibration-aiv-input-view.js';
 import { renderAivQualificationWorkspaceHtml } from '../tabs/vibration-aiv-qualification-view.js';
 import { renderAivReadinessPanelHtml } from '../tabs/vibration-aiv-readiness-view.js';
 import { isAivScreeningReady } from '../tabs/vibration-aiv-screening-gate.js';
@@ -15,6 +17,7 @@ import {
   captureAivUiContext,
   restoreAivUiContext,
 } from '../tabs/vibration-aiv-ui-context.js';
+import { loadAivSmallFlareMock } from '../tabs/vibration-aiv-workspace-loaders.js';
 
 function benchmarkState() {
   const state = createInitialAivQualificationState();
@@ -86,6 +89,29 @@ test('AIV workbench presents bounded screening authority before secondary qualif
   assert.doesNotMatch(html, /TABLE\/IMPORT MODE ACTIVE/);
   assert.ok(html.indexOf('Start an AIV assessment') < html.indexOf('AIV result scopes'));
   assert.ok(html.indexOf('AIV result scopes') < html.indexOf('Qualification evidence & method trace'));
+});
+
+test('mock flare entry point is wired and EIT export remains fail-closed until screening succeeds', () => {
+  const state = createInitialAivQualificationState();
+  let html = renderAivInputWorkspaceHtml(state);
+  assert.match(html, /data-aiv-action="load-mock-flare-network"/u);
+  assert.match(html, />Load mock flare network</u);
+  assert.match(html, /2 RVs → 4 in subheader → 8 in header/u);
+  assert.match(html, /data-aiv-action="export-eit" disabled/u);
+
+  let loadedNetwork = null;
+  state.assumptionProfileModified = true;
+  loadAivSmallFlareMock(state, (network) => { loadedNetwork = network; });
+  assert.equal(state.assumptionProfileModified, false);
+  assert.equal(loadedNetwork.networkId, 'SMALL-FLARE-2RV-SUBHEADER-001');
+  assert.equal(loadedNetwork.nodes.filter((node) => node.kind === 'SOURCE').length, 2);
+
+  state.screeningResult = { ok: true };
+  html = renderAivInputWorkspaceHtml(state);
+  assert.match(html, /data-aiv-action="export-eit">Export current EI \.eit/u);
+  const controllerSource = readFileSync(new URL('../tabs/vibration-aiv-qualification-tab.js', import.meta.url), 'utf8');
+  assert.match(controllerSource, /action === 'load-mock-flare-network'\) loadAivSmallFlareMock\(state, applyFlareNetwork\)/u);
+  assert.match(controllerSource, /action === 'export-eit'\) execution\.exportEit\(\)/u);
 });
 
 test('relationship canvas is first-class for non-flare benchmark inputs', () => {
