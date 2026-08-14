@@ -6,6 +6,7 @@ import {
   vibrationEngineeringBasisSourceCellId,
   VIBRATION_ENGINEERING_BASIS_SCHEMA,
 } from '../tabs/vibration-integrity-engineering-basis.js';
+import { createVibrationIntegrityInputTable } from '../tabs/vibration-integrity-input-model.js';
 import { renderVibrationIntegrityInputArea } from '../tabs/vibration-integrity-input-view.js';
 
 const inputViewSource = readFileSync(new URL('../tabs/vibration-integrity-input-view.js', import.meta.url), 'utf8');
@@ -47,8 +48,13 @@ function fixture() {
 }
 
 function inputState() {
+  const source = fixture();
   return {
-    tables: fixture(),
+    tables: {
+      topology: createVibrationIntegrityInputTable('topology', source.topology.rows),
+      operating: createVibrationIntegrityInputTable('operating', source.operating.rows),
+      enrichment: createVibrationIntegrityInputTable('enrichment', source.enrichment.rows),
+    },
     files: { topology: null, operating: null, enrichment: null },
     allowLimitedExchange: false,
     busy: false,
