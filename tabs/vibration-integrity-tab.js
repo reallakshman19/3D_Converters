@@ -2,9 +2,10 @@ import { buildVibrationFacilityFitPreflightFromTables } from '../converters/vibr
 import { serializeVibrationFacilityFitRegisterCsv } from '../converters/vibration/facility/fit-register-export.js';
 import { createVibrationEnrichmentCsvTemplate, createVibrationOperatingCaseCsvTemplate } from '../converters/vibration/tabular/templates.js';
 import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/model.js';
-import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
-import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile, vibrationIntegrityTopologyExecutionInput } from './vibration-integrity-input-runtime.js';
-import { buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
+import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputRow, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
+import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
+import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
+import { bindVibrationIntegrityEngineeringIdentity, buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
 function ensureStylesheet() {
   if (document.querySelector('link[data-vibration-integrity-style="true"]')) return;
@@ -130,16 +131,16 @@ export function renderVibrationIntegrityTab(container) {
     }
     render();
   }
-  function checkReadiness() {
-    if (!vibrationIntegrityTopologyExecutionInput(state)) return;
+  async function checkReadiness() {
+    if (!state.tables.topology.rows.length) return;
     state.busy = true;
     state.busyAction = 'preflight';
     state.error = null;
     render();
     try {
+      const tableInput = await buildVibrationIntegrityFacilityTableInput(state);
       state.preflight = buildVibrationFacilityFitPreflightFromTables(
-        buildVibrationIntegrityFacilityTableInput(state),
-        { allowLimitedExchange: state.allowLimitedExchange },
+        tableInput, { allowLimitedExchange: state.allowLimitedExchange },
       );
     } catch (error) {
       state.preflight = null;
@@ -151,7 +152,7 @@ export function renderVibrationIntegrityTab(container) {
     }
   }
   async function runBenchmark() {
-    if (!vibrationIntegrityTopologyExecutionInput(state)) return;
+    if (!state.tables.topology.rows.length) return;
     state.busy = true;
     state.busyAction = 'benchmark';
     state.resultState = 'RUNNING';
@@ -159,16 +160,14 @@ export function renderVibrationIntegrityTab(container) {
     render();
     try {
       const snapshot = await buildVibrationIntegrityRunSnapshot(state);
+      const tableInput = await buildVibrationIntegrityFacilityTableInput(state);
       const { runVibrationFacilityFitBenchmarkFromTables } = await import('../converters/vibration/facility/fit-workflow-tabular.js');
       if (state.destroyed) return;
       state.envelope = runVibrationFacilityFitBenchmarkFromTables(
-        buildVibrationIntegrityFacilityTableInput(state),
-        { allowLimitedExchange: state.allowLimitedExchange },
+        tableInput, { allowLimitedExchange: state.allowLimitedExchange },
       );
-      state.runSnapshot = Object.freeze({
-        ...snapshot,
-        runId: `FIT-RUN-${new Date().toISOString()}`,
-      });
+      const identified = await bindVibrationIntegrityEngineeringIdentity(snapshot, state.envelope);
+      state.runSnapshot = Object.freeze({ ...identified, runId: `FIT-RUN-${new Date().toISOString()}` });
       state.resultState = 'CURRENT_RESULT';
       state.selectedRowKey = null;
       state.detailTab = 'summary';
@@ -189,6 +188,16 @@ export function renderVibrationIntegrityTab(container) {
       downloadText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
     } catch (error) {
       state.error = String(error?.message || error);
+      render();
+    }
+  }
+  async function exportRunEvidence() {
+    if (state.resultState !== 'CURRENT_RESULT') return;
+    try {
+      const payload = await serializeVibrationIntegrityRunEvidence(state);
+      downloadText(payload, 'vibration-fit-run-evidence.json', 'application/json;charset=utf-8');
+    } catch (error) {
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       render();
     }
   }
@@ -220,6 +229,12 @@ export function renderVibrationIntegrityTab(container) {
       ));
       return true;
     }
+    const revertRow = event.target.closest('[data-vi-row-revert]');
+    if (revertRow) {
+      const kind = revertRow.dataset.viRowRevert;
+      applyTableMutation(kind, revertVibrationIntegrityInputRow(state.tables[kind], Number(revertRow.dataset.viEditRow)));
+      return true;
+    }
     const button = event.target.closest('[data-vi-table-delete]');
     if (!button) return false;
     const kind = button.dataset.viTableDelete;
@@ -244,6 +259,7 @@ export function renderVibrationIntegrityTab(container) {
     if (action === 'preflight') checkReadiness();
     if (action === 'run') runBenchmark();
     if (action === 'export') exportRegister();
+    if (action === 'export-evidence') exportRunEvidence();
     if (action === 'operating-template') downloadText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
     if (action === 'enrichment-template') downloadText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
   }
