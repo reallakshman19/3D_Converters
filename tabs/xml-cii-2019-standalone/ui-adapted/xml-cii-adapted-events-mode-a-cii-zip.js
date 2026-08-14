@@ -1,4 +1,5 @@
 import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a.js?v=20260813-mode-a-rigid-review-1';
+import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-rigid-review-1';
 import {
   collectModeASuccessfulCiiFiles,
   downloadModeACiiZip,
@@ -49,6 +50,6 @@ function installSaveAllCiiZip(container, stateRef) {
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   const result = bindBaseModeAEvents(container, stateRef, render);
-  installSaveAllCiiZip(container, stateRef);
+  installSaveAllCiiZip(container, modeARawRef(stateRef));
   return result;
 }
