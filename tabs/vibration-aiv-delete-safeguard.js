@@ -9,12 +9,11 @@ export function aivRelationshipIdentityFromTableRow(table, rowIndex) {
     const index = table.header.indexOf(column);
     return index < 0 ? '' : text(row[index]);
   };
-  const identity = {
+  return Object.freeze({
     sourceCanonicalId: value('Source Canonical ID'),
     assessmentCanonicalId: value('Assessment Canonical ID'),
     caseId: value('Operating Case'),
-  };
-  return Object.values(identity).every(Boolean) ? Object.freeze(identity) : null;
+  });
 }
 
 export function aivRelationshipDeleteMessage(identity = {}) {
