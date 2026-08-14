@@ -19,12 +19,22 @@ function table(kind, rows, sourceName = `${kind}.csv`) {
   };
 }
 
-function state(value = '1', sourceSuffix = '') {
+function topologyFile(sourceSuffix, sourceHash = null) {
+  return {
+    name: `topology${sourceSuffix}.csv`,
+    format: 'CSV_ELEMENTS_ONLY',
+    kind: 'Elements',
+    fileHashSchema: sourceHash ? 'FitSourceFileSha256.v1' : null,
+    fileHash: sourceHash,
+  };
+}
+
+function state(value = '1', sourceSuffix = '', sourceHash = null) {
   return {
     allowLimitedExchange: true,
     benchmark: { loaded: { id: 'CASE-1', modified: false } },
     files: {
-      topology: { name: `topology${sourceSuffix}.csv`, format: 'CSV_ELEMENTS_ONLY', kind: 'Elements' },
+      topology: topologyFile(sourceSuffix, sourceHash),
       operating: { name: `operating${sourceSuffix}.csv`, kind: 'Operating' },
       enrichment: { name: `enrichment${sourceSuffix}.csv`, kind: 'Enrichment' },
     },
@@ -85,6 +95,21 @@ test('source identity changes audit hash without changing normalized engineering
   assert.match(first.engineeringInputHash, /^[0-9a-f]{64}$/u);
   assert.equal(first.engineeringInputHash, renamed.engineeringInputHash);
   assert.equal(first.engineeringCanonicalInput, renamed.engineeringCanonicalInput);
+});
+
+test('complete source-file hash changes audit identity but not normalized engineering identity', async () => {
+  const hashA = 'a'.repeat(64);
+  const hashB = 'b'.repeat(64);
+  const first = await bindVibrationIntegrityEngineeringIdentity(
+    await buildVibrationIntegrityRunSnapshot(state('1', '', hashA)), envelope(),
+  );
+  const changedSource = await bindVibrationIntegrityEngineeringIdentity(
+    await buildVibrationIntegrityRunSnapshot(state('1', '', hashB)), envelope(),
+  );
+  assert.notEqual(first.snapshotHash, changedSource.snapshotHash);
+  assert.equal(first.engineeringInputHash, changedSource.engineeringInputHash);
+  assert.equal(first.input.files.topology.fileHash, hashA);
+  assert.equal(changedSource.input.files.topology.fileHash, hashB);
 });
 
 test('normalized engineering-input changes alter engineering identity', async () => {
