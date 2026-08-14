@@ -55,8 +55,8 @@ test('UI benchmark catalogue exactly covers the controlled five EI worked cases'
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.benchmarkSetId, controlled.benchmarkSetId);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.commit, controlled.source.commit);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.gitBlob, controlled.source.gitBlob);
-  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.relativeTolerance, controlled.roundingPolicy.relativeTolerance);
-  assert.equal(controlled.roundingPolicy.screeningPromotionState, 'FIELD_CASE_TOLERANCE_RECONCILIATION_REQUIRED');
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.tolerancePolicyId, controlled.tolerancePolicy.id);
+  assert.equal(controlled.tolerancePolicy.screeningPromotionState, 'RECONCILED_FOR_BENCHMARK_USE');
 });
 
 test('every UI benchmark builds production-parseable topology, operating and enrichment tables', () => {
@@ -74,10 +74,11 @@ test('every UI benchmark builds production-parseable topology, operating and enr
   }
 });
 
-test('published UI targets are identical to controlled EI target values', () => {
+test('published UI targets and LOF tolerances are identical to the controlled EI benchmark record', () => {
   for (const controlledCase of controlled.cases) {
     const uiCase = buildVibrationFitUiBenchmarkCase(controlledCase.id);
     assert.equal(uiCase.published.standardLof, controlledCase.published.standardLof);
+    assert.equal(uiCase.published.standardLofTolerance, controlledCase.tolerance.standardLof);
     assert.equal(uiCase.published.referenceBand, controlledCase.published.referenceBand);
     assert.equal(uiCase.published.standardFvPa, controlledCase.published.standardFvPa);
     assert.equal(uiCase.published.supportStiffness, controlledCase.published.supportStiffness);
