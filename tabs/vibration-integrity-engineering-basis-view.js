@@ -24,7 +24,7 @@ function stateForRef(state, ref) {
 function sourceLink(ref, label = 'source') {
   const id = vibrationEngineeringBasisSourceCellId(ref);
   if (!id) return '<span class="vi-empty">—</span>';
-  return `<a class="vi-row-link vi-source-link" href="#${esc(id)}" title="Open exact Source Data cell">${esc(label)}</a>`;
+  return `<a class="vi-row-link vi-source-link" href="#${esc(id)}" data-vi-source-target="${esc(id)}" title="Open exact Source Data cell">${esc(label)}</a>`;
 }
 
 function fieldEditState(state, field) {
