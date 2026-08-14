@@ -3,7 +3,7 @@ import { createVibrationIntegrityInputTable } from './vibration-integrity-input-
 export const VIBRATION_FIT_UI_BENCHMARK_SOURCE = Object.freeze({
   benchmarkSetId: 'FIT-EI-WORKED-EXAMPLES-V1',
   repository: 'reallaksh19/Common',
-  commit: 'aef163a5def3bfe04ca0ba860da05728a27daf42',
+  commit: 'fb549185b9b27edc2379734240320a85c5bef9f6',
   path: 'EI - AVIFF Guidelines 2nd Edition_Examples.pdf',
   gitBlob: '3e2517d0df527a051084fc02e69cb7afa31f8d47',
   edition: '2nd Edition, January 2008',
