@@ -36,6 +36,11 @@ const rows = [
     lineKey: 'S8810389', lineMiss: true,
   },
   {
+    sourceId: 'SRC14', fileName: 'SYS-0014.xml',
+    branchName: '/ASIM-1840-3"-S8810389-91261M7-01/B2',
+    lineKey: 'S8810389', lineMiss: false,
+  },
+  {
     sourceId: 'SRC12', fileName: 'SYS-0012.xml',
     branchName: '/ASIM-1900-3"-S8810450-91261M7-01/B1',
     lineKey: 'S8810450', lineMiss: true,
@@ -61,6 +66,8 @@ assert.match(conflict.reason, /conflicts with existing mapping S8810112/);
 const exact = groups.find((group) => group.sourceId === 'SRC14');
 assert.equal(exact.status, 'exact');
 assert.equal(exact.recommended, 'S8810389');
+assert.equal(exact.branchCount, 2);
+assert.equal(exact.unmappedCount, 1);
 
 const similar = groups.find((group) => group.sourceId === 'SRC12');
 assert.equal(similar.status, 'similar');
@@ -82,8 +89,13 @@ assert.equal(rowGroup.groupKey, conflict.groupKey, 'row-level Smart Map must ope
 
 const changes = buildModeASmartMapChanges(conflict, 'S8810347', keys);
 assert.equal(changes.valid, true);
-assert.equal(changes.changes.length, 3, 'approved conflict correction updates all B1/B2/B3 occurrences in the source group');
+assert.equal(changes.changes.length, 3, 'approved conflict correction updates wrong B1 and maps B2/B3');
 assert(changes.changes.every((change) => change.sourceId === 'SRC15' && change.lineKey === 'S8810347'));
+
+const exactChanges = buildModeASmartMapChanges(exact, 'S8810389', keys);
+assert.equal(exactChanges.valid, true);
+assert.equal(exactChanges.changes.length, 1, 'already-correct mapped sibling must keep resolver provenance instead of becoming an explicit override');
+assert.equal(exactChanges.changes[0].branchName, '/ASIM-1840-3"-S8810389-91261M7-01/B1');
 
 const invalid = buildModeASmartMapChanges(conflict, 'NOT-IN-MASTER', keys);
 assert.equal(invalid.valid, false, 'manual Map To value must still exist in that source project Line List');
