@@ -59,7 +59,7 @@ test('FIT/VIB release manifest keeps product-layer groups plus multi-mechanism v
 
 test('FIT/VIB release manifest has no duplicates and retains critical seams', () => {
   const tests = listVibrationFitReleaseTests();
-  assert.equal(tests.length, 44);
+  assert.equal(tests.length, 45);
   assert.equal(new Set(tests).size, tests.length);
   for (const required of REQUIRED_TESTS) assert(tests.includes(required), `missing ${required}`);
 });
