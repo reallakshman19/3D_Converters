@@ -7,6 +7,12 @@ function numberText(value) {
 }
 
 export function buildAivEitPipe(assessment, pipeId) {
+  const branchOd = assessment.branchOutsideDiameter
+    ? numberText(aivEitLengthMm(assessment.branchOutsideDiameter, 'Branch Outside Diameter'))
+    : null;
+  const branchWt = assessment.branchWallThickness
+    ? numberText(aivEitLengthMm(assessment.branchWallThickness, 'Branch Wall Thickness'))
+    : null;
   return {
     nb: '',
     sch: '',
@@ -16,7 +22,10 @@ export function buildAivEitPipe(assessment, pipeId) {
     spec: '',
     pi: pipeId,
     id: numberText(aivEitLengthMm(assessment.mainInsideDiameter, 'Main Inside Diameter')),
+    ...(branchOd === null ? {} : { branchOd }),
+    ...(branchWt === null ? {} : { branchWt }),
     assessmentCanonicalId: assessment.assessmentCanonicalId,
     assessmentType: assessment.assessmentType,
+    duplexState: assessment.duplexState ?? null,
   };
 }
