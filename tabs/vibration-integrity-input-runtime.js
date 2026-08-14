@@ -35,11 +35,12 @@ function cloneFile(file) {
 
 export function createVibrationIntegrityInputRuntimeState() {
   return {
-    files: { topology: null, operating: null, enrichment: null },
+    files: { topology: null, operating: null, enrichment: null, dataBlockers: null },
     tables: {
       topology: createEmptyVibrationIntegrityInputTable('topology'),
       operating: createEmptyVibrationIntegrityInputTable('operating'),
       enrichment: createEmptyVibrationIntegrityInputTable('enrichment'),
+      dataBlockers: createEmptyVibrationIntegrityInputTable('dataBlockers'),
     },
     benchmark: {
       selectedId: VIBRATION_FIT_UI_BENCHMARK_CASES[0]?.id ?? '',
@@ -56,6 +57,7 @@ export function captureVibrationIntegrityExecutionState(state) {
       topology: cloneFile(state.files?.topology),
       operating: cloneFile(state.files?.operating),
       enrichment: cloneFile(state.files?.enrichment),
+      dataBlockers: cloneFile(state.files?.dataBlockers),
     }),
     tables: Object.freeze({ ...state.tables }),
     benchmark: Object.freeze({
@@ -68,7 +70,7 @@ export function captureVibrationIntegrityExecutionState(state) {
 }
 
 function serializeOptionalTable(table) {
-  return table.rows.length ? serializeVibrationIntegrityInputTable(table) : '';
+  return table?.rows?.length ? serializeVibrationIntegrityInputTable(table) : '';
 }
 
 function editedTopologyFileName(file, table) {
@@ -106,6 +108,7 @@ export async function buildVibrationIntegrityFacilityTableInput(state) {
     topology: await vibrationIntegrityTopologyExecutionInput(state),
     operatingCaseCsv: serializeOptionalTable(state.tables.operating),
     enrichmentCsv: serializeOptionalTable(state.tables.enrichment),
+    dataBlockerCsv: serializeOptionalTable(state.tables.dataBlockers),
   };
 }
 
@@ -142,9 +145,13 @@ async function readTopologyFile(file) {
 
 async function readCsvFile(file, kind) {
   const text = await file.text();
-  const contract = kind === 'operating' ? 'VibrationOperatingCaseCsv.v1' : 'VibrationEnrichmentCsv.v1';
+  const contracts = {
+    operating: 'VibrationOperatingCaseCsv.v1',
+    enrichment: 'VibrationEnrichmentCsv.v1',
+    dataBlockers: 'VibrationFitDataBlockerCsv.v1',
+  };
   return {
-    file: { name: file.name, kind: contract },
+    file: { name: file.name, kind: contracts[kind] ?? 'CSV' },
     table: parseVibrationIntegrityInputCsv(kind, text, { sourceName: file.name, sourceKind: 'CSV' }),
   };
 }
@@ -157,7 +164,7 @@ export function buildLoadedVibrationIntegrityBenchmark(id) {
   const loaded = buildVibrationFitUiBenchmarkCase(id);
   return {
     loaded,
-    tables: { ...loaded.tables },
+    tables: { ...loaded.tables, dataBlockers: createEmptyVibrationIntegrityInputTable('dataBlockers') },
     files: {
       topology: {
         name: `${loaded.id}.csv`,
@@ -166,6 +173,7 @@ export function buildLoadedVibrationIntegrityBenchmark(id) {
       },
       operating: { name: `${loaded.id}-operating.csv`, kind: 'EI benchmark operating table' },
       enrichment: { name: `${loaded.id}-enrichment.csv`, kind: 'EI benchmark enrichment table' },
+      dataBlockers: null,
     },
     allowLimitedExchange: true,
   };
