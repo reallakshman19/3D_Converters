@@ -177,7 +177,10 @@ test('EIT import topology is connectivity-only and never derives physical distan
 test('invalid EIT version fails closed before creating working state', () => {
   const document = modernDocument();
   document.options.version = 4;
-  assert.throws(() => parseAivEitImport(JSON.stringify(document)), /AIV_EIT_IMPORT_CONTRACT_INVALID/);
+  assert.throws(
+    () => parseAivEitImport(JSON.stringify(document)),
+    (error) => error?.code === 'AIV_EIT_IMPORT_CONTRACT_INVALID',
+  );
 });
 
 test('re-export of imported mixed-module legacy file preserves unrelated content and replaces only AIV authority fields', () => {

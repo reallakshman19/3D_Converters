@@ -86,13 +86,28 @@ function assessmentIdFor(line) {
   return clean(line.aivAssessmentCanonicalId) || `EIT-ASSESS-${safeId(line.rid || line.lref)}`;
 }
 
+function decimalPlaces(value) {
+  const raw = clean(value).toLowerCase();
+  if (!raw) return 0;
+  const [mantissa, exponentText = '0'] = raw.split('e');
+  const fractionDigits = (mantissa.split('.')[1] ?? '').length;
+  const exponent = Number(exponentText);
+  return Number.isInteger(exponent) ? Math.max(0, fractionDigits - exponent) : fractionDigits;
+}
+
 function pipeInsideDiameter(pipe) {
   const explicit = finite(pipe?.id);
   if (explicit !== null) return { value: explicit, derived: false };
   const od = finite(pipe?.od);
   const wt = finite(pipe?.wt);
   if (od === null || wt === null) return { value: '', derived: false };
-  const value = od - (2 * wt);
+  const places = Math.max(decimalPlaces(pipe?.od), decimalPlaces(pipe?.wt));
+  const scale = 10 ** Math.min(places, 12);
+  const scaledOd = Math.round(od * scale);
+  const scaledWt = Math.round(wt * scale);
+  const value = Number.isSafeInteger(scaledOd) && Number.isSafeInteger(scaledWt)
+    ? (scaledOd - (2 * scaledWt)) / scale
+    : Number((od - (2 * wt)).toPrecision(15));
   return { value: value > 0 ? value : '', derived: true };
 }
 
