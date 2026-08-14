@@ -181,6 +181,19 @@ function mergeIntoImportedDocument(fresh, refs, title) {
   return assertAivEitV5Document(original);
 }
 
+function exportOptions(refs, title, options) {
+  const imported = refs.importedOriginal?.options ?? {};
+  return {
+    title: String(title || imported.title || ''),
+    version: AIV_EIT_VERSION,
+    id: Number(options.id ?? imported.id ?? 0),
+    project: Number(options.project ?? imported.project ?? 0),
+    advancedFip: String(options.advancedFip ?? imported.advancedFip ?? '0'),
+    debug: String(options.debug ?? imported.debug ?? '0'),
+    'ignore-vib': Number(options['ignore-vib'] ?? imported['ignore-vib'] ?? 0),
+  };
+}
+
 export function buildAivEitV5Document(screeningPackage, title, options = {}) {
   const refs = maps(screeningPackage);
   refs.importedOriginal = screeningPackage.eitImportEvidence?.originalDocument ?? null;
@@ -193,7 +206,7 @@ export function buildAivEitV5Document(screeningPackage, title, options = {}) {
   const streams = sourceKeys.map((key) => buildAivEitStream(refs.sources.get(key), refs.streamIds.get(key)));
   const lines = (refs.result.assessmentResults ?? []).map((a, i) => lineRecord(a, i, refs));
   const document = {
-    options: { title: String(title), version: AIV_EIT_VERSION, id: Number(options.id ?? 0), project: Number(options.project ?? 0), advancedFip: '0', debug: String(options.debug ?? '0'), 'ignore-vib': Number(options['ignore-vib'] ?? 0) },
+    options: exportOptions(refs, title, options),
     lines, pipes, streams, mats: [],
   };
   const fresh = assertAivEitV5Document(document);
