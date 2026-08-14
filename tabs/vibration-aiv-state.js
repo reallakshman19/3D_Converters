@@ -4,7 +4,8 @@ import { createEmptyAivFlareNetworkWorkspace } from './vibration-aiv-flare-netwo
 
 export function createInitialAivQualificationState() {
   return {
-    files: { topology: null, sources: null, assessments: null, relationships: null },
+    files: { eit: null, topology: null, sources: null, assessments: null, relationships: null },
+    eitImport: null,
     topologyInput: null,
     topology: null,
     tables: {
