@@ -22,7 +22,9 @@ designAuthority      = NOT_AUTHORIZED
 
 This dossier does **not** approve `SCREENING`.
 
-The production-gate work now covers retained-workbook parity, independent hand-derived cases, published EI D2/D4 examples, explicit multiphase resolution, bounded future screening scope, case-specific published-value tolerances, working-state provenance, dual topology anti-bypass fingerprints, separate audit/engineering hashes, and governed run-evidence export. Exact-head release execution, real-browser acceptance, page-level adopted-method/errata review and independent vibration-engineer approval remain mandatory.
+Production-gate work covers retained-workbook parity, independent hand cases, published EI D2/D4 examples, explicit multiphase resolution, bounded future scope, case-specific benchmark tolerances, governed manual data blockers, central SI/US qualification vectors, working-state provenance, dual topology anti-bypass fingerprints, separate audit/engineering hashes and governed run-evidence export.
+
+Still mandatory: exact-head release execution, real-browser/file acceptance, direct page-level adopted-method/errata/project review and independent vibration-engineer approval.
 
 ## 2. Controlled evidence
 
@@ -64,24 +66,24 @@ Energy-Institute-AVIFF---Worked-Examples.doc.docx
 blob ceee15ed5f7f320045d5f3979024e2e8664613f2
 ```
 
-The earlier `aef163a5def3bfe04ca0ba860da05728a27daf42` state is historical parent provenance only. Live method, dossier, benchmark and UI source metadata use `fb549185...`. Source precedence and PDF/DOCX differences are recorded in `FIT-EI-Worked-Example-Traceability-v1.md`.
+The earlier `aef163a5def3bfe04ca0ba860da05728a27daf42` state is historical parent provenance only. Live source metadata use `fb549185...`. Source precedence and PDF/DOCX differences are recorded in `FIT-EI-Worked-Example-Traceability-v1.md`.
 
 ## 3. Published EI qualification and tolerances
 
-Controlled benchmark dataset:
+Controlled dataset:
 
 ```text
 Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json
 ```
 
-Published numerical targets:
+Published LOF targets:
 
 ```text
-D2 6 in suction       LOF 0.276
-D2 4 in relief up     LOF 0.338
-D2 6 in relief down   LOF 0.881
-D4 20 in separator    LOF 0.26
-D4 10 in water        LOF 3.15
+D2 6 in suction       0.276
+D2 4 in relief up     0.338
+D2 6 in relief down   0.881
+D4 20 in separator    0.26
+D4 10 in water        3.15
 ```
 
 The former blanket `1.5%` tolerance is removed. Controlled policy:
@@ -90,7 +92,7 @@ The former blanket `1.5%` tolerance is removed. Controlled policy:
 FIT-EI-PUBLISHED-RECONCILIATION-V1
 ```
 
-Each case stores absolute tolerances for `rho*v^2`, viscosity factor, `Fv` and LOF. They are derived from independent equation-register recalculation of the published input vector plus half the least displayed output increment; they are not tuned to production output.
+Each case stores absolute tolerances for `rho*v^2`, viscosity factor, `Fv` and LOF based on independent equation-register recalculation plus source displayed precision; tolerances are not tuned to production output.
 
 | Case | Absolute LOF tolerance |
 |---|---:|
@@ -102,20 +104,20 @@ Each case stores absolute tolerances for `rho*v^2`, viscosity factor, `Fv` and L
 
 ## 4. Independent branch qualification
 
-Independent benchmark dataset:
+Independent dataset:
 
 ```text
 Benchmarks/VibrationFIT/fit-independent-hand-benchmarks-v1.json
 ```
 
-Production Gate 1 closes the two former evidence holes with:
+Production Gate 1 closes the former independent-evidence holes with:
 
 ```text
 FIT-HAND-LIQ-MEDIUM-SMALL-008
 FIT-HAND-FLEX-LARGE-LOF-120-FN2-009
 ```
 
-The evidence registry now classifies standard `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` with `INDEPENDENT_HAND_BENCHMARK + RETAINED_WORKBOOK_PARITY`. This is provenance evidence only; `screeningQualified=false` and `engineeringAuthority=NONE` remain unchanged.
+The evidence registry records standard `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` with `INDEPENDENT_HAND_BENCHMARK + RETAINED_WORKBOOK_PARITY`. This grants no authority; `screeningQualified=false` and `engineeringAuthority=NONE` remain unchanged.
 
 ## 5. Resolved method/input issues
 
@@ -125,9 +127,9 @@ Advanced frequency boundary:
 1 Hz < fn <= 3 Hz
 ```
 
-Exactly 1 Hz is excluded; exactly 3 Hz is included. Cached 4 Hz behavior is rejected.
+Exactly 1 Hz is excluded; exactly 3 Hz is included. Cached 4 Hz advanced behavior is rejected.
 
-Large-family boundary: EI D4 confirms `273 mm` as `FLEXIBLE_LARGE` where stiffness is flexible.
+Large-family lower boundary: EI D4 supports `273 mm` as `FLEXIBLE_LARGE` where stiffness is flexible.
 
 Multiphase resolution remains explicit/fail-closed:
 
@@ -139,7 +141,7 @@ both + aggregate mode -> AGGREGATE_EFFECTIVE / EXPLICIT
 both + component mode -> COMPONENT_DERIVED / EXPLICIT
 ```
 
-Neutral reference bands remain benchmark/workflow semantics only; no production `pass` boolean is introduced.
+No production `pass` boolean is introduced.
 
 ## 6. Bounded future screening scope
 
@@ -151,13 +153,82 @@ Controlled by `docs/vibration/FIT-Screening-Scope-v1.md`:
 273 mm <= Dext <= 762 mm       candidate after all gates
 ```
 
-QST-003 is therefore resolved for the first production target by explicit exclusion, not by interpolation or nominal-size inference.
+QST-003 is resolved for the first bounded target by explicit exclusion, not interpolation, nearest-family selection or user-entered family selection.
 
-## 7. Working-state and complete-XLSX authority
+## 7. Bounded central API unit qualification
 
-The workspace keeps original and working rows with stable row IDs and supports cell, row and whole-table revert. Revert restores values; it does not silently restore complete-exchange authority after a topology mutation.
+Controlled regression:
 
-Preserved certified XLSX bytes may execute only while all of these remain true:
+```text
+tests/vibration-fit-central-api-qualification.test.mjs
+```
+
+Literal independently prepared SI/US pairs cover:
+
+- STIFF liquid;
+- MEDIUM_STIFF gas, including `Pa*s <-> cP`;
+- MEDIUM_SMALL liquid;
+- MEDIUM_LARGE component-derived multiphase;
+- FLEXIBLE_SMALL advanced, including `Hz <-> rpm`;
+- FLEXIBLE_LARGE advanced, including `Hz <-> rpm`;
+- aggregate-effective multiphase;
+- unsupported unit fail-closed behavior.
+
+The test does not construct the US side by calling the unit converter under test.
+
+## 8. Governed manual data blockers
+
+Owner instruction requires unresolved **data** blockers to be user-enterable in a separate table. The governed contract is:
+
+```text
+VibrationFitDataBlockerCsv.v1
+```
+
+Workspace tabs:
+
+```text
+Engineering Basis
+Source Data
+Data Blockers
+```
+
+The Data Blockers tab displays current readiness missing/invalid fields by line/case and provides an editable blocker table plus CSV template/import.
+
+Statuses:
+
+```text
+ACTIVE    participates in benchmark input preparation
+HOLD      audit-only; may retain a pending blank value/unit
+RESOLVED  audit-only; may retain a historical/pending record
+```
+
+An ACTIVE row requires explicit value, source and unit when dimensional. Blank pending numeric HOLD rows remain `null`; they cannot become synthetic zero.
+
+Manual inputs are strictly **fill-only**. Existing source data win, including alternative flow representation custody:
+
+```text
+existing source/manual value + conflicting ACTIVE manual value
+    -> FIT_DATA_BLOCKER_SOURCE_COLLISION
+    -> fail closed
+```
+
+A manual velocity cannot supersede source mass flow, or vice versa. Component-derived multiphase inputs can be supplied explicitly using gas/liquid mass-flow and density fields.
+
+Method/domain decisions are not data blockers. `SUPPORT_SIZE_FAMILY`, correlation identity, authority state and similar choices are unsupported manual fields. QST-003 therefore remains non-overridable.
+
+Controlled regression:
+
+```text
+tests/vibration-fit-data-blockers.test.mjs
+```
+
+covers ACTIVE/HOLD semantics, blank-pending safety, complete component multiphase input, source collision, alternate-flow collision and attempted method-gap bypass.
+
+## 9. Working-state and complete-XLSX authority
+
+The workspace keeps original/working rows with stable row IDs and supports cell, row and whole-table revert. Revert restores values; it does not silently restore complete-exchange authority after topology mutation.
+
+Preserved certified XLSX bytes may execute only while:
 
 ```text
 input format                 XLSX
@@ -167,7 +238,7 @@ Elements projection hash     present and matches
 complete XLSX file hash      present and matches
 ```
 
-Two SHA-256 identities are required:
+Required SHA-256 identities:
 
 ```text
 FitTopologyElementsProjection.v1
@@ -177,9 +248,9 @@ FitSourceFileSha256.v1
   -> complete XLSX byte stream
 ```
 
-The first detects working/visible projection substitution. The second detects hidden/non-Elements sheet or other XLSX byte-stream substitution even if Elements is unchanged. Missing or mismatched fingerprints fail closed. The first normal topology edit downgrades the session to Elements-only limited exchange until explicit source reload.
+The first detects visible working substitution; the second detects hidden/non-Elements sheet or byte-stream substitution. Missing or mismatched identities fail closed. First normal topology edit downgrades the session to Elements-only limited exchange until explicit source reload.
 
-## 8. Reproducibility identities and evidence
+## 10. Reproducibility identities and evidence
 
 ### Audit identity
 
@@ -188,7 +259,7 @@ FitRunSnapshot.v1
 snapshotHash
 ```
 
-Includes working tables, row IDs, source descriptors, complete-XLSX hash where applicable, Elements projection hash, limited-exchange state and benchmark identity/modification state.
+Includes working tables, Data Blockers, row IDs, source descriptors, complete-XLSX hash where applicable, Elements hash, limited-exchange state and benchmark identity/modification state.
 
 ### Engineering identity
 
@@ -197,7 +268,7 @@ FitEngineeringInputIdentity.v1
 engineeringInputHash
 ```
 
-Derived from sorted central request scope, calculation ID, method revision and normalized `resolvedInputs`. Source filename changes do not change this hash; normalized engineering-input changes do.
+Derived from sorted central request scope, calculation ID, method revision and normalized `resolvedInputs`. Source metadata can change the audit hash without changing engineering identity; a consumed engineering-input change changes engineering identity.
 
 ### Export package
 
@@ -205,7 +276,9 @@ Derived from sorted central request scope, calculation ID, method revision and n
 FitRunEvidencePackage.v1
 ```
 
-The export re-verifies both canonical payloads and both SHA-256 hashes before serialization and carries the source descriptors plus exact benchmark workflow envelope. Authority remains:
+The export re-verifies both canonical payloads and SHA-256 hashes before serialization and retains source descriptors, blocker source descriptor and exact benchmark workflow envelope.
+
+Authority remains:
 
 ```text
 engineeringAuthority = NONE
@@ -214,18 +287,29 @@ designAuthority      = false
 purpose              = REPRODUCIBILITY_EVIDENCE_ONLY
 ```
 
-## 9. Remaining source/authority questions
+## 11. Remaining source/authority questions
 
-- Exact page/table/equation adoption and official errata applicability are not fully independently reviewed.
-- D2 span differences and D4 revised DOCX scenario values remain explicit provenance differences; the published-example PDF retains benchmark precedence.
-- The historical `FIT-Issue429-Engineering-Review-Package.md` contains older qualification/source-pin snapshots and is not the live source-authority record for PR499.
-- Full unit/boundary/release/browser evidence must be executed on one exact candidate SHA.
+Still open and not convertible into manual calculation inputs:
 
-## 10. Current release state
+- exact governing T2.2 page/table/equation adoption mapping;
+- applicable official errata review;
+- project-basis adoption confirmation;
+- D2 span and D4 revised DOCX scenario differences as explicit limitations;
+- independent vibration-engineer approval of the bounded scope and manual-data policy.
 
-The controlled FIT/VIB manifest now contains **45** test files after adding the dual-hash run-evidence regression.
+The controlled source object identities are known, but repository transcription alone is not treated as direct page-level engineering approval.
 
-For the current PR499 candidate:
+## 12. Current release state
+
+The controlled FIT/VIB manifest contains **47 distinct test files**, including:
+
+```text
+tests/vibration-fit-central-api-qualification.test.mjs
+tests/vibration-fit-data-blockers.test.mjs
+tests/vibration-integrity-run-evidence.test.mjs
+```
+
+Current execution truth:
 
 ```text
 native FIT/VIB release suite   NOT_RUN / ENVIRONMENT_BLOCKED
@@ -233,33 +317,32 @@ real-browser acceptance        NOT_RUN
 independent engineer approval  NOT_RUN
 ```
 
-Hosted status/workflow state must be checked again on the final exact head. A workflow that allocates no runner or executes no steps remains `NOT_RUN`, not PASS.
+The connector runtime cannot substitute static inspection for execution. Hosted AIV jobs that allocate no test steps are `NOT_RUN`, not PASS.
 
-## 11. Promotion checklist
+## 13. Promotion checklist
 
 | Gate | Status |
 |---|---|
 | Source object identity | PASS by controlled repository/blob inspection |
 | Live Common pin reconciliation | PASS |
-| Source precedence/discrepancy record | PASS; documented scenario differences remain limitations |
+| Source precedence/discrepancy record | PASS; scenario differences retained as limitations |
 | Published-value tolerance reconciliation | PASS by independent arithmetic policy |
 | Independent MEDIUM_SMALL | IMPLEMENTED / runtime NOT_RUN |
 | Independent advanced FLEXIBLE_LARGE | IMPLEMENTED / runtime NOT_RUN |
-| QST-003 | EXCLUDED / FAIL_CLOSED |
+| Central bounded SI/US matrix | IMPLEMENTED / runtime NOT_RUN |
+| Data Blockers contract + separate tab | IMPLEMENTED / runtime NOT_RUN |
+| Pending blank blocker safety | IMPLEMENTED / runtime NOT_RUN |
+| Source/alternate-flow collision protection | IMPLEMENTED / runtime NOT_RUN |
+| QST-003 manual bypass prevention | IMPLEMENTED / runtime NOT_RUN |
+| QST-003 bounded disposition | EXCLUDED / FAIL_CLOSED |
 | Cell/row/table revert | IMPLEMENTED / runtime NOT_RUN |
 | Elements projection anti-bypass | IMPLEMENTED / runtime NOT_RUN |
 | Complete XLSX byte-stream anti-bypass | IMPLEMENTED / runtime NOT_RUN |
 | Audit vs engineering hash separation | IMPLEMENTED / runtime NOT_RUN |
 | Reproducibility evidence export | IMPLEMENTED / runtime NOT_RUN |
-| 45-file exact-head release regression | NOT_RUN |
-| Real-browser XLSX/CSV acceptance | NOT_RUN |
+| 47-file exact-head release regression | NOT_RUN / ENVIRONMENT_BLOCKED |
+| Real-browser XLSX/CSV/Data Blockers acceptance | NOT_RUN |
 | Page-level EI/project/errata review | NOT COMPLETE |
 | Independent vibration-engineer approval | NOT_RUN |
 | Screening authority | NOT_AUTHORIZED |
 | Design authority | NOT_AUTHORIZED |
-
-## 12. Qualification conclusion
-
-The remaining blockers are now dominated by exact-head executable validation, real-browser/real-file acceptance, page-level adopted-method/errata review, and independent vibration-engineer approval rather than missing UI or evidence plumbing.
-
-Until those gates close on one controlled candidate and a separate owner-authorized authority PR is approved, `VIB.FIV.FLOW_TURBULENCE` remains `BENCHMARK_ONLY`.
