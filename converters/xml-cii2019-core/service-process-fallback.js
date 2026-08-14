@@ -43,6 +43,12 @@ function processRowValue(row, field) {
   return rowValue(row, PROCESS_ALIASES[field] || [field]);
 }
 
+export function numericXmlCiiServiceProcessValue(value) {
+  const raw = text(value).replace(/,/g, '');
+  const match = raw.match(/^\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)/);
+  return match ? match[1] : '';
+}
+
 function serviceFromRow(row) {
   return rowValue(row, SERVICE_ALIASES);
 }
@@ -84,11 +90,14 @@ function majorityValue(rows, field, options = {}) {
   const values = [];
   const buckets = new Map();
   for (const row of rows) {
-    const raw = processRowValue(row, field);
-    if (!text(raw)) continue;
+    // Every supported fallback field is numerically consumed by Preview/CII.
+    // Reject labels such as "Water" rather than persisting them as pressure or
+    // temperature overrides. Numeric cells may still carry trailing units.
+    const raw = numericXmlCiiServiceProcessValue(processRowValue(row, field));
+    if (!raw) continue;
     const key = cleanComparable(raw);
     if (!key) continue;
-    if (!buckets.has(key)) buckets.set(key, { value: text(raw), count: 0, sourceRows: [] });
+    if (!buckets.has(key)) buckets.set(key, { value: raw, count: 0, sourceRows: [] });
     const bucket = buckets.get(key);
     bucket.count += 1;
     bucket.sourceRows.push(row?._sourceRowIndex || row?._rowIndex || '');
@@ -147,7 +156,6 @@ export function buildXmlCiiServiceProcessFallback({ branchName = '', lineRow = n
      }
   }
 
-  // Soften minRows if we matched a specifically connected line
   const requiredMinRows = matchedRows.length === 1 && (href || tref) ? 1 : minRows;
   if (matchedRows.length < requiredMinRows) return { service, serviceKey, rows: matchedRows, fields: {}, stats: { matchedRows: matchedRows.length, resolvedFields: 0 }, reason: 'not-enough-service-rows' };
   const resolved = {};
