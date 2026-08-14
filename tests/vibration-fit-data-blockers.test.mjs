@@ -87,7 +87,7 @@ test('component-derived multiphase can be supplied entirely through the separate
   assert.equal(result.workflow.register.rows.length, 1);
   assert.equal(result.workflow.register.rows[0].status, 'CALCULATED_BENCHMARK');
   const central = result.workflow.result.rows[0].centralResult;
-  assert.equal(central.provenance.inputResolution.mode, 'COMPONENT_DERIVED');
+  assert.equal(central.provenance.inputResolution.multiphaseResolutionMode, 'COMPONENT_DERIVED');
   assert.equal(central.qualification.effective, 'BENCHMARK_ONLY');
   assert.equal(result.screeningAuthorized, false);
 });
