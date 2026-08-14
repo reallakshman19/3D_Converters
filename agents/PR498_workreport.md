@@ -17,7 +17,7 @@
 | Coordination | SAFE WITH PATH AVOIDANCE — open #497 is assumption-layout only; avoid its `package.json`, qualification CSS, workspace-browser paths |
 | Merge authority | NOT AUTHORIZED |
 | Runtime | Connector-only; native backup CLI/tests/browser unavailable unless hosted jobs execute |
-| EXACT_NEXT_ACTION | Implement a pure mock-network fixture + UI load action, then extend existing AIV flare/EIT/workbench regressions without touching numerical kernel or writer semantics. |
+| EXACT_NEXT_ACTION | Add pure `vibration-aiv-mock-flare-network.js`; wire `load-mock-flare-network` through input view + qualification controller; add in-suite regressions for graph paths, registered calculation outputs and EI `.eit` serialization. |
 
 ## Handover in 60 Seconds
 
@@ -84,11 +84,17 @@ designAuthority                = false
 
 ## Pre-edit / Recovery Control
 
-Repository policy requests `node utils/backup.js save <file> ...` before edits. Native checkout is unavailable in this connector runtime. Before each existing-file edit, fetch and record its exact pre-edit Git blob SHA; Git history plus this ledger is the rollback authority. If a native checkout becomes available, run the repository backup command before further existing-file mutation.
+Repository policy requests `node utils/backup.js save <file> ...` before edits. Native checkout is unavailable in this connector runtime. Before each existing-file edit, exact Git blobs were fetched and recorded below; Git history plus this ledger is the rollback authority. If a native checkout becomes available, run the repository backup command before further existing-file mutation.
 
 | Existing file | Pre-edit blob |
 |---|---|
-| pending | — |
+| `tabs/vibration-aiv-input-view.js` | `6f19c657d0834659b6ed7fe6bd2fd98d913829fb` |
+| `tabs/vibration-aiv-qualification-tab.js` | `4b772cb6a25781da8e911d2054cf9d4e6368bce0` |
+| `tests/vibration-aiv-flare-network-multisource.test.mjs` | `32a57d6be5eee16166efa53891c95e190fe84376` |
+| `tests/vibration-aiv-eit-export.test.mjs` | `31aeec3741a1cf8066a7ad9cb560d147b472f42b` |
+| `tests/vibration-aiv-workbench-ui.test.mjs` | `10f4867fa0a39381fd95ca908995b0ae87406a77` |
+
+Local backup CLI: `NOT_RUN / connector-only runtime`.
 
 ## Validation Ledger
 
