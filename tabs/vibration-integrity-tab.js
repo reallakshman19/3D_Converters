@@ -98,7 +98,8 @@ export function renderVibrationIntegrityTab(container) {
     state.busy = true; state.busyAction = 'benchmark'; state.resultState = 'RUNNING'; state.error = null; render();
     try {
       const captured = captureVibrationIntegrityExecutionState(state);
-      const executed = await executeVibrationIntegrityBenchmarkRun(captured);
+      const { runVibrationFacilityFitBenchmarkFromTables } = await import('../converters/vibration/facility/fit-workflow-tabular.js');
+      const executed = await executeVibrationIntegrityBenchmarkRun(captured, runVibrationFacilityFitBenchmarkFromTables);
       if (state.destroyed) return;
       state.envelope = executed.envelope;
       const drifted = await vibrationIntegrityRunInputDrifted(executed.runSnapshot, state);
