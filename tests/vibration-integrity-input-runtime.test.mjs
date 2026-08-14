@@ -7,6 +7,7 @@ import {
 import {
   buildLoadedVibrationIntegrityBenchmark,
   buildVibrationIntegrityFacilityTableInput,
+  captureVibrationIntegrityExecutionState,
   createVibrationIntegrityInputRuntimeState,
   vibrationIntegrityTopologyExecutionInput,
 } from '../tabs/vibration-integrity-input-runtime.js';
@@ -53,6 +54,20 @@ test('untouched certified XLSX executes only with matching projection and full-f
   const input = await vibrationIntegrityTopologyExecutionInput(state);
   assert.equal(input.format, 'XLSX');
   assert.equal(input.data, state.files.topology.data);
+});
+
+test('captured execution state owns independent source bytes and immutable table references', async () => {
+  const state = await stateWithCertifiedXlsx();
+  const captured = captureVibrationIntegrityExecutionState(state);
+  assert.notEqual(captured.files.topology, state.files.topology);
+  assert.notEqual(captured.files.topology.data, state.files.topology.data);
+  assert.equal(captured.tables.topology, state.tables.topology);
+  state.files.topology.data[0] = 9;
+  state.tables.topology = updateVibrationIntegrityInputCell(state.tables.topology, 0, 2, 'L-CHANGED');
+  assert.equal(captured.files.topology.data[0], 1);
+  assert.equal(captured.tables.topology.rows[0][2], 'L-1');
+  const input = await vibrationIntegrityTopologyExecutionInput(captured);
+  assert.equal(input.format, 'XLSX');
 });
 
 test('preserved XLSX fails closed when its projection fingerprint is missing', async () => {
