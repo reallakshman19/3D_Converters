@@ -6,7 +6,7 @@ import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revert
 import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, captureVibrationIntegrityExecutionState, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
 import { downloadVibrationIntegrityText, ensureVibrationIntegrityStylesheet } from './vibration-integrity-dom.js';
 import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
-import { executeVibrationIntegrityBenchmarkRun, vibrationIntegrityRunInputDrifted } from './vibration-integrity-run-controller.js';
+import { executeVibrationIntegrityBenchmarkRun, vibrationIntegrityCapturedInputDrifted, vibrationIntegrityRunInputDrifted } from './vibration-integrity-run-controller.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
 
 function workspaceOptions(state) {
@@ -26,6 +26,11 @@ function initialState() {
     sort: { field: 'line', direction: 'asc' }, selectedRowKey: null, detailTab: 'summary',
     busy: false, busyAction: null, error: null, destroyed: false,
   };
+}
+function inputDriftError() {
+  const error = new Error('Working inputs changed while FIT readiness was being evaluated. Run readiness again.');
+  error.code = 'VIBRATION_PREFLIGHT_INPUT_DRIFT';
+  return error;
 }
 export function renderVibrationIntegrityTab(container) {
   ensureVibrationIntegrityStylesheet();
@@ -86,9 +91,9 @@ export function renderVibrationIntegrityTab(container) {
     try {
       const captured = captureVibrationIntegrityExecutionState(state);
       const tableInput = await buildVibrationIntegrityFacilityTableInput(captured);
-      state.preflight = buildVibrationFacilityFitPreflightFromTables(
-        tableInput, { allowLimitedExchange: captured.allowLimitedExchange },
-      );
+      const preflight = buildVibrationFacilityFitPreflightFromTables(tableInput, { allowLimitedExchange: captured.allowLimitedExchange });
+      if (await vibrationIntegrityCapturedInputDrifted(captured, state)) throw inputDriftError();
+      state.preflight = preflight;
     } catch (error) {
       state.preflight = null; state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally { state.busy = false; state.busyAction = null; render(); }
