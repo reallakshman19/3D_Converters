@@ -7,15 +7,15 @@
 | Mission | Add vertical scrolling to the AIV workspace without changing engineering state, calculation authority, topology, persistence, or exports. |
 | Work intent | IMPLEMENT |
 | Criticality | STANDARD — presentation/layout only. |
-| PR | `#494` — DRAFT / OPEN / NOT MERGED |
+| PR | `#494` — OPEN / OWNER-AUTHORIZED FOR MERGE |
 | Branch | `agent/aiv-vertical-scroll` |
-| Grounded base | `main@82f932f5762fd380cf1fce48d5a51c66c403905f` |
-| Exact implementation/handoff head before this report refresh | `32a9bc86f667c6fe92cb2cbddd239612127e4f18` |
-| Base drift at implementation head | ahead / behind to be rechecked before merge; PR was mergeable after WIP→PR handoff. |
-| Coordination | SAFE — no current open PR owns this AIV vertical-scroll surface. |
-| REPORT_BASIS_HEAD | `32a9bc86f667c6fe92cb2cbddd239612127e4f18` |
-| Merge authority | NOT AUTHORIZED for this new PR. |
-| EXACT_NEXT_ACTION | On a functioning browser/native checkout, run `npm run verify:aiv-canvas-release` and verify mouse-wheel/trackpad vertical scrolling through long AIV content; keep PR draft until owner disposition. |
+| Current grounded main | `102640e247fb97f854627866ed5ce1703a340d96` |
+| Reconciliation checkpoint | `7c853fba6a5800e0a065a94d6cf4ac07bc8f46b4` |
+| Base drift after reconciliation | `ahead_by=10`, `behind_by=0` |
+| Coordination | SAFE — the newer main commit is PR493 FIT UI work and does not overlap the six PR494 paths. |
+| REPORT_BASIS_HEAD | `7c853fba6a5800e0a065a94d6cf4ac07bc8f46b4` |
+| Merge authority | GRANTED by Owner on 2026-08-14 (`merge`). |
+| EXACT_NEXT_ACTION | Re-read live PR head/main and merge only the unchanged exact head using `expected_head_sha`; preserve validation truth as NOT_RUN where execution never occurred. |
 
 ## Handover in 60 Seconds
 
@@ -23,17 +23,21 @@ The app shell intentionally sets `#tab-content`, persistent tab panels, `.app-sh
 
 The AIV stylesheet aggregator imports the new scroll layer after existing AIV styles, and `vibration-aiv-workspace-browser.js` bumps the qualification stylesheet cache key to `aiv-qualification-13`. A focused static regression pins the shell/AIV overflow ownership and cache-bust path, and is included in `verify:aiv-canvas-release` through `verify:aiv-eit-export`.
 
-Hosted workflows on implementation/handoff head `32a9bc86...` were created but did not execute any steps:
+While PR494 was awaiting merge authorization, `main` advanced by one commit to `102640e...` through PR493. That commit is FIT UI/report/test work; no PR494 path overlaps it. PR494 was reconciled with a two-parent merge checkpoint `7c853fba...`, preserving both histories and producing `ahead_by=10`, `behind_by=0` against current main.
+
+Hosted workflows on the pre-reconciliation implementation/handoff heads were created but did not execute any steps:
 
 ```text
 Vibration AIV Controlled Source Qualification
 run 31813339002 / job 94808971803 / steps=null
+later run 31813415021 / zero-step failure
 
 Topology Edit Support Reprojection
 run 31813338928 / job 94808971517 / steps=null
+later run 31813414997 / zero-step failure
 ```
 
-Classification: `NOT_RUN / INFRASTRUCTURE_BLOCKED`; neither is a product-test FAIL or PASS.
+Classification: `NOT_RUN / INFRASTRUCTURE_BLOCKED`; none of these are product-test FAIL or PASS.
 
 ## Authority / negative assurance
 
@@ -75,12 +79,13 @@ The repository backup CLI could not be executed because this connector workflow 
 
 | Check | Status | Observation | Oracle |
 |---|---|---|---|
-| Ground current base | PASS | GitHub source/ref inspection | NONE |
+| Ground current main | PASS | `main@102640e...` | NONE |
+| Main-drift reconciliation | PASS | two-parent checkpoint; `ahead=10`, `behind=0`; no exact-file overlap with PR493 | NONE |
 | Root-cause isolation | PASS | Global shell clips panels; AIV root lacked vertical overflow | IMPLEMENTATION_COUPLED |
-| Scope/changed-file reconciliation | PASS | AIV presentation/test/report scope only | NONE |
+| Scope/changed-file reconciliation | PASS | exactly six AIV presentation/test/report paths | NONE |
 | Focused regression present and release-wired | PASS | GitHub source inspection | IMPLEMENTATION_COUPLED |
-| Hosted AIV workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | run `31813339002`, job `94808971803`, `steps=null` | IMPLEMENTATION_COUPLED |
-| Hosted topology workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | run `31813338928`, job `94808971517`, `steps=null` | IMPLEMENTATION_COUPLED |
+| Hosted AIV workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | zero-step jobs | IMPLEMENTATION_COUPLED |
+| Hosted topology workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | zero-step jobs | IMPLEMENTATION_COUPLED |
 | Native `npm run verify:aiv-canvas-release` | NOT_RUN | No native checkout in this connector runtime | IMPLEMENTATION_COUPLED |
 | Real-browser vertical scroll | NOT_RUN | Browser acceptance unavailable here | NONE |
 
@@ -88,7 +93,7 @@ The repository backup CLI could not be executed because this connector workflow 
 
 - `IMP-001` CLOSED — AIV root now owns vertical scroll.
 - `RISK-001` CONTROLLED — global tab shell unchanged.
-- `RISK-002` OPEN — native/browser execution still required for interaction acceptance.
+- `RISK-002` OPEN — native/browser execution remains pending and is not reclassified by merge authorization.
 
 ## Appendix A
 
