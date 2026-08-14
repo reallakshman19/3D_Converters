@@ -4,177 +4,181 @@
 
 | Field | Current state |
 |---|---|
-| Mission | Close the remaining AIV canvas acceptance/validation gaps after #449 / PR #451 without duplicating current-main work or changing engineering authority. |
-| Source task / issue | `#473` (follow-up to #449 / PR #451) |
+| Mission | Close remaining AIV canvas acceptance/CI evidence gaps for canonical issue #453 without duplicating already-merged product work or changing engineering authority. |
+| Source task / issue | `#453` (follow-up to #449 / merged PRs #451, #454, #456) |
 | PR number | `#474` |
 | Branch | `agent/aiv-canvas-completion` |
 | Base commit | `main@e65090bdc8f19cfdfd4d1e26de63e2747488f356` |
-| Current HEAD | `9fb9ea1dc6bdc4bd2eb700976a95219ed7a6737f` before this report commit |
+| Current HEAD | `f829a90dfea22f9a0dea48bf73e91fbb67213e09` before this report commit |
 | PR status | DRAFT / OPEN |
-| Current stage | Stage 4 — current-main validation evidence |
-| Last completed stage | Stage 3 — repository-state verification |
-| Engineering status | No production change is currently justified: all product/code gaps identified after PR #451 are already resolved on current main by intervening merges. |
-| Validation status | Current source contains DoD + integration coverage and includes it in `verify:aiv-canvas`; literal native command/browser acceptance remain NOT_RUN in this runtime. |
-| Current blocker | Native clone still fails DNS; no `gh` or real browser harness. |
-| Exact next action | Reconstruct/run as much of the exact current canvas suite as possible from GitHub blobs, inspect current Actions evidence, and change production only if a reproducible defect appears. |
+| Current stage | Stage 5 — CI release-lane completion |
+| Last completed stage | Stage 4 — current-main validation evidence classification |
+| Engineering status | All identified #449 product/code gaps already exist on current main. This PR is validation infrastructure + evidence only unless a real defect is reproduced. |
+| Validation status | Current source contains D.2.3, two-source and single/batch/canvas parity tests plus DoD coverage. Native/browser execution remains unavailable locally; hosted Actions is budget-blocked with zero-step jobs. |
+| Current blocker | Actions budget prevents hosted jobs from starting; agent runtime has no native checkout/browser. |
+| Exact next action | Add `npm run verify:aiv-canvas-release` to the existing controlled AIV workflow and add the missing `tabs/vibration-aiv-*` push trigger; inspect exact diff and wait only on infrastructure/browser gates. |
 
 ## Handover in 60 Seconds
 
-**What is now true:** current main already includes explicit RESULTS mode, synchronized table filtering, tabbed selected-item detail, complete engineering icon/status glyph coverage, D.2.3 single/batch/canvas parity, and true two-source 160+160 / 160+150 integration tests. PR #474 still changes only this report.
+**What is now true:** #473 was closed as duplicate of canonical #453. Current main already has RESULTS mode, synchronized table filtering, tabbed selected detail, complete icon/status inventory, D.2.3 parity, true two-source fixtures, `verify:aiv-canvas`, and `verify:aiv-canvas-release`.
 
-**What is being worked on:** validation and CI evidence against current main; no feature implementation is active.
+**What is being worked on:** make the existing controlled AIV GitHub Actions workflow actually invoke the current canvas release suite whenever AIV changes run through CI.
 
-**What remains unfinished:** literal native `npm run verify:aiv-canvas`; real-browser acceptance; full `verify:aiv-canvas-release`; current CI-failure diagnosis; any fixes only if those checks reproduce a real defect.
+**What remains unfinished:** Actions must be funded/unblocked so the workflow can execute; real-browser acceptance remains outside this runtime; literal native release execution still lacks a runnable checkout here.
 
-**What must not be assumed:** existence of tests means they were run in this agent runtime; Actions failures are canvas regressions; workflow edits are needed.
+**What must not be assumed:** zero-step hosted jobs are code failures; source-level test presence equals execution; browser acceptance passed.
 
-**Highest-risk remaining item:** native/browser integration behavior not represented by source inspection or reconstructed execution.
+**Highest-risk remaining item:** infrastructure could keep the authoritative native test lane unexecuted even after CI wiring is correct.
 
-**Exact next action:** execute reconstructed current suite slices → inspect current Actions → classify remaining gates.
+**Exact next action:** workflow-only implementation → exact diff inspection → current-head Actions classification → final handover.
 
 ## Mission and Engineering Intent
 
-The operator-facing canvas is a presentation/controller surface over authoritative tables and returned screening results. Current-main source now appears to satisfy the originally listed code/product gaps. This PR must therefore avoid speculative rewrites and focus on executable evidence.
+The canvas remains a presentation/controller surface over authoritative tables and returned screening results. This PR must not alter AIV equations, screening scope, distance authority, result contracts, or UI engineering authority.
 
 ### Permanent invariants
 1. `TABLES = engineering source of truth`.
 2. `SVG CANVAS = visual navigation / relationship editing / result explanation`.
 3. Registered `calculateEngineering('VIB.AIV.ACOUSTIC', ...)` remains numerical authority.
-4. Canvas/UI never reconstructs combined PWL/LOF or derives physical distance from pixels.
-5. Canonical IDs + Operating Case govern identity.
-6. Assessment screening stays separate from non-authoritative Line/Case summary.
-7. Workflow changes require explicit Owner authorization and evidence.
+4. SVG geometry never supplies physical distance or numerical AIV inputs.
+5. UI never reconstructs combined PWL/LOF.
+6. Assessment result remains screening-authoritative; Line/Case remains non-authoritative trace.
 
 ## Mission Status
 
 | Work Item | Priority | Status | Stage | Evidence |
 |---|---|---|---|---|
-| Report initialization / findings | P0 | DONE | 1 | report created before production changes |
-| PR allocation / report synchronization | P0 | DONE | 2 | PR #474 allocated; canonical report path |
-| Current-main repository verification | P0 | DONE | 3 | exact source/test/package inspection |
-| D.2.3 + two-source + single/batch/canvas parity coverage | P0 | DONE | upstream/current main | `tests/vibration-aiv-canvas-integration.test.mjs` |
-| Table-filter synchronization + RESULTS mode + selected detail | P0 | DONE | upstream/current main | current filter/input/view/controller + DoD test |
-| Engineering-specific icons and non-color status inventory | P1 | DONE | upstream/current main | `vibration-aiv-canvas-icons.js` + DoD test |
-| Current-main reconstructed validation | P0 | IN_PROGRESS | 4 | pending execution |
-| Native/browser/release validation + CI investigation | P0 | NOT_STARTED | 5 | environment-constrained |
-| Final ledger / issue/PR handover | P0 | NOT_STARTED | 6 | pending |
+| Report / PR governance | P0 | DONE | 1–2 | PR #474 + living report |
+| Current-main source verification | P0 | DONE | 3 | exact current blobs/tests/package inspected |
+| Product/DoD gaps from #449 | P0/P1 | DONE | upstream | merged PR #454/current main |
+| D.2.3 + two-source + single/batch/canvas coverage | P0 | DONE | upstream | `vibration-aiv-canvas-integration.test.mjs` |
+| CI failure classification | P0 | DONE | 4 | hosted AIV + topology jobs show zero steps; Actions-budget annotation recorded in PR454/PR464 reports |
+| Controlled workflow runs canvas release suite | P0 | IN_PROGRESS | 5 | workflow change pending |
+| Browser acceptance | P0 | BLOCKED | 6 | no browser harness in this chat/runtime |
+| Final ledger / handover | P0 | NOT_STARTED | 7 | pending |
 | PNG screenshot export | P2 | DEFERRED | optional | optional in #449 |
 
 ## Engineering Item Register
 
 | ID | Type | Priority | Status | Summary | Current PR? |
 |---|---|---|---|---|---|
-| ISS-001 | Gap | P0 | DONE | Table rows now carry the same case/line filter metadata and are filtered by the shared controller. | No — resolved upstream |
-| ISS-002 | Gap | P1 | DONE | Engineering-specific source/assessment/path/boundary glyph inventory exists in `vibration-aiv-canvas-icons.js`. | No — resolved upstream |
-| ISS-003 | Gap | P1 | DONE | Current mode enum/view/controller include explicit RESULTS mode (and NETWORK). | No — resolved upstream |
-| ISS-004 | Gap | P1 | DONE | Current view renders tabbed selected detail even before readiness/results. | No — resolved upstream |
-| ISS-005 | Validation gap | P0 | DONE | Current integration test covers two applicable sources at 160+160 and 160+150 with returned contributor identity. | No — resolved upstream |
-| ISS-006 | Validation gap | P0 | DONE | Current integration test asserts single Engineering API == batch API == canvas projection for D.2.3. | No — resolved upstream |
-| ISS-007 | Validation gap | P0 | IN_PROGRESS | Native full canvas command, browser acceptance, full release command and current CI diagnosis remain open. | Yes |
-| RISK-001 | Risk | P0 | MITIGATED | Current source/DoD tests retain no-equation/presentation boundaries; keep checking during validation. | Yes |
-| RISK-002 | Risk | P0 | ACCEPTED | Native/browser checks unavailable here must remain NOT_RUN. | Yes |
-| QST-001 | Question | P0 | OPEN | Exact current cause/relevance of AIV Controlled Source and Topology Edit Support Reprojection Actions failures. | Yes |
-| DEBT-001 | Debt | P2 | ACCEPTED | Existing oversized qualification controller remains unrelated debt; no broad refactor. | No |
-| DEBT-002 | Debt | P2 | ACCEPTED | Older broad AIV/module boundary assumptions remain separate debt unless current release validation reproduces failure. | No |
-| DEC-001 | Decision | P2 | ACCEPTED | Optional PNG screenshot remains deferred. | Yes |
+| ISS-001 | Gap | P0 | DONE | Table-row filter synchronization exists on current main. | No |
+| ISS-002 | Gap | P1 | DONE | Engineering icon/status inventory exists on current main. | No |
+| ISS-003 | Gap | P1 | DONE | Explicit RESULTS mode exists on current main. | No |
+| ISS-004 | Gap | P1 | DONE | Useful tabbed selected-item detail exists before results. | No |
+| ISS-005 | Validation gap | P0 | DONE | True 160+160 and 160+150 two-source integration tests exist. | No |
+| ISS-006 | Validation gap | P0 | DONE | D.2.3 single API == batch == canvas projection test exists. | No |
+| ISS-007 | Validation gap | P0 | IN_PROGRESS | Native release suite is not wired into the controlled hosted workflow; browser acceptance remains blocked. | Yes |
+| ISS-008 | CI gap | P0 | ACCEPTED | Controlled AIV workflow does not run `verify:aiv-canvas-release`; push trigger omits `tabs/vibration-aiv-*`. | Yes |
+| RISK-001 | Risk | P0 | MITIGATED | No product/numerical change is planned in PR #474. | Yes |
+| RISK-002 | Risk | P0 | ACCEPTED | Actions budget can still block every hosted step after workflow wiring. | Yes |
+| QST-001 | Question | P0 | DONE | AIV/topology hosted failures on final #454 head are infrastructure no-starts: both job records have zero steps; reports record GitHub Actions-budget annotation. | No |
+| DEBT-001 | Debt | P2 | DONE upstream | Qualification controller/module-boundary debt was addressed in PR #456 split architecture. | No |
+| DEC-001 | Decision | P2 | ACCEPTED | Optional PNG export remains deferred. | Yes |
+| DEC-002 | Decision | P0 | ACCEPTED | Owner instruction “proceed” explicitly referenced the forward sequence including “resolve CI base debt”; this is treated as authorization for the minimal workflow change described below. | Yes |
 
 ## Stage Roadmap and Execution Log
 
-### Stage 1 — Report initialization — COMPLETE
-Created issue #473, branch and work report before production changes. Native clone FAIL due DNS; connector access PASS.
+### Stages 1–3 — COMPLETE
+Created issue/branch/report/PR, then re-read current main. Discovery: PR #454 and later merges already implemented every feature/code gap originally listed after PR #451. #473 was closed as duplicate of still-open canonical #453.
 
-### Stage 2 — PR allocation/report synchronization — COMPLETE
-Draft PR #474 created. Report renamed to `agents/PR474_workreport.md`; temporary path removed. No production changes.
+### Stage 4 — Validation evidence classification — COMPLETE
+**Evidence:**
+- current `package.json` includes `verify:aiv-canvas` with integration + DoD tests and `verify:aiv-canvas-release`;
+- current integration test pins D.2.3 single/batch/canvas parity and two-source 160+160 / 160+150 results;
+- PR #454 and #464 reports classify hosted AIV/topology jobs as `NOT_RUN / INFRASTRUCTURE_BLOCKED` due Actions budget;
+- direct connector inspection of PR #454 final candidate confirms AIV job and topology job each have `steps=[]`.
 
-### Stage 3 — Current-main repository verification — COMPLETE
-**Inspection performed:** current `vibration-aiv-canvas-relationship.js`, filter, view, input view, icons, `tests/vibration-aiv-canvas-integration.test.mjs`, `tests/vibration-aiv-canvas-dod.test.mjs`, and `package.json`.
+**Validation:** source/CI evidence PASS; literal native package run NOT_RUN; browser NOT_RUN.
 
-**Findings:**
-- RESULTS mode already exists; NETWORK mode also exists.
-- editable Sources/Assessments/Relationships rows already carry `data-aiv-filterable`, case and line metadata.
-- selected detail has Summary/Inputs/Calculation/Contributions/T2-6/Assumptions/Provenance tabs and renders useful pre-result content.
-- icon module contains Relief Valve, Control Valve, Restriction Orifice, Pressure-Reducing Device, unknown source, Weldolet, Welded Tee, Welded Support, Other Welded Discontinuity, unknown assessment, Pipe, Junction, Connection Node, Off-page and Boundary glyphs.
-- status glyphs cover active/closed/sonic/non-sonic/trim/applicability/unresolved/assumption/warning/incomplete/result/trace.
-- integration test covers controlled D.2.3, single-vs-batch parity, canvas projection parity, and required 160+160 / 160+150 true two-source cases.
-- `verify:aiv-canvas` includes integration and DoD tests; `verify:aiv-canvas-release` also exists.
-- PR #474 changed-file baseline is exactly this report.
+**Stage decision:** COMPLETE for classification, not for native/browser acceptance.
 
-**Deviation from original follow-up plan:** Stages 4–6 feature work are unnecessary because intervening main commits already delivered them. Repeating them would violate scope-control rules.
+### Stage 5 — CI release-lane completion — IN_PROGRESS
+**Current truth:** existing `.github/workflows/vibration-aiv-controlled-source.yml` has `workflow_dispatch` and broad AIV PR triggers but does not invoke the current `verify:aiv-canvas-release` command. Its `push` paths omit `tabs/vibration-aiv-*`.
 
-**Stage decision:** COMPLETE.
+**Objective:** make the governed AIV workflow execute the existing full canvas release suite when Actions infrastructure is available.
 
-### Stage 4 — Current-main validation evidence — IN_PROGRESS
-**Current truth:** source/coverage is present; execution evidence is the remaining question.
-**Objective:** execute exact current tests where reconstructable from GitHub blobs and verify authority boundaries without modifying production.
-**Expected scope/files:** report only unless a reproducible defect appears.
-**Engineering rationale:** action-first rule now means validating the real current capability, not adding redundant abstractions/features.
-**Planned implementation:** reconstruct exact test/import graph in `/tmp` from current GitHub blobs; run Node 22 tests; inspect module-size/static boundaries; record exact PASS/FAIL/NOT_RUN.
-**Expected behavior:** no production change if current tests pass.
-**Edge cases:** reconstructed graph is not a native checkout and cannot prove browser behavior.
-**Known risks:** missing transitive files may limit how much of the literal command can be reconstructed.
+**Expected scope/files:**
+- `.github/workflows/vibration-aiv-controlled-source.yml`
+- `agents/PR474_workreport.md`
 
-### Stage 5 — Native/browser/release validation + CI investigation
-Attempt literal/native and browser gates only if tooling becomes available; otherwise keep NOT_RUN. Inspect current Actions and diagnose only from actual steps/logs. Workflow changes only if necessary and explicitly authorized.
+**Engineering rationale:** the release command already composes AIV input-model, canvas, flare-network, and EI export suites. Wiring it into the existing controlled workflow gives one native repository checkout lane without new test abstractions.
 
-### Stage 6 — Final ledger / handover
-Reconcile PR file list, issue #473, validation evidence and remaining environment-only gates. Do not merge without explicit Owner instruction.
+**Planned implementation:**
+1. add `tabs/vibration-aiv-*` to `push.paths`;
+2. add a named step `Run AIV canvas release suite` executing `npm run verify:aiv-canvas-release` after dependency setup/focused evidence checks and before diff hygiene;
+3. do not change controlled-source extraction/reconciliation authority assertions in this PR.
+
+**Expected behavior:** AIV UI/test/package/converter changes trigger the controlled workflow, and once Actions budget is available the workflow runs the complete canvas release command in Node 22 on a native checkout.
+
+**Edge cases:** Actions budget may still produce a zero-step run; that remains infrastructure `NOT_RUN`, not PASS/FAIL of the release suite.
+
+**Planned validation:** exact workflow diff; YAML/source inspection; fetch workflow runs/steps on PR head if GitHub schedules them.
+
+**Known risks:** workflow duration under existing 15-minute timeout; release suite may expose previously hidden failures once infrastructure executes.
+
+### Stage 6 — Browser acceptance
+BLOCKED in this runtime. Do not substitute static/source tests for pointer/wheel/drag/download browser evidence.
+
+### Stage 7 — Final ledger / handover
+Reconcile PR file list, #453 state, Actions result, validation truth and remaining browser/native infrastructure gate. Do not merge without explicit Owner instruction.
 
 ## Changed-File Ledger
 
 | File | First Stage | Latest Stage | Purpose | Engineering-sensitive? | Validation |
 |---|---:|---:|---|---|---|
-| `agents/PR474_workreport.md` | 1 | 4 | living engineering report | Yes | current |
+| `agents/PR474_workreport.md` | 1 | 5 | living report | Yes | current |
+| `.github/workflows/vibration-aiv-controlled-source.yml` | 5 | 5 | run full AIV canvas release suite in controlled native CI lane | Yes | pending implementation |
 
 ## Validation and Evidence Ledger
 
 ### Software Validation
-| Validation | Status | Last HEAD | Evidence |
-|---|---|---|---|
-| Native clone/current checkout | FAIL | environment | DNS cannot resolve `github.com` |
-| GitHub connector current-source inspection | PASS | `main@e65090bd…` | exact blobs inspected |
-| Current `verify:aiv-canvas` command includes integration/DoD | PASS | `main@e65090bd…` | package.json inspection |
-| Reconstructed exact current tests | NOT_RUN | Stage 4 | next action |
-| Literal native `npm run verify:aiv-canvas` | NOT_RUN | n/a | no checkout |
-| `npm run verify:aiv-canvas-release` | NOT_RUN | n/a | no checkout |
-| Real-browser acceptance | NOT_RUN | n/a | no browser harness |
+| Validation | Status | Evidence |
+|---|---|---|
+| Current source/DoD/integration coverage exists | PASS | exact `main@e65090bd…` blobs |
+| Hosted PR454 AIV workflow actually executed steps | NOT_RUN | final-candidate job `94388375345` has `steps=[]` |
+| Hosted PR454 topology workflow actually executed steps | NOT_RUN | final-candidate job `94388375232` has `steps=[]` |
+| Literal local `npm run verify:aiv-canvas` | NOT_RUN | no native checkout |
+| Literal local `npm run verify:aiv-canvas-release` | NOT_RUN | no native checkout |
+| Real-browser acceptance | NOT_RUN | no browser harness |
 
 ### Engineering Validation
 | Property | Status | Evidence |
 |---|---|---|
-| Required product/DoD code exists | PASS | current source + DoD test |
-| Numerical parity coverage exists | PASS | integration test source |
-| Authority separation coverage exists | PASS | current suite source/static boundaries |
-| Runtime execution of current full suite | NOT_RUN | Stage 4/native gap |
-| Browser lifecycle/accessibility | NOT_RUN | browser unavailable |
+| Product/DoD code completeness | PASS | current main + PR454 source/tests |
+| Numerical parity coverage | PASS | current integration test source |
+| CI infrastructure root-cause classification | PASS | zero-step jobs + upstream budget annotation |
+| Native release-suite result | NOT_RUN | Stage 5 wiring + Actions budget pending |
+| Browser lifecycle/accessibility/downloads | NOT_RUN | blocked |
 
 ### Explicitly Not Validated
-Literal native import graph, real browser events/downloads/render performance, full release command, current Actions root causes.
+Actual runtime result of full release command; real-browser interactions/downloads/render performance.
 
 ## Known / Deferred Work and Recommended Forward Sequence
-1. Run reconstructed current tests with exact blobs.
-2. Inspect current Actions evidence.
-3. If no defect is reproduced, leave production untouched and close #473 as validation-limited rather than manufacturing changes.
-4. Keep native/browser/full-release gates explicitly open if tooling remains unavailable.
+1. Complete Stage 5 workflow wiring.
+2. Inspect PR-head workflow run; if budget-blocked, record zero-step infrastructure status.
+3. When Actions budget/browser lane becomes available, run `verify:aiv-canvas-release` and browser checklist against current main descendant.
+4. Fix only reproduced defects; otherwise avoid additional product changes.
 
 ## Process Notes / Lessons Learned
-- Always re-read current main after intervening merges; yesterday’s valid gap list can become stale quickly.
-- Scope-control requires closing already-resolved findings rather than reimplementing them.
-- Test existence and test execution are distinct evidence.
+- Re-read current main before implementing follow-up gaps; intervening PR #454 already closed the code gaps.
+- A GitHub Actions `conclusion=failure` with zero job steps is not a test failure.
+- Existing package release commands should be wired into governed CI rather than duplicating their test lists in YAML.
 
 ## Next-Agent Handover
 
-**Current stopping point:** Stage 3 proved all identified product/code gaps are already resolved upstream; Stage 4 validation is active.
-**PR / branch / HEAD:** `#474` / `agent/aiv-canvas-completion` / `9fb9ea1…` before current report commit.
-**Last completed stage:** Stage 3.
-**Current active stage:** Stage 4.
-**Start here:** reconstruct/run exact current canvas tests from `main@e65090bd…`; do not edit production unless a real failure appears.
-**Do not redo:** RESULTS mode, filters, selected detail, icons/status, D.2.3/two-source/parity tests.
-**Do not assume:** test presence means execution; browser/native checks passed; CI cause known.
-**Files currently involved:** report only.
-**Known failing checks:** native clone DNS failure; QST-001 Actions failures require current evidence.
-**Validation still required:** reconstructed current suite, native/full release if available, browser acceptance, CI diagnosis.
-**Open QST-* items:** QST-001.
-**Important deferred IMP-* items:** none; PNG remains optional.
-**Highest-risk remaining item:** unproven native/browser integration.
-**Exact next recommended action:** Stage 4 reconstructed execution, then Stage 5 CI/browser classification.
-**Required reading:** #473, #449, PR #451, Common CodingRules, current canvas integration/DoD tests and current canvas modules.
+**Current stopping point:** Stage 5 is authorized and ready for the minimal workflow edit.
+**PR / branch / HEAD:** `#474` / `agent/aiv-canvas-completion` / `f829a90d…` before this report commit.
+**Last completed stage:** Stage 4.
+**Current active stage:** Stage 5.
+**Start here:** edit only `.github/workflows/vibration-aiv-controlled-source.yml` as specified; do not touch AIV production modules.
+**Do not redo:** PR454 DoD features/tests or PR456 flare-network architecture.
+**Do not assume:** Actions execution, native release PASS, browser PASS.
+**Files currently involved:** report + controlled AIV workflow only.
+**Known failing checks:** hosted jobs are budget-blocked zero-step no-runs.
+**Validation still required:** workflow diff/run classification; eventual native release suite and browser acceptance.
+**Open QST-* items:** none.
+**Important deferred IMP-* items:** PNG optional only.
+**Highest-risk remaining item:** infrastructure prevents executing the new native release lane.
+**Exact next recommended action:** implement workflow step/trigger, inspect exact diff, then classify current-head Actions.
+**Required reading:** #453, PR454 report, PR456 report, current package scripts, current controlled AIV workflow.
