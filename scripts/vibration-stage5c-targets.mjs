@@ -140,12 +140,20 @@ export function validateStage5cSelectionDocument(raw) {
   return { schema: VIBRATION_STAGE5C_SELECTION_SCHEMA, sourceHash, selections };
 }
 
+function gitIdentityMatches(source) {
+  if (source?.git === undefined) return true;
+  return source.git?.repository === CONTROLLED_EI_SOURCE.repository
+    && source.git?.commit === CONTROLLED_EI_SOURCE.commit
+    && source.git?.blobSha1 === CONTROLLED_EI_SOURCE.gitBlobSha1;
+}
+
 export function assertControlledEiSource(source) {
   const valid = source?.schema === 'SourceIdentity.v1'
     && source?.mediaType === 'application/pdf'
     && source?.sizeBytes === CONTROLLED_EI_SOURCE.sizeBytes
     && source?.logicalPath === CONTROLLED_EI_SOURCE.apiSourcePath
-    && SHA256.test(String(source?.sha256 || ''));
+    && SHA256.test(String(source?.sha256 || ''))
+    && gitIdentityMatches(source);
   if (!valid) throw new Error('VIBRATION_STAGE5C_CONTROLLED_SOURCE_IDENTITY_MISMATCH');
   return source;
 }
