@@ -27,21 +27,40 @@ function benchmarkPanel(state) {
   const reference = loaded?.publishedReference;
   const status = !loaded ? 'NOT_LOADED' : loaded.modified ? 'NOT_APPLICABLE_MODIFIED_INPUTS' : 'CONTROLLED_INPUT_REFERENCE';
   return `<section class="aivq-card aivq-benchmark-card">
-    <div class="aivq-section-head"><div><h4>Controlled EI benchmark</h4><p>Load EI D.2.3 into the same editable split tables used by project data. Published references remain comparison targets; missing cells may be resolved from the visible assumption profile.</p></div></div>
+    <div class="aivq-section-head"><div><h4>Controlled EI D.2.3 benchmark</h4><p>Loads the controlled example into the same editable working tables. Published values remain comparison targets, not UI equations.</p></div></div>
     <div class="aivq-actions"><button type="button" class="engineering-console-btn primary" data-aiv-action="load-d23-benchmark"${state.busy ? ' disabled' : ''}>Load EI D.2.3</button></div>
-    ${loaded ? `<div class="aivq-benchmark-facts"><span>Input reference <strong>${esc(status)}</strong></span><span>Relief raw source PWL reference <strong>${esc(reference.reliefRawSourcePwlDb)} dB</strong></span><span>Recycle raw source PWL reference <strong>${esc(reference.recycleRawSourcePwlDb)} dB</strong></span><span>Recycle trim reference <strong>${esc(reference.recycleTrimReductionDb)} dB</strong></span><span>Relief first-discontinuity point PWL <strong>${esc(reference.reliefPointPwlDb)} dB</strong></span><span>Relief first-discontinuity LOF <strong>${esc(reference.reliefFirstDiscontinuityLof)}</strong></span><span>FLM1 published <strong>${esc(reference.publishedFlm1)}</strong></span><span>FLM1 alternative <strong>1.2109758194311824</strong></span></div>
-    ${loaded.modified ? '<div class="aivq-banner aivq-benchmark-warning"><strong>Benchmark inputs modified.</strong><span>Published values remain visible only as the original controlled-case reference. Reload EI D.2.3 to restore exact benchmark-input identity.</span></div>' : ''}
+    ${loaded ? `<div class="aivq-benchmark-facts"><span>Input reference <strong>${esc(status)}</strong></span><span>Relief raw source PWL <strong>${esc(reference.reliefRawSourcePwlDb)} dB</strong></span><span>Recycle raw source PWL <strong>${esc(reference.recycleRawSourcePwlDb)} dB</strong></span><span>Recycle trim <strong>${esc(reference.recycleTrimReductionDb)} dB</strong></span><span>Relief point PWL <strong>${esc(reference.reliefPointPwlDb)} dB</strong></span><span>Relief LOF <strong>${esc(reference.reliefFirstDiscontinuityLof)}</strong></span><span>FLM1 published <strong>${esc(reference.publishedFlm1)}</strong></span><span>FLM1 alternative <strong>1.2109758194311824</strong></span></div>
+    ${loaded.modified ? '<div class="aivq-banner is-warning aivq-benchmark-warning"><strong>Benchmark inputs modified.</strong><span>Published values remain visible only as the original controlled-case reference. Reload EI D.2.3 to restore exact benchmark-input identity.</span></div>' : ''}
     <div class="aivq-benchmark-source">${esc(AIV_UI_BENCHMARK_SOURCE.benchmarkSetId)} · ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.path)} · blob ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.gitBlob)} · ${esc(AIV_UI_BENCHMARK_SOURCE.readableSource.locator)}</div>` : ''}
   </section>`;
 }
 
-function importPanel(state) {
-  return `<section class="aivq-card"><div class="aivq-section-head"><div><h4>AIV working inputs</h4><p>Imported CSVs become editable working tables. A drawn flare network can also generate all three tables automatically. Blank cells are resolved from the visible assumption profile before readiness/calculation; explicit table values always take precedence.</p></div></div><div class="aivq-import-grid">
-      <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, null, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX required')}</span></label>
+function eitSummary(state) {
+  const imported = state.eitImport;
+  if (!imported) return '';
+  const legacy = imported.importedResults.filter((item) => item.importedResultKind === 'LEGACY_LINE_LEVEL_RESULT').length;
+  const modern = imported.importedResults.length - legacy;
+  return `<section class="aivq-card aivq-eit-summary">
+    <div class="aivq-section-head"><div><h4>Imported EI .eit</h4><p>${esc(imported.title)} · imported results are evidence only until the registered AIV screening calculation is rerun.</p></div><span class="aivq-status gap">REVIEW_REQUIRED</span></div>
+    <div class="aivq-result-summary"><span>AIV lines <strong>${imported.counts.aivLines}</strong></span><span>Sources <strong>${imported.counts.sources}</strong></span><span>Assessments <strong>${imported.counts.assessments}</strong></span><span>Relationships <strong>${imported.counts.relationships}</strong></span><span>Legacy line traces <strong>${legacy}</strong></span><span>Prior assessment traces <strong>${modern}</strong></span></div>
+    <div class="aivq-readiness-note"><strong>Authority boundary:</strong> imported <code>line.aiv</code> values are never current screening authority. Review missing/derived fields, check readiness, then run <code>VIB.AIV.ACOUSTIC</code>.</div>
+  </section>`;
+}
+
+function startPanel(state) {
+  return `<section class="aivq-card aivq-start-card">
+    <div class="aivq-section-head"><div><h4>Start an AIV assessment</h4><p>Import an EI <code>.eit</code>, load the controlled benchmark, author a flare network, or use the advanced CSV/XLSX inputs.</p></div></div>
+    <div class="aivq-start-grid">
+      <label class="aivq-file-field aivq-file-field-primary"><span>Import EI .eit</span><input type="file" data-aiv-file="eit" accept=".eit,.json,application/json"><span>${fileStatus(state.files?.eit, null, 'EnergyInstituteEit.v5 JSON')}</span></label>
+      <div class="aivq-start-action"><strong>Controlled benchmark</strong><span>EI D.2.3 · exact known reference inputs</span><button type="button" class="engineering-console-btn primary" data-aiv-action="load-d23-benchmark"${state.busy ? ' disabled' : ''}>Load EI D.2.3</button></div>
+    </div>
+    <details class="aivq-inline-disclosure"><summary>Advanced XLSX / CSV imports</summary><div class="aivq-import-grid">
+      <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, null, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX')}</span></label>
       <label class="aivq-file-field"><span>AIV Sources</span><input type="file" data-aiv-file="sources" accept=".csv,text/csv"><span>${fileStatus(state.files?.sources, state.tables?.sources, 'AivSourceCsv.v2')}</span></label>
       <label class="aivq-file-field"><span>AIV Assessments</span><input type="file" data-aiv-file="assessments" accept=".csv,text/csv"><span>${fileStatus(state.files?.assessments, state.tables?.assessments, 'AivAssessmentCsv.v1')}</span></label>
       <label class="aivq-file-field"><span>Source → Assessment</span><input type="file" data-aiv-file="relationships" accept=".csv,text/csv"><span>${fileStatus(state.files?.relationships, state.tables?.relationships, 'AivSourceAssessmentCsv.v1')}</span></label>
-    </div><div class="aivq-actions"><button type="button" class="engineering-console-btn" data-aiv-action="source-template">Sources template</button><button type="button" class="engineering-console-btn" data-aiv-action="assessment-template">Assessments template</button><button type="button" class="engineering-console-btn" data-aiv-action="relationship-template">Source→Assessment template</button></div></section>`;
+    </div><div class="aivq-actions"><button type="button" class="engineering-console-btn" data-aiv-action="source-template">Sources template</button><button type="button" class="engineering-console-btn" data-aiv-action="assessment-template">Assessments template</button><button type="button" class="engineering-console-btn" data-aiv-action="relationship-template">Source→Assessment template</button></div></details>
+  </section>`;
 }
 
 function tableValue(table, row, column) {
@@ -76,7 +95,7 @@ function assumptionMap(state) {
 
 function topologyExchange(state) {
   if (state.readinessEnvelope?.exchange) return state.readinessEnvelope.exchange;
-  if (state.topologyInput?.format === 'PARSED_EXCHANGE') return state.topologyInput.data;
+  if (state.topologyInput?.format === 'PARSED_EXCHANGE' || state.topologyInput?.format === 'FLARE_NETWORK') return state.topologyInput.data;
   return state.topology ?? null;
 }
 
@@ -148,8 +167,13 @@ export function renderAivInputWorkspaceHtml(state = {}) {
   const assumptions = assumptionMap(state);
   const canvasState = { ...state, tables };
   const filterContext = tableFilterContext(state, tables);
-  return `${renderAivFlareNetworkAuthoringHtml(state)}${renderAivCanvasWorkspaceHtml(canvasState)}${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}${importPanel({ ...state, tables })}
-    ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Drawn Source nodes generate identities/cases automatically; blank engineering cells are assumed from the configured profile at execution time.', assumptions, filterContext)}
-    ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID. Drawn Assessment nodes generate rows automatically; missing engineering cells use configured assumptions.', assumptions, filterContext)}
-    ${editableTable('Source → Assessment', tables.relationships, 'Generated from flare-network reachability. Physical Distance is the sum of explicit engineering segment lengths on one resolved graph path; SVG pixels never supply distance.', assumptions, filterContext)}`;
+  const networkOpen = state.flareNetworkActive || Boolean(state.flareNetwork?.nodes?.length);
+  return `${startPanel({ ...state, tables })}${eitSummary(state)}
+    <details class="aivq-disclosure"${networkOpen ? ' open' : ''}><summary><span>Flare network authoring</span><small>Graph connectivity + explicit engineering lengths</small></summary><div class="aivq-disclosure-body">${renderAivFlareNetworkAuthoringHtml(state)}${renderAivCanvasWorkspaceHtml(canvasState)}</div></details>
+    <details class="aivq-disclosure"><summary><span>Controlled benchmark & assumptions</span><small>Reference case and configurable engineering assumptions</small></summary><div class="aivq-disclosure-body">${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}</div></details>
+    <details class="aivq-disclosure"><summary><span>Working data tables</span><small>Advanced editable Source / Assessment / Relationship records</small></summary><div class="aivq-disclosure-body">
+      ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells may resolve from the configured profile at execution time.', assumptions, filterContext)}
+      ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID.', assumptions, filterContext)}
+      ${editableTable('Source → Assessment', tables.relationships, 'Physical distance is explicit engineering evidence. SVG pixels never supply distance.', assumptions, filterContext)}
+    </div></details>`;
 }
