@@ -161,8 +161,18 @@ export function renderVibrationIntegrityTab(container) {
     applyTableMutation(kind, deleteVibrationIntegrityInputRow(state.tables[kind], Number(button.dataset.viEditRow)));
     return true;
   }
+  function openSourceTarget(sourceTarget) {
+    state.inputTab = 'source';
+    render();
+    const target = container.ownerDocument?.getElementById(sourceTarget);
+    if (!target) return;
+    target.focus?.({ preventScroll: true });
+    target.scrollIntoView?.({ block: 'center' });
+  }
   function onClick(event) {
     if (handleTableClick(event)) return;
+    const sourceTarget = event.target.closest('[data-vi-source-target]')?.dataset.viSourceTarget;
+    if (sourceTarget) { event.preventDefault(); openSourceTarget(sourceTarget); return; }
     const inputTab = event.target.closest('[data-vi-input-tab]')?.dataset.viInputTab;
     if (inputTab) { state.inputTab = inputTab; return render(); }
     const row = event.target.closest('[data-vi-row]');
