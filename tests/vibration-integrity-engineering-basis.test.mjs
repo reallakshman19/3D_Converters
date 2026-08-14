@@ -6,6 +6,7 @@ import {
   vibrationEngineeringBasisSourceCellId,
   VIBRATION_ENGINEERING_BASIS_SCHEMA,
 } from '../tabs/vibration-integrity-engineering-basis.js';
+import { renderVibrationIntegrityInputArea } from '../tabs/vibration-integrity-input-view.js';
 
 const inputViewSource = readFileSync(new URL('../tabs/vibration-integrity-input-view.js', import.meta.url), 'utf8');
 const basisViewSource = readFileSync(new URL('../tabs/vibration-integrity-engineering-basis-view.js', import.meta.url), 'utf8');
@@ -42,6 +43,17 @@ function fixture() {
       enrichment('CID-1', '', 'NATURAL_FREQUENCY', '2.2', 'NUMBER', 'Hz'),
       enrichment('CID-1', 'CASE-B', 'NATURAL_FREQUENCY', '2.8', 'NUMBER', 'Hz'),
     ]),
+  };
+}
+
+function inputState() {
+  return {
+    tables: fixture(),
+    files: { topology: null, operating: null, enrichment: null },
+    allowLimitedExchange: false,
+    busy: false,
+    busyAction: null,
+    resultState: 'UNRUN',
   };
 }
 
@@ -83,6 +95,17 @@ test('assessment point without operating case remains visible and process editin
   assert.equal(row.caseId, null);
   assert.equal(row.process.phase.valueRef, null);
   assert.equal(row.fit.outsideDiameter.value, '0.1683');
+});
+
+test('rendered Engineering-basis source links resolve to exact backing Source Data inputs', () => {
+  const html = renderVibrationIntegrityInputArea(inputState());
+  const sourceId = 'vi-source-operating-operating-source-0001-4';
+  assert.ok(html.includes(`href="#${sourceId}"`), 'joined basis must link to exact backing cell');
+  assert.ok(html.includes(`id="${sourceId}"`), 'Source Data input must emit the matching anchor');
+  assert.ok(
+    html.indexOf('<h3>Engineering basis</h3>') < html.indexOf('<h3>Source Data</h3>'),
+    'joined Engineering basis must render before raw Source Data',
+  );
 });
 
 test('UI makes Engineering basis primary while Source Data stays the backing editor contract', () => {
