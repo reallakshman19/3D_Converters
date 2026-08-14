@@ -88,7 +88,7 @@ Repository policy requests `node utils/backup.js save <file> ...` before edits. 
 
 | Existing file | Pre-edit blob |
 |---|---|
-| `tabs/vibration-aiv-input-view.js` | `6f19c657d0834659b6ed7fe6bd2fd98d913829fb` |
+| `tabs/vibration-aiv-input-view.js` | `472b54a4ae2277da0bcb7bfdec557996fe550df2` |
 | `tabs/vibration-aiv-qualification-tab.js` | `4b772cb6a25781da8e911d2054cf9d4e6368bce0` |
 | `tests/vibration-aiv-flare-network-multisource.test.mjs` | `32a57d6be5eee16166efa53891c95e190fe84376` |
 | `tests/vibration-aiv-eit-export.test.mjs` | `31aeec3741a1cf8066a7ad9cb560d147b472f42b` |
