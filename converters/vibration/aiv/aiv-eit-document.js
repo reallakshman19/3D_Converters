@@ -61,6 +61,32 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function sorted(values) {
+  return [...values].sort();
+}
+
+function sameStrings(left, right) {
+  return JSON.stringify(sorted(left)) === JSON.stringify(sorted(right));
+}
+
+function assertImportedIdentityLock(refs) {
+  if (!refs.importedOriginal) return;
+  const importedAssessments = new Set([...refs.importedDetails.values()].map((item) => item.assessmentCanonicalId));
+  const currentAssessments = new Set((refs.result.assessmentResults ?? []).map((item) => item.assessmentCanonicalId));
+  if (!sameStrings(importedAssessments, currentAssessments)) {
+    throw new Error('AIV_EIT_ROUND_TRIP_IDENTITY_CHANGED: imported Assessment identities no longer match the current screening result set.');
+  }
+  for (const assessment of refs.result.assessmentResults ?? []) {
+    const importedKeys = [...refs.importedDetails.values()]
+      .filter((item) => item.assessmentCanonicalId === assessment.assessmentCanonicalId)
+      .map((item) => skey(item.sourceCanonicalId, item.caseId));
+    const currentKeys = (assessment.contributingSourceCanonicalIds ?? []).map((sourceId) => skey(sourceId, assessment.caseId));
+    if (!sameStrings(importedKeys, currentKeys)) {
+      throw new Error(`AIV_EIT_ROUND_TRIP_IDENTITY_CHANGED: imported Source/Case identities changed for ${assessment.assessmentCanonicalId}.`);
+    }
+  }
+}
+
 function evidenceByAssessment(refs) {
   const map = new Map();
   for (const item of refs.importedDetails.values()) {
@@ -116,11 +142,8 @@ function mergeLines(original, freshLines, refs) {
   const byAssessment = evidenceByAssessment(refs);
   for (const current of freshLines) {
     const trace = byAssessment.get(current.aivAssessmentCanonicalId);
-    if (!trace || !original[trace.lineIndex]) {
-      original.push(current);
-      continue;
-    }
-    const prior = original[trace.lineIndex];
+    const prior = trace == null ? null : original[trace.lineIndex];
+    if (!prior) throw new Error(`AIV_EIT_ROUND_TRIP_IDENTITY_CHANGED: no imported line maps to ${current.aivAssessmentCanonicalId}.`);
     const priorModules = moduleSet(prior);
     const mixedModuleLine = priorModules.some((module) => module !== 'aiv');
     const modules = priorModules.includes('aiv') ? priorModules.join(',') : [...priorModules, 'aiv'].join(',');
@@ -161,6 +184,7 @@ function mergeIntoImportedDocument(fresh, refs, title) {
 export function buildAivEitV5Document(screeningPackage, title, options = {}) {
   const refs = maps(screeningPackage);
   refs.importedOriginal = screeningPackage.eitImportEvidence?.originalDocument ?? null;
+  assertImportedIdentityLock(refs);
   const assessmentIds = [...new Set((refs.result.assessmentResults ?? []).map((x) => x.assessmentCanonicalId))].sort();
   refs.pipeIds = new Map(assessmentIds.map((id, i) => [id, i + 1]));
   const pipes = assessmentIds.map((id) => buildAivEitPipe(refs.assessments.get(id), refs.pipeIds.get(id)));
