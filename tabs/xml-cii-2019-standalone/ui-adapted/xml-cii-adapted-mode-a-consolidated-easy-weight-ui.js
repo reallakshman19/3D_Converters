@@ -44,12 +44,12 @@ function addRowActions(panel,result,stateRef) {
 
 function makeToolbar(panel,result,stateRef) {
   const bar=document.createElement('div'); bar.dataset.modeAWeightEasyToolbar='true'; Object.assign(bar.style,{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap',margin:'8px 0 10px',padding:'8px',border:'1px solid #334155',borderRadius:'7px',background:'#0f172a'});
-  const match=document.createElement('button'); match.type='button'; match.textContent='⚡ Match Project Data'; styleButton(match,true);
+  const match=document.createElement('button'); match.type='button'; match.textContent='⚡ Find Exact Weight Matches'; match.title='Find only direct 100% Project Data weight candidates that are safe for bulk acceptance.'; styleButton(match,true);
   const undo=document.createElement('button'); undo.type='button'; undo.textContent='↶ Undo Last Change'; styleButton(undo); undo.disabled=!modeARawState(stateRef).modeAConsolidatedWeightUndo;
   const search=document.createElement('input'); search.type='search'; search.placeholder='Search source / branch / component...'; Object.assign(search.style,{minWidth:'220px',padding:'5px 8px',background:'#0b1220',color:'#e2e8f0',border:'1px solid #475569',borderRadius:'5px'});
   const source=document.createElement('select'); Object.assign(source.style,{padding:'5px 8px',background:'#0b1220',color:'#e2e8f0',border:'1px solid #475569',borderRadius:'5px'}); source.appendChild(new Option('All XML files','')); [...new Map((result.rows||[]).map((r)=>[r.sourceId,r.fileName])).entries()].forEach(([id,name])=>source.appendChild(new Option(name,id)));
   const status=document.createElement('select'); Object.assign(status.style,{padding:'5px 8px',background:'#0b1220',color:'#e2e8f0',border:'1px solid #475569',borderRadius:'5px'}); [['all','All rows'],['review','Review'],['exact','Exact 100%'],['mapped','Mapped']].forEach(([v,l])=>status.appendChild(new Option(l,v)));
-  const note=document.createElement('span'); note.className='xml-cii-phase-help'; note.style.marginLeft='auto'; note.textContent='Bulk apply: direct 100% Project Data only. Inferred candidates remain Review.';
+  const note=document.createElement('span'); note.className='xml-cii-phase-help'; note.style.marginLeft='auto'; note.textContent='Weight Match only: bulk apply accepts direct 100% weight-master candidates. Interpolated/extrapolated/inferred candidates remain Review.';
   bar.append(match,undo,search,source,status,note); panel.querySelector('[data-mode-a-consolidated-build="weight"]')?.closest('div')?.after(bar);
   const rows=[...panel.querySelectorAll('[data-mode-a-weight-consolidated-row]')];
   const filter=()=>{const q=text(search.value).toLowerCase(); for(const tr of rows){const okStatus=status.value==='all'||status.value===tr.dataset.weightClass; const okSource=!source.value||source.value===tr.dataset.sourceId; const okSearch=!q||(tr.dataset.searchText||'').includes(q); tr.style.display=okStatus&&okSource&&okSearch?'':'none';}};
@@ -58,7 +58,7 @@ function makeToolbar(panel,result,stateRef) {
   match.addEventListener('click',()=>{
     bar.querySelectorAll('[data-weight-project-preview],[data-weight-project-apply]').forEach((n)=>n.remove());
     const plan=buildModeAWeightProjectMatchPlan(result.rows||[]); const preview=document.createElement('span'); preview.dataset.weightProjectPreview='true'; preview.className='xml-cii-phase-help'; preview.textContent=`${plan.changes.length} exact 100% · ${plan.review.length} review · ${plan.mapped.length} already mapped.`; bar.appendChild(preview);
-    if(plan.changes.length){const applyBtn=document.createElement('button'); applyBtn.type='button'; applyBtn.dataset.weightProjectApply='true'; applyBtn.textContent=`Apply ${plan.changes.length} Exact Matches`; styleButton(applyBtn,true); applyBtn.addEventListener('click',()=>apply(panel,stateRef,plan.changes,`Project Data exact weights (${plan.changes.length})`)); bar.appendChild(applyBtn);}
+    if(plan.changes.length){const applyBtn=document.createElement('button'); applyBtn.type='button'; applyBtn.dataset.weightProjectApply='true'; applyBtn.textContent=`Apply ${plan.changes.length} Exact Weights`; styleButton(applyBtn,true); applyBtn.addEventListener('click',()=>apply(panel,stateRef,plan.changes,`Project Data exact weights (${plan.changes.length})`)); bar.appendChild(applyBtn);}
   });
 }
 
