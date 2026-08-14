@@ -53,6 +53,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
     id: 'vibration-workspace-ui',
     label: 'Workspace, visible product and architecture boundaries',
     tests: Object.freeze([
+      'tests/app-content-scroll-layout.test.mjs',
       'tests/vibration-workspace-model.test.mjs',
       'tests/vibration-integrity-detail-view.test.mjs',
       'tests/vibration-integrity-tab-static.test.mjs',
