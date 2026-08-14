@@ -7,10 +7,12 @@ import {
   deleteVibrationIntegrityInputRow,
   parseVibrationIntegrityInputCsv,
   revertVibrationIntegrityInputCell,
+  revertVibrationIntegrityInputRow,
   revertVibrationIntegrityInputTable,
   serializeVibrationIntegrityInputTable,
   updateVibrationIntegrityInputCell,
   vibrationIntegrityInputCellState,
+  vibrationIntegrityInputRowState,
   VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS,
 } from '../tabs/vibration-integrity-input-model.js';
 
@@ -31,7 +33,7 @@ test('editable operating CSV loads into original/working rows and round-trips qu
   assert.match(serializeVibrationIntegrityInputTable(table), /"Normal, wet"/u);
 });
 
-test('cell edits are immutable and exact cell revert restores source value', () => {
+test('cell and row edits are immutable and exact revert restores source values', () => {
   const original = createVibrationIntegrityInputTable('enrichment', [[
     'CID-1','L-1','','FIT_ASSESSMENT_POINT','true','BOOLEAN','','ENG','','REC-1','','',
   ]]);
@@ -39,9 +41,16 @@ test('cell edits are immutable and exact cell revert restores source value', () 
   assert.equal(original.rows[0][4], 'true');
   assert.equal(edited.rows[0][4], 'false');
   assert.equal(edited.dirty, true);
-  const reverted = revertVibrationIntegrityInputCell(edited, 0, 4);
-  assert.equal(reverted.rows[0][4], 'true');
-  assert.equal(reverted.dirty, false);
+  assert.equal(vibrationIntegrityInputRowState(edited, 0).edited, true);
+  const cellReverted = revertVibrationIntegrityInputCell(edited, 0, 4);
+  assert.equal(cellReverted.rows[0][4], 'true');
+  assert.equal(cellReverted.dirty, false);
+
+  const rowEdited = updateVibrationIntegrityInputCell(original, 0, 4, 'false');
+  const rowReverted = revertVibrationIntegrityInputRow(rowEdited, 0);
+  assert.equal(rowReverted.rows[0][4], 'true');
+  assert.equal(rowReverted.dirty, false);
+  assert.equal(vibrationIntegrityInputRowState(rowReverted, 0).edited, false);
 });
 
 test('unit-only edit converts the paired operating value through central engineering units', () => {
@@ -66,13 +75,19 @@ test('unknown numeric enrichment unit semantics fail closed instead of guessing 
   );
 });
 
-test('add/delete row preserves exact table width and local row identity', () => {
+test('add/delete and row revert preserve exact width and local row identity', () => {
   const original = createVibrationIntegrityInputTable('operating', []);
   const added = addVibrationIntegrityInputRow(original);
   assert.equal(added.rows.length, 1);
   assert.equal(added.rows[0].length, OPERATING_HEADER.length);
   assert.equal(added.rowIds[0], 'operating:local:0001');
-  const removed = deleteVibrationIntegrityInputRow(added, 0);
+  assert.equal(vibrationIntegrityInputRowState(added, 0).added, true);
+  const reverted = revertVibrationIntegrityInputRow(added, 0);
+  assert.equal(reverted.rows.length, 0);
+  assert.equal(reverted.dirty, false);
+
+  const addedAgain = addVibrationIntegrityInputRow(original);
+  const removed = deleteVibrationIntegrityInputRow(addedAgain, 0);
   assert.equal(removed.rows.length, 0);
   assert.equal(removed.dirty, false);
 });
@@ -91,18 +106,26 @@ function completeExchange() {
   });
 }
 
-test('topology edit latches local authority even after exact table revert', () => {
+test('topology edit latches local authority even after exact row or table revert', () => {
   const table = createTopologyInputTableFromExchange(completeExchange());
   const edited = updateVibrationIntegrityInputCell(table, 0, 2, 'L-1-EDITED');
   assert.equal(edited.dirty, true);
   assert.equal(edited.authorityDowngraded, true);
   assert.equal(edited.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
-  const reverted = revertVibrationIntegrityInputTable(edited);
-  assert.equal(reverted.rows[0][2], 'L-1');
-  assert.equal(reverted.dirty, false);
-  assert.equal(reverted.authorityDowngraded, true);
-  assert.equal(reverted.sourceKind, 'LOCAL_ELEMENTS_OVERRIDE');
-  assert.equal(reverted.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
+
+  const rowReverted = revertVibrationIntegrityInputRow(edited, 0);
+  assert.equal(rowReverted.rows[0][2], 'L-1');
+  assert.equal(rowReverted.dirty, false);
+  assert.equal(rowReverted.authorityDowngraded, true);
+  assert.equal(vibrationIntegrityInputRowState(rowReverted, 0).edited, false);
+
+  const editedAgain = updateVibrationIntegrityInputCell(rowReverted, 0, 2, 'L-1-EDITED');
+  const tableReverted = revertVibrationIntegrityInputTable(editedAgain);
+  assert.equal(tableReverted.rows[0][2], 'L-1');
+  assert.equal(tableReverted.dirty, false);
+  assert.equal(tableReverted.authorityDowngraded, true);
+  assert.equal(tableReverted.sourceKind, 'LOCAL_ELEMENTS_OVERRIDE');
+  assert.equal(tableReverted.rows[0][13], VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS);
 });
 
 test('adding a blank topology row does not create a fake provenance-only element', () => {
