@@ -47,11 +47,13 @@ function canonicalPayload(state) {
       topology: canonicalFile(state.files?.topology),
       operating: canonicalFile(state.files?.operating),
       enrichment: canonicalFile(state.files?.enrichment),
+      dataBlockers: canonicalFile(state.files?.dataBlockers),
     },
     tables: {
       topology: canonicalTable(state.tables?.topology),
       operating: canonicalTable(state.tables?.operating),
       enrichment: canonicalTable(state.tables?.enrichment),
+      dataBlockers: canonicalTable(state.tables?.dataBlockers),
     },
   };
 }
