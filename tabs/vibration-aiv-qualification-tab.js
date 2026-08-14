@@ -27,12 +27,7 @@ import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualificati
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
-
-export function applyAivFlareNetworkPresentationState(state, network) {
-  state.flareNetwork = network;
-  state.error = null;
-  return state;
-}
+import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js';
 
 export function renderAivQualificationWorkspace(container) {
   ensureAivQualificationStylesheet();
@@ -238,6 +233,7 @@ export function renderAivQualificationWorkspace(container) {
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
     if (assumptionAcceptanceController.handleAction(action)) return;
+    if (action === 'load-mock-flare-network') loadAivSmallFlareMock(state, applyFlareNetwork);
     if (action === 'load-d23-benchmark') loadBenchmark();
     if (action === 'source-template') downloadAivText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
     if (action === 'assessment-template') downloadAivText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');

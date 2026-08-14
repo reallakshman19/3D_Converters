@@ -19,8 +19,10 @@ const AIV_HARDENING_UI_MODULES = Object.freeze([
   'tabs/vibration-aiv-canvas-detail.js',
   'tabs/vibration-aiv-canvas-view.js',
   'tabs/vibration-aiv-delete-safeguard.js',
+  'tabs/vibration-aiv-mock-flare-network.js',
   'tabs/vibration-aiv-ui-context.js',
   'tabs/vibration-aiv-workspace-browser.js',
+  'tabs/vibration-aiv-workspace-loaders.js',
 ]);
 
 const SIZE_GUARDED_MODULES = Object.freeze([

@@ -9,6 +9,7 @@ import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-cs
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
 import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
 import { serializeVibrationCsvRows } from '../converters/vibration/tabular/csv.js';
+import { createAivSmallFlareMockNetwork } from '../tabs/vibration-aiv-mock-flare-network.js';
 
 const FLOW_FOR_POINT_160 = 15.113591636395977;
 const FLOW_FOR_POINT_150 = 4.779337319668265;
@@ -92,4 +93,36 @@ test('drawn two-source network reproduces 160 + 150 benchmark with both canonica
   assert.ok(Math.abs(assessment.sourceContributionsAtPoint[0].pointPwlDb - 160) < 1e-10);
   assert.ok(Math.abs(assessment.sourceContributionsAtPoint[1].pointPwlDb - 150) < 1e-10);
   assert.ok(Math.abs(assessment.combinedPointPwlDb - 160.41392685158226) < 1e-10);
+});
+
+test('controlled two-RV mock preserves Common PR3 engineering paths and screening integration outputs', () => {
+  const parsed = parseGenerated(createAivSmallFlareMockNetwork());
+  assert.deepEqual(parsed.generated.pathEvidence.map((item) => ({
+    sourceCanonicalId: item.sourceCanonicalId,
+    physicalDistanceM: item.physicalDistanceM,
+    segmentIds: item.segmentIds,
+  })), [
+    { sourceCanonicalId: 'RV-101', physicalDistanceM: 38, segmentIds: ['RV101-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN'] },
+    { sourceCanonicalId: 'RV-102', physicalDistanceM: 41, segmentIds: ['RV102-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN'] },
+  ]);
+
+  const result = calculateAiv({
+    sources: parsed.sources,
+    assessments: parsed.assessments,
+    relationships: parsed.relationships,
+    exchange: { elements: [{ canonicalId: 'AIV-ASSESS-HDR-001', line: '8IN-FLARE-HEADER' }] },
+    assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
+    qualificationMode: 'screening',
+  });
+  const sourcePwl = new Map(result.sourceResults.map((item) => [item.sourceCanonicalId, item.effectiveSourcePwlDb]));
+  assert.ok(Math.abs(sourcePwl.get('RV-101') - 160) < 1e-10);
+  assert.ok(Math.abs(sourcePwl.get('RV-102') - 154) < 1e-10);
+  const assessment = result.assessmentResults[0];
+  assert.deepEqual(assessment.contributingSourceCanonicalIds, ['RV-101', 'RV-102']);
+  assert.ok(Math.abs(assessment.sourceContributionsAtPoint[0].pointPwlDb - 148.75406925125776) < 1e-10);
+  assert.ok(Math.abs(assessment.sourceContributionsAtPoint[1].pointPwlDb - 141.86623261319917) < 1e-10);
+  assert.ok(Math.abs(assessment.combinedPointPwlDb - 149.56302572849327) < 1e-10);
+  assert.equal(assessment.lof, 0.29);
+  assert.equal(result.screeningResultScope, 'ASSESSMENT');
+  assert.equal(result.authority.designAuthority, false);
 });

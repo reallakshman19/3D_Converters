@@ -1,11 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../converters/vibration/aiv/aiv-assumption-profile.js';
+import { calculateAiv } from '../converters/vibration/aiv/aiv-calculator.js';
 import { buildAivEitExport, serializeAivEitExport } from '../converters/vibration/aiv/aiv-eit-export.js';
+import { parseAivEitImport } from '../converters/vibration/aiv/aiv-eit-import.js';
 import {
   aivEitLengthMm,
   aivEitMolecularWeightGPerMol,
   aivEitPressureBarAbsolute,
 } from '../converters/vibration/aiv/aiv-eit-units.js';
+import { generateAivInputTablesFromFlareNetwork } from '../converters/vibration/aiv/aiv-flare-network-table-generator.js';
+import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-csv.js';
+import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
+import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
+import { serializeVibrationCsvRows } from '../converters/vibration/tabular/csv.js';
+import { createAivSmallFlareMockNetwork } from '../tabs/vibration-aiv-mock-flare-network.js';
 
 const authority = Object.freeze({ screeningAuthority: 'AUTHORIZED', designAuthority: false });
 
@@ -65,6 +74,26 @@ function fixture() {
   };
 }
 
+function mockScreeningPackage() {
+  const generated = generateAivInputTablesFromFlareNetwork(createAivSmallFlareMockNetwork());
+  const csv = (table) => serializeVibrationCsvRows([table.header, ...table.rows]);
+  const sources = parseAivSourceCsv(csv(generated.tables.sources));
+  const assessments = parseAivAssessmentCsv(csv(generated.tables.assessments));
+  const relationships = parseAivSourceAssessmentCsv(csv(generated.tables.relationships));
+  const result = calculateAiv({
+    sources, assessments, relationships,
+    exchange: { elements: [{ canonicalId: 'AIV-ASSESS-HDR-001', line: '8IN-FLARE-HEADER' }] },
+    assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
+    qualificationMode: 'screening',
+  });
+  return {
+    schema: 'AivScreeningExportPackage.v1',
+    result,
+    inputs: { sources, assessments, relationships, topology: null },
+    flareNetworkEvidence: { pathEvidence: generated.pathEvidence },
+  };
+}
+
 test('exports v5 .eit with assessment LOF authoritative and line trace non-authoritative', () => {
   const built = buildAivEitExport({ screeningPackage: fixture(), title: 'Small Flare' });
   assert.equal(built.schema, 'EnergyInstituteEit.v5');
@@ -115,6 +144,54 @@ test('serialization emits JSON file payload without wrapper schema', () => {
   assert.equal(parsed.options.version, 5);
   assert.equal(parsed.lines[0].aiv, '0.29');
   assert.equal(Object.hasOwn(parsed, 'schema'), false);
+});
+
+test('controlled mock flare serializes through the production EIT writer with path identity intact', () => {
+  const document = JSON.parse(serializeAivEitExport({
+    screeningPackage: mockScreeningPackage(),
+    title: 'Small Flare 2RV Mock',
+  }));
+  assert.equal(document.options.version, 5);
+  assert.equal(document.lines.length, 1);
+  assert.equal(document.lines[0].aiv, '0.29');
+  assert.equal(document.lines[0].maxLof, '0.29');
+  const data = JSON.parse(document.lines[0].aiv_data);
+  assert.deepEqual(data.map((item) => item.sourceCanonicalId), ['RV-101', 'RV-102']);
+  assert.deepEqual(data.map((item) => item.distance), [38, 41]);
+  assert.deepEqual(data[0].segmentIds, ['RV101-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN']);
+  assert.deepEqual(data[1].segmentIds, ['RV102-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN']);
+  assert.equal(document.streams[0].sourceCanonicalId, 'RV-101');
+  assert.equal(document.streams[1].sourceCanonicalId, 'RV-102');
+  assert.equal(document.pipes[0].assessmentCanonicalId, 'AIV-ASSESS-HDR-001');
+});
+
+test('controlled mock flare round-trips through production EIT export and import without identity or distance drift', () => {
+  const text = serializeAivEitExport({
+    screeningPackage: mockScreeningPackage(),
+    title: 'Small Flare 2RV Mock',
+  });
+  const imported = parseAivEitImport(text, { sourceName: 'aiv-small-flare-2rv-mock.eit' });
+  assert.deepEqual(imported.counts, {
+    documentLines: 1,
+    documentPipes: 1,
+    documentStreams: 2,
+    aivLines: 1,
+    sources: 2,
+    assessments: 1,
+    relationships: 2,
+    derivedInsideDiameters: 0,
+  });
+  assert.equal(imported.importedResults[0].importedResultAuthority, 'REVIEW_REQUIRED');
+  assert.equal(imported.importedResults[0].currentScreeningAuthority, false);
+  assert.equal(imported.importedResults[0].importedResultKind, 'PRIOR_ASSESSMENT_SCREENING_TRACE');
+  const evidence = imported.evidence.detailEvidence;
+  assert.deepEqual(evidence.map((item) => item.sourceCanonicalId), ['RV-101', 'RV-102']);
+  assert.deepEqual(evidence.map((item) => item.assessmentCanonicalId), ['AIV-ASSESS-HDR-001', 'AIV-ASSESS-HDR-001']);
+  assert.deepEqual(evidence.map((item) => item.caseId), ['RELIEF-COMBINED', 'RELIEF-COMBINED']);
+  assert.deepEqual(evidence.map((item) => item.originalDetail.distance), [38, 41]);
+  assert.deepEqual(evidence[0].segmentIds, ['RV101-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN']);
+  assert.deepEqual(evidence[1].segmentIds, ['RV102-BRANCH', 'SUBHEADER-4IN', 'HEADER-8IN']);
+  assert.equal(imported.topology.authority.svgPixelsAuthoritativeForDistance, false);
 });
 
 test('fails closed if line/case summary is incorrectly authoritative', () => {
