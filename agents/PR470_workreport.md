@@ -5,13 +5,13 @@ Source task / issue: #450
 PR number: #470
 Branch: `agent/document-evidence-stage5c`
 Base commit: `994f43521b5aa6e4dd397efd9300ce21943d056d`
-PR status: OPEN / DRAFT / NOT MERGED
-Current stage: Stage 8 — COMPLETE software handover
+PR status: OPEN / READY / OWNER MERGE AUTHORIZED
+Current stage: Stage 9 — owner merge authorization
 Last completed stage: Stage 8 — final validation and GitHub audit
 Engineering status: production evidence consumer COMPLETE; controlled EI table extraction NOT EXECUTED
 Validation status: local task gates PASS; GitHub Actions INFRASTRUCTURE_BLOCKED; controlled-source execution BLOCKED_ENVIRONMENT
 Current blocker: exact controlled PDF bytes cannot be materialized in this runtime; GitHub Actions jobs cannot start because an Actions budget is preventing further use
-Exact next action: when both resources are available, run the exact controlled PDF through XML discovery/extraction and let repository workflows execute; do not merge #470 as a completed recovery release before that
+Exact next action: merge #470 as explicitly authorized by the Owner; retain both external blockers as unresolved follow-up gates before any claim of completed controlled-source recovery or engineering authority
 
 ## Handover in 60 Seconds
 
@@ -69,7 +69,10 @@ Two workflows were associated with the final audited implementation head:
 
 Both were reported as failures by GitHub, but their jobs contained no executed steps. The check annotations state: `The job was not started because an Actions budget is preventing further use.`
 
-Therefore the PR does **not** claim repository CI success and no gate is weakened to force a merge.
+Therefore the PR does **not** claim repository CI success and no gate is weakened or relabeled as passing.
+
+### Owner merge authorization
+On 2026-08-14 the Owner explicitly instructed `merge`. That instruction authorizes integrating this implementation despite the two unresolved external gates above. It does **not** convert `BLOCKED_ENVIRONMENT`, `INFRASTRUCTURE_BLOCKED`, `NOT_RUN`, or `UNVALIDATED` states into PASS, and it does not authorize engineering/screening/design authority or master publication.
 
 # Authority / publication freeze
 
@@ -101,6 +104,7 @@ masterValuesPublished = false
 | evidence receipt kernel + CLI | PASS | tests + localhost HTTP |
 | controlled EI API execution | BLOCKED_ENVIRONMENT | exact bytes unavailable |
 | repository GitHub Actions | INFRASTRUCTURE_BLOCKED | Actions budget prevented job start |
+| owner merge authorization | PASS | explicit Owner instruction on 2026-08-14 |
 | master normalization/publication | DEFERRED | separate reviewed PR required |
 | T3-1…T3-4 digitization | DEFERRED | separate chart qualification |
 
@@ -124,6 +128,7 @@ masterValuesPublished = false
 6. **Stage 6 COMPLETE** — evidence receipt kernel + operator CLI implemented; focused suite/HTTP smoke passed.
 7. **Stage 7 COMPLETE WITH BLOCKER** — exact source execution attempted but environment cannot materialize controlled bytes; no values/pages claimed.
 8. **Stage 8 COMPLETE** — changed-file set, final head, local gates and GitHub workflow disposition audited.
+9. **Stage 9 MERGE AUTHORIZED** — Owner explicitly authorized integration with external blockers preserved as unresolved follow-up state.
 
 # Changed-File Ledger
 
@@ -157,7 +162,7 @@ Expected and final PR file set is exactly eight files:
 
 # Next-Agent Handover
 
-Software implementation in #470 is complete and locally validated.
-Do **not** merge #470 as a completed Stage 5C recovery release while exact controlled-source execution and repository workflows remain blocked.
+Software implementation in #470 is complete and locally validated. Owner merge authorization is explicit and does not imply the blocked external gates passed.
+After merge, treat the integration as available infrastructure, **not** as a completed controlled-source Stage 5C recovery release.
 Do **not** infer pages/values from historical hints or fixtures.
-Resume from the two external prerequisites only: Actions execution and exact PDF byte materialization.
+Resume from the two external prerequisites: Actions execution and exact PDF byte materialization.
