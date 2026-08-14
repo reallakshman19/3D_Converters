@@ -11,11 +11,11 @@ function rowClass(row) { return row?.mapped?'mapped':(modeAQualifiedExactWeightR
 
 function markAppliedRows(panel,result,changes=[]) {
   const byIdentity=new Map(changes.map((change)=>[`${change.sourceId}::${change.key}`,change]));
+  const tableRows=[...panel.querySelectorAll('[data-mode-a-weight-consolidated-row]')];
   for(const row of result.rows||[]){
     const change=byIdentity.get(`${row.sourceId}::${row.key}`); if(!change) continue;
     row.mapped=true; row.weight=Number(change.weight); row.weightSource='override';
-    const tr=panel.querySelector(`[data-mode-a-weight-consolidated-row][data-source-id="${CSS?.escape?CSS.escape(String(row.sourceId||'')):String(row.sourceId||'')}"][data-issue-key="${CSS?.escape?CSS.escape(String(row.key||'')):String(row.key||'')}"]`)
-      || [...panel.querySelectorAll('[data-mode-a-weight-consolidated-row]')].find((item)=>item.dataset.sourceId===String(row.sourceId||'')&&item.dataset.issueKey===String(row.key||''));
+    const tr=tableRows.find((item)=>item.dataset.sourceId===String(row.sourceId||'')&&item.dataset.issueKey===String(row.key||''));
     if(!tr) continue;
     tr.dataset.weightClass='mapped';
     if(tr.children[9]) tr.children[9].textContent=`${Number(change.weight)} kg`;
