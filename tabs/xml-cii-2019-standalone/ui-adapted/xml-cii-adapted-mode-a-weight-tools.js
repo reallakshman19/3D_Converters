@@ -69,8 +69,7 @@ function updateRowDom(panel, row) {
   if (tr.children[6]) tr.children[6].textContent = text(row.rating) || '—';
   if (tr.children[12]) {
     const existingButtons = [...tr.children[12].querySelectorAll('button')];
-    tr.children[12].firstChild && (tr.children[12].firstChild.textContent = text(row.bestWeight) || '—');
-    // Preserve per-row action buttons installed by the easy UI.
+    if (tr.children[12].firstChild) tr.children[12].firstChild.textContent = text(row.bestWeight) || '—';
     existingButtons.forEach((button) => tr.children[12].appendChild(button));
   }
   if (tr.children[13]) tr.children[13].textContent = text(row.bestScore) || '—';
@@ -90,9 +89,11 @@ function setDtxrRatingMode(panel, result, stateRef, enabled) {
     }
     if (!enabled) {
       Object.assign(row, row._modeAWeightOriginal);
+      delete row._modeAWeightDtxrBest;
       updateRowDom(panel, row);
       continue;
     }
+    delete row._modeAWeightDtxrBest;
     const rating = extractXmlCiiRatingFromDtxr(row.dtxr);
     if (!rating) continue;
     const config = sourceConfig(stateRef, row.sourceId);
