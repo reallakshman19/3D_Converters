@@ -48,11 +48,15 @@ function eitSummary(state) {
 }
 
 function startPanel(state) {
+  const eitDisabled = state.screeningResult?.ok ? '' : ' disabled';
   return `<section class="aivq-card aivq-start-card">
-    <div class="aivq-section-head"><div><h4>Start an AIV assessment</h4><p>Import an EI <code>.eit</code>, load the controlled benchmark, author a flare network, or use the advanced CSV/XLSX inputs.</p></div></div>
+    <div class="aivq-section-head"><div><h4>Start an AIV assessment</h4><p>Import an EI <code>.eit</code>, load the controlled two-RV mock or benchmark, author a flare network, or use advanced CSV/XLSX inputs.</p></div></div>
     <div class="aivq-start-grid">
       <label class="aivq-file-field aivq-file-field-primary"><span>Import EI .eit</span><input type="file" data-aiv-file="eit" accept=".eit,.json,application/json"><span>${fileStatus(state.files?.eit, null, 'EnergyInstituteEit.v5 JSON')}</span></label>
-      <div class="aivq-start-action"><strong>Controlled benchmark</strong><span>EI D.2.3 · exact known reference inputs</span><button type="button" class="engineering-console-btn primary" data-aiv-action="load-d23-benchmark"${state.busy ? ' disabled' : ''}>Load EI D.2.3</button></div>
+      <div class="aivq-primary-stack">
+        <div class="aivq-start-action"><strong>Mock flare network</strong><span>2 RVs → 4 in subheader → 8 in header · explicit 38 m / 41 m engineering paths</span><button type="button" class="engineering-console-btn primary" data-aiv-action="load-mock-flare-network"${state.busy ? ' disabled' : ''}>Load mock flare network</button><button type="button" class="engineering-console-btn" data-aiv-action="export-eit"${eitDisabled}>Export current EI .eit</button><span>EI .eit export becomes available after the current registered screening run.</span></div>
+        <div class="aivq-start-action"><strong>Controlled benchmark</strong><span>EI D.2.3 · exact known reference inputs</span><button type="button" class="engineering-console-btn primary" data-aiv-action="load-d23-benchmark"${state.busy ? ' disabled' : ''}>Load EI D.2.3</button></div>
+      </div>
     </div>
     <details class="aivq-inline-disclosure" data-aiv-disclosure-key="advanced-imports"><summary>Advanced XLSX / CSV imports</summary><div class="aivq-import-grid">
       <label class="aivq-file-field"><span>3D EDIT complete topology XLSX</span><input type="file" data-aiv-file="topology" accept=".xlsx"><span>${fileStatus(state.files?.topology, null, 'Five-sheet TopologyEditTableHumanExport.v1 XLSX')}</span></label>
