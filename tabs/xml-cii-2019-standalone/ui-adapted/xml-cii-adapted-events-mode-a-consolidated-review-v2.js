@@ -1,4 +1,4 @@
-import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a.js?v=20260813-mode-a-rigid-review-1';
+import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20260814-save-all-cii-zip-1';
 import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-rigid-review-1';
 import { runModeABatchFromUi } from './xml-cii-adapted-run-workflow-mode-a-consolidated-review-v2.js?v=20260813-mode-a-rigid-review-1';
 
