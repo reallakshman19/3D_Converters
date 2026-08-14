@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -19,6 +19,7 @@ const SOURCE_HASH = `sha256:${'a'.repeat(64)}`;
 const OBSERVATION_HASH = `sha256:${'b'.repeat(64)}`;
 const PASS_HASH = `sha256:${'c'.repeat(64)}`;
 const DECISION_HASH = `sha256:${'d'.repeat(64)}`;
+const SURFACE_HASH = `sha256:${'e'.repeat(64)}`;
 
 function controlledSource(overrides = {}) {
   return {
@@ -51,13 +52,23 @@ function table(candidateId = 'candidate-1', decision = evidenceDecision(), overr
       candidateId, page: 81, strategy: 'ruled', bbox: [0, 0, 10, 10],
       rowCount: 1, columnCount: 1,
     },
-    observations: [{ observationHash: OBSERVATION_HASH }],
+    observations: [{
+      schema: 'Observation.v1', observationHash: OBSERVATION_HASH, sourceHash: SOURCE_HASH,
+    }],
     tablePass: {
       schema: 'TablePass.v1',
       tablePassId: `pass:${candidateId}`,
       tablePassHash: PASS_HASH,
+      tableCandidateId: candidateId,
+      passId: 'native:ruled',
       sourceHash: SOURCE_HASH,
-      cells: [{ cellId: 'cell:1', observationHashes: [OBSERVATION_HASH] }],
+      surfaceId: 'surface:1',
+      surfaceHash: SURFACE_HASH,
+      cells: [{
+        cellId: 'cell:1', rowIndex: 0, columnIndex: 0,
+        geometry: { type: 'Quad', coordinates: [[0, 0], [10, 0], [10, 10], [0, 10]] },
+        observationHashes: [OBSERVATION_HASH],
+      }],
     },
     cellDecisions: [decision],
     ...overrides,
