@@ -133,6 +133,10 @@ function enrichmentKey(row) {
   return `${row.canonicalId}\u0000${row.caseId ?? ''}\u0000${row.property}`;
 }
 
+function blockerPropertyKey(blocker, property) {
+  return `${blocker.canonicalId}\u0000${blocker.caseId ?? ''}\u0000${property}`;
+}
+
 function operatingKey(row) {
   return `${row.line}\u0000${row.caseId}`;
 }
@@ -152,18 +156,35 @@ function ensureCase(operatingCases, byKey, blocker) {
   byKey.set(key, row);
 }
 
+function sourceCollision(blocker, message) {
+  throw blockerError('FIT_DATA_BLOCKER_SOURCE_COLLISION', message, {
+    canonicalId: blocker.canonicalId, line: blocker.line, caseId: blocker.caseId, field: blocker.field,
+  });
+}
+
+function assertAlternativeFlowFillOnly(blocker, operating, enrichmentKeys) {
+  const alternate = blocker.field === 'MASS_FLOW'
+    ? { operating: 'velocity', property: 'FIT_VELOCITY' }
+    : blocker.field === 'VELOCITY'
+      ? { operating: 'massFlow', property: 'FIT_MASS_FLOW' }
+      : null;
+  if (!alternate) return;
+  if (operating?.[alternate.operating] !== undefined
+      || enrichmentKeys.has(blockerPropertyKey(blocker, alternate.property))) {
+    sourceCollision(blocker, 'Manual blocker input cannot introduce an alternate flow representation when source/manual flow evidence already exists.');
+  }
+}
+
 function assertFillOnly(blocker, definition, operatingByKey, enrichmentKeys) {
-  const eKey = `${blocker.canonicalId}\u0000${blocker.caseId ?? ''}\u0000${definition.property}`;
-  if (enrichmentKeys.has(eKey)) throw blockerError(
-    'FIT_DATA_BLOCKER_SOURCE_COLLISION', 'Manual blocker input cannot overwrite an existing enrichment value.',
-    { canonicalId: blocker.canonicalId, caseId: blocker.caseId, field: blocker.field },
-  );
-  if (!definition.operatingField || !blocker.caseId) return;
-  const operating = operatingByKey.get(`${blocker.line}\u0000${blocker.caseId}`);
-  if (operating?.[definition.operatingField] !== undefined) throw blockerError(
-    'FIT_DATA_BLOCKER_SOURCE_COLLISION', 'Manual blocker input cannot overwrite an existing operating-case value.',
-    { line: blocker.line, caseId: blocker.caseId, field: blocker.field },
-  );
+  const eKey = blockerPropertyKey(blocker, definition.property);
+  if (enrichmentKeys.has(eKey)) {
+    sourceCollision(blocker, 'Manual blocker input cannot overwrite an existing enrichment value.');
+  }
+  const operating = blocker.caseId ? operatingByKey.get(`${blocker.line}\u0000${blocker.caseId}`) : null;
+  assertAlternativeFlowFillOnly(blocker, operating, enrichmentKeys);
+  if (definition.operatingField && operating?.[definition.operatingField] !== undefined) {
+    sourceCollision(blocker, 'Manual blocker input cannot overwrite an existing operating-case value.');
+  }
 }
 
 function enrichmentRow(blocker, definition) {
