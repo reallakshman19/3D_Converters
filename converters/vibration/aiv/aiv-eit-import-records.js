@@ -203,8 +203,30 @@ export function parseAivEitLineDetails(line) {
   return Object.freeze(parsed.map((item) => Object.freeze({ ...(item ?? {}) })));
 }
 
+function streamMaps(document) {
+  const byId = new Map();
+  const bySourceCase = new Map();
+  for (const stream of document.streams ?? []) {
+    byId.set(String(stream.si), stream);
+    const sourceId = clean(stream.sourceCanonicalId);
+    const caseId = clean(stream.caseId);
+    if (sourceId && caseId) bySourceCase.set(`${sourceId}\u0000${caseId}`, stream);
+  }
+  return { byId, bySourceCase };
+}
+
+function streamFor(line, detail, streams) {
+  const sourceId = clean(detail.sourceCanonicalId);
+  const caseId = clean(detail.caseId);
+  if (sourceId && caseId) {
+    const identified = streams.bySourceCase.get(`${sourceId}\u0000${caseId}`);
+    if (identified) return identified;
+  }
+  return streams.byId.get(String(line.si));
+}
+
 export function buildAivEitImportedRecords(document, sourceName) {
-  const streams = new Map((document.streams ?? []).map((stream) => [String(stream.si), stream]));
+  const streams = streamMaps(document);
   const pipes = new Map((document.pipes ?? []).map((pipe) => [String(pipe.pi), pipe]));
   const sourceRows = new Map();
   const assessmentRows = new Map();
@@ -217,7 +239,7 @@ export function buildAivEitImportedRecords(document, sourceName) {
     const assessment = assessmentRow({ line, pipe: pipes.get(String(line.pi)), sourceName });
     if (!assessmentRows.has(assessment.assessmentId)) assessmentRows.set(assessment.assessmentId, assessment);
     details.forEach((detail, detailIndex) => {
-      const stream = streams.get(String(line.si));
+      const stream = streamFor(line, detail, streams);
       const source = sourceRow({ line, detail, stream, detailIndex, sourceName });
       if (!sourceRows.has(source.key)) sourceRows.set(source.key, source.row);
       relationships.push(relationshipRow({
