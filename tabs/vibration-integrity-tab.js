@@ -3,10 +3,10 @@ import { serializeVibrationFacilityFitRegisterCsv } from '../converters/vibratio
 import { createVibrationEnrichmentCsvTemplate, createVibrationOperatingCaseCsvTemplate } from '../converters/vibration/tabular/templates.js';
 import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/model.js';
 import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputRow, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
-import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
+import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, captureVibrationIntegrityExecutionState, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
 import { downloadVibrationIntegrityText, ensureVibrationIntegrityStylesheet } from './vibration-integrity-dom.js';
 import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
-import { bindVibrationIntegrityEngineeringIdentity, buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
+import { executeVibrationIntegrityBenchmarkRun, vibrationIntegrityRunInputDrifted } from './vibration-integrity-run-controller.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
 
 function workspaceOptions(state) {
@@ -16,28 +16,15 @@ function workspaceOptions(state) {
   if (state.filters.band) filters.referenceBands = [state.filters.band];
   if (state.filters.candidate === 'true') filters.candidateForEngineeringReview = true;
   if (state.filters.candidate === 'false') filters.candidateForEngineeringReview = false;
-  return {
-    filters,
-    sort: { ...state.sort },
-    ...(state.selectedRowKey ? { selectedRowKey: state.selectedRowKey } : {}),
-  };
+  return { filters, sort: { ...state.sort }, ...(state.selectedRowKey ? { selectedRowKey: state.selectedRowKey } : {}) };
 }
 function initialState() {
   return {
-    ...createVibrationIntegrityInputRuntimeState(),
-    preflight: null,
-    envelope: null,
-    workspace: null,
-    resultState: 'UNRUN',
-    runSnapshot: null,
+    ...createVibrationIntegrityInputRuntimeState(), preflight: null, envelope: null, workspace: null,
+    resultState: 'UNRUN', runSnapshot: null,
     filters: { line: '', completeness: '', band: '', candidate: '' },
-    sort: { field: 'line', direction: 'asc' },
-    selectedRowKey: null,
-    detailTab: 'summary',
-    busy: false,
-    busyAction: null,
-    error: null,
-    destroyed: false,
+    sort: { field: 'line', direction: 'asc' }, selectedRowKey: null, detailTab: 'summary',
+    busy: false, busyAction: null, error: null, destroyed: false,
   };
 }
 export function renderVibrationIntegrityTab(container) {
@@ -47,12 +34,8 @@ export function renderVibrationIntegrityTab(container) {
     if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
   }
   function discardCalculatedState() {
-    state.preflight = null;
-    state.envelope = null;
-    state.workspace = null;
-    state.selectedRowKey = null;
-    state.resultState = 'UNRUN';
-    state.runSnapshot = null;
+    state.preflight = null; state.envelope = null; state.workspace = null; state.selectedRowKey = null;
+    state.resultState = 'UNRUN'; state.runSnapshot = null;
   }
   function staleCalculatedState() {
     state.preflight = null;
@@ -61,37 +44,27 @@ export function renderVibrationIntegrityTab(container) {
   function syncBenchmarkModified() {
     const loaded = state.benchmark.loaded;
     if (!loaded) return;
-    const modified = state.benchmark.detachedFromSource
-      || Object.values(state.tables).some((table) => table.dirty);
-    if (loaded.modified === modified) return;
-    state.benchmark.loaded = Object.freeze({ ...loaded, modified });
+    const modified = state.benchmark.detachedFromSource || Object.values(state.tables).some((table) => table.dirty);
+    if (loaded.modified !== modified) state.benchmark.loaded = Object.freeze({ ...loaded, modified });
   }
   function rebuildWorkspace() {
-    if (!state.envelope?.workflow) {
-      state.workspace = null;
-      return;
-    }
+    if (!state.envelope?.workflow) { state.workspace = null; return; }
     state.workspace = buildVibrationWorkspaceModel(state.envelope.workflow, workspaceOptions(state));
     if (state.selectedRowKey && !state.workspace.selectedRowKey) state.selectedRowKey = null;
   }
   function applyTableMutation(kind, table) {
     state.tables[kind] = table;
     if (kind === 'topology') state.allowLimitedExchange = true;
-    syncBenchmarkModified();
-    staleCalculatedState();
-    state.error = null;
-    render();
+    syncBenchmarkModified(); staleCalculatedState(); state.error = null; render();
   }
   async function loadFile(target, file) {
     state.error = null;
     try {
       const loaded = await readVibrationIntegrityInputFile(target, file);
       if (state.destroyed) return;
-      state.files[target] = loaded.file;
-      state.tables[target] = loaded.table;
+      state.files[target] = loaded.file; state.tables[target] = loaded.table;
       if (state.benchmark.loaded) state.benchmark.detachedFromSource = true;
-      syncBenchmarkModified();
-      staleCalculatedState();
+      syncBenchmarkModified(); staleCalculatedState();
     } catch (error) {
       if (state.destroyed) return;
       state.error = String(error?.message || error);
@@ -101,77 +74,49 @@ export function renderVibrationIntegrityTab(container) {
   function loadBenchmark() {
     try {
       const benchmark = buildLoadedVibrationIntegrityBenchmark(state.benchmark.selectedId);
-      state.benchmark.loaded = benchmark.loaded;
-      state.benchmark.detachedFromSource = false;
-      state.tables = benchmark.tables;
-      state.files = benchmark.files;
-      state.allowLimitedExchange = benchmark.allowLimitedExchange;
-      discardCalculatedState();
-      state.error = null;
-    } catch (error) {
-      state.error = String(error?.message || error);
-    }
+      state.benchmark.loaded = benchmark.loaded; state.benchmark.detachedFromSource = false;
+      state.tables = benchmark.tables; state.files = benchmark.files;
+      state.allowLimitedExchange = benchmark.allowLimitedExchange; discardCalculatedState(); state.error = null;
+    } catch (error) { state.error = String(error?.message || error); }
     render();
   }
   async function checkReadiness() {
     if (!state.tables.topology.rows.length) return;
-    state.busy = true;
-    state.busyAction = 'preflight';
-    state.error = null;
-    render();
+    state.busy = true; state.busyAction = 'preflight'; state.error = null; render();
     try {
-      const tableInput = await buildVibrationIntegrityFacilityTableInput(state);
+      const captured = captureVibrationIntegrityExecutionState(state);
+      const tableInput = await buildVibrationIntegrityFacilityTableInput(captured);
       state.preflight = buildVibrationFacilityFitPreflightFromTables(
-        tableInput, { allowLimitedExchange: state.allowLimitedExchange },
+        tableInput, { allowLimitedExchange: captured.allowLimitedExchange },
       );
     } catch (error) {
-      state.preflight = null;
-      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-    } finally {
-      state.busy = false;
-      state.busyAction = null;
-      render();
-    }
+      state.preflight = null; state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
+    } finally { state.busy = false; state.busyAction = null; render(); }
   }
   async function runBenchmark() {
     if (!state.tables.topology.rows.length) return;
-    state.busy = true;
-    state.busyAction = 'benchmark';
-    state.resultState = 'RUNNING';
-    state.error = null;
-    render();
+    state.busy = true; state.busyAction = 'benchmark'; state.resultState = 'RUNNING'; state.error = null; render();
     try {
-      const snapshot = await buildVibrationIntegrityRunSnapshot(state);
-      const tableInput = await buildVibrationIntegrityFacilityTableInput(state);
-      const { runVibrationFacilityFitBenchmarkFromTables } = await import('../converters/vibration/facility/fit-workflow-tabular.js');
+      const captured = captureVibrationIntegrityExecutionState(state);
+      const executed = await executeVibrationIntegrityBenchmarkRun(captured);
       if (state.destroyed) return;
-      state.envelope = runVibrationFacilityFitBenchmarkFromTables(
-        tableInput, { allowLimitedExchange: state.allowLimitedExchange },
-      );
-      const identified = await bindVibrationIntegrityEngineeringIdentity(snapshot, state.envelope);
-      state.runSnapshot = Object.freeze({ ...identified, runId: `FIT-RUN-${new Date().toISOString()}` });
-      state.resultState = 'CURRENT_RESULT';
-      state.selectedRowKey = null;
-      state.detailTab = 'summary';
-      rebuildWorkspace();
+      state.envelope = executed.envelope;
+      const drifted = await vibrationIntegrityRunInputDrifted(executed.runSnapshot, state);
+      if (state.destroyed) return;
+      state.runSnapshot = Object.freeze({ ...executed.runSnapshot, runId: `FIT-RUN-${new Date().toISOString()}` });
+      state.resultState = drifted ? 'STALE_RESULT' : 'CURRENT_RESULT';
+      state.selectedRowKey = null; state.detailTab = 'summary'; rebuildWorkspace();
     } catch (error) {
       if (state.destroyed) return;
       state.resultState = state.envelope?.workflow ? 'STALE_RESULT' : 'INVALID_INPUT';
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-    } finally {
-      state.busy = false;
-      state.busyAction = null;
-      render();
-    }
+    } finally { state.busy = false; state.busyAction = null; render(); }
   }
   function exportRegister() {
     if (state.resultState !== 'CURRENT_RESULT' || !state.envelope?.workflow?.register) return;
     try {
       downloadVibrationIntegrityText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
-    } catch (error) {
-      state.error = String(error?.message || error);
-      render();
-    }
+    } catch (error) { state.error = String(error?.message || error); render(); }
   }
   async function exportRunEvidence() {
     if (state.resultState !== 'CURRENT_RESULT') return;
@@ -179,36 +124,22 @@ export function renderVibrationIntegrityTab(container) {
       const payload = await serializeVibrationIntegrityRunEvidence(state);
       downloadVibrationIntegrityText(payload, 'vibration-fit-run-evidence.json', 'application/json;charset=utf-8');
     } catch (error) {
-      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-      render();
+      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`; render();
     }
   }
   function applyPresentationChange() {
-    try {
-      rebuildWorkspace();
-      state.error = null;
-    } catch (error) {
-      state.error = String(error?.message || error);
-    }
+    try { rebuildWorkspace(); state.error = null; } catch (error) { state.error = String(error?.message || error); }
     render();
   }
   function handleTableClick(event) {
     const addKind = event.target.closest('[data-vi-table-add]')?.dataset.viTableAdd;
-    if (addKind) {
-      applyTableMutation(addKind, addVibrationIntegrityInputRow(state.tables[addKind]));
-      return true;
-    }
+    if (addKind) { applyTableMutation(addKind, addVibrationIntegrityInputRow(state.tables[addKind])); return true; }
     const revertTableKind = event.target.closest('[data-vi-table-revert]')?.dataset.viTableRevert;
-    if (revertTableKind) {
-      applyTableMutation(revertTableKind, revertVibrationIntegrityInputTable(state.tables[revertTableKind]));
-      return true;
-    }
+    if (revertTableKind) { applyTableMutation(revertTableKind, revertVibrationIntegrityInputTable(state.tables[revertTableKind])); return true; }
     const revertCell = event.target.closest('[data-vi-cell-revert]');
     if (revertCell) {
       const kind = revertCell.dataset.viCellRevert;
-      applyTableMutation(kind, revertVibrationIntegrityInputCell(
-        state.tables[kind], Number(revertCell.dataset.viEditRow), Number(revertCell.dataset.viEditColumn),
-      ));
+      applyTableMutation(kind, revertVibrationIntegrityInputCell(state.tables[kind], Number(revertCell.dataset.viEditRow), Number(revertCell.dataset.viEditColumn)));
       return true;
     }
     const revertRow = event.target.closest('[data-vi-row-revert]');
@@ -226,16 +157,9 @@ export function renderVibrationIntegrityTab(container) {
   function onClick(event) {
     if (handleTableClick(event)) return;
     const row = event.target.closest('[data-vi-row]');
-    if (row) {
-      state.selectedRowKey = row.dataset.viRow;
-      state.detailTab = 'summary';
-      return applyPresentationChange();
-    }
+    if (row) { state.selectedRowKey = row.dataset.viRow; state.detailTab = 'summary'; return applyPresentationChange(); }
     const detail = event.target.closest('[data-vi-detail]');
-    if (detail) {
-      state.detailTab = detail.dataset.viDetail;
-      return render();
-    }
+    if (detail) { state.detailTab = detail.dataset.viDetail; return render(); }
     const action = event.target.closest('[data-vi-action]')?.dataset.viAction;
     if (action === 'load-benchmark') loadBenchmark();
     if (action === 'preflight') checkReadiness();
@@ -248,47 +172,22 @@ export function renderVibrationIntegrityTab(container) {
   function handleTableChange(event) {
     const kind = event.target.dataset.viTableCell;
     if (!kind) return false;
-    const table = updateVibrationIntegrityInputCell(
-      state.tables[kind], Number(event.target.dataset.viEditRow),
-      Number(event.target.dataset.viEditColumn), event.target.value,
-    );
-    applyTableMutation(kind, table);
-    return true;
+    const table = updateVibrationIntegrityInputCell(state.tables[kind], Number(event.target.dataset.viEditRow), Number(event.target.dataset.viEditColumn), event.target.value);
+    applyTableMutation(kind, table); return true;
   }
   function onChange(event) {
     const fileTarget = event.target.dataset.viFile;
-    if (fileTarget) {
-      const file = event.target.files?.[0];
-      if (file) loadFile(fileTarget, file);
-      return;
-    }
-    if (event.target.matches('[data-vi-benchmark-select]')) {
-      state.benchmark.selectedId = event.target.value;
-      return render();
-    }
-    if (event.target.matches('[data-vi-limited]')) {
-      state.allowLimitedExchange = event.target.checked;
-      staleCalculatedState();
-      return render();
-    }
+    if (fileTarget) { const file = event.target.files?.[0]; if (file) loadFile(fileTarget, file); return; }
+    if (event.target.matches('[data-vi-benchmark-select]')) { state.benchmark.selectedId = event.target.value; return render(); }
+    if (event.target.matches('[data-vi-limited]')) { state.allowLimitedExchange = event.target.checked; staleCalculatedState(); return render(); }
     if (handleTableChange(event)) return;
     const filter = event.target.dataset.viFilter;
-    if (filter) {
-      state.filters[filter] = event.target.value;
-      return applyPresentationChange();
-    }
+    if (filter) { state.filters[filter] = event.target.value; return applyPresentationChange(); }
     const sort = event.target.dataset.viSort;
-    if (sort) {
-      state.sort[sort] = event.target.value;
-      applyPresentationChange();
-    }
+    if (sort) { state.sort[sort] = event.target.value; applyPresentationChange(); }
   }
-  container.addEventListener('click', onClick);
-  container.addEventListener('change', onChange);
-  render();
+  container.addEventListener('click', onClick); container.addEventListener('change', onChange); render();
   return () => {
-    state.destroyed = true;
-    container.removeEventListener('click', onClick);
-    container.removeEventListener('change', onChange);
+    state.destroyed = true; container.removeEventListener('click', onClick); container.removeEventListener('change', onChange);
   };
 }
