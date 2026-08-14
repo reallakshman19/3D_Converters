@@ -105,6 +105,7 @@ function sourceFiles(files = {}) {
     topology: fileDescriptor(files.topology),
     operating: fileDescriptor(files.operating),
     enrichment: fileDescriptor(files.enrichment),
+    dataBlockers: fileDescriptor(files.dataBlockers),
   };
 }
 
