@@ -25,31 +25,10 @@ import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-netwo
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
-
-function ensureStylesheet() {
-  if (document.querySelector('link[data-aiv-qualification-style="true"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = './tabs/vibration-aiv-qualification.css?v=aiv-qualification-11';
-  link.dataset.aivQualificationStyle = 'true';
-  document.head.appendChild(link);
-}
-
-function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
-  const blob = new Blob([text], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.hidden = true;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
+import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
 
 export function renderAivQualificationWorkspace(container) {
-  ensureStylesheet();
+  ensureAivQualificationStylesheet();
   const state = createInitialAivQualificationState();
   const canvasController = createAivCanvasInteractionController(container, {
     onCreateRelationship: createCanvasRelationship,
@@ -65,7 +44,7 @@ export function renderAivQualificationWorkspace(container) {
     onNetworkChange: applyFlareNetwork,
     onError: (error) => { state.error = String(error?.message || error); render(); },
   });
-  const execution = createAivExecutionActions({ state, render, downloadText });
+  const execution = createAivExecutionActions({ state, render, downloadText: downloadAivText });
   const assumptionAcceptanceController = createAivAssumptionAcceptanceController({ state, render, container });
 
   function render() {
@@ -244,9 +223,9 @@ export function renderAivQualificationWorkspace(container) {
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
     if (assumptionAcceptanceController.handleAction(action)) return;
     if (action === 'load-d23-benchmark') loadBenchmark();
-    if (action === 'source-template') downloadText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
-    if (action === 'assessment-template') downloadText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
-    if (action === 'relationship-template') downloadText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
+    if (action === 'source-template') downloadAivText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
+    if (action === 'assessment-template') downloadAivText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
+    if (action === 'relationship-template') downloadAivText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
     if (action === 'check-readiness') execution.checkReadiness();
     if (action === 'run-screening') execution.runScreening();
     if (action === 'export-d23-validation') execution.exportValidatedBenchmark();
