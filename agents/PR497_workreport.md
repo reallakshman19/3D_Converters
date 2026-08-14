@@ -10,9 +10,10 @@
 | PR | `#497` — DRAFT / OPEN / NOT MERGED |
 | Branch | `agent/aiv-assumption-panel-css` |
 | Grounded base | `main@ffbbecdadf83a16ef4e48e62946cea05d1a4e8c6` |
+| Validated implementation head | `d3e30283203e59b9ed59167ac1e70f830d755955` |
 | Authority impact | NONE |
 | Merge authority | NOT AUTHORIZED |
-| EXACT_NEXT_ACTION | Inspect exact-head hosted workflows and obtain real-browser visual acceptance before claiming UI PASS. |
+| EXACT_NEXT_ACTION | Obtain real-browser desktop/narrow-screen visual acceptance; merge only after explicit owner authorization. |
 
 ## Problem
 
@@ -67,11 +68,14 @@ Unchanged:
 | Check | Status | Observation | Oracle |
 |---|---|---|---|
 | Current-main grounding | PASS | Branch created from `main@ffbbecdadf83a16ef4e48e62946cea05d1a4e8c6` | GitHub |
+| Main drift at implementation validation | PASS | `main` remained `ffbbecdadf83a16ef4e48e62946cea05d1a4e8c6`; branch had no behind commits | GitHub |
 | Changed-file scope | PASS | Presentation/import/cache/test wiring only | GitHub compare |
 | Assumption renderer unchanged | PASS | No diff to `vibration-aiv-assumption-view.js` | GitHub compare |
 | Dedicated CSS import | PASS | Qualification CSS imports `vibration-aiv-assumptions.css?v=1` | Source inspection |
 | Cache visibility | PASS | Browser loader requests `aiv-qualification-14` | Source inspection |
 | Regression release wiring | PASS | New test is part of `verify:aiv-eit-export` and therefore `verify:aiv-canvas-release` | Source inspection |
+| Hosted AIV run `31824083785` / job `94843958586` | NOT_RUN / INFRASTRUCTURE_BLOCKED | Exact implementation head; `steps=[]`, `runner_id=0` | GitHub Actions metadata |
+| Hosted topology run `31824083780` / job `94843958621` | NOT_RUN / INFRASTRUCTURE_BLOCKED | Exact implementation head; `steps=[]`, `runner_id=0` | GitHub Actions metadata |
 | Native focused Node test | NOT_RUN | No native checkout/runtime in connector-only path | NONE |
 | Native AIV release suite | NOT_RUN | No native checkout/runtime in connector-only path | NONE |
 | Real-browser desktop visual acceptance | NOT_RUN | Browser interaction unavailable in connector-only path | NONE |
@@ -83,7 +87,7 @@ Unchanged:
 - `IMP-002` IMPLEMENTED — trace table and status summary have explicit readable layouts.
 - `IMP-003` IMPLEMENTED — cache-bust and regression wiring added.
 - `RISK-001` OPEN — real-browser visual verification remains required before claiming UI PASS.
-- `RISK-002` OPEN — hosted Actions must be classified from actual step execution; zero-step jobs are NOT_RUN, not PASS.
+- `RISK-002` OPEN — hosted Actions are infrastructure-blocked and must remain NOT_RUN, not PASS.
 
 ## Appendix A
 
