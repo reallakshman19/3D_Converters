@@ -11,6 +11,8 @@ import {
 } from '../tabs/vibration-integrity-benchmarks.js';
 import { serializeVibrationIntegrityInputTable } from '../tabs/vibration-integrity-input-model.js';
 
+const CONTROLLED_COMMON_PIN = 'fb549185b9b27edc2379734240320a85c5bef9f6';
+const CONTROLLED_EXAMPLES_BLOB = '3e2517d0df527a051084fc02e69cb7afa31f8d47';
 const controlled = JSON.parse(readFileSync(
   new URL('../Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json', import.meta.url),
   'utf8',
@@ -48,10 +50,13 @@ test('UI benchmark catalogue exactly covers the controlled five EI worked cases'
     VIBRATION_FIT_UI_BENCHMARK_CASES.map((entry) => entry.id),
     controlled.cases.map((entry) => entry.id),
   );
+  assert.equal(controlled.source.commit, CONTROLLED_COMMON_PIN);
+  assert.equal(controlled.source.gitBlob, CONTROLLED_EXAMPLES_BLOB);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.benchmarkSetId, controlled.benchmarkSetId);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.commit, controlled.source.commit);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.gitBlob, controlled.source.gitBlob);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.relativeTolerance, controlled.roundingPolicy.relativeTolerance);
+  assert.equal(controlled.roundingPolicy.screeningPromotionState, 'FIELD_CASE_TOLERANCE_RECONCILIATION_REQUIRED');
 });
 
 test('every UI benchmark builds production-parseable topology, operating and enrichment tables', () => {
