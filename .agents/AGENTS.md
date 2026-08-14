@@ -1,25 +1,63 @@
-# Agent Coding Guidelines & Constraints
+# Agent Engineering Execution Rules
 
-This workspace enforces strict architectural, coding, and workflow constraints. All agent actions must comply with the following rules:
+This repository uses a continuous-recovery engineering workflow. These rules apply to every agent that investigates, modifies, validates, reviews, or hands over repository work.
 
-## 1. File & Module Constraints
-* **Line Limit**: Every new JavaScript file must be under **300 lines**. Split modules where possible.
-* **Existing Files**: Only split existing files when edited, and a **backup is mandatory** before editing (using `node utils/backup.js save <file> "<context>"`).
+## 1. Continuous handover is mandatory
 
-## 2. Function & Clean Code Design
-* **Function Size**: Every function must be under **40 lines** where practical.
-* **Exports**: Use **named exports only** (no default exports).
-* **Pure Functions**: Write pure functions where practical to enhance testability and predictability.
-* **Mocking**: No default or hidden mocks. Mocks must be explicitly configured and visible.
-* **Shims**: No shims or polyfills.
-* **State & Mutation**: Avoid mutation-heavy design. Prefer immutable patterns and functional transformations.
+Assume the active agent may disappear, lose context, or become incapable immediately after any meaningful action.
 
-## 3. Workflow & Operations
-* **Scope Control**: No runtime, writer, or canvas switches unless explicitly approved by the user.
-* **Data Churn**: No generated snapshot or data churn unless it is explicitly part of the mission.
-* **Refactoring**: No broad refactors outside the assigned Work Pack. Keep changes scoped and surgical.
-* **Linting & Dangling Code**: Keep code clean of lint errors and dangling/unused code. Verify this on every step.
+No essential mission, engineering, validation, or continuation state may exist only in chat history or private reasoning.
 
-## 4. PR / Delivery Criteria
-* **Usable Capability**: Every PR/change must deliver usable capability, a UI action, an artifact, a measurable behavior improvement, or a measurable export improvement.
-* **No Empty Audits**: Do not submit any PR whose main output is only "audit says ready" without delivering actual value or behavioral changes.
+At every durable checkpoint, another qualified agent must be able to recover the work from:
+
+```text
+repository
++ live GitHub PR state
++ agents/MASTER_INDEX.md
++ agents/PR<NUMBER>_workreport.md
+```
+
+Before a PR exists, use a unique `agents/WIP-<work-id>_workreport.md`.
+
+Read `agents/protocol/continuous-handover.md`.
+
+## 2. Incoming agents are read-only until qualified
+
+A takeover agent must independently re-ground the PR against live GitHub and current `main`, inspect the actual diff and evidence, then pass the repository-specific **Appendix A — Implementation Takeover Qualification** before modifying production code.
+
+Generic textbook answers do not qualify an agent. Questions must be repository-bound, implementation-bound, and evidence-bound.
+
+Read `agents/protocol/takeover-qualification.md`.
+
+## 3. Multi-agent coordination is mandatory
+
+Before implementation and before each new stage, check `agents/MASTER_INDEX.md`, active PRs, per-PR status/claims, file overlap, authority overlap, dependencies, and base drift.
+
+Do not silently modify an area claimed by another active PR.
+
+Read `agents/protocol/multi-agent-coordination.md`.
+
+## 4. A PR may be rejected
+
+Preserve validated engineering value, not the PR at all costs.
+
+If a PR is stale, contaminated, unintelligible, authority-unsafe, or harder to prove correct than to reconstruct from current `main`, quarantine it and perform a salvage assessment. A valid outcome is to supersede the PR and rebuild only known-good work.
+
+Read `agents/protocol/recovery-salvage.md`.
+
+## 5. Engineering and coding constraints
+
+- No runtime, writer, solver, canvas, topology, authority, tolerance, or engineering-data switch unless explicitly authorized.
+- No hidden/default mocks, silent fallbacks, authority-changing shims, or expected-value changes made only to obtain PASS.
+- No broad refactors outside scope.
+- New JavaScript modules should normally remain below 300 physical lines; functions should normally remain below 40 logical lines. These are maintainability heuristics, not correctness gates.
+- Prefer named exports, pure functions, explicit ownership, and bounded mutation.
+- Do not claim PASS for checks that were not executed.
+- Do not treat implementation-coupled output as independent engineering verification.
+- Do not merge unless explicitly authorized by the owner.
+
+## 6. Delivery invariant
+
+A PR is not ready merely because code exists.
+
+It must have current ground truth, controlled scope, reconciled changed files, explicit authority boundaries, appropriate validation, a current handover state, and—while technical work remains—a current Appendix A takeover gate.

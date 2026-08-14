@@ -1,0 +1,20 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-continuous-handover-protocol-v2
+claim_state: ACTIVE
+files:
+  exact:
+    - .agents/AGENTS.md
+    - agents/MASTER_INDEX.md
+  prefixes:
+    - agents/protocol/
+    - agents/templates/
+    - agents/status/
+    - agents/claims/
+authority_domains:
+  - AGENT_EXECUTION_PROTOCOL
+claim_modes:
+  - COORDINATED
+prohibited_overlap:
+  - production converter/calculation logic
+  - .github/workflows/
+last_verified_head: c41f2e14a72954297e173c09b240c1714959db93

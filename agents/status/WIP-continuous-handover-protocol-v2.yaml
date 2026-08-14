@@ -1,0 +1,22 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-continuous-handover-protocol-v2
+mission: Establish continuous handover, expert takeover qualification, multi-agent coordination, and controlled PR recovery/salvage protocol.
+workstream: repository/agent-governance
+branch: agent/continuous-handover-protocol-v2
+pr_head: null
+main_head_last_checked: c41f2e14a72954297e173c09b240c1714959db93
+work_intent: IMPLEMENT
+criticality: STANDARD
+agent_state: ACTIVE
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/WIP-continuous-handover-protocol-v2_workreport.md
+report_head: null
+appendix_a_status: CURRENT
+grounding_epoch: GE-001
+current_stage: core-protocol-implementation
+blocker: NONE
+highest_risk: policy duplication or shared-index edit contention
+dependencies: []
+exact_next_action: Commit core protocol structure, open draft PR, then migrate WIP records to PR-number records.
