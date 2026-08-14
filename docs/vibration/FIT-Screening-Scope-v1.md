@@ -64,7 +64,7 @@ All dimensional inputs must resolve through the central Engineering Calculation 
 
 ## 4. Candidate diameter envelope
 
-The proposed screening envelope is intentionally discontinuous until QST-003 is resolved by controlled source evidence:
+The proposed screening envelope is intentionally discontinuous:
 
 ```text
 60 mm <= Dext <= 219.1 mm      candidate when all other branch gates pass
@@ -72,9 +72,7 @@ The proposed screening envelope is intentionally discontinuous until QST-003 is 
 273 mm <= Dext <= 762 mm       candidate when all other branch gates pass
 ```
 
-For the excluded gap, the required production disposition is fail-closed. No interpolation, nearest-family selection, nominal-size inference or workbook selector may be used.
-
-Outside `60..762 mm` is also outside this bounded screening scope.
+For the excluded QST-003 gap, the required production disposition is fail-closed. No interpolation, nearest-family selection, nominal-size inference or workbook selector may be used. Outside `60..762 mm` is also outside this bounded screening scope.
 
 ## 5. Standard-correlation scope
 
@@ -89,7 +87,7 @@ FLEXIBLE_SMALL
 FLEXIBLE_LARGE
 ```
 
-A family is eligible for the future screening activation only when its exact candidate revision has:
+A family is eligible for future screening only when its exact candidate revision has:
 
 1. controlled equation/source trace;
 2. independent non-self-referential numerical evidence;
@@ -117,9 +115,7 @@ actual natural frequency supplied
 1 Hz < fn <= 3 Hz
 ```
 
-Exactly `1 Hz` is excluded and exactly `3 Hz` is included. `fn > 3 Hz` does not use the advanced correlation.
-
-A valid standard calculation with no qualified advanced path remains a further-engineering-assessment result; it must not be silently converted into an acceptance.
+Exactly `1 Hz` is excluded and exactly `3 Hz` is included. `fn > 3 Hz` does not use the advanced correlation. A valid standard calculation with no qualified advanced path remains a further-engineering-assessment result; it must not be silently converted into an acceptance.
 
 ## 7. Physical/data integrity exclusions
 
@@ -139,9 +135,7 @@ The future screening route must remain fail-closed for at least:
 
 ## 8. Topology/data authority
 
-The production candidate remains table-first.
-
-A complete upstream XLSX is the five-sheet exchange:
+The production candidate remains table-first. A complete upstream XLSX is the five-sheet exchange:
 
 ```text
 Elements
@@ -151,11 +145,39 @@ Catalogue Evidence
 Export Metadata
 ```
 
-An untouched qualified complete XLSX may execute through the preserved complete-exchange path. The first local topology mutation irreversibly downgrades the working copy for that session to Elements-only limited exchange until an explicit source reload.
+An untouched qualified complete XLSX may execute through the preserved complete-exchange path only while **both** controlled identities still match:
 
-Generic Elements CSV never gains certified complete-exchange authority from header compatibility alone.
+```text
+FitTopologyElementsProjection.v1
+  -> SHA-256 of canonical visible Elements projection
 
-## 9. Result semantics
+FitSourceFileSha256.v1
+  -> SHA-256 of the complete XLSX byte stream
+```
+
+The Elements hash proves the engineer-visible working projection still matches the imported source. The full-file hash proves hidden/non-Elements sheets and other XLSX bytes are still the exact imported source. Missing or mismatched fingerprints fail closed.
+
+The first normal topology mutation irreversibly downgrades the working copy for that session to Elements-only limited exchange until an explicit source reload. Cell, row and whole-table revert restore values but do **not** restore complete-exchange authority. Generic Elements CSV never gains certified complete-exchange authority from header compatibility alone.
+
+## 9. Run identity and reproducibility
+
+The production candidate keeps two distinct SHA-256 identities:
+
+```text
+FitRunSnapshot.v1
+  snapshotHash
+  = audit/source/working-state identity
+
+FitEngineeringInputIdentity.v1
+  engineeringInputHash
+  = normalized central FIT request identity
+```
+
+The audit snapshot includes file/source descriptors, full XLSX hash where applicable, Elements projection hash, working rows/row IDs, benchmark identity and authority-downgrade state. The engineering identity excludes source filenames and uses the normalized `resolvedInputs`, calculation ID, method revision and scope.
+
+`FitRunEvidencePackage.v1` must re-verify both canonical payloads and both SHA-256 hashes before export. Evidence export is reproducibility evidence only; it cannot confer screening or design authority.
+
+## 10. Result semantics
 
 The screening candidate may expose method-defined LOF/reference bands only. It must not introduce:
 
@@ -168,23 +190,25 @@ universal vibration/risk/confidence score
 
 `LOF >= 1` and cases where a valid refined path is unavailable remain explicit further-engineering-assessment outcomes.
 
-## 10. Mandatory gates before activation
+## 11. Mandatory gates before activation
 
 A dedicated authority transition is prohibited until all of these are recorded against one exact candidate SHA:
 
 1. controlled EI/project source traceability complete for every included method item;
-2. QST-003 either source-resolved or retained as the explicit scope exclusion above;
+2. QST-003 retained as the explicit scope exclusion above or separately source-resolved;
 3. every included standard and advanced family has independent non-self-referential evidence;
 4. all diameter/span/frequency/LOF boundaries are independently exercised;
 5. accepted engineering quantity families pass SI/US unit invariance through the central API;
 6. DOCX/PDF/JSON/workbook discrepancies inside the candidate scope are dispositioned;
-7. working-state/source-to-result/reproducibility qualification is complete;
-8. `npm run verify:vibration-fit-release` passes from a clean full checkout;
-9. real-browser five-sheet XLSX/CSV/edit/revert/stale/export acceptance passes;
-10. an identified independent vibration engineer approves this exact bounded scope and exclusions;
-11. the Owner explicitly approves the separate authority PR.
+7. cell/row/table working-state revert and topology authority-latch regressions pass;
+8. Elements-projection and complete-XLSX byte-stream anti-bypass regressions pass;
+9. audit/engineering dual-hash and run-evidence reproducibility regressions pass;
+10. `npm run verify:vibration-fit-release` passes from a clean full checkout;
+11. real-browser five-sheet XLSX/CSV/edit/revert/stale/export acceptance passes;
+12. an identified independent vibration engineer approves this exact bounded scope and exclusions;
+13. the Owner explicitly approves the separate authority PR.
 
-## 11. Authority transition rule
+## 12. Authority transition rule
 
 This document is a scope freeze only. The implementation must continue to reject screening execution until a later, intentionally small governance change updates the registered FIT qualification/authority state.
 
