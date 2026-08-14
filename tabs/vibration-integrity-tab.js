@@ -5,7 +5,12 @@ import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/
 import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
 import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile, vibrationIntegrityTopologyExecutionInput } from './vibration-integrity-input-runtime.js';
 import { buildVibrationIntegrityRunSnapshot } from './vibration-integrity-run-snapshot.js';
-import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
+import {
+  createVibrationUserDataUiState,
+  handleVibrationUserDataChange,
+  handleVibrationUserDataClick,
+  renderVibrationIntegrityWithUserData,
+} from './vibration-integrity-user-data-shell.js';
 function ensureStylesheet() {
   if (document.querySelector('link[data-vibration-integrity-style="true"]')) return;
   const link = document.createElement('link');
@@ -42,6 +47,7 @@ function workspaceOptions(state) {
 function initialState() {
   return {
     ...createVibrationIntegrityInputRuntimeState(),
+    ...createVibrationUserDataUiState(),
     preflight: null,
     envelope: null,
     workspace: null,
@@ -61,7 +67,7 @@ export function renderVibrationIntegrityTab(container) {
   ensureStylesheet();
   const state = initialState();
   function render() {
-    if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
+    if (!state.destroyed) container.innerHTML = renderVibrationIntegrityWithUserData(state);
   }
   function discardCalculatedState() {
     state.preflight = null;
@@ -227,6 +233,7 @@ export function renderVibrationIntegrityTab(container) {
     return true;
   }
   function onClick(event) {
+    if (handleVibrationUserDataClick(state, event, render)) return;
     if (handleTableClick(event)) return;
     const row = event.target.closest('[data-vi-row]');
     if (row) {
@@ -258,6 +265,7 @@ export function renderVibrationIntegrityTab(container) {
     return true;
   }
   function onChange(event) {
+    if (handleVibrationUserDataChange(state, event, render)) return;
     const fileTarget = event.target.dataset.viFile;
     if (fileTarget) {
       const file = event.target.files?.[0];
