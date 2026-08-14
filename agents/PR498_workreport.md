@@ -12,7 +12,7 @@
 | PR | `#498` — OPEN / MERGEABLE at pre-merge checkpoint |
 | Branch | `agent/aiv-mock-flare-eit` |
 | Current base | `main@b72cdb8a7d79a8b5541250ff00a1580aee3a7e96` |
-| REPORT_BASIS_HEAD | `aa07330bb2186b4e0a1f7ada1283a8a6e711c73a` |
+| Final technical head before report-only closeout | `6844e861475653a159021835d7ae5d359e1a8b6f` |
 | Net diff | 9 files; AIV UI/mock-loader/tests + this report only. |
 | External controlled example | `reallaksh19/Common` PR #3 — `SMALL-FLARE-2RV-SUBHEADER-001`. |
 | Repository validation reference | `ValidationRecords/VibrationIntegrity/aiv-small-flare-eit-roundtrip-v1.json`. |
@@ -20,7 +20,7 @@
 | Hosted CI | Latest observed hosted jobs executed no steps; classify `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product PASS/FAIL. |
 | Merge authority | **AUTHORIZED by Owner on 2026-08-14**. Owner explicitly stated final validation will be performed later and instructed proceeding. |
 | Validation deferral | **OWNER-ACCEPTED DEFERRED VALIDATION** — native release suite and real-browser acceptance remain `NOT_RUN`; this is recorded, not reclassified as PASS. |
-| EXACT_NEXT_ACTION | Mark PR ready and merge exact head; Owner will perform final user validation later. |
+| EXACT_NEXT_ACTION | Merge current PR head; Owner will perform final user validation later. |
 
 ## Owner Authorization / Validation Deferral
 
@@ -159,12 +159,9 @@ Expected values are confined to regression tests; the production mock contains e
   - assert imported result is `REVIEW_REQUIRED` and not current screening authority.
 - Regression commit: `6844e861475653a159021835d7ae5d359e1a8b6f`.
 
-### Epoch 4 — final pre-merge reconciliation
-- Exact checkpoint before final report-only commit: `b3da1dc70835c2cf5a1946240f95a1c95266fbe7`.
-- Compare against live `main`: `ahead_by=19`, `behind_by=0`.
-- Net diff remains exactly 9 files.
-- PR reported `mergeable=true`.
-- This final report update is documentation-only; merge must use the new exact head shown in PR metadata after this commit.
+### Epoch 4 — final reconciliation
+- Pre-merge compare against live `main` was clean with `behind_by=0` and exactly 9 changed files.
+- Subsequent commits changed only this work report; technical implementation remained unchanged from the round-trip regression commit onward.
 
 ## Pre-edit / Recovery Control
 
@@ -199,7 +196,7 @@ Native repo backup CLI was unavailable in this connector runtime. Exact pre-edit
 
 | Check | Status | Observation | Oracle | Basis / limitation |
 |---|---|---|---|---|
-| Current-base reconciliation | PASS | SOURCE_INSPECTION | NONE | Pre-merge checkpoint: ahead=19, behind=0. |
+| Current-base reconciliation | PASS | SOURCE_INSPECTION | NONE | Pre-merge checkpoint behind=0. |
 | Changed-file boundary | PASS | SOURCE_INSPECTION | NONE | 9 explained files; no numerical/writer/workflow implementation file changed. |
 | Existing `.eit` writer reuse | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | Existing PR464/469 production path retained. |
 | Mock engineering inputs vs Common PR #3 | PASS | SOURCE_INSPECTION | AUTHORITATIVE_REFERENCE | Same RV/process/dimensions/path lengths. |
