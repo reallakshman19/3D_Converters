@@ -15,6 +15,11 @@ import {
   createAivCanvasRelationshipState,
   setAivCanvasRelationshipMode,
 } from '../tabs/vibration-aiv-canvas-relationship.js';
+import {
+  aivRelationshipDeleteMessage,
+  aivRelationshipIdentityFromTableRow,
+  confirmAivRelationshipDelete,
+} from '../tabs/vibration-aiv-delete-safeguard.js';
 
 function value(table, rowIndex, column) {
   return table.rows[rowIndex][table.header.indexOf(column)];
@@ -64,6 +69,17 @@ test('relationship deletion removes only the selected relationship row and canno
   assert.equal(assessments.rows.length, 0);
 });
 
+test('relationship deletion confirmation is identity-specific and fails closed', () => {
+  const table = addAivRelationshipInputRow(createEmptyAivInputTable('relationships'), RELATIONSHIP);
+  const identity = aivRelationshipIdentityFromTableRow(table, 0);
+  assert.deepEqual(identity, RELATIONSHIP);
+  assert.match(aivRelationshipDeleteMessage(identity), /SRC-1 → ASSMT-1 · CASE-A/u);
+  assert.equal(confirmAivRelationshipDelete(identity, () => true), true);
+  assert.equal(confirmAivRelationshipDelete(identity, () => false), false);
+  assert.equal(confirmAivRelationshipDelete(identity, null), false);
+  assert.equal(confirmAivRelationshipDelete(null, () => true), false);
+});
+
 test('RELATIONSHIPS mode plans source then assessment creation using identity only', () => {
   const relationships = setAivCanvasRelationshipMode(createAivCanvasRelationshipState(), AIV_CANVAS_MODE.RELATIONSHIPS);
   const source = Object.freeze({ nodeKind: 'SOURCE', canonicalId: 'SRC-1', caseId: 'CASE-A', selectionKey: 'SOURCE:SRC-1:CASE-A' });
@@ -101,6 +117,7 @@ test('production relationship editing stays on the table mutation boundary and c
   assert.match(qualification, /addAivRelationshipInputRow/u);
   assert.match(qualification, /applyTableMutation\('relationships'/u);
   assert.match(qualification, /deleteAivInputRow\(state\.tables\.relationships/u);
+  assert.match(qualification, /confirmAivRelationshipDelete/u);
   assert.match(view, /data-aiv-canvas-mode="RELATIONSHIPS"/u);
   assert.match(view, /data-aiv-source-canonical-id/u);
   assert.match(view, /data-aiv-assessment-canonical-id/u);
