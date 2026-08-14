@@ -7,7 +7,7 @@
 - Base at allocation: `main@36748e381012bb52ba720cc288101948115721bb`
 - Work intent: IMPLEMENT
 - Criticality: ENGINEERING_CRITICAL
-- Recovery state: CONTINUE
+- Recovery state: HANDOFF_READY_FOR_REAL_SOURCE_EXECUTION
 - Coordination: SAFE with #471
 - Authority invariant: source/master state remains `CANDIDATE`; `engineeringAuthority=NONE`; `screeningAuthority=NOT_AUTHORIZED`; `designAuthority=false`; `masterValuesPublished=false`.
 
@@ -15,12 +15,9 @@
 
 Merged #470 is the canonical source-recovery transport. Closed #452 is superseded historical evidence only and must not be ported as a production path.
 
-This PR starts the SBC branch of #450 with the required deterministic source inventory and source-plan artifact. It separates:
-- tabular T3 targets recoverable through DocumentEvidence v2;
-- geometry/location score rules requiring non-table evidence;
-- Figures T3-1…T3-4 requiring a dedicated curve/digitization workstream.
+This PR implements the first bounded SBC slice of #450: a deterministic source inventory that pins the controlled EI PDF and separates the nine T3 recovery targets into three table targets, two non-table rule targets, and four figure/curve targets.
 
-No pages, table rows, score values, or curve points may be inferred. Missing evidence remains explicit.
+No pages, table rows, score values, curve points, or master values are inferred. Missing content evidence remains explicit `REVIEW_REQUIRED` / `NOT_RUN`.
 
 ## Canonical flow
 
@@ -28,48 +25,73 @@ No pages, table rows, score values, or curve points may be inferred. Missing evi
 
 ## Ground truth / coordination
 
-- #471 owns T2.8 valve-closure candidate evidence; PR480 will not touch its candidate files/values.
+- #471 owns T2.8 valve-closure candidate evidence; PR480 does not touch its candidate files/values.
 - #474 owns AIV CI; no overlap.
 - #476 owns policy/docs; no production overlap.
-- no active SBC PR found.
+- no active SBC PR was found at grounding.
 - #452 was explicitly closed as superseded by #470/current main.
 
 Classification: `SAFE`.
 
-## Active hypothesis / falsifier
+## Implemented artifacts
 
-**Hypothesis:** the merged Stage 5C target registry and controlled Common Git object are sufficient to generate a deterministic SBC source inventory without guessed pages or values.
-
-**Falsifier:** any locator/page/value not established by controlled evidence remains `REVIEW_REQUIRED`/`NOT_RUN`; the implementation must not supply a default.
-
-## Intended changed-file ledger
-
-New:
 - `scripts/inventory-vibration-master-sources.mjs`
+  - emits `VibrationMasterSourceInventory.v1` for `EI_AVIFF.T3.SBC`;
+  - binds current Stage 5C target registry rather than duplicating its three table IDs;
+  - records DocumentEvidence v2 discover/extract endpoints and explicit-reviewer selection policy;
+  - emits no page defaults, source values, master values, or curve points.
 - `ValidationRecords/VibrationMasters/source-inventory-v1.json`
+  - exactly 9 targets: 3 TABLE / 2 RULE / 4 CURVE;
+  - source-pinned, publication blocked, authority unchanged.
 - `tests/vibration-master-source-inventory-v2.test.mjs`
+  - source identity and execution-state guard;
+  - target-set and type separation;
+  - no guessed page/locator/value/authority;
+  - rule/curve rejection from Stage 5C table extraction;
+  - deterministic committed-artifact parity.
 
-Potential additional new SBC-only source-plan helpers/fixtures if needed. Existing Stage 5C files will be changed only if a demonstrated defect requires it and only after mandatory backup.
+## Controlled source verification
+
+Pinned source:
+
+```text
+repository: reallaksh19/Common
+commit:     fb549185b9b27edc2379734240320a85c5bef9f6
+path:       EI - AVIFF Guidelines 2nd Edition.pdf
+blob:       9d3eccc56429411e17c07a579bdebbd13cb0bdc5
+size:       10,348,594 bytes
+commit tree: 531f2d08efbd07d20b38a943d8c0e09618499e01
+```
+
+The pinned Common Git tree was independently inspected and contains the exact path/blob/size above. This proves source object identity only; it does **not** prove any T3 page/table/figure content.
 
 ## Validation ledger
 
-- Grounding/supersession reconciliation: PASS / SOURCE_INSPECTION / AUTHORITATIVE_REFERENCE
-- Controlled Common Git object metadata: NOT_RUN
-- Deterministic inventory tests: NOT_RUN
-- Live DocumentEvidence discovery/extraction: NOT_RUN
-- SBC reconciliation: NOT_RUN
-- Numerical master publication: NOT_APPLICABLE
+- Grounding/supersession reconciliation: **PASS** / SOURCE_INSPECTION / AUTHORITATIVE_REFERENCE
+- Controlled Common Git object metadata: **PASS** / SOURCE_INSPECTION / AUTHORITATIVE_REFERENCE
+- Deterministic inventory regression: **PASS 5/5** / EXECUTED_TEST / TEST_ORACLE
+- Committed artifact equals deterministic builder: **PASS** / EXECUTED_TEST / TEST_ORACLE
+- Live DocumentEvidence `/v2/tables/discover`: **NOT_RUN**
+- Live DocumentEvidence explicit-page `/v2/tables/extract`: **NOT_RUN**
+- SBC table/rule/curve reconciliation: **NOT_RUN**
+- Numerical master publication: **NOT_APPLICABLE / BLOCKED**
+- Engineering/screening/design authority promotion: **NOT_APPLICABLE**
 
 ## Negative assurance
 
-Must remain unchanged:
+Verified by design/tests for this slice:
 - no production master values;
-- no calculator or UI numerical behavior;
+- no calculator or UI numerical behavior changed;
 - no source-page guessing;
 - no T2.8 overlap;
-- no curve digitization in this PR;
+- no curve digitization;
+- rules/curves cannot be routed through the Stage 5C table path;
 - no authority promotion.
+
+## Remaining blocker / next evidence gate
+
+The exact controlled PDF bytes and a runnable DocumentEvidence v2 service must be available together before the three SBC table targets can advance beyond source identity. The next valid step is discovery, followed by explicit reviewer selection of pages/locator/candidate IDs and only then extraction. Figures T3-1…T3-4 and geometry/location rules remain separate evidence programs.
 
 ## EXACT_NEXT_ACTION
 
-Verify the exact controlled EI PDF object metadata in `reallaksh19/Common`, inspect the Stage 5C receipt contract, then implement the deterministic inventory/schema with separate TABLE, NON_TABLE_RULE, and CURVE recovery states.
+Run `/v2/tables/discover` against the exact controlled EI PDF bytes, record candidate/page evidence without accepting values, then prepare explicit reviewer selections for the three registered SBC table targets. Do not begin numerical master publication in this PR.
