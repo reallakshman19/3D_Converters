@@ -1,3 +1,4 @@
+import { VIBRATION_FIT_DATA_BLOCKER_FIELDS } from '../converters/vibration/tabular/fit-data-blockers.js';
 import { buildFitMechanismBenchmarkComparison } from '../converters/vibration/mechanisms/index.js';
 import {
   vibrationIntegrityInputCellState,
@@ -130,12 +131,39 @@ function sourceDataArea(tables) {
   </section>`;
 }
 
+function dataBlockerArea(state, tables) {
+  const supported = Object.keys(VIBRATION_FIT_DATA_BLOCKER_FIELDS).join(', ');
+  return `<section class="vi-source-data"><div class="vi-section-head"><div><h3>Data Blockers</h3><p>Enter missing engineering data here instead of relying on hidden defaults. ACTIVE rows may fill missing source fields; HOLD and RESOLVED rows are audit-only. Existing source values always win and a collision fails closed.</p></div></div>
+    <section class="vi-card vi-import-card"><div class="vi-import-grid"><label class="vi-file-field"><span>FIT data blocker CSV</span><input type="file" data-vi-file="dataBlockers" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files?.dataBlockers, tables.dataBlockers, 'VibrationFitDataBlockerCsv.v1 · optional manual gap data')}</span></label></div><div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="data-blocker-template">Data-blocker template</button></div><div class="vi-banner warn"><strong>Manual data is evidence, not authority.</strong><span>Every ACTIVE value requires Canonical ID, field, source and status; numeric values require units. QST-003 remains a method/domain exclusion and cannot be bypassed by this table.</span></div><small>Supported fields: ${esc(supported)}</small></section>
+    ${editableTable('FIT manual data gaps', tables.dataBlockers, 'One row per unresolved input. Use ACTIVE only when the value and provenance are ready to participate in the benchmark workflow.')}
+  </section>`;
+}
+
+function inputTabs(selected) {
+  const tabs = [['engineering', 'Engineering Basis'], ['source', 'Source Data'], ['data-blockers', 'Data Blockers']];
+  return `<div class="vi-detail-tabs">${tabs.map(([id, label]) => `<button type="button" class="vi-btn${selected === id ? ' primary' : ''}" data-vi-input-tab="${id}">${label}</button>`).join('')}</div>`;
+}
+
+function inputTabBody(state, tables) {
+  if (state.inputTab === 'source') return sourceDataArea(tables);
+  if (state.inputTab === 'data-blockers') return dataBlockerArea(state, tables);
+  return renderVibrationEngineeringBasis(state);
+}
+
 function fallbackTable(kind) {
   return { kind, header: [], rows: [], records: [], rowIds: [], sourceName: null, sourceKind: 'WORKING_TABLE', dirty: false, editCount: 0, authorityDowngraded: false };
 }
 
+function fallbackTables() {
+  return {
+    topology: fallbackTable('topology'), operating: fallbackTable('operating'),
+    enrichment: fallbackTable('enrichment'), dataBlockers: fallbackTable('dataBlockers'),
+  };
+}
+
 export function renderVibrationIntegrityInputArea(state) {
-  const tables = state.tables ?? { topology: fallbackTable('topology'), operating: fallbackTable('operating'), enrichment: fallbackTable('enrichment') };
+  const tables = state.tables ?? fallbackTables();
   const inputState = state.tables ? state : { ...state, tables };
-  return `${benchmarkPanel(inputState)}${importPanel(inputState)}${renderVibrationEngineeringBasis(inputState)}${sourceDataArea(tables)}`;
+  const selected = inputState.inputTab ?? 'engineering';
+  return `${benchmarkPanel(inputState)}${importPanel(inputState)}${inputTabs(selected)}${inputTabBody({ ...inputState, inputTab: selected }, tables)}`;
 }
