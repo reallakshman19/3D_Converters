@@ -43,22 +43,27 @@ function blockerError(code, message, details = {}) {
   return vibrationTabularInputError(code, message, details);
 }
 
-function typedValue(raw, definition, rowNumber) {
+function typedValue(raw, definition, rowNumber, status) {
+  const rawText = text(raw);
+  if (!rawText && status !== 'ACTIVE') return null;
+  if (!rawText) throw blockerError(
+    'FIT_DATA_BLOCKER_VALUE_REQUIRED', 'ACTIVE blocker input requires an explicit value.', { row: rowNumber },
+  );
   if (definition.type === 'NUMBER') {
-    const value = Number(text(raw));
+    const value = Number(rawText);
     if (!Number.isFinite(value)) throw blockerError(
       'FIT_DATA_BLOCKER_VALUE_INVALID', 'Numeric blocker input must be finite.', { row: rowNumber, value: raw },
     );
     return value;
   }
   if (definition.type === 'BOOLEAN') {
-    const normalized = text(raw).toLowerCase();
+    const normalized = rawText.toLowerCase();
     if (!['true', 'false'].includes(normalized)) throw blockerError(
       'FIT_DATA_BLOCKER_VALUE_INVALID', 'Boolean blocker input must be true or false.', { row: rowNumber, value: raw },
     );
     return normalized === 'true';
   }
-  return text(raw);
+  return rawText;
 }
 
 function validateScope(row, definition, rowNumber) {
@@ -73,11 +78,28 @@ function validateScope(row, definition, rowNumber) {
 }
 
 function validateEnum(row, rowNumber) {
+  if (row.value === null) return;
   if (row.field === 'PHASE' && !PHASES.includes(row.value)) throw blockerError(
     'FIT_DATA_BLOCKER_VALUE_INVALID', `PHASE must be one of ${PHASES.join(', ')}.`, { row: rowNumber },
   );
   if (row.field === 'MULTIPHASE_RESOLUTION_MODE' && !MODES.includes(row.value)) throw blockerError(
     'FIT_DATA_BLOCKER_VALUE_INVALID', `MULTIPHASE_RESOLUTION_MODE must be one of ${MODES.join(', ')}.`, { row: rowNumber },
+  );
+}
+
+function validateUnit(definition, status, value, unit, field, rowNumber) {
+  if (definition.type !== 'NUMBER' && unit) throw blockerError(
+    'FIT_DATA_BLOCKER_UNIT_INVALID', `${field} does not accept an engineering unit.`, { row: rowNumber, field, unit },
+  );
+  if (definition.type !== 'NUMBER') return;
+  if (value !== null && !unit) throw blockerError(
+    'FIT_DATA_BLOCKER_UNIT_REQUIRED', `${field} requires an explicit engineering unit.`, { row: rowNumber, field },
+  );
+  if (value === null && unit) throw blockerError(
+    'FIT_DATA_BLOCKER_VALUE_REQUIRED', `${field} cannot declare a unit without a value.`, { row: rowNumber, field },
+  );
+  if (status === 'ACTIVE' && value === null) throw blockerError(
+    'FIT_DATA_BLOCKER_VALUE_REQUIRED', `${field} ACTIVE row requires value and unit.`, { row: rowNumber, field },
   );
 }
 
@@ -102,15 +124,11 @@ function parseRow(row, index) {
     'FIT_DATA_BLOCKER_FIELD_UNSUPPORTED', `Unsupported FIT data-blocker field ${field}.`, { row: rowNumber, field },
   );
   const unit = text(row[5]);
-  if (definition.type === 'NUMBER' && !unit) throw blockerError(
-    'FIT_DATA_BLOCKER_UNIT_REQUIRED', `${field} requires an explicit engineering unit.`, { row: rowNumber, field },
-  );
-  if (definition.type !== 'NUMBER' && unit) throw blockerError(
-    'FIT_DATA_BLOCKER_UNIT_INVALID', `${field} does not accept an engineering unit.`, { row: rowNumber, field, unit },
-  );
+  const value = typedValue(row[4], definition, rowNumber, status);
+  validateUnit(definition, status, value, unit, field, rowNumber);
   const parsed = {
     canonicalId, line: text(row[1]) || null, caseId: text(row[2]) || null, field,
-    value: typedValue(row[4], definition, rowNumber), unit: unit || null, source,
+    value, unit: unit || null, source,
     sourceRevision: text(row[7]) || null, recordId: text(row[8]) || null,
     status, reviewer: text(row[10]) || null, notes: text(row[11]) || null,
   };
