@@ -38,6 +38,13 @@ export {
   evaluateFitScreeningCandidateScope,
 } from './screening-candidate.js';
 
+export {
+  FIT_INDEPENDENT_SCREENING_REVIEW_SCHEMA,
+  assertFitIndependentScreeningReviewComplete,
+  createFitIndependentScreeningReviewTemplate,
+  validateFitIndependentScreeningReview,
+} from './independent-screening-review.js';
+
 export { calculateFit } from './calculate.js';
 export { assessFit } from './assess.js';
 export {
