@@ -22,6 +22,10 @@ const OPERATING_HEADER = [
   'Dynamic Viscosity','Dynamic Viscosity Unit','Velocity','Velocity Unit','Source','Source Revision','Record ID',
 ];
 
+function blockerRow(field, value, unit) {
+  return ['CID-1','L-1','CASE-1',field,value,unit,'USER-INPUT','','B-1','ACTIVE','eng-a',''];
+}
+
 test('editable operating CSV loads into original/working rows and round-trips quoted values', () => {
   const csv = `${OPERATING_HEADER.join(',')}\r\nL-100,CASE-1,"Normal, wet",GAS,12,kg/s,8,kg/m3,,,,,,0.00002,Pa*s,,,"HMB, issued",R3,REC-1\r\n`;
   const table = parseVibrationIntegrityInputCsv('operating', csv, { sourceName: 'cases.csv' });
@@ -65,12 +69,28 @@ test('unit-only edit converts the paired operating value through central enginee
   assert.equal(reverted.dirty, false);
 });
 
-test('unknown numeric enrichment unit semantics fail closed instead of guessing conversion', () => {
-  const table = createVibrationIntegrityInputTable('enrichment', [[
+test('data-blocker unit-only edit converts the paired manual value and exact revert restores both', () => {
+  const table = createVibrationIntegrityInputTable('dataBlockers', [blockerRow('MASS_FLOW', '1', 'kg/s')]);
+  const converted = updateVibrationIntegrityInputCell(table, 0, 5, 'lb/hr');
+  assert(Math.abs(Number(converted.rows[0][4]) - 7936.64143865559) < 1e-10);
+  assert.equal(converted.rows[0][5], 'lb/hr');
+  const reverted = revertVibrationIntegrityInputCell(converted, 0, 5);
+  assert.equal(reverted.rows[0][4], '1');
+  assert.equal(reverted.rows[0][5], 'kg/s');
+  assert.equal(reverted.dirty, false);
+});
+
+test('unknown numeric enrichment and blocker unit semantics fail closed instead of guessing conversion', () => {
+  const enrichment = createVibrationIntegrityInputTable('enrichment', [[
     'CID-1','L-1','','FUTURE_UNKNOWN_QUANTITY','10','NUMBER','m','ENG','','REC-1','','',
   ]]);
   assert.throws(
-    () => updateVibrationIntegrityInputCell(table, 0, 6, 'mm'),
+    () => updateVibrationIntegrityInputCell(enrichment, 0, 6, 'mm'),
+    (error) => error?.code === 'VIBRATION_INPUT_UNIT_CONTEXT_UNRESOLVED',
+  );
+  const blocker = createVibrationIntegrityInputTable('dataBlockers', [blockerRow('FUTURE_UNKNOWN_QUANTITY', '10', 'm')]);
+  assert.throws(
+    () => updateVibrationIntegrityInputCell(blocker, 0, 5, 'mm'),
     (error) => error?.code === 'VIBRATION_INPUT_UNIT_CONTEXT_UNRESOLVED',
   );
 });
