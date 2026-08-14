@@ -1,4 +1,4 @@
-import { installModeAConsolidatedPreviewEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-ui.js?v=20260813-mode-a-easy-bulk-1';
+import { installModeAConsolidatedPreviewEasyUi } from './xml-cii-adapted-mode-a-consolidated-easy-ui.js?v=20260814-preview-tools-1';
 import { modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-easy-bulk-1';
 
 export function installModeAConsolidatedPreviewEasyUiFromWorkspace(workspace, stateRef) {
