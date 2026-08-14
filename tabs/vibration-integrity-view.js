@@ -113,6 +113,16 @@ function mechanismCell(assessment) {
   return `<strong>${esc(assessment.lof)}</strong>${band}${currency}`;
 }
 
+function evidenceCell(row) {
+  const strengths = [...new Set([
+    row.phaseEvidenceStrength,
+    row.correlationEvidenceStrength,
+  ].filter((value) => value !== null && value !== undefined && value !== ''))];
+  return strengths.length
+    ? strengths.map((value) => `<span class="vi-mono">${esc(value)}</span>`).join('<br>')
+    : '<span class="vi-empty">—</span>';
+}
+
 function mechanismHeaders() {
   return VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => (
     `<th title="${esc(`${mechanism.title} · ${mechanism.sourceSection}`)}">${esc(mechanism.label)}</th>`
@@ -120,7 +130,7 @@ function mechanismHeaders() {
 }
 
 function tableRows(workspace, resultState) {
-  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 7;
+  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 8;
   if (!workspace?.rows?.length) {
     return `<tr><td colspan="${colspan}" class="vi-table-empty">No rows match the current table filters.</td></tr>`;
   }
@@ -134,6 +144,7 @@ function tableRows(workspace, resultState) {
       ${matrix.assessments.map(mechanismCell).map((value) => `<td>${value}</td>`).join('')}
       <td>${governing ? `${esc(governing.mechanism.label)} · ${esc(governing.lof)}` : '<span class="vi-empty">—</span>'}</td>
       <td>${cell(row.qualificationState)}</td>
+      <td>${evidenceCell(row)}</td>
       <td>${row.candidateForEngineeringReview ? 'Review candidate' : '<span class="vi-empty">—</span>'}</td>
     </tr>`;
   }).join('');
@@ -154,7 +165,7 @@ function workspaceTable(state) {
     <div class="vi-banner warn"><strong>Mechanism authority boundary.</strong><span>FIT remains BENCHMARK ONLY. Mechanical excitation, pulsation, AIV, transients, cavitation/flashing, thermowells and SBC are NOT IMPLEMENTED in this workspace.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
-      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Implemented governing</th><th>Qualification</th><th>Review</th>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Implemented governing</th><th>Qualification</th><th>FIT evidence</th><th>Review</th>
     </tr></thead><tbody>${tableRows(state.workspace, state.resultState)}</tbody></table></div>
   </section>`;
 }
