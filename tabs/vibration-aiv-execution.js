@@ -37,6 +37,7 @@ function screeningPackageInput(state) {
     assumptionResolution: state.assumptionResolution,
     flareNetwork: state.flareNetworkActive ? state.flareNetwork : null,
     generatedInputSet: state.flareNetworkActive ? state.generatedInputSet : null,
+    eitImportEvidence: state.eitImport?.evidence ?? null,
   };
 }
 
@@ -140,7 +141,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
 
   async function buildScreeningPackage() {
     if (!state.screeningResult?.ok || !state.readinessEnvelope) return null;
-    const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-1');
+    const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-2');
     return buildAivScreeningExportPackage(screeningPackageInput(state));
   }
 
@@ -154,10 +155,10 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     const screeningPackage = await buildScreeningPackage();
     if (!screeningPackage) return;
     try {
-      const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-eit-export-1');
-      const title = state.flareNetworkActive
+      const { serializeAivEitExport } = await import('../converters/vibration/aiv/aiv-eit-export.js?v=aiv-eit-export-2');
+      const title = state.eitImport?.title || (state.flareNetworkActive
         ? (state.flareNetwork?.networkId || 'AIV Flare Network')
-        : (state.topologyInput?.sourceFileName || 'AIV Screening Export');
+        : (state.topologyInput?.sourceFileName || 'AIV Screening Export'));
       const text = serializeAivEitExport({ screeningPackage, title });
       downloadText(text, 'aiv-screening-result.eit', 'application/json;charset=utf-8');
     } catch (error) {
