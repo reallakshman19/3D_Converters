@@ -65,6 +65,7 @@ Consolidated Weight Match now exposes:
 Safety/authority rules:
 
 - DTXR Rating is ephemeral Weight Match rerank authority only; it does not silently write Preview Rating.
+- Leaving DTXR mode clears its transient reranked candidate so later bulk acceptance cannot accidentally use stale DTXR-derived candidate state.
 - Bulk preferred application is exact-only: preferred + direct + 100%; inferred/interpolated/extrapolated/factor/fallback candidates remain Review.
 - Simple per-row `Use`/exact fill writes source-local `overrides.rigidWeight` and updates the visible row in place instead of rebuilding all XML Weight Match data.
 - Undo and true candidate-policy changes still rebuild when required.
@@ -133,6 +134,7 @@ Earlier PR495 Preview/service-process paths remain part of the same branch.
 - Native Node test execution: **NOT_RUN / INFRASTRUCTURE_BLOCKED**. `git ls-remote https://github.com/reallaksh19/3D_Converters.git HEAD` fails because the native runtime cannot resolve `github.com`.
 - Browser acceptance: **NOT_RUN**.
 - GitHub Actions: must be checked from the exact PR head; absence of a run is not PASS.
+- Latest branch comparison during implementation: based directly on `main@56f5a639edbfc629b5977abff7475ecada4a6d37`, `behind=0`.
 
 ## Qualification still required
 
