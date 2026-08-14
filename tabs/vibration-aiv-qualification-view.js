@@ -42,7 +42,7 @@ function independentBenchmarkRows() {
 }
 
 function evidenceHtml(state) {
-  return `<details class="aivq-disclosure aivq-evidence-disclosure"><summary><span>Qualification evidence & method trace</span><small>Controlled sources, benchmark vectors, promotion evidence and permanent authority boundaries</small></summary><div class="aivq-disclosure-body">
+  return `<details class="aivq-disclosure aivq-evidence-disclosure" data-aiv-disclosure-key="qualification-evidence"><summary><span>Qualification evidence & method trace</span><small>Controlled sources, benchmark vectors, promotion evidence and permanent authority boundaries</small></summary><div class="aivq-disclosure-body">
     ${renderAivPromotionReadinessHtml(state)}
     <section class="aivq-card"><h4>Controlled source set</h4><div class="aivq-grid">
       <div><small>Qualification issue</small><strong>#441</strong></div>
@@ -66,8 +66,8 @@ function evidenceHtml(state) {
 
 export function renderAivQualificationWorkspaceHtml(state = {}) {
   return `<div class="aivq-root">
-    <header class="aivq-header aivq-hero"><div><span class="aivq-eyebrow">EI AVIFF · screening workbench</span><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>SCREENING QUALIFIED</strong><span>Assessment-level result authority</span><span>Design authority: false</span></div></header>
-    <section class="aivq-card aivq-banner is-qualified"><strong>Machine-qualified AIV screening</strong><span>The registered 10-stage kernel owns numerical execution. Import or author inputs, check readiness, then run screening. Configured line/case LOF and imported legacy <code>.eit</code> results remain trace evidence only.</span></section>
+    <header class="aivq-header aivq-hero"><div><span class="aivq-eyebrow">EI AVIFF · screening workbench</span><h3>Acoustic-Induced Vibration</h3><p class="aivq-mono">VIB.AIV.ACOUSTIC</p></div><div class="aivq-authority"><strong>SCREENING QUALIFIED</strong><span>Authority scope: Assessment LOF only</span><span>Line/Case: trace only · Design authority: false</span></div></header>
+    <section class="aivq-card aivq-banner is-qualified"><strong>Machine-qualified AIV screening · bounded release envelope</strong><span>The registered 10-stage kernel owns numerical execution. This release authorizes assessment-level screening within the configured readiness/applicability and Stage-8 screening model/assumption envelope; it is not design approval. Configured line/case LOF and imported legacy <code>.eit</code> results remain trace evidence only.</span></section>
     <main class="aivq-primary-stack">
       ${renderAivInputWorkspaceHtml(state)}
       ${renderAivReadinessPanelHtml(state)}
