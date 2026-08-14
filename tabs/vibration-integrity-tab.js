@@ -1,5 +1,6 @@
 import { buildVibrationFacilityFitPreflightFromTables } from '../converters/vibration/facility/fit-preflight-tabular.js';
 import { serializeVibrationFacilityFitRegisterCsv } from '../converters/vibration/facility/fit-register-export.js';
+import { createVibrationFitDataBlockerCsvTemplate } from '../converters/vibration/tabular/fit-data-blockers.js';
 import { createVibrationEnrichmentCsvTemplate, createVibrationOperatingCaseCsvTemplate } from '../converters/vibration/tabular/templates.js';
 import { buildVibrationWorkspaceModel } from '../converters/vibration/workspace/model.js';
 import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revertVibrationIntegrityInputCell, revertVibrationIntegrityInputRow, revertVibrationIntegrityInputTable, updateVibrationIntegrityInputCell } from './vibration-integrity-input-model.js';
@@ -21,7 +22,7 @@ function workspaceOptions(state) {
 function initialState() {
   return {
     ...createVibrationIntegrityInputRuntimeState(), preflight: null, envelope: null, workspace: null,
-    resultState: 'UNRUN', runSnapshot: null,
+    resultState: 'UNRUN', runSnapshot: null, inputTab: 'engineering',
     filters: { line: '', completeness: '', band: '', candidate: '' },
     sort: { field: 'line', direction: 'asc' }, selectedRowKey: null, detailTab: 'summary',
     busy: false, busyAction: null, error: null, destroyed: false,
@@ -162,6 +163,8 @@ export function renderVibrationIntegrityTab(container) {
   }
   function onClick(event) {
     if (handleTableClick(event)) return;
+    const inputTab = event.target.closest('[data-vi-input-tab]')?.dataset.viInputTab;
+    if (inputTab) { state.inputTab = inputTab; return render(); }
     const row = event.target.closest('[data-vi-row]');
     if (row) { state.selectedRowKey = row.dataset.viRow; state.detailTab = 'summary'; return applyPresentationChange(); }
     const detail = event.target.closest('[data-vi-detail]');
@@ -174,6 +177,7 @@ export function renderVibrationIntegrityTab(container) {
     if (action === 'export-evidence') exportRunEvidence();
     if (action === 'operating-template') downloadVibrationIntegrityText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
     if (action === 'enrichment-template') downloadVibrationIntegrityText(createVibrationEnrichmentCsvTemplate(), 'vibration-enrichment-v1.csv');
+    if (action === 'data-blocker-template') downloadVibrationIntegrityText(createVibrationFitDataBlockerCsvTemplate(), 'vibration-fit-data-blockers-v1.csv');
   }
   function handleTableChange(event) {
     const kind = event.target.dataset.viTableCell;
