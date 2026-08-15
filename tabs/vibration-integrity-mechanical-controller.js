@@ -49,23 +49,25 @@ function setNotApplicable(state, scopeId, value) {
   invalidateResult(state, scopeId);
 }
 
-export function openMechanicalFacilityInputs(state, scopeId, render) {
+export function openMechanicalFacilityInputs(state, scopeId, render, audit) {
   state.workspaceTab = 'mechanical';
   state.mechanicalFacilityScopeId = String(scopeId ?? '').trim();
   state.error = null;
+  audit?.('MECHANICAL_INPUTS_OPENED', {}, state.mechanicalFacilityScopeId || null);
   render();
 }
 
-function clearMechanicalFacilityInputs(state, render) {
+function clearMechanicalFacilityInputs(state, render, audit) {
   const scopeId = state.mechanicalFacilityScopeId;
   if (!scopeId) return;
   setSourceKeys(state, scopeId, []);
   setNotApplicable(state, scopeId, false);
   state.error = null;
+  audit?.('MECHANICAL_INPUTS_CLEARED', {}, scopeId);
   render();
 }
 
-function commitEvaluation(state, scopeId, token, result, render) {
+function commitEvaluation(state, scopeId, token, result, render, audit) {
   if (state.mechanicalPendingByScope?.[scopeId] !== token) return;
   state.mechanicalCandidateResultsByScope = {
     ...state.mechanicalCandidateResultsByScope,
@@ -75,19 +77,24 @@ function commitEvaluation(state, scopeId, token, result, render) {
   delete pending[scopeId];
   state.mechanicalPendingByScope = pending;
   state.error = null;
+  audit?.('MECHANICAL_EVALUATED', {
+    governingLof: result.governingLof,
+    governingSourceKey: result.governingSourceKey,
+  }, scopeId);
   render();
 }
 
-function failEvaluation(state, scopeId, token, error, render) {
+function failEvaluation(state, scopeId, token, error, render, audit) {
   if (state.mechanicalPendingByScope?.[scopeId] !== token) return;
   const pending = { ...state.mechanicalPendingByScope };
   delete pending[scopeId];
   state.mechanicalPendingByScope = pending;
   state.error = String(error?.message || error);
+  audit?.('MECHANICAL_EVALUATION_FAILED', { error: state.error.slice(0, 500) }, scopeId);
   render();
 }
 
-function evaluateMechanicalInputs(state, render) {
+function evaluateMechanicalInputs(state, render, audit) {
   const scopeId = state.mechanicalFacilityScopeId;
   const row = candidateRow(state, scopeId);
   const keys = [...sourceKeys(state, scopeId)];
@@ -103,35 +110,37 @@ function evaluateMechanicalInputs(state, render) {
   state.mechanicalEvaluationSequence = token;
   state.mechanicalPendingByScope = { ...state.mechanicalPendingByScope, [scopeId]: token };
   state.error = null;
+  audit?.('MECHANICAL_EVALUATION_STARTED', { sourceKeys: keys }, scopeId);
   render();
   evaluateMechanicalFacilityCandidate(row, keys)
-    .then((result) => commitEvaluation(state, scopeId, token, result, render))
-    .catch((error) => failEvaluation(state, scopeId, token, error, render));
+    .then((result) => commitEvaluation(state, scopeId, token, result, render, audit))
+    .catch((error) => failEvaluation(state, scopeId, token, error, render, audit));
 }
 
-export function handleMechanicalFacilityClick(state, event, render) {
+export function handleMechanicalFacilityClick(state, event, render, audit) {
   const scopeId = event.target.closest('[data-vi-mechanical-facility-scope]')
     ?.dataset.viMechanicalFacilityScope;
   if (scopeId) {
-    openMechanicalFacilityInputs(state, scopeId, render);
+    openMechanicalFacilityInputs(state, scopeId, render, audit);
     return true;
   }
   if (event.target.closest('[data-vi-mechanical-evaluate]')) {
-    evaluateMechanicalInputs(state, render);
+    evaluateMechanicalInputs(state, render, audit);
     return true;
   }
   if (event.target.closest('[data-vi-mechanical-clear]')) {
-    clearMechanicalFacilityInputs(state, render);
+    clearMechanicalFacilityInputs(state, render, audit);
     return true;
   }
   return false;
 }
 
-export function handleMechanicalFacilityChange(state, event, render) {
+export function handleMechanicalFacilityChange(state, event, render, audit) {
   const scopeId = state.mechanicalFacilityScopeId;
   if (event.target.matches('[data-vi-mechanical-not-applicable]')) {
     if (scopeId) setNotApplicable(state, scopeId, event.target.checked);
     state.error = null;
+    if (scopeId) audit?.('MECHANICAL_NOT_APPLICABLE', { value: event.target.checked }, scopeId);
     render();
     return true;
   }
@@ -144,6 +153,7 @@ export function handleMechanicalFacilityChange(state, event, render) {
   state.mechanicalNotApplicableByScope = { ...state.mechanicalNotApplicableByScope, [scopeId]: false };
   setSourceKeys(state, scopeId, [...selected]);
   state.error = null;
+  audit?.('MECHANICAL_SOURCES_CHANGED', { sourceKey, selected: event.target.checked }, scopeId);
   render();
   return true;
 }
