@@ -60,10 +60,10 @@ const LOCATION_ROWS = Object.freeze([
 function source(base, locator) { return { ...base, locator }; }
 const MASTERS = Object.freeze([
   Object.freeze({ ...COMMON, masterId: EI_AVIFF_SBC_T3_NONCURVE_MASTER_IDS.geometryScores,
-    source: source(EI_COMMON_SOURCE, { sourceType:'TABLE', identifier:'Flowchart T3-3 geometry scoring', section:'T3 / Appendix C', printedPage:74 }),
+    source: source(EI_COMMON_SOURCE, { sourceType:'RULE', identifier:'Flowchart T3-3 geometry scoring', section:'T3 / Appendix C', printedPage:74 }),
     dataSchema:'SbcT3GeometryScoreMaster.v1', data:{ aggregation:'ARITHMETIC_MEAN_OF_FIVE_SCORES', rows:GEOMETRY_ROWS } }),
   Object.freeze({ ...COMMON, masterId: EI_AVIFF_SBC_T3_NONCURVE_MASTER_IDS.locationScores,
-    source: source(EI_COMMON_SOURCE, { sourceType:'TABLE', identifier:'Flowchart T3-9 location scoring', section:'T3 / Appendix C.1.10', printedPage:80 }),
+    source: source(EI_COMMON_SOURCE, { sourceType:'RULE', identifier:'Flowchart T3-9 location scoring', section:'T3 / Appendix C.1.10', printedPage:80 }),
     dataSchema:'SbcT3LocationScoreMaster.v1', data:{ rows:LOCATION_ROWS } }),
   Object.freeze({ ...COMMON, masterId: EI_AVIFF_SBC_T3_NONCURVE_MASTER_IDS.spanRule,
     source: source(P0_SOURCE, { sourceType:'RULE', identifier:'Table T3-2 minimum-span disposition', section:'T3', printedPage:81, pdfPage:89 }),
