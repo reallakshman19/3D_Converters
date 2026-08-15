@@ -98,11 +98,13 @@ function filters(state) {
   </div>`;
 }
 
-function mechanicalInputAction(assessment) {
+function mechanicalInputAction(assessment, compact = false) {
   if (assessment.mechanism.id !== 'mechanicalExcitation' || !assessment.facilityScopeId) return null;
   const incomplete = assessment.assessmentState === 'APPLICABLE_INCOMPLETE';
-  const label = incomplete ? 'Evaluate sources' : 'Mechanical inputs';
-  return `<button type="button" class="vi-row-link" data-vi-mechanical-facility-scope="${esc(assessment.facilityScopeId)}">${label}</button><small class="vi-mono">${incomplete ? 'NOT READY' : 'INPUT REQUIRED'}</small>`;
+  const notApplicable = assessment.assessmentState === 'NOT_APPLICABLE';
+  const label = compact ? 'Edit' : incomplete ? 'Evaluate sources' : 'Mechanical inputs';
+  const status = notApplicable ? 'NOT APPLICABLE' : incomplete ? 'NOT READY' : 'INPUT REQUIRED';
+  return `<button type="button" class="vi-row-link" data-vi-mechanical-facility-scope="${esc(assessment.facilityScopeId)}">${label}</button><small class="vi-mono">${status}</small>`;
 }
 
 function sbcInputAction(assessment) {
@@ -131,7 +133,9 @@ function mechanismCell(assessment) {
       ? '<small class="vi-mono">CANDIDATE MASTER</small>' : '';
   const currency = assessment.resultState === 'STALE_RESULT'
     ? '<small class="vi-mono">STALE_RESULT</small>' : '';
-  return `<strong>${esc(assessment.lof)}</strong>${band}${qualification}${currency}`;
+  const editAction = assessment.mechanism.id === 'mechanicalExcitation'
+    ? mechanicalInputAction(assessment, true) : '';
+  return `<strong>${esc(assessment.lof)}</strong>${band}${qualification}${currency}${editAction ?? ''}`;
 }
 
 function evidenceCell(row) {
@@ -168,6 +172,7 @@ function tableRows(workspace, state) {
       resultState: state.resultState,
       userEngineeringDataRows,
       mechanicalSourceKeysByScope: state.mechanicalSourceKeysByScope ?? {},
+      mechanicalNotApplicableByScope: state.mechanicalNotApplicableByScope ?? {},
       mechanicalCandidateResultsByScope: state.mechanicalCandidateResultsByScope ?? {},
     });
     return `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
