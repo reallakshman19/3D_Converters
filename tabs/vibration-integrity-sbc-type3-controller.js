@@ -1,11 +1,11 @@
-import { calculateSbcType3MasterAssistedCandidate } from '../converters/vibration/sbc/type3-master-assisted-candidate.js';
-import { deriveSbcType3MasterAssistedInputs } from '../converters/vibration/sbc/type3-master-assisted-derivation.js';
+import { calculateSbcType3MasterAssistedCandidate } from '../converters/vibration/sbc/type3-master-assisted-candidate.js?v=20260815-sbc-pf05-cache-1';
+import { deriveSbcType3MasterAssistedInputs } from '../converters/vibration/sbc/type3-master-assisted-derivation.js?v=20260815-sbc-pf05-cache-1';
 import {
   SBC_TYPE3_ENGINEERING_CHANGE_KINDS,
   beginSbcType3CandidateEvaluation,
   commitSbcType3CandidateEvaluation,
   failSbcType3CandidateEvaluation,
-} from './vibration-integrity-sbc-candidate-currentness.js';
+} from './vibration-integrity-sbc-candidate-currentness.js?v=20260815-sbc-pf05-cache-1';
 import {
   addVibrationUserEngineeringDataRow,
   deleteVibrationUserEngineeringDataRow,
@@ -18,7 +18,7 @@ import {
   sbcType3ScopeRevision,
   syncVisibleSbcType3Result,
   visibleSbcType3Result,
-} from './vibration-integrity-sbc-type3-state.js';
+} from './vibration-integrity-sbc-type3-state.js?v=20260815-sbc-pf05-cache-1';
 
 const PHYSICAL = SBC_TYPE3_ENGINEERING_CHANGE_KINDS.physicalInput;
 
