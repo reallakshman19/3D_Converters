@@ -13,13 +13,10 @@ import {
   findAivRelationshipInputRowIndex,
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
-import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js?v=20260815-aiv-pf01-cache-1';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
-import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
 import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
 import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
-import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
 import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js';
 import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js';
 import {
@@ -30,26 +27,26 @@ import {
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
+import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js';
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
 import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js';
 
 export function renderAivQualificationWorkspace(container) {
   ensureAivQualificationStylesheet();
   const state = createInitialAivQualificationState();
-  const canvasController = createAivCanvasInteractionController(container, {
+  const canvasController = createAivUnifiedCanvasController(container, {
+    getNetwork: () => state.flareNetwork,
+    onNetworkChange: applyFlareNetwork,
+    onPresentationChange: applyFlareNetworkPresentation,
     onCreateRelationship: createCanvasRelationship,
     onDeleteRelationship: deleteCanvasRelationship,
     onSelectionChange: updateCanvasSelectionDetail,
+    onError: (error) => { state.error = String(error?.message || error); render(); },
   });
   const canvasExportController = createAivCanvasExportController(container, {
     getState: () => state,
     getLayout: () => canvasController.getLayout(),
-  });
-  const flareNetworkController = createAivFlareNetworkAuthoringController(container, {
-    getNetwork: () => state.flareNetwork,
-    onNetworkChange: applyFlareNetwork,
-    onPresentationChange: applyFlareNetworkPresentation,
-    onError: (error) => { state.error = String(error?.message || error); render(); },
   });
   const execution = createAivExecutionActions({ state, render, downloadText: downloadAivText });
   const assumptionAcceptanceController = createAivAssumptionAcceptanceController({ state, render, container });
@@ -67,14 +64,14 @@ export function renderAivQualificationWorkspace(container) {
 
   function showCanvasError(error) {
     state.canvasError = String(error?.message || error);
-    const card = container.querySelector('.aiv-canvas-card');
+    const canvasCard = container.querySelector('.aiv-canvas-card');
     const documentRef = container.ownerDocument ?? globalThis.document;
-    if (!card || !documentRef?.createElement) return;
+    if (!canvasCard || !documentRef?.createElement) return;
     const banner = documentRef.createElement('div');
     banner.className = 'aivq-banner is-warning';
     banner.dataset.aivCanvasError = 'true';
     banner.textContent = `Canvas unavailable: ${state.canvasError}. Engineering tables and screening controls remain authoritative and usable.`;
-    card.prepend(banner);
+    canvasCard.prepend(banner);
   }
 
   function render() {
@@ -90,7 +87,7 @@ export function renderAivQualificationWorkspace(container) {
   function updateCanvasSelectionDetail(selection) {
     state.selectedCanvasKey = selection?.selectionKey ?? null;
     const host = container.querySelector('[data-aiv-canvas-selected-detail-host]');
-    if (host) host.innerHTML = renderAivCanvasSelectedDetailHtml(state, state.selectedCanvasKey);
+    if (host) host.innerHTML = renderAivUnifiedCanvasSelectedDetailHtml(state, state.selectedCanvasKey);
   }
 
   function applyFlareNetworkPresentation(network) {
@@ -272,7 +269,6 @@ export function renderAivQualificationWorkspace(container) {
 
   return () => {
     state.destroyed = true;
-    flareNetworkController.destroy();
     canvasExportController.destroy();
     canvasController.destroy();
     container.removeEventListener('click', onClick);
