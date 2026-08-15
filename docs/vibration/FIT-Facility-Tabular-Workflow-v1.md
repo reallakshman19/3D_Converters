@@ -369,4 +369,4 @@ screeningAuthorized = false
 designAuthority = false
 ```
 
-Promotion to bounded production screening requires the independent source/method review, exact release regression, browser/file acceptance, bounded central API qualification and independent engineering approval defined by the FIT production qualification programme.
+For this FIT candidate, controlled reproduction of the Owner-specified worked examples at `Common@7bfead910f6bca91b10748ead009e40f20c82219` (DOCX blob `ceee15ed5f7f320045d5f3979024e2e8664613f2`) is sufficient engineering benchmark qualification; no separate independent vibration-engineer sign-off is required. Promotion to bounded screening still requires controlled source/method traceability, the exact release regression, browser/real-file acceptance, bounded central API qualification, QST-003 exclusion, reproducibility controls and explicit Owner authorization of the separate authority PR.
