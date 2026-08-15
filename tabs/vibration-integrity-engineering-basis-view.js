@@ -129,7 +129,7 @@ export function renderVibrationEngineeringBasis(state) {
     <div class="vi-section-head"><div><h3>Engineering basis</h3><p>Primary joined line/case editor projected directly from the authoritative working tables. Identity is source-controlled; editable process/FIT quantities write back to their exact Source Data cells.</p></div></div>
     <div class="vi-import-facts"><span>FIT assessment points: <strong>${projection.counts.assessmentPoints}</strong></span><span>Joined line/case rows: <strong>${projection.counts.rows}</strong></span><span>Projection: <strong>${esc(projection.schema)}</strong></span></div>
     ${methodBasis()}
-    <div class="vi-banner warn"><strong>Method custody.</strong><span>EI T2.2 is the product FIT reference method. Official EI corrections to T2-5 and T2-8 do not alter this FIT chain. A project or client must still confirm its own adopted basis; benchmark/reference status is not screening or design authority.</span></div>
+    <div class="vi-banner warn"><strong>Method custody.</strong><span>EI T2.2 is the product FIT reference method. Official EI corrections to T2-5 and T2-8 do not alter this FIT chain. FIT is qualified for the declared bounded SCREENING scope only; design authority remains false, and each project/client must still confirm its adopted basis.</span></div>
     <div class="vi-banner warn"><strong>One backing state.</strong><span>This table is a projection, not a second data store. FIT geometry remains mechanism-specific; non-FIT inputs will be added only through their qualified mechanism modules.</span></div>
     <div class="vi-table-wrap vi-basis-table-wrap"><table class="vi-table vi-basis-table">
       <thead>
