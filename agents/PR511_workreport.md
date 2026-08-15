@@ -10,45 +10,43 @@ CRITICALITY: ENGINEERING_CRITICAL
 PR: 511
 BRANCH: agent/vibration-product-freeze-v1
 BASE_MAIN: a49085cde69ef71518c0d6315a615477887d7b4e
-REPORT_BASIS_HEAD: d9d9d3540bdd764e96e8b337b627594f6270b37e
-GROUNDING_EPOCH: 2026-08-15T10:28Z
+REPORT_BASIS_HEAD: cd38ef9c9425bf695c5c7579c1e8fe538e2f43b2
+GROUNDING_EPOCH: 2026-08-15T10:48Z
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
 RECOVERY_DECISION: SALVAGE_PARTIAL / CONTINUE
 APPENDIX_A_STATUS: PASS 97/100
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
-CURRENT_STAGE: RESULT_CURRENCY_NAMESPACE_SPLIT_COMPLETE
+CURRENT_STAGE: SHARED_PRODUCT_CONTRACT_CONSUMED
 FREEZE_STATE: BLOCKED
-HIGHEST_RISK: PR511 still carries a competing activity/audit implementation while PR512 owns the shared observational activity contract
-EXACT_NEXT_ACTION: reconcile PR511 audit/controller/browser evidence wiring to consume the PR512 shared VibrationIntegrityAuditLog.v1 contract while preserving FitRunEvidencePackage.v1 reproducibility authority and the PF-001..PF-007 Chromium benchmark/receipt methodology
+HIGHEST_RISK: treating zero-step hosted workflow failure or source conformance as an executed Chromium production-freeze PASS
+EXACT_NEXT_ACTION: obtain an executing PF-001..PF-007 Chromium run for the current candidate; inspect screenshots/receipt in order, fix only the first material user-visible defect if one is observed, replay the same controlled benchmarks, and keep the workflow BLOCKED until real browser evidence exists
 ```
 
 ## Handover in 60 Seconds
 
-PR #511 owns the **live-Chromium production-freeze proof method** for FIT + Mechanical:
+PR #511 now owns only the production-freeze/evidence slice that is distinct from PR #512:
 
 ```text
-real user journey
--> benchmark-driven replay
+controlled FIT + Mechanical benchmark replay
+-> live Chromium journey PF-001..PF-007
 -> visible-result comparison
--> authority/result-currency verification
 -> screenshots
--> downloadable FIT run evidence
--> machine-readable production-freeze receipt
+-> VibrationProductionFreezeReceipt.v1
+-> FIT reproducibility export verification
+-> SHA-256 identity of validated Activity provenance inside FitRunEvidencePackage.v1
 ```
 
-PR #512 owns the shared **observational product workflow/activity contract**. The first salvage change on #511 removes the most dangerous namespace collision:
+PR #512 owns the shared product layer:
 
 ```text
-tabs/vibration-integrity-result-state.js
-  owns FIT result currency:
-  UNRUN / RUNNING / CURRENT_RESULT / STALE_RESULT / INVALID_INPUT
-
-tabs/vibration-integrity-workflow-state.js
-  is no longer added by PR511
-  remains available for PR512 observational product workflow ownership
+observational product workflow state
+Activity & workflow UI
+VibrationIntegrityAuditLog.v1
+non-authoritative Activity export
+shared product controller/event lifecycle
 ```
 
-This enforces the architecture:
+The salvage architecture is now enforced in the branch:
 
 ```text
 product workflow state != FIT result currency
@@ -56,98 +54,132 @@ Activity / audit         != engineering evidence
 FitRunEvidencePackage.v1 = FIT engineering reproducibility evidence envelope
 ```
 
-The Chromium journey is still `BLOCKED`, not `FROZEN`; no executing browser artifacts have yet proved the journey on the current candidate.
-
 ## Live Ground Truth
 
-At the current recovery checkpoint:
+At this checkpoint:
 
 ```text
 main                         a49085cde69ef71518c0d6315a615477887d7b4e
-PR511 head before report     d9d9d3540bdd764e96e8b337b627594f6270b37e
+PR511 report basis head      cd38ef9c9425bf695c5c7579c1e8fe538e2f43b2
 PR state                     OPEN / DRAFT
 mergeable                    true
-changed files                15
-open review threads          0
-base drift                   0 behind at grounding
+changed files                13
+open review threads          0 at latest inspection
+merge authority              OWNER ONLY / NOT GRANTED
 ```
 
-`agents/MASTER_INDEX.md` is not present. Repository instructions are `AGENTS.md` plus `.agents/AGENTS.md`.
+`agents/MASTER_INDEX.md` is absent. Governing repository instructions are root `AGENTS.md` and `.agents/AGENTS.md`.
 
 ## REC-511-001 — Salvage Decision
 
-Trigger: owner-directed #511/#512 salvage architecture.
-
-Preserve from #511:
-
-- `docs/vibration/Production-Freeze-Protocol-v1.md`;
-- `scripts/validate-vibration-production-freeze-browser.mjs`;
-- controlled FIT oracle `EI-D2-FIT-RECYCLE-SUCTION-6IN`;
-- FIT expected standard LOF `0.276 ± 0.0012`, band `LOF_LT_0_3`;
-- Mechanical EI D2/D2.4 oracle `0.20`, `0.40`, governing `0.40`;
-- screenshot sequence `01` through `07` plus `99-failure.png`;
-- `VibrationProductionFreezeReceipt.v1`;
-- downloadable `FitRunEvidencePackage.v1` verification;
-- governing-tier proof that candidate mechanisms cannot replace Screening governing;
-- `designAuthority=false`.
-
-Reject/rebuild from #511 where duplicated with #512:
-
-- shared observational workflow-state ownership;
-- competing activity/audit vocabulary where it conflicts with the PR512 contract.
-
-Disposition:
+Disposition remains:
 
 ```text
 SALVAGE_PARTIAL / CONTINUE
 ```
 
-## DEC-511-001 — Result Currency Is Not Product Workflow
+Preserved from #511:
 
-The previous file:
+- `docs/vibration/Production-Freeze-Protocol-v1.md`;
+- `scripts/validate-vibration-production-freeze-browser.mjs`;
+- FIT controlled oracle `EI-D2-FIT-RECYCLE-SUCTION-6IN`;
+- expected standard LOF `0.276 ± 0.0012`, band `LOF_LT_0_3`;
+- Mechanical EI D2/D2.4 oracle `0.20`, `0.40`, governing `0.40`;
+- screenshot sequence `01` through `07` plus `99-failure.png`;
+- `VibrationProductionFreezeReceipt.v1`;
+- downloadable `FitRunEvidencePackage.v1` verification;
+- proof that candidate mechanisms cannot replace Screening governing;
+- `designAuthority=false`.
+
+Removed from #511 as duplicate product ownership:
+
+- separate result-state transition module;
+- separate FIT action/product-contract module;
+- competing workflow-state semantics;
+- competing audit schema;
+- competing product controller implementation.
+
+## DEC-511-001 — Workflow State and Result Currency Are Different Facts
+
+The shared observational model is `VibrationIntegrityWorkflowState.v1`:
 
 ```text
-tabs/vibration-integrity-workflow-state.js
+EMPTY
+INPUTS_LOADED
+READY_CHECKED
+RUNNING
+RESULT_CURRENT
+RESULT_STALE
+INVALID_INPUT
 ```
 
-was actually a result-currency transition machine. PR512 uses that same path for observational workflow state, creating an add/add collision and semantic ambiguity.
+It derives from product facts and performs no calculation.
 
-PR511 now uses:
+FIT result currency remains the existing product field:
 
 ```text
-tabs/vibration-integrity-result-state.js
+UNRUN
+RUNNING
+CURRENT_RESULT
+STALE_RESULT
+INVALID_INPUT
 ```
 
-for:
+For example:
 
 ```text
-RESET                                      -> UNRUN
-INPUT_CHANGED + no retained result         -> UNRUN
-INPUT_CHANGED + retained result            -> STALE_RESULT
-RUN_STARTED                                -> RUNNING
-RUN_SUCCEEDED + no drift                   -> CURRENT_RESULT
-RUN_SUCCEEDED + drift                      -> STALE_RESULT
-RUN_FAILED + no retained result            -> INVALID_INPUT
-RUN_FAILED + retained result               -> STALE_RESULT
+workflow.state = RESULT_CURRENT
+resultState     = CURRENT_RESULT
 ```
 
-`tabs/vibration-integrity-tab.js` and `tests/vibration-integrity-product-freeze.test.mjs` now import the dedicated result-state module. PR511 no longer changes `tabs/vibration-integrity-workflow-state.js`.
+These are intentionally not aliases.
 
-## DEC-511-002 — Evidence Boundary
+## DEC-511-002 — Activity Is Non-Authoritative Provenance
+
+Shared Activity events use:
 
 ```text
-Activity trail
-  purpose = ACTIVITY_AUDIT_ONLY
-  engineering authority = NONE
+VibrationIntegrityAuditLog.v1
+VibrationIntegrityAuditEvent.v1
+sequence
+eventId
+timestamp
+eventType
+workflowBefore
+workflowAfter
+scopeId
+details
+authority.engineeringAuthority = NONE
+authority.purpose = ACTIVITY_AUDIT_ONLY
+```
 
+The shared product controller records `RUN_EVIDENCE_EXPORT_STARTED` before run-evidence serialization.
+
+Activity is not a replacement for engineering evidence. The FIT evidence package may contain a validated, hashed copy of Activity provenance while retaining its own authority purpose:
+
+```text
 FitRunEvidencePackage.v1
-  purpose = REPRODUCIBILITY_EVIDENCE_ONLY
-  result export allowed only for CURRENT_RESULT
+authority.purpose = REPRODUCIBILITY_EVIDENCE_ONLY
 ```
 
-A validated and hashed activity trail may be included in the FIT run-evidence envelope as provenance. Doing so does not convert Activity into engineering evidence or engineering authority.
+## DEC-511-003 — Shared Product Files Are Byte-Aligned With #512
 
-## Current Production-Freeze Journey
+At the salvage checkpoint the following #511 files were deliberately aligned to #512 rather than independently implemented:
+
+```text
+tabs/vibration-integrity-audit-log.js
+  blob f6135a3172a3b7a562a14635c36897b030873127
+
+tabs/vibration-integrity-workflow-state.js
+  blob a49dbac79854192be13fb6dc6d41c34dc84d2c83
+
+tabs/vibration-integrity-tab.js
+  blob cc3ab1c219ed7f4c4efdbfbaab9a6fe716857067
+```
+
+This is intentional dependency alignment. After the shared #512 product contract lands, these paths should collapse out of the #511 delta rather than be conflict-resolved by guessing intent.
+
+## Production-Freeze Journey
 
 ```text
 PF-001 Open Engineering Calculations > VIB > FIT workspace
@@ -156,10 +188,10 @@ PF-003 Check readiness
 PF-004 Run FIT and compare visible result to book oracle
 PF-005 Evaluate Mechanical T2.3 against EI D2/D2.4 oracle
 PF-006 Verify candidate cannot replace Screening governing
-PF-007 Export and verify FIT reproducibility evidence + visible audit state
+PF-007 Export and verify FIT reproducibility evidence + visible Activity state
 ```
 
-Required artifacts:
+Required browser artifacts:
 
 ```text
 01-workspace.png
@@ -175,40 +207,7 @@ vibration-fit-run-evidence.json when reached
 static-server log
 ```
 
-Source/static conformance does not establish `FROZEN`; Chromium execution remains required.
-
-## Issue Ledger
-
-### ISS-PF-001 — export audit status can remain visually stale
-
-```text
-detection         SOURCE_DETECTED / CHROMIUM_CONFIRMATION_PENDING
-fix               re-render after successful register/evidence export audit append
-engineering impact none
-authority impact   none
-state              FIXED_UNVERIFIED
-```
-
-No browser after-fix proof exists yet.
-
-### ISS-SALVAGE-001 — workflow-state namespace collision
-
-```text
-symptom      PR511 and PR512 add the same path for different concepts
-first wrong boundary module ownership / naming
-fix          PR511 result currency moved to vibration-integrity-result-state.js
-status       FIXED_SOURCE / focused smoke PASS
-falsifier    any remaining PR511 changed-file entry or production/test import that treats workflow-state as result currency
-```
-
-### ISS-SALVAGE-002 — competing audit contract
-
-```text
-symptom      PR511 audit fields/event names differ from PR512 shared Activity contract
-risk         duplicate product activity authority and merge conflict
-status       OPEN
-next patch   reconcile PR511 evidence/controller/browser tests to PR512 audit schema
-```
+The PF-007 evidence check now reads the shared Activity field `event.eventType` and requires `RUN_EVIDENCE_EXPORT_STARTED` in the downloaded trail.
 
 ## Engineering Authority / Protected Invariants
 
@@ -221,51 +220,65 @@ candidate replaces Screening governing   false
 designAuthority                          false
 ```
 
-No calculation equation, benchmark tolerance, master value, interpolation/extrapolation rule, units behavior, or source authority is changed by this salvage.
+No equation, correlation, controlled benchmark tolerance, master value, interpolation/extrapolation rule, unit behavior or source authority was changed by this salvage.
 
-## Backup / Rollback Evidence
+## Issue Ledger
 
-Repository backup CLI remains `NOT_RUN / ENVIRONMENT_BLOCKED` in this connector-only runtime. Exact pre-edit Git blobs are retained as rollback evidence.
-
-Result-state split pre-edit identities:
+### ISS-PF-001 — export status can remain visually stale
 
 ```text
-tabs/vibration-integrity-workflow-state.js 22c694dd7bb311b7041032fc3bcd8b0407bd8b56
-tabs/vibration-integrity-tab.js            ae80f4f5a09182502446cc67bacbaaa099721f58
-tests/vibration-integrity-product-freeze.test.mjs
-                                           f251043e5fc4f350ecae24984c04a92a154526b6
+detection         SOURCE_DETECTED / CHROMIUM_CONFIRMATION_PENDING
+fix               re-render after successful register/evidence export audit append
+engineering impact none
+authority impact   none
+state              FIXED_UNVERIFIED
 ```
 
-Post-split identities include:
+### ISS-SALVAGE-001 — workflow-state namespace collision
 
 ```text
-tabs/vibration-integrity-result-state.js   new file
-tabs/vibration-integrity-tab.js            798f94bad5989d2b4521e0925ebf1236703f2513
-tests/vibration-integrity-product-freeze.test.mjs
-                                           94795176c1850069c88882aff51a0a49a6bb4cf5
+status      RESOLVED
+resolution  PR511 consumes the same observational workflow module as PR512; no separate result-state module remains
 ```
 
-The old `tabs/vibration-integrity-workflow-state.js` is deleted from PR511.
+### ISS-SALVAGE-002 — competing audit contract
+
+```text
+status      RESOLVED
+resolution  PR511 audit module is byte-identical to PR512 and always non-authoritative
+```
+
+### ISS-SALVAGE-003 — competing product controller
+
+```text
+status      RESOLVED_SOURCE
+resolution  PR511 tab controller is byte-identical to PR512, including RUN_EVIDENCE_EXPORT_STARTED before serialization
+browser proof NOT_RUN
+```
 
 ## Validation Ledger
 
-| Check | Status | Observation / oracle | Evidence / limitation |
+| Check | Status | Observation / Oracle | Evidence / limitation |
 |---|---|---|---|
 | live main grounding | PASS | REMOTE_EXECUTION / GitHub | `main@a49085c...` |
-| PR head/state | PASS | REMOTE_EXECUTION / GitHub | draft/open/mergeable |
-| review threads | PASS | REMOTE_EXECUTION / GitHub | 0 open |
-| result-state transition smoke | PASS | LOCAL_EXECUTION / implementation-coupled | Node 22 transition matrix + invalid-state fail-close |
-| changed-file collision removed | PASS | REMOTE_EXECUTION / GitHub | PR511 changed files contain result-state and no workflow-state |
-| controlled FIT oracle | PASS_SOURCE_CONTRACT | AUTHORITATIVE_REFERENCE | EI D2 `0.276 ±0.0012` |
+| shared audit/workflow focused smoke | PASS | LOCAL_EXECUTION / implementation-coupled | immutable events, authority NONE, export authority NOT_AUTHORIZED, tamper fail-close |
+| shared audit blob parity #511/#512 | PASS | SOURCE_INSPECTION / GitHub | `f6135a...` |
+| shared workflow blob parity #511/#512 | PASS | SOURCE_INSPECTION / GitHub | `a49dbac...` |
+| shared controller blob parity #511/#512 | PASS | SOURCE_INSPECTION / GitHub | `cc3ab1c...` |
+| controlled FIT oracle | PASS_SOURCE_CONTRACT | AUTHORITATIVE_REFERENCE | EI D2 `0.276 ±0.0012`, `LOF_LT_0_3` |
 | Mechanical oracle | PASS_SOURCE_CONTRACT | AUTHORITATIVE_REFERENCE | EI D2/D2.4 governing `0.40` |
-| PF screenshot/receipt harness | PASS_SOURCE_CONTRACT | SOURCE_INSPECTION | browser script/protocol present |
-| full repository Node suite | NOT_RUN | NOT_OBSERVED | no complete checkout / hosted runner unavailable |
-| PF Chromium journey | NOT_RUN / INFRASTRUCTURE_BLOCKED | NOT_OBSERVED | prior workflow allocated no executable steps |
-| current freeze state | BLOCKED | authoritative protocol | not `FROZEN`, not PASS |
+| PF screenshot/receipt harness | PASS_SOURCE_CONTRACT | SOURCE_INSPECTION | PF-001..PF-007 + failure artifact contract |
+| FIT Activity hash integration | PASS_SOURCE_CONTRACT | SOURCE_INSPECTION | validated trail + SHA-256 identity + reproducibility purpose |
+| repository-native full Node suite | NOT_RUN | NOT_OBSERVED | no executing hosted job / no complete local checkout |
+| current-head hosted run `31880362343` | NOT_RUN / INFRASTRUCTURE_BLOCKED | REMOTE_EXECUTION | job `95001965163`, conclusion failure, executed steps `[]` |
+| PF Chromium journey | NOT_RUN / INFRASTRUCTURE_BLOCKED | NOT_OBSERVED | no browser step executed |
+| current freeze state | BLOCKED | Production-Freeze-Protocol-v1 | not `FROZEN`, not PASS |
+
+A zero-step workflow failure is neither a product-code failure nor a product PASS.
 
 ## Changed-File Ledger
 
-Current PR511 changed files:
+Current PR511 delta contains 13 paths:
 
 ```text
 .github/workflows/vibration-mechanical-stage4-validation.yml
@@ -275,42 +288,45 @@ scripts/validate-vibration-production-freeze-browser.mjs
 scripts/verify-vibration-fit-release.mjs
 tabs/vibration-integrity-audit-log.js
 tabs/vibration-integrity-input-view.js
-tabs/vibration-integrity-product-contract.js
-tabs/vibration-integrity-result-state.js
 tabs/vibration-integrity-run-evidence.js
 tabs/vibration-integrity-tab.js
+tabs/vibration-integrity-workflow-state.js
 tests/vibration-integrity-product-freeze.test.mjs
 tests/vibration-integrity-run-evidence-audit.test.mjs
-tests/vibration-integrity-tab-static.test.mjs
 tests/vibration-production-freeze-browser-contract.test.mjs
 ```
 
-`tabs/vibration-integrity-workflow-state.js` is intentionally absent after salvage split.
+Removed from the delta during salvage:
+
+```text
+tabs/vibration-integrity-product-contract.js
+tabs/vibration-integrity-result-state.js
+tests/vibration-integrity-tab-static.test.mjs
+```
+
+The first two were parallel product abstractions; the static test was restored to the main blob.
 
 ## Overlap / Dependency State
 
-Classification: `COORDINATION_REQUIRED`.
-
-- PR512 owns shared observational workflow/activity/UI contract.
-- PR511 owns live Chromium benchmark/receipt proof.
-- Remaining direct collision is principally `tabs/vibration-integrity-audit-log.js` and `tabs/vibration-integrity-tab.js`; these must be reconciled by contract ownership, not merged by guessing intent.
-- #514 SBC Type-3 Production Freeze is not a prerequisite.
-
-## Exact Continuation State
-
-Next safe patch:
+Classification:
 
 ```text
-1. take PR512 current VibrationIntegrityAuditLog.v1 as the shared Activity contract;
-2. adapt PR511 run-evidence audit fingerprinting to validate that contract without changing FitRunEvidencePackage.v1 authority;
-3. adapt PR511 controller events to shared eventType/timestamp/workflowBefore/workflowAfter vocabulary;
-4. preserve RUN_EVIDENCE_EXPORT_STARTED before serialization so the downloaded package proves export initiation;
-5. update browser PF-007 to read event.eventType rather than the legacy event.type;
-6. update focused audit/evidence tests;
-7. do not change equations, masters, units, tolerances, workflow YAML, or engineering authority;
-8. validate strongest available focused tests and keep full browser status NOT_RUN until it actually executes;
-9. synchronize this report again.
+COORDINATION_REQUIRED
 ```
+
+PR #512 is the shared product dependency. The remaining exact path overlap is intentional byte parity on the shared controller/workflow/audit files, not competing semantics.
+
+PR #511 must not independently evolve those shared paths. Any further product workflow/activity change belongs in #512 first.
+
+## Backup / Rollback Evidence
+
+Repository backup CLI remains:
+
+```text
+NOT_RUN / ENVIRONMENT_BLOCKED
+```
+
+The connector runtime cannot execute the repository-local backup command. Exact pre-edit Git blob identities and commit history remain the rollback evidence; this limitation must not be mislabeled PASS.
 
 ## Appendix A — Takeover Qualification
 
@@ -319,7 +335,7 @@ qualification_basis_pr_head: df2793f546e876c0a091623bcce5851a1a4ac0a7
 qualification_basis_main_head: a49085cde69ef71518c0d6315a615477887d7b4e
 grounding_epoch: 2026-08-15T10:28Z
 generated_from_open_items: PR511/PR512 workflow + audit ownership collision
-next_intended_stage: result-state namespace split, then audit contract reconciliation
+next_intended_stage: salvage shared product ownership, then execute Chromium freeze
 APPENDIX_A_STATUS: PASS
 
 A1 Production Trace             20/20
