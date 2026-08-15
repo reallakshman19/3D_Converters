@@ -3,6 +3,10 @@ import { parseAivInputCsv } from './vibration-aiv-input-model.js';
 import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { importAivEitFileIntoState } from './vibration-aiv-eit-import-controller.js';
 import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-network-state.js';
+import {
+  activateAivNetworkDrivenMode,
+  markAivTableDrivenInputChanged,
+} from './vibration-aiv-mode-transition.js';
 
 function formatError(error) {
   return `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
@@ -36,8 +40,8 @@ export function createAivDatasetLoader({
       state.topologyInput = projected.topologyInput;
       state.files = { eit: null, ...projected.files };
       state.eitImport = null;
-      state.flareNetworkActive = true;
       state.benchmark.loaded = null;
+      activateAivNetworkDrivenMode(state, projected.flareNetwork.revision);
       clearReadiness();
       state.error = null;
       notifyLoaded();
@@ -63,6 +67,7 @@ export function createAivDatasetLoader({
         format: 'PARSED_EXCHANGE', data: loaded.topology,
         sourceFileName: loaded.topology.sourceFileName,
       };
+      markAivTableDrivenInputChanged(state);
       clearReadiness();
       state.error = null;
       notifyLoaded();
@@ -94,6 +99,7 @@ export function createAivDatasetLoader({
         state.tables[target] = parseAivInputCsv(target, text, { sourceName: file.name, sourceKind: 'CSV' });
         state.files[target] = { name: file.name, kind: state.tables[target].contract };
       }
+      markAivTableDrivenInputChanged(state);
       markBenchmarkModified();
       notifyLoaded();
     } catch (error) {
