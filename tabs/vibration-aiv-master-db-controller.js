@@ -97,6 +97,8 @@ function shiftedAfterDelete(resolution, tableKind, rowIndex, deletedAssessmentId
 }
 
 export function createAivMasterDbController({ state, render, clearReadiness }) {
+  function invalidateMasterAcceptance() { state.masterAcceptance = null; }
+
   function clearResolution({ clearDerivedValues = false } = {}) {
     const resolution = state.masterResolution;
     if (clearDerivedValues && resolution) {
@@ -117,6 +119,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
       state.tables = next;
     }
     state.masterResolution = null;
+    invalidateMasterAcceptance();
   }
 
   function resolveCurrent({ silent = false } = {}) {
@@ -137,6 +140,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
       relationships: tableFromResolution(resolution.tables.relationships),
     };
     state.masterResolution = resolution;
+    invalidateMasterAcceptance();
     touchAivInputRevision(state);
     clearReadiness();
     return true;
@@ -154,6 +158,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     } catch (value) {
       state.masterDb = null;
       state.masterResolution = null;
+      invalidateMasterAcceptance();
       state.masterLoadState = 'ERROR';
       state.masterLoadError = formatError(value);
     }
@@ -184,6 +189,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
       state.masterResolution = filteredResolution(state.masterResolution, (item) => (
         item.tableKind === tableKind && item.rowIndex === rowIndex && item.column === column
       ));
+      invalidateMasterAcceptance();
       return table;
     }
     const rows = table.rows.map((row) => [...row]);
@@ -195,6 +201,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     state.masterResolution = filteredResolution(state.masterResolution, (item) => (
       item.tableKind === tableKind && item.rowIndex === rowIndex
     ));
+    invalidateMasterAcceptance();
     return rebuildTable(table, rows);
   }
 
@@ -203,6 +210,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     const idIndex = tableKind === 'assessments' ? tableColumnIndex(table, 'Assessment Canonical ID') : -1;
     const deletedAssessmentId = idIndex >= 0 ? String(table.rows?.[rowIndex]?.[idIndex] ?? '').trim() : '';
     state.masterResolution = shiftedAfterDelete(state.masterResolution, tableKind, rowIndex, deletedAssessmentId);
+    invalidateMasterAcceptance();
   }
 
   return Object.freeze({ loadBundled, apply, clearResolution, prepareUserEdit, noteRowDeleted });
