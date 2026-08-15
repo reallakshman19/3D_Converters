@@ -6,6 +6,7 @@ import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result
 import { addAivInputRow, serializeAivInputTable } from './vibration-aiv-input-model.js';
 import { isAivScreeningReady } from './vibration-aiv-screening-gate.js';
 import { buildAivEngineeringScreeningRequest } from './vibration-aiv-screening-request.js';
+import { currentAivInputRevision, isAivInputRevisionCurrent } from './vibration-aiv-state-revision.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
 function ensureAssumableRows(state) {
@@ -39,6 +40,32 @@ function screeningPackageInput(state) {
   };
 }
 
+function buildReadiness(state, formats, builder) {
+  const tables = ensureAssumableRows(state);
+  const assumptionResolution = resolveAivWorkingTablesWithAssumptions(tables, state.assumptionProfile);
+  const readinessEnvelope = builder({
+    topology: {
+      format: topologyFormat(state, formats),
+      data: state.topologyInput.data,
+      sourceFileName: state.topologyInput.sourceFileName,
+    },
+    sourceCsv: serializeAivInputTable(assumptionResolution.tables.sources),
+    assessmentCsv: serializeAivInputTable(assumptionResolution.tables.assessments),
+    sourceAssessmentCsv: serializeAivInputTable(assumptionResolution.tables.relationships),
+  });
+  return { assumptionResolution, readinessEnvelope };
+}
+
+function commitReadiness(state, prepared) {
+  state.assumptionResolution = prepared.assumptionResolution;
+  state.readinessEnvelope = Object.freeze({
+    ...prepared.readinessEnvelope,
+    assumptionResolution: state.assumptionResolution,
+  });
+  state.resultSet = buildAivBlockedResultSet(state.readinessEnvelope);
+  state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
+}
+
 export function createAivExecutionActions({ state, render, downloadText }) {
   function clearReadiness() {
     state.readinessEnvelope = null;
@@ -51,35 +78,17 @@ export function createAivExecutionActions({ state, render, downloadText }) {
 
   async function checkReadiness() {
     if (state.busy || !state.topologyInput) return;
+    const revision = currentAivInputRevision(state);
     state.busy = true;
     state.error = null;
     state.screeningResult = null;
     render();
     try {
-      const { AIV_TOPOLOGY_INPUT_FORMAT, buildAivReadinessFromTables } = await import(
-        '../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-6'
-      );
-      if (state.destroyed) return;
-      const tables = ensureAssumableRows(state);
-      state.assumptionResolution = resolveAivWorkingTablesWithAssumptions(tables, state.assumptionProfile);
-      state.readinessEnvelope = buildAivReadinessFromTables({
-        topology: {
-          format: topologyFormat(state, AIV_TOPOLOGY_INPUT_FORMAT),
-          data: state.topologyInput.data,
-          sourceFileName: state.topologyInput.sourceFileName,
-        },
-        sourceCsv: serializeAivInputTable(state.assumptionResolution.tables.sources),
-        assessmentCsv: serializeAivInputTable(state.assumptionResolution.tables.assessments),
-        sourceAssessmentCsv: serializeAivInputTable(state.assumptionResolution.tables.relationships),
-      });
-      state.readinessEnvelope = Object.freeze({
-        ...state.readinessEnvelope,
-        assumptionResolution: state.assumptionResolution,
-      });
-      state.resultSet = buildAivBlockedResultSet(state.readinessEnvelope);
-      state.selectedRowKey = state.readinessEnvelope.readiness.rows[0]?.rowKey ?? null;
+      const module = await import('../converters/vibration/aiv/aiv-readiness-tables.js?v=aiv-readiness-7');
+      if (state.destroyed || !isAivInputRevisionCurrent(state, revision)) return;
+      commitReadiness(state, buildReadiness(state, module.AIV_TOPOLOGY_INPUT_FORMAT, module.buildAivReadinessFromTables));
     } catch (error) {
-      if (state.destroyed) return;
+      if (state.destroyed || !isAivInputRevisionCurrent(state, revision)) return;
       clearReadiness();
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally {
@@ -90,25 +99,22 @@ export function createAivExecutionActions({ state, render, downloadText }) {
 
   async function runScreening() {
     if (state.busy || !isAivScreeningReady(state)) return;
+    const revision = currentAivInputRevision(state);
+    const request = buildAivEngineeringScreeningRequest({
+      readinessEnvelope: state.readinessEnvelope,
+      assumptionProfile: state.assumptionProfile,
+    });
     state.busy = true;
     state.error = null;
     render();
     try {
-      const request = buildAivEngineeringScreeningRequest({
-        readinessEnvelope: state.readinessEnvelope,
-        assumptionProfile: state.assumptionProfile,
-      });
-      const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
-      if (state.destroyed) return;
+      const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-3');
+      if (state.destroyed || !isAivInputRevisionCurrent(state, revision)) return;
       const result = calculateEngineering(request);
-      if (!result.ok) {
-        const message = result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ')
-          || 'AIV screening calculation failed.';
-        throw new Error(message);
-      }
+      if (!result.ok) throw new Error(result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ') || 'AIV screening calculation failed.');
       state.screeningResult = result;
     } catch (error) {
-      if (!state.destroyed) {
+      if (!state.destroyed && isAivInputRevisionCurrent(state, revision)) {
         state.screeningResult = null;
         state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       }
@@ -133,7 +139,9 @@ export function createAivExecutionActions({ state, render, downloadText }) {
 
   async function buildScreeningPackage() {
     if (!state.screeningResult?.ok || !state.readinessEnvelope) return null;
+    const revision = currentAivInputRevision(state);
     const { buildAivScreeningExportPackage } = await import('../converters/vibration/aiv/aiv-screening-export.js?v=aiv-screening-export-3');
+    if (!isAivInputRevisionCurrent(state, revision) || !state.screeningResult?.ok || !state.readinessEnvelope) return null;
     return buildAivScreeningExportPackage(screeningPackageInput(state));
   }
 
@@ -151,8 +159,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
       const title = state.eitImport?.title || (state.flareNetworkActive
         ? (state.flareNetwork?.networkId || 'AIV Flare Network')
         : (state.topologyInput?.sourceFileName || 'AIV Screening Export'));
-      const text = serializeAivEitExport({ screeningPackage, title });
-      downloadText(text, 'aiv-screening-result.eit', 'application/json;charset=utf-8');
+      downloadText(serializeAivEitExport({ screeningPackage, title }), 'aiv-screening-result.eit', 'application/json;charset=utf-8');
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       render();
