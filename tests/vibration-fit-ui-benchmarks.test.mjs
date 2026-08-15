@@ -12,8 +12,10 @@ import {
 import { serializeVibrationIntegrityInputTable } from '../tabs/vibration-integrity-input-model.js';
 
 const CONTROLLED_COMMON_PIN = 'fb549185b9b27edc2379734240320a85c5bef9f6';
+const QUALIFICATION_COMMON_PIN = '7bfead910f6bca91b10748ead009e40f20c82219';
 const HISTORICAL_COMMON_PARENT = 'aef163a5def3bfe04ca0ba860da05728a27daf42';
 const CONTROLLED_EXAMPLES_BLOB = '3e2517d0df527a051084fc02e69cb7afa31f8d47';
+const QUALIFICATION_DOCX_BLOB = 'ceee15ed5f7f320045d5f3979024e2e8664613f2';
 const controlled = JSON.parse(readFileSync(
   new URL('../Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json', import.meta.url),
   'utf8',
@@ -62,14 +64,22 @@ test('UI benchmark catalogue exactly covers the controlled five EI worked cases'
   assert.equal(controlled.tolerancePolicy.screeningPromotionState, 'RECONCILED_FOR_BENCHMARK_USE');
 });
 
-test('active FIT method and dossier metadata use the controlled Common pin', () => {
+test('UI benchmark source pins the owner worked-example qualification authority', () => {
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.qualificationCommit, QUALIFICATION_COMMON_PIN);
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.qualificationGitBlob, QUALIFICATION_DOCX_BLOB);
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.qualificationPath, 'Energy-Institute-AVIFF---Worked-Examples.doc.docx');
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.qualificationPolicy, 'WORKED_EXAMPLE_BENCHMARK_SUFFICIENT');
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.independentVibrationEngineerReviewRequired, false);
+});
+
+test('active FIT method and dossier metadata use the controlled method and qualification pins', () => {
   for (const source of [methodSpec, dossier]) {
     assert.match(source, new RegExp(CONTROLLED_COMMON_PIN, 'u'));
+    assert.match(source, new RegExp(QUALIFICATION_COMMON_PIN, 'u'));
+    assert.match(source, new RegExp(QUALIFICATION_DOCX_BLOB, 'u'));
+    assert.match(source, /independent vibration-engineer.*not required|not required.*independent vibration-engineer/iu);
   }
   assert.doesNotMatch(methodSpec, new RegExp(`Commit:\\s+${HISTORICAL_COMMON_PARENT}`, 'u'));
-  assert.doesNotMatch(dossier, new RegExp(`controlled pin\\s+${HISTORICAL_COMMON_PARENT}`, 'iu'));
-  assert.match(methodSpec, /historical|earlier source state/iu);
-  assert.match(dossier, /historical parent state/iu);
 });
 
 test('every UI benchmark builds production-parseable topology, operating and enrichment tables', () => {
