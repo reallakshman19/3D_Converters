@@ -39,6 +39,11 @@ export {
   evaluateFitScreeningCandidateScope,
 } from './screening-candidate.js';
 
+export {
+  FIT_SOURCE_BASIS_EVIDENCE,
+  FIT_SOURCE_BASIS_EVIDENCE_SCHEMA,
+} from './source-basis-evidence.js';
+
 export { calculateFit } from './calculate.js';
 export { assessFit } from './assess.js';
 export {
