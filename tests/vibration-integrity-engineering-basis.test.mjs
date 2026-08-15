@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { FIT_SOURCE_BASIS_EVIDENCE } from '../converters/vibration/fit/source-basis-evidence.js';
 import {
   buildVibrationEngineeringBasisProjection,
   vibrationEngineeringBasisSourceCellId,
@@ -118,6 +119,20 @@ test('Engineering-basis source links switch to Source Data and resolve the exact
   assert.ok(sourceHtml.includes(`id="${sourceId}"`), 'Source Data tab must emit the exact backing anchor');
   assert.match(controllerSource, /state\.inputTab = 'source'/u);
   assert.match(controllerSource, /getElementById\(sourceTarget\)/u);
+});
+
+test('Engineering Basis exposes adopted FIT method, errata disposition and project-specific adoption boundary', () => {
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.method.technicalModule, 'T2.2 Flow Induced Turbulence');
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.officialErrata.status, 'REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2');
+  assert.deepEqual(FIT_SOURCE_BASIS_EVIDENCE.officialErrata.corrections.map((item) => item.flowchart), ['T2-5', 'T2-8']);
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.projectBasis.productReferenceMethod, 'CONFIRMED');
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.projectBasis.externalProjectOrClientAdoption, 'PROJECT_SPECIFIC_CONFIRMATION_REQUIRED');
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.authority.screeningAuthority, 'NOT_AUTHORIZED');
+  const html = renderVibrationIntegrityInputArea(inputState('engineering'));
+  assert.match(html, /T2\.2 Flow Induced Turbulence/u);
+  assert.match(html, /REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2/u);
+  assert.match(html, /PROJECT_SPECIFIC_CONFIRMATION_REQUIRED/u);
+  assert.match(html, /benchmark\/reference status is not screening or design authority/iu);
 });
 
 test('UI keeps Engineering Basis primary with separate Source Data and Data Blockers tabs', () => {
