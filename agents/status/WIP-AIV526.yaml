@@ -1,0 +1,31 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: WIP-AIV526
+mission: "Issue #526 AIV Unified Network Canvas with explicit NETWORK_DRIVEN/TABLE_DRIVEN authority"
+workstream: AIV_UNIFIED_NETWORK_CANVAS
+branch: agent/aiv-unified-network-canvas-526
+pr_head: NOT_ALLOCATED
+branch_head_observed: 4173d8b0bde9ff566a572b19f62f1dcef44f2811
+main_head_last_checked: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
+merge_base: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: BLOCKED_QUALIFICATION
+pr_recovery_state: RECOVERABLE
+handover_readiness: READY
+report_path: agents/WIP-AIV526_workreport.md
+report_head: 4173d8b0bde9ff566a572b19f62f1dcef44f2811
+appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_GATE_APPLIES
+grounding_epoch: AIV526-GE-001
+current_stage: QUALIFICATION_GATE_BLOCKED
+blocker: "Issue #526 candidate Q1-Q5 response is comment 5303343598; a separate reviewer has not yet recorded QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS."
+highest_risk: "Production mutation before qualification or accidental overlap with PR #517 AIV readiness/executable-calculator authority."
+dependencies:
+  - "Issue #526 hard qualification gate"
+  - "PR #517 active PF-02 readiness/executable parity claim; coordination only"
+  - "PR #506 broad AIV candidate overlap; salvage evidence only"
+  - "Merged PR #518 simultaneous-source semantics"
+  - "Merged PR #525 PF-01 cache-custody chain"
+coordination_state: COORDINATION_REQUIRED
+exact_next_action: "After a separate reviewer records QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS on #526, re-ground current main/open AIV PRs and implement Stage 1 mode/revision/projection regressions without changing readiness/calculator semantics."
+last_updated: 2026-08-15T21:11:00+04:00
