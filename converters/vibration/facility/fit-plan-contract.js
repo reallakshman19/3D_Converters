@@ -1,6 +1,20 @@
 export const VIBRATION_FACILITY_FIT_PLAN_SCHEMA = 'VibrationFacilityFitPlan.v1';
 export const VIBRATION_FACILITY_FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 
+export const FIT_FACILITY_QUALIFICATION_MODES = Object.freeze(['benchmark', 'screening']);
+
+export function normalizeFitFacilityQualificationMode(value = 'benchmark') {
+  const mode = String(value ?? 'benchmark').trim().toLowerCase();
+  if (!FIT_FACILITY_QUALIFICATION_MODES.includes(mode)) {
+    throw fitFacilityPlanError(
+      'FIT_FACILITY_QUALIFICATION_MODE_UNSUPPORTED',
+      `FIT facility qualification mode must be one of ${FIT_FACILITY_QUALIFICATION_MODES.join(', ')}.`,
+      { value },
+    );
+  }
+  return mode;
+}
+
 export const FIT_FACILITY_ENRICHMENT_PROPERTIES = Object.freeze({
   ASSESSMENT_POINT: 'FIT_ASSESSMENT_POINT',
   OUTSIDE_DIAMETER: 'OUTSIDE_DIAMETER',
