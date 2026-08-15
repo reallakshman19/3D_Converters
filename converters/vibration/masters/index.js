@@ -39,3 +39,7 @@ export {
   inspectEiAviffReynoldsRuleCandidate,
   inspectEiAviffWaterVaporPressureCandidate,
 } from './ei-aviff-appendix-b-candidate.js';
+export {
+  calculateEiAviffReynoldsCandidate,
+  evaluateEiAviffMechanicalBaselineCandidate,
+} from './ei-aviff-appendix-b-evaluator.js';
