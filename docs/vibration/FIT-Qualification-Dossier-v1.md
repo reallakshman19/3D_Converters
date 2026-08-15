@@ -94,7 +94,7 @@ If the implementation reproduces the controlled worked examples,
 a separate independent vibration-engineer review is not required.
 ```
 
-The qualification source is the exact DOCX at `Common@7bfead910f6bca91b10748ead009e40f20c82219`, blob `ceee15ed...`.
+The qualification source is the exact DOCX at `Common@7bfead910f6bca91b10748ead009e40f20c82219`, blob `ceee15ed5f7f320045d5f3979024e2e8664613f2`.
 
 The rule removes only the separate vibration-engineer sign-off gate. It does not waive:
 
@@ -240,17 +240,25 @@ Command:
 npm run verify:vibration-fit-release
 ```
 
-Current PR499 manifest contains **47 distinct test files** across engineering core, FIT engineering evidence, facility/tabular, workspace/UI and multi-mechanism validation groups.
+Current PR499 manifest contains **50 distinct test files** across engineering core, FIT engineering evidence, facility/tabular, workspace/UI and multi-mechanism validation groups.
+
+The coordinated gate now also contains the three shared regressions introduced by merged #500/#501 because those changes modify the same Vibration Integrity shell used by FIT:
+
+```text
+tests/vibration-user-engineering-data.test.mjs
+tests/vibration-sbc-type3-user-data.test.mjs
+tests/vibration-sbc-type3-user-data-table-validation.test.mjs
+```
 
 Execution truth:
 
 ```text
-native exact 47-file suite          NOT_RUN / ENVIRONMENT_BLOCKED
+native exact 50-file suite          NOT_RUN / ENVIRONMENT_BLOCKED
 real-browser acceptance             NOT_RUN
 real five-sheet XLSX acceptance     NOT_RUN
 ```
 
-Static/source construction is not runtime PASS. Hosted AIV jobs that return `steps=null` are classified NOT_RUN/INFRASTRUCTURE_BLOCKED, not FIT test failure or success.
+Static/source construction is not runtime PASS. Hosted jobs that allocate no executable steps remain NOT_RUN/INFRASTRUCTURE_BLOCKED, not FIT test failure or success.
 
 ## 11. Remaining source/qualification blockers
 
@@ -260,7 +268,7 @@ Still open and deliberately not converted to user-entered calculation data:
 - applicable official errata review;
 - project-basis adoption confirmation;
 - explicit disposition of D2/D4 source differences;
-- exact 47-file release execution;
+- exact 50-file release execution;
 - real-browser/real-file acceptance.
 
 A separate independent vibration-engineer recommendation is **not** a remaining gate when the controlled worked-example benchmark passes.
@@ -285,8 +293,9 @@ A separate independent vibration-engineer recommendation is **not** a remaining 
 | Elements/full-XLSX anti-bypass | IMPLEMENTED / runtime NOT_RUN |
 | Audit/engineering dual hash | IMPLEMENTED / runtime NOT_RUN |
 | Run-evidence export | IMPLEMENTED / runtime NOT_RUN |
+| Current-main #500/#501 shared shell reconciliation | PASS by GitHub ancestry/content reconciliation |
 | Independent vibration-engineer review | NOT REQUIRED when controlled worked-example benchmark passes |
-| Exact 47-file release regression | NOT_RUN / ENVIRONMENT_BLOCKED |
+| Exact 50-file release regression | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Browser/XLSX/CSV/Data Blockers acceptance | NOT_RUN |
 | Direct EI/errata/project review | NOT COMPLETE |
 | Screening authority | NOT_AUTHORIZED |
