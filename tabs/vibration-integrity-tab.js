@@ -7,7 +7,7 @@ import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revert
 import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, captureVibrationIntegrityExecutionState, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
 import { downloadVibrationIntegrityText, ensureVibrationIntegrityStylesheet } from './vibration-integrity-dom.js';
 import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
-import { executeVibrationIntegrityBenchmarkRun, vibrationIntegrityCapturedInputDrifted, vibrationIntegrityRunInputDrifted } from './vibration-integrity-run-controller.js';
+import { executeVibrationIntegrityRun, vibrationIntegrityCapturedInputDrifted, vibrationIntegrityRunInputDrifted } from './vibration-integrity-run-controller.js';
 import { createVibrationUserDataUiState, handleVibrationUserDataChange, handleVibrationUserDataClick, renderVibrationIntegrityWithUserData } from './vibration-integrity-user-data-shell.js';
 
 function workspaceOptions(state) {
@@ -100,13 +100,13 @@ export function renderVibrationIntegrityTab(container) {
       state.preflight = null; state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
     } finally { state.busy = false; state.busyAction = null; render(); }
   }
-  async function runBenchmark() {
+  async function runScreening() {
     if (!state.tables.topology.rows.length) return;
-    state.busy = true; state.busyAction = 'benchmark'; state.resultState = 'RUNNING'; state.error = null; render();
+    state.busy = true; state.busyAction = 'screening'; state.resultState = 'RUNNING'; state.error = null; render();
     try {
       const captured = captureVibrationIntegrityExecutionState(state);
-      const { runVibrationFacilityFitBenchmarkFromTables } = await import('../converters/vibration/facility/fit-workflow-tabular.js');
-      const executed = await executeVibrationIntegrityBenchmarkRun(captured, runVibrationFacilityFitBenchmarkFromTables);
+      const { runVibrationFacilityFitScreeningFromTables } = await import('../converters/vibration/facility/fit-workflow-tabular.js');
+      const executed = await executeVibrationIntegrityRun(captured, runVibrationFacilityFitScreeningFromTables);
       if (state.destroyed) return;
       state.envelope = executed.envelope;
       const drifted = await vibrationIntegrityRunInputDrifted(executed.runSnapshot, state);
@@ -123,7 +123,7 @@ export function renderVibrationIntegrityTab(container) {
   function exportRegister() {
     if (state.resultState !== 'CURRENT_RESULT' || !state.envelope?.workflow?.register) return;
     try {
-      downloadVibrationIntegrityText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-benchmark-register.csv');
+      downloadVibrationIntegrityText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-screening-register.csv');
     } catch (error) { state.error = String(error?.message || error); render(); }
   }
   async function exportRunEvidence() {
@@ -184,7 +184,7 @@ export function renderVibrationIntegrityTab(container) {
     const action = event.target.closest('[data-vi-action]')?.dataset.viAction;
     if (action === 'load-benchmark') loadBenchmark();
     if (action === 'preflight') checkReadiness();
-    if (action === 'run') runBenchmark();
+    if (action === 'run') runScreening();
     if (action === 'export') exportRegister();
     if (action === 'export-evidence') exportRunEvidence();
     if (action === 'operating-template') downloadVibrationIntegrityText(createVibrationOperatingCaseCsvTemplate(), 'vibration-operating-cases-v1.csv');
