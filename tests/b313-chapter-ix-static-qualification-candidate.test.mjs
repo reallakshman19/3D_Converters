@@ -118,6 +118,17 @@ test('candidate blocks master rows that carry status without independent row cus
   assert.equal(result.canPromoteCalculationAuthority, false);
 });
 
+test('candidate ignores unrelated master rows that are not selected by the resolved basis', () => {
+  const input = candidate();
+  input.basisPackage.masters.materialAllowable.push({
+    materialId: 'OTHER', b313Edition: '2024', temperatureC: 100, allowableStressMpa: 1,
+    sourceId: 'SRC-B313-ALLOW', sourceLocator: 'UNUSED', qualificationState: 'SOURCE_PENDING',
+  });
+  const result = evaluateChapterIxStaticQualificationCandidate(input);
+  assert.equal(result.candidateState, 'EVIDENCE_COMPLETE_NOT_AUTHORIZED');
+  assert.equal(result.canPromoteCalculationAuthority, false);
+});
+
 test('candidate rejects a relative tolerance looser than the R1 qualification ceiling', () => {
   const input = candidate();
   input.benchmark.tolerance.value = 0.001;
