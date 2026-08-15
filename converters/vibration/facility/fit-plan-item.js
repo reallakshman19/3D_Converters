@@ -1,6 +1,7 @@
 import {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
+  normalizeFitFacilityQualificationMode,
 } from './fit-plan-contract.js';
 import {
   fitFacilityEnrichmentRow,
@@ -66,6 +67,7 @@ function requestFromEvidence({
   insideDiameter,
   maximumUnsupportedSpan,
   naturalFrequency,
+  qualificationMode,
 }) {
   const inputs = {
     outsideDiameter: outsideDiameter.value,
@@ -90,7 +92,7 @@ function requestFromEvidence({
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
     inputs,
     inputUnits,
-    options: { qualificationMode: 'benchmark', includeEvidence: true },
+    options: { qualificationMode, includeEvidence: true },
   };
 }
 
@@ -133,7 +135,13 @@ export function buildFitFacilityNoCaseItem(point) {
   };
 }
 
-export function buildFitFacilityPlanItem(point, operatingCase, index) {
+export function buildFitFacilityPlanItem(
+  point,
+  operatingCase,
+  index,
+  qualificationModeInput = 'benchmark',
+) {
+  const qualificationMode = normalizeFitFacilityQualificationMode(qualificationModeInput);
   const missing = [];
   const invalid = [];
   const property = FIT_FACILITY_ENRICHMENT_PROPERTIES;
@@ -181,6 +189,7 @@ export function buildFitFacilityPlanItem(point, operatingCase, index) {
       insideDiameter,
       maximumUnsupportedSpan,
       naturalFrequency: naturalFrequency.row,
+      qualificationMode,
     }) : null,
     sourceTrace: Object.freeze({
       assessmentPoint: fitFacilityEnrichmentTrace(point.marker),
