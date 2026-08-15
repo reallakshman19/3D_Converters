@@ -1,6 +1,7 @@
 import { assertVibrationIntegrityAuditLog } from './vibration-integrity-audit-log.js';
 
 export const FIT_RUN_EVIDENCE_SCHEMA = 'FitRunEvidencePackage.v1';
+export const VIBRATION_AUDIT_IDENTITY_SCHEMA = 'VibrationIntegrityAuditIdentity.v1';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
 const SNAPSHOT_SCHEMA = 'FitRunSnapshot.v1';
@@ -138,15 +139,21 @@ function benchmarkEvidence(benchmark) {
   };
 }
 
-function auditEvidence(auditLog) {
-  if (!auditLog) return null;
+async function auditEvidence(auditLog) {
+  if (!auditLog) return Object.freeze({ trail: null, identity: null });
+  let trail;
   try {
-    return jsonClone(assertVibrationIntegrityAuditLog(auditLog));
+    trail = jsonClone(assertVibrationIntegrityAuditLog(auditLog));
   } catch (error) {
     throw evidenceError('FIT_RUN_EVIDENCE_AUDIT_INVALID', 'Run evidence received an invalid Vibration Integrity audit trail.', {
       cause: String(error?.message || error),
     });
   }
+  const hash = await sha256Hex(stableJson(trail));
+  return Object.freeze({
+    trail,
+    identity: Object.freeze({ schema: VIBRATION_AUDIT_IDENTITY_SCHEMA, algorithm: 'SHA-256', hash }),
+  });
 }
 
 export async function buildVibrationIntegrityRunEvidence(state = {}) {
@@ -157,6 +164,7 @@ export async function buildVibrationIntegrityRunEvidence(state = {}) {
   }
   const snapshot = await assertSnapshot(state.runSnapshot);
   const envelope = assertExecution(state.envelope);
+  const audit = await auditEvidence(state.auditLog);
   return deepFreeze({
     schema: FIT_RUN_EVIDENCE_SCHEMA,
     calculationId: FIT_CALCULATION_ID,
@@ -169,7 +177,8 @@ export async function buildVibrationIntegrityRunEvidence(state = {}) {
       purpose: 'REPRODUCIBILITY_EVIDENCE_ONLY',
     },
     run: jsonClone(snapshot),
-    auditTrail: auditEvidence(state.auditLog),
+    auditTrail: audit.trail,
+    auditTrailIdentity: audit.identity,
     sources: {
       files: sourceFiles(state.files),
       benchmark: benchmarkEvidence(state.benchmark?.loaded ?? null),
