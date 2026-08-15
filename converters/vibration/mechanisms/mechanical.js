@@ -18,7 +18,14 @@ function scopeFromRow(row = {}) {
   };
 }
 
-function readiness(sourceKeys, inspected) {
+function normalizeKeys(sourceKeys) {
+  return Array.isArray(sourceKeys)
+    ? [...new Set(sourceKeys.map((value) => String(value ?? '').trim()).filter(Boolean))]
+    : [];
+}
+
+function readiness(sourceKeys, inspected, notApplicable) {
+  if (notApplicable) return { missing: [], invalid: [], reasons: [] };
   if (!sourceKeys.length) {
     return {
       missing: ['MECHANICAL_T23_EQUIPMENT_SOURCE_SELECTION'],
@@ -34,34 +41,29 @@ function readiness(sourceKeys, inspected) {
     };
   }
   if (!inspected.ok) {
-    return {
-      missing: [],
-      invalid: [inspected.status],
-      reasons: [inspected.status],
-    };
+    return { missing: [], invalid: [inspected.status], reasons: [inspected.status] };
   }
   return { missing: [], invalid: [], reasons: [] };
 }
 
-function assessmentState(sourceKeys, inspected) {
+function assessmentState(sourceKeys, inspected, notApplicable) {
+  if (notApplicable) return 'NOT_APPLICABLE';
   if (!sourceKeys.length) return 'APPLICABILITY_UNKNOWN';
   if (!inspected.ok) return 'APPLICABLE_INCOMPLETE';
   return 'CALCULATED';
 }
 
-function resultState(inspected, requested) {
-  if (!inspected.ok) return 'UNRUN';
+function resultState(inspected, requested, notApplicable) {
+  if (notApplicable || !inspected.ok) return 'UNRUN';
   return requested === 'STALE_RESULT' ? 'STALE_RESULT' : 'CURRENT_RESULT';
 }
 
-function resultValue(inspected) {
+function resultValue(inspected, notApplicable) {
+  if (notApplicable) {
+    return { calculated: false, governingLof: null, status: 'NOT_APPLICABLE', governingSourceKey: null };
+  }
   if (!inspected.ok) {
-    return {
-      calculated: false,
-      governingLof: null,
-      status: inspected.status,
-      governingSourceKey: null,
-    };
+    return { calculated: false, governingLof: null, status: inspected.status, governingSourceKey: null };
   }
   const candidate = inspected.candidate;
   return {
@@ -73,65 +75,62 @@ function resultValue(inspected) {
   };
 }
 
-export function buildMechanicalVibrationMechanismAssessmentItem({
-  row,
-  sourceKeys = [],
-  cachedCandidate = null,
-  resultState: requestedResultState = null,
-} = {}) {
+function traceValue(sourceKeys, inspected, notApplicable) {
+  return {
+    equationIds: [],
+    ruleIds: ['EI-AVIFF-T2.3-MAX-BASELINE-LOF'],
+    correlationIds: [],
+    inputTrace: {
+      status: sourceKeys.length || notApplicable ? 'SOURCE_AND_NORMALIZED_ONLY' : 'UNAVAILABLE',
+      normalizedInputs: { sourceKeys, notApplicable },
+      sourceTrace: inspected.ok ? inspected.candidate.rows : null,
+    },
+  };
+}
+
+function evidenceValue(inspected, notApplicable) {
+  if (!inspected.ok || notApplicable) {
+    return { facilityScope: inspected.scope, status: notApplicable ? 'NOT_APPLICABLE' : inspected.status };
+  }
+  return {
+    facilityScope: inspected.scope,
+    provenance: inspected.candidate.provenance,
+    usagePolicy: inspected.candidate.usagePolicy,
+    authority: inspected.candidate.authority,
+  };
+}
+
+export function buildMechanicalVibrationMechanismAssessmentItem(options = {}) {
+  const { row, cachedCandidate = null, resultState: requestedResultState = null } = options;
+  const sourceKeys = normalizeKeys(options.sourceKeys);
+  const notApplicable = options.notApplicable === true;
   const facilityScope = mechanicalFacilityScope(row);
-  const normalizedKeys = Array.isArray(sourceKeys)
-    ? [...new Set(sourceKeys.map((value) => String(value ?? '').trim()).filter(Boolean))]
-    : [];
   const inspected = inspectMechanicalFacilityCandidate(row, cachedCandidate);
-  const result = resultValue(inspected);
   return createVibrationMechanismAssessmentItem({
     mechanismId: MECHANICAL_VIBRATION_MECHANISM_ID,
-    scope: scopeFromRow(row),
-    childKey: 't2.3-baseline',
-    childOrdinal: 0,
+    scope: scopeFromRow(row), childKey: 't2.3-baseline', childOrdinal: 0,
     implementationState: MECHANICAL_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
-    assessmentState: assessmentState(normalizedKeys, inspected),
-    resultState: resultState(inspected, requestedResultState),
+    assessmentState: assessmentState(sourceKeys, inspected, notApplicable),
+    resultState: resultState(inspected, requestedResultState, notApplicable),
     applicability: {
-      status: normalizedKeys.length ? 'USER_SELECTED_EQUIPMENT_SOURCES' : 'UNKNOWN',
-      facilityScopeId: facilityScope.scopeId,
-      sourceKeys: normalizedKeys,
+      status: notApplicable ? 'NOT_APPLICABLE_USER_CONFIRMED'
+        : sourceKeys.length ? 'USER_SELECTED_EQUIPMENT_SOURCES' : 'UNKNOWN',
+      facilityScopeId: facilityScope.scopeId, sourceKeys,
     },
-    readiness: readiness(normalizedKeys, inspected),
+    readiness: readiness(sourceKeys, inspected, notApplicable),
     request: {
-      methodId: 'VIB.MECHANICAL.T2_3.BASELINE',
-      facilityScopeId: facilityScope.scopeId,
+      methodId: 'VIB.MECHANICAL.T2_3.BASELINE', facilityScopeId: facilityScope.scopeId,
       evidenceClass: 'EI_METHOD_MASTER_CANDIDATE_PLUS_PROJECT_APPLICABILITY',
     },
-    execution: inspected.ok ? {
-      status: 'CALCULATED_MASTER_CANDIDATE',
-      screeningAuthorized: false,
-    } : null,
-    result,
-    trace: {
-      equationIds: [],
-      ruleIds: ['EI-AVIFF-T2.3-MAX-BASELINE-LOF'],
-      correlationIds: [],
-      inputTrace: {
-        status: normalizedKeys.length ? 'SOURCE_AND_NORMALIZED_ONLY' : 'UNAVAILABLE',
-        normalizedInputs: { sourceKeys: normalizedKeys },
-        sourceTrace: inspected.ok ? inspected.candidate.rows : null,
-      },
-    },
+    execution: inspected.ok && !notApplicable
+      ? { status: 'CALCULATED_MASTER_CANDIDATE', screeningAuthorized: false } : null,
+    result: resultValue(inspected, notApplicable),
+    trace: traceValue(sourceKeys, inspected, notApplicable),
     qualification: {
-      effective: 'CANDIDATE_MASTER',
-      engineeringAuthority: 'NONE',
-      screeningAuthority: 'NOT_AUTHORIZED',
-      designAuthority: false,
-      masterDataAuthority: false,
+      effective: 'CANDIDATE_MASTER', engineeringAuthority: 'NONE',
+      screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false, masterDataAuthority: false,
     },
-    evidence: inspected.ok ? {
-      facilityScope: inspected.scope,
-      provenance: inspected.candidate.provenance,
-      usagePolicy: inspected.candidate.usagePolicy,
-      authority: inspected.candidate.authority,
-    } : { facilityScope: inspected.scope, status: inspected.status },
+    evidence: evidenceValue(inspected, notApplicable),
   });
 }
 
