@@ -12,8 +12,8 @@ test('PF-006 browser harness is a dedicated two-facility SBC journey', () => {
   assert.match(harness, /SBC_TYPE3_TWO_FACILITY_USER_JOURNEY/u);
   assert.match(fixture, /EI-D2-FIT-RELIEF-UPSTREAM-4IN/u);
   assert.match(fixture, /EI-D2-FIT-RECYCLE-SUCTION-6IN/u);
-  assert.match(harness, /Ready\s\+2/u);
-  assert.match(harness, /Not ready\s\+0/u);
+  assert.match(harness, /Ready\\s\+2/u);
+  assert.match(harness, /Not ready\\s\+0/u);
   assert.match(harness, /data-vi-file="topology"/u);
   assert.match(harness, /data-vi-action="run"/u);
 });
