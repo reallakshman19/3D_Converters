@@ -200,7 +200,7 @@ export async function deriveSbcType3MasterAssistedInputs(options = {}) {
       derived: Object.freeze({
         c: geometryC.value,
         e: minimumSpanE.value,
-        modifiedMinimumSpanM: minimumSpanE.modifiedMinimumSpanM,
+        modifiedMinimumSpanM: minimumSpanE.modifiedSpanM,
         firstLocationLof: location.value,
         mainlineLofForAssessment: location.mainlineLof,
         mainlineMultiplier: multiplier.value,
