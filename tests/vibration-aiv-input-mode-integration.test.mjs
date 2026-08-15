@@ -29,6 +29,7 @@ test('dataset and execution integrate mode revision plus stale-operation custody
   ]);
   assert.equal(dataset.includes('activateAivNetworkDrivenMode(state, projected.flareNetwork.revision);'), true);
   assert.equal(dataset.includes('markAivTableDrivenInputChanged(state);'), true);
+  assert.equal(dataset.includes('deactivateFlareNetworkGeneration'), false);
   assert.equal(execution.includes("beginAivAsyncOperation(state, 'readiness')"), true);
   assert.equal(execution.includes("beginAivAsyncOperation(state, 'screening')"), true);
   assert.equal(execution.includes("isAivLineageCurrent(state, 'screening')"), true);
