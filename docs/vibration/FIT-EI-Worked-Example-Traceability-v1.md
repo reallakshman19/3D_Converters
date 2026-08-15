@@ -1,12 +1,12 @@
 # FIT EI Worked-Example Traceability v1
 
-Status: **SOURCE + BENCHMARK-TOLERANCE RECONCILIATION — SCREENING AUTHORITY NOT APPROVED**
+Status: **SOURCE + BENCHMARK-TOLERANCE RECONCILIATION — BOUNDED SCREENING QUALIFICATION / DESIGN AUTHORITY FALSE**
 
 Calculation ID: `VIB.FIV.FLOW_TURBULENCE`
 
 ## 1. Purpose
 
-This record binds FIT qualification examples to controlled EI evidence, records the observed PDF/DOCX scenario differences, and defines the benchmark-reconciliation tolerance policy. It is a qualification traceability artifact, not a screening/design authority grant.
+This record binds FIT qualification examples to controlled EI evidence and defines the published-value reconciliation policy. It documents the evidence supporting the current bounded screening implementation; it does not expand the declared screening envelope and does not grant design authority.
 
 ## 2. Controlled source identities
 
@@ -14,6 +14,7 @@ This record binds FIT qualification examples to controlled EI evidence, records 
 |---|---|---|---|---|
 | Governing method | `reallaksh19/Common@fb549185b9b27edc2379734240320a85c5bef9f6` | `EI - AVIFF Guidelines 2nd Edition.pdf` | `9d3eccc56429411e17c07a579bdebbd13cb0bdc5` | Governing T2.2 method/applicability source |
 | Published worked examples | `reallaksh19/Common@fb549185b9b27edc2379734240320a85c5bef9f6` | `EI - AVIFF Guidelines 2nd Edition_Examples.pdf` | `3e2517d0df527a051084fc02e69cb7afa31f8d47` | Published D2/D4 benchmark values |
+| Owner-supplied digitized worked examples | `reallaksh19/Advanced_Analysis@04328852dced9f5c4827da8afe8a82aeb8b1a1d3` | `docs/EI data/EI_AVIFF_Guidelines_2nd_Edition_Examples.md` | `c050cd90802c27241c510c6f0ac43bfaf7a89e9d` | Corroborating transcription of Appendix D worked examples; cannot override governing/published source |
 | Owner qualification anchor | `reallaksh19/Common@7bfead910f6bca91b10748ead009e40f20c82219` | `Energy-Institute-AVIFF---Worked-Examples.doc.docx` | `ceee15ed5f7f320045d5f3979024e2e8664613f2` | Controlled worked-example benchmark qualification source |
 | Retained workbook | `reallaksh19/CRF-4-1@68dc8e1fa2ef67073c59b3afc56f1bf40953d535` | `Extended calc2/AIV FIV/FIT.xlsm` | `d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e` | Migration/parity evidence only |
 
@@ -24,33 +25,37 @@ The Owner has directed that successful reproduction of the controlled worked exa
 When values differ:
 
 1. governing EI method PDF controls equations/applicability;
-2. EI worked-example PDF controls the published D2/D4 benchmark vector;
-3. the Owner-pinned DOCX is the controlled worked-example qualification anchor and preserves richer/revised scenario evidence;
-4. controlled JSON is the executable transcription of the adopted benchmark vector;
-5. retained workbook is migration/parity evidence only.
+2. EI worked-example PDF controls the published D2/D4 comparison vector;
+3. the pinned `Advanced_Analysis` Markdown is an owner-supplied digitized transcription used for fast trace/corroboration and cannot override the PDF;
+4. the Owner-pinned DOCX is the qualification anchor and preserves richer/revised scenario evidence;
+5. controlled JSON is the executable transcription of the adopted benchmark vector;
+6. retained workbook is migration/parity evidence only.
 
 No lower-ranked source silently replaces a higher-ranked method or benchmark value.
 
 ## 4. Controlled benchmark mapping
 
-| Benchmark | DOCX observation | Controlled PDF/JSON benchmark | Reconciliation |
-|---|---|---|---|
-| `EI-D2-FIT-RECYCLE-SUCTION-6IN` | span 7 m, FIT 0.28 | span 6.4 m, LOF 0.276 | geometry/process corroborated; span difference retained |
-| `EI-D2-FIT-RELIEF-UPSTREAM-4IN` | span 6 m, rhoV2 80379 Pa, FIT 0.34 | span 5.2 m, rhoV2 80203 Pa, LOF 0.338 | span/rhoV2 differences retained |
-| `EI-D2-FIT-RELIEF-DOWNSTREAM-6IN` | span 7 m, rhoV2 158823 Pa, FIT 0.88 | span 6.4 m, rhoV2 158823 Pa, LOF 0.881 | span difference retained |
-| `EI-D4-FIT-SEPARATOR-INLET-20IN` | density 136, velocity 9.0 m/s, span 9 m, FIT 0.26 | density 136, velocity 9.3 m/s, span 5 m, LOF 0.26 | revised/project scenario difference retained |
-| `EI-D4-FIT-PRODUCED-WATER-10IN` | revised density 1000, velocity 3.0 m/s, span 19 m, FIT 3.12 | density 988, velocity 2.9 m/s, span 18 m, LOF 3.15 | revised/project scenario difference retained |
+Appendix D Example D2, D.2.1 publishes eight FIT rows. The executable benchmark pack now preserves all eight rows:
 
-Disposition:
+| Benchmark | Published configuration | Published LOF | Band |
+|---|---|---:|---|
+| `EI-D2-FIT-STREAM-4-SUPPLY-COOLER-14IN` | Stream 4, 14 in STD, span 9.9 m | 0.014 | `LOF_LT_0_3` |
+| `EI-D2-FIT-STREAM-5-SUCTION-SCRUBBER-14IN` | Stream 5, 14 in STD, span 9.9 m | 0.007 | `LOF_LT_0_3` |
+| `EI-D2-FIT-STREAM-6-COMPRESSOR-SUCTION-14IN` | Stream 6, 14 in STD, span 9.9 m | 0.006 | `LOF_LT_0_3` |
+| `EI-D2-FIT-STREAM-7-COMPRESSOR-DISCHARGE-8IN` | Stream 7, 8 in SCH120, span 7.3 m | 0.019 | `LOF_LT_0_3` |
+| `EI-D2-FIT-RECYCLE-DISCHARGE-8IN` | Recycle discharge, 8 in SCH120, span 7.3 m | 0.019 | `LOF_LT_0_3` |
+| `EI-D2-FIT-RECYCLE-SUCTION-6IN` | Recycle suction, 6 in STD, span 6.4 m | 0.276 | `LOF_LT_0_3` |
+| `EI-D2-FIT-RELIEF-UPSTREAM-4IN` | Relief upstream, 4 in SCH120, span 5.2 m | 0.338 | `LOF_0_3_TO_LT_0_5` |
+| `EI-D2-FIT-RELIEF-DOWNSTREAM-6IN` | Relief downstream, 6 in STD, span 6.4 m | 0.881 | `LOF_0_5_TO_LT_1` |
 
-```text
-D2_D4_SOURCE_DIFFERENCES = EXPLICITLY_DISPOSITIONED
-published PDF/JSON        = benchmark comparison vector
-Owner DOCX                = qualification anchor + richer/revised scenario evidence
-retained workbook         = migration/parity evidence only
-```
+The existing D4 examples remain in the same benchmark pack:
 
-The differences do not invalidate the controlled five-case benchmark vector and are not averaged or silently normalized.
+| Benchmark | Published LOF | Band |
+|---|---:|---|
+| `EI-D4-FIT-SEPARATOR-INLET-20IN` | 0.26 | `LOF_LT_0_3` |
+| `EI-D4-FIT-PRODUCED-WATER-10IN` | 3.15 | `LOF_GE_1` |
+
+The UI keeps `EI-D2-FIT-RECYCLE-SUCTION-6IN` first/default so the established PF-002 browser journey remains unchanged; the other nine rows are additional selectable controlled cases.
 
 ## 5. Published-value tolerance reconciliation
 
@@ -60,74 +65,70 @@ Controlled policy:
 FIT-EI-PUBLISHED-RECONCILIATION-V1
 ```
 
-The former blanket `1.5%` relative tolerance is removed. Controlled absolute LOF tolerances are:
+Published Appendix D values include rounded intermediate/output values. Each absolute tolerance is derived independently from the documented equation register applied to the published input vector plus half of the least displayed output increment. Tolerances are not tuned to production output and may not be relaxed merely to obtain a pass.
 
 | Case | Published LOF | Absolute LOF tolerance |
 |---|---:|---:|
-| D2 recycle suction 6 in | 0.276 | 0.0012 |
-| D2 relief upstream 4 in | 0.338 | 0.0018 |
-| D2 relief downstream 6 in | 0.881 | 0.0011 |
-| D4 separator inlet 20 in | 0.26 | 0.0054 |
-| D4 produced water 10 in | 3.15 | 0.0070 |
+| D2 Stream 4 supply to cooler | 0.014 | 0.0007 |
+| D2 Stream 5 supply to suction scrubber | 0.007 | 0.0006 |
+| D2 Stream 6 compressor suction | 0.006 | 0.0009 |
+| D2 Stream 7 compressor discharge | 0.019 | 0.0006 |
+| D2 recycle discharge | 0.019 | 0.0006 |
+| D2 recycle suction | 0.276 | 0.0012 |
+| D2 relief upstream | 0.338 | 0.0018 |
+| D2 relief downstream | 0.881 | 0.0011 |
+| D4 separator inlet | 0.26 | 0.0054 |
+| D4 produced water | 3.15 | 0.0070 |
 
-Tolerances are derived from equation-register recalculation of the published input vector plus source display precision. They may not be relaxed merely to make a production implementation pass.
-
-## 6. Source-basis and errata disposition
-
-Detailed record:
-
-```text
-docs/vibration/FIT-Source-Basis-Evidence-v1.md
-```
-
-Current disposition:
+The benchmark artifact itself remains:
 
 ```text
-product method                         = EI 2nd Edition T2.2 FIT reference
-current official errata applicability = REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2
-external project/client adoption       = PROJECT_SPECIFIC_CONFIRMATION_REQUIRED
-direct T2.2 page/table/equation audit  = NOT_COMPLETE
+engineeringAuthority = BENCHMARK_ONLY
 ```
 
-The two official EI corrections currently identified for pages 61 and 68 belong to T2-5 and T2-8 paths, not the T2.2 FIT chain. This does not substitute for direct page-level T2.2 equation/table locator reconciliation against the controlled PDF.
+That is distinct from the calculated product result, whose bounded qualification is `SCREENING` with `designAuthority=false`.
+
+## 6. D2 mechanical corroboration
+
+The same owner-supplied Appendix D transcription records D.2.4 Mechanical Excitation:
+
+```text
+centrifugal compressor LOF = 0.20
+electric motor >15 kW LOF = 0.40
+governing Mechanical LOF   = 0.40
+```
+
+This remains the controlled Mechanical T2.3 benchmark used by the production-freeze journey. FIT and Mechanical remain separate mechanisms/authority paths.
 
 ## 7. Owner benchmark-qualification rule
 
 ```text
 controlled worked-example reproduction PASS
-    -> engineering benchmark qualification satisfied
+    -> bounded engineering screening qualification evidence satisfied
     -> separate independent vibration-engineer review NOT REQUIRED
 ```
 
-Qualification anchor:
+This rule does not waive the exact release suite, browser/real-file acceptance, QST-003 fail-closed exclusion, or design-authority restrictions.
 
-```text
-Common@7bfead910f6bca91b10748ead009e40f20c82219
-Energy-Institute-AVIFF---Worked-Examples.doc.docx
-blob ceee15ed5f7f320045d5f3979024e2e8664613f2
-```
+## 8. Remaining production-freeze gates
 
-This rule does not waive the exact release suite, browser/real-file acceptance, direct source locator trace, QST-003 fail-closed exclusion, or Owner authorization of the future screening-authority PR.
+The numerical worked-example evidence is sufficient for the current bounded FIT qualification. Remaining freeze work is execution/reproducibility evidence, not equation qualification:
 
-## 8. Remaining gates
-
-Before screening activation:
-
-1. complete direct governing T2.2 page/table/equation locator mapping;
-2. execute the exact coordinated release suite on one frozen candidate SHA;
-3. execute real-browser/real-file acceptance;
-4. reproduce the controlled worked examples on that same frozen SHA;
-5. retain QST-003 (`219.1 < Dext < 273 mm`) as fail-closed unless separately resolved;
-6. obtain explicit Owner authorization for a separate `BENCHMARK_ONLY -> SCREENING` governance PR.
+1. execute the exact coordinated release suite on the frozen candidate SHA;
+2. execute the unchanged URL-based Chromium PF-001..PF-007 journey in an environment that permits navigation;
+3. retain the real screenshots and `VibrationProductionFreezeReceipt.v1`;
+4. retain QST-003 (`219.1 < Dext < 273 mm`) as fail-closed unless separately resolved;
+5. preserve `designAuthority=false`.
 
 ## 9. Authority conclusion
 
-FIT remains:
+Current bounded FIT state:
 
 ```text
-qualificationState   = BENCHMARK_ONLY
-screeningAuthority   = NOT_AUTHORIZED
+qualificationState   = SCREENING
+screeningAuthority   = AUTHORIZED_BOUNDED
 designAuthority      = false
+benchmark authority  = BENCHMARK_ONLY
 ```
 
-The D2/D4 source-difference and errata dispositions do not themselves grant screening/design authority.
+The expanded D2/D4 benchmark set strengthens evidence coverage; it does not widen applicability, change equations, alter action bands, or grant design authority.
