@@ -57,7 +57,6 @@ export function renderAivQualificationWorkspace(container) {
   const datasetLoader = createAivDatasetLoader({
     state, render, clearReadiness: execution.clearReadiness,
     clearMasterResolution: () => masterDbController.clearResolution({ clearDerivedValues: true }),
-    deactivateFlareNetworkGeneration,
     onDatasetLoaded: () => masterDbController.apply({ silent: true }),
   });
 
@@ -87,11 +86,6 @@ export function renderAivQualificationWorkspace(container) {
     state.selectedCanvasKey = selection?.selectionKey ?? null;
     const host = container.querySelector('[data-aiv-canvas-selected-detail-host]');
     if (host) host.innerHTML = renderAivCanvasSelectedDetailHtml(state, state.selectedCanvasKey);
-  }
-
-  function deactivateFlareNetworkGeneration() {
-    state.flareNetworkActive = false;
-    state.generatedInputSet = null;
   }
 
   function applyFlareNetworkPresentation(network) {
