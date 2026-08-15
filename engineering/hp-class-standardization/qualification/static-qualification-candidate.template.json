@@ -2,6 +2,8 @@
   "_instructions": [
     "Replace every REPLACE_* token and null numerical value with controlled evidence.",
     "Do not derive Class-E expected values from the calculation implementation under test.",
+    "Every selected master row requires distinct preparedBy/checkedBy custody and checkedAt.",
+    "R1 qualification accepts RELATIVE benchmark tolerance only, with value <= 0.0001.",
     "The candidate can reach EVIDENCE_COMPLETE_NOT_AUTHORIZED only; authority promotion is a separate owner/engineering decision."
   ],
   "candidateVersion": "b313-ch9-static-qualification-candidate/v1",
@@ -80,7 +82,10 @@
           "sourceId": "REPLACE_ALLOWABLE_SOURCE_ID",
           "sourceLocator": "REPLACE_EXACT_SOURCE_LOCATOR",
           "interpolationPolicy": "LINEAR_NO_EXTRAPOLATION",
-          "qualificationState": "INDEPENDENTLY_CHECKED"
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
         }
       ],
       "pipeProduct": [
@@ -91,7 +96,10 @@
           "productSpec": "REPLACE_PRODUCT_SPEC",
           "manufacturingProcess": "REPLACE_MANUFACTURING_PROCESS",
           "toleranceRuleId": "REPLACE_TOLERANCE_RULE_ID",
-          "qualificationState": "INDEPENDENTLY_CHECKED"
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
         }
       ],
       "pipeDimension": [
@@ -105,7 +113,10 @@
           "dimensionEdition": "REPLACE_DIMENSION_EDITION",
           "sourceId": "REPLACE_DIMENSION_SOURCE_ID",
           "sourceLocator": "REPLACE_EXACT_SOURCE_LOCATOR",
-          "qualificationState": "INDEPENDENTLY_CHECKED"
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
         }
       ],
       "manufacturingTolerance": [
@@ -118,7 +129,10 @@
           "toleranceEdition": "REPLACE_PRODUCT_TOLERANCE_EDITION",
           "sourceId": "REPLACE_TOLERANCE_SOURCE_ID",
           "sourceLocator": "REPLACE_EXACT_SOURCE_LOCATOR",
-          "qualificationState": "INDEPENDENTLY_CHECKED"
+          "qualificationState": "INDEPENDENTLY_CHECKED",
+          "preparedBy": "REPLACE_RECORD_PREPARER",
+          "checkedBy": "REPLACE_RECORD_CHECKER",
+          "checkedAt": "REPLACE_ISO_TIMESTAMP"
         }
       ]
     }
@@ -140,7 +154,11 @@
     "expected": {
       "pressureDesignThicknessMm": null,
       "requiredMinimumThicknessMm": null,
-      "pressureRatingMpa": null
+      "requiredNominalThicknessMm": null,
+      "minimumAsManufacturedThicknessMm": null,
+      "effectiveNetWallMm": null,
+      "pressureRatingMpa": null,
+      "staticPass": null
     },
     "tolerance": {
       "type": "RELATIVE",
