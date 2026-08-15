@@ -3,6 +3,7 @@ import {
   resolveBlockedVibrationData,
   validateVibrationUserEngineeringDataRow,
 } from '../user-engineering-data.js';
+import { combineSbcType3Terms } from './type3-combination.js';
 
 export const SBC_TYPE3_USER_METHOD_ID = 'VIB.SBC.T3.TYPE3.USER_INPUT_CANDIDATE';
 export const SBC_TYPE3_RECORD_KEY = 'TYPE3';
@@ -129,6 +130,17 @@ function evidenceEntry(term, resolution) {
   });
 }
 
+function notReady(scopeId, problems) {
+  return Object.freeze({
+    ok: false,
+    status: 'NOT_READY',
+    methodId: SBC_TYPE3_USER_METHOD_ID,
+    scopeId,
+    problems: Object.freeze(problems),
+    authority: AUTHORITY,
+  });
+}
+
 export function calculateSbcType3FromUserEngineeringData(options = {}) {
   const scopeId = String(options.scopeId ?? '').trim();
   if (!scopeId) throw new TypeError('SBC Type-3 evaluation requires a scopeId.');
@@ -147,7 +159,7 @@ export function calculateSbcType3FromUserEngineeringData(options = {}) {
   const hasMass = booleanValue(get('firstHasMass', SBC_TYPE3_BLOCKERS.firstHasMass), 'firstHasMass', problems);
   const c = hasMass === true
     ? numberValue(get('firstMassGeometryLof', SBC_TYPE3_BLOCKERS.firstMassGeometryLof), 'LOFGEOM(C)', problems)
-    : 0;
+    : hasMass === false ? 0 : null;
   const firstCurveBlocker = hasMass === true ? SBC_TYPE3_BLOCKERS.figureT31 : SBC_TYPE3_BLOCKERS.figureT32;
   const d = hasMass === null ? null : numberValue(get('firstCurveLof', firstCurveBlocker), 'LOFGEOM(D)', problems);
   const e = numberValue(get('firstMinimumSpanLof', SBC_TYPE3_BLOCKERS.firstMinimumSpanLof), 'LOFGEOM(E)', problems);
@@ -155,32 +167,24 @@ export function calculateSbcType3FromUserEngineeringData(options = {}) {
   const f = numberValue(get('figureT33', SBC_TYPE3_BLOCKERS.figureT33), 'LOFGEOM(F)', problems);
   const g = numberValue(get('figureT34', SBC_TYPE3_BLOCKERS.figureT34), 'LOFGEOM(G)', problems);
 
-  if (problems.length) {
-    return Object.freeze({
-      ok: false, status: 'NOT_READY', methodId: SBC_TYPE3_USER_METHOD_ID,
-      scopeId, problems: Object.freeze(problems), authority: AUTHORITY,
-    });
-  }
+  if (problems.length) return notReady(scopeId, problems);
 
-  const firstGeometryLof = Math.max(c, d, e);
-  const firstModifier = Math.min(firstGeometryLof, firstLocation);
-  const subsequentGeometryLof = Math.max(f, g);
-  const subsequentModifier = Math.min(subsequentGeometryLof, 1);
-  const overallModifier = Math.max(firstModifier, subsequentModifier);
-  const mainlineAdjustedLof = mainlineLof * multiplier;
-  const lof = Math.min(mainlineAdjustedLof, overallModifier);
+  const combination = combineSbcType3Terms({
+    hasMass, c, d, e, firstLocation, f, g, mainlineLof, multiplier,
+  });
+  if (!combination.ok) return notReady(scopeId, combination.problems);
+
   const evidence = Object.entries(resolutions).map(([term, resolution]) => evidenceEntry(term, resolution));
-
   return Object.freeze({
     ok: true,
     status: 'CALCULATED_USER_INPUT_CANDIDATE',
     methodId: SBC_TYPE3_USER_METHOD_ID,
     scopeId,
-    firstSpan: Object.freeze({ hasUnsupportedMass: hasMass, c, d, e, geometryLof: firstGeometryLof, locationLof: firstLocation, modifier: firstModifier }),
-    subsequentSpans: Object.freeze({ f, g, geometryLof: subsequentGeometryLof, locationLof: 1, modifier: subsequentModifier }),
-    overallModifier,
-    mainline: Object.freeze({ lof: mainlineLof, multiplier, adjustedLof: mainlineAdjustedLof }),
-    lof,
+    firstSpan: combination.firstSpan,
+    subsequentSpans: combination.subsequentSpans,
+    overallModifier: combination.overallModifier,
+    mainline: combination.mainline,
+    lof: combination.lof,
     evidence: Object.freeze(evidence),
     authority: AUTHORITY,
   });
