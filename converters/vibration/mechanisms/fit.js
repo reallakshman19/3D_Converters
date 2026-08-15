@@ -4,7 +4,7 @@ import {
 } from './contracts.js';
 
 export const FIT_VIBRATION_MECHANISM_ID = 'fit';
-export const FIT_VIBRATION_MECHANISM_IMPLEMENTATION_STATE = 'IMPLEMENTED_BENCHMARK_ONLY';
+export const FIT_VIBRATION_MECHANISM_IMPLEMENTATION_STATE = 'IMPLEMENTED_SCREENING';
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
