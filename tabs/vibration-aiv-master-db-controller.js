@@ -1,20 +1,14 @@
 import { parseVibrationTableExchangeXlsx } from '../converters/vibration/exchange/parse.js';
-import { parseAivMasterDatabase } from '../converters/vibration/aiv/aiv-master-db.js';
+import { loadBundledAivMasterDatabase } from '../converters/vibration/aiv/aiv-master-db-bundled.js';
 import { resolveAivTablesFromMasterDb } from '../converters/vibration/aiv/aiv-master-db-resolver.js';
-import {
-  AIV_MASTER_DB_REFERENCE,
-  calculateAivGitBlobSha1,
-} from '../converters/vibration/aiv/aiv-master-db-reference.js';
 import { createAivInputTable } from './vibration-aiv-input-model.js';
 
-function error(code, message, details = {}) {
+function error(code, message) {
   const value = new Error(message);
   value.name = 'AivMasterDbUiError';
   value.code = code;
-  value.details = Object.freeze({ ...details });
   return value;
 }
-function fileName(file) { return String(file?.name ?? '').trim(); }
 function currentTopology(state) {
   if (state.topology?.elements) return state.topology;
   const input = state.topologyInput;
@@ -37,40 +31,6 @@ function tableFromResolution(table) {
 function formatError(value) {
   return `${value?.code ? `${value.code}: ` : ''}${String(value?.message || value)}`;
 }
-
-async function verifiedTexts(fileList) {
-  const expected = AIV_MASTER_DB_REFERENCE.files;
-  const byName = new Map();
-  for (const file of Array.from(fileList ?? [])) {
-    const name = fileName(file);
-    if (name in expected) {
-      if (byName.has(name)) throw error('AIV_MASTER_FILE_DUPLICATE', `Duplicate AIV master file ${name}.`);
-      byName.set(name, file);
-    }
-  }
-  const missing = Object.keys(expected).filter((name) => !byName.has(name));
-  if (missing.length) throw error('AIV_MASTER_PACKAGE_INCOMPLETE', `Select the complete seven-file AIV master package. Missing: ${missing.join(', ')}.`, { missing });
-  const texts = {};
-  const verification = {};
-  for (const [name, expectedBlob] of Object.entries(expected)) {
-    const bytes = new Uint8Array(await byName.get(name).arrayBuffer());
-    const rawBlob = await calculateAivGitBlobSha1(bytes);
-    const rawText = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    const canonicalText = rawText.replace(/\r\n/g, '\n');
-    const canonicalBlob = rawBlob === expectedBlob ? rawBlob
-      : await calculateAivGitBlobSha1(new TextEncoder().encode(canonicalText));
-    if (canonicalBlob !== expectedBlob) {
-      throw error('AIV_MASTER_GIT_BLOB_MISMATCH', `${name} does not match the approved pinned master blob.`, { name, expectedBlob, actualBlob: rawBlob });
-    }
-    texts[name] = rawBlob === expectedBlob ? rawText : canonicalText;
-    verification[name] = Object.freeze({
-      expectedBlob, actualBlob: canonicalBlob,
-      status: rawBlob === expectedBlob ? 'MATCH' : 'MATCH_EOL_NORMALIZED',
-    });
-  }
-  return { texts, verification };
-}
-
 function tableColumnIndex(table, column) {
   return table?.header?.indexOf(column) ?? -1;
 }
@@ -99,8 +59,7 @@ function shiftedAfterDelete(resolution, tableKind, rowIndex, deletedAssessmentId
     if (item.rowIndex === rowIndex) return [];
     return [{ ...item, rowIndex: item.rowIndex > rowIndex ? item.rowIndex - 1 : item.rowIndex }];
   });
-  const discovered = (resolution.discoveredAssessmentCanonicalIds ?? [])
-    .filter((id) => id !== deletedAssessmentId);
+  const discovered = (resolution.discoveredAssessmentCanonicalIds ?? []).filter((id) => id !== deletedAssessmentId);
   return Object.freeze({
     ...resolution,
     resolutions: Object.freeze(resolutions.map(Object.freeze)),
@@ -134,42 +93,57 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     state.masterResolution = null;
   }
 
-  async function loadFiles(fileList) {
+  function resolveCurrent({ silent = false } = {}) {
+    if (!state.masterDb) {
+      if (silent) return false;
+      throw error('AIV_MASTER_DB_NOT_LOADED', 'The bundled AIV master database is not available.');
+    }
+    const topology = currentTopology(state);
+    if (!topology?.elements?.length) {
+      if (silent) return false;
+      throw error('AIV_MASTER_TOPOLOGY_REQUIRED', 'Load/import topology before applying AIV master data.');
+    }
+    clearResolution({ clearDerivedValues: true });
+    const resolution = resolveAivTablesFromMasterDb({ tables: state.tables, topology, masterDb: state.masterDb });
+    state.tables = {
+      sources: tableFromResolution(resolution.tables.sources),
+      assessments: tableFromResolution(resolution.tables.assessments),
+      relationships: tableFromResolution(resolution.tables.relationships),
+    };
+    state.masterResolution = resolution;
+    clearReadiness();
+    return true;
+  }
+
+  async function loadBundled() {
     state.masterLoadState = 'LOADING';
-    state.error = null;
+    state.masterLoadError = null;
     render();
     try {
-      const { texts, verification } = await verifiedTexts(fileList);
-      state.masterDb = parseAivMasterDatabase(texts, verification);
+      state.masterDb = await loadBundledAivMasterDatabase();
       state.masterLoadState = 'VERIFIED';
-      clearReadiness();
+      state.masterLoadError = null;
+      resolveCurrent({ silent: true });
     } catch (value) {
       state.masterDb = null;
+      state.masterResolution = null;
       state.masterLoadState = 'ERROR';
-      state.error = formatError(value);
+      state.masterLoadError = formatError(value);
     }
     render();
   }
 
-  function apply() {
+  function apply({ silent = false } = {}) {
     try {
-      if (!state.masterDb) throw error('AIV_MASTER_DB_NOT_LOADED', 'Load and verify the pinned AIV master package first.');
-      clearResolution({ clearDerivedValues: true });
-      const topology = currentTopology(state);
-      if (!topology?.elements?.length) throw error('AIV_MASTER_TOPOLOGY_REQUIRED', 'Load/import topology before applying AIV master data.');
-      const resolution = resolveAivTablesFromMasterDb({ tables: state.tables, topology, masterDb: state.masterDb });
-      state.tables = {
-        sources: tableFromResolution(resolution.tables.sources),
-        assessments: tableFromResolution(resolution.tables.assessments),
-        relationships: tableFromResolution(resolution.tables.relationships),
-      };
-      state.masterResolution = resolution;
-      state.error = null;
-      clearReadiness();
+      const changed = resolveCurrent({ silent });
+      if (changed) state.error = null;
+      render();
+      return changed;
     } catch (value) {
-      state.error = formatError(value);
+      if (!silent) state.error = formatError(value);
+      render();
+      return false;
     }
-    render();
   }
 
   function prepareUserEdit(tableKind, rowIndex, columnIndex) {
@@ -203,5 +177,5 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     state.masterResolution = shiftedAfterDelete(state.masterResolution, tableKind, rowIndex, deletedAssessmentId);
   }
 
-  return Object.freeze({ loadFiles, apply, clearResolution, prepareUserEdit, noteRowDeleted });
+  return Object.freeze({ loadBundled, apply, clearResolution, prepareUserEdit, noteRowDeleted });
 }
