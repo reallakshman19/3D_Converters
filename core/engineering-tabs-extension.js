@@ -6,7 +6,7 @@ const ENGINEERING_TABS = Object.freeze([
   {
     id: 'engineering-calculations',
     label: 'Engineering Calculations',
-    load: () => import('../tabs/engineering-workspace-tab.js?v=engineering-workspace-1').then((module) => module.renderEngineeringWorkspaceTab),
+    load: () => import('../tabs/engineering-workspace-tab.js?v=20260815-aiv-pf01-cache-1').then((module) => module.renderEngineeringWorkspaceTab),
   },
 ]);
 const TAB_IDS = new Set(ENGINEERING_TABS.map((tab) => tab.id));
