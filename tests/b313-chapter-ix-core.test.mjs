@@ -7,6 +7,7 @@ import {
 } from '../converters/engineering-calculations/index.js';
 import { calculateChapterIxStraightPressure } from '../converters/b313-chapter-ix/straight-pipe.js';
 import { calculateChapterIxWallState } from '../converters/b313-chapter-ix/wall-state.js';
+import { evaluateChapterIxQualificationPackage } from '../converters/b313-chapter-ix/qualification-package.js';
 
 const REGRESSION_INPUT = Object.freeze({
   outsideDiameter: 114.3,
@@ -223,4 +224,59 @@ test('central resolver preserves explicit unit conversion without engineering de
   assert.equal(resolved.ok, true, JSON.stringify(resolved));
   close(resolved.canonicalInput.designPressure, 20);
   assert.equal(resolved.canonicalInput.minusTolerancePct, 12.5);
+});
+
+test('Chapter IX qualification package keeps seed-like source records SOURCE_PENDING', () => {
+  const result = evaluateChapterIxQualificationPackage({
+    packageVersion: 'b313-ch9-qualification-package/v1',
+    scope: 'STRAIGHT_PIPE_STATIC',
+    method: { methodId: 'B313-CH9-STATIC-2024-R1', methodRevision: '1.0.0', b313Edition: '2024' },
+    sources: [{
+      role: 'B313_CHAPTER_IX', sourceId: 'SRC-B313-2024', standard: 'ASME B31.3', edition: '2024',
+      documentHash: 'sha256:d8b72f1a94e803c4a22c56e3b091f6e27b68903c71ea63a756b19a7102e3b901',
+      status: 'ACTIVE', verifiedBy: 'LEAD_PE', verifiedAt: '2026-01-15T08:00:00Z',
+    }],
+    benchmarks: [],
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.packageState, 'SOURCE_PENDING');
+  assert.equal(result.evidenceComplete, false);
+  assert.equal(result.canPromoteCalculationAuthority, false);
+  assert(result.issues.some((row) => row.code === 'QUAL_SOURCE_NOT_CHECKED'));
+});
+
+test('Chapter IX qualification package requires independent finite numerical benchmark evidence', () => {
+  const source = {
+    role: 'B313_CHAPTER_IX', sourceId: 'SRC-CONTROLLED', standard: 'ASME B31.3', edition: '2024',
+    documentHash: `sha256:${'a'.repeat(64)}`,
+    controlledSourceVerified: true, status: 'INDEPENDENTLY_CHECKED',
+    verifiedBy: 'TRANSCRIBER_A', independentCheckBy: 'CHECKER_B',
+    verifiedAt: '2026-08-15T10:00:00Z', independentCheckedAt: '2026-08-15T11:00:00Z',
+  };
+  const pending = evaluateChapterIxQualificationPackage({
+    packageVersion: 'b313-ch9-qualification-package/v1', scope: 'STRAIGHT_PIPE_STATIC',
+    method: { methodId: 'M-STATIC-24', methodRevision: '1.0.0', b313Edition: '2024' },
+    sources: [source],
+    benchmarks: [{
+      benchmarkId: 'B-001', methodId: 'M-STATIC-24', sourceId: 'SRC-CONTROLLED',
+      independent: true, status: 'INDEPENDENTLY_CHECKED', producedBy: 'CALC_A', reviewedBy: 'CALC_B',
+      expected: { pressureDesignThicknessMm: 1, requiredMinimumThicknessMm: 2 },
+    }],
+  });
+  assert.equal(pending.packageState, 'BENCHMARK_PENDING');
+  assert(pending.issues.some((row) => row.code === 'QUAL_BENCHMARK_EXPECTED'));
+
+  const complete = evaluateChapterIxQualificationPackage({
+    packageVersion: 'b313-ch9-qualification-package/v1', scope: 'STRAIGHT_PIPE_STATIC',
+    method: { methodId: 'M-STATIC-24', methodRevision: '1.0.0', b313Edition: '2024' },
+    sources: [source],
+    benchmarks: [{
+      benchmarkId: 'B-002', methodId: 'M-STATIC-24', sourceId: 'SRC-CONTROLLED',
+      independent: true, status: 'INDEPENDENTLY_CHECKED', producedBy: 'CALC_A', reviewedBy: 'CALC_B',
+      expected: { pressureDesignThicknessMm: 1, requiredMinimumThicknessMm: 2, pressureRatingMpa: 3 },
+    }],
+  });
+  assert.equal(complete.packageState, 'EVIDENCE_COMPLETE_NOT_AUTHORIZED');
+  assert.equal(complete.evidenceComplete, true);
+  assert.equal(complete.canPromoteCalculationAuthority, false);
 });
