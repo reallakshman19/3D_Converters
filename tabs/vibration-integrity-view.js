@@ -117,7 +117,7 @@ function mechanismCell(assessment) {
     ? `<small class="vi-mono">${esc(assessment.referenceBand)}</small>`
     : '';
   const qualification = assessment.qualificationState === 'CANDIDATE_USER_INPUT'
-    ? '<small class="vi-mono">CANDIDATE USER INPUT</small>' : '';
+    ? '<small class="vi-mono">CANDIDATE</small>' : '';
   const currency = assessment.resultState === 'STALE_RESULT'
     ? '<small class="vi-mono">STALE_RESULT</small>' : '';
   return `<strong>${esc(assessment.lof)}</strong>${band}${qualification}${currency}`;
@@ -156,6 +156,8 @@ function tableRows(workspace, state) {
     const matrix = buildVibrationMechanismMatrixRow(row, {
       resultState: state.resultState,
       userEngineeringDataRows,
+      sbcPrecomputedByScope: state.sbcFacilityCandidateResults ?? {},
+      sbcMasterAssistedScopes: state.sbcMasterAssistedScopes ?? {},
     });
     return `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
       <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
@@ -181,7 +183,7 @@ function workspaceTable(state) {
     return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run FIT screening. SBC inputs attach to the resulting line/case/canonical facility rows.</p></section>';
   }
   return `<section class="vi-card vi-workspace-card">
-    <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>FIT is qualified for bounded screening. SBC Type-3 may be evaluated from explicit project User Engineering Data as a separate non-authorizing candidate.</p></div></div>
+    <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>FIT is qualified for bounded screening. SBC Type-3 can use candidate EI non-curve masters plus exact manual curve reads as a separately identified non-authorizing candidate.</p></div></div>
     ${resultCurrencyBanner(state)}
     <div class="vi-banner warn"><strong>Authority boundary.</strong><span>Screening governing uses authorized screening mechanisms only. SBC candidate values are displayed separately and cannot replace the FIT screening result. Design authority remains false and full multi-mechanism screening is not established.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
@@ -207,7 +209,7 @@ function importFacts(state) {
 
 export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
-    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric vibration integrity workspace with bounded FIT screening and separately identified SBC project-input candidates.</p></div><div class="vi-authority"><strong>SCREENING</strong><span>FIT BOUNDED · SBC CANDIDATE · DESIGN AUTHORITY FALSE</span></div></header>
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric vibration integrity workspace with bounded FIT screening and separately identified SBC candidates.</p></div><div class="vi-authority"><strong>SCREENING</strong><span>FIT BOUNDED · SBC CANDIDATE · DESIGN AUTHORITY FALSE</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${renderVibrationIntegrityInputArea(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;
