@@ -253,17 +253,30 @@ export function calculateAivKernelCandidatePointContribution({ sourceResult, rel
   });
 }
 
+function simultaneousGroupToken(value) {
+  const token = String(value ?? '').trim();
+  return token || '(IMPLICIT_SINGLE_GROUP)';
+}
+
 export function combineAivKernelCandidatePointContributions(contributions) {
   if (!Array.isArray(contributions) || contributions.length === 0) {
     throw candidateError('AIV_CANDIDATE_CONTRIBUTIONS_REQUIRED', 'At least one point-level source contribution is required.');
   }
   const first = contributions[0];
+  const firstGroup = simultaneousGroupToken(first.simultaneousSourceGroup);
   for (const contribution of contributions) {
     if (contribution?.schema !== AIV_KERNEL_CANDIDATE_POINT_CONTRIBUTION_SCHEMA) {
       throw candidateError('AIV_CANDIDATE_CONTRIBUTION_SCHEMA_INVALID', `All contributions must use ${AIV_KERNEL_CANDIDATE_POINT_CONTRIBUTION_SCHEMA}.`);
     }
     if (contribution.assessmentCanonicalId !== first.assessmentCanonicalId || contribution.caseId !== first.caseId) {
       throw candidateError('AIV_CANDIDATE_CONTRIBUTION_SCOPE_MISMATCH', 'Combined contributions must share Assessment Canonical ID and Operating Case.');
+    }
+    if (simultaneousGroupToken(contribution.simultaneousSourceGroup) !== firstGroup) {
+      throw candidateError(
+        'AIV_MULTIPLE_SIMULTANEOUS_GROUPS_UNSUPPORTED',
+        'Multiple simultaneous-source groups for one Assessment + Operating Case require a separately qualified result-scope contract.',
+        { assessmentCanonicalId: first.assessmentCanonicalId, caseId: first.caseId },
+      );
     }
   }
   const energySum = contributions.reduce((sum, contribution) => sum + (10 ** (contribution.pointPwlDb / 10)), 0);

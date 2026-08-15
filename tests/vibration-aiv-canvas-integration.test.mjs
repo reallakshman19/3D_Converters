@@ -167,3 +167,15 @@ test('two applicable 160 dB sources remain visible and combine to 163.0102999566
 test('two applicable 160 and 150 dB sources remain visible and combine to 160.41392685158226 dB through the registered kernel', () => {
   runSimultaneous([160, 150], 160.41392685158226);
 });
+
+test('multiple simultaneous-source groups for one Assessment and Operating Case fail closed', () => {
+  const fixture = simultaneousFixture([160, 160]);
+  const relationships = fixture.inputs.relationships.map((row, index) => ({
+    ...row,
+    simultaneousSourceGroup: `SIM-GROUP-${index + 1}`,
+  }));
+  const result = calculateEngineering(request({ ...fixture.inputs, relationships }));
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0]?.code, 'AIV_MULTIPLE_SIMULTANEOUS_GROUPS_UNSUPPORTED');
+  assert.match(result.errors[0]?.message ?? '', /separately qualified result-scope contract/u);
+});
