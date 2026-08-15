@@ -10,7 +10,7 @@ function row() {
   return {
     line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1',
     standardLof: 0.34, governingReferenceLof: 0.34,
-    referenceBand: 'LOF_0_3_TO_LT_0_5', qualificationState: 'BENCHMARK_ONLY',
+    referenceBand: 'LOF_0_3_TO_LT_0_5', qualificationState: 'SCREENING',
   };
 }
 
@@ -27,7 +27,7 @@ test('mechanism catalogue matches the EI worked-example screening columns', () =
     VIBRATION_INTEGRITY_MECHANISMS.filter((item) => item.implementationState !== 'NOT_IMPLEMENTED').length,
     1,
   );
-  assert.equal(VIBRATION_INTEGRITY_MECHANISMS[0].implementationState, 'BENCHMARK_ONLY');
+  assert.equal(VIBRATION_INTEGRITY_MECHANISMS[0].implementationState, 'SCREENING');
 });
 
 test('FIT consumes the generic mechanism contract while non-FIT keeps zero child items', () => {
@@ -35,7 +35,7 @@ test('FIT consumes the generic mechanism contract while non-FIT keeps zero child
   const aiv = buildVibrationMechanismAssessment(row(), 'aiv', { resultState: 'CURRENT_RESULT' });
   assert.equal(fit.calculated, true);
   assert.equal(fit.lof, 0.34);
-  assert.equal(fit.assessmentState, 'CALCULATED_BENCHMARK');
+  assert.equal(fit.assessmentState, 'CALCULATED_SCREENING');
   assert.equal(fit.contractSet.cardinality.kind, 'ONE');
   assert.equal(fit.itemId, '["fit","L-100","NORMAL","CAN-1","mainline"]');
   assert.equal(aiv.calculated, false);
@@ -53,10 +53,11 @@ test('stale FIT values remain inspectable but cannot be the current implemented 
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
 });
 
-test('current implemented governing result never claims a complete vibration screening result', () => {
+test('current FIT screening result never claims a complete multi-mechanism vibration screening result', () => {
   const matrix = buildVibrationMechanismMatrixRow({ ...row(), governingReferenceLof: 3.12 }, { resultState: 'CURRENT_RESULT' });
   assert.equal(matrix.implementedGoverning.mechanism.id, 'fit');
   assert.equal(matrix.implementedGoverning.lof, 3.12);
+  assert.equal(matrix.implementedGoverning.assessmentState, 'CALCULATED_SCREENING');
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
   assert(matrix.assessments.every((assessment) => (
     assessment.mechanism.id === 'fit' || assessment.assessmentState === 'NOT_IMPLEMENTED'
