@@ -9,7 +9,6 @@ ISSUE: #514
 PR: #522
 BRANCH: agent/sbc-pf-003-candidate-currentness
 BASE_MAIN: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-GROUNDING_EPOCH: 2026-08-15T14:59Z
 QUALIFICATION: QUALIFIED_FOR_SBC_TYPE3_PRODUCTION_FREEZE
 OWNER_PROGRESSION: ok, proceed next phase
 OWNER_PROGRESSION_COMMENT: #514 comment 5302780129
@@ -20,13 +19,13 @@ CURRENT_SLICE: PF-003 per-scope candidate currentness + stale-async commit prote
 FREEZE_STATE: BLOCKED / NOT_FROZEN
 ```
 
-## Progression Boundary
+## Progression / Scope Boundary
 
-PF-001 / PR #520 and PF-002 / PR #521 remain OPEN / DRAFT / BLOCKED / NOT_FROZEN with browser evidence still NOT_RUN. The Owner progression direction authorizes this next isolated slice; it does not convert those prior slices to PASS/FROZEN and does not grant merge authority.
+PF-001 / PR #520 and PF-002 / PR #521 remain OPEN / DRAFT / BLOCKED / NOT_FROZEN. Owner progression authorizes this isolated slice only; it does not convert prior browser NOT_RUN evidence to PASS/FROZEN and does not grant merge authority.
 
-PF-003 is independent of both unmerged SBC branches. It imports no PF-001/PF-002 code and contains no Type-3 calculation arithmetic, master-assisted derivation, final LOF, facility-matrix integration, curve publication/activation, shared workflow/UI mutation, or AIV work.
+PF-003 is independent of both unmerged SBC branches. It contains no Type-3 equation, master-assisted derivation, final LOF, facility-matrix integration, live UI/controller wiring, curve publication/activation, shared workflow/activity redesign, or AIV work.
 
-## Live Grounding / Coordination
+## Live Grounding
 
 ```text
 main                  e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
@@ -39,105 +38,75 @@ competing SBC PF-003  none found
 AIV / #513            OUT OF SCOPE
 ```
 
-The current merged Mechanical controller was inspected as a repository-local state-safety precedent. It uses per-scope pending tokens and discards completion when the current token no longer matches.
+Current merged Mechanical controller was inspected as the repository-local safety precedent: per-scope pending tokens are invalidated by engineering edits and only a matching current token may commit.
 
-Old #508 `tabs/vibration-integrity-sbc-master-assisted-controller.js` was reclassified `REIMPLEMENT_FROM_CONCEPT`: its `evaluateMasterAssisted()` writes `sbcType3Result` and `sbcFacilityCandidateResults[scopeId]` after `await` without an engineering-revision/current-operation guard. That stale-commit behavior is specifically not salvaged.
+Old #508 `tabs/vibration-integrity-sbc-master-assisted-controller.js` is `REIMPLEMENT_FROM_CONCEPT`, not `SALVAGE_EXACT`: its `evaluateMasterAssisted()` commits after `await` without an engineering-revision/current-operation guard. PF-003 specifically closes that stale-commit class.
 
-## PF-003 Hypothesis / Result
-
-### Hypothesis
-
-Current production has exact SBC facility scope identity but no reusable SBC Type-3 currentness contract that independently proves PF-07 through PF-10 before later product integration.
-
-### Result
-
-SUPPORTED for the bounded pure-state seam. PF-003 now provides deterministic per-scope engineering revisions and operation tokens, synchronous invalidation, exact-scope consumption guards, and stale async rejection without touching calculation or shared product contracts.
-
-## Implemented Slice
+## Implemented Contract
 
 ```text
 NEW tabs/vibration-integrity-sbc-candidate-currentness.js
-    SbcType3CandidateCurrentnessStore.v1
+    schema: SbcType3CandidateCurrentnessStore.v1
     exact per-scope engineering revision
-    PHYSICAL_INPUT and MANUAL_CURVE_EVIDENCE engineering-change classes
+    engineering changes: PHYSICAL_INPUT | MANUAL_CURVE_EVIDENCE
     synchronous CURRENT -> STALE invalidation
     deterministic evaluation sequence/token
     exact pending-token + engineering-revision commit guard
     wrong embedded candidate scope rejection
     stale failure protection
-    current candidate inspection/read guard
-    presentation/navigation no-op for engineering state
+    exact-scope current candidate inspection/read
+    presentation/navigation engineering-state no-op
     deep immutable JSON-safe candidate snapshot
 
 NEW tests/vibration-sbc-type3-candidate-currentness.test.mjs
-    PF-07 through PF-10 plus isolation/supersession/presentation/immutability regressions
+    PF-07 through PF-10 plus isolation/supersession/presentation/immutability
 ```
 
-Production module size: 222 physical lines, below the repository 300-line limit.
+Production module size: 222 physical lines (<300).
 
-No existing production/test file was edited; therefore no production pre-edit backup was required for this slice.
+No existing production/test file was edited, so no production pre-edit backup was required. WIP pre-delete custody is retained as Git blob `9a387f346cc205221e12867265d4d508ab6ec610` for `agents/WIP_3_handoff.md`.
 
-WIP pre-delete custody:
-
-```text
-path: agents/WIP_3_handoff.md
-blob: 9a387f346cc205221e12867265d4d508ab6ec610
-```
-
-## Currentness Contract
+## Currentness Semantics
 
 ```text
 engineering edit on scope S
   -> S.engineeringRevision += 1
   -> existing S candidate becomes STALE immediately
-  -> S pending evaluation is cleared
+  -> S pending evaluation cleared
   -> other scopes unchanged
 
 begin evaluation on S
-  -> bind operation {scopeId, engineeringRevision, sequence, token}
+  -> bind {scopeId, engineeringRevision, sequence, token}
   -> latest operation replaces older pending operation for S
 
 completion on S
-  -> accept only when current pending token equals operation token
-  -> accept only when current engineeringRevision equals operation revision
-  -> require candidate.result.scopeId == S
+  -> require exact current pending token
+  -> require exact current engineering revision
+  -> require candidate.scopeId == S
   -> otherwise reject without mutating newer state
 
 presentation/navigation change
-  -> return exact existing store
+  -> exact existing store returned
   -> no revision increment
   -> no candidate invalidation
 ```
 
-Deterministic token shape:
-
-```text
-SBC-T3-EVAL/<encoded scopeId>/<engineeringRevision>/<sequence>
-```
-
-No clock or random input is used.
+Deterministic token: `SBC-T3-EVAL/<encoded scopeId>/<engineeringRevision>/<sequence>`. No wall clock or randomness is used.
 
 ## Frozen Regression Mapping
 
 ```text
-SBC-PF-07  wrong facility-scope cached result rejected
-SBC-PF-08  physical-input edit invalidates prior SBC candidate
-SBC-PF-09  D/F/G evidence edit invalidates prior SBC candidate
-SBC-PF-10  async stale result cannot overwrite newer input
+SBC-PF-07 wrong facility-scope cached result rejected
+SBC-PF-08 physical-input edit invalidates prior SBC candidate
+SBC-PF-09 D/F/G evidence edit invalidates prior SBC candidate
+SBC-PF-10 async stale result cannot overwrite newer input
 ```
 
-Additional regression coverage:
+Additional coverage proves A/B isolation, same-revision latest-intent supersession, stale failure protection, presentation neutrality, deterministic tokens, and immutable result custody.
 
-- A/B facility currentness isolation;
-- same-revision later evaluation supersedes earlier one;
-- stale failed operation cannot clear newer pending operation;
-- presentation/navigation changes are engineering-state neutral;
-- deterministic operation tokens;
-- deeply immutable candidate snapshot, detached from caller mutation.
+## Exact Payload Custody / Local Validation
 
-## Exact Payload Custody / Validation
-
-Exact GitHub blobs match the locally executed bytes via `git hash-object`:
+Exact GitHub production/test blobs equal the locally executed bytes:
 
 ```text
 tabs/vibration-integrity-sbc-candidate-currentness.js
@@ -147,66 +116,60 @@ tests/vibration-sbc-type3-candidate-currentness.test.mjs
 40e870aef5d702301df1005d016b6cd6d8af3181
 ```
 
-Local execution environment:
-
 ```text
-node: v22.16.0
-native authenticated checkout: unavailable
-browser: NOT_RUN
+node v22.16.0
+JS syntax                         PASS
+focused PF-003 Node suite         PASS 11/11
+PF-07 wrong/exact scope           PASS
+PF-08 physical edit invalidation  PASS
+PF-09 D/F/G edit invalidation     PASS
+PF-10 stale async guard           PASS
+same-revision supersession        PASS
+A/B isolation                     PASS
+presentation neutrality           PASS
+stale failure protection          PASS
+deterministic token               PASS
+immutable candidate snapshot      PASS
 ```
 
-Validation ledger:
+No engineering expected value, tolerance, equation, source authority, curve state, or Screening authority was changed.
 
-| Check | STATUS | Observation / oracle |
-|---|---|---|
-| current-main grounding | PASS | branch based on exact `e97effb0...` |
-| GitHub/local blob identity | PASS | both production/test blobs equal locally executed bytes |
-| JS syntax | PASS | module + test parse |
-| PF-003 focused Node suite | PASS 11/11 | exact payload |
-| PF-07 exact/wrong scope | PASS | B cannot consume A; wrong embedded scope cannot commit |
-| PF-08 physical edit invalidation | PASS | CURRENT -> STALE synchronously; revision increments |
-| PF-09 D/F/G edit invalidation | PASS | CURRENT -> STALE synchronously; curve evidence reason retained |
-| PF-10 stale async completion | PASS | stale operation rejected; newer pending/current state preserved |
-| same-revision supersession | PASS | older token rejected, latest token commits |
-| A/B isolation | PASS | A edit does not invalidate B |
-| presentation neutrality | PASS | same immutable store/current candidate retained |
-| stale failure completion | PASS | old failure cannot clear newer pending evaluation |
-| deterministic token | PASS | exact `SBC-T3-EVAL/FACILITY-A/1/1` in deterministic fixture |
-| immutable snapshot | PASS | caller mutation cannot mutate cached result |
-| official served-app Chromium | NOT_RUN | pure state seam not wired into product UI in this slice |
-| product freeze | NOT_FROZEN | later integration/browser evidence required |
-| hosted CI | PENDING | inspect exact final PR head after workreport transition |
+## Hosted CI Truth
 
-## Authority / Safety Boundary
-
-PF-003 creates no engineering calculation output and no Screening authority. It cannot promote SBC into `screeningGoverning`; later integration must continue to enforce #514's candidate-only authority boundary.
-
-This slice also does not resolve missing D/F/G, calculate D7, alter the curve quarantine, or change any expected engineering value/tolerance.
-
-## Browser / Production-Freeze Status
-
-The currentness state seam is not yet connected to the live SBC workflow, so a live A/B/edit/async Chromium acceptance is not possible on this PR alone.
+Exact code + PR-handoff head inspected:
 
 ```text
-official served-app Chromium: NOT_RUN
-reason: UNWIRED_PURE_STATE_SEAM
-freeze state: BLOCKED / NOT_FROZEN
+head       06aacec776e7dbfa67b368cd008044bfb9607fa9
+workflow   31891476570
+job        95028270266
+conclusion failure
+steps      []
+runner_id  0
 ```
 
-A later focused integration slice must bind real physical/manual-curve edits and candidate evaluation to this contract, then execute the exact #514 two-facility Chromium experiment.
+GitHub annotation: `The job was not started because an Actions budget is preventing further use.`
+
+Classification: `NOT_RUN / INFRASTRUCTURE_BLOCKED`. No product/test step executed, so the workflow failure is neither PF-003 product FAIL nor PASS.
+
+## Browser / Authority / Freeze Truth
+
+PF-003 is not connected to the live SBC workflow in this slice. Therefore the required two-facility browser journey is not claimed here.
+
+```text
+official served-app Chromium = NOT_RUN
+reason                       = UNWIRED_PURE_STATE_SEAM
+engineering calculation      = none
+screening authority change   = none
+curve authority change       = none
+freeze state                 = BLOCKED / NOT_FROZEN
+```
+
+A later focused integration slice must connect real physical/manual D/F/G edits and candidate evaluation to this state contract and then execute the exact #514 A/B/edit/async Chromium experiment. SBC must remain candidate-only and must never replace FIT `screeningGoverning`.
 
 ## Handover Boundary
 
-PR #522 is code-complete for PF-003's bounded currentness contract but is not production-frozen and not merge-authorized.
+PR #522 is code-complete for PF-003's bounded state/currentness contract, but is not production-frozen and not merge-authorized.
 
-Do not widen #522 into:
+Do not widen #522 into calculation/final LOF, #520/#521 code, facility matrix integration, live controller/UI wiring, shared #511/#512 architecture, curve activation, or AIV.
 
-- Type-3 arithmetic/final LOF or #520 code;
-- master-assisted physical derivation or #521 code;
-- SBC facility matrix consumption;
-- live controller/UI integration;
-- shared #511/#512 workflow/activity redesign;
-- curve publication/activation;
-- AIV or other mechanism work.
-
-`EXACT_NEXT_ACTION` after this PR remains draft: reconcile the accepted SBC calculation/derivation slices, then wire the currentness contract into a separate live-product SBC integration slice with real Chromium A/B/edit/async evidence.
+`EXACT_NEXT_ACTION`: keep #522 draft; after the prerequisite SBC calculation/derivation slices are accepted/reconciled, create a separate product-integration slice that consumes this currentness contract and proves PF-07–PF-10 live in Chromium.
