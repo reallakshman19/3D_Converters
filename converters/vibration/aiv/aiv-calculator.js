@@ -148,7 +148,19 @@ function relationshipKey(row) {
   return JSON.stringify([row.sourceCanonicalId, row.assessmentCanonicalId, row.caseId]);
 }
 
+function assertUniqueScreeningIdentities(sources, assessments, relationships) {
+  const sourceKeys = sources.map((row) => JSON.stringify([row?.sourceCanonicalId, row?.caseId]));
+  const assessmentIds = assessments.map((row) => row?.assessmentCanonicalId);
+  const relationshipKeys = relationships.map(relationshipKey);
+  if (new Set(sourceKeys).size !== sourceKeys.length
+    || new Set(assessmentIds).size !== assessmentIds.length
+    || new Set(relationshipKeys).size !== relationshipKeys.length) {
+    throw screeningError('AIV_SCREENING_INPUT_IDENTITY_DUPLICATE', 'AIV screening requires unique Source+Case, Assessment, and Source→Assessment+Case identities.');
+  }
+}
+
 function screeningExecutionScope(exchange, sources, assessments, relationships) {
+  assertUniqueScreeningIdentities(sources, assessments, relationships);
   let readiness;
   try {
     readiness = buildAivReadiness(exchange, sources, assessments, relationships);
@@ -213,11 +225,13 @@ export function calculateAiv({
   const sourceCandidates = scope.sources.map(calculateAivKernelCandidateSource);
   const sourceMap = new Map(sourceCandidates.map((item) => [`${item.sourceCanonicalId}\u0000${item.caseId}`, item]));
   const assessmentMap = new Map(scope.assessments.map((item) => [item.assessmentCanonicalId, item]));
-  const contributions = scope.relationships.map((relationship) => {
-    const sourceResult = sourceMap.get(`${relationship.sourceCanonicalId}\u0000${relationship.caseId}`);
-    const assessment = assessmentMap.get(relationship.assessmentCanonicalId);
-    return calculateAivKernelCandidatePointContribution({ sourceResult, relationship, assessment });
-  });
+  const contributions = scope.relationships
+    .filter((relationship) => relationship.applicabilityDisposition === 'APPLICABLE')
+    .map((relationship) => {
+      const sourceResult = sourceMap.get(`${relationship.sourceCanonicalId}\u0000${relationship.caseId}`);
+      const assessment = assessmentMap.get(relationship.assessmentCanonicalId);
+      return calculateAivKernelCandidatePointContribution({ sourceResult, relationship, assessment });
+    });
   const grouped = new Map();
   for (const item of contributions) {
     const key = JSON.stringify([item.assessmentCanonicalId, item.caseId]);
