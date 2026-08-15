@@ -1,4 +1,9 @@
 import {
+  SBC_TYPE3_RECORD_KEY,
+  createSbcType3UserInputTemplate,
+  validateSbcType3UserEngineeringDataRow,
+} from '../converters/vibration/sbc/type3-user-data.js';
+import {
   createSbcT3UserEngineeringDataTemplate,
   validateVibrationUserEngineeringDataRow,
 } from '../converters/vibration/user-engineering-data.js';
@@ -31,11 +36,7 @@ function withRowId(row, sequence) {
 }
 
 function nextTable(rows, nextSequence) {
-  return Object.freeze({
-    rows: Object.freeze(rows),
-    nextSequence,
-    schema: 'VibrationUserEngineeringDataTable.v1',
-  });
+  return Object.freeze({ rows: Object.freeze(rows), nextSequence, schema: 'VibrationUserEngineeringDataTable.v1' });
 }
 
 export function createVibrationUserEngineeringDataTable(rows = []) {
@@ -48,11 +49,16 @@ export function addVibrationUserEngineeringDataRow(table, seed = {}) {
   return nextTable([...table.rows, row], table.nextSequence + 1);
 }
 
+function addSeedRows(table, seeds) {
+  return seeds.reduce((next, seed) => addVibrationUserEngineeringDataRow(next, seed), table);
+}
+
 export function addSbcT3UserEngineeringDataRows(table, scopeId = '') {
-  return createSbcT3UserEngineeringDataTemplate(scopeId).reduce(
-    (next, seed) => addVibrationUserEngineeringDataRow(next, seed),
-    table,
-  );
+  return addSeedRows(table, createSbcT3UserEngineeringDataTemplate(scopeId));
+}
+
+export function addSbcType3UserEngineeringDataRows(table, scopeId, firstSpanHasUnsupportedMass) {
+  return addSeedRows(table, createSbcType3UserInputTemplate(scopeId, firstSpanHasUnsupportedMass));
 }
 
 function assertRowIndex(table, rowIndex) {
@@ -84,11 +90,10 @@ export function deleteVibrationUserEngineeringDataRow(table, rowIndex) {
 export function vibrationUserEngineeringDataRowState(row) {
   const hasAnyValue = VIBRATION_USER_DATA_COLUMNS.some((column) => text(row[column.key]).trim() !== '');
   if (!hasAnyValue) return Object.freeze({ status: 'EMPTY', errors: Object.freeze([]) });
-  const validation = validateVibrationUserEngineeringDataRow(row);
-  return Object.freeze({
-    status: validation.ok ? 'READY' : 'INCOMPLETE',
-    errors: validation.errors,
-  });
+  const validation = row.recordKey === SBC_TYPE3_RECORD_KEY
+    ? validateSbcType3UserEngineeringDataRow(row)
+    : validateVibrationUserEngineeringDataRow(row);
+  return Object.freeze({ status: validation.ok ? 'READY' : 'INCOMPLETE', errors: validation.errors });
 }
 
 export function vibrationUserEngineeringDataSummary(table) {
