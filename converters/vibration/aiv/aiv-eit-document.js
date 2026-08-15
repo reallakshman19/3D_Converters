@@ -1,5 +1,6 @@
 import { AIV_EIT_VERSION, assertAivEitV5Document } from './aiv-eit-contract.js';
 import { buildAivEitPipe } from './aiv-eit-geometry.js';
+import { selectAivMasterEvidence } from './aiv-master-evidence.js';
 import { buildAivEitSourceDetail } from './aiv-eit-source-detail.js';
 import { buildAivEitStream } from './aiv-eit-stream-record.js';
 
@@ -14,7 +15,17 @@ function maps(screeningPackage) {
   const sourceResults = new Map((result.sourceResults ?? []).map((x) => [skey(x.sourceCanonicalId, x.caseId), x]));
   const paths = new Map((screeningPackage.flareNetworkEvidence?.pathEvidence ?? []).map((x) => [rkey(x.sourceCanonicalId, x.assessmentCanonicalId, x.caseId), x]));
   const importedDetails = new Map((screeningPackage.eitImportEvidence?.detailEvidence ?? []).map((x) => [x.key, x]));
-  return { result, sources, assessments, relationships, sourceResults, paths, importedDetails };
+  return { result, sources, assessments, relationships, sourceResults, paths, importedDetails, masterEvidence: screeningPackage.masterEvidence ?? null };
+}
+
+function detailMasterEvidence(refs, sourceId, assessmentId, caseId) {
+  return [
+    ...selectAivMasterEvidence(refs.masterEvidence, { tableKind: 'sources', sourceCanonicalId: sourceId, caseId }),
+    ...selectAivMasterEvidence(refs.masterEvidence, { tableKind: 'assessments', assessmentCanonicalId: assessmentId }),
+    ...selectAivMasterEvidence(refs.masterEvidence, {
+      tableKind: 'relationships', sourceCanonicalId: sourceId, assessmentCanonicalId: assessmentId, caseId,
+    }),
+  ];
 }
 
 function lineRecord(assessmentResult, index, refs) {
@@ -31,6 +42,9 @@ function lineRecord(assessmentResult, index, refs) {
       assessmentResult,
       relationship: refs.relationships.get(relationshipKey),
       pathEvidence: refs.paths.get(relationshipKey),
+      masterEvidence: detailMasterEvidence(
+        refs, sourceId, assessmentResult.assessmentCanonicalId, assessmentResult.caseId,
+      ),
       importedDetail: refs.importedDetails.get(relationshipKey)?.originalDetail ?? null,
     });
   });
