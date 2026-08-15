@@ -8,7 +8,7 @@ import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacility
 import { downloadVibrationIntegrityText, ensureVibrationIntegrityStylesheet } from './vibration-integrity-dom.js';
 import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
 import { executeVibrationIntegrityBenchmarkRun, vibrationIntegrityCapturedInputDrifted, vibrationIntegrityRunInputDrifted } from './vibration-integrity-run-controller.js';
-import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
+import { createVibrationUserDataUiState, handleVibrationUserDataChange, handleVibrationUserDataClick, renderVibrationIntegrityWithUserData } from './vibration-integrity-user-data-shell.js';
 
 function workspaceOptions(state) {
   const filters = {};
@@ -21,7 +21,8 @@ function workspaceOptions(state) {
 }
 function initialState() {
   return {
-    ...createVibrationIntegrityInputRuntimeState(), preflight: null, envelope: null, workspace: null,
+    ...createVibrationIntegrityInputRuntimeState(), ...createVibrationUserDataUiState(),
+    preflight: null, envelope: null, workspace: null,
     resultState: 'UNRUN', runSnapshot: null, inputTab: 'engineering',
     filters: { line: '', completeness: '', band: '', candidate: '' },
     sort: { field: 'line', direction: 'asc' }, selectedRowKey: null, detailTab: 'summary',
@@ -37,7 +38,7 @@ export function renderVibrationIntegrityTab(container) {
   ensureVibrationIntegrityStylesheet();
   const state = initialState();
   function render() {
-    if (!state.destroyed) container.innerHTML = renderVibrationIntegrityHtml(state);
+    if (!state.destroyed) container.innerHTML = renderVibrationIntegrityWithUserData(state);
   }
   function discardCalculatedState() {
     state.preflight = null; state.envelope = null; state.workspace = null; state.selectedRowKey = null;
@@ -170,6 +171,7 @@ export function renderVibrationIntegrityTab(container) {
     target.scrollIntoView?.({ block: 'center' });
   }
   function onClick(event) {
+    if (handleVibrationUserDataClick(state, event, render)) return;
     if (handleTableClick(event)) return;
     const sourceTarget = event.target.closest('[data-vi-source-target]')?.dataset.viSourceTarget;
     if (sourceTarget) { event.preventDefault(); openSourceTarget(sourceTarget); return; }
@@ -196,6 +198,7 @@ export function renderVibrationIntegrityTab(container) {
     applyTableMutation(kind, table); return true;
   }
   function onChange(event) {
+    if (handleVibrationUserDataChange(state, event, render)) return;
     const fileTarget = event.target.dataset.viFile;
     if (fileTarget) { const file = event.target.files?.[0]; if (file) loadFile(fileTarget, file); return; }
     if (event.target.matches('[data-vi-benchmark-select]')) { state.benchmark.selectedId = event.target.value; return render(); }
