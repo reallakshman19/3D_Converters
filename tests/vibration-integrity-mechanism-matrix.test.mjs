@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js';
+import { SBC_TYPE3_BLOCKERS } from '../converters/vibration/sbc/type3-user-data.js';
 import {
   VIBRATION_INTEGRITY_MECHANISMS,
   buildVibrationMechanismAssessment,
@@ -14,7 +16,30 @@ function row() {
   };
 }
 
-test('mechanism catalogue matches the EI worked-example screening columns', () => {
+function userRow(scopeId, blockerId, value) {
+  return {
+    mechanismId: 'smallBoreConnections', blockerId, scopeId, recordKey: 'TYPE3',
+    xValue: '', xUnit: '', yValue: '', yUnit: '', value: String(value), unit: '1',
+    sourceReference: 'Independent facility test input', notes: '',
+  };
+}
+
+function sbcRows(targetRow = row()) {
+  const scopeId = sbcFacilityScopeId(targetRow);
+  return [
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.mainlineLof, 1),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.mainlineMultiplier, 1.42),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.firstHasMass, 'TRUE'),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.firstMassGeometryLof, 0.4),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.figureT31, 0.2),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.firstMinimumSpanLof, 0.7),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.firstLocationLof, 1),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.figureT33, 0.6),
+    userRow(scopeId, SBC_TYPE3_BLOCKERS.figureT34, 0.2),
+  ];
+}
+
+test('catalogue exposes FIT screening and SBC candidate without promoting other mechanisms', () => {
   assert.deepEqual(
     VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => mechanism.id),
     [
@@ -25,43 +50,86 @@ test('mechanism catalogue matches the EI worked-example screening columns', () =
   );
   assert.equal(
     VIBRATION_INTEGRITY_MECHANISMS.filter((item) => item.implementationState !== 'NOT_IMPLEMENTED').length,
-    1,
+    2,
   );
   assert.equal(VIBRATION_INTEGRITY_MECHANISMS[0].implementationState, 'SCREENING');
+  assert.equal(VIBRATION_INTEGRITY_MECHANISMS.at(-1).implementationState, 'CANDIDATE_USER_INPUT');
 });
 
-test('FIT consumes the generic mechanism contract while non-FIT keeps zero child items', () => {
-  const fit = buildVibrationMechanismAssessment(row(), 'fit', { resultState: 'CURRENT_RESULT' });
-  const aiv = buildVibrationMechanismAssessment(row(), 'aiv', { resultState: 'CURRENT_RESULT' });
+test('FIT screening survives the generic contract and SBC without data is input-required', () => {
+  const target = row();
+  const fit = buildVibrationMechanismAssessment(target, 'fit', { resultState: 'CURRENT_RESULT' });
+  const sbc = buildVibrationMechanismAssessment(target, 'smallBoreConnections');
+  const aiv = buildVibrationMechanismAssessment(target, 'aiv');
   assert.equal(fit.calculated, true);
-  assert.equal(fit.lof, 0.34);
   assert.equal(fit.assessmentState, 'CALCULATED_SCREENING');
-  assert.equal(fit.contractSet.cardinality.kind, 'ONE');
-  assert.equal(fit.itemId, '["fit","L-100","NORMAL","CAN-1","mainline"]');
-  assert.equal(aiv.calculated, false);
-  assert.equal(aiv.lof, null);
+  assert.equal(fit.implementationState, 'IMPLEMENTED_SCREENING');
+  assert.equal(fit.qualificationState, 'SCREENING');
+  assert.equal(sbc.calculated, false);
+  assert.equal(sbc.assessmentState, 'APPLICABILITY_UNKNOWN');
+  assert.equal(sbc.implementationState, 'IMPLEMENTED_CANDIDATE_USER_INPUT');
+  assert.equal(sbc.facilityScopeId, 'SBC-FACILITY/L-100/NORMAL/CAN-1');
+  assert.deepEqual(sbc.readiness.missing, ['SBC_TYPE3_USER_INPUT_TEMPLATE']);
   assert.equal(aiv.assessmentState, 'NOT_IMPLEMENTED');
   assert.deepEqual(aiv.contractSet.cardinality, { count: 0, kind: 'ZERO' });
 });
 
-test('stale FIT values remain inspectable but cannot be the current implemented governing result', () => {
-  const matrix = buildVibrationMechanismMatrixRow(row(), { resultState: 'STALE_RESULT' });
-  assert.equal(matrix.implementedGoverning, null);
-  assert.equal(matrix.retainedImplementedGoverning.mechanism.id, 'fit');
-  assert.equal(matrix.retainedImplementedGoverning.lof, 0.34);
-  assert.equal(matrix.retainedImplementedGoverning.resultState, 'STALE_RESULT');
+test('facility-scoped Type-3 project data calculates SBC as candidate only', () => {
+  const target = row();
+  const sbc = buildVibrationMechanismAssessment(target, 'smallBoreConnections', {
+    userEngineeringDataRows: sbcRows(target),
+  });
+  assert.equal(sbc.calculated, true);
+  assert.equal(sbc.assessmentState, 'CALCULATED_CANDIDATE');
+  assert.equal(sbc.resultState, 'CURRENT_RESULT');
+  assert.equal(sbc.lof, 0.7);
+  assert.equal(sbc.qualificationState, 'CANDIDATE_USER_INPUT');
+  assert.equal(sbc.contractSet.items[0].qualification.screeningAuthority, 'NOT_AUTHORIZED');
+});
+
+test('higher SBC candidate cannot replace authorized FIT screening governing', () => {
+  const target = row();
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    resultState: 'CURRENT_RESULT',
+    userEngineeringDataRows: sbcRows(target),
+  });
+  assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
+  assert.equal(matrix.screeningGoverning.lof, 0.34);
+  assert.equal(matrix.candidateGoverning.mechanism.id, 'smallBoreConnections');
+  assert.equal(matrix.candidateGoverning.lof, 0.7);
+  assert.equal(matrix.implementedGoverning.mechanism.id, 'fit');
+  assert.equal(matrix.implementedGoverning.lof, 0.34);
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
 });
 
-test('current FIT screening result never claims a complete multi-mechanism vibration screening result', () => {
-  const matrix = buildVibrationMechanismMatrixRow({ ...row(), governingReferenceLof: 3.12 }, { resultState: 'CURRENT_RESULT' });
-  assert.equal(matrix.implementedGoverning.mechanism.id, 'fit');
-  assert.equal(matrix.implementedGoverning.lof, 3.12);
-  assert.equal(matrix.implementedGoverning.assessmentState, 'CALCULATED_SCREENING');
+test('stale facility state excludes both screening and candidate values from current governing', () => {
+  const target = row();
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    resultState: 'STALE_RESULT',
+    userEngineeringDataRows: sbcRows(target),
+  });
+  assert.equal(matrix.screeningGoverning, null);
+  assert.equal(matrix.candidateGoverning, null);
+  assert.equal(matrix.implementedGoverning, null);
+  assert.equal(matrix.retainedScreeningGoverning.mechanism.id, 'fit');
+  assert.equal(matrix.retainedCandidateGoverning.mechanism.id, 'smallBoreConnections');
+  assert.equal(matrix.retainedScreeningGoverning.resultState, 'STALE_RESULT');
+  assert.equal(matrix.retainedCandidateGoverning.resultState, 'STALE_RESULT');
   assert.equal(matrix.fullScreeningGoverningEstablished, false);
-  assert(matrix.assessments.every((assessment) => (
-    assessment.mechanism.id === 'fit' || assessment.assessmentState === 'NOT_IMPLEMENTED'
-  )));
+});
+
+test('incomplete SBC data remains fail-closed and does not create a candidate governing value', () => {
+  const target = row();
+  const rows = sbcRows(target).filter((item) => item.blockerId !== SBC_TYPE3_BLOCKERS.figureT34);
+  const matrix = buildVibrationMechanismMatrixRow(target, {
+    resultState: 'CURRENT_RESULT', userEngineeringDataRows: rows,
+  });
+  const sbc = matrix.assessments.find((item) => item.mechanism.id === 'smallBoreConnections');
+  assert.equal(sbc.calculated, false);
+  assert.equal(sbc.assessmentState, 'APPLICABLE_INCOMPLETE');
+  assert.ok(sbc.readiness.missing.includes('LOFGEOM(G)'));
+  assert.equal(matrix.candidateGoverning, null);
+  assert.equal(matrix.screeningGoverning.mechanism.id, 'fit');
 });
 
 test('unknown mechanisms fail closed', () => {
