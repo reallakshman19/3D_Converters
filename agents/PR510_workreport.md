@@ -12,7 +12,8 @@ PR: #510
 BRANCH: agent/mechanical-t23-facility-stage4
 BASE: agent/ei-appendix-b-stage3
 BASE_SHA: db64392374c198434c3a8a142fa33ab080160a0c
-VALIDATION_INFRA_HEAD: 133c7f9ededb873b16868203d8b0768220e10460
+EXECUTED_VALIDATION_SOURCE_HEAD: 133c7f9ededb873b16868203d8b0768220e10460
+REPORT_SYNC_HEAD: d77e58f555f5ca718d5ed42fe0ec0e5640f840d5
 CURRENT_MAIN_LAST_CHECKED: 0b03855a6d9031c8b531e23bdd3deea3b7fdc5d4
 DEPENDENCIES: PR #507 master registry + PR #509 Appendix-B/T2.3 candidate masters
 MERGE_AUTHORITY: NOT_GRANTED
@@ -74,8 +75,6 @@ Wrong-scope candidates fail with `FACILITY_SCOPE_MISMATCH`. Source/applicability
 
 ## Validation infrastructure added after Owner request
 
-The Owner requested repository-native and Chromium execution. Two validation artifacts were added:
-
 ```text
 .github/workflows/vibration-mechanical-stage4-validation.yml
 scripts/validate-vibration-mechanical-stage4-browser.mjs
@@ -90,8 +89,6 @@ The workflow is designed to run:
 
 ## GitHub-hosted exact-head attempt
 
-Workflow run:
-
 ```text
 run_id     = 31875120781
 workflow   = Vibration Mechanical Stage 4 Validation
@@ -101,89 +98,82 @@ steps      = []
 runner_id  = 0
 ```
 
-GitHub check annotation states exactly:
+GitHub annotation:
 
 ```text
 The job was not started because an Actions budget is preventing further use.
 ```
 
-Classification is therefore:
+Classification:
 
 ```text
 GitHub workflow execution = NOT_RUN / ACTIONS_BUDGET_BLOCKED
 ```
 
-It is not a code/test FAIL because no checkout or test step started.
+No checkout or test step started, so this is not a code/test FAIL.
 
 ## Exact-blob local Node execution
 
-The local execution container cannot clone the private repository because outbound GitHub network access is blocked. For the bounded Stage-4 path, exact files were materialized through the GitHub connector and verified with `git hash-object` against GitHub blob SHAs before execution.
+The local container cannot clone the private repository because outbound GitHub network access is blocked. Exact Stage-4 files were materialized through the GitHub connector and verified with `git hash-object` against GitHub blob SHAs before execution.
 
-Verified examples:
+Key verified blobs:
 
 ```text
-converters/vibration/mechanical/facility.js
-  578d943a2435339e53c1d2e7083b74690c0116c3
-converters/vibration/masters/ei-aviff-appendix-b-data.js
-  3ef76b1b997e29227bcef5af82f502e6f6d8e9cc
-converters/vibration/masters/ei-aviff-appendix-b-candidate.js
-  8dbfbdfb9c2c95bdcdb506bb14aa7ab9b1b12368
-converters/vibration/masters/ei-aviff-appendix-b-evaluator.js
-  7e5af2676952559e26d4131ffce31457566b17d2
-converters/vibration/masters/canonical.js
-  d48c8d545b679247efc4ed455485255fae8f8594
-converters/vibration/masters/registry.js
-  61e7250890ffe1c8b020d0672365a5608f5da6f1
-converters/vibration/masters/validate.js
-  ba20656afc69b28f52d0f1e1baf702753398aa0c
-tabs/vibration-integrity-mechanical-controller.js
-  2b9614274dc1c34126c36923d0ed1e64c249b042
-tabs/vibration-integrity-mechanical-view.js
-  e2ab173d6279dcca0a876dd8f2a487b0e0bc30ce
-tests/vibration-mechanical-t23-facility-stage4.test.mjs
-  87cdd9f78b637f64dcb44b14188c16467c6de0c8
+facility.js                                  578d943a2435339e53c1d2e7083b74690c0116c3
+appendix-b-data.js                           3ef76b1b997e29227bcef5af82f502e6f6d8e9cc
+appendix-b-candidate.js                      8dbfbdfb9c2c95bdcdb506bb14aa7ab9b1b12368
+appendix-b-evaluator.js                      7e5af2676952559e26d4131ffce31457566b17d2
+canonical.js                                 d48c8d545b679247efc4ed455485255fae8f8594
+registry.js                                  61e7250890ffe1c8b020d0672365a5608f5da6f1
+validate.js                                  ba20656afc69b28f52d0f1e1baf702753398aa0c
+mechanical controller                       2b9614274dc1c34126c36923d0ed1e64c249b042
+mechanical view                             e2ab173d6279dcca0a876dd8f2a487b0e0bc30ce
+facility Stage-4 test                        87cdd9f78b637f64dcb44b14188c16467c6de0c8
+mechanical mechanism adapter                74339c2598dea9ed42b79f4f3aac885aaa8182bb
+module-boundary Stage-4 test                 b8830126cd0ec481c64513dda408110f516b1bdc
+UI Stage-4 test                              caad349a8e25dfdd28272e1ad2d33df65f66c48e
 ```
 
-Executed results:
+Executed:
 
 ```text
 vibration-mechanical-t23-facility-stage4.test.mjs
-  4 tests / 4 PASS
-  includes real Stage-3 master evaluator D2.4 = 0.4
-  exact scope mismatch / duplicate / unknown / shared-support hard stop PASS
+  PASS 4/4
+  real Stage-3 master evaluator D2.4 = 0.4
+  exact scope / duplicate / unknown / shared-support hard-stop PASS
 
 vibration-mechanical-t23-module-boundaries-stage4.test.mjs
-  4 tests / 4 PASS
-  evaluator reuse / <300 lines / no authority activation / shared-support hard stop PASS
+  PASS 4/4
+  evaluator reuse / <300 lines / no authority activation / shared-support hard-stop PASS
 
 vibration-mechanical-t23-ui-stage4.test.mjs
-  4 executable panel tests / 4 PASS
-  equipment controls / NOT APPLICABLE / shared-support disabled / calculated candidate rendering PASS
-  final source-routing test not executed in the bounded reconstruction because complete product checkout was unavailable
+  PASS 4/4 executed panel tests
+  equipment controls / NOT APPLICABLE / shared-support disabled / candidate rendering PASS
+  one separate source-routing test remains NOT_RUN because the full exact product checkout was unavailable
 ```
 
-These are `PASS / EXACT_BLOB_BOUNDED_EXECUTION`, not a claim that the complete repository suite ran.
+Classification is `PASS / EXACT_BLOB_BOUNDED_EXECUTION`, not a complete-repository claim.
 
 ## Chromium execution
 
-Installed runtime:
+Installed Chromium:
 
 ```text
 Chromium 144.0.7559.96
 HeadlessChrome/144.0.0.0
 ```
 
-The container's managed Chromium policy has `URLBlocklist=["*"]`, so localhost and `file:` product navigation are blocked before application code executes. `about:blank` is permitted but is not a secure context and has no native `crypto.subtle`.
+The managed browser policy is `URLBlocklist=["*"]`, so localhost and `file:` navigation are blocked before product code can load. `about:blank` is permitted but is an insecure context without native `crypto.subtle`.
 
-A bounded Chromium module-runtime acceptance was therefore executed using the exact Git-blob-verified Stage-4 view/controller/domain/master modules loaded as ES data modules. The harness changed only the canonical module's crypto binding to a test-only `__testCrypto` SHA-256 bridge; the bridge self-tested against the standard SHA-256 `abc` digest before loading the master registry. No repository source file was modified for this bridge.
+A bounded Chromium module/UI acceptance was therefore run by loading the exact Git-blob-verified Stage-4 view/controller/domain/master modules as ES data modules. The harness redirected only the canonical module's crypto binding to a test-only SHA-256 bridge because the managed `about:blank` context lacks WebCrypto. The SHA-256 bridge self-tested against the standard `abc` digest before master-registry execution. No repository source file was changed for this bridge.
 
 Executed Chromium result:
 
 ```text
 status                  PASS
 scope                   MECHANICAL-FACILITY/14-GAS-1001/NORMAL/CAN-K402
-selected source 1       CENTRIFUGAL_COMPRESSOR
-selected source 2       ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW
+selected                 CENTRIFUGAL_COMPRESSOR
+selected                 ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW
 governing LOF           0.4
 governing source        ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW
 screeningAuthority      NOT_AUTHORIZED
@@ -199,58 +189,60 @@ Chromium Stage-4 module/UI acceptance = PASS
 Full product Chromium navigation      = NOT_RUN / MANAGED_URL_POLICY_BLOCKED
 ```
 
-Do not broaden the module-level PASS into a full hosted product/browser PASS.
+Do not broaden this bounded module/UI PASS into a full hosted-product browser PASS.
 
 ## Full repository-suite truth
 
-The complete `node --test tests/*.test.mjs` suite remains:
-
 ```text
-NOT_RUN / ENVIRONMENT_BLOCKED
+node --test tests/*.test.mjs = NOT_RUN / ENVIRONMENT_BLOCKED
 ```
 
-Both available complete-checkout routes are blocked:
+Both complete-checkout routes are blocked:
 
-1. local execution container: outbound private-GitHub clone/archive access unavailable;
+1. local container: outbound private-GitHub checkout/archive access unavailable;
 2. GitHub-hosted runner: Actions budget prevented job allocation before step 1.
 
-No PASS is inferred from this absence.
+No PASS is inferred.
 
-## Appendix A / protected invariants
+## Validation Ledger
 
-```text
-A1 Production trace             20/20
-A2 Failure isolation            20/20
-A3 Authority / invariant        20/20
-A4 Independent validation       19/20
-A5 Minimal patch                19/20
-TOTAL                            98/100
-```
+| Check | Status | Evidence |
+|---|---|---|
+| D2.4 exact-blob Node path | PASS | 4/4 facility tests |
+| Stage-4 module boundaries | PASS | 4/4 |
+| Stage-4 executable UI panel tests | PASS | 4/4 |
+| Chromium Stage-4 module/UI path | PASS | Chromium 144, LOF 0.4, candidate authority retained |
+| Full product Chromium navigation | NOT_RUN | managed URL block policy |
+| Full repository Node suite | NOT_RUN | complete-checkout routes blocked |
+| GitHub Actions attempt | NOT_RUN | Actions budget; job steps=[] |
+| controlled EI PDF reconciliation | inherited NOT_RUN | #509 remains candidate |
 
-Protected invariants remain unchanged: no T2.3 value duplication, no candidate-master activation, no screening/design/master-data promotion, Mechanical excluded from screening governing, no TM-09 reduction, and no invented shared-support LOF.
+## Protected invariants
+
+No T2.3 value duplication, no candidate-master activation, no screening/design/master-data promotion, Mechanical excluded from screening governing, no TM-09 reduction, no invented shared-support LOF.
 
 ## Backup / rollback evidence
 
-Repository backup CLI remains `NOT_RUN` because there is no complete local checkout. Pre-edit engineering-file blobs remain recorded in earlier PR510 history. Before this work-report edit its exact blob was:
+Repository backup CLI remains `NOT_RUN` because no complete local checkout exists. Exact pre-edit engineering blobs remain in prior PR510 history. Work-report rollback blobs:
 
 ```text
-agents/PR510_workreport.md = cc00c4451011a952034d7eeca8460916f3cd8f8e
+before validation reconciliation: cc00c4451011a952034d7eeca8460916f3cd8f8e
+before this sync:                 dd992ab2dd94c182770a21bd5232e1cac1194bf9
 ```
 
-## Current changed-file boundary at validation head
+## Changed-file boundary
 
-Parent comparison at `133c7f9e...`:
+At executed validation source head `133c7f9e...`:
 
 ```text
 base    db64392374c198434c3a8a142fa33ab080160a0c
-status  ahead
-commits 29
+commits 29 ahead
 behind  0
 files   18
 ```
 
-New validation files account for the increase from the original 16-file Stage-4 engineering diff to 18 files.
+The two additional files are validation infrastructure requested after the original Stage-4 implementation.
 
 ## Next-agent handover
 
-Recheck live PR/base/head before mutation. Leave draft/unmerged unless the Owner separately authorizes merge. If GitHub Actions budget or another complete-checkout runner becomes available, execute the committed workflow and require both the full Node suite and full product Chromium path to pass before upgrading those two `NOT_RUN` classifications.
+Recheck live PR/base/head before mutation. Leave draft/unmerged unless the Owner separately authorizes merge. When an Actions budget or another complete-checkout runner becomes available, run the committed validation workflow and require the full Node suite and full product Chromium navigation to PASS before upgrading those two NOT_RUN classifications.
