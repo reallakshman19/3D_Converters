@@ -2,6 +2,7 @@
   "schema": "VibrationSbcRuntimeCacheCustody.v1",
   "sliceId": "SBC-PF-005-RUNTIME-CACHE-CUSTODY",
   "issue": 514,
+  "pr": 527,
   "repository": "reallaksh19/3D_Converters",
   "branch": "agent/sbc-pf-005-runtime-cache-custody",
   "stackBase": {
@@ -46,6 +47,16 @@
     "masterPublicationAuthorized": false,
     "status": "UNCHANGED_BY_PF005"
   },
+  "hostedObservation": {
+    "observedHead": "6d982f7ca1d074ef9ff98dcd7ad21dcb6b154217",
+    "workflowId": 31898365393,
+    "jobId": 95045073162,
+    "stepsExecuted": 0,
+    "runnerId": 0,
+    "conclusion": "failure",
+    "annotation": "The job was not started because an Actions budget is preventing further use.",
+    "classification": "NOT_RUN_INFRASTRUCTURE_BLOCKED"
+  },
   "validation": [
     {
       "check": "PF004-to-PF005 production diff",
@@ -55,14 +66,14 @@
     },
     {
       "check": "tests/vibration-sbc-type3-runtime-cache-chain.test.mjs",
-      "status": "IMPLEMENTED_NOT_EXECUTED",
-      "observation": "SOURCE_INSPECTION",
-      "detail": "Asserts 25 required SBC edges, current-main AIV token preservation, old FIT placeholder removal, and untouched Mechanical dependency URLs."
+      "status": "NOT_RUN_INFRASTRUCTURE_BLOCKED",
+      "observation": "HOSTED_JOB_ZERO_STEPS",
+      "detail": "Regression is committed and selected by the full repository test command, but the hosted job never received a runner."
     },
     {
       "check": "official served-app Chromium",
-      "status": "NOT_RUN",
-      "observation": "NOT_OBSERVED",
+      "status": "NOT_RUN_INFRASTRUCTURE_BLOCKED",
+      "observation": "HOSTED_JOB_ZERO_STEPS",
       "detail": "Cache custody is a prerequisite for live browser proof, not a substitute for it."
     },
     {
