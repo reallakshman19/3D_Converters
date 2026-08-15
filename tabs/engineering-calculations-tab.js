@@ -90,7 +90,7 @@ export function renderEngineeringCalculationsTab(container, { context = null } =
       if (definition.id === AIV_CALCULATION_ID) {
         const host = container.querySelector('[data-aiv-qualification-host]');
         if (!host) return;
-        const module = await import('./vibration-aiv-qualification-tab.js?v=20260815-aiv-pf01-cache-1');
+        const module = await import('./vibration-aiv-qualification-tab.js?v=20260815-aiv-526-unified-1');
         if (destroyed || token !== productToken || definition.id !== AIV_CALCULATION_ID || state.familyLanding) return;
         host.innerHTML = '';
         const maybeDestroy = module.renderAivQualificationWorkspace(host);
