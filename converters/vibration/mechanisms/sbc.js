@@ -1,4 +1,4 @@
-import { evaluateSbcFacilityType3 } from '../sbc/facility.js';
+import { evaluateSbcFacilityType3, sbcFacilityScopeId } from '../sbc/facility.js';
 import {
   createVibrationMechanismAssessmentItem,
   createVibrationMechanismAssessmentSet,
@@ -17,10 +17,13 @@ function scopeFromRow(row = {}) {
 
 function readinessFromEvaluation(evaluation) {
   if (evaluation.status === 'INPUT_REQUIRED') {
+    const masterAssisted = evaluation.mode === 'MASTER_ASSISTED';
     return {
-      missing: ['SBC_TYPE3_USER_INPUT_TEMPLATE'],
+      missing: [masterAssisted ? 'SBC_TYPE3_MASTER_ASSISTED_INPUTS' : 'SBC_TYPE3_USER_INPUT_TEMPLATE'],
       invalid: [],
-      reasons: ['SBC_APPLICABILITY_AND_TYPE3_INPUT_REQUIRED'],
+      reasons: [masterAssisted
+        ? 'SBC_MASTER_ASSISTED_PHYSICAL_AND_CURVE_INPUT_REQUIRED'
+        : 'SBC_APPLICABILITY_AND_TYPE3_INPUT_REQUIRED'],
     };
   }
   if (evaluation.result?.ok === false) {
@@ -67,14 +70,30 @@ function resultValue(evaluation) {
   };
 }
 
+function evaluationFor(options) {
+  const scopeId = sbcFacilityScopeId(options.row);
+  const preferMasterAssisted = Boolean(options.masterAssistedScopes?.[scopeId]);
+  return evaluateSbcFacilityType3(options.row, {
+    userRows: options.userRows,
+    governed: options.governed,
+    preferMasterAssisted,
+    precomputedResult: options.precomputedByScope?.[scopeId] ?? null,
+  });
+}
+
 export function buildSbcVibrationMechanismAssessmentItem({
   row,
   userRows = [],
   governed = {},
+  precomputedByScope = {},
+  masterAssistedScopes = {},
   resultState: requestedResultState = null,
 } = {}) {
-  const evaluation = evaluateSbcFacilityType3(row, { userRows, governed });
+  const evaluation = evaluationFor({
+    row, userRows, governed, precomputedByScope, masterAssistedScopes,
+  });
   const result = resultValue(evaluation);
+  const masterAssisted = evaluation.mode === 'MASTER_ASSISTED';
   return createVibrationMechanismAssessmentItem({
     mechanismId: SBC_VIBRATION_MECHANISM_ID,
     scope: scopeFromRow(row),
@@ -89,12 +108,17 @@ export function buildSbcVibrationMechanismAssessmentItem({
     },
     readiness: readinessFromEvaluation(evaluation),
     request: {
-      methodId: evaluation.result?.methodId ?? 'VIB.SBC.T3.TYPE3.USER_INPUT_CANDIDATE',
+      methodId: evaluation.result?.methodId
+        ?? (masterAssisted
+          ? 'VIB.SBC.T3.TYPE3.MASTER_ASSISTED_CANDIDATE'
+          : 'VIB.SBC.T3.TYPE3.USER_INPUT_CANDIDATE'),
       facilityScopeId: evaluation.scope.scopeId,
-      evidenceClass: 'USER_SUPPLIED_PROJECT_INPUT',
+      evidenceClass: masterAssisted
+        ? 'CANDIDATE_EI_MASTER_PLUS_USER_PROJECT_INPUT'
+        : 'USER_SUPPLIED_PROJECT_INPUT',
     },
     execution: evaluation.ok ? {
-      status: 'CALCULATED_USER_INPUT_CANDIDATE',
+      status: evaluation.result.status,
       screeningAuthorized: false,
     } : null,
     result,
@@ -103,7 +127,7 @@ export function buildSbcVibrationMechanismAssessmentItem({
       ruleIds: ['SBC-T3-FIRST-MAX-MIN', 'SBC-T3-SUBSEQUENT-MAX-MIN', 'SBC-T3-MAINLINE-CAP'],
       correlationIds: [],
       inputTrace: {
-        status: evaluation.userRows.length ? 'SOURCE_AND_NORMALIZED_ONLY' : 'UNAVAILABLE',
+        status: evaluation.userRows.length || masterAssisted ? 'SOURCE_AND_NORMALIZED_ONLY' : 'UNAVAILABLE',
         normalizedInputs: evaluation.result?.evidence ?? {},
         sourceTrace: evaluation.userRows,
       },
@@ -116,7 +140,10 @@ export function buildSbcVibrationMechanismAssessmentItem({
     },
     evidence: {
       facilityScope: evaluation.scope,
+      mode: evaluation.mode,
       userRows: evaluation.userRows,
+      masterAssistance: evaluation.result?.masterAssistance ?? null,
+      curveMasterStatus: evaluation.result?.curveMasterStatus ?? null,
       authority: evaluation.authority,
     },
   });
