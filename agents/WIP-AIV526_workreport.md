@@ -7,7 +7,7 @@
 ```text
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: RECOVERABLE
-TAKEOVER_AUTHORITY: QUALIFICATION_PENDING
+TAKEOVER_AUTHORITY: QUALIFIED
 EXECUTION_MODE: MANUAL
 AUTO_STATE: NOT_ACTIVE
 SCOPE_AUTHORITY: LOCKED_TO_APPROVED_MISSION
@@ -23,134 +23,138 @@ REPORT_BASIS_HEAD: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 MAIN_HEAD_LAST_CHECKED: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 MERGE_BASE: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 REPORT_SYNC: CURRENT
-APPENDIX_A_STATUS: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_QUALIFICATION_GATE_APPLIES
-GROUNDING_EPOCH: AIV526-GE-002
+APPENDIX_A_STATUS: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_QUALIFICATION_GATE_SATISFIED
+GROUNDING_EPOCH: AIV526-GE-003
 CURRENT_TAKEOVER: NONE_NEW_ASSIGNMENT
-CURRENT_STAGE: BASELINE_CHARACTERIZATION_COMPLETE__QUALIFICATION_BLOCKED
+CURRENT_STAGE: STAGE_1A_MODE_REVISION_CURRENTNESS
 LAST_COMPLETED_STAGE: BASELINE_CHARACTERIZATION
-CURRENT_BLOCKER: Candidate Q1-Q5 is issue comment 5303343598; no separate reviewer has recorded QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS.
-HIGHEST_RISK: Production mutation before qualification or accidental overlap with PR #517 readiness/calculator authority.
-LAST_DURABLE_CHECKPOINT: Exact current-main state/execution/render/cache seams pinned; production and tests remain untouched.
-EXACT_NEXT_ACTION: When a separate reviewer records QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS, re-ground main/#517/#506, back up every existing file before edit in a native checkout when available, then implement Stage 1 mode/revision/projection regressions without changing readiness/calculator semantics.
+CURRENT_BLOCKER: NONE_FOR_STAGE_1A
+HIGHEST_RISK: Dual graph/table engineering ownership or accidental PF-02 readiness/calculator overlap.
+LAST_DURABLE_CHECKPOINT: Reviewer marker comment 5303402441 verified; live main/PR517/PR506 re-grounded; pre-edit blobs pinned below.
+EXACT_NEXT_ACTION: Implement and test pure input-mode/revision/currentness custody, then integrate only state/dataset/execution and generated-table mutation guards.
 ```
 
 ## 2. Handover in 60 Seconds
 
-### What is now true
+Issue #526's hard implementation gate is satisfied. Candidate Q1-Q5 is comment `5303343598`; repository owner/reviewer qualification is separately recorded as comment `5303402441` with exact text `QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS`.
 
-The owner requested stage progression. The issue-required reviewer marker is still absent, so the allowed stage advanced only through non-mutating baseline characterization. Current `main` remains `36f53018d5c1cf8bec609e39d6995a6067bb5d01`; the WIP branch contains recovery metadata only.
+Live re-ground immediately before Stage 1 mutation:
 
-### What has been characterized
+- `main` = `36f53018d5c1cf8bec609e39d6995a6067bb5d01`.
+- PR #517 remains open/draft at `4c6e15c80ba6f2ebb4985397575f044eb0893048`; its ACTIVE claim owns readiness/calculator parity and explicitly excludes stale async transaction custody.
+- PR #506 remains open/draft at `b846cbfb765cbc01734154ad837b12d040fe0bf7`; it is salvage evidence only and is not this branch's base.
+- Stage 1 may change AIV UI authority/currentness custody. It may not change AIV equations, readiness/calculator semantics, grouping semantics, SVG distance authority, result scope or design authority.
 
-Exact current-main production seams for the first implementation stage:
+## 3. Repository Ground Truth / Pre-edit Backup Ledger
+
+Connector-only environment: no native private checkout is available, so existing files are protected by exact pre-edit Git blob identities before mutation.
 
 ```text
 tabs/vibration-aiv-state.js
-  blob 021f6a89a483c0d7de820e6c59ebe35f322fe139
-  current state has flareNetworkActive/generatedInputSet/busy/destroyed but no explicit inputMode/inputRevision/operation token.
+  021f6a89a483c0d7de820e6c59ebe35f322fe139
+
+tabs/vibration-aiv-dataset-loader.js
+  4fffbab9ddac8ddd87dccaedcc837b4d56d7abcc
 
 tabs/vibration-aiv-execution.js
-  blob 4a2f583f81d85706561013f9ad83bfef82d5aa86
-  checkReadiness/runScreening use busy + destroyed around async imports; no captured engineering revision/token commit guard.
+  4a2f583f81d85706561013f9ad83bfef82d5aa86
 
 tabs/vibration-aiv-qualification-tab.js
-  blob c641ba45689b1abf62743d68828452bda953af01
-  instantiates both createAivCanvasInteractionController and createAivFlareNetworkAuthoringController.
-  applyTableMutation() silently deactivates flare-network generation when generated tables are edited.
+  c641ba45689b1abf62743d68828452bda953af01
 
 tabs/vibration-aiv-input-view.js
-  blob 5976e725e8d620ad03a4e355ca7b6658bebff217
-  imports/renders both renderAivCanvasWorkspaceHtml and renderAivFlareNetworkAuthoringHtml; working tables are currently rendered editable.
+  5976e725e8d620ad03a4e355ca7b6658bebff217
+
+tabs/vibration-aiv-workspace-loaders.js
+  985cec67e34a78bf9eaa20f3402cc95bcbe7f178
 
 tests/vibration-aiv-runtime-cache-chain.test.mjs
-  blob 3c9bcfbae7fb32e3cae35283278245a44cd41342
-  current PF-01 key is 20260815-aiv-pf01-cache-1 and the asserted chain terminates through qualification-tab -> canvas-controller -> canvas-filter.
+  3c9bcfbae7fb32e3cae35283278245a44cd41342
 ```
 
-This makes Stage 1 falsifiable: explicit mode/revision state and generated-table authority guards must be added without changing numerical/readiness semantics; final cache cutover must replace the old controller edge with the unified controller under a fresh key.
-
-### What remains unfinished
-
-All production/test implementation, B1-B10, Chromium evidence, cache-identity cutover and PR allocation.
-
-### What must not be assumed
-
-The user's instruction to start stages does not erase issue #526's independent reviewer gate. Do not self-record the qualification marker. Do not use PR #506 wholesale. Do not modify PR #517's readiness/calculator authority. Do not make generated tables and graph co-authoritative.
-
-## 3. Repository Ground Truth
-
-Grounding epoch `AIV526-GE-002`, 2026-08-15 21:18+04:00.
-
-```text
-repository: reallaksh19/3D_Converters
-default branch: main
-main head: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
-working branch: agent/aiv-unified-network-canvas-526
-PR: not allocated
-merge base: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
-source task: #526
-candidate qualification response: comment 5303343598
-reviewer qualification marker: ABSENT / BLOCKING
-```
-
-Coordination remains `COORDINATION_REQUIRED`:
-
-- PR #517 is active PF-02 readiness↔calculator parity and owns that engineering authority. #526 consumes that contract and does not rewrite it.
-- PR #506 overlaps planned state/execution/qualification UI files and is candidate/salvage evidence only, not a base or wholesale cherry-pick source.
-- PR #518 grouping semantics and PR #525 PF-01 cache custody are merged invariants.
+Rollback for any existing file is exact restoration of the corresponding blob above. New Stage 1 modules/tests can be deleted independently if the slice fails validation.
 
 ## 4. Mission / Scope / Acceptance
 
-Deliver one visible AIV Network Canvas with one active controller and two explicit engineering modes:
+Deliver one visible AIV Network Canvas with one active controller and explicit engineering modes:
 
 ```text
 NETWORK_DRIVEN -> AivFlareNetwork is sole engineering owner; generated tables are read-only derivative calculation inputs.
 TABLE_DRIVEN   -> working AIV tables are sole engineering owner; logical relationships may be edited; physical topology is never invented.
 ```
 
-Locked invariants: explicit detach only; physical segments are not logical Source→Assessment rows; x/y/pan/zoom/drag are presentation-only; registered `VIB.AIV.ACOUSTIC` contracts remain numerical authority; Assessment is screening result scope; line/case is non-authoritative trace; `designAuthority=false`; stale async completions cannot overwrite newer engineering input; every new JS file `<300` physical lines; no workflow changes; owner-only merge; fresh cache identity at final cutover.
+Locked invariants:
+
+- explicit detach only; never silently switch generated graph tables into editable authority;
+- physical segments != logical Source→Assessment relationships;
+- x/y/pan/zoom/drag/filter/selection are presentation-only and do not advance engineering revision;
+- physical distance comes only from explicit segment lengths/pathEvidence or explicit qualified relationship evidence;
+- registered `VIB.AIV.ACOUSTIC` result contracts remain numerical authority;
+- Assessment screening scope only; line/case trace non-authoritative; `designAuthority=false`;
+- engineering edits invalidate incompatible readiness/result/export lineage;
+- stale async completion requires both captured engineering revision and operation token;
+- every new JS file `<300` physical lines; no workflow changes; no merge without Owner authorization.
 
 ## 5. Current Implementation State
 
 | Work item | Implementation | Integration | Validation | Remaining |
 |---|---|---|---|---|
-| Candidate Q1-Q5 | POSTED | issue #526 | SOURCE_INSPECTION | reviewer marker |
+| Qualification gate | COMPLETE | issue #526 | AUTHORITATIVE_REFERENCE | none |
 | WIP custody | COMPLETE | report/status/claim | SOURCE_INSPECTION | migrate after PR allocation |
-| Baseline characterization | COMPLETE | no production mutation | SOURCE_INSPECTION | refresh after gate opens |
-| Mode/revision authority state | UNSTARTED | none | NOT_RUN | Stage 1 |
+| Baseline characterization | COMPLETE | no production mutation | SOURCE_INSPECTION | refresh per stage |
+| Stage 1A mode/revision/currentness | IN_PROGRESS | state/dataset/execution planned | focused Node + syntax | implementation |
+| Stage 1B generated-table ownership | QUEUED | qualification/input view | focused Node + source/runtime | implementation |
 | Unified projection/view/controller | UNSTARTED | none | NOT_RUN | later stages |
-| Single-canvas cutover/cache | UNSTARTED | none | NOT_RUN | later stages |
-| B1-B10 | UNSTARTED | none | NOT_RUN | all |
+| Single-canvas/cache cutover | UNSTARTED | none | NOT_RUN | later stages |
+| B1-B10 | UNSTARTED | none | NOT_RUN | later stages |
 
 ## 6. Active Engineering Item Register
 
 | ID | Type | Severity | Status | Summary |
 |---|---|---|---|---|
-| ISS-001 | ISSUE | BLOCKING | OPEN | Separate reviewer qualification marker absent |
-| RISK-001 | RISK | HIGH | OPEN | Current applyTableMutation silently switches away from graph ownership |
-| RISK-002 | RISK | HIGH | OPEN | Current execution has busy/destroyed but no explicit engineering revision/token commit proof |
-| RISK-003 | RISK | HIGH | OPEN | PR #517 readiness/calculator authority overlap |
-| RISK-004 | RISK | MEDIUM | OPEN | PR #506 exact-file overlap / unsafe wholesale salvage |
-| DEC-001 | DECISION | HIGH | ACTIVE | One explicit engineering owner per mode |
-| DEC-002 | DECISION | HIGH | ACTIVE | Physical path overlays reuse graph pathEvidence/segment IDs; no fake direct pipe |
-| DEC-003 | DECISION | HIGH | ACTIVE | Canvas displays registered results only; no UI AIV equations |
-| DEC-004 | DECISION | HIGH | ACTIVE | Stage 1 begins with state/authority/currentness tests before single-canvas runtime cutover |
+| ISS-001 | ISSUE | BLOCKING | CLOSED | Reviewer marker comment 5303402441 satisfies issue gate |
+| RISK-001 | RISK | HIGH | OPEN | Existing applyTableMutation silently deactivates graph ownership |
+| RISK-002 | RISK | HIGH | OPEN | Existing execution uses busy/destroyed without engineering revision+token proof |
+| RISK-003 | RISK | HIGH | CONTROLLED | PR #517 owns readiness/calculator parity; #526 consumes only |
+| RISK-004 | RISK | MEDIUM | CONTROLLED | PR #506 overlap is salvage evidence only |
+| DEC-001 | DECISION | HIGH | ACTIVE | One engineering owner per mode |
+| DEC-002 | DECISION | HIGH | ACTIVE | Explicit detach is the only NETWORK_DRIVEN→TABLE_DRIVEN edit transition |
+| DEC-003 | DECISION | HIGH | ACTIVE | Presentation changes never advance engineering input revision |
+| DEC-004 | DECISION | HIGH | ACTIVE | Stale async commits require matching operation token + input revision |
 
-## 7. Current Technical Diagnosis
+## 7. Stage 1 Technical Plan
 
-```text
-First wrong UI boundary: qualification-tab/input-view currently permit two active canvas controllers/surfaces and silent generated-table detachment.
-Currentness gap: execution async work is guarded by busy/destroyed, not captured engineering revision + operation token.
-Protected downstream: readiness/calculator numerical/qualification semantics remain outside #526.
-Falsifier: if Stage 1 cannot add explicit ownership/currentness without changing readiness/calculator contracts, stop and re-coordinate rather than absorb PF-02.
-```
+### 1A — authority/currentness core
+
+Add pure modules:
+
+- `tabs/vibration-aiv-engineering-revision.js`
+- `tabs/vibration-aiv-mode-transition.js`
+
+Required behavior:
+
+1. initial mode `TABLE_DRIVEN`, revision `0`;
+2. successful engineering input mutation increments once;
+3. network engineering mutation records network/generated projection revision;
+4. presentation-only mutation leaves input revision unchanged;
+5. readiness/screening async operation captures `{token,inputRevision}`;
+6. engineering mutation cancels pending operation lineage;
+7. only current token+revision may establish current readiness/screening lineage;
+8. explicit detach clones generated tables/evidence, clears active network/generated revision and switches to `TABLE_DRIVEN` exactly once.
+
+### 1B — ownership boundary integration
+
+- reject generated table/canvas relationship mutations while `NETWORK_DRIVEN`;
+- expose explicit `Detach to editable tables` transition;
+- remove silent `deactivateFlareNetworkGeneration()` from table mutation path;
+- make generated table controls visibly read-only in a later bounded view edit if Stage 1A/handler regression passes.
 
 ## 8. Authority and Invariants
 
 ```text
 NETWORK_DRIVEN authority -> AivFlareNetwork
 TABLE_DRIVEN authority   -> working AIV tables
-physical distance         -> explicit segment length/pathEvidence OR explicit qualified table distance
+physical distance         -> explicit segment length/pathEvidence OR qualified explicit relationship distance
 SVG/pixel geometry        -> presentation only
 numerical authority       -> registered VIB.AIV.ACOUSTIC contracts
 screening result scope    -> ASSESSMENT
@@ -161,79 +165,76 @@ designAuthority           -> false
 ## 9. Current Validation
 
 ```text
-V-BASE-001
+V-GATE-001
 Status: PASS
-Observation: SOURCE_INSPECTION
-Oracle: NONE
-Tested HEAD: main@36f53018d5c1cf8bec609e39d6995a6067bb5d01
-Evidence: exact blobs listed in Section 2
-Expected: identify existing owner/currentness/cutover seams before mutation
-Actual: state, execution, dual-controller, dual-render and cache-chain seams pinned
-Limitations: no runtime execution; no candidate exists
-Origin: PREEXISTING
+Observation: AUTHORITATIVE_REFERENCE
+Evidence: issue #526 comment 5303402441
+Expected: separate reviewer records exact qualification marker
+Actual: exact marker recorded by reallaksh19
 ```
 
 ```text
-V-GATE-001
-Status: FAIL
+V-GROUND-003
+Status: PASS
 Observation: SOURCE_INSPECTION
-Oracle: AUTHORITATIVE_REFERENCE
-Evidence: issue #526 hard gate + live comments
-Expected: separate reviewer marker before implementation
-Actual: candidate response exists; reviewer marker absent
-Limitations: blocks production/test implementation
-Origin: PREEXISTING
+Evidence: main ref + PR517/PR506 live metadata and PR517 claim
+Expected: no authority collision before mutation
+Actual: main unchanged; PF-02 remains isolated; stale async custody explicitly unclaimed by #517
 ```
 
-All product/runtime/browser/benchmark validation remains `NOT_RUN`. Negative assurance: no production/test/calculation/workflow file has changed in #526.
+Runtime/product validation for the candidate remains `NOT_RUN` until code lands. Frozen benchmark/browser/B1-B10 claims are not made at this stage.
 
 ## 10. Changed-File Ledger
 
-| File | Intended? | Stage | Purpose | Sensitive? |
-|---|---:|---|---|---:|
-| agents/WIP-AIV526_workreport.md | yes | bootstrap/baseline | recovery authority | no |
-| agents/status/WIP-AIV526.yaml | yes | bootstrap/baseline | machine state | no |
-| agents/claims/WIP-AIV526.yaml | yes | bootstrap | coordination claim | no |
+Current branch delta before Stage 1 production mutation remains coordination/recovery metadata only:
 
-No production/test files changed.
+- `agents/WIP-AIV526_workreport.md`
+- `agents/status/WIP-AIV526.yaml`
+- `agents/claims/WIP-AIV526.yaml`
+
+Stage 1 intended new files and exact existing files are listed in Sections 3 and 7. No converter calculation/readiness/workflow file is authorized.
 
 ## 11. Review / CI State
 
-PR not allocated. Reviewer qualification absent/blocking. CI `NOT_APPLICABLE` before candidate. Browser `NOT_RUN`. Merge authority `OWNER_ONLY / NOT_GRANTED`.
+PR not allocated. Issue qualification PASS. CI/browser currently `NOT_RUN` for Stage 1 candidate. Merge authority remains `OWNER_ONLY / NOT_GRANTED`.
 
 ## 12. Repository Coordination / Overlap
 
 ```text
 STATUS_RECORD: agents/status/WIP-AIV526.yaml
 CLAIM_RECORD: agents/claims/WIP-AIV526.yaml
-LAST_OVERLAP_CHECK: AIV526-GE-002
-FILE_OVERLAP: PR #506 overlaps planned UI/state files
+LAST_OVERLAP_CHECK: AIV526-GE-003
+FILE_OVERLAP: PR #506 overlaps planned UI/state files; salvage evidence only
 AUTHORITY_OVERLAP: PR #517 owns AIV_READINESS_EXECUTABLE_PARITY
-COORDINATION_STATE: COORDINATION_REQUIRED
+COORDINATION_STATE: COORDINATION_REQUIRED / WRITE_ALLOWED_WITH_BOUNDARY
 ```
 
 ## 13. Continuation State
 
 ```text
-Start here: live issue #526 comments, then recheck main/#517/#506
-First implementation target after gate: explicit input mode + engineering revision/currentness state and generated-table mutation guards, with focused regressions
-Do not change: readiness semantics, equations, grouping, distance authority, result scope, design authority
-Exact next action: reviewer records QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS; then re-ground and begin Stage 1 implementation
+Start here: Stage 1A pure modules/tests, then state/dataset/execution integration
+Do not redo: qualification Q1-Q5 or reviewer marker
+Do not change: readiness/calculator semantics, equations, grouping, distance authority, result scope, design authority
+Validation still required: focused Stage 1 tests, syntax checks, integration source review, then later B1-B10
+Exact next action: commit Stage 1A pure modules/tests and integrate the smallest currentness slice
 ```
 
 ## 14. Takeover / Custody Chain
 
-No takeover. `AIV526-GE-002` records the owner request to start stages, unchanged hard gate, unchanged current main, and exact baseline blobs.
+No takeover. `AIV526-GE-003` records reviewer qualification, unchanged main, refreshed #517/#506 overlap, and exact pre-edit blobs before any existing production-file mutation.
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
 
-`NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_QUALIFICATION_GATE_APPLIES`. Candidate response: issue comment `5303343598`. Separate reviewer qualification: absent.
+`NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_QUALIFICATION_GATE_SATISFIED`.
+
+Issue-specific candidate response: comment `5303343598`.
+Reviewer qualification record: comment `5303402441`.
 
 # HISTORICAL RECORD — NOT CURRENT AUTHORITY
 
-## Stage Execution Log
-
-- BOOTSTRAP — PASS/SOURCE_INSPECTION: delivery protocol and repo policies loaded; WIP custody created.
-- COORDINATION — PASS/SOURCE_INSPECTION: #517/#506 overlap classified `COORDINATION_REQUIRED`.
-- QUALIFICATION RESPONSE — POSTED: comment `5303343598`; reviewer gate remains open.
-- BASELINE CHARACTERIZATION — PASS/SOURCE_INSPECTION: exact state/execution/dual-controller/dual-render/cache-chain seams pinned; no production/test mutation.
+- BOOTSTRAP — PASS/SOURCE_INSPECTION.
+- COORDINATION — PASS/SOURCE_INSPECTION; `COORDINATION_REQUIRED`.
+- QUALIFICATION RESPONSE — candidate comment `5303343598`.
+- BASELINE CHARACTERIZATION — PASS/SOURCE_INSPECTION; production untouched.
+- REVIEWER QUALIFICATION — PASS/AUTHORITATIVE_REFERENCE; comment `5303402441`.
+- STAGE 1A — IN_PROGRESS.
