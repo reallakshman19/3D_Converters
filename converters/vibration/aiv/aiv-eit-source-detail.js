@@ -13,12 +13,23 @@ function numberText(value) {
   return String(n);
 }
 
-export function buildAivEitSourceDetail({ source, sourceResult, assessmentResult, relationship, pathEvidence = null, importedDetail = null }) {
+export function buildAivEitSourceDetail({
+  source,
+  sourceResult,
+  assessmentResult,
+  relationship,
+  pathEvidence = null,
+  masterEvidence = [],
+  importedDetail = null,
+}) {
   const contribution = (assessmentResult.sourceContributionsAtPoint ?? []).find((item) => item.sourceCanonicalId === source.sourceCanonicalId);
   const trimDb = aivEitTrimReductionDb(source);
   const preservedSegments = pathEvidence?.segmentIds?.length
     ? pathEvidence.segmentIds
     : importedDetail?.segmentIds ?? [];
+  const preservedMasterEvidence = masterEvidence.length
+    ? masterEvidence
+    : importedDetail?.masterEvidence ?? [];
   return {
     vt: DEVICE_LABEL[source.sourceDeviceType] ?? source.sourceDeviceType,
     mfr: numberText(aivEitMassFlowKgH(source.massFlow)),
@@ -44,6 +55,7 @@ export function buildAivEitSourceDetail({ source, sourceResult, assessmentResult
     distanceUnit: relationship?.physicalDistance?.unit ?? (pathEvidence?.physicalDistanceM != null ? 'm' : importedDetail?.distanceUnit ?? null),
     distanceAuthority: pathEvidence?.distanceAuthority ?? relationship?.distanceSource ?? importedDetail?.distanceAuthority ?? null,
     simultaneousSourceGroup: relationship?.simultaneousSourceGroup ?? importedDetail?.simultaneousSourceGroup ?? null,
+    masterEvidence: [...preservedMasterEvidence],
     segmentIds: [...preservedSegments],
   };
 }
