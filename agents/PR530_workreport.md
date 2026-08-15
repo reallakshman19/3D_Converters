@@ -15,93 +15,94 @@ PR: 530
 BRANCH: agent/hp-ch9-static-qualification-r2
 BASE_MAIN: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 BASE_RECONCILIATION_COMMIT: 5b4ac89969f12886bf9dc3175b767625fc5dad32
-SOURCE_TASK: owner follow-on from merged PR523
-CURRENT_STAGE: STATIC QUALIFICATION CANDIDATE GATE IMPLEMENTED
+IMPLEMENTATION_RECEIPT_HEAD: 9f30a9ca6a89c6ff7d750317e3b8f42f20cd9609
+CURRENT_STAGE: STATIC QUALIFICATION CANDIDATE GATE IMPLEMENTED / DRAFT PR OPEN
 CURRENT_BLOCKER: genuine licensed independently checked B31.3 allowable/tolerance evidence and numerical Class-E oracle are not supplied
 HIGHEST_RISK: treating synthetic test evidence or EVIDENCE_COMPLETE_NOT_AUTHORIZED as Code/design authority
 EXACT_NEXT_ACTION: obtain a genuine independently checked candidate JSON from controlled engineering evidence, run `npm run qualify:hp-chapter-ix-static -- <candidate.json>`, then run native `npm run verify:hp-chapter-ix` when a complete checkout is available. Do not promote authority or add fatigue/components/CAESAR in PR530.
 ```
 
-## 1. Mission
+## Mission / Scope
 
-Deliver usable software support for assembling and validating a Chapter IX straight-pipe static qualification candidate without inventing licensed Code values or promoting design authority.
+PR530 delivers executable qualification tooling for Chapter IX straight-pipe static evidence. It does not provide licensed Code values and does not promote design authority.
 
 In scope:
-- actual governed basis resolution through merged `RESOLVE_BASIS`;
-- controlled B31.3 method/allowable source custody;
+- actual merged `RESOLVE_BASIS` execution;
+- B31.3 method/allowable source custody;
 - product, dimension and manufacturing-tolerance source custody;
 - selected master-record preparer/checker custody;
-- numerical Class-E straight-pipe benchmark evidence;
-- deterministic comparison with the governed pressure calculation;
-- composition through existing `b313-ch9-qualification-package/v1`;
-- JSON authoring template, CLI, tests and package registration.
+- independent Class-E straight-pipe numerical oracle;
+- deterministic parity comparison;
+- existing `b313-ch9-qualification-package/v1` composition;
+- JSON template, CLI, tests and package registration.
 
-Explicitly out of scope:
-- design/Code authority promotion;
+Out of scope:
+- authority promotion;
 - fatigue/KD-3;
 - components/B31J/FEA;
 - CAESAR parity;
 - UI redesign;
 - workflow changes.
 
-## 2. Live Repository Grounding
+## Live Grounding / Coordination
 
-PR530 is based on current main:
+Current base:
 
 ```text
-f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
-feat(sbc): deliver Type-3 production-freeze implementation through PF-006
+main = f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
+commit = feat(sbc): deliver Type-3 production-freeze implementation through PF-006
 ```
 
-The SBC merge landed after this HP branch was initially created. It changed only SBC/vibration/UI paths and had no exact-file overlap with the HP qualification slice.
+The SBC main advance landed after this branch was created. It changed SBC/vibration/UI paths only and had no exact-file overlap with PR530.
 
-Reconciliation was performed with a true two-parent merge:
+Reconciliation:
 
 ```text
 5b4ac89969f12886bf9dc3175b767625fc5dad32
 ```
 
-The merged tree uses current SBC main as base and overlays the exact HP branch blobs. Post-reconciliation compare:
+A true two-parent merge used current SBC main as the base tree and overlaid the exact HP blobs. Post-reconciliation:
 
 ```text
-status: ahead
-behind: 0
-merge base: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
-workflow files changed: 0
+behind current main = 0
+merge base = current main
+PR changed files = 6
+workflow files changed = 0
 ```
 
-No open PR matching Chapter IX/HP was found before implementation.
+No competing open Chapter IX/HP PR was found before implementation.
 
-Repository instructions:
-- root `AGENTS.md` blob `df16880dd82ce20d0f74b8966bb56a10859fa496`;
+Repository rules loaded:
+- `AGENTS.md` blob `df16880dd82ce20d0f74b8966bb56a10859fa496`;
 - `.agents/AGENTS.md` blob `c0456ed67a258ca809ec7c35c2ceacefd228d905`.
 
-## 3. Architecture Gap Closed
+## Architecture Gap Closed
 
-Merged `qualification-package.js` validates a controlled B31.3 method source and independent benchmark, but does not independently prove that the actual allowable/product/dimension/tolerance records consumed by the calculation resolve with checked custody.
+Merged `qualification-package.js` validates a controlled B31.3 method source and independent benchmark, but does not itself prove that the actual allowable/product/dimension/tolerance records consumed by the calculation resolve with independent custody.
 
-PR530 adds a higher-level executable gate:
+PR530 adds:
 
 ```text
 controlled evidence candidate
   -> actual RESOLVE_BASIS
        must reach RESOLVED_NOT_AUTHORIZED
   -> selected master-row custody
-       allowable / product / dimension / tolerance
   -> actual STRAIGHT_PRESSURE_FROM_BASIS
   -> independent Class-E numerical comparison
   -> existing qualification package
   -> EVIDENCE_COMPLETE_NOT_AUTHORIZED
 ```
 
-This prevents a `qualified benchmark / unqualified calculation basis` split-brain state.
+This prevents a qualified-benchmark / unqualified-basis split-brain state.
 
-## 4. Candidate Evaluator
+## Implementation
+
+### Candidate evaluator
 
 File:
 `converters/b313-chapter-ix/static-qualification-candidate.js`
 
-Current implementation blob carried through reconciliation:
+Implementation blob used for local exact-source validation:
 
 ```text
 3f3bcbc831621e878d1fc08bb9fdd62204cd4314
@@ -125,23 +126,17 @@ QUALIFICATION_PACKAGE_PENDING
 EVIDENCE_COMPLETE_NOT_AUTHORIZED
 ```
 
-Every state preserves:
+All states retain:
 
 ```text
 canPromoteCalculationAuthority = false
 ```
 
-## 5. Governed Basis Evidence Gate
+### Selected basis custody
 
-The actual merged `resolveChapterIxBasis` path must return:
+The production basis resolver must first reach `RESOLVED_NOT_AUTHORIZED`.
 
-```text
-RESOLVED_NOT_AUTHORIZED
-```
-
-This means the selected allowable, dimension and tolerance source contracts are already checked by their production resolvers.
-
-PR530 then requires independent row custody for the records actually selected by the basis:
+Only records selected by that resolved basis require row custody:
 
 ```text
 preparedBy
@@ -150,18 +145,18 @@ checkedAt
 preparedBy != checkedBy
 ```
 
-Selected rows are determined from resolved product/dimension/tolerance identity and allowable source locator(s). Unrelated unused rows in a larger master library do not create false blockers.
+This covers selected allowable, product, dimension and manufacturing-tolerance records while ignoring unrelated unused library rows.
 
-## 6. Class-E Numerical Gate
+### Class-E benchmark contract
 
-A benchmark candidate must provide:
+Required:
 - exact method ID;
 - `oracleClass=CLASS_E_CODE_LICENSED`;
 - `independent=true`;
 - `status=INDEPENDENTLY_CHECKED`;
-- distinct `producedBy` and `reviewedBy`;
-- source bound to the controlled `B313_CHAPTER_IX` method source;
-- explicit design pressure and internal/external allowances;
+- distinct producer/reviewer;
+- source bound to controlled `B313_CHAPTER_IX` source;
+- explicit pressure/allowance inputs;
 - independently supplied expected values for:
   - pressure design thickness;
   - required minimum thickness;
@@ -171,43 +166,24 @@ A benchmark candidate must provide:
   - pressure rating;
   - static pass/fail.
 
-The calculation is executed from the governed basis and compared to those supplied expected values.
+A numerical mismatch yields `BENCHMARK_MISMATCH / CLASS_E_NUMERICAL_MISMATCH`.
 
-A mismatch returns:
-
-```text
-BENCHMARK_MISMATCH
-CLASS_E_NUMERICAL_MISMATCH
-```
-
-Expected values are never regenerated from production output.
-
-## 7. R1 Tolerance Policy
-
-PR530 accepts only:
+### R1 tolerance policy
 
 ```text
 type = RELATIVE
 value <= 1e-4
 ```
 
-`1e-4` is no looser than the existing repository benchmark convention. A looser value is rejected as:
+`1e-4` is a repository qualification-QA ceiling consistent with existing benchmark convention; it is not represented as an ASME design tolerance. A looser value is rejected.
 
-```text
-BENCHMARK_TOLERANCE_EXCEEDS_R1_CEILING
-```
-
-This is a qualification QA ceiling, not a new ASME design tolerance.
-
-## 8. CLI / Template
-
-CLI:
+### CLI
 
 ```text
 npm run qualify:hp-chapter-ix-static -- <candidate.json>
 ```
 
-Implementation:
+File:
 `scripts/verify-b313-ch9-static-qualification-candidate.mjs`
 
 Blob:
@@ -216,16 +192,15 @@ Blob:
 4329cfc0990b723b8392ff4a78563a1f07fa176f
 ```
 
-Exit semantics:
-- 0 only for `EVIDENCE_COMPLETE_NOT_AUTHORIZED`;
-- 2 for valid pending/mismatch states;
-- 1 for invalid/read failure.
+Exit codes:
+- 0: `EVIDENCE_COMPLETE_NOT_AUTHORIZED` only;
+- 2: valid pending/mismatch state;
+- 1: invalid/read failure.
 
-Authoring template:
+### Authoring template
 
-```text
-engineering/hp-class-standardization/qualification/static-qualification-candidate.template.json
-```
+File:
+`engineering/hp-class-standardization/qualification/static-qualification-candidate.template.json`
 
 Blob:
 
@@ -233,31 +208,31 @@ Blob:
 027af6440b865f8053ce1d304bd85ec921787913
 ```
 
-The template contains placeholders/nulls only. It explicitly instructs engineers not to derive Class-E expected values from the implementation under test.
+The template contains placeholders/nulls only and explicitly prohibits deriving Class-E expected values from the implementation under test.
 
-## 9. package.json / Backup Custody
+### package.json
 
-Only two HP registrations were added:
-- new focused test in `verify:hp-chapter-ix`;
-- `qualify:hp-chapter-ix-static` command.
+Only two HP registrations changed:
+- add the new candidate test to `verify:hp-chapter-ix`;
+- add `qualify:hp-chapter-ix-static`.
 
-Pre-edit exact package blob:
+Pre-edit backup Git blob:
 
 ```text
 8ba249bd48c136b7968b86a3feeaf6bcbe705954
 ```
 
-PR branch package blob carried through current-main reconciliation:
+PR package blob:
 
 ```text
 8079f96203c7eeffae4dfbc0a30aefb79f00c6df
 ```
 
-Native repository backup CLI remains `NOT_RUN / ENVIRONMENT_BLOCKED`; immutable Git history is rollback custody.
+Native backup CLI is `NOT_RUN / ENVIRONMENT_BLOCKED`; immutable Git history is rollback custody.
 
-## 10. Current External Evidence Boundary
+## Current External Evidence Boundary
 
-The pinned High-Pr evidence inherited from PR523 remains insufficient:
+The pinned High-Pr evidence remains insufficient:
 
 ```text
 B313_SOURCE_INDEPENDENT_CHECK_MISSING
@@ -269,57 +244,90 @@ HP-CODE-24-F01:CLASS_E_NUMERICAL_ORACLE_MISSING
 HP-CODE-24-F01:CLASS_E_PRODUCER_CHECKER_CUSTODY_MISSING
 ```
 
-PR530 does not manufacture or reinterpret those missing licensed values. Existing `ACTIVE`, `APPROVED`, `QUALIFIED` labels do not grant calculation authority.
+PR530 does not invent or reinterpret those missing licensed values. `ACTIVE`, `APPROVED`, `QUALIFIED`, synthetic test records, or software-regression outputs do not grant calculation authority.
 
-## 11. Validation Ledger
+## Validation Ledger
 
 | Check | Status | Observation | Oracle |
 |---|---|---|---|
-| main / PR base grounding | PASS | live GitHub | repository state |
-| post-SBC base reconciliation | PASS | two-parent merge + compare | Git tree |
-| open HP/Chapter-IX overlap | PASS | no matching open PR before allocation | GitHub state |
-| candidate evaluator syntax | PASS | local Node execution | runtime |
-| CLI syntax | PASS | local Node execution | runtime |
+| current main / PR grounding | PASS | GitHub live metadata | repository state |
+| SBC base reconciliation | PASS | two-parent merge + compare | Git tree |
+| candidate evaluator syntax | PASS | local Node | runtime |
+| candidate CLI syntax | PASS | local Node | runtime |
 | focused candidate behavior | PASS | 8/8 local tests | contract + frozen fixture |
-| selected source fail-closed | PASS | execution | production resolver contract |
-| selected record custody fail-closed | PASS | execution | custody contract |
-| unused unrelated record ignored | PASS | execution | selected-basis contract |
-| tolerance >1e-4 rejected | PASS | execution | R1 qualification policy |
-| numerical mismatch rejected | PASS | execution | supplied oracle |
-| producer/reviewer collision rejected | PASS | execution | custody contract |
-| exact current evaluator blob | PASS | local execution + Git blob identity | implementation contract |
-| complete private-repo `npm run verify:hp-chapter-ix` | NOT_RUN | private native checkout unavailable; runtime DNS cannot resolve github.com | mixed |
-| genuine licensed static candidate | NOT_RUN | controlled candidate not supplied | independent engineering evidence |
-| Code/design authority | NOT_ESTABLISHED | outside scope | owner/engineering authority |
+| selected source fail-closed | PASS | local execution | production resolver contract |
+| selected row custody fail-closed | PASS | local execution | custody contract |
+| unused unrelated row ignored | PASS | local execution | selected-basis contract |
+| relative tolerance >1e-4 rejected | PASS | local execution | R1 QA policy |
+| numerical mismatch rejected | PASS | local execution | supplied oracle |
+| producer/reviewer collision rejected | PASS | local execution | custody contract |
+| exact evaluator implementation blob | PASS | local execution + Git blob identity | implementation contract |
+| private-repo `npm run verify:hp-chapter-ix` | NOT_RUN | native private checkout unavailable; runtime cannot resolve github.com | mixed |
+| actual licensed static candidate | NOT_RUN | controlled candidate not supplied | independent engineering evidence |
+| Code/design authority | NOT_ESTABLISHED | intentionally outside scope | owner/engineering authority |
 
 Validation precision:
-- exact current production evaluator blob was executed locally;
+- exact evaluator implementation blob `3f3bcbc...` was executed locally;
 - focused local test logic passed 8/8;
-- do not convert full-repository NOT_RUN to PASS;
+- do not classify the full private-repository suite as PASS;
 - no expected engineering value or tolerance was weakened to obtain green status.
 
-## 12. Appendix A — Takeover Qualification
+## Hosted CI Receipt — Implementation Receipt Head
 
-### A1 Production Trace — PASS 20/20
-Controlled candidate -> actual basis resolver -> selected row custody -> governed pressure calculation -> independent Class-E comparator -> qualification package.
+At:
 
-### A2 Failure Isolation — PASS 20/20
-Current blocker is evidence custody/oracle completeness, not the pressure kernel.
+```text
+9f30a9ca6a89c6ff7d750317e3b8f42f20cd9609
+```
 
-### A3 Authority / Invariant — PASS 20/20
-Both existing qualification package and new candidate evaluator end at `EVIDENCE_COMPLETE_NOT_AUTHORIZED`; authority promotion remains false.
+GitHub Actions returned:
 
-### A4 Independent Validation — PASS 20/20
-Frozen arithmetic remains independently reproducible. Class-E expected results are an externally supplied evidence input, never production-generated.
+```text
+Topology Edit Support Reprojection
+  job 95050252937 / Source tests and browser bundle / steps=null
 
-### A5 Minimal Patch Boundary — PASS 20/20
-No pressure formula, central calculation authority, fatigue/component path, UI, or workflow change is included.
+Vibration AIV Controlled Source Qualification
+  job 95050252938 / controlled-source-qualification / steps=null
 
-TOTAL: 100/100.
+Vibration Production Freeze Validation
+  job 95050252996 / node-and-chromium / steps=null
+```
 
-## 13. Changed-File Ledger Target
+Classification:
 
-After retiring the WIP report, the intended PR diff is:
+```text
+STATUS: NOT_RUN
+REASON: INFRASTRUCTURE_BLOCKED / ZERO EXECUTED STEPS
+```
+
+These hosted conclusions are neither HP product PASS nor HP product FAIL.
+
+Review threads inspected at the same PR state:
+
+```text
+0
+```
+
+## Appendix A — Takeover Qualification
+
+```text
+A1 Production Trace        PASS 20/20
+A2 Failure Isolation      PASS 20/20
+A3 Authority / Invariant  PASS 20/20
+A4 Independent Validation PASS 20/20
+A5 Minimal Patch Boundary PASS 20/20
+TOTAL                      100/100
+```
+
+Production trace: controlled candidate -> production basis resolver -> selected row custody -> governed pressure calculation -> independent Class-E comparator -> existing qualification gate.
+
+Current blocker: evidence custody/oracle completeness, not the straight-pressure kernel.
+
+Authority invariant: complete evidence ends at `EVIDENCE_COMPLETE_NOT_AUTHORIZED`; `canPromoteCalculationAuthority=false` remains protected.
+
+## Changed-File Ledger
+
+Final intended PR diff:
 
 ```text
 agents/PR530_workreport.md
@@ -330,18 +338,18 @@ scripts/verify-b313-ch9-static-qualification-candidate.mjs
 tests/b313-chapter-ix-static-qualification-candidate.test.mjs
 ```
 
-No `.github/workflows/*` file belongs in PR530.
+No `.github/workflows/*` file changed.
 
-## 14. Protected Invariants
+## Protected Invariants
 
 - `designAuthority=false`;
 - no Code-compliance promotion;
-- no source/status label promotion;
+- no source/status-label promotion;
 - no Section II-D-only allowable authority;
 - distinct source verifier/checker;
 - distinct selected master-record preparer/checker;
 - distinct benchmark producer/reviewer;
-- independent Class-E expected values are evidence inputs, not generated by the calculation under test;
+- Class-E expected values are independent evidence inputs, not generated by the calculation under test;
 - no tolerance inference or weakening;
 - no fatigue/components/B31J/FEA/CAESAR claims;
 - no workflow modifications;
