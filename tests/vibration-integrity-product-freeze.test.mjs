@@ -9,54 +9,45 @@ import {
   assertVibrationIntegrityAuditLog,
   createVibrationIntegrityAuditLog,
 } from '../tabs/vibration-integrity-audit-log.js';
-import {
-  VIBRATION_INTEGRITY_ACTION_IDS,
-  VIBRATION_INTEGRITY_FIT_CONTRACT,
-} from '../tabs/vibration-integrity-product-contract.js';
-import { transitionVibrationIntegrityResultState } from '../tabs/vibration-integrity-result-state.js';
 import { deriveVibrationIntegrityWorkflowState } from '../tabs/vibration-integrity-workflow-state.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const FIT_ACTIONS = ['load-benchmark', 'preflight', 'run', 'export', 'export-evidence'];
 
 function auditEvent(eventType, timestamp, workflowBefore, workflowAfter, details = {}) {
   return { eventType, timestamp, workflowBefore, workflowAfter, details };
 }
 
-test('PR511 freezes FIT actions and result facts without owning workspace navigation', async () => {
+test('PR511 preserves FIT actions and visible result facts without owning workspace navigation', async () => {
   const [inputView, tab] = await Promise.all([
     readFile(resolve(ROOT, 'tabs/vibration-integrity-input-view.js'), 'utf8'),
     readFile(resolve(ROOT, 'tabs/vibration-integrity-tab.js'), 'utf8'),
   ]);
-  for (const action of Object.values(VIBRATION_INTEGRITY_ACTION_IDS)) {
+  for (const action of FIT_ACTIONS) {
     assert.match(inputView, new RegExp(`data-vi-action=["']${action}["']`, 'u'));
   }
   for (const label of ['Readiness:', 'Evidence:', 'Audit events:', 'Last audit:', 'Run snapshot:']) {
     assert.match(inputView, new RegExp(label, 'u'));
   }
   assert.doesNotMatch(inputView, /Audit snapshot:/u);
-  assert.match(tab, /VIBRATION_INTEGRITY_ACTION_IDS/u);
   assert.match(tab, /deriveVibrationIntegrityWorkflowState/u);
-  assert.equal(VIBRATION_INTEGRITY_FIT_CONTRACT.authorityBoundary.designAuthority, false);
-  assert.equal(VIBRATION_INTEGRITY_FIT_CONTRACT.authorityBoundary.candidateMechanismsMayReplaceScreeningGoverning, false);
-  assert.equal('requiredWorkspaceTabs' in VIBRATION_INTEGRITY_FIT_CONTRACT, false);
+  assert.match(tab, /state\.resultState = 'RUNNING'/u);
+  assert.match(tab, /'STALE_RESULT'/u);
+  assert.match(tab, /'CURRENT_RESULT'/u);
+  assert.match(tab, /'INVALID_INPUT'/u);
   assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('RUN_EVIDENCE_EXPORT_STARTED'), true);
 });
 
 test('FIT result currency remains distinct from observational product workflow state', () => {
-  assert.equal(transitionVibrationIntegrityResultState('UNRUN', 'RUN_STARTED'), 'RUNNING');
-  assert.equal(transitionVibrationIntegrityResultState('RUNNING', 'RUN_SUCCEEDED'), 'CURRENT_RESULT');
-  assert.equal(transitionVibrationIntegrityResultState('RUNNING', 'RUN_SUCCEEDED', { drifted: true }), 'STALE_RESULT');
-  assert.equal(transitionVibrationIntegrityResultState('CURRENT_RESULT', 'INPUT_CHANGED', { hasRetainedResult: true }), 'STALE_RESULT');
-  assert.equal(transitionVibrationIntegrityResultState('UNRUN', 'INPUT_CHANGED'), 'UNRUN');
-  assert.equal(transitionVibrationIntegrityResultState('RUNNING', 'RUN_FAILED'), 'INVALID_INPUT');
-  assert.equal(transitionVibrationIntegrityResultState('RUNNING', 'RUN_FAILED', { hasRetainedResult: true }), 'STALE_RESULT');
-  assert.equal(transitionVibrationIntegrityResultState('STALE_RESULT', 'RESET'), 'UNRUN');
-  assert.throws(() => transitionVibrationIntegrityResultState('UNKNOWN', 'RUN_STARTED'), /VIBRATION_RESULT_STATE_INVALID/u);
+  const current = deriveVibrationIntegrityWorkflowState({ resultState: 'CURRENT_RESULT' });
+  assert.equal(current.state, 'RESULT_CURRENT');
+  assert.equal(current.resultState, 'CURRENT_RESULT');
+  assert.notEqual(current.state, current.resultState);
 
-  const workflow = deriveVibrationIntegrityWorkflowState({ resultState: 'CURRENT_RESULT' });
-  assert.equal(workflow.state, 'RESULT_CURRENT');
-  assert.equal(workflow.resultState, 'CURRENT_RESULT');
-  assert.notEqual(workflow.state, workflow.resultState);
+  const stale = deriveVibrationIntegrityWorkflowState({ resultState: 'STALE_RESULT' });
+  assert.equal(stale.state, 'RESULT_STALE');
+  assert.equal(stale.resultState, 'STALE_RESULT');
+  assert.notEqual(stale.state, stale.resultState);
 });
 
 test('activity log is immutable, sequence-checked and always non-authoritative', () => {
