@@ -1,9 +1,16 @@
 import {
   SBC_TYPE3_RECORD_KEY,
   calculateSbcType3FromUserEngineeringData,
-} from './type3-user-data.js';
+} from './type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 
 export const SBC_FACILITY_SCOPE_SCHEMA = 'SbcFacilityScope.v1';
+
+const CANDIDATE_AUTHORITY = Object.freeze({
+  engineeringAuthority: 'NONE',
+  screeningAuthority: 'NOT_AUTHORIZED',
+  designAuthority: false,
+  masterDataAuthority: false,
+});
 
 function requiredText(value, field) {
   const text = String(value ?? '').trim();
@@ -44,9 +51,53 @@ export function sbcFacilityUserRows(row, userRows = []) {
   )));
 }
 
+function invalidPrecomputed(scope, userRows, candidate, reason) {
+  return Object.freeze({
+    ok: false,
+    status: 'INVALID_PRECOMPUTED_CANDIDATE',
+    scope,
+    userRows,
+    result: Object.freeze({
+      ok: false,
+      status: 'INVALID_PRECOMPUTED_CANDIDATE',
+      methodId: candidate?.methodId ?? null,
+      scopeId: scope.scopeId,
+      problems: Object.freeze([Object.freeze({
+        term: 'precomputedCandidate',
+        status: 'INVALID_INPUT',
+        reason,
+      })]),
+    }),
+    authority: candidate?.authority ?? CANDIDATE_AUTHORITY,
+  });
+}
+
+function precomputedEvaluation(scope, userRows, candidate) {
+  if (!candidate) return null;
+  if (candidate.scopeId !== scope.scopeId) {
+    return invalidPrecomputed(scope, userRows, candidate, 'FACILITY_SCOPE_MISMATCH');
+  }
+  if (candidate.currentness && candidate.currentness !== 'CURRENT') {
+    return invalidPrecomputed(scope, userRows, candidate, 'CANDIDATE_NOT_CURRENT');
+  }
+  if (candidate.ok !== true || !Number.isFinite(Number(candidate.lof))) {
+    return invalidPrecomputed(scope, userRows, candidate, 'CALCULATED_CANDIDATE_REQUIRED');
+  }
+  return Object.freeze({
+    ok: true,
+    status: candidate.status,
+    scope,
+    userRows,
+    result: candidate,
+    authority: candidate.authority ?? CANDIDATE_AUTHORITY,
+  });
+}
+
 export function evaluateSbcFacilityType3(row, options = {}) {
   const scope = sbcFacilityScope(row);
   const userRows = sbcFacilityUserRows(row, options.userRows);
+  const precomputed = precomputedEvaluation(scope, userRows, options.precomputedCandidate);
+  if (precomputed) return precomputed;
   if (!userRows.length) {
     return Object.freeze({
       ok: false,
@@ -54,11 +105,7 @@ export function evaluateSbcFacilityType3(row, options = {}) {
       scope,
       userRows,
       result: null,
-      authority: Object.freeze({
-        engineeringAuthority: 'NONE',
-        screeningAuthority: 'NOT_AUTHORIZED',
-        designAuthority: false,
-      }),
+      authority: CANDIDATE_AUTHORITY,
     });
   }
   const result = calculateSbcType3FromUserEngineeringData({
