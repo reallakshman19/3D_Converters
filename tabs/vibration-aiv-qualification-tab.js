@@ -53,7 +53,12 @@ export function renderAivQualificationWorkspace(container) {
   });
   const execution = createAivExecutionActions({ state, render, downloadText: downloadAivText });
   const assumptionAcceptanceController = createAivAssumptionAcceptanceController({ state, render, container });
-  const masterDbController = createAivMasterDbController({ state, render, clearReadiness: execution.clearReadiness });
+  const masterDbController = createAivMasterDbController({
+    state,
+    render,
+    clearReadiness: execution.clearReadiness,
+    onEngineeringInputsChanged: () => markAivEngineeringInputChanged(state),
+  });
   const datasetLoader = createAivDatasetLoader({
     state, render, clearReadiness: execution.clearReadiness,
     clearMasterResolution: () => masterDbController.clearResolution({ clearDerivedValues: true }),
