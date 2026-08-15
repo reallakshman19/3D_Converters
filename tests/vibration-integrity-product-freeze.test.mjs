@@ -22,7 +22,7 @@ function auditEvent(type, at, resultState = 'UNRUN') {
   return { type, at, resultState, authority: { designAuthority: false } };
 }
 
-test('product freeze keeps core actions and extension-safe workspace anchors visible', async () => {
+test('product freeze keeps core actions and current workspace tabs visible', async () => {
   const [inputView, tab, shell] = await Promise.all([
     readFile(resolve(ROOT, 'tabs/vibration-integrity-input-view.js'), 'utf8'),
     readFile(resolve(ROOT, 'tabs/vibration-integrity-tab.js'), 'utf8'),
@@ -33,9 +33,10 @@ test('product freeze keeps core actions and extension-safe workspace anchors vis
   }
   assert.match(tab, /VIBRATION_INTEGRITY_ACTION_IDS/u);
   assert.match(tab, /WORKSPACE_CLICK_ACTIONS/u);
-  for (const workspaceTab of VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredCoreWorkspaceTabs) {
+  for (const workspaceTab of VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredWorkspaceTabs) {
     assert.match(shell, new RegExp(`tabButton\\(["']${workspaceTab}["']`, 'u'));
   }
+  assert.deepEqual(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredCoreWorkspaceTabs, ['screening', 'user-data']);
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.extensionPolicy.mechanismWorkspaceTabsAllowed, true);
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.authorityBoundary.designAuthority, false);
   assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('WORKSPACE_TAB_CHANGED'), true);
