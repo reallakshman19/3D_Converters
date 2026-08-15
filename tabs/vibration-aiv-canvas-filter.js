@@ -28,11 +28,12 @@ export function renderAivCanvasFilterControls(projection) {
 }
 
 export function createAivCanvasFilterState(input = {}, options = {}) {
+  const current = input ?? {};
   const cases = values(options.cases ?? []);
   const lines = values(options.lines ?? []);
-  const requestedCase = text(input.caseId);
-  const requestedLine = text(input.line);
-  const showMode = input.showMode === AIV_CANVAS_SHOW_MODE.ALL ? AIV_CANVAS_SHOW_MODE.ALL : AIV_CANVAS_SHOW_MODE.CURRENT;
+  const requestedCase = text(current.caseId);
+  const requestedLine = text(current.line);
+  const showMode = current.showMode === AIV_CANVAS_SHOW_MODE.ALL ? AIV_CANVAS_SHOW_MODE.ALL : AIV_CANVAS_SHOW_MODE.CURRENT;
   return Object.freeze({
     showMode: cases.length ? showMode : AIV_CANVAS_SHOW_MODE.ALL,
     caseId: cases.includes(requestedCase) ? requestedCase : cases[0] ?? null,
@@ -95,7 +96,7 @@ export function createAivCanvasFilterController(container, { onSelectionFiltered
   function change(event) {
     const kind = event.target?.dataset?.aivCanvasFilter;
     if (!kind) return;
-    const next = { ...state };
+    const next = { ...(state ?? {}) };
     if (kind === 'case') next.caseId = event.target.value;
     if (kind === 'line') next.line = event.target.value;
     if (kind === 'show') next.showMode = event.target.value;
