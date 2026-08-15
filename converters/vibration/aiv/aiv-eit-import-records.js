@@ -1,6 +1,7 @@
 import { AIV_SOURCE_CSV_HEADER } from './source-csv.js';
 import { AIV_ASSESSMENT_CSV_HEADER } from './assessment-csv.js';
 import { AIV_SOURCE_ASSESSMENT_CSV_HEADER } from './source-assessment-csv.js';
+import { resolveAivEitControlledSonicState } from './aiv-eit-controlled-sonic-state.js';
 
 const DEVICE_FROM_VT = Object.freeze({
   relief: 'RELIEF_VALVE',
@@ -47,9 +48,11 @@ function phase(detail, stream) {
   return 'GAS';
 }
 
-function sonicState(detail) {
+function sonicState(document, line, detail, stream) {
   const explicit = clean(detail.sonicState).toUpperCase();
-  return explicit || 'UNRESOLVED';
+  if (explicit) return { state: explicit, resolution: null };
+  const resolution = resolveAivEitControlledSonicState({ document, line, detail, stream });
+  return { state: resolution?.state ?? 'UNRESOLVED', resolution };
 }
 
 function trim(detail, sourceName) {
@@ -121,15 +124,17 @@ function assessmentType(pipe) {
   return clean(pipe?.assessmentType).toUpperCase() || 'OTHER_WELDED_DISCONTINUITY';
 }
 
-function sourceRow({ line, detail, stream, detailIndex, sourceName }) {
+function sourceRow({ document, line, detail, stream, detailIndex, sourceName }) {
   const sourceId = sourceIdFor(line, detail, stream, detailIndex);
   const caseId = caseIdFor(line, detail, stream);
   const deviceType = sourceDeviceType(detail);
   const trimEvidence = trim(detail, sourceName);
+  const sonic = sonicState(document, line, detail, stream);
   return {
     key: `${sourceId}\u0000${caseId}`,
     sourceId,
     caseId,
+    sonicStateResolution: sonic.resolution,
     row: rowFrom(AIV_SOURCE_CSV_HEADER, {
       'Source Canonical ID': sourceId,
       'Operating Case': caseId,
@@ -153,7 +158,7 @@ function sourceRow({ line, detail, stream, detailIndex, sourceName }) {
       'Low Noise Trim Unit': trimEvidence.unit,
       'Low Noise Trim Source': trimEvidence.source,
       'Low Noise Trim Source Revision': trimEvidence.revision,
-      'Sonic State': sonicState(detail),
+      'Sonic State': sonic.state,
       Source: sourceName,
       'Source Revision': 'EnergyInstituteEit.v5 compatibility import',
       'Record ID': `EIT-SOURCE:${safeId(line.rid)}:${detailIndex + 1}`,
@@ -256,7 +261,7 @@ export function buildAivEitImportedRecords(document, sourceName) {
     if (!assessmentRows.has(assessment.assessmentId)) assessmentRows.set(assessment.assessmentId, assessment);
     details.forEach((detail, detailIndex) => {
       const stream = streamFor(line, detail, streams);
-      const source = sourceRow({ line, detail, stream, detailIndex, sourceName });
+      const source = sourceRow({ document, line, detail, stream, detailIndex, sourceName });
       if (!sourceRows.has(source.key)) sourceRows.set(source.key, source.row);
       relationships.push(relationshipRow({
         line, detail, sourceId: source.sourceId, assessmentId: assessment.assessmentId,
@@ -271,6 +276,7 @@ export function buildAivEitImportedRecords(document, sourceName) {
         assessmentCanonicalId: assessment.assessmentId,
         caseId: source.caseId,
         segmentIds: Object.freeze(Array.isArray(detail.segmentIds) ? detail.segmentIds.map(clean).filter(Boolean) : []),
+        sonicStateResolution: source.sonicStateResolution,
         originalDetail: Object.freeze({ ...detail }),
       }));
     });

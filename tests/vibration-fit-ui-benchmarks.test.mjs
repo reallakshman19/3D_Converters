@@ -49,8 +49,8 @@ function assertInputParity(uiCase, controlledCase) {
   assert.equal(enrichment.get('INSIDE_DIAMETER')?.value, source.insideDiameterM);
 }
 
-test('UI benchmark catalogue exactly covers the controlled five EI worked cases', () => {
-  assert.equal(VIBRATION_FIT_UI_BENCHMARK_CASES.length, 5);
+test('UI benchmark catalogue exactly covers the controlled ten EI worked cases', () => {
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_CASES.length, 10);
   assert.deepEqual(
     VIBRATION_FIT_UI_BENCHMARK_CASES.map((entry) => entry.id),
     controlled.cases.map((entry) => entry.id),
@@ -61,6 +61,10 @@ test('UI benchmark catalogue exactly covers the controlled five EI worked cases'
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.commit, controlled.source.commit);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.gitBlob, controlled.source.gitBlob);
   assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.tolerancePolicyId, controlled.tolerancePolicy.id);
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.digitizedRepository, controlled.digitizedSource.repository);
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.digitizedCommit, controlled.digitizedSource.commit);
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.digitizedGitBlob, controlled.digitizedSource.gitBlob);
+  assert.equal(VIBRATION_FIT_UI_BENCHMARK_SOURCE.digitizedAuthority, controlled.digitizedSource.authority);
   assert.equal(controlled.tolerancePolicy.screeningPromotionState, 'RECONCILED_FOR_BENCHMARK_USE');
 });
 
