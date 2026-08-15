@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES,
   appendVibrationIntegrityAuditEvent,
   assertVibrationIntegrityAuditLog,
   createVibrationIntegrityAuditLog,
@@ -31,11 +32,14 @@ test('product freeze keeps core actions and extension-safe workspace anchors vis
     assert.match(inputView, new RegExp(`data-vi-action=["']${action}["']`, 'u'));
   }
   assert.match(tab, /VIBRATION_INTEGRITY_ACTION_IDS/u);
+  assert.match(tab, /WORKSPACE_CLICK_ACTIONS/u);
   for (const workspaceTab of VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredCoreWorkspaceTabs) {
     assert.match(shell, new RegExp(`tabButton\\(["']${workspaceTab}["']`, 'u'));
   }
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.extensionPolicy.mechanismWorkspaceTabsAllowed, true);
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.authorityBoundary.designAuthority, false);
+  assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('WORKSPACE_TAB_CHANGED'), true);
+  assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('WORKSPACE_ACTION'), true);
 });
 
 test('result currency follows one deterministic lifecycle', () => {
@@ -53,13 +57,20 @@ test('result currency follows one deterministic lifecycle', () => {
 test('audit log is immutable, append-only and sequence-checked', () => {
   const empty = createVibrationIntegrityAuditLog('2026-08-15T06:00:00.000Z');
   const started = appendVibrationIntegrityAuditEvent(empty, auditEvent('SESSION_STARTED', '2026-08-15T06:00:00.000Z'));
-  const running = appendVibrationIntegrityAuditEvent(started, auditEvent('RUN_STARTED', '2026-08-15T06:01:00.000Z', 'RUNNING'));
+  const workspace = appendVibrationIntegrityAuditEvent(started, {
+    ...auditEvent('WORKSPACE_ACTION', '2026-08-15T06:00:30.000Z'),
+    details: { action: 'mechanical-evaluate' },
+  });
+  const running = appendVibrationIntegrityAuditEvent(workspace, auditEvent('RUN_STARTED', '2026-08-15T06:01:00.000Z', 'RUNNING'));
   assert.equal(empty.events.length, 0);
   assert.equal(started.events.length, 1);
-  assert.deepEqual(running.events.map((event) => event.eventId), ['VI-AUDIT-000001', 'VI-AUDIT-000002']);
+  assert.deepEqual(running.events.map((event) => event.eventId), [
+    'VI-AUDIT-000001', 'VI-AUDIT-000002', 'VI-AUDIT-000003',
+  ]);
+  assert.equal(running.events[1].details.action, 'mechanical-evaluate');
   assert.equal(Object.isFrozen(running), true);
   assert.equal(Object.isFrozen(running.events[1]), true);
-  assert.equal(JSON.parse(serializeVibrationIntegrityAuditLog(running)).events.length, 2);
-  const tampered = { ...running, events: [{ ...running.events[0], sequence: 2 }, running.events[1]] };
+  assert.equal(JSON.parse(serializeVibrationIntegrityAuditLog(running)).events.length, 3);
+  const tampered = { ...running, events: [{ ...running.events[0], sequence: 2 }, ...running.events.slice(1)] };
   assert.throws(() => assertVibrationIntegrityAuditLog(tampered), /VIBRATION_AUDIT_SEQUENCE_INVALID/u);
 });
