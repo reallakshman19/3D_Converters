@@ -1,3 +1,5 @@
+import { assertVibrationIntegrityAuditLog } from './vibration-integrity-audit-log.js';
+
 export const FIT_RUN_EVIDENCE_SCHEMA = 'FitRunEvidencePackage.v1';
 
 const FIT_CALCULATION_ID = 'VIB.FIV.FLOW_TURBULENCE';
@@ -136,6 +138,17 @@ function benchmarkEvidence(benchmark) {
   };
 }
 
+function auditEvidence(auditLog) {
+  if (!auditLog) return null;
+  try {
+    return jsonClone(assertVibrationIntegrityAuditLog(auditLog));
+  } catch (error) {
+    throw evidenceError('FIT_RUN_EVIDENCE_AUDIT_INVALID', 'Run evidence received an invalid Vibration Integrity audit trail.', {
+      cause: String(error?.message || error),
+    });
+  }
+}
+
 export async function buildVibrationIntegrityRunEvidence(state = {}) {
   if (state.resultState !== 'CURRENT_RESULT') {
     throw evidenceError('FIT_RUN_EVIDENCE_RESULT_NOT_CURRENT', 'Only a CURRENT_RESULT may be exported as FIT reproducibility evidence.', {
@@ -156,6 +169,7 @@ export async function buildVibrationIntegrityRunEvidence(state = {}) {
       purpose: 'REPRODUCIBILITY_EVIDENCE_ONLY',
     },
     run: jsonClone(snapshot),
+    auditTrail: auditEvidence(state.auditLog),
     sources: {
       files: sourceFiles(state.files),
       benchmark: benchmarkEvidence(state.benchmark?.loaded ?? null),
