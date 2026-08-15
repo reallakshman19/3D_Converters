@@ -3,63 +3,57 @@
   "sliceId": "PF-03",
   "issueId": 513,
   "productionShaBefore": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "candidateShaAfter": null,
-  "preFixStatus": "SOURCE_INSPECTION_CANDIDATE_DEFECT_REAL_BROWSER_NOT_RUN",
-  "browserWorkflowStatus": "NOT_RUN",
-  "browserWorkflowReason": "Current execution environment cannot navigate the real application in managed Chromium; no FULL_BROWSER_PASS is claimed.",
-  "requiredLiveWorkflow": [
-    "Open exact-current-main AIV workspace in Chromium",
-    "Load a controlled two-source same-group dataset using SIM-SRC-1 and SIM-SRC-2 under SIM-GROUP-1",
-    "Run readiness and screening for 160+160 and 160+150 point-level contribution cases",
-    "Confirm both Source Canonical IDs remain visible in assessment contributions and canvas projection",
-    "Change only the second relationship to a distinct Simultaneous Source Group while keeping Assessment and Operating Case identical",
-    "Re-run readiness/screening and confirm execution fails closed before any cross-group logarithmic combination"
-  ],
+  "reconciledMainSha": "5ad2288d41e031ef23df0cb3e600763081b4ac62",
+  "candidateShaAfter": "8cd30a464435658e833ddf297c5727e68e979d4d",
+  "preFixStatus": "LOCAL_REGISTERED_DEFINITION_ENGINE_REPRODUCED_CHROMIUM_NOT_RUN",
+  "browserWorkflowStatus": "NOT_RUN_OWNER_WAIVED",
+  "browserWorkflowReason": "Owner explicitly waived PF-03 Chromium in issue comment 5302589137; no FULL_BROWSER_PASS is claimed.",
+  "localExecution": {
+    "classification": "LOCAL_REGISTERED_DEFINITION_ENGINE_REPRODUCTION",
+    "sourceCustody": "Exact production dependency blobs reconstructed from d659e670a2f8fe0a35fc8072382512f6493898cf",
+    "nativeCheckoutAvailable": false,
+    "nodeVersion": "v22.16.0",
+    "observed": {
+      "sameGroup160Plus160Db": 163.0102999566398,
+      "sameGroup160Plus150Db": 160.41392685158226,
+      "sameGroupSourceCanonicalIds": [
+        "SIM-SRC-1",
+        "SIM-SRC-2"
+      ],
+      "distinctGroupsAccepted": true,
+      "distinctGroupsCombinedDb": 163.0102999566398,
+      "distinctGroupLabels": [
+        "SIM-GROUP-1",
+        "SIM-GROUP-2"
+      ]
+    },
+    "finding": "Current production cross-combined distinct simultaneous-source groups under one Assessment + Operating Case instead of failing closed."
+  },
   "sourceEvidence": [
     {
       "path": "converters/vibration/aiv/aiv-calculator.js",
       "blob": "08f1664f1be6a104fe421655e96a46ca66c6a80c",
-      "finding": "Current production groups point contributions by [assessmentCanonicalId, caseId] only before logarithmic combination. simultaneousSourceGroup is not part of the grouping key."
+      "finding": "Groups contributions by [assessmentCanonicalId, caseId]."
     },
     {
       "path": "converters/vibration/aiv/aiv-kernel-candidate.js",
       "blob": "647cbf5bd19e2015dbc28708d8b6740269f1e5b4",
-      "finding": "The point combiner validates shared Assessment Canonical ID and Operating Case, preserves sourceCanonicalIds, and logarithmically sums all supplied contributions; it does not reject differing simultaneousSourceGroup values."
+      "finding": "Pre-fix combiner did not compare simultaneousSourceGroup."
     },
     {
       "path": "tests/vibration-aiv-canvas-integration.test.mjs",
       "blob": "9f101f0092ec2c3a2ce148e92b3dead0c7209442",
-      "finding": "Current registered fixture covers same-group SIM-GROUP-1 with SIM-SRC-1 and SIM-SRC-2 for frozen 160+160 and 160+150 values, including source identity and canvas projection, but contains no distinct-group negative case."
-    },
-    {
-      "observation": "REPOSITORY_SEARCH",
-      "query": "findAivUnsupportedSimultaneousScopes",
-      "finding": "No current-main implementation was found for a distinct-group fail-closed detector."
+      "finding": "Same-group B2/B3 registered fixture existed but no distinct-group negative regression."
     }
   ],
-  "salvageEvidence": {
-    "source": "PR #506",
-    "head": "b846cbfb765cbc01734154ad837b12d040fe0bf7",
-    "path": "converters/vibration/aiv/aiv-executable-contract.js",
-    "blob": "a6de9d2c6bda73370fa5d9889503de4757b95701",
-    "finding": "Candidate function findAivUnsupportedSimultaneousScopes groups APPLICABLE relationships by Assessment+Case, collects group labels, and flags scopes with more than one distinct group as AIV_MULTIPLE_SIMULTANEOUS_GROUPS_UNSUPPORTED.",
-    "classification": "SALVAGE_SUPPORT_NOT_PRODUCT_AUTHORITY"
+  "rootCause": "REGISTERED_POINT_COMBINER_DID_NOT_ENFORCE_SIMULTANEOUS_GROUP_BOUNDARY",
+  "falsifierResult": "FALSIFIER_REJECTED_BY_LOCAL_REGISTERED_ENGINE_REPRODUCTION",
+  "authorityChecks": {
+    "screeningResultScope": "ASSESSMENT",
+    "lineCaseSummaryAuthoritative": false,
+    "designAuthority": false,
+    "svgPixelGeometryEngineeringDistanceAuthority": false
   },
-  "rootCauseHypothesis": "CURRENT_RESULT_SCOPE_IGNORES_SIMULTANEOUS_SOURCE_GROUP_BOUNDARY",
-  "falsifier": "If the exact current-main real application already fails closed for multiple distinct Simultaneous Source Group values under one Assessment+Case before any calculation result is committed, record NOT_REPRODUCIBLE_ON_CURRENT_MAIN and do not replay PR #506 grouping logic.",
-  "changedFiles": [],
-  "fixScope": "No production or repository test change has been applied. PF-03 is frozen for live reproduction first.",
-  "authorityChecks": [
-    "Same-group multi-source arithmetic must remain in the registered calculation kernel, never UI code",
-    "Both source identities must remain in contributions",
-    "Distinct groups must fail closed until a separately qualified scenario/group result contract exists",
-    "No governing-group algorithm may be invented",
-    "screeningResultScope remains ASSESSMENT",
-    "line/case summary remains non-authoritative",
-    "designAuthority remains false",
-    "SVG/pixel geometry remains non-authoritative for physical distance"
-  ],
-  "disposition": "BLOCKED_ENVIRONMENT_WITH_SOURCE_LEVEL_GROUPING_GAP_ISOLATED",
-  "nextSliceAuthorized": false,
-  "recordedAt": "2026-08-15T15:59:00+04:00"
+  "disposition": "REPRODUCED_LOCALLY_OWNER_CHROMIUM_WAIVER_APPLIED",
+  "recordedAt": "2026-08-15T18:08:38+04:00"
 }
