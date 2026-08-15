@@ -10,8 +10,8 @@ CRITICALITY: ENGINEERING_CRITICAL
 PR: 511
 BRANCH: agent/vibration-product-freeze-v1
 BASE_MAIN: a49085cde69ef71518c0d6315a615477887d7b4e
-REPORT_BASIS_HEAD: 7fd9e4fb136c638196d26502d365c3df7ea755ff
-GROUNDING_EPOCH: 2026-08-15T11:34Z
+REPORT_BASIS_HEAD: 7cfb9ba97ac920c4e8d0db99e7a11fdc0b9653f0
+GROUNDING_EPOCH: 2026-08-15T11:38Z
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
 RECOVERY_DECISION: SALVAGE_PARTIAL / CONTINUE
 APPENDIX_A_STATUS: PASS 97/100
@@ -19,25 +19,12 @@ MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
 CURRENT_STAGE: CHROMIUM_DIAGNOSTIC_AND_FOCUSED_REGRESSION_PASS
 FREEZE_STATE: BLOCKED
 HIGHEST_RISK: promoting policy-adapted browser evidence to the official URL-based Production Freeze gate
-EXACT_NEXT_ACTION: run the unchanged scripts/validate-vibration-production-freeze-browser.mjs in an environment where Chromium URL navigation is permitted; if PF-001..PF-007 pass, reconcile the official screenshots/receipt and mark FROZEN; if a step fails, patch only the first material user-visible defect and replay
+EXACT_NEXT_ACTION: run the unchanged scripts/validate-vibration-production-freeze-browser.mjs in an environment where Chromium URL navigation is permitted; if PF-001..PF-007 pass, reconcile official screenshots/receipt and mark FROZEN; if a step fails, patch only the first material user-visible defect and replay
 ```
 
 ## Handover in 60 Seconds
 
-PR #511 owns the production-freeze/evidence layer:
-
-```text
-controlled FIT + Mechanical benchmark replay
--> PF-001..PF-007 Chromium journey
--> visible-result comparison
--> screenshots + VibrationProductionFreezeReceipt.v1
--> FitRunEvidencePackage.v1 verification
--> hashed Activity provenance inside FIT evidence
-```
-
-PR #512 owns the shared observational workflow/activity layer.
-
-Architecture remains:
+PR #511 owns the production-freeze/evidence slice. PR #512 owns the shared observational workflow/activity layer.
 
 ```text
 product workflow state != FIT result currency
@@ -45,71 +32,97 @@ Activity / audit         != engineering evidence
 FitRunEvidencePackage.v1 = FIT engineering reproducibility evidence envelope
 ```
 
-No equation, correlation, master value, controlled tolerance, unit rule, interpolation policy, screening authority, candidate authority, or design authority changed in this checkpoint.
+Current product-module browser diagnostics pass PF-001..PF-007 and the relevant Node suite passes 36/36. No material product defect remains observed. The official URL-based gate is still blocked by managed Chromium `URLBlocklist=["*"]`, and GitHub Actions is blocked by account Actions budget. Therefore the workflow is **BLOCKED, not FROZEN**.
 
-## Current Source / Artifact Ground Truth
+No equation, correlation, master value, tolerance, unit rule, interpolation policy, screening authority, candidate authority, or design authority changed in the latest checkpoint.
+
+## Current Source Ground Truth
 
 ```text
 main                              a49085cde69ef71518c0d6315a615477887d7b4e
-report basis / test-fix head       7fd9e4fb136c638196d26502d365c3df7ea755ff
-shared audit blob                  f6135a3172a3b7a562a14635c36897b030873127
-shared workflow blob               a49dbac79854192be13fb6dc6d41c34dc84d2c83
-shared controller blob             cc3ab1c219ed7f4c4efdbfbaab9a6fe716857067
-input-view blob                    e3cb918591e691473adfbea9a2fae27eb8181856
-run-evidence blob                  6f09d34727b8da5c3c6954873d459d01430cf489
-PF browser script blob             f314ef9e1212a95295b55548e83e6c478ff0495e
-product-freeze test blob           ce5b88a390b4d5c43642a72fc251907806a3219e
-run-evidence audit test blob       16e7a1de1554987ea6258a2569a4a452efa58c52
-browser-contract test blob         088bd93314e27f877d24b426fc84a15c58986207
-PF workflow blob                   0b02d67d2685ec3424877a69e67b4915bcab2e32
+latest technical/test fix         7fd9e4fb136c638196d26502d365c3df7ea755ff
+previous report sync              7cfb9ba97ac920c4e8d0db99e7a11fdc0b9653f0
+shared audit blob                 f6135a3172a3b7a562a14635c36897b030873127
+shared workflow blob              a49dbac79854192be13fb6dc6d41c34dc84d2c83
+shared controller blob            cc3ab1c219ed7f4c4efdbfbaab9a6fe716857067
+input-view blob                   e3cb918591e691473adfbea9a2fae27eb8181856
+run-evidence blob                 6f09d34727b8da5c3c6954873d459d01430cf489
+PF browser script blob            f314ef9e1212a95295b55548e83e6c478ff0495e
+product-freeze test blob          ce5b88a390b4d5c43642a72fc251907806a3219e
+run-evidence audit test blob      16e7a1de1554987ea6258a2569a4a452efa58c52
+browser-contract test blob        088bd93314e27f877d24b426fc84a15c58986207
+PF workflow blob                  0b02d67d2685ec3424877a69e67b4915bcab2e32
 ```
 
-Exact main was reconstructed from unexpired GitHub Actions artifact `9244952792` (`github-pages`, workflow run `31876804486`, head `a49085c...`). Downloaded artifact SHA-256:
+Exact main was reconstructed from GitHub Actions artifact `9244952792` (`github-pages`, workflow run `31876804486`, head `a49085c...`). Artifact SHA-256 was verified against GitHub metadata:
 
 ```text
 e7ce2096076584e92239eae020e54b2c6a657f0dfffff9ad2f66da4aa14a0676
 ```
 
-It matches GitHub artifact metadata exactly. Current #511 runtime/test files were overlaid and Git blob identities were recomputed locally before execution.
+The #511 runtime/tests/workflow were overlaid and their Git blob identities recomputed locally before execution.
 
-## Browser Evidence
+## Executed Node Validation
+
+### Inherited Stage-4 focused suite
+
+```text
+PASS 28/28
+```
+
+### New #511 regressions
+
+Initial execution exposed `ISS-TEST-001`: `tests/vibration-integrity-run-evidence-audit.test.mjs` placed `await` inside non-`async` callbacks passed to `assert.rejects`, causing `SyntaxError: Unexpected reserved word`.
+
+Minimal test-only resolution:
+
+```text
+commit  7fd9e4fb136c638196d26502d365c3df7ea755ff
+change  mark the two assert.rejects callbacks async
+blob    16e7a1de1554987ea6258a2569a4a452efa58c52
+```
+
+Replay:
+
+```text
+new #511 regressions    PASS 8/8
+combined focused suite  PASS 36/36
+```
+
+No production code changed for this fix.
+
+### Repository-wide suite attempt
+
+`node --test tests/*.test.mjs` was attempted but did not complete inside the 120-second execution window, so classification is:
+
+```text
+NOT_RUN / INCOMPLETE
+```
+
+Two early non-#511 observations:
+
+1. `tests/app-content-scroll-layout.test.mjs` on base main expects the obsolete literal `Flow-Induced Vibration Screening — FIT Workbook Reference`, while the base adapter already contains `Flow-Induced Vibration Screening — FIT`. Neither path is changed by #511. Classification: `PREEXISTING / BASE ASSERTION DRIFT`.
+2. `tests/categorized-inputxml-authority-pin.test.mjs` invokes `git ls-files`; the downloaded Pages artifact intentionally has no `.git` directory. Classification: `ENVIRONMENT / ARTIFACT LIMITATION`.
+
+Neither observation is attributed to #511.
+
+## Chromium Evidence
 
 ### Official unchanged PF script
 
-The exact script launched Chromium 144 and attempted:
+The exact repository script launched Chromium 144 and attempted `page.goto(http://127.0.0.1:4173/)`.
 
 ```text
-page.goto http://127.0.0.1:4173/
+result          net::ERR_BLOCKED_BY_ADMINISTRATOR
+managed policy  URLBlocklist = ["*"]
+classification  NOT_RUN / ENVIRONMENT_POLICY_BLOCKED
 ```
 
-Result:
+The administrator policy was not modified or bypassed. No official PF PASS is claimed.
 
-```text
-net::ERR_BLOCKED_BY_ADMINISTRATOR
-managed Chromium policy: URLBlocklist = ["*"]
-```
+### Policy-compliant production-module diagnostic
 
-The policy was not modified or bypassed.
-
-Classification:
-
-```text
-OFFICIAL URL-BASED PF GATE  NOT_RUN / ENVIRONMENT_POLICY_BLOCKED
-PRODUCT FAILURE             NO
-PRODUCT PASS / FROZEN       NOT CLAIMED
-```
-
-### Policy-compliant production-module Chromium diagnostic
-
-Chromium remained on `about:blank`; exact repository ESM modules were loaded in-memory. Production `installEngineeringTabs`, Engineering Calculations, and Vibration Integrity modules executed. Only the outer URL/app bootstrap was substituted because managed policy blocks URL navigation.
-
-Environment-only support:
-
-- in-memory ESM transport;
-- `xlsx` stub present but not invoked by the controlled benchmark path;
-- SHA-256 shim because `about:blank` lacks secure-context Web Crypto; independently checked against SHA-256(`abc`) before product execution.
-
-Result:
+Chromium stayed on `about:blank` and loaded exact repository ESM modules in memory. Production `installEngineeringTabs`, Engineering Calculations, and Vibration Integrity modules executed; only the outer URL/app bootstrap was substituted because navigation is blocked.
 
 ```text
 browser                         Chromium 144.0.7559.96
@@ -124,20 +137,19 @@ PF-007 FIT evidence export      PASS_BROWSER_DIAGNOSTIC
 browser/page errors             []
 ```
 
-Controlled visible engineering results:
+Engineering values:
 
 ```text
 FIT expected                    0.276
 FIT tolerance                   ±0.0012
 FIT visible actual              0.27668688083478665
 FIT band                        LOF_LT_0_3
-Mechanical expected             0.40
-Mechanical visible actual       0.40
+Mechanical expected/actual      0.40 / 0.40
 candidate replaces Screening    false
 designAuthority                 false
 ```
 
-Downloaded FIT evidence:
+FIT evidence:
 
 ```text
 schema                           FitRunEvidencePackage.v1
@@ -150,7 +162,7 @@ Activity event count             7
 Activity SHA-256 identity        e9330a2f3a70a26ab2bcfeeb813f0cc2e23c61b472b8b404e9b626ac2fb30118
 ```
 
-The evidence correctly contains `RUN_EVIDENCE_EXPORT_STARTED`; after download the visible status strip re-renders to `Last audit: RUN_EVIDENCE_EXPORTED`.
+The serialized evidence contains `RUN_EVIDENCE_EXPORT_STARTED`; after download the visible status strip shows `Last audit: RUN_EVIDENCE_EXPORTED`, browser-confirming `ISS-PF-001` fixed.
 
 ## Browser Artifact Hash Ledger
 
@@ -166,103 +178,58 @@ vibration-fit-run-evidence.json      ad6452450bc43c2921a87d66bdf10e91ad0b2acca67
 07-evidence-exported.png             1d1a67cc077dc9977c0104c99170f50816ef55a34824af59dc47f64031912abc
 ```
 
-These are local diagnostic artifacts, not the official Production Freeze CI artifacts.
+These are local diagnostic artifacts, not official Production Freeze CI artifacts.
 
 ## Issue Ledger
 
-### ISS-PF-001 — export status could remain visibly stale
-
 ```text
-state               FIXED_BROWSER_CONFIRMED / OFFICIAL PF STILL BLOCKED
-final visible audit RUN_EVIDENCE_EXPORTED
-engineering impact  none
-authority impact    none
+ISS-PF-001       FIXED_BROWSER_CONFIRMED / official PF still blocked
+ISS-SALVAGE-001  RESOLVED / workflow-state ownership
+ISS-SALVAGE-002  RESOLVED / shared non-authoritative audit contract
+ISS-SALVAGE-003  RESOLVED_BROWSER_DIAGNOSTIC / shared controller
+ISS-TEST-001     RESOLVED / test-only async callback syntax
+ISS-INFRA-001    ACTIVE / GitHub Actions budget
+ISS-INFRA-002    ACTIVE / managed Chromium URLBlocklist
+ISS-BASE-001     PREEXISTING / base full-suite assertion drift
 ```
 
-No further product patch is justified.
+## Latest Hosted CI Truth
 
-### ISS-TEST-001 — new run-evidence regression did not parse
-
-Initial exact execution of the three new #511 regressions produced a syntax error in `tests/vibration-integrity-run-evidence-audit.test.mjs`:
+The test-fix commit triggered a fresh hosted run:
 
 ```text
-await assert.rejects(
-  () => buildVibrationIntegrityRunEvidence(await evidenceState(...))
-)
-SyntaxError: Unexpected reserved word
+workflow run  31882344809
+job          95006568208
+head         7fd9e4fb136c638196d26502d365c3df7ea755ff
+status       completed / failure
+steps        []
 ```
 
-Root cause: `await` occurred inside a non-`async` arrow callback. This is a PR-introduced **test-only** defect, not product behavior.
-
-Resolution commit:
+GitHub annotation:
 
 ```text
-7fd9e4fb136c638196d26502d365c3df7ea755ff
+The job was not started because an Actions budget is preventing further use.
 ```
 
-Minimal fix: mark the two `assert.rejects` callbacks `async`. Fixed file blob: `16e7a1de1554987ea6258a2569a4a452efa58c52`.
-
-Replay:
-
-```text
-new #511 regressions       PASS 8/8
-combined focused suite     PASS 36/36
-```
-
-### ISS-INFRA-001 — GitHub Actions budget
-
-```text
-workflow run       31880362343
-attempt 1 job      95001965163 / steps=[]
-attempt 2 job      95003113217 / runner_id=0 / steps=[]
-GitHub annotation  The job was not started because an Actions budget is preventing further use.
-classification     NOT_RUN / INFRASTRUCTURE_BLOCKED
-```
-
-Do not retry until capacity changes.
-
-### ISS-INFRA-002 — managed Chromium URL policy
-
-```text
-URLBlocklist: ["*"]
-exact PF page.goto -> ERR_BLOCKED_BY_ADMINISTRATOR
-classification     NOT_RUN / ENVIRONMENT_POLICY_BLOCKED
-```
-
-### ISS-BASE-001 — repository-wide suite has unrelated base assertion drift
-
-A repository-wide `node --test tests/*.test.mjs` attempt was made after the complete artifact became available. It did not complete inside the 120-second execution window, so the suite is `NOT_RUN / INCOMPLETE` rather than PASS/FAIL for #511.
-
-One early assertion failure is demonstrably pre-existing on base main:
-
-```text
-tests/app-content-scroll-layout.test.mjs
-expects: name: 'Flow-Induced Vibration Screening — FIT Workbook Reference'
-base adapter actual: name: 'Flow-Induced Vibration Screening — FIT'
-```
-
-Neither file is changed by #511. Another early test (`categorized-inputxml-authority-pin.test.mjs`) requires `.git` metadata, which the GitHub Pages artifact does not contain. These observations are not attributed to #511.
+This is `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product FAIL or PASS. Do not retry until capacity changes.
 
 ## Validation Ledger
 
-| Check | Status | Observation / Oracle | Limitation |
-|---|---|---|---|
-| main Pages artifact identity | PASS | LOCAL_ARTIFACT_INSPECTION / GitHub SHA-256 | exact base main |
-| #511 runtime/test blob overlay | PASS | LOCAL_EXECUTION / Git blob SHA-1 | exact blobs listed above |
-| inherited Stage-4 focused tests | PASS 28/28 | LOCAL_EXECUTION | repository-native tests |
-| new #511 regressions after fix | PASS 8/8 | LOCAL_EXECUTION | exact current test blobs |
-| combined focused suite | PASS 36/36 | LOCAL_EXECUTION | relevant #511 + Stage-4 coverage |
-| repository-wide Node suite | NOT_RUN / INCOMPLETE | LOCAL_EXECUTION | >120s; unrelated base/git-metadata failures observed |
-| official JS PF script | NOT_RUN / POLICY_BLOCKED | LOCAL_EXECUTION | URL policy blocks before page load |
-| PF-001 production Engineering navigation | PASS_BROWSER_DIAGNOSTIC | Chromium / production modules | outer URL shell substituted |
-| PF-002 benchmark load | PASS_BROWSER_DIAGNOSTIC | Chromium | controlled case |
-| PF-003 readiness | PASS_BROWSER_DIAGNOSTIC | Chromium | 1 READY / 0 NOT_READY |
-| PF-004 FIT oracle | PASS_BROWSER_DIAGNOSTIC | AUTHORITATIVE_REFERENCE | 0.27668688 within ±0.0012 |
-| PF-005 Mechanical oracle | PASS_BROWSER_DIAGNOSTIC | AUTHORITATIVE_REFERENCE | 0.40 |
-| PF-006 authority boundary | PASS_BROWSER_DIAGNOSTIC | Chromium | candidate cannot replace Screening |
-| PF-007 FIT evidence | PASS_BROWSER_DIAGNOSTIC | Chromium + artifact inspection | audit hash / designAuthority=false |
-| browser errors | PASS_BROWSER_DIAGNOSTIC | Chromium | `[]` |
-| official freeze state | BLOCKED | Production-Freeze-Protocol-v1 | URL-based official gate not executed |
+| Check | Status | Observation / Oracle |
+|---|---|---|
+| exact main artifact identity | PASS | GitHub SHA-256 + local artifact inspection |
+| #511 blob overlay | PASS | local Git blob SHA-1 matches GitHub |
+| inherited Stage-4 focused tests | PASS 28/28 | local execution |
+| new #511 regressions | PASS 8/8 | local execution after test-only fix |
+| combined focused suite | PASS 36/36 | local execution |
+| repository-wide Node suite | NOT_RUN / INCOMPLETE | >120s; unrelated base/artifact issues observed |
+| official JS PF script | NOT_RUN / POLICY_BLOCKED | managed URL policy |
+| PF-001..PF-007 production-module diagnostic | PASS_BROWSER_DIAGNOSTIC | Chromium 144 |
+| FIT oracle | PASS_BROWSER_DIAGNOSTIC | 0.27668688 within 0.276 ±0.0012 |
+| Mechanical oracle | PASS_BROWSER_DIAGNOSTIC | 0.40 |
+| authority/evidence | PASS_BROWSER_DIAGNOSTIC | candidate isolated; designAuthority=false; hashed Activity trail |
+| latest hosted run | NOT_RUN / ACTIONS_BUDGET_BLOCKED | zero steps |
+| official freeze state | BLOCKED | URL-based official gate not executed |
 
 ## Authority / Negative Assurance
 
@@ -276,8 +243,6 @@ Activity engineering authority           NONE
 Activity purpose                         ACTIVITY_AUDIT_ONLY
 FIT evidence purpose                     REPRODUCIBILITY_EVIDENCE_ONLY
 ```
-
-The only repository mutation in this latest checkpoint was the test-only async callback fix plus this handover synchronization. No production code was changed.
 
 ## Overlap / Dependency State
 
