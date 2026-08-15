@@ -15,7 +15,7 @@ test('AIV UI exposes pinned master package load/apply and visible master provena
   assert.match(input, /data-aiv-master-derived/u);
   assert.match(input, />\[M\]/u);
   assert.match(tab, /createAivMasterDbController/u);
-  assert.match(tab, /masterDbController\.noteUserEdit/u);
+  assert.match(tab, /masterDbController\.prepareUserEdit/u);
 });
 
 test('AIV master resolver has no process-case or physical-distance population path', () => {
