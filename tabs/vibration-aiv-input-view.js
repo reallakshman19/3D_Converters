@@ -3,6 +3,7 @@ import { renderAivCanvasWorkspaceHtml } from './vibration-aiv-canvas-view.js';
 import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
 import { renderAivFlareNetworkAuthoringHtml } from './vibration-aiv-flare-network-view.js';
 import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
+import { renderAivMasterDbHtml } from './vibration-aiv-master-db-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -97,6 +98,15 @@ function assumptionMap(state) {
   return map;
 }
 
+function masterMap(state) {
+  const map = new Map();
+  for (const item of state.masterResolution?.resolutions ?? []) {
+    const key = aivCanvasFieldKey(item.tableKind, item.rowIndex, item.column);
+    if (key) map.set(key, item);
+  }
+  return map;
+}
+
 function topologyExchange(state) {
   if (state.readinessEnvelope?.exchange) return state.readinessEnvelope.exchange;
   if (state.topologyInput?.format === 'PARSED_EXCHANGE' || state.topologyInput?.format === 'FLARE_NETWORK') return state.topologyInput.data;
@@ -137,29 +147,33 @@ function filterAttrs(meta) {
   return ` data-aiv-filterable="true" data-aiv-canvas-cases="${esc(meta.cases.join('|'))}" data-aiv-canvas-line="${esc(meta.line)}"`;
 }
 
-function editableCell(table, rowIndex, columnIndex, value, assumptions) {
+function editableCell(table, rowIndex, columnIndex, value, assumptions, masters) {
   const column = table.header[columnIndex];
   const fieldKey = aivCanvasFieldKey(table.kind, rowIndex, column);
   const assumption = assumptions.get(fieldKey);
+  const master = masters.get(fieldKey);
   const assumedAttr = assumption ? ' data-aiv-assumed="true"' : '';
+  const masterAttr = master ? ' data-aiv-master-derived="true"' : '';
   const assumedBadge = assumption ? `<small class="aivq-assumed-cell" title="${esc(`${assumption.profilePath} · ${assumption.reason}`)}">[A] ${esc(assumption.assumedValue)}</small>` : '';
-  return `<td${assumption ? ' class="is-assumed"' : ''}><input class="aivq-cell-input" data-aiv-table-cell="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}" data-aiv-field-key="${esc(fieldKey)}"${assumedAttr} value="${esc(value)}" aria-label="${esc(column)} row ${rowIndex + 1}">${assumedBadge}</td>`;
+  const masterBadge = master ? `<small class="aivq-assumed-cell" title="${esc(`${master.masterTable ?? master.origin} · ${master.masterRecordId ?? ''} · ${master.sourceDocumentId ?? ''}`)}">[M] ${esc(master.value)}</small>` : '';
+  const kind = master ? ' class="is-master"' : assumption ? ' class="is-assumed"' : '';
+  return `<td${kind}><input class="aivq-cell-input" data-aiv-table-cell="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}" data-aiv-edit-column="${columnIndex}" data-aiv-field-key="${esc(fieldKey)}"${assumedAttr}${masterAttr} value="${esc(value)}" aria-label="${esc(column)} row ${rowIndex + 1}">${masterBadge}${assumedBadge}</td>`;
 }
 
-function editableRow(table, row, rowIndex, assumptions, filterContext) {
+function editableRow(table, row, rowIndex, assumptions, masters, filterContext) {
   const selectionKey = tableSelectionKey(table, row);
   const selectionAttr = selectionKey ? ` data-aiv-selection-key="${esc(selectionKey)}"` : '';
-  const cells = row.map((value, columnIndex) => editableCell(table, rowIndex, columnIndex, value, assumptions)).join('');
+  const cells = row.map((value, columnIndex) => editableCell(table, rowIndex, columnIndex, value, assumptions, masters)).join('');
   return `<tr data-aiv-table-row-kind="${esc(table.kind)}" data-aiv-table-row-index="${rowIndex}"${selectionAttr}${filterAttrs(rowFilterMeta(table, row, filterContext))} aria-selected="false">${cells}<td><button type="button" class="engineering-console-btn aivq-row-delete" data-aiv-table-delete="${esc(table.kind)}" data-aiv-edit-row="${rowIndex}">Delete</button></td></tr>`;
 }
 
-function editableRows(table, assumptions, filterContext) {
+function editableRows(table, assumptions, masters, filterContext) {
   if (!table.rows.length) return `<tr><td colspan="${table.header.length + 1}" class="aivq-empty-row">No rows loaded. Add a row or import a controlled CSV.</td></tr>`;
-  return table.rows.map((row, rowIndex) => editableRow(table, row, rowIndex, assumptions, filterContext)).join('');
+  return table.rows.map((row, rowIndex) => editableRow(table, row, rowIndex, assumptions, masters, filterContext)).join('');
 }
 
-function editableTable(title, table, description, assumptions, filterContext) {
-  return `<section class="aivq-card aivq-input-table-card"><div class="aivq-section-head"><div><h4>${esc(title)}</h4><p>${esc(description)}</p></div><button type="button" class="engineering-console-btn" data-aiv-table-add="${esc(table.kind)}">Add row</button></div><div class="aivq-input-table-wrap" data-aiv-scroll-key="table-${esc(table.kind)}"><table class="aivq-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table, assumptions, filterContext)}</tbody></table></div></section>`;
+function editableTable(title, table, description, assumptions, masters, filterContext) {
+  return `<section class="aivq-card aivq-input-table-card"><div class="aivq-section-head"><div><h4>${esc(title)}</h4><p>${esc(description)}</p></div><button type="button" class="engineering-console-btn" data-aiv-table-add="${esc(table.kind)}">Add row</button></div><div class="aivq-input-table-wrap" data-aiv-scroll-key="table-${esc(table.kind)}"><table class="aivq-input-table"><thead><tr>${table.header.map((heading) => `<th>${esc(heading)}</th>`).join('')}<th>Row</th></tr></thead><tbody>${editableRows(table, assumptions, masters, filterContext)}</tbody></table></div></section>`;
 }
 
 function fallbackTable(kind) {
@@ -176,16 +190,17 @@ function hasCanvasWorkspaceData(state, tables) {
 export function renderAivInputWorkspaceHtml(state = {}) {
   const tables = state.tables ?? { sources: fallbackTable('sources'), assessments: fallbackTable('assessments'), relationships: fallbackTable('relationships') };
   const assumptions = assumptionMap(state);
+  const masters = masterMap(state);
   const canvasState = { ...state, tables };
   const filterContext = tableFilterContext(state, tables);
   const networkOpen = state.flareNetworkActive || Boolean(state.flareNetwork?.nodes?.length);
   const canvas = hasCanvasWorkspaceData(state, tables) ? renderAivCanvasWorkspaceHtml(canvasState) : '';
-  return `${startPanel({ ...state, tables })}${eitSummary(state)}${canvas}
+  return `${startPanel({ ...state, tables })}${renderAivMasterDbHtml(state)}${eitSummary(state)}${canvas}
     <details class="aivq-disclosure" data-aiv-disclosure-key="flare-network-authoring"${networkOpen ? ' open' : ''}><summary><span>Flare network authoring</span><small>Optional graph authoring · connectivity + explicit engineering lengths</small></summary><div class="aivq-disclosure-body">${renderAivFlareNetworkAuthoringHtml(state)}</div></details>
     <details class="aivq-disclosure" data-aiv-disclosure-key="benchmark-assumptions"><summary><span>Controlled benchmark & assumptions</span><small>Reference case and configurable engineering assumptions</small></summary><div class="aivq-disclosure-body">${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}</div></details>
-    <details class="aivq-disclosure" data-aiv-disclosure-key="working-data-tables"><summary><span>Working data tables</span><small>Advanced editable Source / Assessment / Relationship records</small></summary><div class="aivq-disclosure-body">
-      ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Blank engineering cells may resolve from the configured profile at execution time.', assumptions, filterContext)}
-      ${editableTable('AIV Assessments', tables.assessments, 'Welded discontinuity geometry/material inputs keyed by Assessment Canonical ID.', assumptions, filterContext)}
-      ${editableTable('Source → Assessment', tables.relationships, 'Physical distance is explicit engineering evidence. SVG pixels never supply distance.', assumptions, filterContext)}
+    <details class="aivq-disclosure" data-aiv-disclosure-key="working-data-tables"><summary><span>Working data tables</span><small>Advanced editable Source / Assessment / Relationship records · [M] master · [A] assumption</small></summary><div class="aivq-disclosure-body">
+      ${editableTable('AIV Sources', tables.sources, 'Source + operating-case process/device inputs. Pinned masters may classify an exact source device; process/case values remain explicit or assumed.', assumptions, masters, filterContext)}
+      ${editableTable('AIV Assessments', tables.assessments, 'Topology + pinned masters can discover exact assessment candidates and resolve deterministic geometry/material fields. Explicit values are never overwritten.', assumptions, masters, filterContext)}
+      ${editableTable('Source → Assessment', tables.relationships, 'Physical distance is explicit engineering evidence or an existing flare-network path sum. Generic topology/master data never invent distance.', assumptions, masters, filterContext)}
     </div></details>`;
 }
