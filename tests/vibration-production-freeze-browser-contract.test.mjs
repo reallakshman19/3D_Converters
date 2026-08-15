@@ -20,7 +20,7 @@ test('production freeze Chromium journey is benchmarked step-by-step and records
   assert.match(browser, /expectedGoverningLof/u);
   assert.match(browser, /candidateMayReplaceScreeningGoverning:\s*false/u);
   assert.match(browser, /auditTrailIdentity/u);
-  assert.match(browser, /RUN_EVIDENCE_EXPORT_STARTED/u);
+  assert.match(browser, /event\.eventType === 'RUN_EVIDENCE_EXPORT_STARTED'/u);
   for (const screenshot of [
     '01-workspace.png',
     '02-benchmark-loaded.png',
