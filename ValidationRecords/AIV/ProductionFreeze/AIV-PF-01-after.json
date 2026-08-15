@@ -1,0 +1,60 @@
+{
+  "schema": "AivProductionFreezeValidation.v1",
+  "sliceId": "PF-01",
+  "issueId": 513,
+  "baselineSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+  "implementationHead": "8ce49f991d6907694f284398026a8114437d9740",
+  "filterPath": "tabs/vibration-aiv-canvas-filter.js",
+  "filterBlobBefore": "a5da4fb99e69310659659725696c61c3d9347085",
+  "filterBlobAfter": "8640eca0a2e1454e277613d50c4c9962e3e537d8",
+  "productionDiff": "+  input = input ?? {};",
+  "regression": {
+    "path": "tests/vibration-aiv-canvas-filter-runtime.test.mjs",
+    "registeredIn": "npm run verify:aiv-canvas",
+    "focusedExactReconstruction": {
+      "status": "PASS",
+      "tests": 3,
+      "failures": 0,
+      "cases": [
+        "explicit null state factory",
+        "controller first sync from null initial state",
+        "change before explicit sync"
+      ]
+    }
+  },
+  "targetedBrowserEngine": {
+    "status": "PASS",
+    "browser": "Chrome/144.0.7559.96",
+    "protocol": "CDP 1.3",
+    "cases": 3,
+    "classification": "TARGETED_BROWSER_ENGINE_EXECUTION_NOT_FULL_APPLICATION"
+  },
+  "numericalInvariance": [
+    {"id":"D23_RELIEF_RAW_PWL","expected":164.6851759525391,"actual":164.6851759525391,"status":"PASS"},
+    {"id":"D23_RELIEF_POINT_PWL","expected":164.3734876408508,"actual":164.3734876408508,"status":"PASS"},
+    {"id":"MULTI_160_160","expected":163.0102999566398,"actual":163.0102999566398,"status":"PASS"},
+    {"id":"MULTI_160_150","expected":160.41392685158226,"actual":160.41392685158226,"status":"PASS"}
+  ],
+  "fullApplicationPostFix": {
+    "status": "NOT_RUN",
+    "requiredWorkflow": "Import same EI EIT -> Check AIV readiness -> Run AIV screening -> exercise Case/Line/Show -> confirm zero uncaught caseId error",
+    "reason": "This execution environment cannot navigate the private/full application because Chromium is managed with URLBlocklist=['*'] and hosted runners are not executing."
+  },
+  "releaseSuite": {
+    "status": "NOT_RUN",
+    "command": "npm run verify:aiv-canvas-release",
+    "reason": "No native private repository checkout is available."
+  },
+  "authorityChecks": [
+    "AIV equations unchanged",
+    "frozen benchmark expected values/tolerances unchanged",
+    "TABLES remain engineering source of truth",
+    "SVG/pixels remain non-authoritative for engineering distance",
+    "screeningResultScope remains ASSESSMENT",
+    "line/case summary remains non-authoritative",
+    "designAuthority remains false"
+  ],
+  "uiDisposition": "No visual redesign added in PF-01; the defect is a presentation-state initialization failure and the minimal correction removes the user-visible crash without changing engineering meaning.",
+  "disposition": "IMPLEMENTED_TARGETED_VALIDATION_PASS_FULL_APP_AND_B1_B6_CLOSURE_PENDING",
+  "nextSliceAuthorized": false
+}
