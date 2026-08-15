@@ -7,12 +7,14 @@
 | Mission | Fix `Run AIV screening` failure `Cannot read properties of null (reading 'caseId')` after readiness. |
 | Work intent | IMPLEMENT |
 | Criticality | ENGINEERING_CRITICAL |
-| PR | `#503` — DRAFT / OPEN / NOT MERGED |
+| PR | `#503` — OPEN; owner merge authorized |
 | Branch | `agent/aiv-screening-caseid-null-fix` |
-| Grounded base | `main@b13797d23db1f01200a2349e77f39c883e62a84c` |
+| Original base | `main@b13797d23db1f01200a2349e77f39c883e62a84c` |
+| Current reconciled main | `main@2a80e0aacba20bdff5f3d88e79042187cf80bcce` |
+| Reconciliation commit | `457d0bea84a84620f6b7b1718ee55d232c8be4a7` |
 | Authority impact | NONE |
-| Merge authority | NOT AUTHORIZED |
-| Exact next action | Re-check the final documentation-only head for drift/hosted execution, then retain the PR for owner browser validation. |
+| Merge authority | AUTHORIZED by owner on 2026-08-15 |
+| Exact next action | Re-check final head/scope, mark ready, squash-merge with exact-head protection, then verify `main`. |
 
 ## User-observed failure
 
@@ -20,164 +22,153 @@ AIV readiness completed and exposed the screening action, but pressing `Run AIV 
 
 `Cannot read properties of null (reading 'caseId')`
 
-The production action is expected to execute the readiness-qualified records through the registered `VIB.AIV.ACOUSTIC` Engineering Calculation API.
+The production action is expected to execute readiness-qualified records through the registered `VIB.AIV.ACOUSTIC` Engineering Calculation API.
 
-## Isolation
-
-### Production trace
+## Production trace
 
 `Run AIV screening`
 → `createAivExecutionActions.runScreening()`
 → readiness-envelope Sources / Assessments / Source→Assessment / topology
+→ `buildAivEngineeringScreeningRequest()`
 → registered `calculateEngineering()`
 → `VIB.AIV.ACOUSTIC` adapter
-→ `calculateAiv()`
-→ source / point-contribution / simultaneous-source / discontinuity / result aggregation stages.
-
-### Findings
-
-- Current-source AIV kernel joins are already fail-closed at the obvious source/assessment boundaries; missing source/assessment joins raise AIV candidate errors rather than intentionally dereferencing nullable `caseId` values.
-- Readiness must already have completed for the reported action to become enabled.
-- PR498's controlled two-RV `.eit`/mock round-trip test used direct `calculateAiv()` execution and did not cover the browser's readiness-envelope→registered Engineering API bridge.
-- Existing registered-API tests cover D.2.3 and synthetic simultaneous-source vectors, but not the controlled PR498 mock through the exact browser request shape.
-- The click path used the fixed dynamic import revision `aiv-screening-1`; PR503 refreshes it to `aiv-screening-2` while adding an explicit request contract.
+→ `calculateAiv()`.
 
 ## Implemented fix
 
-### 1. Explicit fail-closed screening request bridge
+### Fail-closed screening request bridge
 
 New `tabs/vibration-aiv-screening-request.js` validates before central API execution:
 
-- readiness envelope schema exists;
+- readiness envelope/schema and topology exist;
 - at least one `READY_FOR_QUALIFICATION` relationship exists;
 - no `NOT_READY` or `METHOD_GAP` blocker exists;
-- readiness/source/assessment/relationship record arrays are non-empty;
-- no null/non-object record is accepted;
-- required Source/Assessment/Operating Case identities are nonblank;
-- topology exchange is present;
-- every Source→Assessment relationship still joins an exact Source+case and Assessment identity from the readiness envelope.
+- Source, Assessment, Source→Assessment and readiness records are non-null objects;
+- Source Canonical ID, Assessment Canonical ID and Operating Case identities are nonblank;
+- every Source→Assessment record joins an exact Source+case and Assessment identity from the readiness envelope.
 
-Violations fail closed with `AIV_SCREENING_REQUEST_*` errors. No record is filtered, defaulted, invented, or dropped.
+Violations fail closed with `AIV_SCREENING_REQUEST_*` errors. No record is filtered, defaulted, invented or dropped.
 
-### 2. Browser action uses the same bridge
+### Browser action
 
-`tabs/vibration-aiv-execution.js` now builds the request through `buildAivEngineeringScreeningRequest()` and then calls the registered `calculateEngineering()` API.
+`tabs/vibration-aiv-execution.js` builds the request through `buildAivEngineeringScreeningRequest()` and continues to call registered `calculateEngineering()`. No direct `calculateAiv()` bypass was introduced. The screening catalogue import revision changes from `aiv-screening-1` to `aiv-screening-2`, and bridge error codes are retained in the UI message.
 
-The central Engineering Calculation API remains the execution authority; no direct `calculateAiv()` bypass was introduced.
+### Exact controlled-mock regression
 
-The dynamic catalogue import revision changes from `aiv-screening-1` to `aiv-screening-2` and directly thrown bridge codes are preserved in the UI error message.
-
-### 3. Exact controlled-mock regression
-
-New `tests/vibration-aiv-screening-runtime-bridge.test.mjs` reproduces the product data path:
+`tests/vibration-aiv-screening-runtime-bridge.test.mjs` exercises:
 
 `two-RV controlled flare mock`
 → generated visible tables
 → assumption resolution
 → FLARE_NETWORK readiness
-→ exact screening request bridge
+→ screening request bridge
 → registered `calculateEngineering(VIB.AIV.ACOUSTIC)`.
 
-Assertions pin:
+It pins two READY relationships, `RV-101`/`RV-102` in `RELIEF-COMBINED`, one Assessment result retaining both source IDs, `screeningResultScope=ASSESSMENT`, 10 kernel stages, non-authoritative Line/Case and `designAuthority=false`.
 
-- two readiness rows are `READY_FOR_QUALIFICATION` with zero blockers;
-- registered result succeeds;
-- Source results remain `RV-101` and `RV-102` in `RELIEF-COMBINED`;
-- one Assessment result remains in `RELIEF-COMBINED` and retains both source IDs;
-- `screeningResultScope=ASSESSMENT`;
-- complete kernel stage count remains 10;
-- Line/Case remains non-authoritative for screening;
-- `designAuthority=false`.
+A second regression injects a null Source→Assessment record and requires `AIV_SCREENING_REQUEST_RECORD_INVALID` rather than a raw `caseId` dereference.
 
-A second regression injects a null Source→Assessment record and requires `AIV_SCREENING_REQUEST_RECORD_INVALID`, preventing a raw nullable `caseId` dereference at the browser→API boundary.
+### Release wiring
 
-### 4. Release wiring
-
-The new regression is wired into:
-
-- `verify:aiv-screening-release`;
-- `verify:aiv-input-model`, and therefore the full AIV canvas release chain.
+The regression is wired into `verify:aiv-screening-release` and `verify:aiv-input-model`, therefore into the AIV release chain.
 
 ## Changed-file ledger
 
 | Path | Change | Authority impact |
 |---|---|---|
-| `tabs/vibration-aiv-screening-request.js` | new fail-closed request bridge | No equation/result-authority change |
-| `tabs/vibration-aiv-execution.js` | use bridge, preserve error code, refresh screening import revision | No equation/result-authority change |
-| `tests/vibration-aiv-screening-runtime-bridge.test.mjs` | exact controlled-mock registered-API regression | Test only |
+| `tabs/vibration-aiv-screening-request.js` | fail-closed request bridge | None |
+| `tabs/vibration-aiv-execution.js` | bridge use, code-preserving error, cache revision | None |
+| `tests/vibration-aiv-screening-runtime-bridge.test.mjs` | exact product-path regression | Test only |
 | `package.json` | release-test wiring | Test wiring only |
 | `agents/PR503_workreport.md` | living handoff | None |
 
-## Recovery blobs
+## Recovery authority
 
-Connector-only runtime cannot execute `.agents` backup CLI. Immutable base blobs are retained as recovery authority:
+Connector-only runtime cannot execute the repository backup CLI. Immutable pre-edit blobs remain recovery authority:
 
-| Path | Base blob |
-|---|---|
-| `tabs/vibration-aiv-execution.js` | `12ffe3f60544135e2853e779636749609d219239` |
-| `package.json` | `9d8feafb1c01de57738d7a6225239186c2668dd9` |
+- `tabs/vibration-aiv-execution.js` — `12ffe3f60544135e2853e779636749609d219239`
+- `package.json` — `9d8feafb1c01de57738d7a6225239186c2668dd9`
 
-New files have no pre-edit blob.
+New files had no pre-edit blob.
 
 ## Authority boundary / negative assurance
 
 Unchanged:
 
 - AIV equations and numerical coefficients;
-- stage-8/9/10 numerical mechanics;
-- assumption profile values and precedence;
+- Stage 8/9/10 numerical mechanics;
+- assumption profile values and explicit-user-value precedence;
 - topology connectivity authority;
 - physical-distance engineering authority;
 - readiness statuses and screening qualification rule;
-- assessment screening authority;
+- Assessment LOF screening authority;
 - configured Line/Case non-authoritative status;
-- exports/persistence contracts;
+- persistence/export contracts;
 - `designAuthority=false`.
 
-## Coordination
+## Reconciliation with live main
 
-Open PR499 was inspected before mutation. It has no overlap with the five current PR503 paths.
+Before merge authorization, `main` advanced from `b13797d...` to `2a80e0aacba20bdff5f3d88e79042187cf80bcce` through PR499 (`feat(fit): qualify bounded production screening`). PR499 changed FIT/Facility/working-state/test/evidence paths and did not overlap any of PR503's five paths.
+
+PR503 was reconciled using a two-parent commit:
+
+- PR503 parent: `c8203e3cf7a8863cfcf0cdb92afa164267e672d5`
+- current main parent: `2a80e0aacba20bdff5f3d88e79042187cf80bcce`
+- reconciliation: `457d0bea84a84620f6b7b1718ee55d232c8be4a7`
+
+Post-reconciliation compare: **9 ahead / 0 behind**, exactly five intended changed files.
 
 ## Validation ledger
 
 | Check | Status | Observation | Oracle |
 |---|---|---|---|
-| Live main grounding | PASS | Branch created at `b13797d23db1f01200a2349e77f39c883e62a84c` | GitHub ref |
-| Branch drift before PR | PASS | 5 ahead / 0 behind | GitHub compare |
-| PR499 overlap | PASS | No intended-path overlap | GitHub changed-file list |
-| Production action trace | PASS | Browser action→request bridge→registered API traced | SOURCE_INSPECTION |
-| No direct-kernel bypass | PASS | `runScreening()` still invokes registered `calculateEngineering` | SOURCE_INSPECTION |
-| Fail-closed null-record handling | PASS | Explicit record/identity/join guards present in request bridge | SOURCE_INSPECTION |
-| Controlled-mock registered-API regression source | PASS | Exact PR498 mock/readiness/API test added | SOURCE_INSPECTION |
+| Live main grounding | PASS | Current main `2a80e0aac...` inspected | GitHub ref |
+| PR499 overlap | PASS | No overlap with PR503 five paths | GitHub changed-file list |
+| Reconciliation | PASS | `457d0bea...`; 9 ahead / 0 behind | GitHub compare |
+| Production action trace | PASS | UI action→request bridge→registered API | SOURCE_INSPECTION |
+| No direct-kernel bypass | PASS | registered `calculateEngineering` remains execution path | SOURCE_INSPECTION |
+| Fail-closed null handling | PASS | explicit record/identity/join guards | SOURCE_INSPECTION |
+| Controlled-mock regression source | PASS | exact readiness→registered-API test present | SOURCE_INSPECTION |
 | Native focused test | NOT_RUN | Connector-only runtime | NONE |
 | Native full AIV release suite | NOT_RUN | Connector-only runtime | NONE |
 | Real-browser reproduction/acceptance | NOT_RUN | Browser runtime unavailable | NONE |
-| Topology hosted workflow on `42bcfd9d…` | NOT_RUN / INFRASTRUCTURE_BLOCKED | Run `31858612872`, job `94947796201`: `steps=[]`, `runner_id=0`, empty runner name | NONE |
-| AIV hosted workflow on `42bcfd9d…` | NOT_RUN / INFRASTRUCTURE_BLOCKED | Run `31858612943`, job `94947796499`: `steps=[]`, `runner_id=0`, empty runner name | NONE |
+| Hosted Topology workflow on earlier exact head | NOT_RUN / INFRASTRUCTURE_BLOCKED | `steps=[]`, `runner_id=0`, no runner | NONE |
+| Hosted AIV workflow on earlier exact head | NOT_RUN / INFRASTRUCTURE_BLOCKED | `steps=[]`, `runner_id=0`, no runner | NONE |
+
+Owner merge authorization does not convert any NOT_RUN check to PASS.
 
 ## Active items
 
-- `ISS-001` FIXED_IN_SOURCE — nullable/malformed records cannot enter the central screening call through the AIV browser bridge without an explicit AIV error.
-- `ISS-002` FIXED_IN_SOURCE — controlled PR498 mock now has exact readiness→registered-API regression coverage.
+- `ISS-001` FIXED_IN_SOURCE — malformed/null records cannot enter AIV central screening through the browser bridge without an explicit AIV error.
+- `ISS-002` FIXED_IN_SOURCE — controlled mock now has readiness→registered-API regression coverage.
 - `IMP-001` IMPLEMENTED — screening import revision refreshed to `aiv-screening-2`.
-- `RISK-001` OPEN — native/browser execution still required before runtime PASS can be claimed.
-- `RISK-002` OPEN — hosted workflow failures on the observed head are infrastructure-blocked; they are not product PASS or FAIL evidence.
+- `DEC-001` ACTIVE — no silent record filtering/defaulting to obtain a result.
+- `DEC-002` ACTIVE — registered Engineering Calculation API remains execution authority.
+- `RISK-001` OPEN — native/browser execution remains NOT_RUN.
 
 ## Appendix A — engineering-critical takeover gate
 
-### A1 — Production trace — 19/20
-The exact UI action, request boundary, registered API adapter and domain kernel are identified. One point is withheld because a live browser stack trace for the original exception is not available in this runtime.
+### A1 Production trace — 19/20
+Exact UI action, request bridge, registered adapter and domain kernel are identified; live browser stack trace for the original exception is unavailable.
 
-### A2 — Failure isolation — 19/20
-The patch closes the demonstrable unguarded browser→API contract gap and adds exact mock coverage without modifying equations. One point is withheld because the original runtime stack cannot be independently reproduced here.
+### A2 Failure isolation — 19/20
+The unguarded browser→API contract gap is closed without numerical changes; original runtime stack was not independently reproduced here.
 
-### A3 — Authority / invariant — 20/20
-Assessment-only screening authority, non-authoritative Line/Case status, explicit assumption precedence, physical-distance authority and `designAuthority=false` are preserved.
+### A3 Authority / invariant — 20/20
+Assessment-only screening authority, non-authoritative Line/Case status, assumption precedence, physical-distance authority and `designAuthority=false` are preserved.
 
-### A4 — Independent validation — 18/20
-The regression uses controlled mock generation/readiness and the registered Engineering API instead of the direct kernel. Two points are withheld pending actual native/browser test execution.
+### A4 Independent validation — 18/20
+Controlled generator/readiness data execute through the registered Engineering API rather than direct kernel; native/browser execution remains NOT_RUN.
 
-### A5 — Minimal patch / next commit — 18/20
-The patch is limited to request-boundary validation, execution wiring, one regression and release wiring. Two points are withheld pending actual runtime evidence.
+### A5 Minimal patch / merge readiness — 19/20
+Patch remains five files after live-main reconciliation and owner has authorized merge; one point withheld because runtime execution remains unavailable.
 
-**Current written takeover score: 94/100; each section >=18/20. Runtime qualification remains NOT_RUN until executed.**
+**Current written takeover score: 95/100; each section >=18/20. Runtime qualification remains NOT_RUN where not executed.**
+
+## History
+
+- 2026-08-15 — branch created from `main@b13797d...`; source fix and exact bridge regression implemented.
+- 2026-08-15 — draft PR503 opened.
+- 2026-08-15 — hosted AIV/Topology jobs repeatedly returned zero steps with `runner_id=0`; classified NOT_RUN / INFRASTRUCTURE_BLOCKED.
+- 2026-08-15 — owner explicitly authorized merge.
+- 2026-08-15 — live main had advanced via PR499 to `2a80e0aac...`; non-overlap verified and PR503 reconciled to `457d0bea...` with 9 ahead / 0 behind.
