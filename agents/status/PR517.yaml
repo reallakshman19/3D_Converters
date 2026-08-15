@@ -1,0 +1,40 @@
+schema: AgentPrStatus.v1
+repository: reallaksh19/3D_Converters
+pr_or_wip: PR517
+mission: "Issue #513 PF-02 readiness-to-executable calculator contract parity"
+workstream: AIV_PRODUCTION_FREEZE_PF02
+branch: agent/aiv-pf02-readiness-contract-20260815
+pr_head: df0eaea737aa17119cdb7179e9ef235e78e5098d
+main_head_last_checked: d659e670a2f8fe0a35fc8072382512f6493898cf
+merge_base: d659e670a2f8fe0a35fc8072382512f6493898cf
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: BLOCKED_ENVIRONMENT
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/PR517_workreport.md
+report_head: df0eaea737aa17119cdb7179e9ef235e78e5098d
+appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_513_GATE_APPLIES
+grounding_epoch: PF02-GE-001
+current_stage: BASELINE_LIVE_REPRODUCTION_BLOCKED
+blocker: "PF-02 exact-current-main UI/browser matrix cannot run because managed Chromium URLBlocklist=['*'] blocks navigation and current-main Pages jobs execute zero product steps."
+highest_risk: "Importing PR506's PF-03 simultaneous-group logic or treating source inspection as live PF-02 reproduction."
+dependencies:
+  - "Issue #513 qualification marker: comment 5301819610"
+  - "Owner progression waiver from PF-01: comment 5302095544"
+  - "Issue #453 production acceptance umbrella"
+  - "PR #506: salvage/evidence only"
+  - "PR #515 PF-01 remains non-PASS and separate"
+source_findings:
+  ui_screening_gate_blob: dcde1fadd5b54f17d07e63da4705680dbcf152d4
+  ui_screening_request_blob: fd6588f8567fa977d72e75912678201663027cee
+  current_readiness_blob: 6423267fd49b3d720874a7b699b0b48a657a5df6
+  current_calculator_blob: 08f1664f1be6a104fe421655e96a46ca66c6a80c
+  current_adapter_blob: 81b6774dc24456ac5c89d983a26593ee34d20ba5
+  candidate_gap: "UI proves readiness; registered screening calculation lacks the same proof boundary."
+pr506_salvage:
+  executable_contract_blob: a6de9d2c6bda73370fa5d9889503de4757b95701
+  calculator_blob: f9785783a155371d7174dfc3ebe326e577abddb6
+  warning: "Candidate executable contract includes PF-03 simultaneous-group semantics; do not replay wholesale."
+exact_next_action: "Run current main in navigation-permitted Chromium, execute PF-02 UI positive/negative matrix and direct calculateEngineering parity experiment; if reproduced, implement PF-02-only shared executable-domain validation and permanent regressions, then run B1-B7 minimum."
+last_updated: 2026-08-15T15:55:22+04:00
