@@ -17,10 +17,16 @@ import { createAivCanvasInteractionController } from './vibration-aiv-canvas-con
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
 import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
+import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
 import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js';
 import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js';
+import {
+  assertAivTableMutationAllowed,
+  detachAivGeneratedTables,
+  markAivTableDrivenInputChanged,
+} from './vibration-aiv-mode-transition.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
@@ -97,13 +103,37 @@ export function renderAivQualificationWorkspace(container) {
     datasetLoader.applyFlareNetwork(network);
   }
 
+  function tableMutationAllowed() {
+    try {
+      assertAivTableMutationAllowed(state);
+      return true;
+    } catch (error) {
+      state.error = String(error?.message || error);
+      render();
+      return false;
+    }
+  }
+
   function applyTableMutation(kind, table, preserveMasterResolution = false) {
+    assertAivTableMutationAllowed(state);
     state.tables[kind] = table;
     if (!preserveMasterResolution) masterDbController.clearResolution();
-    if (state.flareNetworkActive) deactivateFlareNetworkGeneration();
+    markAivTableDrivenInputChanged(state);
     datasetLoader.markBenchmarkModified();
     execution.clearReadiness();
     state.error = null;
+    render();
+  }
+
+  function detachGeneratedTables() {
+    try {
+      detachAivGeneratedTables(state);
+      datasetLoader.markBenchmarkModified();
+      execution.clearReadiness();
+      state.error = null;
+    } catch (error) {
+      state.error = String(error?.message || error);
+    }
     render();
   }
 
@@ -113,6 +143,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function createCanvasRelationship(input) {
     try {
+      assertAivTableMutationAllowed(state);
       if (findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input) >= 0) {
         throw new Error('AIV_INPUT_RELATIONSHIP_DUPLICATE: Relationship already exists for the selected source, assessment and operating case.');
       }
@@ -127,6 +158,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function deleteCanvasRelationship(input) {
     try {
+      assertAivTableMutationAllowed(state);
       if (!confirmAivRelationshipDelete(input)) return false;
       const rowIndex = findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input);
       if (rowIndex < 0) throw new Error('AIV_INPUT_RELATIONSHIP_NOT_FOUND: Selected relationship no longer exists.');
@@ -143,11 +175,13 @@ export function renderAivQualificationWorkspace(container) {
   function handleTableClick(event) {
     const addKind = event.target.closest('[data-aiv-table-add]')?.dataset.aivTableAdd;
     if (addKind) {
+      if (!tableMutationAllowed()) return true;
       applyTableMutation(addKind, addAivInputRow(state.tables[addKind]), true);
       return true;
     }
     const button = event.target.closest('[data-aiv-table-delete]');
     if (!button) return false;
+    if (!tableMutationAllowed()) return true;
     const kind = button.dataset.aivTableDelete;
     const rowIndex = Number(button.dataset.aivEditRow);
     if (kind === 'relationships' && !confirmAivRelationshipDelete(aivRelationshipIdentityFromTableRow(state.tables.relationships, rowIndex))) return true;
@@ -159,6 +193,7 @@ export function renderAivQualificationWorkspace(container) {
   function resetAssumptions() {
     state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
     state.assumptionProfileModified = false;
+    markAivEngineeringInputChanged(state);
     execution.clearReadiness();
     state.error = null;
     render();
@@ -175,6 +210,7 @@ export function renderAivQualificationWorkspace(container) {
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
     if (assumptionAcceptanceController.handleAction(action)) return;
+    if (action === 'detach-generated-tables') detachGeneratedTables();
     if (action === 'apply-master-data') masterDbController.apply();
     if (action === 'load-mock-flare-network') loadAivSmallFlareMock(state, applyFlareNetwork);
     if (action === 'load-d23-benchmark') datasetLoader.loadBenchmark();
@@ -192,6 +228,7 @@ export function renderAivQualificationWorkspace(container) {
   function handleTableChange(event) {
     const kind = event.target.dataset.aivTableCell;
     if (!kind) return false;
+    if (!tableMutationAllowed()) return true;
     const rowIndex = Number(event.target.dataset.aivEditRow);
     const columnIndex = Number(event.target.dataset.aivEditColumn);
     const baseTable = masterDbController.prepareUserEdit(kind, rowIndex, columnIndex);
@@ -211,6 +248,7 @@ export function renderAivQualificationWorkspace(container) {
       try {
         state.assumptionProfile = updateAivAssumptionProfile(state.assumptionProfile, assumptionPath, event.target.value);
         state.assumptionProfileModified = true;
+        markAivEngineeringInputChanged(state);
         execution.clearReadiness();
         state.error = null;
       } catch (error) {
