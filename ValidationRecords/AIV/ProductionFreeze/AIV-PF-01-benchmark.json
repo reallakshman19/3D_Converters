@@ -3,29 +3,43 @@
   "sliceId": "PF-01",
   "issueId": 513,
   "baselineHead": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "testedHead": null,
+  "implementationHead": "8ce49f991d6907694f284398026a8114437d9740",
   "oracleSources": [
     {"id":"AIV.EI.D2.3.WORKED_EXAMPLE.v1","path":"tabs/vibration-aiv-benchmarks.js","blob":"c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0"},
+    {"id":"AIV_D23_QUALIFICATION_MATH","path":"scripts/aiv-qualification-math.mjs","blob":"0aba873c03e1fb9ef576095d603ec87178d006a3"},
     {"id":"AIV-HAND-MULTI-SOURCE","path":"converters/vibration/aiv/aiv-independent-benchmark-evidence.js","blob":"21d1e687dca0c537f4170e961b2d7b1894d710cc"},
-    {"id":"AIV_RELEASE_SCRIPTS","path":"package.json","blob":"ef583d8da73d23df5463a4dfdb2da2d19006886f"}
+    {"id":"AIV_RELEASE_SCRIPTS_BEFORE","path":"package.json","blob":"ef583d8da73d23df5463a4dfdb2da2d19006886f"},
+    {"id":"AIV_RELEASE_SCRIPTS_AFTER","path":"package.json","blob":"17568cf4cd80e8a47cf8f178fa98ec76c3567b72"}
+  ],
+  "independentNumericalSubchecks": [
+    {"id":"D23_RELIEF_RAW_PWL","expected":164.6851759525391,"actual":164.6851759525391,"unit":"dB","tolerance":1e-10,"delta":0,"status":"PASS"},
+    {"id":"D23_RELIEF_POINT_PWL","expected":164.3734876408508,"actual":164.3734876408508,"unit":"dB","tolerance":1e-10,"delta":0,"status":"PASS"},
+    {"id":"MULTI_160_160","expected":163.0102999566398,"actual":163.0102999566398,"unit":"dB","tolerance":1e-9,"delta":0,"status":"PASS"},
+    {"id":"MULTI_160_150","expected":160.41392685158226,"actual":160.41392685158226,"unit":"dB","tolerance":1e-9,"delta":0,"status":"PASS"}
   ],
   "results": [
-    {"benchmarkId":"B1","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
-    {"benchmarkId":"B2","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
-    {"benchmarkId":"B3","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
-    {"benchmarkId":"B4","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
-    {"benchmarkId":"B5","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
-    {"benchmarkId":"B6","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
-    {"benchmarkId":"B7","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
-    {"benchmarkId":"B8","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
-    {"benchmarkId":"B9","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
-    {"benchmarkId":"B10","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
-    {"benchmarkId":"B11","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
-    {"benchmarkId":"B12","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
-    {"benchmarkId":"B13","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
-    {"benchmarkId":"B14","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."}
+    {"benchmarkId":"B1","status":"NOT_RUN","reason":"Independent D.2.3 raw/point PWL oracle subchecks PASS exactly, but the complete registered screening path plus canvas projection parity has not executed on the patched branch."},
+    {"benchmarkId":"B2","status":"NOT_RUN","reason":"160+160 numerical oracle PASS exactly, but the patched registered multi-source path has not executed to prove both Source Canonical IDs are retained."},
+    {"benchmarkId":"B3","status":"NOT_RUN","reason":"160+150 numerical oracle PASS exactly, but the patched registered multi-source path has not executed to prove both Source Canonical IDs are retained."},
+    {"benchmarkId":"B4","status":"NOT_RUN","reason":"Single / batch / canvas registered-kernel parity requires repository/full application execution."},
+    {"benchmarkId":"B5","status":"NOT_RUN","reason":"2-RV mock flare-network registered workflow requires repository/full application execution."},
+    {"benchmarkId":"B6","status":"NOT_RUN","reason":"SVG move/resize engineering invariance requires the full canvas application workflow."},
+    {"benchmarkId":"B7","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
+    {"benchmarkId":"B8","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
+    {"benchmarkId":"B9","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
+    {"benchmarkId":"B10","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
+    {"benchmarkId":"B11","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
+    {"benchmarkId":"B12","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
+    {"benchmarkId":"B13","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
+    {"benchmarkId":"B14","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."}
   ],
-  "oracleRule": "Expected values and tolerances remain frozen. No expected value may be modified to fit implementation output.",
-  "disposition": "BLOCKED_ENVIRONMENT",
-  "lastGroundedAt": "2026-08-15T15:25:39+04:00"
+  "regressionExecution": {
+    "filterRuntimeExactReconstruction": "PASS_3_OF_3",
+    "targetedChromium144": "PASS_3_OF_3",
+    "fullApplicationPostFix": "NOT_RUN"
+  },
+  "oracleRule": "Expected values and tolerances remain frozen. No expected value was modified to fit the implementation.",
+  "disposition": "NUMERICAL_INVARIANCE_SUBCHECKS_PASS_FULL_PF01_BENCHMARK_CLOSURE_PENDING",
+  "nextSliceAuthorized": false,
+  "lastGroundedAt": "2026-08-15T15:37:11+04:00"
 }
