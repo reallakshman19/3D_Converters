@@ -27,6 +27,7 @@ export function createInitialAivQualificationState() {
     selectedRowKey: null,
     selectedCanvasKey: null,
     inputRevision: 0,
+    canvasError: null,
     busy: false,
     error: null,
     destroyed: false,
