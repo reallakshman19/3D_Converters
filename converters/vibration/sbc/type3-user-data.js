@@ -130,6 +130,9 @@ function evidenceEntry(term, resolution) {
 }
 
 function nonNegativeTerm(value, name) {
+  if (value === null || value === undefined || value === '') {
+    throw new TypeError(`SBC_TYPE3_TERM_INVALID:${name}`);
+  }
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric < 0) {
     throw new TypeError(`SBC_TYPE3_TERM_INVALID:${name}`);
