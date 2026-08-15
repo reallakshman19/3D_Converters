@@ -30,6 +30,7 @@ export {
 export {
   FIT_QUALIFICATION_EVIDENCE_STRENGTH,
   FIT_QUALIFICATION_EVIDENCE_TYPES,
+  FIT_SCREENING_QUALIFICATION_BASIS,
   evaluateFitQualificationCoverage,
 } from './qualification-coverage.js';
 
