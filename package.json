@@ -5,7 +5,7 @@
     "build:inputxml-runtime-manifest": "node scripts/build-inputxml-runtime-manifest.mjs",
     "build:inputxml-contract-bundle": "node scripts/build-inputxml-contract-bundle.mjs",
     "verify:inputxml-release": "node scripts/verify-inputxml-release.mjs",
-    "verify:hp-chapter-ix": "node --test tests/b313-chapter-ix-core.test.mjs tests/engineering-calculation-core.test.mjs",
+    "verify:hp-chapter-ix": "node --test tests/b313-chapter-ix-core.test.mjs tests/b313-chapter-ix-master-resolvers.test.mjs tests/engineering-calculation-core.test.mjs",
     "verify:vibration-fit-release": "node scripts/verify-vibration-fit-release.mjs",
     "verify:vibration-stage5c-evidence": "node --test tests/vibration-stage5c-document-evidence.test.mjs tests/vibration-stage5c-recovery.test.mjs",
     "recover:vibration-stage5c-evidence": "node scripts/recover-vibration-stage5c-via-document-evidence.mjs",
