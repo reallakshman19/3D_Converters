@@ -22,7 +22,7 @@ function auditEvent(type, at, resultState = 'UNRUN') {
   return { type, at, resultState, authority: { designAuthority: false } };
 }
 
-test('product freeze keeps core actions and current workspace tabs visible', async () => {
+test('product freeze keeps core actions, workflow facts and current workspace tabs visible', async () => {
   const [inputView, tab, shell] = await Promise.all([
     readFile(resolve(ROOT, 'tabs/vibration-integrity-input-view.js'), 'utf8'),
     readFile(resolve(ROOT, 'tabs/vibration-integrity-tab.js'), 'utf8'),
@@ -31,6 +31,10 @@ test('product freeze keeps core actions and current workspace tabs visible', asy
   for (const action of Object.values(VIBRATION_INTEGRITY_ACTION_IDS)) {
     assert.match(inputView, new RegExp(`data-vi-action=["']${action}["']`, 'u'));
   }
+  for (const label of ['Readiness:', 'Evidence:', 'Audit events:', 'Last audit:', 'Run snapshot:']) {
+    assert.match(inputView, new RegExp(label, 'u'));
+  }
+  assert.doesNotMatch(inputView, /Audit snapshot:/u);
   assert.match(tab, /VIBRATION_INTEGRITY_ACTION_IDS/u);
   assert.match(tab, /WORKSPACE_CLICK_ACTIONS/u);
   for (const workspaceTab of VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredWorkspaceTabs) {
