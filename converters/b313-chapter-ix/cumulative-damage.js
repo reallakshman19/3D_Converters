@@ -15,6 +15,16 @@ export function calculateChapterIxCumulativeDamage({ cycles = [] } = {}) {
     if (!finite(row.appliedCycles) || row.appliedCycles < 0) {
       return failure('FATIGUE_APPLIED_CYCLES_INVALID', 'appliedCycles must be finite and >= 0.', { cycleId: row.cycleId ?? null });
     }
+    if (row.zeroDamage === true) {
+      contributions.push({
+        cycleId: row.cycleId ?? null,
+        appliedCycles: row.appliedCycles,
+        permissibleCycles: null,
+        zeroDamage: true,
+        usage: 0,
+      });
+      continue;
+    }
     if (!finite(row.permissibleCycles) || !(row.permissibleCycles > 0)) {
       return failure('FATIGUE_PERMISSIBLE_CYCLES_INVALID', 'permissibleCycles must be finite and > 0.', { cycleId: row.cycleId ?? null });
     }
@@ -23,6 +33,7 @@ export function calculateChapterIxCumulativeDamage({ cycles = [] } = {}) {
       cycleId: row.cycleId ?? null,
       appliedCycles: row.appliedCycles,
       permissibleCycles: row.permissibleCycles,
+      zeroDamage: false,
       usage,
     });
   }
