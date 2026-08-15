@@ -11,7 +11,7 @@ import {
 } from '../tabs/vibration-integrity-audit-log.js';
 import {
   VIBRATION_INTEGRITY_ACTION_IDS,
-  VIBRATION_INTEGRITY_PRODUCT_CONTRACT,
+  VIBRATION_INTEGRITY_FIT_CONTRACT,
 } from '../tabs/vibration-integrity-product-contract.js';
 import { transitionVibrationIntegrityResultState } from '../tabs/vibration-integrity-result-state.js';
 import { deriveVibrationIntegrityWorkflowState } from '../tabs/vibration-integrity-workflow-state.js';
@@ -22,11 +22,10 @@ function auditEvent(eventType, timestamp, workflowBefore, workflowAfter, details
   return { eventType, timestamp, workflowBefore, workflowAfter, details };
 }
 
-test('product freeze keeps core actions, workflow facts and current workspace tabs visible', async () => {
-  const [inputView, tab, shell] = await Promise.all([
+test('PR511 freezes FIT actions and result facts without owning workspace navigation', async () => {
+  const [inputView, tab] = await Promise.all([
     readFile(resolve(ROOT, 'tabs/vibration-integrity-input-view.js'), 'utf8'),
     readFile(resolve(ROOT, 'tabs/vibration-integrity-tab.js'), 'utf8'),
-    readFile(resolve(ROOT, 'tabs/vibration-integrity-user-data-shell.js'), 'utf8'),
   ]);
   for (const action of Object.values(VIBRATION_INTEGRITY_ACTION_IDS)) {
     assert.match(inputView, new RegExp(`data-vi-action=["']${action}["']`, 'u'));
@@ -37,12 +36,9 @@ test('product freeze keeps core actions, workflow facts and current workspace ta
   assert.doesNotMatch(inputView, /Audit snapshot:/u);
   assert.match(tab, /VIBRATION_INTEGRITY_ACTION_IDS/u);
   assert.match(tab, /deriveVibrationIntegrityWorkflowState/u);
-  for (const workspaceTab of VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredWorkspaceTabs) {
-    assert.match(shell, new RegExp(`tabButton\\(["']${workspaceTab}["']`, 'u'));
-  }
-  assert.deepEqual(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredCoreWorkspaceTabs, ['screening', 'user-data']);
-  assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.extensionPolicy.mechanismWorkspaceTabsAllowed, true);
-  assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.authorityBoundary.designAuthority, false);
+  assert.equal(VIBRATION_INTEGRITY_FIT_CONTRACT.authorityBoundary.designAuthority, false);
+  assert.equal(VIBRATION_INTEGRITY_FIT_CONTRACT.authorityBoundary.candidateMechanismsMayReplaceScreeningGoverning, false);
+  assert.equal('requiredWorkspaceTabs' in VIBRATION_INTEGRITY_FIT_CONTRACT, false);
   assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('RUN_EVIDENCE_EXPORT_STARTED'), true);
 });
 
