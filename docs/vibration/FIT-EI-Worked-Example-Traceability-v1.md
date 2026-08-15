@@ -6,7 +6,7 @@ Calculation ID: `VIB.FIV.FLOW_TURBULENCE`
 
 ## 1. Purpose
 
-This record binds the FIT qualification examples to controlled EI evidence, records the observed PDF/DOCX scenario differences, and defines the benchmark-reconciliation tolerance policy. It is a qualification traceability artifact, not a screening/design authority grant.
+This record binds FIT qualification examples to controlled EI evidence, records the observed PDF/DOCX scenario differences, and defines the benchmark-reconciliation tolerance policy. It is a qualification traceability artifact, not a screening/design authority grant.
 
 ## 2. Controlled source identities
 
@@ -17,7 +17,7 @@ This record binds the FIT qualification examples to controlled EI evidence, reco
 | Owner qualification anchor | `reallaksh19/Common@7bfead910f6bca91b10748ead009e40f20c82219` | `Energy-Institute-AVIFF---Worked-Examples.doc.docx` | `ceee15ed5f7f320045d5f3979024e2e8664613f2` | Controlled worked-example benchmark qualification source |
 | Retained workbook | `reallaksh19/CRF-4-1@68dc8e1fa2ef67073c59b3afc56f1bf40953d535` | `Extended calc2/AIV FIV/FIT.xlsm` | `d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e` | Migration/parity evidence only |
 
-The DOCX at `Common@7bfead910...` is the same controlled blob previously tracked in the qualification evidence set. The Owner has directed that successful reproduction of the controlled worked examples is sufficient engineering qualification evidence for FIT; a separate independent vibration-engineer sign-off is not required.
+The Owner has directed that successful reproduction of the controlled worked examples is sufficient engineering qualification evidence for FIT; a separate independent vibration-engineer sign-off is not required.
 
 ## 3. Source precedence
 
@@ -29,7 +29,7 @@ When values differ:
 4. controlled JSON is the executable transcription of the adopted benchmark vector;
 5. retained workbook is migration/parity evidence only.
 
-The benchmark is not allowed to silently replace a higher-ranked method value with a lower-ranked source value. Known source differences remain explicit.
+No lower-ranked source silently replaces a higher-ranked method or benchmark value.
 
 ## 4. Controlled benchmark mapping
 
@@ -41,7 +41,16 @@ The benchmark is not allowed to silently replace a higher-ranked method value wi
 | `EI-D4-FIT-SEPARATOR-INLET-20IN` | density 136, velocity 9.0 m/s, span 9 m, FIT 0.26 | density 136, velocity 9.3 m/s, span 5 m, LOF 0.26 | revised/project scenario difference retained |
 | `EI-D4-FIT-PRODUCED-WATER-10IN` | revised density 1000, velocity 3.0 m/s, span 19 m, FIT 3.12 | density 988, velocity 2.9 m/s, span 18 m, LOF 3.15 | revised/project scenario difference retained |
 
-These differences do not invalidate the five benchmark vectors; they show that the DOCX contains project/revised observations in addition to the published-example vector. The executable benchmark therefore retains the published vector while the exact Owner-pinned DOCX remains the qualification anchor.
+Disposition:
+
+```text
+D2_D4_SOURCE_DIFFERENCES = EXPLICITLY_DISPOSITIONED
+published PDF/JSON        = benchmark comparison vector
+Owner DOCX                = qualification anchor + richer/revised scenario evidence
+retained workbook         = migration/parity evidence only
+```
+
+The differences do not invalidate the controlled five-case benchmark vector and are not averaged or silently normalized.
 
 ## 5. Published-value tolerance reconciliation
 
@@ -51,7 +60,7 @@ Controlled policy:
 FIT-EI-PUBLISHED-RECONCILIATION-V1
 ```
 
-The former blanket `1.5%` relative tolerance is removed. The controlled absolute LOF tolerances are:
+The former blanket `1.5%` relative tolerance is removed. Controlled absolute LOF tolerances are:
 
 | Case | Published LOF | Absolute LOF tolerance |
 |---|---:|---:|
@@ -63,9 +72,26 @@ The former blanket `1.5%` relative tolerance is removed. The controlled absolute
 
 Tolerances are derived from equation-register recalculation of the published input vector plus source display precision. They may not be relaxed merely to make a production implementation pass.
 
-## 6. Owner benchmark-qualification rule
+## 6. Source-basis and errata disposition
 
-For this FIT screening candidate:
+Detailed record:
+
+```text
+docs/vibration/FIT-Source-Basis-Evidence-v1.md
+```
+
+Current disposition:
+
+```text
+product method                         = EI 2nd Edition T2.2 FIT reference
+current official errata applicability = REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2
+external project/client adoption       = PROJECT_SPECIFIC_CONFIRMATION_REQUIRED
+direct T2.2 page/table/equation audit  = NOT_COMPLETE
+```
+
+The two official EI corrections currently identified for pages 61 and 68 belong to T2-5 and T2-8 paths, not the T2.2 FIT chain. This does not substitute for direct page-level T2.2 equation/table locator reconciliation against the controlled PDF.
+
+## 7. Owner benchmark-qualification rule
 
 ```text
 controlled worked-example reproduction PASS
@@ -81,20 +107,27 @@ Energy-Institute-AVIFF---Worked-Examples.doc.docx
 blob ceee15ed5f7f320045d5f3979024e2e8664613f2
 ```
 
-This rule does not waive the exact release suite, browser/real-file acceptance, source traceability, QST-003 fail-closed exclusion, or Owner authorization of the future screening-authority PR.
+This rule does not waive the exact release suite, browser/real-file acceptance, direct source locator trace, QST-003 fail-closed exclusion, or Owner authorization of the future screening-authority PR.
 
-## 7. Remaining source gates
+## 8. Remaining gates
 
 Before screening activation:
 
-1. retain page/table/equation traceability for adopted T2.2 items;
-2. disposition applicable official errata/project basis;
-3. retain the D2/D4 source differences above as explicit evidence limitations;
-4. retain the case-specific tolerance policy unless new controlled source evidence justifies a reviewed revision;
-5. retain QST-003 (`219.1 < Dext < 273 mm`) as a fail-closed production exclusion unless separately source-resolved.
+1. complete direct governing T2.2 page/table/equation locator mapping;
+2. execute the exact coordinated release suite on one frozen candidate SHA;
+3. execute real-browser/real-file acceptance;
+4. reproduce the controlled worked examples on that same frozen SHA;
+5. retain QST-003 (`219.1 < Dext < 273 mm`) as fail-closed unless separately resolved;
+6. obtain explicit Owner authorization for a separate `BENCHMARK_ONLY -> SCREENING` governance PR.
 
-A separate independent vibration-engineer approval is not part of this list.
+## 9. Authority conclusion
 
-## 8. Authority conclusion
+FIT remains:
 
-The worked-example qualification source is now explicitly pinned to the Owner-specified Common commit and blob. FIT still remains `BENCHMARK_ONLY`, `screeningAuthority=NOT_AUTHORIZED`, and `designAuthority=false` until the remaining technical/release gates pass and the Owner authorizes the separate authority transition.
+```text
+qualificationState   = BENCHMARK_ONLY
+screeningAuthority   = NOT_AUTHORIZED
+designAuthority      = false
+```
+
+The D2/D4 source-difference and errata dispositions do not themselves grant screening/design authority.
