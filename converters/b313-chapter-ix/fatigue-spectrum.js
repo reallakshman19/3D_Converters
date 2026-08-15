@@ -57,6 +57,26 @@ export function evaluateChapterIxStraightPipeFatigueSpectrum(input = {}) {
         stage: 'EQUIVALENT_STRESS', cycleId: cycle.cycleId, ...(equivalent.details ?? {}),
       });
     }
+    if (equivalent.equivalentAlternatingStressMpa === 0) {
+      evaluated.push({
+        cycleId: cycle.cycleId,
+        category: cycle.category,
+        appliedCycles: cycle.totalCycles,
+        pressureRangeMpa: cycle.pressureRangeMpa,
+        cycleStress: stress,
+        equivalentStress: equivalent,
+        fatigueLife: {
+          ok: true,
+          noDamage: true,
+          permissibleCycles: null,
+          interpolation: { type: 'ZERO_STRESS_NO_DAMAGE' },
+        },
+        permissibleCycles: null,
+        zeroDamage: true,
+        usage: 0,
+      });
+      continue;
+    }
     const life = interpolateChapterIxFatigueCurve({
       equivalentAlternatingStressMpa: equivalent.equivalentAlternatingStressMpa,
       points: input.fatigueCurvePoints,
@@ -75,6 +95,7 @@ export function evaluateChapterIxStraightPipeFatigueSpectrum(input = {}) {
       equivalentStress: equivalent,
       fatigueLife: life,
       permissibleCycles: life.permissibleCycles,
+      zeroDamage: false,
       usage: cycle.totalCycles / life.permissibleCycles,
     });
   }
