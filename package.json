@@ -14,6 +14,7 @@
     "verify:aiv-flare-network": "node --test tests/vibration-aiv-flare-network.test.mjs tests/vibration-aiv-flare-network-authoring.test.mjs tests/vibration-aiv-flare-network-canvas-mode.test.mjs tests/vibration-aiv-flare-network-svg.test.mjs tests/vibration-aiv-flare-network-readiness.test.mjs tests/vibration-aiv-flare-network-multisource.test.mjs tests/vibration-aiv-flare-network-export.test.mjs",
     "verify:aiv-eit-export": "node --test tests/vibration-aiv-eit-export.test.mjs tests/vibration-aiv-eit-import.test.mjs tests/vibration-aiv-eit-controlled-sonic.test.mjs tests/vibration-aiv-eit-reference.test.mjs tests/vibration-aiv-workbench-ui.test.mjs tests/vibration-aiv-authority-copy.test.mjs tests/app-content-scroll-layout.test.mjs tests/vibration-aiv-assumption-layout.test.mjs",
     "verify:aiv-canvas-release": "npm run verify:aiv-input-model && npm run verify:aiv-canvas && npm run verify:aiv-flare-network && npm run verify:aiv-eit-export",
+    "verify:aiv-pf01": "node --test tests/vibration-aiv-canvas-filter-runtime.test.mjs tests/vibration-aiv-canvas-hardening.test.mjs tests/vibration-aiv-canvas-integration.test.mjs tests/vibration-aiv-canvas-dod.test.mjs tests/vibration-aiv-flare-network.test.mjs tests/vibration-aiv-flare-network-svg.test.mjs tests/vibration-aiv-flare-network-multisource.test.mjs",
     "extract:fit-source": "node scripts/extract-fit-workbook-source.mjs",
     "extract:aiv-ei-t27-source": "node scripts/extract-aiv-ei-t27-source.mjs",
     "extract:aiv-ei-d23-source": "node scripts/extract-aiv-ei-d23-source.mjs",
