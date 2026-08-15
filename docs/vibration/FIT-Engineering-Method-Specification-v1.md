@@ -10,14 +10,14 @@ Engineering method revision: `ei-aviff2-fit-reference-v2`
 
 ## 1. Purpose and authority
 
-This specification controls the deterministic FIT reference implementation used for migration, qualification and benchmark comparison. It combines the retained CRF-4-1 workbook formula chain with independent Energy Institute second-edition worked examples supplied by the owner.
+This specification controls the deterministic FIT reference implementation used for migration, qualification and benchmark comparison. It combines the retained CRF-4-1 workbook formula chain with Energy Institute second-edition worked examples supplied by the owner.
 
-It does **not** grant production screening or design authority. Execution remains `BENCHMARK_ONLY`; strict/screening execution must fail closed until issue #429 is independently approved.
+It does **not** grant production screening or design authority. Execution remains `BENCHMARK_ONLY`; strict/screening execution must fail closed until the controlled qualification gates pass and the Owner separately authorizes an authority transition.
 
 | Label | Meaning |
 |---|---|
 | `WORKBOOK_REFERENCE_ONLY` | retained-workbook migration provenance |
-| `EI_WORKED_EXAMPLE_BENCHMARK` | independent EI example evidence |
+| `EI_WORKED_EXAMPLE_BENCHMARK` | controlled EI example evidence |
 | `BENCHMARK_ONLY` | executable for qualification/comparison only |
 | `SCREENING` | not authorized |
 | `DESIGN` | not authorized |
@@ -41,7 +41,7 @@ The duplicate KS-PR-CAL-0086 path is the same blob and therefore not an independ
 
 ### 2.2 Controlled EI source set
 
-Current controlled project pin:
+Current controlled method/project pin:
 
 ```text
 Repository: reallaksh19/Common
@@ -65,15 +65,17 @@ Git blob:   3e2517d0df527a051084fc02e69cb7afa31f8d47
 Relevant:   Appendix D Examples D2 and D4
 ```
 
-Corroborating worked-example DOCX:
+Owner-approved worked-example qualification anchor:
 
 ```text
+Repository: reallaksh19/Common
+Commit:     7bfead910f6bca91b10748ead009e40f20c82219
 Path:       Energy-Institute-AVIFF---Worked-Examples.doc.docx
 Git blob:   ceee15ed5f7f320045d5f3979024e2e8664613f2
-Role:       corroborating/project-scenario evidence only
+Role:       controlled worked-example benchmark qualification source
 ```
 
-The earlier source state `aef163a5def3bfe04ca0ba860da05728a27daf42` is the direct parent of the controlled project pin. The governing worked-example PDF blob is unchanged across that transition; the later pin additionally binds the controlled DOCX evidence. Current live qualification metadata uses `fb549185...`.
+The DOCX blob at `7bfead910...` is the same controlled blob already present in the earlier qualification source set. The Owner has directed that successful controlled reproduction of the worked examples is sufficient engineering qualification evidence for this FIT screening candidate; a separate independent vibration-engineer sign-off is not required.
 
 Only minimum benchmark facts needed for qualification are stored in `Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json`. Source precedence and observed DOCX/PDF differences are controlled by `docs/vibration/FIT-EI-Worked-Example-Traceability-v1.md`.
 
@@ -89,7 +91,7 @@ Scope is main-line **Flow-Induced Turbulence** only. Do not reuse this empirical
 60 mm <= Dext <= 762 mm
 ```
 
-The upper limit is controlled source material; the lower boundary follows the controlled correlation families and remains subject to final engineering review.
+The upper limit is controlled source material; the lower boundary follows the controlled correlation families and remains subject to the bounded screening scope gate.
 
 ### FIT-APP-003 — medium/flexible diameter families
 
@@ -98,7 +100,7 @@ SMALL: Dext <= 219.1 mm
 LARGE: Dext >= 273 mm
 ```
 
-EI D4 independently confirms the 273 mm flexible-large case.
+EI D4 confirms the 273 mm flexible-large case.
 
 The unresolved manual region:
 
@@ -403,8 +405,8 @@ Resolved in software: when aggregate and component multiphase data coexist, an e
 ## 10. Benchmark register
 
 - Retained workbook parity: migration/source-transcription evidence.
-- `fit-independent-hand-benchmarks-v1.json`: independent software arithmetic evidence, including independent `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` vectors.
-- `fit-ei-worked-examples-v1.json`: independent EI D2/D4 published-example evidence.
+- `fit-independent-hand-benchmarks-v1.json`: independent software arithmetic evidence, including `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` vectors.
+- `fit-ei-worked-examples-v1.json`: controlled EI D2/D4 worked-example evidence.
 
 Published EI values use controlled tolerance policy:
 
@@ -412,7 +414,21 @@ Published EI values use controlled tolerance policy:
 FIT-EI-PUBLISHED-RECONCILIATION-V1
 ```
 
-The former blanket `1.5%` relative tolerance is removed. Each controlled published field has a case-specific absolute tolerance derived from independent equation-register recalculation of the published input vector plus half of the field's least displayed output increment. The derivation is recorded in `FIT-EI-Worked-Example-Traceability-v1.md`; tolerances may not be tuned to production output.
+The former blanket `1.5%` relative tolerance is removed. Each controlled published field has a case-specific absolute tolerance derived from equation-register recalculation of the published input vector plus half of the field's least displayed output increment. The derivation is recorded in `FIT-EI-Worked-Example-Traceability-v1.md`; tolerances may not be tuned to production output.
+
+### 10.1 Owner benchmark-qualification rule
+
+For this FIT screening candidate, separate independent vibration-engineer review is **not required** when the controlled worked-example benchmark is reproduced successfully.
+
+The qualification anchor is:
+
+```text
+Common@7bfead910f6bca91b10748ead009e40f20c82219
+Energy-Institute-AVIFF---Worked-Examples.doc.docx
+blob ceee15ed5f7f320045d5f3979024e2e8664613f2
+```
+
+This rule removes only the separate vibration-engineer sign-off gate. It does not waive controlled-source traceability, QST-003 fail-closed exclusion, exact release regression, real-file/browser acceptance, reproducibility controls, or Owner authorization for the later authority transition.
 
 ## 11. API/result evidence requirements
 
@@ -459,11 +475,11 @@ Promotion is not permitted until:
 2. independent hand benchmark regression passes in the complete checkout;
 3. full central API/Console/batch regression passes;
 4. mixed multiphase ambiguity/explicit-mode cases pass through the central API;
-5. every applicable method/application item is independently reviewed against the adopted EI/project basis and errata;
+5. every applicable method/application item is source-traced and dispositioned against the adopted EI/project basis and applicable errata;
 6. QST-003 remains authoritatively excluded or is separately source-resolved;
 7. missing-data, units, phase, threshold and support-boundary cases pass;
 8. working-state/source-to-result and dual-hash reproducibility gates pass;
 9. real-browser five-sheet XLSX/CSV/edit/revert/export acceptance passes;
-10. an identified vibration engineer records approval and limitations under issue #429.
+10. the Owner explicitly approves the separate bounded-screening authority PR.
 
-Until then, FIT remains `BENCHMARK_ONLY`.
+A separate independent vibration-engineer approval is not a gate when item 1 reproduces the controlled worked examples above. Until the remaining gates pass and the Owner authorizes the authority change, FIT remains `BENCHMARK_ONLY`.
