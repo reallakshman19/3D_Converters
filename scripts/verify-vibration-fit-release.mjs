@@ -86,6 +86,8 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-multimechanism-validation-record.test.mjs',
       'tests/vibration-sbc-type3-user-data.test.mjs',
       'tests/vibration-sbc-type3-user-data-table-validation.test.mjs',
+      'tests/vibration-sbc-facility-register.test.mjs',
+      'tests/vibration-sbc-facility-module-boundaries.test.mjs',
     ]),
   }),
 ]);

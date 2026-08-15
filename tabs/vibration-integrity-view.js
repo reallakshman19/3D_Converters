@@ -98,20 +98,29 @@ function filters(state) {
   </div>`;
 }
 
+function sbcInputAction(assessment) {
+  if (assessment.mechanism.id !== 'smallBoreConnections' || !assessment.facilityScopeId) return null;
+  const incomplete = assessment.assessmentState === 'APPLICABLE_INCOMPLETE';
+  return `<button type="button" class="vi-row-link" data-vi-sbc-facility-scope="${esc(assessment.facilityScopeId)}">${incomplete ? 'Complete inputs' : 'SBC inputs'}</button><small class="vi-mono">${incomplete ? 'NOT READY' : 'INPUT REQUIRED'}</small>`;
+}
+
 function mechanismCell(assessment) {
   if (!assessment.calculated) {
+    const sbcAction = sbcInputAction(assessment);
+    if (sbcAction) return sbcAction;
     const reason = assessment.assessmentState === 'NOT_IMPLEMENTED'
       ? 'Not implemented; no mechanism calculation was performed.'
-      : 'No current FIT calculation.';
+      : 'No current mechanism calculation.';
     return `<span class="vi-empty" title="${esc(reason)}">—</span>`;
   }
   const band = assessment.referenceBand
     ? `<small class="vi-mono">${esc(assessment.referenceBand)}</small>`
     : '';
+  const qualification = assessment.qualificationState === 'CANDIDATE_USER_INPUT'
+    ? '<small class="vi-mono">CANDIDATE USER INPUT</small>' : '';
   const currency = assessment.resultState === 'STALE_RESULT'
-    ? '<small class="vi-mono">STALE_RESULT</small>'
-    : '';
-  return `<strong>${esc(assessment.lof)}</strong>${band}${currency}`;
+    ? '<small class="vi-mono">STALE_RESULT</small>' : '';
+  return `<strong>${esc(assessment.lof)}</strong>${band}${qualification}${currency}`;
 }
 
 function evidenceCell(row) {
@@ -131,20 +140,30 @@ function mechanismHeaders() {
   )).join('');
 }
 
-function tableRows(workspace, resultState) {
-  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 8;
+function governingCell(assessment, suffix = '') {
+  return assessment
+    ? `${esc(assessment.mechanism.label)} · ${esc(assessment.lof)}${suffix}`
+    : '<span class="vi-empty">—</span>';
+}
+
+function tableRows(workspace, state) {
+  const colspan = VIBRATION_INTEGRITY_MECHANISMS.length + 9;
   if (!workspace?.rows?.length) {
     return `<tr><td colspan="${colspan}" class="vi-table-empty">No rows match the current table filters.</td></tr>`;
   }
+  const userEngineeringDataRows = state.userEngineeringData?.rows ?? [];
   return workspace.rows.map((row) => {
-    const matrix = buildVibrationMechanismMatrixRow(row, { resultState });
-    const governing = matrix.implementedGoverning;
+    const matrix = buildVibrationMechanismMatrixRow(row, {
+      resultState: state.resultState,
+      userEngineeringDataRows,
+    });
     return `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
       <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
       <td>${cell(row.caseId)}</td><td class="vi-mono">${cell(row.canonicalId)}</td>
       <td>${cell(row.completenessStatus)}</td>
       ${matrix.assessments.map(mechanismCell).map((value) => `<td>${value}</td>`).join('')}
-      <td>${governing ? `${esc(governing.mechanism.label)} · ${esc(governing.lof)}` : '<span class="vi-empty">—</span>'}</td>
+      <td>${governingCell(matrix.screeningGoverning)}</td>
+      <td>${governingCell(matrix.candidateGoverning, ' · CANDIDATE')}</td>
       <td>${cell(row.qualificationState)}</td>
       <td>${evidenceCell(row)}</td>
       <td>${row.continuationRequired ? 'Further assessment required' : '<span class="vi-empty">—</span>'}</td>
@@ -154,21 +173,21 @@ function tableRows(workspace, resultState) {
 
 function resultCurrencyBanner(state) {
   if (state.resultState !== 'STALE_RESULT') return '';
-  return '<div class="vi-banner warn"><strong>STALE RESULT · rerun required.</strong><span>The register below is retained for inspection only and is not current for the working inputs. Export is disabled until a successful rerun.</span></div>';
+  return '<div class="vi-banner warn"><strong>STALE RESULT · rerun required.</strong><span>FIT screening and facility-scoped SBC candidate values are retained for inspection only and cannot become current governing results until rerun.</span></div>';
 }
 
 function workspaceTable(state) {
   if (!state.workspace) {
-    return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run FIT screening.</p></section>';
+    return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run FIT screening. SBC inputs attach to the resulting line/case/canonical facility rows.</p></section>';
   }
   return `<section class="vi-card vi-workspace-card">
-    <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>Line-centric mechanism matrix aligned to the EI worked-example report. FIT is qualified for bounded screening; blank non-FIT mechanism cells do not imply assessment or applicability.</p></div></div>
+    <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>FIT is qualified for bounded screening. SBC Type-3 may be evaluated from explicit project User Engineering Data as a separate non-authorizing candidate.</p></div></div>
     ${resultCurrencyBanner(state)}
-    <div class="vi-banner warn"><strong>Authority boundary.</strong><span>FIT is SCREENING ONLY. Design authority remains false. The 219.1–273 mm OD gap and other declared exclusions remain fail-closed.</span></div>
+    <div class="vi-banner warn"><strong>Authority boundary.</strong><span>Screening governing uses authorized screening mechanisms only. SBC candidate values are displayed separately and cannot replace the FIT screening result. Design authority remains false and full multi-mechanism screening is not established.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
-      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Implemented governing</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
-    </tr></thead><tbody>${tableRows(state.workspace, state.resultState)}</tbody></table></div>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Screening governing</th><th>Candidate governing</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
+    </tr></thead><tbody>${tableRows(state.workspace, state)}</tbody></table></div>
   </section>`;
 }
 
@@ -188,7 +207,7 @@ function importFacts(state) {
 
 export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
-    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric vibration integrity workspace with shared source data and a bounded FIT screening matrix.</p></div><div class="vi-authority"><strong>SCREENING</strong><span>DESIGN AUTHORITY FALSE</span></div></header>
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric vibration integrity workspace with bounded FIT screening and separately identified SBC project-input candidates.</p></div><div class="vi-authority"><strong>SCREENING</strong><span>FIT BOUNDED · SBC CANDIDATE · DESIGN AUTHORITY FALSE</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${renderVibrationIntegrityInputArea(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;

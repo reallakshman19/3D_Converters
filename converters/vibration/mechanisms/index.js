@@ -19,3 +19,10 @@ export {
   buildFitVibrationMechanismAssessmentItem,
   buildFitVibrationMechanismAssessmentSet,
 } from './fit.js';
+
+export {
+  SBC_VIBRATION_MECHANISM_ID,
+  SBC_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
+  buildSbcVibrationMechanismAssessmentItem,
+  buildSbcVibrationMechanismAssessmentSet,
+} from './sbc.js';

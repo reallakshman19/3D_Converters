@@ -1,5 +1,6 @@
 import {
   buildFitVibrationMechanismAssessmentSet,
+  buildSbcVibrationMechanismAssessmentSet,
   createVibrationMechanismAssessmentSet,
 } from '../converters/vibration/mechanisms/index.js';
 
@@ -51,7 +52,7 @@ export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze([
   }),
   Object.freeze({
     id: 'smallBoreConnections', label: 'SBC', title: 'Small-bore connections',
-    sourceSection: 'EI AVIFF Guidelines', implementationState: 'NOT_IMPLEMENTED',
+    sourceSection: 'EI AVIFF T3', implementationState: 'CANDIDATE_USER_INPUT',
   }),
 ]);
 
@@ -63,11 +64,22 @@ function rowScope(row = {}) {
   return { line: row.line, caseId: row.caseId ?? null, canonicalId: row.canonicalId };
 }
 
-function calculatedState(item) {
-  if (item.assessmentState !== 'CALCULATED') return item.assessmentState;
-  return item.qualification?.effective === 'SCREENING'
-    ? 'CALCULATED_SCREENING'
-    : 'CALCULATED_BENCHMARK';
+function contractAssessment(mechanism, contractSet) {
+  const item = contractSet.items[0];
+  return Object.freeze({
+    mechanism,
+    contractSet,
+    itemId: item.itemId,
+    assessmentState: item.assessmentState,
+    calculated: Boolean(item.result?.calculated),
+    lof: item.result?.governingLof ?? null,
+    referenceBand: item.result?.referenceBand ?? null,
+    qualificationState: item.qualification?.effective ?? null,
+    implementationState: item.implementationState,
+    resultState: item.resultState,
+    facilityScopeId: item.applicability?.facilityScopeId ?? item.request?.facilityScopeId ?? null,
+    readiness: item.readiness,
+  });
 }
 
 function fitAssessment(row, mechanism, context) {
@@ -78,18 +90,22 @@ function fitAssessment(row, mechanism, context) {
     benchmark: context.benchmark ?? null,
     workingCells: context.workingCells ?? null,
   });
-  const item = contractSet.items[0];
-  return Object.freeze({
-    mechanism,
-    contractSet,
-    itemId: item.itemId,
-    assessmentState: calculatedState(item),
-    calculated: Boolean(item.result?.calculated),
-    lof: item.result?.governingLof ?? null,
-    referenceBand: item.result?.referenceBand ?? null,
-    qualificationState: item.qualification?.effective ?? null,
-    resultState: item.resultState,
+  const assessment = contractAssessment(mechanism, contractSet);
+  if (assessment.assessmentState !== 'CALCULATED') return assessment;
+  return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_SCREENING' });
+}
+
+function sbcAssessment(row, mechanism, context) {
+  const inheritedCurrency = context.resultState === 'STALE_RESULT' ? 'STALE_RESULT' : null;
+  const contractSet = buildSbcVibrationMechanismAssessmentSet({
+    row,
+    userRows: context.userEngineeringDataRows ?? [],
+    governed: context.sbcGoverned ?? {},
+    resultState: context.sbcResultState ?? inheritedCurrency,
   });
+  const assessment = contractAssessment(mechanism, contractSet);
+  if (assessment.assessmentState !== 'CALCULATED') return assessment;
+  return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_CANDIDATE' });
 }
 
 function unavailableAssessment(row, mechanism) {
@@ -107,7 +123,10 @@ function unavailableAssessment(row, mechanism) {
     lof: null,
     referenceBand: null,
     qualificationState: null,
+    implementationState: 'NOT_IMPLEMENTED',
     resultState: 'UNRUN',
+    facilityScopeId: null,
+    readiness: Object.freeze({ missing: [], invalid: [], reasons: [] }),
   });
 }
 
@@ -115,24 +134,58 @@ export function buildVibrationMechanismAssessment(row, mechanismId, context = {}
   const mechanism = MECHANISM_BY_ID.get(mechanismId);
   if (!mechanism) throw new Error(`Unknown vibration mechanism: ${mechanismId}`);
   if (mechanism.id === 'fit') return fitAssessment(row, mechanism, context);
+  if (mechanism.id === 'smallBoreConnections') return sbcAssessment(row, mechanism, context);
   return unavailableAssessment(row, mechanism);
+}
+
+function isScreeningAssessment(assessment) {
+  return assessment.implementationState === 'IMPLEMENTED_SCREENING'
+    && assessment.qualificationState === 'SCREENING';
+}
+
+function isCandidateAssessment(assessment) {
+  return assessment.implementationState === 'IMPLEMENTED_CANDIDATE_USER_INPUT'
+    || assessment.qualificationState === 'CANDIDATE_USER_INPUT';
+}
+
+function governingAssessment(assessments, { currentOnly, accept }) {
+  const candidates = assessments.filter((assessment) => (
+    accept(assessment)
+      && assessment.calculated
+      && Number.isFinite(Number(assessment.lof))
+      && (!currentOnly || assessment.resultState === 'CURRENT_RESULT')
+  ));
+  if (!candidates.length) return null;
+  return candidates.reduce((governing, item) => (
+    Number(item.lof) > Number(governing.lof) ? item : governing
+  ));
 }
 
 export function buildVibrationMechanismMatrixRow(row, context = {}) {
   const assessments = VIBRATION_INTEGRITY_MECHANISMS.map((mechanism) => (
     buildVibrationMechanismAssessment(row, mechanism.id, context)
   ));
-  const retainedImplementedGoverning = assessments.find((assessment) => (
-    assessment.mechanism.id === 'fit' && assessment.calculated
-  )) ?? null;
-  const implementedGoverning = retainedImplementedGoverning?.resultState === 'CURRENT_RESULT'
-    ? retainedImplementedGoverning
-    : null;
+  const screeningGoverning = governingAssessment(assessments, {
+    currentOnly: true, accept: isScreeningAssessment,
+  });
+  const candidateGoverning = governingAssessment(assessments, {
+    currentOnly: true, accept: isCandidateAssessment,
+  });
+  const retainedScreeningGoverning = governingAssessment(assessments, {
+    currentOnly: false, accept: isScreeningAssessment,
+  });
+  const retainedCandidateGoverning = governingAssessment(assessments, {
+    currentOnly: false, accept: isCandidateAssessment,
+  });
   return Object.freeze({
     row,
     assessments: Object.freeze(assessments),
-    implementedGoverning,
-    retainedImplementedGoverning,
+    screeningGoverning,
+    candidateGoverning,
+    retainedScreeningGoverning,
+    retainedCandidateGoverning,
+    implementedGoverning: screeningGoverning,
+    retainedImplementedGoverning: retainedScreeningGoverning,
     fullScreeningGoverningEstablished: false,
   });
 }

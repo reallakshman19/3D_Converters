@@ -94,7 +94,20 @@ function evaluateType3(state, render) {
   render();
 }
 
+function openFacilitySbcInputs(state, scopeId, render) {
+  state.workspaceTab = 'user-data';
+  state.sbcType3ScopeId = scopeId;
+  state.sbcType3Result = null;
+  state.error = null;
+  render();
+}
+
 export function handleVibrationUserDataClick(state, event, render) {
+  const facilityScope = event.target.closest('[data-vi-sbc-facility-scope]')?.dataset.viSbcFacilityScope;
+  if (facilityScope) {
+    openFacilitySbcInputs(state, facilityScope, render);
+    return true;
+  }
   const tab = event.target.closest('[data-vi-workspace-tab]')?.dataset.viWorkspaceTab;
   if (tab) {
     state.workspaceTab = tab === 'user-data' ? 'user-data' : 'screening';
