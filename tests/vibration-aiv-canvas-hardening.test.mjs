@@ -132,12 +132,15 @@ test('canvas interaction remains keyboard-operable and status is not color-only'
   assert.match(controller, /event\.key === 'Escape'/u);
 });
 
-test('canvas presentation failure is contained and does not masquerade as engineering failure', () => {
+test('canvas presentation failure is contained and patched workspace token is cache-distinct', () => {
   const workspace = readFileSync(new URL('../tabs/vibration-aiv-qualification-tab.js', import.meta.url), 'utf8');
+  const host = readFileSync(new URL('../tabs/engineering-calculations-tab.js', import.meta.url), 'utf8');
   assert.match(workspace, /try \{ canvasController\.sync\(\); \} catch \(error\) \{ showCanvasError\(error\); \}/u);
   assert.match(workspace, /Canvas unavailable:/u);
   assert.match(workspace, /Engineering tables and screening controls remain authoritative and usable/u);
   assert.match(workspace, /data\.aivCanvasError = 'true'|dataset\.aivCanvasError = 'true'/u);
+  assert.match(host, /vibration-aiv-qualification-tab\.js\?v=aiv-qualification-2/u);
+  assert.doesNotMatch(host, /vibration-aiv-qualification-tab\.js\?v=aiv-qualification-1/u);
 });
 
 test('canvas dependency direction and numerical authority boundaries remain one-way', () => {
