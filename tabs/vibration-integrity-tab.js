@@ -180,6 +180,7 @@ export function renderVibrationIntegrityTab(container) {
     try {
       downloadVibrationIntegrityText(serializeVibrationFacilityFitRegisterCsv(state.envelope.workflow.register), 'vibration-fit-screening-register.csv');
       appendAudit(state, 'REGISTER_EXPORTED', { fileName: 'vibration-fit-screening-register.csv' });
+      render();
     } catch (error) { state.error = String(error?.message || error); render(); }
   }
   async function exportRunEvidence() {
@@ -189,6 +190,7 @@ export function renderVibrationIntegrityTab(container) {
       const payload = await serializeVibrationIntegrityRunEvidence(state);
       downloadVibrationIntegrityText(payload, 'vibration-fit-run-evidence.json', 'application/json;charset=utf-8');
       appendAudit(state, 'RUN_EVIDENCE_EXPORTED', { fileName: 'vibration-fit-run-evidence.json' });
+      render();
     } catch (error) {
       state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`; render();
     }
