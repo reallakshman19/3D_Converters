@@ -5,7 +5,7 @@
   "pr": 525,
   "baseMain": "e97effb06ff9bfcad5ea87381abaa9f2665c1bdd",
   "branch": "agent/aiv-pf01-cache-custody-20260815",
-  "reportBasisHead": "45e8dfd7af3179a3f7aef33099ccd334785d9f5c",
+  "reportBasisHead": "c4706b1c702853666e6252300bb2c8dd1bee3fc2",
   "liveFailure": {
     "status": "PASS_REPRODUCED",
     "observation": "USER_SUPPLIED_LIVE_CHROMIUM",
@@ -29,6 +29,11 @@
     "tabs/vibration-aiv-qualification-tab.js -> tabs/vibration-aiv-canvas-controller.js",
     "tabs/vibration-aiv-canvas-controller.js -> tabs/vibration-aiv-canvas-filter.js"
   ],
+  "sharedShell": {
+    "fbxProductionKey": "20260804-fbx-multifamily-release-1",
+    "fbxProductionBehaviorChanged": false,
+    "testReconciliation": "tests/fbx/test-fbx2-runtime-cache-chain.mjs now distinguishes shared shellKey from downstream FBX key"
+  },
   "authority": {
     "aivNumericalAuthorityChanged": false,
     "readinessAuthorityChanged": false,
@@ -48,13 +53,23 @@
       "observation": "SOURCE_INSPECTION"
     },
     {
+      "check": "exact branch cache chain",
+      "status": "PASS",
+      "observation": "SOURCE_INSPECTION_ALL_EDGES"
+    },
+    {
       "check": "source diff scope",
       "status": "PASS",
       "observation": "GIT_COMPARE",
-      "detail": "9 existing files changed one line each; one 49-line regression added before handoff/evidence files"
+      "detail": "cache-identity-only production/config changes; one new 49-line AIV cache-chain test; one existing FBX test adjusted to split shellKey from fbxKey"
     },
     {
       "check": "tests/vibration-aiv-runtime-cache-chain.test.mjs",
+      "status": "IMPLEMENTED_NOT_EXECUTED",
+      "observation": "SOURCE_INSPECTION"
+    },
+    {
+      "check": "tests/fbx/test-fbx2-runtime-cache-chain.mjs",
       "status": "IMPLEMENTED_NOT_EXECUTED",
       "observation": "SOURCE_INSPECTION"
     },
