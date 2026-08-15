@@ -3,7 +3,8 @@
   "sliceId": "PF-01",
   "issueId": 513,
   "baselineSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "implementationHead": "835c908ad16fa206aa510136068ea6d1b0578a12",
+  "implementationHeadBeforeEvidenceSync": "835c908ad16fa206aa510136068ea6d1b0578a12",
+  "finalObservedPrHeadBeforeThisReceiptCommit": "0c680cace3547abff3a61421ca6a4521c7edef28",
   "filterPath": "tabs/vibration-aiv-canvas-filter.js",
   "filterBlobBefore": "a5da4fb99e69310659659725696c61c3d9347085",
   "filterBlobAfter": "8640eca0a2e1454e277613d50c4c9962e3e537d8",
@@ -75,6 +76,15 @@
     "status": "NOT_RUN",
     "command": "npm run verify:aiv-canvas-release",
     "reason": "No native private repository checkout is available."
+  },
+  "hostedFinalHeadCustody": {
+    "observedHead": "0c680cace3547abff3a61421ca6a4521c7edef28",
+    "aivWorkflowRunId": 31883609230,
+    "aivJobId": 95009492269,
+    "githubConclusion": "failure",
+    "steps": null,
+    "logsUrl": null,
+    "classification": "NOT_RUN_INFRASTRUCTURE_BLOCKED"
   },
   "authorityChecks": [
     "AIV equations unchanged",
