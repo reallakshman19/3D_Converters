@@ -12,6 +12,7 @@ MERGE_AUTHORITY: OWNER_ONLY
 MAIN_HEAD_LAST_CHECKED: d659e670a2f8fe0a35fc8072382512f6493898cf
 MERGE_BASE: d659e670a2f8fe0a35fc8072382512f6493898cf
 IMPLEMENTATION_HEAD_BEFORE_EVIDENCE_SYNC: 835c908ad16fa206aa510136068ea6d1b0578a12
+FINAL_EVIDENCE_HEAD_OBSERVED_BEFORE_REPORT_SYNC: 0e354c51011c29b40929ad73826b6c87e5bea4cd
 FILTER_BLOB_AFTER: 8640eca0a2e1454e277613d50c4c9962e3e537d8
 PACKAGE_BLOB_AFTER_PF01_GATE: 958da1f3ba7cc2185f68af4bb5c4b254f7711dd0
 GROUNDING_EPOCH: GE-005
@@ -167,35 +168,17 @@ J-101                -> (9999, -4000)
 AIV-ASSESS-HDR-001   -> (-2500, 7000)
 ```
 
-The test requires exact equality of:
-
-- generated Sources table;
-- generated Assessments table;
-- generated Source→Assessment table;
-- path evidence;
-- readiness counts;
-- registered source results;
-- registered Assessment results;
-- non-authoritative line/case summaries.
-
-It also reasserts engineering path distances:
-
-```text
-RV-101 -> 38 m
-RV-102 -> 41 m
-```
-
-and `svgPixelsAuthoritativeForDistance=false`.
+The test requires exact equality of generated engineering tables, path evidence, readiness counts, registered source results, registered Assessment results, and non-authoritative line/case summaries. It also reasserts `RV-101 -> 38 m`, `RV-102 -> 41 m`, and `svgPixelsAuthoritativeForDistance=false`.
 
 ### 5. Named PF-01 native gate
 
-`package.json` now exposes:
+`package.json` exposes:
 
 ```bash
 npm run verify:aiv-pf01
 ```
 
-This invokes only existing/focused repository tests needed to close PF-01 and B1-B6. It does not create a second benchmark implementation.
+This invokes existing/focused repository tests needed to close PF-01 and B1-B6; it does not create a second benchmark implementation.
 
 ## Frozen B1-B6 coverage
 
@@ -232,29 +215,18 @@ first-sync          PASS
 change-before-sync  PASS
 ```
 
-Classification:
-
-```text
-TARGETED_BROWSER_ENGINE_EXECUTION_NOT_FULL_APPLICATION
-```
+Classification: `TARGETED_BROWSER_ENGINE_EXECUTION_NOT_FULL_APPLICATION`.
 
 ### Frozen numerical invariance subchecks — PASS
 
 ```text
-D.2.3 relief raw PWL
-164.6851759525391 dB = frozen expected, delta 0, tol 1e-10
-
-D.2.3 relief point PWL
-164.3734876408508 dB = frozen expected, delta 0, tol 1e-10
-
-160 + 160
-163.0102999566398 dB = frozen expected, delta 0, tol 1e-9
-
-160 + 150
-160.41392685158226 dB = frozen expected, delta 0, tol 1e-9
+D.2.3 relief raw PWL   164.6851759525391 dB   delta 0   tol 1e-10
+D.2.3 relief point PWL 164.3734876408508 dB   delta 0   tol 1e-10
+160 + 160              163.0102999566398 dB   delta 0   tol 1e-9
+160 + 150              160.41392685158226 dB  delta 0   tol 1e-9
 ```
 
-No expected value or tolerance was changed.
+No oracle or tolerance was edited.
 
 ## Exact B1-B6 status
 
@@ -289,7 +261,7 @@ Import the same EI worked-example EIT
 -> authoritative tables/readiness/screening remain usable
 ```
 
-If a canvas presentation failure is intentionally forced, the acceptable behavior is the local degraded warning, not an engineering action failure.
+If a canvas presentation failure is intentionally forced, acceptable behavior is the local degraded warning, not an engineering action failure.
 
 ## Execution-environment truth
 
@@ -300,7 +272,18 @@ Current environment limitations:
 - local Chromium is managed with `URLBlocklist=["*"]`, preventing full-app navigation;
 - hosted GitHub workflow jobs repeatedly return `steps=null` and no logs.
 
-These are `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product failures and not PASS.
+Final-head AIV runner custody observed on PR head `0c680cace3547abff3a61421ca6a4521c7edef28`:
+
+```text
+workflow run: 31883609230
+job:          95009492269
+GitHub conclusion: failure
+steps:        null
+logs:         null
+classification: NOT_RUN_INFRASTRUCTURE_BLOCKED
+```
+
+These are not product failures and not PASS.
 
 ## Backup custody
 
@@ -325,7 +308,7 @@ tabs/engineering-calculations-tab.js                 cache token -1 -> -2
 tests/vibration-aiv-canvas-filter-runtime.test.mjs   null/first-sync regression
 tests/vibration-aiv-canvas-hardening.test.mjs        degraded-mode/cache boundary regression
 tests/vibration-aiv-presentation-invariance.test.mjs B6 registered invariance regression
-package.json                                           release + PF-01 gate wiring
+package.json                                          release + PF-01 gate wiring
 ```
 
 Evidence/recovery files:
