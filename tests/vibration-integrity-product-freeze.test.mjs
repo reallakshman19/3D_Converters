@@ -14,7 +14,7 @@ import {
   VIBRATION_INTEGRITY_ACTION_IDS,
   VIBRATION_INTEGRITY_PRODUCT_CONTRACT,
 } from '../tabs/vibration-integrity-product-contract.js';
-import { transitionVibrationIntegrityResultState } from '../tabs/vibration-integrity-workflow-state.js';
+import { transitionVibrationIntegrityResultState } from '../tabs/vibration-integrity-result-state.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
