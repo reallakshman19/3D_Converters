@@ -8,10 +8,13 @@ function importedTable(kind, rows, fileName) {
   });
 }
 
-export async function importAivEitFileIntoState(state, file, clearReadiness) {
+export async function importAivEitFileIntoState(state, file, clearReadiness, isCurrent = () => true) {
   const text = await file.text();
-  const { parseAivEitImport } = await import('../converters/vibration/aiv/aiv-eit-import.js?v=aiv-eit-import-1');
+  if (!isCurrent()) return null;
+  const { parseAivEitImport } = await import('../converters/vibration/aiv/aiv-eit-import.js?v=aiv-eit-import-2');
+  if (!isCurrent()) return null;
   const imported = parseAivEitImport(text, { sourceName: file.name });
+  if (!isCurrent()) return null;
 
   state.eitImport = imported;
   state.tables = {
