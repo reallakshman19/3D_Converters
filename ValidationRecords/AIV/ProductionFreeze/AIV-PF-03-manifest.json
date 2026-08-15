@@ -1,0 +1,111 @@
+{
+  "schema": "AivProductionFreezeManifest.v1",
+  "sliceId": "PF-03",
+  "issueId": 513,
+  "repository": "reallaksh19/3D_Converters",
+  "baseSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+  "baseTree": "14d9d4b7575e68267560f9c8a8704c69d25a57cc",
+  "candidateSha": null,
+  "branch": "agent/aiv-pf03-simultaneous-source-semantics-20260815",
+  "qualification": {
+    "status": "QUALIFIED_FOR_AIV_PRODUCTION_FREEZE",
+    "issueCommentId": 5301819610
+  },
+  "progressionWaiver": {
+    "fromSlice": "PF-02",
+    "status": "OWNER_WAIVER_FOR_PROGRESSION_ONLY",
+    "issueCommentId": 5302118299,
+    "doesNotConvertPriorSliceToPass": true
+  },
+  "chromiumVersion": "Chromium 144.0.7559.96 built on Debian GNU/Linux 13 (trixie)",
+  "appBuildIdentity": {
+    "status": "NOT_ESTABLISHED_FOR_REAL_BROWSER",
+    "servedRevision": null,
+    "reason": "Current execution environment cannot navigate the real application in managed Chromium and exact-current-main Pages execution is infrastructure blocked. Source inspection is not browser acceptance."
+  },
+  "browserStartUrl": null,
+  "loadedDatasetIdentity": "PF03_SAME_GROUP_AND_DISTINCT_GROUP_MATRIX_PENDING_LIVE_RUN",
+  "benchmarkSources": [
+    {
+      "id": "AIV-HAND-MULTI-SOURCE-EQUAL-001+AIV-HAND-MULTI-SOURCE-ASYM-001",
+      "repository": "reallaksh19/3D_Converters",
+      "path": "converters/vibration/aiv/aiv-independent-benchmark-evidence.js",
+      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+      "blob": "21d1e687dca0c537f4170e961b2d7b1894d710cc",
+      "revision": "AivIndependentBenchmarkEvidence.v1"
+    },
+    {
+      "id": "AIV_REGISTERED_MULTI_SOURCE_PRODUCT_FIXTURE",
+      "repository": "reallaksh19/3D_Converters",
+      "path": "tests/vibration-aiv-canvas-integration.test.mjs",
+      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+      "blob": "9f101f0092ec2c3a2ce148e92b3dead0c7209442",
+      "revision": "SIM-SRC-1+SIM-SRC-2 / SIM-GROUP-1"
+    },
+    {
+      "id": "AIV_CURRENT_CALCULATOR_GROUPING",
+      "repository": "reallaksh19/3D_Converters",
+      "path": "converters/vibration/aiv/aiv-calculator.js",
+      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+      "blob": "08f1664f1be6a104fe421655e96a46ca66c6a80c",
+      "revision": "AivCalculatorResult.v1"
+    },
+    {
+      "id": "AIV_CURRENT_POINT_COMBINER",
+      "repository": "reallaksh19/3D_Converters",
+      "path": "converters/vibration/aiv/aiv-kernel-candidate.js",
+      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+      "blob": "647cbf5bd19e2015dbc28708d8b6740269f1e5b4",
+      "revision": "AivKernelCandidateCombination.v1"
+    }
+  ],
+  "salvageEvidence": [
+    {
+      "source": "PR #506",
+      "head": "b846cbfb765cbc01734154ad837b12d040fe0bf7",
+      "path": "converters/vibration/aiv/aiv-executable-contract.js",
+      "blob": "a6de9d2c6bda73370fa5d9889503de4757b95701",
+      "candidateMechanism": "findAivUnsupportedSimultaneousScopes",
+      "authority": "SALVAGE_ONLY_NOT_PRODUCT_AUTHORITY"
+    }
+  ],
+  "expectedOracles": [
+    {
+      "id": "B2-160+160",
+      "expected": 163.0102999566398,
+      "unit": "dB",
+      "absoluteTolerance": 1e-9,
+      "requiredSourceCanonicalIds": ["SIM-SRC-1", "SIM-SRC-2"],
+      "requiredSimultaneousSourceGroup": "SIM-GROUP-1"
+    },
+    {
+      "id": "B3-160+150",
+      "expected": 160.41392685158226,
+      "unit": "dB",
+      "absoluteTolerance": 1e-9,
+      "requiredSourceCanonicalIds": ["SIM-SRC-1", "SIM-SRC-2"],
+      "requiredSimultaneousSourceGroup": "SIM-GROUP-1"
+    },
+    {
+      "id": "PF03-DISTINCT-GROUPS",
+      "expectedDisposition": "FAIL_CLOSED_METHOD_GAP_OR_EQUIVALENT_NON_EXECUTABLE_STATE",
+      "scope": "same Assessment + same Operating Case + multiple distinct Simultaneous Source Group values",
+      "forbiddenBehavior": "silently logarithmically combine distinct groups or invent governing-group selection"
+    }
+  ],
+  "masterSourceIdentity": {
+    "status": "NOT_APPLICABLE_TO_PF03_UNLESS_ACTIVE_DATASET_USES_MASTER_FIELDS",
+    "rule": "Pinned Git identity alone never establishes master engineering qualification."
+  },
+  "comparisonTolerancePolicy": "B2/B3 engineering values use only the frozen independent analytical tolerance. Source identities and grouping labels are exact. Distinct-group behavior is categorical fail-closed; no expected value or group algorithm may be invented to fit runtime output.",
+  "authorityBoundaries": {
+    "tablesAreEngineeringSourceOfTruth": true,
+    "svgGeometryIsEngineeringDistanceAuthority": false,
+    "screeningResultScope": "ASSESSMENT",
+    "lineCaseSummaryAuthoritative": false,
+    "designAuthority": false
+  },
+  "environmentDisposition": "BLOCKED_ENVIRONMENT_REAL_BROWSER_NOT_RUN",
+  "createdAt": "2026-08-15T15:59:00+04:00",
+  "operator": "GPT-5.6 Sol via connected GitHub"
+}
