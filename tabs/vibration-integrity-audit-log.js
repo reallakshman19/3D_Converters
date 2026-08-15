@@ -4,6 +4,7 @@ import {
 } from './vibration-integrity-workflow-state.js';
 
 export const VIBRATION_INTEGRITY_AUDIT_SCHEMA = 'VibrationIntegrityAuditLog.v1';
+export const VIBRATION_INTEGRITY_AUDIT_EVENT_SCHEMA = 'VibrationIntegrityAuditEvent.v1';
 export const VIBRATION_INTEGRITY_AUDIT_EXPORT_SCHEMA = 'VibrationIntegrityAuditExport.v1';
 
 export const VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES = Object.freeze([
@@ -16,7 +17,7 @@ export const VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES = Object.freeze([
   'MECHANICAL_EVALUATION_STARTED', 'MECHANICAL_EVALUATED',
   'MECHANICAL_EVALUATION_FAILED', 'MECHANICAL_NOT_APPLICABLE', 'MECHANICAL_INPUTS_CLEARED',
   'USER_DATA_CHANGED', 'SBC_INPUTS_OPENED', 'SBC_TYPE3_EVALUATED',
-  'REGISTER_EXPORTED', 'RUN_EVIDENCE_EXPORTED', 'AUDIT_EXPORTED',
+  'REGISTER_EXPORTED', 'RUN_EVIDENCE_EXPORT_STARTED', 'RUN_EVIDENCE_EXPORTED', 'AUDIT_EXPORTED',
 ]);
 
 const EVENT_SET = new Set(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES);
@@ -46,14 +47,44 @@ function workflowValue(value, code, allowNull = false) {
   return text;
 }
 
+function auditEventId(sequence) {
+  return `VI-EVT-${String(sequence).padStart(6, '0')}`;
+}
+
+function assertAuditEvent(event, index) {
+  const sequence = index + 1;
+  if (event?.schema !== VIBRATION_INTEGRITY_AUDIT_EVENT_SCHEMA
+      || event.sequence !== sequence || event.eventId !== auditEventId(sequence)) {
+    throw new TypeError('VIBRATION_AUDIT_EVENT_INVALID');
+  }
+  const eventType = String(event.eventType ?? '').trim();
+  if (!EVENT_SET.has(eventType)) throw new TypeError(`VIBRATION_AUDIT_EVENT_TYPE_INVALID:${eventType}`);
+  if (!String(event.timestamp ?? '').trim() || Number.isNaN(Date.parse(event.timestamp))) {
+    throw new TypeError('VIBRATION_AUDIT_TIMESTAMP_INVALID');
+  }
+  workflowValue(event.workflowBefore, 'VIBRATION_AUDIT_WORKFLOW_BEFORE_INVALID', true);
+  workflowValue(event.workflowAfter, 'VIBRATION_AUDIT_WORKFLOW_AFTER_INVALID');
+  jsonClone(event.details);
+  if (event.authority?.engineeringAuthority !== 'NONE'
+      || event.authority?.purpose !== 'ACTIVITY_AUDIT_ONLY') {
+    throw new TypeError('VIBRATION_AUDIT_AUTHORITY_INVALID');
+  }
+}
+
 export function createVibrationIntegrityAuditLog() {
   return deepFreeze({ schema: VIBRATION_INTEGRITY_AUDIT_SCHEMA, events: [] });
 }
 
-export function appendVibrationIntegrityAuditEvent(log, event = {}) {
+export function assertVibrationIntegrityAuditLog(log) {
   if (log?.schema !== VIBRATION_INTEGRITY_AUDIT_SCHEMA || !Array.isArray(log.events)) {
     throw new TypeError('VIBRATION_AUDIT_LOG_INVALID');
   }
+  log.events.forEach(assertAuditEvent);
+  return log;
+}
+
+export function appendVibrationIntegrityAuditEvent(log, event = {}) {
+  assertVibrationIntegrityAuditLog(log);
   const eventType = String(event.eventType ?? '').trim();
   if (!EVENT_SET.has(eventType)) throw new TypeError(`VIBRATION_AUDIT_EVENT_TYPE_INVALID:${eventType}`);
   const timestamp = String(event.timestamp ?? '').trim();
@@ -62,9 +93,9 @@ export function appendVibrationIntegrityAuditEvent(log, event = {}) {
   const scopeId = event.scopeId === null || event.scopeId === undefined
     ? null : String(event.scopeId).trim() || null;
   const record = {
-    schema: 'VibrationIntegrityAuditEvent.v1',
+    schema: VIBRATION_INTEGRITY_AUDIT_EVENT_SCHEMA,
     sequence,
-    eventId: `VI-EVT-${String(sequence).padStart(6, '0')}`,
+    eventId: auditEventId(sequence),
     timestamp,
     eventType,
     workflowBefore: workflowValue(event.workflowBefore, 'VIBRATION_AUDIT_WORKFLOW_BEFORE_INVALID', true),
@@ -77,15 +108,19 @@ export function appendVibrationIntegrityAuditEvent(log, event = {}) {
 }
 
 export function buildVibrationIntegrityAuditExport(state = {}, exportedAt = new Date().toISOString()) {
-  const log = state.auditLog;
-  if (log?.schema !== VIBRATION_INTEGRITY_AUDIT_SCHEMA) throw new TypeError('VIBRATION_AUDIT_LOG_INVALID');
+  const log = assertVibrationIntegrityAuditLog(state.auditLog);
   return deepFreeze({
     schema: VIBRATION_INTEGRITY_AUDIT_EXPORT_SCHEMA,
     exportedAt,
     workflow: deriveVibrationIntegrityWorkflowState(state),
     resultState: state.resultState ?? 'UNRUN',
     auditLog: log,
-    authority: { engineeringAuthority: 'NONE', screeningAuthority: 'NOT_AUTHORIZED', designAuthority: false },
+    authority: {
+      engineeringAuthority: 'NONE',
+      screeningAuthority: 'NOT_AUTHORIZED',
+      designAuthority: false,
+      purpose: 'ACTIVITY_AUDIT_ONLY',
+    },
   });
 }
 
