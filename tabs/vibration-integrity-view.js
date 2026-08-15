@@ -103,8 +103,10 @@ function mechanicalInputAction(assessment, compact = false) {
   const incomplete = assessment.assessmentState === 'APPLICABLE_INCOMPLETE';
   const notApplicable = assessment.assessmentState === 'NOT_APPLICABLE';
   const label = compact ? 'Edit' : incomplete ? 'Evaluate sources' : 'Mechanical inputs';
+  const button = `<button type="button" class="vi-row-link" data-vi-mechanical-facility-scope="${esc(assessment.facilityScopeId)}">${label}</button>`;
+  if (compact) return button;
   const status = notApplicable ? 'NOT APPLICABLE' : incomplete ? 'NOT READY' : 'INPUT REQUIRED';
-  return `<button type="button" class="vi-row-link" data-vi-mechanical-facility-scope="${esc(assessment.facilityScopeId)}">${label}</button><small class="vi-mono">${status}</small>`;
+  return `${button}<small class="vi-mono">${status}</small>`;
 }
 
 function sbcInputAction(assessment) {
