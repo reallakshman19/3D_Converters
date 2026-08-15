@@ -1,29 +1,39 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { runVibrationFacilityFitBenchmarkFromTables } from '../converters/vibration/facility/fit-workflow-tabular.js';
+import {
+  runVibrationFacilityFitBenchmarkFromTables,
+  runVibrationFacilityFitScreeningFromTables,
+} from '../converters/vibration/facility/fit-workflow-tabular.js';
 import { VIBRATION_FIT_UI_BENCHMARK_CASES } from '../tabs/vibration-integrity-benchmarks.js';
 import {
   buildLoadedVibrationIntegrityBenchmark,
   captureVibrationIntegrityExecutionState,
   createVibrationIntegrityInputRuntimeState,
 } from '../tabs/vibration-integrity-input-runtime.js';
-import { executeVibrationIntegrityBenchmarkRun } from '../tabs/vibration-integrity-run-controller.js';
+import {
+  executeVibrationIntegrityBenchmarkRun,
+  executeVibrationIntegrityRun,
+} from '../tabs/vibration-integrity-run-controller.js';
 import {
   FIT_RUN_EVIDENCE_SCHEMA,
   buildVibrationIntegrityRunEvidence,
   serializeVibrationIntegrityRunEvidence,
 } from '../tabs/vibration-integrity-run-evidence.js';
 
-async function currentBenchmarkState() {
+function benchmarkRuntimeState() {
   const id = VIBRATION_FIT_UI_BENCHMARK_CASES[0].id;
   const loaded = buildLoadedVibrationIntegrityBenchmark(id);
-  const state = {
+  return {
     ...createVibrationIntegrityInputRuntimeState(),
     benchmark: { selectedId: id, loaded: loaded.loaded, detachedFromSource: false },
     tables: loaded.tables,
     files: loaded.files,
     allowLimitedExchange: loaded.allowLimitedExchange,
   };
+}
+
+async function currentBenchmarkState() {
+  const state = benchmarkRuntimeState();
   const captured = captureVibrationIntegrityExecutionState(state);
   const executed = await executeVibrationIntegrityBenchmarkRun(
     captured,
@@ -33,6 +43,21 @@ async function currentBenchmarkState() {
     ...state,
     resultState: 'CURRENT_RESULT',
     runSnapshot: Object.freeze({ ...executed.runSnapshot, runId: 'FIT-RUN-TEST-001' }),
+    envelope: executed.envelope,
+  };
+}
+
+async function currentScreeningState() {
+  const state = benchmarkRuntimeState();
+  const captured = captureVibrationIntegrityExecutionState(state);
+  const executed = await executeVibrationIntegrityRun(
+    captured,
+    runVibrationFacilityFitScreeningFromTables,
+  );
+  return {
+    ...state,
+    resultState: 'CURRENT_RESULT',
+    runSnapshot: Object.freeze({ ...executed.runSnapshot, runId: 'FIT-RUN-SCREENING-001' }),
     envelope: executed.envelope,
   };
 }
@@ -54,6 +79,18 @@ test('FIT run evidence binds audit and engineering identities to the central ben
   assert.equal(evidence.sources.benchmark.published.standardLof, state.benchmark.loaded.published.standardLof);
   assert.equal(evidence.execution.workflow.result.rows[0].centralResult.outputs.standardLof,
     state.envelope.workflow.result.rows[0].centralResult.outputs.standardLof);
+});
+
+test('FIT run evidence preserves bounded screening authority without design authority', async () => {
+  const state = await currentScreeningState();
+  const evidence = await buildVibrationIntegrityRunEvidence(state);
+  assert.equal(evidence.qualificationMode, 'screening');
+  assert.equal(evidence.authority.engineeringAuthority, 'SCREENING');
+  assert.equal(evidence.authority.screeningAuthorized, true);
+  assert.equal(evidence.authority.designAuthority, false);
+  assert.equal(evidence.execution.workflow.result.rows[0].status, 'CALCULATED_SCREENING');
+  assert.equal(evidence.execution.workflow.result.rows[0].centralResult.qualification.effective, 'SCREENING');
+  assert.equal(evidence.execution.workflow.result.rows[0].centralResult.qualification.designAuthority, false);
 });
 
 test('FIT run evidence serializer round-trips the governed package', async () => {
