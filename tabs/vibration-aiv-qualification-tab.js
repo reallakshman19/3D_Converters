@@ -52,6 +52,7 @@ export function renderAivQualificationWorkspace(container) {
     state, render, clearReadiness: execution.clearReadiness,
     clearMasterResolution: () => masterDbController.clearResolution({ clearDerivedValues: true }),
     deactivateFlareNetworkGeneration,
+    onDatasetLoaded: () => masterDbController.apply({ silent: true }),
   });
 
   function render() {
@@ -192,10 +193,6 @@ export function renderAivQualificationWorkspace(container) {
 
   function onChange(event) {
     if (event.target.closest('[data-aiv-network-editor]')) return;
-    if (event.target.dataset.aivMasterFiles) {
-      if (event.target.files?.length) masterDbController.loadFiles(event.target.files);
-      return;
-    }
     const assumptionPath = event.target.dataset.aivAssumption;
     if (assumptionPath) {
       try {
@@ -221,6 +218,7 @@ export function renderAivQualificationWorkspace(container) {
   container.addEventListener('click', onClick);
   container.addEventListener('change', onChange);
   render();
+  masterDbController.loadBundled();
 
   return () => {
     state.destroyed = true;
