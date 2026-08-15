@@ -8,21 +8,27 @@ files:
     - tabs/vibration-aiv-execution.js
     - tabs/vibration-aiv-qualification-tab.js
     - tabs/vibration-aiv-input-view.js
+    - tabs/vibration-aiv-workspace-loaders.js
     - tabs/vibration-aiv-engineering-revision.js
     - tabs/vibration-aiv-mode-transition.js
+    - tabs/vibration-aiv-network-transaction.js
+    - tabs/vibration-aiv-unified-canvas-projection.js
     - tests/vibration-aiv-engineering-revision.test.mjs
     - tests/vibration-aiv-mode-transition.test.mjs
+    - tests/vibration-aiv-network-transaction.test.mjs
     - tests/vibration-aiv-input-mode-integration.test.mjs
+    - tests/vibration-aiv-unified-canvas-projection.test.mjs
     - agents/PR528_workreport.md
     - agents/status/PR528.yaml
     - agents/claims/PR528.yaml
+  coordinated_exact:
+    - tabs/vibration-aiv-master-db-controller.js
   future_exact:
-    - tabs/vibration-aiv-workspace-loaders.js
     - tabs/vibration-aiv-workbench.css
     - tests/vibration-module-boundaries.test.mjs
     - tests/vibration-aiv-runtime-cache-chain.test.mjs
   planned_new:
-    - tabs/vibration-aiv-unified-canvas-projection.js
+    - tabs/vibration-aiv-master-currentness.js
     - tabs/vibration-aiv-unified-canvas-view.js
     - tabs/vibration-aiv-unified-canvas-controller.js
     - tabs/vibration-aiv-unified-canvas-pointer.js
@@ -54,10 +60,12 @@ exclusions:
 notes:
   - "Issue #526 qualification gate is satisfied by reviewer comment 5303402441."
   - "Stage 1 owns explicit input-mode, engineering-revision, stale-operation, generated-table read-only and detach custody."
-  - "Stage 2 owns UI projection/composition only; it must consume existing graph pathEvidence and registered result projections without new engineering math."
+  - "Stage 2 projection consumes existing graph pathEvidence and registered result projections without new engineering math."
+  - "Network engineering commits receive a fresh UI transaction revision before generation; controlled fixture replacement may explicitly preserve its declared revision."
+  - "Master DB controller coordination is limited to detecting effective/provenance input changes for revision invalidation; PR528 does not claim or redefine master engineering authority."
   - "PR #517 has ACTIVE/EXCLUSIVE authority over AIV readiness/executable parity. PR528 consumes, not rewrites, that contract."
   - "Open PR #506 overlaps several exact UI/state files but remains candidate/salvage evidence only and is not the base for PR528."
   - "NETWORK_DRIVEN graph and TABLE_DRIVEN working tables must never be silently synchronized as dual engineering owners."
   - "SVG/pixel x/y remains presentation-only and cannot establish physical distance."
   - "No workflow files are claimed or authorized."
-last_verified_head: d99230d04805cf734a44ed644d9b6a09f4003f60
+last_verified_head: b47662698981408523ff647a3cecd8c8d0f6933d
