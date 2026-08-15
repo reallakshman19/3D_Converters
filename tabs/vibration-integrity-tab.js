@@ -219,6 +219,7 @@ export function renderVibrationIntegrityTab(container) {
 
   async function exportRunEvidence() {
     if (state.resultState !== 'CURRENT_RESULT') return;
+    recordAudit('RUN_EVIDENCE_EXPORT_STARTED', { runId: state.runSnapshot?.runId ?? null });
     try {
       const payload = await serializeVibrationIntegrityRunEvidence(state);
       downloadVibrationIntegrityText(payload, 'vibration-fit-run-evidence.json', 'application/json;charset=utf-8');
