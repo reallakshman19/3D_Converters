@@ -5,6 +5,7 @@ import {
 } from '../../tabs/model-converters/fbx-selected-zone-preview-bridge.js';
 
 const root = new URL('../../', import.meta.url);
+const shellKey = '20260815-aiv-pf01-cache-1';
 const key = '20260804-fbx-multifamily-release-1';
 const obsoleteKeys = [
   '20260802-fbx-live-ui-3',
@@ -38,8 +39,8 @@ function requires(path, fragment) {
   assert.equal(files[path].includes(fragment), true, `${path} lacks ${fragment}`);
 }
 
-requires('index.html', `main-rhbg-fitguard.js?v=${key}`);
-requires('main-rhbg-fitguard.js', `core/app.js?v=${key}`);
+requires('index.html', `main-rhbg-fitguard.js?v=${shellKey}`);
+requires('main-rhbg-fitguard.js', `core/app.js?v=${shellKey}`);
 requires('core/app.js', `app-standalone-runtime.js?v=${key}`);
 requires('core/app.js', `model-converters-tab.js?v=${key}`);
 requires('tabs/model-converters-tab.js', `model-converters/index.js?v=${key}`);
