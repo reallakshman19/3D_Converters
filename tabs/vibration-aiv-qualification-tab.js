@@ -11,18 +11,16 @@ import {
   addAivRelationshipInputRow,
   deleteAivInputRow,
   findAivRelationshipInputRowIndex,
-  parseAivInputCsv,
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
-import { buildLoadedAivD23Benchmark } from './vibration-aiv-benchmarks.js';
 import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
 import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
-import { importAivEitFileIntoState } from './vibration-aiv-eit-import-controller.js';
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
-import { projectAivFlareNetworkIntoWorkspace } from './vibration-aiv-flare-network-state.js';
+import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js';
+import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
@@ -49,6 +47,13 @@ export function renderAivQualificationWorkspace(container) {
   });
   const execution = createAivExecutionActions({ state, render, downloadText: downloadAivText });
   const assumptionAcceptanceController = createAivAssumptionAcceptanceController({ state, render, container });
+  const masterDbController = createAivMasterDbController({ state, render, clearReadiness: execution.clearReadiness });
+  const datasetLoader = createAivDatasetLoader({
+    state, render, clearReadiness: execution.clearReadiness,
+    clearMasterResolution: () => masterDbController.clearResolution({ clearDerivedValues: true }),
+    deactivateFlareNetworkGeneration,
+    onDatasetLoaded: () => masterDbController.apply({ silent: true }),
+  });
 
   function render() {
     if (state.destroyed) return;
@@ -76,92 +81,14 @@ export function renderAivQualificationWorkspace(container) {
   }
 
   function applyFlareNetwork(network) {
-    try {
-      const projected = projectAivFlareNetworkIntoWorkspace(network);
-      state.flareNetwork = projected.flareNetwork;
-      state.generatedInputSet = projected.generatedInputSet;
-      state.tables = projected.tables;
-      state.topology = projected.topology;
-      state.topologyInput = projected.topologyInput;
-      state.files = { eit: null, ...projected.files };
-      state.eitImport = null;
-      state.flareNetworkActive = true;
-      state.benchmark.loaded = null;
-      execution.clearReadiness();
-      state.error = null;
-    } catch (error) {
-      state.error = String(error?.message || error);
-    }
-    render();
+    datasetLoader.applyFlareNetwork(network);
   }
 
-  function markBenchmarkModified() {
-    if (!state.benchmark.loaded || state.benchmark.loaded.modified) return;
-    state.benchmark.loaded = Object.freeze({ ...state.benchmark.loaded, modified: true });
-  }
-
-  function loadBenchmark() {
-    try {
-      const loaded = buildLoadedAivD23Benchmark();
-      deactivateFlareNetworkGeneration();
-      state.eitImport = null;
-      state.benchmark.loaded = loaded.benchmark;
-      state.tables = { ...loaded.tables };
-      state.files = { eit: null, ...loaded.files };
-      state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
-      state.assumptionProfileModified = false;
-      state.topology = loaded.topology;
-      state.topologyInput = {
-        format: 'PARSED_EXCHANGE',
-        data: loaded.topology,
-        sourceFileName: loaded.topology.sourceFileName,
-      };
-      execution.clearReadiness();
-      state.error = null;
-    } catch (error) {
-      state.error = String(error?.message || error);
-    }
-    render();
-  }
-
-  async function loadFile(target, file) {
-    execution.clearReadiness();
-    deactivateFlareNetworkGeneration();
-    state.error = null;
-    try {
-      if (target === 'eit') {
-        await importAivEitFileIntoState(state, file, execution.clearReadiness);
-      } else if (target === 'topology') {
-        state.eitImport = null;
-        state.files.eit = null;
-        state.files.topology = { name: file.name, kind: 'Complete five-sheet XLSX' };
-        state.topology = null;
-        state.topologyInput = {
-          format: 'XLSX',
-          data: await file.arrayBuffer(),
-          sourceFileName: file.name,
-        };
-      } else {
-        state.eitImport = null;
-        state.files.eit = null;
-        const text = await file.text();
-        state.tables[target] = parseAivInputCsv(target, text, {
-          sourceName: file.name,
-          sourceKind: 'CSV',
-        });
-        state.files[target] = { name: file.name, kind: state.tables[target].contract };
-      }
-      markBenchmarkModified();
-    } catch (error) {
-      state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
-    }
-    render();
-  }
-
-  function applyTableMutation(kind, table) {
+  function applyTableMutation(kind, table, preserveMasterResolution = false) {
     state.tables[kind] = table;
+    if (!preserveMasterResolution) masterDbController.clearResolution();
     if (state.flareNetworkActive) deactivateFlareNetworkGeneration();
-    markBenchmarkModified();
+    datasetLoader.markBenchmarkModified();
     execution.clearReadiness();
     state.error = null;
     render();
@@ -176,7 +103,7 @@ export function renderAivQualificationWorkspace(container) {
       if (findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input) >= 0) {
         throw new Error('AIV_INPUT_RELATIONSHIP_DUPLICATE: Relationship already exists for the selected source, assessment and operating case.');
       }
-      applyTableMutation('relationships', addAivRelationshipInputRow(state.tables.relationships, input));
+      applyTableMutation('relationships', addAivRelationshipInputRow(state.tables.relationships, input), true);
       return true;
     } catch (error) {
       state.error = String(error?.message || error);
@@ -190,7 +117,8 @@ export function renderAivQualificationWorkspace(container) {
       if (!confirmAivRelationshipDelete(input)) return false;
       const rowIndex = findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input);
       if (rowIndex < 0) throw new Error('AIV_INPUT_RELATIONSHIP_NOT_FOUND: Selected relationship no longer exists.');
-      applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex));
+      masterDbController.noteRowDeleted('relationships', rowIndex);
+      applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex), true);
       return true;
     } catch (error) {
       state.error = String(error?.message || error);
@@ -202,7 +130,7 @@ export function renderAivQualificationWorkspace(container) {
   function handleTableClick(event) {
     const addKind = event.target.closest('[data-aiv-table-add]')?.dataset.aivTableAdd;
     if (addKind) {
-      applyTableMutation(addKind, addAivInputRow(state.tables[addKind]));
+      applyTableMutation(addKind, addAivInputRow(state.tables[addKind]), true);
       return true;
     }
     const button = event.target.closest('[data-aiv-table-delete]');
@@ -210,7 +138,8 @@ export function renderAivQualificationWorkspace(container) {
     const kind = button.dataset.aivTableDelete;
     const rowIndex = Number(button.dataset.aivEditRow);
     if (kind === 'relationships' && !confirmAivRelationshipDelete(aivRelationshipIdentityFromTableRow(state.tables.relationships, rowIndex))) return true;
-    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], rowIndex));
+    masterDbController.noteRowDeleted(kind, rowIndex);
+    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], rowIndex), true);
     return true;
   }
 
@@ -233,8 +162,9 @@ export function renderAivQualificationWorkspace(container) {
     }
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
     if (assumptionAcceptanceController.handleAction(action)) return;
+    if (action === 'apply-master-data') masterDbController.apply();
     if (action === 'load-mock-flare-network') loadAivSmallFlareMock(state, applyFlareNetwork);
-    if (action === 'load-d23-benchmark') loadBenchmark();
+    if (action === 'load-d23-benchmark') datasetLoader.loadBenchmark();
     if (action === 'source-template') downloadAivText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
     if (action === 'assessment-template') downloadAivText(createAivAssessmentCsvTemplate(), 'aiv-assessments-v1.csv');
     if (action === 'relationship-template') downloadAivText(createAivSourceAssessmentCsvTemplate(), 'aiv-source-assessment-v1.csv');
@@ -249,12 +179,15 @@ export function renderAivQualificationWorkspace(container) {
   function handleTableChange(event) {
     const kind = event.target.dataset.aivTableCell;
     if (!kind) return false;
+    const rowIndex = Number(event.target.dataset.aivEditRow);
+    const columnIndex = Number(event.target.dataset.aivEditColumn);
+    const baseTable = masterDbController.prepareUserEdit(kind, rowIndex, columnIndex);
     applyTableMutation(kind, updateAivInputCell(
-      state.tables[kind],
-      Number(event.target.dataset.aivEditRow),
-      Number(event.target.dataset.aivEditColumn),
+      baseTable,
+      rowIndex,
+      columnIndex,
       event.target.value,
-    ));
+    ), true);
     return true;
   }
 
@@ -276,7 +209,7 @@ export function renderAivQualificationWorkspace(container) {
     const target = event.target.dataset.aivFile;
     if (target) {
       const file = event.target.files?.[0];
-      if (file) loadFile(target, file);
+      if (file) datasetLoader.loadFile(target, file);
       return;
     }
     handleTableChange(event);
@@ -285,6 +218,7 @@ export function renderAivQualificationWorkspace(container) {
   container.addEventListener('click', onClick);
   container.addEventListener('change', onChange);
   render();
+  masterDbController.loadBundled();
 
   return () => {
     state.destroyed = true;
