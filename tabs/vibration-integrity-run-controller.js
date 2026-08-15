@@ -4,18 +4,22 @@ import {
   buildVibrationIntegrityRunSnapshot,
 } from './vibration-integrity-run-snapshot.js';
 
-export async function executeVibrationIntegrityBenchmarkRun(capturedState, runBenchmarkFromTables) {
-  if (typeof runBenchmarkFromTables !== 'function') {
-    throw new TypeError('FIT benchmark run requires the lazily loaded facility workflow function.');
+export async function executeVibrationIntegrityRun(capturedState, runFromTables) {
+  if (typeof runFromTables !== 'function') {
+    throw new TypeError('FIT run requires the lazily loaded facility workflow function.');
   }
   const snapshot = await buildVibrationIntegrityRunSnapshot(capturedState);
   const tableInput = await buildVibrationIntegrityFacilityTableInput(capturedState);
-  const envelope = runBenchmarkFromTables(
+  const envelope = runFromTables(
     tableInput,
     { allowLimitedExchange: capturedState.allowLimitedExchange },
   );
   const runSnapshot = await bindVibrationIntegrityEngineeringIdentity(snapshot, envelope);
   return Object.freeze({ envelope, runSnapshot });
+}
+
+export function executeVibrationIntegrityBenchmarkRun(capturedState, runBenchmarkFromTables) {
+  return executeVibrationIntegrityRun(capturedState, runBenchmarkFromTables);
 }
 
 export async function vibrationIntegrityRunInputDrifted(runSnapshot, liveState) {
