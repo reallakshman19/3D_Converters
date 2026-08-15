@@ -100,11 +100,13 @@ function fitAssessment(row, mechanism, context) {
 function mechanicalAssessment(row, mechanism, context) {
   const scopeId = mechanicalFacilityScopeId(row);
   const sourceKeys = context.mechanicalSourceKeysByScope?.[scopeId] ?? [];
+  const notApplicable = context.mechanicalNotApplicableByScope?.[scopeId] === true;
   const cachedCandidate = context.mechanicalCandidateResultsByScope?.[scopeId] ?? null;
   const inheritedCurrency = context.resultState === 'STALE_RESULT' ? 'STALE_RESULT' : null;
   const contractSet = buildMechanicalVibrationMechanismAssessmentSet({
     row,
     sourceKeys,
+    notApplicable,
     cachedCandidate,
     resultState: context.mechanicalResultState ?? inheritedCurrency,
   });
