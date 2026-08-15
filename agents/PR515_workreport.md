@@ -11,20 +11,21 @@ MERGE_AUTHORITY: OWNER_ONLY
 
 MAIN_HEAD_LAST_CHECKED: d659e670a2f8fe0a35fc8072382512f6493898cf
 MERGE_BASE: d659e670a2f8fe0a35fc8072382512f6493898cf
-IMPLEMENTATION_HEAD: 8ce49f991d6907694f284398026a8114437d9740
+IMPLEMENTATION_HEAD_BEFORE_EVIDENCE_SYNC: 835c908ad16fa206aa510136068ea6d1b0578a12
 FILTER_BLOB_AFTER: 8640eca0a2e1454e277613d50c4c9962e3e537d8
+PACKAGE_BLOB_AFTER_PF01_GATE: 958da1f3ba7cc2185f68af4bb5c4b254f7711dd0
 GROUNDING_EPOCH: GE-005
-CURRENT_STAGE: IMPLEMENTED_TARGETED_VALIDATION_PASS_FULL_APP_POSTFIX_AND_B1_B6_PENDING
-CURRENT_BLOCKER: full patched application cannot be navigated from this execution environment; B1-B6 complete closure remains NOT_RUN
-HIGHEST_RISK: mistaking targeted Chromium/module or analytical subchecks for full application/registered benchmark acceptance
-EXACT_NEXT_ACTION: run PR515 patched head in the real AIV application, import the same EI EIT, Check AIV readiness, Run AIV screening, exercise Case/Line/Show, confirm zero uncaught caseId errors, then execute B1-B6 and the AIV release suite before merge or PF-02
+CURRENT_STAGE: IMPLEMENTED_TARGETED_VALIDATION_PASS_NATIVE_AND_FULL_APP_EXECUTION_PENDING
+CURRENT_BLOCKER: exact-head native PF-01/release suite and identical post-fix real-application Chromium replay are NOT_RUN
+HIGHEST_RISK: treating mapped tests, targeted Chromium or independent numerical subchecks as exact-head native/full-product acceptance
+EXACT_NEXT_ACTION: run `npm run verify:aiv-pf01`, then `npm run verify:aiv-canvas-release`, then repeat the same EI EIT -> readiness -> screening -> Case/Line/Show workflow in the real application; keep PF-02 blocked until all required evidence is green
 ```
 
 ## Mission
 
-Issue #513 PF-01 only: reproduce the live AIV canvas/filter crash as a user, make the smallest correct fix, benchmark immediately, and stop before PF-02 until the slice is fully qualified.
+Issue #513 PF-01 only: use the application live, reproduce the canvas/filter failure, make the smallest correct fix, validate against frozen engineering benchmarks, make the touched failure surface professional, record the proof, and stop before PF-02 until the slice is qualified.
 
-Permanent boundaries remain:
+Permanent boundaries:
 
 ```text
 TABLES = engineering source of truth
@@ -35,11 +36,11 @@ designAuthority = false
 frozen benchmark expected values/tolerances = immutable in this slice
 ```
 
-## Live BEFORE evidence
+## Live BEFORE evidence — confirmed
 
-Owner live Chromium reproduction was supplied at `2026-08-15T15:37:11+04:00` on current production after PR #516.
+Owner live Chromium reproduction was supplied at `2026-08-15T15:37:11+04:00` on production `main@d659e670...` after PR #516.
 
-User workflow:
+Workflow:
 
 ```text
 Import EI worked-example EIT
@@ -48,14 +49,14 @@ Import EI worked-example EIT
 -> Run AIV screening
 ```
 
-Observed product failure:
+Observed failure:
 
 ```text
 AIV action failed.
 Cannot read properties of null (reading 'caseId')
 ```
 
-Console stack reproduced the same first wrong boundary twice:
+Browser stack:
 
 ```text
 createAivCanvasFilterState (vibration-aiv-canvas-filter.js:33:36)
@@ -65,24 +66,29 @@ Object.sync (vibration-aiv-canvas-controller.js:283:17)
 render (vibration-aiv-qualification-tab.js?v=aiv-qualification-1:62:22)
 ```
 
-One path was dataset load (`vibration-aiv-dataset-loader.js:102`); the second was Check Readiness (`vibration-aiv-execution.js:56`).
+Callers included dataset load and Check Readiness. This satisfies the PF-01 live-product pre-fix gate.
 
-Current production filter blob at reproduction: `a5da4fb99e69310659659725696c61c3d9347085`.
-
-Root cause:
+## First wrong boundary / root cause
 
 ```text
 createAivCanvasFilterController() initializes state = null
 -> first sync passes explicit null
--> createAivCanvasFilterState(input = {}) default does not apply to null
--> input.caseId throws
+-> createAivCanvasFilterState(input = {}) default applies only to undefined
+-> input.caseId dereference throws
 ```
 
-This satisfies the PF-01 pre-fix falsifier. The defect is live-product confirmed, not only helper-generated.
+Pre-fix production blob:
 
-## Fix
+```text
+tabs/vibration-aiv-canvas-filter.js
+a5da4fb99e69310659659725696c61c3d9347085
+```
 
-Only one production line changed:
+## Implemented PF-01 correction
+
+### 1. Minimal filter-state fix
+
+Only one production line changes the root failure:
 
 ```diff
  export function createAivCanvasFilterState(input = {}, options = {}) {
@@ -90,44 +96,123 @@ Only one production line changed:
    const cases = values(options.cases ?? []);
 ```
 
-Committed production filter blob after fix:
+Patched blob:
 
 ```text
 8640eca0a2e1454e277613d50c4c9962e3e537d8
 ```
 
-No AIV equation, coefficient, readiness contract, source-grouping rule, master rule, physical-distance authority, result scope or export contract changed.
-
-Permanent regression added:
+Permanent regression:
 
 ```text
 tests/vibration-aiv-canvas-filter-runtime.test.mjs
 ```
 
-and wired into:
+Cases:
+
+- explicit null state factory;
+- first controller sync from `state=null`;
+- filter change before explicit sync.
+
+The regression is wired into `npm run verify:aiv-canvas`.
+
+### 2. Professional degraded-canvas behavior
+
+The live failure also exposed a UX/authority defect: a presentation canvas exception escaped `render()` and was reported as an engineering `AIV action failed` result.
+
+PF-01 now contains canvas-only failure containment in:
 
 ```text
-npm run verify:aiv-canvas
+tabs/vibration-aiv-qualification-tab.js
 ```
 
-Package change is release-gate registration only.
-
-## Backup custody
-
-Repository policy backup utility was previously executed in the reconstructed hash-identical workspace against the pre-fix filter bytes:
+`canvasController.sync()` is isolated by `try/catch`. A presentation failure produces a warning inside the canvas:
 
 ```text
-utility: utils/backup.js
-utility blob: cd0c755457bb623b0487200a7d0b7217d8b3478e
-receipt: #2
-source blob = backup blob = a5da4fb99e69310659659725696c61c3d9347085
+Canvas unavailable: <error>. Engineering tables and screening controls remain authoritative and usable.
 ```
 
-A native-worktree rerun remains `NOT_RUN / ENVIRONMENT_BLOCKED`; immutable Git history retains the exact pre-edit blob. This limitation is recorded and not called PASS.
+The warning does not mutate engineering inputs, readiness authority, screening result authority, or physical distance.
+
+Regression protection is in `tests/vibration-aiv-canvas-hardening.test.mjs`.
+
+### 3. Cache-distinct live delivery
+
+The real browser trace showed:
+
+```text
+vibration-aiv-qualification-tab.js?v=aiv-qualification-1
+```
+
+The AIV product import in `tabs/engineering-calculations-tab.js` is advanced to:
+
+```text
+vibration-aiv-qualification-tab.js?v=aiv-qualification-2
+```
+
+This avoids relying on an already-observed stale module URL when qualifying the patched workspace. The hardening regression asserts `-2` is present and `-1` is absent.
+
+### 4. Strong B6 presentation-invariance regression
+
+New:
+
+```text
+tests/vibration-aiv-presentation-invariance.test.mjs
+```
+
+The controlled two-RV network is screened through the registered path before and after extreme presentation movement:
+
+```text
+J-101                -> (9999, -4000)
+AIV-ASSESS-HDR-001   -> (-2500, 7000)
+```
+
+The test requires exact equality of:
+
+- generated Sources table;
+- generated Assessments table;
+- generated Source→Assessment table;
+- path evidence;
+- readiness counts;
+- registered source results;
+- registered Assessment results;
+- non-authoritative line/case summaries.
+
+It also reasserts engineering path distances:
+
+```text
+RV-101 -> 38 m
+RV-102 -> 41 m
+```
+
+and `svgPixelsAuthoritativeForDistance=false`.
+
+### 5. Named PF-01 native gate
+
+`package.json` now exposes:
+
+```bash
+npm run verify:aiv-pf01
+```
+
+This invokes only existing/focused repository tests needed to close PF-01 and B1-B6. It does not create a second benchmark implementation.
+
+## Frozen B1-B6 coverage
+
+| ID | Repository proof | Contract |
+|---|---|---|
+| B1 | `vibration-aiv-canvas-integration.test.mjs` | EI D.2.3 via `calculateEngineering()`, raw/point PWL, Assessment LOF, canvas parity |
+| B2 | canvas integration + flare multisource | `160+160=163.0102999566398 dB` and both source IDs |
+| B3 | canvas integration + flare multisource | `160+150=160.41392685158226 dB` and both source IDs |
+| B4 | canvas integration | single Engineering API = batch API = canvas projection |
+| B5 | screening runtime bridge + flare multisource | controlled 2-RV mock -> readiness envelope -> request -> registered `calculateEngineering()`; RV-101/RV-102 custody |
+| B6 | flare network + SVG + presentation invariance | presentation movement cannot alter distance, engineering tables, readiness, or registered results |
+
+The targeted command maps to these proofs, but mapping is not execution.
 
 ## Executed validation
 
-### Filter regression
+### Filter regression — PASS
 
 Exact reconstructed patched filter + committed regression:
 
@@ -137,13 +222,7 @@ Exact reconstructed patched filter + committed regression:
 0 fail
 ```
 
-Cases:
-
-1. explicit `null` state factory;
-2. controller first sync from initial `state=null`;
-3. change-before-explicit-sync.
-
-### Targeted Chromium
+### Targeted Chromium 144 — PASS, limited scope
 
 Chrome `144.0.7559.96`, CDP 1.3:
 
@@ -153,48 +232,40 @@ first-sync          PASS
 change-before-sync  PASS
 ```
 
-Classification: `TARGETED_BROWSER_ENGINE_EXECUTION_NOT_FULL_APPLICATION`.
+Classification:
 
-### Frozen numerical invariance subchecks
+```text
+TARGETED_BROWSER_ENGINE_EXECUTION_NOT_FULL_APPLICATION
+```
 
-Exact independent qualification math/oracle values:
+### Frozen numerical invariance subchecks — PASS
 
 ```text
 D.2.3 relief raw PWL
-actual   164.6851759525391 dB
-expected 164.6851759525391 dB
-PASS delta 0, tol 1e-10
+164.6851759525391 dB = frozen expected, delta 0, tol 1e-10
 
 D.2.3 relief point PWL
-actual   164.3734876408508 dB
-expected 164.3734876408508 dB
-PASS delta 0, tol 1e-10
+164.3734876408508 dB = frozen expected, delta 0, tol 1e-10
 
-160 + 160 dB
-actual   163.0102999566398 dB
-expected 163.0102999566398 dB
-PASS delta 0, tol 1e-9
+160 + 160
+163.0102999566398 dB = frozen expected, delta 0, tol 1e-9
 
-160 + 150 dB
-actual   160.41392685158226 dB
-expected 160.41392685158226 dB
-PASS delta 0, tol 1e-9
+160 + 150
+160.41392685158226 dB = frozen expected, delta 0, tol 1e-9
 ```
 
-No oracle or tolerance was edited.
+No expected value or tolerance was changed.
 
-## B1-B6 qualification state
+## Exact B1-B6 status
 
-The numerical subchecks above are supporting evidence. They do not satisfy the complete B1-B6 contracts by themselves.
-
-| ID | Status | Remaining proof |
+| ID | Status | Reason |
 |---|---|---|
-| B1 D.2.3 registered screening | NOT_RUN | patched registered path + canvas projection parity |
-| B2 160+160 | NOT_RUN | patched registered multi-source path + both Source Canonical IDs |
-| B3 160+150 | NOT_RUN | patched registered multi-source path + both Source Canonical IDs |
-| B4 single/batch/canvas | NOT_RUN | registered-kernel parity execution |
-| B5 2-RV mock flare network | NOT_RUN | full registered workflow |
-| B6 SVG invariance | NOT_RUN | live canvas move/resize with engineering inputs/results unchanged |
+| B1 | NOT_RUN | exact native mapped test has not executed on implementation head |
+| B2 | NOT_RUN | exact native registered path/source-ID test has not executed |
+| B3 | NOT_RUN | exact native registered path/source-ID test has not executed |
+| B4 | NOT_RUN | exact native parity test has not executed |
+| B5 | NOT_RUN | exact native two-RV registered bridge test has not executed |
+| B6 | NOT_RUN | exact native registered presentation-invariance test has not executed |
 
 Therefore:
 
@@ -206,55 +277,96 @@ MERGE_READY = false
 
 ## Full application post-fix gate
 
-Still required on the exact patched branch/head:
+Still required on the exact patched branch:
 
 ```text
 Import the same EI worked-example EIT
 -> Check AIV readiness
 -> Run AIV screening
 -> exercise Operating Case / Line / Show
--> no uncaught TypeError
--> no AIV action failed banner from canvas-filter sync
--> authoritative tables/readiness remain usable
+-> no uncaught caseId TypeError
+-> no canvas-only exception promoted to AIV action failure
+-> authoritative tables/readiness/screening remain usable
 ```
 
-The current execution container cannot perform this because managed Chromium has `URLBlocklist=["*"]`, private repo checkout is unavailable, and hosted workflow jobs have historically acquired no runner/steps. These remain `NOT_RUN`, not PASS.
+If a canvas presentation failure is intentionally forced, the acceptable behavior is the local degraded warning, not an engineering action failure.
+
+## Execution-environment truth
+
+Current environment limitations:
+
+- no native private repository checkout is materialized;
+- the GitHub connector can read the private zipball endpoint but does not expose the archive bytes to the execution container;
+- local Chromium is managed with `URLBlocklist=["*"]`, preventing full-app navigation;
+- hosted GitHub workflow jobs repeatedly return `steps=null` and no logs.
+
+These are `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product failures and not PASS.
+
+## Backup custody
+
+Repository backup utility was previously executed against hash-identical pre-fix filter bytes in the reconstructed workspace:
+
+```text
+utils/backup.js blob: cd0c755457bb623b0487200a7d0b7217d8b3478e
+receipt: #2
+source blob = backup blob = a5da4fb99e69310659659725696c61c3d9347085
+```
+
+Native-worktree backup execution remains NOT_RUN because no native checkout exists. Immutable Git history retains the exact pre-edit blob.
 
 ## Changed-file ledger
 
-```text
-Production/test/release:
-  tabs/vibration-aiv-canvas-filter.js                 +1 line
-  tests/vibration-aiv-canvas-filter-runtime.test.mjs new focused regression
-  package.json                                        release-gate registration only
+Production/release/test files:
 
-Evidence/recovery:
-  ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-manifest.json
-  ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-before.json
-  ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-after.json
-  ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-benchmark.json
-  agents/PR515_workreport.md
-  agents/status/PR515.yaml
-  agents/claims/PR515.yaml
+```text
+tabs/vibration-aiv-canvas-filter.js                  root null fix
+tabs/vibration-aiv-qualification-tab.js              degraded canvas containment
+tabs/engineering-calculations-tab.js                 cache token -1 -> -2
+tests/vibration-aiv-canvas-filter-runtime.test.mjs   null/first-sync regression
+tests/vibration-aiv-canvas-hardening.test.mjs        degraded-mode/cache boundary regression
+tests/vibration-aiv-presentation-invariance.test.mjs B6 registered invariance regression
+package.json                                           release + PF-01 gate wiring
 ```
 
-## Coordination
+Evidence/recovery files:
 
-- PR #506 remains salvage/evidence only; no broad replay was used.
-- PR #516 is merged and is the production base.
-- No overlap with numerical/master/readiness/grouping/export authority in PF-01.
+```text
+ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-manifest.json
+ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-before.json
+ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-after.json
+ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-benchmark.json
+agents/PR515_workreport.md
+agents/status/PR515.yaml
+agents/claims/PR515.yaml
+```
+
+## Coordination / authority
+
+- PR #506 remains salvage/evidence only; only individually justified PF-01 ideas were replayed.
+- PR #516 is merged and is the production/merge base.
 - `main` last checked remains `d659e670a2f8fe0a35fc8072382512f6493898cf`.
+- No AIV equation/coefficient, executable-domain, source-grouping, master-authority, assumption-authority, or export-contract change is in PF-01.
+- No UI code recomputes dB or derives engineering distance from SVG geometry.
 
 ## Active items
 
-- `ISS-515-001` — full patched application Chromium path NOT_RUN.
-- `ISS-515-002` — B1-B6 full benchmark closure NOT_RUN.
-- `ISS-515-003` — native `npm run verify:aiv-canvas-release` NOT_RUN.
-- `DEC-515-001` — one-line null normalization accepted as minimal fix after owner live reproduction.
-- `DEC-515-002` — numerical subchecks PASS but cannot be promoted to registered/full-app benchmark PASS.
-- `DEC-515-003` — no further UI redesign in PF-01 unless full-app replay reveals a touched-workflow usability defect.
-- `RISK-515-001` — merging before identical post-fix live workflow and B1-B6 closure.
+- `ISS-515-001` — exact-head `npm run verify:aiv-pf01` NOT_RUN.
+- `ISS-515-002` — exact-head `npm run verify:aiv-canvas-release` NOT_RUN.
+- `ISS-515-003` — full patched application Chromium replay NOT_RUN.
+- `DEC-515-001` — one-line null normalization is the root correction.
+- `DEC-515-002` — canvas exceptions degrade presentation only and cannot masquerade as engineering action failure.
+- `DEC-515-003` — AIV workspace import token advanced to `aiv-qualification-2` for patched live delivery.
+- `DEC-515-004` — B1-B6 use existing registered/frozen tests; no duplicate benchmark equations added.
+- `RISK-515-001` — merging or authorizing PF-02 before native B1-B6 and post-fix full-browser closure.
 
 ## Exact next action
 
-Run the exact PR #515 patched head in the real application and repeat the owner workflow. If the `caseId` crash is gone, execute B1-B6 plus `npm run verify:aiv-canvas-release`, update the receipts with exact results, then request owner merge authorization. Do **not** start PF-02 while any required PF-01 benchmark remains `NOT_RUN` or red.
+On an executable exact PR #515 checkout:
+
+```bash
+npm ci
+npm run verify:aiv-pf01
+npm run verify:aiv-canvas-release
+```
+
+Then run the identical real-browser EI EIT workflow described above. Record exact head, browser version, result/output evidence, console state and B1-B6 PASS/FAIL. Only after those are green may PF-01 be marked complete and presented for Owner merge authorization. Do not start PF-02 while any required gate remains `NOT_RUN` or red.
