@@ -164,6 +164,37 @@ function receiptSkeleton() {
   };
 }
 
+async function runAcceptance(page, receipt, cases) {
+  await openWorkspace(page);
+  await uploadFixture(page, receipt, cases);
+  const [a, b] = cases;
+  const scopeA = await facilityScope(page, a.identity.line);
+  const scopeB = await facilityScope(page, b.identity.line);
+  const wrong = await wrongScopeRuntimeCheck(page, a.identity, scopeB);
+  assert.equal(wrong.status, 'INVALID_PRECOMPUTED_CANDIDATE');
+  assert.equal(wrong.result.problems[0].reason, 'FACILITY_SCOPE_MISMATCH');
+
+  await evaluateFacility(page, receipt, a, scopeA, 'SBC-PF-006-02', '02-facility-a-d7.png');
+  await returnToScreening(page);
+  await evaluateFacility(page, receipt, b, scopeB, 'SBC-PF-006-03', '03-facility-b-d7.png');
+  await returnToScreening(page);
+  await assertMatrixAuthority(page, cases);
+  record(receipt, {
+    id: 'SBC-PF-006-04',
+    name: 'Preserve FIT screening authority and reject wrong-scope candidate admission',
+    wrongScopeStatus: wrong.status,
+    screenshot: await shot(page, '04-two-facility-authority.png'),
+  });
+
+  await provePhysicalIsolation(page, cases);
+  await proveCurveAndAsyncIsolation(page, cases, scopeA);
+  record(receipt, {
+    id: 'SBC-PF-006-05',
+    name: 'Reject physical, D/F/G and stale-async overwrites without A/B leakage',
+    screenshot: await shot(page, '05-stale-race-isolation.png'),
+  });
+}
+
 async function main() {
   await mkdir(ARTIFACT_DIR, { recursive: true });
   const cases = fixtureCases();
@@ -174,34 +205,7 @@ async function main() {
   page.on('pageerror', (error) => errors.push(String(error?.stack || error)));
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   try {
-    await openWorkspace(page);
-    await uploadFixture(page, receipt, cases);
-    const [a, b] = cases;
-    const scopeA = await facilityScope(page, a.identity.line);
-    const scopeB = await facilityScope(page, b.identity.line);
-    const wrong = await wrongScopeRuntimeCheck(page, a.identity, scopeB);
-    assert.equal(wrong.status, 'INVALID_PRECOMPUTED_CANDIDATE');
-    assert.equal(wrong.result.problems[0].reason, 'FACILITY_SCOPE_MISMATCH');
-
-    await evaluateFacility(page, receipt, a, scopeA, 'SBC-PF-006-02', '02-facility-a-d7.png');
-    await returnToScreening(page);
-    await evaluateFacility(page, receipt, b, scopeB, 'SBC-PF-006-03', '03-facility-b-d7.png');
-    await returnToScreening(page);
-    await assertMatrixAuthority(page, cases);
-    record(receipt, {
-      id: 'SBC-PF-006-04',
-      name: 'Preserve FIT screening authority and reject wrong-scope candidate admission',
-      wrongScopeStatus: wrong.status,
-      screenshot: await shot(page, '04-two-facility-authority.png'),
-    });
-
-    await provePhysicalIsolation(page, cases);
-    await proveCurveAndAsyncIsolation(page, cases, scopeA);
-    record(receipt, {
-      id: 'SBC-PF-006-05',
-      name: 'Reject physical, D/F/G and stale-async overwrites without A/B leakage',
-      screenshot: await shot(page, '05-stale-race-isolation.png'),
-    });
+    await runAcceptance(page, receipt, cases);
     assert.deepEqual(errors, [], `Chromium errors:\n${errors.join('\n')}`);
     receipt.status = 'PASS';
   } catch (error) {
