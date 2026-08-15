@@ -23,7 +23,7 @@ export function renderVibrationIntegrityActivity(state = {}) {
   const events = state.auditLog?.events ?? [];
   return `<section class="vi-card" data-vi-workflow-state="${esc(workflow.state)}">
     <div class="vi-section-head"><div><h3>Assessment workflow</h3>
-      <p>Stable product state derived from the working inputs, readiness and current result. It does not perform engineering calculations.</p></div>
+      <p>Stable product state derived from working inputs, readiness and result state. It is observational only: workflow state does not determine FIT result currency and performs no engineering calculation.</p></div>
       <button type="button" class="vi-btn" data-vi-action="export-audit">Export activity log JSON</button>
     </div>
     <div class="vi-summary">
@@ -35,7 +35,7 @@ export function renderVibrationIntegrityActivity(state = {}) {
     ${workflow.readiness ? `<div class="vi-import-facts"><span>Ready: <strong>${esc(workflow.readiness.ready)}</strong></span><span>Not ready: <strong>${esc(workflow.readiness.notReady)}</strong></span><span>Assessment points: <strong>${esc(workflow.readiness.assessmentPoints)}</strong></span></div>` : ''}
   </section>
   <section class="vi-card" data-vi-audit-log="${esc(state.auditLog?.schema ?? 'UNAVAILABLE')}">
-    <div class="vi-section-head"><div><h3>Activity journal</h3><p>Ordered, scope-aware product actions. Journal entries are non-authoritative metadata and cannot alter engineering results.</p></div></div>
+    <div class="vi-section-head"><div><h3>Activity journal</h3><p>Ordered, scope-aware product actions. This activity export is non-authoritative observational metadata; it is not FIT run reproducibility evidence and cannot alter engineering results.</p></div></div>
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
       <th>#</th><th>Time</th><th>Action</th><th>Workflow</th><th>Scope</th><th>Details</th>
     </tr></thead><tbody>${eventRows(events)}</tbody></table></div>
