@@ -33,6 +33,7 @@ export function buildAivCanvasExportPayload(state, presentation = {}) {
     assumptionProfile: state.assumptionProfile,
     assumptionResolution: state.assumptionResolution,
     masterResolution: state.masterResolution,
+    masterAcceptance: state.masterAcceptance,
   });
   const canvasProjection = buildAivCanvasProjection({
     tables: state.tables,
