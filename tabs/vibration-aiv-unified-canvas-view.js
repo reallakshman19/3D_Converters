@@ -1,9 +1,9 @@
 import { buildDeterministicAivCanvasLayout, createAivCanvasLayout } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 import { renderAivCanvasFilterControls } from './vibration-aiv-canvas-filter.js';
 import { renderAivCanvasNodeGlyph, renderAivCanvasStatusGlyphs } from './vibration-aiv-canvas-icons.js';
-import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js';
 import { buildAivUnifiedCanvasProjection } from './vibration-aiv-unified-canvas-projection.js';
 
 function esc(value) {
@@ -159,7 +159,7 @@ export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
     ${renderAivCanvasFilterControls({ nodes, relationships: value.relationships })}
     <div class="aiv-canvas-frame"><svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-unified-canvas-svg="true" viewBox="0 0 900 520" role="img" aria-label="AIV unified network canvas"><g data-aiv-canvas-viewport="true">${physicalSegments}${relationshipMarkup}${nodeMarkup}</g></svg></div>
     <div class="aivq-readiness-note"><strong>Authority:</strong> physical lengths/path overlays come from explicit graph length/pathEvidence only; logical relationships are not pipes; displayed screening values come from the registered calculation result.</div>
-    ${summaryHtml(value)}<div data-aiv-canvas-selected-detail-host>${renderAivCanvasSelectedDetailHtml(state, state.selectedCanvasKey)}</div>
+    ${summaryHtml(value)}<div data-aiv-canvas-selected-detail-host>${renderAivUnifiedCanvasSelectedDetailHtml(state, state.selectedCanvasKey)}</div>
     ${renderAivUnifiedCanvasAuthoringHtml(state)}
   </section>`;
 }
