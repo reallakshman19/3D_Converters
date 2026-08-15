@@ -47,3 +47,15 @@ test('graph engineering commits are stamped once while controlled fixture load p
   assert.equal(qualification.includes('datasetLoader.applyFlareNetwork(network, options);'), true);
   assert.equal(loaders.includes("{ preserveRevision: true }"), true);
 });
+
+test('master resolution advances engineering revision only through effective/provenance change callback', async () => {
+  const [master, qualification] = await Promise.all([
+    read('tabs/vibration-aiv-master-db-controller.js'),
+    read('tabs/vibration-aiv-qualification-tab.js'),
+  ]);
+  assert.equal(master.includes('didAivMasterEngineeringInputsChange(previous, current)'), true);
+  assert.equal(master.includes('onEngineeringInputsChanged?.();'), true);
+  assert.equal(master.includes('state.tables = previous.tables;'), true);
+  assert.equal(master.includes('state.masterResolution = previous.resolution;'), true);
+  assert.equal(qualification.includes('onEngineeringInputsChanged: () => markAivEngineeringInputChanged(state)'), true);
+});
