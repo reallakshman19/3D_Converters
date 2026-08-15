@@ -35,3 +35,15 @@ test('dataset and execution integrate mode revision plus stale-operation custody
   assert.equal(execution.includes("isAivLineageCurrent(state, 'screening')"), true);
   assert.equal(state.includes('...createAivEngineeringRevisionState(),'), true);
 });
+
+test('graph engineering commits are stamped once while controlled fixture load preserves its declared revision', async () => {
+  const [dataset, qualification, loaders] = await Promise.all([
+    read('tabs/vibration-aiv-dataset-loader.js'),
+    read('tabs/vibration-aiv-qualification-tab.js'),
+    read('tabs/vibration-aiv-workspace-loaders.js'),
+  ]);
+  assert.equal(dataset.includes('prepareAivFlareNetworkEngineeringCommit(state, network, options)'), true);
+  assert.equal(qualification.includes('function applyFlareNetwork(network, options = {})'), true);
+  assert.equal(qualification.includes('datasetLoader.applyFlareNetwork(network, options);'), true);
+  assert.equal(loaders.includes("{ preserveRevision: true }"), true);
+});
