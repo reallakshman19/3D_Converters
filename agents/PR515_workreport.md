@@ -12,7 +12,7 @@ MERGE_AUTHORITY: OWNER_ONLY
 MAIN_HEAD_LAST_CHECKED: d659e670a2f8fe0a35fc8072382512f6493898cf
 MERGE_BASE: d659e670a2f8fe0a35fc8072382512f6493898cf
 IMPLEMENTATION_HEAD_BEFORE_EVIDENCE_SYNC: 835c908ad16fa206aa510136068ea6d1b0578a12
-FINAL_EVIDENCE_HEAD_OBSERVED_BEFORE_REPORT_SYNC: 0e354c51011c29b40929ad73826b6c87e5bea4cd
+FINAL_EVIDENCE_HEAD_OBSERVED_BEFORE_THIS_REPORT_COMMIT: 55dd3d6e8282274e1f6371e4790d15a177491807
 FILTER_BLOB_AFTER: 8640eca0a2e1454e277613d50c4c9962e3e537d8
 PACKAGE_BLOB_AFTER_PF01_GATE: 958da1f3ba7cc2185f68af4bb5c4b254f7711dd0
 GROUNDING_EPOCH: GE-005
@@ -272,7 +272,7 @@ Current environment limitations:
 - local Chromium is managed with `URLBlocklist=["*"]`, preventing full-app navigation;
 - hosted GitHub workflow jobs repeatedly return `steps=null` and no logs.
 
-Final-head AIV runner custody observed on PR head `0c680cace3547abff3a61421ca6a4521c7edef28`:
+Final-head AIV runner custody observed on PR head `0c680cace3547abff3a61421ca6a4521c7edef28` before subsequent evidence-only commits:
 
 ```text
 workflow run: 31883609230
