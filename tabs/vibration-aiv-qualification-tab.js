@@ -23,6 +23,7 @@ import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js';
 import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
+import { touchAivInputRevision } from './vibration-aiv-state-revision.js';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
 import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js';
@@ -55,11 +56,24 @@ export function renderAivQualificationWorkspace(container) {
     onDatasetLoaded: () => masterDbController.apply({ silent: true }),
   });
 
+  function showCanvasError(error) {
+    state.canvasError = String(error?.message || error);
+    const card = container.querySelector('.aiv-canvas-card');
+    const documentRef = container.ownerDocument ?? globalThis.document;
+    if (!card || !documentRef?.createElement) return;
+    const banner = documentRef.createElement('div');
+    banner.className = 'aivq-banner is-warning';
+    banner.dataset.aivCanvasError = 'true';
+    banner.textContent = `Canvas unavailable: ${state.canvasError}. Engineering tables and screening controls remain authoritative and usable.`;
+    card.prepend(banner);
+  }
+
   function render() {
     if (state.destroyed) return;
     const uiContext = captureAivUiContext(container);
+    state.canvasError = null;
     container.innerHTML = renderAivQualificationWorkspaceHtml(state);
-    canvasController.sync();
+    try { canvasController.sync(); } catch (error) { showCanvasError(error); }
     canvasExportController.sync();
     restoreAivUiContext(container, uiContext);
   }
@@ -86,6 +100,7 @@ export function renderAivQualificationWorkspace(container) {
 
   function applyTableMutation(kind, table, preserveMasterResolution = false) {
     state.tables[kind] = table;
+    touchAivInputRevision(state);
     if (!preserveMasterResolution) masterDbController.clearResolution();
     if (state.flareNetworkActive) deactivateFlareNetworkGeneration();
     datasetLoader.markBenchmarkModified();
@@ -146,6 +161,7 @@ export function renderAivQualificationWorkspace(container) {
   function resetAssumptions() {
     state.assumptionProfile = AIV_DEFAULT_ASSUMPTION_PROFILE;
     state.assumptionProfileModified = false;
+    touchAivInputRevision(state);
     execution.clearReadiness();
     state.error = null;
     render();
@@ -198,6 +214,7 @@ export function renderAivQualificationWorkspace(container) {
       try {
         state.assumptionProfile = updateAivAssumptionProfile(state.assumptionProfile, assumptionPath, event.target.value);
         state.assumptionProfileModified = true;
+        touchAivInputRevision(state);
         execution.clearReadiness();
         state.error = null;
       } catch (error) {
