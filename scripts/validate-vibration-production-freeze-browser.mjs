@@ -165,7 +165,7 @@ async function exportEvidence(page, receipt) {
   const evidence = JSON.parse(await (await import('node:fs/promises')).readFile(evidencePath, 'utf8'));
   assert.match(evidence.auditTrailIdentity?.hash ?? '', /^[0-9a-f]{64}$/u);
   assert.equal(evidence.authority?.designAuthority, false);
-  assert.equal(evidence.auditTrail?.events?.some((event) => event.type === 'RUN_EVIDENCE_EXPORT_STARTED'), true);
+  assert.equal(evidence.auditTrail?.events?.some((event) => event.eventType === 'RUN_EVIDENCE_EXPORT_STARTED'), true);
   await page.waitForFunction(() => document.body.innerText.includes('RUN_EVIDENCE_EXPORTED'), null, { timeout: TIMEOUT });
   step(receipt, {
     id: 'PF-007',
