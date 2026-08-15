@@ -109,14 +109,14 @@ export function createAivExecutionActions({ state, render, downloadText }) {
   async function runScreening() {
     if (state.busy || !isAivScreeningReady(state)) return;
     const operation = beginAivAsyncOperation(state, 'screening');
-    const request = buildAivEngineeringScreeningRequest({
-      readinessEnvelope: state.readinessEnvelope,
-      assumptionProfile: state.assumptionProfile,
-    });
     state.busy = true;
     state.error = null;
     render();
     try {
+      const request = buildAivEngineeringScreeningRequest({
+        readinessEnvelope: state.readinessEnvelope,
+        assumptionProfile: state.assumptionProfile,
+      });
       const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
       if (!isAivAsyncOperationCurrent(state, 'screening', operation)) return;
       const result = calculateEngineering(request);
