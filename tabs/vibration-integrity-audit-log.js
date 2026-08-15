@@ -50,6 +50,17 @@ function eventId(sequence) {
   return `VI-AUDIT-${String(sequence).padStart(6, '0')}`;
 }
 
+function assertAuditEvent(event, sequence) {
+  if (event?.schema !== VIBRATION_INTEGRITY_AUDIT_EVENT_SCHEMA
+      || event.sequence !== sequence || event.eventId !== eventId(sequence)) {
+    throw new Error('VIBRATION_AUDIT_SEQUENCE_INVALID');
+  }
+  if (!VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes(event.type)
+      || !String(event.at ?? '').trim() || Number.isNaN(Date.parse(event.at))) {
+    throw new Error('VIBRATION_AUDIT_EVENT_INVALID');
+  }
+}
+
 export function createVibrationIntegrityAuditLog(createdAt) {
   const at = requireIsoTimestamp(createdAt, 'VIBRATION_AUDIT_CREATED_AT_INVALID');
   return deepFreeze({
@@ -63,13 +74,8 @@ export function assertVibrationIntegrityAuditLog(log) {
   if (log?.schema !== VIBRATION_INTEGRITY_AUDIT_LOG_SCHEMA || !Array.isArray(log.events)) {
     throw new TypeError('VIBRATION_AUDIT_LOG_INVALID');
   }
-  log.events.forEach((event, index) => {
-    const sequence = index + 1;
-    if (event?.schema !== VIBRATION_INTEGRITY_AUDIT_EVENT_SCHEMA
-        || event.sequence !== sequence || event.eventId !== eventId(sequence)) {
-      throw new Error('VIBRATION_AUDIT_SEQUENCE_INVALID');
-    }
-  });
+  requireIsoTimestamp(log.createdAt, 'VIBRATION_AUDIT_CREATED_AT_INVALID');
+  log.events.forEach((event, index) => assertAuditEvent(event, index + 1));
   return log;
 }
 
