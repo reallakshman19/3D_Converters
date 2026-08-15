@@ -59,6 +59,26 @@ function assertReadiness(envelope) {
   ]);
 }
 
+function relationshipKey(row) {
+  return JSON.stringify([text(row?.sourceCanonicalId), text(row?.assessmentCanonicalId), text(row?.caseId)]);
+}
+
+function qualifiedInputRecords(envelope) {
+  const readyRows = envelope.readiness.rows.filter((row) => row.status === 'READY_FOR_QUALIFICATION');
+  const readyKeys = new Set(readyRows.map(relationshipKey));
+  const relationships = (envelope.sourceAssessments ?? []).filter((row) => (
+    row.applicabilityDisposition === 'APPLICABLE' && readyKeys.has(relationshipKey(row))
+  ));
+  const sourceKeys = new Set(relationships.map((row) => JSON.stringify([row.sourceCanonicalId, row.caseId])));
+  const assessmentIds = new Set(relationships.map((row) => row.assessmentCanonicalId));
+  return {
+    readyRows,
+    relationships,
+    sources: (envelope.sources ?? []).filter((row) => sourceKeys.has(JSON.stringify([row.sourceCanonicalId, row.caseId]))),
+    assessments: (envelope.assessments ?? []).filter((row) => assessmentIds.has(row.assessmentCanonicalId)),
+  };
+}
+
 function assertJoinIntegrity(sources, assessments, relationships) {
   const sourceKeys = new Set(sources.map((row) => `${row.sourceCanonicalId}\u0000${row.caseId}`));
   const assessmentIds = new Set(assessments.map((row) => row.assessmentCanonicalId));
@@ -79,11 +99,23 @@ function assertJoinIntegrity(sources, assessments, relationships) {
   }
 }
 
+function assertQualifiedProjection(records) {
+  if (records.relationships.length !== records.readyRows.length) {
+    throw screeningRequestError(
+      'AIV_SCREENING_REQUEST_READY_PROJECTION_MISMATCH',
+      'Readiness-qualified relationships no longer project one-to-one into the screening request. Recheck readiness.',
+      { readyRows: records.readyRows.length, relationships: records.relationships.length },
+    );
+  }
+}
+
 export function buildAivEngineeringScreeningRequest({ readinessEnvelope, assumptionProfile } = {}) {
   assertReadiness(readinessEnvelope);
-  const sources = assertRecords(readinessEnvelope.sources, 'Sources', ['sourceCanonicalId', 'caseId']);
-  const assessments = assertRecords(readinessEnvelope.assessments, 'Assessments', ['assessmentCanonicalId']);
-  const relationships = assertRecords(readinessEnvelope.sourceAssessments, 'Source→Assessment', [
+  const records = qualifiedInputRecords(readinessEnvelope);
+  assertQualifiedProjection(records);
+  const sources = assertRecords(records.sources, 'Sources', ['sourceCanonicalId', 'caseId']);
+  const assessments = assertRecords(records.assessments, 'Assessments', ['assessmentCanonicalId']);
+  const relationships = assertRecords(records.relationships, 'Source→Assessment', [
     'sourceCanonicalId', 'assessmentCanonicalId', 'caseId',
   ]);
   if (!readinessEnvelope.exchange || typeof readinessEnvelope.exchange !== 'object') {
