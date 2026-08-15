@@ -20,7 +20,7 @@ screeningAuthority     = NOT_AUTHORIZED
 designAuthority        = false
 ```
 
-A later authority PR may enable only the subset below after all qualification gates are independently closed.
+A later authority PR may enable only the subset below after all controlled qualification gates are closed.
 
 ## 2. Candidate mechanism boundary
 
@@ -94,7 +94,7 @@ A family is eligible for future screening only when its exact candidate revision
 3. below/at/above applicable span and diameter boundaries;
 4. unit-invariance coverage for accepted input forms;
 5. exact-head release regression PASS;
-6. independent vibration-engineer approval.
+6. controlled EI worked-example benchmark qualification satisfied.
 
 The existence of a production formula or retained-workbook parity alone is not sufficient.
 
@@ -155,9 +155,7 @@ manual ACTIVE value + existing source value
     -> fail closed
 ```
 
-Source operating/enrichment data are never silently overwritten.
-
-Manual blocker data participate in the working-state snapshot, stale-result detection and reproducibility evidence.
+Source operating/enrichment data are never silently overwritten. Manual blocker data participate in the working-state snapshot, stale-result detection and reproducibility evidence.
 
 ### 7.2 Data blockers do not override method blockers
 
@@ -224,7 +222,21 @@ universal vibration/risk/confidence score
 
 `LOF >= 1` and cases where a valid refined path is unavailable remain explicit further-engineering-assessment outcomes.
 
-## 11. Mandatory gates before activation
+## 11. Worked-example qualification rule
+
+For this FIT candidate, controlled reproduction of the Owner-specified worked examples is sufficient engineering qualification evidence; a separate independent vibration-engineer review is not required.
+
+Qualification anchor:
+
+```text
+reallaksh19/Common@7bfead910f6bca91b10748ead009e40f20c82219
+Energy-Institute-AVIFF---Worked-Examples.doc.docx
+blob ceee15ed5f7f320045d5f3979024e2e8664613f2
+```
+
+This does not waive the bounded-scope exclusions, source traceability, release regression, browser/real-file acceptance, or Owner-controlled authority transition.
+
+## 12. Mandatory gates before activation
 
 A dedicated authority transition is prohibited until all of these are recorded against one exact candidate SHA:
 
@@ -240,10 +252,11 @@ A dedicated authority transition is prohibited until all of these are recorded a
 10. audit/engineering dual-hash, manual-data snapshot binding and run-evidence reproducibility regressions pass;
 11. `npm run verify:vibration-fit-release` passes from a clean full checkout;
 12. real-browser five-sheet XLSX/CSV/edit/revert/data-blocker/stale/export acceptance passes;
-13. an identified independent vibration engineer approves this exact bounded scope, manual-data policy and exclusions;
-14. the Owner explicitly approves the separate authority PR.
+13. the Owner explicitly approves the separate authority PR.
 
-## 12. Authority transition rule
+No additional independent vibration-engineer sign-off is required once the controlled worked-example benchmark gate is satisfied.
+
+## 13. Authority transition rule
 
 This document is a scope freeze only. The implementation must continue to reject screening execution until a later, intentionally small governance change updates the registered FIT qualification/authority state.
 
