@@ -1,0 +1,55 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-AIV526
+claim_state: ACTIVE
+files:
+  exact:
+    - tabs/vibration-aiv-state.js
+    - tabs/vibration-aiv-dataset-loader.js
+    - tabs/vibration-aiv-execution.js
+    - tabs/vibration-aiv-qualification-tab.js
+    - tabs/vibration-aiv-input-view.js
+    - tabs/vibration-aiv-workspace-loaders.js
+    - tabs/vibration-aiv-workbench.css
+    - tests/vibration-module-boundaries.test.mjs
+    - tests/vibration-aiv-runtime-cache-chain.test.mjs
+    - agents/WIP-AIV526_workreport.md
+    - agents/status/WIP-AIV526.yaml
+    - agents/claims/WIP-AIV526.yaml
+  planned_new:
+    - tabs/vibration-aiv-engineering-revision.js
+    - tabs/vibration-aiv-mode-transition.js
+    - tabs/vibration-aiv-unified-canvas-projection.js
+    - tabs/vibration-aiv-unified-canvas-view.js
+    - tabs/vibration-aiv-unified-canvas-controller.js
+    - tabs/vibration-aiv-unified-canvas-pointer.js
+    - tabs/vibration-aiv-unified-canvas-author.js
+    - tabs/vibration-aiv-unified-canvas-relationships.js
+    - tabs/vibration-aiv-unified-canvas-inspector.js
+  prefixes:
+    - tabs/vibration-aiv-unified-canvas-
+authority_domains:
+  - AIV_UNIFIED_CANVAS_RUNTIME_OWNERSHIP
+  - AIV_INPUT_MODE_AUTHORITY_STATE
+  - AIV_PRESENTATION_VS_ENGINEERING_REVISION_CUSTODY
+  - AIV_NETWORK_PATH_PRESENTATION
+  - AIV_CANVAS_CACHE_CUSTODY
+claim_modes:
+  - EXCLUSIVE
+  - COORDINATED
+  - SHARED_READ
+exclusions:
+  - converters/vibration/aiv/aiv-readiness.js
+  - converters/vibration/aiv/aiv-calculator.js
+  - converters/vibration/aiv/aiv-executable-contract.js
+  - AIV_READINESS_EXECUTABLE_PARITY
+  - AIV_NUMERICAL_EQUATIONS
+  - AIV_SIMULTANEOUS_SOURCE_SEMANTICS
+  - AIV_MASTER_ENGINEERING_AUTHORITY
+notes:
+  - "Production mutation is currently blocked by issue #526 qualification gate; this claim establishes coordination only."
+  - "PR #517 has ACTIVE/EXCLUSIVE authority over AIV readiness/executable parity. #526 must consume, not rewrite, that contract."
+  - "Open PR #506 overlaps several exact UI/state files but is candidate/salvage evidence only and is not the base for #526."
+  - "NETWORK_DRIVEN graph and TABLE_DRIVEN working tables must never be silently synchronized as dual engineering owners."
+  - "SVG/pixel x/y remains presentation-only and cannot establish physical distance."
+  - "No workflow files are claimed or authorized."
+last_verified_head: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
