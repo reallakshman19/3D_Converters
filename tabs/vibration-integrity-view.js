@@ -147,7 +147,7 @@ function tableRows(workspace, resultState) {
       <td>${governing ? `${esc(governing.mechanism.label)} · ${esc(governing.lof)}` : '<span class="vi-empty">—</span>'}</td>
       <td>${cell(row.qualificationState)}</td>
       <td>${evidenceCell(row)}</td>
-      <td>${row.candidateForEngineeringReview ? 'Review candidate' : '<span class="vi-empty">—</span>'}</td>
+      <td>${row.continuationRequired ? 'Further assessment required' : '<span class="vi-empty">—</span>'}</td>
     </tr>`;
   }).join('');
 }
@@ -159,15 +159,15 @@ function resultCurrencyBanner(state) {
 
 function workspaceTable(state) {
   if (!state.workspace) {
-    return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run the FIT benchmark workflow. The product remains benchmark-only until qualification is approved.</p></section>';
+    return '<section class="vi-card vi-empty-state"><h3>No facility register yet</h3><p>Inspect or edit the working tables, check readiness if desired, then run FIT screening.</p></section>';
   }
   return `<section class="vi-card vi-workspace-card">
-    <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>Line-centric mechanism matrix aligned to the EI worked-example report. Only FIT is currently executable; blank non-FIT mechanism cells are architecture placeholders and do not imply assessment or applicability.</p></div></div>
+    <div class="vi-section-head"><div><h3>Facility vibration screening register</h3><p>Line-centric mechanism matrix aligned to the EI worked-example report. FIT is qualified for bounded screening; blank non-FIT mechanism cells do not imply assessment or applicability.</p></div></div>
     ${resultCurrencyBanner(state)}
-    <div class="vi-banner warn"><strong>Mechanism authority boundary.</strong><span>FIT remains BENCHMARK ONLY. Mechanical excitation, pulsation, AIV, transients, cavitation/flashing, thermowells and SBC are NOT IMPLEMENTED in this workspace.</span></div>
+    <div class="vi-banner warn"><strong>Authority boundary.</strong><span>FIT is SCREENING ONLY. Design authority remains false. The 219.1–273 mm OD gap and other declared exclusions remain fail-closed.</span></div>
     ${summaryCards(state.workspace)}${filters(state)}
     <div class="vi-table-wrap"><table class="vi-table"><thead><tr>
-      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Implemented governing</th><th>Qualification</th><th>FIT evidence</th><th>Review</th>
+      <th>Line</th><th>Case</th><th>Canonical ID</th><th>Completeness</th>${mechanismHeaders()}<th>Implemented governing</th><th>Qualification</th><th>FIT evidence</th><th>Disposition</th>
     </tr></thead><tbody>${tableRows(state.workspace, state.resultState)}</tbody></table></div>
   </section>`;
 }
@@ -183,12 +183,12 @@ function importFacts(state) {
   const imports = state.envelope?.imports;
   if (!imports) return '';
   const snapshot = state.runSnapshot?.snapshotHash;
-  return `<div class="vi-import-facts"><span>Topology: <strong>${esc(imports.topologyFormat)}</strong></span><span>Integrity: <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Operating cases: <strong>${esc(imports.operatingCaseCount)}</strong></span><span>Enrichment rows: <strong>${esc(imports.enrichmentCount)}</strong></span><span>Data blockers: <strong>${esc(imports.dataBlockerCount ?? 0)}</strong></span><span>Active manual inputs: <strong>${esc(imports.activeDataBlockerCount ?? 0)}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span>${snapshot ? `<span>Run snapshot: <strong class="vi-mono">${esc(snapshot)}</strong></span>` : ''}</div>`;
+  return `<div class="vi-import-facts"><span>Topology: <strong>${esc(imports.topologyFormat)}</strong></span><span>Integrity: <strong>${esc(imports.exchangeIntegrityStatus)}</strong></span><span>Operating cases: <strong>${esc(imports.operatingCaseCount)}</strong></span><span>Enrichment rows: <strong>${esc(imports.enrichmentCount)}</strong></span><span>Data blockers: <strong>${esc(imports.dataBlockerCount ?? 0)}</strong></span><span>Active manual inputs: <strong>${esc(imports.activeDataBlockerCount ?? 0)}</strong></span><span>Qualification: <strong>${esc(state.envelope?.qualificationMode ?? '—')}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span>${snapshot ? `<span>Run snapshot: <strong class="vi-mono">${esc(snapshot)}</strong></span>` : ''}</div>`;
 }
 
 export function renderVibrationIntegrityHtml(state) {
   return `<div class="vi-root">
-    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric vibration integrity workspace with shared source data and a mechanism screening matrix. FIT is currently benchmark-only.</p></div><div class="vi-authority"><strong>BENCHMARK ONLY</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Line-centric vibration integrity workspace with shared source data and a bounded FIT screening matrix.</p></div><div class="vi-authority"><strong>SCREENING</strong><span>DESIGN AUTHORITY FALSE</span></div></header>
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to run workspace.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${renderVibrationIntegrityInputArea(state)}${preflightPanel(state)}${importFacts(state)}${workspaceTable(state)}${detailPanel(state)}
   </div>`;
