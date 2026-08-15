@@ -4,8 +4,10 @@ import {
   handleMechanicalFacilityChange,
   handleMechanicalFacilityClick,
 } from './vibration-integrity-mechanical-controller.js';
+import { renderVibrationIntegrityActivity } from './vibration-integrity-activity-view.js';
 import { renderMechanicalFacilityPanel } from './vibration-integrity-mechanical-view.js';
 import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js';
+import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js';
 import {
   addSbcT3UserEngineeringDataRows,
   addSbcType3UserEngineeringDataRows,
@@ -24,15 +26,13 @@ function esc(value) {
     .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
-function tabButton(id, label, active) {
-  return `<button type="button" class="vi-detail-tab${active === id ? ' is-active' : ''}" data-vi-workspace-tab="${id}">${label}</button>`;
+function tabButton(tab, active) {
+  return `<button type="button" class="vi-detail-tab${active === tab.id ? ' is-active' : ''}" data-vi-workspace-tab="${tab.id}">${tab.label}</button>`;
 }
 
 function workspaceTabs(active) {
   return `<nav class="vi-detail-tabs" aria-label="Vibration Integrity workspace tabs">
-    ${tabButton('screening', 'Screening workspace', active)}
-    ${tabButton('mechanical', 'Mechanical T2.3', active)}
-    ${tabButton('user-data', 'User Engineering Data', active)}
+    ${VIBRATION_INTEGRITY_UI_CONTRACT.workspaceTabs.map((tab) => tabButton(tab, active)).join('')}
   </nav>`;
 }
 
@@ -63,6 +63,15 @@ function mechanicalPage(state) {
   </div>`;
 }
 
+function activityPage(state) {
+  return `<div class="vi-root">
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Assessment workflow, action history and non-authoritative product audit evidence.</p></div><div class="vi-authority"><strong>ACTIVITY LOG</strong><span>OBSERVATIONAL · ENGINEERING AUTHORITY NONE</span></div></header>
+    ${workspaceTabs('activity')}
+    ${state.error ? `<div class="vi-banner bad"><strong>Current workspace issue.</strong><span>${esc(state.error)}</span></div>` : ''}
+    ${renderVibrationIntegrityActivity(state)}
+  </div>`;
+}
+
 export function createVibrationUserDataUiState() {
   return {
     ...createMechanicalFacilityUiState(),
@@ -76,17 +85,19 @@ export function createVibrationUserDataUiState() {
 export function renderVibrationIntegrityWithUserData(state) {
   if (state.workspaceTab === 'user-data') return userDataPage(state);
   if (state.workspaceTab === 'mechanical') return mechanicalPage(state);
+  if (state.workspaceTab === 'activity') return activityPage(state);
   return injectWorkspaceTabs(renderVibrationIntegrityHtml(state), workspaceTabs('screening'));
 }
 
-function updateTable(state, table, render) {
+function updateTable(state, table, render, audit, details = {}) {
   state.userEngineeringData = table;
   state.sbcType3Result = null;
   state.error = null;
+  audit?.('USER_DATA_CHANGED', details, state.sbcType3ScopeId || null);
   render();
 }
 
-function addType3Template(state, hasMass, render) {
+function addType3Template(state, hasMass, render, audit) {
   const scopeId = String(state.sbcType3ScopeId ?? '').trim();
   if (!scopeId) {
     state.error = 'Enter an SBC scope / assessment ID before adding Type-3 input rows.';
@@ -95,16 +106,20 @@ function addType3Template(state, hasMass, render) {
   }
   updateTable(state, addSbcType3UserEngineeringDataRows(
     state.userEngineeringData, scopeId, hasMass,
-  ), render);
+  ), render, audit, { action: 'SBC_TYPE3_TEMPLATE_ADDED', hasMass });
 }
 
-function evaluateType3(state, render) {
+function evaluateType3(state, render, audit) {
   try {
     state.sbcType3Result = calculateSbcType3FromUserEngineeringData({
       userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
       scopeId: state.sbcType3ScopeId,
     });
     state.error = null;
+    audit?.('SBC_TYPE3_EVALUATED', {
+      status: state.sbcType3Result?.status ?? null,
+      lof: state.sbcType3Result?.lof ?? null,
+    }, state.sbcType3ScopeId || null);
   } catch (error) {
     state.sbcType3Result = null;
     state.error = String(error?.message || error);
@@ -112,42 +127,45 @@ function evaluateType3(state, render) {
   render();
 }
 
-function openFacilitySbcInputs(state, scopeId, render) {
+function openFacilitySbcInputs(state, scopeId, render, audit) {
   state.workspaceTab = 'user-data';
   state.sbcType3ScopeId = scopeId;
   state.sbcType3Result = null;
   state.error = null;
+  audit?.('SBC_INPUTS_OPENED', {}, scopeId);
   render();
 }
 
-export function handleVibrationUserDataClick(state, event, render) {
-  if (handleMechanicalFacilityClick(state, event, render)) return true;
+export function handleVibrationUserDataClick(state, event, render, audit) {
+  if (handleMechanicalFacilityClick(state, event, render, audit)) return true;
   const facilityScope = event.target.closest('[data-vi-sbc-facility-scope]')?.dataset.viSbcFacilityScope;
   if (facilityScope) {
-    openFacilitySbcInputs(state, facilityScope, render);
+    openFacilitySbcInputs(state, facilityScope, render, audit);
     return true;
   }
   const tab = event.target.closest('[data-vi-workspace-tab]')?.dataset.viWorkspaceTab;
   if (tab) {
-    state.workspaceTab = ['user-data', 'mechanical'].includes(tab) ? tab : 'screening';
+    const known = VIBRATION_INTEGRITY_UI_CONTRACT.workspaceTabs.some((item) => item.id === tab);
+    state.workspaceTab = known ? tab : 'screening';
+    audit?.('WORKSPACE_TAB_OPENED', { tab: state.workspaceTab }, null);
     render();
     return true;
   }
   const type3Template = event.target.closest('[data-vi-sbc-type3-template]')?.dataset.viSbcType3Template;
   if (type3Template) {
-    addType3Template(state, type3Template === 'mass', render);
+    addType3Template(state, type3Template === 'mass', render, audit);
     return true;
   }
   if (event.target.closest('[data-vi-sbc-type3-evaluate]')) {
-    evaluateType3(state, render);
+    evaluateType3(state, render, audit);
     return true;
   }
   if (event.target.closest('[data-vi-user-data-add-sbc]')) {
-    updateTable(state, addSbcT3UserEngineeringDataRows(state.userEngineeringData), render);
+    updateTable(state, addSbcT3UserEngineeringDataRows(state.userEngineeringData), render, audit, { action: 'SBC_ROWS_ADDED' });
     return true;
   }
   if (event.target.closest('[data-vi-user-data-add]')) {
-    updateTable(state, addVibrationUserEngineeringDataRow(state.userEngineeringData), render);
+    updateTable(state, addVibrationUserEngineeringDataRow(state.userEngineeringData), render, audit, { action: 'ROW_ADDED' });
     return true;
   }
   const deleteButton = event.target.closest('[data-vi-user-data-delete]');
@@ -155,16 +173,17 @@ export function handleVibrationUserDataClick(state, event, render) {
   updateTable(state, deleteVibrationUserEngineeringDataRow(
     state.userEngineeringData,
     Number(deleteButton.dataset.viUserDataDelete),
-  ), render);
+  ), render, audit, { action: 'ROW_DELETED', row: Number(deleteButton.dataset.viUserDataDelete) });
   return true;
 }
 
-export function handleVibrationUserDataChange(state, event, render) {
-  if (handleMechanicalFacilityChange(state, event, render)) return true;
+export function handleVibrationUserDataChange(state, event, render, audit) {
+  if (handleMechanicalFacilityChange(state, event, render, audit)) return true;
   if (event.target.matches('[data-vi-sbc-type3-scope]')) {
     state.sbcType3ScopeId = event.target.value;
     state.sbcType3Result = null;
     state.error = null;
+    audit?.('USER_DATA_CHANGED', { action: 'SBC_SCOPE_CHANGED' }, state.sbcType3ScopeId || null);
     render();
     return true;
   }
@@ -175,6 +194,6 @@ export function handleVibrationUserDataChange(state, event, render) {
     Number(event.target.dataset.viUserDataRow),
     columnKey,
     event.target.value,
-  ), render);
+  ), render, audit, { action: 'CELL_CHANGED', columnKey });
   return true;
 }
