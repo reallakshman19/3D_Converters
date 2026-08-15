@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "b313-ch9-master-store/v1",
+  "authorityCeiling": "ENGINEERING_SANDBOX",
+  "canUseForDesignAuthority": false,
+  "metadata": {
+    "libraryId": "B313-CH9-PRODUCTION-MASTERS",
+    "revision": "R1-SOURCE-PENDING",
+    "migrationState": "SOURCE_PENDING",
+    "sourceRef": "reallaksh19/Advanced_Analysis@951798864e6f557691d0d4388368b7805e425f0d/docs/High Pr",
+    "note": "Canonical storage shell. Legacy High-Pr seed rows require migration/quarantine before resolver use."
+  },
+  "collections": {
+    "sources": [],
+    "materialAllowable": [],
+    "pipeProduct": [],
+    "pipeDimension": [],
+    "manufacturingTolerance": []
+  },
+  "quarantine": []
+}

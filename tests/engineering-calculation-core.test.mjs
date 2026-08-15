@@ -100,19 +100,23 @@ test('registry accepts the canonical calculator grammar without obsolete definit
   assert.equal(result.outputs.sample, 1);
 });
 
-test('default catalogue exposes 4 executable definitions and 18 qualification-blocked placeholders', () => {
+test('default catalogue exposes 8 executable definitions and 18 qualification-blocked placeholders', () => {
   const all = listEngineeringCalculations();
   const available = listEngineeringCalculations({ availableOnly: true });
-  assert.equal(all.length, 22);
-  assert.equal(available.length, 4);
+  assert.equal(all.length, 26);
+  assert.equal(available.length, 8);
   assert.deepEqual(available.map((row) => row.id).sort(), [
     'ESTIMATION.WEIGHT.EMPIRICAL',
+    'PIPE.B313.CH9.RESOLVE_BASIS',
+    'PIPE.B313.CH9.STRAIGHT_PRESSURE',
+    'PIPE.B313.CH9.STRAIGHT_PRESSURE_FROM_BASIS',
+    'PIPE.B313.CH9.WALL_STATE',
     'PIPE.B313.MATERIAL_DESIGN',
     'PIPE.B313.THICKNESS',
     'VIB.FIV.FLOW_TURBULENCE',
   ]);
   const families = listEngineeringCalculationFamilies();
-  assert.equal(families.reduce((sum, family) => sum + family.count, 0), 22);
+  assert.equal(families.reduce((sum, family) => sum + family.count, 0), 26);
   assert.equal(families.find((family) => family.id === 'VIB')?.count, 6);
   const externalPressure = getEngineeringCalculationDefinition('PIPE.EXTERNAL_PRESSURE.CHECK');
   assert.equal(externalPressure.authority.qualificationState, 'BLOCKED');
