@@ -164,9 +164,9 @@ function copyTable(table) {
 }
 function addAssessmentCandidates(db, table, topology, trace) {
   const idIndex = tableIndex(table, 'Assessment Canonical ID');
-  if (idIndex < 0) return 0;
+  if (idIndex < 0) return [];
   const existing = new Set(table.rows.map((row) => tableValue(table, row, 'Assessment Canonical ID')).filter(Boolean));
-  let added = 0;
+  const added = [];
   for (const element of topology?.elements ?? []) {
     if (!text(element?.canonicalId) || existing.has(text(element.canonicalId))) continue;
     const component = exactMapping(db.components, element.type, 'IsAivAssessmentCandidate', 'AivAssessmentType', 'ComponentTypeId');
@@ -178,7 +178,7 @@ function addAssessmentCandidates(db, table, topology, trace) {
     const rowIndex = table.rows.length - 1;
     const meta = mappingMeta('components', component);
     setBlank(table, row, rowIndex, 'Assessment Type', component.value, trace, meta);
-    added += 1;
+    added.push(text(element.canonicalId));
   }
   return added;
 }
@@ -204,7 +204,8 @@ export function resolveAivTablesFromMasterDb({ tables, topology, masterDb } = {}
   const elements = elementMap(topology);
   const resolutions = [];
   const unresolved = [];
-  const discoveredAssessmentCandidateCount = addAssessmentCandidates(masterDb, output.assessments, topology, resolutions);
+  const discoveredAssessmentCanonicalIds = addAssessmentCandidates(masterDb, output.assessments, topology, resolutions);
+  const discoveredAssessmentCandidateCount = discoveredAssessmentCanonicalIds.length;
   const discoveredSourceCandidates = sourceCandidates(masterDb, topology);
   output.sources.rows.forEach((row, rowIndex) => enrichSource(masterDb, output.sources, row, rowIndex, elements.get(tableValue(output.sources, row, 'Source Canonical ID')), resolutions));
   output.assessments.rows.forEach((row, rowIndex) => enrichAssessment(masterDb, output.assessments, row, rowIndex, elements.get(tableValue(output.assessments, row, 'Assessment Canonical ID')), resolutions, unresolved));
@@ -219,6 +220,7 @@ export function resolveAivTablesFromMasterDb({ tables, topology, masterDb } = {}
     unresolved,
     sourceCandidates: discoveredSourceCandidates,
     discoveredAssessmentCandidateCount,
+    discoveredAssessmentCanonicalIds,
     resolvedFieldCount: resolutions.length,
     policy: {
       explicitValuesOverrideMaster: true,
