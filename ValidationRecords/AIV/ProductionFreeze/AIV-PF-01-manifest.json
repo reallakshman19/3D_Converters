@@ -4,143 +4,64 @@
   "issueId": 513,
   "repository": "reallaksh19/3D_Converters",
   "baseSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "baseTree": "14d9d4b7575e68267560f9c8a8704c69d25a57cc",
-  "priorBaseSha": "a49085cde69ef71518c0d6315a615477887d7b4e",
-  "candidateSha": null,
+  "candidateImplementationSha": "8ce49f991d6907694f284398026a8114437d9740",
   "branch": "agent/aiv-pf01-production-freeze-20260815",
   "qualification": {
     "status": "QUALIFIED_FOR_AIV_PRODUCTION_FREEZE",
     "issueCommentId": 5301819610
   },
-  "groundingEpoch": "GE-004",
-  "mainDriftReconciliation": {
-    "status": "SAFE_TO_CONTINUE_EVIDENCE_ONLY",
-    "advancedBy": 1,
-    "newMainCommit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-    "mergedPr": 516,
-    "changedPaths": [
-      "ValidationRecords/AIV/ProductionFreeze/AIV-PF-EIT-SONIC-01.json",
-      "agents/PR516_workreport.md",
-      "converters/vibration/aiv/aiv-eit-controlled-sonic-state.js",
-      "converters/vibration/aiv/aiv-eit-import-records.js",
-      "package.json",
-      "tests/vibration-aiv-eit-controlled-sonic.test.mjs"
-    ],
-    "pf01ExactPathOverlap": false,
-    "filterBlobUnchanged": "a5da4fb99e69310659659725696c61c3d9347085",
-    "note": "PR #516 changes controlled EIT sonic-state compatibility and release-script registration. It does not modify the PF-01 filter path, canvas controller, frozen numerical oracle modules, or PR515 evidence paths."
+  "groundingEpoch": "GE-005",
+  "currentMainLastChecked": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+  "livePreFixEvidence": {
+    "status": "CONFIRMED",
+    "observedAt": "2026-08-15T15:37:11+04:00",
+    "class": "OWNER_LIVE_CHROMIUM_PRODUCT_REPRODUCTION",
+    "error": "Cannot read properties of null (reading 'caseId')",
+    "firstWrongBoundary": "vibration-aiv-canvas-filter.js:33 createAivCanvasFilterState",
+    "observedCallers": ["vibration-aiv-dataset-loader.js:102 loadFile", "vibration-aiv-execution.js:56 checkReadiness"],
+    "moduleToken": "vibration-aiv-qualification-tab.js?v=aiv-qualification-1"
   },
-  "branchRebase": {
-    "status": "COMPLETED_EVIDENCE_ONLY",
-    "supersededHead": "2858f1fca8633d9c91328f8fbda252783837cffb",
-    "newParent": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-    "reason": "PR515 contained only evidence/recovery files; force-rebase removed stale pre-#516 ancestry before any production/test mutation."
+  "fix": {
+    "path": "tabs/vibration-aiv-canvas-filter.js",
+    "beforeBlob": "a5da4fb99e69310659659725696c61c3d9347085",
+    "afterBlob": "8640eca0a2e1454e277613d50c4c9962e3e537d8",
+    "diff": "+  input = input ?? {};",
+    "scope": "presentation filter-state initialization only"
   },
-  "chromiumVersion": "Chromium 144.0.7559.96 built on Debian GNU/Linux 13 (trixie)",
-  "nodeVersion": "v22.16.0",
-  "gitVersion": "2.47.3",
-  "appBuildIdentity": {
-    "status": "NOT_ESTABLISHED_FOR_REAL_BROWSER",
-    "servedRevision": null,
-    "reason": "No native exact-SHA checkout or successful exact-current-main deployment is available, and the installed managed Chromium blocks all URL navigation via mandatory URLBlocklist=['*']. Exact Git blobs can be reconstructed and hash-verified for low-level support only; that is not FULL_BROWSER_PASS."
-  },
-  "deploymentCustody": {
-    "workflow": ".github/workflows/deploy-app-on-main.yml",
-    "workflowRunId": 31881892198,
-    "workflowRunHeadSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-    "attempts": [
-      {"attempt":1,"jobId":95005543108,"steps":null,"logsUrl":null,"classification":"NOT_RUN_INFRASTRUCTURE_BLOCKED"},
-      {"attempt":2,"jobId":95006065316,"steps":null,"logsUrl":null,"classification":"NOT_RUN_INFRASTRUCTURE_BLOCKED"}
-    ],
-    "note": "The original current-main Pages run and one controlled retry both failed before any product step executed. No browser-served artifact was produced."
-  },
-  "priorBaselineDeploymentCustody": {
-    "workflowRunId": 31876804857,
-    "workflowRunHeadSha": "a49085cde69ef71518c0d6315a615477887d7b4e",
-    "classification": "HISTORICAL_NOT_CURRENT_BASELINE"
-  },
-  "localEnvironmentCustody": {
-    "nativeRepositoryCheckoutFound": false,
-    "gitAvailable": true,
-    "chromiumAvailable": true,
-    "nodeAvailable": true,
-    "networkDnsAvailable": false,
-    "chromiumRemoteDebuggingAvailable": true,
-    "chromiumManagedPolicy": {
-      "path": "/etc/chromium/policies/managed/000_policy_merge.json",
-      "URLBlocklist": ["*"]
-    },
-    "browserNavigationObservations": [
-      "http://127.0.0.1:4173 -> net::ERR_BLOCKED_BY_ADMINISTRATOR",
-      "http://172.26.36.34:4173 -> net::ERR_BLOCKED_BY_ADMINISTRATOR",
-      "file:///mnt/data/aiv-pf01-exactblob/index.html -> net::ERR_BLOCKED_BY_ADMINISTRATOR"
-    ],
-    "policyDisposition": "SECURITY_POLICY_NOT_MODIFIED_OR_BYPASSED"
-  },
-  "exactBlobSupportCustody": {
-    "classification": "LOW_LEVEL_EXACT_BLOB_SUPPORT_NOT_BROWSER_ACCEPTANCE",
-    "filterPath": "tabs/vibration-aiv-canvas-filter.js",
-    "currentMainFilterBlob": "a5da4fb99e69310659659725696c61c3d9347085",
-    "pr506FilterBlob": "a4a3990df0381bea8cbd95c49ad554f746141bb1",
-    "backupUtilityPath": "utils/backup.js",
-    "backupUtilityBlob": "cd0c755457bb623b0487200a7d0b7217d8b3478e",
-    "backupReceipt": {
-      "id": 2,
-      "sourceBlob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "backupBlob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "context": "PF-01 exact-main pre-fix backup using exact repository backup utility in reconstructed workspace",
-      "nativeWorktreeRerunRequiredBeforeProductionEdit": true
-    },
-    "minimalLocalCandidate": {
-      "diff": "+  input = input ?? {};",
-      "candidateBlob": "8640eca0a2e1454e277613d50c4c9962e3e537d8",
-      "focusedChecks": 8,
-      "status": "PASS_LOW_LEVEL_ONLY",
-      "sourceRestoredAfterExperiment": true,
-      "restoredBlob": "a5da4fb99e69310659659725696c61c3d9347085"
-    }
+  "regression": {
+    "path": "tests/vibration-aiv-canvas-filter-runtime.test.mjs",
+    "releaseGate": "verify:aiv-canvas",
+    "focusedExecution": "PASS_3_OF_3",
+    "targetedChromium144": "PASS_3_OF_3"
   },
   "benchmarkSources": [
-    {
-      "id": "AIV.EI.D2.3.WORKED_EXAMPLE.v1",
-      "repository": "reallaksh19/3D_Converters",
-      "path": "tabs/vibration-aiv-benchmarks.js",
-      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-      "blob": "c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0",
-      "revision": "1"
-    },
-    {
-      "id": "AIV-HAND-MULTI-SOURCE-EQUAL-001+AIV-HAND-MULTI-SOURCE-ASYM-001",
-      "repository": "reallaksh19/3D_Converters",
-      "path": "converters/vibration/aiv/aiv-independent-benchmark-evidence.js",
-      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-      "blob": "21d1e687dca0c537f4170e961b2d7b1894d710cc",
-      "revision": "AivIndependentBenchmarkEvidence.v1"
-    },
-    {
-      "id": "AIV_RELEASE_SCRIPTS",
-      "repository": "reallaksh19/3D_Converters",
-      "path": "package.json",
-      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-      "blob": "ef583d8da73d23df5463a4dfdb2da2d19006886f",
-      "revision": "verify:aiv-canvas-release"
-    }
+    {"id":"AIV.EI.D2.3.WORKED_EXAMPLE.v1","path":"tabs/vibration-aiv-benchmarks.js","blob":"c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0"},
+    {"id":"AIV_QUALIFICATION_MATH","path":"scripts/aiv-qualification-math.mjs","blob":"0aba873c03e1fb9ef576095d603ec87178d006a3"},
+    {"id":"AIV-HAND-MULTI-SOURCE","path":"converters/vibration/aiv/aiv-independent-benchmark-evidence.js","blob":"21d1e687dca0c537f4170e961b2d7b1894d710cc"}
   ],
-  "masterSourceIdentity": {
-    "status": "PENDING_LIVE_LOAD_INSPECTION",
-    "reason": "Must be captured from the real AIV workspace session; pinned Git identity alone is not engineering qualification."
+  "frozenOracles": [
+    {"id":"D23_RELIEF_RAW_PWL","expected":164.6851759525391,"unit":"dB","absoluteTolerance":1e-10,"subcheckStatus":"PASS"},
+    {"id":"D23_RELIEF_POINT_PWL","expected":164.3734876408508,"unit":"dB","absoluteTolerance":1e-10,"subcheckStatus":"PASS"},
+    {"id":"160+160","expected":163.0102999566398,"unit":"dB","absoluteTolerance":1e-9,"subcheckStatus":"PASS"},
+    {"id":"160+150","expected":160.41392685158226,"unit":"dB","absoluteTolerance":1e-9,"subcheckStatus":"PASS"}
+  ],
+  "fullApplicationPostFix": "NOT_RUN",
+  "b1ToB6Closure": "NOT_COMPLETE",
+  "fullReleaseSuite": "NOT_RUN",
+  "environmentLimits": [
+    "No native private repository checkout in execution container",
+    "Managed Chromium URLBlocklist=['*'] prevents full-app navigation",
+    "Hosted workflow attempts have historically acquired no runner/steps"
+  ],
+  "comparisonTolerancePolicy": "Frozen expected values and tolerances may not change to fit implementation output.",
+  "authority": {
+    "tablesEngineeringTruth": true,
+    "svgPixelsAuthoritativeForDistance": false,
+    "screeningResultScope": "ASSESSMENT",
+    "lineCaseSummaryAuthoritativeForScreening": false,
+    "designAuthority": false
   },
-  "browserStartUrl": null,
-  "loadedDatasetIdentity": "AIV.EI.D2.3.WORKED_EXAMPLE.v1",
-  "expectedOracles": [
-    {"id":"B1-D23-RELIEF-RAW-PWL","expected":164.6851759525391,"unit":"dB","absoluteTolerance":1e-10},
-    {"id":"B1-D23-RELIEF-POINT-PWL","expected":164.3734876408508,"unit":"dB","absoluteTolerance":1e-10},
-    {"id":"B2-160+160","expected":163.0102999566398,"unit":"dB","absoluteTolerance":1e-9},
-    {"id":"B3-160+150","expected":160.41392685158226,"unit":"dB","absoluteTolerance":1e-9}
-  ],
-  "comparisonTolerancePolicy": "Identifiers, provenance, authority flags and serialized custody fields are exact. Floating engineering values use only immutable frozen-oracle tolerances; expected values may not be changed to fit runtime output.",
-  "createdAt": "2026-08-15T14:28:22+04:00",
-  "lastGroundedAt": "2026-08-15T15:25:39+04:00",
+  "nextSliceAuthorized": false,
   "operator": "GPT-5.6 Sol via connected GitHub",
-  "environmentDisposition": "BLOCKED_ENVIRONMENT_CURRENT_MAIN_RECONCILED_LOW_LEVEL_ROOT_CAUSE_ISOLATED"
+  "lastGroundedAt": "2026-08-15T15:37:11+04:00"
 }
