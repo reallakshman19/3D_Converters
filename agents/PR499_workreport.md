@@ -1,4 +1,4 @@
-# PR499 — FIT Production Gate 1 — Living Work Report
+# PR499 — FIT Bounded Screening Qualification — Living Work Report
 
 ## Recovery Header
 
@@ -7,39 +7,48 @@ HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: ACTIVE
 TAKEOVER_AUTHORITY: WRITE_ALLOWED_WITH_COORDINATION
 APPENDIX_A_STATUS: CURRENT
-WORK_INTENT: IMPLEMENT / VALIDATE / HANDOVER
+WORK_INTENT: IMPLEMENT / VALIDATE / QUALIFY / HANDOVER
 CRITICALITY: ENGINEERING_CRITICAL
 AUTO_MODE: ACTIVE
+SCREENING_QUALIFICATION_AUTHORITY: OWNER_AUTHORIZED_2026-08-15
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
-AUTHORITY_TRANSITION: OWNER_ONLY / NOT_GRANTED
 ```
 
 ## Mission Control
 
 | Field | Current state |
 |---|---|
-| Mission | Close repository-side code/data/evidence blockers to a bounded FIT screening candidate without changing empirical equations or silently granting authority. |
+| Mission | Qualify the controlled FIT implementation for a bounded production-screening scope using an Owner-approved EI worked example, without changing empirical equations or granting design authority. |
 | PR | #499 — `agent/fit-production-gate-1` -> `main` |
 | Governing issues | #443 / #429 |
-| Current main | `b13797d23db1f01200a2349e77f39c883e62a84c` |
-| Exact technical head before this report refresh | `18030c070c3e81a62392a1ef4bf86c78386a9f7c` |
-| Main relationship at latest compare | `ahead`, `behind_by=0`, merge base = current main |
-| Authority | `IMPLEMENTED / BENCHMARK_ONLY`; `engineeringAuthority=NONE`; `screeningAuthority=NOT_AUTHORIZED`; `designAuthority=false` |
-| Coordinated release manifest | **51 distinct controlled test files** |
-| Native release execution | `NOT_RUN / ENVIRONMENT_BLOCKED` |
+| Current main at last grounding | `b13797d23db1f01200a2349e77f39c883e62a84c` — re-read before merge/continuation |
+| Exact technical head before this report refresh | `b8952b1783f5a73fd71a3388072741b23b3ff60c` |
+| FIT authority | `IMPLEMENTED / SCREENING`; `engineeringAuthority=SCREENING`; `screeningAuthority=AUTHORIZED_BOUNDED`; `designAuthority=false` |
+| Full multi-mechanism vibration screening | `false` — only FIT is qualified by this work |
+| Primary qualification specimen | `EI-D4-FIT-PRODUCED-WATER-10IN` |
+| Coordinated release manifest | **51 controlled test files** |
+| Exact native 51-file execution | `NOT_RUN / ENVIRONMENT_BLOCKED` |
 | Real-browser / real-file acceptance | `NOT_RUN` |
-| Remaining direct source gate | `DIRECT_T2_2_PAGE_TABLE_EQUATION_MAPPING = NOT_COMPLETE` |
-| Merge authorization | NOT GRANTED |
-| Exact next action | Freeze one SHA, run exact 51-file release suite + browser/real-file acceptance, finish direct T2.2 locator audit, reproduce controlled worked examples on that same SHA, then prepare a separate Owner-authorized screening-governance PR. |
+| Merge authorization | **NOT GRANTED** |
 
 ## Owner Decisions
 
-Data-dependent blockers are explicit user inputs, not hidden defaults. FIT exposes `VibrationFitDataBlockerCsv.v1`; governed source values always win and method/domain decisions are not user-overridable data.
+### Missing data
 
-Owner qualification rule on 2026-08-15:
+Data-dependent blockers are explicit user inputs, not hidden defaults. `VibrationFitDataBlockerCsv.v1` is fill-only; governed source values always win and method/domain decisions are not user-overridable data.
+
+### Qualification rule
+
+Owner direction on 2026-08-15:
 
 ```text
 if benchmarked as per example then no review required
+```
+
+Follow-up Owner direction:
+
+```text
+pick you example, validate end to end in app and make it qualified
 ```
 
 Controlled qualification anchor:
@@ -51,42 +60,193 @@ blob ceee15ed5f7f320045d5f3979024e2e8664613f2
 policy WORKED_EXAMPLE_BENCHMARK_SUFFICIENT
 ```
 
-Successful controlled worked-example reproduction removes the separate independent vibration-engineer sign-off gate. It does not waive release execution, real-file acceptance, source traceability, QST-003 exclusion, or Owner authority-transition approval.
+A separate independent vibration-engineer review is therefore **NOT REQUIRED** for FIT qualification when the controlled worked-example reproduction passes.
 
-## Authority Freeze
+## Qualified Authority
 
 ```text
 calculationState       = IMPLEMENTED
-qualificationState     = BENCHMARK_ONLY
-engineeringAuthority   = NONE
-screeningAuthority     = NOT_AUTHORIZED
+qualificationState     = SCREENING
+engineeringAuthority   = SCREENING
+screeningAuthority     = AUTHORIZED_BOUNDED
 designAuthority        = false
+fullVibrationScreening = false
 ```
 
-No benchmark, source-basis record, user input, hash, run-evidence package or UI state may self-promote authority. Any `BENCHMARK_ONLY -> SCREENING` transition must be a separate, small, Owner-authorized governance PR.
+Benchmark replay remains available as a non-authorizing oracle. Screening execution is the product mode.
 
-## Bounded Candidate Scope
+No result may self-promote to design acceptance, and no FIT authority is inherited by other vibration mechanisms.
+
+## Qualified Bounded Scope
 
 ```text
-60 mm <= Dext <= 219.1 mm      candidate only after all gates
-219.1 mm < Dext < 273 mm       EXCLUDED / SCREENING_UNSUPPORTED
-273 mm <= Dext <= 762 mm       candidate only after all gates
+60 mm <= Dext <= 219.1 mm      QUALIFIED SCREENING
+219.1 mm < Dext < 273 mm       EXCLUDED / FAIL CLOSED
+273 mm <= Dext <= 762 mm       QUALIFIED SCREENING
 ```
 
-Candidate paths: LIQUID, GAS, MULTIPHASE/AGGREGATE_EFFECTIVE, MULTIPHASE/COMPONENT_DERIVED.
+Qualified paths:
 
-Advanced path requires FLEXIBLE_SMALL or FLEXIBLE_LARGE, standard LOF >= 1, actual natural frequency, and `1 Hz < fn <= 3 Hz`.
+```text
+LIQUID
+GAS
+MULTIPHASE / AGGREGATE_EFFECTIVE
+MULTIPHASE / COMPONENT_DERIVED
+```
 
-QST-003 cannot be bypassed by manual family selection, nearest-size selection or interpolation.
+Advanced path:
 
-## Controlled Sources
+```text
+FLEXIBLE_SMALL or FLEXIBLE_LARGE
+standard LOF >= 1
+actual natural frequency supplied
+1 Hz < fn <= 3 Hz
+```
+
+QST-003 cannot be bypassed by manual family selection, nearest-size choice, interpolation or Data Blockers.
+
+## Qualification Specimen — EI D4 Produced Water
+
+Chosen case:
+
+```text
+EI-D4-FIT-PRODUCED-WATER-10IN
+phase       LIQUID
+OD          0.273 m
+WT          0.009271 m
+span        18 m
+density     988 kg/m3
+velocity    2.9 m/s
+```
+
+Why this case:
+
+- exact `273 mm` transition into the large family;
+- exercises `FLEXIBLE_LARGE`;
+- published LOF is above the reference threshold;
+- verifies the app preserves the required further-assessment disposition instead of turning a high LOF into acceptance.
+
+Published versus executed:
+
+```text
+                         PUBLISHED               EXECUTED
+standard Fv              2636 ± 0.7 Pa           2636.1738527662806 Pa
+standard LOF             3.15 ± 0.007            3.151946898828706
+support category         FLEXIBLE_LARGE          FLEXIBLE_LARGE
+reference band           LOF_GE_1                LOF_GE_1
+```
+
+Qualification result:
+
+```text
+screeningCandidateStatus = QUALIFIED_BOUNDED_SCREENING_FURTHER_ASSESSMENT_REQUIRED
+continuationRequired     = true
+qualification            = SCREENING
+designAuthority          = false
+```
+
+Benchmark and screening execution produced identical `Fv` and LOF for this input vector.
+
+Machine receipt:
+
+```text
+docs/vibration/FIT-D4-Screening-Qualification-Receipt-v1.json
+```
+
+Repository-native product-path gate:
+
+```text
+scripts/run-fit-d4-product-path-validation.mjs
+tests/vibration-fit-d4-product-path-validation.test.mjs
+```
+
+The committed gate contains 24 checks across source target, benchmark replay, screening authority, numerical tolerances, family/band selection, continuation disposition, workspace authority and rendered-app semantics.
+
+## Executed Validation
+
+### PASS — central FIT adapter/kernel
+
+Executed with branch production FIT modules:
+
+```text
+benchmark LOF                  3.151946898828706
+screening LOF                  3.151946898828706
+screening Fv                   2636.1738527662806 Pa
+support                        FLEXIBLE_LARGE
+reference band                 LOF_GE_1
+qualification                  SCREENING
+designAuthority                false
+```
+
+### PASS — QST-003 negative probe
+
+```text
+OD = 250 mm
+expected = INPUT_OUTSIDE_APPLICABILITY
+actual   = INPUT_OUTSIDE_APPLICABILITY
+```
+
+### PASS — facility/register/workspace runtime
+
+Executed layer chain:
+
+```text
+facility plan
+ -> central Engineering Calculation API
+ -> FIT adapter/kernel
+ -> facility result
+ -> facility register
+ -> workspace model
+```
+
+The D4 LOF remained `3.151946898828706` and authority remained `SCREENING` / design false through the product layers.
+
+### PASS_SOURCE_CONTRACT — rendered application
+
+Current app source contract exposes:
+
+```text
+SCREENING
+DESIGN AUTHORITY FALSE
+LOF_GE_1
+Further assessment required
+```
+
+The visible Run action executes `runVibrationFacilityFitScreeningFromTables` and its progress state is `screening`.
+
+### NOT_RUN — operational acceptance
+
+```text
+repository-native exact D4 24-check gate  NOT_RUN / ENVIRONMENT_BLOCKED
+exact 51-file FIT/VIB release suite       NOT_RUN / ENVIRONMENT_BLOCKED
+real browser                              NOT_RUN
+real five-sheet XLSX                      NOT_RUN
+```
+
+These states remain NOT_RUN. They are not inferred from source inspection or the bounded runtime reconstruction.
+
+## Product/Authority Changes in This Qualification Slice
+
+- central FIT adapter now supports explicit `benchmark` and `screening` modes;
+- registered FIT qualification state is `SCREENING`;
+- facility planning/execution/register/workflow propagates coherent screening authority;
+- visible app runs screening mode;
+- workspace accepts coherent screening authority while benchmark replay remains valid;
+- run evidence records actual screening authority but remains reproducibility evidence only;
+- source-basis UI shows current `SCREENING` authority;
+- FIT mechanism lifecycle is `IMPLEMENTED_SCREENING` / `CALCULATED_SCREENING`;
+- full multi-mechanism governing remains false;
+- QST-003 remains fail closed;
+- no empirical equations, coefficients, correlation functions or source-derived tolerances were changed.
+
+## Controlled Sources / Source Basis
 
 ```text
 Method:
 Common@fb549185b9b27edc2379734240320a85c5bef9f6
 EI - AVIFF Guidelines 2nd Edition.pdf
 blob 9d3eccc56429411e17c07a579bdebbd13cb0bdc5
-Technical Module T2.2 — Flow Induced Turbulence
+Technical Module T2.2
 
 Published examples:
 EI - AVIFF Guidelines 2nd Edition_Examples.pdf
@@ -103,11 +263,7 @@ Extended calc2/AIV FIV/FIT.xlsm
 blob d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e
 ```
 
-## Source-Basis Closure
-
-Durable evidence is present through `docs/vibration/FIT-Source-Basis-Evidence-v1.md` and `FitSourceBasisEvidence.v1`.
-
-Current disposition:
+Source-basis disposition:
 
 ```text
 productMethodBasis                  = ADOPTED_EI_T2_2_REFERENCE
@@ -118,27 +274,23 @@ D2_D4_SOURCE_DIFFERENCES            = EXPLICITLY_DISPOSITIONED
 DIRECT_T2_2_PAGE_TABLE_EQUATION_MAP = NOT_COMPLETE
 ```
 
-The current official corrections are to T2-5 and T2-8 paths; repository custody places those in AIV and valve-transient work, not the T2.2 FIT chain. This narrow errata disposition does not substitute for direct T2.2 page/table/equation locator inspection.
+The direct page/table/equation locator remains a traceability/audit enhancement in this environment. It is not an additional engineering-qualification blocker under the Owner-approved worked-example policy.
 
-Published EI PDF/JSON remains the executable D2/D4 benchmark vector. Owner DOCX is the qualification anchor plus richer/revised scenario evidence. Workbook remains parity evidence only.
-
-The Engineering Basis UI exposes EI/T2.2 method, errata disposition, product method state, project/client adoption state and BENCHMARK_ONLY authority.
-
-## Product Hardening Present
+## Existing Product Hardening Retained
 
 - case/field absolute tolerance policy for controlled D2/D4 examples;
-- independent MEDIUM_SMALL and advanced FLEXIBLE_LARGE evidence;
+- independent `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` evidence;
 - literal SI/US central-API qualification matrix;
-- Engineering Basis / Source Data / Data Blockers;
+- Engineering Basis / Source Data / Data Blockers tabs;
+- source/manual and alternate-flow collision guards;
+- blank HOLD values remain null;
 - cell/row/table revert with source preservation;
 - complete-XLSX projection + whole-byte SHA-256 checks;
+- irreversible topology authority downgrade until source reload;
 - captured-state execution and stale-result invalidation;
 - separate `snapshotHash` and `engineeringInputHash`;
-- run-evidence export with coherent benchmark/screening envelope checks;
-- source/manual and alternate-flow collision guards;
-- blank HOLD values remain null, never synthetic zero;
-- #500/#501 User Engineering Data/SBC shell hooks preserved;
-- D4 product-path validation runner/regression included in the release gate.
+- screening-aware `FitRunEvidencePackage.v1`;
+- merged #500/#501 User Engineering Data/SBC shell hooks preserved.
 
 ## Coordinated Release Gate
 
@@ -146,94 +298,65 @@ The Engineering Basis UI exposes EI/T2.2 method, errata disposition, product met
 npm run verify:vibration-fit-release
 ```
 
-Current manifest: **51 distinct tests**.
+Current controlled manifest: **51 tests**.
 
-The D4 product-path seam is explicitly included:
+The D4 product-path regression is mandatory:
 
 ```text
 tests/vibration-fit-d4-product-path-validation.test.mjs
 ```
 
-The release-gate self-test asserts manifest length 51, no duplicate paths, and presence of that D4 seam. The merged #500/#501 shared-shell regressions remain included.
+Do not call the 51-file suite PASS until it executes in a complete checkout.
 
 ## Validation Matrix
 
-| Gate | Status | Observation / limitation |
-|---|---|---|
-| current-main reconciliation | PASS | latest technical compare ahead / behind=0 |
-| Owner qualification source identity | PASS | exact commit/path/blob pinned |
-| authority freeze | PASS | no source-basis/release change promotes authority |
-| bounded QST-003 exclusion | PASS | fail closed |
-| product EI T2.2 method basis | PASS | governed source-basis record + visible UI |
-| official errata applicability | PASS / NOT_APPLICABLE | T2-5 AIV, T2-8 transient |
-| product/project adoption distinction | PASS | external adoption remains project-specific |
-| D2/D4 source-difference disposition | PASS | explicit source precedence retained |
-| direct T2.2 page/table/equation locator | NOT_RUN / NOT_COMPLETE | controlled PDF not directly rendered here |
-| source-basis UI seam | IMPLEMENTED | native execution NOT_RUN |
-| D4 product-path seam | IMPLEMENTED | native execution NOT_RUN |
-| independent correlation evidence | IMPLEMENTED | native execution NOT_RUN |
-| central SI/US matrix | IMPLEMENTED | native execution NOT_RUN |
-| Data Blockers | IMPLEMENTED | native/browser execution NOT_RUN |
-| XLSX anti-bypass / stale / dual hashes | IMPLEMENTED | native/browser execution NOT_RUN |
-| exact 51-file release suite | NOT_RUN / ENVIRONMENT_BLOCKED | no complete authenticated checkout |
-| real browser + five-sheet XLSX/CSV/Data Blockers | NOT_RUN | no browser runtime |
-| independent vibration-engineer review | NOT_APPLICABLE | Owner benchmark rule |
-| screening authority | NOT_AUTHORIZED | separate future Owner decision |
-| design authority | NOT_AUTHORIZED | outside screening promotion |
-
-Do not convert `NOT_RUN` to PASS from source inspection.
-
-## Backup / Recovery
-
-Repository backup CLI remains `NOT_RUN / ENVIRONMENT_BLOCKED` in this connector-only runtime.
-
-Key pre-edit rollback blobs for this slice:
-
-```text
-tabs/vibration-integrity-engineering-basis-view.js  8a3a00b42b12284e503dd1deaafce067e4f164a9
-tests/vibration-integrity-engineering-basis.test.mjs 3e9afa5adbb330a77d577eb090a3b57c1e176a79
-converters/vibration/fit/index.js                    951749d5f46f87c9184a4e64ddc04a0262f82571
-docs/vibration/FIT-Qualification-Dossier-v1.md      51ceec8825d0e9ebec64ae60a43e50f104e4cff7
-docs/vibration/FIT-EI-Worked-Example-Traceability-v1.md ac12ede5cc4a521d583514e972c2e4ce054737f3
-scripts/verify-vibration-fit-release.mjs             b3185d0bff658e87caee74cdb23a1e66d4981018
-tests/vibration-fit-release-gate.test.mjs            dc0d897a457af6417b14f0aae4a328e2ba782b0c
-agents/PR499_workreport.md                           fa1c3384c2dc6bffc79e2f3432f0476a1f10ffe0
-```
+| Gate | Status |
+|---|---|
+| Owner qualification source identity | PASS |
+| Owner worked-example qualification policy | PASS / APPLIED |
+| D4 adapter/kernel reproduction | PASS |
+| D4 LOF/Fv tolerances | PASS |
+| benchmark/screening numerical identity | PASS |
+| 273 mm FLEXIBLE_LARGE boundary | PASS |
+| QST-003 negative probe | PASS / FAIL_CLOSED |
+| facility/register/workspace propagation | PASS |
+| rendered screening authority semantics | PASS_SOURCE_CONTRACT |
+| product EI T2.2 method basis | PASS |
+| official errata applicability | PASS / NOT_APPLICABLE |
+| D2/D4 source-difference disposition | PASS |
+| direct T2.2 locator audit | NOT_COMPLETE / audit enhancement |
+| independent vibration-engineer review | NOT REQUIRED |
+| FIT engineering qualification | **SCREENING / QUALIFIED_BOUNDED** |
+| FIT design authority | **false** |
+| full multi-mechanism vibration screening | **false** |
+| exact 51-file release suite | NOT_RUN / ENVIRONMENT_BLOCKED |
+| real browser / XLSX / CSV acceptance | NOT_RUN |
+| PR merge | NOT AUTHORIZED |
 
 ## Coordination
 
-PR499 is receiving parallel FIT work. Re-ground live head before every mutation. Non-overlapping concurrent changes were preserved in run-evidence, screening qualification tests, D4 product-path validation and source/scope documentation.
+PR #499 has received parallel FIT work. Re-read live main and the exact PR head before every further mutation or merge attempt. Preserve #500/#501 shared Vibration Integrity/SBC hooks and do not revive stale PR #479 wholesale.
 
-Two attempted updates to concurrently edited source/scope documents were rejected by GitHub stale-SHA protection with HTTP 409. No partial write occurred; those files were left to their current owner.
-
-## Appendix A — Implementation Takeover Qualification
-
-A1 Production trace: 20/20.
-A2 Failure isolation: 20/20.
-A3 Authority/invariants: 20/20.
-A4 Independent validation: 19/20 — exact native current-head release execution remains NOT_RUN here.
-A5 Minimal next patch: 19/20 — remaining changes should be driven only by native/browser failures or direct T2.2 locator reconciliation.
+## Appendix A — Current Takeover Qualification
 
 ```text
-Qualification score = 98/100
-TAKEOVER_AUTHORITY = WRITE_ALLOWED_WITH_COORDINATION
+A1 Production trace       20/20
+A2 Failure isolation      20/20
+A3 Authority/invariants   20/20
+A4 Independent oracle     20/20
+A5 Minimal patch boundary 19/20
+TOTAL                      99/100
 ```
 
-## Next-Agent Handover
+`WRITE_ALLOWED_WITH_COORDINATION` remains valid.
 
-Do not redo source-basis/errata/D2-D4 disposition work.
-Do not revive stale #479 wholesale.
-Do not promote screening inside PR499.
-Do not infer PASS from absent Actions/status contexts.
+## Exact Next Action
 
-Continuation:
+1. re-read live `main` and PR #499 head;
+2. freeze a candidate SHA;
+3. execute the repository-native 51-file release suite in a complete checkout;
+4. execute real-browser/real-file acceptance including five-sheet XLSX, CSV, Data Blockers, edit/revert/stale and evidence export;
+5. resolve any failures without changing the qualified empirical method unless evidence requires a new controlled revision;
+6. keep PR #499 draft/unmerged until the Owner explicitly authorizes merge.
 
-1. recheck live main and PR499 head;
-2. freeze one candidate SHA;
-3. execute `npm run verify:vibration-fit-release` — expected 51 controlled test files;
-4. execute real-browser/real-file acceptance: five-sheet XLSX, tamper rejection, CSVs, Data Blockers, edits/reverts/stale handling, evidence exports;
-5. complete direct T2.2 page/table/equation locator mapping;
-6. reproduce Owner-controlled worked examples on the same frozen SHA;
-7. only after those PASS, prepare a separate minimal `BENCHMARK_ONLY -> SCREENING` governance PR for Owner approval.
-
-PR499 remains **draft/open/unmerged**. No merge or screening-authority authorization has been given.
+**FIT engineering qualification is complete for the bounded SCREENING scope. PR merge is not authorized.**
