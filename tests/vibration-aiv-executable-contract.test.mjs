@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { calculateEngineering } from '../converters/engineering-calculations/index.js';
+import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../converters/vibration/aiv/aiv-assumption-profile.js';
 import { calculateAiv } from '../converters/vibration/aiv/aiv-calculator.js';
 import {
   assertAivExecutableContract,
@@ -67,6 +69,18 @@ function secondRelationship(group = 'G1') {
 
 function readiness({ sources = [source()], assessments = [assessment()], relationships = [relationship()] } = {}) {
   return buildAivReadiness(topology(), sources, assessments, relationships);
+}
+
+function engineeringRequest(overrides = {}) {
+  return {
+    calculationId: 'VIB.AIV.ACOUSTIC',
+    inputs: {
+      sources: [source()], assessments: [assessment()], relationships: [relationship()],
+      topology: topology(), assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
+      ...(overrides.inputs ?? {}),
+    },
+    options: { qualificationMode: 'screening', includeEvidence: true },
+  };
 }
 
 test('valid WELDOLET screening input satisfies shared executable contract and readiness', () => {
@@ -141,8 +155,30 @@ test('promoted assessment contribution uses current screening authority and pres
     exchange: topology(), qualificationMode: 'screening',
   });
   const contribution = result.assessmentResults[0].sourceContributionsAtPoint[0];
+  assert.equal(result.screeningQualification.counts.readyForQualification, 1);
   assert.equal(contribution.authority.screeningAuthority, 'AUTHORIZED');
   assert.equal(contribution.authority.designAuthority, false);
   assert.equal(contribution.lineageAuthority.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(contribution.lineageAuthority.implementationState, 'CANDIDATE_NOT_AUTHORIZED');
+});
+
+test('registered screening API executes only with internally qualified readiness evidence', () => {
+  const result = calculateEngineering(engineeringRequest());
+  assert.equal(result.ok, true);
+  assert.equal(result.assessment.screeningAuthority, 'AUTHORIZED');
+  assert.equal(result.evidence.domainResult.screeningQualification.counts.readyForQualification, 1);
+});
+
+test('registered screening API rejects presentation-only topology and missing record provenance', () => {
+  const badTopology = calculateEngineering(engineeringRequest({
+    inputs: { topology: { elements: [{ canonicalId: 'ASSMT-1', line: 'L-1' }] } },
+  }));
+  assert.equal(badTopology.ok, false);
+  assert(badTopology.errors.some((item) => ['AIV_SCREENING_READINESS_BLOCKED', 'AIV_SCREENING_TOPOLOGY_OR_READINESS_INVALID'].includes(item.code)));
+
+  const missingRecord = calculateEngineering(engineeringRequest({
+    inputs: { sources: [source({ recordId: '' })] },
+  }));
+  assert.equal(missingRecord.ok, false);
+  assert(missingRecord.errors.some((item) => item.code === 'AIV_SCREENING_READINESS_BLOCKED'));
 });
