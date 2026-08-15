@@ -64,7 +64,7 @@ function comparisonLabel(status) {
   if (status === 'PASS') return 'Benchmark parity PASS';
   if (status === 'FAIL') return 'Benchmark parity FAIL';
   if (status === 'STALE_RESULT') return 'Stale result · rerun required';
-  if (status === 'NOT_RUN') return 'Run benchmark to compare';
+  if (status === 'NOT_RUN') return 'Run screening to compare';
   return 'Not applicable · inputs modified';
 }
 
@@ -74,7 +74,7 @@ function benchmarkPanel(state) {
   const comparison = benchmarkComparison(state);
   const delta = comparison?.relativeDelta;
   return `<section class="vi-card vi-benchmark-card">
-    <div class="vi-section-head"><div><h3>FIT validation benchmark</h3><p>Load a controlled EI worked example into the editable tables, then run the normal FIT benchmark workflow.</p></div></div>
+    <div class="vi-section-head"><div><h3>FIT validation benchmark</h3><p>Load a controlled EI worked example into the editable tables, then run the same bounded FIT screening path used by the app.</p></div></div>
     <div class="vi-benchmark-controls"><label>Benchmark case<select data-vi-benchmark-select>${VIBRATION_FIT_UI_BENCHMARK_CASES.map((entry) => option(entry.id, selected, entry.label)).join('')}</select></label><button type="button" class="vi-btn primary" data-vi-action="load-benchmark"${state.busy ? ' disabled' : ''}>Load BENCHMARK</button></div>
     ${loaded ? `<div class="vi-benchmark-facts">
       <span>Source: <strong>${esc(loaded.sourceLocation)}</strong></span><span>Target standard LOF: <strong>${esc(loaded.published.standardLof)}</strong></span><span>LOF tolerance: <strong>±${esc(loaded.published.standardLofTolerance)}</strong></span><span>Target band: <strong>${esc(loaded.published.referenceBand)}</strong></span><span>Published support: <strong>${esc(loaded.published.supportStiffness)}</strong></span>
@@ -95,7 +95,7 @@ function importPanel(state) {
   const topology = state.tables?.topology;
   const topologyLimited = state.files.topology?.format === 'CSV_ELEMENTS_ONLY' || topology?.authorityDowngraded;
   const checking = state.busy && state.busyAction === 'preflight';
-  const running = state.busy && state.busyAction === 'benchmark';
+  const running = state.busy && state.busyAction === 'screening';
   return `<section class="vi-card vi-import-card">
     <div class="vi-section-head"><div><h3>Working table inputs</h3><p>The complete topology contract is the five-sheet XLSX export. Files load into original/working state; limited Elements-only CSV remains explicit and source values stay available for exact revert.</p></div></div>
     <div class="vi-import-grid">
@@ -103,7 +103,7 @@ function importPanel(state) {
       <label class="vi-file-field"><span>Operating cases</span><input type="file" data-vi-file="operating" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.operating, state.tables?.operating, 'VibrationOperatingCaseCsv.v1')}</span></label>
       <label class="vi-file-field"><span>Vibration enrichment</span><input type="file" data-vi-file="enrichment" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files.enrichment, state.tables?.enrichment, 'VibrationEnrichmentCsv.v1')}</span></label>
     </div>${inputStateFacts(state)}
-    <div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="operating-template">Operating-case template</button><button type="button" class="vi-btn" data-vi-action="enrichment-template">Enrichment template</button><label class="vi-check"><input type="checkbox" data-vi-limited${state.allowLimitedExchange ? ' checked' : ''}> Allow limited Elements-only CSV</label><button type="button" class="vi-btn" data-vi-action="preflight"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${checking ? 'Checking…' : 'Check readiness'}</button><button type="button" class="vi-btn primary" data-vi-action="run"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${running ? 'Running…' : 'Run FIT benchmark'}</button><button type="button" class="vi-btn" data-vi-action="export"${state.resultState === 'CURRENT_RESULT' ? '' : ' disabled'}>Export register CSV</button><button type="button" class="vi-btn" data-vi-action="export-evidence"${state.resultState === 'CURRENT_RESULT' ? '' : ' disabled'}>Export run evidence JSON</button></div>
+    <div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="operating-template">Operating-case template</button><button type="button" class="vi-btn" data-vi-action="enrichment-template">Enrichment template</button><label class="vi-check"><input type="checkbox" data-vi-limited${state.allowLimitedExchange ? ' checked' : ''}> Allow limited Elements-only CSV</label><button type="button" class="vi-btn" data-vi-action="preflight"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${checking ? 'Checking…' : 'Check readiness'}</button><button type="button" class="vi-btn primary" data-vi-action="run"${!state.tables?.topology?.rows?.length || state.busy ? ' disabled' : ''}>${running ? 'Running FIT screening…' : 'Run FIT screening'}</button><button type="button" class="vi-btn" data-vi-action="export"${state.resultState === 'CURRENT_RESULT' ? '' : ' disabled'}>Export register CSV</button><button type="button" class="vi-btn" data-vi-action="export-evidence"${state.resultState === 'CURRENT_RESULT' ? '' : ' disabled'}>Export run evidence JSON</button></div>
     ${topologyLimited ? '<div class="vi-banner warn"><strong>Limited topology input.</strong><span>Execution uses the visible Elements working table. Once a certified XLSX is edited, complete-exchange authority remains downgraded until the source is explicitly reloaded, even if values are reverted.</span></div>' : ''}
   </section>`;
 }
@@ -168,7 +168,7 @@ function dataBlockerArea(state, tables) {
   return `<section class="vi-source-data"><div class="vi-section-head"><div><h3>Data Blockers</h3><p>Enter missing engineering data here instead of relying on hidden defaults. ACTIVE rows may fill missing source fields; HOLD and RESOLVED rows are audit-only. Existing source values always win and a collision fails closed.</p></div></div>
     ${blockerReadinessRows(state)}
     <section class="vi-card vi-import-card"><div class="vi-import-grid"><label class="vi-file-field"><span>FIT data blocker CSV</span><input type="file" data-vi-file="dataBlockers" accept=".csv,text/csv"><span class="vi-file-status">${fileStatus(state.files?.dataBlockers, tables.dataBlockers, 'VibrationFitDataBlockerCsv.v1 · optional manual gap data')}</span></label></div><div class="vi-actions"><button type="button" class="vi-btn" data-vi-action="data-blocker-template">Data-blocker template</button></div><div class="vi-banner warn"><strong>Manual data is evidence, not authority.</strong><span>ACTIVE rows require Canonical ID, field, source, value and status; numeric ACTIVE values require units. HOLD/RESOLVED rows may retain a pending blank value. QST-003 remains a method/domain exclusion and cannot be bypassed by this table.</span></div><small>Supported fields: ${esc(supported)}</small></section>
-    ${editableTable('FIT manual data gaps', tables.dataBlockers, 'One row per unresolved input. Keep a pending row on HOLD; change to ACTIVE only when value, unit and provenance are ready to participate in the benchmark workflow.')}
+    ${editableTable('FIT manual data gaps', tables.dataBlockers, 'One row per unresolved input. Keep a pending row on HOLD; change to ACTIVE only when value, unit and provenance are ready to participate in the screening workflow.')}
   </section>`;
 }
 
