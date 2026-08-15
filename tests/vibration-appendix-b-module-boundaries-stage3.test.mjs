@@ -5,6 +5,7 @@ import test from 'node:test';
 const MODULES = [
   'converters/vibration/masters/ei-aviff-appendix-b-data.js',
   'converters/vibration/masters/ei-aviff-appendix-b-candidate.js',
+  'converters/vibration/masters/ei-aviff-appendix-b-evaluator.js',
 ];
 
 async function source(path) {
