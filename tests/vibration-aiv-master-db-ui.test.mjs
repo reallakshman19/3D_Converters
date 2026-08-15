@@ -5,7 +5,7 @@ import test from 'node:test';
 const ROOT = new URL('../', import.meta.url);
 function source(path) { return fs.readFileSync(new URL(path, ROOT), 'utf8'); }
 
-test('AIV UI auto-loads the bundled pinned master snapshot and exposes visible provenance', () => {
+test('AIV UI auto-loads the bundled pinned master snapshot and exposes visible provenance and review gate', () => {
   const view = source('tabs/vibration-aiv-master-db-view.js');
   const input = source('tabs/vibration-aiv-input-view.js');
   const tab = source('tabs/vibration-aiv-qualification-tab.js');
@@ -14,13 +14,18 @@ test('AIV UI auto-loads the bundled pinned master snapshot and exposes visible p
   assert.match(view, /bundled with the product/u);
   assert.match(view, /End users do not load or maintain master CSVs/u);
   assert.match(view, /data-aiv-action="apply-master-data"/u);
+  assert.match(view, /data-aiv-action="accept-master-data"/u);
+  assert.match(view, /MASTER REVIEW REQUIRED/u);
+  assert.match(view, /engineering qualification is not established by the adapter/u);
   assert.match(view, /explicit project\/user values[\s\S]*\[M\][\s\S]*\[A\]/u);
   assert.match(input, /data-aiv-master-derived/u);
   assert.match(input, />\[M\]/u);
   assert.match(controller, /loadBundledAivMasterDatabase/u);
+  assert.match(controller, /invalidateMasterAcceptance/u);
   assert.match(tab, /masterDbController\.loadBundled\(\)/u);
   assert.match(tab, /onDatasetLoaded:\s*\(\) => masterDbController\.apply\(\{ silent: true \}\)/u);
   assert.match(tab, /masterDbController\.prepareUserEdit/u);
+  assert.match(tab, /createAivMasterAcceptance/u);
 });
 
 test('AIV master resolver has no process-case or physical-distance population path', () => {
@@ -42,6 +47,8 @@ test('new AIV master modules remain inside repository size policy', () => {
     'converters/vibration/aiv/aiv-master-db.js',
     'converters/vibration/aiv/aiv-master-db-resolver.js',
     'converters/vibration/aiv/aiv-master-db-bundled.js',
+    'converters/vibration/aiv/aiv-master-evidence.js',
+    'tabs/vibration-aiv-master-acceptance.js',
     'tabs/vibration-aiv-master-db-controller.js',
     'tabs/vibration-aiv-master-db-view.js',
     'tabs/vibration-aiv-dataset-loader.js',
