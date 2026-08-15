@@ -6,6 +6,14 @@ import {
 } from './vibration-integrity-mechanical-controller.js';
 import { renderVibrationIntegrityActivity } from './vibration-integrity-activity-view.js';
 import { renderMechanicalFacilityPanel } from './vibration-integrity-mechanical-view.js';
+import {
+  handleSbcType3Change,
+  handleSbcType3Click,
+} from './vibration-integrity-sbc-type3-controller.js';
+import {
+  createSbcType3UiState,
+  recordSbcType3UserDataTableMutation,
+} from './vibration-integrity-sbc-type3-state.js';
 import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js';
 import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js';
 import {
@@ -75,10 +83,9 @@ function activityPage(state) {
 export function createVibrationUserDataUiState() {
   return {
     ...createMechanicalFacilityUiState(),
+    ...createSbcType3UiState(),
     workspaceTab: 'screening',
     userEngineeringData: createVibrationUserEngineeringDataTable(),
-    sbcType3ScopeId: '',
-    sbcType3Result: null,
   };
 }
 
@@ -90,7 +97,9 @@ export function renderVibrationIntegrityWithUserData(state) {
 }
 
 function updateTable(state, table, render, audit, details = {}) {
+  const before = state.userEngineeringData;
   state.userEngineeringData = table;
+  recordSbcType3UserDataTableMutation(state, before, table);
   state.sbcType3Result = null;
   state.error = null;
   audit?.('USER_DATA_CHANGED', details, state.sbcType3ScopeId || null);
@@ -119,6 +128,7 @@ function evaluateType3(state, render, audit) {
     audit?.('SBC_TYPE3_EVALUATED', {
       status: state.sbcType3Result?.status ?? null,
       lof: state.sbcType3Result?.lof ?? null,
+      mode: 'LEGACY_EXPLICIT_INTERMEDIATE',
     }, state.sbcType3ScopeId || null);
   } catch (error) {
     state.sbcType3Result = null;
@@ -127,22 +137,9 @@ function evaluateType3(state, render, audit) {
   render();
 }
 
-function openFacilitySbcInputs(state, scopeId, render, audit) {
-  state.workspaceTab = 'user-data';
-  state.sbcType3ScopeId = scopeId;
-  state.sbcType3Result = null;
-  state.error = null;
-  audit?.('SBC_INPUTS_OPENED', {}, scopeId);
-  render();
-}
-
 export function handleVibrationUserDataClick(state, event, render, audit) {
   if (handleMechanicalFacilityClick(state, event, render, audit)) return true;
-  const facilityScope = event.target.closest('[data-vi-sbc-facility-scope]')?.dataset.viSbcFacilityScope;
-  if (facilityScope) {
-    openFacilitySbcInputs(state, facilityScope, render, audit);
-    return true;
-  }
+  if (handleSbcType3Click(state, event, render, audit)) return true;
   const tab = event.target.closest('[data-vi-workspace-tab]')?.dataset.viWorkspaceTab;
   if (tab) {
     const known = VIBRATION_INTEGRITY_UI_CONTRACT.workspaceTabs.some((item) => item.id === tab);
@@ -179,14 +176,7 @@ export function handleVibrationUserDataClick(state, event, render, audit) {
 
 export function handleVibrationUserDataChange(state, event, render, audit) {
   if (handleMechanicalFacilityChange(state, event, render, audit)) return true;
-  if (event.target.matches('[data-vi-sbc-type3-scope]')) {
-    state.sbcType3ScopeId = event.target.value;
-    state.sbcType3Result = null;
-    state.error = null;
-    audit?.('USER_DATA_CHANGED', { action: 'SBC_SCOPE_CHANGED' }, state.sbcType3ScopeId || null);
-    render();
-    return true;
-  }
+  if (handleSbcType3Change(state, event, render, audit)) return true;
   const columnKey = event.target.dataset.viUserDataCell;
   if (!columnKey) return false;
   updateTable(state, updateVibrationUserEngineeringDataCell(
