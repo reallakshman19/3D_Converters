@@ -143,6 +143,27 @@ test('full synthetic straight-pipe spectrum executes state -> stress -> life -> 
   assert.equal(result.canUseForDesignAuthority, false);
 });
 
+test('zero pressure range is an explicit zero-damage cycle without curve extrapolation', () => {
+  const result = evaluateChapterIxStraightPipeFatigueSpectrum({
+    outsideDiameterMm: 88.9,
+    effectiveWallMm: 6.06,
+    spectrum: { spectrumId: 'ZERO' },
+    states: [
+      { spectrumId: 'ZERO', stateId: 'A', pressureMpa: 15, materialTemperatureC: 40, structuralTemperatureC: 40 },
+      { spectrumId: 'ZERO', stateId: 'B', pressureMpa: 15, materialTemperatureC: 40, structuralTemperatureC: 40 },
+    ],
+    transitions: [{ spectrumId: 'ZERO', cycleId: 'C0', fromStateId: 'A', toStateId: 'B', totalCycles: 25000 }],
+    fatigueRoute: { seqRoute: 'DIRECT_SALT_EQUAL_SEQ', interpolationRule: 'LOG_LOG', extrapolationAllowed: false },
+    fatigueCurvePoints: SYNTH_POINTS,
+  });
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.cycles[0].equivalentStress.equivalentAlternatingStressMpa, 0);
+  assert.equal(result.cycles[0].fatigueLife.noDamage, true);
+  assert.equal(result.cycles[0].fatigueLife.interpolation.type, 'ZERO_STRESS_NO_DAMAGE');
+  assert.equal(result.cycles[0].usage, 0);
+  assert.equal(result.damage.cumulativeUsage, 0);
+});
+
 test('full spectrum blocks production KD320 route when cycle parameters are not explicit', () => {
   const result = evaluateChapterIxStraightPipeFatigueSpectrum({
     outsideDiameterMm: D,
