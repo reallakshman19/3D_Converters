@@ -9,22 +9,22 @@ WORK_INTENT: IMPLEMENT / VALIDATE / HANDOVER
 CRITICALITY: ENGINEERING_CRITICAL
 PR: 511
 BRANCH: agent/vibration-product-freeze-v1
-BASE_MAIN: a49085cde69ef71518c0d6315a615477887d7b4e
-REPORT_BASIS_HEAD: 7cfb9ba97ac920c4e8d0db99e7a11fdc0b9653f0
-GROUNDING_EPOCH: 2026-08-15T11:38Z
+LIVE_MAIN: d659e670a2f8fe0a35fc8072382512f6493898cf
+EI_BENCHMARK_COMMIT: fc2c64b6fc7781e79d014d8cca69ab72924266a9
+GROUNDING_EPOCH: 2026-08-15T13:05Z
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
 RECOVERY_DECISION: SALVAGE_PARTIAL / CONTINUE
 APPENDIX_A_STATUS: PASS 97/100
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
-CURRENT_STAGE: CHROMIUM_DIAGNOSTIC_AND_FOCUSED_REGRESSION_PASS
+CURRENT_STAGE: FULL_EI_WORKED_EXAMPLE_COVERAGE_PASS
 FREEZE_STATE: BLOCKED
-HIGHEST_RISK: promoting policy-adapted browser evidence to the official URL-based Production Freeze gate
-EXACT_NEXT_ACTION: run the unchanged scripts/validate-vibration-production-freeze-browser.mjs in an environment where Chromium URL navigation is permitted; if PF-001..PF-007 pass, reconcile official screenshots/receipt and mark FROZEN; if a step fails, patch only the first material user-visible defect and replay
+HIGHEST_RISK: promoting bounded worked-example/browser diagnostic evidence to the official URL-based Production Freeze gate
+EXACT_NEXT_ACTION: execute the unchanged scripts/validate-vibration-production-freeze-browser.mjs in an environment where URL navigation is permitted; retain official screenshots/receipt; only then move BLOCKED -> FROZEN
 ```
 
 ## Handover in 60 Seconds
 
-PR #511 owns the production-freeze/evidence slice. PR #512 owns the shared observational workflow/activity layer.
+PR #511 owns the FIT reproducibility-evidence and production-freeze layer. PR #512 owns the shared observational workflow/Activity layer.
 
 ```text
 product workflow state != FIT result currency
@@ -32,101 +32,191 @@ Activity / audit         != engineering evidence
 FitRunEvidencePackage.v1 = FIT engineering reproducibility evidence envelope
 ```
 
-Current product-module browser diagnostics pass PF-001..PF-007 and the relevant Node suite passes 36/36. No material product defect remains observed. The official URL-based gate is still blocked by managed Chromium `URLBlocklist=["*"]`, and GitHub Actions is blocked by account Actions budget. Therefore the workflow is **BLOCKED, not FROZEN**.
-
-No equation, correlation, master value, tolerance, unit rule, interpolation policy, screening authority, candidate authority, or design authority changed in the latest checkpoint.
-
-## Current Source Ground Truth
+The Owner supplied a pinned digitized EI Appendix-D dataset at:
 
 ```text
-main                              a49085cde69ef71518c0d6315a615477887d7b4e
-latest technical/test fix         7fd9e4fb136c638196d26502d365c3df7ea755ff
-previous report sync              7cfb9ba97ac920c4e8d0db99e7a11fdc0b9653f0
-shared audit blob                 f6135a3172a3b7a562a14635c36897b030873127
-shared workflow blob              a49dbac79854192be13fb6dc6d41c34dc84d2c83
-shared controller blob            cc3ab1c219ed7f4c4efdbfbaab9a6fe716857067
-input-view blob                   e3cb918591e691473adfbea9a2fae27eb8181856
-run-evidence blob                 6f09d34727b8da5c3c6954873d459d01430cf489
-PF browser script blob            f314ef9e1212a95295b55548e83e6c478ff0495e
-product-freeze test blob          ce5b88a390b4d5c43642a72fc251907806a3219e
-run-evidence audit test blob      16e7a1de1554987ea6258a2569a4a452efa58c52
-browser-contract test blob        088bd93314e27f877d24b426fc84a15c58986207
-PF workflow blob                  0b02d67d2685ec3424877a69e67b4915bcab2e32
+reallaksh19/Advanced_Analysis
+commit 04328852dced9f5c4827da8afe8a82aeb8b1a1d3
+path   docs/EI data/EI_AVIFF_Guidelines_2nd_Edition_Examples.md
+blob   c050cd90802c27241c510c6f0ac43bfaf7a89e9d
 ```
 
-Exact main was reconstructed from GitHub Actions artifact `9244952792` (`github-pages`, workflow run `31876804486`, head `a49085c...`). Artifact SHA-256 was verified against GitHub metadata:
+That source is recorded as `CORROBORATING_TRANSCRIPTION_ONLY`; the governing EI method PDF and published worked-example PDF remain higher-precedence sources.
+
+The D2.1 benchmark pack now preserves all eight published FIT rows, plus the existing two D4 rows. Executable worked-example + UI benchmark validation passes 25/25 with no equation, correlation, master-value, tolerance-policy, applicability, action-band, screening-authority, or design-authority implementation change.
+
+The exact URL-based production-freeze gate is still externally blocked, so this PR remains `BLOCKED / NOT FROZEN` and draft.
+
+## Live Source Ground Truth
 
 ```text
-e7ce2096076584e92239eae020e54b2c6a657f0dfffff9ad2f66da4aa14a0676
+main                                  d659e670a2f8fe0a35fc8072382512f6493898cf
+main change since a49085c             AIV/package-only; FIT implementation unchanged
+EI benchmark implementation commit    fc2c64b6fc7781e79d014d8cca69ab72924266a9
+shared audit blob                     f6135a3172a3b7a562a14635c36897b030873127
+shared workflow blob                  a49dbac79854192be13fb6dc6d41c34dc84d2c83
+shared controller blob                cc3ab1c219ed7f4c4efdbfbaab9a6fe716857067
+run-evidence blob                     6f09d34727b8da5c3c6954873d459d01430cf489
+PF browser script blob                f314ef9e1212a95295b55548e83e6c478ff0495e
+expanded benchmark JSON blob          92c589d4f347f59abd29c059b13462802f436deb
+expanded UI benchmark blob            058dc431af78d2a365160dbc3a45c57f29adb7a9
+EI numeric regression blob            b82e5630071c1436361cae7318577497aaf65b60
+UI benchmark regression blob           63cb9ac0e0b125c20db93b517c251fc5f1a4de33
+traceability document blob            a2e43e8d16f89ea41b6f1901a3fec2d8fd387a49
 ```
 
-The #511 runtime/tests/workflow were overlaid and their Git blob identities recomputed locally before execution.
-
-## Executed Node Validation
-
-### Inherited Stage-4 focused suite
+Commit `fc2c64b6...` changes exactly five paths:
 
 ```text
-PASS 28/28
+Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json
+docs/vibration/FIT-EI-Worked-Example-Traceability-v1.md
+tabs/vibration-integrity-benchmarks.js
+tests/vibration-fit-ei-worked-examples.test.mjs
+tests/vibration-fit-ui-benchmarks.test.mjs
 ```
 
-### New #511 regressions
+No calculation or authority implementation module is changed by that commit.
 
-Initial execution exposed `ISS-TEST-001`: `tests/vibration-integrity-run-evidence-audit.test.mjs` placed `await` inside non-`async` callbacks passed to `assert.rejects`, causing `SyntaxError: Unexpected reserved word`.
+## Controlled EI Worked-Example Evidence
 
-Minimal test-only resolution:
+### Source precedence
 
 ```text
-commit  7fd9e4fb136c638196d26502d365c3df7ea755ff
-change  mark the two assert.rejects callbacks async
-blob    16e7a1de1554987ea6258a2569a4a452efa58c52
+1 governing EI method PDF              equations / applicability
+2 published EI worked-example PDF      D2/D4 published comparison vector
+3 Advanced_Analysis@0432885            corroborating owner-supplied transcription only
+4 owner-pinned worked-example DOCX     qualification anchor
+5 executable benchmark JSON            adopted machine-readable comparison vector
+6 retained workbook                    migration/parity evidence only
 ```
 
-Replay:
+### D2.1 complete FIT table
 
 ```text
-new #511 regressions    PASS 8/8
-combined focused suite  PASS 36/36
+Stream 4 supply to cooler          published LOF 0.014
+Stream 5 suction scrubber          published LOF 0.007
+Stream 6 compressor suction        published LOF 0.006
+Stream 7 compressor discharge      published LOF 0.019
+Recycle discharge                  published LOF 0.019
+Recycle suction                    published LOF 0.276
+Relief upstream                    published LOF 0.338
+Relief downstream                  published LOF 0.881
 ```
 
-No production code changed for this fix.
-
-### Repository-wide suite attempt
-
-`node --test tests/*.test.mjs` was attempted but did not complete inside the 120-second execution window, so classification is:
+The existing D4 cases remain:
 
 ```text
-NOT_RUN / INCOMPLETE
+Separator inlet                    published LOF 0.26
+Produced water                     published LOF 3.15
 ```
 
-Two early non-#511 observations:
+`EI-D2-FIT-RECYCLE-SUCTION-6IN` remains first/default so the established PF-002 browser path is unchanged.
 
-1. `tests/app-content-scroll-layout.test.mjs` on base main expects the obsolete literal `Flow-Induced Vibration Screening — FIT Workbook Reference`, while the base adapter already contains `Flow-Induced Vibration Screening — FIT`. Neither path is changed by #511. Classification: `PREEXISTING / BASE ASSERTION DRIFT`.
-2. `tests/categorized-inputxml-authority-pin.test.mjs` invokes `git ls-files`; the downloaded Pages artifact intentionally has no `.git` directory. Classification: `ENVIRONMENT / ARTIFACT LIMITATION`.
+### Tolerance policy
 
-Neither observation is attributed to #511.
+```text
+FIT-EI-PUBLISHED-RECONCILIATION-V1
+```
+
+Absolute per-field allowances remain derived independently from the documented equation register applied to the published input vector plus half of the least displayed output increment. They were not widened to obtain this pass.
+
+The largest observed printed/intermediate reconciliation in the new D2 rows is the 8-in SCH120 published `Fv=38483` versus independent/current-equation `Fv=38525.096...`; the existing reconciliation policy covers that printed/intermediate rounding. No equation was changed to force agreement.
+
+### Authority distinction
+
+```text
+benchmark artifact engineeringAuthority = BENCHMARK_ONLY
+calculated FIT qualification.method      = SCREENING
+calculated FIT qualification.data        = SCREENING
+calculated FIT designAuthority           = false
+```
+
+The previous regression incorrectly required the calculated product result itself to report `BENCHMARK_ONLY`; the test now preserves the benchmark/product distinction instead of weakening product authority semantics.
+
+### D2.4 Mechanical corroboration
+
+The same pinned Appendix-D transcription confirms:
+
+```text
+centrifugal compressor LOF = 0.20
+electric motor >15 kW LOF = 0.40
+governing Mechanical LOF   = 0.40
+```
+
+Mechanical remains a separate candidate-authority path and does not replace Screening governing.
+
+## Executed Validation
+
+### Existing #511 focused validation
+
+```text
+inherited Stage-4 focused suite  PASS 28/28
+new #511 regressions             PASS 8/8
+combined focused suite           PASS 36/36
+```
+
+### Full available EI worked-example validation
+
+Pre-fix exact benchmark test:
+
+```text
+13 tests
+8 PASS
+5 FAIL
+```
+
+All five failures occurred after successful numeric comparisons and were caused solely by the stale assertion that the calculated result must report `BENCHMARK_ONLY` rather than current bounded `SCREENING` qualification.
+
+Post-fix expanded numeric benchmark suite:
+
+```text
+PASS 19/19
+```
+
+Combined numeric + UI benchmark suite:
+
+```text
+PASS 25/25
+10 controlled EI FIT cases
+  8 x D2.1
+  2 x D4
+all production calculations within the existing independent tolerances
+all UI benchmark cases build production-parseable tables
+default PF case unchanged
+```
+
+A separate run-evidence test was attempted from the downloaded static Pages artifact but could not start because the artifact has no installed `xlsx` package:
+
+```text
+ERR_MODULE_NOT_FOUND: Cannot find package 'xlsx'
+classification: NOT_RUN / ENVIRONMENT_ARTIFACT_DEPENDENCY_BLOCKED
+```
+
+That is not represented as PASS or product failure.
+
+The previously attempted repository-wide Node suite remains `NOT_RUN / INCOMPLETE`; unrelated base/artifact limitations were observed and are not attributed to #511.
 
 ## Chromium Evidence
 
 ### Official unchanged PF script
 
-The exact repository script launched Chromium 144 and attempted `page.goto(http://127.0.0.1:4173/)`.
+The exact script launches Chromium but its initial URL navigation is blocked by managed policy:
 
 ```text
-result          net::ERR_BLOCKED_BY_ADMINISTRATOR
-managed policy  URLBlocklist = ["*"]
-classification  NOT_RUN / ENVIRONMENT_POLICY_BLOCKED
+page.goto(http://127.0.0.1:4173/)
+-> net::ERR_BLOCKED_BY_ADMINISTRATOR
+managed policy: URLBlocklist = ["*"]
+classification: NOT_RUN / ENVIRONMENT_POLICY_BLOCKED
 ```
 
-The administrator policy was not modified or bypassed. No official PF PASS is claimed.
+The policy was not modified or bypassed.
 
 ### Policy-compliant production-module diagnostic
 
-Chromium stayed on `about:blank` and loaded exact repository ESM modules in memory. Production `installEngineeringTabs`, Engineering Calculations, and Vibration Integrity modules executed; only the outer URL/app bootstrap was substituted because navigation is blocked.
+Prior exact production-module diagnostic remains:
 
 ```text
 browser                         Chromium 144.0.7559.96
-production module graph         222 modules
 PF-001 Engineering > VIB > FIT  PASS_BROWSER_DIAGNOSTIC
 PF-002 controlled benchmark     PASS_BROWSER_DIAGNOSTIC
 PF-003 readiness                PASS_BROWSER_DIAGNOSTIC
@@ -137,99 +227,30 @@ PF-007 FIT evidence export      PASS_BROWSER_DIAGNOSTIC
 browser/page errors             []
 ```
 
-Engineering values:
+Controlled visible values:
 
 ```text
-FIT expected                    0.276
-FIT tolerance                   ±0.0012
-FIT visible actual              0.27668688083478665
-FIT band                        LOF_LT_0_3
-Mechanical expected/actual      0.40 / 0.40
-candidate replaces Screening    false
-designAuthority                 false
+FIT expected / tolerance       0.276 / +/-0.0012
+FIT actual                     0.27668688083478665
+FIT band                       LOF_LT_0_3
+Mechanical expected / actual   0.40 / 0.40
+candidate replaces Screening   false
+designAuthority                false
 ```
 
-FIT evidence:
+PF-007 produced `FitRunEvidencePackage.v1` with SHA-256 Activity identity, `RUN_EVIDENCE_EXPORT_STARTED`, `designAuthority=false`, and `REPRODUCIBILITY_EVIDENCE_ONLY`. The visible UI subsequently showed `RUN_EVIDENCE_EXPORTED`.
 
-```text
-schema                           FitRunEvidencePackage.v1
-resultState                      CURRENT_RESULT
-authority.engineeringAuthority   SCREENING
-authority.designAuthority        false
-authority.purpose                REPRODUCIBILITY_EVIDENCE_ONLY
-Activity authority               NONE / ACTIVITY_AUDIT_ONLY
-Activity event count             7
-Activity SHA-256 identity        e9330a2f3a70a26ab2bcfeeb813f0cc2e23c61b472b8b404e9b626ac2fb30118
-```
+This is bounded browser diagnostic evidence, not the official URL-based freeze receipt.
 
-The serialized evidence contains `RUN_EVIDENCE_EXPORT_STARTED`; after download the visible status strip shows `Last audit: RUN_EVIDENCE_EXPORTED`, browser-confirming `ISS-PF-001` fixed.
+## Infrastructure Truth
 
-## Browser Artifact Hash Ledger
-
-```text
-navigation-diagnostic-receipt.json  c20f4656bf88b15986719af4961a6d00a70f0e6e8fa6bbd4bd98a3b3af1d0cf9
-vibration-fit-run-evidence.json      ad6452450bc43c2921a87d66bdf10e91ad0b2acca67a2a9f350f5988217413b4
-01-workspace.png                     357a4cd8792d19d1c8281de52b71938cae7310ae3243fe17ceaa0f01a78723e9
-02-benchmark-loaded.png              f6080892cc2788c931568e63d26eade216ce724f4ef77bfd1cce7476d31cac73
-03-readiness.png                     12a5dbd918f81c17d8b119af94066d97579315902e46b265d15da86782af7c22
-04-fit-result.png                    9dd7e90412d33ad815611d5dc3260d299caeaa795b2b65b723fadd8277e969f0
-05-mechanical-result.png             a6e9ad31984efb9dd3439a17174408664d3e1c69139ccd01266c7c899831f2b6
-06-governing-matrix.png              c1cc56da8d2af32cf1637c8bf0051ed1c3cb364cf8df637f43d0ce96f360c121
-07-evidence-exported.png             1d1a67cc077dc9977c0104c99170f50816ef55a34824af59dc47f64031912abc
-```
-
-These are local diagnostic artifacts, not official Production Freeze CI artifacts.
-
-## Issue Ledger
-
-```text
-ISS-PF-001       FIXED_BROWSER_CONFIRMED / official PF still blocked
-ISS-SALVAGE-001  RESOLVED / workflow-state ownership
-ISS-SALVAGE-002  RESOLVED / shared non-authoritative audit contract
-ISS-SALVAGE-003  RESOLVED_BROWSER_DIAGNOSTIC / shared controller
-ISS-TEST-001     RESOLVED / test-only async callback syntax
-ISS-INFRA-001    ACTIVE / GitHub Actions budget
-ISS-INFRA-002    ACTIVE / managed Chromium URLBlocklist
-ISS-BASE-001     PREEXISTING / base full-suite assertion drift
-```
-
-## Latest Hosted CI Truth
-
-The test-fix commit triggered a fresh hosted run:
-
-```text
-workflow run  31882344809
-job          95006568208
-head         7fd9e4fb136c638196d26502d365c3df7ea755ff
-status       completed / failure
-steps        []
-```
-
-GitHub annotation:
+GitHub Actions jobs have repeatedly executed zero steps because the account Actions budget prevents runner allocation. The GitHub annotation is:
 
 ```text
 The job was not started because an Actions budget is preventing further use.
 ```
 
-This is `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product FAIL or PASS. Do not retry until capacity changes.
-
-## Validation Ledger
-
-| Check | Status | Observation / Oracle |
-|---|---|---|
-| exact main artifact identity | PASS | GitHub SHA-256 + local artifact inspection |
-| #511 blob overlay | PASS | local Git blob SHA-1 matches GitHub |
-| inherited Stage-4 focused tests | PASS 28/28 | local execution |
-| new #511 regressions | PASS 8/8 | local execution after test-only fix |
-| combined focused suite | PASS 36/36 | local execution |
-| repository-wide Node suite | NOT_RUN / INCOMPLETE | >120s; unrelated base/artifact issues observed |
-| official JS PF script | NOT_RUN / POLICY_BLOCKED | managed URL policy |
-| PF-001..PF-007 production-module diagnostic | PASS_BROWSER_DIAGNOSTIC | Chromium 144 |
-| FIT oracle | PASS_BROWSER_DIAGNOSTIC | 0.27668688 within 0.276 ±0.0012 |
-| Mechanical oracle | PASS_BROWSER_DIAGNOSTIC | 0.40 |
-| authority/evidence | PASS_BROWSER_DIAGNOSTIC | candidate isolated; designAuthority=false; hashed Activity trail |
-| latest hosted run | NOT_RUN / ACTIONS_BUDGET_BLOCKED | zero steps |
-| official freeze state | BLOCKED | URL-based official gate not executed |
+Classification remains `NOT_RUN / INFRASTRUCTURE_BLOCKED`. Do not retry until capacity/budget changes.
 
 ## Authority / Negative Assurance
 
@@ -242,11 +263,28 @@ designAuthority                          false
 Activity engineering authority           NONE
 Activity purpose                         ACTIVITY_AUDIT_ONLY
 FIT evidence purpose                     REPRODUCIBILITY_EVIDENCE_ONLY
+benchmark artifact authority             BENCHMARK_ONLY
 ```
+
+The expanded benchmark set strengthens qualification evidence coverage only. It does not widen the FIT applicability envelope and does not resolve or weaken QST-003 (`219.1 < Dext < 273 mm`), which remains fail-closed.
+
+## Validation Ledger
+
+| Check | Status | Observation / Oracle |
+|---|---|---|
+| Advanced_Analysis source pin | PASS_SOURCE_TRACE | commit `04328852...`, blob `c050cd...` |
+| complete D2.1 row transcription | PASS_SOURCE_TRACE | 8 published FIT rows |
+| expanded numeric EI suite | PASS 19/19 | local execution against production FIT implementation |
+| expanded numeric + UI suite | PASS 25/25 | local execution |
+| existing focused #511 suite | PASS 36/36 | prior local execution |
+| run-evidence test from Pages artifact | NOT_RUN / ENVIRONMENT_BLOCKED | missing `xlsx` installation |
+| official JS PF script | NOT_RUN / POLICY_BLOCKED | managed URL policy |
+| PF-001..PF-007 production-module diagnostic | PASS_BROWSER_DIAGNOSTIC | Chromium 144 |
+| official freeze state | BLOCKED | official URL-based receipt not executed |
 
 ## Overlap / Dependency State
 
-`COORDINATION_REQUIRED`: PR #512 remains owner of shared workflow/activity behavior. #511 must not independently evolve aligned audit/workflow/controller paths.
+`COORDINATION_REQUIRED`: PR #512 remains owner of shared workflow/Activity behavior. #511 continues to consume the aligned audit/workflow/controller blobs and does not independently evolve those semantics.
 
 ## Exact Continuation State
 
@@ -254,18 +292,17 @@ FIT evidence purpose                     REPRODUCIBILITY_EVIDENCE_ONLY
 restore GitHub Actions budget OR use Chromium environment without URLBlocklist
 -> run unchanged scripts/validate-vibration-production-freeze-browser.mjs
 -> collect official 01..07 screenshots + VibrationProductionFreezeReceipt.v1
--> compare FIT 0.276 ±0.0012 and Mechanical 0.40
--> verify authority/result currency/FIT evidence
+-> compare controlled FIT and Mechanical oracles
+-> verify result currency / authority / evidence export
 -> if all PASS, mark FROZEN
--> if any FAIL, patch only first material visible defect and replay
+-> if any FAIL, patch only the first observed material defect and replay
 ```
+
+The available EI worked-example data are now sufficient for the current bounded FIT numerical qualification; the remaining blocker is release execution/reproducibility evidence, not missing worked-example data.
 
 ## Appendix A — Takeover Qualification
 
 ```text
-qualification_basis_pr_head: df2793f546e876c0a091623bcce5851a1a4ac0a7
-qualification_basis_main_head: a49085cde69ef71518c0d6315a615477887d7b4e
-grounding_epoch: 2026-08-15T10:28Z
 APPENDIX_A_STATUS: PASS
 A1 20/20
 A2 20/20
