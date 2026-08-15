@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { calculateAiv } from '../converters/vibration/aiv/aiv-calculator.js';
 import {
   assertAivExecutableContract,
   findAivUnsupportedSimultaneousScopes,
@@ -126,13 +127,22 @@ test('distinct simultaneous groups under one Assessment + Case fail closed befor
 });
 
 test('different operating cases remain separate even when group labels differ', () => {
-  const relationships = [
-    relationship({ simultaneousSourceGroup: 'G1' }),
-    secondRelationship('G2'),
-  ];
+  const relationships = [relationship({ simultaneousSourceGroup: 'G1' }), secondRelationship('G2')];
   relationships[1] = { ...relationships[1], caseId: 'CASE-2' };
   const sources = [source(), secondSource()];
   sources[1] = { ...sources[1], caseId: 'CASE-2' };
   assert.equal(findAivUnsupportedSimultaneousScopes(relationships).length, 0);
   assert.equal(validateAivExecutableContract({ sources, assessments: [assessment()], relationships }).valid, true);
+});
+
+test('promoted assessment contribution uses current screening authority and preserves candidate lineage separately', () => {
+  const result = calculateAiv({
+    sources: [source()], assessments: [assessment()], relationships: [relationship()],
+    exchange: topology(), qualificationMode: 'screening',
+  });
+  const contribution = result.assessmentResults[0].sourceContributionsAtPoint[0];
+  assert.equal(contribution.authority.screeningAuthority, 'AUTHORIZED');
+  assert.equal(contribution.authority.designAuthority, false);
+  assert.equal(contribution.lineageAuthority.screeningAuthority, 'NOT_AUTHORIZED');
+  assert.equal(contribution.lineageAuthority.implementationState, 'CANDIDATE_NOT_AUTHORIZED');
 });
