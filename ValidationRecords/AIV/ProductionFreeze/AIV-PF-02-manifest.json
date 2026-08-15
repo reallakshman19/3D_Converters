@@ -1,0 +1,94 @@
+{
+  "schema": "AivProductionFreezeManifest.v1",
+  "sliceId": "PF-02",
+  "issueId": 513,
+  "repository": "reallaksh19/3D_Converters",
+  "mission": "Prove READY_FOR_QUALIFICATION is an executable screening precondition and direct registered AIV execution cannot bypass the readiness contract.",
+  "baseSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+  "baseTree": "14d9d4b7575e68267560f9c8a8704c69d25a57cc",
+  "candidateSha": null,
+  "branch": "agent/aiv-pf02-readiness-contract-20260815",
+  "qualification": {
+    "status": "QUALIFIED_FOR_AIV_PRODUCTION_FREEZE",
+    "issueCommentId": 5301819610
+  },
+  "progressionWaiver": {
+    "status": "OWNER_AUTHORIZED_PROGRESSION_FROM_PF01_WITH_NOT_RUN_GATES",
+    "issueCommentId": 5302095544,
+    "scope": "Progression only; PF-01 remains non-PASS and PF-02 retains its own live-product-first gate."
+  },
+  "chromiumVersion": "Chromium 144.0.7559.96 built on Debian GNU/Linux 13 (trixie)",
+  "appBuildIdentity": {
+    "status": "NOT_ESTABLISHED_FOR_REAL_BROWSER",
+    "servedRevision": null,
+    "reason": "Installed Chromium is mandatorily managed with URLBlocklist=['*']; exact-current-main Pages deployment run 31881892198 and controlled retry both failed before executable steps."
+  },
+  "browserCustody": {
+    "startUrl": null,
+    "status": "NOT_RUN_ENVIRONMENT_BLOCKED",
+    "managedPolicy": {"URLBlocklist":["*"]},
+    "currentMainPagesRunId": 31881892198,
+    "attempts": [
+      {"jobId":95005543108,"steps":null,"classification":"NOT_RUN_INFRASTRUCTURE_BLOCKED"},
+      {"jobId":95006065316,"steps":null,"classification":"NOT_RUN_INFRASTRUCTURE_BLOCKED"}
+    ]
+  },
+  "currentMainContractSources": [
+    {"path":"converters/vibration/aiv/aiv-readiness.js","blob":"6423267fd49b3d720874a7b699b0b48a657a5df6","role":"UI/readiness qualification contract"},
+    {"path":"converters/vibration/aiv/aiv-calculator.js","blob":"08f1664f1be6a104fe421655e96a46ca66c6a80c","role":"registered AIV numerical screening kernel wrapper"},
+    {"path":"converters/engineering-calculations/adapters/vibration-aiv.js","blob":"81b6774dc24456ac5c89d983a26593ee34d20ba5","role":"registered calculation adapter validation boundary"},
+    {"path":"converters/engineering-calculations/engine.js","blob":"7b37f45cd22789e565ce8c4b1c31d01a263f9c74","role":"shared registered execution engine"},
+    {"path":"converters/engineering-calculations/input-resolution.js","blob":"4e65a52b57e4c99ef04d9cd6aeafb24b987a9e36","role":"custom adapter validation dispatch"},
+    {"path":"tabs/vibration-aiv-screening-gate.js","blob":"dcde1fadd5b54f17d07e63da4705680dbcf152d4","role":"UI Run Screening gate"},
+    {"path":"tabs/vibration-aiv-screening-request.js","blob":"fd6588f8567fa977d72e75912678201663027cee","role":"UI readiness-qualified request builder"},
+    {"path":"tabs/vibration-aiv-execution.js","blob":"4a2f583f81d85706561013f9ad83bfef82d5aa86","role":"workspace readiness and screening orchestration"}
+  ],
+  "sourceInspectionFinding": {
+    "classification": "SOURCE_INSPECTION_NOT_DEFECT_REPRODUCTION",
+    "finding": "Current UI requires a readiness envelope before Run Screening, but the registered adapter validateInput checks only non-empty tables/topology plus assumption-profile validity, and current calculateAiv(screening) does not invoke buildAivReadiness or an equivalent executable-contract validator. Direct calculateEngineering therefore lacks proof of the same readiness boundary.",
+    "falsifier": "If exact-current-main direct registered execution rejects every PF-02 negative domain through the same readiness/executable codes and the real UI demonstrates parity, classify NOT_REPRODUCIBLE_ON_CURRENT_MAIN and do not replay PR #506."
+  },
+  "pr506Salvage": {
+    "authority": "CANDIDATE_EVIDENCE_ONLY",
+    "head": "b846cbfb765cbc01734154ad837b12d040fe0bf7",
+    "candidateExecutableContractPath": "converters/vibration/aiv/aiv-executable-contract.js",
+    "candidateExecutableContractBlob": "a6de9d2c6bda73370fa5d9889503de4757b95701",
+    "candidateCalculatorBlob": "f9785783a155371d7174dfc3ebe326e577abddb6",
+    "candidateBehavior": "Runs readiness internally for screening and adds explicit executable validation for pressure-drop, temperature, units, gauge-reference evidence, sonic/trim state, assessment envelope, physical-distance evidence, identity and simultaneous-group constraints.",
+    "replayRule": "Do not cherry-pick the 33-file PR. Salvage only the smallest PF-02 behavior proven necessary after live/current-main reproduction."
+  },
+  "requiredNegativeDomains": [
+    "upstream/downstream pressure ordering",
+    "absolute-pressure positivity",
+    "temperature above absolute zero",
+    "supported units",
+    "gauge reference pressure + source + revision",
+    "sonic state",
+    "low-noise trim state/reduction/provenance",
+    "required assessment geometry",
+    "physical distance value/unit/source/revision",
+    "supported assessment-method envelope"
+  ],
+  "benchmarkSources": [
+    {"id":"AIV.EI.D2.3.WORKED_EXAMPLE.v1","path":"tabs/vibration-aiv-benchmarks.js","commit":"d659e670a2f8fe0a35fc8072382512f6493898cf","blob":"c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0"},
+    {"id":"AIV-HAND-MULTI-SOURCE","path":"converters/vibration/aiv/aiv-independent-benchmark-evidence.js","commit":"d659e670a2f8fe0a35fc8072382512f6493898cf","blob":"21d1e687dca0c537f4170e961b2d7b1894d710cc"},
+    {"id":"AIV_RELEASE_SCRIPTS","path":"package.json","commit":"d659e670a2f8fe0a35fc8072382512f6493898cf","blob":"ef583d8da73d23df5463a4dfdb2da2d19006886f"}
+  ],
+  "expectedOracles": [
+    {"id":"B1-D23-RELIEF-RAW-PWL","expected":164.6851759525391,"unit":"dB","absoluteTolerance":1e-10},
+    {"id":"B1-D23-RELIEF-POINT-PWL","expected":164.3734876408508,"unit":"dB","absoluteTolerance":1e-10},
+    {"id":"B2-160+160","expected":163.0102999566398,"unit":"dB","absoluteTolerance":1e-9},
+    {"id":"B3-160+150","expected":160.41392685158226,"unit":"dB","absoluteTolerance":1e-9}
+  ],
+  "authority": {
+    "tablesAreEngineeringSourceOfTruth": true,
+    "svgGeometryIsPhysicalDistanceAuthority": false,
+    "screeningResultScope": "ASSESSMENT",
+    "lineCaseSummaryAuthoritativeForScreening": false,
+    "designAuthority": false
+  },
+  "comparisonTolerancePolicy": "Frozen expected values/tolerances may not be changed to fit implementation output. Identity, provenance, readiness disposition and authority fields compare exactly.",
+  "createdAt": "2026-08-15T15:51:27+04:00",
+  "operator": "GPT-5.6 Sol via connected GitHub",
+  "environmentDisposition": "PF02_BASELINE_FROZEN_LIVE_BROWSER_NOT_RUN"
+}
