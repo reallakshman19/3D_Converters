@@ -109,10 +109,13 @@ function mechanicalInputAction(assessment, compact = false) {
   return `${button}<small class="vi-mono">${status}</small>`;
 }
 
-function sbcInputAction(assessment) {
+function sbcInputAction(assessment, compact = false) {
   if (assessment.mechanism.id !== 'smallBoreConnections' || !assessment.facilityScopeId) return null;
   const incomplete = assessment.assessmentState === 'APPLICABLE_INCOMPLETE';
-  return `<button type="button" class="vi-row-link" data-vi-sbc-facility-scope="${esc(assessment.facilityScopeId)}">${incomplete ? 'Complete inputs' : 'SBC inputs'}</button><small class="vi-mono">${incomplete ? 'NOT READY' : 'INPUT REQUIRED'}</small>`;
+  const label = compact ? 'Edit' : incomplete ? 'Complete inputs' : 'SBC inputs';
+  const button = `<button type="button" class="vi-row-link" data-vi-sbc-facility-scope="${esc(assessment.facilityScopeId)}">${label}</button>`;
+  if (compact) return button;
+  return `${button}<small class="vi-mono">${incomplete ? 'NOT READY' : 'INPUT REQUIRED'}</small>`;
 }
 
 function mechanismCell(assessment) {
@@ -136,7 +139,9 @@ function mechanismCell(assessment) {
   const currency = assessment.resultState === 'STALE_RESULT'
     ? '<small class="vi-mono">STALE_RESULT</small>' : '';
   const editAction = assessment.mechanism.id === 'mechanicalExcitation'
-    ? mechanicalInputAction(assessment, true) : '';
+    ? mechanicalInputAction(assessment, true)
+    : assessment.mechanism.id === 'smallBoreConnections'
+      ? sbcInputAction(assessment, true) : '';
   return `<strong>${esc(assessment.lof)}</strong>${band}${qualification}${currency}${editAction ?? ''}`;
 }
 
@@ -176,6 +181,7 @@ function tableRows(workspace, state) {
       mechanicalSourceKeysByScope: state.mechanicalSourceKeysByScope ?? {},
       mechanicalNotApplicableByScope: state.mechanicalNotApplicableByScope ?? {},
       mechanicalCandidateResultsByScope: state.mechanicalCandidateResultsByScope ?? {},
+      sbcCandidateResultsByScope: state.sbcFacilityCandidateResults ?? {},
     });
     return `<tr${workspace.selectedRowKey === row.rowKey ? ' class="is-selected"' : ''}>
       <td><button type="button" class="vi-row-link" data-vi-row="${esc(row.rowKey)}">${cell(row.line)}</button></td>
