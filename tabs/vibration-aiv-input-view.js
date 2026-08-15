@@ -1,10 +1,9 @@
 import { AIV_UI_BENCHMARK_SOURCE } from './vibration-aiv-benchmarks.js';
-import { renderAivCanvasWorkspaceHtml } from './vibration-aiv-canvas-view.js';
 import { aivCanvasFieldKey } from './vibration-aiv-canvas-field.js';
-import { renderAivFlareNetworkAuthoringHtml } from './vibration-aiv-flare-network-view.js';
 import { renderAivAssumptionProfileHtml } from './vibration-aiv-assumption-view.js';
 import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
 import { renderAivMasterDbHtml } from './vibration-aiv-master-db-view.js';
+import { renderAivUnifiedCanvasWorkspaceHtml } from './vibration-aiv-unified-canvas-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -191,6 +190,7 @@ function fallbackTable(kind) {
 
 function hasCanvasWorkspaceData(state, tables) {
   return Boolean(state.topologyInput
+    || state.flareNetwork?.nodes?.length
     || tables.sources.rows.length
     || tables.assessments.rows.length
     || tables.relationships.rows.length);
@@ -202,14 +202,12 @@ export function renderAivInputWorkspaceHtml(state = {}) {
   const masters = masterMap(state);
   const canvasState = { ...state, tables };
   const filterContext = tableFilterContext(state, tables);
-  const networkOpen = state.flareNetworkActive || Boolean(state.flareNetwork?.nodes?.length);
   const readOnly = state.inputMode === AIV_INPUT_MODE.NETWORK_DRIVEN;
-  const canvas = hasCanvasWorkspaceData(state, tables) ? renderAivCanvasWorkspaceHtml(canvasState) : '';
+  const canvas = hasCanvasWorkspaceData(state, tables) ? renderAivUnifiedCanvasWorkspaceHtml(canvasState) : '';
   const tableSummary = readOnly
     ? 'Generated Source / Assessment / Relationship records · read-only until explicit detach'
     : 'Advanced editable Source / Assessment / Relationship records · [M] master · [A] assumption';
   return `${startPanel({ ...state, tables })}${renderAivMasterDbHtml(state)}${eitSummary(state)}${canvas}
-    <details class="aivq-disclosure" data-aiv-disclosure-key="flare-network-authoring"${networkOpen ? ' open' : ''}><summary><span>Flare network authoring</span><small>Optional graph authoring · connectivity + explicit engineering lengths</small></summary><div class="aivq-disclosure-body">${renderAivFlareNetworkAuthoringHtml(state)}</div></details>
     <details class="aivq-disclosure" data-aiv-disclosure-key="benchmark-assumptions"><summary><span>Controlled benchmark & assumptions</span><small>Reference case and configurable engineering assumptions</small></summary><div class="aivq-disclosure-body">${benchmarkPanel(state)}${renderAivAssumptionProfileHtml(state)}</div></details>
     <details class="aivq-disclosure" data-aiv-disclosure-key="working-data-tables"><summary><span>Working data tables</span><small>${tableSummary}</small></summary><div class="aivq-disclosure-body">
       ${inputAuthorityNotice(state)}
