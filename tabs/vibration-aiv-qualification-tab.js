@@ -50,7 +50,7 @@ export function renderAivQualificationWorkspace(container) {
   const masterDbController = createAivMasterDbController({ state, render, clearReadiness: execution.clearReadiness });
   const datasetLoader = createAivDatasetLoader({
     state, render, clearReadiness: execution.clearReadiness,
-    clearMasterResolution: masterDbController.clearResolution,
+    clearMasterResolution: () => masterDbController.clearResolution({ clearDerivedValues: true }),
     deactivateFlareNetworkGeneration,
   });
 
@@ -102,7 +102,7 @@ export function renderAivQualificationWorkspace(container) {
       if (findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input) >= 0) {
         throw new Error('AIV_INPUT_RELATIONSHIP_DUPLICATE: Relationship already exists for the selected source, assessment and operating case.');
       }
-      applyTableMutation('relationships', addAivRelationshipInputRow(state.tables.relationships, input));
+      applyTableMutation('relationships', addAivRelationshipInputRow(state.tables.relationships, input), true);
       return true;
     } catch (error) {
       state.error = String(error?.message || error);
@@ -116,7 +116,8 @@ export function renderAivQualificationWorkspace(container) {
       if (!confirmAivRelationshipDelete(input)) return false;
       const rowIndex = findAivRelationshipInputRowIndex(effectiveRelationshipTable(), input);
       if (rowIndex < 0) throw new Error('AIV_INPUT_RELATIONSHIP_NOT_FOUND: Selected relationship no longer exists.');
-      applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex));
+      masterDbController.noteRowDeleted('relationships', rowIndex);
+      applyTableMutation('relationships', deleteAivInputRow(state.tables.relationships, rowIndex), true);
       return true;
     } catch (error) {
       state.error = String(error?.message || error);
@@ -128,7 +129,7 @@ export function renderAivQualificationWorkspace(container) {
   function handleTableClick(event) {
     const addKind = event.target.closest('[data-aiv-table-add]')?.dataset.aivTableAdd;
     if (addKind) {
-      applyTableMutation(addKind, addAivInputRow(state.tables[addKind]));
+      applyTableMutation(addKind, addAivInputRow(state.tables[addKind]), true);
       return true;
     }
     const button = event.target.closest('[data-aiv-table-delete]');
@@ -136,7 +137,8 @@ export function renderAivQualificationWorkspace(container) {
     const kind = button.dataset.aivTableDelete;
     const rowIndex = Number(button.dataset.aivEditRow);
     if (kind === 'relationships' && !confirmAivRelationshipDelete(aivRelationshipIdentityFromTableRow(state.tables.relationships, rowIndex))) return true;
-    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], rowIndex));
+    masterDbController.noteRowDeleted(kind, rowIndex);
+    applyTableMutation(kind, deleteAivInputRow(state.tables[kind], rowIndex), true);
     return true;
   }
 
@@ -178,9 +180,9 @@ export function renderAivQualificationWorkspace(container) {
     if (!kind) return false;
     const rowIndex = Number(event.target.dataset.aivEditRow);
     const columnIndex = Number(event.target.dataset.aivEditColumn);
-    masterDbController.noteUserEdit(kind, rowIndex, columnIndex);
+    const baseTable = masterDbController.prepareUserEdit(kind, rowIndex, columnIndex);
     applyTableMutation(kind, updateAivInputCell(
-      state.tables[kind],
+      baseTable,
       rowIndex,
       columnIndex,
       event.target.value,
