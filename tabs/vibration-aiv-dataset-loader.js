@@ -17,7 +17,6 @@ export function createAivDatasetLoader({
   render,
   clearReadiness,
   clearMasterResolution,
-  deactivateFlareNetworkGeneration,
   onDatasetLoaded = null,
 }) {
   function markBenchmarkModified() {
@@ -55,7 +54,6 @@ export function createAivDatasetLoader({
     try {
       const loaded = buildLoadedAivD23Benchmark();
       clearMasterResolution();
-      deactivateFlareNetworkGeneration();
       state.eitImport = null;
       state.benchmark.loaded = loaded.benchmark;
       state.tables = { ...loaded.tables };
@@ -80,7 +78,6 @@ export function createAivDatasetLoader({
   async function loadFile(target, file) {
     clearReadiness();
     clearMasterResolution();
-    deactivateFlareNetworkGeneration();
     state.error = null;
     try {
       if (target === 'eit') await importAivEitFileIntoState(state, file, clearReadiness);
