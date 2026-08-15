@@ -1,4 +1,4 @@
-import { evaluateSbcFacilityType3 } from '../sbc/facility.js';
+import { evaluateSbcFacilityType3 } from '../sbc/facility.js?v=20260815-sbc-pf05-cache-1';
 import {
   createVibrationMechanismAssessmentItem,
   createVibrationMechanismAssessmentSet,
@@ -8,26 +8,23 @@ export const SBC_VIBRATION_MECHANISM_ID = 'smallBoreConnections';
 export const SBC_VIBRATION_MECHANISM_IMPLEMENTATION_STATE = 'IMPLEMENTED_CANDIDATE_USER_INPUT';
 
 function scopeFromRow(row = {}) {
-  return {
-    line: row.line,
-    caseId: row.caseId ?? null,
-    canonicalId: row.canonicalId,
-  };
+  return { line: row.line, caseId: row.caseId ?? null, canonicalId: row.canonicalId };
 }
 
 function readinessFromEvaluation(evaluation) {
   if (evaluation.status === 'INPUT_REQUIRED') {
     return {
-      missing: ['SBC_TYPE3_USER_INPUT_TEMPLATE'],
-      invalid: [],
+      missing: ['SBC_TYPE3_USER_INPUT_TEMPLATE'], invalid: [],
       reasons: ['SBC_APPLICABILITY_AND_TYPE3_INPUT_REQUIRED'],
     };
   }
   if (evaluation.result?.ok === false) {
     const problems = evaluation.result.problems ?? [];
     return {
-      missing: problems.filter((item) => item.status === 'NOT_READY').map((item) => item.term),
-      invalid: problems.filter((item) => item.status !== 'NOT_READY').map((item) => item.term),
+      missing: problems.filter((item) => ['NOT_READY', 'INPUT_REQUIRED'].includes(item.status))
+        .map((item) => item.term),
+      invalid: problems.filter((item) => !['NOT_READY', 'INPUT_REQUIRED'].includes(item.status))
+        .map((item) => item.term),
       reasons: problems.map((item) => `${item.term}:${item.status}${item.reason ? `:${item.reason}` : ''}`),
     };
   }
@@ -49,10 +46,8 @@ function resultState(evaluation, requested) {
 function resultValue(evaluation) {
   if (!evaluation.ok) {
     return {
-      calculated: false,
-      governingLof: null,
-      methodId: evaluation.result?.methodId ?? null,
-      status: evaluation.status,
+      calculated: false, governingLof: null,
+      methodId: evaluation.result?.methodId ?? null, status: evaluation.status,
     };
   }
   return {
@@ -67,13 +62,20 @@ function resultValue(evaluation) {
   };
 }
 
+function evidenceClass(evaluation) {
+  return evaluation.result?.status === 'CALCULATED_MASTER_ASSISTED_CANDIDATE'
+    ? 'MASTER_ASSISTED_WITH_PROJECT_CURVE_EVIDENCE'
+    : 'USER_SUPPLIED_PROJECT_INPUT';
+}
+
 export function buildSbcVibrationMechanismAssessmentItem({
   row,
   userRows = [],
   governed = {},
+  precomputedCandidate = null,
   resultState: requestedResultState = null,
 } = {}) {
-  const evaluation = evaluateSbcFacilityType3(row, { userRows, governed });
+  const evaluation = evaluateSbcFacilityType3(row, { userRows, governed, precomputedCandidate });
   const result = resultValue(evaluation);
   return createVibrationMechanismAssessmentItem({
     mechanismId: SBC_VIBRATION_MECHANISM_ID,
@@ -91,10 +93,10 @@ export function buildSbcVibrationMechanismAssessmentItem({
     request: {
       methodId: evaluation.result?.methodId ?? 'VIB.SBC.T3.TYPE3.USER_INPUT_CANDIDATE',
       facilityScopeId: evaluation.scope.scopeId,
-      evidenceClass: 'USER_SUPPLIED_PROJECT_INPUT',
+      evidenceClass: evidenceClass(evaluation),
     },
     execution: evaluation.ok ? {
-      status: 'CALCULATED_USER_INPUT_CANDIDATE',
+      status: evaluation.result.status,
       screeningAuthorized: false,
     } : null,
     result,
@@ -118,6 +120,7 @@ export function buildSbcVibrationMechanismAssessmentItem({
       facilityScope: evaluation.scope,
       userRows: evaluation.userRows,
       authority: evaluation.authority,
+      masterAssisted: evaluation.result?.status === 'CALCULATED_MASTER_ASSISTED_CANDIDATE',
     },
   });
 }
