@@ -32,7 +32,7 @@ test('product freeze keeps core actions and extension-safe workspace anchors vis
   }
   assert.match(tab, /VIBRATION_INTEGRITY_ACTION_IDS/u);
   for (const workspaceTab of VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredCoreWorkspaceTabs) {
-    assert.match(shell, new RegExp(`data-vi-workspace-tab=["']${workspaceTab}["']`, 'u'));
+    assert.match(shell, new RegExp(`tabButton\\(["']${workspaceTab}["']`, 'u'));
   }
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.extensionPolicy.mechanismWorkspaceTabsAllowed, true);
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.authorityBoundary.designAuthority, false);
