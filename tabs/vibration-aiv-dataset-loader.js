@@ -38,6 +38,11 @@ export function createAivDatasetLoader({
     return operation.token === loadToken && isAivInputRevisionCurrent(state, operation.revision);
   }
 
+  function prepareFileCommit() {
+    clearMasterResolution();
+    deactivateFlareNetworkGeneration();
+  }
+
   function applyFlareNetwork(network) {
     const operation = beginDatasetChange();
     try {
@@ -90,6 +95,8 @@ export function createAivDatasetLoader({
   async function loadTopology(file, operation) {
     const data = await file.arrayBuffer();
     if (!current(operation)) return false;
+    prepareFileCommit();
+    if (!current(operation)) return false;
     state.eitImport = null;
     state.files.eit = null;
     state.files.topology = { name: file.name, kind: 'Complete five-sheet XLSX' };
@@ -99,9 +106,11 @@ export function createAivDatasetLoader({
   }
 
   async function loadCsv(target, file, operation) {
-    const text = await file.text();
+    const csvText = await file.text();
     if (!current(operation)) return false;
-    const table = parseAivInputCsv(target, text, { sourceName: file.name, sourceKind: 'CSV' });
+    const table = parseAivInputCsv(target, csvText, { sourceName: file.name, sourceKind: 'CSV' });
+    if (!current(operation)) return false;
+    prepareFileCommit();
     if (!current(operation)) return false;
     state.eitImport = null;
     state.files.eit = null;
@@ -112,13 +121,15 @@ export function createAivDatasetLoader({
 
   async function loadFile(target, file) {
     const operation = beginDatasetChange();
-    clearMasterResolution();
-    deactivateFlareNetworkGeneration();
     state.error = null;
     try {
       let committed;
       if (target === 'eit') committed = Boolean(await importAivEitFileIntoState(
-        state, file, clearReadiness, () => current(operation),
+        state,
+        file,
+        clearReadiness,
+        () => current(operation),
+        prepareFileCommit,
       ));
       else if (target === 'topology') committed = await loadTopology(file, operation);
       else committed = await loadCsv(target, file, operation);
