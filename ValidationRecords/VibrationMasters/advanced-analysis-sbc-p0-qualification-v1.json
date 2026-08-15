@@ -8,6 +8,20 @@
     "examplesPath": "docs/EI data/EI_AVIFF_Guidelines_2nd_Edition_Examples.md",
     "examplesBlobSha1": "c050cd90802c27241c510c6f0ac43bfaf7a89e9d"
   },
+  "uploadedCompleteRegisterCorroboration": {
+    "fileName": "EI_AVIFF_Complete_Master_Register.md",
+    "sizeBytes": 33272,
+    "sha256": "1b88b6e1b8345eff89f751b196fb9fd29d73103d7bba67ccb49f6e9a7cd5f29a",
+    "status": "PASS_CORROBORATION_ONLY",
+    "observedCombinationRule": "min(mainLineLof * 1.42, sbcModifier)",
+    "observedGovernance": {
+      "tablesT3_1_T3_2_T3_3": "QUALIFIED_IN_REGISTER",
+      "combinationFormula": "QUALIFIED_IN_REGISTER",
+      "figuresT3_1_T3_4": "BLOCKED_SOURCE_DATA_CONFLICT_QUARANTINED"
+    },
+    "authorityEffect": "NONE",
+    "reason": "Uploaded register is user-supplied corroborating governance evidence. It does not provide calibrated curve geometry and does not independently resolve the D7 curve conflict."
+  },
   "existingCandidateParity": {
     "tableT3_1": {
       "status": "PASS",
