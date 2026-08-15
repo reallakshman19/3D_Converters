@@ -1,7 +1,4 @@
-import {
-  calculateSbcType3MasterAssistedCandidate,
-  createSbcType3MasterAssistedCurveTemplate,
-} from '../converters/vibration/sbc/type3-master-assisted.js';
+import { calculateSbcType3MasterAssistedCandidate } from '../converters/vibration/sbc/type3-master-assisted.js';
 import { SBC_TYPE3_BLOCKERS, SBC_TYPE3_RECORD_KEY } from '../converters/vibration/sbc/type3-user-data.js';
 import {
   addVibrationUserEngineeringDataRow,
@@ -73,6 +70,18 @@ function removeCurveRows(table, scopeId) {
   return next;
 }
 
+async function curveSeedsAfterPhysicalValidation(state, scopeId) {
+  const probe = await calculateSbcType3MasterAssistedCandidate({
+    scopeId,
+    physical: physicalForScope(state, scopeId),
+    mainlineLof: state.sbcType3MainlineByScope?.[scopeId] ?? null,
+    userRows: [],
+  });
+  if (probe.curveRequests?.length === 3) return probe.curveRequests;
+  const reason = probe.problems?.[0]?.reason ?? 'SBC_T3_PHYSICAL_INPUT_NOT_READY';
+  throw new Error(reason);
+}
+
 async function generateCurveRows(state, render) {
   let scopeId = null;
   try {
@@ -81,9 +90,7 @@ async function generateCurveRows(state, render) {
     state.sbcType3Busy = true;
     state.error = null;
     render();
-    const seeds = await createSbcType3MasterAssistedCurveTemplate({
-      scopeId, physical: physicalForScope(state, scopeId),
-    });
+    const seeds = await curveSeedsAfterPhysicalValidation(state, scopeId);
     let table = removeCurveRows(state.userEngineeringData, scopeId);
     for (const seed of seeds) table = addVibrationUserEngineeringDataRow(table, seed);
     state.userEngineeringData = table;
