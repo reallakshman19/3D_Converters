@@ -4,14 +4,22 @@ import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
+const unifiedModules = [
+  'tabs/vibration-aiv-unified-canvas-projection.js',
+  'tabs/vibration-aiv-unified-canvas-view.js',
+  'tabs/vibration-aiv-unified-canvas-controller.js',
+  'tabs/vibration-aiv-unified-canvas-author.js',
+  'tabs/vibration-aiv-unified-canvas-author-view.js',
+  'tabs/vibration-aiv-unified-canvas-inspector.js',
+];
 
 test('production input workspace renders the unified view and no duplicate flare/canvas view', async () => {
   const input = await read('tabs/vibration-aiv-input-view.js');
-  assert.equal(input.includes("renderAivUnifiedCanvasWorkspaceHtml"), true);
-  assert.equal(input.includes("renderAivCanvasWorkspaceHtml"), false);
-  assert.equal(input.includes("renderAivFlareNetworkAuthoringHtml"), false);
-  assert.equal(input.includes("vibration-aiv-canvas-view.js"), false);
-  assert.equal(input.includes("vibration-aiv-flare-network-view.js"), false);
+  assert.equal(input.includes('renderAivUnifiedCanvasWorkspaceHtml'), true);
+  assert.equal(input.includes('renderAivCanvasWorkspaceHtml'), false);
+  assert.equal(input.includes('renderAivFlareNetworkAuthoringHtml'), false);
+  assert.equal(input.includes('vibration-aiv-canvas-view.js'), false);
+  assert.equal(input.includes('vibration-aiv-flare-network-view.js'), false);
 });
 
 test('qualification creates one unified controller and no legacy canvas/flare controller', async () => {
@@ -36,26 +44,36 @@ test('unified renderer owns exactly one SVG and authoring controls own none', as
   assert.equal(view.includes('vibration-aiv-canvas-view.js'), false);
 });
 
-test('unified controller keeps NETWORK_DRIVEN relationship mode inspection-only', async () => {
+test('unified controller absorbs selection/detail/authoring parity and keeps NETWORK_DRIVEN relationship mode inspection-only', async () => {
   const controller = await read('tabs/vibration-aiv-unified-canvas-controller.js');
   assert.equal(controller.includes('isNetworkDriven(container)) return;'), true);
   assert.equal(controller.includes('moveAivFlareNetworkNodePresentation'), true);
   assert.equal(controller.includes('applyAivUnifiedNetworkAuthorAction'), true);
   assert.equal(controller.includes('applyAivUnifiedNetworkAuthorChange'), true);
+  assert.equal(controller.includes('revealAivCanvasSelection'), true);
+  assert.equal(controller.includes('activateAivCanvasDetailTab'), true);
+  assert.equal(controller.includes('moveAivCanvasDetailTab'), true);
+  assert.equal(controller.includes('focusAivCanvasField'), true);
+  assert.equal(controller.includes("event.deltaY < 0 ? 1.2 : 1 / 1.2"), true);
   assert.equal(controller.includes('createAivCanvasInteractionController'), false);
   assert.equal(controller.includes('createAivFlareNetworkAuthoringController'), false);
 });
 
-test('unified production view/controller add no acoustic equation or pixel-distance authority', async () => {
-  const sources = await Promise.all([
-    'tabs/vibration-aiv-unified-canvas-view.js',
-    'tabs/vibration-aiv-unified-canvas-controller.js',
-    'tabs/vibration-aiv-unified-canvas-author.js',
-    'tabs/vibration-aiv-unified-canvas-inspector.js',
-  ].map(read));
+test('new unified production modules stay below 300 physical lines', async () => {
+  for (const path of unifiedModules) {
+    const source = await read(path);
+    const lines = source.split(/\r?\n/u).length;
+    assert(lines < 300, `${path} has ${lines} physical lines`);
+  }
+});
+
+test('unified production modules add no acoustic equation or pixel-distance authority', async () => {
+  const sources = await Promise.all(unifiedModules.map(read));
   for (const source of sources) {
     assert.equal(source.includes('Math.log('), false);
     assert.equal(source.includes('Math.log10('), false);
     assert.equal(source.includes('svgPixelsAuthoritativeForDistance: true'), false);
+    assert.equal(source.includes('physicalLength = dx'), false);
+    assert.equal(source.includes('physicalLength = dy'), false);
   }
 });
