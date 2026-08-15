@@ -13,6 +13,18 @@ import { executeVibrationIntegrityRun, vibrationIntegrityCapturedInputDrifted, v
 import { createVibrationUserDataUiState, handleVibrationUserDataChange, handleVibrationUserDataClick, renderVibrationIntegrityWithUserData } from './vibration-integrity-user-data-shell.js';
 import { transitionVibrationIntegrityResultState } from './vibration-integrity-workflow-state.js';
 
+const WORKSPACE_CLICK_ACTIONS = Object.freeze([
+  Object.freeze(['[data-vi-mechanical-facility-scope]', 'mechanical-open']),
+  Object.freeze(['[data-vi-mechanical-evaluate]', 'mechanical-evaluate']),
+  Object.freeze(['[data-vi-mechanical-clear]', 'mechanical-clear']),
+  Object.freeze(['[data-vi-sbc-facility-scope]', 'sbc-open']),
+  Object.freeze(['[data-vi-sbc-type3-template]', 'sbc-type3-template']),
+  Object.freeze(['[data-vi-sbc-type3-evaluate]', 'sbc-type3-evaluate']),
+  Object.freeze(['[data-vi-user-data-add-sbc]', 'user-data-add-sbc']),
+  Object.freeze(['[data-vi-user-data-add]', 'user-data-add']),
+  Object.freeze(['[data-vi-user-data-delete]', 'user-data-delete']),
+]);
+
 function workspaceOptions(state) {
   const filters = {};
   if (state.filters.line) filters.lines = [state.filters.line];
@@ -56,6 +68,12 @@ function appendAudit(state, type, details = {}, options = {}) {
     runSnapshot: options.includeRun === false ? null : state.runSnapshot,
     authority: auditAuthority(state), details,
   });
+}
+function workspaceClickAudit(event) {
+  const tab = event.target.closest('[data-vi-workspace-tab]')?.dataset.viWorkspaceTab;
+  if (tab) return { type: 'WORKSPACE_TAB_CHANGED', details: { tab } };
+  const matched = WORKSPACE_CLICK_ACTIONS.find(([selector]) => event.target.closest(selector));
+  return { type: 'WORKSPACE_ACTION', details: { action: matched?.[1] ?? 'workspace-action' } };
 }
 export function renderVibrationIntegrityTab(container) {
   ensureVibrationIntegrityStylesheet();
@@ -211,7 +229,9 @@ export function renderVibrationIntegrityTab(container) {
     target.scrollIntoView?.({ block: 'center' });
   }
   function onClick(event) {
-    if (handleVibrationUserDataClick(state, event, render)) return;
+    if (handleVibrationUserDataClick(state, event, render)) {
+      const audit = workspaceClickAudit(event); appendAudit(state, audit.type, audit.details); return;
+    }
     if (handleTableClick(event)) return;
     const sourceTarget = event.target.closest('[data-vi-source-target]')?.dataset.viSourceTarget;
     if (sourceTarget) { event.preventDefault(); openSourceTarget(sourceTarget); return; }
