@@ -5,6 +5,7 @@ files:
   exact:
     - tabs/vibration-aiv-canvas-filter.js
     - tests/vibration-aiv-canvas-filter-runtime.test.mjs
+    - package.json
     - ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-manifest.json
     - ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-before.json
     - ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-after.json
@@ -20,12 +21,11 @@ claim_modes:
   - EXCLUSIVE
   - SHARED_READ
 notes:
-  - "Current production baseline is main d659e670a2f8fe0a35fc8072382512f6493898cf (GE-004)."
-  - "PR515 evidence-only history was rebased from superseded head 2858f1fca8633d9c91328f8fbda252783837cffb onto current main before any production/test mutation."
-  - "PR #516 is merged into current main; its exact changed paths do not overlap PF-01 claimed production/test/evidence paths. package.json changed only as release-script custody and is not claimed by PF-01."
-  - "PR #506 overlaps tabs/vibration-aiv-canvas-filter.js but is issue #513 SALVAGE_CANDIDATE only; do not mutate PR #506."
-  - "Current-main low-level first-sync null failure is isolated; one-line local candidate is characterized but not committed."
-  - "No claim over AIV numerical equations, master engineering authority, screening result scope, physical distance authority, readiness/calculator semantics, source grouping, async custody, or export contracts in PF-01."
-  - "Do not treat exact-blob Node execution as FULL_BROWSER_PASS."
-  - "Production/test mutation remains blocked until exact-current-main real-app Chromium reproduction is possible in a navigation-permitted environment."
-last_verified_head: e665924628aec015c39dfeac02f037798ca56e3b
+  - "Current production baseline remains main d659e670a2f8fe0a35fc8072382512f6493898cf."
+  - "Owner live Chromium reproduction confirmed the exact PF-01 caseId failure through dataset load and Check Readiness."
+  - "Only production change is one-line null normalization in the canvas filter state factory."
+  - "package.json is claimed only to register the focused regression in verify:aiv-canvas; no dependency/workflow change."
+  - "No claim over AIV numerical equations, benchmark expected values, master authority, readiness/calculator semantics, grouping, async custody, physical-distance authority, result scope, or exports."
+  - "PR #506 remains salvage/evidence only and was not bulk replayed."
+  - "PF-02 remains unauthorized until full patched application replay, B1-B6, and release suite are complete."
+last_verified_implementation_head: 8ce49f991d6907694f284398026a8114437d9740
