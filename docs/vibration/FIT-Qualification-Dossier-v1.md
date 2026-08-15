@@ -22,12 +22,23 @@ This dossier does not authorize production screening. Any eventual bounded `BENC
 
 ## 2. Controlled source set
 
+Method/project source set:
+
 ```text
 Common@fb549185b9b27edc2379734240320a85c5bef9f6
 EI full guidance PDF blob     9d3eccc56429411e17c07a579bdebbd13cb0bdc5
 EI examples PDF blob          3e2517d0df527a051084fc02e69cb7afa31f8d47
-worked-example DOCX blob      ceee15ed5f7f320045d5f3979024e2e8664613f2
 ```
+
+Owner-approved worked-example qualification anchor:
+
+```text
+Common@7bfead910f6bca91b10748ead009e40f20c82219
+Energy-Institute-AVIFF---Worked-Examples.doc.docx
+blob ceee15ed5f7f320045d5f3979024e2e8664613f2
+```
+
+The DOCX blob is the same controlled worked-example blob previously tracked in the qualification source set.
 
 Retained workbook evidence:
 
@@ -57,7 +68,7 @@ Published example dataset:
 Benchmarks/VibrationFIT/fit-ei-worked-examples-v1.json
 ```
 
-The former blanket 1.5% comparison was replaced by `FIT-EI-PUBLISHED-RECONCILIATION-V1`: case/field absolute tolerances based on independent equation-register recomputation plus displayed source precision.
+The former blanket 1.5% comparison was replaced by `FIT-EI-PUBLISHED-RECONCILIATION-V1`: case/field absolute tolerances based on equation-register recomputation plus displayed source precision.
 
 Independent dataset:
 
@@ -72,9 +83,30 @@ FIT-HAND-LIQ-MEDIUM-SMALL-008
 FIT-HAND-FLEX-LARGE-LOF-120-FN2-009
 ```
 
-Evidence strength remains provenance only; it grants no screening/design authority.
+Evidence strength remains provenance only; it grants no screening/design authority by itself.
 
-## 4. Candidate bounded scope
+## 4. Owner benchmark-qualification rule
+
+Owner direction for this FIT production candidate:
+
+```text
+If the implementation reproduces the controlled worked examples,
+a separate independent vibration-engineer review is not required.
+```
+
+The qualification source is the exact DOCX at `Common@7bfead910f6bca91b10748ead009e40f20c82219`, blob `ceee15ed...`.
+
+The rule removes only the separate vibration-engineer sign-off gate. It does not waive:
+
+- the bounded scope and QST-003 exclusion;
+- controlled-source traceability and discrepancy disposition;
+- independent numerical branch evidence already included in the suite;
+- exact release regression;
+- real-browser/real-file acceptance;
+- reproducibility and anti-bypass controls;
+- Owner authorization of the later screening-authority PR.
+
+## 5. Candidate bounded scope
 
 ```text
 60 mm <= Dext <= 219.1 mm      candidate after all gates
@@ -101,7 +133,7 @@ standard LOF >= 1
 1 Hz < fn <= 3 Hz
 ```
 
-## 5. Central API bounded unit qualification
+## 6. Central API bounded unit qualification
 
 Controlled regression:
 
@@ -122,7 +154,7 @@ Literal independently prepared SI/US pairs cover:
 
 The test does not generate the US side with the converter under test.
 
-## 6. Governed Data Blockers user input
+## 7. Governed Data Blockers user input
 
 Per Owner instruction, unresolved **data-dependent** FIT blockers are available as explicit user inputs through:
 
@@ -162,7 +194,7 @@ tests/vibration-fit-data-blockers.test.mjs
 
 covers pending blank safety, ACTIVE/HOLD behavior, component-derived multiphase, source collision, alternate-flow collision and attempted method-gap bypass.
 
-## 7. Working-state and complete-XLSX authority
+## 8. Working-state and complete-XLSX authority
 
 The workspace maintains original/working rows with cell, row and table revert.
 
@@ -182,7 +214,7 @@ The first normal topology edit irreversibly downgrades complete-exchange authori
 
 Readiness/run use captured immutable input state. In-flight change invalidates readiness or marks the resulting calculation `STALE_RESULT`.
 
-## 8. Reproducibility identity
+## 9. Reproducibility identity
 
 ```text
 FitRunSnapshot.v1
@@ -200,41 +232,6 @@ Data Blockers participate in the audit identity and stale detection. Consumed bl
 
 Authority remains `REPRODUCIBILITY_EVIDENCE_ONLY`.
 
-## 9. Independent vibration-engineer gate
-
-Current review template:
-
-```text
-docs/vibration/FIT-Independent-Screening-Review-v1.md
-```
-
-Machine-checkable gate:
-
-```text
-FitIndependentScreeningReview.v1
-createFitIndependentScreeningReviewTemplate()
-validateFitIndependentScreeningReview()
-assertFitIndependentScreeningReviewComplete()
-```
-
-A GO record is invalid unless it is tied to a 40-character exact candidate SHA and explicitly confirms:
-
-- direct T2.2 page/equation review;
-- official errata disposition;
-- project adoption approval;
-- bounded scope/QST-003 exclusion;
-- manual-data fill-only/non-override policy;
-- exact-candidate release suite PASS;
-- browser/five-sheet XLSX/Data Blockers/evidence acceptance PASS;
-- `screeningRecommendation = GO_BOUNDED_SCREENING`;
-- `designAuthorityRecommendation = NOT_AUTHORIZED`.
-
-Controlled regression:
-
-```text
-tests/vibration-fit-independent-screening-review.test.mjs
-```
-
 ## 10. Controlled release gate
 
 Command:
@@ -243,38 +240,39 @@ Command:
 npm run verify:vibration-fit-release
 ```
 
-Current PR499 manifest contains **48 distinct test files** across engineering core, FIT engineering evidence, facility/tabular, workspace/UI and multi-mechanism validation groups.
+Current PR499 manifest contains **47 distinct test files** across engineering core, FIT engineering evidence, facility/tabular, workspace/UI and multi-mechanism validation groups.
 
 Execution truth:
 
 ```text
-native exact 48-file suite          NOT_RUN / ENVIRONMENT_BLOCKED
+native exact 47-file suite          NOT_RUN / ENVIRONMENT_BLOCKED
 real-browser acceptance             NOT_RUN
 real five-sheet XLSX acceptance     NOT_RUN
-independent vibration review        NOT_RUN
 ```
 
 Static/source construction is not runtime PASS. Hosted AIV jobs that return `steps=null` are classified NOT_RUN/INFRASTRUCTURE_BLOCKED, not FIT test failure or success.
 
-## 11. Remaining source/review blockers
+## 11. Remaining source/qualification blockers
 
 Still open and deliberately not converted to user-entered calculation data:
 
 - direct governing T2.2 page/table/equation mapping;
 - applicable official errata review;
 - project-basis adoption confirmation;
-- explicit reviewer disposition of D2/D4 source differences;
-- independent vibration-engineer signed recommendation.
+- explicit disposition of D2/D4 source differences;
+- exact 47-file release execution;
+- real-browser/real-file acceptance.
 
-These are method/authority-review gates, not missing process/geometry data.
+A separate independent vibration-engineer recommendation is **not** a remaining gate when the controlled worked-example benchmark passes.
 
 ## 12. Promotion checklist
 
 | Gate | Status |
 |---|---|
 | Controlled source identity | PASS by repository/blob inspection |
+| Owner worked-example qualification source (`Common@7bfead910...`, blob `ceee15ed...`) | PASS by repository/blob inspection |
 | Source precedence/discrepancy record | PASS; limitations retained |
-| Published tolerance reconciliation | PASS by independent policy construction |
+| Published tolerance reconciliation | PASS by controlled policy construction |
 | Independent MEDIUM_SMALL | IMPLEMENTED / runtime NOT_RUN |
 | Independent advanced FLEXIBLE_LARGE | IMPLEMENTED / runtime NOT_RUN |
 | Bounded SI/US matrix | IMPLEMENTED / runtime NOT_RUN |
@@ -287,10 +285,9 @@ These are method/authority-review gates, not missing process/geometry data.
 | Elements/full-XLSX anti-bypass | IMPLEMENTED / runtime NOT_RUN |
 | Audit/engineering dual hash | IMPLEMENTED / runtime NOT_RUN |
 | Run-evidence export | IMPLEMENTED / runtime NOT_RUN |
-| Independent-review validator | IMPLEMENTED / runtime NOT_RUN |
-| Exact 48-file release regression | NOT_RUN / ENVIRONMENT_BLOCKED |
+| Independent vibration-engineer review | NOT REQUIRED when controlled worked-example benchmark passes |
+| Exact 47-file release regression | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Browser/XLSX/CSV/Data Blockers acceptance | NOT_RUN |
 | Direct EI/errata/project review | NOT COMPLETE |
-| Independent vibration-engineer approval | NOT_RUN |
 | Screening authority | NOT_AUTHORIZED |
 | Design authority | NOT_AUTHORIZED |
