@@ -35,10 +35,13 @@ const REQUIRED_TESTS = Object.freeze([
   'tests/vibration-integrity-editable-input-static.test.mjs',
   'tests/vibration-integrity-mechanism-matrix.test.mjs',
   'tests/vibration-module-boundaries.test.mjs',
+  'tests/vibration-user-engineering-data.test.mjs',
   'tests/vibration-mechanical-ei-worked-examples.test.mjs',
   'tests/vibration-deadleg-ei-worked-examples.test.mjs',
   'tests/vibration-transient-ei-worked-examples.test.mjs',
   'tests/vibration-multimechanism-validation-record.test.mjs',
+  'tests/vibration-sbc-type3-user-data.test.mjs',
+  'tests/vibration-sbc-type3-user-data-table-validation.test.mjs',
 ]);
 
 test('FIT/VIB release gate exposes the repository package command', () => {
@@ -55,7 +58,7 @@ test('FIT/VIB release manifest keeps product-layer groups plus multi-mechanism v
 
 test('FIT/VIB release manifest has no duplicates and retains critical seams', () => {
   const tests = listVibrationFitReleaseTests();
-  assert.equal(tests.length, 47);
+  assert.equal(tests.length, 50);
   assert.equal(new Set(tests).size, tests.length);
   for (const required of REQUIRED_TESTS) assert(tests.includes(required), `missing ${required}`);
 });
