@@ -1,4 +1,5 @@
 import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
+import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js';
 import {
   buildFitVibrationMechanismAssessmentSet,
   buildMechanicalVibrationMechanismAssessmentSet,
@@ -7,55 +8,18 @@ import {
 } from '../converters/vibration/mechanisms/index.js';
 
 export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze([
-  Object.freeze({
-    id: 'fit', label: 'FIT', title: 'Flow-induced turbulence',
-    sourceSection: 'EI AVIFF T2.2', implementationState: 'SCREENING',
-  }),
-  Object.freeze({
-    id: 'mechanicalExcitation', label: 'Mechanical', title: 'Mechanical excitation',
-    sourceSection: 'EI AVIFF T2.3', implementationState: 'CANDIDATE_MASTER',
-  }),
-  Object.freeze({
-    id: 'reciprocatingPulsation', label: 'Recip / PD',
-    title: 'Pulsation from reciprocating / positive-displacement items',
-    sourceSection: 'EI AVIFF T2.4', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'rotatingStall', label: 'Rotating stall', title: 'Pulsation from rotating stall',
-    sourceSection: 'EI AVIFF T2.5', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'deadlegPulsation', label: 'Deadlegs', title: 'Flow-induced pulsation from deadlegs',
-    sourceSection: 'EI AVIFF worked-example section', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'corrugationPulsation', label: 'Corrugations', title: 'Pulsation from corrugated pipes',
-    sourceSection: 'EI Subsea AVIFF E4.3', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'slugFlow', label: 'Slug', title: 'Slug flow',
-    sourceSection: 'EI AVIFF specialist assessment', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'aiv', label: 'AIV', title: 'High-frequency acoustic-induced vibration',
-    sourceSection: 'EI AVIFF T2.7', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'valveTransients', label: 'Transients', title: 'Valve transients',
-    sourceSection: 'EI AVIFF T2.8', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'cavitationFlashing', label: 'Cav / flash', title: 'Cavitation and flashing',
-    sourceSection: 'EI AVIFF T2.9', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'thermowells', label: 'Thermowells', title: 'Thermowells',
-    sourceSection: 'ASME PTC 19.3 TW-2016', implementationState: 'NOT_IMPLEMENTED',
-  }),
-  Object.freeze({
-    id: 'smallBoreConnections', label: 'SBC', title: 'Small-bore connections',
-    sourceSection: 'EI AVIFF T3', implementationState: 'CANDIDATE_USER_INPUT',
-  }),
+  Object.freeze({ id: 'fit', label: 'FIT', title: 'Flow-induced turbulence', sourceSection: 'EI AVIFF T2.2', implementationState: 'SCREENING' }),
+  Object.freeze({ id: 'mechanicalExcitation', label: 'Mechanical', title: 'Mechanical excitation', sourceSection: 'EI AVIFF T2.3', implementationState: 'CANDIDATE_MASTER' }),
+  Object.freeze({ id: 'reciprocatingPulsation', label: 'Recip / PD', title: 'Pulsation from reciprocating / positive-displacement items', sourceSection: 'EI AVIFF T2.4', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'rotatingStall', label: 'Rotating stall', title: 'Pulsation from rotating stall', sourceSection: 'EI AVIFF T2.5', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'deadlegPulsation', label: 'Deadlegs', title: 'Flow-induced pulsation from deadlegs', sourceSection: 'EI AVIFF worked-example section', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'corrugationPulsation', label: 'Corrugations', title: 'Pulsation from corrugated pipes', sourceSection: 'EI Subsea AVIFF E4.3', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'slugFlow', label: 'Slug', title: 'Slug flow', sourceSection: 'EI AVIFF specialist assessment', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'aiv', label: 'AIV', title: 'High-frequency acoustic-induced vibration', sourceSection: 'EI AVIFF T2.7', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'valveTransients', label: 'Transients', title: 'Valve transients', sourceSection: 'EI AVIFF T2.8', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'cavitationFlashing', label: 'Cav / flash', title: 'Cavitation and flashing', sourceSection: 'EI AVIFF T2.9', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'thermowells', label: 'Thermowells', title: 'Thermowells', sourceSection: 'ASME PTC 19.3 TW-2016', implementationState: 'NOT_IMPLEMENTED' }),
+  Object.freeze({ id: 'smallBoreConnections', label: 'SBC', title: 'Small-bore connections', sourceSection: 'EI AVIFF T3', implementationState: 'CANDIDATE_USER_INPUT' }),
 ]);
 
 const MECHANISM_BY_ID = new Map(
@@ -116,11 +80,14 @@ function mechanicalAssessment(row, mechanism, context) {
 }
 
 function sbcAssessment(row, mechanism, context) {
+  const scopeId = sbcFacilityScopeId(row);
+  const precomputedCandidate = context.sbcCandidateResultsByScope?.[scopeId] ?? null;
   const inheritedCurrency = context.resultState === 'STALE_RESULT' ? 'STALE_RESULT' : null;
   const contractSet = buildSbcVibrationMechanismAssessmentSet({
     row,
     userRows: context.userEngineeringDataRows ?? [],
     governed: context.sbcGoverned ?? {},
+    precomputedCandidate,
     resultState: context.sbcResultState ?? inheritedCurrency,
   });
   const assessment = contractAssessment(mechanism, contractSet);
