@@ -65,6 +65,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-integrity-run-evidence.test.mjs',
       'tests/vibration-integrity-run-evidence-audit.test.mjs',
       'tests/vibration-integrity-product-freeze.test.mjs',
+      'tests/vibration-production-freeze-browser-contract.test.mjs',
       'tests/vibration-integrity-engineering-basis.test.mjs',
       'tests/vibration-integrity-fit-mechanism.test.mjs',
       'tests/vibration-mechanism-contract.test.mjs',
