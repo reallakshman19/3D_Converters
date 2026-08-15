@@ -20,6 +20,7 @@ import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } fro
 import { createAivExecutionActions } from './vibration-aiv-execution.js';
 import { createAivFlareNetworkAuthoringController } from './vibration-aiv-flare-network-controller.js';
 import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js';
+import { createAivMasterAcceptance } from './vibration-aiv-master-acceptance.js';
 import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js';
 import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
 import { createInitialAivQualificationState } from './vibration-aiv-state.js';
@@ -167,6 +168,12 @@ export function renderAivQualificationWorkspace(container) {
     render();
   }
 
+  function acceptMasterData() {
+    state.masterAcceptance = createAivMasterAcceptance(state.masterResolution);
+    state.error = null;
+    render();
+  }
+
   function onClick(event) {
     if (event.target.closest('[data-aiv-network-editor]')) return;
     if (handleTableClick(event)) return;
@@ -179,6 +186,7 @@ export function renderAivQualificationWorkspace(container) {
     const action = event.target.closest('[data-aiv-action]')?.dataset.aivAction;
     if (assumptionAcceptanceController.handleAction(action)) return;
     if (action === 'apply-master-data') masterDbController.apply();
+    if (action === 'accept-master-data') acceptMasterData();
     if (action === 'load-mock-flare-network') loadAivSmallFlareMock(state, applyFlareNetwork);
     if (action === 'load-d23-benchmark') datasetLoader.loadBenchmark();
     if (action === 'source-template') downloadAivText(createAivSourceCsvTemplate(), 'aiv-sources-v2.csv');
