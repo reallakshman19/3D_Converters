@@ -44,9 +44,52 @@ export function sbcFacilityUserRows(row, userRows = []) {
   )));
 }
 
+function baseAuthority() {
+  return Object.freeze({
+    engineeringAuthority: 'NONE',
+    screeningAuthority: 'NOT_AUTHORIZED',
+    designAuthority: false,
+  });
+}
+
+function masterAssistedEvaluation(scope, userRows, options) {
+  const result = options.precomputedResult ?? null;
+  if (!result) {
+    return Object.freeze({
+      ok: false, status: 'INPUT_REQUIRED', scope, userRows, result: null,
+      mode: 'MASTER_ASSISTED', authority: baseAuthority(),
+    });
+  }
+  if (result.scopeId !== scope.scopeId) {
+    return Object.freeze({
+      ok: false, status: 'INVALID_PRECOMPUTED_SCOPE', scope, userRows,
+      result: Object.freeze({
+        ok: false, status: 'INVALID_PRECOMPUTED_SCOPE',
+        methodId: result.methodId ?? null, scopeId: result.scopeId ?? null,
+        problems: Object.freeze([Object.freeze({
+          term: 'scopeId', status: 'INVALID_INPUT', reason: 'SBC_PRECOMPUTED_SCOPE_MISMATCH',
+        })]),
+      }),
+      mode: 'MASTER_ASSISTED', authority: baseAuthority(),
+    });
+  }
+  return Object.freeze({
+    ok: result.ok === true,
+    status: result.status,
+    scope,
+    userRows,
+    result,
+    mode: 'MASTER_ASSISTED',
+    authority: result.authority ?? baseAuthority(),
+  });
+}
+
 export function evaluateSbcFacilityType3(row, options = {}) {
   const scope = sbcFacilityScope(row);
   const userRows = sbcFacilityUserRows(row, options.userRows);
+  if (options.preferMasterAssisted) {
+    return masterAssistedEvaluation(scope, userRows, options);
+  }
   if (!userRows.length) {
     return Object.freeze({
       ok: false,
@@ -54,11 +97,8 @@ export function evaluateSbcFacilityType3(row, options = {}) {
       scope,
       userRows,
       result: null,
-      authority: Object.freeze({
-        engineeringAuthority: 'NONE',
-        screeningAuthority: 'NOT_AUTHORIZED',
-        designAuthority: false,
-      }),
+      mode: 'USER_INPUT',
+      authority: baseAuthority(),
     });
   }
   const result = calculateSbcType3FromUserEngineeringData({
@@ -72,6 +112,7 @@ export function evaluateSbcFacilityType3(row, options = {}) {
     scope,
     userRows,
     result,
+    mode: 'USER_INPUT',
     authority: result.authority,
   });
 }
