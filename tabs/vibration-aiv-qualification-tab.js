@@ -93,8 +93,8 @@ export function renderAivQualificationWorkspace(container) {
     render();
   }
 
-  function applyFlareNetwork(network) {
-    datasetLoader.applyFlareNetwork(network);
+  function applyFlareNetwork(network, options = {}) {
+    datasetLoader.applyFlareNetwork(network, options);
   }
 
   function tableMutationAllowed() {
