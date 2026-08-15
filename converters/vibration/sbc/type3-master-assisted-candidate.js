@@ -1,6 +1,6 @@
-import { combineSbcType3Terms } from './type3-combination.js';
-import { deriveSbcType3MasterAssistedInputs } from './type3-master-assisted-derivation.js';
-import { SBC_TYPE3_RECORD_KEY } from './type3-user-data.js';
+import { combineSbcType3Terms } from './type3-combination.js?v=20260815-sbc-pf05-cache-1';
+import { deriveSbcType3MasterAssistedInputs } from './type3-master-assisted-derivation.js?v=20260815-sbc-pf05-cache-1';
+import { SBC_TYPE3_RECORD_KEY } from './type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 
 export const SBC_TYPE3_MASTER_ASSISTED_METHOD_ID =
   'VIB.SBC.T3.TYPE3.MASTER_ASSISTED_CANDIDATE';
