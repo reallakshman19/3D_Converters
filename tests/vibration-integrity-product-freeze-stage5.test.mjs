@@ -124,6 +124,7 @@ test('Stage 5 preserves FIT reproducibility authority and adds observational hoo
   assert.match(tab, /serializeVibrationIntegrityRunEvidence/u);
   assert.match(tab, /serializeVibrationIntegrityAuditExport/u);
   assert.match(tab, /FIT_RUN_COMPLETED/u);
+  assert.match(tab, /RUN_EVIDENCE_EXPORT_STARTED/u);
   assert.match(mechanical, /MECHANICAL_EVALUATED/u);
   assert.match(mechanical, /MECHANICAL_NOT_APPLICABLE/u);
   assert.match(shell, /Activity & workflow/u);
