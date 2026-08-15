@@ -9,6 +9,7 @@ import {
   calculateAivKernelCandidateSource,
   combineAivKernelCandidatePointContributions,
 } from './aiv-kernel-candidate.js';
+import { buildAivReadiness } from './aiv-readiness.js';
 
 export const AIV_CALCULATOR_SCHEMA = 'AivCalculatorResult.v1';
 export const AIV_CALCULATOR_STAGE_ORDER = Object.freeze([
@@ -132,11 +133,62 @@ function resultAuthority(qualificationMode) {
 
 function promotedContribution(item, authority) {
   const { authority: lineageAuthority, ...values } = item;
+  return { ...values, authority, lineageAuthority: lineageAuthority ?? null };
+}
+
+function screeningError(code, message, details = {}) {
+  const error = new Error(message);
+  error.name = 'AivScreeningQualificationError';
+  error.code = code;
+  error.details = Object.freeze({ ...details });
+  return error;
+}
+
+function relationshipKey(row) {
+  return JSON.stringify([row.sourceCanonicalId, row.assessmentCanonicalId, row.caseId]);
+}
+
+function screeningExecutionScope(exchange, sources, assessments, relationships) {
+  let readiness;
+  try {
+    readiness = buildAivReadiness(exchange, sources, assessments, relationships);
+  } catch (error) {
+    throw screeningError('AIV_SCREENING_TOPOLOGY_OR_READINESS_INVALID', 'AIV screening requires valid joined readiness and topology evidence.', {
+      cause: String(error?.message || error),
+    });
+  }
+  const counts = readiness.counts;
+  if (counts.readyForQualification < 1 || counts.notReady !== 0 || counts.methodGap !== 0) {
+    throw screeningError('AIV_SCREENING_READINESS_BLOCKED', 'AIV screening cannot execute while readiness contains NOT_READY or METHOD_GAP relationships.', {
+      counts,
+      rows: readiness.rows,
+    });
+  }
+  const readyKeys = new Set(readiness.rows
+    .filter((row) => row.status === 'READY_FOR_QUALIFICATION')
+    .map(relationshipKey));
+  const executionRelationships = relationships.filter((row) => (
+    row.applicabilityDisposition === 'APPLICABLE' && readyKeys.has(relationshipKey(row))
+  ));
+  if (executionRelationships.length !== readyKeys.size) {
+    throw screeningError('AIV_SCREENING_READY_SCOPE_MISMATCH', 'Readiness-qualified relationships no longer project one-to-one into the screening calculation.', {
+      readyRelationships: readyKeys.size,
+      executableRelationships: executionRelationships.length,
+    });
+  }
+  const sourceKeys = new Set(executionRelationships.map((row) => JSON.stringify([row.sourceCanonicalId, row.caseId])));
+  const assessmentIds = new Set(executionRelationships.map((row) => row.assessmentCanonicalId));
   return {
-    ...values,
-    authority,
-    lineageAuthority: lineageAuthority ?? null,
+    sources: sources.filter((row) => sourceKeys.has(JSON.stringify([row.sourceCanonicalId, row.caseId]))),
+    assessments: assessments.filter((row) => assessmentIds.has(row.assessmentCanonicalId)),
+    relationships: executionRelationships,
+    readiness,
   };
+}
+
+function executionScope(input) {
+  if (input.qualificationMode !== 'screening') return { ...input, readiness: null };
+  return screeningExecutionScope(input.exchange, input.sources, input.assessments, input.relationships);
 }
 
 export function calculateAiv({
@@ -155,18 +207,17 @@ export function calculateAiv({
   if (!Array.isArray(sources) || !sources.length) throw new TypeError('AIV calculator requires at least one source.');
   if (!Array.isArray(assessments) || !assessments.length) throw new TypeError('AIV calculator requires at least one assessment.');
   if (!Array.isArray(relationships) || !relationships.length) throw new TypeError('AIV calculator requires at least one source-to-assessment relationship.');
-  assertAivExecutableContract({ sources, assessments, relationships });
+  const scope = executionScope({ sources, assessments, relationships, exchange, qualificationMode });
+  assertAivExecutableContract(scope);
   const authority = resultAuthority(qualificationMode);
-  const sourceCandidates = sources.map(calculateAivKernelCandidateSource);
+  const sourceCandidates = scope.sources.map(calculateAivKernelCandidateSource);
   const sourceMap = new Map(sourceCandidates.map((item) => [`${item.sourceCanonicalId}\u0000${item.caseId}`, item]));
-  const assessmentMap = new Map(assessments.map((item) => [item.assessmentCanonicalId, item]));
-  const contributions = relationships
-    .filter((item) => item.applicabilityDisposition === 'APPLICABLE')
-    .map((relationship) => {
-      const sourceResult = sourceMap.get(`${relationship.sourceCanonicalId}\u0000${relationship.caseId}`);
-      const assessment = assessmentMap.get(relationship.assessmentCanonicalId);
-      return calculateAivKernelCandidatePointContribution({ sourceResult, relationship, assessment });
-    });
+  const assessmentMap = new Map(scope.assessments.map((item) => [item.assessmentCanonicalId, item]));
+  const contributions = scope.relationships.map((relationship) => {
+    const sourceResult = sourceMap.get(`${relationship.sourceCanonicalId}\u0000${relationship.caseId}`);
+    const assessment = assessmentMap.get(relationship.assessmentCanonicalId);
+    return calculateAivKernelCandidatePointContribution({ sourceResult, relationship, assessment });
+  });
   const grouped = new Map();
   for (const item of contributions) {
     const key = JSON.stringify([item.assessmentCanonicalId, item.caseId]);
@@ -253,6 +304,11 @@ export function calculateAiv({
     screeningResultScope: 'ASSESSMENT',
     lineCaseSummaryAuthoritativeForScreening: false,
     universalClassificationProduced: false,
+    screeningQualification: scope.readiness ? {
+      readinessSchema: scope.readiness.schema,
+      counts: scope.readiness.counts,
+      executableRelationshipCount: scope.relationships.length,
+    } : null,
     assumptionProfile,
     profileValidation,
     authority,
