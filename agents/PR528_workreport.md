@@ -2,8 +2,6 @@
 
 # CURRENT RECOVERY STATE — READ FIRST
 
-## Recovery Header
-
 ```text
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: RECOVERABLE
@@ -14,48 +12,73 @@ REPOSITORY: reallaksh19/3D_Converters
 SOURCE_TASK: Issue #526
 PR_OR_WIP: PR528
 BRANCH: agent/aiv-unified-network-canvas-526
-PR_HEAD_OBSERVED: b47662698981408523ff647a3cecd8c8d0f6933d
+REPORT_BASIS_HEAD: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 MAIN_HEAD_LAST_CHECKED: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 MERGE_BASE: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
-GROUNDING_EPOCH: AIV526-GE-006
-CURRENT_STAGE: STAGE_3_CURRENTNESS_AND_RENDERING_PREP
-LAST_COMPLETED_STAGE: STAGE_2_UNIFIED_PROJECTION
-CURRENT_BLOCKER: NONE_FOR_MASTER_CURRENTNESS_SLICE
-HIGHEST_RISK: Single-canvas cutover must preserve physical-vs-logical path semantics and registered result custody.
-EXACT_NEXT_ACTION: Add effective/provenance master currentness fingerprint, wire revision invalidation only on real change, then proceed to unified view/controller.
+GROUNDING_EPOCH: AIV526-GE-007
+CURRENT_STAGE: STAGE_4_UNIFIED_VIEW_CONTROLLER_CUTOVER
+LAST_COMPLETED_STAGE: STAGE_3_MASTER_AND_NETWORK_CURRENTNESS
+CURRENT_BLOCKER: NONE_FOR_FOCUSED_CUTOVER
+HIGHEST_RISK: one-canvas cutover must preserve physical pathEvidence, logical table relationships, registered results and presentation-only geometry.
+EXACT_NEXT_ACTION: build focused unified view/controller tests, then replace dual production render/controller wiring without deleting rollback modules.
 ```
 
-## Handover in 60 Seconds
+## Current truth
 
-PR #528 is draft/open. Issue #526 qualification is satisfied by candidate comment `5303343598` and reviewer marker comment `5303402441`.
+PR #528 is draft/open. Issue #526 qualification is complete: candidate Q1-Q5 is comment `5303343598`; separate reviewer marker is comment `5303402441` with exact `QUALIFIED_FOR_AIV_UNIFIED_NETWORK_CANVAS`.
 
-Completed behavior:
+Current production baseline remains `main@36f53018d5c1cf8bec609e39d6995a6067bb5d01`. PR #517 remains the PF-02 readiness↔calculator parity owner; PR528 consumes that boundary and does not edit readiness/calculator/executable-parity files. PR #506 remains salvage evidence only.
 
-- explicit `TABLE_DRIVEN` / `NETWORK_DRIVEN` engineering ownership;
-- monotonic `inputRevision` plus readiness/screening `{token,inputRevision}` stale-completion guards;
+## Completed capabilities
+
+### Stage 1 — engineering ownership/currentness
+
+- explicit `TABLE_DRIVEN` / `NETWORK_DRIVEN` engineering modes;
+- monotonic engineering `inputRevision`;
+- readiness/screening operation token + captured revision custody;
+- stale completions cannot establish current lineage;
 - current screening lineage required for export;
-- generated tables/relationships fail closed against editing while network-driven;
-- explicit detach clones generated tables/evidence and switches authority once;
-- network graph engineering commits are stamped with a fresh `AIV-UI-<next inputRevision>` before generation;
-- controlled fixture loads may explicitly preserve their declared network revision;
-- pure unified projection distinguishes physical graph substrate from logical Source→Assessment relationships and resolved path overlays.
+- NETWORK_DRIVEN generated tables and logical relationship mutations fail closed;
+- explicit detach clones generated tables/evidence, switches to TABLE_DRIVEN exactly once and invalidates current readiness/results;
+- presentation-only network movement is revision-neutral.
 
-No AIV equation, calculator/readiness semantic, grouping, result-scope, SVG-distance-authority or workflow contract has been changed.
+### Stage 2 — unified projection boundary
 
-## Live Coordination
+`tabs/vibration-aiv-unified-canvas-projection.js` composes existing registered/table canvas projection with graph-authoritative physical substrate.
+
+- physical segment engineering length is copied only from `segment.physicalLength`;
+- resolved relationship overlay uses exact `generatedInputSet.pathEvidence.segmentIds` and copied `physicalDistanceM`;
+- unresolved/ambiguous/disconnected evidence remains fail closed;
+- TABLE_DRIVEN D2.3/`.eit` relationships remain logical and invent no physical route;
+- registered source/assessment/result summaries are consumed, not recalculated;
+- `svgPixelsAuthoritativeForDistance=false`, Assessment result scope, line/case non-authoritative trace and `designAuthority=false` remain locked.
+
+### Stage 3 — network/master currentness
+
+- graph engineering commits receive a fresh `AIV-UI-<next inputRevision>` revision before generation;
+- controlled fixture replacement may explicitly preserve its declared revision;
+- master-data re-resolution fingerprints effective table rows plus provenance/unresolved/discovered state;
+- no-op master re-resolution leaves engineering revision/readiness lineage unchanged;
+- effective or provenance change advances engineering revision and invalidates readiness/results;
+- master resolution failure transactionally restores prior tables/resolution;
+- PR528 does not redefine master resolver authority.
+
+## Validation ledger
 
 ```text
-main: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
-PR #517: open/draft, PF-02 readiness↔calculator parity; consumes only
-PR #506: open/draft broad overlap; salvage evidence only
-PR #528: draft delivery vehicle
+Stage 1 focused exact reconstruction: PASS 9/9 at Stage 1 checkpoint
+Unified projection pure tests:       PASS 4/4
+Network transaction pure tests:      PASS 2/2
+Master currentness pure tests:       PASS 3/3
+GitHub combined statuses @ dac7679:  none reported
+Full native repository/release suite: NOT_RUN — no native private checkout
+Real Chromium/full-product:           NOT_RUN
+Complete B1-B10 matrix:               NOT_RUN
 ```
 
-PR #517's active claim explicitly excludes stale async transaction custody. PR528 does not modify its readiness/calculator files.
+No browser, release, performance or full-product PASS is claimed.
 
-## Pre-edit Rollback Ledger
-
-Connector-only environment has no native private checkout. Existing production files are protected by exact pre-edit Git blobs:
+## Existing-file rollback ledger
 
 ```text
 tabs/vibration-aiv-state.js                  021f6a89a483c0d7de820e6c59ebe35f322fe139
@@ -65,113 +88,38 @@ tabs/vibration-aiv-qualification-tab.js      c641ba45689b1abf62743d68828452bda95
 tabs/vibration-aiv-input-view.js             5976e725e8d620ad03a4e355ca7b6658bebff217
 tabs/vibration-aiv-workspace-loaders.js      985cec67e34a78bf9eaa20f3402cc95bcbe7f178
 tabs/vibration-aiv-master-db-controller.js   0491476b1143f6c9e1980d08e990a6b0f24ddf8e
+tabs/vibration-aiv-canvas-export-controller.js fa7ba879789ef4f5063eecb65c22a9eea6118627
 tests/vibration-aiv-runtime-cache-chain.test.mjs 3c9bcfbae7fb32e3cae35283278245a44cd41342
 ```
 
-Rollback existing files by restoring the listed blob; new PR528 modules/tests can be deleted independently.
+New PR528 modules/tests may be removed independently on rollback.
 
-## Completed Stage 1 — Input Authority / Async Currentness
+## Stage 4 cutover contract
 
-New:
-- `vibration-aiv-engineering-revision.js` — 120 lines.
-- `vibration-aiv-mode-transition.js` — 64 lines.
+The current product still intentionally has two visual surfaces/controllers: the relationship canvas plus flare-network authoring SVG/controller. Stage 4 is not complete until production wiring has exactly one visible AIV canvas and one active canvas controller.
 
-Integrated state/dataset/execution/qualification/input view. Generated tables are read-only in NETWORK_DRIVEN, detach is explicit, engineering mutations invalidate current lineage, presentation-only changes do not.
+Required cutover behavior:
 
-Validation:
+1. unified view consumes `buildAivUnifiedCanvasProjection`;
+2. TABLE_DRIVEN shows logical Source→Assessment relationships and keeps logical relationship create/delete;
+3. NETWORK_DRIVEN renders graph nodes/segments plus exact pathEvidence overlays; relationship mode becomes path inspection rather than direct table relationship creation;
+4. graph node drag remains presentation-only; graph engineering authoring goes through existing mutations + transaction revision custody;
+5. existing filter, selection, detail and registered-result helpers are reused where safe;
+6. old relationship-canvas and flare-network modules remain rollback sources but are no longer active production imports/render paths after parity is pinned;
+7. canvas export must capture the active unified SVG/layout without changing engineering export authority.
 
-```text
-V-STAGE1-FOCUSED: PASS — exact reconstruction, 9/9 Node tests
-V-STAGE1-SYNTAX: PASS — node --check touched JS
-V-STAGE1-POLICY: PASS — new JS <300; no UI equation/pixel-distance calculation introduced
-```
+## Active risks
 
-## Completed Stage 2 — Unified Projection Boundary
+- RISK-007: OPEN — dual visible canvas/controller remains until Stage 4 cutover.
+- RISK-008: OPEN — production cache identity remains PF-01 key until final cutover.
+- RISK-010: OPEN — unified controller pointer redraw must not infer engineering distance from geometry.
+- RISK-011: OPEN — NETWORK_DRIVEN relationship interaction must inspect qualified paths, not create/edit table-owned direct relationships.
 
-New `tabs/vibration-aiv-unified-canvas-projection.js` — 149 lines.
+Closed/controlled: qualification gate, silent graph→table ownership switch, stale async commits, graph transaction revision, master currentness, physical/logical projection, PF-02 boundary, PR506 salvage boundary.
 
-Projection semantics:
+## Review / merge state
 
-- NETWORK_DRIVEN exposes physical graph nodes/segments; segment engineering length is copied from `physicalLength`, never calculated from x/y.
-- resolved relationships become `RESOLVED_PATH_OVERLAY` over exact `pathEvidence.segmentIds`; direct fake physical segments are forbidden.
-- unresolved/ambiguous/disconnected/missing path evidence stays fail closed with no invented distance.
-- TABLE_DRIVEN relationships become `LOGICAL_RELATIONSHIP`; no physical substrate is invented even when topology context contains pipe-like objects.
-- result/source/assessment summaries are copied from existing registered canvas projection; no UI acoustic equations are added.
-
-Validation:
-
-```text
-V-STAGE2-PROJECTION: PASS — exact local module reconstruction, 4/4 Node tests
-- controlled two-RV exact segment paths: 38 m / 41 m
-- extreme presentation coordinate move leaves engineering segments/path overlays unchanged
-- D2.3-style 0.8 m relationship remains logical with zero physical substrate
-- unresolved/ambiguous evidence remains fail closed
-V-STAGE2-POLICY: PASS — 149 lines (<300); no distance equation introduced
-```
-
-## Authoring Transaction Revision Slice
-
-New `vibration-aiv-network-transaction.js` — 16 lines.
-
-- fixture replacement may preserve declared revision;
-- each subsequent graph engineering commit is stamped `AIV-UI-<next inputRevision>` before `projectAivFlareNetworkIntoWorkspace` generates tables/pathEvidence;
-- the existing presentation drag path bypasses dataset generation and therefore does not stamp or increment engineering revision.
-
-Validation:
-
-```text
-V-NETWORK-TXN: PASS — exact local module reconstruction, 2/2 Node tests
-SOURCE_INTEGRATION: dataset loader uses transaction helper; workspace mock requests preserveRevision; qualification forwards options
-```
-
-## Current Slice — Master Effective/Provenance Currentness
-
-Observed current-main behavior: `vibration-aiv-master-db-controller.js` always clears readiness after a successful resolution, but it does not report whether effective table values or master provenance actually changed. Issue #526 requires:
-
-```text
-same effective/provenance resolution -> no engineering revision
-changed effective/provenance resolution -> +1 engineering revision + stale readiness/result invalidation
-```
-
-Scope is currentness detection only. PR528 does **not** claim or redefine master engineering authority or resolver semantics.
-
-Planned:
-- new pure `vibration-aiv-master-currentness.js` deterministic fingerprint;
-- coordinated controller callback only when table rows/header or resolution provenance/unresolved/discovered state changes;
-- qualification callback advances existing engineering revision custody;
-- no-op re-resolution retains current readiness/result lineage.
-
-## Active Engineering Register
-
-| ID | Status | Summary |
-|---|---|---|
-| ISS-001 | CLOSED | qualification marker exists |
-| RISK-001 | CLOSED | silent generated-table ownership switch removed |
-| RISK-002 | CLOSED | stale readiness/screening commits guarded |
-| RISK-003 | CONTROLLED | PR #517 readiness/calculator excluded |
-| RISK-004 | CONTROLLED | PR #506 salvage-only |
-| RISK-005 | IN_PROGRESS | master effective/provenance currentness |
-| RISK-006 | CLOSED_SLICE | graph engineering commits get fresh transaction revision |
-| RISK-007 | OPEN | two visible canvas surfaces/controllers remain until cutover |
-| RISK-008 | OPEN | PF-01 cache key remains until final cutover |
-| RISK-009 | CLOSED_PROJECTION | physical/logical/path projection semantics established |
-
-## Validation Not Run / Not Claimed
-
-- full native repository/release suite: `NOT_RUN` — no native private checkout;
-- real Chromium/full-product acceptance: `NOT_RUN`;
-- B1-B10 complete matrix: `NOT_RUN`;
-- no browser/performance/release PASS is claimed.
-
-## Next Rendering/Cutover Stage
-
-After master currentness is pinned, implement the unified view/controller against the Stage 2 projection. The cutover must end with exactly one visible canvas and one active canvas controller, while reusing existing filter/selection/detail/result helpers. NETWORK_DRIVEN relationship interaction is path inspection, not direct table relationship creation; TABLE_DRIVEN retains logical relationship editing.
-
-Final cutover later requires a fresh production cache identity through the active startup chain and explicit proof that old canvas/flare SVG/controller imports are no longer active.
-
-## Review / Merge State
-
-PR #528 is draft/open. Merge authority remains `OWNER_ONLY / NOT_GRANTED`. **Do not merge.**
+PR #528 remains draft/open. Merge authority is `OWNER_ONLY / NOT_GRANTED`. **Do not merge.**
 
 # APPENDIX A
 
