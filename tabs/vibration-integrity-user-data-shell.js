@@ -1,12 +1,12 @@
+import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js';
 import {
-  calculateSbcType3MasterAssistedCandidate,
-  createSbcType3MasterAssistedCurveTemplate,
-} from '../converters/vibration/sbc/type3-master-assisted.js';
-import {
-  SBC_TYPE3_BLOCKERS,
-  SBC_TYPE3_RECORD_KEY,
-  calculateSbcType3FromUserEngineeringData,
-} from '../converters/vibration/sbc/type3-user-data.js';
+  createSbcMasterAssistedUiState,
+  handleSbcMasterAssistedChange,
+  handleSbcMasterAssistedClick,
+  invalidateSbcMasterAssistedScope,
+  openSbcMasterAssistedScope,
+  setSbcMasterAssistedMode,
+} from './vibration-integrity-sbc-master-assisted-controller.js';
 import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js';
 import {
   addSbcT3UserEngineeringDataRows,
@@ -19,11 +19,6 @@ import {
 } from './vibration-integrity-user-data-model.js';
 import { renderVibrationUserEngineeringData } from './vibration-integrity-user-data-view.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
-
-const CURVE_BLOCKERS = new Set([
-  SBC_TYPE3_BLOCKERS.figureT31, SBC_TYPE3_BLOCKERS.figureT32,
-  SBC_TYPE3_BLOCKERS.figureT33, SBC_TYPE3_BLOCKERS.figureT34,
-]);
 
 function esc(value) {
   return String(value ?? '')
@@ -66,11 +61,7 @@ export function createVibrationUserDataUiState() {
     userEngineeringData: createVibrationUserEngineeringDataTable(),
     sbcType3ScopeId: '',
     sbcType3Result: null,
-    sbcType3Busy: false,
-    sbcType3PhysicalByScope: {},
-    sbcType3MainlineByScope: {},
-    sbcFacilityCandidateResults: {},
-    sbcMasterAssistedScopes: {},
+    ...createSbcMasterAssistedUiState(),
   };
 }
 
@@ -79,29 +70,9 @@ export function renderVibrationIntegrityWithUserData(state) {
   return injectWorkspaceTabs(renderVibrationIntegrityHtml(state), workspaceTabs('screening'));
 }
 
-function invalidateScope(state, scopeId) {
-  if (!scopeId || !state.sbcFacilityCandidateResults?.[scopeId]) return;
-  const next = { ...state.sbcFacilityCandidateResults };
-  delete next[scopeId];
-  state.sbcFacilityCandidateResults = next;
-  if (state.sbcType3ScopeId === scopeId) state.sbcType3Result = null;
-}
-
-function markMasterAssisted(state, scopeId) {
-  state.sbcMasterAssistedScopes = { ...state.sbcMasterAssistedScopes, [scopeId]: true };
-  invalidateScope(state, scopeId);
-}
-
-function markLegacy(state, scopeId) {
-  const next = { ...state.sbcMasterAssistedScopes };
-  delete next[scopeId];
-  state.sbcMasterAssistedScopes = next;
-  invalidateScope(state, scopeId);
-}
-
 function updateTable(state, table, render, affectedScope = state.sbcType3ScopeId) {
   state.userEngineeringData = table;
-  invalidateScope(state, affectedScope);
+  invalidateSbcMasterAssistedScope(state, affectedScope);
   state.sbcType3Result = null;
   state.error = null;
   render();
@@ -116,7 +87,7 @@ function requireScope(state) {
 function addType3Template(state, hasMass, render) {
   try {
     const scopeId = requireScope(state);
-    markLegacy(state, scopeId);
+    setSbcMasterAssistedMode(state, scopeId, false);
     updateTable(state, addSbcType3UserEngineeringDataRows(
       state.userEngineeringData, scopeId, hasMass,
     ), render, scopeId);
@@ -129,7 +100,7 @@ function addType3Template(state, hasMass, render) {
 function evaluateType3(state, render) {
   try {
     const scopeId = requireScope(state);
-    markLegacy(state, scopeId);
+    setSbcMasterAssistedMode(state, scopeId, false);
     state.sbcType3Result = calculateSbcType3FromUserEngineeringData({
       userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
       scopeId,
@@ -142,82 +113,9 @@ function evaluateType3(state, render) {
   render();
 }
 
-function physicalForScope(state, scopeId) {
-  const raw = state.sbcType3PhysicalByScope?.[scopeId] ?? {};
-  const mass = String(raw.firstSpanHasUnsupportedMass ?? '').toUpperCase();
-  return {
-    ...raw,
-    firstSpanHasUnsupportedMass: mass === 'TRUE' ? true : mass === 'FALSE' ? false : undefined,
-  };
-}
-
-function removeCurveRows(table, scopeId) {
-  let next = table;
-  for (let index = next.rows.length - 1; index >= 0; index -= 1) {
-    const row = next.rows[index];
-    if (row.scopeId === scopeId && row.recordKey === SBC_TYPE3_RECORD_KEY
-      && CURVE_BLOCKERS.has(row.blockerId)) {
-      next = deleteVibrationUserEngineeringDataRow(next, index);
-    }
-  }
-  return next;
-}
-
-async function generateMasterCurveRows(state, render) {
-  let scopeId = null;
-  try {
-    scopeId = requireScope(state);
-    markMasterAssisted(state, scopeId);
-    state.sbcType3Busy = true;
-    state.error = null;
-    render();
-    const seeds = await createSbcType3MasterAssistedCurveTemplate({
-      scopeId, physical: physicalForScope(state, scopeId),
-    });
-    let table = removeCurveRows(state.userEngineeringData, scopeId);
-    for (const seed of seeds) table = addVibrationUserEngineeringDataRow(table, seed);
-    state.userEngineeringData = table;
-    state.sbcType3Result = null;
-  } catch (error) {
-    state.error = String(error?.message || error);
-  } finally {
-    state.sbcType3Busy = false;
-    render();
-  }
-}
-
-async function evaluateMasterAssisted(state, render) {
-  let scopeId = null;
-  try {
-    scopeId = requireScope(state);
-    markMasterAssisted(state, scopeId);
-    state.sbcType3Busy = true;
-    state.error = null;
-    render();
-    const result = await calculateSbcType3MasterAssistedCandidate({
-      scopeId,
-      physical: physicalForScope(state, scopeId),
-      mainlineLof: state.sbcType3MainlineByScope?.[scopeId] ?? null,
-      userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
-    });
-    state.sbcType3Result = result;
-    state.sbcFacilityCandidateResults = {
-      ...state.sbcFacilityCandidateResults, [scopeId]: result,
-    };
-  } catch (error) {
-    state.sbcType3Result = null;
-    state.error = String(error?.message || error);
-  } finally {
-    state.sbcType3Busy = false;
-    render();
-  }
-}
-
 function openFacilitySbcInputs(state, scopeId, render) {
   state.workspaceTab = 'user-data';
-  state.sbcType3ScopeId = scopeId;
-  state.sbcType3Result = state.sbcFacilityCandidateResults?.[scopeId] ?? null;
-  markMasterAssisted(state, scopeId);
+  openSbcMasterAssistedScope(state, scopeId);
   state.error = null;
   render();
 }
@@ -234,14 +132,7 @@ export function handleVibrationUserDataClick(state, event, render) {
     render();
     return true;
   }
-  if (event.target.closest('[data-vi-sbc-master-template]')) {
-    void generateMasterCurveRows(state, render);
-    return true;
-  }
-  if (event.target.closest('[data-vi-sbc-master-evaluate]')) {
-    void evaluateMasterAssisted(state, render);
-    return true;
-  }
+  if (handleSbcMasterAssistedClick(state, event, render)) return true;
   const type3Template = event.target.closest('[data-vi-sbc-type3-template]')?.dataset.viSbcType3Template;
   if (type3Template) {
     addType3Template(state, type3Template === 'mass', render);
@@ -269,39 +160,8 @@ export function handleVibrationUserDataClick(state, event, render) {
   return true;
 }
 
-function updatePhysicalField(state, event, render) {
-  const field = event.target.dataset.viSbcMasterPhysical;
-  if (!field) return false;
-  try {
-    const scopeId = requireScope(state);
-    const current = state.sbcType3PhysicalByScope?.[scopeId] ?? {};
-    state.sbcType3PhysicalByScope = {
-      ...state.sbcType3PhysicalByScope,
-      [scopeId]: { ...current, [field]: event.target.value },
-    };
-    markMasterAssisted(state, scopeId);
-    state.error = null;
-  } catch (error) {
-    state.error = String(error?.message || error);
-  }
-  render();
-  return true;
-}
-
 export function handleVibrationUserDataChange(state, event, render) {
-  if (updatePhysicalField(state, event, render)) return true;
-  if (event.target.matches('[data-vi-sbc-master-mainline]')) {
-    try {
-      const scopeId = requireScope(state);
-      state.sbcType3MainlineByScope = {
-        ...state.sbcType3MainlineByScope, [scopeId]: event.target.value,
-      };
-      markMasterAssisted(state, scopeId);
-      state.error = null;
-    } catch (error) { state.error = String(error?.message || error); }
-    render();
-    return true;
-  }
+  if (handleSbcMasterAssistedChange(state, event, render)) return true;
   if (event.target.matches('[data-vi-sbc-type3-scope]')) {
     const scopeId = event.target.value;
     state.sbcType3ScopeId = scopeId;
