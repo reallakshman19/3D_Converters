@@ -127,7 +127,8 @@ test('Stage 5 preserves FIT reproducibility authority and adds observational hoo
   assert.match(tab, /RUN_EVIDENCE_EXPORT_STARTED/u);
   assert.match(mechanical, /MECHANICAL_EVALUATED/u);
   assert.match(mechanical, /MECHANICAL_NOT_APPLICABLE/u);
-  assert.match(shell, /Activity & workflow/u);
+  assert.match(shell, /VIBRATION_INTEGRITY_UI_CONTRACT\.workspaceTabs/u);
+  assert.match(shell, /workspaceTab === 'activity'/u);
   assert.doesNotMatch(`${tab}\n${mechanical}\n${shell}`, /screeningAuthority:\s*['"]AUTHORIZED/iu);
   assert.doesNotMatch(`${tab}\n${mechanical}\n${shell}`, /designAuthority:\s*true/u);
 });
