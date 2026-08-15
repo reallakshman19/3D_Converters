@@ -46,6 +46,10 @@ function d4EquivalentInputs() {
 }
 
 test('EI benchmark tolerance policy is independently reconciled and non-authorizing', () => {
+  assert.equal(benchmarkSet.engineeringAuthority, 'BENCHMARK_ONLY');
+  assert.equal(benchmarkSet.digitizedSource.repository, 'reallaksh19/Advanced_Analysis');
+  assert.equal(benchmarkSet.digitizedSource.commit, '04328852dced9f5c4827da8afe8a82aeb8b1a1d3');
+  assert.equal(benchmarkSet.digitizedSource.authority, 'CORROBORATING_TRANSCRIPTION_ONLY');
   assert.equal(benchmarkSet.tolerancePolicy.id, 'FIT-EI-PUBLISHED-RECONCILIATION-V1');
   assert.equal(benchmarkSet.tolerancePolicy.authority, 'BENCHMARK_RECONCILIATION_ONLY');
   assert.equal(benchmarkSet.tolerancePolicy.screeningPromotionState, 'RECONCILED_FOR_BENCHMARK_USE');
@@ -60,6 +64,24 @@ test('EI benchmark tolerance policy is independently reconciled and non-authoriz
   }
 });
 
+
+test('EI D2.1 benchmark pack preserves all eight published FIT rows', () => {
+  const d2Ids = benchmarkSet.cases
+    .filter((row) => row.id.startsWith('EI-D2-FIT-'))
+    .map((row) => row.id)
+    .sort();
+  assert.deepEqual(d2Ids, [
+    'EI-D2-FIT-RECYCLE-DISCHARGE-8IN',
+    'EI-D2-FIT-RECYCLE-SUCTION-6IN',
+    'EI-D2-FIT-RELIEF-DOWNSTREAM-6IN',
+    'EI-D2-FIT-RELIEF-UPSTREAM-4IN',
+    'EI-D2-FIT-STREAM-4-SUPPLY-COOLER-14IN',
+    'EI-D2-FIT-STREAM-5-SUCTION-SCRUBBER-14IN',
+    'EI-D2-FIT-STREAM-6-COMPRESSOR-SUCTION-14IN',
+    'EI-D2-FIT-STREAM-7-COMPRESSOR-DISCHARGE-8IN',
+  ]);
+});
+
 for (const row of benchmarkSet.cases) {
   test(`${row.id}: reproduces published EI FIT worked-example result`, () => {
     const result = calculateFit(row.input);
@@ -72,7 +94,8 @@ for (const row of benchmarkSet.cases) {
     closePublished(result.standard.correlation.fv, row.published.standardFvPa, row.tolerance.standardFvPa);
     closePublished(result.standard.lof, row.published.standardLof, row.tolerance.standardLof);
     assert.equal(assessFit(result).referenceBand, row.published.referenceBand, row.id);
-    assert.equal(result.qualification.method, 'BENCHMARK_ONLY');
+    assert.equal(result.qualification.method, 'SCREENING');
+    assert.equal(result.qualification.data, 'SCREENING');
     assert.equal(result.qualification.designAuthority, false);
   });
 }
