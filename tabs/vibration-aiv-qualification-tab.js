@@ -15,22 +15,22 @@ import {
 } from './vibration-aiv-input-model.js';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
-import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js';
-import { createAivExecutionActions } from './vibration-aiv-execution.js';
-import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js';
-import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js';
+import { markAivEngineeringInputChanged } from './vibration-aiv-engineering-revision.js?v=20260815-aiv-526-unified-1';
+import { createAivExecutionActions } from './vibration-aiv-execution.js?v=20260815-aiv-526-unified-1';
+import { createAivDatasetLoader } from './vibration-aiv-dataset-loader.js?v=20260815-aiv-526-unified-1';
+import { createAivMasterDbController } from './vibration-aiv-master-db-controller.js?v=20260815-aiv-526-unified-1';
 import {
   assertAivTableMutationAllowed,
   detachAivGeneratedTables,
   markAivTableDrivenInputChanged,
-} from './vibration-aiv-mode-transition.js';
-import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js';
-import { createInitialAivQualificationState } from './vibration-aiv-state.js';
+} from './vibration-aiv-mode-transition.js?v=20260815-aiv-526-unified-1';
+import { renderAivQualificationWorkspaceHtml } from './vibration-aiv-qualification-view.js?v=20260815-aiv-526-unified-1';
+import { createInitialAivQualificationState } from './vibration-aiv-state.js?v=20260815-aiv-526-unified-1';
 import { captureAivUiContext, restoreAivUiContext } from './vibration-aiv-ui-context.js';
-import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js';
+import { createAivUnifiedCanvasController } from './vibration-aiv-unified-canvas-controller.js?v=20260815-aiv-526-unified-1';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260815-aiv-526-unified-1';
 import { downloadAivText, ensureAivQualificationStylesheet } from './vibration-aiv-workspace-browser.js';
-import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js';
+import { applyAivFlareNetworkPresentationState, loadAivSmallFlareMock } from './vibration-aiv-workspace-loaders.js?v=20260815-aiv-526-unified-1';
 
 export function renderAivQualificationWorkspace(container) {
   ensureAivQualificationStylesheet();
