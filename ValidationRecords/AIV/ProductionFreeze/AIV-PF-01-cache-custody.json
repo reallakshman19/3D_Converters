@@ -2,8 +2,10 @@
   "schema": "AivProductionFreezeCacheCustody.v1",
   "sliceId": "PF-01-CACHE-CUSTODY",
   "repository": "reallaksh19/3D_Converters",
+  "pr": 525,
   "baseMain": "e97effb06ff9bfcad5ea87381abaa9f2665c1bdd",
   "branch": "agent/aiv-pf01-cache-custody-20260815",
+  "reportBasisHead": "45e8dfd7af3179a3f7aef33099ccd334785d9f5c",
   "liveFailure": {
     "status": "PASS_REPRODUCED",
     "observation": "USER_SUPPLIED_LIVE_CHROMIUM",
