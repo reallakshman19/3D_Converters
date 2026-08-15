@@ -3,6 +3,7 @@ import {
   AIV_DEFAULT_ASSUMPTION_PROFILE,
   validateAivAssumptionProfile,
 } from './aiv-assumption-profile.js';
+import { assertAivExecutableContract } from './aiv-executable-contract.js';
 import {
   calculateAivKernelCandidatePointContribution,
   calculateAivKernelCandidateSource,
@@ -129,6 +130,15 @@ function resultAuthority(qualificationMode) {
   });
 }
 
+function promotedContribution(item, authority) {
+  const { authority: lineageAuthority, ...values } = item;
+  return {
+    ...values,
+    authority,
+    lineageAuthority: lineageAuthority ?? null,
+  };
+}
+
 export function calculateAiv({
   sources = [],
   assessments = [],
@@ -145,6 +155,7 @@ export function calculateAiv({
   if (!Array.isArray(sources) || !sources.length) throw new TypeError('AIV calculator requires at least one source.');
   if (!Array.isArray(assessments) || !assessments.length) throw new TypeError('AIV calculator requires at least one assessment.');
   if (!Array.isArray(relationships) || !relationships.length) throw new TypeError('AIV calculator requires at least one source-to-assessment relationship.');
+  assertAivExecutableContract({ sources, assessments, relationships });
   const authority = resultAuthority(qualificationMode);
   const sourceCandidates = sources.map(calculateAivKernelCandidateSource);
   const sourceMap = new Map(sourceCandidates.map((item) => [`${item.sourceCanonicalId}\u0000${item.caseId}`, item]));
@@ -176,7 +187,7 @@ export function calculateAiv({
       line: assessmentLine(exchange, combined.assessmentCanonicalId),
       caseId: combined.caseId,
       contributingSourceCanonicalIds: combined.sourceCanonicalIds,
-      sourceContributionsAtPoint: rows,
+      sourceContributionsAtPoint: rows.map((item) => promotedContribution(item, authority)),
       combinedPointPwlDb: combined.combinedPointPwlDb,
       t26Intermediates: t26,
       lof: t26.lof,
