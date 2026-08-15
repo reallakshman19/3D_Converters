@@ -14,10 +14,15 @@ export function createAivDatasetLoader({
   clearReadiness,
   clearMasterResolution,
   deactivateFlareNetworkGeneration,
+  onDatasetLoaded = null,
 }) {
   function markBenchmarkModified() {
     if (!state.benchmark.loaded || state.benchmark.loaded.modified) return;
     state.benchmark.loaded = Object.freeze({ ...state.benchmark.loaded, modified: true });
+  }
+
+  function notifyLoaded() {
+    if (typeof onDatasetLoaded === 'function') onDatasetLoaded();
   }
 
   function applyFlareNetwork(network) {
@@ -35,6 +40,7 @@ export function createAivDatasetLoader({
       state.benchmark.loaded = null;
       clearReadiness();
       state.error = null;
+      notifyLoaded();
     } catch (error) {
       state.error = formatError(error);
     }
@@ -59,6 +65,7 @@ export function createAivDatasetLoader({
       };
       clearReadiness();
       state.error = null;
+      notifyLoaded();
     } catch (error) {
       state.error = formatError(error);
     }
@@ -88,6 +95,7 @@ export function createAivDatasetLoader({
         state.files[target] = { name: file.name, kind: state.tables[target].contract };
       }
       markBenchmarkModified();
+      notifyLoaded();
     } catch (error) {
       state.error = formatError(error);
     }
