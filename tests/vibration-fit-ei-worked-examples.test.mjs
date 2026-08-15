@@ -11,8 +11,15 @@ const benchmarkSet = JSON.parse(fs.readFileSync(
   'utf8',
 ));
 
-function closePublished(actual, expected, relativeTolerance = benchmarkSet.roundingPolicy.relativeTolerance) {
-  const tolerance = Math.max(1e-12, Math.abs(expected) * relativeTolerance);
+function closePublished(actual, expected, absoluteTolerance) {
+  assert(Number.isFinite(actual), `Expected finite value, received ${actual}`);
+  assert(Number.isFinite(absoluteTolerance) && absoluteTolerance >= 0, 'Published benchmark tolerance is required.');
+  assert(Math.abs(actual - expected) <= absoluteTolerance,
+    `${actual} != ${expected} within absolute tolerance ${absoluteTolerance}`);
+}
+
+function closeExact(actual, expected, relativeTolerance = 1e-12, absoluteTolerance = 1e-12) {
+  const tolerance = Math.max(absoluteTolerance, Math.abs(expected) * relativeTolerance);
   assert(Number.isFinite(actual), `Expected finite value, received ${actual}`);
   assert(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected} within ${tolerance}`);
 }
@@ -38,16 +45,32 @@ function d4EquivalentInputs() {
   };
 }
 
+test('EI benchmark tolerance policy is independently reconciled and non-authorizing', () => {
+  assert.equal(benchmarkSet.tolerancePolicy.id, 'FIT-EI-PUBLISHED-RECONCILIATION-V1');
+  assert.equal(benchmarkSet.tolerancePolicy.authority, 'BENCHMARK_RECONCILIATION_ONLY');
+  assert.equal(benchmarkSet.tolerancePolicy.screeningPromotionState, 'RECONCILED_FOR_BENCHMARK_USE');
+  assert.match(benchmarkSet.tolerancePolicy.basis, /INDEPENDENT_RECALCULATION/u);
+  assert.equal(Object.hasOwn(benchmarkSet, 'roundingPolicy'), false);
+  for (const row of benchmarkSet.cases) {
+    assert(Number.isFinite(row.tolerance?.rhoV2Pa));
+    assert(Number.isFinite(row.tolerance?.fluidViscosityFactor));
+    assert(Number.isFinite(row.tolerance?.standardFvPa));
+    assert(Number.isFinite(row.tolerance?.standardLof));
+    assert.match(row.independentRecalculation?.basis ?? '', /equation register/u);
+  }
+});
+
 for (const row of benchmarkSet.cases) {
   test(`${row.id}: reproduces published EI FIT worked-example result`, () => {
     const result = calculateFit(row.input);
     assert.equal(result.ok, true, `${row.id}: ${JSON.stringify(result)}`);
     assert.equal(result.support.stiffness, row.published.supportStiffness, row.id);
     if (row.published.supportCategory) assert.equal(result.support.category, row.published.supportCategory, row.id);
-    closePublished(result.excitation.rhoV2, row.published.rhoV2Pa);
-    closePublished(result.standard.fluidViscosityFactor, row.published.fluidViscosityFactor);
-    closePublished(result.standard.correlation.fv, row.published.standardFvPa);
-    closePublished(result.standard.lof, row.published.standardLof);
+    closePublished(result.excitation.rhoV2, row.published.rhoV2Pa, row.tolerance.rhoV2Pa);
+    closePublished(result.standard.fluidViscosityFactor,
+      row.published.fluidViscosityFactor, row.tolerance.fluidViscosityFactor);
+    closePublished(result.standard.correlation.fv, row.published.standardFvPa, row.tolerance.standardFvPa);
+    closePublished(result.standard.lof, row.published.standardLof, row.tolerance.standardLof);
     assert.equal(assessFit(result).referenceBand, row.published.referenceBand, row.id);
     assert.equal(result.qualification.method, 'BENCHMARK_ONLY');
     assert.equal(result.qualification.designAuthority, false);
@@ -94,9 +117,9 @@ test('multiphase aggregate effective inputs and component-derived inputs converg
   assert.equal(aggregate.hydraulics.resolutionModeSelection, 'INFERRED');
   assert.equal(components.hydraulics.resolutionMode, 'COMPONENT_DERIVED');
   assert.equal(components.hydraulics.resolutionModeSelection, 'INFERRED');
-  closePublished(aggregate.hydraulics.velocityMS, components.hydraulics.velocityMS, 1e-12);
-  closePublished(aggregate.excitation.densityKgM3, components.excitation.densityKgM3, 1e-12);
-  closePublished(aggregate.standard.lof, components.standard.lof, 1e-12);
+  closeExact(aggregate.hydraulics.velocityMS, components.hydraulics.velocityMS);
+  closeExact(aggregate.excitation.densityKgM3, components.excitation.densityKgM3);
+  closeExact(aggregate.standard.lof, components.standard.lof);
 });
 
 test('mixed multiphase input shapes fail closed without an explicit resolution mode', () => {

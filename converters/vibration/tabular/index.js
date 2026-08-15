@@ -19,6 +19,15 @@ export {
 } from './enrichment.js';
 
 export {
+  VIBRATION_FIT_DATA_BLOCKER_CSV_HEADER,
+  VIBRATION_FIT_DATA_BLOCKER_CSV_SCHEMA,
+  VIBRATION_FIT_DATA_BLOCKER_FIELDS,
+  applyVibrationFitDataBlockers,
+  createVibrationFitDataBlockerCsvTemplate,
+  parseVibrationFitDataBlockerCsv,
+} from './fit-data-blockers.js';
+
+export {
   createVibrationEnrichmentCsvTemplate,
   createVibrationOperatingCaseCsvTemplate,
 } from './templates.js';

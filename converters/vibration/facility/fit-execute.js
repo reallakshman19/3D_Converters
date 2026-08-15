@@ -6,6 +6,7 @@ import {
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
   VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
 } from './fit-plan.js';
+import { normalizeFitFacilityQualificationMode } from './fit-plan-contract.js';
 
 export const VIBRATION_FACILITY_FIT_RESULT_SCHEMA = 'VibrationFacilityFitResult.v1';
 
@@ -31,11 +32,12 @@ function assertPlan(plan) {
       { actual: plan?.schema ?? null },
     );
   }
-  if (plan.calculationId !== VIBRATION_FACILITY_FIT_CALCULATION_ID || plan.qualificationMode !== 'benchmark') {
+  const qualificationMode = normalizeFitFacilityQualificationMode(plan.qualificationMode);
+  if (plan.calculationId !== VIBRATION_FACILITY_FIT_CALCULATION_ID) {
     throw executionError(
       'FIT_FACILITY_PLAN_AUTHORITY_VIOLATION',
-      'Facility FIT execution accepts only the stable FIT calculation ID in benchmark qualification mode.',
-      { calculationId: plan.calculationId, qualificationMode: plan.qualificationMode },
+      'Facility FIT execution accepts only the stable FIT calculation ID.',
+      { calculationId: plan.calculationId, qualificationMode },
     );
   }
   if (!Array.isArray(plan.items)) {
@@ -47,11 +49,11 @@ function assertPlan(plan) {
   for (const [index, item] of plan.items.entries()) {
     if (item.status === 'READY') {
       if (!item.request || item.request.calculationId !== VIBRATION_FACILITY_FIT_CALCULATION_ID
-          || item.request.options?.qualificationMode !== 'benchmark') {
+          || item.request.options?.qualificationMode !== qualificationMode) {
         throw executionError(
           'FIT_FACILITY_PLAN_AUTHORITY_VIOLATION',
-          'READY FIT plan items must contain an unchanged benchmark-mode request for the stable FIT calculation ID.',
-          { index, canonicalId: item.canonicalId, line: item.line, caseId: item.caseId },
+          'READY FIT plan items must contain an unchanged request matching the plan qualification mode.',
+          { index, canonicalId: item.canonicalId, line: item.line, qualificationMode },
         );
       }
     } else if (item.request !== null && item.request !== undefined) {
@@ -93,9 +95,9 @@ function failedRow(item, centralResult) {
   };
 }
 
-function calculatedRow(item, centralResult) {
+function calculatedRow(item, centralResult, qualificationMode) {
   return {
-    status: 'CALCULATED_BENCHMARK',
+    status: qualificationMode === 'screening' ? 'CALCULATED_SCREENING' : 'CALCULATED_BENCHMARK',
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
     canonicalId: item.canonicalId,
     line: item.line,
@@ -115,6 +117,7 @@ function calculatedRow(item, centralResult) {
 
 export function executeVibrationFacilityFitPlan(planInput = {}) {
   const plan = assertPlan(planInput);
+  const qualificationMode = normalizeFitFacilityQualificationMode(plan.qualificationMode);
   const readyItems = plan.items.filter((item) => item.status === 'READY');
   const batch = readyItems.length
     ? calculateEngineeringBatch({
@@ -136,20 +139,23 @@ export function executeVibrationFacilityFitPlan(planInput = {}) {
   const rows = plan.items.map((item) => {
     if (item.status !== 'READY') return notAssessedRow(item);
     const centralResult = resultByPlanItem.get(item);
-    return centralResult?.ok ? calculatedRow(item, centralResult) : failedRow(item, centralResult);
+    return centralResult?.ok ? calculatedRow(item, centralResult, qualificationMode) : failedRow(item, centralResult);
   });
 
-  const calculated = rows.filter((row) => row.status === 'CALCULATED_BENCHMARK').length;
+  const calculated = rows.filter((row) => (
+    row.status === 'CALCULATED_BENCHMARK' || row.status === 'CALCULATED_SCREENING'
+  )).length;
   const calculationFailed = rows.filter((row) => row.status === 'CALCULATION_FAILED').length;
   const notAssessed = rows.filter((row) => row.status === 'NOT_ASSESSED_DATA_INCOMPLETE').length;
+  const screening = qualificationMode === 'screening';
 
   return deepFreeze({
     schema: VIBRATION_FACILITY_FIT_RESULT_SCHEMA,
     authority: 'ORCHESTRATION_ONLY',
-    engineeringAuthority: 'NONE',
-    screeningAuthorized: false,
+    engineeringAuthority: screening ? 'SCREENING' : 'NONE',
+    screeningAuthorized: screening,
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
-    qualificationMode: 'benchmark',
+    qualificationMode,
     planSchema: plan.schema,
     datasetSchema: plan.datasetSchema ?? null,
     rows,

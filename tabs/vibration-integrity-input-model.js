@@ -1,6 +1,6 @@
-import { convertEngineeringUnit } from '../converters/engineering-calculations/units.js';
 import { VIBRATION_TABLE_EXCHANGE_SHEETS } from '../converters/vibration/exchange/schema.js';
 import { VIBRATION_ENRICHMENT_CSV_HEADER } from '../converters/vibration/tabular/enrichment.js';
+import { VIBRATION_FIT_DATA_BLOCKER_CSV_HEADER } from '../converters/vibration/tabular/fit-data-blockers.js';
 import { VIBRATION_OPERATING_CASE_CSV_HEADER } from '../converters/vibration/tabular/operating-cases.js';
 import {
   assertExactVibrationCsvHeader,
@@ -10,22 +10,26 @@ import {
   vibrationTabularInputError,
 } from '../converters/vibration/tabular/csv.js';
 import {
+  revertVibrationIntegrityUnitAwareCell,
+  updateVibrationIntegrityUnitAwareCell,
+} from './vibration-integrity-input-units.js';
+import {
   addVibrationWorkingRow,
   createVibrationWorkingRecords,
   deleteVibrationWorkingRow,
   replaceVisibleVibrationWorkingRows,
-  revertVibrationWorkingCell,
+  revertVibrationWorkingRow,
   revertVibrationWorkingTable,
-  updateVibrationWorkingCell,
   vibrationWorkingCellState,
   vibrationWorkingEditCount,
   vibrationWorkingRecordsDirty,
+  vibrationWorkingRowState,
   visibleVibrationWorkingRowIds,
   visibleVibrationWorkingRows,
 } from './vibration-integrity-working-state.js';
 
 export const VIBRATION_INTEGRITY_INPUT_TABLE = Object.freeze({
-  TOPOLOGY: 'topology', OPERATING: 'operating', ENRICHMENT: 'enrichment',
+  TOPOLOGY: 'topology', OPERATING: 'operating', ENRICHMENT: 'enrichment', DATA_BLOCKERS: 'dataBlockers',
 });
 export const VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS = 'LOCAL_EDITED_UNVERIFIED';
 
@@ -33,26 +37,15 @@ const TABLE_CONFIG = Object.freeze({
   topology: Object.freeze({ header: VIBRATION_TABLE_EXCHANGE_SHEETS.Elements, contract: 'TopologyEditTableHumanExport.Elements' }),
   operating: Object.freeze({ header: VIBRATION_OPERATING_CASE_CSV_HEADER, contract: 'VibrationOperatingCaseCsv.v1' }),
   enrichment: Object.freeze({ header: VIBRATION_ENRICHMENT_CSV_HEADER, contract: 'VibrationEnrichmentCsv.v1' }),
-});
-
-const OPERATING_QUANTITIES = Object.freeze([
-  Object.freeze({ value: 4, unit: 5, quantity: 'mass_flow' }),
-  Object.freeze({ value: 6, unit: 7, quantity: 'density' }),
-  Object.freeze({ value: 8, unit: 9, quantity: 'pressure', reference: 10 }),
-  Object.freeze({ value: 11, unit: 12, quantity: 'temperature' }),
-  Object.freeze({ value: 13, unit: 14, quantity: 'dynamic_viscosity' }),
-  Object.freeze({ value: 15, unit: 16, quantity: 'velocity' }),
-]);
-
-const ENRICHMENT_QUANTITIES = Object.freeze({
-  OUTSIDE_DIAMETER: 'length', WALL_THICKNESS: 'length', INSIDE_DIAMETER: 'length',
-  MAX_UNSUPPORTED_SPAN: 'length', NATURAL_FREQUENCY: 'frequency',
+  dataBlockers: Object.freeze({ header: VIBRATION_FIT_DATA_BLOCKER_CSV_HEADER, contract: 'VibrationFitDataBlockerCsv.v1' }),
 });
 
 function configFor(kind) {
   const config = TABLE_CONFIG[kind];
   if (config) return config;
-  throw vibrationTabularInputError('VIBRATION_INPUT_TABLE_KIND_UNSUPPORTED', `Unsupported vibration input table ${kind}.`, { kind });
+  throw vibrationTabularInputError(
+    'VIBRATION_INPUT_TABLE_KIND_UNSUPPORTED', `Unsupported vibration input table ${kind}.`, { kind },
+  );
 }
 
 function text(value) {
@@ -99,7 +92,9 @@ function topologyMutationRecords(table, records) {
   const sourceStatusIndex = table.header.indexOf('Source Status');
   const rows = visibleVibrationWorkingRows(records).map((row) => {
     const next = [...row];
-    const hasWorkingData = next.some((value, index) => index !== sourceStatusIndex && text(value).trim() !== '');
+    const hasWorkingData = next.some((value, index) => (
+      index !== sourceStatusIndex && text(value).trim() !== ''
+    ));
     next[sourceStatusIndex] = hasWorkingData ? VIBRATION_LOCAL_TOPOLOGY_SOURCE_STATUS : '';
     return next;
   });
@@ -116,64 +111,6 @@ function mutationState(table, records, metadata = {}) {
   });
 }
 
-function pairForColumn(table, rowIndex, columnIndex) {
-  if (table.kind === 'operating') {
-    return OPERATING_QUANTITIES.find((pair) => pair.value === columnIndex || pair.unit === columnIndex) ?? null;
-  }
-  if (table.kind !== 'enrichment' || ![4, 6].includes(columnIndex)) return null;
-  const row = table.rows[rowIndex];
-  if (row?.[5] !== 'NUMBER') return null;
-  const quantity = ENRICHMENT_QUANTITIES[row[3]];
-  return quantity ? { value: 4, unit: 6, quantity } : null;
-}
-
-function pressureOptions(row, pair) {
-  if (pair.quantity !== 'pressure') return {};
-  const reference = String(row[pair.reference] ?? '').trim().toLowerCase();
-  return ['absolute', 'gauge'].includes(reference) ? { pressureReference: reference } : {};
-}
-
-function convertedText(value) {
-  return String(Number(value.toPrecision(15)));
-}
-
-function updateRecordsForCell(table, rowIndex, columnIndex, value) {
-  const pair = pairForColumn(table, rowIndex, columnIndex);
-  const row = table.rows[rowIndex];
-  if (!pair && table.kind === 'enrichment' && columnIndex === 6 && row?.[5] === 'NUMBER') {
-    const oldUnit = text(row[6]).trim();
-    const nextUnit = text(value).trim();
-    if (text(row[4]).trim() && oldUnit && nextUnit && oldUnit !== nextUnit) {
-      throw vibrationTabularInputError(
-        'VIBRATION_INPUT_UNIT_CONTEXT_UNRESOLVED',
-        `Cannot convert unit for enrichment property ${row[3]} without a known engineering quantity.`,
-        { property: row[3], fromUnit: oldUnit, toUnit: nextUnit },
-      );
-    }
-  }
-  if (!pair || columnIndex !== pair.unit) {
-    return updateVibrationWorkingCell(table.records, rowIndex, columnIndex, value);
-  }
-  const fromUnit = text(row[pair.unit]).trim();
-  const toUnit = text(value).trim();
-  const rawValue = text(row[pair.value]).trim();
-  let records = table.records;
-  if (rawValue && fromUnit && toUnit && fromUnit !== toUnit) {
-    const converted = convertEngineeringUnit(Number(rawValue), pair.quantity, fromUnit, toUnit, pressureOptions(row, pair));
-    records = updateVibrationWorkingCell(records, rowIndex, pair.value, convertedText(converted));
-  }
-  return updateVibrationWorkingCell(records, rowIndex, pair.unit, value);
-}
-
-function revertRecordsForCell(table, rowIndex, columnIndex) {
-  const pair = pairForColumn(table, rowIndex, columnIndex);
-  let records = revertVibrationWorkingCell(table.records, rowIndex, columnIndex);
-  if (!pair) return records;
-  if (pair.value !== columnIndex) records = revertVibrationWorkingCell(records, rowIndex, pair.value);
-  if (pair.unit !== columnIndex) records = revertVibrationWorkingCell(records, rowIndex, pair.unit);
-  return records;
-}
-
 export function createEmptyVibrationIntegrityInputTable(kind) {
   return tableState(kind, []);
 }
@@ -187,14 +124,19 @@ export function parseVibrationIntegrityInputCsv(kind, csvText, metadata = {}) {
 }
 
 function exchangeElementRow(element) {
-  return [element.tag, element.type, element.line, element.connectFrom, element.connectTo, element.dnInMm,
-    element.dnOutMm, element.lengthMm, element.schedule, element.material, element.pipingClass,
-    element.pressureClass, element.catalogueAuthority, element.sourceStatus, element.canonicalId].map(text);
+  return [
+    element.tag, element.type, element.line, element.connectFrom, element.connectTo,
+    element.dnInMm, element.dnOutMm, element.lengthMm, element.schedule, element.material,
+    element.pipingClass, element.pressureClass, element.catalogueAuthority,
+    element.sourceStatus, element.canonicalId,
+  ].map(text);
 }
 
 export function createTopologyInputTableFromExchange(exchange, metadata = {}) {
   if (!exchange || !Array.isArray(exchange.elements)) {
-    throw vibrationTabularInputError('VIBRATION_INPUT_TOPOLOGY_EXCHANGE_INVALID', 'Parsed topology exchange with elements is required.');
+    throw vibrationTabularInputError(
+      'VIBRATION_INPUT_TOPOLOGY_EXCHANGE_INVALID', 'Parsed topology exchange with elements is required.',
+    );
   }
   return tableState('topology', exchange.elements.map(exchangeElementRow), {
     sourceName: metadata.sourceName ?? exchange.sourceFileName ?? null,
@@ -222,14 +164,28 @@ function assertCell(table, rowIndex, columnIndex) {
   }
 }
 
+function assertRow(table, rowIndex) {
+  configFor(table?.kind);
+  if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= table.rows.length) {
+    throw new RangeError(`Editable input row ${rowIndex} is out of range.`);
+  }
+}
+
 export function updateVibrationIntegrityInputCell(table, rowIndex, columnIndex, value) {
   assertCell(table, rowIndex, columnIndex);
-  return mutationState(table, updateRecordsForCell(table, rowIndex, columnIndex, value));
+  return mutationState(
+    table, updateVibrationIntegrityUnitAwareCell(table, rowIndex, columnIndex, value),
+  );
 }
 
 export function revertVibrationIntegrityInputCell(table, rowIndex, columnIndex) {
   assertCell(table, rowIndex, columnIndex);
-  return mutationState(table, revertRecordsForCell(table, rowIndex, columnIndex));
+  return mutationState(table, revertVibrationIntegrityUnitAwareCell(table, rowIndex, columnIndex));
+}
+
+export function revertVibrationIntegrityInputRow(table, rowIndex) {
+  assertRow(table, rowIndex);
+  return mutationState(table, revertVibrationWorkingRow(table.records, rowIndex));
 }
 
 export function revertVibrationIntegrityInputTable(table) {
@@ -245,15 +201,22 @@ export function vibrationIntegrityInputCellState(table, rowIndex, columnIndex) {
   return vibrationWorkingCellState(table.records, rowIndex, columnIndex);
 }
 
+export function vibrationIntegrityInputRowState(table, rowIndex) {
+  assertRow(table, rowIndex);
+  return vibrationWorkingRowState(table.records, rowIndex, {
+    ignoredColumns: ignoredDirtyColumns(table.kind, table.header),
+  });
+}
+
 export function addVibrationIntegrityInputRow(table) {
   const config = configFor(table?.kind);
-  const added = addVibrationWorkingRow(table.records, table.kind, config.header.length, table.nextLocalRowSequence);
+  const added = addVibrationWorkingRow(
+    table.records, table.kind, config.header.length, table.nextLocalRowSequence,
+  );
   return mutationState(table, added.records, { nextLocalRowSequence: added.nextSequence });
 }
 
 export function deleteVibrationIntegrityInputRow(table, rowIndex) {
-  if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= table.rows.length) {
-    throw new RangeError(`Editable input row ${rowIndex} is out of range.`);
-  }
+  assertRow(table, rowIndex);
   return mutationState(table, deleteVibrationWorkingRow(table.records, rowIndex));
 }

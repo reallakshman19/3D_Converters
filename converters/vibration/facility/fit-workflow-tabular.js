@@ -1,5 +1,8 @@
 import { parseVibrationFacilityFitTables } from './fit-tables.js';
-import { runVibrationFacilityFitBenchmark } from './fit-workflow.js';
+import {
+  runVibrationFacilityFitBenchmark,
+  runVibrationFacilityFitScreening,
+} from './fit-workflow.js';
 
 export const VIBRATION_FACILITY_FIT_TABULAR_WORKFLOW_SCHEMA = 'VibrationFacilityFitTabularWorkflow.v1';
 
@@ -9,19 +12,27 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-export function runVibrationFacilityFitBenchmarkFromTables(input = {}, options = {}) {
+function runTabular(input, options, runner, qualificationMode) {
   const parsed = parseVibrationFacilityFitTables(input);
-  const workflow = runVibrationFacilityFitBenchmark(parsed, options);
-
+  const workflow = runner(parsed, options);
+  const screening = qualificationMode === 'screening';
   return deepFreeze({
     schema: VIBRATION_FACILITY_FIT_TABULAR_WORKFLOW_SCHEMA,
     authority: 'TABULAR_WORKFLOW_ORCHESTRATION_ONLY',
-    engineeringAuthority: 'NONE',
-    screeningAuthorized: false,
-    qualificationMode: 'benchmark',
+    engineeringAuthority: screening ? 'SCREENING' : 'NONE',
+    screeningAuthorized: screening,
+    qualificationMode,
     imports: parsed.imports,
     workflow,
   });
+}
+
+export function runVibrationFacilityFitBenchmarkFromTables(input = {}, options = {}) {
+  return runTabular(input, options, runVibrationFacilityFitBenchmark, 'benchmark');
+}
+
+export function runVibrationFacilityFitScreeningFromTables(input = {}, options = {}) {
+  return runTabular(input, options, runVibrationFacilityFitScreening, 'screening');
 }
 
 export { VIBRATION_FACILITY_TOPOLOGY_INPUT_FORMAT } from './fit-tables.js';

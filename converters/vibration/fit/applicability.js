@@ -225,8 +225,8 @@ export function evaluateFitApplicability(input = {}) {
     applicable: errors.length === 0,
     errors: Object.freeze(errors),
     limitations: Object.freeze([
-      'WORKBOOK_REFERENCE_ONLY',
-      'EI_METHOD_INDEPENDENT_REVIEW_REQUIRED',
+      'BOUNDED_SCREENING_ONLY_DESIGN_AUTHORITY_FALSE',
+      'QST_003_DIAMETER_GAP_219_1_TO_273_MM_FAIL_CLOSED',
       'MAIN_LINE_FIT_ONLY',
     ]),
     support: Object.freeze({ boundaries, stiffness, category: supportCategory }),

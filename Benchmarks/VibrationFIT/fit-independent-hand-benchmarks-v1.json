@@ -78,6 +78,31 @@
         "advancedEligible": false,
         "governingReferenceLof": 0.04079283113435979
       }
+    },
+    {
+      "id": "FIT-HAND-LIQ-MEDIUM-SMALL-008",
+      "purpose": "Independent liquid/medium-small standard-correlation case closing the retained-parity-only coverage hole.",
+      "derivation": {
+        "sourceTraceIds": ["FIT-EQ-004", "FIT-EQ-008..010", "FIT-EQ-011", "FIT-EQ-012", "FIT-EQ-013"],
+        "note": "Hand-calculated from the controlled equation register before comparison with production output."
+      },
+      "input": {
+        "phase": "LIQUID",
+        "outsideDiameterM": 0.1683,
+        "wallThicknessM": 0.00711,
+        "maximumUnsupportedSpanM": 8.5,
+        "densityKgM3": 1000.0,
+        "fluidVelocityMS": 1.2
+      },
+      "expected": {
+        "supportStiffness": "MEDIUM",
+        "supportCategory": "MEDIUM_SMALL",
+        "rhoV2Pa": 1440.0,
+        "standardFvPa": 9264.403089402875,
+        "standardLof": 0.15543365137546206,
+        "advancedEligible": false,
+        "governingReferenceLof": 0.15543365137546206
+      }
     }
   ],
   "thresholdCases": [
@@ -161,6 +186,32 @@
         "advancedEligible": true,
         "advancedFvPa": 7096.819457250381,
         "refinedLof": 0.3877911600714257,
+        "assessmentStatus": "REFERENCE_BELOW_THRESHOLD_AFTER_ADVANCED"
+      }
+    },
+    {
+      "id": "FIT-HAND-FLEX-LARGE-LOF-120-FN2-009",
+      "purpose": "Independent flexible-large advanced-correlation case closing the retained-parity-only advanced coverage hole.",
+      "derivation": {
+        "sourceTraceIds": ["FIT-EQ-004", "FIT-EQ-008..010", "FIT-EQ-011", "FIT-EQ-012", "FIT-EQ-013", "FIT-EQ-015", "FIT-EQ-016"],
+        "note": "Velocity was hand-selected so the standard LOF is exactly 1.2 using the independently calculated standard Fv; refined values were then hand-calculated from the advanced-large equation."
+      },
+      "input": {
+        "phase": "LIQUID",
+        "outsideDiameterM": 0.3239,
+        "wallThicknessM": 0.00953,
+        "maximumUnsupportedSpanM": 15.0,
+        "densityKgM3": 1000.0,
+        "fluidVelocityMS": 1.7348455398663403,
+        "naturalFrequencyHz": 2.0
+      },
+      "expected": {
+        "supportCategory": "FLEXIBLE_LARGE",
+        "standardFvPa": 2508.0742059951117,
+        "standardLof": 1.2,
+        "advancedEligible": true,
+        "advancedFvPa": 5006.56016191939,
+        "refinedLof": 0.6011490823752119,
         "assessmentStatus": "REFERENCE_BELOW_THRESHOLD_AFTER_ADVANCED"
       }
     }

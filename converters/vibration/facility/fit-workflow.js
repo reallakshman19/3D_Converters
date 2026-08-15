@@ -46,7 +46,7 @@ function validateOptions(options) {
   return options;
 }
 
-export function runVibrationFacilityFitBenchmark(input = {}, options = {}) {
+function runVibrationFacilityFit(input, options, qualificationMode) {
   const workflowOptions = validateOptions(options);
   const dataset = assembleVibrationIntegrityDataset({
     exchange: input.exchange,
@@ -55,16 +55,17 @@ export function runVibrationFacilityFitBenchmark(input = {}, options = {}) {
   }, {
     allowLimitedExchange: workflowOptions.allowLimitedExchange === true,
   });
-  const plan = buildVibrationFacilityFitPlan(dataset);
+  const plan = buildVibrationFacilityFitPlan(dataset, { qualificationMode });
   const result = executeVibrationFacilityFitPlan(plan);
   const register = buildVibrationFacilityFitRegister(result);
+  const screening = qualificationMode === 'screening';
 
   return deepFreeze({
     schema: VIBRATION_FACILITY_FIT_WORKFLOW_SCHEMA,
     authority: 'WORKFLOW_ORCHESTRATION_ONLY',
-    engineeringAuthority: 'NONE',
-    screeningAuthorized: false,
-    qualificationMode: 'benchmark',
+    engineeringAuthority: screening ? 'SCREENING' : 'NONE',
+    screeningAuthorized: screening,
+    qualificationMode,
     dataset,
     plan,
     result,
@@ -77,4 +78,12 @@ export function runVibrationFacilityFitBenchmark(input = {}, options = {}) {
       register: register.warnings,
     },
   });
+}
+
+export function runVibrationFacilityFitBenchmark(input = {}, options = {}) {
+  return runVibrationFacilityFit(input, options, 'benchmark');
+}
+
+export function runVibrationFacilityFitScreening(input = {}, options = {}) {
+  return runVibrationFacilityFit(input, options, 'screening');
 }

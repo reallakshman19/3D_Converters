@@ -13,16 +13,17 @@ function eiCase(id) {
   return eiBenchmarks.cases.find((row) => row.id === id);
 }
 
-function assertNeverAuthorizes(candidate) {
+function assertQualified(candidate) {
   assert.equal(candidate.scopeId, 'FIT-SCREENING-CANDIDATE-V1');
-  assert.equal(candidate.screeningAuthorized, false);
-  assert.equal(candidate.engineeringAuthority, 'NONE');
-  assert.equal(candidate.domainCoverageEstablished, false);
-  assert.equal(candidate.pointCoverageOnly, true);
+  assert.equal(candidate.screeningAuthorized, true);
+  assert.equal(candidate.engineeringAuthority, 'SCREENING');
+  assert.equal(candidate.domainCoverageEstablished, true);
+  assert.equal(candidate.pointCoverageOnly, false);
+  assert.equal(candidate.candidateForEngineeringReview, false);
   assert(Object.isFrozen(candidate));
 }
 
-test('EI D2 gas medium-stiff cases are candidates for engineering review only', () => {
+test('EI D2 gas medium-stiff cases are qualified bounded screening slices', () => {
   for (const id of [
     'EI-D2-FIT-RECYCLE-SUCTION-6IN',
     'EI-D2-FIT-RELIEF-UPSTREAM-4IN',
@@ -31,37 +32,34 @@ test('EI D2 gas medium-stiff cases are candidates for engineering review only', 
     const result = calculateFit(eiCase(id).input);
     assert.equal(result.ok, true, `${id}: ${JSON.stringify(result)}`);
     const candidate = result.screeningCandidate;
-    assertNeverAuthorizes(candidate);
-    assert.equal(candidate.candidateForEngineeringReview, true, id);
-    assert.equal(candidate.status, 'CANDIDATE_STANDARD_SLICE', id);
+    assertQualified(candidate);
+    assert.equal(candidate.status, 'QUALIFIED_BOUNDED_SCREENING', id);
     assert.equal(candidate.phasePath, 'SINGLE_PHASE_GAS', id);
     assert.equal(candidate.supportCategory, 'MEDIUM_STIFF', id);
     assert.equal(candidate.continuationRequired, false, id);
   }
 });
 
-test('EI D4 aggregate/stiff slice is a candidate while D4 flexible-large standard slice requires continuation', () => {
+test('EI D4 aggregate/stiff slice is qualified while produced-water flexible-large requires continuation', () => {
   const separator = calculateFit(eiCase('EI-D4-FIT-SEPARATOR-INLET-20IN').input);
   assert.equal(separator.ok, true, JSON.stringify(separator));
-  assertNeverAuthorizes(separator.screeningCandidate);
-  assert.equal(separator.screeningCandidate.candidateForEngineeringReview, true);
+  assertQualified(separator.screeningCandidate);
   assert.equal(separator.screeningCandidate.phasePath, 'MULTIPHASE_AGGREGATE_EFFECTIVE');
   assert.equal(separator.screeningCandidate.supportCategory, 'STIFF');
-  assert.equal(separator.screeningCandidate.status, 'CANDIDATE_STANDARD_SLICE');
+  assert.equal(separator.screeningCandidate.status, 'QUALIFIED_BOUNDED_SCREENING');
   assert.equal(separator.screeningCandidate.continuationRequired, false);
 
   const water = calculateFit(eiCase('EI-D4-FIT-PRODUCED-WATER-10IN').input);
   assert.equal(water.ok, true, JSON.stringify(water));
-  assertNeverAuthorizes(water.screeningCandidate);
-  assert.equal(water.screeningCandidate.candidateForEngineeringReview, true);
+  assertQualified(water.screeningCandidate);
   assert.equal(water.screeningCandidate.supportCategory, 'FLEXIBLE_LARGE');
-  assert.equal(water.screeningCandidate.status, 'CANDIDATE_STANDARD_SLICE_FURTHER_ASSESSMENT_REQUIRED');
+  assert.equal(water.screeningCandidate.status, 'QUALIFIED_BOUNDED_SCREENING_FURTHER_ASSESSMENT_REQUIRED');
   assert.equal(water.screeningCandidate.continuationRequired, true);
   assert(water.standard.lof >= 1);
   assert.equal(water.advanced, null);
 });
 
-test('standard families without EI worked-example points are not screening candidates', () => {
+test('standard families with independent hand benchmarks are admitted to bounded screening', () => {
   const cases = [
     {
       expected: 'MEDIUM_SMALL',
@@ -90,13 +88,12 @@ test('standard families without EI worked-example points are not screening candi
     const result = calculateFit(row.input);
     assert.equal(result.ok, true, JSON.stringify(result));
     assert.equal(result.support.category, row.expected);
-    assertNeverAuthorizes(result.screeningCandidate);
-    assert.equal(result.screeningCandidate.candidateForEngineeringReview, false);
-    assert.equal(result.screeningCandidate.status, 'STANDARD_CORRELATION_NOT_EI_EXAMPLE_COVERED');
+    assertQualified(result.screeningCandidate);
+    assert.equal(result.screeningCandidate.status, 'QUALIFIED_BOUNDED_SCREENING');
   }
 });
 
-test('component-derived multiphase path is not a candidate even when its standard correlation has EI evidence', () => {
+test('component-derived multiphase path is qualified by independent/equivalence evidence', () => {
   const result = calculateFit({
     phase: 'MULTIPHASE',
     outsideDiameterM: 0.508,
@@ -110,12 +107,11 @@ test('component-derived multiphase path is not a candidate even when its standar
   assert.equal(result.ok, true, JSON.stringify(result));
   assert.equal(result.support.category, 'STIFF');
   assert.equal(result.hydraulics.resolutionMode, 'COMPONENT_DERIVED');
-  assertNeverAuthorizes(result.screeningCandidate);
-  assert.equal(result.screeningCandidate.candidateForEngineeringReview, false);
-  assert.equal(result.screeningCandidate.status, 'PHASE_PATH_NOT_EI_EXAMPLE_COVERED');
+  assertQualified(result.screeningCandidate);
+  assert.equal(result.screeningCandidate.status, 'QUALIFIED_BOUNDED_SCREENING');
 });
 
-test('an executed advanced path is never a screening candidate under the current evidence set', () => {
+test('advanced flexible-small path is qualified by independent benchmark evidence', () => {
   const result = calculateFit({
     phase: 'LIQUID',
     outsideDiameterM: 0.1683,
@@ -127,13 +123,12 @@ test('an executed advanced path is never a screening candidate under the current
   });
   assert.equal(result.ok, true, JSON.stringify(result));
   assert(result.advanced);
-  assertNeverAuthorizes(result.screeningCandidate);
-  assert.equal(result.screeningCandidate.candidateForEngineeringReview, false);
-  assert.equal(result.screeningCandidate.status, 'ADVANCED_PATH_NOT_EI_EXAMPLE_COVERED');
-  assert.equal(result.screeningCandidate.continuationRequired, true);
+  assertQualified(result.screeningCandidate);
+  assert.equal(result.screeningCandidate.status, 'QUALIFIED_BOUNDED_SCREENING');
+  assert.equal(result.screeningCandidate.continuationRequired, false);
 });
 
-test('central adapter propagates candidate evidence but screening execution remains blocked', () => {
+test('central adapter preserves benchmark replay and authorizes explicit screening mode', () => {
   const input = eiCase('EI-D2-FIT-RECYCLE-SUCTION-6IN').input;
   const canonical = {
     phase: input.phase,
@@ -151,8 +146,7 @@ test('central adapter propagates candidate evidence but screening execution rema
     { options: { qualificationMode: 'benchmark' } },
   );
   assert.equal(benchmark.ok, true, JSON.stringify(benchmark));
-  assert.equal(benchmark.evidence.screeningCandidate.candidateForEngineeringReview, true);
-  assert.equal(benchmark.evidence.screeningCandidate.screeningAuthorized, false);
+  assert.equal(benchmark.evidence.screeningCandidate.screeningAuthorized, true);
   assert.equal(benchmark.provenance.screeningCandidateScopeId, 'FIT-SCREENING-CANDIDATE-V1');
   assert.equal(benchmark.qualification.method, 'BENCHMARK_ONLY');
   assert.equal(benchmark.qualification.designAuthority, false);
@@ -161,7 +155,10 @@ test('central adapter propagates candidate evidence but screening execution rema
     canonical,
     { options: { qualificationMode: 'screening' } },
   );
-  assert.equal(screening.ok, false);
-  assert.equal(screening.errors[0].code, 'ENGINEERING_METHOD_NOT_QUALIFIED');
-  assert.equal(Object.hasOwn(screening, 'outputs'), false);
+  assert.equal(screening.ok, true, JSON.stringify(screening));
+  assert.equal(screening.qualification.method, 'SCREENING');
+  assert.equal(screening.qualification.effective, 'SCREENING');
+  assert.equal(screening.qualification.designAuthority, false);
+  assert.equal(screening.assessment.screeningAuthority, 'AUTHORIZED_BOUNDED');
+  assert.equal(screening.outputs.standardLof, benchmark.outputs.standardLof);
 });

@@ -20,7 +20,7 @@ const aiv = definitions.find((row) => row.id === 'VIB.AIV.ACOUSTIC');
 function baseState(definition = fit) {
   return {
     selectedFamily: 'VIB', selectedId: definition.id, familyLanding: null,
-    draft: createEngineeringConsoleDraft(definition), mode: 'single', qualificationMode: 'benchmark',
+    draft: createEngineeringConsoleDraft(definition), mode: 'single', qualificationMode: 'screening',
     activeView: isEngineeringCalculationExecutable(definition) ? 'results' : 'basis',
     editorErrors: [], validation: null, resolution: null, result: null,
     batchText: '[]', batchResult: null, batchError: null,
@@ -33,14 +33,16 @@ function buttonTag(html, action) {
   return match[0];
 }
 
-test('FIT remains benchmark-only and is marked as the table-workspace product surface', () => {
+test('FIT is qualified for bounded screening and remains a table-workspace product surface', () => {
   assert.equal(isEngineeringCalculationExecutable(fit), true);
   assert.equal(canResolveEngineeringCalculation(fit), true);
   assert.equal(canExecuteEngineeringCalculation(fit, 'strict'), false);
-  assert.equal(canExecuteEngineeringCalculation(fit, 'benchmark'), true);
+  assert.equal(canExecuteEngineeringCalculation(fit, 'benchmark'), false);
+  assert.equal(canExecuteEngineeringCalculation(fit, 'screening'), true);
   assert.equal(fit.ui.productSurface, 'VIBRATION_INTEGRITY_TABLE_WORKSPACE');
-  assert.equal(fit.ui.requiredQualificationMode, 'benchmark');
-  assert.equal(fit.authority.qualificationState, 'BENCHMARK_ONLY');
+  assert.equal(fit.ui.requiredQualificationMode, 'screening');
+  assert.equal(fit.authority.qualificationState, 'SCREENING');
+  assert.equal(fit.authority.codeCompliance, false);
 });
 
 test('existing VIB family landing renders all six registered mechanisms with registered authority states', () => {
@@ -51,7 +53,7 @@ test('existing VIB family landing renders all six registered mechanisms with reg
   assert.match(html, /Vibration &amp; Dynamic Screening/u);
   assert.match(html, /6 mechanisms/u);
   assert.match(html, /Flow-Induced Vibration Screening/u);
-  assert.match(html, /BENCHMARK_ONLY/u);
+  assert.match(html, /SCREENING/u);
   assert.match(html, /Acoustic-Induced Vibration Screening/u);
   assert.match(html, /Cavitation \/ Flashing Screening/u);
   assert.match(html, /Small-Bore Connection Vibration Screening/u);
@@ -68,7 +70,7 @@ test('selecting FIT renders the table workspace host instead of an inline calcul
     definitions, families, definition: fit, state: baseState(fit),
   });
   assert.match(html, /TABLE WORKSPACE/u);
-  assert.match(html, /BENCHMARK ONLY/u);
+  assert.match(html, /SCREENING/u);
   assert.match(html, /data-fit-workspace-host/u);
   assert.doesNotMatch(html, /data-action="calculate"/u);
   assert.doesNotMatch(html, /data-action="add-current-batch"/u);

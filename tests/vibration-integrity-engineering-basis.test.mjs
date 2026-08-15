@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { FIT_SOURCE_BASIS_EVIDENCE } from '../converters/vibration/fit/source-basis-evidence.js';
 import {
   buildVibrationEngineeringBasisProjection,
   vibrationEngineeringBasisSourceCellId,
@@ -11,6 +12,7 @@ import { renderVibrationIntegrityInputArea } from '../tabs/vibration-integrity-i
 
 const inputViewSource = readFileSync(new URL('../tabs/vibration-integrity-input-view.js', import.meta.url), 'utf8');
 const basisViewSource = readFileSync(new URL('../tabs/vibration-integrity-engineering-basis-view.js', import.meta.url), 'utf8');
+const controllerSource = readFileSync(new URL('../tabs/vibration-integrity-tab.js', import.meta.url), 'utf8');
 
 function table(kind, width, rows) {
   return Object.freeze({
@@ -47,15 +49,17 @@ function fixture() {
   };
 }
 
-function inputState() {
+function inputState(inputTab = 'engineering') {
   const source = fixture();
   return {
     tables: {
       topology: createVibrationIntegrityInputTable('topology', source.topology.rows),
       operating: createVibrationIntegrityInputTable('operating', source.operating.rows),
       enrichment: createVibrationIntegrityInputTable('enrichment', source.enrichment.rows),
+      dataBlockers: createVibrationIntegrityInputTable('dataBlockers', []),
     },
-    files: { topology: null, operating: null, enrichment: null },
+    files: { topology: null, operating: null, enrichment: null, dataBlockers: null },
+    inputTab,
     allowLimitedExchange: false,
     busy: false,
     busyAction: null,
@@ -103,23 +107,42 @@ test('assessment point without operating case remains visible and process editin
   assert.equal(row.fit.outsideDiameter.value, '0.1683');
 });
 
-test('rendered Engineering-basis source links resolve to exact backing Source Data inputs', () => {
-  const html = renderVibrationIntegrityInputArea(inputState());
+test('Engineering-basis source links switch to Source Data and resolve the exact backing input', () => {
   const sourceId = 'vi-source-operating-operating-source-0001-4';
-  assert.ok(html.includes(`href="#${sourceId}"`), 'joined basis must link to exact backing cell');
-  assert.ok(html.includes(`id="${sourceId}"`), 'Source Data input must emit the matching anchor');
-  assert.ok(
-    html.indexOf('<h3>Engineering basis</h3>') < html.indexOf('<h3>Source Data</h3>'),
-    'joined Engineering basis must render before raw Source Data',
-  );
+  const engineeringHtml = renderVibrationIntegrityInputArea(inputState('engineering'));
+  assert.ok(engineeringHtml.includes(`href="#${sourceId}"`));
+  assert.ok(engineeringHtml.includes(`data-vi-source-target="${sourceId}"`));
+  assert.equal(engineeringHtml.includes(`id="${sourceId}"`), false,
+    'Source Data is intentionally not rendered in the Engineering Basis tab');
+
+  const sourceHtml = renderVibrationIntegrityInputArea(inputState('source'));
+  assert.ok(sourceHtml.includes(`id="${sourceId}"`), 'Source Data tab must emit the exact backing anchor');
+  assert.match(controllerSource, /state\.inputTab = 'source'/u);
+  assert.match(controllerSource, /getElementById\(sourceTarget\)/u);
 });
 
-test('UI makes Engineering basis primary while Source Data stays the backing editor contract', () => {
-  assert.match(inputViewSource, /renderVibrationEngineeringBasis\(inputState\)/u);
+test('Engineering Basis exposes adopted FIT method, errata disposition and project-specific adoption boundary', () => {
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.method.technicalModule, 'T2.2 Flow Induced Turbulence');
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.officialErrata.status, 'REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2');
+  assert.deepEqual(FIT_SOURCE_BASIS_EVIDENCE.officialErrata.corrections.map((item) => item.flowchart), ['T2-5', 'T2-8']);
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.projectBasis.productReferenceMethod, 'CONFIRMED');
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.projectBasis.externalProjectOrClientAdoption, 'PROJECT_SPECIFIC_CONFIRMATION_REQUIRED');
+  assert.equal(FIT_SOURCE_BASIS_EVIDENCE.authority.screeningAuthority, 'NOT_AUTHORIZED');
+  const html = renderVibrationIntegrityInputArea(inputState('engineering'));
+  assert.match(html, /T2\.2 Flow Induced Turbulence/u);
+  assert.match(html, /REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2/u);
+  assert.match(html, /PROJECT_SPECIFIC_CONFIRMATION_REQUIRED/u);
+  assert.match(html, /benchmark\/reference status is not screening or design authority/iu);
+});
+
+test('UI keeps Engineering Basis primary with separate Source Data and Data Blockers tabs', () => {
+  assert.match(inputViewSource, /\['engineering', 'Engineering Basis'\]/u);
+  assert.match(inputViewSource, /\['source', 'Source Data'\]/u);
+  assert.match(inputViewSource, /\['data-blockers', 'Data Blockers'\]/u);
+  assert.match(inputViewSource, /renderVibrationEngineeringBasis\(state\)/u);
   assert.match(inputViewSource, /<h3>Source Data<\/h3>/u);
-  assert.match(inputViewSource, /<section class="vi-card vi-input-table-card vi-source-table">/u);
+  assert.match(inputViewSource, /<h3>Data Blockers<\/h3>/u);
   assert.match(inputViewSource, /vibrationEngineeringBasisSourceCellId/u);
-  assert.match(basisViewSource, /data-vi-table-cell/u);
-  assert.match(basisViewSource, /href="#\$\{esc\(id\)\}"/u);
+  assert.match(basisViewSource, /data-vi-source-target/u);
   assert.doesNotMatch(`${inputViewSource}\n${basisViewSource}`, /calculateFit\s*\(|calculateEngineering(?:Batch)?\s*\(/u);
 });

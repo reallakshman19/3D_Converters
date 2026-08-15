@@ -1,3 +1,4 @@
+import { FIT_SOURCE_BASIS_EVIDENCE } from '../converters/vibration/fit/source-basis-evidence.js';
 import { vibrationIntegrityInputCellState } from './vibration-integrity-input-model.js';
 import {
   buildVibrationEngineeringBasisProjection,
@@ -24,7 +25,7 @@ function stateForRef(state, ref) {
 function sourceLink(ref, label = 'source') {
   const id = vibrationEngineeringBasisSourceCellId(ref);
   if (!id) return '<span class="vi-empty">—</span>';
-  return `<a class="vi-row-link vi-source-link" href="#${esc(id)}" title="Open exact Source Data cell">${esc(label)}</a>`;
+  return `<a class="vi-row-link vi-source-link" href="#${esc(id)}" data-vi-source-target="${esc(id)}" title="Open exact Source Data cell">${esc(label)}</a>`;
 }
 
 function fieldEditState(state, field) {
@@ -108,6 +109,17 @@ function emptyRows(colspan) {
   return `<tr><td colspan="${colspan}" class="vi-table-empty">No joined FIT assessment rows are available. Load topology, operating cases and enrichment, or load a controlled benchmark.</td></tr>`;
 }
 
+function methodBasis() {
+  const evidence = FIT_SOURCE_BASIS_EVIDENCE;
+  return `<div class="vi-import-facts vi-fit-method-basis">
+    <span>Method: <strong>${esc(evidence.method.edition)} · ${esc(evidence.method.technicalModule)}</strong></span>
+    <span>Official errata: <strong>${esc(evidence.officialErrata.status)}</strong></span>
+    <span>Product basis: <strong>${esc(evidence.projectBasis.productReferenceMethod)}</strong></span>
+    <span>Project/client adoption: <strong>${esc(evidence.projectBasis.externalProjectOrClientAdoption)}</strong></span>
+    <span>Authority: <strong>${esc(evidence.authority.qualificationState)}</strong></span>
+  </div>`;
+}
+
 export function renderVibrationEngineeringBasis(state) {
   const projection = buildVibrationEngineeringBasisProjection(state.tables);
   const rows = projection.rows.length
@@ -116,6 +128,8 @@ export function renderVibrationEngineeringBasis(state) {
   return `<section class="vi-card vi-engineering-basis-card">
     <div class="vi-section-head"><div><h3>Engineering basis</h3><p>Primary joined line/case editor projected directly from the authoritative working tables. Identity is source-controlled; editable process/FIT quantities write back to their exact Source Data cells.</p></div></div>
     <div class="vi-import-facts"><span>FIT assessment points: <strong>${projection.counts.assessmentPoints}</strong></span><span>Joined line/case rows: <strong>${projection.counts.rows}</strong></span><span>Projection: <strong>${esc(projection.schema)}</strong></span></div>
+    ${methodBasis()}
+    <div class="vi-banner warn"><strong>Method custody.</strong><span>EI T2.2 is the product FIT reference method. Official EI corrections to T2-5 and T2-8 do not alter this FIT chain. FIT is qualified for the declared bounded SCREENING scope only; design authority remains false, and each project/client must still confirm its adopted basis.</span></div>
     <div class="vi-banner warn"><strong>One backing state.</strong><span>This table is a projection, not a second data store. FIT geometry remains mechanism-specific; non-FIT inputs will be added only through their qualified mechanism modules.</span></div>
     <div class="vi-table-wrap vi-basis-table-wrap"><table class="vi-table vi-basis-table">
       <thead>

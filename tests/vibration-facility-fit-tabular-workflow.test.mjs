@@ -80,6 +80,8 @@ test('parsed exchange + CSV tables matches direct parsed-data facility workflow'
     exchangeIntegrityStatus: VIBRATION_TABLE_EXCHANGE_INTEGRITY.DECLARED_NOT_REVERIFIED,
     operatingCaseCount: 1,
     enrichmentCount: 5,
+    dataBlockerCount: 0,
+    activeDataBlockerCount: 0,
   });
   assert.equal(tabular.workflow.register.rows[0].status, 'CALCULATED_BENCHMARK');
 });
@@ -138,12 +140,14 @@ test('malformed operating-case or enrichment CSV fails before workflow calculati
   );
 });
 
-test('absent process/enrichment CSV inputs become empty arrays without defaults', () => {
+test('absent process/enrichment/data-blocker CSV inputs become empty arrays without defaults', () => {
   const tabular = runVibrationFacilityFitBenchmarkFromTables({
     topology: { format: 'PARSED_EXCHANGE', data: parsedExchange() },
   });
   assert.equal(tabular.imports.operatingCaseCount, 0);
   assert.equal(tabular.imports.enrichmentCount, 0);
+  assert.equal(tabular.imports.dataBlockerCount, 0);
+  assert.equal(tabular.imports.activeDataBlockerCount, 0);
   assert.equal(tabular.workflow.dataset.operatingCases.length, 0);
   assert.equal(tabular.workflow.dataset.enrichment.length, 0);
   assert.equal(tabular.workflow.plan.items.length, 0);
