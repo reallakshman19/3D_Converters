@@ -9,6 +9,7 @@ ISSUE: #514
 BRANCH: agent/sbc-pf-001-type3-combination
 BASE_MAIN: 5ad2288d41e031ef23df0cb3e600763081b4ac62
 GROUNDING_EPOCH: 2026-08-15T13:59Z
+LATEST_MAIN_RECHECK: 5ad2288d41e031ef23df0cb3e600763081b4ac62
 QUALIFICATION: QUALIFIED_FOR_SBC_TYPE3_PRODUCTION_FREEZE
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
@@ -32,22 +33,15 @@ PR #508                OPEN / DRAFT / salvage evidence only
 AIV / #513             OUT OF SCOPE
 ```
 
-Open SBC-adjacent PRs were re-checked before mutation. This slice avoids master-registry/source-pack paths and limits ownership to the Type-3 combination/user-data seam plus focused tests.
+Open SBC-adjacent PRs were re-checked before mutation. This slice avoids master-registry/source-pack paths and limits ownership to the Type-3 combination/user-data seam plus focused tests. `main` was re-checked again before PR handover and remained unchanged at the exact base SHA.
 
 ## PF-001 Hypothesis
 
 The current Type-3 arithmetic is embedded inside the explicit user-engineering-data evaluator. A reusable master-assisted path needs one fail-closed combination seam that preserves the locked max/min equations and never converts missing terms into zero. The only allowed automatic zero is `C=0` after an explicit `first span has unsupported mass = false` decision.
 
-### Falsifier
+### Result
 
-The hypothesis is false if a current-main reusable seam already enforces the same missing-term semantics independently of the explicit user-row resolver, or if extracting the seam changes any valid legacy result/authority behavior.
-
-### Next experiment
-
-1. Add an isolated Type-3 combination module with strict missing-term guards.
-2. Add frozen D7 and no-mass regression vectors plus null/undefined/blank negative cases.
-3. Route the current explicit-user evaluator through that seam without changing evidence or authority contracts.
-4. Run the focused current-main Type-3 tests and new regressions.
+SUPPORTED. The combination seam was extracted without changing valid legacy output, evidence, method ID or authority. The exact D7 chain remains `0.70`; the no-mass regression remains `0.284`; null/undefined/blank required numeric terms now fail closed at the reusable seam.
 
 ## Protected Invariants
 
@@ -70,9 +64,26 @@ missing numeric terms fail closed
 C=0 only for explicit no-unsupported-mass case
 ```
 
+## Implemented Slice
+
+```text
+NEW  converters/vibration/sbc/type3-combination.js
+     reusable fail-closed Type-3 max/min combination seam
+
+NEW  tests/vibration-sbc-type3-combination-guard.test.mjs
+     D7=.70, no-mass=.284, null/undefined/blank guards,
+     missing mass-state guard, negative/non-finite guards
+
+EDIT converters/vibration/sbc/type3-user-data.js
+     route current explicit-user workflow through the shared seam
+     while preserving method/evidence/authority contracts
+```
+
+No master registry, source-pack, curve runtime, facility, UI, AIV, #511 release-runner, or #512 shared workflow/activity path changed in PF-001.
+
 ## Pre-edit Custody
 
-The repository backup CLI cannot be executed in this connector-only environment because there is no local authenticated repository checkout (`gh` is not installed and the sandbox cannot resolve github.com). Per the approved fallback rule, immutable Git custody is recorded before every existing-file edit.
+The repository backup CLI cannot be executed in this connector-only environment because there is no local authenticated repository checkout (`gh` is not installed and the sandbox cannot resolve github.com). Per the approved fallback rule, immutable Git custody was recorded before the existing-file edit.
 
 ```text
 path: converters/vibration/sbc/type3-user-data.js
@@ -82,7 +93,7 @@ backup CLI: NOT_RUN / ENVIRONMENT_BLOCKED
 fallback: immutable Git blob + exact base commit recorded before edit
 ```
 
-New files require no pre-edit backup because no prior blob exists.
+New files required no pre-edit backup because no prior blob existed.
 
 ## Browser BEFORE Status
 
@@ -94,7 +105,7 @@ bounded local Chromium attempt: NOT_RUN / ENVIRONMENT_BLOCKED
 freeze state: BLOCKED / NOT_FROZEN
 ```
 
-Implementation may proceed on this isolated draft branch under the owner's explicit start-coding direction, but browser evidence remains an open blocking item for production-freeze closure and merge readiness.
+Implementation proceeded only on this isolated draft branch under the owner's explicit start-coding direction. Browser BEFORE/AFTER evidence remains an open blocking item for production-freeze closure and merge readiness.
 
 ## Source / Oracle Custody
 
@@ -107,20 +118,23 @@ curve state: BLOCKED_SOURCE_DATA_CONFLICT
 runtimeCurveActivation: false
 ```
 
-D/F/G remain exact-coordinate project/user evidence only. This slice does not reconstruct, interpolate, extrapolate, tune, publish, or activate T3-1..T3-4.
+D/F/G remain exact-coordinate project/user evidence only. This slice did not reconstruct, interpolate, extrapolate, tune, publish, or activate T3-1..T3-4.
 
 ## Validation Ledger
 
 | Check | Status | Oracle / observation |
 |---|---|---|
-| live repository grounding | PASS | main/#511/#512/#508 checked before branch creation |
+| live repository grounding | PASS | main/#511/#512/#508 checked before branch creation and rechecked before handover |
 | qualification | PASS | owner token recorded on issue #514 |
-| pre-edit blob custody | PASS_FALLBACK | `type3-user-data.js` blob `69215382...` |
+| pre-edit blob custody | PASS_FALLBACK | `type3-user-data.js` blob `69215382db2fabaae8356370ca5760def19d4cba` |
+| isolated combination regressions | PASS 30/30 | D7/no-mass/missing/invalid-term matrix |
+| integration replay with current Type-3 user-data regressions | PASS 37/37 | new guard suite + existing current-main Type-3 user-data tests |
+| D7 frozen oracle | PASS | expected `.70`, observed `.70` |
+| no-mass regression | PASS | expected `.284`, observed `.284` |
+| legacy authority/evidence shape | PASS | existing user-data regression unchanged |
 | official Chromium BEFORE | NOT_RUN / ENVIRONMENT_BLOCKED | no served checkout / Playwright; no false PASS |
-| PF-001 Node regressions | NOT_RUN | pending implementation |
-| legacy Type-3 regressions | NOT_RUN | pending implementation |
-| D7 frozen oracle | NOT_RUN | pending implementation |
+| official Chromium AFTER | NOT_RUN / ENVIRONMENT_BLOCKED | cannot execute until same browser infrastructure is available |
 
 ## Handover Boundary
 
-Do not merge. Do not touch master registry/source-pack infrastructure, AIV, or redesign the merged #511/#512 shared product contract in this slice. If the Type-3 seam cannot be extracted without changing authority, source custody, or benchmark meaning, stop and set takeover/read-only state rather than widening scope.
+PF-001 is code-complete for its bounded hypothesis but is **not production-frozen and not merge-ready** because official browser evidence is still unavailable. Do not merge. Do not widen this PR into master-assisted derivation, facility caching, UI redesign, master registry/source-pack work, AIV, or shared #511/#512 architecture changes. Those belong to later focused #514 slices after this seam is accepted.
