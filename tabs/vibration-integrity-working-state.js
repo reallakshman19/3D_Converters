@@ -101,6 +101,16 @@ export function revertVibrationWorkingCell(records, rowIndex, columnIndex) {
   return replaceRecord(records, record.rowId, { ...record, workingRow });
 }
 
+export function revertVibrationWorkingRow(records, rowIndex) {
+  const record = recordAtVisibleIndex(records, rowIndex);
+  if (record.added) return replaceRecord(records, record.rowId, { ...record, deleted: true });
+  return replaceRecord(records, record.rowId, {
+    ...record,
+    workingRow: record.originalRow,
+    deleted: false,
+  });
+}
+
 export function revertVibrationWorkingTable(records) {
   return Object.freeze(records
     .filter((record) => !record.added)
@@ -135,6 +145,18 @@ export function vibrationWorkingCellState(records, rowIndex, columnIndex) {
     originalValue,
     workingValue,
     edited: record.added || originalValue !== workingValue,
+  });
+}
+
+export function vibrationWorkingRowState(records, rowIndex, options = {}) {
+  const record = recordAtVisibleIndex(records, rowIndex);
+  const ignoredColumns = new Set(options.ignoredColumns ?? []);
+  return Object.freeze({
+    rowId: record.rowId,
+    added: record.added,
+    originalRow: record.originalRow,
+    workingRow: record.workingRow,
+    edited: record.added || !sameRow(record.originalRow, record.workingRow, ignoredColumns),
   });
 }
 

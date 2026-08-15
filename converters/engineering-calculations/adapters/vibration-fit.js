@@ -13,19 +13,21 @@ import {
   evaluateFitApplicability,
 } from '../../vibration/fit/index.js';
 
-const REASONS = Object.freeze([
-  'WORKBOOK_REFERENCE_ONLY',
-  'EI_WORKED_EXAMPLE_RECONCILED',
-  'EI_METHOD_INDEPENDENT_REVIEW_REQUIRED',
-  'QUALIFICATION_ISSUE_429_OPEN',
+const QUALIFICATION_REASONS = Object.freeze([
+  'CONTROLLED_EI_WORKED_EXAMPLE_PRODUCT_PATH_QUALIFICATION',
+  'OWNER_WORKED_EXAMPLE_BENCHMARK_SUFFICIENT_POLICY',
+  'BOUNDED_BRANCH_QUALIFICATION_EVIDENCE',
+  'QST_003_DIAMETER_GAP_FAIL_CLOSED',
+  'SCREENING_ONLY_DESIGN_AUTHORITY_FALSE',
 ]);
 
-function benchmarkQualification() {
+function qualification(mode) {
+  const screening = mode === 'screening';
   return composeEngineeringQualification({
-    method: 'BENCHMARK_ONLY',
-    data: 'BENCHMARK_ONLY',
+    method: screening ? 'SCREENING' : 'BENCHMARK_ONLY',
+    data: screening ? 'SCREENING' : 'BENCHMARK_ONLY',
     designAuthority: false,
-    reasons: REASONS,
+    reasons: QUALIFICATION_REASONS,
   });
 }
 
@@ -72,15 +74,31 @@ function validateInput(input) {
   };
 }
 
-function blockedByMode() {
+function blockedByMode(mode) {
   return {
     ok: false,
     errors: [createEngineeringCalculationError(
       'ENGINEERING_METHOD_NOT_QUALIFIED',
-      'FIT reference execution is available only in benchmark qualification mode.',
-      { requiredQualificationMode: 'benchmark', qualificationIssue: 429 },
+      'FIT execution requires explicit qualificationMode=benchmark or qualificationMode=screening.',
+      { allowedQualificationModes: ['benchmark', 'screening'], qualificationIssue: 429, received: mode ?? null },
     )],
-    qualification: benchmarkQualification(),
+    qualification: qualification('screening'),
+  };
+}
+
+function blockedScreening(result) {
+  return {
+    ok: false,
+    errors: [createEngineeringCalculationError(
+      'ENGINEERING_METHOD_NOT_QUALIFIED',
+      'FIT input is outside the qualified bounded screening evidence envelope.',
+      {
+        screeningCandidateStatus: result.screeningCandidate?.status ?? null,
+        reasons: result.screeningCandidate?.reasons ?? [],
+      },
+    )],
+    qualification: qualification('screening'),
+    applicability: { applicable: false, limitations: result.applicability?.limitations ?? [] },
   };
 }
 
@@ -123,18 +141,32 @@ function correlationIds(intermediates) {
   ].filter(Boolean);
 }
 
+function warning(mode) {
+  return mode === 'screening' ? {
+    code: 'SCREENING_ONLY_NOT_DESIGN_AUTHORITY',
+    message: 'FIT result is qualified for bounded screening only; design authority remains false and declared exclusions remain fail-closed.',
+  } : {
+    code: 'BENCHMARK_REFERENCE_ONLY',
+    message: 'FIT result is running in benchmark mode and does not carry screening or design authority.',
+  };
+}
+
 function calculate(input, runtime = {}) {
-  if (runtime.options?.qualificationMode !== 'benchmark') return blockedByMode();
+  const mode = runtime.options?.qualificationMode;
+  if (!['benchmark', 'screening'].includes(mode)) return blockedByMode(mode);
   const result = calculateFit(domainInput(input));
-  const qualification = benchmarkQualification();
+  const currentQualification = qualification(mode);
   if (!result.ok) {
     return {
       ok: false,
       errors: result.errors.map(engineeringError),
-      qualification,
+      qualification: currentQualification,
       applicability: { applicable: false, limitations: result.applicability?.limitations ?? [] },
       provenance: { sourceWorkbook: FIT_WORKBOOK_SOURCE },
     };
+  }
+  if (mode === 'screening' && result.screeningCandidate?.screeningAuthorized !== true) {
+    return blockedScreening(result);
   }
   const assessment = assessFit(result);
   const intermediates = fitIntermediates(result);
@@ -143,16 +175,21 @@ function calculate(input, runtime = {}) {
     outputs: outputValues(result, assessment),
     intermediates,
     checks: [],
-    assessment,
-    qualification,
+    assessment: {
+      ...assessment,
+      screeningAuthority: mode === 'screening' ? 'AUTHORIZED_BOUNDED' : 'NOT_AUTHORIZED',
+      designAuthority: false,
+    },
+    qualification: currentQualification,
     applicability: { applicable: true, limitations: result.applicability.limitations },
     provenance: {
       domainApi: 'calculateFit',
-      engineeringAuthority: FIT_REFERENCE_AUTHORITY,
+      engineeringAuthority: mode === 'screening' ? 'SCREENING' : FIT_REFERENCE_AUTHORITY,
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       inputResolution: result.evidence.inputResolution,
       qualificationCoverageId: result.qualificationCoverage.coverageId,
       screeningCandidateScopeId: result.screeningCandidate.scopeId,
+      qualificationBasis: result.qualificationCoverage.qualificationBasis ?? null,
     },
     evidence: {
       equationIds: result.evidence.equationIds,
@@ -163,10 +200,7 @@ function calculate(input, runtime = {}) {
       sourceWorkbook: FIT_WORKBOOK_SOURCE,
       domainResult: result,
     },
-    warnings: [{
-      code: 'BENCHMARK_REFERENCE_ONLY',
-      message: 'Result is reconciled to retained workbook and EI worked-example evidence but is not qualified screening or design authority.',
-    }],
+    warnings: [warning(mode)],
   };
 }
 
@@ -192,23 +226,23 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   contractVersion: ENGINEERING_CALCULATION_CONTRACT_VERSION,
   id: 'VIB.FIV.FLOW_TURBULENCE',
   family: 'VIB',
-  name: 'Flow-Induced Vibration Screening — FIT Workbook Reference',
+  name: 'Flow-Induced Vibration Screening — FIT',
   shortName: 'Flow-Induced Vibration Screening',
-  methodRevision: 'ei-aviff2-fit-reference-v2',
-  purpose: 'Execute source-traceable FIT reference equations for qualification and benchmark review only.',
+  methodRevision: 'ei-aviff2-fit-screening-v1',
+  purpose: 'Execute the controlled EI/FIT method for bounded screening with explicit evidence, exclusions and reproducibility.',
   authority: {
     calculationState: 'IMPLEMENTED',
-    qualificationState: 'BENCHMARK_ONLY',
+    qualificationState: 'SCREENING',
     codeCompliance: false,
   },
   applicability: {
-    description: 'Main-line FIT reference scope only.',
+    description: 'Bounded main-line FIT screening scope.',
     limitations: [
-      'Not qualified screening or design authority.',
-      'EI worked examples are qualification evidence but do not cover the complete method domain.',
-      'Independent EI/project-method review remains required under issue #429.',
-      'Manual OD support-family gap remains fail-closed.',
+      'Screening authority only; designAuthority=false.',
+      'Outside diameter 219.1 mm < Dext < 273 mm remains excluded and fail-closed.',
+      'Advanced screening requires the declared flexible-family, LOF and 1 Hz < fn <= 3 Hz criteria.',
       'Mixed aggregate/component multiphase data require an explicit resolution mode.',
+      'Project application outside the qualified bounded envelope requires separate engineering review.',
     ],
   },
   inputs,
@@ -223,10 +257,10 @@ export const VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION = Object.freeze({
   ui: {
     visible: true,
     executionModes: ['single', 'sandbox', 'batch'],
-    minimumQualificationToShow: 'BENCHMARK_ONLY',
-    requiredQualificationMode: 'benchmark',
+    minimumQualificationToShow: 'SCREENING',
+    requiredQualificationMode: 'screening',
     productSurface: 'VIBRATION_INTEGRITY_TABLE_WORKSPACE',
-    warning: 'Benchmark reference only — not screening/design authority.',
+    warning: 'SCREENING ONLY — bounded FIT scope; not design authority.',
   },
   validateInput,
   calculate,

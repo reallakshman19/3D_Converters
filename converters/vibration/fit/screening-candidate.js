@@ -8,16 +8,22 @@ function freezeResult(value) {
     screeningAuthorized: false,
     engineeringAuthority: 'NONE',
     domainCoverageEstablished: false,
-    pointCoverageOnly: true,
+    pointCoverageOnly: false,
+    candidateForEngineeringReview: false,
     ...value,
     reasons: Object.freeze([...(value.reasons ?? [])]),
   });
 }
 
+function evidenceReady(evidence) {
+  return evidence && evidence.noIndependentExample !== true
+    && evidence.evidenceStrength !== 'NONE'
+    && evidence.evidenceStrength !== 'RETAINED_PARITY_ONLY';
+}
+
 export function evaluateFitScreeningCandidateScope(calculation = {}) {
   if (!calculation?.ok) {
     return freezeResult({
-      candidateForEngineeringReview: false,
       status: 'CALCULATION_UNAVAILABLE',
       coverageId: null,
       continuationRequired: null,
@@ -26,71 +32,64 @@ export function evaluateFitScreeningCandidateScope(calculation = {}) {
   }
 
   const coverage = calculation.qualificationCoverage ?? evaluateFitQualificationCoverage(calculation);
-  if (coverage.screeningQualified !== false || coverage.engineeringAuthority !== 'NONE') {
+  if (coverage.screeningQualified !== true || coverage.engineeringAuthority !== 'SCREENING') {
     return freezeResult({
-      candidateForEngineeringReview: false,
-      status: 'COVERAGE_AUTHORITY_INVARIANT_VIOLATED',
+      status: 'SCREENING_QUALIFICATION_NOT_ESTABLISHED',
       coverageId: coverage.coverageId ?? null,
       continuationRequired: null,
-      reasons: ['EVIDENCE_COVERAGE_MUST_REMAIN_NON_AUTHORIZING'],
+      reasons: ['QUALIFIED_SCREENING_COVERAGE_REQUIRED'],
     });
   }
 
-  if (calculation.advanced) {
+  if (!evidenceReady(coverage.phasePath)) {
     return freezeResult({
-      candidateForEngineeringReview: false,
-      status: 'ADVANCED_PATH_NOT_EI_EXAMPLE_COVERED',
+      status: 'PHASE_PATH_NOT_QUALIFIED',
       coverageId: coverage.coverageId,
-      continuationRequired: true,
-      reasons: [
-        'ADVANCED_CORRELATION_EXECUTED',
-        'NO_EI_APPENDIX_D_ADVANCED_WORKED_EXAMPLE_POINT_IN_CURRENT_SET',
-      ],
+      continuationRequired: null,
+      reasons: [`PHASE_PATH_${coverage.phasePath?.path ?? 'UNKNOWN'}_NOT_QUALIFIED`],
     });
   }
 
-  if (!coverage.phasePath.eiPublishedExampleCoverage) {
+  if (!evidenceReady(coverage.standardCorrelation)) {
     return freezeResult({
-      candidateForEngineeringReview: false,
-      status: 'PHASE_PATH_NOT_EI_EXAMPLE_COVERED',
+      status: 'STANDARD_CORRELATION_NOT_QUALIFIED',
       coverageId: coverage.coverageId,
-      continuationRequired: calculation.standard?.lof >= 1,
-      reasons: [
-        `PHASE_PATH_${coverage.phasePath.path}_HAS_NO_EI_WORKED_EXAMPLE_POINT`,
-      ],
+      continuationRequired: null,
+      reasons: [`STANDARD_CORRELATION_${coverage.standardCorrelation?.supportCategory ?? 'UNKNOWN'}_NOT_QUALIFIED`],
     });
   }
 
-  if (!coverage.standardCorrelation.eiPublishedExampleCoverage) {
+  if (calculation.advanced && !coverage.advancedCorrelation?.independentHandBenchmarkCoverage) {
     return freezeResult({
-      candidateForEngineeringReview: false,
-      status: 'STANDARD_CORRELATION_NOT_EI_EXAMPLE_COVERED',
+      status: 'ADVANCED_CORRELATION_NOT_QUALIFIED',
       coverageId: coverage.coverageId,
-      continuationRequired: calculation.standard?.lof >= 1,
-      reasons: [
-        `STANDARD_CORRELATION_${coverage.standardCorrelation.supportCategory}_HAS_NO_EI_WORKED_EXAMPLE_POINT`,
-      ],
+      continuationRequired: null,
+      reasons: ['ADVANCED_CORRELATION_REQUIRES_INDEPENDENT_HAND_BENCHMARK_COVERAGE'],
     });
   }
 
-  const continuationRequired = calculation.standard.lof >= 1;
+  const continuationRequired = !calculation.advanced && calculation.standard.lof >= 1;
   return freezeResult({
-    candidateForEngineeringReview: true,
+    screeningAuthorized: true,
+    engineeringAuthority: 'SCREENING',
+    domainCoverageEstablished: true,
     status: continuationRequired
-      ? 'CANDIDATE_STANDARD_SLICE_FURTHER_ASSESSMENT_REQUIRED'
-      : 'CANDIDATE_STANDARD_SLICE',
+      ? 'QUALIFIED_BOUNDED_SCREENING_FURTHER_ASSESSMENT_REQUIRED'
+      : 'QUALIFIED_BOUNDED_SCREENING',
     coverageId: coverage.coverageId,
     continuationRequired,
     phasePath: coverage.phasePath.path,
     supportCategory: coverage.standardCorrelation.supportCategory,
     standardReferenceLof: calculation.standard.lof,
-    coverageBasis: 'EI_WORKED_EXAMPLE_METHOD_SLICE',
+    governingReferenceLof: calculation.governingReferenceLof,
+    coverageBasis: 'CONTROLLED_WORKED_EXAMPLE_PLUS_BRANCH_QUALIFICATION_EVIDENCE',
     reasons: [
-      'PHASE_PATH_HAS_EI_WORKED_EXAMPLE_POINT',
-      'STANDARD_CORRELATION_HAS_EI_WORKED_EXAMPLE_POINT',
-      'CANDIDATE_STATUS_IS_FOR_ENGINEERING_REVIEW_ONLY',
-      'WORKED_EXAMPLE_POINT_DOES_NOT_ESTABLISH_FULL_DOMAIN_COVERAGE',
+      'OWNER_WORKED_EXAMPLE_BENCHMARK_POLICY_APPLIED',
+      'PHASE_PATH_QUALIFIED',
+      'STANDARD_CORRELATION_QUALIFIED',
+      ...(calculation.advanced ? ['ADVANCED_CORRELATION_INDEPENDENTLY_QUALIFIED'] : []),
       ...(continuationRequired ? ['STANDARD_LOF_AT_OR_ABOVE_REFERENCE_THRESHOLD'] : []),
+      'SCREENING_ONLY_DESIGN_AUTHORITY_FALSE',
     ],
   });
 }

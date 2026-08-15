@@ -1,13 +1,17 @@
 import {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
-  FIT_FACILITY_SUPPORTED_PHASES,
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
+  normalizeFitFacilityQualificationMode,
 } from './fit-plan-contract.js';
 import {
   fitFacilityEnrichmentRow,
   fitFacilityEnrichmentTrace,
   fitFacilityOperatingCaseTrace,
 } from './fit-plan-context.js';
+import {
+  appendFitFacilityProcessRequest,
+  resolveFitFacilityProcessEvidence,
+} from './fit-plan-process.js';
 
 function quantityEvidence(row, field, missing, invalid) {
   if (!row) {
@@ -56,54 +60,30 @@ function resolveNaturalFrequency(index, canonicalId, caseId, invalid) {
   };
 }
 
-function processReadiness(operatingCase, missing, invalid) {
-  const phase = operatingCase.phase;
-  if (!phase) missing.push('phase');
-  else if (!FIT_FACILITY_SUPPORTED_PHASES.includes(phase)) invalid.push('phase');
-  if (!operatingCase.density) missing.push('density');
-  if (!operatingCase.massFlow && !operatingCase.velocity) missing.push('massFlowOrVelocity');
-  if (phase === 'GAS' && !operatingCase.dynamicViscosity) missing.push('dynamicViscosity');
-  return phase;
-}
-
 function requestFromEvidence({
-  operatingCase,
-  phase,
+  process,
   outsideDiameter,
   wallThickness,
   insideDiameter,
   maximumUnsupportedSpan,
   naturalFrequency,
+  qualificationMode,
 }) {
   const inputs = {
-    phase,
     outsideDiameter: outsideDiameter.value,
     wallThickness: wallThickness.value,
     maximumUnsupportedSpan: maximumUnsupportedSpan.value,
-    density: operatingCase.density.value,
   };
   const inputUnits = {
     outsideDiameter: outsideDiameter.unit,
     wallThickness: wallThickness.unit,
     maximumUnsupportedSpan: maximumUnsupportedSpan.unit,
-    density: operatingCase.density.unit,
   };
+  appendFitFacilityProcessRequest(process, inputs, inputUnits);
   if (insideDiameter) {
     inputs.insideDiameter = insideDiameter.value;
     inputUnits.insideDiameter = insideDiameter.unit;
   }
-  if (operatingCase.velocity) {
-    inputs.fluidVelocity = operatingCase.velocity.value;
-    inputUnits.fluidVelocity = operatingCase.velocity.unit;
-  } else if (operatingCase.massFlow) {
-    inputs.massFlow = operatingCase.massFlow.value;
-    inputUnits.massFlow = operatingCase.massFlow.unit;
-  }
-  if (phase === 'GAS') {
-    inputs.gasDynamicViscosity = operatingCase.dynamicViscosity.value;
-    inputUnits.gasDynamicViscosity = operatingCase.dynamicViscosity.unit;
-  }
-  if (phase === 'MULTIPHASE') inputs.multiphaseResolutionMode = 'AGGREGATE_EFFECTIVE';
   if (naturalFrequency) {
     inputs.naturalFrequency = naturalFrequency.value;
     inputUnits.naturalFrequency = naturalFrequency.unit;
@@ -112,7 +92,7 @@ function requestFromEvidence({
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
     inputs,
     inputUnits,
-    options: { qualificationMode: 'benchmark', includeEvidence: true },
+    options: { qualificationMode, includeEvidence: true },
   };
 }
 
@@ -155,7 +135,13 @@ export function buildFitFacilityNoCaseItem(point) {
   };
 }
 
-export function buildFitFacilityPlanItem(point, operatingCase, index) {
+export function buildFitFacilityPlanItem(
+  point,
+  operatingCase,
+  index,
+  qualificationModeInput = 'benchmark',
+) {
+  const qualificationMode = normalizeFitFacilityQualificationMode(qualificationModeInput);
   const missing = [];
   const invalid = [];
   const property = FIT_FACILITY_ENRICHMENT_PROPERTIES;
@@ -176,8 +162,14 @@ export function buildFitFacilityPlanItem(point, operatingCase, index) {
     'insideDiameter', invalid,
   );
   const naturalFrequency = resolveNaturalFrequency(index, point.canonicalId, operatingCase.caseId, invalid);
-  const phase = processReadiness(operatingCase, missing, invalid);
-  const ready = missing.length === 0 && invalid.length === 0;
+  const process = resolveFitFacilityProcessEvidence(
+    operatingCase, index, point.canonicalId, operatingCase.caseId,
+  );
+  missing.push(...process.missing);
+  invalid.push(...process.invalid);
+  const uniqueMissing = [...new Set(missing)].sort();
+  const uniqueInvalid = [...new Set(invalid)].sort();
+  const ready = uniqueMissing.length === 0 && uniqueInvalid.length === 0;
 
   return {
     status: ready ? 'READY' : 'NOT_READY',
@@ -185,23 +177,24 @@ export function buildFitFacilityPlanItem(point, operatingCase, index) {
     canonicalId: point.canonicalId,
     line: point.line,
     caseId: operatingCase.caseId,
-    missing: Object.freeze([...missing].sort()),
-    invalid: Object.freeze([...invalid].sort()),
+    missing: Object.freeze(uniqueMissing),
+    invalid: Object.freeze(uniqueInvalid),
     reasons: Object.freeze(ready
       ? ['EXPLICIT_FIT_ASSESSMENT_POINT', 'REQUIRED_INPUT_EVIDENCE_AVAILABLE']
       : ['FIT_REQUEST_INPUT_INCOMPLETE']),
     request: ready ? requestFromEvidence({
-      operatingCase,
-      phase,
+      process,
       outsideDiameter,
       wallThickness,
       insideDiameter,
       maximumUnsupportedSpan,
       naturalFrequency: naturalFrequency.row,
+      qualificationMode,
     }) : null,
     sourceTrace: Object.freeze({
       assessmentPoint: fitFacilityEnrichmentTrace(point.marker),
       operatingCase: fitFacilityOperatingCaseTrace(operatingCase),
+      process: process.trace,
       geometry: geometryTrace(index, point.canonicalId, naturalFrequency),
     }),
   };

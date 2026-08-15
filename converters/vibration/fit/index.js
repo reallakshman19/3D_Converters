@@ -30,6 +30,7 @@ export {
 export {
   FIT_QUALIFICATION_EVIDENCE_STRENGTH,
   FIT_QUALIFICATION_EVIDENCE_TYPES,
+  FIT_SCREENING_QUALIFICATION_BASIS,
   evaluateFitQualificationCoverage,
 } from './qualification-coverage.js';
 
@@ -37,6 +38,11 @@ export {
   FIT_SCREENING_CANDIDATE_SCOPE_ID,
   evaluateFitScreeningCandidateScope,
 } from './screening-candidate.js';
+
+export {
+  FIT_SOURCE_BASIS_EVIDENCE,
+  FIT_SOURCE_BASIS_EVIDENCE_SCHEMA,
+} from './source-basis-evidence.js';
 
 export { calculateFit } from './calculate.js';
 export { assessFit } from './assess.js';

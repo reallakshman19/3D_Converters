@@ -3,6 +3,7 @@ import {
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
   VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
   fitFacilityPlanError,
+  normalizeFitFacilityQualificationMode,
 } from './fit-plan-contract.js';
 import { buildFitFacilityPlanContext } from './fit-plan-context.js';
 import {
@@ -12,6 +13,7 @@ import {
 
 export {
   FIT_FACILITY_ENRICHMENT_PROPERTIES,
+  FIT_FACILITY_QUALIFICATION_MODES,
   VIBRATION_FACILITY_FIT_CALCULATION_ID,
   VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
 } from './fit-plan-contract.js';
@@ -39,7 +41,7 @@ function assertDataset(dataset) {
   return dataset;
 }
 
-function buildItems(context) {
+function buildItems(context, qualificationMode) {
   const items = [];
   for (const point of context.points) {
     const cases = point.line ? context.casesByLine.get(point.line) ?? [] : [];
@@ -48,7 +50,7 @@ function buildItems(context) {
       continue;
     }
     for (const operatingCase of cases) {
-      items.push(buildFitFacilityPlanItem(point, operatingCase, context.index));
+      items.push(buildFitFacilityPlanItem(point, operatingCase, context.index, qualificationMode));
     }
   }
   return items.sort((a, b) => String(a.line ?? '').localeCompare(String(b.line ?? ''))
@@ -69,19 +71,21 @@ function planWarnings(dataset, assessmentPointCount) {
   ];
 }
 
-export function buildVibrationFacilityFitPlan(datasetInput = {}) {
+export function buildVibrationFacilityFitPlan(datasetInput = {}, options = {}) {
   const dataset = assertDataset(datasetInput);
+  const qualificationMode = normalizeFitFacilityQualificationMode(options.qualificationMode ?? 'benchmark');
   const context = buildFitFacilityPlanContext(dataset);
-  const items = buildItems(context);
+  const items = buildItems(context, qualificationMode);
   const ready = items.filter((item) => item.status === 'READY').length;
+  const screening = qualificationMode === 'screening';
 
   return deepFreeze({
     schema: VIBRATION_FACILITY_FIT_PLAN_SCHEMA,
     authority: 'REQUEST_PLANNING_ONLY',
-    engineeringAuthority: 'NONE',
-    screeningAuthorized: false,
+    engineeringAuthority: screening ? 'SCREENING' : 'NONE',
+    screeningAuthorized: screening,
     calculationId: VIBRATION_FACILITY_FIT_CALCULATION_ID,
-    qualificationMode: 'benchmark',
+    qualificationMode,
     datasetSchema: dataset.schema,
     datasetExchangeIntegrityStatus: dataset.exchangeIntegrityStatus ?? null,
     items,

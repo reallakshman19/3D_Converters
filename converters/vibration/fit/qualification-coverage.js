@@ -15,6 +15,20 @@ export const FIT_QUALIFICATION_EVIDENCE_STRENGTH = Object.freeze({
   NONE: 'NONE',
 });
 
+export const FIT_SCREENING_QUALIFICATION_BASIS = Object.freeze({
+  schema: 'FitScreeningQualificationBasis.v1',
+  scopeId: 'FIT-SCREENING-CANDIDATE-V1',
+  policy: 'WORKED_EXAMPLE_BENCHMARK_SUFFICIENT',
+  productPathBenchmarkId: 'EI-D4-FIT-PRODUCED-WATER-10IN',
+  qualificationSource: Object.freeze({
+    repository: 'reallaksh19/Common',
+    commit: '7bfead910f6bca91b10748ead009e40f20c82219',
+    path: 'Energy-Institute-AVIFF---Worked-Examples.doc.docx',
+    gitBlob: 'ceee15ed5f7f320045d5f3979024e2e8664613f2',
+  }),
+  designAuthority: false,
+});
+
 const STANDARD_CORRELATION_EVIDENCE = Object.freeze({
   STIFF: Object.freeze({
     evidenceTypes: Object.freeze([EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.RETAINED_WORKBOOK_PARITY]),
@@ -30,8 +44,8 @@ const STANDARD_CORRELATION_EVIDENCE = Object.freeze({
     ]),
   }),
   MEDIUM_SMALL: Object.freeze({
-    evidenceTypes: Object.freeze([EVIDENCE.RETAINED_WORKBOOK_PARITY, EVIDENCE.NO_INDEPENDENT_EXAMPLE]),
-    evidenceIds: Object.freeze(['FIT-WORKBOOK-STANDARD-MEDIUM-SMALL']),
+    evidenceTypes: Object.freeze([EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY]),
+    evidenceIds: Object.freeze(['FIT-HAND-LIQ-MEDIUM-SMALL-008', 'FIT-WORKBOOK-STANDARD-MEDIUM-SMALL']),
   }),
   MEDIUM_LARGE: Object.freeze({
     evidenceTypes: Object.freeze([EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY]),
@@ -48,15 +62,9 @@ const STANDARD_CORRELATION_EVIDENCE = Object.freeze({
 });
 
 function evidenceStrength(evidenceTypes) {
-  if (evidenceTypes.includes(EVIDENCE.EI_WORKED_EXAMPLE_POINT)) {
-    return FIT_QUALIFICATION_EVIDENCE_STRENGTH.EI_PUBLISHED_EXAMPLE;
-  }
-  if (evidenceTypes.includes(EVIDENCE.INDEPENDENT_HAND_BENCHMARK)) {
-    return FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK;
-  }
-  if (evidenceTypes.includes(EVIDENCE.RETAINED_WORKBOOK_PARITY)) {
-    return FIT_QUALIFICATION_EVIDENCE_STRENGTH.RETAINED_PARITY_ONLY;
-  }
+  if (evidenceTypes.includes(EVIDENCE.EI_WORKED_EXAMPLE_POINT)) return FIT_QUALIFICATION_EVIDENCE_STRENGTH.EI_PUBLISHED_EXAMPLE;
+  if (evidenceTypes.includes(EVIDENCE.INDEPENDENT_HAND_BENCHMARK)) return FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK;
+  if (evidenceTypes.includes(EVIDENCE.RETAINED_WORKBOOK_PARITY)) return FIT_QUALIFICATION_EVIDENCE_STRENGTH.RETAINED_PARITY_ONLY;
   return FIT_QUALIFICATION_EVIDENCE_STRENGTH.NONE;
 }
 
@@ -77,131 +85,88 @@ function frozenEvidence({ evidenceTypes = [], evidenceIds = [], ...details }) {
 
 function phasePathEvidence(calculation) {
   const phase = calculation.input?.phase;
-  if (phase === 'GAS') {
-    return frozenEvidence({
-      phase,
-      path: 'SINGLE_PHASE_GAS',
-      evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.RETAINED_WORKBOOK_PARITY],
-      evidenceIds: [
-        'EI-D2-FIT-RECYCLE-SUCTION-6IN',
-        'EI-D2-FIT-RELIEF-UPSTREAM-4IN',
-        'EI-D2-FIT-RELIEF-DOWNSTREAM-6IN',
-        'WB-REF-001',
-      ],
-    });
-  }
-  if (phase === 'LIQUID') {
-    return frozenEvidence({
-      phase,
-      path: 'SINGLE_PHASE_LIQUID',
-      evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.INDEPENDENT_HAND_BENCHMARK],
-      evidenceIds: ['EI-D4-FIT-PRODUCED-WATER-10IN', 'FIT-HAND-LIQ-STIFF-001'],
-    });
-  }
-  if (phase === 'MULTIPHASE' && calculation.hydraulics?.resolutionMode === 'AGGREGATE_EFFECTIVE') {
-    return frozenEvidence({
-      phase,
-      path: 'MULTIPHASE_AGGREGATE_EFFECTIVE',
-      evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.EQUIVALENCE_TEST],
-      evidenceIds: ['EI-D4-FIT-SEPARATOR-INLET-20IN', 'FIT-D4-AGGREGATE-COMPONENT-EQUIVALENCE'],
-    });
-  }
-  if (phase === 'MULTIPHASE' && calculation.hydraulics?.resolutionMode === 'COMPONENT_DERIVED') {
-    return frozenEvidence({
-      phase,
-      path: 'MULTIPHASE_COMPONENT_DERIVED',
-      evidenceTypes: [EVIDENCE.RETAINED_WORKBOOK_PARITY, EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.EQUIVALENCE_TEST],
-      evidenceIds: ['WB-REF-003', 'FIT-HAND-MULTIPHASE-MEDIUM-003', 'FIT-D4-AGGREGATE-COMPONENT-EQUIVALENCE'],
-    });
-  }
-  return frozenEvidence({
-    phase: phase ?? null,
-    path: 'UNCLASSIFIED',
-    evidenceTypes: [EVIDENCE.NO_INDEPENDENT_EXAMPLE],
-    evidenceIds: [],
+  if (phase === 'GAS') return frozenEvidence({
+    phase, path: 'SINGLE_PHASE_GAS',
+    evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.RETAINED_WORKBOOK_PARITY],
+    evidenceIds: ['EI-D2-FIT-RECYCLE-SUCTION-6IN','EI-D2-FIT-RELIEF-UPSTREAM-4IN','EI-D2-FIT-RELIEF-DOWNSTREAM-6IN','WB-REF-001'],
   });
+  if (phase === 'LIQUID') return frozenEvidence({
+    phase, path: 'SINGLE_PHASE_LIQUID',
+    evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.INDEPENDENT_HAND_BENCHMARK],
+    evidenceIds: ['EI-D4-FIT-PRODUCED-WATER-10IN', 'FIT-HAND-LIQ-STIFF-001'],
+  });
+  if (phase === 'MULTIPHASE' && calculation.hydraulics?.resolutionMode === 'AGGREGATE_EFFECTIVE') return frozenEvidence({
+    phase, path: 'MULTIPHASE_AGGREGATE_EFFECTIVE',
+    evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.EQUIVALENCE_TEST],
+    evidenceIds: ['EI-D4-FIT-SEPARATOR-INLET-20IN', 'FIT-D4-AGGREGATE-COMPONENT-EQUIVALENCE'],
+  });
+  if (phase === 'MULTIPHASE' && calculation.hydraulics?.resolutionMode === 'COMPONENT_DERIVED') return frozenEvidence({
+    phase, path: 'MULTIPHASE_COMPONENT_DERIVED',
+    evidenceTypes: [EVIDENCE.RETAINED_WORKBOOK_PARITY, EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.EQUIVALENCE_TEST],
+    evidenceIds: ['WB-REF-003', 'FIT-HAND-MULTIPHASE-MEDIUM-003', 'FIT-D4-AGGREGATE-COMPONENT-EQUIVALENCE'],
+  });
+  return frozenEvidence({ phase: phase ?? null, path: 'UNCLASSIFIED', evidenceTypes: [EVIDENCE.NO_INDEPENDENT_EXAMPLE], evidenceIds: [] });
 }
 
 function standardCorrelationEvidence(calculation) {
   const supportCategory = calculation.standard?.correlation?.category ?? calculation.support?.category ?? null;
   const entry = STANDARD_CORRELATION_EVIDENCE[supportCategory];
-  if (!entry) {
-    return frozenEvidence({
-      supportCategory,
-      evidenceTypes: [EVIDENCE.NO_INDEPENDENT_EXAMPLE],
-      evidenceIds: [],
-    });
-  }
+  if (!entry) return frozenEvidence({ supportCategory, evidenceTypes: [EVIDENCE.NO_INDEPENDENT_EXAMPLE], evidenceIds: [] });
   return frozenEvidence({ supportCategory, ...entry });
 }
 
 function advancedCorrelationEvidence(calculation) {
   const supportCategory = calculation.advanced?.correlation?.category ?? calculation.support?.category ?? null;
-  if (!calculation.advanced) {
-    return frozenEvidence({
-      used: false,
-      supportCategory,
-      evidenceTypes: [],
-      evidenceIds: [],
-    });
-  }
-  if (supportCategory === 'FLEXIBLE_SMALL') {
-    return frozenEvidence({
-      used: true,
-      supportCategory,
-      evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY],
-      evidenceIds: [
-        'FIT-HAND-FLEX-SMALL-LOF-105-FN2',
-        'FIT-HAND-FLEX-SMALL-LOF-105-FN3',
-        'FIT-WORKBOOK-ADVANCED-FLEXIBLE-SMALL',
-      ],
-    });
-  }
+  if (!calculation.advanced) return frozenEvidence({ used: false, supportCategory, evidenceTypes: [], evidenceIds: [] });
+  if (supportCategory === 'FLEXIBLE_SMALL') return frozenEvidence({
+    used: true, supportCategory,
+    evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY],
+    evidenceIds: ['FIT-HAND-FLEX-SMALL-LOF-105-FN2','FIT-HAND-FLEX-SMALL-LOF-105-FN3','FIT-WORKBOOK-ADVANCED-FLEXIBLE-SMALL'],
+  });
+  if (supportCategory === 'FLEXIBLE_LARGE') return frozenEvidence({
+    used: true, supportCategory,
+    evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK, EVIDENCE.RETAINED_WORKBOOK_PARITY],
+    evidenceIds: ['FIT-HAND-FLEX-LARGE-LOF-120-FN2-009','FIT-WORKBOOK-ADVANCED-FLEXIBLE-LARGE'],
+  });
+  return frozenEvidence({ used: true, supportCategory, evidenceTypes: [EVIDENCE.NO_INDEPENDENT_EXAMPLE], evidenceIds: [] });
+}
+
+function advancedReferenceBandEvidence(calculation) {
+  const supportCategory = calculation.advanced?.correlation?.category ?? calculation.support?.category ?? null;
+  if (supportCategory === 'FLEXIBLE_LARGE') return frozenEvidence({
+    evaluatedPath: 'ADVANCED_REFINED_LOF', supportCategory,
+    evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK], evidenceIds: ['FIT-HAND-FLEX-LARGE-LOF-120-FN2-009'],
+  });
   return frozenEvidence({
-    used: true,
-    supportCategory,
-    evidenceTypes: [EVIDENCE.RETAINED_WORKBOOK_PARITY, EVIDENCE.NO_INDEPENDENT_EXAMPLE],
-    evidenceIds: ['FIT-WORKBOOK-ADVANCED-FLEXIBLE-LARGE'],
+    evaluatedPath: 'ADVANCED_REFINED_LOF', supportCategory,
+    evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK], evidenceIds: ['FIT-HAND-FLEX-SMALL-LOF-105-FN2', 'FIT-HAND-FLEX-SMALL-LOF-105-FN3'],
   });
 }
 
 function referenceBandEvidence(calculation) {
-  if (calculation.advanced) {
-    return frozenEvidence({
-      evaluatedPath: 'ADVANCED_REFINED_LOF',
-      evidenceTypes: [EVIDENCE.INDEPENDENT_HAND_BENCHMARK],
-      evidenceIds: ['FIT-HAND-FLEX-SMALL-LOF-105-FN2', 'FIT-HAND-FLEX-SMALL-LOF-105-FN3'],
-    });
-  }
+  if (calculation.advanced) return advancedReferenceBandEvidence(calculation);
   return frozenEvidence({
     evaluatedPath: 'STANDARD_LOF',
     evidenceTypes: [EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.INDEPENDENT_HAND_BENCHMARK],
-    evidenceIds: [
-      'EI-D2-FIT-RECYCLE-SUCTION-6IN',
-      'EI-D2-FIT-RELIEF-UPSTREAM-4IN',
-      'EI-D2-FIT-RELIEF-DOWNSTREAM-6IN',
-      'EI-D4-FIT-SEPARATOR-INLET-20IN',
-      'EI-D4-FIT-PRODUCED-WATER-10IN',
-      'FIT-HAND-FLEX-SMALL-LOF-095',
-      'FIT-HAND-FLEX-SMALL-LOF-100-FN1',
-    ],
+    evidenceIds: ['EI-D2-FIT-RECYCLE-SUCTION-6IN','EI-D2-FIT-RELIEF-UPSTREAM-4IN','EI-D2-FIT-RELIEF-DOWNSTREAM-6IN','EI-D4-FIT-SEPARATOR-INLET-20IN','EI-D4-FIT-PRODUCED-WATER-10IN','FIT-HAND-FLEX-SMALL-LOF-095','FIT-HAND-FLEX-SMALL-LOF-100-FN1'],
   });
 }
 
 export function evaluateFitQualificationCoverage(calculation = {}) {
   return Object.freeze({
     coverageId: 'FIT-REFERENCE-COVERAGE-V1',
-    screeningQualified: false,
-    engineeringAuthority: 'NONE',
+    screeningQualified: true,
+    engineeringAuthority: 'SCREENING',
+    qualificationBasis: FIT_SCREENING_QUALIFICATION_BASIS,
     phasePath: phasePathEvidence(calculation),
     standardCorrelation: standardCorrelationEvidence(calculation),
     advancedCorrelation: advancedCorrelationEvidence(calculation),
     referenceBand: referenceBandEvidence(calculation),
     limitations: Object.freeze([
-      'EVIDENCE_COVERAGE_DOES_NOT_GRANT_ENGINEERING_AUTHORITY',
-      'EI_WORKED_EXAMPLES_COVER_ONLY_SPECIFIC_METHOD_POINTS',
-      'ADVANCED_CORRELATIONS_HAVE_NO_EI_APPENDIX_D_WORKED_EXAMPLE_POINT_IN_THIS_QUALIFICATION_SET',
+      'SCREENING_AUTHORITY_ONLY_DESIGN_AUTHORITY_FALSE',
       'MANUAL_DIAMETER_GAP_219_1_TO_273_MM_REMAINS_FAIL_CLOSED',
+      'ADVANCED_CORRELATIONS_QUALIFIED_BY_INDEPENDENT_HAND_BENCHMARKS_NOT_EI_APPENDIX_D_POINTS',
+      'PROJECT_APPLICATION_OUTSIDE_THE_DECLARED_BOUNDED_SCOPE_REMAINS_USER_REVIEW_RESPONSIBILITY',
     ]),
   });
 }

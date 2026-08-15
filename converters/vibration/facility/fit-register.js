@@ -33,8 +33,12 @@ function assertFacilityResult(result) {
   return result;
 }
 
+function calculatedStatus(status) {
+  return status === 'CALCULATED_BENCHMARK' || status === 'CALCULATED_SCREENING';
+}
+
 function completenessStatus(status) {
-  if (status === 'CALCULATED_BENCHMARK') return 'CALCULATED';
+  if (calculatedStatus(status)) return 'CALCULATED';
   if (status === 'NOT_ASSESSED_DATA_INCOMPLETE') return 'DATA_INCOMPLETE';
   if (status === 'CALCULATION_FAILED') return 'CALCULATION_FAILED';
   return 'UNKNOWN';
@@ -81,7 +85,7 @@ function nonCalculatedProjection() {
 }
 
 function projectRow(row, index, facilityResult) {
-  const calculated = row.status === 'CALCULATED_BENCHMARK';
+  const calculated = calculatedStatus(row.status);
   const projection = calculated ? calculatedProjection(row) : nonCalculatedProjection();
   return {
     sourceRowIndex: index,
@@ -110,10 +114,24 @@ function countReferenceBands(rows) {
   return counts;
 }
 
+function authorityWarning(result, calculatedRows) {
+  if (!calculatedRows) return [];
+  if (result.qualificationMode === 'screening') {
+    return [{
+      code: 'REGISTER_VALUES_ARE_SCREENING_ONLY',
+      message: 'Calculated FIT values are qualified for bounded screening only; design authority remains false.',
+    }];
+  }
+  return [{
+    code: 'REGISTER_VALUES_ARE_BENCHMARK_REFERENCE_ONLY',
+    message: 'Calculated FIT values in this register are benchmark/reference results, not authorized screening/design results.',
+  }];
+}
+
 export function buildVibrationFacilityFitRegister(resultInput = {}) {
   const result = assertFacilityResult(resultInput);
   const rows = result.rows.map((row, index) => projectRow(row, index, result));
-  const calculatedRows = rows.filter((row) => row.status === 'CALCULATED_BENCHMARK').length;
+  const calculatedRows = rows.filter((row) => calculatedStatus(row.status)).length;
   const notAssessedRows = rows.filter((row) => row.status === 'NOT_ASSESSED_DATA_INCOMPLETE').length;
   const failedRows = rows.filter((row) => row.status === 'CALCULATION_FAILED').length;
 
@@ -134,6 +152,7 @@ export function buildVibrationFacilityFitRegister(resultInput = {}) {
       referenceBandCounts: countReferenceBands(rows),
       candidateForEngineeringReviewCount: rows.filter((row) => row.candidateForEngineeringReview).length,
       benchmarkOnlyCount: rows.filter((row) => row.qualificationState === 'BENCHMARK_ONLY').length,
+      screeningCount: rows.filter((row) => row.qualificationState === 'SCREENING').length,
     },
     warnings: Object.freeze([
       ...(notAssessedRows ? [{
@@ -143,13 +162,10 @@ export function buildVibrationFacilityFitRegister(resultInput = {}) {
       }] : []),
       ...(failedRows ? [{
         code: 'REGISTER_HAS_CALCULATION_FAILURES',
-        message: 'Facility register contains rows whose central FIT benchmark calculation failed.',
+        message: 'Facility register contains rows whose central FIT calculation failed.',
         details: { count: failedRows },
       }] : []),
-      ...(calculatedRows ? [{
-        code: 'REGISTER_VALUES_ARE_BENCHMARK_REFERENCE_ONLY',
-        message: 'Calculated FIT values in this register are benchmark/reference results, not authorized screening/design results.',
-      }] : []),
+      ...authorityWarning(result, calculatedRows),
     ]),
   });
 }

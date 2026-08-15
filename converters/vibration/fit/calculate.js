@@ -169,20 +169,21 @@ export function calculateFit(input = {}) {
     screeningCandidate,
     authority: FIT_REFERENCE_AUTHORITY,
     qualification: Object.freeze({
-      method: 'BENCHMARK_ONLY',
-      data: 'BENCHMARK_ONLY',
+      method: 'SCREENING',
+      data: 'SCREENING',
       designAuthority: false,
       reasons: Object.freeze([
-        'WORKBOOK_REFERENCE_ONLY',
-        'EI_METHOD_INDEPENDENT_REVIEW_REQUIRED',
-        'ISS_009_CACHED_ADVANCED_RANGE_INCONSISTENCY',
-        'ISS_010_CACHED_SUPPORT_SELECTOR_INCONSISTENCY',
+        'CONTROLLED_EI_WORKED_EXAMPLE_PRODUCT_PATH_QUALIFICATION',
+        'OWNER_WORKED_EXAMPLE_BENCHMARK_SUFFICIENT_POLICY',
+        'BOUNDED_BRANCH_QUALIFICATION_EVIDENCE',
+        'QST_003_DIAMETER_GAP_FAIL_CLOSED',
       ]),
     }),
     provenance: Object.freeze({
       source: FIT_WORKBOOK_SOURCE,
       qualificationCoverageId: qualificationCoverage.coverageId,
       screeningCandidateScopeId: screeningCandidate.scopeId,
+      qualificationBasis: qualificationCoverage.qualificationBasis ?? null,
     }),
     evidence: Object.freeze({
       equationIds: formulaEvidence(Boolean(advanced)),

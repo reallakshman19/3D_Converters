@@ -24,12 +24,14 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-fit-workbook-reference.test.mjs',
       'tests/vibration-fit-ei-worked-examples.test.mjs',
       'tests/vibration-fit-independent-benchmarks.test.mjs',
+      'tests/vibration-fit-central-api-qualification.test.mjs',
       'tests/vibration-fit-physical-context.test.mjs',
       'tests/vibration-fit-qualification-coverage.test.mjs',
       'tests/vibration-fit-screening-candidate.test.mjs',
       'tests/vibration-fit-ui-benchmarks.test.mjs',
       'tests/vibration-fit-correlation-trace.test.mjs',
       'tests/vibration-fit-mechanism-contract.test.mjs',
+      'tests/vibration-fit-d4-product-path-validation.test.mjs',
     ]),
   }),
   Object.freeze({
@@ -47,6 +49,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-facility-fit-register.test.mjs',
       'tests/vibration-facility-fit-workflow.test.mjs',
       'tests/vibration-facility-fit-tabular-workflow.test.mjs',
+      'tests/vibration-fit-data-blockers.test.mjs',
     ]),
   }),
   Object.freeze({
@@ -59,6 +62,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-integrity-tab-static.test.mjs',
       'tests/vibration-integrity-working-state.test.mjs',
       'tests/vibration-integrity-run-snapshot.test.mjs',
+      'tests/vibration-integrity-run-evidence.test.mjs',
       'tests/vibration-integrity-engineering-basis.test.mjs',
       'tests/vibration-integrity-fit-mechanism.test.mjs',
       'tests/vibration-mechanism-contract.test.mjs',
@@ -68,6 +72,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-integrity-editable-input-static.test.mjs',
       'tests/vibration-integrity-mechanism-matrix.test.mjs',
       'tests/vibration-module-boundaries.test.mjs',
+      'tests/vibration-user-engineering-data.test.mjs',
       'tests/vibration-fit-release-gate.test.mjs',
     ]),
   }),
@@ -79,6 +84,8 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-deadleg-ei-worked-examples.test.mjs',
       'tests/vibration-transient-ei-worked-examples.test.mjs',
       'tests/vibration-multimechanism-validation-record.test.mjs',
+      'tests/vibration-sbc-type3-user-data.test.mjs',
+      'tests/vibration-sbc-type3-user-data-table-validation.test.mjs',
     ]),
   }),
 ]);
@@ -89,23 +96,17 @@ export function listVibrationFitReleaseTests() {
 
 async function assertReleaseManifest() {
   const tests = listVibrationFitReleaseTests();
-  if (new Set(tests).size !== tests.length) {
-    throw new Error('FIT/VIB release manifest contains duplicate test paths.');
-  }
+  if (new Set(tests).size !== tests.length) throw new Error('FIT/VIB release manifest contains duplicate test paths.');
   await Promise.all(tests.map((testPath) => access(resolve(ROOT, testPath))));
 }
 
 function runGroup(group) {
   console.log(`\n[vibration-fit-release] ${group.label}`);
   const result = spawnSync(process.execPath, ['--test', ...group.tests], {
-    cwd: ROOT,
-    stdio: 'inherit',
-    shell: false,
+    cwd: ROOT, stdio: 'inherit', shell: false,
   });
   if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(`${group.id} failed with exit code ${result.status}.`);
-  }
+  if (result.status !== 0) throw new Error(`${group.id} failed with exit code ${result.status}.`);
 }
 
 export async function verifyVibrationFitRelease() {
