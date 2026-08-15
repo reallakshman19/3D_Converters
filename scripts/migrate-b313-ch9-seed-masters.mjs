@@ -54,14 +54,14 @@ function readCsv(sourceDir, filename) {
   return parseChapterIxSeedCsv(fs.readFileSync(path.join(sourceDir, filename), 'utf8'));
 }
 
-export function migrateChapterIxSeedDirectory(sourceDir, outputFile) {
+export function migrateChapterIxSeedDirectory(sourceDir, outputFile, options = {}) {
   const absoluteSource = path.resolve(sourceDir);
   const payload = Object.fromEntries(Object.entries(SOURCE_FILES).map(([key, filename]) => [
     key,
     readCsv(absoluteSource, filename),
   ]));
   const migrated = migrateLegacyChapterIxMasters({
-    sourceRef: absoluteSource,
+    sourceRef: options.sourceRef || absoluteSource,
     ...payload,
   });
   const validation = validateChapterIxMasterStore(migrated.store);
@@ -73,7 +73,7 @@ export function migrateChapterIxSeedDirectory(sourceDir, outputFile) {
   const absoluteOutput = path.resolve(outputFile);
   fs.mkdirSync(path.dirname(absoluteOutput), { recursive: true });
   fs.writeFileSync(absoluteOutput, `${JSON.stringify(migrated.store, null, 2)}\n`);
-  return { ...migrated, outputFile: absoluteOutput };
+  return { ...migrated, outputFile: absoluteOutput, sourceDirectory: absoluteSource };
 }
 
 const invokedAsScript = process.argv[1]
@@ -82,16 +82,18 @@ const invokedAsScript = process.argv[1]
 if (invokedAsScript) {
   const sourceDir = process.argv[2];
   const outputFile = process.argv[3];
+  const sourceRef = process.argv[4];
   if (!sourceDir || !outputFile) {
-    console.error('Usage: node scripts/migrate-b313-ch9-seed-masters.mjs <High-Pr-dir> <output.json>');
+    console.error('Usage: node scripts/migrate-b313-ch9-seed-masters.mjs <High-Pr-dir> <output.json> [immutable-source-ref]');
     process.exitCode = 1;
   } else {
     try {
-      const result = migrateChapterIxSeedDirectory(sourceDir, outputFile);
+      const result = migrateChapterIxSeedDirectory(sourceDir, outputFile, { sourceRef });
       process.stdout.write(`${JSON.stringify({
         ok: result.ok,
         summary: result.summary,
         outputFile: result.outputFile,
+        sourceRef: result.store.metadata.sourceRef,
         canUseForDesignAuthority: result.canUseForDesignAuthority,
       }, null, 2)}\n`);
     } catch (error) {
