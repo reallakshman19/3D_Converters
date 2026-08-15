@@ -32,4 +32,4 @@ export {
   SBC_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
   buildSbcVibrationMechanismAssessmentItem,
   buildSbcVibrationMechanismAssessmentSet,
-} from './sbc.js';
+} from './sbc.js?v=20260815-sbc-pf05-cache-1';
