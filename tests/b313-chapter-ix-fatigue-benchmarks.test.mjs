@@ -55,3 +55,20 @@ test('HP-CRV-005 independent Miner benchmark', () => {
   close(result.contributions[1].usage, 0.1);
   close(result.cumulativeUsage, 0.2);
 });
+
+test('HP-AN-004 zero-range analytical benchmark has zero fatigue damage', () => {
+  const cycle = calculateChapterIxPressureCycleStress({
+    outsideDiameterMm: 88.9,
+    effectiveWallMm: 6.06,
+    fromPressureMpa: 15,
+    toPressureMpa: 15,
+  });
+  assert.equal(cycle.ok, true, JSON.stringify(cycle));
+  assert.equal(cycle.stressIntensityRangeMpa, 0);
+  assert.equal(cycle.alternatingStressIntensityMpa, 0);
+  const damage = calculateChapterIxCumulativeDamage({
+    cycles: [{ cycleId: 'HP-AN-004', appliedCycles: 25000, permissibleCycles: null, zeroDamage: true }],
+  });
+  assert.equal(damage.ok, true, JSON.stringify(damage));
+  assert.equal(damage.cumulativeUsage, 0);
+});
