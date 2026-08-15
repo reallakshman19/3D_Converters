@@ -8,6 +8,8 @@ import {
   parseChapterIxSeedCsv,
 } from '../scripts/migrate-b313-ch9-seed-masters.mjs';
 
+const PINNED_SOURCE = 'reallaksh19/Advanced_Analysis@951798864e6f557691d0d4388368b7805e425f0d/docs/High Pr';
+
 test('seed migration parser preserves quoted CSV and writes quarantined canonical store', () => {
   const parsed = parseChapterIxSeedCsv('a,b\n1,"two,three"\n');
   assert.deepEqual(parsed, [{ a: '1', b: 'two,three' }]);
@@ -23,11 +25,13 @@ test('seed migration parser preserves quoted CSV and writes quarantined canonica
     fs.writeFileSync(path.join(dir, name), content);
   }
   const output = path.join(dir, 'out', 'store.json');
-  const migrated = migrateChapterIxSeedDirectory(dir, output);
+  const migrated = migrateChapterIxSeedDirectory(dir, output, { sourceRef: PINNED_SOURCE });
   assert.equal(migrated.ok, true);
   assert.equal(migrated.store.quarantine.length, 2);
   assert.equal(fs.existsSync(output), true);
   const written = JSON.parse(fs.readFileSync(output, 'utf8'));
   assert.equal(written.canUseForDesignAuthority, false);
   assert.equal(written.metadata.migrationState, 'SOURCE_PENDING');
+  assert.equal(written.metadata.sourceRef, PINNED_SOURCE);
+  assert.notEqual(written.metadata.sourceRef, migrated.sourceDirectory);
 });
