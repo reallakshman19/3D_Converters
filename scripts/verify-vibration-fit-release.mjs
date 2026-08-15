@@ -31,6 +31,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-fit-ui-benchmarks.test.mjs',
       'tests/vibration-fit-correlation-trace.test.mjs',
       'tests/vibration-fit-mechanism-contract.test.mjs',
+      'tests/vibration-fit-d4-product-path-validation.test.mjs',
     ]),
   }),
   Object.freeze({
