@@ -11,6 +11,7 @@ function state(overrides = {}) {
     mechanicalSourceKeysByScope: {
       [SCOPE]: ['CENTRIFUGAL_COMPRESSOR', 'ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW'],
     },
+    mechanicalNotApplicableByScope: {},
     mechanicalCandidateResultsByScope: {},
     mechanicalPendingByScope: {},
     ...overrides,
@@ -22,9 +23,20 @@ test('Mechanical panel exposes exact equipment selection and explicit candidate 
   assert.match(html, /Mechanical excitation · EI AVIFF T2\.3/u);
   assert.match(html, /data-vi-mechanical-source="CENTRIFUGAL_COMPRESSOR"/u);
   assert.match(html, /data-vi-mechanical-source="ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW"/u);
+  assert.match(html, /data-vi-mechanical-not-applicable/u);
   assert.match(html, /Candidate master path/u);
   assert.match(html, /cannot replace authorized FIT screening/u);
   assert.match(html, /data-vi-mechanical-evaluate/u);
+});
+
+test('explicit not-applicable state disables direct equipment evaluation', () => {
+  const html = renderMechanicalFacilityPanel(state({
+    mechanicalSourceKeysByScope: { [SCOPE]: [] },
+    mechanicalNotApplicableByScope: { [SCOPE]: true },
+  }));
+  assert.match(html, /data-vi-mechanical-not-applicable checked/u);
+  assert.match(html, /NOT APPLICABLE/u);
+  assert.match(html, /data-vi-mechanical-evaluate disabled/u);
 });
 
 test('shared-support rule is visible but disabled until adjacent-line LOF is modeled', () => {
@@ -52,10 +64,12 @@ test('calculated panel publishes candidate LOF and governing source without scre
   assert.doesNotMatch(html, /AUTHORIZED_SCREENING/u);
 });
 
-test('screening view routes Mechanical scope and candidate cache into the matrix', async () => {
+test('screening view routes Mechanical applicability and cache state into the matrix', async () => {
   const source = await readFile(new URL('../tabs/vibration-integrity-view.js', import.meta.url), 'utf8');
   assert.match(source, /data-vi-mechanical-facility-scope/u);
   assert.match(source, /mechanicalSourceKeysByScope/u);
+  assert.match(source, /mechanicalNotApplicableByScope/u);
   assert.match(source, /mechanicalCandidateResultsByScope/u);
   assert.match(source, /CANDIDATE MASTER/u);
+  assert.match(source, /compact\) return button/u);
 });
