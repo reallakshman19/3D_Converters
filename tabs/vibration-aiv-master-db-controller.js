@@ -1,7 +1,8 @@
-import { parseVibrationTableExchangeXlsx } from '../converters/vibration/exchange/parse.js';
 import { loadBundledAivMasterDatabase } from '../converters/vibration/aiv/aiv-master-db-bundled.js';
 import { resolveAivTablesFromMasterDb } from '../converters/vibration/aiv/aiv-master-db-resolver.js';
+import { parseVibrationTableExchangeXlsx } from '../converters/vibration/exchange/parse.js';
 import { createAivInputTable } from './vibration-aiv-input-model.js';
+import { touchAivInputRevision } from './vibration-aiv-state-revision.js';
 
 function error(code, message) {
   const value = new Error(message);
@@ -46,6 +47,19 @@ function filteredResolution(resolution, predicate) {
   if (!resolution) return null;
   const resolutions = resolution.resolutions.filter((item) => !predicate(item));
   return Object.freeze({ ...resolution, resolutions: Object.freeze(resolutions), resolvedFieldCount: resolutions.length });
+}
+function promoteDiscoveredAssessment(resolution, table, rowIndex) {
+  if (!resolution || table?.kind !== 'assessments') return resolution;
+  const idIndex = tableColumnIndex(table, 'Assessment Canonical ID');
+  const id = idIndex < 0 ? '' : String(table.rows?.[rowIndex]?.[idIndex] ?? '').trim();
+  const discovered = resolution.discoveredAssessmentCanonicalIds ?? [];
+  if (!id || !discovered.includes(id)) return resolution;
+  const retained = discovered.filter((item) => item !== id);
+  return Object.freeze({
+    ...resolution,
+    discoveredAssessmentCanonicalIds: Object.freeze(retained),
+    discoveredAssessmentCandidateCount: retained.length,
+  });
 }
 function shiftedAfterDelete(resolution, tableKind, rowIndex, deletedAssessmentId) {
   if (!resolution) return null;
@@ -111,6 +125,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
       relationships: tableFromResolution(resolution.tables.relationships),
     };
     state.masterResolution = resolution;
+    touchAivInputRevision(state);
     clearReadiness();
     return true;
   }
@@ -150,6 +165,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     const table = state.tables?.[tableKind];
     const column = table?.header?.[columnIndex];
     if (!column || !state.masterResolution) return table;
+    state.masterResolution = promoteDiscoveredAssessment(state.masterResolution, table, rowIndex);
     const invalidatesRow = (tableKind === 'sources' && column === 'Source Canonical ID')
       || (tableKind === 'assessments' && ['Assessment Canonical ID', 'Assessment Type'].includes(column));
     if (!invalidatesRow) {
