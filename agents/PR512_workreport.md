@@ -5,38 +5,131 @@
 ```text
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: RECOVERABLE
-TAKEOVER_AUTHORITY: WRITE_ALLOWED
 WORK_INTENT: IMPLEMENT / VALIDATE / HANDOVER
 CRITICALITY: ENGINEERING_CRITICAL
 PR: #512
 BRANCH: agent/vibration-product-freeze-stage5
 BASE: main
-BASE_SHA_AT_START: a49085cde69ef71518c0d6315a615477887d7b4e
-ENGINEERING_HEAD_BEFORE_REPORT_SYNC: ff79a13ee184d64ea0bbc7ff81a5ed6fa7d4eb63
-OWNER_DIRECTION: prioritize UI/workflow/logging freeze; defer minuscule numerical accuracy work
-MERGE_AUTHORITY: NOT_GRANTED_FOR_PR512
-EXACT_NEXT_ACTION: leave PR draft; next change should focus on product-state persistence / round-trip rather than numerical refinement
+BASE_SHA: a49085cde69ef71518c0d6315a615477887d7b4e
+REPORT_BASIS_HEAD: 950edac6319f5fe82407f850c970d854537e0a6e
+GROUNDING_EPOCH: 2026-08-15T10:21Z
+TAKEOVER_AUTHORITY: WRITE_ALLOWED
+RECOVERY_DECISION: SALVAGE_PARTIAL / CONTINUE
+APPENDIX_A_STATUS: PASS 96/100
+MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
+CURRENT_STAGE: SHARED_ACTIVITY_CONTRACT_HARDENED
+HIGHEST_RISK: PR511 and PR512 still overlap shared audit/workflow/controller files; PR511 must consume this contract instead of preserving a competing audit-log implementation
+EXACT_NEXT_ACTION: re-ground PR511 against this PR512 contract, preserve PR511 live-Chromium benchmark/receipt methodology, replace its competing audit-log/workflow ownership with the PR512 shared contract, and validate the combined evidence path without changing FIT numerical authority
 ```
 
-## Delivered Capability
+## Handover in 60 Seconds
 
-Stage 5 freezes the product-facing Vibration Integrity workflow without changing engineering calculations.
-
-```text
-Screening workspace
-Mechanical T2.3
-User Engineering Data
-Activity & workflow
-```
-
-New contracts:
+PR #512 owns the **shared observational product contract** for Vibration Integrity:
 
 ```text
-VibrationIntegrityWorkflowState.v1
-VibrationIntegrityUiContract.v1
+workspace/navigation state
+Activity & workflow UI
 VibrationIntegrityAuditLog.v1
 VibrationIntegrityAuditEvent.v1
 VibrationIntegrityAuditExport.v1
+non-authoritative activity export
+```
+
+The core architectural separation is now explicit in code and UI:
+
+```text
+product workflow state != FIT result currency
+Activity / audit         != engineering evidence
+FitRunEvidencePackage.v1 = FIT engineering reproducibility evidence envelope
+```
+
+The latest bounded patch adds a reusable fail-closed audit-log validator, adds `RUN_EVIDENCE_EXPORT_STARTED` to the shared activity vocabulary for the PR #511 evidence flow, marks the audit export itself `purpose=ACTIVITY_AUDIT_ONLY`, clarifies the Activity UI, and removes the Stage-5 regression assumption that FIT evidence may never contain audit context.
+
+No equation, correlation, master value, interpolation policy, unit behavior, screening authority, design authority, or FIT run-evidence schema was changed.
+
+## Live Ground Truth
+
+At the grounding epoch:
+
+```text
+main                         a49085cde69ef71518c0d6315a615477887d7b4e
+PR512 head before report     950edac6319f5fe82407f850c970d854537e0a6e
+PR state                     OPEN / DRAFT
+mergeable                    true
+commits                      17 ahead
+changed files                11
+open review threads          0
+base drift                   0 behind at grounding
+```
+
+`agents/MASTER_INDEX.md` is not present. Repository instructions are `AGENTS.md` plus `.agents/AGENTS.md`.
+
+## Mission / Scope / Acceptance
+
+Mission remains Stage-5 product freeze before further numerical/mechanism expansion:
+
+```text
+stable workspace UI
+-> explicit observational workflow states
+-> immutable scope-aware activity journal
+-> Activity & workflow workspace
+-> separate audit JSON export
+-> frozen selectors / authority vocabulary
+```
+
+Acceptance requires the shared product contract to remain usable without becoming a second engineering authority or replacing FIT reproducibility evidence.
+
+## REC-512-001 — Salvage / overlap decision
+
+Trigger: owner-directed salvage architecture across PR #511 and PR #512.
+
+Findings:
+
+- #512 owns shared workflow/activity/UI vocabulary.
+- #511 owns live-Chromium production-freeze methodology, benchmark-driven replay, screenshots, receipts, governing-tier proof and browser/release plumbing.
+- exact overlap exists in `tabs/vibration-integrity-audit-log.js`, `tabs/vibration-integrity-workflow-state.js`, and `tabs/vibration-integrity-tab.js`;
+- #511 had a competing audit-log implementation and its FIT evidence builder expects `assertVibrationIntegrityAuditLog()`;
+- #511 also requires `RUN_EVIDENCE_EXPORT_STARTED` so the exported FIT evidence can contain an audit record that the export was initiated before serialization;
+- the previous Stage-5 regression incorrectly required FIT run-evidence source to contain no `VibrationIntegrityAuditLog` reference at all.
+
+Disposition:
+
+```text
+SALVAGE_PARTIAL / CONTINUE PR512
+PR512 keeps shared activity/workflow authority
+PR511 should consume PR512 shared contract on reconciliation
+```
+
+## DEC-512-001 — Evidence authority boundary
+
+```text
+VibrationIntegrityAuditExport.v1
+  engineeringAuthority = NONE
+  screeningAuthority   = NOT_AUTHORIZED
+  designAuthority      = false
+  purpose              = ACTIVITY_AUDIT_ONLY
+
+FitRunEvidencePackage.v1
+  purpose              = REPRODUCIBILITY_EVIDENCE_ONLY
+```
+
+An FIT evidence package may carry a validated/hashed activity trail as contextual provenance without converting that activity trail into engineering authority.
+
+## DEC-512-002 — Workflow/result separation
+
+`VibrationIntegrityWorkflowState.v1` remains a derived product/navigation model. It performs no calculation and does not independently decide result currency.
+
+`state.resultState` remains the underlying execution-currency state consumed by export guards and product logic.
+
+## Delivered Capability
+
+Workspace contract:
+
+```text
+screening   Screening workspace
+mechanical  Mechanical T2.3
+user-data   User Engineering Data
+activity    Activity & workflow
 ```
 
 Workflow states:
@@ -51,40 +144,18 @@ RESULT_STALE
 INVALID_INPUT
 ```
 
-The Activity workspace shows current workflow state, next action, result state, readiness counts and the most recent 50 audit events. The complete session journal can be exported as JSON.
+Activity journal remains immutable, ordered, scope-aware and metadata-bounded. Unknown event types fail closed.
 
-## Audit Coverage
-
-The journal records bounded metadata for:
-
-- workspace open/tab navigation;
-- benchmark and project-source import;
-- input edit/add/delete/revert;
-- readiness start/completion/failure;
-- FIT run start/completion/failure;
-- result staleness after input change;
-- Mechanical input opening/source changes/evaluation/not-applicable/clear;
-- SBC/user-engineering-data activity;
-- register, FIT run evidence and audit exports.
-
-Every audit record carries:
+Latest hardening adds:
 
 ```text
-engineeringAuthority = NONE
-purpose = ACTIVITY_AUDIT_ONLY
+assertVibrationIntegrityAuditLog(log)
+VIBRATION_INTEGRITY_AUDIT_EVENT_SCHEMA
+RUN_EVIDENCE_EXPORT_STARTED
+export authority purpose = ACTIVITY_AUDIT_ONLY
+explicit UI copy: workflow state does not determine FIT result currency
+explicit UI copy: activity export is not FIT run reproducibility evidence
 ```
-
-Details are JSON-bounded to 4096 characters and unknown event types fail closed. Full engineering tables and execution envelopes are not copied into the journal.
-
-## Evidence Compatibility
-
-Existing FIT evidence remains unchanged:
-
-```text
-FitRunEvidencePackage.v1
-```
-
-`tabs/vibration-integrity-run-evidence.js` is not modified by PR #512. Product activity evidence is a separate export; no silent FIT evidence schema migration occurs.
 
 ## Authority / Numerical Invariants
 
@@ -95,61 +166,65 @@ SBC        = CANDIDATE_USER_INPUT / NOT_AUTHORIZED
 Design authority = false
 ```
 
-PR #512 contains no calculator kernel, master value, interpolation, screening-authority or design-authority change. Logging/workflow modules are observational only.
+Protected negative assurance:
 
-## Product Freeze Contract
-
-`docs/vibration/VIBRATION-INTEGRITY-PRODUCT-FREEZE-v1.md`
-
-The freeze requires future mechanism/numerical work to integrate behind the stable workspace IDs, workflow states, selector vocabulary, governing-tier separation and evidence behavior. Small precision/curve/master-row improvements do not justify UI contract churn.
-
-PR #508 is explicitly deferred and must be rebuilt/reconciled on current main if resumed.
+- no FIT equation/correlation change;
+- no engineering master change;
+- no interpolation change;
+- no unit-resolution change;
+- no central calculation path change;
+- no FIT run-evidence schema migration in PR512;
+- no authority promotion;
+- no workflow YAML change.
 
 ## Pre-edit / Rollback Evidence
 
-Repository backup CLI:
+Repository backup CLI remains `NOT_RUN` in this connector-only runtime. Exact pre-edit Git blobs provide rollback identity:
 
 ```text
-node utils/backup.js save ... = NOT_RUN
-reason = connector-only runtime
+tabs/vibration-integrity-audit-log.js
+  5c767f0b0560cee301eb8fbf307e02d189287890
+
+tabs/vibration-integrity-activity-view.js
+  32bb20911aa61895148e3da16f35aa598cd1d643
+
+tests/vibration-integrity-product-freeze-stage5.test.mjs
+  41e5de2f7d855d37f218efe98df9c7abefb79a6d
 ```
 
-Exact pre-edit blobs:
+Post-patch blobs:
 
 ```text
-tabs/vibration-integrity-tab.js
-  bdc9d16117ccb92806062c3ff3a6abfdb54a9ef8
+tabs/vibration-integrity-audit-log.js
+  f6135a3172a3b7a562a14635c36897b030873127
 
-tabs/vibration-integrity-user-data-shell.js
-  b235b8b6773568d702c0d3e6d11d6a62838851f4
+tabs/vibration-integrity-activity-view.js
+  3043241bb2aa2e20ccddd7aec73c3e9e1a137123
 
-tabs/vibration-integrity-mechanical-controller.js
-  2b9614274dc1c34126c36923d0ed1e64c249b042
+tests/vibration-integrity-product-freeze-stage5.test.mjs
+  ee92cb356490d6eb04aa508ce98c23c0dc0e5350
 ```
 
-## Appendix A
+## Validation Ledger
 
-```text
-A1 Production trace             20/20
-A2 Current failure isolation    19/20
-A3 Authority / invariant        20/20
-A4 Independent validation       19/20
-A5 Minimal patch                19/20
-TOTAL                           97/100
-IMPLEMENTATION_AUTHORITY        GRANTED_FOR_THIS_BOUNDED_STAGE
-```
+| Check | Status | Observation / oracle | Evidence / limitation |
+|---|---|---|---|
+| live main grounding | PASS | REMOTE_EXECUTION / GitHub | `main@a49085c...` |
+| PR state / head | PASS | REMOTE_EXECUTION / GitHub | `950edac...`, draft, mergeable |
+| review threads | PASS | REMOTE_EXECUTION / GitHub | 0 open threads |
+| audit contract focused smoke | PASS | LOCAL_EXECUTION / implementation-coupled | Node 22: create/append/assert/export/tamper rejection; `PR512 audit contract smoke PASS` |
+| updated audit source | PASS | SOURCE_INSPECTION | GitHub blob `f6135a...` |
+| updated Activity source | PASS | SOURCE_INSPECTION | GitHub blob `304324...` |
+| full Stage-5 repository-native tests | NOT_RUN | NOT_OBSERVED | no complete checkout in connector runtime |
+| full product Chromium navigation | NOT_RUN | NOT_OBSERVED | inherited managed URL policy blocker |
+| inherited GitHub workflow | NOT_RUN / ACTIONS_BUDGET_BLOCKED | REMOTE_EXECUTION | prior run allocated zero runner steps |
+| engineering numerical validation | NOT_APPLICABLE to this patch | authoritative boundary | no numerical method changed |
+
+Do not upgrade the focused smoke or source inspection to repository-native full-suite PASS.
 
 ## Changed-File Ledger
 
-Exact comparison at `ff79a13...` against `main@a49085c...`:
-
-```text
-13 commits ahead
-0 behind
-11 changed files
-```
-
-Files:
+PR remains 11 changed files against main:
 
 ```text
 agents/PR512_workreport.md
@@ -165,90 +240,77 @@ tests/vibration-integrity-product-freeze-boundaries-stage5.test.mjs
 tests/vibration-integrity-product-freeze-stage5.test.mjs
 ```
 
-No calculator kernel, master-value, FIT run-evidence, export-register or release-manifest file is changed.
-
-## Executed Validation
-
-### Exact Git-blob core-module smoke
-
-The four new product-core modules were reconstructed locally and verified byte-for-byte using Git blob SHA-1:
+Latest bounded patch modified only:
 
 ```text
-workflow-state  a49dbac79854192be13fb6dc6d41c34dc84d2c83
-                 == GitHub blob
-
-audit-log       5c767f0b0560cee301eb8fbf307e02d189287890
-                 == GitHub blob
-
-ui-contract     e402822f3e67fc5558febd0761f7f054873a2d7d
-                 == GitHub blob
-
-activity-view   32bb20911aa61895148e3da16f35aa598cd1d643
-                 == GitHub blob
+tabs/vibration-integrity-audit-log.js
+tabs/vibration-integrity-activity-view.js
+tests/vibration-integrity-product-freeze-stage5.test.mjs
+agents/PR512_workreport.md
 ```
 
-Executed Node assertions covered workflow transitions, next-action selection, immutable audit sequencing, non-authorizing export, frozen tab IDs, Activity rendering and invalid-event rejection.
-
-Result:
+## Review / CI State
 
 ```text
-exact Stage5 workflow/audit/activity smoke = PASS
+requested reviewers      none
+open review threads      0
+merge authority          NOT_GRANTED
+full current-head CI     NOT_RUN
 ```
 
-### Chromium bounded UI contract
+The earlier Actions-budget and managed-URL blockers remain infrastructure classifications, not code PASS and not product FAIL.
 
-Chrome 144 rendered the exact-module-generated Activity markup and verified:
+## Overlap / Dependency State
+
+Classification: `COORDINATION_REQUIRED`.
+
+- PR #511 overlaps the shared audit/workflow/controller files and must be reconciled to consume this contract.
+- PR #479 is an older open FIT reproducibility-evidence PR; current main already contains `FitRunEvidencePackage.v1` behavior. Do not let stale PR ownership redefine the current evidence authority boundary without live re-grounding.
+- PR #514 is SBC Type-3 Production Freeze only and is not a prerequisite for #512.
+
+## Exact Continuation State
+
+Next safe stage is **not** more Stage-5 numerical work.
+
+Execute:
 
 ```text
-data-vi-workflow-state="EMPTY"                     PASS
-data-vi-audit-log="VibrationIntegrityAuditLog.v1" PASS
-data-vi-audit-event="VI-EVT-000001"               PASS
-data-vi-action="export-audit"                     PASS
-Activity journal / next-action copy                PASS
+1. re-ground PR511 live head/diff against PR512 current contract;
+2. preserve PR511 Chromium PF-001..PF-007 methodology and independent benchmark oracles;
+3. remove/rebuild PR511 competing audit/workflow implementation so it imports PR512-owned validator/event vocabulary;
+4. make FIT run evidence include validated audit context only as provenance;
+5. prove stale/non-current FIT evidence still fails closed;
+6. run the strongest available Node/browser validation without relabeling infrastructure blocks as PASS;
+7. update both recovery reports;
+8. keep both PRs draft; do not merge.
 ```
 
-Classification:
+## Appendix A — Takeover Qualification
+
+Basis:
 
 ```text
-Stage-5 Activity DOM contract = PASS
-full product Chromium navigation = NOT_RUN / MANAGED_URL_POLICY_BLOCKED
+qualification_basis_pr_head: ba5fa4c630be0cf2b08f64bc9de85e7b0819798d
+qualification_basis_main_head: a49085cde69ef71518c0d6315a615477887d7b4e
+grounding_epoch: 2026-08-15T10:21Z
+generated_from_open_items: PR511/PR512 evidence-contract overlap
+next_intended_stage: shared activity contract salvage hardening
+APPENDIX_A_STATUS: PASS
 ```
 
-The bounded DOM check does not claim full app navigation or end-to-end FIT execution.
+Scores:
 
-## Validation Ledger
+```text
+A1 Production Trace             20/20
+A2 Current Failure Isolation    19/20
+A3 Authority / Invariant        20/20
+A4 Independent Validation       18/20
+A5 Next-Commit / Minimal Patch  19/20
+TOTAL                           96/100
+```
 
-| Check | Status | Evidence / limitation |
-|---|---|---|
-| main grounding | PASS | `a49085c...` at branch start |
-| product-freeze overlap | PASS | no competing workflow/audit PR found |
-| parent comparison | PASS | `ff79a13...`: 13 ahead / 0 behind / 11 files |
-| PR mergeability | PASS | GitHub reports mergeable true |
-| no calculator/master-value files | PASS | GitHub compare |
-| new JS <300 physical lines | PASS | changed-file sizes + EOF probes |
-| exact Git-blob workflow/audit/activity smoke | PASS | hashes above + Node execution |
-| bounded Chrome 144 Activity DOM contract | PASS | selectors/copy above |
-| FIT evidence schema isolation | PASS | source inspection; file untouched |
-| committed full Stage-5 regression files | PASS_SOURCE | source present; not repository-native executed |
-| backup CLI | NOT_RUN | connector-only runtime |
-| repository-native Stage-5 Node tests | NOT_RUN | no complete private checkout |
-| inherited GitHub workflow run `31877286440` | NOT_RUN / ACTIONS_BUDGET_BLOCKED | GitHub job had zero steps; runner not allocated |
-| full repository suite | NOT_RUN | Actions budget prevents runner allocation |
-| full product Chromium navigation | NOT_RUN / MANAGED_URL_POLICY_BLOCKED | normal localhost/file navigation blocked |
+Qualification permits only the bounded shared-contract hardening above; it does not grant numerical-authority changes, scope expansion, destructive operations, or merge.
 
-GitHub annotation for the inherited workflow states: `The job was not started because an Actions budget is preventing further use.` This infrastructure condition is not classified as a code FAIL.
+## Historical Continuity
 
-`PASS_SOURCE` is not repository-native execution PASS.
-
-## Highest Risk
-
-The audit trail could be mistaken for engineering evidence. UI copy, schemas and event authority explicitly identify it as observational metadata. Existing dual-hash FIT run evidence remains the reproducibility authority for a current FIT result.
-
-## Follow-on Product Direction
-
-After this freeze, prioritize:
-
-1. session persistence / import-export round trip of product state;
-2. unified evidence envelope that wraps, but does not mutate, FIT evidence + activity journal;
-3. release manifest and full-browser acceptance around frozen selectors/workflow states;
-4. only then resume deferred numerical/mechanism expansion such as PR #508.
+The prior Stage-5 recovery report state is preserved in Git history at blob `599b8273abdb2abcc5de34fa91f277a5c90bf75d` and in the PR conversation. Earlier exact-module smoke and bounded Chrome Activity DOM checks remain historical evidence with their original limitations; they are not automatically reclassified as exact-current-head execution after this patch.
