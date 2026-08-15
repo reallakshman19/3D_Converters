@@ -20,6 +20,24 @@ function validateNonNegative(value, field) {
   return null;
 }
 
+function validateBrownfield(input) {
+  const hasMeasured = input.measuredCurrentWallMm !== undefined;
+  const hasFutureLoss = input.futureInternalLossMm !== undefined
+    || input.futureExternalLossMm !== undefined;
+  if (!hasMeasured && hasFutureLoss) {
+    return failure('INPUT_INVALID', 'future wall-loss inputs require a measured current wall.', { field: 'measuredCurrentWallMm' });
+  }
+  if (!hasMeasured) return null;
+  if (!finite(input.measuredCurrentWallMm) || !(input.measuredCurrentWallMm > 0)) {
+    return failure('INPUT_INVALID', 'measured current wall must be a positive finite number.', { field: 'measuredCurrentWallMm' });
+  }
+  for (const field of ['futureInternalLossMm', 'futureExternalLossMm']) {
+    const error = validateNonNegative(input[field], field);
+    if (error) return error;
+  }
+  return null;
+}
+
 function validate(input) {
   if (!finite(input.nominalWallMm) || !(input.nominalWallMm > 0)) {
     return failure('INPUT_INVALID', 'nominal wall must be a positive finite number.', { field: 'nominalWallMm' });
@@ -30,16 +48,7 @@ function validate(input) {
     const error = validateNonNegative(input[field], field);
     if (error) return error;
   }
-  if (input.measuredCurrentWallMm !== undefined) {
-    if (!finite(input.measuredCurrentWallMm) || !(input.measuredCurrentWallMm > 0)) {
-      return failure('INPUT_INVALID', 'measured current wall must be a positive finite number.', { field: 'measuredCurrentWallMm' });
-    }
-    for (const field of ['futureInternalLossMm', 'futureExternalLossMm']) {
-      const error = validateNonNegative(input[field], field);
-      if (error) return error;
-    }
-  }
-  return null;
+  return validateBrownfield(input);
 }
 
 function greenfieldState(input) {
