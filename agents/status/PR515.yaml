@@ -7,6 +7,7 @@ branch: agent/aiv-pf01-production-freeze-20260815
 main_head_last_checked: d659e670a2f8fe0a35fc8072382512f6493898cf
 merge_base: d659e670a2f8fe0a35fc8072382512f6493898cf
 implementation_head_before_evidence_sync: 835c908ad16fa206aa510136068ea6d1b0578a12
+final_evidence_head_before_status_sync: 10d35f2149e0972d4af2bd8b48250e1b2c7e3e57
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 agent_state: IMPLEMENTED_VALIDATION_PENDING
@@ -46,4 +47,4 @@ validation:
 next_slice_authorized: false
 merge_ready: false
 exact_next_action: "On an executable exact PR515 checkout run npm ci; npm run verify:aiv-pf01; npm run verify:aiv-canvas-release. Then replay same EI EIT -> Check Readiness -> Run Screening -> Case/Line/Show workflow in Chromium. Only green evidence may close PF-01."
-last_updated: 2026-08-15T16:05:00+04:00
+last_updated: 2026-08-15T16:08:00+04:00
