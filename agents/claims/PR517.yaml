@@ -1,0 +1,31 @@
+schema: AgentClaim.v1
+pr_or_wip: PR517
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/aiv/aiv-readiness.js
+    - converters/vibration/aiv/aiv-calculator.js
+    - tests/vibration-aiv-executable-contract.test.mjs
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-02-manifest.json
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-02-before.json
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-02-after.json
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-02-benchmark.json
+    - agents/PR517_workreport.md
+    - agents/status/PR517.yaml
+    - agents/claims/PR517.yaml
+  conditional_candidates:
+    - converters/vibration/aiv/aiv-executable-contract.js
+authority_domains:
+  - AIV_READINESS_EXECUTABLE_PARITY
+  - AIV_PRODUCTION_FREEZE_EVIDENCE
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+notes:
+  - "No production/test mutation has occurred yet; exact production files are claimed only to prevent concurrent overlap while PF-02 is live-reproduction blocked."
+  - "PR #506 overlaps readiness/calculator and contains candidate executable-contract code; it is SALVAGE_CANDIDATE only and must not be cherry-picked as a batch."
+  - "The PR506 executable-contract candidate also contains simultaneous-source-group behavior assigned to PF-03. PF-02 must not import that grouping behavior."
+  - "Do not modify the shared engineering-calculation engine unless current-main reproduction proves the AIV-specific hook is insufficient; source inspection currently shows the existing adapter validation hook is sufficient."
+  - "No claim over PF-01 canvas filter, PF-03 group semantics, master engineering authority, stale async transaction custody, export/round-trip lineage, numerical equations, frozen benchmark values, SVG physical-distance authority, screening result scope or design authority."
+  - "No LOW_LEVEL or SOURCE_INSPECTION result may be promoted to FULL_BROWSER_PASS."
+last_verified_head: 9d4effbe6cd1d9d187216a66d830996738b2dc8b
