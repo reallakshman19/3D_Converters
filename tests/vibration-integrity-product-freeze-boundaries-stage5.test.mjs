@@ -38,9 +38,9 @@ test('activity journal remains metadata-only and size bounded', async () => {
   assert.doesNotMatch(audit, /envelope:\s*state\.envelope/u);
 });
 
-test('existing FIT evidence schema remains isolated from Stage 5 audit schema', async () => {
+test('FIT evidence keeps reproducibility authority while Activity export remains a separate artifact', async () => {
   const evidence = await source('tabs/vibration-integrity-run-evidence.js');
   assert.match(evidence, /FitRunEvidencePackage\.v1/u);
-  assert.doesNotMatch(evidence, /VibrationIntegrityAuditLog/u);
+  assert.match(evidence, /REPRODUCIBILITY_EVIDENCE_ONLY/u);
   assert.doesNotMatch(evidence, /VibrationIntegrityAuditExport/u);
 });
