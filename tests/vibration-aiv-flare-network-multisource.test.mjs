@@ -5,6 +5,7 @@ import { AIV_DEFAULT_ASSUMPTION_PROFILE } from '../converters/vibration/aiv/aiv-
 import { calculateAiv } from '../converters/vibration/aiv/aiv-calculator.js';
 import { createAivFlareNetwork } from '../converters/vibration/aiv/aiv-flare-network.js';
 import { generateAivInputTablesFromFlareNetwork } from '../converters/vibration/aiv/aiv-flare-network-table-generator.js';
+import { buildAivFlareNetworkTopologyExchange } from '../converters/vibration/aiv/aiv-flare-network-topology.js';
 import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-csv.js';
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
 import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
@@ -64,12 +65,13 @@ function parseGenerated(network) {
 }
 
 function calculate(secondFlow) {
-  const parsed = parseGenerated(multiNetwork(secondFlow));
+  const network = multiNetwork(secondFlow);
+  const parsed = parseGenerated(network);
   const result = calculateAiv({
     sources: parsed.sources,
     assessments: parsed.assessments,
     relationships: parsed.relationships,
-    exchange: { elements: [{ canonicalId: 'ASSESS-1', line: 'FL-MULTI' }] },
+    exchange: buildAivFlareNetworkTopologyExchange(network),
     assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
     qualificationMode: 'screening',
   });
@@ -96,7 +98,8 @@ test('drawn two-source network reproduces 160 + 150 benchmark with both canonica
 });
 
 test('controlled two-RV mock preserves Common PR3 engineering paths and screening integration outputs', () => {
-  const parsed = parseGenerated(createAivSmallFlareMockNetwork());
+  const network = createAivSmallFlareMockNetwork();
+  const parsed = parseGenerated(network);
   assert.deepEqual(parsed.generated.pathEvidence.map((item) => ({
     sourceCanonicalId: item.sourceCanonicalId,
     physicalDistanceM: item.physicalDistanceM,
@@ -110,7 +113,7 @@ test('controlled two-RV mock preserves Common PR3 engineering paths and screenin
     sources: parsed.sources,
     assessments: parsed.assessments,
     relationships: parsed.relationships,
-    exchange: { elements: [{ canonicalId: 'AIV-ASSESS-HDR-001', line: '8IN-FLARE-HEADER' }] },
+    exchange: buildAivFlareNetworkTopologyExchange(network),
     assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
     qualificationMode: 'screening',
   });
@@ -124,5 +127,6 @@ test('controlled two-RV mock preserves Common PR3 engineering paths and screenin
   assert.ok(Math.abs(assessment.combinedPointPwlDb - 149.56302572849327) < 1e-10);
   assert.equal(assessment.lof, 0.29);
   assert.equal(result.screeningResultScope, 'ASSESSMENT');
+  assert.equal(result.screeningQualification.counts.readyForQualification, 2);
   assert.equal(result.authority.designAuthority, false);
 });
