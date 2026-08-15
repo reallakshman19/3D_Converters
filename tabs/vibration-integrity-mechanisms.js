@@ -101,6 +101,8 @@ function sbcAssessment(row, mechanism, context) {
     row,
     userRows: context.userEngineeringDataRows ?? [],
     governed: context.sbcGoverned ?? {},
+    precomputedByScope: context.sbcPrecomputedByScope ?? {},
+    masterAssistedScopes: context.sbcMasterAssistedScopes ?? {},
     resultState: context.sbcResultState ?? inheritedCurrency,
   });
   const assessment = contractAssessment(mechanism, contractSet);
