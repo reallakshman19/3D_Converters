@@ -129,6 +129,55 @@ function evidenceEntry(term, resolution) {
   });
 }
 
+function nonNegativeTerm(value, name) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    throw new TypeError(`SBC_TYPE3_TERM_INVALID:${name}`);
+  }
+  return numeric;
+}
+
+export function combineSbcType3Terms(options = {}) {
+  const scopeId = String(options.scopeId ?? '').trim();
+  if (!scopeId) throw new TypeError('SBC Type-3 combination requires a scopeId.');
+  const terms = options.terms ?? {};
+  if (typeof terms.hasMass !== 'boolean') throw new TypeError('SBC_TYPE3_TERM_INVALID:hasMass');
+  const c = terms.hasMass ? nonNegativeTerm(terms.c, 'c') : 0;
+  const d = nonNegativeTerm(terms.d, 'd');
+  const e = nonNegativeTerm(terms.e, 'e');
+  const firstLocation = nonNegativeTerm(terms.firstLocation, 'firstLocation');
+  const f = nonNegativeTerm(terms.f, 'f');
+  const g = nonNegativeTerm(terms.g, 'g');
+  const mainlineLof = nonNegativeTerm(terms.mainlineLof, 'mainlineLof');
+  const multiplier = nonNegativeTerm(terms.multiplier, 'multiplier');
+  const firstGeometryLof = Math.max(c, d, e);
+  const firstModifier = Math.min(firstGeometryLof, firstLocation);
+  const subsequentGeometryLof = Math.max(f, g);
+  const subsequentModifier = Math.min(subsequentGeometryLof, 1);
+  const overallModifier = Math.max(firstModifier, subsequentModifier);
+  const mainlineAdjustedLof = mainlineLof * multiplier;
+  return Object.freeze({
+    ok: true,
+    status: options.status ?? 'CALCULATED_USER_INPUT_CANDIDATE',
+    methodId: options.methodId ?? SBC_TYPE3_USER_METHOD_ID,
+    scopeId,
+    firstSpan: Object.freeze({
+      hasUnsupportedMass: terms.hasMass, c, d, e,
+      geometryLof: firstGeometryLof, locationLof: firstLocation, modifier: firstModifier,
+    }),
+    subsequentSpans: Object.freeze({
+      f, g, geometryLof: subsequentGeometryLof, locationLof: 1, modifier: subsequentModifier,
+    }),
+    overallModifier,
+    mainline: Object.freeze({
+      lof: mainlineLof, multiplier, adjustedLof: mainlineAdjustedLof,
+    }),
+    lof: Math.min(mainlineAdjustedLof, overallModifier),
+    evidence: Object.freeze(options.evidence ?? []),
+    authority: options.authority ?? AUTHORITY,
+  });
+}
+
 export function calculateSbcType3FromUserEngineeringData(options = {}) {
   const scopeId = String(options.scopeId ?? '').trim();
   if (!scopeId) throw new TypeError('SBC Type-3 evaluation requires a scopeId.');
@@ -162,26 +211,12 @@ export function calculateSbcType3FromUserEngineeringData(options = {}) {
     });
   }
 
-  const firstGeometryLof = Math.max(c, d, e);
-  const firstModifier = Math.min(firstGeometryLof, firstLocation);
-  const subsequentGeometryLof = Math.max(f, g);
-  const subsequentModifier = Math.min(subsequentGeometryLof, 1);
-  const overallModifier = Math.max(firstModifier, subsequentModifier);
-  const mainlineAdjustedLof = mainlineLof * multiplier;
-  const lof = Math.min(mainlineAdjustedLof, overallModifier);
-  const evidence = Object.entries(resolutions).map(([term, resolution]) => evidenceEntry(term, resolution));
-
-  return Object.freeze({
-    ok: true,
-    status: 'CALCULATED_USER_INPUT_CANDIDATE',
-    methodId: SBC_TYPE3_USER_METHOD_ID,
+  const evidence = Object.entries(resolutions)
+    .map(([term, resolution]) => evidenceEntry(term, resolution));
+  return combineSbcType3Terms({
     scopeId,
-    firstSpan: Object.freeze({ hasUnsupportedMass: hasMass, c, d, e, geometryLof: firstGeometryLof, locationLof: firstLocation, modifier: firstModifier }),
-    subsequentSpans: Object.freeze({ f, g, geometryLof: subsequentGeometryLof, locationLof: 1, modifier: subsequentModifier }),
-    overallModifier,
-    mainline: Object.freeze({ lof: mainlineLof, multiplier, adjustedLof: mainlineAdjustedLof }),
-    lof,
-    evidence: Object.freeze(evidence),
+    terms: { hasMass, c, d, e, firstLocation, f, g, mainlineLof, multiplier },
+    evidence,
     authority: AUTHORITY,
   });
 }
