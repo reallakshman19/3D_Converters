@@ -12,9 +12,10 @@ PR: #512
 BRANCH: agent/vibration-product-freeze-stage5
 BASE: main
 BASE_SHA_AT_START: a49085cde69ef71518c0d6315a615477887d7b4e
+ENGINEERING_HEAD_BEFORE_REPORT_SYNC: ff79a13ee184d64ea0bbc7ff81a5ed6fa7d4eb63
 OWNER_DIRECTION: prioritize UI/workflow/logging freeze; defer minuscule numerical accuracy work
 MERGE_AUTHORITY: NOT_GRANTED_FOR_PR512
-EXACT_NEXT_ACTION: recheck live head/base/mergeability; leave draft unless Owner separately authorizes merge
+EXACT_NEXT_ACTION: leave PR draft; next change should focus on product-state persistence / round-trip rather than numerical refinement
 ```
 
 ## Delivered Capability
@@ -140,18 +141,18 @@ IMPLEMENTATION_AUTHORITY        GRANTED_FOR_THIS_BOUNDED_STAGE
 
 ## Changed-File Ledger
 
-Pre-PR freeze comparison against `main@a49085c...`:
+Exact comparison at `ff79a13...` against `main@a49085c...`:
 
 ```text
-11 commits ahead
+13 commits ahead
 0 behind
-11 files
+11 changed files
 ```
 
-Files before report rename:
+Files:
 
 ```text
-agents/WIP-vibration-product-freeze-stage5_workreport.md
+agents/PR512_workreport.md
 docs/vibration/VIBRATION-INTEGRITY-PRODUCT-FREEZE-v1.md
 tabs/vibration-integrity-activity-view.js
 tabs/vibration-integrity-audit-log.js
@@ -164,7 +165,56 @@ tests/vibration-integrity-product-freeze-boundaries-stage5.test.mjs
 tests/vibration-integrity-product-freeze-stage5.test.mjs
 ```
 
-After this report is committed the WIP report is deleted and replaced by `agents/PR512_workreport.md`.
+No calculator kernel, master-value, FIT run-evidence, export-register or release-manifest file is changed.
+
+## Executed Validation
+
+### Exact Git-blob core-module smoke
+
+The four new product-core modules were reconstructed locally and verified byte-for-byte using Git blob SHA-1:
+
+```text
+workflow-state  a49dbac79854192be13fb6dc6d41c34dc84d2c83
+                 == GitHub blob
+
+audit-log       5c767f0b0560cee301eb8fbf307e02d189287890
+                 == GitHub blob
+
+ui-contract     e402822f3e67fc5558febd0761f7f054873a2d7d
+                 == GitHub blob
+
+activity-view   32bb20911aa61895148e3da16f35aa598cd1d643
+                 == GitHub blob
+```
+
+Executed Node assertions covered workflow transitions, next-action selection, immutable audit sequencing, non-authorizing export, frozen tab IDs, Activity rendering and invalid-event rejection.
+
+Result:
+
+```text
+exact Stage5 workflow/audit/activity smoke = PASS
+```
+
+### Chromium bounded UI contract
+
+Chrome 144 rendered the exact-module-generated Activity markup and verified:
+
+```text
+data-vi-workflow-state="EMPTY"                     PASS
+data-vi-audit-log="VibrationIntegrityAuditLog.v1" PASS
+data-vi-audit-event="VI-EVT-000001"               PASS
+data-vi-action="export-audit"                     PASS
+Activity journal / next-action copy                PASS
+```
+
+Classification:
+
+```text
+Stage-5 Activity DOM contract = PASS
+full product Chromium navigation = NOT_RUN / MANAGED_URL_POLICY_BLOCKED
+```
+
+The bounded DOM check does not claim full app navigation or end-to-end FIT execution.
 
 ## Validation Ledger
 
@@ -172,16 +222,21 @@ After this report is committed the WIP report is deleted and replaced by `agents
 |---|---|---|
 | main grounding | PASS | `a49085c...` at branch start |
 | product-freeze overlap | PASS | no competing workflow/audit PR found |
-| parent comparison | PASS | 11 ahead / 0 behind before report rename |
+| parent comparison | PASS | `ff79a13...`: 13 ahead / 0 behind / 11 files |
+| PR mergeability | PASS | GitHub reports mergeable true |
 | no calculator/master-value files | PASS | GitHub compare |
 | new JS <300 physical lines | PASS | changed-file sizes + EOF probes |
-| workflow/audit bounded smoke | PASS | reconstructed local Node execution |
+| exact Git-blob workflow/audit/activity smoke | PASS | hashes above + Node execution |
+| bounded Chrome 144 Activity DOM contract | PASS | selectors/copy above |
 | FIT evidence schema isolation | PASS | source inspection; file untouched |
-| UI/workflow contract regressions | PASS_SOURCE | tests committed and inspected |
+| committed full Stage-5 regression files | PASS_SOURCE | source present; not repository-native executed |
 | backup CLI | NOT_RUN | connector-only runtime |
 | repository-native Stage-5 Node tests | NOT_RUN | no complete private checkout |
-| full repository suite | NOT_RUN | GitHub Actions runner budget is blocked |
-| full product Chromium navigation | NOT_RUN | managed Chromium URL policy blocks normal local/file navigation |
+| inherited GitHub workflow run `31877286440` | NOT_RUN / ACTIONS_BUDGET_BLOCKED | GitHub job had zero steps; runner not allocated |
+| full repository suite | NOT_RUN | Actions budget prevents runner allocation |
+| full product Chromium navigation | NOT_RUN / MANAGED_URL_POLICY_BLOCKED | normal localhost/file navigation blocked |
+
+GitHub annotation for the inherited workflow states: `The job was not started because an Actions budget is preventing further use.` This infrastructure condition is not classified as a code FAIL.
 
 `PASS_SOURCE` is not repository-native execution PASS.
 
@@ -195,5 +250,5 @@ After this freeze, prioritize:
 
 1. session persistence / import-export round trip of product state;
 2. unified evidence envelope that wraps, but does not mutate, FIT evidence + activity journal;
-3. release manifest and browser acceptance around frozen selectors/workflow states;
+3. release manifest and full-browser acceptance around frozen selectors/workflow states;
 4. only then resume deferred numerical/mechanism expansion such as PR #508.
