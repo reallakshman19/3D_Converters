@@ -10,6 +10,7 @@ import {
   aivEitPressureBarAbsolute,
 } from '../converters/vibration/aiv/aiv-eit-units.js';
 import { generateAivInputTablesFromFlareNetwork } from '../converters/vibration/aiv/aiv-flare-network-table-generator.js';
+import { buildAivFlareNetworkTopologyExchange } from '../converters/vibration/aiv/aiv-flare-network-topology.js';
 import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-csv.js';
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
 import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
@@ -75,21 +76,22 @@ function fixture() {
 }
 
 function mockScreeningPackage() {
-  const generated = generateAivInputTablesFromFlareNetwork(createAivSmallFlareMockNetwork());
+  const network = createAivSmallFlareMockNetwork();
+  const generated = generateAivInputTablesFromFlareNetwork(network);
   const csv = (table) => serializeVibrationCsvRows([table.header, ...table.rows]);
   const sources = parseAivSourceCsv(csv(generated.tables.sources));
   const assessments = parseAivAssessmentCsv(csv(generated.tables.assessments));
   const relationships = parseAivSourceAssessmentCsv(csv(generated.tables.relationships));
   const result = calculateAiv({
     sources, assessments, relationships,
-    exchange: { elements: [{ canonicalId: 'AIV-ASSESS-HDR-001', line: '8IN-FLARE-HEADER' }] },
+    exchange: buildAivFlareNetworkTopologyExchange(network),
     assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
     qualificationMode: 'screening',
   });
   return {
     schema: 'AivScreeningExportPackage.v1',
     result,
-    inputs: { sources, assessments, relationships, topology: null },
+    inputs: { sources, assessments, relationships, topology: buildAivFlareNetworkTopologyExchange(network) },
     flareNetworkEvidence: { pathEvidence: generated.pathEvidence },
   };
 }
