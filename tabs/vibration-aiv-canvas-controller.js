@@ -1,7 +1,7 @@
 import { createAivCanvasLayout, moveAivCanvasLayoutNode } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 import { activateAivCanvasDetailTab, moveAivCanvasDetailTab } from './vibration-aiv-canvas-detail.js';
 import { focusAivCanvasField } from './vibration-aiv-canvas-field.js';
-import { createAivCanvasFilterController } from './vibration-aiv-canvas-filter.js';
+import { createAivCanvasFilterController } from './vibration-aiv-canvas-filter.js?v=20260815-aiv-pf01-cache-1';
 import { aivCanvasSelectionFromElement, applyAivCanvasSelection, revealAivCanvasSelection } from './vibration-aiv-canvas-selection.js';
 import {
   AIV_CANVAS_MODE, advanceAivCanvasRelationshipState, aivCanvasRelationshipEndpoint,

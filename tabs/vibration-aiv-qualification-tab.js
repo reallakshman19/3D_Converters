@@ -13,7 +13,7 @@ import {
   findAivRelationshipInputRowIndex,
   updateAivInputCell,
 } from './vibration-aiv-input-model.js';
-import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js';
+import { createAivCanvasInteractionController } from './vibration-aiv-canvas-controller.js?v=20260815-aiv-pf01-cache-1';
 import { createAivCanvasExportController } from './vibration-aiv-canvas-export-controller.js';
 import { renderAivCanvasSelectedDetailHtml } from './vibration-aiv-canvas-view.js';
 import { aivRelationshipIdentityFromTableRow, confirmAivRelationshipDelete } from './vibration-aiv-delete-safeguard.js';
