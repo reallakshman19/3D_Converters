@@ -18,6 +18,16 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
+function workflowAuthorityValid(workflow) {
+  if (workflow.qualificationMode === 'benchmark') {
+    return workflow.screeningAuthorized === false && workflow.engineeringAuthority === 'NONE';
+  }
+  if (workflow.qualificationMode === 'screening') {
+    return workflow.screeningAuthorized === true && workflow.engineeringAuthority === 'SCREENING';
+  }
+  return false;
+}
+
 function assertWorkflow(workflow) {
   if (workflow?.schema !== SOURCE_WORKFLOW_SCHEMA) {
     throw workspaceQueryError(
@@ -32,12 +42,10 @@ function assertWorkflow(workflow) {
       `Workspace requires ${SOURCE_REGISTER_SCHEMA} rows.`,
     );
   }
-  if (workflow.qualificationMode !== 'benchmark'
-      || workflow.screeningAuthorized !== false
-      || workflow.engineeringAuthority !== 'NONE') {
+  if (!workflowAuthorityValid(workflow)) {
     throw workspaceQueryError(
       'VIBRATION_WORKSPACE_AUTHORITY_VIOLATION',
-      'Workspace accepts only the non-authorizing benchmark FIT workflow.',
+      'Workspace accepts only coherent FIT benchmark or bounded-screening workflow authority.',
       {
         qualificationMode: workflow.qualificationMode ?? null,
         screeningAuthorized: workflow.screeningAuthorized ?? null,
@@ -92,9 +100,9 @@ export function buildVibrationWorkspaceModel(workflowInput = {}, optionsInput = 
   return deepFreeze({
     schema: VIBRATION_WORKSPACE_MODEL_SCHEMA,
     authority: 'READ_MODEL_ONLY',
-    engineeringAuthority: 'NONE',
-    screeningAuthorized: false,
-    qualificationMode: 'benchmark',
+    engineeringAuthority: workflow.engineeringAuthority,
+    screeningAuthorized: workflow.screeningAuthorized,
+    qualificationMode: workflow.qualificationMode,
     sourceWorkflowSchema: workflow.schema,
     summary: query.summary,
     filters: serializeWorkspaceFilters(filters),
