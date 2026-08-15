@@ -1,54 +1,40 @@
 schema: AgentPrStatus.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: PR515
-mission: "Issue #513 PF-01 exact-main live Chromium reproduction and surgical canvas/filter runtime stability closure"
+mission: "Issue #513 PF-01 live Chromium reproduction -> minimal canvas-filter fix -> benchmark-locked closure"
 workstream: AIV_PRODUCTION_FREEZE_PF01
 branch: agent/aiv-pf01-production-freeze-20260815
-pr_head: 9b9664b36c6305c8e5e565c2181cd0a9f3a8577a
 main_head_last_checked: d659e670a2f8fe0a35fc8072382512f6493898cf
 merge_base: d659e670a2f8fe0a35fc8072382512f6493898cf
+implementation_head: 8ce49f991d6907694f284398026a8114437d9740
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
-agent_state: BLOCKED_ENVIRONMENT
+agent_state: IMPLEMENTED_VALIDATION_PENDING
 pr_recovery_state: HEALTHY
 handover_readiness: READY
 report_path: agents/PR515_workreport.md
-report_head: 9b9664b36c6305c8e5e565c2181cd0a9f3a8577a
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_513_GATE_APPLIES
-grounding_epoch: GE-004
-current_stage: CURRENT_MAIN_REBASED_LIVE_BROWSER_BLOCKED_LOW_LEVEL_ROOT_CAUSE_ISOLATED
-blocker: "Branch and evidence are based on exact current main d659e670..., which retains the vulnerable filter blob, but installed Chromium is mandatorily managed with URLBlocklist=['*']; current-main Pages run 31881892198 and its retry both failed with steps=null, so no exact-head real-app browser artifact exists."
-highest_risk: "Promoting low-level exact-blob evidence to FULL_BROWSER_PASS or committing the one-line patch before the issue #513 real-app pre-fix workflow."
-dependencies:
-  - "Issue #513 qualification gate: satisfied by issue comment 5301819610"
-  - "Issue #453 production acceptance umbrella"
-  - "PR #506: salvage/evidence only"
-  - "PR #516 merged into main: reconciled; no PF-01 exact-path overlap"
-  - "Exact current-main real-app Chromium environment with navigation permitted"
-low_level_findings:
-  current_main: d659e670a2f8fe0a35fc8072382512f6493898cf
-  current_main_filter_blob: a5da4fb99e69310659659725696c61c3d9347085
-  pre_fix_direct_null: FAIL_EXPECTED_TYPEERROR_CASEID
-  pre_fix_controller_first_sync: FAIL_EXPECTED_TYPEERROR_CASEID
-  pr506_filter_blob: a4a3990df0381bea8cbd95c49ad554f746141bb1
-  pr506_same_checks: PASS_SUPPORT_ONLY
-  minimal_candidate_diff: "input = input ?? {};"
-  minimal_candidate_blob: 8640eca0a2e1454e277613d50c4c9962e3e537d8
-  minimal_candidate_checks: PASS_8_OF_8_LOW_LEVEL_ONLY
-  backup_utility_blob: cd0c755457bb623b0487200a7d0b7217d8b3478e
-  backup_receipt_id: 2
-branch_rebase:
-  status: COMPLETED_EVIDENCE_ONLY
-  superseded_head: 2858f1fca8633d9c91328f8fbda252783837cffb
-  new_parent: d659e670a2f8fe0a35fc8072382512f6493898cf
-current_main_deployment:
-  run_id: 31881892198
-  attempt_1_job: 95005543108
-  attempt_2_job: 95006065316
-  classification: NOT_RUN_INFRASTRUCTURE_BLOCKED
-benchmark_custody:
-  d23_blob: c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0
-  independent_oracle_blob: 21d1e687dca0c537f4170e961b2d7b1894d710cc
-  package_blob: ef583d8da73d23df5463a4dfdb2da2d19006886f
-exact_next_action: "On a native checkout of d659e670... in a Chromium environment where navigation is permitted, rerun the repository backup command, reproduce Engineering Calculations -> Vibration -> VIB.AIV.ACOUSTIC -> Load D.2.3 -> first filter sync, and only if reproduced commit the one-line null normalization plus focused regression; do not advance to PF-02."
-last_updated: 2026-08-15T15:25:39+04:00
+grounding_epoch: GE-005
+current_stage: IMPLEMENTED_TARGETED_VALIDATION_PASS_FULL_APP_POSTFIX_AND_B1_B6_PENDING
+blocker: "Owner live pre-fix product reproduction is confirmed and minimal fix is committed. Full patched application Chromium replay, B1-B6 registered/full-workflow closure, and native verify:aiv-canvas-release remain NOT_RUN."
+highest_risk: "Promoting targeted Chromium or independent numerical subchecks to FULL_BROWSER_PASS/B1-B6 PASS and merging prematurely."
+production_fix:
+  path: tabs/vibration-aiv-canvas-filter.js
+  before_blob: a5da4fb99e69310659659725696c61c3d9347085
+  after_blob: 8640eca0a2e1454e277613d50c4c9962e3e537d8
+  diff: "input = input ?? {};"
+validation:
+  owner_live_prefx: PASS_REPRODUCED
+  focused_filter_regression: PASS_3_OF_3
+  targeted_chromium_144: PASS_3_OF_3
+  d23_raw_pwl_subcheck: PASS
+  d23_point_pwl_subcheck: PASS
+  multi_160_160_numeric_subcheck: PASS
+  multi_160_150_numeric_subcheck: PASS
+  full_application_postfix: NOT_RUN
+  b1_to_b6_full_closure: NOT_RUN
+  native_aiv_canvas_release: NOT_RUN
+next_slice_authorized: false
+merge_ready: false
+exact_next_action: "Run PR515 patched head in the real AIV workspace: import same EI EIT -> Check AIV readiness -> Run AIV screening -> Case/Line/Show; confirm zero uncaught caseId errors, then execute B1-B6 and npm run verify:aiv-canvas-release before merge or PF-02."
+last_updated: 2026-08-15T15:37:11+04:00
