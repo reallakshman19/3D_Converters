@@ -38,3 +38,4 @@ notes:
   - "PR #506 remains salvage/evidence only and was not bulk replayed."
   - "PF-02 remains unauthorized until exact-head native B1-B6, release suite, and full post-fix application Chromium replay are complete."
 last_verified_implementation_head: 835c908ad16fa206aa510136068ea6d1b0578a12
+final_evidence_head_before_claim_sync: f1cae4544604c65b41a37261ef74221943577465
