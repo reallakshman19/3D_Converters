@@ -12,7 +12,7 @@
 | Grounded base | `main@b13797d23db1f01200a2349e77f39c883e62a84c` |
 | Authority impact | NONE |
 | Merge authority | NOT AUTHORIZED |
-| Exact next action | Inspect exact-head hosted workflow execution; retain NOT_RUN unless steps actually execute. |
+| Exact next action | Re-check the final documentation-only head for drift/hosted execution, then retain the PR for owner browser validation. |
 
 ## User-observed failure
 
@@ -152,7 +152,8 @@ Open PR499 was inspected before mutation. It has no overlap with the five curren
 | Native focused test | NOT_RUN | Connector-only runtime | NONE |
 | Native full AIV release suite | NOT_RUN | Connector-only runtime | NONE |
 | Real-browser reproduction/acceptance | NOT_RUN | Browser runtime unavailable | NONE |
-| Hosted exact-head workflows | PENDING | Inspect after final report head | NONE |
+| Topology hosted workflow on `42bcfd9d…` | NOT_RUN / INFRASTRUCTURE_BLOCKED | Run `31858612872`, job `94947796201`: `steps=[]`, `runner_id=0`, empty runner name | NONE |
+| AIV hosted workflow on `42bcfd9d…` | NOT_RUN / INFRASTRUCTURE_BLOCKED | Run `31858612943`, job `94947796499`: `steps=[]`, `runner_id=0`, empty runner name | NONE |
 
 ## Active items
 
@@ -160,7 +161,7 @@ Open PR499 was inspected before mutation. It has no overlap with the five curren
 - `ISS-002` FIXED_IN_SOURCE — controlled PR498 mock now has exact readiness→registered-API regression coverage.
 - `IMP-001` IMPLEMENTED — screening import revision refreshed to `aiv-screening-2`.
 - `RISK-001` OPEN — native/browser execution still required before runtime PASS can be claimed.
-- `RISK-002` OPEN — Actions with zero executed steps must remain NOT_RUN / INFRASTRUCTURE_BLOCKED.
+- `RISK-002` OPEN — hosted workflow failures on the observed head are infrastructure-blocked; they are not product PASS or FAIL evidence.
 
 ## Appendix A — engineering-critical takeover gate
 
@@ -174,9 +175,9 @@ The patch closes the demonstrable unguarded browser→API contract gap and adds 
 Assessment-only screening authority, non-authoritative Line/Case status, explicit assumption precedence, physical-distance authority and `designAuthority=false` are preserved.
 
 ### A4 — Independent validation — 18/20
-The regression uses controlled mock generation/readiness and the registered Engineering API instead of the direct kernel. Two points are withheld pending actual native/hosted test execution.
+The regression uses controlled mock generation/readiness and the registered Engineering API instead of the direct kernel. Two points are withheld pending actual native/browser test execution.
 
 ### A5 — Minimal patch / next commit — 18/20
-The patch is limited to request-boundary validation, execution wiring, one regression and release wiring. Two points are withheld pending exact-head runtime evidence.
+The patch is limited to request-boundary validation, execution wiring, one regression and release wiring. Two points are withheld pending actual runtime evidence.
 
 **Current written takeover score: 94/100; each section >=18/20. Runtime qualification remains NOT_RUN until executed.**
