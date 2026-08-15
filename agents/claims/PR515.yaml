@@ -4,7 +4,11 @@ claim_state: ACTIVE
 files:
   exact:
     - tabs/vibration-aiv-canvas-filter.js
+    - tabs/vibration-aiv-qualification-tab.js
+    - tabs/engineering-calculations-tab.js
     - tests/vibration-aiv-canvas-filter-runtime.test.mjs
+    - tests/vibration-aiv-canvas-hardening.test.mjs
+    - tests/vibration-aiv-presentation-invariance.test.mjs
     - package.json
     - ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-manifest.json
     - ValidationRecords/AIV/ProductionFreeze/AIV-PF-01-before.json
@@ -16,6 +20,8 @@ files:
   prefixes: []
 authority_domains:
   - AIV_CANVAS_PRESENTATION_STATE
+  - AIV_CANVAS_DEGRADED_MODE
+  - AIV_PRODUCT_MODULE_CACHE_CUSTODY
   - AIV_PRODUCTION_FREEZE_EVIDENCE
 claim_modes:
   - EXCLUSIVE
@@ -23,9 +29,12 @@ claim_modes:
 notes:
   - "Current production baseline remains main d659e670a2f8fe0a35fc8072382512f6493898cf."
   - "Owner live Chromium reproduction confirmed the exact PF-01 caseId failure through dataset load and Check Readiness."
-  - "Only production change is one-line null normalization in the canvas filter state factory."
-  - "package.json is claimed only to register the focused regression in verify:aiv-canvas; no dependency/workflow change."
-  - "No claim over AIV numerical equations, benchmark expected values, master authority, readiness/calculator semantics, grouping, async custody, physical-distance authority, result scope, or exports."
+  - "Root numerical/engineering behavior is unchanged; filter correction is one-line null normalization."
+  - "Canvas-only failures are now contained as degraded presentation and cannot masquerade as engineering action failure."
+  - "AIV qualification product import token advanced from -1 to -2 solely for cache-distinct delivery of the patched workspace."
+  - "New presentation-invariance regression proves B6 contract through the registered screening path when natively executed."
+  - "package.json is claimed only for PF-01 regression/release-gate registration; no dependency or workflow change."
+  - "No claim over AIV equations, frozen benchmark values, master authority, readiness/calculator semantics, simultaneous-source-group policy, async custody, physical-distance authority, result scope, or export contracts."
   - "PR #506 remains salvage/evidence only and was not bulk replayed."
-  - "PF-02 remains unauthorized until full patched application replay, B1-B6, and release suite are complete."
-last_verified_implementation_head: 8ce49f991d6907694f284398026a8114437d9740
+  - "PF-02 remains unauthorized until exact-head native B1-B6, release suite, and full post-fix application Chromium replay are complete."
+last_verified_implementation_head: 835c908ad16fa206aa510136068ea6d1b0578a12
