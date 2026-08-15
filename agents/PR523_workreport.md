@@ -13,384 +13,420 @@ EXECUTION_MODE: MANUAL
 AUTO_STATE: NOT_ACTIVE
 SCOPE_AUTHORITY: OWNER_EXPANDED
 PHASE_PROGRESSION: MANUAL
-MERGE_AUTHORITY: OWNER_ONLY
+MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
 
 REPOSITORY: reallaksh19/3D_Converters
-SOURCE_TASK: Owner instruction 2026-08-15 — follow Engineering PR Delivery; start qualified HP implementation; then "proceed next"
 PR_OR_WIP: PR523
 BRANCH: agent/hp-ch9-core-static-r1
 
-PR_HEAD_OBSERVED: f11582ea379dfeb067d40236574a95c06df07dbb
-REPORT_BASIS_HEAD: f11582ea379dfeb067d40236574a95c06df07dbb
 MAIN_HEAD_LAST_CHECKED: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
 MERGE_BASE: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-REPORT_SYNC: CURRENT
+IMPLEMENTATION_HEAD: 7111a3f169405519511a71cc220dced27ddd9feb
+REPORT_BASIS_HEAD: 7111a3f169405519511a71cc220dced27ddd9feb
+REPORT_SYNC: CURRENT_FOR_IMPLEMENTATION_HEAD
 
-APPENDIX_A_STATUS: CURRENT
-GROUNDING_EPOCH: GE-006
-CURRENT_TAKEOVER: NONE
+GROUNDING_EPOCH: GE-007
+CURRENT_STAGE: VALIDATE / RECONCILE GOVERNED MASTER RESOLVERS
+LAST_COMPLETED_STAGE: STRAIGHT_PRESSURE + WALL_STATE + QUALIFICATION PACKAGE + RESOLVE_BASIS
+CURRENT_BLOCKER: native repository `npm run verify:hp-chapter-ix` is NOT_RUN in connector-only environment; licensed B31.3 source/benchmark authority remains unestablished
+HIGHEST_RISK: allowing traceable but unqualified master records to become design inputs without an explicit later authority-promotion gate
 
-CURRENT_STAGE: VALIDATE / RECONCILE QUALIFICATION-PACKAGE GATE
-LAST_COMPLETED_STAGE: STRAIGHT_PRESSURE + WALL_STATE + NON-AUTHORIZING QUALIFICATION PACKAGE
-CURRENT_BLOCKER: native repository `npm run verify:hp-chapter-ix` cannot execute in connector-only environment; licensed source/benchmark evidence is not yet supplied
-HIGHEST_RISK: mistaking structurally complete qualification evidence for permission to promote calculation/design authority
-LAST_DURABLE_CHECKPOINT: qualification-package implementation reconciled at f11582ea379dfeb067d40236574a95c06df07dbb
-
-EXACT_NEXT_ACTION: next bounded implementation should add governed material/product/tolerance resolver contracts in SOURCE_PENDING/DRAFT state only, or populate the qualification package with real licensed evidence when independently checked data are available. Do not unlock strict/design execution and do not merge.
+EXACT_NEXT_ACTION: preserve all current benchmark-only gates; next bounded stage should define production master storage/migration contracts for allowable stress, dimensions, manufacturing tolerance, product identity and corrosion policy, quarantine current Advanced_Analysis seed rows as SOURCE_PENDING/test-only, and only then compose RESOLVE_BASIS into straight-pressure execution in benchmark mode. Do not add fatigue/components/CAESAR and do not merge without owner authorization.
 ```
 
 ## 2. Handover in 60 Seconds
 
-### What is now true
-- PR523 remains draft/open/mergeable/unmerged.
-- `main` remains `e97effb06ff9bfcad5ea87381abaa9f2665c1bdd`.
-- Active central IDs:
+What is now true:
+- PR523 remains draft/open/unmerged.
+- `main` is unchanged from the stage baseline.
+- Active Chapter IX central IDs are:
+  - `PIPE.B313.CH9.RESOLVE_BASIS`
   - `PIPE.B313.CH9.STRAIGHT_PRESSURE`
   - `PIPE.B313.CH9.WALL_STATE`
-- Both calculation IDs remain `BENCHMARK_ONLY`, `designAuthority=false`, `codeCompliance=false`.
-- WALL_STATE explicitly separates nominal, minimum-as-manufactured, BOL conservative, EOL effective, measured-current and projected-EOL wall states.
-- New `b313-ch9-qualification-package/v1` evaluator checks source/benchmark evidence without granting calculation authority.
-- Qualification package states are:
-  - `INVALID_PACKAGE`
-  - `SOURCE_PENDING`
-  - `BENCHMARK_PENDING`
-  - `EVIDENCE_COMPLETE_NOT_AUTHORIZED`
-- Even `EVIDENCE_COMPLETE_NOT_AUTHORIZED` returns `canPromoteCalculationAuthority=false`.
-- CLI `scripts/verify-b313-ch9-qualification-package.mjs` provides machine-readable qualification-package status; exit 0 means evidence structurally complete, not design authorization.
-- Advanced_Analysis `APPROVED`/`ACTIVE` seed records remain unpromoted; the seed-like B31.3 source fixture is deliberately classified `SOURCE_PENDING`.
+- All three remain `BENCHMARK_ONLY`, `designAuthority=false`, `codeCompliance=false`.
+- `RESOLVE_BASIS` is trace-only; `assessment.pass=null` and `canUseForDesignAuthority=false`.
+- B31.3 allowable-stress provenance is separate from mechanical/elastic-property provenance.
+- Pipe dimension provenance is separate from manufacturing-tolerance provenance.
+- Allowable-stress extrapolation is prohibited.
+- Legacy collapsed product/tolerance rows fail closed.
+- Advanced_Analysis `ACTIVE/APPROVED` labels are not imported as authority.
+- The non-authorizing qualification package remains unchanged: even complete evidence cannot promote calculation authority.
 
-### Proven in this PR
-Straight pressure:
-- frozen NPS4 software-regression arithmetic retained;
-- strict/default/screening fail closed;
-- software-regression authority only.
-
-Wall state:
-- exact branch blobs locally executed:
-  - kernel `2e06c5755541359aae014dd4b450f8785cdeeaf2`;
-  - adapter `e6182d3b25dc48c28663f10c73b8b5c78e046151`.
-- domain PASS 6/6;
-- adapter PASS 3/3;
-- `13.49 -> 11.80375 -> 8.80375 mm` greenfield trace;
-- `10.2 - (1.2+0.3) = 8.7 mm` brownfield trace;
-- orphan future loss and non-positive EOL projections fail closed.
-
-Qualification package:
-- exact branch blobs locally executed:
-  - evaluator `05d968acc6e30762455f6d43e4aadbee3729cdf0`;
-  - CLI `92f37bce23a8d756aeadd1270a4b90e5b2448619`.
-- `node --check` PASS for evaluator and CLI.
-- evaluator PASS 5/5:
-  - malformed envelope -> `INVALID_PACKAGE`;
-  - seed-like ACTIVE source lacking independent controlled-source custody -> `SOURCE_PENDING`;
-  - edition mismatch -> `SOURCE_PENDING`;
-  - incomplete numerical benchmark -> `BENCHMARK_PENDING`;
-  - structurally complete synthetic evidence -> `EVIDENCE_COMPLETE_NOT_AUTHORIZED`, promotion flag false.
-- CLI exact-byte behavior:
-  - pending evidence -> exit 2;
-  - complete-but-not-authorized evidence -> exit 0;
-  - invalid JSON/read -> exit 1.
-- no production calculation authority is changed by this evaluator.
-
-### Still NOT_RUN / not established
-- repository-native `npm run verify:hp-chapter-ix` on a complete checkout;
-- full default-registry import graph execution;
-- licensed ASME B31.3 Chapter IX reconciliation;
-- real controlled source hash custody and double-check evidence;
-- real independent numerical Class-E benchmark values;
-- governed material/product/tolerance/corrosion masters;
-- fatigue/KD-3, components/B31J, CAESAR, FEA, thermal-system or vibration qualification.
+Still NOT_RUN / not established:
+- native `npm run verify:hp-chapter-ix` in a complete checkout;
+- full default-registry import graph under the native repository runtime;
+- independently checked licensed B31.3 production source custody;
+- real Class-E numerical Code benchmark;
+- production material/product/tolerance master promotion;
+- KD fatigue, components/B31J/FEA, CAESAR parity, routed-system qualification.
 
 ## 3. Repository Ground Truth
 
 ```text
-GE-006
 main: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-PR: #523 OPEN / DRAFT / MERGEABLE
-implementation head: f11582ea379dfeb067d40236574a95c06df07dbb
-merge base: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-changed paths: 11
-commits ahead: 21
+PR: #523 DRAFT / OPEN / MERGEABLE / UNMERGED
+implementation head: 7111a3f169405519511a71cc220dced27ddd9feb
+ahead: 30
 behind: 0
+changed paths: 16
 review threads: 0
+workflow files changed: 0
 ```
 
-Changed paths:
-1. `agents/PR523_workreport.md`
-2. `converters/b313-chapter-ix/qualification-package.js`
-3. `converters/b313-chapter-ix/straight-pipe.js`
-4. `converters/b313-chapter-ix/wall-state.js`
-5. `converters/engineering-calculations/adapters/b313-chapter-ix-wall-state.js`
-6. `converters/engineering-calculations/adapters/b313-chapter-ix.js`
-7. `converters/engineering-calculations/default-registry.js`
-8. `package.json`
-9. `scripts/verify-b313-ch9-qualification-package.mjs`
-10. `tests/b313-chapter-ix-core.test.mjs`
-11. `tests/engineering-calculation-core.test.mjs`
-
-New file line counts at implementation head:
+Implementation-head hosted workflow truth:
 ```text
-straight-pipe.js                         98
-wall-state.js                            97
-qualification-package.js                143
-b313-chapter-ix.js                       187
-b313-chapter-ix-wall-state.js            164
-verify-b313-ch9-qualification-package    53
-tests/b313-chapter-ix-core.test.mjs      282
+31895736296 controlled-source-qualification -> job 95038667400 -> steps=null
+31895736294 Source tests and browser bundle -> job 95038667415 -> steps=null
+31895736298 node-and-chromium -> job 95038667552 -> steps=null
+classification: NOT_RUN / INFRASTRUCTURE_BLOCKED
+meaning: no HP product PASS or HP product FAIL observed
 ```
-All are under 300 lines.
 
-## 4. Mission / Scope / Acceptance
-
-Current mission: establish a recoverable R1 Chapter IX straight-pipe calculation foundation with explicit wall custody and evidence qualification, while authority remains fail-closed.
-
-Included:
-- bounded straight-pressure kernel/central adapter;
-- explicit greenfield/brownfield wall-state kernel/central adapter;
-- central registry integration;
-- benchmark-only execution guards;
-- software regression and arithmetic guards;
-- qualification-package evidence evaluator + CLI;
-- HP focused verification command.
-
-Excluded:
-- design/Code authority promotion;
-- use of Advanced_Analysis seed status as authority;
-- licensed data transcription in this PR;
-- KD fatigue/fatigue curves;
-- component/B31J/FEA;
-- CAESAR;
-- UI redesign;
-- `.github/workflows/*` changes;
-- merge.
-
-Acceptance status:
-1. straight-pressure usable in benchmark mode — COMPLETE;
-2. explicit wall-state custody — COMPLETE;
-3. qualification evidence gate — COMPLETE and non-authorizing;
-4. no hidden/default engineering values — COMPLETE;
-5. isolated independent arithmetic/evidence validation — PASS;
-6. exact PR/review/hosted-state reconciliation — PASS;
-7. native full repository suite — NOT_RUN;
-8. licensed Code qualification — NOT ESTABLISHED.
-
-## 5. Implementation State
-
-| Work item | Implementation | Integration | Validation | Remaining |
-|---|---|---|---|---|
-| Straight pressure | COMPLETE | central registry | isolated PASS | native suite / licensed method |
-| WALL_STATE | COMPLETE | central registry | domain 6/6, adapter 3/3 PASS | native suite / governed masters |
-| Qualification package | COMPLETE | standalone evidence gate | evaluator 5/5 + CLI PASS | real licensed evidence |
-| Central catalogue | COMPLETE | 6 executable / 18 blocked expectation | source reconciled | native suite |
-| HP focused tests | COMPLETE | package command | source + isolated evidence | native suite |
-| Recovery | CURRENT | PR523 | reconciled | maintain |
-
-## 6. Active Engineering Item Register
-
-| ID | Type | Severity | Status | Summary |
-|---|---|---|---|---|
-| IMP-001 | implementation | HIGH | COMPLETE | central straight-pressure calculation |
-| IMP-002 | implementation | HIGH | COMPLETE | explicit wall-state custody |
-| IMP-003 | governance | CRITICAL | COMPLETE | non-authorizing method/source/benchmark evidence evaluator |
-| RISK-001 | authority | CRITICAL | MITIGATED_CURRENT_SCOPE | calculations remain benchmark-only; qualification evaluator cannot promote |
-| RISK-002 | source provenance | CRITICAL | OPEN | real licensed source/double-check evidence not yet present |
-| RISK-003 | validation | HIGH | OPEN | native HP suite NOT_RUN |
-| RISK-004 | benchmark authority | CRITICAL | MITIGATED_CURRENT_SCOPE | finite expected outputs + independent custody required; complete evidence still non-authorizing |
-| DEC-001 | scope | HIGH | ACCEPTED | R1 stays straight-pipe foundation |
-| DEC-002 | validation | CRITICAL | ACCEPTED | software regression != licensed Code qualification |
-| DEC-003 | architecture | HIGH | ACCEPTED | pure kernels + thin adapters + separate evidence evaluator |
-| DEC-004 | wall custody | HIGH | ACCEPTED | explicit BOL/EOL/current wall labels, no implicit future-loss zeros |
-| DEC-005 | qualification | CRITICAL | ACCEPTED | structural evidence completeness is distinct from authority promotion |
-| QST-001 | source authority | HIGH | OPEN | real independently checked B31.3 source identity required |
-| QST-002 | benchmark authority | HIGH | OPEN | real independent licensed numerical benchmark required |
-
-## 7. Technical Diagnosis / Next Boundary
+## 4. Current R1 Architecture
 
 ```text
-Observed risk: production-looking status labels in seed data can look more authoritative than their underlying evidence.
-Implemented control: normal calculation inputs do not affect qualification state; qualification package has explicit source and benchmark custody requirements.
-Seed-like result: SOURCE_PENDING.
-Structurally complete synthetic result: EVIDENCE_COMPLETE_NOT_AUTHORIZED.
-Protected invariant: canPromoteCalculationAuthority remains false in every evaluator state.
-Falsifier for next stage: if governed master records cannot be bound to controlled source identities without user/context authority injection, do not expose them to strict execution.
-Next isolating stage: governed material/product/tolerance resolver in non-authoritative DRAFT/SOURCE_PENDING state, unless real licensed qualification evidence is supplied first.
+controlled basis package
+  -> material allowable resolver
+       - exact B31.3 source role
+       - exact edition
+       - sha256 identity
+       - exact point or LINEAR_NO_EXTRAPOLATION
+  -> pipe product resolver
+       - product identity
+       - dimension record + dimension source
+       - separate tolerance rule + tolerance source
+  -> PIPE.B313.CH9.RESOLVE_BASIS
+       - trace only / non-authorizing
+  -> future composition gate
+       - STRAIGHT_PRESSURE benchmark path only until authority is separately granted
 ```
 
-## 8. Authority and Invariants
-
-- Both central Chapter IX calculations require `qualificationMode=benchmark`.
-- `qualification.effective=BENCHMARK_ONLY`.
-- `designAuthority=false`.
-- `codeCompliance=false`.
-- Straight pressure = `SOFTWARE_REGRESSION_ONLY`.
-- Wall state = `INPUT_CUSTODY_ONLY`, `TRACE_ONLY`, no adequacy PASS.
-- Qualification evaluator cannot promote calculation authority.
-- A source must exactly match B31.3 edition, have sha256 identity, independently checked status, distinct verifier/checker, and timestamps before it passes source evidence.
-- A benchmark must be independent, independently checked, source-bound, have distinct producer/reviewer, and finite expected static outputs.
-- No hidden/default material, tolerance, corrosion, erosion or wall-loss values.
-- No workflow files modified.
-- Frozen expected values are never regenerated from production output.
-
-## 9. Validation Ledger
-
-### VAL-001 — straight pressure
+Existing independent calculation paths:
 ```text
-Status: PASS
-Observation: LOCAL_EXECUTION
-Oracle: ANALYTICAL / frozen software regression
-Key pressure rating: 23.086120852009273 MPa
-Authority limitation: software regression only
+PIPE.B313.CH9.STRAIGHT_PRESSURE
+  -> bounded straight-pipe pressure/static software regression
+
+PIPE.B313.CH9.WALL_STATE
+  -> nominal -> minimum manufactured -> BOL -> EOL
+  -> optional measured current -> projected EOL
+
+qualification-package/v1
+  -> INVALID_PACKAGE
+  -> SOURCE_PENDING
+  -> BENCHMARK_PENDING
+  -> EVIDENCE_COMPLETE_NOT_AUTHORIZED
 ```
 
-### VAL-002 — wall state
+## 5. Governed Master Resolver Contracts
+
+### 5.1 Material allowable stress
+File: `converters/b313-chapter-ix/material-allowable-resolver.js`
+
+Required query:
 ```text
-Status: PASS
-Observation: LOCAL_EXECUTION
-Oracle: ANALYTICAL
-Kernel blob: 2e06c5755541359aae014dd4b450f8785cdeeaf2
-Adapter blob: e6182d3b25dc48c28663f10c73b8b5c78e046151
-Domain: 6/6 PASS
-Adapter: 3/3 PASS
+materialId
+b313Edition
+material temperature
 ```
 
-### VAL-003 — qualification evaluator
+Required controlled row/source behavior:
+- row is bound to exact material ID and B31.3 edition;
+- positive finite allowable stress;
+- explicit source ID and locator;
+- source role must be `B313_ALLOWABLE_STRESS`;
+- source standard must be `ASME B31.3`;
+- source edition must exactly match the requested method edition;
+- exact sha256 source identity required;
+- exact table point accepted;
+- interpolation only when both bracket rows explicitly declare `LINEAR_NO_EXTRAPOLATION`;
+- interpolation cannot cross source identities;
+- no extrapolation.
+
+Evidence state:
 ```text
-Status: PASS
-Observation: LOCAL_EXECUTION
-Oracle: INDEPENDENT_REPRODUCTION / contract expectations
-Evaluator blob: 05d968acc6e30762455f6d43e4aadbee3729cdf0
-Syntax: PASS
-Cases: 5/5 PASS
-Expected authority invariant: canPromoteCalculationAuthority=false
-Actual: false for pending and complete states
+not independently checked -> SOURCE_PENDING
+independently checked       -> RESOLVED_NOT_AUTHORIZED
+canUseForDesignAuthority    -> always false in R1
 ```
 
-### VAL-004 — qualification CLI
+This prevents the pre-existing provenance conflation where allowable stress and mechanical/elastic properties shared a single Section II-D-oriented row/source model.
+
+### 5.2 Pipe product / dimensions / tolerance
+File: `converters/b313-chapter-ix/pipe-product-resolver.js`
+
+Required separation:
 ```text
-Status: PASS
-Observation: LOCAL_EXECUTION
-Oracle: INDEPENDENT_REPRODUCTION
-CLI blob: 92f37bce23a8d756aeadd1270a4b90e5b2448619
-Syntax: PASS
-pending package: exit 2 / SOURCE_PENDING
-complete synthetic package: exit 0 / EVIDENCE_COMPLETE_NOT_AUTHORIZED
-invalid JSON: exit 1 / INVALID_PACKAGE
-Authority limitation: exit 0 means evidence complete only, not design authorization
+product identity
+  -> dimensionId
+      -> dimension row
+      -> PIPE_DIMENSION source
+  -> toleranceRuleId
+      -> manufacturing tolerance row
+      -> PRODUCT_TOLERANCE source
 ```
 
-### VAL-005 — PR reconciliation
+The dimension source and tolerance source are independent custody channels. A single legacy product row containing a tolerance value without a governed tolerance rule is not accepted.
+
+Resolved trace includes:
+```text
+outsideDiameterMm
+nominalWallMm
+minusTolerancePct
+minimumAsManufacturedWallMm
+separate dimension provenance
+separate tolerance provenance
+```
+
+### 5.3 Combined basis
+File: `converters/b313-chapter-ix/basis-resolver.js`
+
+Package version:
+```text
+b313-ch9-basis-package/v1
+```
+
+Master arrays:
+```text
+materialAllowable
+pipeProduct
+pipeDimension
+manufacturingTolerance
+sources
+```
+
+Combined state:
+```text
+any evidence issue -> SOURCE_PENDING
+all resolver custody independently checked -> RESOLVED_NOT_AUTHORIZED
+canUseForDesignAuthority -> false
+```
+
+## 6. Central API Contract
+
+Calculation ID:
+```text
+PIPE.B313.CH9.RESOLVE_BASIS
+```
+
+Definition authority:
+```text
+calculationState   = IMPLEMENTED
+qualificationState = BENCHMARK_ONLY
+codeCompliance     = false
+```
+
+Execution:
+```text
+qualificationMode=benchmark -> trace execution allowed
+strict/default/other         -> ENGINEERING_METHOD_NOT_QUALIFIED
+```
+
+Result authority:
+```text
+assessment.pass = null
+assessment.canUseForDesignAuthority = false
+engineeringAuthority = MASTER_RESOLUTION_TRACE_ONLY
+```
+
+## 7. Validation Ledger
+
+### VAL-001 — material resolver
 ```text
 Status: PASS
-Observation: REMOTE_EXECUTION
-HEAD: f11582ea379dfeb067d40236574a95c06df07dbb
-Actual: 11 intended paths; 21 ahead; 0 behind; 0 review threads
+Observation: LOCAL_EXECUTION / byte-equivalent reconstruction
+Production blob: 9398f081cb655b13cb081644d4811dbac9ebe323
+Cases:
+- exact table point -> PASS
+- 100/200 C linear interpolation at 150 C -> 140 MPa PASS
+- extrapolation to 250 C -> fail closed PASS
+- Section II-D source presented as B31.3 allowable source -> fail closed PASS
+- source-pending custody -> value traceable but design authority false PASS
 ```
 
-### VAL-006 — native HP suite
+### VAL-002 — product/tolerance resolver
+```text
+Status: PASS
+Observation: LOCAL_EXECUTION / byte-equivalent reconstruction
+Production blob: be72da55442c33f41983620b6e7e2f9af6da6a51
+Synthetic case:
+D = 114.3 mm
+tnom = 13.49 mm
+tolerance = 12.5%
+minimum manufactured wall = 11.80375 mm
+dimension source != tolerance source
+Cases:
+- separated provenance -> PASS
+- legacy collapsed tolerance -> fail closed PASS
+- tolerance applicability mismatch -> fail closed PASS
+```
+
+### VAL-003 — combined basis
+```text
+Status: PASS
+Observation: LOCAL_EXECUTION / byte-equivalent reconstruction
+Production blob: 73b8cad9b9d7f6c770a999cf4d60ab3215c940a1
+- checked synthetic masters -> RESOLVED_NOT_AUTHORIZED PASS
+- pending tolerance source -> SOURCE_PENDING PASS
+- design-authority flag remains false PASS
+```
+
+### VAL-004 — central adapter
+```text
+Status: PASS
+Observation: LOCAL_EXECUTION / byte-equivalent reconstruction
+Production blob: 8136fd35d242201ac848cd39e2516509310a6d6e
+- registry definition grammar -> PASS
+- strict execution blocked -> PASS
+- benchmark trace -> PASS
+- bad allowable provenance -> fail closed PASS
+- assessment.pass=null -> PASS
+- qualification effective BENCHMARK_ONLY -> PASS
+```
+
+### VAL-005 — focused test source
+```text
+Status: SOURCE_REVIEWED
+File: tests/b313-chapter-ix-master-resolvers.test.mjs
+Blob: 0a11470a278fd288d32a328faf127c6fcc1c043c
+Line count: 249 (<300)
+Native execution: NOT_RUN / ENVIRONMENT_BLOCKED
+```
+
+### VAL-006 — central catalogue
+```text
+Status: SOURCE_RECONCILED
+Expected total definitions: 25
+Expected executable definitions: 7
+New active ID: PIPE.B313.CH9.RESOLVE_BASIS
+Blocked placeholders retained: 18
+Native execution: NOT_RUN / ENVIRONMENT_BLOCKED
+```
+
+### VAL-007 — repository-native HP suite
 ```text
 Status: NOT_RUN
-Observation: NOT_OBSERVED
-Oracle: IMPLEMENTATION_COUPLED
 Command: npm run verify:hp-chapter-ix
-Reason: connector-only environment has no native repository checkout/runtime
-```
-
-### VAL-007 — hosted workflow truth at implementation head
-```text
-Status: NOT_RUN
-Observation: REMOTE_EXECUTION
-HEAD: f11582ea379dfeb067d40236574a95c06df07dbb
-Jobs:
-  95032487303 Source tests and browser bundle -> steps=[] runner_id=0
-  95032487324 node-and-chromium -> steps=[] runner_id=0
-  95032487406 controlled-source-qualification -> steps=[] runner_id=0
-Classification: INFRASTRUCTURE_BLOCKED / ZERO_EXECUTED_STEPS
-Meaning: neither HP PASS nor HP FAIL observed
+Current command includes:
+- tests/b313-chapter-ix-core.test.mjs
+- tests/b313-chapter-ix-master-resolvers.test.mjs
+- tests/engineering-calculation-core.test.mjs
+Reason: connector-only execution environment lacks native repository checkout/runtime
 ```
 
 ### VAL-008 — licensed Code qualification
 ```text
-Status: NOT_RUN
-Observation: NOT_OBSERVED
-Oracle: AUTHORITATIVE_REFERENCE
-Required: real controlled licensed source + independent numerical benchmark
-Authority: NOT_ESTABLISHED
+Status: NOT_ESTABLISHED
+Required before any future authority promotion:
+- real licensed B31.3 source identity/custody
+- exact edition/method reconciliation
+- independently produced and independently checked numerical benchmark
+- explicit owner/engineering authority promotion action
 ```
 
-## 10. Changed-File Ledger
+No expected numerical value or tolerance was modified to obtain a pass.
 
-All 11 PR paths are intended. Engineering-sensitive production paths are limited to Chapter IX kernels/adapters and the surgical central-registry registration. No workflow file changed.
+## 8. Changed-File Ledger
 
-Pre-edit backup CLI remains `NOT_RUN / ENVIRONMENT_BLOCKED` because there is no native checkout; immutable Git pre-edit blobs are retained in PR history. No claim is made that `node utils/backup.js save ...` ran.
+All 16 PR paths at implementation head are intended:
+1. `agents/PR523_workreport.md`
+2. `converters/b313-chapter-ix/basis-resolver.js`
+3. `converters/b313-chapter-ix/material-allowable-resolver.js`
+4. `converters/b313-chapter-ix/pipe-product-resolver.js`
+5. `converters/b313-chapter-ix/qualification-package.js`
+6. `converters/b313-chapter-ix/straight-pipe.js`
+7. `converters/b313-chapter-ix/wall-state.js`
+8. `converters/engineering-calculations/adapters/b313-chapter-ix-basis.js`
+9. `converters/engineering-calculations/adapters/b313-chapter-ix-wall-state.js`
+10. `converters/engineering-calculations/adapters/b313-chapter-ix.js`
+11. `converters/engineering-calculations/default-registry.js`
+12. `package.json`
+13. `scripts/verify-b313-ch9-qualification-package.mjs`
+14. `tests/b313-chapter-ix-core.test.mjs`
+15. `tests/b313-chapter-ix-master-resolvers.test.mjs`
+16. `tests/engineering-calculation-core.test.mjs`
+
+New Stage-4 files satisfy repository line policy:
+```text
+material-allowable-resolver.js          193
+pipe-product-resolver.js                225
+basis-resolver.js                        96
+b313-chapter-ix-basis.js                148
+b313-chapter-ix-master-resolvers.test   249
+```
+All are <300 lines.
+
+No `.github/workflows/*` file changed.
+
+## 9. Authority / Protected Invariants
+
+- no design-authority promotion in this PR;
+- no Code-compliance claim;
+- no use of Advanced_Analysis `APPROVED/ACTIVE` labels as authority;
+- no Section II-D-only provenance accepted for B31.3 allowable stress;
+- no extrapolation of allowable stress;
+- no inferred manufacturing tolerance from schedule/dimension standard;
+- no collapsed dimension/tolerance provenance;
+- no silent zero corrosion/future-loss assumptions;
+- no fatigue/component/CAESAR/system claims;
+- no expected-value regeneration from production output;
+- no workflow changes;
+- no merge without explicit owner authorization.
+
+## 10. Source-Audit Findings Preserved
+
+Current Advanced_Analysis seed data remain specification/input candidates only.
+
+Known promotion blockers include:
+- `material_property.csv` combines allowable stress, yield, tensile and elastic properties under one source model; production rows point to a Section II-D source even though the R1 allowable-stress resolver requires B31.3 authority;
+- `pipe_product.csv` combines product/dimension/tolerance concepts and often uses one B36.10M source ID while the tolerance basis names a different product specification;
+- current source/master `ACTIVE/APPROVED` labels do not by themselves satisfy independent source custody required by this PR.
+
+No production data from those rows were copied into the qualified runtime master layer.
 
 ## 11. Review / CI State
 
 ```text
-PR: draft/open/mergeable
+PR523: draft / open / mergeable / unmerged
 review threads: 0
-implementation-head hosted jobs: zero-step infrastructure-blocked
-repository-native HP suite: NOT_RUN
+hosted jobs at implementation head: zero-step / infrastructure-blocked
+native HP suite: NOT_RUN
 merge authority: NOT_GRANTED
 ```
 
-## 12. Coordination / Overlap
+## 12. Coordination / Cleanup
 
+No active competing Chapter IX PR was found at the start of the stage. Central registry changes remain surgical.
+
+Connector probe cleanup debt:
 ```text
-MASTER_INDEX_CHECKED: absent on main
-STATUS_RECORD: PR523 workreport
-CLAIM_RECORD: PR523 + progression comments
-FILE_OVERLAP: no active Chapter IX-specific overlap observed at progression start
-AUTHORITY_OVERLAP: none observed
-DEPENDENCY_OVERLAP: default registry touched surgically
-COORDINATION_STATE: SAFE
+agent/hp-ch9-master-resolvers-tmp
+agent/hp-ch9-master-resolvers-tmp2
+agent/hp-ch9-master-resolvers-tmp3
+agent/hp-ch9-master-resolvers-tmp4
+agent/hp-ch9-master-resolvers-tmp5
 ```
+These five branches point to the pre-Stage-4 PR head and are not part of PR523. The installed GitHub connector exposes no branch-delete action and local `gh` is unavailable in this environment, so deletion is NOT_RUN rather than falsely claimed.
 
 ## 13. Continuation State
 
 ```text
-Start here: PR523
-Do not redo: straight-pressure, wall-state, qualification-package arithmetic/contracts
-Do not change: ordinary B31.3 mechanics, fatigue/KD, components/B31J/FEA, CAESAR, workflows
-Do not promote: Advanced_Analysis APPROVED/ACTIVE seed status
-Still required: native HP suite; real licensed source + independent benchmark; governed material/product/tolerance data
-Highest risk: treating evidence completeness as authority
-Exact next action: implement governed master resolver contracts in DRAFT/SOURCE_PENDING state, or load real independently checked qualification evidence if owner supplies it; strict/design execution stays blocked
+Start here: PR523 / agent/hp-ch9-core-static-r1
+Current central IDs: RESOLVE_BASIS, STRAIGHT_PRESSURE, WALL_STATE
+Do not redo: pure resolver contracts, wall-state custody, qualification-package gate
+Do not promote: any current Advanced_Analysis seed record
+Do not change: ordinary B31.3 mechanics, KD fatigue, components/B31J/FEA, CAESAR, workflows
+Still required: native HP suite + real licensed evidence + governed production-master migration
+Next safe implementation: production master storage/migration contracts with quarantine states, followed by benchmark-only composition of RESOLVE_BASIS -> STRAIGHT_PRESSURE
 ```
-
-## 14. Grounding / Custody Chain
-
-- GE-001 baseline current-main grounding.
-- GE-002 straight-pressure implementation reconciliation.
-- GE-003/004 PR allocation and initial handover.
-- GE-005 owner-expanded WALL_STATE stage.
-- GE-006 non-authorizing qualification-package stage at `f11582e...`.
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
 
-```text
-PR_HEAD: f11582ea379dfeb067d40236574a95c06df07dbb before this report-only commit
-MAIN_HEAD: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-GROUNDING_EPOCH: GE-006
-OPEN: RISK-002, RISK-003, QST-001, QST-002
-PARTIAL: governed master resolver not started
-NOT_RUN: native HP suite; licensed Code qualification
-APPENDIX_A_STATUS: CURRENT
-```
+A1 Production trace: follow `PIPE.B313.CH9.RESOLVE_BASIS` from object input through basis resolver to separate allowable/dimension/tolerance source custody.
 
-A1 Production Trace: trace both Chapter IX central calculations and prove the qualification-package evaluator is not part of a path that can enable strict execution.
+A2 Failure isolation: reproduce Section II-D-as-allowable, extrapolation, collapsed tolerance and tolerance-applicability failures without modifying resolver expectations.
 
-A2 Failure Isolation: if native HP verification fails, isolate registry/input/adapter/domain/evidence gate without changing frozen oracles.
+A3 Authority invariant: prove that SOURCE_PENDING and RESOLVED_NOT_AUTHORIZED both retain `canUseForDesignAuthority=false`, central qualification remains BENCHMARK_ONLY, and strict execution remains blocked.
 
-A3 Authority / Invariant: prove that even `EVIDENCE_COMPLETE_NOT_AUTHORIZED` cannot promote design authority and explain the separate owner/qualification action that would be required later.
+A4 Independent validation: reproduce `S(150 C)=140 MPa` for the synthetic 150/130 MPa bracket and `13.49*(1-0.125)=11.80375 mm` without reading production outputs.
 
-A4 Independent Validation: reproduce straight-pressure, wall-state and evaluator state transitions including negative cases and CLI exit semantics.
-
-A5 Next Minimal Patch: define a governed master resolver that can identify/source-check material and product records while remaining DRAFT/SOURCE_PENDING until controlled evidence exists.
-
-# HISTORICAL RECORD — NOT CURRENT AUTHORITY
-
-Stage 1: centralized bounded straight-pressure calculation as BENCHMARK_ONLY.
-
-Stage 2: added explicit WALL_STATE custody for greenfield/brownfield wall states.
-
-Stage 3: added non-authorizing method/source/benchmark qualification evaluator and CLI; structurally complete evidence still cannot promote authority.
+A5 Next commit: add only governed production-master storage/migration/quarantine contracts or benchmark-only basis-to-pressure composition; do not enter fatigue/component/system scope.
