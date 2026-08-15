@@ -25,15 +25,17 @@ function item(childKey = 'main', implementationState = 'IMPLEMENTED_BENCHMARK_ON
   });
 }
 
-test('mechanism lifecycle explicitly supports qualified screening and project-input candidates', () => {
+test('mechanism lifecycle explicitly supports screening and both candidate authority classes', () => {
   assert.deepEqual(VIBRATION_MECHANISM_IMPLEMENTATION_STATES, [
     'NOT_IMPLEMENTED',
     'IMPLEMENTED_BENCHMARK_ONLY',
     'IMPLEMENTED_SCREENING',
     'IMPLEMENTED_CANDIDATE_USER_INPUT',
+    'IMPLEMENTED_CANDIDATE_MASTER',
   ]);
   assert.equal(item('screening', 'IMPLEMENTED_SCREENING').implementationState, 'IMPLEMENTED_SCREENING');
-  assert.equal(item('candidate', 'IMPLEMENTED_CANDIDATE_USER_INPUT').implementationState, 'IMPLEMENTED_CANDIDATE_USER_INPUT');
+  assert.equal(item('user-candidate', 'IMPLEMENTED_CANDIDATE_USER_INPUT').implementationState, 'IMPLEMENTED_CANDIDATE_USER_INPUT');
+  assert.equal(item('master-candidate', 'IMPLEMENTED_CANDIDATE_MASTER').implementationState, 'IMPLEMENTED_CANDIDATE_MASTER');
 });
 
 test('mechanism assessment item identity is deterministic and delimiter-safe', () => {
