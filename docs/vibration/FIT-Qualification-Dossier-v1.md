@@ -262,12 +262,18 @@ Run evidence binds both identities, source descriptors and the central workflow 
 npm run verify:vibration-fit-release
 ```
 
-Current manifest contains **50 distinct controlled test files** and includes the merged #500/#501 shared-shell regressions. The Engineering Basis test also covers the new source-basis evidence/UI seam.
+Current manifest contains **51 distinct controlled test files**. It includes:
+
+- the merged #500/#501 shared-shell regressions;
+- `tests/vibration-integrity-engineering-basis.test.mjs` for the source-basis UI seam;
+- `tests/vibration-fit-d4-product-path-validation.test.mjs` for the D4 product-path validation seam.
+
+The release-gate self-test requires all 51 unique paths and explicitly requires the D4 product-path test.
 
 Execution truth:
 
 ```text
-native exact 50-file suite          NOT_RUN / ENVIRONMENT_BLOCKED
+native exact 51-file suite          NOT_RUN / ENVIRONMENT_BLOCKED
 real-browser acceptance             NOT_RUN
 real five-sheet XLSX acceptance     NOT_RUN
 ```
@@ -279,7 +285,7 @@ Static/source construction is not runtime PASS. Hosted jobs or status contexts t
 Still open:
 
 - direct governing T2.2 page/table/equation locator mapping;
-- exact 50-file release execution on one frozen candidate SHA;
+- exact 51-file release execution on one frozen candidate SHA;
 - real-browser/real-file acceptance;
 - controlled worked-example product-path reproduction on that same frozen SHA.
 
@@ -306,6 +312,7 @@ Closed/dispositioned:
 | Independent MEDIUM_SMALL | IMPLEMENTED / runtime NOT_RUN |
 | Independent advanced FLEXIBLE_LARGE | IMPLEMENTED / runtime NOT_RUN |
 | Bounded SI/US matrix | IMPLEMENTED / runtime NOT_RUN |
+| D4 product-path validation | IMPLEMENTED / runtime NOT_RUN |
 | Data Blockers | IMPLEMENTED / runtime NOT_RUN |
 | Cell/row/table revert | IMPLEMENTED / runtime NOT_RUN |
 | Elements/full-XLSX anti-bypass | IMPLEMENTED / runtime NOT_RUN |
@@ -313,7 +320,7 @@ Closed/dispositioned:
 | Run-evidence export | IMPLEMENTED / runtime NOT_RUN |
 | Current-main #500/#501 reconciliation | PASS |
 | Independent vibration-engineer review | NOT_APPLICABLE under Owner benchmark policy |
-| Exact 50-file release regression | NOT_RUN / ENVIRONMENT_BLOCKED |
+| Exact 51-file release regression | NOT_RUN / ENVIRONMENT_BLOCKED |
 | Browser/XLSX/CSV/Data Blockers acceptance | NOT_RUN |
 | Screening authority | NOT_AUTHORIZED |
 | Design authority | NOT_AUTHORIZED |
