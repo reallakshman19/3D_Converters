@@ -22,6 +22,7 @@ export const VIBRATION_INTEGRITY_PRODUCT_CONTRACT = Object.freeze({
   coreActions: VIBRATION_INTEGRITY_ACTION_IDS,
   resultStates: VIBRATION_INTEGRITY_RESULT_STATES,
   requiredCoreWorkspaceTabs: Object.freeze(['screening', 'user-data']),
+  requiredWorkspaceTabs: Object.freeze(['screening', 'mechanical', 'user-data']),
   extensionPolicy: Object.freeze({
     mechanismWorkspaceTabsAllowed: true,
     coreActionRenameAllowed: false,
