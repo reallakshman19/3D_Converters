@@ -10,16 +10,17 @@ CRITICALITY: ENGINEERING_CRITICAL
 PR: 511
 BRANCH: agent/vibration-product-freeze-v1
 BASE_MAIN: a49085cde69ef71518c0d6315a615477887d7b4e
-REPORT_BASIS_HEAD: cd38ef9c9425bf695c5c7579c1e8fe538e2f43b2
-GROUNDING_EPOCH: 2026-08-15T10:59Z
+PREVIOUS_REPORT_HEAD: e02e582acaeec0be8cd6edb2bc7ff96bfcef01e0
+TECHNICAL_CANDIDATE: cd38ef9c9425bf695c5c7579c1e8fe538e2f43b2
+GROUNDING_EPOCH: 2026-08-15T11:26Z
 TAKEOVER_AUTHORITY: WRITE_ALLOWED
 RECOVERY_DECISION: SALVAGE_PARTIAL / CONTINUE
 APPENDIX_A_STATUS: PASS 97/100
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
-CURRENT_STAGE: CHROMIUM_EXECUTION_RETRY_BLOCKED
+CURRENT_STAGE: CHROMIUM_PRODUCT_NAVIGATION_DIAGNOSTIC_PASS
 FREEZE_STATE: BLOCKED
-HIGHEST_RISK: treating zero-step hosted workflow failure, source conformance, or a non-production substitute as an executed Chromium production-freeze PASS
-EXACT_NEXT_ACTION: obtain an environment that can actually execute PF-001..PF-007 on the current candidate; inspect screenshots/receipt in order; fix only the first material user-visible defect if observed; replay the same controlled benchmarks; keep BLOCKED until real browser evidence exists
+HIGHEST_RISK: promoting policy-adapted in-memory Chromium evidence to the official URL-based Production Freeze gate
+EXACT_NEXT_ACTION: run the unchanged scripts/validate-vibration-production-freeze-browser.mjs in an environment where Chromium URL navigation is permitted; if PF-001..PF-007 pass there, reconcile artifacts and mark FROZEN; if a step fails, patch only the first material user-visible defect and replay the identical benchmark journey
 ```
 
 ## Handover in 60 Seconds
@@ -28,23 +29,14 @@ PR #511 owns the production-freeze/evidence slice distinct from PR #512:
 
 ```text
 controlled FIT + Mechanical benchmark replay
--> live Chromium PF-001..PF-007
+-> Chromium PF-001..PF-007
 -> visible-result comparison
--> screenshots
--> VibrationProductionFreezeReceipt.v1
--> FIT reproducibility export verification
--> SHA-256 identity of validated Activity provenance inside FitRunEvidencePackage.v1
+-> screenshots / receipt
+-> FitRunEvidencePackage.v1 verification
+-> SHA-256 identity of validated Activity provenance
 ```
 
-PR #512 owns the shared product layer:
-
-```text
-observational product workflow state
-Activity & workflow UI
-VibrationIntegrityAuditLog.v1
-non-authoritative Activity export
-shared product controller/event lifecycle
-```
+PR #512 owns the shared observational workflow/activity product layer.
 
 Architecture remains:
 
@@ -54,307 +46,224 @@ Activity / audit         != engineering evidence
 FitRunEvidencePackage.v1 = FIT engineering reproducibility evidence envelope
 ```
 
-## Live Ground Truth
+No equation, correlation, master value, tolerance, unit rule, interpolation policy, screening authority, candidate authority, or design authority was changed by this execution checkpoint.
+
+## Current Technical Ground Truth
 
 ```text
 main                         a49085cde69ef71518c0d6315a615477887d7b4e
 technical candidate          cd38ef9c9425bf695c5c7579c1e8fe538e2f43b2
 PR state                     OPEN / DRAFT
-mergeable                    true
-changed files before report  13
-open review threads          0 at latest inspection
 merge authority              OWNER ONLY / NOT GRANTED
+shared audit blob            f6135a3172a3b7a562a14635c36897b030873127
+shared workflow blob         a49dbac79854192be13fb6dc6d41c34dc84d2c83
+shared controller blob       cc3ab1c219ed7f4c4efdbfbaab9a6fe716857067
+input-view blob               e3cb918591e691473adfbea9a2fae27eb8181856
+run-evidence blob             6f09d34727b8da5c3c6954873d459d01430cf489
+PF browser script blob        f314ef9e1212a95295b55548e83e6c478ff0495e
 ```
 
-`agents/MASTER_INDEX.md` is absent. Governing repository instructions are root `AGENTS.md` and `.agents/AGENTS.md`.
-
-## REC-511-001 — Salvage Decision
-
-Disposition remains `SALVAGE_PARTIAL / CONTINUE`.
-
-Preserved from #511:
-
-- `docs/vibration/Production-Freeze-Protocol-v1.md`;
-- `scripts/validate-vibration-production-freeze-browser.mjs`;
-- FIT controlled oracle `EI-D2-FIT-RECYCLE-SUCTION-6IN`;
-- expected standard LOF `0.276 ± 0.0012`, band `LOF_LT_0_3`;
-- Mechanical EI D2/D2.4 oracle `0.20`, `0.40`, governing `0.40`;
-- screenshots `01` through `07` plus `99-failure.png`;
-- `VibrationProductionFreezeReceipt.v1`;
-- `FitRunEvidencePackage.v1` export verification;
-- candidate mechanisms cannot replace Screening governing;
-- `designAuthority=false`.
-
-Removed as duplicate product ownership:
-
-- separate result-state transition module;
-- separate FIT action/product-contract module;
-- competing workflow-state semantics;
-- competing audit schema;
-- competing product controller implementation.
-
-## DEC-511-001 — Workflow State and Result Currency Are Different Facts
-
-Shared observational workflow:
+The execution sandbox reconstructed exact main from GitHub Actions artifact `9244952792` (`github-pages`, workflow run `31876804486`, head `a49085c...`) and verified its downloaded ZIP SHA-256:
 
 ```text
-EMPTY
-INPUTS_LOADED
-READY_CHECKED
-RUNNING
-RESULT_CURRENT
-RESULT_STALE
-INVALID_INPUT
+e7ce2096076584e92239eae020e54b2c6a657f0dfffff9ad2f66da4aa14a0676
 ```
 
-FIT result currency remains:
+This matches GitHub artifact metadata exactly. The PR runtime files above were overlaid and their Git blob identities were recomputed locally before execution.
+
+## Browser Evidence — 2026-08-15
+
+### Official unchanged PF script attempt
+
+The exact repository script was executed with Chromium 144 after reconstructing the current runtime. It stopped before PF-001 product execution:
 
 ```text
-UNRUN
-RUNNING
-CURRENT_RESULT
-STALE_RESULT
-INVALID_INPUT
+page.goto http://127.0.0.1:4173/
+-> net::ERR_BLOCKED_BY_ADMINISTRATOR
 ```
 
-Example:
+Inspection of local managed Chromium policy shows `URLBlocklist: ["*"]`. The policy was not modified or bypassed. Classification:
 
 ```text
-workflow.state = RESULT_CURRENT
-resultState     = CURRENT_RESULT
+OFFICIAL PF SCRIPT: NOT_RUN / ENVIRONMENT_POLICY_BLOCKED
+PRODUCT FAILURE:    NO
+PRODUCT PASS:       NOT CLAIMED
 ```
 
-The workflow model derives navigation/product state and performs no engineering calculation.
+### Policy-compliant Chromium product diagnostic
 
-## DEC-511-002 — Activity Is Non-Authoritative Provenance
+To obtain bounded browser evidence without defeating administrator policy, Chromium remained on `about:blank` and loaded the exact repository ESM modules from an in-memory import map. The stronger diagnostic mounted production `installEngineeringTabs`, production Engineering Calculations, and the exact Vibration runtime. The outer URL/app bootstrap was the only substituted layer.
 
-Shared Activity events use `VibrationIntegrityAuditLog.v1` / `VibrationIntegrityAuditEvent.v1` with:
+Environment-only shims:
+
+- local ESM transport: in-memory data URLs because URL/local-file navigation is blocked;
+- `xlsx` stub present but not invoked by the controlled benchmark path;
+- SHA-256 Web Crypto shim used because top-level `about:blank` is not a secure context; shim was independently checked against SHA-256(`abc`) = `ba7816bf...15ad` before product execution.
+
+Chromium result:
 
 ```text
-sequence
-eventId
-timestamp
-eventType
-workflowBefore
-workflowAfter
-scopeId
-details
-authority.engineeringAuthority = NONE
-authority.purpose = ACTIVITY_AUDIT_ONLY
+browser                         Chromium 144.0.7559.96
+production module graph         222 modules
+PF-001 Engineering > VIB > FIT  PASS
+PF-002 controlled benchmark     PASS
+PF-003 readiness                PASS
+PF-004 FIT visible benchmark    PASS
+PF-005 Mechanical T2.3          PASS
+PF-006 authority boundary       PASS
+PF-007 FIT evidence export      PASS
+browser/page console errors     []
+classification                  PASS_BROWSER_DIAGNOSTIC / NOT_OFFICIAL_FREEZE
 ```
 
-The shared controller records `RUN_EVIDENCE_EXPORT_STARTED` before FIT evidence serialization. A validated, hashed Activity trail may be included as provenance inside `FitRunEvidencePackage.v1`; the FIT evidence package retains `authority.purpose = REPRODUCIBILITY_EVIDENCE_ONLY`.
-
-## DEC-511-003 — Shared Product Files Are Byte-Aligned With #512
+Controlled visible engineering results:
 
 ```text
-tabs/vibration-integrity-audit-log.js
-  f6135a3172a3b7a562a14635c36897b030873127
-
-tabs/vibration-integrity-workflow-state.js
-  a49dbac79854192be13fb6dc6d41c34dc84d2c83
-
-tabs/vibration-integrity-tab.js
-  cc3ab1c219ed7f4c4efdbfbaab9a6fe716857067
+FIT expected standard LOF       0.276
+FIT tolerance                   ±0.0012
+FIT visible actual              0.27668688083478665
+FIT band                        LOF_LT_0_3
+Mechanical expected governing   0.40
+Mechanical visible actual       0.40
+candidate replaces Screening    false
+designAuthority                 false
 ```
 
-PR #511 must not independently evolve these shared paths. Product workflow/activity changes belong in #512 first.
-
-## Production-Freeze Journey
+Downloaded evidence facts:
 
 ```text
-PF-001 Open Engineering Calculations > VIB > FIT workspace
-PF-002 Load controlled EI D2 FIT benchmark
-PF-003 Check readiness
-PF-004 Run FIT and compare visible result to book oracle
-PF-005 Evaluate Mechanical T2.3 against EI D2/D2.4 oracle
-PF-006 Verify candidate cannot replace Screening governing
-PF-007 Export and verify FIT reproducibility evidence + visible Activity state
+schema                           FitRunEvidencePackage.v1
+resultState                      CURRENT_RESULT
+authority.engineeringAuthority   SCREENING
+authority.designAuthority        false
+authority.purpose                REPRODUCIBILITY_EVIDENCE_ONLY
+Activity event authority         NONE / ACTIVITY_AUDIT_ONLY
+Activity event count             7
+Activity SHA-256 identity        e9330a2f3a70a26ab2bcfeeb813f0cc2e23c61b472b8b404e9b626ac2fb30118
 ```
 
-Required browser artifacts:
+The serialized FIT evidence correctly contains `RUN_EVIDENCE_EXPORT_STARTED`; the visible UI is then re-rendered after download and the final screenshot shows `Last audit: RUN_EVIDENCE_EXPORTED`.
+
+## Browser Artifact Hash Ledger
+
+Local diagnostic artifacts were hashed immediately after execution:
 
 ```text
-01-workspace.png
-02-benchmark-loaded.png
-03-readiness.png
-04-fit-result.png
-05-mechanical-result.png
-06-governing-matrix.png
-07-evidence-exported.png
-99-failure.png when applicable
-production-freeze-receipt.json
-vibration-fit-run-evidence.json when reached
-static-server log
+navigation-diagnostic-receipt.json  c20f4656bf88b15986719af4961a6d00a70f0e6e8fa6bbd4bd98a3b3af1d0cf9
+vibration-fit-run-evidence.json      ad6452450bc43c2921a87d66bdf10e91ad0b2acca67a2a9f350f5988217413b4
+01-workspace.png                     357a4cd8792d19d1c8281de52b71938cae7310ae3243fe17ceaa0f01a78723e9
+02-benchmark-loaded.png              f6080892cc2788c931568e63d26eade216ce724f4ef77bfd1cce7476d31cac73
+03-readiness.png                     12a5dbd918f81c17d8b119af94066d97579315902e46b265d15da86782af7c22
+04-fit-result.png                    9dd7e90412d33ad815611d5dc3260d299caeaa795b2b65b723fadd8277e969f0
+05-mechanical-result.png             a6e9ad31984efb9dd3439a17174408664d3e1c69139ccd01266c7c899831f2b6
+06-governing-matrix.png              c1cc56da8d2af32cf1637c8bf0051ed1c3cb364cf8df637f43d0ce96f360c121
+07-evidence-exported.png             1d1a67cc077dc9977c0104c99170f50816ef55a34824af59dc47f64031912abc
 ```
 
-PF-007 reads `event.eventType`, requires `RUN_EVIDENCE_EXPORT_STARTED` in the downloaded trail, verifies SHA-256 Activity identity and `designAuthority=false`, then waits for visible `RUN_EVIDENCE_EXPORTED`.
-
-## Engineering Authority / Protected Invariants
-
-```text
-FIT bounded screening authority          unchanged
-Mechanical T2.3 candidate authority      unchanged
-SBC Type-3 candidate authority           unchanged
-SBC T3 curve quarantine                  unchanged
-candidate replaces Screening governing   false
-designAuthority                          false
-```
-
-No equation, correlation, controlled tolerance, master value, interpolation/extrapolation rule, unit behavior or source authority was changed by this salvage.
+These are local execution artifacts, not a substitute for the CI artifact required by the durable Production Freeze protocol.
 
 ## Issue Ledger
 
 ### ISS-PF-001 — export status can remain visually stale
 
 ```text
-detection          SOURCE_DETECTED / CHROMIUM_CONFIRMATION_PENDING
+detection          SOURCE_DETECTED
 fix                re-render after successful register/evidence export audit append
 engineering impact none
 authority impact   none
-state              FIXED_UNVERIFIED
+browser diagnostic CONFIRMED FIXED
+final visible audit RUN_EVIDENCE_EXPORTED
+state              FIXED_BROWSER_CONFIRMED / OFFICIAL PF STILL POLICY_BLOCKED
 ```
+
+No further patch is justified for ISS-PF-001.
 
 ### ISS-SALVAGE-001 — workflow-state namespace collision
 
-`RESOLVED` — PR #511 consumes the shared observational workflow module; no separate result-state module remains.
+`RESOLVED` — #511 consumes the shared observational workflow contract.
 
 ### ISS-SALVAGE-002 — competing audit contract
 
-`RESOLVED` — PR #511 audit module is byte-identical to #512 and always non-authoritative.
+`RESOLVED` — #511 audit module is byte-identical to #512 and always non-authoritative.
 
 ### ISS-SALVAGE-003 — competing product controller
 
-`RESOLVED_SOURCE` — PR #511 controller is byte-identical to #512, including export-start logging. Browser proof remains `NOT_RUN`.
+`RESOLVED_BROWSER_DIAGNOSTIC` — shared controller path executed through PF-007, including export-start and post-export visible audit state.
 
-### ISS-INFRA-001 — hosted Chromium gate cannot acquire a runner
+### ISS-INFRA-001 — GitHub Actions runner budget
 
 ```text
 workflow run       31880362343
-technical head     cd38ef9c9425bf695c5c7579c1e8fe538e2f43b2
-attempt 1 job      95001965163
-attempt 2 job      95003113217
-attempt 2 status   completed / failure
-attempt 2 steps    []
-attempt 2 runner   runner_id=0 / runner_name=""
-job duration       2026-08-15T10:58:23Z -> 2026-08-15T10:58:25Z
-log blob           unavailable / no executed job log
+attempt 1 job      95001965163 / steps=[]
+attempt 2 job      95003113217 / runner_id=0 / steps=[]
+GitHub annotation  The job was not started because an Actions budget is preventing further use.
 classification     NOT_RUN / INFRASTRUCTURE_BLOCKED
 ```
 
-The failed job was explicitly retried once. The retry again executed zero steps. No product code, Node test, static server, Playwright install, browser navigation, benchmark comparison, screenshot or receipt ran.
+Do not retry until Actions budget/capacity changes.
 
-### ISS-INFRA-002 — local checkout path unavailable in execution sandbox
+### ISS-INFRA-002 — managed Chromium URL policy
 
 ```text
-attempt             git clone exact repository
-result              fatal: Could not resolve host: github.com
-local Node           available (v22.16.0)
-local Chromium       available (/usr/bin/chromium)
-repository checkout  NOT_AVAILABLE
-classification       NOT_RUN / ENVIRONMENT_BLOCKED
+managed policy     URLBlocklist: ["*"]
+exact PF page.goto ERR_BLOCKED_BY_ADMINISTRATOR
+classification     NOT_RUN / ENVIRONMENT_POLICY_BLOCKED
 ```
 
-No partial/local result is promoted as a product validation substitute.
-
-## Freeze-Harness Source Audit During Block
-
-The blocked interval was used only to verify the validation harness against production source contracts; no product change was made.
-
-Observed source alignment:
-
-- PF navigation selectors match the existing Stage-4 Chromium journey: `data-tab="engineering-calculations"`, `data-family-id="VIB"`, `data-calc-id="VIB.FIV.FLOW_TURBULENCE"`;
-- current Engineering Calculations source still renders `data-family-id` / `data-calc-id` and mounts the FIT workspace through `vibration-integrity-tab.js`;
-- Mechanical selectors and candidate-authority assertions match the previously authored Stage-4 browser acceptance path;
-- the production-freeze workflow installs Playwright 1.55.0 + Chromium before invoking the PF script;
-- PF-007 uses the reconciled shared Activity field `eventType`.
-
-Classification: `PASS_SOURCE_CONTRACT`, not browser PASS.
-
-No source-level harness mismatch was found that would justify a speculative patch.
+The policy was not changed or bypassed.
 
 ## Validation Ledger
 
-| Check | Status | Observation / Oracle | Evidence / limitation |
+| Check | Status | Observation / Oracle | Limitation |
 |---|---|---|---|
-| live main grounding | PASS | REMOTE_EXECUTION / GitHub | `main@a49085c...` |
-| shared audit/workflow focused smoke | PASS | LOCAL_EXECUTION / IMPLEMENTATION_COUPLED | prior exact focused execution |
-| shared audit blob parity #511/#512 | PASS | SOURCE_INSPECTION | `f6135a...` |
-| shared workflow blob parity #511/#512 | PASS | SOURCE_INSPECTION | `a49dbac...` |
-| shared controller blob parity #511/#512 | PASS | SOURCE_INSPECTION | `cc3ab1c...` |
-| controlled FIT oracle | PASS_SOURCE_CONTRACT | AUTHORITATIVE_REFERENCE | EI D2 `0.276 ±0.0012`, `LOF_LT_0_3` |
-| Mechanical oracle | PASS_SOURCE_CONTRACT | AUTHORITATIVE_REFERENCE | EI D2/D2.4 governing `0.40` |
-| PF selector/harness source audit | PASS_SOURCE_CONTRACT | SOURCE_INSPECTION | current DOM/controller/workflow paths align |
-| FIT Activity hash integration | PASS_SOURCE_CONTRACT | SOURCE_INSPECTION | validated trail + SHA-256 identity + reproducibility purpose |
-| hosted attempt 1 | NOT_RUN / INFRASTRUCTURE_BLOCKED | REMOTE_EXECUTION | job `95001965163`, steps `[]` |
-| hosted attempt 2 | NOT_RUN / INFRASTRUCTURE_BLOCKED | REMOTE_EXECUTION | job `95003113217`, runner_id `0`, steps `[]` |
-| local full checkout | NOT_RUN / ENVIRONMENT_BLOCKED | LOCAL_EXECUTION | DNS blocks GitHub clone |
-| repository-native full Node suite | NOT_RUN | NOT_OBSERVED | no complete executable checkout/runner |
-| PF Chromium journey | NOT_RUN / INFRASTRUCTURE_BLOCKED | NOT_OBSERVED | no browser step executed |
-| current freeze state | BLOCKED | Production-Freeze-Protocol-v1 | not `FROZEN`, not PASS |
+| main Pages artifact identity | PASS | LOCAL_ARTIFACT_INSPECTION / GitHub SHA-256 | exact main `a49085c...` |
+| PR runtime Git blob overlay | PASS | LOCAL_EXECUTION / Git blob SHA-1 | six runtime/harness blobs match GitHub |
+| Stage-4 focused Node tests | PASS 28/28 | LOCAL_EXECUTION / repository tests | focused, not full suite |
+| official JS PF script | NOT_RUN / POLICY_BLOCKED | LOCAL_EXECUTION | `page.goto` blocked before PF-001 |
+| production Engineering navigation PF-001 | PASS_BROWSER_DIAGNOSTIC | CHROMIUM / production modules | outer URL/app bootstrap substituted |
+| PF-002 benchmark load | PASS_BROWSER_DIAGNOSTIC | CHROMIUM | same controlled case |
+| PF-003 readiness | PASS_BROWSER_DIAGNOSTIC | CHROMIUM | 1 READY / 0 NOT_READY |
+| PF-004 FIT oracle | PASS_BROWSER_DIAGNOSTIC | AUTHORITATIVE_REFERENCE | 0.27668688 within ±0.0012 |
+| PF-005 Mechanical oracle | PASS_BROWSER_DIAGNOSTIC | AUTHORITATIVE_REFERENCE | 0.40 |
+| PF-006 authority | PASS_BROWSER_DIAGNOSTIC | CHROMIUM | candidate cannot replace Screening |
+| PF-007 run evidence | PASS_BROWSER_DIAGNOSTIC | CHROMIUM + ARTIFACT_INSPECTION | audit hash + designAuthority=false |
+| browser errors | PASS_BROWSER_DIAGNOSTIC | CHROMIUM | `[]` |
+| full repository Node suite | NOT_RUN | NOT_OBSERVED | not required to interpret diagnostic pass |
+| official freeze state | BLOCKED | Production-Freeze-Protocol-v1 | exact URL-based PF gate still unexecuted |
 
-A zero-step workflow failure is neither product FAIL nor product PASS.
-
-## Changed-File Ledger
-
-Technical PR #511 delta before this report update contains 13 paths:
+## Authority / Negative Assurance
 
 ```text
-.github/workflows/vibration-mechanical-stage4-validation.yml
-agents/PR511_workreport.md
-docs/vibration/Production-Freeze-Protocol-v1.md
-scripts/validate-vibration-production-freeze-browser.mjs
-scripts/verify-vibration-fit-release.mjs
-tabs/vibration-integrity-audit-log.js
-tabs/vibration-integrity-input-view.js
-tabs/vibration-integrity-run-evidence.js
-tabs/vibration-integrity-tab.js
-tabs/vibration-integrity-workflow-state.js
-tests/vibration-integrity-product-freeze.test.mjs
-tests/vibration-integrity-run-evidence-audit.test.mjs
-tests/vibration-production-freeze-browser-contract.test.mjs
+FIT bounded screening authority          unchanged
+Mechanical T2.3 candidate authority      unchanged
+SBC Type-3 candidate authority           unchanged
+candidate replaces Screening governing   false
+designAuthority                          false
+Activity engineering authority           NONE
+Activity purpose                         ACTIVITY_AUDIT_ONLY
+FIT evidence purpose                     REPRODUCIBILITY_EVIDENCE_ONLY
 ```
 
-Removed during salvage:
-
-```text
-tabs/vibration-integrity-product-contract.js
-tabs/vibration-integrity-result-state.js
-tests/vibration-integrity-tab-static.test.mjs
-```
+No product code was changed in this browser-execution checkpoint because PF-001..PF-007 production-module diagnostics exposed no material product defect.
 
 ## Overlap / Dependency State
 
-Classification: `COORDINATION_REQUIRED`.
+Classification remains `COORDINATION_REQUIRED`.
 
-PR #512 remains the shared product dependency. The overlapping audit/workflow/controller files are intentional byte parity, not competing semantics. #511 must not independently change shared workflow/activity behavior.
-
-## Backup / Rollback Evidence
-
-Repository backup CLI remains `NOT_RUN / ENVIRONMENT_BLOCKED`. Exact Git blobs and commit history remain rollback evidence; this limitation is not a PASS.
+PR #512 owns shared workflow/activity behavior. #511 must not independently evolve the aligned audit/workflow/controller paths.
 
 ## Exact Continuation State
 
-Do not patch production based on the zero-step CI failure.
-
-Next valid continuation is one of:
-
-1. restore/obtain hosted runner capacity and rerun `Vibration Production Freeze Validation`; or
-2. obtain a complete exact checkout in an environment with browser execution capability and run the same PF script against that checkout.
-
-Then:
+The next valid work is execution, not speculative coding:
 
 ```text
-inspect 01..07 screenshots + receipt
--> locate first material user-visible defect, if any
--> record before state
--> fix only that defect
--> rerun identical benchmark journey
--> compare FIT 0.276 ±0.0012 and Mechanical 0.40 oracles
--> verify authority + current-result evidence
--> retain after screenshot/receipt
--> repeat until PF-001..PF-007 all execute and pass
--> only then mark FROZEN
+obtain Chromium environment without URLBlocklist OR restore GitHub Actions budget
+-> run unchanged scripts/validate-vibration-production-freeze-browser.mjs
+-> require real 01..07 screenshots + VibrationProductionFreezeReceipt.v1
+-> compare FIT 0.276 ±0.0012 and Mechanical 0.40
+-> verify authority/result currency/evidence export
+-> if all PASS, reconcile and mark FROZEN
+-> if any FAIL, patch only the first material visible defect and replay
 ```
 
 ## Appendix A — Takeover Qualification
