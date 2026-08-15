@@ -6,7 +6,7 @@ import {
 export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze([
   Object.freeze({
     id: 'fit', label: 'FIT', title: 'Flow-induced turbulence',
-    sourceSection: 'EI AVIFF T2.2', implementationState: 'BENCHMARK_ONLY',
+    sourceSection: 'EI AVIFF T2.2', implementationState: 'SCREENING',
   }),
   Object.freeze({
     id: 'mechanicalExcitation', label: 'Mechanical', title: 'Mechanical excitation',
@@ -63,6 +63,13 @@ function rowScope(row = {}) {
   return { line: row.line, caseId: row.caseId ?? null, canonicalId: row.canonicalId };
 }
 
+function calculatedState(item) {
+  if (item.assessmentState !== 'CALCULATED') return item.assessmentState;
+  return item.qualification?.effective === 'SCREENING'
+    ? 'CALCULATED_SCREENING'
+    : 'CALCULATED_BENCHMARK';
+}
+
 function fitAssessment(row, mechanism, context) {
   const contractSet = buildFitVibrationMechanismAssessmentSet({
     row,
@@ -76,7 +83,7 @@ function fitAssessment(row, mechanism, context) {
     mechanism,
     contractSet,
     itemId: item.itemId,
-    assessmentState: item.assessmentState === 'CALCULATED' ? 'CALCULATED_BENCHMARK' : item.assessmentState,
+    assessmentState: calculatedState(item),
     calculated: Boolean(item.result?.calculated),
     lof: item.result?.governingLof ?? null,
     referenceBand: item.result?.referenceBand ?? null,
