@@ -6,6 +6,7 @@ import { VIBRATION_FIT_UI_BENCHMARK_SOURCE } from '../tabs/vibration-integrity-b
 import {
   D7,
   assertD7,
+  changePhysicalField,
   editCurveValue,
   facilityScope,
   fillCurveEvidence,
@@ -125,7 +126,7 @@ async function evaluateFacility(page, receipt, entry, scope, id, fileName) {
 async function provePhysicalIsolation(page, cases) {
   const [a, b] = cases;
   await openSbc(page, a.identity.line);
-  await page.locator('[data-vi-sbc-master-physical="branchLengthMm"]').fill('701');
+  await changePhysicalField(page, 'branchLengthMm', 701);
   assert.match(await page.locator('.vi-sbc-type3-user-panel').innerText(), /STALE · RERUN REQUIRED/u);
   await returnToScreening(page);
   assert.doesNotMatch(await workspaceRow(page, a.identity.line).innerText(), /SBC\s*·\s*0\.7\s*·\s*CANDIDATE/u);
