@@ -4,7 +4,7 @@
   "issueId": 513,
   "repository": "reallaksh19/3D_Converters",
   "baseSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "candidateImplementationSha": "8ce49f991d6907694f284398026a8114437d9740",
+  "candidateImplementationSha": "835c908ad16fa206aa510136068ea6d1b0578a12",
   "branch": "agent/aiv-pf01-production-freeze-20260815",
   "qualification": {
     "status": "QUALIFIED_FOR_AIV_PRODUCTION_FREEZE",
@@ -28,16 +28,41 @@
     "diff": "+  input = input ?? {};",
     "scope": "presentation filter-state initialization only"
   },
-  "regression": {
-    "path": "tests/vibration-aiv-canvas-filter-runtime.test.mjs",
-    "releaseGate": "verify:aiv-canvas",
-    "focusedExecution": "PASS_3_OF_3",
-    "targetedChromium144": "PASS_3_OF_3"
+  "professionalUiHardening": {
+    "canvasFailureContainment": {
+      "path": "tabs/vibration-aiv-qualification-tab.js",
+      "rule": "canvas presentation exceptions must not be promoted to engineering action failures",
+      "degradedMessage": "Canvas unavailable: <error>. Engineering tables and screening controls remain authoritative and usable."
+    },
+    "cacheDelivery": {
+      "path": "tabs/engineering-calculations-tab.js",
+      "before": "aiv-qualification-1",
+      "after": "aiv-qualification-2"
+    }
   },
+  "regressions": [
+    {
+      "path": "tests/vibration-aiv-canvas-filter-runtime.test.mjs",
+      "releaseGate": "verify:aiv-canvas",
+      "focusedExecution": "PASS_3_OF_3",
+      "targetedChromium144": "PASS_3_OF_3"
+    },
+    {
+      "path": "tests/vibration-aiv-canvas-hardening.test.mjs",
+      "purpose": "protect degraded-canvas authority wording and cache-distinct qualification module token",
+      "nativeExecution": "NOT_RUN"
+    },
+    {
+      "path": "tests/vibration-aiv-presentation-invariance.test.mjs",
+      "purpose": "B6 registered screening invariance under extreme presentation movement",
+      "nativeExecution": "NOT_RUN"
+    }
+  ],
   "benchmarkSources": [
     {"id":"AIV.EI.D2.3.WORKED_EXAMPLE.v1","path":"tabs/vibration-aiv-benchmarks.js","blob":"c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0"},
     {"id":"AIV_QUALIFICATION_MATH","path":"scripts/aiv-qualification-math.mjs","blob":"0aba873c03e1fb9ef576095d603ec87178d006a3"},
-    {"id":"AIV-HAND-MULTI-SOURCE","path":"converters/vibration/aiv/aiv-independent-benchmark-evidence.js","blob":"21d1e687dca0c537f4170e961b2d7b1894d710cc"}
+    {"id":"AIV-HAND-MULTI-SOURCE","path":"converters/vibration/aiv/aiv-independent-benchmark-evidence.js","blob":"21d1e687dca0c537f4170e961b2d7b1894d710cc"},
+    {"id":"AIV_PF01_NATIVE_GATE","path":"package.json","blob":"958da1f3ba7cc2185f68af4bb5c4b254f7711dd0"}
   ],
   "frozenOracles": [
     {"id":"D23_RELIEF_RAW_PWL","expected":164.6851759525391,"unit":"dB","absoluteTolerance":1e-10,"subcheckStatus":"PASS"},
@@ -45,13 +70,19 @@
     {"id":"160+160","expected":163.0102999566398,"unit":"dB","absoluteTolerance":1e-9,"subcheckStatus":"PASS"},
     {"id":"160+150","expected":160.41392685158226,"unit":"dB","absoluteTolerance":1e-9,"subcheckStatus":"PASS"}
   ],
+  "nativePf01Gate": {
+    "command": "npm run verify:aiv-pf01",
+    "coverage": "B1-B6 plus PF-01 runtime/UI/cache regressions",
+    "status": "NOT_RUN_INFRASTRUCTURE_BLOCKED"
+  },
   "fullApplicationPostFix": "NOT_RUN",
-  "b1ToB6Closure": "NOT_COMPLETE",
+  "b1ToB6Closure": "TESTS_MAPPED_NOT_EXECUTED",
   "fullReleaseSuite": "NOT_RUN",
   "environmentLimits": [
     "No native private repository checkout in execution container",
     "Managed Chromium URLBlocklist=['*'] prevents full-app navigation",
-    "Hosted workflow attempts have historically acquired no runner/steps"
+    "Exact branch archive endpoint is readable through the GitHub connector but binary zip bytes are not materialized to the execution container",
+    "Hosted workflow jobs on current branch continue to return steps=null/no logs"
   ],
   "comparisonTolerancePolicy": "Frozen expected values and tolerances may not change to fit implementation output.",
   "authority": {
@@ -59,9 +90,10 @@
     "svgPixelsAuthoritativeForDistance": false,
     "screeningResultScope": "ASSESSMENT",
     "lineCaseSummaryAuthoritativeForScreening": false,
-    "designAuthority": false
+    "designAuthority": false,
+    "canvasFailureCanInvalidateEngineeringReadiness": false
   },
   "nextSliceAuthorized": false,
   "operator": "GPT-5.6 Sol via connected GitHub",
-  "lastGroundedAt": "2026-08-15T15:37:11+04:00"
+  "lastGroundedAt": "2026-08-15T16:02:00+04:00"
 }
