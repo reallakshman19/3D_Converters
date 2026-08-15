@@ -7,6 +7,7 @@ import {
   activateAivNetworkDrivenMode,
   markAivTableDrivenInputChanged,
 } from './vibration-aiv-mode-transition.js';
+import { prepareAivFlareNetworkEngineeringCommit } from './vibration-aiv-network-transaction.js';
 
 function formatError(error) {
   return `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
@@ -28,9 +29,10 @@ export function createAivDatasetLoader({
     if (typeof onDatasetLoaded === 'function') onDatasetLoaded();
   }
 
-  function applyFlareNetwork(network) {
+  function applyFlareNetwork(network, options = {}) {
     try {
-      const projected = projectAivFlareNetworkIntoWorkspace(network);
+      const committedNetwork = prepareAivFlareNetworkEngineeringCommit(state, network, options);
+      const projected = projectAivFlareNetworkIntoWorkspace(committedNetwork);
       clearMasterResolution();
       state.flareNetwork = projected.flareNetwork;
       state.generatedInputSet = projected.generatedInputSet;
