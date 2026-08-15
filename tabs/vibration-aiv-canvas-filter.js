@@ -28,6 +28,7 @@ export function renderAivCanvasFilterControls(projection) {
 }
 
 export function createAivCanvasFilterState(input = {}, options = {}) {
+  input = input ?? {};
   const cases = values(options.cases ?? []);
   const lines = values(options.lines ?? []);
   const requestedCase = text(input.caseId);
