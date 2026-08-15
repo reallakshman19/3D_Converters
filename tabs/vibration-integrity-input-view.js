@@ -89,7 +89,7 @@ function inputStateFacts(state) {
   const snapshot = state.runSnapshot?.snapshotHash;
   const engineering = state.runSnapshot?.engineeringInputHash;
   const auditEvents = state.auditLog?.events ?? [];
-  const lastAudit = auditEvents[auditEvents.length - 1]?.type ?? '—';
+  const lastAudit = auditEvents[auditEvents.length - 1]?.eventType ?? '—';
   const readiness = state.preflight ? 'CHECKED' : 'NOT CHECKED';
   const evidence = state.resultState === 'CURRENT_RESULT' ? 'AVAILABLE' : 'LOCKED';
   return `<div class="vi-import-facts"><span>Working edits: <strong>${esc(edits)}</strong></span><span>Readiness: <strong>${esc(readiness)}</strong></span><span>Result: <strong>${esc(state.resultState ?? 'UNRUN')}</strong></span><span>Evidence: <strong>${esc(evidence)}</strong></span><span>Audit events: <strong>${esc(auditEvents.length)}</strong></span><span>Last audit: <strong class="vi-mono">${esc(lastAudit)}</strong></span>${snapshot ? `<span>Run snapshot: <strong class="vi-mono">${esc(snapshot.slice(0, 16))}…</strong></span>` : ''}${engineering ? `<span>Engineering input: <strong class="vi-mono">${esc(engineering.slice(0, 16))}…</strong></span>` : ''}</div>`;
