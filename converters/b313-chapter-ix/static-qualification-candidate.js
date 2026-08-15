@@ -72,11 +72,26 @@ function custodyComplete(row) {
     && text(row?.preparedBy) !== text(row?.checkedBy) && text(row?.checkedAt));
 }
 
-function masterRecordCustodyIssues(basisPackage) {
-  const masters = basisPackage?.masters ?? {};
+function selectedMasterRows(candidate, basis) {
+  const masters = candidate.basisPackage?.masters ?? {};
+  const locators = basis.material?.provenance?.sourceLocator ?? [];
+  const allowableLocators = new Set(Array.isArray(locators) ? locators : [locators]);
+  return {
+    materialAllowable: (masters.materialAllowable ?? []).filter((row) => allowableLocators.has(row.sourceLocator)),
+    pipeProduct: (masters.pipeProduct ?? []).filter((row) => text(row.productId) === text(basis.query.productId)),
+    pipeDimension: (masters.pipeDimension ?? []).filter((row) => text(row.dimensionId) === text(basis.product.dimensionId)),
+    manufacturingTolerance: (masters.manufacturingTolerance ?? []).filter(
+      (row) => text(row.toleranceRuleId) === text(basis.product.toleranceRuleId),
+    ),
+  };
+}
+
+function masterRecordCustodyIssues(candidate, basis) {
+  const selected = selectedMasterRows(candidate, basis);
   const issues = [];
-  for (const collection of ['materialAllowable', 'pipeProduct', 'pipeDimension', 'manufacturingTolerance']) {
-    for (const row of masters[collection] ?? []) {
+  for (const [collection, rows] of Object.entries(selected)) {
+    if (!rows.length) issues.push(`${collection}:SELECTED_RECORD_MISSING`);
+    for (const row of rows) {
       if (!custodyComplete(row)) issues.push(`${collection}:RECORD_CUSTODY_INCOMPLETE`);
     }
   }
@@ -177,7 +192,7 @@ function evaluateBasisEvidence(candidate) {
       issues: basis.issues ?? [basis.code ?? 'BASIS_INVALID'],
     }) };
   }
-  const custodyIssues = masterRecordCustodyIssues(candidate.basisPackage);
+  const custodyIssues = masterRecordCustodyIssues(candidate, basis);
   if (custodyIssues.length) {
     return { complete: false, output: result('BASIS_EVIDENCE_PENDING', { basis, issues: custodyIssues }) };
   }
