@@ -30,6 +30,23 @@ function networkEvidence(flareNetwork, generatedInputSet) {
   };
 }
 
+function masterReview(acceptance, evidence) {
+  const required = Number(evidence?.resolvedFieldCount ?? 0) > 0;
+  if (!required) return { required: false, acceptance: null };
+  return {
+    required: true,
+    acceptance: acceptance ? {
+      schema: acceptance.schema ?? null,
+      fingerprint: acceptance.fingerprint ?? null,
+      fieldCount: acceptance.fieldCount ?? null,
+      reviewDisposition: acceptance.reviewDisposition ?? null,
+      masterEngineeringQualification: acceptance.masterEngineeringQualification ?? null,
+      screeningAuthorityConferredByMaster: false,
+      designAuthority: false,
+    } : null,
+  };
+}
+
 export function buildAivScreeningExportPackage({
   result,
   sources,
@@ -39,6 +56,7 @@ export function buildAivScreeningExportPackage({
   assumptionProfile,
   assumptionResolution = null,
   masterResolution = null,
+  masterAcceptance = null,
   releaseReceipt = null,
   flareNetwork = null,
   generatedInputSet = null,
@@ -47,6 +65,8 @@ export function buildAivScreeningExportPackage({
   if (result?.schema !== 'AivCalculatorResult.v1' || result.qualificationMode !== 'screening') {
     throw new TypeError('AIV screening export requires an AivCalculatorResult.v1 screening result.');
   }
+  const masterEvidence = buildAivMasterEvidence(masterResolution);
+  const review = masterReview(masterAcceptance, masterEvidence);
   return deepFreeze({
     schema: AIV_SCREENING_EXPORT_SCHEMA,
     methodId: 'VIB.AIV.ACOUSTIC',
@@ -64,7 +84,8 @@ export function buildAivScreeningExportPackage({
       assumedCells: assumptionResolution?.assumptions ?? [],
       assumptionCount: assumptionResolution?.assumptionCount ?? 0,
     },
-    masterEvidence: buildAivMasterEvidence(masterResolution),
+    masterEvidence,
+    masterReview: review,
     flareNetworkEvidence: networkEvidence(flareNetwork, generatedInputSet),
     eitImportEvidence: eitImportEvidence ?? null,
     releaseEvidence: releaseReceipt ? {
@@ -79,9 +100,10 @@ export function buildAivScreeningExportPackage({
       completeKernelStageCount: result.implementedStageCount,
       sourceTrace: result.sourceResults.map((row) => row.trace ?? null),
       masterEngineeringQualificationImplied: false,
+      masterReferenceReviewRequired: review.required,
       lineCaseSummaryAuthoritativeForScreening: false,
       importedEitResultsAuthoritativeForCurrentScreening: false,
-      humanEvidenceRequired: false,
+      humanEvidenceRequired: review.required,
     },
     screeningAuthority: result.authority.screeningAuthority,
     designAuthority: false,
