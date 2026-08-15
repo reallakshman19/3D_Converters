@@ -2,6 +2,7 @@ import { parseVibrationTableExchangeXlsx } from '../converters/vibration/exchang
 import { loadBundledAivMasterDatabase } from '../converters/vibration/aiv/aiv-master-db-bundled.js';
 import { resolveAivTablesFromMasterDb } from '../converters/vibration/aiv/aiv-master-db-resolver.js';
 import { createAivInputTable } from './vibration-aiv-input-model.js';
+import { didAivMasterEngineeringInputsChange } from './vibration-aiv-master-currentness.js';
 
 function error(code, message) {
   const value = new Error(message);
@@ -70,7 +71,7 @@ function shiftedAfterDelete(resolution, tableKind, rowIndex, deletedAssessmentId
   });
 }
 
-export function createAivMasterDbController({ state, render, clearReadiness }) {
+export function createAivMasterDbController({ state, render, clearReadiness, onEngineeringInputsChanged = null }) {
   function clearResolution({ clearDerivedValues = false } = {}) {
     const resolution = state.masterResolution;
     if (clearDerivedValues && resolution) {
@@ -103,15 +104,26 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
       if (silent) return false;
       throw error('AIV_MASTER_TOPOLOGY_REQUIRED', 'Load/import topology before applying AIV master data.');
     }
-    clearResolution({ clearDerivedValues: true });
-    const resolution = resolveAivTablesFromMasterDb({ tables: state.tables, topology, masterDb: state.masterDb });
-    state.tables = {
-      sources: tableFromResolution(resolution.tables.sources),
-      assessments: tableFromResolution(resolution.tables.assessments),
-      relationships: tableFromResolution(resolution.tables.relationships),
-    };
-    state.masterResolution = resolution;
-    clearReadiness();
+    const previous = { tables: state.tables, resolution: state.masterResolution };
+    try {
+      clearResolution({ clearDerivedValues: true });
+      const resolution = resolveAivTablesFromMasterDb({ tables: state.tables, topology, masterDb: state.masterDb });
+      state.tables = {
+        sources: tableFromResolution(resolution.tables.sources),
+        assessments: tableFromResolution(resolution.tables.assessments),
+        relationships: tableFromResolution(resolution.tables.relationships),
+      };
+      state.masterResolution = resolution;
+    } catch (value) {
+      state.tables = previous.tables;
+      state.masterResolution = previous.resolution;
+      throw value;
+    }
+    const current = { tables: state.tables, resolution: state.masterResolution };
+    if (didAivMasterEngineeringInputsChange(previous, current)) {
+      onEngineeringInputsChanged?.();
+      clearReadiness();
+    }
     return true;
   }
 
@@ -135,10 +147,10 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
 
   function apply({ silent = false } = {}) {
     try {
-      const changed = resolveCurrent({ silent });
-      if (changed) state.error = null;
+      const applied = resolveCurrent({ silent });
+      if (applied) state.error = null;
       render();
-      return changed;
+      return applied;
     } catch (value) {
       if (!silent) state.error = formatError(value);
       render();
