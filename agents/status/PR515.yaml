@@ -4,7 +4,7 @@ pr_or_wip: PR515
 mission: "Issue #513 PF-01 exact-main live Chromium reproduction and surgical canvas/filter runtime stability closure"
 workstream: AIV_PRODUCTION_FREEZE_PF01
 branch: agent/aiv-pf01-production-freeze-20260815
-pr_head: b6e1b8b222f56912dd538e015c09f1171e1634b5
+pr_head: 9b9664b36c6305c8e5e565c2181cd0a9f3a8577a
 main_head_last_checked: d659e670a2f8fe0a35fc8072382512f6493898cf
 merge_base: d659e670a2f8fe0a35fc8072382512f6493898cf
 work_intent: IMPLEMENT
@@ -13,11 +13,11 @@ agent_state: BLOCKED_ENVIRONMENT
 pr_recovery_state: HEALTHY
 handover_readiness: READY
 report_path: agents/PR515_workreport.md
-report_head: PENDING_GE004_WORKREPORT_RESTORE
+report_head: 9b9664b36c6305c8e5e565c2181cd0a9f3a8577a
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_513_GATE_APPLIES
 grounding_epoch: GE-004
 current_stage: CURRENT_MAIN_REBASED_LIVE_BROWSER_BLOCKED_LOW_LEVEL_ROOT_CAUSE_ISOLATED
-blocker: "Branch and evidence are now based on exact current main d659e670..., which retains the vulnerable filter blob, but installed Chromium is mandatorily managed with URLBlocklist=['*']; current-main Pages run 31881892198 and its retry both failed with steps=null, so no exact-head real-app browser artifact exists."
+blocker: "Branch and evidence are based on exact current main d659e670..., which retains the vulnerable filter blob, but installed Chromium is mandatorily managed with URLBlocklist=['*']; current-main Pages run 31881892198 and its retry both failed with steps=null, so no exact-head real-app browser artifact exists."
 highest_risk: "Promoting low-level exact-blob evidence to FULL_BROWSER_PASS or committing the one-line patch before the issue #513 real-app pre-fix workflow."
 dependencies:
   - "Issue #513 qualification gate: satisfied by issue comment 5301819610"
