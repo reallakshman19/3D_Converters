@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildAivEitExport } from '../converters/vibration/aiv/aiv-eit-export.js';
+import { buildAivEitExport, serializeAivEitExport } from '../converters/vibration/aiv/aiv-eit-export.js';
+import { parseAivEitImport } from '../converters/vibration/aiv/aiv-eit-import.js';
 import { buildAivMasterEvidence, selectAivMasterEvidence } from '../converters/vibration/aiv/aiv-master-evidence.js';
 import { buildAivScreeningExportPackage } from '../converters/vibration/aiv/aiv-screening-export.js';
 
@@ -20,7 +21,7 @@ function assessment() {
     assessmentCanonicalId: 'ASSMT-1', assessmentType: 'WELDED_TEE',
     mainOutsideDiameter: { value: 219.1, unit: 'mm' }, mainInsideDiameter: { value: 202.74, unit: 'mm' },
     mainWallThickness: { value: 8.18, unit: 'mm' }, branchOutsideDiameter: { value: 114.3, unit: 'mm' },
-    branchWallThickness: { value: 6.02, unit: 'mm' }, material: 'Carbon Steel',
+    branchWallThickness: { value: 6.02, unit: 'mm' }, material: 'Carbon Steel', duplexState: 'NO',
   };
 }
 function relationship() {
@@ -63,10 +64,10 @@ function result() {
   };
 }
 
-function screeningPackage() {
+function screeningPackage(extra = {}) {
   return buildAivScreeningExportPackage({
     result: result(), sources: [source()], assessments: [assessment()], relationships: [relationship()],
-    topology: null, masterResolution: masterResolution(),
+    topology: null, masterResolution: masterResolution(), ...extra,
   });
 }
 
@@ -110,4 +111,19 @@ test('EIT aiv_data retains source and assessment master evidence additively', ()
   assert(detail.masterEvidence.some((item) => item.tableKind === 'assessments' && item.masterRecordId === 'CMP-TEE'));
   assert(detail.masterEvidence.some((item) => item.masterRecordId === 'DIM-200-40'));
   assert.equal(detail.masterEvidence.some((item) => item.tableKind === 'relationships'), false);
+});
+
+test('EIT import and re-export retain imported master lineage even without a live master resolution', () => {
+  const firstText = serializeAivEitExport({ screeningPackage: screeningPackage(), title: 'Master lineage' });
+  const imported = parseAivEitImport(firstText, { sourceName: 'master-lineage.eit' });
+  const importedMaster = imported.evidence.detailEvidence[0].originalDetail.masterEvidence;
+  assert.equal(importedMaster.length, 3);
+
+  const withoutLiveMaster = buildAivScreeningExportPackage({
+    result: result(), sources: [source()], assessments: [assessment()], relationships: [relationship()],
+    topology: null, masterResolution: null, eitImportEvidence: imported.evidence,
+  });
+  const secondText = serializeAivEitExport({ screeningPackage: withoutLiveMaster, title: 'Master lineage' });
+  const secondDetail = JSON.parse(JSON.parse(secondText).lines[0].aiv_data)[0];
+  assert.deepEqual(secondDetail.masterEvidence, importedMaster);
 });
