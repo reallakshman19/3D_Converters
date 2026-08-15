@@ -8,10 +8,10 @@ import { addVibrationIntegrityInputRow, deleteVibrationIntegrityInputRow, revert
 import { buildLoadedVibrationIntegrityBenchmark, buildVibrationIntegrityFacilityTableInput, captureVibrationIntegrityExecutionState, createVibrationIntegrityInputRuntimeState, readVibrationIntegrityInputFile } from './vibration-integrity-input-runtime.js';
 import { downloadVibrationIntegrityText, ensureVibrationIntegrityStylesheet } from './vibration-integrity-dom.js';
 import { VIBRATION_INTEGRITY_ACTION_IDS } from './vibration-integrity-product-contract.js';
+import { transitionVibrationIntegrityResultState } from './vibration-integrity-result-state.js';
 import { serializeVibrationIntegrityRunEvidence } from './vibration-integrity-run-evidence.js';
 import { executeVibrationIntegrityRun, vibrationIntegrityCapturedInputDrifted, vibrationIntegrityRunInputDrifted } from './vibration-integrity-run-controller.js';
 import { createVibrationUserDataUiState, handleVibrationUserDataChange, handleVibrationUserDataClick, renderVibrationIntegrityWithUserData } from './vibration-integrity-user-data-shell.js';
-import { transitionVibrationIntegrityResultState } from './vibration-integrity-workflow-state.js';
 
 const WORKSPACE_CLICK_ACTIONS = Object.freeze([
   Object.freeze(['[data-vi-mechanical-facility-scope]', 'mechanical-open']),
