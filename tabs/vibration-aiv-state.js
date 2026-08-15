@@ -21,6 +21,7 @@ export function createInitialAivQualificationState() {
     assumptionProfileModified: false,
     assumptionResolution: null,
     assumptionAcceptance: null,
+    masterAcceptance: null,
     readinessEnvelope: null,
     resultSet: null,
     screeningResult: null,
