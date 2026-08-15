@@ -108,7 +108,7 @@ test('run evidence rejects a structurally tampered activity trail', async () => 
   const valid = auditLog();
   const auditLogTampered = { ...valid, events: [{ ...valid.events[0], sequence: 7 }, valid.events[1]] };
   await assert.rejects(
-    () => buildVibrationIntegrityRunEvidence(await evidenceState({ auditLog: auditLogTampered })),
+    async () => buildVibrationIntegrityRunEvidence(await evidenceState({ auditLog: auditLogTampered })),
     (error) => error?.code === 'FIT_RUN_EVIDENCE_AUDIT_INVALID',
   );
 });
@@ -123,7 +123,7 @@ test('run evidence rejects invalid activity type, timestamp or promoted authorit
   };
   for (const auditLogTampered of [badType, badTime, badAuthority]) {
     await assert.rejects(
-      () => buildVibrationIntegrityRunEvidence(await evidenceState({ auditLog: auditLogTampered })),
+      async () => buildVibrationIntegrityRunEvidence(await evidenceState({ auditLog: auditLogTampered })),
       (error) => error?.code === 'FIT_RUN_EVIDENCE_AUDIT_INVALID',
     );
   }
