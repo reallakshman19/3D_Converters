@@ -1,3 +1,9 @@
+import {
+  findAivUnsupportedSimultaneousScopes,
+  validateAivExecutableAssessment,
+  validateAivExecutableRelationship,
+  validateAivExecutableSource,
+} from './aiv-executable-contract.js';
 import { buildAivTopologyViewModel } from './aiv-topology-view-model.js';
 
 export const AIV_READINESS_SCHEMA = 'AivReadinessPlan.v2';
@@ -96,6 +102,15 @@ function validateRecordProvenance(row, prefix, missing) {
   if (!row?.recordId) missing.push(issue(`AIV_${prefix}_RECORD_ID_REQUIRED`, `${prefix.toLowerCase()}.recordId`, `${prefix} evidence requires a stable record ID.`));
 }
 
+function appendExecutableIssues(items, groups) {
+  for (const item of items) {
+    const value = issue(item.code, item.field, item.message);
+    if (item.kind === 'METHOD_GAP') groups.methodGaps.push(value);
+    else if (item.kind === 'MISSING') groups.missing.push(value);
+    else groups.invalid.push(value);
+  }
+}
+
 function validateTrim(row, missing, invalid) {
   const trim = row?.lowNoiseTrim;
   if (!trim || trim.state === 'UNRESOLVED') {
@@ -124,19 +139,20 @@ function validatePressureEvidence(row, missing, invalid, warnings) {
   if (!gaugePresent && row.referencePressure) warnings.push(issue('AIV_REFERENCE_PRESSURE_NOT_REQUIRED', 'source.referencePressure', 'Both source pressures are absolute; supplied reference pressure is retained only as provenance.'));
 }
 
-function validateSource(row, missing, invalid, methodGaps, warnings) {
+function validateSource(row, groups) {
   if (!row) {
-    missing.push(issue('AIV_SOURCE_JOIN_REQUIRED', 'source', 'Relationship does not resolve to an AIV source for the same operating case.'));
+    groups.missing.push(issue('AIV_SOURCE_JOIN_REQUIRED', 'source', 'Relationship does not resolve to an AIV source for the same operating case.'));
     return;
   }
-  validateRecordProvenance(row, 'SOURCE', missing);
-  if (row.phase !== 'GAS') methodGaps.push(issue('AIV_PHASE_OUTSIDE_CURRENT_QUALIFICATION_ENVELOPE', 'source.phase', 'Current qualified AIV screening envelope is gas only.'));
-  if (!(row.massFlow.value > 0)) invalid.push(issue('AIV_MASS_FLOW_NOT_POSITIVE', 'source.massFlow', 'Active AIV source mass flow must be greater than zero.'));
-  if (!(row.molecularWeight.value > 0)) invalid.push(issue('AIV_MOLECULAR_WEIGHT_NOT_POSITIVE', 'source.molecularWeight', 'Molecular weight must be greater than zero.'));
-  validatePressureEvidence(row, missing, invalid, warnings);
-  validateTrim(row, missing, invalid);
-  if (row.sourceState === 'CLOSED') methodGaps.push(issue('AIV_CLOSED_SOURCE_OUTSIDE_CURRENT_ACTIVE_SOURCE_ENVELOPE', 'source.sourceState', 'Closed-source behavior is outside the current active-source screening envelope.'));
-  if (row.sonicState === 'UNRESOLVED') missing.push(issue('AIV_SONIC_STATE_UNRESOLVED', 'source.sonicState', 'Sonic/non-sonic branch selection is unresolved.'));
+  validateRecordProvenance(row, 'SOURCE', groups.missing);
+  if (row.phase !== 'GAS') groups.methodGaps.push(issue('AIV_PHASE_OUTSIDE_CURRENT_QUALIFICATION_ENVELOPE', 'source.phase', 'Current qualified AIV screening envelope is gas only.'));
+  if (!(row.massFlow.value > 0)) groups.invalid.push(issue('AIV_MASS_FLOW_NOT_POSITIVE', 'source.massFlow', 'Active AIV source mass flow must be greater than zero.'));
+  if (!(row.molecularWeight.value > 0)) groups.invalid.push(issue('AIV_MOLECULAR_WEIGHT_NOT_POSITIVE', 'source.molecularWeight', 'Molecular weight must be greater than zero.'));
+  validatePressureEvidence(row, groups.missing, groups.invalid, groups.warnings);
+  validateTrim(row, groups.missing, groups.invalid);
+  if (row.sourceState === 'CLOSED') groups.methodGaps.push(issue('AIV_CLOSED_SOURCE_OUTSIDE_CURRENT_ACTIVE_SOURCE_ENVELOPE', 'source.sourceState', 'Closed-source behavior is outside the current active-source screening envelope.'));
+  if (row.sonicState === 'UNRESOLVED') groups.missing.push(issue('AIV_SONIC_STATE_UNRESOLVED', 'source.sonicState', 'Sonic/non-sonic branch selection is unresolved.'));
+  appendExecutableIssues(validateAivExecutableSource(row), groups);
 }
 
 function sameUnit(...quantities) {
@@ -144,36 +160,38 @@ function sameUnit(...quantities) {
   return units.length > 0 && units.every((unit) => unit === units[0]);
 }
 
-function validateAssessment(row, missing, invalid) {
+function validateAssessment(row, groups) {
   if (!row) {
-    missing.push(issue('AIV_ASSESSMENT_JOIN_REQUIRED', 'assessment', 'Relationship does not resolve to an AIV assessment record.'));
+    groups.missing.push(issue('AIV_ASSESSMENT_JOIN_REQUIRED', 'assessment', 'Relationship does not resolve to an AIV assessment record.'));
     return;
   }
-  validateRecordProvenance(row, 'ASSESSMENT', missing);
+  validateRecordProvenance(row, 'ASSESSMENT', groups.missing);
   const mainDimensions = [row.mainOutsideDiameter, row.mainInsideDiameter, row.mainWallThickness];
   for (const [field, quantity] of [['mainOutsideDiameter', mainDimensions[0]], ['mainInsideDiameter', mainDimensions[1]], ['mainWallThickness', mainDimensions[2]]]) {
-    if (!(quantity?.value > 0)) invalid.push(issue('AIV_ASSESSMENT_DIMENSION_NOT_POSITIVE', `assessment.${field}`, `${field} must be greater than zero.`));
+    if (!(quantity?.value > 0)) groups.invalid.push(issue('AIV_ASSESSMENT_DIMENSION_NOT_POSITIVE', `assessment.${field}`, `${field} must be greater than zero.`));
   }
   const comparableMainUnits = sameUnit(...mainDimensions);
-  if (!comparableMainUnits) invalid.push(issue('AIV_ASSESSMENT_MAIN_DIMENSION_UNITS_MIXED', 'assessment', 'Main OD, ID and wall thickness must use one explicit unit before readiness compares dimensions.'));
-  if (comparableMainUnits && row.mainInsideDiameter.value >= row.mainOutsideDiameter.value) invalid.push(issue('AIV_ASSESSMENT_MAIN_DIAMETER_CONFLICT', 'assessment.mainInsideDiameter', 'Main inside diameter must be less than main outside diameter.'));
-  if (['WELDOLET', 'WELDED_TEE'].includes(row.assessmentType) && !(row.branchOutsideDiameter?.value > 0)) missing.push(issue('AIV_ASSESSMENT_BRANCH_OD_REQUIRED', 'assessment.branchOutsideDiameter', `${row.assessmentType} requires explicit branch outside diameter evidence.`));
-  if (row.duplexState === 'UNRESOLVED') missing.push(issue('AIV_ASSESSMENT_DUPLEX_STATE_UNRESOLVED', 'assessment.duplexState', 'Duplex/material branch disposition is unresolved.'));
+  if (!comparableMainUnits) groups.invalid.push(issue('AIV_ASSESSMENT_MAIN_DIMENSION_UNITS_MIXED', 'assessment', 'Main OD, ID and wall thickness must use one explicit unit before readiness compares dimensions.'));
+  if (comparableMainUnits && row.mainInsideDiameter.value >= row.mainOutsideDiameter.value) groups.invalid.push(issue('AIV_ASSESSMENT_MAIN_DIAMETER_CONFLICT', 'assessment.mainInsideDiameter', 'Main inside diameter must be less than main outside diameter.'));
+  if (['WELDOLET', 'WELDED_TEE'].includes(row.assessmentType) && !(row.branchOutsideDiameter?.value > 0)) groups.missing.push(issue('AIV_ASSESSMENT_BRANCH_OD_REQUIRED', 'assessment.branchOutsideDiameter', `${row.assessmentType} requires explicit branch outside diameter evidence.`));
+  if (row.duplexState === 'UNRESOLVED') groups.missing.push(issue('AIV_ASSESSMENT_DUPLEX_STATE_UNRESOLVED', 'assessment.duplexState', 'Duplex/material branch disposition is unresolved.'));
+  appendExecutableIssues(validateAivExecutableAssessment(row), groups);
 }
 
-function validateRelationship(row, topology, missing, invalid) {
-  validateRecordProvenance(row, 'RELATIONSHIP', missing);
-  if (topology.pathStatus === 'IDENTITY_NOT_FOUND') invalid.push(issue('AIV_TOPOLOGY_IDENTITY_NOT_FOUND', 'topologyPath', topology.diagnostics[0]?.message ?? 'Source or assessment Canonical ID is absent from certified topology.'));
+function validateRelationship(row, topology, groups) {
+  validateRecordProvenance(row, 'RELATIONSHIP', groups.missing);
+  if (topology.pathStatus === 'IDENTITY_NOT_FOUND') groups.invalid.push(issue('AIV_TOPOLOGY_IDENTITY_NOT_FOUND', 'topologyPath', topology.diagnostics[0]?.message ?? 'Source or assessment Canonical ID is absent from certified topology.'));
   if (row.applicabilityDisposition === 'UNRESOLVED') {
-    missing.push(issue('AIV_APPLICABILITY_UNRESOLVED', 'relationship.applicabilityDisposition', 'Source-to-assessment applicability is unresolved.'));
+    groups.missing.push(issue('AIV_APPLICABILITY_UNRESOLVED', 'relationship.applicabilityDisposition', 'Source-to-assessment applicability is unresolved.'));
     return;
   }
   if (row.applicabilityDisposition === 'NOT_APPLICABLE') return;
-  if (!row.physicalDistance) missing.push(issue('AIV_PHYSICAL_DISTANCE_REQUIRED', 'relationship.physicalDistance', 'Applicable source-to-assessment relationship requires engineering physical distance evidence.'));
-  if (row.physicalDistance && row.physicalDistance.value < 0) invalid.push(issue('AIV_PHYSICAL_DISTANCE_NEGATIVE', 'relationship.physicalDistance', 'Physical AIV distance cannot be negative.'));
-  if (!row.distanceSource) missing.push(issue('AIV_DISTANCE_SOURCE_REQUIRED', 'relationship.distanceSource', 'Physical AIV distance requires an explicit engineering source.'));
-  if (!row.distanceSourceRevision) missing.push(issue('AIV_DISTANCE_SOURCE_REVISION_REQUIRED', 'relationship.distanceSourceRevision', 'Physical AIV distance requires the source revision.'));
-  if (topology.pathStatus !== 'RESOLVED') invalid.push(issue(`AIV_TOPOLOGY_${topology.pathStatus}`, 'topologyPath', topology.diagnostics[0]?.message ?? 'Certified source-to-assessment topology path is unresolved.'));
+  if (!row.physicalDistance) groups.missing.push(issue('AIV_PHYSICAL_DISTANCE_REQUIRED', 'relationship.physicalDistance', 'Applicable source-to-assessment relationship requires engineering physical distance evidence.'));
+  if (row.physicalDistance && row.physicalDistance.value < 0) groups.invalid.push(issue('AIV_PHYSICAL_DISTANCE_NEGATIVE', 'relationship.physicalDistance', 'Physical AIV distance cannot be negative.'));
+  if (!row.distanceSource) groups.missing.push(issue('AIV_DISTANCE_SOURCE_REQUIRED', 'relationship.distanceSource', 'Physical AIV distance requires an explicit engineering source.'));
+  if (!row.distanceSourceRevision) groups.missing.push(issue('AIV_DISTANCE_SOURCE_REVISION_REQUIRED', 'relationship.distanceSourceRevision', 'Physical AIV distance requires the source revision.'));
+  if (topology.pathStatus !== 'RESOLVED') groups.invalid.push(issue(`AIV_TOPOLOGY_${topology.pathStatus}`, 'topologyPath', topology.diagnostics[0]?.message ?? 'Certified source-to-assessment topology path is unresolved.'));
+  appendExecutableIssues(validateAivExecutableRelationship(row), groups);
 }
 
 function statusFor(row, groups) {
@@ -184,15 +202,26 @@ function statusFor(row, groups) {
 }
 function keyForSource(sourceCanonicalId, caseId) { return `${sourceCanonicalId}\u0000${caseId}`; }
 
-function buildRow(exchange, relationship, source, assessment) {
+function simultaneousGap(scope) {
+  if (!scope) return null;
+  return issue(
+    'AIV_MULTIPLE_SIMULTANEOUS_GROUPS_UNSUPPORTED',
+    'relationship.simultaneousSourceGroup',
+    `Assessment ${scope.assessmentCanonicalId} / case ${scope.caseId} contains multiple simultaneous-source groups (${scope.groups.join(', ')}); current Assessment+Case result scope cannot combine them safely.`,
+  );
+}
+
+function buildRow(exchange, relationship, source, assessment, unsupportedScope = null) {
   const topology = buildAivTopologyViewModel(exchange, {
     sourceCanonicalId: relationship.sourceCanonicalId,
     assessmentCanonicalId: relationship.assessmentCanonicalId,
   });
   const groups = { missing: [], invalid: [], methodGaps: [], warnings: [] };
-  validateSource(source, groups.missing, groups.invalid, groups.methodGaps, groups.warnings);
-  validateAssessment(assessment, groups.missing, groups.invalid);
-  validateRelationship(relationship, topology, groups.missing, groups.invalid);
+  validateSource(source, groups);
+  validateAssessment(assessment, groups);
+  validateRelationship(relationship, topology, groups);
+  const groupGap = simultaneousGap(unsupportedScope);
+  if (groupGap) groups.methodGaps.push(groupGap);
   if (relationship.sourceCanonicalId === relationship.assessmentCanonicalId) groups.invalid.push(issue('AIV_SOURCE_ASSESSMENT_IDENTITY_COLLISION', 'relationship', 'Source and assessment Canonical IDs must be distinct.'));
   const sourceElement = exchange.elements.find((element) => element.canonicalId === relationship.sourceCanonicalId) ?? null;
   const assessmentElement = exchange.elements.find((element) => element.canonicalId === relationship.assessmentCanonicalId) ?? null;
@@ -226,16 +255,26 @@ function buildRow(exchange, relationship, source, assessment) {
   };
 }
 
+function unsupportedScopeByRelationship(relationships) {
+  const map = new Map();
+  for (const scope of findAivUnsupportedSimultaneousScopes(relationships)) {
+    for (const index of scope.relationshipIndices) map.set(index, scope);
+  }
+  return map;
+}
+
 export function buildAivReadiness(exchange, sources = [], assessments = [], relationships = []) {
   if (!exchange || typeof exchange !== 'object') throw new TypeError('AIV readiness requires a parsed vibration topology exchange.');
   if (![sources, assessments, relationships].every(Array.isArray)) throw new TypeError('AIV readiness inputs must be arrays.');
   const sourceMap = new Map(sources.map((row) => [keyForSource(row.sourceCanonicalId, row.caseId), row]));
   const assessmentMap = new Map(assessments.map((row) => [row.assessmentCanonicalId, row]));
-  const rows = relationships.map((relationship) => buildRow(
+  const unsupportedScopes = unsupportedScopeByRelationship(relationships);
+  const rows = relationships.map((relationship, index) => buildRow(
     exchange,
     relationship,
     sourceMap.get(keyForSource(relationship.sourceCanonicalId, relationship.caseId)) ?? null,
     assessmentMap.get(relationship.assessmentCanonicalId) ?? null,
+    unsupportedScopes.get(index) ?? null,
   ));
   const counts = {
     rows: rows.length,
@@ -259,8 +298,10 @@ export function buildAivReadiness(exchange, sources = [], assessments = [], rela
     rows,
     notes: [
       'Readiness validates joined source, assessment, relationship and certified-topology evidence; it does not itself execute the calculator.',
+      'READY_FOR_QUALIFICATION also satisfies the shared executable-domain guard used by the promoted calculator.',
+      'Multiple simultaneous-source groups under one Assessment + Operating Case fail closed as METHOD_GAP until a separate qualified group/scenario result scope exists.',
       'Physical AIV distance is supplied by engineering relationship evidence or an explicit visible assumption and is never derived from topology presentation geometry.',
-      'READY_FOR_QUALIFICATION is the retained readiness-state name; under current release authority, rows with no NOT_READY or METHOD_GAP may proceed to assessment-level SCREENING execution.',
+      'Current qualified Stage-8 discontinuity execution is limited to WELDOLET and WELDED_TEE assessment types.',
       'Explicit SONIC input is within the machine-qualified SFF=6 branch; unresolved sonic state remains fail-closed.',
       'Configured line/case LOF is not authoritative for screening, and designAuthority=false.',
     ],
