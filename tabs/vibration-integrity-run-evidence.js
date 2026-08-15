@@ -72,17 +72,31 @@ async function assertSnapshot(snapshot) {
   return snapshot;
 }
 
+function coherentExecutionAuthority(envelope, workflow) {
+  if (envelope.qualificationMode === 'benchmark') {
+    return envelope.engineeringAuthority === 'NONE'
+      && envelope.screeningAuthorized === false
+      && workflow.engineeringAuthority === 'NONE'
+      && workflow.screeningAuthorized === false;
+  }
+  if (envelope.qualificationMode === 'screening') {
+    return envelope.engineeringAuthority === 'SCREENING'
+      && envelope.screeningAuthorized === true
+      && workflow.engineeringAuthority === 'SCREENING'
+      && workflow.screeningAuthorized === true;
+  }
+  return false;
+}
+
 function assertExecution(envelope) {
   const workflow = envelope?.workflow;
   const valid = envelope?.schema === TABULAR_WORKFLOW_SCHEMA
-    && envelope?.qualificationMode === 'benchmark'
-    && envelope?.engineeringAuthority === 'NONE'
-    && envelope?.screeningAuthorized === false
     && workflow?.schema === WORKFLOW_SCHEMA
-    && workflow?.qualificationMode === 'benchmark'
-    && workflow?.result?.calculationId === FIT_CALCULATION_ID;
+    && workflow?.qualificationMode === envelope?.qualificationMode
+    && workflow?.result?.calculationId === FIT_CALCULATION_ID
+    && coherentExecutionAuthority(envelope, workflow);
   if (!valid) {
-    throw evidenceError('FIT_RUN_EVIDENCE_EXECUTION_INVALID', 'FIT evidence requires the benchmark-only central workflow result.');
+    throw evidenceError('FIT_RUN_EVIDENCE_EXECUTION_INVALID', 'FIT evidence requires a coherent central benchmark or bounded-screening workflow result.');
   }
   return envelope;
 }
@@ -133,7 +147,7 @@ export async function buildVibrationIntegrityRunEvidence(state = {}) {
   return deepFreeze({
     schema: FIT_RUN_EVIDENCE_SCHEMA,
     calculationId: FIT_CALCULATION_ID,
-    qualificationMode: 'benchmark',
+    qualificationMode: envelope.qualificationMode,
     resultState: state.resultState,
     authority: {
       engineeringAuthority: envelope.engineeringAuthority,
