@@ -1,4 +1,4 @@
-# PR511 — Vibration Integrity Product Freeze v1
+# PR511 — Vibration Integrity Production Freeze v1
 
 ## Recovery Header
 
@@ -10,35 +10,218 @@ PR: 511
 CRITICALITY: ENGINEERING_CRITICAL
 BRANCH: agent/vibration-product-freeze-v1
 BASE_MAIN: a49085cde69ef71518c0d6315a615477887d7b4e
-PR_HEAD_BEFORE_THIS_REPORT_REFRESH: 4c691b85575b91af2389bd79837c830d24b514d1
+TECHNICAL_HEAD_BEFORE_REPORT: 24c57af444daa8e0917866dd88e8c83b8acfc43e
 BRANCH_RELATION: behind 0
-CHANGED_FILES: 11
-MISSION: Freeze the current Vibration Integrity UI/workflow contract and add append-only, SHA-256-fingerprinted workflow audit evidence without changing numerical or engineering authority.
+MISSION: Production-freeze Vibration Integrity by exercising the real user journey in Chromium, comparing each engineering result to a controlled worked-example benchmark, fixing one observed issue at a time, and retaining screenshots + machine-readable receipts before moving to the next workflow.
 MERGE_AUTHORITY: OWNER_ONLY / NOT_GRANTED
-CURRENT_STAGE: bounded implementation complete / repository CI infrastructure-blocked
-HIGHEST_RISK: orchestration logging or lifecycle centralization accidentally changes result currency, governing-result selection, or mechanism authority
-EXACT_NEXT_ACTION: owner/product review of PR511; then obtain a real repository-native Node + Chromium execution when the runner is operational before any merge decision. Do not weaken the gate or reinterpret infrastructure failure as PASS.
+CURRENT_STAGE: PRODUCTION_FREEZE_BLOCKED
+FREEZE_STATE: BLOCKED
+HIGHEST_RISK: treating source/unit validation as product freeze when Chromium evidence did not execute
+EXACT_NEXT_ACTION: obtain an executing Chromium run for the current PF-001..PF-007 journey, inspect the uploaded screenshots/receipt, fix the first user-visible defect found, replay the same benchmark journey, and only then decide FROZEN vs another bounded fix. Do not move to the next workflow while this journey is BLOCKED.
 ```
 
-## Owner Direction
+## Owner Direction — Production Freeze
 
-Owner redirected effort away from minuscule numerical refinement toward UI freeze, workflow and logging. PR511 therefore does not pursue further SBC curve tuning. Merged PR #505 remains the governing quarantine for conflicting T3 curve data.
+Owner clarified the required operating model:
 
-## Live Reconciliation
+```text
+DO AS A USER IN CHROMIUM
+    ↓
+SEE / CAPTURE THE ISSUE
+    ↓
+FIX ONE BOUNDED ISSUE
+    ↓
+RE-RUN THE SAME USER JOURNEY
+    ↓
+VALIDATE AGAINST KNOWN BOOK / WORKED-EXAMPLE BENCHMARK
+    ↓
+RECORD SCREENSHOTS + ACTUAL/EXPECTED + AUTHORITY + EVIDENCE
+    ↓
+FREEZE THAT WORKFLOW
+    ↓
+MOVE NEXT
+```
 
-Initial branch base: `0b03855a6d9031c8b531e23bdd3deea3b7fdc5d4`.
+Minuscule numerical refinement below the controlled engineering tolerance is not a reason to delay this process unless it changes the benchmark disposition, authority boundary, or user decision.
 
-Main advanced during implementation to:
+Source inspection, unit tests and static UI tests are supporting evidence only. They cannot establish `FROZEN` status.
 
-`a49085cde69ef71518c0d6315a615477887d7b4e`
+Durable protocol: `docs/vibration/Production-Freeze-Protocol-v1.md`.
 
-This main includes the EI master framework, Appendix-B candidates and Mechanical T2.3 facility workflow. PR511 was reconciled onto that exact tree using a two-parent commit. Final live-main checks still show `a49085c...`; branch compare remains `behind_by=0`.
+## Freeze-State Vocabulary
 
-## UI Freeze — Visible Contract
+```text
+NOT_STARTED
+OBSERVED
+FIXED_UNVERIFIED
+BENCHMARK_PASS
+FROZEN
+BLOCKED
+```
 
-`VibrationIntegrityProductFreeze.v1` freezes the current product shape.
+`BLOCKED` is never represented as PASS.
 
-### Current workspace tabs — required
+## Current User Journey — PF-001 to PF-007
+
+The current Chromium gate is `scripts/validate-vibration-production-freeze-browser.mjs`.
+
+### PF-001 — Open product as user
+
+```text
+Engineering Calculations
+  -> VIB
+  -> VIB.FIV.FLOW_TURBULENCE
+  -> Vibration Integrity workspace
+```
+
+Evidence target: `01-workspace.png`.
+
+### PF-002 — Load controlled FIT worked example
+
+Benchmark:
+
+```text
+id       EI-D2-FIT-RECYCLE-SUCTION-6IN
+label    EI D2 · Recycle suction · 6 in gas
+source   Common@fb549185b9b27edc2379734240320a85c5bef9f6
+path     EI - AVIFF Guidelines 2nd Edition_Examples.pdf
+blob     3e2517d0df527a051084fc02e69cb7afa31f8d47
+location Appendix D, Example D2, D.2.1 Steps 1-5
+expected standard LOF 0.276
+tolerance ±0.0012
+expected band LOF_LT_0_3
+```
+
+Evidence target: `02-benchmark-loaded.png`.
+
+### PF-003 — Check readiness
+
+Expected controlled state:
+
+```text
+Ready     1
+Not ready 0
+```
+
+Evidence target: `03-readiness.png`.
+
+### PF-004 — Run FIT and benchmark visible result
+
+The browser parses the **visible** `Actual standard LOF` from the benchmark panel and requires:
+
+```text
+abs(actual - 0.276) <= 0.0012
+Actual band = LOF_LT_0_3
+Benchmark parity PASS visible
+```
+
+Evidence target: `04-fit-result.png`.
+
+### PF-005 — Evaluate Mechanical T2.3
+
+Known EI D2 / D2.4 oracle:
+
+```text
+CENTRIFUGAL_COMPRESSOR                    0.20
+ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW     0.40
+Governing                                 0.40
+```
+
+Controlled source package:
+
+```text
+Advanced_Analysis@6111ddbc0f27dd95b50a80c569a2c4daba3b3921
+docs/EI data/Appendix_B_Defaults_and_Fluid_Properties.md
+blob 1d26832aa3ba1e2a99f680ea3d8243490e0ffeb6
+```
+
+Repository independent oracles retained in:
+
+```text
+tests/vibration-appendix-b-worked-example-stage3.test.mjs
+tests/vibration-mechanical-ei-worked-examples.test.mjs
+```
+
+Evidence target: `05-mechanical-result.png`.
+
+### PF-006 — Verify authority in the real matrix
+
+Required visible semantics:
+
+```text
+FIT remains Screening governing
+Mechanical 0.4 remains CANDIDATE / CANDIDATE MASTER
+Mechanical candidate cannot replace Screening governing
+designAuthority = false
+```
+
+Evidence target: `06-governing-matrix.png`.
+
+### PF-007 — Export and verify reproducibility evidence
+
+The browser downloads the actual user export and verifies:
+
+```text
+vibration-fit-run-evidence.json
+auditTrail present
+auditTrailIdentity.algorithm = SHA-256
+auditTrailIdentity.hash = 64 hex chars
+RUN_EVIDENCE_EXPORT_STARTED present in exported trail
+designAuthority = false
+```
+
+After successful download, the live UI must show `RUN_EVIDENCE_EXPORTED` as the latest audit state.
+
+Evidence target: `07-evidence-exported.png`.
+
+## Production-Freeze Receipt
+
+The browser writes:
+
+`artifacts/vibration-production-freeze/production-freeze-receipt.json`
+
+Schema:
+
+`VibrationProductionFreezeReceipt.v1`
+
+Each PF step records:
+
+```text
+step id
+name
+PASS / FAIL
+screenshot
+visible observation
+benchmark expected / actual / tolerance / delta where applicable
+authority assertion where applicable
+```
+
+Failure captures `99-failure.png` where possible.
+
+CI uploads all screenshots, the receipt, downloaded run-evidence JSON and server log with `if: always()` so a failed product journey remains inspectable.
+
+## Issue Ledger
+
+### ISS-PF-001 — export audit status can remain visually stale
+
+```text
+Detection class: SOURCE_DETECTED / CHROMIUM_CONFIRMATION_PENDING
+Affected step: PF-007
+Symptom predicted from source: successful export appends REGISTER_EXPORTED / RUN_EVIDENCE_EXPORTED but did not re-render the visible workflow-status strip.
+Expected user behaviour: after export, Audit events / Last audit update immediately without another navigation action.
+Root cause: missing render() after successful export audit append.
+Fix: tabs/vibration-integrity-tab.js now re-renders after REGISTER_EXPORTED and RUN_EVIDENCE_EXPORTED.
+Fix commit: 24c57af444daa8e0917866dd88e8c83b8acfc43e
+Benchmark impact: none; engineering result and authority unchanged.
+Chromium after-fix evidence: NOT_RUN / INFRASTRUCTURE_BLOCKED
+Freeze disposition: FIXED_UNVERIFIED
+```
+
+This issue is **not** claimed as Chromium-observed. The new PF-007 gate is specifically intended to prove or falsify the predicted visible defect/fix when Chromium executes.
+
+## Current UI / Workflow Contract
+
+Required current workspace tabs:
 
 ```text
 screening
@@ -46,7 +229,7 @@ mechanical
 user-data
 ```
 
-### Core screening actions — stable IDs
+Stable core screening actions:
 
 ```text
 load-benchmark
@@ -56,7 +239,7 @@ export
 export-evidence
 ```
 
-### Result-state vocabulary — stable
+Stable result states:
 
 ```text
 UNRUN
@@ -66,30 +249,24 @@ STALE_RESULT
 INVALID_INPUT
 ```
 
-Future mechanism tabs may be added; current tabs/actions/result-state names cannot be silently removed or renamed without failing the contract regression.
-
-### Visible workflow status strip
-
-The existing Working Table status strip now exposes:
+Visible state strip:
 
 ```text
 Working edits
-Readiness: CHECKED / NOT CHECKED
-Result: UNRUN / RUNNING / CURRENT_RESULT / STALE_RESULT / INVALID_INPUT
-Evidence: AVAILABLE / LOCKED
-Audit events: <count>
-Last audit: <event type>
-Run snapshot: <working-input SHA prefix>
-Engineering input: <engineering-input SHA prefix>
+Readiness
+Result
+Evidence
+Audit events
+Last audit
+Run snapshot
+Engineering input
 ```
 
-The previous misleading label `Audit snapshot` was corrected to `Run snapshot`; the actual audit trail is a separate event log.
+The previous ambiguous label `Audit snapshot` was corrected to `Run snapshot`; audit history is now a separate append-only event trail.
 
-No new dashboard/card was added; this uses the existing status surface to avoid UI clutter.
+## Deterministic Result Currency
 
-## Deterministic Workflow State
-
-`tabs/vibration-integrity-workflow-state.js` centralizes result currency:
+`tabs/vibration-integrity-workflow-state.js` centralizes:
 
 ```text
 RESET                                      -> UNRUN
@@ -102,47 +279,13 @@ RUN_FAILED + no retained result            -> INVALID_INPUT
 RUN_FAILED + retained result               -> STALE_RESULT
 ```
 
-No engineering result is created by the state machine; it only governs currency/status of existing workflow results.
+No calculation is performed in this state layer.
 
-## Append-Only Product Audit Trail
+## Audit / Evidence Contract
 
-`VibrationIntegrityAuditLog.v1` records immutable, sequence-checked events:
+`VibrationIntegrityAuditLog.v1` records immutable sequence-checked product events including workspace changes, user-data actions, readiness, run and export lifecycle.
 
-```text
-SESSION_STARTED
-WORKSPACE_TAB_CHANGED
-WORKSPACE_ACTION
-BENCHMARK_LOADED
-FILE_LOADED
-INPUT_CHANGED
-USER_DATA_CHANGED
-PREFLIGHT_STARTED / SUCCEEDED / FAILED
-RUN_STARTED / SUCCEEDED / FAILED
-REGISTER_EXPORTED
-RUN_EVIDENCE_EXPORT_STARTED / EXPORTED
-```
-
-Controlled cross-workspace action categories cover:
-
-```text
-mechanical-open
-mechanical-evaluate
-mechanical-clear
-sbc-open
-sbc-type3-template
-sbc-type3-evaluate
-user-data-add-sbc
-user-data-add
-user-data-delete
-```
-
-The log does not capture arbitrary UI text. Each event has monotonic `VI-AUDIT-xxxxxx` identity, validated ISO time, result state, run identity/hash context where available, explicit authority summary and bounded details.
-
-Persisted log validation rejects invalid sequence, event type or timestamp.
-
-## Run Evidence Improvement
-
-Existing `FitRunEvidencePackage.v1` remains the user export contract and gains:
+Existing `FitRunEvidencePackage.v1` includes:
 
 ```text
 auditTrail: VibrationIntegrityAuditLog.v1 | null
@@ -153,56 +296,50 @@ auditTrailIdentity:
   hash      = SHA-256(canonical audit trail)
 ```
 
-Therefore `Export run evidence JSON` now captures both engineering execution evidence and a verifiable workflow-history fingerprint.
+Audit is reproducibility evidence only; it creates no engineering authority.
 
-`RUN_EVIDENCE_EXPORT_STARTED` is included in the exported artifact; `RUN_EVIDENCE_EXPORTED` is appended to the continuing in-session audit after the download call.
-
-Legacy/direct callers without an audit log remain compatible with null audit fields.
-
-## Engineering Authority / Invariants
+## Engineering Authority / Protected Invariants
 
 ```text
-FIT bounded screening authority                 = unchanged
-Mechanical T2.3 candidate authority             = unchanged
-SBC Type-3 candidate authority                  = unchanged
-SBC T3 curves                                   = BLOCKED_SOURCE_DATA_CONFLICT unchanged
-candidate mechanisms replace screening governing = false
-designAuthority                                 = false
-audit/logging                                   = REPRODUCIBILITY_EVIDENCE_ONLY
+FIT bounded screening authority                  unchanged
+Mechanical T2.3 candidate authority              unchanged
+SBC Type-3 candidate authority                   unchanged
+SBC T3 curve quarantine                          unchanged
+candidate mechanism may replace screening        false
+designAuthority                                  false
 ```
 
-No equation, master value, tolerance, interpolation/extrapolation, source authority, qualification or governing-selection policy is changed.
+No calculation equation, controlled benchmark tolerance, master-data value, interpolation/extrapolation rule or source authority is changed by the production-freeze harness.
 
 ## Changed-File Ledger
 
-```text
-agents/PR511_workreport.md                                 NEW
-scripts/verify-vibration-fit-release.mjs                   +2 controlled tests
-tabs/vibration-integrity-audit-log.js                      NEW
-tabs/vibration-integrity-input-view.js                     visible workflow/audit status + terminology fix
-tabs/vibration-integrity-product-contract.js               NEW
-tabs/vibration-integrity-run-evidence.js                   audit trail + SHA-256 identity
-tabs/vibration-integrity-tab.js                            state-machine + cross-workspace audit wiring
-tabs/vibration-integrity-workflow-state.js                 NEW
-tests/vibration-integrity-product-freeze.test.mjs          NEW
-tests/vibration-integrity-run-evidence-audit.test.mjs      NEW
-tests/vibration-integrity-tab-static.test.mjs              centralized preflight action assertion
-```
-
-No edits to:
+Current PR includes the original product-hardening files plus the production-freeze gate:
 
 ```text
-tabs/vibration-integrity-user-data-shell.js
-tabs/vibration-integrity-mechanical-controller.js
-tabs/vibration-integrity-mechanical-view.js
-tabs/vibration-integrity-view.js
-FIT/AIV/SBC/Mechanical calculation kernels
-master data values/registries
+.github/workflows/vibration-mechanical-stage4-validation.yml  production-freeze Node/Chromium + artifact upload
+agents/PR511_workreport.md                                   living handoff
+scripts/validate-vibration-production-freeze-browser.mjs     NEW user journey + screenshots + receipt
+scripts/verify-vibration-fit-release.mjs                     controlled release manifest 54 -> 57
+docs/vibration/Production-Freeze-Protocol-v1.md              NEW durable freeze method
+tabs/vibration-integrity-audit-log.js                        NEW
+tabs/vibration-integrity-input-view.js                       visible state strip
+tabs/vibration-integrity-product-contract.js                 NEW
+tabs/vibration-integrity-run-evidence.js                     audit + SHA-256 identity
+tabs/vibration-integrity-tab.js                              lifecycle/audit wiring + export UI refresh
+tabs/vibration-integrity-workflow-state.js                   NEW
+tests/vibration-integrity-product-freeze.test.mjs            NEW
+tests/vibration-integrity-run-evidence-audit.test.mjs        NEW
+tests/vibration-integrity-tab-static.test.mjs                strengthened existing oracle
+tests/vibration-production-freeze-browser-contract.test.mjs  NEW browser-evidence contract
 ```
 
 ## Backup / Recovery Ledger
 
-Repository-local `node utils/backup.js save` is unavailable in this connector-only runtime and remains `NOT_RUN / ENVIRONMENT_BLOCKED`. Exact pre-edit Git blobs are recorded as recovery evidence:
+Repository-local backup CLI remains unavailable in this connector-only runtime:
+
+`NOT_RUN / ENVIRONMENT_BLOCKED`
+
+Pre-edit blobs retained as recovery evidence include:
 
 ```text
 tabs/vibration-integrity-tab.js               bdc9d16117ccb92806062c3ff3a6abfdb54a9ef8
@@ -212,88 +349,88 @@ scripts/verify-vibration-fit-release.mjs       edf6df76bf9689eb7401fd2d12287da1e
 tests/vibration-integrity-tab-static.test.mjs 8c623dbb7df57fadcdc4ef1feedde4e9d7d57a98
 ```
 
-Do not represent the unavailable backup CLI as PASS.
-
 ## Validation Ledger
 
-| Check | STATUS | Observation / Oracle |
+| Check | STATUS | Evidence |
 |---|---|---|
-| live main grounding | PASS | main `a49085c...` re-fetched |
-| main drift reconciliation | PASS | merge base current main; behind 0 |
-| changed-file audit | PASS | 11 intended files |
-| existing Mechanical production-file overlap | PASS | no Mechanical controller/view edit |
-| current three-tab workspace | PASS_SOURCE_CONTRACT | shell already renders screening/mechanical/user-data |
-| visible workflow status strip | PASS_SOURCE_CONTRACT | exact branch source shows Readiness/Evidence/Audit/Run snapshot facts |
-| misleading `Audit snapshot` label | FIXED_SOURCE_CONTRACT | replaced by `Run snapshot` |
-| deterministic result transition matrix | PASS_BOUNDED_EXECUTION | exact reconstructed authored modules |
-| append-only audit sequence/type/time validation | PASS_BOUNDED_EXECUTION | exact reconstructed authored modules |
-| cross-workspace audit categories | PASS_BOUNDED_EXECUTION + SOURCE_CONTRACT | event category executed; UI wiring inspected |
-| audit SHA-256 identity | PASS_BOUNDED_EXECUTION | recomputed hash equals evidence identity |
-| engineering authority boundary | PASS_BOUNDED_EXECUTION | `designAuthority=false`; no authority mutation added |
-| static preflight action oracle | UPDATED_ORACLE | asserts centralized constant instead of obsolete duplicate literal |
-| FIT/VIB release manifest | PASS_SOURCE_CONTRACT | 54 -> 56 controlled test files |
-| repository-native focused Node tests | NOT_RUN / INFRASTRUCTURE_BLOCKED | GitHub job produced no steps |
-| repository-native full Node suite | NOT_RUN / INFRASTRUCTURE_BLOCKED | same runner failure before execution |
-| Chromium acceptance | NOT_RUN / INFRASTRUCTURE_BLOCKED | same runner failure before execution |
+| live main grounding | PASS | main `a49085c...` |
+| branch behind current main | PASS | behind 0 |
+| production-freeze protocol defined | PASS_SOURCE_CONTRACT | durable protocol file |
+| PF-001..PF-007 Chromium journey authored | PASS_SOURCE_CONTRACT | Playwright script |
+| controlled FIT oracle pinned | PASS_SOURCE_CONTRACT | D2 recycle suction 0.276 ±0.0012 |
+| controlled Mechanical oracle pinned | PASS_SOURCE_CONTRACT | D2/D2.4 governing 0.40 |
+| screenshot/receipt artifact contract | PASS_SOURCE_CONTRACT | 7 screenshots + failure capture + JSON receipt |
+| exported evidence verification in Chromium | PASS_SOURCE_CONTRACT | browser downloads/parses JSON |
+| export status re-render fix | FIXED_UNVERIFIED | source patch; browser proof pending |
+| deterministic result state | PASS_BOUNDED_EXECUTION | prior exact-module execution |
+| append-only audit + SHA-256 identity | PASS_BOUNDED_EXECUTION | prior exact-module execution |
+| production-freeze source regression | NOT_RUN repository-native | runner did not start steps |
+| full repository Node suite | NOT_RUN / INFRASTRUCTURE_BLOCKED | runner did not start steps |
+| PF Chromium journey | NOT_RUN / INFRASTRUCTURE_BLOCKED | run 31878145769, job steps=null |
+| screenshots / receipt from run 31878145769 | NOT_RUN | artifacts=[] because job never executed |
+| current freeze state | BLOCKED | cannot inspect real Chromium product state |
 
-### GitHub Actions evidence
-
-Triggered Mechanical Stage-4 workflow runs include:
+### Latest GitHub production-freeze run
 
 ```text
-31877191099  conclusion=failure  steps=[]
-31877244774  conclusion=failure  steps=null
-31877494051  conclusion=failure  steps=null
+workflow  Vibration Production Freeze Validation
+run       31878145769
+head      24c57af444daa8e0917866dd88e8c83b8acfc43e
+status    completed
+conclusion failure
+job       node-and-chromium
+steps     null
+artifacts []
 ```
 
-The first log retrieval returned `BlobNotFound`; later jobs likewise exposed no executed steps. Classification:
+Classification:
 
-```text
-NOT_RUN / INFRASTRUCTURE_BLOCKED
-```
+`NOT_RUN / INFRASTRUCTURE_BLOCKED`
 
-This is not a code-test FAIL and is not upgraded to PASS.
+This is not a product-code test failure and is not PASS.
 
-## Bounded Exact-Module Execution Receipt
+## Move-Next Rule
 
-Latest executed receipt after audit hardening:
+Do **not** proceed to the next production workflow while PF-001..PF-007 is `BLOCKED`.
 
-```json
-{"workflow":"PASS","audit":"PASS","auditHash":"PASS","authority":"PASS","events":3}
-```
+When Chromium executes:
 
-This receipt covers exact reconstructed product-contract/workflow/audit/run-evidence logic, independent transition expectations, persisted-event validation, SHA-256 recomputation and explicit `designAuthority=false`.
+1. inspect `01` through `07` screenshots in sequence;
+2. compare receipt actuals to FIT and Mechanical controlled oracles;
+3. identify the first material user-visible defect;
+4. record the before screenshot and issue ID;
+5. fix only that bounded defect;
+6. rerun the identical benchmark journey;
+7. retain the after screenshot and updated receipt;
+8. repeat until all seven steps pass with no page/console errors and correct authority;
+9. mark this workflow `FROZEN`;
+10. only then move to the next workflow.
 
-It is **not** a repository-native full-suite or browser result.
-
-## Appendix A — Takeover Qualification
+## Appendix A — Next-Agent Qualification
 
 ### A1 Production Trace — 20/20
+Explain the exact PF-001..PF-007 user path and which UI/controller/evidence layer owns each transition.
 
-Product orchestration remains in `vibration-integrity-tab.js`; calculation/run snapshot authority remains in existing run/controller modules; Mechanical/SBC calculators remain unchanged. Product-state and logging governance sit only at the orchestration/evidence boundary.
+### A2 Benchmark Authority — 20/20
+Identify the FIT D2 oracle, tolerance/source identity and Mechanical D2/D2.4 oracle without substituting product-generated values as expected values.
 
-### A2 Failure Isolation — 20/20
+### A3 Failure Isolation — 20/20
+Distinguish browser infrastructure failure, user-visible workflow defect, benchmark mismatch, stale-result defect and authority violation.
 
-The change targets UI/workflow observability and result currency, not numerical calculations.
+### A4 Evidence Integrity — 20/20
+Explain why screenshots, JSON receipt, downloaded run-evidence artifact and SHA-256 audit identity are complementary evidence and why none alone establishes engineering authority.
 
-### A3 Authority / Invariant — 20/20
+### A5 Minimal Next Fix — 20/20
+Select only the first material defect visible in the executed Chromium evidence; do not start another mechanism/workflow before this journey is frozen or explicitly blocked.
 
-Audit is evidence-only; centralized lifecycle cannot promote candidate/design authority. SBC curve quarantine remains intact.
-
-### A4 Independent Validation — 19/20
-
-Transition, event validation and SHA-256 identity executed independently. One point withheld because repository-native CI/browser execution never started.
-
-### A5 Minimal Patch — 19/20
-
-Three small governance modules, bounded controller/export wiring, one compact existing UI status surface, two new regressions and one strengthened existing source-shape regression. One point withheld pending repository-native execution.
-
-**Total 98/100; all sections >=19/20 — PASS for bounded implementation, not a release-validation PASS.**
-
-## Falsifier / Stop Rule
-
-If repository-native execution later shows any change to calculation output, qualification authority, governing-result selection or CURRENT/STALE semantics relative to current main, quarantine PR511 instead of weakening tests or redefining expected behavior.
+**Required takeover score: >=90/100 and every section >=18/20.**
 
 ## Merge State
 
-PR511 remains draft/open. Merge is **NOT AUTHORIZED**.
+PR511 remains draft/open.
+
+```text
+FREEZE_STATE    BLOCKED
+MERGE_AUTHORITY OWNER_ONLY / NOT_GRANTED
+MERGE           NOT_AUTHORIZED
+```
