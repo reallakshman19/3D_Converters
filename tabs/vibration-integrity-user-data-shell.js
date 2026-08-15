@@ -1,4 +1,10 @@
 import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js';
+import {
+  createMechanicalFacilityUiState,
+  handleMechanicalFacilityChange,
+  handleMechanicalFacilityClick,
+} from './vibration-integrity-mechanical-controller.js';
+import { renderMechanicalFacilityPanel } from './vibration-integrity-mechanical-view.js';
 import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js';
 import {
   addSbcT3UserEngineeringDataRows,
@@ -25,6 +31,7 @@ function tabButton(id, label, active) {
 function workspaceTabs(active) {
   return `<nav class="vi-detail-tabs" aria-label="Vibration Integrity workspace tabs">
     ${tabButton('screening', 'Screening workspace', active)}
+    ${tabButton('mechanical', 'Mechanical T2.3', active)}
     ${tabButton('user-data', 'User Engineering Data', active)}
   </nav>`;
 }
@@ -47,8 +54,18 @@ function userDataPage(state) {
   </div>`;
 }
 
+function mechanicalPage(state) {
+  return `<div class="vi-root">
+    <header class="vi-header"><div><h2>Vibration Integrity</h2><p>Facility-scoped Mechanical Excitation assessment using the governed EI AVIFF T2.3 candidate master.</p></div><div class="vi-authority"><strong>CANDIDATE MASTER</strong><span>NOT SCREENING / DESIGN AUTHORITY</span></div></header>
+    ${workspaceTabs('mechanical')}
+    ${state.error ? `<div class="vi-banner bad"><strong>Unable to evaluate Mechanical T2.3 candidate.</strong><span>${esc(state.error)}</span></div>` : ''}
+    ${renderMechanicalFacilityPanel(state)}
+  </div>`;
+}
+
 export function createVibrationUserDataUiState() {
   return {
+    ...createMechanicalFacilityUiState(),
     workspaceTab: 'screening',
     userEngineeringData: createVibrationUserEngineeringDataTable(),
     sbcType3ScopeId: '',
@@ -58,6 +75,7 @@ export function createVibrationUserDataUiState() {
 
 export function renderVibrationIntegrityWithUserData(state) {
   if (state.workspaceTab === 'user-data') return userDataPage(state);
+  if (state.workspaceTab === 'mechanical') return mechanicalPage(state);
   return injectWorkspaceTabs(renderVibrationIntegrityHtml(state), workspaceTabs('screening'));
 }
 
@@ -103,6 +121,7 @@ function openFacilitySbcInputs(state, scopeId, render) {
 }
 
 export function handleVibrationUserDataClick(state, event, render) {
+  if (handleMechanicalFacilityClick(state, event, render)) return true;
   const facilityScope = event.target.closest('[data-vi-sbc-facility-scope]')?.dataset.viSbcFacilityScope;
   if (facilityScope) {
     openFacilitySbcInputs(state, facilityScope, render);
@@ -110,7 +129,7 @@ export function handleVibrationUserDataClick(state, event, render) {
   }
   const tab = event.target.closest('[data-vi-workspace-tab]')?.dataset.viWorkspaceTab;
   if (tab) {
-    state.workspaceTab = tab === 'user-data' ? 'user-data' : 'screening';
+    state.workspaceTab = ['user-data', 'mechanical'].includes(tab) ? tab : 'screening';
     render();
     return true;
   }
@@ -141,6 +160,7 @@ export function handleVibrationUserDataClick(state, event, render) {
 }
 
 export function handleVibrationUserDataChange(state, event, render) {
+  if (handleMechanicalFacilityChange(state, event, render)) return true;
   if (event.target.matches('[data-vi-sbc-type3-scope]')) {
     state.sbcType3ScopeId = event.target.value;
     state.sbcType3Result = null;

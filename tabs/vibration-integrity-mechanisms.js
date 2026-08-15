@@ -1,5 +1,7 @@
+import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
 import {
   buildFitVibrationMechanismAssessmentSet,
+  buildMechanicalVibrationMechanismAssessmentSet,
   buildSbcVibrationMechanismAssessmentSet,
   createVibrationMechanismAssessmentSet,
 } from '../converters/vibration/mechanisms/index.js';
@@ -11,7 +13,7 @@ export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze([
   }),
   Object.freeze({
     id: 'mechanicalExcitation', label: 'Mechanical', title: 'Mechanical excitation',
-    sourceSection: 'EI AVIFF T2.3', implementationState: 'NOT_IMPLEMENTED',
+    sourceSection: 'EI AVIFF T2.3', implementationState: 'CANDIDATE_MASTER',
   }),
   Object.freeze({
     id: 'reciprocatingPulsation', label: 'Recip / PD',
@@ -95,6 +97,24 @@ function fitAssessment(row, mechanism, context) {
   return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_SCREENING' });
 }
 
+function mechanicalAssessment(row, mechanism, context) {
+  const scopeId = mechanicalFacilityScopeId(row);
+  const sourceKeys = context.mechanicalSourceKeysByScope?.[scopeId] ?? [];
+  const notApplicable = context.mechanicalNotApplicableByScope?.[scopeId] === true;
+  const cachedCandidate = context.mechanicalCandidateResultsByScope?.[scopeId] ?? null;
+  const inheritedCurrency = context.resultState === 'STALE_RESULT' ? 'STALE_RESULT' : null;
+  const contractSet = buildMechanicalVibrationMechanismAssessmentSet({
+    row,
+    sourceKeys,
+    notApplicable,
+    cachedCandidate,
+    resultState: context.mechanicalResultState ?? inheritedCurrency,
+  });
+  const assessment = contractAssessment(mechanism, contractSet);
+  if (assessment.assessmentState !== 'CALCULATED') return assessment;
+  return Object.freeze({ ...assessment, assessmentState: 'CALCULATED_CANDIDATE' });
+}
+
 function sbcAssessment(row, mechanism, context) {
   const inheritedCurrency = context.resultState === 'STALE_RESULT' ? 'STALE_RESULT' : null;
   const contractSet = buildSbcVibrationMechanismAssessmentSet({
@@ -134,6 +154,7 @@ export function buildVibrationMechanismAssessment(row, mechanismId, context = {}
   const mechanism = MECHANISM_BY_ID.get(mechanismId);
   if (!mechanism) throw new Error(`Unknown vibration mechanism: ${mechanismId}`);
   if (mechanism.id === 'fit') return fitAssessment(row, mechanism, context);
+  if (mechanism.id === 'mechanicalExcitation') return mechanicalAssessment(row, mechanism, context);
   if (mechanism.id === 'smallBoreConnections') return sbcAssessment(row, mechanism, context);
   return unavailableAssessment(row, mechanism);
 }
@@ -145,7 +166,9 @@ function isScreeningAssessment(assessment) {
 
 function isCandidateAssessment(assessment) {
   return assessment.implementationState === 'IMPLEMENTED_CANDIDATE_USER_INPUT'
-    || assessment.qualificationState === 'CANDIDATE_USER_INPUT';
+    || assessment.implementationState === 'IMPLEMENTED_CANDIDATE_MASTER'
+    || assessment.qualificationState === 'CANDIDATE_USER_INPUT'
+    || assessment.qualificationState === 'CANDIDATE_MASTER';
 }
 
 function governingAssessment(assessments, { currentOnly, accept }) {

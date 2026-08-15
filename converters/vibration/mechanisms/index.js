@@ -21,6 +21,13 @@ export {
 } from './fit.js';
 
 export {
+  MECHANICAL_VIBRATION_MECHANISM_ID,
+  MECHANICAL_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
+  buildMechanicalVibrationMechanismAssessmentItem,
+  buildMechanicalVibrationMechanismAssessmentSet,
+} from './mechanical.js';
+
+export {
   SBC_VIBRATION_MECHANISM_ID,
   SBC_VIBRATION_MECHANISM_IMPLEMENTATION_STATE,
   buildSbcVibrationMechanismAssessmentItem,
