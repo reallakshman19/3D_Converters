@@ -22,6 +22,8 @@ export const FIT_SOURCE_BASIS_EVIDENCE = Object.freeze({
   benchmarkBasis: Object.freeze({
     publishedVectorAuthority: 'EI_WORKED_EXAMPLE_PDF',
     ownerQualificationAnchor: 'CONTROLLED_WORKED_EXAMPLE_DOCX',
+    ownerQualificationPolicy: 'WORKED_EXAMPLE_BENCHMARK_SUFFICIENT',
+    qualificationExample: 'EI-D4-FIT-PRODUCED-WATER-10IN',
     docxRole: 'REVISED_PROJECT_SCENARIO_EVIDENCE',
     retainedWorkbookRole: 'MIGRATION_PARITY_EVIDENCE_ONLY',
   }),
@@ -31,9 +33,10 @@ export const FIT_SOURCE_BASIS_EVIDENCE = Object.freeze({
     note: 'Using the product FIT reference method does not itself prove a client or project procedure has adopted it.',
   }),
   authority: Object.freeze({
-    qualificationState: 'BENCHMARK_ONLY',
-    engineeringAuthority: 'NONE',
-    screeningAuthority: 'NOT_AUTHORIZED',
+    qualificationState: 'SCREENING',
+    engineeringAuthority: 'SCREENING',
+    screeningAuthority: 'AUTHORIZED_BOUNDED',
     designAuthority: false,
+    fullMultiMechanismScreeningAuthority: false,
   }),
 });
