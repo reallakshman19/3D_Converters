@@ -162,7 +162,7 @@ test('screening workflow is lazy-loaded only by the explicit Run action', () => 
     controllerSource,
     /await import\(\s*'\.\.\/converters\/vibration\/facility\/fit-workflow-tabular\.js'/u,
   );
-  assert.match(controllerSource, /data-vi-action="preflight"|action === 'preflight'/u);
+  assert.match(controllerSource, /VIBRATION_INTEGRITY_ACTION_IDS\.preflight/u);
 });
 
 test('FIT workspace is not exposed as a standalone Engineering navigation item', () => {
