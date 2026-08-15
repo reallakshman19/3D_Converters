@@ -1,9 +1,13 @@
+import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js';
+import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js';
 import {
   addSbcT3UserEngineeringDataRows,
+  addSbcType3UserEngineeringDataRows,
   addVibrationUserEngineeringDataRow,
   createVibrationUserEngineeringDataTable,
   deleteVibrationUserEngineeringDataRow,
   updateVibrationUserEngineeringDataCell,
+  vibrationUserEngineeringDataResolverRows,
 } from './vibration-integrity-user-data-model.js';
 import { renderVibrationUserEngineeringData } from './vibration-integrity-user-data-view.js';
 import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
@@ -39,6 +43,7 @@ function userDataPage(state) {
     ${workspaceTabs('user-data')}
     ${state.error ? `<div class="vi-banner bad"><strong>Unable to update user engineering data.</strong><span>${esc(state.error)}</span></div>` : ''}
     ${renderVibrationUserEngineeringData(state)}
+    ${renderSbcType3UserInputPanel(state)}
   </div>`;
 }
 
@@ -46,6 +51,8 @@ export function createVibrationUserDataUiState() {
   return {
     workspaceTab: 'screening',
     userEngineeringData: createVibrationUserEngineeringDataTable(),
+    sbcType3ScopeId: '',
+    sbcType3Result: null,
   };
 }
 
@@ -56,7 +63,34 @@ export function renderVibrationIntegrityWithUserData(state) {
 
 function updateTable(state, table, render) {
   state.userEngineeringData = table;
+  state.sbcType3Result = null;
   state.error = null;
+  render();
+}
+
+function addType3Template(state, hasMass, render) {
+  const scopeId = String(state.sbcType3ScopeId ?? '').trim();
+  if (!scopeId) {
+    state.error = 'Enter an SBC scope / assessment ID before adding Type-3 input rows.';
+    render();
+    return;
+  }
+  updateTable(state, addSbcType3UserEngineeringDataRows(
+    state.userEngineeringData, scopeId, hasMass,
+  ), render);
+}
+
+function evaluateType3(state, render) {
+  try {
+    state.sbcType3Result = calculateSbcType3FromUserEngineeringData({
+      userRows: vibrationUserEngineeringDataResolverRows(state.userEngineeringData),
+      scopeId: state.sbcType3ScopeId,
+    });
+    state.error = null;
+  } catch (error) {
+    state.sbcType3Result = null;
+    state.error = String(error?.message || error);
+  }
   render();
 }
 
@@ -65,6 +99,15 @@ export function handleVibrationUserDataClick(state, event, render) {
   if (tab) {
     state.workspaceTab = tab === 'user-data' ? 'user-data' : 'screening';
     render();
+    return true;
+  }
+  const type3Template = event.target.closest('[data-vi-sbc-type3-template]')?.dataset.viSbcType3Template;
+  if (type3Template) {
+    addType3Template(state, type3Template === 'mass', render);
+    return true;
+  }
+  if (event.target.closest('[data-vi-sbc-type3-evaluate]')) {
+    evaluateType3(state, render);
     return true;
   }
   if (event.target.closest('[data-vi-user-data-add-sbc]')) {
@@ -85,6 +128,13 @@ export function handleVibrationUserDataClick(state, event, render) {
 }
 
 export function handleVibrationUserDataChange(state, event, render) {
+  if (event.target.matches('[data-vi-sbc-type3-scope]')) {
+    state.sbcType3ScopeId = event.target.value;
+    state.sbcType3Result = null;
+    state.error = null;
+    render();
+    return true;
+  }
   const columnKey = event.target.dataset.viUserDataCell;
   if (!columnKey) return false;
   updateTable(state, updateVibrationUserEngineeringDataCell(
