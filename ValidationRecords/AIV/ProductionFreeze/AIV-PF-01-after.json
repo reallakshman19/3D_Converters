@@ -3,7 +3,7 @@
   "sliceId": "PF-01",
   "issueId": 513,
   "baselineSha": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "implementationHead": "8ce49f991d6907694f284398026a8114437d9740",
+  "implementationHead": "835c908ad16fa206aa510136068ea6d1b0578a12",
   "filterPath": "tabs/vibration-aiv-canvas-filter.js",
   "filterBlobBefore": "a5da4fb99e69310659659725696c61c3d9347085",
   "filterBlobAfter": "8640eca0a2e1454e277613d50c4c9962e3e537d8",
@@ -22,6 +22,22 @@
       ]
     }
   },
+  "professionalUiHardening": {
+    "canvasFailureContainment": {
+      "path": "tabs/vibration-aiv-qualification-tab.js",
+      "behavior": "canvasController.sync exceptions are caught as canvas-only degraded presentation warnings",
+      "userMessage": "Canvas unavailable: <error>. Engineering tables and screening controls remain authoritative and usable.",
+      "engineeringStateMutation": false,
+      "screeningAuthorityMutation": false
+    },
+    "cacheDelivery": {
+      "path": "tabs/engineering-calculations-tab.js",
+      "beforeToken": "aiv-qualification-1",
+      "afterToken": "aiv-qualification-2",
+      "purpose": "force cache-distinct delivery of the patched AIV workspace after the live failure was observed on the -1 module URL"
+    },
+    "regression": "tests/vibration-aiv-canvas-hardening.test.mjs"
+  },
   "targetedBrowserEngine": {
     "status": "PASS",
     "browser": "Chrome/144.0.7559.96",
@@ -35,9 +51,24 @@
     {"id":"MULTI_160_160","expected":163.0102999566398,"actual":163.0102999566398,"status":"PASS"},
     {"id":"MULTI_160_150","expected":160.41392685158226,"actual":160.41392685158226,"status":"PASS"}
   ],
+  "pf01NativeGate": {
+    "command": "npm run verify:aiv-pf01",
+    "status": "NOT_RUN",
+    "reason": "No executable native private checkout/runner is available in this environment.",
+    "coverage": [
+      "PF-01 null/filter regression",
+      "canvas degraded-mode authority boundary and cache token",
+      "B1 D.2.3 registered screening and canvas parity",
+      "B2 160+160 registered result and source identity",
+      "B3 160+150 registered result and source identity",
+      "B4 single/batch/canvas parity",
+      "B5 controlled two-RV readiness-to-registered-screening bridge",
+      "B6 presentation movement invariance of engineering inputs, path evidence and registered results"
+    ]
+  },
   "fullApplicationPostFix": {
     "status": "NOT_RUN",
-    "requiredWorkflow": "Import same EI EIT -> Check AIV readiness -> Run AIV screening -> exercise Case/Line/Show -> confirm zero uncaught caseId error",
+    "requiredWorkflow": "Import same EI EIT -> Check AIV readiness -> Run AIV screening -> exercise Case/Line/Show -> confirm zero uncaught caseId error and no canvas failure is promoted to engineering action failure",
     "reason": "This execution environment cannot navigate the private/full application because Chromium is managed with URLBlocklist=['*'] and hosted runners are not executing."
   },
   "releaseSuite": {
@@ -52,9 +83,10 @@
     "SVG/pixels remain non-authoritative for engineering distance",
     "screeningResultScope remains ASSESSMENT",
     "line/case summary remains non-authoritative",
-    "designAuthority remains false"
+    "designAuthority remains false",
+    "canvas presentation failure is degraded separately from engineering action failure"
   ],
-  "uiDisposition": "No visual redesign added in PF-01; the defect is a presentation-state initialization failure and the minimal correction removes the user-visible crash without changing engineering meaning.",
-  "disposition": "IMPLEMENTED_TARGETED_VALIDATION_PASS_FULL_APP_AND_B1_B6_CLOSURE_PENDING",
+  "uiDisposition": "PF-01 now fails professionally: the root null crash is removed; future canvas-only failures are contained inside the canvas with an authority-preserving warning; the patched workspace has a cache-distinct module token.",
+  "disposition": "IMPLEMENTED_TARGETED_VALIDATION_PASS_NATIVE_AND_FULL_APP_EXECUTION_PENDING",
   "nextSliceAuthorized": false
 }
