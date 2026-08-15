@@ -24,6 +24,9 @@ function state() {
     detailTab: 'summary',
     preflight: null,
     envelope: {
+      qualificationMode: 'screening',
+      engineeringAuthority: 'SCREENING',
+      screeningAuthorized: true,
       imports: {
         topologyFormat: 'XLSX', exchangeIntegrityStatus: 'DECLARED_NOT_REVERIFIED',
         operatingCaseCount: 2, enrichmentCount: 6,
@@ -38,19 +41,23 @@ function state() {
       },
     },
     workspace: {
+      engineeringAuthority: 'SCREENING',
+      screeningAuthorized: true,
+      qualificationMode: 'screening',
       selectedRowKey: rowKey,
       summary: {
         totalRows: 2, visibleRows: 2, calculatedRows: 1, incompleteRows: 1,
-        calculationFailedRows: 0, candidateForEngineeringReviewRows: 1,
+        calculationFailedRows: 0, candidateForEngineeringReviewRows: 0,
       },
       rows: [
         {
           rowKey, line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1',
           completenessStatus: 'CALCULATED', standardLof: 0.276, refinedLof: null,
           governingReferenceLof: 0.276, referenceBand: 'LOF_LT_0_3',
-          qualificationState: 'BENCHMARK_ONLY', phaseEvidenceStrength: 'EI_PUBLISHED_EXAMPLE',
+          qualificationState: 'SCREENING', phaseEvidenceStrength: 'EI_PUBLISHED_EXAMPLE',
           correlationEvidenceStrength: 'INDEPENDENT_HAND_BENCHMARK',
-          advancedEvidenceStrength: 'RETAINED_PARITY_ONLY', candidateForEngineeringReview: true,
+          advancedEvidenceStrength: 'RETAINED_PARITY_ONLY', candidateForEngineeringReview: false,
+          continuationRequired: false,
         },
         {
           rowKey: '["L-200","DESIGN","CAN-2"]', line: 'L-200', caseId: 'DESIGN', canonicalId: 'CAN-2',
@@ -61,10 +68,10 @@ function state() {
         },
       ],
       detail: {
-        summary: { line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1', qualificationState: 'BENCHMARK_ONLY' },
-        inputs: { values: { phase: 'GAS' }, units: { outsideDiameter: 'mm' }, qualificationMode: 'benchmark' },
+        summary: { line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1', qualificationState: 'SCREENING' },
+        inputs: { values: { phase: 'GAS' }, units: { outsideDiameter: 'mm' }, qualificationMode: 'screening' },
         operatingCase: { line: 'L-100', caseId: 'NORMAL', source: 'HMB-1' },
-        enrichment: [], evidenceQualification: { qualification: { effective: 'BENCHMARK_ONLY' } },
+        enrichment: [], evidenceQualification: { qualification: { effective: 'SCREENING', designAuthority: false } },
         sourceTrace: { assessmentPoint: { source: 'VIB-REVIEW' } },
         diagnostics: { missing: [], invalid: [], errorCodes: [], centralErrors: [] },
       },
@@ -97,20 +104,19 @@ function preflightState() {
   };
 }
 
-test('Vibration Integrity renders benchmark-only table workspace with explicit provenance state', () => {
+test('Vibration Integrity renders bounded screening workspace with explicit design boundary', () => {
   const html = renderVibrationIntegrityHtml(state());
   assert.match(html, /Vibration Integrity/u);
-  assert.match(html, /BENCHMARK ONLY/u);
-  assert.match(html, /NOT SCREENING \/ DESIGN AUTHORITY/u);
+  assert.match(html, /SCREENING/u);
+  assert.match(html, /DESIGN AUTHORITY FALSE/u);
   assert.match(html, /3D EDIT table export/u);
   assert.match(html, /DECLARED_NOT_REVERIFIED/u);
   assert.match(html, /CAN-1/u);
   assert.match(html, /DATA_INCOMPLETE/u);
-  assert.match(html, /BENCHMARK_ONLY/u);
   assert.match(html, /Phase: EI_PUBLISHED_EXAMPLE/u);
   assert.match(html, /Standard: INDEPENDENT_HAND_BENCHMARK/u);
   assert.match(html, /Advanced: RETAINED_PARITY_ONLY/u);
-  assert.match(html, /Review candidate/u);
+  assert.match(html, /Run FIT screening/u);
 });
 
 test('readiness panel shows READY/NOT_READY evidence only and contains no LOF fields', () => {
@@ -142,15 +148,15 @@ test('visible vibration product has no canvas, universal score, pass or direct e
   assert.doesNotMatch(controllerSource, /calculateFit\s*\(/u);
   assert.doesNotMatch(controllerSource, /calculateEngineering(?:Batch)?\s*\(/u);
   assert.match(controllerSource, /buildVibrationFacilityFitPreflightFromTables/u);
-  assert.match(controllerSource, /runVibrationFacilityFitBenchmarkFromTables/u);
+  assert.match(controllerSource, /runVibrationFacilityFitScreeningFromTables/u);
   assert.match(controllerSource, /buildVibrationWorkspaceModel/u);
   assert.match(controllerSource, /serializeVibrationFacilityFitRegisterCsv/u);
 });
 
-test('benchmark workflow is lazy-loaded only by the explicit Run action', () => {
+test('screening workflow is lazy-loaded only by the explicit Run action', () => {
   assert.doesNotMatch(
     controllerSource,
-    /import\s*\{[^}]*runVibrationFacilityFitBenchmarkFromTables[^}]*\}\s*from/u,
+    /import\s*\{[^}]*runVibrationFacilityFitScreeningFromTables[^}]*\}\s*from/u,
   );
   assert.match(
     controllerSource,
@@ -166,7 +172,7 @@ test('FIT workspace is not exposed as a standalone Engineering navigation item',
   assert.doesNotMatch(extensionSource, /id: 'vibration-integrity'/u);
 });
 
-test('tab exposes XLSX preferred and limited CSV handling without qualification-mode controls', () => {
+test('tab exposes XLSX preferred and limited CSV handling without user-selectable authority controls', () => {
   const html = renderVibrationIntegrityHtml({ ...state(), files: { ...state().files, topology: {
     name: 'elements.csv', format: 'CSV_ELEMENTS_ONLY', kind: 'Elements-only CSV · limited provenance',
   } } });
@@ -174,5 +180,5 @@ test('tab exposes XLSX preferred and limited CSV handling without qualification-
   assert.match(html, /five-sheet XLSX export/u);
   assert.match(html, /Allow limited Elements-only CSV/u);
   assert.match(html, /Check readiness/u);
-  assert.doesNotMatch(html, /qualification-mode|screening mode|design mode/iu);
+  assert.doesNotMatch(html, /qualification-mode|design mode/iu);
 });
