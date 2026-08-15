@@ -1,10 +1,10 @@
-import { SBC_TYPE3_BLOCKERS, SBC_TYPE3_RECORD_KEY } from '../converters/vibration/sbc/type3-user-data.js';
+import { SBC_TYPE3_BLOCKERS, SBC_TYPE3_RECORD_KEY } from '../converters/vibration/sbc/type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 import {
   SBC_TYPE3_ENGINEERING_CHANGE_KINDS,
   createSbcType3CandidateCurrentnessStore,
   readCurrentSbcType3Candidate,
   recordSbcType3EngineeringChange,
-} from './vibration-integrity-sbc-candidate-currentness.js';
+} from './vibration-integrity-sbc-candidate-currentness.js?v=20260815-sbc-pf05-cache-1';
 
 const CURVE = SBC_TYPE3_ENGINEERING_CHANGE_KINDS.manualCurveEvidence;
 const CURVE_BLOCKERS = new Set([

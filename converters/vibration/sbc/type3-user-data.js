@@ -3,7 +3,7 @@ import {
   resolveBlockedVibrationData,
   validateVibrationUserEngineeringDataRow,
 } from '../user-engineering-data.js';
-import { combineSbcType3Terms } from './type3-combination.js';
+import { combineSbcType3Terms } from './type3-combination.js?v=20260815-sbc-pf05-cache-1';
 
 export const SBC_TYPE3_USER_METHOD_ID = 'VIB.SBC.T3.TYPE3.USER_INPUT_CANDIDATE';
 export const SBC_TYPE3_RECORD_KEY = 'TYPE3';

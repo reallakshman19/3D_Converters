@@ -7,7 +7,7 @@ import { buildSelectedFitMechanismAssessmentSet } from './vibration-integrity-me
 import {
   VIBRATION_INTEGRITY_MECHANISMS,
   buildVibrationMechanismMatrixRow,
-} from './vibration-integrity-mechanisms.js';
+} from './vibration-integrity-mechanisms.js?v=20260815-sbc-pf05-cache-1';
 
 function esc(value) {
   return String(value ?? '')

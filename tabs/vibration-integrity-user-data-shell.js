@@ -1,4 +1,4 @@
-import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js';
+import { calculateSbcType3FromUserEngineeringData } from '../converters/vibration/sbc/type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 import {
   createMechanicalFacilityUiState,
   handleMechanicalFacilityChange,
@@ -9,12 +9,12 @@ import { renderMechanicalFacilityPanel } from './vibration-integrity-mechanical-
 import {
   handleSbcType3Change,
   handleSbcType3Click,
-} from './vibration-integrity-sbc-type3-controller.js';
+} from './vibration-integrity-sbc-type3-controller.js?v=20260815-sbc-pf05-cache-1';
 import {
   createSbcType3UiState,
   recordSbcType3UserDataTableMutation,
-} from './vibration-integrity-sbc-type3-state.js';
-import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js';
+} from './vibration-integrity-sbc-type3-state.js?v=20260815-sbc-pf05-cache-1';
+import { renderSbcType3UserInputPanel } from './vibration-integrity-sbc-type3-view.js?v=20260815-sbc-pf05-cache-1';
 import { VIBRATION_INTEGRITY_UI_CONTRACT } from './vibration-integrity-ui-contract.js';
 import {
   addSbcT3UserEngineeringDataRows,
@@ -26,7 +26,7 @@ import {
   vibrationUserEngineeringDataResolverRows,
 } from './vibration-integrity-user-data-model.js';
 import { renderVibrationUserEngineeringData } from './vibration-integrity-user-data-view.js';
-import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js';
+import { renderVibrationIntegrityHtml } from './vibration-integrity-view.js?v=20260815-sbc-pf05-cache-1';
 
 function esc(value) {
   return String(value ?? '')

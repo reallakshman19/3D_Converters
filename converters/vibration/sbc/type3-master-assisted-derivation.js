@@ -3,13 +3,13 @@ import {
   inspectEiAviffSbcT3TableCandidate,
   resolveEiAviffSbcT3CurveCandidate,
 } from '../masters/ei-aviff-sbc-t3-candidate.js';
-import { SBC_TYPE3_BLOCKERS, SBC_TYPE3_RECORD_KEY } from './type3-user-data.js';
+import { SBC_TYPE3_BLOCKERS, SBC_TYPE3_RECORD_KEY } from './type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 import {
   SBC_T3_CANDIDATE_AUTHORITY,
   SBC_T3_CANDIDATE_GOVERNANCE,
   resolveSbcT3CandidateRule,
   resolveSbcT3CandidateScore,
-} from './type3-noncurve-candidate-data.js';
+} from './type3-noncurve-candidate-data.js?v=20260815-sbc-pf05-cache-1';
 
 export const SBC_TYPE3_MASTER_DERIVATION_METHOD_ID =
   'VIB.SBC.T3.TYPE3.MASTER_ASSISTED_DERIVATION_CANDIDATE';

@@ -1,4 +1,4 @@
-import { evaluateSbcFacilityType3 } from '../sbc/facility.js';
+import { evaluateSbcFacilityType3 } from '../sbc/facility.js?v=20260815-sbc-pf05-cache-1';
 import {
   createVibrationMechanismAssessmentItem,
   createVibrationMechanismAssessmentSet,

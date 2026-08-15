@@ -1,11 +1,11 @@
 import { mechanicalFacilityScopeId } from '../converters/vibration/mechanical/facility.js';
-import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js';
+import { sbcFacilityScopeId } from '../converters/vibration/sbc/facility.js?v=20260815-sbc-pf05-cache-1';
 import {
   buildFitVibrationMechanismAssessmentSet,
   buildMechanicalVibrationMechanismAssessmentSet,
   buildSbcVibrationMechanismAssessmentSet,
   createVibrationMechanismAssessmentSet,
-} from '../converters/vibration/mechanisms/index.js';
+} from '../converters/vibration/mechanisms/index.js?v=20260815-sbc-pf05-cache-1';
 
 export const VIBRATION_INTEGRITY_MECHANISMS = Object.freeze([
   Object.freeze({
