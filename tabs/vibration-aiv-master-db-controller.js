@@ -71,18 +71,66 @@ async function verifiedTexts(fileList) {
   return { texts, verification };
 }
 
-function filteredResolution(resolution, tableKind, rowIndex, column) {
+function tableColumnIndex(table, column) {
+  return table?.header?.indexOf(column) ?? -1;
+}
+function rebuildTable(table, rows) {
+  return createAivInputTable(table.kind, rows, {
+    sourceName: table.sourceName,
+    sourceKind: table.sourceKind,
+    benchmarkId: table.benchmarkId,
+    dirty: table.dirty,
+  });
+}
+function filteredResolution(resolution, predicate) {
   if (!resolution) return null;
+  const resolutions = resolution.resolutions.filter((item) => !predicate(item));
+  return Object.freeze({ ...resolution, resolutions: Object.freeze(resolutions), resolvedFieldCount: resolutions.length });
+}
+function shiftedAfterDelete(resolution, tableKind, rowIndex, deletedAssessmentId) {
+  if (!resolution) return null;
+  const resolutions = resolution.resolutions.flatMap((item) => {
+    if (item.tableKind !== tableKind) return [item];
+    if (item.rowIndex === rowIndex) return [];
+    return [{ ...item, rowIndex: item.rowIndex > rowIndex ? item.rowIndex - 1 : item.rowIndex }];
+  });
+  const unresolved = (resolution.unresolved ?? []).flatMap((item) => {
+    if (item.tableKind !== tableKind) return [item];
+    if (item.rowIndex === rowIndex) return [];
+    return [{ ...item, rowIndex: item.rowIndex > rowIndex ? item.rowIndex - 1 : item.rowIndex }];
+  });
+  const discovered = (resolution.discoveredAssessmentCanonicalIds ?? [])
+    .filter((id) => id !== deletedAssessmentId);
   return Object.freeze({
     ...resolution,
-    resolutions: Object.freeze(resolution.resolutions.filter((item) => !(
-      item.tableKind === tableKind && item.rowIndex === rowIndex && item.column === column
-    ))),
+    resolutions: Object.freeze(resolutions.map(Object.freeze)),
+    unresolved: Object.freeze(unresolved.map(Object.freeze)),
+    resolvedFieldCount: resolutions.length,
+    discoveredAssessmentCanonicalIds: Object.freeze(discovered),
+    discoveredAssessmentCandidateCount: discovered.length,
   });
 }
 
 export function createAivMasterDbController({ state, render, clearReadiness }) {
-  function clearResolution() {
+  function clearResolution({ clearDerivedValues = false } = {}) {
+    const resolution = state.masterResolution;
+    if (clearDerivedValues && resolution) {
+      const discovered = new Set(resolution.discoveredAssessmentCanonicalIds ?? []);
+      const next = {};
+      for (const [kind, table] of Object.entries(state.tables)) {
+        const rows = table.rows.map((row) => [...row]);
+        for (const item of resolution.resolutions) {
+          if (item.tableKind !== kind) continue;
+          const columnIndex = tableColumnIndex(table, item.column);
+          if (rows[item.rowIndex] && columnIndex >= 0) rows[item.rowIndex][columnIndex] = '';
+        }
+        if (kind === 'assessments' && discovered.size) {
+          const idIndex = tableColumnIndex(table, 'Assessment Canonical ID');
+          next[kind] = rebuildTable(table, rows.filter((row) => !discovered.has(String(row[idIndex] ?? '').trim())));
+        } else next[kind] = rebuildTable(table, rows);
+      }
+      state.tables = next;
+    }
     state.masterResolution = null;
   }
 
@@ -93,12 +141,10 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     try {
       const { texts, verification } = await verifiedTexts(fileList);
       state.masterDb = parseAivMasterDatabase(texts, verification);
-      state.masterResolution = null;
       state.masterLoadState = 'VERIFIED';
       clearReadiness();
     } catch (value) {
       state.masterDb = null;
-      state.masterResolution = null;
       state.masterLoadState = 'ERROR';
       state.error = formatError(value);
     }
@@ -108,6 +154,7 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
   function apply() {
     try {
       if (!state.masterDb) throw error('AIV_MASTER_DB_NOT_LOADED', 'Load and verify the pinned AIV master package first.');
+      clearResolution({ clearDerivedValues: true });
       const topology = currentTopology(state);
       if (!topology?.elements?.length) throw error('AIV_MASTER_TOPOLOGY_REQUIRED', 'Load/import topology before applying AIV master data.');
       const resolution = resolveAivTablesFromMasterDb({ tables: state.tables, topology, masterDb: state.masterDb });
@@ -125,11 +172,36 @@ export function createAivMasterDbController({ state, render, clearReadiness }) {
     render();
   }
 
-  function noteUserEdit(tableKind, rowIndex, columnIndex) {
-    const column = state.tables?.[tableKind]?.header?.[columnIndex];
-    if (!column) return;
-    state.masterResolution = filteredResolution(state.masterResolution, tableKind, rowIndex, column);
+  function prepareUserEdit(tableKind, rowIndex, columnIndex) {
+    const table = state.tables?.[tableKind];
+    const column = table?.header?.[columnIndex];
+    if (!column || !state.masterResolution) return table;
+    const invalidatesRow = (tableKind === 'sources' && column === 'Source Canonical ID')
+      || (tableKind === 'assessments' && ['Assessment Canonical ID', 'Assessment Type'].includes(column));
+    if (!invalidatesRow) {
+      state.masterResolution = filteredResolution(state.masterResolution, (item) => (
+        item.tableKind === tableKind && item.rowIndex === rowIndex && item.column === column
+      ));
+      return table;
+    }
+    const rows = table.rows.map((row) => [...row]);
+    for (const item of state.masterResolution.resolutions) {
+      if (item.tableKind !== tableKind || item.rowIndex !== rowIndex) continue;
+      const index = tableColumnIndex(table, item.column);
+      if (index >= 0 && index !== columnIndex) rows[rowIndex][index] = '';
+    }
+    state.masterResolution = filteredResolution(state.masterResolution, (item) => (
+      item.tableKind === tableKind && item.rowIndex === rowIndex
+    ));
+    return rebuildTable(table, rows);
   }
 
-  return Object.freeze({ loadFiles, apply, clearResolution, noteUserEdit });
+  function noteRowDeleted(tableKind, rowIndex) {
+    const table = state.tables?.[tableKind];
+    const idIndex = tableKind === 'assessments' ? tableColumnIndex(table, 'Assessment Canonical ID') : -1;
+    const deletedAssessmentId = idIndex >= 0 ? String(table.rows?.[rowIndex]?.[idIndex] ?? '').trim() : '';
+    state.masterResolution = shiftedAfterDelete(state.masterResolution, tableKind, rowIndex, deletedAssessmentId);
+  }
+
+  return Object.freeze({ loadFiles, apply, clearResolution, prepareUserEdit, noteRowDeleted });
 }
