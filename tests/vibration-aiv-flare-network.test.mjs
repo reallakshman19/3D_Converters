@@ -9,6 +9,7 @@ import {
   resolveAivFlareNetworkPath,
 } from '../converters/vibration/aiv/aiv-flare-network.js';
 import { generateAivInputTablesFromFlareNetwork } from '../converters/vibration/aiv/aiv-flare-network-table-generator.js';
+import { buildAivFlareNetworkTopologyExchange } from '../converters/vibration/aiv/aiv-flare-network-topology.js';
 import { parseAivAssessmentCsv } from '../converters/vibration/aiv/assessment-csv.js';
 import { parseAivSourceCsv } from '../converters/vibration/aiv/source-csv.js';
 import { parseAivSourceAssessmentCsv } from '../converters/vibration/aiv/source-assessment-csv.js';
@@ -128,7 +129,8 @@ function parsedGeneratedTables(generated) {
 }
 
 test('D.2.3 drawn flare network auto-generates tables and reproduces registered AIV screening result', () => {
-  const generated = generateAivInputTablesFromFlareNetwork(d23Network());
+  const networkValue = d23Network();
+  const generated = generateAivInputTablesFromFlareNetwork(networkValue);
   assert.equal(generated.pathEvidence.length, 1);
   assert.equal(generated.pathEvidence[0].physicalDistanceM, 0.8);
   assert.deepEqual(generated.pathEvidence[0].segmentIds, ['D23-PATH-001']);
@@ -136,7 +138,7 @@ test('D.2.3 drawn flare network auto-generates tables and reproduces registered 
   const parsed = parsedGeneratedTables(generated);
   const result = calculateAiv({
     ...parsed,
-    exchange: { elements: [{ canonicalId: 'AIV-D23-WELDOLET-01', line: 'D23-RELIEF-LINE' }] },
+    exchange: buildAivFlareNetworkTopologyExchange(networkValue),
     assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
     qualificationMode: 'screening',
   });
@@ -150,6 +152,21 @@ test('D.2.3 drawn flare network auto-generates tables and reproduces registered 
   assert.equal(assessment.lof, 0.29);
   assert.equal(result.lineCaseSummaries[0].lof, 1.48);
   assert.equal(result.lineCaseSummaries[0].authoritativeForScreening, false);
+  assert.equal(result.screeningQualification.counts.readyForQualification, 1);
+});
+
+test('screening calculator rejects presentation-only topology stubs', () => {
+  const generated = generateAivInputTablesFromFlareNetwork(d23Network());
+  const parsed = parsedGeneratedTables(generated);
+  assert.throws(
+    () => calculateAiv({
+      ...parsed,
+      exchange: { elements: [{ canonicalId: 'AIV-D23-WELDOLET-01', line: 'D23-RELIEF-LINE' }] },
+      assumptionProfile: AIV_DEFAULT_ASSUMPTION_PROFILE,
+      qualificationMode: 'screening',
+    }),
+    (error) => ['AIV_SCREENING_TOPOLOGY_OR_READINESS_INVALID', 'AIV_SCREENING_READINESS_BLOCKED'].includes(error?.code),
+  );
 });
 
 test('two Source nodes reaching one Assessment generate separate relationships in one simultaneous group', () => {
