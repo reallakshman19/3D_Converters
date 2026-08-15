@@ -1,0 +1,30 @@
+schema: AgentClaim.v1
+pr_or_wip: PR518
+claim_state: ACTIVE
+files:
+  exact:
+    - converters/vibration/aiv/aiv-readiness.js
+    - converters/vibration/aiv/aiv-calculator.js
+    - tests/vibration-aiv-simultaneous-source-groups.test.mjs
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-03-manifest.json
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-03-before.json
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-03-after.json
+    - ValidationRecords/AIV/ProductionFreeze/AIV-PF-03-benchmark.json
+    - agents/PR518_workreport.md
+    - agents/status/PR518.yaml
+    - agents/claims/PR518.yaml
+  prefixes: []
+authority_domains:
+  - AIV_SIMULTANEOUS_SOURCE_GROUP_SEMANTICS
+  - AIV_PRODUCTION_FREEZE_EVIDENCE
+claim_modes:
+  - EXCLUSIVE
+  - SHARED_READ
+notes:
+  - "PF-03 owns only simultaneous-source grouping semantics: same-group arithmetic/identity and fail-closed distinct-group behavior."
+  - "PF-03 does not claim PF-02 pressure/unit/geometry executable-contract parity, PF-04 async state, master custody, export roundtrip, UI polish, or numerical-equation changes."
+  - "PR #506 aiv-executable-contract.js contains both PF-02 and PF-03 candidate logic; it is salvage only and must not be replayed wholesale."
+  - "No governing-group/scenario-selection algorithm may be invented in PF-03. Distinct groups under one Assessment+Case remain non-executable until a separately qualified contract exists."
+  - "B2/B3 expected values and source identities are frozen and may not be changed to match runtime output."
+  - "Production/test mutation remains blocked until exact-current-main live AIV reproduction is available; source inspection is not FULL_BROWSER_PASS."
+last_verified_head: 702542139dee8a7aa622c15550a56f36b6af0148
