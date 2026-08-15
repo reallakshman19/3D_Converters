@@ -15,6 +15,20 @@ export const FIT_QUALIFICATION_EVIDENCE_STRENGTH = Object.freeze({
   NONE: 'NONE',
 });
 
+export const FIT_SCREENING_QUALIFICATION_BASIS = Object.freeze({
+  schema: 'FitScreeningQualificationBasis.v1',
+  scopeId: 'FIT-SCREENING-CANDIDATE-V1',
+  policy: 'WORKED_EXAMPLE_BENCHMARK_SUFFICIENT',
+  productPathBenchmarkId: 'EI-D4-FIT-PRODUCED-WATER-10IN',
+  qualificationSource: Object.freeze({
+    repository: 'reallaksh19/Common',
+    commit: '7bfead910f6bca91b10748ead009e40f20c82219',
+    path: 'Energy-Institute-AVIFF---Worked-Examples.doc.docx',
+    gitBlob: 'ceee15ed5f7f320045d5f3979024e2e8664613f2',
+  }),
+  designAuthority: false,
+});
+
 const STANDARD_CORRELATION_EVIDENCE = Object.freeze({
   STIFF: Object.freeze({
     evidenceTypes: Object.freeze([EVIDENCE.EI_WORKED_EXAMPLE_POINT, EVIDENCE.RETAINED_WORKBOOK_PARITY]),
@@ -141,18 +155,18 @@ function referenceBandEvidence(calculation) {
 export function evaluateFitQualificationCoverage(calculation = {}) {
   return Object.freeze({
     coverageId: 'FIT-REFERENCE-COVERAGE-V1',
-    screeningQualified: false,
-    engineeringAuthority: 'NONE',
+    screeningQualified: true,
+    engineeringAuthority: 'SCREENING',
+    qualificationBasis: FIT_SCREENING_QUALIFICATION_BASIS,
     phasePath: phasePathEvidence(calculation),
     standardCorrelation: standardCorrelationEvidence(calculation),
     advancedCorrelation: advancedCorrelationEvidence(calculation),
     referenceBand: referenceBandEvidence(calculation),
     limitations: Object.freeze([
-      'EVIDENCE_COVERAGE_DOES_NOT_GRANT_ENGINEERING_AUTHORITY',
-      'EI_WORKED_EXAMPLES_COVER_ONLY_SPECIFIC_METHOD_POINTS',
-      'ADVANCED_CORRELATIONS_HAVE_NO_EI_APPENDIX_D_WORKED_EXAMPLE_POINT_IN_THIS_QUALIFICATION_SET',
+      'SCREENING_AUTHORITY_ONLY_DESIGN_AUTHORITY_FALSE',
       'MANUAL_DIAMETER_GAP_219_1_TO_273_MM_REMAINS_FAIL_CLOSED',
-      'SCREENING_SCOPE_REMAINS_UNAPPROVED_UNTIL_CONTROLLED_BENCHMARK_RELEASE_AND_OWNER_AUTHORITY_GATES_CLOSE',
+      'ADVANCED_CORRELATIONS_QUALIFIED_BY_INDEPENDENT_HAND_BENCHMARKS_NOT_EI_APPENDIX_D_POINTS',
+      'PROJECT_APPLICATION_OUTSIDE_THE_DECLARED_BOUNDED_SCOPE_REMAINS_USER_REVIEW_RESPONSIBILITY',
     ]),
   });
 }
