@@ -1,0 +1,67 @@
+{
+  "schema": "AivProductionFreezeBenchmarkLedger.v1",
+  "sliceId": "PF-03",
+  "issueId": 513,
+  "testedHead": null,
+  "results": [
+    {
+      "benchmarkId": "B1",
+      "status": "NOT_RUN",
+      "reason": "PF-03 has not reached post-fix benchmark execution."
+    },
+    {
+      "benchmarkId": "B2",
+      "status": "NOT_RUN",
+      "expected": 163.0102999566398,
+      "unit": "dB",
+      "absoluteTolerance": 1e-9,
+      "requiredSourceCanonicalIds": ["SIM-SRC-1", "SIM-SRC-2"],
+      "requiredSimultaneousSourceGroup": "SIM-GROUP-1",
+      "reason": "Real-app PF-03 pre-fix workflow is not available in the current environment."
+    },
+    {
+      "benchmarkId": "B3",
+      "status": "NOT_RUN",
+      "expected": 160.41392685158226,
+      "unit": "dB",
+      "absoluteTolerance": 1e-9,
+      "requiredSourceCanonicalIds": ["SIM-SRC-1", "SIM-SRC-2"],
+      "requiredSimultaneousSourceGroup": "SIM-GROUP-1",
+      "reason": "Real-app PF-03 pre-fix workflow is not available in the current environment."
+    },
+    {
+      "benchmarkId": "B4",
+      "status": "NOT_RUN",
+      "reason": "Single/batch/canvas parity must be rerun after any PF-03 correction."
+    },
+    {
+      "benchmarkId": "B5",
+      "status": "NOT_RUN",
+      "reason": "2-RV flare-network workflow must be rerun after any PF-03 correction."
+    },
+    {
+      "benchmarkId": "B6",
+      "status": "NOT_RUN",
+      "reason": "SVG presentation invariance must be rerun after any PF-03 correction."
+    },
+    {
+      "benchmarkId": "B7",
+      "status": "NOT_RUN",
+      "reason": "PF-03 distinct-group fail-closed semantics are not yet live-reproduced or corrected."
+    },
+    {"benchmarkId":"B8","status":"NOT_RUN","reason":"Not yet executed in PF-03."},
+    {"benchmarkId":"B9","status":"NOT_RUN","reason":"Not yet executed in PF-03."},
+    {"benchmarkId":"B10","status":"NOT_RUN","reason":"Not yet executed in PF-03."},
+    {"benchmarkId":"B11","status":"NOT_RUN","reason":"Not yet executed in PF-03."},
+    {"benchmarkId":"B12","status":"NOT_RUN","reason":"Not yet executed in PF-03."},
+    {"benchmarkId":"B13","status":"NOT_RUN","reason":"Not yet executed in PF-03."},
+    {"benchmarkId":"B14","status":"NOT_RUN","reason":"Not yet executed in PF-03."}
+  ],
+  "pf03CategoricalOracle": {
+    "sameGroup": "LOGARITHMIC_COMBINATION_ALLOWED_WITH_ALL_SOURCE_IDENTITIES_RETAINED",
+    "distinctGroupsSameAssessmentCase": "FAIL_CLOSED_UNTIL_SEPARATELY_QUALIFIED_GROUP_OR_SCENARIO_RESULT_CONTRACT_EXISTS",
+    "forbidden": "invent or select a governing group inside PF-03"
+  },
+  "oracleRule": "Expected values, tolerances, source identities and fail-closed grouping semantics are frozen. No expected value or grouping algorithm may be changed to match implementation output.",
+  "disposition": "BLOCKED_ENVIRONMENT"
+}
