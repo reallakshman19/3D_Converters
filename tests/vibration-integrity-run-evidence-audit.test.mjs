@@ -4,7 +4,10 @@ import {
   appendVibrationIntegrityAuditEvent,
   createVibrationIntegrityAuditLog,
 } from '../tabs/vibration-integrity-audit-log.js';
-import { buildVibrationIntegrityRunEvidence } from '../tabs/vibration-integrity-run-evidence.js';
+import {
+  VIBRATION_AUDIT_IDENTITY_SCHEMA,
+  buildVibrationIntegrityRunEvidence,
+} from '../tabs/vibration-integrity-run-evidence.js';
 
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
@@ -69,33 +72,46 @@ function envelope() {
   };
 }
 
-test('run evidence carries the immutable workflow audit trail', async () => {
-  const state = {
+async function evidenceState(overrides = {}) {
+  return {
     resultState: 'CURRENT_RESULT',
     runSnapshot: await runSnapshot(),
     auditLog: auditLog(),
     envelope: envelope(),
     files: {},
     benchmark: {},
+    ...overrides,
   };
-  const evidence = await buildVibrationIntegrityRunEvidence(state);
+}
+
+test('run evidence carries and fingerprints the immutable workflow audit trail', async () => {
+  const evidence = await buildVibrationIntegrityRunEvidence(await evidenceState());
   assert.equal(evidence.auditTrail.schema, 'VibrationIntegrityAuditLog.v1');
   assert.deepEqual(evidence.auditTrail.events.map((event) => event.type), ['SESSION_STARTED', 'RUN_SUCCEEDED']);
+  assert.equal(evidence.auditTrailIdentity.schema, VIBRATION_AUDIT_IDENTITY_SCHEMA);
+  assert.equal(evidence.auditTrailIdentity.algorithm, 'SHA-256');
+  assert.match(evidence.auditTrailIdentity.hash, /^[0-9a-f]{64}$/u);
+  assert.equal(evidence.auditTrailIdentity.hash, await sha256Hex(stableJson(evidence.auditTrail)));
   assert.equal(Object.isFrozen(evidence), true);
 });
 
 test('run evidence rejects a structurally tampered audit trail', async () => {
   const valid = auditLog();
-  const state = {
-    resultState: 'CURRENT_RESULT',
-    runSnapshot: await runSnapshot(),
-    auditLog: { ...valid, events: [{ ...valid.events[0], sequence: 7 }, valid.events[1]] },
-    envelope: envelope(),
-    files: {},
-    benchmark: {},
-  };
+  const auditLogTampered = { ...valid, events: [{ ...valid.events[0], sequence: 7 }, valid.events[1]] };
   await assert.rejects(
-    () => buildVibrationIntegrityRunEvidence(state),
+    () => buildVibrationIntegrityRunEvidence(await evidenceState({ auditLog: auditLogTampered })),
     (error) => error?.code === 'FIT_RUN_EVIDENCE_AUDIT_INVALID',
   );
+});
+
+test('run evidence rejects persisted audit events with invalid type or time', async () => {
+  const valid = auditLog();
+  const badType = { ...valid, events: [{ ...valid.events[0], type: 'UNKNOWN_EVENT' }, valid.events[1]] };
+  const badTime = { ...valid, events: [{ ...valid.events[0], at: 'not-a-time' }, valid.events[1]] };
+  for (const auditLogTampered of [badType, badTime]) {
+    await assert.rejects(
+      () => buildVibrationIntegrityRunEvidence(await evidenceState({ auditLog: auditLogTampered })),
+      (error) => error?.code === 'FIT_RUN_EVIDENCE_AUDIT_INVALID',
+    );
+  }
 });
