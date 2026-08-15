@@ -4,7 +4,7 @@ pr_or_wip: PR528
 mission: "Issue #526 AIV Unified Network Canvas with explicit NETWORK_DRIVEN/TABLE_DRIVEN authority"
 workstream: AIV_UNIFIED_NETWORK_CANVAS
 branch: agent/aiv-unified-network-canvas-526
-pr_head: d99230d04805cf734a44ed644d9b6a09f4003f60
+pr_head: dac7679b0b4f57bc307afa4b34f3bd2f19a41d18
 main_head_last_checked: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 merge_base: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 work_intent: IMPLEMENT
@@ -15,25 +15,32 @@ handover_readiness: READY
 report_path: agents/PR528_workreport.md
 report_basis_head: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_GATE_SATISFIED
-grounding_epoch: AIV526-GE-005
-current_stage: STAGE_2_UNIFIED_PROJECTION
-last_completed_stage: STAGE_1_INPUT_AUTHORITY_AND_CURRENTNESS
+grounding_epoch: AIV526-GE-007
+current_stage: STAGE_4_UNIFIED_VIEW_CONTROLLER_CUTOVER
+last_completed_stage: STAGE_3_MASTER_AND_NETWORK_CURRENTNESS
 qualification_comment: 5303402441
-blocker: NONE_FOR_STAGE_2_PURE_PROJECTION
-highest_risk: "Unified projection must distinguish physical substrate/path overlays from table-only logical relationships without introducing distance or numerical authority."
+blocker: NONE_FOR_FOCUSED_CUTOVER
+highest_risk: "Cutover must end with one visible canvas and one active controller while preserving physical pathEvidence, logical table relationships and registered result authority."
 validation:
-  focused_stage1: "PASS 9/9 exact reconstruction"
-  syntax: "PASS touched JS"
-  new_module_line_policy: "PASS 120/64 <300"
+  focused_stage1: "PASS 9/9 exact reconstruction at Stage 1 checkpoint"
+  unified_projection: "PASS 4/4 exact local reconstruction"
+  network_transaction: "PASS 2/2 exact local reconstruction"
+  master_currentness: "PASS 3/3 exact local reconstruction"
+  github_statuses_at_dac7679: NONE_REPORTED
   full_native_repo: NOT_RUN_NO_PRIVATE_CHECKOUT
   chromium: NOT_RUN
   b1_b10: NOT_RUN
+completed_capabilities:
+  - "Explicit TABLE_DRIVEN/NETWORK_DRIVEN engineering ownership"
+  - "Generated-table read-only + explicit detach"
+  - "Revision/token stale async currentness and export lineage"
+  - "One graph engineering revision per committed mutation"
+  - "Master effective/provenance no-op versus changed currentness"
+  - "Pure unified physical/logical/path projection"
 residual_risks:
-  - "Master DB effective/provenance mutation revision integration not yet complete"
-  - "Network authoring transaction revision stamping/B6 not yet complete"
-  - "Single unified canvas/controller not yet implemented"
-  - "Final production cache cutover not yet implemented"
-  - "Unified physical/logical projection not yet implemented"
+  - "Two visible canvas surfaces/controllers remain until Stage 4 cutover"
+  - "Final production cache identity still PF-01 key"
+  - "Full browser/native/B1-B10 validation remains outstanding"
 dependencies:
   - "Issue #526 qualification satisfied by comment 5303402441"
   - "PR #517 active PF-02 readiness/executable parity claim; consume only"
@@ -41,5 +48,5 @@ dependencies:
   - "Merged PR #518 simultaneous-source semantics"
   - "Merged PR #525 PF-01 cache-custody chain"
 coordination_state: COORDINATION_REQUIRED_WRITE_ALLOWED_WITH_BOUNDARY
-exact_next_action: "Implement pure unified projection and focused two-RV/table-only tests before any controller/view cutover."
-last_updated: 2026-08-15T21:43:00+04:00
+exact_next_action: "Implement and qualify unified view/controller; then replace dual production render/controller wiring without deleting rollback modules."
+last_updated: 2026-08-15T21:29:49+04:00
