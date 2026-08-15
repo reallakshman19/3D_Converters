@@ -3,13 +3,46 @@
   "sliceId": "PF-01",
   "issueId": 513,
   "baselineHead": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "implementationHead": "8ce49f991d6907694f284398026a8114437d9740",
+  "implementationHead": "835c908ad16fa206aa510136068ea6d1b0578a12",
   "oracleSources": [
     {"id":"AIV.EI.D2.3.WORKED_EXAMPLE.v1","path":"tabs/vibration-aiv-benchmarks.js","blob":"c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0"},
     {"id":"AIV_D23_QUALIFICATION_MATH","path":"scripts/aiv-qualification-math.mjs","blob":"0aba873c03e1fb9ef576095d603ec87178d006a3"},
     {"id":"AIV-HAND-MULTI-SOURCE","path":"converters/vibration/aiv/aiv-independent-benchmark-evidence.js","blob":"21d1e687dca0c537f4170e961b2d7b1894d710cc"},
     {"id":"AIV_RELEASE_SCRIPTS_BEFORE","path":"package.json","blob":"ef583d8da73d23df5463a4dfdb2da2d19006886f"},
-    {"id":"AIV_RELEASE_SCRIPTS_AFTER","path":"package.json","blob":"17568cf4cd80e8a47cf8f178fa98ec76c3567b72"}
+    {"id":"AIV_PF01_GATE_AFTER","path":"package.json","blob":"958da1f3ba7cc2185f68af4bb5c4b254f7711dd0"}
+  ],
+  "targetedCommand": "npm run verify:aiv-pf01",
+  "nativeCoverage": [
+    {
+      "benchmarkId":"B1",
+      "tests":["tests/vibration-aiv-canvas-integration.test.mjs"],
+      "requiredProof":"controlled EI D.2.3 through calculateEngineering, exact raw/point PWL and Assessment LOF, canvas projection parity"
+    },
+    {
+      "benchmarkId":"B2",
+      "tests":["tests/vibration-aiv-canvas-integration.test.mjs","tests/vibration-aiv-flare-network-multisource.test.mjs"],
+      "requiredProof":"160+160=163.0102999566398 dB through registered/production kernel with both Source Canonical IDs retained"
+    },
+    {
+      "benchmarkId":"B3",
+      "tests":["tests/vibration-aiv-canvas-integration.test.mjs","tests/vibration-aiv-flare-network-multisource.test.mjs"],
+      "requiredProof":"160+150=160.41392685158226 dB through registered/production kernel with both Source Canonical IDs retained"
+    },
+    {
+      "benchmarkId":"B4",
+      "tests":["tests/vibration-aiv-canvas-integration.test.mjs"],
+      "requiredProof":"single Engineering API = batch API = canvas-projected registered result and contribution identities"
+    },
+    {
+      "benchmarkId":"B5",
+      "tests":["tests/vibration-aiv-screening-runtime-bridge.test.mjs","tests/vibration-aiv-flare-network-multisource.test.mjs"],
+      "requiredProof":"controlled two-RV mock -> readiness envelope -> screening request -> calculateEngineering with RV-101/RV-102 identity and explicit 38 m/41 m engineering paths"
+    },
+    {
+      "benchmarkId":"B6",
+      "tests":["tests/vibration-aiv-flare-network.test.mjs","tests/vibration-aiv-flare-network-svg.test.mjs","tests/vibration-aiv-presentation-invariance.test.mjs"],
+      "requiredProof":"extreme presentation movement leaves generated engineering tables/path evidence/readiness/source results/Assessment results/line summaries unchanged; pixels remain non-authoritative"
+    }
   ],
   "independentNumericalSubchecks": [
     {"id":"D23_RELIEF_RAW_PWL","expected":164.6851759525391,"actual":164.6851759525391,"unit":"dB","tolerance":1e-10,"delta":0,"status":"PASS"},
@@ -18,28 +51,29 @@
     {"id":"MULTI_160_150","expected":160.41392685158226,"actual":160.41392685158226,"unit":"dB","tolerance":1e-9,"delta":0,"status":"PASS"}
   ],
   "results": [
-    {"benchmarkId":"B1","status":"NOT_RUN","reason":"Independent D.2.3 raw/point PWL oracle subchecks PASS exactly, but the complete registered screening path plus canvas projection parity has not executed on the patched branch."},
-    {"benchmarkId":"B2","status":"NOT_RUN","reason":"160+160 numerical oracle PASS exactly, but the patched registered multi-source path has not executed to prove both Source Canonical IDs are retained."},
-    {"benchmarkId":"B3","status":"NOT_RUN","reason":"160+150 numerical oracle PASS exactly, but the patched registered multi-source path has not executed to prove both Source Canonical IDs are retained."},
-    {"benchmarkId":"B4","status":"NOT_RUN","reason":"Single / batch / canvas registered-kernel parity requires repository/full application execution."},
-    {"benchmarkId":"B5","status":"NOT_RUN","reason":"2-RV mock flare-network registered workflow requires repository/full application execution."},
-    {"benchmarkId":"B6","status":"NOT_RUN","reason":"SVG move/resize engineering invariance requires the full canvas application workflow."},
-    {"benchmarkId":"B7","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
-    {"benchmarkId":"B8","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
-    {"benchmarkId":"B9","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
-    {"benchmarkId":"B10","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
-    {"benchmarkId":"B11","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
-    {"benchmarkId":"B12","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
-    {"benchmarkId":"B13","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."},
-    {"benchmarkId":"B14","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain incomplete."}
+    {"benchmarkId":"B1","status":"NOT_RUN","reason":"Exact native test is mapped and frozen; no executable private checkout/runner has run npm run verify:aiv-pf01 on implementation head 835c908...."},
+    {"benchmarkId":"B2","status":"NOT_RUN","reason":"Exact registered-path/source-identity tests are mapped; no executable private checkout/runner has run the patched head."},
+    {"benchmarkId":"B3","status":"NOT_RUN","reason":"Exact registered-path/source-identity tests are mapped; no executable private checkout/runner has run the patched head."},
+    {"benchmarkId":"B4","status":"NOT_RUN","reason":"Single/batch/canvas parity test is mapped; no executable private checkout/runner has run the patched head."},
+    {"benchmarkId":"B5","status":"NOT_RUN","reason":"Two-RV readiness-to-registered-screening tests are mapped; no executable private checkout/runner has run the patched head."},
+    {"benchmarkId":"B6","status":"NOT_RUN","reason":"Distance plus registered-result presentation-invariance tests are mapped; no executable private checkout/runner has run the patched head."},
+    {"benchmarkId":"B7","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."},
+    {"benchmarkId":"B8","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."},
+    {"benchmarkId":"B9","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."},
+    {"benchmarkId":"B10","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."},
+    {"benchmarkId":"B11","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."},
+    {"benchmarkId":"B12","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."},
+    {"benchmarkId":"B13","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."},
+    {"benchmarkId":"B14","status":"NOT_RUN","reason":"Later-slice benchmark; PF-01 cannot progress while B1-B6 remain unexecuted."}
   ],
   "regressionExecution": {
     "filterRuntimeExactReconstruction": "PASS_3_OF_3",
-    "targetedChromium144": "PASS_3_OF_3",
-    "fullApplicationPostFix": "NOT_RUN"
+    "targetedChromium144": "PASS_3_OF_3_FILTER_RUNTIME",
+    "fullApplicationPostFix": "NOT_RUN",
+    "nativePf01Command": "NOT_RUN_INFRASTRUCTURE_BLOCKED"
   },
   "oracleRule": "Expected values and tolerances remain frozen. No expected value was modified to fit the implementation.",
-  "disposition": "NUMERICAL_INVARIANCE_SUBCHECKS_PASS_FULL_PF01_BENCHMARK_CLOSURE_PENDING",
+  "disposition": "PF01_NATIVE_GATE_COMPLETE_AS_CODE_BUT_NOT_EXECUTED",
   "nextSliceAuthorized": false,
-  "lastGroundedAt": "2026-08-15T15:37:11+04:00"
+  "lastGroundedAt": "2026-08-15T15:59:00+04:00"
 }
