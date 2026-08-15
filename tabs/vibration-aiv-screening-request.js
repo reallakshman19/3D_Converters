@@ -57,6 +57,11 @@ function assertReadiness(envelope) {
   assertRecords(envelope.readiness?.rows, 'Readiness', [
     'sourceCanonicalId', 'assessmentCanonicalId', 'caseId',
   ]);
+  assertRecords(envelope.sources, 'Sources', ['sourceCanonicalId', 'caseId']);
+  assertRecords(envelope.assessments, 'Assessments', ['assessmentCanonicalId']);
+  assertRecords(envelope.sourceAssessments, 'Source→Assessment', [
+    'sourceCanonicalId', 'assessmentCanonicalId', 'caseId',
+  ]);
 }
 
 function relationshipKey(row) {
@@ -66,16 +71,16 @@ function relationshipKey(row) {
 function qualifiedInputRecords(envelope) {
   const readyRows = envelope.readiness.rows.filter((row) => row.status === 'READY_FOR_QUALIFICATION');
   const readyKeys = new Set(readyRows.map(relationshipKey));
-  const relationships = (envelope.sourceAssessments ?? []).filter((row) => (
-    row.applicabilityDisposition === 'APPLICABLE' && readyKeys.has(relationshipKey(row))
+  const relationships = envelope.sourceAssessments.filter((row) => (
+    row?.applicabilityDisposition === 'APPLICABLE' && readyKeys.has(relationshipKey(row))
   ));
   const sourceKeys = new Set(relationships.map((row) => JSON.stringify([row.sourceCanonicalId, row.caseId])));
   const assessmentIds = new Set(relationships.map((row) => row.assessmentCanonicalId));
   return {
     readyRows,
     relationships,
-    sources: (envelope.sources ?? []).filter((row) => sourceKeys.has(JSON.stringify([row.sourceCanonicalId, row.caseId]))),
-    assessments: (envelope.assessments ?? []).filter((row) => assessmentIds.has(row.assessmentCanonicalId)),
+    sources: envelope.sources.filter((row) => sourceKeys.has(JSON.stringify([row.sourceCanonicalId, row.caseId]))),
+    assessments: envelope.assessments.filter((row) => assessmentIds.has(row.assessmentCanonicalId)),
   };
 }
 
@@ -113,9 +118,9 @@ export function buildAivEngineeringScreeningRequest({ readinessEnvelope, assumpt
   assertReadiness(readinessEnvelope);
   const records = qualifiedInputRecords(readinessEnvelope);
   assertQualifiedProjection(records);
-  const sources = assertRecords(records.sources, 'Sources', ['sourceCanonicalId', 'caseId']);
-  const assessments = assertRecords(records.assessments, 'Assessments', ['assessmentCanonicalId']);
-  const relationships = assertRecords(records.relationships, 'Source→Assessment', [
+  const sources = assertRecords(records.sources, 'Qualified Sources', ['sourceCanonicalId', 'caseId']);
+  const assessments = assertRecords(records.assessments, 'Qualified Assessments', ['assessmentCanonicalId']);
+  const relationships = assertRecords(records.relationships, 'Qualified Source→Assessment', [
     'sourceCanonicalId', 'assessmentCanonicalId', 'caseId',
   ]);
   if (!readinessEnvelope.exchange || typeof readinessEnvelope.exchange !== 'object') {
