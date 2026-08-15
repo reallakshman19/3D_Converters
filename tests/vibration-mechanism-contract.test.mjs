@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   VIBRATION_MECHANISM_ASSESSMENT_ITEM_SCHEMA,
   VIBRATION_MECHANISM_ASSESSMENT_SET_SCHEMA,
+  VIBRATION_MECHANISM_IMPLEMENTATION_STATES,
   createVibrationMechanismAssessmentItem,
   createVibrationMechanismAssessmentSet,
   vibrationMechanismAssessmentItemId,
@@ -10,10 +11,10 @@ import {
 
 const scope = Object.freeze({ line: 'L-100', caseId: 'NORMAL', canonicalId: 'CAN-1' });
 
-function item(childKey = 'main') {
+function item(childKey = 'main', implementationState = 'IMPLEMENTED_BENCHMARK_ONLY') {
   return createVibrationMechanismAssessmentItem({
     mechanismId: 'fit', scope, childKey,
-    implementationState: 'IMPLEMENTED_BENCHMARK_ONLY',
+    implementationState,
     assessmentState: 'CALCULATED', resultState: 'CURRENT_RESULT',
     readiness: { missing: [], invalid: [], reasons: [] },
     benchmark: { status: 'PASS' },
@@ -23,6 +24,17 @@ function item(childKey = 'main') {
     },
   });
 }
+
+test('mechanism lifecycle explicitly supports qualified screening and project-input candidates', () => {
+  assert.deepEqual(VIBRATION_MECHANISM_IMPLEMENTATION_STATES, [
+    'NOT_IMPLEMENTED',
+    'IMPLEMENTED_BENCHMARK_ONLY',
+    'IMPLEMENTED_SCREENING',
+    'IMPLEMENTED_CANDIDATE_USER_INPUT',
+  ]);
+  assert.equal(item('screening', 'IMPLEMENTED_SCREENING').implementationState, 'IMPLEMENTED_SCREENING');
+  assert.equal(item('candidate', 'IMPLEMENTED_CANDIDATE_USER_INPUT').implementationState, 'IMPLEMENTED_CANDIDATE_USER_INPUT');
+});
 
 test('mechanism assessment item identity is deterministic and delimiter-safe', () => {
   const id = vibrationMechanismAssessmentItemId({
@@ -68,4 +80,9 @@ test('invalid lifecycle, result and trace states fail closed', () => {
     implementationState: 'IMPLEMENTED_BENCHMARK_ONLY',
     assessmentState: 'READY', resultState: 'PASS',
   }), /resultState must be one of/u);
+  assert.throws(() => createVibrationMechanismAssessmentItem({
+    mechanismId: 'fit', scope, childKey: 'main',
+    implementationState: 'IMPLEMENTED_DESIGN',
+    assessmentState: 'READY', resultState: 'READY',
+  }), /implementationState must be one of/u);
 });
