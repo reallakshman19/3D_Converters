@@ -5,6 +5,7 @@ import {
 import { buildAivBlockedResultSet } from '../converters/vibration/aiv/aiv-result-contracts.js';
 import { addAivInputRow, serializeAivInputTable } from './vibration-aiv-input-model.js';
 import { isAivScreeningReady } from './vibration-aiv-screening-gate.js';
+import { buildAivEngineeringScreeningRequest } from './vibration-aiv-screening-request.js';
 import { buildAivD23ValidatedExportPackage } from './vibration-aiv-validation-records.js';
 
 function ensureAssumableRows(state) {
@@ -92,20 +93,13 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     state.error = null;
     render();
     try {
-      const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-1');
-      if (state.destroyed) return;
-      const envelope = state.readinessEnvelope;
-      const result = calculateEngineering({
-        calculationId: 'VIB.AIV.ACOUSTIC',
-        inputs: {
-          sources: envelope.sources,
-          assessments: envelope.assessments,
-          relationships: envelope.sourceAssessments,
-          topology: envelope.exchange,
-          assumptionProfile: state.assumptionProfile,
-        },
-        options: { qualificationMode: 'screening', includeEvidence: true },
+      const request = buildAivEngineeringScreeningRequest({
+        readinessEnvelope: state.readinessEnvelope,
+        assumptionProfile: state.assumptionProfile,
       });
+      const { calculateEngineering } = await import('../converters/engineering-calculations/index.js?v=aiv-screening-2');
+      if (state.destroyed) return;
+      const result = calculateEngineering(request);
       if (!result.ok) {
         const message = result.errors?.map((item) => `${item.code}: ${item.message}`).join('; ')
           || 'AIV screening calculation failed.';
@@ -115,7 +109,7 @@ export function createAivExecutionActions({ state, render, downloadText }) {
     } catch (error) {
       if (!state.destroyed) {
         state.screeningResult = null;
-        state.error = String(error?.message || error);
+        state.error = `${error?.code ? `${error.code}: ` : ''}${String(error?.message || error)}`;
       }
     } finally {
       state.busy = false;
