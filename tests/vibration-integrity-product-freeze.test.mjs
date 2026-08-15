@@ -8,18 +8,18 @@ import {
   appendVibrationIntegrityAuditEvent,
   assertVibrationIntegrityAuditLog,
   createVibrationIntegrityAuditLog,
-  serializeVibrationIntegrityAuditLog,
 } from '../tabs/vibration-integrity-audit-log.js';
 import {
   VIBRATION_INTEGRITY_ACTION_IDS,
   VIBRATION_INTEGRITY_PRODUCT_CONTRACT,
 } from '../tabs/vibration-integrity-product-contract.js';
 import { transitionVibrationIntegrityResultState } from '../tabs/vibration-integrity-result-state.js';
+import { deriveVibrationIntegrityWorkflowState } from '../tabs/vibration-integrity-workflow-state.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
-function auditEvent(type, at, resultState = 'UNRUN') {
-  return { type, at, resultState, authority: { designAuthority: false } };
+function auditEvent(eventType, timestamp, workflowBefore, workflowAfter, details = {}) {
+  return { eventType, timestamp, workflowBefore, workflowAfter, details };
 }
 
 test('product freeze keeps core actions, workflow facts and current workspace tabs visible', async () => {
@@ -36,18 +36,17 @@ test('product freeze keeps core actions, workflow facts and current workspace ta
   }
   assert.doesNotMatch(inputView, /Audit snapshot:/u);
   assert.match(tab, /VIBRATION_INTEGRITY_ACTION_IDS/u);
-  assert.match(tab, /WORKSPACE_CLICK_ACTIONS/u);
+  assert.match(tab, /deriveVibrationIntegrityWorkflowState/u);
   for (const workspaceTab of VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredWorkspaceTabs) {
     assert.match(shell, new RegExp(`tabButton\\(["']${workspaceTab}["']`, 'u'));
   }
   assert.deepEqual(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.requiredCoreWorkspaceTabs, ['screening', 'user-data']);
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.extensionPolicy.mechanismWorkspaceTabsAllowed, true);
   assert.equal(VIBRATION_INTEGRITY_PRODUCT_CONTRACT.authorityBoundary.designAuthority, false);
-  assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('WORKSPACE_TAB_CHANGED'), true);
-  assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('WORKSPACE_ACTION'), true);
+  assert.equal(VIBRATION_INTEGRITY_AUDIT_EVENT_TYPES.includes('RUN_EVIDENCE_EXPORT_STARTED'), true);
 });
 
-test('result currency follows one deterministic lifecycle', () => {
+test('FIT result currency remains distinct from observational product workflow state', () => {
   assert.equal(transitionVibrationIntegrityResultState('UNRUN', 'RUN_STARTED'), 'RUNNING');
   assert.equal(transitionVibrationIntegrityResultState('RUNNING', 'RUN_SUCCEEDED'), 'CURRENT_RESULT');
   assert.equal(transitionVibrationIntegrityResultState('RUNNING', 'RUN_SUCCEEDED', { drifted: true }), 'STALE_RESULT');
@@ -57,25 +56,34 @@ test('result currency follows one deterministic lifecycle', () => {
   assert.equal(transitionVibrationIntegrityResultState('RUNNING', 'RUN_FAILED', { hasRetainedResult: true }), 'STALE_RESULT');
   assert.equal(transitionVibrationIntegrityResultState('STALE_RESULT', 'RESET'), 'UNRUN');
   assert.throws(() => transitionVibrationIntegrityResultState('UNKNOWN', 'RUN_STARTED'), /VIBRATION_RESULT_STATE_INVALID/u);
+
+  const workflow = deriveVibrationIntegrityWorkflowState({ resultState: 'CURRENT_RESULT' });
+  assert.equal(workflow.state, 'RESULT_CURRENT');
+  assert.equal(workflow.resultState, 'CURRENT_RESULT');
+  assert.notEqual(workflow.state, workflow.resultState);
 });
 
-test('audit log is immutable, append-only and sequence-checked', () => {
-  const empty = createVibrationIntegrityAuditLog('2026-08-15T06:00:00.000Z');
-  const started = appendVibrationIntegrityAuditEvent(empty, auditEvent('SESSION_STARTED', '2026-08-15T06:00:00.000Z'));
-  const workspace = appendVibrationIntegrityAuditEvent(started, {
-    ...auditEvent('WORKSPACE_ACTION', '2026-08-15T06:00:30.000Z'),
-    details: { action: 'mechanical-evaluate' },
-  });
-  const running = appendVibrationIntegrityAuditEvent(workspace, auditEvent('RUN_STARTED', '2026-08-15T06:01:00.000Z', 'RUNNING'));
+test('activity log is immutable, sequence-checked and always non-authoritative', () => {
+  const empty = createVibrationIntegrityAuditLog();
+  const opened = appendVibrationIntegrityAuditEvent(empty, auditEvent(
+    'WORKSPACE_OPENED', '2026-08-15T06:00:00.000Z', null, 'EMPTY', { product: 'Vibration Integrity' },
+  ));
+  const loaded = appendVibrationIntegrityAuditEvent(opened, auditEvent(
+    'BENCHMARK_LOADED', '2026-08-15T06:00:30.000Z', 'EMPTY', 'INPUTS_LOADED', { benchmarkId: 'EI-D2' },
+  ));
+  const running = appendVibrationIntegrityAuditEvent(loaded, auditEvent(
+    'FIT_RUN_STARTED', '2026-08-15T06:01:00.000Z', 'READY_CHECKED', 'RUNNING', {},
+  ));
   assert.equal(empty.events.length, 0);
-  assert.equal(started.events.length, 1);
   assert.deepEqual(running.events.map((event) => event.eventId), [
-    'VI-AUDIT-000001', 'VI-AUDIT-000002', 'VI-AUDIT-000003',
+    'VI-EVT-000001', 'VI-EVT-000002', 'VI-EVT-000003',
   ]);
-  assert.equal(running.events[1].details.action, 'mechanical-evaluate');
+  assert.equal(running.events[2].eventType, 'FIT_RUN_STARTED');
+  assert.equal(running.events[2].authority.engineeringAuthority, 'NONE');
+  assert.equal(running.events[2].authority.purpose, 'ACTIVITY_AUDIT_ONLY');
   assert.equal(Object.isFrozen(running), true);
   assert.equal(Object.isFrozen(running.events[1]), true);
-  assert.equal(JSON.parse(serializeVibrationIntegrityAuditLog(running)).events.length, 3);
+  assert.equal(assertVibrationIntegrityAuditLog(running), running);
   const tampered = { ...running, events: [{ ...running.events[0], sequence: 2 }, ...running.events.slice(1)] };
-  assert.throws(() => assertVibrationIntegrityAuditLog(tampered), /VIBRATION_AUDIT_SEQUENCE_INVALID/u);
+  assert.throws(() => assertVibrationIntegrityAuditLog(tampered), /VIBRATION_AUDIT_EVENT_INVALID/u);
 });
