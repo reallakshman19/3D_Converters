@@ -5,6 +5,7 @@ import { buildAivEitExport, serializeAivEitExport } from '../converters/vibratio
 import { parseAivEitImport } from '../converters/vibration/aiv/aiv-eit-import.js';
 import { buildAivMasterEvidence, selectAivMasterEvidence } from '../converters/vibration/aiv/aiv-master-evidence.js';
 import { buildAivScreeningExportPackage } from '../converters/vibration/aiv/aiv-screening-export.js';
+import { createAivMasterAcceptance } from '../tabs/vibration-aiv-master-acceptance.js';
 
 function source() {
   return {
@@ -101,6 +102,22 @@ test('screening JSON export retains exact master record/document/commit lineage 
     sourceCommit: 'MASTER-COMMIT',
     value: '219.1',
   });
+});
+
+test('screening JSON export carries exact master-reference review acceptance without promoting master authority', () => {
+  const resolution = masterResolution();
+  const acceptance = createAivMasterAcceptance(resolution);
+  const payload = screeningPackage({ masterResolution: resolution, masterAcceptance: acceptance });
+  assert.equal(payload.masterReview.required, true);
+  assert.equal(payload.masterReview.acceptance.schema, 'AivMasterAcceptance.v1');
+  assert.equal(payload.masterReview.acceptance.fingerprint, acceptance.fingerprint);
+  assert.equal(payload.masterReview.acceptance.fieldCount, 3);
+  assert.equal(payload.masterReview.acceptance.reviewDisposition, 'USER_REVIEWED_REFERENCE_INPUT');
+  assert.equal(payload.masterReview.acceptance.masterEngineeringQualification, 'NOT_ESTABLISHED_BY_ADAPTER');
+  assert.equal(payload.masterReview.acceptance.screeningAuthorityConferredByMaster, false);
+  assert.equal(payload.masterReview.acceptance.designAuthority, false);
+  assert.equal(payload.provenance.masterReferenceReviewRequired, true);
+  assert.equal(payload.provenance.humanEvidenceRequired, true);
 });
 
 test('EIT aiv_data retains source and assessment master evidence additively', () => {
