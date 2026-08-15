@@ -3,156 +3,82 @@
   "sliceId": "PF-01",
   "issueId": 513,
   "productionShaBefore": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-  "priorProductionShaBefore": "a49085cde69ef71518c0d6315a615477887d7b4e",
-  "candidateShaAfter": null,
-  "groundingEpoch": "GE-004",
-  "chromiumVersion": "Chromium 144.0.7559.96 built on Debian GNU/Linux 13 (trixie)",
-  "browserWorkflowSteps": [
-    "Open the exact-checkout application root in Chromium",
-    "Navigate Engineering Calculations -> Vibration -> VIB.AIV.ACOUSTIC",
-    "Wait for the AIV qualification workspace to mount",
-    "Use the normal Load D.2.3 benchmark action",
-    "Observe first canvas/filter synchronization and exercise Case/Line/Show controls"
+  "groundingEpoch": "GE-005",
+  "observedAt": "2026-08-15T15:37:11+04:00",
+  "evidenceClass": "OWNER_LIVE_CHROMIUM_PRODUCT_REPRODUCTION_PLUS_EXACT_SOURCE_TRACE",
+  "liveWorkflow": [
+    "Import the EI worked-example EIT in the AIV workspace",
+    "Observe readiness/screening workspace render",
+    "Click Check AIV readiness",
+    "Attempt Run AIV screening"
   ],
-  "preFixObservedFailure": "LOW_LEVEL_EXACT_BLOB_REPRODUCED_BROWSER_NOT_RUN",
-  "preFixEvidence": [
+  "userVisibleFailure": {
+    "banner": "AIV action failed.",
+    "message": "Cannot read properties of null (reading 'caseId')",
+    "engineeringDetails": "empty",
+    "authorityTextStillVisible": "assessment-level SCREENING authority; designAuthority=false"
+  },
+  "browserConsoleEvidence": [
     {
-      "observation": "CURRENT_MAIN_DRIFT_RECONCILIATION",
-      "priorMain": "a49085cde69ef71518c0d6315a615477887d7b4e",
-      "currentMain": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-      "advancedBy": 1,
-      "mergedPr": 516,
-      "finding": "The intervening commit changes controlled EIT sonic-state compatibility and package release-script registration. It does not touch the PF-01 filter path or PR515 evidence paths.",
-      "classification": "SAFE_TO_CONTINUE_PF01_EVIDENCE_ONLY"
+      "error": "TypeError: Cannot read properties of null (reading 'caseId')",
+      "stack": [
+        "createAivCanvasFilterState (vibration-aiv-canvas-filter.js:33:36)",
+        "Object.sync (vibration-aiv-canvas-filter.js:91:13)",
+        "syncRuntime (vibration-aiv-canvas-controller.js:160:28)",
+        "Object.sync (vibration-aiv-canvas-controller.js:283:17)",
+        "render (vibration-aiv-qualification-tab.js?v=aiv-qualification-1:62:22)",
+        "Object.loadFile (vibration-aiv-dataset-loader.js:102:5)"
+      ]
     },
     {
-      "observation": "BRANCH_REBASE",
-      "supersededHead": "2858f1fca8633d9c91328f8fbda252783837cffb",
-      "newParent": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-      "finding": "PR515 evidence-only history was force-rebased to exact current main before any production/test mutation."
-    },
-    {
-      "observation": "SOURCE_INSPECTION",
-      "path": "tabs/vibration-aiv-canvas-filter.js",
-      "commit": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-      "blob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "finding": "Current main still initializes controller state=null and first sync passes that exact null to createAivCanvasFilterState(input={}), where explicit null bypasses the default parameter."
-    },
-    {
-      "observation": "LOW_LEVEL_EXACT_BLOB_EXECUTION",
-      "path": "tabs/vibration-aiv-canvas-filter.js",
-      "blob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "checks": [
-        {
-          "id": "direct-explicit-null",
-          "status": "FAIL_EXPECTED_PRE_FIX",
-          "observed": "TypeError: Cannot read properties of null (reading 'caseId')",
-          "boundary": "createAivCanvasFilterState line reading input.caseId"
-        },
-        {
-          "id": "controller-first-sync",
-          "status": "FAIL_EXPECTED_PRE_FIX",
-          "observed": "TypeError: Cannot read properties of null (reading 'caseId')",
-          "boundary": "createAivCanvasFilterController.sync -> createAivCanvasFilterState"
-        }
-      ],
-      "classification": "LOW_LEVEL_REGRESSION_FAIL_NOT_FULL_BROWSER"
-    },
-    {
-      "observation": "SALVAGE_CANDIDATE_EXECUTION",
-      "source": "PR #506",
-      "head": "b846cbfb765cbc01734154ad837b12d040fe0bf7",
-      "blob": "a4a3990df0381bea8cbd95c49ad554f746141bb1",
-      "finding": "The same two low-level checks complete without an exception on the PR #506 filter blob.",
-      "classification": "SALVAGE_SUPPORT_NOT_PRODUCT_AUTHORITY"
-    },
-    {
-      "observation": "MINIMAL_PATCH_ISOLATION",
-      "basisBlob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "candidateDiff": "+  input = input ?? {};",
-      "candidateBlob": "8640eca0a2e1454e277613d50c4c9962e3e537d8",
-      "focusedChecks": 8,
-      "status": "PASS_LOW_LEVEL_ONLY",
-      "checksCovered": [
-        "explicit null selects first available case without throw",
-        "null line remains null",
-        "CURRENT show mode remains default when cases exist",
-        "explicit case preserved",
-        "explicit line preserved",
-        "ALL show mode preserved",
-        "empty options remain ALL/null/null",
-        "controller first sync and subsequent line change remain functional"
-      ],
-      "sourceRestoredAfterExperiment": true,
-      "restoredBlob": "a5da4fb99e69310659659725696c61c3d9347085"
-    },
-    {
-      "observation": "REPOSITORY_BACKUP_UTILITY_EXECUTION",
-      "utilityPath": "utils/backup.js",
-      "utilityBlob": "cd0c755457bb623b0487200a7d0b7217d8b3478e",
-      "backupId": 2,
-      "sourceBlob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "backupBlob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "context": "PF-01 exact-main pre-fix backup using exact repository backup utility",
-      "classification": "LOCAL_RECONSTRUCTED_WORKSPACE_BACKUP_RECEIPT",
-      "nativeWorktreeRerunRequiredBeforeProductionEdit": true
-    },
-    {
-      "observation": "REMOTE_EXECUTION_METADATA",
-      "source": "GitHub Actions run 31881892198",
-      "testedHead": "d659e670a2f8fe0a35fc8072382512f6493898cf",
-      "finding": "Current-main Pages attempt 1 job 95005543108 and controlled retry job 95006065316 both concluded failure with steps=null and logs_url=null; no product step executed and no browser-served artifact was established.",
-      "classification": "NOT_RUN_INFRASTRUCTURE_BLOCKED"
-    },
-    {
-      "observation": "MANAGED_CHROMIUM_POLICY",
-      "policyPath": "/etc/chromium/policies/managed/000_policy_merge.json",
-      "policy": {"URLBlocklist":["*"]},
-      "observedNavigationFailures": [
-        "http://127.0.0.1:4173 -> net::ERR_BLOCKED_BY_ADMINISTRATOR",
-        "http://172.26.36.34:4173 -> net::ERR_BLOCKED_BY_ADMINISTRATOR",
-        "file:///mnt/data/aiv-pf01-exactblob/index.html -> net::ERR_BLOCKED_BY_ADMINISTRATOR"
-      ],
-      "action": "Mandatory browser policy was not modified or bypassed."
+      "error": "TypeError: Cannot read properties of null (reading 'caseId')",
+      "stack": [
+        "createAivCanvasFilterState (vibration-aiv-canvas-filter.js:33:36)",
+        "Object.sync (vibration-aiv-canvas-filter.js:91:13)",
+        "syncRuntime (vibration-aiv-canvas-controller.js:160:28)",
+        "Object.sync (vibration-aiv-canvas-controller.js:283:17)",
+        "render (vibration-aiv-qualification-tab.js?v=aiv-qualification-1:62:22)",
+        "Object.checkReadiness (vibration-aiv-execution.js:56:5)"
+      ]
     }
   ],
-  "rootCause": "LOW_LEVEL_BOUNDARY_ISOLATED_REAL_APPLICATION_REPRODUCTION_STILL_REQUIRED",
-  "changedFiles": [],
-  "fixScope": "No production or repository test fix has been applied. One-line local candidate is characterized only.",
-  "postFixBrowserStatus": "NOT_RUN",
-  "postFixEvidence": [],
+  "exactSourceTrace": {
+    "path": "tabs/vibration-aiv-canvas-filter.js",
+    "productionBlob": "a5da4fb99e69310659659725696c61c3d9347085",
+    "controllerInitialState": null,
+    "firstWrongBoundary": "createAivCanvasFilterState(state, options) receives explicit null; default parameter input={} does not apply; input.caseId throws",
+    "falsifierSatisfied": true
+  },
+  "binaryCustody": {
+    "currentProductionHeadAtObservation": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+    "servedRevisionDirectlyCapturedFromBrowser": false,
+    "moduleVersionTokenObserved": "vibration-aiv-qualification-tab.js?v=aiv-qualification-1",
+    "classification": "OWNER_LIVE_PRODUCT_REPRODUCTION_CORRELATED_TO_UNCHANGED_EXACT_CURRENT_MAIN_FILTER_BLOB"
+  },
+  "supportingLowLevelEvidence": {
+    "directExplicitNull": "FAIL_EXPECTED_PRE_FIX",
+    "controllerFirstSync": "FAIL_EXPECTED_PRE_FIX",
+    "observedError": "TypeError: Cannot read properties of null (reading 'caseId')"
+  },
+  "backupCustody": {
+    "utilityPath": "utils/backup.js",
+    "utilityBlob": "cd0c755457bb623b0487200a7d0b7217d8b3478e",
+    "reconstructedWorkspaceReceiptId": 2,
+    "sourceBlob": "a5da4fb99e69310659659725696c61c3d9347085",
+    "backupBlob": "a5da4fb99e69310659659725696c61c3d9347085",
+    "nativeWorktreeBackup": "NOT_RUN_ENVIRONMENT_BLOCKED"
+  },
+  "rootCause": "CANVAS_FILTER_INITIAL_NULL_STATE_NOT_NORMALIZED",
+  "authorizedFixScope": "One-line null normalization in createAivCanvasFilterState plus permanent focused regression and release-gate registration.",
   "authorityChecks": [
+    "No AIV equation or coefficient change",
+    "No benchmark expected value or tolerance change",
     "TABLES remain engineering source of truth",
-    "SVG geometry is not engineering distance authority",
+    "SVG geometry remains non-authoritative for physical distance",
     "screeningResultScope remains ASSESSMENT",
     "line/case summaries remain non-authoritative",
-    "designAuthority remains false",
-    "no EI equations, coefficients, benchmarks, tolerances or authority fields were changed"
+    "designAuthority remains false"
   ],
-  "uiAcceptanceChecks": [],
-  "regressionTests": [
-    {
-      "status": "FAIL_EXPECTED_PRE_FIX",
-      "class": "LOW_LEVEL_EXACT_BLOB",
-      "testedBlob": "a5da4fb99e69310659659725696c61c3d9347085",
-      "note": "Exact current-main filter bytes deterministically reproduce the null first-sync exception at the low-level boundary."
-    },
-    {
-      "status": "PASS_LOW_LEVEL_ONLY",
-      "class": "MINIMAL_LOCAL_CANDIDATE",
-      "testedBlob": "8640eca0a2e1454e277613d50c4c9962e3e537d8",
-      "note": "One-line normalization passes eight focused checks; not committed and not browser acceptance."
-    }
-  ],
-  "releaseSuiteStatus": "NOT_RUN",
-  "knownLimitations": [
-    "No native repository checkout is available in this execution environment.",
-    "Current-main Pages deployment and its controlled retry were infrastructure-blocked before any product step executed.",
-    "Installed Chromium has mandatory managed URLBlocklist=['*']; HTTP and file navigation are blocked by administrator policy.",
-    "Exact-blob reconstruction and low-level execution do not substitute for the required real-application Chromium session.",
-    "The local backup receipt was produced against hash-identical source and utility blobs in a reconstructed workspace; rerun it in a native worktree before an actual edit."
-  ],
-  "disposition": "BLOCKED_ENVIRONMENT_WITH_LOW_LEVEL_ROOT_CAUSE_ISOLATED_CURRENT_MAIN_RECONCILED",
-  "nextSliceAuthorized": false,
-  "lastGroundedAt": "2026-08-15T15:25:39+04:00"
+  "disposition": "LIVE_DEFECT_CONFIRMED_IMPLEMENTATION_AUTHORIZED_WITHIN_PF01",
+  "nextSliceAuthorized": false
 }
