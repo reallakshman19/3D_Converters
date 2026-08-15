@@ -22,7 +22,7 @@ AUTHORITY_TRANSITION: OWNER_ONLY / NOT_GRANTED
 | PR | #499 — `agent/fit-production-gate-1` -> `main` |
 | Governing issues | #443 / #429 |
 | Current main | `b13797d23db1f01200a2349e77f39c883e62a84c` |
-| Exact technical head before this report refresh | `85f9aecdeeb46992073d4521a434d27ac25917c3` |
+| Exact technical head before this report refresh | `18030c070c3e81a62392a1ef4bf86c78386a9f7c` |
 | Main relationship at latest compare | `ahead`, `behind_by=0`, merge base = current main |
 | Authority | `IMPLEMENTED / BENCHMARK_ONLY`; `engineeringAuthority=NONE`; `screeningAuthority=NOT_AUTHORIZED`; `designAuthority=false` |
 | Coordinated release manifest | **51 distinct controlled test files** |
@@ -34,19 +34,15 @@ AUTHORITY_TRANSITION: OWNER_ONLY / NOT_GRANTED
 
 ## Owner Decisions
 
-### Explicit blocker data
+Data-dependent blockers are explicit user inputs, not hidden defaults. FIT exposes `VibrationFitDataBlockerCsv.v1`; governed source values always win and method/domain decisions are not user-overridable data.
 
-Data-dependent blockers are explicit user inputs, not hidden defaults or dead ends. FIT exposes `VibrationFitDataBlockerCsv.v1` and a visible **Data Blockers** tab. Existing source values always win; method/domain decisions are not user-overridable data.
-
-### Worked-example qualification
-
-Owner direction on 2026-08-15:
+Owner qualification rule on 2026-08-15:
 
 ```text
 if benchmarked as per example then no review required
 ```
 
-Qualification anchor:
+Controlled qualification anchor:
 
 ```text
 Common@7bfead910f6bca91b10748ead009e40f20c82219
@@ -55,7 +51,7 @@ blob ceee15ed5f7f320045d5f3979024e2e8664613f2
 policy WORKED_EXAMPLE_BENCHMARK_SUFFICIENT
 ```
 
-A successful controlled worked-example reproduction removes the separate independent vibration-engineer sign-off gate. It does not waive release execution, real-file acceptance, source traceability, QST-003 exclusion, or Owner authority-transition approval.
+Successful controlled worked-example reproduction removes the separate independent vibration-engineer sign-off gate. It does not waive release execution, real-file acceptance, source traceability, QST-003 exclusion, or Owner authority-transition approval.
 
 ## Authority Freeze
 
@@ -67,9 +63,7 @@ screeningAuthority     = NOT_AUTHORIZED
 designAuthority        = false
 ```
 
-No benchmark, source-basis record, user input, hash, run-evidence package or UI state may self-promote authority.
-
-Any `BENCHMARK_ONLY -> SCREENING` transition must be a separate, small, Owner-authorized governance PR.
+No benchmark, source-basis record, user input, hash, run-evidence package or UI state may self-promote authority. Any `BENCHMARK_ONLY -> SCREENING` transition must be a separate, small, Owner-authorized governance PR.
 
 ## Bounded Candidate Scope
 
@@ -79,23 +73,9 @@ Any `BENCHMARK_ONLY -> SCREENING` transition must be a separate, small, Owner-au
 273 mm <= Dext <= 762 mm       candidate only after all gates
 ```
 
-Candidate phase paths:
+Candidate paths: LIQUID, GAS, MULTIPHASE/AGGREGATE_EFFECTIVE, MULTIPHASE/COMPONENT_DERIVED.
 
-```text
-LIQUID
-GAS
-MULTIPHASE / AGGREGATE_EFFECTIVE
-MULTIPHASE / COMPONENT_DERIVED
-```
-
-Advanced path:
-
-```text
-FLEXIBLE_SMALL or FLEXIBLE_LARGE
-standard LOF >= 1
-actual natural frequency supplied
-1 Hz < fn <= 3 Hz
-```
+Advanced path requires FLEXIBLE_SMALL or FLEXIBLE_LARGE, standard LOF >= 1, actual natural frequency, and `1 Hz < fn <= 3 Hz`.
 
 QST-003 cannot be bypassed by manual family selection, nearest-size selection or interpolation.
 
@@ -125,87 +105,40 @@ blob d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e
 
 ## Source-Basis Closure
 
-Durable evidence:
+Durable evidence is present through `docs/vibration/FIT-Source-Basis-Evidence-v1.md` and `FitSourceBasisEvidence.v1`.
+
+Current disposition:
 
 ```text
-docs/vibration/FIT-Source-Basis-Evidence-v1.md
-converters/vibration/fit/source-basis-evidence.js
-FitSourceBasisEvidence.v1
+productMethodBasis                  = ADOPTED_EI_T2_2_REFERENCE
+officialErrata                      = REVIEWED_NOT_APPLICABLE_TO_FIT_T2_2
+productReferenceMethod              = CONFIRMED
+externalProjectOrClientAdoption     = PROJECT_SPECIFIC_CONFIRMATION_REQUIRED
+D2_D4_SOURCE_DIFFERENCES            = EXPLICITLY_DISPOSITIONED
+DIRECT_T2_2_PAGE_TABLE_EQUATION_MAP = NOT_COMPLETE
 ```
 
-### Product method basis — PASS
+The current official corrections are to T2-5 and T2-8 paths; repository custody places those in AIV and valve-transient work, not the T2.2 FIT chain. This narrow errata disposition does not substitute for direct T2.2 page/table/equation locator inspection.
 
-```text
-productMethodBasis = ADOPTED_EI_T2_2_REFERENCE
-```
+Published EI PDF/JSON remains the executable D2/D4 benchmark vector. Owner DOCX is the qualification anchor plus richer/revised scenario evidence. Workbook remains parity evidence only.
 
-### Official EI errata — PASS / NOT_APPLICABLE_TO_FIT_T2_2
-
-Current official corrections are:
-
-```text
-page 61 -> Flowchart T2-5 feed correction
-page 68 -> Flowchart T2-8 peak-force correction
-```
-
-Repository method custody assigns T2-5 to AIV and T2-8 to valve transient. Neither correction changes the T2.2 FIT chain.
-
-### Product versus project/client adoption — PASS as an explicit boundary
-
-```text
-productReferenceMethod          = CONFIRMED
-externalProjectOrClientAdoption = PROJECT_SPECIFIC_CONFIRMATION_REQUIRED
-```
-
-No external project/client adoption default is invented.
-
-### D2/D4 source differences — PASS / EXPLICITLY_DISPOSITIONED
-
-Source precedence:
-
-```text
-governing EI method PDF
-  > published EI worked-example PDF
-  > Owner DOCX / revised scenario evidence
-  > controlled JSON transcription
-  > retained workbook parity evidence
-```
-
-Published EI PDF/JSON is the executable benchmark vector. Owner DOCX is the qualification anchor plus richer/revised scenario evidence. Workbook is parity evidence only. Known D2/D4 differences remain visible and are not averaged or used to tune tolerances.
-
-### Direct T2.2 page/table/equation locator — NOT_COMPLETE
-
-The controlled PDF is pinned by exact Git identity, but this runtime has not directly rendered/read back the governing T2.2 pages. Repository transcriptions and workbook formulas do not substitute for that locator audit.
-
-## Operator-Visible Method Custody
-
-`Vibration Integrity -> FIT -> Engineering Basis` now shows:
-
-```text
-EI edition + T2.2 method
-Official errata disposition
-Product reference-method state
-Project/client adoption state
-BENCHMARK_ONLY authority
-```
-
-This prevents product support from being mistaken for project adoption or screening/design authority.
+The Engineering Basis UI exposes EI/T2.2 method, errata disposition, product method state, project/client adoption state and BENCHMARK_ONLY authority.
 
 ## Product Hardening Present
 
-- controlled D2/D4 benchmark vectors with case/field absolute tolerance policy;
-- independent `MEDIUM_SMALL` and advanced `FLEXIBLE_LARGE` evidence;
+- case/field absolute tolerance policy for controlled D2/D4 examples;
+- independent MEDIUM_SMALL and advanced FLEXIBLE_LARGE evidence;
 - literal SI/US central-API qualification matrix;
 - Engineering Basis / Source Data / Data Blockers;
 - cell/row/table revert with source preservation;
-- complete-XLSX visible-projection + full-byte SHA-256 checks;
+- complete-XLSX projection + whole-byte SHA-256 checks;
 - captured-state execution and stale-result invalidation;
 - separate `snapshotHash` and `engineeringInputHash`;
 - run-evidence export with coherent benchmark/screening envelope checks;
 - source/manual and alternate-flow collision guards;
 - blank HOLD values remain null, never synthetic zero;
 - #500/#501 User Engineering Data/SBC shell hooks preserved;
-- D4 product-path validation runner and regression included in the release gate.
+- D4 product-path validation runner/regression included in the release gate.
 
 ## Coordinated Release Gate
 
@@ -215,21 +148,13 @@ npm run verify:vibration-fit-release
 
 Current manifest: **51 distinct tests**.
 
-New controlled seam included:
+The D4 product-path seam is explicitly included:
 
 ```text
 tests/vibration-fit-d4-product-path-validation.test.mjs
 ```
 
-The release-gate self-test now asserts:
-
-```text
-manifest length = 51
-no duplicate paths
-D4 product-path regression is required
-```
-
-The three merged #500/#501 shared-shell regressions remain included.
+The release-gate self-test asserts manifest length 51, no duplicate paths, and presence of that D4 seam. The merged #500/#501 shared-shell regressions remain included.
 
 ## Validation Matrix
 
@@ -237,7 +162,7 @@ The three merged #500/#501 shared-shell regressions remain included.
 |---|---|---|
 | current-main reconciliation | PASS | latest technical compare ahead / behind=0 |
 | Owner qualification source identity | PASS | exact commit/path/blob pinned |
-| authority freeze | PASS | no source-basis or release-gate change promotes authority |
+| authority freeze | PASS | no source-basis/release change promotes authority |
 | bounded QST-003 exclusion | PASS | fail closed |
 | product EI T2.2 method basis | PASS | governed source-basis record + visible UI |
 | official errata applicability | PASS / NOT_APPLICABLE | T2-5 AIV, T2-8 transient |
@@ -252,7 +177,6 @@ The three merged #500/#501 shared-shell regressions remain included.
 | XLSX anti-bypass / stale / dual hashes | IMPLEMENTED | native/browser execution NOT_RUN |
 | exact 51-file release suite | NOT_RUN / ENVIRONMENT_BLOCKED | no complete authenticated checkout |
 | real browser + five-sheet XLSX/CSV/Data Blockers | NOT_RUN | no browser runtime |
-| exact-head hosted workflows/status | NOT_RUN | no executed workflow/status evidence observed at prior checkpoint |
 | independent vibration-engineer review | NOT_APPLICABLE | Owner benchmark rule |
 | screening authority | NOT_AUTHORIZED | separate future Owner decision |
 | design authority | NOT_AUTHORIZED | outside screening promotion |
@@ -263,51 +187,32 @@ Do not convert `NOT_RUN` to PASS from source inspection.
 
 Repository backup CLI remains `NOT_RUN / ENVIRONMENT_BLOCKED` in this connector-only runtime.
 
-Exact pre-edit rollback blobs for this source-basis/release-gate slice:
+Key pre-edit rollback blobs for this slice:
 
 ```text
-tabs/vibration-integrity-engineering-basis-view.js
-8a3a00b42b12284e503dd1deaafce067e4f164a9
-
-tests/vibration-integrity-engineering-basis.test.mjs
-3e9afa5adbb330a77d577eb090a3b57c1e176a79
-
-converters/vibration/fit/index.js
-951749d5f46f87c9184a4e64ddc04a0262f82571
-
-docs/vibration/FIT-Qualification-Dossier-v1.md
-51ceec8825d0e9ebec64ae60a43e50f104e4cff7
-
-docs/vibration/FIT-EI-Worked-Example-Traceability-v1.md
-ac12ede5cc4a521d583514e972c2e4ce054737f3
-
-scripts/verify-vibration-fit-release.mjs
-b3185d0bff658e87caee74cdb23a1e66d4981018
-
-tests/vibration-fit-release-gate.test.mjs
-dc0d897a457af6417b14f0aae4a328e2ba782b0c
-
-agents/PR499_workreport.md
-50ee3982488d12cac289634984a8d1e8d6e73b5f
+tabs/vibration-integrity-engineering-basis-view.js  8a3a00b42b12284e503dd1deaafce067e4f164a9
+tests/vibration-integrity-engineering-basis.test.mjs 3e9afa5adbb330a77d577eb090a3b57c1e176a79
+converters/vibration/fit/index.js                    951749d5f46f87c9184a4e64ddc04a0262f82571
+docs/vibration/FIT-Qualification-Dossier-v1.md      51ceec8825d0e9ebec64ae60a43e50f104e4cff7
+docs/vibration/FIT-EI-Worked-Example-Traceability-v1.md ac12ede5cc4a521d583514e972c2e4ce054737f3
+scripts/verify-vibration-fit-release.mjs             b3185d0bff658e87caee74cdb23a1e66d4981018
+tests/vibration-fit-release-gate.test.mjs            dc0d897a457af6417b14f0aae4a328e2ba782b0c
+agents/PR499_workreport.md                           fa1c3384c2dc6bffc79e2f3432f0476a1f10ffe0
 ```
-
-New source-basis files are additive. Concurrent D4 product-path files were preserved rather than overwritten.
 
 ## Coordination
 
-PR499 is receiving parallel FIT work. Re-ground live head before every mutation. During this slice, non-overlapping concurrent work was observed in run-evidence, screening-candidate/qualification tests, and D4 product-path validation files.
+PR499 is receiving parallel FIT work. Re-ground live head before every mutation. Non-overlapping concurrent changes were preserved in run-evidence, screening qualification tests, D4 product-path validation and source/scope documentation.
+
+Two attempted updates to concurrently edited source/scope documents were rejected by GitHub stale-SHA protection with HTTP 409. No partial write occurred; those files were left to their current owner.
 
 ## Appendix A — Implementation Takeover Qualification
 
-A1 Production trace: 20/20. FIT input -> readiness/plan -> central Engineering API -> FIT kernel -> result/evidence -> UI/export is identifiable.
-
-A2 Failure isolation: 20/20. Missing data, collisions, invalid units, QST-003, XLSX tamper, stale state and authority mismatch remain distinct fail-closed seams.
-
-A3 Authority/invariants: 20/20. User data cannot override governed source values; evidence cannot grant screening/design authority.
-
-A4 Independent validation: 19/20. Controlled D2/D4 examples, independent hand vectors and literal unit cases exist; exact current-head native release execution remains NOT_RUN here.
-
-A5 Minimal next patch: 19/20. Remaining code changes should be driven only by failures from native/browser validation or direct T2.2 locator reconciliation.
+A1 Production trace: 20/20.
+A2 Failure isolation: 20/20.
+A3 Authority/invariants: 20/20.
+A4 Independent validation: 19/20 — exact native current-head release execution remains NOT_RUN here.
+A5 Minimal next patch: 19/20 — remaining changes should be driven only by native/browser failures or direct T2.2 locator reconciliation.
 
 ```text
 Qualification score = 98/100
@@ -323,7 +228,7 @@ Do not infer PASS from absent Actions/status contexts.
 
 Continuation:
 
-1. recheck live `main` and PR499 head;
+1. recheck live main and PR499 head;
 2. freeze one candidate SHA;
 3. execute `npm run verify:vibration-fit-release` — expected 51 controlled test files;
 4. execute real-browser/real-file acceptance: five-sheet XLSX, tamper rejection, CSVs, Data Blockers, edits/reverts/stale handling, evidence exports;
