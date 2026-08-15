@@ -71,6 +71,7 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-integrity-editable-input-static.test.mjs',
       'tests/vibration-integrity-mechanism-matrix.test.mjs',
       'tests/vibration-module-boundaries.test.mjs',
+      'tests/vibration-user-engineering-data.test.mjs',
       'tests/vibration-fit-release-gate.test.mjs',
     ]),
   }),
@@ -82,6 +83,8 @@ export const VIBRATION_FIT_RELEASE_TEST_GROUPS = Object.freeze([
       'tests/vibration-deadleg-ei-worked-examples.test.mjs',
       'tests/vibration-transient-ei-worked-examples.test.mjs',
       'tests/vibration-multimechanism-validation-record.test.mjs',
+      'tests/vibration-sbc-type3-user-data.test.mjs',
+      'tests/vibration-sbc-type3-user-data-table-validation.test.mjs',
     ]),
   }),
 ]);
