@@ -153,7 +153,33 @@ PF-003 revision/token semantics unchanged
 PF-004 live UI/state behavior unchanged
 ```
 
-## Validation ledger at PR allocation
+## Hosted validation observation
+
+The first exact post-WIP-removal code-equivalent head was:
+
+```text
+head       6d982f7ca1d074ef9ff98dcd7ad21dcb6b154217
+workflow   31898365393
+job        95045073162
+conclusion failure
+steps      []
+runner_id  0
+annotation The job was not started because an Actions budget is preventing further use.
+```
+
+Classification:
+
+```text
+HOSTED_VALIDATION = NOT_RUN / INFRASTRUCTURE_BLOCKED
+CACHE_CHAIN_TEST  = NOT_RUN / INFRASTRUCTURE_BLOCKED
+CHROMIUM_STATUS   = NOT_RUN / INFRASTRUCTURE_BLOCKED
+```
+
+No repository test, cache-chain test, Playwright install, static server, Chromium step, or artifact upload executed. The GitHub `failure` conclusion is not represented as a product/code failure and is not relabeled PASS.
+
+After this observation, only the validation receipt and this workreport were synchronized; production bytes did not change. The exact final docs-synchronized head must still be rechecked and recorded in the PR/issue checkpoint without another branch mutation.
+
+## Validation ledger
 
 | Check | Status | Observation |
 |---|---|---|
@@ -161,10 +187,10 @@ PF-004 live UI/state behavior unchanged
 | PF004→PF005 Git compare | PASS | production changes are import URL identity only |
 | old FIT placeholder removed | PASS / SOURCE INSPECTION | shared entry uses SBC PF-005 key |
 | current-main AIV key preserved | PASS / SOURCE INSPECTION | `20260815-aiv-pf01-cache-1` |
-| cache-chain regression | IMPLEMENTED / NOT_YET_EXECUTED | 25 edges + isolation checks |
+| cache-chain regression | NOT_RUN / INFRASTRUCTURE_BLOCKED | hosted job received no runner / executed zero steps |
 | D7/no-mass numeric rerun | NOT_RUN / NOT_APPLICABLE_TO_URL_ONLY_DIFF | numerical code bodies unchanged |
-| hosted workflow | PENDING | inspect exact post-handoff PR head |
-| official served-app Chromium | NOT_RUN | required later acceptance gate |
+| hosted workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | Actions budget prevented job startup |
+| official served-app Chromium | NOT_RUN / INFRASTRUCTURE_BLOCKED | Chromium step never started |
 | production freeze | NOT_FROZEN | live browser evidence still required |
 
 ## Handover boundary
@@ -173,4 +199,4 @@ PR #527 is code-complete for runtime cache custody only. It is stacked on #524 a
 
 Do not widen #527 into equations, source/master changes, curve activation, UI redesign, currentness logic, facility semantics, AIV work, or the live Chromium acceptance itself.
 
-`EXACT_NEXT_ACTION`: inspect the exact final PR head's hosted workflow; if infrastructure becomes executable, require the repository/full-suite plus served Chromium evidence. If the job still never starts, record `NOT_RUN / INFRASTRUCTURE_BLOCKED` and do not relabel it PASS.
+`EXACT_NEXT_ACTION`: on an executable environment, run the full repository Node suite and the exact served Chromium two-facility SBC journey using the cache-custodied graph. Until that evidence exists, keep `FREEZE_STATE=BLOCKED / NOT_FROZEN`.
