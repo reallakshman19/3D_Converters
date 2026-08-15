@@ -76,11 +76,14 @@ export function buildAivMasterEvidence(resolution) {
   });
 }
 
-function matches(identityValue, expected) {
-  return Object.entries(expected).every(([key, value]) => !value || text(identityValue?.[key]) === text(value));
+function matches(item, expected) {
+  if (expected.tableKind && item.tableKind !== expected.tableKind) return false;
+  return Object.entries(expected).every(([key, value]) => (
+    key === 'tableKind' || !value || text(item.identity?.[key]) === text(value)
+  ));
 }
 
 export function selectAivMasterEvidence(evidence, expected = {}) {
   if (evidence?.schema !== AIV_MASTER_EVIDENCE_SCHEMA) return Object.freeze([]);
-  return Object.freeze(evidence.records.filter((item) => matches(item.identity, expected)));
+  return Object.freeze(evidence.records.filter((item) => matches(item, expected)));
 }
