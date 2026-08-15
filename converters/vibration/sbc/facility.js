@@ -1,7 +1,7 @@
 import {
   SBC_TYPE3_RECORD_KEY,
   calculateSbcType3FromUserEngineeringData,
-} from './type3-user-data.js';
+} from './type3-user-data.js?v=20260815-sbc-pf05-cache-1';
 
 export const SBC_FACILITY_SCOPE_SCHEMA = 'SbcFacilityScope.v1';
 
