@@ -12,25 +12,23 @@ PR: #510
 BRANCH: agent/mechanical-t23-facility-stage4
 BASE: agent/ei-appendix-b-stage3
 BASE_SHA: db64392374c198434c3a8a142fa33ab080160a0c
-ENGINEERING_HEAD_VALIDATED: 5065ce67c4346fa132cdd3d49f307d68e54c404e
+VALIDATION_INFRA_HEAD: 133c7f9ededb873b16868203d8b0768220e10460
 CURRENT_MAIN_LAST_CHECKED: 0b03855a6d9031c8b531e23bdd3deea3b7fdc5d4
 DEPENDENCIES: PR #507 master registry + PR #509 Appendix-B/T2.3 candidate masters
-COORDINATION: SAFE — no competing Mechanical/T2.3 facility PR found
 MERGE_AUTHORITY: NOT_GRANTED
-EXACT_NEXT_ACTION: leave PR draft/unmerged; next qualified agent must recheck live head/base before any further mutation
+EXACT_NEXT_ACTION: leave draft/unmerged; if full-suite evidence is required, restore an available complete-checkout runner and execute the committed validation workflow/browser script without changing engineering authority
 ```
 
 ## Delivered Capability
 
-Stage 4 turns EI AVIFF T2.3 Mechanical Excitation from `NOT_IMPLEMENTED` into a usable, non-authorizing facility candidate:
+Stage 4 makes EI AVIFF T2.3 Mechanical Excitation a facility-scoped master-backed candidate:
 
 ```text
 facility row
   -> explicit applicability
-  -> explicit connected/adjacent equipment sources
+  -> connected/adjacent equipment sources
   -> PR #509 T2.3 candidate evaluator
   -> maximum baseline LOF + governing source
-  -> master provenance
   -> exact-scope cached result
   -> candidate governing tier
 ```
@@ -43,9 +41,9 @@ Mechanical = IMPLEMENTED_CANDIDATE_MASTER / CANDIDATE_MASTER / NOT_AUTHORIZED
 SBC        = IMPLEMENTED_CANDIDATE_USER_INPUT / CANDIDATE_USER_INPUT / NOT_AUTHORIZED
 ```
 
-Mechanical/SBC can compete only in `candidateGoverning`; FIT remains the only current `screeningGoverning`. `fullScreeningGoverningEstablished=false`.
+Mechanical/SBC may compete only in `candidateGoverning`; FIT remains the authorized screening tier. `fullScreeningGoverningEstablished=false`.
 
-## Applicability Contract
+## Applicability / numerical custody
 
 ```text
 no decision / no sources                -> APPLICABILITY_UNKNOWN
@@ -54,17 +52,7 @@ sources chosen, evaluation absent/bad   -> APPLICABLE_INCOMPLETE
 valid exact-scope candidate              -> CALCULATED_CANDIDATE
 ```
 
-Empty selection is never silently treated as NOT APPLICABLE.
-
-## T2.3 Numerical Custody
-
-Stage 4 does not duplicate the T2.3 master table. The facility bridge calls:
-
-```text
-evaluateEiAviffMechanicalBaselineCandidate(sourceKeys)
-```
-
-from PR #509.
+Stage 4 does not duplicate T2.3 master values. It calls `evaluateEiAviffMechanicalBaselineCandidate()` from PR #509.
 
 Independent EI D2.4 constraint:
 
@@ -74,42 +62,161 @@ electric motor / alternator >=15 kW      0.4
 governing Mechanical T2.3 LOF            0.4
 ```
 
-A permanent Stage-4 regression calls the actual Stage-3 evaluator and requires `0.4`.
+No TM-09/dynamic-study reduction is applied. Shared-support direct evaluation remains blocked by `MECHANICAL_T23_SHARED_SUPPORT_REQUIRES_ADJACENT_LOF` until an adjacent-line LOF is explicitly modeled.
 
-No TM-09/dynamic-study reduced LOF is applied. The shared-support transfer rule is not a fixed number and direct use fails:
-
-```text
-MECHANICAL_T23_SHARED_SUPPORT_REQUIRES_ADJACENT_LOF
-```
-
-until adjacent-line LOF is modeled explicitly.
-
-## Scope and Async Integrity
-
-Scope ID:
+## Scope / async integrity
 
 ```text
 MECHANICAL-FACILITY/<encoded line>/<encoded case or ->/<encoded canonical ID>
 ```
 
-Wrong-scope cached candidates return `FACILITY_SCOPE_MISMATCH` and cannot govern.
+Wrong-scope candidates fail with `FACILITY_SCOPE_MISMATCH`. Source/applicability changes invalidate cached and pending results using per-scope evaluation tokens.
 
-The UI controller uses per-scope evaluation tokens. Any source/applicability edit invalidates both cached and pending results, so an older asynchronous result cannot overwrite newer input.
+## Validation infrastructure added after Owner request
 
-## Protected Invariants
+The Owner requested repository-native and Chromium execution. Two validation artifacts were added:
 
-- no T2.3 baseline duplication or modification;
-- no CANDIDATE master activation;
-- no screening/design/master-data promotion;
-- Mechanical excluded from `screeningGoverning`;
-- FIT screening lifecycle unchanged;
-- no shared-support fixed LOF invention;
-- no TM-09/dynamic-study reduction;
-- wrong-scope candidate fails closed;
-- stale Mechanical excluded from current candidate governing;
-- explicit NOT APPLICABLE remains distinct from unknown applicability.
+```text
+.github/workflows/vibration-mechanical-stage4-validation.yml
+scripts/validate-vibration-mechanical-stage4-browser.mjs
+```
 
-## Appendix A
+The workflow is designed to run:
+
+1. Stage-4/generic focused Node tests;
+2. `node --test tests/*.test.mjs` full repository Node suite;
+3. real app static server;
+4. Playwright Chromium path: Engineering Calculations -> Vibration -> FIT benchmark -> run -> Mechanical inputs -> D2.4 sources -> LOF 0.4 -> authority checks.
+
+## GitHub-hosted exact-head attempt
+
+Workflow run:
+
+```text
+run_id     = 31875120781
+workflow   = Vibration Mechanical Stage 4 Validation
+head       = 133c7f9ededb873b16868203d8b0768220e10460
+job        = 94989590474
+steps      = []
+runner_id  = 0
+```
+
+GitHub check annotation states exactly:
+
+```text
+The job was not started because an Actions budget is preventing further use.
+```
+
+Classification is therefore:
+
+```text
+GitHub workflow execution = NOT_RUN / ACTIONS_BUDGET_BLOCKED
+```
+
+It is not a code/test FAIL because no checkout or test step started.
+
+## Exact-blob local Node execution
+
+The local execution container cannot clone the private repository because outbound GitHub network access is blocked. For the bounded Stage-4 path, exact files were materialized through the GitHub connector and verified with `git hash-object` against GitHub blob SHAs before execution.
+
+Verified examples:
+
+```text
+converters/vibration/mechanical/facility.js
+  578d943a2435339e53c1d2e7083b74690c0116c3
+converters/vibration/masters/ei-aviff-appendix-b-data.js
+  3ef76b1b997e29227bcef5af82f502e6f6d8e9cc
+converters/vibration/masters/ei-aviff-appendix-b-candidate.js
+  8dbfbdfb9c2c95bdcdb506bb14aa7ab9b1b12368
+converters/vibration/masters/ei-aviff-appendix-b-evaluator.js
+  7e5af2676952559e26d4131ffce31457566b17d2
+converters/vibration/masters/canonical.js
+  d48c8d545b679247efc4ed455485255fae8f8594
+converters/vibration/masters/registry.js
+  61e7250890ffe1c8b020d0672365a5608f5da6f1
+converters/vibration/masters/validate.js
+  ba20656afc69b28f52d0f1e1baf702753398aa0c
+tabs/vibration-integrity-mechanical-controller.js
+  2b9614274dc1c34126c36923d0ed1e64c249b042
+tabs/vibration-integrity-mechanical-view.js
+  e2ab173d6279dcca0a876dd8f2a487b0e0bc30ce
+tests/vibration-mechanical-t23-facility-stage4.test.mjs
+  87cdd9f78b637f64dcb44b14188c16467c6de0c8
+```
+
+Executed results:
+
+```text
+vibration-mechanical-t23-facility-stage4.test.mjs
+  4 tests / 4 PASS
+  includes real Stage-3 master evaluator D2.4 = 0.4
+  exact scope mismatch / duplicate / unknown / shared-support hard stop PASS
+
+vibration-mechanical-t23-module-boundaries-stage4.test.mjs
+  4 tests / 4 PASS
+  evaluator reuse / <300 lines / no authority activation / shared-support hard stop PASS
+
+vibration-mechanical-t23-ui-stage4.test.mjs
+  4 executable panel tests / 4 PASS
+  equipment controls / NOT APPLICABLE / shared-support disabled / calculated candidate rendering PASS
+  final source-routing test not executed in the bounded reconstruction because complete product checkout was unavailable
+```
+
+These are `PASS / EXACT_BLOB_BOUNDED_EXECUTION`, not a claim that the complete repository suite ran.
+
+## Chromium execution
+
+Installed runtime:
+
+```text
+Chromium 144.0.7559.96
+HeadlessChrome/144.0.0.0
+```
+
+The container's managed Chromium policy has `URLBlocklist=["*"]`, so localhost and `file:` product navigation are blocked before application code executes. `about:blank` is permitted but is not a secure context and has no native `crypto.subtle`.
+
+A bounded Chromium module-runtime acceptance was therefore executed using the exact Git-blob-verified Stage-4 view/controller/domain/master modules loaded as ES data modules. The harness changed only the canonical module's crypto binding to a test-only `__testCrypto` SHA-256 bridge; the bridge self-tested against the standard SHA-256 `abc` digest before loading the master registry. No repository source file was modified for this bridge.
+
+Executed Chromium result:
+
+```text
+status                  PASS
+scope                   MECHANICAL-FACILITY/14-GAS-1001/NORMAL/CAN-K402
+selected source 1       CENTRIFUGAL_COMPRESSOR
+selected source 2       ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW
+governing LOF           0.4
+governing source        ELECTRIC_MOTOR_OR_ALTERNATOR_GE_15KW
+screeningAuthority      NOT_AUTHORIZED
+designAuthority         false
+shared-support disabled true
+rendered authority      CANDIDATE
+```
+
+Classification:
+
+```text
+Chromium Stage-4 module/UI acceptance = PASS
+Full product Chromium navigation      = NOT_RUN / MANAGED_URL_POLICY_BLOCKED
+```
+
+Do not broaden the module-level PASS into a full hosted product/browser PASS.
+
+## Full repository-suite truth
+
+The complete `node --test tests/*.test.mjs` suite remains:
+
+```text
+NOT_RUN / ENVIRONMENT_BLOCKED
+```
+
+Both available complete-checkout routes are blocked:
+
+1. local execution container: outbound private-GitHub clone/archive access unavailable;
+2. GitHub-hosted runner: Actions budget prevented job allocation before step 1.
+
+No PASS is inferred from this absence.
+
+## Appendix A / protected invariants
 
 ```text
 A1 Production trace             20/20
@@ -118,113 +225,32 @@ A3 Authority / invariant        20/20
 A4 Independent validation       19/20
 A5 Minimal patch                19/20
 TOTAL                            98/100
-IMPLEMENTATION_AUTHORITY        GRANTED_FOR_THIS_BOUNDED_STAGE
 ```
 
-## Backup / Rollback Evidence
+Protected invariants remain unchanged: no T2.3 value duplication, no candidate-master activation, no screening/design/master-data promotion, Mechanical excluded from screening governing, no TM-09 reduction, and no invented shared-support LOF.
 
-Repository backup CLI:
+## Backup / rollback evidence
+
+Repository backup CLI remains `NOT_RUN` because there is no complete local checkout. Pre-edit engineering-file blobs remain recorded in earlier PR510 history. Before this work-report edit its exact blob was:
 
 ```text
-node utils/backup.js save ... = NOT_RUN
-reason = connector-only runtime
+agents/PR510_workreport.md = cc00c4451011a952034d7eeca8460916f3cd8f8e
 ```
 
-Pre-edit blobs:
+## Current changed-file boundary at validation head
+
+Parent comparison at `133c7f9e...`:
 
 ```text
-converters/vibration/mechanisms/contracts.js
-  4748b1470ac704349a212faa7c1b95eac82af4e0
-converters/vibration/mechanisms/index.js
-  972adc0741aa4b5f358cdcb0380319a63e19e093
-tabs/vibration-integrity-mechanisms.js
-  c3f79911c2fb9f183d296ee0a674fc199bbd0285
-tabs/vibration-integrity-user-data-shell.js
-  ebd5880cf2a567701704d08eaac5fae1fc04e274
-tabs/vibration-integrity-view.js
-  7101c2d2f6eb7d03dc056c16ba8757e6fa2e416d
-tests/vibration-mechanism-contract.test.mjs
-  32f6cf5c95199648e1d6374c7e3924f2d05efa89
-tests/vibration-integrity-mechanism-matrix.test.mjs
-  3f7a16b1653d6208d9889d4ce1b0621e6b33f4a0
+base    db64392374c198434c3a8a142fa33ab080160a0c
+status  ahead
+commits 29
+behind  0
+files   18
 ```
 
-## Changed-File Ledger
+New validation files account for the increase from the original 16-file Stage-4 engineering diff to 18 files.
 
-Exact parent-to-engineering-head comparison (`db643923...` -> `5065ce67...`):
+## Next-agent handover
 
-```text
-26 commits ahead
-0 behind
-16 changed files
-```
-
-Files:
-
-```text
-agents/PR510_workreport.md
-converters/vibration/mechanical/facility.js
-converters/vibration/mechanisms/contracts.js
-converters/vibration/mechanisms/index.js
-converters/vibration/mechanisms/mechanical.js
-tabs/vibration-integrity-mechanical-controller.js
-tabs/vibration-integrity-mechanical-view.js
-tabs/vibration-integrity-mechanisms.js
-tabs/vibration-integrity-user-data-shell.js
-tabs/vibration-integrity-view.js
-tests/vibration-integrity-mechanism-matrix.test.mjs
-tests/vibration-mechanical-t23-applicability-stage4.test.mjs
-tests/vibration-mechanical-t23-facility-stage4.test.mjs
-tests/vibration-mechanical-t23-module-boundaries-stage4.test.mjs
-tests/vibration-mechanical-t23-ui-stage4.test.mjs
-tests/vibration-mechanism-contract.test.mjs
-```
-
-No FIT/AIV/SBC numerical kernel, EI master value, workflow, release manifest or export file is in scope.
-
-## Regression Inventory
-
-- `IMPLEMENTED_CANDIDATE_MASTER` contract acceptance;
-- Mechanical catalogue/matrix lifecycle;
-- D2.4 real evaluator result = 0.4;
-- deterministic scope encoding and mismatch rejection;
-- duplicate/empty/unknown source handling;
-- shared-support hard stop;
-- unknown vs explicit NOT APPLICABLE;
-- screening vs candidate governing separation;
-- Mechanical vs SBC candidate governing;
-- stale result exclusion/retention;
-- UI input, NOT APPLICABLE, calculated edit and candidate markers;
-- async invalidation architecture;
-- new JS <300 lines;
-- no local authority activation or dynamic-study reduction implementation.
-
-## Validation Ledger
-
-| Check | Status | Observation | Oracle / limitation |
-|---|---|---|---|
-| main / #509 parent grounding | PASS | live GitHub | #509 `db643923...`; main `0b03855...` |
-| PR #510 structure | PASS | live GitHub | open, draft, mergeable |
-| parent comparison | PASS | GitHub compare | 26 ahead / 0 behind / 16 files at `5065ce67...` |
-| active Mechanical overlap | PASS | PR search | none found |
-| Stage-3 evaluator reuse | PASS | source inspection | no second T2.3 table |
-| D2.4 expected LOF | PASS | pinned source inspection | independent 0.4 oracle |
-| exact-scope architecture | PASS | source inspection | deterministic/fail-closed |
-| authority-tier separation | PASS | source inspection | screening filter unchanged |
-| new JS <300 lines | PASS | line-300 GitHub probes returned EOF | repo policy |
-| async invalidation | PASS | controller inspection | per-scope tokens invalidated on edits |
-| backup CLI | NOT_RUN | connector-only runtime | repo policy limitation |
-| focused repository-native Node tests | NOT_RUN | no exact checkout/runtime | tests committed |
-| complete repository-native suite | NOT_RUN | no exact checkout/runtime | not claimed |
-| browser acceptance | NOT_RUN | browser execution unavailable | source-level UI regressions only |
-| hosted workflow runs @ `5065ce67...` | NOT_RUN | GitHub returned `[]` | no run observed |
-| hosted status contexts @ `5065ce67...` | NOT_RUN | GitHub returned `[]` | no status observed |
-| controlled EI PDF reconciliation | inherited NOT_RUN | #509 remains candidate | no authority promotion |
-
-## Highest Risk
-
-Presentation can make a valid T2.3 baseline appear authoritative. The contract, matrix and UI therefore consistently label Mechanical `CANDIDATE_MASTER`, preserve `screeningAuthority=NOT_AUTHORIZED`, and exclude it from screening governing.
-
-## Next-Agent Handover
-
-Recheck live PR/base/head before mutation. Leave PR draft/unmerged unless the Owner separately authorizes merge. Do not activate #509 masters, consume dynamic-study reductions, implement shared-support transfer without explicit adjacent-line LOF, or promote Mechanical to screening in this stage.
+Recheck live PR/base/head before mutation. Leave draft/unmerged unless the Owner separately authorizes merge. If GitHub Actions budget or another complete-checkout runner becomes available, execute the committed workflow and require both the full Node suite and full product Chromium path to pass before upgrading those two `NOT_RUN` classifications.
