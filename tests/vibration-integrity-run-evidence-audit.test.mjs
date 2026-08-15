@@ -46,13 +46,19 @@ async function runSnapshot() {
 }
 
 function auditLog() {
-  const createdAt = '2026-08-15T06:00:00.000Z';
-  const started = appendVibrationIntegrityAuditEvent(createVibrationIntegrityAuditLog(createdAt), {
-    type: 'SESSION_STARTED', at: createdAt, resultState: 'UNRUN',
+  const opened = appendVibrationIntegrityAuditEvent(createVibrationIntegrityAuditLog(), {
+    eventType: 'WORKSPACE_OPENED',
+    timestamp: '2026-08-15T06:00:00.000Z',
+    workflowBefore: null,
+    workflowAfter: 'EMPTY',
+    details: { product: 'Vibration Integrity' },
   });
-  return appendVibrationIntegrityAuditEvent(started, {
-    type: 'RUN_SUCCEEDED', at: '2026-08-15T06:02:00.000Z', resultState: 'CURRENT_RESULT',
-    details: { drifted: false },
+  return appendVibrationIntegrityAuditEvent(opened, {
+    eventType: 'FIT_RUN_COMPLETED',
+    timestamp: '2026-08-15T06:02:00.000Z',
+    workflowBefore: 'RUNNING',
+    workflowAfter: 'RESULT_CURRENT',
+    details: { drifted: false, runId: 'FIT-RUN-AUDIT-001' },
   });
 }
 
@@ -84,18 +90,21 @@ async function evidenceState(overrides = {}) {
   };
 }
 
-test('run evidence carries and fingerprints the immutable workflow audit trail', async () => {
+test('run evidence carries and fingerprints the immutable non-authoritative activity trail', async () => {
   const evidence = await buildVibrationIntegrityRunEvidence(await evidenceState());
   assert.equal(evidence.auditTrail.schema, 'VibrationIntegrityAuditLog.v1');
-  assert.deepEqual(evidence.auditTrail.events.map((event) => event.type), ['SESSION_STARTED', 'RUN_SUCCEEDED']);
+  assert.deepEqual(evidence.auditTrail.events.map((event) => event.eventType), ['WORKSPACE_OPENED', 'FIT_RUN_COMPLETED']);
+  assert.equal(evidence.auditTrail.events[1].authority.engineeringAuthority, 'NONE');
+  assert.equal(evidence.auditTrail.events[1].authority.purpose, 'ACTIVITY_AUDIT_ONLY');
   assert.equal(evidence.auditTrailIdentity.schema, VIBRATION_AUDIT_IDENTITY_SCHEMA);
   assert.equal(evidence.auditTrailIdentity.algorithm, 'SHA-256');
   assert.match(evidence.auditTrailIdentity.hash, /^[0-9a-f]{64}$/u);
   assert.equal(evidence.auditTrailIdentity.hash, await sha256Hex(stableJson(evidence.auditTrail)));
+  assert.equal(evidence.authority.purpose, 'REPRODUCIBILITY_EVIDENCE_ONLY');
   assert.equal(Object.isFrozen(evidence), true);
 });
 
-test('run evidence rejects a structurally tampered audit trail', async () => {
+test('run evidence rejects a structurally tampered activity trail', async () => {
   const valid = auditLog();
   const auditLogTampered = { ...valid, events: [{ ...valid.events[0], sequence: 7 }, valid.events[1]] };
   await assert.rejects(
@@ -104,11 +113,15 @@ test('run evidence rejects a structurally tampered audit trail', async () => {
   );
 });
 
-test('run evidence rejects persisted audit events with invalid type or time', async () => {
+test('run evidence rejects invalid activity type, timestamp or promoted authority', async () => {
   const valid = auditLog();
-  const badType = { ...valid, events: [{ ...valid.events[0], type: 'UNKNOWN_EVENT' }, valid.events[1]] };
-  const badTime = { ...valid, events: [{ ...valid.events[0], at: 'not-a-time' }, valid.events[1]] };
-  for (const auditLogTampered of [badType, badTime]) {
+  const badType = { ...valid, events: [{ ...valid.events[0], eventType: 'UNKNOWN_EVENT' }, valid.events[1]] };
+  const badTime = { ...valid, events: [{ ...valid.events[0], timestamp: 'not-a-time' }, valid.events[1]] };
+  const badAuthority = {
+    ...valid,
+    events: [{ ...valid.events[0], authority: { engineeringAuthority: 'SCREENING', purpose: 'ACTIVITY_AUDIT_ONLY' } }, valid.events[1]],
+  };
+  for (const auditLogTampered of [badType, badTime, badAuthority]) {
     await assert.rejects(
       () => buildVibrationIntegrityRunEvidence(await evidenceState({ auditLog: auditLogTampered })),
       (error) => error?.code === 'FIT_RUN_EVIDENCE_AUDIT_INVALID',
