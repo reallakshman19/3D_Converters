@@ -1,0 +1,63 @@
+schema: AgentClaim.v1
+pr_or_wip: PR528
+claim_state: ACTIVE
+files:
+  exact:
+    - tabs/vibration-aiv-state.js
+    - tabs/vibration-aiv-dataset-loader.js
+    - tabs/vibration-aiv-execution.js
+    - tabs/vibration-aiv-qualification-tab.js
+    - tabs/vibration-aiv-input-view.js
+    - tabs/vibration-aiv-engineering-revision.js
+    - tabs/vibration-aiv-mode-transition.js
+    - tests/vibration-aiv-engineering-revision.test.mjs
+    - tests/vibration-aiv-mode-transition.test.mjs
+    - tests/vibration-aiv-input-mode-integration.test.mjs
+    - agents/PR528_workreport.md
+    - agents/status/PR528.yaml
+    - agents/claims/PR528.yaml
+  future_exact:
+    - tabs/vibration-aiv-workspace-loaders.js
+    - tabs/vibration-aiv-workbench.css
+    - tests/vibration-module-boundaries.test.mjs
+    - tests/vibration-aiv-runtime-cache-chain.test.mjs
+  planned_new:
+    - tabs/vibration-aiv-unified-canvas-projection.js
+    - tabs/vibration-aiv-unified-canvas-view.js
+    - tabs/vibration-aiv-unified-canvas-controller.js
+    - tabs/vibration-aiv-unified-canvas-pointer.js
+    - tabs/vibration-aiv-unified-canvas-author.js
+    - tabs/vibration-aiv-unified-canvas-relationships.js
+    - tabs/vibration-aiv-unified-canvas-inspector.js
+  prefixes:
+    - tabs/vibration-aiv-unified-canvas-
+authority_domains:
+  - AIV_UNIFIED_CANVAS_RUNTIME_OWNERSHIP
+  - AIV_INPUT_MODE_AUTHORITY_STATE
+  - AIV_PRESENTATION_VS_ENGINEERING_REVISION_CUSTODY
+  - AIV_NETWORK_PATH_PRESENTATION
+  - AIV_UI_ASYNC_CURRENTNESS
+  - AIV_CANVAS_CACHE_CUSTODY
+claim_modes:
+  - EXCLUSIVE
+  - COORDINATED
+  - SHARED_READ
+exclusions:
+  - converters/vibration/aiv/aiv-readiness.js
+  - converters/vibration/aiv/aiv-calculator.js
+  - converters/vibration/aiv/aiv-executable-contract.js
+  - AIV_READINESS_EXECUTABLE_PARITY
+  - AIV_NUMERICAL_EQUATIONS
+  - AIV_SIMULTANEOUS_SOURCE_SEMANTICS
+  - AIV_MASTER_ENGINEERING_AUTHORITY
+  - WORKFLOW_FILES
+notes:
+  - "Issue #526 qualification gate is satisfied by reviewer comment 5303402441."
+  - "Stage 1 owns explicit input-mode, engineering-revision, stale-operation, generated-table read-only and detach custody."
+  - "Stage 2 owns UI projection/composition only; it must consume existing graph pathEvidence and registered result projections without new engineering math."
+  - "PR #517 has ACTIVE/EXCLUSIVE authority over AIV readiness/executable parity. PR528 consumes, not rewrites, that contract."
+  - "Open PR #506 overlaps several exact UI/state files but remains candidate/salvage evidence only and is not the base for PR528."
+  - "NETWORK_DRIVEN graph and TABLE_DRIVEN working tables must never be silently synchronized as dual engineering owners."
+  - "SVG/pixel x/y remains presentation-only and cannot establish physical distance."
+  - "No workflow files are claimed or authorized."
+last_verified_head: d99230d04805cf734a44ed644d9b6a09f4003f60
