@@ -109,6 +109,23 @@ freeze state: BLOCKED / NOT_FROZEN
 
 Implementation proceeded only on this isolated draft branch under the owner's explicit start-coding direction. Browser BEFORE/AFTER evidence remains an open blocking item for production-freeze closure and merge readiness.
 
+## Hosted CI Truth
+
+The production-freeze workflow was automatically requested for exact PR head `665c4e48ef5cd5714cc32bdaf6d55a172b5bc5bf`:
+
+```text
+workflow run: 31889267284
+job: 95023000289
+name: node-and-chromium
+steps: []
+runner_id: 0
+GitHub conclusion: failure
+annotation: The job was not started because an Actions budget is preventing further use.
+classification: NOT_RUN / INFRASTRUCTURE_BLOCKED
+```
+
+No product or test step executed in that hosted run. The GitHub `failure` conclusion is therefore retained as an infrastructure-blocked `NOT_RUN`; it is not relabeled PASS and is not interpreted as an SBC product-test failure.
+
 ## Source / Oracle Custody
 
 ```text
@@ -136,6 +153,7 @@ D/F/G remain exact-coordinate project/user evidence only. This slice did not rec
 | legacy authority/evidence shape | PASS | existing user-data regression unchanged |
 | official Chromium BEFORE | NOT_RUN / ENVIRONMENT_BLOCKED | no served checkout / Playwright; no false PASS |
 | official Chromium AFTER | NOT_RUN / ENVIRONMENT_BLOCKED | same infrastructure block; no false PASS |
+| hosted production-freeze workflow | NOT_RUN / INFRASTRUCTURE_BLOCKED | run `31889267284`, job `95023000289`, zero steps, runner_id=0, Actions budget annotation |
 
 ## Handover Boundary
 
