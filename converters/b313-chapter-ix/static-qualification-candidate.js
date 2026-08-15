@@ -11,8 +11,13 @@ export const CHAPTER_IX_STATIC_QUALIFICATION_CANDIDATE_VERSION =
 const EXPECTED_KEYS = Object.freeze([
   'pressureDesignThicknessMm',
   'requiredMinimumThicknessMm',
+  'requiredNominalThicknessMm',
+  'minimumAsManufacturedThicknessMm',
+  'effectiveNetWallMm',
   'pressureRatingMpa',
 ]);
+
+const MAX_RELATIVE_TOLERANCE = 1e-4;
 
 function text(value) {
   return String(value ?? '').trim();
@@ -62,6 +67,22 @@ function validateEnvelope(candidate) {
   return null;
 }
 
+function custodyComplete(row) {
+  return Boolean(text(row?.preparedBy) && text(row?.checkedBy)
+    && text(row?.preparedBy) !== text(row?.checkedBy) && text(row?.checkedAt));
+}
+
+function masterRecordCustodyIssues(basisPackage) {
+  const masters = basisPackage?.masters ?? {};
+  const issues = [];
+  for (const collection of ['materialAllowable', 'pipeProduct', 'pipeDimension', 'manufacturingTolerance']) {
+    for (const row of masters[collection] ?? []) {
+      if (!custodyComplete(row)) issues.push(`${collection}:RECORD_CUSTODY_INCOMPLETE`);
+    }
+  }
+  return [...new Set(issues)];
+}
+
 function benchmarkContractIssues(candidate) {
   const benchmark = candidate.benchmark;
   const issues = [];
@@ -78,10 +99,12 @@ function benchmarkContractIssues(candidate) {
   for (const key of EXPECTED_KEYS) {
     if (!finite(benchmark.expected?.[key])) issues.push(`BENCHMARK_EXPECTED_${key}_MISSING`);
   }
+  if (typeof benchmark.expected?.staticPass !== 'boolean') issues.push('BENCHMARK_EXPECTED_staticPass_MISSING');
   const tolerance = benchmark.tolerance ?? {};
-  if (!['ABSOLUTE', 'RELATIVE'].includes(text(tolerance.type))
-      || !finite(tolerance.value) || tolerance.value < 0) {
+  if (text(tolerance.type) !== 'RELATIVE' || !finite(tolerance.value) || tolerance.value < 0) {
     issues.push('BENCHMARK_TOLERANCE_INVALID');
+  } else if (tolerance.value > MAX_RELATIVE_TOLERANCE) {
+    issues.push('BENCHMARK_TOLERANCE_EXCEEDS_R1_CEILING');
   }
   const input = benchmark.input ?? {};
   for (const key of ['designPressureMpa', 'internalAllowanceMm', 'externalAllowanceMm']) {
@@ -113,10 +136,16 @@ function compareBenchmark(pressure, benchmark) {
     key,
     compareValue(pressure[key], benchmark.expected[key], tolerance),
   ]));
+  const staticPass = {
+    actual: pressure.staticPass,
+    expected: benchmark.expected.staticPass,
+    pass: pressure.staticPass === benchmark.expected.staticPass,
+  };
   return {
-    pass: Object.values(comparisons).every((item) => item.pass),
-    tolerance: { ...tolerance },
+    pass: Object.values(comparisons).every((item) => item.pass) && staticPass.pass,
+    tolerance: { ...tolerance, maxR1Relative: MAX_RELATIVE_TOLERANCE },
     comparisons,
+    staticPass,
   };
 }
 
@@ -140,63 +169,88 @@ function qualificationPackage(candidate, source) {
   };
 }
 
-export function evaluateChapterIxStaticQualificationCandidate(candidate = {}) {
-  const envelopeError = validateEnvelope(candidate);
-  if (envelopeError) return envelopeError;
-
+function evaluateBasisEvidence(candidate) {
   const basis = resolveChapterIxBasis(candidate.basisPackage);
   if (!basis.ok || basis.resolverState !== 'RESOLVED_NOT_AUTHORIZED') {
-    return result('BASIS_EVIDENCE_PENDING', { basis, issues: basis.issues ?? [basis.code ?? 'BASIS_INVALID'] });
+    return { complete: false, output: result('BASIS_EVIDENCE_PENDING', {
+      basis,
+      issues: basis.issues ?? [basis.code ?? 'BASIS_INVALID'],
+    }) };
   }
-
-  const benchmarkIssues = benchmarkContractIssues(candidate);
-  if (benchmarkIssues.length) {
-    return result('BENCHMARK_EVIDENCE_PENDING', { basis, issues: benchmarkIssues });
+  const custodyIssues = masterRecordCustodyIssues(candidate.basisPackage);
+  if (custodyIssues.length) {
+    return { complete: false, output: result('BASIS_EVIDENCE_PENDING', { basis, issues: custodyIssues }) };
   }
+  return { complete: true, basis };
+}
 
+function evaluateBenchmarkEvidence(candidate, basis) {
+  const issues = benchmarkContractIssues(candidate);
+  if (issues.length) {
+    return { complete: false, output: result('BENCHMARK_EVIDENCE_PENDING', { basis, issues }) };
+  }
   const source = controlledMethodSource(candidate);
   if (!source || text(candidate.benchmark.sourceId) !== text(source.sourceId)) {
-    return result('BENCHMARK_EVIDENCE_PENDING', {
+    return { complete: false, output: result('BENCHMARK_EVIDENCE_PENDING', {
       basis,
       issues: ['BENCHMARK_CONTROLLED_SOURCE_BINDING_MISSING'],
-    });
+    }) };
   }
-
   const calculation = calculateChapterIxStraightPressureFromBasis({
     basisPackage: candidate.basisPackage,
     ...candidate.benchmark.input,
   });
   if (!calculation.ok) {
-    return result('CALCULATION_BLOCKED', { basis, calculation, issues: [calculation.code ?? 'CALCULATION_FAILED'] });
+    return { complete: false, output: result('CALCULATION_BLOCKED', {
+      basis,
+      calculation,
+      issues: [calculation.code ?? 'CALCULATION_FAILED'],
+    }) };
   }
-
   const comparison = compareBenchmark(calculation.pressure, candidate.benchmark);
   if (!comparison.pass) {
-    return result('BENCHMARK_MISMATCH', { basis, calculation, comparison, issues: ['CLASS_E_NUMERICAL_MISMATCH'] });
+    return { complete: false, output: result('BENCHMARK_MISMATCH', {
+      basis,
+      calculation,
+      comparison,
+      issues: ['CLASS_E_NUMERICAL_MISMATCH'],
+    }) };
   }
+  return { complete: true, source, calculation, comparison };
+}
 
-  const packageInput = qualificationPackage(candidate, source);
+function evaluateQualification(candidate, basis, benchmarkEvidence) {
+  const packageInput = qualificationPackage(candidate, benchmarkEvidence.source);
   const qualification = evaluateChapterIxQualificationPackage(packageInput);
   if (!qualification.ok || qualification.packageState !== 'EVIDENCE_COMPLETE_NOT_AUTHORIZED') {
     return result('QUALIFICATION_PACKAGE_PENDING', {
       basis,
-      calculation,
-      comparison,
+      calculation: benchmarkEvidence.calculation,
+      comparison: benchmarkEvidence.comparison,
       qualification,
       issues: (qualification.issues ?? []).map((item) => item.code ?? String(item)),
     });
   }
-
   return {
     ok: true,
     candidateState: 'EVIDENCE_COMPLETE_NOT_AUTHORIZED',
     evidenceComplete: true,
     canPromoteCalculationAuthority: false,
     basis,
-    calculation,
-    comparison,
+    calculation: benchmarkEvidence.calculation,
+    comparison: benchmarkEvidence.comparison,
     qualification,
     qualificationPackage: packageInput,
     issues: [],
   };
+}
+
+export function evaluateChapterIxStaticQualificationCandidate(candidate = {}) {
+  const envelopeError = validateEnvelope(candidate);
+  if (envelopeError) return envelopeError;
+  const basisEvidence = evaluateBasisEvidence(candidate);
+  if (!basisEvidence.complete) return basisEvidence.output;
+  const benchmarkEvidence = evaluateBenchmarkEvidence(candidate, basisEvidence.basis);
+  if (!benchmarkEvidence.complete) return benchmarkEvidence.output;
+  return evaluateQualification(candidate, basisEvidence.basis, benchmarkEvidence);
 }
