@@ -1,12 +1,12 @@
 schema: AgentPrStatus.v1
 repository: reallaksh19/3D_Converters
 pr_or_wip: PR515
-mission: "Issue #513 PF-01 live Chromium reproduction -> minimal canvas-filter fix -> benchmark-locked closure"
+mission: "Issue #513 PF-01 live Chromium reproduction -> minimal filter fix -> professional degraded-canvas behavior -> benchmark-locked closure"
 workstream: AIV_PRODUCTION_FREEZE_PF01
 branch: agent/aiv-pf01-production-freeze-20260815
 main_head_last_checked: d659e670a2f8fe0a35fc8072382512f6493898cf
 merge_base: d659e670a2f8fe0a35fc8072382512f6493898cf
-implementation_head: 8ce49f991d6907694f284398026a8114437d9740
+implementation_head_before_evidence_sync: 835c908ad16fa206aa510136068ea6d1b0578a12
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 agent_state: IMPLEMENTED_VALIDATION_PENDING
@@ -15,26 +15,35 @@ handover_readiness: READY
 report_path: agents/PR515_workreport.md
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_513_GATE_APPLIES
 grounding_epoch: GE-005
-current_stage: IMPLEMENTED_TARGETED_VALIDATION_PASS_FULL_APP_POSTFIX_AND_B1_B6_PENDING
-blocker: "Owner live pre-fix product reproduction is confirmed and minimal fix is committed. Full patched application Chromium replay, B1-B6 registered/full-workflow closure, and native verify:aiv-canvas-release remain NOT_RUN."
-highest_risk: "Promoting targeted Chromium or independent numerical subchecks to FULL_BROWSER_PASS/B1-B6 PASS and merging prematurely."
+current_stage: IMPLEMENTED_TARGETED_VALIDATION_PASS_NATIVE_AND_FULL_APP_EXECUTION_PENDING
+blocker: "The exact PF-01 native command and full AIV release suite cannot execute in the current environment, and the identical post-fix full-application Chromium workflow is NOT_RUN."
+highest_risk: "Promoting mapped tests, targeted Chromium or independent numerical subchecks to native B1-B6/FULL_BROWSER_PASS and merging prematurely."
 production_fix:
   path: tabs/vibration-aiv-canvas-filter.js
   before_blob: a5da4fb99e69310659659725696c61c3d9347085
   after_blob: 8640eca0a2e1454e277613d50c4c9962e3e537d8
   diff: "input = input ?? {};"
+professional_ui:
+  canvas_failure_containment: tabs/vibration-aiv-qualification-tab.js
+  cache_distinct_module_token: aiv-qualification-2
+  degraded_message_authority: "Engineering tables and screening controls remain authoritative and usable."
+native_gate:
+  command: npm run verify:aiv-pf01
+  package_blob: 958da1f3ba7cc2185f68af4bb5c4b254f7711dd0
+  b1_to_b6_coverage_mapped: true
+  execution: NOT_RUN_INFRASTRUCTURE_BLOCKED
 validation:
-  owner_live_prefx: PASS_REPRODUCED
+  owner_live_prefix: PASS_REPRODUCED
   focused_filter_regression: PASS_3_OF_3
-  targeted_chromium_144: PASS_3_OF_3
+  targeted_chromium_144: PASS_3_OF_3_FILTER_RUNTIME_ONLY
   d23_raw_pwl_subcheck: PASS
   d23_point_pwl_subcheck: PASS
   multi_160_160_numeric_subcheck: PASS
   multi_160_150_numeric_subcheck: PASS
   full_application_postfix: NOT_RUN
-  b1_to_b6_full_closure: NOT_RUN
+  b1_to_b6_native_closure: NOT_RUN
   native_aiv_canvas_release: NOT_RUN
 next_slice_authorized: false
 merge_ready: false
-exact_next_action: "Run PR515 patched head in the real AIV workspace: import same EI EIT -> Check AIV readiness -> Run AIV screening -> Case/Line/Show; confirm zero uncaught caseId errors, then execute B1-B6 and npm run verify:aiv-canvas-release before merge or PF-02."
-last_updated: 2026-08-15T15:37:11+04:00
+exact_next_action: "On an executable exact PR515 checkout run npm ci; npm run verify:aiv-pf01; npm run verify:aiv-canvas-release. Then replay same EI EIT -> Check Readiness -> Run Screening -> Case/Line/Show workflow in Chromium. Only green evidence may close PF-01."
+last_updated: 2026-08-15T16:05:00+04:00
