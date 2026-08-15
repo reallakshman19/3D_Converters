@@ -61,6 +61,17 @@ function promoteDiscoveredAssessment(resolution, table, rowIndex) {
     discoveredAssessmentCandidateCount: retained.length,
   });
 }
+function tablesAfterDelete(resolution, tableKind, rowIndex) {
+  const table = resolution?.tables?.[tableKind];
+  if (!table) return resolution?.tables ?? {};
+  return Object.freeze({
+    ...resolution.tables,
+    [tableKind]: Object.freeze({
+      ...table,
+      rows: Object.freeze(table.rows.filter((_, index) => index !== rowIndex)),
+    }),
+  });
+}
 function shiftedAfterDelete(resolution, tableKind, rowIndex, deletedAssessmentId) {
   if (!resolution) return null;
   const resolutions = resolution.resolutions.flatMap((item) => {
@@ -76,6 +87,7 @@ function shiftedAfterDelete(resolution, tableKind, rowIndex, deletedAssessmentId
   const discovered = (resolution.discoveredAssessmentCanonicalIds ?? []).filter((id) => id !== deletedAssessmentId);
   return Object.freeze({
     ...resolution,
+    tables: tablesAfterDelete(resolution, tableKind, rowIndex),
     resolutions: Object.freeze(resolutions.map(Object.freeze)),
     unresolved: Object.freeze(unresolved.map(Object.freeze)),
     resolvedFieldCount: resolutions.length,
