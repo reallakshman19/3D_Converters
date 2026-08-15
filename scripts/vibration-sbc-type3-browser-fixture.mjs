@@ -73,12 +73,21 @@ export async function facilityScope(page, line) {
   return scope;
 }
 
+async function fillAndChange(locator, value) {
+  await locator.fill(String(value));
+  await locator.dispatchEvent('change');
+}
+
 export async function fillPhysical(page) {
   for (const [field, value] of Object.entries(PHYSICAL)) {
     const input = page.locator(`[data-vi-sbc-master-physical="${field}"]`);
     if (await input.evaluate((node) => node.tagName === 'SELECT')) await input.selectOption(value);
-    else await input.fill(value);
+    else await fillAndChange(input, value);
   }
+}
+
+export async function changePhysicalField(page, field, value) {
+  await fillAndChange(page.locator(`[data-vi-sbc-master-physical="${field}"]`), value);
 }
 
 export async function userRowIndex(page, scope, blockerId) {
@@ -102,8 +111,8 @@ export async function fillCurveEvidence(page, scope) {
     if (blockerId.endsWith('T3_1')) assert.equal(closeEnough(y, 0.9 / 0.7), true);
     if (blockerId.endsWith('T3_3')) assert.equal(closeEnough(y, 2.3), true);
     if (blockerId.endsWith('T3_4')) assert.equal(closeEnough(y, 1.4), true);
-    await row.locator('[data-vi-user-data-cell="value"]').fill(String(value));
-    await row.locator('[data-vi-user-data-cell="sourceReference"]').fill(D7_SOURCE);
+    await fillAndChange(row.locator('[data-vi-user-data-cell="value"]'), value);
+    await fillAndChange(row.locator('[data-vi-user-data-cell="sourceReference"]'), D7_SOURCE);
   }
 }
 
@@ -147,8 +156,11 @@ export async function wrongScopeRuntimeCheck(page, row, wrongScope) {
 export async function editCurveValue(page, scope, blockerId, value) {
   const index = await userRowIndex(page, scope, blockerId);
   assert.notEqual(index, -1);
-  await page.locator('.vi-user-engineering-data tbody tr').nth(index)
-    .locator('[data-vi-user-data-cell="value"]').fill(String(value));
+  await fillAndChange(
+    page.locator('.vi-user-engineering-data tbody tr').nth(index)
+      .locator('[data-vi-user-data-cell="value"]'),
+    value,
+  );
 }
 
 export async function sameTaskAsyncRace(page, nextBranchLength) {
