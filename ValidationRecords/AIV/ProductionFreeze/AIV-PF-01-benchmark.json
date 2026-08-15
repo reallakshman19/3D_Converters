@@ -1,0 +1,31 @@
+{
+  "schema": "AivProductionFreezeBenchmarkLedger.v1",
+  "sliceId": "PF-01",
+  "issueId": 513,
+  "baselineHead": "d659e670a2f8fe0a35fc8072382512f6493898cf",
+  "testedHead": null,
+  "oracleSources": [
+    {"id":"AIV.EI.D2.3.WORKED_EXAMPLE.v1","path":"tabs/vibration-aiv-benchmarks.js","blob":"c6f95bc3e1a6ecd1ca668c3a55a7ad2ef09fd2d0"},
+    {"id":"AIV-HAND-MULTI-SOURCE","path":"converters/vibration/aiv/aiv-independent-benchmark-evidence.js","blob":"21d1e687dca0c537f4170e961b2d7b1894d710cc"},
+    {"id":"AIV_RELEASE_SCRIPTS","path":"package.json","blob":"ef583d8da73d23df5463a4dfdb2da2d19006886f"}
+  ],
+  "results": [
+    {"benchmarkId":"B1","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
+    {"benchmarkId":"B2","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
+    {"benchmarkId":"B3","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
+    {"benchmarkId":"B4","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
+    {"benchmarkId":"B5","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
+    {"benchmarkId":"B6","status":"NOT_RUN","reason":"Pre-fix real-application Chromium custody is blocked; production patch has not started."},
+    {"benchmarkId":"B7","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
+    {"benchmarkId":"B8","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
+    {"benchmarkId":"B9","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
+    {"benchmarkId":"B10","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
+    {"benchmarkId":"B11","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
+    {"benchmarkId":"B12","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
+    {"benchmarkId":"B13","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."},
+    {"benchmarkId":"B14","status":"NOT_RUN","reason":"PF-01 has not reached post-fix benchmark execution."}
+  ],
+  "oracleRule": "Expected values and tolerances remain frozen. No expected value may be modified to fit implementation output.",
+  "disposition": "BLOCKED_ENVIRONMENT",
+  "lastGroundedAt": "2026-08-15T15:25:39+04:00"
+}
