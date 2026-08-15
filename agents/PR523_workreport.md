@@ -1,4 +1,4 @@
-# PR523 — Chapter IX CORE Static Slice Work Report
+# PR523 — Chapter IX CORE R1 Work Report
 
 # CURRENT RECOVERY STATE — READ FIRST
 
@@ -11,369 +11,358 @@ TAKEOVER_AUTHORITY: WRITE_ALLOWED
 
 EXECUTION_MODE: MANUAL
 AUTO_STATE: NOT_ACTIVE
-SCOPE_AUTHORITY: LOCKED_TO_APPROVED_MISSION
+SCOPE_AUTHORITY: OWNER_EXPANDED
 PHASE_PROGRESSION: MANUAL
 MERGE_AUTHORITY: OWNER_ONLY
 
 REPOSITORY: reallaksh19/3D_Converters
-SOURCE_TASK: Owner instruction 2026-08-15 — follow Engineering PR Delivery; start qualified implementation from revised HP recommendation
+SOURCE_TASK: Owner instruction 2026-08-15 — follow Engineering PR Delivery; start qualified HP implementation; later "proceed next"
 PR_OR_WIP: PR523
 BRANCH: agent/hp-ch9-core-static-r1
 
-PR_HEAD_OBSERVED: a7cfe42e4dd04b6c99c6d0dcd4cc98c6a0a9ee3a
-REPORT_BASIS_HEAD: d766f4870f4687547d15ab3a2ac313df3f57509a
+PR_HEAD_OBSERVED: 80bfd6f3636f22fb1870a54e27fa07b04c464d18
+REPORT_BASIS_HEAD: 80bfd6f3636f22fb1870a54e27fa07b04c464d18
 MAIN_HEAD_LAST_CHECKED: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
 MERGE_BASE: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
 REPORT_SYNC: CURRENT
 
 APPENDIX_A_STATUS: CURRENT
-GROUNDING_EPOCH: GE-004
+GROUNDING_EPOCH: GE-005
 CURRENT_TAKEOVER: NONE
 
-CURRENT_STAGE: HANDOVER / OWNER REVIEW
-LAST_COMPLETED_STAGE: IMPLEMENT + LOCAL ISOLATED VALIDATION + LIVE PR RECONCILIATION
-CURRENT_BLOCKER: native full-repository `npm run verify:hp-chapter-ix` is NOT_RUN in this connector-only environment
-HIGHEST_RISK: accidental promotion of software regression into Code/design authority
-LAST_DURABLE_CHECKPOINT: PR523 live reconciliation at head a7cfe42e4dd04b6c99c6d0dcd4cc98c6a0a9ee3a
+CURRENT_STAGE: VALIDATE / RECONCILE WALL_STATE STAGE
+LAST_COMPLETED_STAGE: STRAIGHT_PRESSURE + WALL_STATE IMPLEMENTATION
+CURRENT_BLOCKER: repository-native `npm run verify:hp-chapter-ix` cannot execute in connector-only environment
+HIGHEST_RISK: future promotion of caller-supplied tolerance/material/corrosion data into Code/design authority without controlled source qualification
+LAST_DURABLE_CHECKPOINT: wall-state implementation and current-head reconciliation at 80bfd6f3636f22fb1870a54e27fa07b04c464d18
 
-EXACT_NEXT_ACTION: in a full native checkout, run `npm run verify:hp-chapter-ix` on the exact PR head; if it passes, preserve BENCHMARK_ONLY authority and proceed to independent licensed B31.3 Chapter IX method qualification in a separate bounded stage. Do not merge without owner authorization.
+EXACT_NEXT_ACTION: implement the controlled Chapter IX method/source qualification gate as a separate bounded stage; treat Advanced_Analysis seed records as SOURCE_PENDING until licensed source identity, independent numerical benchmark values, and checker evidence are supplied. Do not merge.
 ```
 
 ## 2. Handover in 60 Seconds
 
 ### What is now true
-- Draft PR523 is open, mergeable, and intentionally not merged.
-- The PR has exactly seven changed paths and no unexplained files.
-- No review threads are open.
-- New calculation ID: `PIPE.B313.CH9.STRAIGHT_PRESSURE`.
-- Central execution is allowed only with `qualificationMode=benchmark`.
-- Result authority is explicitly `BENCHMARK_ONLY`, `designAuthority=false`, `codeCompliance=false`, `engineeringAuthority=SOFTWARE_REGRESSION_ONLY`.
-- No Advanced_Analysis production-looking masters, fatigue curves, component qualifications, CAESAR mappings, UI redesign, or workflow changes are included.
-- `npm run verify:hp-chapter-ix` is added as a repository-native verification command.
+- PR523 is draft/open/mergeable and remains unmerged.
+- `main` is unchanged at `e97effb06ff9bfcad5ea87381abaa9f2665c1bdd`.
+- Current PR implementation head is `80bfd6f3636f22fb1870a54e27fa07b04c464d18`.
+- Central calculation `PIPE.B313.CH9.STRAIGHT_PRESSURE` is present as `BENCHMARK_ONLY`.
+- Central calculation `PIPE.B313.CH9.WALL_STATE` is now present as `BENCHMARK_ONLY`.
+- WALL_STATE makes nominal, minimum-as-manufactured, BOL conservative, EOL effective, and optional measured-current/projected-EOL wall states explicit.
+- Brownfield projection requires measured wall plus both future internal and external loss values; no missing loss is silently treated as zero.
+- Neither calculation carries Code/design authority.
+- Advanced_Analysis `APPROVED` / `QUALIFIED` seed records are still not imported or trusted as design authority.
 
 ### What has been proven
-- Byte-identical new production modules were locally executed:
-  - kernel blob `53666426396211be944e5aed31ae43ddc5ec9b1d`;
-  - adapter blob `9bdb5cce51c7704cba81cd7a1705b95d391e097d`.
-- New JS file-size policy PASS: kernel 98 lines, adapter 187 lines.
-- `node --check` PASS for both production modules.
-- Isolated local Node validation PASS 4/4:
-  - benchmark authority contract;
-  - strict/default blocking;
-  - frozen NPS4 arithmetic;
-  - invalid tolerance/effective-wall guards.
-- Live PR changed-file reconciliation PASS: seven intended paths, zero unexplained.
-- Three hosted workflows at reconciled head concluded `failure`, but each job had `steps=[]`; they are classified `NOT_RUN / INFRASTRUCTURE_BLOCKED`, not product FAIL and not PASS.
+- Straight-pressure exact production blobs and frozen NPS4 software regression remain unchanged.
+- Wall-state branch blobs match locally executed bytes exactly:
+  - kernel `2e06c5755541359aae014dd4b450f8785cdeeaf2`;
+  - adapter `e6182d3b25dc48c28663f10c73b8b5c78e046151`.
+- New wall-state JS sizes PASS repository policy: 97 and 164 lines, both <300.
+- Isolated wall-state domain checks PASS 6/6.
+- Isolated wall-state adapter checks PASS 3/3.
+- Greenfield trace: `13.49 -> 11.80375 -> 8.80375 mm`.
+- Brownfield trace fixture: `10.2 - (1.2 + 0.3) = 8.7 mm`.
+- Ambiguous orphan future-loss inputs fail closed.
+- Non-positive greenfield EOL and projected brownfield EOL walls fail closed.
+- Current PR diff is exactly 9 intended paths, 17 commits ahead, 0 behind.
+- Current review threads: 0.
+- Three hosted workflows at current head have `steps=[]`, `runner_id=0`; classified NOT_RUN / INFRASTRUCTURE_BLOCKED.
 
-### What remains unfinished / NOT_RUN
+### What remains NOT_RUN / unqualified
 - repository-native `npm run verify:hp-chapter-ix` on a complete checkout;
-- full default-registry/import graph execution;
+- full default-registry import graph execution;
 - licensed B31.3 Chapter IX method/equation reconciliation;
-- any fatigue/KD-3, component, CAESAR, FEA, thermal-system, or vibration qualification.
+- controlled B31.3/VIII-3 source hash custody;
+- independent licensed numerical Class-E benchmark values;
+- production material/tolerance/corrosion masters;
+- KD fatigue, components, B31J, CAESAR, FEA, thermal-system and vibration qualification.
 
 ### What must not be assumed
-- `REFERENCE_PASS` means ASME/design PASS;
-- frozen software-regression values are a licensed Code benchmark;
-- caller-entered allowable stress/tolerance have master authority;
-- `Advanced_Analysis/docs/High Pr` `APPROVED`/`QUALIFIED` labels confer authority in `3D_Converters`;
-- zero-step hosted workflow failures prove a code failure.
-
-### Highest-risk remaining item
-`RISK-001`: future authority promotion must be a separate engineering qualification action backed by controlled licensed sources and independent numerical benchmarks.
+- `REFERENCE_PASS` is an ASME/design acceptance result;
+- WALL_STATE `TRACE_ONLY` is an adequacy result;
+- caller-entered tolerance or allowances are governed master data;
+- Advanced_Analysis status labels confer authority;
+- zero-step Actions failures indicate a product failure.
 
 ## 3. Repository Ground Truth
 
 ```text
-GE-004
-PR: #523
-state: OPEN
-Draft: true
-mergeable: true
-base: main@e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-reconciled PR head: a7cfe42e4dd04b6c99c6d0dcd4cc98c6a0a9ee3a
-implementation basis: d766f4870f4687547d15ab3a2ac313df3f57509a
+GE-005
+verified current main: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
+PR: #523 OPEN / DRAFT / MERGEABLE
+PR head: 80bfd6f3636f22fb1870a54e27fa07b04c464d18
 merge base: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-changed files: 7
+changed files: 9
+commits ahead: 17
+behind: 0
 review threads: 0
-WIP report: retired
-PR report: agents/PR523_workreport.md
 ```
 
-The commits after `d766f487...` are recovery metadata only; no production, test, benchmark, configuration, or authority logic changed after that implementation basis.
+Current changed files:
+1. `agents/PR523_workreport.md`
+2. `converters/b313-chapter-ix/straight-pipe.js`
+3. `converters/b313-chapter-ix/wall-state.js`
+4. `converters/engineering-calculations/adapters/b313-chapter-ix-wall-state.js`
+5. `converters/engineering-calculations/adapters/b313-chapter-ix.js`
+6. `converters/engineering-calculations/default-registry.js`
+7. `package.json`
+8. `tests/b313-chapter-ix-core.test.mjs`
+9. `tests/engineering-calculation-core.test.mjs`
 
 ## 4. Mission / Scope / Acceptance
 
-Mission: expose the existing bounded Chapter IX straight-pipe static pressure formulation through the central Engineering Calculation Platform without promoting unverified Code or design authority.
+Current mission: build the R1 Chapter IX straight-pipe CORE foundation while preserving strict authority boundaries.
 
-Included:
-- pure straight-pipe static kernel;
-- thin central benchmark-only adapter;
-- fail-closed qualification-mode gate;
-- frozen NPS4 software-regression oracle;
-- invalid tolerance/effective-wall guards;
-- central registry integration;
-- dedicated HP verification command;
-- central catalogue test reconciliation.
+Owner-expanded included scope:
+- bounded straight-pressure calculation;
+- explicit wall-state custody;
+- central Engineering Calculation Platform registration;
+- benchmark-only execution gates;
+- frozen arithmetic regressions and fail-closed guards;
+- dedicated HP verification command.
 
-Explicitly excluded:
+Still excluded:
 - KD fatigue / fatigue curves;
-- Advanced_Analysis seeded master import;
+- Code authority promotion;
+- Advanced_Analysis production-seed import;
 - component/B31J/FEA qualification;
 - CAESAR mapping/parity;
 - UI redesign;
-- `.github/workflows/*` changes;
-- Code/design authority promotion;
+- workflow-file changes;
 - merge.
 
 Acceptance status:
-1. central definition registered — COMPLETE by source inspection;
-2. benchmark-only authority boundary — COMPLETE and isolated-execution PASS;
-3. frozen NPS4 arithmetic — PASS isolated analytical/software-regression check;
-4. invalid tolerance/effective wall — PASS fail-closed local execution;
-5. exact PR diff/recovery state — PASS;
-6. native full suite — NOT_RUN;
-7. licensed Code qualification — NOT ESTABLISHED by design.
+1. straight-pressure central API — COMPLETE;
+2. wall-state central API — COMPLETE;
+3. benchmark-only authority — COMPLETE;
+4. explicit no-default wall custody — COMPLETE;
+5. isolated numerical validation — PASS;
+6. exact diff/review/hosted-state reconciliation — PASS;
+7. native full suite — NOT_RUN;
+8. licensed Code qualification — NOT ESTABLISHED by design.
 
 ## 5. Current Implementation State
 
-| Work item | Implementation | Integration | Validation | Location | Remaining |
-|---|---|---|---|---|---|
-| Pure static kernel | COMPLETE | adapter | PASS isolated | `converters/b313-chapter-ix/straight-pipe.js` | native suite |
-| Central adapter | COMPLETE | registry | PASS isolated; native NOT_RUN | `converters/engineering-calculations/adapters/b313-chapter-ix.js` | native suite |
-| Default registry | COMPLETE | central catalogue | source/diff PASS | `converters/engineering-calculations/default-registry.js` | native suite |
-| Focused test | COMPLETE | HP verify command | source reviewed; native NOT_RUN | `tests/b313-chapter-ix-core.test.mjs` | execute |
-| Central catalogue regression | COMPLETE | central core suite | minimal diff PASS; native NOT_RUN | `tests/engineering-calculation-core.test.mjs` | execute |
-| Verification command | COMPLETE | package script | source PASS; execution NOT_RUN | `package.json` | execute |
-| Recovery record | CURRENT | PR523 | reconciled | `agents/PR523_workreport.md` | keep current |
+| Work item | Implementation | Integration | Validation | Remaining |
+|---|---|---|---|---|
+| Straight-pressure kernel | COMPLETE | central adapter | isolated PASS | native suite / licensed Code |
+| Straight-pressure adapter | COMPLETE | default registry | isolated PASS | native suite / authority gate |
+| WALL_STATE kernel | COMPLETE | central adapter | isolated PASS 6/6 | native suite / governed masters |
+| WALL_STATE adapter | COMPLETE | default registry | isolated PASS 3/3 | native suite / governed masters |
+| Central catalogue | COMPLETE | 6 active / 18 blocked expected | source reconciled | native suite |
+| Focused HP tests | COMPLETE | verify command | syntax/source + isolated oracle PASS | native suite |
+| Recovery record | CURRENT | PR523 | reconciled | keep current |
 
 ## 6. Active Engineering Item Register
 
 | ID | Type | Severity | Status | Summary |
 |---|---|---|---|---|
-| IMP-001 | implementation | HIGH | COMPLETE | bounded Chapter IX straight-pipe static API centralized |
-| RISK-001 | authority | CRITICAL | MITIGATED_CURRENT_SCOPE | benchmark-only / no design or Code authority |
-| RISK-002 | provenance | CRITICAL | MITIGATED_CURRENT_SCOPE | unqualified Advanced_Analysis seeded masters not imported |
-| RISK-003 | validation | HIGH | OPEN | native full repository HP verification remains NOT_RUN |
-| DEC-001 | scope | HIGH | ACCEPTED | static straight pipe only in this PR |
+| IMP-001 | implementation | HIGH | COMPLETE | central straight-pressure calculation |
+| IMP-002 | implementation | HIGH | COMPLETE | explicit greenfield/brownfield wall-state custody |
+| RISK-001 | authority | CRITICAL | MITIGATED_CURRENT_SCOPE | benchmark-only, designAuthority=false, codeCompliance=false |
+| RISK-002 | provenance | CRITICAL | OPEN_NEXT_STAGE | controlled licensed source/master evidence not yet bound |
+| RISK-003 | validation | HIGH | OPEN | native HP suite NOT_RUN |
+| RISK-004 | wall semantics | HIGH | MITIGATED | explicit named states; no implicit future-loss zeros |
+| DEC-001 | scope | HIGH | ACCEPTED | R1 remains straight-pipe foundation |
 | DEC-002 | validation | CRITICAL | ACCEPTED | software regression != Code qualification |
-| DEC-003 | architecture | HIGH | ACCEPTED | pure domain kernel + thin central adapter |
-| QST-001 | future authority | HIGH | DEFERRED | exact licensed B31.3/VIII-3 method/source qualification belongs to later stage |
+| DEC-003 | architecture | HIGH | ACCEPTED | pure kernels + thin adapters |
+| DEC-004 | wall custody | HIGH | ACCEPTED | BOL is conservative as-manufactured wall; EOL subtracts explicit reserved service loss |
+| QST-001 | future authority | HIGH | OPEN_NEXT_STAGE | exact B31.3/VIII-3 method/source pairing and independent benchmark evidence |
 
 ## 7. Current Technical Diagnosis
 
 ```text
-Observed symptom: HP straight-pipe static logic existed only in the dedicated HP application and not central `calculateEngineering()`.
-Current hypothesis: a pure kernel plus benchmark-only adapter can centralize that behavior without changing engineering authority.
-Supporting evidence: implementation complete; isolated execution 4/4 PASS; exact production blobs verified; central registry diff is surgical.
-Alternative hypothesis: native central import/input-resolution graph may expose an integration defect.
-Falsifier: `npm run verify:hp-chapter-ix` fails on exact PR head for an adapter/registry/input-resolution contract reason.
-Next isolating experiment: execute that native command; do not change frozen expected values/tolerance to make it pass.
+Observed problem: HP app previously mixed implicit wall arithmetic with user-entered engineering data and lacked central reusable wall-state custody.
+Current result: wall states are explicit, separately callable, fail-closed, and non-authoritative.
+Current hypothesis for next stage: authority promotion can be made safe only by a controlled method/source/benchmark qualification package that cannot be forged through normal calculation input.
+Supporting evidence: Advanced_Analysis seed manifest contains APPROVED records but does not meet the stronger runtime authority-evidence requirements established for this repo.
+Falsifier: if a trusted qualification package cannot be distinguished from caller/context input, do not wire it into strict execution; keep BENCHMARK_ONLY.
+Next isolating experiment: implement a resolver/qualification receipt that reports SOURCE_PENDING unless controlled source identities and independent benchmark evidence are present, without enabling strict execution yet.
 ```
 
 ## 8. Authority and Invariants
 
 Protected invariants:
-- explicit `qualificationMode=benchmark` required;
+- `qualificationMode=benchmark` required for both Chapter IX calculations;
 - `qualification.effective=BENCHMARK_ONLY`;
 - `designAuthority=false`;
 - `codeCompliance=false`;
-- `engineeringAuthority=SOFTWARE_REGRESSION_ONLY`;
-- no hidden/default allowable stress, wall tolerance, product or material master values;
+- straight pressure authority = `SOFTWARE_REGRESSION_ONLY`;
+- wall state authority = `INPUT_CUSTODY_ONLY`;
+- no hidden material, tolerance, allowance, corrosion, erosion or future-loss defaults;
+- no Code acceptance decision in WALL_STATE;
 - no fatigue/component/system qualification;
 - ordinary `PIPE.B313.THICKNESS` mechanics unchanged;
-- canonical mm/MPa units;
-- expected regression values are frozen and independent of current production output;
-- invalid geometry/tolerance/effective wall remains fail-closed.
+- canonical mm/MPa units preserved;
+- frozen expected values are not regenerated from production output;
+- no workflow files modified.
 
-## 9. Current Validation
+## 9. Validation Ledger
 
-### VAL-001 — baseline registry
+### VAL-001 — straight-pressure isolated regression
 ```text
 Status: PASS
-Observation: SOURCE_INSPECTION
-Oracle: NONE
-Tested HEAD: main@e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-Actual: no Chapter IX active central adapter before this PR
-Origin: PREEXISTING
+Observation: LOCAL_EXECUTION
+Oracle: ANALYTICAL / frozen software regression
+Payload blobs:
+  kernel  53666426396211be944e5aed31ae43ddc5ec9b1d
+  adapter 9bdb5cce51c7704cba81cd7a1705b95d391e097d
+Key result: pressure rating 23.086120852009273 MPa
+Authority limitation: not licensed Code qualification
 ```
 
-### VAL-002 — isolated numerical + authority validation
+### VAL-002 — wall-state domain
 ```text
 Status: PASS
 Observation: LOCAL_EXECUTION
 Oracle: ANALYTICAL
-Tested payload blobs:
-  kernel  53666426396211be944e5aed31ae43ddc5ec9b1d
-  adapter 9bdb5cce51c7704cba81cd7a1705b95d391e097d
-Command/evidence: node --check + isolated node --test
-Actual: 4/4 PASS
-Tolerance: 1e-10 fixed numerical tolerance
-Limitations: not the complete default-registry import graph
-Origin: INTRODUCED_BY_PR
+Payload blob: 2e06c5755541359aae014dd4b450f8785cdeeaf2
+Result: PASS 6/6
+Greenfield expected/actual:
+  minimum manufactured = 11.80375 mm
+  EOL effective = 8.80375 mm
+Brownfield expected/actual:
+  future loss = 1.5 mm
+  projected EOL = 8.7 mm
+Negative cases: tolerance/domain/orphan future loss/non-positive EOL all fail closed
 ```
 
-Frozen NPS4 values used by the independent test oracle:
+### VAL-003 — wall-state adapter
 ```text
-pressureDesignThicknessMm       7.7103934983403475
-requiredMinimumThicknessMm      10.710393498340348
-requiredNominalThicknessMm      12.240449712388969
-minimumAsManufacturedThickness  11.80375
-effectiveNetWallMm              8.80375
-pressureRatingMpa               23.086120852009273
-pressureRatingMargin            1.1543060426004637
+Status: PASS
+Observation: LOCAL_EXECUTION
+Oracle: INDEPENDENT_REPRODUCTION
+Payload blob: e6182d3b25dc48c28663f10c73b8b5c78e046151
+Result: PASS 3/3
+Checks: strict mode blocked; benchmark trace correct; orphan future loss blocked
+Authority: designAuthority=false, INPUT_CUSTODY_ONLY
 ```
 
-### VAL-003 — changed-file reconciliation
+### VAL-004 — current PR reconciliation
 ```text
 Status: PASS
 Observation: REMOTE_EXECUTION / GitHub metadata
-Oracle: NONE
-Reconciled PR head: a7cfe42e4dd04b6c99c6d0dcd4cc98c6a0a9ee3a
-Actual: exactly 7 intended changed paths; 0 unexplained; 0 review threads
-Origin: INTRODUCED_BY_PR
+Tested HEAD: 80bfd6f3636f22fb1870a54e27fa07b04c464d18
+Actual: 9 intended paths; 17 ahead; 0 behind; 0 review threads
 ```
 
-### VAL-004 — native HP release command
+### VAL-005 — repository-native HP command
 ```text
 Status: NOT_RUN
 Observation: NOT_OBSERVED
 Oracle: IMPLEMENTATION_COUPLED
 Command: npm run verify:hp-chapter-ix
-Expected: focused Chapter IX + engineering core suites PASS
-Actual: NOT_RUN / ENVIRONMENT_BLOCKED — connector session has no native repository checkout/runtime
-Origin: INTRODUCED_BY_PR
+Reason: no native checkout/runtime in connector execution environment
 ```
 
-### VAL-005 — hosted workflow truth
+### VAL-006 — hosted workflows on current implementation head
 ```text
 Status: NOT_RUN
 Observation: REMOTE_EXECUTION
 Oracle: NONE
-Reconciled head: a7cfe42e4dd04b6c99c6d0dcd4cc98c6a0a9ee3a
-Runs:
-  31892542269 Topology Edit Support Reprojection -> job 95030870161 -> steps=[]
-  31892542272 Vibration AIV Controlled Source Qualification -> job 95030870104 -> steps=[]
-  31892542279 Vibration Production Freeze Validation -> job 95030870115 -> steps=[]
+HEAD: 80bfd6f3636f22fb1870a54e27fa07b04c464d18
+Runs/jobs:
+  31892970326 / 95031897748 controlled-source-qualification -> steps=[] runner_id=0
+  31892970193 / 95031897115 Source tests and browser bundle -> steps=[] runner_id=0
+  31892970188 / 95031897211 node-and-chromium -> steps=[] runner_id=0
 Classification: INFRASTRUCTURE_BLOCKED / ZERO_EXECUTED_STEPS
-Meaning: neither HP product PASS nor HP product FAIL was observed.
+Meaning: neither HP PASS nor HP FAIL observed.
 ```
 
-### VAL-006 — licensed Code verification
+### VAL-007 — licensed Code qualification
 ```text
 Status: NOT_RUN
 Observation: NOT_OBSERVED
 Oracle: AUTHORITATIVE_REFERENCE
-Expected before authority promotion: exact licensed B31.3 Chapter IX method/equation/source reconciliation and independently checked numerical benchmark
-Actual: not part of this software-regression PR
-Origin: PREEXISTING qualification gap
+Required: licensed source reconciliation + independent numerical benchmark
+Current authority: NOT_ESTABLISHED
 ```
 
 ## 10. Changed-File Ledger
 
-| File | Intended? | Purpose | Sensitive? | Validation |
+| File | Intended | Purpose | Sensitive | Current validation |
 |---|---:|---|---:|---|
-| `agents/PR523_workreport.md` | yes | durable recovery/qualification truth | no | current |
-| `converters/b313-chapter-ix/straight-pipe.js` | yes | pure static kernel | yes | exact blob + isolated PASS |
-| `converters/engineering-calculations/adapters/b313-chapter-ix.js` | yes | central benchmark-only adapter | yes | exact blob + isolated PASS |
-| `converters/engineering-calculations/default-registry.js` | yes | register definition | yes | 2-line minimal production diff |
-| `package.json` | yes | `verify:hp-chapter-ix` command | no | 1-line script diff |
-| `tests/b313-chapter-ix-core.test.mjs` | yes | regression + guards | yes | source reviewed; native NOT_RUN |
-| `tests/engineering-calculation-core.test.mjs` | yes | catalogue count/list reconciliation | yes | 5 additions / 4 deletions |
+| `agents/PR523_workreport.md` | yes | recovery authority | no | current |
+| `converters/b313-chapter-ix/straight-pipe.js` | yes | static pressure kernel | yes | isolated PASS |
+| `converters/b313-chapter-ix/wall-state.js` | yes | wall-state kernel | yes | 6/6 PASS |
+| `converters/engineering-calculations/adapters/b313-chapter-ix.js` | yes | static central adapter | yes | isolated PASS |
+| `converters/engineering-calculations/adapters/b313-chapter-ix-wall-state.js` | yes | wall-state central adapter | yes | 3/3 PASS |
+| `converters/engineering-calculations/default-registry.js` | yes | central registration | yes | source reconciliation |
+| `package.json` | yes | HP verify command | no | source inspection |
+| `tests/b313-chapter-ix-core.test.mjs` | yes | frozen HP regressions | yes | syntax/source; native NOT_RUN |
+| `tests/engineering-calculation-core.test.mjs` | yes | catalogue 24/6 reconciliation | yes | syntax/source; native NOT_RUN |
 
-Final actual GitHub count at GE-004: **7**. Ledger count: **7**. Unexplained: **0**.
-
-Pre-edit immutable Git blob custody because repository backup CLI was unavailable without a native checkout:
-```text
-converters/engineering-calculations/default-registry.js
-  378c3b5e166730635f24898698e5e85cbf69da47
-package.json
-  a558ff66e06d43f735fc6ab8e4303a477e975ce6
-tests/engineering-calculation-core.test.mjs
-  6fd07ef740aa9eba90c96f36b9e474868eb5abbd
-```
-Backup command classification: `NOT_RUN / ENVIRONMENT_BLOCKED`. Do not claim `node utils/backup.js save ...` ran.
+Existing-file backup CLI remains `NOT_RUN / ENVIRONMENT_BLOCKED`; immutable pre-edit Git blobs are retained in earlier PR history. No claim is made that `node utils/backup.js save ...` ran.
 
 ## 11. Review / CI State
 
 ```text
-PR523: DRAFT / OPEN / MERGEABLE
+PR: draft/open/mergeable
 review threads: 0
-requested changes: none observed
-hosted workflows checked at reconciled head a7cfe42e...
-all three observed jobs: failure container with zero executed steps -> NOT_RUN / INFRASTRUCTURE_BLOCKED
-HP-specific native command: NOT_RUN
+current implementation head workflows: all zero-step infrastructure-blocked
+HP repository-native suite: NOT_RUN
 merge authority: NOT_GRANTED
 ```
-
-This report-sync commit is recovery metadata only. Live GitHub checks must always be re-fetched before any future merge/readiness decision.
 
 ## 12. Repository Coordination / Overlap
 
 ```text
 MASTER_INDEX_CHECKED: absent on current main
 STATUS_RECORD: PR523 workreport
-CLAIM_RECORD: PR523 workreport
-LAST_OVERLAP_CHECK: live open-PR search before implementation
-FILE_OVERLAP: none observed for HP/Chapter-IX workstream
-AUTHORITY_OVERLAP: none observed
-DEPENDENCY_OVERLAP: central registry touched surgically
+CLAIM_RECORD: PR523 workreport + PR progression comment 5302907772
+FILE_OVERLAP: none observed for Chapter IX-specific paths
+AUTHORITY_OVERLAP: no active HP authority PR observed at stage start
+DEPENDENCY_OVERLAP: default registry touched surgically
 COORDINATION_STATE: SAFE
 ```
 
 ## 13. Continuation State
 
 ```text
-Start here: PR523
-Exact production path: converters/b313-chapter-ix/straight-pipe.js
-Exact adapter: converters/engineering-calculations/adapters/b313-chapter-ix.js
-Calculation ID: PIPE.B313.CH9.STRAIGHT_PRESSURE
-Do not redo: Advanced_Analysis schema/master architecture review
-Do not change: fatigue/KD-3, components/B31J/FEA, workflows, ordinary B31.3 mechanics, frozen regression oracle
-Validation still required: npm run verify:hp-chapter-ix on exact PR head
-Highest-risk remaining: authority promotion ambiguity
-Exact next action: run native HP suite; if PASS, open a separate qualified stage for controlled source/method reconciliation. Do not merge PR523 without explicit owner instruction.
+Start here: PR523 current head after this workreport commit
+Exact component: Chapter IX method/source qualification gate
+Do not redo: straight-pressure or wall-state arithmetic
+Do not change: ordinary B31.3, fatigue/KD, components/B31J/FEA, CAESAR, workflows
+Do not promote: Advanced_Analysis seed APPROVED/QUALIFIED records
+Validation required next: qualification receipt negative/positive synthetic cases; native HP suite when environment permits
+Highest risk: allowing user/context data to forge design authority
+Exact next action: add trusted qualification-package evaluator that remains non-authorizing until controlled source and independent benchmark requirements are met; do not enable strict execution yet
 ```
 
-## 14. Takeover / Custody Chain
+## 14. Custody / Grounding Chain
 
-- `GE-001`: baseline current-main grounding before mutation.
-- `GE-002`: implementation reconciliation at `d766f4870f4687547d15ab3a2ac313df3f57509a`; production/test diff frozen.
-- `GE-003`: draft PR523 allocated; WIP→PR recovery migration started.
-- `GE-004`: WIP retired; seven-file PR ledger reconciled; review state checked; hosted zero-step failures classified as NOT_RUN rather than product failures.
+- `GE-001` baseline current-main grounding.
+- `GE-002` straight-pressure implementation reconciliation.
+- `GE-003/004` PR allocation and initial handover reconciliation.
+- `GE-005` owner-expanded WALL_STATE stage; current implementation head `80bfd6f...` reconciled.
 
 # APPENDIX A — IMPLEMENTATION TAKEOVER QUALIFICATION
 
 ```text
-PR_HEAD_OBSERVED: a7cfe42e4dd04b6c99c6d0dcd4cc98c6a0a9ee3a
-IMPLEMENTATION_BASIS: d766f4870f4687547d15ab3a2ac313df3f57509a
+PR_HEAD: 80bfd6f3636f22fb1870a54e27fa07b04c464d18 before report-only commit
 MAIN_HEAD: e97effb06ff9bfcad5ea87381abaa9f2665c1bdd
-GROUNDING_EPOCH: GE-004
-Generated from: RISK-001, RISK-003, QST-001
-PARTIAL: production implementation complete; native integration validation pending
-NOT_RUN: npm run verify:hp-chapter-ix; licensed Code verification
-Next intended stage: validation only; no authority promotion in PR523
+GROUNDING_EPOCH: GE-005
+Generated from: RISK-002, RISK-003, QST-001
+PARTIAL: source/method qualification gate not started
+NOT_RUN: native HP suite; licensed Code qualification
+Next intended stage: controlled qualification package
 APPENDIX_A_STATUS: CURRENT
 ```
 
-A1 Production Trace (20): trace `calculateEngineering()` from default registry through input resolution to `PIPE.B313.CH9.STRAIGHT_PRESSURE`; prove where benchmark-mode gating prevents strict/design execution.
+A1 Production Trace (20): trace both Chapter IX central IDs through registry/input resolution into their pure kernels and identify exactly why neither can reach design authority.
 
-A2 Current Failure Isolation (20): run `npm run verify:hp-chapter-ix` on the exact PR head; if it fails, identify the first wrong boundary without changing expected values or tolerance.
+A2 Current Failure Isolation (20): if native `verify:hp-chapter-ix` fails, isolate whether the defect is registry count, input resolution, adapter contract, or domain arithmetic without changing frozen expected values.
 
-A3 Authority / Invariant (20): identify every definition/result field that prevents this software regression from becoming Code/design authority and list the independent evidence required before future promotion.
+A3 Authority / Invariant (20): prove why normal request/context data must never be sufficient to upgrade `BENCHMARK_ONLY` to strict/design execution.
 
-A4 Independent Validation (20): independently reproduce the frozen NPS4 wall/rating values above and predict fail-closed results for tolerance=100% and provided nominal wall=3 mm.
+A4 Independent Validation (20): reproduce straight-pressure NPS4 and wall-state greenfield/brownfield values independently, including all fail-closed negative cases.
 
-A5 Next-Commit / Minimal Patch (20): if native integration exposes a defect, propose the smallest Chapter-IX-only patch; show why ordinary B31.3, fatigue, masters, UI, components, CAESAR and workflows remain invariant.
+A5 Next-Commit / Minimal Patch (20): design the smallest trusted qualification-package evaluator that records source and benchmark evidence but does not yet change execution authority.
 
 # HISTORICAL RECORD — NOT CURRENT AUTHORITY
 
-## Stage Execution Log
-- current-main / coordination grounding complete;
-- pure Chapter IX static kernel added;
-- benchmark-only central adapter added;
-- registry and HP verification command integrated;
-- frozen regression and fail-closed guards added;
-- isolated byte-identical local validation PASS 4/4;
-- draft PR523 allocated;
-- WIP report retired;
-- final seven-file ledger/review/hosted zero-step CI reconciliation completed.
+## Stage 1
+Centralized bounded straight-pressure calculation as BENCHMARK_ONLY; NPS4 frozen software regression retained.
+
+## Stage 2
+Added explicit WALL_STATE greenfield/brownfield custody with no hidden zeros or adequacy claim. Owner progression comment: PR conversation comment `5302907772`.
