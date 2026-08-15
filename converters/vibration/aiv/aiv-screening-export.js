@@ -1,3 +1,5 @@
+import { buildAivMasterEvidence } from './aiv-master-evidence.js';
+
 export const AIV_SCREENING_EXPORT_SCHEMA = 'AivScreeningExportPackage.v1';
 
 function deepFreeze(value) {
@@ -36,6 +38,7 @@ export function buildAivScreeningExportPackage({
   topology,
   assumptionProfile,
   assumptionResolution = null,
+  masterResolution = null,
   releaseReceipt = null,
   flareNetwork = null,
   generatedInputSet = null,
@@ -61,6 +64,7 @@ export function buildAivScreeningExportPackage({
       assumedCells: assumptionResolution?.assumptions ?? [],
       assumptionCount: assumptionResolution?.assumptionCount ?? 0,
     },
+    masterEvidence: buildAivMasterEvidence(masterResolution),
     flareNetworkEvidence: networkEvidence(flareNetwork, generatedInputSet),
     eitImportEvidence: eitImportEvidence ?? null,
     releaseEvidence: releaseReceipt ? {
@@ -74,6 +78,7 @@ export function buildAivScreeningExportPackage({
       stageOrder: result.stageOrder,
       completeKernelStageCount: result.implementedStageCount,
       sourceTrace: result.sourceResults.map((row) => row.trace ?? null),
+      masterEngineeringQualificationImplied: false,
       lineCaseSummaryAuthoritativeForScreening: false,
       importedEitResultsAuthoritativeForCurrentScreening: false,
       humanEvidenceRequired: false,
