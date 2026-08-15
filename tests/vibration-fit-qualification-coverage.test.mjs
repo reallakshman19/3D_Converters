@@ -4,6 +4,7 @@ import test from 'node:test';
 import { VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION } from '../converters/engineering-calculations/adapters/vibration-fit.js';
 import {
   FIT_QUALIFICATION_EVIDENCE_STRENGTH,
+  FIT_SCREENING_QUALIFICATION_BASIS,
   calculateFit,
 } from '../converters/vibration/fit/index.js';
 
@@ -16,18 +17,21 @@ function eiCase(id) {
   return eiBenchmarks.cases.find((row) => row.id === id);
 }
 
-function assertNoAuthority(coverage) {
+function assertScreeningAuthority(coverage) {
   assert.equal(coverage.coverageId, 'FIT-REFERENCE-COVERAGE-V1');
-  assert.equal(coverage.screeningQualified, false);
-  assert.equal(coverage.engineeringAuthority, 'NONE');
+  assert.equal(coverage.screeningQualified, true);
+  assert.equal(coverage.engineeringAuthority, 'SCREENING');
+  assert.equal(coverage.qualificationBasis, FIT_SCREENING_QUALIFICATION_BASIS);
+  assert.equal(coverage.qualificationBasis.productPathBenchmarkId, 'EI-D4-FIT-PRODUCED-WATER-10IN');
+  assert.equal(coverage.qualificationBasis.designAuthority, false);
   assert(Object.isFrozen(coverage));
 }
 
-test('EI D2 medium-stiff gas result reports published-example coverage without granting authority', () => {
+test('EI D2 medium-stiff gas result reports published-example coverage with bounded screening authority', () => {
   const result = calculateFit(eiCase('EI-D2-FIT-RECYCLE-SUCTION-6IN').input);
   assert.equal(result.ok, true, JSON.stringify(result));
   const coverage = result.qualificationCoverage;
-  assertNoAuthority(coverage);
+  assertScreeningAuthority(coverage);
   assert.equal(coverage.phasePath.path, 'SINGLE_PHASE_GAS');
   assert.equal(coverage.phasePath.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.EI_PUBLISHED_EXAMPLE);
   assert.equal(coverage.phasePath.eiPublishedExampleCoverage, true);
@@ -40,6 +44,7 @@ test('EI D2 medium-stiff gas result reports published-example coverage without g
 test('EI D4 aggregate multiphase and flexible-large liquid slices retain published-example coverage', () => {
   const separator = calculateFit(eiCase('EI-D4-FIT-SEPARATOR-INLET-20IN').input);
   assert.equal(separator.ok, true, JSON.stringify(separator));
+  assertScreeningAuthority(separator.qualificationCoverage);
   assert.equal(separator.qualificationCoverage.phasePath.path, 'MULTIPHASE_AGGREGATE_EFFECTIVE');
   assert.equal(separator.qualificationCoverage.phasePath.eiPublishedExampleCoverage, true);
   assert.equal(separator.qualificationCoverage.phasePath.equivalenceCoverage, true);
@@ -48,13 +53,14 @@ test('EI D4 aggregate multiphase and flexible-large liquid slices retain publish
 
   const water = calculateFit(eiCase('EI-D4-FIT-PRODUCED-WATER-10IN').input);
   assert.equal(water.ok, true, JSON.stringify(water));
+  assertScreeningAuthority(water.qualificationCoverage);
   assert.equal(water.qualificationCoverage.phasePath.path, 'SINGLE_PHASE_LIQUID');
   assert.equal(water.qualificationCoverage.standardCorrelation.supportCategory, 'FLEXIBLE_LARGE');
   assert.equal(water.qualificationCoverage.standardCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.EI_PUBLISHED_EXAMPLE);
   assert.equal(water.qualificationCoverage.standardCorrelation.eiPublishedExampleCoverage, true);
 });
 
-test('medium-small standard correlation now has explicit independent hand-benchmark coverage', () => {
+test('medium-small standard correlation has explicit independent hand-benchmark screening evidence', () => {
   const mediumSmall = calculateFit({
     phase: 'LIQUID',
     outsideDiameterM: 0.1683,
@@ -71,10 +77,10 @@ test('medium-small standard correlation now has explicit independent hand-benchm
   assert.equal(evidence.independentHandBenchmarkCoverage, true);
   assert.equal(evidence.noIndependentExample, false);
   assert(evidence.evidenceIds.includes('FIT-HAND-LIQ-MEDIUM-SMALL-008'));
-  assertNoAuthority(mediumSmall.qualificationCoverage);
+  assertScreeningAuthority(mediumSmall.qualificationCoverage);
 });
 
-test('medium-large standard correlation retains independent hand-benchmark coverage', () => {
+test('medium-large standard correlation retains independent hand-benchmark screening evidence', () => {
   const mediumLarge = calculateFit({
     phase: 'LIQUID',
     outsideDiameterM: 0.508,
@@ -88,10 +94,10 @@ test('medium-large standard correlation retains independent hand-benchmark cover
   assert.equal(mediumLarge.qualificationCoverage.standardCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
   assert.equal(mediumLarge.qualificationCoverage.standardCorrelation.eiPublishedExampleCoverage, false);
   assert.equal(mediumLarge.qualificationCoverage.standardCorrelation.independentHandBenchmarkCoverage, true);
-  assertNoAuthority(mediumLarge.qualificationCoverage);
+  assertScreeningAuthority(mediumLarge.qualificationCoverage);
 });
 
-test('advanced flexible-small and flexible-large both have independent benchmark evidence without authority', () => {
+test('advanced flexible-small and flexible-large both have independent screening evidence', () => {
   const small = calculateFit({
     phase: 'LIQUID',
     outsideDiameterM: 0.1683,
@@ -105,10 +111,9 @@ test('advanced flexible-small and flexible-large both have independent benchmark
   assert(small.advanced);
   assert.equal(small.support.category, 'FLEXIBLE_SMALL');
   assert.equal(small.qualificationCoverage.advancedCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
-  assert.equal(small.qualificationCoverage.advancedCorrelation.eiPublishedExampleCoverage, false);
   assert.equal(small.qualificationCoverage.referenceBand.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
   assert(small.qualificationCoverage.referenceBand.evidenceIds.includes('FIT-HAND-FLEX-SMALL-LOF-105-FN2'));
-  assertNoAuthority(small.qualificationCoverage);
+  assertScreeningAuthority(small.qualificationCoverage);
 
   const large = calculateFit({
     phase: 'LIQUID',
@@ -124,16 +129,16 @@ test('advanced flexible-small and flexible-large both have independent benchmark
   assert.equal(large.support.category, 'FLEXIBLE_LARGE');
   assert.equal(large.qualificationCoverage.advancedCorrelation.evidenceStrength, FIT_QUALIFICATION_EVIDENCE_STRENGTH.INDEPENDENT_HAND_BENCHMARK);
   assert.equal(large.qualificationCoverage.advancedCorrelation.independentHandBenchmarkCoverage, true);
-  assert.equal(large.qualificationCoverage.advancedCorrelation.noIndependentExample, false);
+  assert(large.qualificationCoverage.advancedCorrelation.noIndependentExample, false);
   assert(large.qualificationCoverage.advancedCorrelation.evidenceIds.includes('FIT-HAND-FLEX-LARGE-LOF-120-FN2-009'));
   assert(large.qualificationCoverage.referenceBand.evidenceIds.includes('FIT-HAND-FLEX-LARGE-LOF-120-FN2-009'));
-  assertNoAuthority(large.qualificationCoverage);
+  assertScreeningAuthority(large.qualificationCoverage);
 });
 
-test('central FIT adapter carries coverage in evidence while remaining benchmark-only', () => {
+test('central FIT adapter exposes screening-qualified coverage while benchmark replay remains non-authorizing', () => {
   const row = eiCase('EI-D2-FIT-RELIEF-UPSTREAM-4IN');
   const input = row.input;
-  const result = VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION.calculate({
+  const canonical = {
     phase: input.phase,
     outsideDiameter: input.outsideDiameterM,
     wallThickness: input.wallThicknessM,
@@ -142,12 +147,24 @@ test('central FIT adapter carries coverage in evidence while remaining benchmark
     massFlow: input.massFlowKgS,
     density: input.densityKgM3,
     gasDynamicViscosity: input.gasDynamicViscosityPaS,
-  }, { options: { qualificationMode: 'benchmark' } });
+  };
+  const benchmark = VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION.calculate(
+    canonical,
+    { options: { qualificationMode: 'benchmark' } },
+  );
+  assert.equal(benchmark.ok, true, JSON.stringify(benchmark));
+  assert.equal(benchmark.qualification.method, 'BENCHMARK_ONLY');
+  assert.equal(benchmark.qualification.designAuthority, false);
+  assert.equal(benchmark.evidence.qualificationCoverage.screeningQualified, true);
+  assert.equal(benchmark.evidence.qualificationCoverage.engineeringAuthority, 'SCREENING');
 
-  assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.qualification.method, 'BENCHMARK_ONLY');
-  assert.equal(result.qualification.designAuthority, false);
-  assert.equal(result.evidence.qualificationCoverage.screeningQualified, false);
-  assert.equal(result.evidence.qualificationCoverage.engineeringAuthority, 'NONE');
-  assert.equal(result.provenance.qualificationCoverageId, 'FIT-REFERENCE-COVERAGE-V1');
+  const screening = VIBRATION_FIT_ENGINEERING_CALCULATION_DEFINITION.calculate(
+    canonical,
+    { options: { qualificationMode: 'screening' } },
+  );
+  assert.equal(screening.ok, true, JSON.stringify(screening));
+  assert.equal(screening.qualification.effective, 'SCREENING');
+  assert.equal(screening.qualification.designAuthority, false);
+  assert.equal(screening.provenance.engineeringAuthority, 'SCREENING');
+  assert.equal(screening.provenance.qualificationCoverageId, 'FIT-REFERENCE-COVERAGE-V1');
 });
