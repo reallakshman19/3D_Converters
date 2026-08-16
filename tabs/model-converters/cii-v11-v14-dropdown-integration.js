@@ -1,8 +1,8 @@
 import { getConverterById } from './converter-registry.js?v=20260617-basic-glb-3';
-import { installCiiV11V14Addon } from './cii-v11-v14-addon.js?v=20260816-cii-v11-v14-dropdown-release-3';
+import { installCiiV11V14Addon } from './cii-v11-v14-addon.js?v=20260816-cii-v11-v14-dropdown-release-4';
 import { downloadOutput } from './core/output-utils.js';
 
-const VERSION = '20260816-cii-v11-v14-dropdown-release-3';
+const VERSION = '20260816-cii-v11-v14-dropdown-release-4';
 const CONVERTER_ID = 'cii_v11_v14';
 const LABEL = 'CAESAR Ver. 14 ↔ 11';
 
@@ -32,7 +32,7 @@ function modalMarkup() {
       <div style="padding:16px 18px;border-bottom:1px solid #2d3c50;display:flex;justify-content:space-between;gap:18px;align-items:flex-start;">
         <div>
           <div style="font-size:19px;font-weight:750;">${LABEL}</div>
-          <div style="margin-top:5px;color:#9fb1c6;font-size:12px;line-height:1.45;max-width:620px;">Convert one CAESAR II CII neutral file between Ver. 11 and Ver. 14 using the existing qualified converter worker. Auto targets the opposite detected version.</div>
+          <div style="margin-top:5px;color:#9fb1c6;font-size:12px;line-height:1.45;max-width:620px;">Convert one CAESAR II CII neutral file between Ver. 11 and Ver. 14. Generated output is independently checked against its CONTROL-driven target record envelope before download.</div>
         </div>
         <button type="button" data-cii-v11-v14-close class="model-converters-download-btn" aria-label="Close">Close</button>
       </div>
@@ -51,12 +51,12 @@ function modalMarkup() {
           </label>
           <label style="display:flex;align-items:center;gap:8px;color:#c5d2df;font-size:12px;padding-bottom:8px;">
             <input data-cii-v11-v14-lossy type="checkbox">
-            Allow lossy v14 → v11 downgrade
+            Allow loss of v14-only extension fields
           </label>
         </div>
 
         <div style="margin-top:13px;padding:10px 12px;border-left:3px solid #6b89ad;background:#121f2d;color:#9fb1c6;font-size:12px;line-height:1.45;">
-          The registered <code>cii_v11_v14</code> converter and its existing worker remain the engineering authority. Lossy downgrade stays opt-in and every conversion emits an audit JSON file.
+          Legacy SIF/TEE items 1–30 are retained independently for both tee slots. The opt-in loss switch applies only to fields with no legacy storage, such as Ver. 14 SIF/TEE items 31–42, reducer extension data, and ALLOWBLS items 154–168. Every conversion emits an audit JSON file.
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
@@ -93,7 +93,7 @@ function openConverterModal() {
 
   const setStatus = (message, kind = '') => {
     statusEl.textContent = String(message || '');
-    statusEl.style.color = kind === 'error' ? '#ffaaaa' : kind === 'ok' ? '#9be3b0' : '#9fb1c6';
+    statusEl.style.color = kind === 'error' ? '#ffaaaa' : kind === 'ok' ? '#9be3b0' : '#e4c879';
   };
   const setLog = (value) => {
     const text = Array.isArray(value) ? value.filter(Boolean).join('\n') : String(value || '');
@@ -149,10 +149,11 @@ function openConverterModal() {
       if (!outputs.length) throw new Error('Converter completed without downloadable outputs.');
       renderOutputs();
       const audit = result?.logs?.audit;
+      const lossCount = Array.isArray(audit?.loss_events) ? audit.loss_events.length : 0;
       const summary = audit?.source_version && audit?.target_version
-        ? `Converted CII v${audit.source_version} → v${audit.target_version}.`
-        : 'CAESAR conversion completed.';
-      setStatus(summary, 'ok');
+        ? `Converted and structurally validated CII v${audit.source_version} → v${audit.target_version}${lossCount ? `; ${lossCount} explicit v14-only loss event(s)` : ''}.`
+        : 'CAESAR conversion completed and target structure validated.';
+      setStatus(summary, lossCount ? '' : 'ok');
       setLog([
         ...stdout,
         ...(Array.isArray(result?.logs?.stdout) ? result.logs.stdout : []),
