@@ -1,5 +1,5 @@
 const MODEL_CONVERTERS_SHIM_VERSION = '20260816-cii-v11-v14-1';
-const CANONICAL_MODULE = './model-converters/index.js?v=20260804-fbx-multifamily-release-1';
+const CANONICAL_MODULE = './model-converters/index.js?v=20260816-cii-ver11-merge-2';
 const LEGACY_MODULE = './model-converters/legacy-adapter.js?v=20260804-fbx-multifamily-release-1';
 const CII_V11_V14_ADDON = './model-converters/cii-v11-v14-addon.js?v=20260816-cii-v11-v14-1';
 
