@@ -21,6 +21,7 @@ const B1 = Object.freeze({
 const EXPECTED_SEQUENCE = Object.freeze([
   'METHOD_SPECIFICATION',
   'SOURCE_TRACE_REGISTER',
+  'CONTROLLED_PDF_RECONCILIATION',
   'BENCHMARK_REGISTRY',
   'TYPE_INPUT_CONTRACTS',
   'APPLICABILITY_TYPE_CLASSIFICATION',
@@ -33,6 +34,8 @@ test('SBC controlled structural work is ordered before pure kernels', () => {
   assert.equal(SBC_VERTICAL_LIFECYCLE.state, 'RESERVED');
   assert.equal(SBC_CONTROLLED_ARTIFACTS.METHOD_SPECIFICATION.status, 'SCAFFOLD_PRESENT_NOT_FROZEN');
   assert.equal(SBC_CONTROLLED_ARTIFACTS.SOURCE_TRACE_REGISTER.status, 'SCAFFOLD_PRESENT_NOT_FROZEN');
+  assert.equal(SBC_CONTROLLED_ARTIFACTS.CONTROLLED_PDF_RECONCILIATION.status, 'BLOCKED_PDF_PAGE_REVIEW_NOT_RUN_ENVIRONMENT');
+  assert.equal(SBC_CONTROLLED_ARTIFACTS.CONTROLLED_PDF_RECONCILIATION.automaticClassificationAllowed, false);
   assert.equal(SBC_CONTROLLED_ARTIFACTS.BENCHMARK_REGISTRY.status, 'SCAFFOLD_PRESENT_NOT_FROZEN');
   assert.equal(SBC_CONTROLLED_ARTIFACTS.TYPE_INPUT_CONTRACTS.status, 'NOT_FROZEN');
   assert.equal(SBC_CONTROLLED_ARTIFACTS.PURE_TYPE_KERNELS.status, 'NOT_QUALIFIED');
@@ -57,6 +60,8 @@ test('every Type slot points to controlled artifacts and remains blocked before 
     const slot = SBC_TYPE_IMPLEMENTATION_SLOTS[typeId];
     assert.equal(slot.controlledArtifacts.methodSpecification, SBC_CONTROLLED_ARTIFACTS.METHOD_SPECIFICATION.path);
     assert.equal(slot.controlledArtifacts.sourceTraceRegister, SBC_CONTROLLED_ARTIFACTS.SOURCE_TRACE_REGISTER.path);
+    assert.equal(slot.controlledArtifacts.controlledPdfReconciliation, SBC_CONTROLLED_ARTIFACTS.CONTROLLED_PDF_RECONCILIATION.path);
+    assert.equal(slot.blockedBy.includes('SBC_CONTROLLED_PDF_RECONCILIATION_NOT_COMPLETE'), true);
     assert.equal(slot.controlledArtifacts.benchmarkRegistry, SBC_CONTROLLED_ARTIFACTS.BENCHMARK_REGISTRY.path);
     assert.equal(slot.controlledArtifacts.b1RegistryId, `SBC-B1-${typeId}-${B1[typeId]}`);
     assert.equal(slot.controlledArtifacts.b2RegistryId, `SBC-B2-${typeId}-INDEPENDENT`);

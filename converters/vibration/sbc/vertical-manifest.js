@@ -1,6 +1,7 @@
 import { createEngineeringCapabilityLifecycle } from '../../engineering-calculations/lifecycle.js';
 import { SBC_TYPE_CLASSIFICATION_CONTRACT_STATUS } from './type-classification-contract.js';
 import { SBC_TYPE_INPUT_CONTRACT_STATUS } from './type-input-contracts.js';
+import { SBC_CONTROLLED_PDF_RECONCILIATION_STATUS } from './controlled-pdf-reconciliation.js';
 
 export const SBC_PUBLIC_CALCULATION_ID = 'VIB.SBC.SMALL_BORE';
 export const SBC_ASSESSMENT_UNIT_TYPE = 'SBC_CONNECTION';
@@ -30,6 +31,7 @@ export const SBC_METHOD_STAGE_IDS = Object.freeze([
 export const SBC_CONTROLLED_STRUCTURE_SEQUENCE = Object.freeze([
   'METHOD_SPECIFICATION',
   'SOURCE_TRACE_REGISTER',
+  'CONTROLLED_PDF_RECONCILIATION',
   'BENCHMARK_REGISTRY',
   'TYPE_INPUT_CONTRACTS',
   'APPLICABILITY_TYPE_CLASSIFICATION',
@@ -46,6 +48,12 @@ export const SBC_CONTROLLED_ARTIFACTS = Object.freeze({
     path: 'docs/vibration/SBC-source-trace-register-v1.md',
     status: 'SCAFFOLD_PRESENT_NOT_FROZEN',
     populationStatus: 'REFERENCE_ROWS_POPULATED_NOT_ENGINEERING_QUALIFIED',
+  }),
+  CONTROLLED_PDF_RECONCILIATION: Object.freeze({
+    path: 'docs/vibration/SBC-Controlled-PDF-Reconciliation-v1.md',
+    status: SBC_CONTROLLED_PDF_RECONCILIATION_STATUS,
+    automaticClassificationAllowed: false,
+    numericalUnitConversionPolicyStatus: 'NOT_FROZEN',
   }),
   BENCHMARK_REGISTRY: Object.freeze({
     path: 'Benchmarks/VibrationSBC/sbc-benchmark-registry-v1.json',
@@ -78,6 +86,7 @@ export const SBC_VERTICAL_LIFECYCLE = createEngineeringCapabilityLifecycle({
 const COMMON_BLOCKERS = Object.freeze([
   'SBC_ENGINEERING_METHOD_SPECIFICATION_NOT_FROZEN',
   'SBC_SOURCE_TRACE_REGISTER_NOT_FROZEN',
+  'SBC_CONTROLLED_PDF_RECONCILIATION_NOT_COMPLETE',
   'SBC_BENCHMARK_REGISTRY_NOT_FROZEN',
   'SBC_TYPE_INPUT_CONTRACTS_NOT_FROZEN',
   'SBC_APPLICABILITY_CLASSIFICATION_NOT_FROZEN',
@@ -91,6 +100,7 @@ function typeArtifactRefs(typeId, exampleId) {
   return Object.freeze({
     methodSpecification: SBC_CONTROLLED_ARTIFACTS.METHOD_SPECIFICATION.path,
     sourceTraceRegister: SBC_CONTROLLED_ARTIFACTS.SOURCE_TRACE_REGISTER.path,
+    controlledPdfReconciliation: SBC_CONTROLLED_ARTIFACTS.CONTROLLED_PDF_RECONCILIATION.path,
     benchmarkRegistry: SBC_CONTROLLED_ARTIFACTS.BENCHMARK_REGISTRY.path,
     typeInputContract: SBC_CONTROLLED_ARTIFACTS.TYPE_INPUT_CONTRACTS.path,
     typeClassificationContract: SBC_CONTROLLED_ARTIFACTS.APPLICABILITY_TYPE_CLASSIFICATION.path,
