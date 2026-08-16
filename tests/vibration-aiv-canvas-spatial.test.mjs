@@ -46,6 +46,26 @@ test('auto tidy is deterministic and keeps sources left of routing nodes and ass
   assert.ok(byId.get('J-1').x < byId.get('WO-1').x);
 });
 
+test('dense flare tidy remains deterministic and expands the workspace instead of pushing nodes out of reach', () => {
+  const sources = Array.from({ length: 12 }, (_, index) => ({
+    nodeKey: `SOURCE:RV-${index + 1}:C`, canonicalId: `RV-${index + 1}`, nodeKind: 'SOURCE',
+    x: 60, y: 60 + index * 20, displayOrder: index,
+  }));
+  const routing = ['J-A', 'J-B', 'J-C'].map((id, index) => ({
+    nodeKey: `NETWORK_NODE:${id}`, canonicalId: id, nodeKind: 'JUNCTION', x: 300, y: 120 + index * 120, displayOrder: 20 + index,
+  }));
+  const assessment = { nodeKey: 'ASSESSMENT:WO-DENSE', canonicalId: 'WO-DENSE', nodeKind: 'ASSESSMENT', x: 700, y: 250, displayOrder: 30 };
+  const dense = [...sources, ...routing, assessment];
+  const edges = sources.map((node, index) => ({ from: node.canonicalId, to: routing[Math.floor(index / 4)].canonicalId }))
+    .concat(routing.map((node) => ({ from: node.canonicalId, to: assessment.canonicalId })));
+  const tidied = aivCanvasTidyLayout({ nodes: dense, viewport: { x: 0, y: 0, zoom: 1 } }, edges);
+  assert.deepEqual(tidied, aivCanvasTidyLayout({ nodes: dense, viewport: { x: 0, y: 0, zoom: 1 } }, edges));
+  assert.equal(new Set(tidied.nodes.map((node) => `${node.x}:${node.y}`)).size, tidied.nodes.length);
+  const bounds = aivCanvasWorkspaceBounds(tidied.nodes);
+  assert.ok(bounds.height > 1200, '12 source rows should expand the recoverable workspace vertically');
+  assert.ok(tidied.nodes.every((node) => node.x >= 0 && node.y >= 0));
+});
+
 test('semantic zoom tiers are stable at the intended thresholds', () => {
   assert.equal(aivCanvasSemanticLevel(1), AIV_CANVAS_SEMANTIC_LEVEL.DETAILED);
   assert.equal(aivCanvasSemanticLevel(0.7), AIV_CANVAS_SEMANTIC_LEVEL.COMPACT);
