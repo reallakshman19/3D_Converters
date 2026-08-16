@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import {
+  rankT29NavigationCandidates,
+  scoreT29TextPage,
+} from '../scripts/locate-vibration-t29-controlled-source.mjs';
 
 const MATRIX = JSON.parse(readFileSync(
   new URL('../ValidationRecords/VibrationMasters/t29-pf01-reconciliation-matrix-v1.json', import.meta.url),
@@ -33,6 +37,22 @@ test('PF01 keeps controlled source identity pinned and numerical authority block
   assert.equal(MATRIX.decisions.synthesisMayDriveBranchAcceptance, false);
   assert.equal(MATRIX.authority.screeningAuthority, 'NOT_AUTHORIZED');
   assert.equal(MATRIX.authority.designAuthority, false);
+});
+
+test('T2.9 locator ranks mechanism-specific evidence and rejects generic recovery-only pages', () => {
+  const generic = scoreT29TextPage(10, 'Pressure recovery factor for an unrelated assessment.');
+  const paired = scoreT29TextPage(11, 'Cavitation and flashing assessment notes.');
+  const explicit = scoreT29TextPage(12, 'T2.9.2 Cavitation and flashing pressure recovery factor.');
+  assert.equal(generic.navigationCandidate, false);
+  assert.equal(generic.selectionReason, null);
+  assert.equal(paired.navigationCandidate, true);
+  assert.equal(paired.selectionReason, 'CAVITATION_FLASHING_PAIR');
+  assert.equal(explicit.navigationCandidate, true);
+  assert.equal(explicit.selectionReason, 'EXPLICIT_T2_9_2_IDENTIFIER');
+  assert.deepEqual(
+    rankT29NavigationCandidates([generic, paired, explicit]).map(({ pdfPageNumber }) => pdfPageNumber),
+    [12, 11],
+  );
 });
 
 test('PF01 preserves the four-row candidate and explicit synthesis conflicts', () => {
