@@ -20,12 +20,12 @@ const runner = read('tabs/model-converters/converters/cii-v11-v14.js');
 const worker = read('converters/cii-v11-v14-worker.js');
 const legacyAdapter = read('tabs/model-converters/legacy-adapter.js');
 
-const releaseKey = '20260816-cii-v11-v14-dropdown-release-3';
+const releaseKey = '20260816-cii-v11-v14-dropdown-release-4';
+const workerReleaseKey = '20260816-cii-v11-v14-import-rca-1';
 const registryQuery = 'v=20260617-basic-glb-3';
 
 // Full browser cache-custody chain. Every parent URL must advance or a browser
-// can legally keep executing an older child module even when the repository file
-// changed.
+// can legally keep executing the pre-RCA child module even when Python changed.
 assert.match(indexHtml, new RegExp(`main-rhbg-fitguard\\.js\\?v=${releaseKey}`));
 assert.match(startup, new RegExp(`core/app\\.js\\?v=${releaseKey}`));
 assert.match(app, new RegExp(`model-converters-tab\\.js\\?v=${releaseKey}`));
@@ -49,8 +49,7 @@ assert.match(shim, /dropdown addon did not register the converter/);
 assert.match(shim, /rendered dropdown integration did not install/);
 
 // Registry ownership remains singular and the engineering runner remains the
-// existing worker-backed converter. The rendered-dropdown bridge is UI custody
-// only; it must not duplicate conversion mechanics.
+// worker-backed converter. The rendered-dropdown bridge is UI custody only.
 assert.match(addon, /id:\s*CONVERTER_ID/);
 assert.match(addon, /CAESAR Ver\. 14 ↔ 11/);
 assert.match(addon, /targetVersion/);
@@ -58,6 +57,7 @@ assert.match(addon, /allowLossy/);
 assert.match(addon, /cii_syntax_check_2019/);
 assert.match(addon, /CONVERTERS as DROPDOWN_CONVERTERS/);
 assert.match(addon, /converter-registry\.js\?v=20260617-basic-glb-3/);
+assert.match(addon, new RegExp(`cii-v11-v14\\.js\\?v=${workerReleaseKey}`));
 assert.match(addon, /installIntoDropdown\(DROPDOWN_CONVERTERS\)/);
 assert.match(addon, new RegExp(`const VERSION = '${releaseKey}'`));
 assert.doesNotMatch(addon, /document\.createElement|innerHTML|appendChild/);
@@ -68,19 +68,22 @@ assert.match(integration, /event\.stopImmediatePropagation\(\)/);
 assert.match(integration, /compatibility-bridge/);
 assert.match(integration, /option\[value="cii_syntax_check_2019"\]/);
 assert.match(integration, /Future\/native legacy-adapter support wins/);
+assert.match(integration, /Legacy SIF\/TEE items 1–30 are retained independently for both tee slots/);
 assert.match(integration, new RegExp(`const VERSION = '${releaseKey}'`));
 assert.doesNotMatch(integration, /cii_v11_v14\.py|postMessage\(\{\s*type:\s*['"]run/);
 
-assert.match(runner, /cii-v11-v14-worker\.js/);
+assert.match(runner, new RegExp(`cii-v11-v14-worker\\.js\\?v=${workerReleaseKey}`));
+assert.match(runner, /target structure validation=PASS/);
 assert.match(runner, /\.audit\.json/);
 assert.match(worker, /cii_v11_v14\.py/);
+assert.match(worker, /cii_v11_v14_validate\.py/);
+assert.match(worker, /cii2019_section_rules\.py/);
 assert.match(worker, /--audit-json/);
 assert.match(worker, /--allow-lossy/);
 
 // Root-cause guard: legacy-adapter currently renders a frozen local order rather
-// than iterating the dynamically-extended registry. PR #555 proved registration
-// but not rendered membership. If native ordering is added later, the bridge is
-// intentionally a no-op; until then, the bridge must be installed after render.
+// than iterating the dynamically-extended registry. If native ordering is added
+// later, the compatibility bridge intentionally becomes a no-op.
 const orderMatch = legacyAdapter.match(/const CONVERTER_ORDER = Object\.freeze\(\[([\s\S]*?)\]\);/);
 assert.ok(orderMatch, 'legacy CONVERTER_ORDER must remain discoverable for dropdown custody checks');
 const legacyOrder = orderMatch[1];
@@ -94,7 +97,7 @@ if (!nativeLegacyOrder) {
 const registryUrl = pathToFileURL(path.join(root, 'tabs/model-converters/converter-registry.js'));
 registryUrl.search = registryQuery;
 const addonUrl = pathToFileURL(path.join(root, 'tabs/model-converters/cii-v11-v14-addon.js'));
-addonUrl.search = 'v=runtime-dropdown-proof-2';
+addonUrl.search = 'v=runtime-dropdown-proof-3';
 
 const registryModule = await import(registryUrl.href);
 const addonModule = await import(addonUrl.href);
@@ -113,10 +116,7 @@ assert.ok(converterIndex >= 0 && syntaxIndex >= 0);
 assert.equal(converterIndex, syntaxIndex - 1, 'registry entry must sit immediately before CII Syntax Check');
 assert.equal(registryModule.getConverterById('cii_v11_v14'), matches[0]);
 
-// Rendered-dropdown proof independent of the registry test. This tiny DOM shim
-// reproduces the select operations used by the integration and proves the entry
-// that the user sees is actually inserted before CII Syntax Check when legacy
-// ordering has not yet learned the dynamic ID.
+// Rendered-dropdown proof independent of the registry test.
 function option(value, dataset = {}) {
   return { value, textContent: value, dataset: { ...dataset }, disabled: false };
 }
@@ -151,7 +151,7 @@ globalThis.document = {
 };
 try {
   const integrationUrl = pathToFileURL(path.join(root, 'tabs/model-converters/cii-v11-v14-dropdown-integration.js'));
-  integrationUrl.search = 'v=runtime-rendered-dropdown-proof-1';
+  integrationUrl.search = 'v=runtime-rendered-dropdown-proof-2';
   const integrationModule = await import(integrationUrl.href);
   const select = makeSelect();
   const container = { querySelector: (selector) => selector === '#model-converters-select' ? select : null };
@@ -169,4 +169,4 @@ try {
   else globalThis.document = originalDocument;
 }
 
-console.log('cii-v11-v14 rendered dropdown runtime chain: PASS');
+console.log('cii-v11-v14 repaired converter runtime chain: PASS');
