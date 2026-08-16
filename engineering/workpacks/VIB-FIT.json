@@ -102,6 +102,7 @@
       "exports": [
         "verifyScreeningAuthority",
         "verifyDesignAuthority",
+        "verifyCodeCompliance",
         "verifyQst003",
         "verifyProductFreeze"
       ]
@@ -230,13 +231,9 @@
     },
     {
       "id": "FIT-WP-006",
-      "type": "MODULE_EXPORT_EQUALS",
+      "type": "CUSTOM_DECLARED_PROBE",
       "severity": "ERROR",
-      "config": {
-        "moduleRef": "adapter",
-        "property": "authority.codeCompliance",
-        "expectedRef": "authority.codeCompliance"
-      }
+      "config": { "probeModule": "fit", "exportName": "verifyCodeCompliance" }
     },
     {
       "id": "FIT-WP-007",
