@@ -2,6 +2,8 @@
 
 Status: **OFFICIAL ERRATA REVIEWED / PRODUCT METHOD BASIS CONFIRMED / DIRECT T2.2 PAGE TRACE STILL OPEN**
 
+Artifact classification: **CURRENT_AUTHORITY**
+
 Calculation ID: `VIB.FIV.FLOW_TURBULENCE`
 
 ## 1. Purpose
@@ -13,7 +15,7 @@ This record separates four source questions that were previously grouped togethe
 3. whether the product method basis should be confused with a client/project procedure adoption;
 4. how the published D2/D4 examples and the richer Owner-controlled DOCX are used when their scenario values differ.
 
-It does not grant screening or design authority.
+It does not grant screening or design authority. Current authority is projected from the qualified FIT calculation state and is not created by this source-basis record.
 
 ## 2. Controlled method source
 
@@ -39,7 +41,7 @@ The FIT product method is explicitly:
 
 ```text
 Technical Module T2.2 — Flow Induced Turbulence
-method revision = ei-aviff2-fit-reference-v2
+methodRevision = ei-aviff2-fit-screening-v1
 ```
 
 Disposition:
@@ -105,10 +107,10 @@ governing EI method PDF
   > retained workbook migration/parity evidence
 ```
 
-For the five controlled FIT benchmark vectors:
+For the controlled FIT benchmark vectors:
 
 ```text
-published EI PDF / controlled JSON = benchmark comparison vector
+published EI PDF / controlled JSON = benchmark comparison vectors
 Owner-controlled DOCX              = qualification anchor + richer/revised scenario evidence
 retained FIT workbook              = migration/parity evidence only
 ```
@@ -131,11 +133,11 @@ DIRECT_T2_2_PAGE_TABLE_EQUATION_MAPPING = NOT_COMPLETE
 
 Reason: the exact controlled full guidance PDF is repository-pinned by commit/path/blob, but this connector runtime has not rendered the governing T2.2 pages at calibration/readback quality. Repository transcriptions and retained workbook formulas do not substitute for that direct locator check.
 
-This remaining gate must not be reported as PASS from source-code inspection alone.
+This remaining gate must not be reported as PASS from source-code inspection alone. Under the Owner-approved worked-example qualification policy it is a traceability/audit enhancement, not a downgrade of the merged bounded-screening qualification.
 
 ## 7. Operator-visible evidence
 
-Machine-readable record:
+Machine-readable source-basis record:
 
 ```text
 converters/vibration/fit/source-basis-evidence.js
@@ -154,15 +156,18 @@ The UI shows:
 - official errata disposition;
 - product reference-method confirmation;
 - project/client adoption requirement;
-- current BENCHMARK_ONLY authority state.
+- current bounded `SCREENING` authority state with design authority false.
 
-## 8. Authority
+## 8. Current authority projection
+
+Current authority is established by the qualified FIT calculation state and merged qualification evidence; this document only reports it:
 
 ```text
-qualificationState    = BENCHMARK_ONLY
-engineeringAuthority  = NONE
-screeningAuthority    = NOT_AUTHORIZED
+qualificationState    = SCREENING
+engineeringAuthority  = SCREENING
+screeningAuthority    = AUTHORIZED_BOUNDED
 designAuthority       = false
+codeCompliance        = false
 ```
 
-No source-basis or errata disposition changes those values.
+No source-basis or errata disposition independently promotes or downgrades those values. Product Freeze remains a separate state and is not established by this record.
