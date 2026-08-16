@@ -20,7 +20,7 @@ export function applyAivCanvasSelection(container, selection) {
   const key = text(selection?.selectionKey);
   let canvasElement = null;
   let tableRow = null;
-  for (const element of container.querySelectorAll('[data-aiv-canvas-node],[data-aiv-canvas-relationship]')) {
+  for (const element of container.querySelectorAll('[data-aiv-canvas-node],[data-aiv-canvas-relationship],[data-aiv-canvas-segment]')) {
     const selected = Boolean(key && element.dataset.aivSelectionKey === key);
     setSelected(element, selected);
     if (selected) canvasElement = element;
@@ -36,12 +36,22 @@ export function applyAivCanvasSelection(container, selection) {
   return Object.freeze({ canvasElement, tableRow });
 }
 
+function segmentPoint(layout, element) {
+  const fromId = text(element?.dataset?.aivNetworkFrom);
+  const toId = text(element?.dataset?.aivNetworkTo);
+  if (!fromId || !toId) return null;
+  const from = layout.nodes.find((item) => item.canonicalId === fromId);
+  const to = layout.nodes.find((item) => item.canonicalId === toId);
+  return from && to ? { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 } : null;
+}
+
 function selectionPoint(layout, canvasElement) {
   const nodeKey = text(canvasElement?.dataset?.aivCanvasNode);
   if (nodeKey) {
     const node = layout.nodes.find((item) => item.nodeKey === nodeKey);
     return node ? { x: node.x, y: node.y } : null;
   }
+  if (canvasElement?.dataset?.aivCanvasSegment) return segmentPoint(layout, canvasElement);
   const sourceKey = text(canvasElement?.dataset?.aivCanvasSourceNode);
   const assessmentKey = text(canvasElement?.dataset?.aivCanvasAssessmentNode);
   const source = layout.nodes.find((item) => item.nodeKey === sourceKey);
