@@ -4,37 +4,37 @@ pr_or_wip: PR528
 mission: "Issue #526 AIV Unified Network Canvas with explicit NETWORK_DRIVEN/TABLE_DRIVEN authority and full-scale input editing"
 workstream: AIV_UNIFIED_NETWORK_CANVAS
 branch: agent/aiv-unified-network-canvas-526
-pr_head: f5b57c84a22fdd005343ab122f5d799fc1f229cf
+pr_head: 50c1a38ba70c9c23cf2e8628c53d7b2fd477d5a8
 main_head_last_checked: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 merge_base: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
 execution_mode: MANUAL
 formal_auto_mode: NOT_ACTIVE_LITERAL_AUTO_MODE_TOKEN_ABSENT
-agent_state: FULL_SCALE_CANVAS_EDITOR_IMPLEMENTED_LOCAL_VALIDATION_PASS
+agent_state: STAGE7_USER_WORKFLOW_FIX_IMPLEMENTED_LOCAL_VALIDATION_PASS
 pr_recovery_state: RECOVERABLE
 handover_readiness: READY
 report_path: agents/PR528_workreport.md
-report_basis_head: f5b57c84a22fdd005343ab122f5d799fc1f229cf
+report_basis_head: 50c1a38ba70c9c23cf2e8628c53d7b2fd477d5a8
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_GATE_SATISFIED
-grounding_epoch: AIV526-GE-013
-current_stage: STAGE_6_FULL_SCALE_CANVAS_EDITOR_LOCAL_PASS
-last_completed_stage: STAGE_6_EDITOR_IMPLEMENTATION_CACHE_CUSTODY_AND_LOCAL_CHROMIUM
+grounding_epoch: AIV526-GE-014
+current_stage: STAGE_7_SCRATCH_NETWORK_AND_LATE_CHANGE_WORKFLOW_LOCAL_PASS
+last_completed_stage: STAGE_7_USER_FLOW_FIX_CACHE_CUSTODY_AND_LOCAL_CHROMIUM
 qualification_comment: 5303402441
-blocker: "No blocker for source/local editor capability. Promotion remains blocked on exact-current-main integrated full native/hosted Chromium/B1-B10 acceptance."
-highest_risk: "Final promotion must prove the editable one-SVG surface in the full application on an exact current-main-integrated candidate; local setContent evidence is lower-level only."
+blocker: "No blocker for source/local Stage-7 capability. Promotion remains blocked on exact-current-main integration and full native/hosted Chromium/B1-B10 acceptance."
+highest_risk: "Do not promote local page.setContent Chromium evidence as hosted/full-application acceptance; branch is still 2 commits behind current main."
 completed_editor_capabilities:
-  - "Blank TABLE_DRIVEN workspace always renders the unified SVG editor before any sample/import is loaded."
-  - "TABLE_DRIVEN quick-create Source and Assessment with renderable identity, then click-to-create Source-to-Assessment relationships."
-  - "TABLE_DRIVEN selected Source/Assessment/Relationship rows expose all working-table columns in Engineering edit and use existing table mutation/delete handlers."
-  - "NETWORK_DRIVEN place-node tool commits the drafted graph node at the clicked transformed canvas coordinate."
-  - "NETWORK_DRIVEN two-node connect gesture creates an explicit physical segment using drafted engineering length/unit."
-  - "Physical segments and routing nodes are selectable in the one SVG."
-  - "NETWORK_DRIVEN Source/Assessment inspector edits engineering input fields through existing graph mutation contracts."
-  - "Physical segment inspector edits endpoints, line and explicit engineering length/unit."
-  - "Delete/Backspace is input-safe; node deletion stays fail-closed while connected segments exist."
-  - "Presentation drag stays revision-neutral; engineering mutations still flow through datasetLoader transaction regeneration/invalidation."
-  - "Fresh editor cache identity 20260816-aiv-526-editor-1 reaches startup, qualification, view/controller and changed editor leaves while preserving FIV cache custody."
+  - "Blank TABLE_DRIVEN workspace always renders the one unified SVG editor."
+  - "Blank canvas now exposes New flare network and creates an empty NETWORK_DRIVEN AivFlareNetwork.v1 with clean AIV_FLARE_NETWORK_UI provenance instead of requiring controlled-mock teardown."
+  - "NETWORK_DRIVEN fast authoring provides sticky operating-case/line context, collision-free suggested IDs, RV Source/Subheader/Main-header/Assessment presets and Quick RV branch creation."
+  - "Quick RV branch creates Source plus explicit physical segment in one returned graph mutation and then commits through the existing datasetLoader engineering transaction."
+  - "New nodes/segments are auto-selected for both direct-canvas and fallback form authoring paths."
+  - "Selected Sources show guidance-only common-input completeness while qualified readiness remains authoritative."
+  - "Canvas shows engineering revision currentness from existing readiness/screening lineage; authoritative edits visibly mark readiness/results stale."
+  - "TABLE_DRIVEN quick-create/edit/delete remains working-table owned; NETWORK_DRIVEN place/connect/edit/delete remains AivFlareNetwork owned."
+  - "Physical segment inspector edits endpoints, line and explicit engineering length/unit; SVG x/y remains presentation-only."
+  - "Delete/Backspace remains input-safe and node deletion stays fail-closed while connected segments exist."
+  - "Fresh editor cache identity 20260816-aiv-526-editor-2 reaches startup, qualification, unified renderer/controller and Stage-7 workflow helper while preserving FIV cache custody."
 protected_authority:
   - AIV_READINESS_EXECUTABLE_PARITY_PR517
   - AIV_NUMERICAL_EQUATIONS
@@ -43,22 +43,19 @@ protected_authority:
   - ASSESSMENT_RESULT_SCOPE
   - DESIGN_AUTHORITY_FALSE
 validation:
-  prior_single_canvas_chromium: "PASS 8/8 lower-level mode-switch evidence"
-  editor_state_exact_local: "PASS 3/3"
-  editor_graph_add_connect_delete_exact_local: "PASS 3/3"
-  editor_authoritative_change_exact_local: "PASS 2/2"
-  editor_pure_total: "PASS 8/8 exact local reconstruction"
-  editor_local_chromium: "PASS 8/8; ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json"
-  blank_workspace_source_inspection: PASS_ALWAYS_RENDERS_UNIFIED_EDITOR
-  module_size_policy: "PASS SOURCE_INSPECTION; Stage-6 unified JS modules remain <300 physical lines"
+  prior_stage6_editor_pure: "PASS 8/8 exact local reconstruction"
+  prior_stage6_editor_local_chromium: "PASS 8/8; ValidationRecords/AIV/PR528-full-scale-editor-local-chromium-evidence.json"
+  stage7_user_workflow_exact_local: "PASS 5/5 reconstructed branch modules"
+  stage7_local_chromium: "PASS 8/8; ValidationRecords/AIV/PR528-stage7-user-workflow-local-chromium-evidence.json"
+  stage7_scenario: "blank -> 3 RV / 2 subheaders / main header -> SUBHEADER-B 22m to 27m -> RV-104 9m branch -> resolved 66m path"
+  module_size_policy: "PASS SOURCE INSPECTION; updated unified controller/editor controller/view remain <290 physical lines"
   cache_chain_regression: COMMITTED_NOT_NATIVE_EXECUTED
-  one_canvas_editor_cutover_regression: COMMITTED_NOT_NATIVE_EXECUTED
-  table_quick_create_regression: COMMITTED_NOT_NATIVE_EXECUTED
+  user_workflow_regression: COMMITTED_AND_LOWER_LEVEL_EXECUTED_5_OF_5
   hosted_full_application_chromium: NOT_RUN_INFRASTRUCTURE_BLOCKED
   full_native_repo: NOT_RUN_NO_PRIVATE_CHECKOUT
   exact_current_main_integrated_runtime: NOT_RUN
   b1_b10: NOT_RUN_COMPLETE_MATRIX
 coordination_state: COORDINATION_REQUIRED_BOUNDARIES_PRESERVED
-exact_next_action: "Integrate/rebase onto current main in a native-capable environment, run permanent editor/cache/source tests plus full AIV release and B1-B10/hosted Chromium acceptance; keep PR draft and do not merge without explicit Owner authorization."
+exact_next_action: "Integrate/rebase onto current main in a native-capable environment, run permanent Stage-7 workflow/cache/source tests plus full AIV release and B1-B10/hosted Chromium acceptance; keep PR draft and do not merge without explicit Owner authorization."
 merge_authority: OWNER_ONLY_NOT_GRANTED
-last_updated: 2026-08-16T04:40:00+04:00
+last_updated: 2026-08-16T06:05:00+04:00
