@@ -1,9 +1,13 @@
 import { buildDeterministicAivCanvasLayout, createAivCanvasLayout } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 import { renderAivCanvasFilterControls } from './vibration-aiv-canvas-filter.js';
 import { renderAivCanvasNodeGlyph, renderAivCanvasStatusGlyphs } from './vibration-aiv-canvas-icons.js';
-import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
-import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260816-aiv-526-editor-1';
-import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-1';
+import {
+  AIV_INPUT_MODE,
+  currentAivInputRevision,
+  isAivLineageCurrent,
+} from './vibration-aiv-engineering-revision.js';
+import { renderAivUnifiedCanvasAuthoringHtml } from './vibration-aiv-unified-canvas-author-view.js?v=20260816-aiv-526-editor-2';
+import { renderAivUnifiedCanvasSelectedDetailHtml } from './vibration-aiv-unified-canvas-inspector.js?v=20260816-aiv-526-editor-2';
 import { buildAivUnifiedCanvasProjection } from './vibration-aiv-unified-canvas-projection.js';
 
 function esc(value) {
@@ -125,6 +129,18 @@ function summaryHtml(value) {
   if (!value.lineCaseSummaries.length) return '';
   return `<div class="aiv-canvas-line-summary">${value.lineCaseSummaries.map((item) => `<span>${esc(item.line || 'Unassigned line')} · ${esc(item.caseId || 'Unassigned case')} · non-authoritative trace</span>`).join('')}</div>`;
 }
+function currentnessHtml(state) {
+  const revision = currentAivInputRevision(state);
+  if (revision === 0) return '';
+  const readinessCurrent = isAivLineageCurrent(state, 'readiness');
+  const screeningCurrent = isAivLineageCurrent(state, 'screening');
+  if (readinessCurrent && screeningCurrent) {
+    return `<div class="aivq-banner is-qualified" data-aiv-canvas-currentness="current"><strong>Engineering revision ${revision} · current.</strong><span>Readiness and registered screening results match the active inputs.</span></div>`;
+  }
+  const readiness = readinessCurrent ? 'current' : 'needs check';
+  const screening = screeningCurrent ? 'current' : 'needs run';
+  return `<div class="aivq-banner is-warning" data-aiv-canvas-currentness="stale"><strong>Engineering inputs changed · revision ${revision}.</strong><span>Readiness: ${readiness} · screening/results: ${screening}. Run the missing checks before relying on or exporting results.</span></div>`;
+}
 
 export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
   const value = projection(state); const networkDriven = value.inputMode === AIV_INPUT_MODE.NETWORK_DRIVEN;
@@ -137,7 +153,7 @@ export function renderAivUnifiedCanvasWorkspaceHtml(state = {}) {
   return `<section class="aivq-card aiv-canvas-card" data-aiv-unified-canvas="true" data-aiv-input-mode="${esc(value.inputMode)}">
     <div class="aivq-section-head"><div><h4>AIV Network Canvas Editor</h4><p>One SVG is the AIV input editor, topology view, relationship view and registered-result surface.</p></div><div class="aiv-canvas-badges"><span class="aiv-canvas-badge authority">${esc(modeLabel)}</span><span class="aiv-canvas-badge authority">SVG x/y = presentation only</span><span class="aiv-canvas-badge authority">registered results</span></div></div>
     <div class="aiv-canvas-head-actions"><button type="button" class="engineering-console-btn is-active" data-aiv-canvas-mode="NAVIGATE">Navigate</button><button type="button" class="engineering-console-btn" data-aiv-canvas-mode="RELATIONSHIPS">${networkDriven ? 'Inspect paths' : 'Relationships'}</button><button type="button" class="engineering-console-btn" data-aiv-canvas-action="zoom-in">Zoom +</button><button type="button" class="engineering-console-btn" data-aiv-canvas-action="zoom-out">Zoom −</button><button type="button" class="engineering-console-btn" data-aiv-canvas-action="reset-view">Reset view</button></div>
-    ${renderAivUnifiedCanvasAuthoringHtml(state)}
+    ${currentnessHtml(state)}${renderAivUnifiedCanvasAuthoringHtml(state)}
     ${renderAivCanvasFilterControls({ nodes, relationships: value.relationships })}
     <div class="aiv-canvas-frame"><svg class="aiv-canvas-svg" data-aiv-canvas-svg="true" data-aiv-unified-canvas-svg="true" viewBox="0 0 900 520" role="img" aria-label="AIV unified network canvas editor"><g data-aiv-canvas-viewport="true">${physicalSegments}${relationshipMarkup}${nodeMarkup}</g></svg></div>
     <div class="aivq-readiness-note"><strong>Authority:</strong> graph edits regenerate calculation tables; physical lengths/path overlays come only from explicit engineering evidence; table mode edits working rows; no SVG distance inference.</div>
