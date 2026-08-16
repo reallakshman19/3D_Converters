@@ -65,9 +65,12 @@ jobs:
             cii_v11_v14_validate.py \
             cii2019_section_rules.py
 
-      - name: Run paired v11-v14 benchmark qualification
+      - name: Run paired benchmark and ALLOWBLS fixed-field qualification
         working-directory: converters/scripts
-        run: python -m unittest -v test_cii_v11_v14.py
+        run: |
+          python -m unittest -v \
+            test_cii_v11_v14.py \
+            test_cii_v11_v14_allowables.py
 
       - name: Protect immutable InputXML CII core
         shell: bash
