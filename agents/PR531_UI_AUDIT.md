@@ -247,14 +247,25 @@ npm run verify:hp-chapter-ix-fatigue
 
 ### Validation truth
 
-The pre-UI-correction fatigue foundation had a retained `22 PASS / 0 FAIL` focused receipt. The newly added UI/package authority regression suite has **not** been executed by hosted CI on the current head because GitHub created no workflow run for it.
+The pre-UI-correction fatigue foundation had a retained `22 PASS / 0 FAIL` focused receipt. The newly added UI/package authority regression suite has **not executed** on the current PR head.
+
+GitHub Actions did create repository-wide workflow runs after the correction, but the observed jobs failed before a runner executed any step:
 
 ```text
-POST_AUDIT_HOSTED_TEST_STATUS = NOT_RUN
-GITHUB_ACTIONS_RUN_FOR_CURRENT_HEAD = NONE
+Vibration AIV Controlled Source Qualification  -> failure, steps=[], runner_id=0
+Vibration Production Freeze Validation          -> failure, steps=[], runner_id=0
+Topology Edit Support Reprojection              -> failure, steps=[], runner_id=0
 ```
 
-Do not treat the earlier 22-test receipt as execution evidence for the new UI corrections.
+Therefore:
+
+```text
+POST_AUDIT_FATIGUE_TEST_STATUS = NOT_RUN
+HOSTED_EXECUTION_STATUS = INFRASTRUCTURE_BLOCKED / ZERO_STEP
+SOURCE_TEST_FAILURE_OBSERVED = NO
+```
+
+Do not treat the zero-step workflow conclusions as a numerical or source-test failure, and do not treat the earlier 22-test receipt as execution evidence for the new UI corrections.
 
 ## Remaining release position
 
