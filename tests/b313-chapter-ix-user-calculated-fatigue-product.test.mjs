@@ -69,7 +69,7 @@ test('central registry exposes the canonical USER_CALCULATED_KD3 calculation', (
   assert.match(definition.ui.nativeAlternative, /Not Qualified/i);
 });
 
-test('central API consumes external Seq/N and derives Salt QA plus Miner usage', () => {
+test('central API consumes external Seq/N and derives Salt QA plus Miner usage without promoting external data', () => {
   const result = calculateEngineering({
     calculationId: B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ID,
     inputs: canonicalInputs(),
@@ -83,7 +83,10 @@ test('central API consumes external Seq/N and derives Salt QA plus Miner usage',
   assert.equal(result.outputs.cycles[0].equivalentAlternatingStressMpa, 95);
   assert.equal(result.outputs.cycles[0].permissibleCycles, 20000);
   assert.equal(result.outputs.cycles[0].usage, 0.5);
+  assert.equal(result.qualification.method, 'IMPLEMENTED');
+  assert.equal(result.qualification.data, 'DRAFT');
   assert.equal(result.qualification.designAuthority, false);
+  assert.equal(result.provenance.externalDataQualification, 'DRAFT');
   assert.equal(result.provenance.codeCompliance, false);
   assert.equal(result.provenance.canUseForDesignAuthority, false);
   assert.equal(result.assessment.authority, 'EXTERNAL_KD3_REVIEW_ONLY');
@@ -96,6 +99,18 @@ test('central adapter fails closed on user Salt mismatch', () => {
   });
   assert.equal(result.ok, false);
   assert.equal(result.errors[0].code, 'USER_SALT_MISMATCH');
+  assert.equal(result.qualification.designAuthority, false);
+});
+
+test('central adapter rejects checker identity collision after normalization', () => {
+  const result = calculateEngineering({
+    calculationId: B313_CHAPTER_IX_USER_CALCULATED_FATIGUE_ID,
+    inputs: canonicalInputs({
+      calculationBasis: basis({ checkedBy: ' engineer_a ' }),
+    }),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0].code, 'USER_FATIGUE_CHECKER_NOT_INDEPENDENT');
   assert.equal(result.qualification.designAuthority, false);
 });
 
