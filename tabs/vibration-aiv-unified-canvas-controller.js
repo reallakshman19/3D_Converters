@@ -4,7 +4,7 @@ import {
 } from '../converters/vibration/aiv/aiv-canvas-layout-contract.js';
 import { moveAivFlareNetworkNodePresentation } from '../converters/vibration/aiv/aiv-flare-network.js';
 import { activateAivCanvasDetailTab, moveAivCanvasDetailTab } from './vibration-aiv-canvas-detail.js';
-import { focusAivCanvasField } from './vibration-aiv-canvas-field.js';
+import { createAivCanvasFieldController } from './vibration-aiv-canvas-field-controller.js?v=20260816-aiv-canvas-fields-1';
 import { createAivCanvasFilterController } from './vibration-aiv-canvas-filter.js';
 import {
   AIV_CANVAS_MODE,
@@ -142,7 +142,8 @@ function updateDeleteControl(container, selection) {
 export function createAivUnifiedCanvasController(container, callbacks = {}) {
   let layout = null; let selection = null; let gesture = null; let suppressClick = false;
   let relationship = createAivCanvasRelationshipState({ mode: AIV_CANVAS_MODE.NAVIGATE }); let labelMode = AIV_CANVAS_LABEL_MODE.NORMAL;
-  const getNetwork = callbacks.getNetwork ?? (() => null); const filter = createAivCanvasFilterController(container, { onSelectionFiltered: () => select(null) }); let editorController = null;
+  const getNetwork = callbacks.getNetwork ?? (() => null); const filter = createAivCanvasFilterController(container, { onSelectionFiltered: () => select(null) });
+  let editorController = null; let fieldController = null;
   function paint() { if (!layout) return; redraw(container, layout); labelMode = setLabelModePresentation(container, labelMode); applyAivCanvasSpatialPresentation(container, layout, selection); }
   function select(next, origin = 'canvas') {
     selection = next;
@@ -151,6 +152,10 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     if (layout) applyAivCanvasSpatialPresentation(container, layout, selection);
     updateDeleteControl(container, selection); callbacks.onSelectionChange?.(selection);
   }
+  fieldController = createAivCanvasFieldController(container, {
+    onCanvasOwner: (element) => select(aivCanvasSelectionFromElement(element)),
+    onFieldCommit: (key) => callbacks.onFieldCommit?.(key),
+  });
   editorController = createAivUnifiedCanvasEditorController(container, {
     getNetwork, getSelection: () => selection, onNetworkChange: callbacks.onNetworkChange, onSelectionChange: (next) => select(next), onError: callbacks.onError,
     toCanvasPoint: (event) => layout && svg(container) ? aivCanvasEventScenePoint(svg(container), layout, event) : { x: 110, y: 100 },
@@ -159,7 +164,7 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     if (!svg(container)) { callbacks.onSelectionChange?.(selection); return; }
     layout = reconcileLayout(container, layout); redraw(container, layout); applyAivCanvasSelection(container, selection); filter.sync();
     setModePresentation(container, relationship.mode); labelMode = setLabelModePresentation(container, labelMode); applyAivCanvasSpatialPresentation(container, layout, selection);
-    updateDeleteControl(container, selection); editorController.sync();
+    updateDeleteControl(container, selection); editorController.sync(); fieldController.sync();
   }
   function updateViewport(next) { layout = createAivCanvasLayout({ nodes: layout.nodes, viewport: next }); paint(); }
   function fitNetwork() { const canvas = svg(container); if (layout && canvas) updateViewport(aivCanvasFitForSvg(layout, canvas)); }
@@ -187,11 +192,10 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     } catch (error) { callbacks.onError?.(error); return true; }
   }
   function click(event) {
-    if (editorController.handleClick(event) || authorAction(event)) return;
+    if (fieldController.handleClick(event) || editorController.handleClick(event) || authorAction(event)) return;
     const labelRequest = event.target.closest('[data-aiv-canvas-label-mode]')?.dataset.aivCanvasLabelMode;
     if (labelRequest) { labelMode = setLabelModePresentation(container, labelRequest); applyAivCanvasSpatialPresentation(container, layout, selection); return; }
     const detailTab = event.target.closest('[data-aiv-detail-tab]'); if (detailTab && activateAivCanvasDetailTab(detailTab)) return;
-    const fieldKey = event.target.closest('[data-aiv-assumption-field-key]')?.dataset.aivAssumptionFieldKey; if (fieldKey) { focusAivCanvasField(container, fieldKey); return; }
     const mode = event.target.closest('[data-aiv-canvas-mode]')?.dataset.aivCanvasMode;
     if (mode) { relationship = setAivCanvasRelationshipMode(relationship, mode); setModePresentation(container, relationship.mode); return; }
     const command = event.target.closest('[data-aiv-canvas-action]')?.dataset.aivCanvasAction;
@@ -215,6 +219,7 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     }
   }
   function change(event) {
+    fieldController.noteCommit(event);
     const author = event.target.closest('[data-aiv-network-editor]'); if (!author) return;
     try { const result = applyAivUnifiedNetworkAuthorChange(getNetwork(), author, event.target); if (result.handled) callbacks.onNetworkChange?.(result.network); }
     catch (error) { callbacks.onError?.(error); }
@@ -252,6 +257,7 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
     const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2; updateViewport({ ...layout.viewport, zoom: Math.max(0.35, Math.min(3, layout.viewport.zoom * factor)) }); event.preventDefault();
   }
   function keyDown(event) {
+    if (fieldController.handleKeyDown(event)) { event.preventDefault(); return; }
     if (editorController.handleKeyDown(event)) { event.preventDefault(); return; }
     if (event.key === 'Escape') { relationship = setAivCanvasRelationshipMode(relationship, AIV_CANVAS_MODE.NAVIGATE); setModePresentation(container, relationship.mode); return; }
     const tab = event.target.closest('[data-aiv-detail-tab]'); if (tab && moveAivCanvasDetailTab(tab, event.key)) { event.preventDefault(); return; }
@@ -269,6 +275,6 @@ export function createAivUnifiedCanvasController(container, callbacks = {}) {
   const handlers = { click, change, pointerdown: pointerDown, pointermove: pointerMove, pointerup: pointerUp, pointercancel: pointerUp, wheel, keydown: keyDown };
   for (const [type, handler] of Object.entries(handlers)) container.addEventListener(type, handler, type === 'wheel' ? { passive: false } : undefined);
   return Object.freeze({ sync, getLayout: () => layout,
-    destroy() { filter.destroy(); editorController.destroy(); for (const [type, handler] of Object.entries(handlers)) container.removeEventListener(type, handler); layout = null; gesture = null; selection = null; },
+    destroy() { filter.destroy(); editorController.destroy(); fieldController.destroy(); for (const [type, handler] of Object.entries(handlers)) container.removeEventListener(type, handler); layout = null; gesture = null; selection = null; },
   });
 }
