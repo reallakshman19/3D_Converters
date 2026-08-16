@@ -12,6 +12,23 @@ function statusKind(definition) {
   return isEngineeringCalculationExecutable(definition) ? 'ok' : 'bad';
 }
 
+function displayState(definition) {
+  return definitionState(definition) === 'PRODUCTION_AUTHORIZED' ? 'PRODUCTION' : definitionState(definition);
+}
+
+function screeningAuthority(definition) {
+  return definition.authority?.screeningAuthority === 'AUTHORIZED_BOUNDED'
+    ? 'Screening authority: BOUNDED'
+    : 'Screening authority: NOT AUTHORIZED';
+}
+
+function qualificationReference(definition) {
+  if (!definition.qualificationIssue) return 'No qualification issue';
+  return definition.id === FIT_ID && definitionState(definition) === 'PRODUCTION_AUTHORIZED'
+    ? `Programme #${definition.qualificationIssue}`
+    : `Issue #${definition.qualificationIssue}`;
+}
+
 function mechanismAction(definition) {
   const executable = isEngineeringCalculationExecutable(definition);
   const fitWorkspace = definition.id === FIT_ID
@@ -30,7 +47,6 @@ function mechanismAction(definition) {
 }
 
 function mechanismCard(definition) {
-  const issue = definition.qualificationIssue ? `Issue #${definition.qualificationIssue}` : 'No qualification issue';
   const limitations = definition.applicability?.limitations ?? [];
   return `<article class="engineering-vibration-card" data-vibration-mechanism="${esc(definition.id)}">
     <div class="engineering-vibration-card-head">
@@ -38,10 +54,10 @@ function mechanismCard(definition) {
         <h3>${esc(definition.shortName || definition.name)}</h3>
         <div class="engineering-console-id">${esc(definition.id)}</div>
       </div>
-      <div class="engineering-vibration-card-status">${pill(definitionState(definition), statusKind(definition))}</div>
+      <div class="engineering-vibration-card-status">${pill(displayState(definition), statusKind(definition))}</div>
     </div>
     <p>${esc(definition.purpose || '')}</p>
-    <div class="engineering-vibration-meta"><span>${esc(issue)}</span><span>Design authority: NO</span></div>
+    <div class="engineering-vibration-meta"><span>${esc(qualificationReference(definition))}</span><span>${esc(screeningAuthority(definition))}</span><span>Design authority: NO</span></div>
     ${limitations.length ? `<ul>${limitations.map((item) => `<li>${esc(item)}</li>`).join('')}</ul>` : ''}
     <div class="engineering-console-actions">${mechanismAction(definition)}</div>
   </article>`;
@@ -54,11 +70,11 @@ export function renderVibrationFamilyLanding(definitions = []) {
     <header class="engineering-vibration-header">
       <div>
         <h2>Vibration &amp; Dynamic Screening</h2>
-        <p>Mechanism-specific vibration integrity. Registered qualification states and available product surfaces are shown without promoting evidence into screening authority.</p>
+        <p>Mechanism-specific vibration integrity. Product lifecycle, engineering authority and available product surfaces are shown as separate states.</p>
       </div>
       <div class="engineering-vibration-count">${rows.length} mechanisms · ${blocked} blocked</div>
     </header>
-    <div class="engineering-console-banner warn"><strong>Authority boundary.</strong> No mechanism on this page has screening or design authority. Evidence/benchmark capability does not imply production qualification.</div>
+    <div class="engineering-console-banner warn"><strong>Authority boundary.</strong> Production lifecycle does not imply design authority. FIT carries bounded screening authority only inside its declared applicability; every other mechanism retains its own registered authority.</div>
     <div class="engineering-vibration-boundary"><strong>TABLE DATA ONLY</strong><span>Vibration consumes 3D EDIT table exports. No 3D viewer or canvas is embedded here.</span></div>
     <div class="engineering-vibration-grid">${rows.map(mechanismCard).join('')}</div>
   </section>`;
