@@ -9,14 +9,14 @@ Base: `main`
 ## Repository grounding
 
 ```text
-CURRENT_MAIN_SHA                d12ca2d53d1ea0174e1b91fbe3105137fdd2a42b
-PR_HEAD_SHA_AT_LAST_ORACLE       9897b4cdff73a3b7045cce4dc38f39b4be264b5d
-FIT_ADAPTER_BLOB                eef88d59846a5c779d5f56b71b9502955ddf1b41
-PRE_MUTATION_TEST_MANIFEST      57
-PR_TEST_MANIFEST                58
+CURRENT_MAIN_SHA                 d12ca2d53d1ea0174e1b91fbe3105137fdd2a42b
+IMPLEMENTATION_HEAD_AT_LAST_ORACLE f71add94302576c519d5ffee95d278b79a20335f
+FIT_ADAPTER_BLOB                 eef88d59846a5c779d5f56b71b9502955ddf1b41
+PRE_MUTATION_TEST_MANIFEST       57
+PR_TEST_MANIFEST                 58
 ```
 
-The PR report itself is a handoff artifact added after the last executable-oracle attempt; therefore the SHA above identifies the implementation head that triggered the recorded Actions result. Re-run validation on the current PR head before merge consideration.
+The report commit itself is a handoff-only mutation after the implementation head above. The implementation head `f71add94302576c519d5ffee95d278b79a20335f` is the head for which the latest Actions-budget oracle and local syntax oracle were recorded. Re-run full repository validation on the eventual merge candidate head.
 
 ## FIT method state
 
@@ -101,7 +101,7 @@ FIT-WP-012  Product Freeze independence / fail-closed receipt rule
 
 The release-manifest count is read dynamically rather than hard-coded into the validator.
 
-## Drift repaired
+## Drift repaired / hardening review
 
 ```text
 console FIT action
@@ -111,6 +111,11 @@ console FIT action
 vibration family banner
   BEFORE  claimed no screening authority exists
   AFTER   derives registered/executable SCREENING mechanisms
+
+vibration family regression
+  BEFORE  asserted today's literal "2 mechanisms"
+  AFTER   derives expected SCREENING count from registered definitions
+          so a legitimate future mechanism qualification does not create false drift
 
 FIT-Source-Basis-Evidence-v1.md
   BEFORE  stale BENCHMARK_ONLY / NONE / NOT_AUTHORIZED current block
@@ -127,7 +132,7 @@ Issue #443
 
 ## Changed-file ledger
 
-Current implementation/handoff set after this report is added:
+Current implementation/handoff set:
 
 ```text
 .backups/connector-20260816-fit-drift-01/agents/WIP-fit-drift-01_workreport.md
@@ -187,31 +192,33 @@ PR #564 lifecycle implementation
 STATUS       OBSERVATION                                             ORACLE
 PASS         main still d12ca2d53d1ea0174e1b91fbe3105137fdd2a42b  GitHub branch ref
 PASS         FIT active registration / adapter authority inspected   current repository source
-PASS         pre-mutation FIT/VIB release manifest = 57               main release manifest source
-PASS         PR FIT/VIB release manifest = 58                         PR release manifest source
+PASS         pre-mutation FIT/VIB release manifest = 57              main release manifest source
+PASS         PR FIT/VIB release manifest = 58                        PR release manifest source
 PASS         controlled benchmark identities and required IDs exist  controlled JSON sources
 PASS         PR path audit contains no numerical/benchmark/workflow mutation GitHub PR file list
 PASS         Issue #443 stale-current state reconciled                issue comment 5308272919
-NOT_RUN      npm run workpack:verify -- VIB-FIT                       connector runtime lacks repo Node execution
-NOT_RUN      npm run verify:vibration-fit-release                     connector runtime lacks repo Node execution
-FAIL         GitHub Actions execution attempt                         Actions run 31956658656
-NOT_RUN      Source tests and browser bundle job body                 job 95188211970 never started
+PASS         revised drift regression parses under Node v22.16.0      local `node --check` syntax oracle
+NOT_RUN      npm run workpack:verify -- VIB-FIT                       no authenticated private-repo checkout in shell runtime
+NOT_RUN      npm run verify:vibration-fit-release                     no authenticated private-repo checkout in shell runtime
+FAIL         GitHub Actions execution attempt                         Actions run 31957478412
+NOT_RUN      controlled-source-qualification job body                 job 95190194272 never started
 NOT_RUN      official Product Freeze Chromium journey                 still protocol-blocked
 ```
 
-GitHub Actions annotation for job `95188211970`:
+GitHub Actions annotation for implementation head `f71add94302576c519d5ffee95d278b79a20335f`, run `31957478412`, job `95190194272`:
 
 ```text
 The job was not started because an Actions budget is preventing further use.
 ```
 
-This is `FAIL / ENVIRONMENT_BLOCKED`. It does not establish a source-test failure and it does not establish PASS.
+This is `FAIL / ENVIRONMENT_BLOCKED`. It does not establish a source-test failure and it does not establish PASS. The shell runtime has Node/npm but no `gh` binary, no GitHub token/credential, and no local private-repository checkout, so it cannot substitute for the blocked Action with an exact repository run.
 
 ## Active blockers
 
 ```text
 FIT-CI-001
   GitHub Actions budget prevents executable work-pack/release validation.
+  Current shell lacks an authenticated private-repo checkout, so exact local execution is also unavailable.
 
 FIT-PF-001
   Official Product Freeze remains BLOCKED until the protocol-defined served Chromium journey produces a PASS receipt.
@@ -219,11 +226,11 @@ FIT-PF-001
 
 ## Highest risk
 
-The highest current risk is accidental promotion of static/source inspection into validation PASS. The machine contract, validator, UI projections and document classifications are implemented, but the new validator and 58-file release suite still require a real Node execution oracle on the current PR head.
+The highest current risk is accidental promotion of syntax/static/source inspection into validation PASS. The machine contract, validator, UI projections and document classifications are implemented, and the new regression's syntax has executed successfully, but the work-pack validator and 58-file release suite still require an exact repository execution oracle.
 
 ## EXACT_NEXT_ACTION
 
-On the current PR #565 head, restore or obtain an executable validation environment and run:
+Restore GitHub Actions capacity or provide an authenticated checkout/executable environment for the private repository. On the eventual PR #565 merge-candidate head run:
 
 ```bash
 npm run workpack:verify -- VIB-FIT
