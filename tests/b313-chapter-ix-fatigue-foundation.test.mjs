@@ -68,20 +68,17 @@ test('synthetic route maps Salt directly to Seq', () => {
   assert.equal(result.routeState, 'SYNTHETIC_REFERENCE_ONLY');
 });
 
-test('explicit mean-stress form requires all parameters and remains provisional', () => {
-  const blocked = calculateChapterIxEquivalentAlternatingStress({
-    alternatingStressIntensityMpa: 80, seqRoute: 'KD320_MEAN_STRESS_CORRECTION',
-  });
-  assert.equal(blocked.ok, false);
-  assert.equal(blocked.code, 'MEAN_STRESS_INPUT_REQUIRED');
-
+test('CORE KD320 route is blocked instead of applying an unqualified provisional formula', () => {
   const result = calculateChapterIxEquivalentAlternatingStress({
-    alternatingStressIntensityMpa: 80, seqRoute: 'KD320_MEAN_STRESS_CORRECTION',
-    meanStressMpa: 100, yieldStrengthMpa: 400, beta: 0.2,
+    alternatingStressIntensityMpa: 80,
+    seqRoute: 'KD320_MEAN_STRESS_CORRECTION',
+    meanStressMpa: 100,
+    yieldStrengthMpa: 400,
+    beta: 0.2,
   });
-  assert.equal(result.ok, true);
-  close(result.equivalentAlternatingStressMpa, 80 / 0.95);
-  assert.equal(result.routeState, 'PROVISIONAL_EXPLICIT_PARAMETERS_NOT_AUTHORIZED');
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'KD320_CORE_ROUTE_NOT_QUALIFIED');
+  assert.equal(result.details.requiredInputMode, 'USER_CALCULATED_KD3');
   assert.equal(result.canUseForDesignAuthority, false);
 });
 
@@ -164,7 +161,7 @@ test('zero pressure range is an explicit zero-damage cycle without curve extrapo
   assert.equal(result.damage.cumulativeUsage, 0);
 });
 
-test('full spectrum blocks production KD320 route when cycle parameters are not explicit', () => {
+test('full spectrum blocks production KD320 route and directs user to external calculated input', () => {
   const result = evaluateChapterIxStraightPipeFatigueSpectrum({
     outsideDiameterMm: D,
     effectiveWallMm: T_EFF,
@@ -178,6 +175,7 @@ test('full spectrum blocks production KD320 route when cycle parameters are not 
     fatigueCurvePoints: SYNTH_POINTS,
   });
   assert.equal(result.ok, false);
-  assert.equal(result.code, 'MEAN_STRESS_INPUT_REQUIRED');
+  assert.equal(result.code, 'KD320_CORE_ROUTE_NOT_QUALIFIED');
   assert.equal(result.details.stage, 'EQUIVALENT_STRESS');
+  assert.equal(result.details.requiredInputMode, 'USER_CALCULATED_KD3');
 });
