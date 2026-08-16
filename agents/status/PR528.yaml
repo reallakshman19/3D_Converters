@@ -4,36 +4,37 @@ pr_or_wip: PR528
 mission: "Issue #526 AIV Unified Network Canvas with explicit NETWORK_DRIVEN/TABLE_DRIVEN authority"
 workstream: AIV_UNIFIED_NETWORK_CANVAS
 branch: agent/aiv-unified-network-canvas-526
-pr_head: 3da55e52ae9c7c2427cde850e682d03384bbf10b
+pr_head: a39441a755a7315f3ffcdb768b6d6eaece59ba78
 main_head_last_checked: f25f721dc35c30b2f7a911f31c26ccdf8a53c6ac
 merge_base: 36f53018d5c1cf8bec609e39d6995a6067bb5d01
 work_intent: IMPLEMENT
 criticality: ENGINEERING_CRITICAL
-agent_state: IMPLEMENTATION_COMPLETE_ACCEPTANCE_BLOCKED
+agent_state: IMPLEMENTATION_COMPLETE_LOCAL_CHROMIUM_PASS_FULL_ACCEPTANCE_BLOCKED
 pr_recovery_state: RECOVERABLE
 handover_readiness: READY
 report_path: agents/PR528_workreport.md
-report_basis_head: 3da55e52ae9c7c2427cde850e682d03384bbf10b
+report_basis_head: a39441a755a7315f3ffcdb768b6d6eaece59ba78
 appendix_a_status: NOT_REQUIRED_NEW_ASSIGNMENT_ISSUE_526_GATE_SATISFIED
-grounding_epoch: AIV526-GE-009
-current_stage: STAGE_5_COMPLETE__FULL_ACCEPTANCE_OUTSTANDING
-last_completed_stage: STAGE_5_CACHE_CUSTODY_AND_CURRENT_MAIN_OVERLAP_RECONCILIATION
+grounding_epoch: AIV526-GE-010
+current_stage: LOCAL_CHROMIUM_HARNESS_PASS__FULL_HOSTED_ACCEPTANCE_OUTSTANDING
+last_completed_stage: LOCAL_CHROMIUM_CONTROLLED_EXAMPLES_AND_AUTHORITY_ASSERTIONS
 qualification_comment: 5303402441
-blocker: "Full native/release/Chromium/B1-B10 acceptance is not executable in the current connector environment; current Actions attempts fail before executing any job steps."
-highest_risk: "Runtime proof must still demonstrate one visible unified canvas/controller on an exact integrated candidate and complete B1-B10 without changing frozen engineering authority."
+blocker: "Hosted/full-application Chromium, full native/release suite and complete B1-B10 remain unavailable: managed Chromium URLBlocklist blocks navigation and Actions jobs execute zero steps. Local Chromium setContent harness is PASS 8/8 and must not be promoted to hosted full-app PASS."
+highest_risk: "Runtime proof on an exact current-main-integrated full application bundle is still required before promotion/merge."
 validation:
   focused_stage1: "PASS 9/9 exact reconstruction at Stage 1 checkpoint"
   unified_projection: "PASS 4/4 exact local reconstruction"
   network_transaction: "PASS 2/2 exact local reconstruction"
   master_currentness: "PASS 3/3 exact local reconstruction"
-  single_canvas_cutover: "SOURCE_INSPECTION + permanent regression committed; native execution NOT_RUN"
+  single_canvas_cutover: "SOURCE_INSPECTION + permanent regression committed"
   cache_custody: "SOURCE_INSPECTION; fresh 20260815-aiv-526-unified-1 chain committed"
-  current_main_overlap: "engineering-calculations-tab FIV cache token synchronized to current main while retaining AIV candidate token"
-  actions_aiv_31916306146: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
-  actions_freeze_31916306123: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
+  local_chromium_harness: "PASS 8/8 on Chromium 144.0.7559.96; ValidationRecords/AIV/PR528-local-chromium-evidence.json; PNG sha256 8eb75fb17567b4e9fcbf135112674e23df79f211a5789902695bfba15e0de017"
+  local_chromium_scenarios: "EI D2.3 TABLE_DRIVEN logical 0.8 m + controlled two-RV NETWORK_DRIVEN 38/41 m"
+  actions_aiv_31916357838: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
+  actions_freeze_31916357854: "INFRASTRUCTURE_BLOCKED failure; job steps=[]"
+  hosted_full_application_chromium: NOT_RUN_URLBLOCKLIST_AND_ACTIONS_INFRA
   full_native_repo: NOT_RUN_NO_PRIVATE_CHECKOUT
-  chromium: NOT_RUN
-  b1_b10: NOT_RUN
+  b1_b10: NOT_RUN_COMPLETE_MATRIX
 completed_capabilities:
   - "Explicit TABLE_DRIVEN/NETWORK_DRIVEN engineering ownership"
   - "Generated-table read-only + explicit detach"
@@ -44,14 +45,15 @@ completed_capabilities:
   - "One production unified canvas view/controller source path"
   - "Integrated network authoring without a second SVG"
   - "Fresh AIV cache identity through active startup and changed leaves"
+  - "Local Chromium evidence renders D2.3 and two-RV flare samples with 8/8 authority/currentness assertions"
 residual_risks:
-  - "Branch history remains two commits behind current main, though the only shared changed production file identified was reconciled to preserve current-main FIV cache custody."
-  - "Real browser/runtime proof remains outstanding."
-  - "Complete B1-B10 and full native release validation remain outstanding."
+  - "Branch history remains two commits behind current main; final validation must use an exact current-main-integrated candidate."
+  - "Managed Chromium policy prevents local URL navigation, so current browser evidence uses page.setContent rather than the full app bundle."
+  - "Hosted Actions browser jobs execute zero steps; complete B1-B10 and full native release validation remain outstanding."
 dependencies:
   - "Issue #526 qualification satisfied by comment 5303402441"
   - "PR #517 active PF-02 readiness/executable parity claim; consume only"
   - "PR #506 broad AIV candidate overlap; salvage evidence only"
 coordination_state: COORDINATION_REQUIRED_BOUNDARIES_PRESERVED
-exact_next_action: "Run the full native AIV release suite and B1-B10/Chromium acceptance on an exact current-main-integrated candidate when a navigation/runtime-capable environment is available; do not merge before owner authorization."
-last_updated: 2026-08-16T04:01:00+04:00
+exact_next_action: "Integrate current main, then run full application/native AIV release and B1-B10/Chromium acceptance in a navigation-capable environment; preserve local Chromium 8/8 as lower-level evidence only; do not merge before owner authorization."
+last_updated: 2026-08-16T04:12:00+04:00
