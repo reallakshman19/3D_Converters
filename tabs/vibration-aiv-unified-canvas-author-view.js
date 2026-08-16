@@ -44,13 +44,24 @@ function segmentRows(network) {
 function tableDrivenTools() {
   return `<section class="aiv-canvas-editor-panel" data-aiv-canvas-table-editor="true">
     <div class="aiv-canvas-editor-title"><div><strong>AIV input editor</strong><small>TABLE_DRIVEN · working tables are engineering authority</small></div></div>
-    <div class="aiv-canvas-editor-toolbar">
-      <button type="button" class="engineering-console-btn primary" data-aiv-table-add="sources">+ Source</button>
-      <button type="button" class="engineering-console-btn primary" data-aiv-table-add="assessments">+ Assessment</button>
-      <button type="button" class="engineering-console-btn" data-aiv-canvas-mode="RELATIONSHIPS">Connect relationship</button>
-      <button type="button" class="engineering-console-btn" data-aiv-table-add="relationships">+ Relationship row</button>
+    <div class="aiv-network-authoring-grid">
+      <fieldset><legend>Create Source</legend>
+        <label>Canonical ID <input data-aiv-table-new-source-id placeholder="PSV-101"></label>
+        <label>Operating case <input data-aiv-table-new-source-case placeholder="RELIEF-CASE-1"></label>
+        <label>Device type <select data-aiv-table-new-source-device>${sourceDeviceOptions()}</select></label>
+        <button type="button" class="engineering-console-btn primary" data-aiv-canvas-table-action="add-source">Add Source to canvas</button>
+      </fieldset>
+      <fieldset><legend>Create Assessment</legend>
+        <label>Canonical ID <input data-aiv-table-new-assessment-id placeholder="WO-101"></label>
+        <label>Assessment type <select data-aiv-table-new-assessment-type>${assessmentTypeOptions()}</select></label>
+        <button type="button" class="engineering-console-btn primary" data-aiv-canvas-table-action="add-assessment">Add Assessment to canvas</button>
+      </fieldset>
     </div>
-    <div class="aiv-canvas-editor-status">Select a canvas item to edit all table-backed fields in the inspector. Relationship mode connects Source → Assessment without inventing pipe topology.</div>
+    <div class="aiv-canvas-editor-toolbar">
+      <button type="button" class="engineering-console-btn primary" data-aiv-canvas-mode="RELATIONSHIPS">Connect Source → Assessment</button>
+      <button type="button" class="engineering-console-btn" data-aiv-table-add="relationships">+ Blank relationship row</button>
+    </div>
+    <div class="aiv-canvas-editor-status">New objects are created with identity immediately so they appear on this SVG. Select an object to edit every table-backed field in Engineering edit.</div>
   </section>`;
 }
 function nodeDraft() {
