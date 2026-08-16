@@ -11,6 +11,5 @@ export {
 
 export {
   HP_PIPING_CLASS_ORCHESTRATOR_VERSION,
-  createHpPipingClassCalculationEngine,
   evaluateHpPipingClassProject,
 } from './hp-piping-class-orchestrator.js';
