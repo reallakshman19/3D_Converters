@@ -1,5 +1,7 @@
 # FIT Controlled Source Register
 
+Artifact classification: **HISTORICAL_BASELINE**
+
 ## Purpose
 
 This register identifies the retained source artifacts relevant to the first **Flow-Induced Turbulence (FIT)** implementation behind the frozen public calculation ID:
@@ -10,7 +12,25 @@ VIB.FIV.FLOW_TURBULENCE
 
 The register establishes source identity only. It does **not** qualify any equation, coefficient, table, acceptance criterion, applicability rule, screening result, or design conclusion.
 
-## Qualification state
+This file preserves the original source-inventory baseline. Its historical blocked-state labels are not current FIT authority. Current authority is controlled by `engineering/workpacks/VIB-FIT.json`, the registered FIT calculation definition, `FIT-Engineering-Method-Specification-v1.md`, `FIT-Screening-Scope-v1.md`, and `FIT-Qualification-Dossier-v1.md`.
+
+## Current authority
+
+```text
+methodRevision        = ei-aviff2-fit-screening-v1
+calculationState      = IMPLEMENTED
+qualificationState    = SCREENING
+engineeringAuthority  = SCREENING
+screeningAuthority    = AUTHORIZED_BOUNDED
+designAuthority       = false
+codeCompliance        = false
+```
+
+Merged PR #499 is the bounded-screening engineering qualification event. Product Freeze is a separate state and is not established by this source register.
+
+## Historical qualification baseline
+
+The following block is retained verbatim as the pre-qualification source-inventory state. It is **HISTORICAL_BASELINE**, not current authority:
 
 ```text
 SOURCE_INVENTORIED
@@ -19,7 +39,7 @@ ENGINEERING_AUTHORITY_NONE
 QUALIFICATION_ISSUE_429_OPEN
 ```
 
-The production calculator must remain blocked until the exact governing method, native units, equations/tables, applicability, assessment criteria, and independent benchmark evidence are controlled and reviewed.
+At that historical stage, the production calculator was required to remain blocked until the exact governing method, native units, equations/tables, applicability, assessment criteria, and independent benchmark evidence were controlled and reviewed. Those subsequent qualification events are recorded in the current method/scope/dossier and PR #499; this paragraph must not be used to downgrade current FIT screening authority.
 
 ## Frozen migration baseline
 
@@ -44,7 +64,7 @@ Two retained paths at the frozen CRF-4-1 commit resolve to the **same Git blob a
 
 Qualification must bind the workbook **content identity**, not the filename. The two names above do not represent two independent engineering sources because they are byte-identical Git blobs.
 
-The retained Git blob is therefore the current source-extraction pin:
+The retained Git blob is therefore the source-extraction pin:
 
 ```text
 d7d4c1a773fe1b2e9791f258b2b7a07e95bdc41e
@@ -132,15 +152,15 @@ The inventory does **not** establish:
 - that the method applies to a specific physical case;
 - screening or design authority.
 
-## Required next engineering artifact
+## Historical next engineering artifact
 
-After extracting the exact pinned workbook, create:
+The original baseline required creation of:
 
 ```text
 docs/vibration/FIT-Engineering-Method-Specification-v1.md
 ```
 
-The specification must identify and independently review, at minimum:
+That requirement is **SUPERSEDED_REQUIREMENT / COMPLETE**: the controlled method specification now exists and is part of the merged qualification basis. The original minimum trace namespaces remain useful history:
 
 ```text
 FIT-APP-*    applicability rules
@@ -150,8 +170,10 @@ FIT-CONST-*  empirical constants
 FIT-ASS-*    assessment/action criteria
 ```
 
-Each method item must be cross-referenced to the exact licensed governing source and workbook evidence where the workbook is used as migration evidence.
+## Historical authority rule
 
-## Authority rule
+The original rule remains valid as a historical source-control principle:
 
-> Workbook extraction is an evidence-gathering step. Numerical implementation may begin only after the extracted behavior has been reconciled to an exact controlled engineering method and independently reviewed.
+> Workbook extraction is an evidence-gathering step. It does not by itself establish numerical or engineering authority.
+
+Current bounded-screening authority comes from the qualified method and evidence package, not from workbook extraction alone.
