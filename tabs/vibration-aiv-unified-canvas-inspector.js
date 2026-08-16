@@ -5,6 +5,8 @@ import {
   renderAivCanvasRelationshipResultHtml,
   renderAivCanvasSourceResultHtml,
 } from './vibration-aiv-canvas-results.js';
+import { AIV_INPUT_MODE } from './vibration-aiv-engineering-revision.js';
+import { renderAivUnifiedCanvasEngineeringEditorHtml } from './vibration-aiv-unified-canvas-editor-view.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -29,21 +31,24 @@ function assumptionAction(item) {
 }
 function inputValuesHtml(values = {}) {
   const rows = Object.entries(values).filter(([, value]) => String(value ?? '').trim());
-  if (!rows.length) return '<small>No table-backed values are available for this presentation item.</small>';
+  if (!rows.length) return '<small>No table-backed values are available for this item.</small>';
   return `<dl class="aiv-canvas-input-values">${rows.map(([key, value]) => `<dt>${esc(key)}</dt><dd>${esc(value)}</dd>`).join('')}</dl>`;
 }
 function provenanceHtml(values = {}) {
   const rows = Object.entries(values).filter(([key, value]) => String(value ?? '').trim()
     && /(Source|Revision|Record ID|Status|Reviewer)/u.test(key));
-  if (!rows.length) return '<small>No explicit table provenance fields are populated.</small>';
+  if (!rows.length) return '<small>No explicit provenance fields are populated.</small>';
   return `<dl class="aiv-canvas-input-values">${rows.map(([key, value]) => `<dt>${esc(key)}</dt><dd>${esc(value)}</dd>`).join('')}</dl>`;
 }
 function metric(label, value) { return `<span><small>${esc(label)}</small><strong>${esc(value ?? '—')}</strong></span>`; }
 function summaryHtml(item, kind) {
   if (kind === 'RELATIONSHIP') {
-    return `<div class="aiv-canvas-detail-grid">${metric('Source', item.sourceCanonicalId)}${metric('Assessment', item.assessmentCanonicalId)}${metric('Case', item.caseId)}${metric('Line', item.line)}${metric('Applicability', item.applicabilityDisposition)}${metric('Physical distance', item.physicalDistance && item.physicalDistanceUnit ? `${item.physicalDistance} ${item.physicalDistanceUnit}` : '—')}${metric('Readiness', item.readinessStatus ?? 'NOT_CHECKED')}${metric('Assumptions', item.assumptionCount)}</div>`;
+    return `<div class="aiv-canvas-detail-grid">${metric('Source', item.sourceCanonicalId)}${metric('Assessment', item.assessmentCanonicalId)}${metric('Case', item.caseId)}${metric('Line', item.line)}${metric('Applicability', item.applicabilityDisposition)}${metric('Physical distance', item.physicalDistance && item.physicalDistanceUnit ? `${item.physicalDistance} ${item.physicalDistanceUnit}` : '—')}${metric('Readiness', item.readinessStatus ?? 'NOT_CHECKED')}</div>`;
   }
-  return `<div class="aiv-canvas-detail-grid">${metric('Canonical ID', item.canonicalId)}${metric('Kind', item.nodeKind)}${metric('Icon type', item.iconType)}${metric('Case', item.caseId ?? (item.caseIds?.join(', ') || '—'))}${metric('Line', item.line)}${metric('Readiness', item.readinessStatus ?? 'NOT_CHECKED')}${metric('Screening status', item.screeningStatus ?? 'NOT_RUN')}${metric('Assumptions', item.assumptionCount)}</div>`;
+  if (kind === 'SEGMENT') {
+    return `<div class="aiv-canvas-detail-grid">${metric('Segment', item.segmentId)}${metric('From', item.fromNodeId)}${metric('To', item.toNodeId)}${metric('Line', item.line)}${metric('Engineering length', item.engineeringLength ?? 'UNRESOLVED')}${metric('Distance authority', 'EXPLICIT SEGMENT INPUT')}</div>`;
+  }
+  return `<div class="aiv-canvas-detail-grid">${metric('Canonical ID', item.canonicalId)}${metric('Kind', item.nodeKind)}${metric('Case', item.caseId ?? (item.caseIds?.join(', ') || '—'))}${metric('Line', item.line)}${metric('Readiness', item.readinessStatus ?? 'NOT_CHECKED')}${metric('Screening status', item.screeningStatus ?? 'NOT_RUN')}${metric('Assumptions', item.assumptionCount ?? 0)}</div>`;
 }
 function t26Html(item) {
   const summary = item?.resultSummary;
@@ -60,26 +65,43 @@ function tabButton(detailId, id, label, selected = false) {
 function panel(detailId, id, html, selected = false) {
   return `<div id="${esc(`${detailId}-panel-${id}`)}" class="aiv-canvas-detail-panel" data-aiv-detail-panel="${id}" role="tabpanel" aria-labelledby="${esc(`${detailId}-tab-${id}`)}"${selected ? '' : ' hidden'}>${html}</div>`;
 }
-function selectedDetail(selectionKey, label, item, resultHtml = '', kind = 'NODE') {
+function selectedDetail(state, selectionKey, labelText, item, resultHtml = '', kind = 'NODE') {
   const assumptions = item.assumptions?.map(assumptionAction).join('') ?? '';
   const detailId = `aiv-detail-${selectionKey.replace(/[^a-zA-Z0-9_-]/gu, '-')}`;
-  const calculationLabel = kind === 'RELATIONSHIP' ? 'Contribution' : kind === 'ASSESSMENT' ? 'Contributions' : 'Calculation';
-  const tabs = [tabButton(detailId, 'summary', 'Summary', true), tabButton(detailId, 'inputs', 'Inputs'), tabButton(detailId, 'calculation', calculationLabel), ...(kind === 'ASSESSMENT' ? [tabButton(detailId, 't26', 'T2-6')] : []), tabButton(detailId, 'assumptions', 'Assumptions'), tabButton(detailId, 'provenance', 'Provenance')].join('');
-  const panels = [panel(detailId, 'summary', summaryHtml(item, kind), true), panel(detailId, 'inputs', inputValuesHtml(item.inputValues)), panel(detailId, 'calculation', resultHtml || '<small>No screening result is available yet. Inputs and identity remain selectable before calculation.</small>'), ...(kind === 'ASSESSMENT' ? [panel(detailId, 't26', t26Html(item))] : []), panel(detailId, 'assumptions', assumptions ? `<div class="aiv-canvas-assumption-list">${assumptions}</div>` : '<small>No resolved assumptions for this item.</small>'), panel(detailId, 'provenance', provenanceHtml(item.inputValues))].join('');
-  return `<section class="aiv-canvas-selected-detail" data-aiv-canvas-assumption-detail="${esc(selectionKey)}" aria-label="Selected AIV item"><strong>${esc(label)}</strong><div class="aiv-canvas-detail-tabs" role="tablist" aria-label="Selected item detail">${tabs}</div>${panels}</section>`;
+  const editorHtml = renderAivUnifiedCanvasEngineeringEditorHtml(state, { ...item, selectionKey }, kind);
+  const calcLabel = kind === 'RELATIONSHIP' ? 'Contribution' : kind === 'ASSESSMENT' ? 'Contributions' : 'Calculation';
+  const tabs = [tabButton(detailId, 'summary', 'Summary', true), ...(editorHtml ? [tabButton(detailId, 'edit', 'Engineering edit')] : []), tabButton(detailId, 'inputs', 'Inputs'), tabButton(detailId, 'calculation', calcLabel), ...(kind === 'ASSESSMENT' ? [tabButton(detailId, 't26', 'T2-6')] : []), tabButton(detailId, 'assumptions', 'Assumptions'), tabButton(detailId, 'provenance', 'Provenance')].join('');
+  const panels = [panel(detailId, 'summary', summaryHtml(item, kind), true), ...(editorHtml ? [panel(detailId, 'edit', editorHtml)] : []), panel(detailId, 'inputs', inputValuesHtml(item.inputValues)), panel(detailId, 'calculation', resultHtml || '<small>No screening result is available for this item.</small>'), ...(kind === 'ASSESSMENT' ? [panel(detailId, 't26', t26Html(item))] : []), panel(detailId, 'assumptions', assumptions ? `<div class="aiv-canvas-assumption-list">${assumptions}</div>` : '<small>No resolved assumptions for this item.</small>'), panel(detailId, 'provenance', provenanceHtml(item.inputValues))].join('');
+  return `<section class="aiv-canvas-selected-detail" data-aiv-canvas-assumption-detail="${esc(selectionKey)}" aria-label="Selected AIV item"><strong>${esc(labelText)}</strong><div class="aiv-canvas-detail-tabs" role="tablist">${tabs}</div>${panels}</section>`;
 }
-function selectedProjectionItem(value, selectionKey) {
+function networkFallback(state, selectionKey) {
+  if (state.inputMode !== AIV_INPUT_MODE.NETWORK_DRIVEN) return null;
+  if (selectionKey.startsWith('SEGMENT:')) {
+    const id = selectionKey.slice('SEGMENT:'.length);
+    const segment = state.flareNetwork?.segments?.find((entry) => entry.segmentId === id);
+    return segment ? { kind: 'SEGMENT', item: { selectionKey, segmentId: id, fromNodeId: segment.fromNodeId, toNodeId: segment.toNodeId, line: segment.line, engineeringLength: segment.physicalLength ? `${segment.physicalLength.value} ${segment.physicalLength.unit}` : null, inputValues: {} } } : null;
+  }
+  const node = state.flareNetwork?.nodes?.find((entry) => {
+    if (entry.kind === 'SOURCE') return `SOURCE:${entry.canonicalId}:${entry.sourceInput?.caseId ?? ''}` === selectionKey;
+    if (entry.kind === 'ASSESSMENT') return `ASSESSMENT:${entry.canonicalId}` === selectionKey;
+    return `NETWORK_NODE:${entry.canonicalId}` === selectionKey;
+  });
+  return node ? { kind: node.kind, item: { selectionKey, canonicalId: node.canonicalId, nodeKind: node.kind, tag: node.tag, line: node.line, caseId: node.sourceInput?.caseId ?? null, inputValues: {}, assumptions: [] } } : null;
+}
+function selectedProjectionItem(state, value, selectionKey) {
   const node = value.nodes.find((item) => item.nodeKey === selectionKey && ['SOURCE', 'ASSESSMENT'].includes(item.nodeKind));
   if (node) return { item: node, kind: node.nodeKind };
   const relationship = value.relationships.find((item) => item.selectionKey === selectionKey);
-  return relationship ? { item: relationship, kind: 'RELATIONSHIP' } : null;
+  return relationship ? { item: relationship, kind: 'RELATIONSHIP' } : networkFallback(state, selectionKey);
 }
 
 export function renderAivUnifiedCanvasSelectedDetailHtml(state = {}, selectionKey = null) {
-  const selected = selectedProjectionItem(projection(state), String(selectionKey ?? '').trim());
-  if (!selected) return '<div class="aiv-canvas-detail-placeholder">Select a Source, Assessment or Source→Assessment relationship to inspect inputs, calculation trace, assumptions and provenance.</div>';
+  const key = String(selectionKey ?? '').trim();
+  const selected = selectedProjectionItem(state, projection(state), key);
+  if (!selected) return '<div class="aiv-canvas-detail-placeholder">Select a Source, Assessment, physical segment, routing node or Source→Assessment relationship. The Engineering edit tab changes the authoritative input for the active mode.</div>';
   const { item, kind } = selected;
-  if (kind === 'RELATIONSHIP') return selectedDetail(item.selectionKey, `${item.sourceCanonicalId} → ${item.assessmentCanonicalId} · ${item.caseId}`, item, renderAivCanvasRelationshipResultHtml(item), kind);
-  const result = kind === 'SOURCE' ? renderAivCanvasSourceResultHtml(item) : renderAivCanvasAssessmentResultHtml(item);
-  return selectedDetail(item.nodeKey, `${kind} ${item.tag}`, item, result, kind);
+  if (kind === 'SEGMENT') return selectedDetail(state, key, `SEGMENT ${item.segmentId}`, item, '', kind);
+  if (kind === 'RELATIONSHIP') return selectedDetail(state, item.selectionKey, `${item.sourceCanonicalId} → ${item.assessmentCanonicalId} · ${item.caseId}`, item, renderAivCanvasRelationshipResultHtml(item), kind);
+  const result = kind === 'SOURCE' ? renderAivCanvasSourceResultHtml(item) : kind === 'ASSESSMENT' ? renderAivCanvasAssessmentResultHtml(item) : '';
+  return selectedDetail(state, key, `${kind} ${item.tag || item.canonicalId}`, item, result, kind);
 }
